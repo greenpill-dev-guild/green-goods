@@ -233,7 +233,7 @@ describe("indexer readiness policy", () => {
       "42161",
       {
         contracts: [{ name: "ActionRegistry" }, { name: "YieldSplitter" }],
-        networks: [
+        chains: [
           {
             id: 42161,
             contracts: [{ name: "ActionRegistry", address: ADDRESS.actionRegistry }],

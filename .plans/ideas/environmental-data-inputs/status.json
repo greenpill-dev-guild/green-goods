@@ -10,7 +10,7 @@
     "overall_status": "idea",
     "priority": "p3",
     "created_at": "2026-05-03T00:00:00.000Z",
-    "updated_at": "2026-05-10T22:34:44.627Z"
+    "updated_at": "2026-10-06T09:26:48Z"
   },
   "links": {
     "brief": "brief.md",
@@ -27,7 +27,8 @@
   },
   "notes": [
     "Consolidates locale-energy-iot-data-inputs and sylvie-environmental-data-inputs.",
-    "Provider-specific source plans are preserved under artifacts/provider-sources/."
+    "Provider-specific source plans are preserved under artifacts/provider-sources/.",
+    "2026-10-06 reconciliation: RESR-10 remains Backlog. Provider contracts, data rights, verification strength, ownership and concrete garden/use-case choices remain unresolved. Preserve the consolidated provider sources; this review neither checks current partner facts nor authorizes an integration."
   ],
   "lanes": {
     "ui": {
@@ -133,6 +134,14 @@
       "status": "linear_recorded",
       "branch": null,
       "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-10-06T09:26:48Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "status_reconciled",
+      "branch": null,
+      "note": "RESR-10 remains Backlog. Provider contracts, data rights, verification strength, ownership and concrete garden/use-case choices remain unresolved. Preserve the consolidated provider sources; this review neither checks current partner facts nor authorizes an integration."
     }
   ],
   "linear": {

@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1800" viewBox="0 0 900 900" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" role="img" aria-labelledby="succession-title succession-desc">
+  <title id="succession-title">Succession later, with consent</title>
+  <desc id="succession-desc">The upper band shows what the first implementation actually provides: rest, resume, and retire, drawn solid. The lower band is a clearly labelled horizon of five distinct later actions — co-holding, teaching alongside, handing on, starting a linked offer, and garden-held stewardship — drawn dashed with no controls. Each names who must agree. A promise already made never moves to a successor, and nothing here is transferable or saleable.</desc>
+  <rect x="0" y="0" width="900" height="900" fill="#FBF8F2"/>
+
+  <text x="450" y="46" text-anchor="middle" font-size="32" font-weight="700" fill="#2A2722">Succession later, with consent</text>
+  <text x="450" y="76" text-anchor="middle" font-size="17" fill="#6E6857">Passing something on is several different acts. None of them is a transfer of obligation.</text>
+
+  <!-- TODAY -->
+  <rect x="52" y="106" width="796" height="188" rx="14" fill="#FFFFFF" stroke="#4C7A57" stroke-width="2.5"/>
+  <text x="80" y="138" font-size="14" font-weight="700" fill="#24422E" letter-spacing="1.2">WHAT THE FIRST IMPLEMENTATION PROVIDES</text>
+
+  <rect x="80" y="156" width="238" height="112" rx="11" fill="#DFEBDE" stroke="#24422E" stroke-width="2"/>
+  <text x="199" y="190" text-anchor="middle" font-size="19" font-weight="600" fill="#24422E">Rest</text>
+  <text x="199" y="218" text-anchor="middle" font-size="15" fill="#3E5C41">stop offering new places</text>
+  <text x="199" y="240" text-anchor="middle" font-size="15" fill="#3E5C41">keep every promise</text>
+  <text x="199" y="258" text-anchor="middle" font-size="15" fill="#3E5C41">and the whole story</text>
+
+  <rect x="331" y="156" width="238" height="112" rx="11" fill="#DFEBDE" stroke="#24422E" stroke-width="2"/>
+  <text x="450" y="190" text-anchor="middle" font-size="19" font-weight="600" fill="#24422E">Resume</text>
+  <text x="450" y="218" text-anchor="middle" font-size="15" fill="#3E5C41">offer again when ready</text>
+  <text x="450" y="240" text-anchor="middle" font-size="15" fill="#3E5C41">creates no availability</text>
+  <text x="450" y="258" text-anchor="middle" font-size="15" fill="#3E5C41">on its own</text>
+
+  <rect x="582" y="156" width="238" height="112" rx="11" fill="#DFEBDE" stroke="#24422E" stroke-width="2"/>
+  <text x="701" y="190" text-anchor="middle" font-size="19" font-weight="600" fill="#24422E">Retire</text>
+  <text x="701" y="218" text-anchor="middle" font-size="15" fill="#3E5C41">close it for good</text>
+  <text x="701" y="240" text-anchor="middle" font-size="15" fill="#3E5C41">existing promises and</text>
+  <text x="701" y="258" text-anchor="middle" font-size="15" fill="#3E5C41">history are untouched</text>
+
+  <!-- horizon divider -->
+  <line x1="52" y1="322" x2="848" y2="322" stroke="#8A6D3B" stroke-width="2" stroke-dasharray="8 6"/>
+  <rect x="356" y="306" width="188" height="32" rx="16" fill="#FBF8F2"/>
+  <text x="450" y="328" text-anchor="middle" font-size="15" font-weight="700" fill="#8A6D3B" letter-spacing="1">LATER — NOT BUILT</text>
+
+  <!-- LATER -->
+  <rect x="52" y="352" width="796" height="332" rx="14" fill="#FFFFFF" stroke="#8A6D3B" stroke-width="2.5" stroke-dasharray="7 5"/>
+  <text x="80" y="384" font-size="14" font-weight="700" fill="#8A6D3B" letter-spacing="1.2">FIVE DISTINCT ACTS · EACH NEEDS ITS OWN AGREEMENT</text>
+
+  <rect x="80" y="402" width="238" height="120" rx="11" fill="#F1ECE2" stroke="#988D77" stroke-width="2" stroke-dasharray="5 4"/>
+  <text x="199" y="432" text-anchor="middle" font-size="17" font-weight="600" fill="#3B372E">Share it</text>
+  <text x="199" y="458" text-anchor="middle" font-size="15" fill="#6E6857">two people hold the</text>
+  <text x="199" y="478" text-anchor="middle" font-size="15" fill="#6E6857">same ongoing Offer</text>
+  <text x="199" y="506" text-anchor="middle" font-size="14" fill="#8A6D3B">both must agree</text>
+
+  <rect x="331" y="402" width="238" height="120" rx="11" fill="#F1ECE2" stroke="#988D77" stroke-width="2" stroke-dasharray="5 4"/>
+  <text x="450" y="432" text-anchor="middle" font-size="17" font-weight="600" fill="#3B372E">Teach alongside</text>
+  <text x="450" y="458" text-anchor="middle" font-size="15" fill="#6E6857">credited for sessions</text>
+  <text x="450" y="478" text-anchor="middle" font-size="15" fill="#6E6857">they help with</text>
+  <text x="450" y="506" text-anchor="middle" font-size="14" fill="#8A6D3B">learner must agree</text>
+
+  <rect x="582" y="402" width="238" height="120" rx="11" fill="#F1ECE2" stroke="#988D77" stroke-width="2" stroke-dasharray="5 4"/>
+  <text x="701" y="432" text-anchor="middle" font-size="17" font-weight="600" fill="#3B372E">Hand it on</text>
+  <text x="701" y="458" text-anchor="middle" font-size="15" fill="#6E6857">you offer, they accept</text>
+  <text x="701" y="478" text-anchor="middle" font-size="15" fill="#6E6857">history is preserved</text>
+  <text x="701" y="506" text-anchor="middle" font-size="14" fill="#8A6D3B">two steps, both consent</text>
+
+  <rect x="196" y="538" width="238" height="120" rx="11" fill="#F1ECE2" stroke="#988D77" stroke-width="2" stroke-dasharray="5 4"/>
+  <text x="315" y="568" text-anchor="middle" font-size="17" font-weight="600" fill="#3B372E">Start a linked offer</text>
+  <text x="315" y="594" text-anchor="middle" font-size="15" fill="#6E6857">theirs, saying where</text>
+  <text x="315" y="614" text-anchor="middle" font-size="15" fill="#6E6857">it grew from</text>
+  <text x="315" y="642" text-anchor="middle" font-size="14" fill="#8A6D3B">both must agree</text>
+
+  <rect x="466" y="538" width="238" height="120" rx="11" fill="#F1ECE2" stroke="#988D77" stroke-width="2" stroke-dasharray="5 4"/>
+  <text x="585" y="568" text-anchor="middle" font-size="17" font-weight="600" fill="#3B372E">Let the garden hold it</text>
+  <text x="585" y="594" text-anchor="middle" font-size="15" fill="#6E6857">each session still</text>
+  <text x="585" y="614" text-anchor="middle" font-size="15" fill="#6E6857">names its own lead</text>
+  <text x="585" y="642" text-anchor="middle" font-size="14" fill="#8A6D3B">holder and steward agree</text>
+
+  <!-- boundary -->
+  <rect x="52" y="708" width="796" height="112" rx="12" fill="#DFEBDE" stroke="#24422E" stroke-width="2"/>
+  <text x="80" y="740" font-size="14" font-weight="700" fill="#24422E" letter-spacing="1.2">THE LINE THAT DOES NOT MOVE</text>
+  <text x="80" y="770" font-size="17" fill="#24422E">A promise already made keeps its original lead. Only the right to open future</text>
+  <text x="80" y="794" font-size="17" fill="#24422E">places can pass, and only with a yes on both sides. Nothing here is saleable.</text>
+
+  <text x="450" y="868" text-anchor="middle" font-size="16" fill="#6E6857">Green Goods · Commitment Pooling — v1 (2026-08)</text>
+</svg>

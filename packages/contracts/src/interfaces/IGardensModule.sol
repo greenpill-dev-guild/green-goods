@@ -18,14 +18,12 @@ interface IGardensModule {
         Linear, // (10_000, 20_000, 30_000) — flat, 3x operator influence
         Exponential, // (20_000, 40_000, 160_000) — moderate, 8x operator influence
         Power // (30_000, 90_000, 810_000) — steep, 27x operator influence
-
     }
 
     /// @notice Pool types created for each garden
     enum PoolType {
         ActionSignal, // Signal pool for prioritizing garden actions
         HypercertSignal // Signal pool for curating hypercerts
-
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

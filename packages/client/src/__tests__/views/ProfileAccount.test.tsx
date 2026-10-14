@@ -3,7 +3,7 @@ import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
   usePrimaryAddress: () => "0x1234567890abcdef1234567890abcdef12345678",
 }));
 

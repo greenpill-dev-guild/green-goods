@@ -1,20 +1,27 @@
-import type { Meta, StoryObj } from "@storybook/react";
-import type { QueryKey } from "@tanstack/react-query";
-import { AppBar, DEFAULT_CHAIN_ID, MainSheet, queryKeys, type Address } from "@green-goods/shared";
+import { AppBar } from "@green-goods/shared/components/Canvas/AppBar";
+import { MainSheet } from "@green-goods/shared/components/Canvas/MainSheet";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
+import type { Address } from "@green-goods/shared/types/domain";
 import {
   AuthActionsContext,
-  AuthContext,
-  AuthStateContext,
   type AuthActionsValue,
+  AuthContext,
   type AuthContextType,
+  AuthStateContext,
   type AuthStateValue,
-} from "@green-goods/shared/providers";
+} from "@green-goods/shared/providers/Auth";
+import type { Meta, StoryObj } from "@storybook/react";
+import type { QueryKey } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { Route, Routes } from "react-router-dom";
-import { expect, fn, within } from "storybook/test";
+import { expect, fn, userEvent, within } from "storybook/test";
+import { CanvasGardenAccessState } from "@/components/Layout/CanvasGardenAccessState";
+import { CanvasIndexerErrorState } from "@/components/Layout/CanvasIndexerErrorState";
+import { SeedlingIllustration } from "@/components/Layout/SeedlingIllustration";
 import {
   STORYBOOK_ADMIN_SHELL_SEEDS,
-  STORYBOOK_OPERATOR_ADDRESS,
+  STORYBOOK_STEWARD_ADDRESS,
 } from "../../../shared/.storybook/adminFixtures";
 import {
   withCanvasFrame,
@@ -22,12 +29,10 @@ import {
   withSeededQueryClient,
   withWagmi,
 } from "../../../shared/.storybook/decorators";
-import { CanvasGardenAccessState } from "@/components/Layout/CanvasGardenAccessState";
-import { CanvasIndexerErrorState } from "@/components/Layout/CanvasIndexerErrorState";
-import { SeedlingIllustration } from "@/components/Layout/SeedlingIllustration";
 import IndexRoute from "./IndexRoute";
 
-const STORYBOOK_OPERATOR_ADDRESS_KEY = STORYBOOK_OPERATOR_ADDRESS.toLowerCase() as Address;
+const STORYBOOK_STEWARD_ADDRESS_KEY = STORYBOOK_STEWARD_ADDRESS.toLowerCase() as Address;
+const STORYBOOK_STEWARD = STORYBOOK_STEWARD_ADDRESS satisfies Address;
 
 const noopAsync = async () => {};
 const noop = () => {};
@@ -66,13 +71,14 @@ const walletAuthState: AuthStateValue = {
   credential: null,
   smartAccountAddress: null,
   smartAccountClient: null,
-  userName: "Storybook operator",
+  resolveSmartAccountClient: null,
+  userName: "Storybook steward",
   hasStoredCredential: false,
-  walletAddress: STORYBOOK_OPERATOR_ADDRESS,
-  eoaAddress: STORYBOOK_OPERATOR_ADDRESS,
+  walletAddress: STORYBOOK_STEWARD,
+  eoaAddress: STORYBOOK_STEWARD,
   embeddedAddress: null,
   externalWalletConnected: true,
-  externalWalletAddress: STORYBOOK_OPERATOR_ADDRESS,
+  externalWalletAddress: STORYBOOK_STEWARD,
 };
 
 const loadingAuthState: AuthStateValue = {
@@ -101,15 +107,15 @@ const embeddedAuthState: AuthStateValue = {
   authMode: "embedded",
   eoaAddress: undefined,
   walletAddress: null,
-  embeddedAddress: STORYBOOK_OPERATOR_ADDRESS,
+  embeddedAddress: STORYBOOK_STEWARD,
 };
 
 const NO_GARDEN_SEEDS: ReadonlyArray<readonly [QueryKey, unknown]> = [
   ...STORYBOOK_ADMIN_SHELL_SEEDS,
   [queryKeys.gardens.byChain(DEFAULT_CHAIN_ID), []],
-  [queryKeys.role.operatorGardens(STORYBOOK_OPERATOR_ADDRESS_KEY, DEFAULT_CHAIN_ID), []],
+  [queryKeys.role.stewardGardens(STORYBOOK_STEWARD_ADDRESS_KEY, DEFAULT_CHAIN_ID), []],
   [
-    queryKeys.role.deploymentPermissions(STORYBOOK_OPERATOR_ADDRESS_KEY, DEFAULT_CHAIN_ID),
+    queryKeys.role.deploymentPermissions(STORYBOOK_STEWARD_ADDRESS_KEY, DEFAULT_CHAIN_ID),
     { isOwner: false, isInAllowlist: true, canDeploy: true },
   ],
 ];
@@ -179,7 +185,7 @@ export const Loading: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(
-      await canvas.findByRole("status", { name: "Checking authentication..." })
+      await canvas.findByRole("status", { name: "Opening your workspace…" })
     ).toBeVisible();
   },
 };
@@ -201,7 +207,7 @@ export const WalletRequired: Story = {
     const canvas = within(canvasElement);
     await expect(await canvas.findByTestId("wallet-required-shell")).toBeVisible();
     await expect(
-      await canvas.findByRole("button", { name: "Sign out & connect wallet" })
+      await canvas.findByRole("button", { name: "Sign Out & Connect Wallet" })
     ).toBeVisible();
   },
 };
@@ -213,6 +219,45 @@ export const NoGardenAccess: Story = {
     const canvas = within(canvasElement);
     await expect(await canvas.findByTestId("canvas-no-garden-access")).toBeVisible();
     await expect(await canvas.findByRole("button", { name: "Create Garden" })).toBeVisible();
+  },
+};
+
+export const PasskeyNoGardenAccess: Story = {
+  tags: ["storybook-ci"],
+  render: () => (
+    <IndexRouteScenario
+      state={{
+        ...walletAuthState,
+        authMode: "passkey",
+        smartAccountAddress: STORYBOOK_STEWARD,
+        walletAddress: null,
+        eoaAddress: undefined,
+        externalWalletConnected: false,
+        externalWalletAddress: null,
+      }}
+    />
+  ),
+  decorators: indexRouteDecorators([
+    ...NO_GARDEN_SEEDS,
+    [
+      queryKeys.role.deploymentPermissions(STORYBOOK_STEWARD_ADDRESS_KEY, DEFAULT_CHAIN_ID),
+      { isOwner: false, isInAllowlist: false, canDeploy: false },
+    ],
+    [queryKeys.ens.name(STORYBOOK_STEWARD_ADDRESS_KEY), null],
+    [queryKeys.ens.protocolName(STORYBOOK_STEWARD_ADDRESS_KEY), null],
+    [queryKeys.profileAvatars.record(DEFAULT_CHAIN_ID, STORYBOOK_STEWARD), null],
+  ]),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByTestId("canvas-no-garden-access")).toBeVisible();
+    await userEvent.click(canvas.getByRole("button", { name: "Profile" }));
+    const dialog = within(
+      await within(canvasElement.ownerDocument.body).findByRole("dialog", { name: "Profile" })
+    );
+    await expect(dialog.getByText("Passkey")).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "Copy Address" })).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "Disconnect" })).toBeVisible();
+    await userEvent.click(dialog.getByRole("button", { name: "Close" }));
   },
 };
 
@@ -228,13 +273,13 @@ export const RedirectReady: Story = {
 };
 
 /**
- * Visual harness for the indexer-error and operator-misclassification cases.
+ * Visual harness for the indexer-error and steward-misclassification cases.
  *
  * The route-driven scenarios above can't simulate `useGardens.isError = true`
  * via React Query seeds (errors come from queryFn execution, not setQueryData),
  * so these stories render the terminal-state components directly inside the
  * home shell. They cover the IndexerError state introduced by the audit fix
- * and the operator-only no-garden copy that operators see now that
+ * and the steward-only no-garden copy that stewards see now that
  * `canCreateGarden` is gated to deployers.
  */
 function HomeShellHarness({ children }: { children: ReactNode }) {
@@ -246,7 +291,7 @@ function HomeShellHarness({ children }: { children: ReactNode }) {
       <div className="canvas-area-top">
         <AppBar
           gardenChip={
-            <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-text-strong">
+            <span className="inline-flex items-center gap-1.5 body-sm font-semibold text-text-strong">
               <SeedlingIllustration className="h-5 w-5" />
               Green Goods
             </span>
@@ -271,9 +316,9 @@ const harnessDecorators = [
   }),
 ];
 
-export const NoGardenAccessOperator: Story = {
+export const NoGardenAccessSteward: Story = {
   tags: ["visual-harness"],
-  name: "NoGardenAccess (operator copy)",
+  name: "NoGardenAccess (steward copy)",
   render: () => (
     <HomeShellHarness>
       <CanvasGardenAccessState onCreateGarden={fn()} canCreateGarden={false} />
@@ -284,7 +329,7 @@ export const NoGardenAccessOperator: Story = {
     docs: {
       description: {
         story:
-          "Operator-only copy: no Create Garden CTA, message reads 'Ask a garden owner to add you as an operator.' This is what `useEligibleAdminGardens.canCreateGarden=false` produces — and after the F2 fix that gate is `role === \"deployer\"`, so any operator with zero eligible gardens lands here.",
+          "Steward-only copy: no Create Garden CTA, message reads 'Ask a garden owner to add you as a steward.' This is what `useEligibleAdminGardens.canCreateGarden=false` produces — and after the F2 fix that gate is `role === \"deployer\"`, so any steward with zero eligible gardens lands here.",
       },
     },
   },
@@ -302,7 +347,7 @@ export const IndexerError: Story = {
     docs: {
       description: {
         story:
-          "Distinct from the no-garden state. Renders when `useEligibleAdminGardens.isError` is true and the role-confirmed cross-check did not produce any fallback gardens. Previously this case rendered the no-garden copy, which gaslit operators during indexer outages.",
+          "Distinct from the no-garden state. Renders when `useEligibleAdminGardens.isError` is true and the role-confirmed cross-check did not produce any fallback gardens. Previously this case rendered the no-garden copy, which gaslit stewards during indexer outages.",
       },
     },
   },

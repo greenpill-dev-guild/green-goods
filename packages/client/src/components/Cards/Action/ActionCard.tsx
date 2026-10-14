@@ -1,8 +1,10 @@
-import { type Action, ActionBannerFallback, cn } from "@green-goods/shared";
+import type { Action } from "@green-goods/shared/types/domain";
+import { ActionBannerFallback } from "@green-goods/shared/components/Display/ActionBannerFallback";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
 import { ImageWithFallback } from "../../Display/Image/ImageWithFallback";
-import { Card, type CardRootProps } from "../Base/Card";
+import { Card, type CardRootProps } from "../Card";
 
 export const cardVariants = tv({
   base: "relative flex flex-col grow border-0 rounded-lg overflow-clip rounded-b-lg justify-between p-0 gap-0",
@@ -38,9 +40,11 @@ const ActionCard = React.forwardRef<HTMLDivElement, ActionCardRootProps>(
       <Card
         ref={ref}
         data-testid="action-card"
+        // No press of its own: the picker toggle around it presses in (DL-039),
+        // and a second press here would stack with it.
         className={cn(
           classes,
-          "@container tap-feedback transition-all duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]"
+          "@container transition-all duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]"
         )}
         {...props}
       >
@@ -62,7 +66,7 @@ const ActionCard = React.forwardRef<HTMLDivElement, ActionCardRootProps>(
           <h5
             className={cn(
               "min-w-0 truncate text-label-md font-semibold",
-              selected && "text-primary"
+              selected && "text-primary-on-surface"
             )}
             title={action.title}
           >
@@ -78,7 +82,7 @@ const ActionCard = React.forwardRef<HTMLDivElement, ActionCardRootProps>(
         <div
           aria-hidden="true"
           className={cn(
-            "absolute inset-0 rounded-lg border-[3px] border-primary opacity-0 status-transition z-10 pointer-events-none",
+            "absolute inset-0 rounded-lg border-[3px] border-primary-on-surface opacity-0 status-transition z-10 pointer-events-none",
             selected && "opacity-100"
           )}
         />

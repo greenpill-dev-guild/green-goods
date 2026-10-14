@@ -6,10 +6,8 @@ CONTRACTS_DIR="$ROOT_DIR/packages/contracts"
 OUTPUT_DIR="$ROOT_DIR/output/contracts-test-audit"
 COVERAGE_TIMEOUT_SECONDS="${COVERAGE_TIMEOUT_SECONDS:-900}"
 
-UNIT_LOG="$OUTPUT_DIR/coverage-unit.log"
-INTEGRATION_LOG="$OUTPUT_DIR/coverage-integration.log"
-UNIT_LCOV="$OUTPUT_DIR/lcov-unit.info"
-INTEGRATION_LCOV="$OUTPUT_DIR/lcov-integration.info"
+LOCAL_LOG="$OUTPUT_DIR/coverage-local.log"
+LOCAL_LCOV="$OUTPUT_DIR/lcov-local.info"
 SUMMARY_MD="$OUTPUT_DIR/coverage-summary.md"
 SUMMARY_JSON="$OUTPUT_DIR/coverage-summary.json"
 
@@ -46,45 +44,28 @@ run_with_timeout() {
 
 pushd "$CONTRACTS_DIR" >/dev/null
 
-unitCoverageOk=true
-integrationCoverageOk=true
-unitError=""
-integrationError=""
+localCoverageOk=true
+localError=""
 
-echo "[coverage] Running unit coverage (test/unit/**)..."
-if ! run_with_timeout "$COVERAGE_TIMEOUT_SECONDS" "$UNIT_LOG" forge coverage --ir-minimum --report lcov --match-path 'test/unit/**'; then
-    unitCoverageOk=false
-    unitError="Unit coverage command failed or timed out. See $UNIT_LOG"
+echo "[coverage] Running all local non-fork, non-E2E Solidity coverage..."
+if ! run_with_timeout "$COVERAGE_TIMEOUT_SECONDS" "$LOCAL_LOG" forge coverage --ir-minimum --report lcov \
+    --no-match-contract 'E2E' --no-match-path 'test/fork/**'; then
+    localCoverageOk=false
+    localError="Local coverage command failed or timed out. See $LOCAL_LOG"
 else
     if [[ ! -f lcov.info ]]; then
-        unitCoverageOk=false
-        unitError="Expected lcov.info after unit coverage run"
+        localCoverageOk=false
+        localError="Expected lcov.info after local coverage run"
     else
-        mv lcov.info "$UNIT_LCOV"
-    fi
-fi
-
-echo "[coverage] Running integration coverage (test/integration/**)..."
-if ! run_with_timeout "$COVERAGE_TIMEOUT_SECONDS" "$INTEGRATION_LOG" forge coverage --ir-minimum --report lcov --match-path 'test/integration/**'; then
-    integrationCoverageOk=false
-    integrationError="Integration coverage command failed or timed out. See $INTEGRATION_LOG"
-else
-    if [[ ! -f lcov.info ]]; then
-        integrationCoverageOk=false
-        integrationError="Expected lcov.info after integration coverage run"
-    else
-        mv lcov.info "$INTEGRATION_LCOV"
+        mv lcov.info "$LOCAL_LCOV"
     fi
 fi
 
 popd >/dev/null
 
 node "$ROOT_DIR/scripts/contracts/coverage-policy.mjs" \
-    --unit-lcov "$UNIT_LCOV" \
-    --integration-lcov "$INTEGRATION_LCOV" \
+    --local-lcov "$LOCAL_LCOV" \
     --summary-md "$SUMMARY_MD" \
     --summary-json "$SUMMARY_JSON" \
-    --unit-ok "$unitCoverageOk" \
-    --integration-ok "$integrationCoverageOk" \
-    --unit-error "$unitError" \
-    --integration-error "$integrationError"
+    --local-ok "$localCoverageOk" \
+    --local-error "$localError"

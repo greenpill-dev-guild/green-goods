@@ -1,7 +1,7 @@
 import { type KeyboardEvent, useCallback, useId, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Confidence } from "../../types/domain";
-import { cn } from "../../utils/styles/cn";
+import { Chip } from "../Chip";
 
 export interface ConfidenceSelectorProps {
   value: Confidence;
@@ -12,10 +12,14 @@ export interface ConfidenceSelectorProps {
 }
 
 /**
- * A 4-segment radio group for selecting verification confidence level.
+ * A four-choice radio group for the verification confidence level, rendered as
+ * shared `Chip`s with `role="radio"` (the same anatomy as AssetSelector), so it
+ * takes the surface's capsule, label, and 44px hit area (DL-031).
  *
  * When `disabled` (e.g., for rejections), defaults to None and disables interaction.
- * When `required` (e.g., for approvals), the user must select Low or higher.
+ * When `required` (e.g., for approvals), None is not a choice: nothing is
+ * selected until the reviewer picks Low or higher, the first chip holds the
+ * tab stop meanwhile, and the hint appears only for a chosen level.
  */
 export function ConfidenceSelector({
   value,
@@ -28,48 +32,52 @@ export function ConfidenceSelector({
   const groupId = useId();
 
   const CONFIDENCE_OPTIONS = useMemo(
-    () => [
-      {
-        value: Confidence.NONE,
-        label: formatMessage({ id: "app.form.confidence.none", defaultMessage: "None" }),
-        hint: formatMessage({
-          id: "app.form.confidence.none.hint",
-          defaultMessage: "No confidence in outcome",
-        }),
-      },
-      {
-        value: Confidence.LOW,
-        label: formatMessage({ id: "app.form.confidence.low", defaultMessage: "Low" }),
-        hint: formatMessage({
-          id: "app.form.confidence.low.hint",
-          defaultMessage: "Uncertain about accuracy",
-        }),
-      },
-      {
-        value: Confidence.MEDIUM,
-        label: formatMessage({ id: "app.form.confidence.medium", defaultMessage: "Medium" }),
-        hint: formatMessage({
-          id: "app.form.confidence.medium.hint",
-          defaultMessage: "Reasonably confident",
-        }),
-      },
-      {
-        value: Confidence.HIGH,
-        label: formatMessage({ id: "app.form.confidence.high", defaultMessage: "High" }),
-        hint: formatMessage({
-          id: "app.form.confidence.high.hint",
-          defaultMessage: "Very confident in outcome",
-        }),
-      },
-    ],
-    [formatMessage]
+    () =>
+      [
+        {
+          value: Confidence.NONE,
+          label: formatMessage({ id: "app.form.confidence.none", defaultMessage: "None" }),
+          hint: formatMessage({
+            id: "app.form.confidence.none.hint",
+            defaultMessage: "No confidence in outcome",
+          }),
+        },
+        {
+          value: Confidence.LOW,
+          label: formatMessage({ id: "app.form.confidence.low", defaultMessage: "Low" }),
+          hint: formatMessage({
+            id: "app.form.confidence.low.hint",
+            defaultMessage: "Uncertain about accuracy",
+          }),
+        },
+        {
+          value: Confidence.MEDIUM,
+          label: formatMessage({ id: "app.form.confidence.medium", defaultMessage: "Medium" }),
+          hint: formatMessage({
+            id: "app.form.confidence.medium.hint",
+            defaultMessage: "Reasonably confident",
+          }),
+        },
+        {
+          value: Confidence.HIGH,
+          label: formatMessage({ id: "app.form.confidence.high", defaultMessage: "High" }),
+          hint: formatMessage({
+            id: "app.form.confidence.high.hint",
+            defaultMessage: "Very confident in outcome",
+          }),
+        },
+      ].filter((option) => !required || option.value !== Confidence.NONE),
+    [formatMessage, required]
   );
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLDivElement>) => {
       if (disabled) return;
 
-      const currentIndex = CONFIDENCE_OPTIONS.findIndex((o) => o.value === value);
+      const selectedIndex = CONFIDENCE_OPTIONS.findIndex((o) => o.value === value);
+      // With nothing chosen, focus sits on the first chip (the tab stop), so
+      // the first arrow moves on from there instead of choosing it.
+      const currentIndex = selectedIndex === -1 ? 0 : selectedIndex;
       let nextIndex = currentIndex;
 
       if (e.key === "ArrowRight" || e.key === "ArrowDown") {
@@ -92,9 +100,12 @@ export function ConfidenceSelector({
   );
 
   const selectedOption = CONFIDENCE_OPTIONS.find((o) => o.value === value);
+  // With nothing chosen, the first chip takes the group's tab stop.
+  const tabStopValue = selectedOption?.value ?? CONFIDENCE_OPTIONS[0]?.value;
 
   return (
     <div className={className}>
+      {/* eslint-disable-next-line jsx-a11y/interactive-supports-focus -- roving-tabindex radiogroup; focus lives on the <button role="radio"> children */}
       <div
         role="radiogroup"
         aria-label={formatMessage({
@@ -103,35 +114,27 @@ export function ConfidenceSelector({
         })}
         aria-required={required || undefined}
         onKeyDown={handleKeyDown}
-        className="flex gap-1"
+        className="flex flex-wrap gap-2"
       >
         {CONFIDENCE_OPTIONS.map((option) => {
           const isSelected = option.value === value;
           return (
-            <button
+            <Chip
               key={option.value}
               id={`${groupId}-${option.value}`}
-              type="button"
               role="radio"
+              selected={isSelected}
               aria-checked={isSelected}
               aria-label={formatMessage(
                 { id: "app.form.confidence.ariaLabel", defaultMessage: "{level} confidence" },
                 { level: option.label }
               )}
-              tabIndex={isSelected ? 0 : -1}
+              tabIndex={option.value === tabStopValue ? 0 : -1}
               disabled={disabled}
               onClick={() => onChange(option.value)}
-              className={cn(
-                "flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-1",
-                "disabled:opacity-50 disabled:cursor-not-allowed",
-                isSelected
-                  ? "bg-primary-base text-white"
-                  : "bg-bg-weak-50 text-text-sub-600 hover:bg-bg-soft-200"
-              )}
             >
               {option.label}
-            </button>
+            </Chip>
           );
         })}
       </div>

@@ -1,0 +1,86 @@
+@font-face {
+  font-family: 'Green Goods Inter';
+  src: url('../../../static/brand/v3/typography/inter-normal-400.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Green Goods Fraunces';
+  src: url('../../../static/brand/v3/typography/fraunces-normal-400.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+.assets { container-type: inline-size; margin-bottom: 2.5rem; }
+.kitBar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.kitBar h1 { margin: 0; }
+.kitBar > a { display: inline-flex; align-items: center; gap: 1rem; min-height: 44px; }
+.zipSize { font-weight: 400; font-size: 0.8rem; }
+.lead { margin: 0.8rem 0 0.3rem; }
+.sectionNav, .downloadLinks { display: flex; align-items: center; flex-wrap: wrap; gap: 0.3rem; }
+.sectionNav a { display: inline-flex; align-items: center; min-height: 44px; padding-inline: 0.6rem; font-weight: 700; }
+.sectionNav { margin-block: 0.6rem 1rem; border-bottom: 1px solid var(--ifm-color-emphasis-200); font-size: 0.85rem; }
+.section { margin-top: 2.5rem; }
+.section h2 { margin-bottom: 0.4rem; scroll-margin-top: 5rem; }
+.sectionHeading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1.5rem; }
+.sectionHeading :is(h2, h3) { margin: 0; scroll-margin-top: 5rem; }
+.sectionHeading > a { display: inline-flex; align-items: center; min-height: 44px; font-size: 0.8rem; font-weight: 700; }
+.sectionCaption, .caption, .archiveNote { color: var(--ifm-color-emphasis-700); }
+.sectionCaption { font-size: 0.85rem; margin-bottom: 1rem; }
+.archiveNote { font-size: 0.8rem; margin: 0.8rem 0 0; }
+.grid, .editorialGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.8rem; }
+.paletteGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.8rem; }
+.typeGrid, .websiteGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.8rem; }
+.card, .colorCard, .typeCard { min-width: 0; overflow: hidden; border: 1px solid var(--ifm-color-emphasis-200); border-radius: 8px; background: var(--ifm-background-color); }
+.card { scroll-margin-top: 5rem; }
+.preview { aspect-ratio: 1; display: flex; justify-content: center; align-items: center; border-bottom: 1px solid var(--ifm-color-emphasis-200); background: repeating-conic-gradient(#f0f1ee 0% 25%, #fafbf9 0% 50%) 0 / 20px 20px; }
+.darkPreview { background: repeating-conic-gradient(#232323 0% 25%, #292929 0% 50%) 0 / 20px 20px; }
+.preview > img { width: 100%; height: 100%; object-fit: contain; }
+.logoPair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.logoVariant { min-width: 0; }
+.logoVariant + .logoVariant { border-left: 1px solid var(--ifm-color-emphasis-200); }
+.logoVariant h4 { font-size: 0.8rem; margin: 0 0 0.6rem; text-align: center; }
+.logoVariant .downloadLinks { padding: 0.5rem; margin: 0; }
+.logoPair .preview { border-top: 1px solid var(--ifm-color-emphasis-200); }
+.cardBody .caption { margin-bottom: 0.5rem; }
+.widePreview { aspect-ratio: 4 / 3; }
+.websiteGrid .preview { aspect-ratio: 16 / 7; min-height: 160px; }
+.websiteGrid .preview:not(.faviconPreview) > img { width: 128px; height: 128px; }
+.faviconPreview { flex-direction: column; gap: 1.25rem; }
+.faviconPreview > img { width: 64px; height: 64px; }
+.faviconSizes { display: flex; align-items: end; gap: 1.5rem; font-size: 0.65rem; color: #42483f; }
+.darkPreview .faviconSizes { color: #e1e5dd; }
+.faviconSizes > span { display: flex; flex-direction: column; align-items: center; gap: 0.4rem; }
+.faviconSizes img { display: block; }
+.cardBody { padding: 0.8rem; }
+.cardBody :is(h3, h4) { font-size: 0.95rem; margin: 0 0 0.25rem; }
+.caption { font-size: 0.75rem; margin-bottom: 0.5rem; }
+.downloadLinks a { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 44px; padding: 0.3rem 0.4rem; font-size: 0.75rem; font-weight: 700; border: 1px solid var(--ifm-color-emphasis-200); border-radius: 4px; }
+.downloadLinks { margin-top: 0.5rem; }
+.downloadLinks a:hover { background: var(--ifm-background-surface-color); }
+.assets a:focus-visible { outline: 2px solid var(--ifm-color-primary); outline-offset: 3px; }
+.colorSwatch { height: 96px; border-bottom: 1px solid var(--ifm-color-emphasis-200); }
+.colorCard code { font-size: 0.85rem; }
+.colorCard .caption { margin: 0.6rem 0 0; }
+.typeSample { display: flex; align-items: center; min-height: 190px; padding: 1.5rem; color: #292524; background: #FAF8F5; }
+.fraunces { font: 400 2rem/1.15 'Green Goods Fraunces', Georgia, serif; }
+.inter { font: 400 1.4rem/1.35 'Green Goods Inter', sans-serif; }
+
+@container (max-width: 700px) {
+  .grid, .paletteGrid, .editorialGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@container (max-width: 600px) {
+  .kitBar { align-items: start; flex-direction: column; }
+  .kitBar > a { width: 100%; justify-content: space-between; }
+  .sectionHeading { align-items: start; flex-direction: column; gap: 0; }
+  .cardBody { padding: 0.65rem; }
+  .typeGrid, .websiteGrid, .grid { grid-template-columns: 1fr; }
+}
+
+@container (max-width: 380px) {
+  .editorialGrid { grid-template-columns: 1fr; }
+}

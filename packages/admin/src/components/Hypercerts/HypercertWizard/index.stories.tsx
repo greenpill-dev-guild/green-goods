@@ -1,4 +1,4 @@
-import { Button } from "@green-goods/shared";
+import { Button } from "@green-goods/shared/components/Button";
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
 import { FormFlow, toFormFlowSections } from "@/components/Layout/FormFlow";
@@ -26,13 +26,13 @@ interface HypercertWizardHarnessProps {
 function StepPlaceholder({ label }: { label: string }) {
   return (
     <div className="rounded-lg border border-dashed border-stroke-soft p-10 text-center">
-      <p className="text-sm text-text-sub">
+      <p className="body-sm text-text-sub">
         Inspect the full step views under{" "}
         <span className="font-medium text-text-strong">
           Admin / Workflows / Hypercerts / Steps / *
         </span>
       </p>
-      <p className="mt-2 text-xs text-text-soft">Current step: {label}</p>
+      <p className="mt-2 body-xs text-text-soft">Current step: {label}</p>
     </div>
   );
 }
@@ -61,14 +61,14 @@ function HypercertWizardHarness({
       )}
       feedback={
         nextDisabled && validationMessage ? (
-          <div className="rounded-[var(--radius-lg)] border border-warning-light bg-warning-lighter px-3 py-2 text-sm text-warning-dark">
+          <div className="rounded-[var(--radius-lg)] border border-warning-light bg-warning-lighter px-3 py-2 body-sm text-warning-dark">
             {validationMessage}
           </div>
         ) : undefined
       }
       actions={
         <>
-          <Button type="button" variant="secondary" onClick={fn()} disabled={isSubmitting}>
+          <Button type="button" emphasis="secondary" onClick={fn()} disabled={isSubmitting}>
             Cancel
           </Button>
           <Button type="button" onClick={fn()} disabled={nextDisabled} loading={isSubmitting}>

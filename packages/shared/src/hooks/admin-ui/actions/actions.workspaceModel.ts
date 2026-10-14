@@ -1,11 +1,27 @@
-import { adminRoutes } from "@green-goods/shared";
+import { adminRoutes } from "../../../utils/navigation/admin-routes";
 import {
   ACTION_CREATE_CONTENT_ID,
   decodePathSegment,
   toActionDetailContentId,
   toActionEditContentId,
 } from "../navigation/sheetRegistry";
-import { getActionsListSearch } from "./actions.utils";
+import { getActionLifecycleState, getActionsListSearch } from "./actions.utils";
+import type { Action } from "../../../types/domain";
+import { localizeAction } from "../../../utils/action/translations";
+
+export function deriveActionDetailModel(action: Action, locale?: string) {
+  const lifecycle = getActionLifecycleState(action);
+  return {
+    displayAction: localizeAction(action, locale),
+    lifecycle,
+    lifecycleVariant:
+      lifecycle === "upcoming"
+        ? ("warning" as const)
+        : lifecycle === "active"
+          ? ("success" as const)
+          : ("neutral" as const),
+  };
+}
 
 export type ActionsRouteState =
   | {

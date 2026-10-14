@@ -1,16 +1,17 @@
 /**
  * useHasRole Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests single role check for a user + garden combination.
  * Validates enabled/disabled states, role function mapping,
  * and error handling.
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { type QueryClient } from "@tanstack/react-query";
+import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const TEST_CHAIN_ID = 11155111;
 const TEST_GARDEN = "0x1111111111111111111111111111111111111111" as `0x${string}`;
@@ -35,6 +36,10 @@ vi.mock("../../../config/blockchain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
 
+vi.mock("../../../config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
 vi.mock("../../../utils/blockchain/abis", () => ({
   GARDEN_ACCOUNT_ROLE_ABI: [],
 }));
@@ -48,7 +53,7 @@ vi.mock("../../../utils/blockchain/garden-roles", () => ({
   GARDEN_ROLE_FUNCTIONS: {
     gardener: "isGardener",
     evaluator: "isEvaluator",
-    operator: "isOperator",
+    steward: "isOperator",
     owner: "isOwner",
     funder: "isFunder",
     community: "isCommunity",
@@ -56,18 +61,6 @@ vi.mock("../../../utils/blockchain/garden-roles", () => ({
 }));
 
 import { useHasRole } from "../../../hooks/roles/useHasRole";
-
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-}
-
-function createQueryClient() {
-  return new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: 0 } },
-  });
-}
 
 // ============================================
 // Test Suite
@@ -78,14 +71,17 @@ describe("useHasRole", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = createQueryClient();
+    queryClient = createTestQueryClient();
   });
 
   describe("disabled states", () => {
     it("returns false when gardenAddress is undefined", () => {
-      const { result } = renderHook(() => useHasRole(undefined, TEST_USER, "operator"), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(
+        () => useHasRole(undefined, TEST_USER, "steward"),
+        {
+          queryClient,
+        }
+      );
 
       expect(result.current.hasRole).toBe(false);
       expect(result.current.isLoading).toBe(false);
@@ -93,35 +89,44 @@ describe("useHasRole", () => {
     });
 
     it("returns false when userAddress is undefined", () => {
-      const { result } = renderHook(() => useHasRole(TEST_GARDEN, undefined, "operator"), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(
+        () => useHasRole(TEST_GARDEN, undefined, "steward"),
+        {
+          queryClient,
+        }
+      );
 
       expect(result.current.hasRole).toBe(false);
       expect(mockReadContract).not.toHaveBeenCalled();
     });
 
     it("returns false when role is undefined", () => {
-      const { result } = renderHook(() => useHasRole(TEST_GARDEN, TEST_USER, undefined), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(
+        () => useHasRole(TEST_GARDEN, TEST_USER, undefined),
+        {
+          queryClient,
+        }
+      );
 
       expect(result.current.hasRole).toBe(false);
       expect(mockReadContract).not.toHaveBeenCalled();
     });
 
     it("returns false when gardenAddress is zero address", () => {
-      const { result } = renderHook(() => useHasRole(ZERO_ADDRESS, TEST_USER, "operator"), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(
+        () => useHasRole(ZERO_ADDRESS, TEST_USER, "steward"),
+        {
+          queryClient,
+        }
+      );
 
       expect(result.current.hasRole).toBe(false);
       expect(mockReadContract).not.toHaveBeenCalled();
     });
 
     it("returns false when gardenAddress is null", () => {
-      const { result } = renderHook(() => useHasRole(null, TEST_USER, "operator"), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useHasRole(null, TEST_USER, "steward"), {
+        queryClient,
       });
 
       expect(result.current.hasRole).toBe(false);
@@ -129,12 +134,15 @@ describe("useHasRole", () => {
   });
 
   describe("enabled states", () => {
-    it("returns true when contract returns true for operator", async () => {
+    it("returns true when contract returns true for steward", async () => {
       mockReadContract.mockResolvedValue(true);
 
-      const { result } = renderHook(() => useHasRole(TEST_GARDEN, TEST_USER, "operator"), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(
+        () => useHasRole(TEST_GARDEN, TEST_USER, "steward"),
+        {
+          queryClient,
+        }
+      );
 
       await waitFor(() => {
         expect(result.current.hasRole).toBe(true);
@@ -153,9 +161,12 @@ describe("useHasRole", () => {
     it("returns false when contract returns false", async () => {
       mockReadContract.mockResolvedValue(false);
 
-      const { result } = renderHook(() => useHasRole(TEST_GARDEN, TEST_USER, "gardener"), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(
+        () => useHasRole(TEST_GARDEN, TEST_USER, "gardener"),
+        {
+          queryClient,
+        }
+      );
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
@@ -170,18 +181,22 @@ describe("useHasRole", () => {
       const roleMap = {
         gardener: "isGardener",
         evaluator: "isEvaluator",
-        operator: "isOperator",
+        // Role key is `steward`; the deployed access function is still isSteward.
+        steward: "isOperator",
         owner: "isOwner",
       } as const;
 
       for (const [role, functionName] of Object.entries(roleMap)) {
         vi.clearAllMocks();
-        queryClient = createQueryClient();
+        queryClient = createTestQueryClient();
         mockReadContract.mockResolvedValue(true);
 
-        renderHook(() => useHasRole(TEST_GARDEN, TEST_USER, role as keyof typeof roleMap), {
-          wrapper: createWrapper(queryClient),
-        });
+        renderHookWithQueryClient(
+          () => useHasRole(TEST_GARDEN, TEST_USER, role as keyof typeof roleMap),
+          {
+            queryClient,
+          }
+        );
 
         await waitFor(() => {
           expect(mockReadContract).toHaveBeenCalledWith(
@@ -194,19 +209,23 @@ describe("useHasRole", () => {
   });
 
   describe("error handling", () => {
-    it("returns false when contract call fails", async () => {
+    it("returns false and reports the failure when the contract call fails", async () => {
       mockReadContract.mockRejectedValue(new Error("Reverted"));
 
-      const { result } = renderHook(() => useHasRole(TEST_GARDEN, TEST_USER, "operator"), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(
+        () => useHasRole(TEST_GARDEN, TEST_USER, "steward"),
+        {
+          queryClient,
+        }
+      );
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      // fetchHasRole catches errors and returns false
+      // A failed read is not a "no": callers that must tell them apart read `error`.
       expect(result.current.hasRole).toBe(false);
+      expect(result.current.error).toBeInstanceOf(Error);
     });
   });
 });

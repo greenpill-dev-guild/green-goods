@@ -1,24 +1,26 @@
+import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { formatAddress } from "@green-goods/shared/utils/app/text";
+import type { Address } from "@green-goods/shared/types/domain";
+import { GREENWILL_BADGE_IDS, type GreenWillBadgeView } from "@green-goods/shared/types/greenwill";
+import { isGreenWillDeployed } from "@green-goods/shared/config/blockchain";
 import {
-  DialogShell,
-  formatAddress,
-  type Address,
-  type GreenWillBadgeView,
-  isGreenWillDeployed,
+  describeBadgeClaimError,
   useClaimFirstSupportBadge,
   useClaimFirstWorkBadge,
   useClaimGenesisBadge,
-  useEnsName,
-  useGreenGoodsEnsName,
-  useGreenWillBadges,
-  useMyVaultDeposits,
-  useMyOnlineWorks,
-  usePrimaryAddress,
-  useProtocolMemberStatus,
-} from "@green-goods/shared";
+} from "@green-goods/shared/hooks/greenwill/useClaimGreenWillBadge";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
+import { useGreenWillBadges } from "@green-goods/shared/hooks/greenwill/useGreenWillBadges";
+import { useMyVaultDeposits } from "@green-goods/shared/hooks/vault/useMyVaultDeposits";
+import { useMyOnlineWorks } from "@green-goods/shared/hooks/work/useMyWorks";
+import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
+import { useProtocolMemberStatus } from "@green-goods/shared/hooks/ens/useProtocolMemberStatus";
+import type { SheetAction } from "@green-goods/shared/components/Dialog/SheetActions";
 import { RiAwardLine, RiCoinsLine, RiHammerLine, RiSeedlingLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { Button } from "@/components/Actions";
 import { EmptyState } from "@/components/Communication";
 
 const BADGE_ORDER = ["genesis", "first-work", "first-support"] as const;
@@ -29,13 +31,13 @@ type ProfileBadgeDisplay = GreenWillBadgeView & { profileStatus: ProfileBadgeSta
 function badgeIcon(slug: string) {
   switch (slug) {
     case "genesis":
-      return <RiSeedlingLine className="h-5 w-5 text-primary" />;
+      return <RiSeedlingLine className="h-5 w-5 text-primary-on-surface" />;
     case "first-work":
-      return <RiHammerLine className="h-5 w-5 text-primary" />;
+      return <RiHammerLine className="h-5 w-5 text-primary-on-surface" />;
     case "first-support":
-      return <RiCoinsLine className="h-5 w-5 text-primary" />;
+      return <RiCoinsLine className="h-5 w-5 text-primary-on-surface" />;
     default:
-      return <RiAwardLine className="h-5 w-5 text-primary" />;
+      return <RiAwardLine className="h-5 w-5 text-primary-on-surface" />;
   }
 }
 
@@ -111,19 +113,31 @@ function badgeStatusLabel(intl: ReturnType<typeof useIntl>, status: ProfileBadge
 
 export const ProfileBadges: React.FC = () => {
   const intl = useIntl();
-  const [selectedBadge, setSelectedBadge] = useState<ProfileBadgeDisplay | null>(null);
+  const [openedBadge, setOpenedBadge] = useState<ProfileBadgeDisplay | null>(null);
   const primaryAddress = usePrimaryAddress() as Address | null;
   const { data: greenGoodsEnsName } = useGreenGoodsEnsName(primaryAddress);
   const { data: ensName } = useEnsName(primaryAddress);
   const { data: isProtocolMember = false } = useProtocolMemberStatus(primaryAddress ?? undefined);
   const { data: works = [] } = useMyOnlineWorks({ limit: 1 });
   const { deposits = [] } = useMyVaultDeposits(primaryAddress ?? undefined);
-  const { badges, earnedBadges, isLoading, isError } = useGreenWillBadges(
-    primaryAddress ?? undefined
-  );
   const genesisClaim = useClaimGenesisBadge();
   const firstWorkClaim = useClaimFirstWorkBadge();
   const firstSupportClaim = useClaimFirstSupportBadge();
+  // A claim a Safe-style wallet sent for approval: ownership keeps being read
+  // until it executes, so the dialog turns to claimed without a reload.
+  const awaitBadgeIds = (
+    [
+      [genesisClaim, GREENWILL_BADGE_IDS.GENESIS],
+      [firstWorkClaim, GREENWILL_BADGE_IDS.FIRST_WORK],
+      [firstSupportClaim, GREENWILL_BADGE_IDS.FIRST_SUPPORT],
+    ] as const
+  )
+    .filter(([claim]) => claim.isSuccess && claim.data?.confirmation === "pending")
+    .map(([, badgeId]) => badgeId);
+  const { badges, earnedBadges, isLoading, isError } = useGreenWillBadges(
+    primaryAddress ?? undefined,
+    { awaitBadgeIds }
+  );
 
   const preferredEnsName = greenGoodsEnsName || ensName;
   const badgeIdentity = primaryAddress
@@ -154,6 +168,20 @@ export const ProfileBadges: React.FC = () => {
     [available, earned]
   );
   const hasDisplayableBadges = displayBadges.length > 0;
+  // The dialog reads its badge from the live list, so a claim that lands turns
+  // it to Earned while it is open. The copy taken at the tap stands in only
+  // while the badge is briefly in neither list.
+  const selectedBadge = openedBadge
+    ? (displayBadges.find((badge) => badge.slug === openedBadge.slug) ?? openedBadge)
+    : null;
+  const claims = {
+    genesis: genesisClaim,
+    "first-work": firstWorkClaim,
+    "first-support": firstSupportClaim,
+  } as const;
+  const selectedClaimState = selectedBadge
+    ? claims[selectedBadge.slug as keyof typeof claims]
+    : undefined;
 
   const renderBadgeState = (
     title: string,
@@ -169,95 +197,83 @@ export const ProfileBadges: React.FC = () => {
     />
   );
 
-  const renderAction = (badge: GreenWillBadgeView) => {
-    if (badge.slug === "genesis") {
-      if (!isProtocolMember) {
-        return (
-          <p className="text-xs text-text-sub-600">
-            {intl.formatMessage({
-              id: "app.profile.badges.notEligible",
-              defaultMessage: "Complete the qualifying action to unlock this badge.",
-            })}
-          </p>
-        );
-      }
+  // A claimable badge's claim lives in the dialog's action bar (DL-016); an
+  // ineligible one explains itself in the body instead.
+  const claimFor = (badge: GreenWillBadgeView): { action?: SheetAction; note?: string } => {
+    const notEligible = intl.formatMessage({
+      id: "app.profile.badges.notEligible",
+      defaultMessage: "Complete the qualifying action to unlock this badge.",
+    });
 
-      return (
-        <Button
-          variant="primary"
-          mode="filled"
-          size="small"
-          label={intl.formatMessage({
+    if (badge.slug === "genesis") {
+      if (!isProtocolMember) return { note: notEligible };
+      return {
+        action: {
+          label: intl.formatMessage({
             id: "app.profile.badges.claimGenesis",
             defaultMessage: "Claim Genesis",
-          })}
-          onClick={() => genesisClaim.mutate()}
-          disabled={genesisClaim.isPending}
-        />
-      );
+          }),
+          loading: genesisClaim.isPending,
+          onClick: () => genesisClaim.mutate(undefined),
+        },
+      };
     }
 
     if (badge.slug === "first-work") {
-      if (!firstWorkUid) {
-        return (
-          <p className="text-xs text-text-sub-600">
-            {intl.formatMessage({
-              id: "app.profile.badges.notEligible",
-              defaultMessage: "Complete the qualifying action to unlock this badge.",
-            })}
-          </p>
-        );
-      }
-
-      return (
-        <Button
-          variant="primary"
-          mode="filled"
-          size="small"
-          label={intl.formatMessage({
+      if (!firstWorkUid) return { note: notEligible };
+      return {
+        action: {
+          label: intl.formatMessage({
             id: "app.profile.badges.claimFirstWork",
             defaultMessage: "Claim First Work",
-          })}
-          onClick={() => firstWorkClaim.mutate({ uid: firstWorkUid })}
-          disabled={firstWorkClaim.isPending}
-        />
-      );
+          }),
+          loading: firstWorkClaim.isPending,
+          onClick: () => firstWorkClaim.mutate({ uid: firstWorkUid }),
+        },
+      };
     }
 
     if (badge.slug === "first-support") {
-      if (!firstSupportPosition) {
-        return (
-          <p className="text-xs text-text-sub-600">
-            {intl.formatMessage({
-              id: "app.profile.badges.notEligible",
-              defaultMessage: "Complete the qualifying action to unlock this badge.",
-            })}
-          </p>
-        );
-      }
-
-      return (
-        <Button
-          variant="primary"
-          mode="filled"
-          size="small"
-          label={intl.formatMessage({
+      if (!firstSupportPosition) return { note: notEligible };
+      return {
+        action: {
+          label: intl.formatMessage({
             id: "app.profile.badges.claimFirstSupport",
             defaultMessage: "Claim First Support",
-          })}
-          onClick={() =>
+          }),
+          loading: firstSupportClaim.isPending,
+          onClick: () =>
             firstSupportClaim.mutate({
               gardenAddress: firstSupportPosition.garden,
               assetAddress: firstSupportPosition.asset,
-            })
-          }
-          disabled={firstSupportClaim.isPending}
-        />
-      );
+            }),
+        },
+      };
     }
 
-    return null;
+    return {};
   };
+
+  const selectedClaim = selectedBadge?.profileStatus === "claimable" ? claimFor(selectedBadge) : {};
+  // What the last claim of this badge came to, kept in the dialog so coming
+  // back from the wallet finds it. A confirmed claim has landed even before the
+  // badge list catches up. A badge that turned Earned after a claim was tried
+  // has landed too, whatever the claim's own wait reported: the chain is the
+  // record. A Safe-style wallet's claim waits for approval until it executes.
+  const claimTried = Boolean(
+    selectedClaimState &&
+      (selectedClaimState.isPending || selectedClaimState.isError || selectedClaimState.isSuccess)
+  );
+  const claimAwaiting =
+    Boolean(selectedClaimState?.isSuccess) && selectedClaimState?.data?.confirmation === "pending";
+  const claimLanded =
+    (Boolean(selectedClaimState?.isSuccess) && !claimAwaiting) ||
+    (selectedBadge?.profileStatus === "earned" && claimTried);
+  const claimFailure =
+    !claimLanded && selectedClaimState?.isError
+      ? describeBadgeClaimError(selectedClaimState.error)
+      : null;
+  const selectedTitle = selectedBadge ? badgeTitle(intl, selectedBadge.slug) : "";
 
   if (!primaryAddress) {
     return renderBadgeState(
@@ -361,8 +377,9 @@ export const ProfileBadges: React.FC = () => {
             <button
               key={`${badge.profileStatus}-${badge.badgeId}`}
               type="button"
-              onClick={() => setSelectedBadge(badge)}
-              className="flex min-h-[9.75rem] flex-col items-start justify-between rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-3 text-left shadow-xs transition duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              data-pressable="card"
+              onClick={() => setOpenedBadge(badge)}
+              className="flex min-h-[9.75rem] flex-col items-start justify-between rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-3 text-left shadow-xs transition duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-on-surface/30"
               aria-label={intl.formatMessage(
                 {
                   id: "app.profile.badges.viewDetails",
@@ -389,10 +406,24 @@ export const ProfileBadges: React.FC = () => {
 
       <DialogShell
         open={selectedBadge !== null}
+        actions={
+          selectedClaim.action && !claimLanded && !claimAwaiting
+            ? { primary: selectedClaim.action }
+            : undefined
+        }
         onOpenChange={(open) => {
-          if (!open) setSelectedBadge(null);
+          if (open) return;
+          // A failed or cancelled claim's message has been read. A claim still
+          // waiting, or one that landed or awaits approval before the badge list
+          // shows it Earned, keeps its state, so reopening never offers Claim
+          // for a badge already claimed.
+          const keepsClaim =
+            selectedClaimState?.isPending ||
+            (selectedClaimState?.isSuccess && selectedBadge?.profileStatus !== "earned");
+          if (selectedClaimState && !keepsClaim) selectedClaimState.reset();
+          setOpenedBadge(null);
         }}
-        title={selectedBadge ? badgeTitle(intl, selectedBadge.slug) : ""}
+        title={selectedTitle}
         description={
           selectedBadge
             ? intl.formatMessage(
@@ -404,22 +435,57 @@ export const ProfileBadges: React.FC = () => {
               )
             : undefined
         }
-        icon={selectedBadge ? badgeIcon(selectedBadge.slug) : <RiAwardLine className="h-5 w-5" />}
         size="md"
       >
         {selectedBadge && (
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-2">
               <span className="rounded-full bg-bg-weak-50 px-2 py-1 text-xs font-medium text-text-sub-600">
-                {badgeStatusLabel(intl, selectedBadge.profileStatus)}
+                {badgeStatusLabel(intl, claimLanded ? "earned" : selectedBadge.profileStatus)}
               </span>
             </div>
             <p className="text-sm leading-relaxed text-text-sub-600">
               {badgeDescription(intl, selectedBadge.slug)}
             </p>
-            {selectedBadge.profileStatus === "claimable" && (
-              <div className="pt-1">{renderAction(selectedBadge)}</div>
-            )}
+            {selectedClaim.note ? (
+              <p className="text-xs text-text-sub-600">{selectedClaim.note}</p>
+            ) : null}
+            {claimLanded ? (
+              <Alert
+                variant="success"
+                title={intl.formatMessage(
+                  { id: "app.profile.badges.claim.successTitle" },
+                  { badge: selectedTitle }
+                )}
+              >
+                {intl.formatMessage({ id: "app.profile.badges.claim.successMessage" })}
+              </Alert>
+            ) : claimAwaiting ? (
+              <Alert
+                variant="info"
+                title={intl.formatMessage({ id: "app.profile.badges.claim.awaitingTitle" })}
+              >
+                {intl.formatMessage({ id: "app.profile.badges.claim.awaitingMessage" })}
+              </Alert>
+            ) : selectedClaimState?.isPending ? (
+              <p role="status" className="text-xs text-text-sub-600">
+                {intl.formatMessage({ id: "app.profile.badges.claim.pendingMessage" })}
+              </p>
+            ) : claimFailure ? (
+              <Alert
+                variant={claimFailure.kind === "cancelled" ? "warning" : "error"}
+                title={
+                  claimFailure.kind === "cancelled"
+                    ? intl.formatMessage({ id: "app.profile.badges.claim.cancelledTitle" })
+                    : intl.formatMessage(
+                        { id: "app.profile.badges.claim.failedTitle" },
+                        { badge: selectedTitle }
+                      )
+                }
+              >
+                {intl.formatMessage({ id: claimFailure.messageId })}
+              </Alert>
+            ) : null}
           </div>
         )}
       </DialogShell>

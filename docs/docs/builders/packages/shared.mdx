@@ -1,84 +1,91 @@
 ---
-title: Shared Library
+title: Shared
 sidebar_label: Shared
 slug: /builders/packages/shared
 audience: developer
 owner: docs
-last_verified: 2026-04-25
+last_verified: 2026-10-10
 feature_status: Live
 source_of_truth:
   - packages/shared/AGENTS.md
   - packages/shared/package.json
-  - packages/shared/src/MODULES.md
-  - packages/shared/.storybook/main.ts
+keywords:
+  - hooks
+  - providers
+  - storybook
+  - i18n
 ---
 
-import {NextBestAction, StatusBadge} from "@site/src/components/docs";
+# Shared
 
-# Shared Library
+`@green-goods/shared` is the single home for everything the apps have in common: hooks,
+providers, stores, protocol data modules, domain types, translations, and the Storybook-backed UI
+foundations. If logic could ever serve two surfaces, it lives here first; the client, admin, and
+agent packages stay thin on purpose.
 
-<StatusBadge status="Live" />
+<figure className="gg-figure">
+  <img src="/img/builders/shared-tokens-foundation-controls.webp" alt="The shared foundations story: the control scale with small, medium and large inputs, a select, and the shared icon buttons and card shells" loading="lazy" width="2000" height="1360" />
+  <figcaption>The shared control scale and card shells in Storybook; every app field and card starts here. <a href="https://design.greengoods.app/?path=/story/shared-tokens-foundation--controls-and-chrome">Open in Storybook</a>.</figcaption>
+</figure>
 
-```mermaid
-graph TB
-    subgraph Shared["@green-goods/shared"]
-        H["Hooks\naction, garden, work, auth"]
-        M["Modules\nEAS, GraphQL, job queue"]
-        T["Types\nGarden, Work, Action, Address"]
-        U["Utils\nencoders, errors, i18n"]
-        C["Components\nUI primitives, design tokens"]
-    end
+## Inside `src`
 
-    subgraph Consumers
-        Client["Client PWA\npackages/client"]
-        Admin["Admin Dashboard\npackages/admin"]
-        Agent["Agent Bot\npackages/agent"]
-    end
+Shared is layered. Modules talk to the protocol and the network; stores and workflows hold state
+and state machines; hooks and providers expose both to React; components render on top. Nothing in
+a lower layer imports from a higher one. [`src/MODULES.md`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/packages/shared/src/MODULES.md) is the folder-by-folder map and the
+authority on where a new piece goes.
 
-    Contracts["contracts\nABIs + deployments"] --> Shared
-    Shared --> Client
-    Shared --> Admin
-    Shared --> Agent
-```
+| Directory | What lives there |
+|---|---|
+| `src/modules/` | Protocol and platform modules, one folder each: `data/` (EAS, gardens, vaults, hypercerts, Karma, IPFS, GraphQL clients), `job-queue/` (the offline-first work queue), `app/` (logger, environment), and the rest |
+| `src/stores/` and `src/workflows/` | Client state stores and the XState machines behind multi-step flows |
+| `src/hooks/` | Domain hooks by area: auth, garden, work, assessment, vault, cookie-jar, hypercerts, conviction, and more |
+| `src/providers/` | App-level providers (auth, chain, query) |
+| `src/components/` | Shared UI primitives with Storybook coverage, including the token stories |
+| `src/styles/` | The theme and the generated DesignMD tokens every surface reads |
+| `src/utils/`, `src/types/`, `src/config/` | Pure helpers (addresses, errors, explorers), the domain types, and the query keys and chain config |
+| `src/public-contracts/` and `src/lib/` | The public API contracts the agent serves, and the Hypercerts library bindings |
+| `src/commitment-pooling/` and `src/profile-avatar/` | Feature modules too large for one folder family |
+| `src/i18n/` | `en.json`, `es.json`, `pt.json`; every user-facing string ships in all three |
+| `src/ontology/` | The domain ontology the docs and guards project from |
+| `src/__tests__/` | Vitest suites and the test support the apps import through `@green-goods/shared/testing` |
 
-`@green-goods/shared` is the single home for cross-app hooks, providers, stores, modules, types, i18n, utility functions, and Storybook-backed UI foundations. Client, admin, and agent packages should consume shared behavior through the package barrel instead of rebuilding local versions.
-
-## What this package owns
-
-- Reusable React hooks for gardens, work, actions, roles, auth, media, and async data.
-- Domain types including address-shaped values and shared entity models.
-- Data modules for EAS, Envio GraphQL, IPFS/media, marketplaces, vaults, and other protocol reads.
-- Shared UI foundations, canvas primitives, cards, form helpers, feedback components, and token documentation.
-- i18n dictionaries for all user-facing frontend strings.
-- Storybook aggregation for shared, admin, and client stories.
-
-## Builder contract
-
-- Put reusable hooks and providers here before app packages consume them.
-- Export public APIs through package barrels; avoid teaching downstream packages deep import paths.
-- Use centralized query keys and app chain helpers rather than ad-hoc arrays or wallet-chain defaults.
-- Add tests and Storybook coverage when changing shared UI primitives or major variants.
-- Keep admin-facing primitives aligned with the admin package contract before adding local admin shims.
-
-## Commands
+## Run and test
 
 ```bash
-cd packages/shared
-bun run test
-bun run typecheck
-bun run coverage
-bun run check:stories
+bun run --cwd packages/shared test
+bun run --cwd packages/shared typecheck
 ```
 
-Run `check:story-quality`, `test:stories:ci`, or `build-storybook` when a change touches curated Storybook surfaces.
+`bun run --cwd packages/shared check:stories` proves story coverage when UI foundations change;
+`bun run --cwd packages/shared test --scope all-configured --coverage` is the fuller pass.
 
-<NextBestAction
-  title="Next best action"
-  why="Storybook is the review surface for shared UI foundations and curated admin/client states."
-  actionLabel="Open Storybook testing"
-  actionHref="../testing/storybook"
-  alternatives={[
-    {label: "Admin package contract", href: "./admin"},
-    {label: "Client package", href: "./client"},
-  ]}
-/>
+## How it connects
+
+Everything downstream imports shared through its
+[declared package exports](./api-index), never `src/**` paths. That boundary is what lets a hook
+change ship with confidence: consumers see only the public surface. The flip side is fan-out, so
+when you change a hook signature, data shape, or exported utility, validate from the repo root
+rather than only inside this package.
+
+## Conventions that will bite you
+
+- All reusable hooks live here. A hook created in `client` or `admin` is a bug by convention.
+- **Tailwind classes in shared ship in both apps.** Each app's `index.css` scans shared source
+  (`@source "../../shared/src/**/*.{ts,tsx}"`, minus tests, mocks, and stories), so a utility
+  written in a shared component is in both bundles. The trap is narrower: a class that appears
+  only in a story or a test is not scanned, and a class assembled from strings at runtime is never
+  seen, so verify a new utility in the running app, not only in Storybook.
+- Query keys come from the central `queryKeys`; ad-hoc query arrays break invalidation.
+- Application defaults use `useCurrentChain()` or `DEFAULT_CHAIN_ID`, never wallet chain state.
+- Prefer event-driven invalidation over polling.
+- New user-facing strings land in all three locale files in the same change, or the i18n gate
+  fails.
+
+## Go deeper
+
+- [`packages/shared/AGENTS.md`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/packages/shared/AGENTS.md)
+  is the full package contract.
+- The live Storybook at [design.greengoods.app](https://design.greengoods.app) is the source of
+  truth for shared UI foundations.
+- [API Index](./api-index) lists every declared export.

@@ -5,6 +5,7 @@
  * These functions use WalletClient directly (Node.js compatible).
  */
 
+import { Confidence, VerificationMethod, type WorkApprovalDraft } from "@green-goods/shared/types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock dependencies
@@ -197,12 +198,14 @@ describe("modules/work/bot-submission", () => {
   });
 
   describe("submitApprovalBot", () => {
-    const mockApprovalDraft = {
+    const mockApprovalDraft: WorkApprovalDraft = {
       workUID: "0xWorkUID123",
       actionUID: 1,
       approved: true,
       feedback: "Good work!",
-    } as any;
+      confidence: Confidence.LOW,
+      verificationMethod: VerificationMethod.HUMAN,
+    };
 
     it("encodes approval data and sends transaction", async () => {
       const result = await submitApprovalBot(
@@ -242,6 +245,8 @@ describe("modules/work/bot-submission", () => {
         actionUID: 1,
         approved: false,
         feedback: "Plants were not watered properly",
+        confidence: 0,
+        verificationMethod: 0,
       };
 
       await submitApprovalBot(mockWalletClient, rejectionDraft, "0xGarden", 11155111);
@@ -295,6 +300,8 @@ describe("modules/work/bot-submission", () => {
         actionUID: 1,
         approved: true,
         feedback: "",
+        confidence: 1,
+        verificationMethod: 1,
       };
 
       await submitApprovalBot(mockWalletClient, draftNoFeedback, "0xGarden", 11155111);

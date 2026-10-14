@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { MemoryRouter } from "react-router-dom";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { withClientAppRuntime } from "../../../../shared/.storybook/decorators";
 import { SiteHeader } from "./SiteHeader";
 
@@ -28,26 +28,45 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const DesktopNavigation: Story = {
-  parameters: {
-    viewport: { defaultViewport: "desktop" },
-  },
+  globals: { viewport: { value: "desktop" } },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByRole("navigation", { name: "Main navigation" })).toBeVisible();
+    await waitFor(() =>
+      expect(canvas.getByRole("navigation", { name: "Main navigation" })).toBeVisible()
+    );
     expect(canvas.queryByTestId("authenticated-nav")).not.toBeInTheDocument();
   },
 };
 
 export const MobileDrawer: Story = {
-  parameters: {
-    viewport: { defaultViewport: "mobile1" },
-  },
+  globals: { viewport: { value: "mobile" } },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await userEvent.click(canvas.getByRole("button", { name: "Open menu" }));
-    await expect(canvas.getByRole("dialog")).toBeVisible();
-    await expect(canvas.getByRole("navigation", { name: "Mobile navigation" })).toBeVisible();
-    await userEvent.click(canvas.getByRole("link", { name: "Install App" }));
-    expect(canvas.queryByRole("dialog")).not.toBeInTheDocument();
+    const portal = within(canvasElement.ownerDocument.body);
+    await userEvent.click(canvas.getByRole("button", { name: "Open Menu" }));
+    const drawer = portal.getByRole("dialog", { name: "Open Menu" });
+    await expect(drawer).toBeVisible();
+    expect(canvasElement.ownerDocument.documentElement).toHaveClass("modal-open");
+    expect(canvasElement.ownerDocument.body.style.position).toBe("fixed");
+    await expect(portal.getByRole("navigation", { name: "Mobile navigation" })).toBeVisible();
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    expect(getComputedStyle(drawer).animationName).toBe(
+      reducedMotion ? "none" : "public-nav-enter"
+    );
+    await Promise.all(drawer.getAnimations().map((animation) => animation.finished));
+    await userEvent.keyboard("{Escape}");
+    if (!reducedMotion) {
+      expect(drawer).toBeInTheDocument();
+      expect(getComputedStyle(drawer).animationName).toBe("public-nav-exit");
+      expect(canvasElement.ownerDocument.documentElement).toHaveClass("modal-open");
+    }
+    await waitFor(() => expect(portal.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(canvasElement.ownerDocument.documentElement).not.toHaveClass("modal-open");
+    await expect(canvas.getByRole("button", { name: "Open Menu" })).toHaveFocus();
+    await userEvent.click(canvas.getByRole("button", { name: "Open Menu" }));
+    await userEvent.click(portal.getByRole("link", { name: "Install App" }));
+    await waitFor(() =>
+      expect(portal.queryByRole("dialog", { name: "Open Menu" })).not.toBeInTheDocument()
+    );
   },
 };

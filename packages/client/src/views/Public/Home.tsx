@@ -1,10 +1,12 @@
-import { useApp, usePublicStats } from "@green-goods/shared";
+import { Button } from "@green-goods/shared/components/Button";
+import { usePublicCommitmentImpact } from "@green-goods/shared/hooks/public/usePublicCommitmentImpact";
+import { usePublicStats } from "@green-goods/shared/hooks/public/usePublicStats";
+import { useApp } from "@green-goods/shared/providers/App";
 import { useIntl } from "react-intl";
 import {
   EditorialGhostLink,
-  EditorialPrimaryButton,
   EditorialPrimaryLink,
-  EditorialTitleAccent,
+  editorialTitleTags,
 } from "@/components/Public/atoms";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFeaturedGardens } from "@/components/Public/PublicFeaturedGardens";
@@ -24,13 +26,15 @@ import { publicCuration } from "@/content/publicCuration";
  * through the manifest `start_url` at `/home`.
  *
  * Composition order matches the editorial dialect:
- *   Hero → Featured Gardens → Living Public Record → Regenerative Loop →
+ *   Hero → Featured Gardens → Living Public Record → How it works (the
+ *   Needs → Commitment → Work → Learnings cycle) → Who Tends a Garden →
  *   Funding Bridge → Get In Touch → Footer.
  */
 export default function Home() {
   const { formatMessage } = useIntl();
   const { isMobile } = useApp();
   const stats = usePublicStats();
+  const commitments = usePublicCommitmentImpact();
 
   const counts = stats.data ?? {
     gardenCount: 0,
@@ -39,31 +43,45 @@ export default function Home() {
     attestationCount: 0,
   };
 
-  // Mobile: lead with the app CTA so a phone visitor lands on the install
-  // path, then offer Explore as the secondary route. Desktop drops the
-  // secondary entirely — Explore Gardens is the only above-the-fold CTA.
   const exploreLabel = formatMessage({
     id: "public.home.hero.exploreGardens",
     defaultMessage: "Explore Gardens",
   });
 
+  // A phone visitor is on the device they would garden with, so the hero leads
+  // with the install path and keeps Explore Gardens as the editorial route.
+  // Desktop carries Install App in the header, so its hero pairs discovery with
+  // funding. `isMobile` is the device, not the width: a narrow desktop window
+  // keeps the desktop pair (DESIGN.browser.md § Homepage).
   const heroActions = isMobile ? (
     <>
       <PublicInstallAction>
-        {({ label, onClick, disabled, dataInstallAction }) => (
-          <EditorialPrimaryButton
-            onClick={onClick}
-            disabled={disabled}
-            data-install-action={dataInstallAction}
-          >
-            {label}
-          </EditorialPrimaryButton>
+        {({ label, href, onClick, disabled, dataInstallAction }) => (
+          <Button asChild size="lg">
+            <a
+              href={href}
+              onClick={onClick}
+              aria-disabled={disabled || undefined}
+              data-install-action={dataInstallAction}
+            >
+              {label}
+            </a>
+          </Button>
         )}
       </PublicInstallAction>
-      <EditorialGhostLink to="/gardens">{exploreLabel}</EditorialGhostLink>
+      <EditorialGhostLink to="/gardens" size="lg">
+        {exploreLabel}
+      </EditorialGhostLink>
     </>
   ) : (
-    <EditorialPrimaryLink to="/gardens">{exploreLabel}</EditorialPrimaryLink>
+    <>
+      <EditorialPrimaryLink to="/gardens" size="lg">
+        {exploreLabel}
+      </EditorialPrimaryLink>
+      <EditorialGhostLink to="/fund" size="lg">
+        {formatMessage({ id: "public.home.hero.support", defaultMessage: "Support a Garden" })}
+      </EditorialGhostLink>
+    </>
   );
 
   return (
@@ -77,17 +95,14 @@ export default function Home() {
           {
             id: "public.home.hero.title",
             defaultMessage:
-              "From <accent>good</accent> intentions to <noBreak><accent>green</accent> outcomes</noBreak>.",
+              "<line>From <accent>good</accent></line> <line>intentions to</line> <line><accent>green</accent> outcomes</line>",
           },
-          {
-            accent: (chunks) => <EditorialTitleAccent>{chunks}</EditorialTitleAccent>,
-            noBreak: (chunks) => <span className="whitespace-nowrap">{chunks}</span>,
-          }
+          editorialTitleTags
         )}
         lede={formatMessage({
           id: "public.home.hero.lede",
           defaultMessage:
-            "Green Goods makes regenerative work easier to support across solar, agroforestry, education, and waste, turning everyday contributions into a trusted public record of how places grow healthier together.",
+            "Green Goods helps community projects document environmental work, have it reviewed by local stewards, and connect with funding. Explore what’s been done, meet the people doing it, and support what comes next.",
         })}
         actions={heroActions}
       />
@@ -97,7 +112,10 @@ export default function Home() {
         contributors={counts.contributorCount}
         works={counts.fieldNoteCount}
         assessments={counts.attestationCount}
+        // A commitment read that settled without data is unknown, never zero.
+        commitmentsKept={commitments.data?.commitmentsFulfilled ?? null}
         isLoading={stats.isLoading}
+        isCommitmentsLoading={commitments.isLoading}
       />
       <PublicRecordLoop />
       <PublicWhoTendsAGarden />

@@ -6,41 +6,94 @@
  * @module hooks/hypercerts/useCancelListing
  */
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { type Address, encodeFunctionData } from "viem";
-import { useWalletClient } from "wagmi";
+import { useRef, useState } from "react";
+import { type Address } from "viem";
 
-import { createPublicClientForChain, DEFAULT_CHAIN_ID } from "../../config";
-import { getChain } from "../../config/chains";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { logger } from "../../modules/app/logger";
-import {
-  assertLocalArbitrumForkSmartAccountsDisabled,
-  assertLocalArbitrumForkWallet,
-} from "../../modules/transactions/local-fork-safety";
-import { ensureAppKitWalletChain } from "../../modules/transactions/chain-guard";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import { assertMarketplaceReady } from "../../utils/blockchain/contracts";
-import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
-import { useAuth } from "../auth/useAuth";
-import { queryInvalidation } from "../../config/query-keys";
+import { usePrimaryAddress } from "../auth/usePrimaryAddress";
+import { useTransactionSender } from "../blockchain/useTransactionSender";
+import { useIntl } from "react-intl";
+import { queryInvalidation } from "../../config/query-keys/invalidation";
 import { HYPERCERTS_MODULE_ABI } from "../../utils/blockchain/hypercert-abis";
+import {
+  listingSubmissionKey,
+  useListingSubmissionStore,
+} from "../../stores/useListingSubmissionStore";
+import {
+  reconcileTransaction,
+  sendCheckpointedCall,
+} from "../../modules/transactions/confirmation";
+import type { TxResult } from "../../modules/transactions/types";
+import { createPublicClientForChain } from "../../config/pimlico";
 
 export interface UseCancelListingResult {
   cancelListing: (orderId: number) => Promise<void>;
   isCancelling: boolean;
   error: Error | null;
+  pendingCancellation?: { orderId: number; result: TxResult };
+  checkConfirmation: () => Promise<void>;
+  confirmWalletCancellation: (confirmedInWallet: boolean) => Promise<void>;
+  isCheckingConfirmation: boolean;
 }
 
 export function useCancelListing(gardenAddress?: Address): UseCancelListingResult {
-  const { smartAccountClient, smartAccountAddress, eoaAddress } = useAuth();
-  const { data: walletClient } = useWalletClient();
+  const signer = usePrimaryAddress();
+  const sender = useTransactionSender();
+  const { formatMessage } = useIntl();
   const chainId = useAdminStore((state: AdminState) => state.selectedChainId) || DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
+  const scope =
+    signer && gardenAddress ? listingSubmissionKey(signer, chainId, gardenAddress) : null;
+  const activeScope = useRef(scope);
+  activeScope.current = scope;
+  const pendingCancellation = useListingSubmissionStore((state) =>
+    scope ? state.cancellations[scope] : undefined
+  );
+  const [isCheckingConfirmation, setIsCheckingConfirmation] = useState(false);
+  const [confirmationError, setConfirmationError] = useState<Error | null>(null);
+  const refresh = () => {
+    if (gardenAddress)
+      for (const queryKey of queryInvalidation.onMarketplaceListingChanged(gardenAddress, chainId))
+        void queryClient.invalidateQueries({ queryKey });
+  };
+  const checkConfirmation = async () => {
+    if (!scope || !sender || !pendingCancellation || isCheckingConfirmation || mutation.isPending)
+      return;
+    setIsCheckingConfirmation(true);
+    try {
+      const outcome = await reconcileTransaction(sender, pendingCancellation.result, (hash) =>
+        createPublicClientForChain(chainId).getTransactionReceipt({ hash })
+      );
+      if (
+        activeScope.current !== scope ||
+        useListingSubmissionStore.getState().cancellations[scope] !== pendingCancellation
+      )
+        return;
+      if (outcome.status === "unresolved") return;
+      useListingSubmissionStore.getState().clearCancellation(scope);
+      if (outcome.status === "reverted")
+        setConfirmationError(new Error(formatMessage({ id: "app.account.transactionReverted" })));
+      refresh();
+    } finally {
+      setIsCheckingConfirmation(false);
+    }
+  };
 
   const mutation = useMutation({
     mutationFn: async (orderId: number) => {
+      if (scope && useListingSubmissionStore.getState().cancellations[scope]) return;
+      setConfirmationError(null);
       if (!gardenAddress) throw new Error("Garden address required");
-      const signer = (smartAccountAddress || eoaAddress) as Address;
-      if (!signer) throw new Error("Connect a wallet first");
+      if (!signer || !sender)
+        throw new Error(
+          formatMessage({
+            id: !signer ? "app.account.signInRequired" : "app.account.signerNotReady",
+          })
+        );
+      await sender.assertOwnership?.(signer, chainId);
 
       const readiness = assertMarketplaceReady(chainId);
       const moduleAddress = readiness.addresses.hypercertsModule;
@@ -51,39 +104,39 @@ export function useCancelListing(gardenAddress?: Address): UseCancelListingResul
         chainId,
       });
 
-      const callData = encodeFunctionData({
+      const call = {
+        address: moduleAddress,
+        account: signer,
+        chainId,
         abi: HYPERCERTS_MODULE_ABI,
         functionName: "delistFromYield",
         args: [gardenAddress, BigInt(orderId)],
-      });
+      };
 
-      if (smartAccountClient) {
-        assertLocalArbitrumForkSmartAccountsDisabled();
-
-        const hash = await smartAccountClient.sendUserOperation({
-          account: smartAccountClient.account,
-          calls: [{ to: moduleAddress, data: callData, value: 0n }],
-        });
-        await smartAccountClient.getUserOperationReceipt({ hash });
-      } else if (walletClient) {
-        const publicClient = createPublicClientForChain(chainId);
-        await ensureAppKitWalletChain(chainId);
-        await assertLocalArbitrumForkWallet();
-
-        const txHash = await walletClient.sendTransaction({
-          to: moduleAddress,
-          data: callData,
-          account: signer,
-          chain: getChain(chainId),
-        });
-        await publicClient.waitForTransactionReceipt({
-          hash: txHash,
-          timeout: TX_RECEIPT_TIMEOUT_MS,
-        });
-      } else {
-        throw new Error("No wallet available for transaction");
+      const clearCheckpoint = (result: TxResult) => {
+        if (
+          scope &&
+          useListingSubmissionStore.getState().cancellations[scope]?.result.hash ===
+            (result.broadcastReference?.hash ?? result.hash)
+        )
+          useListingSubmissionStore.getState().clearCancellation(scope);
+      };
+      const result = await sendCheckpointedCall(
+        sender,
+        call,
+        (result) => {
+          if (scope)
+            useListingSubmissionStore.getState().recordCancellation(scope, orderId, result);
+        },
+        clearCheckpoint,
+        { assertOwnership: () => sender.assertOwnership?.(signer, chainId) }
+      );
+      if (result.confirmation === "pending" && scope) {
+        useListingSubmissionStore.getState().recordCancellation(scope, orderId, result);
+        return;
       }
 
+      clearCheckpoint(result);
       logger.info("[useCancelListing] Listing cancelled", { gardenAddress, orderId });
     },
     onSuccess: () => {
@@ -106,9 +159,30 @@ export function useCancelListing(gardenAddress?: Address): UseCancelListingResul
     },
   });
 
+  const confirmWalletCancellation = async (confirmedInWallet: boolean) => {
+    if (!confirmedInWallet) throw new Error("wallet-cancellation-confirmation-required");
+    if (!scope || !pendingCancellation || !sender || !signer) throw new Error("signer-not-ready");
+    const isCurrent = () =>
+      activeScope.current === scope &&
+      !mutation.isPending &&
+      !isCheckingConfirmation &&
+      useListingSubmissionStore.getState().cancellations[scope] === pendingCancellation;
+    if (!isCurrent()) throw new Error("pending-submission-changed");
+    await sender.assertOwnership?.(signer, chainId);
+    if (!isCurrent()) throw new Error("pending-submission-changed");
+    useListingSubmissionStore.getState().clearCancellation(scope);
+    setConfirmationError(null);
+    mutation.reset();
+    refresh();
+  };
+
   return {
+    confirmWalletCancellation,
     cancelListing: (orderId) => mutation.mutateAsync(orderId),
-    isCancelling: mutation.isPending,
-    error: mutation.error as Error | null,
+    isCancelling: mutation.isPending || Boolean(pendingCancellation),
+    pendingCancellation,
+    checkConfirmation,
+    isCheckingConfirmation: isCheckingConfirmation || mutation.isPending,
+    error: (mutation.error as Error | null) ?? confirmationError,
   };
 }

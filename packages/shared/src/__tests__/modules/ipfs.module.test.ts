@@ -2,14 +2,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   canonicalizeIPFSIdentifier,
+  createGatewayChain,
   getFileByHash,
   getJsonByHash,
   initializeIpfsFromEnv,
+  type IpfsGateway,
+  ipfsPinner,
   parseIPFSReference,
   resolveIPFSUrl,
   uploadFileToIPFS,
   uploadJSONToIPFS,
 } from "../../modules/data/ipfs";
+import { verifyPinataGatewayAvailability } from "../../modules/data/ipfs/pinata";
 
 describe("modules/data/ipfs", () => {
   const originalFetch = globalThis.fetch;
@@ -43,10 +47,10 @@ describe("modules/data/ipfs", () => {
     );
   });
 
-  it("falls back across gateway candidates when the first fetch fails", async () => {
+  it("falls back from a 404 gateway response to the next successful gateway", async () => {
     const fetchMock = vi
       .fn<typeof fetch>()
-      .mockResolvedValueOnce(new Response("bad gateway", { status: 502 }))
+      .mockResolvedValueOnce(new Response("not found", { status: 404 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 200 }));
     globalThis.fetch = fetchMock;
 
@@ -56,6 +60,64 @@ describe("modules/data/ipfs", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(fetchMock.mock.calls[0][0]).toContain(`/ipfs/${validCid}/config.json`);
     expect(fetchMock.mock.calls[1][0]).toContain(`/ipfs/${validCid}/config.json`);
+  });
+
+  it("falls back when a successful gateway response contains invalid JSON", async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response("not-json", { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+    globalThis.fetch = fetchMock;
+
+    await expect(getJsonByHash<{ ok: boolean }>(`${validCid}/config.json`)).resolves.toEqual({
+      ok: true,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("preserves declared gateway order through createGatewayChain", async () => {
+    const attempts: string[] = [];
+    const gateway = (name: string, result: "fail" | "pass"): IpfsGateway => ({
+      readFile: async () => {
+        attempts.push(name);
+        if (result === "fail") throw new Error(`${name} unavailable`);
+        return { data: "ok" };
+      },
+      readJson: async <T>() => ({ ok: true }) as T,
+    });
+
+    const chain = createGatewayChain([
+      gateway("configured", "fail"),
+      gateway("pinata", "fail"),
+      gateway("public", "pass"),
+    ]);
+
+    await expect(chain.readFile(validCid)).resolves.toEqual({ data: "ok" });
+    expect(attempts).toEqual(["configured", "pinata", "public"]);
+  });
+
+  it("aborts a stalled gateway chain at its configured timeout", async () => {
+    vi.useFakeTimers();
+    try {
+      const stalled: IpfsGateway = {
+        readFile: (_identifier, options) =>
+          new Promise((_resolve, reject) => {
+            options?.signal?.addEventListener("abort", () => {
+              reject(new DOMException("The operation was aborted.", "AbortError"));
+            });
+          }),
+        readJson: async () => {
+          throw new Error("unused");
+        },
+      };
+      const request = createGatewayChain([stalled]).readFile(validCid, { timeoutMs: 250 });
+      const expectation = expect(request).rejects.toThrow("IPFS request timed out after 250ms");
+
+      await vi.advanceTimersByTimeAsync(250);
+      await expectation;
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("tries the original gateway URL before fallback gateways", async () => {
@@ -173,7 +235,7 @@ describe("modules/data/ipfs", () => {
     });
     globalThis.fetch = fetchMock;
 
-    const result = await uploadFileToIPFS(
+    const result = await ipfsPinner.pinFile(
       new File(["content"], "proof.png", { type: "image/png" }),
       { source: "ipfs-test" }
     );
@@ -239,6 +301,36 @@ describe("modules/data/ipfs", () => {
     );
 
     expect(result).toEqual({ cid: validCid });
+  });
+
+  it("retries Pinata gateway verification before succeeding", async () => {
+    vi.useFakeTimers();
+    try {
+      await initializeIpfsFromEnv({
+        MODE: "test",
+        PINATA_JWT: "pinata-server-token",
+        PINATA_GATEWAY_URL: "https://pinata.example",
+      });
+      const fetchMock = vi
+        .fn<typeof fetch>()
+        .mockResolvedValueOnce(new Response("unavailable", { status: 503 }))
+        .mockResolvedValueOnce(new Response("unavailable", { status: 503 }))
+        .mockResolvedValueOnce(new Response("ok", { status: 200 }));
+      globalThis.fetch = fetchMock;
+
+      const verification = verifyPinataGatewayAvailability(validCid);
+      await vi.runAllTimersAsync();
+      await verification;
+
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+      expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual([
+        `https://pinata.example/ipfs/${validCid}`,
+        `https://pinata.example/ipfs/${validCid}`,
+        `https://pinata.example/ipfs/${validCid}`,
+      ]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("aborts a stalled Pinata upload once the timeout elapses", async () => {

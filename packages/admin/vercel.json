@@ -1,4 +1,5 @@
 {
+  "ignoreCommand": "node ../../scripts/ops/vercel-ignore.mjs admin",
   "installCommand": "bun install --frozen-lockfile",
   "buildCommand": "bun run build",
   "outputDirectory": "dist",
@@ -7,23 +8,6 @@
     {
       "src": "/assets/(.*)\\.map",
       "status": 404
-    }
-  ],
-  "redirects": [
-    {
-      "source": "/gardens",
-      "destination": "https://greengoods.app/gardens",
-      "permanent": true
-    },
-    {
-      "source": "/gardens/:gardenId",
-      "destination": "https://greengoods.app/gardens/:gardenId",
-      "permanent": true
-    },
-    {
-      "source": "/gardens/:gardenId/:path*",
-      "destination": "https://greengoods.app/gardens/:gardenId/:path*",
-      "permanent": true
     }
   ],
   "rewrites": [

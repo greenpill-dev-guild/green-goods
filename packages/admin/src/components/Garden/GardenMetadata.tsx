@@ -1,10 +1,9 @@
-import {
-  type Address,
-  cn,
-  getNetworkConfig,
-  toastService,
-  useCopyToClipboard,
-} from "@green-goods/shared";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { getNetworkConfig } from "@green-goods/shared/config/blockchain";
+import type { SupportedChainId } from "@green-goods/shared/config/chains";
+import { useCopyToClipboard } from "@green-goods/shared/hooks/utils/useCopyToClipboard";
+import type { Address } from "@green-goods/shared/types/domain";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
   RiCheckLine,
   RiExternalLinkLine,
@@ -13,7 +12,27 @@ import {
   RiWallet3Line,
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
+import { AdminButton, AdminIconButton } from "@/components/AdminButton";
 import { EnsAddressText } from "@/components/EnsAddressText";
+
+// OpenSea's name for each chain the app supports. Null where it has no item page: OpenSea closed
+// its testnet site in 2025 and does not list Celo.
+const OPENSEA_CHAIN_NAMES: Record<SupportedChainId, string | null> = {
+  1: "ethereum",
+  42161: "arbitrum",
+  42220: null,
+  11155111: null,
+};
+
+/** The token's OpenSea item page, or null on a chain OpenSea has no page for. */
+export function getOpenSeaUrl(
+  chainId: number,
+  tokenAddress: Address,
+  tokenId: bigint | number
+): string | null {
+  const chainName = OPENSEA_CHAIN_NAMES[chainId as SupportedChainId];
+  return chainName ? `https://opensea.io/item/${chainName}/${tokenAddress}/${tokenId}` : null;
+}
 
 interface GardenMetadataProps {
   gardenId: Address; // Garden smart account address
@@ -52,6 +71,7 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
 
   const networkConfig = getNetworkConfig(chainId);
   const blockExplorer = networkConfig.blockExplorer;
+  const openSeaUrl = getOpenSeaUrl(chainId, tokenAddress, tokenId);
 
   const getExplorerUrl = (address: Address, type: "address" | "token" | "nft") => {
     if (!blockExplorer) return null;
@@ -68,17 +88,10 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
     }
   };
 
-  const getOpenSeaUrl = () => {
-    // OpenSea URLs differ by chain
-    const chainSlug =
-      chainId === 11155111 ? "sepolia" : chainId === 42161 ? "arbitrum" : "ethereum";
-    return `https://testnets.opensea.io/assets/${chainSlug}/${tokenAddress}/${tokenId}`;
-  };
-
   return (
     <div
       className={cn(
-        "grid gap-3 rounded-xl border border-stroke-soft bg-bg-white p-3 shadow-sm transition-shadow duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:shadow-md sm:p-4 md:grid-cols-2 lg:grid-cols-3",
+        "grid gap-3 rounded-xl border border-stroke-soft bg-bg-white p-3 shadow-[var(--m3-elevation-1)] transition-shadow duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:shadow-[var(--m3-elevation-2)] sm:p-4",
         className
       )}
     >
@@ -94,20 +107,15 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
           </span>
         </div>
         <div className="flex items-center gap-1.5 min-w-0">
-          <code className="flex-1 truncate text-xs text-text-strong sm:text-sm">
+          <code className="flex-1 truncate body-xs text-text-strong sm:body-sm">
             <EnsAddressText address={gardenId} />
           </code>
-          <button
+          <AdminIconButton
+            className="flex-shrink-0"
             onClick={() => copyGarden(gardenId)}
-            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded p-2 text-text-soft transition hover:bg-bg-weak hover:text-text-sub active:scale-95"
-            title={formatMessage({
-              id: "admin.gardenMetadata.copyAddress",
-              defaultMessage: "Copy address",
-            })}
-            type="button"
-            aria-label={formatMessage({
+            label={formatMessage({
               id: "admin.gardenMetadata.copyGardenAddress",
-              defaultMessage: "Copy garden address",
+              defaultMessage: "Copy Garden Address",
             })}
           >
             {copiedGarden ? (
@@ -115,24 +123,25 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
             ) : (
               <RiFileCopyLine className="h-4 w-4" />
             )}
-          </button>
+          </AdminIconButton>
           {blockExplorer && (
-            <a
-              href={getExplorerUrl(gardenId, "address") || "#"}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded p-2 text-information-dark transition hover:bg-information-lighter active:scale-95"
-              title={formatMessage({
-                id: "admin.gardenMetadata.viewOnExplorer",
-                defaultMessage: "View on block explorer",
-              })}
-              aria-label={formatMessage({
+            <AdminIconButton
+              asChild
+              variant="accent"
+              className="flex-shrink-0"
+              label={formatMessage({
                 id: "admin.gardenMetadata.viewGardenOnExplorer",
-                defaultMessage: "View garden on block explorer",
+                defaultMessage: "View Garden on Block Explorer",
               })}
             >
-              <RiExternalLinkLine className="h-4 w-4" />
-            </a>
+              <a
+                href={getExplorerUrl(gardenId, "address") || "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <RiExternalLinkLine />
+              </a>
+            </AdminIconButton>
           )}
         </div>
       </div>
@@ -146,20 +155,15 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
           </span>
         </div>
         <div className="flex items-center gap-1.5 min-w-0">
-          <code className="flex-1 truncate text-xs text-text-strong sm:text-sm">
+          <code className="flex-1 truncate body-xs text-text-strong sm:body-sm">
             <EnsAddressText address={tokenAddress} /> #{tokenId.toString()}
           </code>
-          <button
+          <AdminIconButton
+            className="flex-shrink-0"
             onClick={() => copyToken(`${tokenAddress}/${tokenId}`)}
-            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded p-2 text-text-soft transition hover:bg-bg-weak hover:text-text-sub active:scale-95"
-            title={formatMessage({
-              id: "admin.gardenMetadata.copyNFT",
-              defaultMessage: "Copy NFT identifier",
-            })}
-            type="button"
-            aria-label={formatMessage({
+            label={formatMessage({
               id: "admin.gardenMetadata.copyNFTId",
-              defaultMessage: "Copy NFT identifier",
+              defaultMessage: "Copy NFT Identifier",
             })}
           >
             {copiedToken ? (
@@ -167,64 +171,68 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
             ) : (
               <RiFileCopyLine className="h-4 w-4" />
             )}
-          </button>
+          </AdminIconButton>
           {blockExplorer && (
-            <a
-              href={getExplorerUrl(tokenAddress, "nft") || "#"}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded p-2 text-information-dark transition hover:bg-information-lighter active:scale-95"
-              title={formatMessage({
+            <AdminIconButton
+              asChild
+              variant="accent"
+              className="flex-shrink-0"
+              label={formatMessage({
                 id: "admin.gardenMetadata.viewNFTOnExplorer",
-                defaultMessage: "View NFT on block explorer",
-              })}
-              aria-label={formatMessage({
-                id: "admin.gardenMetadata.viewNFTOnExplorer",
-                defaultMessage: "View NFT on block explorer",
+                defaultMessage: "View NFT on Block Explorer",
               })}
             >
-              <RiExternalLinkLine className="h-4 w-4" />
-            </a>
+              <a
+                href={getExplorerUrl(tokenAddress, "nft") || "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <RiExternalLinkLine />
+              </a>
+            </AdminIconButton>
           )}
         </div>
       </div>
 
       {/* Quick Actions */}
-      <div className="flex flex-col gap-2 md:col-span-2 lg:col-span-1">
-        <div className="label-xs text-text-soft">
-          {formatMessage({
-            id: "admin.gardenMetadata.externalLinks",
-            defaultMessage: "External Links",
-          })}
+      {(blockExplorer || openSeaUrl) && (
+        <div className="flex flex-col gap-2">
+          <div className="label-xs text-text-soft">
+            {formatMessage({
+              id: "admin.gardenMetadata.externalLinks",
+              defaultMessage: "External Links",
+            })}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {blockExplorer && (
+              <AdminButton
+                asChild
+                variant="outlined"
+                size="md"
+                leadingIcon={<RiExternalLinkLine />}
+              >
+                <a
+                  href={getExplorerUrl(tokenAddress, "token") || "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {formatMessage({
+                    id: "admin.gardenMetadata.tokenContract",
+                    defaultMessage: "Token Contract",
+                  })}
+                </a>
+              </AdminButton>
+            )}
+            {openSeaUrl && (
+              <AdminButton asChild variant="tonal" size="md" leadingIcon={<RiNftLine />}>
+                <a href={openSeaUrl} target="_blank" rel="noopener noreferrer">
+                  OpenSea
+                </a>
+              </AdminButton>
+            )}
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {blockExplorer && (
-            <a
-              href={getExplorerUrl(tokenAddress, "token") || "#"}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg border border-stroke-sub bg-bg-white px-4 py-2.5 text-xs font-medium text-text-sub transition hover:bg-bg-weak active:scale-95"
-            >
-              <RiExternalLinkLine className="h-4 w-4 flex-shrink-0" />
-              <span className="whitespace-nowrap">
-                {formatMessage({
-                  id: "admin.gardenMetadata.tokenContract",
-                  defaultMessage: "Token Contract",
-                })}
-              </span>
-            </a>
-          )}
-          <a
-            href={getOpenSeaUrl()}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg border border-information-light bg-information-lighter px-4 py-2.5 text-xs font-medium text-information-dark transition hover:bg-information-light active:scale-95"
-          >
-            <RiNftLine className="h-4 w-4 flex-shrink-0" />
-            <span className="whitespace-nowrap">OpenSea</span>
-          </a>
-        </div>
-      </div>
+      )}
     </div>
   );
 };

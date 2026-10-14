@@ -9,7 +9,7 @@
  * - Shared message zone (info/helper vs error)
  */
 
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { HelmetProvider } from "react-helmet-async";
@@ -22,47 +22,29 @@ const mockLoginWithPasskey = vi.fn();
 const mockCreateAccount = vi.fn();
 const mockLoginWithWallet = vi.fn();
 const mockLoginWithEmbedded = vi.fn();
-const { mockClassifyPasskeyCeremonyContext } = vi.hoisted(() => ({
+const { mockClassifyPasskeyCeremonyContext, mockToastService } = vi.hoisted(() => ({
   mockClassifyPasskeyCeremonyContext: vi.fn(() => ({
     supported: true,
+    reason: undefined as "rp_origin_mismatch" | undefined,
     rpId: "greengoods.app",
     origin: "https://greengoods.app",
   })),
-}));
-let mockHasStoredCredential = false;
-let mockAuthError: Error | null = null;
-let mockPasskeyServerEnabled = true;
-let mockIsAuthenticated = false;
-let mockAuthUserName: string | null = null;
-let mockStoredUsername: string | null = null;
-
-vi.mock("@green-goods/shared", () => ({
-  toastService: {
+  mockToastService: {
     info: vi.fn(),
     success: vi.fn(),
     error: vi.fn(),
     show: vi.fn(),
   },
-  copyToClipboard: vi.fn(),
-  classifyPasskeyCeremonyContext: mockClassifyPasskeyCeremonyContext,
-  isPasskeyServerEnabled: () => mockPasskeyServerEnabled,
-  getStoredUsername: () => mockStoredUsername,
-  normalizePasskeyAccountIdentifier: (value: string) =>
-    value.trim().replace(/^@+/, "").toLowerCase(),
-  useInstallGuidance: () => ({
-    showInstallPrompt: false,
-    scenario: null,
-    installAction: null,
-    dismissInstallPrompt: vi.fn(),
-    openInBrowserUrl: null,
-  }),
-  useApp: () => ({
-    platform: "unknown" as const,
-    isMobile: false,
-    isInstalled: false,
-    wasInstalled: false,
-    deferredPrompt: null,
-  }),
+}));
+let mockHasStoredCredential = false;
+let mockAuthError: Error | null = null;
+let mockPasskeyServerEnabled = true;
+let mockIsAuthenticated = false;
+let mockIsReady = true;
+let mockAuthUserName: string | null = null;
+let mockStoredUsername: string | null = null;
+
+vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
   useAuth: () => ({
     loginWithPasskey: mockLoginWithPasskey,
     createAccount: mockCreateAccount,
@@ -70,22 +52,61 @@ vi.mock("@green-goods/shared", () => ({
     loginWithEmbedded: mockLoginWithEmbedded,
     isAuthenticating: false,
     isAuthenticated: mockIsAuthenticated,
-    isReady: true,
+    isReady: mockIsReady,
     smartAccountAddress: null,
     hasStoredCredential: mockHasStoredCredential,
     userName: mockAuthUserName,
     error: mockAuthError,
   }),
-  debugError: vi.fn(),
-  trackAuthError: vi.fn(),
-  APP_NAME: "Green Goods",
 }));
 
-// Mock LoadingSplash component (boot state only)
-vi.mock("@/views/Login/components/LoadingSplash", () => ({
-  LoadingSplash: ({ loadingState, message }: { loadingState: string; message?: string }) =>
-    createElement("div", { "data-testid": "loading-splash" }, message || loadingState),
+vi.mock("@green-goods/shared/providers/App", () => ({
+  useApp: () => ({
+    platform: "unknown" as const,
+    isMobile: false,
+    isInstalled: false,
+    isInstalling: false,
+    wasInstalled: false,
+    deferredPrompt: null,
+  }),
 }));
+
+vi.mock("@green-goods/shared/hooks/app/useInstallGuidance", () => ({
+  useInstallGuidance: () => ({
+    showInstallPrompt: false,
+    scenario: null,
+    installAction: null,
+    dismissInstallPrompt: vi.fn(),
+    openInBrowserUrl: null,
+  }),
+}));
+
+vi.mock("@green-goods/shared/config/passkeyServer", () => ({
+  classifyPasskeyCeremonyContext: mockClassifyPasskeyCeremonyContext,
+  isPasskeyServerEnabled: () => mockPasskeyServerEnabled,
+  normalizePasskeyAccountIdentifier: (value: string) =>
+    value.trim().replace(/^@+/, "").toLowerCase(),
+}));
+
+vi.mock("@green-goods/shared/modules/auth/session", () => ({
+  getStoredUsername: () => mockStoredUsername,
+}));
+vi.mock("@green-goods/shared/modules/app/error-categories", () => ({
+  trackAuthError: vi.fn(),
+}));
+vi.mock("@green-goods/shared/utils/app/clipboard", () => ({
+  copyToClipboard: vi.fn(),
+}));
+vi.mock("@green-goods/shared/utils/debug", () => ({
+  debugError: vi.fn(),
+}));
+
+vi.mock("@green-goods/shared/components/Toast/toast.service", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
+    toastService: mockToastService,
+  };
+});
 
 // Mock Splash component to simplify testing — renders all action tiers + the
 // shared message zone (error wins over info, mirroring the real component)
@@ -161,13 +182,14 @@ vi.mock("@/components/Layout", () => ({
 }));
 
 // Import after mocks
-import { toastService } from "@green-goods/shared";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import en from "@green-goods/shared/i18n/en.json";
 import { Login } from "../../views/Login";
 
-const createLoginTree = (initialRoute = "/home/login") =>
+const createLoginTree = (initialRoute = "/home/login", messages: Record<string, string> = {}) =>
   createElement(
     IntlProvider,
-    { locale: "en", messages: {} },
+    { locale: "en", messages },
     createElement(
       HelmetProvider,
       null,
@@ -197,11 +219,13 @@ describe("Login View - New User (two-step create)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockHasStoredCredential = false;
+    mockIsReady = true;
     mockAuthError = null;
     mockPasskeyServerEnabled = true;
     mockStoredUsername = null;
     mockClassifyPasskeyCeremonyContext.mockReturnValue({
       supported: true,
+      reason: undefined,
       rpId: "greengoods.app",
       origin: "https://greengoods.app",
     });
@@ -216,13 +240,27 @@ describe("Login View - New User (two-step create)", () => {
     expect(screen.getByTestId("splash-screen")).toBeInTheDocument();
   });
 
+  it("leaves cold-start rendering to the static PWA surface until auth is ready", () => {
+    mockIsReady = false;
+
+    const view = renderWithRouter();
+
+    expect(view.container).toBeEmptyDOMElement();
+    expect(screen.queryByTestId("splash-screen")).not.toBeInTheDocument();
+  });
+
+  it("sets the login document title", async () => {
+    renderWithRouter();
+    await waitFor(() => expect(document.title).toBe("Sign in | Green Goods"));
+  });
+
   it("shows the entry screen without an input: create, wallet, recover", () => {
     renderWithRouter();
 
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create account");
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create Account");
     expect(screen.getByTestId("primary-button")).toBeEnabled();
     expect(screen.queryByTestId("username-input")).not.toBeInTheDocument();
-    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Sign in with a wallet");
+    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Sign in with a Wallet");
     // First-timers get the reframed "existing account" link, not "Recover…";
     // recovery-by-username still exists for existing users on a new device.
     expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Already have an account?");
@@ -235,19 +273,19 @@ describe("Login View - New User (two-step create)", () => {
 
     await user.click(screen.getByTestId("primary-button"));
 
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create account");
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create Account");
     expect(screen.getByTestId("primary-button")).toBeDisabled();
     expect(screen.getByTestId("username-input")).toBeInTheDocument();
     // Form screens drop the wallet secondary; Back is the tertiary.
     expect(screen.queryByTestId("secondary-button")).not.toBeInTheDocument();
     expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Back");
     // The input's visible instruction lives in the shared message zone.
-    expect(screen.getByTestId("info-message")).toHaveTextContent(/synced passkey/i);
+    expect(screen.getByTestId("info-message")).toHaveTextContent(/sign in on another device/i);
 
     await user.click(screen.getByTestId("tertiary-button"));
 
     expect(screen.queryByTestId("username-input")).not.toBeInTheDocument();
-    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Sign in with a wallet");
+    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Sign in with a Wallet");
   });
 
   it("creates an account from the create form", async () => {
@@ -268,8 +306,8 @@ describe("Login View - New User (two-step create)", () => {
     renderWithRouter();
 
     // Entry: no recover link without a passkey server.
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create account");
-    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Sign in with a wallet");
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create Account");
+    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Sign in with a Wallet");
     expect(screen.queryByTestId("tertiary-button")).not.toBeInTheDocument();
 
     await user.click(screen.getByTestId("primary-button"));
@@ -297,12 +335,12 @@ describe("Login View - New User (two-step create)", () => {
 
     await user.click(screen.getByTestId("tertiary-button"));
 
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Recover with passkey");
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Sign in with Passkey");
     expect(screen.getByTestId("username-input")).toBeInTheDocument();
     // Flat sub-flow: no wallet, no fork — just Back.
     expect(screen.queryByTestId("secondary-button")).not.toBeInTheDocument();
     expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Back");
-    expect(screen.getByTestId("info-message")).toHaveTextContent(/synced passkeys/i);
+    expect(screen.getByTestId("info-message")).toHaveTextContent(/on a phone nearby/i);
   });
 
   it("recovers by username through passkey login", async () => {
@@ -314,6 +352,27 @@ describe("Login View - New User (two-step create)", () => {
     await user.click(screen.getByTestId("primary-button"));
 
     expect(mockLoginWithPasskey).toHaveBeenCalledWith("testuser");
+  });
+
+  it("renders the same form copy whether or not the message bundle loaded", async () => {
+    // These tests render without a bundle, so they read the fallback text in the view. If that
+    // drifts from en.json, a missing bundle shows retired copy and the tests above still pass.
+    const readForm = async (messages: Record<string, string>, entryControl: string) => {
+      const user = userEvent.setup();
+      const view = render(createLoginTree("/home/login", messages));
+      await user.click(screen.getByTestId(entryControl));
+      const copy = {
+        button: screen.getByTestId("primary-button").textContent,
+        info: screen.getByTestId("info-message").textContent,
+      };
+      view.unmount();
+      return copy;
+    };
+
+    // Entry primary opens the create form; entry tertiary opens the recover form.
+    for (const entryControl of ["primary-button", "tertiary-button"]) {
+      expect(await readForm({}, entryControl)).toEqual(await readForm(en, entryControl));
+    }
   });
 
   it("failed recovery shows the error with no separate-account fork", async () => {
@@ -329,11 +388,11 @@ describe("Login View - New User (two-step create)", () => {
     // Recovery is flat: the user retries or goes Back — nothing else appears.
     expect(screen.queryByTestId("secondary-button")).not.toBeInTheDocument();
     expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Back");
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Recover with passkey");
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Sign in with Passkey");
 
     // Back returns to the entry screen where a fresh account can be created.
     await user.click(screen.getByTestId("tertiary-button"));
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create account");
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create Account");
     expect(screen.queryByTestId("error-message")).not.toBeInTheDocument();
   });
 
@@ -406,7 +465,7 @@ describe("Login View - Existing User (entry screen)", () => {
 
   it("shows Sign in with passkey as primary for returning users", () => {
     renderWithRouter();
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Sign in with passkey");
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Sign in with Passkey");
     expect(screen.queryByTestId("username-input")).not.toBeInTheDocument();
   });
 
@@ -422,17 +481,17 @@ describe("Login View - Existing User (entry screen)", () => {
   it("falls back to the generic label when the stored username is blank", () => {
     mockStoredUsername = "   ";
     renderWithRouter();
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Sign in with passkey");
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Sign in with Passkey");
   });
 
   it("shows Sign in with a wallet as secondary for returning users", () => {
     renderWithRouter();
-    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Sign in with a wallet");
+    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Sign in with a Wallet");
   });
 
   it("offers username recovery as tertiary when the passkey server is enabled", () => {
     renderWithRouter();
-    expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Recover with username");
+    expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Recover with Username");
   });
 
   it("does not show a tertiary action when the passkey server is disabled", () => {
@@ -447,14 +506,17 @@ describe("Login View - Existing User (entry screen)", () => {
 
     await user.click(screen.getByTestId("tertiary-button"));
 
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Recover with passkey");
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Sign in with Passkey");
     expect(screen.getByTestId("username-input")).toBeInTheDocument();
     expect(screen.queryByTestId("secondary-button")).not.toBeInTheDocument();
     expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Back");
 
     await user.click(screen.getByTestId("tertiary-button"));
 
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Sign in with passkey");
+    // The form shares its button label with the entry screen, so check what only the entry has.
+    expect(screen.queryByTestId("username-input")).not.toBeInTheDocument();
+    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Sign in with a Wallet");
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Sign in with Passkey");
   });
 
   it("keeps recovery flat for returning users too", async () => {
@@ -511,6 +573,7 @@ describe("Login View - fallback account surfacing", () => {
     mockStoredUsername = null;
     mockClassifyPasskeyCeremonyContext.mockReturnValue({
       supported: true,
+      reason: undefined,
       rpId: "greengoods.app",
       origin: "https://greengoods.app",
     });

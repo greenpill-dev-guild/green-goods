@@ -1,0 +1,208 @@
+{
+  "storage": [
+    {
+      "label": "_initialized",
+      "offset": 0,
+      "slot": "0",
+      "type": "t_uint8"
+    },
+    {
+      "label": "_initializing",
+      "offset": 1,
+      "slot": "0",
+      "type": "t_bool"
+    },
+    {
+      "label": "__gap",
+      "offset": 0,
+      "slot": "1",
+      "type": "t_array(t_uint256)50_storage"
+    },
+    {
+      "label": "_owner",
+      "offset": 0,
+      "slot": "51",
+      "type": "t_address"
+    },
+    {
+      "label": "__gap",
+      "offset": 0,
+      "slot": "52",
+      "type": "t_array(t_uint256)49_storage"
+    },
+    {
+      "label": "_status",
+      "offset": 0,
+      "slot": "101",
+      "type": "t_uint256"
+    },
+    {
+      "label": "__gap",
+      "offset": 0,
+      "slot": "102",
+      "type": "t_array(t_uint256)49_storage"
+    },
+    {
+      "label": "hatsModule",
+      "offset": 0,
+      "slot": "151",
+      "type": "t_contract(IHatsModule)"
+    },
+    {
+      "label": "gardenToken",
+      "offset": 0,
+      "slot": "152",
+      "type": "t_address"
+    },
+    {
+      "label": "yieldSplitter",
+      "offset": 0,
+      "slot": "153",
+      "type": "t_address"
+    },
+    {
+      "label": "cookieJarFactory",
+      "offset": 0,
+      "slot": "154",
+      "type": "t_contract(ICookieJarFactory)"
+    },
+    {
+      "label": "hatsProtocol",
+      "offset": 0,
+      "slot": "155",
+      "type": "t_address"
+    },
+    {
+      "label": "defaultMaxWithdrawal",
+      "offset": 0,
+      "slot": "156",
+      "type": "t_uint256"
+    },
+    {
+      "label": "defaultWithdrawalInterval",
+      "offset": 0,
+      "slot": "157",
+      "type": "t_uint256"
+    },
+    {
+      "label": "defaultStrictPurpose",
+      "offset": 0,
+      "slot": "158",
+      "type": "t_bool"
+    },
+    {
+      "label": "supportedAssets",
+      "offset": 0,
+      "slot": "159",
+      "type": "t_array(t_address)dyn_storage"
+    },
+    {
+      "label": "gardenJars",
+      "offset": 0,
+      "slot": "160",
+      "type": "t_mapping(t_address,t_mapping(t_address,t_address))"
+    },
+    {
+      "label": "gardenJarList",
+      "offset": 0,
+      "slot": "161",
+      "type": "t_mapping(t_address,t_array(t_address)dyn_storage)"
+    },
+    {
+      "label": "assetMaxWithdrawal",
+      "offset": 0,
+      "slot": "162",
+      "type": "t_mapping(t_address,t_uint256)"
+    },
+    {
+      "label": "__gap",
+      "offset": 0,
+      "slot": "163",
+      "type": "t_array(t_uint256)38_storage"
+    }
+  ],
+  "types": {
+    "t_address": {
+      "encoding": "inplace",
+      "label": "address",
+      "numberOfBytes": "20"
+    },
+    "t_array(t_address)dyn_storage": {
+      "base": "t_address",
+      "encoding": "dynamic_array",
+      "label": "address[]",
+      "numberOfBytes": "32"
+    },
+    "t_array(t_uint256)38_storage": {
+      "base": "t_uint256",
+      "encoding": "inplace",
+      "label": "uint256[38]",
+      "numberOfBytes": "1216"
+    },
+    "t_array(t_uint256)49_storage": {
+      "base": "t_uint256",
+      "encoding": "inplace",
+      "label": "uint256[49]",
+      "numberOfBytes": "1568"
+    },
+    "t_array(t_uint256)50_storage": {
+      "base": "t_uint256",
+      "encoding": "inplace",
+      "label": "uint256[50]",
+      "numberOfBytes": "1600"
+    },
+    "t_bool": {
+      "encoding": "inplace",
+      "label": "bool",
+      "numberOfBytes": "1"
+    },
+    "t_contract(ICookieJarFactory)": {
+      "encoding": "inplace",
+      "label": "contract ICookieJarFactory",
+      "numberOfBytes": "20"
+    },
+    "t_contract(IHatsModule)": {
+      "encoding": "inplace",
+      "label": "contract IHatsModule",
+      "numberOfBytes": "20"
+    },
+    "t_mapping(t_address,t_address)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => address)",
+      "numberOfBytes": "32",
+      "value": "t_address"
+    },
+    "t_mapping(t_address,t_array(t_address)dyn_storage)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => address[])",
+      "numberOfBytes": "32",
+      "value": "t_array(t_address)dyn_storage"
+    },
+    "t_mapping(t_address,t_mapping(t_address,t_address))": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => mapping(address => address))",
+      "numberOfBytes": "32",
+      "value": "t_mapping(t_address,t_address)"
+    },
+    "t_mapping(t_address,t_uint256)": {
+      "encoding": "mapping",
+      "key": "t_address",
+      "label": "mapping(address => uint256)",
+      "numberOfBytes": "32",
+      "value": "t_uint256"
+    },
+    "t_uint256": {
+      "encoding": "inplace",
+      "label": "uint256",
+      "numberOfBytes": "32"
+    },
+    "t_uint8": {
+      "encoding": "inplace",
+      "label": "uint8",
+      "numberOfBytes": "1"
+    }
+  }
+}

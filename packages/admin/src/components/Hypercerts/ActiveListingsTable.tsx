@@ -1,13 +1,14 @@
-import {
-  type Address,
-  Alert,
-  type RegisteredOrderView,
-  useCancelListing,
-  useHypercertListings,
-} from "@green-goods/shared";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { useCancelListing } from "@green-goods/shared/hooks/hypercerts/useCancelListing";
+import { useHypercertListings } from "@green-goods/shared/hooks/hypercerts/useHypercertListings";
+import type { Address } from "@green-goods/shared/types/domain";
+import type { RegisteredOrderView } from "@green-goods/shared/types/hypercerts";
 import { RiCloseLine, RiExchangeDollarLine, RiLoader4Line, RiTimeLine } from "@remixicon/react";
+import { useState } from "react";
 import { useIntl } from "react-intl";
 import { formatEther } from "viem";
+import { AdminButton } from "@/components/AdminButton";
+import { AdminConfirmDialog } from "@/components/AdminDialog";
 
 interface ActiveListingsTableProps {
   gardenAddress: Address;
@@ -53,84 +54,164 @@ function formatTimeRemaining(
 export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveListingsTableProps) {
   const intl = useIntl();
   const { listings, isLoading, error } = useHypercertListings(gardenAddress);
-  const { cancelListing, isCancelling } = useCancelListing(gardenAddress);
+  const {
+    cancelListing,
+    isCancelling,
+    pendingCancellation,
+    isCheckingConfirmation,
+    checkConfirmation,
+    confirmWalletCancellation,
+    error: cancellationError,
+  } = useCancelListing(gardenAddress);
+
+  const [reviewCancellation, setReviewCancellation] = useState<typeof pendingCancellation>();
+  const [isClearing, setIsClearing] = useState(false);
+  const [recoveryError, setRecoveryError] = useState(false);
+  const recoveryBusy = isCheckingConfirmation || isClearing;
+
+  const recoveryControls = pendingCancellation ? (
+    <>
+      <Alert variant="info">
+        <AdminButton size="sm" disabled={recoveryBusy} onClick={() => void checkConfirmation()}>
+          {intl.formatMessage({
+            id: "app.account.checkConfirmation",
+            defaultMessage: "Check confirmation",
+          })}
+        </AdminButton>
+        <AdminButton
+          size="sm"
+          variant="text"
+          disabled={recoveryBusy}
+          onClick={() => {
+            setRecoveryError(false);
+            setReviewCancellation(pendingCancellation);
+          }}
+        >
+          {intl.formatMessage({ id: "app.account.reviewCancellation" })}
+        </AdminButton>
+      </Alert>
+      {recoveryError && (
+        <Alert variant="error">
+          {intl.formatMessage({ id: "app.account.pendingRecoveryUnavailable" })}
+        </Alert>
+      )}
+      <AdminConfirmDialog
+        isOpen={Boolean(reviewCancellation && reviewCancellation === pendingCancellation)}
+        onClose={() => setReviewCancellation(undefined)}
+        title={intl.formatMessage({ id: "app.account.confirmCancellationTitle" })}
+        description={intl.formatMessage({ id: "app.account.confirmCancellationDescription" })}
+        confirmLabel={intl.formatMessage({ id: "app.account.confirmCancellation" })}
+        variant="warning"
+        tone="garden"
+        isLoading={isClearing}
+        confirmDisabled={recoveryBusy}
+        onError={() => setRecoveryError(true)}
+        onConfirm={async () => {
+          setIsClearing(true);
+          try {
+            await confirmWalletCancellation(true);
+            setReviewCancellation(undefined);
+          } finally {
+            setIsClearing(false);
+          }
+        }}
+      />
+    </>
+  ) : null;
+
+  const confirmationControl = (
+    <>
+      {recoveryControls}
+      {cancellationError && <Alert variant="error">{cancellationError.message}</Alert>}
+    </>
+  );
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center gap-2 py-8">
-        <RiLoader4Line className="h-5 w-5 animate-spin text-text-soft" />
-        <span className="text-sm text-text-soft">
-          {intl.formatMessage({
-            id: "app.admin.listings.loading",
-            defaultMessage: "Loading listings...",
-          })}
-        </span>
-      </div>
+      <>
+        {confirmationControl}
+        <div className="flex items-center justify-center gap-2 py-8">
+          <RiLoader4Line className="h-5 w-5 animate-spin text-text-soft" />
+          <span className="body-sm text-text-soft">
+            {intl.formatMessage({
+              id: "app.admin.listings.loading",
+              defaultMessage: "Loading listings...",
+            })}
+          </span>
+        </div>
+      </>
     );
   }
 
   if (error) {
     return (
-      <Alert variant="error">
-        {intl.formatMessage({
-          id: "app.admin.listings.loadError",
-          defaultMessage: "Failed to load listings",
-        })}
-      </Alert>
+      <>
+        {confirmationControl}
+        <Alert variant="error">
+          {intl.formatMessage({
+            id: "app.admin.listings.loadError",
+            defaultMessage: "Failed to load listings",
+          })}
+        </Alert>
+      </>
     );
   }
 
   if (listings.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-stroke-soft p-8 text-center">
-        <RiExchangeDollarLine className="mx-auto h-8 w-8 text-text-disabled" />
-        <p className="mt-2 text-sm text-text-soft">
-          {intl.formatMessage({
-            id: "app.admin.listings.empty",
-            defaultMessage: "No active listings",
-          })}
-        </p>
-        <p className="mt-1 text-xs text-text-disabled">
-          {intl.formatMessage({
-            id: "app.admin.listings.emptyHint",
-            defaultMessage:
-              "List your hypercerts for yield to allow supporters to purchase fractions",
-          })}
-        </p>
-      </div>
+      <>
+        {confirmationControl}
+        <div className="rounded-lg border border-dashed border-stroke-soft p-8 text-center">
+          <RiExchangeDollarLine className="mx-auto h-8 w-8 text-text-disabled" />
+          <p className="mt-2 body-sm text-text-soft">
+            {intl.formatMessage({
+              id: "app.admin.listings.empty",
+              defaultMessage: "No active listings",
+            })}
+          </p>
+          <p className="mt-1 body-xs text-text-disabled">
+            {intl.formatMessage({
+              id: "app.admin.listings.emptyHint",
+              defaultMessage:
+                "List your hypercerts for yield to allow supporters to purchase fractions",
+            })}
+          </p>
+        </div>
+      </>
     );
   }
 
   return (
     <div className="overflow-hidden rounded-lg border border-stroke-soft">
-      <table className="w-full text-left text-sm">
+      {confirmationControl}
+      <table className="w-full text-left body-sm">
         <thead>
           <tr className="border-b border-stroke-soft bg-bg-soft">
-            <th className="px-4 py-3 text-xs font-medium uppercase text-text-soft">
+            <th className="px-4 py-3 label-xs uppercase text-text-soft">
               {intl.formatMessage({
                 id: "app.admin.listings.columnHypercert",
                 defaultMessage: "Hypercert",
               })}
             </th>
-            <th className="px-4 py-3 text-xs font-medium uppercase text-text-soft">
+            <th className="px-4 py-3 label-xs uppercase text-text-soft">
               {intl.formatMessage({
                 id: "app.admin.listings.columnPricePerUnit",
                 defaultMessage: "Price/Unit",
               })}
             </th>
-            <th className="px-4 py-3 text-xs font-medium uppercase text-text-soft">
+            <th className="px-4 py-3 label-xs uppercase text-text-soft">
               {intl.formatMessage({
                 id: "app.admin.listings.columnStatus",
                 defaultMessage: "Status",
               })}
             </th>
-            <th className="px-4 py-3 text-xs font-medium uppercase text-text-soft">
+            <th className="px-4 py-3 label-xs uppercase text-text-soft">
               {intl.formatMessage({
                 id: "app.admin.listings.columnExpires",
                 defaultMessage: "Expires",
               })}
             </th>
-            <th className="px-4 py-3 text-xs font-medium uppercase text-text-soft text-right">
+            <th className="px-4 py-3 label-xs uppercase text-text-soft text-right">
               {intl.formatMessage({
                 id: "app.admin.listings.columnActions",
                 defaultMessage: "Actions",
@@ -145,14 +226,14 @@ export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveLi
               <tr key={listing.orderId} className="hover:bg-bg-soft/50 transition">
                 <td className="px-4 py-3 font-medium text-text-strong">
                   #{listing.orderId}
-                  <span className="ml-1 text-xs text-text-soft">
+                  <span className="ml-1 label-xs text-text-soft">
                     (HC #{listing.hypercertId.toString().slice(0, 8)}...)
                   </span>
                 </td>
                 <td className="px-4 py-3 text-text-sub">{formatEther(listing.pricePerUnit)} ETH</td>
                 <td className="px-4 py-3">
                   <span
-                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 label-xs ${
                       status === "active"
                         ? "bg-success-lighter text-success-dark"
                         : "bg-warning-lighter text-warning-dark"
@@ -182,35 +263,44 @@ export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveLi
                 </td>
                 <td className="px-4 py-3 text-right">
                   {status === "active" ? (
-                    <button
-                      type="button"
-                      onClick={() => cancelListing(listing.orderId)}
-                      disabled={isCancelling}
-                      className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-error-base transition hover:bg-error-lighter disabled:opacity-50"
+                    <AdminButton
+                      variant="danger"
+                      size="sm"
+                      onClick={() =>
+                        pendingCancellation ? checkConfirmation() : cancelListing(listing.orderId)
+                      }
+                      loading={!pendingCancellation && isCancelling}
+                      disabled={
+                        recoveryBusy ||
+                        (Boolean(pendingCancellation) &&
+                          pendingCancellation?.orderId !== listing.orderId)
+                      }
+                      leadingIcon={<RiCloseLine />}
                     >
-                      {isCancelling ? (
-                        <RiLoader4Line className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <RiCloseLine className="h-3.5 w-3.5" />
-                      )}
                       {intl.formatMessage({
-                        id: "app.admin.listings.cancel",
-                        defaultMessage: "Cancel",
+                        id:
+                          pendingCancellation?.orderId === listing.orderId
+                            ? "app.account.checkConfirmation"
+                            : "app.admin.listings.cancel",
+                        defaultMessage:
+                          pendingCancellation?.orderId === listing.orderId
+                            ? "Check confirmation"
+                            : "Cancel",
                       })}
-                    </button>
+                    </AdminButton>
                   ) : (
                     onCreateListing && (
-                      <button
-                        type="button"
+                      <AdminButton
+                        variant="text"
+                        size="sm"
                         onClick={() => onCreateListing(listing.hypercertId)}
-                        className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-primary-base transition hover:bg-primary-lighter"
+                        leadingIcon={<RiExchangeDollarLine />}
                       >
-                        <RiExchangeDollarLine className="h-3.5 w-3.5" />
                         {intl.formatMessage({
                           id: "app.admin.listings.renew",
                           defaultMessage: "Renew",
                         })}
-                      </button>
+                      </AdminButton>
                     )
                   )}
                 </td>

@@ -442,6 +442,118 @@ export type introspection_types = {
         name: "gapProjectUID";
         type: { kind: "SCALAR"; name: "String"; ofType: null };
       };
+      karmaAccessFailedAccounts: {
+        name: "karmaAccessFailedAccounts";
+        type: {
+          kind: "LIST";
+          name: never;
+          ofType: {
+            kind: "NON_NULL";
+            name: never;
+            ofType: { kind: "SCALAR"; name: "String"; ofType: null };
+          };
+        };
+      };
+      karmaAccessPendingAccounts: {
+        name: "karmaAccessPendingAccounts";
+        type: {
+          kind: "LIST";
+          name: never;
+          ofType: {
+            kind: "NON_NULL";
+            name: never;
+            ofType: { kind: "SCALAR"; name: "String"; ofType: null };
+          };
+        };
+      };
+      karmaAccessReason: {
+        name: "karmaAccessReason";
+        type: { kind: "SCALAR"; name: "String"; ofType: null };
+      };
+      karmaAccessState: {
+        name: "karmaAccessState";
+        type: { kind: "ENUM"; name: "KarmaProjectionState"; ofType: null };
+      };
+      karmaAccessUpdatedAt: {
+        name: "karmaAccessUpdatedAt";
+        type: { kind: "SCALAR"; name: "Int"; ofType: null };
+      };
+      karmaDetailsReason: {
+        name: "karmaDetailsReason";
+        type: { kind: "SCALAR"; name: "String"; ofType: null };
+      };
+      karmaDetailsState: {
+        name: "karmaDetailsState";
+        type: { kind: "ENUM"; name: "KarmaProjectionState"; ofType: null };
+      };
+      karmaDetailsUpdatedAt: {
+        name: "karmaDetailsUpdatedAt";
+        type: { kind: "SCALAR"; name: "Int"; ofType: null };
+      };
+      karmaLastFailureReason: {
+        name: "karmaLastFailureReason";
+        type: { kind: "SCALAR"; name: "String"; ofType: null };
+      };
+      karmaLastSyncAt: {
+        name: "karmaLastSyncAt";
+        type: { kind: "SCALAR"; name: "Int"; ofType: null };
+      };
+      karmaMembershipFailedAccounts: {
+        name: "karmaMembershipFailedAccounts";
+        type: {
+          kind: "LIST";
+          name: never;
+          ofType: {
+            kind: "NON_NULL";
+            name: never;
+            ofType: { kind: "SCALAR"; name: "String"; ofType: null };
+          };
+        };
+      };
+      karmaMembershipPendingAccounts: {
+        name: "karmaMembershipPendingAccounts";
+        type: {
+          kind: "LIST";
+          name: never;
+          ofType: {
+            kind: "NON_NULL";
+            name: never;
+            ofType: { kind: "SCALAR"; name: "String"; ofType: null };
+          };
+        };
+      };
+      karmaMembershipReason: {
+        name: "karmaMembershipReason";
+        type: { kind: "SCALAR"; name: "String"; ofType: null };
+      };
+      karmaMembershipState: {
+        name: "karmaMembershipState";
+        type: { kind: "ENUM"; name: "KarmaProjectionState"; ofType: null };
+      };
+      karmaMembershipUpdatedAt: {
+        name: "karmaMembershipUpdatedAt";
+        type: { kind: "SCALAR"; name: "Int"; ofType: null };
+      };
+      karmaProjectReason: {
+        name: "karmaProjectReason";
+        type: { kind: "SCALAR"; name: "String"; ofType: null };
+      };
+      karmaProjectState: {
+        name: "karmaProjectState";
+        type: { kind: "ENUM"; name: "KarmaProjectionState"; ofType: null };
+      };
+      karmaProjectUpdateReason: {
+        name: "karmaProjectUpdateReason";
+        type: { kind: "SCALAR"; name: "String"; ofType: null };
+      };
+      karmaProjectUpdateState: {
+        name: "karmaProjectUpdateState";
+        type: { kind: "ENUM"; name: "KarmaProjectionState"; ofType: null };
+      };
+      karmaProjectUpdateUpdatedAt: {
+        name: "karmaProjectUpdateUpdatedAt";
+        type: { kind: "SCALAR"; name: "Int"; ofType: null };
+      };
       gardeners: {
         name: "gardeners";
         type: {
@@ -579,6 +691,10 @@ export type introspection_types = {
         };
       };
     };
+  };
+  KarmaProjectionState: {
+    name: "KarmaProjectionState";
+    enumValues: "UNKNOWN" | "PENDING" | "SYNCED" | "FAILED";
   };
   Garden_bool_exp: {
     kind: "INPUT_OBJECT";

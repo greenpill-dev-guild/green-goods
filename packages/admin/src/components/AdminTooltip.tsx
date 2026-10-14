@@ -1,6 +1,6 @@
 import * as React from "react";
 import { type ReactNode, useId, useState } from "react";
-import { cn } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 
 interface AdminTooltipProps {
   content: string;

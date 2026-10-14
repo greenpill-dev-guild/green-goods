@@ -13,7 +13,7 @@
  * - XState-based state management for predictable auth flows
  * - Client-only credential storage in localStorage
  * - Automatic session restoration on mount
- * - Wallet fallback for admin/operator users
+ * - Wallet fallback for admin/steward users
  * - External wallet tracking (available for switching)
  *
  * Usage:
@@ -30,7 +30,6 @@
  * Reference: https://docs.pimlico.io/docs/how-tos/signers/passkey
  */
 
-import { disconnect } from "@wagmi/core";
 import { useSelector } from "@xstate/react";
 import type { SmartAccountClient } from "permissionless";
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef } from "react";
@@ -40,24 +39,29 @@ import { useAccount, useConfig } from "wagmi";
 
 import { getAppKit } from "../config/appkit";
 import { queryClient } from "../config/react-query";
+import { useAuthActor } from "../hooks/auth/useAuthActor";
+import { useHasStoredCredential } from "../hooks/auth/useHasStoredCredential";
+import { useWalletDisconnect } from "../hooks/auth/useWalletDisconnect";
+import { useWalletRestoreLifecycle } from "../hooks/auth/useWalletRestoreLifecycle";
 import { useWalletModalOpen } from "../hooks/auth/useWalletModalOpen";
 import { logger } from "../modules/app/logger";
-import { serviceWorkerManager } from "../modules/app/service-worker";
 import {
   type AuthMode,
-  clearAuthMode,
-  clearEmbeddedAddress,
+  clearSessionForSignOut,
+  clearStoredWalletAddress,
   clearStoredCredential,
   clearStoredSmartAccountAddress,
   clearStoredUsername,
   getAuthMode,
   getStoredUsername,
-  hasStoredCredential,
   setAuthMode as saveAuthModeToStorage,
   setEmbeddedAddress,
-  setSignedOutSentinel,
+  setStoredWalletAddress,
 } from "../modules/auth/session";
-import { type AuthActor, getAuthActor } from "../workflows/authActor";
+import type { SmartAccountClientResolver } from "../types/auth";
+import type { PasskeyAdapters } from "../workflows/auth-passkey-adapters";
+import type { AuthActor } from "../workflows/authActor";
+import type { WalletConnectionType } from "../workflows/authMachine";
 
 // ============================================================================
 // CONTEXT TYPES
@@ -76,6 +80,7 @@ export interface AuthStateValue {
   credential: P256Credential | null;
   smartAccountAddress: Hex | null;
   smartAccountClient: SmartAccountClient | null;
+  resolveSmartAccountClient: SmartAccountClientResolver | null;
   userName: string | null;
   hasStoredCredential: boolean;
   walletAddress: Hex | null;
@@ -121,7 +126,6 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 // matching to avoid false positives if a wallet's name happens to contain
 // "embedded".
 const APPKIT_EMBEDDED_CONNECTOR_IDS = ["ID_AUTH", "w3mAuth", "AUTH"] as const;
-
 function isAppKitEmbeddedConnector(connector?: { id?: string } | null): boolean {
   return Boolean(
     connector?.id && (APPKIT_EMBEDDED_CONNECTOR_IDS as readonly string[]).includes(connector.id)
@@ -167,24 +171,29 @@ export function useOptionalAuthContext(): AuthContextType | undefined {
 // PROVIDER
 // ============================================================================
 
-interface AuthProviderProps {
+export interface AuthProviderProps {
   children: React.ReactNode;
+  adapters?: PasskeyAdapters;
 }
 
-export function AuthProvider({ children }: AuthProviderProps) {
+export function AuthProvider({ children, adapters }: AuthProviderProps) {
   const wagmiConfig = useConfig();
   const { address: wagmiWalletAddress, isConnected, isConnecting, connector } = useAccount();
 
-  // Get the singleton auth actor (safe for SSR)
-  const actor = typeof window !== "undefined" ? getAuthActor() : null;
+  const actor = useAuthActor(adapters);
 
-  // Use XState selectors for state
   const snapshot = useSelector(actor as AuthActor, (s) => s);
+  // A passkey saved or cleared during this session, not only the one found when the page loaded.
+  const storedCredential = useHasStoredCredential(actor as AuthActor | null);
 
-  // Track previous wallet state to detect changes
-  const prevWalletState = useRef<{ isConnected: boolean; address: Hex | undefined }>({
+  const prevWalletState = useRef<{
+    isConnected: boolean;
+    address: Hex | undefined;
+    connectionType: WalletConnectionType | null;
+  }>({
     isConnected: false,
     address: undefined,
+    connectionType: null,
   });
 
   // Guard to prevent duplicate LOGIN_WALLET events during session restore
@@ -194,31 +203,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // open->closed edge so we can recover from a dismissed or expired modal.
   const prevWalletModalOpenRef = useRef(false);
   const walletModalOpen = useWalletModalOpen();
-
-  // Track wallet hydration timeout - give up waiting after 2 seconds
-  const [walletHydrationTimedOut, setWalletHydrationTimedOut] = React.useState(false);
-  const hydrationTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-
-  // Start hydration timeout on mount if wallet/embedded auth mode is stored
-  useEffect(() => {
-    const storedAuthMode = getAuthMode();
-    if (
-      (storedAuthMode === "wallet" || storedAuthMode === "embedded") &&
-      !isConnected &&
-      !walletHydrationTimedOut
-    ) {
-      hydrationTimeoutRef.current = setTimeout(() => {
-        setWalletHydrationTimedOut(true);
-      }, 2000); // 2 second timeout for wallet/embedded reconnection
-    }
-
-    // Clear timeout if wallet connects
-    if (isConnected) {
-      clearTimeout(hydrationTimeoutRef.current);
-    }
-
-    return () => clearTimeout(hydrationTimeoutRef.current);
-  }, [isConnected, walletHydrationTimedOut]);
+  const clearRestoreAttempt = useWalletRestoreLifecycle(actor as AuthActor, snapshot, wagmiConfig);
 
   // ============================================================
   // WALLET EVENT SYNC
@@ -230,15 +215,29 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     const prev = prevWalletState.current;
     const currentAddress = wagmiWalletAddress as Hex | undefined;
+    const connectionType: WalletConnectionType = isAppKitEmbeddedConnector(connector)
+      ? "embedded"
+      : "wallet";
+    // Record this state before any early return below, so the next change compares with it.
+    prevWalletState.current = {
+      isConnected: isConnected && !isConnecting,
+      address: currentAddress,
+      connectionType: isConnected && !isConnecting ? connectionType : null,
+    };
 
     // Detect wallet connection (wasn't connected, now is)
     if (isConnected && currentAddress && !isConnecting) {
-      if (!prev.isConnected || prev.address !== currentAddress) {
+      if (
+        !prev.isConnected ||
+        prev.address !== currentAddress ||
+        prev.connectionType !== connectionType
+      ) {
         // Report wallet connection to machine - it decides what to do
         logger.debug("[AuthProvider] Reporting EXTERNAL_WALLET_CONNECTED", {
           address: currentAddress,
         });
-        actor.send({ type: "EXTERNAL_WALLET_CONNECTED", address: currentAddress });
+        actor.send({ type: "EXTERNAL_WALLET_CONNECTED", address: currentAddress, connectionType });
+        if (connectionType === "wallet") setStoredWalletAddress(currentAddress);
 
         const currentState = actor.getSnapshot();
         const isEmbeddedConnector = isAppKitEmbeddedConnector(connector);
@@ -290,14 +289,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Detect wallet disconnection (was connected, now isn't)
     if (!isConnected && !isConnecting && prev.isConnected) {
       logger.debug("[AuthProvider] Reporting EXTERNAL_WALLET_DISCONNECTED");
-      actor.send({ type: "EXTERNAL_WALLET_DISCONNECTED" });
+      actor.send({
+        type: "EXTERNAL_WALLET_DISCONNECTED",
+        connectionType: prev.connectionType ?? undefined,
+      });
     }
-
-    // Update previous state
-    prevWalletState.current = {
-      isConnected: isConnected && !isConnecting,
-      address: currentAddress,
-    };
   }, [actor, isConnected, isConnecting, wagmiWalletAddress, connector]);
 
   // ============================================================
@@ -392,16 +388,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, [actor, walletModalOpen]);
 
-  // ============================================================
-  // HELPER: Disconnect wallet
-  // ============================================================
-  const disconnectWallet = useCallback(async () => {
-    try {
-      await disconnect(wagmiConfig);
-    } catch (error) {
-      logger.debug("[AuthProvider] disconnect failed", { error });
-    }
-  }, [wagmiConfig]);
+  const { disconnectWallet, releaseWallet, afterWalletRelease, cancelDeferredLogin } =
+    useWalletDisconnect(wagmiConfig);
 
   // ============================================================
   // ACTIONS
@@ -410,7 +398,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const createAccount = useCallback(
     async (userName: string) => {
       if (!actor) return;
-
+      cancelDeferredLogin(); // A passkey choice drops any wallet login still waiting.
       // Display name is required for new passkey accounts (minimum 3 characters)
       const trimmedName = userName?.trim();
       if (!trimmedName || trimmedName.length < 3) {
@@ -426,13 +414,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
       actor.send({ type: "LOGIN_PASSKEY_NEW", userName: trimmedName });
       saveAuthModeToStorage("passkey");
     },
-    [actor, isConnected, disconnectWallet]
+    [actor, isConnected, disconnectWallet, cancelDeferredLogin]
   );
 
   const loginWithPasskey = useCallback(
     async (userName?: string) => {
       if (!actor) return;
-
+      cancelDeferredLogin();
       // Disconnect wallet if connected (switching to passkey)
       if (isConnected) {
         await disconnectWallet();
@@ -449,11 +437,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
       actor.send({ type: "LOGIN_PASSKEY_EXISTING", userName: finalUserName });
       saveAuthModeToStorage("passkey");
     },
-    [actor, isConnected, disconnectWallet]
+    [actor, isConnected, disconnectWallet, cancelDeferredLogin]
   );
 
   const loginWithWallet = useCallback(() => {
     if (!actor) return;
+    // A wallet just signed out of is still letting go: ask for a wallet once it has.
+    const askForWallet = () => {
+      saveAuthModeToStorage("wallet");
+      manualWalletLoginPendingRef.current = true;
+      getAppKit()?.open();
+    };
+    if (afterWalletRelease(askForWallet)) return;
 
     // Save wallet intent FIRST — this signals to the WALLET EVENT SYNC effect
     // that any subsequent wallet connection should trigger auto-login.
@@ -492,7 +487,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // detect the connection + stored "wallet" intent and send LOGIN_WALLET
       getAppKit()?.open();
     }
-  }, [actor, isConnected, wagmiWalletAddress, connector]);
+  }, [actor, isConnected, wagmiWalletAddress, connector, afterWalletRelease]);
 
   const loginWithEmbedded = useCallback(() => {
     if (!actor) return;
@@ -501,8 +496,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // When AppKit creates the embedded wallet, wagmi detects the connection
     // and WALLET EVENT SYNC handles the LOGIN_EMBEDDED dispatch.
     saveAuthModeToStorage("embedded");
+    if (afterWalletRelease(() => getAppKit()?.open())) return;
+    if (isConnected && wagmiWalletAddress && isAppKitEmbeddedConnector(connector)) {
+      const address = wagmiWalletAddress as Hex;
+      actor.send({ type: "EXTERNAL_WALLET_CONNECTED", address, connectionType: "embedded" });
+      actor.send({ type: "LOGIN_EMBEDDED", address });
+      setEmbeddedAddress(address);
+      return;
+    }
     getAppKit()?.open();
-  }, [actor]);
+  }, [actor, isConnected, wagmiWalletAddress, connector, afterWalletRelease]);
 
   const switchToWallet = useCallback(() => {
     if (!actor) return;
@@ -517,38 +520,37 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const finalUserName = userName ?? getStoredUsername() ?? "";
       actor.send({ type: "SWITCH_TO_PASSKEY", userName: finalUserName });
       saveAuthModeToStorage("passkey");
+      clearStoredWalletAddress();
     },
     [actor]
   );
 
   const signOut = useCallback(async () => {
     if (!actor) return;
+    const session = actor.getSnapshot().context;
 
     actor.send({ type: "SIGN_OUT" });
-
-    await disconnectWallet();
-
-    // Clear auth mode and embedded address, but keep passkey recovery metadata.
-    // Username + credential + expected address are the local cache for same-device fallback.
-    clearAuthMode();
-    clearEmbeddedAddress();
-    // Make sign-out durable: suppress automatic passkey session restore on
-    // refresh until the next successful passkey sign-in (sign-in intent alone
-    // does not clear the sentinel — a dismissed ceremony stays signed out).
-    // The cached metadata still powers one-tap re-login.
-    setSignedOutSentinel();
+    // Sign out locally at once; a wallet session also lets go of its wallet,
+    // without waiting, so the next wallet login asks for a wallet again.
+    releaseWallet(session);
+    clearSessionForSignOut();
+    clearRestoreAttempt();
 
     // Reset wallet restore guard to allow future auto-restore
     walletRestoreAttemptedRef.current = false;
     manualWalletLoginPendingRef.current = false;
 
-    queryClient.clear();
-
-    // Clear SW caches and IndexedDB to prevent stale data leaking across sessions
-    serviceWorkerManager.clearAllCaches().catch((error) => {
-      logger.warn("[AuthProvider] clearAllCaches failed during sign-out", { error });
+    // Keep cached reads. Rebuild local work projections for the next account
+    // from its own IndexedDB jobs, without deleting those jobs or drafts.
+    queryClient.removeQueries({
+      predicate: ({ queryKey: [namespace, group, source] }) =>
+        namespace !== "greengoods" ||
+        group === "queue" ||
+        (group === "works" && (source === "offline" || source === "merged")) ||
+        (group === "workApprovals" && source === "offline"),
     });
-  }, [actor, disconnectWallet]);
+    queryClient.getMutationCache().clear();
+  }, [actor, clearRestoreAttempt, releaseWallet]);
 
   const retry = useCallback(() => {
     if (!actor) return;
@@ -593,6 +595,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         credential: null,
         smartAccountAddress: null,
         smartAccountClient: null,
+        resolveSmartAccountClient: null,
         userName: null,
         hasStoredCredential: false,
         walletAddress: null,
@@ -610,6 +613,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       authMode = "embedded";
     } else if (snapshot.matches({ authenticated: "wallet" })) {
       authMode = "wallet";
+    } else if (snapshot.matches({ restoring: "embedded" }) && snapshot.context.embeddedAddress) {
+      authMode = "embedded";
+    } else if (snapshot.matches({ restoring: "wallet" }) && snapshot.context.walletAddress) {
+      authMode = "wallet";
     }
 
     // Check if authenticating
@@ -617,6 +624,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       snapshot.matches("registering") ||
       snapshot.matches("authenticating") ||
       snapshot.matches("wallet_connecting") ||
+      snapshot.matches("restoring") ||
       // Wagmi's `isConnecting` only blocks the UI while the wallet modal is
       // actually open. Once the user dismisses it (or a WalletConnect QR
       // expires), the login UI must come back even if wagmi hasn't cleared
@@ -624,36 +632,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // button stays hidden with no way to recover.
       (isConnecting && walletModalOpen);
 
-    // Check for stored credential (indicates existing account in localStorage)
-    const storedCredential = hasStoredCredential();
-
-    // Determine if auth is ready
-    // For wallet mode: wait for Wagmi to finish reconnecting before declaring ready
-    // This prevents the login flash when refreshing with wallet auth
-    const machineReady = !snapshot.matches("initializing");
-    const storedAuthMode = typeof window !== "undefined" ? getAuthMode() : null;
-
-    // If user was previously authenticated with wallet, wait for Wagmi to settle
-    // before declaring auth as ready. This prevents:
-    // 1. Auto-logout on refresh (route access checks running before wallet reconnects)
-    // 2. Login view flash (showing login briefly before auto-login completes)
-    // Give up waiting after timeout to prevent infinite loading
-    const isWalletHydrating =
-      (storedAuthMode === "wallet" || storedAuthMode === "embedded") &&
-      !snapshot.matches("authenticated") &&
-      !walletHydrationTimedOut &&
-      (isConnecting || (!isConnected && !snapshot.matches("unauthenticated")));
+    const isRestoring = snapshot.matches("restoring");
+    const authenticatedSession =
+      snapshot.matches("authenticated") ||
+      (snapshot.matches({ restoring: "wallet" }) && Boolean(snapshot.context.walletAddress)) ||
+      (snapshot.matches({ restoring: "embedded" }) && Boolean(snapshot.context.embeddedAddress));
 
     return {
       authMode,
-      isReady: machineReady && !isWalletHydrating,
-      isAuthenticated: snapshot.matches("authenticated"),
+      isReady: !snapshot.matches("initializing") && !isRestoring,
+      isAuthenticated: authenticatedSession,
       isAuthenticating,
       error: snapshot.context.error,
       credential: snapshot.context.credential,
       smartAccountAddress: snapshot.context.smartAccountAddress,
       smartAccountClient: snapshot.context.smartAccountClient,
+      resolveSmartAccountClient: snapshot.context.resolveSmartAccountClient,
       userName: snapshot.context.userName,
+      // A stored credential indicates an existing account in localStorage.
       hasStoredCredential: storedCredential,
       // Wallet address is only set when wallet is the PRIMARY auth
       walletAddress: snapshot.context.walletAddress,
@@ -663,7 +659,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       externalWalletConnected: snapshot.context.externalWalletConnected,
       externalWalletAddress: snapshot.context.externalWalletAddress,
     };
-  }, [snapshot, isConnecting, isConnected, walletHydrationTimedOut, walletModalOpen]);
+  }, [snapshot, isConnecting, walletModalOpen, storedCredential]);
 
   // ============================================================
   // CONTEXT VALUES
@@ -680,6 +676,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       credential: computedValues.credential,
       smartAccountAddress: computedValues.smartAccountAddress,
       smartAccountClient: computedValues.smartAccountClient,
+      resolveSmartAccountClient: computedValues.resolveSmartAccountClient,
       userName: computedValues.userName,
       hasStoredCredential: computedValues.hasStoredCredential,
       walletAddress: computedValues.walletAddress,

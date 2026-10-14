@@ -1,16 +1,15 @@
+import { ConvictionMeter } from "@green-goods/shared/components/Conviction/ConvictionMeter";
 import {
-  adminRoutes,
-  ConvictionMeter,
-  EmptyState,
-  type GardenSignalPool,
-  PoolType,
-  StatusBadge,
-  useConvictionProposalsForPool,
-  useConvictionWeightAllocator,
-  usePrimaryAddress,
   WeightAllocator,
   type WeightAllocatorProposal,
-} from "@green-goods/shared";
+} from "@green-goods/shared/components/Conviction/WeightAllocator";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
+import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
+import { useConvictionProposalsForPool } from "@green-goods/shared/hooks/conviction/useConvictionProposalsForPool";
+import { useConvictionWeightAllocator } from "@green-goods/shared/hooks/conviction/useConvictionWeightAllocator";
+import { type GardenSignalPool, PoolType } from "@green-goods/shared/types/gardens-community";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { RiArrowRightSLine, RiUserVoiceLine } from "@remixicon/react";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
@@ -25,7 +24,7 @@ interface GovernancePanelProps {
 }
 
 /**
- * Tier-5 audit-then-ship: net-new conviction-voting surface for the
+ * Net-new conviction-voting surface for the
  * Community → Governance tab. Composes the Tier 3 components
  * (WeightAllocator + ProposalCardConviction + ConvictionMeter) with the
  * Tier-5 adapter hooks (useConvictionProposalsForPool +
@@ -139,18 +138,18 @@ export function GovernancePanel({ pools, gardenId }: GovernancePanelProps) {
             <p className="label-sm text-text-strong">
               {formatMessage({ id: "cockpit.community.coordination.hypercertPool" })}
             </p>
-            <p className="mt-1 font-mono text-xs text-text-soft">
+            <p className="mt-1 font-mono body-xs text-text-soft">
               {formatShortAddress(hypercertPool.poolAddress)}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-bg-soft px-2 py-0.5 text-xs font-medium text-text-sub">
+            <span className="rounded-full bg-bg-soft px-2 py-0.5 label-xs text-text-sub">
               {formatMessage(
                 { id: "cockpit.community.coordination.proposalCount" },
                 { count: proposals.length }
               )}
             </span>
-            <AdminButton asChild variant="text" size="sm" className="h-auto rounded p-0">
+            <AdminButton asChild variant="text" size="sm">
               <Link to={adminRoutes.communityCoordinationSignalPool("hypercert", { gardenId })}>
                 {formatMessage({ id: "cockpit.community.coordination.openPool" })}
                 <RiArrowRightSLine className="h-4 w-4" />
@@ -159,7 +158,7 @@ export function GovernancePanel({ pools, gardenId }: GovernancePanelProps) {
           </div>
         </div>
 
-        <div className="hidden grid-cols-[minmax(0,1fr)_8rem_12rem_auto] gap-3 border-b border-stroke-soft bg-bg-weak px-4 py-2 text-xs font-medium uppercase tracking-[0.04em] text-text-soft lg:grid">
+        <div className="hidden grid-cols-[minmax(0,1fr)_8rem_12rem_auto] gap-3 border-b border-stroke-soft bg-bg-weak px-4 py-2 label-xs uppercase tracking-[0.04em] text-text-soft lg:grid">
           <span>{formatMessage({ id: "cockpit.community.coordination.proposal" })}</span>
           <span>{formatMessage({ id: "cockpit.community.coordination.support" })}</span>
           <span>{formatMessage({ id: "cockpit.community.coordination.conviction" })}</span>
@@ -175,7 +174,7 @@ export function GovernancePanel({ pools, gardenId }: GovernancePanelProps) {
             >
               <div className="min-w-0 space-y-1.5">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="text-sm font-semibold text-text-strong">{proposal.title}</h3>
+                  <h3 className="body-sm font-semibold text-text-strong">{proposal.title}</h3>
                   <StatusBadge convictionStatus={proposal.status} size="sm" />
                 </div>
                 {proposal.summary ? (
@@ -186,7 +185,7 @@ export function GovernancePanel({ pools, gardenId }: GovernancePanelProps) {
                 <p className="body-xs text-text-soft lg:hidden">
                   {formatMessage({ id: "cockpit.community.coordination.support" })}
                 </p>
-                <p className="text-sm font-medium tabular-nums text-text-strong">
+                <p className="body-sm font-medium tabular-nums text-text-strong">
                   {formatMessage(
                     { id: "cockpit.community.coordination.supporters" },
                     { count: proposal.supporters }
@@ -194,7 +193,7 @@ export function GovernancePanel({ pools, gardenId }: GovernancePanelProps) {
                 </p>
               </div>
               <div className="space-y-1">
-                <div className="flex items-center justify-between gap-2 text-xs tabular-nums">
+                <div className="flex items-center justify-between gap-2 body-xs tabular-nums">
                   <span className="text-text-sub">
                     {Math.round(proposal.conviction)}% / {Math.round(proposal.threshold)}%
                   </span>
@@ -230,10 +229,10 @@ export function GovernancePanel({ pools, gardenId }: GovernancePanelProps) {
         />
       ) : (
         <div className="rounded-lg border border-stroke-soft bg-bg-weak px-4 py-3">
-          <p className="text-sm font-medium text-text-strong">
+          <p className="body-sm font-medium text-text-strong">
             {formatMessage({
               id: "cockpit.community.governance.signIn.title",
-              defaultMessage: "Sign in to allocate conviction",
+              defaultMessage: "Sign In to Allocate Conviction",
             })}
           </p>
           <p className="mt-1 body-sm text-text-sub">

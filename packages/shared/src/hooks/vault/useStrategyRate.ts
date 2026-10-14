@@ -1,10 +1,10 @@
 import { useMemo } from "react";
 import { useReadContract } from "wagmi";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import type { Address } from "../../types/domain";
 import { AAVE_V3_POOL_ABI, rayToApr, rayToApy } from "../../utils/blockchain/aave";
 import { AAVE_V3_POOL } from "../../utils/blockchain/vaults";
-import { STALE_TIME_SLOW } from "../../config/query-keys";
+import { STALE_TIME_SLOW } from "../../config/query-keys/constants";
 
 interface UseStrategyRateOptions {
   chainId?: number;

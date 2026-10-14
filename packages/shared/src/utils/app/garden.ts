@@ -30,27 +30,27 @@ export const resolveGardenMemberKey = (value: GardenMemberLike): string | null =
 
 export const buildGardenMemberSets = (
   gardeners?: GardenMemberLike[],
-  operators?: GardenMemberLike[]
+  stewards?: GardenMemberLike[]
 ) => {
   const gardenerIds = new Set<string>();
-  const operatorIds = new Set<string>();
+  const stewardIds = new Set<string>();
 
   (gardeners ?? []).forEach((member) => {
     const key = resolveGardenMemberKey(member);
     if (key) gardenerIds.add(key);
   });
 
-  (operators ?? []).forEach((member) => {
+  (stewards ?? []).forEach((member) => {
     const key = resolveGardenMemberKey(member);
-    if (key) operatorIds.add(key);
+    if (key) stewardIds.add(key);
   });
 
   // Use spread instead of Set.prototype.union for wider compatibility
-  const memberIds = new Set([...gardenerIds, ...operatorIds]);
+  const memberIds = new Set([...gardenerIds, ...stewardIds]);
 
   return {
     gardenerIds,
-    operatorIds,
+    stewardIds,
     memberIds,
   };
 };
@@ -58,10 +58,10 @@ export const buildGardenMemberSets = (
 export const gardenHasMember = (
   target: string | null | undefined,
   gardeners?: GardenMemberLike[],
-  operators?: GardenMemberLike[]
+  stewards?: GardenMemberLike[]
 ) => {
   if (!target) return false;
   const normalizedTarget = target.toLowerCase();
-  const { memberIds } = buildGardenMemberSets(gardeners, operators);
+  const { memberIds } = buildGardenMemberSets(gardeners, stewards);
   return memberIds.has(normalizedTarget);
 };

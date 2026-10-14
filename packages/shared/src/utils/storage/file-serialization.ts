@@ -106,13 +106,18 @@ function isIOSSafari(): boolean {
 /**
  * Build common metadata for storage error tracking
  */
-export function buildFileMetadata(file: File, contextId: string) {
+export function buildFileMetadata(file: File) {
+  const mediaKind = file.type.startsWith("image/")
+    ? "image"
+    : file.type.startsWith("video/")
+      ? "video"
+      : file.type.startsWith("audio/")
+        ? "audio"
+        : "other";
+
   return {
-    file_name: file.name,
     file_size: file.size,
-    file_type: file.type,
-    context_id: contextId,
+    media_kind: mediaKind,
     is_ios: isIOSSafari(),
-    user_agent: typeof navigator !== "undefined" ? navigator.userAgent : undefined,
   };
 }

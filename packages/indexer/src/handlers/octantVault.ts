@@ -1,21 +1,14 @@
-import { OctantModule, OctantVault, VaultEventType } from "../../generated";
+import {
+  indexer,
+  type Enum,
+  type GardenVault,
+  type GardenVaultIndex,
+  type VaultAddressIndex,
+  type VaultDeposit,
+  type VaultEvent,
+} from "envio";
 
-import type {
-  contractRegistrations,
-  GardenVault,
-  GardenVaultIndex,
-  HandlerTypes_contractRegisterArgs,
-  OctantModule_DonationAddressUpdated_handlerArgs,
-  OctantModule_EmergencyPaused_handlerArgs,
-  OctantModule_HarvestTriggered_handlerArgs,
-  OctantModule_VaultCreated_eventArgs,
-  OctantModule_VaultCreated_handlerArgs,
-  OctantVault_Deposit_handlerArgs,
-  OctantVault_Withdraw_handlerArgs,
-  VaultAddressIndex,
-  VaultDeposit,
-  VaultEvent,
-} from "../../generated/src/Types.gen";
+type VaultEventType = Enum<"VaultEventType">;
 
 import {
   createDefaultGardenVault,
@@ -33,72 +26,61 @@ import {
 // OCTANT MODULE & VAULT EVENT HANDLERS
 // ============================================================================
 
-OctantModule.VaultCreated.contractRegister(
-  ({
-    event,
-    context,
-  }: HandlerTypes_contractRegisterArgs<OctantModule_VaultCreated_eventArgs> & {
-    context: contractRegistrations;
-  }) => {
-    context.addOctantVault(event.params.vault);
+indexer.contractRegister(
+  { contract: "OctantModule", event: "VaultCreated" },
+  async ({ event, context }) => {
+    context.chain.OctantVault.add(event.params.vault);
     context.log.info(`Registered new OctantVault at ${event.params.vault}`);
   }
 );
 
-OctantModule.VaultCreated.handler(
-  async ({ event, context }: OctantModule_VaultCreated_handlerArgs<void>) => {
-    const garden = normalizeAddress(event.params.garden);
-    const asset = normalizeAddress(event.params.asset);
-    const vaultAddress = normalizeAddress(event.params.vault);
-    const gardenVaultId = getGardenVaultId(event.chainId, garden, asset);
+indexer.onEvent({ contract: "OctantModule", event: "VaultCreated" }, async ({ event, context }) => {
+  const garden = normalizeAddress(event.params.garden);
+  const asset = normalizeAddress(event.params.asset);
+  const vaultAddress = normalizeAddress(event.params.vault);
+  const gardenVaultId = getGardenVaultId(event.chainId, garden, asset);
 
-    const existingGardenVault = await context.GardenVault.get(gardenVaultId);
-    const nextGardenVault: GardenVault = {
-      ...(existingGardenVault ??
-        createDefaultGardenVault(
-          event.chainId,
-          garden,
-          asset,
-          vaultAddress,
-          event.block.timestamp
-        )),
-      id: gardenVaultId,
-      chainId: event.chainId,
-      garden,
-      asset,
-      vaultAddress,
-    };
+  const existingGardenVault = await context.GardenVault.get(gardenVaultId);
+  const nextGardenVault: GardenVault = {
+    ...(existingGardenVault ??
+      createDefaultGardenVault(event.chainId, garden, asset, vaultAddress, event.block.timestamp)),
+    id: gardenVaultId,
+    chainId: event.chainId,
+    garden,
+    asset,
+    vaultAddress,
+  };
 
-    context.GardenVault.set(nextGardenVault);
+  context.GardenVault.set(nextGardenVault);
 
-    const gardenIndexId = getGardenVaultIndexId(event.chainId, garden);
-    const existingGardenIndex = await context.GardenVaultIndex.get(gardenIndexId);
-    const assets = existingGardenIndex?.assets ?? [];
-    const normalizedAssets = assets.map((item) => normalizeAddress(item));
-    const nextAssets = normalizedAssets.includes(asset) ? assets : [...assets, asset];
+  const gardenIndexId = getGardenVaultIndexId(event.chainId, garden);
+  const existingGardenIndex = await context.GardenVaultIndex.get(gardenIndexId);
+  const assets = existingGardenIndex?.assets ?? [];
+  const normalizedAssets = assets.map((item) => normalizeAddress(item));
+  const nextAssets = normalizedAssets.includes(asset) ? assets : [...assets, asset];
 
-    const nextGardenIndex: GardenVaultIndex = {
-      id: gardenIndexId,
-      chainId: event.chainId,
-      garden,
-      assets: nextAssets,
-    };
-    context.GardenVaultIndex.set(nextGardenIndex);
+  const nextGardenIndex: GardenVaultIndex = {
+    id: gardenIndexId,
+    chainId: event.chainId,
+    garden,
+    assets: nextAssets,
+  };
+  context.GardenVaultIndex.set(nextGardenIndex);
 
-    const vaultAddressIndexId = getVaultAddressIndexId(event.chainId, vaultAddress);
-    const vaultAddressIndex: VaultAddressIndex = {
-      id: vaultAddressIndexId,
-      chainId: event.chainId,
-      vaultAddress,
-      garden,
-      asset,
-    };
-    context.VaultAddressIndex.set(vaultAddressIndex);
-  }
-);
+  const vaultAddressIndexId = getVaultAddressIndexId(event.chainId, vaultAddress);
+  const vaultAddressIndex: VaultAddressIndex = {
+    id: vaultAddressIndexId,
+    chainId: event.chainId,
+    vaultAddress,
+    garden,
+    asset,
+  };
+  context.VaultAddressIndex.set(vaultAddressIndex);
+});
 
-OctantModule.HarvestTriggered.handler(
-  async ({ event, context }: OctantModule_HarvestTriggered_handlerArgs<void>) => {
+indexer.onEvent(
+  { contract: "OctantModule", event: "HarvestTriggered" },
+  async ({ event, context }) => {
     const garden = normalizeAddress(event.params.garden);
     const asset = normalizeAddress(event.params.asset);
     const gardenVaultId = getGardenVaultId(event.chainId, garden, asset);
@@ -136,8 +118,9 @@ OctantModule.HarvestTriggered.handler(
   }
 );
 
-OctantModule.EmergencyPaused.handler(
-  async ({ event, context }: OctantModule_EmergencyPaused_handlerArgs<void>) => {
+indexer.onEvent(
+  { contract: "OctantModule", event: "EmergencyPaused" },
+  async ({ event, context }) => {
     const garden = normalizeAddress(event.params.garden);
     const asset = normalizeAddress(event.params.asset);
     const gardenVaultId = getGardenVaultId(event.chainId, garden, asset);
@@ -175,8 +158,9 @@ OctantModule.EmergencyPaused.handler(
   }
 );
 
-OctantModule.DonationAddressUpdated.handler(
-  async ({ event, context }: OctantModule_DonationAddressUpdated_handlerArgs<void>) => {
+indexer.onEvent(
+  { contract: "OctantModule", event: "DonationAddressUpdated" },
+  async ({ event, context }) => {
     const garden = normalizeAddress(event.params.garden);
     const donationAddress = normalizeAddress(event.params.newAddress);
     const gardenIndexId = getGardenVaultIndexId(event.chainId, garden);
@@ -197,7 +181,7 @@ OctantModule.DonationAddressUpdated.handler(
   }
 );
 
-OctantVault.Deposit.handler(async ({ event, context }: OctantVault_Deposit_handlerArgs<void>) => {
+indexer.onEvent({ contract: "OctantVault", event: "Deposit" }, async ({ event, context }) => {
   const vaultAddress = normalizeAddress(event.srcAddress);
   const vaultAddressIndexId = getVaultAddressIndexId(event.chainId, vaultAddress);
   const vaultAddressIndex = await context.VaultAddressIndex.get(vaultAddressIndexId);
@@ -256,7 +240,7 @@ OctantVault.Deposit.handler(async ({ event, context }: OctantVault_Deposit_handl
   context.VaultEvent.set(vaultEvent);
 });
 
-OctantVault.Withdraw.handler(async ({ event, context }: OctantVault_Withdraw_handlerArgs<void>) => {
+indexer.onEvent({ contract: "OctantVault", event: "Withdraw" }, async ({ event, context }) => {
   const vaultAddress = normalizeAddress(event.srcAddress);
   const vaultAddressIndexId = getVaultAddressIndexId(event.chainId, vaultAddress);
   const vaultAddressIndex = await context.VaultAddressIndex.get(vaultAddressIndexId);

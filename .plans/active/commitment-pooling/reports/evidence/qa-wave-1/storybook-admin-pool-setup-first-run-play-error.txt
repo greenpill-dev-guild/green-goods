@@ -1,0 +1,4 @@
+Story: Admin/Pool/PoolSetupFlow / FirstRun
+Rendered result: the first-run setup surface rendered, but its Storybook play check failed.
+Error: JestExtendError: expect(element).toBeVisible(); received h2 was not visible.
+Location reported by Storybook: packages/admin/src/views/Garden/Pool/SetupFlow/SetupFlow.stories.tsx:56:78

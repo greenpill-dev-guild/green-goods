@@ -17,7 +17,7 @@ import {
   getRecommendedBrowser,
   type MobileBrowser,
 } from "../../utils/app/browser";
-import type { Platform } from "../../utils/app/pwa";
+import type { InstallPromptEvent, Platform } from "../../utils/app/pwa";
 
 /**
  * Browser info for desktop scenarios (non-mobile platforms)
@@ -57,6 +57,41 @@ export interface InstallGuidance {
 
   /** URL to open in recommended browser (Android only) */
   openInBrowserUrl: string | null;
+}
+
+export type InstalledAppEvidenceStatus = "checking" | "installed" | "not-installed" | "unknown";
+
+/**
+ * Where the current installed-app verdict comes from.
+ *
+ * - `standalone`: the page runs in an installed display mode.
+ * - `appinstalled`: Chromium fired `appinstalled` this page session.
+ * - `install-prompt`: Chromium fired `beforeinstallprompt` this page session, which
+ *   it only does while the app is not installed; dismissing that prompt changes nothing.
+ * - `related-app`: `navigator.getInstalledRelatedApps()` listed this app.
+ * - `history`: only the remembered install flag remains; it is not proof either way.
+ * - `unsupported`: no platform signal exists.
+ */
+export type InstalledAppEvidenceSource =
+  | "standalone"
+  | "related-app"
+  | "appinstalled"
+  | "install-prompt"
+  | "history"
+  | "unsupported";
+
+export interface InstalledAppEvidence {
+  status: InstalledAppEvidenceStatus;
+  source: InstalledAppEvidenceSource;
+}
+
+export interface InstallGuidanceOptions {
+  platform: Platform;
+  installedAppEvidence: InstalledAppEvidence;
+  wasInstalled: boolean;
+  deferredPrompt: InstallPromptEvent | null;
+  isMobile: boolean;
+  isInstalling?: boolean;
 }
 
 /**
@@ -101,14 +136,14 @@ export interface ManualInstallStep {
 /**
  * Generate installation guidance based on platform, browser, and app state
  */
-export function useInstallGuidance(
-  platform: Platform,
-  isInstalled: boolean,
-  wasInstalled: boolean,
-  deferredPrompt: BeforeInstallPromptEvent | null,
-  isMobile: boolean,
-  isInstalling = false
-): InstallGuidance {
+export function useInstallGuidance({
+  platform,
+  installedAppEvidence,
+  wasInstalled,
+  deferredPrompt,
+  isMobile,
+  isInstalling = false,
+}: InstallGuidanceOptions): InstallGuidance {
   return useMemo(() => {
     // Desktop scenario
     if (!isMobile) {
@@ -145,7 +180,7 @@ export function useInstallGuidance(
     }
 
     // Already installed
-    if (isInstalled) {
+    if (installedAppEvidence.status === "installed") {
       return {
         browserInfo: detectMobileBrowser(platform),
         scenario: "already-installed",
@@ -264,10 +299,12 @@ export function useInstallGuidance(
     // Chrome/Android link-capturing hands off to the installed app.
     //
     // Remembered install state can also be stale after the user removes the
-    // WebAPK, so keep manual reinstall guidance attached as a secondary path.
-    // iOS has no link capturing (and no WebAPK), so it keeps the manual reinstall
-    // guidance as the primary path below.
-    if (wasInstalled && platform === "android") {
+    // WebAPK, so keep manual reinstall guidance attached as a secondary path. A
+    // verified negative (Chromium offered the install prompt again, which it only
+    // does while the app is absent) wins over the remembered flag and falls
+    // through to the plain install guidance. iOS has no link capturing (and no
+    // WebAPK), so it keeps the manual reinstall guidance as the primary path below.
+    if (wasInstalled && platform === "android" && installedAppEvidence.status !== "not-installed") {
       return {
         browserInfo,
         scenario: "already-installed",
@@ -277,7 +314,7 @@ export function useInstallGuidance(
         },
         secondaryAction: {
           type: "show-manual-steps",
-          label: "Install again",
+          label: "Install Again",
           description: "If the app was removed",
         },
         showBrowserOption: true,
@@ -325,7 +362,7 @@ export function useInstallGuidance(
       browserSwitchReason: null,
       openInBrowserUrl: null,
     };
-  }, [platform, isInstalled, wasInstalled, deferredPrompt, isMobile, isInstalling]);
+  }, [platform, installedAppEvidence, wasInstalled, deferredPrompt, isMobile, isInstalling]);
 }
 
 /**

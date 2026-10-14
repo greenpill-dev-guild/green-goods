@@ -102,7 +102,7 @@ contract ArbitrumGardensNegativePathsForkTest is ForkTestBase {
 
         // Mint a garden and grant operator role to forkOperator
         address garden = _mintTestGarden("Real Garden", 0x0F);
-        _grantGardenRole(garden, forkOperator, IHatsModule.GardenRole.Operator);
+        _grantGardenRole(garden, forkOperator, IHatsModule.GardenRole.Steward);
 
         // Use a different, non-existent garden address
         address fakeGarden = makeAddr("fakeGarden");

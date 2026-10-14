@@ -5,24 +5,33 @@
  * generates media URLs for images, renders audio notes, and shows dynamic details.
  */
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Track calls to mediaResourceManager and AudioPlayer
-const mockGetOrCreateUrl = vi.fn((file: File, trackingId: string) => `blob:mock-${file.name}`);
+const mockGetOrCreateUrl = vi.fn((file: File, _trackingId: string) => `blob:mock-${file.name}`);
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/components/Audio/AudioPlayer", () => ({
   AudioPlayer: ({ file }: { file: File }) =>
     createElement("div", { "data-testid": `audio-player-${file.name}` }, file.name),
+}));
+
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/types/domain", () => ({
   Domain: {
     SOLAR: 0,
     AGRO: 1,
     EDU: 2,
     WASTE: 3,
   },
+}));
+
+vi.mock("@green-goods/shared/utils/form/normalizers", () => ({
   formatTimeSpent: (minutes?: number) => {
     if (!minutes) return "";
     const hours = Math.floor(minutes / 60);
@@ -31,8 +40,15 @@ vi.mock("@green-goods/shared", () => ({
     if (hours > 0) return `${hours}h`;
     return `${remainingMinutes}m`;
   },
+}));
+
+vi.mock("@green-goods/shared/modules/work/media-processing", () => ({
   getWorkMediaId: (file: File) => `media-${file.name}-${file.size}-${file.lastModified}`,
+  isHeicFile: (file: File) => /\.hei[cf]$/i.test(file.name),
   isVideoFile: (file: File) => file.type.startsWith("video/"),
+}));
+
+vi.mock("@green-goods/shared/modules/job-queue/media-resource-manager", () => ({
   mediaResourceManager: {
     getOrCreateUrl: (...args: unknown[]) => mockGetOrCreateUrl(...(args as [File, string])),
     cleanupUrls: vi.fn(),
@@ -49,6 +65,8 @@ vi.mock("@/components/Features/Work", () => ({
     media,
     details,
     onMediaError,
+    afterHeading,
+    afterDetails,
   }: {
     title: string;
     info: string;
@@ -57,9 +75,16 @@ vi.mock("@/components/Features/Work", () => ({
     media?: string[];
     details: Array<{ label: string; value: string }>;
     onMediaError?: (url: string, index: number) => void;
+    afterHeading?: React.ReactNode;
+    afterDetails?: React.ReactNode;
   }) =>
     createElement("div", { "data-testid": "work-view" }, [
       createElement("span", { key: "title", "data-testid": "review-title" }, title),
+      createElement(
+        "div",
+        { key: "after-heading", "data-testid": "review-after-heading" },
+        afterHeading
+      ),
       createElement("span", { key: "info", "data-testid": "review-info" }, info),
       createElement("span", { key: "garden", "data-testid": "review-garden" }, garden?.name),
       createElement("span", { key: "action", "data-testid": "review-action" }, actionTitle),
@@ -89,12 +114,18 @@ vi.mock("@/components/Features/Work", () => ({
         },
         "Trigger media error"
       ),
+      createElement(
+        "div",
+        { key: "after-details", "data-testid": "review-after-details" },
+        afterDetails
+      ),
     ]),
 }));
 
 // Import after mocks
-import type { Action, Address, Garden } from "@green-goods/shared";
-import { Domain, getWorkMediaId } from "@green-goods/shared";
+import type { Action, Address, Garden } from "@green-goods/shared/types/domain";
+import { Domain } from "@green-goods/shared/types/domain";
+import { getWorkMediaId } from "@green-goods/shared/modules/work/media-processing";
 import { WorkReview } from "../../views/Garden/Review";
 
 const messages: Record<string, string> = {
@@ -102,12 +133,14 @@ const messages: Record<string, string> = {
   "app.garden.submit.tab.review.instruction": "Check if the information is correct",
   "app.garden.review.timeSpent": "Time Spent",
   "app.garden.review.description": "Description",
-  "app.garden.review.audioNotes": "Audio Notes",
+  "app.garden.review.audioNotes": "Audio notes",
   "app.garden.review.previewFailedMessage":
     "{count, plural, one {Remove the broken item before submitting again. Your details will stay here.} other {Remove the broken items before submitting again. Your details will stay here.}}",
   "app.garden.review.previewFailedTitle": "Some media previews failed",
-  "app.garden.review.removeBrokenMedia": "Remove broken media",
+  "app.garden.review.removeBrokenMedia": "Remove Broken Media",
   "app.garden.review.video": "Video",
+  "app.garden.review.staysNote":
+    "It stays on this phone until it lands. If it can't send, it waits in Your Work › Pending.",
 };
 
 const now = Date.now();
@@ -122,7 +155,7 @@ const baseGarden: Garden = {
   location: "Bogota",
   bannerImage: "",
   gardeners: [],
-  operators: [],
+  stewards: [],
   evaluators: [],
   owners: [],
   funders: [],
@@ -195,15 +228,15 @@ describe("WorkReview", () => {
     );
   });
 
-  it("generates media URLs for photo files via mediaResourceManager", () => {
+  it("generates media URLs for photo files via mediaResourceManager", async () => {
     const photo1 = new File(["img1"], "photo1.jpg", { type: "image/jpeg" });
     const photo2 = new File(["img2"], "photo2.jpg", { type: "image/jpeg" });
 
     renderReview({ images: [photo1, photo2] });
 
-    expect(mockGetOrCreateUrl).toHaveBeenCalledTimes(2);
-    expect(mockGetOrCreateUrl).toHaveBeenCalledWith(photo1, "work-draft");
-    expect(mockGetOrCreateUrl).toHaveBeenCalledWith(photo2, "work-draft");
+    await waitFor(() => expect(mockGetOrCreateUrl).toHaveBeenCalledTimes(2));
+    expect(mockGetOrCreateUrl).toHaveBeenCalledWith(photo1, expect.any(String), expect.any(String));
+    expect(mockGetOrCreateUrl).toHaveBeenCalledWith(photo2, expect.any(String), expect.any(String));
     expect(screen.getByTestId("review-media-count")).toHaveTextContent("2");
   });
 
@@ -253,15 +286,16 @@ describe("WorkReview", () => {
     renderReview({ audioNotes: [audioFile] });
 
     expect(screen.getByTestId("audio-player-note.webm")).toBeInTheDocument();
-    expect(screen.getByText("Audio Notes")).toBeInTheDocument();
+    expect(screen.getByText("Audio notes")).toBeInTheDocument();
   });
 
-  it("reports Review photo preview failures by file identity", () => {
+  it("reports Review photo preview failures by file identity", async () => {
     const photo = new File(["img"], "photo.jpg", { type: "image/jpeg" });
     const onPreviewFailed = vi.fn();
 
     renderReview({ images: [photo], onPreviewFailed });
 
+    await waitFor(() => expect(mockGetOrCreateUrl).toHaveBeenCalled());
     fireEvent.click(screen.getByTestId("trigger-review-media-error"));
 
     expect(onPreviewFailed).toHaveBeenCalledWith(photo, "review");
@@ -281,9 +315,22 @@ describe("WorkReview", () => {
     expect(screen.getByText("Some media previews failed")).toBeInTheDocument();
     expect(screen.getByTestId("detail-Trees Planted")).toHaveTextContent("15");
 
-    fireEvent.click(screen.getByRole("button", { name: "Remove broken media" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove Broken Media" }));
 
     expect(onRemoveBrokenMedia).toHaveBeenCalledWith("review");
     expect(screen.getByTestId("detail-Trees Planted")).toHaveTextContent("15");
+  });
+
+  it("puts the chosen promise right after the heading and says where the work waits", () => {
+    renderReview({
+      pinned: createElement("div", { "data-testid": "pinned" }, "Work for Prune the north beds"),
+    });
+
+    expect(screen.getByTestId("review-after-heading")).toHaveTextContent(
+      "Work for Prune the north beds"
+    );
+    expect(screen.getByTestId("review-after-details")).toHaveTextContent(
+      "It stays on this phone until it lands."
+    );
   });
 });

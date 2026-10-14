@@ -1,157 +1,121 @@
 #!/usr/bin/env node
 
 /**
- * Validate .env against .env.schema.
+ * Validate .env against env.schema.
  *
- * Replaces varlock's startup validation. Reads .env.schema as the key contract,
- * checks .env has every required key non-empty. Never prints values.
+ * Reads env.schema as the key contract and checks that .env has every key the
+ * profile requires, non-empty. Never prints values.
  *
  * Exit 0 = valid. Exit 1 = missing/empty required keys.
  *
- * A schema key is treated as required unless its declaration line has a
- * `# @optional` comment, the key starts with `OP_`, or the key has a non-empty
- * default value in the schema.
+ * A profile's keys are the ones annotated `# @required-in <profile>[,...]` in the
+ * schema. With no arguments the profile is `dev`: what `bun run dev -- web` needs.
  */
 
-import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  parseSchema,
+  readEnvironment,
+  requiredKeysForProfile,
+  validateRequiredEnvironment,
+} from "../lib/env-schema.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, "../..");
-const schemaPath = path.join(projectRoot, ".env.schema");
+const schemaPath = path.join(projectRoot, "env.schema");
 const envPath = path.join(projectRoot, ".env");
+const DEFAULT_PROFILE = "dev";
 
-function parseEnvFile(filePath) {
-  if (!fs.existsSync(filePath)) return null;
-  const env = {};
-  const text = fs.readFileSync(filePath, "utf8");
+function parseArgs(args) {
+  const parsed = { profile: DEFAULT_PROFILE, envSource: "file" };
 
-  for (const rawLine of text.split(/\r?\n/)) {
-    const line = rawLine.trim();
-    if (!line || line.startsWith("#")) continue;
-    const normalized = line.startsWith("export ") ? line.slice("export ".length) : line;
-    const equals = normalized.indexOf("=");
-    if (equals === -1) continue;
-
-    const key = normalized.slice(0, equals).trim();
-    let value = normalized.slice(equals + 1).trim();
-    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) continue;
-
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
-      value = value.slice(1, -1);
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === "--profile") {
+      parsed.profile = args[index + 1];
+      index += 1;
+      if (!parsed.profile) throw new Error("--profile requires a profile name.");
+      continue;
     }
-    env[key] = value;
+    if (arg === "--env-source") {
+      parsed.envSource = args[index + 1];
+      index += 1;
+      if (parsed.envSource !== "file" && parsed.envSource !== "process") {
+        throw new Error("--env-source must be file or process.");
+      }
+      continue;
+    }
+    throw new Error(`Unknown argument: ${arg}`);
   }
 
-  return env;
+  return parsed;
 }
 
-function parseSchema(filePath) {
-  if (!fs.existsSync(filePath)) return null;
-  const text = fs.readFileSync(filePath, "utf8");
-  const entries = [];
-  let pendingOptional = false;
-
-  for (const rawLine of text.split(/\r?\n/)) {
-    const line = rawLine.trim();
-    if (!line) continue;
-
-    if (line.startsWith("#")) {
-      if (/@optional/i.test(line)) pendingOptional = true;
-      continue;
-    }
-
-    const equals = line.indexOf("=");
-    if (equals === -1) {
-      pendingOptional = false;
-      continue;
-    }
-
-    const key = line.slice(0, equals).trim();
-    const value = line.slice(equals + 1).trim();
-    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) {
-      pendingOptional = false;
-      continue;
-    }
-
-    const inlineOptional = /@optional/i.test(line);
-    entries.push({
-      key,
-      hasDefault: value.length > 0,
-      optional: pendingOptional || inlineOptional,
-    });
-
-    pendingOptional = false;
+function main() {
+  let options;
+  try {
+    options = parseArgs(process.argv.slice(2));
+  } catch (error) {
+    console.error(`error: ${error.message}`);
+    process.exit(1);
   }
 
-  return entries;
-}
+  const schema = parseSchema(schemaPath);
+  if (!schema) {
+    console.error("error: env.schema not found at", schemaPath);
+    process.exit(1);
+  }
 
-// Conservative required list: only the keys that MUST be present for `bun run dev:web`
-// to function. Wider validation (per-profile) belongs in env-check --profile in a future pass.
-const baselineRequiredKeys = new Set([
-  "APP_ENV",
-  "VITE_CHAIN_ID",
-  "VITE_API_BASE_URL",
-  "VITE_ENVIO_INDEXER_URL",
-]);
+  const requiredKeys = requiredKeysForProfile(schema, options.profile);
+  if (requiredKeys.length === 0) {
+    // A profile nothing is annotated for would pass whatever the environment holds.
+    console.error(`error: env.schema marks no key \`@required-in ${options.profile}\`.`);
+    console.error("  fix: Check the profile name, or restore the annotations in env.schema.");
+    process.exit(1);
+  }
 
-function isRequired(entry) {
-  return baselineRequiredKeys.has(entry.key);
-}
+  const env = readEnvironment({ source: options.envSource, envFilePath: envPath });
+  if (!env) {
+    console.error("error: .env not found.");
+    console.error(
+      "  fix: Run `bun run env:sync` to create one from env.schema, or `npm run setup -- --profile isolated` for a baseline without secrets."
+    );
+    process.exit(1);
+  }
 
-const schema = parseSchema(schemaPath);
-if (!schema) {
-  console.error("error: .env.schema not found at", schemaPath);
+  const { missing, empty } = validateRequiredEnvironment(requiredKeys, env);
+  const sourceLabel = options.envSource === "process" ? "process environment" : ".env";
+
+  if (missing.length === 0 && empty.length === 0) {
+    console.log(
+      `env-check: ${sourceLabel} has the ${requiredKeys.length} key(s) env.schema requires for ${options.profile}.`
+    );
+    process.exit(0);
+  }
+
+  console.error(`env-check: ${sourceLabel} is incomplete.`);
+  if (missing.length > 0) {
+    console.error("");
+    console.error(`Missing keys (${missing.length}):`);
+    for (const key of missing.sort()) console.error(`  - ${key}`);
+  }
+  if (empty.length > 0) {
+    console.error("");
+    console.error(`Empty values (${empty.length}):`);
+    for (const key of empty.sort()) console.error(`  - ${key}`);
+  }
+  console.error("");
+  if (options.envSource === "file") {
+    console.error("Fix:");
+    console.error("  - Run `bun run env:sync` to rewrite .env from env.schema");
+    console.error("  - If a secret has no value there, give its key a 1Password reference in env.schema, or set it in your own .env");
+    console.error("  - Never write a secret's value into env.schema: the file is public. Only a non-secret default may be a plain value there");
+  } else {
+    console.error("Fix: set the missing values in the invoking process environment.");
+  }
   process.exit(1);
 }
 
-const env = parseEnvFile(envPath);
-if (!env) {
-  console.error("error: .env not found.");
-  console.error("  fix: Run `bun run env:template:init` then `bun run env:sync` to create one.");
-  process.exit(1);
-}
-
-const missing = [];
-const empty = [];
-
-for (const entry of schema) {
-  if (!isRequired(entry)) continue;
-  if (!(entry.key in env)) {
-    missing.push(entry.key);
-    continue;
-  }
-  const value = env[entry.key];
-  if (!value || value.trim() === "") {
-    empty.push(entry.key);
-  }
-}
-
-if (missing.length === 0 && empty.length === 0) {
-  console.log(`env-check: .env satisfies .env.schema (${schema.length} keys checked).`);
-  process.exit(0);
-}
-
-console.error("env-check: .env is incomplete.");
-if (missing.length > 0) {
-  console.error("");
-  console.error(`Missing keys (${missing.length}):`);
-  for (const key of missing.sort()) console.error(`  - ${key}`);
-}
-if (empty.length > 0) {
-  console.error("");
-  console.error(`Empty values (${empty.length}):`);
-  for (const key of empty.sort()) console.error(`  - ${key}`);
-}
-console.error("");
-console.error("Fix:");
-console.error("  - Add the missing keys to .env.template (with op:// refs or plain values)");
-console.error("  - Run `bun run env:sync` to materialize");
-console.error("  - Or set the value directly in .env if it's a personal local credential");
-process.exit(1);
+main();

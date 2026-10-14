@@ -4,28 +4,60 @@
  * Tests that the Home view renders without crashing.
  */
 
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const filterState = vi.hoisted(() => ({ sort: "" }));
+const arrivalState = vi.hoisted(() => ({ kind: "none" as "none" | "draft" }));
 
 // Mock the shared barrel — Home imports all hooks/stores/utils from @green-goods/shared
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/config/query-keys/registry", () => ({
   queryKeys: { gardens: { all: ["gardens"] } },
+}));
+
+vi.mock("@green-goods/shared/components/Toast/toast.service", () => ({
   toastService: { info: vi.fn(), error: vi.fn(), success: vi.fn() },
-  useArrivalState: () => ({ kind: "none", myGardenIds: [], needsReviewCount: 0 }),
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useArrivalState", () => ({
+  useArrivalState: () => ({ kind: arrivalState.kind, myGardenIds: [], needsReviewCount: 0 }),
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
   useAuthState: () => ({
     isAuthenticated: true,
   }),
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useBrowserNavigation", () => ({
   useBrowserNavigation: vi.fn(),
-  useFilteredGardens: (gardens: unknown[]) => ({
-    filteredGardens: gardens,
-    myGardensCount: 1,
-    isFilterActive: false,
-    activeFilterCount: 0,
-  }),
+}));
+
+vi.mock("@green-goods/shared/config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 42161,
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useFilteredGardens", () => ({
+  useFilteredGardens: (gardens: unknown[], filters: { sort: string }) => {
+    filterState.sort = filters.sort;
+    return {
+      filteredGardens: gardens,
+      myGardensCount: 1,
+      openGardensCount: 0,
+      isFilterActive: false,
+      activeFilterCount: 0,
+    };
+  },
+}));
+
+vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
   useGardens: () => ({
     data: [
       {
@@ -34,7 +66,7 @@ vi.mock("@green-goods/shared", () => ({
         location: "Test Location",
         bannerImage: "",
         gardeners: ["0x1234567890abcdef1234567890abcdef12345678"],
-        operators: [],
+        stewards: [],
         createdAt: Date.now(),
       },
     ],
@@ -43,28 +75,67 @@ vi.mock("@green-goods/shared", () => ({
     isError: false,
     refetch: vi.fn(),
   }),
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useLoadingWithMinDuration", () => ({
   useLoadingWithMinDuration: () => ({
     showSkeleton: false,
     timedOut: false,
     reset: vi.fn(),
   }),
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useNavigateToTop", () => ({
   useNavigateToTop: () => vi.fn(),
-  useOffline: () => ({ isOnline: true }),
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useOnlineStatus", () => ({
+  useOnlineStatus: () => true,
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
   usePrimaryAddress: () => "0x1234567890abcdef1234567890abcdef12345678",
-  useTimeout: () => ({
-    set: vi.fn(),
-    clear: vi.fn(),
-    isPending: vi.fn(() => false),
-  }),
+}));
+
+vi.mock("@green-goods/shared/stores/useUIStore", () => ({
   useUIStore: (selector: (s: any) => any) => {
     const state = {
       isGardenFilterOpen: false,
       openGardenFilter: vi.fn(),
       closeGardenFilter: vi.fn(),
+      closeWalletSheet: vi.fn(),
       openWorkDashboard: vi.fn(),
+      // Home reads its filters from the store so they outlive the view.
+      gardenFilters: { scope: "all", sort: "recent" },
+      setGardenFilters: vi.fn(),
+      resetGardenFilters: vi.fn(),
     };
     return selector(state);
   },
+}));
+
+vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling")>()),
+  useCommitmentsInbox: () => ({
+    live: [],
+    settled: [],
+    liveActCount: 0,
+    settledActCount: 0,
+    totalActCount: 0,
+    availability: { status: "unknown-chain" },
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  }),
+  useCommitmentsToConfirm: () => ({
+    groups: [],
+    count: 0,
+    isSteward: false,
+    availability: { status: "unknown-chain" },
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  }),
 }));
 
 // Mock @tanstack/react-query
@@ -79,16 +150,12 @@ vi.mock("@tanstack/react-query", async (importOriginal) => {
 });
 
 // Mock @remixicon/react
-vi.mock("@remixicon/react", () => ({
+vi.mock("@remixicon/react", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@remixicon/react")>()),
   RiFilterLine: (props: any) => createElement("span", { "data-testid": "filter-icon", ...props }),
 }));
 
 // Mock local components
-vi.mock("@/components/Inputs", () => ({
-  PullToRefresh: ({ children }: { children: any }) =>
-    createElement("div", { "data-testid": "pull-to-refresh" }, children),
-}));
-
 vi.mock("../../views/Home/GardenList", () => ({
   GardenList: ({ gardens, onCardClick }: { gardens: any[]; onCardClick: (id: string) => void }) =>
     createElement(
@@ -112,15 +179,23 @@ vi.mock("../../views/Home/GardenList", () => ({
 vi.mock("../../views/Home/GardenFilters", () => ({
   GardenFilterScope: {},
   GardenSortOrder: {},
-  GardensFilterDrawer: () => null,
+  GardensFilterSheet: () => null,
 }));
 
-vi.mock("../../views/Home/WalletDrawer/Icon", () => ({
-  WalletDrawerIcon: () => createElement("button", { "data-testid": "wallet-drawer-icon" }),
+vi.mock("../../views/Home/WalletSheet/Icon", () => ({
+  WalletSheetIcon: () => createElement("button", { "data-testid": "wallet-drawer-icon" }),
 }));
 
-vi.mock("../../views/Home/WalletDrawer", () => ({
-  WalletDrawer: () => null,
+vi.mock("../../views/Home/CommitmentsSheet/Icon", () => ({
+  CommitmentsSheetIcon: () => createElement("button", { "data-testid": "commitments-sheet-icon" }),
+}));
+
+vi.mock("../../views/Home/CommitmentsSheet", () => ({
+  CommitmentsSheet: () => null,
+}));
+
+vi.mock("../../views/Home/WalletSheet", () => ({
+  WalletSheet: () => null,
 }));
 
 vi.mock("../../views/Home/WorkDashboard/Icon", () => ({
@@ -128,13 +203,17 @@ vi.mock("../../views/Home/WorkDashboard/Icon", () => ({
 }));
 
 // Import after mocks
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import Home from "../../views/Home";
+import { markArrivalPassed } from "../../views/Home/arrivalToast";
 
 const messages = {
   "app.home": "Home",
   "app.home.filters.button": "Filters",
-  "app.home.pullToRefresh": "Pull to refresh gardens",
   "app.home.messages.noGardensFound": "No gardens found",
+  "app.home.arrival.draft.title": "You have a draft saved",
+  "app.home.arrival.draft.message": "Pick up where you left off.",
+  "app.home.arrival.draft.action": "Resume",
 };
 
 const renderWithProviders = (initialRoute = "/home") => {
@@ -158,6 +237,51 @@ const renderWithProviders = (initialRoute = "/home") => {
 describe("Home View", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    arrivalState.kind = "none";
+    sessionStorage.clear();
+  });
+
+  describe("arrival toast", () => {
+    // Home waits 700 ms after an arrival resolves before it shows the toast.
+    const passArrivalDelay = () => act(() => vi.advanceTimersByTime(700));
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+      arrivalState.kind = "draft";
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("shows the arrival toast to a session that opens on Home", () => {
+      renderWithProviders();
+      passArrivalDelay();
+
+      expect(toastService.info).toHaveBeenCalledTimes(1);
+      expect(toastService.info).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "You have a draft saved" })
+      );
+    });
+
+    it("stays quiet on Home once the session has arrived on another screen", () => {
+      // e.g. the app reopened into the garden flow, where the user already declined a draft.
+      markArrivalPassed("0x1234567890abcdef1234567890abcdef12345678");
+
+      renderWithProviders();
+      passArrivalDelay();
+
+      expect(toastService.info).not.toHaveBeenCalled();
+    });
+
+    it("drops a pending arrival toast when a garden opens before it shows", () => {
+      renderWithProviders();
+      // The garden is a child route, so Home stays mounted underneath it.
+      fireEvent.click(screen.getByTestId("garden-card"));
+      passArrivalDelay();
+
+      expect(toastService.info).not.toHaveBeenCalled();
+    });
   });
 
   it("renders without crashing", () => {
@@ -166,8 +290,16 @@ describe("Home View", () => {
     expect(screen.getByRole("article")).toBeInTheDocument();
   });
 
-  it("displays home title", () => {
+  it("keeps the dashboard host mounted beneath a child record", () => {
     renderWithProviders();
+    const host = screen.getByTestId("work-dashboard-icon");
+    fireEvent.click(screen.getByTestId("garden-card"));
+    expect(screen.getByTestId("work-dashboard-icon")).toBe(host);
+    expect(host).not.toBeVisible();
+  });
+
+  it.each(["/home", "/home/"])("displays Home at the compatible entry %s", (entry) => {
+    renderWithProviders(entry);
 
     expect(screen.getByText("Home")).toBeInTheDocument();
   });
@@ -177,6 +309,12 @@ describe("Home View", () => {
 
     expect(screen.getByTestId("garden-card")).toBeInTheDocument();
     expect(screen.getByText("Test Garden")).toBeInTheDocument();
+  });
+
+  it("starts with newest gardens first", () => {
+    renderWithProviders();
+
+    expect(filterState.sort).toBe("recent");
   });
 
   it("shows filter button", () => {

@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { expect, within } from "storybook/test";
 import { StatusBadge } from "./StatusBadge";
 
 const meta: Meta<typeof StatusBadge> = {
@@ -21,7 +22,7 @@ const meta: Meta<typeof StatusBadge> = {
     },
     size: {
       control: "select",
-      options: ["sm", "md"],
+      options: ["xs", "sm", "md"],
       description: "Size of the badge",
     },
     showIcon: {
@@ -99,6 +100,40 @@ export const Small: Story = {
       <StatusBadge status="pending" size="sm" />
     </div>
   ),
+};
+
+/**
+ * `xs` is the 12px pill for dense rows and cards (a promise row, a season card),
+ * 22px tall, where it sits beside 12px words; the status block of a page keeps
+ * `sm` or `md`.
+ */
+export const Sizes: Story = {
+  tags: ["storybook-ci"],
+  render: () => (
+    <div className="flex flex-wrap items-center gap-2">
+      <StatusBadge variant="success" size="xs" showIcon={false}>
+        Open
+      </StatusBadge>
+      <StatusBadge variant="success" size="sm" showIcon={false}>
+        Open
+      </StatusBadge>
+      <StatusBadge variant="success" size="md" showIcon={false}>
+        Open
+      </StatusBadge>
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const badges = within(canvasElement).getAllByRole("status");
+    const measure = (badge: HTMLElement) => ({
+      fontSize: getComputedStyle(badge).fontSize,
+      height: badge.getBoundingClientRect().height,
+    });
+    await expect(badges.map(measure)).toEqual([
+      { fontSize: "12px", height: 22 },
+      { fontSize: "14px", height: 26 },
+      { fontSize: "16px", height: 30 },
+    ]);
+  },
 };
 
 export const WithoutIcon: Story = {

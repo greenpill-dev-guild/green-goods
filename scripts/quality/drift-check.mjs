@@ -10,17 +10,17 @@ const repoRoot = path.resolve(path.dirname(__filename), "../..");
 export const scopes = {
   guidance: [
     {
-      id: "claude-guidance",
-      label: "Claude guidance",
-      command: ["bun", "run", "check:claude-guidance"],
-      route: "audit-then-ship",
+      id: "codex-guidance",
+      label: "Codex guidance",
+      command: ["node", "scripts/quality/check-codex-docs.js"],
+      route: "review",
       severity: "medium",
     },
     {
-      id: "codex-guidance",
-      label: "Codex guidance",
-      command: ["bun", "run", "check:codex-guidance"],
-      route: "audit-then-ship",
+      id: "guidance-links",
+      label: "Guidance links & commands",
+      command: ["node", "scripts/quality/check-guidance-links.mjs"],
+      route: "review",
       severity: "medium",
     },
   ],
@@ -37,28 +37,28 @@ export const scopes = {
     {
       id: "design-generated",
       label: "Design generated artifacts",
-      command: ["bun", "run", "check:design-generated"],
+      command: ["node", "scripts/design/md-generate.mjs", "--check"],
       route: "design",
       severity: "medium",
     },
     {
       id: "design-tokens",
       label: "Design tokens",
-      command: ["bun", "run", "check:design-tokens"],
+      command: ["bash", "scripts/design/check-tokens.sh"],
       route: "design",
       severity: "medium",
     },
     {
       id: "vocab",
       label: "Banned vocabulary",
-      command: ["bun", "run", "lint:vocab"],
+      command: ["bash", "scripts/design/check-vocab.sh"],
       route: "design",
       severity: "medium",
     },
     {
       id: "docs-design-parity",
       label: "Docs design parity",
-      command: ["bun", "run", "check:docs-design-parity"],
+      command: ["node", "scripts/quality/check-docs-design-parity.mjs"],
       route: "design",
       severity: "medium",
     },
@@ -67,8 +67,8 @@ export const scopes = {
     {
       id: "docs-audit",
       label: "Docs audit",
-      command: ["bun", "run", "docs:audit:ci"],
-      route: "audit-then-ship",
+      command: ["node", "docs/scripts/docs-audit.mjs", "--ci"],
+      route: "review",
       severity: "medium",
       warningPattern: /docs-audit: [1-9]\d* warning\(s\)\./,
     },
@@ -77,14 +77,14 @@ export const scopes = {
     {
       id: "source-structure",
       label: "Source structure",
-      command: ["bun", "run", "check:source-structure"],
+      command: ["node", "scripts/quality/check-source-structure.js"],
       route: "clean --dry-run",
       severity: "medium",
     },
     {
       id: "react-patterns",
       label: "React pattern lint",
-      command: ["bun", "run", "lint:rules"],
+      command: ["node", "scripts/quality/check-react-patterns.js"],
       route: "clean --dry-run",
       severity: "medium",
       warningPattern: /check-react-patterns: [1-9]\d* new warning\(s\):/,
@@ -94,9 +94,21 @@ export const scopes = {
     {
       id: "test-quality",
       label: "Test quality",
-      command: ["bun", "run", "check:test-quality"],
+      command: ["bash", "scripts/quality/check-test-quality.sh"],
       route: "review",
       severity: "high",
+    },
+  ],
+  ontology: [
+    {
+      id: "ontology",
+      label: "Ontology drift",
+      command: ["node", "scripts/quality/check-ontology.mjs"],
+      route: "review",
+      severity: "medium",
+      // check-ontology.mjs exits 2 for infrastructure faults (missing or
+      // unparseable sidecar/baseline/anchor) — distinct from semantic drift.
+      infraExitCode: 2,
     },
   ],
 };
@@ -105,7 +117,7 @@ export const validScopes = new Set(["all", ...Object.keys(scopes)]);
 
 export function usage(exitCode = 0) {
   const message = [
-    "Usage: node scripts/quality/drift-check.mjs [--scope <all|guidance|plans|design|docs|cleanup|quality>] [--json]",
+    "Usage: node scripts/quality/drift-check.mjs [--scope <all|guidance|plans|design|docs|cleanup|quality|ontology>] [--json]",
     "       node scripts/quality/drift-check.mjs <scope> [--json]",
   ].join("\n");
   if (exitCode === 0) console.log(message);
@@ -169,6 +181,7 @@ export function checksForScope(scope) {
 }
 
 export function statusForCheck(check, exitCode, output) {
+  if (check.infraExitCode !== undefined && exitCode === check.infraExitCode) return "error";
   if (exitCode !== 0) return "fail";
   if (check.warningPattern?.test(output)) return "warn";
   return "pass";
@@ -191,7 +204,9 @@ export function checkResultFromOutput(check, { exitCode = 0, stdout = "", stderr
         ? `${check.label} passed.`
         : status === "warn"
           ? `${check.label} reported warnings.`
-          : `${check.label} failed.`,
+          : status === "error"
+            ? `${check.label} could not run (tooling/infrastructure fault).`
+            : `${check.label} failed.`,
     output_tail: outputTail,
     duration_ms: durationMs,
     route: check.route,
@@ -285,7 +300,14 @@ export function printText(report) {
 
   console.log("## Checks");
   for (const check of report.checks) {
-    const marker = check.status === "pass" ? "PASS" : check.status === "warn" ? "WARN" : "FAIL";
+    const marker =
+      check.status === "pass"
+        ? "PASS"
+        : check.status === "warn"
+          ? "WARN"
+          : check.status === "error"
+            ? "ERROR"
+            : "FAIL";
     console.log(`- [${marker}] ${check.category}/${check.id}: ${check.command}`);
   }
 

@@ -1,22 +1,22 @@
+import { Alert } from "@green-goods/shared/components/Alert";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
+import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
+import { useAdminGardenWorkspaceSelection } from "@green-goods/shared/hooks/garden/useAdminGardenWorkspaceSelection";
+import { useGardenPermissions } from "@green-goods/shared/hooks/garden/useGardenPermissions";
+import { useGardenVaults } from "@green-goods/shared/hooks/vault/useGardenVaults";
+import type { Address } from "@green-goods/shared/types/domain";
+import { OCTANT_MODULE_ABI } from "@green-goods/shared/utils/blockchain/abis/octant";
+import { getNetworkContracts } from "@green-goods/shared/utils/blockchain/contracts";
 import {
-  type Address,
-  Alert,
-  adminRoutes,
-  formatTokenAmount,
-  getNetDeposited,
-  getNetworkContracts,
-  getVaultAssetSymbol,
-  OCTANT_MODULE_ABI,
-  useAdminGardenWorkspaceSelection,
-  useCurrentChain,
-  useGardenPermissions,
-  useGardens,
-  useGardenVaults,
-  useUser,
-} from "@green-goods/shared";
+  formatAssetAmounts,
+  summarizeNetDepositsByAsset,
+} from "@green-goods/shared/utils/blockchain/vaults";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { isAddress } from "viem";
 import { useReadContract } from "wagmi";
 import { AdminButton } from "@/components/AdminButton";
 import {
@@ -44,13 +44,15 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
   const navigate = useNavigate();
-  const { formatMessage } = useIntl();
+  const { formatMessage, locale } = useIntl();
   const { selectedGarden } = useAdminGardenWorkspaceSelection();
   const routeState = (location.state as VaultRouteState | null) ?? null;
   const resolvedGardenId = id ?? selectedGarden?.id;
 
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
   const garden = gardens.find((item) => item.id === resolvedGardenId);
+  const vaultGardenId = garden?.id ?? resolvedGardenId;
+  const vaultGardenAddress = vaultGardenId && isAddress(vaultGardenId) ? vaultGardenId : undefined;
   const gardenRouteContext = {
     gardenId: garden?.id ?? selectedGarden?.id ?? resolvedGardenId,
   };
@@ -77,38 +79,24 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
     isError: vaultsHasError,
     refetch: refetchVaults,
     isFetching: vaultsFetching,
-  } = useGardenVaults(garden?.id ?? resolvedGardenId, {
-    enabled: Boolean(garden?.id ?? resolvedGardenId),
+  } = useGardenVaults(vaultGardenAddress, {
+    enabled: Boolean(vaultGardenAddress),
   });
 
-  const { totalNetDeposited, totalHarvestCount, totalDepositorCount } = useMemo(() => {
-    let netDeposited = 0n;
+  const { endowmentByAsset, totalHarvestCount, totalDepositorCount } = useMemo(() => {
     let harvestCount = 0;
     let depositorCount = 0;
     for (const vault of vaults) {
-      netDeposited += getNetDeposited(vault.totalDeposited, vault.totalWithdrawn);
       harvestCount += vault.totalHarvestCount;
       depositorCount += vault.depositorCount;
     }
     return {
-      totalNetDeposited: netDeposited,
+      // Per asset: WETH and DAI base units never add up (D14).
+      endowmentByAsset: summarizeNetDepositsByAsset(vaults, vaults[0]?.chainId),
       totalHarvestCount: harvestCount,
       totalDepositorCount: depositorCount,
     };
   }, [vaults]);
-
-  const tvlDenomination = useMemo(() => {
-    const symbols = new Set(
-      vaults.map((vault) => getVaultAssetSymbol(vault.asset, vault.chainId)).filter(Boolean)
-    );
-
-    if (symbols.size === 1) return Array.from(symbols)[0];
-    if (symbols.size > 1) {
-      return formatMessage({ id: "app.treasury.multiAssetDenomination" }, { count: symbols.size });
-    }
-
-    return formatMessage({ id: "app.treasury.tokenDenominationFallback" });
-  }, [formatMessage, vaults]);
 
   const contextualBackLink = useMemo(() => {
     if (!routeState?.returnTo) return null;
@@ -176,28 +164,32 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
   const isEmbedded = layout === "sheet";
   const content = (
     <>
-      <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="surface-inset">
-          <p className="body-xs text-text-soft">
-            {formatMessage({ id: "app.treasury.totalValueLocked" })}
-          </p>
-          <p className="mt-1 text-xl font-semibold text-text-strong">
-            {formatTokenAmount(totalNetDeposited)} {tvlDenomination}
-          </p>
-        </div>
-        <div className="surface-inset">
-          <p className="body-xs text-text-soft">
-            {formatMessage({ id: "app.treasury.totalHarvests" })}
-          </p>
-          <p className="mt-1 text-xl font-semibold text-text-strong">{totalHarvestCount}</p>
-        </div>
-        <div className="surface-inset">
-          <p className="body-xs text-text-soft">
-            {formatMessage({ id: "app.treasury.depositorCount" })}
-          </p>
-          <p className="mt-1 text-xl font-semibold text-text-strong">{totalDepositorCount}</p>
-        </div>
-      </section>
+      {!isEmbedded ? (
+        <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="surface-inset">
+            <p className="body-xs text-text-soft">
+              {formatMessage({ id: "app.treasury.totalValueLocked" })}
+            </p>
+            <p className="mt-1 text-title-md font-semibold text-text-strong">
+              {formatAssetAmounts(endowmentByAsset, locale)}
+            </p>
+          </div>
+          <div className="surface-inset">
+            <p className="body-xs text-text-soft">
+              {formatMessage({ id: "app.treasury.totalHarvests" })}
+            </p>
+            <p className="mt-1 text-title-md font-semibold text-text-strong">{totalHarvestCount}</p>
+          </div>
+          <div className="surface-inset">
+            <p className="body-xs text-text-soft">
+              {formatMessage({ id: "app.treasury.depositorCount" })}
+            </p>
+            <p className="mt-1 text-title-md font-semibold text-text-strong">
+              {totalDepositorCount}
+            </p>
+          </div>
+        </section>
+      ) : null}
 
       {vaultsLoading && (
         <p className="body-sm text-text-soft">
@@ -235,7 +227,14 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
       )}
 
       {!vaultsLoading && vaults.length > 0 && (
-        <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        // Said once for every vault, not repeated on each card (D27).
+        <p className="body-sm text-text-sub">
+          {formatMessage({ id: "app.treasury.impactYieldHelper" })}
+        </p>
+      )}
+
+      {!vaultsLoading && vaults.length > 0 && (
+        <section className="grid grid-cols-1 gap-4 @3xl:grid-cols-2">
           {vaults.map((vault) => (
             <PositionCard
               key={vault.id}
@@ -267,7 +266,9 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
 
       <VaultEventHistory gardenAddress={gardenAddress} initialVisibleCount={isEmbedded ? 5 : 20} />
 
-      {!vaultsLoading && vaults.length > 0 && <GardenSupporters gardenAddress={gardenAddress} />}
+      {!isEmbedded && !vaultsLoading && vaults.length > 0 && (
+        <GardenSupporters gardenAddress={gardenAddress} />
+      )}
 
       {!isEmbedded && !vaultsLoading && vaults.length > 0 && (
         <VaultContractDetails gardenAddress={gardenAddress} />
@@ -276,7 +277,7 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
   );
 
   if (layout === "sheet") {
-    return <div className="flex flex-col gap-section overflow-x-hidden">{content}</div>;
+    return <div className="@container flex min-w-0 flex-col gap-section">{content}</div>;
   }
 
   return (
@@ -289,7 +290,10 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
         sticky
       />
 
-      <CanvasRouteContent maxWidthClassName="max-w-6xl" className="mt-6 flex flex-col gap-section">
+      <CanvasRouteContent
+        maxWidthClassName="max-w-6xl"
+        className="@container mt-6 flex flex-col gap-section"
+      >
         {content}
       </CanvasRouteContent>
     </CanvasRouteFrame>

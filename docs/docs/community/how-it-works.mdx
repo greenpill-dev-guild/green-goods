@@ -3,228 +3,189 @@ title: How It Works
 sidebar_label: How It Works
 slug: /community/how-it-works
 sidebar_position: 2
+description: "The whole Green Goods loop in plain words: a garden plans, gardeners document, stewards review, approved work is certified, and supporters fund more of it."
 audience: all
 owner: docs
-last_verified: 2026-04-07
+last_verified: 2026-10-12
 feature_status: Live
 source_of_truth:
-  - packages/client/src/views/Landing/index.tsx
-  - packages/client/src/views/Home/index.tsx
   - packages/client/src/views/Garden/index.tsx
-  - packages/shared/src/modules/auth
-  - packages/shared/src/modules/work
-  - packages/shared/src/modules/data
-  - packages/shared/src/i18n
-  - packages/indexer/config.yaml
+  - packages/client/src/views/Home/WorkDashboard/index.tsx
+  - packages/client/src/views/Public/GardenDetail.tsx
+  - packages/client/src/views/Public/Fund.tsx
+  - packages/client/src/views/Public/Actions.tsx
+  - packages/client/src/content/publicCuration.ts
+  - packages/admin/src/views/Hub/index.tsx
+  - packages/shared/src/providers/JobQueue.tsx
+  - packages/shared/src/modules/app/locale-messages.ts
+  - packages/contracts/src/resolvers/Work.sol
+  - packages/contracts/src/resolvers/WorkApproval.sol
+  - packages/contracts/src/resolvers/Assessment.sol
+  - packages/contracts/src/modules/CookieJar.sol
+  - packages/contracts/src/resolvers/Yield.sol
+  - packages/shared/src/ontology/green-goods-projections.json
+  - packages/contracts/src/lib/CommitmentPooling/WorkCreditLib.sol
+  - packages/contracts/src/lib/CommitmentPooling/ConfirmLib.sol
+  - packages/contracts/src/modules/Settlement/Plans.sol
+  - docs/docusaurus.config.ts
 keywords:
-  - MDR workflow
-  - passkey
-  - PWA
+  - how it works
+  - garden
+  - action
+  - work
+  - approval
+  - assessment
+  - impact certificate
   - offline
-  - impact reporting
-  - verification
-  - localization
-  - CIDS
-  - attestation
+  - passkey
 ---
 
 import {NextBestAction} from "@site/src/components/docs";
 
 # How It Works
 
-Green Goods combines several innovations to make documenting and funding regenerative work practical for field workers. Here's how each piece works.
+Good work often leaves no trace. Someone plants forty trees or clears a riverbank, and a month later there is nothing to show a funder except a memory. Green Goods fixes that one problem: it turns work into a record that the community itself has checked.
 
-![Green Goods Impact Value Cycle](/img/community/impact-value-cycle.webp)
+<figure className="gg-figure gg-overview-photo">
+  <img src="/img/community/editorial-actions.webp" alt="An open field journal beside a camera and tools on a wooden table, with notes about the work and the place." width="1536" height="1024" fetchPriority="high" decoding="async" />
+  <figcaption>Evidence needs context: what happened, where, and why. Editorial illustration reused from Green Goods' website Actions imagery; not a real work submission.</figcaption>
+</figure>
 
----
+## One piece of work, start to finish
 
-## Local 1st Experience
+An example, with made-up names.
 
-Green Goods is built for the reality of field work – **intermittent connectivity**, **mid-range devices**, and **diverse languages**. Everything works locally first, then syncs when conditions allow.
+1. **Record the work.** Ama plants twelve mango seedlings on a hillside with no signal. She chooses the tree-planting action, takes two photos, enters “12”, and taps **Upload Work**. The app says **Saved offline**.
+2. **Send it.** Back in town, she opens **Your Work** and taps **Upload all**. The item changes to **In review**.
+3. **Review the evidence.** Kofi, a steward, checks the photos and count. He knows the place from a recent visit. He chooses **Medium** confidence and taps **Approve**.
+4. **See the result.** Ama sees **Approved** in **Your Work**. The public record shows her work and the steward's decision to anyone considering supporting the garden.
 
-### Privacy & Security
+<figure className="gg-figure" style={{maxWidth: '560px'}}>
+  <img src="/img/screenshots/admin-review-form.webp" alt="Steward Review in the dashboard, with Low, Medium, and High confidence choices, a Feedback field, and Reject and Approve buttons." width="1152" height="1080" loading="lazy" />
+  <figcaption>The steward adds a decision to the evidence. In this fixture, Approve waits for a confidence choice. Source: Storybook fixture, 12 October 2026, 1152 × 1080 image; build revision unavailable. This is example data, not Ama's record.</figcaption>
+</figure>
 
-Your data stays on your device until you choose to submit. Green Goods is **passkey-first**: if you use a passkey, authentication is tied to your device's secure enclave and your biometric data never leaves your phone. That flow creates a [smart account](/glossary#smart-account-account-abstraction) for you without exposing private keys. If you connect a wallet instead, Green Goods uses the wallet address you already control.
+## Where the tools meet
 
-### Passkey First, Wallet Available
-
-Green Goods is designed so new users can get started without seed phrases, but it still supports direct wallet access for experienced users:
-
-- **Passkey authentication** – Sign in with your fingerprint, face, or device PIN. This is the smoothest onboarding path and creates a smart account for you automatically.
-- **Wallet connection** – Connect an existing wallet (MetaMask, Rainbow, WalletConnect-compatible wallets) if you want to sign directly with your own address.
-
-What changes depending on sign-in method:
-- **Passkey users** usually get the simplest flow, including sponsored transactions where that path is supported.
-- **Wallet users** keep direct signer control, but some actions require normal on-chain gas fees.
-- **Address continuity matters** either way: your roles, work history, and reputation follow the address you keep using.
+The app and dashboard work with the same public record. The website lets other people read it. A review adds a separate decision; it does not send a payment.
 
 ```mermaid
-sequenceDiagram
-    actor User as Field Worker
-    participant App as Green Goods PWA
-    participant Auth as Passkey / Wallet
-    participant Account as Smart Account or Wallet
-
-    User->>App: Open app / choose sign-in method
-    App->>Auth: Authenticate (biometric/PIN or wallet)
-    Auth-->>App: Identity verified
-    App->>Account: Create/recover smart account or use connected wallet
-    Account-->>App: Account ready
-    App-->>User: Logged in – ready to submit work
+flowchart TB
+    A["Phone app<br/>Record work"] -->|Upload all| R["Public record<br/>Work and separate review"]
+    R -->|Read evidence| S["Steward<br/>Review in app or dashboard"]
+    S -->|Add a decision| R
+    R --> W["Public website<br/>Read the garden's work"]
 ```
 
-:::note Address Continuity
-Your contribution history, roles, and reputation are tied to the address you keep using. If you switch from one sign-in path to a different address later, that new address will not automatically inherit the old one’s history.
+The arrows show records and decisions. A supporter chooses whether to fund a garden separately. The [Funder Guide](/community/funder-guide/) explains those choices; the [builder architecture](/builders/architecture) has the technical map.
+
+## The loop, step by step
+
+### 1. Plan
+
+A **garden** is a community doing regenerative work together. Before the work starts, someone who knows the subject writes an **assessment**: where the garden is starting from, what it wants to change, and how it will measure that. It is the "before" picture.
+
+The garden also has **actions**: the kinds of work it tracks, such as planting a tree, sorting a load of waste, or checking a solar panel. Each action says what photo to take and which details to give.
+
+### 2. Document
+
+A **gardener** does the work and records it in the app: choose the action, take photos, fill in a few details, send. That record is called **work**.
+
+It takes a few minutes and works without a signal. The work is saved on the phone first and sent when the gardener is back in range.
+
+### 3. Review
+
+A **steward** from the same garden looks at the photos and details and decides. They **approve** the work, or **reject** it with a note on what to fix. Their decision is saved next to the work as its own record, with their reason and how confident they are.
+
+### 4. Certify
+
+When a garden has a body of approved work that tells one story, a steward can bundle it into an **impact certificate**: one claim that says "this garden did this, in this period." This step is still being switched on. [Honest Claims](/community/green-goods-claims) tracks where it stands.
+
+### 5. Fund
+
+Anyone can read a garden's approved work on its public page. A supporter who likes what they see can **donate** to the garden's shared fund, or **endow** it with a deposit whose earnings go to the garden. The garden uses that support to do more work, and the loop starts again.
+
+## What an approval is, and is not {#impact-reporting-verification}
+
+Approval is the idea everything else rests on, so it is worth being exact about it.
+
+**What it is**
+
+1. **A person's judgment.** A steward from the garden looked at the evidence and decided the work happened as described.
+2. **A signed record.** The decision is saved with the steward's account, their reason, and their confidence level.
+3. **Separate from the work.** The gardener's record and the steward's decision are two records. Neither can rewrite the other.
+4. **Public and permanent.** Anyone can read both, and neither can be edited or deleted afterwards.
+
+**What it is not**
+
+- **Not a payment.** Nothing is paid when work is approved.
+- **Not an outside audit.** The reviewer belongs to the same community. That closeness is the strength of the review, and also its limit.
+- **Not a measurement of results.** It says the work was done. It does not say how much carbon a tree will store.
+
+## What a good record contains
+
+Each action asks for four kinds of information, in plain form:
+
+| The question | An example |
+|---|---|
+| What did you do? | Planted trees in the east plot |
+| What did it produce? | 12 mango seedlings, photographed |
+| What changed? | More of the plot is covered |
+| Why does it matter? | Shade, fruit, and soil that holds |
+
+The first two come from the gardener, with every piece of work. The last two are what the garden's assessment and its certificates are for.
+
+## Where the money fits
+
+A garden can hold money in two ways.
+
+- **A shared fund.** Donations land here. Gardeners in the garden can claim from it, up to limits the garden sets, and each claim records what it is for.
+- **An endowment.** A supporter's deposit stays theirs and can be withdrawn. Its earnings go to the garden when a steward collects them.
+
+Three things are worth saying plainly:
+
+- **Approval and payment are separate.** How a garden rewards its people is the garden's decision.
+- **An endowment is not guaranteed.** A supporter can get back less than they put in.
+- **Green Goods does not promise a charitable receipt or tax deduction.** Check any separate arrangement with the garden.
+
+The [Funder Guide](/community/funder-guide/) has the details.
+
+## Where Commitment Pooling fits {#commitment-pooling}
+
+A shared fund supports a garden as a whole. **Commitment Pooling** helps the community organize specific promises: an offer to do work or provide support, or a request for it. A pool holds the shared rules for those promises, including who can confirm that one was kept.
+
+For example, a garden could agree on a promise to plant and care for seedlings. Work records can provide evidence toward it. Reviewing those records and confirming the promise are related decisions, but they are separate: linking work does not by itself mean the promise is fulfilled.
+
+If the promise includes financial support, payment follows its agreed conditions and a separate payment process. **Work approval alone does not release money.** A donation to the shared fund and an endowment also remain separate ways to support a garden.
+
+:::info Availability
+The pooling product flow is being prepared for release. Check with your steward before relying on it for a task or payment. The existing [Commitment Pool guide](/community/steward-guide/commitment-pooling) explains the steward tools; availability still depends on the garden and the selected action.
 :::
 
-### Works In All Conditions
+## Built for the field
 
-Green Goods is a [Progressive Web App](/glossary#pwa-progressive-web-app) – it works like a native app on your phone, even in low-connectivity environments:
+- **No app store.** You install Green Goods from the website onto your phone's home screen.
+- **No password.** You sign in with your fingerprint, face, or screen lock. Your phone keeps a passkey for you.
+- **No signal needed to record.** Work is saved on your phone. Nothing is added to your garden's record until you send it with **Upload all**.
+- **Your language.** The app is available in English, Spanish, and Portuguese. These docs are in English only for now.
 
-- **Install from your browser** – Tap "Add to Home Screen" on any mobile browser. No app store required.
-- **Offline-first** – All submissions are saved locally before syncing. The service worker caches the app shell and critical assets.
-- **Background sync** – When you come back online, queued submissions sync automatically with exponential backoff and retry logic.
-- **Mobile optimized** – Designed for mid-range Android devices with limited bandwidth. Touch targets, image compression, and lazy loading keep the experience fast.
+## Who does what
 
-### Supports English, Spanish & Portuguese Currently
-
-Full UI support across three languages with more coming:
-
-| Tier | Languages | Status | Coverage |
-|------|-----------|--------|----------|
-| **Tier 1** | English, Portuguese, Spanish | Active | Full UI, all action schemas, documentation |
-
-Additional languages, including French, are under consideration. Language detection follows your device settings, with manual override available. Action titles, descriptions, instructions, and form labels are all translated. Translation files are open for community contributions.
-
----
-
-## MDR Workflow (Media → Details → Review)
-
-![MDR Methodology](/img/community/mdr-methodology.webp)
-
-The **MDR workflow** is how every piece of work gets documented. It's designed for mobile phones in the field, mirroring the simplicity of posting to social media.
-
-### Capture Photos, Videos & Audio
-
-**Step 1: Media** – Open the camera and capture photos of your work. The action specifies minimum and maximum media requirements (e.g., "at least 2 photos of the planted trees"). Photos are stored locally on your device first, then uploaded to IPFS when you submit.
-
-### Provide Action Specific Details
-
-**Step 2: Details** – Fill in action-specific form fields. These are generated from the action's configuration and can include:
-
-- Text inputs (descriptions, notes)
-- Number fields (tree count, kg collected, kWh generated)
-- Dropdowns (species selection, waste category)
-- Sliders (confidence rating, quality assessment)
-- Repeating rows (multiple observations in one session)
-
-Each action follows the **Common Impact Data Standard (CIDS)** framework (Activity → Output → Outcome → Impact), ensuring that the details you provide connect to verifiable outcomes:
-
-| CIDS Stage | What You Provide | Example |
-|-----------|-----------------|---------|
-| **Activity** | What you did | "Planted trees in zone A" |
-| **Output** | Direct product | "12 mango trees, geotagged" |
-| **Outcome** | Change produced | "15% canopy cover increase" |
-| **Impact** | Long-term effect | "Carbon sequestration, food security" |
-
-### Review Before Uploading
-
-**Step 3: Review** – See a summary of your photos and answers. Add optional feedback or notes, then submit. The submission enters the operator's review queue.
-
-The full step-by-step:
-
-1. **Open the app** and navigate to your garden
-2. **Browse available actions** – Each action card shows the title, domain badge, description, and requirements
-3. **Select an action** to start the MDR workflow
-4. **Capture media** – Take photos using your device camera or select from your gallery
-5. **Fill in details** – Complete the action-specific form fields
-6. **Review and submit** – Check your submission summary and tap submit
-7. **Track progress** – Monitor your submission status in the work dashboard (pending, approved, or changes requested)
-
----
-
-## Impact Reporting & Verification
-
-Every approved piece of work creates a verifiable on-chain record that builds into a complete impact story.
-
-### Capturing & Proving Impact
-
-The attestation chain creates an **unbroken trail** from field work to certified impact:
-
-```mermaid
-graph LR
-    A["Assessment<br/>(Garden baseline and targets)"] -.->|frames and measures| WA
-    W["Work Attestation<br/>(Gardener submits)"] -->|reviewed by| WA["Work Approval<br/>(Operator verifies)"]
-    WA -->|bundled and minted as| H["Hypercert<br/>(bundles approved work)"]
-
-    style A fill:#a855f7,stroke:#9333ea,color:#fff
-    style W fill:#22c55e,stroke:#16a34a,color:#fff
-    style WA fill:#3b82f6,stroke:#2563eb,color:#fff
-    style H fill:#f59e0b,stroke:#d97706,color:#fff
-```
-
-Each step is recorded on the **Ethereum Attestation Service** (EAS) with schema-validated data. Smart contract **resolvers** enforce that attesters have the correct Hats Protocol role and that the data matches the expected schema.
-
-### Build Trust & Transparency
-
-- **Permanent records** – Every attestation is on-chain and immutable. Your work history is verifiable by anyone, forever.
-- **Portable reputation** – Your attestation history travels with you across gardens and platforms. Consistent, quality work builds an on-chain reputation.
-- **Auditable governance** – Roles, permissions, and decisions are on-chain. Any community member can verify who approved what.
-
-### A Full Repeatable Cycle
-
-The impact cycle is designed to be **self-reinforcing**:
-
-1. **Gardeners** document work → creates activity records
-2. **Operators** verify and approve → creates on-chain attestations
-3. **Evaluators** assess and certify impact → **Operators** create Hypercerts
-4. **Funders** purchase Hypercerts and deposit in vaults → capital flows back to the community
-5. **Community** uses funding to enable more work → cycle repeats
-
-Each cycle strengthens the next: more verified impact attracts more funding, which enables more work, which produces more verified impact. Green Goods is the infrastructure that makes this flywheel turn.
-
----
-
-## Hub To Manage Gardens
-
-The **admin canvas** gives operators full visibility and control over their garden community.
-
-### Manage Gardeners & Operations
-
-Operators spend **2-4 hours per week** on garden management. The canvas streamlines their core workflows:
-
-- **Work review queue** – See all pending submissions, approve or request changes with one tap
-- **Action management** – Configure which actions are available, set media requirements, define form fields
-- **Role management** – Add gardeners, promote contributors, assign evaluator roles via Hats Protocol
-- **Garden health** – At-a-glance dashboard showing work volume, approval rates, and capital measurements
-
-### Build Relationships With Evaluators & Funders
-
-The admin canvas is the bridge between field operations and impact certification:
-
-- **Assessment creation** – Operators initiate assessments that evaluators complete
-- **Hypercert minting** – Package verified work into tokenized impact certificates
-- **Vault management** – Monitor deposits, trigger harvests, configure yield splits
-- **Impact reporting** – Export reports in formats funders expect via Karma GAP integration
-
-### Engage The Community
-
-Community governance tools built into the dashboard:
-
-- **Conviction voting** through Gardens V2 signal pools
-- **Cookie Jar** management for petty cash operations
-- **Community proposals** for resource allocation
-- **ENS subdomains** for human-readable garden identities
-
----
+| Role | In one line | Guide |
+|---|---|---|
+| **Gardener** | Does the work and documents it | [Gardener Guide](/community/gardener-guide/) |
+| **Steward** | Runs the garden and reviews its work | [Steward Guide](/community/steward-guide/) |
+| **Evaluator** | Helps the garden set its starting point and goals | [Evaluator Guide](/community/evaluator-guide/) |
+| **Funder** | Supports a garden with a donation or an endowment | [Funder Guide](/community/funder-guide/) |
+| **Community member** | Lives alongside the work, and can read a garden's public record | [Gardens on the public website](https://greengoods.app/gardens) |
 
 <NextBestAction
   title="Next: Why We Build"
-  why="Now that you understand how the platform works, learn about the mission and ecosystem that drives Green Goods."
+  why="You have seen how the loop works. Here is why it exists and who it is for."
   actionLabel="Why We Build"
   actionHref="/community/why-we-build"
   alternatives={[
-    { label: "Gardener Guide", href: "/community/gardener-guide/joining-a-garden" },
-    { label: "Operator Guide", href: "/community/operator-guide/creating-a-garden" }
+    { label: "Gardener Guide", href: "/community/gardener-guide/" },
+    { label: "Steward Guide", href: "/community/steward-guide/" }
   ]}
 />

@@ -23,7 +23,11 @@ const successGraceMs = Number(process.env.STORYBOOK_VITEST_SUCCESS_GRACE_MS || 1
 const overallTimeoutMs = Number(process.env.STORYBOOK_VITEST_CI_TIMEOUT_MS || 10 * 60_000);
 
 function runPrepareStep() {
-  const result = spawnSync("bun", ["run", "storybook:prepare-design-assets"], {
+  // The shared package no longer wraps this in a script of its own; the
+  // command consolidation inlined it into storybook and build-storybook, and
+  // scripts/data/command-migration.json records the direct call as its
+  // replacement.
+  const result = spawnSync(process.execPath, [path.resolve(sharedDir, ".storybook/prepare-design-assets.mjs")], {
     cwd: sharedDir,
     env: process.env,
     stdio: "inherit",

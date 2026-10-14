@@ -1,0 +1,380 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-13T04:23:21.432Z",
+  "releaseId": "commitment-pooling-settlement-credit-v1",
+  "releaseManifestHash": "0x31c05bd61e7d8bcf187d6148e64f6f0415f34fb1fbe633b97e4cde1eef46c634",
+  "releaseSourceCommit": "fab5daef2eebbe83c1d444f6c148c682e122f1c3",
+  "network": "arbitrum",
+  "chainId": 42161,
+  "finalizedBlock": 493989241,
+  "module": "0x6BB5b0fd70b6771B0E955Fef37f8Bd2ce911470a",
+  "moduleDeploymentPending": false,
+  "authority": "DEPLOYER",
+  "owner": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+  "expectedNonce": 952,
+  "gardenToken": "0xe1Da335110b1ed48e7df63209f5D424d02276593",
+  "gardenAccountImplementation": "0xE31cAeAc029A60AD17A49278Fdd58032eF9Cf692",
+  "tokenboundRegistry": "0x000000006551c19487814612e58FE06813775758",
+  "tokenboundSalt": "0x6551655165516551655165516551655165516551655165516551655165516551",
+  "rootGarden": "0xf401f34378384713222d1d21f63359cc4E8a858a",
+  "rootTokenId": 0,
+  "expectedGardenCount": 18,
+  "gardens": {
+    "0xf401f34378384713222d1d21f63359cc4e8a858a": {
+      "tokenId": 0,
+      "garden": "0xf401f34378384713222d1d21f63359cc4E8a858a",
+      "tokenOwner": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "codeHash": "0xd3048eedc80a76ebecd7f6e79522c6a22547fe3ff34d25ee51fb104f9272a6fa",
+      "status": "SKIPPED_PROTOCOL_ROOT"
+    },
+    "0xf7b892886998dae960d64a9db488336684f137a0": {
+      "tokenId": 1,
+      "garden": "0xF7b892886998DAe960D64a9db488336684F137A0",
+      "tokenOwner": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "codeHash": "0x642ab5f18a75370fe2602f1ff394ef4ba660bf4a5f9c575ff66f624b47cbf106",
+      "status": "PLANNED"
+    },
+    "0xa2df8eb73444a3f3cf9b8e3749313c7471d7d5e3": {
+      "tokenId": 2,
+      "garden": "0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3",
+      "tokenOwner": "0x6855B23D93f57851d30a324B00f17f9baf34Ac02",
+      "codeHash": "0x2adc1b2fd6b22076539ad0c7a265e57e2b49a60ac06f62395fb481391484b5e3",
+      "status": "PLANNED"
+    },
+    "0x4055530db392fb2b56037065a512c5b283d90a10": {
+      "tokenId": 3,
+      "garden": "0x4055530dB392FB2B56037065A512c5b283D90A10",
+      "tokenOwner": "0x3C41f941098681bfDb14ed423709CC7C29c1e5e6",
+      "codeHash": "0x1f3ed4e302beb6c193b9702c709837ee107269383d521322e71e3767df9fe6e8",
+      "status": "PLANNED"
+    },
+    "0x51499a44bb7793647e67ed827bd17367d7e55314": {
+      "tokenId": 4,
+      "garden": "0x51499A44BB7793647e67ed827bd17367d7e55314",
+      "tokenOwner": "0x13126B6859FB72D3956797d94c99078B40294679",
+      "codeHash": "0x0ba0eae197970fd69cada5a65d2d781d5cfc7da788189491427f296844e67c35",
+      "status": "PLANNED"
+    },
+    "0xbcce994513615988690abca373b1368218e4957c": {
+      "tokenId": 5,
+      "garden": "0xbcCE994513615988690aBCA373B1368218E4957C",
+      "tokenOwner": "0x4E9dD8389F25f2797Dfc3E0aFE761A1F2D638b7E",
+      "codeHash": "0x286f5c63b1050b31adeb81a45166e5beb9b83709b018e1af72b2c8c904c61f90",
+      "status": "PLANNED"
+    },
+    "0xfda72ce1d75b735d6595e5814ddf23b97516caef": {
+      "tokenId": 6,
+      "garden": "0xFDa72CE1D75b735d6595E5814DDF23b97516caEf",
+      "tokenOwner": "0x7E6cfcA6edc4a20Bd84146825c78dff5962D8D4f",
+      "codeHash": "0xeebbfa77c11a7955fc2853854d0cd856621b4330280af28e7805e3cb1a4e6316",
+      "status": "PLANNED"
+    },
+    "0xd1f8e787a325f91f5d4be2d30ea1e67b19e28b30": {
+      "tokenId": 7,
+      "garden": "0xD1F8e787a325F91F5d4Be2D30ea1E67B19e28b30",
+      "tokenOwner": "0xAcD59e854adf632d2322404198624F757C868C97",
+      "codeHash": "0x20789f0f6e1fb0b65cb0f5a4cc1e321918f8808a72fab6c1f0b336499a5886c6",
+      "status": "PLANNED"
+    },
+    "0x4f11fb4c255d3edc7c44a461ab45fbc421aacb09": {
+      "tokenId": 8,
+      "garden": "0x4f11FB4c255D3eDC7C44a461ab45fBC421Aacb09",
+      "tokenOwner": "0xF3Ad97364bcCC3eA0582Ede58C363888f8C4ec85",
+      "codeHash": "0x2f0535dbfea833820bd26cf4498acb8896f09fcb8690d353d0d062dd045b71c5",
+      "status": "PLANNED"
+    },
+    "0x636962584b1f492b06151fee87810281372879b6": {
+      "tokenId": 9,
+      "garden": "0x636962584b1F492B06151Fee87810281372879b6",
+      "tokenOwner": "0xd30CAa4260A16994510d5858A2f4ce7Bb506a294",
+      "codeHash": "0xb97f32c18e43c92fd4aa9771d237fa29474fbcd2f400560ee3e457a11fca8556",
+      "status": "PLANNED"
+    },
+    "0x1121218d5e017b57c6df3b5a001a991bdb910338": {
+      "tokenId": 10,
+      "garden": "0x1121218D5e017B57c6DF3B5a001a991BDB910338",
+      "tokenOwner": "0x7D85fCbB505D48E6176483733b62b51704e0bF95",
+      "codeHash": "0xb902117449da37c87fdd51c939e58bb189bf6cd4c487fda9c15e098932e138af",
+      "status": "PLANNED"
+    },
+    "0x3f0f1551c7e08a2cf6800bd7d72abfe23e3e32a0": {
+      "tokenId": 11,
+      "garden": "0x3f0f1551C7E08a2cf6800BD7D72aBfE23E3E32a0",
+      "tokenOwner": "0x44770D93e1a426DDAf5923a738eaCe3D2FB65BC1",
+      "codeHash": "0xcbb18714eb7eb3ea71d986a3b9a83debfb19c62781299778dd9ac713748c5c9e",
+      "status": "PLANNED"
+    },
+    "0x3f22568ae0deaa24da7b8c669afdcbd72a6a7fd8": {
+      "tokenId": 12,
+      "garden": "0x3F22568aE0deAA24dA7b8c669AfDcBD72A6A7fd8",
+      "tokenOwner": "0x099e47B757cf7224C863b637Aa04485c79669621",
+      "codeHash": "0x3e4d76dea8f364d38d5e767194fb2c4faf3273aaf530f69ce1e2a61d97a482c8",
+      "status": "PLANNED"
+    },
+    "0x26c32e54f23af9f9fcc757414c76e56e3fb176e2": {
+      "tokenId": 13,
+      "garden": "0x26c32E54F23af9F9fcC757414c76E56e3fB176E2",
+      "tokenOwner": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "codeHash": "0xc7e137d2a270b5f4e0f3eb8df951f3060c5e1bc5e9d91348136aac9d6fc83b9c",
+      "status": "PLANNED"
+    },
+    "0x35077caf6fbef1d5677d318a198c9c47c61bb976": {
+      "tokenId": 14,
+      "garden": "0x35077CaF6fBef1d5677d318a198C9c47C61bb976",
+      "tokenOwner": "0x5c79d252F458b3720f7f230f8490fd1eE81d32FB",
+      "codeHash": "0x8bc52d1cb55f270d8f90c5a0132d1b9102ba142ef4908e4f614624afefb2c342",
+      "status": "PLANNED"
+    },
+    "0x7be6eaeb2fb5842da06a34af4fae418347427cd1": {
+      "tokenId": 15,
+      "garden": "0x7bE6eAeb2FB5842Da06A34Af4fAe418347427cd1",
+      "tokenOwner": "0xF4e43840cB77aCe48Bb4DB33409C8AFA84D88888",
+      "codeHash": "0x63612cdf0a2f19f7e25ec12ccf497a17eff78dd0fb8694a6b6e438399ce7dc9b",
+      "status": "PLANNED"
+    },
+    "0x35722eedf3f7566a23fa871f0a04267aee78e0db": {
+      "tokenId": 16,
+      "garden": "0x35722eEdf3F7566A23FA871f0a04267AEe78E0dB",
+      "tokenOwner": "0x5Edc7e2ad462e670f1f9faCe7b25987800267dd2",
+      "codeHash": "0xf673e657539edbcfbc82c12bd488745773f4e15e4935051be5ecd9fe99344dd0",
+      "status": "PLANNED"
+    },
+    "0x749f84ca070cd2f98d9353f49ece77c1a3fed532": {
+      "tokenId": 17,
+      "garden": "0x749F84CA070cD2F98d9353F49eCE77C1A3fED532",
+      "tokenOwner": "0xAcD59e854adf632d2322404198624F757C868C97",
+      "codeHash": "0x5ba3ac5a471139f96c8105e6ec1fcd3d5db2d88ad4463fb66d1465df34d19362",
+      "status": "PLANNED"
+    }
+  },
+  "transactions": [
+    {
+      "index": 1,
+      "kind": "REGISTER_PROTOCOL",
+      "garden": "0xf401f34378384713222d1d21f63359cc4E8a858a",
+      "tokenId": 0,
+      "nonce": 952,
+      "to": "0x6BB5b0fd70b6771B0E955Fef37f8Bd2ce911470a",
+      "value": "0",
+      "data": "0x9c34ed2d000000000000000000000000f401f34378384713222d1d21f63359cc4e8a858a0000000000000000000000000000000000000000000000000000000000000001",
+      "operation": 0,
+      "resumableState": "Pool 0xf401f34378384713222d1d21f63359cc4E8a858a is registered with type 1 while the module remains paused"
+    },
+    {
+      "index": 2,
+      "kind": "REGISTER_GARDEN",
+      "garden": "0xF7b892886998DAe960D64a9db488336684F137A0",
+      "tokenId": 1,
+      "nonce": 953,
+      "to": "0x6BB5b0fd70b6771B0E955Fef37f8Bd2ce911470a",
+      "value": "0",
+      "data": "0x9c34ed2d000000000000000000000000f7b892886998dae960d64a9db488336684f137a00000000000000000000000000000000000000000000000000000000000000000",
+      "operation": 0,
+      "resumableState": "Pool 0xF7b892886998DAe960D64a9db488336684F137A0 is registered with type 0 while the module remains paused"
+    },
+    {
+      "index": 3,
+      "kind": "REGISTER_GARDEN",
+      "garden": "0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3",
+      "tokenId": 2,
+      "nonce": 954,
+      "to": "0x6BB5b0fd70b6771B0E955Fef37f8Bd2ce911470a",
+      "value": "0",
+      "data": "0x9c34ed2d000000000000000000000000a2df8eb73444a3f3cf9b8e3749313c7471d7d5e30000000000000000000000000000000000000000000000000000000000000000",
+      "operation": 0,
+      "resumableState": "Pool 0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3 is registered with type 0 while the module remains paused"
+    },
+    {
+      "index": 4,
+      "kind": "REGISTER_GARDEN",
+      "garden": "0x4055530dB392FB2B56037065A512c5b283D90A10",
+      "tokenId": 3,
+      "nonce": 955,
+      "to": "0x6BB5b0fd70b6771B0E955Fef37f8Bd2ce911470a",
+      "value": "0",
+      "data": "0x9c34ed2d0000000000000000000000004055530db392fb2b56037065a512c5b283d90a100000000000000000000000000000000000000000000000000000000000000000",
+      "operation": 0,
+      "resumableState": "Pool 0x4055530dB392FB2B56037065A512c5b283D90A10 is registered with type 0 while the module remains paused"
+    },
+    {
+      "index": 5,
+      "kind": "REGISTER_GARDEN",
+      "garden": "0x51499A44BB7793647e67ed827bd17367d7e55314",
+      "tokenId": 4,
+      "nonce": 956,
+      "to": "0x6BB5b0fd70b6771B0E955Fef37f8Bd2ce911470a",
+      "value": "0",
+      "data": "0x9c34ed2d00000000000000000000000051499a44bb7793647e67ed827bd17367d7e553140000000000000000000000000000000000000000000000000000000000000000",
+      "operation": 0,
+      "resumableState": "Pool 0x51499A44BB7793647e67ed827bd17367d7e55314 is registered with type 0 while the module remains paused"
+    },
+    {
+      "index": 6,
+      "kind": "REGISTER_GARDEN",
+      "garden": "0xbcCE994513615988690aBCA373B1368218E4957C",
+      "tokenId": 5,
+      "nonce": 957,
+      "to": "0x6BB5b0fd70b6771B0E955Fef37f8Bd2ce911470a",
+      "value": "0",
+      "data": "0x9c34ed2d000000000000000000000000bcce994513615988690abca373b1368218e4957c0000000000000000000000000000000000000000000000000000000000000000",
+      "operation": 0,
+      "resumableState": "Pool 0xbcCE994513615988690aBCA373B1368218E4957C is registered with type 0 while the module remains paused"
+    },
+    {
+      "index": 7,
+      "kind": "REGISTER_GARDEN",
+      "garden": "0xFDa72CE1D75b735d6595E5814DDF23b97516caEf",
+      "tokenId": 6,
+      "nonce": 958,
+      "to": "0x6BB5b0fd70b6771B0E955Fef37f8Bd2ce911470a",
+      "value": "0",
+      "data": "0x9c34ed2d000000000000000000000000fda72ce1d75b735d6595e5814ddf23b97516caef0000000000000000000000000000000000000000000000000000000000000000",
+      "operation": 0,
+      "resumableState": "Pool 0xFDa72CE1D75b735d6595E5814DDF23b97516caEf is registered with type 0 while the module remains paused"
+    },
+    {
+      "index": 8,
+      "kind": "REGISTER_GARDEN",
+      "garden": "0xD1F8e787a325F91F5d4Be2D30ea1E67B19e28b30",
+      "tokenId": 7,
+      "nonce": 959,
+      "to": "0x6BB5b0fd70b6771B0E955Fef37f8Bd2ce911470a",
+      "value": "0",
+      "data": "0x9c34ed2d000000000000000000000000d1f8e787a325f91f5d4be2d30ea1e67b19e28b300000000000000000000000000000000000000000000000000000000000000000",
+      "operation": 0,
+      "resumableState": "Pool 0xD1F8e787a325F91F5d4Be2D30ea1E67B19e28b30 is registered with type 0 while the module remains paused"
+    },
+    {
+      "index": 9,
+      "kind": "REGISTER_GARDEN",
+      "garden": "0x4f11FB4c255D3eDC7C44a461ab45fBC421Aacb09",
+      "tokenId": 8,
+      "nonce": 960,
+      "to": "0x6BB5b0fd70b6771B0E955Fef37f8Bd2ce911470a",
+      "value": "0",
+      "data": "0x9c34ed2d0000000000000000000000004f11fb4c255d3edc7c44a461ab45fbc421aacb090000000000000000000000000000000000000000000000000000000000000000",
+      "operation": 0,
+      "resumableState": "Pool 0x4f11FB4c255D3eDC7C44a461ab45fBC421Aacb09 is registered with type 0 while the module remains paused"
+    },
+    {
+      "index": 10,
+      "kind": "REGISTER_GARDEN",
+      "garden": "0x636962584b1F492B06151Fee87810281372879b6",
+      "tokenId": 9,
+      "nonce": 961,
+      "to": "0x6BB5b0fd70b6771B0E955Fef37f8Bd2ce911470a",
+      "value": "0",
+      "data": "0x9c34ed2d000000000000000000000000636962584b1f492b06151fee87810281372879b60000000000000000000000000000000000000000000000000000000000000000",
+      "operation": 0,
+      "resumableState": "Pool 0x636962584b1F492B06151Fee87810281372879b6 is registered with type 0 while the module remains paused"
+    },
+    {
+      "index": 11,
+      "kind": "REGISTER_GARDEN",
+      "garden": "0x1121218D5e017B57c6DF3B5a001a991BDB910338",
+      "tokenId": 10,
+      "nonce": 962,
+      "to": "0x6BB5b0fd70b6771B0E955Fef37f8Bd2ce911470a",
+      "value": "0",
+      "data": "0x9c34ed2d0000000000000000000000001121218d5e017b57c6df3b5a001a991bdb9103380000000000000000000000000000000000000000000000000000000000000000",
+      "operation": 0,
+      "resumableState": "Pool 0x1121218D5e017B57c6DF3B5a001a991BDB910338 is registered with type 0 while the module remains paused"
+    },
+    {
+      "index": 12,
+      "kind": "REGISTER_GARDEN",
+      "garden": "0x3f0f1551C7E08a2cf6800BD7D72aBfE23E3E32a0",
+      "tokenId": 11,
+      "nonce": 963,
+      "to": "0x6BB5b0fd70b6771B0E955Fef37f8Bd2ce911470a",
+      "value": "0",
+      "data": "0x9c34ed2d0000000000000000000000003f0f1551c7e08a2cf6800bd7d72abfe23e3e32a00000000000000000000000000000000000000000000000000000000000000000",
+      "operation": 0,
+      "resumableState": "Pool 0x3f0f1551C7E08a2cf6800BD7D72aBfE23E3E32a0 is registered with type 0 while the module remains paused"
+    },
+    {
+      "index": 13,
+      "kind": "REGISTER_GARDEN",
+      "garden": "0x3F22568aE0deAA24dA7b8c669AfDcBD72A6A7fd8",
+      "tokenId": 12,
+      "nonce": 964,
+      "to": "0x6BB5b0fd70b6771B0E955Fef37f8Bd2ce911470a",
+      "value": "0",
+      "data": "0x9c34ed2d0000000000000000000000003f22568ae0deaa24da7b8c669afdcbd72a6a7fd80000000000000000000000000000000000000000000000000000000000000000",
+      "operation": 0,
+      "resumableState": "Pool 0x3F22568aE0deAA24dA7b8c669AfDcBD72A6A7fd8 is registered with type 0 while the module remains paused"
+    },
+    {
+      "index": 14,
+      "kind": "REGISTER_GARDEN",
+      "garden": "0x26c32E54F23af9F9fcC757414c76E56e3fB176E2",
+      "tokenId": 13,
+      "nonce": 965,
+      "to": "0x6BB5b0fd70b6771B0E955Fef37f8Bd2ce911470a",
+      "value": "0",
+      "data": "0x9c34ed2d00000000000000000000000026c32e54f23af9f9fcc757414c76e56e3fb176e20000000000000000000000000000000000000000000000000000000000000000",
+      "operation": 0,
+      "resumableState": "Pool 0x26c32E54F23af9F9fcC757414c76E56e3fB176E2 is registered with type 0 while the module remains paused"
+    },
+    {
+      "index": 15,
+      "kind": "REGISTER_GARDEN",
+      "garden": "0x35077CaF6fBef1d5677d318a198C9c47C61bb976",
+      "tokenId": 14,
+      "nonce": 966,
+      "to": "0x6BB5b0fd70b6771B0E955Fef37f8Bd2ce911470a",
+      "value": "0",
+      "data": "0x9c34ed2d00000000000000000000000035077caf6fbef1d5677d318a198c9c47c61bb9760000000000000000000000000000000000000000000000000000000000000000",
+      "operation": 0,
+      "resumableState": "Pool 0x35077CaF6fBef1d5677d318a198C9c47C61bb976 is registered with type 0 while the module remains paused"
+    },
+    {
+      "index": 16,
+      "kind": "REGISTER_GARDEN",
+      "garden": "0x7bE6eAeb2FB5842Da06A34Af4fAe418347427cd1",
+      "tokenId": 15,
+      "nonce": 967,
+      "to": "0x6BB5b0fd70b6771B0E955Fef37f8Bd2ce911470a",
+      "value": "0",
+      "data": "0x9c34ed2d0000000000000000000000007be6eaeb2fb5842da06a34af4fae418347427cd10000000000000000000000000000000000000000000000000000000000000000",
+      "operation": 0,
+      "resumableState": "Pool 0x7bE6eAeb2FB5842Da06A34Af4fAe418347427cd1 is registered with type 0 while the module remains paused"
+    },
+    {
+      "index": 17,
+      "kind": "REGISTER_GARDEN",
+      "garden": "0x35722eEdf3F7566A23FA871f0a04267AEe78E0dB",
+      "tokenId": 16,
+      "nonce": 968,
+      "to": "0x6BB5b0fd70b6771B0E955Fef37f8Bd2ce911470a",
+      "value": "0",
+      "data": "0x9c34ed2d00000000000000000000000035722eedf3f7566a23fa871f0a04267aee78e0db0000000000000000000000000000000000000000000000000000000000000000",
+      "operation": 0,
+      "resumableState": "Pool 0x35722eEdf3F7566A23FA871f0a04267AEe78E0dB is registered with type 0 while the module remains paused"
+    },
+    {
+      "index": 18,
+      "kind": "REGISTER_GARDEN",
+      "garden": "0x749F84CA070cD2F98d9353F49eCE77C1A3fED532",
+      "tokenId": 17,
+      "nonce": 969,
+      "to": "0x6BB5b0fd70b6771B0E955Fef37f8Bd2ce911470a",
+      "value": "0",
+      "data": "0x9c34ed2d000000000000000000000000749f84ca070cd2f98d9353f49ece77c1a3fed5320000000000000000000000000000000000000000000000000000000000000000",
+      "operation": 0,
+      "resumableState": "Pool 0x749F84CA070cD2F98d9353F49eCE77C1A3fED532 is registered with type 0 while the module remains paused"
+    },
+    {
+      "index": 19,
+      "kind": "UNPAUSE",
+      "nonce": 970,
+      "to": "0x6BB5b0fd70b6771B0E955Fef37f8Bd2ce911470a",
+      "value": "0",
+      "data": "0x16c38b3c0000000000000000000000000000000000000000000000000000000000000000",
+      "operation": 0,
+      "resumableState": "Every planned pool registration is receipt-verified before this separate unpause boundary"
+    }
+  ],
+  "transactionBoundaryRule": "Execute one direct deployer transaction, verify its receipt and post-state, then stop.",
+  "canonicalArtifactMutation": false
+}

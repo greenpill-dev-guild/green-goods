@@ -9,11 +9,14 @@ import {
   withAdminIdentityRole,
   withCanvasFrame,
   withSeededQueryClient,
+  withRouter,
 } from "../../../../../shared/.storybook/decorators";
 import {
   ADMIN_ROUTE_STORY_QUERY_OPTIONS,
   StorybookAdminCanvasRoute,
 } from "../../storybookCanvasHarness";
+
+import { VaultActionRouteDialog } from "./VaultActionRouteDialog";
 
 interface RouteBackedVaultActionStoryProps {
   action: "deposit" | "withdraw";
@@ -86,5 +89,22 @@ export const RouteBackedWithdraw: Story = {
         ADMIN_ROUTE_STORY_QUERY_OPTIONS
       )
     ).toBeVisible();
+  },
+};
+
+export const RejectedGardenAddress: Story = {
+  args: { action: "deposit" },
+  tags: ["storybook-ci"],
+  decorators: [withRouter(["/community/endowment/vault/deposit?gardenId=community-garden"])],
+  render: () => <VaultActionRouteDialog action="deposit" gardenAddress="community-garden" />,
+  play: async () => {
+    const body = within(document.body);
+    const dialog = await body.findByRole("dialog", undefined, ADMIN_ROUTE_STORY_QUERY_OPTIONS);
+    await expect(within(dialog).getByRole("alert")).toHaveTextContent("Garden not found");
+    await expect(within(dialog).queryByText("Loading vault data...")).not.toBeInTheDocument();
+    await expect(
+      within(dialog).queryByRole("button", { name: "Try Again" })
+    ).not.toBeInTheDocument();
+    await expect(within(dialog).getByRole("button", { name: "Cancel" })).toBeEnabled();
   },
 };

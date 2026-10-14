@@ -15,7 +15,7 @@ describe("hooks/utils/useMutationLock", () => {
   it("allows a single invocation to proceed and return its result", async () => {
     const { result } = renderHook(() => useMutationLock());
 
-    const fn = vi.fn().mockResolvedValue("result");
+    const fn = vi.fn(async (_arg1: string, _arg2: string): Promise<string> => "result");
     const guarded = result.current.guard(fn);
 
     let value: string | undefined;

@@ -7,7 +7,7 @@
  * - The public subscribe API still receives consent=true.
  * - Schedule-a-call uses the configured appointment URL without card chrome.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -20,10 +20,20 @@ const { mockToastSuccess, mockLoggerWarn } = vi.hoisted(() => ({
   mockLoggerWarn: vi.fn(),
 }));
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
-  logger: { warn: mockLoggerWarn },
+}));
+
+vi.mock("@green-goods/shared/modules/app/logger", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@green-goods/shared/modules/app/logger")>();
+  return { ...actual, logger: { ...actual.logger, warn: mockLoggerWarn } };
+});
+
+vi.mock("@green-goods/shared/components/Toast/toast.service", () => ({
   toastService: { success: mockToastSuccess },
+}));
+
+vi.mock("@green-goods/shared/hooks/ui/useInViewReveal", () => ({
   useInViewReveal: () => ({ ref: () => undefined, revealed: true }),
 }));
 
@@ -48,7 +58,7 @@ const messages: Record<string, string> = {
   "public.home.getInTouch.emailPlaceholder": "you@example.com",
   "public.home.getInTouch.help": "One signup, no hoops. Your email stays with us.",
   "public.home.getInTouch.kicker": "Section 05: Get In Touch",
-  "public.home.getInTouch.scheduleCall": "Schedule a call",
+  "public.home.getInTouch.scheduleCall": "Schedule a Call",
   "public.home.getInTouch.scheduleIntro":
     "Want to talk through a Garden, funding path, or partnership? Book a quiet half-hour with the team.",
   "public.home.getInTouch.submit": "Subscribe",
@@ -121,8 +131,8 @@ describe("PublicGetInTouch", () => {
 
     const scheduleLink = screen.getByRole("link", { name: /schedule a call/i });
     expect(scheduleLink).toHaveAttribute("href", "https://calendar.example/schedule");
-    expect(scheduleLink).toHaveClass("whitespace-nowrap");
-    expect(scheduleLink).toHaveClass("shrink-0");
+    // The shared Button keeps the label on one line; the link must not shrink.
+    expect(scheduleLink).toHaveClass("gg-button", "shrink-0");
   });
 
   it("does not render schedule-a-call as a separate card", () => {

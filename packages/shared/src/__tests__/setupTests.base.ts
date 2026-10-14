@@ -1,19 +1,17 @@
 /**
  * Base Test Setup for Green Goods Monorepo
  *
- * Provides common test environment configuration shared across all packages.
- * Individual packages extend this base setup with package-specific mocks.
+ * Provides common test environment configuration shared across all packages: the Node-safe core
+ * in `setupTests.core.ts` plus the DOM layer. Individual packages extend this base setup with
+ * package-specific mocks.
  */
 
 import { cleanup } from "@testing-library/react";
 import { afterEach, beforeAll, vi } from "vitest";
 
 import "@testing-library/jest-dom/vitest";
-import "fake-indexeddb/auto";
 
-// Import browser mocks
-import "../__mocks__/browser/crypto";
-import "../__mocks__/browser/navigator";
+import { setupCoreTestEnvironment } from "./setupTests.core";
 
 // Lit queues a one-time dev-mode banner on first import. Pre-mark that code as
 // already issued so focused test runs stay readable without hiding other warnings.
@@ -60,16 +58,10 @@ if (typeof window !== "undefined") {
  * Call this from package-specific setupTests files
  */
 export function setupTestEnvironment() {
-  beforeAll(() => {
-    // Strict fetch mock — throws on unexpected calls so tests must
-    // explicitly mock their endpoints. Prevents false-OK network calls.
-    global.fetch = vi.fn().mockImplementation((url: string | URL | Request) => {
-      const urlStr = typeof url === "string" ? url : url instanceof URL ? url.href : url.url;
-      throw new Error(
-        `Unexpected fetch call to: ${urlStr}. Mock this endpoint explicitly in your test.`
-      );
-    });
+  // Node-safe hooks first: after-hooks run in reverse, so DOM cleanup still precedes their resets.
+  setupCoreTestEnvironment();
 
+  beforeAll(() => {
     // Mock window properties (only in browser-like environments)
     if (typeof window !== "undefined") {
       Object.defineProperty(window, "location", {
@@ -108,95 +100,15 @@ export function setupTestEnvironment() {
       });
     }
 
-    // Mock performance.now for consistent timing in tests
-    global.performance = {
-      ...global.performance,
-      now: vi.fn(() => Date.now()),
-      // Add missing Performance API methods for undici/fetch compatibility
-      clearResourceTimings: vi.fn(),
-      getEntriesByType: vi.fn(() => []),
-      getEntriesByName: vi.fn(() => []),
-      mark: vi.fn(),
-      measure: vi.fn(),
-      clearMarks: vi.fn(),
-      clearMeasures: vi.fn(),
-    };
-
-    // Force Polyfill URL.createObjectURL / revokeObjectURL
-    if (!global.URL) {
-      (global as any).URL = {} as any;
-    }
-    (global.URL as any).createObjectURL = vi.fn(
-      () => `blob:mock-${Math.random().toString(36).slice(2)}`
-    );
-    (global.URL as any).revokeObjectURL = vi.fn();
-
-    // Polyfill sessionStorage / localStorage
-    const createMemoryStorage = () => {
-      const store = new Map<string, string>();
-      return {
-        getItem: (k: string) => (store.has(k) ? store.get(k)! : null),
-        setItem: (k: string, v: string) => void store.set(k, String(v)),
-        removeItem: (k: string) => void store.delete(k),
-        clear: () => void store.clear(),
-        key: (i: number) => Array.from(store.keys())[i] || null,
-        get length() {
-          return store.size;
-        },
-      } as unknown as Storage;
-    };
-    if (!(global as any).sessionStorage) {
-      (global as any).sessionStorage = createMemoryStorage();
-    }
-    if (!(global as any).localStorage) {
-      (global as any).localStorage = createMemoryStorage();
-    }
-
-    // Mock Storage APIs
-    const createMockStorage = () => ({
-      estimate: vi.fn().mockResolvedValue({
-        quota: 100000000, // 100MB
-        usage: 10000000, // 10MB
-      }),
-      persist: vi.fn().mockResolvedValue(true),
-      persisted: vi.fn().mockResolvedValue(true),
-    });
-
-    if (typeof navigator !== "undefined") {
-      Object.defineProperty(navigator, "storage", {
-        value: createMockStorage(),
-        writable: true,
-      });
-    }
-
-    // Mock caches API - only if not already defined
-    if (!("caches" in global)) {
-      const mockCache = {
-        keys: vi.fn().mockResolvedValue([]),
-        delete: vi.fn().mockResolvedValue(true),
-        match: vi.fn().mockResolvedValue(undefined),
-        matchAll: vi.fn().mockResolvedValue([]),
-        add: vi.fn().mockResolvedValue(undefined),
-        addAll: vi.fn().mockResolvedValue(undefined),
-        put: vi.fn().mockResolvedValue(undefined),
-      };
-
-      Object.defineProperty(global, "caches", {
-        value: {
-          open: vi.fn().mockResolvedValue(mockCache),
-          keys: vi.fn().mockResolvedValue(["test-cache"]),
-          delete: vi.fn().mockResolvedValue(true),
-          has: vi.fn().mockResolvedValue(true),
-          match: vi.fn().mockResolvedValue(undefined),
-        },
-        writable: true,
-        configurable: true,
-      });
-    }
-
     // Mock IntersectionObserver (class-based — must be `new`-able since
     // useInViewReveal and other hooks construct an instance directly).
     (global as any).IntersectionObserver = class IntersectionObserver {
+      // Declared so callers can construct it the way the real API is used;
+      // nothing observes in jsdom, so the callback is held and never fired.
+      constructor(
+        public callback?: unknown,
+        public options?: unknown
+      ) {}
       root = null;
       rootMargin = "";
       thresholds: number[] = [];
@@ -216,27 +128,7 @@ export function setupTestEnvironment() {
 
   // Cleanup after each test
   afterEach(() => {
-    cleanup();
-    vi.clearAllMocks();
-
-    // Reset fetch mock to strict default — unexpected calls throw
-    if (global.fetch && "mockImplementation" in global.fetch) {
-      (global.fetch as any).mockImplementation((url: string | URL | Request) => {
-        const urlStr = typeof url === "string" ? url : url instanceof URL ? url.href : url.url;
-        throw new Error(
-          `Unexpected fetch call to: ${urlStr}. Mock this endpoint explicitly in your test.`
-        );
-      });
-    }
-
-    // Reset navigator.onLine
-    if (typeof navigator !== "undefined") {
-      Object.defineProperty(navigator, "onLine", {
-        value: true,
-        writable: true,
-        configurable: true,
-      });
-    }
+    if (typeof document !== "undefined") cleanup();
   });
 }
 

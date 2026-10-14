@@ -36,7 +36,7 @@ const meta: Meta<typeof HubCanvasStory> = {
     docs: {
       description: {
         component:
-          "Seeded Hub workspace coverage through the real CanvasLayout shell, including work queue, assess, certify, history, and route-backed detail entry points.",
+          "Seeded Hub workspace coverage through the real CanvasLayout shell, including the Work, Confirm, Assessments and Hypercerts tabs and route-backed detail entry points.",
       },
     },
   },
@@ -57,6 +57,14 @@ function hubDecorators() {
     }),
   ];
 }
+
+// The Confirm stage (W13) on the Hub rail; empty here because the seeded
+// stewarded gardens hold nothing waiting for confirmation.
+export const ConfirmQueue: Story = {
+  tags: ["visual-harness"],
+  args: { initialPath: "/hub/confirm" },
+  decorators: hubDecorators(),
+};
 
 export const WorkQueue: Story = {
   // Not in storybook-ci: the work queue needs live indexer data the clean-room CI browser
@@ -95,9 +103,20 @@ export const WorkDetail: Story = {
 // (/hub/work/submit → submitWorkView). Its states are covered by
 // SubmitWork.stories.tsx (full-screen dialog / page / inline panel).
 
-export const AssessQueue: Story = {
+// The shell reads its garden from the URL, so a story that shows the seeded
+// garden's records names that garden in its path.
+const SEEDED_GARDEN = `gardenId=${STORYBOOK_PRIMARY_ADMIN_GARDEN.id}`;
+
+// Approved work is a scope of the Work tab, carried in the URL.
+export const ApprovedWork: Story = {
   tags: ["visual-harness"],
-  args: { initialPath: "/hub/assess?sort=newest" },
+  args: { initialPath: `/hub/work?${SEEDED_GARDEN}&sort=newest&scope=approved` },
+  decorators: hubDecorators(),
+};
+
+export const AssessmentsTab: Story = {
+  tags: ["visual-harness"],
+  args: { initialPath: `/hub/assess?${SEEDED_GARDEN}` },
   decorators: hubDecorators(),
 };
 
@@ -109,16 +128,23 @@ export const CreateAssessmentRoute: Story = {
     await expect(
       await canvas.findByRole(
         "heading",
-        { name: "Submit assessment" },
+        { name: "Create Assessment" },
         ADMIN_ROUTE_STORY_QUERY_OPTIONS
       )
     ).toBeVisible();
   },
 };
 
-export const CertificationInspector: Story = {
+// An assessment's record opens under the Assessments tab.
+export const AssessmentRecord: Story = {
   tags: ["visual-harness"],
-  args: { initialPath: "/hub/certify/assessment-rio-canopy?sort=newest" },
+  args: { initialPath: `/hub/assess/assessment-rio-canopy?${SEEDED_GARDEN}` },
+  decorators: hubDecorators(),
+};
+
+export const HypercertsTab: Story = {
+  tags: ["visual-harness"],
+  args: { initialPath: `/hub/certify?${SEEDED_GARDEN}` },
   decorators: hubDecorators(),
 };
 
@@ -137,14 +163,6 @@ export const CreateHypercertRoute: Story = {
   },
 };
 
-export const History: Story = {
-  tags: ["visual-harness"],
-  args: { initialPath: "/hub/history?sort=newest" },
-  decorators: hubDecorators(),
-};
-
-export const HistoryDetail: Story = {
-  tags: ["visual-harness"],
-  args: { initialPath: "/hub/history/assessment-assessment-rio-canopy?sort=newest" },
-  decorators: hubDecorators(),
-};
+// The History stage is retired (2026-08-25 AD-3): /hub/history and its
+// detail deep links redirect to the Hub's default stage, so the retired
+// stage keeps no stories.

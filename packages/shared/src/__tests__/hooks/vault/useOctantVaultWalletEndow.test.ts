@@ -5,15 +5,13 @@
  * ordering, the pre-flight balance gate, and the post-approval slippage guard
  * (which must fail closed when the fresh preview reads zero).
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
-import { IntlProvider } from "react-intl";
+import { act } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { OctantVaultWalletEndowPreparedTransaction } from "../../../modules/vault-crowdfunding";
+import { renderHookWithProviders } from "../../test-utils/render-helpers";
 import type { Address } from "../../../types/domain";
 
 Object.defineProperty(window, "matchMedia", {
@@ -73,22 +71,6 @@ vi.mock("../../../utils/errors/mutation-error-handler", () => ({
 const { useOctantVaultWalletEndow } = await import(
   "../../../hooks/vault/useOctantVaultWalletEndow"
 );
-
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(
-      QueryClientProvider,
-      { client: queryClient },
-      createElement(IntlProvider, { locale: "en", messages: {}, onError: () => {} }, children)
-    );
-  };
-}
-
-function makeQueryClient() {
-  return new QueryClient({
-    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-  });
-}
 
 function makeTransaction(
   overrides: Partial<OctantVaultWalletEndowPreparedTransaction> = {}
@@ -157,9 +139,7 @@ describe("hooks/vault/useOctantVaultWalletEndow", () => {
     // full amount, then deposit. Refreshed allowance covers the amount.
     setupReads({ allowances: [AMOUNT / 2n, AMOUNT], previews: [AMOUNT, AMOUNT] });
 
-    const { result } = renderHook(() => useOctantVaultWalletEndow(), {
-      wrapper: createWrapper(makeQueryClient()),
-    });
+    const { result } = renderHookWithProviders(() => useOctantVaultWalletEndow());
 
     await act(async () => {
       await result.current.mutateAsync(makeTransaction());
@@ -190,9 +170,7 @@ describe("hooks/vault/useOctantVaultWalletEndow", () => {
   it("rejects with insufficientBalance before any approval when the wallet holds too little WETH", async () => {
     setupReads({ balance: AMOUNT - 1n });
 
-    const { result } = renderHook(() => useOctantVaultWalletEndow(), {
-      wrapper: createWrapper(makeQueryClient()),
-    });
+    const { result } = renderHookWithProviders(() => useOctantVaultWalletEndow());
 
     await act(async () => {
       await expect(result.current.mutateAsync(makeTransaction())).rejects.toMatchObject({
@@ -210,9 +188,7 @@ describe("hooks/vault/useOctantVaultWalletEndow", () => {
     // not deposit blind. Regression lock for the freshShares-vs-expectedShares fix.
     setupReads({ allowances: [AMOUNT], previews: [AMOUNT, 0n] });
 
-    const { result } = renderHook(() => useOctantVaultWalletEndow(), {
-      wrapper: createWrapper(makeQueryClient()),
-    });
+    const { result } = renderHookWithProviders(() => useOctantVaultWalletEndow());
 
     await act(async () => {
       await expect(result.current.mutateAsync(makeTransaction())).rejects.toMatchObject({
@@ -226,9 +202,7 @@ describe("hooks/vault/useOctantVaultWalletEndow", () => {
   it("rejects a non-mainnet chain before any read or signature", async () => {
     setupReads({});
 
-    const { result } = renderHook(() => useOctantVaultWalletEndow(), {
-      wrapper: createWrapper(makeQueryClient()),
-    });
+    const { result } = renderHookWithProviders(() => useOctantVaultWalletEndow());
 
     await act(async () => {
       await expect(result.current.mutateAsync(makeTransaction({ chainId: 42161 }))).rejects.toThrow(

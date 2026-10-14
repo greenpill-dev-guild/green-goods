@@ -1,5 +1,11 @@
 import { type CSSProperties, useEffect } from "react";
-import { Toaster, type ToastOptions, type ToastPosition } from "react-hot-toast";
+import {
+  resolveValue,
+  ToastBar,
+  Toaster,
+  type ToastOptions,
+  type ToastPosition,
+} from "react-hot-toast";
 import { useIntl } from "react-intl";
 import { setToastTranslator, type ToastStatus, type ToastTranslator } from "./toast.service";
 
@@ -17,6 +23,8 @@ const BASE_TOAST_OPTIONS: ToastOptions = {
   duration: 3500,
   style: {
     width: "100%",
+    // The library caps a toast at 350px; it spans the container instead.
+    maxWidth: "100%",
     background: "var(--color-bg-white-0)",
     color: "var(--color-text-strong-950)",
     border: "1px solid var(--color-stroke-soft-200)",
@@ -44,10 +52,7 @@ const EDITORIAL_TOAST_OPTIONS: ToastOptions = {
     padding: "14px 18px",
     textAlign: "left",
   },
-  iconTheme: {
-    primary: "rgb(var(--editorial-deep-rgb, 45 33 24))",
-    secondary: "rgb(var(--editorial-warm-rgb, 241 236 226))",
-  },
+  // Marks the editorial shell; the status icon takes the editorial ink from it.
   className: "gg-toast-editorial",
 };
 
@@ -218,6 +223,18 @@ export function ToastViewport({
       position={position}
       containerStyle={{ ...BASE_CONTAINER_STYLE, ...variantContainerStyle, ...containerStyle }}
       toastOptions={mergedToastOptions}
-    />
+    >
+      {(toast) => (
+        <ToastBar toast={toast} position={toast.position ?? position}>
+          {/* The body draws its status icon on the title's line (D23), so the
+              bar's icon column is left out; the live region stays on the body. */}
+          {() => (
+            <div {...toast.ariaProps} className="w-full">
+              {resolveValue(toast.message, toast)}
+            </div>
+          )}
+        </ToastBar>
+      )}
+    </Toaster>
   );
 }

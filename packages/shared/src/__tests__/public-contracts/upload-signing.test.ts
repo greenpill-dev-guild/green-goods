@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   PUBLIC_UPLOAD_SIGN_ALLOWED_CATEGORIES,
   validatePublicUploadSignRequest,
-} from "../../public-contracts";
+} from "../../public-contracts/upload-signing";
 
 const VALID_ADDRESS = "0x1111111111111111111111111111111111111111";
 

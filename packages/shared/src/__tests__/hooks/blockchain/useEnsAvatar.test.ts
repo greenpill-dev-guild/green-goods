@@ -1,16 +1,17 @@
 /**
  * useEnsAvatar Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests ENS avatar resolution with local caching. Unlike useEnsName/useEnsAddress,
  * this hook uses useQuery directly (not useEnsQuery) because it integrates with
  * the avatar cache for offline support.
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { type QueryClient } from "@tanstack/react-query";
+import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 // ============================================
 // Mocks
@@ -46,20 +47,6 @@ import { useEnsAvatar } from "../../../hooks/blockchain/useEnsAvatar";
 const VALID_ADDRESS = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" as `0x${string}`;
 const AVATAR_URL = "https://euc.li/vitalik.eth";
 
-function createQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: { retry: false, gcTime: 0 },
-    },
-  });
-}
-
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-}
-
 // ============================================
 // Tests
 // ============================================
@@ -68,7 +55,7 @@ describe("useEnsAvatar", () => {
   let queryClient: QueryClient;
 
   beforeEach(() => {
-    queryClient = createQueryClient();
+    queryClient = createTestQueryClient();
     vi.clearAllMocks();
     mockGetCachedAvatar.mockReturnValue(null);
   });
@@ -81,8 +68,8 @@ describe("useEnsAvatar", () => {
     it("fetches avatar from ENS when not in cache", async () => {
       mockResolveEnsAvatar.mockResolvedValue(AVATAR_URL);
 
-      const { result } = renderHook(() => useEnsAvatar(VALID_ADDRESS), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useEnsAvatar(VALID_ADDRESS), {
+        queryClient,
       });
 
       await waitFor(() => {
@@ -95,8 +82,8 @@ describe("useEnsAvatar", () => {
     it("caches the avatar after fetching from ENS", async () => {
       mockResolveEnsAvatar.mockResolvedValue(AVATAR_URL);
 
-      const { result } = renderHook(() => useEnsAvatar(VALID_ADDRESS), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useEnsAvatar(VALID_ADDRESS), {
+        queryClient,
       });
 
       await waitFor(() => {
@@ -108,8 +95,8 @@ describe("useEnsAvatar", () => {
     it("does not cache when avatar is not found", async () => {
       mockResolveEnsAvatar.mockResolvedValue(null);
 
-      const { result } = renderHook(() => useEnsAvatar(VALID_ADDRESS), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useEnsAvatar(VALID_ADDRESS), {
+        queryClient,
       });
 
       await waitFor(() => {
@@ -128,8 +115,8 @@ describe("useEnsAvatar", () => {
     it("returns cached avatar without calling ENS resolver", async () => {
       mockGetCachedAvatar.mockReturnValue(AVATAR_URL);
 
-      const { result } = renderHook(() => useEnsAvatar(VALID_ADDRESS), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useEnsAvatar(VALID_ADDRESS), {
+        queryClient,
       });
 
       await waitFor(() => {
@@ -144,8 +131,8 @@ describe("useEnsAvatar", () => {
       mockGetCachedAvatar.mockReturnValue(null);
       mockResolveEnsAvatar.mockResolvedValue(null);
 
-      renderHook(() => useEnsAvatar(VALID_ADDRESS), {
-        wrapper: createWrapper(queryClient),
+      renderHookWithQueryClient(() => useEnsAvatar(VALID_ADDRESS), {
+        queryClient,
       });
 
       await waitFor(() => {
@@ -160,8 +147,8 @@ describe("useEnsAvatar", () => {
 
   describe("disabled states", () => {
     it("does not fetch when address is null", async () => {
-      const { result } = renderHook(() => useEnsAvatar(null), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useEnsAvatar(null), {
+        queryClient,
       });
 
       await waitFor(() => {
@@ -172,8 +159,8 @@ describe("useEnsAvatar", () => {
     });
 
     it("does not fetch when address is undefined", async () => {
-      const { result } = renderHook(() => useEnsAvatar(undefined), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useEnsAvatar(undefined), {
+        queryClient,
       });
 
       await waitFor(() => {
@@ -183,9 +170,12 @@ describe("useEnsAvatar", () => {
     });
 
     it("does not fetch for an invalid address", async () => {
-      const { result } = renderHook(() => useEnsAvatar("not-valid" as `0x${string}`), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(
+        () => useEnsAvatar("not-valid" as `0x${string}`),
+        {
+          queryClient,
+        }
+      );
 
       await waitFor(() => {
         expect(result.current.fetchStatus).toBe("idle");
@@ -194,9 +184,12 @@ describe("useEnsAvatar", () => {
     });
 
     it("respects enabled=false option", async () => {
-      const { result } = renderHook(() => useEnsAvatar(VALID_ADDRESS, { enabled: false }), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(
+        () => useEnsAvatar(VALID_ADDRESS, { enabled: false }),
+        {
+          queryClient,
+        }
+      );
 
       await waitFor(() => {
         expect(result.current.fetchStatus).toBe("idle");
@@ -213,8 +206,8 @@ describe("useEnsAvatar", () => {
     it("sets error state when resolver rejects", async () => {
       mockResolveEnsAvatar.mockRejectedValue(new Error("IPFS gateway timeout"));
 
-      const { result } = renderHook(() => useEnsAvatar(VALID_ADDRESS), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useEnsAvatar(VALID_ADDRESS), {
+        queryClient,
       });
 
       await waitFor(() => {
@@ -232,8 +225,8 @@ describe("useEnsAvatar", () => {
     it("caches using lowercase address in query key", async () => {
       mockResolveEnsAvatar.mockResolvedValue(AVATAR_URL);
 
-      renderHook(() => useEnsAvatar(VALID_ADDRESS), {
-        wrapper: createWrapper(queryClient),
+      renderHookWithQueryClient(() => useEnsAvatar(VALID_ADDRESS), {
+        queryClient,
       });
 
       await waitFor(() => {

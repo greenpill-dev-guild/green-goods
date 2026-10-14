@@ -1,0 +1,75 @@
+{
+  "version": "1.0",
+  "chainId": "42161",
+  "createdAt": 1790836300339,
+  "meta": {
+    "name": "GreenWill: point the Genesis badge at Hats Protocol",
+    "description": "configureBadgeClass(GENESIS) with validator = Hats Protocol (0x3bc1…d137) instead of the Green Goods HatsModule (0x5b94…7266), which has no isWearerOfHat and makes every Genesis claim revert. Slug, metadataURI, issuer, unlock lock, claimable and active are unchanged; the badge rule and criteria are not touched.",
+    "txBuilderVersion": "1.18.0",
+    "createdFromSafeAddress": "0x49fa954B6C2Cd14B4b3604EF1Cc17cED20a9E42C",
+    "createdFromOwnerAddress": ""
+  },
+  "transactions": [
+    {
+      "to": "0x6e6895580b386eB3aB9efe228f79cdBe5B61F5e7",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "bytes32",
+            "name": "badgeId",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "string",
+            "name": "slug",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "metadataURI",
+            "type": "string"
+          },
+          {
+            "internalType": "address",
+            "name": "validator",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "authorizedIssuer",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "unlockLock",
+            "type": "address"
+          },
+          {
+            "internalType": "bool",
+            "name": "claimable",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "active",
+            "type": "bool"
+          }
+        ],
+        "name": "configureBadgeClass",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "badgeId": "0x019f6193080fa2ce1eb4082321d3fc1563ca3ee6f96dc5b2092d4bd08cc1b2cb",
+        "slug": "genesis",
+        "metadataURI": "",
+        "validator": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+        "authorizedIssuer": "0x0000000000000000000000000000000000000000",
+        "unlockLock": "0x3703EfF5568C7455Fb141aDEE28B01efbc726445",
+        "claimable": "true",
+        "active": "true"
+      }
+    }
+  ]
+}

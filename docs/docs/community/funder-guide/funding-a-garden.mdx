@@ -2,124 +2,139 @@
 title: Endow a Garden
 sidebar_label: Endow a Garden
 slug: /community/funder-guide/funding-a-garden
-description: "Endow a garden by depositing supported assets into its vault from the app or public Fund page."
+description: "Make a deposit that stays yours while its earnings support a garden, and understand the risks before you do."
 audience: funder
 owner: docs
-last_verified: 2026-05-01
+last_verified: 2026-10-13
 feature_status: Live
-image: /img/social/funding-a-garden.webp
-goal: "Walk a funder through endowing a garden's vault, either from the authenticated app or the public /fund page."
-difficulty: "quickstart"
-estimated_time: "5-10 minutes for a first endowment."
-prereqs: "Connected wallet, a supported asset on Arbitrum, and a garden with an active vault."
-next_steps: "./withdraw-from-a-vault"
-persona_context: "Funders making their first or recurring endowment into a garden vault."
+goal: "Walk a funder through one endowment from the public Fund page, with a plain account of where the money sits and what is not guaranteed."
+difficulty: "standard"
+estimated_time: "5 to 10 minutes for a first endowment."
+prereqs: "A crypto wallet with DAI or WETH on the Arbitrum network, and a little ETH there for the fee."
+next_steps: "/community/funder-guide/withdraw-from-a-vault"
+persona_context: "Funders who want to support a garden over time without giving the money away."
 source_of_truth:
-  - packages/client/src/components/Dialogs/TreasuryDrawer/index.tsx
-  - packages/client/src/components/Dialogs/TreasuryDrawer/TreasuryTabContent.tsx
   - packages/client/src/views/Public/Fund.tsx
+  - packages/client/src/components/Public/PublicGardenRow.tsx
   - packages/client/src/components/Public/PublicFundingCard.tsx
+  - packages/client/src/components/Public/PublicEndowmentPanel.tsx
   - packages/shared/src/hooks/vault/useVaultDeposit.ts
+  - packages/contracts/src/modules/Octant.sol
+  - packages/contracts/src/resolvers/Yield.sol
+  - packages/contracts/src/strategies/AaveV3ERC4626.sol
+  - packages/contracts/src/vendor/octant/core/MultistrategyVault.sol
+  - packages/shared/src/i18n/en.json
 keywords:
   - funder
   - endow
+  - endowment
   - deposit
   - vault
-  - treasury drawer
   - fund page
 ---
 
-import {GuideOpener, NextBestAction, StatusBadge} from "@site/src/components/docs";
+import {NextBestAction} from "@site/src/components/docs";
 
 # Endow a Garden
 
-<StatusBadge status="Live" />
+An endowment is a deposit, not a gift. The deposit belongs to your wallet, and you can request a withdrawal. It is used to earn support for the garden; neither earnings nor the amount you can withdraw is guaranteed. It is a way to support a garden for as long as you leave the deposit in place.
 
-<GuideOpener
-  image="/img/social/funding-a-garden.webp"
-  alt="A funder placing a gold token into a transparent garden vault"
-  label="Funder chapter"
-  roleAccent="funder"
->
-  Choose a garden, enter an amount, then deposit into its vault.
-</GuideOpener>
+Read the next section before you deposit. An endowment carries risks a donation does not.
 
-## What this helps you do
+## What you are agreeing to
 
-Endow a garden by depositing supported assets into its vault. The vault is designed to preserve your principal while yield supports the garden. You receive a withdrawable position that you can remove later.
+- **Where the money sits.** Your deposit goes into the garden's endowment, which lends it out through a lending market outside Green Goods to earn interest.
+- **Where the earnings go.** Not to you. The configured split can support the garden's shared fund, impact certificates and the Green Goods protocol. The proportions and available destinations depend on the garden's configuration; ask its steward to show you the split.
+- **Your deposit is not guaranteed.** If the lending market loses money, your share of the loss comes out of your deposit. You can get back less than you put in.
+- **Withdrawals depend on what is available.** There is no lock-in and no notice period. If the lending market is short of funds when you ask, you may only be able to take part of it out, or have to try again later.
+- **The token's price is your risk.** A deposit in WETH is worth more or fewer dollars as the price of ETH moves.
+- **The software around it can change.** Green Goods can upgrade the contracts that manage endowments and route their earnings.
 
-The UI still uses the word **Deposit** inside the vault dialog and Treasury drawer. In these docs, **Endow** means making that vault deposit.
-
-There are two entry points:
-
-- **Public `/fund` page.** Good for shared links and first-time support. It lets you choose **Endow** and deposit by wallet.
-- **Authenticated app Treasury drawer.** Best when you are already signed in and want to see your active position in the same place.
+If any of that is not acceptable, [donate](/community/funder-guide/donating-to-a-garden), or do not give.
 
 ## Before you start
 
-- A connected wallet or passkey account.
-- A supported token balance on Arbitrum.
-- A little Arbitrum gas if you use an external wallet. Passkey or smart-account actions may be sponsored when that support is configured.
-- The garden you want to endow.
-- A live internet connection.
+- **A crypto wallet,** with **DAI or WETH on the Arbitrum network** and a little ETH there for the network fee. The page does not take cards, and it does not convert other tokens for you.
+- **A garden you want to support.** Read its approved work first, on its page at [greengoods.app/gardens](https://greengoods.app/gardens).
+- **Use a wallet you will keep.** Your endowment belongs to the wallet that made it. You need the same wallet to take it back out.
 
-:::tip
-Endowments carry smart contract, token, yield, provider, and wallet recovery risk. Only endow what you are comfortable managing through this flow.
-:::
+<figure className="gg-figure gg-overview-photo" style={{maxWidth: '560px'}}>
+  <img src="/img/community/editorial-fund.webp" alt="A shared work table with a notebook and supplies for a community project." width="1536" height="1024" decoding="async" />
+  <figcaption>Longer-term support still needs a clear purpose and an account of how money moves. Editorial illustration reused from Green Goods' website Fund imagery; not a real payment or promise of earnings.</figcaption>
+</figure>
 
-## Step-by-step flow
+## Steps
 
-### Option A: Endow from the public `/fund` page
+### 1. Choose the garden
 
-Use this when you are coming from a public garden link.
+1. Open [greengoods.app/fund](https://greengoods.app/fund).
+2. Under **Find a Garden to support**, find the garden.
+3. Tap **Endow** on its row. A window opens titled **Endow to**, with the garden's name.
 
-1. Open `/fund`.
-2. Pick the garden you want to support.
-3. Click **Support this Garden**.
-4. Choose **Endow**.
-5. Choose **Wallet**. If you are not connected yet, connect when prompted.
-6. In the vault dialog, pick the asset if more than one is available.
-7. Enter the amount and click **Deposit**.
-8. Sign the transaction and wait for confirmation.
+If the garden has no endowment fund configured, choose another garden or [donate](/community/funder-guide/donating-to-a-garden).
 
-### Option B: Endow from the authenticated app
+### 2. Set the amount and currency
 
-Use this when you want to see the full Treasury drawer.
+1. Enter the **Amount**, in dollars by default.
+2. Under **Payment currency**, choose **DAI** or **WETH**, according to what the garden accepts and what you hold. With WETH selected, **Enter amount in** lets you switch between dollars and WETH. Check the unit beside the amount.
+3. Tap **Connect Wallet** if your wallet is not connected yet.
 
-1. Sign in to the Green Goods app.
-2. Open **Home**, then open the garden.
-3. Tap **Treasury** in the top bar.
-4. Stay on the **Endowments** tab.
-5. Review the overview, including asset, net deposited, and depositor count.
-6. Pick the asset if more than one vault is available.
-7. Enter the amount. Use **Max** only if you want to use the whole wallet balance for that asset.
-8. Check the estimated shares preview.
-9. Tap **Deposit** and sign the transaction.
-10. Wait for confirmation before closing the drawer.
+<figure className="gg-figure" style={{maxWidth: '448px'}}>
+  <img src="/img/screenshots/public-endowment-amount.png" alt="The Amount input showing a dollar sign and the example amount 20.00" loading="lazy" width="448" height="240" />
+  <figcaption>The amount control in isolation, with an example dollar amount. Source: deployed Storybook, PublicFundingCard / AmountInputWithValue, 12 October 2026; cropped from 1440×1000. Build revision unavailable.</figcaption>
+</figure>
 
-## How to know it worked
+If the live ETH price is unavailable, choose DAI or try again later. The page cannot convert other tokens for you.
 
-- The amount input clears or the dialog closes after success.
-- Your wallet history shows the vault deposit transaction on Arbitrum.
-- In the Treasury drawer, **Active deposits** shows your asset, available balance, and shares after the app refreshes.
-- The Treasury overview updates after indexing catches up.
+### 3. Confirm the deposit
+
+1. Check the garden, amount, and currency again.
+2. Tap the button that reads **Endow**, your amount, and the token, then confirm in your wallet. The first time you use a token, your wallet asks twice: once to allow the token to be spent, and once for the deposit itself.
+3. Keep the window open while it sends. If you cancel, the deposit is not made.
+
+## How you know it worked
+
+- The window says **Endowed**, with your amount and the garden's name.
+- Your wallet's history shows the transaction on Arbitrum.
+- On the Fund page, **Manage Endowments** now lists your deposit. It can take a moment to appear.
+
+<figure className="gg-figure" style={{maxWidth: '448px'}}>
+  <img src="/img/screenshots/public-endowment-result.png" alt="An example endowment result saying Endowed $100.00 to Muizenberg Community Garden, with Endow Again and Close buttons" loading="lazy" width="448" height="400" />
+  <figcaption>An example result, not a receipt for a real payment. Source: deployed Storybook, PublicFundingCard / SuccessEndow, 12 October 2026; cropped from 1440×1000. Build revision unavailable. No wallet transaction was made.</figcaption>
+</figure>
+
+## What happens next
+
+Your deposit is in place, and it is yours.
+
+- **The garden's side.** Earnings can build up over time. A steward or owner collects them from the endowment. Once collected, anyone can trigger their distribution when its conditions are met, so the garden does not control payout timing exclusively. The dashboard offers both steps together. A deposit does not itself trigger a payout, and future earnings are not guaranteed.
+- **Your side.** You can check your deposit, and take some or all of it out, from **Manage Endowments**. See [Remove an Endowment](/community/funder-guide/withdraw-from-a-vault).
 
 ## If something goes wrong
 
-- **No vault or Treasury button.** The garden has not enabled a vault yet.
-- **Connect wallet prompt appears.** Connect the wallet or passkey account that should hold the endowment position.
-- **Offline warning.** Reconnect and retry.
-- **Amount exceeds wallet balance.** Enter a smaller amount or use **Max**.
-- **Invalid decimal input.** Match the token's decimal precision.
-- **Transaction cancelled.** Nothing was deposited. Try again when ready.
-- **Transaction failed.** Check the wallet error, token balance, chain, and Arbitrum gas.
-- **Still stuck.** Use the Green Goods Telegram support link in the docs footer.
+### Payment options will not load
+
+For **We couldn't load payment options for this Garden**, close the window and try again. If deposits are paused, choose another garden or ask the garden's steward.
+
+### Your wallet cancels or the transaction fails
+
+**Transaction cancelled** means no deposit was made. For **Transaction failed**, read the message. Check that you have enough of the chosen token and enough ETH on Arbitrum for the fee before trying again.
+
+### Your deposit is not listed
+
+Connect the wallet you deposited from, then give **Manage Endowments** a moment to catch up. Check the transaction in your wallet before repeating it.
+
+For anything else, ask in the [Green Goods Telegram group](https://t.me/+N3o3_43iRec1Y2Jh).
+
+:::note Check any separate arrangements
+Green Goods does not promise a charitable receipt, nonprofit backing or a tax deduction. Ask the garden about any separate arrangement. Endowment earnings support the garden's configured destinations rather than earning a return for you.
+:::
 
 ## Next step
 
 <NextBestAction
-  title="Remove an endowment"
-  why="Endowing does not lock you in forever. Learn where the withdraw controls live before you need them."
+  title="Know how to take it back out"
+  why="Learn where the withdraw control is before you need it."
   actionLabel="Remove an Endowment"
-  actionHref="./withdraw-from-a-vault"
+  actionHref="/community/funder-guide/withdraw-from-a-vault"
 />

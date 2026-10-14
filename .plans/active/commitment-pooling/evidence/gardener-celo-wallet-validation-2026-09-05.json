@@ -1,0 +1,434 @@
+{
+  "schemaVersion": 1,
+  "feature": "commitment-pooling",
+  "scope": "Enable Gardener Celo Wallets",
+  "testedCommit": "ea193295f9ce1f6ebac415481c320c5d7a61baae",
+  "baseCommit": "7d60a27d4640fc00a78eaae8c2fafd613030f420",
+  "branch": "develop",
+  "completedAt": "2026-09-05T22:32:48.314036+00:00",
+  "recordedAt": "2026-09-05T22:44:44.114419+00:00",
+  "workingTreeCleanAtCompletion": true,
+  "intent": "release",
+  "criticality": "critical",
+  "freshUncached": true,
+  "command": "node scripts/dev/ci-local.js --intent release --base 7d60a27d4640fc00a78eaae8c2fafd613030f420 --head ea193295f9ce1f6ebac415481c320c5d7a61baae --capability authenticatedBrave=false --check storybook-build --no-fail-fast",
+  "exitCode": 2,
+  "status": "blocked",
+  "automatedChecksPassed": 35,
+  "checks": [
+    {
+      "id": "format",
+      "command": "bun format",
+      "cwd": ".",
+      "selectedBy": ["automatic-hygiene"],
+      "status": "passed",
+      "durationSeconds": 1.766
+    },
+    {
+      "id": "lint",
+      "command": "bun run lint",
+      "cwd": ".",
+      "selectedBy": ["automatic-hygiene"],
+      "status": "passed",
+      "durationSeconds": 13.74
+    },
+    {
+      "id": "validation-system-test",
+      "command": "bun run test:validation-system",
+      "cwd": ".",
+      "selectedBy": ["conditional:validation-system-test"],
+      "status": "passed",
+      "durationSeconds": 9.393
+    },
+    {
+      "id": "test-quality",
+      "command": "bun run check:test-quality",
+      "cwd": ".",
+      "selectedBy": ["conditional:test-quality"],
+      "status": "passed",
+      "durationSeconds": 5.549
+    },
+    {
+      "id": "abi-artifacts",
+      "command": null,
+      "cwd": ".",
+      "selectedBy": ["strict-intent:contracts"],
+      "status": "passed",
+      "durationSeconds": 0.02
+    },
+    {
+      "id": "shared-typecheck",
+      "command": "bun run typecheck",
+      "cwd": "packages/shared",
+      "selectedBy": ["surface:shared", "critical-override"],
+      "status": "passed",
+      "durationSeconds": 6.61
+    },
+    {
+      "id": "shared-test-typecheck",
+      "command": "bun run typecheck:tests",
+      "cwd": "packages/shared",
+      "selectedBy": ["validation-only:shared:types", "strict-intent:shared:test-types"],
+      "status": "passed",
+      "durationSeconds": 1.91
+    },
+    {
+      "id": "shared-test",
+      "command": "bun run test",
+      "cwd": "packages/shared",
+      "selectedBy": ["surface:shared", "validation-only:shared:tests", "critical-override"],
+      "status": "passed",
+      "durationSeconds": 97.875
+    },
+    {
+      "id": "shared-build",
+      "command": "bun run build",
+      "cwd": "packages/shared",
+      "selectedBy": ["surface:shared:build"],
+      "status": "passed",
+      "durationSeconds": 0.067
+    },
+    {
+      "id": "client-test-typecheck",
+      "command": "bun run typecheck:tests",
+      "cwd": "packages/client",
+      "selectedBy": ["validation-only:client:types", "strict-intent:client:test-types"],
+      "status": "passed",
+      "durationSeconds": 1.251
+    },
+    {
+      "id": "client-test",
+      "command": "bun run test",
+      "cwd": "packages/client",
+      "selectedBy": ["surface:client", "validation-only:client:tests", "critical-override"],
+      "status": "passed",
+      "durationSeconds": 41.498
+    },
+    {
+      "id": "client-build",
+      "command": "bun run build",
+      "cwd": "packages/client",
+      "selectedBy": ["surface:client:build"],
+      "status": "passed",
+      "durationSeconds": 23.466
+    },
+    {
+      "id": "admin-test-typecheck",
+      "command": "bun run typecheck:tests",
+      "cwd": "packages/admin",
+      "selectedBy": ["validation-only:admin:types", "strict-intent:admin:test-types"],
+      "status": "passed",
+      "durationSeconds": 4.486
+    },
+    {
+      "id": "admin-test",
+      "command": "bun run test",
+      "cwd": "packages/admin",
+      "selectedBy": ["surface:admin", "validation-only:admin:tests", "critical-override"],
+      "status": "passed",
+      "durationSeconds": 43.765
+    },
+    {
+      "id": "admin-build",
+      "command": "bun run build",
+      "cwd": "packages/admin",
+      "selectedBy": ["surface:admin:build"],
+      "status": "passed",
+      "durationSeconds": 21.628
+    },
+    {
+      "id": "agent-typecheck",
+      "command": "bun run typecheck",
+      "cwd": "packages/agent",
+      "selectedBy": ["surface:agent"],
+      "status": "passed",
+      "durationSeconds": 1.79
+    },
+    {
+      "id": "agent-test-typecheck",
+      "command": "bun run typecheck:tests",
+      "cwd": "packages/agent",
+      "selectedBy": ["strict-intent:agent:test-types"],
+      "status": "passed",
+      "durationSeconds": 1.597
+    },
+    {
+      "id": "agent-test",
+      "command": "bun run test",
+      "cwd": "packages/agent",
+      "selectedBy": ["surface:agent", "critical-override"],
+      "status": "passed",
+      "durationSeconds": 3.401
+    },
+    {
+      "id": "agent-build",
+      "command": "bun run build",
+      "cwd": "packages/agent",
+      "selectedBy": ["surface:agent:build"],
+      "status": "passed",
+      "durationSeconds": 1.561
+    },
+    {
+      "id": "indexer-test",
+      "command": "bun run test",
+      "cwd": "packages/indexer",
+      "selectedBy": ["surface:indexer"],
+      "status": "passed",
+      "durationSeconds": 14.886
+    },
+    {
+      "id": "indexer-build",
+      "command": "bun run build",
+      "cwd": "packages/indexer",
+      "selectedBy": ["surface:indexer:build"],
+      "status": "passed",
+      "durationSeconds": 1.655
+    },
+    {
+      "id": "contracts-build",
+      "command": "bun run build",
+      "cwd": "packages/contracts",
+      "selectedBy": ["surface:contracts"],
+      "status": "passed",
+      "durationSeconds": 1.009
+    },
+    {
+      "id": "contracts-test",
+      "command": "bun run test",
+      "cwd": "packages/contracts",
+      "selectedBy": ["surface:contracts"],
+      "status": "passed",
+      "durationSeconds": 26.942
+    },
+    {
+      "id": "contracts-verify-fast",
+      "command": "bun run verify:contracts:fast",
+      "cwd": ".",
+      "selectedBy": ["strict-intent:contracts"],
+      "status": "passed",
+      "durationSeconds": 34.039
+    },
+    {
+      "id": "docs-authority",
+      "command": "node --test scripts/docs/generate.test.mjs docs/scripts/docs-audit.test.mjs && bun run docs:audit:ci && bun run check:docs-generated",
+      "cwd": ".",
+      "selectedBy": ["surface:docs"],
+      "status": "passed",
+      "durationSeconds": 1.365
+    },
+    {
+      "id": "docs-test",
+      "command": "bun run test",
+      "cwd": "docs",
+      "selectedBy": ["surface:docs"],
+      "status": "passed",
+      "durationSeconds": 0.8
+    },
+    {
+      "id": "docs-build",
+      "command": "bun run build",
+      "cwd": "docs",
+      "selectedBy": ["surface:docs"],
+      "status": "passed",
+      "durationSeconds": 5.317
+    },
+    {
+      "id": "staged-modules",
+      "command": "bun run check:staged-modules",
+      "cwd": ".",
+      "selectedBy": ["client:staged-boundary"],
+      "status": "passed",
+      "durationSeconds": 0.167
+    },
+    {
+      "id": "source-structure",
+      "command": "bun run check:source-structure",
+      "cwd": ".",
+      "selectedBy": ["conditional:source-structure"],
+      "status": "passed",
+      "durationSeconds": 0.884
+    },
+    {
+      "id": "design-guardrails",
+      "command": "bun run check:design-md && bun run check:design-generated && bun run check:design-tokens && bun run lint:vocab",
+      "cwd": ".",
+      "selectedBy": ["conditional:design-guardrails"],
+      "status": "passed",
+      "durationSeconds": 9.11
+    },
+    {
+      "id": "ontology",
+      "command": "bun run check:ontology",
+      "cwd": ".",
+      "selectedBy": ["conditional:ontology"],
+      "status": "passed",
+      "durationSeconds": 0.478
+    },
+    {
+      "id": "agent-guidance",
+      "command": "bun run check:codex-guidance && bun run check:skill-behavior && bun run check:guidance-links",
+      "cwd": ".",
+      "selectedBy": ["conditional:agent-guidance"],
+      "status": "passed",
+      "durationSeconds": 1.055
+    },
+    {
+      "id": "supply-chain",
+      "command": "bun run check:codex-guidance && bun run check:guidance-links && bun run check:immutable-plan-reports && bun run check:test-quality && node scripts/harness/plan-hub.mjs validate && node --test scripts/harness/plan-hub.test.mjs",
+      "cwd": ".",
+      "selectedBy": ["conditional:supply-chain"],
+      "status": "passed",
+      "durationSeconds": 14.342
+    },
+    {
+      "id": "browser-proof",
+      "command": null,
+      "cwd": ".",
+      "selectedBy": ["conditional:browser-proof"],
+      "status": "blocked",
+      "durationSeconds": null,
+      "blockedBy": ["authenticatedBrave"]
+    },
+    {
+      "id": "story-quality",
+      "command": "bun run --filter @green-goods/shared check:stories && bun run --filter @green-goods/shared check:story-quality",
+      "cwd": ".",
+      "selectedBy": ["validation-only:admin:stories"],
+      "status": "passed",
+      "durationSeconds": 0.294
+    },
+    {
+      "id": "storybook-build",
+      "command": "bun run build-storybook",
+      "cwd": "packages/shared",
+      "selectedBy": ["explicit-request"],
+      "status": "passed",
+      "durationSeconds": 26.122
+    }
+  ],
+  "testCounts": {
+    "shared": {
+      "passed": 4657,
+      "skipped": 18
+    },
+    "client": {
+      "passed": 1068,
+      "skipped": 0
+    },
+    "admin": {
+      "passed": 847,
+      "skipped": 0
+    },
+    "agent": {
+      "unitPassed": 311,
+      "sqlitePassed": 9,
+      "skipped": 1
+    },
+    "indexer": {
+      "passed": 320,
+      "pending": 1
+    },
+    "contracts": {
+      "solidityPassed": 2083,
+      "scriptPassed": 295,
+      "skipped": 0
+    },
+    "validationSystem": {
+      "passed": 196,
+      "skipped": 0
+    }
+  },
+  "validatedPaths": [
+    ".env.schema",
+    ".plans/active/commitment-pooling/gardener-celo-wallets.md",
+    ".plans/active/commitment-pooling/handoffs/README.md",
+    ".plans/active/commitment-pooling/handoffs/claude-ui-client.md",
+    ".plans/active/commitment-pooling/handoffs/codex-gardener-celo-wallets.md",
+    ".plans/active/commitment-pooling/handoffs/codex-state-api.md",
+    ".plans/active/commitment-pooling/handoffs/human-release-ops.md",
+    ".plans/active/commitment-pooling/plan.todo.md",
+    ".plans/active/commitment-pooling/status.json",
+    "packages/admin/src/__tests__/components/CreateAssessmentDialog.test.tsx",
+    "packages/admin/src/__tests__/components/CreateHypercertDialog.test.tsx",
+    "packages/admin/src/__tests__/components/SubmitWorkDialog.test.tsx",
+    "packages/admin/src/routes/IndexRoute.stories.tsx",
+    "packages/admin/src/views/Garden/SubmitWork.stories.tsx",
+    "packages/client/src/__tests__/views/CeloWalletCard.test.tsx",
+    "packages/client/src/__tests__/views/SendTab.test.tsx",
+    "packages/client/src/views/Home/WalletDrawer/Send/AmountStep.tsx",
+    "packages/client/src/views/Home/WalletDrawer/Send/CeloWalletCard.tsx",
+    "packages/client/src/views/Home/WalletDrawer/Send/FeeSummary.tsx",
+    "packages/client/src/views/Home/WalletDrawer/Send/ReceiveView.tsx",
+    "packages/client/src/views/Home/WalletDrawer/Send/ReviewStep.tsx",
+    "packages/client/src/views/Home/WalletDrawer/SendTab.tsx",
+    "packages/client/src/views/Home/WalletDrawer/index.tsx",
+    "packages/shared/src/__tests__/commitment-pooling-query-keys.test.ts",
+    "packages/shared/src/__tests__/commitment-pooling-settlement-hooks.test.tsx",
+    "packages/shared/src/__tests__/config/pimlico-policy.test.ts",
+    "packages/shared/src/__tests__/config/tokens.test.ts",
+    "packages/shared/src/__tests__/gardener-delivery-gate.test.ts",
+    "packages/shared/src/__tests__/gardener-settlement-history.test.ts",
+    "packages/shared/src/__tests__/hooks/blockchain/useContractTxSender.test.ts",
+    "packages/shared/src/__tests__/hooks/blockchain/useSendToken.test.ts",
+    "packages/shared/src/__tests__/hooks/client-ui/wallet/useSendFlowController.test.tsx",
+    "packages/shared/src/__tests__/hooks/useCeloWallet.test.tsx",
+    "packages/shared/src/__tests__/i18n/locale-coverage.test.ts",
+    "packages/shared/src/__tests__/modules/wallet/good-dollar-fees.test.ts",
+    "packages/shared/src/__tests__/settlement-aa-profile.test.ts",
+    "packages/shared/src/__tests__/workflows/auth-passkey-adapters.test.ts",
+    "packages/shared/src/__tests__/workflows/authMachine.test.ts",
+    "packages/shared/src/__tests__/workflows/smartAccountClientResolver.test.ts",
+    "packages/shared/src/config/pimlico.ts",
+    "packages/shared/src/config/query-keys/commitment-pooling.ts",
+    "packages/shared/src/config/query-keys/invalidation.ts",
+    "packages/shared/src/config/query-keys/tokens.ts",
+    "packages/shared/src/config/tokens.ts",
+    "packages/shared/src/hooks/auth/useAuth.ts",
+    "packages/shared/src/hooks/auth/useAuthActor.ts",
+    "packages/shared/src/hooks/auth/useUser.ts",
+    "packages/shared/src/hooks/blockchain/useSendToken.ts",
+    "packages/shared/src/hooks/blockchain/useTransactionSender.ts",
+    "packages/shared/src/hooks/client-ui/wallet/useSendFlowController.ts",
+    "packages/shared/src/hooks/commitment-pooling/index.ts",
+    "packages/shared/src/hooks/commitment-pooling/useCeloWallet.ts",
+    "packages/shared/src/hooks/commitment-pooling/useSettlementQueries.ts",
+    "packages/shared/src/hooks/commitment-pooling/useSettlementWalletTransfer.ts",
+    "packages/shared/src/i18n/en.json",
+    "packages/shared/src/i18n/es.json",
+    "packages/shared/src/i18n/pt.json",
+    "packages/shared/src/modules/auth/smartAccountClientResolver.ts",
+    "packages/shared/src/modules/commitment-pooling/account-profiles.ts",
+    "packages/shared/src/modules/commitment-pooling/data-gardener-settlement.ts",
+    "packages/shared/src/modules/commitment-pooling/data-settlement.ts",
+    "packages/shared/src/modules/commitment-pooling/data.ts",
+    "packages/shared/src/modules/commitment-pooling/types-settlement.ts",
+    "packages/shared/src/modules/transactions/__tests__/embedded-sender.test.ts",
+    "packages/shared/src/modules/transactions/__tests__/factory.test.ts",
+    "packages/shared/src/modules/transactions/__tests__/passkey-sender.test.ts",
+    "packages/shared/src/modules/transactions/__tests__/sender-conformance.test.ts",
+    "packages/shared/src/modules/transactions/__tests__/wallet-sender.test.ts",
+    "packages/shared/src/modules/transactions/chain-guard.ts",
+    "packages/shared/src/modules/transactions/embedded-sender.ts",
+    "packages/shared/src/modules/transactions/factory.ts",
+    "packages/shared/src/modules/transactions/passkey-sender.ts",
+    "packages/shared/src/modules/transactions/types.ts",
+    "packages/shared/src/modules/transactions/wallet-sender.ts",
+    "packages/shared/src/modules/wallet/good-dollar-fees.ts",
+    "packages/shared/src/providers/Auth.tsx",
+    "packages/shared/src/providers/DevAuthProvider.tsx",
+    "packages/shared/src/types/auth.ts",
+    "packages/shared/src/types/index.ts",
+    "packages/shared/src/vite-env.d.ts",
+    "packages/shared/src/workflows/auth-passkey-adapters.ts",
+    "packages/shared/src/workflows/authMachine.ts",
+    "packages/shared/src/workflows/authServices.ts",
+    "scripts/data/module-seam-registry.json"
+  ],
+  "limits": [
+    "Authenticated Brave extension/profile unavailable; no isolated browser substituted.",
+    "Kernel address construction tested with the installed SDK and mocked RPC; production deployed code and first-use sponsorship need the separate authorized canary.",
+    "Hosted policy/API-key restrictions, app deployment, canary funding/transfer, delivery activation and contributor payout remain unrun.",
+    "The indexed gate enforces query freshness but the GraphQL reader exposes no source-chain-head lag signal.",
+    "Earlier failed or superseded runs were not reused as passing evidence."
+  ]
+}

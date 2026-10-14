@@ -244,8 +244,9 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
         // If this fails, garden still initializes — operators can call createGardenPools() later.
         if (community != address(0)) {
             // solhint-disable-next-line no-empty-blocks
-            try this.attemptPoolCreation(garden, community, address(powerRegistry)) returns (address[] memory createdPools)
-            {
+            try this.attemptPoolCreation(garden, community, address(powerRegistry)) returns (
+                address[] memory createdPools
+            ) {
                 pools = createdPools;
                 // Inner try/catch in _createPool may catch reverts gracefully (returning empty array)
                 if (pools.length == 0) {
@@ -474,8 +475,9 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
             address[] memory pools = gardenSignalPools[garden];
             // solhint-disable-next-line no-empty-blocks
             try powerRegistry.deregisterGarden(garden, pools) {
-                // Success — garden can be re-registered with fresh sources
-            } catch {
+            // Success — garden can be re-registered with fresh sources
+            }
+                catch {
                 // Non-blocking — registry may not have this garden registered
             }
         }
@@ -569,25 +571,13 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
 
         NFTPowerSource[] memory sources = new NFTPowerSource[](3);
         sources[0] = NFTPowerSource({
-            token: hatsProtocol,
-            nftType: NFTType.HAT,
-            weight: operatorW,
-            tokenId: 0,
-            hatId: operatorHatId
+            token: hatsProtocol, nftType: NFTType.HAT, weight: operatorW, tokenId: 0, hatId: operatorHatId
         });
         sources[1] = NFTPowerSource({
-            token: hatsProtocol,
-            nftType: NFTType.HAT,
-            weight: gardenerW,
-            tokenId: 0,
-            hatId: gardenerHatId
+            token: hatsProtocol, nftType: NFTType.HAT, weight: gardenerW, tokenId: 0, hatId: gardenerHatId
         });
         sources[2] = NFTPowerSource({
-            token: hatsProtocol,
-            nftType: NFTType.HAT,
-            weight: communityW,
-            tokenId: 0,
-            hatId: communityHatId
+            token: hatsProtocol, nftType: NFTType.HAT, weight: communityW, tokenId: 0, hatId: communityHatId
         });
 
         // solhint-disable-next-line no-empty-blocks
@@ -735,8 +725,9 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
 
         // solhint-disable-next-line no-empty-blocks
         try IYieldResolverForGardens(yieldResolver).setGardenHypercertPool(garden, pool) {
-            // Success
-        } catch {
+        // Success
+        }
+        catch {
             emit YieldWiringFailed(garden, pool);
         }
     }
@@ -773,7 +764,7 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
 
         // Newer string-based covenant signature path: stakeAndRegisterMember(string)
         (bool ok,) = community.call(abi.encodeWithSelector(bytes4(0x9a1f46e2), "")); // 0x9a1f46e2 =
-            // keccak256("stakeAndRegisterMember(string)")[:4]
+        // keccak256("stakeAndRegisterMember(string)")[:4]
         ok; // silence compiler warning for ignored result
     }
 
@@ -837,8 +828,9 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
             if (pools[i] != address(0)) {
                 // solhint-disable-next-line no-empty-blocks
                 try powerRegistry.registerPool(pools[i], garden) {
-                    // Success
-                } catch {
+                // Success
+                }
+                catch {
                     emit PoolRegistrationFailed(garden, pools[i], "PowerRegistry registration failed");
                 }
             }
@@ -871,8 +863,9 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
 
         // solhint-disable-next-line no-empty-blocks
         try hatsModule.setConvictionStrategies(garden, validPools) {
-            // Success
-        } catch {
+        // Success
+        }
+        catch {
             emit PoolRegistrationFailed(garden, address(hatsModule), "HatsModule strategy registration failed");
         }
     }

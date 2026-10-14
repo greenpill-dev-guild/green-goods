@@ -3,6 +3,7 @@ import {
   registerExternalErrorReporter,
   type ExternalErrorReporterContext,
 } from "./external-error-reporters";
+import { isReportingCeremonyPath } from "./private-paths";
 import { sanitizeSentryContext, sanitizeSentryValue } from "./sentry-redaction";
 
 export type BrowserSentrySurface = "client" | "admin";
@@ -44,11 +45,15 @@ export function initBrowserSentry(options: InitBrowserSentryOptions): () => void
       Sentry.replayIntegration({
         blockAllMedia: true,
         maskAllText: true,
+        // Reporting ceremony pages are never recorded, even masked.
+        beforeAddRecordingEvent: (event) =>
+          isReportingCeremonyPath(window.location.pathname) ? null : event,
       }),
     ],
     beforeBreadcrumb: (breadcrumb) =>
       sanitizeSentryValue(breadcrumb) as unknown as typeof breadcrumb,
     beforeSend: (event) => sanitizeSentryValue(event) as unknown as typeof event,
+    beforeSendTransaction: (event) => sanitizeSentryValue(event) as unknown as typeof event,
   });
 
   Sentry.setTag("app", "green-goods");
@@ -68,10 +73,7 @@ export function initBrowserSentry(options: InitBrowserSentryOptions): () => void
   return cleanupBrowserSentryReporter;
 }
 
-export function captureBrowserException(
-  error: unknown,
-  context: ExternalErrorReporterContext = {}
-): void {
+function captureBrowserException(error: unknown, context: ExternalErrorReporterContext = {}): void {
   if (!initialized) return;
 
   const normalizedError =
@@ -89,10 +91,6 @@ export function captureBrowserException(
     scope.setContext("green_goods_error", sanitizeSentryContext(context));
     Sentry.captureException(normalizedError);
   });
-}
-
-export function resetBrowserSentryForTests(): void {
-  cleanupBrowserSentryReporter();
 }
 
 function cleanupBrowserSentryReporter(): void {

@@ -5,16 +5,8 @@ import type { InboundMessage, OutboundResponse } from "../types";
 export type IdempotentHandler = "approve" | "reject" | "submit-confirm";
 export type IdempotentAction = "approval" | "rejection" | "submission";
 
-export function messageIdempotencyKey(handler: IdempotentHandler, message: InboundMessage): string {
+function messageIdempotencyKey(handler: IdempotentHandler, message: InboundMessage): string {
   return `${handler}:${message.platform}:${message.sender.platformId}:${message.id}`;
-}
-
-export async function getCompletedIdempotencyResponse(
-  handler: IdempotentHandler,
-  message: InboundMessage
-): Promise<OutboundResponse | undefined> {
-  const record = await db.getIdempotencyRecord(messageIdempotencyKey(handler, message));
-  return record?.status === "completed" ? record.response : undefined;
 }
 
 export async function getExistingIdempotencyResponse(

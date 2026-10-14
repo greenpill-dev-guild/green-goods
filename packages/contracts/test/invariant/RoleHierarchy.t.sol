@@ -49,7 +49,7 @@ contract RoleHierarchyHandler {
         uint8 idx = seed % 4;
         if (idx == 0) return IHatsModule.GardenRole.Gardener;
         if (idx == 1) return IHatsModule.GardenRole.Evaluator;
-        if (idx == 2) return IHatsModule.GardenRole.Operator;
+        if (idx == 2) return IHatsModule.GardenRole.Steward;
         return IHatsModule.GardenRole.Owner;
     }
 }
@@ -254,7 +254,7 @@ contract RoleHierarchyFuzzTest is Test {
     function testFuzz_operatorGrantCascadesToSubRoles(uint8 userSeed) public {
         address user = users[userSeed % 5];
 
-        adapter.grantRole(garden1, user, IHatsModule.GardenRole.Operator);
+        adapter.grantRole(garden1, user, IHatsModule.GardenRole.Steward);
 
         assertTrue(adapter.isOperatorOf(garden1, user), "Should be operator");
         assertTrue(adapter.isEvaluatorOf(garden1, user), "Operator should cascade to evaluator");
@@ -360,8 +360,7 @@ contract RoleHierarchyFuzzTest is Test {
             uint256 g1EvaluatorBefore,
             uint256 g1GardenerBefore,
             uint256 g1FunderBefore,
-            uint256 g1CommunityBefore,
-            ,
+            uint256 g1CommunityBefore,,
             bool g1ConfiguredBefore
         ) = adapter.gardenHats(garden1);
 
@@ -375,8 +374,7 @@ contract RoleHierarchyFuzzTest is Test {
             uint256 g1EvaluatorAfter,
             uint256 g1GardenerAfter,
             uint256 g1FunderAfter,
-            uint256 g1CommunityAfter,
-            ,
+            uint256 g1CommunityAfter,,
             bool g1ConfiguredAfter
         ) = adapter.gardenHats(garden1);
 
@@ -415,7 +413,7 @@ contract RoleHierarchyFuzzTest is Test {
         uint8 idx = seed % 4;
         if (idx == 0) return IHatsModule.GardenRole.Gardener;
         if (idx == 1) return IHatsModule.GardenRole.Evaluator;
-        if (idx == 2) return IHatsModule.GardenRole.Operator;
+        if (idx == 2) return IHatsModule.GardenRole.Steward;
         return IHatsModule.GardenRole.Owner;
     }
 }

@@ -1,10 +1,10 @@
 /**
  * PublicFooter - compact footer tests.
  *
- * Locks the restored provenance line, external utility links (Twitter, Admin,
- * Docs, GitHub), and neutral-by-default footer link styling.
+ * Locks the restored provenance line, the four outside links (Twitter, LinkedIn,
+ * GitHub, Docs) and nothing else, and neutral-by-default footer link styling.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { render, screen } from "@testing-library/react";
@@ -15,11 +15,11 @@ import { describe, expect, it } from "vitest";
 import { PublicFooter } from "../../components/Public/PublicFooter";
 
 const messages: Record<string, string> = {
-  "public.footer.admin": "Admin",
   "public.footer.docs": "Docs",
   "public.footer.github": "GitHub",
   "public.footer.legal":
     "© {year} Green Goods. A living public record, rooted in regenerative work.",
+  "public.footer.linkedin": "LinkedIn",
   "public.footer.navLabel": "Footer links",
   "public.footer.twitter": "Twitter",
   "public.footer.wordmark": "Green Goods",
@@ -44,25 +44,23 @@ describe("PublicFooter", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders external utility links", () => {
+  // The route links came back once after they were removed (Sep 30), because the
+  // brief still said the footer owned wayfinding. The list is the whole contract.
+  it("links only to Twitter, LinkedIn, GitHub, and Docs, each in a new tab", () => {
     renderFooter();
 
-    expect(screen.getByRole("link", { name: "Twitter" })).toHaveAttribute(
-      "href",
-      "https://x.com/greengoodsapp"
-    );
-    expect(screen.getByRole("link", { name: "Admin" })).toHaveAttribute(
-      "href",
-      "https://admin.greengoods.app"
-    );
-    expect(screen.getByRole("link", { name: "Docs" })).toHaveAttribute(
-      "href",
-      "https://docs.greengoods.app"
-    );
-    expect(screen.getByRole("link", { name: "GitHub" })).toHaveAttribute(
-      "href",
-      "https://github.com/greenpill-dev-guild/green-goods"
-    );
+    const nav = screen.getByRole("navigation", { name: "Footer links" });
+    const links = Array.from(nav.querySelectorAll("a")).map((a) => [
+      a.textContent?.trim(),
+      a.getAttribute("href"),
+      a.getAttribute("target"),
+    ]);
+    expect(links).toEqual([
+      ["Twitter", "https://x.com/greengoodsapp", "_blank"],
+      ["LinkedIn", "https://www.linkedin.com/company/greengoodsapp/", "_blank"],
+      ["GitHub", "https://github.com/greenpill-dev-guild/green-goods", "_blank"],
+      ["Docs", "https://docs.greengoods.app", "_blank"],
+    ]);
   });
 
   it("keeps footer links neutral until hover or focus", () => {

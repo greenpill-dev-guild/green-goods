@@ -1,6 +1,13 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import type { ReactNode } from "react";
 import { MemoryRouter } from "react-router-dom";
-import { EditorialGhostButton, EditorialPrimaryLink } from "./atoms";
+import { expect, waitFor } from "storybook/test";
+import {
+  EditorialGhostButton,
+  EditorialPrimaryLink,
+  EditorialTitleAccent,
+  EditorialTitleLine,
+} from "./atoms";
 import { PublicEditorialHero } from "./PublicEditorialHero";
 
 /**
@@ -10,27 +17,55 @@ import { PublicEditorialHero } from "./PublicEditorialHero";
  *  - Impact: read-only (no actions, photo credit + lede)
  *  - Fund: lede + visible disclaimer
  *  - Actions: minimal (no kicker, no photo credit, no actions)
+ *  - Banner: the shorter variant every page but Home mounts
  *
- * The hero is self-contained — the linen card sits inside the image at
- * bottom-left and does not protrude into the next section. The placeholder
- * `NextSection` below each story is just visual context; consumers no
- * longer need to reserve oversized top padding to absorb a card overlap.
+ * The fullscreen hero is self-contained — the linen card sits inside the
+ * image at bottom-left and does not protrude into the next section. The
+ * banner's card spills past the foot of its image, so the section after it
+ * reserves top padding for the spill. The placeholder `NextSection` below
+ * each story is just visual context.
  */
 
 const HERO_IMG =
   "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=2200&q=80";
 const HERO_FALLBACK = "/images/no-image-placeholder.png";
 
-const NextSection = ({ children }: { children: React.ReactNode }) => (
-  <section className="bg-bg-weak-50 px-6 py-16 sm:px-10 md:py-20">
+/**
+ * A hero title the way the core pages write theirs: three authored lines, so the title holds
+ * the same shape at every viewport width.
+ */
+const titleLines = (first: ReactNode, second: ReactNode, third: ReactNode) => (
+  <>
+    <EditorialTitleLine>{first}</EditorialTitleLine>{" "}
+    <EditorialTitleLine>{second}</EditorialTitleLine>{" "}
+    <EditorialTitleLine>{third}</EditorialTitleLine>
+  </>
+);
+
+const NextSection = ({
+  children,
+  afterBanner = false,
+}: {
+  children: ReactNode;
+  /** The banner's card spills into this section, so it reserves the pages' top padding. */
+  afterBanner?: boolean;
+}) => (
+  <section
+    className={
+      afterBanner
+        ? "bg-bg-weak-50 px-6 pt-32 pb-16 sm:px-10 sm:pt-36 md:pb-20"
+        : "bg-bg-weak-50 px-6 py-16 sm:px-10 md:py-20"
+    }
+  >
     <div className="mx-auto max-w-7xl">
       <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-text-soft-400">
         § Next section preview
       </p>
       <h2 className="mt-3 font-serif text-3xl text-text-strong-950">{children}</h2>
       <p className="mt-3 max-w-prose text-sm text-text-sub-600">
-        The hero above is self-contained — its content card sits inside the image plate at
-        bottom-left and does not protrude into this section.
+        {afterBanner
+          ? "The banner's card spills past the foot of the image into this section, which reserves top padding for it."
+          : "The hero above is self-contained — its content card sits inside the image plate at bottom-left and does not protrude into this section."}
       </p>
     </div>
   </section>
@@ -48,12 +83,29 @@ const meta: Meta<typeof PublicEditorialHero> = {
   ],
   parameters: {
     layout: "fullscreen",
+    viewport: {
+      options: {
+        landscapePhone: {
+          name: "Landscape phone (844 × 390)",
+          styles: { width: "844px", height: "390px" },
+          type: "mobile",
+        },
+        narrowPhone: {
+          name: "Narrow phone (320 × 568)",
+          styles: { width: "320px", height: "568px" },
+          type: "mobile",
+        },
+      },
+    },
     docs: {
       description: {
         component:
-          "Canonical editorial hero — image plate + bottom-left linen card " +
-          "fully contained inside the image (no negative overlap, no clipping). " +
-          "Consumers do not need to reserve top padding on the next section. " +
+          "Canonical editorial hero — image plate + bottom-left linen card. " +
+          "The fullscreen variant keeps the card inside the image, so the next " +
+          "section reserves nothing. The banner variant spills the card past the " +
+          "foot of a shorter image, so the next section reserves top padding. " +
+          "In both, a card too tall for the image grows the image; the card " +
+          "never slides under the site header. " +
           "See `PublicEditorialHeroProps` for the slot API.",
       },
     },
@@ -71,11 +123,15 @@ export const Home: Story = {
         imageFallbackSrc={HERO_FALLBACK}
         imageAlt=""
         titleId="story-home-title"
-        title={
+        title={titleLines(
           <>
-            From good intentions to <em className="font-serif italic">green outcomes</em>.
+            From <EditorialTitleAccent>good</EditorialTitleAccent>
+          </>,
+          "intentions to",
+          <>
+            <EditorialTitleAccent>green</EditorialTitleAccent> outcomes
           </>
-        }
+        )}
         lede="Green Goods makes regenerative work easier to support, turning accessible contributions into a trusted public record of how land, water, and community grow healthier together."
         photoCredit="Riverbend Commons — Hudson Valley, NY"
         actions={
@@ -90,6 +146,31 @@ export const Home: Story = {
   ),
 };
 
+/**
+ * A phone held sideways is shorter than the home card. The hero grows so the card starts below
+ * the site header instead of sliding under it.
+ */
+export const HomeOnLandscapePhone: Story = {
+  ...Home,
+  tags: ["storybook-ci"],
+  globals: { viewport: { value: "landscapePhone" } },
+  play: async ({ canvasElement }) => {
+    const title = canvasElement.querySelector("#story-home-title")!;
+    const card = title.parentElement!;
+    const hero = title.closest("section")!;
+    await waitFor(() => {
+      expect(window.innerWidth).toBe(844);
+      expect(window.innerHeight).toBe(390);
+      const heroBox = hero.getBoundingClientRect();
+      const cardBox = card.getBoundingClientRect();
+      // 104px is the 64px site header plus the rail's 40px gutter; 96px is the card's foot offset.
+      expect(cardBox.top - heroBox.top).toBeCloseTo(104, 0);
+      expect(heroBox.bottom - cardBox.bottom).toBeCloseTo(96, 0);
+      expect(heroBox.height).toBeGreaterThan(window.innerHeight);
+    });
+  },
+};
+
 export const Gardens: Story = {
   render: () => (
     <>
@@ -98,7 +179,13 @@ export const Gardens: Story = {
         imageFallbackSrc={HERO_FALLBACK}
         imageAlt=""
         titleId="story-gardens-title"
-        title="Explore the Gardens growing the public record."
+        title={titleLines(
+          "Explore the",
+          <>
+            <EditorialTitleAccent>Gardens</EditorialTitleAccent> growing
+          </>,
+          "the public record"
+        )}
         lede="Each Garden is a real place where communities document regenerative Work, gather evidence, and make support visible."
         actions={
           <>
@@ -120,7 +207,11 @@ export const Impact: Story = {
         imageFallbackSrc={HERO_FALLBACK}
         imageAlt=""
         titleId="story-impact-title"
-        title="See how Garden work becomes evidence."
+        title={titleLines(
+          "See how Garden",
+          "work becomes",
+          <EditorialTitleAccent>evidence</EditorialTitleAccent>
+        )}
         lede="Green Goods turns documented regenerative work into public evidence through Assessments and, when ready, Impact Certificates."
         photoCredit="Vol. 01 — A living public record"
       />
@@ -137,7 +228,13 @@ export const Fund: Story = {
         imageFallbackSrc={HERO_FALLBACK}
         imageAlt=""
         titleId="story-fund-title"
-        title="A small gesture today, growing over many seasons."
+        title={titleLines(
+          "A small gesture,",
+          <>
+            <EditorialTitleAccent>growing</EditorialTitleAccent> over
+          </>,
+          "many seasons"
+        )}
         lede="Direct support reaches a Garden's Cookie Jar. Quiet endowment places support into a Vault designed so yield helps the Garden over time."
         disclaimer="Funding supports the Garden directly. It is not tax-deductible, charitable, or nonprofit-backed unless separately configured."
       />
@@ -154,12 +251,65 @@ export const Actions: Story = {
         imageFallbackSrc={HERO_FALLBACK}
         imageAlt=""
         titleId="story-actions-title"
-        title="A field guide for regenerative work."
+        title={titleLines(
+          "A field guide for",
+          <EditorialTitleAccent>regenerative</EditorialTitleAccent>,
+          <EditorialTitleAccent>work</EditorialTitleAccent>
+        )}
         lede="Actions are the templates Gardens use to document work across solar, agroforestry, education, and waste."
       />
       <NextSection>The four domains.</NextSection>
     </>
   ),
+};
+
+/** The banner as the Gardens page mounts it: a shorter image, with the card spilling past its foot. */
+export const Banner: Story = {
+  render: () => (
+    <>
+      <PublicEditorialHero
+        variant="banner"
+        imageSrc={HERO_IMG}
+        imageFallbackSrc={HERO_FALLBACK}
+        imageAlt=""
+        titleId="story-banner-title"
+        title={titleLines(
+          "Explore the",
+          <>
+            <EditorialTitleAccent>Gardens</EditorialTitleAccent> growing
+          </>,
+          "the public record"
+        )}
+        lede="Each Garden is a real place where a community documents regenerative work across solar, agroforestry, education, and waste. Anyone can read the record they build."
+      />
+      <NextSection afterBanner>Browse the living archive.</NextSection>
+    </>
+  ),
+};
+
+/**
+ * On a narrow phone the same card is taller than the banner's image allows. The image grows so
+ * the card starts below the site header instead of climbing under it.
+ */
+export const BannerOnNarrowPhone: Story = {
+  ...Banner,
+  tags: ["storybook-ci"],
+  globals: { viewport: { value: "narrowPhone" } },
+  play: async ({ canvasElement }) => {
+    const title = canvasElement.querySelector("#story-banner-title")!;
+    const card = title.parentElement!;
+    const hero = title.closest("section")!;
+    await waitFor(() => {
+      expect(window.innerWidth).toBe(320);
+      const heroBox = hero.getBoundingClientRect();
+      const cardBox = card.getBoundingClientRect();
+      // 88px is the 64px site header plus the rail's 24px gutter; 64px is the card's spill.
+      expect(cardBox.top - heroBox.top).toBeCloseTo(88, 0);
+      expect(cardBox.bottom - heroBox.bottom).toBeCloseTo(64, 0);
+      // The image is 340px where the card fits. Here it has grown to hold the card.
+      expect(heroBox.height).toBeGreaterThan(340);
+    });
+  },
 };
 
 export const FallbackImage: Story = {

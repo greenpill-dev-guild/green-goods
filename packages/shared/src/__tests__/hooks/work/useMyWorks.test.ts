@@ -1,17 +1,18 @@
 /**
  * useMyWorks Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the user works query hook including online fetching,
  * offline merging, deduplication, time filtering, and pagination.
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import type { QueryClient } from "@tanstack/react-query";
+import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-
+import type { Work } from "../../../types/domain";
 import { createMockWork, MOCK_ADDRESSES } from "../../test-utils/mock-factories";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 // ============================================
 // Mocks
@@ -23,30 +24,38 @@ vi.mock("../../../modules/data/eas", () => ({
 }));
 
 const mockFetchOfflineWorks = vi.fn();
+vi.mock("../../../hooks/work/useQueuedWorkPreviews", () => ({
+  useQueuedWorkPreviews: () => new Map(),
+}));
 vi.mock("../../../utils/work/offline", () => ({
   fetchOfflineWorks: (...args: unknown[]) => mockFetchOfflineWorks(...args),
 }));
 
-const mockDeduplicateById = vi.fn((works: any[]) => works);
-const mockMergeAndDeduplicateByClientId = vi.fn((online: any[], offline: any[]) => [
+const mockDeduplicateById = vi.fn((works: Work[]) => works);
+const mockMergeAndDeduplicateByClientId = vi.fn((online: Work[], offline: Work[]) => [
   ...online,
   ...offline,
 ]);
 vi.mock("../../../utils/work/deduplication", () => ({
-  deduplicateById: (...args: unknown[]) => mockDeduplicateById(...args),
-  mergeAndDeduplicateByClientId: (...args: unknown[]) => mockMergeAndDeduplicateByClientId(...args),
+  deduplicateById: (works: Work[]) => mockDeduplicateById(works),
+  mergeAndDeduplicateByClientId: (online: Work[], offline: Work[]) =>
+    mockMergeAndDeduplicateByClientId(online, offline),
 }));
 
-const mockFilterByTimeRange = vi.fn((works: any[]) => works);
-const mockSortByCreatedAt = vi.fn((works: any[]) =>
-  [...works].sort((a: any, b: any) => b.createdAt - a.createdAt)
+const mockFilterByTimeRange = vi.fn((works: Work[], _filter?: unknown) => works);
+const mockSortByCreatedAt = vi.fn((works: Work[]) =>
+  [...works].sort((a, b) => b.createdAt - a.createdAt)
 );
 vi.mock("../../../utils/time", () => ({
-  filterByTimeRange: (...args: unknown[]) => mockFilterByTimeRange(...args),
-  sortByCreatedAt: (...args: unknown[]) => mockSortByCreatedAt(...args),
+  filterByTimeRange: (works: Work[], filter: unknown) => mockFilterByTimeRange(works, filter),
+  sortByCreatedAt: (works: Work[]) => mockSortByCreatedAt(works),
 }));
 
 vi.mock("../../../config/blockchain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
+vi.mock("../../../config/default-chain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
 
@@ -67,21 +76,6 @@ import { useMyOnlineWorks, useMyWorks } from "../../../hooks/work/useMyWorks";
 // Test helpers
 // ============================================
 
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-}
-
-function createQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
-    },
-  });
-}
-
 // ============================================
 // Tests
 // ============================================
@@ -91,7 +85,16 @@ describe("useMyWorks", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = createQueryClient();
+    mockDeduplicateById.mockImplementation((works) => works);
+    mockMergeAndDeduplicateByClientId.mockImplementation((online, offline) => [
+      ...online,
+      ...offline,
+    ]);
+    mockFilterByTimeRange.mockImplementation((works) => works);
+    mockSortByCreatedAt.mockImplementation((works) =>
+      [...works].sort((a, b) => b.createdAt - a.createdAt)
+    );
+    queryClient = createTestQueryClient();
     mockUser = { id: MOCK_ADDRESSES.user, address: MOCK_ADDRESSES.user };
     mockGetWorksByGardener.mockResolvedValue([]);
     mockFetchOfflineWorks.mockResolvedValue([]);
@@ -109,8 +112,8 @@ describe("useMyWorks", () => {
       ];
       mockGetWorksByGardener.mockResolvedValue(works);
 
-      const { result } = renderHook(() => useMyWorks(), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useMyWorks(), {
+        queryClient,
       });
 
       await waitFor(() => {
@@ -124,8 +127,8 @@ describe("useMyWorks", () => {
     it("returns empty array when no works exist", async () => {
       mockGetWorksByGardener.mockResolvedValue([]);
 
-      const { result } = renderHook(() => useMyWorks(), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useMyWorks(), {
+        queryClient,
       });
 
       await waitFor(() => {
@@ -138,8 +141,8 @@ describe("useMyWorks", () => {
     it("does not fetch when user is not authenticated", async () => {
       mockUser = null;
 
-      const { result } = renderHook(() => useMyWorks(), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useMyWorks(), {
+        queryClient,
       });
 
       // Query should be disabled
@@ -163,8 +166,8 @@ describe("useMyWorks", () => {
       ];
       mockGetWorksByGardener.mockResolvedValue(works);
 
-      const { result } = renderHook(() => useMyWorks(), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useMyWorks(), {
+        queryClient,
       });
 
       await waitFor(() => {
@@ -183,8 +186,8 @@ describe("useMyWorks", () => {
     it("does not fetch offline works by default", async () => {
       mockGetWorksByGardener.mockResolvedValue([]);
 
-      const { result } = renderHook(() => useMyWorks(), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useMyWorks(), {
+        queryClient,
       });
 
       await waitFor(() => {
@@ -203,16 +206,20 @@ describe("useMyWorks", () => {
       mockDeduplicateById.mockReturnValue(onlineWorks);
       mockMergeAndDeduplicateByClientId.mockReturnValue([...onlineWorks, ...offlineWorks]);
 
-      const { result } = renderHook(() => useMyWorks({ includeOffline: true }), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useMyWorks({ includeOffline: true }), {
+        queryClient,
       });
 
       await waitFor(() => {
         expect(result.current.isSuccess).toBe(true);
       });
 
-      expect(mockFetchOfflineWorks).toHaveBeenCalledWith(MOCK_ADDRESSES.user);
-      expect(mockMergeAndDeduplicateByClientId).toHaveBeenCalledWith(onlineWorks, offlineWorks);
+      expect(mockFetchOfflineWorks).toHaveBeenCalledWith(MOCK_ADDRESSES.user, undefined, 11155111, {
+        includeMedia: false,
+      });
+      await waitFor(() =>
+        expect(mockMergeAndDeduplicateByClientId).toHaveBeenCalledWith(onlineWorks, offlineWorks)
+      );
     });
 
     it("returns offline queued works when online fetch fails and includeOffline is true", async () => {
@@ -222,16 +229,20 @@ describe("useMyWorks", () => {
       mockDeduplicateById.mockReturnValue([]);
       mockMergeAndDeduplicateByClientId.mockReturnValue(offlineWorks);
 
-      const { result } = renderHook(() => useMyWorks({ includeOffline: true }), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useMyWorks({ includeOffline: true }), {
+        queryClient,
       });
 
       await waitFor(() => {
         expect(result.current.isSuccess).toBe(true);
       });
 
-      expect(mockFetchOfflineWorks).toHaveBeenCalledWith(MOCK_ADDRESSES.user);
-      expect(mockMergeAndDeduplicateByClientId).toHaveBeenCalledWith([], offlineWorks);
+      expect(mockFetchOfflineWorks).toHaveBeenCalledWith(MOCK_ADDRESSES.user, undefined, 11155111, {
+        includeMedia: false,
+      });
+      await waitFor(() =>
+        expect(mockMergeAndDeduplicateByClientId).toHaveBeenCalledWith([], offlineWorks)
+      );
       expect(result.current.data).toEqual(offlineWorks);
     });
   });
@@ -241,11 +252,45 @@ describe("useMyWorks", () => {
   // ------------------------------------------
 
   describe("time filtering", () => {
+    it.each([
+      true,
+      false,
+    ])("retains submitted reads on failure and rebuilds local jobs (queued: %s)", async (hasQueuedWork) => {
+      const submitted = createMockWork({ id: "submitted", status: "pending" });
+      const oldJob = createMockWork({ id: "deleted-job", status: "syncing" });
+      const newJob = createMockWork({ id: "new-job", status: "sync_failed" });
+      mockDeduplicateById.mockImplementation((works) => works);
+      mockMergeAndDeduplicateByClientId.mockImplementation((online, offline) => [
+        ...online,
+        ...offline,
+      ]);
+      mockGetWorksByGardener.mockResolvedValue([submitted]);
+      mockFetchOfflineWorks.mockResolvedValue([oldJob]);
+      const { result } = renderHookWithQueryClient(() => useMyWorks({ includeOffline: true }), {
+        queryClient,
+      });
+      await waitFor(() =>
+        expect(result.current.data?.map((work) => work.id)).toContain("submitted")
+      );
+      mockGetWorksByGardener.mockRejectedValue(new Error("offline"));
+      mockFetchOfflineWorks.mockResolvedValue(hasQueuedWork ? [newJob] : []);
+      await result.current.refetch();
+      await waitFor(() =>
+        expect(result.current.data?.map((work) => work.id).sort()).toEqual(
+          hasQueuedWork ? ["new-job", "submitted"] : ["submitted"]
+        )
+      );
+      mockGetWorksByGardener.mockResolvedValue([createMockWork({ id: "fresh" })]);
+      await result.current.refetch();
+      await waitFor(() => expect(result.current.data?.map((work) => work.id)).toContain("fresh"));
+      expect(result.current.data?.map((work) => work.id)).not.toContain("submitted");
+    });
+
     it("does not filter by time when timeFilter is not provided", async () => {
       mockGetWorksByGardener.mockResolvedValue([createMockWork()]);
 
-      const { result } = renderHook(() => useMyWorks(), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useMyWorks(), {
+        queryClient,
       });
 
       await waitFor(() => {
@@ -260,9 +305,12 @@ describe("useMyWorks", () => {
       mockGetWorksByGardener.mockResolvedValue(works);
       mockDeduplicateById.mockReturnValue(works);
 
-      const { result } = renderHook(() => useMyWorks({ timeFilter: "week" as any }), {
-        wrapper: createWrapper(queryClient),
-      });
+      const { result } = renderHookWithQueryClient(
+        () => useMyWorks({ timeFilter: "week" as any }),
+        {
+          queryClient,
+        }
+      );
 
       await waitFor(() => {
         expect(result.current.isSuccess).toBe(true);
@@ -285,8 +333,8 @@ describe("useMyWorks", () => {
       mockGetWorksByGardener.mockResolvedValue(works);
       mockDeduplicateById.mockReturnValue(works);
 
-      const { result } = renderHook(() => useMyWorks(), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useMyWorks(), {
+        queryClient,
       });
 
       await waitFor(() => {
@@ -304,8 +352,8 @@ describe("useMyWorks", () => {
       mockDeduplicateById.mockReturnValue(manyWorks);
       mockSortByCreatedAt.mockReturnValue(manyWorks);
 
-      const { result } = renderHook(() => useMyWorks(), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useMyWorks(), {
+        queryClient,
       });
 
       await waitFor(() => {
@@ -323,8 +371,8 @@ describe("useMyWorks", () => {
       mockDeduplicateById.mockReturnValue(works);
       mockSortByCreatedAt.mockReturnValue(works);
 
-      const { result } = renderHook(() => useMyWorks({ limit: 5 }), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useMyWorks({ limit: 5 }), {
+        queryClient,
       });
 
       await waitFor(() => {
@@ -343,8 +391,8 @@ describe("useMyWorks", () => {
     it("uses DEFAULT_CHAIN_ID by default", async () => {
       mockGetWorksByGardener.mockResolvedValue([]);
 
-      const { result } = renderHook(() => useMyWorks(), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useMyWorks(), {
+        queryClient,
       });
 
       await waitFor(() => {
@@ -357,8 +405,8 @@ describe("useMyWorks", () => {
     it("uses custom chain ID when provided", async () => {
       mockGetWorksByGardener.mockResolvedValue([]);
 
-      const { result } = renderHook(() => useMyWorks({ chainId: 42161 }), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useMyWorks({ chainId: 42161 }), {
+        queryClient,
       });
 
       await waitFor(() => {
@@ -377,8 +425,8 @@ describe("useMyWorks", () => {
     it("propagates query errors when offline works are not included", async () => {
       mockGetWorksByGardener.mockRejectedValue(new Error("Network error"));
 
-      const { result } = renderHook(() => useMyWorks(), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useMyWorks(), {
+        queryClient,
       });
 
       await waitFor(() => {
@@ -393,15 +441,17 @@ describe("useMyWorks", () => {
       mockGetWorksByGardener.mockRejectedValue(new Error("Indexer unavailable"));
       mockFetchOfflineWorks.mockResolvedValue([]);
 
-      const { result } = renderHook(() => useMyWorks({ includeOffline: true }), {
-        wrapper: createWrapper(queryClient),
+      const { result } = renderHookWithQueryClient(() => useMyWorks({ includeOffline: true }), {
+        queryClient,
       });
 
       await waitFor(() => {
         expect(result.current.isError).toBe(true);
       });
 
-      expect(mockFetchOfflineWorks).toHaveBeenCalledWith(MOCK_ADDRESSES.user);
+      expect(mockFetchOfflineWorks).toHaveBeenCalledWith(MOCK_ADDRESSES.user, undefined, 11155111, {
+        includeMedia: false,
+      });
       expect(result.current.error?.message).toBe("Indexer unavailable");
     });
   });
@@ -416,7 +466,7 @@ describe("useMyOnlineWorks", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = createQueryClient();
+    queryClient = createTestQueryClient();
     mockUser = { id: MOCK_ADDRESSES.user, address: MOCK_ADDRESSES.user };
     mockGetWorksByGardener.mockResolvedValue([]);
     mockFetchOfflineWorks.mockResolvedValue([]);
@@ -425,8 +475,8 @@ describe("useMyOnlineWorks", () => {
   it("never fetches offline works", async () => {
     mockGetWorksByGardener.mockResolvedValue([]);
 
-    const { result } = renderHook(() => useMyOnlineWorks(), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useMyOnlineWorks(), {
+      queryClient,
     });
 
     await waitFor(() => {
@@ -439,8 +489,8 @@ describe("useMyOnlineWorks", () => {
   it("passes through other options", async () => {
     mockGetWorksByGardener.mockResolvedValue([]);
 
-    const { result } = renderHook(() => useMyOnlineWorks({ chainId: 42220 }), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useMyOnlineWorks({ chainId: 42220 }), {
+      queryClient,
     });
 
     await waitFor(() => {
@@ -449,19 +499,4 @@ describe("useMyOnlineWorks", () => {
 
     expect(mockGetWorksByGardener).toHaveBeenCalledWith(MOCK_ADDRESSES.user, 42220);
   });
-
-  function createQueryClient() {
-    return new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
-      },
-    });
-  }
-
-  function createWrapper(queryClient: QueryClient) {
-    return function Wrapper({ children }: { children: ReactNode }) {
-      return createElement(QueryClientProvider, { client: queryClient }, children);
-    };
-  }
 });

@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { DEFAULT_CHAIN_ID, queryKeys, type Action } from "@green-goods/shared";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
+import type { Action } from "@green-goods/shared/types/domain";
 import { expect, within } from "storybook/test";
 import {
   STORYBOOK_ADMIN_ACTIONS,
@@ -96,7 +98,7 @@ export const RouteBackedDetail: Story = {
 };
 
 export const RouteBackedCreate: Story = {
-  // Not in storybook-ci: brittle in the clean-room browser — the "Create action" heading
+  // Not in storybook-ci: brittle in the clean-room browser — the "Create Action" heading
   // is present but races the AdminDialog mount and reads as not-yet-visible on desktop
   // (the mobile variant passes). Kept for local Storybook review; re-tag once the play
   // waits for dialog visibility.
@@ -109,7 +111,7 @@ export const RouteBackedCreate: Story = {
     await expect(
       await within(inspector).findByRole(
         "heading",
-        { name: "Create action" },
+        { name: "Create Action" },
         ADMIN_ROUTE_STORY_QUERY_OPTIONS
       )
     ).toBeVisible();
@@ -122,10 +124,10 @@ export const RouteBackedCreateMobile: Story = {
   decorators: actionsDescriptorDecorators(),
   parameters: {
     viewport: {
-      defaultViewport: "adminMobile390x844",
-      viewports: ADMIN_MOBILE_390_VIEWPORT,
+      options: ADMIN_MOBILE_390_VIEWPORT,
     },
   },
+  globals: { viewport: { value: "adminMobile390x844" } },
   play: async ({ canvasElement: _canvasElement }) => {
     // On mobile the AdminDialog presents as a bottom sheet (built into the
     // dialog), still portaled to document.body with role="dialog".
@@ -134,11 +136,11 @@ export const RouteBackedCreateMobile: Story = {
     await expect(inspector).toHaveAttribute("data-component", "AdminDialog");
     await expect(inspector).toHaveAttribute("data-mobile", "sheet");
     // The reworked CreateAction flow titles both the dialog chrome and its first
-    // step "Create action", so scope to the first match rather than asserting a
+    // step "Create Action", so scope to the first match rather than asserting a
     // single heading (see the RouteBackedEdit note on scoping the query).
     const [createHeading] = await within(inspector).findAllByRole(
       "heading",
-      { name: "Create action" },
+      { name: "Create Action" },
       ADMIN_ROUTE_STORY_QUERY_OPTIONS
     );
     await expect(createHeading).toBeVisible();

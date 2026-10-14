@@ -1,75 +1,75 @@
 ---
-title: Agent Package
+title: Agent
 sidebar_label: Agent
 slug: /builders/packages/agent
 audience: developer
 owner: docs
-last_verified: 2026-04-19
+last_verified: 2026-10-11
 feature_status: Live
 source_of_truth:
   - packages/agent/AGENTS.md
   - packages/agent/package.json
-  - packages/agent/src/index.ts
-  - packages/agent/README.md
+keywords:
+  - bots
+  - webhooks
+  - api
 ---
 
-import {NextBestAction, StatusBadge} from "@site/src/components/docs";
+# Agent
 
-# Agent Package
+`packages/agent` is the bot and webhook service: it receives inbound platform messages, routes
+them through handlers, and serves the public HTTP API. It's how people interact with Green Goods
+from messaging platforms without installing anything, and how external systems read public garden
+data.
 
-<StatusBadge status="Live" />
+## Inside `src`
 
-```mermaid
-sequenceDiagram
-    participant G as Gardener
-    participant TG as Telegram
-    participant Bot as Agent Bot<br/>(Hono + Telegraf)
-    participant Chain as Blockchain
-    participant IPFS as Pinata-backed IPFS
+`index.ts` boots the runtime, which starts the platform adapters and the HTTP API in order and
+drains them on shutdown. A message arrives through a platform adapter, is matched to a handler,
+and the handler talks to the services; the API routes read the same services for public data.
 
-    G->>TG: /submit work
-    TG->>Bot: Webhook
-    Bot->>IPFS: Upload media
-    IPFS-->>Bot: CID
-    Bot->>Chain: Create attestation
-    Chain-->>Bot: TX receipt
-    Bot->>TG: Confirmation
-    TG->>G: Work submitted
-```
+| Directory | What lives there |
+|---|---|
+| `src/index.ts` | The entry point: starts the Telegram bot and the HTTP API |
+| `src/runtime/` | Startup and shutdown wiring, with the reporting that says what came up and what did not |
+| `src/handlers/` | Inbound message and command handlers, such as start, join, submit, and approve |
+| `src/platforms/` | Messaging platform adapters (Telegram today) |
+| `src/api/` | The HTTP routes, public and authenticated, including funding; the [API Index](./api-index) inventories every public one |
+| `src/services/` | Service dependencies behind stable helper APIs: the database, reporting, and the protocol clients |
+| `src/config.ts`, `src/i18n.ts`, `src/types.ts` | Configuration, message translations, and the shared types the handlers speak |
+| `src/__tests__/` | Vitest suites for handlers, adapters, and services |
 
-## Overview
-
-Bot, webhook, and limited public API service for Green Goods. The current package centers on Telegram, Hono, AI-assisted media/text handling, rate limiting, upload signing, persistence, analytics, and blockchain initialization paths.
-
-### Current capabilities
-
-- Telegram bot startup and webhook handling through the package entrypoint.
-- Hono HTTP server support around the bot runtime, public browser APIs, and upload signing.
-- AI-assisted transcription/photo/text processing paths.
-- Rate limiting, database integration, analytics, and structured logging.
-- Blockchain service initialization for Green Goods transaction flows.
-
-## What to expect
-
-- Keep platform claims tied to implemented handlers in this package.
-- Keep analytics privacy boundaries aligned with the package README.
-- Validate agent changes through package tests before claiming bot behavior is live.
-
-## Commands
+## Run and test
 
 ```bash
-cd packages/agent
-bun run test
-bun run build
+bun run --cwd packages/agent test
+bun run --cwd packages/agent typecheck
 ```
 
-<NextBestAction
-  title="Next best action"
-  why="The agent package depends on deployment artifacts and shared data paths for on-chain work."
-  actionLabel="Open API index"
-  actionHref="./api-index"
-  alternatives={[
-    {label: "Agent deploy", href: "../deployments/agent-deploy"},
-    {label: "MCP guide", href: "../agentic/mcp-guide"},
-  ]}
-/>
+Response-shape changes ripple through platform adapters quickly, so run both whenever handlers,
+adapters, or service contracts move. `bun run --cwd packages/agent test --scope unit --coverage` backs
+security-sensitive changes.
+
+## How it connects
+
+The agent is a server, so it doesn't use shared's React hooks. It imports shared's plain modules
+instead: the public API contracts, types, chain config, and a few protocol helpers. It's also the
+one surface that manages wallets on behalf of users, so its security posture is stricter than the
+rest.
+
+## Conventions that will bite you
+
+- Never store plaintext private keys. Key material flows only through the crypto helpers, and the
+  database service is the single persistence boundary: keys are encrypted before insert and
+  decrypted on read.
+- Logs may carry platform ids, addresses, and transaction hashes, never raw key material.
+- Externally triggered actions are rate-limited, and user-facing failures stay generic; internal
+  error detail never leaks to users.
+- Keep handlers pure where possible and inject the dependencies that need mocking.
+
+## Go deeper
+
+- [`packages/agent/AGENTS.md`](https://github.com/greenpill-dev-guild/green-goods/blob/develop/packages/agent/AGENTS.md)
+  is the full package contract, including the key-material flow.
+- [API Index](./api-index) lists every public route the agent registers, with its methods, the
+  Shared constant that names its path where one exists, and the file that registers it.

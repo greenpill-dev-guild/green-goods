@@ -5,7 +5,11 @@
  * the user's garden-level roles, aggregated across all managed
  * gardens or scoped to the selected garden.
  *
- * Fail-open: while loading or on error, all slots are visible.
+ * Fail-open: while loading or on error, the navigation slots stay visible.
+ * `isLoading` is true only while role and garden data are pending, so a route
+ * guard that waits on it never stalls on a terminal state (no address, failed
+ * list). `showCommunity` also authorizes the Community routes, so a terminal
+ * state denies it rather than failing open.
  */
 
 import { useMemo } from "react";
@@ -23,13 +27,12 @@ export interface ToolbarPermissions {
   isLoading: boolean;
 }
 
-const FAIL_OPEN: ToolbarPermissions = {
+const FAIL_OPEN = {
   showWork: true,
   showGarden: true,
   showCommunity: true,
   showActions: true,
-  isLoading: true,
-};
+} satisfies Omit<ToolbarPermissions, "isLoading">;
 
 export function useEffectiveToolbarPermissions(): ToolbarPermissions {
   const address = usePrimaryAddress();
@@ -42,13 +45,12 @@ export function useEffectiveToolbarPermissions(): ToolbarPermissions {
   } = useEligibleAdminGardens();
 
   return useMemo(() => {
-    // Fail-open while loading or on error (gardens data undefined)
-    if (roleLoading || !eligibleGardensLoaded || !address) {
-      return FAIL_OPEN;
+    if (roleLoading || !eligibleGardensLoaded) {
+      return { ...FAIL_OPEN, isLoading: true };
     }
 
-    if (eligibleGardensError && eligibleGardens.length === 0) {
-      return FAIL_OPEN;
+    if (!address || (eligibleGardensError && eligibleGardens.length === 0)) {
+      return { ...FAIL_OPEN, showCommunity: false, isLoading: false };
     }
 
     // Determine which gardens to check
@@ -58,36 +60,36 @@ export function useEffectiveToolbarPermissions(): ToolbarPermissions {
 
     // Compute aggregated roles across the scope
     let hasAnyRole = false;
-    let isOperatorOrOwner = false;
-    let isOwner = false;
+    let isStewardOrOwner = false;
+    let isEvaluator = false;
 
     for (const garden of scope) {
-      const inOperators = isAddressInList(address, garden.operators);
+      const inStewards = isAddressInList(address, garden.stewards);
       const inGardeners = isAddressInList(address, garden.gardeners);
       const inOwners = isAddressInList(address, garden.owners);
       const inEvaluators = isAddressInList(address, garden.evaluators);
       const inFunders = isAddressInList(address, garden.funders);
       const inCommunities = isAddressInList(address, garden.communities);
 
-      if (inOperators || inGardeners || inOwners || inEvaluators || inFunders || inCommunities) {
+      if (inStewards || inGardeners || inOwners || inEvaluators || inFunders || inCommunities) {
         hasAnyRole = true;
       }
 
-      if (inOperators || inOwners) {
-        isOperatorOrOwner = true;
+      if (inStewards || inOwners) {
+        isStewardOrOwner = true;
       }
-      if (inOwners) {
-        isOwner = true;
+      if (inEvaluators) {
+        isEvaluator = true;
       }
     }
 
     return {
       showWork: hasAnyRole,
-      showGarden: isOperatorOrOwner,
-      // Operators participate in Community: they manage roles, deposits, and
+      showGarden: isStewardOrOwner || isEvaluator,
+      // Stewards participate in Community: they manage roles, deposits, and
       // payouts. Gating to deployer-or-owner only hid that surface from people
       // who do most of the day-to-day work.
-      showCommunity: isDeployer || isOperatorOrOwner,
+      showCommunity: isDeployer || isStewardOrOwner,
       showActions: isDeployer,
       isLoading: false,
     };

@@ -12,6 +12,12 @@ import { http } from "viem";
 import { createWebAuthnCredential, type P256Credential } from "viem/account-abstraction";
 import { logger } from "../modules/app/logger";
 import { setStoredCredential, setStoredRpId } from "../modules/auth/session";
+import { PUBLIC_AGENT_ROUTES } from "../public-contracts/routes";
+import {
+  normalizePasskeyName,
+  PASSKEY_RP_ID,
+  PASSKEY_RP_NAME,
+} from "../public-contracts/passkey-directory";
 import { getPimlicoBundlerUrl } from "./pimlico";
 
 // ============================================================================
@@ -19,32 +25,51 @@ import { getPimlicoBundlerUrl } from "./pimlico";
 // ============================================================================
 
 /**
- * Fixed RP ID for passkey operations.
+ * The domain (RP ID) a passkey is created under decides where it can be used: a browser offers
+ * it only for that exact domain, on that domain's own pages and its subdomains. Every later
+ * sign-in and signature must name the same domain; Android's Credential Manager is strict
+ * about it.
  *
- * CRITICAL FOR ANDROID: The RP ID MUST be identical between registration and
- * authentication. Android's Credential Manager is very strict about this.
- *
- * Using the apex domain (greengoods.app) allows passkeys to work on:
- * - greengoods.app
- * - www.greengoods.app
- * - Any subdomain of greengoods.app
+ * `PASSKEY_RP_ID` is the domain every Green Goods site shares. The app chooses it only where it
+ * runs the ceremony itself. When a passkey server issues the options, that server names the
+ * domain: the Green Goods passkey directory issues the shared domain to every site, while the
+ * hosted Pimlico server issues each site its own hostname.
  */
-export const PASSKEY_RP_ID = "greengoods.app";
-export const PASSKEY_RP_NAME = "Green Goods";
+export { PASSKEY_RP_ID, PASSKEY_RP_NAME };
 
 type PasskeyServerEnv = {
   DEV?: boolean;
   PROD?: boolean;
   VITE_PASSKEY_SERVER_ENABLED?: string;
   VITE_PASSKEY_RP_ID?: string;
+  VITE_API_BASE_URL?: string;
 };
 
-export function isPasskeyServerEnabled(env: PasskeyServerEnv = import.meta.env): boolean {
+/**
+ * The keys this file reads, each by name. Vite pastes the whole env object into the bundle
+ * wherever `import.meta.env` is read whole, and inlines one value where a key is named.
+ */
+function readPasskeyServerEnv(): PasskeyServerEnv {
+  return {
+    DEV: import.meta.env.DEV,
+    PROD: import.meta.env.PROD,
+    VITE_PASSKEY_SERVER_ENABLED: import.meta.env.VITE_PASSKEY_SERVER_ENABLED,
+    VITE_PASSKEY_RP_ID: import.meta.env.VITE_PASSKEY_RP_ID,
+    VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
+  };
+}
+
+/**
+ * Deployed sites always use the directory. Local development can opt into the local agent
+ * with the existing server flag; otherwise its passkeys remain local-only.
+ */
+export function isPasskeyServerEnabled(env: PasskeyServerEnv = readPasskeyServerEnv()): boolean {
+  if (env.PROD) return true;
   const configured = env.VITE_PASSKEY_SERVER_ENABLED?.trim().toLowerCase();
   if (configured === "true") return true;
   if (configured === "false") return false;
 
-  return Boolean(env.PROD);
+  return false;
 }
 
 export type PasskeyRecoveryContext = {
@@ -52,7 +77,7 @@ export type PasskeyRecoveryContext = {
 };
 
 export function normalizePasskeyAccountIdentifier(identifier: string): string {
-  return identifier.trim().replace(/^@+/, "").toLowerCase();
+  return normalizePasskeyName(identifier);
 }
 
 export function buildPasskeyRecoveryContext(identifier: string): PasskeyRecoveryContext {
@@ -63,9 +88,37 @@ export function buildPasskeyRecoveryContext(identifier: string): PasskeyRecovery
   return { userName };
 }
 
+/** The hosted Pimlico passkey server. It holds the accounts made before the directory. */
 export function createPasskeyServerClient(chainId: number) {
   return createPermissionlessPasskeyServerClient({
     transport: http(getPimlicoBundlerUrl(chainId)),
+  });
+}
+
+/**
+ * Every sign-in by name asks the directory before the hosted server, so a directory that does
+ * not answer must not hold older accounts up for long. The directory itself waits at most four
+ * seconds on the hosted name list.
+ *
+ * The one retry covers lookups and the start of a sign-up. The passkey client sends the
+ * registration itself (`pks_verifyRegistration`) once whatever the transport allows, which the
+ * directory relies on: a registration answers one challenge, and a second copy would be refused
+ * after the first had already been stored.
+ */
+const DIRECTORY_TIMEOUT_MS = 6_000;
+
+/**
+ * The directory uses the same agent API address as other Green Goods features. There is no
+ * separate rollout URL. Local-only development does not create a server client.
+ */
+export function createPasskeyDirectoryClient(env: PasskeyServerEnv = readPasskeyServerEnv()) {
+  if (!isPasskeyServerEnabled(env)) return null;
+  const baseUrl =
+    env.VITE_API_BASE_URL?.trim() ||
+    (env.DEV ? "http://127.0.0.1:3005" : "https://agent.greengoods.app");
+  const url = `${baseUrl.replace(/\/$/, "")}${PUBLIC_AGENT_ROUTES.passkeyDirectory}`;
+  return createPermissionlessPasskeyServerClient({
+    transport: http(url, { timeout: DIRECTORY_TIMEOUT_MS, retryCount: 1 }),
   });
 }
 
@@ -96,7 +149,7 @@ type PasskeyCeremonyContextOptions = {
 export function classifyPasskeyCeremonyContext(
   options: PasskeyCeremonyContextOptions = {}
 ): PasskeyCeremonyContextStatus {
-  const env = options.env ?? import.meta.env;
+  const env = options.env ?? readPasskeyServerEnv();
   const location =
     options.location ?? (typeof window !== "undefined" ? window.location : undefined);
   const rpId = getPasskeyRpId(env, location);
@@ -156,12 +209,13 @@ export function classifyPasskeyCeremonyContext(
  * Falls back to hostname only in development when on localhost.
  */
 export function getPasskeyRpId(
-  env: PasskeyServerEnv = import.meta.env,
+  env: PasskeyServerEnv = readPasskeyServerEnv(),
   location?: Pick<Location, "hostname">
 ): string {
-  // Allow override via env var for development/staging
+  // Deployed sites share the apex domain even if a retired staging override remains set.
+  // Stored legacy credentials retain their original RP in the session/sign-in adapters.
   const envRpId = env.VITE_PASSKEY_RP_ID?.trim().toLowerCase();
-  if (envRpId) {
+  if (env.DEV && envRpId) {
     return envRpId;
   }
 

@@ -265,7 +265,7 @@ export async function getMinPrice(
 }
 
 /**
- * Get all orders registered by a seller (operator).
+ * Get all orders registered by a seller (steward).
  * Reads sellerOrderCount, then batch reads sellerOrderId for each index,
  * then batch reads orders for each orderId.
  */

@@ -1,4 +1,5 @@
-import { isRouteSheetRestorable, useSheetOrchestrator } from "@green-goods/shared";
+import { isRouteSheetRestorable } from "@green-goods/shared/hooks/admin-ui/navigation/sheetRegistry";
+import { useSheetOrchestrator } from "@green-goods/shared/hooks/navigation/useSheetOrchestrator";
 import { useEffect, useRef } from "react";
 import { useLocation, useOutlet } from "react-router-dom";
 
@@ -15,6 +16,28 @@ function getViewKey(pathname: string): string {
   return pathname.split("/")[1] ?? "";
 }
 
+function isAbortError(error: unknown): boolean {
+  return (
+    typeof error === "object" && error !== null && "name" in error && error.name === "AbortError"
+  );
+}
+
+async function waitForViewTransition(transition: ViewTransition): Promise<void> {
+  const settle = async (promise: Promise<void>) => {
+    try {
+      await promise;
+    } catch (error) {
+      if (!isAbortError(error)) throw error;
+    }
+  };
+
+  await Promise.all([
+    settle(transition.ready),
+    settle(transition.updateCallbackDone),
+    settle(transition.finished),
+  ]);
+}
+
 export function PageTransition() {
   const location = useLocation();
   const outlet = useOutlet();
@@ -26,6 +49,10 @@ export function PageTransition() {
   // values at the time of the pathname change, not stale closure values.
   const orchestratorRef = useRef(orchestrator);
   orchestratorRef.current = orchestrator;
+  // The arrival reads the query it lands with; a ref keeps a query-only change
+  // from re-running (and cancelling) a transition.
+  const searchRef = useRef(location.search);
+  searchRef.current = location.search;
 
   useEffect(() => {
     const prevPath = prevPathRef.current;
@@ -55,12 +82,18 @@ export function PageTransition() {
         if (isCancelled || transitionTokenRef.current !== transitionToken) return;
         prevPathRef.current = newPath;
         if (isViewChange) {
-          // Every workspace switch lands at the top. The canvas scroll
-          // container persists across outlet swaps, so without this reset it
-          // would retain the previous view's scroll. (Per-view scroll memory
-          // was removed from the workspace controllers — QA: all views should
-          // start at the top on switch.)
-          document.getElementById("main-content")?.scrollTo({ top: 0 });
+          // Every workspace switch lands at the top, or on the element the URL's
+          // `item` names (`data-route-item`), such as Payouts' campaign cookie
+          // jars. The canvas scroll container persists across outlet swaps, so
+          // without this it would retain the previous view's scroll. (Per-view
+          // scroll memory was removed from the workspace controllers — QA: all
+          // views should start at the top on switch.)
+          const item = new URLSearchParams(searchRef.current).get("item");
+          const target = item
+            ? document.querySelector(`[data-route-item="${CSS.escape(item)}"]`)
+            : null;
+          if (target) target.scrollIntoView({ block: "start" });
+          else document.getElementById("main-content")?.scrollTo({ top: 0 });
         }
       };
 
@@ -68,7 +101,10 @@ export function PageTransition() {
       // changes within a view swap instantly for a smoother feel.
       if (isViewChange && document.startViewTransition) {
         const transition = document.startViewTransition(commitRouteArrival);
-        await transition.finished;
+        // Browsers may skip a queued transition when another route change
+        // supersedes it. The route callback has still committed, so finish
+        // arrival bookkeeping while preserving unexpected failures.
+        await waitForViewTransition(transition);
       } else {
         commitRouteArrival();
       }

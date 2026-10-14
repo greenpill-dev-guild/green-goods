@@ -1,0 +1,28 @@
+{
+  "capture": "Authenticated Brave extension, Storybook iframe",
+  "requestedViewportWidthPx": 465,
+  "effectiveIframeViewportWidthPx": 422,
+  "labelsRail": {
+    "clientWidthPx": 261,
+    "scrollWidthPx": 386,
+    "horizontalOverflowPx": 125,
+    "scrollLeftPx": 0,
+    "railRightPx": 341.8,
+    "communityTabRightPx": 466.98
+  },
+  "gardenRailStory": {
+    "clientWidthPx": 229,
+    "scrollWidthPx": 559,
+    "note": "Story-frame measurement; the live /garden/pool route was blocked by the unavailable local mirror."
+  },
+  "commitmentClaims": {
+    "acceptButtonHeightPx": 31.996,
+    "declineButtonHeightPx": 31.996,
+    "requiredTouchTargetPx": 44
+  },
+  "datesOutOfOrderValidation": {
+    "ariaInvalid": "true",
+    "ariaDescribedBy": "_r_2_-supporting",
+    "result": "The previously reported missing aria-describedby did not reproduce in this seeded story."
+  }
+}

@@ -1,0 +1,109 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { RiRefreshLine, RiSearchLine, RiWifiOffLine } from "@remixicon/react";
+import { useIntl } from "react-intl";
+
+import { EmptyState } from "@/components/Communication";
+import { TopNav } from "@/components/Navigation";
+import { FixedBar } from "../FixedBar";
+
+export interface CommitmentDetailShellProps {
+  children: React.ReactNode;
+  onBack: () => void;
+  title?: string;
+  /** A line under the title, drawn by the caller (it may have nothing to say yet). */
+  subtitle?: React.ReactNode;
+  bar?: React.ReactNode;
+}
+
+/**
+ * The frame every cast of the detail screen shares: back, the commitment's
+ * own heading, the body, and the bar when there is one. The top nav and the
+ * bar are fixed to the viewport, as on the work view, so they stay put however
+ * far the body scrolls.
+ */
+export function CommitmentDetailShell({
+  children,
+  onBack,
+  title,
+  subtitle,
+  bar,
+}: CommitmentDetailShellProps) {
+  // TopNav owns the back affordance only; it takes no title of its own, so the
+  // promise names itself in its own heading, whole: the title wraps rather than
+  // cutting off.
+  return (
+    <div className="w-full">
+      <TopNav onBackClick={onBack} overlay />
+      <div className="space-y-4 p-4 pt-20">
+        {title ? (
+          <h1 className="text-lg font-medium leading-7 text-text-strong-950">{title}</h1>
+        ) : null}
+        {title ? subtitle : null}
+        {children}
+      </div>
+      {bar ? <FixedBar>{bar}</FixedBar> : null}
+    </div>
+  );
+}
+
+export type CommitmentDetailStateKind = "unavailable" | "notFound" | "loading" | "error";
+
+/**
+ * The screen before there is a commitment to show. Each cast says its own
+ * thing: a surface that is not ready is not a missing record, and a read that
+ * failed is not an empty one.
+ */
+export function CommitmentDetailState({
+  kind,
+  onBack,
+  onRetry,
+}: {
+  kind: CommitmentDetailStateKind;
+  onBack: () => void;
+  onRetry?: () => void;
+}) {
+  const { formatMessage } = useIntl();
+  return (
+    <CommitmentDetailShell onBack={onBack}>
+      {kind === "unavailable" ? (
+        <EmptyState
+          icon={<RiWifiOffLine />}
+          title={formatMessage({ id: "app.commitments.notReady.title" })}
+          description={formatMessage({ id: "app.commitments.notReady.description" })}
+        />
+      ) : kind === "notFound" ? (
+        <EmptyState
+          icon={<RiSearchLine />}
+          title={formatMessage({ id: "app.commitment.notFound.title" })}
+          description={formatMessage({ id: "app.commitment.notFound.body" })}
+        />
+      ) : kind === "loading" ? (
+        <div className="space-y-3" role="status">
+          <p className="text-xs text-text-soft-400">
+            {formatMessage({ id: "app.commitment.loading" })}
+          </p>
+          <div className="space-y-3 animate-pulse" aria-hidden="true">
+            <div className="h-20 rounded-[var(--radius-lg)] bg-bg-weak-50" />
+            <div className="h-32 rounded-[var(--radius-lg)] bg-bg-weak-50" />
+          </div>
+        </div>
+      ) : (
+        <EmptyState
+          icon={<RiWifiOffLine />}
+          title={formatMessage({ id: "app.commitment.error.title" })}
+          description={formatMessage({ id: "app.commitment.error.body" })}
+          action={
+            <Button
+              type="button"
+              emphasis="secondary"
+              onClick={onRetry}
+              leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
+            >
+              {formatMessage({ id: "app.commitments.retry" })}
+            </Button>
+          }
+        />
+      )}
+    </CommitmentDetailShell>
+  );
+}

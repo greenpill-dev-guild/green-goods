@@ -28,67 +28,97 @@ vi.mock("@radix-ui/react-dialog", () => ({
   Close: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
+vi.mock("@green-goods/shared/components/Alert", () => ({
+  Alert: ({ children, ...props }: any) => (
+    <div data-testid="alert" data-variant={props.variant}>
+      {children}
+    </div>
+  ),
+}));
 
+vi.mock("@green-goods/shared/components/Button", () => ({
+  Button: ({ children, loading: _loading, ...props }: any) => (
+    <button {...props}>{children}</button>
+  ),
+}));
+
+vi.mock("@green-goods/shared/components/Form/FormFieldWrapper", () => ({
+  FormField: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+}));
+
+vi.mock("@green-goods/shared/components/Vault/AssetSelector", () => ({
+  AssetSelector: () => <div data-testid="asset-selector" />,
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
+  useUser: () => ({ primaryAddress: TEST_USER }),
+}));
+
+vi.mock("@green-goods/shared/hooks/utils/useDebouncedValue", () => ({
+  useDebouncedValue: <T,>(value: T) => value,
+}));
+
+vi.mock("@green-goods/shared/hooks/vault/useDepositForm", () => ({
+  useDepositForm: () => ({
+    form: {
+      register: () => ({
+        name: "amount",
+        onChange: vi.fn(),
+        onBlur: vi.fn(),
+        ref: vi.fn(),
+      }),
+      setValue: vi.fn(),
+    },
+    amount: "1",
+    amountBigInt: 1_000_000_000_000_000_000n,
+    amountErrorKey: null,
+    hasBlockingError: false,
+    resetAmount: vi.fn(),
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/vault/useVaultDeposit", () => ({
+  useVaultDeposit: () => ({
+    error: null,
+    isPending: false,
+    mutate: vi.fn(),
+    reset: vi.fn(),
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/vault/useVaultPreview", () => ({
+  useVaultPreview: () => ({
+    preview: {
+      maxDeposit: 10_000_000_000_000_000_000n,
+      totalAssets: 10_000_000_000_000_000_000n,
+      previewShares: 1_000_000_000_000_000_000n,
+    },
+    isLoading: false,
+  }),
+}));
+
+vi.mock("@green-goods/shared/utils/blockchain/vaults", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@green-goods/shared/utils/blockchain/vaults")>();
   return {
     ...actual,
-    AssetSelector: () => <div data-testid="asset-selector" />,
-    Alert: ({ children, ...props }: any) => (
-      <div data-testid="alert" data-variant={props.variant}>
-        {children}
-      </div>
-    ),
-    Button: ({ children, loading: _loading, ...props }: any) => (
-      <button {...props}>{children}</button>
-    ),
-    classifyTxError: () => ({
-      severity: "error",
-      titleKey: "app.status.error",
-      messageKey: "app.status.error",
-      kind: "failed",
-      rawMessage: "",
-    }),
-    FormField: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
     formatTokenAmount: (value: bigint) => value.toString(),
     getVaultAssetDecimals: () => 18,
     getVaultAssetSymbol: () => "WETH",
     hasVaultAssetDecimals: () => true,
-    isMeaningfulTxErrorMessage: () => false,
-    useDebouncedValue: <T,>(value: T) => value,
-    useDepositForm: () => ({
-      form: {
-        register: () => ({
-          name: "amount",
-          onChange: vi.fn(),
-          onBlur: vi.fn(),
-          ref: vi.fn(),
-        }),
-        setValue: vi.fn(),
-      },
-      amount: "1",
-      amountBigInt: 1_000_000_000_000_000_000n,
-      amountErrorKey: null,
-      hasBlockingError: false,
-      resetAmount: vi.fn(),
-    }),
-    useUser: () => ({ primaryAddress: TEST_USER }),
-    useVaultDeposit: () => ({
-      error: null,
-      isPending: false,
-      mutate: vi.fn(),
-      reset: vi.fn(),
-    }),
-    useVaultPreview: () => ({
-      preview: {
-        maxDeposit: 10_000_000_000_000_000_000n,
-        totalAssets: 10_000_000_000_000_000_000n,
-        previewShares: 1_000_000_000_000_000_000n,
-      },
-      isLoading: false,
-    }),
   };
 });
+
+vi.mock("@green-goods/shared/utils/errors/tx-error-classifier", () => ({
+  classifyTxError: () => ({
+    severity: "error",
+    titleKey: "app.status.error",
+    messageKey: "app.status.error",
+    kind: "failed",
+    rawMessage: "",
+  }),
+  isMeaningfulTxErrorMessage: () => false,
+}));
 
 vi.mock("@/components/ConnectButton", () => ({
   ConnectButton: () => <div />,

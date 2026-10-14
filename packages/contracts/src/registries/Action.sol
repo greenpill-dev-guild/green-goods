@@ -30,7 +30,6 @@ enum Domain {
     AGRO, // 1
     EDU, // 2
     WASTE // 3
-
 }
 
 /// @title Action Registry Contract

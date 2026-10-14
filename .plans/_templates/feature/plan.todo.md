@@ -40,34 +40,34 @@
 
 ## Lane Checklists
 
-### UI (`claude/ui/{{FEATURE_SLUG}}`)
+### UI
 
 - [ ] UI tasks only
 - [ ] Add i18n for new user-facing strings
 - [ ] Record RED/GREEN proof or a proof-limit note before marking the lane complete
 - [ ] Write `handoffs/claude-ui.md`
 
-### State / API (`codex/state-api/{{FEATURE_SLUG}}`)
+### State / API
 
 - [ ] Hooks, stores, query keys, API flows
 - [ ] Keep hooks in shared
 - [ ] Record RED/GREEN proof or a proof-limit note before marking the lane complete
 - [ ] Write `handoffs/codex-state-api.md`
 
-### Contracts (`codex/contracts/{{FEATURE_SLUG}}`)
+### Contracts
 
 - [ ] Contract logic and tests
 - [ ] Respect deployment ordering and upgrade safety
 - [ ] Record RED/GREEN proof or a proof-limit note before marking the lane complete
 - [ ] Write `handoffs/codex-contracts.md`
 
-### QA Pass 1 (`claude/qa-pass-1/{{FEATURE_SLUG}}`)
+### QA Pass 1
 
 - [ ] Review UI behavior and user flow
 - [ ] Verify acceptance criteria from `eval.md`
 - [ ] Write `handoffs/claude-qa-pass-1.md`
 
-### QA Pass 2 (`codex/qa-pass-2/{{FEATURE_SLUG}}`)
+### QA Pass 2
 
 - [ ] Review regressions and implementation edges
 - [ ] Run targeted validation commands

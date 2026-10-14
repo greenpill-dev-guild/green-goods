@@ -11,7 +11,7 @@ import {
 
 const DEFAULT_GATEWAYS = ["https://greengoods.mypinata.cloud", "https://gateway.pinata.cloud", "https://ipfs.io"];
 const DEFAULT_INDEXER_URL =
-  process.env.VITE_ENVIO_INDEXER_URL?.trim() || "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql";
+  process.env.VITE_ENVIO_INDEXER_URL?.trim() || "https://indexer.hyperindex.xyz/e6edffd/v1/graphql";
 const TEXT_DECODER = new TextDecoder();
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const pinataConfig = loadPinataConfigFromEnv();

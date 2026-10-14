@@ -18,11 +18,12 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { createPublicClientForChain } from "../../config/pimlico";
-import { queryKeys } from "../../config/query-keys";
+import { vaultsKeys } from "../../config/query-keys/vault";
 import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
 import { logger } from "../../modules/app/logger";
 import type { Address } from "../../types/domain";
-import { AGGREGATOR_V3_ABI, OCTANT_VAULT_ABI } from "../../utils/blockchain/abis";
+import { AGGREGATOR_V3_ABI } from "../../utils/blockchain/abis/aggregator-v3";
+import { OCTANT_VAULT_ABI } from "../../utils/blockchain/abis/octant";
 import { getEthUsdFeedAddress } from "../../utils/blockchain/price-feeds";
 
 interface UseOctantVaultStatsOptions {
@@ -57,7 +58,7 @@ export function useOctantVaultStats(options: UseOctantVaultStatsOptions = {}): O
   const { data, isLoading, isError } = useQuery({
     queryKey:
       vaultAddress && chainId
-        ? queryKeys.vaults.campaignStats(vaultAddress, chainId)
+        ? vaultsKeys.campaignStats(vaultAddress, chainId)
         : (["greengoods", "vaults", "campaignStats", "disabled"] as const),
     enabled,
     staleTime: STALE_TIME_MEDIUM,

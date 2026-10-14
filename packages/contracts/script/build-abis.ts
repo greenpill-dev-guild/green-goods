@@ -35,6 +35,18 @@ const ABI_SOURCES = [
     source: "IHats.sol/IHats.json",
     target: "IHats.json",
   },
+  {
+    source: "ICommitmentPoolingModule.sol/ICommitmentPoolingModule.json",
+    target: "ICommitmentPoolingModule.json",
+  },
+  {
+    source: "ICommitmentRegistry.sol/ICommitmentRegistry.json",
+    target: "ICommitmentRegistry.json",
+  },
+  {
+    source: "ISettlementModule.sol/ISettlementModule.json",
+    target: "ISettlementModule.json",
+  },
 ] as const;
 
 function main(): void {

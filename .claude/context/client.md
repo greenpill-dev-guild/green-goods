@@ -1,6 +1,6 @@
 # Client Package Context
 
-Loaded when working in `packages/client/`. Extends CLAUDE.md.
+Loaded when working in `packages/client/`. Extends `packages/client/AGENTS.md`.
 
 **Primary persona**: Maria (Gardener). For tone guidance and UX constraints, see `.claude/context/product.md` § Persona & Tone Quick-Reference.
 
@@ -9,7 +9,7 @@ Loaded when working in `packages/client/`. Extends CLAUDE.md.
 | Command | Purpose |
 |---------|---------|
 | `bun run test` | Run tests (vitest) |
-| `bun build` | Build (includes TypeScript check) |
+| `bun run build` | Build (includes TypeScript check) |
 | `bun lint` | Lint with oxlint |
 | `bun dev` | Start dev server (via PM2 from root) |
 
@@ -93,6 +93,14 @@ const handleSubmit = async () => {
 };
 ```
 
+### Draft Persistence
+
+Work/garden drafts persist to the `green-goods-drafts` IndexedDB via shared hooks:
+
+- `useDrafts` — CRUD over work-submission drafts; integrates with `useWorkFlowStore`
+- `useDraftAutoSave` — writes a draft when the user **exits** the flow (explicit exit, not on every change)
+- `useDraftResume` — resumes a draft from URL params; detects "meaningful" drafts to prompt continue
+
 ### Media URL Management (MANDATORY)
 
 **Never create orphan blob URLs:**
@@ -135,6 +143,13 @@ const {
   eoaAddress,         // Wallet mode only
 } = useAuth();
 ```
+
+**Auth stacks** — the two `useAuth()` modes map to different SDKs:
+
+| Mode | Stack | Account | Active address field |
+|------|-------|---------|----------------------|
+| `wallet` | Reown AppKit + Wagmi | EOA | `eoaAddress` |
+| `passkey` | Pimlico | ERC-4337 smart account | `smartAccountAddress` |
 
 ### Auth Mode Branching
 
@@ -218,6 +233,10 @@ import * as Dialog from "@radix-ui/react-dialog";
 - `popover="auto"` — Dropdowns, menus
 - Radix Dialog — Forms, confirmations, multi-step flows
 
+### Presentation mode (PWA vs website)
+
+The client renders different chrome depending on whether it runs as an installed PWA or a browser tab — bottom `AppBar` + `/home` entry for PWA, hamburger `SiteHeader` + `/` entry for website. On localhost, append `?presentation=pwa|website|auto` to override auto-detection; the choice caches in **per-tab** sessionStorage so each tab keeps its mode after redirects. The dev stack opens both modes in adjacent tabs by default. Source: `packages/shared/src/utils/app/pwa.ts:getClientPresentationMode`.
+
 ## Anti-Patterns
 
 ### Never Create Hooks in Client
@@ -273,13 +292,18 @@ const url = mediaResourceManager.getOrCreateUrl(file, "tracking-id");
 | Creating orphan blob URLs | Memory leaks | Use `mediaResourceManager` |
 | Not cleaning up on unmount | Memory leaks | Return cleanup in `useEffect` |
 
-## Sync Triggers
+## Upload and Sync Triggers
 
-Jobs sync automatically on:
-1. **Online event** — Browser reconnects
-2. **Inline processing** — Smart account client available
-3. **Service worker** — Background sync message
-4. **Manual flush** — User action from WorkDashboard
+Queued work and decisions never send on their own. The person sends them with **Upload all** in
+Your Work (`useWorkUploads` → `modules/work/upload-queued-work.ts`), one signature per batch.
+
+- **Submit online** — a confirmed connection sends the one submission straight away.
+- **Background preparation** — once the connection is confirmed, each queued item is converted,
+  simulated and uploaded under a claim, so Upload all only has to sign (`useWorkUploadPreparation`).
+- **Confirmation pass** — `useQueueConfirmationSync` settles sends already made (receipt, lost
+  answer). It never sends.
+- **Commitment acts** — still flush on their own for passkey accounts (`JobQueue.tsx`, `kinds`).
+- An embedded wallet has no batch, so its queue still sends item by item.
 
 ## Form Accessibility (MANDATORY)
 
@@ -324,8 +348,8 @@ Jobs sync automatically on:
 
 Read these docs pages when you need user journey context or error diagnostics:
 
-- Gardener common errors (error-to-fix lookup): `docs/docs/gardener/common-errors.mdx`
-- Evidence capture workflow: `docs/docs/gardener/capture-evidence.mdx`
-- Work submission flow: `docs/docs/gardener/submit-work.mdx`
-- Gardener getting started: `docs/docs/gardener/getting-started.mdx`
-- Impact model and action domains: `docs/docs/concepts/impact-model.mdx`
+- Gardener recovery and sync: `docs/docs/community/gardener-guide/recovery-and-sync.mdx`
+- Evidence capture workflow: `docs/docs/community/gardener-guide/uploading-your-work.mdx`
+- Work submission flow: `docs/docs/community/gardener-guide/uploading-your-work.mdx`
+- Gardener getting started: `docs/docs/community/gardener-guide/index.mdx`
+- Impact model and action domains: `docs/docs/community/how-it-works.mdx`

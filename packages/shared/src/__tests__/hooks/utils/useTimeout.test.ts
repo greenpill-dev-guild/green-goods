@@ -1,6 +1,6 @@
 /**
  * useTimeout & useDelayedInvalidation Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests timer management, automatic cleanup on unmount,
  * and the delayed invalidation pattern.

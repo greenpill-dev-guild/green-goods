@@ -1,3 +1,4 @@
+// @shared-graph isolate: @hypercerts-org/sdk sets BigInt.prototype.toJSON when it loads.
 import { describe, it, expect } from "vitest";
 import {
   generateMerkleTree,

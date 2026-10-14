@@ -1,25 +1,22 @@
+import { Alert } from "@green-goods/shared/components/Alert";
+import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
 import {
-  type Address,
-  Alert,
-  type CreateListingParams,
-  FormField,
-  LISTING_DEFAULTS,
   type ListingStep,
-  logger,
-  NativeSelect,
-  TextInput,
   useCreateListing,
-  useDirtyClose,
-} from "@green-goods/shared";
+} from "@green-goods/shared/hooks/hypercerts/useCreateListing";
+import { logger } from "@green-goods/shared/modules/app/logger";
+import type { Address } from "@green-goods/shared/types/domain";
+import { type CreateListingParams, LISTING_DEFAULTS } from "@green-goods/shared/types/hypercerts";
 import { RiCheckLine, RiExchangeDollarLine, RiLoader4Line } from "@remixicon/react";
-import { AdminButton } from "../AdminButton";
-import { AdminCheckbox } from "../AdminCheckbox";
-import { AdminDialog } from "../AdminDialog";
-import { DiscardChangesDialog } from "../DiscardChangesDialog";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { parseEther, zeroAddress } from "viem";
+import { AdminButton } from "../AdminButton";
+import { AdminCheckbox } from "../AdminCheckbox";
+import { AdminConfirmDialog, AdminDialog } from "../AdminDialog";
+import { AdminSelect, AdminTextField } from "../AdminTextField";
+import { DiscardChangesDialog } from "../DiscardChangesDialog";
 
 interface CreateListingDialogProps {
   open: boolean;
@@ -47,6 +44,7 @@ const STEP_LABEL_KEYS: Record<ListingStep, { id: string; defaultMessage: string 
   signing: { id: "app.listing.stepSigning", defaultMessage: "Waiting for signature..." },
   registering: { id: "app.listing.stepRegistering", defaultMessage: "Registering on-chain..." },
   confirming: { id: "app.listing.stepConfirming", defaultMessage: "Confirming transaction..." },
+  pending: { id: "app.account.transactionSubmitted", defaultMessage: "Transaction submitted" },
   done: { id: "app.listing.stepDone", defaultMessage: "Listing created!" },
   error: { id: "app.listing.stepError", defaultMessage: "Failed to create listing" },
 };
@@ -63,9 +61,22 @@ export function CreateListingDialog({
   fractionId,
 }: CreateListingDialogProps) {
   const { formatMessage } = useIntl();
-  const { createListing, step, isCreating, error, reset } = useCreateListing(gardenAddress);
+  const {
+    createListing,
+    step,
+    isCreating,
+    error,
+    reset,
+    checkConfirmation,
+    isCheckingConfirmation,
+    confirmWalletCancellation,
+  } = useCreateListing(gardenAddress, hypercertId);
   const [phase, setPhase] = useState<"configure" | "progress">("configure");
   const [submissionError, setSubmissionError] = useState<Error | null>(null);
+  const [reviewCancellation, setReviewCancellation] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
+  const configuring = phase === "configure" && step === "idle";
+  const busy = isCreating && step !== "pending";
 
   const {
     register,
@@ -117,19 +128,19 @@ export function CreateListingDialog({
   };
 
   const handleClose = () => {
-    if (!isCreating) {
+    if (!busy && !isClearing) {
       setPhase("configure");
       setSubmissionError(null);
-      reset();
+      if (step !== "pending") reset();
       onOpenChange(false);
     }
   };
 
-  // Confirm-before-discard: pricing edits are unsaved operator input until the
+  // Confirm-before-discard: pricing edits are unsaved steward input until the
   // order is signed. Only the configure phase guards — once submission starts,
   // preventClose owns the close and a finished/failed run has nothing to lose.
   const dirtyClose = useDirtyClose({
-    isDirty: phase === "configure" && isDirty,
+    isDirty: configuring && isDirty,
     onClose: handleClose,
   });
 
@@ -148,10 +159,10 @@ export function CreateListingDialog({
         tone="garden"
         title={formatMessage({ id: "app.listing.title", defaultMessage: "List for Yield" })}
         icon={RiExchangeDollarLine}
-        preventClose={isCreating}
-        hideCloseButton={isCreating}
+        preventClose={busy || isClearing}
+        hideCloseButton={busy || isClearing}
         actions={
-          phase === "configure" ? (
+          configuring ? (
             <>
               <AdminButton type="button" variant="text" onClick={handleClose}>
                 {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
@@ -165,14 +176,33 @@ export function CreateListingDialog({
             </>
           ) : (
             <>
-              {(step === "done" || isErrorState) && (
+              {(step === "done" || step === "pending" || isErrorState) && (
                 <AdminButton type="button" variant="text" onClick={handleClose}>
                   {step === "done"
                     ? formatMessage({ id: "app.common.done", defaultMessage: "Done" })
                     : formatMessage({ id: "app.common.close", defaultMessage: "Close" })}
                 </AdminButton>
               )}
-              {isErrorState && (
+              {step === "pending" && (
+                <AdminButton
+                  type="button"
+                  disabled={isCheckingConfirmation || isClearing}
+                  onClick={() => void checkConfirmation()}
+                >
+                  {formatMessage({ id: "app.account.checkConfirmation" })}
+                </AdminButton>
+              )}
+              {step === "pending" && (
+                <AdminButton
+                  type="button"
+                  variant="text"
+                  disabled={isCheckingConfirmation || isClearing}
+                  onClick={() => setReviewCancellation(true)}
+                >
+                  {formatMessage({ id: "app.account.reviewCancellation" })}
+                </AdminButton>
+              )}
+              {isErrorState && step !== "pending" && (
                 <AdminButton
                   type="button"
                   onClick={() => {
@@ -188,83 +218,59 @@ export function CreateListingDialog({
           )
         }
       >
-        {phase === "configure" ? (
+        {configuring ? (
           <form id={formId} onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {/* Price per unit */}
-            <FormField
+            <AdminTextField
+              id="listing-price-per-unit"
               label={formatMessage({
                 id: "app.listing.pricePerUnit",
-                defaultMessage: "Price per Unit (ETH)",
+                defaultMessage: "Price per unit (ETH)",
               })}
-              htmlFor="listing-price-per-unit"
               error={formErrors.pricePerUnit?.message}
-            >
-              <TextInput
-                id="listing-price-per-unit"
-                surface="admin"
-                type="text"
-                {...register("pricePerUnit", {
-                  required: formatMessage({
-                    id: "app.listing.priceRequired",
-                    defaultMessage: "Price is required",
-                  }),
-                })}
-                invalid={Boolean(formErrors.pricePerUnit)}
-                placeholder="0.00001"
-              />
-            </FormField>
+              placeholder="0.00001"
+              {...register("pricePerUnit", {
+                required: formatMessage({
+                  id: "app.listing.priceRequired",
+                  defaultMessage: "Price is required",
+                }),
+              })}
+            />
 
             {/* Min / Max units row */}
             <div className="grid grid-cols-2 gap-3">
-              <FormField
-                label={formatMessage({ id: "app.listing.minUnits", defaultMessage: "Min Units" })}
-                htmlFor="listing-min-units"
-              >
-                <TextInput
-                  id="listing-min-units"
-                  surface="admin"
-                  type="text"
-                  {...register("minUnits")}
-                  placeholder="1"
-                />
-              </FormField>
-              <FormField
-                label={formatMessage({ id: "app.listing.maxUnits", defaultMessage: "Max Units" })}
-                htmlFor="listing-max-units"
-              >
-                <TextInput
-                  id="listing-max-units"
-                  surface="admin"
-                  type="text"
-                  {...register("maxUnits")}
-                  placeholder={formatMessage({
-                    id: "app.listing.maxUnitsPlaceholder",
-                    defaultMessage: "Unlimited",
-                  })}
-                />
-              </FormField>
+              <AdminTextField
+                id="listing-min-units"
+                label={formatMessage({ id: "app.listing.minUnits", defaultMessage: "Min units" })}
+                placeholder="1"
+                {...register("minUnits")}
+              />
+              <AdminTextField
+                id="listing-max-units"
+                label={formatMessage({ id: "app.listing.maxUnits", defaultMessage: "Max units" })}
+                placeholder={formatMessage({
+                  id: "app.listing.maxUnitsPlaceholder",
+                  defaultMessage: "Unlimited",
+                })}
+                {...register("maxUnits")}
+              />
             </div>
 
             {/* Duration */}
-            <FormField
+            <AdminSelect
+              id="listing-duration"
               label={formatMessage({ id: "app.listing.duration", defaultMessage: "Duration" })}
-              htmlFor="listing-duration"
+              {...register("durationDays", { valueAsNumber: true })}
             >
-              <NativeSelect
-                id="listing-duration"
-                surface="admin"
-                {...register("durationDays", { valueAsNumber: true })}
-              >
-                {DURATION_VALUES.map((days) => (
-                  <option key={days} value={days}>
-                    {formatMessage(
-                      { id: "app.listing.durationDays", defaultMessage: "{days} days" },
-                      { days }
-                    )}
-                  </option>
-                ))}
-              </NativeSelect>
-            </FormField>
+              {DURATION_VALUES.map((days) => (
+                <option key={days} value={days}>
+                  {formatMessage(
+                    { id: "app.listing.durationDays", defaultMessage: "{days} days" },
+                    { days }
+                  )}
+                </option>
+              ))}
+            </AdminSelect>
 
             {/* Sell leftover toggle */}
             <AdminCheckbox
@@ -275,13 +281,18 @@ export function CreateListingDialog({
                 id: "app.listing.sellLeftover",
                 defaultMessage: "Sell leftover fraction",
               })}
-              className="[&>span:nth-child(2)>span]:text-sm [&>span:nth-child(2)>span]:text-text-sub"
+              className="[&>span:nth-child(2)>span]:body-sm [&>span:nth-child(2)>span]:text-text-sub"
             />
           </form>
         ) : (
           <div className="space-y-4">
             <ListingProgress step={step} />
 
+            {step === "pending" && (
+              <Alert variant="warning">
+                {formatMessage({ id: "app.account.transactionPending" })}
+              </Alert>
+            )}
             {visibleError && <Alert variant="error">{visibleError.message}</Alert>}
 
             {step === "done" && (
@@ -295,6 +306,30 @@ export function CreateListingDialog({
           </div>
         )}
       </AdminDialog>
+      <AdminConfirmDialog
+        isOpen={reviewCancellation}
+        onClose={() => setReviewCancellation(false)}
+        tone="garden"
+        title={formatMessage({ id: "app.account.confirmCancellationTitle" })}
+        description={formatMessage({ id: "app.account.confirmCancellationDescription" })}
+        confirmLabel={formatMessage({ id: "app.account.confirmCancellation" })}
+        variant="warning"
+        isLoading={isClearing}
+        onConfirm={async () => {
+          setIsClearing(true);
+          try {
+            await confirmWalletCancellation(true);
+            setReviewCancellation(false);
+            setPhase("configure");
+          } catch {
+            setSubmissionError(
+              new Error(formatMessage({ id: "app.account.pendingRecoveryUnavailable" }))
+            );
+          } finally {
+            setIsClearing(false);
+          }
+        }}
+      />
       <DiscardChangesDialog
         open={dirtyClose.confirmOpen}
         onKeepEditing={dirtyClose.cancelClose}
@@ -312,8 +347,10 @@ function ListingProgress({ step }: { step: ListingStep }) {
   return (
     <div className="space-y-3">
       {PROGRESS_STEPS.map((s) => {
-        const isActive = s === step;
-        const isDone = PROGRESS_STEPS.indexOf(s) < PROGRESS_STEPS.indexOf(step) || step === "done";
+        const isActive = s === step || (step === "pending" && s === "confirming");
+        const isDone =
+          PROGRESS_STEPS.indexOf(s) <
+            PROGRESS_STEPS.indexOf(step === "pending" ? "confirming" : step) || step === "done";
 
         const labelKey = STEP_LABEL_KEYS[s];
         const label = labelKey ? formatMessage(labelKey) : "";
@@ -332,7 +369,7 @@ function ListingProgress({ step }: { step: ListingStep }) {
               )}
             </div>
             <span
-              className={`text-sm ${
+              className={`body-sm ${
                 isDone
                   ? "text-text-soft"
                   : isActive

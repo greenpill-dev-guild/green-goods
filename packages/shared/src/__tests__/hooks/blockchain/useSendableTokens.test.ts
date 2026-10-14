@@ -1,13 +1,14 @@
 /**
  * useSendableTokens Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { QueryClient } from "@tanstack/react-query";
+import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { tokensKeys } from "../../../config/query-keys/tokens";
 import type { Address } from "../../../types/domain";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const ACCOUNT = "0x1111111111111111111111111111111111111111" as Address;
 const MODULE = "0x9d9F913eEeBAC1142E38E5276dE7c8bc9Cf7a183";
@@ -26,12 +27,6 @@ vi.mock("../../../config/pimlico", () => ({
 
 const { useSendableTokens } = await import("../../../hooks/blockchain/useSendableTokens");
 
-function makeWrapper() {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return ({ children }: { children: ReactNode }) =>
-    createElement(QueryClientProvider, { client }, children);
-}
-
 describe("hooks/blockchain/useSendableTokens", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -39,7 +34,7 @@ describe("hooks/blockchain/useSendableTokens", () => {
       if (params.functionName === "goodsToken") return Promise.resolve(GOODS);
       if (params.functionName === "balanceOf") {
         // One token reverts — must not nuke the rest (allSettled isolation).
-        if (params.address.toLowerCase() === GOODS.toLowerCase()) {
+        if (params.address.toLowerCase() === "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1") {
           return Promise.reject(new Error("revert"));
         }
         return Promise.resolve(100n);
@@ -48,18 +43,19 @@ describe("hooks/blockchain/useSendableTokens", () => {
     });
   });
 
-  it("resolves GOODS first and isolates a reverting balance read", async () => {
-    const { result } = renderHook(() => useSendableTokens(ACCOUNT, 42161), {
-      wrapper: makeWrapper(),
-    });
+  it("skips GOODS discovery and isolates a reverting ordinary token balance", async () => {
+    const { result } = renderHookWithQueryClient(() => useSendableTokens(ACCOUNT, 42161));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     const tokens = result.current.tokens;
-    expect(tokens[0]?.symbol).toBe("GOODS");
+    expect(tokens.some((t) => t.confersGovernance)).toBe(false);
+    expect(
+      mockReadContract.mock.calls.every(([params]) => params.functionName !== "goodsToken")
+    ).toBe(true);
 
-    const goods = tokens.find((t) => t.symbol === "GOODS");
-    expect(goods?.errored).toBe(true);
-    expect(goods?.balance).toBeNull();
+    const dai = tokens.find((t) => t.symbol === "DAI");
+    expect(dai?.errored).toBe(true);
+    expect(dai?.balance).toBeNull();
 
     const usdc = tokens.find((t) => t.symbol === "USDC");
     expect(usdc?.supported).toBe(true);
@@ -68,9 +64,7 @@ describe("hooks/blockchain/useSendableTokens", () => {
   });
 
   it("omits GoodDollar on Arbitrum — unsupported tokens are not offered", async () => {
-    const { result } = renderHook(() => useSendableTokens(ACCOUNT, 42161), {
-      wrapper: makeWrapper(),
-    });
+    const { result } = renderHookWithQueryClient(() => useSendableTokens(ACCOUNT, 42161));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(result.current.tokens.some((t) => t.symbol === "G$")).toBe(false);
@@ -79,10 +73,32 @@ describe("hooks/blockchain/useSendableTokens", () => {
   });
 
   it("is disabled without an account and reads nothing", () => {
-    const { result } = renderHook(() => useSendableTokens(null, 42161), {
-      wrapper: makeWrapper(),
-    });
+    const { result } = renderHookWithQueryClient(() => useSendableTokens(null, 42161));
     expect(result.current.tokens).toEqual([]);
     expect(mockReadContract).not.toHaveBeenCalled();
   });
+});
+
+it("filters GOODS from a fresh persisted cache without clearing other balances", () => {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false, staleTime: Infinity } },
+  });
+  const stable = {
+    symbol: "USDC",
+    label: "USD Coin",
+    address: ACCOUNT,
+    decimals: 6,
+    supported: true,
+    confersGovernance: false,
+    balance: 100n,
+    errored: false,
+  };
+  client.setQueryData(tokensKeys.balances(ACCOUNT.toLowerCase(), 42161), [
+    { ...stable, symbol: "GOODS", address: GOODS, confersGovernance: true },
+    stable,
+  ]);
+  const { result } = renderHookWithQueryClient(() => useSendableTokens(ACCOUNT, 42161), {
+    queryClient: client,
+  });
+  expect(result.current.tokens).toEqual([{ ...stable, chainId: 42161 }]);
 });

@@ -1,0 +1,169 @@
+{
+  "version": 1,
+  "generatedAt": "2026-07-28T08:24:30.231Z",
+  "network": "sepolia",
+  "chainId": "11155111",
+  "blockNumber": "11367374",
+  "rpcUrl": "https://sepolia.drpc.org",
+  "gardenToken": "0x3e0DE15Ad3D9fd0299b6811247f14449eb866A39",
+  "gardenAccountImpl": "0xE31cAeAc029A60AD17A49278Fdd58032eF9Cf692",
+  "hatsModule": "0x8dF31575A30765d7cca6D788644fD0d4FE33a433",
+  "hatsProtocol": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+  "expectedCaller": null,
+  "gardenCount": 3,
+  "mintEnumeration": {
+    "event": "Transfer(address,address,uint256)",
+    "strategy": "chunked",
+    "fromBlock": "10292042",
+    "toBlock": "11367374",
+    "chunkCount": 243,
+    "minimumChunkSize": "575",
+    "maximumChunkSize": "6249"
+  },
+  "warnings": ["Deployment artifact records root token 1; live root address is token 0"],
+  "authorizationModel": "Each GardenAccount wears its garden admin hat. Its current GardenToken owner must call GardenAccount.execute.",
+  "partitionCount": 3,
+  "partitions": [
+    {
+      "controller": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "controllerHasCode": false,
+      "transactions": [
+        {
+          "tokenId": "0",
+          "garden": "0xDc7B75b3Ed7F5aCFDadaEBBBc60706dB14175E20",
+          "operatorHatId": "54513012983737149522939006571594835743425862746720829271236402634293248",
+          "currentDetails": "Green Goods Community Garden Operator",
+          "targetDetails": "Green Goods Community Garden Steward",
+          "to": "0xDc7B75b3Ed7F5aCFDadaEBBBc60706dB14175E20",
+          "value": "0",
+          "contractMethod": {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "to",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "value",
+                "type": "uint256"
+              },
+              {
+                "internalType": "bytes",
+                "name": "data",
+                "type": "bytes"
+              },
+              {
+                "internalType": "uint8",
+                "name": "operation",
+                "type": "uint8"
+              }
+            ],
+            "name": "execute",
+            "payable": true
+          },
+          "contractInputsValues": {
+            "to": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+            "value": "0",
+            "data": "0xf737401e000007e60002000100010002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000024477265656e20476f6f647320436f6d6d756e6974792047617264656e205374657761726400000000000000000000000000000000000000000000000000000000",
+            "operation": "0"
+          }
+        }
+      ]
+    },
+    {
+      "controller": "0x533563C09acF7F8ecD8dd2e7Ea40e055Ddc45bC8",
+      "controllerHasCode": true,
+      "transactions": [
+        {
+          "tokenId": "1",
+          "garden": "0x203447ecCcaa2c0912cFd6876143b5B2481fb8D9",
+          "operatorHatId": "54513012983737149618719977875712889390822551943615153247407597770768384",
+          "currentDetails": "Live Garden Coop Operator",
+          "targetDetails": "Live Garden Coop Steward",
+          "to": "0x203447ecCcaa2c0912cFd6876143b5B2481fb8D9",
+          "value": "0",
+          "contractMethod": {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "to",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "value",
+                "type": "uint256"
+              },
+              {
+                "internalType": "bytes",
+                "name": "data",
+                "type": "bytes"
+              },
+              {
+                "internalType": "uint8",
+                "name": "operation",
+                "type": "uint8"
+              }
+            ],
+            "name": "execute",
+            "payable": true
+          },
+          "contractInputsValues": {
+            "to": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+            "value": "0",
+            "data": "0xf737401e000007e600020001000200020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000184c6976652047617264656e20436f6f7020537465776172640000000000000000",
+            "operation": "0"
+          }
+        }
+      ]
+    },
+    {
+      "controller": "0xB2b6ac3B8b66602Ad682Ba4B9FC5E51569D4E8cc",
+      "controllerHasCode": true,
+      "transactions": [
+        {
+          "tokenId": "2",
+          "garden": "0x511eefA22494b81542B505Acc1b0056aC92c9e37",
+          "operatorHatId": "54513012983737149714500949179830943038219241140509477223578792907243520",
+          "currentDetails": "Live Garden Coop 684100e3 Operator",
+          "targetDetails": "Live Garden Coop 684100e3 Steward",
+          "to": "0x511eefA22494b81542B505Acc1b0056aC92c9e37",
+          "value": "0",
+          "contractMethod": {
+            "inputs": [
+              {
+                "internalType": "address",
+                "name": "to",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "value",
+                "type": "uint256"
+              },
+              {
+                "internalType": "bytes",
+                "name": "data",
+                "type": "bytes"
+              },
+              {
+                "internalType": "uint8",
+                "name": "operation",
+                "type": "uint8"
+              }
+            ],
+            "name": "execute",
+            "payable": true
+          },
+          "contractInputsValues": {
+            "to": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+            "value": "0",
+            "data": "0xf737401e000007e600020001000300020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000214c6976652047617264656e20436f6f70203638343130306533205374657761726400000000000000000000000000000000000000000000000000000000000000",
+            "operation": "0"
+          }
+        }
+      ]
+    }
+  ]
+}

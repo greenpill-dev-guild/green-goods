@@ -1,14 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
-  buildPublicFundingAvailabilityKey,
+  buildPublicGardenImpactPath,
   createProviderProofRegistry,
   createPublicImpactSlice,
   derivePublicGardenSlug,
-  PUBLIC_FUNDING_AVAILABILITY_REASON_SEMANTICS,
   PUBLIC_AGENT_ROUTES,
   resolveFundGardenReference,
-  type Address,
 } from "../public-contracts";
+import {
+  buildPublicFundingAvailabilityKey,
+  PUBLIC_FUNDING_AVAILABILITY_REASON_SEMANTICS,
+  type Address,
+} from "../public-contracts/core";
 
 const gardenA = "0x1111111111111111111111111111111111111111" as Address;
 const gardenB = "0x2222222222222222222222222222222222222222" as Address;
@@ -49,6 +52,13 @@ describe("@green-goods/shared/public-contracts", () => {
     expect(PUBLIC_AGENT_ROUTES.fundingIntentProof).toBe("/public/funding-intents/proof");
     expect(PUBLIC_AGENT_ROUTES.fundingIntentProof).not.toBe(
       PUBLIC_AGENT_ROUTES.fundingIntentReceipt
+    );
+  });
+
+  it("publishes and builds the versioned public garden impact route", () => {
+    expect(PUBLIC_AGENT_ROUTES.gardenImpact).toBe("/public/gardens/:chainId/:gardenAddress/impact");
+    expect(buildPublicGardenImpactPath(11155111, gardenA)).toBe(
+      `/public/gardens/11155111/${gardenA}/impact`
     );
   });
 
@@ -197,6 +207,45 @@ describe("@green-goods/shared/public-contracts", () => {
     expect(slice.totalFetchedRecords).toBe(100);
     expect(slice.partialData).toBe(true);
     expect(slice.sourceLimitReached).toBe(true);
+  });
+
+  // /impact's proof row reports a total, so a certificate older than the 100-record window
+  // still counts; one in a Garden past the Garden cap is not read at all, and a failed
+  // certificate read leaves the total unknown rather than short.
+  it("counts certificates across the Gardens read, before the record cap", () => {
+    const gardens = Array.from({ length: 51 }, (_, index) => ({
+      id: `garden-${index.toString().padStart(2, "0")}`,
+      name: `Garden ${index}`,
+      latestActivityAt: 1_000 - index,
+    }));
+    const record = (
+      id: string,
+      kind: "work" | "certificate",
+      gardenId: string,
+      createdAt: number
+    ) => ({
+      id,
+      kind,
+      gardenId,
+      gardenName: "Garden",
+      title: id,
+      sourceAvailable: true,
+      createdAt,
+    });
+    const records = [
+      ...Array.from({ length: 100 }, (_, index) =>
+        record(`work:${index}`, "work", "garden-00", 5_000 - index)
+      ),
+      record("certificate:old", "certificate", "garden-01", 1),
+      record("certificate:unread", "certificate", "garden-50", 9_000),
+    ];
+
+    const slice = createPublicImpactSlice({ gardens, records });
+    expect(slice.records.some((entry) => entry.kind === "certificate")).toBe(false);
+    expect(slice.certificateCount).toBe(1);
+    expect(
+      createPublicImpactSlice({ gardens, records, certificatesFailed: true }).certificateCount
+    ).toBeNull();
   });
 
   it("preserves the kind discriminator across the slice and respects createdAt order", () => {

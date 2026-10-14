@@ -6,10 +6,11 @@
  * credential ID, so a mock would hide exactly the behaviour under test.
  */
 
-import { type P256Credential, toWebAuthnAccount } from "viem/account-abstraction";
+import { toWebAuthnAccount } from "viem/account-abstraction";
 import { describe, expect, it, vi } from "vitest";
 
-import { createPasskeyOwner } from "../../workflows/authServices";
+import { type PasskeyCredential } from "../../modules/auth/session";
+import { createPasskeyOwner } from "../../workflows/auth-passkey-adapters";
 
 // One 20-byte credential (the length Apple passkeys use), in both encodings it is stored in.
 const CREDENTIAL_BYTES = [
@@ -23,7 +24,7 @@ const BASE64URL_ID = "H4s80keQrgVusSL0nTjHYQrle1Q";
 
 const RP_ID = "greengoods.app";
 
-function credentialWithId(id: string): P256Credential {
+function credentialWithId(id: string): PasskeyCredential {
   return {
     id,
     publicKey: "0x1234",

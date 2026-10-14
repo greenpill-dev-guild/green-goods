@@ -108,7 +108,7 @@ contract GardensV2CommunityForkTest is ForkTestBase {
             weightScheme: IGardensModule.WeightScheme.Exponential,
             domainMask: 0x02,
             gardeners: new address[](0),
-            operators: new address[](0)
+            stewards: new address[](0)
         });
         address garden2 = gardenToken.mintGarden(config2);
 
@@ -124,7 +124,7 @@ contract GardensV2CommunityForkTest is ForkTestBase {
             weightScheme: IGardensModule.WeightScheme.Power,
             domainMask: 0x04,
             gardeners: new address[](0),
-            operators: new address[](0)
+            stewards: new address[](0)
         });
         address garden3 = gardenToken.mintGarden(config3);
 

@@ -7,11 +7,11 @@
  * - Drawer: opens, closes on Escape, mirrors nav + Install/Open App
  * - Wallet connect is intentionally absent from public header chrome
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { type ComponentProps, createElement } from "react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -24,14 +24,40 @@ const { mockUseApp, mockUseInstallGuidance, mockUsePublicInstallHandler, mockIns
     mockInstallHandler: vi.fn(),
   }));
 
-vi.mock("@green-goods/shared", () => ({
+const mockUseMediaQuery = vi.hoisted(() => vi.fn());
+vi.mock("@green-goods/shared/hooks/ui/useMediaQuery", () => ({
+  useMediaQuery: mockUseMediaQuery,
+}));
+
+vi.mock("@green-goods/shared/config/app", () => ({
   APP_NAME: "Green Goods",
+}));
+
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: any[]) => args.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/providers/App", () => ({
   useApp: mockUseApp,
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useIsBraveBrowser", () => ({
   useIsBraveBrowser: () => false,
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useInstallGuidance", () => ({
   useInstallGuidance: mockUseInstallGuidance,
+}));
+
+vi.mock("@green-goods/shared/hooks/app/usePublicInstallHandler", () => ({
   usePublicInstallHandler: mockUsePublicInstallHandler,
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useTunnelUrl", () => ({
   useTunnelUrl: () => null,
+}));
+
+vi.mock("@green-goods/shared/hooks/utils/useEventListener", () => ({
   useEventListener: vi.fn(),
 }));
 
@@ -45,23 +71,30 @@ const messages: Record<string, string> = {
   "public.nav.fund": "Fund",
   "public.nav.installApp": "Install App",
   "public.nav.openApp": "Open App",
-  "public.nav.openMenu": "Open menu",
-  "public.nav.closeMenu": "Close menu",
+  "public.nav.openMenu": "Open Menu",
+  "public.nav.closeMenu": "Close Menu",
 };
 
-function renderHeader(initialRoute = "/gardens", props: ComponentProps<typeof SiteHeader> = {}) {
-  return render(
-    createElement(
-      MemoryRouter,
-      { initialEntries: [initialRoute] },
-      createElement(IntlProvider, { locale: "en", messages }, createElement(SiteHeader, props))
-    )
+function headerElement(initialRoute = "/gardens") {
+  return createElement(
+    MemoryRouter,
+    { initialEntries: [initialRoute] },
+    createElement(IntlProvider, {
+      locale: "en",
+      messages,
+      children: <SiteHeader />,
+    })
   );
+}
+
+function renderHeader(initialRoute = "/gardens") {
+  return render(headerElement(initialRoute));
 }
 
 describe("SiteHeader", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseMediaQuery.mockReturnValue(false);
     mockUseApp.mockReturnValue({
       isMobile: false,
       isInstalled: false,
@@ -98,14 +131,14 @@ describe("SiteHeader", () => {
     expect(screen.getAllByText("Install App").length).toBeGreaterThanOrEqual(1);
     // Vaults is intentionally not in the header nav.
     expect(screen.queryByText("Vaults")).toBeNull();
-    expect(mockUseInstallGuidance).toHaveBeenCalledWith(
-      "unknown",
-      false,
-      false,
-      null,
-      false,
-      false
-    );
+    expect(mockUseInstallGuidance).toHaveBeenCalledWith({
+      platform: "unknown",
+      installedAppEvidence: undefined,
+      wasInstalled: false,
+      deferredPrompt: null,
+      isMobile: false,
+      isInstalling: false,
+    });
     // No wallet CTA in public header.
     expect(screen.queryByText("Connect Wallet")).toBeNull();
   });
@@ -185,9 +218,10 @@ describe("SiteHeader", () => {
 
   it("desktop install CTA opens the QR handoff dialog", () => {
     renderHeader();
-    const desktopCta = screen.getByRole("button", { name: "Install App" });
+    const desktopCta = screen.getByRole("link", { name: "Install App" });
     expect(desktopCta.getAttribute("data-install-action")).toBe("continue-in-browser");
-    expect(desktopCta.className).toMatch(/cursor-pointer/);
+    // The shared Button owns the corner and the pointer cursor (DL-026).
+    expect(desktopCta).toHaveClass("gg-button");
     fireEvent.click(desktopCta);
     expect(mockInstallHandler).not.toHaveBeenCalled();
     expect(
@@ -208,17 +242,82 @@ describe("SiteHeader", () => {
     const drawer = screen.getByRole("dialog");
     expect(drawer).toBeInTheDocument();
     expect(drawer.getAttribute("aria-modal")).toBe("true");
+    expect(document.documentElement).toHaveClass("modal-open");
+    expect(document.body.style.position).toBe("fixed");
     // Drawer mirrors the install CTA, not Connect Wallet.
     expect(screen.getAllByText("Install App").length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByText("Connect Wallet")).toBeNull();
   });
 
-  it("Escape key closes the drawer", () => {
+  it("Escape key closes the drawer", async () => {
     renderHeader();
     fireEvent.click(screen.getByRole("button", { name: /open menu/i }));
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     fireEvent.keyDown(document, { key: "Escape" });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    // The document lock lets go once Radix has released its own, a moment after the drawer.
+    await waitFor(() => expect(document.documentElement).not.toHaveClass("modal-open"));
+  });
+
+  it("moves keyboard focus into the drawer and returns it to the trigger on Escape", async () => {
+    renderHeader();
+    const trigger = screen.getByRole("button", { name: /open menu/i });
+    trigger.focus();
+    fireEvent.click(trigger);
+    const drawer = screen.getByRole("dialog", { name: "Open Menu" });
+    await waitFor(() => expect(drawer.contains(document.activeElement)).toBe(true));
+    fireEvent.keyDown(document, { key: "Escape" });
+    await waitFor(() => expect(trigger).toHaveFocus());
+  });
+
+  it.each([
+    { landsOn: "the menu button", widened: false },
+    // At desktop widths the menu button is hidden, so the visible home link takes focus instead.
+    { landsOn: "the home link once the window has widened to desktop", widened: true },
+  ])("returns focus to $landsOn when an install sheet opened from the drawer closes", async ({
+    widened,
+  }) => {
+    const view = renderHeader();
+    const menuButton = screen.getByRole("button", { name: /open menu/i });
+    fireEvent.click(menuButton);
+    // The drawer closes itself as its Install App opens the sheet, so that control is gone
+    // by the time the sheet closes.
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("link", { name: "Install App" }));
+    const sheet = screen.getByRole("dialog", { name: "Bring Green Goods into the field" });
+    await waitFor(() => expect(sheet.contains(document.activeElement)).toBe(true));
+    if (widened) {
+      mockUseMediaQuery.mockReturnValue(true);
+      view.rerender(headerElement());
+    }
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    await waitFor(() =>
+      expect(widened ? screen.getByRole("link", { name: "Green Goods" }) : menuButton).toHaveFocus()
+    );
+  });
+
+  it("closes from a navigation link even when its route is already active", () => {
+    renderHeader("/gardens");
+    fireEvent.click(screen.getByRole("button", { name: /open menu/i }));
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("link", { name: "Gardens" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("dismisses the modal and focuses visible wayfinding when switching to desktop", async () => {
+    const view = renderHeader();
+    fireEvent.click(screen.getByRole("button", { name: /open menu/i }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    mockUseMediaQuery.mockReturnValue(true);
+    view.rerender(
+      <MemoryRouter initialEntries={["/gardens"]}>
+        <IntlProvider locale="en" messages={messages}>
+          <SiteHeader />
+        </IntlProvider>
+      </MemoryRouter>
+    );
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole("link", { name: "Green Goods" })).toHaveFocus());
   });
 
   it("renders transparent on home (`/`) so the header floats over the hero image", () => {
@@ -240,6 +339,26 @@ describe("SiteHeader", () => {
         "transparent"
       );
       expect(header!.className, `expected bg-transparent on ${route}`).toMatch(/bg-transparent/);
+    }
+  });
+
+  it("brings the page to the top when the keyboard reaches the faded header", () => {
+    const scrollY = vi.spyOn(window, "scrollY", "get").mockReturnValue(400);
+    const scrollTo = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+    try {
+      renderHeader("/");
+      const header = document.querySelector("header") as HTMLElement;
+      // Faded out, yet still offered to the keyboard and to assistive technology.
+      expect(header.style.opacity).toBe("0");
+      expect(header).not.toHaveAttribute("aria-hidden");
+
+      act(() => screen.getByRole("link", { name: "Install App" }).focus());
+
+      expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: "instant" });
+      expect(header.style.opacity).toBe("1");
+    } finally {
+      scrollY.mockRestore();
+      scrollTo.mockRestore();
     }
   });
 

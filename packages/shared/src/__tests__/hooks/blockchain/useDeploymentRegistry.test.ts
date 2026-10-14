@@ -1,17 +1,16 @@
 /**
  * useDeploymentRegistry Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the deployment registry permission-checking hook. This hook creates a
  * viem PublicClient and reads on-chain state (owner, isInAllowlist) to determine
  * if the connected user has deploy permissions.
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MOCK_ADDRESSES } from "../../test-utils/mock-factories";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 // ============================================
 // Mocks
@@ -29,6 +28,7 @@ vi.mock("viem", () => ({
 
 // Track auth state for testing
 let mockAuthContext = {
+  authMode: "wallet" as "wallet" | "passkey" | null,
   isReady: true,
   isAuthenticated: true,
   walletAddress: MOCK_ADDRESSES.deployer as string | null,
@@ -37,6 +37,7 @@ let mockAuthContext = {
 
 vi.mock("../../../providers/Auth", () => ({
   useAuthContext: () => mockAuthContext,
+  useOptionalAuthContext: () => mockAuthContext,
 }));
 
 // Track wagmi state for testing
@@ -63,6 +64,10 @@ vi.mock("../../../config/blockchain", () => ({
   getNetworkConfig: () => ({
     rpcUrl: "https://eth-sepolia.g.alchemy.com/v2/demo",
   }),
+}));
+
+vi.mock("../../../config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
 }));
 
 // Mock network contracts
@@ -100,19 +105,6 @@ vi.mock("../../../config/appkit", () => ({
 import { useDeploymentRegistry } from "../../../hooks/blockchain/useDeploymentRegistry";
 
 // ============================================
-// Test helpers
-// ============================================
-
-function createWrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
-  });
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-}
-
-// ============================================
 // Tests
 // ============================================
 
@@ -120,6 +112,7 @@ describe("useDeploymentRegistry", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockAuthContext = {
+      authMode: "wallet",
       isReady: true,
       isAuthenticated: true,
       walletAddress: MOCK_ADDRESSES.deployer,
@@ -140,9 +133,7 @@ describe("useDeploymentRegistry", () => {
     it("starts in loading state", () => {
       mockReadContract.mockResolvedValue(MOCK_ADDRESSES.deployer);
 
-      const { result } = renderHook(() => useDeploymentRegistry(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useDeploymentRegistry());
 
       expect(result.current.loading).toBe(true);
     });
@@ -156,9 +147,7 @@ describe("useDeploymentRegistry", () => {
         walletAddress: null,
       };
 
-      const { result } = renderHook(() => useDeploymentRegistry(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useDeploymentRegistry());
 
       // Should remain loading since no address is available
       await waitFor(() => {
@@ -178,9 +167,7 @@ describe("useDeploymentRegistry", () => {
       // Second call: isInAllowlist() returns false
       mockReadContract.mockResolvedValueOnce(MOCK_ADDRESSES.deployer).mockResolvedValueOnce(false);
 
-      const { result } = renderHook(() => useDeploymentRegistry(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useDeploymentRegistry());
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
@@ -195,9 +182,7 @@ describe("useDeploymentRegistry", () => {
         .mockResolvedValueOnce("0xSomeOtherOwner123456789012345678901234")
         .mockResolvedValueOnce(false);
 
-      const { result } = renderHook(() => useDeploymentRegistry(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useDeploymentRegistry());
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
@@ -218,9 +203,7 @@ describe("useDeploymentRegistry", () => {
         .mockResolvedValueOnce("0xSomeOtherOwner123456789012345678901234")
         .mockResolvedValueOnce(true);
 
-      const { result } = renderHook(() => useDeploymentRegistry(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useDeploymentRegistry());
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
@@ -234,9 +217,7 @@ describe("useDeploymentRegistry", () => {
     it("canDeploy is true when user is both owner AND in allowlist", async () => {
       mockReadContract.mockResolvedValueOnce(MOCK_ADDRESSES.deployer).mockResolvedValueOnce(true);
 
-      const { result } = renderHook(() => useDeploymentRegistry(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useDeploymentRegistry());
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
@@ -256,9 +237,7 @@ describe("useDeploymentRegistry", () => {
     it("sets error state and returns all-false on RPC failure", async () => {
       mockReadContract.mockRejectedValue(new Error("RPC connection failed"));
 
-      const { result } = renderHook(() => useDeploymentRegistry(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useDeploymentRegistry());
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
@@ -273,9 +252,7 @@ describe("useDeploymentRegistry", () => {
     it("handles non-Error exceptions gracefully", async () => {
       mockReadContract.mockRejectedValue("string error");
 
-      const { result } = renderHook(() => useDeploymentRegistry(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useDeploymentRegistry());
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
@@ -290,48 +267,44 @@ describe("useDeploymentRegistry", () => {
   // Address priority
   // ------------------------------------------
 
-  describe("address priority", () => {
-    it("prefers wagmi address when available", async () => {
-      mockWagmiAccount = { address: MOCK_ADDRESSES.deployer, isConnected: true };
+  describe("primary account permissions", () => {
+    it.each([
+      undefined,
+      MOCK_ADDRESSES.deployer,
+    ])("checks the passkey account with companion wallet %s", async (address) => {
+      mockWagmiAccount = { address, isConnected: Boolean(address) };
       mockAuthContext = {
         ...mockAuthContext,
-        walletAddress: MOCK_ADDRESSES.operator,
+        authMode: "passkey",
+        smartAccountAddress: MOCK_ADDRESSES.steward,
       };
-
-      mockReadContract.mockResolvedValueOnce(MOCK_ADDRESSES.deployer).mockResolvedValueOnce(false);
-
-      const { result } = renderHook(() => useDeploymentRegistry(), {
-        wrapper: createWrapper(),
-      });
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      // Should be owner because wagmi address matches
+      mockReadContract.mockResolvedValueOnce(MOCK_ADDRESSES.steward).mockResolvedValueOnce(false);
+      const { result } = renderHookWithQueryClient(() => useDeploymentRegistry());
+      await waitFor(() => expect(result.current.loading).toBe(false));
       expect(result.current.isOwner).toBe(true);
+      expect(mockReadContract).toHaveBeenCalledWith(
+        expect.objectContaining({
+          functionName: "isInAllowlist",
+          args: [MOCK_ADDRESSES.steward.toLowerCase()],
+        })
+      );
     });
-
-    it("falls back to auth walletAddress when wagmi is disconnected", async () => {
-      mockWagmiAccount = { address: undefined, isConnected: false };
+    it("does not borrow a companion wallet's deployer role", async () => {
       mockAuthContext = {
-        isReady: true,
-        isAuthenticated: true,
-        walletAddress: MOCK_ADDRESSES.operator,
-        smartAccountAddress: null,
+        ...mockAuthContext,
+        authMode: "passkey",
+        smartAccountAddress: MOCK_ADDRESSES.steward,
       };
-
-      mockReadContract.mockResolvedValueOnce(MOCK_ADDRESSES.operator).mockResolvedValueOnce(false);
-
-      const { result } = renderHook(() => useDeploymentRegistry(), {
-        wrapper: createWrapper(),
-      });
-
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      expect(result.current.isOwner).toBe(true);
+      mockReadContract.mockResolvedValueOnce(MOCK_ADDRESSES.deployer).mockResolvedValueOnce(false);
+      const { result } = renderHookWithQueryClient(() => useDeploymentRegistry());
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      expect(result.current.canDeploy).toBe(false);
+    });
+    it("does not use a connected wallet while signed out", async () => {
+      mockAuthContext = { ...mockAuthContext, authMode: null, isAuthenticated: false };
+      const { result } = renderHookWithQueryClient(() => useDeploymentRegistry());
+      expect(result.current.canDeploy).toBe(false);
+      expect(mockReadContract).not.toHaveBeenCalled();
     });
   });
 
@@ -347,9 +320,7 @@ describe("useDeploymentRegistry", () => {
         deploymentRegistry: "0x0000000000000000000000000000000000000000",
       } as ReturnType<typeof contractsMock.getNetworkContracts>);
 
-      const { result } = renderHook(() => useDeploymentRegistry(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHookWithQueryClient(() => useDeploymentRegistry());
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);

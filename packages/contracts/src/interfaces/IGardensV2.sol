@@ -71,7 +71,6 @@ enum PointSystem {
     Unlimited,
     Quadratic,
     Custom // Uses external IVotingPowerRegistry
-
 }
 
 /// @notice Parameters for conviction voting
@@ -166,7 +165,6 @@ enum NFTType {
     ERC721, // balanceOf(account) count
     ERC1155, // balanceOf(account, tokenId) count
     HAT // isWearerOfHat(account, hatId) binary (0 or 1)
-
 }
 
 /// @notice Configuration for a voting power source in NFTPowerRegistry

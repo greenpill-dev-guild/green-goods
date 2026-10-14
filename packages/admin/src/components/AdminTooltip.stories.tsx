@@ -24,7 +24,7 @@ type Story = StoryObj<typeof AdminTooltip>;
 export const IconTrigger: Story = {
   render: () => (
     <div className="p-16">
-      <AdminTooltip content="Open settings">
+      <AdminTooltip content="Open Settings">
         <button
           type="button"
           className="m3-state-layer inline-flex h-10 w-10 items-center justify-center rounded-[var(--m3-shape-full)] bg-[rgb(var(--m3-surface-container-high))] text-[rgb(var(--m3-on-surface))] [--state-layer-color:var(--m3-on-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
@@ -71,7 +71,7 @@ export const BottomStart: Story = {
 export const StateCatalog: Story = {
   render: () => (
     <div className="flex flex-wrap gap-6 p-16">
-      <AdminTooltip content="Open settings">
+      <AdminTooltip content="Open Settings">
         <button
           type="button"
           className="inline-flex h-10 w-10 items-center justify-center rounded-[var(--m3-shape-full)] bg-[rgb(var(--m3-surface-container-high))] text-[rgb(var(--m3-on-surface))]"

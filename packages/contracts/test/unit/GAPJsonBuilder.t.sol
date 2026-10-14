@@ -21,6 +21,20 @@ contract JsonBuilderWrapper {
         return JsonBuilder.buildProjectDetails(name, description, location, bannerImage);
     }
 
+    function buildProjectDetailsWithSlug(
+        string calldata name,
+        string calldata slug,
+        string calldata description,
+        string calldata location,
+        string calldata bannerImage
+    )
+        external
+        pure
+        returns (string memory)
+    {
+        return JsonBuilder.buildProjectDetails(name, slug, description, location, bannerImage);
+    }
+
     function buildImpact(
         string calldata workTitle,
         string calldata impactDescription,
@@ -31,10 +45,29 @@ contract JsonBuilderWrapper {
         string calldata metadataCID
     )
         external
-        pure
+        view
         returns (string memory)
     {
         return JsonBuilder.buildImpact(workTitle, impactDescription, proofIPFS, workUID, garden, timestamp, metadataCID);
+    }
+
+    function buildProjectUpdate(
+        string calldata workTitle,
+        string calldata updateText,
+        string calldata proofReference,
+        bytes32 workUID,
+        address garden,
+        uint256 timestamp,
+        string calldata metadataReference,
+        uint256 chainId
+    )
+        external
+        pure
+        returns (string memory)
+    {
+        return JsonBuilder.buildProjectUpdate(
+            workTitle, updateText, proofReference, workUID, garden, timestamp, metadataReference, chainId
+        );
     }
 
     function buildMilestone(
@@ -81,7 +114,10 @@ contract JsonBuilderTest is Test {
     function testProjectDetailsImageURL() public {
         string memory json = wrapper.buildProjectDetails("Garden", "Desc", "Loc", "QmABC123");
 
-        assertTrue(_contains(json, "ipfs://QmABC123"), "Should build IPFS protocol URL from bare CID");
+        assertTrue(
+            _contains(json, "\"imageURL\":\"https://ipfs.io/ipfs/QmABC123\""),
+            "Should build browser-safe HTTP URL from bare CID"
+        );
     }
 
     function testProjectDetailsEmptyBannerImage() public {
@@ -95,16 +131,17 @@ contract JsonBuilderTest is Test {
             wrapper.buildProjectDetails("Garden", "Desc", "Loc", "https://greengoods.mypinata.cloud/ipfs/bafkreiabc123");
 
         assertTrue(
-            _contains(json, "\"imageURL\":\"ipfs://bafkreiabc123\""), "Gateway URL should be normalized to ipfs:// protocol"
+            _contains(json, "\"imageURL\":\"https://greengoods.mypinata.cloud/ipfs/bafkreiabc123\""),
+            "Existing HTTP gateway URL should remain browser-safe"
         );
-        assertFalse(_contains(json, "https://"), "Should not contain any https:// after normalization");
     }
 
     function testProjectDetailsIpfsProtocolPassthrough() public {
         string memory json = wrapper.buildProjectDetails("Garden", "Desc", "Loc", "ipfs://bafkreiexisting");
 
         assertTrue(
-            _contains(json, "\"imageURL\":\"ipfs://bafkreiexisting\""), "ipfs:// prefixed URL should pass through unchanged"
+            _contains(json, "\"imageURL\":\"https://ipfs.io/ipfs/bafkreiexisting\""),
+            "ipfs:// reference should become an HTTP gateway URL"
         );
     }
 
@@ -112,6 +149,19 @@ contract JsonBuilderTest is Test {
         string memory json = wrapper.buildProjectDetails("My Cool Garden", "Desc", "Loc", "");
 
         assertTrue(_contains(json, "\"slug\":\"my-cool-garden\""), "Should generate correct slug");
+    }
+
+    function testGAPJsonBuilder_projectDetailsUsesCanonicalGardenSlug() public {
+        string memory json = wrapper.buildProjectDetailsWithSlug("Renamed Garden", "stable-garden-slug", "Desc", "Loc", "");
+
+        assertTrue(_contains(json, "\"slug\":\"stable-garden-slug\""), "Should preserve the canonical Garden slug");
+    }
+
+    function testGAPJsonBuilder_projectDetailsRepairsMalformedEmbeddedHTTPBanner() public {
+        string memory json = wrapper.buildProjectDetails("Garden", "Desc", "Loc", "ipfs://https://cdn.example/banner.png");
+
+        assertTrue(_contains(json, "\"imageURL\":\"https://cdn.example/banner.png\""));
+        assertFalse(_contains(json, "ipfs://https://"));
     }
 
     function testProjectDetailsEscapesQuotes() public {
@@ -142,16 +192,17 @@ contract JsonBuilderTest is Test {
             wrapper.buildImpact("Planted Trees", "Planted 100 trees", "QmProof", workUID, garden, 1_700_000_000, "");
 
         assertTrue(_contains(json, "\"title\":\"Planted Trees\""), "Should contain title");
-        assertTrue(_contains(json, "\"text\":\"Planted 100 trees\""), "Should contain text");
+        assertTrue(_contains(json, "\"text\":\"Planted 100 trees"), "Should contain text");
         assertTrue(_contains(json, "\"type\":\"project-update\""), "Should have correct type");
     }
 
-    function testImpactISODateFormat() public {
-        // Unix timestamp 1700000000 = 2023-11-14T22:13:20.000Z
+    function testGAPJsonBuilder_impactUsesSupportedProjectUpdateDates() public {
         string memory json = wrapper.buildImpact("Work", "Desc", "QmProof", bytes32(0), address(0xBEEF), 1_700_000_000, "");
 
-        assertTrue(_contains(json, "\"startDate\":\"2023-11-14T22:13:20.000Z\""), "Should format startDate as ISO");
-        assertTrue(_contains(json, "\"endDate\":\"2023-11-14T22:13:20.000Z\""), "Should format endDate as ISO");
+        assertTrue(_contains(json, "\"startsAt\":1700000000"));
+        assertTrue(_contains(json, "\"endsAt\":1700000000"));
+        assertFalse(_contains(json, "\"startDate\""));
+        assertFalse(_contains(json, "\"endDate\""));
     }
 
     function testImpactDeliverables() public {
@@ -160,7 +211,9 @@ contract JsonBuilderTest is Test {
 
         assertTrue(_contains(json, "\"deliverables\":[{"), "Should contain deliverables array");
         assertTrue(_contains(json, "\"name\":\"Work Evidence\""), "Should have deliverable name");
-        assertTrue(_contains(json, "\"proof\":\"ipfs://QmEvidenceHash\""), "Should have IPFS proof link");
+        assertTrue(
+            _contains(json, "\"proof\":\"https://ipfs.io/ipfs/QmEvidenceHash\""), "Should have browser-safe HTTP proof link"
+        );
     }
 
     function testImpactGreenGoodsLink() public {
@@ -171,7 +224,9 @@ contract JsonBuilderTest is Test {
 
         assertTrue(_contains(json, "https://www.greengoods.app/home/0x"), "Should use canonical app route");
         assertTrue(_contains(json, "/work/0x"), "Should include work route with UID");
-        assertTrue(_contains(json, "\"label\":\"View in Green Goods\""), "Should have link label");
+        assertTrue(_contains(json, "[View in Green Goods](https://"), "Should include Markdown link text");
+        assertTrue(_contains(json, "[View original attestation on EAS Scan](https://"), "Should include EAS Markdown link");
+        assertFalse(_contains(json, "\"links\""), "Unsupported top-level links must not be emitted");
     }
 
     function testImpactUsesGardenAddressInLink() public {
@@ -191,19 +246,53 @@ contract JsonBuilderTest is Test {
     }
 
     function testImpactWithMetadataCID() public {
-        string memory json =
-            wrapper.buildImpact("Work", "Desc", "QmProof", bytes32(0), address(0xBEEF), 1_700_000_000, "bafkreiMetadata123");
-
-        assertTrue(
-            _contains(json, "\"metadataCID\":\"ipfs://bafkreiMetadata123\""),
-            "Should include metadataCID with ipfs:// prefix"
+        string memory json = wrapper.buildImpact(
+            "Work", "Desc", "QmProof", bytes32(0), address(0xBEEF), 1_700_000_000, "bafkreiMetadata123"
         );
+
+        assertTrue(_contains(json, "\"name\":\"Work Metadata\""));
+        assertTrue(_contains(json, "\"proof\":\"https://ipfs.io/ipfs/bafkreiMetadata123\""));
+        assertFalse(_contains(json, "\"metadataCID\""), "Unsupported top-level metadataCID must not be emitted");
     }
 
     function testImpactWithEmptyMetadataCID() public {
         string memory json = wrapper.buildImpact("Work", "Desc", "QmProof", bytes32(0), address(0xBEEF), 1_700_000_000, "");
 
         assertFalse(_contains(json, "metadataCID"), "Empty metadataCID should not appear in JSON");
+    }
+
+    function testGAPJsonBuilder_projectUpdateUsesChainSpecificEASLinkAndNormalizesEmbeddedURLs() public {
+        string memory json = wrapper.buildProjectUpdate(
+            "Work",
+            "Desc",
+            "ipfs://https://cdn.example/evidence.png",
+            bytes32(uint256(0xABCD)),
+            address(0xBEEF),
+            1_700_000_000,
+            "ipfs://https://cdn.example/metadata.json",
+            42_220
+        );
+
+        assertTrue(_contains(json, "https://celo.easscan.org/attestation/view/0x"));
+        assertTrue(_contains(json, "\"proof\":\"https://cdn.example/evidence.png\""));
+        assertTrue(_contains(json, "\"proof\":\"https://cdn.example/metadata.json\""));
+        assertFalse(_contains(json, "ipfs://https://"));
+    }
+
+    function testGAPJsonBuilder_projectUpdateUsesOnlySupportedTopLevelKeys() public {
+        string memory json = wrapper.buildProjectUpdate(
+            "Work", "Desc", "QmProof", bytes32(uint256(1)), address(0xBEEF), 1_700_000_000, "QmMetadata", 42_161
+        );
+
+        assertTrue(_contains(json, "\"title\""));
+        assertTrue(_contains(json, "\"text\""));
+        assertTrue(_contains(json, "\"startsAt\""));
+        assertTrue(_contains(json, "\"endsAt\""));
+        assertTrue(_contains(json, "\"deliverables\""));
+        assertTrue(_contains(json, "\"type\":\"project-update\""));
+        assertFalse(_contains(json, "\"links\""));
+        assertFalse(_contains(json, "\"metadataCID\""));
+        assertFalse(_contains(json, "ipfs://"));
     }
 
     // =========================================================================

@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
-import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
+import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
+import { greenWillKeys } from "../../config/query-keys/greenwill";
 import { getGreenWillBadgeDefinitions } from "../../modules/data/greenwill";
 import type { GreenWillBadgeDefinition } from "../../types/greenwill";
 
@@ -14,7 +15,7 @@ export function useGreenWillBadgeDefinitions(options: UseGreenWillBadgeDefinitio
   const enabled = options.enabled ?? true;
 
   const query = useQuery({
-    queryKey: queryKeys.greenWill.definitions(chainId),
+    queryKey: greenWillKeys.definitions(chainId),
     queryFn: () => getGreenWillBadgeDefinitions(chainId),
     enabled,
     staleTime: STALE_TIME_MEDIUM,

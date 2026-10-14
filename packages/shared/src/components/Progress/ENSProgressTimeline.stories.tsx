@@ -1,18 +1,19 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, userEvent, within } from "storybook/test";
+import { STORYBOOK_NOW_SECONDS } from "../../../.storybook/fixtures";
 import type { ENSRegistrationData } from "../../types/domain";
 import { ENSProgressTimeline } from "./ENSProgressTimeline";
 
 const pendingData: ENSRegistrationData = {
   status: "pending",
   ccipMessageId: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-  submittedAt: Date.now() - 5 * 60_000, // 5 minutes ago
+  submittedAt: STORYBOOK_NOW_SECONDS * 1000 - 5 * 60_000, // 5 minutes ago
 };
 
 const activeData: ENSRegistrationData = {
   status: "active",
   ccipMessageId: "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
-  submittedAt: Date.now() - 20 * 60_000,
+  submittedAt: STORYBOOK_NOW_SECONDS * 1000 - 20 * 60_000,
   registration: {
     owner: "0x1234567890123456789012345678901234567890",
     nameType: 1,
@@ -23,7 +24,7 @@ const activeData: ENSRegistrationData = {
 const timedOutData: ENSRegistrationData = {
   status: "timed_out",
   ccipMessageId: "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
-  submittedAt: Date.now() - 30 * 60_000, // 30 minutes ago
+  submittedAt: STORYBOOK_NOW_SECONDS * 1000 - 30 * 60_000, // 30 minutes ago
 };
 
 const availableData: ENSRegistrationData = {
@@ -38,7 +39,7 @@ const meta: Meta<typeof ENSProgressTimeline> = {
     docs: {
       description: {
         component:
-          "Tracks CCIP delivery status for ENS subdomain registrations. Shows pending (pulsing), active (green check), and timed_out (warning) states with copyable CCIP message ID and explorer link.",
+          "Tracks CCIP delivery status for ENS subdomain registrations. Shows submitting, checking, pending, ready, and delayed states. Registration details contain a copyable message ID and explorer link.",
       },
     },
   },
@@ -124,7 +125,7 @@ export const CompactTimedOut: Story = {
   },
 };
 
-export const Gallery: Story = {
+export const StateCatalog: Story = {
   render: () => (
     <div className="flex flex-col gap-6 max-w-lg">
       <div>
@@ -152,37 +153,6 @@ export const Gallery: Story = {
   ),
 };
 
-export const DarkMode: Story = {
-  args: {
-    data: pendingData,
-    slug: "my-garden",
-  },
-  decorators: [
-    (Story) => (
-      <div data-theme="dark" className="bg-bg-white-0 p-4">
-        <Story />
-      </div>
-    ),
-  ],
-};
-
-export const DarkModeGallery: Story = {
-  decorators: [
-    (Story) => (
-      <div data-theme="dark" className="bg-bg-white-0 p-4">
-        <Story />
-      </div>
-    ),
-  ],
-  render: () => (
-    <div className="flex flex-col gap-6 max-w-lg">
-      <ENSProgressTimeline data={pendingData} slug="solar-farm" />
-      <ENSProgressTimeline data={activeData} slug="solar-farm" />
-      <ENSProgressTimeline data={timedOutData} slug="solar-farm" />
-    </div>
-  ),
-};
-
 export const Interactive: Story = {
   args: {
     data: pendingData,
@@ -198,6 +168,8 @@ export const Interactive: Story = {
     // Verify the slug is displayed
     expect(canvas.getByText("my-garden.greengoods.eth")).toBeInTheDocument();
 
+    await userEvent.click(canvas.getByText("Registration details"));
+
     // Verify the CCIP message section exists
     const copyButton = canvas.getByRole("button", { name: /copy ccip/i });
     expect(copyButton).toBeInTheDocument();
@@ -210,4 +182,11 @@ export const Interactive: Story = {
     expect(explorerLink).toBeInTheDocument();
     expect(explorerLink).toHaveAttribute("target", "_blank");
   },
+};
+
+export const Submitting: Story = {
+  args: { data: pendingData, slug: "my-garden", phase: "submitting" },
+};
+export const Checking: Story = {
+  args: { data: pendingData, slug: "my-garden", phase: "checking" },
 };

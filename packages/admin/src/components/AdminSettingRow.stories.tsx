@@ -1,4 +1,4 @@
-import { Switch } from "@green-goods/shared";
+import { Switch } from "@green-goods/shared/components/Form/ControlPrimitives";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { expect, within } from "storybook/test";

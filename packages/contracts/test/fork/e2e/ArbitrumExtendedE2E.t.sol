@@ -144,7 +144,7 @@ contract ArbitrumExtendedE2EForkTest is AaveOctantForkBase {
     }
 
     function _assertConvictionRolePower(address garden) internal {
-        _grantGardenRole(garden, forkOperator, IHatsModule.GardenRole.Operator);
+        _grantGardenRole(garden, forkOperator, IHatsModule.GardenRole.Steward);
         _grantGardenRole(garden, forkGardener, IHatsModule.GardenRole.Gardener);
 
         assertTrue(hatsModule.isOperatorOf(garden, forkOperator), "operator role should be granted");
@@ -379,7 +379,7 @@ contract ArbitrumExtendedE2EForkTest is AaveOctantForkBase {
         );
 
         // 5. Grant roles
-        _grantGardenRole(garden, forkOperator, IHatsModule.GardenRole.Operator);
+        _grantGardenRole(garden, forkOperator, IHatsModule.GardenRole.Steward);
         _grantGardenRole(garden, forkGardener, IHatsModule.GardenRole.Gardener);
 
         // 6. Verify roles via HatsModule

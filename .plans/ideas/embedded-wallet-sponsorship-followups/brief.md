@@ -1,7 +1,8 @@
 # Embedded Wallet Sponsorship Follow-Ups
 
+**Status**: `CLOSED — canceled; see plan closeout`
 **Slug**: `embedded-wallet-sponsorship-followups`
-**Stage**: `backlog`
+**Stage**: `ideas`
 **Priority**: `p2`
 **Created**: `2026-04-12T02:12:20.845Z`
 

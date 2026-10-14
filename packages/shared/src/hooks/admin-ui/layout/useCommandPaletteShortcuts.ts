@@ -1,4 +1,4 @@
-import type { Garden } from "@green-goods/shared";
+import type { Garden } from "../../../types/domain";
 import { useEffect } from "react";
 
 interface CommandPaletteShortcutsOptions {

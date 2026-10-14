@@ -1,6 +1,6 @@
 /**
  * useGardenUrlSync Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests URL <-> store synchronization for the canvas garden navigation.
  */
@@ -9,7 +9,8 @@ import { renderHook, act, waitFor } from "@testing-library/react";
 import { createElement, Fragment, type ReactNode } from "react";
 import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createMockGarden, createTestQueryClient } from "../../test-utils";
+import { createMockGarden } from "../../test-utils/mock-factories";
+import { createTestQueryClient } from "../../test-utils/query-client";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { IntlProvider } from "react-intl";
 

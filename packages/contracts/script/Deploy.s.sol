@@ -5,6 +5,7 @@ pragma solidity ^0.8.25;
 import { Script } from "forge-std/Script.sol";
 import { console } from "forge-std/console.sol";
 
+import { CookieJarAssetLimits } from "./CookieJarAssetLimits.sol";
 import { DeploymentBase } from "../test/helpers/DeploymentBase.sol";
 import { Deployment } from "../src/registries/Deployment.sol";
 import { GardenToken } from "../src/tokens/Garden.sol";
@@ -217,8 +218,9 @@ contract Deploy is Script, DeploymentBase {
         // Add deployer to allowlist for minting during setup
         // solhint-disable-next-line no-empty-blocks
         try Deployment(address(deploymentRegistry)).addToAllowlist(msg.sender) {
-            // Success - deployer allowlisted
-        } catch {
+        // Success - deployer allowlisted
+        }
+        catch {
             console.log("WARNING: Failed to add deployer to allowlist - manual action required");
         }
 
@@ -226,8 +228,9 @@ contract Deploy is Script, DeploymentBase {
         if (config.multisig != address(0) && config.multisig != msg.sender) {
             // solhint-disable-next-line no-empty-blocks
             try Deployment(address(deploymentRegistry)).addToAllowlist(config.multisig) {
-                // Success - multisig allowlisted
-            } catch {
+            // Success - multisig allowlisted
+            }
+            catch {
                 console.log("WARNING: Failed to add multisig to allowlist - manual action required");
             }
             _initiateGovernanceTransfer(config.multisig);
@@ -404,6 +407,9 @@ contract Deploy is Script, DeploymentBase {
 
             cookieJarModule.addSupportedAsset(asset);
         }
+
+        // One shared default cannot serve every asset, so each gets its own per-claim limit.
+        CookieJarAssetLimits.applyTo(cookieJarModule);
     }
 
     /// @notice Read optional env var as address; returns zero when unset/invalid
@@ -788,8 +794,8 @@ contract Deploy is Script, DeploymentBase {
     }
 
     /// @notice Grant configured seed roles and verify each grant result.
-    function _grantSeedRoles(address garden, address[] memory operators, address[] memory gardeners) internal {
-        _grantSeedRoleBatch(garden, operators, IHatsModule.GardenRole.Operator);
+    function _grantSeedRoles(address garden, address[] memory stewards, address[] memory gardeners) internal {
+        _grantSeedRoleBatch(garden, stewards, IHatsModule.GardenRole.Steward);
         _grantSeedRoleBatch(garden, gardeners, IHatsModule.GardenRole.Gardener);
     }
 
@@ -801,7 +807,7 @@ contract Deploy is Script, DeploymentBase {
                 revert InvalidSeedRoleAddress(garden, uint8(role), i);
             }
 
-            bool alreadyGranted = role == IHatsModule.GardenRole.Operator
+            bool alreadyGranted = role == IHatsModule.GardenRole.Steward
                 ? hatsModule.isOperatorOf(garden, account)
                 : hatsModule.isGardenerOf(garden, account);
             if (alreadyGranted) {
@@ -809,7 +815,7 @@ contract Deploy is Script, DeploymentBase {
             }
 
             hatsModule.grantRole(garden, account, role);
-            bool granted = role == IHatsModule.GardenRole.Operator
+            bool granted = role == IHatsModule.GardenRole.Steward
                 ? hatsModule.isOperatorOf(garden, account)
                 : hatsModule.isGardenerOf(garden, account);
             if (!granted) revert SeedRoleGrantFailed(garden, account, uint8(role));
@@ -833,7 +839,7 @@ contract Deploy is Script, DeploymentBase {
 
         for (uint256 i = 0; i < gardensCount; i++) {
             string memory basePath = string.concat(".gardens[", vm.toString(i), "]");
-            (GardenToken.GardenConfig memory gardenConfig, address[] memory operators, address[] memory gardeners) =
+            (GardenToken.GardenConfig memory gardenConfig, address[] memory stewards, address[] memory gardeners) =
                 _parseGardenConfigFromJson(gardensJson, basePath, i, communitySlug);
 
             uint256 ensFee = _estimateENSFee(gardenConfig.slug);
@@ -843,7 +849,7 @@ contract Deploy is Script, DeploymentBase {
             uint256 tokenId = i + 1;
             gardenTokenIds.push(tokenId);
 
-            _grantSeedRoles(gardenAddress, operators, gardeners);
+            _grantSeedRoles(gardenAddress, stewards, gardeners);
 
             if (_slugMatches(gardenConfig.slug, communitySlug)) {
                 rootGardenAddress = gardenAddress;
@@ -880,7 +886,7 @@ contract Deploy is Script, DeploymentBase {
     )
         internal
         view
-        returns (GardenToken.GardenConfig memory gardenConfig, address[] memory operators, address[] memory gardeners)
+        returns (GardenToken.GardenConfig memory gardenConfig, address[] memory stewards, address[] memory gardeners)
     {
         string memory name = abi.decode(vm.parseJson(gardensJson, string.concat(basePath, ".name")), (string));
         string memory description = abi.decode(vm.parseJson(gardensJson, string.concat(basePath, ".description")), (string));
@@ -900,7 +906,7 @@ contract Deploy is Script, DeploymentBase {
             domainMask = uint8(parsedDomainMask);
         } catch { }
 
-        operators = _parseOptionalAddressArray(gardensJson, string.concat(basePath, ".operators"));
+        stewards = _parseOptionalAddressArray(gardensJson, string.concat(basePath, ".stewards"));
         gardeners = _parseOptionalAddressArray(gardensJson, string.concat(basePath, ".gardeners"));
 
         gardenConfig = GardenToken.GardenConfig({
@@ -914,7 +920,7 @@ contract Deploy is Script, DeploymentBase {
             weightScheme: IGardensModule.WeightScheme.Linear,
             domainMask: domainMask,
             gardeners: gardeners,
-            operators: operators
+            stewards: stewards
         });
     }
 
@@ -1139,8 +1145,9 @@ contract Deploy is Script, DeploymentBase {
         if (!Deployment(address(deploymentRegistry)).isInAllowlist(multisig)) {
             // solhint-disable-next-line no-empty-blocks
             try Deployment(address(deploymentRegistry)).addToAllowlist(multisig) {
-                // Success - multisig added to allowlist
-            } catch {
+            // Success - multisig added to allowlist
+            }
+            catch {
                 console.log("WARNING: Failed to add multisig to allowlist before governance transfer");
             }
         }

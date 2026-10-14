@@ -1,4 +1,7 @@
-import { communitySectionForMode, resolveCommunityMode } from "@green-goods/shared";
+import {
+  communitySectionForMode,
+  resolveCommunityMode,
+} from "@green-goods/shared/hooks/admin-ui/community/community.utils";
 import { describe, expect, it } from "vitest";
 
 describe("community mode resolution", () => {

@@ -154,28 +154,24 @@ function formatBranch(summary) {
 }
 
 const args = parseArgs(process.argv);
-const unitOk = args["unit-ok"] === "true";
-const integrationOk = args["integration-ok"] === "true";
-const unitError = args["unit-error"] ?? "";
-const integrationError = args["integration-error"] ?? "";
+const localOk = args["local-ok"] === "true";
+const localError = args["local-error"] ?? "";
 
-const unitRecords = readLcov(args["unit-lcov"]);
-const integrationRecords = readLcov(args["integration-lcov"]);
-const combinedRecords = mergeRecords([unitRecords, integrationRecords]);
+const localRecords = readLcov(args["local-lcov"]);
+const combinedRecords = mergeRecords([localRecords]);
 
-const rawUnit = summarize(unitRecords);
-const rawIntegration = summarize(integrationRecords);
+const rawLocal = summarize(localRecords);
 const coreCombined = summarize(combinedRecords, isCoreSource);
-const coreStatus = unitOk && integrationOk && passes(coreCombined, CORE_TARGET) ? "PASS" : "FAIL";
+const coreStatus = localOk && passes(coreCombined, CORE_TARGET) ? "PASS" : "FAIL";
 
 const criticalRows = CRITICAL_TARGETS.map((target) => {
   const summary = summarizeFile(combinedRecords, target.file);
-  const status = unitOk && integrationOk && passes(summary, target) ? "PASS" : "FAIL";
+  const status = localOk && passes(summary, target) ? "PASS" : "FAIL";
   return { ...target, summary, status };
 });
 
 let overallStatus = coreStatus;
-if (!unitOk || !integrationOk || criticalRows.some((row) => row.status !== "PASS")) {
+if (!localOk || criticalRows.some((row) => row.status !== "PASS")) {
   overallStatus = "FAIL";
 }
 
@@ -185,7 +181,7 @@ Generated: ${new Date().toISOString().replace(/\.\d{3}Z$/, "Z")}
 
 ## Threshold Policy
 
-Threshold math uses combined unit + integration LCOV over core production sources only.
+Threshold math uses one LCOV run over all local non-fork, non-E2E Solidity tests and core production sources only.
 
 Excluded from threshold math:
 - \`script/**\`
@@ -200,7 +196,7 @@ Fork and E2E suites remain pass/fail execution gates. They are intentionally not
 
 | Gate | Line Coverage | Branch Coverage | Target | Status |
 |---|---:|---:|---|---|
-| Combined core \`src/**\` | ${formatCoverage(coreCombined)} | ${formatBranch(coreCombined)} | line >= ${CORE_TARGET.line}%, branch >= ${CORE_TARGET.branch}% | ${coreStatus} |
+| Local core \`src/**\` | ${formatCoverage(coreCombined)} | ${formatBranch(coreCombined)} | line >= ${CORE_TARGET.line}%, branch >= ${CORE_TARGET.branch}% | ${coreStatus} |
 
 ## Critical Contract Gates
 
@@ -215,29 +211,25 @@ ${criticalRows
 
 ## Raw LCOV Command Output
 
-These numbers are retained for diagnosis only. They are not release thresholds because each suite sees a partial execution slice.
+These numbers are retained for diagnosis. Release thresholds use the filtered core subset above.
 
 | Suite | Line Coverage | Branch Coverage | Command Status |
 |---|---:|---:|---|
-| Unit \`test/unit/**\` | ${formatCoverage(rawUnit)} | ${formatBranch(rawUnit)} | ${unitOk ? "OK" : "ERROR"} |
-| Integration \`test/integration/**\` | ${formatCoverage(rawIntegration)} | ${formatBranch(rawIntegration)} | ${integrationOk ? "OK" : "ERROR"} |
+| Local non-fork, non-E2E Solidity tests | ${formatCoverage(rawLocal)} | ${formatBranch(rawLocal)} | ${localOk ? "OK" : "ERROR"} |
 
 Execution Notes:
-- Unit: ${unitError || "OK"}
-- Integration: ${integrationError || "OK"}
+- Local: ${localError || "OK"}
 - Overall status: ${overallStatus}
 
 Artifacts:
-- output/contracts-test-audit/lcov-unit.info
-- output/contracts-test-audit/lcov-integration.info
-- output/contracts-test-audit/coverage-unit.log
-- output/contracts-test-audit/coverage-integration.log
+- output/contracts-test-audit/lcov-local.info
+- output/contracts-test-audit/coverage-local.log
 `;
 
 const summaryJson = {
   generated_at: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
   policy: {
-    threshold_scope: "combined unit + integration LCOV over core production src/**",
+    threshold_scope: "local non-fork, non-E2E LCOV over core production src/**",
     excluded_prefixes: EXCLUDED_PREFIXES,
     fork_e2e_policy: "pass/fail execution gates, not LCOV threshold inputs",
   },
@@ -264,25 +256,15 @@ const summaryJson = {
     ]),
   ),
   raw: {
-    unit: {
-      ok: unitOk,
-      line_covered: rawUnit.lineCovered,
-      line_total: rawUnit.lineTotal,
-      line_percent: rawUnit.linePercent,
-      branch_covered: rawUnit.branchCovered,
-      branch_total: rawUnit.branchTotal,
-      branch_percent: rawUnit.branchPercent,
-      error: unitError,
-    },
-    integration: {
-      ok: integrationOk,
-      line_covered: rawIntegration.lineCovered,
-      line_total: rawIntegration.lineTotal,
-      line_percent: rawIntegration.linePercent,
-      branch_covered: rawIntegration.branchCovered,
-      branch_total: rawIntegration.branchTotal,
-      branch_percent: rawIntegration.branchPercent,
-      error: integrationError,
+    local: {
+      ok: localOk,
+      line_covered: rawLocal.lineCovered,
+      line_total: rawLocal.lineTotal,
+      line_percent: rawLocal.linePercent,
+      branch_covered: rawLocal.branchCovered,
+      branch_total: rawLocal.branchTotal,
+      branch_percent: rawLocal.branchPercent,
+      error: localError,
     },
   },
   overall_status: overallStatus,

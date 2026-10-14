@@ -1,14 +1,15 @@
 /**
  * useTradeHistory Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests FractionPurchased event fetching for trade history display.
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { type QueryClient } from "@tanstack/react-query";
+import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const TEST_CHAIN_ID = 11155111;
 
@@ -38,18 +39,6 @@ vi.mock("../../../config", () => ({
 import { useTradeHistory } from "../../../hooks/hypercerts/useTradeHistory";
 import type { FractionTrade } from "../../../types/hypercerts";
 
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-}
-
-function createQueryClient() {
-  return new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: 0 } },
-  });
-}
-
 // ============================================
 // Test Suite
 // ============================================
@@ -59,12 +48,12 @@ describe("useTradeHistory", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = createQueryClient();
+    queryClient = createTestQueryClient();
   });
 
   it("returns empty trades array initially", () => {
-    const { result } = renderHook(() => useTradeHistory(undefined), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useTradeHistory(undefined), {
+      queryClient,
     });
 
     expect(result.current.trades).toEqual([]);
@@ -73,8 +62,8 @@ describe("useTradeHistory", () => {
   });
 
   it("does not fetch when hypercertId is undefined", () => {
-    renderHook(() => useTradeHistory(undefined), {
-      wrapper: createWrapper(queryClient),
+    renderHookWithQueryClient(() => useTradeHistory(undefined), {
+      queryClient,
     });
 
     expect(mockGetTradeHistory).not.toHaveBeenCalled();
@@ -95,8 +84,8 @@ describe("useTradeHistory", () => {
     ];
     mockGetTradeHistory.mockResolvedValue(mockTrades);
 
-    const { result } = renderHook(() => useTradeHistory(100n), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useTradeHistory(100n), {
+      queryClient,
     });
 
     await waitFor(() => {
@@ -109,8 +98,8 @@ describe("useTradeHistory", () => {
   it("handles fetch errors", async () => {
     mockGetTradeHistory.mockRejectedValue(new Error("Subgraph unavailable"));
 
-    const { result } = renderHook(() => useTradeHistory(100n), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useTradeHistory(100n), {
+      queryClient,
     });
 
     await waitFor(() => {
@@ -123,8 +112,8 @@ describe("useTradeHistory", () => {
   it("provides a refetch function", async () => {
     mockGetTradeHistory.mockResolvedValue([]);
 
-    const { result } = renderHook(() => useTradeHistory(100n), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useTradeHistory(100n), {
+      queryClient,
     });
 
     await waitFor(() => {
@@ -137,8 +126,8 @@ describe("useTradeHistory", () => {
   it("handles bigint hypercertId in query key", async () => {
     mockGetTradeHistory.mockResolvedValue([]);
 
-    const { result } = renderHook(() => useTradeHistory(999999999n), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useTradeHistory(999999999n), {
+      queryClient,
     });
 
     await waitFor(() => {

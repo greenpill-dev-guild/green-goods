@@ -62,12 +62,9 @@ export function useViewActions({
     // The FAB is the mobile vehicle for the mode's primary action. A view
     // with no explicit `primary: true` (read-only modes, panel-owned flows)
     // declares no FAB rather than promoting an arbitrary first action.
-    const primary = visibleActions.find((action) => action.primary);
-    if (!primary) return null;
+    if (!visibleActions.some((action) => action.primary)) return null;
 
     return {
-      icon: primary.icon,
-      label: primary.label,
       // Speed-dial: the primary sits nearest the FAB trigger (first here →
       // bottom of the upward stack via flex-col-reverse), mirroring the desktop
       // row's primary-rightmost emphasis.
@@ -79,6 +76,8 @@ export function useViewActions({
           label: action.label,
           labelId: action.labelId,
           disabled: action.disabled,
+          disabledReasonId: action.disabledReasonId,
+          disabledReason: action.disabledReason,
         })),
       onAction: (actionId: string) => {
         const target = visibleActions.find((action) => action.id === actionId);

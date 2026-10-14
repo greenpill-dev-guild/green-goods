@@ -4,12 +4,12 @@ import { useIntl } from "react-intl";
 import { toastService } from "../../components/toast";
 import { getWagmiConfig } from "../../config/appkit";
 import type { EnableAutoAllocateParams } from "../../types/vaults";
-import { OCTANT_MODULE_ABI } from "../../utils/blockchain/abis";
+import { OCTANT_MODULE_ABI } from "../../utils/blockchain/abis/octant";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useUser } from "../auth/useUser";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
-import { queryInvalidation } from "../../config/query-keys";
+import { queryInvalidation } from "../../config/query-keys/invalidation";
 import { useSafeMutation } from "../utils/useSafeMutation";
 import { getOctantModuleAddress } from "./vault-helpers";
 
@@ -33,6 +33,7 @@ export function useEnableAutoAllocate() {
         abi: OCTANT_MODULE_ABI,
         functionName: "owner",
         args: [],
+        chainId,
       });
       const moduleOwner = typeof ownerResult === "string" ? ownerResult : "";
       if (moduleOwner.toLowerCase() !== primaryAddress?.toLowerCase()) {

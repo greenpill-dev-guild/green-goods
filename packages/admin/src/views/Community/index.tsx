@@ -1,10 +1,11 @@
-import {
-  buildCommunityHeaderStats,
-  MetaStrip,
-  type Address,
-  useCommunityWorkspaceController,
-  useMediaQuery,
-} from "@green-goods/shared";
+import { MetaStrip } from "@green-goods/shared/components/Canvas/MetaStrip";
+import { buildCommunityHeaderStats } from "@green-goods/shared/hooks/admin-ui/community/community.utils";
+import { useCommunityWorkspaceController } from "@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController";
+import { useIsProtocolGarden } from "@green-goods/shared/hooks/commitment-pooling/useProtocolPool";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { ZERO_ADDRESS } from "@green-goods/shared/utils/blockchain/address";
+import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
+import type { Address } from "@green-goods/shared/types/domain";
 import { useMemo } from "react";
 import { AdminTabRail } from "@/components/AdminTabRail";
 import { AdminViewActions } from "@/components/AdminViewActions";
@@ -14,9 +15,14 @@ import { CommunityWorkspaceContent } from "./components/CommunityWorkspaceConten
 import { useIntl } from "react-intl";
 
 export default function CommunityView() {
-  const { formatMessage } = useIntl();
+  const { formatMessage, locale } = useIntl();
   const community = useCommunityWorkspaceController();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const { isProtocolGarden } = useIsProtocolGarden({
+    chainId: community.selectedGarden?.chainId ?? DEFAULT_CHAIN_ID,
+    gardenId: (community.selectedGardenAddress ?? ZERO_ADDRESS) as Address,
+  });
+  const showCoordination = Boolean(community.selectedGardenAddress) && isProtocolGarden;
 
   // Paid-out magnitudes by asset. The Payouts tab badge is a count, but the
   // header cannot add base units across WETH/USDC/etc. as one token total.
@@ -44,15 +50,17 @@ export default function CommunityView() {
     () =>
       buildCommunityHeaderStats({
         hasSelectedGarden: Boolean(community.selectedGarden),
-        vaultNetDeposited: community.vaultNetDeposited,
+        endowmentByAsset: community.endowmentByAsset,
         distributedAmounts: community.allocationsLoading ? null : distributedAmountsByAsset,
+        locale,
         formatMessage,
       }),
     [
       community.selectedGarden,
       community.allocationsLoading,
-      community.vaultNetDeposited,
+      community.endowmentByAsset,
       distributedAmountsByAsset,
+      locale,
       formatMessage,
     ]
   );
@@ -73,10 +81,6 @@ export default function CommunityView() {
 
       <CanvasRouteHeader
         title={formatMessage({ id: "cockpit.community.title", defaultMessage: "Community" })}
-        description={formatMessage({
-          id: "cockpit.community.description",
-          defaultMessage: "Members, coordination, endowment, and payouts for the garden community.",
-        })}
         metadata={
           headerStats.length > 0 ? <MetaStrip items={headerStats} density="inline" /> : undefined
         }
@@ -104,21 +108,24 @@ export default function CommunityView() {
               }),
               count: community.derived.directoryEntries.length || undefined,
             },
-            {
-              id: "coordination",
-              label: formatMessage({
-                id: "cockpit.community.coordination",
-                defaultMessage: "Coordination",
-              }),
-              count: community.pools.length || undefined,
-            },
+            ...(showCoordination
+              ? [
+                  {
+                    id: "coordination",
+                    label: formatMessage({
+                      id: "cockpit.community.coordination",
+                      defaultMessage: "Coordination",
+                    }),
+                  },
+                ]
+              : []),
             {
               id: "endowment",
               label: formatMessage({
                 id: "cockpit.community.endowment",
                 defaultMessage: "Endowment",
               }),
-              count: community.derived.hasVaults ? 1 : undefined,
+              count: community.hasVaults ? 1 : undefined,
             },
             {
               id: "payouts",

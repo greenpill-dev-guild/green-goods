@@ -1,11 +1,11 @@
 import { useIsRestoring, useQuery } from "@tanstack/react-query";
 import { useRef } from "react";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { STALE_TIMES } from "../../config/react-query";
 import { logger } from "../../modules/app/logger";
 import { getGardenAssessments, getWorkApprovals, getWorks } from "../../modules/data/eas";
 import type { EASGardenAssessment, EASWork, EASWorkApproval } from "../../types/eas-responses";
-import { queryKeys } from "../../config/query-keys";
+import { platformKeys } from "../../config/query-keys/garden";
 
 export interface PlatformStats {
   totalWorks: number;
@@ -37,7 +37,7 @@ export function usePlatformStats(gardenAddresses: string[]) {
   addressesRef.current = gardenAddresses;
 
   return useQuery({
-    queryKey: queryKeys.platform.stats(chainId),
+    queryKey: platformKeys.stats(chainId),
     queryFn: async (): Promise<PlatformStats> => {
       const addresses = addressesRef.current;
 

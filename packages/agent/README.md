@@ -4,18 +4,16 @@ Platform-agnostic bot for Green Goods. Currently supports Telegram, with archite
 
 📖 **[Agent Documentation](https://docs.greengoods.app/builders/packages/agent)** — Bot architecture and deployment guide
 
-## Quick Start
+## Local development
 
-```bash
-# Install dependencies
-bun install
+Follow [repository onboarding](../../ONBOARDING.md) for tools and the root environment.
+The default `bun run dev` starts the local API with Telegram disabled alongside the browser
+apps and indexer. To start only that API surface, use `bun run dev -- agent`; dependencies
+must already be available. All commands in this guide run from the repository root.
 
-# Development (polling mode)
-bun run dev
-
-# Production (webhook mode)
-bun run build && bun run start
-```
+Use the package-native command only when intentionally testing the messaging runtime with
+its required credentials: `bun run --cwd packages/agent dev`.
+Select focused tests with `bun run check --plan -- --intent qa`.
 
 ## Deploy to Fly.io (recommended)
 
@@ -25,6 +23,10 @@ bun run build && bun run start
 **Prereqs**
 - Telegram token (`TELEGRAM_BOT_TOKEN`) from BotFather
 - 32+ char `ENCRYPTION_SECRET`
+- 32-byte hex or base64 `SAVED_OFFERS_ENCRYPTION_KEY`
+- 32-byte hex or base64 `JOIN_REQUESTS_ENCRYPTION_KEY` when the join-request queue is enabled
+- Canonical production audience in `SAVED_OFFERS_AUDIENCE`
+- Trusted reverse-proxy hop count in `AGENT_TRUSTED_PROXY_HOPS`
 - 32+ char `BOT_API_TOKEN` (bearer token that routines use to call `/api/messages` and its attachments proxy)
 - Pinata JWT (`PINATA_JWT`) when the deployed agent should sign browser upload URLs
 - [`flyctl`](https://fly.io/docs/flyctl/install/) installed and authenticated
@@ -39,17 +41,23 @@ Run from the repo root:
 flyctl launch --no-deploy --config fly.toml --dockerfile packages/agent/Dockerfile
 
 # Persistent volume for the SQLite database
-flyctl volumes create agent_data --config fly.toml --region ams --size 1
+flyctl volumes create agent_data --config fly.toml --region jnb --size 1
 
-# Secrets (these never land in fly.toml)
+# Plain settings such as the chain and feature flags live in fly.toml. Browser
+# origins, trusted-proxy policy, and the saved-offer audience are secrets. A secret
+# silently overrides an [env] value of the same name, so never set one in both places.
 flyctl secrets set --config fly.toml \
   TELEGRAM_BOT_TOKEN=<botfather-token> \
   ENCRYPTION_SECRET=<32+-char-secret> \
+  SAVED_OFFERS_ENCRYPTION_KEY=<32-byte-hex-or-base64-key> \
   BOT_API_TOKEN=<routine-auth-bearer-token> \
   PINATA_JWT=<pinata-jwt-for-upload-signing> \
-  AGENT_ALLOWED_ORIGINS=https://greengoods.app,https://admin.greengoods.app \
   POSTHOG_AGENT_KEY=<optional> \
-  TELEGRAM_WEBHOOK_SECRET=<random-string>
+  TELEGRAM_WEBHOOK_SECRET=<random-string> \
+  AGENT_ALLOWED_ORIGINS=<comma-separated-browser-origins> \
+  AGENT_TRUSTED_PROXY_CIDRS=<fly-proxy-cidr> \
+  AGENT_TRUSTED_PROXY_HOPS=<proxy-hop-count> \
+  SAVED_OFFERS_AUDIENCE=<agent-host>
 
 # First deploy
 flyctl deploy --config fly.toml
@@ -153,7 +161,7 @@ Deploys: pushing to `main` ships the agent via Fly's GitHub integration. The `fl
    - `BOT_MODE=polling` (recommended to start; switch to `webhook` later)
    - `DB_PATH=/data/agent.db`
    - Optional for webhook: `WEBHOOK_URL=https://your-domain.com/telegram/webhook`, `PORT=3000`, `TELEGRAM_WEBHOOK_SECRET=...`
-4) Deploy: Railway will run `bun run start` from `packages/agent` (see Dockerfile).
+4) Deploy: Railway will run `bun run --cwd packages/agent start` from `packages/agent` (see Dockerfile).
 5) Verify health: `curl https://<railway-url>/health` (or `/ready` if voice-model readiness matters).
 6) Talk to the bot in Telegram (`/start`, `/status`) to confirm.
 
@@ -169,8 +177,17 @@ Create a `.env` file in the repo root:
 # Required
 TELEGRAM_BOT_TOKEN=your-bot-token-from-botfather
 ENCRYPTION_SECRET=your-32-character-secret-key
+SAVED_OFFERS_ENCRYPTION_KEY=your-32-byte-hex-or-base64-key
+SAVED_OFFERS_AUDIENCE=agent.greengoods.app
+AGENT_TRUSTED_PROXY_HOPS=1
+AGENT_TRUSTED_PROXY_CIDRS=172.16.0.0/16
 
 # Optional
+JOIN_REQUESTS_ENABLED=false  # Keep false until every activation gate is complete
+JOIN_REQUESTS_ENCRYPTION_KEY= # Keep installed for retention after deactivation
+JOIN_REQUESTS_PRODUCTION_READY=false # Set true only after the activation record is complete
+# The passkey directory is always served. Its legacy-name check reuses the existing
+# PIMLICO_API_KEY (or the root VITE_PIMLICO_API_KEY); no dedicated rollout secret is needed.
 BOT_MODE=polling              # or "webhook" (default: polling in dev)
 PORT=3000                     # HTTP server port
 WEBHOOK_URL=https://...       # Required for webhook mode
@@ -209,14 +226,14 @@ The bot parses natural language to extract tasks, then prompts for confirmation.
 
 ```bash
 bun run dev          # Start in polling mode with hot reload
-bun run build        # TypeScript compilation
-bun run start        # Run production build
-bun run test         # Run tests
-bun run test:watch   # Watch mode
-bun run test:coverage # Coverage report
-bun run lint         # Lint with oxlint
-bun run format       # Format with Biome
-bun run typecheck    # TypeScript type check
+bun run --cwd packages/agent build        # TypeScript compilation
+bun run --cwd packages/agent start        # Run production build
+bun run --cwd packages/agent test         # Run tests
+bun run --cwd packages/agent test --scope unit --watch   # Watch mode
+bun run --cwd packages/agent test --scope unit --coverage # Coverage report
+bun run --cwd packages/agent lint         # Lint with oxlint
+bun run --cwd packages/agent format       # Format with Biome
+bun run --cwd packages/agent typecheck    # TypeScript type check
 ```
 
 ## Security Features
@@ -244,16 +261,16 @@ Uses **Vitest** for unit tests with an in-memory SQLite mock for database operat
 
 ```bash
 # Run all tests
-bun run test
+bun run --cwd packages/agent test
 
 # Watch mode
-bun run test:watch
+bun run --cwd packages/agent test --scope unit --watch
 
 # Coverage report
-bun run test:coverage
+bun run --cwd packages/agent test --scope unit --coverage
 
 # Interactive UI
-bun run test:ui
+bun run --cwd packages/agent test --scope unit --ui
 ```
 
 ### Test Structure
@@ -292,6 +309,13 @@ See [agent.md](/.claude/context/agent.md) for detailed architecture documentatio
 ## Production Checklist
 
 - [ ] Set `ENCRYPTION_SECRET` (32+ characters)
+- [ ] Set `SAVED_OFFERS_ENCRYPTION_KEY`
+- [ ] Set `AGENT_ALLOWED_ORIGINS`, `SAVED_OFFERS_AUDIENCE`, `AGENT_TRUSTED_PROXY_HOPS`, and
+      `AGENT_TRUSTED_PROXY_CIDRS` as Fly secrets, and confirm `VITE_CHAIN_ID` in `fly.toml`
+- [ ] After each deploy or allowlist change, run `bun run dev:smoke -- prod` and confirm
+      `production-agent-browser-origins` passes (the expected origins live in `scripts/dev/smoke-prod.js`)
+- [ ] Before setting `JOIN_REQUESTS_ENABLED=true`, set `JOIN_REQUESTS_ENCRYPTION_KEY`, name a backup operator, rehearse recovery, record authenticated Brave proof, update [the authoritative community interface status](/.plans/backlog/community-interface/status.json), then set `JOIN_REQUESTS_PRODUCTION_READY=true`.
+- [ ] Confirm the existing Pimlico API key is available to the agent (startup requires it in production), every Green Goods site is in `AGENT_ALLOWED_ORIGINS`, and the `/data` volume has snapshots: the passkey directory's records are the only place a name maps to its passkey.
 - [ ] Configure webhook URL with TLS
 - [ ] Consider HSM/KMS for key storage
 - [ ] Set up monitoring for `/health` endpoint

@@ -2,14 +2,18 @@
 title: Reputation & Badging — Design
 epic: Epic — Reputation & Badging
 outcome: Badges live across 3+ pilot gardens, portable across sibling projects
-quarter: Q2 2026
-due: 2026-06-30
-status: Backlog
+status: Idea; rollout date unaccepted
 owner: afo
-last_updated: 2026-04-17
+last_updated: 2026-10-06
+historical_quarter: Q2 2026
+historical_due: 2026-06-30
 ---
 
 # Reputation & Badging — Design
+
+## Current planning boundary (2026-10-06)
+
+This is the later six-badge expansion, separate from the initial three GreenWill badges. PRD-455 remains Backlog while the local hub is an idea. The Q2 schedule below is historical; no rollout date or deployment is accepted. Updated chain availability, portability evidence, issuer/contract confidence and explicit pilot scope are required before activation.
 
 ## Goal
 

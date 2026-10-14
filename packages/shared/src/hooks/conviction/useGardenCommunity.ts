@@ -5,11 +5,12 @@ import { logger } from "../../modules/app/logger";
 import { getGardenCommunityFromSubgraph } from "../../modules/data/gardens";
 import type { Address } from "../../types/domain";
 import { type GardenCommunity, WeightScheme } from "../../types/gardens-community";
-import { GARDENS_MODULE_ABI } from "../../utils/blockchain/abis";
+import { GARDENS_MODULE_ABI } from "../../utils/blockchain/abis/conviction";
 import { normalizeAddress } from "../../utils/blockchain/address";
 import { fetchGardensModuleAddress } from "../../utils/blockchain/garden-modules";
 import { useCurrentChain } from "../blockchain/useChainConfig";
-import { queryKeys, STALE_TIME_SLOW } from "../../config/query-keys";
+import { STALE_TIME_SLOW } from "../../config/query-keys/constants";
+import { communityKeys } from "../../config/query-keys/identity";
 
 interface UseGardenCommunityOptions {
   /** RegistryCommunity address -- when provided, uses subgraph instead of RPC */
@@ -29,7 +30,7 @@ export function useGardenCommunity(
   const query = useQuery({
     // Safe fallback: query is disabled when normalizedGarden is undefined (see enabled below),
     // so the "" key is never used for an actual fetch.
-    queryKey: queryKeys.community.garden(normalizedGarden ?? "", chainId),
+    queryKey: communityKeys.garden(normalizedGarden ?? "", chainId),
     queryFn: async (): Promise<GardenCommunity | null> => {
       if (!normalizedGarden) return null;
 

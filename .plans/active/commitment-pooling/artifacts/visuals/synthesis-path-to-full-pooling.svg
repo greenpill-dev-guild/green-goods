@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1800" viewBox="0 0 900 900" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" role="img" aria-labelledby="path-to-full-pooling-title path-to-full-pooling-desc">
+  <title id="path-to-full-pooling-title">Full Commitment Pooling grows through gates</title>
+  <desc id="path-to-full-pooling-desc">Six stages of Commitment Pooling shown as a snaking path: commitment coordination, compatibility freeze, field evidence, fulfilled backing, one bounded pool, and separate decisions about capacity backing or federation. The coordination stage is drawn solid because it is specified and useful on its own; every later stage is dashed and gated. The field evidence stage records that not supported or unavailable is a valid result. The separate G$ support rail is useful at every stage and is never voucher redemption by implication.</desc>
+  <defs>
+    <marker id="pathfp-arrow-base" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 Z" fill="#988D77"/>
+    </marker>
+    <marker id="pathfp-arrow-gated" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 Z" fill="#8A6D3B"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="900" height="900" fill="#FBF8F2"/>
+
+  <text x="450" y="46" text-anchor="middle" font-size="29" font-weight="700" fill="#2A2722">Full Commitment Pooling grows through gates</text>
+  <text x="450" y="76" text-anchor="middle" font-size="17" fill="#6E6857">Specified scope, not live status. Field evidence decides whether the path advances.</text>
+
+  <!-- ============ connectors ============ -->
+
+  <!-- 0 to 1 -->
+  <path d="M 400 177 L 494 177" fill="none" stroke="#988D77" stroke-width="2.5" marker-end="url(#pathfp-arrow-base)"/>
+  <!-- 1 to 2 -->
+  <path d="M 670 234 L 670 304" fill="none" stroke="#8A6D3B" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#pathfp-arrow-gated)"/>
+  <!-- 2 to 3 -->
+  <path d="M 500 367 L 406 367" fill="none" stroke="#8A6D3B" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#pathfp-arrow-gated)"/>
+  <!-- 3 to 4 -->
+  <path d="M 230 424 L 230 494" fill="none" stroke="#8A6D3B" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#pathfp-arrow-gated)"/>
+  <!-- 4 to 5 -->
+  <path d="M 400 557 L 494 557" fill="none" stroke="#8A6D3B" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#pathfp-arrow-gated)"/>
+
+
+  <!-- ============ stage blocks ============ -->
+
+  <!-- 0 · base coordination · solid: complete scope on its own -->
+  <g>
+    <rect x="60" y="120" width="340" height="114" rx="12" fill="#FFFFFF" stroke="#988D77" stroke-width="2.5"/>
+    <text x="230" y="150" text-anchor="middle" font-size="19" font-weight="600" fill="#3B372E">0 · Commitment coordination</text>
+    <text x="230" y="174" text-anchor="middle" font-size="15.5" fill="#6E6857">Needs, Offers and Requests, series,</text>
+    <text x="230" y="193" text-anchor="middle" font-size="15.5" fill="#6E6857">evidence, confirmation, Story.</text>
+    <text x="230" y="216" text-anchor="middle" font-size="15.5" font-weight="600" fill="#3B372E">Useful and complete on its own.</text>
+  </g>
+
+  <!-- 1 · compatibility freeze -->
+  <g>
+    <rect x="500" y="120" width="340" height="114" rx="12" fill="#FFFFFF" stroke="#8A6D3B" stroke-width="2.5" stroke-dasharray="7 6"/>
+    <text x="670" y="150" text-anchor="middle" font-size="19" font-weight="600" fill="#3B372E">1 · Compatibility freeze</text>
+    <text x="670" y="174" text-anchor="middle" font-size="15.5" fill="#6E6857">Three identities stay separate.</text>
+    <text x="670" y="193" text-anchor="middle" font-size="15.5" fill="#6E6857">Versioned router reserved.</text>
+    <text x="670" y="212" text-anchor="middle" font-size="15.5" fill="#6E6857">G$ stays on its own rail.</text>
+  </g>
+
+  <!-- 2 · field evidence -->
+  <g>
+    <rect x="500" y="310" width="340" height="114" rx="12" fill="#FFFFFF" stroke="#8A6D3B" stroke-width="2.5" stroke-dasharray="7 6"/>
+    <text x="670" y="340" text-anchor="middle" font-size="19" font-weight="600" fill="#3B372E">2 · Field evidence</text>
+    <text x="670" y="364" text-anchor="middle" font-size="15.5" fill="#6E6857">Is a redeemable or exchangeable</text>
+    <text x="670" y="383" text-anchor="middle" font-size="15.5" fill="#6E6857">claim actually needed?</text>
+    <text x="670" y="406" text-anchor="middle" font-size="14" fill="#8A6D3B">not supported or unavailable is valid</text>
+  </g>
+
+  <!-- 3 · fulfilled backing -->
+  <g>
+    <rect x="60" y="310" width="340" height="114" rx="12" fill="#FFFFFF" stroke="#8A6D3B" stroke-width="2.5" stroke-dasharray="7 6"/>
+    <text x="230" y="340" text-anchor="middle" font-size="19" font-weight="600" fill="#3B372E">3 · Fulfilled backing</text>
+    <text x="230" y="364" text-anchor="middle" font-size="15.5" fill="#6E6857">Voucher class, bounded mint</text>
+    <text x="230" y="383" text-anchor="middle" font-size="15.5" fill="#6E6857">and burn, redemption terms.</text>
+    <text x="230" y="406" text-anchor="middle" font-size="14" fill="#8A6D3B">fulfilled instances only</text>
+  </g>
+
+  <!-- 4 · one bounded pool -->
+  <g>
+    <rect x="60" y="500" width="340" height="114" rx="12" fill="#FFFFFF" stroke="#8A6D3B" stroke-width="2.5" stroke-dasharray="7 6"/>
+    <text x="230" y="530" text-anchor="middle" font-size="19" font-weight="600" fill="#3B372E">4 · One bounded pool</text>
+    <text x="230" y="554" text-anchor="middle" font-size="15.5" fill="#6E6857">Seed, exchange in and out,</text>
+    <text x="230" y="573" text-anchor="middle" font-size="15.5" fill="#6E6857">redeem, repair.</text>
+    <text x="230" y="596" text-anchor="middle" font-size="14" fill="#8A6D3B">all four must be proven here</text>
+  </g>
+
+  <!-- 5 · separate decisions -->
+  <g>
+    <rect x="500" y="500" width="340" height="114" rx="12" fill="#FFFFFF" stroke="#8A6D3B" stroke-width="2.5" stroke-dasharray="7 6"/>
+    <text x="670" y="530" text-anchor="middle" font-size="19" font-weight="600" fill="#3B372E">5 · Separate decisions</text>
+    <text x="670" y="554" text-anchor="middle" font-size="15.5" fill="#6E6857">Capacity backing and</text>
+    <text x="670" y="573" text-anchor="middle" font-size="15.5" fill="#6E6857">federation, considered apart.</text>
+    <text x="670" y="596" text-anchor="middle" font-size="14" fill="#8A6D3B">neither follows automatically</text>
+  </g>
+
+  <!-- ============ separate G$ rail note ============ -->
+  <path d="M 150 648 L 750 648" stroke="#988D77" stroke-opacity="0.3" stroke-width="1"/>
+  <text x="450" y="675" text-anchor="middle" font-size="15" fill="#6E6857">The G$ support rail stays separate: a command plus an authenticated acknowledgment.</text>
+  <text x="450" y="694" text-anchor="middle" font-size="15" fill="#6E6857">It can support outcomes at every stage. It is never voucher redemption by implication.</text>
+
+  <!-- ============ legend ============ -->
+  <g font-size="16" fill="#2A2722">
+    <path d="M 196 736 L 228 736" fill="none" stroke="#988D77" stroke-width="2.5" marker-end="url(#pathfp-arrow-base)"/>
+    <text x="244" y="741">Solid: base coordination, specified and useful on its own</text>
+
+    <path d="M 196 764 L 228 764" fill="none" stroke="#8A6D3B" stroke-width="2.5" stroke-dasharray="7 6" marker-end="url(#pathfp-arrow-gated)"/>
+    <text x="244" y="769">Dashed: later capability, each behind its own gate</text>
+  </g>
+
+  <text x="450" y="812" text-anchor="middle" font-size="17" font-weight="600" fill="#2A2722">No completed stage authorizes the next.</text>
+
+  <text x="450" y="868" text-anchor="middle" font-size="16" fill="#6E6857">Green Goods · Commitment Pooling — v1 (2026-08)</text>
+</svg>

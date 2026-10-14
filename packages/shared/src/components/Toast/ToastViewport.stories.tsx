@@ -6,7 +6,7 @@ import { toastService } from "./toast.service";
 const meta: Meta<typeof ToastViewport> = {
   title: "Shared/Feedback/ToastViewport",
   component: ToastViewport,
-  tags: ["autodocs"],
+  tags: ["autodocs", "storybook-ci"],
   argTypes: {
     position: {
       control: "select",
@@ -81,9 +81,46 @@ export const Interactive: Story = {
   render: () => <ToastTrigger />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const successBtn = canvas.getByText("Success");
+    const successBtn = canvas.getByRole("button", { name: "Success" });
     await userEvent.click(successBtn);
     await expect(successBtn).toBeVisible();
+  },
+};
+
+/**
+ * A toast with a title, a message and an action: the status icon sits on the
+ * title's line, and the message and action run the toast's full width below it.
+ * The action's green is the text role, so it reads on the dark toast too.
+ */
+export const TitleMessageAndAction: Story = {
+  render: () => <ToastTrigger />,
+  play: async ({ canvasElement }) => {
+    toastService.error({
+      id: "title-message-action",
+      title: "Couldn't add proof",
+      message: "It's still saved on this phone. Try again here or from Your Work.",
+      action: { label: "Open Your Work", onClick: () => {} },
+      // Long enough to measure and capture; a persistent toast would add a close button.
+      duration: 60_000,
+    });
+    // A toast an earlier story raised may still be leaving; read this one.
+    const title = await within(canvasElement).findByText("Couldn't add proof");
+    const body = title.closest("[data-testid=toast-content]") as HTMLElement;
+    const titleLine = title.parentElement as HTMLElement;
+    const icon = titleLine.querySelector("svg") as SVGElement;
+    const message = within(body).getByText(/still saved on this phone/);
+    const center = (box: DOMRect) => box.top + box.height / 2;
+    const iconBox = icon.getBoundingClientRect();
+    const titleBox = title.getBoundingClientRect();
+    await expect(Math.abs(center(iconBox) - center(titleBox))).toBeLessThanOrEqual(1);
+    // The message starts where the icon does, not after it.
+    await expect(message.getBoundingClientRect().left).toBe(iconBox.left);
+    const action = within(body).getByRole("button", { name: "Open Your Work" });
+    const probe = document.createElement("span");
+    probe.style.color = "var(--color-primary-on-surface)";
+    body.append(probe);
+    await expect(getComputedStyle(action).color).toBe(getComputedStyle(probe).color);
+    probe.remove();
   },
 };
 

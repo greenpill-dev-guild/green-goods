@@ -1,0 +1,74 @@
+{
+  "namespaces": [
+    {
+      "contract": "CreditRegistry",
+      "source": "src/registries/CreditBase.sol",
+      "namespace": "green.goods.credit.cap-reservation",
+      "struct": "CapReservationState",
+      "constant": "_CAP_RESERVATION_SLOT",
+      "slot": "0x23b460fdce5e0dec5ddb0329bbb3aa6365c3b9ea9e5fe3b44684a4371c4a6400",
+      "members": [
+        "mapping(uint256 poolId => mapping(address borrower => uint256 amount)) borrowerReserved",
+        "mapping(uint256 loanId => bool reserved) loanReserved",
+        "uint256 activeReservations"
+      ]
+    },
+    {
+      "contract": "SettlementModule",
+      "source": "src/lib/Settlement/LoanLib.sol",
+      "namespace": "green.goods.settlement.loan",
+      "struct": "State",
+      "constant": "_STATE_SLOT",
+      "slot": "0x2aef4a87d3aface1caef72fa48982eb32bb7507678ff5765bb7bf02a13c0f400",
+      "members": [
+        "address creditRegistry",
+        "mapping(bytes32 loanKey => uint256 disbursementId) disbursements",
+        "mapping(uint256 disbursementId => ISettlementModule.LoanPrincipalRelationship relationship) relationships"
+      ],
+      "referencedStructs": [
+        {
+          "source": "src/interfaces/ISettlementModule.sol",
+          "struct": "LoanPrincipalRelationship",
+          "members": ["address creditRegistry", "uint256 loanId"]
+        }
+      ]
+    },
+    {
+      "contract": "SettlementModule",
+      "source": "src/lib/Settlement/FundingLib.sol",
+      "namespace": "green.goods.settlement.commitment-funding",
+      "struct": "State",
+      "constant": "_STATE_SLOT",
+      "slot": "0x14790e171eb52cfebe9fb0c814ca455ea33a3bcc183d5784757d5df85dd1e400",
+      "members": [
+        "uint256 nextFundingId",
+        "mapping(uint256 fundingId => ISettlementModule.CommitmentFunding funding) fundings",
+        "mapping(uint256 commitmentId => mapping(address funder => uint256 fundingId)) fundingOfCommitmentFunder",
+        "mapping(bytes32 depositReference => uint256 fundingId) fundingByDepositReference",
+        "mapping(uint256 disbursementId => uint256 fundingId) fundingOfRefundDisbursement",
+        "mapping(uint256 commitmentId => uint256 fundingId) consumedFundingOfCommitment"
+      ],
+      "referencedStructs": [
+        {
+          "source": "src/interfaces/ISettlementModule.sol",
+          "struct": "CommitmentFunding",
+          "members": [
+            "uint256 commitmentId",
+            "address funder",
+            "address garden",
+            "address refundAccount",
+            "uint256 expectedAmount",
+            "uint256 depositedAmount",
+            "bytes32 depositReference",
+            "FundingState state",
+            "uint256 refundDisbursementId",
+            "uint64 pledgedAt",
+            "uint64 depositRecordedAt",
+            "uint64 consumedAt",
+            "uint64 closedAt"
+          ]
+        }
+      ]
+    }
+  ]
+}

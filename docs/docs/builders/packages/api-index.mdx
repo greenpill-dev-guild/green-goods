@@ -3,57 +3,1071 @@ title: API Index
 slug: /builders/packages/api-index
 audience: developer
 owner: docs
-last_verified: 2026-02-18
 feature_status: Live
-goal: "Locate canonical endpoints and schema sources without ambiguity."
-difficulty: "advanced"
-estimated_time: "10-20 minutes"
-prereqs: "Chain-aware deployment context."
-next_steps: "../deployments/status"
-persona_context: "Developers and maintainers building, operating, and validating Green Goods systems."
+generated: true
+generator: scripts/docs/generate.mjs
+generated_from:
+  - packages/admin/package.json
+  - packages/agent/package.json
+  - packages/agent/src/api/funding/routes.ts
+  - packages/agent/src/api/routes/garden-join-requests.ts
+  - packages/agent/src/api/routes/passkey-directory.ts
+  - packages/agent/src/api/routes/profile-avatars.ts
+  - packages/agent/src/api/routes/public-commitment-impact.ts
+  - packages/agent/src/api/routes/public-garden-impact.ts
+  - packages/agent/src/api/routes/saved-offer-records.ts
+  - packages/agent/src/api/routes/saved-offers.ts
+  - packages/agent/src/api/routes/subscribe.ts
+  - packages/agent/src/api/routes/upload-sign.ts
+  - packages/agent/src/api/server.ts
+  - packages/client/package.json
+  - packages/contracts/package.json
+  - packages/indexer/package.json
+  - packages/shared/package.json
+  - packages/shared/src/public-contracts/profile-avatar.ts
+  - packages/shared/src/public-contracts/routes.ts
+  - packages/shared/src/public-contracts/saved-offers/types.ts
+source_digest: "sha256:542db86793946e9bd0630ded5af10354ebebbdc21f7cf5e6772f9499e63edb71"
 source_of_truth:
-  - docs/src/data/endpoints.ts
-  - packages/indexer/config.yaml
-  - packages/contracts/deployments/42161-latest.json
+  - packages/admin/package.json
+  - packages/agent/package.json
+  - packages/agent/src/api/funding/routes.ts
+  - packages/agent/src/api/routes/garden-join-requests.ts
+  - packages/agent/src/api/routes/passkey-directory.ts
+  - packages/agent/src/api/routes/profile-avatars.ts
+  - packages/agent/src/api/routes/public-commitment-impact.ts
+  - packages/agent/src/api/routes/public-garden-impact.ts
+  - packages/agent/src/api/routes/saved-offer-records.ts
+  - packages/agent/src/api/routes/saved-offers.ts
+  - packages/agent/src/api/routes/subscribe.ts
+  - packages/agent/src/api/routes/upload-sign.ts
+  - packages/agent/src/api/server.ts
+  - packages/client/package.json
+  - packages/contracts/package.json
+  - packages/indexer/package.json
+  - packages/shared/package.json
+  - packages/shared/src/public-contracts/profile-avatar.ts
+  - packages/shared/src/public-contracts/routes.ts
+  - packages/shared/src/public-contracts/saved-offers/types.ts
 ---
 
-import {NextBestAction} from "@site/src/components/docs";
-import {INDEXER_ENDPOINT, EAS_GRAPHQL_ENDPOINTS} from "@site/src/data/endpoints";
-
+<!-- GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs --scope <scope>`. -->
 # API Index
 
-## Primary data endpoints
+Use package export specifiers and public route constants as the stable entrypoints. Source-file imports bypass package boundaries and are not public APIs.
 
-| Surface | Endpoint | Notes |
-| --- | --- | --- |
-| Green Goods Indexer | <code>{INDEXER_ENDPOINT}</code> | Gardens, actions, memberships |
-| EAS GraphQL (Arbitrum) | <code>{EAS_GRAPHQL_ENDPOINTS[42161]}</code> | Work/approval/assessment attestations |
-| EAS GraphQL (Celo) | <code>{EAS_GRAPHQL_ENDPOINTS[42220]}</code> | Chain-specific attestations |
-| EAS GraphQL (Sepolia) | <code>{EAS_GRAPHQL_ENDPOINTS[11155111]}</code> | Testnet attestations |
+[Runnable command inventory](./commands) is generated from the workspace manifests.
 
-## Contract and deployment sources
+## Public Agent routes
 
-- `packages/contracts/deployments/42161-latest.json`
-- `packages/contracts/deployments/42220-latest.json`
-- `packages/contracts/deployments/11155111-latest.json`
-- `packages/contracts/config/schemas.json` (read-only source)
+Every route the agent registers under `/public/`, and every route a shared route contract names, with the methods registered for each. The table is read from the route registrations in `packages/agent/src/api/`, so a route is listed whether or not Shared exports a constant for its path. Where a constant exists, import it instead of writing the path. Files are relative to `packages/agent/src/api/`.
 
-## Shared package integration entry points
+| Path | Registered methods | Shared constant | Registered in |
+|---|---|---|---|
+| `/api/uploads/sign` | `OPTIONS`, `POST` | `PUBLIC_AGENT_ROUTES.uploadSign` | `routes/upload-sign.ts` |
+| `/public/commitments/:chainId/impact` | `GET`, `OPTIONS` | `PUBLIC_AGENT_ROUTES.commitmentImpact` | `routes/public-commitment-impact.ts` |
+| `/public/features/garden-join-requests` | `GET`, `OPTIONS` | none | `server.ts` |
+| `/public/funding-intents` | `OPTIONS`, `POST` | `PUBLIC_AGENT_ROUTES.fundingIntents` | `funding/routes.ts` |
+| `/public/funding-intents/:id` | `GET`, `OPTIONS` | `PUBLIC_AGENT_ROUTES.fundingIntentReceipt` | `funding/routes.ts` |
+| `/public/funding-intents/proof` | `OPTIONS`, `POST` | `PUBLIC_AGENT_ROUTES.fundingIntentProof` | `funding/routes.ts` |
+| `/public/gardens/:chainId/:gardenAddress/impact` | `GET`, `OPTIONS` | `PUBLIC_AGENT_ROUTES.gardenImpact` | `routes/public-garden-impact.ts` |
+| `/public/gardens/:garden/join-requests` | `GET`, `OPTIONS`, `POST` | none | `routes/garden-join-requests.ts` |
+| `/public/gardens/:garden/join-requests/:requestId/resolve` | `OPTIONS`, `POST` | none | `routes/garden-join-requests.ts` |
+| `/public/gardens/:garden/join-requests/me` | `DELETE`, `GET`, `OPTIONS` | none | `routes/garden-join-requests.ts` |
+| `/public/passkeys/rpc` | `OPTIONS`, `POST` | `PUBLIC_AGENT_ROUTES.passkeyDirectory` | `routes/passkey-directory.ts` |
+| `/public/profile-avatars/:chainId` | `GET`, `OPTIONS` | `PROFILE_AVATAR_BATCH_ROUTE` | `routes/profile-avatars.ts` |
+| `/public/profile-avatars/:chainId/:address` | `GET`, `OPTIONS`, `POST` | `PROFILE_AVATAR_ROUTE` | `routes/profile-avatars.ts` |
+| `/public/saved-offers` | `GET`, `OPTIONS` | `SAVED_OFFERS_ROUTES.collection` | `routes/saved-offer-records.ts` |
+| `/public/saved-offers/:savedOfferId` | `DELETE`, `GET`, `OPTIONS`, `PUT` | none | `routes/saved-offer-records.ts` |
+| `/public/saved-offers/session` | `OPTIONS`, `POST` | `SAVED_OFFERS_ROUTES.session` | `routes/saved-offers.ts` |
+| `/public/saved-offers/session/challenge` | `OPTIONS`, `POST` | `SAVED_OFFERS_ROUTES.challenge` | `routes/saved-offers.ts` |
+| `/public/subscribe` | `OPTIONS`, `POST` | `PUBLIC_AGENT_ROUTES.subscribe` | `routes/subscribe.ts` |
+| `/webhooks/thirdweb` | `POST` | `PUBLIC_AGENT_ROUTES.thirdwebWebhook` | `funding/routes.ts` |
 
-- `packages/shared/src/modules/data/eas.ts`
-- `packages/shared/src/hooks/index.ts`
+A listed route can still answer 404 on a given deployment: the server leaves a route group out at startup when its feature is off or not configured.
 
-## Notes
+The agent also registers routes that are not public contracts, and this table leaves them out: the `/health` and `/ready` probes; `/api/messages` and `/reporting/ops/`, which answer only to the agent's API token; and `/messaging/`, the private same-origin API behind the browser messaging ceremonies (host-only session cookies, with the exact Origin and a CSRF token required on requests that change state).
 
-1. Always select chain context before querying schema-scoped data.
-2. Work and approval schema IDs must come from deployment artifacts for the same chain.
+The route constants are exported by these Shared files:
 
-<NextBestAction
-  title="Next best action"
-  why="After selecting endpoints, confirm whether each module is actually live, indexing-pending, or deployment-pending."
-  actionLabel="Open deployment status"
-  actionHref="../deployments/status"
-  alternatives={[
-    {label: "Agent and MCP guide", href: "../agentic/mcp-guide"},
-  ]}
-/>
+- `packages/shared/src/public-contracts/profile-avatar.ts`: `PROFILE_AVATAR_BATCH_ROUTE`, `PROFILE_AVATAR_ROUTE`
+- `packages/shared/src/public-contracts/routes.ts`: `PUBLIC_AGENT_ROUTES`
+- `packages/shared/src/public-contracts/saved-offers/types.ts`: `SAVED_OFFERS_ROUTES`
+
+## Package exports
+
+517 export specifiers across 2 packages. A specifier is the import path; the target is the file it resolves to.
+
+### @green-goods/contracts
+
+| Specifier | Target |
+|---|---|
+| `./abis/*.json` | `./abis/*.json` |
+| `./deployments/*.json` | `./deployments/*.json` |
+
+### @green-goods/shared
+
+515 specifiers. Open a group to see its specifiers.
+
+| Group | Specifiers |
+|---|---|
+| `./__tests__` | 5 |
+| `./components` | 69 |
+| `./config` | 15 |
+| `./hooks` | 256 |
+| `./i18n` | 8 |
+| `./modules` | 52 |
+| `./providers` | 8 |
+| `./public-contracts` | 6 |
+| `./stores` | 11 |
+| `./styles` | 4 |
+| `./types` | 10 |
+| `./utils` | 45 |
+| Other entry points | 26 |
+
+<details>
+<summary>`./__tests__` (5)</summary>
+
+| Specifier | Target |
+|---|---|
+| `./__tests__/setupTests.base` | `./src/__tests__/setupTests.base.ts` |
+| `./__tests__/test-utils` | `./src/__tests__/test-utils/index.ts` |
+| `./__tests__/test-utils/commitment-pooling-fixtures` | `./src/__tests__/test-utils/commitment-pooling-fixtures.ts` |
+| `./__tests__/test-utils/controller-fixtures` | `./src/__tests__/test-utils/controller-fixtures.ts` |
+| `./__tests__/test-utils/query-client` | `./src/__tests__/test-utils/query-client.ts` |
+
+</details>
+
+<details>
+<summary>`./components` (69)</summary>
+
+**`./components`** (13)
+
+| Specifier | Target |
+|---|---|
+| `./components` | `./src/components/index.ts` |
+| `./components/AddressDisplay` | `./src/components/AddressDisplay.tsx` |
+| `./components/Alert` | `./src/components/Alert.tsx` |
+| `./components/Button` | `./src/components/Button.tsx` |
+| `./components/Chip` | `./src/components/Chip.tsx` |
+| `./components/DomainBadge` | `./src/components/DomainBadge.tsx` |
+| `./components/FileUploadField` | `./src/components/FileUploadField.tsx` |
+| `./components/HydrationFallback` | `./src/components/HydrationFallback.tsx` |
+| `./components/IconButton` | `./src/components/IconButton.tsx` |
+| `./components/ListPrimitives` | `./src/components/ListPrimitives.tsx` |
+| `./components/Skeleton` | `./src/components/Skeleton.tsx` |
+| `./components/Spinner` | `./src/components/Spinner.tsx` |
+| `./components/StatusBadge` | `./src/components/StatusBadge.tsx` |
+
+**`./components/Audio`** (2)
+
+| Specifier | Target |
+|---|---|
+| `./components/Audio/AudioPlayer` | `./src/components/Audio/AudioPlayer.tsx` |
+| `./components/Audio/AudioRecorder` | `./src/components/Audio/AudioRecorder.tsx` |
+
+**`./components/Badge`** (1)
+
+| Specifier | Target |
+|---|---|
+| `./components/Badge/Badge` | `./src/components/Badge/Badge.tsx` |
+
+**`./components/Canvas`** (17)
+
+| Specifier | Target |
+|---|---|
+| `./components/Canvas/AppBar` | `./src/components/Canvas/AppBar.tsx` |
+| `./components/Canvas/EmptyStateShell` | `./src/components/Canvas/EmptyStateShell.tsx` |
+| `./components/Canvas/FabContext` | `./src/components/Canvas/FabContext.tsx` |
+| `./components/Canvas/GardenChip` | `./src/components/Canvas/GardenChip.tsx` |
+| `./components/Canvas/MainSheet` | `./src/components/Canvas/MainSheet.tsx` |
+| `./components/Canvas/MetaStrip` | `./src/components/Canvas/MetaStrip.tsx` |
+| `./components/Canvas/NavigationBar` | `./src/components/Canvas/NavigationBar.tsx` |
+| `./components/Canvas/NotificationPanel` | `./src/components/Canvas/NotificationPanel.tsx` |
+| `./components/Canvas/RefreshActionContext` | `./src/components/Canvas/RefreshActionContext.tsx` |
+| `./components/Canvas/SheetBody` | `./src/components/Canvas/SheetBody.tsx` |
+| `./components/Canvas/SheetDivider` | `./src/components/Canvas/SheetDivider.tsx` |
+| `./components/Canvas/SheetFooter` | `./src/components/Canvas/SheetFooter.tsx` |
+| `./components/Canvas/useCanvasMobileChromeHidden` | `./src/components/Canvas/useCanvasMobileChromeHidden.ts` |
+| `./components/Canvas/useViewActions` | `./src/components/Canvas/useViewActions.ts` |
+| `./components/Canvas/viewActions.types` | `./src/components/Canvas/viewActions.types.ts` |
+| `./components/Canvas/WorkbenchCard` | `./src/components/Canvas/WorkbenchCard.tsx` |
+| `./components/Canvas/WorkbenchList` | `./src/components/Canvas/WorkbenchList.tsx` |
+
+**`./components/Cards`** (3)
+
+| Specifier | Target |
+|---|---|
+| `./components/Cards/CardBase` | `./src/components/Cards/CardBase.tsx` |
+| `./components/Cards/GardenCard/GardenCard` | `./src/components/Cards/GardenCard/GardenCard.tsx` |
+| `./components/Cards/WorkCard/WorkCard` | `./src/components/Cards/WorkCard/WorkCard.tsx` |
+
+**`./components/Conviction`** (2)
+
+| Specifier | Target |
+|---|---|
+| `./components/Conviction/ConvictionMeter` | `./src/components/Conviction/ConvictionMeter.tsx` |
+| `./components/Conviction/WeightAllocator` | `./src/components/Conviction/WeightAllocator.tsx` |
+
+**`./components/DatePicker`** (1)
+
+| Specifier | Target |
+|---|---|
+| `./components/DatePicker/DatePicker` | `./src/components/DatePicker/DatePicker.tsx` |
+
+**`./components/Dialog`** (7)
+
+| Specifier | Target |
+|---|---|
+| `./components/Dialog/ConfirmDialog` | `./src/components/Dialog/ConfirmDialog.tsx` |
+| `./components/Dialog/DialogShell` | `./src/components/Dialog/DialogShell.tsx` |
+| `./components/Dialog/ImagePreviewDialog` | `./src/components/Dialog/ImagePreviewDialog.tsx` |
+| `./components/Dialog/PwaSheet` | `./src/components/Dialog/PwaSheet.tsx` |
+| `./components/Dialog/SheetActions` | `./src/components/Dialog/SheetActions.tsx` |
+| `./components/Dialog/SheetHeader` | `./src/components/Dialog/SheetHeader.tsx` |
+| `./components/Dialog/SheetHeading` | `./src/components/Dialog/SheetHeading.tsx` |
+
+**`./components/Display`** (3)
+
+| Specifier | Target |
+|---|---|
+| `./components/Display/ActionBannerFallback` | `./src/components/Display/ActionBannerFallback.tsx` |
+| `./components/Display/GardenBannerFallback` | `./src/components/Display/GardenBannerFallback.tsx` |
+| `./components/Display/ImageWithFallback` | `./src/components/Display/ImageWithFallback.tsx` |
+
+**`./components/ErrorBoundary`** (1)
+
+| Specifier | Target |
+|---|---|
+| `./components/ErrorBoundary/ErrorBoundary` | `./src/components/ErrorBoundary/ErrorBoundary.tsx` |
+
+**`./components/feedback`** (2)
+
+| Specifier | Target |
+|---|---|
+| `./components/feedback/TransactionSuccessAffordance` | `./src/components/feedback/TransactionSuccessAffordance.tsx` |
+| `./components/feedback/TxInlineFeedback` | `./src/components/feedback/TxInlineFeedback.tsx` |
+
+**`./components/Form`** (9)
+
+| Specifier | Target |
+|---|---|
+| `./components/Form/ConfidenceSelector` | `./src/components/Form/ConfidenceSelector.tsx` |
+| `./components/Form/ControlPrimitives` | `./src/components/Form/ControlPrimitives.tsx` |
+| `./components/Form/FormattedAmountInput` | `./src/components/Form/FormattedAmountInput.tsx` |
+| `./components/Form/FormFieldWrapper` | `./src/components/Form/FormFieldWrapper.tsx` |
+| `./components/Form/FormInput` | `./src/components/Form/FormInput.tsx` |
+| `./components/Form/FormTextarea` | `./src/components/Form/FormTextarea.tsx` |
+| `./components/Form/Select/FormSelect` | `./src/components/Form/Select/FormSelect.tsx` |
+| `./components/Form/Select/Select` | `./src/components/Form/Select/Select.tsx` |
+| `./components/Form/StepIndicator` | `./src/components/Form/StepIndicator.tsx` |
+
+**`./components/Progress`** (2)
+
+| Specifier | Target |
+|---|---|
+| `./components/Progress/ENSProgressTimeline` | `./src/components/Progress/ENSProgressTimeline.tsx` |
+| `./components/Progress/SubmissionProgress` | `./src/components/Progress/SubmissionProgress.tsx` |
+
+**`./components/Surface`** (1)
+
+| Specifier | Target |
+|---|---|
+| `./components/Surface/Surface` | `./src/components/Surface/Surface.tsx` |
+
+**`./components/Toast`** (4)
+
+| Specifier | Target |
+|---|---|
+| `./components/Toast/presets/update` | `./src/components/Toast/presets/update.ts` |
+| `./components/Toast/presets/validation` | `./src/components/Toast/presets/validation.ts` |
+| `./components/Toast/toast.service` | `./src/components/Toast/toast.service.tsx` |
+| `./components/Toast/ToastViewport` | `./src/components/Toast/ToastViewport.tsx` |
+
+**`./components/Vault`** (1)
+
+| Specifier | Target |
+|---|---|
+| `./components/Vault/AssetSelector` | `./src/components/Vault/AssetSelector.tsx` |
+
+</details>
+
+<details>
+<summary>`./config` (15)</summary>
+
+| Specifier | Target |
+|---|---|
+| `./config` | `./src/config/index.ts` |
+| `./config/app` | `./src/config/app.ts` |
+| `./config/blockchain` | `./src/config/blockchain.ts` |
+| `./config/chains` | `./src/config/chains.ts` |
+| `./config/default-chain` | `./src/config/default-chain.ts` |
+| `./config/domain` | `./src/config/domain.ts` |
+| `./config/local-fork` | `./src/config/local-fork.ts` |
+| `./config/passkeyServer` | `./src/config/passkeyServer.ts` |
+| `./config/pimlico` | `./src/config/pimlico.ts` |
+| `./config/query-keys/constants` | `./src/config/query-keys/constants.ts` |
+| `./config/query-keys/registry` | `./src/config/query-keys/registry.ts` |
+| `./config/query-persistence` | `./src/config/query-persistence.ts` |
+| `./config/react-query` | `./src/config/react-query.ts` |
+| `./config/sdg` | `./src/config/sdg.ts` |
+| `./config/tokens` | `./src/config/tokens.ts` |
+
+</details>
+
+<details>
+<summary>`./hooks` (256)</summary>
+
+**`./hooks`** (2)
+
+| Specifier | Target |
+|---|---|
+| `./hooks` | `./src/hooks/index.ts` |
+| `./hooks/useSheetWidth` | `./src/hooks/useSheetWidth.ts` |
+
+**`./hooks/action`** (3)
+
+| Specifier | Target |
+|---|---|
+| `./hooks/action/useAction` | `./src/hooks/action/useAction.ts` |
+| `./hooks/action/useActionForm` | `./src/hooks/action/useActionForm.ts` |
+| `./hooks/action/useActionOperations` | `./src/hooks/action/useActionOperations.ts` |
+
+**`./hooks/admin-ui`** (46)
+
+| Specifier | Target |
+|---|---|
+| `./hooks/admin-ui/actions/actionDrafts` | `./src/hooks/admin-ui/actions/actionDrafts.ts` |
+| `./hooks/admin-ui/actions/actions.utils` | `./src/hooks/admin-ui/actions/actions.utils.ts` |
+| `./hooks/admin-ui/actions/actions.workspaceModel` | `./src/hooks/admin-ui/actions/actions.workspaceModel.ts` |
+| `./hooks/admin-ui/actions/createAction.utils` | `./src/hooks/admin-ui/actions/createAction.utils.ts` |
+| `./hooks/admin-ui/actions/useActionEditorController` | `./src/hooks/admin-ui/actions/useActionEditorController.ts` |
+| `./hooks/admin-ui/actions/useActionsController` | `./src/hooks/admin-ui/actions/useActionsController.ts` |
+| `./hooks/admin-ui/actions/useCreateActionController` | `./src/hooks/admin-ui/actions/useCreateActionController.ts` |
+| `./hooks/admin-ui/auth/useAdminLoginController` | `./src/hooks/admin-ui/auth/useAdminLoginController.ts` |
+| `./hooks/admin-ui/community/community.utils` | `./src/hooks/admin-ui/community/community.utils.ts` |
+| `./hooks/admin-ui/community/useCommunityWorkspaceController` | `./src/hooks/admin-ui/community/useCommunityWorkspaceController.ts` |
+| `./hooks/admin-ui/garden/garden.utils` | `./src/hooks/admin-ui/garden/garden.utils.ts` |
+| `./hooks/admin-ui/garden/useCreateGardenController` | `./src/hooks/admin-ui/garden/useCreateGardenController.ts` |
+| `./hooks/admin-ui/garden/useGardenWorkspaceController` | `./src/hooks/admin-ui/garden/useGardenWorkspaceController.ts` |
+| `./hooks/admin-ui/garden/useResolvedWorkDetail` | `./src/hooks/admin-ui/garden/useResolvedWorkDetail.ts` |
+| `./hooks/admin-ui/garden/useSubmitWorkController` | `./src/hooks/admin-ui/garden/useSubmitWorkController.ts` |
+| `./hooks/admin-ui/hub/hub.utils` | `./src/hooks/admin-ui/hub/hub.utils.ts` |
+| `./hooks/admin-ui/hub/hub.workbenchModel` | `./src/hooks/admin-ui/hub/hub.workbenchModel.ts` |
+| `./hooks/admin-ui/hub/useCreateAssessmentController` | `./src/hooks/admin-ui/hub/useCreateAssessmentController.ts` |
+| `./hooks/admin-ui/hub/useCreateHypercertController` | `./src/hooks/admin-ui/hub/useCreateHypercertController.ts` |
+| `./hooks/admin-ui/hub/useHubWorkbenchController` | `./src/hooks/admin-ui/hub/useHubWorkbenchController.ts` |
+| `./hooks/admin-ui/hypercerts/types` | `./src/hooks/admin-ui/hypercerts/types.ts` |
+| `./hooks/admin-ui/hypercerts/useWizardData` | `./src/hooks/admin-ui/hypercerts/useWizardData.ts` |
+| `./hooks/admin-ui/layout/accountSheet.events` | `./src/hooks/admin-ui/layout/accountSheet.events.ts` |
+| `./hooks/admin-ui/layout/commandPalette.results` | `./src/hooks/admin-ui/layout/commandPalette.results.ts` |
+| `./hooks/admin-ui/layout/useAccountProfileController` | `./src/hooks/admin-ui/layout/useAccountProfileController.ts` |
+| `./hooks/admin-ui/layout/useAdminRightSheetDescriptor` | `./src/hooks/admin-ui/layout/useAdminRightSheetDescriptor.tsx` |
+| `./hooks/admin-ui/layout/useCanvasShellController` | `./src/hooks/admin-ui/layout/useCanvasShellController.ts` |
+| `./hooks/admin-ui/layout/useCommandPaletteController` | `./src/hooks/admin-ui/layout/useCommandPaletteController.ts` |
+| `./hooks/admin-ui/layout/useCommandPaletteData` | `./src/hooks/admin-ui/layout/useCommandPaletteData.ts` |
+| `./hooks/admin-ui/layout/useStewardAccessRequestController` | `./src/hooks/admin-ui/layout/useStewardAccessRequestController.ts` |
+| `./hooks/admin-ui/navigation/sheetRegistry` | `./src/hooks/admin-ui/navigation/sheetRegistry.ts` |
+| `./hooks/admin-ui/navigation/workspaceNavigation` | `./src/hooks/admin-ui/navigation/workspaceNavigation.ts` |
+| `./hooks/admin-ui/pool/controller.types` | `./src/hooks/admin-ui/pool/controller.types.ts` |
+| `./hooks/admin-ui/pool/useAddToGroup` | `./src/hooks/admin-ui/pool/useAddToGroup.ts` |
+| `./hooks/admin-ui/pool/useCommitmentDialogController` | `./src/hooks/admin-ui/pool/useCommitmentDialogController.ts` |
+| `./hooks/admin-ui/pool/useCommitmentSettlementController` | `./src/hooks/admin-ui/pool/useCommitmentSettlementController.ts` |
+| `./hooks/admin-ui/pool/useEditReward` | `./src/hooks/admin-ui/pool/useEditReward.ts` |
+| `./hooks/admin-ui/pool/useHubConfirmQueueController` | `./src/hooks/admin-ui/pool/useHubConfirmQueueController.ts` |
+| `./hooks/admin-ui/pool/usePoolConsoleController` | `./src/hooks/admin-ui/pool/usePoolConsoleController.ts` |
+| `./hooks/admin-ui/pool/useProtocolFundingOperationsController` | `./src/hooks/admin-ui/pool/useProtocolFundingOperationsController.ts` |
+| `./hooks/admin-ui/pool/useSeedTray` | `./src/hooks/admin-ui/pool/useSeedTray.ts` |
+| `./hooks/admin-ui/pool/useSettlementOperationsController` | `./src/hooks/admin-ui/pool/useSettlementOperationsController.ts` |
+| `./hooks/admin-ui/pool/useWaitingForApproval` | `./src/hooks/admin-ui/pool/useWaitingForApproval.ts` |
+| `./hooks/admin-ui/useAdminAccessState` | `./src/hooks/admin-ui/useAdminAccessState.ts` |
+| `./hooks/admin-ui/useCanvasChromeProbe` | `./src/hooks/admin-ui/useCanvasChromeProbe.ts` |
+| `./hooks/admin-ui/useDirtyClose` | `./src/hooks/admin-ui/useDirtyClose.ts` |
+
+**`./hooks/agent-reporting`** (3)
+
+| Specifier | Target |
+|---|---|
+| `./hooks/agent-reporting/useAgentReportingCeremony` | `./src/hooks/agent-reporting/useAgentReportingCeremony.ts` |
+| `./hooks/agent-reporting/useAgentReportingPermissions` | `./src/hooks/agent-reporting/useAgentReportingPermissions.ts` |
+| `./hooks/agent-reporting/useAgentReportingRecovery` | `./src/hooks/agent-reporting/useAgentReportingRecovery.ts` |
+
+**`./hooks/analytics`** (2)
+
+| Specifier | Target |
+|---|---|
+| `./hooks/analytics/useAnalyticsIdentity` | `./src/hooks/analytics/useAnalyticsIdentity.ts` |
+| `./hooks/analytics/usePageView` | `./src/hooks/analytics/usePageView.ts` |
+
+**`./hooks/app`** (16)
+
+| Specifier | Target |
+|---|---|
+| `./hooks/app/useArrivalState` | `./src/hooks/app/useArrivalState.ts` |
+| `./hooks/app/useBrowserNavigation` | `./src/hooks/app/useBrowserNavigation.ts` |
+| `./hooks/app/useCarousel` | `./src/hooks/app/useCarousel.ts` |
+| `./hooks/app/useInstallGuidance` | `./src/hooks/app/useInstallGuidance.ts` |
+| `./hooks/app/useIsBraveBrowser` | `./src/hooks/app/useIsBraveBrowser.ts` |
+| `./hooks/app/useLoadingWithMinDuration` | `./src/hooks/app/useLoadingWithMinDuration.ts` |
+| `./hooks/app/useLocalizedRelativeTime` | `./src/hooks/app/useLocalizedRelativeTime.ts` |
+| `./hooks/app/useNavigateToTop` | `./src/hooks/app/useNavigateToTop.ts` |
+| `./hooks/app/useOffline` | `./src/hooks/app/useOffline.ts` |
+| `./hooks/app/useOnlineStatus` | `./src/hooks/app/useOnlineStatus.ts` |
+| `./hooks/app/usePublicInstallHandler` | `./src/hooks/app/usePublicInstallHandler.ts` |
+| `./hooks/app/useScrollToTop` | `./src/hooks/app/useScrollToTop.ts` |
+| `./hooks/app/useServiceWorkerUpdate` | `./src/hooks/app/useServiceWorkerUpdate.ts` |
+| `./hooks/app/useTheme` | `./src/hooks/app/useTheme.ts` |
+| `./hooks/app/useTunnelUrl` | `./src/hooks/app/useTunnelUrl.ts` |
+| `./hooks/app/useWorkUpdateGuard` | `./src/hooks/app/useWorkUpdateGuard.ts` |
+
+**`./hooks/assessment`** (2)
+
+| Specifier | Target |
+|---|---|
+| `./hooks/assessment/useAllAssessments` | `./src/hooks/assessment/useAllAssessments.ts` |
+| `./hooks/assessment/useGardenAssessmentRecords` | `./src/hooks/assessment/useGardenAssessmentRecords.ts` |
+
+**`./hooks/auth`** (4)
+
+| Specifier | Target |
+|---|---|
+| `./hooks/auth/useAuth` | `./src/hooks/auth/useAuth.ts` |
+| `./hooks/auth/usePrimaryAddress` | `./src/hooks/auth/usePrimaryAddress.ts` |
+| `./hooks/auth/useUser` | `./src/hooks/auth/useUser.ts` |
+| `./hooks/auth/useWalletModalOpen` | `./src/hooks/auth/useWalletModalOpen.ts` |
+
+**`./hooks/blockchain`** (13)
+
+| Specifier | Target |
+|---|---|
+| `./hooks/blockchain/prefetch` | `./src/hooks/blockchain/prefetch.ts` |
+| `./hooks/blockchain/useBaseLists` | `./src/hooks/blockchain/useBaseLists.ts` |
+| `./hooks/blockchain/useChainConfig` | `./src/hooks/blockchain/useChainConfig.ts` |
+| `./hooks/blockchain/useEnsAddress` | `./src/hooks/blockchain/useEnsAddress.ts` |
+| `./hooks/blockchain/useEnsAvatar` | `./src/hooks/blockchain/useEnsAvatar.ts` |
+| `./hooks/blockchain/useEnsName` | `./src/hooks/blockchain/useEnsName.ts` |
+| `./hooks/blockchain/useErc20Metadata` | `./src/hooks/blockchain/useErc20Metadata.ts` |
+| `./hooks/blockchain/useEthUsdPrice` | `./src/hooks/blockchain/useEthUsdPrice.ts` |
+| `./hooks/blockchain/useGoodDollarPrice` | `./src/hooks/blockchain/useGoodDollarPrice.ts` |
+| `./hooks/blockchain/useRecentRecipients` | `./src/hooks/blockchain/useRecentRecipients.ts` |
+| `./hooks/blockchain/useSendableTokens` | `./src/hooks/blockchain/useSendableTokens.ts` |
+| `./hooks/blockchain/useSendToken` | `./src/hooks/blockchain/useSendToken.ts` |
+| `./hooks/blockchain/useWalletNetworkAlignment` | `./src/hooks/blockchain/useWalletNetworkAlignment.ts` |
+
+**`./hooks/client-ui`** (18)
+
+| Specifier | Target |
+|---|---|
+| `./hooks/client-ui/auth/useLoginScreenController` | `./src/hooks/client-ui/auth/useLoginScreenController.ts` |
+| `./hooks/client-ui/commitment/composerBeats` | `./src/hooks/client-ui/commitment/composerBeats.ts` |
+| `./hooks/client-ui/commitment/controller.types` | `./src/hooks/client-ui/commitment/controller.types.ts` |
+| `./hooks/client-ui/commitment/proof-controller.types` | `./src/hooks/client-ui/commitment/proof-controller.types.ts` |
+| `./hooks/client-ui/commitment/proofReadiness` | `./src/hooks/client-ui/commitment/proofReadiness.ts` |
+| `./hooks/client-ui/commitment/useCommitmentComposerController` | `./src/hooks/client-ui/commitment/useCommitmentComposerController.ts` |
+| `./hooks/client-ui/commitment/useGardenCommitmentController` | `./src/hooks/client-ui/commitment/useGardenCommitmentController.ts` |
+| `./hooks/client-ui/commitment/usePendingProof` | `./src/hooks/client-ui/commitment/usePendingProof.ts` |
+| `./hooks/client-ui/commitment/useProofComposerController` | `./src/hooks/client-ui/commitment/useProofComposerController.ts` |
+| `./hooks/client-ui/pool/useGardenPoolController` | `./src/hooks/client-ui/pool/useGardenPoolController.ts` |
+| `./hooks/client-ui/pool/usePromiseGroupController` | `./src/hooks/client-ui/pool/usePromiseGroupController.ts` |
+| `./hooks/client-ui/pool/usePromiseGroups` | `./src/hooks/client-ui/pool/usePromiseGroups.ts` |
+| `./hooks/client-ui/profile/useUsernameController` | `./src/hooks/client-ui/profile/useUsernameController.ts` |
+| `./hooks/client-ui/useDashboardNavigation` | `./src/hooks/client-ui/useDashboardNavigation.ts` |
+| `./hooks/client-ui/wallet/useCeloWallet` | `./src/hooks/client-ui/wallet/useCeloWallet.ts` |
+| `./hooks/client-ui/wallet/useSendFlowController` | `./src/hooks/client-ui/wallet/useSendFlowController.ts` |
+| `./hooks/client-ui/work/useWorkDetailController` | `./src/hooks/client-ui/work/useWorkDetailController.ts` |
+| `./hooks/client-ui/work/useWorkSubmissionFlowController` | `./src/hooks/client-ui/work/useWorkSubmissionFlowController.ts` |
+
+**`./hooks/commitment-pooling`** (13)
+
+| Specifier | Target |
+|---|---|
+| `./hooks/commitment-pooling/useCommitmentCompletionRefresh` | `./src/hooks/commitment-pooling/useCommitmentCompletionRefresh.ts` |
+| `./hooks/commitment-pooling/useCommitmentComposerForm` | `./src/hooks/commitment-pooling/useCommitmentComposerForm.ts` |
+| `./hooks/commitment-pooling/useCommitmentCycleNames` | `./src/hooks/commitment-pooling/useCommitmentCycleNames.ts` |
+| `./hooks/commitment-pooling/useCommitmentJobs` | `./src/hooks/commitment-pooling/useCommitmentJobs.ts` |
+| `./hooks/commitment-pooling/useCommitmentPooling` | `./src/hooks/commitment-pooling/useCommitmentPooling.ts` |
+| `./hooks/commitment-pooling/useCommitmentPoolSetupSequence` | `./src/hooks/commitment-pooling/useCommitmentPoolSetupSequence.ts` |
+| `./hooks/commitment-pooling/useCommitmentQueueState` | `./src/hooks/commitment-pooling/useCommitmentQueueState.ts` |
+| `./hooks/commitment-pooling/useCommitmentsInbox` | `./src/hooks/commitment-pooling/useCommitmentsInbox.ts` |
+| `./hooks/commitment-pooling/useCommitmentsToConfirm` | `./src/hooks/commitment-pooling/useCommitmentsToConfirm.ts` |
+| `./hooks/commitment-pooling/useComposeAgainValues` | `./src/hooks/commitment-pooling/useComposeAgainValues.ts` |
+| `./hooks/commitment-pooling/usePoolFunding` | `./src/hooks/commitment-pooling/usePoolFunding.ts` |
+| `./hooks/commitment-pooling/useProtocolPool` | `./src/hooks/commitment-pooling/useProtocolPool.ts` |
+| `./hooks/commitment-pooling/useSettlementQueries` | `./src/hooks/commitment-pooling/useSettlementQueries.ts` |
+
+**`./hooks/conviction`** (12)
+
+| Specifier | Target |
+|---|---|
+| `./hooks/conviction/useAllocateHypercertSupport` | `./src/hooks/conviction/useAllocateHypercertSupport.ts` |
+| `./hooks/conviction/useConvictionProposalsForPool` | `./src/hooks/conviction/useConvictionProposalsForPool.ts` |
+| `./hooks/conviction/useConvictionStrategies` | `./src/hooks/conviction/useConvictionStrategies.ts` |
+| `./hooks/conviction/useConvictionWeightAllocator` | `./src/hooks/conviction/useConvictionWeightAllocator.ts` |
+| `./hooks/conviction/useDeregisterHypercert` | `./src/hooks/conviction/useDeregisterHypercert.ts` |
+| `./hooks/conviction/useGardenCommunity` | `./src/hooks/conviction/useGardenCommunity.ts` |
+| `./hooks/conviction/useGardenPools` | `./src/hooks/conviction/useGardenPools.ts` |
+| `./hooks/conviction/useHypercertConviction` | `./src/hooks/conviction/useHypercertConviction.ts` |
+| `./hooks/conviction/useMemberVotingPower` | `./src/hooks/conviction/useMemberVotingPower.ts` |
+| `./hooks/conviction/useRegisteredHypercerts` | `./src/hooks/conviction/useRegisteredHypercerts.ts` |
+| `./hooks/conviction/useRegisterHypercert` | `./src/hooks/conviction/useRegisterHypercert.ts` |
+| `./hooks/conviction/useSetConvictionStrategies` | `./src/hooks/conviction/useSetConvictionStrategies.ts` |
+
+**`./hooks/cookie-jar`** (8)
+
+| Specifier | Target |
+|---|---|
+| `./hooks/cookie-jar/useAccessibleCookieJars` | `./src/hooks/cookie-jar/useAccessibleCookieJars.ts` |
+| `./hooks/cookie-jar/useCampaignCookieJar` | `./src/hooks/cookie-jar/useCampaignCookieJar.ts` |
+| `./hooks/cookie-jar/useCampaignCookieJarCampaigns` | `./src/hooks/cookie-jar/useCampaignCookieJarCampaigns.ts` |
+| `./hooks/cookie-jar/useCookieJarAdmin` | `./src/hooks/cookie-jar/useCookieJarAdmin.ts` |
+| `./hooks/cookie-jar/useCookieJarDeposit` | `./src/hooks/cookie-jar/useCookieJarDeposit.ts` |
+| `./hooks/cookie-jar/useCookieJarFactoryAddress` | `./src/hooks/cookie-jar/useCookieJarFactoryAddress.ts` |
+| `./hooks/cookie-jar/useCookieJarWithdraw` | `./src/hooks/cookie-jar/useCookieJarWithdraw.ts` |
+| `./hooks/cookie-jar/useGardenCookieJars` | `./src/hooks/cookie-jar/useGardenCookieJars.ts` |
+
+**`./hooks/ens`** (7)
+
+| Specifier | Target |
+|---|---|
+| `./hooks/ens/useENSClaim` | `./src/hooks/ens/useENSClaim.ts` |
+| `./hooks/ens/useENSRegistrationStatus` | `./src/hooks/ens/useENSRegistrationStatus.ts` |
+| `./hooks/ens/useENSReleaseName` | `./src/hooks/ens/useENSReleaseName.ts` |
+| `./hooks/ens/useGreenGoodsEnsName` | `./src/hooks/ens/useGreenGoodsEnsName.ts` |
+| `./hooks/ens/useProtocolMemberStatus` | `./src/hooks/ens/useProtocolMemberStatus.ts` |
+| `./hooks/ens/useSlugAvailability` | `./src/hooks/ens/useSlugAvailability.ts` |
+| `./hooks/ens/useSlugForm` | `./src/hooks/ens/useSlugForm.ts` |
+
+**`./hooks/garden`** (17)
+
+| Specifier | Target |
+|---|---|
+| `./hooks/garden/useAdminGardenContext` | `./src/hooks/garden/useAdminGardenContext.ts` |
+| `./hooks/garden/useAdminGardenWorkspaceSelection` | `./src/hooks/garden/useAdminGardenWorkspaceSelection.ts` |
+| `./hooks/garden/useCreateGardenForm` | `./src/hooks/garden/useCreateGardenForm.ts` |
+| `./hooks/garden/useEligibleAdminGardens` | `./src/hooks/garden/useEligibleAdminGardens.ts` |
+| `./hooks/garden/useFilteredGardens` | `./src/hooks/garden/useFilteredGardens.ts` |
+| `./hooks/garden/useGardenAccountSigner` | `./src/hooks/garden/useGardenAccountSigner.ts` |
+| `./hooks/garden/useGardenDerivedState` | `./src/hooks/garden/useGardenDerivedState.ts` |
+| `./hooks/garden/useGardenDetailData` | `./src/hooks/garden/useGardenDetailData.ts` |
+| `./hooks/garden/useGardenDomains` | `./src/hooks/garden/useGardenDomains.ts` |
+| `./hooks/garden/useGardenJoinRequests` | `./src/hooks/garden/useGardenJoinRequests.ts` |
+| `./hooks/garden/useGardenOperations` | `./src/hooks/garden/useGardenOperations.ts` |
+| `./hooks/garden/useGardenPermissions` | `./src/hooks/garden/useGardenPermissions.ts` |
+| `./hooks/garden/useGardenTabs` | `./src/hooks/garden/useGardenTabs.ts` |
+| `./hooks/garden/useJoinGarden` | `./src/hooks/garden/useJoinGarden.ts` |
+| `./hooks/garden/useKarmaIntegration` | `./src/hooks/garden/useKarmaIntegration.ts` |
+| `./hooks/garden/useSetGardenDomains` | `./src/hooks/garden/useSetGardenDomains.ts` |
+| `./hooks/garden/useUpdateGarden` | `./src/hooks/garden/useUpdateGarden.ts` |
+
+**`./hooks/gardener`** (2)
+
+| Specifier | Target |
+|---|---|
+| `./hooks/gardener/useGardenerProfile` | `./src/hooks/gardener/useGardenerProfile.ts` |
+| `./hooks/gardener/useRole` | `./src/hooks/gardener/useRole.ts` |
+
+**`./hooks/greenwill`** (4)
+
+| Specifier | Target |
+|---|---|
+| `./hooks/greenwill/useClaimGreenWillBadge` | `./src/hooks/greenwill/useClaimGreenWillBadge.ts` |
+| `./hooks/greenwill/useGreenWillBadgeDefinitions` | `./src/hooks/greenwill/useGreenWillBadgeDefinitions.ts` |
+| `./hooks/greenwill/useGreenWillBadges` | `./src/hooks/greenwill/useGreenWillBadges.ts` |
+| `./hooks/greenwill/useGreenWillRecentGrants` | `./src/hooks/greenwill/useGreenWillRecentGrants.ts` |
+
+**`./hooks/hypercerts`** (7)
+
+| Specifier | Target |
+|---|---|
+| `./hooks/hypercerts/useAttestations` | `./src/hooks/hypercerts/useAttestations.ts` |
+| `./hooks/hypercerts/useCancelListing` | `./src/hooks/hypercerts/useCancelListing.ts` |
+| `./hooks/hypercerts/useCreateListing` | `./src/hooks/hypercerts/useCreateListing.ts` |
+| `./hooks/hypercerts/useHypercertListings` | `./src/hooks/hypercerts/useHypercertListings.ts` |
+| `./hooks/hypercerts/useHypercerts` | `./src/hooks/hypercerts/useHypercerts.ts` |
+| `./hooks/hypercerts/useMarketplaceApprovals` | `./src/hooks/hypercerts/useMarketplaceApprovals.ts` |
+| `./hooks/hypercerts/useTradeHistory` | `./src/hooks/hypercerts/useTradeHistory.ts` |
+
+**`./hooks/navigation`** (3)
+
+| Specifier | Target |
+|---|---|
+| `./hooks/navigation/useCanvasSearchParams` | `./src/hooks/navigation/useCanvasSearchParams.ts` |
+| `./hooks/navigation/useGardenUrlSync` | `./src/hooks/navigation/useGardenUrlSync.ts` |
+| `./hooks/navigation/useSheetOrchestrator` | `./src/hooks/navigation/useSheetOrchestrator.ts` |
+
+**`./hooks/offline`** (2)
+
+| Specifier | Target |
+|---|---|
+| `./hooks/offline/useOfflineAssetAvailability` | `./src/hooks/offline/useOfflineAssetAvailability.ts` |
+| `./hooks/offline/useOfflineContent` | `./src/hooks/offline/useOfflineContent.ts` |
+
+**`./hooks/profile`** (2)
+
+| Specifier | Target |
+|---|---|
+| `./hooks/profile/useProfileAvatar` | `./src/hooks/profile/useProfileAvatar.ts` |
+| `./hooks/profile/useProfileAvatarDraftPreview` | `./src/hooks/profile/useProfileAvatarDraftPreview.ts` |
+
+**`./hooks/public`** (8)
+
+| Specifier | Target |
+|---|---|
+| `./hooks/public/usePublicCommitmentImpact` | `./src/hooks/public/usePublicCommitmentImpact.ts` |
+| `./hooks/public/usePublicEndowmentPositions` | `./src/hooks/public/usePublicEndowmentPositions.ts` |
+| `./hooks/public/usePublicGardenDetail` | `./src/hooks/public/usePublicGardenDetail.ts` |
+| `./hooks/public/usePublicGardens` | `./src/hooks/public/usePublicGardens.ts` |
+| `./hooks/public/usePublicImpactEvidence` | `./src/hooks/public/usePublicImpactEvidence.ts` |
+| `./hooks/public/usePublicStats` | `./src/hooks/public/usePublicStats.ts` |
+| `./hooks/public/usePublicVaultCatalogSummary` | `./src/hooks/public/usePublicVaultCatalogSummary.ts` |
+| `./hooks/public/usePublicVaultSummary` | `./src/hooks/public/usePublicVaultSummary.ts` |
+
+**`./hooks/roles`** (3)
+
+| Specifier | Target |
+|---|---|
+| `./hooks/roles/useEffectiveToolbarPermissions` | `./src/hooks/roles/useEffectiveToolbarPermissions.ts` |
+| `./hooks/roles/useGardenRoleHat` | `./src/hooks/roles/useGardenRoleHat.ts` |
+| `./hooks/roles/useHasRole` | `./src/hooks/roles/useHasRole.ts` |
+
+**`./hooks/ui`** (6)
+
+| Specifier | Target |
+|---|---|
+| `./hooks/ui/useDocumentScrollLock` | `./src/hooks/ui/useDocumentScrollLock.ts` |
+| `./hooks/ui/useFormWizardStepValidation` | `./src/hooks/ui/useFormWizardStepValidation.ts` |
+| `./hooks/ui/useInViewReveal` | `./src/hooks/ui/useInViewReveal.ts` |
+| `./hooks/ui/useIsDarkMode` | `./src/hooks/ui/useIsDarkMode.ts` |
+| `./hooks/ui/useMediaQuery` | `./src/hooks/ui/useMediaQuery.ts` |
+| `./hooks/ui/useSheetPresence` | `./src/hooks/ui/useSheetPresence.ts` |
+
+**`./hooks/utils`** (12)
+
+| Specifier | Target |
+|---|---|
+| `./hooks/utils/useAddressInput` | `./src/hooks/utils/useAddressInput.ts` |
+| `./hooks/utils/useAsyncEffect` | `./src/hooks/utils/useAsyncEffect.ts` |
+| `./hooks/utils/useBeforeUnloadWhilePending` | `./src/hooks/utils/useBeforeUnloadWhilePending.ts` |
+| `./hooks/utils/useCopyToClipboard` | `./src/hooks/utils/useCopyToClipboard.ts` |
+| `./hooks/utils/useDebouncedValue` | `./src/hooks/utils/useDebouncedValue.ts` |
+| `./hooks/utils/useElementHeight` | `./src/hooks/utils/useElementHeight.ts` |
+| `./hooks/utils/useEventListener` | `./src/hooks/utils/useEventListener.ts` |
+| `./hooks/utils/useExitPresence` | `./src/hooks/utils/useExitPresence.ts` |
+| `./hooks/utils/useFocusTrap` | `./src/hooks/utils/useFocusTrap.ts` |
+| `./hooks/utils/useStepFocus` | `./src/hooks/utils/useStepFocus.ts` |
+| `./hooks/utils/useTimeout` | `./src/hooks/utils/useTimeout.ts` |
+| `./hooks/utils/useTxErrorMessages` | `./src/hooks/utils/useTxErrorMessages.ts` |
+
+**`./hooks/vault`** (21)
+
+| Specifier | Target |
+|---|---|
+| `./hooks/vault/useDepositForm` | `./src/hooks/vault/useDepositForm.ts` |
+| `./hooks/vault/useEmergencyPause` | `./src/hooks/vault/useEmergencyPause.ts` |
+| `./hooks/vault/useEnableAutoAllocate` | `./src/hooks/vault/useEnableAutoAllocate.ts` |
+| `./hooks/vault/useFunderLeaderboard` | `./src/hooks/vault/useFunderLeaderboard.ts` |
+| `./hooks/vault/useGardenVaults` | `./src/hooks/vault/useGardenVaults.ts` |
+| `./hooks/vault/useHarvest` | `./src/hooks/vault/useHarvest.ts` |
+| `./hooks/vault/useMyVaultDeposits` | `./src/hooks/vault/useMyVaultDeposits.ts` |
+| `./hooks/vault/useOctantVaultHarvestableYield` | `./src/hooks/vault/useOctantVaultHarvestableYield.ts` |
+| `./hooks/vault/useOctantVaultPositions` | `./src/hooks/vault/useOctantVaultPositions.ts` |
+| `./hooks/vault/useOctantVaultStats` | `./src/hooks/vault/useOctantVaultStats.ts` |
+| `./hooks/vault/useOctantVaultStrategyApy` | `./src/hooks/vault/useOctantVaultStrategyApy.ts` |
+| `./hooks/vault/useOctantVaultWalletBalances` | `./src/hooks/vault/useOctantVaultWalletBalances.ts` |
+| `./hooks/vault/useOctantVaultWalletEndow` | `./src/hooks/vault/useOctantVaultWalletEndow.ts` |
+| `./hooks/vault/useOctantVaultWithdraw` | `./src/hooks/vault/useOctantVaultWithdraw.ts` |
+| `./hooks/vault/useVaultDeposit` | `./src/hooks/vault/useVaultDeposit.ts` |
+| `./hooks/vault/useVaultDeposits` | `./src/hooks/vault/useVaultDeposits.ts` |
+| `./hooks/vault/useVaultEvents` | `./src/hooks/vault/useVaultEvents.ts` |
+| `./hooks/vault/useVaultPreview` | `./src/hooks/vault/useVaultPreview.ts` |
+| `./hooks/vault/useVaultWithdraw` | `./src/hooks/vault/useVaultWithdraw.ts` |
+| `./hooks/vault/useWrapEthToWeth` | `./src/hooks/vault/useWrapEthToWeth.ts` |
+| `./hooks/vault/vault-helpers` | `./src/hooks/vault/vault-helpers.ts` |
+
+**`./hooks/work`** (16)
+
+| Specifier | Target |
+|---|---|
+| `./hooks/work/useAggregatedApprovals` | `./src/hooks/work/useAggregatedApprovals.ts` |
+| `./hooks/work/useDrafts` | `./src/hooks/work/useDrafts.ts` |
+| `./hooks/work/useGardenWorkListView` | `./src/hooks/work/useGardenWorkListView.ts` |
+| `./hooks/work/useMyWorks` | `./src/hooks/work/useMyWorks.ts` |
+| `./hooks/work/useNeedsReview` | `./src/hooks/work/useNeedsReview.ts` |
+| `./hooks/work/useQueuedWorkActions` | `./src/hooks/work/useQueuedWorkActions.ts` |
+| `./hooks/work/useReviewerGardenIds` | `./src/hooks/work/useReviewerGardenIds.ts` |
+| `./hooks/work/useWorkApproval` | `./src/hooks/work/useWorkApproval.ts` |
+| `./hooks/work/useWorkApprovals` | `./src/hooks/work/useWorkApprovals.ts` |
+| `./hooks/work/useWorkForm` | `./src/hooks/work/useWorkForm.ts` |
+| `./hooks/work/useWorkImages` | `./src/hooks/work/useWorkImages.ts` |
+| `./hooks/work/useWorkMetadata` | `./src/hooks/work/useWorkMetadata.ts` |
+| `./hooks/work/useWorkMutation` | `./src/hooks/work/useWorkMutation.ts` |
+| `./hooks/work/useWorks` | `./src/hooks/work/useWorks.ts` |
+| `./hooks/work/useWorkUploads` | `./src/hooks/work/useWorkUploads.ts` |
+| `./hooks/work/useYourWorkCount` | `./src/hooks/work/useYourWorkCount.ts` |
+
+**`./hooks/yield`** (4)
+
+| Specifier | Target |
+|---|---|
+| `./hooks/yield/useGardenYieldWiringState` | `./src/hooks/yield/useGardenYieldWiringState.ts` |
+| `./hooks/yield/useHarvestDistribution` | `./src/hooks/yield/useHarvestDistribution.ts` |
+| `./hooks/yield/useYieldAllocations` | `./src/hooks/yield/useYieldAllocations.ts` |
+| `./hooks/yield/useYieldStatus` | `./src/hooks/yield/useYieldStatus.ts` |
+
+</details>
+
+<details>
+<summary>`./i18n` (8)</summary>
+
+| Specifier | Target |
+|---|---|
+| `./i18n` | `./src/i18n/index.ts` |
+| `./i18n/commitmentUnits` | `./src/i18n/commitmentUnits.ts` |
+| `./i18n/en` | `./src/i18n/en.json` |
+| `./i18n/en.json` | `./src/i18n/en.json` |
+| `./i18n/es` | `./src/i18n/es.json` |
+| `./i18n/es.json` | `./src/i18n/es.json` |
+| `./i18n/pt` | `./src/i18n/pt.json` |
+| `./i18n/pt.json` | `./src/i18n/pt.json` |
+
+</details>
+
+<details>
+<summary>`./modules` (52)</summary>
+
+**`./modules`** (4)
+
+| Specifier | Target |
+|---|---|
+| `./modules` | `./src/modules/index.ts` |
+| `./modules/agent-reporting` | `./src/modules/agent-reporting/index.ts` |
+| `./modules/garden-join-requests` | `./src/modules/garden-join-requests/index.ts` |
+| `./modules/octant-vault-card-wallet-cache` | `./src/modules/octant-vault-card-wallet-cache.ts` |
+
+**`./modules/agent-reporting`** (1)
+
+| Specifier | Target |
+|---|---|
+| `./modules/agent-reporting/kernel-permissions` | `./src/modules/agent-reporting/kernel-permissions.ts` |
+
+**`./modules/app`** (7)
+
+| Specifier | Target |
+|---|---|
+| `./modules/app/analytics-events` | `./src/modules/app/analytics-events.ts` |
+| `./modules/app/cache-recovery` | `./src/modules/app/cache-recovery.ts` |
+| `./modules/app/error-categories` | `./src/modules/app/error-categories.ts` |
+| `./modules/app/error-events` | `./src/modules/app/error-events.ts` |
+| `./modules/app/logger` | `./src/modules/app/logger.ts` |
+| `./modules/app/posthog` | `./src/modules/app/posthog.ts` |
+| `./modules/app/service-worker-protocol` | `./src/modules/app/service-worker-protocol.ts` |
+
+**`./modules/auth`** (1)
+
+| Specifier | Target |
+|---|---|
+| `./modules/auth/session` | `./src/modules/auth/session.ts` |
+
+**`./modules/commitment-pooling`** (13)
+
+| Specifier | Target |
+|---|---|
+| `./modules/commitment-pooling/cycle-metadata` | `./src/modules/commitment-pooling/cycle-metadata.ts` |
+| `./modules/commitment-pooling/data-settlement-chain` | `./src/modules/commitment-pooling/data-settlement-chain.ts` |
+| `./modules/commitment-pooling/disclosure` | `./src/modules/commitment-pooling/disclosure.ts` |
+| `./modules/commitment-pooling/display-groups` | `./src/modules/commitment-pooling/display-groups.ts` |
+| `./modules/commitment-pooling/metadata` | `./src/modules/commitment-pooling/metadata.ts` |
+| `./modules/commitment-pooling/pool-charter` | `./src/modules/commitment-pooling/pool-charter.ts` |
+| `./modules/commitment-pooling/pool-console` | `./src/modules/commitment-pooling/pool-console.ts` |
+| `./modules/commitment-pooling/pool-funding` | `./src/modules/commitment-pooling/pool-funding.ts` |
+| `./modules/commitment-pooling/pool-lifecycle` | `./src/modules/commitment-pooling/pool-lifecycle.ts` |
+| `./modules/commitment-pooling/pool-setup` | `./src/modules/commitment-pooling/pool-setup.ts` |
+| `./modules/commitment-pooling/reasons` | `./src/modules/commitment-pooling/reasons.ts` |
+| `./modules/commitment-pooling/settlement-workflow` | `./src/modules/commitment-pooling/settlement-workflow.ts` |
+| `./modules/commitment-pooling/types-core` | `./src/modules/commitment-pooling/types-core.ts` |
+
+**`./modules/data`** (4)
+
+| Specifier | Target |
+|---|---|
+| `./modules/data/hypercerts-filters` | `./src/modules/data/hypercerts-filters.ts` |
+| `./modules/data/ipfs/client` | `./src/modules/data/ipfs/client.ts` |
+| `./modules/data/ipfs/resolve` | `./src/modules/data/ipfs/resolve.ts` |
+| `./modules/data/ipfs/upload` | `./src/modules/data/ipfs/upload.ts` |
+
+**`./modules/job-queue`** (4)
+
+| Specifier | Target |
+|---|---|
+| `./modules/job-queue/default-instance` | `./src/modules/job-queue/default-instance.ts` |
+| `./modules/job-queue/media-resource-manager` | `./src/modules/job-queue/media-resource-manager.ts` |
+| `./modules/job-queue/queue` | `./src/modules/job-queue/queue.ts` |
+| `./modules/job-queue/queue-policy` | `./src/modules/job-queue/queue-policy.ts` |
+
+**`./modules/offline-content`** (2)
+
+| Specifier | Target |
+|---|---|
+| `./modules/offline-content/query-writer` | `./src/modules/offline-content/query-writer.ts` |
+| `./modules/offline-content/store` | `./src/modules/offline-content/store.ts` |
+
+**`./modules/profile-avatar`** (1)
+
+| Specifier | Target |
+|---|---|
+| `./modules/profile-avatar/editor-messages` | `./src/modules/profile-avatar/editor-messages.ts` |
+
+**`./modules/translation`** (1)
+
+| Specifier | Target |
+|---|---|
+| `./modules/translation/browser-translator` | `./src/modules/translation/browser-translator.ts` |
+
+**`./modules/vault-crowdfunding`** (5)
+
+| Specifier | Target |
+|---|---|
+| `./modules/vault-crowdfunding/card-endow` | `./src/modules/vault-crowdfunding/card-endow.ts` |
+| `./modules/vault-crowdfunding/copy` | `./src/modules/vault-crowdfunding/copy.ts` |
+| `./modules/vault-crowdfunding/manifest` | `./src/modules/vault-crowdfunding/manifest.ts` |
+| `./modules/vault-crowdfunding/route-manage` | `./src/modules/vault-crowdfunding/route-manage.ts` |
+| `./modules/vault-crowdfunding/wallet-endow` | `./src/modules/vault-crowdfunding/wallet-endow.ts` |
+
+**`./modules/wallet`** (4)
+
+| Specifier | Target |
+|---|---|
+| `./modules/wallet/barcode-scanner` | `./src/modules/wallet/barcode-scanner.ts` |
+| `./modules/wallet/good-dollar-fees` | `./src/modules/wallet/good-dollar-fees.ts` |
+| `./modules/wallet/good-dollar-price` | `./src/modules/wallet/good-dollar-price.ts` |
+| `./modules/wallet/send-flow` | `./src/modules/wallet/send-flow.ts` |
+
+**`./modules/work`** (5)
+
+| Specifier | Target |
+|---|---|
+| `./modules/work/bot-submission` | `./src/modules/work/bot-submission.ts` |
+| `./modules/work/media-processing` | `./src/modules/work/media-processing.ts` |
+| `./modules/work/submission-flow` | `./src/modules/work/submission-flow.ts` |
+| `./modules/work/submit-work-command` | `./src/modules/work/submit-work-command.ts` |
+| `./modules/work/work-submission` | `./src/modules/work/work-submission.ts` |
+
+</details>
+
+<details>
+<summary>`./providers` (8)</summary>
+
+| Specifier | Target |
+|---|---|
+| `./providers` | `./src/providers/index.ts` |
+| `./providers/App` | `./src/providers/App.tsx` |
+| `./providers/AppKitProvider` | `./src/providers/AppKitProvider.tsx` |
+| `./providers/Auth` | `./src/providers/Auth.tsx` |
+| `./providers/AuthGate` | `./src/providers/AuthGate.tsx` |
+| `./providers/JobQueue` | `./src/providers/JobQueue.tsx` |
+| `./providers/QueryPersistence` | `./src/providers/QueryPersistence.tsx` |
+| `./providers/Work` | `./src/providers/Work.tsx` |
+
+</details>
+
+<details>
+<summary>`./public-contracts` (6)</summary>
+
+| Specifier | Target |
+|---|---|
+| `./public-contracts` | `./src/public-contracts/index.ts` |
+| `./public-contracts/core` | `./src/public-contracts/core.ts` |
+| `./public-contracts/garden-slug` | `./src/public-contracts/garden-slug.ts` |
+| `./public-contracts/join-requests` | `./src/public-contracts/join-requests.ts` |
+| `./public-contracts/public-impact` | `./src/public-contracts/public-impact.ts` |
+| `./public-contracts/routes` | `./src/public-contracts/routes.ts` |
+
+</details>
+
+<details>
+<summary>`./stores` (11)</summary>
+
+| Specifier | Target |
+|---|---|
+| `./stores` | `./src/stores/index.ts` |
+| `./stores/useAdminStore` | `./src/stores/useAdminStore.ts` |
+| `./stores/useCommitmentComposerDraftStore` | `./src/stores/useCommitmentComposerDraftStore.ts` |
+| `./stores/useCreateAssessmentStore` | `./src/stores/useCreateAssessmentStore.ts` |
+| `./stores/useCreateGardenStore` | `./src/stores/useCreateGardenStore.ts` |
+| `./stores/useGardenStateStore` | `./src/stores/useGardenStateStore.ts` |
+| `./stores/useHypercertWizardStore` | `./src/stores/useHypercertWizardStore.ts` |
+| `./stores/useSheetOrchestratorStore` | `./src/stores/useSheetOrchestratorStore.ts` |
+| `./stores/useUIStore` | `./src/stores/useUIStore.ts` |
+| `./stores/useUsernameChangeStore` | `./src/stores/useUsernameChangeStore.ts` |
+| `./stores/workFlowTypes` | `./src/stores/workFlowTypes.ts` |
+
+</details>
+
+<details>
+<summary>`./styles` (4)</summary>
+
+| Specifier | Target |
+|---|---|
+| `./styles` | `./src/styles/theme.css` |
+| `./styles/design-md.generated.json` | `./src/styles/design-md.generated.json` |
+| `./styles/theme.css` | `./src/styles/theme.css` |
+| `./styles/utilities.css` | `./src/styles/utilities.css` |
+
+</details>
+
+<details>
+<summary>`./types` (10)</summary>
+
+| Specifier | Target |
+|---|---|
+| `./types` | `./src/types/index.ts` |
+| `./types/conviction` | `./src/types/conviction.ts` |
+| `./types/cookie-jar` | `./src/types/cookie-jar.ts` |
+| `./types/domain` | `./src/types/domain.ts` |
+| `./types/eas-responses` | `./src/types/eas-responses.ts` |
+| `./types/garden-detail` | `./src/types/garden-detail.ts` |
+| `./types/gardens-community` | `./src/types/gardens-community.ts` |
+| `./types/greenwill` | `./src/types/greenwill.ts` |
+| `./types/hypercerts` | `./src/types/hypercerts.ts` |
+| `./types/vaults` | `./src/types/vaults.ts` |
+
+</details>
+
+<details>
+<summary>`./utils` (45)</summary>
+
+**`./utils`** (8)
+
+| Specifier | Target |
+|---|---|
+| `./utils` | `./src/utils/index.ts` |
+| `./utils/cookie-jar-campaign` | `./src/utils/cookie-jar-campaign.ts` |
+| `./utils/cookie-jar-claim-limit` | `./src/utils/cookie-jar-claim-limit.ts` |
+| `./utils/debug` | `./src/utils/debug.ts` |
+| `./utils/domain` | `./src/utils/domain.ts` |
+| `./utils/garden-detail` | `./src/utils/garden-detail.ts` |
+| `./utils/relativeTime` | `./src/utils/relativeTime.ts` |
+| `./utils/time` | `./src/utils/time.ts` |
+
+**`./utils/action`** (4)
+
+| Specifier | Target |
+|---|---|
+| `./utils/action/parsers` | `./src/utils/action/parsers.ts` |
+| `./utils/action/templates` | `./src/utils/action/templates.ts` |
+| `./utils/action/translations` | `./src/utils/action/translations.ts` |
+| `./utils/action/window` | `./src/utils/action/window.ts` |
+
+**`./utils/app`** (7)
+
+| Specifier | Target |
+|---|---|
+| `./utils/app/browser` | `./src/utils/app/browser.ts` |
+| `./utils/app/clipboard` | `./src/utils/app/clipboard.ts` |
+| `./utils/app/haptics` | `./src/utils/app/haptics.ts` |
+| `./utils/app/pwa` | `./src/utils/app/pwa.ts` |
+| `./utils/app/recursive-clone-children` | `./src/utils/app/recursive-clone-children.tsx` |
+| `./utils/app/send-recipients` | `./src/utils/app/send-recipients.ts` |
+| `./utils/app/text` | `./src/utils/app/text.ts` |
+
+**`./utils/blockchain`** (12)
+
+| Specifier | Target |
+|---|---|
+| `./utils/blockchain/aave` | `./src/utils/blockchain/aave.ts` |
+| `./utils/blockchain/abis/erc20` | `./src/utils/blockchain/abis/erc20.ts` |
+| `./utils/blockchain/abis/garden` | `./src/utils/blockchain/abis/garden.ts` |
+| `./utils/blockchain/abis/octant` | `./src/utils/blockchain/abis/octant.ts` |
+| `./utils/blockchain/address` | `./src/utils/blockchain/address.ts` |
+| `./utils/blockchain/chain-registry` | `./src/utils/blockchain/chain-registry.ts` |
+| `./utils/blockchain/contracts` | `./src/utils/blockchain/contracts.ts` |
+| `./utils/blockchain/ens` | `./src/utils/blockchain/ens.ts` |
+| `./utils/blockchain/garden-roles` | `./src/utils/blockchain/garden-roles.ts` |
+| `./utils/blockchain/octant-vault-redeem` | `./src/utils/blockchain/octant-vault-redeem.ts` |
+| `./utils/blockchain/price-feeds` | `./src/utils/blockchain/price-feeds.ts` |
+| `./utils/blockchain/vaults` | `./src/utils/blockchain/vaults.ts` |
+
+**`./utils/eas`** (2)
+
+| Specifier | Target |
+|---|---|
+| `./utils/eas/explorers` | `./src/utils/eas/explorers.ts` |
+| `./utils/eas/work-metadata` | `./src/utils/eas/work-metadata.ts` |
+
+**`./utils/errors`** (4)
+
+| Specifier | Target |
+|---|---|
+| `./utils/errors/blockchain-errors` | `./src/utils/errors/blockchain-errors.ts` |
+| `./utils/errors/contract-errors` | `./src/utils/errors/contract-errors.ts` |
+| `./utils/errors/extract-message` | `./src/utils/errors/extract-message.ts` |
+| `./utils/errors/tx-error-classifier` | `./src/utils/errors/tx-error-classifier.ts` |
+
+**`./utils/form`** (1)
+
+| Specifier | Target |
+|---|---|
+| `./utils/form/normalizers` | `./src/utils/form/normalizers.ts` |
+
+**`./utils/navigation`** (1)
+
+| Specifier | Target |
+|---|---|
+| `./utils/navigation/admin-routes` | `./src/utils/navigation/admin-routes.ts` |
+
+**`./utils/storage`** (1)
+
+| Specifier | Target |
+|---|---|
+| `./utils/storage/quota` | `./src/utils/storage/quota.ts` |
+
+**`./utils/styles`** (3)
+
+| Specifier | Target |
+|---|---|
+| `./utils/styles/cn` | `./src/utils/styles/cn.ts` |
+| `./utils/styles/polymorphic` | `./src/utils/styles/polymorphic.ts` |
+| `./utils/styles/theme` | `./src/utils/styles/theme.ts` |
+
+**`./utils/work`** (2)
+
+| Specifier | Target |
+|---|---|
+| `./utils/work/image-compression` | `./src/utils/work/image-compression.ts` |
+| `./utils/work/workTitles` | `./src/utils/work/workTitles.ts` |
+
+</details>
+
+<details>
+<summary>Other entry points (26)</summary>
+
+| Specifier | Target |
+|---|---|
+| `.` | `./src/index.ts` |
+| `./badge` | `./src/components/Badge/index.ts` |
+| `./cards` | `./src/components/Cards/index.ts` |
+| `./commitment-pooling` | `./src/commitment-pooling/index.ts` |
+| `./commitment-pooling/demo-mode` | `./src/modules/commitment-pooling/demo/demo-mode.ts` |
+| `./commitment-pooling/public` | `./src/commitment-pooling/public.ts` |
+| `./display` | `./src/components/Display/index.ts` |
+| `./lib/env` | `./src/lib/env.ts` |
+| `./lib/hypercerts/constants` | `./src/lib/hypercerts/constants.ts` |
+| `./lib/hypercerts/distribution` | `./src/lib/hypercerts/distribution.ts` |
+| `./mocks` | `./src/__mocks__/index.ts` |
+| `./mocks/browser` | `./src/__mocks__/browser/index.ts` |
+| `./mocks/server` | `./src/__mocks__/server/index.ts` |
+| `./ontology/types` | `./src/ontology/types.ts` |
+| `./profile-avatar` | `./src/profile-avatar/index.ts` |
+| `./profile-avatar/protocol` | `./src/profile-avatar/protocol.ts` |
+| `./public` | `./src/hooks/public/publicSurfaceState.ts` |
+| `./sentry` | `./src/modules/app/sentry.ts` |
+| `./sentry-redaction` | `./src/modules/app/sentry-redaction.ts` |
+| `./service-worker` | `./src/modules/app/service-worker-registration.ts` |
+| `./testing` | `./src/__tests__/test-utils/index.ts` |
+| `./testing/query-client` | `./src/__tests__/test-utils/query-client.ts` |
+| `./toast` | `./src/components/toast.ts` |
+| `./workflows` | `./src/workflows/index.ts` |
+| `./workflows/agent-reporting` | `./src/workflows/agent-reporting/index.ts` |
+| `./workflows/createGarden` | `./src/workflows/createGarden.ts` |
+
+</details>

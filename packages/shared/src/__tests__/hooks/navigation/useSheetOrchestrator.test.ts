@@ -1,6 +1,6 @@
 /**
  * useSheetOrchestrator Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the navigation-aware hook that wraps useSheetOrchestratorStore.
  * Validates: open/close passthrough, onNavigateAway save/close timing,

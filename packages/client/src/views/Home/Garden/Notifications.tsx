@@ -1,23 +1,17 @@
-import {
-  cn,
-  formatAddress,
-  type Garden,
-  useEnsName,
-  useNavigateToTop,
-  type Work,
-} from "@green-goods/shared";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import type { Garden, Work } from "@green-goods/shared/types/domain";
+import { formatAddress } from "@green-goods/shared/utils/app/text";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiAlertFill, RiSeedlingFill } from "@remixicon/react";
 import type React from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { EmptyState } from "@/components/Communication";
-import { APP_ROUTES } from "@/config/pwa-routing";
-import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
+import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 
 interface GardenNotificationsProps {
   garden: Garden;
   notifications: Work[];
-  onClose?: () => void;
 }
 
 function GardenNotificationItem({ garden, work }: { garden: Garden; work: Work }) {
@@ -57,7 +51,7 @@ function GardenNotificationItem({ garden, work }: { garden: Garden; work: Work }
         </span>{" "}
         {intl.formatMessage({
           id: "app.home.notifications.completedWorkApproval",
-          defaultMessage: "completed work on",
+          defaultMessage: "Completed work on",
         })}{" "}
         <span className="font-medium" title={garden.name}>
           {garden.name}
@@ -70,41 +64,25 @@ function GardenNotificationItem({ garden, work }: { garden: Garden; work: Work }
 export const GardenNotifications: React.FC<GardenNotificationsProps> = ({
   garden,
   notifications,
-  onClose,
 }) => {
   const intl = useIntl();
-  const navigate = useNavigateToTop();
   const pendingNotifications = notifications.filter((work) => work.status === "pending");
 
+  // The notifications sheet's content region owns scrolling; a nested
+  // scroller here has no height of its own and only clips the list.
   return (
-    <div className="flex flex-col gap-3 overflow-y-auto">
+    <div className="flex flex-col gap-3">
       {pendingNotifications.length === 0 ? (
         <EmptyState
           icon={<RiSeedlingFill />}
           title={intl.formatMessage({
             id: "app.home.notifications.noWork",
-            defaultMessage: "Your garden is waiting!",
+            defaultMessage: "Nothing to review",
           })}
           description={intl.formatMessage({
             id: "app.home.notifications.encourageWork",
-            defaultMessage:
-              "No new work to review yet. Why not explore your garden and see what's growing?",
+            defaultMessage: "New submissions will appear here.",
           })}
-          action={
-            <button
-              onClick={() => {
-                onClose?.();
-                navigate(APP_ROUTES.garden, { state: { gardenId: garden.id } });
-              }}
-              className="inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-primary-action px-4 py-2 text-sm font-medium text-primary-action-foreground transition-[background-color,box-shadow,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] active:scale-95 focus:outline-none focus-visible:shadow-button-primary-focus"
-            >
-              <RiSeedlingFill className="w-4 h-4" />
-              {intl.formatMessage({
-                id: "app.home.notifications.visitGarden",
-                defaultMessage: "Visit Garden",
-              })}
-            </button>
-          }
         />
       ) : (
         pendingNotifications.map((work) => (

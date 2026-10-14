@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Resolver } from "react-hook-form";
-import { DEFAULT_CHAIN_ID } from "../../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import { Domain } from "../../../types/domain";
 import { defaultTemplate } from "../../../utils/action/templates";
 import { createActionSchema, type CreateActionFormData } from "../../action/useActionForm";

@@ -14,12 +14,12 @@ import { useMachine } from "@xstate/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
 import { type Hex, isAddress } from "viem";
-import { useWalletClient } from "wagmi";
 
 import { toastService } from "../../components/toast";
-import { createPublicClientForChain, DEFAULT_CHAIN_ID } from "../../config";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
+import { createPublicClientForChain } from "../../config/pimlico";
 import { TOTAL_UNITS, validateAllowlist as validateAllowlistEntries } from "../../lib/hypercerts";
-import { getIpfsInitStatus } from "../../modules";
+import { getIpfsInitStatus } from "../../modules/data/ipfs/client";
 import { logger } from "../../modules/app/logger";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import { useHypercertWizardStore } from "../../stores/useHypercertWizardStore";
@@ -103,7 +103,6 @@ function shouldShowErrorToast(mode: TxErrorMode = "auto"): boolean {
 
 export function useMintHypercert(options: UseMintHypercertOptions = {}): UseMintHypercertResult {
   const { smartAccountClient, authMode, smartAccountAddress, eoaAddress } = useAuth();
-  const { data: walletClient } = useWalletClient();
   const chainId = useAdminStore((state: AdminState) => state.selectedChainId) || DEFAULT_CHAIN_ID;
   const setMintingState = useHypercertWizardStore((state) => state.setMintingState);
   const { formatMessage } = useIntl();
@@ -112,15 +111,11 @@ export function useMintHypercert(options: UseMintHypercertOptions = {}): UseMint
   // Store mutable dependencies in refs so the machine actor can read
   // current values without recreating the machine on every change.
   // This prevents loss of active mint progress on wallet reconnect.
-  const walletClientRef = useRef(walletClient);
   const smartAccountClientRef = useRef(smartAccountClient);
   const eoaAddressRef = useRef(eoaAddress);
   const authModeRef = useRef(authMode);
   const chainIdRef = useRef(chainId);
 
-  useEffect(() => {
-    walletClientRef.current = walletClient;
-  }, [walletClient]);
   useEffect(() => {
     smartAccountClientRef.current = smartAccountClient;
   }, [smartAccountClient]);
@@ -135,7 +130,7 @@ export function useMintHypercert(options: UseMintHypercertOptions = {}): UseMint
   }, [chainId]);
 
   const machine = useMemo(() => {
-    const deps = { walletClientRef, smartAccountClientRef, eoaAddressRef, authModeRef, chainIdRef };
+    const deps = { smartAccountClientRef, eoaAddressRef, authModeRef, chainIdRef };
 
     return mintHypercertMachine.provide({
       actors: {
@@ -260,8 +255,8 @@ export function useMintHypercert(options: UseMintHypercertOptions = {}): UseMint
         );
       }
 
-      const operatorAddress = smartAccountAddress || eoaAddressRef.current;
-      if (!operatorAddress || !isAddress(operatorAddress)) {
+      const stewardAddress = smartAccountAddress || eoaAddressRef.current;
+      if (!stewardAddress || !isAddress(stewardAddress)) {
         throw new Error("Connect a wallet or passkey to mint");
       }
 
@@ -280,15 +275,15 @@ export function useMintHypercert(options: UseMintHypercertOptions = {}): UseMint
       const contracts = await resolveHypercertContracts(currentChainId);
       if (contracts.hatsModule) {
         const publicClient = createPublicClientForChain(currentChainId);
-        const isOperator = await publicClient.readContract({
+        const isSteward = await publicClient.readContract({
           address: params.draft.gardenId as Address,
           abi: GardenAccountABI,
           functionName: "isOperator",
-          args: [operatorAddress as Address],
+          args: [stewardAddress as Address],
         });
 
-        if (!isOperator) {
-          throw new Error("Only garden operators can mint hypercerts");
+        if (!isSteward) {
+          throw new Error("Only garden stewards can mint hypercerts");
         }
       }
 

@@ -2,11 +2,15 @@ import { useMemo } from "react";
 import { useReadContracts } from "wagmi";
 import type { Address } from "../../types/domain";
 import type { GardenVault } from "../../types/vaults";
-import { OCTANT_MODULE_ABI, OCTANT_VAULT_ABI, STRATEGY_ABI } from "../../utils/blockchain/abis";
+import {
+  OCTANT_MODULE_ABI,
+  OCTANT_VAULT_ABI,
+  STRATEGY_ABI,
+} from "../../utils/blockchain/abis/octant";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { isZeroAddress } from "../../utils/blockchain/address";
 import { useCurrentChain } from "../blockchain/useChainConfig";
-import { STALE_TIME_MEDIUM } from "../../config/query-keys";
+import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
 
 interface HarvestableEntry {
   vaultAddress: Address;

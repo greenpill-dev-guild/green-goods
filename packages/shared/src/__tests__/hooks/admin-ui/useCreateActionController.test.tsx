@@ -1,15 +1,21 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import React from "react";
 import { act, renderHook } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createActionDefaultValues } from "../../../hooks/admin-ui/actions/createAction.utils";
 import { useCreateActionController } from "../../../hooks/admin-ui/actions/useCreateActionController";
 
 const mockNavigate = vi.fn();
 const mockRegisterAction = vi.fn();
+const mockReconcileRegistration = vi.fn();
+let registrationScope: string | null = "11155111:owner";
+let pendingRegistration:
+  | { hash: `0x${string}`; sponsored: boolean; confirmation: "pending" }
+  | undefined;
 const mockUploadFileToIPFS = vi.fn();
 const mockTrackStarted = vi.fn();
 const mockTrackSuccess = vi.fn();
@@ -31,34 +37,73 @@ vi.mock("react-router-dom", async () => {
   };
 });
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("../../../utils/navigation/admin-routes", () => ({
   adminRoutes: {
     actions: () => "/actions",
   },
+}));
+
+vi.mock("../../../utils/action/translations", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../utils/action/translations")>()),
   buildActionInstructionsV2: vi.fn(() => ({ version: 2, fields: [] })),
+}));
+
+vi.mock("../../../types/domain", () => ({
   Domain: { SOLAR: 0, AGRO: 1, EDU: 2, WASTE: 3 },
+}));
+
+vi.mock("../../../hooks/admin-ui/actions/actions.utils", () => ({
   getActionsListSearch: vi.fn(() => ({})),
+}));
+
+vi.mock("../../../utils/blockchain/contracts", () => ({
   getNetworkContracts: vi.fn(() => ({
     gardenToken: "0x1111111111111111111111111111111111111111",
   })),
+}));
+
+vi.mock("../../../modules/app/logger", () => ({
   logger: { error: (...args: unknown[]) => mockLoggerError(...args) },
+}));
+
+vi.mock("../../../utils/errors/contract-errors", () => ({
   // Minimal double: the controller only forwards `.name` as the parsed family.
   parseContractError: (error: unknown) => ({
     name: (error as { name?: string } | null)?.name ?? "Unknown",
   }),
+}));
+
+vi.mock("../../../components/Toast/toast.service", () => ({
   toastService: {
     loading: (...args: unknown[]) => mockToastLoading(...args),
     dismiss: (...args: unknown[]) => mockToastDismiss(...args),
     error: (...args: unknown[]) => mockToastError(...args),
   },
+}));
+
+vi.mock("../../../modules/app/analytics-events", () => ({
   trackAdminActionCreateFailed: (...args: unknown[]) => mockTrackFailed(...args),
   trackAdminActionCreateStarted: (...args: unknown[]) => mockTrackStarted(...args),
   trackAdminActionCreateSuccess: (...args: unknown[]) => mockTrackSuccess(...args),
+}));
+
+vi.mock("../../../modules/data/ipfs/upload", () => ({
   uploadFileToIPFS: (...args: unknown[]) => mockUploadFileToIPFS(...args),
+}));
+
+vi.mock("../../../hooks/action/useActionOperations", () => ({
   useActionOperations: () => ({
+    assertReady: vi.fn(),
+    pendingRegistration,
+    registrationScope,
+    reconcileRegistration: mockReconcileRegistration,
+    acknowledgeRegistration: vi.fn(),
     registerAction: (...args: unknown[]) => mockRegisterAction(...args),
     isLoading: false,
   }),
+}));
+
+vi.mock("../../../hooks/ui/useFormWizardStepValidation", () => ({
   useFormWizardStepValidation: ({
     onBack,
     onValidNext,
@@ -69,6 +114,9 @@ vi.mock("@green-goods/shared", () => ({
     handleBack: () => onBack?.(),
     handleNext: () => onValidNext(),
   }),
+}));
+
+vi.mock("../../../stores/useSheetOrchestratorStore", () => ({
   useSheetOrchestratorStore: Object.assign(
     (selector: (state: Record<string, unknown>) => unknown) =>
       selector({
@@ -104,25 +152,19 @@ function wrapper({ children }: { children: React.ReactNode }) {
 
 function createFormData() {
   return {
+    ...createActionDefaultValues(),
     title: "Repair Event",
     slug: " Repair.Event ",
-    domain: 2,
+    domain: 2 as const,
     startTime: new Date("2026-06-02T00:00:00.000Z"),
     endTime: new Date("2026-06-09T00:00:00.000Z"),
-    capitals: [],
-    media: [],
-    instructionConfig: {
-      title: "Work Submission",
-      description: "",
-      feedbackPlaceholder: "",
-      inputs: [],
-    },
-    translations: {},
   };
 }
 
 describe("useCreateActionController telemetry", () => {
   beforeEach(() => {
+    pendingRegistration = undefined;
+    mockReconcileRegistration.mockReset();
     vi.clearAllMocks();
     mockUploadFileToIPFS.mockResolvedValue({ cid: "bafy-instructions" });
     mockRegisterAction.mockResolvedValue({ success: true, hash: "0xabc" });
@@ -147,9 +189,8 @@ describe("useCreateActionController telemetry", () => {
     expect(mockRegisterAction).toHaveBeenCalledWith(
       expect.objectContaining({ title: "Repair Event", slug: "repair.event", domain: 2 })
     );
-    expect(mockTrackSuccess).toHaveBeenCalledWith({ ...expectedBase, txHash: "0xabc" });
+    expect(mockTrackSuccess).not.toHaveBeenCalled(); // Confirmation analytics belong to the operations seam.
     expect(mockTrackFailed).not.toHaveBeenCalled();
-    expect(mockNavigate).toHaveBeenCalledWith("/actions");
   });
 
   it("emits failed analytics when action registration returns an unsuccessful result", async () => {
@@ -202,4 +243,189 @@ describe("useCreateActionController telemetry", () => {
     expect(mockTrackSuccess).not.toHaveBeenCalled();
     expect(mockNavigate).not.toHaveBeenCalled();
   });
+});
+
+describe("useCreateActionController ending (DL-080)", () => {
+  beforeEach(() => {
+    pendingRegistration = undefined;
+    mockReconcileRegistration.mockReset();
+    vi.clearAllMocks();
+    mockUploadFileToIPFS.mockResolvedValue({ cid: "bafy-instructions" });
+    mockRegisterAction.mockResolvedValue({ success: true, hash: "0xabc" });
+  });
+
+  async function onReviewWithEdits() {
+    const hook = renderHook(() => useCreateActionController(), { wrapper });
+    act(() => {
+      hook.result.current.form.setValue("title", "Repair Event", { shouldDirty: true });
+    });
+    for (let step = 0; step < 3; step += 1) {
+      act(() => {
+        hook.result.current.handleNext();
+      });
+    }
+    expect(hook.result.current.currentStep).toBe(3);
+    expect(hook.result.current.isDirty).toBe(true);
+    return hook;
+  }
+
+  it("keeps a successful send on the Review, reads as clean, and never navigates", async () => {
+    const { result } = await onReviewWithEdits();
+
+    await act(async () => {
+      await result.current.onSubmit(createFormData());
+    });
+
+    expect(result.current.isSent).toBe(true);
+    expect(result.current.currentStep).toBe(3);
+    // Clean, so the close guard has nothing to confirm and Done or close leave at once.
+    expect(result.current.isDirty).toBe(false);
+    expect(mockNavigate).not.toHaveBeenCalled();
+    // The draft goes with the send, so a reload cannot register it twice.
+    expect(mockClearViewState).toHaveBeenCalledWith("/actions/create");
+    expect(result.current.form.getValues("title")).toBe("Repair Event");
+
+    act(() => result.current.handleCancel());
+    expect(mockNavigate).toHaveBeenCalledWith("/actions");
+  });
+
+  it("does not send a second time once the action is registered", async () => {
+    const { result } = await onReviewWithEdits();
+
+    await act(async () => {
+      await result.current.onSubmit(createFormData());
+    });
+    await act(async () => {
+      await result.current.onSubmit(createFormData());
+    });
+
+    expect(mockRegisterAction).toHaveBeenCalledOnce();
+  });
+
+  it("sends once when two presses overlap before the first has re-rendered", async () => {
+    const { result } = await onReviewWithEdits();
+    const submit = result.current.onSubmit;
+
+    await act(async () => {
+      await Promise.all([submit(createFormData()), submit(createFormData())]);
+    });
+
+    expect(mockUploadFileToIPFS).toHaveBeenCalledOnce();
+    expect(mockRegisterAction).toHaveBeenCalledOnce();
+    expect(result.current.isSent).toBe(true);
+  });
+
+  it("stays on the Review with the error after a failed send, and Try Again sends again", async () => {
+    mockRegisterAction.mockResolvedValueOnce({
+      success: false,
+      error: { name: "UserRejected", message: "User rejected the request." },
+    });
+    const { result } = await onReviewWithEdits();
+
+    await act(async () => {
+      await result.current.onSubmit(createFormData());
+    });
+
+    expect(result.current.hasError).toBe(true);
+    expect(result.current.isSent).toBe(false);
+    expect(result.current.isSending).toBe(false);
+    expect(result.current.currentStep).toBe(3);
+    expect(result.current.isDirty).toBe(true);
+    expect(result.current.errorMessage).not.toBe("");
+    // The status row carries the failure; no toast repeats it.
+    expect(mockToastError).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await result.current.onSubmit(createFormData());
+    });
+
+    expect(mockRegisterAction).toHaveBeenCalledTimes(2);
+    expect(result.current.hasError).toBe(false);
+    expect(result.current.isSent).toBe(true);
+  });
+
+  it("starts another action from empty answers on the first step", async () => {
+    const { result } = await onReviewWithEdits();
+    await act(async () => {
+      await result.current.onSubmit(createFormData());
+    });
+
+    act(() => result.current.handleCreateAnother());
+
+    expect(result.current.isSent).toBe(false);
+    expect(result.current.currentStep).toBe(0);
+    expect(result.current.form.getValues("title")).toBe("");
+  });
+});
+
+it("keeps an accepted registration pending without retry, failure telemetry or draft clearing", async () => {
+  vi.clearAllMocks();
+  mockUploadFileToIPFS.mockResolvedValue({ cid: "ipfs://test" });
+  mockRegisterAction.mockResolvedValue({
+    success: false,
+    confirmation: "pending",
+    hash: "0xProposal",
+  });
+  const { result } = renderHook(() => useCreateActionController(), { wrapper });
+  await act(() => result.current.onSubmit(createActionDefaultValues()));
+  expect(result.current.isPendingRegistration).toBe(true);
+  expect(result.current.isSending).toBe(false);
+  expect(result.current.isDirty).toBe(false);
+  expect(result.current.hasError).toBe(false);
+  expect(mockClearViewState).not.toHaveBeenCalled();
+  expect(mockTrackFailed).not.toHaveBeenCalled();
+  expect(mockTrackSuccess).not.toHaveBeenCalled();
+  await act(() => result.current.onSubmit(createActionDefaultValues()));
+  expect(mockRegisterAction).toHaveBeenCalledTimes(1);
+});
+
+it.each([
+  "confirmed",
+  "unresolved",
+  "reverted",
+])("restores and checks a pending action: %s", async (outcome) => {
+  vi.clearAllMocks();
+  pendingRegistration = { hash: "0xProposal", sponsored: false, confirmation: "pending" };
+  mockReconcileRegistration.mockResolvedValueOnce(
+    outcome === "confirmed"
+      ? { success: true, hash: "0xExecution" }
+      : outcome === "reverted"
+        ? { success: false, error: { message: "Transaction reverted" } }
+        : { success: false, confirmation: "pending" }
+  );
+  const { result } = renderHook(() => useCreateActionController(), { wrapper });
+  expect(result.current.isPendingRegistration).toBe(true);
+  expect(result.current.isSending).toBe(false);
+  expect(result.current.isDirty).toBe(false);
+  expect(result.current.currentStep).toBe(3);
+  await act(() => result.current.checkConfirmation());
+  if (outcome === "confirmed") {
+    expect(result.current.isSent).toBe(true);
+    expect(mockClearViewState).toHaveBeenCalled();
+  } else if (outcome === "unresolved") {
+    expect(result.current.hasError).toBe(false);
+    expect(mockClearViewState).not.toHaveBeenCalled();
+  } else expect(result.current.hasError).toBe(true);
+  expect(mockRegisterAction).not.toHaveBeenCalled();
+  expect(mockUploadFileToIPFS).not.toHaveBeenCalled();
+  pendingRegistration = undefined;
+});
+
+it("preserves a restored draft when the initial account resolves", () => {
+  pendingRegistration = undefined;
+  registrationScope = null;
+  mockRestoreViewState.mockReturnValueOnce({
+    formState: { title: "Restored action", currentStep: 2 },
+  } as never);
+  const view = renderHook(() => useCreateActionController(), { wrapper });
+  expect(view.result.current.form.getValues("title")).toBe("Restored action");
+  registrationScope = "11155111:owner";
+  view.rerender();
+  expect(view.result.current.form.getValues("title")).toBe("Restored action");
+  expect(view.result.current.currentStep).toBe(2);
+  registrationScope = "11155111:another-owner";
+  view.rerender();
+  expect(view.result.current.form.getValues("title")).toBe("");
+  registrationScope = "11155111:owner";
 });

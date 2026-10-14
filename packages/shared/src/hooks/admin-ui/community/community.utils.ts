@@ -1,10 +1,15 @@
+import type { MetaStripItem } from "../../../components/Canvas/MetaStrip";
+import type { ViewAction } from "../../../components/Canvas/viewActions.types";
+import type { YieldAllocation } from "../../../types/gardens-community";
 import {
-  adminRoutes,
-  type AdminCommunityRouteContext,
+  type AssetAmount,
+  formatAssetAmounts,
   formatTokenAmount,
-  type MetaStripItem,
-  type ViewAction,
-} from "@green-goods/shared";
+} from "../../../utils/blockchain/vaults";
+import {
+  type AdminCommunityRouteContext,
+  adminRoutes,
+} from "../../../utils/navigation/admin-routes";
 import { RiHandCoinLine, RiMoneyDollarCircleLine, RiUserAddLine } from "@remixicon/react";
 
 /**
@@ -12,11 +17,14 @@ import { RiHandCoinLine, RiMoneyDollarCircleLine, RiUserAddLine } from "@remixic
  */
 export interface CommunityHeaderStatsInput {
   hasSelectedGarden: boolean;
-  vaultNetDeposited: bigint;
+  /** Net deposits per asset; amounts of different assets never add up. */
+  endowmentByAsset: readonly AssetAmount[];
   distributedAmounts: readonly bigint[] | null;
+  /** The app's locale, so amounts read like the rest of the page. */
+  locale?: string;
   formatMessage: (
     descriptor: { id: string; defaultMessage?: string },
-    values?: Record<string, unknown>
+    values?: Record<string, string | number | boolean | Date | null | undefined>
   ) => string;
 }
 
@@ -36,8 +44,9 @@ export interface CommunityHeaderStatsInput {
  */
 export function buildCommunityHeaderStats({
   hasSelectedGarden,
-  vaultNetDeposited,
+  endowmentByAsset,
   distributedAmounts,
+  locale,
   formatMessage,
 }: CommunityHeaderStatsInput): MetaStripItem[] {
   if (!hasSelectedGarden) return [];
@@ -45,7 +54,7 @@ export function buildCommunityHeaderStats({
   const items: MetaStripItem[] = [
     {
       id: "treasury",
-      value: formatTokenAmount(vaultNetDeposited),
+      value: formatAssetAmounts(endowmentByAsset, locale),
       label: formatMessage({
         id: "cockpit.community.stats.treasury",
         defaultMessage: "endowment",
@@ -65,6 +74,38 @@ export function buildCommunityHeaderStats({
   }
 
   return items;
+}
+
+type AllocationSplitInput = Pick<
+  YieldAllocation,
+  "cookieJarAmount" | "fractionsAmount" | "juiceboxAmount"
+>;
+
+export interface AllocationSplits {
+  cookieJar: number;
+  fractions: number;
+  endowment: number;
+}
+
+/** Derive the displayed split from the newest allocation event. */
+export function selectAllocationSplits(
+  allocations: readonly AllocationSplitInput[]
+): AllocationSplits | null {
+  const latestAllocation = allocations[0];
+  if (!latestAllocation) return null;
+
+  const total =
+    latestAllocation.cookieJarAmount +
+    latestAllocation.fractionsAmount +
+    latestAllocation.juiceboxAmount;
+  if (total <= 0n) return null;
+
+  const toPercent = (amount: bigint) => Number((amount * 1000n) / total) / 10;
+  return {
+    cookieJar: toPercent(latestAllocation.cookieJarAmount),
+    fractions: toPercent(latestAllocation.fractionsAmount),
+    endowment: toPercent(latestAllocation.juiceboxAmount),
+  };
 }
 
 export type CommunityWorkspaceMode = "members" | "coordination" | "endowment" | "payouts";
@@ -91,7 +132,7 @@ export function communitySectionForMode(mode: CommunityWorkspaceMode) {
 /**
  * Community view-level actions. The set is stable across Community tabs so
  * desktop button positions and the mobile FAB speed dial do not shift while
- * operators move between Members, Coordination, Endowment, and Payouts.
+ * stewards move between Members, Coordination, Endowment, and Payouts.
  */
 export function buildCommunityViewActions(
   _mode: CommunityWorkspaceMode,
@@ -99,7 +140,9 @@ export function buildCommunityViewActions(
   isOwner: boolean,
   hasSelectedGarden: boolean,
   navigate: (path: string) => void,
-  routeContext?: AdminCommunityRouteContext
+  routeContext?: AdminCommunityRouteContext,
+  /** False once the garden is known to have no payout jar to fund. */
+  hasPayoutJar = true
 ): ViewAction[] {
   const gardenAddress = routeContext?.gardenAddress;
   // "View public" lives once, on the Garden workspace — not duplicated here.
@@ -133,6 +176,14 @@ export function buildCommunityViewActions(
         navigate(adminRoutes.communityPayouts({ gardenId: gardenAddress, item: "fund-jar" })),
       variant: "secondary",
       visible: hasSelectedGarden && canManage,
+      // Stays in place, disabled and saying why, rather than doing nothing (D10).
+      disabled: !hasPayoutJar,
+      ...(hasPayoutJar
+        ? {}
+        : {
+            disabledReasonId: "cockpit.community.action.fundPayoutJarNoJar",
+            disabledReason: "This garden has no payout jar yet.",
+          }),
     },
   ];
 

@@ -72,7 +72,7 @@ export function WeightAllocator({
       data-over-budget={isOverBudget ? "true" : "false"}
       className={cn(
         "flex flex-col gap-3 rounded-[var(--r-lg,16px)] p-4",
-        "bg-[var(--surface-raised,rgb(var(--bg-white-0)))] shadow-[var(--e2)]",
+        "bg-[var(--surface-raised,rgb(var(--bg-white-0)))] shadow-[var(--m3-elevation-1)]",
         disabled && "opacity-60",
         className
       )}

@@ -1,3 +1,6 @@
+import { withoutQuotedRequest } from "../../utils/errors/extract-message";
+import { redactPrivatePaths } from "./private-paths";
+
 const REDACTED = "[REDACTED]";
 const REDACTED_EMAIL = "[REDACTED_EMAIL]";
 const REDACTED_TOKEN = "[REDACTED_TOKEN]";
@@ -14,7 +17,7 @@ const MAX_ARRAY_LENGTH = 50;
 const MAX_DEPTH = 8;
 
 const SENSITIVE_KEY_PATTERN =
-  /(authorization|cookie|token|secret|password|private|session|jwt|api[_-]?key|platform[_-]?id|sender|credential|wallet|address|email|distinct|replay|user[_-]?id|chat[_-]?id|thread[_-]?id)/i;
+  /(authorization|cookie|token|secret|password|private|session|jwt|api[_-]?key|platform[_-]?id|sender|credential|wallet|address|email|distinct|replay|user[_-]?(?:id|name)|chat[_-]?id|thread[_-]?id)/i;
 
 export type RedactedSentryValue =
   | null
@@ -25,7 +28,7 @@ export type RedactedSentryValue =
   | { [key: string]: RedactedSentryValue };
 
 export function redactSentryString(value: string): string {
-  return value
+  return redactPrivatePaths(withoutQuotedRequest(value))
     .replace(JWT_PATTERN, REDACTED_TOKEN)
     .replace(EMAIL_PATTERN, REDACTED_EMAIL)
     .replace(WALLET_PATTERN, REDACTED_WALLET)

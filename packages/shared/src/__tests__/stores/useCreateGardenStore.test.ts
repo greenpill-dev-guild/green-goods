@@ -1,28 +1,31 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { getAddress } from "viem";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { resetCreateGardenStore, useCreateGardenStore } from "../../stores/useCreateGardenStore";
+import { Domain } from "../../types/domain";
 
 const MEMBER = "0x1234567890123456789012345678901234567890";
+const GARDENER = "0x1234567890123456789012345678901234567890";
+const OPERATOR = "0xabcdef0123456789abcdef0123456789abcdef01";
 
 describe("useCreateGardenStore", () => {
   beforeEach(() => {
     resetCreateGardenStore();
   });
 
-  it("allows planning the same address as both operator and gardener", () => {
+  it("allows planning the same address as both steward and gardener", () => {
     const store = useCreateGardenStore.getState();
     const normalized = getAddress(MEMBER);
 
-    expect(store.addOperator(MEMBER)).toEqual({ success: true });
+    expect(store.addSteward(MEMBER)).toEqual({ success: true });
     expect(store.addGardener(MEMBER)).toEqual({ success: true });
 
     const { form } = useCreateGardenStore.getState();
-    expect(form.operators).toContain(normalized);
+    expect(form.stewards).toContain(normalized);
     expect(form.gardeners).toContain(normalized);
   });
 
@@ -49,4 +52,117 @@ describe("useCreateGardenStore", () => {
     // Verify the form itself has an empty domains array
     expect(useCreateGardenStore.getState().form.domains).toEqual([]);
   });
+});
+
+describe("stores/useCreateGardenStore", () => {
+  beforeEach(() => {
+    resetCreateGardenStore();
+  });
+
+  it("defaults to no domains selected", () => {
+    const { form } = useCreateGardenStore.getState();
+    expect(form.domains).toEqual([]);
+  });
+
+  it("builds garden params with computed domainMask and role arrays", () => {
+    const store = useCreateGardenStore.getState();
+    store.setField("name", "Test Garden");
+    store.setField("slug", "test-garden");
+    store.setField("description", "A thriving test garden");
+    store.setField("location", "Test City");
+    store.setField("domains", [Domain.SOLAR, Domain.WASTE]);
+    store.addGardener(GARDENER);
+    store.addSteward(OPERATOR);
+
+    const params = useCreateGardenStore.getState().getParams();
+    expect(params).not.toBeNull();
+    expect(params?.domainMask).toBe((1 << Domain.SOLAR) | (1 << Domain.WASTE));
+    expect(params?.gardeners).toEqual([GARDENER]);
+    expect(params?.stewards).toEqual([getAddress(OPERATOR)]);
+  });
+
+  it("treats details step as invalid when no domains are selected", () => {
+    const store = useCreateGardenStore.getState();
+    store.setField("name", "Test Garden");
+    store.setField("slug", "test-garden");
+    store.setField("description", "A thriving test garden");
+    store.setField("location", "Test City");
+    store.setField("domains", []);
+
+    expect(useCreateGardenStore.getState().isStepValid("details")).toBe(false);
+  });
+});
+
+it("retains an accepted submission across draft reset and session rehydration", async () => {
+  resetCreateGardenStore();
+  const pendingSubmission = {
+    accountAddress: MEMBER as `0x${string}`,
+    chainId: 11155111,
+    gardenName: "Pending garden",
+    result: {
+      hash: "0xSafeProposalIdentifier" as const,
+      sponsored: false,
+      confirmation: "pending" as const,
+    },
+  };
+  useCreateGardenStore.getState().recordPendingSubmission(pendingSubmission);
+  useCreateGardenStore.getState().reset();
+  expect(
+    useCreateGardenStore
+      .getState()
+      .getPendingSubmission(pendingSubmission.accountAddress, pendingSubmission.chainId)
+  ).toEqual(pendingSubmission);
+  const saved = sessionStorage.getItem("green-goods:create-garden")!;
+  useCreateGardenStore
+    .getState()
+    .clearPendingSubmission(pendingSubmission.accountAddress, pendingSubmission.chainId);
+  sessionStorage.setItem("green-goods:create-garden", saved);
+  await useCreateGardenStore.persist.rehydrate();
+  expect(
+    useCreateGardenStore
+      .getState()
+      .getPendingSubmission(pendingSubmission.accountAddress, pendingSubmission.chainId)
+  ).toEqual(pendingSubmission);
+  resetCreateGardenStore();
+  expect(
+    useCreateGardenStore
+      .getState()
+      .getPendingSubmission(pendingSubmission.accountAddress, pendingSubmission.chainId)
+  ).toBeUndefined();
+});
+
+it("partitions accepted garden submissions by both account and chain", () => {
+  resetCreateGardenStore();
+  const pending = {
+    accountAddress: MEMBER as `0x${string}`,
+    chainId: 11155111,
+    gardenName: "First",
+    result: { hash: "0xProposal" as const, sponsored: false, confirmation: "pending" as const },
+  };
+  const store = useCreateGardenStore.getState();
+  store.recordPendingSubmission(pending);
+  store.recordPendingSubmission({ ...pending, accountAddress: OPERATOR as `0x${string}` });
+  store.recordPendingSubmission({ ...pending, chainId: 42161 });
+  store.clearPendingSubmission(MEMBER, 11155111);
+  expect(store.getPendingSubmission(MEMBER, 11155111)).toBeUndefined();
+  expect(store.getPendingSubmission(MEMBER, 42161)).toBeDefined();
+  expect(store.getPendingSubmission(OPERATOR, 11155111)).toBeDefined();
+});
+it("migrates the earlier singleton proposal into its original identity scope", async () => {
+  resetCreateGardenStore();
+  const pendingSubmission = {
+    accountAddress: MEMBER,
+    chainId: 11155111,
+    gardenName: "First",
+    result: { hash: "0xProposal", sponsored: false, confirmation: "pending" },
+  };
+  sessionStorage.setItem(
+    "green-goods:create-garden",
+    JSON.stringify({ state: { pendingSubmission }, version: 0 })
+  );
+  await useCreateGardenStore.persist.rehydrate();
+  expect(useCreateGardenStore.getState().getPendingSubmission(MEMBER, 11155111)).toEqual(
+    pendingSubmission
+  );
+  expect(useCreateGardenStore.getState().getPendingSubmission(OPERATOR, 11155111)).toBeUndefined();
 });

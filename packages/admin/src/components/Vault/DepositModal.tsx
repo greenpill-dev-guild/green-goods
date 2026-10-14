@@ -1,29 +1,27 @@
+import { TxInlineFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
+import { AssetSelector } from "@green-goods/shared/components/Vault/AssetSelector";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useDebouncedValue } from "@green-goods/shared/hooks/utils/useDebouncedValue";
+import { useTxErrorMessages } from "@green-goods/shared/hooks/utils/useTxErrorMessages";
+import { useDepositForm } from "@green-goods/shared/hooks/vault/useDepositForm";
+import { useVaultDeposit } from "@green-goods/shared/hooks/vault/useVaultDeposit";
+import { useVaultPreview } from "@green-goods/shared/hooks/vault/useVaultPreview";
+import type { Address } from "@green-goods/shared/types/domain";
+import type { GardenVault } from "@green-goods/shared/types/vaults";
 import {
-  type Address,
-  AssetSelector,
-  Button,
-  FormField,
   formatTokenAmount,
-  type GardenVault,
   getDepositLimitLabel,
   getVaultAssetDecimals,
   getVaultAssetSymbol,
   hasVaultAssetDecimals,
-  TextInput,
-  TxInlineFeedback,
-  useDebouncedValue,
-  useDepositForm,
-  useTxErrorMessages,
-  useUser,
-  useVaultDeposit,
-  useVaultPreview,
-} from "@green-goods/shared";
+} from "@green-goods/shared/utils/blockchain/vaults";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { encodeFunctionData, formatUnits } from "viem";
 import { useBalance, useEstimateGas, useGasPrice } from "wagmi";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminDialog, type AdminDialogProps } from "@/components/AdminDialog";
+import { AdminTextField } from "@/components/AdminTextField";
 import { ConnectButton } from "@/components/ConnectButton";
 
 const VAULT_DEPOSIT_ABI = [
@@ -214,14 +212,14 @@ export function DepositModal({
     >
       {!primaryAddress ? (
         <div className="space-y-4 py-6 text-center">
-          <p className="text-sm text-text-sub">
+          <p className="body-sm text-text-sub">
             {formatMessage({ id: "app.treasury.connectToDeposit" })}
           </p>
           <ConnectButton />
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="rounded-lg border border-information-light bg-information-lighter/50 p-3 text-xs text-text-sub">
+          <div className="rounded-lg border border-information-light bg-information-lighter/50 p-3 body-xs text-text-sub">
             <p>
               {formatMessage({
                 id: "app.treasury.deposit.guidance",
@@ -247,36 +245,32 @@ export function DepositModal({
             ariaLabel={formatMessage({ id: "app.treasury.asset" })}
           />
 
-          <FormField
-            label={formatMessage({ id: "app.treasury.depositAmount" })}
-            htmlFor="deposit-amount"
-            error={amountError ? formatMessage({ id: amountError }) : undefined}
-            hint={`${formatMessage({ id: "app.treasury.walletBalance" })}: ${
-              balance
-                ? `${formatTokenAmount(balance.value, balance.decimals)} ${balance.symbol}`
-                : "--"
-            }`}
-          >
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <TextInput
-                surface="admin"
+          <div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+              <AdminTextField
                 id="deposit-amount"
-                type="text"
-                inputMode="decimal"
-                {...amountField}
+                className="min-w-0 flex-1"
+                label={formatMessage({ id: "app.treasury.depositAmount" })}
+                required
+                ref={amountField.ref}
+                name={amountField.name}
+                onBlur={amountField.onBlur}
                 value={amount}
                 onChange={(event) => amountField.onChange(event)}
                 placeholder="0.0"
                 disabled={!decimalsReady || depositMutation.isPending}
-                aria-required="true"
-                aria-invalid={Boolean(amountError)}
-                invalid={Boolean(amountError)}
-                className="min-w-0 flex-1"
+                error={amountError ? formatMessage({ id: amountError }) : undefined}
+                helperText={`${formatMessage({ id: "app.treasury.walletBalance" })}: ${
+                  balance
+                    ? `${formatTokenAmount(balance.value, balance.decimals)} ${balance.symbol}`
+                    : "--"
+                }`}
+                inputProps={{ inputMode: "decimal" }}
               />
-              <Button
-                variant="secondary"
+              <AdminButton
+                variant="outlined"
                 size="sm"
-                className="w-full sm:w-auto"
+                className="w-full sm:mt-2 sm:w-auto"
                 onClick={() => {
                   if (!balance) return;
                   form.setValue("amount", formatUnits(balance.value, balance.decimals), {
@@ -287,26 +281,26 @@ export function DepositModal({
                 disabled={!decimalsReady || depositMutation.isPending}
               >
                 {formatMessage({ id: "app.treasury.max" })}
-              </Button>
+              </AdminButton>
             </div>
             {!decimalsReady && selectedVault && (
-              <p className="text-xs text-warning-base" role="alert">
+              <p className="mt-1 body-sm text-warning-dark" role="alert">
                 {formatMessage({
                   id: "app.treasury.decimalsUnavailable",
                   defaultMessage: "Token metadata is still loading. Try again in a moment.",
                 })}
               </p>
             )}
-          </FormField>
+          </div>
 
-          <p className="text-xs text-text-soft">
+          <p className="body-xs text-text-soft">
             {formatMessage({
               id: "app.treasury.deposit.minimumHint",
               defaultMessage: "Minimum deposit: any amount. Deposits can be withdrawn at any time.",
             })}
           </p>
 
-          <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 text-sm text-text-sub">
+          <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 body-sm text-text-sub">
             <p>
               {formatMessage({ id: "app.treasury.estimatedShares" })}:{" "}
               <span className="font-medium text-text-strong">
@@ -330,7 +324,7 @@ export function DepositModal({
           </div>
 
           {healthCheck && selectedVault && (
-            <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 text-sm text-text-sub">
+            <div className="rounded-md border border-stroke-soft bg-bg-weak p-3 body-sm text-text-sub">
               <p>
                 {formatMessage({ id: "app.treasury.totalVaultAssets" })}:{" "}
                 <span className="font-medium text-text-strong">
@@ -347,7 +341,7 @@ export function DepositModal({
           )}
 
           {!vaultAcceptingDeposits && (
-            <p className="text-xs text-error-dark" role="alert">
+            <p className="body-xs text-error-dark" role="alert">
               {formatMessage({ id: "app.treasury.vaultNotAcceptingDeposits" })}
             </p>
           )}

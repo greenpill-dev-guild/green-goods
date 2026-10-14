@@ -1,16 +1,16 @@
 /**
- * ImageWithFallback Gateway Race Tests
+ * ImageWithFallback gateway tests
  *
- * Verifies that IPFS images race all configured gateways in parallel,
+ * IPFS images request one gateway at a time and move to the next only on failure,
  * non-IPFS images load directly, and fallback states work correctly.
  */
 
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { onlineManager } from "@tanstack/react-query";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createElement } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-// Mock the shared gateway list to make tests predictable
-vi.mock("../../modules/data/ipfs", () => ({
+vi.mock("../../modules/data/ipfs/resolve", () => ({
   getIPFSFallbackGateways: () => [
     "https://gateway-a.link",
     "https://gateway-b.link",
@@ -20,77 +20,45 @@ vi.mock("../../modules/data/ipfs", () => ({
 
 import { ImageWithFallback } from "../../components/Display/ImageWithFallback";
 
-/**
- * Mock Image class that simulates successful loads.
- * Setting src triggers onload asynchronously (next tick).
- */
-class SucceedingImage {
-  onload: (() => void) | null = null;
-  onerror: (() => void) | null = null;
-  private _src = "";
-
-  get src() {
-    return this._src;
-  }
-  set src(url: string) {
-    this._src = url;
-    if (!url) return;
-    setTimeout(() => this.onload?.(), 0);
-  }
-}
-
-/**
- * Mock Image class that simulates failed loads.
- * Setting src triggers onerror asynchronously (next tick).
- */
-class FailingImage {
-  onload: (() => void) | null = null;
-  onerror: (() => void) | null = null;
-  private _src = "";
-
-  get src() {
-    return this._src;
-  }
-  set src(url: string) {
-    this._src = url;
-    if (!url) return;
-    setTimeout(() => this.onerror?.(), 0);
-  }
-}
-
-describe("ImageWithFallback — parallel gateway race", () => {
+describe("ImageWithFallback", () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    onlineManager.setOnline(true);
     cleanup();
   });
 
-  describe("IPFS URLs (parallel race)", () => {
-    beforeEach(() => {
-      vi.stubGlobal("Image", SucceedingImage);
-    });
-
-    it("races gateways and renders winning URL for IPFS src", async () => {
+  describe("IPFS URLs (one gateway at a time)", () => {
+    it("requests only the configured primary gateway first", () => {
       render(
         createElement(ImageWithFallback, {
-          src: "https://gateway-a.link/ipfs/QmTest123",
+          src: "https://gateway-c.link/ipfs/QmPrimaryFirst",
           alt: "test",
         })
       );
 
-      // Wait for the parallel race to resolve and img to appear
-      await waitFor(() => {
-        expect(screen.getByAltText("test")).toBeInTheDocument();
-      });
-
-      const img = screen.getByAltText("test");
-      expect(img.getAttribute("src")).toMatch(/\/ipfs\/QmTest123/);
+      expect(screen.getAllByRole("img", { hidden: true })).toHaveLength(1);
+      expect(screen.getByAltText("test").getAttribute("src")).toBe(
+        "https://gateway-a.link/ipfs/QmPrimaryFirst"
+      );
     });
 
-    it("shows fallback when all gateways fail", async () => {
-      vi.stubGlobal("Image", FailingImage);
-      const onErrorCallback = vi.fn();
+    it("moves to the next gateway when the current one fails", () => {
+      render(
+        createElement(ImageWithFallback, {
+          src: "https://gateway-a.link/ipfs/QmNextGateway",
+          alt: "next",
+        })
+      );
 
-      // Use a unique CID to avoid the module-level resolvedUrlCache
+      fireEvent.error(screen.getByAltText("next"));
+
+      expect(screen.getByAltText("next").getAttribute("src")).toBe(
+        "https://gateway-b.link/ipfs/QmNextGateway"
+      );
+    });
+
+    it("shows fallback after every gateway fails", () => {
+      const onErrorCallback = vi.fn();
       render(
         createElement(ImageWithFallback, {
           src: "https://gateway-a.link/ipfs/QmFailAllGateways999",
@@ -99,18 +67,16 @@ describe("ImageWithFallback — parallel gateway race", () => {
         })
       );
 
-      // Wait for all gateways to fail and fallback to appear
-      await waitFor(() => {
-        expect(screen.getByLabelText("test image")).toBeInTheDocument();
-      });
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        fireEvent.error(screen.getByAltText("test image"));
+      }
 
       expect(screen.queryByAltText("test image")).not.toBeInTheDocument();
+      expect(screen.getByLabelText("test image")).toBeInTheDocument();
       expect(onErrorCallback).toHaveBeenCalledOnce();
     });
 
-    it("renders backgroundFallback when all gateways fail", async () => {
-      vi.stubGlobal("Image", FailingImage);
-
+    it("renders backgroundFallback when all gateways fail", () => {
       render(
         createElement(ImageWithFallback, {
           src: "https://gateway-a.link/ipfs/QmFailed",
@@ -119,10 +85,11 @@ describe("ImageWithFallback — parallel gateway race", () => {
         })
       );
 
-      await waitFor(() => {
-        // backgroundFallback replaces the default icon fallback
-        expect(screen.getByTestId("bg-fallback")).toBeInTheDocument();
-      });
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        fireEvent.error(screen.getByAltText("with-bg"));
+      }
+
+      expect(screen.getByTestId("bg-fallback")).toBeInTheDocument();
     });
 
     it("hides backgroundFallback once image loads successfully", async () => {
@@ -134,42 +101,27 @@ describe("ImageWithFallback — parallel gateway race", () => {
         })
       );
 
-      // Fallback visible during loading
-      await waitFor(() => {
-        expect(screen.getByTestId("bg-fallback")).toBeInTheDocument();
-      });
-
-      // After gateway race resolves, img appears — fire its onload
-      await waitFor(() => {
-        expect(screen.getByAltText("loaded-img")).toBeInTheDocument();
-      });
+      expect(screen.getByTestId("bg-fallback")).toBeInTheDocument();
       fireEvent.load(screen.getByAltText("loaded-img"));
 
-      // Fallback should now be removed from the DOM
       await waitFor(() => {
         expect(screen.queryByTestId("bg-fallback")).not.toBeInTheDocument();
       });
     });
 
-    it("does not replay image reveal on cached IPFS mounts", async () => {
+    it("reopens from the gateway that worked without replaying the reveal", async () => {
       const cid = "QmCachedNoReveal789";
-
       const { unmount } = render(
         createElement(ImageWithFallback, {
           src: `https://gateway-a.link/ipfs/${cid}`,
           alt: "cached-img",
         })
       );
-
-      await waitFor(() => {
-        expect(screen.getByAltText("cached-img")).toBeInTheDocument();
-      });
+      fireEvent.error(screen.getByAltText("cached-img"));
       fireEvent.load(screen.getByAltText("cached-img"));
-
       await waitFor(() => {
         expect(screen.getByAltText("cached-img")).toHaveClass("image-reveal");
       });
-
       unmount();
 
       render(
@@ -180,8 +132,45 @@ describe("ImageWithFallback — parallel gateway race", () => {
       );
 
       const cachedImg = screen.getByAltText("cached-img");
+      expect(cachedImg.getAttribute("src")).toBe(`https://gateway-b.link/ipfs/${cid}`);
       expect(cachedImg).not.toHaveClass("opacity-0");
       expect(cachedImg).not.toHaveClass("image-reveal");
+    });
+
+    it("tries again when the connection returns after an offline failure", () => {
+      act(() => onlineManager.setOnline(false));
+      render(
+        createElement(ImageWithFallback, {
+          src: "https://gateway-a.link/ipfs/QmOfflineRetry",
+          alt: "offline",
+        })
+      );
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        fireEvent.error(screen.getByAltText("offline"));
+      }
+      expect(screen.queryByAltText("offline")).not.toBeInTheDocument();
+
+      act(() => onlineManager.setOnline(true));
+
+      expect(screen.getByAltText("offline").getAttribute("src")).toBe(
+        "https://gateway-a.link/ipfs/QmOfflineRetry"
+      );
+    });
+
+    it("does not retry a failure that happened while online", () => {
+      render(
+        createElement(ImageWithFallback, {
+          src: "https://gateway-a.link/ipfs/QmMissingOnline",
+          alt: "missing",
+        })
+      );
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        fireEvent.error(screen.getByAltText("missing"));
+      }
+      act(() => onlineManager.setOnline(false));
+      act(() => onlineManager.setOnline(true));
+
+      expect(screen.queryByAltText("missing")).not.toBeInTheDocument();
     });
   });
 

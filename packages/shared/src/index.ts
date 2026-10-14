@@ -1,9 +1,8 @@
-// Main entry point for @green-goods/shared
-// EXPLICIT EXPORTS for tree-shaking - organized by category
-
-// ============================================================================
-// COMPONENTS
-// ============================================================================
+export type * from "./ontology/types";
+export * from "./ontology/query";
+export * from "./hooks/client-ui";
+export * from "./hooks/garden/useKarmaIntegration";
+// COMPONENTS =================================================================
 export type {
   ActionBannerFallbackProps,
   AddressDisplayProps,
@@ -102,7 +101,6 @@ export {
   Badge,
   Button,
   badgeVariants,
-  buttonVariants,
   Card,
   CHOREOGRAPHY_STAGGER_MS,
   ConfidenceSelector,
@@ -177,7 +175,6 @@ export {
   StepIndicator,
   Surface,
   Switch,
-  SyncStatusBar,
   surfaceCardVariants,
   surfaceVariants,
   Textarea,
@@ -187,7 +184,6 @@ export {
   TranslationBadge,
   TxInlineFeedback,
   toastService,
-  updateToasts,
   useCanvasMobileChromeHidden,
   useCanvasResponsiveFab,
   useFabConfig,
@@ -206,7 +202,6 @@ export {
   WorkbenchRow,
   WorkCard as WorkCardComponent,
 } from "./components/index";
-
 // ============================================================================
 // CONFIG
 // ============================================================================
@@ -220,7 +215,7 @@ export {
   buildSendableTokens,
   classifyPasskeyCeremonyContext,
   createPublicClientForChain,
-  createQueryPersister,
+  createQueryPersistence,
   createShouldDehydrateQuery,
   DEFAULT_CHAIN_ID,
   DOMAIN_CONFIG,
@@ -252,34 +247,22 @@ export {
 // ============================================================================
 // HOOKS
 // ============================================================================
-export * from "./hooks/admin-ui/actions/actionDrafts";
-export * from "./hooks/admin-ui/actions/actions.utils";
-export * from "./hooks/admin-ui/actions/actions.workspaceModel";
-export * from "./hooks/admin-ui/actions/createAction.utils";
-export * from "./hooks/admin-ui/actions/useActionsController";
-export * from "./hooks/admin-ui/actions/useCreateActionController";
+export * from "./hooks/admin-ui/actions";
 export * from "./hooks/admin-ui/community/community.utils";
 export * from "./hooks/admin-ui/community/useCommunityWorkspaceController";
-export * from "./hooks/admin-ui/garden/garden.utils";
-export * from "./hooks/admin-ui/garden/useCreateGardenController";
-export * from "./hooks/admin-ui/garden/useGardenWorkspaceController";
-export * from "./hooks/admin-ui/garden/useManageMembersController";
-export * from "./hooks/admin-ui/garden/useResolvedWorkDetail";
+export * from "./hooks/admin-ui/garden";
+export * from "./modules/wallet/barcode-scanner";
+export * from "./modules/wallet/send-flow";
+export * from "./modules/work/submission-flow";
 export * from "./hooks/admin-ui/hub/hub.filters";
 export * from "./hooks/admin-ui/hub/hub.utils";
 export * from "./hooks/admin-ui/hub/hub.workbenchModel";
 export * from "./hooks/admin-ui/hub/useCreateAssessmentController";
 export * from "./hooks/admin-ui/hub/useCreateHypercertController";
 export * from "./hooks/admin-ui/hub/useHubWorkbenchController";
-export * from "./hooks/admin-ui/hypercerts/types";
-export * from "./hooks/admin-ui/hypercerts/useWizardData";
-export * from "./hooks/admin-ui/hypercerts/wizardSteps";
-export * from "./hooks/admin-ui/layout/accountSheet.events";
-export * from "./hooks/admin-ui/layout/commandPalette.results";
-export * from "./hooks/admin-ui/layout/useAdminRightSheetDescriptor";
-export * from "./hooks/admin-ui/layout/useCommandPaletteController";
-export * from "./hooks/admin-ui/layout/useCommandPaletteData";
-export * from "./hooks/admin-ui/layout/useCommandPaletteShortcuts";
+export * from "./hooks/admin-ui/pool";
+export * from "./hooks/admin-ui/hypercerts";
+export * from "./hooks/admin-ui/layout";
 export * from "./hooks/admin-ui/navigation/sheetRegistry";
 export * from "./hooks/admin-ui/navigation/workspaceNavigation";
 export * from "./hooks/admin-ui/navigation/workspaceViews";
@@ -292,7 +275,6 @@ export type {
   AdminGardenWorkspaceSelection,
   // Assessment hook types
   AssessmentDraftRecord,
-  AssessmentFormData,
   AssessmentStepId,
   // Auth context types
   AuthActionsValue,
@@ -360,7 +342,6 @@ export type {
   TxErrorMessages,
   UseAnalyticsIdentityOptions,
   UseAssessmentDraftResult,
-  UseAssessmentFormReturn,
   UseAttestationsResult,
   UseAudioRecordingOptions,
   UseAudioRecordingReturn,
@@ -401,7 +382,6 @@ export {
   type ArrivalKind,
   type ArrivalState,
   addRecentRecipient,
-  assessmentFormSchema,
   assessmentStepFields,
   buildPublicEndowmentPortfolio,
   CarouselContext,
@@ -410,8 +390,8 @@ export {
   createActionSchema,
   createAssessmentFormSchema,
   createDefaultAssessmentForm,
-  createDefaultAssessmentFormData,
   createDefaultGardenForm,
+  creditInvalidationKeys,
   // Garden hooks
   createGardenSchema,
   // Query constants
@@ -425,6 +405,7 @@ export {
   gardenStepFields,
   INDEXER_LAG_SCHEDULE_MS,
   isGardenMember,
+  type NeedsReviewState,
   type OctantVaultHarvestableYield,
   type OctantVaultHarvestableYieldStatus,
   type OctantVaultHarvestableYieldUnavailableReason,
@@ -467,7 +448,6 @@ export {
   useArrivalState,
   // Assessment hooks
   useAssessmentDraft,
-  useAssessmentForm,
   // Utility hooks (documented API patterns — keep even with low external usage)
   useAsyncEffect,
   useAsyncSetup,
@@ -479,7 +459,6 @@ export {
   useAutoJoinRootGarden,
   useBatchConvertToAssets,
   useBatchListForYield,
-  useBatchWorkSync,
   useBeforeUnloadWhilePending,
   useBrowserNavigation,
   useCampaignCookieJar,
@@ -498,10 +477,7 @@ export {
   useConvictionStrategies,
   useConvictionWeightAllocator,
   useCookieJarDeposit,
-  useCookieJarEmergencyWithdraw,
   useCookieJarFactoryAddress,
-  useCookieJarPause,
-  useCookieJarUnpause,
   useCookieJarUpdateInterval,
   useCookieJarUpdateMaxWithdrawal,
   useCookieJarWithdraw,
@@ -545,6 +521,7 @@ export {
   useFocusTrap,
   useFormWizardStepValidation,
   useFunderLeaderboard,
+  useGardenAccountSigner,
   useGardenAssessments,
   useGardenCommunity,
   // Cookie jar hooks
@@ -597,6 +574,7 @@ export {
   useMyVaultDeposits,
   useMyWorks,
   useNavigateToTop,
+  useNeedsReview,
   useNetworkConfig,
   useOctantVaultHarvestableYield,
   useOctantVaultPositions,
@@ -631,7 +609,6 @@ export {
   useRegisteredHypercerts,
   useRegisterHypercert,
   useReviewerGardenIds,
-  useReviewerWorks,
   useRole,
   useSafeMutation,
   useScrollToTop,
@@ -929,7 +906,6 @@ export {
   useApp,
   useAppKit,
   useJobQueue,
-  useQueueFlush,
   // Compatibility hook - prefer useWorkSelection/useWorkFormContext in new code.
   useWork,
   useWorkFormContext,
@@ -937,13 +913,12 @@ export {
   WorkProvider,
 } from "./providers/index";
 export type {
+  PublicImpactEvidenceKind,
   PublicImpactEvidenceRecord,
   PublicImpactSlice,
 } from "./public-contracts";
 export { derivePublicGardenSlug, PUBLIC_IMPACT_RECORD_FETCH_CAP } from "./public-contracts";
-// ============================================================================
 // STORES
-// ============================================================================
 export {
   type AdminState,
   ALL_GARDENS_KEY,
@@ -1014,9 +989,9 @@ export type {
   CampaignCookieJar,
   CampaignCookieJarCampaign,
   CampaignCookieJarMetadata,
-  CampaignCookieJarOperatorAggregation,
-  CampaignCookieJarOperatorPolicy,
-  CampaignCookieJarOperatorSource,
+  CampaignCookieJarStewardAggregation,
+  CampaignCookieJarStewardPolicy,
+  CampaignCookieJarStewardSource,
   CapitalType,
   // Blockchain types
   ChainId,
@@ -1026,9 +1001,7 @@ export type {
   ConvictionWeight,
   CookieJar,
   CookieJarAccessType,
-  CookieJarAdminParams,
   CookieJarDepositParams,
-  CookieJarEmergencyWithdrawParams,
   CookieJarUpdateIntervalParams,
   CookieJarUpdateMaxWithdrawalParams,
   CookieJarWithdrawalType,
@@ -1147,6 +1120,7 @@ export type {
   WorkConflict,
   WorkDisplayStatus,
   WorkDraft,
+  GreenWillBadgeView,
   WorkInput,
   WorkJobPayload,
   WorkMetadata,
@@ -1248,7 +1222,7 @@ export {
   adminRoutes,
   aggregateBadges,
   // Work utilities
-  aggregateCampaignCookieJarOperators,
+  aggregateCampaignCookieJarStewards,
   annotateGardenSignalPools,
   assertMarketplaceReady,
   buildActionInstructionsV2,
@@ -1267,9 +1241,6 @@ export {
   classifyTxError,
   clearFormDraft,
   cn,
-  // Pending-review derivation (shared by Work Dashboard + arrival orientation)
-  collectApprovalRecipientsForWorks,
-  collectApprovedWorkUIDs,
   compareAddresses,
   convertJobsToWorks,
   copyToClipboard,
@@ -1297,14 +1268,12 @@ export {
   extractErrorMessage,
   fetchOfflineWorks,
   filterByTimeRange,
-  filterPendingNeedsReview,
   // Action utilities
   findActionByUID,
   formatAddress,
   // ABI exports
   formatApy,
   formatDate,
-  formatDateRange,
   formatDateTime,
   formatEnsNameForDisplay,
   formatErrorForToast,
@@ -1339,7 +1308,6 @@ export {
   getEASExplorerUrl,
   getEthUsdFeedAddress,
   getMarketplaceReadiness,
-  getMedian,
   getNetDeposited,
   getNetworkContracts,
   getOctantVaultRedeemCallShape,
@@ -1359,7 +1327,6 @@ export {
   hasCompleteActionTranslationContent,
   hasDomain,
   hasVaultAssetDecimals,
-  hoursSince,
   imageCompressor,
   initTheme,
   instructionTemplates,

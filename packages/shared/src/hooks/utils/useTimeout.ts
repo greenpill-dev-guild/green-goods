@@ -164,7 +164,7 @@ interface UseProgressiveInvalidationReturn {
  *
  * @example
  * ```tsx
- * import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys";
+ * import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
  *
  * const { start: scheduleFollowUp } = useProgressiveInvalidation(
  *   () => queryClient.invalidateQueries({ queryKey: ["gardens"] }),

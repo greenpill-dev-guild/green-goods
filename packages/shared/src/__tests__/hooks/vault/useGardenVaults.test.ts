@@ -1,12 +1,13 @@
 /**
  * useGardenVaults Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { type QueryClient } from "@tanstack/react-query";
+import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const TEST_CHAIN_ID = 11155111;
 const TEST_GARDEN = "0x2222222222222222222222222222222222222222";
@@ -18,6 +19,10 @@ vi.mock("../../../config/blockchain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
 
+vi.mock("../../../config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
 vi.mock("../../../modules/data/vaults", () => ({
   getGardenVaults: (...args: unknown[]) => mockGetGardenVaults(...args),
   getAllGardenVaults: (...args: unknown[]) => mockGetAllGardenVaults(...args),
@@ -25,20 +30,12 @@ vi.mock("../../../modules/data/vaults", () => ({
 
 import { useGardenVaults } from "../../../hooks/vault/useGardenVaults";
 
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-}
-
 describe("useGardenVaults", () => {
   let queryClient: QueryClient;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
+    queryClient = createTestQueryClient();
   });
 
   it("fetches vaults for a specific garden address", async () => {
@@ -60,8 +57,8 @@ describe("useGardenVaults", () => {
     ];
     mockGetGardenVaults.mockResolvedValue(mockVaults);
 
-    const { result } = renderHook(() => useGardenVaults(TEST_GARDEN), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useGardenVaults(TEST_GARDEN), {
+      queryClient,
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -90,9 +87,12 @@ describe("useGardenVaults", () => {
     ];
     mockGetAllGardenVaults.mockResolvedValue(mockVaults);
 
-    const { result } = renderHook(() => useGardenVaults(undefined, { enabled: true }), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => useGardenVaults(undefined, { enabled: true }),
+      {
+        queryClient,
+      }
+    );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
@@ -104,17 +104,20 @@ describe("useGardenVaults", () => {
   it("returns empty array when query has no data yet", () => {
     mockGetGardenVaults.mockReturnValue(new Promise(() => {})); // never resolves
 
-    const { result } = renderHook(() => useGardenVaults(TEST_GARDEN), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useGardenVaults(TEST_GARDEN), {
+      queryClient,
     });
 
     expect(result.current.vaults).toEqual([]);
   });
 
   it("disables query when enabled is false", () => {
-    const { result } = renderHook(() => useGardenVaults(TEST_GARDEN, { enabled: false }), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => useGardenVaults(TEST_GARDEN, { enabled: false }),
+      {
+        queryClient,
+      }
+    );
 
     expect(mockGetGardenVaults).not.toHaveBeenCalled();
     expect(result.current.vaults).toEqual([]);
@@ -126,8 +129,8 @@ describe("useGardenVaults", () => {
 
     const mixedCaseAddress = "0xABCDef1234567890ABCDef1234567890ABCDef12";
 
-    const { result } = renderHook(() => useGardenVaults(mixedCaseAddress), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useGardenVaults(mixedCaseAddress), {
+      queryClient,
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -138,9 +141,12 @@ describe("useGardenVaults", () => {
   it("respects custom chainId option", async () => {
     mockGetGardenVaults.mockResolvedValue([]);
 
-    const { result } = renderHook(() => useGardenVaults(TEST_GARDEN, { chainId: 42161 }), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => useGardenVaults(TEST_GARDEN, { chainId: 42161 }),
+      {
+        queryClient,
+      }
+    );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
@@ -151,8 +157,8 @@ describe("useGardenVaults", () => {
     const queryError = new Error("Indexer unavailable");
     mockGetGardenVaults.mockRejectedValue(queryError);
 
-    const { result } = renderHook(() => useGardenVaults(TEST_GARDEN), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useGardenVaults(TEST_GARDEN), {
+      queryClient,
     });
 
     await waitFor(() => expect(result.current.isError).toBe(true));

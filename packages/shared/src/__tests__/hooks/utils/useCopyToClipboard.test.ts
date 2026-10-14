@@ -1,6 +1,6 @@
 /**
  * useCopyToClipboard Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests clipboard copy functionality, auto-reset timer,
  * success/failure callbacks, and cleanup.

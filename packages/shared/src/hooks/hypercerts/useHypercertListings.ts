@@ -5,12 +5,13 @@
 import { useQuery } from "@tanstack/react-query";
 import type { Address } from "viem";
 
-import { DEFAULT_CHAIN_ID } from "../../config";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { logger } from "../../modules/app/logger";
 import { getRegisteredOrders } from "../../modules/data/marketplace";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import type { RegisteredOrderView } from "../../types/hypercerts";
-import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
+import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
+import { marketplaceKeys } from "../../config/query-keys/hypercert";
 
 export interface UseHypercertListingsResult {
   listings: RegisteredOrderView[];
@@ -23,7 +24,7 @@ export function useHypercertListings(gardenAddress?: Address): UseHypercertListi
   const chainId = useAdminStore((state: AdminState) => state.selectedChainId) || DEFAULT_CHAIN_ID;
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: queryKeys.marketplace.orders(gardenAddress!, chainId),
+    queryKey: marketplaceKeys.orders(gardenAddress!, chainId),
     queryFn: () => {
       logger.debug("[useHypercertListings] Fetching orders", { gardenAddress, chainId });
       return getRegisteredOrders(gardenAddress!, chainId);

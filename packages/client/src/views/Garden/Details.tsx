@@ -1,7 +1,22 @@
-import { type Action, type WorkFormData, type WorkInput } from "@green-goods/shared";
-import { RiFileFill, RiMapPinLine } from "@remixicon/react";
-import React, { useCallback, useState } from "react";
-import type { Control, Path, UseFormRegister, UseFormSetValue } from "react-hook-form";
+import { Button } from "@green-goods/shared/components/Button";
+import { Chip } from "@green-goods/shared/components/Chip";
+import { Switch } from "@green-goods/shared/components/Form/ControlPrimitives";
+import {
+  normalizeNumberDetail,
+  useWorkLocation,
+  type WorkFormData,
+} from "@green-goods/shared/hooks/work/useWorkForm";
+import type { Action, WorkInput } from "@green-goods/shared/types/domain";
+import { RiAddLine, RiCloseLine, RiFileFill, RiMapPinLine } from "@remixicon/react";
+import React, { useCallback } from "react";
+import {
+  type Control,
+  Controller,
+  type Path,
+  type UseFormRegister,
+  type UseFormSetValue,
+  useFieldArray,
+} from "react-hook-form";
 import { useIntl } from "react-intl";
 import { FormInfo } from "@/components/Cards";
 
@@ -13,7 +28,131 @@ interface WorkDetailsProps {
   register: UseFormRegister<WorkFormData>;
   control: Control<WorkFormData>;
   setValue?: UseFormSetValue<WorkFormData>;
+  /** The promise this work is for, after the heading (O9). */
+  pinned?: React.ReactNode;
 }
+
+interface WorkRepeaterInputProps {
+  input: WorkInput;
+  register: UseFormRegister<WorkFormData>;
+  control: Control<WorkFormData>;
+  addLabel: string;
+  removeLabel: string;
+}
+
+const WorkRepeaterInput: React.FC<WorkRepeaterInputProps> = ({
+  input,
+  register,
+  control,
+  addLabel,
+  removeLabel,
+}) => {
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: input.key as never,
+  });
+  const childInputs = input.repeaterFields ?? [];
+
+  return (
+    <fieldset className="flex flex-col gap-3 rounded-xl border border-stroke-sub-300 p-3">
+      <legend className="px-1 text-sm font-medium text-text-strong-950">
+        {input.title}
+        {input.required && <span className="text-error-base ml-0.5">*</span>}
+      </legend>
+      {fields.map((row, index) => (
+        <div key={row.id} className="flex flex-col gap-3 rounded-lg bg-bg-weak-50 p-3">
+          {childInputs.map((child) => {
+            const fieldName = `${input.key}.${index}.${child.key}` as Path<WorkFormData>;
+            const options = child.type === "band" ? (child.bands ?? child.options) : child.options;
+
+            if (child.type === "select" || child.type === "band") {
+              return (
+                <FormSelect
+                  key={child.key}
+                  name={fieldName}
+                  label={child.unit ? `${child.title} (${child.unit})` : child.title}
+                  placeholder={child.placeholder}
+                  options={options.map((option) => ({
+                    label: child.optionLabels?.[option] ?? child.bandLabels?.[option] ?? option,
+                    value: option,
+                  }))}
+                  control={control}
+                  isMulti={false}
+                  required={child.required}
+                />
+              );
+            }
+
+            if (child.type === "multi-select") {
+              return (
+                <FormSelect
+                  key={child.key}
+                  name={fieldName}
+                  label={child.title}
+                  placeholder={child.placeholder}
+                  options={options.map((option) => ({
+                    label: child.optionLabels?.[option] ?? option,
+                    value: option,
+                  }))}
+                  control={control}
+                  isMulti
+                  required={child.required}
+                />
+              );
+            }
+
+            if (child.type === "textarea") {
+              return (
+                <FormText
+                  key={child.key}
+                  {...register(fieldName)}
+                  id={fieldName}
+                  label={child.title}
+                  placeholder={child.placeholder}
+                  required={child.required}
+                  rows={3}
+                />
+              );
+            }
+
+            return (
+              <FormInput
+                key={child.key}
+                {...register(
+                  fieldName,
+                  child.type === "number" ? { setValueAs: normalizeNumberDetail } : undefined
+                )}
+                id={fieldName}
+                label={child.unit ? `${child.title} (${child.unit})` : child.title}
+                type={child.type === "number" ? "number" : "text"}
+                inputMode={child.type === "number" ? "decimal" : undefined}
+                placeholder={child.placeholder}
+                required={child.required}
+              />
+            );
+          })}
+          <Button
+            type="button"
+            emphasis="secondary"
+            onClick={() => remove(index)}
+            leadingIcon={<RiCloseLine className="h-4 w-4" aria-hidden="true" />}
+            className="self-start"
+          >
+            {removeLabel}
+          </Button>
+        </div>
+      ))}
+      <Button
+        type="button"
+        emphasis="secondary"
+        onClick={() => append({} as never)}
+        leadingIcon={<RiAddLine className="h-4 w-4" aria-hidden="true" />}
+      >
+        {addLabel}
+      </Button>
+    </fieldset>
+  );
+};
 
 export const WorkDetails: React.FC<WorkDetailsProps> = ({
   config,
@@ -21,11 +160,12 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
   control,
   inputs,
   setValue,
+  pinned,
 }) => {
   const intl = useIntl();
-  const [locationEnabled, setLocationEnabled] = useState(false);
-  const [locationStatus, setLocationStatus] = useState<"idle" | "loading" | "success" | "denied">(
-    "idle"
+  const { locationEnabled, locationStatus, handleLocationToggle } = useWorkLocation(
+    control,
+    setValue
   );
 
   const detailsTitle =
@@ -46,60 +186,26 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
       id: "app.garden.details.feedbackPlaceholder",
       defaultMessage: "Provide feedback or any observations",
     });
-
-  const handleLocationToggle = useCallback(() => {
-    if (locationEnabled) {
-      setLocationEnabled(false);
-      setLocationStatus("idle");
-      return;
-    }
-
-    if (!navigator.geolocation) {
-      setLocationStatus("denied");
-      return;
-    }
-
-    setLocationStatus("loading");
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setLocationEnabled(true);
-        setLocationStatus("success");
-        // Store location data in form via setValue if available
-        if (setValue) {
-          setValue("_location" as Path<WorkFormData>, {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-            accuracy: position.coords.accuracy,
-          });
-        }
-      },
-      () => {
-        setLocationStatus("denied");
-        setLocationEnabled(false);
-      },
-      { enableHighAccuracy: false, timeout: 10000 }
-    );
-  }, [locationEnabled, setValue]);
-
-  // Multi-select state tracking (controlled via local state, synced to form)
-  const [multiSelectValues, setMultiSelectValues] = useState<Record<string, string[]>>({});
-
-  const toggleMultiSelectOption = useCallback(
-    (fieldKey: string, option: string) => {
-      setMultiSelectValues((prev) => {
-        const current = prev[fieldKey] || [];
-        const next = current.includes(option)
-          ? current.filter((v) => v !== option)
-          : [...current, option];
-        // Sync to form
-        if (setValue) {
-          setValue(fieldKey as Path<WorkFormData>, next);
-        }
-        return { ...prev, [fieldKey]: next };
-      });
-    },
-    [setValue]
-  );
+  const locationMessages = {
+    idle: intl.formatMessage({
+      id: "app.garden.details.locationHint",
+      defaultMessage:
+        "Share approximate location (about 100 m). It will be published with this work.",
+    }),
+    loading: intl.formatMessage({
+      id: "app.garden.details.locationHint",
+      defaultMessage:
+        "Share approximate location (about 100 m). It will be published with this work.",
+    }),
+    success: intl.formatMessage({
+      id: "app.garden.details.locationCaptured",
+      defaultMessage: "Location captured",
+    }),
+    denied: intl.formatMessage({
+      id: "app.garden.details.locationDenied",
+      defaultMessage: "Location access denied",
+    }),
+  } satisfies Record<typeof locationStatus, string>;
 
   const handleTextareaFocus = useCallback((event: React.FocusEvent<HTMLTextAreaElement>) => {
     const target = event.currentTarget;
@@ -109,12 +215,15 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
   }, []);
 
   return (
-    <div className="flex flex-col gap-4">
-      <FormInfo title={detailsTitle} info={detailsDescription} Icon={RiFileFill} />
+    // Fields sit 8px apart; each one already reserves two lines for its hint or error below.
+    <div className="flex flex-col gap-2">
+      <FormInfo title={detailsTitle} info={detailsDescription} Icon={RiFileFill} className="mb-2" />
+      {pinned}
 
       {/* Time Spent Input - Always shown as a default field */}
       <FormInput
         {...register("timeSpentMinutes")}
+        id="timeSpentMinutes"
         label={intl.formatMessage({
           id: "app.garden.details.timeSpent",
           defaultMessage: "Time Spent (hours)",
@@ -151,21 +260,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
 
         const selectOptions = Array.isArray(options) ? options : [];
         const registerOptions =
-          type === "number"
-            ? {
-                setValueAs: (value: unknown) => {
-                  if (value === "" || value === null || value === undefined) {
-                    return undefined;
-                  }
-                  if (typeof value === "number") return value;
-                  if (typeof value === "string") {
-                    const parsed = Number(value);
-                    return Number.isNaN(parsed) ? undefined : parsed;
-                  }
-                  return undefined;
-                },
-              }
-            : undefined;
+          type === "number" ? { setValueAs: normalizeNumberDetail } : undefined;
 
         // Cast key to Path for dynamic form fields
         const fieldKey = key as Path<WorkFormData>;
@@ -175,6 +270,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
             <FormInput
               key={key}
               {...register(fieldKey, registerOptions)}
+              id={key}
               label={unit ? `${title} (${unit})` : title}
               type="number"
               placeholder={placeholder}
@@ -195,6 +291,8 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
                 value: option,
               }))}
               control={control}
+              isMulti={false}
+              required={required}
             />
           );
         }
@@ -210,7 +308,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
                 placeholder ||
                 intl.formatMessage({
                   id: "app.garden.details.selectRange",
-                  defaultMessage: "Select a range",
+                  defaultMessage: "Select Date Range",
                 })
               }
               options={bandOptions.map((band) => ({
@@ -218,57 +316,68 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
                 value: band,
               }))}
               control={control}
+              isMulti={false}
+              required={required}
             />
           );
         }
         if (type === "multi-select") {
-          // Multi-select rendered as tag chips
-          const selected = multiSelectValues[key] || [];
           return (
-            <div key={key} className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-text-strong-950">
-                {title}
-                {required && <span className="text-error-base ml-0.5">*</span>}
-              </label>
-              <div className="flex flex-wrap gap-1.5">
-                {selectOptions.map((option) => {
-                  const isSelected = selected.includes(option);
-                  const label = optionLabels?.[option] ?? option;
-                  return (
-                    <button
-                      key={option}
-                      type="button"
-                      onClick={() => toggleMultiSelectOption(key, option)}
-                      className={`min-h-11 px-3 py-2.5 rounded-full text-sm font-medium transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] border ${
-                        isSelected
-                          ? "bg-primary-base text-primary-accent-foreground border-primary-base"
-                          : "bg-bg-weak-50 text-text-sub-600 border-stroke-sub-300 hover:bg-bg-soft-200"
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
-              </div>
-              {/* Hidden input for form registration -- setValueAs parses the JSON string back to an array */}
-              <input
-                type="hidden"
-                {...register(fieldKey, {
-                  setValueAs: (v: unknown) => {
-                    if (Array.isArray(v)) return v;
-                    if (typeof v === "string") {
-                      try {
-                        return JSON.parse(v);
-                      } catch {
-                        return [];
-                      }
-                    }
-                    return [];
-                  },
-                })}
-                value={JSON.stringify(selected)}
-              />
-            </div>
+            <Controller
+              key={key}
+              name={fieldKey}
+              control={control}
+              defaultValue={[]}
+              render={({ field }) => {
+                const selected = Array.isArray(field.value)
+                  ? field.value.filter((value): value is string => typeof value === "string")
+                  : [];
+                return (
+                  <fieldset className="flex flex-col gap-1.5">
+                    <legend className="text-sm font-medium text-text-strong-950">
+                      {title}
+                      {required && <span className="text-error-base ml-0.5">*</span>}
+                    </legend>
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectOptions.map((option) => {
+                        const isSelected = selected.includes(option);
+                        const label = optionLabels?.[option] ?? option;
+                        return (
+                          <Chip
+                            key={option}
+                            selected={isSelected}
+                            onClick={() =>
+                              field.onChange(
+                                isSelected
+                                  ? selected.filter((value) => value !== option)
+                                  : [...selected, option]
+                              )
+                            }
+                          >
+                            {label}
+                          </Chip>
+                        );
+                      })}
+                    </div>
+                  </fieldset>
+                );
+              }}
+            />
+          );
+        }
+        if (type === "repeater") {
+          return (
+            <WorkRepeaterInput
+              key={key}
+              input={input}
+              register={register}
+              control={control}
+              addLabel={intl.formatMessage({ id: "app.common.add", defaultMessage: "Add" })}
+              removeLabel={intl.formatMessage({
+                id: "app.common.remove",
+                defaultMessage: "Remove",
+              })}
+            />
           );
         }
         if (type === "text") {
@@ -276,6 +385,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
             <FormInput
               key={key}
               {...register(fieldKey, registerOptions)}
+              id={key}
               label={title}
               placeholder={placeholder}
               required={required}
@@ -287,6 +397,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
             <FormText
               key={key}
               {...register(fieldKey, registerOptions)}
+              id={key}
               label={title}
               rows={3}
               placeholder={placeholder}
@@ -299,54 +410,49 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
       })}
 
       {/* Share location toggle (decision #27: optional, user-triggered, privacy-first) */}
-      <div className="flex items-center justify-between p-3 rounded-xl border border-stroke-sub-300 bg-bg-weak-50">
-        <div className="flex items-center gap-2">
-          <RiMapPinLine className="w-5 h-5 text-text-sub-600" />
-          <div>
-            <span className="text-sm font-medium text-text-strong-950">
+      <div className="my-2 flex items-start justify-between gap-3 rounded-xl border border-stroke-sub-300 bg-bg-weak-50 p-3">
+        <div className="flex min-w-0 flex-1 items-start gap-2">
+          <RiMapPinLine className="h-5 w-5 shrink-0 text-text-sub-600" />
+          <div className="min-w-0 flex-1">
+            <span id="share-location-label" className="text-sm font-medium text-text-strong-950">
               {intl.formatMessage({
                 id: "app.garden.details.shareLocation",
-                defaultMessage: "Share location",
+                defaultMessage: "Share Location",
               })}
             </span>
-            <p className="text-xs text-text-soft-400">
-              {locationStatus === "success"
-                ? intl.formatMessage({
-                    id: "app.garden.details.locationCaptured",
-                    defaultMessage: "Location captured",
-                  })
-                : locationStatus === "denied"
-                  ? intl.formatMessage({
-                      id: "app.garden.details.locationDenied",
-                      defaultMessage: "Location access denied",
-                    })
-                  : intl.formatMessage({
-                      id: "app.garden.details.locationHint",
-                      defaultMessage: "Coarse GPS for verification",
-                    })}
-            </p>
+            <div className="grid text-xs text-text-soft-400" aria-live="polite">
+              {Object.entries(locationMessages).map(([status, message]) => {
+                const isCurrent = status === locationStatus;
+                return (
+                  <p
+                    key={status}
+                    aria-hidden={!isCurrent}
+                    style={{
+                      gridArea: "1 / 1",
+                      overflowWrap: "anywhere",
+                      visibility: isCurrent ? "visible" : "hidden",
+                    }}
+                  >
+                    {message}
+                  </p>
+                );
+              })}
+            </div>
           </div>
         </div>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={locationEnabled}
+        <Switch
+          checked={locationEnabled}
+          aria-busy={locationStatus === "loading" || undefined}
+          aria-labelledby="share-location-label"
           onClick={handleLocationToggle}
           disabled={locationStatus === "loading"}
-          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base ${
-            locationEnabled ? "bg-primary-base" : "bg-bg-soft-200"
-          }`}
-        >
-          <span
-            className={`inline-block h-4 w-4 rounded-full bg-static-white transition-transform duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] ${
-              locationEnabled ? "translate-x-6" : "translate-x-1"
-            }`}
-          />
-        </button>
+          className="self-center"
+        />
       </div>
 
       <FormText
         {...register("feedback")}
+        id="feedback"
         label={intl.formatMessage({
           id: "app.garden.details.feedback",
           description: "Feedback",

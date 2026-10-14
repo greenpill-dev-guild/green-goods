@@ -1,4 +1,5 @@
-import { logger, trackErrorBoundary } from "@green-goods/shared";
+import { trackErrorBoundary } from "@green-goods/shared/modules/app/error-events";
+import { logger } from "@green-goods/shared/modules/app/logger";
 import { AdminButton } from "@/components/AdminButton";
 import { RiAlertLine, RiArrowLeftLine, RiRefreshLine, RiWifiOffLine } from "@remixicon/react";
 import { type ReactNode, useEffect } from "react";
@@ -179,20 +180,22 @@ function ErrorCard({
   return (
     <div className="flex flex-1 items-center justify-center px-6 py-24">
       <div className="w-full max-w-md animate-fade-in-up" role="alert">
-        <div className="rounded-xl border border-stroke-soft bg-bg-white p-8 text-center shadow-sm">
+        <div className="rounded-xl border border-stroke-soft bg-bg-white p-8 text-center shadow-[var(--m3-elevation-1)]">
           <div
             className={`mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full ${iconBg}`}
           >
             {icon}
           </div>
-          <h2 className="text-lg font-semibold text-text-strong">{title}</h2>
-          <p className="mt-2 text-sm text-text-sub">{description}</p>
+          <h2 className="text-title-lg font-semibold leading-[var(--type-title-lg-lh)] text-text-strong">
+            {title}
+          </h2>
+          <p className="mt-2 body-sm text-text-sub">{description}</p>
           {details && (
             <details className="mt-4 text-left">
-              <summary className="cursor-pointer text-xs font-medium text-text-soft hover:text-text-sub">
+              <summary className="cursor-pointer label-xs text-text-soft hover:text-text-sub">
                 {technicalDetailsLabel}
               </summary>
-              <pre className="mt-2 max-h-32 overflow-auto rounded-lg bg-bg-soft p-3 text-xs text-text-sub">
+              <pre className="mt-2 max-h-32 overflow-auto rounded-lg bg-bg-soft p-3 body-xs text-text-sub">
                 {details}
               </pre>
             </details>

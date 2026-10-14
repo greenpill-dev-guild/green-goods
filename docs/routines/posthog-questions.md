@@ -581,41 +581,77 @@ Public-safe-default. Aggregates only — never names a single user.
 
 - **Lens**: growth-bd
 - **Default privacy**: public-safe
-- **What it answers**: per-step failure rate for the conversion-killing events (`*_failed` paired with `*_success`). Surfaces product breakages that vanish from a success-only funnel. Empirically (2026-05-09, App project) the strongest growth signal in the dataset: `garden_join` ~75% failure rate, `work_submission` ~70%, `work_approval` 100% (zero successes), `auth_passkey_register` ~27%.
+- **What it answers**: per-step failure rate for the conversion-killing events (`*_failed` paired with `*_success`), **excluding user cancellations**. Surfaces product breakages that vanish from a success-only funnel.
+- **v1.3.0 (2026-08-10) — cancellations are not failures.** A user declining a wallet or passkey prompt was previously counted as a conversion kill. This inflated every step and produced at least one false anomaly (PRD-717: a reported 66.7% `garden_join` failure was 5 aborts out of 8 "failures", from 2 people retrying). The query now classifies each attempt as `success` / `cancelled` / `failed`, reports `cancelled_count` alongside rather than dropping it, and emits `failing_persons` so consumers can require a real cohort before filing. **Treat the pre-v1.3.0 baselines as inflated** — the old entry quoted `garden_join` ~75%, `work_submission` ~70%, `auth_passkey_register` ~27% from 2026-05-09.
 - **HogQL**:
   ```sql
   SELECT
-    multiIf(
-      event LIKE 'garden_join_%', 'garden_join',
-      event LIKE 'work_submission_%', 'work_submission',
-      event LIKE 'work_approval_%', 'work_approval',
-      event LIKE 'auth_passkey_register_%', 'auth_passkey_register',
-      NULL
-    ) AS step,
-    countIf(event LIKE '%_success') AS success_count,
-    countIf(event LIKE '%_failed') AS failed_count,
-    countIf(event LIKE '%_success' OR event LIKE '%_failed') AS total_attempts,
+    step,
+    countIf(outcome = 'success') AS success_count,
+    countIf(outcome = 'failed') AS failed_count,
+    countIf(outcome = 'cancelled') AS cancelled_count,
+    -- Every attempt the user actually started, cancellations included.
+    count() AS total_attempts,
+    -- Denominator for failure_pct: cancellations are neither a success nor a break.
+    countIf(outcome IN ('success', 'failed')) AS resolved_attempts,
+    uniqIf(person_id, outcome = 'failed') AS failing_persons,
     if(
-      countIf(event LIKE '%_success' OR event LIKE '%_failed') > 0,
-      countIf(event LIKE '%_failed') * 100.0 / countIf(event LIKE '%_success' OR event LIKE '%_failed'),
+      countIf(outcome IN ('success', 'failed')) > 0,
+      countIf(outcome = 'failed') * 100.0 / countIf(outcome IN ('success', 'failed')),
       0
     ) AS failure_pct
-  FROM events
-  WHERE timestamp > now() - interval {window:String}
-    AND event IN (
-      'garden_join_success', 'garden_join_failed',
-      'work_submission_success', 'work_submission_failed',
-      'work_approval_success', 'work_approval_failed',
-      'auth_passkey_register_success', 'auth_passkey_register_failed'
-    )
+  FROM (
+    SELECT
+      person_id,
+      multiIf(
+        event LIKE 'garden_join_%', 'garden_join',
+        event LIKE 'work_submission_%', 'work_submission',
+        event LIKE 'work_approval_%', 'work_approval',
+        event LIKE 'auth_passkey_register_%', 'auth_passkey_register',
+        NULL
+      ) AS step,
+      -- Cancellation is emitted differently per step, so detect all four shapes.
+      -- The literal list mirrors CANCELLED_PATTERNS in
+      -- packages/shared/src/utils/errors/tx-error-classifier.ts — keep them in sync.
+      multiIf(
+        event LIKE '%_success', 'success',
+        event LIKE '%_cancelled'
+          OR properties.parsed_error_family = 'UserRejected'
+          OR properties.reason = 'cancelled'
+          OR match(
+               lower(coalesce(toString(properties.error), '')),
+               'user rejected|user denied|rejected by user|user cancelled|user canceled|rejected the request|user declined|action_rejected|transaction cancelled|transaction canceled'
+             ),
+        'cancelled',
+        'failed'
+      ) AS outcome
+    FROM events
+    WHERE timestamp > now() - interval {window:String}
+      AND event IN (
+        'garden_join_success', 'garden_join_failed', 'garden_join_cancelled',
+        'work_submission_success', 'work_submission_failed',
+        'work_approval_success', 'work_approval_failed',
+        'auth_passkey_register_success', 'auth_passkey_register_failed'
+      )
+  )
+  WHERE step IS NOT NULL
   GROUP BY step
-  HAVING step IS NOT NULL
   ORDER BY failure_pct DESC
   ```
 - **Bind variables**: `{ window: "7d" }` (default; `30d` for monthly digest, `1d` for hot triage).
-- **Output schema**: every field public.
-- **Required emit-side events**: the four `*_started/_success/_failed` event triplets above (all present in `packages/shared/src/modules/app/analytics-events.ts`). Note that `work_approval_success` may live primarily on the Admin project (262122) — when this question runs against the App project, `work_approval` will report 100% failure even when admin successes exist. Run the query separately against project 262122 for the admin-side success counts and merge in the routine.
-- **Anomaly thresholds (consumer)**: failure rate > 50% AND absolute failed count ≥ 5 over the window → file a Linear anomaly Issue. 100% failure with absolute count ≥ 5 → P2/urgent. The thresholds catch real product breakage rather than tiny-N noise.
+- **Output schema**: all count fields public. **`failing_persons` is private-only below 5** — it is a threshold input, not a publishable figure. The privacy boundary above makes aggregations public-safe only over ≥ 5 users, and the anomaly floor of 3 guarantees sub-5 values occur. Use it to decide whether to file; never print it into a digest, Discord post, or Linear body unless it is ≥ 5.
+- **Cancellation-detection coverage** (verified against 120d of App data, 2026-08-10). Detection is only as good as the emit side, so treat `cancelled_count` as a floor, not a complete count:
+
+  | Step | Signal | Reliable? |
+  |---|---|---|
+  | `garden_join` | dedicated `garden_join_cancelled` event | ✅ from 2026-08-10 |
+  | `work_submission` | `parsed_error_family` / parsed message | ⚠️ `parsed_error_family` only on recent events; older ones fall back to message text |
+  | `auth_passkey_register` | `reason = 'cancelled'` | ⚠️ `reason` is frequently absent; the common WebAuthn string ("operation either timed out or was not allowed") is genuinely ambiguous between a timeout and a dismissal, so it is deliberately **left as a failure** rather than guessed |
+  | `work_approval` | none | ❌ emits only a generic `"Transaction failed. Please try again."` via `createMutationErrorHandler`; cancellations are indistinguishable today |
+
+- **Required emit-side events**: the four `*_started/_success/_failed` event triplets above, plus `garden_join_cancelled` (all present in `packages/shared/src/modules/app/analytics-events.ts`). Note that `work_approval_success` may live primarily on the Admin project (262122) — when this question runs against the App project, `work_approval` will report 100% failure even when admin successes exist. Run the query separately against project 262122 for the admin-side success counts and merge in the routine.
+- **Anomaly thresholds (consumer)**: failure rate > 50% AND `failed_count` ≥ 5 AND `failing_persons` ≥ 3 over the window → file a Linear anomaly Issue. 100% failure meeting the same floors → P2/urgent. The person floor is what separates real product breakage from one or two people retrying a broken session — without it, a two-person retry loop reads as a cohort-wide conversion kill (PRD-717).
+  - **`failing_persons` does not merge across projects.** It is a distinct count, so the App and Admin rows for `work_approval` can neither be summed (double-counts an operator active on both) nor maxed (undercounts distinct operators). Apply the person floor **per project** and file if either side crosses on its own; only `success_count` / `failed_count` / `cancelled_count` may be merged into a combined row.
 - **Used by**: `growth-pulse` (anomaly detection, replaces sole reliance on `funnel.onboarding`).
 
 ### `web.acquisition-summary`
@@ -648,7 +684,7 @@ Public-safe-default. Aggregates only — never names a single user.
 
 The following questions would expand coverage but require events that don't exist yet. Listed here so a future emit-side plan can pick them up:
 
-- `funnel.invite-acceptance` — needs `garden_invite_sent` and `garden_invite_accepted`. The current `garden_join_success` and `garden_auto_join_success` events fire after the invite link is followed, but the invite-creation step itself isn't tracked. Add via `createTracker<T>` in `packages/shared/src/modules/app/analytics-events.ts` if invitation conversion becomes a key metric.
+- `funnel.invite-acceptance` — needs `garden_invite_sent` and `garden_invite_accepted`. `garden_join_success` fires after the invite link is followed, but the invite-creation step itself isn't tracked. Add via `createTracker<T>` in `packages/shared/src/modules/app/analytics-events.ts` if invitation conversion becomes a key metric. (The `garden_auto_join_*` family used to be listed here as a second source; it was defined but never called and never fired a single event in 365 days, so it was deleted on 2026-08-10 — don't reach for it.)
 - `funnel.first-work-from-invite` — depends on the same invitation events plus a stable `first_work` derivation. The derivation is computable from `work_submission_success` (`min(timestamp) per distinct_id`), so no new event is strictly required, but a `first_work_submitted` event would let cohort joins be cheaper.
 
 Do not write a question for these until the underlying events ship. **Consuming** (running the HogQL of) a `blocked` question from a routine is a `routine-self-audit` violation; **documenting** a question's blocked/deprecated status in routine prose (as `growth-pulse` now does for `actions.template-creation-rate`) is expected and not a violation.
@@ -683,7 +719,12 @@ A routine wiring this library should:
 
 ## Versioning
 
-Bump the file's `version:` in front matter when:
+Versions are recorded **inline on the question entry** as a dated `vX.Y.Z` bullet (see
+`failures.conversion-kill` v1.3.0). The `version:` front-matter field this section used to
+reference did not survive the move out of `.claude/skills/posthog-questions/SKILL.md`, and no
+routine doc carries one — don't reintroduce it, record the bump on the question instead.
+
+Bump a question's inline version when:
 
 - Adding or removing a question (consumers may break).
 - Changing a question's HogQL in a way that alters the output schema (consumers must re-validate).

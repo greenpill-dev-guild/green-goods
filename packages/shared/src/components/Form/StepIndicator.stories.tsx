@@ -4,7 +4,7 @@ import { StepIndicator, type Step } from "./StepIndicator";
 
 const steps: Step[] = [
   { id: "details", title: "Details", description: "Basic garden information" },
-  { id: "team", title: "Team", description: "Operators and contributors" },
+  { id: "team", title: "Team", description: "Stewards and contributors" },
   { id: "impact", title: "Impact", description: "Metrics and evidence" },
   { id: "review", title: "Review", description: "Final checks before launch" },
 ];

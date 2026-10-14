@@ -10,17 +10,20 @@
 import { encodeFunctionData } from "viem";
 import { fromPromise } from "xstate";
 
-import { createPublicClientForChain } from "../../../config";
+import { createPublicClientForChain } from "../../../config/pimlico";
 import { getChain } from "../../../config/chains";
 import { logger } from "../../../modules/app/logger";
 import {
   assertLocalArbitrumForkSmartAccountsDisabled,
   assertLocalArbitrumForkWallet,
 } from "../../../modules/transactions/local-fork-safety";
-import { ensureAppKitWalletChain } from "../../../modules/transactions/chain-guard";
+import { readyWalletClient } from "../../../modules/transactions/chain-guard";
 import type { Address } from "../../../types/domain";
 import { isZeroAddress } from "../../../utils/blockchain/address";
-import { GARDENS_MODULE_ABI, HYPERCERT_SIGNAL_POOL_ABI } from "../../../utils/blockchain/abis";
+import {
+  GARDENS_MODULE_ABI,
+  HYPERCERT_SIGNAL_POOL_ABI,
+} from "../../../utils/blockchain/abis/conviction";
 import { getNetworkContracts } from "../../../utils/blockchain/contracts";
 import type { RegisterInSignalPoolInput } from "../../../workflows/mintHypercert";
 import { RECEIPT_POLLING_TIMEOUT_MS, withTimeout } from "../hypercert-utils";
@@ -35,7 +38,6 @@ import type { MintServiceDeps } from "./types";
 export function createRegisterInSignalPoolActor(deps: MintServiceDeps) {
   return fromPromise(async ({ input }: { input: RegisterInSignalPoolInput }) => {
     const currentSmartAccountClient = deps.smartAccountClientRef.current;
-    const currentWalletClient = deps.walletClientRef.current;
     const currentEoaAddress = deps.eoaAddressRef.current;
     const currentChainId = deps.chainIdRef.current;
 
@@ -107,11 +109,11 @@ export function createRegisterInSignalPoolActor(deps: MintServiceDeps) {
         RECEIPT_POLLING_TIMEOUT_MS,
         "Signal pool registration"
       );
-    } else if (currentWalletClient && currentEoaAddress) {
-      await ensureAppKitWalletChain(currentChainId);
+    } else if (currentEoaAddress) {
+      const walletClient = await readyWalletClient(currentChainId, currentEoaAddress as Address);
       await assertLocalArbitrumForkWallet();
 
-      const regTxHash = await currentWalletClient.writeContract({
+      const regTxHash = await walletClient.writeContract({
         address: hypercertPoolAddress,
         abi: HYPERCERT_SIGNAL_POOL_ABI,
         functionName: "registerHypercert",

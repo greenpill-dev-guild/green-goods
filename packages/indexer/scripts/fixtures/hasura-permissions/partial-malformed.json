@@ -1,0 +1,19 @@
+{
+  "requiredTables": ["Good", "Broken"],
+  "metadata": {
+    "metadata": {
+      "sources": [
+        {
+          "name": "default",
+          "tables": [
+            { "table": { "schema": "public", "name": "Good" } },
+            {
+              "table": { "schema": "public", "name": "Broken" },
+              "select_permissions": { "role": "public" }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

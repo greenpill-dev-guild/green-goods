@@ -1,4 +1,7 @@
-import { type Action, type Garden, type UserRole, adminRoutes } from "@green-goods/shared";
+import type { Action, Garden } from "../../../types/domain";
+import { adminRoutes } from "../../../utils/navigation/admin-routes";
+import type { UserRole } from "../../gardener/useRole";
+import type { AdminWorkspacePermission } from "../navigation/workspaceViews";
 import { RiSettings3Line, RiUserLine } from "@remixicon/react";
 import type { ComponentType } from "react";
 import type { IntlShape } from "react-intl";
@@ -22,6 +25,8 @@ interface StaticCommandRoute {
   defaultLabel: string;
   href: string;
   roles?: UserRole[];
+  /** The navigation bar permission that shows this workspace. */
+  permission?: AdminWorkspacePermission;
 }
 
 interface AssessmentCommandItem {
@@ -33,6 +38,8 @@ interface AssessmentCommandItem {
 interface BuildCommandPaletteResultsOptions {
   query: string;
   role: UserRole;
+  /** The navigation bar's effective permissions, so the palette offers the same workspaces. */
+  permissions: Record<AdminWorkspacePermission, boolean>;
   formatMessage: IntlShape["formatMessage"];
   staticRoutes: StaticCommandRoute[];
   eligibleGardens: Garden[];
@@ -46,7 +53,7 @@ interface BuildCommandPaletteResultsOptions {
  * biased toward consecutive matches and matches near the start.
  * Returns 0 when the query doesn't match.
  */
-export function fuzzyScore(query: string, text: string): number {
+function fuzzyScore(query: string, text: string): number {
   if (!query) return 1;
   const q = query.toLowerCase();
   const t = text.toLowerCase();
@@ -69,6 +76,7 @@ export function fuzzyScore(query: string, text: string): number {
 export function buildCommandPaletteResults({
   query,
   role,
+  permissions,
   formatMessage,
   staticRoutes,
   eligibleGardens,
@@ -103,7 +111,7 @@ export function buildCommandPaletteResults({
         defaultMessage: "Go to Pending Reviews",
       }),
       href: adminRoutes.hubWork(),
-      roles: ["deployer", "operator"],
+      roles: ["deployer", "steward"],
     },
     {
       id: "quick-create-garden",
@@ -122,7 +130,7 @@ export function buildCommandPaletteResults({
       }),
       actionId: "open-profile-sheet",
       icon: RiUserLine,
-      roles: ["deployer", "operator", "user"],
+      roles: ["deployer", "steward", "user"],
     },
     {
       id: "open-settings-sheet",
@@ -132,7 +140,7 @@ export function buildCommandPaletteResults({
       }),
       actionId: "open-settings-sheet",
       icon: RiSettings3Line,
-      roles: ["deployer", "operator", "user"],
+      roles: ["deployer", "steward", "user"],
     },
   ];
 
@@ -153,6 +161,7 @@ export function buildCommandPaletteResults({
 
   for (const route of staticRoutes) {
     if (route.roles && !route.roles.includes(role)) continue;
+    if (route.permission && !permissions[route.permission]) continue;
     const label = formatMessage({ id: route.labelId, defaultMessage: route.defaultLabel });
     pushIfMatches({ id: route.id, label, href: route.href, category: "pages" }, [label]);
   }

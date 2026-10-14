@@ -1,7 +1,7 @@
 import { useReadContract } from "wagmi";
-import { STALE_TIME_RARE } from "../../config/query-keys";
+import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import type { Address } from "../../types/domain";
-import { COOKIE_JAR_MODULE_ABI } from "../../utils/blockchain/abis";
+import { COOKIE_JAR_MODULE_ABI } from "../../utils/blockchain/abis/cookie-jar";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { ZERO_ADDRESS } from "../../utils/blockchain/vaults";
 import { useCurrentChain } from "../blockchain/useChainConfig";
@@ -16,6 +16,7 @@ export function useCookieJarFactoryAddress(options: { enabled?: boolean } = {}) 
   const moduleConfigured = !!moduleAddress && moduleAddress.toLowerCase() !== ZERO_ADDRESS;
 
   const query = useReadContract({
+    chainId,
     address: moduleAddress as Address,
     abi: COOKIE_JAR_MODULE_ABI,
     functionName: "cookieJarFactory",

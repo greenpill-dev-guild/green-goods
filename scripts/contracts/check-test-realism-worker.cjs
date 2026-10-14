@@ -103,6 +103,71 @@ function hasSpecificExpectRevertAssertion(inner) {
     );
 }
 
+function sanitizeSolidityForDeclarationScan(source) {
+    let sanitized = '';
+    let state = 'code';
+    let quote = null;
+
+    for (let i = 0; i < source.length; i++) {
+        const current = source[i];
+        const next = source[i + 1];
+
+        if (state === 'code') {
+            if (current === '/' && next === '/') {
+                sanitized += '  ';
+                state = 'line-comment';
+                i += 1;
+            } else if (current === '/' && next === '*') {
+                sanitized += '  ';
+                state = 'block-comment';
+                i += 1;
+            } else if (current === '"' || current === "'") {
+                sanitized += ' ';
+                quote = current;
+                state = 'string';
+            } else {
+                sanitized += current;
+            }
+            continue;
+        }
+
+        if (state === 'line-comment') {
+            if (current === '\n') {
+                sanitized += current;
+                state = 'code';
+            } else {
+                sanitized += ' ';
+            }
+            continue;
+        }
+
+        if (state === 'block-comment') {
+            if (current === '*' && next === '/') {
+                sanitized += '  ';
+                state = 'code';
+                i += 1;
+            } else {
+                sanitized += current === '\n' ? '\n' : ' ';
+            }
+            continue;
+        }
+
+        if (current === '\\' && next !== undefined) {
+            sanitized += ' ';
+            sanitized += next === '\n' ? '\n' : ' ';
+            i += 1;
+        } else if (current === quote) {
+            sanitized += ' ';
+            quote = null;
+            state = 'code';
+        } else {
+            sanitized += current === '\n' ? '\n' : ' ';
+        }
+    }
+
+    return sanitized;
+}
+
 const forkDir = path.join(rootDir, 'packages/contracts/test/fork');
 const contractsTestDir = path.join(rootDir, 'packages/contracts/test');
 
@@ -137,11 +202,17 @@ const metrics = {
 for (const file of targetFiles) {
     const text = fs.readFileSync(file, 'utf8');
     const lines = text.split(/\r?\n/);
+    const declarationLines = sanitizeSolidityForDeclarationScan(text).split(/\r?\n/);
     const relativeFile = rel(file);
+    let sourceSelector = '<file>';
 
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         const lineNo = i + 1;
+        const functionMatch = declarationLines[i].match(
+            /\bfunction\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(/
+        );
+        if (functionMatch) sourceSelector = functionMatch[1];
 
         if (/import\s+[^;]*src\/mocks\//.test(line)) {
             metrics.mock_import_lines += 1;
@@ -149,6 +220,7 @@ for (const file of targetFiles) {
                 file: relativeFile,
                 line: lineNo,
                 pattern: 'import-src-mocks',
+                source_selector: sourceSelector,
                 network: null,
                 message: 'Fork/E2E test imports from src/mocks'
             });
@@ -169,6 +241,7 @@ for (const file of targetFiles) {
                 file: relativeFile,
                 line: lineNo,
                 pattern,
+                source_selector: sourceSelector,
                 network: null,
                 message: `Fork/E2E test uses ${pattern}`
             });
@@ -195,6 +268,7 @@ for (const file of targetFiles) {
                 file: relativeFile,
                 line: lineNo,
                 pattern: 'generic-expectRevert',
+                source_selector: null,
                 network: null,
                 message: 'Fork/E2E test uses generic vm.expectRevert() without selector'
             });
@@ -217,6 +291,7 @@ for (const file of targetFiles) {
             file: relativeFile,
             line: lineNo,
             pattern: 'ci-skip-return',
+            source_selector: null,
             network,
             message: `Fork/E2E test contains early-return skip block for ${network}`
         });
@@ -277,6 +352,46 @@ for (let i = 0; i < allowlistEntries.length; i++) {
             detail: `Entry index ${i} must target at least one network scope`
         });
     }
+
+    if ('source_boundaries' in entry) {
+        if (!Array.isArray(entry.source_boundaries) || entry.source_boundaries.length === 0) {
+            allowlistMetadataFindings.push({
+                id: `allowlist-boundary-${i}`,
+                severity: 'must-fix',
+                title: 'Allowlist source_boundaries must be a non-empty array',
+                file: rel(allowlistPath),
+                detail: `Entry index ${i} must bind each approved primitive to a source selector and exact occurrence count.`
+            });
+        } else {
+            const seenSelectors = new Set();
+            for (const boundary of entry.source_boundaries) {
+                const selector = String(boundary?.selector || '').trim();
+                const occurrences = boundary?.occurrences;
+                if (
+                    !selector ||
+                    !Number.isInteger(occurrences) ||
+                    occurrences < 1 ||
+                    seenSelectors.has(selector)
+                ) {
+                    allowlistMetadataFindings.push({
+                        id: `allowlist-boundary-${i}-${seenSelectors.size}`,
+                        severity: 'must-fix',
+                        title: 'Allowlist source boundary is invalid or duplicated',
+                        file: rel(allowlistPath),
+                        detail: `Entry index ${i} boundaries require unique selector names and positive integer occurrences.`
+                    });
+                    break;
+                }
+                seenSelectors.add(selector);
+            }
+        }
+    }
+}
+
+const filePatternTotals = new Map();
+for (const observation of observations) {
+    const key = `${observation.file}|${observation.pattern}`;
+    filePatternTotals.set(key, (filePatternTotals.get(key) || 0) + 1);
 }
 
 function isAllowlisted(observation) {
@@ -284,10 +399,24 @@ function isAllowlisted(observation) {
         if (entry.file !== observation.file) return false;
         if (entry.pattern !== observation.pattern) return false;
         const networks = normalizeNetworkScope(entry.network_scope);
-        if (observation.network) {
-            return networks.includes(observation.network) || networks.includes('all');
+        if (
+            observation.network &&
+            !networks.includes(observation.network) &&
+            !networks.includes('all')
+        ) return false;
+
+        const boundaries = Array.isArray(entry.source_boundaries) ? entry.source_boundaries : [];
+        if (boundaries.length === 0) {
+            // Legacy entries are safe only for a singleton primitive. Adding a second
+            // matching primitive in the same file invalidates the broad approval.
+            return filePatternTotals.get(`${observation.file}|${observation.pattern}`) === 1;
         }
-        return true;
+
+        return boundaries.some(
+            (boundary) =>
+                boundary.selector === observation.source_selector &&
+                boundary.occurrences === observation.count
+        );
     });
 
     if (matches.length === 0) return { matched: false, entry: null, expired: false };
@@ -301,11 +430,12 @@ function isAllowlisted(observation) {
 function aggregateByFilePattern(items) {
     const map = new Map();
     for (const item of items) {
-        const key = `${item.file}|${item.pattern}`;
+        const key = `${item.file}|${item.pattern}|${item.source_selector || ''}`;
         if (!map.has(key)) {
             map.set(key, {
                 file: item.file,
                 pattern: item.pattern,
+                source_selector: item.source_selector || null,
                 count: 0,
                 lines: [],
                 networks: new Set(),
@@ -335,6 +465,7 @@ for (const item of grouped) {
         allowlistedFindings.push({
             file: item.file,
             pattern: item.pattern,
+            source_selector: item.source_selector,
             count: item.count,
             lines: item.lines,
             classification: match.entry.classification || 'conditionally-allowed',
@@ -343,6 +474,7 @@ for (const item of grouped) {
             expires_on: match.entry.expires_on,
             network_scope: match.entry.network_scope,
             sentinel_file: match.entry.sentinel_file || null,
+            source_boundaries: match.entry.source_boundaries || null,
             expired: match.expired
         });
     } else {
@@ -415,6 +547,7 @@ for (let i = 0; i < allowlistEntries.length; i++) {
 
 for (const item of unallowlistedGrouped) {
     const lineLabel = item.lines.length > 0 ? `lines ${item.lines.join(', ')}` : 'line unknown';
+    const boundaryLabel = item.source_selector ? ` in ${item.source_selector}` : '';
 
     if (primitivePatterns.has(item.pattern)) {
         mustFix.push({
@@ -422,7 +555,7 @@ for (const item of unallowlistedGrouped) {
             severity: 'must-fix',
             title: `Unallowlisted mock primitive: ${item.pattern}`,
             file: item.file,
-            detail: `${item.pattern} appears ${item.count} time(s) at ${lineLabel}. Add allowlist metadata or replace with real contract interaction.`
+            detail: `${item.pattern} appears ${item.count} time(s)${boundaryLabel} at ${lineLabel}. Add an exact source boundary or replace with real contract interaction.`
         });
         continue;
     }
@@ -599,6 +732,7 @@ const summary = {
         unallowlisted: unallowlistedGrouped.map((item) => ({
             file: item.file,
             pattern: item.pattern,
+            source_selector: item.source_selector,
             count: item.count,
             lines: item.lines,
             networks: item.networks,

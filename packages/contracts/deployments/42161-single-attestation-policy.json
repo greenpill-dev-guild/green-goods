@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "kind": "SINGLE_ATTESTATION_POLICY_DEPLOYMENT",
+  "network": "arbitrum",
+  "chainId": 42161,
+  "address": "0xfe7c50354cE1AC1d10aEe840a520A40103A3d971",
+  "runtimeCodeHash": "0x76f0a1fa648cf915dfe2a72a150622eb7d96f725cea6666e93f27f6e5645a0cf",
+  "creationCodeHash": "0xa70f8673988d632ec8fcca88250d939e66718460f3eb7443e260644ca03cbe93",
+  "transactionHash": "0x77b5ad3f59bf926c1598344e91ddc97d20f8791986e5025eae4ef79976f05b69",
+  "blockNumber": 511448509,
+  "blockHash": "0xbcd2b83f73424f241451541c3f014ce03b9a277c0410cfe4adef92058308892f",
+  "deployer": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+  "nonce": 993,
+  "commit": "e60ae197c2695ee0b2706ecbbc348df49afd6a04",
+  "verifiedAt": "2026-10-03T23:52:01.050Z"
+}

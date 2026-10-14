@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
+import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
+import { yieldKeys } from "../../config/query-keys/vault";
 import { getAllYieldAllocations } from "../../modules/data/yield-allocations";
 import type { Address } from "../../types/domain";
 import type { YieldAllocation } from "../../types/gardens-community";
@@ -78,7 +79,7 @@ export function usePublicVaultSummary(): PublicVaultSummary {
   const vaults = vaultQuery.vaults;
   const harvestable = useHarvestableYield(vaults, { enabled: vaults.length > 0 });
   const allocationsQuery = useQuery({
-    queryKey: queryKeys.yield.protocolSummary(chainId),
+    queryKey: yieldKeys.protocolSummary(chainId),
     queryFn: () => getAllYieldAllocations(chainId),
     enabled: vaults.length > 0,
     staleTime: STALE_TIME_MEDIUM,

@@ -1,7 +1,12 @@
 @import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&family=Manrope:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
 
 :root {
-  /* Primary green — matches shared theme green-500 */
+  /* Root DESIGN.md rounded.md, projected locally for docs media. */
+  --radius-md: 8px;
+  --radius-full: 999px;
+  --blur-material-thick: 8px;
+
+  /* Primary green: the shared theme's green-800 (tertiary-action) on light surfaces */
   --ifm-color-primary: #1a7544;
   --ifm-color-primary-dark: #176539;
   --ifm-color-primary-darker: #145a33;
@@ -23,6 +28,13 @@
   --ifm-link-hover-color: #145a33;
   --ifm-code-font-size: 93%;
 
+  /* One active-navigation look on every page: primary text on a light primary tint.
+     Infima reads these for the current page; the rules under "Sidebar" below extend the
+     same look to a category whose own page is open. */
+  --ifm-menu-color-active: var(--ifm-color-primary);
+  --ifm-menu-color-background-active: color-mix(in srgb, var(--ifm-color-primary) 12%, transparent);
+  --ifm-footer-background-color: var(--ifm-background-color);
+
   --ifm-font-family-base: "Manrope", "Avenir Next", "Segoe UI", sans-serif;
   --ifm-font-family-display: "Bricolage Grotesque", "Manrope", sans-serif;
   --ifm-font-family-monospace: "IBM Plex Mono", "SFMono-Regular", Menlo, monospace;
@@ -31,13 +43,14 @@
   --ifm-h2-font-size: 1.85rem;
   --ifm-h3-font-size: 1.4rem;
 
-  /* Section color accents — Community (warm green) vs Builders (cool teal) */
+  /* Section accents. builder-accent stays defined for DESIGN.md parity and the Builder
+     role card; active navigation and diagram controls use --ifm-color-primary. */
   --docs-accent-community: #1a7544;
   --docs-accent-builders: #0f766e;
 
   /* Role accents mirror shared Warm Earth semantic colors at docs volume only. */
   --docs-role-gardener: #1a7544;
-  --docs-role-operator: #335cff;
+  --docs-role-steward: #335cff;
   --docs-role-assessment: #7d52f4;
   --docs-role-funder: #e6a819;
   --docs-role-builder: #0f766e;
@@ -66,12 +79,13 @@
   --docs-accent-community: #2ebb6b;
   --docs-accent-builders: #2dd4bf;
   --docs-role-gardener: #2ebb6b;
-  --docs-role-operator: #6895ff;
+  --docs-role-steward: #6895ff;
   --docs-role-assessment: #8c71f6;
   --docs-role-funder: #ffd268;
   --docs-role-builder: #2dd4bf;
 }
 
+/* One flat canvas. html carries the color so no body-height seam can appear. */
 html,
 body {
   background: var(--ifm-background-color);
@@ -86,14 +100,22 @@ body {
   font-weight: 700;
 }
 
-.menu__link {
-  border-radius: 8px;
+/* ── Sidebar ─────────────────────────────────────────────────────────
+   Current page: primary text on the tint (Infima applies the variables above).
+   Parent category of the current page: primary text only (Infima clears the
+   background inside a collapsible). Category whose own page is open: the same
+   tint on its wrapper, which Infima would otherwise paint hover grey. */
+.menu__link,
+.menu__list-item-collapsible {
+  border-radius: var(--radius-md);
 }
 
 .menu__link--active {
   font-weight: 700;
-  background: color-mix(in srgb, var(--ifm-color-primary) 14%, transparent);
-  border-left: 3px solid var(--ifm-color-primary);
+}
+
+.menu__list-item-collapsible--active {
+  background: var(--ifm-menu-color-background-active);
 }
 
 main article {
@@ -127,7 +149,6 @@ table {
 
 .footer {
   border-top: 1px solid var(--ifm-color-emphasis-200);
-  background: var(--ifm-background-surface-color);
 }
 
 /* Hide external link icon on all links */
@@ -143,58 +164,17 @@ a svg[class*="iconExternalLink"] {
   line-height: 1.65;
 }
 
-/* ── Section color accents ────────────────────────────────────────────
-   Community routes (/community/*) use warm green; Builders routes
-   (/builders/*) use cool teal.  Docusaurus renders a single sidebar
-   container (same plugin instance, two sidebarIds) so we target the
-   active-link accent color via the doc wrapper's route-based class.
-   Docusaurus adds `docs-doc-id-*` classes on the doc page wrapper,
-   but the most reliable selector is the URL path.  We override the
-   primary color at the sidebar level using the doc wrapper that
-   Docusaurus generates for each route. */
-
-/* Builders section — override primary to teal when viewing /builders/* */
-[class*="docPage"] [class*="sidebar"] .menu__link--active,
-.theme-doc-sidebar-container .menu__link--active {
-  /* Default: community green (matches --ifm-color-primary) */
+/* ── Code blocks ─────────────────────────────────────────────────────
+   The theme hides the copy and wrap buttons until hover; touch readers
+   never hover, so keep them visible at rest. */
+.theme-code-block [class*="buttonGroup"] button {
+  opacity: 0.55;
 }
 
-/* Because Docusaurus does not expose route-specific data attributes on
-   the sidebar, we use a targeted approach: override the active sidebar
-   styling for builders pages via the wrapper that has the doc ID. */
-[class*="docs-doc-id-builders"] .menu__link--active {
-  background: color-mix(in srgb, var(--docs-accent-builders) 14%, transparent);
-  border-left-color: var(--docs-accent-builders);
-  color: var(--docs-accent-builders);
-}
-
-[class*="docs-doc-id-builders"] .menu__link--active:hover {
-  color: var(--docs-accent-builders);
-}
-
-/* ── Subtle background texture ───────────────────────────────────────
-   A barely-visible radial gradient adds organic warmth to the content
-   area without competing with the text.  Uses fixed positioning so it
-   stays stable while scrolling.  pointer-events: none keeps it inert. */
-.main-wrapper {
-  position: relative;
-}
-
-.main-wrapper::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse at 20% 0%, rgba(26, 117, 68, 0.03) 0%, transparent 60%),
-    radial-gradient(ellipse at 80% 100%, rgba(15, 118, 110, 0.02) 0%, transparent 50%);
-  z-index: -1;
-}
-
-[data-theme="dark"] .main-wrapper::before {
-  background:
-    radial-gradient(ellipse at 20% 0%, rgba(46, 187, 107, 0.04) 0%, transparent 60%),
-    radial-gradient(ellipse at 80% 100%, rgba(45, 212, 191, 0.03) 0%, transparent 50%);
+@media (hover: none) {
+  .theme-code-block [class*="buttonGroup"] button {
+    opacity: 0.9;
+  }
 }
 
 @media (max-width: 768px) {
@@ -220,3 +200,229 @@ a svg[class*="iconExternalLink"] {
     scroll-behavior: auto !important;
   }
 }
+
+/* ── Diagram expand overlay ──────────────────────────────────────────
+   Every mermaid container gets an Expand control (mermaidExpand.ts);
+   the overlay zooms with CSS transforms, so no library is involved. */
+.gg-diagram-container {
+  position: relative;
+}
+
+.gg-diagram-expand {
+  position: absolute;
+  right: 0.5rem;
+  top: 0.5rem;
+  z-index: 2;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.78rem;
+  font-family: var(--ifm-font-family-base);
+  color: var(--ifm-font-color-secondary);
+  background: var(--ifm-background-surface-color);
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  opacity: 0.75;
+}
+
+.gg-diagram-expand:hover,
+.gg-diagram-expand:focus-visible {
+  opacity: 1;
+  color: var(--ifm-color-primary);
+  border-color: var(--ifm-color-primary);
+}
+
+.gg-diagram-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  background: color-mix(in srgb, var(--ifm-background-color) 92%, transparent);
+  backdrop-filter: blur(var(--blur-material-thick));
+}
+
+.gg-diagram-overlay-open {
+  overflow: hidden;
+}
+
+.gg-diagram-toolbar {
+  display: flex;
+  gap: 0.4rem;
+  justify-content: flex-end;
+  padding: 0.75rem 1rem;
+}
+
+.gg-diagram-button {
+  min-width: 2.2rem;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.95rem;
+  font-family: var(--ifm-font-family-base);
+  color: var(--ifm-font-color-base);
+  background: var(--ifm-background-surface-color);
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.gg-diagram-button:hover,
+.gg-diagram-button:focus-visible {
+  color: var(--ifm-color-primary);
+  border-color: var(--ifm-color-primary);
+}
+
+.gg-diagram-viewport {
+  flex: 1;
+  overflow: auto;
+  padding: 1rem;
+  cursor: grab;
+}
+
+.gg-diagram-viewport.is-panning {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.gg-diagram-viewport:focus-visible {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: -2px;
+}
+
+.gg-diagram-stage {
+  margin: 0 auto;
+}
+
+/* ── Screenshot rows in builder docs ─────────────────────────────── */
+.gg-shot-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.gg-shot-row img {
+  flex: 1 1 180px;
+  min-width: 0;
+  max-width: 240px;
+  /* The width and height attributes reserve the frame's shape; the row decides its size. */
+  height: auto;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 12px;
+}
+
+.gg-shot-caption {
+  font-size: 0.85rem;
+  color: var(--ifm-font-color-secondary);
+  margin-top: -0.25rem;
+}
+
+/* ── Figures ─────────────────────────────────────────────────────────
+   One figure pattern for screenshots and captures: bordered image, a quiet
+   caption, and an optional grid for side-by-side frames. */
+.gg-figure {
+  margin: 1.25rem 0;
+}
+
+.gg-figure img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: var(--radius-md);
+}
+
+.gg-figure figcaption {
+  margin-top: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--ifm-font-color-secondary);
+}
+
+.gg-figure-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+}
+
+/* Overview photography stays within the article. The product view has its own text beside it,
+   so readers can understand the connection without reading labels inside a small screenshot. */
+.gg-overview-photo img {
+  width: 100%;
+  aspect-ratio: 2.4;
+  object-fit: cover;
+  object-position: center 62%;
+}
+
+.gg-overview-product,
+.gg-guide-product {
+  display: grid;
+  grid-template-columns: minmax(0, 210px) minmax(0, 1fr);
+  align-items: center;
+  gap: 1.5rem;
+  margin-block: 2rem;
+}
+
+.gg-guide-product {
+  grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+}
+
+.gg-overview-product figcaption,
+.gg-guide-product figcaption {
+  font-size: 1rem;
+  color: var(--ifm-font-color-base);
+}
+
+.gg-overview-product figcaption strong,
+.gg-guide-product figcaption strong:not(.gg-inline-label) {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.gg-overview-source {
+  display: block;
+  margin-top: 1rem;
+  font-size: 0.8rem;
+  color: var(--ifm-font-color-secondary);
+}
+
+@media (max-width: 600px) {
+  .gg-overview-photo img {
+    aspect-ratio: 1.5;
+  }
+
+  .gg-overview-product,
+  .gg-guide-product {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+  }
+
+  .gg-overview-product img {
+    max-width: 210px;
+    justify-self: center;
+  }
+
+  .gg-guide-product img {
+    max-width: min(100%, 320px);
+    justify-self: center;
+  }
+}
+
+/* Legacy term aliases and formal table anchors must stay below the sticky navbar. */
+.theme-doc-markdown a[id] {
+  display: inline-block;
+  scroll-margin-top: calc(var(--ifm-navbar-height) + 1rem);
+}
+
+/* Keep FAQ questions compact while using the browser's disclosure and focus behavior. */
+.gg-faq-question {
+  border-bottom: 1px solid var(--ifm-color-emphasis-300);
+  padding: 0.85rem 0;
+  scroll-margin-top: calc(var(--ifm-navbar-height) + 1rem);
+}
+.gg-faq-question summary { cursor: pointer; }
+.gg-faq-question summary h3 { display: inline; font-size: 1rem; line-height: 1.6; }
+.gg-faq-question summary:focus-visible { outline: 2px solid var(--ifm-color-primary); outline-offset: 4px; }
+.gg-faq-answer { padding-top: 0.75rem; }
+.gg-faq-answer > :last-child { margin-bottom: 0; }
+
+.gg-faq-tools { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+
+.gg-faq-question h3 { scroll-margin-top: calc(var(--ifm-navbar-height) + 1rem); }

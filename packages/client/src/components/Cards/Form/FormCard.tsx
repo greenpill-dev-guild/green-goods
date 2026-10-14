@@ -1,10 +1,12 @@
-import { cn } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import type { RemixiconComponentType } from "@remixicon/react";
-import { Card, type CardRootProps } from "../Base/Card";
+import type { ReactNode } from "react";
+import { Card, type CardRootProps } from "../Card";
 
 interface FormCardProps {
   label: string;
-  value: string;
+  /** Usually words; names and links render as their own elements. */
+  value: ReactNode;
   Icon?: RemixiconComponentType;
 }
 
@@ -19,7 +21,7 @@ export const FormCard = ({
     <Card className={cn("p-0", className)} {...props}>
       <div className="flex flex-col gap-2 w-full">
         <div className="flex flex-row p-3 border-b border-stroke-soft-200 w-full">
-          {Icon && <Icon size={24} className="text-primary" />}
+          {Icon && <Icon size={24} className="text-primary-on-surface" />}
           <div className="px-2 text-label-md font-medium text-text-strong-950">{label}</div>
         </div>
         <div className="pb-3 pl-4 pt-1 text-label-sm items-start text-left justify-start text-text-sub-600">

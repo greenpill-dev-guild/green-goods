@@ -3,7 +3,8 @@ import { useMemo } from "react";
 import { logger } from "../../modules/app/logger";
 import { getAllYieldAllocations } from "../../modules/data/yield-allocations";
 import { useCurrentChain } from "../blockchain/useChainConfig";
-import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
+import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
+import { yieldKeys } from "../../config/query-keys/vault";
 
 /** Aggregated protocol-wide yield summary */
 export interface ProtocolYieldSummary {
@@ -40,7 +41,7 @@ export function useProtocolYieldSummary(options: UseProtocolYieldSummaryOptions 
   const enabled = options.enabled ?? true;
 
   const query = useQuery({
-    queryKey: queryKeys.yield.protocolSummary(chainId),
+    queryKey: yieldKeys.protocolSummary(chainId),
     queryFn: async () => {
       const allocations = await getAllYieldAllocations(chainId);
 

@@ -1,9 +1,13 @@
+import { getDocumentScrollPosition } from "@green-goods/shared/hooks/ui/useDocumentScrollLock";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { consumeAppLaunchFallback } from "@green-goods/shared/utils/app/browser";
+import { useIntl } from "react-intl";
 import { useEffect, useLayoutEffect, useRef } from "react";
-import { Outlet, ScrollRestoration, useLocation } from "react-router-dom";
+import { Outlet, useLocation, useNavigationType } from "react-router-dom";
+import { FocusedShell } from "@/components/Navigation/FocusedSiteHeader";
 import { SiteHeader } from "@/components/Navigation/SiteHeader";
 import { publicCuration } from "@/content/publicCuration";
 
-const PUBLIC_SCROLL_ROOT_ID = "client-scroll-root";
 const PUBLIC_SCROLL_PRESERVED_SEARCH_PARAMS = new Set(["manage"]);
 const PUBLIC_SCROLL_DISMISSED_ON_MANAGEMENT_OPEN_SEARCH_PARAMS = new Set(["intent"]);
 
@@ -18,38 +22,15 @@ type PublicRouteSnapshot = {
   search: string;
 };
 
-function getPublicScrollRoot(): HTMLElement | null {
-  return document.getElementById(PUBLIC_SCROLL_ROOT_ID);
-}
-
 function scrollPublicRootToTop() {
-  const scrollRoot = getPublicScrollRoot();
-  if (scrollRoot) {
-    scrollRoot.scrollTop = 0;
-    scrollRoot.scrollLeft = 0;
-    scrollRoot.scrollTo?.({ top: 0, left: 0, behavior: "auto" });
-  }
   window.scrollTo({ top: 0, left: 0, behavior: "auto" });
 }
 
 function readPublicScrollPosition(): PublicScrollPosition {
-  const scrollRoot = getPublicScrollRoot();
-  if (scrollRoot) {
-    return { left: scrollRoot.scrollLeft, top: scrollRoot.scrollTop };
-  }
-  return { left: window.scrollX, top: window.scrollY };
+  return getDocumentScrollPosition();
 }
 
 function restorePublicScrollPosition(position: PublicScrollPosition) {
-  const scrollRoot = getPublicScrollRoot();
-  if (scrollRoot) {
-    scrollRoot.scrollTop = position.top;
-    scrollRoot.scrollLeft = position.left;
-    scrollRoot.scrollTo?.({ top: position.top, left: position.left, behavior: "auto" });
-    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-    return;
-  }
-
   window.scrollTo({ top: position.top, left: position.left, behavior: "auto" });
 }
 
@@ -116,7 +97,7 @@ function useLatestPublicScrollPositionRef() {
   const interactionScrollPositionRef = useRef<PublicScrollPosition | null>(null);
 
   useEffect(() => {
-    const scrollTarget = getPublicScrollRoot() ?? window;
+    const scrollTarget = window;
     const updateScrollPosition = () => {
       scrollPositionRef.current = readPublicScrollPosition();
     };
@@ -150,13 +131,25 @@ function useLatestPublicScrollPositionRef() {
 }
 
 function usePublicRouteScrollReset() {
-  const { hash, pathname, search } = useLocation();
+  const { hash, key, pathname, search } = useLocation();
+  const navigationType = useNavigationType();
   const previousRouteRef = useRef<PublicRouteSnapshot | null>(null);
+  // Preserve editorial management transitions alongside history-entry positions.
+  const positionsRef = useRef<Map<string, PublicScrollPosition>>(new Map());
+  const previousKeyRef = useRef<string | null>(null);
   const { interactionScrollPositionRef, scrollPositionRef } = useLatestPublicScrollPositionRef();
 
   useLayoutEffect(() => {
     const previousRoute = previousRouteRef.current;
     previousRouteRef.current = { hash, pathname, search };
+
+    // Bank the outgoing entry's position before anything moves the container.
+    // `scrollPositionRef` still holds where the previous route was left.
+    if (previousKeyRef.current && previousKeyRef.current !== key) {
+      positionsRef.current.set(previousKeyRef.current, scrollPositionRef.current);
+    }
+    const restoringKey = previousKeyRef.current === key ? null : key;
+    previousKeyRef.current = key;
 
     const isInitialRender = previousRoute === null;
     const didPathnameChange = previousRoute?.pathname !== pathname;
@@ -180,10 +173,52 @@ function usePublicRouteScrollReset() {
     if (!isInitialRender && !didPathnameChange && !didHashChange && !didSearchChange) return;
 
     if (scrollToHashTarget(hash)) return;
+
+    // Back/forward returns the reader to where they were. That was free while
+    // `/gardens/:id` was a modal over a never-unmounting grid; as a route it is
+    // not. PUSH and REPLACE still start at the top, and the initial render
+    // reports POP, so it stays excluded.
+    if (navigationType === "POP" && !isInitialRender) {
+      const saved = restoringKey ? positionsRef.current.get(restoringKey) : undefined;
+      // No banked position means this entry predates the current mount — a hard
+      // reload mid-history, or a shell remount. Falling through to the top is
+      // right: keeping the outgoing route's offset would drop the reader into
+      // the middle of a page they have not seen.
+      if (!saved) {
+        scrollPublicRootToTop();
+        interactionScrollPositionRef.current = null;
+        scrollPositionRef.current = { left: 0, top: 0 };
+        return;
+      }
+      // The scroll listener is asynchronous, so without this a fast
+      // Back → Forward → Back banks the pre-restore position for this entry.
+      scrollPositionRef.current = saved;
+      // The incoming route has not painted yet, so the container has no height
+      // to scroll within. Re-apply across the next two frames.
+      restorePublicScrollPosition(saved);
+      let second = 0;
+      const first = requestAnimationFrame(() => {
+        restorePublicScrollPosition(saved);
+        second = requestAnimationFrame(() => restorePublicScrollPosition(saved));
+      });
+      return () => {
+        cancelAnimationFrame(first);
+        if (second) cancelAnimationFrame(second);
+      };
+    }
+
     scrollPublicRootToTop();
     interactionScrollPositionRef.current = null;
     scrollPositionRef.current = { left: 0, top: 0 };
-  }, [hash, interactionScrollPositionRef, pathname, scrollPositionRef, search]);
+  }, [
+    hash,
+    interactionScrollPositionRef,
+    key,
+    navigationType,
+    pathname,
+    scrollPositionRef,
+    search,
+  ]);
 }
 
 /**
@@ -195,8 +230,9 @@ function usePublicRouteScrollReset() {
  * local webp files, and the browser cache dedupes the current view's image.
  * Skipped under Save-Data.
  */
-function useWarmPublicHeroImages() {
+function useWarmPublicHeroImages(enabled: boolean) {
   useEffect(() => {
+    if (!enabled) return;
     const connection = (navigator as Navigator & { connection?: { saveData?: boolean } })
       .connection;
     if (connection?.saveData) return;
@@ -212,8 +248,11 @@ function useWarmPublicHeroImages() {
       image.decoding = "async";
       image.src = src;
     }
-  }, []);
+  }, [enabled]);
 }
+
+/** Chat reporting ceremony pages use the focused shell instead of the editorial one. */
+const FOCUSED_SHELL_PREFIX = "/agent/reporting/";
 
 /**
  * PublicShell — layout wrapper for public routes (no auth required).
@@ -222,16 +261,46 @@ function useWarmPublicHeroImages() {
  * Used for the public-facing website experience (browser mode).
  */
 export default function PublicShell() {
+  const focused = useLocation().pathname.startsWith(FOCUSED_SHELL_PREFIX);
   usePublicRouteScrollReset();
-  useWarmPublicHeroImages();
+  useWarmPublicHeroImages(!focused);
+  const { formatMessage } = useIntl();
+  const fallbackPositionRef = useRef<PublicScrollPosition | null>(null);
+  useEffect(() => {
+    const position = fallbackPositionRef.current ?? consumeAppLaunchFallback();
+    if (!position) return;
+    fallbackPositionRef.current = position;
+    const frame = requestAnimationFrame(() => {
+      window.scrollTo({ ...position, behavior: "instant" });
+      fallbackPositionRef.current = null;
+      toastService.info({
+        id: "app-launch-unavailable",
+        message: formatMessage({
+          id: "public.install.openFailed",
+          defaultMessage: "Couldn’t open Green Goods. Open it from your apps.",
+        }),
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [formatMessage]);
+
+  // Reporting ceremony pages are transactional: no editorial chrome, and app buttons.
+  if (focused) {
+    return (
+      <FocusedShell>
+        <Outlet />
+      </FocusedShell>
+    );
+  }
 
   return (
-    <div className="flex min-h-screen flex-col bg-bg-white-0">
+    // data-site gives shared buttons the website corner and weight (DL-026), including in
+    // dialogs that portal out of this shell.
+    <div className="flex min-h-screen flex-col bg-bg-white-0" data-site="website">
       <SiteHeader />
-      <main className="vt-main flex-1">
+      <main className="vt-main flex flex-1 flex-col">
         <Outlet />
       </main>
-      <ScrollRestoration />
     </div>
   );
 }

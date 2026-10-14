@@ -1,8 +1,9 @@
-import { ToastViewport, usePageView } from "@green-goods/shared";
+import { ToastViewport } from "@green-goods/shared/components/Toast/ToastViewport";
+import { usePageView } from "@green-goods/shared/hooks/analytics/usePageView";
 import { useLayoutEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
-import { scrubReceiptTokenFragmentFromLocation } from "./receipt-token";
-import { getClientToastViewportVariant } from "./toast-variant";
+import { scrubReceiptTokenFragmentFromLocation } from "./receiptToken";
+import { getClientToastViewportVariant } from "./toastVariant";
 
 function useReceiptTokenFragmentScrub() {
   useLayoutEffect(() => {
@@ -17,6 +18,15 @@ function useReceiptTokenFragmentScrub() {
  */
 export default function Root() {
   useReceiptTokenFragmentScrub();
+  useLayoutEffect(() => {
+    // Each shell owns its document scroll policy. Browser/Router restoration
+    // must not race editorial history restoration or PWA route resets.
+    const previous = window.history.scrollRestoration;
+    window.history.scrollRestoration = "manual";
+    return () => {
+      window.history.scrollRestoration = previous;
+    };
+  }, []);
   const location = useLocation();
   const toastVariant = getClientToastViewportVariant(location.pathname);
 
@@ -27,7 +37,7 @@ export default function Root() {
   });
 
   return (
-    <div id="client-scroll-root" className="overflow-x-hidden w-full h-full">
+    <div id="client-scroll-root" className="overflow-x-clip w-full min-h-dvh">
       <Outlet />
       <ToastViewport
         variant={toastVariant}

@@ -1,4 +1,4 @@
-import { type GardenSignalPool, PoolType } from "@green-goods/shared";
+import { type GardenSignalPool, PoolType } from "@green-goods/shared/types/gardens-community";
 import type { Meta, StoryObj } from "@storybook/react";
 import {
   withAdminIdentity,
@@ -30,7 +30,7 @@ const meta: Meta<typeof GovernancePanel> = {
     docs: {
       description: {
         component:
-          "Tier-5 audit-then-ship integration story. Composes the Tier 3 conviction " +
+          "Integration story. Composes the Tier 3 conviction " +
           "components (WeightAllocator + ProposalCardConviction + ConvictionMeter) with " +
           "the Tier-5 adapter hooks (useConvictionProposalsForPool + " +
           "useConvictionWeightAllocator). " +

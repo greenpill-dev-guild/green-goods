@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1416" height="1280" viewBox="0 0 1416 1280" role="img" aria-labelledby="title desc"><title id="title">Green Goods browser ceremony wireframes</title><desc id="desc">Six PWA-style states across two platform-neutral views, shown for WhatsApp: identify, allow reporting, publish once, allow review decisions, outcome, and recovery. These are design wireframes, not implemented screens.</desc><rect width="1416" height="1280" fill="#f5f5f3"/>
+<rect x="24" y="24" width="440" height="608" rx="16" fill="white" stroke="#b5bdb5"/>
+<text x="44" y="56" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#242924">Green Goods</text>
+<text x="408" y="56" font-family="Inter,Arial,sans-serif" font-size="13" font-weight="400" fill="#242924">Help</text>
+<path d="M24 76h440" stroke="#d6dbd6"/>
+<text x="44" y="107" font-family="Inter,Arial,sans-serif" font-size="14" font-weight="700" fill="#242924">1. Continue to Green Goods</text>
+<text x="44" y="131" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="400" fill="#5c685c">/agent/reporting/:requestId</text>
+<text x="44" y="165" font-family="Inter,Arial,sans-serif" font-size="22" font-weight="700" fill="#242924">Verify your account</text>
+<text x="44" y="207" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700" fill="#5c685c">WHY THIS LINK</text>
+<text x="44" y="229" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="400" fill="#242924">Verify your existing account to continue</text>
+<text x="44" y="251" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="400" fill="#242924">your conversation.</text>
+<text x="44" y="291" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700" fill="#5c685c">CHOOSE A METHOD</text>
+<text x="44" y="313" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="400" fill="#242924">Use the passkey or wallet that controls</text>
+<text x="44" y="335" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="400" fill="#242924">your existing garden account.</text>
+<text x="44" y="375" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700" fill="#5c685c">NEXT</text>
+<text x="44" y="397" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="400" fill="#242924">Confirm the matching code in your original</text>
+<text x="44" y="419" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="400" fill="#242924">chat.</text>
+<rect x="44" y="528" width="400" height="48" rx="16" fill="#284e36"/>
+<text x="58" y="556" font-family="Inter,Arial,sans-serif" font-size="17" font-weight="700" fill="white">Use passkey</text>
+<text x="44" y="602" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="400" fill="#242924">Use existing wallet</text>
+<rect x="488" y="24" width="440" height="608" rx="16" fill="white" stroke="#b5bdb5"/>
+<text x="508" y="56" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#242924">Green Goods</text>
+<text x="872" y="56" font-family="Inter,Arial,sans-serif" font-size="13" font-weight="400" fill="#242924">Help</text>
+<path d="M488 76h440" stroke="#d6dbd6"/>
+<text x="508" y="107" font-family="Inter,Arial,sans-serif" font-size="14" font-weight="700" fill="#242924">2. Allow reporting</text>
+<text x="508" y="131" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="400" fill="#5c685c">Same view / reporting permission</text>
+<text x="508" y="165" font-family="Inter,Arial,sans-serif" font-size="22" font-weight="700" fill="#242924">Fewer interruptions for reports</text>
+<text x="508" y="207" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700" fill="#5c685c">SCOPE</text>
+<text x="508" y="229" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="400" fill="#242924">TAS garden / publish confirmed reports only</text>
+<text x="508" y="269" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700" fill="#5c685c">DEMO LIMITS</text>
+<text x="508" y="291" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="400" fill="#242924">24 hours / up to 5 reports / measured gas</text>
+<text x="508" y="313" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="400" fill="#242924">cap. No transfers or reviews.</text>
+<text x="508" y="353" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700" fill="#5c685c">YOUR CONTROL</text>
+<text x="508" y="375" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="400" fill="#242924">Confirm each report in chat. Pause or</text>
+<text x="508" y="397" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="400" fill="#242924">revoke permission from Help.</text>
+<rect x="508" y="528" width="400" height="48" rx="16" fill="#284e36"/>
+<text x="522" y="556" font-family="Inter,Arial,sans-serif" font-size="17" font-weight="700" fill="white">Allow reporting in WhatsApp</text>
+<text x="508" y="602" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="400" fill="#242924">Publish this report only</text>
+<rect x="952" y="24" width="440" height="608" rx="16" fill="white" stroke="#b5bdb5"/>
+<text x="972" y="56" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#242924">Green Goods</text>
+<text x="1336" y="56" font-family="Inter,Arial,sans-serif" font-size="13" font-weight="400" fill="#242924">Help</text>
+<path d="M952 76h440" stroke="#d6dbd6"/>
+<text x="972" y="107" font-family="Inter,Arial,sans-serif" font-size="14" font-weight="700" fill="#242924">3. Publish this report</text>
+<text x="972" y="131" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="400" fill="#5c685c">Same view / exact action</text>
+<text x="972" y="165" font-family="Inter,Arial,sans-serif" font-size="22" font-weight="700" fill="#242924">Ready to publish this report?</text>
+<text x="972" y="207" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700" fill="#5c685c">CONFIRMED REPORT</text>
+<text x="972" y="229" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="400" fill="#242924">Selected garden / inferred Action /</text>
+<text x="972" y="251" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="400" fill="#242924">confirmed time and evidence</text>
+<text x="972" y="291" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700" fill="#5c685c">EVIDENCE</text>
+<text x="972" y="313" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="400" fill="#242924">Sanitized photo previews and public-sharing</text>
+<text x="972" y="335" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="400" fill="#242924">consent</text>
+<text x="972" y="375" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700" fill="#5c685c">NEXT STEP</text>
+<text x="972" y="397" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="400" fill="#242924">Your wallet or passkey confirms this exact</text>
+<text x="972" y="419" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="400" fill="#242924">action. Review the cost before continuing.</text>
+<rect x="972" y="528" width="400" height="48" rx="16" fill="#284e36"/>
+<text x="986" y="556" font-family="Inter,Arial,sans-serif" font-size="17" font-weight="700" fill="white">Confirm and publish</text>
+<text x="972" y="602" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="400" fill="#242924">Edit in WhatsApp</text>
+<rect x="24" y="656" width="440" height="608" rx="16" fill="white" stroke="#b5bdb5"/>
+<text x="44" y="688" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#242924">Green Goods</text>
+<text x="408" y="688" font-family="Inter,Arial,sans-serif" font-size="13" font-weight="400" fill="#242924">Help</text>
+<path d="M24 708h440" stroke="#d6dbd6"/>
+<text x="44" y="739" font-family="Inter,Arial,sans-serif" font-size="14" font-weight="700" fill="#242924">4. Allow review decisions</text>
+<text x="44" y="763" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="400" fill="#5c685c">Same view / review permission</text>
+<text x="44" y="797" font-family="Inter,Arial,sans-serif" font-size="22" font-weight="700" fill="#242924">A separate permission for</text>
+<text x="44" y="824" font-family="Inter,Arial,sans-serif" font-size="22" font-weight="700" fill="#242924">reviews</text>
+<text x="44" y="866" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700" fill="#5c685c">SCOPE</text>
+<text x="44" y="888" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="400" fill="#242924">TAS garden / confirmed approvals and</text>
+<text x="44" y="910" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="400" fill="#242924">rejections for eligible work</text>
+<text x="44" y="950" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700" fill="#5c685c">DEMO LIMITS</text>
+<text x="44" y="972" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="400" fill="#242924">1 hour / up to 5 decisions / measured gas</text>
+<text x="44" y="994" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="400" fill="#242924">cap. Reporting grant is separate.</text>
+<text x="44" y="1034" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700" fill="#5c685c">YOUR CONTROL</text>
+<text x="44" y="1056" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="400" fill="#242924">Read the work and confirm every exact</text>
+<text x="44" y="1078" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="400" fill="#242924">decision in WhatsApp.</text>
+<rect x="44" y="1160" width="400" height="48" rx="16" fill="#284e36"/>
+<text x="58" y="1188" font-family="Inter,Arial,sans-serif" font-size="17" font-weight="700" fill="white">Allow reviews in WhatsApp</text>
+<text x="44" y="1234" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="400" fill="#242924">Confirm this review only</text>
+<rect x="488" y="656" width="440" height="608" rx="16" fill="white" stroke="#b5bdb5"/>
+<text x="508" y="688" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#242924">Green Goods</text>
+<text x="872" y="688" font-family="Inter,Arial,sans-serif" font-size="13" font-weight="400" fill="#242924">Help</text>
+<path d="M488 708h440" stroke="#d6dbd6"/>
+<text x="508" y="739" font-family="Inter,Arial,sans-serif" font-size="14" font-weight="700" fill="#242924">5. View the outcome</text>
+<text x="508" y="763" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="400" fill="#5c685c">Same view / verified result</text>
+<text x="508" y="797" font-family="Inter,Arial,sans-serif" font-size="22" font-weight="700" fill="#242924">Your report is published</text>
+<text x="508" y="839" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700" fill="#5c685c">VERIFIED RECEIPT</text>
+<text x="508" y="861" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="400" fill="#242924">Your confirmed report and evidence are now</text>
+<text x="508" y="883" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="400" fill="#242924">recorded.</text>
+<text x="508" y="923" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700" fill="#5c685c">RECORD</text>
+<text x="508" y="945" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="400" fill="#242924">Report reference and chain receipt link</text>
+<text x="508" y="985" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700" fill="#5c685c">IN CHAT</text>
+<text x="508" y="1007" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="400" fill="#242924">The agent posts the same outcome to</text>
+<text x="508" y="1029" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="400" fill="#242924">WhatsApp, even if you close this page.</text>
+<rect x="508" y="1160" width="400" height="48" rx="16" fill="#284e36"/>
+<text x="522" y="1188" font-family="Inter,Arial,sans-serif" font-size="17" font-weight="700" fill="white">Return to WhatsApp</text>
+<text x="508" y="1234" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="400" fill="#242924">View receipt</text>
+<rect x="952" y="656" width="440" height="608" rx="16" fill="white" stroke="#b5bdb5"/>
+<text x="972" y="688" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="#242924">Green Goods</text>
+<text x="1336" y="688" font-family="Inter,Arial,sans-serif" font-size="13" font-weight="400" fill="#242924">Help</text>
+<path d="M952 708h440" stroke="#d6dbd6"/>
+<text x="972" y="739" font-family="Inter,Arial,sans-serif" font-size="14" font-weight="700" fill="#242924">6. Restore chat access</text>
+<text x="972" y="763" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="400" fill="#5c685c">/agent/reporting/recover/:requestId</text>
+<text x="972" y="797" font-family="Inter,Arial,sans-serif" font-size="22" font-weight="700" fill="#242924">Restore access to your</text>
+<text x="972" y="824" font-family="Inter,Arial,sans-serif" font-size="22" font-weight="700" fill="#242924">conversation</text>
+<text x="972" y="866" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700" fill="#5c685c">VERIFY YOUR ACCOUNT</text>
+<text x="972" y="888" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="400" fill="#242924">Use your bound passkey or wallet, then</text>
+<text x="972" y="910" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="400" fill="#242924">prove possession of the new chat.</text>
+<text x="972" y="950" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700" fill="#5c685c">WHAT CHANGES</text>
+<text x="972" y="972" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="400" fill="#242924">Old chat access and sessions end. Delegated</text>
+<text x="972" y="994" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="400" fill="#242924">execution pauses.</text>
+<text x="972" y="1034" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700" fill="#5c685c">KEPT</text>
+<text x="972" y="1056" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="400" fill="#242924">Your account and published history. Renew</text>
+<text x="972" y="1078" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="400" fill="#242924">permissions with owner approval.</text>
+<rect x="972" y="1160" width="400" height="48" rx="16" fill="#284e36"/>
+<text x="986" y="1188" font-family="Inter,Arial,sans-serif" font-size="17" font-weight="700" fill="white">Verify your account</text>
+<text x="972" y="1234" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="400" fill="#242924">Cancel recovery</text>
+</svg>

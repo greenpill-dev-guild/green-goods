@@ -86,15 +86,17 @@ contract AaveV3ERC4626Test is Test {
 
     function test_setVault_revertsForZeroAddress() public {
         // Deploy a fresh strategy without vault set
-        AaveV3ERC4626 fresh =
-            new AaveV3ERC4626(address(asset), "Fresh", "FRSH", address(pool), address(aToken), address(dataProvider), owner);
+        AaveV3ERC4626 fresh = new AaveV3ERC4626(
+            address(asset), "Fresh", "FRSH", address(pool), address(aToken), address(dataProvider), owner
+        );
         vm.expectRevert(ZeroAddress.selector);
         fresh.setVault(address(0));
     }
 
     function test_setVault_revertsForNonOwner() public {
-        AaveV3ERC4626 fresh =
-            new AaveV3ERC4626(address(asset), "Fresh", "FRSH", address(pool), address(aToken), address(dataProvider), owner);
+        AaveV3ERC4626 fresh = new AaveV3ERC4626(
+            address(asset), "Fresh", "FRSH", address(pool), address(aToken), address(dataProvider), owner
+        );
         vm.prank(depositor);
         vm.expectRevert();
         fresh.setVault(vaultAddr);

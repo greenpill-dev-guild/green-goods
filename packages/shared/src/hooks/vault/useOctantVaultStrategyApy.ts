@@ -16,12 +16,12 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { createPublicClientForChain } from "../../config/pimlico";
-import { queryKeys } from "../../config/query-keys";
+import { vaultsKeys } from "../../config/query-keys/vault";
 import { STALE_TIME_SLOW } from "../../config/query-keys/constants";
 import { logger } from "../../modules/app/logger";
 import type { OctantVaultYieldSource } from "../../modules/vault-crowdfunding";
 import type { Address } from "../../types/domain";
-import { OCTANT_VAULT_ABI } from "../../utils/blockchain/abis";
+import { OCTANT_VAULT_ABI } from "../../utils/blockchain/abis/octant";
 import { findYieldSourceAdapter, type YieldSourceKind } from "../../utils/blockchain/yield-sources";
 
 export type OctantVaultStrategyApyStatus = "unavailable" | "zero" | "positive";
@@ -76,7 +76,7 @@ export function useOctantVaultStrategyApy(
   const query = useQuery({
     queryKey:
       vaultAddress && chainId
-        ? queryKeys.vaults.vaultStrategyApy(vaultAddress, chainId)
+        ? vaultsKeys.vaultStrategyApy(vaultAddress, chainId)
         : (["greengoods", "vaults", "vaultStrategyApy", "disabled"] as const),
     enabled,
     staleTime: STALE_TIME_SLOW,

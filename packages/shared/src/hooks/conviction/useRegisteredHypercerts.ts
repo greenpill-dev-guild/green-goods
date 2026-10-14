@@ -3,7 +3,8 @@ import { getRegisteredHypercertsFromSubgraph } from "../../modules/data/gardens"
 import type { Address } from "../../types/domain";
 import { normalizeAddress } from "../../utils/blockchain/address";
 import { useCurrentChain } from "../blockchain/useChainConfig";
-import { queryKeys, STALE_TIME_SLOW } from "../../config/query-keys";
+import { STALE_TIME_SLOW } from "../../config/query-keys/constants";
+import { convictionKeys } from "../../config/query-keys/hypercert";
 
 interface UseRegisteredHypercertsOptions {
   enabled?: boolean;
@@ -18,7 +19,7 @@ export function useRegisteredHypercerts(
   const normalizedPool = poolAddress ? normalizeAddress(poolAddress) : undefined;
 
   const query = useQuery({
-    queryKey: queryKeys.conviction.registeredHypercerts(normalizedPool ?? "", chainId),
+    queryKey: convictionKeys.registeredHypercerts(normalizedPool ?? "", chainId),
     queryFn: async (): Promise<bigint[]> => {
       if (!normalizedPool) return [];
       return getRegisteredHypercertsFromSubgraph(normalizedPool, chainId);

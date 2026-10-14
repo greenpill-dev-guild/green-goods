@@ -1,0 +1,3997 @@
+[
+  {
+    "type": "function",
+    "name": "CCIP_ROUTER",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "DESTINATION_EVM_CHAIN_ID",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "HARD_MAX_BATCH_SIZE",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "MAX_PAYOUT_CONTRIBUTORS",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "SOURCE_CHAIN_SELECTOR",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "batchSizeLimit",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint16",
+        "internalType": "uint16"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "cancelBatch",
+    "inputs": [
+      {
+        "name": "batchId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "reasonCID",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "cancelDisbursement",
+    "inputs": [
+      {
+        "name": "disbursementId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "reasonCID",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "ccipRoute",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct ISettlementModule.CcipRoute",
+        "components": [
+          {
+            "name": "destinationChainSelector",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "destinationExecutor",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "previousDestinationExecutor",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "previousPeerExpiresAt",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "destinationGasLimit",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "protocolVersion",
+            "type": "uint8",
+            "internalType": "uint8"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "commandRecord",
+    "inputs": [
+      {
+        "name": "executionKey",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct ISettlementModule.CommandRecord",
+        "components": [
+          {
+            "name": "isBatch",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "subjectId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "attempt",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "destinationChainSelector",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "destinationExecutor",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "destinationGasLimit",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "protocolVersion",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "commandPayloadHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "latestCommandMessageId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "acknowledged",
+            "type": "bool",
+            "internalType": "bool"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "commitmentPoolingModule",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "consumeFunding",
+    "inputs": [
+      {
+        "name": "fundingId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "contributorPayoutOf",
+    "inputs": [
+      {
+        "name": "payoutPlanId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "contributor",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct ISettlementModule.ContributorPayout",
+        "components": [
+          {
+            "name": "contributor",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "recognitionWeightBps",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "paymentWeightBps",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "amount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "recipient",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "disbursementId",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "createBatch",
+    "inputs": [
+      {
+        "name": "disbursementIds",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "batchId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "createCommitmentPayoutPlan",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "recognitionEntries",
+        "type": "tuple[]",
+        "internalType": "struct ISettlementModule.RecognitionEntry[]",
+        "components": [
+          {
+            "name": "contributor",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "recognitionWeightBps",
+            "type": "uint16",
+            "internalType": "uint16"
+          }
+        ]
+      },
+      {
+        "name": "recognitionSnapshotHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "payoutPlanId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "creditRegistry",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "dispatchBatch",
+    "inputs": [
+      {
+        "name": "batchId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "messageId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "dispatchDisbursement",
+    "inputs": [
+      {
+        "name": "disbursementId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "messageId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "dispatcher",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "failStrandedSubject",
+    "inputs": [
+      {
+        "name": "isBatch",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "subjectId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "feeReserveMinimum",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "finalizeCommitmentPayoutPlan",
+    "inputs": [
+      {
+        "name": "payoutPlanId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "fundFees",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "fundingOfCommitmentFunder",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "funder",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "fundingRefundDisbursementOf",
+    "inputs": [
+      {
+        "name": "fundingId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "gDollarToken",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "gardenerDeliveryEnabled",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getBatch",
+    "inputs": [
+      {
+        "name": "batchId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct ISettlementModule.Batch",
+        "components": [
+          {
+            "name": "executorGarden",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "source",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "token",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "kind",
+            "type": "uint8",
+            "internalType": "enum ISettlementModule.DisbursementKind"
+          },
+          {
+            "name": "fundingRoute",
+            "type": "uint8",
+            "internalType": "enum ISettlementModule.FundingRoute"
+          },
+          {
+            "name": "disbursementIds",
+            "type": "uint256[]",
+            "internalType": "uint256[]"
+          },
+          {
+            "name": "state",
+            "type": "uint8",
+            "internalType": "enum ISettlementModule.DisbursementState"
+          },
+          {
+            "name": "attempt",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "executionKey",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "commandMessageId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "dispatchedAt",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "confirmedAt",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "acknowledgmentMessageId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "failureCode",
+            "type": "uint8",
+            "internalType": "uint8"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getCommitmentFunding",
+    "inputs": [
+      {
+        "name": "fundingId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct ISettlementModule.CommitmentFunding",
+        "components": [
+          {
+            "name": "commitmentId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "funder",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "garden",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "refundAccount",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "expectedAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "depositedAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "depositReference",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "state",
+            "type": "uint8",
+            "internalType": "enum ISettlementModule.FundingState"
+          },
+          {
+            "name": "refundDisbursementId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "pledgedAt",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "depositRecordedAt",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "consumedAt",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "closedAt",
+            "type": "uint64",
+            "internalType": "uint64"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getDisbursement",
+    "inputs": [
+      {
+        "name": "disbursementId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct ISettlementModule.Disbursement",
+        "components": [
+          {
+            "name": "commitmentId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "payoutPlanId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "contributor",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "garden",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "executorGarden",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "kind",
+            "type": "uint8",
+            "internalType": "enum ISettlementModule.DisbursementKind"
+          },
+          {
+            "name": "fundingRoute",
+            "type": "uint8",
+            "internalType": "enum ISettlementModule.FundingRoute"
+          },
+          {
+            "name": "source",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "recipient",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "token",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "amount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "state",
+            "type": "uint8",
+            "internalType": "enum ISettlementModule.DisbursementState"
+          },
+          {
+            "name": "batchId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "reasonCID",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "attempt",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "executionKey",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "commandMessageId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "dispatchedAt",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "confirmedAt",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "acknowledgmentMessageId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "failureCode",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "cancelledFromState",
+            "type": "uint8",
+            "internalType": "enum ISettlementModule.DisbursementState"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getPayoutPlan",
+    "inputs": [
+      {
+        "name": "payoutPlanId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct ISettlementModule.CommitmentPayoutPlan",
+        "components": [
+          {
+            "name": "commitmentId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "providerGarden",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "payerGarden",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "source",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "token",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "payoutKind",
+            "type": "uint8",
+            "internalType": "enum ISettlementModule.DisbursementKind"
+          },
+          {
+            "name": "declaredAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "gardenRetainedAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "contributorPayoutTotal",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "beneficiaryGarden",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "beneficiaryRecipient",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "beneficiaryAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "beneficiaryDisbursementId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "recognitionContributorCount",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "payablePayoutCount",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "preparedPayoutCount",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "confirmedPayoutCount",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "failedPayoutCount",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "cancelledPayoutCount",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "paymentSnapshotVersion",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "recognitionSnapshotHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "paymentSnapshotHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "contributorOrder",
+            "type": "address[]",
+            "internalType": "address[]"
+          },
+          {
+            "name": "latestEditReasonCID",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "finalized",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "createdAt",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "finalizedAt",
+            "type": "uint64",
+            "internalType": "uint64"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "hatsModule",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "initialize",
+    "inputs": [
+      {
+        "name": "owner_",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "hatsModule_",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "commitmentPoolingModule_",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "protocolGarden_",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "gDollarToken_",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "isAcknowledgmentPending",
+    "inputs": [
+      {
+        "name": "isBatch",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "subjectId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "isFeeReserveLow",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "loanPrincipalDisbursementOf",
+    "inputs": [
+      {
+        "name": "registry",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "loanId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "loanPrincipalRelationshipOf",
+    "inputs": [
+      {
+        "name": "disbursementId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct ISettlementModule.LoanPrincipalRelationship",
+        "components": [
+          {
+            "name": "creditRegistry",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "loanId",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "nativeFeeBalance",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "paused",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "payoutContributors",
+    "inputs": [
+      {
+        "name": "payoutPlanId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address[]",
+        "internalType": "address[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "payoutPlanOfCommitment",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "payoutPlanStatus",
+    "inputs": [
+      {
+        "name": "payoutPlanId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint8",
+        "internalType": "enum ISettlementModule.PayoutPlanStatus"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "prepareContributorPayout",
+    "inputs": [
+      {
+        "name": "payoutPlanId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "contributor",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "disbursementId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "prepareGardenBeneficiaryPayout",
+    "inputs": [
+      {
+        "name": "payoutPlanId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "disbursementId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "protocolGarden",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "queueFunding",
+    "inputs": [
+      {
+        "name": "garden",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "disbursementId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "queueFundingRefund",
+    "inputs": [
+      {
+        "name": "fundingId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "disbursementId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "queueLoanPrincipal",
+    "inputs": [
+      {
+        "name": "loanId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "disbursementId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "quoteCommandFee",
+    "inputs": [
+      {
+        "name": "isBatch",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "subjectId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "recordFunding",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "funder",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "refundAccount",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "fundingId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "recordFundingDeposit",
+    "inputs": [
+      {
+        "name": "fundingId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "depositReference",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "registerSettlementAccount",
+    "inputs": [
+      {
+        "name": "garden",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "chainId",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "account",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "recoveryOwners",
+        "type": "address[3]",
+        "internalType": "address[3]"
+      },
+      {
+        "name": "rolesModifier",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "roleKey",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "allowanceKey",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "permissionsConfigHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "requeue",
+    "inputs": [
+      {
+        "name": "disbursementId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "retryBatchCommand",
+    "inputs": [
+      {
+        "name": "batchId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "messageId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "retryCommand",
+    "inputs": [
+      {
+        "name": "disbursementId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "messageId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setAccountActive",
+    "inputs": [
+      {
+        "name": "garden",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "active",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setBatchSizeLimit",
+    "inputs": [
+      {
+        "name": "limit",
+        "type": "uint16",
+        "internalType": "uint16"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setCcipRoute",
+    "inputs": [
+      {
+        "name": "destinationChainSelector",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "destinationExecutor",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "destinationGasLimit",
+        "type": "uint32",
+        "internalType": "uint32"
+      },
+      {
+        "name": "protocolVersion",
+        "type": "uint8",
+        "internalType": "uint8"
+      },
+      {
+        "name": "previousPeerGraceSeconds",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setCommitmentPoolingModule",
+    "inputs": [
+      {
+        "name": "module",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setContributorPayouts",
+    "inputs": [
+      {
+        "name": "payoutPlanId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "gardenRetainedAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "payouts",
+        "type": "tuple[]",
+        "internalType": "struct ISettlementModule.ContributorPayoutInput[]",
+        "components": [
+          {
+            "name": "contributor",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "amount",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      },
+      {
+        "name": "reasonCID",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setCreditRegistry",
+    "inputs": [
+      {
+        "name": "registry",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setDispatcher",
+    "inputs": [
+      {
+        "name": "dispatcher_",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setFeeReserveMinimum",
+    "inputs": [
+      {
+        "name": "minimum",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setGardenerDeliveryEnabled",
+    "inputs": [
+      {
+        "name": "enabled",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setHatsModule",
+    "inputs": [
+      {
+        "name": "module",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setPaused",
+    "inputs": [
+      {
+        "name": "paused_",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "settlementAccountOf",
+    "inputs": [
+      {
+        "name": "garden",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct ISettlementModule.SettlementAccount",
+        "components": [
+          {
+            "name": "chainId",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "account",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "active",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "recoveryOwners",
+            "type": "address[3]",
+            "internalType": "address[3]"
+          },
+          {
+            "name": "rolesModifier",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "roleKey",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "allowanceKey",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "permissionsConfigHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "recoveryConfigHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "recoveryThreshold",
+            "type": "uint8",
+            "internalType": "uint8"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "settlementGardenOf",
+    "inputs": [
+      {
+        "name": "account",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "garden",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "updateSettlementRecovery",
+    "inputs": [
+      {
+        "name": "garden",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "recoveryOwners",
+        "type": "address[3]",
+        "internalType": "address[3]"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "withdrawExcessFees",
+    "inputs": [
+      {
+        "name": "recipient",
+        "type": "address",
+        "internalType": "address payable"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "event",
+    "name": "BatchCancelled",
+    "inputs": [
+      {
+        "name": "batchId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "actor",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "reasonCID",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "BatchCreated",
+    "inputs": [
+      {
+        "name": "batchId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "executorGarden",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "source",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "token",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "kind",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      },
+      {
+        "name": "fundingRoute",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      },
+      {
+        "name": "disbursementIds",
+        "type": "uint256[]",
+        "indexed": false,
+        "internalType": "uint256[]"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "BatchSizeLimitUpdated",
+    "inputs": [
+      {
+        "name": "previousLimit",
+        "type": "uint16",
+        "indexed": false,
+        "internalType": "uint16"
+      },
+      {
+        "name": "limit",
+        "type": "uint16",
+        "indexed": false,
+        "internalType": "uint16"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CcipRouteUpdated",
+    "inputs": [
+      {
+        "name": "destinationChainSelector",
+        "type": "uint64",
+        "indexed": true,
+        "internalType": "uint64"
+      },
+      {
+        "name": "destinationExecutor",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "previousDestinationExecutor",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "previousPeerExpiresAt",
+        "type": "uint64",
+        "indexed": false,
+        "internalType": "uint64"
+      },
+      {
+        "name": "destinationGasLimit",
+        "type": "uint32",
+        "indexed": false,
+        "internalType": "uint32"
+      },
+      {
+        "name": "protocolVersion",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CommitmentPayoutPlanCreated",
+    "inputs": [
+      {
+        "name": "payoutPlanId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "providerGarden",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "payerGarden",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "source",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "token",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "payoutKind",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      },
+      {
+        "name": "declaredAmount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "gardenRetainedAmount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "beneficiaryGarden",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "beneficiaryRecipient",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "beneficiaryAmount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "recognitionSnapshotHash",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "createdBy",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CommitmentPayoutPlanFinalized",
+    "inputs": [
+      {
+        "name": "payoutPlanId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "payoutKind",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      },
+      {
+        "name": "payablePayoutCount",
+        "type": "uint32",
+        "indexed": false,
+        "internalType": "uint32"
+      },
+      {
+        "name": "contributorPayoutTotal",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "beneficiaryAmount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "gardenRetainedAmount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "recognitionSnapshotHash",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "paymentSnapshotHash",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "completedWithoutDispatch",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      },
+      {
+        "name": "finalizedAt",
+        "type": "uint64",
+        "indexed": false,
+        "internalType": "uint64"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CommitmentPayoutSnapshotCommitted",
+    "inputs": [
+      {
+        "name": "payoutPlanId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "paymentSnapshotVersion",
+        "type": "uint32",
+        "indexed": true,
+        "internalType": "uint32"
+      },
+      {
+        "name": "rowCount",
+        "type": "uint32",
+        "indexed": false,
+        "internalType": "uint32"
+      },
+      {
+        "name": "gardenRetainedAmount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "contributorPayoutTotal",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "paymentSnapshotHash",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "reasonCID",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "editedBy",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CommitmentPoolingModuleUpdated",
+    "inputs": [
+      {
+        "name": "previousModule",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "newModule",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ContributorPayoutSet",
+    "inputs": [
+      {
+        "name": "payoutPlanId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "paymentSnapshotVersion",
+        "type": "uint32",
+        "indexed": true,
+        "internalType": "uint32"
+      },
+      {
+        "name": "contributor",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "recipient",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "recognitionWeightBps",
+        "type": "uint16",
+        "indexed": false,
+        "internalType": "uint16"
+      },
+      {
+        "name": "paymentWeightBps",
+        "type": "uint16",
+        "indexed": false,
+        "internalType": "uint16"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "reasonCID",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "editedBy",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CreditRegistryUpdated",
+    "inputs": [
+      {
+        "name": "previousRegistry",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "newRegistry",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "DisbursementCancelled",
+    "inputs": [
+      {
+        "name": "disbursementId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "actor",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "cancelledFromState",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      },
+      {
+        "name": "reasonCID",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "DisbursementQueued",
+    "inputs": [
+      {
+        "name": "disbursementId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "garden",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "payoutPlanId",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "contributor",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "executorGarden",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "kind",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      },
+      {
+        "name": "fundingRoute",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      },
+      {
+        "name": "source",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "recipient",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "token",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "DisbursementRequeued",
+    "inputs": [
+      {
+        "name": "disbursementId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "attempt",
+        "type": "uint32",
+        "indexed": false,
+        "internalType": "uint32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "DispatcherUpdated",
+    "inputs": [
+      {
+        "name": "previousDispatcher",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "dispatcher",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "DuplicateAcknowledgmentIgnored",
+    "inputs": [
+      {
+        "name": "executionKey",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "acknowledgmentMessageId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ExcessFeesWithdrawn",
+    "inputs": [
+      {
+        "name": "recipient",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "FeeReserveFunded",
+    "inputs": [
+      {
+        "name": "funder",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "FeeReserveMinimumUpdated",
+    "inputs": [
+      {
+        "name": "previousMinimum",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "minimum",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "FundingConfigurationLocked",
+    "inputs": [
+      {
+        "name": "protocolGarden",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "gDollarToken",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "FundingConsumed",
+    "inputs": [
+      {
+        "name": "fundingId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "funder",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "depositedAmount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "consumedBy",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "FundingDepositRecorded",
+    "inputs": [
+      {
+        "name": "fundingId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "depositReference",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "recordedBy",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "FundingPledged",
+    "inputs": [
+      {
+        "name": "fundingId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "funder",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "garden",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "refundAccount",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "expectedAmount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "recordedBy",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "FundingWithdrawn",
+    "inputs": [
+      {
+        "name": "fundingId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "funder",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "withdrawnBy",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "GardenerDeliveryStatusChanged",
+    "inputs": [
+      {
+        "name": "enabled",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "HatsModuleUpdated",
+    "inputs": [
+      {
+        "name": "previousModule",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "newModule",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "LoanPrincipalQueued",
+    "inputs": [
+      {
+        "name": "disbursementId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "creditRegistry",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "loanId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PausedSet",
+    "inputs": [
+      {
+        "name": "paused",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SettlementAccountRegistered",
+    "inputs": [
+      {
+        "name": "garden",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "chainId",
+        "type": "uint64",
+        "indexed": false,
+        "internalType": "uint64"
+      },
+      {
+        "name": "account",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "recoveryOwners",
+        "type": "address[3]",
+        "indexed": false,
+        "internalType": "address[3]"
+      },
+      {
+        "name": "rolesModifier",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "roleKey",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "allowanceKey",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "permissionsConfigHash",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "recoveryConfigHash",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "recoveryThreshold",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SettlementAccountStatusChanged",
+    "inputs": [
+      {
+        "name": "garden",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "active",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SettlementAcknowledged",
+    "inputs": [
+      {
+        "name": "executionKey",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "acknowledgmentMessageId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "originatingCommandMessageId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "isBatch",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      },
+      {
+        "name": "subjectId",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "success",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      },
+      {
+        "name": "failureCode",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SettlementCommandDispatched",
+    "inputs": [
+      {
+        "name": "executionKey",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "commandMessageId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "isBatch",
+        "type": "bool",
+        "indexed": true,
+        "internalType": "bool"
+      },
+      {
+        "name": "subjectId",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "attempt",
+        "type": "uint32",
+        "indexed": false,
+        "internalType": "uint32"
+      },
+      {
+        "name": "destinationChainSelector",
+        "type": "uint64",
+        "indexed": false,
+        "internalType": "uint64"
+      },
+      {
+        "name": "destinationExecutor",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "destinationGasLimit",
+        "type": "uint32",
+        "indexed": false,
+        "internalType": "uint32"
+      },
+      {
+        "name": "protocolVersion",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      },
+      {
+        "name": "commandPayloadHash",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "fee",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SettlementCommandRetried",
+    "inputs": [
+      {
+        "name": "executionKey",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "commandMessageId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "isBatch",
+        "type": "bool",
+        "indexed": true,
+        "internalType": "bool"
+      },
+      {
+        "name": "subjectId",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "attempt",
+        "type": "uint32",
+        "indexed": false,
+        "internalType": "uint32"
+      },
+      {
+        "name": "destinationChainSelector",
+        "type": "uint64",
+        "indexed": false,
+        "internalType": "uint64"
+      },
+      {
+        "name": "destinationExecutor",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "destinationGasLimit",
+        "type": "uint32",
+        "indexed": false,
+        "internalType": "uint32"
+      },
+      {
+        "name": "protocolVersion",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      },
+      {
+        "name": "commandPayloadHash",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "fee",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SettlementDeploymentPinned",
+    "inputs": [
+      {
+        "name": "ccipRouter",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "localChainSelector",
+        "type": "uint64",
+        "indexed": true,
+        "internalType": "uint64"
+      },
+      {
+        "name": "remoteEvmChainId",
+        "type": "uint64",
+        "indexed": true,
+        "internalType": "uint64"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SettlementRecoveryUpdated",
+    "inputs": [
+      {
+        "name": "garden",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "recoveryOwners",
+        "type": "address[3]",
+        "indexed": false,
+        "internalType": "address[3]"
+      },
+      {
+        "name": "recoveryConfigHash",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "StaleAcknowledgmentIgnored",
+    "inputs": [
+      {
+        "name": "executionKey",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "acknowledgmentMessageId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "StrandedSubjectFailed",
+    "inputs": [
+      {
+        "name": "executionKey",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "isBatch",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      },
+      {
+        "name": "subjectId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "retiredExecutor",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "error",
+    "name": "AmountRequired",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "BatchEntryMismatch",
+    "inputs": [
+      {
+        "name": "disbursementId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "BatchNotInState",
+    "inputs": [
+      {
+        "name": "batchId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "actual",
+        "type": "uint8",
+        "internalType": "enum ISettlementModule.DisbursementState"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "BatchSizeOutOfBounds",
+    "inputs": [
+      {
+        "name": "supplied",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "maximum",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "BatchedDisbursementCannotBeCancelled",
+    "inputs": [
+      {
+        "name": "disbursementId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "batchId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "CcipTokensNotAllowed",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "CommitmentFundingNotInState",
+    "inputs": [
+      {
+        "name": "fundingId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "actual",
+        "type": "uint8",
+        "internalType": "enum ISettlementModule.FundingState"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "CommitmentPayoutPlanExists",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "payoutPlanId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "CommitmentPoolingModuleLocked",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ConsiderationNotDeclared",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "CreditRegistryConfigurationMismatch",
+    "inputs": [
+      {
+        "name": "creditRegistry",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "settlementModule",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "commitmentPoolingModule",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "hatsModule",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "CreditRegistryHasActiveReservations",
+    "inputs": [
+      {
+        "name": "creditRegistry",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "count",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "CreditRegistryPaused",
+    "inputs": [
+      {
+        "name": "creditRegistry",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "CreditRegistryRequired",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "DisbursementNotInState",
+    "inputs": [
+      {
+        "name": "disbursementId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "actual",
+        "type": "uint8",
+        "internalType": "enum ISettlementModule.DisbursementState"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "DispatchedSettlementCannotBeCancelled",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "DuplicateBatchEntry",
+    "inputs": [
+      {
+        "name": "disbursementId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "DuplicateBatchRecipient",
+    "inputs": [
+      {
+        "name": "recipient",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "FeeReserveFloorViolated",
+    "inputs": [
+      {
+        "name": "requiredMinimum",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "remainingBalance",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "FundingClaimantMismatch",
+    "inputs": [
+      {
+        "name": "fundingId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "funder",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "acceptedCounterparty",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "FundingConfigurationIncomplete",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "FundingDepositBelowPrice",
+    "inputs": [
+      {
+        "name": "fundingId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "expectedAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "depositedAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "FundingDepositReferenceRequired",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "FundingDepositReferenceUsed",
+    "inputs": [
+      {
+        "name": "depositReference",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "existingFundingId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "FundingRecordConflict",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "funder",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "existingFundingId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "FundingRefundAlreadyLinked",
+    "inputs": [
+      {
+        "name": "fundingId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "disbursementId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "FundingRefundNotEligible",
+    "inputs": [
+      {
+        "name": "fundingId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "GardenerDeliveryDisabled",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ImmutableConfigurationMismatch",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "IneligibleContributor",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "contributor",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "InsufficientNativeFee",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidCcipSender",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidCcipSource",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidCreditRegistry",
+    "inputs": [
+      {
+        "name": "creditRegistry",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "InvalidExecutionKey",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidPayerGarden",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "InvalidPayoutVector",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidRecognitionVector",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidRecoveryConfiguration",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidSettlementChain",
+    "inputs": [
+      {
+        "name": "chainId",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "LoanPrincipalCapExceeded",
+    "inputs": [
+      {
+        "name": "loanId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "requested",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "available",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "LoanPrincipalCreditDisabled",
+    "inputs": [
+      {
+        "name": "loanId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "LoanPrincipalExpired",
+    "inputs": [
+      {
+        "name": "loanId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "dueDate",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "LoanPrincipalMismatch",
+    "inputs": [
+      {
+        "name": "loanId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "disbursementId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "LoanPrincipalNotApproved",
+    "inputs": [
+      {
+        "name": "loanId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "state",
+        "type": "uint8",
+        "internalType": "uint8"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "LoanPrincipalPoolNotOpen",
+    "inputs": [
+      {
+        "name": "loanId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "state",
+        "type": "uint8",
+        "internalType": "uint8"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "NotSettlementSteward",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "garden",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "PayoutKindMismatch",
+    "inputs": [
+      {
+        "name": "payoutPlanId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "expected",
+        "type": "uint8",
+        "internalType": "enum ISettlementModule.DisbursementKind"
+      },
+      {
+        "name": "actual",
+        "type": "uint8",
+        "internalType": "enum ISettlementModule.DisbursementKind"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "PayoutPlanFinalized",
+    "inputs": [
+      {
+        "name": "payoutPlanId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "PayoutPlanInvariantMismatch",
+    "inputs": [
+      {
+        "name": "declaredAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "retainedAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "contributorTotal",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "beneficiaryAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "PayoutPlanNotFinalized",
+    "inputs": [
+      {
+        "name": "payoutPlanId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "PreviousPeerGraceActive",
+    "inputs": [
+      {
+        "name": "previousPeer",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "expiresAt",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "RecognitionPaymentDivergenceRequiresReason",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "RecognitionSnapshotMismatch",
+    "inputs": [
+      {
+        "name": "expected",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "actual",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "RefundDisbursementCannotBeCancelled",
+    "inputs": [
+      {
+        "name": "disbursementId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "RetiredPeerAcknowledgment",
+    "inputs": [
+      {
+        "name": "sender",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "RetiredPeerRetry",
+    "inputs": [
+      {
+        "name": "executor",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "SettlementAccountAlreadyAssigned",
+    "inputs": [
+      {
+        "name": "account",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "assignedGarden",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "SettlementAccountInactive",
+    "inputs": [
+      {
+        "name": "garden",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "SourceMustBePaused",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SourceNotReady",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SubjectNotStranded",
+    "inputs": [
+      {
+        "name": "isBatch",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "subjectId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "TooManyPayoutContributors",
+    "inputs": [
+      {
+        "name": "supplied",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "maximum",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "UnauthorizedCaller",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "UnknownBatch",
+    "inputs": [
+      {
+        "name": "batchId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "UnknownCommitmentFunding",
+    "inputs": [
+      {
+        "name": "fundingId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "UnknownDisbursement",
+    "inputs": [
+      {
+        "name": "disbursementId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "UnknownPayoutPlan",
+    "inputs": [
+      {
+        "name": "payoutPlanId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "UnknownSettlementAccount",
+    "inputs": [
+      {
+        "name": "garden",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "UnsupportedMessageVersion",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ZeroAddress",
+    "inputs": []
+  }
+]

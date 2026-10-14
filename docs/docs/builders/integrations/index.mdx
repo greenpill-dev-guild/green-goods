@@ -1,0 +1,83 @@
+---
+title: Integrations
+sidebar_label: Integrations
+slug: /builders/integrations
+audience: developer
+owner: docs
+last_verified: 2026-10-10
+feature_status: Live
+source_of_truth:
+  - packages/shared/src/ontology/green-goods-ontology.json
+  - docs/src/data/integration-projections.json
+keywords:
+  - integrations
+  - protocols
+  - deployments
+---
+
+import {IntegrationStatusTable} from "@site/src/components/docs";
+
+# Integrations
+
+Green Goods composes existing protocols instead of reinventing them: attestations from
+[EAS](https://docs.attest.org/docs/welcome), accounts from
+[ERC-6551](https://eips.ethereum.org/EIPS/eip-6551), roles from
+[Hats](https://docs.hatsprotocol.xyz/for-developers/hats-protocol-for-developers), funding rails
+from Octant, Gardens, Hypercerts, and 1Hive's Cookie Jar, and badges from Unlock. Each
+integration page explains why Green Goods uses the protocol, where it lives in the code, and what
+the checked-in artifacts say is deployed where.
+
+## The integrations
+
+- [EAS](/builders/integrations/eas): the attestation layer for Green Goods' attested records, like
+  work, approvals, and assessments.
+- [Hats Protocol](/builders/integrations/hats): on-chain role trees that decide who may do what.
+- [Tokenbound Accounts](/builders/integrations/tokenbound): the ERC-6551 accounts that make each garden an owner.
+- [Passkeys](/builders/integrations/passkey): wallet-free sign-in for gardeners.
+- [Octant](/builders/integrations/octant): garden vaults and yield-donation mechanics.
+- [Gardens](/builders/integrations/gardens): conviction-voting communities and signal pools.
+- [Hypercerts](/builders/integrations/hypercerts): certified impact claims and their fractions.
+- [Karma GAP](/builders/integrations/karma): project reporting and milestone records.
+- [ENS](/builders/integrations/ens): names for gardens.
+- [Cookie Jar](/builders/integrations/cookie-jar): small, capped allowances from 1Hive's Cookie Jar,
+  one jar per garden asset.
+- [Unlock Protocol](/builders/integrations/unlock): the locks behind GreenWill badges, the
+  credentials a gardener or funder proves and claims.
+
+## Status by network
+
+The table below is generated from the checked-in deployment artifacts and the indexer
+configuration: for each catalogued integration, where its components are recorded and which of its
+contracts the indexer follows. Passkeys are not in it because they have no on-chain deployment. A
+recorded address proves a deployment was written down, never that a feature is live and healthy;
+the [Deployments & Addresses](/builders/reference/deployments) page lists every address.
+
+<IntegrationStatusTable />
+
+## Who owns which fact
+
+An integration crosses several layers, and each fact about it has exactly one home. Contract
+behavior lives in the contract source and its tests. Where something is deployed lives in the
+chain's deployment artifact, and a schema's identity in the schema configuration that artifact
+records. Which events are indexed lives in `packages/indexer/config.yaml` and its handlers. How an
+app reaches the integration lives in shared's modules, hooks, and package exports. What a
+partner's concepts mean in Green Goods terms lives in the ontology and the
+[entity matrix](/builders/architecture/entity-matrix). When you change an integration, change the
+layer that owns the fact; each integration page links its layers.
+
+| Concern | Authority |
+|---|---|
+| Contract behavior | Contract source and tests |
+| Recorded deployment | Chain deployment artifact |
+| Schema identity | Schema configuration and deployment artifact |
+| Indexed events | `packages/indexer/config.yaml` and handlers |
+| Application access | Shared modules, hooks, and package exports |
+| Semantic mapping | The ontology and the [entity matrix](/builders/architecture/entity-matrix) |
+
+## Next steps
+
+- [EAS](/builders/integrations/eas) is the best place to start: work, approvals, and assessments
+  all live there.
+- [Anatomy of a Work Submission](/builders/architecture/anatomy) shows several integrations working
+  together in one flow.
+- [Deployments & Addresses](/builders/reference/deployments) lists every recorded address per chain.

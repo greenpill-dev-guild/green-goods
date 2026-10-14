@@ -8,9 +8,9 @@ import {
   SETTINGS_SHEET_CONTENT_ID,
   toActionDetailContentId,
   toActionEditContentId,
-  toHistoryContentId,
+  toCertificationContentId,
   toWorkDetailContentId,
-} from "@green-goods/shared";
+} from "@green-goods/shared/hooks/admin-ui/navigation/sheetRegistry";
 
 describe("admin sheet registry", () => {
   it("registers global right sheet content", () => {
@@ -28,10 +28,17 @@ describe("admin sheet registry", () => {
   it("restores route-backed Hub sheets only when the path owns the sheet", () => {
     expect(isRouteSheetRestorable(toWorkDetailContentId("work-7"), "/hub/work/work-7")).toBe(true);
     expect(isRouteSheetRestorable(toWorkDetailContentId("work-7"), "/hub/work")).toBe(false);
+    // An assessment's record belongs to the Assessments tab's path; its old
+    // address under Certify only redirects there and owns no sheet.
+    const assessmentSheet = toCertificationContentId("assessment-1");
+    expect(isRouteSheetRestorable(assessmentSheet, "/hub/assess/assessment-1")).toBe(true);
+    expect(isRouteSheetRestorable(assessmentSheet, "/hub/certify/assessment-1")).toBe(false);
+    expect(isRouteSheetRestorable(assessmentSheet, "/hub/assess/create")).toBe(false);
   });
 
-  it("does not treat legacy Hub item query state as route ownership", () => {
-    expect(isRouteSheetRestorable(toHistoryContentId("event-1"), "/hub/history")).toBe(false);
+  it("never restores retired hub:history sheet ids from stale persisted state", () => {
+    expect(isRouteSheetRestorable("hub:history:event-1", "/hub/history/event-1")).toBe(false);
+    expect(isRouteSheetRestorable("hub:history:event-1", "/hub")).toBe(false);
   });
 
   it("restores route-backed Actions inspectors only when the path owns the sheet", () => {

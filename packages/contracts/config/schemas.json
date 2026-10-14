@@ -5,13 +5,34 @@
       "description": "Assessment v2 schema for Green Goods gardens. Stores title, description, and location on-chain. The full strategy kernel (diagnosis, SMART outcomes, Cynefin phase, domain, SDG targets, attachments) is stored in IPFS and referenced by assessmentConfigCID.",
       "revocable": false,
       "fields": [
-        { "name": "title", "type": "string" },
-        { "name": "description", "type": "string" },
-        { "name": "assessmentConfigCID", "type": "string" },
-        { "name": "domain", "type": "uint8" },
-        { "name": "startDate", "type": "uint256" },
-        { "name": "endDate", "type": "uint256" },
-        { "name": "location", "type": "string" }
+        {
+          "name": "title",
+          "type": "string"
+        },
+        {
+          "name": "description",
+          "type": "string"
+        },
+        {
+          "name": "assessmentConfigCID",
+          "type": "string"
+        },
+        {
+          "name": "domain",
+          "type": "uint8"
+        },
+        {
+          "name": "startDate",
+          "type": "uint256"
+        },
+        {
+          "name": "endDate",
+          "type": "uint256"
+        },
+        {
+          "name": "location",
+          "type": "string"
+        }
       ]
     },
     "work": {
@@ -19,11 +40,26 @@
       "description": "Work submission schema for Green Goods protocol. Enables gardeners to submit completed regenerative agriculture tasks with media evidence and metadata for verification and payment.",
       "revocable": false,
       "fields": [
-        { "name": "actionUID", "type": "uint256" },
-        { "name": "title", "type": "string" },
-        { "name": "feedback", "type": "string" },
-        { "name": "metadata", "type": "string" },
-        { "name": "media", "type": "string[]" }
+        {
+          "name": "actionUID",
+          "type": "uint256"
+        },
+        {
+          "name": "title",
+          "type": "string"
+        },
+        {
+          "name": "feedback",
+          "type": "string"
+        },
+        {
+          "name": "metadata",
+          "type": "string"
+        },
+        {
+          "name": "media",
+          "type": "string[]"
+        }
       ]
     },
     "workApproval": {
@@ -31,13 +67,100 @@
       "description": "Work approval schema for Green Goods protocol. Allows validators to approve or reject submitted work with feedback and verification confidence scoring, enabling trustless verification of regenerative activities.",
       "revocable": false,
       "fields": [
-        { "name": "actionUID", "type": "uint256" },
-        { "name": "workUID", "type": "bytes32" },
-        { "name": "approved", "type": "bool" },
-        { "name": "feedback", "type": "string" },
-        { "name": "confidence", "type": "uint8" },
-        { "name": "verificationMethod", "type": "uint8" },
-        { "name": "reviewNotesCID", "type": "string" }
+        {
+          "name": "actionUID",
+          "type": "uint256"
+        },
+        {
+          "name": "workUID",
+          "type": "bytes32"
+        },
+        {
+          "name": "approved",
+          "type": "bool"
+        },
+        {
+          "name": "feedback",
+          "type": "string"
+        },
+        {
+          "name": "confidence",
+          "type": "uint8"
+        },
+        {
+          "name": "verificationMethod",
+          "type": "uint8"
+        },
+        {
+          "name": "reviewNotesCID",
+          "type": "string"
+        }
+      ]
+    },
+    "assessmentV3": {
+      "name": "Green Goods Assessment v3",
+      "description": "Assessment v3 schema for Green Goods gardens. Keeps every v2 field and appends the assessment kind, the module cycle reference, and the baseline attestation a delta re-assessment measures against. EAS schemas are immutable, so v3 is a fresh UID registered alongside the still-readable v2 record on the same AssessmentResolver proxy.",
+      "revocable": false,
+      "fields": [
+        {
+          "name": "title",
+          "type": "string"
+        },
+        {
+          "name": "description",
+          "type": "string"
+        },
+        {
+          "name": "assessmentConfigCID",
+          "type": "string"
+        },
+        {
+          "name": "domain",
+          "type": "uint8"
+        },
+        {
+          "name": "startDate",
+          "type": "uint256"
+        },
+        {
+          "name": "endDate",
+          "type": "uint256"
+        },
+        {
+          "name": "location",
+          "type": "string"
+        },
+        {
+          "name": "assessmentKind",
+          "type": "uint8"
+        },
+        {
+          "name": "cycleId",
+          "type": "uint256"
+        },
+        {
+          "name": "baselineUID",
+          "type": "bytes32"
+        }
+      ]
+    },
+    "communityTestimony": {
+      "name": "Green Goods Community Testimony",
+      "description": "Community-Hat-gated testimony attached to a commitment. Narrative only and deliberately score-free: testimony gates nothing by itself, and confirmation power flows through the module's named-confirmer group rather than through this schema.",
+      "revocable": false,
+      "fields": [
+        {
+          "name": "commitmentId",
+          "type": "uint256"
+        },
+        {
+          "name": "title",
+          "type": "string"
+        },
+        {
+          "name": "testimonyCID",
+          "type": "string"
+        }
       ]
     }
   }

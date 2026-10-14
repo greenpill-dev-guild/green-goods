@@ -1,260 +1,237 @@
 /**
  * ENSSection Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+/**
+ * The Account tab's Username section (PRD-1026): what the card offers in each
+ * state, and the Change Username sheet it opens for each kind of account. The
+ * controller is a stand-in: where the name stands and the change's two steps
+ * are proven in Shared (`username.test.ts`, `useUsernameController.test.tsx`).
+ */
+
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createElement, type ReactNode } from "react";
+import { createElement } from "react";
 import { IntlProvider } from "react-intl";
+import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { UsernameCardState } from "@green-goods/shared/hooks/client-ui/profile/useUsernameController";
 
-const mockUseENSRegistrationStatus = vi.fn();
-const mockMutateAsync = vi.fn();
-const mockReleaseMutateAsync = vi.fn();
-const mockValidateSlug = vi.fn(() => ({ valid: true }));
-const mockClipboardWriteText = vi.fn(async () => undefined);
-const mockTrigger = vi.fn(async () => true);
-const mockGetValues = vi.fn(() => "river");
-const mockReset = vi.fn();
+const PRIMARY_ADDRESS = "0x1234567890123456789012345678901234567890" as const;
 
-let mockProtocolMember = true;
-let mockRegistrationData: Record<string, unknown> | undefined;
-let mockSlugValue = "";
-let mockExistingGreenGoodsEnsName: string | null = null;
-let mockSponsoredReleaseUnavailable = false;
-
-vi.mock("@green-goods/shared", () => ({
-  cn: (...inputs: Array<string | undefined | null | false>) => inputs.filter(Boolean).join(" "),
-  validateSlug: (slug: string) => mockValidateSlug(slug),
-  useOffline: () => ({ isOnline: true }),
-  useProtocolMemberStatus: () => ({ data: mockProtocolMember }),
-  useSlugForm: () => ({
-    watch: (field: string) => (field === "slug" ? mockSlugValue : ""),
-    register: () => ({}),
-    trigger: mockTrigger,
-    getValues: mockGetValues,
-    reset: mockReset,
-    formState: { errors: {} },
-  }),
-  useSlugAvailability: () => ({ data: true, isFetching: false }),
-  useENSClaim: () => ({
-    mutateAsync: mockMutateAsync,
-    isPending: false,
-  }),
-  useENSReleaseName: () => ({
-    mutateAsync: mockReleaseMutateAsync,
-    isPending: false,
-    isSponsoredReleaseUnavailable: mockSponsoredReleaseUnavailable,
-  }),
-  useENSRegistrationStatus: (slug?: string) => {
-    mockUseENSRegistrationStatus(slug);
-    return { data: slug ? mockRegistrationData : undefined };
+const mocks = vi.hoisted(() => ({
+  card: { kind: "ready", slug: "ines" } as UsernameCardState,
+  isOnline: true,
+  changeBySupport: false,
+  typed: "",
+  available: undefined as boolean | undefined,
+  free: {} as Record<string, boolean>,
+  fee: { isSuccess: true, isError: false, data: "500000000000000" as string | null },
+  acts: {
+    claim: vi.fn(async () => true),
+    startChange: vi.fn(async () => undefined),
+    chooseAnother: vi.fn(),
+    checkStatus: vi.fn(),
   },
-  useGreenGoodsEnsName: () => ({ data: mockExistingGreenGoodsEnsName }),
-  ENSProgressTimeline: ({ slug, data }: { slug: string; data: unknown }) =>
-    createElement("div", { "data-testid": "ens-progress" }, slug),
-  ConfirmDialog: ({
-    isOpen,
-    onConfirm,
-    title,
-    confirmLabel,
-  }: {
-    isOpen: boolean;
-    onConfirm: () => void;
-    title: string;
-    confirmLabel: string;
-  }) =>
-    isOpen
-      ? createElement(
-          "div",
-          { "data-testid": "confirm-release-dialog", "aria-label": title },
-          createElement(
-            "button",
-            { onClick: onConfirm, "data-testid": "confirm-release-button" },
-            confirmLabel
-          )
-        )
-      : null,
+  navigate: vi.fn(),
 }));
 
-vi.mock("@/components/Actions", () => ({
-  Button: ({
-    label,
-    onClick,
-    disabled,
-  }: {
-    label: string;
-    onClick?: () => void;
-    disabled?: boolean;
-  }) => createElement("button", { onClick, disabled }, label),
+vi.mock("@green-goods/shared/hooks/client-ui/profile/useUsernameController", async () => {
+  const { useSlugForm } = await import("@green-goods/shared/hooks/ens/useSlugForm");
+  return {
+    useUsernameController: () => {
+      const slugForm = useSlugForm(mocks.typed);
+      return {
+        isOnline: mocks.isOnline,
+        card: mocks.card,
+        currentSlug: "ines",
+        changeBySupport: mocks.changeBySupport,
+        form: {
+          slugForm,
+          typed: slugForm.watch("slug"),
+          available: mocks.available,
+          checking: false,
+        },
+        isCheckingStatus: false,
+        isClaiming: false,
+        isReleasing: false,
+        acts: mocks.acts,
+      };
+    },
+  };
+});
+vi.mock("@green-goods/shared/hooks/ens/useENSReleaseName", () => ({
+  useENSReleaseFee: () => mocks.fee,
 }));
-
-vi.mock("@/components/Cards", () => ({
-  Card: ({ children }: { children: ReactNode }) => createElement("div", null, children),
+vi.mock("@green-goods/shared/hooks/ens/useSlugAvailability", () => ({
+  useSlugAvailability: (slug?: string) => ({
+    data: slug ? mocks.free[slug] : undefined,
+    isFetching: false,
+  }),
 }));
-
-vi.mock("@/components/Display", () => ({
-  Avatar: ({ children }: { children: ReactNode }) => createElement("div", null, children),
+vi.mock("react-router-dom", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("react-router-dom")>()),
+  useNavigate: () => mocks.navigate,
 }));
 
 import { ENSSection } from "../../views/Profile/ENSSection";
 
-const PRIMARY_ADDRESS = "0x1234567890123456789012345678901234567890" as const;
-
-function renderENSSection(primaryAddress: string = PRIMARY_ADDRESS) {
+function renderSection() {
   return render(
     createElement(
-      IntlProvider,
-      { locale: "en", messages: {} },
-      createElement(ENSSection, { primaryAddress })
+      MemoryRouter,
+      null,
+      createElement(
+        IntlProvider,
+        { locale: "en", messages: {} },
+        createElement(ENSSection, { primaryAddress: PRIMARY_ADDRESS })
+      )
     )
   );
 }
 
+const sheet = () => screen.getByTestId("app-sheet");
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  mocks.card = { kind: "ready", slug: "ines" };
+  mocks.isOnline = true;
+  mocks.changeBySupport = false;
+  mocks.typed = "";
+  mocks.available = undefined;
+  mocks.free = {};
+  mocks.fee = { isSuccess: true, isError: false, data: "500000000000000" };
+  window.localStorage.clear();
+  Object.defineProperty(navigator, "clipboard", {
+    configurable: true,
+    value: { writeText: vi.fn(async () => undefined) },
+  });
+});
+
+afterEach(() => {
+  cleanup();
+});
+
 describe("Profile ENSSection", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockProtocolMember = true;
-    mockRegistrationData = undefined;
-    mockSlugValue = "";
-    mockExistingGreenGoodsEnsName = null;
-    mockSponsoredReleaseUnavailable = false;
-    mockValidateSlug.mockReturnValue({ valid: true });
-    window.localStorage.clear();
-    Object.defineProperty(navigator, "clipboard", {
-      configurable: true,
-      value: { writeText: mockClipboardWriteText },
-    });
-    mockMutateAsync.mockResolvedValue({});
-    mockReleaseMutateAsync.mockResolvedValue({ slug: "forest" });
-  });
+  it("reads a ready name on one row and opens a wallet's change with its fee and two steps", async () => {
+    renderSection();
+    expect(screen.getByText("ines.greengoods.eth")).toBeInTheDocument();
+    expect(screen.getByText("Ready")).toBeInTheDocument();
+    expect(screen.getByText("People can use this name to find your work.")).toBeInTheDocument();
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-    cleanup();
-  });
+    fireEvent.click(screen.getByRole("button", { name: "Change Username" }));
 
-  it("shows claim form for protocol members without an existing registration", () => {
-    renderENSSection();
-
-    expect(screen.getByText("Claim your name")).toBeInTheDocument();
-    expect(screen.getByText("Claim your Green Goods name")).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "Choose a personal name tied to your work. Registration takes about 15-20 minutes."
-      )
-    ).toBeInTheDocument();
-    expect(screen.getByText("Claim name")).toBeInTheDocument();
-    expect(mockUseENSRegistrationStatus).toHaveBeenCalledWith(undefined);
-  });
-
-  it("hides claim form after successful ENS claim and shows progress timeline", async () => {
-    const user = userEvent.setup();
-    mockSlugValue = "river";
-    mockGetValues.mockReturnValue("river");
-    mockRegistrationData = { status: "pending" };
-
-    renderENSSection();
-
-    expect(screen.getByText("Claim name")).toBeInTheDocument();
-
-    await user.click(screen.getByText("Claim name"));
-
-    await waitFor(() => {
-      expect(mockMutateAsync).toHaveBeenCalledWith({ slug: "river" });
-    });
-    expect(mockReset).toHaveBeenCalled();
-    expect(screen.getByTestId("ens-progress")).toHaveTextContent("river");
-    expect(screen.queryByText("Claim name")).not.toBeInTheDocument();
-  });
-
-  it("hides claim form when registration is active", async () => {
-    const user = userEvent.setup();
-    mockSlugValue = "forest";
-    mockGetValues.mockReturnValue("forest");
-    mockRegistrationData = { status: "active" };
-
-    renderENSSection();
-
-    await user.click(screen.getByText("Claim name"));
-
-    await waitFor(() => {
-      expect(screen.getByTestId("ens-progress")).toHaveTextContent("forest");
-    });
-    expect(screen.queryByText("Claim name")).not.toBeInTheDocument();
-  });
-
-  it("hides claim form when the address already has a Green Goods ENS name", () => {
-    mockExistingGreenGoodsEnsName = "forest.greengoods.eth";
-    mockRegistrationData = { status: "active" };
-
-    renderENSSection();
-
-    expect(mockUseENSRegistrationStatus).toHaveBeenCalledWith("forest");
-    expect(screen.getAllByText("forest")).toHaveLength(2);
-    expect(screen.getByText("Release username")).toBeInTheDocument();
-    expect(screen.getByTestId("ens-progress")).toHaveTextContent("forest");
-    expect(screen.queryByText("Claim name")).not.toBeInTheDocument();
-  });
-
-  it("releases the current ENS name after confirmation", async () => {
-    const user = userEvent.setup();
-    mockExistingGreenGoodsEnsName = "forest.greengoods.eth";
-    mockRegistrationData = { status: "active" };
-    mockReleaseMutateAsync.mockResolvedValue({ slug: "forest" });
-
-    renderENSSection();
-
-    await user.click(screen.getByText("Release username"));
-
-    await waitFor(() => {
-      expect(screen.getByTestId("confirm-release-dialog")).toBeInTheDocument();
-    });
-    expect(mockReleaseMutateAsync).not.toHaveBeenCalled();
-
-    await user.click(screen.getByTestId("confirm-release-button"));
-
-    await waitFor(() => {
-      expect(mockReleaseMutateAsync).toHaveBeenCalled();
-    });
-    expect(screen.getByText("Release started")).toBeInTheDocument();
-  });
-
-  it("prepares a support request when sponsored release is unavailable", async () => {
-    const user = userEvent.setup();
-    mockExistingGreenGoodsEnsName = "forest.greengoods.eth";
-    mockRegistrationData = { status: "active" };
-    mockSponsoredReleaseUnavailable = true;
-
-    renderENSSection();
-
-    const requestButton = screen.getByText("Request username change");
-    expect(requestButton).not.toBeDisabled();
-    expect(
-      screen.getByText(
-        "Username changes need a hand from support right now. We can either help you release this name or look into recovering it if you've lost access."
-      )
-    ).toBeInTheDocument();
-
-    await user.click(requestButton);
-    await user.type(screen.getByLabelText("Desired username"), "canopy");
-    await user.type(screen.getByLabelText("Contact"), "@alice");
-    await user.click(screen.getByText("Prepare request"));
-
-    expect(mockReleaseMutateAsync).not.toHaveBeenCalled();
-    expect(screen.getByText(/Request ens-change-/)).toBeInTheDocument();
-    expect((screen.getByLabelText("Request details") as HTMLTextAreaElement).value).toContain(
-      "Desired name: canopy"
+    const steps = within(sheet()).getByTestId("change-username-steps");
+    expect(within(sheet()).getByText("Your username is ines.greengoods.eth.")).toBeInTheDocument();
+    expect(steps).toHaveTextContent(
+      "Now, your wallet releases ines.greengoods.eth for a 0.0005 ETH fee."
     );
+    expect(steps).toHaveTextContent("In about 15–20 minutes, your wallet claims the new name.");
+    const submit = within(sheet()).getByTestId("change-username-submit");
+    expect(submit).toBeDisabled();
 
-    const stored = JSON.parse(
-      window.localStorage.getItem("green-goods:ens-username-change-requests") ?? "[]"
-    ) as Array<{ currentSlug: string; desiredSlug: string; owner: string }>;
-    expect(stored[0]).toMatchObject({
-      currentSlug: "forest",
-      desiredSlug: "canopy",
-      owner: PRIMARY_ADDRESS,
-    });
+    mocks.free["ines-duarte"] = true;
+    await userEvent.type(within(sheet()).getByLabelText("New username"), "ines-duarte");
+    expect(steps).toHaveTextContent("your wallet claims ines-duarte.greengoods.eth.");
+    await waitFor(() => expect(submit).toBeEnabled());
+    fireEvent.click(submit);
+
+    await waitFor(() => expect(mocks.acts.startChange).toHaveBeenCalledWith("ines-duarte"));
+  });
+
+  it("releases nothing while the fee can't be read", async () => {
+    mocks.fee = { isSuccess: false, isError: true, data: null };
+    mocks.free["ines-duarte"] = true;
+    renderSection();
+    fireEvent.click(screen.getByRole("button", { name: "Change Username" }));
+    await userEvent.type(within(sheet()).getByLabelText("New username"), "ines-duarte");
+
+    expect(within(sheet()).getByTestId("change-username-steps")).toHaveTextContent(
+      "The fee couldn’t be read, so nothing can be released yet."
+    );
+    expect(within(sheet()).getByTestId("change-username-submit")).toBeDisabled();
+  });
+
+  it("prepares a support request for a passkey account's change", async () => {
+    mocks.changeBySupport = true;
+    renderSection();
+    fireEvent.click(screen.getByRole("button", { name: "Change Username" }));
+
+    expect(
+      within(sheet()).getByText(
+        "Your username is ines.greengoods.eth. For passkey accounts, support helps with the change for now."
+      )
+    ).toBeInTheDocument();
+    await userEvent.type(within(sheet()).getByLabelText("Desired username"), "ines-duarte");
+    await userEvent.type(within(sheet()).getByLabelText("Contact"), "@ines_d");
+    fireEvent.click(within(sheet()).getByRole("button", { name: "Add a Note" }));
+    await userEvent.type(within(sheet()).getByLabelText("Notes"), "New phone");
+    fireEvent.click(within(sheet()).getByRole("button", { name: "Prepare Request" }));
+
+    const prepared = await within(sheet()).findByTestId("ens-change-request-prepared");
+    const receipt = within(prepared).getByLabelText("Request details");
+    expect((receipt as HTMLTextAreaElement).value).toContain(
+      "Desired name: ines-duarte.greengoods.eth\nReason: I still use this sign-in\nContact: @ines_d\nNotes: New phone"
+    );
+    expect(
+      within(sheet()).getByRole("button", { name: "Open Telegram Support" })
+    ).toBeInTheDocument();
+  });
+
+  it.each([
+    [true, "We couldn’t check your name. Try again in a moment.", "Check Status"],
+    [
+      false,
+      "You’re offline. Your name’s status updates when you’re back online.",
+      "Go Online to Check",
+    ],
+  ])("offers only a new check while the status is unknown (online: %s)", (online, sentence, action) => {
+    mocks.isOnline = online;
+    mocks.card = { kind: "unknown", slug: "ines" };
+    renderSection();
+
+    expect(screen.getByText("Status unknown")).toBeInTheDocument();
+    expect(screen.getByText(sentence)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Change Username" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: action }));
+    expect(mocks.acts.checkStatus).toHaveBeenCalledTimes(online ? 1 : 0);
+  });
+
+  it("asks for the chosen name's claim at step 2, or another name", () => {
+    mocks.card = { kind: "claimable", to: "ines-duarte" };
+    renderSection();
+
+    expect(screen.getByText("ines-duarte.greengoods.eth")).toBeInTheDocument();
+    expect(screen.getByText("Changing · 2 of 2")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Claim ines-duarte" }));
+    expect(mocks.acts.claim).toHaveBeenCalledWith("ines-duarte");
+    fireEvent.click(screen.getByRole("button", { name: "Choose Another" }));
+    expect(mocks.acts.chooseAnother).toHaveBeenCalled();
+  });
+
+  it("claims a first name only once it reads as free", async () => {
+    mocks.card = { kind: "choose", after: "none", taken: null };
+    mocks.typed = "ines";
+    renderSection();
+    const claim = screen.getByRole("button", { name: "Claim Name" });
+    expect(screen.getByText("4/50")).toBeInTheDocument();
+    expect(claim).toBeDisabled();
+
+    mocks.available = true;
+    cleanup();
+    renderSection();
+    fireEvent.click(screen.getByRole("button", { name: "Claim Name" }));
+
+    await waitFor(() => expect(mocks.acts.claim).toHaveBeenCalledWith("ines"));
+  });
+
+  it("sends an account outside every garden to the open gardens", () => {
+    mocks.card = { kind: "locked" };
+    renderSection();
+
+    expect(screen.getByText("Not available yet")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Open Gardens" }));
+    expect(mocks.navigate).toHaveBeenCalledWith("/home");
   });
 });

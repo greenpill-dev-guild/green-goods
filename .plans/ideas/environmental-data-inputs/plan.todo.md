@@ -4,9 +4,13 @@
 **Stage**: `ideas`
 **Linear Issue**: `RESR-10`
 **Linear Source**: `source:plans`
-**Status**: `IDEA`
+**Status**: `IDEA — provider evidence and ownership discovery only`
 **Created**: `2026-05-03`
-**Last Updated**: `2026-05-10`
+**Last Updated**: `2026-10-06`
+
+## Status reconciliation (2026-10-06)
+
+RESR-10 remains Backlog. Provider contracts, data rights, verification strength, ownership and concrete garden/use-case choices remain unresolved. Preserve the consolidated provider sources; this review neither checks current partner facts nor authorizes an integration.
 
 ## Linear Sync Update — 2026-05-10
 

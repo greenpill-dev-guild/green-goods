@@ -1,26 +1,29 @@
-import {
-  Alert,
-  ErrorBoundary,
-  logger,
-  TOTAL_UNITS,
-  toastService,
-  useStepFocus,
-  useWizardData,
-  type HypercertCompletionData,
-  type HypercertWizardProps,
-} from "@green-goods/shared";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { ErrorBoundary } from "@green-goods/shared/components/ErrorBoundary/ErrorBoundary";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import type {
+  HypercertCompletionData,
+  HypercertWizardProps,
+} from "@green-goods/shared/hooks/admin-ui/hypercerts/types";
+import { useWizardData } from "@green-goods/shared/hooks/admin-ui/hypercerts/useWizardData";
+import { useStepFocus } from "@green-goods/shared/hooks/utils/useStepFocus";
+import { useTxErrorMessages } from "@green-goods/shared/hooks/utils/useTxErrorMessages";
+import { TOTAL_UNITS } from "@green-goods/shared/lib/hypercerts/constants";
+import { logger } from "@green-goods/shared/modules/app/logger";
+import { useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminButton } from "@/components/AdminButton";
+import { isAddress } from "viem";
 import { AdminConfirmDialog } from "@/components/AdminDialog";
-import { AdminLinearProgress } from "@/components/AdminLinearProgress";
 import { DiscardChangesDialog } from "@/components/DiscardChangesDialog";
-import { MintingDialog } from "@/components/Hypercerts/MintingDialog";
 import { AttestationSelector } from "@/components/Hypercerts/Steps/AttestationSelector";
 import { DistributionConfig } from "@/components/Hypercerts/Steps/DistributionConfig";
 import { HypercertPreview } from "@/components/Hypercerts/Steps/HypercertPreview";
 import { MetadataEditor } from "@/components/Hypercerts/Steps/MetadataEditor";
 import { ActionFlowShell } from "@/components/Layout/ActionFlowShell";
+import { FlowSendFooter, flowSendPhase } from "@/components/Layout/FlowSendFooter";
+import { FlowStatusRow } from "@/components/Layout/FlowStatusRow";
 import { FlowStepHeader } from "@/components/Layout/FlowStepHeader";
+import { hypercertSendStatus } from "./reviewStatus";
 
 export type { HypercertCompletionData };
 export type { HypercertWizardProps };
@@ -30,15 +33,60 @@ export function HypercertWizard({
   gardenName,
   onComplete,
   onCancel,
+  onDone,
 }: HypercertWizardProps) {
   const { formatMessage } = useIntl();
 
   const wizard = useWizardData({ gardenId, gardenName, onComplete });
   const stepRef = useStepFocus<HTMLDivElement>(wizard.currentStep);
-  const mintDisabled = wizard.isSubmitting || wizard.selectedAttestations.length === 0;
+  const mintFailed = wizard.mintingState.status === "failed";
+  const txError = useTxErrorMessages(mintFailed ? wizard.mintingState.error : null);
+  const { preflightError } = wizard;
+  // One reading of the mint, so the status row and the footer never disagree.
+  // The flow ends on its Review (DL-080): the mint shows there, in place, and
+  // a confirmed mint leaves Done.
+  const status = hypercertSendStatus({
+    phase: flowSendPhase({
+      sending: wizard.isSubmitting,
+      sent: wizard.mintingState.status === "confirmed",
+      failed: mintFailed || preflightError !== null,
+    }),
+    stage: wizard.mintingState.status,
+    failure: preflightError
+      ? { tone: "error", title: preflightError.title, description: preflightError.message }
+      : {
+          tone: txError.view.severity,
+          title: txError.title,
+          description: txError.message,
+        },
+    formatMessage,
+  });
+  const { phase } = status;
+  // While it mints, and once it is minted, no step reopens: the way on is Done.
+  const editable = phase === "ready" || phase === "failed";
+  // Step 1 explains itself only after Next is pressed with no work selected,
+  // so the steward is not warned before doing anything.
+  const [nextTriedEmpty, setNextTriedEmpty] = useState(false);
+  // The gate and its message read the same resolved selection, so saved picks
+  // that match no loaded attestation still explain why Next did not advance.
+  const needsAttestation = wizard.currentStep === 1 && wizard.selectedAttestations.length === 0;
+  // Nothing to pick while attestations load or failed to load, so Next waits.
+  // A failed refresh that keeps the loaded attestations leaves them usable.
+  const attestationsUnavailable =
+    wizard.currentStep === 1 &&
+    wizard.attestations.length === 0 &&
+    (wizard.isLoading || wizard.hasError);
   const validationMessage =
-    wizard.selectedAttestations.length === 0 ? wizard.validationMessage : undefined;
-  const isFirstStep = wizard.currentStep === 1;
+    nextTriedEmpty && needsAttestation
+      ? formatMessage({ id: "app.hypercerts.wizard.validation.selectAttestation" })
+      : undefined;
+  const handleNext = () => {
+    if (needsAttestation) {
+      setNextTriedEmpty(true);
+      return;
+    }
+    wizard.nextStep();
+  };
   const isLastStep = wizard.currentStep === wizard.steps.length;
   const activeStep = wizard.steps[wizard.currentStep - 1];
 
@@ -83,19 +131,27 @@ export function HypercertWizard({
     ),
     preview: (
       <ErrorBoundary context="HypercertWizard.preview" onError={wizard.handleStepError}>
-        <HypercertPreview
-          metadata={wizard.previewMetadata}
-          gardenName={gardenName}
-          gardenId={gardenId}
-          attestationCount={wizard.selectedAttestations.length}
-          totalUnits={TOTAL_UNITS}
-          allowlist={wizard.allowlist}
-          mintingState={wizard.mintingState}
-          chainId={wizard.chainId}
-          selectedAssessment={wizard.selectedAssessment}
-          onEditMetadata={() => wizard.setStep(2)}
-          onEditDistribution={() => wizard.setStep(3)}
-        />
+        <div className="space-y-4">
+          <FlowStatusRow
+            tone={status.tone}
+            busy={status.busy}
+            title={status.title}
+            description={status.description}
+          />
+          <HypercertPreview
+            metadata={wizard.previewMetadata}
+            gardenName={gardenName}
+            gardenId={isAddress(gardenId) ? gardenId : undefined}
+            attestationCount={wizard.selectedAttestations.length}
+            totalUnits={TOTAL_UNITS}
+            allowlist={wizard.allowlist}
+            mintingState={wizard.mintingState}
+            chainId={wizard.chainId}
+            selectedAssessment={wizard.selectedAssessment}
+            onEditMetadata={editable ? () => wizard.setStep(2) : undefined}
+            onEditDistribution={editable ? () => wizard.setStep(3) : undefined}
+          />
+        </div>
       </ErrorBoundary>
     ),
   };
@@ -154,51 +210,34 @@ export function HypercertWizard({
         context={gardenName}
         steps={wizard.steps}
         currentStep={wizard.currentStep}
-        onStepClick={(step) => wizard.handleStepClick(step - 1)}
+        complete={phase === "sent"}
+        onStepClick={editable ? (step) => wizard.handleStepClick(step - 1) : undefined}
         footer={
-          // Mobile: status on top, compact secondary, full-width primary CTA.
-          // Desktop: status left, button pair right. SheetFooter is a fixed
-          // inline-flex row, so this single w-full child owns the responsive layout.
-          <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
-            <div className="min-w-0 sm:flex-1" aria-live="polite">
-              {wizard.isSubmitting ? <AdminLinearProgress ariaLabel={wizard.submitLabel} /> : null}
-            </div>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-              <AdminButton
-                type="button"
-                variant={isFirstStep ? "text" : "outlined"}
-                onClick={isFirstStep ? onCancel : wizard.previousStep}
-                disabled={wizard.isSubmitting}
-                className="self-start sm:self-auto"
-              >
-                {isFirstStep
-                  ? formatMessage({ id: "app.wizard.cancel", defaultMessage: "Cancel" })
-                  : formatMessage({ id: "app.common.back", defaultMessage: "Back" })}
-              </AdminButton>
-              {isLastStep ? (
-                <AdminButton
-                  type="button"
-                  variant="filled"
-                  onClick={wizard.handleMint}
-                  disabled={mintDisabled}
-                  loading={wizard.isSubmitting}
-                  className="w-full sm:w-auto"
-                >
-                  {wizard.submitLabel}
-                </AdminButton>
-              ) : (
-                <AdminButton
-                  type="button"
-                  variant="filled"
-                  onClick={wizard.nextStep}
-                  disabled={wizard.nextDisabled || wizard.isSubmitting}
-                  className="w-full sm:w-auto"
-                >
-                  {formatMessage({ id: "app.common.next", defaultMessage: "Next" })}
-                </AdminButton>
-              )}
-            </div>
-          </div>
+          <FlowSendFooter
+            stepIndex={wizard.currentStep - 1}
+            isLast={isLastStep}
+            phase={phase}
+            sendLabel={formatMessage({ id: "app.hypercerts.mint.submit" })}
+            // Minting can ask the wallet twice (the mint, then the signal pool),
+            // so the note only says the dialog waits while it works.
+            note={
+              phase === "sending"
+                ? formatMessage({
+                    id: "app.admin.flow.send.waiting",
+                    defaultMessage: "The dialog stays open until your wallet answers.",
+                  })
+                : undefined
+            }
+            // Only a fresh mint needs work selected: Try Again resumes the
+            // failed attempt with the input it already sent.
+            sendDisabled={phase === "ready" && wizard.selectedAttestations.length === 0}
+            nextDisabled={(wizard.nextDisabled && !needsAttestation) || attestationsUnavailable}
+            onCancel={onCancel}
+            onBack={wizard.previousStep}
+            onNext={handleNext}
+            onSend={wizard.handleMint}
+            onDone={onDone}
+          />
         }
       >
         {activeStep ? (
@@ -214,12 +253,6 @@ export function HypercertWizard({
           </div>
         ) : null}
       </ActionFlowShell>
-      <MintingDialog
-        mintingState={wizard.mintingState}
-        chainId={wizard.chainId}
-        onCancel={wizard.cancel}
-        onRetry={wizard.retry}
-      />
     </>
   );
 }

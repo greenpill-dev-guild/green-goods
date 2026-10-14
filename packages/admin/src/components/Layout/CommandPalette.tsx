@@ -1,14 +1,13 @@
-import {
-  DEFAULT_CHAIN_ID,
-  cn,
-  useActions,
-  useAllAssessments,
-  useAdminGardenContext,
-  useCommandPaletteController,
-  useEligibleAdminGardens,
-  useRole,
-  type SearchResult,
-} from "@green-goods/shared";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import type { SearchResult } from "@green-goods/shared/hooks/admin-ui/layout/commandPalette.results";
+import { useCommandPaletteController } from "@green-goods/shared/hooks/admin-ui/layout/useCommandPaletteController";
+import { useAllAssessments } from "@green-goods/shared/hooks/assessment/useAllAssessments";
+import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
+import { useAdminGardenContext } from "@green-goods/shared/hooks/garden/useAdminGardenContext";
+import { useEligibleAdminGardens } from "@green-goods/shared/hooks/garden/useEligibleAdminGardens";
+import { useRole } from "@green-goods/shared/hooks/gardener/useRole";
+import { useEffectiveToolbarPermissions } from "@green-goods/shared/hooks/roles/useEffectiveToolbarPermissions";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
   RiArrowDownLine,
   RiArrowUpLine,
@@ -20,7 +19,7 @@ import {
   RiPlantLine,
   RiSearchLine,
 } from "@remixicon/react";
-import { useEffect, useMemo, useRef, type ComponentType } from "react";
+import { useEffect, useId, useMemo, useRef, type ComponentType } from "react";
 import { AdminDialog } from "@/components/AdminDialog";
 
 interface CommandPaletteProps {
@@ -41,6 +40,7 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
   const { data: actions } = useActions(DEFAULT_CHAIN_ID);
   const { data: assessments } = useAllAssessments(DEFAULT_CHAIN_ID);
   const { role } = useRole();
+  const permissions = useEffectiveToolbarPermissions();
   const { selectGarden } = useAdminGardenContext();
   const commandPaletteData = useMemo(
     () => ({
@@ -48,8 +48,9 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
       actions: actions ?? [],
       assessments: assessments ?? [],
       role,
+      permissions,
     }),
-    [actions, assessments, eligibleGardens, role]
+    [actions, assessments, eligibleGardens, permissions, role]
   );
   const {
     activeIndex,
@@ -71,6 +72,10 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
   });
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  // Combobox wiring: DOM focus stays on the input; the active option is
+  // announced through aria-activedescendant against these stable ids.
+  const listboxId = useId();
+  const optionId = (index: number) => `${listboxId}-option-${index}`;
 
   // Scroll active item into view
   useEffect(() => {
@@ -113,6 +118,15 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
             ref={inputRef}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
+            role="combobox"
+            aria-expanded={results.length > 0}
+            aria-controls={listboxId}
+            aria-autocomplete="list"
+            aria-activedescendant={results.length > 0 ? optionId(activeIndex) : undefined}
+            aria-label={formatMessage({
+              id: "app.admin.nav.search",
+              defaultMessage: "Search",
+            })}
             placeholder={formatMessage({
               id: "app.admin.nav.searchPlaceholder",
               defaultMessage: "Search pages, gardens, actions...",
@@ -121,10 +135,20 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
           />
         </div>
 
-        {/* Results */}
-        <div ref={listRef} className="max-h-72 overflow-y-auto p-2" role="listbox">
+        {/* Results — fixed height, scrolling inside: the panel must not resize
+            (and the input must not move) as the result set narrows. */}
+        <div
+          ref={listRef}
+          id={listboxId}
+          className="h-72 overflow-y-auto p-2"
+          role="listbox"
+          aria-label={formatMessage({
+            id: "app.admin.nav.search",
+            defaultMessage: "Search",
+          })}
+        >
           {results.length === 0 ? (
-            <p className="py-6 text-center text-sm text-text-soft">
+            <p className="flex h-full items-center justify-center body-sm text-text-soft">
               {formatMessage({
                 id: "app.admin.nav.searchNoResults",
                 defaultMessage: "No results found",
@@ -145,13 +169,18 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
                   return (
                     <button
                       key={result.id}
+                      id={optionId(index)}
                       role="option"
                       aria-selected={isActive}
                       data-index={index}
+                      // Focus stays on the combobox input; options are reached
+                      // via aria-activedescendant, so they leave the tab order.
+                      tabIndex={-1}
                       onClick={() => selectResult(result)}
                       onMouseMove={() => setActiveIndex(index)}
                       className={cn(
                         "flex w-full items-center rounded-sm px-3 py-2 text-body-md text-left transition-colors",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]",
                         isActive
                           ? "bg-primary-alpha-16 text-primary-darker"
                           : "text-text-sub hover:bg-bg-soft"
@@ -161,7 +190,7 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
                       <div className="min-w-0 flex-1">
                         <span className="truncate">{result.label}</span>
                         {result.subtitle && (
-                          <span className="block truncate text-xs text-text-soft">
+                          <span className="block truncate body-xs text-text-soft">
                             {result.subtitle}
                           </span>
                         )}
@@ -175,7 +204,7 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
         </div>
 
         {/* Footer hints */}
-        <div className="flex items-center gap-4 border-t border-stroke-soft px-4 py-2 text-xs text-text-soft">
+        <div className="flex items-center gap-4 border-t border-stroke-soft px-4 py-2 body-xs text-text-soft">
           <span className="flex items-center gap-1">
             <RiArrowUpLine className="h-3 w-3" aria-hidden="true" />
             <RiArrowDownLine className="h-3 w-3" aria-hidden="true" />

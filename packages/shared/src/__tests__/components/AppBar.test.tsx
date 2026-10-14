@@ -5,7 +5,7 @@
  * sheet context mode with back arrow, renders action buttons with
  * correct aria labels, and conditionally renders the profile icon button.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { cleanup, render, screen } from "@testing-library/react";
@@ -18,8 +18,8 @@ vi.mock("react-intl", () => ({
     formatMessage: ({ id }: { id: string }) => {
       const messages: Record<string, string> = {
         "cockpit.topBar.back": "Back",
-        "cockpit.topBar.openSearch": "Open search",
-        "cockpit.topBar.openSettings": "Open settings",
+        "cockpit.topBar.openSearch": "Open Search",
+        "cockpit.topBar.openSettings": "Open Settings",
       };
       return messages[id] ?? id;
     },
@@ -121,42 +121,42 @@ describe("AppBar", () => {
   it("renders search button with correct aria-label when onOpenSearch is provided", () => {
     render(<AppBar gardenChip={<span>Chip</span>} onOpenSearch={() => {}} />);
 
-    const searchBtn = screen.getByRole("button", { name: "Open search" });
+    const searchBtn = screen.getByRole("button", { name: "Open Search" });
     expect(searchBtn).toBeTruthy();
   });
 
   it("does not render search button when onOpenSearch is not provided", () => {
     render(<AppBar gardenChip={<span>Chip</span>} />);
 
-    expect(screen.queryByRole("button", { name: "Open search" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Open Search" })).toBeNull();
   });
 
   it("calls onOpenSearch when search button is clicked", async () => {
     const onOpenSearch = vi.fn();
     render(<AppBar gardenChip={<span>Chip</span>} onOpenSearch={onOpenSearch} />);
 
-    await user.click(screen.getByRole("button", { name: "Open search" }));
+    await user.click(screen.getByRole("button", { name: "Open Search" }));
     expect(onOpenSearch).toHaveBeenCalledOnce();
   });
 
   it("renders settings button with correct aria-label when onOpenSettings is provided", () => {
     render(<AppBar gardenChip={<span>Chip</span>} onOpenSettings={() => {}} />);
 
-    const settingsBtn = screen.getByRole("button", { name: "Open settings" });
+    const settingsBtn = screen.getByRole("button", { name: "Open Settings" });
     expect(settingsBtn).toBeTruthy();
   });
 
   it("does not render settings button when onOpenSettings is not provided", () => {
     render(<AppBar gardenChip={<span>Chip</span>} />);
 
-    expect(screen.queryByRole("button", { name: "Open settings" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Open Settings" })).toBeNull();
   });
 
   it("calls onOpenSettings when settings button is clicked", async () => {
     const onOpenSettings = vi.fn();
     render(<AppBar gardenChip={<span>Chip</span>} onOpenSettings={onOpenSettings} />);
 
-    await user.click(screen.getByRole("button", { name: "Open settings" }));
+    await user.click(screen.getByRole("button", { name: "Open Settings" }));
     expect(onOpenSettings).toHaveBeenCalledOnce();
   });
 
@@ -183,6 +183,20 @@ describe("AppBar", () => {
 
     await user.click(screen.getByRole("button", { name: "cockpit.topBar.openProfile" }));
     expect(onOpenProfile).toHaveBeenCalledOnce();
+  });
+
+  it("renders an optional profile image in the existing profile control", () => {
+    render(
+      <AppBar
+        gardenChip={<span>Chip</span>}
+        onOpenProfile={() => {}}
+        profileImageSrc="https://example.com/avatar.webp"
+      />
+    );
+
+    const image = document.querySelector('[data-slot="profile-image"]');
+    expect(image).toHaveAttribute("src", "https://example.com/avatar.webp");
+    expect(image).toHaveAttribute("alt", "");
   });
 
   // --------------------------------------------------------------------------

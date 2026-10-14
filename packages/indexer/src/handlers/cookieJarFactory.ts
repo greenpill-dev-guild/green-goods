@@ -1,6 +1,4 @@
-import { CookieJarFactory } from "../../generated";
-
-import type { CampaignCookieJar, HandlerTypes_handlerArgs } from "../../generated/src/Types.gen";
+import { indexer, type CampaignCookieJar } from "envio";
 
 import { getCampaignCookieJarId, getTxHash, normalizeAddress } from "./shared";
 
@@ -13,16 +11,6 @@ const JAR_CONFIG_METADATA_SLOT = 14;
 const MAX_CAMPAIGN_DESCRIPTION_LENGTH = 480;
 const MAX_CAMPAIGN_METADATA_URL_LENGTH = 2048;
 const ALLOWED_CAMPAIGN_METADATA_PROTOCOLS = new Set(["http:", "https:", "ipfs:"]);
-
-interface JarCreatedArgs {
-  jarAddress: string;
-  creator: string;
-}
-
-interface MetadataUpdatedArgs {
-  jarAddress: string;
-  metadata: string;
-}
 
 interface ParsedCampaignMetadata {
   rawMetadata: string;
@@ -217,8 +205,9 @@ function buildCampaignCookieJarCandidate(params: {
   };
 }
 
-CookieJarFactory.JarCreated.handler(
-  async ({ event, context }: HandlerTypes_handlerArgs<JarCreatedArgs, void>) => {
+indexer.onEvent(
+  { contract: "CookieJarFactory", event: "JarCreated" },
+  async ({ event, context }) => {
     const jarAddress = normalizeAddress(event.params.jarAddress);
     const id = getCampaignCookieJarId(event.chainId, jarAddress);
     const existing = await context.CampaignCookieJar.get(id);
@@ -235,8 +224,9 @@ CookieJarFactory.JarCreated.handler(
   }
 );
 
-CookieJarFactory.MetadataUpdated.handler(
-  async ({ event, context }: HandlerTypes_handlerArgs<MetadataUpdatedArgs, void>) => {
+indexer.onEvent(
+  { contract: "CookieJarFactory", event: "MetadataUpdated" },
+  async ({ event, context }) => {
     const jarAddress = normalizeAddress(event.params.jarAddress);
     const id = getCampaignCookieJarId(event.chainId, jarAddress);
     const existing = await context.CampaignCookieJar.get(id);

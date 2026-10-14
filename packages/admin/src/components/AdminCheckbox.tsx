@@ -1,5 +1,5 @@
 import * as React from "react";
-import { cn } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 
 // ============================================================================
 // Types
@@ -17,6 +17,8 @@ export interface AdminCheckboxProps {
   name?: string;
   id?: string;
   className?: string;
+  /** External label reference for label-less use inside AdminSettingRow. */
+  "aria-labelledby"?: string;
 }
 
 // ============================================================================
@@ -27,7 +29,7 @@ export interface AdminCheckboxProps {
  * AdminCheckbox — M3 Checkbox
  *
  * Implements Material Design 3 checkbox anatomy:
- * - Container: 18dp (h-[18px] w-[18px]), 2dp radius (rounded-[2px])
+ * - Container: 18dp (h-[18px] w-[18px]), 4dp radius (--m3-shape-xs)
  * - Touch target: 40dp circle around checkbox (h-10 w-10 centered)
  * - Unselected: transparent fill, 2dp border on-surface-variant
  * - Selected: primary fill, white SVG checkmark via background-image
@@ -53,6 +55,7 @@ export const AdminCheckbox = React.forwardRef<HTMLInputElement, AdminCheckboxPro
       name,
       id: idProp,
       className,
+      "aria-labelledby": ariaLabelledBy,
     },
     ref
   ) => {
@@ -103,7 +106,7 @@ export const AdminCheckbox = React.forwardRef<HTMLInputElement, AdminCheckboxPro
           {/* Native checkbox — appearance-none, styled via CSS. The check glyph
               below is a WHITE data-URI stroke, correct on the deep light-mode
               fills; in dark mode the fills flip light (pastel --m3-primary /
-              light-red --m3-error) so admin-m3-overrides.css swaps the glyph
+              light-red --m3-error) so admin-m3-components.css swaps the glyph
               to an ink stroke via the data attributes. */}
           <input
             data-component="AdminCheckbox"
@@ -117,15 +120,21 @@ export const AdminCheckbox = React.forwardRef<HTMLInputElement, AdminCheckboxPro
             disabled={disabled}
             onChange={onChange}
             aria-checked={indeterminate ? "mixed" : undefined}
+            aria-labelledby={ariaLabelledBy}
             aria-describedby={descriptionId}
             aria-invalid={error || undefined}
             className={cn(
               // Remove native appearance
               "appearance-none",
-              // Size: 18dp container, 2dp radius
-              "h-[18px] w-[18px] shrink-0 rounded-[2px]",
+              // Size: 18dp container, 4dp radius (--m3-shape-xs)
+              "h-[18px] w-[18px] shrink-0 rounded-[var(--m3-shape-xs)]",
               // Cursor
               "cursor-pointer disabled:cursor-not-allowed",
+              // Keyboard focus — the canonical cockpit ring role. The global
+              // index.css input focus rule deliberately excludes checkboxes,
+              // so without this line the control is keyboard-invisible
+              // (2026-08-29 audit, WCAG 2.4.7).
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))] focus-visible:ring-offset-2",
               // Transition
               "transition-colors duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
               // Unselected states

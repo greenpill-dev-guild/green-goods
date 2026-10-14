@@ -1,0 +1,208 @@
+---
+title: Entity Matrix
+slug: /builders/architecture/entity-matrix
+audience: developer
+owner: docs
+feature_status: Live
+generated: true
+generator: scripts/docs/generate.mjs
+generated_from:
+  - packages/contracts/config/schemas.json
+  - packages/contracts/deployments/1-latest.json
+  - packages/contracts/deployments/11155111-latest.json
+  - packages/contracts/deployments/42161-latest.json
+  - packages/contracts/deployments/42220-latest.json
+  - packages/contracts/deployments/networks.json
+  - packages/indexer/config.yaml
+  - packages/shared/src/config/chains.ts
+  - packages/shared/src/ontology/green-goods-ontology.json
+  - packages/shared/src/ontology/green-goods-projections.json
+  - scripts/quality/check-ontology.mjs
+  - scripts/quality/ontology-render.mjs
+source_digest: "sha256:8bb3ffad8d782ac1434f20c6f140bd5426a1c93768db70b679e428af8db51aeb"
+source_of_truth:
+  - packages/contracts/config/schemas.json
+  - packages/contracts/deployments/1-latest.json
+  - packages/contracts/deployments/11155111-latest.json
+  - packages/contracts/deployments/42161-latest.json
+  - packages/contracts/deployments/42220-latest.json
+  - packages/contracts/deployments/networks.json
+  - packages/indexer/config.yaml
+  - packages/shared/src/config/chains.ts
+  - packages/shared/src/ontology/green-goods-ontology.json
+  - packages/shared/src/ontology/green-goods-projections.json
+  - scripts/quality/check-ontology.mjs
+  - scripts/quality/ontology-render.mjs
+sidebar_position: 2
+---
+
+<!-- GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs --scope <scope>`. -->
+
+import {NextBestAction} from "@site/src/components/docs";
+
+# Entity Matrix
+
+Every partner protocol has its own name for the things Green Goods records. This page is the translation table, one section per protocol: what that protocol calls a garden, a piece of work, an approval, or a role. A mapping is vocabulary, not a shipped integration; each section says whether code stands behind it and where its components are recorded. It is generated from the tracked ontology sidecar (`packages/shared/src/ontology/green-goods-ontology.json`, `integration_matrix` section).
+
+## Protocols at a glance
+
+The integration catalog (`integrations` in the sidecar) names the protocols Green Goods has built against, and the checked-in deployment artifacts say on which networks their components are recorded. A protocol without a catalog entry is a vocabulary mapping only.
+
+| Protocol | Code integration | Networks with recorded components | Mapped terms |
+|---|---|---|---|
+| EAS | [EAS](/builders/integrations/eas) | Sepolia Testnet (Partial), Arbitrum One (Deployed), Celo (Partial) | 9 |
+| Tokenbound | [Tokenbound Accounts](/builders/integrations/tokenbound) | Sepolia Testnet (Deployed), Arbitrum One (Deployed), Celo (Deployed) | 1 |
+| Hats Protocol | [Hats Protocol](/builders/integrations/hats) | Sepolia Testnet (Deployed), Arbitrum One (Deployed) | 7 |
+| Karma GAP | [Karma GAP](/builders/integrations/karma) | Sepolia Testnet (Deployed), Arbitrum One (Deployed) | 9 |
+| Hypercerts | [Hypercerts](/builders/integrations/hypercerts) | Sepolia Testnet (Partial), Arbitrum One (Deployed) | 12 |
+| Octant | [Octant](/builders/integrations/octant) | Sepolia Testnet (Deployed), Arbitrum One (Deployed) | 4 |
+| Gardens V2 | [Gardens](/builders/integrations/gardens) | Sepolia Testnet (Deployed), Arbitrum One (Deployed) | 5 |
+| Cookie Jar | [Cookie Jar](/builders/integrations/cookie-jar) | Sepolia Testnet (Deployed), Arbitrum One (Deployed) | 4 |
+| Unlock | [Unlock Protocol](/builders/integrations/unlock) | Arbitrum One (Deployed) | 1 |
+| ENS | [ENS](/builders/integrations/ens) | Sepolia Testnet (Deployed), Arbitrum One (Deployed) | 2 |
+
+## Mappings by protocol
+
+Each table lists only the Green Goods terms that have an equivalent in that protocol; a term that is absent has none there. The kind says whether the Green Goods side is an entity, an attestation schema, a persona, or an integration-facing concept.
+
+### EAS
+
+Code integration: [EAS](/builders/integrations/eas). Recorded on: Sepolia Testnet (Partial), Arbitrum One (Deployed), Celo (Partial).
+
+| Green Goods | EAS | Kind |
+|---|---|---|
+| Garden | Attestation recipient | Entity |
+| Work | Attestation (Work Submission schema) | Entity |
+| Work Approval | Attestation (Work Approval schema) | Schema |
+| Assessment | Attestation (Assessment schema) | Entity |
+| Attestation | Attestation | Entity |
+| Gardener | Attester | Persona |
+| Steward | Attester | Persona |
+| Evaluator | Attester | Persona |
+| Community Member | Attester | Persona |
+
+### Tokenbound
+
+Code integration: [Tokenbound Accounts](/builders/integrations/tokenbound). Recorded on: Sepolia Testnet (Deployed), Arbitrum One (Deployed), Celo (Deployed).
+
+| Green Goods | Tokenbound | Kind |
+|---|---|---|
+| Garden | Token-bound account (ERC-6551) | Entity |
+
+### Hats Protocol
+
+Code integration: [Hats Protocol](/builders/integrations/hats). Recorded on: Sepolia Testnet (Deployed), Arbitrum One (Deployed).
+
+| Green Goods | Hats Protocol | Kind |
+|---|---|---|
+| Garden | Admin Hat | Entity |
+| Hat | Hat | Entity |
+| Gardener | Gardener Hat | Persona |
+| Steward | Steward Hat | Persona |
+| Evaluator | Evaluator Hat | Persona |
+| Funder | Funder Hat | Persona |
+| Community Member | Community Hat | Persona |
+
+### Karma GAP
+
+Code integration: [Karma GAP](/builders/integrations/karma). Recorded on: Sepolia Testnet (Deployed), Arbitrum One (Deployed).
+
+| Green Goods | Karma GAP | Kind |
+|---|---|---|
+| Garden | Project | Entity |
+| Action | Partial Project Update | Entity |
+| Work | Partial Project Update | Entity |
+| Work Approval | Partial Project Update | Schema |
+| Assessment | Project Milestone | Entity |
+| Gardener | Project Member | Persona |
+| Steward | Project Admin | Persona |
+| Evaluator | Grant Evaluator | Persona |
+| Community Member | Project Explorer | Persona |
+
+### Hypercerts
+
+Code integration: [Hypercerts](/builders/integrations/hypercerts). Recorded on: Sepolia Testnet (Partial), Arbitrum One (Deployed).
+
+| Green Goods | Hypercerts | Kind |
+|---|---|---|
+| Garden | Hypercert Holder | Entity |
+| Action | Hypercert Data | Entity |
+| Work | Hypercert Data | Entity |
+| Work Approval | Hypercert Data | Schema |
+| Assessment | Hypercert Data | Entity |
+| Hypercert | Hypercert | Entity |
+| Gardener | Contributor | Persona |
+| Steward | Creator | Persona |
+| Evaluator | Evaluator | Persona |
+| Funder | Funder | Persona |
+| Community Member | Evaluator | Persona |
+| Impact | Hypercert Token | Concept |
+
+### Octant
+
+Code integration: [Octant](/builders/integrations/octant). Recorded on: Sepolia Testnet (Deployed), Arbitrum One (Deployed).
+
+| Green Goods | Octant | Kind |
+|---|---|---|
+| Garden | Vault Owner | Entity |
+| Vault | Multi-strategy vault (ERC-4626) | Entity |
+| Steward | Vault Admin | Persona |
+| Funder | Vault Depositor | Persona |
+
+### Gardens V2
+
+Code integration: [Gardens](/builders/integrations/gardens). Recorded on: Sepolia Testnet (Deployed), Arbitrum One (Deployed).
+
+| Green Goods | Gardens V2 | Kind |
+|---|---|---|
+| Garden | Community | Entity |
+| Gardener | Community Member | Persona |
+| Steward | Council Member | Persona |
+| Funder | Community Funder | Persona |
+| Community Member | Community Member | Persona |
+
+### Cookie Jar
+
+Code integration: [Cookie Jar](/builders/integrations/cookie-jar). Recorded on: Sepolia Testnet (Deployed), Arbitrum One (Deployed).
+
+| Green Goods | Cookie Jar | Kind |
+|---|---|---|
+| Garden | Jar owner | Entity |
+| Cookie Jar | Jar | Entity |
+| Gardener | Withdrawer | Persona |
+| Funder | Depositor | Persona |
+
+### Unlock
+
+Code integration: [Unlock Protocol](/builders/integrations/unlock). Recorded on: Arbitrum One (Deployed).
+
+| Green Goods | Unlock | Kind |
+|---|---|---|
+| Badges | Lock (a badge type) and key (a badge held) | Concept |
+
+### ENS
+
+Code integration: [ENS](/builders/integrations/ens). Recorded on: Sepolia Testnet (Deployed), Arbitrum One (Deployed).
+
+| Green Goods | ENS | Kind |
+|---|---|---|
+| Garden | Subname of greengoods.eth | Entity |
+| Gardener | Subname of greengoods.eth | Persona |
+
+## Using the matrix
+
+When you build against a partner protocol, read its section first so the names at the API boundary match the mapping the team already settled on. When a task or an issue speaks the partner's language (a Karma GAP "Project Milestone", for instance), translate it back through the same section: that one is a Green Goods Assessment.
+
+### Maintenance
+
+The mapping data lives in the ontology sidecar's `integration_matrix` section, and each catalog integration names its column through `matrix_column`. Add a column only after its source-backed implementation or specification exists, give it a catalog entry or a column note (the ontology check refuses a column with neither), then run `node scripts/docs/generate.mjs --scope ontology` for this page and `node scripts/quality/check-ontology.mjs --generate` for the reference pages. `bun run check --only docs-generated` fails CI whenever this page drifts from its sources.
+
+<NextBestAction
+  title="Next best action"
+  why="See the full integrations overview with surface-level status for each protocol connection."
+  actionLabel="Integrations overview"
+  actionHref="/builders/integrations"
+  alternatives={[
+    {label: "EAS integration", href: "/builders/integrations/eas"},
+  ]}
+/>

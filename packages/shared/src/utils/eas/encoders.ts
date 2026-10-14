@@ -1,57 +1,23 @@
+import { getUploadConcurrency, pooledSettled } from "./upload-pool";
+import {
+  InvalidWorkAttachmentError,
+  PendingHeicConversionError,
+  validateWorkAttachments,
+  hashWorkBytes,
+  identifyWorkFile,
+  roundWorkLocation,
+} from "../../modules/work/work-attachments";
 import { SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
 import { getEASConfig } from "../../config/blockchain";
 import { trackUploadBatchProgress, trackUploadError } from "../../modules/app/error-tracking";
-import { uploadFileToIPFS, uploadJSONToIPFS } from "../../modules/data/ipfs";
-import type { Domain, WorkApprovalDraft, WorkDraft, WorkMetadata } from "../../types/domain";
-
-/**
- * Determines upload concurrency based on connection quality.
- * Uses Network Information API when available, falls back to full concurrency.
- */
-function getUploadConcurrency(fileCount: number): number {
-  if (typeof navigator === "undefined") return fileCount;
-  const conn = (navigator as unknown as { connection?: { effectiveType?: string } }).connection;
-  if (!conn?.effectiveType) return fileCount;
-  switch (conn.effectiveType) {
-    case "slow-2g":
-    case "2g":
-      return 1;
-    case "3g":
-      return 2;
-    default:
-      return fileCount;
-  }
-}
-
-/**
- * Runs async tasks with a concurrency limit, returning PromiseSettledResult[].
- * Maintains original array order regardless of completion order.
- */
-async function pooledSettled<T>(
-  tasks: (() => Promise<T>)[],
-  concurrency: number
-): Promise<PromiseSettledResult<T>[]> {
-  if (concurrency >= tasks.length) {
-    return Promise.allSettled(tasks.map((fn) => fn()));
-  }
-
-  const results: PromiseSettledResult<T>[] = new Array(tasks.length);
-  let nextIndex = 0;
-
-  async function worker() {
-    while (nextIndex < tasks.length) {
-      const i = nextIndex++;
-      try {
-        results[i] = { status: "fulfilled", value: await tasks[i]() };
-      } catch (reason) {
-        results[i] = { status: "rejected", reason };
-      }
-    }
-  }
-
-  await Promise.all(Array.from({ length: Math.min(concurrency, tasks.length) }, () => worker()));
-  return results;
-}
+import { uploadFileToIPFS, uploadJSONToIPFS } from "../../modules/data/ipfs/upload";
+import type {
+  Domain,
+  WorkApprovalDraft,
+  WorkDraft,
+  WorkUploadCheckpoint,
+} from "../../types/domain";
+import { buildWorkMetadataPayload } from "./work-metadata";
 
 /**
  * Maps MIME types to file extensions.
@@ -113,6 +79,12 @@ export function simulateWorkData(data: WorkDraft, chainId: number | string) {
  * Options for work data encoding
  */
 export interface EncodeWorkDataOptions {
+  /** The published content, available for a receipt-confirmed local preview. */
+  onEncoded?: (content: { metadata: Record<string, unknown>; media: string[] }) => void;
+  checkpoint?: WorkUploadCheckpoint;
+  onCheckpoint?: (checkpoint: WorkUploadCheckpoint) => Promise<void>;
+  /** Stable submission identity. New submissions always supply it. */
+  clientWorkId?: string;
   /** Garden address for tracking context */
   gardenAddress?: string;
   /** Auth mode for tracking context */
@@ -121,8 +93,8 @@ export interface EncodeWorkDataOptions {
   onFileProgress?: (progress: { completed: number; total: number; fileIndex: number }) => void;
   /** Batch ID for correlating upload events with submission errors */
   uploadBatchId?: string;
-  /** Domain for v2 metadata */
-  domain?: Domain;
+  /** Domain for v2 metadata; null (unknown domain) falls back to legacy v1 metadata rather than fabricating a domain */
+  domain?: Domain | null;
   /** Action slug for v2 metadata */
   actionSlug?: string;
 }
@@ -136,6 +108,31 @@ export async function encodeWorkData(
   chainId: number | string,
   options: EncodeWorkDataOptions = {}
 ) {
+  const checkpoint = options.checkpoint ?? { submittedAt: new Date().toISOString(), files: {} };
+  let checkpointWrite: Promise<void> = Promise.resolve();
+  const persistCheckpoint = () => {
+    checkpointWrite = checkpointWrite
+      .catch(() => undefined)
+      .then(() => options.onCheckpoint?.(structuredClone(checkpoint)));
+    return checkpointWrite;
+  };
+  await persistCheckpoint();
+  const uploadCachedFile = async (file: File, context: Parameters<typeof uploadFileToIPFS>[1]) => {
+    const attachment = await identifyWorkFile(file);
+    const cached = checkpoint.files[attachment.contentHash];
+    if (cached) {
+      await persistCheckpoint();
+      return { cid: cached.cid };
+    }
+    const result = await uploadFileToIPFS(file, context);
+    checkpoint.files[attachment.contentHash] = {
+      attachmentId: attachment.id,
+      contentHash: attachment.contentHash,
+      cid: result.cid,
+    };
+    await persistCheckpoint();
+    return result;
+  };
   const startTime = Date.now();
   const easConfig = getEASConfig(chainId);
   const schema = easConfig.WORK.schema as `0x${string}`;
@@ -162,6 +159,13 @@ export async function encodeWorkData(
 
   let completedFiles = 0;
   let failedFiles = 0;
+
+  const attachmentErrors = validateWorkAttachments(data.media, data.audioNotes);
+  if (attachmentErrors.length) {
+    if (!validateWorkAttachments(data.media, data.audioNotes, 0, { pendingHeic: "accept" }).length)
+      throw new PendingHeicConversionError();
+    throw new InvalidWorkAttachmentError(attachmentErrors.join(", "));
+  }
 
   // Upload media files in PARALLEL for better performance
   // Normalize files first (synchronous operation) with proper type validation
@@ -213,7 +217,7 @@ export async function encodeWorkData(
   const concurrency = getUploadConcurrency(normalizedFiles.length);
   const uploadTasks = normalizedFiles.map(
     (file, index) => () =>
-      uploadFileToIPFS(file, {
+      uploadCachedFile(file, {
         fileIndex: index,
         totalFiles: totalFiles,
         source: "encodeWorkData",
@@ -304,17 +308,21 @@ export async function encodeWorkData(
   // Upload audio notes to IPFS (if any)
   let audioNoteCids: string[] = [];
   if (data.audioNotes && data.audioNotes.length > 0) {
-    const audioUploadPromises = data.audioNotes.map((file, index) =>
-      uploadFileToIPFS(file, {
-        fileIndex: index,
-        totalFiles: data.audioNotes!.length,
-        source: "encodeWorkData:audio",
-        gardenAddress: options.gardenAddress,
-        authMode: options.authMode,
-      }).then((result) => result.cid)
+    const audioUploadPromises = data.audioNotes.map(
+      (file, index) => () =>
+        uploadCachedFile(file, {
+          fileIndex: index,
+          totalFiles: data.audioNotes!.length,
+          source: "encodeWorkData:audio",
+          gardenAddress: options.gardenAddress,
+          authMode: options.authMode,
+        }).then((result) => result.cid)
     );
 
-    const audioResults = await Promise.allSettled(audioUploadPromises);
+    const audioResults = await pooledSettled(
+      audioUploadPromises,
+      Math.min(2, getUploadConcurrency(data.audioNotes.length))
+    );
     audioNoteCids = audioResults
       .filter((r): r is PromiseFulfilledResult<string> => r.status === "fulfilled")
       .map((r) => r.value);
@@ -332,44 +340,44 @@ export async function encodeWorkData(
         severity: "warning",
         recoverable: true,
       });
-      throw new Error(
-        `Failed to upload ${audioFailures.length} audio note${audioFailures.length === 1 ? "" : "s"}. Please retry.`
-      );
+      throw audioFailures[0].reason;
     }
   }
 
   // Upload metadata JSON (v2 if domain/slug provided, legacy otherwise)
   try {
-    const isV2 = options.domain !== undefined && options.actionSlug !== undefined;
-
-    const metadataPayload: WorkMetadata | Record<string, unknown> = isV2
-      ? {
-          schemaVersion: "work_metadata_v2" as const,
-          domain: options.domain!,
-          actionSlug: options.actionSlug!,
-          timeSpentMinutes: data.timeSpentMinutes ?? 0,
-          details: data.details ?? {},
-          ...(data.tags && data.tags.length > 0 ? { tags: data.tags } : {}),
-          ...(audioNoteCids.length > 0 ? { audioNoteCids } : {}),
-          clientWorkId:
-            ((data as unknown as Record<string, unknown>).clientWorkId as string) ||
-            crypto.randomUUID(),
-          submittedAt: new Date().toISOString(),
-        }
-      : {
-          // Legacy v1 format for backward compatibility during transition
-          details: data.details ?? {},
-          timeSpentMinutes: data.timeSpentMinutes,
-          ...(data.tags && data.tags.length > 0 ? { tags: data.tags } : {}),
-          ...(audioNoteCids.length > 0 ? { audioNoteCids } : {}),
-        };
-
-    const metadata = await uploadJSONToIPFS(metadataPayload as Record<string, unknown>, {
-      source: "encodeWorkData",
-      gardenAddress: options.gardenAddress,
-      authMode: options.authMode,
-      metadataType: isV2 ? "work_metadata_v2" : "work_metadata",
+    const { payload: metadataPayload, version: metadataType } = buildWorkMetadataPayload({
+      title: data.title,
+      feedback: data.feedback,
+      actionUID: data.actionUID,
+      timeSpentMinutes: data.timeSpentMinutes,
+      details: data.details,
+      location: roundWorkLocation(data.location),
+      tags: data.tags,
+      audioNoteCids,
+      submittedAt: checkpoint.submittedAt,
+      attachments: media.map((cid, index) => ({ cid, type: data.media[index].type })),
+      clientWorkId: options.clientWorkId,
+      draftClientWorkId: (data as unknown as Record<string, unknown>).clientWorkId as
+        | string
+        | undefined,
+      domain: options.domain,
+      actionSlug: options.actionSlug,
     });
+    const metadataHash = await hashWorkBytes(
+      new TextEncoder().encode(JSON.stringify(metadataPayload)).buffer
+    );
+    const metadata =
+      checkpoint.metadata?.contentHash === metadataHash
+        ? { cid: checkpoint.metadata.cid }
+        : await uploadJSONToIPFS(metadataPayload as Record<string, unknown>, {
+            source: "encodeWorkData",
+            gardenAddress: options.gardenAddress,
+            authMode: options.authMode,
+            metadataType,
+          });
+    checkpoint.metadata = { contentHash: metadataHash, cid: metadata.cid };
+    await persistCheckpoint();
 
     completedFiles++;
 
@@ -394,6 +402,9 @@ export async function encodeWorkData(
       { name: "media", value: media, type: "string[]" },
     ]) as `0x${string}`;
 
+    checkpoint.published = { data: encodedData, metadata: metadataPayload, media };
+    await persistCheckpoint();
+    options.onEncoded?.({ metadata: metadataPayload, media });
     return encodedData;
   } catch (error) {
     failedFiles++;

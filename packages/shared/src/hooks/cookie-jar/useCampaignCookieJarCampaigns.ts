@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
+import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
+import { cookieJarKeys } from "../../config/query-keys/vault";
 import { getCampaignCookieJarCampaigns } from "../../modules/data/campaign-cookie-jars";
 import type { CampaignCookieJarCampaign } from "../../types/cookie-jar";
 import { parseCampaignCookieJarFallbacks } from "../../utils/cookie-jar-campaign";
@@ -23,15 +24,21 @@ function getCampaignJarFallbackEnv(): {
   raw?: string;
   enabled: boolean;
 } {
-  const env =
+  const env: {
+    DEV?: boolean;
+    MODE?: string;
+    STORYBOOK?: boolean | string;
+    VITE_STORYBOOK?: boolean | string;
+    VITE_CAMPAIGN_COOKIE_JARS?: string;
+  } =
     typeof import.meta !== "undefined"
-      ? (import.meta.env as {
-          DEV?: boolean;
-          MODE?: string;
-          STORYBOOK?: boolean | string;
-          VITE_STORYBOOK?: boolean | string;
-          VITE_CAMPAIGN_COOKIE_JARS?: string;
-        })
+      ? {
+          DEV: import.meta.env.DEV,
+          MODE: import.meta.env.MODE,
+          STORYBOOK: import.meta.env.STORYBOOK,
+          VITE_STORYBOOK: import.meta.env.VITE_STORYBOOK,
+          VITE_CAMPAIGN_COOKIE_JARS: import.meta.env.VITE_CAMPAIGN_COOKIE_JARS,
+        }
       : {};
 
   return {
@@ -55,7 +62,7 @@ export function useCampaignCookieJarCampaigns(
   );
 
   const query = useQuery({
-    queryKey: queryKeys.cookieJar.campaigns(chainId),
+    queryKey: cookieJarKeys.campaigns(chainId),
     queryFn: () => getCampaignCookieJarCampaigns(chainId),
     enabled: options.enabled ?? true,
     staleTime: STALE_TIME_MEDIUM,

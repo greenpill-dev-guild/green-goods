@@ -1,4 +1,5 @@
-import { type ActionInstructionConfig, Domain, instructionTemplates } from "@green-goods/shared";
+import { type ActionInstructionConfig, Domain } from "@green-goods/shared/types/domain";
+import { instructionTemplates } from "@green-goods/shared/utils/action/templates";
 
 const TEMPLATE_DOMAIN_BY_PREFIX: Record<string, Domain> = {
   solar: Domain.SOLAR,

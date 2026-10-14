@@ -1,18 +1,16 @@
-import {
-  cn,
-  DEFAULT_CHAIN_ID,
-  getBlockExplorer,
-  getChainName,
-  SheetBody,
-  SheetDivider,
-  type Locale,
-  useApp,
-  useTheme,
-} from "@green-goods/shared";
+import { SheetBody } from "@green-goods/shared/components/Canvas/SheetBody";
+import { SheetDivider } from "@green-goods/shared/components/Canvas/SheetDivider";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { getChainName } from "@green-goods/shared/config/chains";
+import { useTheme } from "@green-goods/shared/hooks/app/useTheme";
+import { type Locale, useApp } from "@green-goods/shared/providers/App";
+import { getBlockExplorer } from "@green-goods/shared/utils/blockchain/chain-registry";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiComputerLine, RiExternalLinkLine, RiMoonLine, RiSunLine } from "@remixicon/react";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { AdminChoiceGroup } from "../AdminChoiceGroup";
+import { type AccountPanelLayout, accountPanelBodyProps } from "./accountPanelLayout";
 
 const THEME_OPTIONS = [
   { value: "light" as const, icon: RiSunLine, labelId: "cockpit.settings.lightMode" },
@@ -31,14 +29,16 @@ const DOCS_URL = "https://docs.greengoods.app";
 const SUPPORT_TELEGRAM_URL = "https://t.me/+N3o3_43iRec1Y2Jh";
 
 interface AccountSettingsPanelProps {
+  /** `sheet` (default) is the side sheet; `page` is the mobile Profile route. */
+  layout?: AccountPanelLayout;
   className?: string;
 }
 
 function SettingsSectionHeader({ title, description }: { title: string; description?: string }) {
   return (
     <div>
-      <h2 className="text-sm font-semibold text-text-strong">{title}</h2>
-      {description ? <p className="mt-1 text-sm text-text-sub">{description}</p> : null}
+      <h2 className="body-sm font-semibold text-text-strong">{title}</h2>
+      {description ? <p className="mt-1 body-sm text-text-sub">{description}</p> : null}
     </div>
   );
 }
@@ -51,7 +51,7 @@ function ExternalLinkRow({ href, label }: { href: string; label: string }) {
       rel="noopener noreferrer"
       className={cn(
         "flex min-h-11 items-center justify-between gap-3 rounded-[var(--radius-md)] border border-stroke-soft bg-bg-white-0 px-3 py-2",
-        "text-sm font-medium text-text-strong transition-colors hover:bg-bg-soft",
+        "body-sm font-medium text-text-strong transition-colors hover:bg-bg-soft",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
       )}
     >
@@ -64,21 +64,21 @@ function ExternalLinkRow({ href, label }: { href: string; label: string }) {
 function InfoRow({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="flex min-h-11 items-center justify-between gap-3 rounded-[var(--radius-md)] border border-stroke-soft bg-bg-white-0 px-3 py-2">
-      <span className="text-sm font-medium text-text-strong">{label}</span>
-      <span className="text-sm tabular-nums text-text-sub">{value}</span>
+      <span className="body-sm font-medium text-text-strong">{label}</span>
+      <span className="body-sm tabular-nums text-text-sub">{value}</span>
     </div>
   );
 }
 
 /**
- * Settings panel — operator preferences behind the AppBar gear (desktop side
+ * Settings panel — steward preferences behind the AppBar gear (desktop side
  * sheet) and the mobile Profile tab's "Settings" tab.
  *
  * Sections (flat M3 lists, no nested cards): Appearance, Language, Network,
  * About. Identity actions (Disconnect) live in the Account panel — settings
  * hold preferences, not who-you-are.
  */
-export function AccountSettingsPanel({ className }: AccountSettingsPanelProps) {
+export function AccountSettingsPanel({ layout = "sheet", className }: AccountSettingsPanelProps) {
   const { formatMessage } = useIntl();
   const { theme, setTheme } = useTheme();
   const { locale, availableLocales, switchLanguage } = useApp();
@@ -86,16 +86,11 @@ export function AccountSettingsPanel({ className }: AccountSettingsPanelProps) {
   const chainName = getChainName(DEFAULT_CHAIN_ID);
 
   return (
-    <SheetBody padded={true} className={cn("flex flex-col gap-4", className)}>
+    <SheetBody {...accountPanelBodyProps(layout, className)}>
       {/* Appearance */}
       <section className="space-y-3">
         <SettingsSectionHeader
           title={formatMessage({ id: "cockpit.settings.theme", defaultMessage: "Theme" })}
-          description={formatMessage({
-            id: "cockpit.profile.theme.description",
-            defaultMessage:
-              "Choose the canvas atmosphere that feels best for long review sessions.",
-          })}
         />
         <AdminChoiceGroup
           ariaLabel={formatMessage({ id: "cockpit.settings.theme", defaultMessage: "Theme" })}
@@ -118,7 +113,7 @@ export function AccountSettingsPanel({ className }: AccountSettingsPanelProps) {
           title={formatMessage({ id: "cockpit.settings.language", defaultMessage: "Language" })}
           description={formatMessage({
             id: "cockpit.settings.languageDescription",
-            defaultMessage: "Choose the language for the operator canvas.",
+            defaultMessage: "Choose the language for the steward canvas.",
           })}
         />
         <AdminChoiceGroup
@@ -146,7 +141,7 @@ export function AccountSettingsPanel({ className }: AccountSettingsPanelProps) {
           href={getBlockExplorer(DEFAULT_CHAIN_ID)}
           label={formatMessage({
             id: "cockpit.account.viewOnExplorer",
-            defaultMessage: "View on explorer",
+            defaultMessage: "View on Explorer",
           })}
         />
       </section>

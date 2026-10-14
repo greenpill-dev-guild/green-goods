@@ -1,4 +1,5 @@
 import { useAuth } from "../auth/useAuth";
+import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import {
   useEligibleAdminGardens,
   type EligibleAdminGardensResult,
@@ -26,7 +27,8 @@ export type AdminAccessState =
  * indexer error.
  */
 export function useAdminAccessState(): AdminAccessState {
-  const { isAuthenticated, eoaAddress, isReady, authMode, signOut } = useAuth();
+  const { isAuthenticated, isReady, authMode, signOut } = useAuth();
+  const primaryAddress = usePrimaryAddress();
   const {
     eligibleGardens,
     resolvedDefaultGarden,
@@ -44,7 +46,7 @@ export function useAdminAccessState(): AdminAccessState {
     return { status: "embedded-wallet", signOut };
   }
 
-  if (!isAuthenticated || !eoaAddress) {
+  if (!isAuthenticated || !primaryAddress) {
     return { status: "disconnected" };
   }
 

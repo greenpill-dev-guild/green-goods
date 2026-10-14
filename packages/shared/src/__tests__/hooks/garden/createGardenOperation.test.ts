@@ -2,7 +2,7 @@
  * createGardenOperation Tests
  *
  * Tests the factory function that creates garden member operations
- * (add/remove gardeners, operators, etc.) with transaction simulation,
+ * (add/remove gardeners, stewards, etc.) with transaction simulation,
  * optimistic updates, error tracking, and toast notifications.
  */
 
@@ -22,14 +22,9 @@ vi.mock("../../../utils/blockchain/simulation", () => ({
   simulateTransaction: (...args: unknown[]) => mockSimulateTransaction(...args),
 }));
 
-const mockEnsureAppKitWalletChain = vi.fn();
-vi.mock("../../../modules/transactions/chain-guard", () => ({
-  ensureAppKitWalletChain: (...args: unknown[]) => mockEnsureAppKitWalletChain(...args),
-}));
-
-const mockAssertLocalArbitrumForkWallet = vi.fn();
-vi.mock("../../../modules/transactions/local-fork-safety", () => ({
-  assertLocalArbitrumForkWallet: () => mockAssertLocalArbitrumForkWallet(),
+const mockReadGardenRoleHat = vi.fn();
+vi.mock("../../../utils/blockchain/garden-role-reads", () => ({
+  readGardenRoleHat: (...args: unknown[]) => mockReadGardenRoleHat(...args),
 }));
 
 const mockParseContractError = vi.fn();
@@ -44,7 +39,7 @@ vi.mock("../../../utils/blockchain/abis", () => ({
 vi.mock("../../../utils/blockchain/garden-roles", () => ({
   GARDEN_ROLE_IDS: {
     gardener: 1n,
-    operator: 2n,
+    steward: 2n,
     evaluator: 3n,
     owner: 4n,
     funder: 5n,
@@ -55,6 +50,7 @@ vi.mock("../../../utils/blockchain/garden-roles", () => ({
 vi.mock("../../../components/toast", () => ({
   toastService: {
     error: vi.fn(),
+    info: vi.fn(),
   },
 }));
 
@@ -71,11 +67,17 @@ vi.mock("../../../modules/app/analytics-events", () => ({
 // Import after mocks
 // ============================================
 
+import { toastService } from "../../../components/toast";
 import {
   createGardenOperation,
   GARDEN_OPERATIONS,
   type GardenOperationConfig,
 } from "../../../hooks/garden/createGardenOperation";
+import {
+  trackAdminMemberAddFailed,
+  trackAdminMemberAddStarted,
+  trackAdminMemberAddSuccess,
+} from "../../../modules/app/analytics-events";
 import type { Address } from "../../../types/domain";
 
 // ============================================
@@ -102,10 +104,12 @@ function createConfig(overrides: Partial<GardenOperationConfig> = {}): GardenOpe
   };
 }
 
-function createMockWalletClient() {
+function createMockSender() {
   return {
-    writeContract: vi.fn().mockResolvedValue(TX_HASH),
-    chain: { id: 11155111, name: "Sepolia" },
+    sendContractCall: vi.fn().mockResolvedValue({ hash: TX_HASH, sponsored: true }),
+    supportsSponsorship: true,
+    supportsBatching: false,
+    authMode: "passkey",
   } as any;
 }
 
@@ -126,8 +130,7 @@ describe("createGardenOperation", () => {
     vi.clearAllMocks();
     mockFetchHatsModuleAddress.mockResolvedValue(HATS_MODULE);
     mockSimulateTransaction.mockResolvedValue({ success: true });
-    mockEnsureAppKitWalletChain.mockResolvedValue(undefined);
-    mockAssertLocalArbitrumForkWallet.mockResolvedValue(undefined);
+    mockReadGardenRoleHat.mockResolvedValue(false);
     mockParseContractError.mockReturnValue({
       name: "ContractError",
       message: "Something went wrong",
@@ -141,14 +144,14 @@ describe("createGardenOperation", () => {
 
   describe("successful operation", () => {
     it("returns success with tx hash", async () => {
-      const walletClient = createMockWalletClient();
+      const sender = createMockSender();
       const executeWithToast = createMockExecuteWithToast();
       const config = createConfig();
 
       const operation = createGardenOperation(
         GARDEN_ID,
         config,
-        walletClient,
+        sender,
         USER_ADDRESS,
         CHAIN_ID,
         executeWithToast,
@@ -161,14 +164,32 @@ describe("createGardenOperation", () => {
       expect(result.hash).toBe(TX_HASH);
     });
 
+    it("suppresses member analytics for privacy-sensitive queue operations", async () => {
+      const operation = createGardenOperation(
+        GARDEN_ID,
+        createConfig(),
+        createMockSender(),
+        USER_ADDRESS,
+        CHAIN_ID,
+        createMockExecuteWithToast(),
+        mockSetIsLoading
+      );
+
+      await operation(TARGET_ADDRESS, { trackMemberAnalytics: false });
+
+      expect(trackAdminMemberAddStarted).not.toHaveBeenCalled();
+      expect(trackAdminMemberAddSuccess).not.toHaveBeenCalled();
+      expect(trackAdminMemberAddFailed).not.toHaveBeenCalled();
+    });
+
     it("calls simulation before transaction", async () => {
-      const walletClient = createMockWalletClient();
+      const sender = createMockSender();
       const executeWithToast = createMockExecuteWithToast();
 
       const operation = createGardenOperation(
         GARDEN_ID,
         createConfig(),
-        walletClient,
+        sender,
         USER_ADDRESS,
         CHAIN_ID,
         executeWithToast,
@@ -187,14 +208,14 @@ describe("createGardenOperation", () => {
       );
     });
 
-    it("switches to the target chain before writing", async () => {
-      const walletClient = createMockWalletClient();
+    it("sends the call through the auth-mode-aware transaction sender", async () => {
+      const sender = createMockSender();
       const executeWithToast = createMockExecuteWithToast();
 
       const operation = createGardenOperation(
         GARDEN_ID,
         createConfig(),
-        walletClient,
+        sender,
         USER_ADDRESS,
         CHAIN_ID,
         executeWithToast,
@@ -203,22 +224,22 @@ describe("createGardenOperation", () => {
 
       await operation(TARGET_ADDRESS);
 
-      expect(mockEnsureAppKitWalletChain).toHaveBeenCalledWith(CHAIN_ID);
-      expect(walletClient.writeContract).toHaveBeenCalledWith(
+      expect(sender.sendContractCall).toHaveBeenCalledWith(
         expect.objectContaining({
-          chain: expect.objectContaining({ id: CHAIN_ID }),
+          chainId: CHAIN_ID,
+          functionName: "grantRole",
         })
       );
     });
 
     it("manages loading state", async () => {
-      const walletClient = createMockWalletClient();
+      const sender = createMockSender();
       const executeWithToast = createMockExecuteWithToast();
 
       const operation = createGardenOperation(
         GARDEN_ID,
         createConfig(),
-        walletClient,
+        sender,
         USER_ADDRESS,
         CHAIN_ID,
         executeWithToast,
@@ -233,14 +254,14 @@ describe("createGardenOperation", () => {
     });
 
     it("calls optimistic update callback", async () => {
-      const walletClient = createMockWalletClient();
+      const sender = createMockSender();
       const executeWithToast = createMockExecuteWithToast();
       const onOptimisticUpdate = vi.fn();
 
       const operation = createGardenOperation(
         GARDEN_ID,
         createConfig(),
-        walletClient,
+        sender,
         USER_ADDRESS,
         CHAIN_ID,
         executeWithToast,
@@ -258,13 +279,13 @@ describe("createGardenOperation", () => {
     });
 
     it("uses revokeRole for remove operations", async () => {
-      const walletClient = createMockWalletClient();
+      const sender = createMockSender();
       const executeWithToast = createMockExecuteWithToast();
 
       const operation = createGardenOperation(
         GARDEN_ID,
         createConfig({ operationType: "remove" }),
-        walletClient,
+        sender,
         USER_ADDRESS,
         CHAIN_ID,
         executeWithToast,
@@ -281,6 +302,81 @@ describe("createGardenOperation", () => {
         USER_ADDRESS,
         CHAIN_ID
       );
+      // Only adds can be no-ops worth guarding; removals skip the role read.
+      expect(mockReadGardenRoleHat).not.toHaveBeenCalled();
+    });
+  });
+
+  // ------------------------------------------
+  // Role pre-flight (adds)
+  // ------------------------------------------
+
+  describe("role pre-flight", () => {
+    it("never asks the wallet when the target already holds the role", async () => {
+      mockReadGardenRoleHat.mockResolvedValue(true);
+      const sender = createMockSender();
+      const onOptimisticUpdate = vi.fn();
+      const config = createConfig();
+      config.messages.alreadyHeld = (address) => `${address} is already a Gardener.`;
+
+      const operation = createGardenOperation(
+        GARDEN_ID,
+        config,
+        sender,
+        USER_ADDRESS,
+        CHAIN_ID,
+        createMockExecuteWithToast(),
+        mockSetIsLoading,
+        onOptimisticUpdate
+      );
+
+      const result = await operation(TARGET_ADDRESS);
+
+      expect(result).toEqual({ success: true, alreadyHeld: true });
+      // Exact hat membership, read from the module the grant would call.
+      expect(mockReadGardenRoleHat).toHaveBeenCalledWith(
+        GARDEN_ID,
+        TARGET_ADDRESS,
+        "gardener",
+        CHAIN_ID,
+        HATS_MODULE
+      );
+      expect(mockSimulateTransaction).not.toHaveBeenCalled();
+      expect(sender.sendContractCall).not.toHaveBeenCalled();
+      expect(trackAdminMemberAddStarted).not.toHaveBeenCalled();
+      // The cached roster catches up with the chain, and the steward hears why
+      // no wallet prompt appeared.
+      expect(onOptimisticUpdate).toHaveBeenCalledWith({
+        memberType: "gardener",
+        operationType: "add",
+        targetAddress: TARGET_ADDRESS,
+      });
+      expect(toastService.info).toHaveBeenCalledWith({
+        message: `${TARGET_ADDRESS} is already a Gardener.`,
+      });
+      expect(mockSetIsLoading).toHaveBeenLastCalledWith(false);
+    });
+
+    it("fails open to the normal add when the role read errors", async () => {
+      mockReadGardenRoleHat.mockRejectedValue(new Error("RPC unavailable"));
+      const sender = createMockSender();
+
+      const operation = createGardenOperation(
+        GARDEN_ID,
+        createConfig(),
+        sender,
+        USER_ADDRESS,
+        CHAIN_ID,
+        createMockExecuteWithToast(),
+        mockSetIsLoading
+      );
+
+      const result = await operation(TARGET_ADDRESS);
+
+      expect(result.success).toBe(true);
+      expect(result.hash).toBe(TX_HASH);
+      expect(mockSimulateTransaction).toHaveBeenCalled();
+      expect(sender.sendContractCall).toHaveBeenCalled();
     });
   });
 
@@ -312,7 +408,7 @@ describe("createGardenOperation", () => {
       const operation = createGardenOperation(
         GARDEN_ID,
         createConfig(),
-        createMockWalletClient(),
+        createMockSender(),
         USER_ADDRESS,
         CHAIN_ID,
         createMockExecuteWithToast(),
@@ -334,7 +430,7 @@ describe("createGardenOperation", () => {
       const operation = createGardenOperation(
         GARDEN_ID,
         createConfig(),
-        createMockWalletClient(),
+        createMockSender(),
         USER_ADDRESS,
         CHAIN_ID,
         createMockExecuteWithToast(),
@@ -348,8 +444,8 @@ describe("createGardenOperation", () => {
     });
 
     it("returns parsed error when transaction throws", async () => {
-      const walletClient = createMockWalletClient();
-      walletClient.writeContract.mockRejectedValue(new Error("Tx reverted"));
+      const sender = createMockSender();
+      sender.sendContractCall.mockRejectedValue(new Error("Tx reverted"));
 
       const executeWithToast = vi.fn(async (action: () => Promise<any>) => {
         return await action();
@@ -358,7 +454,7 @@ describe("createGardenOperation", () => {
       const operation = createGardenOperation(
         GARDEN_ID,
         createConfig(),
-        walletClient,
+        sender,
         USER_ADDRESS,
         CHAIN_ID,
         executeWithToast,
@@ -372,14 +468,14 @@ describe("createGardenOperation", () => {
     });
 
     it("returns optimistic update metadata when a transaction throws after optimistic apply", async () => {
-      const walletClient = createMockWalletClient();
-      walletClient.writeContract.mockRejectedValue(new Error("Tx reverted"));
+      const sender = createMockSender();
+      sender.sendContractCall.mockRejectedValue(new Error("Tx reverted"));
       const onOptimisticUpdate = vi.fn();
 
       const operation = createGardenOperation(
         GARDEN_ID,
         createConfig({ operationType: "remove" }),
-        walletClient,
+        sender,
         USER_ADDRESS,
         CHAIN_ID,
         createMockExecuteWithToast(),
@@ -418,12 +514,12 @@ describe("GARDEN_OPERATIONS", () => {
       memberType: "gardener",
       operationType: "remove",
     });
-    expect(GARDEN_OPERATIONS.addOperator).toEqual({
-      memberType: "operator",
+    expect(GARDEN_OPERATIONS.addSteward).toEqual({
+      memberType: "steward",
       operationType: "add",
     });
-    expect(GARDEN_OPERATIONS.removeOperator).toEqual({
-      memberType: "operator",
+    expect(GARDEN_OPERATIONS.removeSteward).toEqual({
+      memberType: "steward",
       operationType: "remove",
     });
     expect(GARDEN_OPERATIONS.addEvaluator).toEqual({

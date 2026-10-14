@@ -1,0 +1,163 @@
+---
+title: Make an Assessment
+sidebar_label: Make an Assessment
+slug: /community/evaluator-guide/making-an-assessment
+description: "Write a garden's assessment: the starting point, the challenge, what you will measure, and the period it covers."
+audience: evaluator
+owner: docs
+last_verified: 2026-10-13
+feature_status: Live
+goal: "Walk an evaluator or steward through the four steps of the assessment form, with enough judgment to write one worth reviewing against."
+difficulty: "standard"
+estimated_time: "15 to 30 minutes."
+prereqs: "The Evaluator, Steward, or Owner role in the garden, and a clear idea of what the garden is trying to change."
+next_steps: "/community/steward-guide/reviewing-work"
+persona_context: "Evaluators and stewards writing the baseline that later reviews and certificates are read against."
+source_of_truth:
+  - packages/admin/src/views/Hub/CreateAssessment.tsx
+  - packages/admin/src/views/Hub/components/HubRecordLists.tsx
+  - packages/admin/src/views/Hub/components/HubAssessmentInspector.tsx
+  - packages/admin/src/components/Assessment/CreateAssessmentSteps/DomainContextStep.tsx
+  - packages/admin/src/components/Assessment/CreateAssessmentSteps/StrategyKernelStep.tsx
+  - packages/admin/src/components/Assessment/CreateAssessmentSteps/ActionsHarvestStep.tsx
+  - packages/admin/src/components/Assessment/CreateAssessmentSteps/ReviewStep.tsx
+  - packages/shared/src/hooks/admin-ui/hub/useCreateAssessmentController.ts
+  - packages/shared/src/hooks/assessment/useCreateAssessmentForm.ts
+  - packages/shared/src/workflows/createAssessment.ts
+  - packages/contracts/src/resolvers/Assessment.sol
+  - packages/shared/src/i18n/en.json
+keywords:
+  - assessment
+  - baseline
+  - outcomes
+  - evaluator
+  - steward
+---
+
+import {NextBestAction} from "@site/src/components/docs";
+
+# Make an Assessment
+
+An assessment is a garden's "before" picture and its plan. It says what the problem is, what the garden will measure, and by when. Write it before the work it describes, so there is something to compare against later.
+
+Evaluators, stewards, and owners can all write one. If you are new to the role, read the [Evaluator Guide](/community/evaluator-guide/) first.
+
+## Before you start
+
+- **Have the Evaluator, Steward, or Owner role** in the garden, and check that its name shows at the top left of the dashboard.
+- **Pick one area of work.** Each assessment covers one: Solar, Agroforestry, Education, or Waste. A garden that does two needs two assessments.
+- **Know the problem in a sentence or two:** what is wrong, and why.
+- **Have at least one outcome you can measure,** with a number to aim for.
+- **Know the dates** the assessment covers.
+- **Read it twice before you submit.** An assessment cannot be changed afterwards.
+
+### What makes a good outcome
+
+An outcome is a change you expect to see, a way to measure it, and a target. "Healthier soil" is a hope. "Soil organic matter, measured twice a year, from 1% to 2%" is an outcome. Pick the few that matter. More outcomes do not make an assessment stronger.
+
+## Steps
+
+The form has four steps: **Domain & Context**, **Challenge & Goals**, **Actions & Reporting Period**, and **Review**. Nothing is sent until the last one. Your answers are saved on this device as you go. The screenshots use separate example assessments; enter the answers for your own garden.
+
+### 1. Open the form
+
+1. Open **Hub** in the steward dashboard.
+2. Tap **Create Assessment**.
+
+### 2. Domain & Context
+
+1. Under **Domain**, choose the area of work. Only the areas turned on for this garden appear, and none is chosen for you.
+2. Under **Assessment Context**, enter a **Title** that will still make sense in a year.
+3. Enter the **Location**.
+4. Write a **Description** of what the assessment covers.
+5. Tap **Next**.
+
+<figure className="gg-figure">
+  <img src="/img/screenshots/admin-create-assessment.webp" alt="The Create Assessment form on its first step, Domain and Context: the four areas of work, Solar, Agroforestry, Education, and Waste, as choices under Domain, then Title, Location, and Description fields under Assessment Context, with the four steps listed on the left and a Next button" loading="lazy" width="2000" height="1250" />
+  <figcaption>Create Assessment, on Domain &amp; Context. The four steps are listed on the left. Source: deployed Storybook fixture, captured 12 October 2026. Build revision unavailable; fictional example data.</figcaption>
+</figure>
+
+### 3. Challenge & Goals
+
+1. Under **The challenge**, describe the problem this work addresses and why it exists.
+2. Under **What You'll Measure**, add each outcome: the **Outcome**, its **Metric**, and its **Target**. Tap **Add Outcome** for another. You need at least one complete outcome, and each metric can be used once.
+3. Under **How Predictable Is This Work?**, pick the closest fit:
+
+   | Choice | Pick it when |
+   |---|---|
+   | **Clear** | The method is proven and you know what will happen |
+   | **Complicated** | It needs an expert's analysis, and there may be more than one right answer |
+   | **Complex** | You will only learn what works by trying small things and watching |
+   | **Chaotic** | It is an emergency. People have to act first and learn after |
+
+4. Tap **Next**.
+
+<figure className="gg-figure" style={{maxWidth: '800px'}}>
+  <img src="/img/screenshots/admin-assessment-goals.png" alt="Challenge and Goals with a filled challenge, three outcomes with a metric and target each, and Complex selected under How Predictable Is This Work" loading="lazy" width="800" height="864" />
+  <figcaption>Challenge &amp; Goals, with example answers. Source: deployed Storybook, StrategyKernelStep / Prefilled, 12 October 2026; cropped from 1440×1000. Build revision unavailable.</figcaption>
+</figure>
+
+### 4. Actions & Reporting Period
+
+1. Under **Which Actions Count**, select the actions this assessment covers. Only actions in the area you chose appear. This is optional.
+2. Under **Reporting Period**, set the start and the end.
+3. Tap **Next**.
+
+<figure className="gg-figure" style={{maxWidth: '800px'}}>
+  <img src="/img/screenshots/admin-assessment-period.png" alt="Two of three example Agroforestry actions selected above a reporting period from January 1 to March 31, 2026" loading="lazy" width="800" height="504" />
+  <figcaption>Actions &amp; Reporting Period. Source: deployed Storybook, ActionsHarvestStep / WithSelection, 12 October 2026; cropped from 1440×1000. Build revision unavailable.</figcaption>
+</figure>
+
+### 5. Review and submit
+
+1. Read each section. Anything you left empty shows as **Not provided**.
+2. Tap **Edit** on a section to go back and change it.
+3. Tap **Submit Assessment** and confirm. You are asked once.
+4. Keep the form open until it finishes.
+
+<figure className="gg-figure">
+  <img src="/img/screenshots/admin-assessment-review.png" alt="The Create Assessment dialog on Review, showing the permanent-record warning, example answers, Edit controls, and the Submit Assessment button" loading="lazy" width="1024" height="854" />
+  <figcaption>Review before submitting. Scroll through the form to check every section. Source: deployed Storybook, ReviewStep / InFlowReady, 12 October 2026; cropped from 1440×1000. Build revision unavailable. No assessment was submitted for this capture.</figcaption>
+</figure>
+
+## How you know it worked
+
+- The **Review** step reads **Assessment submitted**.
+- Tap **Done** to return to the Hub, or **Create Another** to start a new one.
+- The assessment appears on the Hub's **Assessments** tab, with its title, area of work, reporting period, and the date it was recorded. It can take a moment to show.
+
+<figure className="gg-figure">
+  <img src="/img/screenshots/admin-assessments-tab.webp" alt="The Hub's Assessments tab listing one assessment, Rainforest canopy strategy, marked Agroforestry, with a short description and the line Recorded Jan 3, 2026" loading="lazy" width="2000" height="764" />
+  <figcaption>The Assessments tab, with one assessment on record. This fixture has no reporting period, so only the recorded date shows. Source: deployed Storybook fixture, captured 12 October 2026. Build revision unavailable; fictional example data.</figcaption>
+</figure>
+
+## What happens next
+
+Stewards act next. As work comes in, they review it with this assessment as the context for what the garden is trying to do. When a body of approved work is ready, a steward can start an impact certificate from the assessment's record.
+
+The assessment is public. Anyone can read it, including funders deciding whether to support the garden.
+
+## If something goes wrong
+
+### Access or choices are missing
+
+If **Create Assessment** is missing, ask a steward to add the Evaluator, Steward, or Owner role. A missing area of work must be enabled under **Edit Garden**. An action from a different area belongs in a separate assessment.
+
+### A field is marked in red
+
+Fill in the area of work, title, location, description, challenge, at least one complete outcome, and both dates. **End date can't be before start date** means the reporting period needs correcting. For **Incomplete form**, check the marked fields on each step.
+
+### The submission was cancelled or failed
+
+Your answers remain on this device. Read the status, then tap **Try Again** when you are ready. Keep the form open while it sends.
+
+To reach the Green Goods team, ask in the [Green Goods Telegram group](https://t.me/+N3o3_43iRec1Y2Jh).
+
+## Next step
+
+<NextBestAction
+  title="Review work against it"
+  why="With the baseline written down, stewards have something to review each submission against."
+  actionLabel="Review Work"
+  actionHref="/community/steward-guide/reviewing-work"
+/>

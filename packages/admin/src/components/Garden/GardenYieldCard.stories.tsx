@@ -1,4 +1,5 @@
-import { type Address, type YieldAllocation } from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
+import type { YieldAllocation } from "@green-goods/shared/types/gardens-community";
 import type { Meta, StoryObj } from "@storybook/react";
 import { GardenYieldCard } from "./GardenYieldCard";
 

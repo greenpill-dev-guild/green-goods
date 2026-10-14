@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { fn } from "storybook/test";
 import { GardenCard, type GardenCardData } from "./GardenCard";
 
 const mockGarden: GardenCardData = {
@@ -9,13 +10,15 @@ const mockGarden: GardenCardData = {
     "A community-driven permaculture space focused on native plants and sustainable growing practices.",
   bannerImage: "https://picsum.photos/800/400?random=1",
   gardeners: ["0x1234...5678", "0x2345...6789", "0x3456...7890"],
-  operators: ["0xabcd...efgh"],
+  stewards: ["0xabcd...efgh"],
 };
 
 const meta: Meta<typeof GardenCard> = {
   title: "Shared/Cards/GardenCard",
   component: GardenCard,
   tags: ["autodocs"],
+  // A card is a button only when it has something to open.
+  args: { onClick: fn() },
   argTypes: {
     media: {
       control: "select",
@@ -35,9 +38,9 @@ const meta: Meta<typeof GardenCard> = {
       control: "boolean",
       description: "Selection state",
     },
-    showOperators: {
+    showStewards: {
       control: "boolean",
-      description: "Show operators section",
+      description: "Show stewards section",
     },
     showStats: {
       control: "boolean",
@@ -70,10 +73,10 @@ export const Selected: Story = {
   },
 };
 
-export const WithOperators: Story = {
+export const WithStewards: Story = {
   args: {
     garden: mockGarden,
-    showOperators: true,
+    showStewards: true,
   },
 };
 
@@ -106,7 +109,7 @@ export const MinimalSelection: Story = {
     media: "small",
     height: "selection",
     showStats: false,
-    showOperators: false,
+    showStewards: false,
   },
 };
 

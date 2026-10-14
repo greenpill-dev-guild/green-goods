@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "kind": "CELO_ZODIAC_ROLES_MASTERCOPY_PIN",
+  "recordedAt": "2026-08-18",
+  "recordedBy": "claude",
+  "chainId": 42220,
+  "verifiedAtCeloBlock": 75142491,
+  "upstreamSource": "gnosisguild/zodiac-modifier-roles @ packages/evm/mastercopies.json",
+  "verificationMethod": "Address taken from the upstream registry, then confirmed on Celo by runtime-code presence, keccak equality against the same address on Ethereum mainnet, and selector dispatchability for every function in src/interfaces/IZodiacRoles.sol",
+  "contracts": {
+    "Roles": {
+      "version": "2.1.0",
+      "address": "0x9646fDAD06d3e24444381f44362a3B0eB343D337",
+      "role": "Roles v2 modifier mastercopy",
+      "celoRuntimeBytes": 24401,
+      "celoRuntimeCodeHash": "0x87911cbc6aa0496e6bcb07dab2462b9c76daea130dede6dcc57d0adf307fa7ec",
+      "matchesEthereumMainnet": true
+    },
+    "Integrity": {
+      "version": "2.1.0",
+      "address": "0x6a6Af4b16458Bc39817e4019fB02BD3b26d41049",
+      "role": "condition-tree integrity library",
+      "celoRuntimeBytes": 5637,
+      "celoRuntimeCodeHash": "0xee8ec55ea4ac609a3fc768eccf3f0479631454fe0a802e4a4b8132102d10d495",
+      "matchesEthereumMainnet": true
+    },
+    "Packer": {
+      "version": "2.1.0",
+      "address": "0x61C5B1bE435391fDd7BC6703F3740C0d11728a8C",
+      "role": "condition-tree packing library",
+      "celoRuntimeBytes": 2138,
+      "celoRuntimeCodeHash": "0xd22ba4e0e51926cd6562bcb9709899789662a165e2ef7669e9a16602313f087d",
+      "matchesEthereumMainnet": true
+    },
+    "MultiSendUnwrapper": {
+      "version": "2.1.1",
+      "address": "0xB4Cd4bb764C089f20DA18700CE8bc5e49F369efD",
+      "role": "MultiSend transaction unwrapper",
+      "celoRuntimeBytes": 2096,
+      "celoRuntimeCodeHash": "0x1f6e088be5e6ef9d0fbe0547d3fa9a9e40d823433fd8a4449215b5663209a1eb",
+      "matchesEthereumMainnet": true
+    }
+  },
+  "factories": {
+    "singletonFactoryErc2470": {
+      "address": "0xce0042B868300000d44A59004Da54A005ffdcf9f",
+      "present": true,
+      "celoRuntimeCodeHash": "0xc4d5542b53a8b779595a20a8ddd60e58a6c49d3c3decc2df83ced1c69c8ca807"
+    },
+    "zodiacModuleProxyFactoryV2": {
+      "address": "0x000000000000aDdB49795b0f9bA5BC298cDda236",
+      "present": true,
+      "celoRuntimeCodeHash": "0x01623cbcf010a1c326230f1b2d5f48a66b440232ee49096102bc84967dc5f21e"
+    }
+  },
+  "interfaceSelectors": {
+    "avatar()": {
+      "selector": "0x5aef7de6",
+      "dispatchableInCeloRuntime": true
+    },
+    "target()": {
+      "selector": "0xd4b83992",
+      "dispatchableInCeloRuntime": true
+    },
+    "isModuleEnabled(address)": {
+      "selector": "0x2d9ad53d",
+      "dispatchableInCeloRuntime": true
+    },
+    "defaultRoles(address)": {
+      "selector": "0x2d3c2547",
+      "dispatchableInCeloRuntime": true
+    },
+    "execTransactionWithRoleReturnData(address,uint256,bytes,uint8,bytes32,bool)": {
+      "selector": "0x2b99e506",
+      "dispatchableInCeloRuntime": true
+    }
+  },
+  "deploymentModel": "One Roles modifier proxy per Garden Safe, avatar and target both set to that Safe, cloned from the pinned mastercopy through a deterministic factory. No modifier instance is deployed by this record.",
+  "notAuthorizedByThisRecord": [
+    "module deployment",
+    "Safe module enablement",
+    "role assignment",
+    "allowance configuration",
+    "Arbitrum settlement-account registration",
+    "any broadcast or value authority"
+  ]
+}

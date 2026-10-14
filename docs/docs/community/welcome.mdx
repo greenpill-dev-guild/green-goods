@@ -3,145 +3,116 @@ title: Welcome to Green Goods
 sidebar_label: Welcome to Green Goods
 slug: /
 sidebar_position: 1
+description: "Green Goods helps communities document their regenerative work, get it reviewed by people who know it, and show it to those who fund it. Start here to find your path."
 audience: all
 owner: docs
-last_verified: 2026-07-03
+last_verified: 2026-10-12
 feature_status: Live
 source_of_truth:
-  - packages/client/src/views/Landing/index.tsx
+  - packages/client/src/views/Public/Home.tsx
+  - packages/client/src/content/publicCuration.ts
   - packages/client/src/views/Public/Gardens.tsx
+  - packages/client/src/views/Public/Fund.tsx
+  - packages/client/src/views/Garden/index.tsx
   - packages/admin/src/views/Hub/index.tsx
-  - packages/shared/src/hooks/hypercerts
-  - packages/shared/src/hooks/vault
-  - packages/shared/src/hooks/cookie-jar
-  - packages/contracts/src/modules
+  - packages/contracts/src/resolvers/WorkApproval.sol
+  - packages/contracts/src/lib/CommitmentPooling/WorkCreditLib.sol
+  - packages/contracts/src/lib/CommitmentPooling/ConfirmLib.sol
+  - packages/shared/src/ontology/green-goods-ontology.json
+  - packages/shared/src/ontology/green-goods-projections.json
 keywords:
   - green goods
   - regenerative
-  - impact verification
   - community
-  - on-chain
   - garden
-  - action
-  - assessment
-  - hypercert
-  - funding
-  - capital formation
+  - gardener
+  - steward
+  - funder
 ---
 
 import {Hero, NextBestAction} from "@site/src/components/docs";
 
 ## What is Green Goods?
 
-**Green Goods helps communities document their regenerative work, get it verified, and get it funded.** Gardeners record work like tree planting, waste collection, solar maintenance, and teaching in a simple mobile app that works offline. Operators review the evidence, and the approved record becomes something funders can trust and support.
+**Green Goods helps communities document their regenerative work, get it verified, and get it funded.**
 
-Built by the [Greenpill Dev Guild](https://paragraph.com/@greenpilldevguild), Green Goods connects field workers to the verification and capital systems that make regenerative action sustainable. The platform works **offline**, speaks **your language**, and puts **community trust** at the center of every transaction.
+People who care for soil and trees, clear waste, maintain solar panels, or teach a class record their work in a phone app, even without a signal. Someone from their community reviews it. The public record helps supporters see what happened and decide what to fund.
 
-<Hero />
-
----
-
-### Simple and Accessible Reporting Tool
-
-Green Goods makes impact reporting as simple as taking a photo. The **MDR workflow** (Media - Details - Review) guides field workers through structured evidence capture - no grant writing skills, no data science background, no blockchain knowledge required. Most users start with a **passkey** (fingerprint, face, or device PIN), and wallet sign-in is also available when you want direct signer control.
-
-### An Open Path To Build Capital
-
-Verified work does not stay in a spreadsheet. Green Goods turns approved work into **on-chain attestations** that build into **Hypercerts** - tokenized impact certificates that funders can purchase. **Octant Vaults** hold endowment principal for each garden while harvested strategy yield is routed into regenerative operations. Depositor claim value stays flat by design, and the funding effect appears through harvest and split flows.
-
-### A Community Coordination Platform
-
-Green Goods is not just a reporting tool - it is a coordination layer for regenerative communities. **Hats Protocol** roles define who can submit, review, and evaluate. **Gardens V2** conviction voting lets communities signal which work matters most. **Cookie Jars** provide accessible funds for frequent operations. Together, these tools give communities the infrastructure to govern themselves transparently.
-
----
-
-## Growing Gardens
-
-Gardens are the core organizational unit in Green Goods. Each garden represents a **local community** working on regenerative projects in their area.
-
-### Gardens Are Hyper Local Hubs
-
-A garden could be a university campus maintaining solar panels in **Nigeria**, a waste collection cooperative in **Cape Town**, an agroforestry collective in **Brazil**, or a public-goods education garden in **Kenya**. Each garden has its own team, its own actions, its own governance - and its own community-owned infrastructure.
-
-### Fund At A Local Level
-
-Each garden gets its own **Octant Vault** for impact-aligned deposits, its own **Cookie Jars** for frequent operational payouts, and its own **Hypercerts** for impact certification. Capital is coordinated locally, and harvested yield is routed by the community that earned it.
-
-### Garden Areas Of Focus
-
-Gardens organize their work into **four action domains**, each with specific impact metrics:
-
-| Domain | Impact Metrics (e.g.) | Example Communities |
-|--------|---------------|-------------------|
-| **Agroforestry** | Trees planted, species diversity, canopy cover, harvest yield | AgroforestDAO |
-| **Waste Management** | Kg diverted from landfill, recycling rate, area cleaned | Muizenberg Community Garden |
-| **Solar Infrastructure** | kWh generated, panels maintained, outages prevented | TAS HUB |
-| **Education** | Students engaged, curricula completed, knowledge assessments | Greenpill Kenya |
-
-### Create Relationships With Other Gardens
-
-Gardens do not operate in isolation. The **Greenpill Network** connects gardens and local chapters across regions, enabling shared learning, cross-garden evaluations, and collective funding opportunities. A garden in Cape Town can learn from an agroforestry operation in Brazil, and evaluators can assess impact across multiple gardens.
-
----
-
-## Trust, Transparency and Verification in Green Goods
-
-Trust in Green Goods flows from **neighbors verifying neighbors**, not from distant algorithms or centralized authorities.
-
-### Governance With Continuous Signal
-
-**Conviction voting** through Gardens V2 lets community members continuously signal support for specific actions and proposals. Unlike traditional voting (one vote, one moment), conviction-based signaling lets support accumulate over time - the longer you signal, the stronger your conviction grows. This means the community's priorities emerge organically from sustained engagement, not from periodic votes.
-
-### Trust Based Payouts
-
-When work is verified and approved, payouts flow through transparent on-chain mechanisms. **Cookie Jars** handle frequent payments for regular operations (such as weekly payouts). **Harvested vault yield** creates a sustainable flow of funding after operators run the harvest and split flow. **Hypercert sales** reward high-impact work. Every transaction is auditable, and payout rules are defined by the community's governance configuration.
-
-### Community Garden Engagement
-
-Every garden has six on-chain roles managed through **Hats Protocol**:
-
-- **Owner** - Full control over garden configuration
-- **Operator** - Approves work, manages actions, creates Hypercerts
-- **Evaluator** - Certifies impact through assessments
-- **Gardener** - Documents work in the field
-- **Funder** - Deposits into vaults, purchases Hypercerts, and contributes to autonomous soft buy pressure on impact certificates
-- **Community** - Participates in governance and signaling
-
-Role transitions are transparent - a gardener who consistently delivers quality work can be promoted to operator by the garden admin.
-
-### Compliant Impact Reporting
-
-Green Goods integrates with **[Karma GAP](https://gap.karmahq.xyz)**, an impact reporting platform, to aggregate approved work across actions and reporting periods. Impact data maps to funding milestones, and evaluators can export reports in formats that funders expect. Assessments connect verified on-chain data to recognized compliance frameworks (see [Octant documentation](https://docs.octant.build) for details on supported standards).
-
----
-
-## Turning Impact into Funding
-
-Verified work flows through an attestation chain into **Hypercerts** (tokenized impact certificates) and yield-generating **Octant Vaults**, creating a self-reinforcing cycle where impact attracts capital. Funders deposit into vaults, strategies generate yield that funds garden operations, and verified impact attracts more deposits.
-
-[Learn how the full funding cycle works →](/community/how-it-works#impact-reporting--verification)
-
----
+<figure className="gg-figure gg-overview-photo">
+  <img
+    src="/img/community/editorial-home.webp"
+    alt="A tended growing space with tools, a field notebook, and compost bins beside a wooden shelter."
+    width="1672"
+    height="941"
+    fetchPriority="high"
+    decoding="async"
+  />
+  <figcaption>
+    Work in the field becomes a record others can read. Editorial illustration reused from
+    Green Goods' website Home imagery; it does not identify a real location.
+  </figcaption>
+</figure>
 
 ## Find your path
 
-The docs are organized by who you are and what you came to do:
+Choose the guide for what you came to do.
 
-| You are… | Start here |
-|---|---|
-| **A gardener** documenting work | [Join a Garden](/community/gardener-guide/joining-a-garden) → [Submit Work](/community/gardener-guide/uploading-your-work) |
-| **An operator** running a garden | [Operator Guide](/community/operator-guide/) → create, assess, review, and mint |
-| **A funder** supporting gardens | [Funder Guide](/community/funder-guide/) → donating and endowing |
-| **An evaluator** reviewing impact | [How It Works](/community/how-it-works) → [FAQ: Evaluator](/reference/faq#evaluator) |
-| **A researcher** working on methodology | [Design & Research](/reference/design-research) → framework, domains, and evidence |
-| **A builder or integrator** working with the protocol | [Builders: Getting Started](/builders/getting-started) → [Architecture](/builders/architecture) |
-| **Exploring, or a partner org** | [Why We Build](/community/why-we-build) → [Where We're Headed](/community/where-were-headed) |
+<Hero />
 
----
+## What is a Green Goods garden? {#what-a-garden-is}
+
+A garden is a community doing regenerative work together in one place.
+
+The word is a picture, not a job description. A garden is something a group of people tends over time, and it does not have to involve plants. A garden can be:
+
+- a campus team keeping solar panels working,
+- a neighborhood crew that collects and sorts waste,
+- a farming collective caring for soil and growing trees alongside crops,
+- a group running classes and workshops.
+
+Every garden has its own people, its own list of the work it tracks, and its own funds. Green Goods currently covers four areas of work: **solar**, **agroforestry**, **education**, and **waste**.
+
+## How it works, in one minute
+
+1. **Plan.** The garden writes down where it is starting from and what it is aiming for.
+2. **Document.** Gardeners record their work with photos and a few details, in the field.
+3. **Review.** A steward from the garden approves each piece of work, or sends it back with a reason.
+4. **Certify.** Approved work can be bundled into one claim, called an impact certificate. This step is still being switched on.
+5. **Fund.** Supporters give to the garden, and the garden uses that support to do more work.
+
+**Commitment Pooling connects the plan to specific promises.** A pool gives a garden shared rules for offering or requesting work and support. People record evidence toward a promise, and its designated reviewers check whether it was kept. Any agreed payment has its own conditions and steps; approving work alone does not pay anyone.
+
+Commitment Pooling is being prepared for release. Check with your steward before planning around it. [How It Works](/community/how-it-works#commitment-pooling) explains the connection.
+
+[How It Works](/community/how-it-works) walks through each step.
+
+<figure className="gg-figure gg-overview-product">
+  <img src="/img/screenshots/client-work-media-current.png" alt="The app's Media step shows Upload Media, one added image, and the Details button." width="390" height="844" loading="lazy" />
+  <figcaption>
+    <strong>Start with the work in front of you.</strong> The app asks what to photograph,
+    then gives you space for the details. Someone from your garden reviews the record you send.
+    <a href="/community/gardener-guide/uploading-your-work">Submit Work</a> walks through it.
+    <span className="gg-overview-source">Source: local static Storybook, Client/Work/SubmitWork,
+    Media With Example Photo; 13 October 2026, 390 × 844. Fixture build is recorded in the Plan Hub image ledger.
+    Photo: <a href="https://commons.wikimedia.org/wiki/File:Seedlings.jpg">Leon Brooks, Seedlings</a>, public domain.
+    This is a fictional example, not a real Green Goods submission.</span>
+  </figcaption>
+</figure>
+
+## What Green Goods is not
+
+- **It is not only for gardening.** Any community doing regenerative work can be a garden.
+- **It is not a payroll.** Approving work does not pay anyone. How a garden rewards its people is a separate step, and each garden decides it.
+- **It is not an outside audit.** An approval means a steward from the garden looked at the evidence and stands behind it. It does not by itself measure environmental results.
+- **It is not private.** What gardeners submit becomes a public, permanent record. That is the point, and it is worth knowing before you take the first photo.
+
+Have a question first? The [FAQ](/faq) answers the common ones, and the [Glossary](/glossary) explains the words.
+
+## Next step
 
 <NextBestAction
   title="Next: How It Works"
-  why="Now that you understand the platform, dive deeper into the technical workflows - MDR submissions, passkey onboarding, offline sync, and more."
+  why="See the whole loop, from a plan to a funded garden, and what an approval really means."
   actionLabel="How It Works"
   actionHref="/community/how-it-works"
   alternatives={[

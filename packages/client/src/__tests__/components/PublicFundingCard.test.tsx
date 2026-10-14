@@ -1,7 +1,7 @@
 /**
  * PublicFundingCard interaction regressions.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { render, screen, waitFor } from "@testing-library/react";
@@ -25,6 +25,7 @@ const {
   mockVaultMutate,
   mockVaultReset,
   mockLoginWithWallet,
+  mockJarRead,
   authState,
 } = vi.hoisted(() => ({
   mockCookieJarMutate: vi.fn(),
@@ -32,6 +33,7 @@ const {
   mockVaultMutate: vi.fn(),
   mockVaultReset: vi.fn(),
   mockLoginWithWallet: vi.fn(),
+  mockJarRead: vi.fn(),
   authState: {
     primaryAddress: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as string | null,
   },
@@ -44,7 +46,7 @@ type MockMutationOptions = {
 function rejectMutation(
   message: string,
   setError: Dispatch<SetStateAction<Error | null>>,
-  spy: ReturnType<typeof vi.fn>,
+  spy: (params: unknown, options?: MockMutationOptions) => unknown,
   params: unknown,
   options?: MockMutationOptions
 ) {
@@ -54,30 +56,56 @@ function rejectMutation(
   options?.onError?.(error);
 }
 
-vi.mock("@green-goods/shared", async () => {
-  const React = await vi.importActual<typeof import("react")>("react");
+vi.mock("@green-goods/shared/utils/errors/tx-error-classifier", () => ({
+  classifyTxError: (error: Error | null) => ({
+    severity: "error",
+    rawMessage: error?.message ?? "",
+    messageKey: "public.fund.card.error.generic",
+    titleKey: "public.fund.card.error.title",
+  }),
+  isMeaningfulTxErrorMessage: (message?: string) => Boolean(message),
+}));
 
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
+  cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/utils/blockchain/vaults", () => ({
+  formatTokenAmount: (value: bigint) => String(Number(value) / 1e18),
+  getVaultAssetSymbol: (address: string) =>
+    address?.toLowerCase() === TEST_WETH.toLowerCase() ? "WETH" : "DAI",
+  normalizeDecimalInput: (value: string) => {
+    const trimmed = value.trim();
+    return /^\.\d+$/.test(trimmed) ? `0${trimmed}` : trimmed;
+  },
+}));
+
+vi.mock("@green-goods/shared/utils/blockchain/price-feeds", () => ({
+  formatUsdCents: (value: bigint) => `$${(Number(value) / 100).toFixed(2)}`,
+  formatUsdPrice: () => "$3,000.00",
+  parseUsdToCents: (value: string) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? BigInt(Math.round(parsed * 100)) : null;
+  },
+  usdCentsToWei: (cents: bigint) => cents * 10n ** 16n,
+  weiToUsdCents: (wei: bigint) => wei / 10n ** 16n,
+}));
+
+vi.mock("@green-goods/shared/utils/blockchain/address", () => ({
+  truncateAddress: (address: string) => `${address.slice(0, 6)}...${address.slice(-4)}`,
+}));
+
+vi.mock("@green-goods/shared/providers/AppKitProvider", () => ({
+  useAppKit: () => ({ open: vi.fn() }),
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
+  useAuth: () => ({ loginWithWallet: mockLoginWithWallet }),
+}));
+
+vi.mock("@green-goods/shared/hooks/cookie-jar/useCookieJarDeposit", async () => {
+  const React = await vi.importActual<typeof import("react")>("react");
   return {
-    classifyTxError: (error: Error | null) => ({
-      severity: "error",
-      rawMessage: error?.message ?? "",
-      messageKey: "public.fund.card.error.generic",
-      titleKey: "public.fund.card.error.title",
-    }),
-    cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
-    formatTokenAmount: (value: bigint) => String(Number(value) / 1e18),
-    formatUsdCents: (value: bigint) => `$${(Number(value) / 100).toFixed(2)}`,
-    formatUsdPrice: () => "$3,000.00",
-    getVaultAssetSymbol: (address: string) =>
-      address?.toLowerCase() === TEST_WETH.toLowerCase() ? "WETH" : "DAI",
-    isMeaningfulTxErrorMessage: (message?: string) => Boolean(message),
-    parseUsdToCents: (value: string) => {
-      const parsed = Number(value);
-      return Number.isFinite(parsed) && parsed > 0 ? BigInt(Math.round(parsed * 100)) : null;
-    },
-    truncateAddress: (address: string) => `${address.slice(0, 6)}...${address.slice(-4)}`,
-    useAppKit: () => ({ open: vi.fn() }),
-    useAuth: () => ({ loginWithWallet: mockLoginWithWallet }),
     useCookieJarDeposit: () => {
       const [error, setError] = React.useState<Error | null>(null);
       return {
@@ -96,39 +124,47 @@ vi.mock("@green-goods/shared", async () => {
         error,
       };
     },
-    useEthUsdPrice: () => ({
-      hasFeed: true,
-      isStale: false,
-      priceAnswer: 300000000000n,
-      updatedAt: 0,
-    }),
-    useGardenCookieJars: () => ({
-      isLoading: false,
-      jars: [
-        {
-          assetAddress: TEST_DAI,
-          decimals: 18,
-          jarAddress: TEST_COOKIE_JAR,
-          minDeposit: 0n,
-        },
-      ],
-    }),
-    useGardenVaults: () => ({
-      isLoading: false,
-      vaults: [
-        {
-          asset: TEST_DAI,
-          chainId: 42161,
-          vaultAddress: TEST_VAULT,
-        },
-        {
-          asset: TEST_WETH,
-          chainId: 42161,
-          vaultAddress: TEST_VAULT_WETH,
-        },
-      ],
-    }),
-    useUser: () => ({ primaryAddress: authState.primaryAddress }),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/blockchain/useEthUsdPrice", () => ({
+  useEthUsdPrice: () => ({
+    hasFeed: true,
+    isStale: false,
+    priceAnswer: 300000000000n,
+    updatedAt: 0,
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/cookie-jar/useGardenCookieJars", () => ({
+  useGardenCookieJars: mockJarRead,
+}));
+
+vi.mock("@green-goods/shared/hooks/vault/useGardenVaults", () => ({
+  useGardenVaults: () => ({
+    isLoading: false,
+    vaults: [
+      {
+        asset: TEST_DAI,
+        chainId: 42161,
+        vaultAddress: TEST_VAULT,
+      },
+      {
+        asset: TEST_WETH,
+        chainId: 42161,
+        vaultAddress: TEST_VAULT_WETH,
+      },
+    ],
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
+  useUser: () => ({ primaryAddress: authState.primaryAddress }),
+}));
+
+vi.mock("@green-goods/shared/hooks/vault/useVaultDeposit", async () => {
+  const React = await vi.importActual<typeof import("react")>("react");
+  return {
     useVaultDeposit: () => {
       const [error, setError] = React.useState<Error | null>(null);
       return {
@@ -147,15 +183,10 @@ vi.mock("@green-goods/shared", async () => {
         error,
       };
     },
-    usdCentsToWei: (cents: bigint) => cents * 10n ** 16n,
-    weiToUsdCents: (wei: bigint) => wei / 10n ** 16n,
-    normalizeDecimalInput: (value: string) => {
-      const trimmed = value.trim();
-      return /^\.\d+$/.test(trimmed) ? `0${trimmed}` : trimmed;
-    },
   };
 });
 
+import messages from "@green-goods/shared/i18n/en";
 import { PublicFundingCard } from "../../components/Public/PublicFundingCard";
 
 const garden = {
@@ -166,17 +197,17 @@ const garden = {
   description: "A solar-powered community garden",
   location: "Austin, TX",
   bannerImage: "",
-  contributorCount: 2,
+  gardenerCount: 2,
   actionCount: 1,
   lastActivityAt: 1700000000,
-  operators: [],
+  stewards: [],
   evaluators: [],
 };
 
 function createCard(intent: "donate" | "endow") {
   return createElement(
     IntlProvider,
-    { locale: "en", messages: {} },
+    { locale: "en", messages },
     createElement(PublicFundingCard, {
       open: true,
       garden,
@@ -194,6 +225,41 @@ describe("PublicFundingCard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     authState.primaryAddress = TEST_OWNER;
+    mockJarRead.mockReturnValue({
+      isLoading: false,
+      jars: [
+        {
+          assetAddress: TEST_DAI,
+          decimals: 18,
+          jarAddress: TEST_COOKIE_JAR,
+          minDeposit: 0n,
+        },
+      ],
+    });
+  });
+
+  it.each([
+    { error: new Error("read failed") },
+    { isPaused: true },
+    { hasDetailReadFailure: true },
+    { hasDecimalsReadFailure: true },
+  ])("offers retry for unavailable donation options: %j", async (failure) => {
+    const refetch = vi.fn().mockResolvedValue(undefined);
+    mockJarRead.mockReturnValue({ jars: [], isLoading: false, refetch, ...failure });
+    const user = userEvent.setup();
+    renderCard("donate");
+    expect(screen.getByText(/couldn’t load payment options/)).toBeInTheDocument();
+    expect(screen.queryByText(/no donation fund configured/)).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Try Again" }));
+    expect(refetch).toHaveBeenCalledOnce();
+    expect(mockCookieJarMutate).not.toHaveBeenCalled();
+  });
+
+  it("shows a missing donation fund only after a successful empty read", () => {
+    mockJarRead.mockReturnValue({ jars: [], isLoading: false, hasNoJar: true });
+    renderCard("donate");
+    expect(screen.getByText(/no donation fund configured/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Try Again" })).not.toBeInTheDocument();
   });
 
   it("connects via wallet auth (loginWithWallet), not the bare AppKit modal, when no wallet is connected (PRD-497)", async () => {
@@ -208,12 +274,22 @@ describe("PublicFundingCard", () => {
   });
 
   it.each([
-    ["donate", "Shared fund support"],
-    ["endow", "Garden Vault endowment"],
+    ["donate", "Contribution to this Garden’s shared fund"],
+    ["endow", "Longer-term support through an endowment"],
   ] as const)("labels the %s funding path in the card header", (intent, pathLabel) => {
     renderCard(intent);
 
     expect(screen.getByText(pathLabel)).toBeInTheDocument();
+  });
+
+  it.each(["donate", "endow"] as const)("opens %s as a full-width mobile sheet", (intent) => {
+    renderCard(intent);
+
+    const panel = document.querySelector('[data-component="PublicFundingCard"]');
+    expect(panel).toHaveClass("w-full", "max-w-none", "sm:max-w-md");
+    expect(screen.getByRole("dialog")).toHaveClass("items-end", "p-0", "sm:p-4");
+    expect(mockCookieJarMutate).not.toHaveBeenCalled();
+    expect(mockVaultMutate).not.toHaveBeenCalled();
   });
 
   it.each([

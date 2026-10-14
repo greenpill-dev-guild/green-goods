@@ -1,12 +1,11 @@
-import {
-  derivePublicGardenSlug,
-  normalizeCampaignMetadataUrl,
-  type Address,
-  type CampaignCookieJarCampaign,
-  type CampaignCookieJarMetadata,
-  type CreateCampaignCookieJarParams,
-  type Garden,
-} from "@green-goods/shared";
+import { derivePublicGardenSlug } from "@green-goods/shared/public-contracts/garden-slug";
+import type {
+  CampaignCookieJarCampaign,
+  CampaignCookieJarMetadata,
+  CreateCampaignCookieJarParams,
+} from "@green-goods/shared/types/cookie-jar";
+import type { Address, Garden } from "@green-goods/shared/types/domain";
+import { normalizeCampaignMetadataUrl } from "@green-goods/shared/utils/cookie-jar-campaign";
 
 const PUBLIC_COOKIE_BASE_URL = "https://greengoods.app/cookies";
 
@@ -15,10 +14,9 @@ export interface CampaignCookieJarCreateResult {
   jarAddress?: Address;
 }
 
-export function filterCampaignCookieJarGardens(
-  gardens: readonly Pick<Garden, "id" | "name" | "tokenAddress">[],
-  search: string
-) {
+export function filterCampaignCookieJarGardens<
+  T extends Pick<Garden, "id" | "name" | "tokenAddress">,
+>(gardens: readonly T[], search: string) {
   const query = search.trim().toLowerCase();
   if (!query) return [...gardens];
 
@@ -31,11 +29,9 @@ export function filterCampaignCookieJarGardens(
   );
 }
 
-export function orderCampaignCookieJarGardensForSelection(
-  gardens: readonly Pick<Garden, "id" | "name" | "tokenAddress">[],
-  selectedGardenIds: readonly string[],
-  search: string
-) {
+export function orderCampaignCookieJarGardensForSelection<
+  T extends Pick<Garden, "id" | "name" | "tokenAddress">,
+>(gardens: readonly T[], selectedGardenIds: readonly string[], search: string) {
   const selectedKeys = new Set(selectedGardenIds.map((id) => id.toLowerCase()));
   const filteredGardens = filterCampaignCookieJarGardens(gardens, search);
   const filteredKeys = new Set(filteredGardens.map((garden) => garden.id.toLowerCase()));
@@ -92,6 +88,8 @@ export function canSyncCampaignCookieJarAllowlist(params: {
   metadataChanged?: boolean;
   canUpdateMetadata?: boolean;
   metadataUrlsValid?: boolean;
+  /** The description is within the limit the metadata builder refuses past. */
+  metadataDescriptionFits?: boolean;
 }): boolean {
   const hasAllowlistDiff = params.grantCount > 0 || params.revokeCount > 0;
   const hasMetadataRefresh = Boolean(params.metadataChanged && params.canUpdateMetadata);
@@ -100,6 +98,7 @@ export function canSyncCampaignCookieJarAllowlist(params: {
     Boolean(params.jarAddress && params.isJarOwner) &&
     params.invalidAddressCount === 0 &&
     (params.metadataUrlsValid ?? true) &&
+    (params.metadataDescriptionFits ?? true) &&
     (hasAllowlistDiff || hasMetadataRefresh)
   );
 }

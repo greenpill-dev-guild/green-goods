@@ -1,25 +1,29 @@
-import { PoolType, useConvictionProposalsForPool, usePrimaryAddress } from "@green-goods/shared";
+import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
+import { useConvictionProposalsForPool } from "@green-goods/shared/hooks/conviction/useConvictionProposalsForPool";
+import { PoolType } from "@green-goods/shared/types/gardens-community";
 import { renderWithProviders, screen } from "@/__tests__/test-utils";
 import { GovernancePanel } from "@/views/Community/components/GovernancePanel";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return {
-    ...actual,
-    useConvictionProposalsForPool: vi.fn(),
-    useConvictionWeightAllocator: vi.fn(() => ({
-      allocations: {},
-      flush: vi.fn(),
-      isDirty: false,
-      isLoading: false,
-      isSaving: false,
-      setAllocations: vi.fn(),
-    })),
-    usePrimaryAddress: vi.fn(),
-  };
-});
+vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
+  usePrimaryAddress: vi.fn(),
+}));
+
+vi.mock("@green-goods/shared/hooks/conviction/useConvictionProposalsForPool", () => ({
+  useConvictionProposalsForPool: vi.fn(),
+}));
+
+vi.mock("@green-goods/shared/hooks/conviction/useConvictionWeightAllocator", () => ({
+  useConvictionWeightAllocator: vi.fn(() => ({
+    allocations: {},
+    flush: vi.fn(),
+    isDirty: false,
+    isLoading: false,
+    isSaving: false,
+    setAllocations: vi.fn(),
+  })),
+}));
 
 const GARDEN_ID = "0x1111111111111111111111111111111111111111";
 const HYPERCERT_POOL = "0x2222222222222222222222222222222222222222";
@@ -28,7 +32,7 @@ const COMMUNITY = "0x3333333333333333333333333333333333333333";
 describe("GovernancePanel", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(usePrimaryAddress).mockReturnValue(undefined);
+    vi.mocked(usePrimaryAddress).mockReturnValue(null);
     vi.mocked(useConvictionProposalsForPool).mockReturnValue({
       hasError: false,
       isLoading: false,
@@ -58,7 +62,7 @@ describe("GovernancePanel", () => {
     });
   });
 
-  it("renders registered proposals as a pool-scoped operator list", () => {
+  it("renders registered proposals as a pool-scoped steward list", () => {
     renderWithProviders(
       <MemoryRouter>
         <GovernancePanel
@@ -85,6 +89,6 @@ describe("GovernancePanel", () => {
     expect(screen.getByText("2 supporters")).toBeInTheDocument();
     expect(screen.getByText("1 supporter")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Open pool/i })).toBeInTheDocument();
-    expect(screen.getByText("Sign in to allocate conviction")).toBeInTheDocument();
+    expect(screen.getByText("Sign In to Allocate Conviction")).toBeInTheDocument();
   });
 });

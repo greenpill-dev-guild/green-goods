@@ -42,7 +42,7 @@ contract FullProtocolE2EForkTest is ForkTestBase {
         assertEq(keccak256(bytes(gardenAcct.name())), keccak256(bytes("E2E Garden")), "garden name should match");
 
         // 4. Grant roles: operator, gardener, evaluator
-        _grantGardenRole(garden, forkOperator, IHatsModule.GardenRole.Operator);
+        _grantGardenRole(garden, forkOperator, IHatsModule.GardenRole.Steward);
         _grantGardenRole(garden, forkGardener, IHatsModule.GardenRole.Gardener);
         _grantGardenRole(garden, forkEvaluator, IHatsModule.GardenRole.Evaluator);
 
@@ -183,7 +183,7 @@ contract FullProtocolE2EForkTest is ForkTestBase {
             weightScheme: IGardensModule.WeightScheme.Exponential,
             domainMask: 0x0F,
             gardeners: new address[](0),
-            operators: new address[](0)
+            stewards: new address[](0)
         });
 
         address garden = gardenToken.mintGarden(config);
@@ -258,7 +258,7 @@ contract FullProtocolE2EForkTest is ForkTestBase {
             weightScheme: IGardensModule.WeightScheme.Linear,
             domainMask: 0x01,
             gardeners: new address[](0),
-            operators: new address[](0)
+            stewards: new address[](0)
         });
 
         vm.expectRevert(GardenToken.HatsModuleNotSet.selector);
@@ -294,7 +294,7 @@ contract FullProtocolE2EForkTest is ForkTestBase {
             weightScheme: IGardensModule.WeightScheme.Linear,
             domainMask: 0x01, // SOLAR only
             gardeners: new address[](0),
-            operators: new address[](0)
+            stewards: new address[](0)
         });
 
         configs[1] = GardenToken.GardenConfig({
@@ -308,7 +308,7 @@ contract FullProtocolE2EForkTest is ForkTestBase {
             weightScheme: IGardensModule.WeightScheme.Exponential,
             domainMask: 0x03, // SOLAR + AGRO
             gardeners: new address[](0),
-            operators: new address[](0)
+            stewards: new address[](0)
         });
 
         configs[2] = GardenToken.GardenConfig({
@@ -322,7 +322,7 @@ contract FullProtocolE2EForkTest is ForkTestBase {
             weightScheme: IGardensModule.WeightScheme.Power,
             domainMask: 0x0F, // All domains
             gardeners: new address[](0),
-            operators: new address[](0)
+            stewards: new address[](0)
         });
 
         address[] memory accounts = gardenToken.batchMintGardens(configs);
@@ -382,7 +382,7 @@ contract FullProtocolE2EForkTest is ForkTestBase {
             weightScheme: IGardensModule.WeightScheme.Linear,
             domainMask: 0x0F,
             gardeners: new address[](0),
-            operators: new address[](0)
+            stewards: new address[](0)
         });
 
         address garden = gardenToken.mintGarden(config);
@@ -461,7 +461,7 @@ contract FullProtocolE2EForkTest is ForkTestBase {
         address gardenB = _mintTestGarden("Garden B", 0x0F);
         address gardenB_operator = makeAddr("gardenB_operator");
         address gardenB_gardener = makeAddr("gardenB_gardener");
-        _grantGardenRole(gardenB, gardenB_operator, IHatsModule.GardenRole.Operator);
+        _grantGardenRole(gardenB, gardenB_operator, IHatsModule.GardenRole.Steward);
         _grantGardenRole(gardenB, gardenB_gardener, IHatsModule.GardenRole.Gardener);
 
         // Submit work on garden B as its gardener

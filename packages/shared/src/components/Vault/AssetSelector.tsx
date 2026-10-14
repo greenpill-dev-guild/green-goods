@@ -1,5 +1,6 @@
 import type { GardenVault } from "../../types/vaults";
 import { getVaultAssetSymbol } from "../../utils/blockchain/vaults";
+import { Chip } from "../Chip";
 
 export interface AssetSelectorProps {
   vaults: GardenVault[];
@@ -8,10 +9,16 @@ export interface AssetSelectorProps {
   ariaLabel: string;
   /** Optional render function for a badge/indicator on each pill */
   renderBadge?: (vault: GardenVault) => React.ReactNode;
-  /** Text size class (default: "text-sm") */
+  /** Chip step: `sm` is the 32px compact chip, `xs` keeps the same chip with 12px text. */
   size?: "sm" | "xs";
 }
 
+/**
+ * A radio group of shared chips, one per vault asset (DL-026): capsules at 32px
+ * with a 44px finger box, the action fill with white text when selected
+ * (DL-017), so the picker reads the same in the wallet sheet, the funding
+ * panel, and the cockpit.
+ */
 export function AssetSelector({
   vaults,
   selectedAsset,
@@ -20,28 +27,23 @@ export function AssetSelector({
   renderBadge,
   size = "sm",
 }: AssetSelectorProps) {
-  const textSize = size === "xs" ? "text-xs" : "text-sm";
-
   return (
     <div role="radiogroup" aria-label={ariaLabel} className="flex flex-wrap gap-2">
       {vaults.map((vault) => {
         const isActive = selectedAsset.toLowerCase() === vault.asset.toLowerCase();
         return (
-          <button
+          <Chip
             key={vault.id}
-            type="button"
             role="radio"
+            selected={isActive}
             aria-checked={isActive}
+            tabIndex={0}
             onClick={() => onSelect(vault.asset)}
-            className={`relative rounded-full border px-3 py-1.5 ${textSize} font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-1 ${
-              isActive
-                ? "border-primary-base bg-primary-base text-primary-foreground"
-                : "border-stroke-sub bg-bg-white text-text-sub hover:bg-bg-weak"
-            }`}
+            className={size === "xs" ? "text-xs" : undefined}
           >
             {getVaultAssetSymbol(vault.asset, vault.chainId)}
             {renderBadge?.(vault)}
-          </button>
+          </Chip>
         );
       })}
     </div>

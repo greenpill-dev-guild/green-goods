@@ -1,12 +1,14 @@
 /**
  * useProtocolYieldSummary Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import { act, createElement, type ReactNode } from "react";
+import { type QueryClient } from "@tanstack/react-query";
+import { waitFor } from "@testing-library/react";
+import { act } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const TEST_CHAIN_ID = 11155111;
 
@@ -31,12 +33,6 @@ vi.mock("../../../modules/app/logger", () => ({
 
 const { useProtocolYieldSummary } = await import("../../../hooks/yield/useProtocolYieldSummary");
 
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-}
-
 function createDeferredPromise<T>() {
   let resolve!: (value: T) => void;
   const promise = new Promise<T>((innerResolve) => {
@@ -50,9 +46,7 @@ describe("useProtocolYieldSummary", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
+    queryClient = createTestQueryClient();
   });
 
   it("stays loading until the first summary fetch resolves", async () => {
@@ -72,8 +66,8 @@ describe("useProtocolYieldSummary", () => {
 
     mockGetAllYieldAllocations.mockReturnValueOnce(deferred.promise);
 
-    const { result } = renderHook(() => useProtocolYieldSummary(), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useProtocolYieldSummary(), {
+      queryClient,
     });
 
     expect(result.current.isLoading).toBe(true);

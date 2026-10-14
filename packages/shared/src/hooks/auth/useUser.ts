@@ -30,14 +30,16 @@
  * ```
  */
 
+import type { SmartAccountClientResolver } from "../../types/auth";
 import type { SmartAccountClient } from "permissionless";
 import { useAuth } from "./useAuth";
+import type { Address } from "../../types/domain";
 import { getPrimaryAddress } from "./usePrimaryAddress";
 
 export interface User {
-  id: string;
+  id: Address;
   wallet: {
-    address: string;
+    address: Address;
   };
 }
 
@@ -47,11 +49,12 @@ export interface UseUserReturn {
   /** Whether auth state is ready (not initializing) */
   ready: boolean;
   /** EOA object (only set when authMode === "wallet") */
-  eoa: { address: string } | null;
+  eoa: { address: Address } | null;
   /** Smart account address (only set when authMode === "passkey") */
-  smartAccountAddress: string | null;
+  smartAccountAddress: Address | null;
   /** Smart account client for transactions (passkey mode only) */
   smartAccountClient: SmartAccountClient | null;
+  resolveSmartAccountClient: SmartAccountClientResolver | null;
   /** Current authentication mode */
   authMode: "wallet" | "passkey" | "embedded" | null;
   /** Passkey username (only set when authMode === "passkey") */
@@ -61,9 +64,9 @@ export interface UseUserReturn {
   /** External wallet connected (available for switching) */
   externalWalletConnected: boolean;
   /** External wallet address (may differ from walletAddress in passkey mode) */
-  externalWalletAddress: string | null;
+  externalWalletAddress: Address | null;
   /** Primary address based on current auth mode */
-  primaryAddress: string | null;
+  primaryAddress: Address | null;
 }
 
 export function useUser(): UseUserReturn {
@@ -80,6 +83,7 @@ export function useUser(): UseUserReturn {
     externalWalletConnected = false,
     externalWalletAddress = null,
     smartAccountClient = null,
+    resolveSmartAccountClient = null,
   } = auth;
 
   const primaryAddress = getPrimaryAddress(
@@ -104,6 +108,7 @@ export function useUser(): UseUserReturn {
     eoa,
     smartAccountAddress,
     smartAccountClient,
+    resolveSmartAccountClient,
     authMode,
     userName,
     ensName: null, // Disabled - useEnsName was called before QueryClient was available

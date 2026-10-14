@@ -238,6 +238,42 @@ SOL
     assert_json "const r=require('$TMP_DIR/output/report.json'); const m=r.metrics; if(m.expect_revert_total!==2||m.expect_revert_selector_specific!==2||!r.status.pass){process.exit(1)}"
 }
 
+scenario_7_comments_and_strings_do_not_assign_source_selector() {
+    reset_fixture
+    mkdir -p "$TMP_DIR/packages/contracts/test/fork"
+    cat > "$TMP_DIR/packages/contracts/test/fork/Scenario7.t.sol" <<'SOL'
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.25;
+contract Scenario7 {
+    function _unapproved(address target) external {
+        string memory marker = "function _setupL1(";
+        // function _setupL1(
+        vm.store(target, bytes32(0), bytes32(0));
+    }
+}
+SOL
+    write_allowlist '[
+      {
+        "file": "packages/contracts/test/fork/Scenario7.t.sol",
+        "pattern": "vm.store",
+        "reason": "Approved only inside the real setup function",
+        "owner": "contracts-core",
+        "expires_on": "2026-12-31",
+        "network_scope": ["sepolia"],
+        "classification": "necessary",
+        "source_boundaries": [
+          {
+            "selector": "_setupL1",
+            "occurrences": 1
+          }
+        ]
+      }
+    ]'
+    run_audit_expect_exit 1 enforce-must-fix
+
+    assert_json "const r=require('$TMP_DIR/output/report.json'); const finding=r.findings.must_fix.find((f)=>f.title.includes('Unallowlisted mock primitive: vm.store')&&f.file==='packages/contracts/test/fork/Scenario7.t.sol'); if(!finding||!finding.detail.includes('in _unapproved')){process.exit(1)}"
+}
+
 main() {
     scenario_1_unallowlisted_mockcall_fails
     echo "[ok] scenario_1_unallowlisted_mockcall_fails"
@@ -256,6 +292,9 @@ main() {
 
     scenario_6_exact_reverts_count_as_specific
     echo "[ok] scenario_6_exact_reverts_count_as_specific"
+
+    scenario_7_comments_and_strings_do_not_assign_source_selector
+    echo "[ok] scenario_7_comments_and_strings_do_not_assign_source_selector"
 
     echo "All realism audit tooling scenarios passed."
 }

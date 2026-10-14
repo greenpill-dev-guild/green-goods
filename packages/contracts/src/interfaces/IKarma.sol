@@ -70,4 +70,7 @@ interface IProjectResolver {
     /// @param addr The address to check
     /// @return True if the address is the project owner
     function isOwner(bytes32 projectId, address addr) external view returns (bool);
+
+    /// @notice Returns the direct project-admin bit for an account.
+    function projectAdmins(bytes32 projectId, address addr) external view returns (bool);
 }

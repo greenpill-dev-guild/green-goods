@@ -31,16 +31,9 @@ const greenWillMocks = vi.hoisted(() => {
   };
 });
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
+vi.mock("@green-goods/shared/components/Form/FormInput", async () => {
   const React = await import("react");
-  // Spread the real module first so utility exports the components under test
-  // pull in transitively (cn via AdminCard broke this factory once) never
-  // re-break the manual stubs below — they still win by key order.
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-
   return {
-    ...actual,
-    DEFAULT_CHAIN_ID: 11155111,
     FormInput: ({
       id,
       label,
@@ -54,6 +47,12 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
         React.createElement("label", { htmlFor: id }, label),
         React.createElement("input", { id, ...props })
       ),
+  };
+});
+
+vi.mock("@green-goods/shared/components/Surface/Surface", async () => {
+  const React = await import("react");
+  return {
     Surface: ({
       as: Component = "section",
       children,
@@ -72,14 +71,40 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       interactive?: boolean;
       colorAccent?: string;
     }) => React.createElement(Component, { className, ...props }, children),
-    formatAddress: (address: string) => address,
-    formatDate: (timestamp: number) => String(timestamp),
-    useEnsName: vi.fn(() => ({ data: null })),
-    useGreenWillBadgeDefinitions: greenWillMocks.mockUseGreenWillBadgeDefinitions,
-    useGreenWillBadges: greenWillMocks.mockUseGreenWillBadges,
-    useGreenWillRecentGrants: greenWillMocks.mockUseGreenWillRecentGrants,
   };
 });
+
+vi.mock("@green-goods/shared/config/blockchain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
+vi.mock("@green-goods/shared/config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
+vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
+  useEnsName: vi.fn(() => ({ data: null })),
+}));
+
+vi.mock("@green-goods/shared/hooks/greenwill/useGreenWillBadgeDefinitions", () => ({
+  useGreenWillBadgeDefinitions: greenWillMocks.mockUseGreenWillBadgeDefinitions,
+}));
+
+vi.mock("@green-goods/shared/hooks/greenwill/useGreenWillBadges", () => ({
+  useGreenWillBadges: greenWillMocks.mockUseGreenWillBadges,
+}));
+
+vi.mock("@green-goods/shared/hooks/greenwill/useGreenWillRecentGrants", () => ({
+  useGreenWillRecentGrants: greenWillMocks.mockUseGreenWillRecentGrants,
+}));
+
+vi.mock("@green-goods/shared/utils/app/text", () => ({
+  formatAddress: (address: string) => address,
+}));
+
+vi.mock("@green-goods/shared/utils/time", () => ({
+  formatDate: (timestamp: number) => String(timestamp),
+}));
 
 import { GreenWillPanel } from "@/views/Actions/GreenWillPanel";
 

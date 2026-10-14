@@ -12,9 +12,11 @@
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,
+    "composite": true,
+    "incremental": true,
+    "tsBuildInfoFile": "./.tsbuildinfo/source.tsbuildinfo",
     "verbatimModuleSyntax": true,
     "jsx": "preserve",
-    "baseUrl": ".",
     "paths": {
       "@shared/*": ["./src/*"],
       "@green-goods/contracts/deployments/*": ["../contracts/deployments/*"],
@@ -29,7 +31,8 @@
     "src/__mocks__/**",
     "**/__tests__/**",
     "**/*.test.ts",
-    "**/*.test.tsx"
+    "**/*.test.tsx",
+    "**/*.stories.*"
   ],
   "plugins": [
     {

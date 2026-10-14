@@ -97,7 +97,7 @@ contract ArbitrumActionRegistryForkTest is ForkTestBase {
         assertEq(actionRegistry.gardenDomains(garden), 0x00, "zero mask should be accepted");
 
         // Set max valid mask (0x0F = all 4 domains enabled)
-        _grantGardenRole(garden, forkOperator, IHatsModule.GardenRole.Operator);
+        _grantGardenRole(garden, forkOperator, IHatsModule.GardenRole.Steward);
 
         vm.prank(forkOperator);
         actionRegistry.setGardenDomains(garden, 0x0F);

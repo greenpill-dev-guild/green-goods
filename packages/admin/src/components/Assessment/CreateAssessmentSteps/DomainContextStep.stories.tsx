@@ -1,4 +1,5 @@
-import { Domain, useCreateAssessmentStore } from "@green-goods/shared";
+import { useCreateAssessmentStore } from "@green-goods/shared/stores/useCreateAssessmentStore";
+import { Domain } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useEffect } from "react";
 import { DomainContextStep } from "./DomainContextStep";
@@ -103,7 +104,8 @@ export const Prefilled: Story = {
   ],
 };
 
-export const SingleDomainAutoSelect: Story = {
+/** One domain on offer, still unchosen until the steward picks it (DL-047). */
+export const SingleDomain: Story = {
   args: {
     gardenDomainMask: 1 << Domain.SOLAR,
   },

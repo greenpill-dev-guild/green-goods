@@ -10,7 +10,9 @@ export const SUPPORTED_CHAINS = {
 export type SupportedChainId = keyof typeof SUPPORTED_CHAINS;
 
 export const getChain = (chainId: number): Chain => {
-  return SUPPORTED_CHAINS[chainId as SupportedChainId] || sepolia;
+  const chain = SUPPORTED_CHAINS[chainId as SupportedChainId];
+  if (!chain) throw new Error(`Unsupported chain ID: ${chainId}`);
+  return chain;
 };
 
 export const getChainName = (chainId: number): string => {

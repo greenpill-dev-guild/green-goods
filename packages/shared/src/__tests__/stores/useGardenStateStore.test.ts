@@ -1,6 +1,6 @@
 /**
  * useGardenStateStore Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the Zustand store for per-garden UI state with sessionStorage persistence.
  */

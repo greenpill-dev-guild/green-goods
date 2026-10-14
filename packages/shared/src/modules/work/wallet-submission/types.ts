@@ -1,3 +1,4 @@
+import type { WorkUploadCheckpoint } from "../../../types/domain";
 export type WalletSubmissionStage =
   | "validating"
   | "uploading"
@@ -8,8 +9,27 @@ export type WalletSubmissionStage =
 export type OnProgressCallback = (stage: WalletSubmissionStage, message: string) => void;
 
 export interface WalletSubmissionOptions {
+  userAddress?: import("../../../types/domain").Address;
+  assertOwnership?: () => void | Promise<void>;
+  onBroadcast?: (hash: `0x${string}`) => Promise<void>;
+  checkpoint?: WorkUploadCheckpoint;
+  onCheckpoint?: (checkpoint: WorkUploadCheckpoint) => Promise<void>;
+  clientWorkId?: string;
   onProgress?: OnProgressCallback;
   txTimeout?: number;
+}
+
+export type ApprovalWalletLifecycleEvent =
+  | { stage: "handoff" }
+  | {
+      stage: "broadcast";
+      txHash: `0x${string}`;
+      reason?: "receipt-timeout";
+    }
+  | { stage: "confirmed"; txHash: `0x${string}` };
+
+export interface ApprovalSubmissionOptions extends WalletSubmissionOptions {
+  onLifecycle?: (event: ApprovalWalletLifecycleEvent) => void;
 }
 
 export interface BatchApprovalOptions {
@@ -37,6 +57,9 @@ export class WorkSubmissionError extends Error {
     public readonly uploadBatchId?: string,
     originalError?: unknown
   ) {
-    super(message, { cause: originalError });
+    super(message);
+    this.cause = originalError;
   }
+
+  readonly cause?: unknown;
 }

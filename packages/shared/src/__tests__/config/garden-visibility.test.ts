@@ -1,0 +1,135 @@
+/**
+ * Curated Garden Visibility Tests
+ *
+ * Covers the two tiers and, most importantly, case-insensitive address
+ * matching: garden addresses arrive checksummed from the indexer and
+ * lower-cased from other joins, so a case-sensitive compare would silently
+ * un-hide a garden.
+ */
+
+import { describe, expect, it } from "vitest";
+
+import {
+  GARDENS_HIDDEN_EVERYWHERE,
+  GARDENS_HIDDEN_FROM_EDITORIAL,
+  isGardenHiddenEverywhere,
+  isGardenPubliclyReachable,
+  isGardenPubliclyVisible,
+  isGardenUnlisted,
+  UNKNOWN_GARDEN_LOCATION,
+  UNNAMED_GARDEN_NAME,
+} from "../../config/garden-visibility";
+
+const LIVE_GARDEN_COOP = "0x3F22568aE0deAA24dA7b8c669AfDcBD72A6A7fd8";
+const GREENPILL_NIGERIA = "0x35722eEdf3F7566A23FA871f0a04267AEe78E0dB";
+const TAS_HUB = "0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3";
+const COMMUNITY_GARDEN = "0xf401f34378384713222d1d21f63359cc4E8a858a";
+const AIYELOJA = "0xF7b892886998DAe960D64a9db488336684F137A0";
+const MAMA_GARDENS = "0x35077CaF6fBef1d5677d318a198C9c47C61bb976";
+const VIDA_VERDE = "0x26c32E54F23af9F9fcC757414c76E56e3fB176E2";
+
+const garden = (id: string, name = "A Garden", location = "Somewhere") => ({
+  id,
+  name,
+  location,
+});
+
+describe("config/garden-visibility", () => {
+  describe("curated lists", () => {
+    it("gives every entry a reason", () => {
+      for (const entry of [...GARDENS_HIDDEN_EVERYWHERE, ...GARDENS_HIDDEN_FROM_EDITORIAL]) {
+        expect(entry.reason.trim().length).toBeGreaterThan(0);
+      }
+    });
+
+    it("never lists the same garden in both tiers", () => {
+      const everywhere = new Set(GARDENS_HIDDEN_EVERYWHERE.map((g) => g.address.toLowerCase()));
+      for (const entry of GARDENS_HIDDEN_FROM_EDITORIAL) {
+        expect(everywhere.has(entry.address.toLowerCase())).toBe(false);
+      }
+    });
+  });
+
+  describe("isGardenHiddenEverywhere", () => {
+    it("hides the coop garden from every surface", () => {
+      expect(isGardenHiddenEverywhere(LIVE_GARDEN_COOP)).toBe(true);
+    });
+
+    it("hides Greenpill Nigeria from every surface, but not TAS HUB, the pilot garden in Nigeria", () => {
+      expect(isGardenHiddenEverywhere(GREENPILL_NIGERIA)).toBe(true);
+      expect(isGardenHiddenEverywhere(TAS_HUB)).toBe(false);
+    });
+
+    it("matches regardless of address casing", () => {
+      expect(isGardenHiddenEverywhere(LIVE_GARDEN_COOP.toLowerCase())).toBe(true);
+      expect(isGardenHiddenEverywhere(LIVE_GARDEN_COOP.toUpperCase().replace("0X", "0x"))).toBe(
+        true
+      );
+    });
+
+    it("leaves editorial-only hidden gardens visible to the PWA and admin", () => {
+      expect(isGardenHiddenEverywhere(COMMUNITY_GARDEN)).toBe(false);
+      expect(isGardenHiddenEverywhere(AIYELOJA)).toBe(false);
+      expect(isGardenHiddenEverywhere(MAMA_GARDENS)).toBe(false);
+    });
+
+    it("leaves uncurated gardens alone", () => {
+      expect(isGardenHiddenEverywhere(VIDA_VERDE)).toBe(false);
+    });
+  });
+
+  describe("isGardenPubliclyVisible", () => {
+    it("keeps an ordinary garden public", () => {
+      expect(isGardenPubliclyVisible(garden(VIDA_VERDE))).toBe(true);
+    });
+
+    it("hides all three editorial-hidden gardens", () => {
+      expect(isGardenPubliclyVisible(garden(COMMUNITY_GARDEN))).toBe(false);
+      expect(isGardenPubliclyVisible(garden(AIYELOJA))).toBe(false);
+      expect(isGardenPubliclyVisible(garden(MAMA_GARDENS))).toBe(false);
+    });
+
+    it("also hides gardens curated out of every surface", () => {
+      expect(isGardenPubliclyVisible(garden(LIVE_GARDEN_COOP))).toBe(false);
+    });
+
+    it("matches regardless of address casing", () => {
+      expect(isGardenPubliclyVisible(garden(AIYELOJA.toLowerCase()))).toBe(false);
+    });
+
+    it("hides placeholder gardens with neither name nor location", () => {
+      expect(isGardenPubliclyVisible(garden(VIDA_VERDE, "", ""))).toBe(false);
+      expect(isGardenPubliclyVisible(garden(VIDA_VERDE, "   ", "  "))).toBe(false);
+      expect(
+        isGardenPubliclyVisible(garden(VIDA_VERDE, UNNAMED_GARDEN_NAME, UNKNOWN_GARDEN_LOCATION))
+      ).toBe(false);
+    });
+
+    it("keeps a garden with only one of name or location", () => {
+      expect(isGardenPubliclyVisible(garden(VIDA_VERDE, "Vida Verde", ""))).toBe(true);
+      expect(isGardenPubliclyVisible(garden(VIDA_VERDE, "", "Brazil"))).toBe(true);
+      expect(isGardenPubliclyVisible(garden(VIDA_VERDE, UNNAMED_GARDEN_NAME, "Brazil"))).toBe(true);
+    });
+
+    it("treats null and undefined metadata as absent", () => {
+      expect(isGardenPubliclyVisible({ id: VIDA_VERDE, name: null, location: null })).toBe(false);
+      expect(isGardenPubliclyVisible({ id: VIDA_VERDE })).toBe(false);
+    });
+  });
+
+  describe("isGardenPubliclyReachable and isGardenUnlisted", () => {
+    it("keeps an editorial-hidden garden reachable by its own link, unlisted; the rest as before", () => {
+      for (const id of [COMMUNITY_GARDEN, AIYELOJA.toLowerCase(), MAMA_GARDENS]) {
+        expect(isGardenPubliclyReachable(garden(id))).toBe(true);
+        expect(isGardenUnlisted(garden(id))).toBe(true);
+      }
+      // Hidden everywhere means no page at all.
+      expect(isGardenPubliclyReachable(garden(LIVE_GARDEN_COOP))).toBe(false);
+      expect(isGardenUnlisted(garden(LIVE_GARDEN_COOP))).toBe(false);
+      // An ordinary garden is listed and reachable; a placeholder is neither.
+      expect(isGardenPubliclyReachable(garden(VIDA_VERDE))).toBe(true);
+      expect(isGardenUnlisted(garden(VIDA_VERDE))).toBe(false);
+      expect(isGardenPubliclyReachable(garden(VIDA_VERDE, "", ""))).toBe(false);
+    });
+  });
+});

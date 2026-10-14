@@ -4,46 +4,35 @@
  * Extends base test setup with admin-specific mocks.
  */
 
-import { afterAll, afterEach, beforeAll, vi } from "vitest";
-import { resetTestQueryClient } from "@green-goods/shared/testing";
+import { afterEach, vi } from "vitest";
+import { resetTestQueryClient } from "@green-goods/shared/testing/query-client";
 
 // Mock window.matchMedia for components and libraries that rely on it in tests
 // (e.g., responsive layout logic and chart libraries that expect matchMedia in JSDOM)
-Object.defineProperty(window, "matchMedia", {
-  writable: true,
-  value: vi.fn().mockImplementation((query: string) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: vi.fn(), // Deprecated
-    removeListener: vi.fn(), // Deprecated
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })),
-});
+if (typeof window !== "undefined") {
+  Object.defineProperty(window, "matchMedia", {
+    writable: true,
+    value: vi.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(), // Deprecated
+      removeListener: vi.fn(), // Deprecated
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  });
+}
 
 // Polyfill scrollIntoView for jsdom (not implemented in jsdom)
-Element.prototype.scrollIntoView = vi.fn();
+if (typeof Element !== "undefined") Element.prototype.scrollIntoView = vi.fn();
 
 // Import base setup from shared (includes common mocks)
 import "@green-goods/shared/__tests__/setupTests.base";
 
-// Import MSW server for GraphQL mocking
-import { server } from "@green-goods/shared/mocks";
-
-// Admin-specific: Start MSW server for API mocking
-beforeAll(() => {
-  server.listen({ onUnhandledRequest: "error" });
-});
-
 afterEach(() => {
-  server.resetHandlers();
   resetTestQueryClient();
-});
-
-afterAll(() => {
-  server.close();
 });
 
 // Admin-specific: Mock environment variables
@@ -67,14 +56,4 @@ vi.mock("react-hot-toast", () => ({
     loading: vi.fn(() => "toast-id"),
   },
   Toaster: () => null,
-}));
-
-// Admin-specific: Mock Reown AppKit to prevent network calls and 403 errors
-vi.mock("@reown/appkit", () => ({
-  AppKit: class {
-    initialize() {
-      return Promise.resolve();
-    }
-    destroy() {}
-  },
 }));

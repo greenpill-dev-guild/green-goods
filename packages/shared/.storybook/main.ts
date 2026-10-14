@@ -58,6 +58,10 @@ function packageScopedAliasPlugin(
 
 const config: StorybookConfig = {
   stories: [
+    // Storybook-owned Design System review pages. They live beside the config
+    // (not in a package `src`) because they compose admin, client, and shared
+    // primitives side by side, which no single package may import.
+    "./design-system/**/*.stories.@(ts|tsx)",
     "../src/**/*.stories.@(ts|tsx)",
     "../../../packages/admin/src/**/*.stories.@(ts|tsx)",
     "../../../packages/client/src/**/*.stories.@(ts|tsx)",
@@ -76,7 +80,13 @@ const config: StorybookConfig = {
         { from: "../../../tmp/storybook-design-assets", to: "/" },
       ],
   typescript: {
-    reactDocgen: "react-docgen-typescript",
+    // TypeScript 7 (native port) dropped the JS compiler-API enums that
+    // react-docgen-typescript reads, so its TS-based parser can't run under TS7. Use
+    // the JS-based react-docgen engine instead. (A companion patch,
+    // patches/react-docgen-typescript@2.4.0.patch, keeps @storybook/react's static
+    // import of that package from crashing at load.) Revert both when
+    // react-docgen-typescript supports TS7-native.
+    reactDocgen: "react-docgen",
   },
   viteFinal: async (config) => {
     const adminSrc = resolve(__dirname, "../../admin/src");
@@ -103,6 +113,23 @@ const config: StorybookConfig = {
     config.resolve = config.resolve || {};
     config.resolve.alias = {
       ...config.resolve.alias,
+      "@green-goods/shared/commitment-pooling": resolve(
+        sharedSrc,
+        "commitment-pooling",
+      ),
+      "@green-goods/shared/public": resolve(
+        sharedSrc,
+        "hooks/public/publicSurfaceState.ts",
+      ),
+      // Declared exports whose path does not mirror their source location.
+      // These need restating in every build tool: the app build, the test
+      // config and here. A story that reaches one of them fails only in the
+      // tool that is missing it, which is why they sit together.
+      "@green-goods/shared/service-worker": resolve(
+        sharedSrc,
+        "modules/app/service-worker-registration.ts",
+      ),
+      "@green-goods/shared/sentry": resolve(sharedSrc, "modules/app/sentry.ts"),
       "@green-goods/shared": sharedSrc,
       "@green-goods/shared/components": resolve(sharedSrc, "components"),
       "@green-goods/shared/hooks": resolve(sharedSrc, "hooks"),

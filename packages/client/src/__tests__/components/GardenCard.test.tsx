@@ -25,7 +25,7 @@ describe("components/Cards/GardenCard", () => {
     location: "San Francisco, CA",
     bannerImage: "https://example.com/garden.jpg",
     gardeners: ["0xGardener1", "0xGardener2", "0xGardener3"],
-    operators: ["0xOperator1"],
+    stewards: ["0xSteward1"],
     createdAt: Date.now(),
   };
 
@@ -39,8 +39,10 @@ describe("components/Cards/GardenCard", () => {
     expect(screen.getByText("Community Garden")).toBeInTheDocument();
     expect(screen.getByText("San Francisco, CA")).toBeInTheDocument();
     expect(screen.getByText(/4\s+Members/)).toBeInTheDocument();
-    expect(screen.getByText(/1\s+Operators/)).toBeInTheDocument();
+    expect(screen.getByText(/1\s+Stewards/)).toBeInTheDocument();
     expect(screen.getByText("A beautiful community garden in the city center")).toBeInTheDocument();
+    // With nothing to open, the card is content rather than a button that does nothing.
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
   it("passes click and selected state through to the shared card", async () => {
@@ -53,6 +55,8 @@ describe("components/Cards/GardenCard", () => {
     );
 
     const card = screen.getByTestId("garden-card");
+    expect(card.tagName).toBe("BUTTON");
+    expect(card).toHaveAttribute("data-pressable", "card");
     const selectedOverlay = card.querySelector(".opacity-100");
     expect(container.querySelector("[data-selected='true']")).toBeInTheDocument();
     expect(card).toHaveStyle({ width: "100%" });
@@ -75,7 +79,7 @@ describe("components/Cards/GardenCard", () => {
           media="small"
           height="selection"
           showStats={false}
-          showOperators={false}
+          showStewards={false}
         />
       </Wrapper>
     );

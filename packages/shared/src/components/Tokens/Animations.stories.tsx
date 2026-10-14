@@ -53,6 +53,16 @@ const springTokens: SpringToken[] = [
       "Panel entrances, sheet changes, and larger transitions that need extra settle time.",
   },
   {
+    name: "Spatial Exit",
+    variable: "--spring-spatial-exit",
+    durationVariable: "--spring-spatial-exit-duration",
+    easingVariable: "--spring-spatial-exit-easing",
+    family: "spatial",
+    use: "Leaving the screen from rest",
+    description:
+      "The one token that accelerates: a closing sheet or drawer starts slowly and crosses the screen edge at full speed.",
+  },
+  {
     name: "Effects",
     variable: "--spring-effects",
     durationVariable: "--spring-effects-duration",
@@ -225,7 +235,7 @@ export const Default: Story = {
       <p className="text-paragraph-sm text-text-sub-600">
         Root <code>DESIGN.md</code> is the canonical DesignMD source.{" "}
         <code>packages/shared/src/styles/theme.css</code> projects that source into runtime aliases,
-        including the six spring families component CSS should use.
+        including the seven spring tokens component CSS should use.
       </p>
       <div className="grid gap-4 lg:grid-cols-2">
         {springTokens.map((token) => (

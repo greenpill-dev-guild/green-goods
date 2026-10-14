@@ -3,7 +3,7 @@ import {
   pwaStatusStyles,
   type PwaStatusStyle,
   type PwaStatusTone,
-} from "../../styles/pwaStatusStyles";
+} from "../../components/Pwa/statusStyles";
 
 const tones: PwaStatusTone[] = ["primary", "information", "warning", "success", "error", "neutral"];
 

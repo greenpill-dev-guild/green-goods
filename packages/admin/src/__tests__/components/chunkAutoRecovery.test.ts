@@ -1,5 +1,5 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Stale-deployment chunk-error self-heal: reload once per failing path,
  * fall through to the manual card on a repeat failure inside the guard

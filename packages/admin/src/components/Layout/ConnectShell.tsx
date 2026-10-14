@@ -29,16 +29,16 @@ export function ConnectShell({
       className="flex min-h-screen flex-col items-center justify-center bg-bg-weak px-6 text-center"
       data-testid={testId}
     >
-      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-bg-white shadow-[var(--edge-rest),_var(--elevation-2)]">
+      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-bg-white shadow-[var(--edge-rest),_var(--m3-elevation-1)]">
         {icon ?? <RiSeedlingLine className="h-7 w-7 text-primary-base" />}
       </div>
-      <h1 className="mt-5 text-xl font-semibold text-text-strong">
+      <h1 className="mt-5 text-title-lg font-semibold leading-[var(--type-title-lg-lh)] text-text-strong">
         {formatMessage({
           id: titleId,
           defaultMessage: defaultTitle,
         })}
       </h1>
-      <p className="mb-6 mt-2 max-w-sm text-sm text-text-sub">
+      <p className="mb-6 mt-2 max-w-sm body-sm text-text-sub">
         {formatMessage({
           id: descriptionId,
           defaultMessage: defaultDescription,

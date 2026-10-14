@@ -1,5 +1,4 @@
 import {
-  RiAddLine,
   RiClipboardLine,
   RiFlashlightLine,
   RiLeafLine,
@@ -49,13 +48,11 @@ const actionsSlot: ToolbarSlot = {
 const primarySlots: ToolbarSlot[] = [workSlot, gardenSlot, communitySlot, actionsSlot];
 
 const submitWorkFab = {
-  icon: RiAddLine,
-  label: "Create",
   actions: [
     {
       id: "submit-work",
       icon: RiLeafLine,
-      label: "Submit work",
+      label: "Submit Work",
       labelId: "app.admin.work.submitWork",
     },
   ],
@@ -66,25 +63,23 @@ const submitWorkFab = {
 // dial. The primary action lives only inside the dial (never duplicated on the
 // collapsed button).
 const speedDialFab = {
-  icon: RiAddLine,
-  label: "Create",
   actions: [
     {
       id: "submit-work",
       icon: RiLeafLine,
-      label: "Submit work",
+      label: "Submit Work",
       labelId: "app.admin.work.submitWork",
     },
     {
       id: "create-assessment",
       icon: RiClipboardLine,
-      label: "Create assessment",
+      label: "Create Assessment",
       labelId: "cockpit.hub.action.createAssessment",
     },
     {
       id: "create-hypercert",
       icon: RiSeedlingLine,
-      label: "Create hypercert",
+      label: "Create Hypercert",
       labelId: "cockpit.hub.action.createHypercert",
     },
   ],
@@ -195,7 +190,7 @@ export const Mobile: Story = {
 };
 
 // Multi-action FAB on mobile: a neutral "+" opener that fans out the speed dial.
-// Guards the fix for the collapsed button reading "Submit work" and duplicating
+// Guards the fix for the collapsed button reading "Submit Work" and duplicating
 // it inside the dial.
 export const MobileSpeedDial: Story = {
   args: {
@@ -209,8 +204,8 @@ export const MobileSpeedDial: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    // Collapsed FAB is a neutral "+" opener — it must NOT surface the primary
-    // action's label (the bug: "Submit work" showed on the button AND in the dial).
+    // The collapsed FAB shows a plus and never the primary action's label
+    // (the bug: "Submit Work" showed on the button AND in the dial).
     const opener = canvas.getByRole("button", { name: /open actions/i });
     await expect(opener).toHaveAttribute("aria-haspopup", "menu");
     await expect(opener).not.toHaveTextContent(/submit work/i);

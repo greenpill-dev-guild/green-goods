@@ -5,7 +5,7 @@
  * error card with retry and close buttons, and that errors never propagate
  * to the parent.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { cleanup, render, screen } from "@testing-library/react";

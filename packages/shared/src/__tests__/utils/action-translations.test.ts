@@ -10,6 +10,7 @@ import {
   hasActionTranslationContent,
   hasCompleteActionTranslationContent,
   localizeAction,
+  getLocalizedWorkInputs,
   normalizeActionTranslations,
 } from "../../utils/action/translations";
 
@@ -332,5 +333,103 @@ describe("action translations", () => {
         loam: "es:loam",
       },
     });
+  });
+});
+
+describe("public recorded detail copy", () => {
+  const action = createAction({
+    translations: {
+      pt: {
+        status: "reviewed",
+        data: {
+          uiConfig: {
+            details: {
+              inputs: [{ key: "soilType", title: "Tipo de solo", options: { clay: "Argila" } }],
+            },
+          },
+        },
+      },
+    },
+  });
+
+  it("requires copy for every stored option but permits untranslated unused fields", () => {
+    expect(
+      getLocalizedWorkInputs(action, { soilType: "clay" }, "pt-BR")?.[0].optionLabels?.clay
+    ).toBe("Argila");
+    expect(getLocalizedWorkInputs(action, { soilType: "loam" }, "pt")).toBeNull();
+    expect(getLocalizedWorkInputs(action, { soilType: ["clay", "loam"] }, "pt")).toBeNull();
+    expect(
+      getLocalizedWorkInputs(action, { soilType: "clay", impactBand: "high" }, "pt")
+    ).toBeNull();
+    expect(
+      getLocalizedWorkInputs(action, { soilType: "clay", impactBand: "" }, "pt")
+    ).not.toBeNull();
+    expect(getLocalizedWorkInputs(action, { unknown: 3 }, "en")).toBeNull();
+    expect(getLocalizedWorkInputs(action, { soilType: "loam" }, "en")).not.toBeNull();
+  });
+
+  it("withholds missing, draft, stale, and blank field translations", () => {
+    for (const status of ["draft", "stale"] as const) {
+      expect(
+        getLocalizedWorkInputs(
+          { ...action, translations: { pt: { ...action.translations!.pt!, status } } },
+          { soilType: "clay" },
+          "pt"
+        )
+      ).toBeNull();
+    }
+    expect(getLocalizedWorkInputs(action, { soilType: "clay" }, "es")).toBeNull();
+    const blank = createAction({
+      translations: {
+        pt: {
+          status: "reviewed",
+          data: {
+            uiConfig: {
+              details: { inputs: [{ key: "soilType", title: " ", options: { clay: "Argila" } }] },
+            },
+          },
+        },
+      },
+    });
+    expect(getLocalizedWorkInputs(blank, { soilType: "clay" }, "pt")).toBeNull();
+  });
+
+  it("checks child labels and selected bands inside repeaters", () => {
+    const nested = createAction({
+      inputs: [
+        {
+          key: "rows",
+          title: "Rows",
+          type: "repeater",
+          options: [],
+          placeholder: "",
+          required: false,
+          repeaterFields: instructionConfig.uiConfig.details.inputs,
+        },
+      ],
+      translations: {
+        es: {
+          status: "reviewed",
+          data: {
+            uiConfig: {
+              details: {
+                inputs: [
+                  {
+                    key: "rows",
+                    title: "Filas",
+                    repeaterFields: [
+                      { key: "impactBand", title: "Impacto", bands: { low: "Bajo" } },
+                    ],
+                  },
+                ],
+              },
+            },
+          },
+        },
+      },
+    });
+    expect(getLocalizedWorkInputs(nested, { rows: [{ impactBand: "low" }] }, "es")).not.toBeNull();
+    expect(getLocalizedWorkInputs(nested, { rows: [{ impactBand: "high" }] }, "es")).toBeNull();
+    expect(getLocalizedWorkInputs(nested, { rows: [{ soilType: "clay" }] }, "es")).toBeNull();
   });
 });

@@ -1,4 +1,4 @@
-import type { Address } from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
 
 /**
  * Curated content for the public browser editorial homepage.
@@ -27,6 +27,8 @@ export type PublicCurationViewKey =
 export interface PublicCuration {
   /** Ordered featured garden keys (id or address) for the lead-plus-two layout. */
   featuredGardens: readonly CuratedGardenKey[];
+  /** Plain-language editorial summaries, keyed by the canonical Garden address. */
+  gardenDescriptionIds: Readonly<Record<string, string>>;
   /** Curated local hero image path (relative to /public). Falls back if missing. */
   heroImagePath: string;
   /**
@@ -43,10 +45,19 @@ export interface PublicCuration {
   appointmentUrl: string;
 }
 
-const fallbackAppointmentUrl = "https://calendar.app.google/" as const;
-
 export const publicCuration: PublicCuration = {
-  featuredGardens: [],
+  featuredGardens: [
+    "0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3", // TAS HUB
+    "0x51499A44BB7793647e67ed827bd17367d7e55314", // GreenSofa
+    "0x26c32E54F23af9F9fcC757414c76E56e3fB176E2", // Vida Verde
+    "0xFDa72CE1D75b735d6595E5814DDF23b97516caEf", // Rifai Sicilia
+  ],
+  gardenDescriptionIds: {
+    "0xa2df8eb73444a3f3cf9b8e3749313c7471d7d5e3": "public.gardenNarrative.tas",
+    "0x51499a44bb7793647e67ed827bd17367d7e55314": "public.gardenNarrative.greensofa",
+    "0x26c32e54f23af9f9fcc757414c76e56e3fb176e2": "public.gardenNarrative.vida",
+    "0xfda72ce1d75b735d6595e5814ddf23b97516caef": "public.gardenNarrative.rifai",
+  },
   heroImagePath: "/images/hero-home.webp",
   viewHeroImages: {
     gardens: "/images/hero-garden.webp",
@@ -58,7 +69,7 @@ export const publicCuration: PublicCuration = {
   },
   fallbackImagePaths: ["/images/no-image-placeholder.png"],
   subscribeRoute: "/public/subscribe",
-  appointmentUrl: import.meta.env.VITE_GOOGLE_APPOINTMENT_URL || fallbackAppointmentUrl,
+  appointmentUrl: import.meta.env.VITE_GOOGLE_APPOINTMENT_URL || "",
 } as const;
 
 /**

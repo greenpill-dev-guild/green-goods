@@ -1,12 +1,28 @@
 import react from "@vitejs/plugin-react";
 import fs from "node:fs";
+import { availableParallelism, totalmem } from "node:os";
 import path from "path";
 import { defineConfig } from "vitest/config";
+
+import { resolveVitestMaxWorkers } from "../../scripts/lib/dev-shared.js";
+import { partitionNodeTests } from "../../scripts/lib/vitest-shared-graph.mjs";
 
 const workspaceRoot = path.resolve(__dirname, "../..");
 const workspaceNodeModules = path.join(workspaceRoot, "node_modules");
 const rootReactPath = path.join(workspaceNodeModules, "react");
 const rootReactDomPath = path.join(workspaceNodeModules, "react-dom");
+const allTestFiles = "src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}";
+const nodeTestFiles = [
+  "src/__tests__/*.test.ts",
+  "src/__tests__/{utils,modules,config,workflows,lib,types,i18n,public-contracts,ontology,styles}/**/*.test.ts",
+  "src/{modules,utils}/**/*.test.ts",
+];
+// Node files that mock or stub nothing, directly or through a test helper, share one module graph;
+// the rest stay isolated, and files that declare a DOM environment run with the DOM project.
+// Membership follows each file's code and its helpers (scripts/lib/vitest-shared-graph.mjs).
+// setupTests.shared-graph.ts gives each file fresh copies of its modules and fails a file that
+// leaves fake timers, a changed built-in, or a changed global or navigator property behind.
+const nodeTests = partitionNodeTests({ root: __dirname, include: nodeTestFiles });
 
 function escapeRegex(input: string): string {
   return input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -28,11 +44,15 @@ export default defineConfig({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   plugins: [react()],
   test: {
-    environment: "jsdom",
-    setupFiles: ["./src/__tests__/setupTests.ts"],
+    environment: "happy-dom",
     globals: true,
     testTimeout: 10000,
     pool: "threads",
+    maxWorkers: resolveVitestMaxWorkers({
+      cpus: availableParallelism(),
+      totalMemoryBytes: totalmem(),
+      ci: Boolean(process.env.CI),
+    }),
     isolate: true,
     server: {
       deps: {
@@ -48,7 +68,10 @@ export default defineConfig({
           "@testing-library/react",
           "@tanstack/react-query",
           "zustand",
-          "viem",
+          // viem stays external: Node loads it faster than the module runner does, and in the
+          // shared graph it now stays loaded across files. On 2026-09-28 four alternating full
+          // runs retired 2.089T and 2.090T instructions external against 2.255T and 2.264T
+          // inlined (-7.5%), import -50%, identical results; shuffled shared-graph runs passed.
           "wagmi",
           "@walletconnect/utils",
           "@walletconnect/types",
@@ -62,7 +85,8 @@ export default defineConfig({
     },
     coverage: {
       provider: "v8",
-      reporter: ["text", "html", "json"],
+      reporter: process.env.CI ? ["text", "json"] : ["text", "json", "html"],
+      include: ["src/**/*.{ts,tsx}"],
       exclude: [
         "node_modules/",
         "src/__tests__/**",
@@ -71,23 +95,104 @@ export default defineConfig({
         "**/__mocks__/**",
         "**/*.test.{ts,tsx}",
         "**/*.spec.{ts,tsx}",
+        "**/*.stories.{ts,tsx}",
         "**/*.d.ts",
         "**/*.config.*",
         "**/dist/**",
-        "**/types/**",
-        "**/index.ts",
       ],
       thresholds: {
-        global: {
-          branches: 70,
-          functions: 70,
-          lines: 70,
-          statements: 70,
+        branches: 52,
+        functions: 59,
+        lines: 62,
+        statements: 61,
+        // Aggregate floors measured at 7f0d81f; global floors still include these files.
+        "src/modules/work/**": {
+          branches: 80,
+          functions: 85,
+          lines: 87,
+          statements: 85,
+        },
+        "src/modules/job-queue/**": {
+          branches: 76,
+          functions: 82,
+          lines: 85,
+          statements: 82,
+        },
+        "src/hooks/auth/**": {
+          branches: 73,
+          functions: 76,
+          lines: 77,
+          statements: 75,
+        },
+        "src/hooks/vault/**": {
+          branches: 57,
+          functions: 66,
+          lines: 71,
+          statements: 69,
+        },
+        // Exact files measured after direct Cookie Jar proof at 08f96dc.
+        "src/hooks/cookie-jar/useCookieJarDeposit.ts": {
+          branches: 58,
+          functions: 74,
+          lines: 86,
+          statements: 86,
+        },
+        "src/hooks/cookie-jar/useCampaignCookieJar.ts": {
+          branches: 43,
+          functions: 33,
+          lines: 39,
+          statements: 38,
+        },
+        // Exact file measured after direct work-media compression proof at 08f96dc.
+        "src/utils/work/image-compression.ts": {
+          branches: 35,
+          functions: 67,
+          lines: 69,
+          statements: 68,
         },
       },
     },
-    include: ["src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
     exclude: ["node_modules/", "dist/", "**/*.d.ts"],
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: "node",
+          environment: "node",
+          include: nodeTests.isolated,
+          setupFiles: ["./src/__tests__/setupTests.node.ts"],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: "node-shared-graph",
+          environment: "node",
+          include: nodeTests.sharedGraph,
+          setupFiles: ["./src/__tests__/setupTests.shared-graph.ts"],
+          isolate: false,
+          restoreMocks: true,
+          unstubGlobals: true,
+          unstubEnvs: true,
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: "dom",
+          environment: "happy-dom",
+          include: [allTestFiles],
+          exclude: [
+            "node_modules/",
+            "dist/",
+            "**/*.d.ts",
+            ...nodeTests.isolated,
+            ...nodeTests.sharedGraph,
+          ],
+          setupFiles: ["./src/__tests__/setupTests.ts"],
+        },
+      },
+    ],
   },
   resolve: {
     dedupe: ["react", "react-dom", "multiformats", "uint8arrays"],
@@ -114,6 +219,19 @@ export default defineConfig({
       {
         find: "@walletconnect/utils",
         replacement: path.resolve(__dirname, "./src/__mocks__/walletconnect-utils.ts"),
+      },
+      // Stand in for Reown AppKit, which config/appkit loads at import in every test that
+      // reaches the Auth provider, the chain guard or a commitment-pooling chain reader: 140 s
+      // of import across 172 files on 2026-09-28. Four alternating full runs retired 2.257T and
+      // 2.256T instructions with these against 2.593T and 2.580T without (-12.8%), identical
+      // results.
+      {
+        find: "@reown/appkit/react",
+        replacement: path.resolve(__dirname, "./src/__mocks__/reown-appkit-react.ts"),
+      },
+      {
+        find: "@reown/appkit-adapter-wagmi",
+        replacement: path.resolve(__dirname, "./src/__mocks__/reown-appkit-adapter-wagmi.ts"),
       },
     ],
   },

@@ -1,83 +1,37 @@
-/**
- * Create Garden Workflow Hook
- *
- * Bridges the XState machine with the Zustand form store,
- * providing a clean API for the UI layer.
- *
- * @module hooks/garden/useCreateGardenWorkflow
- */
-
+import { reconcileGardenRecovery } from "./gardenRecovery";
+import { confirmCancelledSubmission } from "../../modules/transactions/cancelled-submission";
 import { useQueryClient } from "@tanstack/react-query";
-import { waitForTransactionReceipt } from "@wagmi/core";
 import { useMachine } from "@xstate/react";
-import { useCallback, useEffect, useMemo, useRef } from "react";
-import { formatEther, isAddress } from "viem";
-import { useAccount, useWalletClient } from "wagmi";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { isAddress } from "viem";
+import { getTransactionScopeKey, type TxResult } from "../../modules/transactions/types";
+import { useIntl } from "react-intl";
+import { usePrimaryAddress } from "../auth/usePrimaryAddress";
+import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { fromPromise } from "xstate";
-import { getWagmiConfig } from "../../config/appkit";
-import { getChain } from "../../config/chains";
 import {
   trackAdminGardenCreateFailed,
   trackAdminGardenCreateStarted,
   trackAdminGardenCreateSuccess,
 } from "../../modules/app/analytics-events";
 import { logger } from "../../modules/app/logger";
-import { ensureAppKitWalletChain } from "../../modules/transactions/chain-guard";
-import { assertLocalArbitrumForkWallet } from "../../modules/transactions/local-fork-safety";
+import {
+  createDefaultCreateGardenPorts,
+  createGarden,
+  estimateGardenCreation,
+} from "../../modules/garden/create-garden-command";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import { useCreateGardenStore } from "../../stores/useCreateGardenStore";
-import { isZeroAddress } from "../../utils/blockchain/address";
-import {
-  createClients,
-  GardenTokenABI,
-  GreenGoodsENSABI,
-  getNetworkContracts,
-} from "../../utils/blockchain/contracts";
-import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
-import { simulateTransaction } from "../../utils/blockchain/simulation";
+import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { type CreateGardenFormStatus, createGardenMachine } from "../../workflows/createGarden";
-import { INDEXER_LAG_SCHEDULE_MS, queryInvalidation } from "../../config/query-keys";
+import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
+import { queryInvalidation } from "../../config/query-keys/invalidation";
 import { useBeforeUnloadWhilePending } from "../utils/useBeforeUnloadWhilePending";
 import { useMutationLock } from "../utils/useMutationLock";
 import { useProgressiveInvalidation } from "../utils/useTimeout";
 import { useGardenDraft } from "./useGardenDraft";
 
 export type { GardenDraft } from "./useGardenDraft";
-
-/**
- * Estimate the CCIP fee for ENS registration during garden creation.
- * Returns 0n if slug is empty, ENS is not configured, or estimation fails.
- */
-async function estimateCCIPFee(
-  slug: string,
-  ensAddress: `0x${string}`,
-  callerAddress: `0x${string}`,
-  chainId: number
-): Promise<bigint> {
-  if (!slug || isZeroAddress(ensAddress)) {
-    return 0n;
-  }
-
-  try {
-    const { publicClient } = createClients(chainId);
-    return (await publicClient.readContract({
-      address: ensAddress,
-      abi: GreenGoodsENSABI,
-      functionName: "getRegistrationFee",
-      args: [slug, callerAddress, 1], // 1 = Garden NameType
-    })) as bigint;
-  } catch (error) {
-    // ENS fee estimation failed -- proceed without ENS (graceful degradation)
-    logger.warn("ENS fee estimation failed, proceeding without ENS", {
-      source: "estimateCCIPFee",
-      slug,
-      ensAddress,
-      chainId,
-      error,
-    });
-    return 0n;
-  }
-}
 
 /**
  * Get current form status from the store for passing to machine events
@@ -94,33 +48,35 @@ function getFormStatus(): CreateGardenFormStatus {
 }
 
 export function useCreateGardenWorkflow() {
-  const { address } = useAccount();
-  const { data: walletClient } = useWalletClient();
+  const address = usePrimaryAddress() ?? undefined;
+  const sender = useTransactionSender();
+  const { formatMessage } = useIntl();
   const selectedChainId = useAdminStore((state: AdminState) => state.selectedChainId);
   const addPendingTransaction = useAdminStore((state: AdminState) => state.addPendingTransaction);
   const updateTransactionStatus = useAdminStore(
     (state: AdminState) => state.updateTransactionStatus
   );
-
+  useLayoutEffect(() => {
+    if (address) useCreateGardenStore.getState().selectDraftScope(address, selectedChainId);
+  }, [address, selectedChainId]);
   // Draft persistence via IndexedDB (auto-saves on store changes)
-  const draft = useGardenDraft(address, { enabled: !!address });
-
+  const draft = useGardenDraft(address, { enabled: !!address, chainId: selectedChainId });
   // Get store actions for step navigation
   const storeNextStep = useCreateGardenStore((s) => s.nextStep);
   const storePreviousStep = useCreateGardenStore((s) => s.previousStep);
   const storeGoToReview = useCreateGardenStore((s) => s.goToReview);
   const storeGoToFirstIncomplete = useCreateGardenStore((s) => s.goToFirstIncompleteStep);
   const storeReset = useCreateGardenStore((s) => s.reset);
-
   const queryClient = useQueryClient();
   const { runWithLock, isPending: isLockPending } = useMutationLock();
-
   // Keep mutable dependencies current for the long-lived machine actor/actions.
   const dependenciesRef = useRef({
-    walletClient,
     address,
+    sender,
+    formatMessage,
     chainId: selectedChainId,
     addPendingTransaction,
+    updateTransactionStatus,
     queryClient,
     storeNextStep,
     storePreviousStep,
@@ -128,7 +84,6 @@ export function useCreateGardenWorkflow() {
     storeGoToFirstIncomplete,
     scheduleGardenRefresh: () => {},
   });
-
   const { start: scheduleGardenRefresh } = useProgressiveInvalidation(
     useCallback(() => {
       const { chainId, queryClient: latestQueryClient } = dependenciesRef.current;
@@ -138,14 +93,15 @@ export function useCreateGardenWorkflow() {
     }, []),
     INDEXER_LAG_SCHEDULE_MS
   );
-
   useEffect(() => {
     dependenciesRef.current = {
       ...dependenciesRef.current,
-      walletClient,
       address,
+      sender,
+      formatMessage,
       chainId: selectedChainId,
       addPendingTransaction,
+      updateTransactionStatus,
       queryClient,
       storeNextStep,
       storePreviousStep,
@@ -154,10 +110,12 @@ export function useCreateGardenWorkflow() {
       scheduleGardenRefresh,
     };
   }, [
-    walletClient,
     address,
+    sender,
+    formatMessage,
     selectedChainId,
     addPendingTransaction,
+    updateTransactionStatus,
     queryClient,
     storeNextStep,
     storePreviousStep,
@@ -165,113 +123,108 @@ export function useCreateGardenWorkflow() {
     storeGoToFirstIncomplete,
     scheduleGardenRefresh,
   ]);
-
   const machine = useMemo(
     () =>
       createGardenMachine.provide({
         actors: {
-          submitGarden: fromPromise<string, void>(async () => {
+          reconcileGarden: fromPromise<TxResult, TxResult>(({ input, signal }) =>
+            reconcileGardenRecovery(input, signal, () => dependenciesRef.current)
+          ),
+          submitGarden: fromPromise<TxResult, void>(async () => {
             const gardenStoreState = useCreateGardenStore.getState();
+            const { address: activeAddress, chainId: activeChainId } = dependenciesRef.current;
+            const existing = activeAddress
+              ? gardenStoreState.getPendingSubmission(activeAddress, activeChainId)
+              : undefined;
+            if (existing?.result.confirmation === "pending") return existing.result;
+            if (existing)
+              throw new Error(
+                dependenciesRef.current.formatMessage({ id: "app.garden.previousCreationComplete" })
+              );
             const params = gardenStoreState.getParams();
             if (!params) {
               throw new Error("Garden form is incomplete");
             }
-
             const {
-              walletClient: currentWalletClient,
               address: currentAddress,
+              sender: currentSender,
+              formatMessage: message,
               chainId: currentChainId,
               addPendingTransaction: addPendingTx,
               queryClient: latestQueryClient,
               scheduleGardenRefresh: scheduleRefresh,
             } = dependenciesRef.current;
-
-            if (!currentWalletClient || !currentAddress || !isAddress(currentAddress)) {
-              throw new Error("Connect a wallet to deploy the garden");
+            if (!currentAddress || !isAddress(currentAddress)) {
+              throw new Error(message({ id: "app.account.signInRequired" }));
             }
+            if (!currentSender) throw new Error(message({ id: "app.account.signerNotReady" }));
+            await currentSender.assertOwnership?.(currentAddress, currentChainId);
             const accountAddress = currentAddress as `0x${string}`;
-
             trackAdminGardenCreateStarted({
               gardenName: params.name,
               chainId: currentChainId,
             });
-
             try {
-              const contracts = getNetworkContracts(currentChainId);
-              const config = {
-                name: params.name,
-                slug: params.slug ?? "",
-                description: params.description,
-                location: params.location,
-                bannerImage: params.bannerImage,
-                metadata: params.metadata ?? "",
-                openJoining: params.openJoining ?? false,
-                weightScheme: params.weightScheme,
-                domainMask: params.domainMask,
-                gardeners: params.gardeners,
-                operators: params.operators,
-              };
-
-              // Estimate CCIP fee for ENS registration (if slug provided and ENS module configured)
-              const ccipFee = await estimateCCIPFee(
-                config.slug,
-                contracts.greenGoodsENS as `0x${string}`,
-                accountAddress,
-                currentChainId
+              const ports = createDefaultCreateGardenPorts({
+                transactionSender: currentSender,
+                addPending: (hash) => addPendingTx(hash, "garden:create"),
+                checkpoint: (result) =>
+                  useCreateGardenStore.getState().recordPendingSubmission({
+                    accountAddress,
+                    chainId: currentChainId,
+                    result,
+                    gardenName: params.name,
+                  }),
+                clearCheckpoint: (result) => {
+                  // A successful send remains recoverable until its draft is consumed.
+                  if (result.confirmation !== "pending") return;
+                  const store = useCreateGardenStore.getState();
+                  if (
+                    store.getPendingSubmission(accountAddress, currentChainId)?.result.hash ===
+                    (result.broadcastReference?.hash ?? result.hash)
+                  )
+                    store.clearPendingSubmission(accountAddress, currentChainId);
+                },
+              });
+              const result = await createGarden(
+                { params, accountAddress, chainId: currentChainId },
+                ports
               );
-
-              // Simulate first to catch contract reverts without spending gas
-              const simulation = await simulateTransaction(
-                contracts.gardenToken,
-                GardenTokenABI,
-                "mintGarden",
-                [config],
-                accountAddress,
-                currentChainId
-              );
-
-              if (!simulation.success) {
-                throw new Error(simulation.error?.message ?? "Transaction simulation failed");
+              if (result.confirmation === "pending") {
+                useCreateGardenStore.getState().recordPendingSubmission({
+                  accountAddress,
+                  chainId: currentChainId,
+                  result,
+                  gardenName: params.name,
+                });
+                return result;
               }
-
-              // Execute the transaction (payable -- includes CCIP fee for ENS)
-              await ensureAppKitWalletChain(currentChainId);
-              await assertLocalArbitrumForkWallet();
-
-              const txHash = await currentWalletClient.writeContract({
-                address: contracts.gardenToken,
-                abi: GardenTokenABI,
-                functionName: "mintGarden",
-                account: accountAddress,
-                args: [config],
-                value: ccipFee,
-                chain: getChain(currentChainId),
-              });
-
-              addPendingTx(txHash, "garden:create");
-
-              // Wait for on-chain confirmation before declaring success
-              await waitForTransactionReceipt(getWagmiConfig(), {
-                hash: txHash,
+              const txHash = result.hash;
+              const pending = useCreateGardenStore
+                .getState()
+                .getPendingSubmission(accountAddress, currentChainId);
+              useCreateGardenStore.getState().recordPendingSubmission({
+                accountAddress,
                 chainId: currentChainId,
-                timeout: TX_RECEIPT_TIMEOUT_MS,
-              });
-
-              trackAdminGardenCreateSuccess({
                 gardenName: params.name,
-                gardenAddress: contracts.gardenToken,
-                chainId: currentChainId,
-                txHash,
+                result,
+                successTracked: true,
               });
-
+              const contracts = getNetworkContracts(currentChainId);
+              if (!pending?.successTracked)
+                trackAdminGardenCreateSuccess({
+                  gardenName: params.name,
+                  gardenAddress: contracts.gardenToken,
+                  chainId: currentChainId,
+                  txHash,
+                });
               // Invalidate garden queries so the list updates immediately
               queryInvalidation
                 .invalidateGardens(currentChainId)
                 .forEach((queryKey) => latestQueryClient.invalidateQueries({ queryKey }));
               // Schedule follow-up for indexer lag
               scheduleRefresh();
-
-              return txHash;
+              return result;
             } catch (error) {
               trackAdminGardenCreateFailed({
                 gardenName: params.name,
@@ -299,57 +252,92 @@ export function useCreateGardenWorkflow() {
       }),
     [] // Machine created once — actors/actions read current values from refs
   );
-
-  const [state, send] = useMachine(machine);
-  const isSubmitting = state.matches("submitting") || isLockPending;
+  const [state, send, actor] = useMachine(machine);
+  const scope = address ? getTransactionScopeKey(address, selectedChainId) : null;
+  const previousScope = useRef(scope);
+  useEffect(() => {
+    if (previousScope.current === scope) return;
+    previousScope.current = scope;
+    send({ type: "SWITCH_SCOPE" });
+    if (!address) return;
+    send({ type: "OPEN" });
+    const pending = useCreateGardenStore.getState().getPendingSubmission(address, selectedChainId);
+    if (pending) send({ type: "RESTORE_PENDING", submission: pending.result });
+    else {
+      const formStatus = getFormStatus();
+      if (formStatus.isReviewReady) send({ type: "REVIEW", formStatus });
+    }
+  }, [scope, address, selectedChainId, send]);
+  const isSubmitting =
+    state.matches("submitting") ||
+    state.matches("pending") ||
+    state.matches("reconciling") ||
+    isLockPending;
   useBeforeUnloadWhilePending(isSubmitting);
-
   useEffect(() => {
     if (state.value === "success" && state.context.txHash) {
       updateTransactionStatus(state.context.txHash, "confirmed");
-      // Clear draft on successful garden creation
-      void draft.clearDraft();
+      // Screen cancellation cannot lose an accepted operation. Consume only this scope.
+      const pending = address
+        ? useCreateGardenStore.getState().getPendingSubmission(address, selectedChainId)
+        : undefined;
+      if (pending && pending.result.hash === state.context.txHash) {
+        void draft.clearDraft().then(async (cleared) => {
+          if (!cleared || (await draft.peekDraft())) return;
+          const store = useCreateGardenStore.getState();
+          if (store.getPendingSubmission(pending.accountAddress, pending.chainId) === pending)
+            store.clearPendingSubmission(pending.accountAddress, pending.chainId);
+        });
+      }
     }
-  }, [state.value, state.context.txHash, updateTransactionStatus, draft]);
-
+  }, [state.value, state.context.txHash, updateTransactionStatus, draft, address, selectedChainId]);
   // Navigation handlers that bridge store and machine
   const openFlow = useCallback(() => {
     send({ type: "OPEN" });
+    const { address: currentAddress, chainId } = dependenciesRef.current;
+    const pending = currentAddress
+      ? useCreateGardenStore.getState().getPendingSubmission(currentAddress, chainId)
+      : undefined;
+    if (
+      pending &&
+      currentAddress?.toLowerCase() === pending.accountAddress.toLowerCase() &&
+      chainId === pending.chainId
+    ) {
+      send({ type: "RESTORE_PENDING", submission: pending.result });
+    }
   }, [send]);
-
   const closeFlow = useCallback(() => {
+    if (isSubmitting) return;
     storeReset();
     void draft.clearDraft();
     send({ type: "CLOSE" });
-  }, [send, storeReset, draft]);
-
+  }, [send, storeReset, draft, isSubmitting]);
   const goNext = useCallback(() => {
     const formStatus = getFormStatus();
     send({ type: "NEXT", formStatus });
   }, [send]);
-
   const goBack = useCallback(() => {
     const formStatus = getFormStatus();
     send({ type: "BACK", formStatus });
   }, [send]);
-
   const goToReview = useCallback(() => {
     const formStatus = getFormStatus();
     send({ type: "REVIEW", formStatus });
   }, [send]);
-
   const submitCreation = useCallback((): boolean => {
-    const machineState = state.value;
-    if (state.matches("submitting")) {
+    const snapshot = actor.getSnapshot();
+    if (snapshot.matches("submitting")) {
       logger.warn("submitCreation called while already submitting", {
         source: "useCreateGardenWorkflow.submitCreation",
-        machineState,
+        machineState: snapshot.value,
       });
       return false;
     }
-
     const formStatus = getFormStatus();
-
+    // The one-page form has no Next button. Use the machine's guarded review
+    // transition, then read its live snapshot rather than a previous render.
+    if (snapshot.matches("collecting")) send({ type: "REVIEW", formStatus });
+    const machineState = actor.getSnapshot().value;
     // Pre-flight check: catch guard failures before XState silently drops the event
     if (machineState !== "review") {
       logger.error("Cannot submit: machine not in review state", {
@@ -367,99 +355,93 @@ export function useCreateGardenWorkflow() {
       });
       return false;
     }
-
     logger.info("Submitting garden creation", {
       source: "useCreateGardenWorkflow.submitCreation",
       machineState,
       formStatus,
     });
-
     void runWithLock(async () => {
       send({ type: "SUBMIT", formStatus });
     });
     return true;
-  }, [send, state, runWithLock]);
-
+  }, [send, actor, runWithLock]);
   const estimateCreationCost = useCallback(async () => {
     const params = useCreateGardenStore.getState().getParams();
     if (!params) {
       throw new Error("Garden form is incomplete");
     }
-
-    const currentAddress = dependenciesRef.current.address;
+    const {
+      address: currentAddress,
+      sender: currentSender,
+      formatMessage: message,
+    } = dependenciesRef.current;
     const currentChainId = dependenciesRef.current.chainId;
-
     if (!currentAddress || !isAddress(currentAddress)) {
-      throw new Error("Connect a wallet to estimate deployment cost");
+      throw new Error(message({ id: "app.account.signInRequired" }));
     }
     const accountAddress = currentAddress as `0x${string}`;
-
-    const contracts = getNetworkContracts(currentChainId);
-    const config = {
-      name: params.name,
-      slug: params.slug ?? "",
-      description: params.description,
-      location: params.location,
-      bannerImage: params.bannerImage,
-      metadata: params.metadata ?? "",
-      openJoining: params.openJoining ?? false,
-      weightScheme: params.weightScheme,
-      domainMask: params.domainMask,
-      gardeners: params.gardeners,
-      operators: params.operators,
-    };
-
-    const { publicClient } = createClients(currentChainId);
-
-    const ccipFee = await estimateCCIPFee(
-      config.slug,
-      contracts.greenGoodsENS as `0x${string}`,
-      accountAddress,
-      currentChainId
-    );
-
-    const gasEstimate = await publicClient.estimateContractGas({
-      address: contracts.gardenToken,
-      abi: GardenTokenABI,
-      functionName: "mintGarden",
-      account: accountAddress,
-      args: [config],
-      value: ccipFee,
+    if (!currentSender) throw new Error(message({ id: "app.account.signerNotReady" }));
+    const ports = createDefaultCreateGardenPorts({
+      transactionSender: currentSender,
+      addPending: () => {},
     });
-
-    const gasPrice = await publicClient.getGasPrice();
-    const txFee = gasEstimate * gasPrice;
-    const totalEstimatedFee = txFee + ccipFee;
-
-    return {
-      gasEstimate,
-      gasPrice,
-      txFee,
-      ccipFee,
-      totalEstimatedFee,
-      formatted: {
-        txFeeEth: formatEther(txFee),
-        ccipFeeEth: formatEther(ccipFee),
-        totalEth: formatEther(totalEstimatedFee),
-      },
-    };
+    return estimateGardenCreation(
+      { params, accountAddress, chainId: currentChainId },
+      { reader: ports.reader }
+    );
   }, []);
-
   const retry = useCallback(() => {
     send({ type: "RETRY" });
   }, [send]);
-
   const edit = useCallback(() => {
     send({ type: "EDIT" });
   }, [send]);
 
   const createAnother = useCallback(() => {
+    if (!state.matches("success")) return;
+    const { address: activeAddress, chainId: activeChainId } = dependenciesRef.current;
+    const store = useCreateGardenStore.getState();
+    const completed = activeAddress
+      ? store.getPendingSubmission(activeAddress, activeChainId)
+      : undefined;
+    if (activeAddress && completed && completed.result.confirmation !== "pending")
+      store.clearPendingSubmission(activeAddress, activeChainId);
     storeReset();
     void draft.clearDraft();
     send({ type: "CREATE_ANOTHER" });
-  }, [send, storeReset, draft]);
+  }, [send, storeReset, draft, state]);
 
+  const checkConfirmation = useCallback(() => send({ type: "CHECK_CONFIRMATION" }), [send]);
+
+  const confirmWalletCancellation = async (confirmedInWallet: boolean) => {
+    const { address: account, sender, chainId } = dependenciesRef.current;
+    const pending = account
+      ? useCreateGardenStore.getState().getPendingSubmission(account, chainId)
+      : undefined;
+    await confirmCancelledSubmission({
+      confirmedInWallet,
+      account,
+      sender,
+      chainId,
+      isCurrent: () =>
+        Boolean(
+          account &&
+            pending?.result.confirmation === "pending" &&
+            actor.getSnapshot().matches("pending") &&
+            dependenciesRef.current.address === account &&
+            dependenciesRef.current.chainId === chainId &&
+            useCreateGardenStore.getState().getPendingSubmission(account, chainId) === pending
+        ),
+      clear: () => {
+        useCreateGardenStore.getState().clearPendingSubmission(account!, chainId);
+        send({ type: "SWITCH_SCOPE" });
+        openFlow();
+      },
+    });
+  };
   return {
+    recoveryKey: `${scope}:${state.context.txHash}`,
+    confirmWalletCancellation,
     state,
     openFlow,
     closeFlow,
@@ -469,6 +451,7 @@ export function useCreateGardenWorkflow() {
     submitCreation,
     estimateCreationCost,
     retry,
+    checkConfirmation,
     edit,
     createAnother,
     draft,

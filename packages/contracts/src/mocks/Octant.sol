@@ -301,162 +301,162 @@ contract MockOctantVault is IOctantVault {
     }
 }
 
-/// @title ProcessReportRevertingVault
-/// @notice Vault whose process_report always reverts, for testing harvest fallback to strategy.report()
-/// @dev Inherits MockOctantVault for full functionality, then overrides process_report to revert.
-///      Unlike RevertingOctantVault, this vault supports add_strategy/balanceOf normally.
-contract ProcessReportRevertingVault is MockOctantVault {
-    constructor(
-        address _asset,
-        string memory _name,
-        string memory _symbol,
-        address _roleManager,
-        uint256 _profitUnlockTime
-    )
-        MockOctantVault(_asset, _name, _symbol, _roleManager, _profitUnlockTime)
-    { }
+    /// @title ProcessReportRevertingVault
+    /// @notice Vault whose process_report always reverts, for testing harvest fallback to strategy.report()
+    /// @dev Inherits MockOctantVault for full functionality, then overrides process_report to revert.
+    ///      Unlike RevertingOctantVault, this vault supports add_strategy/balanceOf normally.
+    contract ProcessReportRevertingVault is MockOctantVault {
+        constructor(
+            address _asset,
+            string memory _name,
+            string memory _symbol,
+            address _roleManager,
+            uint256 _profitUnlockTime
+        )
+            MockOctantVault(_asset, _name, _symbol, _roleManager, _profitUnlockTime)
+        { }
 
-    function process_report(address) external pure override returns (uint256, uint256) {
-        revert("process_report reverted");
-    }
-}
-
-/// @title ProcessReportRevertingFactory
-/// @notice Factory that deploys ProcessReportRevertingVaults for testing harvest fallback
-contract ProcessReportRevertingFactory is IOctantFactory {
-    function deployNewVault(
-        address asset,
-        string memory _name,
-        string memory _symbol,
-        address roleManager,
-        uint256 _profitUnlockTime
-    )
-        external
-        override
-        returns (address vault)
-    {
-        vault = address(new ProcessReportRevertingVault(asset, _name, _symbol, roleManager, _profitUnlockTime));
-    }
-}
-
-/// @title RevertingOctantFactory
-/// @notice Factory that deploys vaults whose add_strategy always reverts
-contract RevertingOctantFactory is IOctantFactory {
-    function deployNewVault(
-        address asset,
-        string memory _name,
-        string memory _symbol,
-        address roleManager,
-        uint256 _profitUnlockTime
-    )
-        external
-        override
-        returns (address vault)
-    {
-        vault = address(new RevertingOctantVault(asset, _name, _symbol, roleManager, _profitUnlockTime));
-    }
-}
-
-/// @title RevertingOctantVault
-/// @notice Vault whose add_strategy always reverts, for testing StrategyAttachmentFailed
-contract RevertingOctantVault is IOctantVault {
-    address public override asset;
-    string public name;
-    string public symbol;
-    address public roleManager;
-    uint256 public profitUnlockTime;
-    bool public override autoAllocate;
-    address public override accountant;
-
-    constructor(
-        address _asset,
-        string memory _name,
-        string memory _symbol,
-        address _roleManager,
-        uint256 _profitUnlockTime
-    ) {
-        asset = _asset;
-        name = _name;
-        symbol = _symbol;
-        roleManager = _roleManager;
-        profitUnlockTime = _profitUnlockTime;
+        function process_report(address) external pure override returns (uint256, uint256) {
+            revert("process_report reverted");
+        }
     }
 
-    function add_strategy(address, bool) external pure override {
-        revert("add_strategy reverted");
+    /// @title ProcessReportRevertingFactory
+    /// @notice Factory that deploys ProcessReportRevertingVaults for testing harvest fallback
+    contract ProcessReportRevertingFactory is IOctantFactory {
+        function deployNewVault(
+            address asset,
+            string memory _name,
+            string memory _symbol,
+            address roleManager,
+            uint256 _profitUnlockTime
+        )
+            external
+            override
+            returns (address vault)
+        {
+            vault = address(new ProcessReportRevertingVault(asset, _name, _symbol, roleManager, _profitUnlockTime));
+        }
     }
 
-    // Stubs for IOctantVault interface compliance
-    function deposit(uint256, address) external pure override returns (uint256) {
-        return 0;
+    /// @title RevertingOctantFactory
+    /// @notice Factory that deploys vaults whose add_strategy always reverts
+    contract RevertingOctantFactory is IOctantFactory {
+        function deployNewVault(
+            address asset,
+            string memory _name,
+            string memory _symbol,
+            address roleManager,
+            uint256 _profitUnlockTime
+        )
+            external
+            override
+            returns (address vault)
+        {
+            vault = address(new RevertingOctantVault(asset, _name, _symbol, roleManager, _profitUnlockTime));
+        }
     }
 
-    function withdraw(uint256, address, address, uint256, address[] calldata) external pure override returns (uint256) {
-        return 0;
+    /// @title RevertingOctantVault
+    /// @notice Vault whose add_strategy always reverts, for testing StrategyAttachmentFailed
+    contract RevertingOctantVault is IOctantVault {
+        address public override asset;
+        string public name;
+        string public symbol;
+        address public roleManager;
+        uint256 public profitUnlockTime;
+        bool public override autoAllocate;
+        address public override accountant;
+
+        constructor(
+            address _asset,
+            string memory _name,
+            string memory _symbol,
+            address _roleManager,
+            uint256 _profitUnlockTime
+        ) {
+            asset = _asset;
+            name = _name;
+            symbol = _symbol;
+            roleManager = _roleManager;
+            profitUnlockTime = _profitUnlockTime;
+        }
+
+        function add_strategy(address, bool) external pure override {
+            revert("add_strategy reverted");
+        }
+
+        // Stubs for IOctantVault interface compliance
+        function deposit(uint256, address) external pure override returns (uint256) {
+            return 0;
+        }
+
+        function withdraw(uint256, address, address, uint256, address[] calldata) external pure override returns (uint256) {
+            return 0;
+        }
+
+        function redeem(uint256, address, address, uint256, address[] calldata) external pure override returns (uint256) {
+            return 0;
+        }
+
+        function totalAssets() external pure override returns (uint256) {
+            return 0;
+        }
+
+        function balanceOf(address) external pure override returns (uint256) {
+            return 0;
+        }
+
+        function totalSupply() external pure override returns (uint256) {
+            return 0;
+        }
+
+        function convertToAssets(uint256 shares) external pure override returns (uint256) {
+            return shares;
+        }
+
+        function convertToShares(uint256 assets) external pure override returns (uint256) {
+            return assets;
+        }
+
+        function previewDeposit(uint256 assets) external pure override returns (uint256) {
+            return assets;
+        }
+
+        function previewWithdraw(uint256 assets) external pure override returns (uint256) {
+            return assets;
+        }
+
+        function maxDeposit(address) external pure override returns (uint256) {
+            return type(uint256).max;
+        }
+
+        function maxWithdraw(address, uint256, address[] memory) external pure override returns (uint256) {
+            return 0;
+        }
+
+        function revoke_strategy(address) external pure override { }
+        function update_max_debt_for_strategy(address, uint256) external pure override { }
+        function set_accountant(address) external pure override { }
+        function set_auto_allocate(bool) external pure override { }
+
+        function get_default_queue() external pure returns (address[] memory) {
+            return new address[](0);
+        }
+
+        function update_debt(address, uint256 targetDebt, uint256) external pure override returns (uint256) {
+            return targetDebt;
+        }
+
+        function process_report(address) external pure override returns (uint256, uint256) {
+            return (0, 0);
+        }
+
+        function strategies(address) external pure returns (uint256, uint256, uint256, uint256) {
+            return (0, 0, 0, 0);
+        }
+
+        function set_role(address, uint256) external override { }
+
+        function set_deposit_limit(uint256, bool) external override { }
     }
-
-    function redeem(uint256, address, address, uint256, address[] calldata) external pure override returns (uint256) {
-        return 0;
-    }
-
-    function totalAssets() external pure override returns (uint256) {
-        return 0;
-    }
-
-    function balanceOf(address) external pure override returns (uint256) {
-        return 0;
-    }
-
-    function totalSupply() external pure override returns (uint256) {
-        return 0;
-    }
-
-    function convertToAssets(uint256 shares) external pure override returns (uint256) {
-        return shares;
-    }
-
-    function convertToShares(uint256 assets) external pure override returns (uint256) {
-        return assets;
-    }
-
-    function previewDeposit(uint256 assets) external pure override returns (uint256) {
-        return assets;
-    }
-
-    function previewWithdraw(uint256 assets) external pure override returns (uint256) {
-        return assets;
-    }
-
-    function maxDeposit(address) external pure override returns (uint256) {
-        return type(uint256).max;
-    }
-
-    function maxWithdraw(address, uint256, address[] memory) external pure override returns (uint256) {
-        return 0;
-    }
-
-    function revoke_strategy(address) external pure override { }
-    function update_max_debt_for_strategy(address, uint256) external pure override { }
-    function set_accountant(address) external pure override { }
-    function set_auto_allocate(bool) external pure override { }
-
-    function get_default_queue() external pure returns (address[] memory) {
-        return new address[](0);
-    }
-
-    function update_debt(address, uint256 targetDebt, uint256) external pure override returns (uint256) {
-        return targetDebt;
-    }
-
-    function process_report(address) external pure override returns (uint256, uint256) {
-        return (0, 0);
-    }
-
-    function strategies(address) external pure returns (uint256, uint256, uint256, uint256) {
-        return (0, 0, 0, 0);
-    }
-
-    function set_role(address, uint256) external override { }
-
-    function set_deposit_limit(uint256, bool) external override { }
-}

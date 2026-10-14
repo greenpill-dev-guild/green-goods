@@ -1,0 +1,20 @@
+{
+  "canonical": {
+    "dark-green": "#367D44"
+  },
+  "monochrome": {
+    "white": "#FFFFFF",
+    "black": "#000000"
+  },
+  "templateSurface": {
+    "paper": "#FAF8F5"
+  },
+  "reference": {
+    "green": "#3E8E4E",
+    "forest-green": "#367D41",
+    "light-green": "#46A359",
+    "sienna": "#A0522D",
+    "sky-blue": "#87CEEB"
+  },
+  "note": "Dark green is canonical, approved by the brand owner on 4 October 2026. Reference colors are retained for the original artwork and optional recolors; they are not an approved replacement palette."
+}

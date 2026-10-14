@@ -1,39 +1,85 @@
 ---
-title: ENS (Name Service)
+title: ENS
 sidebar_label: ENS
 slug: /builders/integrations/ens
 audience: developer
 owner: docs
-last_verified: 2026-04-25
-feature_status: Implemented (activation pending indexing)
+last_verified: 2026-10-11
+feature_status: Live
 source_of_truth:
+  - packages/shared/src/ontology/green-goods-ontology.json
+  - docs/src/data/integration-projections.json
   - packages/contracts/src/registries/ENS.sol
-  - packages/contracts/src/interfaces/IENS.sol
+  - packages/contracts/src/registries/ENSReceiver.sol
+  - packages/contracts/src/tokens/Garden.sol
   - packages/shared/src/hooks/ens
-  - packages/shared/src/utils/blockchain/ens.ts
+keywords:
+  - ens
+  - names
+  - identity
 ---
 
-import {NextBestAction, StatusBadge} from "@site/src/components/docs";
+import {IntegrationProjection} from "@site/src/components/docs";
 
-# ENS (Name Service)
+# ENS
 
-<StatusBadge status="Implemented (activation pending indexing)" />
+[ENS](https://ens.domains) gives gardens and gardeners names under `greengoods.eth`. A garden asks
+for its name when it's minted (best-effort: without the module or a slug the step is skipped, and a
+failed registration is caught with its fee queued for refund), and a gardener can claim one for
+their profile. Instead of an address,
+each carries a human-readable identity that resolves across the ecosystem. The module wires the
+registry, the cross-chain receiver, and the resolution paths that make those names work.
 
-## Overview
-ENS support exists in contract registry code and shared ENS hooks/utilities. Arbitrum and Sepolia artifacts include Green Goods ENS registry addresses, while Celo keeps the module address at zero. Green Goods ENS events are not currently configured in the indexer, so chain claims should stay resolver/indexing-aware.
+## How it flows
 
-## Builder notes
+Names are registered on Arbitrum and settled on Ethereum, where `greengoods.eth` lives. A
+delivered message is not a registered name:
 
-- Use shared ENS hooks for address, avatar, name, registration status, and Green Goods ENS reads.
-- Keep docs clear about whether a chain has deployed ENS wiring or only implementation support.
-- Do not hardcode ENS names or resolver addresses outside deployment/config sources.
+- The receiver skips a name that is invalid, already taken, or whose owner already has one, and
+  emits `NameRegistrationSkipped`.
+- When the ENS registry, resolver, or NameWrapper call reverts, the receiver emits
+  `ENSRegistrationFailed`, and still records the name and emits `NameRegistered`.
 
-<NextBestAction
-  title="Next best action"
-  why="Deployment artifacts decide which ENS surfaces are active for a chain."
-  actionLabel="Deployment status"
-  actionHref="../deployments/status"
-  alternatives={[
-    {label: "Contracts package", href: "../packages/contracts"},
-  ]}
-/>
+So `name.greengoods.eth` can stay unresolved after a successful CCIP message. Resolve the name, or
+look for those two events, before treating it as live.
+
+```mermaid
+flowchart LR
+  claim(["Garden mint or gardener claim"]) --> sender["GreenGoodsENS<br/>(Arbitrum)"]
+  sender -->|CCIP message| receiver["GreenGoodsENSReceiver<br/>(Ethereum)"]
+  receiver -->|registers, best-effort| name["name.greengoods.eth"]
+  apps["Apps and wallets"] -->|resolve| name
+```
+
+## Where it lives in the code
+
+| Layer | Source |
+|---|---|
+| Registry (Arbitrum sender) | `packages/contracts/src/registries/ENS.sol` |
+| Receiver (Ethereum) | `packages/contracts/src/registries/ENSReceiver.sol`, which validates the CCIP message, records the name, and sets the ENS records in a try/catch |
+| Mint-time request | `packages/contracts/src/tokens/Garden.sol`, which skips the step without a module or slug, catches a failed registration, and queues the fee for refund |
+| Resolution hooks | `packages/shared/src/hooks/ens` |
+| Recorded components | The `greenGoodsENS` and `ensReceiver` fields in the [deployment record](/builders/reference/deployments) |
+
+<IntegrationProjection id="ens" />
+
+## Working with it locally
+
+The [fork mode](../getting-started#other-modes) (`bun run dev -- fork`) runs a local fork of
+Arbitrum One, so recorded name state resolves locally; registering new names against mainnet ENS
+needs the real chain.
+
+## Canonical upstream docs
+
+- [ENS documentation](https://docs.ens.domains) for names, resolvers, and cross-chain resolution.
+- [ens.domains](https://ens.domains) for the app.
+- [Offchain and L2 resolvers](https://docs.ens.domains/resolvers/ccip-read) for CCIP Read, which
+  the Green Goods resolver relies on to answer from its own registry.
+- [ens-contracts](https://github.com/ensdomains/ens-contracts) for the core protocol contracts.
+
+
+## Next steps
+
+- [Tokenbound Accounts](/builders/integrations/tokenbound) covers the garden accounts a name stands for.
+- [Architecture](/builders/architecture) shows where names fit next to the other modules.
+- [Deployments & Addresses](/builders/reference/deployments) lists the recorded ENS contracts per chain.

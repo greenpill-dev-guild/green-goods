@@ -1,39 +1,73 @@
 ---
 title: Karma GAP
-sidebar_label: Karma
+sidebar_label: Karma GAP
 slug: /builders/integrations/karma
 audience: developer
 owner: docs
-last_verified: 2026-04-25
-feature_status: Implemented (activation pending indexing)
+last_verified: 2026-10-11
+feature_status: Live
 source_of_truth:
+  - packages/shared/src/ontology/green-goods-ontology.json
+  - docs/src/data/integration-projections.json
   - packages/contracts/src/modules/Karma.sol
-  - packages/contracts/src/lib/Karma.sol
-  - packages/contracts/src/interfaces/IKarma.sol
-  - packages/shared/src/utils/errors/contract-errors.ts
+  - packages/contracts/src/resolvers/Assessment.sol
+  - packages/shared/src/modules/data/karma.ts
+keywords:
+  - karma gap
+  - milestones
+  - reporting
 ---
 
-import {NextBestAction, StatusBadge} from "@site/src/components/docs";
+import {IntegrationProjection} from "@site/src/components/docs";
 
 # Karma GAP
 
-<StatusBadge status="Implemented (activation pending indexing)" />
+[Karma GAP](https://gap.karmahq.xyz) (the Grantee Accountability Protocol) connects garden
+activity to project reporting and milestone records. When the module is active, the assessment
+resolver tries to mirror each assessment to a GAP milestone, so grant programs that already track
+accountability through GAP see Green Goods work in the format they trust. The mirror is
+best-effort: a GAP failure is caught so the assessment still succeeds, which means a valid
+assessment can exist without its milestone, and anything that correlates the two has to tolerate
+or reconcile the missing record.
 
-## Overview
-Karma GAP support exists in deployed Arbitrum/Sepolia contract modules, libraries, interfaces, and shared error handling. Celo artifacts keep the module at the zero address. Dedicated Karma GAP module events are not currently configured in the indexer, so reporting claims should remain indexing- and UI-gated.
+## How it flows
 
-## Builder notes
+Evaluators and stewards (and the garden's owner, through the inclusive role checks) record the
+assessment once in Green Goods, and the module carries it over to GAP when it can.
 
-- Treat Karma GAP as non-blocking around core garden/work flows.
-- Keep GAP errors mapped through shared contract-error utilities.
-- Do not claim automatic reporting is live unless a deployed chain and UI path are verified.
+```mermaid
+flowchart LR
+  author([Evaluator or steward]) -->|records| assessment["Garden assessment"]
+  assessment -->|Karma module mirrors, best-effort| milestone["Karma GAP milestone"]
+  milestone --> programs["Grant programs<br/>that track GAP"]
+```
 
-<NextBestAction
-  title="Next best action"
-  why="Use deployment status before treating external reporting surfaces as live."
-  actionLabel="Deployment status"
-  actionHref="../deployments/status"
-  alternatives={[
-    {label: "Integrations overview", href: "./overview"},
-  ]}
-/>
+## Where it lives in the code
+
+| Layer | Source |
+|---|---|
+| Module | `packages/contracts/src/modules/Karma.sol` |
+| Assessment mirror | `packages/contracts/src/resolvers/Assessment.sol`, which calls the module in a try/catch |
+| Data access | `packages/shared/src/modules/data/karma.ts` |
+
+<IntegrationProjection id="karma" />
+
+## Working with it locally
+
+The [fork mode](../getting-started#other-modes) (`bun run dev -- fork`) runs a local fork of
+Arbitrum One with the module state present; mirroring to the live GAP registry needs the real
+chain.
+
+## Canonical upstream docs
+
+- [Karma GAP documentation](https://docs.gap.karmahq.xyz) for projects, grants, and milestones.
+- [gap.karmahq.xyz](https://gap.karmahq.xyz) to browse live records.
+- [karma-gap-sdk](https://github.com/show-karma/karma-gap-sdk) for reading and writing GAP
+  records from code.
+
+
+## Next steps
+
+- [Making an assessment](/community/evaluator-guide/making-an-assessment) shows the steward flow that feeds a GAP milestone.
+- [Hypercerts](/builders/integrations/hypercerts) turns the same body of work into a claim funders can hold.
+- [Deployments & Addresses](/builders/reference/deployments) lists where the Karma module is recorded.

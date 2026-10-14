@@ -1,4 +1,4 @@
-import { Domain, type Work } from "@green-goods/shared";
+import { Domain, type Work } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { FIXTURE_WORK_MEDIA, hoursAgo } from "../../../../../shared/.storybook/fixtures";
 import { HubWorkCard } from "./HubWorkCard";

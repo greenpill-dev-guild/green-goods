@@ -1,62 +1,97 @@
-import { HatsModule } from "../../generated";
+import { indexer, type Garden } from "envio";
+import type { Address } from "viem";
 
-import type { HandlerTypes_handlerArgs } from "../../generated/src/Types.gen";
-
+import { addUniqueAddress, GARDEN_ROLE, normalizeAddress, removeAddress } from "./shared";
 import {
-  addUniqueAddress,
   createDefaultGarden,
-  GARDEN_ROLE,
-  type HatsModule_RoleGranted_eventArgs,
-  type HatsModule_RoleRevoked_eventArgs,
-  normalizeAddress,
-  removeAddress,
-} from "./shared";
+  createDefaultKarmaProjectAccess,
+  type EventContext,
+} from "./entity-defaults";
+import { getKarmaProjectAccessId } from "./ids";
+
+function markKarmaAccessPending(garden: Garden, account: Address, role: number): Garden {
+  if (role !== GARDEN_ROLE.Steward && role !== GARDEN_ROLE.Owner) return garden;
+
+  return {
+    ...garden,
+    karmaTrackedAccessAccounts: addUniqueAddress(garden.karmaTrackedAccessAccounts ?? [], account),
+    karmaMembershipState: "PENDING",
+    karmaMembershipPendingAccounts: addUniqueAddress(
+      garden.karmaMembershipPendingAccounts ?? [],
+      account
+    ),
+    karmaAccessState: "PENDING",
+    karmaAccessPendingAccounts: addUniqueAddress(garden.karmaAccessPendingAccounts ?? [], account),
+  };
+}
+
+async function setPendingAccessAggregate(
+  context: EventContext,
+  chainId: number,
+  garden: Address,
+  account: Address,
+  timestamp: number,
+  projectUID?: string
+) {
+  const id = getKarmaProjectAccessId(chainId, garden, account);
+  const existing = await context.KarmaProjectAccess.get(id);
+  const base = existing ?? createDefaultKarmaProjectAccess(chainId, garden, account, projectUID);
+
+  context.KarmaProjectAccess.set({
+    ...base,
+    projectUID: projectUID ?? base.projectUID,
+    membershipState: "PENDING",
+    membershipUpdatedAt: timestamp,
+    accessState: "PENDING",
+    accessUpdatedAt: timestamp,
+  });
+}
 
 // ============================================================================
 // HATS MODULE EVENT HANDLERS
 // ============================================================================
 
-HatsModule.RoleGranted.handler(
-  async ({ event, context }: HandlerTypes_handlerArgs<HatsModule_RoleGranted_eventArgs, void>) => {
-    const gardenId = event.params.garden;
-    const account = event.params.account;
-    const role = Number(event.params.role);
+indexer.onEvent({ contract: "HatsModule", event: "RoleGranted" }, async ({ event, context }) => {
+  const gardenId = event.params.garden;
+  const account = event.params.account;
+  const role = Number(event.params.role);
 
-    let existingGarden = await context.Garden.get(gardenId);
-    if (!existingGarden) {
-      existingGarden = createDefaultGarden(gardenId, event.chainId, event.block.timestamp);
-    }
+  let existingGarden = await context.Garden.get(gardenId);
+  if (!existingGarden) {
+    existingGarden = createDefaultGarden(gardenId, event.chainId, event.block.timestamp);
+  }
 
-    let updatedGardeners = existingGarden.gardeners;
-    let updatedOperators = existingGarden.operators;
-    let updatedEvaluators = existingGarden.evaluators;
-    let updatedOwners = existingGarden.owners;
-    let updatedFunders = existingGarden.funders;
-    let updatedCommunities = existingGarden.communities;
+  let updatedGardeners = existingGarden.gardeners;
+  let updatedOperators = existingGarden.operators;
+  let updatedEvaluators = existingGarden.evaluators;
+  let updatedOwners = existingGarden.owners;
+  let updatedFunders = existingGarden.funders;
+  let updatedCommunities = existingGarden.communities;
 
-    if (role === GARDEN_ROLE.Gardener) {
-      updatedGardeners = addUniqueAddress(updatedGardeners, account);
-    } else if (role === GARDEN_ROLE.Operator) {
-      updatedOperators = addUniqueAddress(updatedOperators, account);
-    } else if (role === GARDEN_ROLE.Evaluator) {
-      updatedEvaluators = addUniqueAddress(updatedEvaluators, account);
-    } else if (role === GARDEN_ROLE.Owner) {
-      updatedOwners = addUniqueAddress(updatedOwners, account);
-    } else if (role === GARDEN_ROLE.Funder) {
-      updatedFunders = addUniqueAddress(updatedFunders, account);
-    } else if (role === GARDEN_ROLE.Community) {
-      updatedCommunities = addUniqueAddress(updatedCommunities, account);
-    }
+  if (role === GARDEN_ROLE.Gardener) {
+    updatedGardeners = addUniqueAddress(updatedGardeners, account);
+  } else if (role === GARDEN_ROLE.Steward) {
+    updatedOperators = addUniqueAddress(updatedOperators, account);
+  } else if (role === GARDEN_ROLE.Evaluator) {
+    updatedEvaluators = addUniqueAddress(updatedEvaluators, account);
+  } else if (role === GARDEN_ROLE.Owner) {
+    updatedOwners = addUniqueAddress(updatedOwners, account);
+  } else if (role === GARDEN_ROLE.Funder) {
+    updatedFunders = addUniqueAddress(updatedFunders, account);
+  } else if (role === GARDEN_ROLE.Community) {
+    updatedCommunities = addUniqueAddress(updatedCommunities, account);
+  }
 
-    if (
-      updatedGardeners !== existingGarden.gardeners ||
-      updatedOperators !== existingGarden.operators ||
-      updatedEvaluators !== existingGarden.evaluators ||
-      updatedOwners !== existingGarden.owners ||
-      updatedFunders !== existingGarden.funders ||
-      updatedCommunities !== existingGarden.communities
-    ) {
-      context.Garden.set({
+  if (
+    updatedGardeners !== existingGarden.gardeners ||
+    updatedOperators !== existingGarden.operators ||
+    updatedEvaluators !== existingGarden.evaluators ||
+    updatedOwners !== existingGarden.owners ||
+    updatedFunders !== existingGarden.funders ||
+    updatedCommunities !== existingGarden.communities
+  ) {
+    const projectedGarden = markKarmaAccessPending(
+      {
         ...existingGarden,
         gardeners: updatedGardeners,
         operators: updatedOperators,
@@ -64,112 +99,140 @@ HatsModule.RoleGranted.handler(
         owners: updatedOwners,
         funders: updatedFunders,
         communities: updatedCommunities,
-      });
-    }
+      },
+      account,
+      role
+    );
+    context.Garden.set(projectedGarden);
 
-    if (role === GARDEN_ROLE.Gardener) {
-      const gardenerId = `${event.chainId}-${normalizeAddress(account)}`;
-      const existingGardener = await context.Gardener.get(gardenerId);
-
-      if (existingGardener) {
-        if (!existingGardener.gardens.includes(gardenId)) {
-          context.Gardener.set({
-            ...existingGardener,
-            gardens: [...existingGardener.gardens, gardenId],
-          });
-        }
-      } else {
-        context.Gardener.set({
-          id: gardenerId,
-          chainId: event.chainId,
-          createdAt: event.block.timestamp,
-          firstGarden: gardenId,
-          gardens: [gardenId],
-          owner: undefined,
-          ensName: undefined,
-          passkeyCredentialId: undefined,
-          claimedAt: undefined,
-          ensAvatar: undefined,
-          ensDescription: undefined,
-          ensTwitter: undefined,
-          ensGithub: undefined,
-          ensEmail: undefined,
-        });
-      }
+    if (role === GARDEN_ROLE.Steward || role === GARDEN_ROLE.Owner) {
+      await setPendingAccessAggregate(
+        context,
+        event.chainId,
+        gardenId,
+        account,
+        event.block.timestamp,
+        existingGarden.gapProjectUID
+      );
     }
   }
-);
 
-HatsModule.RoleRevoked.handler(
-  async ({ event, context }: HandlerTypes_handlerArgs<HatsModule_RoleRevoked_eventArgs, void>) => {
-    const gardenId = event.params.garden;
-    const account = event.params.account;
-    const role = Number(event.params.role);
+  if (role === GARDEN_ROLE.Gardener) {
+    const gardenerId = `${event.chainId}-${normalizeAddress(account)}`;
+    const existingGardener = await context.Gardener.get(gardenerId);
 
-    const existingGarden = await context.Garden.get(gardenId);
-    if (!existingGarden) return;
-
-    let updatedGardeners = existingGarden.gardeners;
-    let updatedOperators = existingGarden.operators;
-    let updatedEvaluators = existingGarden.evaluators;
-    let updatedOwners = existingGarden.owners;
-    let updatedFunders = existingGarden.funders;
-    let updatedCommunities = existingGarden.communities;
-
-    if (role === GARDEN_ROLE.Operator) {
-      updatedOperators = removeAddress(updatedOperators, account);
-    }
-
-    if (role === GARDEN_ROLE.Gardener) {
-      updatedGardeners = removeAddress(updatedGardeners, account);
-    }
-
-    if (role === GARDEN_ROLE.Evaluator) {
-      updatedEvaluators = removeAddress(updatedEvaluators, account);
-    }
-
-    if (role === GARDEN_ROLE.Owner) {
-      updatedOwners = removeAddress(updatedOwners, account);
-    }
-
-    if (role === GARDEN_ROLE.Funder) {
-      updatedFunders = removeAddress(updatedFunders, account);
-    }
-
-    if (role === GARDEN_ROLE.Community) {
-      updatedCommunities = removeAddress(updatedCommunities, account);
-    }
-
-    if (
-      updatedGardeners !== existingGarden.gardeners ||
-      updatedOperators !== existingGarden.operators ||
-      updatedEvaluators !== existingGarden.evaluators ||
-      updatedOwners !== existingGarden.owners ||
-      updatedFunders !== existingGarden.funders ||
-      updatedCommunities !== existingGarden.communities
-    ) {
-      context.Garden.set({
-        ...existingGarden,
-        gardeners: updatedGardeners,
-        operators: updatedOperators,
-        evaluators: updatedEvaluators,
-        owners: updatedOwners,
-        funders: updatedFunders,
-        communities: updatedCommunities,
-      });
-    }
-
-    if (role === GARDEN_ROLE.Gardener) {
-      const gardenerId = `${event.chainId}-${normalizeAddress(account)}`;
-      const existingGardener = await context.Gardener.get(gardenerId);
-      if (existingGardener) {
+    if (existingGardener) {
+      if (!existingGardener.gardens.includes(gardenId)) {
         context.Gardener.set({
           ...existingGardener,
-          gardens: existingGardener.gardens.filter(
-            (id) => normalizeAddress(id) !== normalizeAddress(gardenId)
-          ),
+          gardens: [...existingGardener.gardens, gardenId],
         });
       }
+    } else {
+      context.Gardener.set({
+        id: gardenerId,
+        chainId: event.chainId,
+        createdAt: event.block.timestamp,
+        firstGarden: gardenId,
+        gardens: [gardenId],
+        owner: undefined,
+        ensName: undefined,
+        passkeyCredentialId: undefined,
+        claimedAt: undefined,
+        ensAvatar: undefined,
+        ensDescription: undefined,
+        ensTwitter: undefined,
+        ensGithub: undefined,
+        ensEmail: undefined,
+      });
     }
   }
-);
+});
+
+indexer.onEvent({ contract: "HatsModule", event: "RoleRevoked" }, async ({ event, context }) => {
+  const gardenId = event.params.garden;
+  const account = event.params.account;
+  const role = Number(event.params.role);
+
+  const existingGarden = await context.Garden.get(gardenId);
+  if (!existingGarden) return;
+
+  let updatedGardeners = existingGarden.gardeners;
+  let updatedOperators = existingGarden.operators;
+  let updatedEvaluators = existingGarden.evaluators;
+  let updatedOwners = existingGarden.owners;
+  let updatedFunders = existingGarden.funders;
+  let updatedCommunities = existingGarden.communities;
+
+  if (role === GARDEN_ROLE.Steward) {
+    updatedOperators = removeAddress(updatedOperators, account);
+  }
+
+  if (role === GARDEN_ROLE.Gardener) {
+    updatedGardeners = removeAddress(updatedGardeners, account);
+  }
+
+  if (role === GARDEN_ROLE.Evaluator) {
+    updatedEvaluators = removeAddress(updatedEvaluators, account);
+  }
+
+  if (role === GARDEN_ROLE.Owner) {
+    updatedOwners = removeAddress(updatedOwners, account);
+  }
+
+  if (role === GARDEN_ROLE.Funder) {
+    updatedFunders = removeAddress(updatedFunders, account);
+  }
+
+  if (role === GARDEN_ROLE.Community) {
+    updatedCommunities = removeAddress(updatedCommunities, account);
+  }
+
+  if (
+    updatedGardeners !== existingGarden.gardeners ||
+    updatedOperators !== existingGarden.operators ||
+    updatedEvaluators !== existingGarden.evaluators ||
+    updatedOwners !== existingGarden.owners ||
+    updatedFunders !== existingGarden.funders ||
+    updatedCommunities !== existingGarden.communities
+  ) {
+    const projectedGarden = markKarmaAccessPending(
+      {
+        ...existingGarden,
+        gardeners: updatedGardeners,
+        operators: updatedOperators,
+        evaluators: updatedEvaluators,
+        owners: updatedOwners,
+        funders: updatedFunders,
+        communities: updatedCommunities,
+      },
+      account,
+      role
+    );
+    context.Garden.set(projectedGarden);
+
+    if (role === GARDEN_ROLE.Steward || role === GARDEN_ROLE.Owner) {
+      await setPendingAccessAggregate(
+        context,
+        event.chainId,
+        gardenId,
+        account,
+        event.block.timestamp,
+        existingGarden.gapProjectUID
+      );
+    }
+  }
+
+  if (role === GARDEN_ROLE.Gardener) {
+    const gardenerId = `${event.chainId}-${normalizeAddress(account)}`;
+    const existingGardener = await context.Gardener.get(gardenerId);
+    if (existingGardener) {
+      context.Gardener.set({
+        ...existingGardener,
+        gardens: existingGardener.gardens.filter(
+          (id) => normalizeAddress(id) !== normalizeAddress(gardenId)
+        ),
+      });
+    }
+  }
+});

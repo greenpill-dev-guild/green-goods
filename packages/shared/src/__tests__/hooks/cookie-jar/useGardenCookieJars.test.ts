@@ -1,6 +1,6 @@
 /**
  * useGardenCookieJars Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the 3-step multicall chain:
  *   1. Fetch jar addresses from CookieJarModule
@@ -10,7 +10,7 @@
 
 import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createTestWrapper } from "../../test-utils";
+import { createTestWrapper } from "../../test-utils/render-helpers";
 
 const TEST_CHAIN_ID = 11155111;
 const TEST_GARDEN = "0x2222222222222222222222222222222222222222";
@@ -24,26 +24,35 @@ const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const mockReadContractReturn: {
   data: unknown;
   isLoading: boolean;
+  isPaused: boolean;
   error: Error | null;
-} = { data: undefined, isLoading: false, error: null };
+} = { data: undefined, isLoading: false, isPaused: false, error: null };
 
 const mockReadContractsReturn: {
   data: unknown;
   isLoading: boolean;
+  isPaused: boolean;
   error: Error | null;
-} = { data: undefined, isLoading: false, error: null };
+} = { data: undefined, isLoading: false, isPaused: false, error: null };
 
 const mockDecimalsReturn: {
   data: unknown;
   isLoading: boolean;
+  isPaused: boolean;
   error: Error | null;
-} = { data: undefined, isLoading: false, error: null };
+} = { data: undefined, isLoading: false, isPaused: false, error: null };
 
 let readContractCallCount = 0;
 let readContractsCallCount = 0;
+let lastDetailQuery: Record<string, unknown> | undefined;
+let lastDecimalsQuery: Record<string, unknown> | undefined;
+let addressChain: unknown;
+let detailChains: unknown[];
+let decimalsChains: unknown[];
 
 vi.mock("wagmi", () => ({
   useReadContract: (args: Record<string, unknown>) => {
+    addressChain = args.chainId;
     readContractCallCount++;
     // Only the first useReadContract is the jar address fetch
     return {
@@ -52,6 +61,7 @@ vi.mock("wagmi", () => ({
           ? undefined
           : mockReadContractReturn.data,
       isLoading: mockReadContractReturn.isLoading,
+      isPaused: mockReadContractReturn.isPaused,
       error: mockReadContractReturn.error,
     };
   },
@@ -60,15 +70,21 @@ vi.mock("wagmi", () => ({
     const enabled = args?.query && (args.query as Record<string, unknown>).enabled;
     // First useReadContracts = jar details, second = decimals
     if (readContractsCallCount % 2 === 0) {
+      decimalsChains = (args.contracts as { chainId?: number }[]).map((call) => call.chainId);
+      lastDecimalsQuery = args?.query as Record<string, unknown> | undefined;
       return {
         data: enabled === false ? undefined : mockDecimalsReturn.data,
         isLoading: mockDecimalsReturn.isLoading,
+        isPaused: mockDecimalsReturn.isPaused,
         error: mockDecimalsReturn.error,
       };
     }
+    lastDetailQuery = args?.query as Record<string, unknown> | undefined;
+    detailChains = (args.contracts as { chainId?: number }[]).map((call) => call.chainId);
     return {
       data: enabled === false ? undefined : mockReadContractsReturn.data,
       isLoading: mockReadContractsReturn.isLoading,
+      isPaused: mockReadContractsReturn.isPaused,
       error: mockReadContractsReturn.error,
     };
   },
@@ -109,13 +125,35 @@ describe("hooks/cookie-jar/useGardenCookieJars", () => {
     mockModuleAddress = TEST_MODULE;
     mockReadContractReturn.data = undefined;
     mockReadContractReturn.isLoading = false;
+    mockReadContractReturn.isPaused = false;
     mockReadContractReturn.error = null;
     mockReadContractsReturn.data = undefined;
     mockReadContractsReturn.isLoading = false;
+    mockReadContractsReturn.isPaused = false;
     mockReadContractsReturn.error = null;
     mockDecimalsReturn.data = undefined;
     mockDecimalsReturn.isLoading = false;
+    mockDecimalsReturn.isPaused = false;
     mockDecimalsReturn.error = null;
+  });
+
+  it("re-reads jar state on the caller's interval and leaves token decimals alone", () => {
+    mockReadContractReturn.data = [TEST_JAR_1];
+
+    renderHook(() => useGardenCookieJars(TEST_GARDEN, { refetchInterval: 15_000 }), {
+      wrapper: createTestWrapper(),
+    });
+
+    expect(lastDetailQuery?.refetchInterval).toBe(15_000);
+    expect(lastDecimalsQuery?.refetchInterval).toBeUndefined();
+  });
+
+  it("does not poll unless a caller asks", () => {
+    mockReadContractReturn.data = [TEST_JAR_1];
+
+    renderHook(() => useGardenCookieJars(TEST_GARDEN), { wrapper: createTestWrapper() });
+
+    expect(lastDetailQuery?.refetchInterval).toBe(false);
   });
 
   it("returns empty when module not configured (zero address)", () => {
@@ -127,6 +165,8 @@ describe("hooks/cookie-jar/useGardenCookieJars", () => {
 
     expect(result.current.jars).toEqual([]);
     expect(result.current.moduleConfigured).toBe(false);
+    // A chain without the jar module has no jars to find.
+    expect(result.current.hasNoJar).toBe(true);
   });
 
   it("returns empty when gardenAddress is undefined", () => {
@@ -147,6 +187,7 @@ describe("hooks/cookie-jar/useGardenCookieJars", () => {
 
     expect(result.current.jars).toEqual([]);
     expect(result.current.jarCount).toBe(0);
+    expect(result.current.hasNoJar).toBe(true);
   });
 
   it("filters out zero-address jars", () => {
@@ -195,6 +236,11 @@ describe("hooks/cookie-jar/useGardenCookieJars", () => {
     expect(jar.decimals).toBe(6);
     expect(result.current.detailErrorCount).toBe(0);
     expect(result.current.hasDetailReadFailure).toBe(false);
+    // Reads must use the garden's configured chain, even before connecting a wallet
+    // or when the wallet is connected to a different network.
+    expect(addressChain).toBe(TEST_CHAIN_ID);
+    expect(detailChains).toEqual(Array(7).fill(TEST_CHAIN_ID));
+    expect(decimalsChains).toEqual([TEST_CHAIN_ID]);
   });
 
   it("handles multiple jars correctly", () => {
@@ -329,6 +375,34 @@ describe("hooks/cookie-jar/useGardenCookieJars", () => {
     expect(result.current.jars[0].decimals).toBe(18);
   });
 
+  it("says the amounts use the fallback until each jar currency's decimals are read", () => {
+    mockReadContractReturn.data = [TEST_JAR_1];
+    mockReadContractsReturn.data = [
+      { result: TEST_CURRENCY, status: "success" },
+      { result: 5000000n, status: "success" },
+      { result: 1000000n, status: "success" },
+      { result: 3600n, status: "success" },
+      { result: false, status: "success" },
+      { result: false, status: "success" },
+      { result: 0n, status: "success" },
+    ];
+    // The decimals read has not come back yet.
+    mockDecimalsReturn.data = undefined;
+
+    const { result, rerender } = renderHook(() => useGardenCookieJars(TEST_GARDEN), {
+      wrapper: createTestWrapper(),
+    });
+
+    expect(result.current.jars[0].decimals).toBe(18);
+    expect(result.current.hasUnreadDecimals).toBe(true);
+
+    mockDecimalsReturn.data = [{ result: 6, status: "success" }];
+    rerender();
+
+    expect(result.current.jars[0].decimals).toBe(6);
+    expect(result.current.hasUnreadDecimals).toBe(false);
+  });
+
   it("sets loading true while any step is loading", () => {
     mockReadContractReturn.isLoading = true;
 
@@ -337,6 +411,20 @@ describe("hooks/cookie-jar/useGardenCookieJars", () => {
     });
 
     expect(result.current.isLoading).toBe(true);
+    expect(result.current.hasNoJar).toBe(false);
+  });
+
+  it("reports a read that waits for the network, which says nothing about the jars", () => {
+    // Offline, TanStack Query pauses the read: pending, not loading, no data.
+    mockReadContractReturn.isPaused = true;
+
+    const { result } = renderHook(() => useGardenCookieJars(TEST_GARDEN), {
+      wrapper: createTestWrapper(),
+    });
+
+    expect(result.current.isPaused).toBe(true);
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.hasNoJar).toBe(false);
   });
 
   it("propagates address fetch error", () => {
@@ -348,6 +436,8 @@ describe("hooks/cookie-jar/useGardenCookieJars", () => {
     });
 
     expect(result.current.error).toBe(testError);
+    // A failed read proves nothing about the garden's jars.
+    expect(result.current.hasNoJar).toBe(false);
   });
 
   it("propagates details fetch error", () => {

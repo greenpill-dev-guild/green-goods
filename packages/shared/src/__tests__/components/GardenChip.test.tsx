@@ -5,7 +5,7 @@
  * opens a popover dropdown for multi-garden selection, and handles
  * garden and "Create Garden" interactions.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { cleanup, render, screen, within } from "@testing-library/react";
@@ -18,7 +18,7 @@ vi.mock("react-intl", () => ({
     formatMessage: ({ id }: { id: string }) => {
       const messages: Record<string, string> = {
         "cockpit.gardenChip.allGardens": "All Gardens",
-        "cockpit.gardenChip.selectGarden": "Select garden",
+        "cockpit.gardenChip.selectGarden": "Select Garden",
         "cockpit.gardenChip.createGarden": "Create Garden",
       };
       return messages[id] ?? id;
@@ -89,7 +89,7 @@ describe("GardenChip", () => {
     );
 
     const trigger = screen.getByRole("button");
-    expect(trigger.textContent).toContain("Select garden");
+    expect(trigger.textContent).toContain("Select Garden");
     expect(trigger.textContent).not.toContain("All Gardens");
   });
 
@@ -235,7 +235,9 @@ describe("GardenChip", () => {
 
     const trigger = screen.getByRole("button");
     expect(trigger.style.width).toBe("");
-    expect(trigger.style.maxWidth).toBe("calc(100vw - 2rem)");
+    // Bounded by the slot it sits in; the app bar's phone story checks that the
+    // slot ends before the bar's actions.
+    expect(trigger.style.maxWidth).toBe("100%");
 
     await user.click(trigger);
 

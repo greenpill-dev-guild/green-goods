@@ -68,7 +68,7 @@ export async function getApprovedAttestations(
         metrics: metadata.metrics ?? null,
         createdAt: work.createdAt,
         approvedAt: approval.createdAt,
-        approvedBy: approval.operatorAddress as Address,
+        approvedBy: approval.stewardAddress as Address,
         feedback: approval.feedback || null,
       });
     }
@@ -136,7 +136,7 @@ export async function getAttestationsByUIDs(uids: string[]): Promise<HypercertAt
         metrics: metadata.metrics ?? null,
         createdAt: work.createdAt,
         approvedAt: approval.createdAt,
-        approvedBy: approval.operatorAddress as Address,
+        approvedBy: approval.stewardAddress as Address,
         feedback: approval.feedback || null,
       });
     }

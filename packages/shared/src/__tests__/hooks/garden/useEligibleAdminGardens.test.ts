@@ -1,9 +1,11 @@
 /**
  * useEligibleAdminGardens Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
-import { renderHook } from "@testing-library/react";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { render, renderHook, waitFor } from "@testing-library/react";
+import { createElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockUsePrimaryAddress = vi.fn();
@@ -33,7 +35,24 @@ vi.mock("../../../stores/useAdminStore", () => ({
     address && chainId ? `${chainId}:${address.toLowerCase()}` : null,
 }));
 
+const mockGetNetworkConfig = vi.fn();
+vi.mock("../../../config/blockchain", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../config/blockchain")>()),
+  getNetworkConfig: (chainId: number) => mockGetNetworkConfig(chainId),
+}));
+
+const mockUseGardenRecord = vi.fn();
+vi.mock("../../../hooks/garden/useGardenRecord", () => ({
+  useGardenRecord: (...args: unknown[]) => mockUseGardenRecord(...args),
+}));
+
+const mockGetGarden = vi.fn();
+vi.mock("../../../modules/data/indexer-garden", () => ({
+  getGarden: (...args: unknown[]) => mockGetGarden(...args),
+}));
+
 import { useEligibleAdminGardens } from "../../../hooks/garden/useEligibleAdminGardens";
+import { createTestQueryClient } from "../../test-utils/query-client";
 
 const ADDR_USER = "0x1111111111111111111111111111111111111111";
 
@@ -41,7 +60,7 @@ function makeGarden(
   id: string,
   name: string,
   overrides: Partial<{
-    operators: string[];
+    stewards: string[];
     owners: string[];
     evaluators: string[];
   }> = {}
@@ -49,7 +68,7 @@ function makeGarden(
   return {
     id,
     name,
-    operators: [] as string[],
+    stewards: [] as string[],
     owners: [] as string[],
     evaluators: [] as string[],
     ...overrides,
@@ -59,7 +78,7 @@ function makeGarden(
 function defaultRole() {
   return {
     role: "user" as const,
-    operatorGardens: [] as Array<{ id: string; name: string }>,
+    stewardGardens: [] as Array<{ id: string; name: string }>,
     loading: false,
     gardensError: false,
   };
@@ -72,15 +91,17 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     mockUseCurrentChain.mockReturnValue(11155111);
     mockUseGardens.mockReturnValue({ data: [], isFetched: true, isError: false });
     mockUseRole.mockReturnValue(defaultRole());
+    mockGetNetworkConfig.mockReturnValue({});
+    mockUseGardenRecord.mockReturnValue({ data: undefined, isFetched: false });
     mockUseAdminStore.mockImplementation((selector: (state: any) => any) =>
       selector({ lastGardenIdsByScope: {} })
     );
   });
 
-  it("filters gardens to operator, owner, and evaluator memberships", () => {
+  it("filters gardens to steward, owner, and evaluator memberships", () => {
     mockUseGardens.mockReturnValue({
       data: [
-        makeGarden("garden-operator", "Operator Garden", { operators: [ADDR_USER] }),
+        makeGarden("garden-steward", "Steward Garden", { stewards: [ADDR_USER] }),
         makeGarden("garden-owner", "Owner Garden", { owners: [ADDR_USER] }),
         makeGarden("garden-evaluator", "Evaluator Garden", { evaluators: [ADDR_USER] }),
         makeGarden("garden-other", "Other Garden"),
@@ -92,9 +113,10 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     const { result } = renderHook(() => useEligibleAdminGardens());
 
     expect(result.current.eligibleGardens.map((garden) => garden.id)).toEqual([
+      // Sorted by garden name: Evaluator < Owner < Steward.
       "garden-evaluator",
-      "garden-operator",
       "garden-owner",
+      "garden-steward",
     ]);
     expect(result.current.hasStaleBaseList).toBe(false);
     expect(result.current.isError).toBe(false);
@@ -103,7 +125,7 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
   it("prefers the persisted garden when it is still eligible", () => {
     mockUseGardens.mockReturnValue({
       data: [
-        makeGarden("garden-b", "Beta Garden", { operators: [ADDR_USER] }),
+        makeGarden("garden-b", "Beta Garden", { stewards: [ADDR_USER] }),
         makeGarden("garden-a", "Alpha Garden", { evaluators: [ADDR_USER] }),
       ],
       isFetched: true,
@@ -132,8 +154,8 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     const BETA_CHECKSUMMED = "0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB";
     mockUseGardens.mockReturnValue({
       data: [
-        makeGarden(ALPHA, "Alpha Garden", { operators: [ADDR_USER] }),
-        makeGarden(BETA_LOWER, "Beta Garden", { operators: [ADDR_USER] }),
+        makeGarden(ALPHA, "Alpha Garden", { stewards: [ADDR_USER] }),
+        makeGarden(BETA_LOWER, "Beta Garden", { stewards: [ADDR_USER] }),
       ],
       isFetched: true,
       isError: false,
@@ -156,7 +178,7 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     mockUseRole.mockReturnValue({ ...defaultRole(), role: "deployer" });
     mockUseGardens.mockReturnValue({
       data: [
-        makeGarden("garden-z", "Zeta Garden", { operators: [ADDR_USER] }),
+        makeGarden("garden-z", "Zeta Garden", { stewards: [ADDR_USER] }),
         makeGarden("garden-a", "Alpha Garden", { evaluators: [ADDR_USER] }),
       ],
       isFetched: true,
@@ -170,10 +192,136 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     expect(result.current.scopeKey).toBe("11155111:0x1111111111111111111111111111111111111111");
   });
 
-  it("does not grant canCreateGarden for operator role (route gate is deployer-only)", () => {
-    mockUseRole.mockReturnValue({ ...defaultRole(), role: "operator" });
+  it("adds the protocol garden for a deployer without a role there, so its campaign jars stay reachable (DL-046)", () => {
+    const root = "0xf401f34378384713222d1d21f63359cc4e8a858a";
+    mockUseRole.mockReturnValue({ ...defaultRole(), role: "deployer" });
+    mockGetNetworkConfig.mockReturnValue({
+      rootGarden: { address: "0xF401F34378384713222D1D21F63359CC4E8A858A", tokenId: 0 },
+    });
     mockUseGardens.mockReturnValue({
-      data: [makeGarden("garden-a", "Alpha Garden", { operators: [ADDR_USER] })],
+      data: [
+        makeGarden(root, "Green Goods Community Garden"),
+        makeGarden("garden-z", "Zeta Garden", { stewards: [ADDR_USER] }),
+        makeGarden("garden-other", "Other Garden"),
+      ],
+      isFetched: true,
+      isError: false,
+    });
+
+    const { result } = renderHook(() => useEligibleAdminGardens());
+
+    expect(result.current.eligibleGardens.map((garden) => garden.id)).toEqual([root, "garden-z"]);
+  });
+
+  it("does not add the protocol garden for anyone but a deployer", () => {
+    const root = "0xf401f34378384713222d1d21f63359cc4e8a858a";
+    mockUseRole.mockReturnValue({ ...defaultRole(), role: "steward" });
+    mockGetNetworkConfig.mockReturnValue({ rootGarden: { address: root, tokenId: 0 } });
+    mockUseGardens.mockReturnValue({
+      data: [makeGarden(root, "Green Goods Community Garden")],
+      isFetched: true,
+      isError: false,
+    });
+
+    const { result } = renderHook(() => useEligibleAdminGardens());
+
+    expect(result.current.eligibleGardens).toEqual([]);
+  });
+
+  describe("a chain past the base list's newest 50 gardens (PRD-988)", () => {
+    const ROOT = "0xF401F34378384713222D1D21F63359CC4E8A858A";
+    const ZETA = makeGarden("garden-z", "Zeta Garden", { stewards: [ADDR_USER] });
+    // The newest 50 hold the deployer's own garden but not the chain's first, the protocol garden.
+    const listWithoutRoot = { data: [ZETA], isFetched: true, isError: false };
+
+    beforeEach(() => {
+      mockUseRole.mockReturnValue({ ...defaultRole(), role: "deployer" });
+      mockGetNetworkConfig.mockReturnValue({ rootGarden: { address: ROOT, tokenId: 0 } });
+      mockUseGardens.mockReturnValue(listWithoutRoot);
+    });
+
+    it("adds the protocol garden from its own indexer record", () => {
+      mockUseGardenRecord.mockReturnValue({
+        data: makeGarden(ROOT, "Green Goods Community Garden"),
+        isFetched: true,
+      });
+
+      const { result } = renderHook(() => useEligibleAdminGardens());
+
+      expect(mockUseGardenRecord).toHaveBeenCalledWith(ROOT, { enabled: true });
+      expect(result.current.eligibleGardens.map((garden) => garden.name)).toEqual([
+        "Green Goods Community Garden",
+        "Zeta Garden",
+      ]);
+      expect(result.current.hasStaleBaseList).toBe(false);
+      expect(result.current.isLoaded).toBe(true);
+    });
+
+    it("gives today's answer when that record cannot be read", () => {
+      mockUseGardenRecord.mockReturnValue({ data: undefined, isError: true, isFetched: true });
+
+      const { result } = renderHook(() => useEligibleAdminGardens());
+
+      expect(result.current.eligibleGardens.map((garden) => garden.id)).toEqual(["garden-z"]);
+      expect(result.current.isError).toBe(false);
+      expect(result.current.isLoaded).toBe(true);
+    });
+
+    it("keeps checking while that record is on its way", () => {
+      mockUseGardenRecord.mockReturnValue({ data: undefined, isFetched: false });
+
+      const { result } = renderHook(() => useEligibleAdminGardens());
+
+      expect(result.current.isLoaded).toBe(false);
+    });
+
+    it("stays settled after a failed read when the content it lets mount reads the record again", async () => {
+      const actual = await vi.importActual<typeof import("../../../hooks/garden/useGardenRecord")>(
+        "../../../hooks/garden/useGardenRecord"
+      );
+      mockUseGardenRecord.mockImplementation(actual.useGardenRecord);
+      mockGetGarden.mockRejectedValue(new Error("indexer unavailable"));
+      const loaded: boolean[] = [];
+      // The admin layout shows its spinner until the answer loads, then mounts
+      // content that reads the same answer, and the same record, again.
+      const Content = () => {
+        useEligibleAdminGardens();
+        return null;
+      };
+      const Layout = () => {
+        const { isLoaded } = useEligibleAdminGardens();
+        loaded.push(isLoaded);
+        return isLoaded ? createElement(Content) : null;
+      };
+      const queryClient = createTestQueryClient();
+
+      render(createElement(QueryClientProvider, { client: queryClient }, createElement(Layout)));
+
+      await waitFor(() => expect(loaded.at(-1)).toBe(true));
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      // The first read, and one more when the content mounts; never a spinner again.
+      expect(mockGetGarden.mock.calls.length).toBeLessThanOrEqual(2);
+      expect(loaded.slice(loaded.indexOf(true))).not.toContain(false);
+    });
+
+    it.each([
+      ["the base list failed", { data: [], isFetched: true, isError: true }, ROOT],
+      ["the base list is empty", { data: [], isFetched: true, isError: false }, ROOT],
+      ["the root garden is the zero address", listWithoutRoot, `0x${"0".repeat(40)}`],
+    ])("does not read it when %s", (_case, baseList, root) => {
+      mockGetNetworkConfig.mockReturnValue({ rootGarden: { address: root, tokenId: 0 } });
+      mockUseGardens.mockReturnValue(baseList);
+
+      renderHook(() => useEligibleAdminGardens());
+
+      expect(mockUseGardenRecord).not.toHaveBeenCalledWith(expect.anything(), { enabled: true });
+    });
+  });
+
+  it("does not grant canCreateGarden for steward role (route gate is deployer-only)", () => {
+    mockUseRole.mockReturnValue({ ...defaultRole(), role: "steward" });
+    mockUseGardens.mockReturnValue({
+      data: [makeGarden("garden-a", "Alpha Garden", { stewards: [ADDR_USER] })],
       isFetched: true,
       isError: false,
     });
@@ -186,7 +334,7 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
   it("returns no eligible gardens when the auth context has no primary address", () => {
     mockUsePrimaryAddress.mockReturnValue(null);
     mockUseGardens.mockReturnValue({
-      data: [makeGarden("garden-a", "Alpha Garden", { operators: [ADDR_USER] })],
+      data: [makeGarden("garden-a", "Alpha Garden", { stewards: [ADDR_USER] })],
       isFetched: true,
       isError: false,
     });
@@ -197,13 +345,13 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     expect(result.current.scopeKey).toBeNull();
   });
 
-  it("merges role-confirmed operator gardens missing from the base list (stale or errored base list)", () => {
-    // Symptom: operator account hits 'no garden access' because useGardens returned []
-    // (silent indexer error or stale cache) while useRole correctly proved operator status.
+  it("merges role-confirmed steward gardens missing from the base list (stale or errored base list)", () => {
+    // Symptom: steward account hits 'no garden access' because useGardens returned []
+    // (silent indexer error or stale cache) while useRole correctly proved steward status.
     mockUseRole.mockReturnValue({
       ...defaultRole(),
-      role: "operator",
-      operatorGardens: [{ id: "0xCafeGarden", name: "Cafe Garden" }],
+      role: "steward",
+      stewardGardens: [{ id: "0xCafeGarden", name: "Cafe Garden" }],
     });
     mockUseGardens.mockReturnValue({
       data: [],
@@ -219,14 +367,14 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     expect(result.current.hasStaleBaseList).toBe(true);
   });
 
-  it("does not duplicate when the operator garden is already in the base list", () => {
+  it("does not duplicate when the steward garden is already in the base list", () => {
     mockUseRole.mockReturnValue({
       ...defaultRole(),
-      role: "operator",
-      operatorGardens: [{ id: "garden-a", name: "Alpha Garden" }],
+      role: "steward",
+      stewardGardens: [{ id: "garden-a", name: "Alpha Garden" }],
     });
     mockUseGardens.mockReturnValue({
-      data: [makeGarden("garden-a", "Alpha Garden", { operators: [ADDR_USER] })],
+      data: [makeGarden("garden-a", "Alpha Garden", { stewards: [ADDR_USER] })],
       isFetched: true,
       isError: false,
     });
@@ -245,9 +393,9 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     expect(result.current.isError).toBe(true);
   });
 
-  it("surfaces useRole.gardensError so an operator-gardens outage renders an error branch, not no-access", () => {
+  it("surfaces useRole.gardensError so a steward-gardens outage renders an error branch, not no-access", () => {
     // The exact masking this fixes: the base list looks clean (empty, no error)
-    // but the address-filtered operator-gardens query failed. Previously that
+    // but the address-filtered steward-gardens query failed. Previously that
     // produced isError=false → "No garden access yet" instead of a retry.
     mockUseGardens.mockReturnValue({ data: [], isFetched: true, isError: false });
     mockUseRole.mockReturnValue({ ...defaultRole(), gardensError: true });
@@ -257,7 +405,7 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     expect(result.current.isError).toBe(true);
   });
 
-  it("preserves the deployer create-garden path during an operator-gardens outage", () => {
+  it("preserves the deployer create-garden path during a steward-gardens outage", () => {
     mockUseGardens.mockReturnValue({ data: [], isFetched: true, isError: false });
     mockUseRole.mockReturnValue({ ...defaultRole(), role: "deployer", gardensError: true });
 

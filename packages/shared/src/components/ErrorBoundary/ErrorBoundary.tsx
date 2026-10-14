@@ -2,7 +2,7 @@ import { RiAlertLine, RiRefreshLine } from "@remixicon/react";
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { trackErrorBoundary } from "../../modules/app/error-events";
 import { logger } from "../../modules/app/logger";
-import { cn } from "../../utils";
+import { cn } from "../../utils/styles/cn";
 
 export interface ErrorBoundaryProps {
   children: ReactNode;
@@ -130,7 +130,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           )}
         >
           <RiRefreshLine className="h-4 w-4" />
-          Try again
+          Try Again
         </button>
       </div>
     );

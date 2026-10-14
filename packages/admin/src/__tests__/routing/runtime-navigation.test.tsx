@@ -1,5 +1,5 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import type React from "react";
@@ -10,15 +10,14 @@ import {
   type NonIndexRouteObject,
   type RouteObject,
 } from "react-router-dom";
-import { describe, expect, it, vi } from "vitest";
-import {
-  buildHubViewActions,
-  FabProvider,
-  getAdminWorkspaceForPath,
-  NavigationBar,
-  useFabConfigValue,
-  useViewActions,
-} from "@green-goods/shared";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { FabProvider, useFabConfigValue } from "@green-goods/shared/components/Canvas/FabContext";
+import { NavigationBar } from "@green-goods/shared/components/Canvas/NavigationBar";
+import { useViewActions } from "@green-goods/shared/components/Canvas/useViewActions";
+import { buildHubViewActions } from "@green-goods/shared/hooks/admin-ui/hub/hub.utils";
+import { getAdminWorkspaceForPath } from "@green-goods/shared/utils/navigation/admin-routes";
+import { getNetworkConfig } from "@green-goods/shared/config/blockchain";
+import { getCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
 import { adminCanvasRoutes } from "@/routes/views";
 import { act, cleanup, renderWithProviders, screen, userEvent, waitFor } from "../test-utils";
 
@@ -28,6 +27,14 @@ vi.mock("@/routes/RequireRole", async () => {
     default: () => <Outlet />,
   };
 });
+
+const mockCommunityPermission = vi.hoisted(() => ({ allowed: true }));
+vi.mock("@green-goods/shared/hooks/roles/useEffectiveToolbarPermissions", () => ({
+  useEffectiveToolbarPermissions: () => ({
+    showCommunity: mockCommunityPermission.allowed,
+    isLoading: false,
+  }),
+}));
 
 type TestRouteObject = RouteObject & {
   children?: TestRouteObject[];
@@ -123,7 +130,11 @@ function HubMobileFabHarness({ navigate }: { navigate: (to: string) => void }) {
 }
 
 describe("admin canvas runtime navigation", () => {
-  it("route-gates only team campaign Cookies and Actions branches", () => {
+  beforeEach(() => {
+    mockCommunityPermission.allowed = true;
+  });
+
+  it("route-gates Community along with team campaign Cookies and Actions branches", () => {
     const topLevelRoutes = new Map(adminCanvasRoutes.map((route) => [route.path, route]));
     const cookiesRoute = topLevelRoutes.get("cookies");
     const actionsRoute = topLevelRoutes.get("actions");
@@ -141,7 +152,37 @@ describe("admin canvas runtime navigation", () => {
       ":id/edit",
     ]);
     expect(topLevelRoutes.has("actions/create")).toBe(false);
-    expect(topLevelRoutes.get("community")?.element).toBeUndefined();
+    expect(topLevelRoutes.get("community")?.element).toBeTruthy();
+  });
+
+  it.each([
+    "/community",
+    "/community/members",
+    "/community/endowment/vault/deposit?gardenId=0xAAA&item=0xBBB",
+    "/garden/members?gardenId=0xAAA",
+  ])("redirects an evaluator away from %s to Hub", async (entry) => {
+    mockCommunityPermission.allowed = false;
+    const router = renderAdminCanvasRoute(entry);
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/hub/work");
+    });
+    expect(screen.getByTestId("route-target")).toHaveTextContent("index");
+  });
+
+  it.each([
+    ["/cookies", "campaigns"],
+    ["/cookies/deploy", "create-campaign-jar"],
+  ])("sends %s to the protocol garden's campaign cookie jars on Payouts", async (entry, item) => {
+    const rootGarden = getNetworkConfig(getCurrentChain()).rootGarden?.address;
+    const router = renderAdminCanvasRoute(entry);
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe("/community/payouts");
+    });
+    const search = new URLSearchParams(router.state.location.search);
+    expect(search.get("gardenId")?.toLowerCase()).toBe(rootGarden?.toLowerCase());
+    expect(search.get("item")).toBe(item);
   });
 
   it("redirects /hub to canonical work mode while preserving shareable context", async () => {
@@ -255,17 +296,17 @@ describe("admin canvas runtime navigation", () => {
 
     const cases = [
       {
-        label: "Submit work",
+        label: "Submit Work",
         expectedPath: "/hub/work/submit",
         expectedLeaf: "work/submit",
       },
       {
-        label: "Create assessment",
+        label: "Create Assessment",
         expectedPath: "/hub/assess/create",
         expectedLeaf: "assess/create",
       },
       {
-        label: "Create hypercert",
+        label: "Create Hypercert",
         expectedPath: "/hub/certify/create",
         expectedLeaf: "certify/create",
       },
@@ -282,7 +323,7 @@ describe("admin canvas runtime navigation", () => {
         </FabProvider>
       );
 
-      await user.click(await screen.findByRole("button", { name: "Open actions" }));
+      await user.click(await screen.findByRole("button", { name: "Open Actions" }));
       await user.click(await screen.findByRole("menuitem", { name: label }));
 
       await waitFor(() => {

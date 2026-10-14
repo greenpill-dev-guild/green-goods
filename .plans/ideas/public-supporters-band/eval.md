@@ -1,5 +1,7 @@
 # Public Supporters / Partnerships Section Evaluation Plan
 
+This scope is canceled. [The closeout record](plan.todo.md#closeout-2026-10-06) owns the disposition; the older material below is historical and does not authorize implementation or QA dispatch.
+
 ## Release Gates
 
 1. Correctness:

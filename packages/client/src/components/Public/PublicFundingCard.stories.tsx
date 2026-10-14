@@ -29,8 +29,8 @@ const messages: Record<string, string> = {
   "public.fund.card.unavailable.endow": "This Garden hasn't enabled endowments yet.",
   "public.fund.card.successDonate": "Donated {amount} to {garden}",
   "public.fund.card.successEndow": "Endowed {amount} to {garden}",
-  "public.fund.card.donateAgain": "Donate again",
-  "public.fund.card.endowAgain": "Endow again",
+  "public.fund.card.donateAgain": "Donate Again",
+  "public.fund.card.endowAgain": "Endow Again",
 };
 
 const Frame = ({ children }: { children: React.ReactNode }) => (
@@ -90,7 +90,7 @@ export const SuccessDonate: StoryObj<typeof SuccessBody> = {
     <Frame>
       <SuccessBody
         amountLabel="$20.00"
-        gardenName="Aiyeloja Family Garden"
+        gardenName="Muizenberg Community Garden"
         isDonate={true}
         onDonateAgain={() => {}}
         onClose={() => {}}
@@ -103,7 +103,7 @@ export const SuccessEndow: StoryObj<typeof SuccessBody> = {
     <Frame>
       <SuccessBody
         amountLabel="$100.00"
-        gardenName="Aiyeloja Family Garden"
+        gardenName="Muizenberg Community Garden"
         isDonate={false}
         onDonateAgain={() => {}}
         onClose={() => {}}
@@ -116,7 +116,7 @@ export const SuccessEndowWeth: StoryObj<typeof SuccessBody> = {
     <Frame>
       <SuccessBody
         amountLabel="0.05 WETH"
-        gardenName="Aiyeloja Family Garden"
+        gardenName="Muizenberg Community Garden"
         isDonate={false}
         onDonateAgain={() => {}}
         onClose={() => {}}

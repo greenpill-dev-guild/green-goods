@@ -1,4 +1,4 @@
-import type { Address, Work, WorkMetadata } from "@green-goods/shared";
+import type { Address, Work, WorkMetadata } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { daysAgo, FIXTURE_IMAGE_AGROFORESTRY } from "../../../../../shared/.storybook/fixtures";
 import { SubmissionDetails } from "./SubmissionDetails";

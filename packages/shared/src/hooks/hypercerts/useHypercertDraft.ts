@@ -27,9 +27,9 @@ interface UseHypercertDraftOptions {
   autoSaveIntervalMs?: number;
 }
 
-function buildDraftKey(gardenId?: string, operatorAddress?: string) {
-  if (!gardenId || !operatorAddress) return null;
-  return `hypercert_draft_${gardenId}_${operatorAddress}`;
+function buildDraftKey(gardenId?: string, stewardAddress?: string) {
+  if (!gardenId || !stewardAddress) return null;
+  return `hypercert_draft_${gardenId}_${stewardAddress}`;
 }
 
 function hasMeaningfulProgress(draft: HypercertDraft): boolean {
@@ -45,7 +45,7 @@ function hasMeaningfulProgress(draft: HypercertDraft): boolean {
 
 export function useHypercertDraft(
   gardenId?: string,
-  operatorAddress?: string,
+  stewardAddress?: string,
   options: UseHypercertDraftOptions = {}
 ): UseHypercertDraftResult {
   const {
@@ -57,8 +57,8 @@ export function useHypercertDraft(
   const [isLoading, setIsLoading] = useState(false);
 
   const draftKey = useMemo(
-    () => buildDraftKey(gardenId, operatorAddress),
-    [gardenId, operatorAddress]
+    () => buildDraftKey(gardenId, stewardAddress),
+    [gardenId, stewardAddress]
   );
 
   const loadDraftFromStore = useHypercertWizardStore((state) => state.loadDraft);
@@ -66,7 +66,7 @@ export function useHypercertDraft(
   const resetStore = useHypercertWizardStore((state) => state.reset);
   const lastSavedAt = useHypercertWizardStore((state) => state.lastSavedAt);
 
-  // Track request ID to handle race conditions when gardenId/operatorAddress change rapidly
+  // Track request ID to handle race conditions when gardenId/stewardAddress change rapidly
   const loadRequestIdRef = useRef(0);
 
   const peekDraft = useCallback(async () => {
@@ -131,11 +131,11 @@ export function useHypercertDraft(
   }, [draftKey, enabled, loadDraftFromStore, setDraftMeta]);
 
   const saveDraft = useCallback(async () => {
-    if (!draftKey || !gardenId || !operatorAddress || !enabled) return null;
+    if (!draftKey || !gardenId || !stewardAddress || !enabled) return null;
 
     const draft = useHypercertWizardStore
       .getState()
-      .toDraft(gardenId, operatorAddress as `0x${string}`);
+      .toDraft(gardenId, stewardAddress as `0x${string}`);
 
     if (!hasMeaningfulProgress(draft)) return null;
 
@@ -157,7 +157,7 @@ export function useHypercertDraft(
       });
       return null;
     }
-  }, [draftKey, gardenId, operatorAddress, enabled, setDraftMeta]);
+  }, [draftKey, gardenId, stewardAddress, enabled, setDraftMeta]);
 
   const clearDraft = useCallback(async () => {
     if (!draftKey) return;

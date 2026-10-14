@@ -46,12 +46,12 @@ export const CHAIN_ID_MAP: Record<string, string> = {
 
 /**
  * Networks supported by Alchemy URL auto-derivation.
- * Intentionally excludes Celo, which often uses dedicated RPC infra.
  */
 const ALCHEMY_NETWORK_PATHS: Record<string, string> = {
   mainnet: "eth-mainnet",
   sepolia: "eth-sepolia",
   arbitrum: "arb-mainnet",
+  celo: "celo-mainnet",
 };
 
 const RPC_ENV_ALIASES: Record<string, string[]> = {
@@ -202,7 +202,7 @@ export class NetworkManager {
       // and all its subdomains (e.g. ethereum-sepolia.publicnode.com)
       const parts = hostname.toLowerCase().split(".");
       const domain = parts.length >= 2 ? parts.slice(-2).join(".") : hostname;
-      return domain === "publicnode.com" || domain === "arbitrum.io";
+      return domain === "publicnode.com" || domain === "arbitrum.io" || hostname === "forno.celo.org";
     } catch {
       return false;
     }
@@ -263,7 +263,7 @@ export class NetworkManager {
     let apiKey = network.verifyApiKey;
 
     // Handle environment variable substitution for API key
-    if (apiKey && apiKey.startsWith("${") && apiKey.endsWith("}")) {
+    if (apiKey?.startsWith("${") && apiKey.endsWith("}")) {
       const envVar = apiKey.slice(2, -1);
       apiKey = process.env[envVar];
     }

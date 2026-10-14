@@ -8,6 +8,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTimeout } from "../../hooks/utils/useTimeout";
 import { cn } from "../../utils/styles/cn";
+import { Button } from "../Button";
 import { AudioPlayer } from "./AudioPlayer";
 
 type RecorderState = "idle" | "requesting-permission" | "recording" | "preview" | "confirmed";
@@ -35,6 +36,10 @@ function formatTime(seconds: number): string {
  * Flow: idle -> requesting-permission -> recording -> preview -> confirmed
  * Records in WebM/Opus format with a configurable max duration.
  * Provides a simple amplitude level indicator during recording.
+ *
+ * Its controls are the shared `Button` at the `sm` size, so they take the
+ * surface's corner and metric: 40px in the app, the cockpit's 32px pill in
+ * admin (DL-031).
  */
 export function AudioRecorder({
   onRecordingComplete,
@@ -218,21 +223,17 @@ export function AudioRecorder({
     <div className={cn("flex flex-col gap-2", className)}>
       {/* Recording controls */}
       {state === "idle" && (
-        <button
+        <Button
           type="button"
+          emphasis="secondary"
+          size="sm"
           onClick={handleStart}
           disabled={disabled}
           aria-label="Start recording audio note"
-          className={cn(
-            "inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors",
-            "bg-bg-weak-50 text-text-sub-600 hover:bg-bg-soft-200 border border-stroke-sub-300",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base",
-            "disabled:opacity-50 disabled:cursor-not-allowed"
-          )}
+          leadingIcon={<RiMicLine className="h-4 w-4" aria-hidden="true" />}
         >
-          <RiMicLine className="h-4 w-4" aria-hidden="true" />
-          Record audio note
-        </button>
+          Record Audio Note
+        </Button>
       )}
 
       {state === "requesting-permission" && (
@@ -269,20 +270,18 @@ export function AudioRecorder({
 
           <div className="flex-1" />
 
-          <button
+          <Button
             type="button"
+            emphasis="primary"
+            tone="danger"
+            size="sm"
             onClick={handleStop}
             aria-pressed="true"
             aria-label="Stop recording"
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium",
-              "bg-error-base text-white hover:bg-error-dark transition-colors",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error-base"
-            )}
+            leadingIcon={<RiStopFill className="h-4 w-4" aria-hidden="true" />}
           >
-            <RiStopFill className="h-4 w-4" aria-hidden="true" />
             Stop
-          </button>
+          </Button>
         </div>
       )}
 
@@ -291,33 +290,26 @@ export function AudioRecorder({
           <AudioPlayer src={previewUrl} compact />
 
           <div className="flex items-center gap-2">
-            <button
+            <Button
               type="button"
+              size="sm"
               onClick={handleConfirm}
               aria-label="Confirm recording"
-              className={cn(
-                "inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium",
-                "bg-primary-action text-primary-action-foreground hover:bg-primary-action-hover transition-colors",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action"
-              )}
+              leadingIcon={<RiCheckLine className="h-4 w-4" aria-hidden="true" />}
             >
-              <RiCheckLine className="h-4 w-4" aria-hidden="true" />
               Use
-            </button>
+            </Button>
 
-            <button
+            <Button
               type="button"
+              emphasis="secondary"
+              size="sm"
               onClick={handleCancel}
               aria-label="Discard recording"
-              className={cn(
-                "inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium",
-                "bg-bg-weak-50 text-text-sub-600 hover:bg-bg-soft-200 border border-stroke-sub-300 transition-colors",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
-              )}
+              leadingIcon={<RiDeleteBinLine className="h-4 w-4" aria-hidden="true" />}
             >
-              <RiDeleteBinLine className="h-4 w-4" aria-hidden="true" />
               Discard
-            </button>
+            </Button>
           </div>
         </div>
       )}

@@ -1,12 +1,19 @@
 /**
  * Campaign Cookie Jar public page tests.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { renderWithProviders as render, screen, userEvent, waitFor, within } from "../test-utils";
+import {
+  act,
+  renderWithProviders as render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from "../test-utils";
 
 const TEST_JAR = "0x1111111111111111111111111111111111111111" as const;
 const TEST_TOKEN = "0x2222222222222222222222222222222222222222" as const;
@@ -48,7 +55,7 @@ const eligibleJar = {
   metadata: {
     title: "Earth Week Cookie Jar",
     slug: "earth-week",
-    description: "Garden operator rewards for Earth Week.",
+    description: "Garden steward rewards for Earth Week.",
     image: "https://cdn.greengoods.app/campaigns/earth-week.webp",
     externalUrl: "https://greengoods.app/cookies?campaign=earth-week",
   },
@@ -62,108 +69,103 @@ vi.mock("wagmi", () => ({
   useBalance: () => ({ data: { formatted: "42", symbol: "GOOD" } }),
 }));
 
-vi.mock("@green-goods/shared", async () => {
-  const React = await vi.importActual<typeof import("react")>("react");
-
+vi.mock("@green-goods/shared/components/Alert", async () => {
   return {
     Alert: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-    Button: ({
-      children,
-      loading: _loading,
-      ...props
-    }: React.ButtonHTMLAttributes<HTMLButtonElement> & { loading?: boolean }) => (
-      <button type="button" {...props}>
-        {children}
-      </button>
-    ),
-    classifyTxError: (error: Error | null) => ({
-      severity: "error",
-      rawMessage: error?.message ?? "",
-      messageKey: "app.transaction.error.generic",
-      titleKey: "app.transaction.error.title",
-    }),
-    cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
-    formatTokenAmount: (value: bigint, decimals = 18) => String(Number(value) / 10 ** decimals),
-    ImageWithFallback: (props: React.ImgHTMLAttributes<HTMLImageElement>) => <img {...props} />,
-    isMeaningfulTxErrorMessage: (message?: string) => Boolean(message),
-    resolveIPFSUrl: (url: string) => url,
-    truncateAddress: (address: string) => `${address.slice(0, 6)}...${address.slice(-4)}`,
-    TxInlineFeedback: ({
-      visible,
-      title,
-      message,
-    }: {
-      visible: boolean;
-      title: string;
-      message: string;
-    }) => (visible ? <div role="alert">{`${title}: ${message}`}</div> : null),
-    useInViewReveal: () => ({ ref: React.createRef<HTMLElement>(), revealed: true }),
-    useAppKit: () => ({ open: mockOpenWallet }),
-    useAuth: () => ({ loginWithWallet: mockLoginWithWallet }),
-    useCampaignCookieJar: (jarAddress: string) => mockUseCampaignCookieJar(jarAddress),
-    useCampaignCookieJarCampaigns: () => mockUseCampaignCookieJarCampaigns(),
-    useCampaignCookieJarDeposit: () => ({
-      mutate: mockDepositMutate,
-      isPending: false,
-      error: depositError,
-      reset: mockDepositReset,
-    }),
-    useCampaignCookieJarWithdraw: () => ({
-      mutate: mockClaimMutate,
-      isPending: false,
-      error: claimError,
-      reset: mockClaimReset,
-    }),
-    usePublicGardens: () => mockUsePublicGardens(),
-    useUser: () => mockUseUser(),
-    validateDecimalInput: () => null,
-    useFormattedAmountInput: (value: string) => {
-      const trimmed = value.trim();
-      let parsedAmount: bigint | null = null;
-      if (trimmed && /^\d+(\.\d+)?$/.test(trimmed)) {
-        // 18-decimal parse mirroring the real hook closely enough for gating.
-        const [whole, frac = ""] = trimmed.split(".");
-        parsedAmount = BigInt(whole + frac.padEnd(18, "0").slice(0, 18));
-      }
-      return {
-        parsedAmount,
-        formatErrorId: null,
-        exceeds: false,
-        isEmpty: trimmed.length === 0,
-      };
-    },
-    FormattedAmountInput: ({
-      value,
-      onValueChange,
-      error,
-      endSlot,
-      inputClassName: _inputClassName,
-      errorClassName: _errorClassName,
-      containerClassName: _containerClassName,
-      ...props
-    }: {
-      value: string;
-      onValueChange: (next: string) => void;
-      error?: React.ReactNode;
-      endSlot?: React.ReactNode;
-      inputClassName?: string;
-      errorClassName?: string;
-      containerClassName?: string;
-    } & Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange" | "type">) => (
-      <div>
-        <input
-          type="text"
-          value={value}
-          onChange={(event) => onValueChange(event.target.value)}
-          {...props}
-        />
-        {endSlot}
-        {error ? <p role="alert">{error}</p> : null}
-      </div>
-    ),
-    TransactionSuccessAffordance: () => null,
   };
 });
+
+vi.mock("@green-goods/shared/utils/errors/tx-error-classifier", () => ({
+  classifyTxError: (error: Error | null) => ({
+    severity: "error",
+    rawMessage: error?.message ?? "",
+    messageKey: "app.transaction.error.generic",
+    titleKey: "app.transaction.error.title",
+  }),
+  isMeaningfulTxErrorMessage: (message?: string) => Boolean(message),
+}));
+
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
+  cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/utils/blockchain/vaults", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/utils/blockchain/vaults")>()),
+  formatTokenAmount: (value: bigint, decimals = 18) => String(Number(value) / 10 ** decimals),
+}));
+
+vi.mock("@green-goods/shared/components/Display/ImageWithFallback", async () => {
+  return {
+    ImageWithFallback: (props: React.ImgHTMLAttributes<HTMLImageElement>) => <img {...props} />,
+  };
+});
+
+vi.mock("@green-goods/shared/modules/data/ipfs/resolve", () => ({
+  resolveIPFSUrl: (url: string) => url,
+}));
+
+vi.mock("@green-goods/shared/utils/blockchain/address", () => ({
+  truncateAddress: (address: string) => `${address.slice(0, 6)}...${address.slice(-4)}`,
+}));
+
+vi.mock("@green-goods/shared/components/feedback/TxInlineFeedback", () => ({
+  TxInlineFeedback: ({
+    visible,
+    title,
+    message,
+  }: {
+    visible: boolean;
+    title: string;
+    message: string;
+  }) => (visible ? <div role="alert">{`${title}: ${message}`}</div> : null),
+}));
+
+vi.mock("@green-goods/shared/hooks/ui/useInViewReveal", async () => {
+  const React = await vi.importActual<typeof import("react")>("react");
+  return {
+    useInViewReveal: () => ({ ref: React.createRef<HTMLElement>(), revealed: true }),
+  };
+});
+
+vi.mock("@green-goods/shared/providers/AppKitProvider", () => ({
+  useAppKit: () => ({ open: mockOpenWallet }),
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
+  useAuth: () => ({ loginWithWallet: mockLoginWithWallet }),
+}));
+
+vi.mock("@green-goods/shared/hooks/cookie-jar/useCampaignCookieJar", () => ({
+  useCampaignCookieJar: (jarAddress: string) => mockUseCampaignCookieJar(jarAddress),
+  useCampaignCookieJarDeposit: () => ({
+    mutate: mockDepositMutate,
+    isPending: false,
+    error: depositError,
+    reset: mockDepositReset,
+  }),
+  useCampaignCookieJarWithdraw: () => ({
+    mutate: mockClaimMutate,
+    isPending: false,
+    error: claimError,
+    reset: mockClaimReset,
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/cookie-jar/useCampaignCookieJarCampaigns", () => ({
+  useCampaignCookieJarCampaigns: () => mockUseCampaignCookieJarCampaigns(),
+}));
+
+vi.mock("@green-goods/shared/hooks/public/usePublicGardens", () => ({
+  usePublicGardens: () => mockUsePublicGardens(),
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
+  useUser: () => mockUseUser(),
+}));
+
+vi.mock("@green-goods/shared/components/feedback/TransactionSuccessAffordance", () => ({
+  TransactionSuccessAffordance: () => null,
+}));
 
 import CookiesPage from "../../views/Public/Cookies";
 
@@ -212,11 +214,16 @@ describe("CookiesPage", () => {
     mockDepositMutate.mockImplementation((_params, options) => options?.onSuccess?.());
   });
 
-  it("asks disconnected visitors to connect before claiming", async () => {
+  it("offers contextual wallet actions inside each jar", async () => {
     const user = userEvent.setup();
     mockUseUser.mockReturnValue({ primaryAddress: undefined });
 
     renderPage();
+
+    // Settle the real lazy module before asserting the loaded card, not its fallback.
+    await act(async () => {
+      await vi.dynamicImportSettled();
+    });
 
     expect(
       screen.getByRole("heading", {
@@ -227,11 +234,80 @@ describe("CookiesPage", () => {
     expect(
       await screen.findByText(/Connect a wallet to check claim access and add funds/i)
     ).toBeInTheDocument();
-    const connectButtons = screen.getAllByRole("button", { name: "Connect wallet" });
-    expect(connectButtons.length).toBeGreaterThanOrEqual(1);
-    await user.click(connectButtons[0]!);
+    const card = await screen.findByRole("article", { name: "Earth Week Cookie Jar" });
+    expect(screen.queryByRole("button", { name: "Connect Wallet" })).toBeNull();
+
+    await user.click(within(card).getByRole("button", { name: "Check claim access" }));
     expect(mockLoginWithWallet).toHaveBeenCalledTimes(1);
+    await user.click(within(card).getByRole("button", { name: "Add funds" }));
+    expect(mockLoginWithWallet).toHaveBeenCalledTimes(2);
     expect(mockOpenWallet).not.toHaveBeenCalled();
+  });
+
+  it("does not offer wallet actions when a listed jar cannot be read", async () => {
+    mockUseUser.mockReturnValue({ primaryAddress: undefined });
+    mockUseCampaignCookieJar.mockReturnValue({
+      jar: null,
+      isLoading: false,
+      error: new Error("read failed"),
+      hasDetailReadFailure: true,
+    });
+
+    renderPage("/cookies");
+
+    expect(await screen.findByText(/This cookie jar could not be loaded/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Check claim access" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Add funds" })).toBeNull();
+  });
+
+  it("shows public cookie jars without requiring an explore action", async () => {
+    renderPage("/cookies");
+
+    expect(screen.queryByRole("button", { name: "Explore Cookie Jars" })).toBeNull();
+    expect(
+      await screen.findByRole("article", { name: "Earth Week Cookie Jar" })
+    ).toBeInTheDocument();
+  });
+
+  it("uses editorial record skeletons while the campaign list loads", async () => {
+    mockUseCampaignCookieJarCampaigns.mockReturnValue({
+      campaigns: [],
+      indexedCampaigns: [],
+      fallbackCampaigns: [],
+      isLoading: true,
+      isFallback: false,
+      error: null,
+    });
+
+    const { container } = renderPage("/cookies");
+
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-editorial-skeleton]").length).toBeGreaterThanOrEqual(
+        3
+      );
+    });
+    expect(container.querySelector(".animate-pulse")).toBeNull();
+    const cards = container.querySelectorAll("[data-editorial-skeleton-layout='cookie-jar']");
+    expect(cards).toHaveLength(3);
+    for (const card of cards) {
+      expect(
+        card.querySelector("[data-editorial-skeleton-layout='jar-actions']")
+      ).toBeInTheDocument();
+      expect(card.querySelectorAll("[data-skeleton-action]")).toHaveLength(2);
+      expect(card).toHaveAttribute("aria-hidden", "true");
+    }
+  });
+
+  it("reserves the inline claim and deposit layout while a listed jar loads", async () => {
+    mockUseCampaignCookieJar.mockReturnValue({ jar: null, isLoading: true, error: null });
+    renderPage("/cookies");
+
+    const card = await screen.findByRole("article", { name: "Earth Week" });
+    expect(
+      card.querySelector("[data-editorial-skeleton-layout='jar-actions']")
+    ).toBeInTheDocument();
+    expect(card.querySelectorAll("[data-skeleton-action]")).toHaveLength(2);
+    expect(within(card).queryByRole("button")).toBeNull();
   });
 
   it("claims a fixed cookie amount for an eligible wallet", async () => {
@@ -239,7 +315,7 @@ describe("CookiesPage", () => {
 
     renderPage();
 
-    await user.click(await screen.findByRole("button", { name: "Claim cookie" }));
+    await user.click(await screen.findByRole("button", { name: "Claim Cookie" }));
 
     expect(mockClaimMutate).toHaveBeenCalledWith(
       {
@@ -266,7 +342,7 @@ describe("CookiesPage", () => {
     renderPage();
 
     expect(
-      (await screen.findAllByText("Garden operator rewards for Earth Week.")).length
+      (await screen.findAllByText("Garden steward rewards for Earth Week.")).length
     ).toBeGreaterThan(0);
     expect(
       screen.getByRole("img", { name: "Earth Week Cookie Jar campaign artwork" })
@@ -283,8 +359,16 @@ describe("CookiesPage", () => {
     expect(await screen.findByRole("heading", { name: /Seasonal jars/i }));
     const card = await screen.findByRole("article", { name: "Earth Week Cookie Jar" });
 
-    expect(within(card).getByRole("button", { name: "Claim cookie" })).toBeInTheDocument();
+    expect(within(card).getByRole("button", { name: "Claim Cookie" })).toBeInTheDocument();
     expect(within(card).getByRole("button", { name: "Deposit" })).toBeInTheDocument();
+    expect(within(card).getByRole("button", { name: "Claim Cookie" })).toHaveAttribute(
+      "data-emphasis",
+      "primary"
+    );
+    expect(within(card).getByRole("button", { name: "Deposit" })).toHaveAttribute(
+      "data-emphasis",
+      "secondary"
+    );
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
@@ -307,7 +391,7 @@ describe("CookiesPage", () => {
     renderPage();
 
     await user.type(await screen.findByLabelText("Amount to claim"), "3");
-    await user.click(screen.getByRole("button", { name: "Claim cookie" }));
+    await user.click(screen.getByRole("button", { name: "Claim Cookie" }));
 
     expect(mockClaimMutate).toHaveBeenCalledWith(
       {
@@ -331,7 +415,48 @@ describe("CookiesPage", () => {
     renderPage();
 
     expect(await screen.findByText(/wallet is not on the list yet/i));
-    expect(screen.getByRole("button", { name: "Claim cookie" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Claim Cookie" })).toBeDisabled();
+  });
+
+  it.each([
+    [{ isPaused: true, isEligible: false }, /Claims are paused/],
+    [{ isEligible: false, balance: 0n }, /wallet is not on the list yet/],
+    [{ balance: 0n, totalWithdrawn: 1n }, /needs funds before claims/],
+    [{ totalWithdrawn: 1n, nextClaimAt: 1700000000 }, /already claimed from this jar/],
+  ])("preserves the claim notice priority for case %#", async (state, notice) => {
+    mockUseCampaignCookieJar.mockReturnValue({
+      jar: { ...eligibleJar, ...state },
+      isLoading: false,
+      error: null,
+    });
+    renderPage("/cookies");
+    expect(await screen.findByText(notice)).toBeInTheDocument();
+  });
+
+  it("announces and clears precision errors through the real amount input without submitting", async () => {
+    const user = userEvent.setup();
+    mockUseCampaignCookieJar.mockReturnValue({
+      jar: { ...eligibleJar, decimals: 6 },
+      isLoading: false,
+      error: null,
+      hasDetailReadFailure: false,
+    });
+    const { container } = renderPage();
+    const input = await screen.findByRole("textbox", { name: "Deposit amount" });
+    const feedback = container.querySelector(`[id="${input.id}-error"]`);
+    expect(feedback).toBeEmptyDOMElement();
+    await user.type(input, "0.0000001");
+    expect(screen.getByRole("textbox", { name: "Deposit amount" })).toBe(input);
+    expect(input).toHaveAccessibleDescription("Too many decimal places");
+    expect(screen.getByRole("alert")).toBe(feedback);
+    expect(screen.getByRole("button", { name: "Deposit" })).toBeDisabled();
+    await user.clear(input);
+    await user.type(input, "1");
+    expect(feedback).toBeEmptyDOMElement();
+    expect(input).not.toHaveAttribute("aria-invalid");
+    expect(input).not.toHaveAttribute("aria-describedby");
+    expect(screen.getByRole("button", { name: "Deposit" })).toBeEnabled();
+    expect(mockDepositMutate).not.toHaveBeenCalled();
   });
 
   it("submits a deposit from the same public page", async () => {
@@ -374,6 +499,20 @@ describe("CookiesPage", () => {
     expect(within(card).getByText("Needs funding")).toBeInTheDocument();
     expect(within(card).getByRole("button", { name: "Deposit" })).toBeInTheDocument();
     expect(screen.queryByText(/Closed drops/i)).not.toBeInTheDocument();
+  });
+
+  it("labels a completed cookie-jar read failure", async () => {
+    mockUseCampaignCookieJar.mockReturnValue({
+      jar: null,
+      isLoading: false,
+      error: null,
+      hasDetailReadFailure: true,
+    });
+
+    renderPage("/cookies");
+
+    const card = await screen.findByRole("article", { name: "Earth Week" });
+    expect(within(card).getByText("Needs link check")).toBeInTheDocument();
   });
 
   it("keeps paused jars in the main grid as claims paused", async () => {

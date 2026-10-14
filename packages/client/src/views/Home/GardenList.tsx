@@ -1,7 +1,10 @@
-import type { Garden, GardenFilterScope } from "@green-goods/shared";
+import { Button } from "@green-goods/shared/components/Button";
+import type { GardenFilterScope } from "@green-goods/shared/hooks/garden/useFilteredGardens";
+import type { Garden } from "@green-goods/shared/types/domain";
 import { RiRefreshLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { GardenCard, GardenCardSkeleton } from "@/components/Cards";
+import { GardenCard } from "@/components/Cards/Garden/GardenCard";
+import { GardenCardSkeleton } from "@/components/Cards/Garden/GardenCardSkeleton";
 
 interface GardenListProps {
   gardens: Garden[];
@@ -45,20 +48,19 @@ export function GardenList({
         <p className="text-text-sub-600">
           {intl.formatMessage({
             id: "app.home.loadingTimeout",
-            defaultMessage: "Unable to load gardens. The server may be slow or unavailable.",
+            defaultMessage: "Loading is taking longer than expected",
           })}
         </p>
-        <button
+        <Button
           type="button"
           onClick={onRetry}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-action text-primary-action-foreground font-medium hover:bg-primary-action-hover transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]"
+          leadingIcon={<RiRefreshLine className="h-4 w-4" aria-hidden="true" />}
         >
-          <RiRefreshLine className="w-4 h-4" />
           {intl.formatMessage({
             id: "app.home.retry",
             defaultMessage: "Retry",
           })}
-        </button>
+        </Button>
       </div>
     );
   }
@@ -99,7 +101,7 @@ export function GardenList({
       <p className="grid place-items-center text-center text-sm italic text-text-sub-600">
         {intl.formatMessage({
           id: "app.home.filters.scope.mineDisabled",
-          defaultMessage: "Sign in or connect a wallet to filter by your gardens.",
+          defaultMessage: "Sign in to filter by your gardens.",
         })}
       </p>
     );
@@ -110,7 +112,7 @@ export function GardenList({
       // First-run dead-end fix: give the new user a real next step instead of
       // a bare message. There is no product-defined join flow yet, so the CTA
       // routes to the closest existing surface — the all-gardens list, where
-      // open-joining gardens can be joined and others name their operators.
+      // open-joining gardens can be joined and others name their stewards.
       return (
         <div className="grid place-items-center gap-3 py-6 text-center">
           <p className="text-sm italic text-text-sub-600">
@@ -123,20 +125,16 @@ export function GardenList({
             {intl.formatMessage({
               id: "app.home.gardens.mineEmptyHint",
               defaultMessage:
-                "Find a garden with open joining, or ask a garden's operator to add you.",
+                "Find a garden with open joining, or ask a garden's steward to add you.",
             })}
           </p>
           {onBrowseAll ? (
-            <button
-              type="button"
-              onClick={onBrowseAll}
-              className="rounded-full bg-primary-action px-4 py-2 text-sm font-medium text-primary-action-foreground transition hover:bg-primary-action-hover"
-            >
+            <Button type="button" onClick={onBrowseAll}>
               {intl.formatMessage({
                 id: "app.home.gardens.mineEmptyCta",
-                defaultMessage: "Browse all gardens",
+                defaultMessage: "Browse All Gardens",
               })}
-            </button>
+            </Button>
           ) : null}
         </div>
       );
@@ -173,7 +171,7 @@ export function GardenList({
           className="cv-garden-card"
           media="large"
           height="home"
-          showOperators={true}
+          showStewards={true}
           selected={garden.id === selectedGardenId}
           onClick={() => onCardClick(garden.id)}
         />

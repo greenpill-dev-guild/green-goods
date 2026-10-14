@@ -1,5 +1,5 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 /**
@@ -9,31 +9,48 @@
  */
 
 import { QueryClient } from "@tanstack/react-query";
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook as renderBareHook } from "@testing-library/react";
+import { IntlProvider } from "react-intl";
+import { createElement } from "react";
+import en from "../../i18n/en.json";
+import {
+  trackAdminActionCreateFailed,
+  trackAdminActionCreateSuccess,
+} from "../../modules/app/analytics-events";
+import type { TransactionSender } from "../../modules/transactions/types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { useActionRegistrationStore } from "../../stores/useActionRegistrationStore";
 import { useActionOperations } from "../../hooks/action/useActionOperations";
 
-// Mock wagmi hooks
-vi.mock("wagmi", () => ({
-  useAccount: vi.fn(),
-  useWalletClient: vi.fn(),
+vi.mock("../../modules/app/analytics-events", () => ({
+  trackAdminActionCreateFailed: vi.fn(),
+  trackAdminActionCreateSuccess: vi.fn(),
 }));
+
+let primaryAddress: `0x${string}` | null = null;
+let sender: TransactionSender | null = null;
+vi.mock("../../hooks/auth/usePrimaryAddress", () => ({ usePrimaryAddress: () => primaryAddress }));
+vi.mock("../../hooks/blockchain/useTransactionSender", () => ({
+  useTransactionSender: () => sender,
+}));
+const renderHook = <T>(hook: () => T) =>
+  renderBareHook(hook, {
+    wrapper: ({ children }) =>
+      createElement(IntlProvider, { locale: "en", messages: en }, children),
+  });
 
 // Mock contract utils
 vi.mock("../../utils/blockchain/contracts", () => ({
   ActionRegistryABI: [],
   getNetworkContracts: vi.fn(() => ({
     actionRegistry: "0xActionRegistry123",
+    gardenToken: "0xGardenToken",
   })),
 }));
 
 // Mock simulation
 vi.mock("../../utils/blockchain/simulation", () => ({
   simulateTransaction: vi.fn(),
-}));
-
-vi.mock("../../modules/transactions/chain-guard", () => ({
-  ensureAppKitWalletChain: vi.fn(() => Promise.resolve()),
 }));
 
 // Mock error parsing
@@ -69,9 +86,8 @@ vi.mock("@tanstack/react-query", () => ({
   QueryClient: vi.fn(() => ({})),
 }));
 
-import { useAccount, useWalletClient } from "wagmi";
+import { toastService } from "../../components/toast";
 import { useToastAction } from "../../hooks/app/useToastAction";
-import { ensureAppKitWalletChain } from "../../modules/transactions/chain-guard";
 import { simulateTransaction } from "../../utils/blockchain/simulation";
 
 async function runInAct<T>(callback: () => Promise<T>): Promise<T> {
@@ -83,21 +99,23 @@ async function runInAct<T>(callback: () => Promise<T>): Promise<T> {
 }
 
 describe("useActionOperations", () => {
-  const mockWalletClient = {
-    writeContract: vi.fn(() => Promise.resolve("0xhash123")),
-  };
+  const send = vi.fn();
+  const assertOwnership = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // clearAllMocks keeps a test's mockReturnValue, so put back the toast default that runs the
+    // write; otherwise a test that made it throw decides what the next test sees.
+    vi.mocked(useToastAction).mockReturnValue({
+      executeWithToast: vi.fn(async (fn) => fn()),
+    } as any);
 
+    useActionRegistrationStore.setState({ pending: {}, edits: {} });
     // Default: wallet not connected
-    vi.mocked(useAccount).mockReturnValue({
-      address: undefined,
-    } as any);
-
-    vi.mocked(useWalletClient).mockReturnValue({
-      data: undefined,
-    } as any);
+    primaryAddress = null;
+    sender = null;
+    send.mockReset().mockResolvedValue({ hash: "0xhash123", sponsored: false });
+    assertOwnership.mockReset();
   });
 
   describe("when wallet is not connected", () => {
@@ -116,7 +134,7 @@ describe("useActionOperations", () => {
       });
 
       expect(response.success).toBe(false);
-      expect(response.error?.name).toBe("WalletNotConnected");
+      expect(response.error?.name).toBe("AccountNotReady");
     });
 
     it("returns error for updateActionTitle when wallet not connected", async () => {
@@ -125,19 +143,20 @@ describe("useActionOperations", () => {
       const response = await result.current.updateActionTitle("1", "New Title");
 
       expect(response.success).toBe(false);
-      expect(response.error?.name).toBe("WalletNotConnected");
+      expect(response.error?.name).toBe("AccountNotReady");
     });
   });
 
-  describe("when wallet is connected", () => {
+  describe.each(["wallet", "passkey"] as const)("when a %s account is connected", (authMode) => {
     beforeEach(() => {
-      vi.mocked(useAccount).mockReturnValue({
-        address: "0xUserAddress123",
-      } as any);
-
-      vi.mocked(useWalletClient).mockReturnValue({
-        data: mockWalletClient,
-      } as any);
+      primaryAddress = "0xUserAddress123";
+      sender = {
+        authMode,
+        supportsBatching: false,
+        supportsSponsorship: authMode === "passkey",
+        sendContractCall: send,
+        assertOwnership,
+      };
     });
 
     it("simulates transaction before execution", async () => {
@@ -171,6 +190,7 @@ describe("useActionOperations", () => {
         error: {
           name: "SimulationError",
           message: "Transaction would revert",
+          raw: "simulation-error",
         },
       });
 
@@ -188,7 +208,7 @@ describe("useActionOperations", () => {
         result: undefined,
       });
 
-      mockWalletClient.writeContract.mockResolvedValue("0xtxhash456");
+      send.mockResolvedValue({ hash: "0xtxhash456", sponsored: false });
 
       const mockExecuteWithToast = vi.fn(async (fn) => fn());
       vi.mocked(useToastAction).mockReturnValue({
@@ -242,7 +262,7 @@ describe("useActionOperations", () => {
       );
     });
 
-    it("switches to the selected chain before executing wallet writes", async () => {
+    it("sends on the selected chain for the primary account", async () => {
       vi.mocked(simulateTransaction).mockResolvedValue({
         success: true,
         result: undefined,
@@ -252,7 +272,246 @@ describe("useActionOperations", () => {
 
       await runInAct(() => result.current.updateActionTitle("1", "Updated Title"));
 
-      expect(ensureAppKitWalletChain).toHaveBeenCalledWith(11155111);
+      expect(assertOwnership).toHaveBeenCalledWith("0xUserAddress123", 11155111);
+      expect(send).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({
+          functionName: "updateActionTitle",
+          account: "0xUserAddress123",
+          chainId: 11155111,
+        }),
+        expect.objectContaining({ assertOwnership: expect.any(Function) })
+      );
+    });
+
+    it("refuses a session that changed before sending", async () => {
+      vi.mocked(simulateTransaction).mockResolvedValue({ success: true });
+      assertOwnership.mockRejectedValueOnce(new Error("submission-ownership-changed"));
+      const { result } = renderHook(() => useActionOperations(11155111));
+      const response = await runInAct(() => result.current.updateActionTitle("1", "New title"));
+      expect(response.success).toBe(false);
+      expect(send).not.toHaveBeenCalled();
+    });
+
+    it("does not report an opaque pending submission as confirmed", async () => {
+      vi.mocked(simulateTransaction).mockResolvedValue({ success: true });
+      send.mockResolvedValueOnce({ hash: "0xopaque", sponsored: false, confirmation: "pending" });
+      const { result } = renderHook(() => useActionOperations(11155111));
+      const response = await runInAct(() => result.current.updateActionTitle("1", "New title"));
+      expect(response.success).toBe(false);
+      expect(response.error?.message).toContain("Check its confirmation");
+    });
+
+    it.each([
+      "unresolved",
+      "confirmed",
+      "reverted",
+    ] as const)("retains and reconciles a pending edit across remount: %s", async (status) => {
+      vi.mocked(simulateTransaction).mockResolvedValue({ success: true });
+      send.mockResolvedValueOnce({
+        hash: "0xEditProposal",
+        sponsored: false,
+        confirmation: "pending",
+      });
+      const first = renderHook(() => useActionOperations(11155111, "42"));
+      const response = await runInAct(() =>
+        first.result.current.updateActionTitle("42", "New title")
+      );
+      expect(response.confirmation).toBe("pending");
+      const saved = sessionStorage.getItem("green-goods:action-registrations")!;
+      first.unmount();
+      useActionRegistrationStore.setState({ pending: {}, edits: {} });
+      sessionStorage.setItem("green-goods:action-registrations", saved);
+      await useActionRegistrationStore.persist.rehydrate();
+      sender!.reconcileBroadcast = vi
+        .fn()
+        .mockResolvedValue({ status, transactionHash: "0xExecution" });
+      const restored = renderHook(() => useActionOperations(11155111, "42"));
+      expect(restored.result.current.pendingEdits).toHaveLength(1);
+      await runInAct(() => restored.result.current.updateActionTitle("42", "Another title"));
+      expect(send).toHaveBeenCalledOnce();
+      await runInAct(() => restored.result.current.reconcileEdits());
+      if (status === "unresolved") expect(restored.result.current.pendingEdits).toHaveLength(1);
+      else {
+        expect(restored.result.current.pendingEdits).toHaveLength(0);
+        const resumed = await runInAct(() =>
+          restored.result.current.updateActionTitle("42", "New title")
+        );
+        expect(resumed.success).toBe(true);
+        expect(send).toHaveBeenCalledTimes(2); // A new save cannot reuse a historical receipt.
+      }
+    });
+
+    it("preserves a pending registration across hook remount without another send", async () => {
+      vi.mocked(simulateTransaction).mockResolvedValue({ success: true });
+      const operation = `0x${"cd".repeat(32)}` as const;
+      send.mockImplementationOnce(async (_call, options) => {
+        await options.onBroadcastReference({
+          kind: "user-operation",
+          hash: operation,
+          chainId: 11155111,
+        });
+        expect(sessionStorage.getItem("green-goods:action-registrations")).toContain(operation);
+        throw new Error("Receipt RPC timeout");
+      });
+      const params = {
+        startTime: 1234567890,
+        endTime: 1234567899,
+        title: "First",
+        slug: "first",
+        domain: 0,
+        instructions: "ipfs://instructions",
+        capitals: [],
+        media: [],
+      };
+      const first = renderHook(() => useActionOperations(11155111));
+      const accepted = await runInAct(() => first.result.current.registerAction(params));
+      expect(accepted.confirmation).toBe("pending");
+      expect(first.result.current.pendingRegistration?.hash).toBe(operation);
+      first.unmount();
+      const restored = renderHook(() => useActionOperations(11155111));
+      await runInAct(() => restored.result.current.registerAction(params));
+      const checked = await runInAct(() => restored.result.current.reconcileRegistration());
+      expect(checked.confirmation).toBe("pending");
+      expect(send).toHaveBeenCalledTimes(1);
+      expect(mockInvalidateQueries).toHaveBeenCalled();
+    });
+
+    it("isolates pending registrations by account and chain across storage restoration", async () => {
+      const firstAccount = primaryAddress!;
+      const pending = { hash: "0xProposal", sponsored: false, confirmation: "pending" } as const;
+      useActionRegistrationStore.getState().record(firstAccount, 11155111, pending);
+      // Rehydrate the actual persisted ledger rather than relying on an in-memory remount.
+      const saved = sessionStorage.getItem("green-goods:action-registrations")!;
+      useActionRegistrationStore.setState({ pending: {} });
+      // setState persists too; restore the saved entry as a browser reload would.
+      sessionStorage.setItem("green-goods:action-registrations", saved);
+      await useActionRegistrationStore.persist.rehydrate();
+      const first = renderHook(() => useActionOperations(11155111));
+      expect(first.result.current.pendingRegistration).toEqual(pending);
+      first.unmount();
+      primaryAddress = "0x2222222222222222222222222222222222222222";
+      const otherAccount = renderHook(() => useActionOperations(11155111));
+      expect(otherAccount.result.current.pendingRegistration).toBeUndefined();
+      otherAccount.unmount();
+      primaryAddress = firstAccount;
+      const otherChain = renderHook(() => useActionOperations(42161));
+      expect(otherChain.result.current.pendingRegistration).toBeUndefined();
+      otherChain.unmount();
+      const returned = renderHook(() => useActionOperations(11155111));
+      expect(returned.result.current.pendingRegistration).toEqual(pending);
+      expect(send).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      "confirmed",
+      "reverted",
+    ] as const)("clears only the reconciled registration on %s", async (status) => {
+      const pending = { hash: "0xProposal", sponsored: false, confirmation: "pending" } as const;
+      useActionRegistrationStore.getState().record(primaryAddress!, 11155111, pending);
+      useActionRegistrationStore.getState().record(primaryAddress!, 42161, pending);
+      sender!.reconcileBroadcast = vi
+        .fn()
+        .mockResolvedValue({ status, transactionHash: "0xExecution" });
+      const { result } = renderHook(() => useActionOperations(11155111));
+      const outcome = await runInAct(() => result.current.reconcileRegistration());
+      expect(outcome.success).toBe(status === "confirmed");
+      if (status === "confirmed") {
+        expect(result.current.pendingRegistration?.hash).toBe("0xExecution");
+        await runInAct(async () => result.current.acknowledgeRegistration(outcome.hash));
+      }
+      expect(result.current.pendingRegistration).toBeUndefined();
+      expect(Object.values(useActionRegistrationStore.getState().pending)).toEqual([pending]);
+      expect(send).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      "immediate",
+      "recovered",
+    ] as const)("emits exactly one creation success from the %s confirmation", async (mode) => {
+      vi.mocked(simulateTransaction).mockResolvedValue({ success: true });
+      send.mockResolvedValueOnce({
+        hash: "0xProposal",
+        sponsored: false,
+        ...(mode === "recovered" ? { confirmation: "pending" } : {}),
+      });
+      sender!.reconcileBroadcast = vi
+        .fn()
+        .mockResolvedValue({ status: "confirmed", transactionHash: "0xExecution" });
+      const view = renderHook(() => useActionOperations(11155111));
+      await runInAct(() =>
+        view.result.current.registerAction({
+          title: "New action",
+          slug: "new-action",
+          domain: 0,
+          startTime: 1,
+          endTime: 2,
+          instructions: "ipfs://instructions",
+          capitals: [],
+          media: [],
+        })
+      );
+      if (mode === "recovered") {
+        expect(trackAdminActionCreateSuccess).not.toHaveBeenCalled();
+        await runInAct(() => view.result.current.reconcileRegistration());
+      }
+      await runInAct(() => view.result.current.reconcileRegistration());
+      expect(trackAdminActionCreateSuccess).toHaveBeenCalledOnce();
+      expect(trackAdminActionCreateSuccess).toHaveBeenCalledWith(
+        expect.objectContaining({
+          actionTitle: "New action",
+          actionSlug: "new-action",
+          chainId: 11155111,
+          gardenAddress: "0xGardenToken",
+        })
+      );
+      expect(send).toHaveBeenCalledOnce();
+    });
+
+    it("clears only an owner-confirmed abandoned registration", async () => {
+      const pending = { hash: "0xProposal", sponsored: false, confirmation: "pending" } as const;
+      useActionRegistrationStore.getState().record(primaryAddress!, 11155111, pending);
+      const { result } = renderHook(() => useActionOperations(11155111));
+      await expect(result.current.confirmRegistrationCancellation(false)).rejects.toThrow(
+        "confirmation-required"
+      );
+      await runInAct(() => result.current.confirmRegistrationCancellation(true));
+      expect(result.current.pendingRegistration).toBeUndefined();
+      expect(send).not.toHaveBeenCalled();
+    });
+    it("reports one toast and refresh for several reverted edits", async () => {
+      const pending = { hash: "0xProposal", sponsored: false, confirmation: "pending" } as const;
+      const store = useActionRegistrationStore.getState();
+      for (const field of ["updateActionTitle", "updateActionEndTime"])
+        store.recordEdit(`11155111:${primaryAddress!.toLowerCase()}:${field}:42`, "[]", pending);
+      sender!.reconcileBroadcast = vi.fn().mockResolvedValue({ status: "reverted" });
+      const { result } = renderHook(() => useActionOperations(11155111, "42"));
+      await runInAct(() => result.current.reconcileEdits());
+      expect(toastService.error).toHaveBeenCalledOnce();
+      expect(mockInvalidateQueries).toHaveBeenCalledOnce();
+    });
+    it("records a recovered registration failure once", async () => {
+      useActionRegistrationStore.getState().record(primaryAddress!, 11155111, {
+        hash: "0xProposal",
+        sponsored: false,
+        confirmation: "pending",
+        action: { actionTitle: "Pending action", actionSlug: "pending-action", actionDomain: 0 },
+      });
+      sender!.reconcileBroadcast = vi.fn().mockResolvedValue({ status: "reverted" });
+      const { result } = renderHook(() => useActionOperations(11155111));
+      await runInAct(() => result.current.reconcileRegistration());
+      await runInAct(() => result.current.reconcileRegistration());
+      expect(result.current.pendingRegistration).toBeUndefined();
+      expect(trackAdminActionCreateFailed).toHaveBeenCalledOnce();
+      expect(trackAdminActionCreateFailed).toHaveBeenCalledWith(
+        expect.objectContaining({
+          actionTitle: "Pending action",
+          chainId: 11155111,
+          error: "TransactionReverted",
+          parsedErrorFamily: "TransactionReverted",
+        })
+      );
+      expect(trackAdminActionCreateSuccess).not.toHaveBeenCalled();
+      expect(send).not.toHaveBeenCalled();
     });
 
     it("handles contract errors during execution", async () => {

@@ -109,8 +109,9 @@ export function categorizeError(error: unknown): CategorizedError {
   // Extract additional metadata from Error objects
   if (error instanceof Error) {
     metadata.name = error.name;
-    if (error.cause) {
-      metadata.cause = String(error.cause);
+    const cause = (error as Error & { cause?: unknown }).cause;
+    if (cause) {
+      metadata.cause = String(cause);
     }
   }
 

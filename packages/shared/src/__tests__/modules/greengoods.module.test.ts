@@ -6,7 +6,6 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock GraphQL client - use vi.hoisted to ensure mockQuery is available before vi.mock hoisting
 const { mockQuery, mockResolveIPFSUrl, mockGetFileByHash } = vi.hoisted(() => ({
   mockQuery: vi.fn(),
   mockResolveIPFSUrl: vi.fn((cid: string) => `https://ipfs.io/ipfs/${cid}`),
@@ -27,14 +26,13 @@ const { mockQuery, mockResolveIPFSUrl, mockGetFileByHash } = vi.hoisted(() => ({
   })),
 }));
 
-vi.mock("../../modules/data/graphql-client", () => ({
-  greenGoodsIndexer: {
-    query: mockQuery,
-  },
+// Mock config
+vi.mock("../../config/blockchain", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../config/blockchain")>()),
+  DEFAULT_CHAIN_ID: 11155111,
 }));
 
-// Mock config
-vi.mock("../../config/blockchain", () => ({
+vi.mock("../../config/default-chain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
 
@@ -49,8 +47,20 @@ vi.mock("../../modules/data/graphql", () => ({
   greenGoodsGraphQL: vi.fn((query) => query),
 }));
 
-import { getActions, getGardens } from "../../modules/data/greengoods";
+import { isGardenPubliclyReachable, isGardenPubliclyVisible } from "../../config/garden-visibility";
+import {
+  getActions,
+  getGardeners,
+  getGardens,
+  parseIndexerDomain,
+} from "../../modules/data/greengoods";
+import { getGarden } from "../../modules/data/indexer-garden";
+import type { GraphQLReader } from "../../modules/data/graphql-client";
+import { parseIndexerCapital } from "../../modules/data/indexer-capitals";
+import { Capital, Domain } from "../../types/domain";
 import { instructionTemplates } from "../../utils/action/templates";
+
+const reader = { query: mockQuery } as GraphQLReader;
 
 describe("modules/data/greengoods", () => {
   beforeEach(() => {
@@ -70,7 +80,7 @@ describe("modules/data/greengoods", () => {
           location: "Test City",
           bannerImage: "QmBanner",
           gardeners: ["0xGardener1"],
-          operators: ["0xOperator1"],
+          stewards: ["0xSteward1"],
           evaluators: [],
           owners: [],
           funders: [],
@@ -84,11 +94,49 @@ describe("modules/data/greengoods", () => {
         data: { Garden: mockGardens },
       });
 
-      const result = await getGardens();
+      const result = await getGardens(reader);
 
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
       expect(result.length).toBe(1);
+    });
+
+    it("keeps a garden the indexer never filled in off the public site, not out of the app", async () => {
+      // The indexer's placeholder for a garden it has seen only in a role or Karma event.
+      const placeholder = {
+        id: "0x1111111111111111111111111111111111111111",
+        chainId: 11155111,
+        tokenAddress: "",
+        tokenID: "0",
+        name: "",
+        description: "",
+        location: "",
+        bannerImage: "",
+        gardeners: [],
+        operators: [],
+        evaluators: [],
+        owners: [],
+        funders: [],
+        communities: [],
+        openJoining: false,
+        createdAt: "1700000000",
+      };
+      const minted = {
+        ...placeholder,
+        id: "0x2222222222222222222222222222222222222222",
+        tokenAddress: "0xGarden123",
+        tokenID: "2",
+        name: "Vida Verde",
+        location: "Brazil",
+      };
+      mockQuery.mockResolvedValue({ data: { Garden: [placeholder, minted] } });
+
+      const [unfilled, filled] = await getGardens(reader);
+
+      // The app and admin still get the garden, under its stand-in name.
+      expect(unfilled).toMatchObject({ name: "Unnamed Garden", location: "Unknown Location" });
+      expect(isGardenPubliclyReachable(unfilled)).toBe(false);
+      expect(isGardenPubliclyVisible(filled)).toBe(true);
     });
 
     it("includes openJoining field from indexer", async () => {
@@ -103,7 +151,7 @@ describe("modules/data/greengoods", () => {
           location: "Test City",
           bannerImage: "QmBanner",
           gardeners: [],
-          operators: [],
+          stewards: [],
           evaluators: [],
           owners: [],
           funders: [],
@@ -121,7 +169,7 @@ describe("modules/data/greengoods", () => {
           location: "Test City",
           bannerImage: "QmBanner",
           gardeners: [],
-          operators: [],
+          stewards: [],
           evaluators: [],
           owners: [],
           funders: [],
@@ -135,7 +183,7 @@ describe("modules/data/greengoods", () => {
         data: { Garden: mockGardens },
       });
 
-      const result = await getGardens();
+      const result = await getGardens(reader);
 
       expect(result).toHaveLength(2);
       expect(result[0].openJoining).toBe(true);
@@ -154,7 +202,7 @@ describe("modules/data/greengoods", () => {
           location: "Test City",
           bannerImage: "QmBanner",
           gardeners: [],
-          operators: [],
+          stewards: [],
           evaluators: [],
           owners: [],
           funders: [],
@@ -168,20 +216,18 @@ describe("modules/data/greengoods", () => {
         data: { Garden: mockGardens },
       });
 
-      const result = await getGardens();
+      const result = await getGardens(reader);
 
       expect(result).toHaveLength(1);
       expect(result[0].openJoining).toBe(false);
     });
 
-    it("returns empty array on GraphQL error", async () => {
+    it("rejects a GraphQL error instead of presenting it as an empty garden list", async () => {
       mockQuery.mockResolvedValue({
         error: { message: "Indexer unavailable" },
       });
 
-      const result = await getGardens();
-
-      expect(result).toEqual([]);
+      await expect(getGardens(reader)).rejects.toThrow("Indexer unavailable");
     });
 
     it("returns empty array when no gardens exist", async () => {
@@ -189,7 +235,7 @@ describe("modules/data/greengoods", () => {
         data: { Garden: [] },
       });
 
-      const result = await getGardens();
+      const result = await getGardens(reader);
 
       expect(result).toEqual([]);
     });
@@ -210,7 +256,7 @@ describe("modules/data/greengoods", () => {
               location: "",
               bannerImage: "",
               gardeners: [],
-              operators: [],
+              stewards: [],
               evaluators: [],
               owners: [],
               funders: [],
@@ -223,14 +269,195 @@ describe("modules/data/greengoods", () => {
         },
       });
 
-      const result = await getGardens();
+      const result = await getGardens(reader);
 
       expect(result).toHaveLength(1);
       expect(result[0].domainMask).toBe(5);
     });
+
+    it("leaves a garden curated out of every surface off the list the apps read", async () => {
+      const row = (id: string, name: string) => ({
+        id,
+        chainId: 42161,
+        tokenAddress: "0xGardenToken",
+        tokenID: "1",
+        name,
+        location: "Nigeria",
+        openJoining: true,
+        createdAt: "1700000000",
+      });
+      mockQuery.mockResolvedValue({
+        data: {
+          Garden: [
+            row("0x35722eEdf3F7566A23FA871f0a04267AEe78E0dB", "Greenpill Nigeria"),
+            row("0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3", "TAS HUB"),
+          ],
+          GardenDomains: [],
+        },
+      });
+
+      const result = await getGardens(reader);
+
+      expect(result.map((garden) => garden.name)).toEqual(["TAS HUB"]);
+    });
+  });
+
+  describe("getGarden", () => {
+    const ROOT = "0xF401F34378384713222D1D21F63359CC4E8A858A";
+
+    it("reads one garden by id on the current chain and maps it as the list does", async () => {
+      mockQuery.mockResolvedValue({
+        data: {
+          Garden: [
+            {
+              id: ROOT,
+              chainId: 11155111,
+              tokenAddress: "0xGardenToken",
+              tokenID: "0",
+              name: "Green Goods Community Garden",
+              description: "The protocol garden",
+              location: "",
+              bannerImage: "",
+              gardeners: [],
+              operators: ["0xSteward1"],
+              evaluators: [],
+              owners: [],
+              funders: [],
+              communities: [],
+              openJoining: true,
+              createdAt: 1700000000,
+            },
+          ],
+          GardenDomains: [{ garden: ROOT.toLowerCase(), domainMask: 3 }],
+        },
+      });
+
+      const garden = await getGarden(ROOT, reader);
+
+      expect(mockQuery).toHaveBeenCalledWith(
+        expect.anything(),
+        { chainId: 11155111, id: ROOT },
+        "getGarden"
+      );
+      expect(garden).toMatchObject({
+        id: ROOT,
+        name: "Green Goods Community Garden",
+        stewards: ["0xSteward1"],
+        domainMask: 3,
+      });
+    });
+
+    it("returns null when the indexer holds no such garden", async () => {
+      mockQuery.mockResolvedValue({ data: { Garden: [], GardenDomains: [] } });
+
+      await expect(getGarden(ROOT, reader)).resolves.toBeNull();
+    });
+
+    it("rejects an indexer error rather than reporting no garden", async () => {
+      mockQuery.mockResolvedValue({ error: { message: "Indexer unavailable" } });
+
+      await expect(getGarden(ROOT, reader)).rejects.toThrow("Indexer unavailable");
+    });
   });
 
   describe("getActions", () => {
+    it("fetches selected actions before applying the recent-catalog limit", async () => {
+      const rows = Array.from({ length: 101 }, (_, index) => ({
+        id: `42161-${101 - index}`,
+        chainId: 42161,
+        title: `Action ${101 - index}`,
+        slug: "agro.planting_event",
+        instructions: null,
+        capitals: [],
+        media: [],
+        domain: "AGRO",
+        createdAt: String(101 - index),
+      }));
+      mockQuery.mockImplementationOnce(async (query, variables) => {
+        expect(query).toContain("Action(where: $where");
+        expect(variables.where).toEqual({ chainId: { _eq: 42161 } });
+        return { data: { Action: rows.slice(0, 100) } };
+      });
+      const recent = await getActions(reader, { chainId: 42161 });
+      expect(recent).toHaveLength(100);
+      expect(recent.some((action) => action.id === "42161-1")).toBe(false);
+
+      mockQuery.mockImplementationOnce(async (query, variables) => {
+        expect(query).toContain("Action(where: $where");
+        expect(variables.where).toEqual({
+          chainId: { _eq: 42161 },
+          id: { _in: ["42161-1"] },
+        });
+        return {
+          data: {
+            Action: rows.filter((row) => variables.where.id._in.includes(row.id)).slice(0, 100),
+          },
+        };
+      });
+      const result = await getActions(reader, { chainId: 42161, actionIds: ["42161-1"] });
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({ id: "42161-1", title: "Action 1" });
+      expect(result[0].inputs).toEqual(
+        instructionTemplates["agro.planting_event"].uiConfig.details.inputs
+      );
+
+      const actionIds = ["42161-1", "42161-2"];
+      mockQuery.mockImplementationOnce(async (_query, variables) => {
+        expect(variables.where).toEqual({
+          chainId: { _eq: 42161 },
+          id: { _in: actionIds },
+        });
+        return { data: { Action: rows.filter((row) => actionIds.includes(row.id)) } };
+      });
+      const selected = await getActions(reader, { chainId: 42161, actionIds });
+      expect(selected.map((action) => action.id)).toEqual(["42161-2", "42161-1"]);
+      expect(mockQuery).toHaveBeenCalledTimes(3);
+    });
+
+    it("surfaces missing or unknown indexer domains instead of coercing them to solar", () => {
+      expect(parseIndexerDomain("SOLAR")).toBe(Domain.SOLAR);
+      expect(parseIndexerDomain("UNKNOWN")).toBeNull();
+      expect(parseIndexerDomain(undefined)).toBeNull();
+    });
+
+    it.each([
+      ["MATERIAL", Capital.MATERIAL],
+      ["SOCIAL", Capital.SOCIAL],
+      [3, Capital.LIVING],
+      ["3", Capital.LIVING],
+      ["UNKNOWN", null],
+      ["toString", null],
+      [9, null],
+    ])("parses the indexer capital %j as %j", (value, expected) => {
+      expect(parseIndexerCapital(value)).toBe(expected);
+    });
+
+    it("keeps the known capitals the hosted indexer names and drops the rest", async () => {
+      mockQuery.mockResolvedValue({
+        data: {
+          Action: [
+            {
+              id: "42161-3",
+              chainId: 42161,
+              startTime: "1700000000",
+              endTime: "1800000000",
+              title: "Compost Drive",
+              slug: "waste.compost_drive",
+              instructions: null,
+              capitals: ["MATERIAL", "UNKNOWN", "SOCIAL"],
+              media: [],
+              domain: "WASTE",
+              createdAt: "1700000000",
+            },
+          ],
+        },
+      });
+
+      const [action] = await getActions(reader);
+
+      expect(action.capitals).toEqual([Capital.MATERIAL, Capital.SOCIAL]);
+    });
+
     it("returns parsed action list on success", async () => {
       const mockActions = [
         {
@@ -252,22 +479,49 @@ describe("modules/data/greengoods", () => {
         data: { Action: mockActions },
       });
 
-      const result = await getActions();
+      const result = await getActions(reader);
 
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
       expect(result.length).toBe(1);
       expect(result[0].title).toBe("Planting Trees");
+      // Consumers compare the window with Date.now(), so it comes back in milliseconds.
+      expect(result[0]).toMatchObject({ startTime: 1_700_000_000_000, endTime: 1_800_000_000_000 });
     });
 
-    it("handles indexer unavailable gracefully", async () => {
+    it("surfaces unrecognized indexer domains as null instead of coercing to SOLAR", async () => {
+      const mockActions = [
+        {
+          id: "42161-9",
+          chainId: 42161,
+          startTime: "1700000000",
+          endTime: "1800000000",
+          title: "Future Domain Action",
+          slug: "future.new_thing",
+          instructions: null,
+          capitals: [],
+          media: [],
+          domain: "UNKNOWN", // the indexer's forward-compat sentinel
+          createdAt: "1700000000",
+        },
+      ];
+
+      mockQuery.mockResolvedValue({
+        data: { Action: mockActions },
+      });
+
+      const result = await getActions(reader);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].domain).toBeNull();
+    });
+
+    it("rejects unavailable indexer reads without overwriting cached actions", async () => {
       mockQuery.mockResolvedValue({
         error: { message: "Connection refused" },
       });
 
-      const result = await getActions();
-
-      expect(result).toEqual([]);
+      await expect(getActions(reader)).rejects.toMatchObject({ message: "Connection refused" });
     });
 
     it("handles action without instructions gracefully", async () => {
@@ -291,7 +545,7 @@ describe("modules/data/greengoods", () => {
         data: { Action: mockActions },
       });
 
-      const result = await getActions();
+      const result = await getActions(reader);
 
       expect(result).toBeDefined();
       expect(result.length).toBe(1);
@@ -323,13 +577,30 @@ describe("modules/data/greengoods", () => {
       });
       mockGetFileByHash.mockRejectedValueOnce(new Error("timeout"));
 
-      const result = await getActions();
+      const result = await getActions(reader);
 
       expect(result).toHaveLength(1);
       expect(result[0].description).toBe(instructionTemplates["solar.site_setup"].description);
       expect(result[0].mediaInfo?.title).toBe(
         instructionTemplates["solar.site_setup"].uiConfig.media.title
       );
+      expect(result[0].instructionsFallback).toBe(true);
     });
+  });
+});
+
+describe.each([
+  ["actions", getActions, "Action"],
+  ["gardeners", getGardeners, "Gardener"],
+] as const)("%s offline read failures", (_name, fetchList, field) => {
+  it("rejects transport failures and malformed responses, but accepts a real empty list", async () => {
+    mockQuery.mockRejectedValueOnce(new Error("offline"));
+    await expect(fetchList(reader)).rejects.toThrow("offline");
+    mockQuery.mockResolvedValueOnce({ data: {} });
+    await expect(fetchList(reader)).rejects.toThrow("missing the list");
+    mockQuery.mockResolvedValueOnce({ error: { message: "offline" } });
+    await expect(fetchList(reader)).rejects.toMatchObject({ message: "offline" });
+    mockQuery.mockResolvedValueOnce({ data: { [field]: [] } });
+    await expect(fetchList(reader)).resolves.toEqual([]);
   });
 });

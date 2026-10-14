@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "kind": "GARDEN_ACCOUNT_RELAY_DEPLOYMENT_RECEIPTS",
+  "sender": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+  "router": "0xDBF71edb4902cB43260f8A3e4460072e2028E627",
+  "relay": "0x21E4594760454D3c5A7085e3D48F1E60c6AeD1C9",
+  "guardian": "0x05F486E3161F895Ad99f041065224F78bDf580a7",
+  "authorityEnabled": false,
+  "valueAuthorityGranted": false,
+  "boundaries": [
+    {
+      "step": 1,
+      "kind": "DEPLOY_SOURCE_ROUTER",
+      "chainId": 42161,
+      "transactionHash": "0x9507f1313acb99fc3b9de07e90dfd1d7e574f64181b1f11251bcf6295789ebb1",
+      "blockNumber": 495913526
+    },
+    {
+      "step": 2,
+      "kind": "DEPLOY_CELO_RELAY",
+      "chainId": 42220,
+      "transactionHash": "0x52d8115eea203c42cb9246d863bbe1681acbbc1363247b2f5d6be9e933538c7d",
+      "blockNumber": 75178382
+    },
+    {
+      "step": 3,
+      "kind": "BIND_DESTINATION_RELAY",
+      "chainId": 42161,
+      "transactionHash": "0xcb483669c7645253ebf6a90d9c03ec542b840a49afcf8d00ba6d29bf1fd88f06",
+      "blockNumber": 495916953
+    },
+    {
+      "step": 4,
+      "kind": "TRUST_CELO_RELAY",
+      "chainId": 42220,
+      "transactionHash": "0xf5c489401389a46cb88c8b020d398d0e838f747cc631b3ff44ef794254d4712f",
+      "blockNumber": 75178393
+    }
+  ]
+}

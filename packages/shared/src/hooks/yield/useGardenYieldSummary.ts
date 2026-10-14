@@ -5,7 +5,8 @@ import { getGardenYieldAllocations } from "../../modules/data/yield-allocations"
 import type { Address } from "../../types/domain";
 import { normalizeAddress } from "../../utils/blockchain/address";
 import { useCurrentChain } from "../blockchain/useChainConfig";
-import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
+import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
+import { yieldKeys } from "../../config/query-keys/vault";
 import {
   type AggregateYieldSummary,
   EMPTY_YIELD_SUMMARY,
@@ -33,7 +34,7 @@ export function useGardenYieldSummary(
   const normalizedGarden = gardenAddress ? normalizeAddress(gardenAddress) : undefined;
 
   const query = useQuery({
-    queryKey: queryKeys.yield.gardenSummary(normalizedGarden ?? "", chainId),
+    queryKey: yieldKeys.gardenSummary(normalizedGarden ?? "", chainId),
     queryFn: async () => {
       if (!normalizedGarden) return [];
       const allocations = await getGardenYieldAllocations(normalizedGarden as Address, chainId);

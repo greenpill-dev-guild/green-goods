@@ -10,7 +10,6 @@
 
 import type { MutableRefObject } from "react";
 import type { SmartAccountClient } from "permissionless";
-import type { WalletClient } from "viem";
 import type { AuthMode } from "../../../modules/auth/session";
 
 /**
@@ -19,7 +18,6 @@ import type { AuthMode } from "../../../modules/auth/session";
  * updated via useEffect on each render cycle.
  */
 export interface MintServiceDeps {
-  walletClientRef: MutableRefObject<WalletClient | undefined | null>;
   smartAccountClientRef: MutableRefObject<SmartAccountClient | undefined | null>;
   eoaAddressRef: MutableRefObject<string | undefined | null>;
   authModeRef: MutableRefObject<AuthMode>;

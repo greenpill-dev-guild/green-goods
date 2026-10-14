@@ -51,7 +51,7 @@ const colors = {
 const appConfigs = {
   client: {
     title: "Client",
-    build: "build:client",
+    buildDirectory: "packages/client",
     dist: "packages/client/dist",
     project: "green-goods-client",
     envIdEnv: "POSTHOG_CLIENT_ENV_ID",
@@ -59,7 +59,7 @@ const appConfigs = {
   },
   admin: {
     title: "Admin",
-    build: "build:admin",
+    buildDirectory: "packages/admin",
     dist: "packages/admin/dist",
     project: "green-goods-admin",
     envIdEnv: "POSTHOG_ADMIN_ENV_ID",
@@ -572,7 +572,7 @@ async function main() {
       };
 
       try {
-        await runCommand(`bun run ${appConfig.build}`, { env: buildEnv });
+        await runCommand("bun run build", { cwd: resolve(projectRoot, appConfig.buildDirectory), env: buildEnv });
         printSuccess(`${appConfig.title} built`);
       } catch (error) {
         printError(`Failed to build ${appConfig.title}: ${error.message}`);

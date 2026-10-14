@@ -1,47 +1,47 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { Chip } from "@green-goods/shared/components/Chip";
+import { TransactionSuccessAffordance } from "@green-goods/shared/components/feedback/TransactionSuccessAffordance";
+import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { IconButton } from "@green-goods/shared/components/IconButton";
+import { useAuth } from "@green-goods/shared/hooks/auth/useAuth";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useEthUsdPrice } from "@green-goods/shared/hooks/blockchain/useEthUsdPrice";
+import { useCookieJarDeposit } from "@green-goods/shared/hooks/cookie-jar/useCookieJarDeposit";
+import { useGardenCookieJars } from "@green-goods/shared/hooks/cookie-jar/useGardenCookieJars";
+import type { PublicGardenSummary } from "@green-goods/shared/hooks/public/usePublicGardens";
+import { useGardenVaults } from "@green-goods/shared/hooks/vault/useGardenVaults";
+import { useVaultDeposit } from "@green-goods/shared/hooks/vault/useVaultDeposit";
+import { useAppKit } from "@green-goods/shared/providers/AppKitProvider";
+import type { PublicFundingIntentKind } from "@green-goods/shared/public-contracts/core";
+import type { Address } from "@green-goods/shared/types/domain";
+import { truncateAddress } from "@green-goods/shared/utils/blockchain/address";
 import {
-  type Address,
-  classifyTxError,
-  formatTokenAmount,
   formatUsdCents,
   formatUsdPrice,
-  getVaultAssetSymbol,
-  isMeaningfulTxErrorMessage,
-  normalizeDecimalInput,
   parseUsdToCents,
-  type PublicGardenSummary,
-  TransactionSuccessAffordance,
-  truncateAddress,
-  useAppKit,
-  useAuth,
-  useCookieJarDeposit,
-  useEthUsdPrice,
-  useGardenCookieJars,
-  useGardenVaults,
-  useUser,
-  useVaultDeposit,
   usdCentsToWei,
   weiToUsdCents,
-} from "@green-goods/shared";
-import type { PublicFundingIntentKind } from "@green-goods/shared/public-contracts";
+} from "@green-goods/shared/utils/blockchain/price-feeds";
+import {
+  formatTokenAmount,
+  getVaultAssetSymbol,
+  normalizeDecimalInput,
+} from "@green-goods/shared/utils/blockchain/vaults";
+import {
+  classifyTxError,
+  isMeaningfulTxErrorMessage,
+} from "@green-goods/shared/utils/errors/tx-error-classifier";
 import { RiCheckLine, RiCloseLine } from "@remixicon/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { parseUnits } from "viem";
 import { EditorialGhostButton, EditorialKicker, EditorialPrimaryButton } from "./atoms";
+import { PublicReadUnavailable } from "./PublicReadUnavailable";
 
 const DAI_SYMBOL = "DAI";
 const WETH_SYMBOL = "WETH";
-
 type Denomination = "usd" | "weth";
-
-/**
- * Parse a user-typed token amount (WETH denomination) into wei. Mirrors the
- * tolerant input handling used across the public vault panels: normalize a bare
- * leading dot, tolerate an in-progress trailing dot ("1." while typing "1.5")
- * so the CTA/estimate don't flicker back to the empty state between keystrokes,
- * and fall back to 0n on anything viem cannot parse so the CTA stays in its
- * "enter an amount" state instead of throwing.
- */
+/** Accept in-progress decimal input without making amount entry flicker. */
 function parseTokenInputToWei(input: string, decimals: number): bigint {
   const normalized = normalizeDecimalInput(input);
   if (!/^\d+(?:\.\d*)?$/.test(normalized)) return 0n;
@@ -52,7 +52,6 @@ function parseTokenInputToWei(input: string, decimals: number): bigint {
     return 0n;
   }
 }
-
 interface PublicFundingCardProps {
   open: boolean;
   garden: PublicGardenSummary;
@@ -76,38 +75,36 @@ interface FundingOption {
 type Status = "loading" | "idle" | "submitting" | "success" | "error";
 
 /**
- * PublicFundingCard — single editorial-styled card that handles the entire
- * donate or endow flow for one garden. Replaces the old multi-step modal +
- * admin-styled deposit dialogs.
- *
- * Design intent:
- *   - Amount-first: the prefixed amount input is the first focus.
- *   - Token choice as visual radio cards (not a dropdown), only when 2+ exist.
- *   - Wallet connect folds into the submit button — no separate screen.
- *   - WETH supporters may enter the amount in USD (converted live via Chainlink
- *     ETH/USD) or directly in WETH via the denomination toggle (PRD-519),
- *     defaulting to USD for accessibility; stable assets (DAI) map 1:1 to USD
- *     with no oracle dependency and never show the toggle.
- *   - Single card, three real states (loading | idle | success), error renders
- *     inline within idle.
+ * Amount-first Garden funding: dollar entry by default, available currencies,
+ * and wallet login at payment. WETH also supports direct token entry when a
+ * dollar conversion is unavailable. Errors stay with the form for recovery.
  */
 export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundingCardProps) {
   const { formatMessage } = useIntl();
   const { primaryAddress } = useUser();
-  // Public funding connect must establish wallet auth (sets "wallet" intent so
-  // the auth machine logs in), not just open the AppKit modal. Opening the modal
-  // alone only tracks EXTERNAL_WALLET_CONNECTED, leaving primaryAddress null and
-  // the CTA stuck on "Connect Wallet" (PRD-497).
+  // Wallet login establishes the auth session needed to submit a payment.
   const { loginWithWallet, isAuthenticating } = useAuth();
 
   const isDonate = intent === "donate";
 
-  const { jars, isLoading: isLoadingJars } = useGardenCookieJars(garden.id, {
+  const jarQuery = useGardenCookieJars(garden.id, {
     enabled: open && isDonate,
   });
-  const { vaults, isLoading: isLoadingVaults } = useGardenVaults(garden.id as Address, {
+  const vaultQuery = useGardenVaults(garden.id as Address, {
     enabled: open && !isDonate,
   });
+  const { jars, isLoading: isLoadingJars } = jarQuery;
+  const { vaults, isLoading: isLoadingVaults } = vaultQuery;
+  const paymentUnavailable = isDonate
+    ? Boolean(
+        jarQuery.error ||
+          jarQuery.isPaused ||
+          jarQuery.hasDetailReadFailure ||
+          jarQuery.hasDecimalsReadFailure ||
+          jarQuery.hasUnreadDecimals ||
+          (jars.length === 0 && jarQuery.hasNoJar === false)
+      )
+    : Boolean(vaultQuery.error || vaultQuery.isPaused);
 
   const cookieJarMutation = useCookieJarDeposit(garden.id as Address, { errorMode: "inline" });
   const vaultMutation = useVaultDeposit({ errorMode: "inline" });
@@ -341,11 +338,11 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
   const pathText = isDonate
     ? formatMessage({
         id: "public.fund.card.donatePath",
-        defaultMessage: "Shared fund support",
+        defaultMessage: "Contribution to this Garden’s shared fund",
       })
     : formatMessage({
         id: "public.fund.card.endowPath",
-        defaultMessage: "Garden Vault endowment",
+        defaultMessage: "Longer-term support through an endowment",
       });
 
   // Success summary mirrors the unit the supporter funded in: a dollar figure in
@@ -366,12 +363,13 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
     >
       <button
         type="button"
+        data-pressable="scrim"
         aria-label={formatMessage({ id: "public.fund.dialog.close", defaultMessage: "Close" })}
         className="absolute inset-0"
         onClick={status === "submitting" ? undefined : onClose}
       />
       <div
-        className="relative max-h-[calc(100vh-2rem)] w-full max-w-[calc(100vw-2rem)] overflow-y-auto bg-bg-white-0 p-6 shadow-[var(--shadow-editorial-panel)] sm:max-w-md sm:p-8"
+        className="relative max-h-[calc(100vh-2rem)] w-full max-w-none overflow-y-auto bg-bg-white-0 p-6 shadow-[var(--shadow-editorial-panel)] sm:max-w-md sm:p-8"
         data-component="PublicFundingCard"
         data-status={status}
       >
@@ -388,15 +386,12 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
             </h2>
             <p className="text-xs leading-[1.45] text-text-soft-400">{pathText}</p>
           </div>
-          <button
-            type="button"
+          <IconButton
             aria-label={formatMessage({ id: "public.fund.dialog.close", defaultMessage: "Close" })}
-            onClick={status === "submitting" ? undefined : onClose}
+            onClick={onClose}
             disabled={status === "submitting"}
-            className="rounded-full p-1 text-text-sub-600 transition-colors hover:bg-bg-weak-50 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <RiCloseLine className="h-5 w-5" />
-          </button>
+            icon={<RiCloseLine aria-hidden="true" />}
+          />
         </header>
 
         {status === "loading" ? (
@@ -411,6 +406,12 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
               isDonate={isDonate}
             />
           </TransactionSuccessAffordance>
+        ) : paymentUnavailable ? (
+          <PublicReadUnavailable
+            className="py-6"
+            message={formatMessage({ id: "public.fund.card.readFailure" })}
+            onRetry={() => void (isDonate ? jarQuery.refetch() : vaultQuery.refetch())}
+          />
         ) : options.length === 0 ? (
           <UnavailableBody isDonate={isDonate} />
         ) : (
@@ -425,7 +426,7 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
             selected={selected}
             selectedAddress={selectedAddress}
             onSelectAddress={setSelectedAddress}
-            primaryAddress={primaryAddress}
+            primaryAddress={primaryAddress ?? undefined}
             tokenAmountWei={tokenAmountWei}
             usdCents={usdCents}
             conversionUnavailable={conversionUnavailable}
@@ -437,7 +438,7 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
                 ? {
                     severity: txErrorView.severity,
                     message: isMeaningfulTxErrorMessage(txErrorView.rawMessage)
-                      ? txErrorView.rawMessage
+                      ? (txErrorView.rawMessage ?? undefined)
                       : formatMessage({
                           id: txErrorView.messageKey,
                           defaultMessage: "Something went wrong. Please try again.",
@@ -460,10 +461,6 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Body sub-components
-// ─────────────────────────────────────────────────────────────────────────────
-
 export function LoadingBody() {
   return (
     <div className="flex flex-col gap-4 py-6" aria-hidden="true">
@@ -482,11 +479,11 @@ export function UnavailableBody({ isDonate }: { isDonate: boolean }) {
       {isDonate
         ? formatMessage({
             id: "public.fund.card.unavailable.donate",
-            defaultMessage: "This Garden hasn't enabled donations yet.",
+            defaultMessage: "This Garden has no donation fund configured yet.",
           })
         : formatMessage({
             id: "public.fund.card.unavailable.endow",
-            defaultMessage: "This Garden hasn't enabled endowments yet.",
+            defaultMessage: "This Garden has no endowment fund configured yet.",
           })}
     </p>
   );
@@ -529,18 +526,18 @@ export function SuccessBody({
             )}
       </p>
       <div className="mt-2 flex w-full flex-col gap-2 sm:flex-row sm:justify-center">
-        <EditorialPrimaryButton onClick={onDonateAgain} className="px-5 py-2.5 text-sm">
+        <EditorialPrimaryButton onClick={onDonateAgain}>
           {isDonate
             ? formatMessage({
                 id: "public.fund.card.donateAgain",
-                defaultMessage: "Donate again",
+                defaultMessage: "Donate Again",
               })
             : formatMessage({
                 id: "public.fund.card.endowAgain",
-                defaultMessage: "Endow again",
+                defaultMessage: "Endow Again",
               })}
         </EditorialPrimaryButton>
-        <EditorialGhostButton onClick={onClose} className="px-5 py-2.5 text-sm">
+        <EditorialGhostButton onClick={onClose}>
           {formatMessage({ id: "public.fund.dialog.close", defaultMessage: "Close" })}
         </EditorialGhostButton>
       </div>
@@ -628,7 +625,7 @@ function IdleBody(props: IdleBodyProps) {
     if (conversionUnavailable) {
       return formatMessage({
         id: "public.fund.card.conversionUnavailable",
-        defaultMessage: "ETH price unavailable",
+        defaultMessage: "Waiting on the ETH price…",
       });
     }
     const amountLabel = isWethDenomination
@@ -727,7 +724,11 @@ function IdleBody(props: IdleBodyProps) {
         wethUnavailable={!isWethDenomination && isWeth && conversionUnavailable}
       />
 
-      {options.length > 1 ? (
+      <p className="text-sm leading-relaxed text-text-sub-600">
+        {formatMessage({ id: "public.fund.card.paymentHelp" })}
+      </p>
+
+      {options.length > 0 ? (
         <TokenPicker
           options={options}
           selectedAddress={selectedAddress}
@@ -738,11 +739,7 @@ function IdleBody(props: IdleBodyProps) {
 
       {txError ? <InlineErrorBlock title={txError.title} message={txError.message} /> : null}
 
-      <EditorialPrimaryButton
-        onClick={onSubmit}
-        disabled={submitDisabled}
-        className="w-full px-6 py-3 text-sm"
-      >
+      <EditorialPrimaryButton onClick={onSubmit} disabled={submitDisabled} className="w-full">
         {submitLabel}
       </EditorialPrimaryButton>
 
@@ -756,16 +753,16 @@ function IdleBody(props: IdleBodyProps) {
             {
               address: truncateAddress(primaryAddress),
               disconnect: (
-                <button
+                // An inline text action: underlined in the sentence, with the 48px hit area.
+                <Button
                   type="button"
+                  emphasis="tertiary"
+                  size="compact"
                   onClick={() => openWalletModal()}
-                  className="underline transition-colors hover:text-text-sub-600"
+                  className="-my-2 px-1.5 text-[11px] underline"
                 >
-                  {formatMessage({
-                    id: "public.fund.card.disconnect",
-                    defaultMessage: "Manage",
-                  })}
-                </button>
+                  {formatMessage({ id: "public.fund.card.disconnect", defaultMessage: "Manage" })}
+                </Button>
               ),
             }
           )}
@@ -812,20 +809,15 @@ export function DenominationToggle({
       {choices.map((choice) => {
         const isSelected = denomination === choice.value;
         return (
-          <button
+          <Chip
             key={choice.value}
-            type="button"
+            selected={isSelected}
             onClick={() => onChange(choice.value)}
             disabled={disabled}
-            aria-pressed={isSelected}
-            className={`border px-2.5 py-1 font-mono text-[11px] uppercase tracking-[0.1em] transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
-              isSelected
-                ? "border-primary-action bg-editorial-warm text-text-strong-950"
-                : "border-stroke-soft-200 bg-bg-white-0 text-text-soft-400 hover:bg-editorial-warm/40"
-            }`}
+            className="font-mono text-[11px] uppercase tracking-[0.1em]"
           >
             {choice.label}
-          </button>
+          </Chip>
         );
       })}
     </fieldset>
@@ -890,7 +882,7 @@ export function AmountInput({
           />
         ) : null}
       </div>
-      <div className="flex items-center gap-2 border border-stroke-soft-200 bg-bg-white-0 px-4 py-3 transition-colors focus-within:border-primary-action">
+      <div className="flex items-center gap-2">
         {isWethDenomination ? (
           <span className="font-mono text-sm uppercase tracking-[0.08em] text-text-soft-400">
             {symbol}
@@ -898,7 +890,7 @@ export function AmountInput({
         ) : (
           <span className="font-serif text-2xl text-text-soft-400">$</span>
         )}
-        <input
+        <TextInput
           ref={inputRef}
           id="public-fund-amount"
           type="text"
@@ -908,7 +900,7 @@ export function AmountInput({
           onChange={(e) => onChange(e.target.value)}
           placeholder={isWethDenomination ? "0.0" : "0.00"}
           disabled={disabled}
-          className="flex-1 bg-transparent font-serif text-2xl text-text-strong-950 outline-none placeholder:text-text-soft-400 disabled:opacity-60"
+          className="flex-1 font-serif text-2xl"
         />
       </div>
       <div className="flex min-h-[1rem] flex-col gap-1">
@@ -941,7 +933,7 @@ export function AmountInput({
             {formatMessage({
               id: "public.fund.card.wethUnavailable",
               defaultMessage:
-                "ETH price feed unavailable on this network. Pick DAI or check back later.",
+                "The live ETH price isn't reaching us on this network. Pick DAI, or check back soon.",
             })}
           </p>
         ) : null}
@@ -962,7 +954,7 @@ export function TokenPicker({ options, selectedAddress, onSelect, disabled }: To
   return (
     <fieldset className="flex flex-col gap-2">
       <legend className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
-        {formatMessage({ id: "public.fund.card.payWithLabel", defaultMessage: "Pay with" })}
+        {formatMessage({ id: "public.fund.card.payWithLabel", defaultMessage: "Payment currency" })}
       </legend>
       <div className="grid grid-cols-2 gap-2">
         {options.map((option) => {
@@ -983,6 +975,7 @@ export function TokenPicker({ options, selectedAddress, onSelect, disabled }: To
             <button
               key={option.assetAddress}
               type="button"
+              data-pressable="card"
               onClick={() => onSelect(option.assetAddress)}
               disabled={disabled}
               aria-pressed={isSelected}

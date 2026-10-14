@@ -14,8 +14,8 @@ export const hypercertsKeys = {
   list: (gardenId?: string, chainId?: number, status?: string) =>
     ["greengoods", "hypercerts", "list", gardenId, chainId, status] as const,
   detail: (hypercertId?: string) => ["greengoods", "hypercerts", "detail", hypercertId] as const,
-  drafts: (gardenId?: string, operatorAddress?: string) =>
-    ["greengoods", "hypercerts", "drafts", gardenId, operatorAddress] as const,
+  drafts: (gardenId?: string, stewardAddress?: string) =>
+    ["greengoods", "hypercerts", "drafts", gardenId, stewardAddress] as const,
 } as const;
 
 export const marketplaceKeys = {

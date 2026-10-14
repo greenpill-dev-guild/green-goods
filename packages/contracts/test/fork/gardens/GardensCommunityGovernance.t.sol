@@ -207,7 +207,7 @@ contract GardensCommunityGovernanceForkTest is ForkTestBase {
         uint256 stakeAmount = gardensModule.stakeAmountPerMember();
 
         // Grant roles to test actors
-        _grantGardenRole(garden, forkOperator, IHatsModule.GardenRole.Operator);
+        _grantGardenRole(garden, forkOperator, IHatsModule.GardenRole.Steward);
         _grantGardenRole(garden, forkGardener, IHatsModule.GardenRole.Gardener);
         _grantGardenRole(garden, forkEvaluator, IHatsModule.GardenRole.Evaluator);
 
@@ -278,7 +278,7 @@ contract GardensCommunityGovernanceForkTest is ForkTestBase {
             weightScheme: IGardensModule.WeightScheme.Exponential,
             domainMask: 0x02,
             gardeners: new address[](0),
-            operators: new address[](0)
+            stewards: new address[](0)
         });
         address garden2 = gardenToken.mintGarden(config2);
         assertTrue(gardensModule.isGardenInitialized(garden2), "garden2 should be initialized");
@@ -301,7 +301,7 @@ contract GardensCommunityGovernanceForkTest is ForkTestBase {
             weightScheme: IGardensModule.WeightScheme.Power,
             domainMask: 0x04,
             gardeners: new address[](0),
-            operators: new address[](0)
+            stewards: new address[](0)
         });
         address garden3 = gardenToken.mintGarden(config3);
         assertTrue(gardensModule.isGardenInitialized(garden3), "garden3 should be initialized");

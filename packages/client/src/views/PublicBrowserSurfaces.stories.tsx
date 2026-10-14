@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { createMemoryRouter, RouterProvider, type RouteObject } from "react-router-dom";
-import { expect, within } from "storybook/test";
+import { expect, waitFor, within } from "storybook/test";
 import { withClientAppRuntime } from "../../../shared/.storybook/decorators";
-import { CLIENT_ROUTE_IDS, appRoutes } from "../router.config";
+import { CLIENT_ROUTE_IDS, appRoutes } from "../config/routes";
 import PublicShell from "../routes/PublicShell";
 import Root from "../routes/Root";
 import CookiesPage from "./Public/Cookies";
@@ -38,12 +38,10 @@ function findAllRoutesByPath(routes: RouteObject[], path: string): RouteObject[]
 
 function requirePublicRoutePath(routeId: string, expectedPath: string) {
   const publicShell = findRouteById(appRoutes, CLIENT_ROUTE_IDS.publicShell);
-  const publicRoute = publicShell?.children?.find((route) => route.id === routeId);
+  const publicRoute = findRouteById(publicShell?.children ?? [], routeId);
 
   if (!publicRoute || publicRoute.path !== expectedPath) {
-    throw new Error(
-      `Expected ${expectedPath} to remain a child of ${CLIENT_ROUTE_IDS.publicShell}.`
-    );
+    throw new Error(`Expected ${expectedPath} to remain under ${CLIENT_ROUTE_IDS.publicShell}.`);
   }
 
   return publicRoute.path;
@@ -51,7 +49,7 @@ function requirePublicRoutePath(routeId: string, expectedPath: string) {
 
 function requirePublicIndexRoute(routeId: string) {
   const publicShell = findRouteById(appRoutes, CLIENT_ROUTE_IDS.publicShell);
-  const publicRoute = publicShell?.children?.find((route) => route.id === routeId);
+  const publicRoute = findRouteById(publicShell?.children ?? [], routeId);
 
   if (!publicRoute || publicRoute.index !== true) {
     throw new Error(`Expected ${routeId} to remain the public-shell index route.`);
@@ -60,7 +58,7 @@ function requirePublicIndexRoute(routeId: string) {
 
 function requireRedirectOnlyPublicRoute(routeId: string, expectedPath: string) {
   const publicShell = findRouteById(appRoutes, CLIENT_ROUTE_IDS.publicShell);
-  const publicRoute = publicShell?.children?.find((route) => route.id === routeId);
+  const publicRoute = findRouteById(publicShell?.children ?? [], routeId);
 
   if (
     !publicRoute ||
@@ -143,6 +141,11 @@ function PublicBrowserRoute({ route }: { route: string }) {
   );
 }
 
+// The hero's card rises in on arrival (editorial.css), so its title is not visible on the
+// first frame. A check on hero content waits for the entrance instead of racing it, and looks
+// the element up on each try.
+const HERO_ENTRANCE = { timeout: 3000 };
+
 const meta = {
   title: "Client/Public/BrowserSurfaces",
   tags: ["autodocs", "storybook-ci"],
@@ -166,9 +169,13 @@ export const HomeRoute: Story = {
     expect(logoLinks.length).toBeGreaterThan(0);
     await expect(logoLinks[0]).toBeVisible();
     // Editorial hero title — the lede is part of the rich-formatted H1.
-    await expect(
-      await canvas.findByRole("heading", { name: /good.*intentions.*green.*outcomes/i })
-    ).toBeVisible();
+    await waitFor(
+      () =>
+        expect(
+          canvas.getByRole("heading", { name: /good.*intentions.*green.*outcomes/i })
+        ).toBeVisible(),
+      HERO_ENTRANCE
+    );
     expect(canvas.queryByTestId("authenticated-nav")).not.toBeInTheDocument();
   },
 };
@@ -187,9 +194,14 @@ export const CookiesRouteShell: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(await canvas.findByRole("navigation", { name: "Main navigation" })).toBeVisible();
-    await expect(
-      await canvas.findByRole("heading", { name: /shared.*cookie jars.*seasonal campaign work/i })
-    ).toBeVisible();
+    // The page swaps its loading hero for the loaded one, so the title is looked up afresh.
+    await waitFor(
+      () =>
+        expect(
+          canvas.getByRole("heading", { name: /shared.*cookie jars.*seasonal campaign work/i })
+        ).toBeVisible(),
+      HERO_ENTRANCE
+    );
     expect(canvas.queryByTestId("authenticated-nav")).not.toBeInTheDocument();
   },
 };

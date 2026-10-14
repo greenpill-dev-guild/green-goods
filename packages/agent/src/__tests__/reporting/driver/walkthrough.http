@@ -1,0 +1,82 @@
+### Agent reporting — manual requests against the loopback driver
+### Start it first:  bun run --cwd packages/agent reporting:driver
+### Fixture chain, fixture wallets and a recorded transport: orchestration only, never live proof.
+
+@base = http://127.0.0.1:8787
+@origin = http://127.0.0.1:8787
+
+### 1. A gardener writes from a fixture WhatsApp chat
+POST {{base}}/__synthetic/events
+Content-Type: application/json
+
+{
+  "kind": "message",
+  "providerRealm": "whatsapp-fixture:wefa",
+  "eventId": "manual-1",
+  "providerMessageId": "manual-in-1",
+  "chat": { "externalChatId": "chat-ada", "kind": "direct" },
+  "sender": { "externalSubjectId": "+2340000000001" },
+  "sentAt": 1790000000000,
+  "text": "Today I planted twelve baobab seedlings by the fence"
+}
+
+### 2. Read what the agent sent (buttons carry reply IDs for step 3)
+GET {{base}}/__driver/outbox?since=0
+
+### 3. Answer a button: copy its `id` into replyId, and its label into text
+POST {{base}}/__synthetic/events
+Content-Type: application/json
+
+{
+  "kind": "message",
+  "providerRealm": "whatsapp-fixture:wefa",
+  "eventId": "manual-2",
+  "providerMessageId": "manual-in-2",
+  "chat": { "externalChatId": "chat-ada", "kind": "direct" },
+  "sender": { "externalSubjectId": "+2340000000001" },
+  "sentAt": 1790000001000,
+  "text": "I agree",
+  "replyId": "p:<prompt-id>:agree"
+}
+
+### 4. Stage the sample spreadsheet or a generated photo as provider media
+PUT {{base}}/__driver/media/sheet-1
+Content-Type: text/csv
+
+< ./samples/planting.csv
+
+###
+POST {{base}}/__driver/media/photo-1/sample-photo
+
+### 5. Open a link from the outbox: the locator is the last path segment of its URL
+POST {{base}}/api/messaging/challenges
+Content-Type: application/json
+Origin: {{origin}}
+X-GG-Bootstrap: 1
+
+{ "requestId": "<locator>" }
+
+### 6. Sign the proof with a fixture wallet (the driver builds the exact message)
+POST {{base}}/__driver/wallets/ada/prove
+Content-Type: application/json
+
+{ "challengeId": "<challengeId from step 5>" }
+
+### 7. Submit that proof from the same cookie jar with the CSRF token from step 5
+POST {{base}}/api/messaging/challenges/<challengeId>/proof
+Content-Type: application/json
+Origin: {{origin}}
+X-GG-CSRF: <csrfToken from step 5>
+
+{ "account": "<account from step 6>", "signature": "<signature from step 6>" }
+
+### 8. Operator view of the queues and switches
+GET {{base}}/reporting/ops/health
+Authorization: Bearer driver-local-token
+
+### 9. Pause publication (reconciliation keeps running)
+POST {{base}}/reporting/ops/controls/publication
+Authorization: Bearer driver-local-token
+Content-Type: application/json
+
+{ "enabled": false, "reason": "manual pause while testing" }

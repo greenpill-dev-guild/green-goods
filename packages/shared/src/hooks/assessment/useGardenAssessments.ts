@@ -1,17 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { getGardenAssessments } from "../../modules/data/eas";
-import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
-
+import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
+import { assessmentsKeys } from "../../config/query-keys/garden";
 export function useGardenAssessments(gardenAddress?: string, chainId?: number) {
   const resolvedChainId = chainId ?? DEFAULT_CHAIN_ID;
 
   return useQuery({
-    queryKey: queryKeys.assessments.byGardenBase(gardenAddress ?? "", resolvedChainId),
-    queryFn: () => {
+    queryKey: assessmentsKeys.byGardenBase(gardenAddress ?? "", resolvedChainId),
+    queryFn: async () => {
       if (!gardenAddress) {
-        return Promise.resolve([]);
+        return [];
       }
       return getGardenAssessments(gardenAddress, resolvedChainId);
     },

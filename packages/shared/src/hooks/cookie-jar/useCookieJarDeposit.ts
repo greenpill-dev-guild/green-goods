@@ -7,12 +7,14 @@ import { getWagmiConfig } from "../../config/appkit";
 import { logger } from "../../modules/app/logger";
 import type { CookieJarDepositParams } from "../../types/cookie-jar";
 import type { Address } from "../../types/domain";
-import { COOKIE_JAR_ABI, ERC20_ALLOWANCE_ABI } from "../../utils/blockchain/abis";
+import { COOKIE_JAR_ABI } from "../../utils/blockchain/abis/cookie-jar";
+import { ERC20_ALLOWANCE_ABI } from "../../utils/blockchain/abis/erc20";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useUser } from "../auth/useUser";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useContractTxSender } from "../blockchain/useContractTxSender";
-import { INDEXER_LAG_SCHEDULE_MS, queryInvalidation } from "../../config/query-keys";
+import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
+import { queryInvalidation } from "../../config/query-keys/invalidation";
 import { useSafeMutation } from "../utils/useSafeMutation";
 import { useProgressiveInvalidation } from "../utils/useTimeout";
 
@@ -83,6 +85,7 @@ export function useCookieJarDeposit(
           abi: ERC20_BALANCE_ABI,
           functionName: "balanceOf",
           args: [primaryAddress as Address],
+          chainId,
         });
         const balance = typeof balanceResult === "bigint" ? balanceResult : 0n;
         if (balance < params.amount) {
@@ -103,6 +106,7 @@ export function useCookieJarDeposit(
           abi: ERC20_ALLOWANCE_ABI,
           functionName: "allowance",
           args: [primaryAddress as Address, params.jarAddress],
+          chainId,
         });
         allowance = typeof allowanceResult === "bigint" ? allowanceResult : 0n;
       } catch {

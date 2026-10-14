@@ -6,7 +6,7 @@
  * - Editorial header + featured row + browse with search input.
  * - Cards link to `/gardens/<slug>` (slug, not id).
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { render, screen } from "@testing-library/react";
@@ -26,10 +26,10 @@ const mockGardens = [
     description: "A solar-powered community garden",
     location: "Austin, TX",
     bannerImage: "https://example.com/banner.jpg",
-    contributorCount: 2,
+    gardenerCount: 2,
     actionCount: 3,
     lastActivityAt: 1710000000,
-    operators: [],
+    stewards: [],
     evaluators: [],
   },
   {
@@ -40,20 +40,19 @@ const mockGardens = [
     description: "Turning waste into soil",
     location: "Portland, OR",
     bannerImage: "",
-    contributorCount: 1,
+    gardenerCount: 1,
     actionCount: 0,
     lastActivityAt: 1690000000,
-    operators: [],
+    stewards: [],
     evaluators: [],
   },
 ];
 
 const mockUsePublicGardens = vi.fn();
 
-vi.mock("@green-goods/shared", async () => {
-  const actual = await vi.importActual<typeof import("@green-goods/shared")>("@green-goods/shared");
+vi.mock("@green-goods/shared/hooks/public/usePublicGardens", async (importOriginal) => {
   return {
-    ...actual,
+    ...(await importOriginal()),
     usePublicGardens: (...args: unknown[]) => mockUsePublicGardens(...args),
   };
 });
@@ -61,7 +60,7 @@ vi.mock("@green-goods/shared", async () => {
 import GardensGallery from "../../views/Public/Gardens";
 
 const messages: Record<string, string> = {
-  "public.gardens.heroTitle": "Explore the Gardens growing the public record.",
+  "public.gardens.heroTitle": "Explore the Gardens growing the public record",
   "public.gardens.heroLede":
     "Each Garden is a real place where communities document regenerative Work, gather evidence, and make support visible.",
   "public.gardens.archiveTitle": "Browse every Garden under documentation.",
@@ -104,12 +103,15 @@ describe("GardensGallery", () => {
     expect(screen.getByText("Living Archive")).toBeInTheDocument();
   });
 
-  it("renders Garden cards with names and contributor / entry counts", () => {
+  it("renders Garden cards with names and gardener / entry counts", () => {
     renderView();
     expect(screen.getAllByText("Solar Community Garden").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Urban Composting Hub").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("2 gardeners").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("3 entries").length).toBeGreaterThanOrEqual(1);
+    // A Garden with no entries yet still shows the gardeners it has.
+    expect(screen.getAllByText("1 gardeners").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("0 entries").length).toBeGreaterThanOrEqual(1);
   });
 
   it("links cards to `/gardens/<slug>`", () => {
@@ -148,6 +150,9 @@ describe("GardensGallery", () => {
   it("shows skeletons during loading", () => {
     mockUsePublicGardens.mockReturnValue({ data: [], isLoading: true });
     const { container } = renderView();
-    expect(container.querySelectorAll(".animate-pulse").length).toBeGreaterThanOrEqual(3);
+    expect(container.querySelectorAll("[data-editorial-skeleton]").length).toBeGreaterThanOrEqual(
+      6
+    );
+    expect(container.querySelector(".animate-pulse")).toBeNull();
   });
 });

@@ -7,9 +7,10 @@
 
 import { describe, expect, it, vi } from "vitest";
 import { createActor, fromPromise } from "xstate";
+import { TransactionRevertedError, type TxResult } from "../../modules/transactions/types";
 
 import { type CreateGardenFormStatus, createGardenMachine } from "../../workflows/createGarden";
-import { flushPromises } from "../test-utils";
+import { flushPromises } from "../test-utils/render-helpers";
 
 // ============================================
 // Test Helpers
@@ -47,16 +48,18 @@ function makeFormStatus(overrides: Partial<CreateGardenFormStatus> = {}): Create
   };
 }
 
-function createHangingActor<T>() {
-  return fromPromise<T, void>(() => new Promise<T>(() => {}));
+function createHangingActor() {
+  return fromPromise<TxResult, void>(() => new Promise<TxResult>(() => {}));
 }
 
-function createResolvingActor<T>(value: T) {
-  return fromPromise<T, void>(() => Promise.resolve(value));
+function createResolvingActor(value: string) {
+  return fromPromise<TxResult, void>(() =>
+    Promise.resolve({ hash: value as `0x${string}`, sponsored: false })
+  );
 }
 
 function createRejectingActor(error: Error | string) {
-  return fromPromise<never, void>(() =>
+  return fromPromise<TxResult, void>(() =>
     Promise.reject(typeof error === "string" ? new Error(error) : error)
   );
 }
@@ -319,7 +322,7 @@ describe("workflows/createGardenMachine", () => {
     it("transitions to submitting on SUBMIT when review ready", async () => {
       const machine = createGardenMachine.provide({
         actors: {
-          submitGarden: createHangingActor<string>(),
+          submitGarden: createHangingActor(),
         },
       });
 
@@ -370,7 +373,7 @@ describe("workflows/createGardenMachine", () => {
     function goToSubmitting(actorOverride?: ReturnType<typeof createResolvingActor>) {
       const machine = createGardenMachine.provide({
         actors: {
-          submitGarden: actorOverride ?? createHangingActor<string>(),
+          submitGarden: actorOverride ?? createHangingActor(),
         },
       });
 
@@ -446,7 +449,7 @@ describe("workflows/createGardenMachine", () => {
     it("stores error from non-Error objects", async () => {
       const machine = createGardenMachine.provide({
         actors: {
-          submitGarden: fromPromise<string, void>(() => Promise.reject("string error")),
+          submitGarden: fromPromise<TxResult, void>(() => Promise.reject("string error")),
         },
       });
 
@@ -682,7 +685,7 @@ describe("workflows/createGardenMachine", () => {
     it("extracts message from string errors", async () => {
       const machine = createGardenMachine.provide({
         actors: {
-          submitGarden: fromPromise<string, void>(() => Promise.reject("plain string error")),
+          submitGarden: fromPromise<TxResult, void>(() => Promise.reject("plain string error")),
         },
       });
 
@@ -712,7 +715,7 @@ describe("workflows/createGardenMachine", () => {
 
       const machine = createGardenMachine.provide({
         actors: {
-          submitGarden: fromPromise<string, void>(() => Promise.reject(circular)),
+          submitGarden: fromPromise<TxResult, void>(() => Promise.reject(circular)),
         },
       });
 
@@ -736,4 +739,68 @@ describe("workflows/createGardenMachine", () => {
       actor.stop();
     });
   });
+});
+
+describe("pending garden submissions", () => {
+  it.each([
+    "confirmed",
+    "unresolved",
+    "unavailable",
+    "reverted",
+  ])("reconciles %s without a second mint", async (outcome) => {
+    const pending: TxResult = {
+      hash: "0xSafeProposalIdentifier",
+      sponsored: false,
+      confirmation: "pending",
+    };
+    const submit = vi.fn(async () => pending);
+    const reconcile = vi.fn(async () => {
+      if (outcome === "reverted") throw new TransactionRevertedError(pending.hash);
+      if (outcome === "unavailable") throw new Error("RPC unavailable");
+      return outcome === "confirmed" ? { hash: "0xConfirmed" as const, sponsored: false } : pending;
+    });
+    const actor = createActor(
+      createGardenMachine.provide({
+        actors: {
+          submitGarden: fromPromise<TxResult, void>(submit),
+          reconcileGarden: fromPromise<TxResult, TxResult>(reconcile),
+        },
+      })
+    );
+    actor.start();
+    actor.send({ type: "OPEN" });
+    actor.send({ type: "REVIEW", formStatus: makeFormStatus({ isReviewReady: true }) });
+    actor.send({ type: "SUBMIT", formStatus: makeFormStatus({ isReviewReady: true }) });
+    await waitFor(() => expect(actor.getSnapshot().value).toBe("pending"));
+    for (const type of ["RETRY", "EDIT", "CLOSE", "RESET", "CREATE_ANOTHER"] as const)
+      actor.send({ type });
+    expect(actor.getSnapshot().value).toBe("pending");
+    expect(actor.getSnapshot().context.txHash).toBe(pending.hash);
+    actor.send({ type: "CHECK_CONFIRMATION" });
+    await waitFor(() =>
+      expect(actor.getSnapshot().value).toBe(
+        outcome === "confirmed" ? "success" : outcome === "reverted" ? "error" : "pending"
+      )
+    );
+    expect(submit).toHaveBeenCalledTimes(1);
+    if (outcome === "confirmed") expect(actor.getSnapshot().context.txHash).toBe("0xConfirmed");
+    actor.stop();
+  });
+});
+
+it("restores a pending submission without invoking the mint actor", () => {
+  const submit = vi.fn(async () => ({ hash: "0xNew" as const, sponsored: false }));
+  const actor = createActor(
+    createGardenMachine.provide({ actors: { submitGarden: fromPromise<TxResult, void>(submit) } })
+  );
+  actor.start();
+  actor.send({
+    type: "RESTORE_PENDING",
+    submission: { hash: "0xSafeProposalIdentifier", sponsored: false, confirmation: "pending" },
+  });
+  actor.send({ type: "OPEN" });
+  actor.send({ type: "RETRY" });
+  expect(actor.getSnapshot().value).toBe("pending");
+  expect(submit).not.toHaveBeenCalled();
+  actor.stop();
 });

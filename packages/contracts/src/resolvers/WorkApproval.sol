@@ -8,8 +8,9 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 
 import { WorkApprovalSchema, WorkSchema } from "../Schemas.sol";
 import { IGardenAccessControl } from "../interfaces/IGardenAccessControl.sol";
-import { IERC6551Account } from "../interfaces/IERC6551Account.sol";
 import { IKarmaGAPModule } from "../interfaces/IKarmaGAPModule.sol";
+import { IKarmaSyncObserver } from "../interfaces/IKarmaSyncObserver.sol";
+import { ICommitmentPoolingModule } from "../interfaces/ICommitmentPoolingModule.sol";
 import { ActionRegistry } from "../registries/Action.sol";
 import { NotInActionRegistry } from "./Work.sol";
 import { NotGardenOperator, InvalidSchema } from "../CommonErrors.sol";
@@ -26,7 +27,7 @@ error SelfAttestation();
 /// @title WorkApprovalResolver
 /// @notice A schema resolver for the Actions event schema
 /// @dev This contract is upgradable using the UUPS pattern and requires initialization.
-contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable {
+contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeable, IKarmaSyncObserver {
     address public immutable ACTION_REGISTRY;
 
     /// @notice The Karma GAP module for impact creation
@@ -34,6 +35,15 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
 
     /// @notice Expected EAS schema UID for work approval attestations
     bytes32 public schemaUID;
+
+    /// @notice Optional Commitment Pooling bridge for sequenced Work decisions
+    ICommitmentPoolingModule public commitmentModule;
+
+    /// @notice Latest EVM execution-order decision sequence for each Work UID
+    mapping(bytes32 workUID => uint64 sequence) public latestDecisionSequence;
+
+    /// @notice Resolver-assigned sequence for each decision attestation UID
+    mapping(bytes32 decisionUID => uint64 sequence) public decisionSequenceByUID;
 
     /// @notice Emitted when the KarmaGAPModule is updated
     event KarmaGAPModuleUpdated(address indexed oldModule, address indexed newModule);
@@ -44,13 +54,16 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
     /// @notice Emitted when the expected schema UID is updated
     event SchemaUIDUpdated(bytes32 indexed schemaUID);
 
+    /// @notice Emitted when the optional Commitment Pooling bridge changes
+    event CommitmentModuleUpdated(address indexed oldModule, address indexed newModule);
+
     /**
      * @dev Storage gap for future upgrades
-     * Reserves 48 slots (50 total - 2 used: karmaGAPModule, schemaUID)
+     * Reserves 45 slots (50 total - 5 used)
      * Note: ACTION_REGISTRY is immutable (not in storage)
      * Allows adding new state variables without breaking storage layout in upgrades
      */
-    uint256[48] private __gap;
+    uint256[45] private __gap;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(address easAddrs, address actionAddrs) SchemaResolver(IEAS(easAddrs)) {
@@ -86,6 +99,13 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
         emit SchemaUIDUpdated(_schemaUID);
     }
 
+    /// @notice Sets or disables the optional Commitment Pooling decision bridge.
+    function setCommitmentModule(address _module) external onlyOwner {
+        address oldModule = address(commitmentModule);
+        commitmentModule = ICommitmentPoolingModule(_module);
+        emit CommitmentModuleUpdated(oldModule, _module);
+    }
+
     /// @notice Indicates whether the resolver is payable.
     /// @dev This is a pure function that always returns false.
     /// @return A boolean indicating that the resolver is not payable.
@@ -112,7 +132,14 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
     /// @param attestation The attestation data structure
     /// @return bool True if attestation is valid
     // solhint-disable-next-line code-complexity
-    function onAttest(Attestation calldata attestation, uint256 /*value*/ ) internal override returns (bool) {
+    function onAttest(
+        Attestation calldata attestation,
+        uint256 /*value*/
+    )
+        internal
+        override
+        returns (bool)
+    {
         if (schemaUID != bytes32(0) && attestation.schema != schemaUID) revert InvalidSchema();
 
         // Decode as tuple — struct decode reverts because EAS stores data in flat-tuple
@@ -176,9 +203,32 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
             revert InvalidVerificationMethod();
         }
 
-        // GAP INTEGRATION: Create project impact if approved
-        if (schema.approved && address(karmaGAPModule) != address(0)) {
-            _createGAPProjectImpact(schema, workAttestation, workSchema, action.title);
+        if (schema.approved) {
+            if (address(karmaGAPModule) == address(0)) {
+                emit KarmaHookFailed(
+                    workAttestation.recipient,
+                    address(0),
+                    IKarmaGAPModule.KarmaSyncOperation.ProjectUpdate,
+                    "module_unavailable"
+                );
+            } else {
+                _createGAPProjectImpact(schema, workAttestation, workSchema, action.title);
+            }
+        }
+
+        if (address(commitmentModule) != address(0)) {
+            uint64 decisionSequence = latestDecisionSequence[schema.workUID] + 1;
+            latestDecisionSequence[schema.workUID] = decisionSequence;
+            decisionSequenceByUID[attestation.uid] = decisionSequence;
+            // solhint-disable-next-line no-empty-blocks
+            try commitmentModule.onWorkDecision(
+                schema.workUID, attestation.uid, decisionSequence, attestation.recipient, schema.approved
+            ) {
+            // The module reconciled the decision or safely no-op'd an unlinked Work.
+            }
+                catch {
+                // A resolver attestation never depends on the optional module bridge.
+            }
         }
 
         return (true);
@@ -187,7 +237,15 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
     /// @notice Work approval decisions are permanent and cannot be revoked.
     /// @dev Operators submit a new attestation if they need to change a decision.
     /// @return Always false to reject revocation attempts.
-    function onRevoke(Attestation calldata, uint256 /*value*/ ) internal pure override returns (bool) {
+    function onRevoke(
+        Attestation calldata,
+        uint256 /*value*/
+    )
+        internal
+        pure
+        override
+        returns (bool)
+    {
         return false;
     }
 
@@ -210,16 +268,16 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
         string memory impactDesc = bytes(workSchema.feedback).length > 0 ? workSchema.feedback : schema.feedback;
         string memory proof = workSchema.media.length > 0 ? workSchema.media[0] : "";
 
-        (,, uint256 tokenId) = IERC6551Account(workAttestation.recipient).token();
-
-        // SECURITY: Use try/catch to prevent GAP failures from reverting approval
-        // solhint-disable-next-line no-empty-blocks
-        try karmaGAPModule.createImpact(
-            workAttestation.recipient, tokenId, workTitle, impactDesc, proof, schema.workUID, workSchema.metadata
-        ) {
-            // Success - event emitted by module, no additional action needed
-        } catch {
-            // Intentionally ignore failures - approval succeeds even if GAP integration fails
+        try karmaGAPModule.createProjectUpdate(
+            workAttestation.recipient, workTitle, impactDesc, proof, schema.workUID, workSchema.metadata
+        ) { }
+        catch {
+            emit KarmaHookFailed(
+                workAttestation.recipient,
+                address(0),
+                IKarmaGAPModule.KarmaSyncOperation.ProjectUpdate,
+                "module_call_reverted"
+            );
         }
     }
 

@@ -1,10 +1,8 @@
-import {
-  copyToClipboard,
-  hapticLight,
-  toastService,
-  useApp,
-  useInstallGuidance,
-} from "@green-goods/shared";
+import { Button } from "@green-goods/shared/components/Button";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { useInstallGuidance } from "@green-goods/shared/hooks/app/useInstallGuidance";
+import { useApp } from "@green-goods/shared/providers/App";
+import { copyToClipboard } from "@green-goods/shared/utils/app/clipboard";
 import {
   RiAlertLine,
   RiDownloadLine,
@@ -14,7 +12,6 @@ import {
 } from "@remixicon/react";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
-import { Button } from "@/components/Actions";
 import { Card } from "@/components/Cards";
 import { Avatar } from "@/components/Display";
 
@@ -24,20 +21,21 @@ export const InstallCta: React.FC = () => {
     isInstalled,
     isInstalling,
     wasInstalled,
+    installedAppEvidence,
     deferredPrompt,
     promptInstall,
     platform,
   } = useApp();
   const intl = useIntl();
 
-  const guidance = useInstallGuidance(
+  const guidance = useInstallGuidance({
     platform,
-    isInstalled,
+    installedAppEvidence,
     wasInstalled,
     deferredPrompt,
     isMobile,
-    isInstalling
-  );
+    isInstalling,
+  });
 
   const installDescription = useMemo(() => {
     if (guidance.scenario === "installing") {
@@ -107,50 +105,48 @@ export const InstallCta: React.FC = () => {
             </div>
             {guidance.openInBrowserUrl ? (
               <Button
-                variant="primary"
-                mode="filled"
-                size="xsmall"
+                type="button"
+                size="sm"
                 onClick={() => {
-                  hapticLight();
                   window.location.href = guidance.openInBrowserUrl as string;
                 }}
-                leadingIcon={<RiExternalLinkLine className="w-4" />}
-                label={intl.formatMessage({
+                leadingIcon={<RiExternalLinkLine className="h-4 w-4" aria-hidden="true" />}
+                className="shrink-0"
+              >
+                {intl.formatMessage({
                   id: "app.profile.openChrome",
                   defaultMessage: "Open in Chrome",
                 })}
-                className="shrink-0"
-              />
+              </Button>
             ) : (
               <Button
-                variant="primary"
-                mode="filled"
-                size="xsmall"
+                type="button"
+                size="sm"
                 onClick={async () => {
-                  hapticLight();
                   const success = await copyToClipboard(window.location.href);
                   if (success) {
                     toastService.success({
                       title: intl.formatMessage({
                         id: "app.profile.urlCopied",
-                        defaultMessage: "Link Copied",
+                        defaultMessage: "URL copied",
                       }),
                       message: intl.formatMessage({
                         id: "app.profile.urlCopiedMessage",
-                        defaultMessage: "Open Safari and paste the link to install.",
+                        defaultMessage: "Profile URL copied to clipboard",
                       }),
                       context: "copy-url",
                       suppressLogging: true,
                     });
                   }
                 }}
-                leadingIcon={<RiFileCopyLine className="w-4" />}
-                label={intl.formatMessage({
+                leadingIcon={<RiFileCopyLine className="h-4 w-4" aria-hidden="true" />}
+                className="shrink-0"
+              >
+                {intl.formatMessage({
                   id: "app.profile.copyLink",
                   defaultMessage: "Copy Link",
                 })}
-                className="shrink-0"
-              />
+              </Button>
             )}
           </div>
         </Card>
@@ -160,7 +156,7 @@ export const InstallCta: React.FC = () => {
         <Card>
           <div className="flex flex-row items-center gap-3 justify-between w-full">
             <Avatar>
-              <div className="flex items-center justify-center text-center mx-auto text-primary">
+              <div className="flex items-center justify-center text-center mx-auto text-primary-on-surface">
                 <RiSmartphoneLine className="w-4" />
               </div>
             </Avatar>
@@ -175,31 +171,25 @@ export const InstallCta: React.FC = () => {
             </div>
             {guidance.scenario === "native-prompt-available" && (
               <Button
-                variant="primary"
-                mode="filled"
-                size="xsmall"
+                type="button"
+                size="sm"
                 onClick={promptInstall}
-                leadingIcon={<RiDownloadLine className="w-4" />}
-                label={intl.formatMessage({
+                leadingIcon={<RiDownloadLine className="h-4 w-4" aria-hidden="true" />}
+                className="shrink-0"
+              >
+                {intl.formatMessage({
                   id: "app.profile.installButton",
                   defaultMessage: "Install",
                 })}
-                className="shrink-0"
-              />
+              </Button>
             )}
             {guidance.scenario === "installing" && (
-              <Button
-                variant="primary"
-                mode="filled"
-                size="xsmall"
-                disabled
-                leadingIcon={<RiDownloadLine className="w-4" />}
-                label={intl.formatMessage({
+              <Button type="button" size="sm" loading className="shrink-0">
+                {intl.formatMessage({
                   id: "app.profile.installingButton",
                   defaultMessage: "Installing",
                 })}
-                className="shrink-0"
-              />
+              </Button>
             )}
           </div>
         </Card>

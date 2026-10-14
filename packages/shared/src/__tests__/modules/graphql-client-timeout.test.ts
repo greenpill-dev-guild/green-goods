@@ -45,9 +45,10 @@ describe("withTimeout", () => {
     vi.useRealTimers();
   });
 
+  // The pending timer count proves the timeout is cleared. Spying on the global clearTimeout under
+  // fake timers left the fake clock's clearTimeout installed for every later file in the worker.
   it("clears timeout when promise resolves", async () => {
     vi.useFakeTimers();
-    const clearTimeoutSpy = vi.spyOn(globalThis, "clearTimeout");
 
     let resolver: (value: string) => void;
     const promise = new Promise<string>((resolve) => {
@@ -55,21 +56,20 @@ describe("withTimeout", () => {
     });
 
     const timeoutPromise = withTimeout(promise, 1000, "TestOp");
+    expect(vi.getTimerCount()).toBe(1);
 
     // Resolve before timeout
     resolver!("done");
 
     const result = await timeoutPromise;
     expect(result).toBe("done");
-    expect(clearTimeoutSpy).toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
 
-    clearTimeoutSpy.mockRestore();
     vi.useRealTimers();
   });
 
   it("clears timeout when promise rejects", async () => {
     vi.useFakeTimers();
-    const clearTimeoutSpy = vi.spyOn(globalThis, "clearTimeout");
 
     let rejecter: (error: Error) => void;
     const promise = new Promise<string>((_, reject) => {
@@ -77,14 +77,14 @@ describe("withTimeout", () => {
     });
 
     const timeoutPromise = withTimeout(promise, 1000, "TestOp");
+    expect(vi.getTimerCount()).toBe(1);
 
     // Reject before timeout
     rejecter!(new Error("rejected"));
 
     await expect(timeoutPromise).rejects.toThrow("rejected");
-    expect(clearTimeoutSpy).toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
 
-    clearTimeoutSpy.mockRestore();
     vi.useRealTimers();
   });
 });

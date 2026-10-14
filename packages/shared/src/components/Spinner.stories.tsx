@@ -45,20 +45,20 @@ export const Large: Story = {
 export const AllSizes: Story = {
   render: () => (
     <div className="flex items-center gap-4">
-      <Spinner size="sm" />
-      <Spinner size="md" />
-      <Spinner size="lg" />
+      <Spinner size="sm" label="Loading" />
+      <Spinner size="md" label="Loading" />
+      <Spinner size="lg" label="Loading" />
     </div>
   ),
 };
 
 // CenteredSpinner stories
 export const Centered: StoryObj<typeof CenteredSpinner> = {
-  render: () => <CenteredSpinner message="Loading your data..." />,
+  render: () => <CenteredSpinner label="Loading" message="Loading your data..." />,
 };
 
 export const CenteredFullScreen: StoryObj<typeof CenteredSpinner> = {
-  render: () => <CenteredSpinner fullScreen message="Loading application..." />,
+  render: () => <CenteredSpinner fullScreen label="Loading" message="Loading application..." />,
   parameters: {
     layout: "fullscreen",
   },

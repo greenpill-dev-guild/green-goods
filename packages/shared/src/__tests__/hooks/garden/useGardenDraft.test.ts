@@ -8,7 +8,7 @@
  */
 
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { act, renderHook } from "@testing-library/react";
@@ -27,8 +27,8 @@ const mockFormState = {
   bannerImage: "",
   metadata: "",
   openJoining: false,
-  gardeners: [],
-  operators: [],
+  gardeners: [] as string[],
+  stewards: [] as string[],
 };
 
 let mockStoreState = {
@@ -36,15 +36,15 @@ let mockStoreState = {
   currentStep: 0,
 };
 
-const mockSetState = vi.fn();
+const mockSetState = vi.fn((..._args: unknown[]) => undefined);
 const mockGetState = vi.fn(() => mockStoreState);
-const mockSubscribe = vi.fn(() => vi.fn()); // returns unsubscribe
+const mockSubscribe = vi.fn((_listener: unknown) => vi.fn()); // returns unsubscribe
 
 vi.mock("../../../stores/useCreateGardenStore", () => ({
   useCreateGardenStore: Object.assign(vi.fn(), {
     setState: (...args: unknown[]) => mockSetState(...args),
     getState: () => mockGetState(),
-    subscribe: (listener: any) => mockSubscribe(listener),
+    subscribe: (listener: unknown) => mockSubscribe(listener),
   }),
 }));
 
@@ -113,13 +113,13 @@ describe("useGardenDraft", () => {
   // ------------------------------------------
 
   describe("draftKey", () => {
-    it("returns correct key when operatorAddress provided", () => {
+    it("returns correct key when stewardAddress provided", () => {
       const { result } = renderHook(() => useGardenDraft(OPERATOR_ADDR));
 
       expect(result.current.draftKey).toBe(`garden_draft_${OPERATOR_ADDR}`);
     });
 
-    it("returns null when operatorAddress is missing", () => {
+    it("returns null when stewardAddress is missing", () => {
       const { result } = renderHook(() => useGardenDraft(undefined));
 
       expect(result.current.draftKey).toBeNull();
@@ -141,7 +141,7 @@ describe("useGardenDraft", () => {
       });
 
       expect(savedDraft).not.toBeNull();
-      expect(savedDraft.operatorAddress).toBe(OPERATOR_ADDR);
+      expect(savedDraft.stewardAddress).toBe(OPERATOR_ADDR);
       expect(savedDraft.form.name).toBe("My Garden");
       expect(savedDraft.currentStep).toBe(1);
       expect(result.current.lastSavedAt).toBeGreaterThan(0);
@@ -171,7 +171,7 @@ describe("useGardenDraft", () => {
       expect(savedDraft).toBeNull();
     });
 
-    it("returns null when operatorAddress is missing", async () => {
+    it("returns null when stewardAddress is missing", async () => {
       withProgress();
       const { result } = renderHook(() => useGardenDraft(undefined));
 
@@ -400,5 +400,30 @@ describe("useGardenDraft", () => {
       });
       expect(saved).toBeNull();
     });
+  });
+  it("keeps backups on different chains separate and refuses a stale owner's save", async () => {
+    withProgress();
+    mockGetState.mockImplementation(() => ({
+      ...mockStoreState,
+      draftScope: `11155111:${OPERATOR_ADDR}`,
+    }));
+    const first = renderHook(() => useGardenDraft(OPERATOR_ADDR, { chainId: 11155111 }));
+    const second = renderHook(() => useGardenDraft(OPERATOR_ADDR, { chainId: 42161 }));
+    await act(() => first.result.current.saveDraft());
+    mockStoreState.form.name = "Second chain garden";
+    mockGetState.mockImplementation(() => ({
+      ...mockStoreState,
+      draftScope: `42161:${OPERATOR_ADDR}`,
+    }));
+    await act(async () => {
+      expect(await first.result.current.saveDraft()).toBeNull();
+      await second.result.current.saveDraft();
+      await first.result.current.clearDraft();
+    });
+    expect(await idbGet(second.result.current.draftKey!)).toMatchObject({
+      form: { name: "Second chain garden" },
+      chainId: 42161,
+    });
+    expect(await idbGet(first.result.current.draftKey!)).toBeUndefined();
   });
 });

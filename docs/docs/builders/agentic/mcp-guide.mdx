@@ -3,74 +3,71 @@ title: Agent and MCP Guide
 slug: /builders/agentic/mcp-guide
 audience: developer
 owner: docs
-last_verified: 2026-05-26
 feature_status: Live
-goal: "Understand current MCP server configuration and safe usage boundaries."
-difficulty: "advanced"
-estimated_time: "10-20 minutes"
-prereqs: "Read access to `.mcp.json` and AGENTS guidance."
-next_steps: "../deployments/status"
-persona_context: "Developers and maintainers building, operating, and validating Green Goods systems."
+generated: true
+generator: scripts/docs/generate.mjs
+generated_from:
+  - .mcp.json
+  - AGENTS.md
+  - docs/routines/bug-intake.md
+  - docs/routines/growth-pulse.md
+  - docs/routines/health-watch.md
+  - docs/routines/pr-review.md
+  - docs/routines/qa-call-report.md
+  - docs/routines/qa-triage-pulse.md
+  - docs/routines/release-prep.md
+  - docs/routines/research-synthesis.md
+  - scripts/data/agent-connectors.json
+  - scripts/mcp/brave-devtools.mjs
+source_digest: "sha256:1d1c437ade6fee4af3908f4cdbe48da082da8a84e1b44633adfa756f7d4ef9a0"
 source_of_truth:
   - .mcp.json
   - AGENTS.md
+  - docs/routines/bug-intake.md
+  - docs/routines/growth-pulse.md
+  - docs/routines/health-watch.md
+  - docs/routines/pr-review.md
+  - docs/routines/qa-call-report.md
+  - docs/routines/qa-triage-pulse.md
+  - docs/routines/release-prep.md
+  - docs/routines/research-synthesis.md
+  - scripts/data/agent-connectors.json
+  - scripts/mcp/brave-devtools.mjs
 ---
 
-import {NextBestAction, QuickAnswer, StatusBadge} from "@site/src/components/docs";
-
+<!-- GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs --scope <scope>`. -->
 # Agent and MCP Guide
 
-<StatusBadge status="Live" />
+An agent reaches tools in two ways here. MCP servers checked into this repository start with the project for anyone who clones it. Connected services are hosted tools, such as the backlog, telemetry, and deployments, that an agent reaches through a connector in the coding app, signed in by the person using it. Repository guidance says how each may be used.
 
-Status aligned to `.mcp.json` as of **2026-05-26**.
+## MCP servers in this repository
 
-## Configured servers
+Projected from the checked-in MCP configuration, `.mcp.json`.
 
-`.mcp.json` declares the `brave-devtools` MCP server:
+| Server | Command | Arguments | Scope | Surfaces |
+|---|---|---|---|---|
+| brave-devtools | `node` | `scripts/mcp/brave-devtools.mjs` | local-browser-debugging | client, admin, docs, storybook |
 
-```json
-{
-  "mcpServers": {
-    "brave-devtools": {
-      "command": "node",
-      "args": ["scripts/mcp/brave-devtools.mjs"]
-    }
-  }
-}
-```
+### Safety boundary {#safety-boundary}
 
-The wrapper starts the upstream `chrome-devtools-mcp@latest` package from a compatible Node 22 toolchain, outside the repo package root so npm does not read workspace overrides, against Brave only. The upstream package name is the protocol package name; it is not permission to use Google Chrome, Chrome for Testing, Chromium, or Edge. The wrapper rejects non-Brave executable paths. It uses an isolated browser profile, stable viewport, page-id routing for concurrent agent sessions, structured output, redacted network headers, localhost HTTPS support, WebMCP debugging enabled, WebMCP testing flags, and external usage/CrUX calls disabled.
+- WebMCP proof through this wrapper is Brave-only (navigator.modelContext). Do not point it at Google Chrome, Chrome for Testing, Chromium, or Edge.
+- The wrapper calls the upstream chrome-devtools-mcp package because that is the protocol package name; the browser executable must still be Brave.
+- This isolated DevTools MCP server is public clean-room evidence only; it is not authenticated local QA.
+- Use the authenticated Brave extension or visible-desktop path for wallet, passkey, session, installed-PWA, and profile-dependent proof (AGENTS.md § Browser Evidence).
+- Do not expose secrets, wallet state, passkeys, local storage, private garden data, telemetry identifiers, or hidden admin actions in prompts or reports.
 
-Use it only for CI/clean-room public-route checks or explicit non-authenticated protocol debugging. It is not local QA proof for authenticated admin, PWA, wallet, or private-data surfaces; use the authenticated Brave QA profile and connected browser-extension path for those.
+## Connected services
 
-## Agent access model
+These are not in `.mcp.json`, and the routines' rules say to keep it that way. Each person connects them once in their coding app (Claude Code or Codex), and an agent may then use them inside the limits its guide sets. The third column is read from the connectors each scheduled routine declares; working sessions use the same services under the same rules.
 
-`.mcp.json` allows `brave-devtools` for CI/clean-room public-route checks and explicit non-authenticated protocol debugging across client, admin, docs, and Storybook surfaces. Do not use this MCP server for authenticated admin, wallet-adjacent, or private-data local QA.
+| Service | What agents use it for | Routines that declare it | Rules |
+|---|---|---|---|
+| Linear | The durable backlog. Agents read issues and projects, file and update issues under the routing contract, and post review comments and status updates. | `bug-intake`, `growth-pulse`, `health-watch`, `pr-review`, `qa-call-report`, `qa-triage-pulse`, `release-prep`, `research-synthesis` | [.claude/context/linear-routing-rules.md](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.claude/context/linear-routing-rules.md) |
+| PostHog | Product telemetry, read-only, across three projects: App, Admin, and Agent. Agents use it to check a bug report against real usage and to answer health and growth questions, choosing the project before every query. | `bug-intake`, `growth-pulse`, `health-watch`, `qa-call-report`, `qa-triage-pulse` | [docs/routines/posthog-questions.md](https://github.com/greenpill-dev-guild/green-goods/blob/develop/docs/routines/posthog-questions.md) |
+| Vercel | Deployments of the client and admin apps: which commit is live, when a deploy landed, and the preview for a pull request. | `bug-intake`, `health-watch`, `pr-review`, `qa-call-report`, `qa-triage-pulse` | [docs/routines/health-watch.md](https://github.com/greenpill-dev-guild/green-goods/blob/develop/docs/routines/health-watch.md) |
+| Sentry | Error detail beside the PostHog evidence, when a Sentry connection is available. Every routine is written to work without it. | `qa-call-report` | [docs/routines/README.md](https://github.com/greenpill-dev-guild/green-goods/blob/develop/docs/routines/README.md) |
+| GitHub | Pull requests, review threads, commit ranges, and releases. The gh CLI covers the same ground when no connector is present. | `release-prep` | [.claude/skills/resolve-pr-comments/SKILL.md](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.claude/skills/resolve-pr-comments/SKILL.md) |
+| Google Drive | The meeting notes that feed bug intake and QA triage. | `bug-intake`, `qa-call-report`, `qa-triage-pulse`, `research-synthesis` | [docs/routines/qa-triage-pulse.md](https://github.com/greenpill-dev-guild/green-goods/blob/develop/docs/routines/qa-triage-pulse.md) |
+| Google Calendar | Upcoming events that explain a change in the numbers, such as a demo or a planting season. Optional context only. | `growth-pulse`, `health-watch` | [docs/routines/health-watch.md](https://github.com/greenpill-dev-guild/green-goods/blob/develop/docs/routines/health-watch.md) |
 
-Native WebMCP discovery requires a Brave build that exposes `navigator.modelContext`. The repo wrapper passes the WebMCP testing flags, but native WebMCP will remain unavailable until the installed Brave build supports it. To force a specific Brave binary, set `GREEN_GOODS_MCP_BRAVE_BIN`; to connect to an already-running debuggable Brave session, set `GREEN_GOODS_MCP_BRAVE_BROWSER_URL` or `GREEN_GOODS_MCP_BRAVE_WS_ENDPOINT`.
-
-## Consistency note
-
-The repository guidance points to `.mcp.json` as the source of truth. User-level MCP servers can still exist in Codex, Claude, Cursor, or another client, but project claims must match this file.
-
-## Safe usage policy
-
-- Prefer local tooling (`bun`, `forge`, `cast`) for small scoped tasks.
-- Use the authenticated Brave QA profile for local live browser state, rendered DOM, screenshots, traces, and success claims on admin, PWA, wallet, or private-data surfaces. Use `brave-devtools` only for CI/clean-room public-route checks or explicit non-authenticated protocol debugging.
-- Never use Google Chrome, Chrome for Testing, Chromium, or Edge as a Green Goods browser-proof fallback.
-- Avoid exposing secrets in logs or docs examples.
-- Do not expose wallet state, passkeys, private garden data, cookies, local storage, telemetry identifiers, hidden admin actions, or onchain/write actions through MCP prompts or reports.
-
-<QuickAnswer question="Which source wins if docs and config disagree?" openByDefault>
-  `.mcp.json` is the source of truth. Update docs in the same PR that changes MCP config.
-</QuickAnswer>
-
-<NextBestAction
-  title="Next best action"
-  why="After checking tool access, confirm protocol activation status before documenting feature availability."
-  actionLabel="Open deployment status"
-  actionHref="../deployments/status"
-  alternatives={[
-    {label: "Back to agentic guides", href: "./core-philosophies"},
-  ]}
-/>
+The routine definitions live in [docs/routines](https://github.com/greenpill-dev-guild/green-goods/tree/develop/docs/routines), each with the connectors it may use in its frontmatter.

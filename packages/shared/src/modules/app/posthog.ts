@@ -7,23 +7,18 @@
  * - Adds consistent event enrichment
  * - Throttles only diagnostic events, not countable "fact" events
  *
- * Usage:
- * - track() for custom events
- * - identify() to set user identity (call on login)
- * - reset() to clear identity (call on logout)
- * - identifyWithProperties() to set identity + person properties
  */
 
-import { type CaptureResult, posthog } from "posthog-js";
+import type { CaptureResult } from "posthog-js";
 
 import { logger } from "./logger";
+import { createAnonymousTelemetryIdentity } from "./telemetryIdentity";
+import { getTelemetrySink, isTelemetryReady } from "./telemetry-sink";
 
 const IS_DEV = import.meta.env.DEV;
 const IS_DEBUG = import.meta.env.VITE_POSTHOG_DEBUG === "true";
 
-// ============================================================================
 // EXCEPTION PAYLOAD COMPATIBILITY
-// ============================================================================
 
 /**
  * posthog-js >= 1.3xx emits exception-autocapture data in `$exception_list` (an
@@ -64,22 +59,12 @@ export function restoreExceptionTopLevelProps(event: CaptureResult | null): Capt
   return event;
 }
 
-// ============================================================================
 // APP VERSION AND ENVIRONMENT
-// ============================================================================
 
-/**
- * Get the app version from environment variable or package.json.
- * Falls back to "unknown" if not available.
- */
 export function getAppVersion(): string {
   return import.meta.env.VITE_APP_VERSION || "unknown";
 }
 
-/**
- * Get the current chain ID from environment.
- * @returns The chain ID if valid, null if missing or invalid
- */
 export function getChainId(): number | null {
   const chainId = import.meta.env.VITE_CHAIN_ID;
   if (!chainId) return null;
@@ -90,9 +75,6 @@ export function getChainId(): number | null {
   return parsed;
 }
 
-/**
- * Common testnet chain IDs.
- */
 const TESTNET_CHAIN_IDS = new Set([
   11155111, // Ethereum Sepolia
   421614, // Arbitrum Sepolia
@@ -101,9 +83,6 @@ const TESTNET_CHAIN_IDS = new Set([
   44787, // Celo Alfajores
 ]);
 
-/**
- * Known mainnet chain IDs.
- */
 const MAINNET_CHAIN_IDS = new Set([
   1, // Ethereum Mainnet
   42161, // Arbitrum One
@@ -112,19 +91,13 @@ const MAINNET_CHAIN_IDS = new Set([
   10, // Optimism
 ]);
 
-/**
- * Determine if the current chain is a testnet.
- */
-export function isTestnetEnvironment(chainId?: number | null): boolean {
+function isTestnetEnvironment(chainId?: number | null): boolean {
   const chain = chainId ?? getChainId();
   if (chain === null) return false;
   return TESTNET_CHAIN_IDS.has(chain);
 }
 
-/**
- * Determine if the current chain is a known mainnet.
- */
-export function isMainnetEnvironment(chainId?: number | null): boolean {
+function isMainnetEnvironment(chainId?: number | null): boolean {
   const chain = chainId ?? getChainId();
   if (chain === null) return false;
   return MAINNET_CHAIN_IDS.has(chain);
@@ -134,7 +107,7 @@ export function isMainnetEnvironment(chainId?: number | null): boolean {
  * Get the environment name based on chain ID.
  * Returns "unknown" if chain ID is not configured, invalid, or not in known chains.
  */
-export function getEnvironment(chainId?: number | null): "testnet" | "mainnet" | "unknown" {
+function getEnvironment(chainId?: number | null): "testnet" | "mainnet" | "unknown" {
   const chain = chainId ?? getChainId();
   if (chain === null) return "unknown";
   if (isTestnetEnvironment(chain)) return "testnet";
@@ -162,20 +135,6 @@ export function getAppContext(): {
 // ============================================================================
 // INITIALIZATION CHECK
 // ============================================================================
-
-/**
- * Check if PostHog is initialized and ready to capture events.
- * PostHogProvider initializes PostHog - we just check if it's ready.
- */
-function isPostHogReady(): boolean {
-  try {
-    // PostHog is ready if it has a config with an api_host
-    const config = (posthog as unknown as { config?: { api_host?: string } }).config;
-    return typeof config !== "undefined" && typeof config.api_host === "string";
-  } catch {
-    return false;
-  }
-}
 
 // ============================================================================
 // THROTTLING (only for diagnostic events)
@@ -267,6 +226,8 @@ function getSessionId(): string {
 // ============================================================================
 
 export interface TrackOptions {
+  /** Replace persisted PostHog identity with a one-event diagnostic identity. */
+  anonymizeIdentity?: boolean;
   includeSessionId?: boolean;
 }
 
@@ -288,8 +249,35 @@ export function track(
     return;
   }
 
-  // Enrich with context
-  const enrichedProperties = {
+  const enrichedProperties = enrichEventProperties(event, properties, options);
+
+  if (IS_DEBUG) {
+    logger.info(`[PostHog] track: ${event}`, enrichedProperties);
+  }
+
+  try {
+    getTelemetrySink().capture(event, enrichedProperties);
+  } catch (error) {
+    // Telemetry is best effort. A sink that throws must never fail what the
+    // caller was doing: a wallet that switched network, a send that went out.
+    logger.warn(`[PostHog] capture failed: ${event}`, { error: String(error) });
+  }
+}
+
+/**
+ * The context `track` adds to every event, read at the moment it is called. An event kept for
+ * later delivery takes it when it happens, so it describes that moment and not the delivery.
+ */
+export function enrichEventProperties(
+  event: string,
+  properties: Record<string, unknown> = {},
+  options: TrackOptions = {}
+): Record<string, unknown> {
+  const anonymousIdentity = options.anonymizeIdentity
+    ? createAnonymousTelemetryIdentity(event)
+    : {};
+
+  return {
     ...properties,
     is_online: typeof navigator !== "undefined" ? navigator.onLine : true,
     connection_type:
@@ -299,22 +287,8 @@ export function track(
         : "unknown",
     timestamp: Date.now(),
     ...(options.includeSessionId === false ? {} : { session_id: getSessionId() }),
+    ...anonymousIdentity,
   };
-
-  if (IS_DEBUG) {
-    logger.info(`[PostHog] track: ${event}`, enrichedProperties);
-  }
-
-  // Skip in dev mode or if PostHog isn't ready
-  if (IS_DEV) return;
-  if (!isPostHogReady()) {
-    if (IS_DEBUG) {
-      logger.warn("[PostHog] Not ready, skipping capture");
-    }
-    return;
-  }
-
-  posthog.capture(event, enrichedProperties);
 }
 
 // ============================================================================
@@ -331,8 +305,8 @@ export function identify(distinctId: string) {
   if (IS_DEBUG) {
     logger.info(`[PostHog] identify: ${distinctId}`);
   }
-  if (IS_DEV || !isPostHogReady()) return;
-  posthog.identify(distinctId);
+  if (IS_DEV || !isTelemetryReady()) return;
+  getTelemetrySink().identify?.(distinctId);
 }
 
 /**
@@ -357,9 +331,9 @@ export function identifyWithProperties(
       properties as Record<string, unknown>
     );
   }
-  if (IS_DEV || !isPostHogReady()) return;
+  if (IS_DEV || !isTelemetryReady()) return;
 
-  posthog.identify(distinctId, {
+  getTelemetrySink().identify?.(distinctId, {
     // Standard person properties
     auth_mode: properties.auth_mode,
     app: properties.app,
@@ -380,8 +354,8 @@ export function reset() {
   if (IS_DEBUG) {
     logger.info("[PostHog] reset");
   }
-  if (IS_DEV || !isPostHogReady()) return;
-  posthog.reset();
+  if (IS_DEV || !isTelemetryReady()) return;
+  getTelemetrySink().reset?.();
 }
 
 /**
@@ -391,10 +365,10 @@ export function getDistinctId(): string {
   if (IS_DEV) {
     return "dev-user-id";
   }
-  if (!isPostHogReady()) {
+  if (!isTelemetryReady()) {
     return "not-initialized";
   }
-  return posthog.get_distinct_id();
+  return getTelemetrySink().getDistinctId?.() ?? "not-initialized";
 }
 
 // ============================================================================
@@ -484,7 +458,7 @@ function handleVisibilityChange() {
  *
  * @returns A cleanup function to remove all event listeners
  */
-export function initNetworkTracking(): () => void {
+function initNetworkTracking(): () => void {
   if (networkListenersInitialized && cleanupNetworkListeners) {
     return cleanupNetworkListeners;
   }
@@ -548,7 +522,7 @@ export function registerGlobalProperties(): boolean {
     }
     return true;
   }
-  if (!isPostHogReady()) {
+  if (!isTelemetryReady()) {
     if (IS_DEBUG) {
       logger.warn("[PostHog] Not ready, skipping global properties registration");
     }
@@ -558,7 +532,7 @@ export function registerGlobalProperties(): boolean {
   const context = getAppContext();
 
   // Register super properties - these are included in all events
-  posthog.register({
+  getTelemetrySink().register?.({
     app_version: context.app_version,
     environment: context.environment,
     chain_id: context.chain_id,

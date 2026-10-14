@@ -256,6 +256,11 @@ contract MockGAP is IGap, IProjectResolver {
         return project.owner == addr;
     }
 
+    /// @inheritdoc IProjectResolver
+    function projectAdmins(bytes32 projectId, address addr) external view returns (bool) {
+        return projects[projectId].admins[addr];
+    }
+
     // ═══════════════════════════════════════════════════════════════════════════
     // Test Helpers
     // ═══════════════════════════════════════════════════════════════════════════

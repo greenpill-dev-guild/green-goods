@@ -61,4 +61,4 @@
 
 - [ ] Partner discovery notes recorded in `status.json` history.
 - [ ] Targeted agent/shared/admin tests once implementation starts.
-- [ ] `node scripts/plan-hub.mjs validate`
+- [ ] `node scripts/harness/plan-hub.mjs validate`

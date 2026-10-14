@@ -1,14 +1,30 @@
-import {
-  DEFAULT_CHAIN_ID,
-  compareAddresses,
-  useActions,
-  useAdminGardenContext,
-  useGardenPermissions,
-  useGardens,
-  useWorks,
-  type WorkMetadata,
-} from "@green-goods/shared";
-import { useEffect, useMemo } from "react";
+import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
+import type { Garden, Work, WorkMetadata } from "../../../types/domain";
+import { compareAddresses } from "../../../utils/blockchain/address";
+import { useActions, useGardens } from "../../blockchain/useBaseLists";
+import { useAdminGardenContext } from "../../garden/useAdminGardenContext";
+import { useGardenPermissions } from "../../garden/useGardenPermissions";
+import { useWorks } from "../../work/useWorks";
+import { replaceEqualDeep } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+
+export type WorkDetailResolutionStatus =
+  | "loading"
+  | "resolved"
+  | "temporarily-absent"
+  | "not-found"
+  | "error";
+
+interface ResolvedWorkSnapshot {
+  workId: string;
+  garden: Garden;
+  work: Work;
+}
+
+/** Whether two reads carry the same record, whichever objects hold it. */
+function isSameRecord<T>(known: T, next: T): boolean {
+  return known === next || replaceEqualDeep(known, next) === known;
+}
 
 export function parseWorkMetadata(metadataStr: string): Partial<WorkMetadata> | null {
   try {
@@ -21,9 +37,20 @@ export function parseWorkMetadata(metadataStr: string): Partial<WorkMetadata> | 
 
 export function useResolvedWorkDetail(workId: string | undefined) {
   const gardenPermissions = useGardenPermissions();
-  const { activeGarden, activeGardenId, selectGarden } = useAdminGardenContext();
+  const {
+    activeGarden,
+    activeGardenId,
+    isError: gardenContextError,
+    selectGarden,
+  } = useAdminGardenContext();
 
-  const { data: gardens = [], isLoading: gardensLoading } = useGardens();
+  const {
+    data: gardens = [],
+    error: gardensError,
+    isError: gardensQueryError,
+    isFetching: gardensFetching,
+    isLoading: gardensLoading,
+  } = useGardens();
   const matchedGarden = useMemo(
     () =>
       workId
@@ -34,15 +61,57 @@ export function useResolvedWorkDetail(workId: string | undefined) {
     [gardens, workId]
   );
   const gardenId = matchedGarden?.id ?? activeGardenId;
-  const garden =
+  const liveGarden =
     gardens.find((candidateGarden) => compareAddresses(candidateGarden.id, gardenId)) ??
     matchedGarden ??
     (activeGarden && compareAddresses(activeGarden.id, gardenId) ? activeGarden : null);
 
-  const { works, isLoading: worksLoading } = useWorks(gardenId ?? "");
-  const work =
+  const {
+    error: worksError,
+    isError: worksQueryError,
+    isFetching: worksFetching,
+    isLoading: worksLoading,
+    works,
+  } = useWorks(gardenId ?? "");
+  const liveWork =
     works.find((candidateWork) => candidateWork.id === workId) ??
     matchedGarden?.works?.find((candidateWork) => candidateWork.id === workId);
+
+  const [lastResolved, setLastResolved] = useState<ResolvedWorkSnapshot | null>(null);
+  useEffect(() => {
+    if (!workId || !liveGarden || !liveWork) {
+      setLastResolved((current) => (current?.workId === workId ? current : null));
+      return;
+    }
+
+    // Kept by content, not by object. A collection that hands back an equal
+    // copy must not be stored again: the state update re-renders, the next copy
+    // arrives, and the open detail never settles or closes.
+    setLastResolved((current) =>
+      current?.workId === workId &&
+      isSameRecord(current.garden, liveGarden) &&
+      isSameRecord(current.work, liveWork)
+        ? current
+        : { workId, garden: liveGarden, work: liveWork }
+    );
+  }, [liveGarden, liveWork, workId]);
+
+  const retained = lastResolved?.workId === workId ? lastResolved : null;
+  const hasLiveRecord = Boolean(liveGarden && liveWork);
+  const garden = hasLiveRecord ? liveGarden : (retained?.garden ?? null);
+  const work = hasLiveRecord ? liveWork : retained?.work;
+  const hasQueryError = gardenContextError || gardensQueryError || worksQueryError;
+  const isSettling =
+    gardensLoading || gardensFetching || (gardenId ? worksLoading || worksFetching : false);
+  const resolutionStatus: WorkDetailResolutionStatus = hasLiveRecord
+    ? "resolved"
+    : retained
+      ? "temporarily-absent"
+      : hasQueryError
+        ? "error"
+        : isSettling
+          ? "loading"
+          : "not-found";
 
   const { data: actions = [] } = useActions(DEFAULT_CHAIN_ID);
   const action = useMemo(
@@ -52,7 +121,7 @@ export function useResolvedWorkDetail(workId: string | undefined) {
 
   const canReview = garden ? gardenPermissions.canReviewGarden(garden) : false;
   const canApproveOrReject = garden
-    ? gardenPermissions.isOperatorOfGarden(garden) || gardenPermissions.isOwnerOfGarden(garden)
+    ? gardenPermissions.isStewardOfGarden(garden) || gardenPermissions.isOwnerOfGarden(garden)
     : false;
   const isReviewed = work?.status === "approved" || work?.status === "rejected";
 
@@ -69,7 +138,7 @@ export function useResolvedWorkDetail(workId: string | undefined) {
 
   return {
     garden,
-    gardenId,
+    gardenId: garden?.id ?? gardenId,
     work,
     action,
     canReview,
@@ -77,6 +146,11 @@ export function useResolvedWorkDetail(workId: string | undefined) {
     isReviewed,
     metadata,
     audioNoteCids: metadata?.audioNoteCids,
-    isLoading: gardensLoading || (gardenId ? worksLoading : false),
+    resolutionStatus,
+    isLoading: resolutionStatus === "loading",
+    isTemporarilyAbsent: resolutionStatus === "temporarily-absent",
+    isNotFound: resolutionStatus === "not-found",
+    isError: resolutionStatus === "error",
+    error: gardensError ?? worksError ?? null,
   };
 }

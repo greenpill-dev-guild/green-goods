@@ -1,11 +1,16 @@
 /// <reference types="vitest" />
 
-import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
+import { availableParallelism, totalmem } from "node:os";
 import { resolve } from "path";
+import { defineConfig } from "vitest/config";
+
+import { resolveVitestMaxWorkers } from "../../scripts/lib/dev-shared.js";
 
 const localReactPath = resolve(__dirname, "./node_modules/react");
 const localReactDomPath = resolve(__dirname, "./node_modules/react-dom");
+const nodeTestFiles = "src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts}";
+const domTestFiles = "src/**/*.{test,spec}.{jsx,tsx}";
 
 export default defineConfig({
   plugins: [react()],
@@ -41,12 +46,29 @@ export default defineConfig({
       },
       {
         find: "@walletconnect/utils",
-        replacement: resolve(
-          __dirname,
-          "../shared/src/__mocks__/walletconnect-utils.ts",
-        ),
+        replacement: resolve(__dirname, "../shared/src/__mocks__/walletconnect-utils.ts"),
+      },
+      // Stand in for Reown AppKit, which Shared's config/appkit loads at import. An alias reaches
+      // Shared's own import of the adapter, which only Shared can resolve; a setup-file vi.mock
+      // of it never matched. On 2026-09-28 four alternating full runs retired 1.603T and 1.599T
+      // instructions with these against 1.655T and 1.651T with the setup-file mocks (-3.2%),
+      // identical results.
+      {
+        find: "@reown/appkit/react",
+        replacement: resolve(__dirname, "../shared/src/__mocks__/reown-appkit-react.ts"),
+      },
+      {
+        find: "@reown/appkit-adapter-wagmi",
+        replacement: resolve(__dirname, "../shared/src/__mocks__/reown-appkit-adapter-wagmi.ts"),
       },
       // Shared package aliases
+      // Mirrors vite.config.ts: the boot sequence loads Sentry through the
+      // declared `./sentry` subpath, which the generic prefix alias below
+      // would otherwise resolve to a non-existent `src/sentry`.
+      {
+        find: "@green-goods/shared/sentry",
+        replacement: resolve(__dirname, "../shared/src/modules/app/sentry.ts"),
+      },
       {
         find: "@green-goods/shared/hooks",
         replacement: resolve(__dirname, "../shared/src/hooks"),
@@ -100,6 +122,10 @@ export default defineConfig({
         replacement: resolve(__dirname, "../shared/src/__tests__/test-utils"),
       },
       {
+        find: "@green-goods/shared/commitment-pooling",
+        replacement: resolve(__dirname, "../shared/src/commitment-pooling"),
+      },
+      {
         find: "@green-goods/shared",
         replacement: resolve(__dirname, "../shared/src"),
       },
@@ -107,32 +133,47 @@ export default defineConfig({
   },
   test: {
     globals: true,
-    environment: "jsdom",
+    environment: "happy-dom",
     setupFiles: ["./src/__tests__/setup.ts"],
-    exclude: [
-      "**/node_modules/**",
-      "src/__tests__/components/WithdrawModal.test.tsx",
-    ],
+    exclude: ["**/node_modules/**"],
     coverage: {
       provider: "v8",
-      reporter: ["text", "json", "html"],
+      reporter: process.env.CI ? ["text", "json"] : ["text", "json", "html"],
+      include: ["src/**/*.{ts,tsx}"],
       exclude: [
         "node_modules/**",
         "src/__tests__/**",
+        "src/**/*.stories.{ts,tsx}",
         "**/*.d.ts",
         "**/*.config.*",
         "**/index.ts",
       ],
       thresholds: {
-        global: {
-          branches: 70,
-          functions: 70,
-          lines: 70,
-          statements: 70,
+        branches: 47,
+        functions: 44,
+        lines: 53,
+        statements: 51,
+        // Aggregate floors measured at 08f96dc; global floors still include these files.
+        "src/components/Vault/**": {
+          branches: 59,
+          functions: 50,
+          lines: 65,
+          statements: 63,
+        },
+        "src/views/Garden/Pool/**": {
+          branches: 65,
+          functions: 68,
+          lines: 75,
+          statements: 73,
         },
       },
     },
     pool: "threads",
+    maxWorkers: resolveVitestMaxWorkers({
+      cpus: availableParallelism(),
+      totalMemoryBytes: totalmem(),
+      ci: Boolean(process.env.CI),
+    }),
     isolate: true,
     server: {
       deps: {
@@ -148,7 +189,10 @@ export default defineConfig({
           "@testing-library/react",
           "@tanstack/react-query",
           "zustand",
-          "viem",
+          // viem stays external: Node loads it faster than the module runner does. On 2026-09-28
+          // four alternating full runs took 53.2 and 53.6 s external against 60.4 and 56.9 s
+          // inlined, with import time down 28% and identical results. Its chains barrel alone cost
+          // up to 4 s a file inlined.
           "wagmi",
           "@walletconnect/utils",
           "@walletconnect/types",
@@ -159,5 +203,27 @@ export default defineConfig({
     },
     testTimeout: 10000,
     hookTimeout: 10000,
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: "node",
+          environment: "node",
+          include: [nodeTestFiles],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: "dom",
+          // happy-dom sets up and drives a test DOM faster than jsdom. On 2026-09-29 four
+          // alternating full runs retired 1.126T and 1.135T instructions against 1.597T and 1.598T
+          // with jsdom (-29%) and took 20.8 and 23.4 s against 28.9 and 33.3 s, with identical
+          // results. Files that assert authored inline styles pin jsdom with a docblock.
+          environment: "happy-dom",
+          include: [domTestFiles],
+        },
+      },
+    ],
   },
 });

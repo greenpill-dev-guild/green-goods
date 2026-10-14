@@ -28,7 +28,7 @@ import {
 	CONFIG_ROOT,
 	CONTRACTS_ROOT,
 	ensureParentDir,
-} from "../packages/contracts/script/utils/paths";
+} from "../../packages/contracts/script/utils/paths";
 import {
 	loadPinataConfigFromEnv,
 	uploadBufferWithPinata,

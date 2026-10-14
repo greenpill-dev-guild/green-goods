@@ -1,3 +1,4 @@
+import type { TransactionSender } from "../transactions/types";
 /**
  * Marketplace Order Signing Utilities
  *
@@ -8,7 +9,7 @@
  * @module modules/marketplace/signing
  */
 
-import { type Address, encodeAbiParameters, type Hex, type WalletClient } from "viem";
+import { type Address, encodeAbiParameters, type Hex } from "viem";
 
 import type { CreateListingParams } from "../../types/hypercerts";
 import { assertMarketplaceReady, getMarketplaceReadiness } from "../../utils/blockchain/contracts";
@@ -133,7 +134,7 @@ export function buildMakerAsk(
 // ---------------------------------------------------------------------------
 
 /**
- * Signs a MakerAskOrder using viem's walletClient.signTypedData.
+ * Signs a MakerAskOrder through the signed-in account's typed-data capability.
  *
  * Uses the EIP-712 domain separator matching the HypercertExchange contract:
  * - name: "LooksRareProtocol"
@@ -143,7 +144,7 @@ export function buildMakerAsk(
  */
 export async function signMakerAsk(
   makerAsk: MakerAskOrder,
-  walletClient: WalletClient,
+  sender: Pick<TransactionSender, "signTypedData" | "assertOwnership">,
   chainId: number
 ): Promise<Hex> {
   const readiness = assertMarketplaceReady(chainId);
@@ -162,31 +163,38 @@ export async function signMakerAsk(
     price: makerAsk.price.toString(),
   });
 
-  // Cast to work around viem's strict WalletClient generics —
-  // the account is resolved at runtime from the connected wallet.
-  const signature = await (walletClient as WalletClient).signTypedData({
-    account: makerAsk.signer,
-    domain,
-    types: MAKER_EIP712_TYPES,
-    primaryType: "Maker" as const,
-    message: {
-      quoteType: makerAsk.quoteType,
-      globalNonce: makerAsk.globalNonce,
-      subsetNonce: makerAsk.subsetNonce,
-      orderNonce: makerAsk.orderNonce,
-      strategyId: makerAsk.strategyId,
-      collectionType: makerAsk.collectionType,
-      collection: makerAsk.collection,
-      currency: makerAsk.currency,
-      signer: makerAsk.signer,
-      startTime: makerAsk.startTime,
-      endTime: makerAsk.endTime,
-      price: makerAsk.price,
-      itemIds: makerAsk.itemIds,
-      amounts: makerAsk.amounts,
-      additionalParameters: makerAsk.additionalParameters,
+  if (!sender.signTypedData) throw new Error("account-typed-data-unavailable");
+  const assertOwnership = () => sender.assertOwnership?.(makerAsk.signer, chainId);
+  await assertOwnership();
+  const signature = await sender.signTypedData(
+    {
+      account: makerAsk.signer,
+      chainId,
+      data: {
+        domain,
+        types: MAKER_EIP712_TYPES,
+        primaryType: "Maker" as const,
+        message: {
+          quoteType: makerAsk.quoteType,
+          globalNonce: makerAsk.globalNonce,
+          subsetNonce: makerAsk.subsetNonce,
+          orderNonce: makerAsk.orderNonce,
+          strategyId: makerAsk.strategyId,
+          collectionType: makerAsk.collectionType,
+          collection: makerAsk.collection,
+          currency: makerAsk.currency,
+          signer: makerAsk.signer,
+          startTime: makerAsk.startTime,
+          endTime: makerAsk.endTime,
+          price: makerAsk.price,
+          itemIds: makerAsk.itemIds,
+          amounts: makerAsk.amounts,
+          additionalParameters: makerAsk.additionalParameters,
+        },
+      },
     },
-  } as Parameters<WalletClient["signTypedData"]>[0]);
+    { assertOwnership }
+  );
 
   return signature;
 }

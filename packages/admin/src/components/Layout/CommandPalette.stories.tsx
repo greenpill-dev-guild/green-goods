@@ -1,4 +1,5 @@
-import { adminRoutes, cn } from "@green-goods/shared";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
   RiArrowDownLine,
   RiArrowUpLine,
@@ -6,7 +7,7 @@ import {
   RiSearchLine,
 } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type ComponentProps, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { STORYBOOK_ADMIN_DEPLOYER_SEEDS } from "../../../../shared/.storybook/adminFixtures";
@@ -192,7 +193,7 @@ function MockCommandPalette({
           id: "app.admin.nav.search",
           defaultMessage: "Search",
         })}
-        className="min-h-11 min-w-11 p-2 rounded-md text-text-soft hover:text-text-sub hover:bg-bg-weak transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
+        className="min-h-11 min-w-11 p-2 rounded-md text-text-soft hover:text-text-sub hover:bg-bg-weak transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
       >
         <RiSearchLine className="h-5 w-5" />
       </button>
@@ -218,17 +219,21 @@ function MockCommandPalette({
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            aria-label={formatMessage({
+              id: "app.admin.nav.search",
+              defaultMessage: "Search",
+            })}
             placeholder={formatMessage({
               id: "app.admin.nav.searchPlaceholder",
               defaultMessage: "Search pages, gardens, actions...",
             })}
-            className="flex-1 bg-transparent py-3 text-sm text-text-strong placeholder:text-text-soft outline-none"
+            className="flex-1 bg-transparent py-3 body-sm text-text-strong placeholder:text-text-soft outline-none"
           />
         </div>
 
         <div ref={listRef} className="max-h-72 overflow-y-auto p-2" role="listbox">
           {results.length === 0 ? (
-            <p className="py-6 text-center text-sm text-text-soft">
+            <p className="py-6 text-center body-sm text-text-soft">
               {formatMessage({
                 id: "app.admin.nav.searchNoResults",
                 defaultMessage: "No results found",
@@ -237,7 +242,7 @@ function MockCommandPalette({
           ) : (
             grouped.map((group) => (
               <div key={group.category} role="group" aria-label={group.label}>
-                <div className="px-2 py-1.5 text-xs font-semibold uppercase tracking-wider text-text-soft">
+                <div className="px-2 py-1.5 body-xs font-semibold uppercase tracking-wider text-text-soft">
                   {group.label}
                 </div>
                 {group.items.map((result) => {
@@ -252,7 +257,7 @@ function MockCommandPalette({
                       onClick={() => selectResult(result)}
                       onMouseMove={() => setActiveIndex(index)}
                       className={cn(
-                        "flex w-full items-center rounded-lg px-3 py-2 text-sm text-left transition-colors",
+                        "flex w-full items-center rounded-lg px-3 py-2 body-sm text-left transition-colors",
                         isActive
                           ? "bg-primary-alpha-16 text-primary-darker"
                           : "text-text-sub hover:bg-bg-weak"
@@ -267,7 +272,7 @@ function MockCommandPalette({
           )}
         </div>
 
-        <div className="flex items-center gap-4 border-t border-stroke-soft px-4 py-2 text-xs text-text-soft">
+        <div className="flex items-center gap-4 border-t border-stroke-soft px-4 py-2 body-xs text-text-soft">
           <span className="flex items-center gap-1">
             <RiArrowUpLine className="h-3 w-3" aria-hidden="true" />
             <RiArrowDownLine className="h-3 w-3" aria-hidden="true" />
@@ -302,7 +307,7 @@ function MockCommandPalette({
 
 // ─── Meta ────────────────────────────────────────────────────────────
 
-type CommandPaletteStoryArgs = MockCommandPaletteProps;
+type CommandPaletteStoryArgs = ComponentProps<typeof CommandPalette> & MockCommandPaletteProps;
 
 const meta: Meta<CommandPaletteStoryArgs> = {
   title: "Admin/Shell/CommandPalette",

@@ -1,5 +1,12 @@
 import { execFileSync } from "node:child_process";
-import { copyFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  copyFileSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -8,6 +15,14 @@ const repoRoot = resolve(storybookDir, "../../..");
 const outputDir = resolve(repoRoot, "tmp/storybook-design-assets");
 const legacyOutputDir = resolve(storybookDir, "public/design");
 const publicUrl = "https://design.greengoods.app";
+// A folder published by pattern, not file by file. scripts/ops/vercel-ignore.mjs
+// lists it as a Storybook build input and its test reads this line.
+const publicSiteImageDirectory = "packages/client/public/images/";
+/** Client images that are not hero photographs, by the role each plays in a story. */
+const clientImageRoles = {
+  "no-image-placeholder.png": "Public site image fallback",
+  "avatar.png": "Default profile photo",
+};
 
 const files = [
   {
@@ -54,6 +69,11 @@ const files = [
 
 const assetFiles = [
   {
+    from: "packages/client/public/icon.png",
+    to: "icon.png",
+    role: "Client header mark",
+  },
+  {
     from: "docs/static/img/green-goods-logo.png",
     to: "green-goods-logo.png",
     role: "Storybook chrome logo",
@@ -63,7 +83,26 @@ const assetFiles = [
     to: "social-card.png",
     role: "Open Graph and Twitter social preview image",
   },
+  ...publicSiteImages(),
 ];
+
+/**
+ * The client's own images, at the paths the client itself requests
+ * (`/images/hero-<view>.webp`, the image fallback and the default profile
+ * photo), so Client stories show them instead of a broken image. Heroes are read
+ * from the folder rather than listed by name: a newly curated hero is served
+ * without an edit here.
+ */
+function publicSiteImages() {
+  return readdirSync(resolve(repoRoot, publicSiteImageDirectory))
+    .filter((name) => /^hero-.+\.webp$/.test(name) || Object.hasOwn(clientImageRoles, name))
+    .sort()
+    .map((name) => ({
+      from: `${publicSiteImageDirectory}${name}`,
+      to: `images/${name}`,
+      role: clientImageRoles[name] ?? "Public site hero photograph",
+    }));
+}
 
 function readJson(path) {
   return JSON.parse(readFileSync(path, "utf8"));
@@ -90,7 +129,9 @@ for (const file of files) {
 }
 
 for (const file of assetFiles) {
-  copyFileSync(resolve(repoRoot, file.from), resolve(outputDir, file.to));
+  const destination = resolve(outputDir, file.to);
+  mkdirSync(dirname(destination), { recursive: true });
+  copyFileSync(resolve(repoRoot, file.from), destination);
 }
 
 const generatedTokens = readJson(

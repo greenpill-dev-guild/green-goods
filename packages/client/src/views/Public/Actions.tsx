@@ -1,4 +1,9 @@
-import { type Action, cn, useActions, useInViewReveal } from "@green-goods/shared";
+import type { Action } from "@green-goods/shared/types/domain";
+import { localizeAction } from "@green-goods/shared/utils/action/translations";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
+import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
+import { selectPublicSurfaceState } from "@green-goods/shared/public";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import {
@@ -7,14 +12,15 @@ import {
   EditorialHeading,
   EditorialKicker,
   EditorialLede,
+  EditorialMediaCardSkeleton,
   EditorialNumeral,
-  EditorialTitleAccent,
+  editorialTitleTags,
 } from "@/components/Public/atoms";
 import { PublicActionCard } from "@/components/Public/PublicActionCard";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFooter } from "@/components/Public/PublicFooter";
-import { PublicInstallAction } from "@/components/Public/PublicInstallAction";
 import { PublicSourceDialog } from "@/components/Public/PublicSourceDialog";
+import { PublicSurfaceState } from "@/components/Public/PublicSurfaceState";
 import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
 
 interface DomainEntry {
@@ -66,13 +72,6 @@ interface CapitalEntry {
   defaultBody: string;
 }
 
-/**
- * Eight forms of value. Surfaced on /actions so visitors know the work is
- * measured across a wider lens than dollars or carbon. Order chosen so the
- * grid reads outward from the most material (Living, Material) toward the
- * most felt (Cultural, Spiritual). Mirrors the Capital enum in
- * `packages/shared/src/types/domain.ts`.
- */
 const CAPITALS: readonly CapitalEntry[] = [
   {
     id: "living",
@@ -183,17 +182,19 @@ const DOMAIN_EXPLAINERS: readonly DomainExplainer[] = [
  * Actions — readable public Action library.
  *
  * Editorial recomposition:
- *   Hero ("A field guide for regenerative work.") → domain filter strip
+ *   Hero ("A field guide for regenerative work") → domain filter strip
  *   with per-domain ink chips → grid of PublicActionCard → optional
  *   PublicSourceDialog → Footer.
  *
  * No create/edit controls — each card opens a read-only source dialog.
  */
 export default function ActionsGallery() {
-  const { formatMessage } = useIntl();
-  const { data: actions = [], isLoading } = useActions();
+  const { formatMessage, locale } = useIntl();
+  const { data: actions = [], isLoading, isError, refetch } = useActions();
   const [domain, setDomain] = useState<EditorialDomain>("all");
   const [activeAction, setActiveAction] = useState<Action | null>(null);
+  // The open template reads in the visitor's language, as its card does.
+  const displayAction = activeAction ? localizeAction(activeAction, locale) : null;
   const { ref: domainsRef, revealed: domainsRevealed } = useInViewReveal<HTMLElement>();
   const { ref: capitalsRef, revealed: capitalsRevealed } = useInViewReveal<HTMLElement>();
   const { ref: guideRef, revealed: guideRevealed } = useInViewReveal<HTMLElement>();
@@ -213,6 +214,11 @@ export default function ActionsGallery() {
     }
     return byDomain;
   }, [actions]);
+  const surfaceState = selectPublicSurfaceState({
+    isLoading,
+    isError,
+    itemCount: filtered.length,
+  });
 
   return (
     <>
@@ -225,11 +231,10 @@ export default function ActionsGallery() {
         title={formatMessage(
           {
             id: "public.actions.heroTitle",
-            defaultMessage: "A field guide for <accent>regenerative work</accent>.",
+            defaultMessage:
+              "<line>A field guide for</line> <line><accent>regenerative</accent></line> <line><accent>work</accent></line>",
           },
-          {
-            accent: (chunks) => <EditorialTitleAccent>{chunks}</EditorialTitleAccent>,
-          }
+          editorialTitleTags
         )}
         lede={formatMessage({
           id: "public.actions.heroLede",
@@ -261,7 +266,7 @@ export default function ActionsGallery() {
             </EditorialHeading>
           </header>
 
-          <ul className="mt-12 grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
+          <ul className="mt-12 grid grid-cols-1 gap-10 sm:grid-cols-2 sm:gap-8 xl:grid-cols-4">
             {DOMAIN_EXPLAINERS.map((domain) => (
               <li key={domain.id} className="flex flex-col gap-4">
                 <span aria-hidden="true" className={cn("h-[3px] w-12", domain.accentClass)} />
@@ -367,7 +372,7 @@ export default function ActionsGallery() {
           <nav
             aria-label={formatMessage({
               id: "public.actions.filterLabel",
-              defaultMessage: "Filter Actions by domain",
+              defaultMessage: "Filter actions by domain",
             })}
             className="mt-8"
           >
@@ -387,24 +392,25 @@ export default function ActionsGallery() {
             </ul>
           </nav>
 
-          {isLoading ? (
-            <div className="mt-12 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
-              {[0, 1, 2, 3, 4, 5].map((i) => (
-                <div
-                  key={i}
-                  className="aspect-[4/3] w-full animate-pulse bg-editorial-warm"
-                  aria-hidden="true"
-                />
-              ))}
-            </div>
-          ) : filtered.length === 0 ? (
-            <p className="mt-12 max-w-md font-serif text-xl italic text-text-soft-400">
-              {formatMessage({
-                id: "public.actions.empty",
-                defaultMessage: "Action templates will appear here as they are published.",
-              })}
-            </p>
-          ) : (
+          <PublicSurfaceState
+            state={surfaceState}
+            loading={
+              <div className="mt-12 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
+                {[0, 1, 2, 3, 4, 5].map((i) => (
+                  <EditorialMediaCardSkeleton key={i} mediaClassName="aspect-[4/3]" />
+                ))}
+              </div>
+            }
+            onRetry={() => void refetch()}
+            empty={
+              <p className="mt-12 max-w-md font-serif text-xl italic text-text-soft-400">
+                {formatMessage({
+                  id: "public.actions.empty",
+                  defaultMessage: "Action templates will appear here as they are published.",
+                })}
+              </p>
+            }
+          >
             <ul className="mt-12 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
               {filtered.map((action) => (
                 <li key={action.id}>
@@ -412,59 +418,43 @@ export default function ActionsGallery() {
                 </li>
               ))}
             </ul>
-          )}
+          </PublicSurfaceState>
         </div>
       </section>
 
       <PublicFooter variant="soil" />
 
-      {activeAction ? (
+      {displayAction ? (
         <PublicSourceDialog
           open
           onClose={() => setActiveAction(null)}
-          title={activeAction.title}
+          title={displayAction.title}
           subtitle={formatMessage({
-            id: `app.domain.tab.${typeof activeAction.domain === "string" ? activeAction.domain : domainSlug(activeAction.domain)}`,
-            defaultMessage: String(activeAction.domain),
+            id: `app.domain.tab.${typeof displayAction.domain === "string" ? displayAction.domain : domainSlug(displayAction.domain)}`,
+            defaultMessage:
+              typeof displayAction.domain === "string"
+                ? displayAction.domain
+                : domainSlug(displayAction.domain),
           })}
         >
-          {activeAction.media[0] ? (
+          {displayAction.media[0] ? (
             <img
-              src={activeAction.media[0]}
-              alt={activeAction.title}
-              className="w-full rounded-2xl object-cover"
+              src={displayAction.media[0]}
+              alt={displayAction.title}
+              className="aspect-[4/3] w-full bg-editorial-warm object-cover"
             />
           ) : null}
-          {activeAction.description ? (
-            <p className="text-sm text-text-strong-950">{activeAction.description}</p>
+          {displayAction.description ? (
+            <p className="text-sm text-text-strong-950">{displayAction.description}</p>
           ) : null}
-          <p className="text-xs text-text-soft-400">
-            {formatMessage({
-              id: "public.actions.dialog.participate",
-              defaultMessage:
-                "Install the Green Goods app, join a Garden, and log Work for this Action.",
-            })}
-          </p>
-          <PublicInstallAction>
-            {({ label, href, onClick, disabled, dataInstallAction }) => (
-              <a
-                href={href}
-                onClick={onClick}
-                aria-disabled={disabled || undefined}
-                data-install-action={dataInstallAction}
-                className={`inline-flex w-fit cursor-pointer items-center gap-2 rounded-full bg-primary-action px-5 py-2.5 text-sm font-semibold text-primary-action-foreground hover:bg-primary-action-hover ${disabled ? "cursor-not-allowed opacity-70" : ""}`}
-              >
-                {label}
-              </a>
-            )}
-          </PublicInstallAction>
         </PublicSourceDialog>
       ) : null}
     </>
   );
 }
 
-function domainSlug(domain: number): string {
+function domainSlug(domain: number | null): string {
+  if (domain === null) return "unknown";
   switch (domain) {
     case 0:
       return "solar";

@@ -11,7 +11,7 @@ import { createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock @green-goods/shared
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
 }));
 
@@ -48,6 +48,19 @@ describe("StandardTabs", () => {
     expect(screen.getByText("Second Tab")).toBeInTheDocument();
   });
 
+  it("keeps a full accessible name when the visible label is shortened", () => {
+    render(
+      createElement(StandardTabs, {
+        tabs: [{ id: "agro", label: "Agro", accessibleLabel: "Agroforestry" }],
+        activeTab: "agro",
+        onTabChange: vi.fn(),
+      })
+    );
+
+    const tab = screen.getByRole("button", { name: "Agroforestry" });
+    expect(tab).toHaveTextContent("Agro");
+  });
+
   it("calls onTabChange when a tab is clicked", async () => {
     const onTabChange = vi.fn();
     const user = userEvent.setup();
@@ -62,6 +75,53 @@ describe("StandardTabs", () => {
 
     await user.click(screen.getByTestId("tab-tab2"));
     expect(onTabChange).toHaveBeenCalledWith("tab2");
+  });
+
+  it("resets an explicit scroll owner before changing tabs", async () => {
+    const user = userEvent.setup();
+    const explicitOwner = document.createElement("div");
+    explicitOwner.id = "work-dashboard-scroll";
+    explicitOwner.scrollTop = 420;
+    document.body.append(explicitOwner);
+
+    render(
+      createElement(StandardTabs, {
+        tabs: baseTabs,
+        activeTab: "tab1",
+        onTabChange: vi.fn(),
+        scrollTargetSelector: "#work-dashboard-scroll",
+      })
+    );
+
+    await user.click(screen.getByTestId("tab-tab2"));
+
+    expect(explicitOwner.scrollTop).toBe(0);
+    explicitOwner.remove();
+  });
+
+  it("falls back to the app scroller when no explicit owner is provided", async () => {
+    const user = userEvent.setup();
+    const windowScroll = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+    const appScroll = document.createElement("div");
+    appScroll.id = "app-scroll";
+    const appScrollTo = vi.fn();
+    appScroll.scrollTo = appScrollTo;
+    document.body.append(appScroll);
+
+    render(
+      createElement(StandardTabs, {
+        tabs: baseTabs,
+        activeTab: "tab1",
+        onTabChange: vi.fn(),
+      })
+    );
+
+    await user.click(screen.getByTestId("tab-tab2"));
+
+    expect(appScrollTo).toHaveBeenCalledWith({ top: 0, behavior: "auto" });
+    expect(windowScroll).not.toHaveBeenCalled();
+    windowScroll.mockRestore();
+    appScroll.remove();
   });
 
   it("does not call onTabChange for disabled tabs", async () => {

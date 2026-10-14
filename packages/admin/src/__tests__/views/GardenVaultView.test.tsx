@@ -6,34 +6,60 @@ const mockUseGardens = vi.fn();
 const mockUseGardenVaults = vi.fn();
 const mockUseGardenPermissions = vi.fn();
 const mockUseLocation = vi.fn();
+const mockUseParams = vi.fn(() => ({ id: "garden-1" }));
 
-vi.mock("@green-goods/shared", () => ({
-  cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
+vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
+  useUser: () => ({ primaryAddress: "0x1234567890123456789012345678901234567890" }),
+}));
+
+vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
+  useGardens: () => mockUseGardens(),
+}));
+
+vi.mock("@green-goods/shared/hooks/blockchain/useChainConfig", () => ({
+  useCurrentChain: () => 11155111,
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useAdminGardenWorkspaceSelection", () => ({
+  useAdminGardenWorkspaceSelection: () => ({
+    selectedGarden: { id: "garden-1", name: "Alpha Garden" },
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useGardenPermissions", () => ({
+  useGardenPermissions: () => mockUseGardenPermissions(),
+}));
+
+vi.mock("@green-goods/shared/hooks/vault/useGardenVaults", () => ({
+  useGardenVaults: (...args: unknown[]) => mockUseGardenVaults(...args),
+}));
+
+vi.mock("@green-goods/shared/stores/useAdminStore", () => ({
+  useAdminStore: (selector: (state: any) => any) =>
+    selector({
+      selectedGarden: { id: "garden-1", name: "Alpha Garden" },
+    }),
+}));
+
+vi.mock("@green-goods/shared/utils/blockchain/abis/octant", () => ({
+  OCTANT_MODULE_ABI: [],
+}));
+
+vi.mock("@green-goods/shared/utils/blockchain/contracts", () => ({
+  getNetworkContracts: () => ({ octantModule: "0x1111111111111111111111111111111111111111" }),
+}));
+
+vi.mock("@green-goods/shared/utils/navigation/admin-routes", () => ({
   adminRoutes: {
     communityEndowment: (search?: Record<string, string>) => {
       const query = search ? new URLSearchParams(search).toString() : "";
       return query ? `/community/endowment?${query}` : "/community/endowment";
     },
   },
-  useAdminStore: (selector: (state: any) => any) =>
-    selector({
-      selectedGarden: { id: "garden-1", name: "Alpha Garden" },
-    }),
-  useAdminGardenWorkspaceSelection: () => ({
-    selectedGarden: { id: "garden-1", name: "Alpha Garden" },
-  }),
-  useGardens: () => mockUseGardens(),
-  useGardenVaults: (...args: unknown[]) => mockUseGardenVaults(...args),
-  useGardenPermissions: () => mockUseGardenPermissions(),
-  useUser: () => ({ primaryAddress: "0x1234567890123456789012345678901234567890" }),
-  useCurrentChain: () => 11155111,
-  getNetworkContracts: () => ({ octantModule: "0x1111111111111111111111111111111111111111" }),
-  OCTANT_MODULE_ABI: [],
-  getNetDeposited: (deposited: bigint, withdrawn: bigint) =>
-    deposited > withdrawn ? deposited - withdrawn : 0n,
-  formatTokenAmount: (value: bigint, decimals = 18) =>
-    `${Number(value) / 10 ** decimals}`.replace(/\.0$/, ""),
-  getVaultAssetSymbol: () => "WETH",
+}));
+
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
+  cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
 }));
 
 vi.mock("wagmi", () => ({
@@ -42,7 +68,7 @@ vi.mock("wagmi", () => ({
 }));
 
 vi.mock("react-router-dom", () => ({
-  useParams: () => ({ id: "garden-1" }),
+  useParams: () => mockUseParams(),
   useLocation: () => mockUseLocation(),
   useNavigate: () => vi.fn(),
 }));
@@ -57,6 +83,7 @@ vi.mock("@/components/Layout/PageHeader", () => ({
 
 vi.mock("@/components/Vault", () => ({
   DepositModal: () => null,
+  GardenSupporters: () => null,
   WithdrawModal: () => null,
   PositionCard: () => null,
   VaultContractDetails: () => null,
@@ -68,6 +95,7 @@ import GardenVaultView from "@/views/Garden/Vault";
 describe("GardenVaultView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseParams.mockReturnValue({ id: "garden-1" });
     mockUseGardenPermissions.mockReturnValue({
       canManageGarden: () => false,
       isOwnerOfGarden: () => false,
@@ -85,6 +113,19 @@ describe("GardenVaultView", () => {
     });
   });
 
+  it.each([
+    { id: "0x2222222222222222222222222222222222222222", enabled: true },
+    { id: "community-garden", enabled: false },
+    { id: "0xwrong", enabled: false },
+  ])("does not broaden an invalid route into a chain-wide vault query: $id", ({ id, enabled }) => {
+    mockUseParams.mockReturnValue({ id });
+    mockUseLocation.mockReturnValue({ state: null });
+
+    renderWithProviders(<GardenVaultView />);
+
+    expect(mockUseGardenVaults).toHaveBeenCalledWith(enabled ? id : undefined, { enabled });
+  });
+
   it("links back to community treasury when opened from a legacy treasury return", () => {
     mockUseLocation.mockReturnValue({ state: { returnTo: "/community/treasury" } });
 
@@ -94,6 +135,38 @@ describe("GardenVaultView", () => {
       "data-back-link",
       "/community/treasury"
     );
+  });
+
+  it("totals each asset on its own and explains impact yield once above the vaults", () => {
+    mockUseLocation.mockReturnValue({ state: null });
+    const vault = (asset: string, totalDeposited: bigint) => ({
+      id: `vault-${asset}`,
+      chainId: 42161,
+      asset,
+      vaultAddress: "0x2222222222222222222222222222222222222222",
+      totalDeposited,
+      totalWithdrawn: 0n,
+      totalHarvestCount: 1,
+      depositorCount: 2,
+    });
+    mockUseGardenVaults.mockReturnValue({
+      vaults: [
+        vault("0x82aF49447D8a07e3bd95BD0d56f35241523fBab1", 500_000_000_000_000n),
+        vault("0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1", 12_000_000_000_000_000_000n),
+      ],
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+      isFetching: false,
+    });
+
+    renderWithProviders(<GardenVaultView />);
+
+    // WETH and DAI base units never add up into one number.
+    expect(screen.getByText("0.0005 WETH · 12 DAI")).toBeInTheDocument();
+    expect(
+      screen.getAllByText(/Depositor share value is expected to stay near flat by design/i)
+    ).toHaveLength(1);
   });
 
   it("defaults back to the selected garden endowment card without explicit return state", () => {

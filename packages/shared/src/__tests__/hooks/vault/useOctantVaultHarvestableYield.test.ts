@@ -1,11 +1,9 @@
 /**
  * useOctantVaultHarvestableYield Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type {
   OctantVaultCampaignAssetManifest,
@@ -13,6 +11,7 @@ import type {
   OctantVaultYieldStrategy,
 } from "../../../modules/vault-crowdfunding";
 import type { Address } from "../../../types/domain";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const mockReadContract = vi.fn();
 
@@ -40,24 +39,14 @@ const { useOctantVaultHarvestableYield } = await import(
   "../../../hooks/vault/useOctantVaultHarvestableYield"
 );
 
-function wrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-  });
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-}
-
 describe("hooks/vault/useOctantVaultHarvestableYield", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it("returns unavailable when no verified yield strategy is recorded", async () => {
-    const { result } = renderHook(
-      () => useOctantVaultHarvestableYield({ vaultAddress: VAULT, chainId: 1 }),
-      { wrapper: wrapper() }
+    const { result } = renderHookWithQueryClient(() =>
+      useOctantVaultHarvestableYield({ vaultAddress: VAULT, chainId: 1 })
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -73,16 +62,14 @@ describe("hooks/vault/useOctantVaultHarvestableYield", () => {
   it("returns unavailable when either read fails", async () => {
     mockReadContract.mockRejectedValueOnce(new Error("strategy read unavailable"));
 
-    const { result } = renderHook(
-      () =>
-        useOctantVaultHarvestableYield({
-          vaultAddress: VAULT,
-          chainId: 1,
-          asset: WETH_ASSET,
-          yieldSource: YIELD_SOURCE,
-          yieldStrategy: YIELD_STRATEGY,
-        }),
-      { wrapper: wrapper() }
+    const { result } = renderHookWithQueryClient(() =>
+      useOctantVaultHarvestableYield({
+        vaultAddress: VAULT,
+        chainId: 1,
+        asset: WETH_ASSET,
+        yieldSource: YIELD_SOURCE,
+        yieldStrategy: YIELD_STRATEGY,
+      })
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -111,16 +98,14 @@ describe("hooks/vault/useOctantVaultHarvestableYield", () => {
       return Promise.resolve(0n);
     });
 
-    const { result } = renderHook(
-      () =>
-        useOctantVaultHarvestableYield({
-          vaultAddress: VAULT,
-          chainId: 1,
-          asset: WETH_ASSET,
-          yieldSource: YIELD_SOURCE,
-          yieldStrategy: YIELD_STRATEGY,
-        }),
-      { wrapper: wrapper() }
+    const { result } = renderHookWithQueryClient(() =>
+      useOctantVaultHarvestableYield({
+        vaultAddress: VAULT,
+        chainId: 1,
+        asset: WETH_ASSET,
+        yieldSource: YIELD_SOURCE,
+        yieldStrategy: YIELD_STRATEGY,
+      })
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -150,16 +135,14 @@ describe("hooks/vault/useOctantVaultHarvestableYield", () => {
       return Promise.resolve(0n);
     });
 
-    const { result } = renderHook(
-      () =>
-        useOctantVaultHarvestableYield({
-          vaultAddress: VAULT,
-          chainId: 1,
-          asset: WETH_ASSET,
-          yieldSource: YIELD_SOURCE,
-          yieldStrategy: YIELD_STRATEGY,
-        }),
-      { wrapper: wrapper() }
+    const { result } = renderHookWithQueryClient(() =>
+      useOctantVaultHarvestableYield({
+        vaultAddress: VAULT,
+        chainId: 1,
+        asset: WETH_ASSET,
+        yieldSource: YIELD_SOURCE,
+        yieldStrategy: YIELD_STRATEGY,
+      })
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));

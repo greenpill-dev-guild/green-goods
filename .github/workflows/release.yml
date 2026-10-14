@@ -7,7 +7,7 @@
 # if present, else the current UTC month-year (tag on/after the 1st of the ship
 # month so it matches).
 #
-# Canonical runbook: docs/docs/builders/deployments/releasing.mdx
+# Canonical runbook: CONTRIBUTING.md § Releases and hotfixes
 name: Release
 
 on:
@@ -29,9 +29,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0 # full history so --generate-notes can diff the tag range
+
+      # This job carries release credentials, so neither setup action may restore
+      # a cache: a poisoned entry would execute before the release step runs.
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "22.22.1"
+          package-manager-cache: false
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        with:
+          bun-version: "1.4.2"
+          no-cache: true
+
+      - name: Verify release version markers
+        run: node scripts/ops/bump-version.mjs --check "${GITHUB_REF_NAME#v}"
 
       - name: Resolve ship-month title
         id: meta

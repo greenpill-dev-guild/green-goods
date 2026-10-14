@@ -1,0 +1,65 @@
+import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
+import { test } from "node:test";
+import { fileURLToPath } from "node:url";
+
+const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+const SCRIPT_PATH = join(REPO_ROOT, "scripts", "contracts", "verify-production.sh");
+const CONTRACTS_DIR = join(REPO_ROOT, "packages", "contracts");
+
+test("runs every verification tool from the contracts package", () => {
+  const fixture = mkdtempSync(join(tmpdir(), "contracts-verifier-"));
+  const binDir = join(fixture, "bin");
+  const invocationLog = join(fixture, "invocations.log");
+  mkdirSync(binDir);
+
+  const fakeTool = [
+    "#!/bin/sh",
+    'printf \'%s|%s|%s\\n\' "${0##*/}" "$PWD" "$*" >> "$VERIFY_LOG"',
+    "exit 0",
+    "",
+  ].join("\n");
+
+  for (const tool of ["bun", "forge", "solhint"]) {
+    const toolPath = join(binDir, tool);
+    writeFileSync(toolPath, fakeTool);
+    chmodSync(toolPath, 0o755);
+  }
+
+  try {
+    const result = spawnSync(
+      "/bin/bash",
+      [SCRIPT_PATH],
+      {
+        cwd: REPO_ROOT,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          PATH: `${binDir}:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin`,
+          VERIFY_LOG: invocationLog,
+        },
+      },
+    );
+
+    assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+    const invocations = readFileSync(invocationLog, "utf8").trim().split("\n");
+    assert.ok(invocations.length >= 4, `expected verifier calls, received: ${invocations.join(", ")}`);
+    for (const invocation of invocations) {
+      const [, directory, command] = invocation.split("|");
+      // The repository-level checks (foundry-version, static-lint) run from the root on purpose.
+      const expected = command.startsWith("run check --only ") ? REPO_ROOT : CONTRACTS_DIR;
+      assert.equal(directory, expected, invocation);
+    }
+    const commands = invocations.map((invocation) => invocation.split("|")[2]);
+    assert.ok(commands.includes("run browser e2e --preset all workflow"));
+    for (const network of ["sepolia", "arbitrum", "celo"]) {
+      assert.ok(commands.includes(`run contracts -- deploy core --network ${network} --mode preflight`));
+    }
+    assert.ok(commands.every((command) => !command.includes("--broadcast")));
+  } finally {
+    rmSync(fixture, { recursive: true, force: true });
+  }
+});

@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "feature": {
     "slug": "{{FEATURE_SLUG}}",
     "title": "{{FEATURE_TITLE}}",
@@ -35,7 +35,7 @@
   },
   "notes": [
     "Mark unused lanes as n/a before promoting QA.",
-    "status.json is authoritative; branch names are automation signals.",
+    "status.json is authoritative; set a concrete <type>/<work-description> branch only when work begins.",
     "Use targeted bun run test or bun run test as the iterative gate for the touched surface; coverage is scheduled or pre-merge evidence.",
     ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist."
   ],
@@ -43,7 +43,7 @@
     "ui": {
       "owner": "claude",
       "status": "todo",
-      "branch": "claude/ui/{{FEATURE_SLUG}}",
+      "branch": null,
       "depends_on": [],
       "handoff": "handoffs/claude-ui.md",
       "tdd": {
@@ -58,7 +58,7 @@
     "state_api": {
       "owner": "codex",
       "status": "todo",
-      "branch": "codex/state-api/{{FEATURE_SLUG}}",
+      "branch": null,
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
       "tdd": {
@@ -73,7 +73,7 @@
     "contracts": {
       "owner": "codex",
       "status": "todo",
-      "branch": "codex/contracts/{{FEATURE_SLUG}}",
+      "branch": null,
       "depends_on": [],
       "handoff": "handoffs/codex-contracts.md",
       "tdd": {
@@ -90,7 +90,7 @@
       "status": "blocked",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
-      "branch": "claude/qa-pass-1/{{FEATURE_SLUG}}",
+      "branch": null,
       "depends_on": ["ui", "state_api", "contracts"],
       "handoff": "handoffs/claude-qa-pass-1.md",
       "skill_tags": ["testing", "review"]
@@ -100,8 +100,7 @@
       "status": "blocked",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
-      "branch": "codex/qa-pass-2/{{FEATURE_SLUG}}",
-      "branch_trigger": "claude/qa-pass-1/{{FEATURE_SLUG}}",
+      "branch": null,
       "depends_on": ["qa_pass_1"],
       "handoff": "handoffs/codex-qa-pass-2.md",
       "skill_tags": ["testing", "review"]

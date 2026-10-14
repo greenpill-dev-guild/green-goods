@@ -1,20 +1,18 @@
-import {
-  type Address,
-  AddressDisplay,
-  Alert,
-  adminRoutes,
-  compareAddresses,
-  useAdminGardenWorkspaceSelection,
-  useConvictionStrategies,
-  useGardenPermissions,
-  useGardens,
-  useSetConvictionStrategies,
-} from "@green-goods/shared";
+import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
+import { useConvictionStrategies } from "@green-goods/shared/hooks/conviction/useConvictionStrategies";
+import { useSetConvictionStrategies } from "@green-goods/shared/hooks/conviction/useSetConvictionStrategies";
+import { useAdminGardenWorkspaceSelection } from "@green-goods/shared/hooks/garden/useAdminGardenWorkspaceSelection";
+import { useGardenPermissions } from "@green-goods/shared/hooks/garden/useGardenPermissions";
+import type { Address } from "@green-goods/shared/types/domain";
+import { compareAddresses } from "@green-goods/shared/utils/blockchain/address";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { RiDeleteBinLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { isAddress } from "viem";
-import { AdminButton } from "@/components/AdminButton";
+import { AdminButton, AdminIconButton } from "@/components/AdminButton";
 import { AdminConfirmDialog } from "@/components/AdminDialog";
 import { AdminTextField } from "@/components/AdminTextField";
 import {
@@ -37,7 +35,7 @@ export default function GardenStrategiesView({ layout = "page" }: GardenStrategi
 
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
   const garden = gardens.find((item) => compareAddresses(item.id, gardenId));
-  const gardenRouteContext = { gardenId: garden?.id ?? gardenId };
+  const gardenRouteContext = { gardenId: garden?.id ?? gardenId ?? undefined };
   const permissions = useGardenPermissions();
 
   const {
@@ -123,10 +121,10 @@ export default function GardenStrategiesView({ layout = "page" }: GardenStrategi
       {/* Stats */}
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="surface-inset">
-          <p className="text-xs text-text-soft">
+          <p className="body-xs text-text-soft">
             {formatMessage({ id: "app.conviction.strategies" })}
           </p>
-          <p className="mt-1 text-xl font-semibold text-text-strong">{strategies.length}</p>
+          <p className="mt-1 text-title-md font-semibold text-text-strong">{strategies.length}</p>
         </div>
       </section>
 
@@ -142,21 +140,21 @@ export default function GardenStrategiesView({ layout = "page" }: GardenStrategi
       {/* Strategy list */}
       <section className="surface-inset p-0">
         <div className="border-b border-stroke-soft p-4 sm:p-6">
-          <h3 className="text-base font-medium text-text-strong sm:text-lg">
+          <h3 className="text-title-md font-semibold text-text-strong">
             {formatMessage({ id: "app.conviction.strategies" })}
           </h3>
-          <p className="mt-1 text-sm text-text-sub">
+          <p className="mt-1 body-sm text-text-sub">
             {formatMessage({ id: "app.conviction.strategiesDescription" })}
           </p>
         </div>
 
         <div className="p-4 sm:p-6">
           {strategiesLoading ? (
-            <p className="py-4 text-center text-sm text-text-soft">
+            <p className="py-4 text-center body-sm text-text-soft">
               {formatMessage({ id: "app.conviction.loadingStrategies" })}
             </p>
           ) : strategies.length === 0 ? (
-            <p className="py-4 text-center text-sm text-text-soft">
+            <p className="py-4 text-center body-sm text-text-soft">
               {formatMessage({ id: "app.conviction.noStrategies" })}
             </p>
           ) : (
@@ -168,17 +166,14 @@ export default function GardenStrategiesView({ layout = "page" }: GardenStrategi
                 >
                   <AddressDisplay address={strategy} className="min-w-0 flex-1" />
                   {canManage && (
-                    <AdminButton
-                      type="button"
+                    <AdminIconButton
                       variant="danger"
-                      size="sm"
-                      className="h-9 w-9 min-w-0 rounded p-0"
                       onClick={() => setConfirmRemoveIndex(index)}
                       disabled={isSaving}
-                      aria-label={formatMessage({ id: "app.conviction.removeStrategy" })}
+                      label={formatMessage({ id: "app.conviction.removeStrategy" })}
                     >
-                      <RiDeleteBinLine className="h-4 w-4" />
-                    </AdminButton>
+                      <RiDeleteBinLine />
+                    </AdminIconButton>
                   )}
                 </div>
               ))}

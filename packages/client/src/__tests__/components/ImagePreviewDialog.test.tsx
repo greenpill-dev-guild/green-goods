@@ -7,6 +7,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
+import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 // Mock ImageWithFallback to avoid image loading issues
@@ -16,15 +17,7 @@ vi.mock("@/components/Display", () => ({
   ),
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return {
-    ...actual,
-    cn: (...args: any[]) => args.filter(Boolean).join(" "),
-  };
-});
-
-import { ImagePreviewDialog } from "../../components/Dialogs/ImagePreviewDialog";
+import { ImagePreviewDialog } from "../../components/Display/ImagePreviewDialog";
 
 const IMAGES = [
   "https://via.placeholder.co/300x300?text=1",
@@ -76,6 +69,23 @@ describe("ImagePreviewDialog", () => {
     render(<ImagePreviewDialog isOpen onClose={() => {}} images={[]} initialIndex={0} />);
 
     expect(screen.queryByTestId("image-preview-dialog")).not.toBeInTheDocument();
+  });
+
+  it("hides the app bar only while the preview actually renders (DL-015)", () => {
+    useUIStore.setState({ openSheetCount: 0 });
+    const view = render(
+      <ImagePreviewDialog isOpen onClose={() => {}} images={[]} initialIndex={0} />
+    );
+    expect(useUIStore.getState().openSheetCount).toBe(0);
+
+    view.rerender(
+      <ImagePreviewDialog isOpen onClose={() => {}} images={IMAGES} initialIndex={0} />
+    );
+    expect(useUIStore.getState().openSheetCount).toBe(1);
+
+    // Removing the last photo while the preview is open releases the app bar.
+    view.rerender(<ImagePreviewDialog isOpen onClose={() => {}} images={[]} initialIndex={0} />);
+    expect(useUIStore.getState().openSheetCount).toBe(0);
   });
 
   it("calls onClose when close button is clicked", async () => {
@@ -186,5 +196,34 @@ describe("ImagePreviewDialog", () => {
     expect(screen.queryByRole("button", { name: /next image/i })).not.toBeInTheDocument();
     // Thumbnails also hidden for single image
     expect(screen.queryByRole("button", { name: /go to image/i })).not.toBeInTheDocument();
+  });
+  it("reopens on the requested image after paging away and closing", async () => {
+    // The dialog stays mounted while closed, so `useState(initialIndex)` alone
+    // kept whatever image the reader last paged to. Reopening the same tile —
+    // an unchanged `initialIndex` — then showed the wrong photo.
+    const user = userEvent.setup();
+    render(<TestHarness />);
+
+    expect(screen.getByText("1 / 3")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /next image/i }));
+    expect(screen.getByText("2 / 3")).toBeInTheDocument();
+
+    await user.click(screen.getByTestId("image-preview-close"));
+    await user.click(screen.getByLabelText("open-dialog"));
+
+    expect(screen.getByText("1 / 3")).toBeInTheDocument();
+  });
+
+  it("returns focus to the control that opened it", async () => {
+    // It opens by state, with no Radix trigger, so Radix returns focus to nothing.
+    const user = userEvent.setup();
+    render(<TestHarness initialOpen={false} />);
+    const opener = screen.getByLabelText("open-dialog");
+
+    await user.click(opener);
+    await user.click(screen.getByTestId("image-preview-close"));
+
+    expect(screen.queryByTestId("image-preview-dialog")).not.toBeInTheDocument();
+    expect(opener).toHaveFocus();
   });
 });

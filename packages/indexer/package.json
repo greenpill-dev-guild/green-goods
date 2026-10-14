@@ -1,53 +1,34 @@
 {
   "name": "@green-goods/indexer",
-  "version": "1.2.2",
+  "version": "2.0.0",
   "scripts": {
-    "clean": "tsc --clean",
-    "build": "tsc --build",
-    "watch": "tsc --watch",
-    "mocha": "node ../../scripts/dev/node-cli.js mocha --require tsx \"test/**/*.ts\"",
-    "setup-generated": "cd generated && pnpm install && pnpm run build",
-    "codegen": "envio codegen",
-    "dev": "./scripts/dev.sh",
-    "dev:docker": "docker compose -f docker-compose.indexer.yaml up --build",
-    "dev:docker:detach": "docker compose -f docker-compose.indexer.yaml up --build -d",
-    "dev:docker:logs": "docker compose -f docker-compose.indexer.yaml logs -f indexer",
-    "dev:docker:down": "docker compose -f docker-compose.indexer.yaml down",
-    "dev:manual": "envio dev",
-    "start": "envio start",
-    "stop": "docker compose -f docker-compose.indexer.yaml down",
-    "doctor": "./scripts/doctor.sh",
-    "doctor:fix": "./scripts/doctor.sh --fix",
-    "check:indexing-boundary": "node scripts/check-indexing-boundary.mjs",
-    "db:up": "cd generated && docker compose up -d",
-    "db:down": "cd generated && docker compose down",
-    "db:logs": "cd generated && docker compose logs -f",
-    "test:setup": "bun run codegen && bun run setup-generated",
-    "pretest": "[ -d generated/src ] || bun run test:setup",
-    "test": "bun run mocha",
-    "test:coverage": "c8 bun run mocha",
-    "test:full": "bun run test:setup && bun run mocha",
-    "lint": "bun --bun run oxlint src test",
-    "reset": "./scripts/reset.sh"
+    "clean": "node ../../scripts/dev/node-cli.js tsc --build --clean",
+    "build": "bun run codegen && node ../../scripts/dev/node-cli.js tsc --noEmit",
+    "watch": "node ../../scripts/dev/node-cli.js tsc --watch",
+    "codegen": "node ../../scripts/dev/node-cli.js envio codegen",
+    "dev": "node ../../scripts/dev/package-commands.mjs indexer dev",
+    "start": "node --env-file-if-exists=../../.env ./node_modules/envio/bin.mjs start",
+    "check:indexing-boundary": "node --test scripts/indexing-boundary-rules.test.mjs scripts/hasura-permissions.test.mjs && node scripts/check-indexing-boundary.mjs",
+    "db:up": "node ../../scripts/dev/node-cli.js envio local docker up",
+    "db:down": "docker ps -q --filter label=dev.envio.config-hash | xargs -r docker stop",
+    "test": "node ../../scripts/dev/package-commands.mjs indexer test",
+    "lint": "bun --bun run oxlint src test --deny-warnings",
+    "reset": "node ../../scripts/dev/node-cli.js envio stop",
+    "docker": "node ../../scripts/dev/package-commands.mjs indexer docker"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
     "@types/node": "^24.2.1",
-    "c8": "^10.1.3",
+    "c8": "11.0.0",
     "mocha": "^11.0.0",
-    "typescript": "^5.9.3"
+    "typescript": "~7.0.2"
   },
   "dependencies": {
-    "envio": "2.32.3"
+    "envio": "3.6.1",
+    "viem": "2.55.13"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.12.0 <23"
   },
-  "pnpm": {
-    "overrides": {
-      "minimatch@>=5.0.0 <5.1.8": "5.1.8",
-      "minimatch@>=9.0.0 <9.0.7": "9.0.7",
-      "serialize-javascript@<7.0.3": "7.0.5"
-    }
-  }
+  "type": "module"
 }

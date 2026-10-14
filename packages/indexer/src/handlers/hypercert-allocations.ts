@@ -1,0 +1,227 @@
+import type {
+  Commitment,
+  CommitmentContributor,
+  CommitmentContributorIndex,
+  CommitmentCycle,
+  Hypercert,
+  HypercertCommitmentContributorAllocation,
+  NeedCommitmentIndex,
+} from "envio";
+
+import {
+  compareCodeUnits,
+  computeRecognitionWeights,
+  createCommitment,
+  poolingEntityId,
+  sortedUnique,
+} from "./commitment-pool-projections";
+
+type EntityStore<T extends { readonly id: string }> = {
+  get(id: string): Promise<T | undefined>;
+  set(entity: T): void;
+};
+
+export type HypercertAllocationContext = {
+  Commitment: EntityStore<Commitment>;
+  CommitmentContributor: EntityStore<CommitmentContributor>;
+  CommitmentContributorIndex: EntityStore<CommitmentContributorIndex>;
+  CommitmentCycle: EntityStore<CommitmentCycle>;
+  Hypercert: EntityStore<Hypercert>;
+  HypercertCommitmentContributorAllocation: EntityStore<HypercertCommitmentContributorAllocation>;
+  NeedCommitmentIndex: EntityStore<NeedCommitmentIndex>;
+};
+
+function distributeUnits<T extends { readonly id: string; readonly weight: number }>(
+  units: bigint,
+  rows: readonly T[]
+): ReadonlyMap<string, bigint> {
+  if (rows.length === 0) return new Map();
+  const provisional = rows.map((row) => {
+    const numerator = units * BigInt(row.weight);
+    return { row, units: numerator / 10_000n, remainder: numerator % 10_000n };
+  });
+  const remaining = units - provisional.reduce((total, row) => total + row.units, 0n);
+  const remainderOrder = [...provisional].sort((left, right) => {
+    if (left.remainder !== right.remainder) return left.remainder > right.remainder ? -1 : 1;
+    return compareCodeUnits(left.row.id, right.row.id);
+  });
+  const awarded = new Set(remainderOrder.slice(0, Number(remaining)).map((row) => row.row.id));
+  return new Map(
+    provisional.map((row) => [row.row.id, row.units + (awarded.has(row.row.id) ? 1n : 0n)])
+  );
+}
+
+async function contributorWeights(
+  context: HypercertAllocationContext,
+  commitment: Commitment,
+  cycle: CommitmentCycle
+): Promise<
+  ReadonlyArray<{ readonly row: CommitmentContributor; readonly weight: number }> | undefined
+> {
+  const index = await context.CommitmentContributorIndex.get(commitment.id);
+  const active = (
+    await Promise.all(
+      (index?.contributorEntityIds ?? []).map((id) => context.CommitmentContributor.get(id))
+    )
+  )
+    .filter((row): row is CommitmentContributor => Boolean(row?.active))
+    .sort((left, right) => compareCodeUnits(left.contributor, right.contributor));
+  if (active.length !== commitment.frozenContributorCount) return undefined;
+  const eligible = active.filter((row) => row.approvedWorkCredits + row.evidenceCredits > 0);
+  if (eligible.length === 0) return [];
+  const weights = computeRecognitionWeights(
+    eligible.map((row) => ({
+      id: row.id,
+      account: row.contributor,
+      verifiedCredits: row.approvedWorkCredits + row.evidenceCredits,
+    })),
+    cycle.equalParticipationBps,
+    cycle.verifiedContributionBps
+  );
+  if (!weights) return undefined;
+  return eligible.map((row) => ({ row, weight: weights.get(row.id) ?? 0 }));
+}
+
+async function expandCommitmentAllocations(
+  context: HypercertAllocationContext,
+  hypercert: Hypercert,
+  timestamp: number
+): Promise<void> {
+  if (hypercert.bundleKind !== "COMMITMENT" || hypercert.commitmentIds.length === 0) return;
+  const rows = await Promise.all(
+    hypercert.commitmentIds.map((id) =>
+      context.Commitment.get(poolingEntityId(hypercert.chainId, id))
+    )
+  );
+  if (
+    rows.some(
+      (row) =>
+        !row ||
+        !row.creationSeen ||
+        row.state !== "FULFILLED" ||
+        row.cycleId === undefined ||
+        !row.contributorsFrozen ||
+        row.frozenContributorCount === undefined
+    )
+  )
+    return;
+  const commitments = rows as Commitment[];
+  const cycleId = commitments[0]?.cycleId;
+  if (cycleId === undefined || commitments.some((row) => row.cycleId !== cycleId)) return;
+  const cycle = await context.CommitmentCycle.get(poolingEntityId(hypercert.chainId, cycleId));
+  if (!cycle) return;
+  const gardenersClassUnits = (hypercert.totalUnits * BigInt(cycle.gardenersBps)) / 10_000n;
+  const baseBudget = gardenersClassUnits / BigInt(commitments.length);
+  const extraBudgets = gardenersClassUnits % BigInt(commitments.length);
+  const weightedCommitments = await Promise.all(
+    commitments.map(async (commitment, index) => ({
+      commitment,
+      commitmentBudget: baseBudget + (BigInt(index) < extraBudgets ? 1n : 0n),
+      weights: await contributorWeights(context, commitment, cycle),
+    }))
+  );
+  if (weightedCommitments.some(({ weights }) => weights === undefined)) return;
+  for (const { commitment, commitmentBudget, weights } of weightedCommitments) {
+    if (!weights) return;
+    const units = distributeUnits(
+      commitmentBudget,
+      weights.map(({ row, weight }) => ({ id: row.id, weight }))
+    );
+    const currentAllocationIds = new Set<string>();
+    for (const { row, weight } of weights) {
+      if (row.recognitionWeightBps !== weight) {
+        context.CommitmentContributor.set({
+          ...row,
+          recognitionWeightBps: weight,
+          updatedAt: Math.max(row.updatedAt, timestamp),
+        });
+      }
+      const id = `${hypercert.chainId}-${hypercert.tokenId}-${commitment.commitmentId}-${row.contributor}`;
+      currentAllocationIds.add(id);
+      const existing = await context.HypercertCommitmentContributorAllocation.get(id);
+      context.HypercertCommitmentContributorAllocation.set({
+        id,
+        chainId: hypercert.chainId,
+        hypercertId: hypercert.tokenId,
+        hypercertEntityId: hypercert.id,
+        commitmentId: commitment.commitmentId,
+        commitmentEntityId: commitment.id,
+        contributor: row.contributor,
+        contributorEntityId: row.id,
+        recognitionWeightBps: weight,
+        commitmentGardenersClassUnits: commitmentBudget,
+        recognitionUnits: units.get(row.id) ?? 0n,
+        createdAt: existing?.createdAt ?? timestamp,
+        updatedAt: Math.max(existing?.updatedAt ?? 0, timestamp),
+      });
+    }
+    const contributorIndex = await context.CommitmentContributorIndex.get(commitment.id);
+    for (const contributorEntityId of contributorIndex?.contributorEntityIds ?? []) {
+      const contributor = await context.CommitmentContributor.get(contributorEntityId);
+      if (!contributor) continue;
+      const id = `${hypercert.chainId}-${hypercert.tokenId}-${commitment.commitmentId}-${contributor.contributor}`;
+      if (currentAllocationIds.has(id)) continue;
+      const existing = await context.HypercertCommitmentContributorAllocation.get(id);
+      if (existing && (existing.recognitionWeightBps !== 0 || existing.recognitionUnits !== 0n)) {
+        context.HypercertCommitmentContributorAllocation.set({
+          ...existing,
+          recognitionWeightBps: 0,
+          recognitionUnits: 0n,
+          updatedAt: Math.max(existing.updatedAt, timestamp),
+        });
+      }
+    }
+    if (commitment.needUID) {
+      const needId = `${hypercert.chainId}-${commitment.needUID.toLowerCase()}`;
+      const need = await context.NeedCommitmentIndex.get(needId);
+      if (need) {
+        context.NeedCommitmentIndex.set({
+          ...need,
+          hypercertEntityIds: sortedUnique([...need.hypercertEntityIds, hypercert.id]),
+          updatedAt: Math.max(need.updatedAt, timestamp),
+        });
+      }
+    }
+  }
+}
+
+export async function indexCommitmentHypercert(
+  context: HypercertAllocationContext,
+  hypercert: Hypercert,
+  timestamp: number
+): Promise<void> {
+  for (const commitmentId of hypercert.commitmentIds) {
+    const entityId = poolingEntityId(hypercert.chainId, commitmentId);
+    const commitment =
+      (await context.Commitment.get(entityId)) ??
+      createCommitment(hypercert.chainId, commitmentId, timestamp);
+    context.Commitment.set({
+      ...commitment,
+      hypercertEntityIds: sortedUnique([...commitment.hypercertEntityIds, hypercert.id]),
+      updatedAt: Math.max(commitment.updatedAt, timestamp),
+    });
+  }
+  await expandCommitmentAllocations(context, hypercert, timestamp);
+}
+
+export async function reconcileCommitmentHypercerts(
+  context: HypercertAllocationContext,
+  commitment: Commitment,
+  timestamp: number
+): Promise<void> {
+  for (const hypercertEntityId of commitment.hypercertEntityIds) {
+    const hypercert = await context.Hypercert.get(hypercertEntityId);
+    if (hypercert) await expandCommitmentAllocations(context, hypercert, timestamp);
+  }
+}
+
+export async function reconcilePoolCommitmentHypercerts(
+  context: HypercertAllocationContext,
+  commitmentEntityIds: readonly string[],
+  timestamp: number
+): Promise<void> {
+  for (const commitmentEntityId of commitmentEntityIds) {
+    const commitment = await context.Commitment.get(commitmentEntityId);
+    if (commitment) await reconcileCommitmentHypercerts(context, commitment, timestamp);
+  }
+}

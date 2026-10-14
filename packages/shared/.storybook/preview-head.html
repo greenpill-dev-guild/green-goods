@@ -2,6 +2,24 @@
   name="description"
   content="Storybook-backed Green Goods component library and Warm Earth design exports for builders, designers, and agents."
 />
+<!-- Production typefaces, loaded the way the apps load them (packages/client/index.html
+     for Inter + Fraunces, packages/admin/src/index.css for Plus Jakarta Sans). Offline
+     CI falls back to the system stack; parity checks read the declared family, not
+     whether the file arrived. -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
+/>
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&display=swap"
+/>
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+/>
 <meta name="application-name" content="Green Goods Design" />
 <meta name="theme-color" content="#1a7544" />
 <link rel="canonical" href="https://design.greengoods.app/" />

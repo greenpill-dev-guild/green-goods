@@ -1,6 +1,6 @@
 /**
  * octant-vault-card-wallet-cache tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { beforeEach, describe, expect, it } from "vitest";

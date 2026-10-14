@@ -1,0 +1,18 @@
+{
+  "version": "3",
+  "pngFilesChecked": 370,
+  "unchangedV2Assets": 396,
+  "canonicalColor": "#367D44",
+  "editableTemplatesChecked": 6,
+  "checks": [
+    "Every inventory URL and archive file exists and matches",
+    "PNG dimensions and RGBA channels match the inventory",
+    "Transparent and opaque alpha bounds match their declarations",
+    "Canonical app icons use #367D44 and maskable artwork fits a 40% radius safe circle",
+    "Font and OFL license downloads match the vendored originals byte for byte",
+    "All six SVG templates retain editable text",
+    "Original v2 asset files remain unchanged",
+    "ZIP entries pass archive CRC validation"
+  ],
+  "figmaInventory": "Pending fresh board access; six original source nodes remain recorded."
+}

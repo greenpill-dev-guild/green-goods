@@ -3,7 +3,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AUTH_MODE_STORAGE_KEY,
   EMBEDDED_ADDRESS_KEY,
-  SIGNED_OUT_STORAGE_KEY,
   SMART_ACCOUNT_ADDRESS_STORAGE_KEY,
   USERNAME_STORAGE_KEY,
 } from "../../modules/auth/session";
@@ -63,12 +62,15 @@ function createBeforeInstallEvent(outcome: "accepted" | "dismissed" = "accepted"
 }
 
 function InstallStateProbe() {
-  const { installState, isInstalled, isInstalling, promptInstall } = useApp();
+  const { installState, isInstalled, isInstalling, installedAppEvidence, promptInstall } = useApp();
   return (
     <>
       <span data-testid="install-state">{installState}</span>
       <span data-testid="is-installing">{isInstalling ? "yes" : "no"}</span>
       <span data-testid="is-installed">{isInstalled ? "yes" : "no"}</span>
+      <span data-testid="evidence">
+        {`${installedAppEvidence.status}/${installedAppEvidence.source}`}
+      </span>
       <button type="button" onClick={promptInstall}>
         prompt install
       </button>
@@ -130,10 +132,13 @@ describe("AppProvider install confirmation", () => {
 
     expectInstallState("installed");
     expect(toastMocks.success).toHaveBeenCalledTimes(1);
+    // The install toast opens on the offline-ready download rather than
+    // declaring the app finished; it settles once the worker answers.
     expect(toastMocks.success).toHaveBeenCalledWith(
       expect.objectContaining({
+        id: "app-install-success",
         title: "App instalada",
-        message: "Green Goods está lista desde tu pantalla de inicio.",
+        message: "Preparándola para funcionar sin conexión.",
         context: "pwa install",
       })
     );
@@ -219,7 +224,7 @@ describe("AppProvider install confirmation", () => {
     expect(cacheMocks.clearAllCaches).not.toHaveBeenCalled();
   });
 
-  it("clears active session and volatile caches once when a prior install is replaced", async () => {
+  it("preserves active session and reading caches when a prior install is replaced", async () => {
     vi.useFakeTimers();
 
     const address = "0x1234567890123456789012345678901234567890";
@@ -244,30 +249,29 @@ describe("AppProvider install confirmation", () => {
     });
 
     expect(screen.getByText("content")).toBeInTheDocument();
-    expect(localStorage.getItem(AUTH_MODE_STORAGE_KEY)).toBeNull();
-    expect(localStorage.getItem(EMBEDDED_ADDRESS_KEY)).toBeNull();
-    expect(localStorage.getItem(SIGNED_OUT_STORAGE_KEY)).toBe("true");
+    expect(localStorage.getItem(AUTH_MODE_STORAGE_KEY)).toBe("passkey");
+    expect(localStorage.getItem(EMBEDDED_ADDRESS_KEY)).toBe(address);
     expect(localStorage.getItem(USERNAME_STORAGE_KEY)).toBe("afo");
     expect(localStorage.getItem("greengoods_credential")).toBe(credential);
     expect(localStorage.getItem(SMART_ACCOUNT_ADDRESS_STORAGE_KEY)).toBe(address);
-    expect(cacheMocks.queryClear).toHaveBeenCalledTimes(1);
-    expect(cacheMocks.clearAllCaches).toHaveBeenCalledTimes(1);
+    expect(cacheMocks.queryClear).not.toHaveBeenCalled();
+    expect(cacheMocks.clearAllCaches).not.toHaveBeenCalled();
 
     act(() => {
       window.dispatchEvent(new Event("appinstalled"));
       vi.advanceTimersByTime(1_000);
     });
 
-    expect(cacheMocks.queryClear).toHaveBeenCalledTimes(1);
-    expect(cacheMocks.clearAllCaches).toHaveBeenCalledTimes(1);
+    expect(cacheMocks.queryClear).not.toHaveBeenCalled();
+    expect(cacheMocks.clearAllCaches).not.toHaveBeenCalled();
 
     act(() => {
       window.dispatchEvent(new Event("appinstalled"));
       vi.advanceTimersByTime(30_000);
     });
 
-    expect(cacheMocks.queryClear).toHaveBeenCalledTimes(1);
-    expect(cacheMocks.clearAllCaches).toHaveBeenCalledTimes(1);
+    expect(cacheMocks.queryClear).not.toHaveBeenCalled();
+    expect(cacheMocks.clearAllCaches).not.toHaveBeenCalled();
     expect(toastMocks.success).toHaveBeenCalledTimes(1);
   });
 
@@ -337,5 +341,93 @@ describe("AppProvider install confirmation", () => {
     expectInstallState("not-installed");
     expect(screen.getByTestId("is-installing")).toHaveTextContent("no");
     expect(screen.getByTestId("is-installed")).toHaveTextContent("no");
+  });
+  it("keeps a dismissed install prompt from reading as installed, even with a remembered install", async () => {
+    vi.useFakeTimers();
+    localStorage.setItem("gg-pwa-installed", "true");
+
+    const { event, prompt } = createBeforeInstallEvent("dismissed");
+
+    render(
+      <AppProvider allowPosthogKeyFallback={false}>
+        <InstallStateProbe />
+      </AppProvider>
+    );
+
+    // A remembered install with no live signal is history, not a verdict.
+    expect(screen.getByTestId("evidence")).toHaveTextContent("unknown/history");
+    expect(screen.getByTestId("is-installed")).toHaveTextContent("no");
+
+    act(() => {
+      window.dispatchEvent(event);
+    });
+
+    // Chromium only offers the prompt while the app is absent.
+    expect(screen.getByTestId("evidence")).toHaveTextContent("not-installed/install-prompt");
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "prompt install" }));
+      await Promise.resolve();
+    });
+
+    // Dismissing the prompt consumes it but changes nothing about the verdict.
+    expect(prompt).toHaveBeenCalledTimes(1);
+    expectInstallState("not-installed");
+    expect(screen.getByTestId("evidence")).toHaveTextContent("not-installed/install-prompt");
+    expect(screen.getByTestId("is-installed")).toHaveTextContent("no");
+
+    // Only appinstalled retires it; the settled install then confirms the app.
+    act(() => {
+      window.dispatchEvent(new Event("appinstalled"));
+    });
+
+    expectInstallState("finalizing");
+    expect(screen.getByTestId("evidence")).not.toHaveTextContent("install-prompt");
+
+    act(() => {
+      vi.advanceTimersByTime(30_000);
+    });
+
+    expectInstallState("installed");
+    expect(screen.getByTestId("evidence")).toHaveTextContent("installed/appinstalled");
+    expect(screen.getByTestId("is-installed")).toHaveTextContent("yes");
+  });
+
+  it("keeps a remembered Android install when the related-app query comes back empty", async () => {
+    localStorage.setItem("gg-pwa-installed", "true");
+    const getInstalledRelatedApps = vi.fn(() => Promise.resolve([]));
+    Object.defineProperty(navigator, "userAgent", {
+      configurable: true,
+      value:
+        "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36",
+    });
+    Object.defineProperty(navigator, "getInstalledRelatedApps", {
+      configurable: true,
+      value: getInstalledRelatedApps,
+    });
+
+    try {
+      render(
+        <AppProvider allowPosthogKeyFallback={false}>
+          <InstallStateProbe />
+        </AppProvider>
+      );
+
+      expect(screen.getByTestId("evidence")).toHaveTextContent("checking/related-app");
+
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      // An empty answer is not a verified negative on a browser tab: it also comes
+      // back for a WebAPK bound to another host's manifest URL, so the remembered
+      // install stays the best available signal and Open App keeps its place.
+      expect(getInstalledRelatedApps).toHaveBeenCalledTimes(1);
+      expect(screen.getByTestId("evidence")).toHaveTextContent("unknown/history");
+      expect(screen.getByTestId("is-installed")).toHaveTextContent("no");
+    } finally {
+      Reflect.deleteProperty(navigator, "getInstalledRelatedApps");
+      Reflect.deleteProperty(navigator, "userAgent");
+    }
   });
 });

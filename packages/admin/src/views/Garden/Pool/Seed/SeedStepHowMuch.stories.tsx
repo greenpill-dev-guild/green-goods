@@ -1,0 +1,147 @@
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import type { Action } from "@green-goods/shared/types/domain";
+import {
+  COMMITMENT_COMPOSER_DEFAULTS,
+  useCommitmentComposerForm,
+} from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
+import type { Meta, StoryObj } from "@storybook/react";
+import { useFieldArray } from "react-hook-form";
+import { STORYBOOK_ADMIN_ACTIONS } from "../../../../../../shared/.storybook/adminFixtures";
+import { STORYBOOK_NOW_SECONDS } from "../../../../../../shared/.storybook/fixtures";
+import { SeedStepHowMuch, type SeedStepHowMuchProps } from "./SeedStepHowMuch";
+
+// The garden's registered actions, keyed the way the registry keys them: only a
+// chain-scoped id resolves to an action UID the requirement rows can carry.
+const SEED_ACTIONS: Action[] = STORYBOOK_ADMIN_ACTIONS.map((action, index) => ({
+  ...action,
+  id: `${DEFAULT_CHAIN_ID}-${index + 1}`,
+  startTime: action.startTime * 1_000,
+  endTime: action.endTime * 1_000,
+}));
+
+/** The step reads and writes the real composer form, exactly as the console does. */
+function SeedStepHowMuchWithForm(args: SeedStepHowMuchProps) {
+  const form = useCommitmentComposerForm(args.values);
+  const requirements = useFieldArray({ control: form.control, name: "requirements" });
+  return (
+    <SeedStepHowMuch {...args} form={form} values={form.watch()} requirements={requirements} />
+  );
+}
+
+const meta: Meta<typeof SeedStepHowMuch> = {
+  title: "Admin/Pool/SeedStepHowMuch",
+  component: SeedStepHowMuch,
+  tags: ["autodocs"],
+  parameters: {
+    docs: {
+      description: {
+        component:
+          "Step two of Seed Promises (PRD-1022 screens 02–03): two plainly named questions. How many separate promises to create, and what each one asks for: a unit of at most 24 characters and its amount, when it is due, who may contribute, and for garden work the approved actions it is kept by. The total under them keeps one height, and turns into a soft check when both numbers are above one.",
+      },
+    },
+  },
+  args: {
+    values: {
+      ...COMMITMENT_COMPOSER_DEFAULTS,
+      kind: "SERVICE",
+      unitLabel: "rides",
+      targetUnits: 12,
+      dueInDays: 30,
+    },
+    noteId: "seed-how-much",
+    busy: false,
+    errorOf: () => undefined,
+    actions: SEED_ACTIONS,
+    chainId: DEFAULT_CHAIN_ID,
+    now: STORYBOOK_NOW_SECONDS * 1_000,
+    cap: 3,
+  },
+  render: (args) => <SeedStepHowMuchWithForm {...args} />,
+  decorators: [
+    (Story) => (
+      <div className="max-w-2xl p-4" data-tone="garden">
+        <Story />
+      </div>
+    ),
+  ],
+};
+
+export default meta;
+type Story = StoryObj<typeof SeedStepHowMuch>;
+
+export const KeptByProof: Story = {};
+
+/** Ten separate promises at one survey each: ten surveys, each kept on its own. */
+export const TenSeparate: Story = {
+  args: {
+    values: {
+      ...COMMITMENT_COMPOSER_DEFAULTS,
+      kind: "SERVICE",
+      unitLabel: "survey",
+      targetUnits: 1,
+      dueInDays: 14,
+      count: 10,
+    },
+  },
+};
+
+/** Ten promises of ten surveys each: the total asks, in the same height, and offers the fix. */
+export const TotalCheck: Story = {
+  args: {
+    values: {
+      ...COMMITMENT_COMPOSER_DEFAULTS,
+      kind: "SERVICE",
+      unitLabel: "survey",
+      targetUnits: 10,
+      dueInDays: 14,
+      count: 10,
+    },
+  },
+};
+
+export const GardenWork: Story = {
+  args: {
+    values: {
+      ...COMMITMENT_COMPOSER_DEFAULTS,
+      kind: "GARDEN_WORK",
+      unitLabel: "plots",
+      targetUnits: 4,
+      dueInDays: 45,
+      openTeam: false,
+      requirements: [
+        { actionUID: "1", requiredCount: 3 },
+        { actionUID: "2", requiredCount: 1 },
+      ],
+    },
+  },
+};
+
+export const MissingUnitAndTarget: Story = {
+  args: {
+    values: { ...COMMITMENT_COMPOSER_DEFAULTS, kind: "SERVICE", unitLabel: "", targetUnits: 0 },
+    errorOf: (field) =>
+      field === "unitLabel"
+        ? "Say what you are counting"
+        : field === "targetUnits"
+          ? "How many?"
+          : undefined,
+  },
+};
+
+export const Queuing: Story = { args: { busy: true } };
+
+export const ClosedChosenAction: Story = {
+  args: {
+    values: {
+      ...COMMITMENT_COMPOSER_DEFAULTS,
+      kind: "GARDEN_WORK",
+      unitLabel: "plots",
+      targetUnits: 4,
+      requirements: [{ actionUID: "1", requiredCount: 3 }],
+    },
+    actions: SEED_ACTIONS.map((action, index) =>
+      index === 0 ? { ...action, endTime: STORYBOOK_NOW_SECONDS * 1_000 - 1 } : action
+    ),
+    now: STORYBOOK_NOW_SECONDS * 1_000,
+  },
+};

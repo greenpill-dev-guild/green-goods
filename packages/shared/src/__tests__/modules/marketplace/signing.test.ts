@@ -6,7 +6,7 @@
  * @vitest-environment node
  */
 
-import type { Address, Hex, WalletClient } from "viem";
+import type { Address, Hex } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { buildMakerAsk, signMakerAsk, validateOrder } from "../../../modules/marketplace/signing";
 import type { CreateListingParams } from "../../../types/hypercerts";
@@ -192,7 +192,7 @@ describe("marketplace/signing", () => {
       const mockSignature = "0xabcdef1234567890" as Hex;
       const mockWalletClient = {
         signTypedData: vi.fn().mockResolvedValue(mockSignature),
-      } as unknown as WalletClient;
+      };
 
       const signature = await signMakerAsk(order, mockWalletClient, CHAIN_ID);
 
@@ -200,8 +200,10 @@ describe("marketplace/signing", () => {
       expect(mockWalletClient.signTypedData).toHaveBeenCalledOnce();
 
       // Verify the domain was passed correctly
-      const callArgs = (mockWalletClient.signTypedData as ReturnType<typeof vi.fn>).mock
-        .calls[0][0];
+      const request = mockWalletClient.signTypedData.mock.calls[0][0];
+      expect(request.account).toBe(TEST_SIGNER);
+      expect(request.chainId).toBe(CHAIN_ID);
+      const callArgs = request.data;
       expect(callArgs.domain.name).toBe("LooksRareProtocol");
       expect(callArgs.domain.version).toBe("2");
       expect(callArgs.domain.chainId).toBe(CHAIN_ID);
@@ -217,7 +219,7 @@ describe("marketplace/signing", () => {
       mockReadiness.addresses.hypercertExchange = ZERO_ADDRESS;
       const mockWalletClient = {
         signTypedData: vi.fn(),
-      } as unknown as WalletClient;
+      };
 
       await expect(signMakerAsk(order, mockWalletClient, CHAIN_ID)).rejects.toThrow(
         "Marketplace configuration incomplete"

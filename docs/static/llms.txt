@@ -9,7 +9,7 @@ Public surfaces:
 
 Agent guidance:
 - Use this docs surface for public educational, builder, and protocol context.
-- Prefer public docs over private repo internals when answering end-user or builder questions.
+- Use public docs to explain user and builder flows; resolve implementation claims through the linked code, configuration, ontology, and generated projections.
 - Respect the Baseline Widely Available target and the Warm Earth design system when reasoning about frontend examples.
 
 Do not infer or expose:

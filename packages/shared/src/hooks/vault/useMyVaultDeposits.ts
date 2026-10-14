@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { getVaultDepositsByUser } from "../../modules/data/vaults";
 import type { Address } from "../../types/domain";
 import type { VaultDeposit } from "../../types/vaults";
-import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
+import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
+import { vaultsKeys } from "../../config/query-keys/vault";
 
 interface UseMyVaultDepositsOptions {
   chainId?: number;
@@ -19,8 +20,8 @@ export function useMyVaultDeposits(userAddress?: Address, options: UseMyVaultDep
 
   const query = useQuery({
     queryKey: normalizedUser
-      ? queryKeys.vaults.myDepositsByUser(normalizedUser, chainId)
-      : queryKeys.vaults.myDepositsByUser("__disabled__", chainId),
+      ? vaultsKeys.myDepositsByUser(normalizedUser, chainId)
+      : vaultsKeys.myDepositsByUser("__disabled__", chainId),
     queryFn: () => getVaultDepositsByUser(normalizedUser ?? "", chainId),
     enabled: enabled && Boolean(normalizedUser),
     staleTime: STALE_TIME_MEDIUM,

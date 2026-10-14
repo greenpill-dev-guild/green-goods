@@ -1,0 +1,16 @@
+{
+  "date": "2026-08-25",
+  "mode": "A",
+  "pinnedTargetSha": "a5fe2c78b5f8ac66ec80ad68aa376ce882500cad",
+  "refreshCommand": "git fetch --prune origin develop",
+  "sharedCheckoutHeadsObserved": [
+    "139bdf3bc9aa181084c1d1bcd490d6bca6e58fd8",
+    "c00d704932ee9493e9a72d60a435b4db87b8309e",
+    "fc27a5b000fd8ab8674ac5a6dea159a0a602234b"
+  ],
+  "targetDriftResult": "BLOCKED (target drift)",
+  "renderedTestingStarted": false,
+  "isolatedSuiteWorktree": "/private/tmp/gg-pooling-focused-qa.2yvlak",
+  "isolatedSuiteWorktreeHead": "a5fe2c78b5f8ac66ec80ad68aa376ce882500cad",
+  "branchCreatedOrSwitched": false
+}

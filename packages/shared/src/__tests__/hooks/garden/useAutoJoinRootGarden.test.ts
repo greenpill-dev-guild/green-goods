@@ -1,6 +1,6 @@
 /**
  * checkMembership Utility Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the exported checkMembership function from useAutoJoinRootGarden.
  * This standalone async function checks on-chain membership via readContract
@@ -32,6 +32,10 @@ vi.mock("../../../config/blockchain", () => ({
     chainId: 11155111,
     rootGarden: { address: mockRootGardenAddress },
   }),
+}));
+
+vi.mock("../../../config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
 }));
 
 vi.mock("../../../config/app", () => ({

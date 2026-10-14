@@ -8,10 +8,10 @@
  * - Honest states: loading, empty, EAS error, partialData,
  *   sourceLimitReached.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
@@ -55,45 +55,69 @@ const mockSliceReady = {
   totalFetchedRecords: 2,
   partialData: false,
   sourceLimitReached: false,
+  certificateCount: 0,
   status: "ready" as const,
 };
 
 const mockUsePublicStats = vi.fn();
 const mockUsePublicImpactEvidence = vi.fn();
 const mockUsePublicGardens = vi.fn();
+const mockUsePublicCommitmentImpact = vi.fn();
 
-vi.mock("@green-goods/shared", async () => {
-  const actual = await vi.importActual<typeof import("@green-goods/shared")>("@green-goods/shared");
+vi.mock("@green-goods/shared/hooks/public/usePublicStats", async (importOriginal) => {
   return {
-    ...actual,
+    ...(await importOriginal()),
     usePublicStats: () => mockUsePublicStats(),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/public/usePublicImpactEvidence", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     usePublicImpactEvidence: () => mockUsePublicImpactEvidence(),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/public/usePublicGardens", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     usePublicGardens: () => mockUsePublicGardens(),
   };
 });
 
+vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling")>()),
+  usePublicCommitmentImpact: () => mockUsePublicCommitmentImpact(),
+}));
+
+vi.mock("@green-goods/shared/hooks/public/usePublicCommitmentImpact", () => ({
+  usePublicCommitmentImpact: () => mockUsePublicCommitmentImpact(),
+}));
+
 import ImpactPage from "../../views/Public/Impact";
 
 const messages: Record<string, string> = {
-  "public.impact.heroTitle": "See how Garden work becomes evidence.",
+  "public.impact.heroTitle": "See how Garden work becomes evidence",
   "public.impact.heroLede":
     "Green Goods turns documented regenerative work into public evidence through Assessments and, when ready, Impact Certificates.",
   "public.impact.totalAssessments": "Assessments",
   "public.impact.totalGardens": "Gardens",
   "public.impact.totalWork": "Work",
-  "public.impact.totalCertificates": "Impact Certificates",
   "public.impact.evidence.empty": "Assessment evidence will appear here.",
   "public.impact.evidence.error": "Evidence is temporarily unavailable.",
   "public.impact.evidence.partialData": "Showing partial evidence.",
   "public.impact.evidence.sourceLimitReached": "Capped slice.",
-  "public.impact.evidence.viewSource": "View source",
+  "public.impact.evidence.viewSource": "View Source",
   "public.impact.evidence.noSource": "Source pending",
   "public.impact.evidence.thumbnailFallback": "no image",
   "public.impact.proof.notPublicYet": "Not public yet",
   "public.impact.kind.all": "All",
   "public.impact.kind.assessment": "Assessment",
-  "public.impact.kind.work": "Work",
+  "public.impact.kind.work": "Submission",
   "public.impact.kind.certificate": "Impact Certificate",
+  "public.impact.totalCertificates": "Impact Certificates",
+  "public.impact.proof.certificatesNote":
+    "Approved submissions bundled into a shareable public record.",
   "public.impact.filters.kind": "Kind",
   "public.impact.filters.domain": "Domain",
   "public.impact.pipeline.kicker": "§ 01 — The cycle",
@@ -125,6 +149,10 @@ describe("ImpactPage", () => {
     mockUsePublicStats.mockReturnValue({ data: mockStats, isLoading: false });
     mockUsePublicImpactEvidence.mockReturnValue({ data: mockSliceReady, isLoading: false });
     mockUsePublicGardens.mockReturnValue({ data: [], isLoading: false });
+    // § 02 commitments band has its own suite (`commitment-editorial.test.tsx`);
+    // here it is pinned to a still-loading read so its figures cannot collide
+    // with the proof-marker counts this suite asserts on.
+    mockUsePublicCommitmentImpact.mockReturnValue({ data: undefined, isLoading: true });
   });
 
   it("renders the editorial hero", () => {
@@ -134,14 +162,76 @@ describe("ImpactPage", () => {
     );
   });
 
-  it("renders confirmed proof markers from usePublicStats", () => {
+  it("renders confirmed proof markers from usePublicStats, and no figure it cannot read", () => {
     renderView();
-    expect(screen.getAllByText("Assessments").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("Gardens").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("Work").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText("7")).toBeInTheDocument();
-    expect(screen.getByText("5")).toBeInTheDocument();
-    expect(screen.getByText("30")).toBeInTheDocument();
+    const proof = document.querySelector(
+      'section[aria-labelledby="public-impact-proof-title"]'
+    ) as HTMLElement;
+    const markers = Array.from(proof.querySelectorAll("dl > div")).map((marker) => [
+      marker.querySelector("dt")?.textContent,
+      marker.querySelector("dd")?.textContent,
+    ]);
+    expect(markers).toEqual([
+      ["Approved submissions", "30"],
+      ["Assessments", "7"],
+      ["Gardens", "5"],
+    ]);
+    // No certificate count exists to read yet, so the row does not carry one.
+    expect(within(proof).queryByText(/Impact Certificates/)).toBeNull();
+  });
+
+  // The row carries the certificate figure once one is public, from the slice's count, which
+  // runs past the ledger's record cap.
+  it("adds Impact Certificates to the proof row once the evidence holds one", () => {
+    const certificate = {
+      id: "certificate:1",
+      kind: "certificate" as const,
+      gardenId: "0x1",
+      gardenName: "Solar Garden",
+      title: "First harvest",
+      sourceAvailable: true,
+      createdAt: 1715000000,
+    };
+    mockUsePublicImpactEvidence.mockReturnValue({
+      data: {
+        ...mockSliceReady,
+        records: [...mockSliceReady.records, certificate],
+        certificateCount: 1,
+      },
+      isLoading: false,
+    });
+    renderView();
+    const proof = document.querySelector(
+      'section[aria-labelledby="public-impact-proof-title"]'
+    ) as HTMLElement;
+    const last = Array.from(proof.querySelectorAll("dl > div")).at(-1) as HTMLElement;
+    expect(last.querySelector("dt")).toHaveTextContent("Impact Certificates");
+    expect(last.querySelector("dd")).toHaveTextContent("1");
+  });
+
+  it("renders a stats read that settled without data as unavailable, never as zero", () => {
+    mockUsePublicStats.mockReturnValue({ data: undefined, isLoading: false });
+    renderView();
+    const proof = document.querySelector(
+      'section[aria-labelledby="public-impact-proof-title"]'
+    ) as HTMLElement;
+    expect(within(proof).getAllByText("Not available right now")).toHaveLength(3);
+    expect(within(proof).queryByText("Not public yet")).toBeNull();
+    expect(within(proof).queryByText("0")).toBeNull();
+  });
+
+  it("dashes out only the count the stats read could not establish", () => {
+    mockUsePublicStats.mockReturnValue({
+      data: { ...mockStats, fieldNoteCount: null },
+      isLoading: false,
+    });
+    renderView();
+    const proof = document.querySelector(
+      'section[aria-labelledby="public-impact-proof-title"]'
+    ) as HTMLElement;
+    expect(within(proof).getAllByText("Not available right now")).toHaveLength(1);
+    expect(within(proof).getByText("7")).toBeInTheDocument();
+    expect(within(proof).queryByText("30")).toBeNull();
   });
 
   it("renders evidence cards with their titles in an image-forward grid", () => {
@@ -153,10 +243,94 @@ describe("ImpactPage", () => {
     expect(screen.getByRole("button", { name: "Composting Pilot" })).toBeInTheDocument();
   });
 
+  it("titles a work record without the timestamps its stored title carries, and no other kind", () => {
+    const stamps = " - 2026-04-23T18:44:24.803Z - 2026-04-23T18:44:25.160Z";
+    const base = { gardenId: "0x1", gardenName: "Solar Garden", sourceAvailable: true };
+    const work = { ...base, id: "work:0x9", kind: "work" as const, createdAt: 1720000000 };
+    const certificate = { ...base, id: "certificate:0x7", kind: "certificate" as const };
+    mockUsePublicImpactEvidence.mockReturnValue({
+      data: {
+        ...mockSliceReady,
+        records: [
+          { ...work, title: `Cleanup Event${stamps}`, easUid: "0x9" },
+          { ...certificate, title: `Harvest Record${stamps}`, createdAt: 1715000000 },
+          ...mockSliceReady.records,
+        ],
+      },
+      isLoading: false,
+    });
+    renderView();
+
+    const card = screen.getByRole("button", { name: "Cleanup Event" });
+    expect(within(card).getByRole("heading", { level: 3 })).toHaveTextContent(/^Cleanup Event$/);
+    // A certificate keeps the title it was minted with, whatever it ends in.
+    expect(screen.getByRole("button", { name: `Harvest Record${stamps}` })).toBeInTheDocument();
+
+    fireEvent.click(card);
+    expect(screen.getByRole("dialog", { name: "Cleanup Event" })).toBeInTheDocument();
+  });
+
+  it("returns focus to the evidence card when its record closes", () => {
+    renderView();
+    const card = screen.getByRole("button", { name: "Composting Pilot" });
+    // A bare click moves no focus, as a click or tap on a button moves none in Safari.
+    fireEvent.click(card);
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(card).toHaveFocus();
+  });
+
+  // Prev and Next sit under the last card; staying there after a page turn left the
+  // visitor looking at the bottom of a list they had not seen (QA review, 2026-10-12).
+  it("brings the visitor to the ledger's top, with focus on its heading, when the page turns", () => {
+    const records = Array.from({ length: 13 }, (_, index) => ({
+      id: `work:${index}`,
+      kind: "work" as const,
+      gardenId: "0x1",
+      gardenName: "Solar Garden",
+      title: `Record ${index + 1}`,
+      domain: 0,
+      sourceAvailable: true,
+      createdAt: 1710000000 - index,
+    }));
+    mockUsePublicImpactEvidence.mockReturnValue({
+      data: { ...mockSliceReady, records, totalFetchedRecords: records.length },
+      isLoading: false,
+    });
+    const scrollIntoView = vi.fn();
+    const original = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "scrollIntoView");
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+      configurable: true,
+      value: scrollIntoView,
+    });
+    try {
+      renderView();
+      const heading = screen.getByRole("heading", {
+        level: 2,
+        name: "Recent evidence across Gardens.",
+      });
+
+      fireEvent.click(screen.getByRole("button", { name: /Next/ }));
+
+      expect(screen.getByText("Record 13")).toBeInTheDocument();
+      expect(scrollIntoView).toHaveBeenCalledOnce();
+      expect(scrollIntoView.mock.contexts[0]).toBe(heading.closest("header"));
+      expect(scrollIntoView).toHaveBeenCalledWith(expect.objectContaining({ block: "start" }));
+      expect(heading).toHaveFocus();
+    } finally {
+      if (original) Object.defineProperty(HTMLElement.prototype, "scrollIntoView", original);
+      else delete (HTMLElement.prototype as { scrollIntoView?: unknown }).scrollIntoView;
+    }
+  });
+
   it("shows loading skeletons while evidence is loading", () => {
     mockUsePublicImpactEvidence.mockReturnValue({ data: undefined, isLoading: true });
     const { container } = renderView();
-    expect(container.querySelectorAll(".animate-pulse").length).toBeGreaterThanOrEqual(1);
+    expect(container.querySelectorAll("[data-editorial-skeleton]").length).toBeGreaterThanOrEqual(
+      3
+    );
+    expect(container.querySelector(".animate-pulse")).toBeNull();
   });
 
   it("shows the empty evidence state when no records load", () => {

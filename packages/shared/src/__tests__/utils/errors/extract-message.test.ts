@@ -6,7 +6,12 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { extractErrorMessage, extractErrorMessageOr } from "../../../utils/errors/extract-message";
+import {
+  extractErrorMessage,
+  extractErrorMessageOr,
+  withoutQuotedRequest,
+} from "../../../utils/errors/extract-message";
+import { passkeyServerRefusal } from "../../test-utils/passkey-server-refusal";
 
 // ============================================
 // extractErrorMessage
@@ -142,5 +147,34 @@ describe("extractErrorMessageOr", () => {
 
   it("does not use fallback when message has content", () => {
     expect(extractErrorMessageOr({ message: "content" }, "Fallback")).toBe("content");
+  });
+});
+
+// ============================================
+// withoutQuotedRequest
+// ============================================
+
+describe("withoutQuotedRequest", () => {
+  it("drops the address and the request a passkey server refusal quotes, and nothing else", async () => {
+    const refusal = await passkeyServerRefusal({ userName: "cancel-ana", message: "Name taken." });
+    expect(refusal.message).toContain("URL: https://agent.greengoods.app/public/passkeys/rpc");
+    expect(refusal.message).toContain('"userName":"cancel-ana"');
+
+    const text = withoutQuotedRequest(refusal.message);
+
+    expect(text).not.toMatch(/cancel-ana|passkeys\/rpc|Request body/);
+    expect(text).toContain("Details: Name taken.");
+    expect(
+      withoutQuotedRequest("Refused.\nURL: https://example\nRequest body: {…}\nDetails: Taken")
+    ).toBe("Refused.\n\n\nDetails: Taken");
+    expect(withoutQuotedRequest("No request is quoted here.")).toBe("No request is quoted here.");
+  });
+
+  it("keeps a typed line separator from ending the quoted request early", async () => {
+    // JSON leaves U+2028 unescaped, and a plain `.` or `$` would treat it as the end of the line.
+    const typed = `ana${String.fromCharCode(0x2028)}cancel`;
+    const refusal = await passkeyServerRefusal({ userName: typed, message: "Name taken." });
+
+    expect(withoutQuotedRequest(refusal.message)).not.toContain("cancel");
   });
 });

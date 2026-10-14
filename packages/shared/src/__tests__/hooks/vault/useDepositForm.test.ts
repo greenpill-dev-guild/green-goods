@@ -1,6 +1,6 @@
 /**
  * useDepositForm Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests pure form validation logic for vault deposits.
  * Minimal mocking needed — only react-hook-form + viem parseUnits are real.

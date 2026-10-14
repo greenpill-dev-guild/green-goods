@@ -17,7 +17,7 @@ import {
 export interface ChainConfig {
   /** Network name for deployment configs (e.g., "arbitrum", "sepolia") */
   name: string;
-  /** EAS explorer subdomain name (e.g., "arbitrum-one", "sepolia") */
+  /** EAS explorer subdomain name (e.g., "arbitrum", "sepolia") */
   easName: string;
   /** Block explorer base URL */
   blockExplorer: string;
@@ -43,7 +43,7 @@ export const CHAIN_REGISTRY: Record<number, ChainConfig> = {
   },
   42161: {
     name: "arbitrum",
-    easName: "arbitrum-one",
+    easName: "arbitrum",
     blockExplorer: "https://arbiscan.io",
     rpcTemplate: "https://arb-mainnet.g.alchemy.com/v2/{ALCHEMY_KEY}",
     publicRpcUrl: "https://arb1.arbitrum.io/rpc",

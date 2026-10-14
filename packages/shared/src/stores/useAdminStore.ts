@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { create } from "zustand";
 import { createJSONStorage, persist, subscribeWithSelector } from "zustand/middleware";
-import { DEFAULT_CHAIN_ID } from "../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../config/default-chain";
 import { useGardens } from "../hooks/blockchain/useBaseLists";
 import { useRole } from "../hooks/gardener/useRole";
 import type { Garden as DomainGarden } from "../types/domain";
@@ -18,7 +18,7 @@ export type Garden = Pick<
   | "bannerImage"
   | "createdAt"
   | "gardeners"
-  | "operators"
+  | "stewards"
 >;
 
 export type TransactionStatus = "pending" | "confirmed" | "failed";
@@ -138,7 +138,7 @@ export const useAdminStore = create<AdminState>()(
 
 /**
  * Resets selectedGarden when it no longer exists in either the base-list
- * gardens query OR the role-confirmed operator gardens. The operator-gardens
+ * gardens query OR the role-confirmed steward gardens. The steward-gardens
  * cross-check matches what `useEligibleAdminGardens` does — without it, a
  * garden recovered from a stale or errored base list (a stub injected by the
  * cross-check) would land on the canvas and then be cleared a render later
@@ -149,11 +149,11 @@ export function useStaleGardenGuard(): void {
   const selectedGarden = useAdminStore((s) => s.selectedGarden);
   const setSelectedGarden = useAdminStore((s) => s.setSelectedGarden);
   const { data: gardens } = useGardens();
-  const { operatorGardens, loading: roleLoading } = useRole();
+  const { stewardGardens, loading: roleLoading } = useRole();
 
-  const operatorGardenIdSet = useMemo(
-    () => new Set(operatorGardens.map((og) => og.id.toLowerCase())),
-    [operatorGardens]
+  const stewardGardenIdSet = useMemo(
+    () => new Set(stewardGardens.map((og) => og.id.toLowerCase())),
+    [stewardGardens]
   );
 
   useEffect(() => {
@@ -162,9 +162,9 @@ export function useStaleGardenGuard(): void {
 
     const idLower = selectedGarden.id.toLowerCase();
     const stillExists =
-      gardens.some((g) => g.id.toLowerCase() === idLower) || operatorGardenIdSet.has(idLower);
+      gardens.some((g) => g.id.toLowerCase() === idLower) || stewardGardenIdSet.has(idLower);
     if (!stillExists) {
       setSelectedGarden(null);
     }
-  }, [gardens, operatorGardenIdSet, roleLoading, selectedGarden, setSelectedGarden]);
+  }, [gardens, stewardGardenIdSet, roleLoading, selectedGarden, setSelectedGarden]);
 }

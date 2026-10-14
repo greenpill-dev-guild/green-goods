@@ -10,7 +10,7 @@
 import type { Hex } from "viem";
 import { fromPromise } from "xstate";
 
-import { createPublicClientForChain } from "../../../config";
+import { createPublicClientForChain } from "../../../config/pimlico";
 import { logger } from "../../../modules/app/logger";
 import type { Address } from "../../../types/domain";
 import type { MintHypercertReceiptInput } from "../../../workflows/mintHypercert";

@@ -1,5 +1,7 @@
 import { del as idbDel, get as idbGet, set as idbSet } from "idb-keyval";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { getTransactionScopeKey } from "../../modules/transactions/types";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { trackStorageError } from "../../modules/app/error-tracking";
 import { logger } from "../../modules/app/logger";
 import {
@@ -13,10 +15,11 @@ import type { Address } from "../../types/domain";
 // ---------------------------------------------------------------------------
 
 export interface GardenDraft {
-  /** Composite key: `garden_draft_${operatorAddress}` */
+  /** Composite key: `garden_draft_${stewardAddress}` */
   id: string;
-  /** Operator who created the draft */
-  operatorAddress: Address;
+  chainId?: number;
+  /** Steward who created the draft */
+  stewardAddress: Address;
   /** Form fields snapshot */
   form: CreateGardenFormState;
   /** Current wizard step index */
@@ -38,11 +41,12 @@ export interface UseGardenDraftResult {
   /** Persists the current garden store state as a draft */
   saveDraft: () => Promise<GardenDraft | null>;
   /** Deletes the stored draft */
-  clearDraft: () => Promise<void>;
+  clearDraft: () => Promise<boolean>;
 }
 
 interface UseGardenDraftOptions {
   enabled?: boolean;
+  chainId?: number;
   /** Debounce delay for auto-save after store changes (default: 2000ms) */
   autoSaveDebounceMs?: number;
   /** Interval for periodic safety-net saves (default: 60000ms) */
@@ -53,9 +57,9 @@ interface UseGardenDraftOptions {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function buildDraftKey(operatorAddress?: string) {
-  if (!operatorAddress) return null;
-  return `garden_draft_${operatorAddress}`;
+function buildDraftKey(stewardAddress?: string, chainId?: number) {
+  if (!stewardAddress) return null;
+  return `garden_draft_${stewardAddress}${chainId === undefined ? "" : `_${chainId}`}`;
 }
 
 function hasMeaningfulProgress(form: CreateGardenFormState): boolean {
@@ -68,7 +72,7 @@ function hasMeaningfulProgress(form: CreateGardenFormState): boolean {
     form.metadata.trim().length > 0 ||
     form.openJoining ||
     form.gardeners.length > 0 ||
-    form.operators.length > 0
+    form.stewards.length > 0
   );
 }
 
@@ -77,27 +81,57 @@ function hasMeaningfulProgress(form: CreateGardenFormState): boolean {
 // ---------------------------------------------------------------------------
 
 export function useGardenDraft(
-  operatorAddress?: string,
+  stewardAddress?: string,
   options: UseGardenDraftOptions = {}
 ): UseGardenDraftResult {
-  const { enabled = true, autoSaveDebounceMs = 2_000, autoSaveIntervalMs = 60_000 } = options;
+  const {
+    chainId,
+    enabled = true,
+    autoSaveDebounceMs = 2_000,
+    autoSaveIntervalMs = 60_000,
+  } = options;
 
   const [isLoading, setIsLoading] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
 
-  const draftKey = useMemo(() => buildDraftKey(operatorAddress), [operatorAddress]);
+  const draftKey = useMemo(() => buildDraftKey(stewardAddress, chainId), [stewardAddress, chainId]);
 
-  // Track request ID to handle race conditions when operatorAddress changes
+  // Track request ID to handle race conditions when stewardAddress changes
   const loadRequestIdRef = useRef(0);
 
   // Cache createdAt from first load to avoid redundant IDB reads on every save
   const createdAtRef = useRef<number | null>(null);
 
+  useLayoutEffect(() => {
+    loadRequestIdRef.current += 1;
+    createdAtRef.current = null;
+    setLastSavedAt(null);
+    setIsLoading(false);
+    return () => {
+      loadRequestIdRef.current += 1;
+    };
+  }, [draftKey]);
+
+  const readDraft = useCallback(async () => {
+    if (!draftKey) return undefined;
+    let stored = (await idbGet(draftKey)) as GardenDraft | undefined;
+    const legacyKey = buildDraftKey(stewardAddress);
+    if (!stored && chainId === DEFAULT_CHAIN_ID && legacyKey && legacyKey !== draftKey) {
+      const legacy = (await idbGet(legacyKey)) as GardenDraft | undefined;
+      if (legacy && legacy.stewardAddress?.toLowerCase() === stewardAddress?.toLowerCase()) {
+        stored = { ...legacy, id: draftKey, chainId };
+        await idbSet(draftKey, stored);
+        await idbDel(legacyKey);
+      }
+    }
+    return stored;
+  }, [draftKey, chainId, stewardAddress]);
+
   const peekDraft = useCallback(async () => {
     if (!draftKey || !enabled) return null;
 
     try {
-      const stored = (await idbGet(draftKey)) as GardenDraft | undefined;
+      const stored = await readDraft();
       return stored ?? null;
     } catch (error) {
       logger.error("[useGardenDraft] Failed to peek draft", {
@@ -113,7 +147,7 @@ export function useGardenDraft(
       });
       return null;
     }
-  }, [draftKey, enabled]);
+  }, [draftKey, enabled, readDraft]);
 
   const loadDraft = useCallback(async () => {
     if (!draftKey || !enabled) return null;
@@ -121,7 +155,7 @@ export function useGardenDraft(
     const requestId = ++loadRequestIdRef.current;
     setIsLoading(true);
     try {
-      const stored = (await idbGet(draftKey)) as GardenDraft | undefined;
+      const stored = await readDraft();
       // Ignore stale results if a newer request was started
       if (requestId !== loadRequestIdRef.current) return null;
 
@@ -157,14 +191,20 @@ export function useGardenDraft(
         setIsLoading(false);
       }
     }
-  }, [draftKey, enabled]);
+  }, [draftKey, enabled, readDraft]);
 
   const saveDraft = useCallback(async () => {
-    if (!draftKey || !operatorAddress || !enabled) return null;
+    if (!draftKey || !stewardAddress || !enabled) return null;
 
     const state = useCreateGardenStore.getState();
+    if (
+      chainId !== undefined &&
+      state.draftScope !== getTransactionScopeKey(stewardAddress as Address, chainId)
+    )
+      return null;
     if (!hasMeaningfulProgress(state.form)) return null;
 
+    const scopeGeneration = loadRequestIdRef.current;
     const now = Date.now();
     const createdAt = createdAtRef.current ?? now;
     // Cache on first save so subsequent saves skip IDB reads
@@ -172,7 +212,8 @@ export function useGardenDraft(
 
     const draft: GardenDraft = {
       id: draftKey,
-      operatorAddress: operatorAddress as Address,
+      chainId,
+      stewardAddress: stewardAddress as Address,
       form: state.form,
       currentStep: state.currentStep,
       createdAt,
@@ -181,7 +222,7 @@ export function useGardenDraft(
 
     try {
       await idbSet(draftKey, draft);
-      setLastSavedAt(now);
+      if (scopeGeneration === loadRequestIdRef.current) setLastSavedAt(now);
       return draft;
     } catch (error) {
       logger.error("[useGardenDraft] Failed to save draft", {
@@ -197,14 +238,17 @@ export function useGardenDraft(
       });
       return null;
     }
-  }, [draftKey, operatorAddress, enabled]);
+  }, [draftKey, stewardAddress, enabled, chainId]);
 
   const clearDraft = useCallback(async () => {
-    if (!draftKey) return;
+    if (!draftKey) return false;
+    const scopeGeneration = loadRequestIdRef.current;
     try {
       await idbDel(draftKey);
+      if (scopeGeneration !== loadRequestIdRef.current) return true;
       setLastSavedAt(null);
       createdAtRef.current = null;
+      return true;
     } catch (error) {
       logger.error("[useGardenDraft] Failed to clear draft", {
         source: "useGardenDraft.clearDraft",
@@ -217,6 +261,7 @@ export function useGardenDraft(
         recoverable: true,
         metadata: { key: draftKey },
       });
+      return false;
     }
   }, [draftKey]);
 

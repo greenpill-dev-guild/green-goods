@@ -2,12 +2,22 @@
 
 import { spawnSync } from "node:child_process";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { config as loadDotenv } from "dotenv";
 
 const NO_MATCH_TEST = ".*[cC]elo.*|.*[uU]nlock.*";
 const DEFAULT_THREADS = "1";
 const DEFAULT_VERBOSITY = "-vvv";
 const DEFAULT_FORK_RETRIES = "5";
+const HATS_MODULE_REHEARSAL_INPUTS = [
+  "HATS_MODULE_UPGRADE_FORK_BLOCK_NUMBER",
+  "HATS_MODULE_UPGRADE_GARDEN_COUNT",
+];
+const HATS_MODULE_REHEARSAL_ADDRESS_INPUTS = [
+  "HATS_MODULE_UPGRADE_EXPECTED_IMPLEMENTATION",
+];
+// Arbitrum state the CookieJarModule upgrade was rehearsed against: 17 DAI jars, all capped at 0.01.
+const COOKIE_JAR_MODULE_REHEARSAL_BLOCK = "506680000";
 const DEFAULTS = {
   ARBITRUM_RPC_URL: "https://arbitrum-one.public.blastapi.io",
   ARBITRUM_FORK_BLOCK_NUMBER: "466388412",
@@ -15,20 +25,69 @@ const DEFAULTS = {
   SEPOLIA_FORK_BLOCK_NUMBER: "10917257",
   ETHEREUM_RPC_URL: "https://ethereum.drpc.org",
   ETHEREUM_FORK_BLOCK_NUMBER: "25170563",
+  // Celo's public node. Only the settlement-lane shard forks Celo, and it is read-only.
+  CELO_RPC_URL: "https://forno.celo.org",
+  CELO_FORK_BLOCK_NUMBER: "74700818",
 };
 
-const SHARDS = {
+export const SHARDS = {
   arbitrum: {
     chain: "ARBITRUM",
     description: "Arbitrum core, ENS, Gardens module, EAS, Hypercerts, Karma GAP, and full-protocol fork coverage",
     glob:
-      "test/fork/{ArbitrumActionRegistry,ArbitrumConvictionVoting,ArbitrumENS,ArbitrumGardenAccount,ArbitrumGardenAccountConfig,ArbitrumGardenAccountMembership,ArbitrumGardenAccountMetadata,ArbitrumGardenToken,ArbitrumGardensModule,ArbitrumGardensNegativePaths,ArbitrumGoodsToken,ArbitrumHats,ArbitrumHypercerts,ArbitrumKarmaGAP,ArbitrumLiveGardenSignalPoolRepair,ArbitrumMultiGardenIsolation,ArbitrumNegativePaths,ArbitrumRoleRevocation,e2e/ArbitrumFullProtocolE2E,eas/ArbitrumEASAttestationLifecycle}.t.sol",
+      "test/fork/{ArbitrumActionRegistry,ArbitrumAssessmentReleaseSequence,ArbitrumCommitmentPooling,ArbitrumConvictionVoting,ArbitrumENS,ArbitrumGardenAccount,ArbitrumGardenAccountConfig,ArbitrumGardenAccountMembership,ArbitrumGardenAccountMetadata,ArbitrumGardenToken,ArbitrumGardensModule,ArbitrumGardensNegativePaths,ArbitrumGoodsToken,ArbitrumHats,ArbitrumHatsModuleUpgrade,ArbitrumHypercerts,ArbitrumKarmaGAP,ArbitrumLiveGardenSignalPoolRepair,ArbitrumMultiGardenIsolation,ArbitrumNegativePaths,ArbitrumRoleRevocation,e2e/ArbitrumFullProtocolE2E,eas/ArbitrumEASAttestationLifecycle}.t.sol",
+    testEnv: {
+      HATS_MODULE_UPGRADE_FORK_BLOCK_NUMBER: "488774048",
+      HATS_MODULE_UPGRADE_GARDEN_COUNT: "18",
+      HATS_MODULE_UPGRADE_EXPECTED_IMPLEMENTATION:
+        "0xE5E5cbEDa7DC1139AF2e04Bd4a6784B42B4BeCD2",
+    },
+  },
+  "pooling-arbitrum": {
+    chain: "ARBITRUM",
+    description:
+      "Commitment Pooling and ordered Assessment release rehearsals against live Arbitrum Hats, EAS, and WorkApprovalResolver",
+    glob: "test/fork/{ArbitrumCommitmentPooling,ArbitrumAssessmentReleaseSequence}.t.sol",
+  },
+  "settlement-lane": {
+    chain: "ARBITRUM",
+    description:
+      "Arbitrum <-> Celo settlement lane, Garden Safe ownership spike, and a fork-local Cookie Jar credit round trip",
+    glob:
+      "test/fork/{CrossChainSettlementLane,CrossChainGardenSafeOwner,CreditTreasuryRoundTrip}.t.sol",
+  },
+  "hats-module-upgrade-arbitrum": {
+    chain: "ARBITRUM",
+    description: "Reviewed current-state Arbitrum rehearsal of the live HatsModule UUPS upgrade",
+    glob: "test/fork/ArbitrumHatsModuleUpgrade.t.sol",
+    requiredPositiveIntegerEnv: HATS_MODULE_REHEARSAL_INPUTS,
+    requiredAddressEnv: HATS_MODULE_REHEARSAL_ADDRESS_INPUTS,
+  },
+  "cookie-jar-module-upgrade-arbitrum": {
+    chain: "ARBITRUM",
+    description:
+      "Current-state Arbitrum rehearsal of the live CookieJarModule UUPS upgrade and its per-asset claim limits",
+    glob: "test/fork/ArbitrumCookieJarModuleUpgrade.t.sol",
+    testEnv: { COOKIE_JAR_MODULE_UPGRADE_FORK_BLOCK_NUMBER: COOKIE_JAR_MODULE_REHEARSAL_BLOCK },
+  },
+  "hats-module-upgrade-sepolia": {
+    chain: "SEPOLIA",
+    description: "Reviewed current-state Sepolia rehearsal of the live HatsModule UUPS upgrade",
+    glob: "test/fork/SepoliaHatsModuleUpgrade.t.sol",
+    requiredPositiveIntegerEnv: HATS_MODULE_REHEARSAL_INPUTS,
+    requiredAddressEnv: HATS_MODULE_REHEARSAL_ADDRESS_INPUTS,
   },
   sepolia: {
     chain: "SEPOLIA",
     description: "Sepolia protocol, EAS, ENS, Karma GAP, CookieJar, and full-protocol fork coverage",
     glob:
-      "test/fork/{SepoliaActionRegistry,SepoliaConvictionVoting,SepoliaCookieJar,SepoliaENS,SepoliaGardenAccount,SepoliaGardenAccountConfig,SepoliaGardenAccountMembership,SepoliaGardenAccountMetadata,SepoliaGardenToken,SepoliaGardensModule,SepoliaGoodsToken,SepoliaHats,SepoliaKarmaGAP,SepoliaNegativePaths,e2e/FullProtocolE2E,e2e/SepoliaExtendedE2E,eas/EASAttestationLifecycle}.t.sol",
+      "test/fork/{SepoliaActionRegistry,SepoliaConvictionVoting,SepoliaCookieJar,SepoliaENS,SepoliaGardenAccount,SepoliaGardenAccountConfig,SepoliaGardenAccountMembership,SepoliaGardenAccountMetadata,SepoliaGardenToken,SepoliaGardensModule,SepoliaGoodsToken,SepoliaHats,SepoliaHatsModuleUpgrade,SepoliaKarmaGAP,SepoliaNegativePaths,e2e/FullProtocolE2E,e2e/SepoliaExtendedE2E,eas/EASAttestationLifecycle}.t.sol",
+    testEnv: {
+      HATS_MODULE_UPGRADE_FORK_BLOCK_NUMBER: "11370209",
+      HATS_MODULE_UPGRADE_GARDEN_COUNT: "4",
+      HATS_MODULE_UPGRADE_EXPECTED_IMPLEMENTATION:
+        "0xC69FDc14f8b7B1C9133f398D33590c40D5A9cdA7",
+    },
   },
   ethereum: {
     chain: "ETHEREUM",
@@ -44,7 +103,8 @@ const SHARDS = {
     chain: "ARBITRUM",
     description: "Arbitrum Octant, Aave strategy, vault, yield splitter, CookieJar, and GreenWill readiness coverage",
     glob:
-      "test/fork/{ArbitrumAaveStrategy,ArbitrumCookieJar,ArbitrumGreenWillSupport,ArbitrumOctantVault,ArbitrumVaultYieldE2E,ArbitrumYieldSplitterCore,e2e/ArbitrumExtendedE2E}.t.sol",
+      "test/fork/{ArbitrumAaveStrategy,ArbitrumCookieJar,ArbitrumCookieJarModuleUpgrade,ArbitrumGreenWillSupport,ArbitrumOctantVault,ArbitrumVaultYieldE2E,ArbitrumYieldSplitterCore,e2e/ArbitrumExtendedE2E}.t.sol",
+    testEnv: { COOKIE_JAR_MODULE_UPGRADE_FORK_BLOCK_NUMBER: COOKIE_JAR_MODULE_REHEARSAL_BLOCK },
     extraRuns: [
       {
         profile: "e2e",
@@ -55,16 +115,25 @@ const SHARDS = {
       },
     ],
   },
+  "garden-account-release": {
+    description: "Pinned Celo garden-account release proof with regenerated reviewed planner fixture",
+    glob: "test/fork/CeloGardenAccountRelease.t.sol",
+    runner: "run-garden-account-release.ts",
+  },
+  "garden-roles": {
+    description: "Pinned Celo Roles permission proof with reviewed Safe bindings and isolated transactions",
+    glob: "test/fork/CeloGardenRolesPermission.t.sol",
+    runner: "run-garden-roles-proof.ts",
+  },
 };
 
-const SHARD_ORDER = ["arbitrum", "sepolia", "ethereum", "gardens", "octant"];
+export const SHARD_ORDER = ["arbitrum", "settlement-lane", "sepolia", "ethereum", "gardens", "octant", "garden-account-release", "garden-roles"];
 
 function loadEnv() {
   loadDotenv({ path: path.resolve(process.cwd(), "../../.env"), override: false, quiet: true });
-  loadDotenv({ path: path.resolve(process.cwd(), ".env"), override: false, quiet: true });
 }
 
-function forgeEnv(profile = "fork") {
+function forgeEnv(profile = "fork", overrides = {}) {
   const env = { ...process.env, FOUNDRY_PROFILE: profile };
   const alchemyKey = env.ALCHEMY_API_KEY || env.ALCHEMY_KEY || env.VITE_ALCHEMY_API_KEY;
 
@@ -81,12 +150,12 @@ function forgeEnv(profile = "fork") {
   env.ETHEREUM_FORK_RPC_URL ||= env.ETHEREUM_RPC_URL;
   env.MAINNET_RPC_URL ||= env.ETHEREUM_RPC_URL;
 
-  return env;
+  return { ...env, ...overrides };
 }
 
-function runForge(args, { profile = "fork", capture = false } = {}) {
+function runForge(args, { profile = "fork", capture = false, envOverrides = {} } = {}) {
   const result = spawnSync("forge", args, {
-    env: forgeEnv(profile),
+    env: forgeEnv(profile, envOverrides),
     encoding: "utf8",
     stdio: capture ? ["ignore", "pipe", "inherit"] : "inherit",
   });
@@ -140,13 +209,44 @@ function runShard(name) {
     usage(1);
   }
 
+  const missingOrInvalidInputs = (shard.requiredPositiveIntegerEnv || []).filter((key) => {
+    const value = process.env[key]?.trim();
+    return !value || !/^\d+$/.test(value) || BigInt(value) === 0n;
+  });
+  if (missingOrInvalidInputs.length > 0) {
+    console.error(
+      `[fork-shard] ${name}: set fresh reviewed positive integers for ${missingOrInvalidInputs.join(", ")}`,
+    );
+    process.exit(1);
+  }
+  const missingOrInvalidAddresses = (shard.requiredAddressEnv || []).filter((key) => {
+    const value = process.env[key]?.trim();
+    return !value || !/^0x[0-9a-fA-F]{40}$/.test(value);
+  });
+  if (missingOrInvalidAddresses.length > 0) {
+    console.error(
+      `[fork-shard] ${name}: set fresh reviewed addresses for ${missingOrInvalidAddresses.join(", ")}`,
+    );
+    process.exit(1);
+  }
+
   console.log(`[fork-shard] ${name}: ${shard.description}`);
   console.log(`[fork-shard] match-path: ${shard.glob}`);
+  if (shard.runner) {
+    // These suites require planner artifacts and execution isolation. Running their glob through
+    // generic Forge arguments would bypass those prerequisites.
+    const result = spawnSync("bun", [`script/utils/${shard.runner}`], { env: forgeEnv(), stdio: "inherit" });
+    if (result.error) throw result.error;
+    if (result.status !== 0) process.exit(result.status ?? 1);
+    return;
+  }
   const forkArgs = forkArgsForChain(shard.chain);
   if (forkArgs.length) {
     console.log(`[fork-shard] ${name}: using pinned ${shard.chain.toLowerCase()} process fork`);
   }
-  runForge(["test", "--match-path", shard.glob, ...forkArgs, ...commonArgs()]);
+  runForge(["test", "--match-path", shard.glob, ...forkArgs, ...commonArgs()], {
+    envOverrides: shard.testEnv,
+  });
 
   for (const extraRun of shard.extraRuns || []) {
     console.log(`[fork-shard] ${name}: ${extraRun.description}`);
@@ -245,15 +345,16 @@ function printManifest() {
 
 function usage(exitCode = 0) {
   console.log("Usage: bun script/utils/fork-shards.mjs <run|check|manifest> [shard|all]");
-  console.log(`Shards: ${SHARD_ORDER.join(", ")}`);
+  console.log(`Shards: ${Object.keys(SHARDS).join(", ")}`);
   process.exit(exitCode);
 }
 
-loadEnv();
-
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
 const command = process.argv[2];
 const target = process.argv[3] || "all";
-
+if (process.argv.length > 4 || (command !== "run" && process.argv[3])) usage(1);
+if (command === "run" && target !== "all" && !SHARDS[target]) usage(1);
+if (command === "run" || command === "check") loadEnv();
 if (command === "run") {
   const shardNames = target === "all" ? SHARD_ORDER : [target];
   for (const name of shardNames) runShard(name);
@@ -262,5 +363,6 @@ if (command === "run") {
 } else if (command === "manifest") {
   printManifest();
 } else {
-  usage(command ? 1 : 0);
+  usage(!command || command === "--help" ? 0 : 1);
+}
 }

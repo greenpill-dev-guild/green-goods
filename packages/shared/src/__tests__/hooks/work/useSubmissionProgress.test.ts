@@ -1,6 +1,6 @@
 /**
  * useSubmissionProgress Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the multi-stage progress tracker for work submissions.
  * This hook is self-contained (pure React state) with no external dependencies.

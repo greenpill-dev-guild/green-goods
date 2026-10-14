@@ -78,7 +78,7 @@ export const RATE_LIMITS = {
     message: "Voice processing is limited. Please wait before sending another voice message.",
   },
 
-  /** Operator approvals */
+  /** Steward approvals */
   approval: {
     maxRequests: 20,
     windowMs: 86_400_000, // 20 per day

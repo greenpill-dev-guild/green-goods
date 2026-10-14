@@ -12,9 +12,10 @@
  * @module modules/marketplace/approvals
  */
 
-import { type Address, encodeFunctionData, type Hex } from "viem";
+import type { Address } from "viem";
+import type { ContractCall } from "../transactions/types";
 
-import { createPublicClientForChain } from "../../config";
+import { createPublicClientForChain } from "../../config/pimlico";
 import { TRANSFER_MANAGER_ABI } from "../../utils/blockchain/hypercert-abis";
 import { assertMarketplaceReady } from "../../utils/blockchain/contracts";
 import { createLogger } from "../app/logger";
@@ -57,10 +58,7 @@ export interface MarketplaceApprovals {
   minterApproved: boolean;
 }
 
-export interface EncodedApprovalCall {
-  to: Address;
-  data: Hex;
-}
+export type MarketplaceApprovalCall = Omit<ContractCall, "account" | "chainId">;
 
 // ---------------------------------------------------------------------------
 // Check approvals
@@ -125,7 +123,7 @@ export async function checkMarketplaceApprovals(
 
 /**
  * Build the approval transactions for missing approvals.
- * Returns encoded calls that can be sent via writeContract.
+ * Returns contract calls for the shared account sender.
  *
  * - grantExchange: calls TransferManager.grantApprovals([exchange])
  * - approveMinter: calls HypercertMinter.setApprovalForAll(transferManager, true)
@@ -134,8 +132,8 @@ export async function buildApprovalTransactions(
   operator: Address,
   chainId: number
 ): Promise<{
-  grantExchange?: EncodedApprovalCall;
-  approveMinter?: EncodedApprovalCall;
+  grantExchange?: MarketplaceApprovalCall;
+  approveMinter?: MarketplaceApprovalCall;
 }> {
   const { exchangeApproved, minterApproved } = await checkMarketplaceApprovals(operator, chainId);
 
@@ -145,18 +143,16 @@ export async function buildApprovalTransactions(
   const minterAddress = readiness.addresses.hypercertMinter;
 
   const result: {
-    grantExchange?: EncodedApprovalCall;
-    approveMinter?: EncodedApprovalCall;
+    grantExchange?: MarketplaceApprovalCall;
+    approveMinter?: MarketplaceApprovalCall;
   } = {};
 
   if (!exchangeApproved) {
     result.grantExchange = {
-      to: transferManagerAddress,
-      data: encodeFunctionData({
-        abi: TRANSFER_MANAGER_ABI,
-        functionName: "grantApprovals",
-        args: [[exchangeAddress]],
-      }),
+      address: transferManagerAddress,
+      abi: TRANSFER_MANAGER_ABI,
+      functionName: "grantApprovals",
+      args: [[exchangeAddress]],
     };
 
     log.info("Exchange approval needed", {
@@ -169,12 +165,10 @@ export async function buildApprovalTransactions(
 
   if (!minterApproved) {
     result.approveMinter = {
-      to: minterAddress,
-      data: encodeFunctionData({
-        abi: ERC1155_APPROVAL_ABI,
-        functionName: "setApprovalForAll",
-        args: [transferManagerAddress, true],
-      }),
+      address: minterAddress,
+      abi: ERC1155_APPROVAL_ABI,
+      functionName: "setApprovalForAll",
+      args: [transferManagerAddress, true],
     };
 
     log.info("Minter approval needed", {

@@ -1,21 +1,20 @@
+import type { Step } from "../../../components/Form/StepIndicator";
 import {
-  type CreateActionFormData,
-  adminRoutes,
-  buildActionInstructionsV2,
-  Domain,
-  getNetworkContracts,
-  logger,
-  parseContractError,
-  type Step,
-  toastService,
   trackAdminActionCreateFailed,
   trackAdminActionCreateStarted,
-  trackAdminActionCreateSuccess,
-  uploadFileToIPFS,
-  useActionOperations,
-  useFormWizardStepValidation,
-  useSheetOrchestratorStore,
-} from "@green-goods/shared";
+} from "../../../modules/app/analytics-events";
+import { logger } from "../../../modules/app/logger";
+import { uploadFileToIPFS } from "../../../modules/data/ipfs/upload";
+import { useSheetOrchestratorStore } from "../../../stores/useSheetOrchestratorStore";
+import { Domain } from "../../../types/domain";
+import { buildActionInstructionsV2 } from "../../../utils/action/translations";
+import { getNetworkContracts } from "../../../utils/blockchain/contracts";
+import { parseContractError } from "../../../utils/errors/contract-errors";
+import { adminRoutes } from "../../../utils/navigation/admin-routes";
+import type { CreateActionFormData } from "../../action/useActionForm";
+import { useActionOperations } from "../../action/useActionOperations";
+import { useFormWizardStepValidation } from "../../ui/useFormWizardStepValidation";
+import { useTxErrorMessages } from "../../utils/useTxErrorMessages";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useIntl } from "react-intl";
@@ -35,17 +34,48 @@ import {
   serializeCreateActionDraft,
 } from "./actionDrafts";
 
+/** Where the Review's send stands: nothing sent yet, under way, landed, or failed. */
+type CreateActionSend = "idle" | "sending" | "pending" | "sent" | "failed";
+
 export function useCreateActionController() {
   const navigate = useNavigate();
   const location = useLocation();
   const { formatMessage } = useIntl();
-  const { registerAction, isLoading } = useActionOperations(CREATE_ACTION_DEFAULT_CHAIN_ID);
+  const {
+    registerAction,
+    isLoading,
+    assertReady,
+    pendingRegistration,
+    reconcileRegistration,
+    confirmRegistrationCancellation,
+    acknowledgeRegistration,
+    registrationScope,
+  } = useActionOperations(CREATE_ACTION_DEFAULT_CHAIN_ID);
   const createActionContracts = getNetworkContracts(CREATE_ACTION_DEFAULT_CHAIN_ID);
   const actionCreateGardenAddress = createActionContracts.gardenToken;
   const [currentStep, setCurrentStep] = useState(0);
   const setDraftFormState = useSheetOrchestratorStore((state) => state.setFormState);
   const clearDraftFormState = useSheetOrchestratorStore((state) => state.clearViewState);
   const restoredDraftRef = useRef(false);
+  // The send covers the uploads as well as the registration, so the Review
+  // holds still from the first press, not only while the wallet is asked.
+  const [send, setSend] = useState<CreateActionSend>("idle");
+  const [sendError, setSendError] = useState<unknown>(null);
+  // Validation runs before onSubmit, so two quick presses can both reach it
+  // before the state above re-renders; this lock is set synchronously.
+  const sendLockRef = useRef(false);
+  const txError = useTxErrorMessages(sendError);
+  const mounted = useRef(true);
+  const activeScope = useRef(registrationScope);
+  activeScope.current = registrationScope;
+  const previousScope = useRef(registrationScope);
+  const [isCheckingConfirmation, setIsCheckingConfirmation] = useState(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   const domainOptions = [
     {
@@ -126,6 +156,25 @@ export function useCreateActionController() {
     setCurrentStep(Math.max(0, Math.min(restoredDraft.currentStep, stepConfigs.length - 1)));
   }, [form, stepConfigs.length]);
 
+  useEffect(() => {
+    if (previousScope.current !== registrationScope) {
+      const hadScope = previousScope.current !== null;
+      previousScope.current = registrationScope;
+      if (hadScope) {
+        sendLockRef.current = false;
+        setSend("idle");
+        setSendError(null);
+        setCurrentStep(0);
+        form.reset(createActionDefaultValues());
+      }
+    }
+    if (pendingRegistration) {
+      sendLockRef.current = true;
+      setSend("pending");
+      setCurrentStep(stepConfigs.length - 1);
+    }
+  }, [registrationScope, pendingRegistration, form, stepConfigs.length]);
+
   const stepValidation = useFormWizardStepValidation({
     currentStep,
     steps: stepConfigs,
@@ -164,17 +213,18 @@ export function useCreateActionController() {
   }, [currentStep, form, setDraftFormState]);
 
   const onSubmit = async (data: CreateActionFormData) => {
+    // One send at a time, and none once the action exists.
+    if (sendLockRef.current) return;
+    sendLockRef.current = true;
+    setSend("sending");
+    setSendError(null);
+    const submissionScope = registrationScope;
     let mutationStarted = false;
     const actionSlug = data.slug.trim().toLowerCase();
     const actionDomain = data.domain as Domain;
 
     try {
-      toastService.loading({
-        title: formatMessage({
-          id: "app.admin.actions.create.uploadingMedia",
-          defaultMessage: "Uploading media to IPFS...",
-        }),
-      });
+      await assertReady();
       const mediaUploads = await Promise.all(
         data.media.map((file: File) => uploadFileToIPFS(file))
       );
@@ -192,8 +242,6 @@ export function useCreateActionController() {
         type: "application/json",
       });
       const instructionsUpload = await uploadFileToIPFS(instructionsFile);
-
-      toastService.dismiss();
 
       const telemetryBase = {
         gardenAddress: actionCreateGardenAddress,
@@ -217,11 +265,16 @@ export function useCreateActionController() {
         instructions: instructionsUpload.cid,
       });
 
+      if (!mounted.current || activeScope.current !== submissionScope) return;
+      if (result.confirmation === "pending") {
+        setSend("pending");
+        return;
+      }
       if (!result.success) {
         const errorMessage = result.error?.message ?? "Action registration failed";
         mutationStarted = false;
         // Telemetry carries the parsed error family only — raw messages can
-        // embed operator-typed content (work/auth telemetry follow the same rule).
+        // embed steward-typed content (work/auth telemetry follow the same rule).
         const parsedFamily = parseContractError(result.error ?? errorMessage).name;
         trackAdminActionCreateFailed({
           ...telemetryBase,
@@ -231,14 +284,13 @@ export function useCreateActionController() {
         throw new Error(errorMessage);
       }
 
-      trackAdminActionCreateSuccess({
-        ...telemetryBase,
-        txHash: result.hash ?? "",
-      });
-
+      // The flow stays on its Review once the action exists (DL-080): nothing
+      // navigates and nothing asks to discard. The draft goes at once, so a
+      // reload cannot register the same action twice.
       clearDraftFormState(ACTION_CREATE_DRAFT_PATH);
       clearCreateActionMediaDraft(ACTION_CREATE_DRAFT_PATH);
-      navigate(actionsListHref);
+      acknowledgeRegistration(result.hash);
+      setSend("sent");
     } catch (error) {
       logger.error("Failed to create action", {
         source: "CreateAction.onSubmit",
@@ -259,22 +311,68 @@ export function useCreateActionController() {
         });
       }
 
-      toastService.error({
-        title: formatMessage({
-          id: "app.admin.actions.create.errorTitle",
-          defaultMessage: "Failed to create action",
-        }),
-        context: formatMessage({
-          id: "app.admin.actions.create.errorContext",
-          defaultMessage: "action creation",
-        }),
-        error,
-      });
+      // The Review's status row says what happened; Try Again sends the
+      // answers as they stand.
+      if (!mounted.current || activeScope.current !== submissionScope) return;
+      setSendError(error);
+      setSend("failed");
+      sendLockRef.current = false;
+    }
+  };
+
+  const confirmWalletCancellation = async (confirmedInWallet: boolean) => {
+    const scope = registrationScope;
+    if (isCheckingConfirmation || isLoading || send !== "pending")
+      throw new Error("pending-submission-changed");
+    await confirmRegistrationCancellation(confirmedInWallet);
+    if (!mounted.current || activeScope.current !== scope) return;
+    setSend("idle");
+    setSendError(null);
+    sendLockRef.current = false;
+  };
+  const checkConfirmation = async () => {
+    if (isCheckingConfirmation || isLoading || send === "sending" || send === "sent") return;
+    const scope = registrationScope;
+    setIsCheckingConfirmation(true);
+    try {
+      const result = await reconcileRegistration();
+      if (!mounted.current || activeScope.current !== scope) return;
+      if (result.confirmation === "pending") return;
+      if (result.success) {
+        clearDraftFormState(ACTION_CREATE_DRAFT_PATH);
+        clearCreateActionMediaDraft(ACTION_CREATE_DRAFT_PATH);
+        acknowledgeRegistration(result.hash);
+        setSend("sent");
+      } else {
+        setSendError(
+          new Error(
+            result.error?.message ??
+              formatMessage({
+                id: "app.account.transactionReverted",
+                defaultMessage: "Transaction reverted. Your change was not recorded.",
+              })
+          )
+        );
+        setSend("failed");
+        sendLockRef.current = false;
+      }
+    } finally {
+      if (mounted.current) setIsCheckingConfirmation(false);
     }
   };
 
   const handleCancel = () => {
     navigate(actionsListHref);
+  };
+
+  // The draft left with the send, so a new action starts from empty answers.
+  const handleCreateAnother = () => {
+    if (send !== "sent") return;
+    sendLockRef.current = false;
+    form.reset(createActionDefaultValues());
+    setSend("idle");
+    setSendError(null);
+    setCurrentStep(0);
   };
 
   // Discard clears the persisted draft (media + form state) before leaving, so a
@@ -286,18 +384,33 @@ export function useCreateActionController() {
     navigate(actionsListHref);
   };
 
+  const isSent = send === "sent";
+  const isPendingRegistration = send === "pending" || Boolean(pendingRegistration);
+
   return {
     currentStep,
     domainOptions,
+    errorMessage: txError.message,
+    errorTitle: txError.title,
     form,
     goToStep: stepValidation.handleStepClick,
     handleBack: stepValidation.handleBack,
     handleCancel,
+    handleCreateAnother,
     handleDiscard,
     handleNext: stepValidation.handleNext,
-    isDirty: form.formState.isDirty,
-    isLoading,
+    hasError: send === "failed",
+    // A registered action is not in progress, so closing its done state never asks.
+    isDirty: form.formState.isDirty && !isSent && !isPendingRegistration,
+    isSending: send === "sending" || isLoading,
+    isPendingRegistration,
+    isCheckingConfirmation: isCheckingConfirmation || isLoading,
+    checkConfirmation,
+    confirmWalletCancellation,
+    recoveryKey: `${registrationScope}:${pendingRegistration?.hash}`,
+    isSent,
     onSubmit,
     stepConfigs,
+    txErrorView: txError.view,
   };
 }

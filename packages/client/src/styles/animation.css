@@ -1,7 +1,42 @@
 @import "tailwindcss";
 
-/* Animation @theme tokens (accordion, spring-bump) are inherited from the
-   shared theme.css import in index.css -- no need to re-declare them here. */
+/* The accordion and spring-bump animation tokens come from the shared theme.css
+   import in index.css. That file carries only the token, not the keyframes it
+   names, so they live here. Radix keeps a closing accordion panel mounted until
+   its exit animation ends: without the accordion-up keyframes that never
+   happens, and an opened FAQ item can never close. */
+@keyframes accordion-down {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+  }
+}
+
+@keyframes accordion-up {
+  from {
+    height: var(--radix-accordion-content-height);
+  }
+  to {
+    height: 0;
+  }
+}
+
+@keyframes spring-bump {
+  from {
+    transform: scale(0.8);
+  }
+  60% {
+    transform: scale(1.1);
+  }
+  70% {
+    transform: scale(0.95);
+  }
+  to {
+    transform: scale(1);
+  }
+}
 
 /* ===== ENHANCED ANIMATIONS ===== */
 
@@ -407,6 +442,36 @@
   100% {
     width: 0%;
     margin-left: 100%;
+  }
+}
+
+/* ===== PRESSABLE CARDS AND ROWS ===== */
+
+/* A card or row that opens something presses into the surface (the card half of
+   the interaction model: buttons morph their corner in shared theme.css). It
+   uses the `scale` property so it composes with any transform the element
+   already carries, and sits in the components layer so an element's own
+   transition utilities still win: an element that declares its own transition
+   list puts `scale` in it, or the press snaps. This is the only press a declared
+   card or row gets; the older `tap-feedback` class scales through `transform`
+   and would stack on top of it. The public website's cards stay still. */
+@layer components {
+  :root:not(:has([data-site="website"])) :is([data-pressable="card"], [data-pressable="row"]) {
+    transition: scale var(--spring-spatial-fast);
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  :root:not(:has([data-site="website"]))
+    :is([data-pressable="card"], [data-pressable="row"]):active:not(:disabled) {
+    scale: 0.985;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :root:not(:has([data-site="website"]))
+      :is([data-pressable="card"], [data-pressable="row"]):active {
+      scale: none;
+    }
   }
 }
 

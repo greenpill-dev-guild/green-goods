@@ -28,7 +28,7 @@ import { buildHubViewActions, type HubPipelineStage } from "../../../hooks/admin
 
 const GARDEN = "0xabcabcabcabcabcabcabcabcabcabcabcabcabca";
 
-const HUB_STAGES: HubPipelineStage[] = ["work", "assess", "certify", "history"];
+const HUB_STAGES: HubPipelineStage[] = ["confirm", "work", "assess", "certify"];
 const GARDEN_VIEWS: GardenWorkspaceView[] = ["health", "impact", "activity"];
 
 function visibleIds(actions: Array<{ id: string; visible?: boolean }>): string[] {
@@ -58,27 +58,34 @@ describe("buildHubViewActions — fixed primary", () => {
     }
   });
 
-  it("keeps the full action trio on the history (audit) stage", () => {
-    const history = buildFor("history");
-    expect(visibleIds(history)).toHaveLength(3);
-    expect(primaryIds(history)).toEqual(["submit-work"]);
+  it("keeps the full action trio on the confirmation stage", () => {
+    const confirm = buildFor("confirm");
+    expect(visibleIds(confirm)).toHaveLength(3);
+    expect(primaryIds(confirm)).toEqual(["submit-work"]);
   });
 
-  it("blanks role-gated actions for read-only operators", () => {
+  it("renders the trio outlined on every stage, so no action out-shouts the queue (DL-043)", () => {
+    for (const stage of HUB_STAGES) {
+      const variants = buildFor(stage).map((action) => action.variant);
+      expect(variants).toEqual(["secondary", "secondary", "secondary"]);
+    }
+  });
+
+  it("blanks role-gated actions for read-only stewards", () => {
     const actions = buildHubViewActions("work", false, false, vi.fn(), {
       gardenAddress: GARDEN,
     });
     expect(visibleIds(actions)).toEqual([]);
   });
 
-  it("promotes create-assessment when it is the evaluator-only Hub action", () => {
+  it("makes create-assessment the declared primary for evaluator-only viewers, still outlined", () => {
     const actions = buildHubViewActions("assess", false, true, vi.fn(), {
       gardenAddress: GARDEN,
     });
 
     expect(visibleIds(actions)).toEqual(["create-assessment"]);
     expect(primaryIds(actions)).toEqual(["create-assessment"]);
-    expect(actions.find((action) => action.id === "create-assessment")?.variant).toBe("primary");
+    expect(actions.find((action) => action.id === "create-assessment")?.variant).toBe("secondary");
   });
 
   it("drops list sort state when opening Hub creation flows", () => {
@@ -215,6 +222,28 @@ describe("buildCommunityViewActions — fixed Community header", () => {
     expect(navigate.mock.calls[0]?.[0]).toContain("/community/payouts");
     expect(navigate.mock.calls[0]?.[0]).toContain("item=fund-jar");
     expect(navigate.mock.calls[0]?.[0]).toContain(GARDEN);
+  });
+
+  it("keeps Fund Cookie Jar in place but disabled, with its reason, for a garden with no jar", () => {
+    const navigate = vi.fn();
+    const actions = buildCommunityViewActions(
+      "payouts",
+      true,
+      true,
+      true,
+      navigate,
+      { gardenAddress: GARDEN },
+      false
+    );
+    const fund = actions.find((action) => action.id === "fund-payout-jar");
+
+    // Same position on every tab (D10): visible, disabled, and saying why.
+    expect(visibleIds(actions)).toEqual(["add-member", "deposit-withdraw", "fund-payout-jar"]);
+    expect(fund).toMatchObject({
+      disabled: true,
+      disabledReasonId: "cockpit.community.action.fundPayoutJarNoJar",
+      disabledReason: "This garden has no payout jar yet.",
+    });
   });
 
   it("gates owner and management actions without duplicating the public link", () => {

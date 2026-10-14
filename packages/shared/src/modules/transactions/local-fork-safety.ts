@@ -32,7 +32,7 @@ export type LocalForkWriteSafetyOptions = {
 const LOCAL_FORK_WALLET_MESSAGE =
   "Local Arbitrum fork mode is active. Connect a disposable Anvil-funded wallet to http://127.0.0.1:3009 on chain 42161 before sending transactions.";
 
-export function getBrowserEthereumProvider(): EthereumProvider | null {
+function getBrowserEthereumProvider(): EthereumProvider | null {
   const globalWithEthereum = globalThis as typeof globalThis & {
     ethereum?: EthereumProvider;
     window?: { ethereum?: EthereumProvider };

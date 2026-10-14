@@ -1,7 +1,7 @@
 import { RiCheckboxCircleLine, RiLeafLine, RiListCheck2, RiTimeLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { withAdminPrimitiveFrame } from "../../../shared/.storybook/decorators";
 import { AdminTabRail } from "./AdminTabRail";
 
@@ -14,14 +14,13 @@ const meta: Meta<typeof AdminTabRail> = {
     docs: {
       description: {
         component: [
-          "**AdminTabRail** — segmented-card tabs per `design_handoff_admin-revamp/screens/review.css` (`.rv-tabs` / `.rv-tab` / `.rv-tab-count`).",
+          "**AdminTabRail** — underline tabs (Cockpit M3, finished — 1a).",
           "",
           "Anatomy:",
-          "- Grid container: `gap: 6px`, `padding: 6px`, `border-radius: 14px`, `var(--surface-quiet)` background",
-          "- Tab button: `40px` × `10px` radius, font 600/14/-0.005em",
-          "- Active tab: raised bg + `var(--e1)` shadow + a barely-perceptible 6% tone wash via `linear-gradient`",
-          "- Count chip: 22×20 pill, `var(--surface-raised)` inactive → `var(--g-action)` active",
-          "- No sliding underline — the rewrite drops the M3 indicator in favor of bg-fill",
+          "- Rail: flex row, 4px gap, hairline bottom rule on the warm stone border step",
+          "- Tab: 10px 16px padding, 14px text; active weight 600 in the workspace accent + 2px underline (tone use 1 of 3); inactive weight 500 sub ink, hover darkens text only",
+          "- Count badge: 1px 8px pill, 12px/600 — active `tone-primary-container` / `on-primary-container`, inactive the neutral chip pair",
+          "- Hovers never shift hue or background — text darken only",
           "",
           "**Accessibility**:",
           '- `role="tablist"` + `role="tab"` + `aria-selected` per WAI-ARIA Tabs pattern',
@@ -89,6 +88,28 @@ export const LabelsOnly: Story = {
             { id: "impact", label: "Impact" },
             { id: "work", label: "Work" },
             { id: "community", label: "Community" },
+          ]}
+        />
+      );
+    };
+    return <Demo />;
+  },
+};
+
+export const TranslatedDescenders: Story = {
+  render: () => {
+    const Demo = () => {
+      const [active, setActive] = useState("payouts");
+      return (
+        <AdminTabRail
+          ariaLabel="Secciones de la comunidad"
+          activeId={active}
+          onChange={setActive}
+          tabs={[
+            { id: "members", label: "Miembros" },
+            { id: "coordination", label: "Coordinación" },
+            { id: "endowment", label: "Provisión" },
+            { id: "payouts", label: "Pagos" },
           ]}
         />
       );
@@ -172,6 +193,50 @@ export const NarrowActionsLifecycle: Story = {
   },
 };
 
+/**
+ * On a 375px phone the Hub's four tabs are wider than its 283px rail. The
+ * clipped edge fades so the rail reads as scrollable, and tabs snap as it
+ * scrolls (D18).
+ */
+export const OverflowOnAPhone: Story = {
+  tags: ["storybook-ci"],
+  render: () => {
+    const Demo = () => {
+      const [active, setActive] = useState("work");
+      return (
+        <div style={{ width: 283 }}>
+          <AdminTabRail
+            ariaLabel="Hub stages"
+            activeId={active}
+            onChange={setActive}
+            tabs={[
+              { id: "work", label: "Work", icon: RiTimeLine, count: 6 },
+              { id: "confirm", label: "Confirm", icon: RiCheckboxCircleLine, count: 2 },
+              { id: "assess", label: "Assessments", icon: RiListCheck2 },
+              { id: "certify", label: "Hypercerts", icon: RiLeafLine },
+            ]}
+          />
+        </div>
+      );
+    };
+    return <Demo />;
+  },
+  play: async ({ canvasElement }) => {
+    const rail = await within(canvasElement).findByRole("tablist", { name: "Hub stages" });
+    const fades = () => {
+      const style = getComputedStyle(rail);
+      return (style.maskImage || style.getPropertyValue("-webkit-mask-image")) !== "none";
+    };
+    await expect(rail).toHaveAttribute("data-overflow", "end");
+    await expect(fades()).toBe(true);
+    await expect(getComputedStyle(rail).scrollSnapType).toContain("x");
+
+    rail.scrollLeft = rail.scrollWidth;
+    await waitFor(() => expect(rail).toHaveAttribute("data-overflow", "start"));
+    await expect(fades()).toBe(true);
+  },
+};
+
 export const StateCatalog: Story = {
   render: () => {
     const Demo = () => {
@@ -217,6 +282,23 @@ export const CountStates: Story = {
     };
     return <Demo />;
   },
+  tags: ["storybook-ci"],
+  /**
+   * The badge count reaches assistive tech through translated, visually hidden
+   * text — not an `aria-label` on a role-less span, which is not reliably
+   * exposed and announces a bare number without units. The visible badge also
+   * collapses past 99, so the accessible name must carry the true count.
+   */
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    await expect(canvas.getByRole("tab", { name: "Single 1 item" })).toBeVisible();
+    await expect(canvas.getByRole("tab", { name: "Many 99 items" })).toBeVisible();
+    // Visible badge reads "99+"; the accessible name keeps the real number.
+    await expect(canvas.getByRole("tab", { name: "Overflow 1,234 items" })).toBeVisible();
+    // A zero count renders no badge at all.
+    await expect(canvas.getByRole("tab", { name: "None" })).toBeVisible();
+  },
 };
 
 // --- tone matrix -----------------------------------------------------------
@@ -230,8 +312,8 @@ function ToneFrame({
 }) {
   return (
     <div data-tone={tone} className="rounded-2xl bg-bg-white-0 p-4">
-      <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-text-soft">
-        [data-tone="{tone}"]
+      <div className="mb-2 text-label-sm font-semibold uppercase tracking-[0.06em] text-text-soft">
+        [data-tone=&quot;{tone}&quot;]
       </div>
       {children}
     </div>
@@ -239,7 +321,7 @@ function ToneFrame({
 }
 
 /**
- * Hub tone — `[data-tone="hub"]`, blue accent on active tab raised bg + count
+ * Hub tone — `[data-tone="hub"]`, blue accent on the active underline + count
  * chip. Visual weight stays neutral; tone reads as "context", not "content"
  * per `DESIGN_NOTES § Tone system`.
  */
@@ -270,12 +352,18 @@ export const CommunityTone: Story = {
 };
 
 /** Actions tone — clay accent. */
+/** The Actions workspace is purple, off the error red (DL-045): purple-700 in light. */
 export const ActionsTone: Story = {
+  tags: ["storybook-ci"],
   render: () => (
     <ToneFrame tone="actions">
       <StagesDemo ariaLabel="Actions tabs" />
     </ToneFrame>
   ),
+  play: async ({ canvasElement }) => {
+    const active = await within(canvasElement).findByRole("tab", { selected: true });
+    await expect(getComputedStyle(active).color).toBe("rgb(91, 44, 201)");
+  },
 };
 
 // --- reduced motion ---------------------------------------------------------

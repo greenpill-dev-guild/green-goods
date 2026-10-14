@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { expect, fn, within } from "storybook/test";
 import { FIXTURE_WORK_MEDIA, hoursAgo } from "../../../../.storybook/fixtures";
-import { WorkCard, type WorkCardData } from "./WorkCard";
+import { WorkCard, type WorkCardData, WorkCardSkeleton } from "./WorkCard";
 
 const mockWork: WorkCardData = {
   id: "work-1",
@@ -17,6 +18,8 @@ const meta: Meta<typeof WorkCard> = {
   title: "Shared/Cards/WorkCard",
   component: WorkCard,
   tags: ["autodocs", "storybook-ci"],
+  // A card is a button only when it has something to open.
+  args: { onClick: fn() },
   argTypes: {
     variant: {
       control: "select",
@@ -112,5 +115,43 @@ export const NonInteractive: Story = {
   args: {
     work: mockWork,
     interactive: false,
+  },
+};
+
+/**
+ * While a list of compact cards loads, each card is its own frame with nothing in
+ * it: the thumbnail, the title line and pill, the meta and count lines land
+ * exactly where the loaded card's do, so nothing moves when the list arrives.
+ */
+export const LoadingPlaceholder: Story = {
+  render: () => (
+    <div className="grid w-[358px] max-w-full gap-3">
+      <WorkCard work={mockWork} variant="compact" showGardener interactive={false} />
+      <WorkCardSkeleton />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const [card, skeleton] = [...canvasElement.querySelectorAll("div.grid > *")] as HTMLElement[];
+    const box = (element: Element) => element.getBoundingClientRect();
+    const offset = (element: Element, root: HTMLElement) => ({
+      left: Math.round(box(element).left - box(root).left),
+      top: Math.round(box(element).top - box(root).top),
+      height: Math.round(box(element).height),
+    });
+    await expect(box(skeleton).height).toBe(box(card).height);
+    // The thumbnail, the title line, the pill and the meta line, element for element.
+    const title = within(card).getByRole("heading", { level: 4 });
+    const pill = title.nextElementSibling as HTMLElement;
+    const meta = title.parentElement?.nextElementSibling as HTMLElement;
+    const skeletonTitle = skeleton.querySelector("span.h-6") as HTMLElement;
+    const skeletonPill = skeletonTitle.nextElementSibling as HTMLElement;
+    const skeletonMeta = skeletonTitle.parentElement?.nextElementSibling as HTMLElement;
+    await expect(offset(skeleton.firstElementChild as Element, skeleton)).toEqual(
+      offset(card.firstElementChild as Element, card)
+    );
+    await expect(offset(skeletonTitle, skeleton)).toEqual(offset(title, card));
+    await expect(offset(skeletonPill, skeleton).top).toBe(offset(pill, card).top);
+    await expect(offset(skeletonPill, skeleton).height).toBe(offset(pill, card).height);
+    await expect(offset(skeletonMeta, skeleton)).toEqual(offset(meta, card));
   },
 };

@@ -76,29 +76,36 @@ export interface FormattedAmountInputProps
    * marked invalid and described by the error region.
    */
   error?: ReactNode;
+  /** Leading content before the input — typically a currency symbol. */
+  startSlot?: ReactNode;
   /** Trailing control beside the input — typically a Max button or symbol. */
   endSlot?: ReactNode;
   /**
-   * Styling stays with the consumer (client/admin utility classes compile in
-   * their own package scans; shared must not author utilities). The component
-   * owns only structure + a11y wiring.
+   * Without `inputClassName` the input is the shared field (`.gg-control`, 16px,
+   * DL-022) at `controlSize` on `surface`. Passing `inputClassName` keeps the
+   * older consumer-styled input for call sites that have not moved yet.
    */
   inputClassName?: string;
+  controlSize?: "sm" | "md" | "lg";
+  surface?: "default" | "editorial";
   errorClassName?: string;
   containerClassName?: string;
 }
 
 /**
- * Structural amount input: `inputMode="decimal"` text input + optional end
- * slot + an `aria-describedby`-linked error region. Visuals come entirely from
- * the consumer's classes so adoption is pixel-identical per surface.
+ * Structural amount input: `inputMode="decimal"` text input + optional start and
+ * end slots + an `aria-describedby`-linked error region. The input is the shared
+ * field unless the consumer still passes its own `inputClassName`.
  */
 export function FormattedAmountInput({
   value,
   onValueChange,
   error,
+  startSlot,
   endSlot,
   inputClassName,
+  controlSize = "md",
+  surface = "default",
   errorClassName,
   containerClassName,
   id,
@@ -108,10 +115,13 @@ export function FormattedAmountInput({
   const autoId = useId();
   const inputId = id ?? autoId;
   const errorRegionId = `${inputId}-error`;
+  const invalid = ariaInvalid ?? (error ? true : undefined);
+  const sharedField = inputClassName === undefined;
 
   return (
     <div data-component="FormattedAmountInput" className={containerClassName}>
       <div style={amountInputRowStyle}>
+        {startSlot}
         <input
           {...inputProps}
           id={inputId}
@@ -120,17 +130,28 @@ export function FormattedAmountInput({
           autoComplete="off"
           value={value}
           onChange={(event) => onValueChange(event.target.value)}
-          aria-invalid={ariaInvalid ?? (error ? true : undefined)}
+          aria-invalid={invalid}
           aria-describedby={error ? errorRegionId : (inputProps["aria-describedby"] ?? undefined)}
-          className={inputClassName}
+          className={sharedField ? "gg-control" : inputClassName}
+          data-surface={sharedField ? surface : undefined}
+          data-size={sharedField ? controlSize : undefined}
+          data-invalid={sharedField && (invalid === true || invalid === "true") ? true : undefined}
         />
         {endSlot}
       </div>
-      {error ? (
-        <p id={errorRegionId} role="alert" className={cn(errorClassName)}>
-          {error}
-        </p>
-      ) : null}
+      <p
+        id={errorRegionId}
+        role={error ? "alert" : undefined}
+        tabIndex={error ? 0 : undefined}
+        className={cn(errorClassName)}
+        style={{
+          minBlockSize: "var(--form-feedback-block-size, 2lh)",
+          flexShrink: 0,
+          overflowWrap: "anywhere",
+        }}
+      >
+        {error}
+      </p>
     </div>
   );
 }

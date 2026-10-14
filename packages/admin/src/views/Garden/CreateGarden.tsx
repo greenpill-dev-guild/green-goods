@@ -1,4 +1,7 @@
-import { adminRoutes, TxInlineFeedback, useCreateGardenController } from "@green-goods/shared";
+import { WalletCancellationRecovery } from "@/components/WalletCancellationRecovery";
+import { TxInlineFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
+import { useCreateGardenController } from "@green-goods/shared/hooks/admin-ui/garden/useCreateGardenController";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { DetailsStep } from "@/components/Garden/CreateGardenSteps/DetailsStep";
@@ -42,18 +45,32 @@ export default function CreateGarden() {
         sections={toFormFlowSections(createGarden.steps, stepRegistry)}
         feedback={
           <TxInlineFeedback
-            visible={createGarden.hasError}
-            severity={createGarden.txErrorView.severity}
-            title={createGarden.errorTitle}
-            message={createGarden.errorMessage}
+            visible={createGarden.hasError || createGarden.isPending}
+            severity={createGarden.isPending ? "warning" : createGarden.txErrorView.severity}
+            title={
+              createGarden.isPending
+                ? intl.formatMessage({ id: "admin.garden.deploy.pendingTitle" })
+                : createGarden.errorTitle
+            }
+            message={
+              createGarden.isPending
+                ? intl.formatMessage({ id: "admin.garden.deploy.pendingMessage" })
+                : createGarden.errorMessage
+            }
             reserveClassName="min-h-[8.25rem]"
             action={
-              <AdminButton variant="tonal" size="sm" onClick={createGarden.retry}>
-                {intl.formatMessage({
-                  id: "admin.garden.deploy.retry",
-                  defaultMessage: "Retry deployment",
-                })}
-              </AdminButton>
+              createGarden.isPending ? (
+                <WalletCancellationRecovery
+                  key={createGarden.recoveryKey}
+                  onCheck={createGarden.checkConfirmation}
+                  onConfirmCancellation={createGarden.confirmWalletCancellation}
+                  disabled={createGarden.isCheckingConfirmation}
+                />
+              ) : (
+                <AdminButton variant="tonal" size="sm" onClick={createGarden.retry}>
+                  {intl.formatMessage({ id: "admin.garden.deploy.retry" })}
+                </AdminButton>
+              )
             }
           />
         }
@@ -76,7 +93,7 @@ export default function CreateGarden() {
             >
               {intl.formatMessage({
                 id: "admin.garden.form.deploy",
-                defaultMessage: "Deploy garden",
+                defaultMessage: "Deploy Garden",
               })}
             </AdminButton>
           </>

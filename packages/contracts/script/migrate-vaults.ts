@@ -691,8 +691,10 @@ async function main(): Promise<void> {
 
     console.log("\nRefusing to run vault migration until supportedAssets point to ERC4626-compatible templates.");
     if (options.network === "arbitrum") {
-      console.log("Repair first with: bun run contracts:repair:octant-assets:arbitrum");
-      console.log("Validate the repair first with: bun run contracts:repair:octant-assets:dry:arbitrum");
+      console.log("Repair first with: bun run contracts -- repair octant-assets --network arbitrum --mode broadcast");
+      console.log(
+        "Validate the repair first with: bun run contracts -- repair octant-assets --network arbitrum --mode preflight",
+      );
     }
     process.exitCode = 1;
     return;

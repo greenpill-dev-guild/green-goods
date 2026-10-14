@@ -1,7 +1,9 @@
 import { RiArrowRightSLine, RiLeafLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
+import { expect } from "storybook/test";
 import { withAdminPrimitiveFrame } from "../../../shared/.storybook/decorators";
-import { AdminCard } from "./AdminCard";
+import { drawnRings } from "../../../shared/.storybook/design-system/measure";
+import { AdminCard, AdminCardTitle } from "./AdminCard";
 
 const meta: Meta<typeof AdminCard> = {
   title: "Admin/Primitives/AdminCard",
@@ -16,7 +18,7 @@ const meta: Meta<typeof AdminCard> = {
           "Interactive cards add an M3 state layer and elevation response.",
           "",
           "**Tone wash** — admin-scope cards layer a barely-perceptible 3% tone tint",
-          "via a `::before` pseudo-element defined in `admin-m3-overrides.css`. The pseudo",
+          "via a `::before` pseudo-element defined in `admin-m3-components.css`. The pseudo",
           "lets dense lists (Hub queues, action templates) avoid per-element",
           "`background-image` paint cost. Outside admin scope (here in Storybook), the",
           "tint falls back to invisible black, so cards read as standard M3 surfaces.",
@@ -67,6 +69,15 @@ export const Elevated: Story = {
   ),
 };
 
+export const CardTitle: Story = {
+  render: () => (
+    <AdminCard className="max-w-sm">
+      <AdminCardTitle>Pool Status</AdminCardTitle>
+      <p className="mt-2 text-body-md text-text-sub">A card title shares one scale across admin.</p>
+    </AdminCard>
+  ),
+};
+
 export const Filled: Story = {
   args: { variant: "filled" },
   render: (args) => (
@@ -76,13 +87,20 @@ export const Filled: Story = {
   ),
 };
 
+/** The outline is an inset ring beside the elevation-0 shadow; the play test checks it draws. */
 export const Outlined: Story = {
+  tags: ["storybook-ci"],
   args: { variant: "outlined" },
   render: (args) => (
     <AdminCard {...args} className="max-w-sm">
       <SampleContent />
     </AdminCard>
   ),
+  play: async ({ canvasElement }) => {
+    const card = canvasElement.querySelector('[data-component="AdminCard"]');
+    await expect(card).not.toBeNull();
+    await expect(drawnRings(card as Element)).not.toHaveLength(0);
+  },
 };
 
 export const Interactive: Story = {
@@ -129,8 +147,8 @@ export const WithToneWash: Story = {
     <div className="grid gap-4 md:grid-cols-2">
       {(["hub", "garden", "community", "actions"] as const).map((tone) => (
         <div key={tone} data-tone={tone} className="rounded-2xl bg-bg-white-0 p-4">
-          <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-text-soft">
-            [data-tone="{tone}"]
+          <div className="mb-2 label-xs font-semibold uppercase tracking-[0.06em] text-text-soft">
+            [data-tone=&quot;{tone}&quot;]
           </div>
           <AdminCard variant="elevated">
             <SampleContent />

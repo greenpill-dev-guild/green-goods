@@ -146,12 +146,6 @@ export const textResponse = (text: string, parseMode?: "markdown" | "html"): Out
   parseMode,
 });
 
-export const buttonResponse = (
-  text: string,
-  buttons: ResponseButton[],
-  parseMode?: "markdown" | "html"
-): OutboundResponse => ({ text, buttons, parseMode });
-
 // ============================================================================
 // HANDLER RESULT
 // ============================================================================
@@ -172,7 +166,7 @@ export interface User {
   privateKey: string;
   address: string;
   currentGarden?: string;
-  role?: "gardener" | "operator";
+  role?: "gardener" | "steward";
   locale?: string;
   createdAt: number;
 }
@@ -183,7 +177,7 @@ export interface CreateUserInput {
   privateKey: string;
   address: string;
   currentGarden?: string;
-  role?: "gardener" | "operator";
+  role?: "gardener" | "steward";
   locale?: string;
 }
 

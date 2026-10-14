@@ -1,5 +1,5 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * WorkProvider Integration Tests
  *
@@ -53,7 +53,7 @@ vi.mock("../../hooks/work/useWorkMutation", () => ({
 }));
 
 vi.mock("../../hooks/work/useWorkForm", () => ({
-  useWorkForm: () => mockUseWorkForm(),
+  useWorkForm: (...args: unknown[]) => mockUseWorkForm(...args),
 }));
 
 vi.mock("../../hooks/work/useWorkImages", () => ({
@@ -87,6 +87,10 @@ vi.mock("../../config/blockchain", () => ({
   }),
 }));
 
+vi.mock("../../config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
 vi.mock("../../modules/work/work-submission", () => ({
   validateWorkSubmissionContext: vi.fn(() => []),
 }));
@@ -110,7 +114,7 @@ import {
   createMockGarden,
   createMockUserContext,
   MOCK_ADDRESSES,
-} from "../test-utils";
+} from "../test-utils/mock-factories";
 
 // ============================================
 // Test Utilities
@@ -185,7 +189,7 @@ describe("providers/WorkProvider", () => {
         createMockGarden({
           id: "garden-1",
           gardeners: [MOCK_ADDRESSES.smartAccount],
-          operators: [],
+          stewards: [],
         }),
       ],
       isLoading: false,
@@ -206,6 +210,10 @@ describe("providers/WorkProvider", () => {
       images: [],
       setImages: vi.fn(),
     });
+
+    // Default: the context validates. clearAllMocks keeps a test's mockReturnValue, so a test
+    // that made validation fail would otherwise block the next test's submission.
+    vi.mocked(validateWorkSubmissionContext).mockReturnValue([]);
   });
 
   afterEach(() => {
@@ -255,25 +263,25 @@ describe("providers/WorkProvider", () => {
       const memberGarden = createMockGarden({
         id: "member-garden",
         gardeners: [userAddress],
-        operators: [],
+        stewards: [],
       });
 
-      // Garden where user is an operator
-      const operatorGarden = createMockGarden({
-        id: "operator-garden",
+      // Garden where user is a steward
+      const stewardGarden = createMockGarden({
+        id: "steward-garden",
         gardeners: [],
-        operators: [userAddress],
+        stewards: [userAddress],
       });
 
       // Garden user is NOT a member of
       const otherGarden = createMockGarden({
         id: "other-garden",
         gardeners: ["0xOtherAddress123456789012345678901234567890"],
-        operators: [],
+        stewards: [],
       });
 
       mockUseGardens.mockReturnValue({
-        data: [memberGarden, operatorGarden, otherGarden],
+        data: [memberGarden, stewardGarden, otherGarden],
         isLoading: false,
       });
 
@@ -281,10 +289,10 @@ describe("providers/WorkProvider", () => {
         wrapper: createFullWrapper(),
       });
 
-      // Should only include gardens where user is member or operator
+      // Should only include gardens where user is member or steward
       expect(result.current.gardens.length).toBe(2);
       expect(result.current.gardens.map((g) => g.id)).toContain("member-garden");
-      expect(result.current.gardens.map((g) => g.id)).toContain("operator-garden");
+      expect(result.current.gardens.map((g) => g.id)).toContain("steward-garden");
       expect(result.current.gardens.map((g) => g.id)).not.toContain("other-garden");
     });
 
@@ -294,7 +302,7 @@ describe("providers/WorkProvider", () => {
           createMockGarden({
             id: "other-garden",
             gardeners: ["0xOtherAddress123456789012345678901234567890"],
-            operators: [],
+            stewards: [],
           }),
         ],
         isLoading: false,
@@ -312,14 +320,14 @@ describe("providers/WorkProvider", () => {
       const memberGarden = createMockGarden({
         id: "member-garden",
         gardeners: [userAddress],
-        operators: [],
+        stewards: [],
       });
       const communityGarden = createMockGarden({
         id: "root-garden",
         name: "Community Garden",
         openJoining: true,
         gardeners: [],
-        operators: [],
+        stewards: [],
       });
 
       mockUseGardens.mockReturnValue({
@@ -343,7 +351,7 @@ describe("providers/WorkProvider", () => {
       const garden = createMockGarden({
         id: "mixed-case-garden",
         gardeners: [userAddress.toUpperCase()],
-        operators: [],
+        stewards: [],
       });
 
       mockUseGardens.mockReturnValue({
@@ -361,6 +369,30 @@ describe("providers/WorkProvider", () => {
   });
 
   describe("Submission validation", () => {
+    it("passes the selected action's required inputs to the form validator", () => {
+      const requiredInputs = [
+        {
+          key: "seedlingsPlanted",
+          title: "Seedlings planted",
+          placeholder: "0",
+          type: "number" as const,
+          required: true,
+          options: [],
+        },
+      ];
+      mockWorkFlowStore.actionUID = 1;
+      mockUseActions.mockReturnValue({
+        data: [createMockAction({ id: "11155111-1", inputs: requiredInputs })],
+        isLoading: false,
+      });
+
+      renderHook(() => useWork(), {
+        wrapper: createFullWrapper(),
+      });
+
+      expect(mockUseWorkForm).toHaveBeenCalledWith(requiredInputs);
+    });
+
     it("shows validation error when context is incomplete", async () => {
       const mockValidate = validateWorkSubmissionContext as ReturnType<typeof vi.fn>;
       mockValidate.mockReturnValue(["Please select a garden"]);
@@ -475,6 +507,33 @@ describe("providers/WorkProvider", () => {
   });
 
   describe("Work mutation integration", () => {
+    it("does not call mutateAsync without a user address", async () => {
+      const mockMutateAsync = vi.fn();
+      mockUseWorkMutation.mockReturnValue({
+        mutateAsync: mockMutateAsync,
+        isPending: false,
+        isError: false,
+      });
+      mockUseUser.mockReturnValue(
+        createMockUserContext({ authMode: null, smartAccountAddress: null, walletAddress: null })
+      );
+      mockWorkFlowStore.gardenAddress = MOCK_ADDRESSES.garden;
+      mockWorkFlowStore.actionUID = 1;
+
+      const { result } = renderHook(() => useWork(), {
+        wrapper: createFullWrapper(),
+      });
+
+      await act(async () => {
+        await result.current.form.uploadWork();
+      });
+
+      expect(mockMutateAsync).not.toHaveBeenCalled();
+      expect(validationToasts.formError).toHaveBeenCalledWith(
+        "User address is required for work submission"
+      );
+    });
+
     it("calls mutateAsync on successful submission", async () => {
       const mockMutateAsync = vi.fn().mockResolvedValue("0xTxHash");
       mockUseWorkMutation.mockReturnValue({

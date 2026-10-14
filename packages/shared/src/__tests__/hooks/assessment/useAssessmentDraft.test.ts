@@ -8,7 +8,7 @@
  */
 
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { act, renderHook } from "@testing-library/react";
@@ -92,7 +92,7 @@ describe("useAssessmentDraft", () => {
       expect(result.current.draftKey).toBeNull();
     });
 
-    it("returns null when operatorAddress is missing", () => {
+    it("returns null when stewardAddress is missing", () => {
       const { result } = renderHook(() => useAssessmentDraft(GARDEN_ID, undefined));
 
       expect(result.current.draftKey).toBeNull();
@@ -115,7 +115,7 @@ describe("useAssessmentDraft", () => {
       expect(savedDraft).not.toBeNull();
       expect(savedDraft.title).toBe("Test Assessment");
       expect(savedDraft.gardenId).toBe(GARDEN_ID);
-      expect(savedDraft.operatorAddress).toBe(OPERATOR_ADDR);
+      expect(savedDraft.stewardAddress).toBe(OPERATOR_ADDR);
       expect(result.current.lastSavedAt).toBeGreaterThan(0);
     });
 
@@ -208,7 +208,7 @@ describe("useAssessmentDraft", () => {
       await idbSet(key, {
         id: key,
         gardenId: GARDEN_ID,
-        operatorAddress: OPERATOR_ADDR,
+        stewardAddress: OPERATOR_ADDR,
         title: "Peeked",
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -319,6 +319,24 @@ describe("useAssessmentDraft", () => {
         });
       });
       expect(saved).not.toBeNull();
+    });
+  });
+  it("clears only the confirmed assessment's chain-scoped backup", async () => {
+    const first = renderHook(() =>
+      useAssessmentDraft(GARDEN_ID, OPERATOR_ADDR, { chainId: 11155111 })
+    );
+    const second = renderHook(() =>
+      useAssessmentDraft(GARDEN_ID, OPERATOR_ADDR, { chainId: 42161 })
+    );
+    await act(async () => {
+      await first.result.current.saveDraft(createParams({ title: "First chain assessment" }));
+      await second.result.current.saveDraft(createParams({ title: "Second chain assessment" }));
+      await first.result.current.clearDraft();
+    });
+    expect(await idbGet(first.result.current.draftKey!)).toBeUndefined();
+    expect(await idbGet(second.result.current.draftKey!)).toMatchObject({
+      title: "Second chain assessment",
+      chainId: 42161,
     });
   });
 });

@@ -133,7 +133,7 @@ contract SepoliaGardensModuleForkTest is ForkTestBase {
 
         // Mint garden and grant roles through real HatsModule → real Hats Protocol
         address garden = _mintTestGarden("Role Test Garden", 0x0F);
-        _grantGardenRole(garden, forkOperator, IHatsModule.GardenRole.Operator);
+        _grantGardenRole(garden, forkOperator, IHatsModule.GardenRole.Steward);
         _grantGardenRole(garden, forkGardener, IHatsModule.GardenRole.Gardener);
 
         // Verify roles via real HatsModule (which queries real Hats Protocol)

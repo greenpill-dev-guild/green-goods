@@ -5,23 +5,13 @@
  * into a single merged TanStack Query, with automatic invalidation.
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { onlineManager } from "@tanstack/react-query";
+import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useMerged } from "../../../hooks/app/useMerged";
-
-function createWrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false, gcTime: 0 },
-    },
-  });
-
-  return ({ children }: { children: ReactNode }) =>
-    createElement(QueryClientProvider, { client: queryClient }, children);
-}
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 describe("hooks/app/useMerged", () => {
   beforeEach(() => {
@@ -33,17 +23,15 @@ describe("hooks/app/useMerged", () => {
     const fetchOffline = vi.fn().mockResolvedValue([4, 5]);
     const merge = vi.fn((online, offline) => [...(online ?? []), ...(offline ?? [])]);
 
-    const { result } = renderHook(
-      () =>
-        useMerged({
-          onlineKey: ["test", "online"],
-          offlineKey: ["test", "offline"],
-          mergedKey: ["test", "merged"],
-          fetchOnline,
-          fetchOffline,
-          merge,
-        }),
-      { wrapper: createWrapper() }
+    const { result } = renderHookWithQueryClient(() =>
+      useMerged({
+        onlineKey: ["test", "online"],
+        offlineKey: ["test", "offline"],
+        mergedKey: ["test", "merged"],
+        fetchOnline,
+        fetchOffline,
+        merge,
+      })
     );
 
     // Initially loading
@@ -73,17 +61,15 @@ describe("hooks/app/useMerged", () => {
       total: (on?.count ?? 0) + (off?.count ?? 0),
     }));
 
-    const { result } = renderHook(
-      () =>
-        useMerged({
-          onlineKey: ["counts", "online"],
-          offlineKey: ["counts", "offline"],
-          mergedKey: ["counts", "merged"],
-          fetchOnline,
-          fetchOffline,
-          merge,
-        }),
-      { wrapper: createWrapper() }
+    const { result } = renderHookWithQueryClient(() =>
+      useMerged({
+        onlineKey: ["counts", "online"],
+        offlineKey: ["counts", "offline"],
+        mergedKey: ["counts", "merged"],
+        fetchOnline,
+        fetchOffline,
+        merge,
+      })
     );
 
     await waitFor(() => {
@@ -97,17 +83,15 @@ describe("hooks/app/useMerged", () => {
   });
 
   it("uses default stale times when not specified", async () => {
-    const { result } = renderHook(
-      () =>
-        useMerged({
-          onlineKey: ["stale", "online"],
-          offlineKey: ["stale", "offline"],
-          mergedKey: ["stale", "merged"],
-          fetchOnline: async () => "online",
-          fetchOffline: async () => "offline",
-          merge: (on, off) => `${on}-${off}`,
-        }),
-      { wrapper: createWrapper() }
+    const { result } = renderHookWithQueryClient(() =>
+      useMerged({
+        onlineKey: ["stale", "online"],
+        offlineKey: ["stale", "offline"],
+        mergedKey: ["stale", "merged"],
+        fetchOnline: async () => "online",
+        fetchOffline: async () => "offline",
+        merge: (on, off) => `${on}-${off}`,
+      })
     );
 
     await waitFor(() => {
@@ -124,17 +108,15 @@ describe("hooks/app/useMerged", () => {
     const fetchOnline = vi.fn().mockResolvedValue(null);
     const fetchOffline = vi.fn().mockResolvedValue(null);
 
-    const { result } = renderHook(
-      () =>
-        useMerged({
-          onlineKey: ["null", "online"],
-          offlineKey: ["null", "offline"],
-          mergedKey: ["null", "merged"],
-          fetchOnline,
-          fetchOffline,
-          merge,
-        }),
-      { wrapper: createWrapper() }
+    const { result } = renderHookWithQueryClient(() =>
+      useMerged({
+        onlineKey: ["null", "online"],
+        offlineKey: ["null", "offline"],
+        mergedKey: ["null", "merged"],
+        fetchOnline,
+        fetchOffline,
+        merge,
+      })
     );
 
     await waitFor(() => {
@@ -159,18 +141,16 @@ describe("hooks/app/useMerged", () => {
       () => new Promise<string>((resolve) => setTimeout(() => resolve("local"), 100))
     );
 
-    const { result } = renderHook(
-      () =>
-        useMerged({
-          onlineKey: ["placeholder", "online"],
-          offlineKey: ["placeholder", "offline"],
-          mergedKey: ["placeholder", "merged"],
-          fetchOnline,
-          fetchOffline,
-          merge: (on, off) => `${on}-${off}`,
-          defaultMergedValue: "loading-placeholder",
-        }),
-      { wrapper: createWrapper() }
+    const { result } = renderHookWithQueryClient(() =>
+      useMerged({
+        onlineKey: ["placeholder", "online"],
+        offlineKey: ["placeholder", "offline"],
+        mergedKey: ["placeholder", "merged"],
+        fetchOnline,
+        fetchOffline,
+        merge: (on, off) => `${on}-${off}`,
+        defaultMergedValue: "loading-placeholder",
+      })
     );
 
     // Before sources resolve, merged query should not yet be enabled
@@ -184,18 +164,16 @@ describe("hooks/app/useMerged", () => {
       return () => {};
     });
 
-    const { result } = renderHook(
-      () =>
-        useMerged({
-          onlineKey: ["events", "online"],
-          offlineKey: ["events", "offline"],
-          mergedKey: ["events", "merged"],
-          fetchOnline: async () => "online",
-          fetchOffline: async () => "offline",
-          merge: (on, off) => `${on}-${off}`,
-          events: [{ subscribe: subscribeFn }],
-        }),
-      { wrapper: createWrapper() }
+    const { result } = renderHookWithQueryClient(() =>
+      useMerged({
+        onlineKey: ["events", "online"],
+        offlineKey: ["events", "offline"],
+        mergedKey: ["events", "merged"],
+        fetchOnline: async () => "online",
+        fetchOffline: async () => "offline",
+        merge: (on, off) => `${on}-${off}`,
+        events: [{ subscribe: subscribeFn }],
+      })
     );
 
     await waitFor(() => {
@@ -210,18 +188,16 @@ describe("hooks/app/useMerged", () => {
     const unsubFn = vi.fn();
     const subscribeFn = vi.fn(() => unsubFn);
 
-    const { unmount } = renderHook(
-      () =>
-        useMerged({
-          onlineKey: ["cleanup", "online"],
-          offlineKey: ["cleanup", "offline"],
-          mergedKey: ["cleanup", "merged"],
-          fetchOnline: async () => "a",
-          fetchOffline: async () => "b",
-          merge: (on, off) => `${on}-${off}`,
-          events: [{ subscribe: subscribeFn }],
-        }),
-      { wrapper: createWrapper() }
+    const { unmount } = renderHookWithQueryClient(() =>
+      useMerged({
+        onlineKey: ["cleanup", "online"],
+        offlineKey: ["cleanup", "offline"],
+        mergedKey: ["cleanup", "merged"],
+        fetchOnline: async () => "a",
+        fetchOffline: async () => "b",
+        merge: (on, off) => `${on}-${off}`,
+        events: [{ subscribe: subscribeFn }],
+      })
     );
 
     unmount();
@@ -234,17 +210,15 @@ describe("hooks/app/useMerged", () => {
     const fetchOffline = vi.fn().mockResolvedValue("cached");
     const merge = vi.fn((on, off) => off ?? "nothing");
 
-    const { result } = renderHook(
-      () =>
-        useMerged({
-          onlineKey: ["error", "online"],
-          offlineKey: ["error", "offline"],
-          mergedKey: ["error", "merged"],
-          fetchOnline,
-          fetchOffline,
-          merge,
-        }),
-      { wrapper: createWrapper() }
+    const { result } = renderHookWithQueryClient(() =>
+      useMerged({
+        onlineKey: ["error", "online"],
+        offlineKey: ["error", "offline"],
+        mergedKey: ["error", "merged"],
+        fetchOnline,
+        fetchOffline,
+        merge,
+      })
     );
 
     // Online query should error
@@ -255,4 +229,34 @@ describe("hooks/app/useMerged", () => {
     // Offline should still succeed
     expect(result.current.offline.data).toBe("cached");
   });
+});
+
+it("merges cached online work with IndexedDB jobs while the network is offline", async () => {
+  const client = createTestQueryClient();
+  const onlineKey = ["greengoods", "works", "online", "garden"];
+  client.setQueryData(onlineKey, ["submitted"]);
+  onlineManager.setOnline(false);
+  const fetchOnline = vi.fn(async () => ["new"]);
+  const fetchOffline = vi.fn(async () => ["queued"]);
+  const view = renderHookWithQueryClient(
+    () =>
+      useMerged({
+        onlineKey,
+        offlineKey: ["greengoods", "works", "offline", "garden"],
+        mergedKey: ["greengoods", "works", "merged", "garden"],
+        fetchOnline,
+        fetchOffline,
+        merge: (online, offline) => [...(online ?? []), ...(offline ?? [])],
+      }),
+    { queryClient: client }
+  );
+  try {
+    await waitFor(() => expect(view.result.current.merged.data).toEqual(["submitted", "queued"]));
+    expect(fetchOffline).toHaveBeenCalled();
+    expect(fetchOnline).not.toHaveBeenCalled();
+  } finally {
+    view.unmount();
+    client.clear();
+    onlineManager.setOnline(true);
+  }
 });

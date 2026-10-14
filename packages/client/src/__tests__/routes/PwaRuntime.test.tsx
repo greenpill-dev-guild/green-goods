@@ -1,5 +1,5 @@
 /**
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
 import { render, screen } from "@testing-library/react";
@@ -11,6 +11,11 @@ vi.mock("../../components/Communication/PwaUpdateNotifier", () => ({
   PwaUpdateNotifier: () => null,
 }));
 
+const pressHaptics = vi.hoisted(() => ({ install: vi.fn(), uninstall: vi.fn() }));
+vi.mock("@green-goods/shared/utils/app/haptics", () => ({
+  installPressHaptics: pressHaptics.install,
+}));
+
 vi.mock("../../routes/WalletRuntimeProviders", () => ({
   default: ({ children }: { children: ReactNode }) => {
     void children;
@@ -20,21 +25,35 @@ vi.mock("../../routes/WalletRuntimeProviders", () => ({
 
 import PwaRuntime from "../../routes/PwaRuntime";
 
-describe("PwaRuntime", () => {
-  it("renders a boot loading surface while runtime providers are suspended", () => {
-    render(
-      <MemoryRouter initialEntries={["/home"]}>
-        <Routes>
-          <Route element={<PwaRuntime />}>
-            <Route path="/home" element={<div>Home app</div>} />
-          </Route>
-        </Routes>
-      </MemoryRouter>
-    );
+const renderRuntime = () =>
+  render(
+    <MemoryRouter initialEntries={["/home"]}>
+      <Routes>
+        <Route element={<PwaRuntime />}>
+          <Route path="/home" element={<div>Home app</div>} />
+        </Route>
+      </Routes>
+    </MemoryRouter>
+  );
 
-    expect(screen.getByLabelText("Loading Green Goods")).toBeInTheDocument();
-    expect(screen.getByText("Green Goods is loading.")).toBeVisible();
-    expect(screen.getAllByRole("status")[0]).toHaveAttribute("aria-busy", "true");
+describe("PwaRuntime", () => {
+  it("leaves startup rendering to the static boot surface while providers are suspended", () => {
+    const { container } = renderRuntime();
+
+    expect(container.querySelector(".boot-pwa-shell")).not.toBeInTheDocument();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
     expect(screen.queryByText("Home app")).not.toBeInTheDocument();
+  });
+
+  it("answers presses before the sign-in providers load, and stops when it unmounts", () => {
+    pressHaptics.install.mockClear().mockReturnValue(pressHaptics.uninstall);
+    pressHaptics.uninstall.mockClear();
+
+    const { unmount } = renderRuntime();
+    expect(pressHaptics.install).toHaveBeenCalledTimes(1);
+    expect(pressHaptics.uninstall).not.toHaveBeenCalled();
+
+    unmount();
+    expect(pressHaptics.uninstall).toHaveBeenCalledTimes(1);
   });
 });

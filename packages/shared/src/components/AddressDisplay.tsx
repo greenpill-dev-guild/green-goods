@@ -2,26 +2,49 @@ import { RiCheckLine, RiFileCopyLine } from "@remixicon/react";
 import { useId, useState } from "react";
 import { useIntl } from "react-intl";
 import { useEnsName } from "../hooks/blockchain/useEnsName";
+import { useGreenGoodsEnsName } from "../hooks/ens/useGreenGoodsEnsName";
 import { useTimeout } from "../hooks/utils/useTimeout";
-import { logger } from "../modules";
-import type { Address } from "../types";
-import { cn, copyToClipboard, formatAddress } from "../utils";
+import { logger } from "../modules/app/logger";
+import type { Address } from "../types/domain";
+import { copyToClipboard } from "../utils/app/clipboard";
+import { formatAddress } from "../utils/app/text";
+import { cn } from "../utils/styles/cn";
+import { IconButton } from "./IconButton";
 
 export interface AddressDisplayProps {
   address: Address;
   className?: string;
   showCopyButton?: boolean;
+  /**
+   * false renders a plain resolved-name span — no popover trigger, no copy
+   * button — for use inside another interactive element (a row that is itself
+   * a button), where nested buttons would be invalid HTML.
+   */
+  interactive?: boolean;
+  /** A role label for public readers when a name has not been published. */
+  fallbackLabel?: string;
 }
 
-export function AddressDisplay({ address, className, showCopyButton = true }: AddressDisplayProps) {
+export function AddressDisplay({
+  address,
+  className,
+  showCopyButton = true,
+  interactive = true,
+  fallbackLabel,
+}: AddressDisplayProps) {
   const intl = useIntl();
   const [copied, setCopied] = useState(false);
   const tooltipId = useId();
   const { data: ensName } = useEnsName(address);
-  const display = formatAddress(address, {
-    ensName,
-    variant: ensName ? "default" : "card",
-  });
+  const { data: protocolName } = useGreenGoodsEnsName(address);
+  const preferredName = protocolName || ensName;
+  const display =
+    !preferredName && fallbackLabel
+      ? fallbackLabel
+      : formatAddress(address, {
+          ensName: preferredName,
+          variant: preferredName ? "default" : "card",
+        });
 
   // Auto-cleanup timer via useTimeout (Rule 1)
   const { set: scheduleCopyReset } = useTimeout();
@@ -36,6 +59,17 @@ export function AddressDisplay({ address, className, showCopyButton = true }: Ad
       logger.error("Failed to copy address", { error: err });
     }
   };
+
+  if (!interactive) {
+    return (
+      <span
+        className={cn("font-mono text-sm text-text-strong", className)}
+        title={preferredName ? `${preferredName} · ${address}` : address}
+      >
+        {display}
+      </span>
+    );
+  }
 
   return (
     <div className={cn("flex items-center space-x-2", className)}>
@@ -57,9 +91,9 @@ export function AddressDisplay({ address, className, showCopyButton = true }: Ad
           margin: "unset",
         }}
       >
-        {ensName ? (
+        {preferredName ? (
           <div className="flex flex-col text-left">
-            <span>{ensName}</span>
+            <span>{preferredName}</span>
             <span className="text-[10px] text-text-disabled">{address}</span>
           </div>
         ) : (
@@ -68,21 +102,20 @@ export function AddressDisplay({ address, className, showCopyButton = true }: Ad
       </div>
 
       {showCopyButton && (
-        <button
-          type="button"
+        <IconButton
+          size="compact"
+          className="-my-1.5 text-text-soft"
           onClick={handleCopy}
-          className="p-1 text-text-soft hover:text-text-sub transition-colors focus:outline-none focus:ring-2 focus:ring-primary-base/40 rounded"
+          aria-label={intl.formatMessage({
+            id: "app.common.copyAddress",
+            defaultMessage: "Copy Address",
+          })}
           title={intl.formatMessage({
             id: "app.common.copyAddress",
-            defaultMessage: "Copy address",
+            defaultMessage: "Copy Address",
           })}
-        >
-          {copied ? (
-            <RiCheckLine className="h-3 w-3 text-success-dark" />
-          ) : (
-            <RiFileCopyLine className="h-3 w-3" />
-          )}
-        </button>
+          icon={copied ? <RiCheckLine className="text-success-dark" /> : <RiFileCopyLine />}
+        />
       )}
     </div>
   );

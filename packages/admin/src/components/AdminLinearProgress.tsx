@@ -1,4 +1,4 @@
-import { cn } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 
 interface AdminLinearProgressProps {
   value?: number;

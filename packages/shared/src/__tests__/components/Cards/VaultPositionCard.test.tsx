@@ -1,6 +1,6 @@
 /**
  * VaultPositionCard Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the vault position display card renders all financial data correctly.
  */

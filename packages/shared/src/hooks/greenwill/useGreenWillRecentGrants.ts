@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
-import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
+import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
+import { greenWillKeys } from "../../config/query-keys/greenwill";
 import { getGreenWillRecentGrants } from "../../modules/data/greenwill";
 import type { GreenWillBadgeGrant } from "../../types/greenwill";
 
@@ -16,7 +17,7 @@ export function useGreenWillRecentGrants(options: UseGreenWillRecentGrantsOption
   const enabled = options.enabled ?? true;
 
   const query = useQuery({
-    queryKey: queryKeys.greenWill.recentGrants(chainId, limit),
+    queryKey: greenWillKeys.recentGrants(chainId, limit),
     queryFn: () => getGreenWillRecentGrants(chainId, limit),
     enabled,
     staleTime: STALE_TIME_MEDIUM,

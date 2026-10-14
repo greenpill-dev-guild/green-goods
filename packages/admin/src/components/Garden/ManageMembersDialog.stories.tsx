@@ -1,6 +1,9 @@
-import type { Address, GardenRole } from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
+import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
+import { withSeededQueryClient } from "../../../../shared/.storybook/decorators";
 import { ManageMembersDialog } from "./ManageMembersDialog";
 
 const OWNER = "0x1111111111111111111111111111111111111111" as Address;
@@ -11,7 +14,7 @@ const GARDENER_B = "0x5555555555555555555555555555555555555555" as Address;
 
 const roleMembers: Record<GardenRole, Address[]> = {
   owner: [OWNER],
-  operator: [OPERATOR_A, OPERATOR_B],
+  steward: [OPERATOR_A, OPERATOR_B],
   evaluator: [],
   gardener: [GARDENER_A, GARDENER_B],
   funder: [],
@@ -20,7 +23,7 @@ const roleMembers: Record<GardenRole, Address[]> = {
 
 const emptyRoleMembers: Record<GardenRole, Address[]> = {
   owner: [],
-  operator: [],
+  steward: [],
   evaluator: [],
   gardener: [],
   funder: [],
@@ -35,7 +38,7 @@ const meta: Meta<typeof ManageMembersDialog> = {
     docs: {
       description: {
         component:
-          "The single membership surface — one flat roster across all roles with role filter chips, per-member remove, and the Add Members action. Community-owned: opens over /community/members.",
+          "The single membership surface — one row per person across all roles, a chip for each role they hold with its own remove, role filter chips, and the Add Members action. The count is people, never role seats (DL-049). Community-owned: opens over /community/members.",
       },
     },
   },
@@ -55,6 +58,27 @@ export default meta;
 type Story = StoryObj<typeof ManageMembersDialog>;
 
 export const Default: Story = {};
+
+/** The owner also stewards and gardens: one row, three roles, each removable on its own. */
+export const PersonWithSeveralRoles: Story = {
+  args: {
+    roleMembers: {
+      ...roleMembers,
+      steward: [OWNER, OPERATOR_A, OPERATOR_B],
+      gardener: [GARDENER_A, OWNER, GARDENER_B],
+    },
+  },
+};
+
+export const MemberPrefilled: Story = {
+  args: { initialSearch: GARDENER_A },
+};
+
+export const ENSNameSearch: Story = {
+  decorators: [
+    withSeededQueryClient([[queryKeys.ens.name(GARDENER_B.toLowerCase()), "garden.bloom.eth"]]),
+  ],
+};
 
 export const ReadOnly: Story = {
   args: {

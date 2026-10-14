@@ -1,0 +1,13 @@
+/* Green Goods brand assets. Application and docs UI tokens remain surface-owned. */
+:root {
+  --gg-brand-dark-green: #367D44;
+  --gg-brand-white: #FFFFFF;
+  --gg-brand-black: #000000;
+  --gg-template-paper: #FAF8F5;
+  /* Historical board colors / optional recolors */
+  --gg-reference-green: #3E8E4E;
+  --gg-reference-forest-green: #367D41;
+  --gg-reference-light-green: #46A359;
+  --gg-reference-sienna: #A0522D;
+  --gg-reference-sky-blue: #87CEEB;
+}

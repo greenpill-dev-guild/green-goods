@@ -1,6 +1,12 @@
 /**
  * Garden role definitions shared across hooks and utilities.
  *
+ * Role keys are the in-repo name, and the Solidity enum member is `Steward`
+ * too. The deployed access functions keep the older operator name, which is
+ * why `steward` maps to `isOperator` and `isOperatorOf` below. Garden accounts
+ * already deployed cannot be upgraded, so `isOperator` stays the name to call
+ * on them.
+ *
  * Centralized configuration for all 6 garden roles:
  * - Role IDs (for contract calls)
  * - Role functions (for contract view calls)
@@ -12,7 +18,7 @@
 export const GARDEN_ROLE_IDS = {
   gardener: 0,
   evaluator: 1,
-  operator: 2,
+  steward: 2,
   owner: 3,
   funder: 4,
   community: 5,
@@ -20,13 +26,34 @@ export const GARDEN_ROLE_IDS = {
 
 export type GardenRole = keyof typeof GARDEN_ROLE_IDS;
 
+/**
+ * GardenAccount permission views. They apply the inclusive hierarchy
+ * (owner → steward → evaluator → gardener), so a steward reads as a gardener
+ * even without the gardener hat. Use them for "may this account act as X".
+ */
 export const GARDEN_ROLE_FUNCTIONS = {
   gardener: "isGardener",
   evaluator: "isEvaluator",
-  operator: "isOperator",
+  // Deployed contract function name — never rename this value.
+  steward: "isOperator",
   owner: "isOwner",
   funder: "isFunder",
   community: "isCommunity",
+} as const;
+
+/**
+ * HatsModule exact-membership views, `(garden, account) → wears this role's
+ * hat`. This is the test `grantRole` uses to decide whether to mint, so use
+ * these for "would granting X change anything".
+ */
+export const GARDEN_ROLE_HAT_FUNCTIONS = {
+  gardener: "isGardenerOf",
+  evaluator: "isEvaluatorOf",
+  // Every deployed HatsModule has isOperatorOf; isStewardOf arrived with the relabel upgrade.
+  steward: "isOperatorOf",
+  owner: "isOwnerOf",
+  funder: "isFunderOf",
+  community: "isCommunityOf",
 } as const;
 
 /**
@@ -35,7 +62,7 @@ export const GARDEN_ROLE_FUNCTIONS = {
  */
 export const GARDEN_ROLE_ORDER: readonly GardenRole[] = [
   "owner",
-  "operator",
+  "steward",
   "evaluator",
   "gardener",
   "funder",
@@ -54,7 +81,7 @@ export type RoleColorScheme = "warning" | "info" | "feature" | "success" | "prim
  */
 export const GARDEN_ROLE_COLORS: Record<GardenRole, RoleColorScheme> = {
   owner: "warning",
-  operator: "info",
+  steward: "info",
   evaluator: "feature",
   gardener: "success",
   funder: "primary",
@@ -101,9 +128,9 @@ export const GARDEN_ROLE_I18N_KEYS: Record<GardenRole, { singular: string; plura
     singular: "app.roles.gardener",
     plural: "app.roles.gardener.plural",
   },
-  operator: {
-    singular: "app.roles.operator",
-    plural: "app.roles.operator.plural",
+  steward: {
+    singular: "app.roles.steward",
+    plural: "app.roles.steward.plural",
   },
   evaluator: {
     singular: "app.roles.evaluator",

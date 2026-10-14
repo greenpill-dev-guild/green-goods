@@ -4,7 +4,7 @@
  * Covers the truth-gated priority ladder (resolveArrivalKind) exhaustively, plus the hook's
  * derivation of per-source readiness/signals — including the failure modes that must NOT surface
  * a wrong orientation (a gardens error must never read as "signed in, no membership"; an
- * operator with unready review data must get silence, never "all caught up").
+ * steward with unready review data must get silence, never "all caught up").
  */
 
 import { renderHook } from "@testing-library/react";
@@ -27,7 +27,7 @@ const { mocks } = vi.hoisted(() => ({
     queue: { data: { pending: 0, failed: 0 } as Record<string, number>, isSuccess: true },
     pendingJoinsVersion: 0,
     isGardenMember: false,
-    review: { count: 0, ready: true, isOperator: false },
+    review: { count: 0, ready: true, isSteward: false },
   },
 }));
 
@@ -63,7 +63,7 @@ function makeInputs(overrides: SourceOverrides = {}): ArrivalInputs {
   return {
     queue: { ready: true, hasPendingOrFailed: false, ...overrides.queue },
     drafts: { ready: true, hasDraft: false, ...overrides.drafts },
-    gardens: { ready: true, isOperator: false, isGardener: false, ...overrides.gardens },
+    gardens: { ready: true, isSteward: false, isGardener: false, ...overrides.gardens },
     review: { ready: true, needsReviewCount: 0, ...overrides.review },
   };
 }
@@ -106,7 +106,7 @@ describe("resolveArrivalKind", () => {
     const all = {
       queue: { hasPendingOrFailed: true },
       drafts: { hasDraft: true },
-      gardens: { isOperator: true, isGardener: true },
+      gardens: { isSteward: true, isGardener: true },
       review: { needsReviewCount: 3 },
     };
     expect(resolveArrivalKind(makeInputs(all))).toBe("queue");
@@ -115,20 +115,20 @@ describe("resolveArrivalKind", () => {
     );
     expect(
       resolveArrivalKind(
-        makeInputs({ gardens: { isOperator: true }, review: { needsReviewCount: 3 } })
+        makeInputs({ gardens: { isSteward: true }, review: { needsReviewCount: 3 } })
       )
     ).toBe("review");
     expect(resolveArrivalKind(makeInputs({ gardens: { isGardener: true } }))).toBe("gardener");
   });
 
-  it("resolves the operator with both a draft and review work to draft (local truth first)", () => {
+  it("resolves the steward with both a draft and review work to draft (local truth first)", () => {
     // Device-local unfinished work outranks the network-backed review queue: this session may
     // be the only chance to recover it, and review work stays reachable via the dashboard.
     expect(
       resolveArrivalKind(
         makeInputs({
           drafts: { hasDraft: true },
-          gardens: { isOperator: true },
+          gardens: { isSteward: true },
           review: { needsReviewCount: 5 },
         })
       )
@@ -142,32 +142,32 @@ describe("resolveArrivalKind", () => {
     expect(kind).toBe("none");
   });
 
-  it("gates operators on review readiness — silence, never a premature claim", () => {
-    // An operator whose review data is unready must not get "operatorClear" (a false
+  it("gates stewards on review readiness — silence, never a premature claim", () => {
+    // A steward whose review data is unready must not get "stewardClear" (a false
     // "all caught up") nor fall through to "gardener" (preemptable once review resolves).
     const kind = resolveArrivalKind(
       makeInputs({
-        gardens: { isOperator: true, isGardener: true },
+        gardens: { isSteward: true, isGardener: true },
         review: { ready: false, needsReviewCount: 0 },
       })
     );
     expect(kind).toBe("none");
   });
 
-  it("splits the operator branch on the review count: review vs operatorClear", () => {
+  it("splits the steward branch on the review count: review vs stewardClear", () => {
     expect(
       resolveArrivalKind(
-        makeInputs({ gardens: { isOperator: true }, review: { needsReviewCount: 1 } })
+        makeInputs({ gardens: { isSteward: true }, review: { needsReviewCount: 1 } })
       )
     ).toBe("review");
     expect(
       resolveArrivalKind(
-        makeInputs({ gardens: { isOperator: true }, review: { needsReviewCount: 0 } })
+        makeInputs({ gardens: { isSteward: true }, review: { needsReviewCount: 0 } })
       )
-    ).toBe("operatorClear");
+    ).toBe("stewardClear");
   });
 
-  it("never makes a gardener (non-operator) wait on review readiness", () => {
+  it("never makes a gardener (non-steward) wait on review readiness", () => {
     expect(
       resolveArrivalKind(
         makeInputs({
@@ -178,15 +178,15 @@ describe("resolveArrivalKind", () => {
     ).toBe("gardener");
   });
 
-  it("resolves a user who both operates and gardens via the operator branch", () => {
+  it("resolves a user who both operates and gardens via the steward branch", () => {
     expect(
       resolveArrivalKind(
         makeInputs({
-          gardens: { isOperator: true, isGardener: true },
+          gardens: { isSteward: true, isGardener: true },
           review: { needsReviewCount: 0 },
         })
       )
-    ).toBe("operatorClear");
+    ).toBe("stewardClear");
   });
 });
 
@@ -198,7 +198,7 @@ describe("useArrivalState", () => {
     mocks.queue = { data: { pending: 0, failed: 0 }, isSuccess: true };
     mocks.pendingJoinsVersion = 0;
     mocks.isGardenMember = false;
-    mocks.review = { count: 0, ready: true, isOperator: false };
+    mocks.review = { count: 0, ready: true, isSteward: false };
   });
 
   it("returns none when there is no resolved address yet", () => {
@@ -209,41 +209,41 @@ describe("useArrivalState", () => {
   });
 
   it("derives gardener from gardens + isGardenMember (gardeners/pending-join scope)", () => {
-    mocks.gardens = { data: [{ id: "g1", gardeners: [], operators: [] }], isSuccess: true };
+    mocks.gardens = { data: [{ id: "g1", gardeners: [], stewards: [] }], isSuccess: true };
     mocks.isGardenMember = true;
     const { result } = renderHook(() => useArrivalState());
     expect(result.current.kind).toBe("gardener");
     expect(result.current.myGardenIds).toEqual(["g1"]);
   });
 
-  it("derives operator from the garden operators array (case-insensitive)", () => {
+  it("derives steward from the garden stewards array (case-insensitive)", () => {
     mocks.gardens = {
-      data: [{ id: "g1", gardeners: [], operators: [ADDRESS.toUpperCase().replace("0X", "0x")] }],
+      data: [{ id: "g1", gardeners: [], stewards: [ADDRESS.toUpperCase().replace("0X", "0x")] }],
       isSuccess: true,
     };
     const { result } = renderHook(() => useArrivalState());
-    expect(result.current.kind).toBe("operatorClear");
+    expect(result.current.kind).toBe("stewardClear");
     expect(result.current.myGardenIds).toEqual(["g1"]);
   });
 
-  it("surfaces review with its count when an operator has submissions waiting", () => {
-    mocks.gardens = { data: [{ id: "g1", gardeners: [], operators: [ADDRESS] }], isSuccess: true };
-    mocks.review = { count: 3, ready: true, isOperator: true };
+  it("surfaces review with its count when a steward has submissions waiting", () => {
+    mocks.gardens = { data: [{ id: "g1", gardeners: [], stewards: [ADDRESS] }], isSuccess: true };
+    mocks.review = { count: 3, ready: true, isSteward: true };
     const { result } = renderHook(() => useArrivalState());
     expect(result.current.kind).toBe("review");
     expect(result.current.needsReviewCount).toBe(3);
   });
 
-  it("stays silent for an operator whose review data is not ready", () => {
-    mocks.gardens = { data: [{ id: "g1", gardeners: [], operators: [ADDRESS] }], isSuccess: true };
-    mocks.review = { count: 0, ready: false, isOperator: true };
+  it("stays silent for a steward whose review data is not ready", () => {
+    mocks.gardens = { data: [{ id: "g1", gardeners: [], stewards: [ADDRESS] }], isSuccess: true };
+    mocks.review = { count: 0, ready: false, isSteward: true };
     const { result } = renderHook(() => useArrivalState());
     expect(result.current.kind).toBe("none");
   });
 
   it("reports needsReviewCount 0 when a higher-priority kind preempts review", () => {
-    mocks.gardens = { data: [{ id: "g1", gardeners: [], operators: [ADDRESS] }], isSuccess: true };
-    mocks.review = { count: 5, ready: true, isOperator: true };
+    mocks.gardens = { data: [{ id: "g1", gardeners: [], stewards: [ADDRESS] }], isSuccess: true };
+    mocks.review = { count: 5, ready: true, isSteward: true };
     mocks.queue = { data: { pending: 1, failed: 0 }, isSuccess: true };
     const { result } = renderHook(() => useArrivalState());
     expect(result.current.kind).toBe("queue");
@@ -251,7 +251,7 @@ describe("useArrivalState", () => {
   });
 
   it("stays silent (none) when gardens errored, even for a member", () => {
-    mocks.gardens = { data: [{ id: "g1", gardeners: [], operators: [] }], isSuccess: false };
+    mocks.gardens = { data: [{ id: "g1", gardeners: [], stewards: [] }], isSuccess: false };
     mocks.isGardenMember = true;
     const { result } = renderHook(() => useArrivalState());
     expect(result.current.kind).toBe("none");

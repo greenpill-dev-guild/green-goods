@@ -1,6 +1,6 @@
 /**
  * useAccessibleCookieJars Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Verifies cookie-jar visibility is based on onchain garden-account access
  * checks and fails closed when eligibility cannot be confirmed.
@@ -8,7 +8,7 @@
 
 import { renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createTestWrapper } from "../../test-utils";
+import { createTestWrapper } from "../../test-utils/render-helpers";
 
 const TEST_CHAIN_ID = 11155111;
 const TEST_MODULE = "0x1000000000000000000000000000000000000000";
@@ -34,7 +34,7 @@ const mockGardens = [
     id: GARDENER_GARDEN,
     tokenAddress: GARDEN_TOKEN,
     gardeners: [TEST_USER],
-    operators: [],
+    stewards: [],
     owners: [],
     evaluators: [],
     funders: [],
@@ -44,7 +44,7 @@ const mockGardens = [
     id: OPERATOR_GARDEN,
     tokenAddress: GARDEN_TOKEN,
     gardeners: [],
-    operators: [TEST_USER],
+    stewards: [TEST_USER],
     owners: [],
     evaluators: [],
     funders: [],
@@ -54,7 +54,7 @@ const mockGardens = [
     id: OWNER_GARDEN,
     tokenAddress: GARDEN_TOKEN,
     gardeners: [],
-    operators: [],
+    stewards: [],
     owners: [TEST_USER],
     evaluators: [],
     funders: [],
@@ -64,7 +64,7 @@ const mockGardens = [
     id: EVALUATOR_GARDEN,
     tokenAddress: GARDEN_TOKEN,
     gardeners: [],
-    operators: [],
+    stewards: [],
     owners: [],
     evaluators: [TEST_USER],
     funders: [],
@@ -74,7 +74,7 @@ const mockGardens = [
     id: FUNDER_GARDEN,
     tokenAddress: GARDEN_TOKEN,
     gardeners: [],
-    operators: [],
+    stewards: [],
     owners: [],
     evaluators: [],
     funders: [TEST_USER],
@@ -84,7 +84,7 @@ const mockGardens = [
     id: COMMUNITY_GARDEN,
     tokenAddress: GARDEN_TOKEN,
     gardeners: [],
-    operators: [],
+    stewards: [],
     owners: [],
     evaluators: [],
     funders: [],

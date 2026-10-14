@@ -1,10 +1,10 @@
 # Public Supporters / Partnerships Section
 
+**Status**: `CLOSED — canceled; see plan closeout`
 **Slug**: `public-supporters-band`
-**Stage**: `backlog` (state: `investigate-further`)
+**Stage**: `ideas`
 **Priority**: `p2`
 **Created**: `2026-04-28`
-**Sibling plan**: `.plans/active/public-read-side-journal/`
 
 ## Problem
 
@@ -70,7 +70,6 @@ short, editorial credibility statement: "Built with [Hypercerts /
 GreenPill / Octant / Vrbs / ...]" — without it feeling like a SaaS
 landing page.
 
-## Status
+## Current disposition (2026-10-06)
 
-`investigate-further` — do not implement until Afo answers the questions
-above and the parent `public-read-side-journal` regressions are landed.
+Canceled under PRD-347. The earlier `investigate-further` status and activation conditions are historical; they do not authorize restarting this scope. Any future supporter display requires a new accepted scope and partner-content permission review.

@@ -3,7 +3,7 @@ import { useIntl } from "react-intl";
 import { toastService } from "../../components/toast";
 import type { Address, Domain } from "../../types/domain";
 import { ActionRegistryABI, getNetworkContracts } from "../../utils/blockchain/contracts";
-import { queryKeys } from "../../config/query-keys";
+import { gardensKeys } from "../../config/query-keys/garden";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useContractTxSender } from "../blockchain/useContractTxSender";
@@ -17,7 +17,7 @@ export interface SetGardenDomainsParams {
  * Mutation hook to update a garden's active domains.
  *
  * Calls `setGardenDomains(address, uint8)` on the ActionRegistry contract.
- * Requires the caller to be an operator of the garden (enforced on-chain).
+ * Requires the caller to be a steward of the garden (enforced on-chain).
  *
  * Bit mapping: bit 0 = SOLAR, bit 1 = AGRO, bit 2 = EDU, bit 3 = WASTE.
  */
@@ -71,7 +71,7 @@ export function useSetGardenDomains() {
       });
       // Also refresh the gardens list so consumers that read garden.domainMask
       // (the settings dialog's inline domain selector) re-baseline after a save.
-      queryClient.invalidateQueries({ queryKey: queryKeys.gardens.all });
+      queryClient.invalidateQueries({ queryKey: gardensKeys.all });
     },
     onError: (error, _params, context) => {
       if (context?.toastId) toastService.dismiss(context.toastId);

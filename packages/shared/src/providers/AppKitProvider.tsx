@@ -1,6 +1,6 @@
 import { WagmiProvider } from "wagmi";
 import { ensureAppKit } from "../config/appkit";
-import { DEFAULT_CHAIN_ID } from "../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../config/default-chain";
 
 interface AppKitProviderProps {
   children: React.ReactNode;

@@ -1,33 +1,37 @@
 import React from "react";
+import { useIntl } from "react-intl";
 import { cn } from "../utils/styles/cn";
 import { Spinner } from "./Spinner";
 
 export interface HydrationFallbackProps {
-  /** App name for screen reader */
+  /** App name read to screen readers with the loading label */
   appName?: string;
   /** Show icon above spinner */
   showIcon?: boolean;
-  /** Optional loading message */
-  message?: string;
+  /** Show the loading line under the spinner */
+  showMessage?: boolean;
   className?: string;
 }
 
 /**
- * Fallback component for React Router lazy loading / hydration
+ * Fallback component for React Router lazy loading / hydration. It renders inside the app's
+ * language provider and writes its own copy, so the loader reads in the app's language.
  *
  * @example
  * // Client
  * <HydrationFallback appName="Green Goods" />
  *
  * // Admin
- * <HydrationFallback appName="Green Goods Admin" showIcon message="Loading..." />
+ * <HydrationFallback appName="Green Goods Admin" showIcon showMessage />
  */
 export const HydrationFallback: React.FC<HydrationFallbackProps> = ({
   appName = "Green Goods",
   showIcon = false,
-  message,
+  showMessage = false,
   className,
 }) => {
+  const { formatMessage } = useIntl();
+
   return (
     <div
       className={cn("min-h-screen flex items-center justify-center bg-bg-white-0", className)}
@@ -48,10 +52,19 @@ export const HydrationFallback: React.FC<HydrationFallbackProps> = ({
           </div>
         )}
 
-        <Spinner size="lg" label={`Loading ${appName}`} />
-        <span className="sr-only">Loading {appName}</span>
+        <Spinner
+          size="lg"
+          label={formatMessage(
+            { id: "app.common.loadingApp", defaultMessage: "Loading {appName}" },
+            { appName }
+          )}
+        />
 
-        {message && <p className="mt-2 text-sm text-text-sub-600">{message}</p>}
+        {showMessage && (
+          <p className="mt-2 text-sm text-text-sub-600">
+            {formatMessage({ id: "app.common.loading", defaultMessage: "Loading..." })}
+          </p>
+        )}
       </div>
     </div>
   );

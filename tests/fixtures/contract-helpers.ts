@@ -8,15 +8,25 @@
  * Some type assertions are used to work around strict viem typing.
  */
 
+import { readFileSync } from "node:fs";
 import {
+  type Abi,
   encodeAbiParameters,
   getContract,
   type Log,
+  parseEventLogs,
   type PublicClient,
   parseAbiParameters,
   type WalletClient,
 } from "viem";
 import type { AnvilForkContext, DeploymentArtifact, TestAccountWithSigner } from "./anvil-fork";
+
+function loadAbi(relativePath: string): Abi {
+  return JSON.parse(readFileSync(new URL(relativePath, import.meta.url), "utf8")) as Abi;
+}
+
+const GardenAccountABI = loadAbi("../../packages/contracts/abis/GardenAccount.json");
+const GardenTokenABI = loadAbi("../../packages/contracts/abis/GardenToken.json");
 
 // Type helper for log with topics
 type LogWithTopics = Log & { topics: readonly `0x${string}`[] };
@@ -24,49 +34,6 @@ type LogWithTopics = Log & { topics: readonly `0x${string}`[] };
 // ============================================================================
 // ABI DEFINITIONS (Minimal ABIs for testing)
 // ============================================================================
-
-/**
- * Minimal GardenToken ABI for minting gardens
- */
-const GardenTokenABI = [
-  {
-    name: "mintGarden",
-    type: "function",
-    stateMutability: "nonpayable",
-    inputs: [
-      {
-        name: "config",
-        type: "tuple",
-        components: [
-          { name: "communityToken", type: "address" },
-          { name: "name", type: "string" },
-          { name: "description", type: "string" },
-          { name: "location", type: "string" },
-          { name: "bannerImage", type: "string" },
-          { name: "metadata", type: "string" },
-          { name: "openJoining", type: "bool" },
-          { name: "gardeners", type: "address[]" },
-          { name: "gardenOperators", type: "address[]" },
-        ],
-      },
-    ],
-    outputs: [{ type: "address" }],
-  },
-  {
-    name: "ownerOf",
-    type: "function",
-    stateMutability: "view",
-    inputs: [{ name: "tokenId", type: "uint256" }],
-    outputs: [{ type: "address" }],
-  },
-  {
-    name: "balanceOf",
-    type: "function",
-    stateMutability: "view",
-    inputs: [{ name: "owner", type: "address" }],
-    outputs: [{ type: "uint256" }],
-  },
-] as const;
 
 /**
  * Minimal ActionRegistry ABI for registering actions
@@ -111,54 +78,6 @@ const ActionRegistryABI = [
     stateMutability: "view",
     inputs: [],
     outputs: [{ type: "address" }],
-  },
-] as const;
-
-/**
- * Minimal GardenAccount ABI for garden operations
- */
-const GardenAccountABI = [
-  {
-    name: "addGardener",
-    type: "function",
-    stateMutability: "nonpayable",
-    inputs: [{ name: "gardener", type: "address" }],
-    outputs: [],
-  },
-  {
-    name: "removeGardener",
-    type: "function",
-    stateMutability: "nonpayable",
-    inputs: [{ name: "gardener", type: "address" }],
-    outputs: [],
-  },
-  {
-    name: "isGardener",
-    type: "function",
-    stateMutability: "view",
-    inputs: [{ name: "account", type: "address" }],
-    outputs: [{ type: "bool" }],
-  },
-  {
-    name: "isOperator",
-    type: "function",
-    stateMutability: "view",
-    inputs: [{ name: "account", type: "address" }],
-    outputs: [{ type: "bool" }],
-  },
-  {
-    name: "getGardeners",
-    type: "function",
-    stateMutability: "view",
-    inputs: [],
-    outputs: [{ type: "address[]" }],
-  },
-  {
-    name: "getOperators",
-    type: "function",
-    stateMutability: "view",
-    inputs: [],
-    outputs: [{ type: "address[]" }],
   },
 ] as const;
 
@@ -240,15 +159,17 @@ export enum Capital {
  * Parameters for creating a garden
  */
 export interface CreateGardenParams {
-  communityToken: `0x${string}`;
   name: string;
+  slug?: string;
   description: string;
-  location: string;
+  location?: string;
   bannerImage: string;
   metadata?: string;
   openJoining?: boolean;
+  weightScheme?: 0 | 1 | 2;
+  domainMask?: number;
   gardeners?: `0x${string}`[];
-  operators?: `0x${string}`[];
+  stewards?: `0x${string}`[];
 }
 
 /**
@@ -309,7 +230,7 @@ export interface WorkResult {
  */
 export interface ApproveWorkParams {
   gardenAddress: `0x${string}`;
-  operatorAccount: TestAccountWithSigner;
+  stewardAccount: TestAccountWithSigner;
   workUID: `0x${string}`;
   actionUID: bigint;
   approved: boolean;
@@ -328,66 +249,6 @@ export interface ApprovalResult {
 // ============================================================================
 // CONTRACT GETTERS
 // ============================================================================
-
-/**
- * Get the GardenToken contract instance
- */
-export function getGardenTokenContract(
-  deployment: DeploymentArtifact,
-  publicClient: PublicClient,
-  walletClient?: WalletClient
-) {
-  return getContract({
-    address: deployment.gardenToken,
-    abi: GardenTokenABI,
-    client: walletClient ?? publicClient,
-  });
-}
-
-/**
- * Get the ActionRegistry contract instance
- */
-export function getActionRegistryContract(
-  deployment: DeploymentArtifact,
-  publicClient: PublicClient,
-  walletClient?: WalletClient
-) {
-  return getContract({
-    address: deployment.actionRegistry,
-    abi: ActionRegistryABI,
-    client: walletClient ?? publicClient,
-  });
-}
-
-/**
- * Get a GardenAccount contract instance
- */
-export function getGardenAccountContract(
-  gardenAddress: `0x${string}`,
-  publicClient: PublicClient,
-  walletClient?: WalletClient
-) {
-  return getContract({
-    address: gardenAddress,
-    abi: GardenAccountABI,
-    client: walletClient ?? publicClient,
-  });
-}
-
-/**
- * Get the EAS contract instance
- */
-export function getEASContract(
-  deployment: DeploymentArtifact,
-  publicClient: PublicClient,
-  walletClient?: WalletClient
-) {
-  return getContract({
-    address: deployment.eas.address,
-    abi: EASABI,
-    client: walletClient ?? publicClient,
-  });
-}
 
 // ============================================================================
 // HIGH-LEVEL OPERATIONS
@@ -412,80 +273,89 @@ export async function createGarden(
   // (needed for forked state where we need to act as a different address)
   await context.testClient.impersonateAccount({ address: account.address });
 
-  const config = {
-    communityToken: params.communityToken,
-    name: params.name,
-    description: params.description,
-    location: params.location,
-    bannerImage: params.bannerImage,
-    metadata: params.metadata ?? "",
-    openJoining: params.openJoining ?? true,
-    gardeners: params.gardeners ?? [],
-    gardenOperators: params.operators ?? [account.address],
-  };
+  try {
+    const config = {
+      name: params.name,
+      slug: params.slug ?? "",
+      description: params.description,
+      location: params.location ?? "",
+      bannerImage: params.bannerImage,
+      metadata: params.metadata ?? "",
+      openJoining: params.openJoining ?? true,
+      weightScheme: params.weightScheme ?? 0,
+      domainMask: params.domainMask ?? 15,
+      gardeners: params.gardeners ?? [],
+      stewards: params.stewards ?? [account.address],
+    };
 
-  const txHash = await context.walletClient.writeContract({
-    chain: context.chain,
-    address: context.deployment.gardenToken,
-    abi: GardenTokenABI,
-    functionName: "mintGarden",
-    args: [config],
-    account: account.account,
-  });
+    const txHash = await context.walletClient.writeContract({
+      chain: context.chain,
+      address: context.deployment.gardenToken,
+      abi: GardenTokenABI,
+      functionName: "mintGarden",
+      args: [config],
+      account: account.account,
+    });
 
-  // Wait for transaction
-  const receipt = await context.publicClient.waitForTransactionReceipt({ hash: txHash });
+    const receipt = await context.publicClient.waitForTransactionReceipt({ hash: txHash });
+    const [gardenMinted] = parseEventLogs({
+      abi: GardenTokenABI,
+      eventName: "GardenMinted",
+      logs: receipt.logs,
+      strict: true,
+    });
 
-  // Get the garden address from the first log (the GardenMinted event)
-  // In a real implementation, you'd parse the event logs properly
-  const logs = receipt.logs as LogWithTopics[];
-  const gardenAddress = logs[0]?.address as `0x${string}`;
+    if (!gardenMinted) {
+      throw new Error(`GardenMinted event missing from transaction ${txHash}`);
+    }
 
-  await context.testClient.stopImpersonatingAccount({ address: account.address });
+    const gardenAddress = gardenMinted.args.account;
+    console.log(`  🌱 Garden created: ${params.name} at ${gardenAddress}`);
 
-  console.log(`  🌱 Garden created: ${params.name} at ${gardenAddress}`);
-
-  return {
-    address: gardenAddress,
-    tokenId: BigInt(0), // Would be parsed from event
-    name: params.name,
-    txHash,
-  };
+    return {
+      address: gardenAddress,
+      tokenId: gardenMinted.args.tokenId,
+      name: params.name,
+      txHash,
+    };
+  } finally {
+    await context.testClient.stopImpersonatingAccount({ address: account.address });
+  }
 }
 
 /**
- * Add a gardener to a garden
+ * Join an open garden as a gardener
  *
  * @param context - Anvil fork context
  * @param gardenAddress - Garden account address
- * @param gardenerAddress - Address to add as gardener
- * @param operatorAccount - Operator account to sign transaction
+ * @param gardenerAccount - Gardener account that signs its own join transaction
  */
-export async function addGardener(
+export async function joinGarden(
   context: AnvilForkContext,
   gardenAddress: `0x${string}`,
-  gardenerAddress: `0x${string}`,
-  operatorAccount?: TestAccountWithSigner
+  gardenerAccount?: TestAccountWithSigner
 ): Promise<`0x${string}`> {
-  const account = operatorAccount ?? context.accounts.operator;
+  const account = gardenerAccount ?? context.accounts.gardener1;
 
   await context.testClient.impersonateAccount({ address: account.address });
 
-  const txHash = await context.walletClient.writeContract({
-    chain: context.chain,
-    address: gardenAddress,
-    abi: GardenAccountABI,
-    functionName: "addGardener",
-    args: [gardenerAddress],
-    account: account.account,
-  });
+  try {
+    const txHash = await context.walletClient.writeContract({
+      chain: context.chain,
+      address: gardenAddress,
+      abi: GardenAccountABI,
+      functionName: "joinGarden",
+      args: [],
+      account: account.account,
+    });
 
-  await context.publicClient.waitForTransactionReceipt({ hash: txHash });
-  await context.testClient.stopImpersonatingAccount({ address: account.address });
+    await context.publicClient.waitForTransactionReceipt({ hash: txHash });
+    console.log(`  👤 Gardener ${account.address} joined garden ${gardenAddress}`);
 
-  console.log(`  👤 Added gardener ${gardenerAddress} to garden ${gardenAddress}`);
-
-  return txHash;
+    return txHash;
+  } finally {
+    await context.testClient.stopImpersonatingAccount({ address: account.address });
+  }
 }
 
 /**
@@ -506,9 +376,9 @@ export async function isGardener(
 }
 
 /**
- * Check if an address is an operator
+ * Check if an address is a steward
  */
-export async function isOperator(
+export async function isSteward(
   context: AnvilForkContext,
   gardenAddress: `0x${string}`,
   address: `0x${string}`
@@ -516,6 +386,7 @@ export async function isOperator(
   const result = await context.publicClient.readContract({
     address: gardenAddress,
     abi: GardenAccountABI,
+    // Deployed access function name — the role reads as Steward everywhere else.
     functionName: "isOperator",
     args: [address],
   });
@@ -651,7 +522,7 @@ export async function approveWork(
   context: AnvilForkContext,
   params: ApproveWorkParams
 ): Promise<ApprovalResult> {
-  const account = params.operatorAccount;
+  const account = params.stewardAccount;
 
   await context.testClient.impersonateAccount({ address: account.address });
 
@@ -705,36 +576,9 @@ export async function approveWork(
 // ============================================================================
 
 /**
- * Deploy a mock ERC20 token for testing
- * (Used as communityToken when creating gardens)
- */
-export async function deployMockERC20(
-  context: AnvilForkContext,
-  _name: string = "Test Token",
-  _symbol: string = "TEST"
-): Promise<`0x${string}`> {
-  // In a forked environment, we can use an existing ERC20 or deploy a mock
-  // For simplicity, we'll use USDC on Sepolia if available
-  // Or you could deploy a mock contract here
-
-  // Sepolia USDC address (if it exists)
-  const MOCK_USDC = "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238" as `0x${string}`;
-
-  // Verify it's a contract
-  const code = await context.publicClient.getCode({ address: MOCK_USDC });
-  if (code && code !== "0x") {
-    console.log(`  💰 Using existing token at ${MOCK_USDC}`);
-    return MOCK_USDC;
-  }
-
-  // If no USDC, we'd need to deploy a mock
-  throw new Error("Mock ERC20 deployment not implemented - use an existing token on the fork");
-}
-
-/**
  * Get the current block timestamp
  */
-export async function getBlockTimestamp(context: AnvilForkContext): Promise<bigint> {
+async function getBlockTimestamp(context: AnvilForkContext): Promise<bigint> {
   const block = await context.publicClient.getBlock();
   return block.timestamp;
 }

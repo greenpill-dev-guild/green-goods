@@ -4,18 +4,19 @@ import { useIntl } from "react-intl";
 import { toastService } from "../../components/toast";
 import type { Address } from "../../types/domain";
 import type { AllocateYieldParams } from "../../types/gardens-community";
-import { YIELD_SPLITTER_ABI } from "../../utils/blockchain/abis";
+import { YIELD_SPLITTER_ABI } from "../../utils/blockchain/abis/yield";
 import { normalizeAddress } from "../../utils/blockchain/address";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useContractTxSender } from "../blockchain/useContractTxSender";
-import { INDEXER_LAG_SCHEDULE_MS, queryInvalidation } from "../../config/query-keys";
+import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
+import { queryInvalidation } from "../../config/query-keys/invalidation";
 import { useProgressiveInvalidation } from "../utils/useTimeout";
 
 /**
  * Mutation hook to trigger yield allocation via YieldSplitter.splitYield().
- * This is permissionless -- anyone can trigger it, not just operators.
+ * This is permissionless -- anyone can trigger it, not just stewards.
  * Resolves the YieldSplitter address from deployment config automatically.
  */
 export function useAllocateYield() {

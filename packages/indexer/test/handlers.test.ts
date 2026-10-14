@@ -1,23 +1,19 @@
 import assert from "assert";
-import { createRequire } from "module";
 import { encodeFunctionData } from "viem";
-
-// @ts-expect-error import.meta.url is valid at runtime in tsx.
-const require = createRequire(import.meta.url);
-const generated = require("../generated");
-const { TestHelpers } = generated;
-const {
-  MockDb,
-  Addresses,
-  GardenAccount,
-  HatsModule,
-  YieldSplitter,
-  HypercertMinter,
+import {
   CookieJarFactory,
-} = TestHelpers;
+  createTestIndexer,
+  HatsModule,
+  GardenAccount,
+  HypercertMinter,
+  serveJson,
+  indexedAddress,
+  YieldSplitter,
+} from "./v3";
+import { addr, CHAINS, mockEvent, txHash } from "./helpers/events";
+import { seedGarden } from "./helpers/garden";
 
-const CHAIN_ID = 42161;
-type HexAddress = `0x${string}`;
+const CHAIN_ID = CHAINS.arbitrum;
 const CREATE_COOKIE_JAR_ABI = [
   {
     type: "function",
@@ -87,35 +83,6 @@ const CREATE_COOKIE_JAR_ABI = [
   },
 ] as const;
 
-function addr(index: number): HexAddress {
-  return (Addresses.mockAddresses[index] ||
-    `0x${index.toString().padStart(40, "0")}`) as HexAddress;
-}
-
-function txHash(index: number): string {
-  return `0x${index.toString(16).padStart(64, "0")}`;
-}
-
-function mockEvent(
-  chainId: number,
-  timestamp: number,
-  opts: {
-    srcAddress?: string;
-    txHash?: string;
-    txInput?: string;
-    logIndex?: number;
-    blockNumber?: number;
-  } = {}
-) {
-  return {
-    chainId,
-    block: { timestamp, number: opts.blockNumber ?? 0 },
-    srcAddress: opts.srcAddress ?? addr(99),
-    transaction: { hash: opts.txHash ?? txHash(timestamp), input: opts.txInput },
-    logIndex: opts.logIndex ?? 0,
-  };
-}
-
 function createCookieJarInput(metadata: string): string {
   const multiTokenConfig = {
     enabled: false,
@@ -162,8 +129,8 @@ function createCookieJarInput(metadata: string): string {
 
 describe("retained garden + role handlers", () => {
   it("creates a default garden on GardenAccount.NameUpdated", async () => {
-    const mockDb = MockDb.createMockDb();
-    const gardenAddress = addr(10);
+    const mockDb = createTestIndexer();
+    const gardenAddress = indexedAddress("GardenAccount", CHAIN_ID);
 
     const event = GardenAccount.NameUpdated.createMockEvent({
       updater: addr(1),
@@ -172,7 +139,7 @@ describe("retained garden + role handlers", () => {
     });
 
     const result = await GardenAccount.NameUpdated.processEvent({ event, mockDb });
-    const garden = result.entities.Garden.get(gardenAddress);
+    const garden = await result.Garden.get(gardenAddress);
 
     assert.ok(garden);
     assert.equal(garden.name, "Indexer Garden");
@@ -180,29 +147,11 @@ describe("retained garden + role handlers", () => {
   });
 
   it("adds and removes operators via Hats role grant/revoke", async () => {
-    let mockDb = MockDb.createMockDb();
+    let mockDb = createTestIndexer();
     const gardenAddress = addr(20);
     const operator = addr(21);
 
-    mockDb = mockDb.entities.Garden.set({
-      id: gardenAddress,
-      chainId: CHAIN_ID,
-      tokenAddress: addr(1),
-      tokenID: 1n,
-      name: "Garden",
-      description: "",
-      location: "",
-      bannerImage: "",
-      openJoining: false,
-      gardeners: [],
-      operators: [],
-      evaluators: [],
-      owners: [],
-      funders: [],
-      communities: [],
-      createdAt: 1,
-      gapProjectUID: undefined,
-    });
+    mockDb = seedGarden(mockDb, gardenAddress, { name: "Garden", createdAt: 1 });
 
     const grantEvent = HatsModule.RoleGranted.createMockEvent({
       garden: gardenAddress,
@@ -212,7 +161,7 @@ describe("retained garden + role handlers", () => {
     });
 
     mockDb = await HatsModule.RoleGranted.processEvent({ event: grantEvent, mockDb });
-    const grantedGarden = mockDb.entities.Garden.get(gardenAddress);
+    const grantedGarden = await mockDb.Garden.get(gardenAddress);
     assert.ok(grantedGarden?.operators.includes(operator.toLowerCase()));
 
     const revokeEvent = HatsModule.RoleRevoked.createMockEvent({
@@ -223,14 +172,14 @@ describe("retained garden + role handlers", () => {
     });
 
     mockDb = await HatsModule.RoleRevoked.processEvent({ event: revokeEvent, mockDb });
-    const revokedGarden = mockDb.entities.Garden.get(gardenAddress);
+    const revokedGarden = await mockDb.Garden.get(gardenAddress);
     assert.equal(revokedGarden?.operators.includes(operator.toLowerCase()), false);
   });
 });
 
 describe("retained yield + hypercert handlers", () => {
   it("stores YieldSplit records as YieldAllocation", async () => {
-    const mockDb = MockDb.createMockDb();
+    const mockDb = createTestIndexer();
 
     const event = YieldSplitter.YieldSplit.createMockEvent({
       garden: addr(30),
@@ -243,7 +192,7 @@ describe("retained yield + hypercert handlers", () => {
     });
 
     const result = await YieldSplitter.YieldSplit.processEvent({ event, mockDb });
-    const allocation = result.entities.YieldAllocation.get(`${CHAIN_ID}-${txHash(200)}-1`);
+    const allocation = await result.YieldAllocation.get(`${CHAIN_ID}-${txHash(200)}-1`);
 
     assert.ok(allocation);
     assert.equal(allocation.totalAmount, 6n);
@@ -251,45 +200,41 @@ describe("retained yield + hypercert handlers", () => {
   });
 
   it("keeps only minimal hypercert linkage fields from ClaimStored metadata", async () => {
-    const originalFetch = globalThis.fetch;
-    globalThis.fetch = (async () => ({
-      ok: true,
-      json: async () => ({
-        name: "Externalized title",
-        description: "Externalized description",
-        hidden_properties: {
-          gardenId: addr(40).toLowerCase(),
-          attestationRefs: [{ uid: "0xatt-1" }, { uid: "0xatt-2" }],
-        },
-      }),
-    })) as unknown as typeof fetch;
+    const metadataServer = await serveJson({
+      name: "Externalized title",
+      description: "Externalized description",
+      hidden_properties: {
+        gardenId: addr(40).toLowerCase(),
+        attestationRefs: [{ uid: "0xatt-1" }, { uid: "0xatt-2" }],
+      },
+    });
 
     try {
-      const mockDb = MockDb.createMockDb();
+      const mockDb = createTestIndexer();
 
       const event = HypercertMinter.ClaimStored.createMockEvent({
         claimID: 999n,
-        uri: "ipfs://bafk-test-metadata",
+        uri: metadataServer.url,
         totalUnits: 100n,
         mockEventData: mockEvent(CHAIN_ID, 30_000, { txHash: txHash(300), logIndex: 1 }),
       });
 
       const result = await HypercertMinter.ClaimStored.processEvent({ event, mockDb });
-      const hypercert = result.entities.Hypercert.get(`${CHAIN_ID}-999`);
+      const hypercert = await result.Hypercert.get(`${CHAIN_ID}-999`);
 
       assert.ok(hypercert);
       assert.equal(hypercert.garden, addr(40).toLowerCase());
       assert.equal(hypercert.attestationCount, 2);
       assert.deepEqual(hypercert.attestationUIDs, ["0xatt-1", "0xatt-2"]);
     } finally {
-      globalThis.fetch = originalFetch;
+      await metadataServer.close();
     }
   });
 });
 
 describe("campaign cookie jar factory handlers", () => {
   it("parses campaign metadata from JarCreated transaction input", async () => {
-    const mockDb = MockDb.createMockDb();
+    const mockDb = createTestIndexer();
     const jarAddress = addr(50);
     const creator = addr(51);
     const metadata = JSON.stringify({
@@ -311,14 +256,13 @@ describe("campaign cookie jar factory handlers", () => {
       jarAddress,
       creator,
       mockEventData: mockEvent(CHAIN_ID, 40_000, {
-        srcAddress: addr(52),
         txHash: txHash(400),
         txInput: createCookieJarInput(metadata),
       }),
     });
 
     const result = await CookieJarFactory.JarCreated.processEvent({ event, mockDb });
-    const jar = result.entities.CampaignCookieJar.get(`${CHAIN_ID}-${jarAddress.toLowerCase()}`);
+    const jar = await result.CampaignCookieJar.get(`${CHAIN_ID}-${jarAddress.toLowerCase()}`);
 
     assert.ok(jar);
     assert.equal(jar.jarAddress, jarAddress.toLowerCase());
@@ -334,7 +278,7 @@ describe("campaign cookie jar factory handlers", () => {
   });
 
   it("stores JarCreated candidates without requiring metadata on the create event", async () => {
-    const mockDb = MockDb.createMockDb();
+    const mockDb = createTestIndexer();
     const jarAddress = addr(50);
     const creator = addr(51);
 
@@ -342,13 +286,12 @@ describe("campaign cookie jar factory handlers", () => {
       jarAddress,
       creator,
       mockEventData: mockEvent(CHAIN_ID, 40_000, {
-        srcAddress: addr(52),
         txHash: txHash(400),
       }),
     });
 
     const result = await CookieJarFactory.JarCreated.processEvent({ event, mockDb });
-    const jar = result.entities.CampaignCookieJar.get(`${CHAIN_ID}-${jarAddress.toLowerCase()}`);
+    const jar = await result.CampaignCookieJar.get(`${CHAIN_ID}-${jarAddress.toLowerCase()}`);
 
     assert.ok(jar);
     assert.equal(jar.jarAddress, jarAddress.toLowerCase());
@@ -358,7 +301,7 @@ describe("campaign cookie jar factory handlers", () => {
   });
 
   it("parses valid campaign metadata updates", async () => {
-    const mockDb = MockDb.createMockDb();
+    const mockDb = createTestIndexer();
     const jarAddress = addr(53);
     const metadata = JSON.stringify({
       kind: "green-goods.campaign-cookie-jar",
@@ -379,13 +322,12 @@ describe("campaign cookie jar factory handlers", () => {
       jarAddress,
       metadata,
       mockEventData: mockEvent(CHAIN_ID, 41_000, {
-        srcAddress: addr(52),
         txHash: txHash(410),
       }),
     });
 
     const result = await CookieJarFactory.MetadataUpdated.processEvent({ event, mockDb });
-    const jar = result.entities.CampaignCookieJar.get(`${CHAIN_ID}-${jarAddress.toLowerCase()}`);
+    const jar = await result.CampaignCookieJar.get(`${CHAIN_ID}-${jarAddress.toLowerCase()}`);
 
     assert.ok(jar);
     assert.equal(jar.slug, "earth-week");
@@ -402,20 +344,19 @@ describe("campaign cookie jar factory handlers", () => {
   });
 
   it("stores invalid metadata without classifying the jar as public", async () => {
-    const mockDb = MockDb.createMockDb();
+    const mockDb = createTestIndexer();
     const jarAddress = addr(56);
 
     const event = CookieJarFactory.MetadataUpdated.createMockEvent({
       jarAddress,
       metadata: JSON.stringify({ kind: "other", version: 1, slug: "test", title: "Test" }),
       mockEventData: mockEvent(CHAIN_ID, 42_000, {
-        srcAddress: addr(52),
         txHash: txHash(420),
       }),
     });
 
     const result = await CookieJarFactory.MetadataUpdated.processEvent({ event, mockDb });
-    const jar = result.entities.CampaignCookieJar.get(`${CHAIN_ID}-${jarAddress.toLowerCase()}`);
+    const jar = await result.CampaignCookieJar.get(`${CHAIN_ID}-${jarAddress.toLowerCase()}`);
 
     assert.ok(jar);
     assert.equal(jar.isValidCampaign, false);
@@ -424,9 +365,8 @@ describe("campaign cookie jar factory handlers", () => {
 });
 
 describe("boundary assertions", () => {
-  it("does not expose externalized entity stores in mock db", () => {
-    const mockDb = MockDb.createMockDb();
-    const entities = mockDb.entities as Record<string, unknown>;
+  it("does not expose externalized entity stores in the v3 test indexer", () => {
+    const entities = createTestIndexer() as unknown as Record<string, unknown>;
 
     assert.equal(entities.CookieJar, undefined);
     assert.equal(entities.ENSRegistration, undefined);

@@ -82,6 +82,28 @@ export const AlignsWithButton: Story = {
   },
 };
 
+/**
+ * The supporting slot is one reserved line, so an error arriving never nudges the row
+ * or what sits below it. Checked in browser mode, where real layout applies: the
+ * field is as tall after Enter on an empty value raises its error as it was before.
+ */
+export const ErrorHoldsTheLine: Story = {
+  tags: ["storybook-ci"],
+  render: () => <RegisterRow />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const input = canvas.getByRole("textbox", { name: "Hypercert token ID" });
+    const field = input.closest('[data-component="AdminInlineField"]')?.parentElement;
+    await expect(field).not.toBeNull();
+    if (!field) return;
+    const before = field.getBoundingClientRect().height;
+
+    await userEvent.type(input, "{Enter}");
+    await expect(await canvas.findByRole("alert")).toHaveTextContent("Enter a hypercert token ID.");
+    await expect(Math.abs(field.getBoundingClientRect().height - before)).toBeLessThan(0.5);
+  },
+};
+
 const WORKSPACE_TONES = [
   ["hub", "Hub"],
   ["garden", "Garden"],

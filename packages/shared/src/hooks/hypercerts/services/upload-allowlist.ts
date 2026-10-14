@@ -11,7 +11,7 @@ import { validateAllowlist as sdkValidateAllowlist } from "@hypercerts-org/sdk";
 import { fromPromise } from "xstate";
 
 import { generateMerkleTree } from "../../../lib/hypercerts";
-import { uploadJSONToIPFS } from "../../../modules";
+import { uploadJSONToIPFS } from "../../../modules/data/ipfs/upload";
 import type { MintHypercertInput } from "../../../workflows/mintHypercert";
 import { serializeAllowlistTree } from "../hypercert-utils";
 import type { MintServiceDeps } from "./types";

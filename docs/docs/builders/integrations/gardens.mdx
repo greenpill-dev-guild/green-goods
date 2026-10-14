@@ -1,39 +1,84 @@
 ---
-title: Gardens Conviction Voting
-sidebar_label: Gardens V2
+title: Gardens
+sidebar_label: Gardens
 slug: /builders/integrations/gardens
 audience: developer
 owner: docs
-last_verified: 2026-04-25
-feature_status: Implemented (activation pending indexing)
+last_verified: 2026-10-11
+feature_status: Live
 source_of_truth:
+  - packages/shared/src/ontology/green-goods-ontology.json
+  - docs/src/data/integration-projections.json
   - packages/contracts/src/modules/Gardens.sol
-  - packages/contracts/src/interfaces/IGardensModule.sol
-  - packages/shared/src/config/gardens-subgraph.ts
-  - packages/shared/src/utils/blockchain/abis/conviction.ts
+  - packages/shared/src/modules/data/gardens.ts
+  - packages/shared/src/hooks/conviction
+  - packages/contracts/src/tokens/Garden.sol
+  - packages/contracts/src/lib/GardenHooks.sol
+keywords:
+  - gardens
+  - conviction voting
+  - signal pools
 ---
 
-import {NextBestAction, StatusBadge} from "@site/src/components/docs";
+import {IntegrationProjection} from "@site/src/components/docs";
 
-# Gardens Conviction Voting
+# Gardens
 
-<StatusBadge status="Implemented (activation pending indexing)" />
+The Gardens module connects a Green Goods garden to
+[Gardens](https://gardens.fund), the conviction-voting platform for community governance. Through
+it, a garden's community can participate in signal pools: expressing sustained preference over
+where support should flow, rather than one-off votes.
 
-## Overview
-Gardens V2 and conviction-voting support exists in contract interfaces/modules, shared ABI utilities, and configuration helpers. Arbitrum and Sepolia artifacts have non-zero Gardens module addresses; Celo does not. Treat governance event history as indexing-gated until `GardensModule` events are configured.
+## How it flows
 
-## Builder notes
+When a garden is minted, the module tries to create its Gardens community and the signal pools
+where members signal support over time. That setup is best-effort, so a garden can exist with
+neither, or with a community and no pools:
 
-- Keep Gardens V2 reads behind shared config/utilities.
-- Avoid claiming a live governance flow unless the admin/client surface and deployment artifacts prove it for the target chain.
-- Keep signal-pool docs tied to the actual active route or module before publishing end-user guidance.
+- Community creation can fail and leave the garden without one, and pool creation can fail on its
+  own. The module emits `GardenPartiallyInitialized` in both cases.
+- A module call that reverts outright is caught by the mint, so the garden still mints.
 
-<NextBestAction
-  title="Next best action"
-  why="Deployment status separates implemented code from active chain surfaces."
-  actionLabel="Deployment status"
-  actionHref="../deployments/status"
-  alternatives={[
-    {label: "Integrations overview", href: "./overview"},
-  ]}
-/>
+Read the result before relying on it: `getGardenCommunity` returns the zero address and
+`getGardenSignalPools` an empty list for a garden that has none. A steward of the garden or the
+protocol owner can create missing pools with `createGardenPools`; retrying the community
+(`retryCreateCommunity`) is the protocol owner's.
+
+```mermaid
+flowchart LR
+  garden["Garden minted"] -->|Gardens module, best-effort| community["Gardens community"]
+  community -->|best-effort| pools["Signal pools"]
+  members([Community members]) -->|signal support over time| pools
+```
+
+## Where it lives in the code
+
+| Layer | Source |
+|---|---|
+| Module | `packages/contracts/src/modules/Gardens.sol` |
+| Mint-time call | `packages/contracts/src/tokens/Garden.sol`, through `notifyGardens` in `packages/contracts/src/lib/GardenHooks.sol`, which skips a missing module and catches a failed call |
+| Data access | `packages/shared/src/modules/data/gardens.ts` |
+| Conviction hooks | `packages/shared/src/hooks/conviction` |
+
+<IntegrationProjection id="gardens" />
+
+## Working with it locally
+
+The [fork mode](../getting-started#other-modes) (`bun run dev -- fork`) runs a local fork of
+Arbitrum One, so recorded module state is available locally; live signal-pool behavior on the
+Gardens platform itself needs the real chain.
+
+## Canonical upstream docs
+
+- [gardens.fund](https://gardens.fund) for the platform and its conviction-voting model.
+- [Gardens documentation](https://docs.gardens.fund) for the concepts and mechanics.
+- [gardens-v2 on GitHub](https://github.com/1Hive/gardens-v2) for the governance contracts
+  themselves.
+- [app.gardens.fund](https://app.gardens.fund) to see live communities and their pools.
+
+
+## Next steps
+
+- [Hats Protocol](/builders/integrations/hats) covers the roles a garden's community members wear.
+- [Octant](/builders/integrations/octant) covers the other side of a garden's funding: its vault.
+- [Architecture](/builders/architecture) shows where the per-chain modules fit in the system.

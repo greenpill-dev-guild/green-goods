@@ -8,9 +8,12 @@
  * - `?garden=` stale resolution renders a non-blocking message.
  * - The Garden section exposes the public Manage Endowments panel text button.
  *
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
+import en from "@green-goods/shared/i18n/en.json";
+import es from "@green-goods/shared/i18n/es.json";
+import pt from "@green-goods/shared/i18n/pt.json";
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement, Fragment, type ReactNode } from "react";
@@ -28,10 +31,10 @@ const mockGardens = [
     description: "A solar-powered community garden",
     location: "Austin, TX",
     bannerImage: "https://example.com/banner.jpg",
-    contributorCount: 2,
+    gardenerCount: 2,
     actionCount: 1,
     lastActivityAt: 1700000000,
-    operators: [],
+    stewards: [],
     evaluators: [],
   },
   {
@@ -42,10 +45,10 @@ const mockGardens = [
     description: "Turning waste into soil",
     location: "Portland, OR",
     bannerImage: "",
-    contributorCount: 1,
+    gardenerCount: 1,
     actionCount: 0,
     lastActivityAt: 1690000000,
-    operators: [],
+    stewards: [],
     evaluators: [],
   },
 ];
@@ -54,19 +57,25 @@ const {
   mockUseInViewReveal,
   mockUsePublicGardens,
   mockUsePublicVaultSummary,
-  mockOpenWalletModal,
   mockPrimaryAddress,
   mockLastEndowmentExitComplete,
 } = vi.hoisted(() => ({
   mockUseInViewReveal: vi.fn(),
   mockUsePublicGardens: vi.fn(),
   mockUsePublicVaultSummary: vi.fn(),
-  mockOpenWalletModal: vi.fn(),
   mockPrimaryAddress: { current: null as Address | null },
   mockLastEndowmentExitComplete: { current: null as (() => void) | null },
 }));
 
-vi.mock("@green-goods/shared", () => {
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
+  cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/utils/blockchain/aave", () => ({
+  formatApy: (value: number) => `${value.toFixed(2)}%`,
+}));
+
+vi.mock("@green-goods/shared/utils/blockchain/vaults", () => {
   const formatMockTokenAmount = (value: bigint, decimals = 18, maximumFractionDigits = 4) => {
     const scale = 10n ** BigInt(decimals);
     const whole = value / scale;
@@ -76,45 +85,59 @@ vi.mock("@green-goods/shared", () => {
       maximumFractionDigits,
     }).format(normalized);
   };
-
   return {
-    cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
-    formatApy: (value: number) => `${value.toFixed(2)}%`,
-    formatRelativeTime: () => "recently",
     formatTokenAmount: formatMockTokenAmount,
-    ImageWithFallback: ({
-      alt = "",
-      className,
-      backgroundFallback,
-      src,
-    }: {
-      alt?: string;
-      className?: string;
-      backgroundFallback?: ReactNode;
-      src?: string;
-    }) =>
-      src ? (
-        <img alt={alt} className={className} src={src} />
-      ) : backgroundFallback ? (
-        <>{backgroundFallback}</>
-      ) : (
-        <div aria-hidden="true" className={className} />
-      ),
-    publicGardenHelpers: {
-      deriveSlug: (name: string, id: string) =>
-        name
-          .trim()
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-|-$/g, "") || id.toLowerCase(),
-    },
-    useAppKit: () => ({ open: mockOpenWalletModal }),
-    useInViewReveal: (...args: unknown[]) => mockUseInViewReveal(...args),
-    usePublicGardens: (...args: unknown[]) => mockUsePublicGardens(...args),
-    usePublicVaultSummary: (...args: unknown[]) => mockUsePublicVaultSummary(...args),
-    useUser: () => ({ primaryAddress: mockPrimaryAddress.current }),
   };
 });
+
+vi.mock("@green-goods/shared/components/Display/ImageWithFallback", () => ({
+  ImageWithFallback: ({
+    alt = "",
+    className,
+    backgroundFallback,
+    src,
+  }: {
+    alt?: string;
+    className?: string;
+    backgroundFallback?: ReactNode;
+    src?: string;
+  }) =>
+    src ? (
+      <img alt={alt} className={className} src={src} />
+    ) : backgroundFallback ? (
+      <>{backgroundFallback}</>
+    ) : (
+      <div aria-hidden="true" className={className} />
+    ),
+}));
+
+vi.mock("@green-goods/shared/hooks/public/usePublicGardens", () => ({
+  publicGardenHelpers: {
+    deriveSlug: (name: string, id: string) =>
+      name
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "") || id.toLowerCase(),
+  },
+  usePublicGardens: (...args: unknown[]) => mockUsePublicGardens(...args),
+}));
+
+vi.mock("@green-goods/shared/hooks/ui/useInViewReveal", () => ({
+  useInViewReveal: (...args: unknown[]) => mockUseInViewReveal(...args),
+}));
+
+vi.mock("@green-goods/shared/hooks/public/usePublicVaultSummary", () => ({
+  usePublicVaultSummary: (...args: unknown[]) => mockUsePublicVaultSummary(...args),
+}));
+
+vi.mock("@green-goods/shared/hooks/public/usePublicVaultCatalogSummary", () => ({
+  usePublicVaultCatalogSummary: (...args: unknown[]) => mockUsePublicVaultSummary(...args),
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
+  useUser: () => ({ primaryAddress: mockPrimaryAddress.current }),
+}));
 
 vi.mock("@/components/Public/PublicFundingCard", () => ({
   PublicFundingCard: ({
@@ -154,7 +177,7 @@ vi.mock("@/components/Public/PublicEndowmentPanel", () => ({
     return open ? (
       <div role="dialog" aria-label="Your Endowments" data-testid="public-endowment-panel">
         <button type="button" onClick={() => onOpenChange(false)}>
-          Close endowments
+          Close Endowments
         </button>
       </div>
     ) : null;
@@ -169,7 +192,7 @@ import FundPage from "../../views/Public/Fund";
 
 const messages: Record<string, string> = {
   "public.fund.title": "Fund",
-  "public.fund.heroTitle": "A small gesture today, growing over many seasons.",
+  "public.fund.heroTitle": "A small gesture today, growing over many seasons",
   "public.fund.heroLede": "Endow a Garden Vault so yield can support the Garden over many seasons.",
   "public.fund.dialog.donate.title": "Donate",
   "public.fund.dialog.endow.title": "Endow",
@@ -191,7 +214,12 @@ function LocationSearchProbe() {
 
 function renderView(
   initialEntries: string[] = ["/fund"],
-  options: { initialIndex?: number; extra?: ReactNode } = {}
+  options: {
+    initialIndex?: number;
+    extra?: ReactNode;
+    locale?: string;
+    catalog?: Record<string, string>;
+  } = {}
 ) {
   return render(
     createElement(
@@ -199,12 +227,40 @@ function renderView(
       { initialEntries, initialIndex: options.initialIndex },
       createElement(
         IntlProvider,
-        { locale: "en", messages },
+        { locale: options.locale ?? "en", messages: options.catalog ?? messages },
         createElement(Fragment, null, options.extra, createElement(FundPage))
       )
     )
   );
 }
+
+/**
+ * What the mock Garden rows say in each language: place and members on the first
+ * line, then approved submissions and the latest one's date (formatted per locale).
+ */
+const rowCopy: Array<[string, Record<string, string>, string[], string[], string]> = [
+  [
+    "en",
+    en,
+    ["Austin, TX", "2 members", "1 approved submission"],
+    ["Portland, OR", "1 member", "0 approved submissions"],
+    "Latest",
+  ],
+  [
+    "es",
+    es,
+    ["Austin, TX", "2 miembros", "1 trabajo aprobado"],
+    ["Portland, OR", "1 miembro", "0 trabajos aprobados"],
+    "Último trabajo:",
+  ],
+  [
+    "pt",
+    pt,
+    ["Austin, TX", "2 membros", "1 trabalho aprovado"],
+    ["Portland, OR", "1 membro", "0 trabalhos aprovados"],
+    "Último trabalho:",
+  ],
+];
 
 describe("FundPage", () => {
   beforeEach(() => {
@@ -318,6 +374,24 @@ describe("FundPage", () => {
     expect(screen.queryByRole("button", { name: "Support" })).toBeNull();
   });
 
+  it.each(
+    rowCopy
+  )("counts and dates Garden rows in %s", (locale, catalog, solar, composting, latest) => {
+    renderView(["/fund"], { locale, catalog });
+
+    const date = new Intl.DateTimeFormat(locale, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    }).format(mockGardens[0].lastActivityAt * 1000);
+    const solarRow = screen.getByRole("group", { name: /Solar Community Garden/ });
+    for (const label of [...solar, `${latest} ${date}`]) {
+      expect(within(solarRow).getByText(label)).toBeVisible();
+    }
+    const compostingRow = screen.getByRole("group", { name: /Urban Composting Hub/ });
+    for (const label of composting) expect(within(compostingRow).getByText(label)).toBeVisible();
+  });
+
   it("explains Donate and Endow once in Ways to support, with Donate leading", () => {
     renderView();
 
@@ -330,7 +404,7 @@ describe("FundPage", () => {
     expect(screen.getAllByText(/Garden's shared fund/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Garden's Vault endowment/i).length).toBeGreaterThan(0);
 
-    // The rows keep bare CTAs — the two paths are explained once in § 02,
+    // The rows keep bare CTAs — the two paths are explained once in § 01,
     // not restated as helper captions under every card.
     expect(screen.queryByText("Shared fund support")).toBeNull();
     expect(screen.queryByText("Garden Vault endowment")).toBeNull();
@@ -376,7 +450,7 @@ describe("FundPage", () => {
   it("places Manage Endowments as a text button in the Garden selection section", () => {
     renderView();
     const gardenSection = screen
-      .getByRole("heading", { name: /Gardens accepting support/i })
+      .getByRole("heading", { name: /Find a Garden to support/i })
       .closest("section");
 
     expect(gardenSection).not.toBeNull();
@@ -396,7 +470,7 @@ describe("FundPage", () => {
 
     await user.click(screen.getByRole("button", { name: "Manage Endowments" }));
 
-    expect(screen.getByTestId("public-endowment-panel")).toBeInTheDocument();
+    expect(await screen.findByTestId("public-endowment-panel")).toBeInTheDocument();
   });
 
   it("keeps Garden selection cards in a max two-column equal-row grid", () => {
@@ -415,13 +489,6 @@ describe("FundPage", () => {
     expect(gardenCard).toHaveClass("min-w-0");
     expect(gardenCard.parentElement).toHaveClass("h-full");
     expect(gardenCard.parentElement).toHaveClass("min-w-0");
-
-    const vaultMetrics = within(gardenCard)
-      .getByText(/2,005 DAI/)
-      .closest("p");
-    expect(vaultMetrics).toHaveClass("min-w-0");
-    expect(vaultMetrics).toHaveClass("max-w-full");
-    expect(vaultMetrics?.className).toContain("[overflow-wrap:anywhere]");
   });
 
   it("keeps compact Garden media rectangular with fitted fallback initials", () => {
@@ -461,7 +528,7 @@ describe("FundPage", () => {
 
     expect(screen.getByTestId("location-search")).toHaveTextContent("?manage=endowments");
 
-    await user.click(screen.getByRole("button", { name: "Close endowments" }));
+    await user.click(screen.getByRole("button", { name: "Close Endowments" }));
 
     expect(screen.queryByTestId("public-endowment-panel")).toBeNull();
     expect(screen.getByTestId("location-search")).toHaveTextContent("?manage=endowments");
@@ -491,19 +558,22 @@ describe("FundPage", () => {
     });
   });
 
-  it("renders the standalone vault section between the hero and the support paths", () => {
-    renderView();
+  // Oct 7 put the list first and folded the endowment totals into a toggle at the foot;
+  // the QA review (2026-10-12/13) restored the earlier order with every figure open.
+  it("opens with the endowment totals, then the ways to support, then the Gardens, with nothing behind a toggle", () => {
+    const { container } = renderView();
 
     const hero = screen.getByRole("heading", { level: 1 });
+    const paths = screen.getByRole("heading", { name: /Choose how your support helps/i });
+    const gardens = screen.getByRole("heading", { name: /Find a Garden to support/i });
     const vaults = screen.getByRole("heading", {
       name: /Endowment capital already supporting Gardens/i,
     });
-    const paths = screen.getByRole("heading", { name: /Donate now, or Endow for many seasons/i });
-    const gardens = screen.getByRole("heading", { name: /Gardens accepting support/i });
 
     expect(hero.compareDocumentPosition(vaults) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(vaults.compareDocumentPosition(paths) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(paths.compareDocumentPosition(gardens) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(container.querySelector("details")).toBeNull();
     expect(screen.getByText("§ 01: Endowment engine")).toBeInTheDocument();
     expect(screen.getByText("§ 02: Ways to support")).toBeInTheDocument();
     expect(screen.getByText("§ 03: Choose a Garden")).toBeInTheDocument();
@@ -555,7 +625,7 @@ describe("FundPage", () => {
     const defaultSummary = mockUsePublicVaultSummary();
     mockUsePublicVaultSummary.mockReturnValue({
       ...defaultSummary,
-      assets: defaultSummary.assets.map((asset) =>
+      assets: defaultSummary.assets.map((asset: (typeof defaultSummary.assets)[number]) =>
         asset.symbol === "DAI" ? { ...asset, accruingYield: undefined } : asset
       ),
     });
@@ -574,8 +644,39 @@ describe("FundPage", () => {
     const gardenCard = screen.getByRole("group", {
       name: "Solar Community Garden funding options",
     });
-    expect(gardenCard).toHaveTextContent("2,005 DAI · 1.25 ETH");
-    expect(gardenCard).toHaveTextContent("Yield accrued 25 DAI / 0.15 ETH");
+    const endowment = within(gardenCard).getByText("Endowment").parentElement as HTMLElement;
+    for (const figure of ["2,005 DAI", "1.25 ETH", "Yield accrued 25 DAI / 0.15 ETH"]) {
+      expect(within(endowment).getByText(figure)).toBeVisible();
+    }
+  });
+
+  // Most Gardens' Vaults hold nothing yet; a row of zeros read as noise once the line was visible.
+  it("says None yet for a Garden whose Vaults hold nothing, instead of listing zeros", () => {
+    // The summary beforeEach set up, with the first Garden's Vaults emptied.
+    const summary = mockUsePublicVaultSummary();
+    const emptyAssets = summary.assets.map((asset: Record<string, unknown>) => ({
+      ...asset,
+      currentValue: 0n,
+      accruedYield: 0n,
+    }));
+    mockUsePublicVaultSummary.mockReturnValue({
+      ...summary,
+      gardensByAddress: {
+        "0x1111111111111111111111111111111111111111": {
+          garden: "0x1111111111111111111111111111111111111111",
+          hasVaults: true,
+          assets: emptyAssets,
+        },
+      },
+    });
+    renderView();
+
+    const gardenCard = screen.getByRole("group", {
+      name: "Solar Community Garden funding options",
+    });
+    const endowment = within(gardenCard).getByText("Endowment").parentElement as HTMLElement;
+    expect(within(endowment).getByText("None yet")).toBeVisible();
+    expect(endowment).not.toHaveTextContent(/\b0 (DAI|ETH)\b|Yield accrued/);
   });
 
   it("keeps DAI and ETH endowment cards visible (empty state) when no indexed vaults exist", () => {
@@ -601,9 +702,52 @@ describe("FundPage", () => {
     expect(screen.getByText("ETH endowment balance")).toBeInTheDocument();
     // The cards explain the absence of live figures rather than rendering blank.
     expect(screen.getAllByText(/No endowment activity on this network yet/i)).toHaveLength(2);
+    // A Garden without Vaults has no endowment to report, so its row leaves the line out.
+    const gardenCard = screen.getByRole("group", {
+      name: "Solar Community Garden funding options",
+    });
+    expect(within(gardenCard).queryByText("Endowment")).toBeNull();
   });
 
-  it("keeps the asset cards visible with an error message when the metrics fetch fails", () => {
+  it("uses editorial skeletons while endowment metrics load", () => {
+    mockUsePublicVaultSummary.mockReturnValue({
+      hasVaults: false,
+      isLoading: true,
+      isError: false,
+      isYieldLoading: true,
+      isYieldError: false,
+      isAllocationLoading: true,
+      isAllocationError: false,
+      gardensByAddress: {},
+      assets: [],
+    });
+
+    const { container } = renderView();
+
+    expect(container.querySelectorAll("[data-editorial-skeleton]").length).toBeGreaterThanOrEqual(
+      2
+    );
+    expect(container.querySelector(".animate-pulse")).toBeNull();
+    const cards = container.querySelectorAll("[data-editorial-skeleton-layout='vault-asset']");
+    expect(cards).toHaveLength(2);
+    for (const card of cards) {
+      expect(card.querySelectorAll("dl > div")).toHaveLength(5);
+    }
+  });
+
+  it("reserves both Donate and Endow actions while funding destinations load", () => {
+    mockUsePublicGardens.mockReturnValue({ data: [], isLoading: true });
+    const { container } = renderView();
+
+    const rows = container.querySelectorAll("[data-editorial-skeleton-layout='list-row']");
+    expect(rows).toHaveLength(4);
+    for (const row of rows) {
+      expect(row.querySelectorAll("[data-skeleton-action]")).toHaveLength(2);
+    }
+    expect(screen.queryByRole("button", { name: "Donate" })).toBeNull();
+  });
+
+  it("says the endowment is unavailable, in the cards and on each row, when the metrics fetch fails", () => {
     mockUsePublicVaultSummary.mockReturnValue({
       hasVaults: false,
       isLoading: false,
@@ -621,5 +765,11 @@ describe("FundPage", () => {
     expect(screen.getByText("DAI endowment balance")).toBeInTheDocument();
     expect(screen.getByText("ETH endowment balance")).toBeInTheDocument();
     expect(screen.getAllByText(/couldn't load these endowment metrics/i)).toHaveLength(2);
+    // A failed read must not look like a Garden without Vaults: the row says so.
+    const gardenCard = screen.getByRole("group", {
+      name: "Solar Community Garden funding options",
+    });
+    const endowment = within(gardenCard).getByText("Endowment").parentElement as HTMLElement;
+    expect(within(endowment).getByText("Not available right now")).toBeVisible();
   });
 });

@@ -1,17 +1,15 @@
-import {
-  type Address,
-  type AllowlistEntry,
-  adminRoutes,
-  cn,
-  type GardenAssessment,
-  getSDGLabel,
-  type HypercertMetadata,
-  ImageWithFallback,
-  type MintingState,
-} from "@green-goods/shared";
+import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageWithFallback";
+import { getSDGLabel } from "@green-goods/shared/config/sdg";
+import type { MintingState } from "@green-goods/shared/stores/useHypercertWizardStore";
+import type { Address, GardenAssessment } from "@green-goods/shared/types/domain";
+import type { EASGardenAssessment } from "@green-goods/shared/types/eas-responses";
+import type { AllowlistEntry, HypercertMetadata } from "@green-goods/shared/types/hypercerts";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiFileTextLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
+import { AdminButton } from "@/components/AdminButton";
 import { EnsAddressWithCopy } from "@/components/EnsAddressText";
 import { DistributionChart } from "../DistributionChart";
 
@@ -25,7 +23,7 @@ interface HypercertPreviewProps {
   mintingState?: MintingState;
   chainId?: number;
   /** Assessment linked to this hypercert (for summary display) */
-  selectedAssessment?: GardenAssessment | null;
+  selectedAssessment?: GardenAssessment | EASGardenAssessment | null;
   /** Called when user clicks "Edit" to navigate back to metadata step */
   onEditMetadata?: () => void;
   /** Called when user clicks "Edit" to navigate back to distribution step */
@@ -39,13 +37,9 @@ function SectionHeader({ labelId, onEdit }: { labelId: string; onEdit?: () => vo
     <div className="flex items-center justify-between">
       <p className="label-xs text-text-soft">{formatMessage({ id: labelId })}</p>
       {onEdit && (
-        <button
-          type="button"
-          onClick={onEdit}
-          className="text-xs text-primary-base hover:underline"
-        >
+        <AdminButton type="button" variant="text" size="sm" onClick={onEdit}>
           {formatMessage({ id: "app.hypercerts.preview.edit" })}
-        </button>
+        </AdminButton>
       )}
     </div>
   );
@@ -66,8 +60,8 @@ export function HypercertPreview({
 }: HypercertPreviewProps) {
   const { formatMessage } = useIntl();
 
-  // Minting progress is now shown in a dialog overlay (MintingDialog)
-  // rather than replacing this preview component
+  // The Review's status row above says how the mint is going; the preview
+  // holds still and waits while it works.
   const isMinting =
     mintingState &&
     mintingState.status !== "idle" &&
@@ -76,7 +70,7 @@ export function HypercertPreview({
 
   if (!metadata) {
     return (
-      <div className="surface-inset flex min-h-40 items-center justify-center p-6 text-sm text-text-sub">
+      <div className="surface-inset flex min-h-40 items-center justify-center p-6 body-sm text-text-sub">
         {formatMessage({ id: "app.hypercerts.preview.empty" })}
       </div>
     );
@@ -84,6 +78,17 @@ export function HypercertPreview({
 
   const workTimeframe = metadata.hypercert.work_timeframe.display_value ?? "";
   const impactTimeframe = metadata.hypercert.impact_timeframe.display_value ?? "";
+  const assessmentDescription = selectedAssessment
+    ? "diagnosis" in selectedAssessment
+      ? selectedAssessment.diagnosis
+      : selectedAssessment.description
+    : "";
+  const assessmentSdgTargets =
+    selectedAssessment && "sdgTargets" in selectedAssessment ? selectedAssessment.sdgTargets : [];
+  const assessmentSmartOutcomes =
+    selectedAssessment && "smartOutcomes" in selectedAssessment
+      ? selectedAssessment.smartOutcomes
+      : [];
 
   return (
     <div className={cn("space-y-6", isMinting && "pointer-events-none opacity-60")}>
@@ -105,9 +110,9 @@ export function HypercertPreview({
             />
           </div>
           <div className="space-y-2 p-4">
-            <h3 className="text-base font-semibold text-text-strong">{metadata.name}</h3>
-            <p className="text-sm text-text-sub">{metadata.description}</p>
-            <div className="text-xs text-text-sub">
+            <h3 className="text-title-md font-semibold text-text-strong">{metadata.name}</h3>
+            <p className="body-sm text-text-sub">{metadata.description}</p>
+            <div className="body-xs text-text-sub">
               {formatMessage(
                 { id: "app.hypercerts.preview.attestationCount" },
                 { count: attestationCount }
@@ -121,17 +126,17 @@ export function HypercertPreview({
             <p className="label-xs text-text-soft">
               {formatMessage({ id: "app.hypercerts.preview.garden" })}
             </p>
-            <p className="text-sm font-medium text-text-strong">{gardenName}</p>
+            <p className="body-sm font-medium text-text-strong">{gardenName}</p>
           </div>
           <div>
             <SectionHeader labelId="app.hypercerts.preview.workScope" onEdit={onEditMetadata} />
-            <p className="text-sm text-text-strong">
+            <p className="body-sm text-text-strong">
               {metadata.hypercert.work_scope.value.join(", ")}
             </p>
           </div>
           <div>
             <SectionHeader labelId="app.hypercerts.preview.impactScope" onEdit={onEditMetadata} />
-            <p className="text-sm text-text-strong">
+            <p className="body-sm text-text-strong">
               {metadata.hypercert.impact_scope.value.join(", ")}
             </p>
           </div>
@@ -140,13 +145,13 @@ export function HypercertPreview({
               <p className="label-xs text-text-soft">
                 {formatMessage({ id: "app.hypercerts.preview.workTimeframe" })}
               </p>
-              <p className="text-sm text-text-strong">{workTimeframe}</p>
+              <p className="body-sm text-text-strong">{workTimeframe}</p>
             </div>
             <div>
               <p className="label-xs text-text-soft">
                 {formatMessage({ id: "app.hypercerts.preview.impactTimeframe" })}
               </p>
-              <p className={cn("text-sm text-text-strong", !impactTimeframe && "text-text-sub")}>
+              <p className={cn("body-sm text-text-strong", !impactTimeframe && "text-text-sub")}>
                 {impactTimeframe || formatMessage({ id: "app.hypercerts.preview.indefinite" })}
               </p>
             </div>
@@ -155,7 +160,7 @@ export function HypercertPreview({
             <p className="label-xs text-text-soft">
               {formatMessage({ id: "app.hypercerts.preview.totalUnits" })}
             </p>
-            <p className="text-sm text-text-strong">{totalUnits.toLocaleString()}</p>
+            <p className="body-sm text-text-strong">{totalUnits.toLocaleString()}</p>
           </div>
         </div>
       </div>
@@ -175,7 +180,7 @@ export function HypercertPreview({
 
             {/* Allowlist Table */}
             <div className="overflow-x-auto">
-              <div className="grid min-w-[300px] gap-2 border-b border-stroke-soft bg-bg-weak px-3 py-2 text-xs font-medium text-text-sub grid-cols-[minmax(100px,2fr)_minmax(70px,1fr)_minmax(50px,1fr)]">
+              <div className="grid min-w-[300px] gap-2 border-b border-stroke-soft bg-bg-weak px-3 py-2 label-xs text-text-sub grid-cols-[minmax(100px,2fr)_minmax(70px,1fr)_minmax(50px,1fr)]">
                 <span>{formatMessage({ id: "app.hypercerts.distribution.table.recipient" })}</span>
                 <span>{formatMessage({ id: "app.hypercerts.distribution.table.units" })}</span>
                 <span>{formatMessage({ id: "app.hypercerts.distribution.table.percent" })}</span>
@@ -187,14 +192,14 @@ export function HypercertPreview({
                   return (
                     <div
                       key={`${entry.address}-${index}`}
-                      className="grid min-w-[300px] items-center gap-2 px-3 py-2 text-sm grid-cols-[minmax(100px,2fr)_minmax(70px,1fr)_minmax(50px,1fr)]"
+                      className="grid min-w-[300px] items-center gap-2 px-3 py-2 body-sm grid-cols-[minmax(100px,2fr)_minmax(70px,1fr)_minmax(50px,1fr)]"
                     >
                       <div>
-                        <EnsAddressWithCopy address={entry.address} labelClassName="text-xs" />
-                        {entry.label && <p className="text-xs text-text-sub">{entry.label}</p>}
+                        <EnsAddressWithCopy address={entry.address} labelClassName="body-xs" />
+                        {entry.label && <p className="body-xs text-text-sub">{entry.label}</p>}
                       </div>
-                      <span className="text-xs">{entry.units.toLocaleString()}</span>
-                      <span className="text-xs text-text-sub">{percent.toFixed(2)}%</span>
+                      <span className="body-xs">{entry.units.toLocaleString()}</span>
+                      <span className="body-xs text-text-sub">{percent.toFixed(2)}%</span>
                     </div>
                   );
                 })}
@@ -213,13 +218,11 @@ export function HypercertPreview({
               <p className="label-xs text-text-soft">
                 {formatMessage({ id: "app.hypercerts.preview.assessment" })}
               </p>
-              <p className="mt-1 text-sm font-medium text-text-strong">
+              <p className="mt-1 body-sm font-medium text-text-strong">
                 {selectedAssessment.title}
               </p>
-              {selectedAssessment.diagnosis && (
-                <p className="mt-0.5 text-xs text-text-sub line-clamp-2">
-                  {selectedAssessment.diagnosis}
-                </p>
+              {assessmentDescription && (
+                <p className="mt-0.5 body-xs text-text-sub line-clamp-2">{assessmentDescription}</p>
               )}
               {gardenId && (
                 <Link
@@ -227,7 +230,7 @@ export function HypercertPreview({
                     gardenAddress: gardenId,
                     section: "assessments",
                   })}
-                  className="mt-1 inline-block text-xs text-primary-base hover:underline"
+                  className="mt-1 inline-block body-xs text-primary-base hover:underline"
                 >
                   {formatMessage({ id: "app.hypercerts.preview.assessment.viewAll" })}
                 </Link>
@@ -236,20 +239,20 @@ export function HypercertPreview({
           </div>
 
           {/* SDG Alignment */}
-          {selectedAssessment.sdgTargets.length > 0 && (
+          {assessmentSdgTargets.length > 0 && (
             <div>
               <p className="label-xs text-text-soft mb-2">
                 {formatMessage({ id: "app.hypercerts.preview.sdgAlignment" })}
               </p>
               <div className="flex flex-wrap gap-1.5">
-                {selectedAssessment.sdgTargets.map((sdgId) => {
+                {assessmentSdgTargets.map((sdgId) => {
                   const label = getSDGLabel(sdgId);
                   return (
                     <span
                       key={sdgId}
-                      className="inline-flex items-center gap-1 rounded-full border border-primary-light bg-primary-lighter/40 px-2 py-0.5 text-xs font-medium text-primary-dark"
+                      className="inline-flex items-center gap-1 rounded-full border border-primary-light bg-primary-lighter/40 px-2 py-0.5 label-xs text-primary-dark"
                     >
-                      <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-primary-base text-[9px] font-bold text-primary-foreground">
+                      <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-primary-base text-label-sm font-bold text-primary-foreground">
                         {sdgId}
                       </span>
                       {label}
@@ -261,16 +264,16 @@ export function HypercertPreview({
           )}
 
           {/* Verification Summary (SMART Outcomes) */}
-          {selectedAssessment.smartOutcomes.length > 0 && (
+          {assessmentSmartOutcomes.length > 0 && (
             <div>
               <p className="label-xs text-text-soft mb-2">
                 {formatMessage({ id: "app.hypercerts.preview.outcomes" })}
               </p>
               <div className="space-y-1.5">
-                {selectedAssessment.smartOutcomes.map((outcome, index) => (
+                {assessmentSmartOutcomes.map((outcome, index) => (
                   <div
                     key={`${outcome.metric}-${index}`}
-                    className="flex items-center justify-between rounded-md border border-stroke-soft bg-bg-weak px-3 py-1.5 text-xs"
+                    className="flex items-center justify-between rounded-md border border-stroke-soft bg-bg-weak px-3 py-1.5 body-xs"
                   >
                     <span className="text-text-sub">{outcome.description}</span>
                     <span className="font-medium text-text-strong">

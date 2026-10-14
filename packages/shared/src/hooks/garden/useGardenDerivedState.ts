@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import type { CookieJar } from "../../types/cookie-jar";
 import type { Address } from "../../types/domain";
 import { adminRoutes } from "../../utils/navigation/admin-routes";
 import {
@@ -7,14 +8,18 @@ import {
   getRoleLabel,
 } from "../../utils/blockchain/garden-roles";
 import { expandDomainMask } from "../../utils/domain";
-import { formatDate } from "../../utils/time";
-import { formatTokenAmount } from "../../utils/blockchain/vaults";
-import { stripGeneratedWorkTitleTimestamp } from "../../utils/work/workTitles";
+import { formatTokenAmount, getVaultAssetSymbol } from "../../utils/blockchain/vaults";
+import {
+  isJarClaimLimitLow,
+  JAR_LIMIT_ROUTE_ITEM_PREFIX,
+} from "../../utils/cookie-jar-claim-limit";
+import { toWorkDisplayTitle } from "../../utils/work/workTitles";
 import type {
   ActivityFilter,
   GardenActivityEvent,
   GardenDetailTab,
   GardenRange,
+  GardenReviewQueue,
   RoleDirectoryEntry,
   TabBadgeSeverity,
   TabBadgeState,
@@ -22,20 +27,33 @@ import type {
 import {
   aggregateBadges,
   DOMAIN_LABEL_IDS,
-  getMedian,
-  hoursSince,
   RANGE_TO_MS,
+  summarizeReviewQueue,
   toMs,
 } from "../../utils/garden-detail";
+
+interface OverviewAlert {
+  key: string;
+  severity: "warn" | "critical";
+  label: string;
+  description?: string;
+  onAction: () => void;
+}
 
 interface DerivedStateInput {
   garden: { id: string; domainMask?: number; name: string; chainId: number };
   works: Array<{
     id: string;
+    actionUID?: number;
     title?: string;
     status: string;
     createdAt: number;
+    reviewedAt?: number;
   }>;
+  /** False when `works` may miss a true status: only the newest page, or unread approvals. */
+  worksComplete?: boolean;
+  /** The garden's whole review queue, when `works` is only the newest page of current rows. */
+  gardenReviewQueue?: GardenReviewQueue;
   assessments: Array<{
     id: string;
     title?: string | null;
@@ -55,12 +73,16 @@ interface DerivedStateInput {
     juiceboxAmount: bigint;
   }>;
   gardenVaults: Array<unknown>;
-  vaultNetDeposited: bigint;
+  /** Whether any vault holds a net deposit, in any asset. */
+  hasEndowment: boolean;
+  /** The garden's cookie jars. Omit where the surface shows no alerts. */
+  cookieJars?: CookieJar[];
   roleMembers: Record<GardenRole, Address[]>;
   selectedRange: GardenRange;
   activityFilter: ActivityFilter;
   memberSearch: string;
   section: string | undefined;
+  canAccessCommunity?: boolean;
   formatMessage: (descriptor: { id: string }, values?: Record<string, any>) => string;
   openSection: (tab: GardenDetailTab, section: string, itemId?: string) => void;
 }
@@ -68,16 +90,20 @@ interface DerivedStateInput {
 export function useGardenDerivedState({
   garden,
   works,
+  worksComplete = true,
+  gardenReviewQueue,
   assessments,
   hypercerts,
   allocations,
   gardenVaults,
-  vaultNetDeposited,
+  hasEndowment,
+  cookieJars = [],
   roleMembers,
   selectedRange,
   activityFilter,
   memberSearch,
   section,
+  canAccessCommunity = true,
   formatMessage,
   openSection,
 }: DerivedStateInput) {
@@ -86,17 +112,13 @@ export function useGardenDerivedState({
   const previousRangeStart = rangeStart - RANGE_TO_MS[selectedRange];
 
   const pendingWorks = works.filter((work) => work.status === "pending");
-  const reviewedWorks = works
-    .filter((work) => work.status !== "pending")
-    .sort((a, b) => toMs(b.createdAt) - toMs(a.createdAt));
   const approvedWorks = works.filter((work) => work.status === "approved");
-
-  const pendingWarningCount = pendingWorks.filter(
-    (work) => hoursSince(work.createdAt) >= 24
-  ).length;
-  const pendingCriticalCount = pendingWorks.filter(
-    (work) => hoursSince(work.createdAt) >= 72
-  ).length;
+  // Work age is metadata, not an alarm: the queue warns once work has waited a
+  // week, and turns critical only when review has stalled (DL-044).
+  const reviewQueue = summarizeReviewQueue(works, now, {
+    complete: worksComplete,
+    garden: gardenReviewQueue,
+  });
 
   const approvedInRangeCount = approvedWorks.filter(
     (work) => toMs(work.createdAt) >= rangeStart
@@ -108,9 +130,6 @@ export function useGardenDerivedState({
 
   const impactVelocityDelta = approvedInRangeCount - approvedInPreviousRangeCount;
 
-  const reviewAges = reviewedWorks.map((work) => hoursSince(work.createdAt));
-  const medianReviewAgeHours = getMedian(reviewAges);
-
   const approvedInLastThirtyDays = approvedWorks.filter(
     (work) => toMs(work.createdAt) >= now - RANGE_TO_MS["30d"]
   ).length;
@@ -119,23 +138,26 @@ export function useGardenDerivedState({
   const hasVaults = gardenVaults.length > 0;
   const treasurySeverity: TabBadgeSeverity = !hasVaults
     ? "warn"
-    : vaultNetDeposited === 0n
+    : !hasEndowment
       ? "critical"
       : "none";
+  // The treasury's alert opens Community, so a viewer without Community access
+  // gets no alert. Its badge and health contributions go with it: a warning
+  // status must always have the alert that explains it.
+  const treasuryAttention: TabBadgeSeverity = canAccessCommunity ? treasurySeverity : "none";
 
-  const workBadge: TabBadgeState =
-    pendingCriticalCount > 0
-      ? { severity: "critical", count: pendingCriticalCount }
-      : pendingWarningCount > 0
-        ? { severity: "warn", count: pendingWarningCount }
-        : { severity: "none" };
+  const workBadge: TabBadgeState = reviewQueue.stalled
+    ? { severity: "critical", count: reviewQueue.pendingCount }
+    : reviewQueue.waitingOverWeekCount > 0
+      ? { severity: "warn", count: reviewQueue.waitingOverWeekCount }
+      : { severity: "none" };
 
   const impactBadge: TabBadgeState = isImpactStale
     ? { severity: "warn", count: 1 }
     : { severity: "none" };
 
   const communityBadge: TabBadgeState =
-    treasurySeverity === "none" ? { severity: "none" } : { severity: treasurySeverity, count: 1 };
+    treasuryAttention === "none" ? { severity: "none" } : { severity: treasuryAttention, count: 1 };
 
   const hasNoDomains = garden.domainMask === 0;
   const domainBadge: TabBadgeState = hasNoDomains
@@ -159,10 +181,10 @@ export function useGardenDerivedState({
       : [];
 
   const gardenHealthSeverity: TabBadgeSeverity =
-    workBadge.severity === "critical" || treasurySeverity === "critical"
+    workBadge.severity === "critical" || treasuryAttention === "critical"
       ? "critical"
       : workBadge.severity === "warn" ||
-          treasurySeverity === "warn" ||
+          treasuryAttention === "warn" ||
           impactBadge.severity === "warn" ||
           hasNoDomains
         ? "warn"
@@ -175,24 +197,24 @@ export function useGardenDerivedState({
         ? formatMessage({ id: "app.garden.detail.health.status.attention" })
         : formatMessage({ id: "app.garden.detail.health.status.healthy" });
 
-  const overviewAlerts = [
-    pendingCriticalCount > 0
+  const alertCandidates: Array<OverviewAlert | null> = [
+    reviewQueue.stalled
       ? {
           key: "work-critical",
           severity: "critical" as const,
           label: formatMessage(
             { id: "app.garden.detail.alert.workCritical" },
-            { count: pendingCriticalCount }
+            { count: reviewQueue.pendingCount }
           ),
           onAction: () => openSection("work", "queue"),
         }
-      : pendingWarningCount > 0
+      : reviewQueue.waitingOverWeekCount > 0
         ? {
             key: "work-warning",
             severity: "warn" as const,
             label: formatMessage(
               { id: "app.garden.detail.alert.workWarning" },
-              { count: pendingWarningCount }
+              { count: reviewQueue.waitingOverWeekCount }
             ),
             onAction: () => openSection("work", "queue"),
           }
@@ -205,14 +227,14 @@ export function useGardenDerivedState({
           onAction: () => openSection("impact", "reporting"),
         }
       : null,
-    treasurySeverity === "critical"
+    treasuryAttention === "critical"
       ? {
           key: "treasury-critical",
           severity: "critical" as const,
           label: formatMessage({ id: "app.garden.detail.alert.treasuryEmpty" }),
           onAction: () => openSection("community", "endowment"),
         }
-      : treasurySeverity === "warn"
+      : treasuryAttention === "warn"
         ? {
             key: "treasury-warning",
             severity: "warn" as const,
@@ -228,35 +250,49 @@ export function useGardenDerivedState({
           onAction: () => openSection("overview", "health"),
         }
       : null,
-  ].filter(
-    (
-      entry
-    ): entry is {
-      key: string;
-      severity: "warn" | "critical";
-      label: string;
-      onAction: () => void;
-    } => entry !== null
-  );
+    // Computed from the jar itself, so it clears once the limit is raised: nothing to dismiss
+    // or store. Critical while the jar holds funds a gardener could be claiming a cent at a time.
+    ...cookieJars
+      .filter((jar) => canAccessCommunity && isJarClaimLimitLow(jar, garden.chainId || undefined))
+      .map((jar) => {
+        const asset = getVaultAssetSymbol(jar.assetAddress, garden.chainId || undefined);
+        const funded = jar.balance > 0n;
+        return {
+          key: `jar-limit-low-${jar.jarAddress.toLowerCase()}`,
+          severity: funded ? ("critical" as const) : ("warn" as const),
+          label: formatMessage(
+            { id: "app.garden.detail.alert.jarLimitLow" },
+            { asset, limit: formatTokenAmount(jar.maxWithdrawal, jar.decimals) }
+          ),
+          description: funded
+            ? formatMessage(
+                { id: "app.garden.detail.alert.jarLimitLowFunded" },
+                { asset, balance: formatTokenAmount(jar.balance, jar.decimals) }
+              )
+            : formatMessage({ id: "app.garden.detail.alert.jarLimitLowEmpty" }),
+          onAction: () =>
+            openSection("community", "payouts", `${JAR_LIMIT_ROUTE_ITEM_PREFIX}${jar.jarAddress}`),
+        };
+      }),
+  ];
+  const overviewAlerts = alertCandidates.filter((entry): entry is OverviewAlert => entry !== null);
 
   const gardenAddress = garden.id;
   const activityEvents: GardenActivityEvent[] = [
     ...works.map((work) => ({
       id: `work-${work.id}`,
       category: "work" as const,
-      title:
-        stripGeneratedWorkTitleTimestamp(work.title ?? "") ||
-        formatMessage({ id: "app.admin.work.untitledWork" }),
+      title: toWorkDisplayTitle(work.title, formatMessage({ id: "app.admin.work.untitledWork" })),
+      // Descriptions carry no date: each row shows its time once, beside the title.
       description: formatMessage(
         { id: "app.garden.detail.activity.workStatus" },
-        {
-          status: formatMessage({ id: `app.admin.work.filter.${work.status}` }),
-          date: formatDate(work.createdAt, { dateStyle: "medium" }),
-        }
+        { status: formatMessage({ id: `app.admin.work.filter.${work.status}` }) }
       ),
       timestamp: toMs(work.createdAt),
       href: adminRoutes.hubWorkDetail(work.id, { gardenId: gardenAddress }),
       itemId: work.id,
+      actionUID: work.actionUID,
+      hasGeneratedTitle: !toWorkDisplayTitle(work.title, ""),
     })),
     ...assessments.map((assessment) => ({
       id: `assessment-${assessment.id}`,
@@ -265,10 +301,7 @@ export function useGardenDerivedState({
         assessment.title ||
         assessment.assessmentType ||
         formatMessage({ id: "app.garden.admin.assessmentFallback" }),
-      description: formatMessage(
-        { id: "app.garden.detail.activity.assessmentCreated" },
-        { date: formatDate(assessment.createdAt, { dateStyle: "medium" }) }
-      ),
+      description: formatMessage({ id: "app.garden.detail.activity.assessmentCreated" }),
       timestamp: toMs(assessment.createdAt),
       href: adminRoutes.gardenImpact({
         gardenAddress,
@@ -281,14 +314,7 @@ export function useGardenDerivedState({
       id: `hypercert-${hypercert.id}`,
       category: "impact" as const,
       title: hypercert.title?.trim() || formatMessage({ id: "app.hypercerts.list.fallbackTitle" }),
-      description: formatMessage(
-        { id: "app.garden.detail.activity.hypercertMinted" },
-        {
-          date: hypercert.mintedAt
-            ? formatDate(hypercert.mintedAt * 1000, { dateStyle: "medium" })
-            : formatMessage({ id: "app.hypercerts.list.dateUnknown" }),
-        }
-      ),
+      description: formatMessage({ id: "app.garden.detail.activity.hypercertMinted" }),
       timestamp: hypercert.mintedAt ? toMs(hypercert.mintedAt) : 0,
       href: adminRoutes.gardenHypercertDetail(hypercert.id, { gardenId: gardenAddress }),
       itemId: hypercert.id,
@@ -306,7 +332,9 @@ export function useGardenDerivedState({
         }
       ),
       timestamp: toMs(allocation.timestamp),
-      href: adminRoutes.communityPayouts({ gardenId: gardenAddress, item: allocation.txHash }),
+      href: canAccessCommunity
+        ? adminRoutes.communityPayouts({ gardenId: gardenAddress, item: allocation.txHash })
+        : undefined,
       itemId: allocation.txHash,
     })),
   ].sort((a, b) => b.timestamp - a.timestamp);
@@ -322,18 +350,20 @@ export function useGardenDerivedState({
     firstMember: roleMembers[role][0],
   }));
 
+  // One entry per person, whatever the casing each role list uses (DL-049).
   const directoryEntries: RoleDirectoryEntry[] = useMemo(() => {
-    const map = new Map<Address, RoleDirectoryEntry>();
+    const map = new Map<string, RoleDirectoryEntry>();
 
     for (const role of GARDEN_ROLE_ORDER) {
       for (const memberAddress of roleMembers[role]) {
-        const existing = map.get(memberAddress);
+        const key = memberAddress.toLowerCase();
+        const existing = map.get(key);
         if (existing) {
           existing.roles.push(role);
           continue;
         }
 
-        map.set(memberAddress, { address: memberAddress, roles: [role] });
+        map.set(key, { address: memberAddress, roles: [role] });
       }
     }
 
@@ -362,13 +392,10 @@ export function useGardenDerivedState({
 
   return {
     pendingWorks,
-    reviewedWorks,
     approvedWorks,
-    pendingWarningCount,
-    pendingCriticalCount,
+    reviewQueue,
     approvedInRangeCount,
     impactVelocityDelta,
-    medianReviewAgeHours,
     approvedInLastThirtyDays,
     isImpactStale,
     hasVaults,
@@ -386,6 +413,8 @@ export function useGardenDerivedState({
     filteredActivityEvents,
     roleSummary,
     directoryEntries,
+    /** Distinct people across every role; a role seat is not a member (DL-049). */
+    memberCount: directoryEntries.length,
     filteredDirectory,
     visibleDirectory,
   };

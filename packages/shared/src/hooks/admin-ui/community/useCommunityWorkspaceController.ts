@@ -1,20 +1,19 @@
-import {
-  adminRoutes,
-  useAdminGardenWorkspaceSelection,
-  useCanvasSearchParams,
-  useGardenDerivedState,
-  useGardenDetailData,
-  useGardenStateStore,
-  useMediaQuery,
-  useSheetWidth,
-  useViewActions,
-} from "@green-goods/shared";
+import { GOVERNANCE_ENABLED } from "../../../config/app";
+import { useViewActions } from "../../../components/Canvas/useViewActions";
+import { useGardenStateStore } from "../../../stores/useGardenStateStore";
+import { adminRoutes } from "../../../utils/navigation/admin-routes";
+import { useAdminGardenWorkspaceSelection } from "../../garden/useAdminGardenWorkspaceSelection";
+import { useGardenDerivedState } from "../../garden/useGardenDerivedState";
+import { useGardenDetailData } from "../../garden/useGardenDetailData";
+import { useCanvasSearchParams } from "../../navigation/useCanvasSearchParams";
+import { useMediaQuery } from "../../ui/useMediaQuery";
+import { useSheetWidth } from "../../useSheetWidth";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
-  resolveAdminWorkspaceSectionRoute,
   type AdminWorkspaceSectionTab,
+  resolveAdminWorkspaceSectionRoute,
 } from "../navigation/workspaceNavigation";
 import {
   buildCommunityViewActions,
@@ -50,13 +49,19 @@ export function useCommunityWorkspaceController() {
     location.pathname.startsWith("/community/endowment/vault/withdraw") ||
     location.pathname.startsWith("/community/resources/vault/withdraw") ||
     location.pathname.startsWith("/community/treasury/vault/withdraw");
-  const vaultAction = isVaultDepositRoute ? "deposit" : isVaultWithdrawRoute ? "withdraw" : null;
+  const vaultAction: "deposit" | "withdraw" | null = isVaultDepositRoute
+    ? "deposit"
+    : isVaultWithdrawRoute
+      ? "withdraw"
+      : null;
   const isStrategiesRoute =
-    location.pathname.startsWith("/community/coordination/strategies") ||
-    location.pathname.startsWith("/community/governance/strategies");
+    GOVERNANCE_ENABLED &&
+    (location.pathname.startsWith("/community/coordination/strategies") ||
+      location.pathname.startsWith("/community/governance/strategies"));
   const isSignalPoolRoute =
-    location.pathname.startsWith("/community/coordination/signal-pool/") ||
-    location.pathname.startsWith("/community/governance/signal-pool/");
+    GOVERNANCE_ENABLED &&
+    (location.pathname.startsWith("/community/coordination/signal-pool/") ||
+      location.pathname.startsWith("/community/governance/signal-pool/"));
   const selectedItem = searchParams.get("item") ?? poolType ?? null;
   const sheetOpen = vaultAction !== null || isStrategiesRoute || isSignalPoolRoute;
 
@@ -101,23 +106,37 @@ export function useCommunityWorkspaceController() {
     isCreatingPools,
     gardenVaults,
     vaultsLoading,
-    vaultNetDeposited,
+    endowmentByAsset,
+    hasEndowment,
     allocations,
+    allocationsAtLimit,
     allocationsLoading,
+    hasNoPayoutJar,
     roleMembers,
     works,
+    worksComplete,
+    gardenReviewQueue,
     assessments,
     hypercerts,
     scheduleBackgroundRefetch,
   } = useGardenDetailData(selectedGarden?.id);
+  // Only a finished read can say the garden has no jar; until then, and after
+  // a failed read, the action stays live.
+  const hasPayoutJar = !hasNoPayoutJar;
 
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const viewActions = useMemo(
     () =>
-      buildCommunityViewActions(mode, canManage, isOwner, Boolean(selectedGarden), navigate, {
-        gardenAddress: selectedGardenAddress,
-      }),
-    [canManage, isOwner, mode, navigate, selectedGarden, selectedGardenAddress]
+      buildCommunityViewActions(
+        mode,
+        canManage,
+        isOwner,
+        Boolean(selectedGarden),
+        navigate,
+        { gardenAddress: selectedGardenAddress },
+        hasPayoutJar
+      ),
+    [canManage, hasPayoutJar, isOwner, mode, navigate, selectedGarden, selectedGardenAddress]
   );
   const { desktopActions } = useViewActions({
     actions: viewActions,
@@ -144,11 +163,13 @@ export function useCommunityWorkspaceController() {
   const derived = useGardenDerivedState({
     garden: garden ?? { id: selectedGarden?.id ?? "", domainMask: 0, name: "", chainId: 0 },
     works,
+    worksComplete,
+    gardenReviewQueue,
     assessments,
     hypercerts,
     allocations,
     gardenVaults,
-    vaultNetDeposited,
+    hasEndowment,
     roleMembers,
     selectedRange: "30d",
     activityFilter: "all",
@@ -211,6 +232,7 @@ export function useCommunityWorkspaceController() {
 
   return {
     allocations,
+    allocationsAtLimit,
     allocationsLoading,
     canManage,
     clearSection,
@@ -226,6 +248,7 @@ export function useCommunityWorkspaceController() {
     garden,
     gardenId,
     gardenOptions,
+    hasVaults: derived.hasVaults,
     handleModeChange,
     handleSelectGarden,
     hypercerts,
@@ -234,6 +257,7 @@ export function useCommunityWorkspaceController() {
     isSignalPoolRoute,
     isStrategiesRoute,
     vaultAction,
+    memberCount: derived.memberCount,
     memberSearch,
     mode,
     openMembersModal,
@@ -241,14 +265,18 @@ export function useCommunityWorkspaceController() {
     pools,
     poolType,
     roleMembers,
+    roleSummary: derived.roleSummary,
     scheduleBackgroundRefetch,
     section,
     selectedItem,
     selectedGarden,
     selectedGardenAddress,
     setMemberSearch,
-    vaultNetDeposited,
+    treasurySeverity: derived.treasurySeverity,
+    endowmentByAsset,
     vaultsLoading,
     visibleDirectory: derived.visibleDirectory,
   };
 }
+
+export type CommunityWorkspace = ReturnType<typeof useCommunityWorkspaceController>;

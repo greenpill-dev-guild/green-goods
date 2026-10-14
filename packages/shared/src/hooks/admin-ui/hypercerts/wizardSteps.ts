@@ -1,4 +1,4 @@
-import type { Step } from "@green-goods/shared";
+import type { Step } from "../../../components/Form/StepIndicator";
 import { useMemo } from "react";
 import type { IntlShape } from "react-intl";
 

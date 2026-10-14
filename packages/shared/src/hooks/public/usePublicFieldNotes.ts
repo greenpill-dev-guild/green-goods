@@ -5,19 +5,18 @@
  * Composes:
  *   - **Envio indexer** (`getGardens`): list of garden addresses for the chain,
  *     used as the recipient batch when no `gardenAddress` filter is supplied.
- *   - **EAS** (`getWorks`): the Work attestations that become public field
- *     notes.
+ *   - **EAS** (`getWorks`, then `readApprovedWorks`): the Work attestations
+ *     that become public field notes.
  *
  * No auth path — every approved on-chain `Work` attestation is treated as
- * public for v1.
+ * public for v1. Pending and rejected work is not.
  *
  * ### Indexer-scope gaps surfaced here
  *
  * - **No `public-readable` flag** on action submissions (Work attestations).
- *   v1 ships default-public; per the plan's open question, an opt-in flag at
- *   the action level may land later. When it does, the queryFn should add a
- *   `where` clause filtering on that flag — until then this hook surfaces all
- *   non-revoked Work attestations.
+ *   Approval is the only gate in v1; per the plan's open question, an opt-in
+ *   flag at the action level may land later. When it does, the queryFn should
+ *   add a `where` clause filtering on that flag.
  * - **No volume binding** at the indexer/EAS level. The `volume` option is
  *   accepted for forward-compat with the Seasons primitive but currently
  *   filters by the hardcoded Season One window from `usePublicVolume`.
@@ -29,11 +28,13 @@
 
 import { useQuery } from "@tanstack/react-query";
 
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
-import { queryKeys } from "../../config/query-keys";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
+import { isGardenPubliclyVisible } from "../../config/garden-visibility";
+import { publicKeys } from "../../config/query-keys/public";
 import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { getWorks } from "../../modules/data/eas";
 import { getGardens } from "../../modules/data/greengoods";
+import { readApprovedWorks } from "../../modules/work/work-list";
 import type { Address } from "../../types/domain";
 import type { EASWork } from "../../types/eas-responses";
 import type { PublicFieldNote } from "./usePublicGardenDetail";
@@ -57,6 +58,8 @@ export interface PublicFieldNotesPage {
   nextCursor?: number;
   /** Total field notes available given the current filter set. */
   total: number;
+  /** Some decisions could not be read, so the feed and its total may be missing approved work. */
+  partialData: boolean;
 }
 
 const DEFAULT_LIMIT = 20;
@@ -66,6 +69,7 @@ function adapt(work: EASWork): PublicFieldNote {
     id: work.id,
     title: work.title,
     feedback: work.feedback,
+    metadata: work.metadata,
     media: work.media,
     gardenerAddress: work.gardenerAddress,
     gardenAddress: work.gardenAddress,
@@ -82,7 +86,7 @@ export function usePublicFieldNotes(opts: UsePublicFieldNotesOptions = {}) {
   const volume = opts.volume;
 
   return useQuery({
-    queryKey: queryKeys.public.fieldNotes(chainId, {
+    queryKey: publicKeys.fieldNotes(chainId, {
       gardenAddress: gardenAddress?.toLowerCase(),
       volume,
       limit,
@@ -95,16 +99,17 @@ export function usePublicFieldNotes(opts: UsePublicFieldNotesOptions = {}) {
         recipient = gardenAddress;
       } else {
         const gardens = await getGardens();
-        const ids = gardens
-          .filter((g) => (g.name ?? "").trim().length > 0 || (g.location ?? "").trim().length > 0)
-          .map((g) => g.id as Address);
+        const ids = gardens.filter(isGardenPubliclyVisible).map((g) => g.id as Address);
         if (ids.length === 0) {
-          return { fieldNotes: [], hasMore: false, total: 0 };
+          return { fieldNotes: [], hasMore: false, total: 0, partialData: false };
         }
         recipient = ids;
       }
 
-      const works = await getWorks(recipient, chainId);
+      const { works, partial } = await readApprovedWorks(
+        await getWorks(recipient, chainId),
+        chainId
+      );
 
       // Volume window (v1: Season One only). When `volume` is unset we leave
       // every work in scope so the journal feed shows the full public archive.
@@ -133,6 +138,7 @@ export function usePublicFieldNotes(opts: UsePublicFieldNotesOptions = {}) {
         hasMore,
         nextCursor,
         total,
+        partialData: partial,
       };
     },
     staleTime: STALE_TIME_RARE,

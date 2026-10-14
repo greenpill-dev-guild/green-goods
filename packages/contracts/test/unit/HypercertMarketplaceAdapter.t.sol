@@ -112,12 +112,9 @@ contract HypercertMarketplaceAdapterTest is Test {
 
         // Verify stored order data via public mapping accessor
         (
-            uint256 storedHypercertId,
-            ,
-            ,
+            uint256 storedHypercertId,,,
             uint256 storedPrice,
-            uint256 storedMinUnits,
-            ,
+            uint256 storedMinUnits,,
             address storedSeller,
             address storedCurrency,
             uint256 storedEndTime,

@@ -10,6 +10,7 @@ import { IHatsModule } from "../../src/interfaces/IHatsModule.sol";
 interface IArbitrumCookieJarLike {
     function deposit(uint256 amount) external payable;
     function withdraw(uint256 amount, string calldata purpose) external;
+    function maxWithdrawal() external view returns (uint256);
 }
 
 contract ArbitrumCookieJarForkTest is AaveOctantForkBase {
@@ -50,6 +51,21 @@ contract ArbitrumCookieJarForkTest is AaveOctantForkBase {
         vm.prank(forkGardener);
         IArbitrumCookieJarLike(jar).withdraw(0.01 ether, "gated-withdrawal");
         assertEq(IERC20(WETH).balanceOf(forkGardener) - beforeBal, 0.01 ether, "hats wearer should withdraw WETH");
+    }
+
+    /// @dev 0.01 WETH is a fair claim and 0.01 DAI is a cent, so each asset carries its own limit
+    ///      into the jars the live factory deploys.
+    function testForkArbitrum_newJarsTakeTheirAssetsOwnClaimLimit() public {
+        cookieJarModule.addSupportedAsset(DAI);
+        cookieJarModule.setDefaultMaxWithdrawal(0.01 ether);
+        cookieJarModule.setAssetMaxWithdrawal(DAI, 10 ether);
+
+        address garden = _mintTestGarden("CookieJar Arbitrum Per-Asset Limits", 0x0F);
+
+        address daiJar = cookieJarModule.getGardenJar(garden, DAI);
+        address wethJar = cookieJarModule.getGardenJar(garden, WETH);
+        assertEq(IArbitrumCookieJarLike(daiJar).maxWithdrawal(), 10 ether, "DAI jar should allow 10 DAI per claim");
+        assertEq(IArbitrumCookieJarLike(wethJar).maxWithdrawal(), 0.01 ether, "WETH jar should fall back to the default");
     }
 
     function test_fork_emptyPurposeRevertsOnLiveCookieJar() public {

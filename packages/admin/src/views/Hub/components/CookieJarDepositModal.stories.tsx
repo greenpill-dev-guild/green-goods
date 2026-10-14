@@ -1,6 +1,11 @@
+import { AdminButton } from "@/components/AdminButton";
 import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
 import { AdminDialog } from "@/components/AdminDialog";
-import { Button, formatTokenAmount, TextInput, TxInlineFeedback } from "@green-goods/shared";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
+import { TxInlineFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
+import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { fn } from "storybook/test";
@@ -27,6 +32,8 @@ interface CookieJarDepositModalHarnessProps {
   walletBalance?: { value: bigint; decimals: number; symbol: string };
   isPending?: boolean;
   error?: string | null;
+  /** The selected jar's per-claim limit is under the floor: warn, and offer the fix first. */
+  lowLimit?: { limit: string; symbol: string };
 }
 
 function CookieJarDepositModalHarness({
@@ -36,6 +43,7 @@ function CookieJarDepositModalHarness({
   walletBalance,
   isPending = false,
   error = null,
+  lowLimit,
 }: CookieJarDepositModalHarnessProps) {
   const [jarAddress, setJarAddress] = useState(jars[0]?.jarAddress ?? "");
   const [amount, setAmount] = useState("");
@@ -47,11 +55,23 @@ function CookieJarDepositModalHarness({
       open={isOpen}
       onOpenChange={(open) => !open && !isPending && onClose()}
       title="Fund Cookie Jar"
+      actions={
+        lowLimit ? (
+          <>
+            <AdminButton type="button" variant="outlined" onClick={fn()}>
+              Deposit Anyway
+            </AdminButton>
+            <AdminButton type="button" onClick={fn()}>
+              Fix Limit First
+            </AdminButton>
+          </>
+        ) : undefined
+      }
     >
       <div className="space-y-4">
         {jars.length > 1 && (
           <div>
-            <p className="mb-1.5 block text-sm font-medium text-text-strong">Cookie Jar</p>
+            <p className="mb-1.5 block body-sm font-medium text-text-strong">Cookie Jar</p>
             <AdminChoiceGroup
               ariaLabel="Cookie Jar"
               columns={2}
@@ -68,10 +88,10 @@ function CookieJarDepositModalHarness({
 
         {selected && (
           <div className="rounded-lg bg-bg-weak px-4 py-3">
-            <p className="text-xs font-medium text-text-soft">Jar Balance</p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums text-text-strong">
+            <p className="label-xs text-text-soft">Jar Balance</p>
+            <p className="mt-1 text-title-lg font-semibold leading-[var(--type-title-lg-lh)] tabular-nums text-text-strong">
               {formatTokenAmount(selected.balance, selected.decimals)}{" "}
-              <span className="text-base font-medium text-text-sub">{selected.symbol}</span>
+              <span className="body-md font-medium text-text-sub">{selected.symbol}</span>
             </p>
           </div>
         )}
@@ -79,7 +99,7 @@ function CookieJarDepositModalHarness({
         <div>
           <label
             htmlFor="mock-deposit-amount"
-            className="block text-sm font-medium text-text-strong"
+            className="block body-sm font-medium text-text-strong"
           >
             Amount
           </label>
@@ -91,12 +111,12 @@ function CookieJarDepositModalHarness({
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder="0.00"
-            className="mt-1.5 w-full rounded-lg border border-stroke-sub bg-bg-white px-3 py-2.5 text-sm text-text-strong"
+            className="mt-1.5 w-full rounded-lg border border-stroke-sub bg-bg-white px-3 py-2.5 body-sm text-text-strong"
           />
         </div>
 
         <div className="space-y-1">
-          <p className="text-xs text-text-soft">
+          <p className="body-xs text-text-soft">
             Wallet balance:{" "}
             {walletBalance
               ? `${formatTokenAmount(walletBalance.value, walletBalance.decimals)} ${walletBalance.symbol}`
@@ -104,8 +124,18 @@ function CookieJarDepositModalHarness({
           </p>
         </div>
 
+        {lowLimit ? (
+          <Alert
+            variant="warning"
+            title={`This jar pays out ${lowLimit.limit} ${lowLimit.symbol} per claim`}
+          >
+            Each gardener can claim once a day. At that limit, 25 {lowLimit.symbol} takes 2,500
+            claims to reach them.
+          </Alert>
+        ) : null}
+
         <Button
-          variant="secondary"
+          emphasis="secondary"
           className="w-full"
           loading={isPending}
           disabled={!selected || amount.trim() === ""}
@@ -177,6 +207,11 @@ export const Submitting: Story = {
 
 export const WithError: Story = {
   args: { error: "User rejected the request." },
+};
+
+/** Funding a jar capped at one cent warns; the deposit still goes through. */
+export const LowLimitWarning: Story = {
+  args: { jars: [JARS[1]], lowLimit: { limit: "0.01", symbol: "DAI" } },
 };
 
 export const Closed: Story = {

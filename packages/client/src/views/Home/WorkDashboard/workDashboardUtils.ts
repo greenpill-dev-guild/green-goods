@@ -1,0 +1,121 @@
+import type { Address, Work } from "@green-goods/shared/types/domain";
+import { compareAddresses, ZERO_ADDRESS } from "@green-goods/shared/utils/blockchain/address";
+
+/**
+ * Build a lookup map of work by ID for efficient access.
+ */
+export function buildWorkMap(works: Work[]): Map<string, Work> {
+  const map = new Map<string, Work>();
+  works.forEach((w) => map.set(w.id, w));
+  return map;
+}
+
+/** Shape of a completed approval from useWorkApprovals. */
+interface CompletedApproval {
+  workUID: string;
+  title?: string;
+  actionUID: number | string;
+  gardenerAddress: Address;
+  gardenId?: Address;
+  /** The reviewed work's photos, when the history could read the work. */
+  media?: string[];
+  feedback?: string;
+  createdAt: number;
+  status: "approved" | "rejected" | "pending" | "syncing" | "failed";
+}
+
+/** Shape of a received approval from fetchApprovalsByRecipients. */
+interface ReceivedApproval {
+  workUID: string;
+  actionUID: number | string;
+  gardenerAddress: Address;
+  feedback?: string;
+  createdAt: number;
+  approved: boolean;
+}
+
+function toActionUID(value: number | string | undefined) {
+  if (typeof value === "number") return value;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function isConcreteGardenAddress(address: Address | undefined): address is Address {
+  return Boolean(address) && !compareAddresses(address, ZERO_ADDRESS);
+}
+
+/**
+ * Convert completed approvals (reviewed by you) to Work shape for MinimalWorkCard.
+ */
+export function approvalsToCompletedWorks(approvals: CompletedApproval[]): Work[] {
+  return approvals
+    .filter((approval) => ["approved", "rejected"].includes(approval.status))
+    .map((approval) => ({
+      id: approval.workUID,
+      title: approval.title || `Work ${String(approval.workUID || "").slice(0, 8)}...`,
+      actionUID: toActionUID(approval.actionUID),
+      gardenerAddress: approval.gardenerAddress,
+      gardenAddress: approval.gardenId ?? ZERO_ADDRESS,
+      feedback: approval.feedback || "",
+      metadata: "",
+      media: approval.media ?? [],
+      createdAt: approval.createdAt,
+      status: approval.status as "approved" | "rejected" | "pending",
+    }));
+}
+
+/**
+ * Convert received approvals (your work reviewed by others) to Work shape.
+ */
+export function receivedApprovalsToWorks(
+  approvals: ReceivedApproval[],
+  originalWorksById: Map<string, Work> = new Map()
+): Work[] {
+  return approvals.map((a) => {
+    const originalWork = originalWorksById.get(a.workUID);
+    return {
+      id: a.workUID,
+      title: originalWork?.title || `Work ${String(a.workUID || "").slice(0, 8)}...`,
+      actionUID: originalWork?.actionUID ?? toActionUID(a.actionUID),
+      gardenerAddress: originalWork?.gardenerAddress ?? a.gardenerAddress,
+      gardenAddress: originalWork?.gardenAddress ?? ZERO_ADDRESS,
+      feedback: a.feedback ?? "",
+      metadata: originalWork?.metadata ?? "",
+      media: originalWork?.media ?? [],
+      createdAt: a.createdAt,
+      status: a.approved ? ("approved" as const) : ("rejected" as const),
+    };
+  });
+}
+
+/**
+ * Extract unique garden addresses from a list of works.
+ */
+export function extractWorkGardenIds(works: Work[]): string[] {
+  return Array.from(
+    new Set(works.map((work) => work.gardenAddress).filter(isConcreteGardenAddress))
+  );
+}
+
+/**
+ * Resolve work ID and garden ID from a work or approval click target.
+ * Returns null if the IDs cannot be resolved.
+ */
+export function resolveWorkNavigation(
+  work: Work | { workUID?: string; gardenAddress?: Address },
+  stewardWorksById: Map<string, Work>
+): { workId: string; gardenId: string } | null {
+  let workId = "id" in work ? work.id : (work as { workUID?: string }).workUID;
+  let gardenId = work.gardenAddress;
+
+  if (!isConcreteGardenAddress(gardenId) && workId) {
+    const found = stewardWorksById.get(workId);
+    if (found) {
+      gardenId = found.gardenAddress;
+      workId = found.id;
+    }
+  }
+
+  if (!isConcreteGardenAddress(gardenId) || !workId) return null;
+  return { workId, gardenId };
+}

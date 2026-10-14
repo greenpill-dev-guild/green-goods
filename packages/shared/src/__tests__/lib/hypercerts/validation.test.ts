@@ -1,3 +1,4 @@
+// @shared-graph isolate: @hypercerts-org/sdk sets BigInt.prototype.toJSON when it loads.
 import { describe, it, expect } from "vitest";
 import {
   allowlistEntrySchema,
@@ -275,8 +276,7 @@ describe("scopeDefinitionSchema", () => {
   });
 
   it("allows optional display_value", () => {
-    const scope = { ...createValidScopeDefinition() };
-    delete scope.display_value;
+    const { display_value: _displayValue, ...scope } = createValidScopeDefinition();
     const result = scopeDefinitionSchema.safeParse(scope);
     expect(result.success).toBe(true);
   });
@@ -304,14 +304,16 @@ describe("timeframeDefinitionSchema", () => {
     expect(result.success).toBe(false);
   });
 
-  it("allows zero as valid timestamp (indefinite)", () => {
+  it.each([
+    { boundary: "an indefinite end", start: 1704067200, end: 0, accepted: true },
+    { boundary: "equal start and end", start: 1704067200, end: 1704067200, accepted: true },
+    { boundary: "an end before the start", start: 1704153600, end: 1704067200, accepted: false },
+  ])("handles $boundary", ({ start, end, accepted }) => {
     const timeframe = {
-      name: "Impact timeframe",
-      value: [1704067200, 0] as [number, number],
-      display_value: "Indefinite",
+      ...createValidTimeframeDefinition(),
+      value: [start, end] as [number, number],
     };
-    const result = timeframeDefinitionSchema.safeParse(timeframe);
-    expect(result.success).toBe(true);
+    expect(timeframeDefinitionSchema.safeParse(timeframe).success).toBe(accepted);
   });
 
   it("rejects empty name", () => {
@@ -551,8 +553,7 @@ describe("hypercertMetadataSchema", () => {
   });
 
   it("allows optional external_url", () => {
-    const metadata = createValidHypercertMetadata();
-    delete metadata.external_url;
+    const { external_url: _externalUrl, ...metadata } = createValidHypercertMetadata();
     const result = hypercertMetadataSchema.safeParse(metadata);
     expect(result.success).toBe(true);
   });
@@ -567,8 +568,7 @@ describe("hypercertMetadataSchema", () => {
   });
 
   it("allows optional hidden_properties", () => {
-    const metadata = createValidHypercertMetadata();
-    delete metadata.hidden_properties;
+    const { hidden_properties: _hiddenProperties, ...metadata } = createValidHypercertMetadata();
     const result = hypercertMetadataSchema.safeParse(metadata);
     expect(result.success).toBe(true);
   });

@@ -3,12 +3,13 @@ import { useCallback, useRef } from "react";
 import { useIntl } from "react-intl";
 import { toastService } from "../../components/toast";
 import type { DeregisterHypercertParams } from "../../types/conviction";
-import { HYPERCERT_SIGNAL_POOL_ABI } from "../../utils/blockchain/abis";
+import { HYPERCERT_SIGNAL_POOL_ABI } from "../../utils/blockchain/abis/conviction";
 import { normalizeAddress } from "../../utils/blockchain/address";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useContractTxSender } from "../blockchain/useContractTxSender";
-import { INDEXER_LAG_SCHEDULE_MS, queryInvalidation } from "../../config/query-keys";
+import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
+import { queryInvalidation } from "../../config/query-keys/invalidation";
 import { useProgressiveInvalidation } from "../utils/useTimeout";
 
 export function useDeregisterHypercert() {

@@ -1,13 +1,11 @@
-import {
-  gardenStepFields,
-  toastService,
-  useCreateGardenForm,
-  useCreateGardenStore,
-  useCreateGardenWorkflow,
-  useFormWizardStepValidation,
-  useTxErrorMessages,
-} from "@green-goods/shared";
-import { useEffect, useRef, useState } from "react";
+import { useOnlineStatus } from "../../app/useOnlineStatus";
+import { toastService } from "../../../components/Toast/toast.service";
+import { useCreateGardenStore } from "../../../stores/useCreateGardenStore";
+import { gardenStepFields, useCreateGardenForm } from "../../garden/useCreateGardenForm";
+import { useCreateGardenWorkflow } from "../../garden/useCreateGardenWorkflow";
+import { useFormWizardStepValidation } from "../../ui/useFormWizardStepValidation";
+import { useTxErrorMessages } from "../../utils/useTxErrorMessages";
+import { useEffect, useRef } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { useShallow } from "zustand/react/shallow";
@@ -20,34 +18,36 @@ export function useCreateGardenController() {
   const form = useCreateGardenStore(useShallow((state) => state.form));
   const resetForm = useCreateGardenStore((state) => state.reset);
   const goToStep = useCreateGardenStore((state) => state.goToStep);
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-
-  useEffect(() => {
-    const onOnline = () => setIsOnline(true);
-    const onOffline = () => setIsOnline(false);
-    window.addEventListener("online", onOnline);
-    window.addEventListener("offline", onOffline);
-    return () => {
-      window.removeEventListener("online", onOnline);
-      window.removeEventListener("offline", onOffline);
-    };
-  }, []);
+  const isOnline = useOnlineStatus();
 
   const { trigger, reset: resetValidationForm } = useCreateGardenForm();
-  const { state, openFlow, closeFlow, goNext, goBack, goToReview, submitCreation, retry, draft } =
-    useCreateGardenWorkflow();
-  const { loadDraft } = draft;
+  const {
+    state,
+    openFlow,
+    closeFlow,
+    goNext,
+    goBack,
+    goToReview,
+    submitCreation,
+    retry,
+    checkConfirmation,
+    confirmWalletCancellation,
+    recoveryKey,
+    draft,
+  } = useCreateGardenWorkflow();
+  const { loadDraft, draftKey } = draft;
 
-  const isSubmitting = state.value === "submitting";
+  const isPending = state.matches("pending") || state.matches("reconciling");
+  const isSubmitting = state.matches("submitting") || isPending;
   const hasError = state.value === "error";
   const isSuccess = state.value === "success";
   const txError = useTxErrorMessages(state.context.error);
-  const plannedMemberCount = form.gardeners.length + form.operators.length;
-  const initializedRef = useRef(false);
+  const plannedMemberCount = form.gardeners.length + form.stewards.length;
+  const initializedScopeRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (initializedRef.current) return;
-    initializedRef.current = true;
+    if (!draftKey || initializedScopeRef.current === draftKey) return;
+    initializedScopeRef.current = draftKey;
 
     let cancelled = false;
 
@@ -65,7 +65,7 @@ export function useCreateGardenController() {
         storeForm.metadata.trim().length > 0 ||
         storeForm.openJoining ||
         storeForm.gardeners.length > 0 ||
-        storeForm.operators.length > 0;
+        storeForm.stewards.length > 0;
 
       if (hasSessionProgress) {
         const isOnReviewStep = storeState.currentStep === storeState.steps.length - 1;
@@ -77,6 +77,9 @@ export function useCreateGardenController() {
 
       const restoredDraft = await loadDraft();
       if (cancelled || !restoredDraft) return;
+      const restored = useCreateGardenStore.getState();
+      if (restored.currentStep === restored.steps.length - 1 && restored.isReviewReady())
+        goToReview();
     };
 
     void initializeFlow();
@@ -84,7 +87,7 @@ export function useCreateGardenController() {
     return () => {
       cancelled = true;
     };
-  }, [openFlow, goToReview, loadDraft]);
+  }, [openFlow, goToReview, loadDraft, draftKey]);
 
   useEffect(() => {
     if (isSuccess) {
@@ -176,6 +179,7 @@ export function useCreateGardenController() {
   };
 
   const handleCancel = () => {
+    if (isSubmitting) return;
     closeFlow();
     navigate("/garden");
   };
@@ -195,6 +199,11 @@ export function useCreateGardenController() {
     isDetailsStep: currentStepConfig?.id === "details",
     isReviewStepActive: currentStepConfig?.id === "review",
     isSubmitting,
+    isPending,
+    isCheckingConfirmation: state.matches("reconciling"),
+    checkConfirmation,
+    confirmWalletCancellation,
+    recoveryKey,
     isTeamStep: currentStepConfig?.id === "team",
     retry,
     showValidation: stepValidation.showValidation,

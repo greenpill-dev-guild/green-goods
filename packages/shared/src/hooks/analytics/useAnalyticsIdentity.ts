@@ -17,7 +17,7 @@
  */
 
 import { useEffect, useRef } from "react";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { identifyWithProperties, reset, track } from "../../modules/app/posthog";
 import { useAuth } from "../auth/useAuth";
 import { useUser } from "../auth/useUser";

@@ -20,7 +20,7 @@ const LOCALES: Array<[string, Record<string, string>]> = [
   ["pt", pt as Record<string, string>],
 ];
 
-const ARRIVAL_KINDS = ["queue", "draft", "review", "operatorClear", "gardener", "signedIn"];
+const ARRIVAL_KINDS = ["queue", "draft", "review", "stewardClear", "gardener", "signedIn"];
 
 describe("app.home.arrival.* message formatting", () => {
   for (const [locale, messages] of LOCALES) {

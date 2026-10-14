@@ -252,7 +252,7 @@ payload alone, so an `{id, description}` update without the title is rejected as
 (append patches under the backstop pass either way).
 
 Both results blocks are pasted verbatim from `tmp/qa-session/<slug>/report.md`, written by
-`bun run qa:report --slug <slug> --window <start>..<end>` — the pull joined to the catalog's
+`bun run qa report --slug <slug> --window <start>..<end>` — the pull joined to the catalog's
 per-case priority and kind, never hand-counted — and cover **this session's entries only** (the
 call-window rule; the store is long-lived). The generator already includes the `n/a` and
 noted-without-a-verdict counts (recorded states without which the walked numerator does not
@@ -332,7 +332,7 @@ installed phone, `production` the deployed origin. The fix loop takes `local` fi
 - <each Test ID's expected result holds and is re-recorded as pass in the QA app>
 - <second observable outcome when the slice has two halves>
 
-Fix posture: `.claude/context/qa.md § Fix posture` (via `AGENTS.md § Linear-Spawned Issue Contract`).
+Fix posture: `.claude/context/qa.md § Fix posture` (via `.claude/context/linear-routing-rules.md § Issue-dispatched implementation`).
 Validation: `<command>`. QA session — <slug>. Test IDs: `<ID>, <ID>`.
 ```
 

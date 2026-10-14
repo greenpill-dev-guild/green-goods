@@ -64,7 +64,7 @@ contract DeploymentTest is Test {
             unlockFactory: address(0), // Optional
             hypercerts: address(0), // Optional
             greenWill: address(0) // Optional
-         });
+        });
     }
 
     function testAddToAllowlist() public {

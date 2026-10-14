@@ -1,46 +1,89 @@
 ---
-title: Tokenbound Accounts (ERC-6551)
-sidebar_label: Tokenbound
+title: Tokenbound Accounts
+sidebar_label: Tokenbound Accounts
 slug: /builders/integrations/tokenbound
 audience: developer
 owner: docs
-last_verified: 2026-04-25
+last_verified: 2026-10-11
 feature_status: Live
 source_of_truth:
+  - packages/shared/src/ontology/green-goods-ontology.json
+  - docs/src/data/integration-projections.json
   - packages/contracts/src/accounts/Garden.sol
   - packages/contracts/src/tokens/Garden.sol
-  - packages/contracts/src/lib/TBA.sol
-  - packages/shared/src/utils/blockchain/contracts.ts
+  - packages/contracts/src/modules/Hats.sol
+keywords:
+  - erc-6551
+  - token-bound account
+  - garden account
 ---
 
-import {NextBestAction, StatusBadge} from "@site/src/components/docs";
+import {IntegrationProjection} from "@site/src/components/docs";
 
-# Tokenbound Accounts (ERC-6551)
+# Tokenbound Accounts
 
-<StatusBadge status="Live" />
+[ERC-6551](https://eips.ethereum.org/EIPS/eip-6551) token-bound accounts are why a Green Goods
+garden is more than a database row: each garden is an ERC-721 token whose bound account is the
+garden on-chain. That account holds the treasury, wears the [Hats](./hats) role tree, and receives
+the garden's [attestations](./eas). Transferring the token hands over the account, assets and
+history included, as long as transfers are open: the GardenToken contract can limit them to the
+protocol's admin or lock them entirely (`transferRestriction`). It does not hand over the roles.
+The owner hat is granted to the minter at mint and the transfer hook only enforces the
+restriction, so after a transfer the previous owner still holds their hats, and the new holder is
+not an owner to `isOwner` until the hats are rotated. Rotation is not symmetric. Granting the owner
+hat also grants the steward and gardener hats beneath it, but a revoke removes only the hat it
+names. Take the owner hat alone from the previous owner and they remain a steward, who can still
+approve work and change roles, so revoke every hat they hold. The new holder can do this through
+the account itself, which the Hats module accepts as a caller. Either way, no app of ours has to
+exist for a garden to keep being real.
 
-## Overview
-Tokenbound accounts are part of the live garden account model. Each garden token can map to a smart account that owns assets, stores metadata, and acts as the garden's protocol identity.
+## How it flows
 
-## Current surfaces
+Minting a garden creates the token and its account together. From then on, the account is the
+garden.
 
-- Garden account contracts under `packages/contracts/src/accounts`.
-- Garden token contracts under `packages/contracts/src/tokens`.
-- TBA helper library in `packages/contracts/src/lib/TBA.sol`.
-- Shared contract utilities and deployment artifacts for consumers.
+```mermaid
+flowchart LR
+  mint["Garden minted"] --> token["Garden token<br/>(ERC-721)"]
+  token -->|ERC-6551 registry| account["Garden account"]
+  account --> treasury["Treasury and module state"]
+  account --> roles["Hats role tree"]
+  account --> records["Attestations it receives"]
+```
 
-## Builder notes
+## Where it lives in the code
 
-- Keep garden-account assumptions chain-scoped; each frontend build targets one chain.
-- Use shared contract utilities and deployment artifacts rather than hardcoding addresses.
-- Separate gardener auth/smart accounts from garden tokenbound accounts in docs and UI copy.
+| Layer | Source |
+|---|---|
+| Garden token | `packages/contracts/src/tokens/Garden.sol` |
+| Garden account and action routing | `packages/contracts/src/accounts/` |
+| Account addresses per chain | The `accountProxy` and `gardenAccountImpl` fields, projected below and in the [deployment record](/builders/reference/deployments) |
 
-<NextBestAction
-  title="Next best action"
-  why="Contracts documentation explains how garden accounts fit into the broader protocol deployment."
-  actionLabel="Contracts package"
-  actionHref="../packages/contracts"
-  alternatives={[
-    {label: "Architecture", href: "../architecture"},
-  ]}
-/>
+One consequence for consumers: the indexer's `Garden.id` is the garden account address, which is
+why it stays a bare address rather than a composite id (a documented exception in the
+[indexer package](../packages/indexer)).
+
+<IntegrationProjection id="tokenbound" />
+
+## Working with it locally
+
+The [fork mode](../getting-started#other-modes) (`bun run dev -- fork`) runs a local fork of
+Arbitrum One, so every live garden account exists locally; creating a new garden on the fork
+exercises the full token-plus-account flow without real gas.
+
+## Canonical upstream docs
+
+- [EIP-6551](https://eips.ethereum.org/EIPS/eip-6551), the standard itself; short and worth
+  reading in full.
+- [Tokenbound documentation](https://docs.tokenbound.org) for the reference implementation the
+  ecosystem builds against.
+- [The ERC-6551 reference implementation](https://github.com/erc6551/reference), the registry
+  and account the garden account builds on.
+- [tokenbound.org](https://tokenbound.org) for the SDK and the wider ecosystem.
+
+
+## Next steps
+
+- [Hats Protocol](/builders/integrations/hats) covers the role tree each garden account wears.
+- [EAS](/builders/integrations/eas) shows the attestations a garden account receives.
+- [Architecture](/builders/architecture#a-garden-is-an-account) explains why a garden is an account at all.

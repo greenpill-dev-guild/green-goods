@@ -5,22 +5,32 @@
  * garden selection, domain filtering, and click handler delegation.
  */
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock only the runtime helpers WorkIntro needs.
-vi.mock("@green-goods/shared", () => {
+vi.mock("@green-goods/shared/types/domain", () => {
   const Domain = {
     SOLAR: 0,
     AGRO: 1,
     EDU: 2,
     WASTE: 3,
   } as const;
-
   return {
     Domain,
+  };
+});
+
+vi.mock("@green-goods/shared/utils/domain", () => {
+  const Domain = {
+    SOLAR: 0,
+    AGRO: 1,
+    EDU: 2,
+    WASTE: 3,
+  } as const;
+  return {
     expandDomainMask: (mask: number) => {
       const domains: Domain[] = [];
       if (mask & 1) domains.push(Domain.SOLAR);
@@ -30,24 +40,14 @@ vi.mock("@green-goods/shared", () => {
       return domains;
     },
     hasDomain: (mask: number, domain: Domain) => (mask & (1 << domain)) !== 0,
-    hapticSelection: vi.fn(),
-    localizeAction: (action: Action) => action,
   };
 });
 
-// Mock child components used by WorkIntro
-vi.mock("@/components/Actions", () => ({
-  Button: ({
-    label,
-    onClick,
-    disabled,
-  }: {
-    label: string;
-    onClick?: () => void;
-    disabled?: boolean;
-  }) => createElement("button", { onClick, disabled, type: "button" }, label),
+vi.mock("@green-goods/shared/utils/action/translations", () => ({
+  localizeAction: (action: Action) => action,
 }));
 
+// Mock child components used by WorkIntro
 vi.mock("@/components/Cards/Action/ActionCard", () => ({
   ActionCard: ({ action, selected }: { action: { title: string }; selected: boolean }) =>
     createElement(
@@ -100,16 +100,18 @@ vi.mock("@/components/Navigation", () => ({
     tabs,
     activeTab,
     onTabChange,
+    className,
     triggerClassName,
   }: {
-    tabs: Array<{ id: string; label: string }>;
+    tabs: Array<{ id: string; label: string; accessibleLabel?: string }>;
     activeTab: string;
     onTabChange: (id: string) => void;
+    className?: string;
     triggerClassName?: string;
   }) =>
     createElement(
       "div",
-      { "data-testid": "domain-tabs" },
+      { "data-testid": "domain-tabs", className },
       tabs.map((tab) =>
         createElement(
           "button",
@@ -117,6 +119,7 @@ vi.mock("@/components/Navigation", () => ({
             key: tab.id,
             "data-testid": `domain-tab-${tab.id}`,
             "data-active": String(tab.id === activeTab),
+            "aria-label": tab.accessibleLabel,
             className: triggerClassName,
             onClick: () => onTabChange(tab.id),
           },
@@ -127,13 +130,17 @@ vi.mock("@/components/Navigation", () => ({
 }));
 
 // Import after mocks
-import { type Action, type Address, Domain, type Garden } from "@green-goods/shared";
+import { type Action, type Address, Domain, type Garden } from "@green-goods/shared/types/domain";
 import { WorkIntro } from "../../views/Garden/Intro";
 
 const messages: Record<string, string> = {
-  "app.garden.selectYourAction": "Select your action",
+  "app.common.done": "Done",
+  "app.common.close": "Close",
+  "app.garden.commitment.choose": "Choose a Promise",
+  "app.garden.commitment.requirement": "Requirement {requirement}",
+  "app.garden.selectYourAction": "Select Your Action",
   "app.garden.whatTypeOfWork": "What type of work are you submitting?",
-  "app.garden.selectYourGarden": "Select your garden",
+  "app.garden.selectYourGarden": "Select Your Garden",
   "app.garden.whichGarden": "Which garden are you submitting for?",
   "app.garden.noActiveActions": "No active actions at this time.",
   "app.garden.noActionsConfigured": "No actions have been configured for this garden yet.",
@@ -142,8 +149,21 @@ const messages: Record<string, string> = {
   "app.garden.communityOnramp.description":
     "The Community Garden is open to everyone and gives you a place to submit your first work.",
   "app.garden.communityOnramp.title": "Join the Community Garden",
+  "app.garden.commitment.label": "Commitment (optional)",
+  "app.garden.commitment.none": "No commitment",
+  "app.garden.commitment.option": "{title} · requirement {requirement}",
+  "app.garden.commitment.description":
+    "Choose the commitment and exact requirement this work fulfils.",
+  "app.garden.commitment.loading": "Checking eligible commitments…",
+  "app.garden.commitment.error":
+    "Eligible commitments could not be read. Try again or continue without one.",
+  "app.garden.commitment.invalid":
+    "That commitment link is no longer eligible. Choose another commitment or continue without one.",
+  "app.garden.commitment.retry": "Try Again",
+  "app.garden.commitment.empty": "No eligible commitments match this garden and action.",
   "app.domain.tab.solar": "Solar",
   "app.domain.tab.agro": "Agroforestry",
+  "app.gardenIntro.domain.agroShort": "Agro",
   "app.domain.tab.waste": "Waste",
 };
 
@@ -173,7 +193,7 @@ const makeGarden = (overrides: Partial<Garden> & { id: string }): Garden => ({
   location: "Test Location",
   bannerImage: "",
   gardeners: [],
-  operators: [],
+  stewards: [],
   evaluators: [],
   owners: [],
   funders: [],
@@ -214,8 +234,28 @@ describe("WorkIntro", () => {
   it("renders action and garden form info sections", () => {
     renderIntro();
 
-    expect(screen.getByText("Select your action")).toBeInTheDocument();
-    expect(screen.getByText("Select your garden")).toBeInTheDocument();
+    expect(screen.getByText("Select Your Action")).toBeInTheDocument();
+    expect(screen.getByText("Select Your Garden")).toBeInTheDocument();
+  });
+
+  it("uses the full-width domain rail with readable single-line labels", () => {
+    const gardens = [
+      makeGarden({
+        id: "0xGarden" as Address,
+        domainMask:
+          (1 << Domain.SOLAR) | (1 << Domain.AGRO) | (1 << Domain.EDU) | (1 << Domain.WASTE),
+      }),
+    ];
+
+    renderIntro({ gardens });
+
+    expect(screen.getByTestId("domain-tabs")).toHaveClass("-mx-4", "sm:-mx-6", "md:-mx-12");
+    expect(screen.getByTestId("domain-tab-0")).toHaveClass(
+      "text-xs",
+      "[&>span]:break-normal",
+      "[&>span]:whitespace-nowrap"
+    );
+    expect(screen.getByTestId("domain-tab-0")).not.toHaveClass("flex-auto");
   });
 
   it("renders action cards for active actions", () => {
@@ -246,6 +286,18 @@ describe("WorkIntro", () => {
     expect(screen.queryByTestId("action-card-Expired Action")).not.toBeInTheDocument();
   });
 
+  it("skips an action with a missing id instead of crashing", () => {
+    const actions = [
+      makeAction({ id: "action-1", title: "Valid Action" }),
+      makeAction({ id: undefined as unknown as string, title: "Broken Action" }),
+    ];
+
+    renderIntro({ actions });
+
+    expect(screen.getByTestId("action-card-Valid Action")).toBeInTheDocument();
+    expect(screen.queryByTestId("action-card-Broken Action")).not.toBeInTheDocument();
+  });
+
   it("reserves selection-card space when a selected domain has no active actions", () => {
     const actions = [makeAction({ id: "action-1", title: "Repair Event", domain: Domain.WASTE })];
     const gardens = [
@@ -262,29 +314,156 @@ describe("WorkIntro", () => {
     expect(emptyState.closest("[data-testid='carousel-item']")?.className).toContain("basis-full");
   });
 
-  it("fires setActionUID when an action card is clicked", () => {
+  it("chooses an action from its toggle and marks the chosen one pressed", () => {
     const setActionUID = vi.fn();
-    const actions = [makeAction({ id: "action-1", title: "Plant Trees" })];
+    const actions = [
+      makeAction({ id: "action-1", title: "Plant Trees" }),
+      makeAction({ id: "action-2", title: "Water Beds" }),
+    ];
 
-    renderIntro({ actions, setActionUID });
+    renderIntro({ actions, setActionUID, selectedActionUID: 2 });
 
-    // The carousel item wrapping the action card receives the click
-    const actionCard = screen.getByTestId("action-card-Plant Trees");
-    fireEvent.click(actionCard.closest("[data-testid='carousel-item']")!);
+    fireEvent.click(screen.getByRole("button", { name: "Plant Trees" }));
 
     expect(setActionUID).toHaveBeenCalledWith(1);
+    expect(screen.getByRole("button", { name: "Plant Trees" })).toHaveAttribute(
+      "aria-pressed",
+      "false"
+    );
+    expect(screen.getByRole("button", { name: "Water Beds" })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
   });
 
-  it("fires setGardenAddress when a garden card is clicked", () => {
+  it("chooses a garden from its toggle", () => {
     const setGardenAddress = vi.fn();
     const gardens = [makeGarden({ id: "0xABC" as Address, name: "My Garden" })];
 
     renderIntro({ gardens, setGardenAddress });
 
-    const gardenCard = screen.getByTestId("garden-card-My Garden");
-    fireEvent.click(gardenCard.closest("[data-testid='carousel-item']")!);
+    fireEvent.click(screen.getByRole("button", { name: "My Garden" }));
 
     expect(setGardenAddress).toHaveBeenCalledWith("0xABC");
+  });
+
+  it("shows a validated deep-linked commitment and exact requirement", () => {
+    renderIntro({
+      showCommitmentChoices: true,
+      commitmentChoices: [
+        {
+          key: "9:1",
+          commitmentId: 9n,
+          requirementIndex: 1,
+          title: "Prune the north beds",
+        },
+      ],
+      selectedCommitmentKey: "9:1",
+      setSelectedCommitmentKey: vi.fn(),
+    });
+
+    const trigger = screen.getByRole("button", { name: "Choose a Promise" });
+    expect(trigger).toHaveTextContent("Prune the north beds");
+    expect(trigger).toHaveTextContent("Requirement 2");
+    fireEvent.click(trigger);
+    const dialog = screen.getByRole("dialog", { name: "Choose a Promise" });
+    expect(dialog).toHaveAccessibleDescription(
+      "Choose the commitment and exact requirement this work fulfils."
+    );
+    expect(
+      within(dialog).getByRole("radio", { name: "Prune the north beds Requirement 2" })
+    ).toBeChecked();
+  });
+
+  it("lets a generic submission choose an eligible commitment requirement", () => {
+    const setSelectedCommitmentKey = vi.fn();
+    renderIntro({
+      showCommitmentChoices: true,
+      commitmentChoices: [
+        {
+          key: "9:0",
+          commitmentId: 9n,
+          requirementIndex: 0,
+          title: "Prune the north beds",
+        },
+      ],
+      selectedCommitmentKey: null,
+      setSelectedCommitmentKey,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Choose a Promise" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Prune the north beds Requirement 1" }));
+
+    expect(setSelectedCommitmentKey).toHaveBeenCalledWith("9:0");
+  });
+
+  it("announces commitment eligibility loading politely", () => {
+    renderIntro({ showCommitmentChoices: true, commitmentChoicesLoading: true });
+
+    expect(screen.getByRole("status")).toHaveTextContent("Checking eligible commitments…");
+  });
+
+  it("alerts a failed commitment read and retries it", () => {
+    const onRetryCommitmentChoices = vi.fn();
+    renderIntro({
+      showCommitmentChoices: true,
+      commitmentChoicesError: new Error("offline"),
+      onRetryCommitmentChoices,
+    });
+
+    expect(screen.getByRole("alert")).toHaveTextContent(/could not be read/i);
+    fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
+    expect(onRetryCommitmentChoices).toHaveBeenCalledTimes(1);
+  });
+
+  it("lets a linked promise whose eligibility can't be read be retried or let go", () => {
+    const onRetryCommitmentChoices = vi.fn();
+    const setSelectedCommitmentKey = vi.fn();
+    renderIntro({
+      showCommitmentChoices: true,
+      commitmentIntentStatus: "unavailable",
+      onRetryCommitmentChoices,
+      setSelectedCommitmentKey,
+    });
+
+    expect(screen.getByRole("alert")).toHaveTextContent(/could not be read/i);
+    fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
+    expect(onRetryCommitmentChoices).toHaveBeenCalledTimes(1);
+    // The link holds the work back, so the person can continue without it.
+    fireEvent.click(screen.getByRole("button", { name: "No commitment" }));
+    expect(setSelectedCommitmentKey).toHaveBeenCalledWith(null);
+  });
+
+  it("distinguishes an invalid deep link from an empty eligible list", () => {
+    const setSelectedCommitmentKey = vi.fn();
+    const view = renderIntro({
+      showCommitmentChoices: true,
+      commitmentIntentStatus: "invalid",
+      setSelectedCommitmentKey,
+    });
+    expect(screen.getByRole("alert")).toHaveTextContent(/no longer eligible/i);
+    fireEvent.click(screen.getByRole("button", { name: "No commitment" }));
+    expect(setSelectedCommitmentKey).toHaveBeenCalledWith(null);
+
+    view.rerender(
+      createElement(
+        IntlProvider,
+        { locale: "en", messages },
+        createElement(WorkIntro, {
+          actions: [],
+          gardens: [],
+          selectedActionUID: null,
+          selectedGardenAddress: null,
+          selectedDomain: null,
+          setActionUID: vi.fn(),
+          setGardenAddress: vi.fn(),
+          setSelectedDomain: vi.fn(),
+          showCommitmentChoices: true,
+        })
+      )
+    );
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByText("No eligible commitments match this garden and action.")).toBeVisible();
   });
 
   it("keeps actions visible and shows an inline community join CTA with no joined gardens", () => {
@@ -349,8 +528,9 @@ describe("WorkIntro", () => {
     expect(screen.getByTestId(`domain-tab-${Domain.SOLAR}`)).toBeInTheDocument();
     const agroTab = screen.getByTestId(`domain-tab-${Domain.AGRO}`);
     expect(agroTab).toBeInTheDocument();
-    expect(agroTab).toHaveTextContent("Agroforestry");
-    expect(agroTab.className).toContain("text-[10px]");
+    expect(agroTab).toHaveTextContent("Agro");
+    expect(agroTab).toHaveAccessibleName("Agroforestry");
+    expect(agroTab).toHaveClass("text-xs", "[&>span]:whitespace-nowrap");
   });
 
   it("hides domain tabs when only one domain exists", () => {

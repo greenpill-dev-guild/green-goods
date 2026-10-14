@@ -1,0 +1,258 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="2000" viewBox="0 0 1000 1000" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" role="img" aria-labelledby="pilot-pathways-title pilot-pathways-desc">
+  <title id="pilot-pathways-title">Three grounded pilot pathways</title>
+  <desc id="pilot-pathways-desc">Three pilot pathways read left to right through the same four stages: Need, Commitment, Evidence, and Outcome or support. The first pathway is Tech and Sun Hub, Awka. The second is Muizenberg and Deep South Circles. The third is AgroforestDAO and Redemption Hill. Small line drawings above each stage show solar infrastructure, learning, records, replenishment, mapped hotspots, recycling, sorted waste, a circle of people, hillside contours, a seedling, seasonal growth rings, and an agroforest. A closing note records that direct support and outcome-linked settlement remain separate rails.</desc>
+
+  <rect x="0" y="0" width="1000" height="1000" fill="#FBF8F2"/>
+
+  <!-- title -->
+  <text x="500" y="68" text-anchor="middle" font-size="34" font-weight="700" fill="#2A2722">Three grounded pilot pathways</text>
+
+  <!-- stage headings -->
+  <g font-size="17" font-weight="600" fill="#6E6857" text-anchor="middle">
+    <text x="167" y="132">Need</text>
+    <text x="389" y="132">Commitment</text>
+    <text x="611" y="132">Evidence</text>
+    <text x="833" y="132">Outcome or support</text>
+  </g>
+  <path d="M 56 152 L 944 152" stroke="#988D77" stroke-opacity="0.3" stroke-width="1"/>
+
+  <!-- band separators -->
+  <g stroke="#988D77" stroke-opacity="0.22" stroke-width="1">
+    <path d="M 200 398 L 800 398"/>
+    <path d="M 200 624 L 800 624"/>
+  </g>
+
+  <!-- ================= pathway 1 · Tech & Sun Hub, Awka ================= -->
+  <circle cx="62" cy="195" r="4.5" fill="#4C7A57"/>
+  <text x="80" y="202" font-size="23" font-weight="600" fill="#2A2722">Tech &amp; Sun Hub, Awka</text>
+
+  <path d="M 125 291 L 167 291 C 267 291, 289 282, 389 282 C 489 282, 511 289, 611 289 C 711 289, 733 281, 833 281 L 875 281"
+        fill="none" stroke="#988D77" stroke-width="1.8" stroke-linecap="round"/>
+  <g fill="none" stroke="#988D77" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 273 281.5 L 279 286.5 L 273 291.5"/>
+    <path d="M 495 280.5 L 501 285.5 L 495 290.5"/>
+    <path d="M 717 280 L 723 285 L 717 290"/>
+  </g>
+  <g fill="#FBF8F2" stroke="#988D77" stroke-width="1.6">
+    <circle cx="167" cy="291" r="5"/>
+    <circle cx="389" cy="282" r="5"/>
+    <circle cx="611" cy="289" r="5"/>
+    <circle cx="833" cy="281" r="5"/>
+  </g>
+
+  <!-- motif · solar hub -->
+  <g transform="translate(167,255)" fill="none" stroke="#988D77" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M -17 -11 L 13 -15 L 19 -3 L -11 1 Z"/>
+    <path d="M -7 -12.3 L -1 -0.3"/>
+    <path d="M 3 -13.7 L 9 -1.7"/>
+    <path d="M 4 -1 L 4 13"/>
+    <path d="M -10 13 L 18 13"/>
+  </g>
+  <!-- motif · learning -->
+  <g transform="translate(389,246)" fill="none" stroke="#988D77" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 0 -5 C -5 -10, -11 -11, -17 -9 L -17 6 C -11 4, -5 5, 0 10 Z"/>
+    <path d="M 0 -5 C 5 -10, 11 -11, 17 -9 L 17 6 C 11 4, 5 5, 0 10 Z"/>
+    <path d="M 0 -5 L 0 10"/>
+  </g>
+  <!-- motif · session record -->
+  <g transform="translate(611,253)" fill="none" stroke="#988D77" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M -11 -14 L 6 -14 L 13 -7 L 13 14 L -11 14 Z"/>
+    <path d="M 6 -14 L 6 -7 L 13 -7"/>
+    <path d="M -5 -1 L 7 -1"/>
+    <path d="M -5 5 L 7 5"/>
+  </g>
+  <!-- motif · replenished pool -->
+  <g transform="translate(833,248)" stroke="#4C7A57" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 0 -18 C 4.5 -12.5, 6 -10, 6 -7 A 6 6 0 0 1 -6 -7 C -6 -10, -4.5 -12.5, 0 -18 Z" fill="none"/>
+    <path d="M -16 3 C -13 14, 13 14, 16 3 Z" fill="#DFEBDE"/>
+    <path d="M -21 3 L -17.5 3" fill="none" stroke-opacity="0.55"/>
+    <path d="M 17.5 3 L 21 3" fill="none" stroke-opacity="0.55"/>
+  </g>
+
+  <g font-size="17" fill="#3B372E" text-anchor="middle">
+    <text x="167" y="320">Reliable hub</text>
+    <text x="167" y="343">infrastructure and</text>
+    <text x="167" y="366">climate learning</text>
+
+    <text x="389" y="320">August to December</text>
+    <text x="389" y="343">climate education</text>
+    <text x="389" y="366">series</text>
+
+    <text x="611" y="320">Sessions, attendance,</text>
+    <text x="611" y="343">and course completion</text>
+
+    <text x="833" y="320">Skills applied;</text>
+    <text x="833" y="343">gardeners paid or</text>
+    <text x="833" y="366">pool replenished</text>
+  </g>
+
+  <!-- ================= pathway 2 · Muizenberg and Deep South Circles ================= -->
+  <circle cx="62" cy="421" r="4.5" fill="#4C7A57"/>
+  <text x="80" y="428" font-size="23" font-weight="600" fill="#2A2722">Muizenberg and Deep South Circles</text>
+
+  <path d="M 125 508 L 167 508 C 267 508, 289 517, 389 517 C 489 517, 511 509, 611 509 C 711 509, 733 516, 833 516 L 875 516"
+        fill="none" stroke="#988D77" stroke-width="1.8" stroke-linecap="round"/>
+  <g fill="none" stroke="#988D77" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 273 507.5 L 279 512.5 L 273 517.5"/>
+    <path d="M 495 508 L 501 513 L 495 518"/>
+    <path d="M 717 507.5 L 723 512.5 L 717 517.5"/>
+  </g>
+  <g fill="#FBF8F2" stroke="#988D77" stroke-width="1.6">
+    <circle cx="167" cy="508" r="5"/>
+    <circle cx="389" cy="517" r="5"/>
+    <circle cx="611" cy="509" r="5"/>
+    <circle cx="833" cy="516" r="5"/>
+  </g>
+
+  <!-- motif · mapped hotspots on a coastline -->
+  <g transform="translate(167,472)" fill="none" stroke="#988D77" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M -20 9 C -13 4, -7 13, 0 8 C 6 4, 13 11, 20 6"/>
+    <g transform="translate(-9,3) scale(0.8)">
+      <path d="M 0 0 C -4 -6, -6 -8, -6 -11 A 6 6 0 1 1 6 -11 C 6 -8, 4 -6, 0 0 Z"/>
+      <circle cx="0" cy="-11" r="2.2"/>
+    </g>
+    <g transform="translate(9,4) scale(0.65)">
+      <path d="M 0 0 C -4 -6, -6 -8, -6 -11 A 6 6 0 1 1 6 -11 C 6 -8, 4 -6, 0 0 Z"/>
+      <circle cx="0" cy="-11" r="2.2"/>
+    </g>
+  </g>
+  <!-- motif · recycling follow-up -->
+  <g transform="translate(389,481)" fill="none" stroke="#988D77" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M -11.3 -6.5 A 13 13 0 0 1 11.3 -6.5"/>
+    <path d="M 6.2 -9.3 L 11.3 -6.5 L 11.4 -12.3"/>
+    <path d="M 11.3 6.5 A 13 13 0 0 1 -11.3 6.5"/>
+    <path d="M -6.2 9.3 L -11.3 6.5 L -11.4 12.3"/>
+  </g>
+  <!-- motif · sorted waste, return check -->
+  <g transform="translate(611,477)" fill="none" stroke="#988D77" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <g transform="translate(-9,1)">
+      <path d="M -5 -2 L -3.8 9 L 3.8 9 L 5 -2 Z"/>
+      <path d="M -6.8 -3 L 6.8 -3"/>
+      <path d="M -1.8 -3 L -1.8 -5.5 L 1.8 -5.5 L 1.8 -3"/>
+    </g>
+    <g transform="translate(9,1)">
+      <path d="M -5 -2 L -3.8 9 L 3.8 9 L 5 -2 Z"/>
+      <path d="M -6.8 -3 L 6.8 -3"/>
+      <path d="M -1.8 -3 L -1.8 -5.5 L 1.8 -5.5 L 1.8 -3"/>
+    </g>
+    <path d="M -15 -13 C -6 -21, 6 -21, 15 -13"/>
+    <path d="M 9.3 -14.1 L 15 -13 L 13.3 -18.6"/>
+  </g>
+  <!-- motif · circle of people -->
+  <g transform="translate(833,480)" fill="none">
+    <circle cx="0" cy="0" r="13" stroke="#988D77" stroke-opacity="0.4" stroke-width="1.2"/>
+    <g stroke="#4C7A57" stroke-width="1.5">
+      <circle cx="0" cy="-13" r="3.1"/>
+      <circle cx="10.16" cy="-8.11" r="3.1"/>
+      <circle cx="12.67" cy="2.89" r="3.1"/>
+      <circle cx="5.64" cy="11.71" r="3.1"/>
+      <circle cx="-5.64" cy="11.71" r="3.1"/>
+      <circle cx="-12.67" cy="2.89" r="3.1"/>
+      <circle cx="-10.16" cy="-8.11" r="3.1"/>
+    </g>
+  </g>
+
+  <g font-size="17" fill="#3B372E" text-anchor="middle">
+    <text x="167" y="546">Waste hotspots and</text>
+    <text x="167" y="569">youth-led local action</text>
+
+    <text x="389" y="546">Cleanup, mapping, and</text>
+    <text x="389" y="569">recycling follow-up</text>
+
+    <text x="611" y="546">Site baseline,</text>
+    <text x="611" y="569">waste sorted, and</text>
+    <text x="611" y="592">return check</text>
+
+    <text x="833" y="546">Cleaner sites and</text>
+    <text x="833" y="569">stronger youth</text>
+    <text x="833" y="592">leadership</text>
+  </g>
+
+  <!-- ================= pathway 3 · AgroforestDAO / Redemption Hill ================= -->
+  <circle cx="62" cy="647" r="4.5" fill="#4C7A57"/>
+  <text x="80" y="654" font-size="23" font-weight="600" fill="#2A2722">AgroforestDAO / Redemption Hill</text>
+
+  <path d="M 125 741 L 167 741 C 267 741, 289 733, 389 733 C 489 733, 511 742, 611 742 C 711 742, 733 735, 833 735 L 875 735"
+        fill="none" stroke="#988D77" stroke-width="1.8" stroke-linecap="round"/>
+  <g fill="none" stroke="#988D77" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 273 732 L 279 737 L 273 742"/>
+    <path d="M 495 732.5 L 501 737.5 L 495 742.5"/>
+    <path d="M 717 733.5 L 723 738.5 L 717 743.5"/>
+  </g>
+  <g fill="#FBF8F2" stroke="#988D77" stroke-width="1.6">
+    <circle cx="167" cy="741" r="5"/>
+    <circle cx="389" cy="733" r="5"/>
+    <circle cx="611" cy="742" r="5"/>
+    <circle cx="833" cy="735" r="5"/>
+  </g>
+
+  <!-- motif · hillside with planting contours -->
+  <g transform="translate(167,705)" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <g stroke="#988D77">
+      <path d="M -22 11 L 22 11"/>
+      <path d="M -21 11 C -12 -10, 8 -12, 21 11"/>
+    </g>
+    <g stroke="#4C7A57">
+      <path d="M -14 5 C -6 1, 4 0, 13 5"/>
+      <path d="M -10 -1 C -4 -4, 2 -5, 8 -1"/>
+    </g>
+    <g fill="#4C7A57" stroke="none">
+      <circle cx="-5.5" cy="-2.8" r="1.4"/>
+      <circle cx="3.5" cy="-3.1" r="1.4"/>
+      <circle cx="-7.7" cy="2.6" r="1.4"/>
+      <circle cx="6.1" cy="2.3" r="1.4"/>
+    </g>
+  </g>
+  <!-- motif · seedling -->
+  <g transform="translate(389,697)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M -13 13 L 13 13" fill="none" stroke="#988D77"/>
+    <path d="M -9 16 L -5 16" fill="none" stroke="#988D77" stroke-opacity="0.6"/>
+    <path d="M 4 16 L 8 16" fill="none" stroke="#988D77" stroke-opacity="0.6"/>
+    <path d="M 0 13 C 0 6, 0 2, 0 -4" fill="none" stroke="#4C7A57"/>
+    <path d="M 0 3 C -6 1, -10 -4, -9 -9 C -4 -9, 0 -3, 0 3 Z" fill="#DFEBDE" stroke="#4C7A57"/>
+    <path d="M 0 -1 C 6 -3, 10 -8, 9 -13 C 4 -13, 0 -7, 0 -1 Z" fill="#DFEBDE" stroke="#4C7A57"/>
+  </g>
+  <!-- motif · seasonal growth rings -->
+  <g transform="translate(611,706)" fill="none" stroke="#988D77" stroke-width="1.6">
+    <ellipse cx="0" cy="0" rx="14" ry="12"/>
+    <ellipse cx="1.6" cy="0.9" rx="9.8" ry="8"/>
+    <ellipse cx="2.7" cy="1.5" rx="5.8" ry="4.5"/>
+    <ellipse cx="3.3" cy="1.8" rx="2.5" ry="1.9"/>
+    <circle cx="3.5" cy="1.9" r="1.2" fill="#4C7A57" stroke="none"/>
+  </g>
+  <!-- motif · agroforest -->
+  <g transform="translate(833,699)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <g fill="none" stroke="#988D77">
+      <path d="M -21 13 L 21 13"/>
+      <path d="M -13 13 L -13 3"/>
+      <path d="M 0 13 L 0 -1"/>
+      <path d="M 13 13 L 13 6"/>
+    </g>
+    <g fill="#DFEBDE" stroke="#4C7A57">
+      <circle cx="-13" cy="-1" r="5.5"/>
+      <circle cx="0" cy="-6" r="7"/>
+      <circle cx="13" cy="2" r="4.5"/>
+    </g>
+  </g>
+
+  <g font-size="17" fill="#3B372E" text-anchor="middle">
+    <text x="167" y="772">Long-term</text>
+    <text x="167" y="795">agroecosystem</text>
+    <text x="167" y="818">co-stewardship</text>
+
+    <text x="389" y="772">Plant, maintain,</text>
+    <text x="389" y="795">mentor, and observe</text>
+
+    <text x="611" y="772">Seasonal logs,</text>
+    <text x="611" y="795">survival, and</text>
+    <text x="611" y="818">learning records</text>
+
+    <text x="833" y="772">Healthier agroforest</text>
+    <text x="833" y="795">and stronger local</text>
+    <text x="833" y="818">capability</text>
+  </g>
+
+  <!-- closing note -->
+  <text x="500" y="890" text-anchor="middle" font-size="18" fill="#3B372E">Direct support and outcome-linked settlement remain separate rails.</text>
+  <text x="500" y="950" text-anchor="middle" font-size="15" fill="#6E6857">Green Goods · Commitment Pooling — v1 (2026-08)</text>
+</svg>

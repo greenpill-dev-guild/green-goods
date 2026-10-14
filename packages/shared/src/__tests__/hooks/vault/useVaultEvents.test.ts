@@ -1,12 +1,13 @@
 /**
  * useVaultEvents Hook Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
+import { type QueryClient } from "@tanstack/react-query";
+import { waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createTestQueryClient } from "../../test-utils/query-client";
+import { renderHookWithQueryClient } from "../../test-utils/query-client-render";
 
 const TEST_CHAIN_ID = 11155111;
 const TEST_GARDEN = "0x2222222222222222222222222222222222222222";
@@ -17,26 +18,22 @@ vi.mock("../../../config/blockchain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
 
+vi.mock("../../../config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
 vi.mock("../../../modules/data/vaults", () => ({
   getVaultEvents: (...args: unknown[]) => mockGetVaultEvents(...args),
 }));
 
 import { useVaultEvents } from "../../../hooks/vault/useVaultEvents";
 
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
-  };
-}
-
 describe("useVaultEvents", () => {
   let queryClient: QueryClient;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
+    queryClient = createTestQueryClient();
   });
 
   it("fetches events for a garden address", async () => {
@@ -57,9 +54,12 @@ describe("useVaultEvents", () => {
     ];
     mockGetVaultEvents.mockResolvedValue(mockEvents);
 
-    const { result } = renderHook(() => useVaultEvents(TEST_GARDEN, { enabled: true }), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => useVaultEvents(TEST_GARDEN, { enabled: true }),
+      {
+        queryClient,
+      }
+    );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
@@ -70,17 +70,23 @@ describe("useVaultEvents", () => {
   it("returns empty array when no data yet", () => {
     mockGetVaultEvents.mockReturnValue(new Promise(() => {}));
 
-    const { result } = renderHook(() => useVaultEvents(TEST_GARDEN, { enabled: true }), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => useVaultEvents(TEST_GARDEN, { enabled: true }),
+      {
+        queryClient,
+      }
+    );
 
     expect(result.current.events).toEqual([]);
   });
 
   it("disables query when no garden address is provided", () => {
-    const { result } = renderHook(() => useVaultEvents(undefined, { enabled: true }), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => useVaultEvents(undefined, { enabled: true }),
+      {
+        queryClient,
+      }
+    );
 
     expect(mockGetVaultEvents).not.toHaveBeenCalled();
     expect(result.current.events).toEqual([]);
@@ -88,9 +94,12 @@ describe("useVaultEvents", () => {
   });
 
   it("disables query when enabled is false", () => {
-    const { result } = renderHook(() => useVaultEvents(TEST_GARDEN, { enabled: false }), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderHookWithQueryClient(
+      () => useVaultEvents(TEST_GARDEN, { enabled: false }),
+      {
+        queryClient,
+      }
+    );
 
     expect(mockGetVaultEvents).not.toHaveBeenCalled();
     expect(result.current.fetchStatus).toBe("idle");
@@ -99,8 +108,8 @@ describe("useVaultEvents", () => {
   it("uses default limit of 100", async () => {
     mockGetVaultEvents.mockResolvedValue([]);
 
-    const { result } = renderHook(() => useVaultEvents(TEST_GARDEN), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useVaultEvents(TEST_GARDEN), {
+      queryClient,
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -111,8 +120,8 @@ describe("useVaultEvents", () => {
   it("respects custom limit option", async () => {
     mockGetVaultEvents.mockResolvedValue([]);
 
-    const { result } = renderHook(() => useVaultEvents(TEST_GARDEN, { limit: 50 }), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useVaultEvents(TEST_GARDEN, { limit: 50 }), {
+      queryClient,
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -124,8 +133,8 @@ describe("useVaultEvents", () => {
     mockGetVaultEvents.mockResolvedValue([]);
     const mixedCase = "0xABCDef1234567890ABCDef1234567890ABCDef12";
 
-    const { result } = renderHook(() => useVaultEvents(mixedCase), {
-      wrapper: createWrapper(queryClient),
+    const { result } = renderHookWithQueryClient(() => useVaultEvents(mixedCase), {
+      queryClient,
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));

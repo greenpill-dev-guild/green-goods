@@ -1,46 +1,103 @@
 ---
-title: Octant Vaults
-sidebar_label: Octant Vaults
+title: Octant
+sidebar_label: Octant
 slug: /builders/integrations/octant
 audience: developer
 owner: docs
-last_verified: 2026-04-25
+last_verified: 2026-10-11
 feature_status: Live
 source_of_truth:
+  - packages/shared/src/ontology/green-goods-ontology.json
+  - docs/src/data/integration-projections.json
   - packages/contracts/src/modules/Octant.sol
-  - packages/contracts/src/strategies/AaveV3ERC4626.sol
-  - packages/shared/src/hooks/vault
-  - packages/admin/src/views/Garden/Vault.tsx
+  - packages/shared/src/modules/data/vaults.ts
+  - packages/shared/src/modules/data/vault-repository.ts
+  - packages/shared/src/modules/data/yield-allocations.ts
+  - packages/contracts/src/tokens/Garden.sol
+  - packages/contracts/src/lib/GardenHooks.sol
+  - packages/contracts/src/resolvers/Yield.sol
+keywords:
+  - octant
+  - vaults
+  - yield donation
 ---
 
-import {NextBestAction, StatusBadge} from "@site/src/components/docs";
+import {IntegrationProjection} from "@site/src/components/docs";
 
-# Octant Vaults
+# Octant
 
-<StatusBadge status="Live" />
+[Octant](https://docs.octant.app) provides the vault mechanics that let a garden hold an
+endowment. Funders deposit into a garden vault and keep a claim on what they put in, while the
+yield it earns flows to the garden's work. The deposit sits in a yield strategy, so like any
+on-chain investment, a strategy loss or a contract bug could reduce what can be withdrawn.
+Funders deposit and redeem directly on the ERC-4626 vaults; the Octant module owns vault
+creation, configuration, strategies, and the yield-donation routing, and has no deposit or
+withdrawal entrypoint of its own.
 
-## Overview
-Octant-style vault support is deployed on Arbitrum and Sepolia and implemented in contracts, shared vault hooks, admin vault views, and indexer handlers. Celo artifacts keep the module/factory addresses at zero. Per-garden availability still depends on vault creation, strategy configuration, and chain readiness.
+## How it flows
 
-## Current surfaces
+Money moves one way for yield and the other way for deposits. Funders can redeem their shares for
+what the vault then holds; the yield does not return to them.
 
-- `Octant.sol`, `OctantVault`, and strategy code define the contract-side vault model.
-- Shared vault hooks cover deposits, withdrawals, previews, strategy rates, harvests, and vault events.
-- Admin surfaces include garden vault views, event history, and vault tests/stories.
-- The indexer handles `OctantModule`, `OctantVault`, and yield-split events for configured chains.
+```mermaid
+flowchart LR
+  funder([Funder]) -->|deposits| vault["Garden vault"]
+  vault --> strategy["Yield strategy"]
+  strategy -->|yield, as vault shares| resolver["Yield resolver"]
+  resolver -->|split by the garden's ratios| work["Cookie Jar, Hypercert fractions,<br/>GOODS treasury"]
+  vault -.->|withdraw later| funder
+```
 
-## Builder notes
+Custody follows from that. Funders hold the vault's shares, the module is each vault's role
+manager, and the yield a strategy harvests is minted as vault shares to the yield resolver, which
+splits it between the garden's Cookie Jar, Hypercert fraction purchases, and the Juicebox treasury
+that backs GOODS. The garden's own account is not the vault's custodian: it receives routed yield
+only as a fallback, when the Cookie Jar or treasury that should receive it is not set.
 
-- Gate live docs and UI states on non-zero vault/module addresses plus a created garden vault for the target chain.
-- Keep yield and deposit displays sourced from shared vault hooks.
-- Update deployment status when a chain becomes vault-active.
+Vaults are created when a garden is minted, one per supported asset, and that call is best-effort
+like the other module hooks, so a garden can exist with no vault. `getVaultForAsset` returns the
+zero address for one that is missing, and a steward of the garden or the protocol owner can create
+it with `createVaultForAsset`.
 
-<NextBestAction
-  title="Next best action"
-  why="Deployment status is the source for which vault surfaces are active per chain."
-  actionLabel="Deployment status"
-  actionHref="../deployments/status"
-  alternatives={[
-    {label: "Funder vault guide", href: "../../community/funder-guide/vaults-and-hypercerts"},
-  ]}
-/>
+<figure className="gg-figure">
+  <img src="/img/builders/site-vaults.webp" alt="The public Vaults page: a hero reading Public goods campaigns, powered by Octant vaults, above the list of active campaigns ready for support" loading="lazy" width="2000" height="1250" />
+  <figcaption>The public Vaults page, where a funder backs a campaign. The Octant module is the machinery under it.</figcaption>
+</figure>
+
+## Where it lives in the code
+
+| Layer | Source |
+|---|---|
+| Module | `packages/contracts/src/modules/Octant.sol` |
+| Vault creation at mint | `packages/contracts/src/tokens/Garden.sol`, through `notifyOctant` in `packages/contracts/src/lib/GardenHooks.sol`, which skips a missing module and catches a failed call |
+| Yield split | `packages/contracts/src/resolvers/Yield.sol` |
+| Vault data access | `packages/shared/src/modules/data/vaults.ts` and `vault-repository.ts` |
+| Yield routing | `packages/shared/src/modules/data/yield-allocations.ts` |
+
+The funder-facing behavior lives in the community docs'
+[funder guide](/community/funder-guide); these sources are the machinery under it.
+
+<IntegrationProjection id="octant" />
+
+## Working with it locally
+
+The [fork mode](../getting-started#other-modes) (`bun run dev -- fork`) runs a local fork of
+Arbitrum One with the deployed vault contracts present, so deposit and withdrawal flows run
+locally without real funds.
+
+## Canonical upstream docs
+
+- [Octant documentation](https://docs.octant.app) for the platform and its vault model.
+- [Octant's developer section](https://docs.octant.app/docs/developers/introduction/) for the
+  contract-level reference.
+- [Octant v2 core](https://github.com/golemfoundation/octant-v2-core) for the vault and strategy
+  contracts the module talks to.
+- [The yield-donating strategy](https://docs.v2.octant.build/docs/developers/yield_donating_strategy/)
+  for the mechanism behind a garden vault's donations.
+
+
+## Next steps
+
+- [Cookie Jar](/builders/integrations/cookie-jar) covers a garden's spending money, next to the vault's endowment.
+- [Hypercerts](/builders/integrations/hypercerts) turns approved work into claims funders can hold.
+- [Deployments & Addresses](/builders/reference/deployments) lists the recorded vault contracts per chain.

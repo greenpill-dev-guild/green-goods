@@ -17,7 +17,14 @@
  * @module utils/time
  * @see https://tc39.es/proposal-temporal/docs/
  */
+import type { IntlShape } from "react-intl";
 
+export {
+  fromCalendarDateKey,
+  pickerValueToUtcDay,
+  toCalendarDateKey,
+  utcDayToPickerValue,
+} from "./calendar-date";
 export type TimeFilter = "day" | "week" | "month" | "year";
 
 // Duration constants for time filtering
@@ -87,46 +94,6 @@ export function filterByTimeRange<T extends { createdAt: number }>(
  */
 export function sortByCreatedAt<T extends { createdAt: number }>(items: T[]): T[] {
   return [...items].sort((a, b) => b.createdAt - a.createdAt);
-}
-
-/**
- * Format a timestamp to relative time (e.g., "2 hours ago", "3 days ago")
- *
- * Accepts seconds or milliseconds. Falls back to "just now" for very recent events.
- */
-export function formatRelativeTime(timestamp: number | string | Date): string {
-  let ms: number;
-
-  if (timestamp instanceof Date) {
-    ms = timestamp.getTime();
-  } else if (typeof timestamp === "string") {
-    ms = new Date(timestamp).getTime();
-  } else {
-    ms = normalizeTimestamp(timestamp);
-  }
-
-  if (Number.isNaN(ms)) return "just now";
-
-  const diffMs = Date.now() - ms;
-
-  if (diffMs < 0 || Number.isNaN(diffMs)) return "just now";
-
-  const seconds = Math.floor(diffMs / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-  const weeks = Math.floor(days / 7);
-  const months = Math.floor(days / 30);
-  const years = Math.floor(days / 365);
-
-  if (years > 0) return `${years} year${years > 1 ? "s" : ""} ago`;
-  if (months > 0) return `${months} month${months > 1 ? "s" : ""} ago`;
-  if (weeks > 0) return `${weeks} week${weeks > 1 ? "s" : ""} ago`;
-  if (days > 0) return `${days} day${days > 1 ? "s" : ""} ago`;
-  if (hours > 0) return `${hours} hour${hours > 1 ? "s" : ""} ago`;
-  if (minutes > 0) return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
-  if (seconds > 10) return `${seconds} second${seconds > 1 ? "s" : ""} ago`;
-  return "just now";
 }
 
 /**
@@ -547,30 +514,21 @@ export function getCurrentTimezone(): string {
 }
 
 /**
- * Format a date range as "start - end" with safe timestamp handling.
- * Handles seconds, milliseconds, ISO strings, and null values.
+ * An assessment's reporting period as one date range in the reader's language,
+ * or null when either end is missing. Create Assessment stores each end as UTC
+ * midnight of the calendar day the author picked, so the range is read in UTC:
+ * a reader west of it would otherwise see the day before. An end the calendar
+ * cannot hold reads as missing: the attestation keeps each end as a uint256,
+ * and the range formatter fails on one beyond a Date's reach.
  */
-export function formatDateRange(
-  start?: string | number | null,
-  end?: string | number | null,
-  fallback = "\u2014"
-): string {
-  const formatValue = (value?: string | number | null): string | undefined => {
-    if (value === null || value === undefined) return undefined;
-    if (typeof value === "string" && value.includes("-")) {
-      const date = new Date(value);
-      return Number.isNaN(date.getTime()) ? undefined : date.toLocaleDateString();
-    }
-    const numeric = typeof value === "string" ? Number(value) : value;
-    if (!numeric) return undefined;
-    const timestamp = numeric > 10_000_000_000 ? numeric : numeric * 1000;
-    const date = new Date(timestamp);
-    return Number.isNaN(date.getTime()) ? undefined : date.toLocaleDateString();
-  };
-
-  if (!start && !end) return fallback;
-  const startLabel = formatValue(start);
-  const endLabel = formatValue(end);
-  if (startLabel && endLabel) return `${startLabel} \u2013 ${endLabel}`;
-  return startLabel ?? endLabel ?? fallback;
+export function formatReportingPeriod(
+  intl: Pick<IntlShape, "formatDateTimeRange">,
+  start: number | null | undefined,
+  end: number | null | undefined
+): string | null {
+  if (!start || !end) return null;
+  const from = normalizeTimestamp(start);
+  const to = normalizeTimestamp(end);
+  if (Number.isNaN(new Date(from).getTime()) || Number.isNaN(new Date(to).getTime())) return null;
+  return intl.formatDateTimeRange(from, to, { dateStyle: "medium", timeZone: "UTC" });
 }

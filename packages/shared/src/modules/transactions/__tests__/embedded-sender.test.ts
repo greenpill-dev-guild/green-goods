@@ -1,6 +1,6 @@
 /**
  * EmbeddedSender Tests
- * @vitest-environment jsdom
+ * @vitest-environment happy-dom
  *
  * Tests the embedded wallet transaction sender that targets EIP-5792
  * sendCalls with paymaster capability. Since wagmi experimental APIs
@@ -12,7 +12,10 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Abi } from "viem";
+import {
+  createFakeWagmiDeps,
+  createMockContractCall,
+} from "../../../__tests__/test-utils/transaction-fakes";
 import { MOCK_ADDRESSES, MOCK_TX_HASH } from "../../../__tests__/test-utils/mock-factories";
 import type { ContractCall } from "../types";
 import { EmbeddedSender, type EmbeddedSenderDeps } from "../embedded-sender";
@@ -21,30 +24,8 @@ import { EmbeddedSender, type EmbeddedSenderDeps } from "../embedded-sender";
 // Test fixtures
 // ============================================
 
-const TEST_ABI: Abi = [
-  {
-    type: "function",
-    name: "transfer",
-    inputs: [
-      { name: "to", type: "address", internalType: "address" },
-      { name: "amount", type: "uint256", internalType: "uint256" },
-    ],
-    outputs: [{ name: "", type: "bool", internalType: "bool" }],
-    stateMutability: "nonpayable",
-  },
-];
-
 const VALID_RECIPIENT = "0x1111111111111111111111111111111111111111" as const;
-
-const TEST_CALL: ContractCall = {
-  address: "0x3333333333333333333333333333333333333333",
-  abi: TEST_ABI,
-  functionName: "transfer",
-  args: [VALID_RECIPIENT, 1000n],
-  chainId: 42161,
-};
-
-const MOCK_WAGMI_CONFIG = {} as any;
+const TEST_CALL = createMockContractCall();
 const MOCK_ERC7677_URL = "https://paymaster.example.com/rpc";
 
 // ============================================
@@ -57,12 +38,9 @@ describe("EmbeddedSender", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockDeps = {
-      writeContract: vi.fn().mockResolvedValue(MOCK_TX_HASH),
-      waitForTransactionReceipt: vi.fn().mockResolvedValue({ status: "success" }),
-      ensureWalletChain: vi.fn().mockResolvedValue(undefined),
-    };
-    sender = new EmbeddedSender(MOCK_WAGMI_CONFIG, MOCK_ERC7677_URL, mockDeps);
+    const fakeWagmi = createFakeWagmiDeps();
+    mockDeps = fakeWagmi;
+    sender = new EmbeddedSender(fakeWagmi.config, MOCK_ERC7677_URL, mockDeps);
   });
 
   describe("properties", () => {
@@ -92,7 +70,9 @@ describe("EmbeddedSender", () => {
     it("passes correct parameters to writeContract", async () => {
       await sender.sendContractCall(TEST_CALL);
 
-      expect(mockDeps.writeContract).toHaveBeenCalledWith(MOCK_WAGMI_CONFIG, {
+      expect(mockDeps.writeContract).toHaveBeenCalledWith(expect.anything(), {
+        // The write names who signs: the wallet connected when the send started.
+        account: MOCK_ADDRESSES.deployer,
         address: TEST_CALL.address,
         abi: TEST_CALL.abi,
         functionName: TEST_CALL.functionName,
@@ -101,17 +81,94 @@ describe("EmbeddedSender", () => {
       });
     });
 
+    it("rejects an account change during the Celo switch before submitting", async () => {
+      const expectedAccount = "0x1111111111111111111111111111111111111111" as const;
+      let activeAccount: `0x${string}` = expectedAccount;
+      mockDeps.getAccount = () => ({ address: activeAccount });
+      vi.mocked(mockDeps.ensureWalletChain!).mockImplementationOnce(async () => {
+        activeAccount = "0x2222222222222222222222222222222222222222";
+      });
+      await expect(
+        sender.sendContractCall({ ...TEST_CALL, chainId: 42220, account: expectedAccount })
+      ).rejects.toMatchObject({ code: "account_mismatch" });
+      expect(mockDeps.writeContract).not.toHaveBeenCalled();
+    });
+
+    it("binds the quoted account to the wallet write parameters", async () => {
+      const account = "0x1111111111111111111111111111111111111111" as const;
+      mockDeps.getAccount = () => ({ address: account });
+      await sender.sendContractCall({ ...TEST_CALL, chainId: 42220, account });
+      expect(mockDeps.writeContract).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ account, chainId: 42220 })
+      );
+    });
+
+    it.each([
+      "cancelled",
+      "replaced",
+    ] as const)("rejects a %s receipt instead of reporting the original send confirmed", async (reason) => {
+      vi.mocked(mockDeps.waitForTransactionReceipt).mockImplementationOnce(
+        async (_config, params) => {
+          params.onReplaced?.({ reason });
+          return { status: "success", transactionHash: `0x${"b".repeat(64)}` };
+        }
+      );
+      await expect(sender.sendContractCall(TEST_CALL)).rejects.toMatchObject({
+        code: reason === "cancelled" ? "transaction_cancelled" : "transaction_replaced",
+      });
+    });
+
+    it("accepts repricing and returns the included replacement hash", async () => {
+      const transactionHash = `0x${"b".repeat(64)}` as const;
+      vi.mocked(mockDeps.waitForTransactionReceipt).mockImplementationOnce(
+        async (_config, params) => {
+          params.onReplaced?.({ reason: "repriced" });
+          return { status: "success", transactionHash };
+        }
+      );
+      await expect(sender.sendContractCall(TEST_CALL)).resolves.toEqual({
+        hash: transactionHash,
+        sponsored: false,
+      });
+    });
+
+    it("switches to Celo and confirms a user-paid send", async () => {
+      const result = await sender.sendContractCall({ ...TEST_CALL, chainId: 42220 });
+      expect(mockDeps.ensureWalletChain).toHaveBeenCalledWith(42220, "write", expect.any(Function));
+      expect(mockDeps.writeContract).toHaveBeenCalled();
+      expect(mockDeps.waitForTransactionReceipt).toHaveBeenCalledWith(expect.anything(), {
+        onReplaced: expect.any(Function),
+        hash: MOCK_TX_HASH,
+        chainId: 42220,
+      });
+      expect(result.sponsored).toBe(false);
+    });
+
+    it("does not submit when Celo switching is rejected", async () => {
+      vi.mocked(mockDeps.ensureWalletChain!).mockRejectedValueOnce(new Error("Switch rejected"));
+      await expect(sender.sendContractCall({ ...TEST_CALL, chainId: 42220 })).rejects.toThrow(
+        "Switch rejected"
+      );
+      expect(mockDeps.writeContract).not.toHaveBeenCalled();
+    });
+
     it("switches to the target chain before sending", async () => {
       await sender.sendContractCall(TEST_CALL);
 
-      expect(mockDeps.ensureWalletChain).toHaveBeenCalledWith(TEST_CALL.chainId);
+      expect(mockDeps.ensureWalletChain).toHaveBeenCalledWith(
+        TEST_CALL.chainId,
+        "write",
+        expect.any(Function)
+      );
       expect(mockDeps.writeContract).toHaveBeenCalledOnce();
     });
 
     it("passes payable value when specified in call", async () => {
       await sender.sendContractCall({ ...TEST_CALL, value: 123n });
 
-      expect(mockDeps.writeContract).toHaveBeenCalledWith(MOCK_WAGMI_CONFIG, {
+      expect(mockDeps.writeContract).toHaveBeenCalledWith(expect.anything(), {
+        account: MOCK_ADDRESSES.deployer,
         address: TEST_CALL.address,
         abi: TEST_CALL.abi,
         functionName: TEST_CALL.functionName,

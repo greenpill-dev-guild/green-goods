@@ -24,5 +24,5 @@
     /* Plugins */
     "plugins": []
   },
-  "include": ["vite.config.ts", "api", "../../indexer/schema.graphql", "../../env.d.ts"]
+  "include": ["vite.config.ts", "vite/**/*.ts", "../indexer/schema.graphql", "../../env.d.ts"]
 }

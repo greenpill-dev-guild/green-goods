@@ -145,15 +145,7 @@ contract UnlockModule is OwnableUpgradeable, UUPSUpgradeable {
     /// @param worker The worker who submitted the work
     /// @param workUID The UID of the work attestation
     /// @return tokenId The badge token ID (0 if not granted)
-    function onWorkApproved(
-        address garden,
-        address worker,
-        bytes32 workUID
-    )
-        external
-        onlyRouter
-        returns (uint256 tokenId)
-    {
+    function onWorkApproved(address garden, address worker, bytes32 workUID) external onlyRouter returns (uint256 tokenId) {
         // Get configured lock for garden
         address lock = gardenLocks[garden];
         if (lock == address(0)) return 0; // No lock configured, skip silently

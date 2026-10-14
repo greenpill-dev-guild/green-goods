@@ -1,32 +1,51 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
-import { queueToasts, toastService } from "../components/toast";
-import { DEFAULT_CHAIN_ID } from "../config/blockchain";
+import { useIntl } from "react-intl";
+import { createQueueToasts } from "../components/toast";
+import { DEFAULT_CHAIN_ID } from "../config/default-chain";
 import { queryClient } from "../config/react-query";
 import { useAuth } from "../hooks/auth/useAuth";
 import { usePrimaryAddress } from "../hooks/auth/usePrimaryAddress";
 import { useTransactionSender } from "../hooks/blockchain/useTransactionSender";
-import { queryInvalidation, queryKeys } from "../config/query-keys";
-import { jobQueue, jobQueueEventBus } from "../modules/job-queue";
+import { useCommitmentCompletionRefresh } from "../hooks/commitment-pooling/useCommitmentCompletionRefresh";
+import { queryInvalidation } from "../config/query-keys/invalidation";
+import { draftsKeys, queueKeys } from "../config/query-keys/misc";
+import { approvalsKeys, workApprovalsKeys, worksKeys } from "../config/query-keys/work";
+import { useQueueConfirmationSync } from "../hooks/work/useQueueConfirmationSync";
+import { useWorkUploadPreparation } from "../hooks/work/useWorkUploadPreparation";
+import { COMMITMENT_JOB_KINDS } from "../modules/commitment-pooling/job-types";
+import { jobQueue } from "../modules/job-queue/default-instance";
+import type { JobQueueHandle } from "../modules/job-queue/ports";
+import { JOB_DISCARDED } from "../modules/job-queue/queue-policy";
 import { logger } from "../modules/app/logger";
-import { useUIStore } from "../stores/useUIStore";
+import { deleteDraftOfQueuedWork } from "../modules/work/draft-lifecycle";
+import { scheduleUploadPreparation } from "../modules/work/upload-preparation";
+import { connectivityStore } from "../stores/connectivity";
 import type {
   ApprovalJobPayload,
+  Job,
   QueueEvent,
   QueueStats,
   WorkJobPayload,
 } from "../types/job-queue";
-import { trackStorageQuota } from "../utils/storage/quota";
+import { requestPersistentStorageOnce, trackStorageQuota } from "../utils/storage/quota";
 
 interface JobQueueContextValue {
   stats: QueueStats;
   isProcessing: boolean;
   lastEvent: QueueEvent | null;
-  flush: () => Promise<void>;
+  /** Give one job another run and send only that job, as the person's own tap. */
+  retryAndSend: (jobId: string) => Promise<void>;
   hasPendingJobs: () => Promise<boolean>;
   getPendingCount: () => Promise<number>;
 }
 
 const JobQueueContext = createContext<JobQueueContextValue | undefined>(undefined);
+
+function stillQueuedReason(hasSender: boolean) {
+  if (!connectivityStore.getSnapshot()) return "offline";
+  if (!hasSender) return "signedOut";
+  return "retrying";
+}
 
 export const useJobQueue = () => {
   const context = useContext(JobQueueContext);
@@ -41,13 +60,9 @@ export const useQueueStats = () => {
   return stats;
 };
 
-export const useQueueFlush = () => {
-  const { flush } = useJobQueue();
-  return flush;
-};
-
 interface JobQueueProviderProps {
   children: React.ReactNode;
+  queue?: JobQueueHandle;
 }
 
 const EMPTY_QUEUE_STATS: QueueStats = { total: 0, pending: 0, failed: 0, synced: 0 };
@@ -65,7 +80,11 @@ interface Work {
   [key: string]: unknown;
 }
 
-const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) => {
+const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queue = jobQueue }) => {
+  const { formatMessage } = useIntl();
+  // One object per intl instance: the effects below list it as a dependency, so
+  // a fresh one on every render would resubscribe the queue on every render.
+  const queueToasts = React.useMemo(() => createQueueToasts(formatMessage), [formatMessage]);
   const { authMode } = useAuth();
   const sender = useTransactionSender();
 
@@ -81,17 +100,6 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
   // flush. Module-internal locking still applies, but this layer enforces
   // serialization at the provider boundary too.
   const isFlushInProgressRef = useRef(false);
-  const setOfflineBannerVisible = useUIStore((state) => state.setOfflineBannerVisible);
-
-  const setOfflineBannerVisibleIfChanged = useCallback(
-    (visible: boolean) => {
-      if (useUIStore.getState().isOfflineBannerVisible === visible) {
-        return;
-      }
-      setOfflineBannerVisible(visible);
-    },
-    [setOfflineBannerVisible]
-  );
 
   // useCallback needed here as refreshStats is used in multiple effects
   const refreshStats = useCallback(
@@ -101,23 +109,21 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
         setStats((previousStats) =>
           areQueueStatsEqual(previousStats, EMPTY_QUEUE_STATS) ? previousStats : EMPTY_QUEUE_STATS
         );
-        setOfflineBannerVisibleIfChanged(false);
         return;
       }
 
       try {
-        const newStats = await jobQueue.getStats(currentUserAddress);
+        const newStats = await queue.getStats(currentUserAddress);
         if (signal?.aborted) return;
         setStats((previousStats) =>
           areQueueStatsEqual(previousStats, newStats) ? previousStats : newStats
         );
-        setOfflineBannerVisibleIfChanged(newStats.pending > 0 || newStats.failed > 0);
       } catch (error) {
         if (signal?.aborted) return;
         logger.warn("[JobQueueProvider] refreshStats failed", { error });
       }
     },
-    [currentUserAddress, setOfflineBannerVisibleIfChanged]
+    [currentUserAddress, queue]
   );
 
   // Helper to invalidate multiple query keys
@@ -148,10 +154,22 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
   useEffect(() => {
     const abortController = new AbortController();
 
+    const rereadDrafts = () => queryClient.invalidateQueries({ queryKey: draftsKeys.all });
+    // Work sent from Your Work has no composer to retire the draft it left. Removed or kept
+    // for its changes, the drafts are read again; a draft its own Submit holds is left alone.
+    const retireDraft = (job: Job) => {
+      void deleteDraftOfQueuedWork(job, "retire")
+        .then((outcome) => {
+          if (outcome) void rereadDrafts();
+        })
+        .catch((error: unknown) => {
+          logger.warn("[JobQueueProvider] Could not remove the draft of sent work", { error });
+        });
+    };
+
     // Event handlers using DRY query invalidation helpers
     const handleJobProcessing = () => {
       setIsProcessing(true);
-      setOfflineBannerVisibleIfChanged(true);
       // Suppress toasts for background processing/retries to reduce noise
     };
 
@@ -179,6 +197,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
         invalidateKeys(
           queryInvalidation.onJobCompleted(gardenId, chainId, currentUserAddress ?? undefined)
         );
+        retireDraft(event.job);
       } else if (event.job.kind === "approval") {
         queueToasts.jobCompleted("approval");
         const approvalPayload = event.job.payload as ApprovalJobPayload;
@@ -186,14 +205,14 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
         // Invalidate work approvals to show the new approval
         if (currentUserAddress) {
           queryClient.invalidateQueries({
-            queryKey: queryKeys.workApprovals.byAttester(currentUserAddress, DEFAULT_CHAIN_ID),
+            queryKey: workApprovalsKeys.byAttester(currentUserAddress, DEFAULT_CHAIN_ID),
           });
         }
-        queryClient.invalidateQueries({ queryKey: queryKeys.approvals.all });
+        queryClient.invalidateQueries({ queryKey: approvalsKeys.all });
 
         // Update work status in cache if available
         const workUID = approvalPayload.workUID;
-        queryClient.setQueriesData<Work[]>({ queryKey: queryKeys.works.all }, (oldWorks) => {
+        queryClient.setQueriesData<Work[]>({ queryKey: worksKeys.all }, (oldWorks) => {
           // Defensive shape check: cached values can be undefined or
           // (rarely) a non-array if a hook stuffed something unexpected
           // into the same query-key namespace. Bail without mutating.
@@ -214,19 +233,28 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
       if (!event.job) return;
 
       if (event.job.kind === "work") {
-        queueToasts.jobFailed("work", event.error);
+        // A discard is the person's own act, which its screen confirms: not a failed sync.
+        // The discard removed the work's draft before the work, so the drafts are read again.
+        if (event.error === JOB_DISCARDED) void rereadDrafts();
+        else queueToasts.jobFailed("work", event.error);
         const workPayload = event.job.payload as WorkJobPayload;
         const gardenId = workPayload.gardenAddress;
         const chainId = (event.job.chainId as number) || DEFAULT_CHAIN_ID;
-        queryClient.invalidateQueries({ queryKey: queryKeys.works.offline(gardenId) });
-        queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(gardenId, chainId) });
+        queryClient.invalidateQueries({ queryKey: worksKeys.offline(gardenId) });
+        queryClient.invalidateQueries({ queryKey: worksKeys.merged(gardenId, chainId) });
       } else if (event.job.kind === "approval") {
         queueToasts.jobFailed("approval", event.error);
       }
     };
 
     const handleJobAdded = (event: QueueEvent) => {
+      // A job that went back to waiting, for any reason, is no longer being processed.
+      if (event.job?.meta?.waitingReason) setIsProcessing(false);
+      // Prepare work and decisions as soon as they enter the queue, regardless of
+      // wallet or passkey mode. The preparation module waits for a confirmed connection.
+      if (event.job?.kind === "work" || event.job?.kind === "approval") scheduleUploadPreparation();
       void refreshStats(abortController.signal);
+      void requestPersistentStorageOnce("offline-job");
 
       if (event.job?.kind === "work") {
         const workPayload = event.job.payload as WorkJobPayload;
@@ -237,11 +265,13 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
         invalidateKeys(
           queryInvalidation.onJobAdded(gardenId, chainId, currentUserAddress ?? undefined)
         );
+        // Queued work is listed as queued; its draft stops being a second item.
+        void rereadDrafts();
       }
 
       // Update global counts
-      queryClient.invalidateQueries({ queryKey: queryKeys.queue.pendingCount() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.queue.stats() });
+      queryClient.invalidateQueries({ queryKey: queueKeys.pendingCount() });
+      queryClient.invalidateQueries({ queryKey: queueKeys.stats() });
     };
 
     // Handler map for cleaner event routing
@@ -262,8 +292,8 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
     void refreshStats(abortController.signal);
 
     // Subscribe to events
-    const unsubscribe = jobQueue.subscribe(handleQueueEvent);
-    const unsubscribeSyncCompleted = jobQueueEventBus.on("queue:sync-completed", () => {
+    const unsubscribe = queue.subscribe(handleQueueEvent);
+    const unsubscribeSyncCompleted = queue.onSyncCompleted(() => {
       setIsProcessing(false);
       void refreshStats(abortController.signal);
     });
@@ -273,7 +303,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
       unsubscribe();
       unsubscribeSyncCompleted();
     };
-  }, [currentUserAddress, refreshStats, setOfflineBannerVisibleIfChanged]);
+  }, [currentUserAddress, queue, queueToasts, refreshStats]);
 
   useEffect(() => {
     if (!sender || !currentUserAddress) {
@@ -294,7 +324,13 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
 
       isFlushInProgressRef.current = true;
       try {
-        await jobQueue.flush({ transactionSender: sender, userAddress: currentUserAddress });
+        await queue.flush({
+          transactionSender: sender,
+          userAddress: currentUserAddress,
+          // Work and decisions always wait for an explicit Upload action. Only
+          // commitment acts keep their established background send behavior.
+          kinds: COMMITMENT_JOB_KINDS,
+        });
         if (!abortController.signal.aborted) {
           await refreshStats(abortController.signal);
         }
@@ -317,31 +353,45 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
       }
     };
 
-    // Auto-flush on mount if online and have a transaction sender (passkey or embedded)
-    if (navigator.onLine && (authMode === "passkey" || authMode === "embedded")) {
+    // Auto-flush only once the origin has confirmed the connection: "online"
+    // is also the boot state and the state while a probe is still pending, and
+    // an unstable connection never sends.
+    const autoSends = authMode === "passkey" || authMode === "embedded";
+    if (autoSends && connectivityStore.isConfirmedOnline()) {
       void attemptFlush();
     }
 
-    const handleOnline = () => {
-      // Auto-flush for passkey and embedded users (sponsored tx senders)
-      if (authMode === "passkey" || authMode === "embedded") {
+    const handleConnectivity = () => {
+      if (autoSends && connectivityStore.isConfirmedOnline()) {
         void attemptFlush();
       }
     };
 
-    window.addEventListener("online", handleOnline);
-    const unsubscribeBackgroundSync = jobQueueEventBus.on("background:sync-requested", () => {
-      if (authMode === "passkey" || authMode === "embedded") {
-        void attemptFlush();
-      }
+    const unsubscribeConnectivity = connectivityStore.subscribeStatus(handleConnectivity);
+    const unsubscribeBackgroundSync = queue.onBackgroundSyncRequested(() => {
+      scheduleUploadPreparation();
+      if (!autoSends) return;
+      void connectivityStore.confirmOnline().then((confirmed) => {
+        if (confirmed) void attemptFlush();
+      });
     });
 
     return () => {
       abortController.abort();
-      window.removeEventListener("online", handleOnline);
+      unsubscribeConnectivity();
       unsubscribeBackgroundSync();
     };
-  }, [sender, authMode, currentUserAddress, refreshStats]);
+  }, [sender, authMode, currentUserAddress, queue, queueToasts, refreshStats]);
+
+  // Sent work and decisions are confirmed here; nothing is sent from this pass.
+  useQueueConfirmationSync({ queue, sender, userAddress: currentUserAddress, refreshStats });
+
+  // Queued work and decisions are prepared in the background, so Upload all only signs.
+  useWorkUploadPreparation(currentUserAddress, DEFAULT_CHAIN_ID);
+
+  // Work and decisions are refreshed by the completion handler above. Commitment
+  // acts are refreshed here, and again as the indexer catches up with the receipt.
+  useCommitmentCompletionRefresh();
 
   // Context value - useMemo kept here as it's passed to Provider (cross-boundary)
   const contextValue: JobQueueContextValue = React.useMemo(
@@ -349,64 +399,52 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
       stats,
       isProcessing,
       lastEvent,
-      flush: async () => {
+      retryAndSend: async (jobId: string) => {
         if (!currentUserAddress) {
-          toastService.error({
-            id: "job-queue-flush",
-            title: "Cannot sync",
-            message: "Please sign in to sync your queue.",
-            context: "job queue",
-          });
+          queueToasts.stillQueued("signedOut");
           return;
         }
-
         try {
-          const result = await jobQueue.flush({
-            transactionSender: sender ?? null,
-            userAddress: currentUserAddress,
-          });
+          await queue.retryJob(jobId);
+          // The person asked for this one job, so nothing else in the queue is sent.
+          const context = { transactionSender: sender ?? null, explicit: true };
+          let result = await queue.processJob(jobId, context);
+          // A creation's first pass only submits it; a second reads the new
+          // commitment back and completes the job. A wallet has no background
+          // flush to make that pass, so it is made here, in the same tap.
+          if (!result.success && result.skipped && result.txHash) {
+            result = await queue.processJob(jobId, context);
+          }
           await refreshStats();
-
-          if (result.processed > 0) {
-            queueToasts.syncSuccess(result.processed);
-          } else if (result.failed > 0) {
-            queueToasts.syncError();
-          } else if (result.skipped > 0) {
-            const isOnline = typeof navigator === "undefined" ? true : navigator.onLine;
-            const reason = !isOnline
-              ? "Reconnect to the internet to finish syncing."
-              : !sender
-                ? "Sign in to continue syncing."
-                : "We'll retry shortly.";
-            queueToasts.stillQueued(reason);
+          if (result.success) {
+            if (result.skipped) queueToasts.queueClear();
+            else queueToasts.syncSuccess(1);
+          } else if (!result.skipped) {
+            // Not syncError: one act, and a non-skipped failure is one the
+            // queue gave up on rather than rescheduled.
+            queueToasts.retryFailed();
           } else {
-            queueToasts.queueClear();
+            queueToasts.stillQueued(stillQueuedReason(Boolean(sender)));
           }
         } catch (error) {
-          toastService.error({
-            id: "job-queue-flush",
-            title: "Queue sync failed",
-            message: "Please try again.",
-            context: "job queue",
-            error,
-          });
+          queueToasts.retryFailed(error);
         }
       },
       hasPendingJobs: () => {
         if (!currentUserAddress) return Promise.resolve(false);
-        return jobQueue.hasPendingJobs(currentUserAddress);
+        return queue.hasPendingJobs(currentUserAddress);
       },
       getPendingCount: () => {
         if (!currentUserAddress) return Promise.resolve(0);
-        return jobQueue.getPendingCount(currentUserAddress);
+        return queue.getPendingCount(currentUserAddress);
       },
     }),
-    [stats, isProcessing, lastEvent, currentUserAddress, sender, refreshStats]
+    [stats, isProcessing, lastEvent, currentUserAddress, sender, queue, queueToasts, refreshStats]
   );
 
   return <JobQueueContext.Provider value={contextValue}>{children}</JobQueueContext.Provider>;
 };
 
-export const JobQueueProvider: React.FC<JobQueueProviderProps> = ({ children }) => {
-  return <JobQueueProviderInner>{children}</JobQueueProviderInner>;
+export const JobQueueProvider: React.FC<JobQueueProviderProps> = ({ children, queue }) => {
+  return <JobQueueProviderInner queue={queue ?? jobQueue}>{children}</JobQueueProviderInner>;
 };

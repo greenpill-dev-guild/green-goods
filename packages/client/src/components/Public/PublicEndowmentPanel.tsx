@@ -1,36 +1,39 @@
-import * as Dialog from "@radix-ui/react-dialog";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { Button } from "@green-goods/shared/components/Button";
+import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { IconButton } from "@green-goods/shared/components/IconButton";
+import { useAuth } from "@green-goods/shared/hooks/auth/useAuth";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useWalletConnectDismissGuard } from "@green-goods/shared/hooks/auth/useWalletModalOpen";
 import {
-  type Address,
-  Alert,
-  cn,
-  DEFAULT_WITHDRAW_MAX_LOSS_BPS,
-  formatTokenAmount,
   type PublicEndowmentAssetTotal,
   type PublicEndowmentGardenGroup,
   type PublicEndowmentPosition,
-  truncateAddress,
-  useAuth,
-  useDebouncedValue,
   usePublicEndowmentPositions,
-  useTxErrorMessages,
-  useUser,
-  useVaultPreview,
-  useVaultWithdraw,
-  useWalletConnectDismissGuard,
+} from "@green-goods/shared/hooks/public/usePublicEndowmentPositions";
+import { useDebouncedValue } from "@green-goods/shared/hooks/utils/useDebouncedValue";
+import { useTxErrorMessages } from "@green-goods/shared/hooks/utils/useTxErrorMessages";
+import { useVaultPreview } from "@green-goods/shared/hooks/vault/useVaultPreview";
+import { useVaultWithdraw } from "@green-goods/shared/hooks/vault/useVaultWithdraw";
+import type { Address } from "@green-goods/shared/types/domain";
+import { truncateAddress } from "@green-goods/shared/utils/blockchain/address";
+import {
+  DEFAULT_WITHDRAW_MAX_LOSS_BPS,
+  formatTokenAmount,
   validateDecimalInput,
-} from "@green-goods/shared";
+} from "@green-goods/shared/utils/blockchain/vaults";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import * as Dialog from "@radix-ui/react-dialog";
 import { RiCloseLine } from "@remixicon/react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits, parseUnits } from "viem";
 import { EditorialGhostButton } from "./atoms";
-
 export interface PublicEndowmentPanelProps {
   open: boolean;
   onExitComplete?: () => void;
   onOpenChange: (open: boolean) => void;
 }
-
 function formatDisplayAmount(value: bigint, decimals: number, symbol: string): string {
   return `${formatTokenAmount(value, decimals, 4, undefined, true)} ${symbol}`;
 }
@@ -191,21 +194,19 @@ export function PublicEndowmentPanel({
                   : formatMessage({
                       id: "public.fund.endowments.connect.lede",
                       defaultMessage:
-                        "Connect the wallet you used to endow Gardens and review what you have supported.",
+                        "Connect the wallet you endowed with, and we'll show you the Gardens your support is growing.",
                     })}
               </Dialog.Description>
             </div>
             <Dialog.Close asChild>
-              <button
-                type="button"
-                className="inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-stroke-soft-200 bg-bg-white-0 text-text-sub-600 transition-colors hover:bg-bg-weak-50 hover:text-text-strong-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
+              <IconButton
+                emphasis="secondary"
                 aria-label={formatMessage({
                   id: "public.fund.endowments.close",
-                  defaultMessage: "Close endowments",
+                  defaultMessage: "Close Endowments",
                 })}
-              >
-                <RiCloseLine className="h-5 w-5" />
-              </button>
+                icon={<RiCloseLine aria-hidden="true" />}
+              />
             </Dialog.Close>
           </header>
 
@@ -227,7 +228,7 @@ export function PublicEndowmentPanel({
                 </p>
                 <EditorialGhostButton
                   variant="warm"
-                  className="mt-5 w-full px-5 py-2.5 text-sm"
+                  className="mt-5 w-full"
                   onClick={() => {
                     markConnecting();
                     loginWithWallet();
@@ -260,10 +261,7 @@ export function PublicEndowmentPanel({
                     defaultMessage: "Refresh the account view and try again.",
                   })}
                 </p>
-                <EditorialGhostButton
-                  className="mt-5 px-5 py-2.5 text-sm"
-                  onClick={() => void portfolio.refetch()}
-                >
+                <EditorialGhostButton className="mt-5" onClick={() => void portfolio.refetch()}>
                   {formatMessage({
                     id: "public.fund.endowments.error.retry",
                     defaultMessage: "Refresh",
@@ -587,7 +585,8 @@ function EndowmentAssetRow({ position, ownerAddress, onRefresh }: EndowmentAsset
           </dl>
         </div>
         <EditorialGhostButton
-          className="shrink-0 px-4 py-2 text-xs"
+          size="sm"
+          className="shrink-0"
           aria-expanded={expanded}
           aria-controls={expanded ? withdrawRegionId : undefined}
           onClick={() => {
@@ -618,7 +617,7 @@ function EndowmentAssetRow({ position, ownerAddress, onRefresh }: EndowmentAsset
             })}
           </label>
           <div className="mt-2 flex items-center gap-2">
-            <input
+            <TextInput
               type="text"
               id={amountInputId}
               inputMode="decimal"
@@ -632,26 +631,20 @@ function EndowmentAssetRow({ position, ownerAddress, onRefresh }: EndowmentAsset
               placeholder={`0.0 ${position.assetSymbol}`}
               aria-invalid={Boolean(inputError || exceedsAvailable)}
               aria-describedby={amountFeedbackId}
-              className={cn(
-                "min-h-11 w-full rounded-full border bg-bg-white-0 px-4 py-2.5 text-sm text-text-strong-950 outline-none transition-colors placeholder:text-text-soft-400 focus:border-primary-action",
-                inputError || exceedsAvailable ? "border-error-base" : "border-stroke-soft-200"
-              )}
             />
-            <button
+            <Button
               type="button"
+              emphasis="secondary"
               onClick={() => {
                 setAmountInput(formatUnits(maxWithdrawable, position.decimals));
                 setSuccessMessage("");
                 withdrawMutation.reset();
               }}
               disabled={maxWithdrawable <= 0n || isFetching}
-              className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-full border border-stroke-soft-200 bg-bg-white-0 px-4 py-2.5 text-xs font-medium text-text-sub-600 transition-colors hover:bg-bg-weak-50 disabled:cursor-not-allowed disabled:opacity-60"
+              className="shrink-0"
             >
-              {formatMessage({
-                id: "public.fund.endowments.withdraw.max",
-                defaultMessage: "Max",
-              })}
-            </button>
+              {formatMessage({ id: "public.fund.endowments.withdraw.max", defaultMessage: "Max" })}
+            </Button>
           </div>
 
           {inputError ? (
@@ -685,9 +678,9 @@ function EndowmentAssetRow({ position, ownerAddress, onRefresh }: EndowmentAsset
 
           <EditorialGhostButton
             variant="warm"
-            className="mt-4 w-full px-5 py-2.5 text-sm"
+            className="mt-4 w-full"
             disabled={disableWithdraw}
-            aria-busy={withdrawMutation.isPending || undefined}
+            loading={withdrawMutation.isPending}
             onClick={executeWithdraw}
           >
             {parsedAmount > 0n && !inputError

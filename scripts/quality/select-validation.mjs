@@ -1,0 +1,1417 @@
+#!/usr/bin/env node
+
+import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { existsSync, lstatSync, readFileSync, readlinkSync, statSync } from "node:fs";
+import { createRequire } from "node:module";
+import { dirname, resolve, sep } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+import { inspectPinnedSubmodules } from "../lib/dev-shared.js";
+import { isSharedSourcePath, mutationPathsAmong } from "./shared-mutation-surface.mjs";
+
+const scriptDirectory = dirname(fileURLToPath(import.meta.url));
+const projectRoot = resolve(scriptDirectory, "../..");
+const defaultPolicyPath = resolve(projectRoot, "scripts/data/validation-policy.json");
+// The critical override for Shared code that signs, sends, moves funds, or changes auth, session
+// or queue state. Its exact list is kept in step with the code by select-validation.test.mjs.
+export const SHARED_CRITICAL_RULE_ID = "shared-signing-money-queue-auth";
+// Documentation and asset migrations can legitimately produce binary patches larger than
+// Node's default child-process buffer. Keep enough headroom for a full working-copy
+// fingerprint without weakening the selector's path or content checks.
+const GIT_OUTPUT_MAX_BUFFER = 64 * 1024 * 1024;
+
+export function loadPolicy(policyPath = defaultPolicyPath) {
+  const policy = JSON.parse(readFileSync(policyPath, "utf8"));
+  validatePolicy(policy);
+  return policy;
+}
+
+function validatePolicy(policy) {
+  if (!Number.isInteger(policy.version) || policy.version < 1) {
+    throw new Error("Validation policy must have a positive integer version");
+  }
+  if (!Array.isArray(policy.checks) || policy.checks.length === 0) {
+    throw new Error("Validation policy must define checks");
+  }
+
+  const ids = new Set();
+  for (const check of policy.checks) {
+    if (!check.id || ids.has(check.id)) {
+      throw new Error(`Validation policy contains an invalid or duplicate check id: ${check.id}`);
+    }
+    ids.add(check.id);
+    for (const field of ["risk", "expectedSignal", "freshness", "stopRule"]) {
+      if (!check[field]) throw new Error(`Validation check ${check.id} is missing ${field}`);
+    }
+    if (!Number.isFinite(check.budgetSeconds) || check.budgetSeconds <= 0) {
+      throw new Error(`Validation check ${check.id} must have a positive budgetSeconds`);
+    }
+  }
+
+  if (policy.sharedMutationPrimitives !== undefined) {
+    const { external, internal, members } = policy.sharedMutationPrimitives;
+    const namedLists = (value) =>
+      value && typeof value === "object" && Object.values(value).every(
+        (names) => Array.isArray(names) && names.every((name) => typeof name === "string" && name),
+      );
+    if (!namedLists(external) || !namedLists(internal) || !Array.isArray(members) || !members.every((name) => typeof name === "string" && name)) {
+      throw new Error("Validation policy sharedMutationPrimitives needs external, internal and members name lists");
+    }
+    if (!(policy.criticalOverrides ?? []).some((rule) => rule.id === SHARED_CRITICAL_RULE_ID)) {
+      throw new Error(`Validation policy sharedMutationPrimitives needs the ${SHARED_CRITICAL_RULE_ID} critical override`);
+    }
+  }
+
+  for (const rule of [...(policy.conditionalRules ?? []), ...(policy.criticalOverrides ?? [])]) {
+    for (const id of rule.checks ?? [rule.check]) {
+      if (!ids.has(id)) throw new Error(`Validation rule references unknown check ${id}`);
+    }
+    if (rule.intents !== undefined) {
+      if (!Array.isArray(rule.intents) || rule.intents.length === 0) {
+        throw new Error("Validation rule intents must be a non-empty array");
+      }
+      for (const intent of rule.intents) {
+        if (!policy.intentOrder.includes(intent)) {
+          throw new Error(`Validation rule references unknown intent ${intent}`);
+        }
+      }
+    }
+    for (const flag of ["runInQa", "runInEvidence"]) {
+      if (rule[flag] !== undefined && typeof rule[flag] !== "boolean") {
+        throw new Error(`Validation rule ${flag} must be boolean`);
+      }
+    }
+  }
+}
+
+function normalizePath(path) {
+  return String(path).replaceAll("\\", "/").replace(/^\.\//, "");
+}
+
+function normalizePaths(paths = []) {
+  return [...new Set(paths.filter(Boolean).map(normalizePath))].sort();
+}
+
+const packageSurfaces = ["contracts", "shared", "indexer", "client", "admin", "agent"];
+const allSurfaces = [...packageSurfaces, "docs"];
+const TURBO_TEST_INTENTS = new Set(["checkpoint", "readiness", "push", "ship", "merge"]);
+const TURBO_PACKAGES = new Map(
+  ["shared", "client", "admin", "agent", "indexer", "docs"].map((surface) => [
+    `${surface}-test`,
+    {
+      binary: surface === "docs" ? "../node_modules/.bin/turbo" : "../../node_modules/.bin/turbo",
+      packageName: `@green-goods/${surface}`,
+    },
+  ]),
+);
+
+// A manual check with no command is evidence a person records, not a process the
+// runner can execute. The policy marks it advisory: every local intent reports it as
+// pending and never blocks on it; only the release gate asks for `--attest`.
+export function isAdvisoryManualCheck(check) {
+  return check?.manual === true && check.command === null && check.stopRule === "advisory";
+}
+
+function owningSurface(path) {
+  if (path.startsWith("docs/")) return "docs";
+  return packageSurfaces.find((surface) => path.startsWith(`packages/${surface}/`)) ?? null;
+}
+
+function isTestPath(path) {
+  return /(^|\/)(__tests__|test|tests)\//.test(path) || /\.(test|spec)\.[cm]?[jt]sx?$/.test(path);
+}
+
+// A test directory also holds what no runner can execute: helpers, fixtures, setup and notes.
+// Only a test file can be a focused run. Handing a runner anything else finds no tests, which
+// Vitest reports as a failure.
+function isRunnableTestPath(path) {
+  return (
+    isTestPath(path) &&
+    (/(^|[/.])(test|spec)\.[cm]?[jt]sx?$/.test(path) || path.endsWith(".t.sol"))
+  );
+}
+
+// Notes kept beside tests change no test's outcome, so they select no test run.
+function isTestNotesPath(path) {
+  return isTestPath(path) && /\.mdx?$/i.test(path);
+}
+
+// A changed test, helper or fixture can change what its suite reports.
+function affectsTests(path) {
+  return isTestPath(path) && !isTestNotesPath(path);
+}
+
+function isStorybookConfigPath(path) {
+  return path.includes("/.storybook/");
+}
+
+function isStoryPath(path) {
+  return (
+    /\.stories?\.[cm]?[jt]sx?$/.test(path) ||
+    isStorybookConfigPath(path) ||
+    /(^|\/)storybook[^/]*\.[cm]?[jt]sx?$/i.test(path)
+  );
+}
+
+function isValidationOnlyPath(path) {
+  return isTestPath(path) || isStoryPath(path);
+}
+
+const directRootTestChecks = new Map([
+  ["scripts/harness/agent-hooks.test.mjs", "review-guardrails-test"],
+  ["scripts/lib/env-schema.test.mjs", "env-schema-test"],
+  ["scripts/lib/dev-shared.test.mjs", "validation-system-test"],
+  ["scripts/quality/select-validation.test.mjs", "validation-system-test"],
+  ["scripts/dev/ci-local.test.mjs", "validation-system-test"],
+  ["scripts/dev/surface-leases.test.mjs", "validation-system-test"],
+  ["scripts/quality/ci-gate.test.mjs", "validation-system-test"],
+  ["scripts/quality/check-commit-identity.test.mjs", "validation-system-test"],
+  ["scripts/quality/classify-supply-chain-changes.mjs", "validation-system-test"],
+  ["scripts/quality/workflow-performance-parity.test.mjs", "validation-system-test"],
+]);
+
+function inferDirectRootTestChecks(paths) {
+  return [...new Set(paths.map((path) => directRootTestChecks.get(path)).filter(Boolean))];
+}
+
+function classifyChangedPath(path) {
+  if (path === "bun.lock" || path === "bun.lockb") return "lockfile";
+  if (path === "package.json" || path.endsWith("/package.json")) return "package-manifest";
+  if (isStorybookConfigPath(path)) return "storybook-config";
+  if (isStoryPath(path)) return "story";
+  if (isTestPath(path)) return "test";
+  if (
+    path.startsWith("packages/shared/src/") &&
+    (path.endsWith("/index.ts") || path === "packages/shared/src/index.ts")
+  ) {
+    return "public-source";
+  }
+  if (/^packages\/[^/]+\/src\//.test(path)) return "runtime-source";
+  if (["biome.json", "env.schema", "tsconfig.json", "tsconfig.base.json"].includes(path)) {
+    return "root-config";
+  }
+  return "other";
+}
+
+// A changed helper or fixture is no focus, so its suite runs whole unless the author names the
+// test that exercises it or changed one alongside it.
+function inferChangedTestPaths(paths, deletedPaths = []) {
+  const deleted = new Set(deletedPaths);
+  const inferred = {};
+  for (const path of paths) {
+    if (!isRunnableTestPath(path) || deleted.has(path)) continue;
+    const surface = owningSurface(path);
+    if (!surface || surface === "docs") continue;
+    const prefix = `packages/${surface}/`;
+    (inferred[surface] ??= []).push(path.slice(prefix.length));
+  }
+  return inferred;
+}
+
+function mergeTestPaths(explicit, inferred) {
+  const merged = {};
+  for (const surface of new Set([...Object.keys(explicit), ...Object.keys(inferred)])) {
+    merged[surface] = [...(explicit[surface] ?? []), ...(inferred[surface] ?? [])];
+  }
+  return normalizeTestPaths(merged);
+}
+
+function checkpointScopes(requestedScope, intent, changedPaths, cancelled) {
+  const requested = requestedScope ?? "workspace";
+  if (!["lane", "workspace"].includes(requested)) {
+    throw new Error(`Unknown checkpoint scope: ${requested}`);
+  }
+  const effective = intent === "checkpoint" ? requested : "workspace";
+  if (effective === "lane" && changedPaths.length === 0 && cancelled !== true) {
+    throw new Error("Lane checkpoint requires explicit changed paths");
+  }
+  return { requested, effective };
+}
+
+// The surfaces whose tests import this Shared test-support path, which for them is test
+// infrastructure rather than Shared's own tests.
+function consumersOfSharedTestSupport(policy, path) {
+  const support = policy.sharedConsumerTestSupport;
+  if (!support || !groupMatches(path, { exact: support.exact, prefixes: support.prefixes })) return [];
+  return support.surfaces;
+}
+
+function groupMatches(path, rule) {
+  const exactMatch = rule.exact?.includes(path) ?? false;
+  const excluded =
+    !exactMatch &&
+    ((rule.excludeValidationOnlyFrom?.includes(owningSurface(path)) &&
+      isValidationOnlyPath(path)) ||
+      (rule.excludeTests === true && isTestPath(path)) ||
+      (rule.excludeExact?.includes(path) ?? false) ||
+      (rule.excludePrefixes?.some((prefix) => path.startsWith(prefix)) ?? false) ||
+      (rule.excludeContains?.some((part) => path.includes(part)) ?? false));
+  if (excluded) return false;
+  const groups = [];
+  if (rule.exact?.length) groups.push(exactMatch);
+  if (rule.prefixes?.length) groups.push(rule.prefixes.some((prefix) => path.startsWith(prefix)));
+  if (rule.contains?.length) groups.push(rule.contains.some((part) => path.includes(part)));
+  if (rule.extensions?.length) groups.push(rule.extensions.some((extension) => path.endsWith(extension)));
+  if (groups.length === 0) return false;
+  return rule.match === "all" ? groups.every(Boolean) : groups.some(Boolean);
+}
+
+function ruleMatches(paths, rule) {
+  return paths.some((path) => groupMatches(path, rule));
+}
+
+function maxRisk(policy, risks) {
+  const order = policy.riskOrder;
+  return risks.reduce((current, candidate) => {
+    if (!order.includes(candidate)) throw new Error(`Unknown validation risk: ${candidate}`);
+    return order.indexOf(candidate) > order.indexOf(current) ? candidate : current;
+  }, "routine");
+}
+
+function effectiveIntent(policy, requestedIntent, ci) {
+  if (!policy.intentOrder.includes(requestedIntent)) {
+    throw new Error(`Unknown validation intent: ${requestedIntent}`);
+  }
+  if (ci && !["merge", "release"].includes(requestedIntent)) return "merge";
+  return requestedIntent;
+}
+
+function impactedSurfaces(policy, paths, fullRepository) {
+  if (fullRepository) return new Set(allSurfaces);
+  if (paths.length === 0) return new Set();
+
+  const surfaces = new Set();
+  for (const path of paths) {
+    if (path === "bun.lock" || path === "bun.lockb") {
+      allSurfaces.forEach((surface) => surfaces.add(surface));
+      continue;
+    }
+    const testSupportConsumers = consumersOfSharedTestSupport(policy, path);
+    for (const rule of policy.surfaceRules ?? []) {
+      if (!groupMatches(path, rule)) continue;
+      const owner = owningSurface(path);
+      if (
+        isValidationOnlyPath(path) &&
+        owner &&
+        rule.surface !== "all" &&
+        rule.surface !== owner &&
+        !testSupportConsumers.includes(rule.surface)
+      ) {
+        continue;
+      }
+      if (rule.surface === "all") allSurfaces.forEach((surface) => surfaces.add(surface));
+      else surfaces.add(rule.surface);
+    }
+  }
+  return new Set(allSurfaces.filter((surface) => surfaces.has(surface)));
+}
+
+function addSurfaceChecks(select, surface, { includeBuilds, intent }) {
+  const checks = {
+    contracts: ["contracts-build", "contracts-test"],
+    shared: ["shared-typecheck", "shared-test"],
+    indexer: ["indexer-test"],
+    client: ["client-test"],
+    admin: ["admin-test"],
+    agent: ["agent-typecheck", "agent-test"],
+    docs:
+      intent === "qa"
+        ? ["docs-authority", "docs-build"]
+        : ["docs-authority", "docs-test", "docs-build"],
+  };
+  const builds = {
+    shared: "shared-build",
+    indexer: "indexer-build",
+    client: "client-build",
+    admin: "admin-build",
+    agent: "agent-build",
+  };
+
+  for (const id of checks[surface] ?? []) select(id, `surface:${surface}`);
+  if (includeBuilds && builds[surface]) select(builds[surface], `surface:${surface}:build`);
+}
+
+function addValidationOnlyChecks(select, surface, paths, { includeTypecheck = true } = {}) {
+  const testTypechecks = {
+    shared: "shared-test-typecheck",
+    client: "client-test-typecheck",
+    admin: "admin-test-typecheck",
+    agent: "agent-test-typecheck",
+  };
+  if (includeTypecheck && testTypechecks[surface]) {
+    select(testTypechecks[surface], `validation-only:${surface}:types`);
+  }
+  if (paths.some(affectsTests)) select(`${surface}-test`, `validation-only:${surface}:tests`);
+  if (paths.some(isStoryPath)) select("story-quality", `validation-only:${surface}:stories`);
+  if (paths.some(isStorybookConfigPath)) {
+    select("storybook-build", `validation-only:${surface}:storybook-config`);
+  }
+}
+
+function isUiBuildImpact(paths, surface) {
+  const prefix = `packages/${surface}/src/`;
+  return paths.some(
+    (path) =>
+      (path.startsWith(prefix) &&
+        /(^|\/)(app|index|main|route|router|routes)(\.[^/]+)?$/i.test(path)) ||
+      path === `packages/${surface}/package.json` ||
+      path.startsWith(`packages/${surface}/vite.config.`),
+  );
+}
+
+function needsOwnerCompileProof(paths, surface) {
+  return paths.some((path) => {
+    if (owningSurface(path) !== surface) return false;
+    if (classifyChangedPath(path) === "public-source") return true;
+    if (path === `packages/${surface}/package.json`) return true;
+    if (["client", "admin"].includes(surface) && isUiBuildImpact([path], surface)) return true;
+    return (
+      path.startsWith(`packages/${surface}/src/`) &&
+      /(^|\/)(index|main|router|routes|config)(\.[^/]+)?$/i.test(path)
+    );
+  });
+}
+
+// A fast push budgets a focused package suite at this many seconds.
+const FOCUSED_PUSH_SUITE_SECONDS = 30;
+
+// The gates that certify readiness, a full local ship, a merge or a release run every check fresh,
+// whatever the plan's risk: they reuse no receipt, and their package suites skip Turbo's cache.
+// Lighter intents may reuse an exact pass, but a critical plan only in push, where the pre-push
+// hook would otherwise repeat the manual run it follows.
+const FRESH_RUN_INTENTS = new Set(["readiness", "ship", "merge", "release"]);
+
+export function receiptPolicyFor(intent, risk) {
+  const reuseAllowed = !FRESH_RUN_INTENTS.has(intent) && (risk !== "critical" || intent === "push");
+  return {
+    reuseAllowed,
+    optInRequired: true,
+    failuresCacheable: false,
+    note: reuseAllowed
+      ? "Opt-in exact-fingerprint passing receipts may be reused."
+      : "Every check runs fresh: readiness, ship, merge and release never reuse receipts, and a critical plan reuses them only in push.",
+  };
+}
+
+function focusedProofMissing(changedPaths, testPaths, requestedChecks, deletedPaths, policy) {
+  if (requestedChecks.length > 0) return [];
+  const missing = new Set();
+  for (const path of changedPaths) {
+    if (!/^packages\/[^/]+\/src\//.test(path) || isValidationOnlyPath(path)) continue;
+    const surface = owningSurface(path);
+    if (!surface || testPaths[surface]?.length > 0) continue;
+    if (needsOwnerCompileProof(changedPaths, surface)) continue;
+    missing.add(surface);
+  }
+  // A deleted package test leaves its suite with nothing to focus on, and so does a changed helper
+  // or fixture, which no runner can execute. Only the author can name the test that still proves
+  // the same failure, or that exercises the helper, so ask for it, unless the whole suite costs no
+  // more than a focused run would. Docs tests have no focused mode and always run whole.
+  const deleted = new Set(deletedPaths);
+  const unfocusable = [
+    ...deletedPaths.filter(affectsTests),
+    ...changedPaths.filter(
+      (path) => affectsTests(path) && !isRunnableTestPath(path) && !deleted.has(path),
+    ),
+  ];
+  for (const path of unfocusable) {
+    const surface = owningSurface(path);
+    if (!surface || surface === "docs" || testPaths[surface]?.length > 0) continue;
+    const suite = policy.checks.find((check) => check.id === `${surface}-test`);
+    if (suite && suite.budgetSeconds <= FOCUSED_PUSH_SUITE_SECONDS) continue;
+    missing.add(surface);
+  }
+  return [...missing].sort();
+}
+
+function normalizeTestPaths(testPaths = {}) {
+  const result = {};
+  for (const [surface, paths] of Object.entries(testPaths)) {
+    result[surface] = normalizePaths(paths).map((path) => {
+      if (path.startsWith("-") || !/^[A-Za-z0-9_./@+-]+$/.test(path)) {
+        throw new Error(`Unsafe focused test path: ${path}`);
+      }
+      return path;
+    });
+  }
+  return result;
+}
+
+export function selectValidation(input = {}, options = {}) {
+  const policy = options.policy ?? loadPolicy(options.policyPath);
+  const requestedIntent = input.intent ?? "checkpoint";
+  const ci = input.ci === true;
+  const intent = effectiveIntent(policy, requestedIntent, ci);
+  const changedPaths = normalizePaths(input.changedPaths);
+  const deletedPaths = normalizePaths(input.deletedPaths);
+  // Changed Shared files whose current code reaches a signing, sending, queue or session
+  // primitive (resolveGitInputs reads them); the policy's path lists cannot know a new file.
+  const mutationPaths = normalizePaths(input.mutationPaths).filter((path) => changedPaths.includes(path));
+  const checkpointScope = checkpointScopes(
+    input.checkpointScope,
+    intent,
+    changedPaths,
+    input.cancelled,
+  );
+  const testPaths = mergeTestPaths(
+    normalizeTestPaths(input.testPaths),
+    inferChangedTestPaths(changedPaths, deletedPaths),
+  );
+  const requestedChecks = normalizePaths(input.checkIds);
+  const baseRisk = input.risk ?? "routine";
+
+  const planIdentity = {
+    policyVersion: policy.version,
+    requestedIntent,
+    effectiveIntent: intent,
+    requestedCheckpointScope: checkpointScope.requested,
+    checkpointScope: checkpointScope.effective,
+    ci,
+    base: input.base ?? null,
+    head: input.head ?? null,
+    workingCopyFingerprint: input.workingCopyFingerprint ?? null,
+    changedPaths,
+    deletedPaths,
+    changes: changedPaths.map((path) => ({
+      path,
+      kind: classifyChangedPath(path),
+      surface: owningSurface(path),
+    })),
+    testPaths,
+    requestedChecks,
+    mutationPaths,
+  };
+
+  if (input.cancelled === true) {
+    return {
+      ...planIdentity,
+      status: "cancelled",
+      stopReason: "user-cancelled",
+      risk: maxRisk(policy, [baseRisk]),
+      surfaces: [],
+      checks: [],
+      environment: normalizeEnvironment(input.environment),
+      environmentBlockers: [],
+      budget: summarizeBudget(intent, []),
+      receiptPolicy: receiptPolicyFor(intent, maxRisk(policy, [baseRisk])),
+    };
+  }
+
+  const hardRules = (policy.criticalOverrides ?? []).filter((rule) => ruleMatches(changedPaths, rule));
+  const sharedCriticalRule = (policy.criticalOverrides ?? []).find((rule) => rule.id === SHARED_CRITICAL_RULE_ID);
+  const contentCriticalPaths = sharedCriticalRule
+    ? mutationPaths.filter((path) => !groupMatches(path, sharedCriticalRule))
+    : [];
+  const pathRiskRules = (policy.riskRules ?? []).filter((rule) => ruleMatches(changedPaths, rule));
+  const risk = maxRisk(policy, [
+    baseRisk,
+    changedPaths.some((path) => {
+      const surface = owningSurface(path);
+      return surface ? needsOwnerCompileProof(changedPaths, surface) : false;
+    })
+      ? "sensitive"
+      : "routine",
+    ...pathRiskRules.map((rule) => rule.risk),
+    ...hardRules.map((rule) => rule.risk),
+    ...(contentCriticalPaths.length > 0 ? [sharedCriticalRule.risk] : []),
+  ]);
+  const fastPush = intent === "push" && risk !== "critical";
+  const localMerge = intent === "merge" && !ci;
+  const strictIntent =
+    ["readiness", "ship", "release"].includes(intent) ||
+    (intent === "push" && risk === "critical");
+  const fullRepository =
+    ["readiness", "release"].includes(intent) ||
+    ((intent === "ship" || localMerge) && changedPaths.length === 0);
+  const strictScope = strictIntent || fullRepository;
+  const surfaces = impactedSurfaces(policy, changedPaths, fullRepository);
+  const selected = new Set();
+  const selectionReasons = new Map();
+  const select = (id, reason) => {
+    selected.add(id);
+    const reasons = selectionReasons.get(id) ?? new Set();
+    reasons.add(reason);
+    selectionReasons.set(id, reasons);
+  };
+  const evidenceOnly = ["diagnose", "review"].includes(intent);
+  const hasAutomaticScope = changedPaths.length > 0 || fullRepository;
+
+  const knownCheckIds = new Set(policy.checks.map((check) => check.id));
+  for (const id of requestedChecks) {
+    if (!knownCheckIds.has(id)) throw new Error(`Unknown requested validation check: ${id}`);
+    select(id, "explicit-request");
+  }
+
+  if (!evidenceOnly && hasAutomaticScope) select("format", "automatic-hygiene");
+  if (
+    intent === "qa" &&
+    changedPaths.some((path) => [".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx"].some((extension) => path.endsWith(extension)))
+  ) {
+    select("lint", "automatic-hygiene");
+  }
+  if (
+    hasAutomaticScope &&
+    ["checkpoint", "readiness", "push", "ship", "merge", "release"].includes(intent)
+  ) {
+    select("lint", "automatic-hygiene");
+  }
+  if (!evidenceOnly) {
+    for (const checkId of inferDirectRootTestChecks(changedPaths)) {
+      select(checkId, `direct-root-test:${checkId}`);
+    }
+  }
+
+  const includeBuilds =
+    ["readiness", "ship", "merge", "release"].includes(intent) ||
+    (intent === "push" && risk === "critical");
+  if (evidenceOnly) {
+    for (const surface of Object.keys(testPaths)) {
+      const testId = `${surface}-test`;
+      if (!knownCheckIds.has(testId)) throw new Error(`Unknown focused-test surface: ${surface}`);
+      select(testId, `focused-test:${surface}`);
+    }
+  } else if (fastPush) {
+    for (const surface of Object.keys(testPaths)) {
+      const testId = `${surface}-test`;
+      if (!knownCheckIds.has(testId)) throw new Error(`Unknown focused-test surface: ${surface}`);
+      select(testId, `focused-test:${surface}`);
+    }
+    for (const surface of new Set(changedPaths.map(owningSurface).filter(Boolean))) {
+      const surfacePaths = changedPaths.filter((path) => owningSurface(path) === surface);
+      if (surfacePaths.some(isValidationOnlyPath)) {
+        addValidationOnlyChecks(select, surface, surfacePaths, { includeTypecheck: false });
+      }
+      if (needsOwnerCompileProof(changedPaths, surface)) {
+        const typechecks = {
+          shared: "shared-typecheck",
+          agent: "agent-typecheck",
+        };
+        const builds = {
+          shared: "shared-build",
+          indexer: "indexer-build",
+          client: "client-build",
+          admin: "admin-build",
+          agent: "agent-build",
+        };
+        if (typechecks[surface]) select(typechecks[surface], `push-owner-compile:${surface}`);
+        if (builds[surface]) select(builds[surface], `push-owner-compile:${surface}`);
+      }
+      if (surface === "docs") select("docs-authority", "push-owner-proof:docs");
+    }
+  } else {
+    for (const surface of surfaces) {
+      // Shared test support a consumer's tests import counts as that consumer's own test files.
+      const surfacePaths = changedPaths.filter(
+        (path) =>
+          owningSurface(path) === surface ||
+          consumersOfSharedTestSupport(policy, path).includes(surface),
+      );
+      const validationOnly =
+        surfacePaths.length > 0 && surfacePaths.every((path) => isValidationOnlyPath(path));
+      if (includeBuilds) {
+        addSurfaceChecks(select, surface, { includeBuilds, intent });
+        if (
+          surfacePaths.some(isValidationOnlyPath) ||
+          surfacePaths.includes(`packages/${surface}/package.json`)
+        ) {
+          addValidationOnlyChecks(select, surface, surfacePaths);
+        }
+      } else if (validationOnly) {
+        addValidationOnlyChecks(select, surface, surfacePaths);
+      } else {
+        addSurfaceChecks(select, surface, { includeBuilds, intent });
+        if (
+          surfacePaths.some(isValidationOnlyPath) ||
+          surfacePaths.includes(`packages/${surface}/package.json`)
+        ) {
+          addValidationOnlyChecks(select, surface, surfacePaths);
+        }
+      }
+      if (
+        intent === "qa" &&
+        ["client", "admin"].includes(surface) &&
+        isUiBuildImpact(changedPaths, surface)
+      ) {
+        select(`${surface}-build`, `qa-build-impact:${surface}`);
+      }
+      if (
+        intent === "qa" &&
+        surface === "agent" &&
+        changedPaths.some((path) => path.startsWith("packages/agent/src/"))
+      ) {
+        select("agent-build", "qa-build-impact:agent");
+      }
+    }
+  }
+
+  if (strictScope) {
+    if (fullRepository || surfaces.has("contracts")) {
+      select("abi-artifacts", "strict-intent:contracts");
+      select("contracts-verify-fast", "strict-intent:contracts");
+    }
+    for (const [surface, id] of [
+      ["shared", "shared-test-typecheck"],
+      ["client", "client-test-typecheck"],
+      ["admin", "admin-test-typecheck"],
+      ["agent", "agent-test-typecheck"],
+    ]) {
+      if (surfaces.has(surface)) select(id, `strict-intent:${surface}:test-types`);
+    }
+  }
+  if (
+    !evidenceOnly &&
+    changedPaths.some((path) => path.startsWith("packages/client/src/"))
+  ) {
+    select("staged-modules", "client:staged-boundary");
+  }
+  for (const rule of policy.conditionalRules ?? []) {
+    if (evidenceOnly && rule.runInEvidence !== true) continue;
+    if (rule.intents && !rule.intents.includes(intent)) continue;
+    if (fastPush && ["design-guardrails", "supply-chain"].includes(rule.check)) continue;
+    const matchingPaths = changedPaths.filter((path) => {
+      if (!groupMatches(path, rule)) return false;
+      if (rule.exact?.includes(path)) return true;
+      if (rule.check === "browser-proof" && isValidationOnlyPath(path)) return false;
+      if (rule.check === "ontology" && isValidationOnlyPath(path)) return false;
+      if (
+        ["source-structure", "design-guardrails"].includes(rule.check) &&
+        isValidationOnlyPath(path)
+      ) {
+        return false;
+      }
+      return true;
+    });
+    if (matchingPaths.length === 0) continue;
+    if (
+      intent === "qa" &&
+      rule.runInQa !== true &&
+      !["browser-proof", "ontology"].includes(rule.check)
+    ) {
+      continue;
+    }
+    select(rule.check, `conditional:${rule.check}`);
+  }
+
+  const mandatory = new Set();
+  for (const rule of evidenceOnly ? [] : hardRules) {
+    for (const id of rule.checks) {
+      select(id, "critical-override");
+      mandatory.add(id);
+    }
+  }
+  if (!evidenceOnly && contentCriticalPaths.length > 0) {
+    for (const id of sharedCriticalRule.checks) {
+      select(id, "critical-content");
+      mandatory.add(id);
+    }
+  }
+  if (["readiness", "push", "ship", "merge", "release"].includes(intent)) {
+    for (const id of selected) mandatory.add(id);
+  }
+
+  const environment = normalizeEnvironment(input.environment);
+  let checks = policy.checks
+    .filter((check) => selected.has(check.id))
+    .map((check) => {
+      const materialized = materializeCheck(check, environment, mandatory.has(check.id), testPaths, {
+        intent,
+        risk,
+        ci,
+        base: planIdentity.base,
+        changedPaths,
+        deletedPaths,
+        checkpointScope: checkpointScope.effective,
+      });
+      return {
+        ...materialized,
+        selectedBy: [...(selectionReasons.get(check.id) ?? [])],
+        ...(materialized.manual ? { advisory: isAdvisoryManualCheck(materialized) } : {}),
+      };
+    });
+  // The toolchain gate protects commands that actually run. A plan holding nothing but the
+  // commandless advisory proof has no command to protect, so a version mismatch must not
+  // report it blocked.
+  const toolchainBlockers = compareToolchain(
+    policy.toolchain,
+    environment.toolchain,
+    checks.filter((check) => !isAdvisoryManualCheck(check)),
+  );
+  if (toolchainBlockers.length > 0) {
+    const capabilities = toolchainBlockers.map((blocker) => blocker.capability);
+    checks = checks.map((check) =>
+      isAdvisoryManualCheck(check)
+        ? check
+        : {
+            ...check,
+            state: "blocked",
+            blockedBy: [...new Set([...check.blockedBy, ...capabilities])],
+          },
+    );
+  }
+  const blockedChecks = checks.filter(
+    (check) => check.state === "blocked" && !isAdvisoryManualCheck(check),
+  );
+  const budget = summarizeBudget(intent, checks, risk);
+  const missingFocus = fastPush
+    ? focusedProofMissing(changedPaths, testPaths, requestedChecks, deletedPaths, policy)
+    : [];
+  // Static budgets are ceilings, not measurements. A plan whose package suites are all
+  // focused is not over-broad, so it runs and the hard deadline decides; only an
+  // unfocused suite turns an over-limit estimate into a request for narrower proof.
+  const unfocusedSuite = checks.some(
+    (check) =>
+      TURBO_PACKAGES.has(check.id) && !check.manual && (check.focusedPaths?.length ?? 0) === 0,
+  );
+  const plannedOverBudget =
+    budget.enforced && budget.estimatedWallSeconds > budget.hardLimitSeconds && unfocusedSuite;
+  const needsFocus = missingFocus.length > 0 || plannedOverBudget;
+  const blocked = blockedChecks.length > 0 || toolchainBlockers.length > 0;
+  const status = blocked ? "blocked" : needsFocus ? "needs-focus" : "ready";
+  const stopReason = blocked
+    ? "required-environment-unavailable"
+    : missingFocus.length > 0
+      ? "focused-proof-required"
+      : plannedOverBudget
+        ? "local-budget-exceeded"
+        : null;
+  const remediation =
+    status === "needs-focus"
+      ? missingFocus.length > 0
+        ? `Add focused proof with ${missingFocus.map((surface) => `--test-path ${surface}:<package-relative-test>`).join(", ")}, select an existing acceptance check with --check, or narrow the change.`
+        : "Narrow the changed scope, provide a more focused test path, or select a smaller existing acceptance check."
+      : null;
+
+  return {
+    ...planIdentity,
+    status,
+    stopReason,
+    remediation,
+    risk,
+    surfaces: [...surfaces],
+    environment,
+    environmentBlockers: toolchainBlockers,
+    checks,
+    budget,
+    receiptPolicy: receiptPolicyFor(intent, risk),
+  };
+}
+
+function normalizeEnvironment(environment = {}) {
+  return {
+    profile: environment.profile ?? "unspecified",
+    toolchain: { ...(environment.toolchain ?? {}) },
+    capabilities: { ...(environment.capabilities ?? {}) },
+  };
+}
+
+function compareToolchain(expected, actual, checks) {
+  const blockers = [];
+  if (checks.length === 0 || Object.keys(actual).length === 0) return blockers;
+  const requiredTools = new Set(["node"]);
+  if (checks.some((check) => check.command?.includes("bun"))) requiredTools.add("bun");
+  if (checks.some((check) => check.capabilities?.includes("foundry"))) requiredTools.add("foundry");
+  for (const tool of requiredTools) {
+    const expectedVersion = expected[tool];
+    const actualVersion = actual[tool];
+    if (!actualVersion) {
+      blockers.push({ capability: `toolchain.${tool}`, expected: expectedVersion, actual: null });
+    } else if (actualVersion !== expectedVersion) {
+      blockers.push({ capability: `toolchain.${tool}`, expected: expectedVersion, actual: actualVersion });
+    }
+  }
+  return blockers;
+}
+
+function shellQuote(value) {
+  return `'${String(value).replaceAll("'", `'"'"'`)}'`;
+}
+
+function materializeCheck(check, environment, mandatory, testPaths, context) {
+  const blockedBy = (check.capabilities ?? []).filter(
+    (capability) => environment.capabilities[capability] === false,
+  );
+  const surface = check.id.endsWith("-test") ? check.id.slice(0, -5) : null;
+  const focusedPaths =
+    surface && !(mandatory && context.risk === "critical") && ["diagnose", "review", "qa", "checkpoint", "push"].includes(context.intent)
+      ? testPaths[surface] ?? []
+      : [];
+  let command = check.command;
+  const turboPackage = TURBO_PACKAGES.get(check.id);
+  if (
+    !context.ci &&
+    focusedPaths.length === 0 &&
+    TURBO_TEST_INTENTS.has(context.intent) &&
+    turboPackage
+  ) {
+    const force = FRESH_RUN_INTENTS.has(context.intent) ? " --force" : "";
+    command = `node ${turboPackage.binary} run test --filter=${turboPackage.packageName} --output-logs=new-only${force}`;
+  } else if (focusedPaths.length > 0) {
+    command =
+      check.id === "contracts-test"
+        ? focusedPaths.map((path) => `bun run test --suite solidity --profile match ${path}`).join(" && ")
+        : `${check.command}${check.id === "indexer-test" ? " --scope handlers" : ""} ${focusedPaths.join(" ")}`;
+  }
+  const laneCheckpoint =
+    context.intent === "checkpoint" && context.checkpointScope === "lane";
+  const deletedPaths = new Set(context.deletedPaths ?? []);
+  const existingChangedPaths = context.changedPaths.filter(
+    (path) => !deletedPaths.has(path),
+  );
+  if (check.id === "format" && !context.ci && ["ship", "merge", "release"].includes(context.intent)) {
+    command = "bunx @biomejs/biome format .";
+  }
+  const fastPush = context.intent === "push" && context.risk !== "critical";
+  if (
+    check.id === "format" &&
+    (["diagnose", "review", "qa"].includes(context.intent) || laneCheckpoint || fastPush) &&
+    context.changedPaths.length > 0
+  ) {
+    // Biome exits non-zero when every supplied path is one it does not handle,
+    // which a Markdown-only or Solidity-only change always is. Without this the
+    // scoped format check fails and fail-fast stops the rest of the plan.
+    command =
+      existingChangedPaths.length > 0
+        ? `bunx @biomejs/biome format --no-errors-on-unmatched ${existingChangedPaths.map(shellQuote).join(" ")}`
+        : `node -e "console.log('format: no existing changed paths')"`;
+  }
+  if (check.id === "lint" && (context.intent === "qa" || laneCheckpoint || fastPush)) {
+    const lintablePrefixes = [
+      "packages/client/src/",
+      "packages/admin/src/",
+      "packages/shared/src/",
+      "packages/indexer/src/",
+      "packages/agent/src/",
+      "packages/contracts/script/",
+    ];
+    const sourcePaths = existingChangedPaths.filter((path) =>
+      [".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx"].some(
+        (extension) => path.endsWith(extension),
+      ) &&
+      lintablePrefixes.some((prefix) => path.startsWith(prefix)) &&
+      !isValidationOnlyPath(path),
+    );
+    command =
+      sourcePaths.length > 0
+        ? `bun --bun run oxlint ${sourcePaths.map(shellQuote).join(" ")} --deny-warnings`
+        : existingChangedPaths.length > 0
+          ? `bunx @biomejs/biome lint --no-errors-on-unmatched ${existingChangedPaths.map(shellQuote).join(" ")}`
+          : `node -e "console.log('lint: no existing changed paths')"`;
+  }
+  if (check.id === "source-structure" && context.base) {
+    // Judge the plan's own comparison scope, as CI judges the PR base. A structure run with no
+    // base of its own falls back to origin/develop, which is not the base of a stacked branch.
+    command = `${check.command} --base ${shellQuote(context.base)}`;
+  }
+  let budgetSeconds =
+    focusedPaths.length > 0
+      ? Math.min(check.budgetSeconds, fastPush ? FOCUSED_PUSH_SUITE_SECONDS : 60)
+      : check.budgetSeconds;
+  if (
+    check.id === "format" &&
+    (["diagnose", "review", "qa"].includes(context.intent) || laneCheckpoint || fastPush)
+  ) {
+    budgetSeconds = Math.min(budgetSeconds, 10);
+  }
+  if (check.id === "lint" && (context.intent === "qa" || laneCheckpoint || fastPush)) {
+    budgetSeconds = Math.min(budgetSeconds, 15);
+  }
+  return {
+    ...check,
+    command,
+    focusedPaths,
+    budgetSeconds,
+    mandatory,
+    state: isAdvisoryManualCheck(check) ? "advisory" : blockedBy.length > 0 ? "blocked" : "pending",
+    blockedBy,
+  };
+}
+
+export function summarizeBudget(intent, checks, risk = "routine") {
+  const hardLimitSeconds =
+    intent === "push" && risk !== "critical" ? (risk === "sensitive" ? 180 : 90) : null;
+  const targetSeconds = hardLimitSeconds ?? { qa: 90, checkpoint: 180 }[intent] ?? null;
+  const automatedSeconds = checks
+    .filter((check) => !check.manual)
+    .reduce((total, check) => total + check.budgetSeconds, 0);
+  const manualSeconds = checks
+    .filter((check) => check.manual)
+    .reduce((total, check) => total + check.budgetSeconds, 0);
+  // Checks run one at a time, so the wall estimate is the sum of their measured budgets.
+  const wallSeconds = automatedSeconds;
+  return {
+    targetSeconds,
+    estimatedWallSeconds: wallSeconds,
+    hardLimitSeconds,
+    enforced: hardLimitSeconds !== null,
+    automatedSeconds,
+    manualSeconds,
+    withinTarget: targetSeconds === null ? null : wallSeconds <= targetSeconds,
+    mandatoryChecksMayExceedTarget: checks.some((check) => check.mandatory) &&
+      targetSeconds !== null &&
+      automatedSeconds > targetSeconds,
+    rule:
+      hardLimitSeconds === null
+        ? "Budgets warn and profile; they never skip selected or mandatory checks."
+        : "Routine and sensitive push budgets stop over-broad plans and time out noncritical local work; critical overrides remain uncapped.",
+  };
+}
+
+export function selectExpectedWorkflows(input = {}, options = {}) {
+  const policy = options.policy ?? loadPolicy(options.policyPath);
+  if (input.cancelled === true) return [];
+  effectiveIntent(policy, input.intent ?? "merge", input.ci === true);
+  const paths = normalizePaths(input.changedPaths);
+  return Object.entries(policy.workflowRules ?? {})
+    .filter(([name, rule]) =>
+      paths.some((path) => {
+        if (consumersOfSharedTestSupport(policy, path).includes(name.toLowerCase())) return true;
+        if (!groupMatches(path, rule)) return false;
+        if (rule.exact?.includes(path)) return true;
+        if (!isValidationOnlyPath(path)) return true;
+        if (name === "Supply Chain Guardrails") return true;
+        if (name === "Design" && isStoryPath(path)) return true;
+        // A package's own tests expect only its workflow. A test no package owns, such as a root
+        // Playwright spec under tests/, is run by every workflow whose rule lists it.
+        const owner = owningSurface(path);
+        return owner === null || name.toLowerCase() === owner;
+      }),
+    )
+    .map(([name]) => name)
+    .sort();
+}
+
+function stableValue(value) {
+  if (Array.isArray(value)) return value.map(stableValue);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, entry]) => [key, stableValue(entry)]),
+    );
+  }
+  return value;
+}
+
+// `execution` carries digests of the environment the check runs with and of the git-ignored
+// configuration it reads, which the plan alone cannot see.
+export function buildReceiptInputs(plan, check, execution = {}) {
+  const inputs = {
+    policyVersion: plan.policyVersion,
+    requestedIntent: plan.requestedIntent,
+    effectiveIntent: plan.effectiveIntent,
+    requestedCheckpointScope: plan.requestedCheckpointScope,
+    checkpointScope: plan.checkpointScope,
+    risk: plan.risk,
+    base: plan.base,
+    head: plan.head,
+    workingCopyFingerprint: plan.workingCopyFingerprint,
+    changedPaths: [...plan.changedPaths],
+    testPaths: plan.testPaths,
+    requestedChecks: [...plan.requestedChecks],
+    checkId: check.id,
+    command: check.command,
+    cwd: check.cwd ?? ".",
+    environment: plan.environment,
+    execution: {
+      environment: execution.environment ?? null,
+      ignoredConfiguration: execution.ignoredConfiguration ?? null,
+    },
+    freshness: check.freshness,
+    cacheReuse: {
+      allowed: true,
+      optInRequired: true,
+      failuresCacheable: false,
+    },
+  };
+  const fingerprint = fingerprintReceiptInputs(inputs);
+  return { ...inputs, fingerprint };
+}
+
+export function fingerprintReceiptInputs(receiptInputs) {
+  const { fingerprint: _ignored, ...inputs } = receiptInputs;
+  return createHash("sha256").update(JSON.stringify(stableValue(inputs))).digest("hex");
+}
+
+export function parseCliArgs(argv) {
+  const options = {
+    intent: "checkpoint",
+    checkpointScope: "workspace",
+    changedPaths: [],
+    capabilities: {},
+    testPaths: {},
+    checkIds: [],
+    json: false,
+    ci: false,
+    cancelled: false,
+  };
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    const next = () => {
+      const value = argv[++index];
+      if (!value) throw new Error(`${arg} requires a value`);
+      return value;
+    };
+    switch (arg) {
+      case "--intent":
+        options.intent = next();
+        break;
+      case "--checkpoint-scope":
+        options.checkpointScope = next();
+        break;
+      case "--base":
+        options.base = next();
+        break;
+      case "--head":
+        options.head = next();
+        break;
+      case "--changed":
+        options.changedPaths.push(...next().split(",").filter(Boolean));
+        break;
+      case "--changed-file":
+        options.changedPaths.push(
+          ...readFileSync(resolve(process.cwd(), next()), "utf8").split(/\r?\n/).filter(Boolean),
+        );
+        break;
+      case "--risk":
+        options.risk = next();
+        break;
+      case "--test-path": {
+        const value = next();
+        const separator = value.indexOf(":");
+        if (separator < 1) throw new Error("--test-path must use surface:path");
+        const surface = value.slice(0, separator);
+        const path = value.slice(separator + 1);
+        (options.testPaths[surface] ??= []).push(path);
+        break;
+      }
+      case "--check":
+        options.checkIds.push(next());
+        break;
+      case "--environment":
+        options.environmentProfile = next();
+        break;
+      case "--capability": {
+        const [name, rawValue] = next().split("=", 2);
+        if (!name || !["true", "false"].includes(rawValue)) {
+          throw new Error("--capability must use name=true or name=false");
+        }
+        options.capabilities[name] = rawValue === "true";
+        break;
+      }
+      case "--ci":
+        options.ci = true;
+        break;
+      case "--cancelled":
+        options.cancelled = true;
+        break;
+      case "--json":
+        options.json = true;
+        break;
+      case "--help":
+      case "-h":
+        options.help = true;
+        break;
+      default:
+        throw new Error(`Unknown argument: ${arg}`);
+    }
+  }
+  if (
+    options.intent === "checkpoint" &&
+    options.checkpointScope === "lane" &&
+    options.changedPaths.length === 0 &&
+    !options.cancelled
+  ) {
+    throw new Error("Lane checkpoint requires --changed or --changed-file");
+  }
+  return options;
+}
+
+function gitOutput(args, cwd = projectRoot) {
+  return execFileSync("git", args, {
+    cwd,
+    encoding: "utf8",
+    maxBuffer: GIT_OUTPUT_MAX_BUFFER,
+  }).trim();
+}
+
+function gitRawOutput(args, cwd = projectRoot) {
+  return execFileSync("git", args, { cwd, maxBuffer: GIT_OUTPUT_MAX_BUFFER });
+}
+
+function lines(value) {
+  return value.split(/\r?\n/).filter(Boolean);
+}
+
+function workingCopyFingerprint(cwd, committedRange, stagedPatch, unstagedPatch, untrackedPaths) {
+  const hash = createHash("sha256");
+  hash.update("validation-working-copy-v2\0");
+  for (const [label, patch] of [
+    ["committed", committedRange],
+    ["staged", stagedPatch],
+    ["unstaged", unstagedPatch],
+  ]) {
+    hash.update(`${label}\0`);
+    hash.update(patch);
+    hash.update("\0");
+  }
+  for (const path of [...untrackedPaths].sort()) {
+    hash.update(`untracked\0${path}\0`);
+    const absolutePath = resolve(cwd, path);
+    if (absolutePath !== cwd && !absolutePath.startsWith(`${cwd}${sep}`)) {
+      throw new Error(`Untracked path escaped repository root: ${path}`);
+    }
+    const stat = lstatSync(absolutePath);
+    if (stat.isSymbolicLink()) hash.update(`symlink:${readlinkSync(absolutePath)}`);
+    else if (stat.isFile()) hash.update(readFileSync(absolutePath));
+    else hash.update(`unsupported:${stat.mode}`);
+    hash.update("\0");
+  }
+  return hash.digest("hex");
+}
+
+const LIVE_PR_BASE_INTENTS = new Set(["push", "ship", "merge", "readiness", "release"]);
+
+// A release promotion carries develop's already-judged history into main. Judging it against
+// main would re-flag every file changed since the last release, so it compares against develop,
+// the base every change met on its way in. The workflows set the same rule for their own
+// diff-aware steps.
+function promotionAwareBase(baseRefName, headRefName) {
+  if (baseRefName === "main" && String(headRefName ?? "").startsWith("release/")) {
+    return "origin/develop";
+  }
+  return `origin/${baseRefName}`;
+}
+
+export function resolveComparisonBase(options = {}, dependencies = {}) {
+  if (options.base) return options.base;
+
+  const environment = dependencies.environment ?? process.env;
+  if (environment.GITHUB_BASE_REF) {
+    return promotionAwareBase(environment.GITHUB_BASE_REF, environment.GITHUB_HEAD_REF);
+  }
+  if (!LIVE_PR_BASE_INTENTS.has(options.intent)) return "origin/develop";
+
+  const execute = dependencies.execFileSync ?? execFileSync;
+  try {
+    const [baseRefName, headRefName] = String(
+      execute(
+        "gh",
+        [
+          "pr",
+          "view",
+          "--json",
+          "baseRefName,headRefName",
+          "--jq",
+          '"\\(.baseRefName)\\t\\(.headRefName)"',
+        ],
+        {
+          cwd: dependencies.cwd ?? projectRoot,
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "ignore"],
+          timeout: 3_000,
+          env: { ...environment, GH_PROMPT_DISABLED: "1" },
+        },
+      ),
+    )
+      .trim()
+      .split("\t");
+    if (baseRefName) return promotionAwareBase(baseRefName, headRefName);
+  } catch {
+    // No live PR, no GitHub CLI, or no authenticated access: use the repository default base.
+  }
+  return "origin/develop";
+}
+
+// Shared files among `changedPaths` whose code on disk reaches a mutation primitive and that no
+// path rule already makes critical. Only their import closure is read.
+export function resolveMutationPaths(changedPaths, { cwd = projectRoot, policy = loadPolicy() } = {}) {
+  const rule = (policy.criticalOverrides ?? []).find((entry) => entry.id === SHARED_CRITICAL_RULE_ID);
+  if (!rule || !policy.sharedMutationPrimitives) return [];
+  const candidates = changedPaths.filter(
+    (path) => isSharedSourcePath(path) && !groupMatches(path, rule) && existsSync(resolve(cwd, path)),
+  );
+  if (candidates.length === 0) return [];
+  return mutationPathsAmong(candidates, { root: cwd, primitives: policy.sharedMutationPrimitives });
+}
+
+export function resolveGitInputs(options, { cwd = projectRoot } = {}) {
+  const base = resolveComparisonBase(options, { cwd });
+  const head = options.head ?? "HEAD";
+  const resolvedBase = gitOutput(["rev-parse", base], cwd);
+  const resolvedHead = gitOutput(["rev-parse", head], cwd);
+  const explicitPaths = normalizePaths(options.changedPaths);
+  const laneCheckpoint =
+    (options.intent ?? "checkpoint") === "checkpoint" &&
+    options.checkpointScope === "lane" &&
+    options.ci !== true;
+  if (laneCheckpoint && explicitPaths.length === 0) {
+    throw new Error("Lane checkpoint requires explicit changed paths");
+  }
+  const pathspec = laneCheckpoint ? ["--", ...explicitPaths] : [];
+  // Blob hashes identify the committed range exactly without materializing its patch: a
+  // develop-to-main promotion diff exceeds the git output buffer and died with ENOBUFS.
+  const committedRange = gitOutput(
+    ["diff", "--raw", "--no-abbrev", "--no-renames", `${resolvedBase}...${resolvedHead}`, ...pathspec],
+    cwd,
+  );
+  const stagedPatch = gitRawOutput(["diff", "--cached", "--binary", ...pathspec], cwd);
+  const unstagedPatch = gitRawOutput(["diff", "--binary", ...pathspec], cwd);
+  const committedPaths = lines(
+    gitOutput(["diff", "--name-only", `${resolvedBase}...${resolvedHead}`], cwd),
+  );
+  const stagedPaths = lines(gitOutput(["diff", "--cached", "--name-only"], cwd));
+  const unstagedPaths = lines(gitOutput(["diff", "--name-only"], cwd));
+  const untrackedPaths = lines(gitOutput(["ls-files", "--others", "--exclude-standard"], cwd));
+  const deletedPaths = normalizePaths([
+    ...lines(
+      gitOutput(
+        ["diff", "--name-only", "--diff-filter=D", `${resolvedBase}...${resolvedHead}`],
+        cwd,
+      ),
+    ),
+    ...lines(gitOutput(["diff", "--cached", "--name-only", "--diff-filter=D"], cwd)),
+    ...lines(gitOutput(["diff", "--name-only", "--diff-filter=D"], cwd)),
+  ]).filter((path) => !existsSync(resolve(cwd, path)));
+  const changedPaths =
+    explicitPaths.length > 0
+      ? explicitPaths
+      : normalizePaths([...committedPaths, ...stagedPaths, ...unstagedPaths, ...untrackedPaths]);
+  const fingerprintUntrackedPaths = laneCheckpoint
+    ? untrackedPaths.filter((path) =>
+        explicitPaths.some(
+          (explicitPath) => path === explicitPath || path.startsWith(`${explicitPath}/`),
+        ),
+      )
+    : untrackedPaths;
+  return {
+    base: resolvedBase,
+    head: resolvedHead,
+    changedPaths,
+    deletedPaths,
+    mutationPaths: resolveMutationPaths(changedPaths, { cwd }),
+    workingCopyFingerprint: workingCopyFingerprint(
+      cwd,
+      committedRange,
+      stagedPatch,
+      unstagedPatch,
+      fingerprintUntrackedPaths,
+    ),
+  };
+}
+
+export function detectCliToolchain(options = {}) {
+  const execute = options.execFileSync ?? execFileSync;
+  const version = (command, args) => {
+    try {
+      return String(
+        execute(command, args, {
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "ignore"],
+        }),
+      ).trim();
+    } catch {
+      return null;
+    }
+  };
+  const bunOutput = version("bun", ["--version"]);
+  const foundryOutput = version("forge", ["--version"]);
+  const foundryVersion = foundryOutput?.match(/\d+\.\d+\.\d+/)?.[0] ?? null;
+  return {
+    node: options.nodeVersion ?? process.versions.node,
+    ...(bunOutput ? { bun: bunOutput } : {}),
+    ...(foundryVersion ? { foundry: foundryVersion } : {}),
+  };
+}
+
+export function inspectPlaywrightChromium(cwd = projectRoot) {
+  try {
+    const require = createRequire(resolve(cwd, 'package.json'));
+    const executable = require('@playwright/test').chromium.executablePath();
+    const stat = statSync(executable);
+    return { available: stat.isFile(), fingerprint: `${require('@playwright/test/package.json').version}:${stat.size}:${stat.mtimeMs}` };
+  } catch {
+    return { available: false, fingerprint: null };
+  }
+}
+
+export function detectCliCapabilities(options = {}) {
+  const inspect = options.inspectPinnedSubmodules ?? inspectPinnedSubmodules;
+  return {
+    contractSubmodules: inspect({ cwd: options.cwd ?? projectRoot }).ready,
+    playwrightChromium: inspectPlaywrightChromium(options.cwd).available,
+  };
+}
+
+function showHelp() {
+  console.log(`Usage: node scripts/quality/select-validation.mjs [options]
+
+Scope: readiness and release always cover the full repository. Push uses the live PR base when
+available, otherwise origin/develop, and an empty push is a no-op. Ship and local merge use
+changed-path scope, falling back to full scope only when no changed paths are found. CI-authoritative
+merge remains changed-path scoped.
+
+Options:
+  --intent <intent>       diagnose|qa|review|checkpoint|readiness|push|ship|merge|release
+  --checkpoint-scope <s>  lane|workspace; lane requires explicit changed paths
+  --base <revision>       Base revision (default: origin/develop)
+  --head <revision>       Head revision (default: HEAD)
+  --changed <paths>       Comma-separated changed paths; repeatable
+  --changed-file <file>   Read changed paths from a newline-delimited file
+  --risk <risk>           routine|sensitive|critical (paths can only escalate it)
+  --test-path <pkg:path>  Use a focused package-relative test path; repeatable
+  --check <check-id>      Add an explicit acceptance check; repeatable
+  --environment <name>    Environment profile label
+  --capability k=true     Record an available/unavailable environment capability
+  --ci                    Make merge intent authoritative while preserving CI path scope
+  --cancelled             Emit a terminal cancelled plan
+  --json                  Emit JSON (default output is a readable summary)
+  --help, -h              Show this help`);
+}
+
+async function main() {
+  const options = parseCliArgs(process.argv.slice(2));
+  if (options.help) {
+    showHelp();
+    return;
+  }
+  const git = options.cancelled
+    ? { base: options.base ?? null, head: options.head ?? null, changedPaths: options.changedPaths }
+    : resolveGitInputs(options);
+  const plan = selectValidation({
+    intent: options.intent,
+    checkpointScope: options.checkpointScope,
+    risk: options.risk,
+    testPaths: options.testPaths,
+    checkIds: options.checkIds,
+    ci: options.ci,
+    cancelled: options.cancelled,
+    ...git,
+    environment: {
+      profile: options.environmentProfile,
+      toolchain: detectCliToolchain(),
+      capabilities: { ...detectCliCapabilities(), ...options.capabilities },
+    },
+  });
+  if (options.json) {
+    console.log(JSON.stringify(plan, null, 2));
+    return;
+  }
+  console.log(
+    `Validation plan: ${plan.status} · ${plan.effectiveIntent} · ${plan.risk} · ${plan.changedPaths.length} changed path(s)`,
+  );
+  for (const check of plan.checks) {
+    const suffix = check.blockedBy.length > 0 ? ` (blocked: ${check.blockedBy.join(", ")})` : "";
+    console.log(`- ${check.id}: ${check.state}${suffix}`);
+  }
+}
+
+const isDirectRun =
+  process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href;
+if (isDirectRun) {
+  main().catch((error) => {
+    console.error(error.message);
+    process.exitCode = 1;
+  });
+}

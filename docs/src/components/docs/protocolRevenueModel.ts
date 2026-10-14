@@ -30,7 +30,7 @@ export interface RevenueExplorerInputs {
   gasSponsorship: number;
   legalCompliance: number;
   operational: number;
-  operatorIncentives: number;
+  stewardIncentives: number;
   gardenerIncentives: number;
   // Treasury & retro
   startingTreasury: number;
@@ -39,7 +39,7 @@ export interface RevenueExplorerInputs {
   // Token
   tokenSupply: number;
   contributorAllocationPercent: number;
-  operatorAllocationPercent: number;
+  stewardAllocationPercent: number;
   gardenerAllocationPercent: number;
   revenueMultiple: number;
 }
@@ -118,7 +118,7 @@ const EXPENSE_KEYS: RevenueFieldKey[] = [
   "gasSponsorship",
   "legalCompliance",
   "operational",
-  "operatorIncentives",
+  "stewardIncentives",
   "gardenerIncentives",
 ];
 
@@ -156,19 +156,19 @@ const INPUT_KEYS: RevenueFieldKey[] = [
   "gasSponsorship",
   "legalCompliance",
   "operational",
-  "operatorIncentives",
+  "stewardIncentives",
   "gardenerIncentives",
   "startingTreasury",
   "retroObligation",
   "retroCashPercent",
   "tokenSupply",
   "contributorAllocationPercent",
-  "operatorAllocationPercent",
+  "stewardAllocationPercent",
   "gardenerAllocationPercent",
   "revenueMultiple",
 ];
 
-export const DEFAULT_PRESET_ID: RevenuePresetId = "bootstrap";
+const DEFAULT_PRESET_ID: RevenuePresetId = "bootstrap";
 
 export const REVENUE_PRESETS: Record<RevenuePresetId, RevenuePresetDefinition> = {
   bootstrap: {
@@ -202,7 +202,7 @@ export const REVENUE_PRESETS: Record<RevenuePresetId, RevenuePresetDefinition> =
       gasSponsorship: 3000,
       legalCompliance: 5000,
       operational: 7000,
-      operatorIncentives: 10000,
+      stewardIncentives: 10000,
       gardenerIncentives: 10000,
       // Treasury & retro
       startingTreasury: 50000,
@@ -211,7 +211,7 @@ export const REVENUE_PRESETS: Record<RevenuePresetId, RevenuePresetDefinition> =
       // Token
       tokenSupply: 10000000,
       contributorAllocationPercent: 20,
-      operatorAllocationPercent: 15,
+      stewardAllocationPercent: 15,
       gardenerAllocationPercent: 15,
       revenueMultiple: 5,
     },
@@ -219,7 +219,7 @@ export const REVENUE_PRESETS: Record<RevenuePresetId, RevenuePresetDefinition> =
   hybrid: {
     id: "hybrid",
     label: "Hybrid",
-    description: "Balanced mix of operator fees, marketplace activity, and early treasury yield.",
+    description: "Balanced mix of steward fees, marketplace activity, and early treasury yield.",
     inputs: {
       gardensPerYear: 18,
       gardenFee: 40,
@@ -247,7 +247,7 @@ export const REVENUE_PRESETS: Record<RevenuePresetId, RevenuePresetDefinition> =
       gasSponsorship: 8000,
       legalCompliance: 15000,
       operational: 15000,
-      operatorIncentives: 15000,
+      stewardIncentives: 15000,
       gardenerIncentives: 15000,
       // Treasury & retro
       startingTreasury: 200000,
@@ -256,7 +256,7 @@ export const REVENUE_PRESETS: Record<RevenuePresetId, RevenuePresetDefinition> =
       // Token
       tokenSupply: 10000000,
       contributorAllocationPercent: 20,
-      operatorAllocationPercent: 15,
+      stewardAllocationPercent: 15,
       gardenerAllocationPercent: 15,
       revenueMultiple: 8,
     },
@@ -292,7 +292,7 @@ export const REVENUE_PRESETS: Record<RevenuePresetId, RevenuePresetDefinition> =
       gasSponsorship: 20000,
       legalCompliance: 30000,
       operational: 30000,
-      operatorIncentives: 30000,
+      stewardIncentives: 30000,
       gardenerIncentives: 30000,
       // Treasury & retro
       startingTreasury: 500000,
@@ -301,7 +301,7 @@ export const REVENUE_PRESETS: Record<RevenuePresetId, RevenuePresetDefinition> =
       // Token
       tokenSupply: 10000000,
       contributorAllocationPercent: 15,
-      operatorAllocationPercent: 15,
+      stewardAllocationPercent: 15,
       gardenerAllocationPercent: 20,
       revenueMultiple: 12,
     },
@@ -311,12 +311,12 @@ export const REVENUE_PRESETS: Record<RevenuePresetId, RevenuePresetDefinition> =
 export const INPUT_SECTIONS: InputSectionDefinition[] = [
   {
     title: "Core fee surfaces",
-    description: "Annual counts and fee assumptions for the operator-facing protocol actions.",
+    description: "Annual counts and fee assumptions for the steward-facing protocol actions.",
     fields: [
       {
         key: "gardensPerYear",
         label: "Gardens created / year",
-        description: "New gardens launched through the operator flow.",
+        description: "New gardens launched through the steward flow.",
         step: 1,
         min: 0,
       },
@@ -338,7 +338,7 @@ export const INPUT_SECTIONS: InputSectionDefinition[] = [
       {
         key: "reportFee",
         label: "Impact report fee",
-        description: "Operator-paid application-layer fee for minting or packaging reports.",
+        description: "Steward-paid application-layer fee for minting or packaging reports.",
         step: 10,
         min: 0,
         prefix: "$",
@@ -453,7 +453,7 @@ export const INPUT_SECTIONS: InputSectionDefinition[] = [
       {
         key: "licensing",
         label: "Licensing and white-label",
-        description: "Annual revenue from hosted/operator licensing or institutional packages.",
+        description: "Annual revenue from hosted/steward licensing or institutional packages.",
         step: 5000,
         min: 0,
         prefix: "$",
@@ -508,7 +508,7 @@ export const INPUT_SECTIONS: InputSectionDefinition[] = [
       {
         key: "gasSponsorship",
         label: "Gas sponsorship",
-        description: "Subsidized transactions for users and operators.",
+        description: "Subsidized transactions for users and stewards.",
         step: 1000,
         min: 0,
         prefix: "$",
@@ -530,9 +530,9 @@ export const INPUT_SECTIONS: InputSectionDefinition[] = [
         prefix: "$",
       },
       {
-        key: "operatorIncentives",
-        label: "Operator incentives",
-        description: "Rewards, rebates, and incentive programs for operators.",
+        key: "stewardIncentives",
+        label: "Steward incentives",
+        description: "Rewards, rebates, and incentive programs for stewards.",
         step: 1000,
         min: 0,
         max: 100000,
@@ -594,9 +594,9 @@ export const INPUT_SECTIONS: InputSectionDefinition[] = [
         suffix: "%",
       },
       {
-        key: "operatorAllocationPercent",
-        label: "Operator allocation",
-        description: "Percentage of token supply reserved for operator reward programs.",
+        key: "stewardAllocationPercent",
+        label: "Steward allocation",
+        description: "Percentage of token supply reserved for steward reward programs.",
         step: 1,
         min: 0,
         suffix: "%",

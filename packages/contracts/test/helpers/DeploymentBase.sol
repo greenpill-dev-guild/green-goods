@@ -231,8 +231,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
 
         // 5. Deploy GardenAccount (TBA) with CREATE2
         gardenAccountImpl = GardenAccount(
-            payable(
-                deployGardenAccount(
+            payable(deployGardenAccount(
                     entryPoint,
                     multicallForwarder,
                     tokenboundRegistry,
@@ -241,8 +240,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
                     address(assessmentResolver),
                     salt,
                     factory
-                )
-            )
+                ))
         );
 
         // 6. Deploy AccountProxy with CREATE2
@@ -395,9 +393,10 @@ abstract contract DeploymentBase is Test, DeployHelper {
         if (_deployer != initialOwner) {
             // solhint-disable-next-line no-empty-blocks
             try Deployment(address(proxy)).addToAllowlist(_deployer) {
-                // Success - deployer added to allowlist
-                // solhint-disable-next-line no-empty-blocks
-            } catch {
+            // Success - deployer added to allowlist
+            // solhint-disable-next-line no-empty-blocks
+            }
+                catch {
                 // Ignore failure - deployment continues
             }
         }
@@ -697,8 +696,9 @@ abstract contract DeploymentBase is Test, DeployHelper {
         returns (address)
     {
         YieldResolver yieldImpl = new YieldResolver();
-        bytes memory initData =
-            abi.encodeWithSelector(YieldResolver.initialize.selector, owner, _octantModule, _hatsModule, _minYieldThreshold);
+        bytes memory initData = abi.encodeWithSelector(
+            YieldResolver.initialize.selector, owner, _octantModule, _hatsModule, _minYieldThreshold
+        );
         bytes memory proxyBytecode =
             abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(address(yieldImpl), initData));
         bytes32 yieldSalt = keccak256(abi.encodePacked(salt, "YieldResolverProxy"));
@@ -958,8 +958,9 @@ abstract contract DeploymentBase is Test, DeployHelper {
         ISchemaRegistry registry = ISchemaRegistry(easSchemaRegistry);
         IEAS easContract = IEAS(eas);
 
-        workSchemaUID =
-            registry.register(_generateSchemaString("work"), address(workResolver), _getSchemaRevocable(schemaJson, "work"));
+        workSchemaUID = registry.register(
+            _generateSchemaString("work"), address(workResolver), _getSchemaRevocable(schemaJson, "work")
+        );
 
         workApprovalSchemaUID = registry.register(
             _generateSchemaString("workApproval"),
@@ -1014,7 +1015,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
             unlockFactory: address(0), // Phase 3+
             hypercerts: address(0), // Phase 4+
             greenWill: address(0) // Phase 5+
-         });
+        });
 
         deploymentRegistry.setNetworkConfig(block.chainid, config);
     }
@@ -1263,12 +1264,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
         IEAS.AttestationRequest memory request = IEAS.AttestationRequest({
             schema: SCHEMA_NAME_SCHEMA,
             data: IEAS.AttestationRequestData({
-                recipient: address(0),
-                expirationTime: 0,
-                revocable: true,
-                refUID: bytes32(0),
-                data: encodedData,
-                value: 0
+                recipient: address(0), expirationTime: 0, revocable: true, refUID: bytes32(0), data: encodedData, value: 0
             })
         });
         bytes32 attestationUID = eas.attest(request);
@@ -1283,12 +1279,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
         IEAS.AttestationRequest memory request = IEAS.AttestationRequest({
             schema: SCHEMA_DESCRIPTION_SCHEMA,
             data: IEAS.AttestationRequestData({
-                recipient: address(0),
-                expirationTime: 0,
-                revocable: true,
-                refUID: bytes32(0),
-                data: encodedData,
-                value: 0
+                recipient: address(0), expirationTime: 0, revocable: true, refUID: bytes32(0), data: encodedData, value: 0
             })
         });
         bytes32 attestationUID = eas.attest(request);

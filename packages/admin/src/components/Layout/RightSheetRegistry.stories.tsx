@@ -1,16 +1,19 @@
+import { NotificationPanel } from "@green-goods/shared/components/Canvas/NotificationPanel";
 import {
-  NOTIFICATIONS_SHEET_CONTENT_ID,
-  NotificationPanel,
-  PROFILE_SHEET_CONTENT_ID,
-  SETTINGS_SHEET_CONTENT_ID,
   isAdminRightSheetContentId,
   toAccountSheetContentId,
   useAdminRightSheetDescriptor,
+} from "@green-goods/shared/hooks/admin-ui/layout/useAdminRightSheetDescriptor";
+import {
   type AdminRightSheetContentId,
-} from "@green-goods/shared";
+  NOTIFICATIONS_SHEET_CONTENT_ID,
+  PROFILE_SHEET_CONTENT_ID,
+  SETTINGS_SHEET_CONTENT_ID,
+} from "@green-goods/shared/hooks/admin-ui/navigation/sheetRegistry";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useCallback, useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
+import { AdminButton } from "@/components/AdminButton";
 import { AdminSideSheet } from "@/components/AdminSideSheet";
 import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../shared/.storybook/adminFixtures";
 import {
@@ -19,7 +22,7 @@ import {
   withRouter,
   withSeededQueryClient,
 } from "../../../../shared/.storybook/decorators";
-import { AccountProfilePanel } from "./AccountProfilePanel";
+import { AccountProfilePanelContainer } from "./AccountProfilePanel";
 import { AccountSettingsPanel } from "./AccountSettingsPanel";
 
 interface RightSheetRegistryHarnessProps {
@@ -70,7 +73,7 @@ function StoryNotificationsPanel() {
 
 function RightSheetRegistryHarness({ initialContentId }: RightSheetRegistryHarnessProps) {
   const [contentId, setContentId] = useState<AdminRightSheetContentId | null>(initialContentId);
-  const renderAccountProfile = useCallback(() => <AccountProfilePanel />, []);
+  const renderAccountProfile = useCallback(() => <AccountProfilePanelContainer />, []);
   const renderAccountSettings = useCallback(() => <AccountSettingsPanel />, []);
   const renderNotifications = useCallback(() => <StoryNotificationsPanel />, []);
   const descriptor = useAdminRightSheetDescriptor({
@@ -102,25 +105,24 @@ function RightSheetRegistryHarness({ initialContentId }: RightSheetRegistryHarne
 
           <div className="flex flex-wrap gap-2">
             {SHEET_OPTIONS.map((option) => (
-              <button
+              <AdminButton
                 key={option.id}
                 type="button"
                 onClick={() => openRegisteredContent(option.id)}
-                className="rounded-lg bg-[rgb(var(--m3-primary))] px-4 py-2 text-sm font-medium text-[rgb(var(--m3-on-primary))] transition-opacity hover:opacity-90"
               >
                 Open {option.label}
-              </button>
+              </AdminButton>
             ))}
             <button
               type="button"
               onClick={() => setContentId(null)}
-              className="rounded-lg border border-stroke-soft px-4 py-2 text-sm font-medium text-text-sub transition-colors hover:bg-bg-soft"
+              className="rounded-lg border border-stroke-soft px-4 py-2 body-sm font-medium text-text-sub transition-colors hover:bg-bg-soft"
             >
               Close sheet
             </button>
           </div>
 
-          <dl className="grid gap-3 text-sm text-text-sub sm:grid-cols-3">
+          <dl className="grid gap-3 body-sm text-text-sub sm:grid-cols-3">
             <div className="surface-inset p-3">
               <dt className="font-medium text-text-strong">Current content</dt>
               <dd data-testid="right-sheet-current">{contentId ?? "none"}</dd>

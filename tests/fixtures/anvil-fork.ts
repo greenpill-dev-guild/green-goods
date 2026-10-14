@@ -23,6 +23,7 @@
 
 import { type ChildProcess, spawn } from "node:child_process";
 import {
+  type Address,
   type Chain,
   createPublicClient,
   createTestClient,
@@ -93,7 +94,7 @@ export interface AnvilForkContext {
   /** Pre-configured test accounts with signers */
   accounts: {
     deployer: TestAccountWithSigner;
-    operator: TestAccountWithSigner;
+    steward: TestAccountWithSigner;
     gardener1: TestAccountWithSigner;
     gardener2: TestAccountWithSigner;
     assessor: TestAccountWithSigner;
@@ -133,6 +134,28 @@ export interface ForkOptions {
 
   /** Skip actually starting Anvil (use existing instance) */
   useExistingAnvil?: boolean;
+}
+
+type ForkAccountStateClient = {
+  setCode: (parameters: { address: Address; bytecode: `0x${string}` }) => Promise<void>;
+  setNonce: (parameters: { address: Address; nonce: number }) => Promise<void>;
+};
+
+/**
+ * Remove code inherited by deterministic test signers from the forked chain.
+ *
+ * Anvil's default keys can correspond to live EIP-7702 delegated accounts on
+ * Sepolia. Clearing their forked code restores the plain EOA semantics these
+ * fixtures require without mutating the upstream deployment.
+ */
+export async function normalizeForkAccounts(
+  testClient: ForkAccountStateClient,
+  accounts: readonly { address: Address }[]
+): Promise<void> {
+  for (const account of accounts) {
+    await testClient.setCode({ address: account.address, bytecode: "0x" });
+    await testClient.setNonce({ address: account.address, nonce: 0 });
+  }
 }
 
 // ============================================================================
@@ -300,7 +323,9 @@ export async function startAnvilFork(options: ForkOptions = {}): Promise<AnvilFo
   const port = options.port ?? FORK_CONFIG.port;
   const chainId = options.chainId ?? FORK_CONFIG.chainId;
   const chain = createAnvilChain(port, chainId);
-  const transport = http(`http://127.0.0.1:${port}`);
+  const transport = http(`http://127.0.0.1:${port}`, {
+    timeout: ANVIL_TIMEOUTS.transaction,
+  });
 
   let anvilProcess: ChildProcess | null = null;
 
@@ -338,9 +363,9 @@ export async function startAnvilFork(options: ForkOptions = {}): Promise<AnvilFo
       address: TEST_ACCOUNTS.deployer.address,
       account: privateKeyToAccount(TEST_ACCOUNTS.deployer.privateKey),
     },
-    operator: {
-      address: TEST_ACCOUNTS.operator.address,
-      account: privateKeyToAccount(TEST_ACCOUNTS.operator.privateKey),
+    steward: {
+      address: TEST_ACCOUNTS.steward.address,
+      account: privateKeyToAccount(TEST_ACCOUNTS.steward.privateKey),
     },
     gardener1: {
       address: TEST_ACCOUNTS.gardener1.address,
@@ -355,6 +380,9 @@ export async function startAnvilFork(options: ForkOptions = {}): Promise<AnvilFo
       account: privateKeyToAccount(TEST_ACCOUNTS.assessor.privateKey),
     },
   };
+
+  await normalizeForkAccounts(testClient, Object.values(accounts));
+  console.log(`  🧼 Normalized ${Object.keys(accounts).length} fork test accounts`);
 
   // Fund accounts if requested
   if (options.fundAccounts !== false) {
@@ -450,19 +478,6 @@ export async function impersonateAccount(
 }
 
 /**
- * Stop impersonating an account
- *
- * @param testClient - The test client from AnvilForkContext
- * @param address - The address to stop impersonating
- */
-export async function stopImpersonating(
-  testClient: TestClient,
-  address: `0x${string}`
-): Promise<void> {
-  await testClient.stopImpersonatingAccount({ address });
-}
-
-/**
  * Set the balance of an address
  *
  * @param testClient - The test client from AnvilForkContext
@@ -475,16 +490,6 @@ export async function setBalance(
   value: bigint
 ): Promise<void> {
   await testClient.setBalance({ address, value });
-}
-
-/**
- * Mine a specified number of blocks
- *
- * @param testClient - The test client from AnvilForkContext
- * @param count - Number of blocks to mine (default: 1)
- */
-export async function mineBlocks(testClient: TestClient, count: number = 1): Promise<void> {
-  await testClient.mine({ blocks: count });
 }
 
 /**

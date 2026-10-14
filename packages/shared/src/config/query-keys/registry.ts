@@ -1,20 +1,32 @@
+import { agentReportingKeys } from "./agent-reporting";
 import { actionsKeys, assessmentsKeys, gardensKeys, platformKeys } from "./garden";
+import { commitmentPoolingKeys } from "./commitment-pooling";
+import { creditKeys } from "./credit";
 import { greenWillKeys } from "./greenwill";
+import { gardenJoinRequestKeys } from "./garden-join-requests";
 import { convictionKeys, hypercertsKeys, marketplaceKeys } from "./hypercert";
-import { communityKeys, ensKeys, gardenerProfileKeys, gardenersKeys, roleKeys } from "./identity";
+import {
+  communityKeys,
+  ensKeys,
+  gardenerProfileKeys,
+  gardenersKeys,
+  profileAvatarKeys,
+  roleKeys,
+} from "./identity";
 import { draftsKeys, mediaKeys, offlineKeys, queueKeys } from "./misc";
 import { publicKeys } from "./public";
+import { QUERY_KEY_ROOT } from "./root";
+import { savedOffersKeys } from "./saved-offers";
 import { tokensKeys } from "./tokens";
 import { cookieJarKeys, vaultsKeys, yieldKeys } from "./vault";
-import { approvalsKeys, operatorWorksKeys, workApprovalsKeys, worksKeys } from "./work";
+import { approvalsKeys, workApprovalsKeys, worksKeys } from "./work";
 
 export const queryKeys = {
-  all: ["greengoods"] as const,
+  all: QUERY_KEY_ROOT,
   queue: queueKeys,
   works: worksKeys,
   workApprovals: workApprovalsKeys,
   approvals: approvalsKeys,
-  operatorWorks: operatorWorksKeys,
   offline: offlineKeys,
   media: mediaKeys,
   gardens: gardensKeys,
@@ -29,6 +41,7 @@ export const queryKeys = {
   assessments: assessmentsKeys,
   gardeners: gardenersKeys,
   gardenerProfile: gardenerProfileKeys,
+  profileAvatars: profileAvatarKeys,
   ens: ensKeys,
   role: roleKeys,
   drafts: draftsKeys,
@@ -36,4 +49,9 @@ export const queryKeys = {
   marketplace: marketplaceKeys,
   greenWill: greenWillKeys,
   tokens: tokensKeys,
+  commitmentPooling: commitmentPoolingKeys,
+  credit: creditKeys,
+  savedOffers: savedOffersKeys,
+  gardenJoinRequests: gardenJoinRequestKeys,
+  agentReporting: agentReportingKeys,
 } as const;

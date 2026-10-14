@@ -30,3 +30,14 @@ export {
   applyAttestationFilters,
   filterAttestationsByAssessment,
 } from "./hypercerts-filters";
+
+export {
+  createHypercertRepository,
+  type HypercertDocuments,
+  type HypercertEas,
+  type HypercertIndexer,
+  type HypercertRepository,
+  hypercertRepository,
+  type HypercertRepositoryDependencies,
+  type HypercertSdk,
+} from "./hypercerts-repository";

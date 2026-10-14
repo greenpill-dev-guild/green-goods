@@ -1,0 +1,383 @@
+{
+  "schemaVersion": 2,
+  "stage": "final-garden-account-ownership",
+  "chainId": 42220,
+  "releaseId": "commitment-pooling-settlement-credit-v1",
+  "sourceCommit": "fab5daef2eebbe83c1d444f6c148c682e122f1c3",
+  "authorityEnabled": false,
+  "ownerPolicy": "2-of-3 exact GardenAccount plus two reviewed recovery Safes; no modules or guard",
+  "valueAssertion": {
+    "nativeBalance": "zero",
+    "canonicalTokenBalance": "zero",
+    "arbitraryTokenInventory": "not-enumerated"
+  },
+  "singleton": "0x29fcB43b46531BcA003ddC8FCB67FFE91900C762",
+  "factory": "0x4e1DCf7AD4e460CfD30791CCC4F9c8a4f820ec67",
+  "compatibilityFallbackHandler": "0xfd0732Dc9E303f09fCEf3a7388Ad10A83459Ec99",
+  "recoverySafes": {
+    "greenGoods": "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+    "devGuild": "0x49fa954B6C2Cd14B4b3604EF1Cc17cED20a9E42C"
+  },
+  "safes": [
+    {
+      "tokenId": 0,
+      "garden": "0xf401f34378384713222d1d21f63359cc4E8a858a",
+      "safe": "0xe41a1e446644034f24a4B2E1bfB28Fd414dBc66d",
+      "owners": [
+        "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+        "0x49fa954B6C2Cd14B4b3604EF1Cc17cED20a9E42C",
+        "0xf401f34378384713222d1d21f63359cc4E8a858a"
+      ],
+      "threshold": "2",
+      "initializerHash": "0x25ed4387097ff39ee813da8318c4ac33218f03cec963c40ceb5608dfdbc6ad8e",
+      "saltNonce": "38318504459598625934576255025098196894826548459580038394552891589886020319285",
+      "deployment": {
+        "index": 1,
+        "transactionHash": "0xcde78293c9d0bc7e49d8107ccbb20eb7a997f6e3acc70b94c57f0acc5c6c78f2",
+        "blockNumber": 75135556,
+        "safe": "0xe41a1e446644034f24a4B2E1bfB28Fd414dBc66d",
+        "garden": "0xf401f34378384713222d1d21f63359cc4E8a858a"
+      }
+    },
+    {
+      "tokenId": 1,
+      "garden": "0xF7b892886998DAe960D64a9db488336684F137A0",
+      "safe": "0xa23716F7B0DBBB0387Fb1274f1Ae8247670dCC37",
+      "owners": [
+        "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+        "0x49fa954B6C2Cd14B4b3604EF1Cc17cED20a9E42C",
+        "0xF7b892886998DAe960D64a9db488336684F137A0"
+      ],
+      "threshold": "2",
+      "initializerHash": "0xa8f4f37fb8610c8fdbaf8d421ebeabb6c52071a07da98ebe4efbfc3ffc856d03",
+      "saltNonce": "34126794214082644595230899571363318323466964981885504203424311676768832919929",
+      "deployment": {
+        "index": 2,
+        "transactionHash": "0x875e44184eb919bb414393ce17fca50d31e8594ef2e7d8ed9ba39da0e54a1ea1",
+        "blockNumber": 75135568,
+        "safe": "0xa23716F7B0DBBB0387Fb1274f1Ae8247670dCC37",
+        "garden": "0xF7b892886998DAe960D64a9db488336684F137A0"
+      }
+    },
+    {
+      "tokenId": 2,
+      "garden": "0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3",
+      "safe": "0x67828f64f6D33522679F40D9f1BE1F53c9eb71cB",
+      "owners": [
+        "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+        "0x49fa954B6C2Cd14B4b3604EF1Cc17cED20a9E42C",
+        "0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3"
+      ],
+      "threshold": "2",
+      "initializerHash": "0xf8d34f9e5cd93b6a4b0eed0625a5ca2a6ed59fef99006a91fb050c9eef546a9d",
+      "saltNonce": "11553009438069564612316984403900659244270557216046360836068167738795662061522",
+      "deployment": {
+        "index": 3,
+        "transactionHash": "0x288f51861a289e514ab4fb29fcc75e172097e4c64f435d82d7bdb1cdc65cce15",
+        "blockNumber": 75135580,
+        "safe": "0x67828f64f6D33522679F40D9f1BE1F53c9eb71cB",
+        "garden": "0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3"
+      }
+    },
+    {
+      "tokenId": 3,
+      "garden": "0x4055530dB392FB2B56037065A512c5b283D90A10",
+      "safe": "0xCFfADc80904b760F1588D0Ebfd53f4c307691A86",
+      "owners": [
+        "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+        "0x4055530dB392FB2B56037065A512c5b283D90A10",
+        "0x49fa954B6C2Cd14B4b3604EF1Cc17cED20a9E42C"
+      ],
+      "threshold": "2",
+      "initializerHash": "0x17b176cf9439d385f518ccb0697d4b6ccd581c2b46f85b5bb20d9d5c491cf661",
+      "saltNonce": "114396751053536228365231216012144370902988083985836600047060031552325832334296",
+      "deployment": {
+        "index": 4,
+        "transactionHash": "0x1fd21a5a4f490f54f848ab6c4f736dc7f66116e70ed2d2b81606378a9bc90571",
+        "blockNumber": 75135592,
+        "safe": "0xCFfADc80904b760F1588D0Ebfd53f4c307691A86",
+        "garden": "0x4055530dB392FB2B56037065A512c5b283D90A10"
+      }
+    },
+    {
+      "tokenId": 4,
+      "garden": "0x51499A44BB7793647e67ed827bd17367d7e55314",
+      "safe": "0xC9D5bF40a49a0a5A60E1677aAA06342655025c94",
+      "owners": [
+        "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+        "0x49fa954B6C2Cd14B4b3604EF1Cc17cED20a9E42C",
+        "0x51499A44BB7793647e67ed827bd17367d7e55314"
+      ],
+      "threshold": "2",
+      "initializerHash": "0x36791856e8b960d8f74f8c42248b880153d6da99d1159c8a8c4ece085119a1e2",
+      "saltNonce": "5645564048363170156005176377367505000374854959661224240962453906369026285478",
+      "deployment": {
+        "index": 5,
+        "transactionHash": "0x80b9f78b36b03888011ad132a1e51948883de47e408045067de3dc1bafb2ed46",
+        "blockNumber": 75135604,
+        "safe": "0xC9D5bF40a49a0a5A60E1677aAA06342655025c94",
+        "garden": "0x51499A44BB7793647e67ed827bd17367d7e55314"
+      }
+    },
+    {
+      "tokenId": 5,
+      "garden": "0xbcCE994513615988690aBCA373B1368218E4957C",
+      "safe": "0x6640D2809aA4989192F1caaF6D9614BaD9aA5518",
+      "owners": [
+        "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+        "0x49fa954B6C2Cd14B4b3604EF1Cc17cED20a9E42C",
+        "0xbcCE994513615988690aBCA373B1368218E4957C"
+      ],
+      "threshold": "2",
+      "initializerHash": "0x436da1c7ed6b95cb4ee874212ed1f52794c15d338a859fba25a51f7ca8a9bb33",
+      "saltNonce": "19283925497556931253293892777625179326971969859327358381904267052035480023100",
+      "deployment": {
+        "index": 6,
+        "transactionHash": "0x9db31a2f605564092c278df5e81b0a0afc685695a87cf4b191b353f2d2ccbf5a",
+        "blockNumber": 75135617,
+        "safe": "0x6640D2809aA4989192F1caaF6D9614BaD9aA5518",
+        "garden": "0xbcCE994513615988690aBCA373B1368218E4957C"
+      }
+    },
+    {
+      "tokenId": 6,
+      "garden": "0xFDa72CE1D75b735d6595E5814DDF23b97516caEf",
+      "safe": "0x6e64e6bB9977BF1d5db40f71bCBb194269cE503B",
+      "owners": [
+        "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+        "0x49fa954B6C2Cd14B4b3604EF1Cc17cED20a9E42C",
+        "0xFDa72CE1D75b735d6595E5814DDF23b97516caEf"
+      ],
+      "threshold": "2",
+      "initializerHash": "0x2bb28d3caaade23238509b3c42abf535e8c6b9fecd5c8a265bbec21c04aaa20f",
+      "saltNonce": "34629138046940926405766185467516987573291265588181315324296560953329268341300",
+      "deployment": {
+        "index": 7,
+        "transactionHash": "0x50c6bfa256655bd495825bf3fc4033c8f9b25052b3a04ee187bcf138dc9514ad",
+        "blockNumber": 75135630,
+        "safe": "0x6e64e6bB9977BF1d5db40f71bCBb194269cE503B",
+        "garden": "0xFDa72CE1D75b735d6595E5814DDF23b97516caEf"
+      }
+    },
+    {
+      "tokenId": 7,
+      "garden": "0xD1F8e787a325F91F5d4Be2D30ea1E67B19e28b30",
+      "safe": "0x0092904e7c33e04EcAc35E2e45cD6D1D1571EE81",
+      "owners": [
+        "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+        "0x49fa954B6C2Cd14B4b3604EF1Cc17cED20a9E42C",
+        "0xD1F8e787a325F91F5d4Be2D30ea1E67B19e28b30"
+      ],
+      "threshold": "2",
+      "initializerHash": "0x64ad472c17d29deaaee44aef60ebbf12ec6b632d819a1fed507e90a70fcdc1c1",
+      "saltNonce": "59703693945776757008031120794623855529389655999392002700913403969378837860863",
+      "deployment": {
+        "index": 8,
+        "transactionHash": "0x3e93fe3583accf232f40ac248bc362435dca0b8d6bf161689d6d911f0c395ac8",
+        "blockNumber": 75135643,
+        "safe": "0x0092904e7c33e04EcAc35E2e45cD6D1D1571EE81",
+        "garden": "0xD1F8e787a325F91F5d4Be2D30ea1E67B19e28b30"
+      }
+    },
+    {
+      "tokenId": 8,
+      "garden": "0x4f11FB4c255D3eDC7C44a461ab45fBC421Aacb09",
+      "safe": "0x1295E5F1D78e0f1904A78798bA494d2Bb996E23b",
+      "owners": [
+        "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+        "0x49fa954B6C2Cd14B4b3604EF1Cc17cED20a9E42C",
+        "0x4f11FB4c255D3eDC7C44a461ab45fBC421Aacb09"
+      ],
+      "threshold": "2",
+      "initializerHash": "0x92e0e96f1e3fdfe009e02ca5c397dda0e56c4146e91fd8ad5d25e775e1692189",
+      "saltNonce": "7675601301243008798551791977800343304849363627447815724562109579152340274692",
+      "deployment": {
+        "index": 9,
+        "transactionHash": "0x169446da0edf6d9e7b4387ed136bb1461d8d0f32e9536349da176c8af589ccaf",
+        "blockNumber": 75135659,
+        "safe": "0x1295E5F1D78e0f1904A78798bA494d2Bb996E23b",
+        "garden": "0x4f11FB4c255D3eDC7C44a461ab45fBC421Aacb09"
+      }
+    },
+    {
+      "tokenId": 9,
+      "garden": "0x636962584b1F492B06151Fee87810281372879b6",
+      "safe": "0x3EB95Adb3B603945C3a422fe564aAAB605d27a4b",
+      "owners": [
+        "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+        "0x49fa954B6C2Cd14B4b3604EF1Cc17cED20a9E42C",
+        "0x636962584b1F492B06151Fee87810281372879b6"
+      ],
+      "threshold": "2",
+      "initializerHash": "0x0786641a51c85bfa4fb23ed50930442553d69db29fa08bdbbc9ff43851f58a4b",
+      "saltNonce": "11211226256232310913990533802581178336808861100054617074395981669273614113313",
+      "deployment": {
+        "index": 10,
+        "transactionHash": "0xd6b772d4e8478ec4b5d77ea0298481155c88573ce123fdbe90587ae259a98fc2",
+        "blockNumber": 75135673,
+        "safe": "0x3EB95Adb3B603945C3a422fe564aAAB605d27a4b",
+        "garden": "0x636962584b1F492B06151Fee87810281372879b6"
+      }
+    },
+    {
+      "tokenId": 10,
+      "garden": "0x1121218D5e017B57c6DF3B5a001a991BDB910338",
+      "safe": "0x94706E563B94980EDe33bd7A538B3D24a53ef010",
+      "owners": [
+        "0x1121218D5e017B57c6DF3B5a001a991BDB910338",
+        "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+        "0x49fa954B6C2Cd14B4b3604EF1Cc17cED20a9E42C"
+      ],
+      "threshold": "2",
+      "initializerHash": "0xe9d9bc478cf7a9e70b9e57f13718e55cd7852f7f82b31b2e32e37cc1d43bb833",
+      "saltNonce": "97468360116953320242162608548801414663519533273698118328057863196186010504056",
+      "deployment": {
+        "index": 11,
+        "transactionHash": "0x7bcc7af13d65a01ab24e5900c4663f4a37e2a59c61acfc8fc16a66804637c12c",
+        "blockNumber": 75135687,
+        "safe": "0x94706E563B94980EDe33bd7A538B3D24a53ef010",
+        "garden": "0x1121218D5e017B57c6DF3B5a001a991BDB910338"
+      }
+    },
+    {
+      "tokenId": 11,
+      "garden": "0x3f0f1551C7E08a2cf6800BD7D72aBfE23E3E32a0",
+      "safe": "0x7Cf45A3205CE3FFC3e552bc0b49B3bF3aA090241",
+      "owners": [
+        "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+        "0x3f0f1551C7E08a2cf6800BD7D72aBfE23E3E32a0",
+        "0x49fa954B6C2Cd14B4b3604EF1Cc17cED20a9E42C"
+      ],
+      "threshold": "2",
+      "initializerHash": "0xc64dc6192b0fc027c202efdbec1413dc91f68d98bb20a383f1da8d68169645c0",
+      "saltNonce": "16280421176878069623454566306767730455188173113006417069667926397157847777700",
+      "deployment": {
+        "index": 12,
+        "transactionHash": "0xf0cdb183ad87c5de7494d91508d73c3a0c4df8647b3c3d50867bf0623ca185aa",
+        "blockNumber": 75135703,
+        "safe": "0x7Cf45A3205CE3FFC3e552bc0b49B3bF3aA090241",
+        "garden": "0x3f0f1551C7E08a2cf6800BD7D72aBfE23E3E32a0"
+      }
+    },
+    {
+      "tokenId": 12,
+      "garden": "0x3F22568aE0deAA24dA7b8c669AfDcBD72A6A7fd8",
+      "safe": "0x8d759c89f82A8eCE6e45164Ba9cDD32fE498f2D9",
+      "owners": [
+        "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+        "0x3F22568aE0deAA24dA7b8c669AfDcBD72A6A7fd8",
+        "0x49fa954B6C2Cd14B4b3604EF1Cc17cED20a9E42C"
+      ],
+      "threshold": "2",
+      "initializerHash": "0x4cc8a11e8408109804768a1e93b214b5a831cdab1528fded58dc7b05881a1bcd",
+      "saltNonce": "95075211134527877753252829871314404600840777338914491522334136079281699496140",
+      "deployment": {
+        "index": 13,
+        "transactionHash": "0x4486d1cd9075147ab4e27496d348ece14e7a096988911a4eeef6ca9a65299904",
+        "blockNumber": 75135719,
+        "safe": "0x8d759c89f82A8eCE6e45164Ba9cDD32fE498f2D9",
+        "garden": "0x3F22568aE0deAA24dA7b8c669AfDcBD72A6A7fd8"
+      }
+    },
+    {
+      "tokenId": 13,
+      "garden": "0x26c32E54F23af9F9fcC757414c76E56e3fB176E2",
+      "safe": "0x15F104203570BC53B5349EE888e02B0DB100E4F7",
+      "owners": [
+        "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+        "0x26c32E54F23af9F9fcC757414c76E56e3fB176E2",
+        "0x49fa954B6C2Cd14B4b3604EF1Cc17cED20a9E42C"
+      ],
+      "threshold": "2",
+      "initializerHash": "0xc5b0611d2d3a5c7e61a58985869664cd375ce697895074252c1ea333c0139b5e",
+      "saltNonce": "13162135356468680738952980483924857078997085894812565574958601653301164822688",
+      "deployment": {
+        "index": 14,
+        "transactionHash": "0x82d7b3a0488f62a4f8e740b0897b7362d4977846e4f5cd3eb72c4f321b8324f8",
+        "blockNumber": 75135734,
+        "safe": "0x15F104203570BC53B5349EE888e02B0DB100E4F7",
+        "garden": "0x26c32E54F23af9F9fcC757414c76E56e3fB176E2"
+      }
+    },
+    {
+      "tokenId": 14,
+      "garden": "0x35077CaF6fBef1d5677d318a198C9c47C61bb976",
+      "safe": "0x14094635AdA852bCd740AdF546D2ef0dd79Ad4DB",
+      "owners": [
+        "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+        "0x35077CaF6fBef1d5677d318a198C9c47C61bb976",
+        "0x49fa954B6C2Cd14B4b3604EF1Cc17cED20a9E42C"
+      ],
+      "threshold": "2",
+      "initializerHash": "0x55553cb6663187079ea0a431c7640539861273817b6495a1fd4c9c6ec8e8c548",
+      "saltNonce": "9708672042085108689421067020213783525119609448568076879737646840061434870728",
+      "deployment": {
+        "index": 15,
+        "transactionHash": "0x95ff87fc939ded065378b0072791313271a054f05933160b100858bfde5c30cc",
+        "blockNumber": 75135752,
+        "safe": "0x14094635AdA852bCd740AdF546D2ef0dd79Ad4DB",
+        "garden": "0x35077CaF6fBef1d5677d318a198C9c47C61bb976"
+      }
+    },
+    {
+      "tokenId": 15,
+      "garden": "0x7bE6eAeb2FB5842Da06A34Af4fAe418347427cd1",
+      "safe": "0x82EFf72CB9A33fC6F74422146Ae04F8629097db9",
+      "owners": [
+        "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+        "0x49fa954B6C2Cd14B4b3604EF1Cc17cED20a9E42C",
+        "0x7bE6eAeb2FB5842Da06A34Af4fAe418347427cd1"
+      ],
+      "threshold": "2",
+      "initializerHash": "0x874daa4acb9ae7b713f2f1733f7a6c2104f4cc09fa77635c6eb562b5c46e9ebc",
+      "saltNonce": "65496979447084321758747520049176454777489620568093926620134671361645024804782",
+      "deployment": {
+        "index": 16,
+        "transactionHash": "0x4fa31b76a4a191aaa5e99627e02c961c4e959cfa945f9a2f7d4ded08c1f2eca0",
+        "blockNumber": 75135769,
+        "safe": "0x82EFf72CB9A33fC6F74422146Ae04F8629097db9",
+        "garden": "0x7bE6eAeb2FB5842Da06A34Af4fAe418347427cd1"
+      }
+    },
+    {
+      "tokenId": 16,
+      "garden": "0x35722eEdf3F7566A23FA871f0a04267AEe78E0dB",
+      "safe": "0x6516E0051D95b6C6B3a8Fa051b1bF51821e9697c",
+      "owners": [
+        "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+        "0x35722eEdf3F7566A23FA871f0a04267AEe78E0dB",
+        "0x49fa954B6C2Cd14B4b3604EF1Cc17cED20a9E42C"
+      ],
+      "threshold": "2",
+      "initializerHash": "0xab37c1e88a0d2aded99fe2413feeb7dc2a23195a9e2964cdd36b3a75f3169177",
+      "saltNonce": "108501710021976015373399866123231890334387930440575795611845698506866980463469",
+      "deployment": {
+        "index": 17,
+        "transactionHash": "0x8b7e75f140500bcee0b809a1f58bbd71e374ff0cacdbea17479cbee895bea91d",
+        "blockNumber": 75135786,
+        "safe": "0x6516E0051D95b6C6B3a8Fa051b1bF51821e9697c",
+        "garden": "0x35722eEdf3F7566A23FA871f0a04267AEe78E0dB"
+      }
+    },
+    {
+      "tokenId": 17,
+      "garden": "0x749F84CA070cD2F98d9353F49eCE77C1A3fED532",
+      "safe": "0xB2C312402dbaabBe0cDB91aD387A4b46689f35B5",
+      "owners": [
+        "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+        "0x49fa954B6C2Cd14B4b3604EF1Cc17cED20a9E42C",
+        "0x749F84CA070cD2F98d9353F49eCE77C1A3fED532"
+      ],
+      "threshold": "2",
+      "initializerHash": "0x3039be2963376d9a55d5c5204ce7ba4b3da5c392d01d772b7234314a63298a5c",
+      "saltNonce": "86147391709328155343823632018852372387347162280248143216131113084984168542429",
+      "deployment": {
+        "index": 18,
+        "transactionHash": "0x89709d11d4acada891449c3d9a6171fe16f9af9684ab6a500b3532d7411e6548",
+        "blockNumber": 75135804,
+        "safe": "0xB2C312402dbaabBe0cDB91aD387A4b46689f35B5",
+        "garden": "0x749F84CA070cD2F98d9353F49eCE77C1A3fED532"
+      }
+    }
+  ]
+}
