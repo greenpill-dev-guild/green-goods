@@ -148,10 +148,11 @@ observations in the private receipt before using it for the formal release gate.
   production main as a parent and has the identical tree.
 - [ ] Check publishing links and cleared media, then announce at Afo's selected time.
 
-At the approved cut: merge the verified release PR into `main`, deploy the final indexer, verify
-its schema and sync, update production environment variables, rebuild/promote Client and Admin,
-and verify production domains, API compatibility and source maps. Then sign and tag the merged
-`main` commit, verify the GitHub Release, add the curated notes, and merge `main` back into `develop`.
+At the cut, the verified release PR merged into `main`, the final indexer was deployed and
+verified, both production app environments were updated, and Client and Admin were rebuilt.
+The merged `main` commit was then signed and tagged, the GitHub Release received the curated
+notes, and `main` merged back into `develop`. The checklists above hold the receipts; do not
+repeat these steps for 2.0.0.
 
 After production verification: Afo publishes the approved [Telegram/WhatsApp, public-social and
 X-thread copy](announcement.md), with em dashes removed. The Spanish community translation
@@ -161,6 +162,7 @@ owns publication, [MAR-43](https://linear.app/greenpill-dev-guild/issue/MAR-43/c
 owns screenshot clearance and [MAR-44](https://linear.app/greenpill-dev-guild/issue/MAR-44/prepare-pilot-focused-social-preview-assets-for-green-goods)
 owns preview artwork and copy. The demo is optional follow-up material.
 
-Use [the indexer cut guide](indexer-cut-guide.md) for the post-main deployment and environment
-sequence, and [social preview readiness](social-preview-readiness.md) before sharing automatic
-link cards. Naming the rollback operator does not establish a completed backup/restore rehearsal.
+[The indexer cut guide](indexer-cut-guide.md) describes the post-main deployment and environment
+sequence this cut followed. Check [social preview readiness](social-preview-readiness.md) before
+sharing automatic link cards. Naming the rollback operator does not establish a completed
+backup/restore rehearsal.

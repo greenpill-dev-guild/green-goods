@@ -163,14 +163,16 @@ Keep `AGENT_REPORTING_SITE='beta'` as recorded unless a separate approved report
 
 ## Tag, release notes, and back-merge
 
-After production verification, tag the exact merged `main` SHA, not the release-branch head:
+Complete on October 14; do not repeat these steps for 2.0.0. The exact merged `main` SHA,
+`1b138dfba804d9db019a96d05675bbaa1a4162bc`, carries the signed annotated tag `v2.0.0` (tag object
+`532e6553d990a8971f8ed14ae5f01a77fbf84c24`, message `October 2026`). The tag-triggered
+[Release workflow](https://github.com/greenpill-dev-guild/green-goods/actions/runs/38647023237)
+created the [GitHub Release](https://github.com/greenpill-dev-guild/green-goods/releases/tag/v2.0.0),
+and [the curated notes](release-notes.md) sit above the generated PR notes.
+[#1099](https://github.com/greenpill-dev-guild/green-goods/pull/1099) merged `main` back into
+`develop` through a temporary head branch; `main` is never the head of a back-merge PR because
+automatic branch deletion is enabled.
 
-```sh
-git fetch origin main develop
-git tag -s v2.0.0 <verified-merged-main-sha> -m 'October 2026'
-git push origin v2.0.0
-```
-
-Verify the tag-triggered Release workflow creates **October 2026 — v2.0.0**. Add [the curated notes](release-notes.md) alongside generated PR notes. Merge `main` back into `develop` using the established procedure; never use `main` as the head of a back-merge PR because automatic branch deletion is enabled.
-
-Record production deployment IDs, the merged SHA/tag, source-map result, indexer sync, API/migration checks, authenticated acceptance, and rollback receipts. Release is complete only after those checks; announcement follows production verification at the owner's selected time.
+The [release pack](README.md) records the production deployments, merged SHA and tag, source-map
+results, indexer sync, API and migration checks, acceptance provenance and rollback receipts.
+The announcement follows at the owner's selected time.
