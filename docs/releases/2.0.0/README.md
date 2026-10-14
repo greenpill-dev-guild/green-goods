@@ -125,8 +125,9 @@ all eight checked-in references with the verified production configuration. The 
 `e6edffd` deployment remains a rollback input, not the final fallback. PRD-1122 is Done;
 the broader Work read-back uses EAS rather than the protocol indexer.
 
-Read-back, October 14 at 23:21 UTC, against the production endpoint with the app's field lists
-for pools, cycles, commitments and claim requests: no GraphQL errors and no missing fields. It
+Read-back, October 14 at 23:21 UTC, against `https://indexer.hyperindex.xyz/de3e5df/v1/graphql`
+with the app's field lists for pools, cycles, commitments and claim requests: no GraphQL errors
+and no missing fields. It
 returned 18 Gardens, 18 commitment pools, 3 cycles, 42 commitments, 7 claim requests (5 accepted,
 2 declined) and 9 active contributor records, all on Arbitrum `42161`. Arbitrum's latest
 processed block was 4 behind its public RPC head, and Celo `42220` was level with its head.
