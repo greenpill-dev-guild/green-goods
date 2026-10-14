@@ -37,6 +37,13 @@ const SEND_NOW = "app.commitment.queue.sendNow";
  * a creation that never went waits for their Send Now.
  */
 function rowCopy(creation: PendingCommitmentCreation, sendsFromTap: boolean): RowCopy {
+  if (creation.settlementDeferred) {
+    return {
+      chipId: "app.pool.queued.settlementDeferred",
+      noteId: "app.pool.queued.settlementDeferredNote",
+      actId: null,
+    };
+  }
   if (creation.failed) {
     return {
       chipId: "app.commitments.row.sendFailed",
@@ -142,11 +149,11 @@ export function PendingCreationRow({
       <p className="mt-2 text-xs text-text-sub-600">
         {formatMessage({ id: copy.noteId }, copy.noteValues)}
       </p>
-      {copy.actId ? (
+      {copy.actId || (creation.settlementDeferred && creation.discardable) ? (
         <div
           className={cn(
             "mt-3 grid gap-2",
-            creation.discardable && !discardOnly ? "grid-cols-2" : "grid-cols-1"
+            creation.discardable && copy.actId && !discardOnly ? "grid-cols-2" : "grid-cols-1"
           )}
         >
           {/* A creation whose transaction was already sent keeps its record: retry
@@ -164,22 +171,24 @@ export function PendingCreationRow({
               {formatMessage({ id: "app.pool.queued.discard" })}
             </Button>
           ) : null}
-          <Button
-            type="button"
-            size="sm"
-            onClick={() => onRetry(creation.jobId)}
-            disabled={isBusy}
-            hidden={discardOnly}
-            leadingIcon={
-              copy.actId === SEND_NOW ? (
-                <RiSendPlaneLine className="h-4 w-4" aria-hidden="true" />
-              ) : (
-                <RiRefreshLine className="h-4 w-4" aria-hidden="true" />
-              )
-            }
-          >
-            {formatMessage({ id: copy.actId })}
-          </Button>
+          {copy.actId ? (
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => onRetry(creation.jobId)}
+              disabled={isBusy}
+              hidden={discardOnly}
+              leadingIcon={
+                copy.actId === SEND_NOW ? (
+                  <RiSendPlaneLine className="h-4 w-4" aria-hidden="true" />
+                ) : (
+                  <RiRefreshLine className="h-4 w-4" aria-hidden="true" />
+                )
+              }
+            >
+              {formatMessage({ id: copy.actId })}
+            </Button>
+          ) : null}
         </div>
       ) : null}
     </div>

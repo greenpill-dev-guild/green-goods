@@ -1,3 +1,4 @@
+import { SETTLEMENT_ENABLED } from "@green-goods/shared/config/app";
 import type { DisputeResolutionKey } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import { useCommitmentDialogController } from "@green-goods/shared/hooks/admin-ui/pool/useCommitmentDialogController";
 import { useSettlementAccount } from "@green-goods/shared/hooks/commitment-pooling/useSettlementQueries";
@@ -130,6 +131,7 @@ function CommitmentRecord({
   // document can say it stands alone: one still loading, or unread, may be a copy.
   const rewardWei = commitment.considerationAmount ?? 0n;
   const canEditReward =
+    SETTLEMENT_ENABLED &&
     dialog.isLocalSteward &&
     dialog.metadataKnown !== false &&
     !dialog.metadata?.displayGroup &&

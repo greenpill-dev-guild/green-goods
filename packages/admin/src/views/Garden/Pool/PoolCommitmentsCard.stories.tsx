@@ -220,3 +220,33 @@ export const QueuedNeedsAttention: Story = {
 export const Empty: Story = {
   args: { console: storyPoolConsole({ commitments: [], claims: [] }) },
 };
+
+/** A pre-update reward stays visible, without an impossible send. */
+export const RewardDeferred: Story = {
+  args: {
+    console: storyPoolConsole({
+      pendingCreates: [
+        {
+          jobId: "reward-deferred",
+          chainId: 42161,
+          poolId: "7",
+          direction: "REQUEST",
+          title: "Rewarded survey",
+          unitLabel: "survey",
+          targetUnits: "1",
+          waitingForMembership: false,
+          settlementDeferred: true,
+          failed: false,
+          discardable: true,
+          createdAt: daysAgo(0) * 1000,
+        },
+      ],
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByText("G$ reward deferred")).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "Send Now" })).toBeDisabled();
+    await expect(canvas.getByRole("button", { name: "Discard" })).toBeEnabled();
+  },
+};

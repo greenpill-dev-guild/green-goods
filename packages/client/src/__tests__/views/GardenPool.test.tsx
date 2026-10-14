@@ -499,6 +499,16 @@ describe("GardenPool", () => {
       expect(mockDiscardJob).toHaveBeenCalledWith("job-1");
     });
 
+    it("keeps a deferred reward visible without Send Now or an automatic-send promise", () => {
+      mockUseQueueState.mockReturnValue(queued({ settlementDeferred: true }));
+      render(<GardenPool pool={pool()} />);
+      expect(screen.getByText("G$ reward deferred")).toBeInTheDocument();
+      expect(screen.getByText(/Sending G\$ reward promises is unavailable/)).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Send Now" })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Discard" })).toBeInTheDocument();
+      expect(mockRetryAndSend).not.toHaveBeenCalled();
+    });
+
     it("says a creation that was never tried waits for their send", () => {
       mockUseQueueState.mockReturnValue(queued({}));
 

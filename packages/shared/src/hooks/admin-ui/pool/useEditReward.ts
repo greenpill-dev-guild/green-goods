@@ -10,6 +10,7 @@
  * @module hooks/admin-ui/pool/useEditReward
  */
 
+import { SETTLEMENT_ENABLED } from "../../../config/app";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 
@@ -70,6 +71,7 @@ export function useEditReward(input: { chainId: number }): EditRewardController 
   );
 
   const change: EditRewardController["change"] = async (commitmentIds, amount) => {
+    if (!SETTLEMENT_ENABLED) return "blocked";
     if (!sender || commitmentIds.length === 0) return "blocked";
     let moduleAddress: Address;
     try {

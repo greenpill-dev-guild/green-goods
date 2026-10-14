@@ -126,3 +126,15 @@ export const Portuguese: Story = {
     terms: termsOf(SURVEY, STORY_GROUP_EVENTS, createIntl({ locale: "pt", messages: pt })),
   },
 };
+
+export const RewardDeferred: Story = {
+  args: { canSeedMore: false, canEditReward: false },
+  play: async () => {
+    await expect(
+      await screen.findByText("G$ reward promises cannot be copied in this release.")
+    ).toBeVisible();
+    await expect(
+      screen.queryByRole("button", { name: "Seed More Like This" })
+    ).not.toBeInTheDocument();
+  },
+};

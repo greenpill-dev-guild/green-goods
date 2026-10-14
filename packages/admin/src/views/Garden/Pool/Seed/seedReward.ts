@@ -1,3 +1,4 @@
+import { SETTLEMENT_ENABLED } from "@green-goods/shared/config/app";
 /**
  * A seeding answer's reward as the steward reads it: dollars first, the G$
  * amount beside (PRD-1022 D13). The G$ amount is converted from the dollars
@@ -53,18 +54,22 @@ export function rewardAmountAtCreate(
 }
 
 /**
- * An earlier promise's answers, minus a reward recorded as an external payout:
- * seeding pays in G$ only now (PRD-1022 D9), so such a reward is asked again.
+ * Clear rewards that this seeding form cannot offer. The original promise is unchanged.
  */
-export function withoutExternalReward(
+export function withoutUnavailableReward(
   values: Partial<CommitmentComposerValues> | null
 ): Partial<CommitmentComposerValues> {
   if (!values) return {};
-  if (values.considerationRail !== "ARBITRUM_EXTERNAL") return values;
+  if (
+    values.considerationRail !== "ARBITRUM_EXTERNAL" &&
+    (SETTLEMENT_ENABLED || values.considerationRail !== "CELO_SETTLEMENT")
+  )
+    return values;
   return {
     ...values,
     considerationRail: "NONE",
     considerationAmount: "",
+    considerationUsd: undefined,
     considerationSource: "",
     considerationToken: "",
   };
