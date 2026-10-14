@@ -523,6 +523,28 @@ describe("SeedCommitmentDialog", () => {
     expect(mocks.built[0]).toMatchObject({ cycleId: 12n, commitmentType: 1, targetUnits: 16n });
   });
 
+  it("opens an old rewarded seed link as an unpriced promise when settlement is deferred", async () => {
+    releaseScope.settlementEnabled = false;
+    mocks.again = {
+      kind: "SERVICE",
+      title: "Market rides",
+      unitLabel: "rides",
+      targetUnits: 16,
+      considerationRail: "CELO_SETTLEMENT",
+      considerationAmount: "1000000000000000000",
+      considerationUsd: "2",
+    };
+    renderSeed({ fromCommitmentId: 9n });
+    await toProof();
+    expect(within(dialog()).queryByTestId("seed-reward")).not.toBeInTheDocument();
+    next();
+    await waitFor(() => expect(screen.getByTestId("seed-review")).toBeInTheDocument());
+    create();
+    await waitFor(() => expect(mocks.built).toHaveLength(1));
+    expect(mocks.built[0]?.consideration).toMatchObject({ rail: 0, amount: 0n });
+    expect(mocks.again.considerationRail).toBe("CELO_SETTLEMENT");
+  });
+
   it("opens on the earlier promise's answers, the steward's extras included, in this pool's season", async () => {
     mocks.again = {
       direction: "REQUEST",
