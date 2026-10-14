@@ -1,6 +1,6 @@
 # Green Goods 2.0.0 deployment runbook
 
-Originally prepared for October 11, 2026; refreshed October 14. Owner: Afo. Production merge is approved once the applicable gates pass. Announcement follows post-merge verification at the owner's selected time. This checklist does not record a completed deployment or authorize onchain broadcasts.
+Originally prepared for October 11, 2026; refreshed October 14. Owner: Afo. The production merge and app deployment have occurred. The tag, GitHub Release and announcement remain pending. This runbook does not authorize onchain broadcasts.
 
 Afo confirmed that he will handle rollback for this cut. The user authorized merging #1057
 after the applicable gates pass; manual indexer deployment and environment updates remain
@@ -23,27 +23,27 @@ subject to actual candidate acceptance. Block app settlement writes, configurati
 reward promises before promotion. Existing settlement history may remain readable. Removing an
 announcement claim alone is not containment, and this decision does not pause live contracts.
 
-Finish these gates in order:
+The containment patch, #1095 preparation and #1057 release are merged. #1096 is merged at
+`377aba5e1590f47290d51095e2d18b363d130f49`; all main workflows pass, Client/Admin/Docs
+are READY at that commit and both source-map uploads pass. Both production app environments
+use the verified `de3e5df` indexer and were rebuilt. See [the observed rollout](README.md).
 
-1. The containment scope merged through #1094 and release was synced to `c7d67eab`.
-   Finish #1095 after current-head CI/review, then sync and revalidate the release branch.
-   Keep every selected critical check.
-2. Record the owner's October 13 completed passkey, request and installed-PWA acceptance in the
-   private release record. Match beta to the scoped candidate, verify its containment delta and
-   bind the tested build to that acceptance; do not restart the completed suite by default.
-3. Before the production merge, finish the main-based source gate, verify the compatible Agent
-   API, reference the completed [restoration receipt](operations-receipt.md) and Afo as rollback
-   operator. Resolve
-   authority/compatibility decisions affecting included Work flows. The final indexer deployment
-   and production environment changes are not pre-merge gates.
-4. After the pre-merge gates pass, merge the release PR into main. Then deploy the final indexer,
-   verify schema and sync, and update production environment variables. Rebuild Client/Admin
-   after the update, then verify/promote the intended builds and production domains. Hold
-   data-dependent app availability on the last verified compatible deployment until these reads
-   pass; a Git integration's initial build against the old endpoint is not the completed rollout.
-5. Verify production API/Docs, app SHAs, acceptance continuity and source maps. Only then sign/tag
-   the merged main SHA and publish the GitHub Release. Announce after link/media checks at the
-   owner's selected time. The demo can follow later.
+Finish these remaining gates in order:
+
+1. Integrate the final eight-reference indexer alignment and reconcile the release record.
+   Keep every check selected for the actual candidate and retain the uncached release gate.
+2. Confirm included app read-back and the bound hosted indexer source/deployment receipt.
+   Retain the owner's October 13 Android/Brave acceptance and completed restoration receipt;
+   do not repeat signed acceptance or the production-data rehearsal by default. Resolve any
+   compatibility decision affecting included Work flows without an unapproved onchain action.
+   The observed default-Arbitrum Work/review schemas and resolver bindings match the app
+   configuration, and sampled records decode. Retain existing authority for this app cut;
+   Celo review activation and settlement ceremonies are outside that read proof.
+3. Verify the final main SHA's CI, production deployments, API, Docs and source-map uploads.
+   Only then sign/tag that exact main commit and verify the tag-triggered GitHub Release.
+4. Add the curated notes and back-merge final main into develop through a temporary head branch.
+5. Check publishing links and cleared media, then announce at the owner's selected time.
+   The demo, Spanish localization and new preview artwork can follow separately.
 
 October 13 preparation evidence: the local scope patch passed the 13 selected critical QA checks
 fresh, and Admin CI Playwright passed 12 cases with one skipped. This is local/clean-room proof,
@@ -83,7 +83,7 @@ The app release does not authorize contract upgrades, settlement activation, Saf
 - Use the existing [Commitment Pooling release operations handoff](../../../.plans/active/commitment-pooling/handoffs/human-release-ops.md) and [contract phase/tier rules](../../../packages/contracts/AGENTS.md#mainnet-requirements-by-activation-risk) for any remaining ceremony. Use `bun run contracts -- help` to select supported read-only verification commands. Retired broadcast orchestrators must not be replayed.
 - Keep settlement/value actions unavailable in the 2.0 app. Verify the shared send boundary rejects them without signing, and reward/funding/payout/delivery controls cannot invoke them. Do not advertise a successful cross-chain payout from a dispatch or pending receipt.
 - Defer new settlement activation, contributor/passkey payout canaries, phase-aware live verifier tooling and the settlement release-hash reconciliation to the existing release-ops lane. Recover existing receipts there rather than repeating the accepted Garden payout. These are not new 2.0 rollout actions; live authority/compatibility issues affecting included app flows still require a disposition.
-- [PRD-1122](https://linear.app/greenpill-dev-guild/issue/PRD-1122/point-every-indexer-url-at-the-final-deployment-when-it-goes-live) owns the final indexer switch. Since #1058 every checked-in fallback names `e6edffd`: the app configs, the three dev/smoke scripts, and the PM2 hosted-indexer fallback. The owner will deploy the final indexer and update production's `VITE_ENVIO_INDEXER_URL` after the approved main merge; `e6edffd` is not asserted here as the final deployment.
+- [PRD-1122](https://linear.app/greenpill-dev-guild/issue/PRD-1122/point-every-indexer-url-at-the-final-deployment-when-it-goes-live) owns the final indexer switch. Production Client/Admin now use `https://indexer.hyperindex.xyz/de3e5df/v1/graphql` and were rebuilt after the update. This closeout aligns the eight source/configuration references with it. Retain `e6edffd` as a rollback input and bind the hosted source/deployment receipt before closing the issue.
 - After the approved main merge, deploy the final indexer from that merged source. Confirm it is fully synced, has the expected pooling schema, and reads representative Gardens, commitments, claims, and both chain records. Verify Work and review separately through the application's EAS data layer. Then set the production `VITE_ENVIO_INDEXER_URL` for Client and Admin and rebuild/promote them. Environment changes do not change an already-built app. Follow [the indexer cut guide](indexer-cut-guide.md) and record the deployment, endpoint, schema and sampled block receipts in PRD-1122 before completing the cut.
 - Keep the old indexer deployment available for rollback. Record its block/lag and schema limits. Never silently serve an older schema to a UI that requires new pooling fields.
 
@@ -140,10 +140,9 @@ The new request flow requires the candidate Agent API before the requester UI is
 
 Verify the running Agent API's compatibility before approving the production merge that starts the UI builds. Merge the verified release PR into `main` in the approved cut window. Follow the owner's sequence: deploy and verify the final indexer, update production environment variables, then rebuild Client/Admin. Git integrations may start an earlier build automatically; inspect its endpoint and domain assignment and use the approved promotion/rollback procedure to retain the last verified compatible serving build until final read-back passes. Confirm Client/Admin/Docs deployment metadata points to the merged SHA and intended production configuration; a READY preview or initial pre-configuration build is not a completed production receipt.
 
-The October 13 docs merge has a READY preview, but `docs.greengoods.app` still serves
-`90c800f8c3ee0f8afc49808b1353d0cd90e28f83`. Verify the new evaluator route and the legacy
-assessment redirect on the production Docs domain before repointing the client's existing
-assessment link. A merge or preview does not prove that domain is updated.
+`docs.greengoods.app` is READY at `377aba5e`. The new evaluator route responds and the legacy
+steward assessment URL redirects to it. Keep the client's existing link valid while any later
+link correction is reviewed. Verify these routes again if the final serving deployment changes.
 
 Verify public routes, Garden/Work reads, the containment delta and the existing Work confirmation/retry journey on production. Retain the owner's completed passkey, request and installed-PWA receipt and check continuity on the final build. Any new signed or onchain acceptance action still needs an agreed boundary; the agent's boundary remains read-only.
 
