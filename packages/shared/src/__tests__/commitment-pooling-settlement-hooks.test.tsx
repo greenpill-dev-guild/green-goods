@@ -24,6 +24,7 @@ const TOKEN = "0x3333333333333333333333333333333333333333";
 const SETTLEMENT = "0x15c8f6cf25aba2161cc04719b4c4a93c4146935d";
 
 const mocks = await vi.hoisted(async () => ({
+  settlementEnabled: true,
   capability: {
     deployment: "deployed",
     activation: "active",
@@ -44,6 +45,14 @@ const mocks = await vi.hoisted(async () => ({
   getSettlementAccount: vi.fn(),
   getSettlementSubject: vi.fn(),
   getCommitmentPayoutPlan: vi.fn(),
+}));
+
+// Exercise the future enabled lane explicitly; the production default is tested below.
+vi.mock("../config/app", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../config/app")>()),
+  get SETTLEMENT_ENABLED() {
+    return mocks.settlementEnabled;
+  },
 }));
 
 vi.mock("../ontology/query", () => ({
@@ -87,6 +96,7 @@ vi.mock("../utils/errors/mutation-error-handler", () => ({
 }));
 
 function setAvailable() {
+  mocks.settlementEnabled = true;
   mocks.capability = {
     deployment: "deployed",
     activation: "active",
@@ -306,6 +316,21 @@ describe("useSettlementMutation", () => {
       args: [ACCOUNT, [ACCOUNT, OTHER, TOKEN]],
     },
   ];
+
+  it("blocks every settlement action before signing even when live contracts are active", async () => {
+    const actual = await vi.importActual<typeof import("../config/app")>("../config/app");
+    expect(actual.SETTLEMENT_ENABLED).toBe(false);
+    mocks.settlementEnabled = false;
+    const { result } = renderHookWithProviders(() => useSettlementMutation({ chainId: 42161 }));
+    for (const { input } of actions) {
+      await act(async () => {
+        await expect(result.current.mutateAsync(input)).rejects.toThrow(
+          "unavailable in this release"
+        );
+      });
+    }
+    expect(mocks.sender.sendContractCall).not.toHaveBeenCalled();
+  });
 
   it("maps every settlement action to its exact contract arguments and invalidates pooling reads", async () => {
     const queryClient = createTestQueryClient();

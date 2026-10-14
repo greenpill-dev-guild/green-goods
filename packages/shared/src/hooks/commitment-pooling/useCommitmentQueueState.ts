@@ -17,15 +17,17 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
+import { SETTLEMENT_ENABLED } from "../../config/app";
 
 import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import { useJobQueueEvents } from "../../modules/job-queue/event-bus";
 import { jobQueue } from "../../modules/job-queue/default-instance";
 import { isDiscardableJob } from "../../modules/job-queue/job-recovery";
 import { hasRecordedSend, isTerminallyFailedJob } from "../../modules/job-queue/queue-policy";
-import type {
-  CommitmentJobKind,
-  ConfirmationJobPayload,
+import {
+  CONSIDERATION_RAIL_ORDINAL,
+  type CommitmentJobKind,
+  type ConfirmationJobPayload,
 } from "../../modules/commitment-pooling/job-types";
 import {
   COMMITMENT_JOB_KINDS,
@@ -62,6 +64,8 @@ export interface PendingCommitmentCreation {
   targetUnits: string;
   /** Waiting for the member's garden hat; consumes no retries. */
   waitingForMembership: boolean;
+  /** An unsent reward is retained for a later release; recorded sends still reconcile. */
+  settlementDeferred?: boolean;
   /** Gave up after its attempts; retry or discard are the member's call. */
   failed: boolean;
   /**
@@ -286,6 +290,7 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
           dueDate?: bigint | string;
           unitLabel?: string;
           targetUnits?: bigint | string;
+          consideration?: { rail: number };
         };
         pendingCreates.push({
           jobId: job.id,
@@ -296,6 +301,10 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
           unitLabel: payload.unitLabel ?? "",
           targetUnits: String(payload.targetUnits ?? ""),
           waitingForMembership: !failed && job.meta?.waitingReason === "membership-unavailable",
+          settlementDeferred:
+            !SETTLEMENT_ENABLED &&
+            payload.consideration?.rail === CONSIDERATION_RAIL_ORDINAL.CELO_SETTLEMENT &&
+            isDiscardableJob(job),
           failed,
           discardable: isDiscardableJob(job),
           ...(payload.metadata?.displayGroup && payload.dueDate

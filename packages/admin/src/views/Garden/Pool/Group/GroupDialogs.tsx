@@ -1,3 +1,4 @@
+import { SETTLEMENT_ENABLED } from "@green-goods/shared/config/app";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import { useEnsNames } from "@green-goods/shared/hooks/blockchain/useEnsName";
@@ -93,7 +94,7 @@ export function GroupDialogs({
   });
   const unsent = pool.queuedGroupCopies.get(group.displayGroupId)?.length ?? 0;
   const edit = selectRewardEdit(group.children, { unsent });
-  const canEditReward = reward.currentWei !== null && edit.open;
+  const canEditReward = SETTLEMENT_ENABLED && reward.currentWei !== null && edit.open;
   const cycle = pool.cycles.find((row) => row.cycleId === first.cycleId);
   const dueMs = Number(first.dueDate ?? 0n) * 1000;
   const template =
@@ -132,6 +133,10 @@ export function GroupDialogs({
         terms={terms}
         rewarded={reward.currentWei !== null}
         canEditReward={canEditReward}
+        canSeedMore={
+          SETTLEMENT_ENABLED ||
+          !group.children.some((child) => child.considerationRail === "CELO_SETTLEMENT")
+        }
         events={activity.events}
         waitingOnYou={pool.waitingOnYou}
         onOpenCommitment={onOpenCommitment}

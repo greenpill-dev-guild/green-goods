@@ -1,3 +1,4 @@
+import { SETTLEMENT_ENABLED } from "@green-goods/shared/config/app";
 import { Alert } from "@green-goods/shared/components/Alert";
 import type { CommitmentComposerValues } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
 import type { GoodDollarPriceState } from "@green-goods/shared/modules/wallet/good-dollar-price";
@@ -151,15 +152,17 @@ export function SeedStepProof({
         )}
       />
 
-      <SeedRewardSection
-        form={form}
-        values={values}
-        busy={busy}
-        errorOf={errorOf}
-        settlementActive={settlementActive}
-        price={price}
-        count={count}
-      />
+      {SETTLEMENT_ENABLED ? (
+        <SeedRewardSection
+          form={form}
+          values={values}
+          busy={busy}
+          errorOf={errorOf}
+          settlementActive={settlementActive}
+          price={price}
+          count={count}
+        />
+      ) : null}
     </div>
   );
 }

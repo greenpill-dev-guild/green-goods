@@ -33,6 +33,27 @@ function creation(overrides: Partial<Job> = {}): Job {
 }
 
 describe("useCommitmentQueueState", () => {
+  it("marks unsent rewards deferred before a flush, but leaves recorded sends recoverable", async () => {
+    const payload = { poolId: 7n, consideration: { rail: 2 } };
+    mocks.getJobs.mockResolvedValue([
+      creation({ id: "reward", payload }),
+      creation({ id: "recorded", payload, meta: { submittedTxHash: `0x${"44".repeat(32)}` } }),
+      creation({ id: "unpriced" }),
+    ]);
+    const { result } = renderHookWithProviders(() => useCommitmentQueueState(VIEWER));
+    await waitFor(() => expect(result.current.pendingCreates).toHaveLength(3));
+    expect(result.current.pendingCreates.find((row) => row.jobId === "reward")).toMatchObject({
+      settlementDeferred: true,
+      discardable: true,
+    });
+    expect(result.current.pendingCreates.find((row) => row.jobId === "recorded")).toMatchObject({
+      settlementDeferred: false,
+      hasRecordedSend: true,
+    });
+    expect(
+      result.current.pendingCreates.find((row) => row.jobId === "unpriced")?.settlementDeferred
+    ).toBe(false);
+  });
   beforeEach(() => {
     vi.clearAllMocks();
   });
