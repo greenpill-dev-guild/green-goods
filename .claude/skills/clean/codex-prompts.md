@@ -5,7 +5,7 @@
 
 ## Lane R — Regression hunt (diff-scoped, `--branch chore/cleanup-regression-review`)
 
-```
+```text
 You are reviewing the merged diff between $BASE_BRANCH and the approved implementation
 head. Cleanup implementation just modified this codebase. Your job is to find any change
 that alters runtime behavior, NOT to find new cleanup opportunities.
@@ -34,7 +34,7 @@ Honor these invariants from AGENTS.md — flag if any agent broke them:
 
 ## Lane G — Miss hunt (codebase-wide, `--branch chore/cleanup-gap-review`)
 
-```
+```text
 The 8 cleanup lanes have just finished. Their integrated summaries are included in
 this review context. Your job is to find cleanup opportunities they MISSED,
 especially issues that don't fit neatly into a single lane.
