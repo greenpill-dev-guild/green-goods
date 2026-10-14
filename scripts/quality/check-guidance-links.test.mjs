@@ -136,6 +136,27 @@ test("does not confuse status.json paths with the retired status command", () =>
   assert.deepEqual(failures, []);
 });
 
+test("does not confuse relative links, imports or escaped URLs with retired commands", () => {
+  assert.deepEqual(scanDeletedSurfaceReferences([
+    { path: "docs/guide.mdx", text: "[Architecture](../architecture#data), [contracts](./contracts)." },
+    { path: "scripts/build.mjs", text: 'resolve("../../contracts"); const subpath = "./testing";' },
+    { path: "scripts/audit.mjs", text: String.raw`const endpoint = /https:\/\/indexer\.example/;` },
+  ], [
+    ".claude/skills/architecture/SKILL.md",
+    ".claude/skills/contracts/SKILL.md",
+    ".claude/skills/testing/SKILL.md",
+    ".claude/skills/indexer/SKILL.md",
+  ]), []);
+});
+
+test("does not confuse public Markdown routes with a deleted guide basename", () => {
+  assert.deepEqual(scanDeletedSurfaceReferences([
+    { path: "docs/scripts/twins.mjs", text: 'const home = "/index.md";' },
+    { path: "docs/scripts/audit.mjs", text: 'path.join(resolved, "index.md");' },
+    { path: "docs/guide.mdx", text: "[Home](/index.md)." },
+  ], [".claude/skills/index.md"]), []);
+});
+
 test("finds deleted slash commands followed by prose punctuation", () => {
   const failures = scanDeletedSurfaceReferences(
     [{ path: "docs/guide.mdx", text: "Run /review: before merging." }],
