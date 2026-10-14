@@ -1,265 +1,163 @@
-/**
- * @vitest-environment happy-dom
- */
+/** @vitest-environment happy-dom */
 
-import { renderHook } from "@testing-library/react";
-import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { act, cleanup, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { useRole } from "../../hooks/gardener/useRole";
+import { logger } from "../../modules/app/logger";
+import { createTestQueryClient } from "../test-utils/query-client";
+import { renderHookWithQueryClient } from "../test-utils/query-client-render";
 
-// Mock auth provider
-const mockUseAuthContext = vi.fn();
-const mockUsePrimaryAddress = vi.fn();
-const mockUseDeploymentRegistry = vi.fn();
-const TEST_CHAIN_ID = 11155111;
+const SMART_ACCOUNT = "0xAbCd000000000000000000000000000000000001";
+const WALLET = "0x2222222222222222222222222222222222222222";
+const CHAIN_ID = 11155111;
+const gardens = [
+  { id: "garden-1", name: "Steward Garden" },
+  { id: "garden-2", name: "Another Garden" },
+];
+const mocks = vi.hoisted(() => ({
+  auth: { isReady: true, authMode: "passkey", smartAccountAddress: null as string | null },
+  registry: { canDeploy: false, isOwner: false, isInAllowlist: false, loading: false },
+  chainId: 11155111,
+  query: vi.fn(),
+}));
 
 vi.mock("../../providers/Auth", () => ({
-  useAuthContext: () => mockUseAuthContext(),
+  useAuthContext: () => mocks.auth,
+  useOptionalAuthContext: () => mocks.auth,
 }));
-
-vi.mock("../../hooks/auth/usePrimaryAddress", () => ({
-  usePrimaryAddress: () => mockUsePrimaryAddress(),
-}));
-
+vi.mock("wagmi", () => ({ useAccount: () => ({ address: WALLET }) }));
 vi.mock("../../hooks/blockchain/useDeploymentRegistry", () => ({
-  useDeploymentRegistry: () => mockUseDeploymentRegistry(),
+  useDeploymentRegistry: () => mocks.registry,
 }));
-
 vi.mock("../../hooks/blockchain/useChainConfig", () => ({
-  useCurrentChain: () => TEST_CHAIN_ID,
+  useCurrentChain: () => mocks.chainId,
 }));
-
-// Mock React Query
-const mockUseQuery = vi.fn();
-vi.mock("@tanstack/react-query", () => ({
-  useQuery: (options: { queryFn?: () => Promise<unknown> }) => mockUseQuery(options),
-}));
-
-// Mock the GraphQL client
 vi.mock("../../modules/data/graphql-client", () => ({
-  greenGoodsIndexer: {
-    query: vi.fn().mockResolvedValue({ data: { Garden: [] } }),
-  },
+  greenGoodsIndexer: { query: (...args: unknown[]) => mocks.query(...args) },
 }));
 
-vi.mock("../../modules/data/graphql", () => ({
-  greenGoodsGraphQL: vi.fn((query: string) => query),
-}));
+let queryClient: ReturnType<typeof createTestQueryClient>;
+const renderRole = () => renderHookWithQueryClient(useRole, { queryClient });
 
-vi.mock("../../config/react-query", () => ({
-  STALE_TIMES: {
-    baseLists: 60000,
-    works: 15000,
-    queue: 5000,
-    merged: 5000,
-  },
-}));
-
-vi.mock("../query-keys", () => ({
-  queryKeys: {
-    role: {
-      stewardGardens: (address?: string, chainId?: number) => [
-        "greengoods",
-        "role",
-        "stewardGardens",
-        address,
-        chainId,
-      ],
+beforeEach(() => {
+  queryClient = createTestQueryClient();
+  mocks.auth = { isReady: true, authMode: "passkey", smartAccountAddress: SMART_ACCOUNT };
+  mocks.registry = { canDeploy: false, isOwner: false, isInAllowlist: false, loading: false };
+  mocks.chainId = CHAIN_ID;
+  mocks.query.mockReset().mockImplementation(async (_document, { steward, chainId }) => ({
+    data: {
+      Garden: steward[0] === SMART_ACCOUNT.toLowerCase() && chainId === CHAIN_ID ? gardens : [],
     },
-  },
-}));
+  }));
+});
 
-// Import after mocks - using dynamic import inside tests to ensure mocks are applied
-let useRole: typeof import("../../hooks/gardener/useRole").useRole;
-
-beforeAll(async () => {
-  const module = await import("../../hooks/gardener/useRole");
-  useRole = module.useRole;
+afterEach(() => {
+  cleanup();
+  queryClient.clear();
+  vi.restoreAllMocks();
 });
 
 describe("useRole", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-
-    // Default mock values - not logged in
-    mockUseAuthContext.mockReturnValue({
-      isReady: true,
-      isAuthenticated: false,
-    });
-    mockUsePrimaryAddress.mockReturnValue(null);
-    mockUseDeploymentRegistry.mockReturnValue({
-      canDeploy: false,
-      isOwner: false,
-      isInAllowlist: false,
-      loading: false,
-    });
-    // Mock React Query's useQuery response
-    mockUseQuery.mockReturnValue({
-      data: [],
-      isLoading: false,
-      error: null,
+  it("queries the normalized smart account and current chain despite a connected EOA", async () => {
+    const { result } = renderRole();
+    await waitFor(() => expect(result.current.role).toBe("steward"));
+    expect(mocks.query).toHaveBeenCalledWith(
+      expect.anything(),
+      { steward: [SMART_ACCOUNT.toLowerCase()], chainId: CHAIN_ID },
+      "getStewardGardens"
+    );
+    expect(result.current).toMatchObject({
+      isSteward: true,
+      isDeployer: false,
+      stewardGardens: gardens,
+      deploymentPermissions: { canDeploy: false, isOwner: false, isInAllowlist: false },
     });
   });
 
-  it("should return deployer role when user can deploy", () => {
-    mockUsePrimaryAddress.mockReturnValue("0x123");
-    mockUseAuthContext.mockReturnValue({ isReady: true, isAuthenticated: true });
-    mockUseDeploymentRegistry.mockReturnValue({
-      canDeploy: true,
-      isOwner: true,
-      isInAllowlist: true,
-      loading: false,
+  it.each([false, true])("keeps deployer rights when stewardship is %s", async (isSteward) => {
+    mocks.registry = { canDeploy: true, isOwner: true, isInAllowlist: true, loading: false };
+    mocks.query.mockResolvedValueOnce({ data: { Garden: isSteward ? [gardens[0]] : [] } });
+    const { result } = renderRole();
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current).toMatchObject({
+      role: "deployer",
+      isDeployer: true,
+      isSteward,
+      stewardGardens: isSteward ? [gardens[0]] : [],
+      deploymentPermissions: { canDeploy: true, isOwner: true, isInAllowlist: true },
     });
+  });
 
-    const { result } = renderHook(() => useRole());
+  it("does not reuse another identity's or chain's cached stewardship", async () => {
+    const { result, rerender } = renderRole();
+    await waitFor(() => expect(result.current.isSteward).toBe(true));
+    mocks.auth.smartAccountAddress = WALLET;
+    rerender();
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current).toMatchObject({
+      role: "user",
+      isDeployer: false,
+      isSteward: false,
+      stewardGardens: [],
+    });
+    mocks.auth.smartAccountAddress = SMART_ACCOUNT;
+    mocks.chainId = 42220;
+    rerender();
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current).toMatchObject({
+      role: "user",
+      isDeployer: false,
+      isSteward: false,
+      stewardGardens: [],
+    });
+  });
 
-    expect(result.current.role).toBe("deployer");
-    expect(result.current.isDeployer).toBe(true);
-    expect(result.current.isSteward).toBe(false);
+  it.each([
+    ["auth readiness", false],
+    ["a primary address", true],
+  ] as const)("requires %s before querying", (_reason, ready) => {
+    mocks.auth.isReady = ready;
+    if (ready) mocks.auth.smartAccountAddress = null;
+    const { result } = renderRole();
+    expect(mocks.query).not.toHaveBeenCalled();
+    expect(result.current).toMatchObject({ role: "user", loading: !ready, stewardGardens: [] });
+  });
+
+  it("shows fetching until a genuinely empty query settles", async () => {
+    let resolve!: (value: { data: { Garden: never[] } }) => void;
+    mocks.query.mockImplementation(
+      () =>
+        new Promise((done) => {
+          resolve = done;
+        })
+    );
+    const { result } = renderRole();
+    expect(result.current.loading).toBe(true);
+    await act(async () => resolve({ data: { Garden: [] } }));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current).toMatchObject({ role: "user", gardensError: false, stewardGardens: [] });
+  });
+
+  it("waits for deployment permissions even after the garden query settles", async () => {
+    mocks.registry.loading = true;
+    const { result, rerender } = renderRole();
+    await waitFor(() => expect(result.current.isSteward).toBe(true));
+    expect(result.current.loading).toBe(true);
+    mocks.registry.loading = false;
+    rerender();
     expect(result.current.loading).toBe(false);
   });
 
-  it("should return steward role for user with steward gardens", () => {
-    mockUsePrimaryAddress.mockReturnValue("0x456");
-    mockUseAuthContext.mockReturnValue({ isReady: true, isAuthenticated: true });
-    mockUseQuery.mockReturnValue({
-      data: [
-        { id: "0x123", name: "Test Garden" },
-        { id: "0x456", name: "Another Garden" },
-      ],
-      isLoading: false,
-      error: null,
+  it("distinguishes an indexer outage from no access and recovers on refetch", async () => {
+    vi.spyOn(logger, "error").mockImplementation(() => {});
+    mocks.query.mockResolvedValueOnce({ error: new Error("Indexer unavailable") });
+    const { result } = renderRole();
+    await waitFor(() => expect(result.current.gardensError).toBe(true));
+    expect(result.current).toMatchObject({ role: "user", loading: false });
+    await act(async () => {
+      await queryClient.invalidateQueries();
     });
-
-    const { result } = renderHook(() => useRole());
-
-    expect(result.current.role).toBe("steward");
-    expect(result.current.isDeployer).toBe(false);
-    expect(result.current.isSteward).toBe(true);
-    expect(result.current.stewardGardens).toHaveLength(2);
-    expect(result.current.loading).toBe(false);
-  });
-
-  it("should return user role for unknown address without steward gardens", () => {
-    mockUsePrimaryAddress.mockReturnValue("0x789");
-    mockUseAuthContext.mockReturnValue({ isReady: true, isAuthenticated: true });
-    mockUseQuery.mockReturnValue({
-      data: [],
-      isLoading: false,
-      error: null,
-    });
-
-    const { result } = renderHook(() => useRole());
-
-    expect(result.current.role).toBe("user");
-    expect(result.current.isDeployer).toBe(false);
-    expect(result.current.isSteward).toBe(false);
-    expect(result.current.stewardGardens).toHaveLength(0);
-    expect(result.current.loading).toBe(false);
-  });
-
-  it("should show loading state when auth is not ready", () => {
-    mockUsePrimaryAddress.mockReturnValue(null);
-    mockUseAuthContext.mockReturnValue({ isReady: false, isAuthenticated: false });
-    mockUseQuery.mockReturnValue({
-      data: undefined,
-      isLoading: true,
-      error: null,
-    });
-
-    const { result } = renderHook(() => useRole());
-
-    expect(result.current.loading).toBe(true);
-  });
-
-  it("should show loading state when query is fetching", () => {
-    mockUsePrimaryAddress.mockReturnValue("0x123");
-    mockUseAuthContext.mockReturnValue({ isReady: true, isAuthenticated: true });
-    mockUseQuery.mockReturnValue({
-      data: undefined,
-      isLoading: true,
-      error: null,
-    });
-
-    const { result } = renderHook(() => useRole());
-
-    expect(result.current.loading).toBe(true);
-  });
-
-  it("should show loading state when deployment registry is loading", () => {
-    mockUsePrimaryAddress.mockReturnValue("0x123");
-    mockUseAuthContext.mockReturnValue({ isReady: true, isAuthenticated: true });
-    mockUseDeploymentRegistry.mockReturnValue({
-      canDeploy: false,
-      isOwner: false,
-      isInAllowlist: false,
-      loading: true,
-    });
-
-    const { result } = renderHook(() => useRole());
-
-    expect(result.current.loading).toBe(true);
-  });
-
-  it("should deployer take precedence over steward role", () => {
-    // Deployer address that also has steward gardens
-    mockUsePrimaryAddress.mockReturnValue("0x123");
-    mockUseAuthContext.mockReturnValue({ isReady: true, isAuthenticated: true });
-    mockUseDeploymentRegistry.mockReturnValue({
-      canDeploy: true,
-      isOwner: true,
-      isInAllowlist: true,
-      loading: false,
-    });
-    mockUseQuery.mockReturnValue({
-      data: [{ id: "0x123", name: "Test Garden" }],
-      isLoading: false,
-      error: null,
-    });
-
-    const { result } = renderHook(() => useRole());
-
-    expect(result.current.role).toBe("deployer");
-    expect(result.current.isDeployer).toBe(true);
-    expect(result.current.isSteward).toBe(true); // Can still be steward
-    expect(result.current.stewardGardens).toHaveLength(1);
-  });
-
-  it("uses the address that usePrimaryAddress returns (smart account in passkey mode)", () => {
-    // Passkey mode: usePrimaryAddress returns smartAccountAddress regardless of
-    // any wagmi connection. The previous wagmi-first chain in useRole could
-    // outrank this and produce zero steward gardens for an authenticated
-    // steward on the smart account; that bug must not regress.
-    const SMART_ACCOUNT = "0xSmartAccount123";
-    mockUsePrimaryAddress.mockReturnValue(SMART_ACCOUNT);
-    mockUseAuthContext.mockReturnValue({ isReady: true, isAuthenticated: true });
-    mockUseQuery.mockReturnValue({
-      data: [{ id: "0xGardenA", name: "Steward Garden" }],
-      isLoading: false,
-      error: null,
-    });
-
-    const { result } = renderHook(() => useRole());
-
-    expect(result.current.role).toBe("steward");
-    expect(result.current.isSteward).toBe(true);
-    expect(result.current.stewardGardens).toHaveLength(1);
-  });
-
-  it("should return deployment permissions from hook state", () => {
-    mockUsePrimaryAddress.mockReturnValue("0x123");
-    mockUseAuthContext.mockReturnValue({ isReady: true, isAuthenticated: true });
-    mockUseDeploymentRegistry.mockReturnValue({
-      canDeploy: false,
-      isOwner: false,
-      isInAllowlist: false,
-      loading: false,
-    });
-
-    const { result } = renderHook(() => useRole());
-
-    expect(result.current.deploymentPermissions).toEqual({
-      canDeploy: false,
-      isOwner: false,
-      isInAllowlist: false,
-    });
+    await waitFor(() => expect(result.current.role).toBe("steward"));
+    expect(result.current.gardensError).toBe(false);
   });
 });

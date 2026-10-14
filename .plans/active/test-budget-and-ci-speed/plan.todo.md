@@ -4,9 +4,24 @@
 **Stage**: `active`
 **Status**: `ACTIVE — Software Factory locally implemented through batch 5; live observations and snapshot 09 pending`
 **Created**: 2026-09-19
-**Last Updated**: `2026-10-06`
+**Last Updated**: `2026-10-14`
 
 The user selected local implementation beginning with step 1 and later authorized a commit of completed slices. Item numbers below refer to the supplied twelve-item test-audit prompt. The closeout pass may push to `origin/develop` (D4); a PR, a merge to `main`, a deploy and Linear writes remain unauthorized.
+
+## PRD-1158 scope (2026-10-14)
+
+The [proposed scope and failure-to-proof map](handoffs/prd-1158-scope.md) covers Shared identity-query tests, Admin routing tests and the existing testing/review guidance. It was inspected against develop at `7a2ec010e1673f4b3f5b36e021649b83488f6631`.
+
+Afo approved implementation after reviewing the net-reduction outline. Local code now shrinks from 913 to 648 test/support lines (−265, 29.0%), with no new support files. Eight route-folding cases were removed/consolidated; distinct architecture checks and owner-level proof remain. Follow-up review restored three missed role partitions and two route contracts. Final-source proof now covers 61 changed scenarios, 64 retained-owner scenarios, both test typechecks, 14 detected faults and comparable timings. The final selected gate passes all nine checks.
+
+- [x] Record baseline test/support size and setup; count every added or moved helper.
+- [x] Exercise the real identity/query path, including wrong identity, normalization/chain, cache separation, empty/error states and recovery.
+- [x] Replace weak route source checks with actual lazy-loader resolution, params and garden-context proof; preserve root-composition and inspector architecture guards.
+- [x] Clarify existing testing/review guidance and record deliberate identity and route fault checks and bounded before/after timings.
+- [x] Refresh the selected local gate after review corrections (9 fresh checks pass); validate the Plan Hub record (28 hubs valid).
+- [ ] Complete the authorized branch/commit/push/draft PR and required current-head CI.
+
+The [implementation handoff](handoffs/prd-1158-scope.md) owns source identities, before/after numbers, the removal map, commands and limits. Existing factory lane status and older receipts remain historical. The requirement is a net reduction in test/support code with preserved distinct protection; it sets no deletion quota. Branch, commit, push and draft PR publication are now authorized; merge and Linear mutations remain outside scope.
 
 ## Status reconciliation (2026-10-06)
 

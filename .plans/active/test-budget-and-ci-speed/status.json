@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-09-19T22:46:56.155Z",
-    "updated_at": "2026-10-06T09:26:48Z"
+    "updated_at": "2026-10-14T23:41:16Z"
   },
   "links": {
     "brief": "brief.md",
@@ -35,6 +35,14 @@
     "depends_on_features": []
   },
   "notes": [
+    "2026-10-14 PRD-1158 publication explicitly authorized: create branch, commit, push and open a draft PR against develop, then require green current-head CI. Branch test/meaningful-regression-tests follows the repository checker; approved changes fast-forwarded cleanly to develop 6be1e3729b4127ccb669bda5e57adc4b2100ce93. Post-commit Push Gate and CI pending. No merge or Linear mutation; canonical lanes remain unchanged.",
+    "2026-10-14 PRD-1158 final local verification complete after five review corrections: test/support code 913 to 648 (-265, 29.0%), 61 changed and 64 retained scenarios pass, both final test typechecks pass, all 14 deliberate faults fail on measured final test identities and runtime sources are restored. Final selected push gate passes all nine checks fresh, with zero reused or unrun. Before/after timings show no demonstrated speedup; limits are recorded. Earlier first-pass metrics are superseded. Publication and required current-head CI remain pending; no terminal lane, issue-Done or merge-readiness claim. Canonical lanes and Linear ownership are preserved.",
+    "2026-10-14 PRD-1158 final review correction: five lost protections restored (three role partitions, vault landings, retired gardens routes). Test/support code is 913 to 648 lines (-265, 29.0%); final suites pass 61 cases and unchanged retained suites pass 64; both final test typechecks pass; all 14 deliberate faults fail on exact final test identities and production sources are restored. A-B-B-A timings and limits recorded. Final selected gate pending; current-head CI/publication remain pending. Earlier first-pass counts are superseded.",
+    "2026-10-14 PRD-1158 follow-up review corrected three lost role partitions: deployers without gardens, denied deployment permissions, and complete garden lists. Corrected code is 913 to 630 test/support lines (-283); all 12 deliberate faults are detected/restored; 57 changed and 64 retained scenarios plus both test typechecks pass. Refreshed selected gate pending; publication and current-head CI remain pending. Earlier first-pass evidence is superseded for changed tests.",
+    "2026-10-14 PRD-1158 local verification complete: 285 fewer test/support lines (913 to 628), 56 changed-suite and 54 retained-owner scenarios pass, nine deliberate faults detected/restored, both test typechecks and all nine selected push checks pass. No commit-attributed or current-head CI claim; publication remains pending. Canonical lanes and Linear ownership preserved.",
+    "2026-10-14 PRD-1158 implementation explicitly approved after outline review. Local test/support code is 913 to 628 lines (-285); nine temporary faults detected and restored. Final gate pending after generated-doc digest refresh. Current-head CI and publication remain pending. Existing canonical lanes and Linear ownership are unchanged.",
+    "2026-10-14 PRD-1158 plan clarified: user requires a net reduction in test/support code and an outline before implementation. Existing issue verified live; the broader roadmap creation is outside this slice. Application/test files unchanged; only one existing baseline suite ran. No further implementation or test runs before outline review.",
+    "2026-10-14 PRD-1158 scoped against develop 7a2ec010e1673f4b3f5b36e021649b83488f6631. User approved an isolated worktree for saving the proposed identity-query, route-regression and guidance plan; implementation scope remains pending. See handoffs/prd-1158-scope.md. Existing lane status, TDD receipts and Linear ownership remain unchanged; no publication or external write is authorized.",
     "User selected local implementation on 2026-09-19, beginning with step 1 guidance, and later authorized a commit of completed slices. Branch changes, publication, and Linear writes remain unauthorized.",
     "Preparation complete at 459ca0b904a46511e31293ef921dfc8c3af70496. See reports/2026-09-19-preparation.md for evidence and limitations.",
     "September 27 local steps 8–10 implemented: 29 Shared/two Admin helper conversions, six unused settlement exports removed, eight memory/SQLite conformance cases, five stale mocks removed and one same-subject file merge. Shared full coverage passed (5,876 tests, all floors); focused Admin/Agent and selected types/build/quality checks passed. Full Client validation is blocked by 10-second DetailsGate timeouts; focused baseline-source and restored-source runs both passed. See reports/2026-09-26-snapshot-06.md. Validation was collected before commit; independent QA/current-SHA CI remain pending.",
@@ -52,6 +60,21 @@
     "2026-10-04 fourth batch: SF03 local Admin qualification passes 12 cases with one declared fork-only skip and zero retries after aligning the smoke RPC mock with its indexer garden. The earlier hydration-loader timeout did not reproduce; no runtime fix claimed. SF10 actual Codex session/pre-edit/post-edit context observed and recorded in the architecture hub; Claude Desktop Code remains pending. One ordinary bug-fix pilot category recorded. No dependency/runtime/hook/CI change this batch, no publication or external writes. See handoffs/software-factory-batch-4.md.",
     "2026-10-06 reconciliation: Opening summary now points to batch 5. Snapshot 09 remains unconfirmed after its October 5 date. SF10/SF13 actual observations, CI verification of the owning implementation range and D14 human gates remain pending; no implementation receipt is refreshed."
   ],
+  "execution_sub_lanes": {
+    "tautological_tests": {
+      "machine_lane": null,
+      "owner": "codex",
+      "status": "in_progress",
+      "branch": "test/meaningful-regression-tests",
+      "depends_on": [],
+      "handoff": "handoffs/prd-1158-scope.md",
+      "linear": {
+        "sync": false,
+        "issue": "PRD-1158",
+        "parentIssue": null
+      }
+    }
+  },
   "lanes": {
     "ui": {
       "owner": "claude",
@@ -602,6 +625,70 @@
       "status": "status_reconciled",
       "branch": null,
       "note": "Opening summary now points to batch 5. Snapshot 09 remains unconfirmed after its October 5 date. SF10/SF13 actual observations, CI verification of the owning implementation range and D14 human gates remain pending; no implementation receipt is refreshed."
+    },
+    {
+      "timestamp": "2026-10-14T15:25:06Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "scope_proposed",
+      "branch": null,
+      "note": "2026-10-14 PRD-1158 scoped against develop 7a2ec010e1673f4b3f5b36e021649b83488f6631. User approved an isolated worktree for saving the proposed identity-query, route-regression and guidance plan; implementation scope remains pending. See handoffs/prd-1158-scope.md. Existing lane status, TDD receipts and Linear ownership remain unchanged; no publication or external write is authorized."
+    },
+    {
+      "timestamp": "2026-10-14T18:39:19Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "scope_clarified",
+      "branch": null,
+      "note": "2026-10-14 PRD-1158 plan clarified: user requires a net reduction in test/support code and an outline before implementation. Existing issue verified live; the broader roadmap creation is outside this slice. Application/test files unchanged; only one existing baseline suite ran. No further implementation or test runs before outline review."
+    },
+    {
+      "timestamp": "2026-10-14T18:54:55Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "implementation_recorded",
+      "branch": null,
+      "note": "2026-10-14 PRD-1158 implementation explicitly approved after outline review. Local test/support code is 913 to 628 lines (-285); nine temporary faults detected and restored. Final gate pending after generated-doc digest refresh. Current-head CI and publication remain pending. Existing canonical lanes and Linear ownership are unchanged."
+    },
+    {
+      "timestamp": "2026-10-14T18:56:55Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "local_validation_recorded",
+      "branch": null,
+      "note": "2026-10-14 PRD-1158 local verification complete: 285 fewer test/support lines (913 to 628), 56 changed-suite and 54 retained-owner scenarios pass, nine deliberate faults detected/restored, both test typechecks and all nine selected push checks pass. No commit-attributed or current-head CI claim; publication remains pending. Canonical lanes and Linear ownership preserved."
+    },
+    {
+      "timestamp": "2026-10-14T23:03:38Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "review_correction_recorded",
+      "branch": null,
+      "note": "2026-10-14 PRD-1158 follow-up review corrected three lost role partitions: deployers without gardens, denied deployment permissions, and complete garden lists. Corrected code is 913 to 630 test/support lines (-283); all 12 deliberate faults are detected/restored; 57 changed and 64 retained scenarios plus both test typechecks pass. Refreshed selected gate pending; publication and current-head CI remain pending. Earlier first-pass evidence is superseded for changed tests."
+    },
+    {
+      "timestamp": "2026-10-14T23:12:54Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "final_correction_verified",
+      "branch": null,
+      "note": "2026-10-14 PRD-1158 final review correction: five lost protections restored (three role partitions, vault landings, retired gardens routes). Test/support code is 913 to 648 lines (-265, 29.0%); final suites pass 61 cases and unchanged retained suites pass 64; both final test typechecks pass; all 14 deliberate faults fail on exact final test identities and production sources are restored. A-B-B-A timings and limits recorded. Final selected gate pending; current-head CI/publication remain pending. Earlier first-pass counts are superseded."
+    },
+    {
+      "timestamp": "2026-10-14T23:16:15Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "reviewed_local_validation_recorded",
+      "branch": null,
+      "note": "2026-10-14 PRD-1158 final local verification complete after five review corrections: test/support code 913 to 648 (-265, 29.0%), 61 changed and 64 retained scenarios pass, both final test typechecks pass, all 14 deliberate faults fail on measured final test identities and runtime sources are restored. Final selected push gate passes all nine checks fresh, with zero reused or unrun. Before/after timings show no demonstrated speedup; limits are recorded. Earlier first-pass metrics are superseded. Publication and required current-head CI remain pending; no terminal lane, issue-Done or merge-readiness claim. Canonical lanes and Linear ownership are preserved."
+    },
+    {
+      "timestamp": "2026-10-14T23:41:16Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "publication_authorized",
+      "branch": "test/meaningful-regression-tests",
+      "note": "2026-10-14 PRD-1158 publication explicitly authorized: create branch, commit, push and open a draft PR against develop, then require green current-head CI. Branch test/meaningful-regression-tests follows the repository checker; approved changes fast-forwarded cleanly to develop 6be1e3729b4127ccb669bda5e57adc4b2100ce93. Post-commit Push Gate and CI pending. No merge or Linear mutation; canonical lanes remain unchanged."
     }
   ]
 }
