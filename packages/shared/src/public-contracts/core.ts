@@ -86,7 +86,7 @@ export type ProviderProofEntry = PublicFundingAvailabilityKeyInput & {
   note?: string;
 };
 
-export const normalizeAddressLike = (value: string): string => value.trim().toLowerCase();
+const normalizeAddressLike = (value: string): string => value.trim().toLowerCase();
 
 export function buildPublicFundingAvailabilityKey(
   input: PublicFundingAvailabilityKeyInput

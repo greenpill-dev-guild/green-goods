@@ -34,11 +34,11 @@ export type OctantVaultManifestFieldLabelMessageIds = Record<
   SharedLocaleMessageId
 >;
 
-export function enMessage(id: SharedLocaleMessageId): string {
+function enMessage(id: SharedLocaleMessageId): string {
   return enMessages[id];
 }
 
-export function campaignCopyFromMessageIds(
+function campaignCopyFromMessageIds(
   messageIds: OctantVaultCampaignCopyMessageIds
 ): OctantVaultCampaignCopy {
   return {
@@ -117,11 +117,11 @@ const OCTANT_VAULT_CAMPAIGN_COPY_FALLBACK_MESSAGE_IDS = {
   riskNote: "public.vaults.campaign.fallback.riskNote",
 } as const satisfies Omit<OctantVaultCampaignCopyMessageIds, "headline">;
 
-export const greenpillNycPreviewCopy = campaignCopyFromMessageIds(
+const greenpillNycPreviewCopy = campaignCopyFromMessageIds(
   OCTANT_VAULT_CAMPAIGN_COPY_MESSAGE_IDS["greenpill-nyc"]
 );
 
-export const evmavericksPreviewCopy = campaignCopyFromMessageIds(
+const evmavericksPreviewCopy = campaignCopyFromMessageIds(
   OCTANT_VAULT_CAMPAIGN_COPY_MESSAGE_IDS.evmavericks
 );
 

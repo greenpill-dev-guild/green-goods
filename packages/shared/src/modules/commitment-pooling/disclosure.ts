@@ -45,8 +45,8 @@ export type PublicPromiseKeptRateSelection =
   | { kind: "rate"; rate: { fulfilled: bigint; due: bigint } }
   | { kind: "counts-only"; counts: { fulfilled: bigint; due: bigint } };
 
-export const PUBLIC_PROMISE_KEPT_MIN_DUE = 5n;
-export const PUBLIC_PROMISE_KEPT_MIN_DISTINCT_PROVIDERS = 3n;
+const PUBLIC_PROMISE_KEPT_MIN_DUE = 5n;
+const PUBLIC_PROMISE_KEPT_MIN_DISTINCT_PROVIDERS = 3n;
 
 export function selectPublicPromiseKeptRate(input: {
   commitmentsFulfilled: bigint;

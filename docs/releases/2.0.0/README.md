@@ -3,7 +3,7 @@
 Originally scheduled: release Sunday, October 11, 2026; announcement Monday, October 12.
 Preparation refreshed October 13, 2026. The production cut and announcement have not occurred;
 their replacement dates and times remain owner decisions. Dates use America/Los_Angeles.
-Release owner: Afo.
+Release owner and rollback operator: Afo, confirmed in the October 13 release conversation.
 
 This pack prepares the cut. It does not record a completed production release.
 
@@ -84,4 +84,14 @@ its schema and sync, update production environment variables, rebuild/promote Cl
 and verify production domains, API compatibility and source maps. Then sign and tag the merged
 `main` commit, verify the GitHub Release, add the curated notes, and merge `main` back into `develop`.
 
-After production verification: Afo publishes the app-only announcement after confirming the production links and cleared media. English and Spanish draft copy is prepared; publishing channels, replacement posting time and cleared screenshots still need their final selection. The demo is optional follow-up material and does not block the announcement.
+After production verification: Afo publishes the approved [Telegram/WhatsApp, public-social and
+X-thread copy](announcement.md), with em dashes removed. The Spanish community translation
+needs localization review. Confirm production links, the posting time and cleared screenshots
+before sending. [MAR-42](https://linear.app/greenpill-dev-guild/issue/MAR-42/publish-the-green-goods-20-pilot-announcement)
+owns publication, [MAR-43](https://linear.app/greenpill-dev-guild/issue/MAR-43/clear-screenshots-for-the-green-goods-20-announcement)
+owns screenshot clearance and [MAR-44](https://linear.app/greenpill-dev-guild/issue/MAR-44/prepare-pilot-focused-social-preview-assets-for-green-goods)
+owns preview artwork and copy. The demo is optional follow-up material.
+
+Use [the indexer cut guide](indexer-cut-guide.md) for the post-main deployment and environment
+sequence, and [social preview readiness](social-preview-readiness.md) before sharing automatic
+link cards. Naming the rollback operator does not establish a completed backup/restore rehearsal.

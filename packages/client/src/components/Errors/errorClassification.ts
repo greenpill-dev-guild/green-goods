@@ -1,6 +1,6 @@
 export type ErrorCategory = "chunk" | "loop" | "network" | "offline" | "unknown";
 
-export const CHUNK_RELOAD_SESSION_KEY = "gg-chunk-reload";
+const CHUNK_RELOAD_SESSION_KEY = "gg-chunk-reload";
 
 const CHUNK_ERROR_PATTERNS = [
   /chunkloaderror/i,
@@ -56,14 +56,6 @@ export function markChunkReloadAttempt(): boolean {
     return storage.getItem(CHUNK_RELOAD_SESSION_KEY) === "1";
   } catch {
     return false;
-  }
-}
-
-export function clearChunkReloadAttempt(): void {
-  try {
-    getSessionStorage()?.removeItem(CHUNK_RELOAD_SESSION_KEY);
-  } catch {
-    // Recovery remains best-effort when session storage is unavailable.
   }
 }
 

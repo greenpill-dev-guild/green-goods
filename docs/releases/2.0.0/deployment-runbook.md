@@ -2,6 +2,10 @@
 
 Originally prepared for October 11, 2026; refreshed October 13. The replacement cut window is pending. Owner: Afo. This is an operator checklist, not broadcast authorization or a record of live deployment.
 
+Afo confirmed that he will handle rollback for this cut. The user authorized merging #1057
+after the applicable gates pass; manual indexer deployment and environment updates remain
+operator-guided steps. Follow [indexer-cut-guide.md](indexer-cut-guide.md) after that merge.
+
 ## App-only scope and remaining gates
 
 Afo approved deferring unverified settlement features on October 13. Retain Garden promises,
