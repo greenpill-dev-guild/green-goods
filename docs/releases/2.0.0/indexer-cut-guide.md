@@ -11,8 +11,13 @@ source_of_truth:
 
 # Final indexer and environment cut
 
-Operator: Afo. Follow this after the verified #1057 merge into main. The final endpoint does
-not exist until the selected indexer deployment is built and synced. Do not invent its URL.
+Operator: Afo. The #1057 merge, indexer switch and production environment updates have
+occurred. The verified endpoint is `https://indexer.hyperindex.xyz/de3e5df/v1/graphql`;
+both app projects were rebuilt against it. This closeout aligns all eight fallbacks.
+The [hosting receipt](https://envio.dev/app/greenpill-dev-guild/green-goods/d96e941) was
+observed in authenticated Brave on October 14: active at released main `d96e941`, Envio
+3.6.1, Arbitrum and Celo each 100% synced. The older static production alias is unchanged;
+both apps use the direct `de3e5df` endpoint. The procedure below remains the rollback-aware authority.
 
 1. **Pin the source.** Record the merged main SHA from #1057. In the existing Green Goods
    Envio Cloud indexer, verify the repository is `greenpill-dev-guild/green-goods`, the
@@ -58,7 +63,8 @@ switch. Retain the old indexer and frontend pairing. Do not delete an older depl
 space without first confirming its rollback purpose.
 
 Operational authority and stop conditions remain in [deployment-runbook.md](deployment-runbook.md).
-This guide does not claim a deployment, environment update, promotion or tag has been performed.
+The observed app deployment and environment receipts are in [the release pack](README.md).
+No tag, GitHub Release or community publication is claimed by this guide.
 
 ## Fallback inventory
 
