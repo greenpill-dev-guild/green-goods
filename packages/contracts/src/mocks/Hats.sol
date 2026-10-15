@@ -412,40 +412,6 @@ contract MockHats is IHats {
         eligibility[_hatId][_wearer] = isEligible_;
     }
 
-    /// @notice Set standing status (test helper)
-    /// @param _hatId The hat ID
-    /// @param _wearer The wearer address
-    /// @param _inStanding Whether the wearer is in good standing
-    function setStanding(uint256 _hatId, address _wearer, bool _inStanding) external {
-        standing[_hatId][_wearer] = _inStanding;
-    }
-
-    /// @notice Batch set wearers for a hat (test helper)
-    /// @param _hatId The hat ID
-    /// @param _wearersArr Array of addresses
-    /// @param _areWearers Array of booleans
-    function batchSetWearers(uint256 _hatId, address[] calldata _wearersArr, bool[] calldata _areWearers) external {
-        if (_wearersArr.length != _areWearers.length) revert ArrayLengthMismatch();
-        for (uint256 i = 0; i < _wearersArr.length; i++) {
-            if (_areWearers[i] && !wearers[_hatId][_wearersArr[i]]) {
-                wearers[_hatId][_wearersArr[i]] = true;
-                eligibility[_hatId][_wearersArr[i]] = true;
-                standing[_hatId][_wearersArr[i]] = true;
-                hats[_hatId].supply++;
-            } else if (!_areWearers[i] && wearers[_hatId][_wearersArr[i]]) {
-                wearers[_hatId][_wearersArr[i]] = false;
-                hats[_hatId].supply--;
-            }
-        }
-    }
-
-    /// @notice Get hat admin (test helper)
-    /// @param _hatId The hat ID
-    /// @return admin The admin hat ID
-    function getHatAdmin(uint256 _hatId) external view returns (uint256) {
-        return hats[_hatId].admin;
-    }
-
     // ═══════════════════════════════════════════════════════════════════════════
     // Internal Functions
     // ═══════════════════════════════════════════════════════════════════════════

@@ -218,6 +218,7 @@ describe("ActionRegistry.ActionTitleUpdated", () => {
 
     assert.ok(action);
     assert.equal(action.title, "New Title");
+    assert.equal(action.domain, "WASTE");
     assert.equal(action.instructions, "Do the work"); // preserved
   });
 

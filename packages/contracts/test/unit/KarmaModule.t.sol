@@ -9,9 +9,14 @@ import { KarmaGAPModule } from "../../src/modules/Karma.sol";
 import { IKarmaGAPModule } from "../../src/interfaces/IKarmaGAPModule.sol";
 import { MockGAP } from "../../src/mocks/GAP.sol";
 
+// The pinned forge-std predates this cheatcode supported by the pinned Foundry runtime.
+interface VmJsonString {
+    function parseJsonString(string calldata json, string calldata key) external pure returns (string memory);
+}
+
 /// @title KarmaModuleTest
 /// @notice Unit tests for KarmaGAPModule (src/modules/Karma.sol) — the real production module
-/// @dev The existing KarmaGAPModule.t.sol only tests MockGAP. This file tests the actual module.
+/// @dev Exercises the actual module; KarmaGAPModule.t.sol retains its reset-project recovery cases.
 /// Tests both unsupported chain (localhost 31337) and supported chain (Sepolia 11155111) paths.
 contract KarmaModuleTest is Test {
     KarmaGAPModule internal module;
@@ -277,7 +282,7 @@ contract KarmaModuleTest is Test {
         mockGAP = MockGAP(GAP_ADDRESS);
     }
 
-    function test_createProject_succeeds_onSupportedChain() public {
+    function testKarma_createProjectRecordsExpectedWireFields() public {
         _setupSupportedChain();
 
         vm.prank(GARDEN_TOKEN);
@@ -286,6 +291,20 @@ contract KarmaModuleTest is Test {
         assertTrue(uid != bytes32(0), "Should return non-zero project UID");
         assertEq(module.gardenProjects(GARDEN), uid, "gardenProjects mapping should be set");
         assertEq(module.getProjectUID(GARDEN), uid, "getProjectUID should return the UID");
+        assertTrue(abi.decode(_assertGAPWire(uid, GAP_PROJECT_SCHEMA_SEPOLIA, bytes32(0)), (bool)));
+    }
+
+    function _assertGAPWire(bytes32 uid, bytes32 expectedSchema, bytes32 expectedRef) internal returns (bytes memory data) {
+        (bytes32 schema, address recipient, bytes32 refUID, bytes memory captured, bool exists) =
+            mockGAP.getAttestation(uid);
+        (,,,,, bool revocable, uint64 expiration) = mockGAP.attestations(uid);
+        assertEq(schema, expectedSchema);
+        assertEq(recipient, GARDEN);
+        assertEq(refUID, expectedRef);
+        assertTrue(exists);
+        assertEq(revocable, expectedRef == bytes32(0));
+        assertEq(expiration, 0);
+        return captured;
     }
 
     function testKarma_createProjectIsIdempotentForExistingProject() public {
@@ -403,7 +422,7 @@ contract KarmaModuleTest is Test {
         module.removeProjectAdmin(GARDEN, ADMIN);
     }
 
-    function test_createImpact_succeeds_onSupportedChain() public {
+    function testKarma_createImpactRecordsExpectedWirePayload() public {
         _setupSupportedChain();
 
         vm.prank(GARDEN_TOKEN);
@@ -414,6 +433,12 @@ contract KarmaModuleTest is Test {
             module.createImpact(GARDEN, 1, "Tree Planting", "Planted 50 trees", "ipfs://proof", bytes32(uint256(42)), "");
 
         assertTrue(impactUID != bytes32(0), "Should return non-zero impact UID");
+        string memory payload =
+            abi.decode(_assertGAPWire(impactUID, GAP_DETAILS_SCHEMA_SEPOLIA, module.getProjectUID(GARDEN)), (string));
+        VmJsonString jsonVm = VmJsonString(address(vm));
+        assertEq(jsonVm.parseJsonString(payload, ".title"), "Tree Planting");
+        assertEq(jsonVm.parseJsonString(payload, ".type"), "project-update");
+        assertEq(jsonVm.parseJsonString(payload, ".deliverables[0].description"), "Planted 50 trees");
     }
 
     function test_createImpact_emitsFailedOnUnsupportedChainAfterProjectCreated() public {
@@ -447,7 +472,7 @@ contract KarmaModuleTest is Test {
         assertEq(uid, bytes32(0));
     }
 
-    function test_createMilestone_succeeds_onSupportedChain() public {
+    function testKarma_createMilestoneRecordsExpectedWirePayload() public {
         _setupSupportedChain();
 
         vm.prank(GARDEN_TOKEN);
@@ -459,6 +484,13 @@ contract KarmaModuleTest is Test {
         );
 
         assertTrue(milestoneUID != bytes32(0), "Should return non-zero milestone UID");
+        string memory payload =
+            abi.decode(_assertGAPWire(milestoneUID, GAP_DETAILS_SCHEMA_SEPOLIA, module.getProjectUID(GARDEN)), (string));
+        VmJsonString jsonVm = VmJsonString(address(vm));
+        assertEq(jsonVm.parseJsonString(payload, ".title"), "Q1 Assessment");
+        assertEq(jsonVm.parseJsonString(payload, ".text"), "Biodiversity review");
+        assertEq(jsonVm.parseJsonString(payload, ".domain"), "AGRO");
+        assertEq(jsonVm.parseJsonString(payload, ".assessmentConfigCID"), "ipfs://QmConfigCID");
     }
 
     function test_createMilestone_emitsFailedOnUnsupportedChainAfterProjectCreated() public {

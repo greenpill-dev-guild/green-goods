@@ -3,59 +3,76 @@ pragma solidity ^0.8.25;
 
 import { IOctantStrategy } from "../interfaces/IOctantFactory.sol";
 
-/// @title ReentrantStrategy
-/// @notice Malicious strategy mock that re-enters OctantModule during callbacks
-/// @dev Used to verify reentrancy protection on harvest(), emergencyPause(), setDonationAddress()
+/// @notice Authorized one-shot callback probe; rejected inner calls must not revert the outer operation.
 contract ReentrantStrategy is IOctantStrategy {
     enum AttackVector {
         None,
         ReenterHarvest,
         ReenterEmergencyPause,
-        ReenterSetDonationAddress
+        ReenterSetDonationAddress,
+        ReenterResumeVault
     }
 
     address public target;
     address public attackGarden;
-    address public attackAsset;
+    address public asset;
+    address public vault;
     AttackVector public attackVector;
     address public donationAddress;
+    bool public attempted;
+    bool public callbackSucceeded;
+    bytes public callbackResult;
+    bool public depositsPaused;
+    uint256 public reports;
 
     function configure(address _target, address _garden, address _asset, AttackVector _vector) external {
         target = _target;
         attackGarden = _garden;
-        attackAsset = _asset;
+        asset = _asset;
         attackVector = _vector;
+        attempted = false;
+        callbackSucceeded = false;
+        delete callbackResult;
+    }
+
+    function setVault(address value) external {
+        vault = value;
     }
 
     function report() external override returns (uint256) {
-        if (attackVector == AttackVector.ReenterHarvest) {
-            // Re-enter harvest during report callback
-            (bool success,) = target.call(abi.encodeWithSignature("harvest(address,address)", attackGarden, attackAsset));
-            // success will be false if reentrancy guard blocks it
-            if (!success) revert("reentrancy blocked");
-        } else if (attackVector == AttackVector.ReenterEmergencyPause) {
-            // Cross-function attack: re-enter emergencyPause during harvest's report callback
-            (bool success,) =
-                target.call(abi.encodeWithSignature("emergencyPause(address,address)", attackGarden, attackAsset));
-            if (!success) revert("reentrancy blocked");
+        reports++;
+        if (attackVector == AttackVector.ReenterHarvest || attackVector == AttackVector.ReenterEmergencyPause) {
+            _attempt();
         }
         return 0;
     }
 
-    function setDonationAddress(address newDonationAddress) external override {
-        donationAddress = newDonationAddress;
-        if (attackVector == AttackVector.ReenterSetDonationAddress) {
-            (bool success,) =
-                target.call(abi.encodeWithSignature("setDonationAddress(address,address)", attackGarden, address(0xDEAD)));
-            if (!success) revert("reentrancy blocked");
+    function setDonationAddress(address value) external override {
+        donationAddress = value;
+        if (attackVector == AttackVector.ReenterSetDonationAddress || attackVector == AttackVector.ReenterResumeVault) {
+            _attempt();
         }
     }
 
     function shutdown() external override {
-        if (attackVector == AttackVector.ReenterEmergencyPause) {
-            (bool success,) =
-                target.call(abi.encodeWithSignature("emergencyPause(address,address)", attackGarden, attackAsset));
-            if (!success) revert("reentrancy blocked");
+        depositsPaused = true;
+        if (attackVector == AttackVector.ReenterEmergencyPause) _attempt();
+    }
+
+    function _attempt() private {
+        if (attempted) return;
+        // Set before the call so removing a guard cannot turn rejection into recursive out-of-gas.
+        attempted = true;
+        bytes memory callData;
+        if (attackVector == AttackVector.ReenterHarvest) {
+            callData = abi.encodeWithSignature("harvest(address,address)", attackGarden, asset);
+        } else if (attackVector == AttackVector.ReenterEmergencyPause) {
+            callData = abi.encodeWithSignature("emergencyPause(address,address)", attackGarden, asset);
+        } else if (attackVector == AttackVector.ReenterSetDonationAddress) {
+            callData = abi.encodeWithSignature("setDonationAddress(address,address)", attackGarden, address(0xDEAD));
+        } else if (attackVector == AttackVector.ReenterResumeVault) {
+            callData = abi.encodeWithSignature("resumeVault(address,address,address)", attackGarden, asset, address(this));
         }
+        (callbackSucceeded, callbackResult) = target.call(callData);
     }
 }
