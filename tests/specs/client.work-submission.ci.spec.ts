@@ -19,26 +19,6 @@ test.describe("Work Submission CI Tests", () => {
   test.describe.configure({ mode: "serial" });
   test.use({ baseURL: CLIENT_URL });
 
-  test.describe("Login Page Accessibility", () => {
-    // Real-login splash behavior remains a separate headless CI debt. The
-    // authenticated specs below use the supported DevAuthProvider seam.
-    // SKIP: #564 owner:afo expiry:2026-11-12 — real-login splash needs its own headless fixture
-    test.skip("login page loads and shows auth options", async ({ page }) => {
-      await page.goto("/home/login?presentation=pwa", { waitUntil: "domcontentloaded" });
-      await page.waitForLoadState("domcontentloaded");
-
-      await expect(page.getByTestId("login-button")).toBeVisible({ timeout: 10000 });
-    });
-  });
-
-  test.describe("Home Page with Mocked Data", () => {
-    test("navigates to login when not authenticated", async ({ page }) => {
-      await page.goto("/home?presentation=pwa", { waitUntil: "domcontentloaded" });
-      await page.waitForURL(/\/home\/login/, { timeout: 15000 });
-      expect(page.url()).toContain("/home/login");
-    });
-  });
-
   test.describe("Work Form Validation", () => {
     test("blocks progress when required action details are empty", async ({ page }) => {
       const helper = await setupAuthenticatedClient(page);

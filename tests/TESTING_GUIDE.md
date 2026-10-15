@@ -31,7 +31,7 @@ bun run browser e2e --preset ui
 | `client.auth.spec.ts` | Manual wallet-storage UI and sign-out; no real connector claim |
 | `client.offline-work-submission.ci.spec.ts` | Offline submission and recovery |
 | `client.work-approval.ci.spec.ts` | Work approval CI journey |
-| `client.work-submission.ci.spec.ts` | Work submission CI journey |
+| `client.work-submission.ci.spec.ts` | Required work details validation |
 
 Runner counts depend on the selected project. The retired always-skipped manual
 work/offline specs supplied no active proof; use the maintained CI journeys.

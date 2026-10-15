@@ -26,7 +26,7 @@ tests/
 │   ├── client.smoke.spec.ts  # Client basic functionality  
 │   ├── client.auth.spec.ts   # Client authentication flows
 │   ├── client.offline-work-submission.ci.spec.ts  # Offline upload/recovery
-│   ├── client.work-submission.ci.spec.ts  # Work submission
+│   ├── client.work-submission.ci.spec.ts  # Required work details validation
 │   ├── client.work-approval.ci.spec.ts    # Work approval
 │   ├── client.passkey.spec.ts  # Qualified WebAuthn rejection
 │   ├── client.reporting-account.passkey.spec.ts  # Qualified account recovery

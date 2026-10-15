@@ -1,29 +1,32 @@
 # PRD-1158 repository-wide cleanup implementation
 
-The approved R01–R62 scope is implemented in three code batches on draft [PR #1102](https://github.com/greenpill-dev-guild/green-goods/pull/1102). All 62 candidates were applied, including the separately qualified real-SQLite and reentrancy repairs. No candidate was silently deferred. The [accepted plan](../plan.todo.md#prd-1158-repository-wide-scope-2026-10-15) retains the per-candidate caller traces, unique-proof requirements and exclusions.
+The approved R01–R62 scope is implemented in four code batches on draft [PR #1102](https://github.com/greenpill-dev-guild/green-goods/pull/1102). All 62 candidates were applied, including the separately qualified real-SQLite and reentrancy repairs. No candidate was silently deferred. The [accepted plan](../plan.todo.md#prd-1158-repository-wide-scope-2026-10-15) retains the per-candidate caller traces, unique-proof requirements and exclusions.
 
-This report records the cleanup comparison before integrating newer `develop` changes. Local publication gates and current-head GitHub CI are still pending at this checkpoint; the PR checks own the eventual CI state. The broader hub remains active and its other lanes and historical receipts are unchanged.
+The code is integrated with `develop` at `98e4eb7e17ce4e5e1586b94ecc1be609e0501234`. The primary inventory below compares that base with the final PR source, including the bounded R60 execution-review closure. Comparable coverage controls retain their earlier fixed source boundary, stated below. This is pre-publication evidence: the live PR validation and checks own final gate/CI status. The broader hub remains active; its other lanes and historical receipts are unchanged.
 
 ## Measured reduction
 
-Comparison: `547e64248390d72b94a1ecc5772b4d7c9bc9fe9a` → `36fd6babd`.
+Comparison: current `develop` (`98e4eb7e17ce4e5e1586b94ecc1be609e0501234`) → integrated PR source including the final R60 closure. Git blobs and physical files reconcile exactly. The fixed classifier excludes Plan Hub artifacts, including one test-shaped one-shot plan file.
 Physical source lines include blank lines and comments. The fixed before-inventory classifier is reused after editing and checked against Git's added/deleted counts. Plans, guides, generated documentation, manifests, configuration and binaries are excluded from test/support code totals.
 
 | Code | Before files | After files | Before lines | After lines | Added | Deleted | Net |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Tests | 1,296 | 1,275 | 352,204 | 344,276 | 707 | 8,635 | −7,928 |
+| Tests | 1,297 | 1,276 | 352,786 | 344,566 | 997 | 9,217 | −8,220 |
 | Support | 109 | 97 | 20,196 | 16,099 | 98 | 4,195 | −4,097 |
-| Total | 1,405 | 1,372 | 372,400 | 360,375 | 805 | 12,830 | **−12,025** |
+| Total | 1,406 | 1,373 | 372,982 | 360,665 | 1,095 | 13,412 | **−12,317** |
 
-There are **zero new executable test/support files**. The earlier narrow PR already removed 265 test/support lines, so the full issue's cleanup removes **12,290 lines**. Two unused tracked SQLite fixtures remove another **1,044,480 bytes**, counted separately.
+There are **zero new executable test/support files**. The expanded implementation removes **12,052 lines**: 12,025 in the first three code batches and 27 in the final R60 closure. The earlier narrow PR removed 265 lines, bringing the full issue cleanup to **12,317 lines**. Incoming accepted develop changes are preserved and are not credited as cleanup. Two unused tracked SQLite fixtures remove another **1,044,480 bytes**, counted separately.
 
-The 133 changed test/support paths shrink from 45,807 to 33,782 lines. Commit grouping assigns each path once; Shared transfer owners are counted in the Shared commit, not again in App totals.
+The 134 changed test/support paths shrink from 45,933 to 33,881 lines. This affected-path footprint uses each path once. Commit deltas below are additive even where the final closure touches an earlier path again.
 
-| Code batch | Commit | Changed test/support footprint | Net |
-|---|---|---|---:|
-| Shared/Agent, including Shared transfer owners | `805e9333f` | 17,009 → 14,193 | −2,816 |
-| Client/Admin/browser and their direct tooling | `4281c072f` | 14,536 → 9,880 | −4,656 |
-| Contracts/Indexer/root test controls | `36fd6babd` | 14,262 → 9,709 | −4,553 |
+| Code batch | Commit | Net test/support lines |
+|---|---|---:|
+| Shared/Agent, including Shared transfer owners | `805e9333f` | −2,816 |
+| Client/Admin/browser and their direct tooling | `4281c072f` | −4,656 |
+| Contracts/Indexer/root test controls | `36fd6babd` | −4,553 |
+| Final R60 duplicate/placeholder closure | Final code/evidence commit | −27 |
+
+The final closure removes the Client's unconditional skipped login-only case and duplicate home admission case, both strictly subsumed by executed smoke tests, plus Admin's empty unconditional wrong-network placeholder. Client file 75→55 lines; Admin file 126→119. No meaningful assertion is removed. Real wagmi wrong-network behavior remains an external-integration gap recorded here instead of a no-op executable test. The two direct guide labels are corrected.
 
 ## Applied scope and retained protection
 
@@ -40,11 +43,13 @@ The 133 changed test/support paths shrink from 45,807 to 33,782 lines. Commit gr
 | R55–R56 | Delete unused Agent runner; consolidate root skill mutations and QA invocations. | All 15 skill mutations, live control, all eight QA harness bodies, stdio/timeout options and thrown subprocess failures remain. |
 | R57 | Replace handwritten SQL parsing/maps with a 39-line Node SQLite adapter in the existing setup file; remove unused DB binaries. | All seven SQL consumers; real migration/rerun and owner quota/update/other-owner/tombstone behavior; separate native Bun persistence lane unchanged. |
 | R58–R59 | Repair authorized one-shot reentrancy observations; narrow MockGAP to its real consumer. | Six attack directions including both resume directions, exact guard revert bytes, persisted inner observations and successful outer state/event; exact recorder selector/fields, uniqueness and failure controls. |
-| R60–R62 | Remove ineffective browser admission/cancellation claims, write-only receipt/encoder mocks and uncalled protocol-mock controls. | Actual SessionGate/modal/retry/qualified rejection owners, mobile home smoke, protocol interfaces, hierarchy/standing/eligibility and distinct yield mock receivers. |
+| R60–R62 | Remove ineffective browser admission/cancellation claims, duplicate Client login blocks, empty Admin placeholder, write-only receipt/encoder mocks and uncalled protocol-mock controls. | Actual SessionGate/modal/retry/qualified rejection owners, mobile home smoke, protocol interfaces, hierarchy/standing/eligibility and distinct yield mock receivers. |
 
 No production application, deployed contract module, handler or guard behavior was changed by these cleanup commits. Mock/support changes and sensitive metadata are deliberate: unused Shared `./mocks/server` export and Knip entry removed; stale Juicebox compilation restriction removed; Hub preset keeps 13 surviving paths; retired guide/inventory references corrected; two obsolete advisory entries removed; all four certified seam fingerprints refreshed after fresh proof. No dependency version, lockfile, CI workflow, coverage floor, include/exclude, isolation rule or direct-seam debt baseline was weakened.
 
 ## Before/after coverage
+
+Coverage comparison boundary: captured expansion control at `547e64248390d72b94a1ecc5772b4d7c9bc9fe9a` → the first three cleanup commits ending at `36fd6babd`, before integrating newer develop code. Both sides include the narrow deterministic timer-control repair described below. The final 27-line closure only removes Playwright blocks and does not alter these instrumented owners. Incoming accepted runtime changes are checked by fresh integrated-source proof and the final publication gate, rather than being counted as cleanup coverage gains.
 
 The same commands, instrumentation, configuration and source owners were used on both sides. Shared uses all configured projects with two workers; Client/Admin use their package coverage command; Agent uses the unit scope. All global and 11 critical-path coverage floors remain unchanged.
 
@@ -73,23 +78,27 @@ Observed coverage durations were Shared 441.75 → 347.95 s, Client 258.69 → 1
 
 The initial Shared control exposed an unrelated far-future timer-drain timeout; invoking the captured capped/rearmed callbacks preserves before/due behavior and passes 13 owner cases. Agent baseline initially lacked installed pinned dependencies; the user-approved frozen restoration changed no versions or lockfile. The first Shared AFTER run caught a real helper side effect: deleting navigator mutation helpers correctly moved three pure workflow suites into the shared Node graph, exposing a React helper import. Removing that DOM dependency preserves all 224 assertion lines; focused 90 and final full coverage pass with the leak guard unchanged.
 
-## Publication verification still in progress
+## Pre-publication checkpoint (2026-10-15)
 
-- Mandatory ABI/build/full-contract/safety gate: full Solidity and production gas-boundary proof passed; complete verification remains running.
-- Strict browser: passkey 3/3 and production PWA-preview 1/1 pass with zero retries/skips (CI Playwright, clean-room). Final Client/Admin/exploration proof remains pending. Earlier failed/flaky runs are not used as closure.
-- Full local Ship Gate, latest-develop integration, post-commit Push Gate, normal push and required current-head CI remain pending. No merge to develop or deployment is authorized.
+- The initial mandatory ABI/build/full-contract/safety gate passes all four checks fresh, including full compilation, 1,949 default Solidity cases, production cold gas-boundary fixtures and fast verification. Its run began before the final commit, so it is not used as a current-head readiness receipt.
+- After integrating develop, all 13 certified proof files pass again: 275 cases plus six existing skips. All four declarations/categories/consumers remain unchanged; only current input fingerprints are refreshed. Canonical package documentation generation/check passes all five projections; only two digest outputs change.
+- Strict merged-source browser proof uses one worker and zero retries. Exploration seed42 passes 2/2; passkey 3/3; production PWA-preview 1/1. Final ClientCI passes 18 with two unchanged conditional skips (production-preview-only offline reload, separately proved by PWA; iOS-only storage diagnostic). Final AdminCI passes 12 with zero skips. Across the five strict runs, 36 cases execute and two conditional Client cases skip; there are zero retries, unexpected/flaky results or report errors. All browser servers are torn down. Prior failed/flaky runs remain recorded and are not closure.
+- The repository selector requires **37 checks** for the final critical Push Gate, including complete package tests/builds, all critical contract checks and the three qualified browser presets. No compatibility filter, budget or receipt suppresses a critical check. The gate will run on the committed final source with canonical public CI environment; its result, normal push and required exact-head GitHub CI are recorded in the live PR validation.
+
+Earlier browser boot failures passed unchanged in a reduced-load rerun after V8 coverage finished; only one Solc compiler remained. This supports resource-sensitive startup without establishing CPU causality. It does not waive any assertion. No merge to develop, deployment or broadcast is authorized.
 
 ## Retained limits
 
 Live RPC/fork execution and authenticated real-wallet/session restoration are not claimed by clean-room proof. Actual qualified browser subjects remain; removing permissive manual claims does not fill those preexisting external-integration gaps. The existing GraphQL variable-forwarding gap, four missing storage-checker entries and Juicebox deployment-configuration gap remain explicit in the accepted plan. This is completion of the selected cleanup scope, not line-by-line certification that every remaining repository test is ideal.
 
-Task record: PRD-1158 / PR1102 | Type: test refactor | Outcome: implementation and comparable coverage complete; publication verification ongoing.
+Task record: PRD-1158 / PR1102 | Type: test refactor | Outcome: implementation, comparable coverage and strict browser proof complete; final publication gate/CI remain pending at this snapshot and are owned by the live PR.
 Agent/model: Codex / GPT-6 with three package implementation/review agents | Coverage: expanded implementation segment starting 2026-10-15T04:08:09Z.
 
 | Phase | Start → end (UTC) | Evidence or blocker |
 |---|---|---|
 | Investigate/implement/verify | 2026-10-15T04:08:09Z → 2026-10-15T05:20:30Z | Baselines, three code batches, fault restoration, comparable coverage and cross-lane review above; sub-boundaries unknown. |
 | Wait | Within that interval; exact boundaries unknown | Missing pinned dependencies resolved by approved frozen restore; test leases respected. |
-| Verify/publish | 2026-10-15T05:20:30Z → ongoing | Full gates, browser, develop reconciliation and current-head CI pending. |
+| Verify | 2026-10-15T05:20:30Z → 2026-10-15T05:45:43Z | Develop reconciled, four contract gates, fresh seam proof and 36 strict browser cases pass; 27-line R60 closure verified. |
+| Publish | 2026-10-15T05:45:43Z → ongoing at this snapshot | Final committed 37-check critical gate and current-head CI are recorded in the live PR/final handoff. |
 
 Human corrections: 0 in this implementation segment; attention unknown.
