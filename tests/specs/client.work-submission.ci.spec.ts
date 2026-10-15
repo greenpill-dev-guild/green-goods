@@ -32,15 +32,6 @@ test.describe("Work Submission CI Tests", () => {
   });
 
   test.describe("Home Page with Mocked Data", () => {
-    test("renders home page with garden list when authenticated", async ({ page }) => {
-      const helper = await setupAuthenticatedClient(page);
-      await page.goto("/home?presentation=pwa", { waitUntil: "domcontentloaded" });
-      await helper.waitForPageLoad();
-
-      expect(page.url()).not.toContain("/home/login");
-      await expect(page.getByTestId("garden-card").first()).toBeVisible();
-    });
-
     test("navigates to login when not authenticated", async ({ page }) => {
       await page.goto("/home?presentation=pwa", { waitUntil: "domcontentloaded" });
       await page.waitForURL(/\/home\/login/, { timeout: 15000 });

@@ -32,7 +32,7 @@ export const ADMIN_HUB_TESTS = [
   "src/__tests__/workspace-state.test.tsx",
   "src/__tests__/components/CanvasLayout.test.tsx",
   "src/__tests__/components/mobile-nav.test.tsx",
-  "src/__tests__/components/empty-state.test.tsx",
+  "src/__tests__/routes/IndexRoute.test.tsx",
   "src/__tests__/views/HubDetail.test.tsx",
   "src/components/Layout/commandPalette.results.test.ts",
   "src/views/Actions/actions.workspaceModel.test.ts",

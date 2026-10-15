@@ -329,6 +329,12 @@ describe("admin canvas runtime navigation", () => {
 
   it.each([
     ["/hub/work/work-7", "/hub/work/work-7", "Hub", { workId: "work-7" }],
+    ["/hub/confirm", "/hub/confirm", "Hub", {}],
+    ["/hub/confirm/9", "/hub/confirm/9", "Hub", { commitmentId: "9" }],
+    ["/garden/pool", "/garden/pool", "Garden", {}],
+    ["/garden/pool/seed", "/garden/pool/seed", "Garden", {}],
+    ["/garden/pool/9", "/garden/pool/9", "Garden", { commitmentId: "9" }],
+    ["/community/pools", "/community/coordination", "Community", {}],
     ["/hub/assess", "/hub/assess", "Hub", {}],
     [
       "/hub/assess/assessment-7",
@@ -355,7 +361,10 @@ describe("admin canvas runtime navigation", () => {
     ...[
       "coordination/strategies",
       "coordination/signal-pool/0",
+      "governance",
       "governance/strategies",
+      "governance/signal-pool/action",
+      "coordination/signal-pool/hypercert",
       "governance/signal-pool/0",
     ].map(
       (path) =>
@@ -363,13 +372,15 @@ describe("admin canvas runtime navigation", () => {
           `/community/${path}`,
           GOVERNANCE_ENABLED ? `/community/${path}` : "/community/coordination",
           "Community",
-          GOVERNANCE_ENABLED && path.includes("signal-pool") ? { poolType: "0" } : {},
+          GOVERNANCE_ENABLED && path.includes("signal-pool")
+            ? { poolType: path.split("/").at(-1) }
+            : {},
         ] as const
     ),
   ] as const)("resolves %s to its owning view and preserves context", async (entry, pathname, view, params) => {
-    const router = await renderAdminCanvasRoute(`${entry}?gardenId=0xAAA`);
+    const router = await renderAdminCanvasRoute(`${entry}?gardenId=0xAAA&sort=oldest`);
     expect(router.state.location.pathname).toBe(pathname);
-    expect(router.state.location.search).toBe("?gardenId=0xAAA");
+    expect(router.state.location.search).toBe("?gardenId=0xAAA&sort=oldest");
     expect(router.state.matches.at(-1)?.params).toEqual(params);
     expect(screen.getByTestId("route-target")).toHaveTextContent(view);
   });

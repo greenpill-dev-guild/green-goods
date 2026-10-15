@@ -6,7 +6,7 @@ import { render } from "@testing-library/react";
 import { createElement } from "react";
 import { matchRoutes, type LoaderFunctionArgs, type RouteObject } from "react-router-dom";
 import { afterEach, describe, expect, it } from "vitest";
-import { appRoutes, CLIENT_ROUTE_IDS } from "../../config/routes";
+import { appRoutes, CLIENT_ROUTE_IDS, publicAppRoutes, pwaAppRoutes } from "../../config/routes";
 import {
   requirePwaPresentationLoader,
   requireWebsitePresentationLoader,
@@ -161,6 +161,18 @@ function setStandaloneMode() {
 }
 
 describe("presentation-mode route guards", () => {
+  it.each([
+    ["public", publicAppRoutes, "/"],
+    ["PWA", pwaAppRoutes, "/home"],
+  ] as const)("redirects an unknown %s path to its production fallback", async (_mode, routes, expected) => {
+    const url = "https://www.greengoods.app/this-page-does-not-exist-12345";
+    const route = matchRoutes(routes, new URL(url).pathname)?.at(-1)?.route;
+    expect(route?.path).toBe("*");
+    expect(route?.loader).toBeTypeOf("function");
+    const result = await (route!.loader as (args: LoaderFunctionArgs) => unknown)(loaderArgs(url));
+    expectRedirect(result, expected);
+  });
+
   afterEach(() => {
     Object.defineProperty(global, "navigator", {
       value: originalNavigator,

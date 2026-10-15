@@ -3,13 +3,12 @@
  *
  * Minimal tests for the client PWA:
  * - Unauthenticated redirect to login
- * - Passkey authentication (Android Chrome)
- * - Wallet authentication (iOS Safari)
+ * - Wallet storage injection diagnostic (iOS Safari)
  * - View gardens data
  *
  * Authentication strategy:
- * - Android/Chromium: Virtual WebAuthn authenticator for passkey testing
- * - iOS Safari: Storage injection for wallet authentication (WebAuthn not supported)
+ * - CI/mobile Chrome: supported dev mock-auth seam and mocked backend
+ * - iOS Safari: legacy storage diagnostic; its URL check does not establish successful authentication
  */
 import { expect, test } from "@playwright/test";
 import { MOCK_CLIENT_GARDEN } from "../helpers/mock-backend";
@@ -61,40 +60,8 @@ test.describe("Client PWA", () => {
       await expect(page.getByTestId("login-button")).toBeVisible();
     });
 
-    test("passkey flow - create account and authenticate", async ({ page }, testInfo) => {
-      // Skip passkey e2e tests - virtual authenticator credentials are rejected by real Pimlico server
-      // Passkey flow is tested in unit tests with mocked Pimlico responses
-      // See: packages/shared/src/__tests__/workflows/authServices.test.ts
-      // SKIP: #338 owner:afo expiry:2026-10-16 — virtual authenticator creds rejected by Pimlico
-      test.skip(
-        true,
-        "Passkey e2e tests skipped: virtual authenticator credentials rejected by Pimlico server. " +
-          "Use unit tests for passkey flow validation."
-      );
-
-      const helper = new ClientTestHelper(page);
-
-      // Setup virtual authenticator for passkey testing
-      await helper.setupPasskeyAuth();
-
-      try {
-        // Create new account
-        const username = `e2e_${Date.now()}`;
-        await helper.createPasskeyAccount(username);
-
-        // Should be on home page after auth
-        expect(page.url()).toContain("/home");
-
-        // Should see authenticated UI (no login redirect)
-        await helper.waitForPageLoad();
-        await expect(page.locator("body")).toBeVisible();
-      } finally {
-        await helper.cleanup();
-      }
-    });
-
     test("wallet flow - inject auth and navigate (iOS Safari)", async ({ page }, testInfo) => {
-      // Only run on iOS Safari - passkey tests cover Android/Chromium
+      // Only run this storage-injection diagnostic on iOS Safari. Qualified specs own passkey proof.
       // SKIP: #338 owner:afo expiry:2026-10-16 — platform-conditional, only iOS Safari
       test.skip(!isIOS(testInfo.project.name), "Wallet injection only needed for iOS Safari");
 

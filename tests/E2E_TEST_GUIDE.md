@@ -4,32 +4,17 @@
 
 This guide documents the E2E test improvements made to the Green Goods project to fix failing tests and improve coverage.
 
-## Key Improvements
+## Current coverage
 
-### 1. Fixed Authentication Tests
-- **Passkey Tests**: Added proper WebAuthn virtual authenticator setup with better wait conditions
-- **Wallet Tests**: Improved wallet connection modal detection with multiple selector strategies
-- **Error Handling**: Added proper error state detection and retry mechanisms
+Deterministic CI journeys use `setupAuthenticatedClient` with dev mock auth and
+schema-correct backend fixtures. Qualified presets separately cover passkey
+rejection/account recovery, seeded read-only work exploration and production PWA
+offline reload. See [the runner contract](README.md#projects-and-focused-runs) for
+exact qualification and evidence limits.
 
-### 2. Fixed Offline/Sync Tests
-- **Flexible Selectors**: Tests now check multiple possible selectors for offline indicators
-- **Better Timing**: Increased wait times for network state changes to propagate
-- **State Persistence**: Improved tests for offline state persistence across reloads
-
-### 3. Improved Test Stability
-- **Centralized Configuration**: Created `test-config.ts` with consistent timeouts and selectors
-- **Helper Functions**: Added utilities for waiting on elements, retrying actions, and network idle
-- **Better Wait Conditions**: Replaced hard-coded timeouts with proper element visibility checks
-
-### 4. Enhanced Test Coverage
-- **Navigation Tests**: Added comprehensive navigation and routing tests
-- **Admin Auth Tests**: Created dedicated admin authentication test suite
-- **Performance Tests**: Added performance monitoring and resource loading tests
-
-### 5. Optimized Test Execution
-- **Parallel Projects**: Separated test runs by app (admin/client) and platform
-- **Targeted Test Matching**: Tests only run on appropriate platforms
-- **Reduced CI Load**: Disabled video recording in CI, optimized worker count
+Manual wallet-storage diagnostics do not establish real connector or session
+restoration behavior. Removed always-skipped work/offline suites supplied no active
+proof; the current CI specs exercise those journeys.
 
 ## Test Structure
 
@@ -40,14 +25,17 @@ tests/
 │   ├── admin.auth.spec.ts    # Admin authentication flows
 │   ├── client.smoke.spec.ts  # Client basic functionality  
 │   ├── client.auth.spec.ts   # Client authentication flows
-│   ├── client.offline-sync.spec.ts  # Offline functionality
-│   ├── client.work-submission.spec.ts  # Work submission
-│   ├── client.work-approval.spec.ts    # Work approval
+│   ├── client.offline-work-submission.ci.spec.ts  # Offline upload/recovery
+│   ├── client.work-submission.ci.spec.ts  # Work submission
+│   ├── client.work-approval.ci.spec.ts    # Work approval
+│   ├── client.passkey.spec.ts  # Qualified WebAuthn rejection
+│   ├── client.reporting-account.passkey.spec.ts  # Qualified account recovery
+│   ├── client.pwa-preview.spec.ts  # Production worker/cache proof
 │   ├── client.navigation.spec.ts  # Navigation and routing
 │   └── performance.spec.ts   # Performance metrics
 ├── helpers/
 │   ├── test-utils.ts        # Test helpers and utilities
-│   └── test-config.ts       # Centralized configuration
+│   └── test-config.ts       # Shared visibility deadlines
 ├── global-setup.ts          # Global test setup
 └── global-teardown.ts       # Global test cleanup
 ```
@@ -92,15 +80,11 @@ await expect(element).toBeVisible({ timeout: TIMEOUTS.elementVisible });
 ```
 
 ### 2. WebAuthn Not Working
-- **Issue**: Passkey tests fail on iOS Safari
-- **Solution**: Use platform detection and wallet auth fallback
-```typescript
-if (isIOS(testInfo.project.name)) {
-  await helper.injectWalletAuth();
-} else {
-  await helper.setupPasskeyAuth();
-}
-```
+
+Virtual authenticators require Chromium. Run `bun run browser e2e --preset passkey`
+for the spec-local CDP ceremonies; use the supported dev mock-auth fixture for CI
+content journeys. iOS wallet-storage smoke is a separate diagnostic, not a
+WebAuthn substitute or successful-login claim.
 
 ### 3. Offline Tests Failing
 - **Issue**: Offline indicator not found
@@ -114,14 +98,10 @@ const offlineSelectors = [
 ```
 
 ### 4. Service Not Ready
-- **Issue**: Tests fail because services aren't fully started
-- **Solution**: Add retry logic for service health checks
-```typescript
-await retryWithBackoff(async () => {
-  const response = await request.get("/");
-  expect(response.status()).toBeLessThan(500);
-}, { maxRetries: 3 });
-```
+
+Use the repository browser wrapper to start the selected app and fixtures. Check
+its reported startup failure before rerunning; do not hide unavailable services
+behind success returns. `tests/fixtures/playwright-services.ts` owns server needs.
 
 ## Best Practices
 

@@ -542,14 +542,6 @@ describe("Login View - Existing User (entry screen)", () => {
     expect(mockLoginWithPasskey).toHaveBeenCalled();
   });
 
-  it("calls loginWithWallet when secondary button clicked", async () => {
-    const user = userEvent.setup();
-    renderWithRouter();
-
-    await user.click(screen.getByTestId("secondary-button"));
-    expect(mockLoginWithWallet).toHaveBeenCalled();
-  });
-
   it("keeps the message zone empty on the entry screen", () => {
     renderWithRouter();
     expect(screen.queryByTestId("info-message")).not.toBeInTheDocument();

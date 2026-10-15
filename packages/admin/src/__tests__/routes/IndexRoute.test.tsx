@@ -14,12 +14,13 @@
 import type React from "react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { renderWithProviders, screen } from "../test-utils";
+import { renderWithProviders, screen, userEvent } from "../test-utils";
 vi.mock("@/components/Layout/StewardAccessRequest", () => ({
   StewardAccessRequestContainer: () => <button type="button">Request Steward Access</button>,
 }));
 
-const { mockAuthState, mockEligibleAdminGardens } = vi.hoisted(() => ({
+const { mockNavigate, mockAuthState, mockEligibleAdminGardens } = vi.hoisted(() => ({
+  mockNavigate: vi.fn(),
   mockAuthState: {
     current: {
       isAuthenticated: true,
@@ -114,6 +115,7 @@ vi.mock("react-router-dom", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react-router-dom")>();
   return {
     ...actual,
+    useNavigate: () => mockNavigate,
     Navigate: ({ to }: { to: string }) => <div data-testid="navigate" data-to={to} />,
   };
 });
@@ -220,7 +222,7 @@ describe("IndexRoute", () => {
     expect(screen.getByTestId("navigate")).toHaveAttribute("data-to", "/hub/work");
   });
 
-  it("renders the no-garden-access state when authenticated with zero gardens", () => {
+  it("opens garden creation from the no-access state when permitted", async () => {
     renderWithProviders(
       <MemoryRouter initialEntries={["/"]}>
         <IndexRoute />
@@ -228,6 +230,20 @@ describe("IndexRoute", () => {
     );
 
     expect(screen.getByTestId("canvas-no-garden-access")).toBeInTheDocument();
+    await userEvent.setup().click(screen.getByRole("button", { name: /create garden/i }));
+    expect(mockNavigate).toHaveBeenCalledWith("/garden/create");
+  });
+
+  it("hides garden creation when the wallet lacks permission", () => {
+    mockEligibleAdminGardens.current.canCreateGarden = false;
+    renderWithProviders(
+      <MemoryRouter>
+        <IndexRoute />
+      </MemoryRouter>
+    );
+    expect(screen.getByTestId("canvas-no-garden-access")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /create garden/i })).not.toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 
   it("renders the indexer-error state when useEligibleAdminGardens reports isError", () => {

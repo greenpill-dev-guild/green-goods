@@ -376,24 +376,6 @@ export async function isGardener(
 }
 
 /**
- * Check if an address is a steward
- */
-export async function isSteward(
-  context: AnvilForkContext,
-  gardenAddress: `0x${string}`,
-  address: `0x${string}`
-): Promise<boolean> {
-  const result = await context.publicClient.readContract({
-    address: gardenAddress,
-    abi: GardenAccountABI,
-    // Deployed access function name — the role reads as Steward everywhere else.
-    functionName: "isOperator",
-    args: [address],
-  });
-  return result as boolean;
-}
-
-/**
  * Register a new action (requires impersonating ActionRegistry owner)
  *
  * @param context - Anvil fork context

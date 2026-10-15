@@ -388,6 +388,18 @@ describe("GardenDetail", () => {
       container.querySelectorAll('section[aria-labelledby^="public-garden-detail-"] h2')
     ).map((h) => h.textContent ?? "");
     expect(headings).toEqual(["Recent approved submissions", "Impact Certificates", "Stewards"]);
+    const expectedSections = [
+      ["public-garden-description-title", "About this garden"],
+      ["public-garden-detail-notes", "Recent approved submissions"],
+      ["public-garden-detail-certificates", "Impact Certificates"],
+      ["public-garden-detail-stewards", "Stewards"],
+    ];
+    for (const [id, title] of expectedSections) {
+      const section = container.querySelector(`section[aria-labelledby="${id}"]`);
+      expect(section?.querySelector(`h2#${id}`)).toHaveTextContent(title);
+      expect(container.querySelectorAll(`[id="${id}"]`)).toHaveLength(1);
+    }
+    expect(screen.queryByText("This Garden is preparing its pool")).not.toBeInTheDocument();
     // An absent thing says it is absent, so § 03 never drops out of the ladder.
     expect(screen.getByText("No approved submissions yet.")).toBeInTheDocument();
     expect(screen.getByText("No Impact Certificates yet.")).toBeInTheDocument();
