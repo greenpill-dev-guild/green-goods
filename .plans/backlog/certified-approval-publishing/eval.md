@@ -1,0 +1,53 @@
+# Certified and Ma Earth evaluation plan
+
+**Current state:** architecture/planning only. No runtime acceptance test below has run.
+The public architecture owns dependencies D1–D9; this file owns implementation proof expectations.
+
+## Acceptance matrix
+
+| ID | Boundary | Required evidence | Lane / phase |
+|---|---|---|---|
+| AC1 | Identity control | OAuth DID plus exact GG proof; replay, audience mismatch and account switch rejected; wallet/passkey/embedded matrix | state_api / 1 |
+| AC2 | Dual authority | Garden management and external project permissions separately enforced; account link alone enables no write | state_api, ui / 1 |
+| AC3 | Grant custody | Encrypted storage, redacted telemetry, expired/revoked grant recovery, epoch invalidation, retention/deletion behavior | state_api / 1–3 |
+| AC4 | All approval paths | Direct wallet, queued submission and batch receipts discovered with unique approval UIDs | state_api / 2 |
+| AC5 | Canonical source | Wrong schema/resolver/Garden, failed tx, premature finality and reorg rejected; cursor replay and atomic commit tested | state_api / 2 |
+| AC6 | Native provider mapping | Pinned schema fixtures validate; correct key shapes, typed content and strong references; project fields preserved | state_api / 2 |
+| AC7 | Attribution and privacy | Verified reviewer consent, no invented independent evaluator or impact score; indirect private metadata/media excluded | state_api, ui / 2 |
+| AC8 | Durable delivery | Crash after every stage; timeout after remote commit; readback conflict; leases; partial success; bounded retry; restart | state_api / 2 |
+| AC9 | Provider concurrency | Concurrent project mutation uses remote CAS; capacity limit produces blocked status | state_api / 2 |
+| AC10 | User-visible status | GG approval, Certified publication and Ma Earth visibility separate; preview matches saved payload hash | ui / 2 |
+| AC11 | Live Ma Earth display | Actual authorized project visibly displays the native records and correct reviewer/source relationship | qa_pass_1 / 3 |
+| AC12 | Corrections | Later negative decision, multiple reviewers, changed activity CID and source invalidation produce correct downstream interpretation | state_api, qa_pass_1 / 3 |
+| AC13 | Disconnect race | Unsent intents cancelled, in-flight outcomes reconciled, no new writes after revocation, public-erasure limit explained | state_api, ui / 3 |
+| AC14 | Operational recovery | Restore from encrypted backup does not duplicate logical records; destination pause and sanitized alerting work | qa_pass_1 / 3 |
+| AC15 | Automatic consent | Standing policy covers exact fields/actions/revision; broadened scope or destination change requires renewed consent | ui, state_api / 4 |
+| AC16 | Regression and release | No approval-path regression, current-head selected local/CI checks, authenticated identity proof and sequential QA receipts | qa_pass_2 / each release |
+
+## Proof strategy
+
+Use focused tests for meaningful boundaries: pure projection and policy tests in Shared;
+database/provider fault-injection tests in Agent; preview and repair states in Admin. Add provider
+fixtures from the approved deployed version, then run a separately authorized live conformance
+exercise. Mocks do not establish provider compatibility or Ma Earth visibility.
+
+Record RED/GREEN commands and evidence in implementation lane handoffs with the Plan Hub helper.
+Do not mark a runtime lane passed on the strength of this documentation build. Run the repository
+validation selector at each checkpoint and preserve its critical overrides. Do not add tests that
+merely mirror field assignments or require live provider credentials for routine CI.
+
+Account linking/signing needs labeled authenticated-session browser proof. Other UI surfaces use
+the accepted labeled mock-auth, Storybook or CI browser class. Real provider pilot results must
+identify the tested version, source approval, destination and observed outcome while excluding
+private identities and credentials from public artifacts.
+
+## Planning PR checks
+
+- Plan Hub schema and Markdown links.
+- Documentation authority/generated projections and production build.
+- Parse every Mermaid diagram; inspect rendered diagrams when the local browser surface is available.
+- Scoped formatting/lint, post-commit push gate, then current-head GitHub CI.
+
+Validation receipts belong in the chat/PR handoff for this documentation-only update. Future
+implementation receipts require exact commit SHA, UTC time, command/result and clean path-scoped
+worktree evidence. Any failed, pending or unrun check remains explicitly labeled.

@@ -1,795 +1,762 @@
 ---
-title: "Certified ATProto Integration Spec (July 2026)"
-sidebar_label: Certified ATProto Integration
+title: "Certified and Ma Earth: account linking and approval publishing"
+sidebar_label: Certified approval publishing (proposed)
 slug: /builders/specs/certified-atproto-integration-spec-2026-07
-unlisted: true
 audience: developer
 owner: docs
-last_verified: 2026-07-13
+last_verified: 2026-10-15
 feature_status: Planned
+source_of_truth:
+  - packages/contracts/src/resolvers/WorkApproval.sol
+  - packages/shared/src/modules/work/submit-approval-command.ts
+  - packages/shared/src/modules/job-queue/process-job.ts
+  - packages/agent/src/services/reporting/outbox.ts
 ---
 
-# Green Goods x Certified ATProto integration spec
+# Certified and Ma Earth approval publishing
 
-Date: 2026-07-13  
-Status: Explore and spec complete, implementation not approved  
-Primary topology: Certified owns the DID and PDS, Green Goods is an OAuth client
+**Proposed architecture, 2026-10-15. No integration is implemented by this document.**
+The first delivery connects a steward's existing Certified identity, binds an existing external
+project to a Green Goods Garden, and publishes confirmed work approvals with their approved public
+evidence. Certified repository publication and Ma Earth visibility are separate outcomes.
 
-## 1. Claim labels and source boundary
+This revision replaces the July browser-only proposal in [PR #640](https://github.com/greenpill-dev-guild/green-goods/pull/640).
+The historical URL is retained. The [topology decision](./certified-atproto-topology-memo-2026-07.md)
+compares the alternatives. The PR's backlog Plan Hub owns implementation sequencing; this page
+owns the proposed architecture. Code owns existing behavior. All diagrams below are proposed
+unless their nodes explicitly say **existing**. Dependencies D1–D9 remain unresolved.
 
-- **[D] Documented:** verified in the Green Goods repository, a pinned upstream release or revision, or official AT Protocol documentation.
-- **[I] Inferred:** a reasoned conclusion from documented evidence.
-- **[S] Speculative:** a proposed implementation or policy that remains to be approved or tested.
+## 1. Product boundary and vocabulary
 
-Material statements below carry one of these labels. A label applies to the paragraph, list item, table row, or diagram note that contains it.
+The pilot experience is: **Connect Certified → choose a Garden's external project → approve
+work → preview and publish the public report → see its publication result.**
+An approval remains successful in Green Goods even when an external platform is unavailable.
+The first pilot requires a preview for each report. Standing automatic publishing follows only
+after the correction and consent policy has been proven.
 
-### Upstream material used
+| Concept | Meaning and authority |
+|---|---|
+| Green Goods account | Chain-scoped EVM identity used by existing wallet, passkey, or embedded auth |
+| Steward | Product role; the approval resolver enforces operator authorization |
+| Account link | Verified association between one Green Goods account and an external personal DID |
+| Garden destination | A chain/Garden binding to a repository DID and an existing project collection URI |
+| Publishing grant | Revocable authority to write to that repository; separate from account linking |
+| Publication policy | Explicit consent to publish a bounded public projection, versioned independently of a grant |
+| Approval source | Canonically confirmed EAS WorkApproval, its referenced Work, and source-chain coordinates |
+| Activity | The external description of the work; approval is represented separately |
+| Evaluation | An attributed Green Goods steward review, never a claim of independent certification |
+| Publication | Durable delivery of a specific source decision to a specific destination |
+| Visibility | Evidence that Ma Earth discovers and displays the records in the intended project |
 
-**[D]** The schema authority for this pass is the `hypercerts-org/hypercerts-lexicon` Git tag `v1.1.0`, released 2026-07-06. The pass read `SCHEMAS.md`, `LEXICON_STYLE_GUIDE.md`, `STRING_CONSTRAINTS.md`, the complete `lexicons/` tree, and the bundled `building-with-hypercerts-lexicons` skill from that tag.
+Account linking does not mint a Hypercert, issue credits, create a new Green Goods login mode,
+or transfer DID custody. A person, a Garden, and a Certified group are different identities.
+The first version supports one active Certified destination per Garden; a person can participate
+in several Gardens. Multiple reviewers retain their own decisions rather than being collapsed
+into an invented universal approval score.
 
-**[D]** On 2026-07-13, npm `latest` for `@hypercerts-org/lexicon` resolved to `1.0.0`, not `1.1.0`. Implementation must not claim an npm v1.1.0 pin until it is published. If implementation starts earlier, the tagged Git dependency requires explicit supply-chain approval. `main` is not an allowed source.
+## 2. Existing behavior and the integration seam
 
-**[D]** The exact requested `npx skills add hypercerts-org/hypercerts-lexicon` installer could not run in this environment because the local `npx` and mise path attempted writes outside the workspace. The pinned v1.1.0 release archive was downloaded read-only, and its bundled skill was read and applied. No repository dependency or application code was changed by that workaround.
+Reviewed against Green Goods `b9176994beddb74c1f32240a1829a7e2c3805896`:
 
-**[D]** The Certified application was inspected at commit [`6788152c3c6318c3384633b9ccc26d512ed2469e`](https://github.com/hypercerts-org/certified-app/tree/6788152c3c6318c3384633b9ccc26d512ed2469e). The ePDS implementation was inspected at commit `1c931c113507a1fcb477090076120660024c8848`. A live `certified.one` authorization against a real account was not available, so deployed third-party scope support remains unconfirmed.
+| Existing authority | Finding | Design consequence |
+|---|---|---|
+| `packages/shared/src/modules/work/submit-approval-command.ts` | Direct wallet, queued, and batch paths exist | A browser queue callback cannot be the only publication trigger |
+| `packages/shared/src/modules/work/wallet-submission/submit-approval.ts` | A submission can return a transaction hash without confirmed success | Optimistic UI and transaction submission are not publishing evidence |
+| `packages/shared/src/modules/job-queue/approval-executor.ts` | Queue retries reconcile uncertain onchain submission | Preserve this safety; do not add an external request to its transaction retry loop |
+| `packages/shared/src/modules/job-queue/process-job.ts` | Completion deletes the queued job and emits an in-process completion event | That event is a hint, not a durable server publication source |
+| `packages/contracts/src/resolvers/WorkApproval.sol` | Enforces Garden/operator and review constraints; revocation is rejected | Later decisions are new attestations; do not invent mutable source approvals |
+| Same resolver | Optional commitment module supplies `decisionSequence`; positive approvals may call Karma GAP with failure isolation | Do not require sequence availability, duplicate Karma delivery, or change contracts for this feature |
+| `packages/shared/src/modules/work/work-list.ts` | Current reads select the latest timestamp and treat conflicting latest decisions as unknown | Publication must preserve that uncertainty; scan ordering is not permission to change approval semantics |
+| `packages/indexer/AGENTS.md` | Envio excludes EAS | Keep EAS discovery in an integration-specific scanner using chain receipts/logs and existing EAS access patterns |
+| `packages/agent/src/services/reporting/outbox.ts` | Durable, consent-aware conversation delivery already exists | Reuse proven persistence/encryption patterns, but keep impact publications separate from conversation replies |
+| `packages/agent/src/api/routes/garden-join-request-auth.ts` | Signed request verification handles scoped claims and smart-account inputs | Reuse verification primitives after review; define a distinct integration authorization message |
+| `packages/agent/src/api/http/auth.ts` | Existing API bearer authentication serves runtime callers | Never expose a bot API token to the browser or treat it as steward identity |
 
-## 2. Executive decisions
+The selected seam is a durable **impact publication module inside the existing Agent runtime**.
+It owns source reconciliation, consent checks, delivery, and receipts. Shared owns browser-facing
+types, pure projections, and hooks. Admin owns the steward's controls. External protocol details
+stay in one Certified adapter. There is no new service deployment, generic event bus, or adapter
+framework in the first slice.
 
-1. **[I] Identity:** Certified keeps DID and PDS ownership. Green Goods adds a separate Certified session beside EVM auth, not a fourth `TransactionSender` mode.
-2. **[I] PDS writes:** the browser PWA writes through user-delegated OAuth. The agent verifies the onchain source and returns a platform signature. The agent does not retain the user's OAuth refresh credentials.
-3. **[I] Ordering:** confirm the EAS attestation first, extract its EAS UID from the receipt, then enqueue and execute the PDS mirror.
-4. **[I] Trigger:** the shared/client job queue triggers the mirror. Envio is explicitly outside the EAS boundary.
-5. **[I] Address rule:** DID-to-EVM links are additive and per address. Milestone one links an external EOA only. Switching auth modes never silently replaces a prior link.
-6. **[I] Passkey proof:** milestone one uses no `app.certified.link.evm` record for a Kernel passkey account. Durable support requires upstream ERC-1271 and ERC-6492 proof variants.
-7. **[S] Provenance:** one long-lived Green Goods P-256 key signs all supported record CIDs from managed KMS or HSM custody.
-8. **[I] Schema mapping:** a Garden is an `org.hypercerts.collection` with type `project`. It is not normally the singleton `app.certified.actor.organization` record in a person's repo.
-9. **[I] Cross-reference:** the PDS side contains an EAS source URI. The current immutable Work attestation cannot later be edited with an AT URI or CID. A durable onchain backlink needs a new follow-up EAS schema and is outside milestone one.
-10. **[S] Pattern C:** a Green Goods-issued `did:web` for people without Certified identities is outside the first milestone and initial delivery.
+## 3. Architecture / component diagram
 
-The shorter identity decision is recorded in [Certified ATProto Identity Topology Memo](./certified-atproto-topology-memo-2026-07.md).
-
-## 3. Corrections to the initial premises
-
-| Premise                                                                                | Verified result                                                                                                                                                                               | Consequence                                                                                                  | Claim |
-| -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ----- |
-| Embedded email/social transactions are already sponsored through EIP-5792 and ERC-7677 | The current embedded sender marks sponsorship false and uses a standard wallet contract write; EIP-5792 sponsorship is described as future work                                               | Do not rely on embedded sponsorship or batch behavior in this integration                                    | [D]   |
-| Passkey and wallet attestations are signed offline                                     | The queue stores unsigned Work or Approval input and media. Encoding, IPFS upload, and transaction sending occur only during an online flush                                                  | The PDS mirror must extend the same draft/job queue and must not assume a pre-existing offline EAS signature | [D]   |
-| All three resolvers enforce ActionRegistry validity                                    | Work and WorkApproval consult ActionRegistry. Assessment validates evaluator/operator authorization and assessment fields but does not consult ActionRegistry                                 | Mirror validation must be schema-specific                                                                    | [D]   |
-| Envio indexes EAS attestations                                                         | The indexer guide explicitly excludes EAS. Shared reads EAS through its GraphQL client                                                                                                        | Envio cannot be the mirror trigger                                                                           | [D]   |
-| A Garden is naturally an `actor.organization` record                                   | `app.certified.actor.organization` is a singleton extension of the repository actor and has no display-name field. `org.hypercerts.collection` is multi-record, recursive, and project-shaped | Use `collection` for gardens. Reserve `organization` for an organization-owned DID                           | [D]   |
-| Work records can directly list attachments                                             | `activity` has no attachment property. Attachment records point to subjects through strong references                                                                                         | Write the activity first, then write attachments that reference it                                           | [D]   |
-
-## 4. Current Green Goods architecture
-
-### 4.1 Auth and transaction control
-
-**[D]** `AuthMode` is the mutually exclusive union `wallet | passkey | embedded | null`. `usePrimaryAddress` resolves the external wallet EOA, passkey Kernel address, or embedded wallet address based on that mode. `TransactionSender` is an EVM contract-call interface that returns transaction hash and sponsorship status.
-
-**[D]** Current session metadata is client-local. `packages/shared/src/modules/auth/session.ts` stores auth mode, passkey credential metadata, expected Kernel address, embedded address, and sign-out sentinel in `localStorage`. The shared auth actor and `AuthProvider` hold runtime state.
-
-**[I]** A Certified OAuth session is orthogonal to EVM transaction control. It establishes a DID and PDS authorization, not a blockchain signer. Adding `certified` to `AuthMode` would wrongly make the user choose between identity and transaction control.
-
-**[S]** Add `CertifiedSessionProvider` beside the existing `AuthProvider`. Its public state is limited to DID, handle, session readiness, authorization capability, and reauthorization status. Use `@atproto/oauth-client-browser` for the PWA. Let the library store DPoP and refresh material in its own IndexedDB implementation. Green Goods stores only a non-secret active-DID pointer and product state. The service worker must never receive OAuth access or refresh tokens.
-
-**[D]** The official browser OAuth client supports `init()` callback handling, DID-based session restore, token refresh, and IndexedDB persistence. Official guidance prefers the Node client and backend-for-frontend when a backend can safely own the session, but the requested client-writes-to-PDS topology specifically keeps user delegation in the browser.
-
-### 4.2 Address continuity
-
-**[D]** The three Green Goods modes can resolve to three addresses. The passkey mode resolves to the Kernel smart account, not the P-256 authenticator key. The existing code treats the active mode's address as the source of truth for membership and transaction ownership.
-
-**[I]** `app.certified.link.evm` should represent an append-only set of explicit address consents for one DID. The product may display a preferred Green Goods address, but preference is not cryptographic revocation.
-
-**[S]** Address-link rule:
-
-- construct a deterministic record key from the normalized address and proof variant
-- require an explicit consent action by that exact account
-- retain earlier records when the active mode changes
-- permit a user-requested unlink by deleting or superseding the individual record, subject to Certified conventions
-- never infer a Kernel link from an EOA proof, or an EOA link from an OAuth session
-- show the linked mode and address before submission
-
-### 4.3 Offline job queue
-
-**[D]** The IndexedDB database is `green-goods-job-queue`, currently version 5. A job has a kind, payload, retry fields, chain ID, sync flag, and `userAddress`. The only typed kinds are `work` and `approval`. The queue is scoped by the active primary address.
-
-**[D]** The service worker does not execute blockchain or PDS writes. It signals the page to attempt a flush. The page provider owns the `TransactionSender`, current user address, online checks, retries, and UI state.
-
-**[I]** The Certified mirror belongs in the same database and processor, but OAuth secrets do not belong in the job payload. A job must be able to wait for online state or reauthorization without being treated as a failed blockchain job.
-
-**[S]** Proposed mirror job shape:
-
-```ts
-interface CertifiedMirrorJobPayloadV1 {
-  version: 1;
-  repositoryDid: string;
-  source: {
-    chainId: number;
-    easUid: `0x${string}`;
-    schemaUid: `0x${string}`;
-    txHash: `0x${string}`;
-  };
-  visibilityDecision: "public";
-  recordPlan: "work-v1";
-  deterministicKeys: {
-    activity: string;
-    sourceAttachment: string;
-  };
-  checkpoint:
-    | { stage: "source_confirmed" }
-    | { stage: "activity_written"; activity: { uri: string; cid: string } }
-    | {
-        stage: "complete";
-        activity: { uri: string; cid: string };
-        sourceAttachment: { uri: string; cid: string };
-      };
-}
+```mermaid
+flowchart TB
+  subgraph Browser[Steward browser]
+    UI[Admin connection and publishing controls - proposed]
+    SH[Shared integration hooks and public types - proposed]
+    TX[Existing Auth and approval submission]
+    UI --> SH
+    UI --> TX
+  end
+  subgraph Agent[Existing Agent runtime - proposed module]
+    API[Scoped integration API and OAuth callbacks]
+    ID[Account-link and Garden authorization]
+    SCAN[EAS discovery and reconciliation]
+    POLICY[Public projection and consent checks]
+    WORKER[Publication worker and reconciliation]
+    ADAPTER[Certified adapter]
+    DB[(Durable integration tables)]
+    VAULT[(Encrypted credential storage)]
+    API --> ID
+    ID --> DB
+    ID --> VAULT
+    SCAN --> DB
+    DB --> POLICY
+    POLICY --> WORKER
+    WORKER --> ADAPTER
+    WORKER --> DB
+    ADAPTER --> VAULT
+  end
+  EAS[Existing EAS and Green Goods resolvers]
+  CGS[Certified authorization and Group Service]
+  PDS[External repository / PDS]
+  MA[Ma Earth indexing and project display]
+  SH -->|Scoped HTTPS commands and status| API
+  TX -->|Existing chain submission| EAS
+  EAS -->|Confirmed source logs and receipts| SCAN
+  ID <-->|OAuth and group capabilities| CGS
+  ADAPTER -->|Delegated repository writes| CGS
+  CGS --> PDS
+  ADAPTER <-->|Readback by record URI| PDS
+  PDS -.->|Visibility contract to verify - D4| MA
 ```
 
-**[I]** The existing `userAddress` remains the queue owner for compatibility, while `repositoryDid` in the payload binds the PDS target. Before processing, both the current EVM address and restored Certified DID must match. A future queue schema can promote DID to an indexed owner if multiple identities on one device become a product requirement.
+**Placement is proposed:** an `impact-publication` module in Shared for public contracts
+and pure mapping, an `impact-publication` hook directory in Shared, and an
+`impact-publication` service directory plus integration API routes in Agent for orchestration;
+existing Admin account and Garden settings for controls. Confirm final filenames against the
+owning package guides during each implementation slice. Runtime code must never depend on a Plan Hub.
 
-**[S]** Add explicit non-terminal states `blocked_offline`, `blocked_auth`, and `blocked_provider_capability`. These states do not consume the existing retry budget. Record and server failures use bounded exponential retry. An invalid or revoked OAuth session pauses only PDS work and prompts the user to reauthorize after the app returns to the foreground.
+## 4. Data flow diagram
 
-### 4.4 EAS path and trigger point
+The diagram distinguishes authority-bearing credentials from public report data. DFD stores are
+logical boundaries; they do not require separate databases.
 
-**[D]** Work and WorkApproval are encoded in shared code and sent through `TransactionSender`. The current job executors return only the transaction hash. The EAS transaction builder sets `refUID` to zero for Work, WorkApproval, and their batch variants.
-
-**[D]** Assessment uses the EAS SDK directly and already awaits `attestResult.wait()` to receive the attestation UID.
-
-**[D]** `WorkResolver` validates the schema, gardener or operator authorization, title, metadata CID, active action, and enabled garden domain. `WorkApprovalResolver` validates the referenced Work, operator authorization, no self-approval, action status, approval constraints, and optional Karma GAP integration. `AssessmentResolver` validates evaluator or operator authorization and assessment fields.
-
-**[I]** The exact mirror trigger is after a confirmed receipt and successful extraction of the EAS `Attested` event UID. It must be before the Work job is deleted. The transaction hash is not an EAS UID and must not continue to be stored as though it were one.
-
-**[S]** Add a shared receipt helper that waits for the receipt and parses the EAS `Attested(recipient, attester, uid, schemaUID)` event. In one IndexedDB transaction, persist the UID-to-transaction mapping and insert the mirror job, then mark or remove the Work job. If the browser stops between confirmation and that transaction, a recovery pass queries the receipt by transaction hash.
-
-**[I]** Trigger ownership:
-
-- Client/shared queue: owns the user's OAuth session, job ordering, and PDS write.
-- Agent: verifies public EAS source data, constructs or confirms the canonical public record, and signs its CID.
-- Envio: no role in EAS mirroring.
-- Shared EAS data layer: read and reconciliation source through EAS GraphQL where receipt data is not enough.
-
-### 4.5 Existing hypercerts code
-
-**[D]** `packages/shared/src/hooks/hypercerts` builds and submits legacy onchain HypercertMinter flows, allowlists, IPFS metadata, and marketplace interactions. The related data modules query onchain hypercert/indexer data. No AT Protocol, Certified, or PDS writer exists in that hook tree.
-
-**[I]** The new ATProto integration must be a separate `modules/certified` boundary. It may reuse Green Goods domain types and IPFS URIs, but it must not wrap or rename the existing onchain hypercert hooks.
-
-### 4.6 Garden and gardener records
-
-**[D]** The canonical shared `Garden` includes chain ID, Garden token address and token ID, name, location, banner, description, roles, works, assessments, joining policy, and domain mask. The create form includes name, slug, description, location, banner, metadata, open joining, domains, gardeners, and operators.
-
-**[D]** Garden creation is currently an admin flow. Its controller restores existing form state or an IndexedDB draft and refuses deployment while offline. The workflow uses the current admin wallet deployment path rather than the shared `TransactionSender` abstraction.
-
-**[D]** The shared gardener-profile hook describes an onchain profile with name, bio, location, image URI, social links, and contact information. Its read path is not a Certified or AT Protocol profile.
-
-**[I]** Certified profile prefill is a user convenience, not an assertion that the person and garden are the same entity. Existing draft values must win. Profile data fills blank fields only, and the user confirms before deployment.
-
-| Certified profile field | Garden form target          | Rule                                                                                                               | Claim |
-| ----------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------ | ----- |
-| `displayName`           | `name`                      | Suggest only when blank                                                                                            | [I]   |
-| `displayName`           | `slug`                      | Locally derive, validate with the existing form schema, keep editable                                              | [S]   |
-| `description`           | `description`               | Suggest only when blank and within Green Goods constraints                                                         | [I]   |
-| `banner`                | `bannerImage`               | Prefer banner when it resolves to an accepted image URI or blob                                                    | [I]   |
-| `avatar`                | `bannerImage`               | Optional fallback only after a product decision on cropping and attribution                                        | [S]   |
-| `website`               | none today                  | Do not hide it in the raw metadata string. Add a typed garden link field in a later contract if needed             | [I]   |
-| none                    | `location`                  | Do not infer. Profile has no location field. A separate, user-selected `app.certified.location` record is required | [D]   |
-| none                    | domains, team, open joining | Never infer                                                                                                        | [I]   |
-
-## 5. OAuth design
-
-### 5.1 Client shape
-
-**[S]** Use `@atproto/oauth-client-browser@0.4.8` in the PWA for the approved client-writes-to-PDS milestone. Initialize once at the application root. Complete callbacks before rendering identity-dependent routes. Restore by DID on subsequent loads.
-
-**[S]** Green Goods client metadata must be served from an HTTPS URL and use a public-client configuration with exact redirect URIs. The library owns PKCE, DPoP, authorization state, and token refresh. Green Goods must not hardcode Certified token endpoints. It starts from a user-entered Certified handle or DID, resolves the protected resource and authorization-server metadata, and redirects to the discovered issuer.
-
-**[S]** If Green Goods later moves PDS writes to a backend-for-frontend, use `@atproto/oauth-client-node@0.4.8` with an encrypted durable state/session store. That is not milestone one because it changes token custody and the write topology.
-
-### 5.2 Scopes
-
-**[D]** AT Protocol supports granular repository scopes of the form `repo:<collection>` with action qualifiers. Certified's current deployed acceptance of those scopes has not been verified.
-
-**[S]** Milestone-one requested scopes:
-
-```text
-atproto
-repo:app.certified.link.evm?action=create&action=update
-repo:org.hypercerts.claim.activity?action=create&action=update
-repo:org.hypercerts.context.attachment?action=create&action=update
+```mermaid
+flowchart LR
+  S[External entity: steward]
+  C[External entity: Certified and CGS]
+  E[External entity: EAS chain]
+  M[External entity: PDS and Ma Earth]
+  subgraph Private[Green Goods private service boundary]
+    P1((1 Verify account link))
+    P2((2 Authorize destination))
+    P3((3 Reconcile source))
+    P4((4 Minimize and consent))
+    P5((5 Publish and read back))
+    D1[(Links and grant metadata)]
+    D2[(Encrypted credentials)]
+    D3[(Source ledger and cursor)]
+    D4[(Public snapshots and outbox)]
+    D5[(Remote receipts and audit)]
+  end
+  S -->|Account-bound signed nonce| P1
+  C -->|OAuth result for exact DID| P1
+  P1 --> D1
+  P1 -->|Secret session material if retained| D2
+  S -->|Garden choice and consent| P2
+  C -->|Group role and scoped grant| P2
+  P2 --> D1
+  P2 -->|Encrypted background grant| D2
+  E -->|Logs plus canonical receipts| P3
+  P3 --> D3
+  D3 --> P4
+  D1 -->|Policy and grant epochs| P4
+  S -->|Approve exact preview hash| P4
+  P4 -->|Allowlisted public snapshot| D4
+  D4 --> P5
+  D2 -->|Only server-side delegated auth| P5
+  P5 -->|Schema-valid public records| M
+  M -->|URI, CID, visibility evidence| P5
+  P5 --> D5
+  D5 -->|Status and public links| S
 ```
 
-**[S]** Later milestones add only the collections they implement:
+Only a sanitized projection crosses the publication boundary. Exclude contact details, private
+notes, precise sensitive locations, secrets, and media without permission. A public IPFS URL can
+still expose excluded content: never attach raw source metadata merely because it is already
+reachable. Publish an allowlisted evidence snapshot and include only source references approved
+under the policy. Provider errors and telemetry must redact credentials and private payloads.
+Credential encryption, retention, recovery, and deletion rules are rollout gates, not assumptions.
 
-```text
-repo:org.hypercerts.collection?action=create&action=update
-repo:app.certified.location?action=create&action=update
-repo:org.hypercerts.context.measurement?action=create&action=update
-repo:org.hypercerts.context.evaluation?action=create&action=update
-repo:org.hypercerts.context.acknowledgement?action=create&action=update
-repo:org.hypercerts.workscope.tag?action=create&action=update
-repo:org.hypercerts.workscope.cel?action=create&action=update
+## 5. ERD and identity constraints
+
+This is a proposed logical model. Reuse the existing Agent database/migration infrastructure;
+do not reuse conversation-delivery rows for external reports. Secret bytes belong in encrypted
+storage, referenced by an opaque ID.
+
+```mermaid
+erDiagram
+  GG_ACCOUNT ||--o{ ACCOUNT_LINK : verifies
+  ACCOUNT_LINK ||--o{ PUBLISHING_GRANT : establishes
+  GARDEN ||--o{ DESTINATION : selects
+  PUBLISHING_GRANT ||--o{ DESTINATION : authorizes
+  DESTINATION ||--o{ PUBLICATION_POLICY : versions
+  GG_ACCOUNT ||--o{ REVIEWER_BINDING : attributes
+  ACCOUNT_LINK ||--o{ REVIEWER_BINDING : proves
+  GARDEN ||--o{ APPROVAL_SOURCE : receives
+  APPROVAL_SOURCE ||--o{ PUBLICATION : produces
+  DESTINATION ||--o{ PUBLICATION : receives
+  PUBLICATION_POLICY ||--o{ PUBLICATION : governs
+  PUBLICATION ||--o{ PUBLICATION_RECORD : checkpoints
+  REMOTE_RECORD ||--o{ PUBLICATION_RECORD : reused_by
+  PUBLICATION ||--o{ DELIVERY_ATTEMPT : records
+  SCAN_CURSOR ||--o{ APPROVAL_SOURCE : discovers
+
+  GG_ACCOUNT {
+    string id PK
+    int chain_id
+    string address
+  }
+  ACCOUNT_LINK {
+    string id PK
+    string account_id FK
+    string personal_did
+    string state
+    int auth_epoch
+    string proof_digest
+  }
+  REVIEWER_BINDING {
+    string id PK
+    string account_id FK
+    string link_id FK
+    string reviewer_did
+    string consent_digest
+  }
+  PUBLISHING_GRANT {
+    string id PK
+    string link_id FK
+    string repository_did
+    string credential_ref
+    string capabilities_digest
+    int grant_epoch
+    string state
+  }
+  GARDEN {
+    string id PK
+    int chain_id
+    string address
+  }
+  DESTINATION {
+    string id PK
+    string garden_id FK
+    string grant_id FK
+    string project_uri
+    string project_cid
+    int binding_version
+    string state
+  }
+  PUBLICATION_POLICY {
+    string id PK
+    string destination_id FK
+    int version
+    string projection_revision
+    string consent_digest
+    int policy_epoch
+  }
+  SCAN_CURSOR {
+    string id PK
+    int chain_id
+    string eas_address
+    int block_number
+    string block_hash
+  }
+  APPROVAL_SOURCE {
+    string id PK
+    string garden_id FK
+    string cursor_id FK
+    string approval_uid
+    string work_uid
+    string tx_hash
+    string block_hash
+    string chain_order
+    string source_state
+  }
+  PUBLICATION {
+    string id PK
+    string source_id FK
+    string destination_id FK
+    string policy_id FK
+    string projection_revision
+    string payload_hash
+    string state
+    string lease_token
+    datetime lease_expires_at
+  }
+  REMOTE_RECORD {
+    string id PK
+    string destination_id FK
+    string logical_key
+    string repository_did
+    string collection
+    string rkey
+    string uri
+    string cid
+  }
+  PUBLICATION_RECORD {
+    string id PK
+    string publication_id FK
+    string remote_record_id FK
+    string payload_hash
+    string stage
+    string state
+  }
+  DELIVERY_ATTEMPT {
+    string id PK
+    string publication_id FK
+    int attempt_number
+    string outcome
+    datetime next_attempt_at
+  }
 ```
 
-**[I]** Profile reading can use the public `com.atproto.repo.getRecord` path when the repository exposes `app.certified.actor.profile/self`. If Certified requires a permission set for this read, its published permission set must replace the assumed scope before implementation.
+Required constraints and transactions:
 
-**[I]** `transition:generic` is too broad for the durable design. It may be used only in a time-bounded interoperability spike if Certified explicitly requires it and the scope is reviewed before production.
+1. Unique Green Goods account and Garden keys are `(chainId, normalizedAddress)`. Link uniqueness
+   is `(accountId, personalDID)`. No implicit replacement when either browser account changes.
+2. Source uniqueness is `(chainId, EAS address, approvalUID)`. Store schema UID, resolver, decoded
+   decision, reviewer, Work reference, and chain coordinates with the source snapshot. Never use
+   transaction hash alone: a batch can contain multiple attestations.
+3. Publication uniqueness is `(destinationId, sourceId, projectionRevision)`. A new mapping revision
+   requires explicit migration/consent; it must not silently republish history.
+4. `REMOTE_RECORD` is unique on `(destinationId, logicalKey)` and on `(repositoryDID, collection, rkey)`.
+   Activity records are shared across decisions about the same Work snapshot; evaluations are
+   keyed by source decision. Join rows prevent duplicate activity creation during concurrent reviews.
+5. Atomically commit source rows, eligible publication intents, and the scan cursor. Persist record
+   keys, exact payload hash, consent/grant epochs, and retry state before network I/O. The ERD omits
+   routine timestamps, nonce/session tables, and detailed snapshot fields for readability.
+6. Lease acquisition and receipt updates use compare-and-swap. Serialize updates to each project
+   collection; remote conditional writes are still required because other applications can edit it.
 
-### 5.3 Provider failure fallback
-
-**[I]** If Certified authenticates Green Goods but does not grant record writes, Flow A can still support profile pull. Flow B remains blocked. Green Goods must keep the confirmed EAS source and a resumable `blocked_provider_capability` job, show the limitation honestly, and avoid any credential-sharing workaround.
-
-**[I]** Pattern C does not solve this failure for an existing Certified user. A Green Goods DID would be a different identity and repository.
-
-## 6. Flow A sequence: Certified SSO, profile pull, and garden creation
+## 6. Sequence: link identity, then authorize a destination
 
 ```mermaid
 sequenceDiagram
-  actor User
-  participant Admin as Green Goods admin
-  participant OAuth as ATProto browser OAuth client
-  participant Certified as Certified authorization service
-  participant PDS as certified.one PDS
-  participant Draft as Existing garden draft and store
-  participant Chain as Garden contracts
-
-  User->>Admin: Choose Sign in with Certified
-  Admin->>OAuth: signIn(handle or DID, exact scopes)
-  OAuth->>Certified: Authorization request with PKCE and DPoP
-  Certified->>User: Authenticate and consent
-  Certified-->>OAuth: Redirect callback
-  OAuth->>OAuth: Persist and restore session in OAuth IndexedDB
-  OAuth->>PDS: getRecord(app.certified.actor.profile, self)
-  PDS-->>Admin: displayName, description, avatar, banner, website
-  Admin->>Draft: Load session form and IndexedDB draft first
-  alt Existing value or draft
-    Draft-->>Admin: Preserve existing user value
-  else Blank supported field
-    Admin->>Admin: Suggest profile-derived value
+  actor S as Steward
+  participant B as Admin browser
+  participant A as Integration API
+  participant C as Certified OAuth / CGS
+  participant E as Green Goods chain
+  participant D as Private store
+  S->>B: Connect Certified
+  B->>A: Start OAuth with browser-bound request
+  A->>D: Persist expiring state and PKCE context
+  A-->>B: Authorization redirect
+  B->>C: Authenticate and consent
+  C->>A: Validated OAuth callback
+  A->>C: Resolve authenticated DID and permitted capabilities
+  A-->>B: Challenge bound to DID, GG account, chain, action, nonce, expiry
+  S->>B: Sign account-link challenge
+  B->>A: Submit signed proof
+  A->>E: Verify account proof including supported smart accounts
+  A->>D: Consume nonce and persist verified account link
+  A-->>B: Connected - publishing not enabled
+  S->>B: Select Garden and existing external project
+  B->>A: Request destination binding
+  A->>E: Check Garden management authority
+  A->>C: Check repository role and exact background capabilities
+  alt Both authorities and project mapping verified
+    A-->>B: Show publisher, project, fields, custody, and revocation terms
+    S->>B: Consent to destination and preview policy
+    B->>A: Confirm versioned policy
+    A->>D: Encrypt grant and save binding plus epochs
+    A-->>B: Ready for report previews
+  else Missing capability or authority
+    A-->>B: Connected, publishing blocked with a specific reason
   end
-  Admin->>User: Confirm editable garden form
-  User->>Admin: Select or retain EVM wallet session
-  opt External EOA link in milestone one
-    Admin->>User: Request explicit EIP-712 link proof
-    User-->>Admin: Signature for DID, address, chain, timestamp, nonce
-    Admin->>PDS: putRecord(app.certified.link.evm)
-  end
-  Admin->>Chain: Deploy garden through current admin wallet workflow
-  Chain-->>Admin: Confirmed deployment
 ```
 
-**[D]** The current Garden deployment is online-only and admin-wallet-specific. Certified SSO does not replace the required EVM session.
+The recommended OAuth boundary is a backend-for-frontend. Use maintained AT Protocol libraries
+only after dependency approval, with PKCE, state, DPoP and authenticated DID resolution. Use
+bounded sessions, secure cookies, origin/CSRF checks, nonce expiry and one-time use. Treat DID/PDS
+discovery as untrusted network input and enforce safe URL resolution. Never accept a DID supplied
+by the browser as proof of OAuth control. Retain personal refresh credentials only if the selected
+flow needs them; a group-scoped background grant can have a separate lifecycle.
 
-**[S]** Garden collection creation is milestone two, after the minimal Work mirror. When enabled, create an `org.hypercerts.collection` record with type `project` after the Garden address is known.
+The link proves two account controls to Green Goods. It does **not** claim to be an
+`app.certified.link.evm` record. The documented native EVM link supports EOA EIP-712 proof;
+ERC-1271/6492 support remains an upstream dependency. Passkey account linking needs the existing
+Green Goods smart-account verifier to pass replay and counterfactual-account tests (D2).
 
-## 7. Flow B sequence: EAS Work to signed PDS mirror
+## 7. Sequence: approval to external publication
 
 ```mermaid
 sequenceDiagram
-  actor User
-  participant PWA as Green Goods PWA
-  participant Queue as Shared IndexedDB job queue
-  participant IPFS as Existing IPFS path
-  participant EAS as EAS on Arbitrum One
-  participant Resolver as WorkResolver
-  participant Agent as Green Goods agent
-  participant KMS as Platform P-256 KMS key
-  participant PDS as User Certified PDS
+  actor S as Steward
+  participant G as Existing approval flow
+  participant E as EAS chain
+  participant R as Source reconciler
+  participant D as Integration store
+  participant W as Publication worker
+  participant C as CGS / PDS
+  participant M as Ma Earth
+  S->>G: Approve submitted work
+  G->>E: Existing transaction path
+  E-->>G: Confirmed approval receipt
+  Note over G,R: Browser hint is optional, reconciler is authoritative
+  R->>E: Scan configured Gardens and verify canonical receipt
+  R->>R: Check schema, resolver, Work reference, order, and finality
+  R->>D: Atomic source + publication intent + cursor
+  D-->>S: Preview required
+  S->>D: Consent via authenticated API to exact public snapshot hash
+  W->>D: Lease intent and read saved policy/grant epochs
+  W->>E: Recheck source and current Garden grant authority
+  W->>C: Recheck current external capability
+  W->>D: Persist record keys and immutable send payloads
+  W->>C: Ensure activity record
+  C-->>W: Activity URI + CID
+  W->>D: Save activity receipt
+  W->>C: Write evidence attachment and attributed evaluation
+  C-->>W: Record URIs + CIDs
+  W->>D: Save each independent stage receipt
+  W->>C: Read project, append activity with conditional update
+  C-->>W: Updated project URI + CID
+  W->>C: Read back exact records and compare content
+  W->>D: Published to Certified, visibility pending
+  M->>C: Discover records through supported indexing path
+  M-->>W: Visibility evidence if supported
+  W->>D: Visible in Ma Earth, or pending with reason
+```
 
-  User->>PWA: Submit Work
-  PWA->>Queue: Store unsigned Work input and media
-  alt Offline
-    Queue-->>PWA: Keep pending until page is online
-  else Online flush
-    Queue->>IPFS: Upload approved metadata and media
-    Queue->>EAS: attest(Work schema, recipient Garden)
-    EAS->>Resolver: onAttest validation
-    Resolver-->>EAS: Accept or revert
-    EAS-->>Queue: Confirmed receipt with EAS UID
-    Queue->>Queue: Atomically map UID and enqueue certified_mirror
+The preview interaction is drawn against the store to keep this sequence compact; all browser
+access goes through the authenticated API. There is no browser-to-database access.
+
+Scan only configured Garden sources, with bounded RPC ranges and a persisted overlap window.
+Verify configured EAS/schema/resolver, successful canonical receipt, Work/Garden consistency, and
+chain-specific finality. Use `(blockNumber, transactionIndex, logIndex)` for deterministic ordering;
+the optional commitment `decisionSequence` is extra evidence, not a universal requirement.
+Select an activation block during onboarding. Historical backfill is an explicit previewed action.
+
+Approval decisions remain attributable to their reviewers. Current Work reads select the latest
+`createdAt` bucket and treat conflicting decisions in that bucket as unknown. The proposed scanner
+uses chain coordinates for reproducible ingestion, not to override that business rule. Preserve
+each reviewer's source attribution and resolve effective Work status through the accepted domain
+policy (D6); do not invent per-reviewer voting or silently resolve an unknown state. Before
+dispatch, re-read effective source state. If a newer decision makes a queued positive report stale,
+cancel it and require a new projection. Treat finality violations as source invalidation and
+compensation work, never as successful retries of stale data.
+
+## 8. Certified schema crosswalk
+
+These shapes were checked against the `hypercerts-lexicon` **v1.5.1** tag on 2026-10-15.
+They are a candidate baseline, not an approved dependency installation. Some reference pages
+still identify v1.4.1; deployed service compatibility must pass D1.
+
+| Green Goods meaning | Proposed external shape | Rules |
+|---|---|---|
+| Existing Garden project | `org.hypercerts.collection`, `type: project` | Select an existing URI; preserve all unrelated fields/items; items use `itemIdentifier: {uri, cid}` |
+| Work snapshot | `org.hypercerts.claim.activity` | Required title, shortDescription, createdAt; preserve work dates separately; include only consented contributors and location |
+| Evidence snapshot | `org.hypercerts.context.attachment` | Required title/createdAt; set subjects to activity/evaluation strong references; content is an array of typed URI/blob values |
+| Steward decision | `org.hypercerts.context.evaluation` | Required evaluators/summary/createdAt; always set subject to activity URI **and CID**; state Green Goods review method and relationship |
+| EAS provenance | Approved evidence/report content | Include chain/EAS/schema/source UIDs and decision provenance in an allowlisted report; do not invent extra protocol fields |
+| Reviewer attribution | Verified account-to-DID binding | Name only verified, consenting evaluators; publishing under a group does not prove the named person signed the external record |
+
+Do not map confidence `0–3` to an ecological outcome score. Preserve confidence, verification
+method, and decision as evidence with their Green Goods meaning. Do not invent measurements,
+rights, funding receipts, or carbon credits. Group publication of a reviewer-attributed evaluation
+requires D5; if Ma Earth requires a personal-repository evaluation or additional signature, that
+is a separately approved topology change, not an invisible fallback.
+
+Record keys differ: v1.5.1 activity permits `any`; collection, evaluation and attachment use `tid`.
+Allocate a schema-valid key once and persist it before sending. Do not put a hex source hash into
+a TID-only key. Keep `createdAt` and payload bytes stable across retries. `REMOTE_RECORD` maps the
+logical source key to the allocated external key; it is the idempotency authority.
+
+An activity update changes its CID. Preserve each evaluation's reference to the version reviewed;
+do not silently retarget old evaluations. The project collection can reference the current activity
+version after a conditional merge. Its v1.5.1 item limit is 1,000: capacity must block with an
+actionable reason; automatic nested-project sharding is out of scope.
+
+## 9. Sequence: uncertain delivery, concurrent edits, and disconnect
+
+```mermaid
+sequenceDiagram
+  actor S as Steward
+  participant A as Integration API
+  participant D as Durable store
+  participant W as Worker
+  participant P as CGS / PDS
+  W->>D: Save key K and payload hash H before request
+  W->>P: Write K with payload H
+  P--xW: Response lost after possible commit
+  W->>D: Mark uncertain, do not allocate another key
+  W->>P: Read exact repository / collection / K
+  alt Content matches H
+    W->>D: Record recovered URI/CID, continue remaining stages
+  else Record exists with different content
+    W->>D: Block conflict for review
+  else Confirmed absent and grant still valid
+    W->>P: Retry same K and H
   end
-  Queue->>PWA: Restore Certified OAuth session
-  alt OAuth expired or revoked
-    PWA->>Queue: Set blocked_auth without retry consumption
-    PWA-->>User: Reauthorization required
-  else Authorized
-    Queue->>Agent: EAS UID, chain ID, target repository DID, record plan
-    Agent->>EAS: Verify source attestation and public fields
-    Agent->>Agent: Build deterministic activity without signatures
-    Agent->>KMS: Sign repository-bound record CID
-    KMS-->>Agent: DER ECDSA signature
-    Agent-->>Queue: Canonical record plus raw low-S signature
-    Queue->>Queue: Recompute and verify signature
-    Queue->>PDS: putRecord(activity, deterministic rkey)
-    PDS-->>Queue: Activity AT URI and CID
-    Queue->>Agent: Build and sign EAS source attachment with activity strongRef
-    Agent-->>Queue: Signed attachment
-    Queue->>PDS: putRecord(attachment, deterministic rkey)
-    PDS-->>Queue: Attachment AT URI and CID
-    Queue->>Queue: Persist complete reconciliation checkpoint
+  W->>P: Read project collection and CID C1
+  W->>P: Conditional update using C1
+  alt Another writer changed collection
+    P-->>W: Conflict
+    W->>P: Re-read and merge preserving unrelated items
+  else Update accepted
+    P-->>W: New project CID
   end
+  S->>A: Disconnect publishing grant
+  A->>D: Increment grant epoch, cancel unsent intents
+  A->>P: Revoke provider grant where supported
+  A->>D: Purge secret material, retain minimal delivery audit
+  Note over W,P: In-flight requests may already have committed
+  W->>P: Reconcile any uncertain public records
+  W->>D: Record actual outcome, no further writes with revoked grant
 ```
 
-**[I]** The platform signing endpoint must derive or verify all signed fields from the confirmed EAS source and approved mapping rules. It must not sign an arbitrary record body or caller-supplied CID.
+An absent read is sufficient for retry only after the provider's read-after-write/consistency
+contract is verified (D3). A local lock cannot prevent other clients overwriting a project.
+Without supported remote compare-and-swap, automatic collection mutation stays blocked.
+Disconnect cannot promise removal from a public replicated network. A separate authorized
+correction/withdrawal workflow is required for records already published.
 
-## 8. EAS-to-lexicon schema crosswalk
+## 10. State machines
 
-### 8.1 Crosswalk table
+Account-link state is independent of destination readiness. Reauthentication does not automatically
+restore a revoked Garden grant or accept a changed publishing policy.
 
-| Green Goods source            | Lexicon record and fields                                                                                                                                                       | Relationship and cross-reference                                                                                                  | Validation or loss                                                                                                                                             | Claim |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
-| Garden                        | `org.hypercerts.collection`: `type = project`, `title = name`, `shortDescription` or `description`, `banner`, `createdAt`, optional `location` strongRef                        | Deterministic collection rkey from chain ID plus Garden address. Add Work activities as weighted or unweighted `items` strongRefs | `collection` supports multiple project records and recursive nesting. It has no GardenAccount, Hats, or role fields                                            | [I]   |
-| Organization-owned Garden DID | `app.certified.actor.profile/self` plus optional `app.certified.actor.organization/self`                                                                                        | Only when the housing DID is itself the organization                                                                              | The singleton organization record is not the default representation for multiple gardens in a person's repo                                                    | [D]   |
-| GardenAccount and Hats        | Evidence attachment with explorer or canonical contract URI                                                                                                                     | Attachment subjects the Garden collection                                                                                         | No dedicated v1.1.0 fields. Do not invent them                                                                                                                 | [I]   |
-| Work                          | `org.hypercerts.claim.activity`: `title`, `shortDescription` from public feedback, `createdAt` from chain time, optional contributors, dates, work scope, locations, signatures | Collection item strongRef from Garden to Work when collection support is enabled                                                  | `activity` has no direct EAS UID or attachment field                                                                                                           | [D]   |
-| Work media CID                | `org.hypercerts.context.attachment`: `subjects = [activity strongRef]`, `contentType = evidence`, `content = ipfs://<cid>`, title, createdAt                                    | Attachment points to activity                                                                                                     | Copy only media approved for public PDS visibility                                                                                                             | [I]   |
-| Work metadata CID             | `attachment` with `contentType = methodology` or `evidence`, `content = ipfs://<cid>`                                                                                           | Attachment points to activity                                                                                                     | Use `methodology` only when the content actually describes method. Otherwise use `evidence`                                                                    | [I]   |
-| Work numeric detail           | `org.hypercerts.context.measurement`: `subjects`, `metric`, `unit`, numeric-string `value`, time, optional evidence URIs and measurer DIDs                                      | Measurement points to activity; evaluation can later reference it                                                                 | Mirror only typed numeric values with an explicit unit. Current arbitrary details are not automatically valid measurements                                     | [I]   |
-| Work EAS source               | `attachment`: subject activity, `contentType = evidence`, `content` contains a stable HTTPS EAS viewer URI, title contains schema identity, createdAt from chain                | Deterministic rkey from `eip155:<chainId>:eas:<uid>`                                                                              | This carries chain ID and UID without inventing lexicon fields                                                                                                 | [I]   |
-| WorkApproval                  | `org.hypercerts.context.evaluation`: `subject = activity strongRef`, `evaluators`, `summary`, `score { min: "0", max: "3", value: confidence }`, optional content attachment    | Evaluation references activity snapshot                                                                                           | `evaluators` require DIDs. Do not place an EVM address in a DID field. No exact approved boolean or verification-method field exists, so this mapping is lossy | [I]   |
-| WorkApproval review notes CID | Evaluation `content` URI or an attachment strongRef pattern supported by the app                                                                                                | Bind to evaluation or activity as the chosen subject                                                                              | Verification method may be explained in summary or review evidence but must not be invented as a schema property                                               | [I]   |
-| Assessment                    | `org.hypercerts.context.evaluation`: subject Garden collection, evaluator DIDs, summary, config or report URI, measurement strongRefs, score only when a real scale exists      | Evaluation points to the Garden project snapshot                                                                                  | Existing assessment domain and reporting period belong in the report content or scoped collection, not unrecognized fields                                     | [I]   |
-| Reporting-period scope        | Nested `org.hypercerts.collection` containing activity strongRefs for the domain and period                                                                                     | Garden collection can include the period collection                                                                               | Add only when the grouping has product meaning beyond one assessment                                                                                           | [S]   |
-| Domain or action taxonomy     | `org.hypercerts.workscope.tag`, later referenced through `org.hypercerts.workscope.cel`; milestone one uses activity free-string work scope                                     | Prefer canonical known values when they fit                                                                                       | `knownValues` is open, so custom values are wire-valid but lose canonical bucketing. `enum` would be closed                                                    | [D]   |
-| Contributor acceptance        | `org.hypercerts.context.acknowledgement` in the acknowledging actor's repo                                                                                                      | Subject and optional context use strongRefs                                                                                       | This is for a record relationship acknowledgement. It is not an EAS backlink and not a substitute for WorkApproval                                             | [D]   |
-| Funding                       | `org.hypercerts.funding.receipt`                                                                                                                                                | None in current Work flows                                                                                                        | No source field in Work, WorkApproval, or Assessment supports a faithful mapping. Out of scope                                                                 | [I]   |
-
-### 8.2 Garden mapping decision
-
-**[D]** `org.hypercerts.collection` is keyed by TID, can represent many projects in one repository, and can recursively contain activities or collections. `app.certified.actor.organization` is a singleton actor extension and does not carry the actor display name.
-
-**[I]** Garden maps to `collection`, type `project`. If a separate Certified DID is created for a legal or operational Garden organization, that repository may also use actor profile plus organization singleton records, with its Garden collection as a project. That is not the person-owned default.
-
-### 8.3 Work scope
-
-**[I]** Milestone one uses the activity free-string work-scope variant derived from the validated Garden domain and action label. This avoids creating a premature tag vocabulary. Later, stable Green Goods domain and action identifiers become tag records, and CEL composes them when set logic is needed.
-
-**[D]** The current queued Work encoder does not consistently pass domain and action-slug options into its metadata builder. Implementation must not assume those fields are present for historical Work attestations. The agent must reconstruct them from verified ActionRegistry and Garden state when possible, or use a conservative label.
-
-### 8.4 Cross-reference in both directions
-
-**[I]** PDS to chain in milestone one:
-
-- use a dedicated EAS source attachment
-- set `content` to the stable chain-specific EAS viewer URI containing the UID
-- keep chain ID, EAS UID, schema UID, and transaction hash in the local mirror-job source object
-- use deterministic rkeys derived from the chain ID and EAS UID
-
-**[D]** Current EAS attestations are immutable and use zero `refUID`. Their encoded metadata CID is fixed before the PDS record exists. The original Work attestation cannot be updated with the resulting AT URI or CID.
-
-**[S]** Chain to PDS in the durable state uses a new follow-up EAS schema, for example `CertifiedMirrorLink`, with `refUID = source Work UID` and encoded fields for source chain ID, AT URI, and record CID. It is emitted only after the PDS write succeeds. This requires contract, schema registration, resolver, deployment, shared encoder, and read-path work. It is milestone four, not milestone one.
-
-**[D]** Use `strongRef { uri, cid }` for every record relationship that must pin a specific version. A strongRef is a snapshot. If a referenced record is overwritten under the same rkey, the old strongRef continues to name the old CID and no longer resolves as the current record version.
-
-**[I]** Mirrored records are append-stable. Do not overwrite an activity merely to add later evidence. Write new attachments, measurements, or evaluations that point to the original activity strongRef. A material correction creates a new record and an explicit supersession policy, which requires upstream guidance before implementation.
-
-## 9. Smart-account EVM link proof options
-
-### 9.1 Current gap
-
-**[D]** `app.certified.link.evm` v1.1.0 has an open `proof` union but currently defines only `#eip712Proof`. Its fields bind DID, EVM address, chain ID, timestamp, and nonce to an EOA signature.
-
-**[D]** Green Goods passkey users transact through a Kernel v0.3.1 smart-account address controlled by a P-256 WebAuthn credential. The smart account has no secp256k1 EOA private key for the account address.
-
-### 9.2 Options
-
-| Option                                                      | Feasibility                                                                                 | Benefit                                                                     | Cost or loss                                                                                                                  | Recommendation                        | Claim                                                                                                                         |
-| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------ | --- |
-| A. ERC-1271 proof variant                                   | A deployed Kernel can validate a signature through `isValidSignature` over a defined digest | Cryptographically binds the Certified DID to the actual Green Goods account | Requires new lexicon union variant, exact digest and chain rules, deployed account, RPC verification, and upstream acceptance | Durable deployed-account path         | [I]                                                                                                                           |
-| B. ERC-6492 proof variant                                   | Wrapper can prove a counterfactual smart-account signature plus deployment data             | Supports links before Kernel deployment                                     | More complex verification, factory/init-code trust, size constraints, and upstream acceptance                                 | Durable counterfactual companion to A | [I]                                                                                                                           |
-| C. Link the underlying P-256 authenticator or a session key | The authenticator controls Kernel authorization but does not equal the Kernel address       | Avoids new smart-account proof at first glance                              | WebAuthn signs `authenticatorData                                                                                             |                                       | SHA256(clientDataJSON)`, not raw EIP-712 digests or record CID bytes. A session key is transient and binds the wrong identity | Reject for DID-to-account link | [D] |
-| D. No passkey link in milestone one                         | OAuth still identifies the user and platform signatures still prove Green Goods provenance  | Smallest truthful slice                                                     | No cryptographic DID-to-Kernel binding for the largest user segment                                                           | Milestone-one choice                  | [I]                                                                                                                           |
-
-### 9.3 Recommendation
-
-**[I]** Milestone one uses option D for passkey accounts and supports `#eip712Proof` for one external EOA. Embedded-wallet linking is added only after its typed-data behavior and actual signer address are proven in the target AppKit flow.
-
-**[S]** Durable state contributes option A and option B upstream as two explicit open-union variants. The proof message should retain DID, smart-account address, chain ID, timestamp, and nonce. Verification resolves the account bytecode and uses ERC-1271 for deployed accounts, or unwraps and validates ERC-6492 for counterfactual accounts. The exact signature envelope and replay rules must be standardized with Hypercerts before Green Goods writes records.
-
-**[I]** What milestone one loses for passkey users is precise: there is no cryptographic assertion that the Certified DID authorized the Kernel address. OAuth still proves control of the Certified session, EAS proves the Kernel or authorized actor submitted the onchain record, and the Green Goods platform signature proves the mirror's provenance. These are useful but not equivalent statements.
-
-## 10. Provenance signing design
-
-### 10.1 Key and identity
-
-**[S]** Use one long-lived P-256 key with JOSE algorithm ES256 and multicodec `0x1200`. Publish it through a stable verification method such as `did:web:greengoods.app#certified-records-2026-01`. The specific fragment is an operations decision, but it must be versioned and durable.
-
-**[S]** Generate the key once in a managed KMS or HSM as non-exportable signing material. The agent receives signing authority, not private-key bytes. Audit every signing call with source chain, EAS UID, target repository DID, record NSID, output CID, and key version. Do not log record bodies containing private data.
-
-**[D]** The upstream signing spec explicitly rejects per-record throwaway keys. The `key` field must remain a resolvable DID verification-method reference so independent verifiers can associate records with Green Goods.
-
-### 10.2 Trust statements
-
-**[D]** `app.certified.link.evm#eip712Proof` proves the wallet consent statement. `signatures` proves record provenance. They are orthogonal and may coexist on the same link record.
-
-**[I]** OAuth authorization is a third statement: the user delegated a repository write. It does not replace either cryptographic statement.
-
-### 10.3 Signing procedure
-
-**[D]** For each record:
-
-1. Validate the record against the pinned lexicon and string constraints.
-2. Remove the final `signatures` field.
-3. Inject temporary metadata:
-
-   ```ts
-   $sig: {
-     $type: "app.certified.signature.defs#inline",
-     repository: housingCertifiedDid
-   }
-   ```
-
-4. Canonically DAG-CBOR encode the record with the temporary `$sig` object.
-5. SHA-256 hash the encoded bytes and construct CIDv1 with DAG-CBOR codec `0x71`. The result is 36 bytes: CID version, codec, multihash identifier, length, and 32-byte digest.
-6. ECDSA-sign those CID bytes with the stable P-256 key. A KMS adapter may submit the raw CID bytes with its SHA-256 ECDSA algorithm, or submit `SHA256(cidBytes)` as a digest, but it must not hash twice.
-7. Convert KMS DER output to raw 64-byte `r || s` and normalize `s` to the low-S form required by BIP-0062.
-8. Attach `{ $type: "app.certified.signature.defs#inline", signature, key }` under `signatures`.
-9. Recompute the repository-bound CID and verify the signature locally before asking the PDS to write.
-
-**[D]** The temporary `$sig.repository` is the DID of the repository that will house the record, which is the user's Certified DID in this topology. The inline signature `key` is the Green Goods platform verification method. Those values must not be swapped.
-
-### 10.4 Signing endpoint
-
-**[S]** The agent endpoint accepts a narrow source descriptor, not a free-form record:
-
-```ts
-interface CertifiedRecordSignRequestV1 {
-  repositoryDid: string;
-  source: { chainId: number; easUid: `0x${string}` };
-  recordKind: "work_activity" | "work_source_attachment";
-  subject?: { uri: string; cid: string };
-}
+```mermaid
+stateDiagram-v2
+  [*] --> Unlinked
+  Unlinked --> Authorizing: Start Certified OAuth
+  Authorizing --> AwaitingProof: Authenticated DID resolved
+  Authorizing --> Unlinked: Cancel or expire
+  AwaitingProof --> Linked: Valid account-bound proof
+  AwaitingProof --> Unlinked: Invalid proof or expiry
+  Linked --> ReauthRequired: Session or identity proof no longer usable
+  ReauthRequired --> Linked: Fresh OAuth and required account proof
+  Linked --> Disconnected: Explicit disconnect and epoch increment
+  ReauthRequired --> Disconnected: Explicit disconnect
+  Disconnected --> Authorizing: Explicit reconnect
 ```
 
-**[S]** The agent fetches and verifies the EAS attestation, schema UID, resolver-accepted source, chain, and public mapping inputs. It deterministically builds the record, signs it, and returns the complete record plus expected CID. It rate-limits by repository DID and EAS UID, caps request size, validates origin and app integrity signals available to the deployment, and makes repeated identical requests return identical content.
+Publication has its own durable lifecycle. `Blocked` carries a reason such as consent, attribution,
+grant, schema, source, conflict, or project capacity. `Published` means all required record stages
+were read back; Ma Earth visibility remains an independent status.
 
-**[I]** An attacker who can call the endpoint still cannot write another person's PDS without that person's OAuth authorization, and the repository-bound CID prevents replay into a different DID. Source verification is still mandatory to prevent Green Goods from signing fabricated impact records for an attacker's own repo.
-
-## 11. Write ordering, idempotency, and reconciliation
-
-### 11.1 Ordering
-
-**[I]** Required order:
-
-1. persist Work draft
-2. upload existing IPFS inputs
-3. submit and confirm EAS Work
-4. extract and persist EAS UID
-5. atomically enqueue mirror job before retiring Work job
-6. restore or reauthorize Certified OAuth session
-7. create, sign, verify, and put activity
-8. persist activity strongRef checkpoint
-9. create, sign, verify, and put EAS source attachment
-10. persist complete mapping
-11. add optional evidence attachments and measurements in later milestones
-12. emit a separate onchain mirror-link attestation only in the durable milestone
-
-### 11.2 Deterministic keys
-
-**[S]** Derive each ATProto rkey as a lowercase base32 encoding of `SHA-256("gg-certified-v1" || chainId || easUid || recordRole)`, prefixed with a short alphabetic role marker. Validate the final value against AT Protocol record-key grammar before implementation. Do not place raw secrets or user identifiers in the rkey.
-
-**[I]** This makes retry lookup deterministic without assuming the PDS supports a secondary unique index. A `putRecord` retry with the same canonical content is idempotent. Timestamps must come from the chain source or original job, not from the retry clock, or the CID changes.
-
-### 11.3 Partial failures
-
-| Failure                                         | State                                                      | Recovery                                                                                  | Claim |
-| ----------------------------------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ----- |
-| EAS submission fails                            | Work job remains pending or failed under existing rules    | Retry the EAS path. No mirror job exists                                                  | [I]   |
-| EAS confirmed, mirror job insertion interrupted | Work job retains tx hash until atomic transition completes | Recovery reads receipt, extracts UID, and recreates deterministic mirror job              | [S]   |
-| OAuth expired                                   | `blocked_auth`                                             | User reauthorizes, processor resumes from checkpoint                                      | [S]   |
-| Certified rejects requested scope               | `blocked_provider_capability`                              | Product informs user and waits for provider support or approved export path               | [S]   |
-| Agent signing temporarily fails                 | retryable mirror error                                     | Exponential retry with same source descriptor                                             | [S]   |
-| Activity succeeds, attachment fails             | checkpoint `activity_written`                              | Resume from saved activity strongRef, do not overwrite activity                           | [S]   |
-| Same rkey contains a different CID              | conflict requiring reconciliation                          | Fetch current record, compare source identity, stop automatic overwrite, surface conflict | [S]   |
-| Referenced record later changes                 | old strongRef remains a snapshot                           | New dependent records reference the new CID only after explicit product action            | [D]   |
-
-### 11.4 Reconciliation
-
-**[S]** A page-level reconciliation pass scans non-complete mirror jobs when the app becomes online and the Certified session is ready. It verifies current PDS records by deterministic rkey and expected CID before advancing a checkpoint. A later public agent routine may report public PDS-to-EAS mismatches, but it must not possess user OAuth tokens or write without delegated authority.
-
-## 12. Visibility and privacy
-
-**[D]** A PDS record may be publicly retrievable. The Green Goods Work payload can include feedback, media, metadata, location, and contributor information.
-
-**[I]** Mirroring requires an explicit visibility decision before the EAS transaction is sent, because onchain confirmation will otherwise create a queued public-write obligation the user did not review.
-
-**[S]** Milestone-one public allowlist:
-
-- Work title
-- user-approved public summary
-- chain timestamp
-- garden public identifier
-- EAS viewer URI, chain ID encoded in the URI, and schema identity
-- Green Goods platform signature
-
-**[S]** Milestone-one deny-by-default fields:
-
-- raw free-form feedback not explicitly approved for publication
-- media and metadata IPFS CIDs until their content visibility is reviewed
-- precise location
-- contact information
-- wallet address unless the user separately creates `app.certified.link.evm`
-- session, replay, analytics, or reporter identifiers
-
-**[I]** Location records should be coarse and user selected. Decimal, GeoJSON, H3, and WKT support in the lexicon is a capability, not permission to publish precision.
-
-## 13. Phased implementation plan
-
-No implementation begins until the external and internal gates in section 14 are closed.
-
-### Milestone 0: interoperability and security gates
-
-**[S] Scope:** no production feature code.
-
-**[S] Acceptance criteria:**
-
-- a real Certified test account authorizes the Green Goods client
-- client metadata and redirect URIs are accepted by `certified.one`
-- exact granular create/update scopes are demonstrated with create, read-back, update, and delete cleanup in a test repository
-- v1.1.0 consumption path is approved and pinned
-- a Green Goods P-256 verification method resolves publicly
-- KMS produces a low-S signature that verifies against the upstream attestation test vector
-- privacy owner approves the milestone-one field allowlist
-
-**[S] Expected documents and configuration only:** Certified client registration, infrastructure key record, threat model, and test evidence. Do not modify application auth until these gates pass.
-
-### Milestone 1: smallest end-to-end Work mirror
-
-**[S] Scope:** Certified login in the client, public profile read, one external EOA link, one Work activity plus one EAS source attachment, platform signature, and resumable queue processing. Garden profile prefill is not required for this thin slice.
-
-**[S] Acceptance criteria:**
-
-1. A user signs into a real Certified account and the client restores the session after reload.
-2. The user links one external EOA through a valid `app.certified.link.evm#eip712Proof` record and reads it back from the same repository.
-3. A new Work EAS attestation confirms and its UID is parsed from the receipt.
-4. The existing queue atomically creates one mirror job without storing OAuth tokens.
-5. The agent independently verifies the EAS source and returns a valid Green Goods P-256 inline signature.
-6. The client recomputes the repository-bound CID, verifies the signature, and writes an activity.
-7. The client writes one EAS source attachment whose `subjects` contains the activity strongRef and whose content resolves to the chain-specific EAS record.
-8. Repeating the processor creates no duplicate records and returns the same final mapping.
-9. Offline submission waits, revoked OAuth becomes `blocked_auth`, and reauthorization resumes without resubmitting EAS.
-10. Passkey users can mirror through OAuth but see an honest `EVM link unavailable for this account type` state. They do not receive a fabricated link.
-
-**[S] Existing files to modify:**
-
-- `packages/shared/package.json`
-- `packages/shared/src/types/job-queue.ts`
-- `packages/shared/src/modules/job-queue/db.ts`
-- `packages/shared/src/modules/job-queue/index.ts`
-- `packages/shared/src/modules/job-queue/job-executors.ts`
-- `packages/shared/src/providers/JobQueue.tsx`
-- `packages/shared/src/modules/app/service-worker.ts` only if a new notification event is required, never for token processing
-- `packages/shared/src/modules/transactions/types.ts` only if receipt identity is added to `TxResult`; otherwise keep the public interface stable
-- `packages/shared/src/modules/work/work-submission.ts`
-- `packages/client/src/routes/AppShell.tsx`
-- `packages/client/src/views/Login/index.tsx`
-- the client Work success and account/profile surface selected during implementation
-- `packages/agent/package.json`
-- `packages/agent/src/api/server.ts` and the existing public-route registry used by server setup
-- `packages/shared/src/i18n/en.json`
-- `packages/shared/src/i18n/es.json`
-- `packages/shared/src/i18n/pt.json`
-
-**[S] New modules, no new package:**
-
-- `packages/shared/src/types/certified.ts`
-- `packages/shared/src/modules/certified/oauth-client.ts`
-- `packages/shared/src/modules/certified/profile.ts`
-- `packages/shared/src/modules/certified/evm-link.ts`
-- `packages/shared/src/modules/certified/records.ts`
-- `packages/shared/src/modules/certified/signature-verification.ts`
-- `packages/shared/src/providers/CertifiedSession.tsx`
-- `packages/shared/src/hooks/certified/useCertifiedSession.ts`
-- `packages/shared/src/hooks/certified/useCertifiedProfile.ts`
-- `packages/shared/src/hooks/certified/useCertifiedEvmLink.ts`
-- `packages/shared/src/utils/eas/receipt.ts`
-- `packages/agent/src/services/certified/eas-source.ts`
-- `packages/agent/src/services/certified/record-builder.ts`
-- `packages/agent/src/services/certified/platform-record-signer.ts`
-- `packages/agent/src/api/routes/certified-record-sign.ts`
-- `packages/shared/src/__tests__/modules/certified-oauth-client.test.ts`
-- `packages/shared/src/__tests__/modules/certified-records.test.ts`
-- `packages/shared/src/__tests__/modules/certified-signature-verification.test.ts`
-- `packages/shared/src/__tests__/providers/CertifiedSession.test.tsx`
-- `packages/shared/src/__tests__/utils/eas/receipt.test.ts`
-- modify `packages/shared/src/__tests__/providers/JobQueueProvider.test.tsx`
-- modify `packages/shared/src/__tests__/modules/work-submission.test.ts`
-- `packages/agent/src/__tests__/certified-record-sign.test.ts`
-- modify `packages/client/src/__tests__/views/Login.test.tsx`
-
-**[S] Dependency additions, versions to pin at implementation approval:**
-
-- shared: `@atproto/oauth-client-browser@0.4.8`
-- shared: `@atproto/api@0.20.28`
-- shared and agent: `@hypercerts-org/lexicon@1.1.0` only after npm publication, otherwise approved Git tag `hypercerts-org/hypercerts-lexicon#v1.1.0`
-- shared and agent: `@ipld/dag-cbor@10.0.1`
-- shared and agent: `@atproto/crypto@0.5.4` for verification utilities if WebCrypto plus the resolved multikey cannot satisfy the shared interface alone
-- agent: the selected KMS provider client, exact package and version set only after infrastructure ownership is decided
-
-**[D]** Root already depends on `multiformats` compatible with the upstream example. Implementation should reuse the existing dependency rather than add a second CID library.
-
-**[S] Milestone-one validation commands:**
-
-```bash
-bun run --filter @green-goods/shared test -- src/__tests__/modules/certified-records.test.ts src/__tests__/providers/CertifiedSession.test.tsx src/__tests__/providers/JobQueueProvider.test.tsx
-bun run --filter @green-goods/agent test -- src/__tests__/certified-record-sign.test.ts
-bun run --filter @green-goods/client test -- src/__tests__/views/Login.test.tsx
-bun run --filter @green-goods/shared typecheck
-bun run --filter @green-goods/agent typecheck
-VITE_CHAIN_ID=11155111 bun run --filter @green-goods/client build
-node scripts/dev/ci-local.js --quick
+```mermaid
+stateDiagram-v2
+  [*] --> Discovered
+  Discovered --> AwaitingConsent: Eligible confirmed source
+  Discovered --> Cancelled: Ineligible or superseded source
+  AwaitingConsent --> Ready: Exact preview or valid standing policy
+  AwaitingConsent --> Cancelled: Declined or source changed
+  Ready --> Sending: Lease and authority checks pass
+  Ready --> Blocked: Missing current authority or capability
+  Sending --> Uncertain: Timeout or worker interruption
+  Sending --> RetryWait: Known transient failure
+  Sending --> Blocked: Permanent or policy failure
+  Uncertain --> Sending: Reconcile absent write, same key and payload
+  Uncertain --> Published: All stages verified by readback
+  Uncertain --> Blocked: Different remote content or revoked authority
+  RetryWait --> Ready: Backoff elapsed within retry budget
+  RetryWait --> Blocked: Retry budget exhausted
+  Blocked --> Ready: Explicit repair and revalidation
+  Sending --> Published: All required stages verified
+  Ready --> Cancelled: Consent or grant revoked
+  Blocked --> Cancelled: Explicit cancellation
+  Published --> CorrectionRequired: Source invalidation or later contradictory decision
+  CorrectionRequired --> Published: Authorized correction read back
 ```
 
-**[I]** The external acceptance proof is a real Certified authorization, PDS write/read-back, offline pause, OAuth revocation, and resumed idempotent completion. Local mocks cannot close that gate.
+Per-record checkpoints are `planned → sending → verified`, with `uncertain` and `blocked` branches.
+Resume only incomplete stages. A lease expiring during `sending` enters reconciliation rather
+than issuing a fresh create. After disconnect, a readback may still verify an in-flight publication;
+record that fact without re-enabling the grant. Visibility states are `pending`, `visible`,
+`not_supported`, and `failed`; they never rewrite the Green Goods approval state.
 
-### Milestone 2: Flow A garden prefill and Garden collection
+Later evaluations do not inherently supersede earlier evaluations in the protocol. Correction
+behavior must be demonstrated with Ma Earth (D6): keep the new source decision, update the earlier
+published summary with an explicit correction where authorized, and preserve its old CID in the
+audit. Do not assume a new negative evaluation hides an old positive one. Until the display
+semantics are proven, contradictory decisions require operator review and broad automatic
+publishing remains disabled.
 
-**[S] Scope:** bring the same Certified session into admin, prefill blank garden fields after draft restore, and create a Garden collection after deployment.
+## 11. Activity diagram: publication eligibility
 
-**[S] Acceptance criteria:**
+This uses Mermaid flowchart notation for the activity and decision nodes.
 
-- existing session state and IndexedDB garden draft always win over profile suggestions
-- only the approved profile crosswalk fields are suggested
-- all fields remain editable and deployment still requires the current EVM wallet authorization
-- successful Garden deployment produces one signed `collection` type `project`
-- optional location creation requires a separate, user-approved location record and precision choice
-
-**[S] Files:**
-
-- `packages/admin/src/main.tsx`
-- `packages/admin/src/views/Garden/CreateGarden.tsx`
-- `packages/admin/src/components/Garden/CreateGardenSteps/DetailsStep.tsx`
-- `packages/shared/src/hooks/admin-ui/garden/useCreateGardenController.ts`
-- `packages/shared/src/stores/useCreateGardenStore.ts`
-- `packages/shared/src/hooks/garden/useCreateGardenWorkflow.ts`
-- extend `packages/shared/src/modules/certified/records.ts`
-- modify `packages/shared/src/__tests__/hooks/garden/createGardenOperation.test.ts`
-- modify `packages/shared/src/__tests__/stores/createGardenStore.test.ts`
-- `packages/admin/src/__tests__/components/Garden/DetailsStep.test.tsx`
-- modify `packages/admin/src/__tests__/workflows/createGarden.test.ts`
-- admin and shared Storybook stories, and `en`, `es`, `pt` catalogs
-
-**[S] Milestone-two validation commands:**
-
-```bash
-bun run --filter @green-goods/shared test -- src/__tests__/hooks/garden/createGardenOperation.test.ts src/__tests__/stores/createGardenStore.test.ts src/__tests__/modules/certified-records.test.ts
-bun run --filter @green-goods/admin test -- src/__tests__/components/Garden/DetailsStep.test.tsx src/__tests__/workflows/createGarden.test.ts
-VITE_CHAIN_ID=11155111 bun run --filter @green-goods/admin build
-bun run check:design-md
-bun run check:design-generated
-bun run check:design-tokens
-bun run lint:vocab
-bun run --filter @green-goods/shared check:stories
-bun run --filter @green-goods/shared check:story-quality
-node scripts/dev/ci-local.js --quick
+```mermaid
+flowchart TD
+  START([Confirmed approval discovered]) --> SOURCE{Canonical eligible source?}
+  SOURCE -->|No| STOP([Record reason, no external write])
+  SOURCE -->|Yes| DEST{Active Garden destination?}
+  DEST -->|No| STOP
+  DEST -->|Yes| AUTH{GG and provider authorities valid?}
+  AUTH -->|No| BLOCK[Block with repair action]
+  AUTH -->|Yes| MAP[Build allowlisted public snapshot]
+  MAP --> ATTR{Reviewer attribution and schema valid?}
+  ATTR -->|No| BLOCK
+  ATTR -->|Yes| CONSENT{Exact preview or standing policy covers it?}
+  CONSENT -->|No| PREVIEW[Await steward preview]
+  PREVIEW -->|Approved| RECHECK[Recheck source, payload hash, and epochs]
+  PREVIEW -->|Declined| STOP
+  CONSENT -->|Yes| RECHECK
+  RECHECK --> CURRENT{Still valid?}
+  CURRENT -->|No| BLOCK
+  CURRENT -->|Yes| SAVE[Persist intent, keys, and stage payloads]
+  SAVE --> SEND[Publish and reconcile each record stage]
+  SEND --> OK{All required records verified?}
+  OK -->|No| RECOVER[Retry, reconcile, or block by failure class]
+  OK -->|Yes| PUB[Published to Certified]
+  PUB --> VIS{Ma Earth visibility verified?}
+  VIS -->|Yes| DONE([Show Ma Earth link])
+  VIS -->|No| PENDING([Show Certified link and visibility pending])
 ```
 
-### Milestone 3: complete MRV crosswalk
+## 12. Class / interface diagram
 
-**[S] Scope:** public media attachments, typed measurements, WorkApproval evaluations, Assessment evaluations, Garden collection membership, and stable work-scope tags.
+These are proposed TypeScript contracts, not a mandate to introduce classes or an inheritance
+framework. Implement with the repository's existing functional patterns. Only the Certified
+adapter exists in the first delivery; add other adapters after their contracts are known.
 
-**[S] Acceptance criteria:**
+```mermaid
+classDiagram
+  class IntegrationService {
+    linkAccount(proof, oauthSession)
+    bindDestination(command)
+    previewPublication(sourceId)
+    consentToPublication(hash, policyVersion)
+    disconnectGrant(grantId)
+    getPublicationStatus(id)
+  }
+  class AuthorizationVerifier {
+    verifyAccountProof(challenge, signature)
+    verifyGardenAuthority(account, garden)
+    verifyEpochs(grant, policy)
+  }
+  class ApprovalSourceReader {
+    scan(cursor, gardenBindings)
+    verifyCanonicalSource(sourceKey)
+    resolveEffectiveDecision(workKey)
+  }
+  class PublicProjection {
+    project(source, policy, attribution)
+    validateLexicons(records, pinnedVersion)
+    hashSnapshot(snapshot)
+  }
+  class PublicationRepository {
+    commitSourcesIntentsAndCursor(batch)
+    acquireLease(publicationId)
+    reserveRecordKey(logicalKey)
+    checkpointRecord(receipt, leaseToken)
+    revokeGrantAndCancelPending(grantId)
+  }
+  class PublicationWorker {
+    runDuePublications()
+    reconcileUncertainRecord(record)
+  }
+  class CertifiedAdapter {
+    inspectCapabilities(grant)
+    readRecord(recordKey)
+    writeRecord(recordKey, payload)
+    mergeProjectItem(projectRef, item, expectedCid)
+    checkVisibility(receipts)
+  }
+  IntegrationService --> AuthorizationVerifier
+  IntegrationService --> PublicationRepository
+  IntegrationService --> PublicProjection
+  PublicationWorker --> ApprovalSourceReader
+  PublicationWorker --> AuthorizationVerifier
+  PublicationWorker --> PublicationRepository
+  PublicationWorker --> PublicProjection
+  PublicationWorker --> CertifiedAdapter
+```
 
-- only typed metric, unit, and numeric-string values create measurements
-- every evaluation has evaluator DIDs, never raw EVM addresses in DID fields
-- lossy WorkApproval fields are represented by an approved human-readable policy
-- strongRefs pin the intended record versions
-- collection update conflicts stop rather than overwrite unrelated content
-- public visibility is decided per attachment and location
+Public commands return structured states and repair actions, not raw provider exceptions. The
+adapter classifies errors into authentication/capability, schema/content, conflict, rate limit,
+transient, and uncertain outcomes. The repository owns leases and uniqueness; the worker owns
+ordering and recovery; the projection owns public fields and lexicon mapping. No provider token
+appears in Shared's public types, a browser queue payload, or a service-worker message.
 
-**[S] Files:** extend the certified shared modules and queue executors; modify WorkApproval and Assessment success paths in shared; modify the admin review and assessment surfaces that collect visibility consent. The exact component list should be finalized from the milestone-three UI design, not guessed in milestone one.
+## 13. Dependencies and decision gates
 
-**[S] Validation:** targeted shared and admin tests for each new mapping, schema validation fixtures for every record type, PDS integration tests for strongRef version behavior, then `node scripts/dev/ci-local.js --quick`. Run the full Ship Gate before a PR is represented as merge-ready.
+Owners below are roles to assign when execution starts, not commitments from external teams.
+No live third-party OAuth, background write, or Ma Earth display test has been completed here.
 
-### Milestone 4: durable smart-account and onchain backlinks
+| ID | Unresolved dependency / owner | Required evidence | Blocks |
+|---|---|---|---|
+| D1 | Certified schema and deployed API conformance / integration engineer + Certified | Exact approved package/tag and schema hashes; fixtures validate against deployed service; activity `any` vs other `tid` keys verified | Provider implementation and all writes |
+| D2 | Third-party OAuth and account proof / auth maintainer + Certified | Registered client/redirects, tested PKCE/DPoP/session lifecycle, wallet/passkey/embedded proof matrix, replay and account-switch rejection | Verified linking |
+| D3 | CGS background capabilities / Certified + backend maintainer | Existing group access, role/grant revocation, caller-supplied key behavior, read-after-write, conditional `putRecord`, scopes and imported-group behavior proven | Automatic publishing and safe retries |
+| D4 | Ma Earth project discovery and visibility / product lead + Ma Earth | Correct existing repository/project binding, accepted record types, indexing route, actual project display and attributable result URL | Claiming Ma Earth integration complete |
+| D5 | Evaluation authorship / product lead + Certified/Ma Earth | Acceptance of group-published Green Goods steward review; reviewer DID consent/proof and any required signature; clear affiliation label | Evaluation publication |
+| D6 | Corrections and multi-reviewer interpretation / domain maintainer + Ma Earth | Positive-to-negative, duplicate, reorg, and later-review fixtures with demonstrated downstream correction display | Automatic rollout beyond supervised pilot |
+| D7 | Runtime custody and operations / Agent maintainer | Durable DB on actual deployment, encrypted grant storage/rotation, backup/restore, worker singleton/leases, retention and deletion policy | Holding production grants and background writes |
+| D8 | Public evidence policy / product and Garden steward | Approved field/media allowlist, sensitive-location rules, reviewer consent, exact preview, disconnect language, reconsent rules | Any public report |
+| D9 | Existing group custody and recovery / Garden owner + Certified | Identify registered vs imported group, actual PDS controller, recovery process, grant owner and handoff expectations | Production destination activation |
 
-**[S] Scope:** upstream ERC-1271 and ERC-6492 proof variants, Kernel link support, and a follow-up EAS `CertifiedMirrorLink` schema.
+CGS documents different custody for registered and imported accounts. A newly registered group
+may leave the main PDS credentials and recovery key with CGS; a CGS owner role is not equivalent
+to PDS custody. Full account-control transfer is not currently promised by the integration guide.
+The MVP therefore selects an existing configured group/project. New group provisioning, migration,
+and recovery transfers require a separate scope decision.
 
-**[S] Acceptance criteria:**
+Recommended internal decisions for phase 0: use the existing Agent runtime; start with per-report
+preview; allow one active destination per Garden; use chain-specific finality and explicit backfill;
+block unverified reviewer attribution; retain minimal audit receipts after disconnect. Confirm these
+before runtime changes. Optional platform signatures and native EVM link records are outside the
+first release unless D4/D5 make them necessary.
 
-- Hypercerts accepts and tags proof schemas with replay, chain, deployment, and verification test vectors
-- deployed Kernel proof validates through ERC-1271
-- counterfactual Kernel proof validates through ERC-6492
-- a follow-up EAS attestation uses `refUID = source Work UID` and carries the AT URI plus CID
-- resolver and read paths reject mismatched source UID, chain, or record identity
+## 14. Delivery phases and acceptance
 
-**[S] Likely contract and shared files, subject to a separate contract spec:**
+| Phase | Deliverable | Exit evidence |
+|---|---|---|
+| 0 — Conformance and decisions | Resolve provider contract, authorship, custody, privacy, and runtime choices | D1–D9 evidence matrix with explicit pass/block results; test identities and projects agreed |
+| 1 — Link and configure | Verified account link, read-only project discovery, Garden destination, disconnect | Correct account/DID displayed; unauthorized Garden denied; no publication enabled by linking alone |
+| 2 — Preview and publish | Durable source discovery, public preview, explicit consent, Certified publication receipts | Direct, queued and batch approvals each produce one intended report; crash/retry tests do not duplicate records |
+| 3 — Supervised Ma Earth pilot | Real project visibility, attribution, correction and recovery exercises | Actual Ma Earth display verified; positive-to-negative correction, disconnect during send, and lost-response recovery demonstrated |
+| 4 — Standing automatic policy | Opt-in automation, monitoring, bounded retries, restore drills, staged rollout | D6–D8 satisfied; no silent loss or stale positive report; pause/revoke controls demonstrated |
+| 5 — Other platforms | Independently scoped mappings for Bloom, Silvi, and Regen | Each provider's identity, write API, semantics and consent contract verified before implementation |
 
-- `packages/contracts/src/Schemas.sol`
-- new `packages/contracts/src/resolvers/CertifiedMirrorLinkResolver.sol`
-- matching Foundry tests and the approved deploy/register wrapper
-- `packages/shared/src/utils/eas/encoders.ts`
-- `packages/shared/src/config/blockchain.ts`
-- `packages/shared/src/modules/data/eas.ts`
-- agent source verification and reconciliation modules
+Phase 1 may ship linking while publication remains visibly unavailable. Phase 2 may prove Certified
+publishing while Ma Earth discovery is still blocked, but that is not a completed Ma Earth pilot.
+There are no calendar estimates until the external conformance gates have owners and evidence.
 
-**[I]** This milestone is a contract and deployment change and therefore requires the contract skill, deployment-path review, and human approval. It must not be folded into the client-only first slice.
+Bloom reporting should project into its actual community/action/report structure. Silvi should
+receive protocol-valid site/tree/monitoring evidence, not a generic approval relabeled as a tree
+event. Regen anchoring, attestation and credit issuance are distinct operations: a Green Goods
+approval is not automatically a Regen verification or credit. These are later investigations;
+no production write API or shared identity delegation is assumed for any of them.
 
-**[S] Validation:** use the repository's Bun contract scripts for focused resolver tests, dry-run schema registration, shared encoder tests, `bun run check:indexing-boundary`, and the full Ship Gate. Never invoke raw `forge`.
+## 15. Verification and operational acceptance
 
-### Separate future: Pattern C
+Implementation must protect: nonce replay rejection; account-switch isolation; unauthorized Garden
+and repository denial; smart-account proof; stale grants; redaction of indirect media references;
+duplicate scanner ranges; batch source extraction; restart at each record stage; remote timeout
+after commit; concurrent collection edits; retry budget; source reorg; conflicting later review;
+disconnect during send; and public status surviving browser closure.
 
-**[S]** A Green Goods-issued `did:web` for users without Certified identities requires a separate specification covering issuer role, DID document hosting, rotation authorization, account recovery, compromised smart accounts, domain continuity, key escrow boundaries, privacy, and exit. It is out of scope for milestones 0 through 4.
+Run focused behavioral tests in the owning packages and the validation selector's critical
+overrides if existing auth/work/queue surfaces are touched. Prefer leaving those mutation paths
+unchanged. Capture authenticated browser proof for account linking and signing; other display
+surfaces accept the repository's labeled browser proof classes. Provider fixtures alone do not
+prove live conformance or Ma Earth visibility.
 
-## 14. Open questions and owners
+Operational signals: oldest eligible source lag, oldest ready publication age, blocked reasons,
+uncertain deliveries, repeated provider failures, expired grants, correction backlog, and Ma Earth
+visibility lag. Show source approval and publication state separately. Operators can pause a
+destination, inspect sanitized failure details, reconnect, or re-preview; they cannot override
+source validity or consent with a force-send button. Restore tests must prove retained keys and
+receipts prevent duplicate records after a worker/database restart.
 
-### Certified or Hypercerts Foundation
+## Sources and evidence boundary
 
-1. **[S]** Does production `certified.one` accept a third-party Green Goods OAuth client, including its redirect URIs and client metadata?
-2. **[S]** Which exact production scopes or permission sets allow reads of `app.certified.actor.profile` and create/update writes for each requested collection?
-3. **[S]** Does Certified require `transition:generic` today, and if so, what is the deprecation path to granular scopes?
-4. **[S]** Are third-party clients allowed to write `app.certified.link.evm`, or is that record reserved for Certified-owned surfaces?
-5. **[S]** Will v1.1.0 be published to npm, and what release artifact should consumers pin before then?
-6. **[S]** Will Hypercerts accept ERC-1271 and ERC-6492 variants in the open `proof` union? Who owns their verification test vectors?
-7. **[S]** What is the canonical correction or supersession pattern for an activity whose strongRef CID is already used by dependent records?
-8. **[S]** Is the EAS source best represented as an attachment URI under current schemas, or does the Foundation intend a typed onchain-proof reference in a future lexicon version?
-9. **[S]** Does Certified provide a user-mediated record import fallback when a third-party client has read but not write permission?
+- [Certified account and identity](https://docs.hypercerts.org/architecture/account-and-identity)
+  and [CGS service reference](https://docs.hypercerts.org/reference/services/certified-group-service).
+- [CGS integration guide](https://github.com/hypercerts-org/certified-group-service/blob/main/docs/integration-guide.md),
+  read 2026-10-15; inspected content blob `c3497060` prefix. This moving source requires recheck in phase 0.
+- Pinned candidate lexicons: [activity](https://github.com/hypercerts-org/hypercerts-lexicon/blob/v1.5.1/lexicons/org/hypercerts/claim/activity.json),
+  [collection](https://github.com/hypercerts-org/hypercerts-lexicon/blob/v1.5.1/lexicons/org/hypercerts/collection.json),
+  [evaluation](https://github.com/hypercerts-org/hypercerts-lexicon/blob/v1.5.1/lexicons/org/hypercerts/context/evaluation.json),
+  and [attachment](https://github.com/hypercerts-org/hypercerts-lexicon/blob/v1.5.1/lexicons/org/hypercerts/context/attachment.json).
+- [Evaluation semantics](https://docs.hypercerts.org/lexicons/hypercerts-lexicons/evaluation)
+  and [EVM-link reference](https://docs.hypercerts.org/lexicons/certified-lexicons/evm-link).
+- [Ma Earth](https://maearth.com/about), [Bloom vision](https://bloomnetwork.earth/vision),
+  [Silvi user guide](https://docs.silvi.earth/silvi-app-user-guide/getting-started),
+  and [Regen data module](https://docs.regen.network/modules/data/).
 
-### Internal Green Goods
-
-1. **[S]** Approve external EOA as the only milestone-one EVM link, with passkey and possibly embedded links deferred.
-2. **[S]** Decide whether Work mirroring is opt-in per submission, opt-in per Garden, or enabled by an explicit account-level publishing setting.
-3. **[S]** Approve the public field allowlist, media review rule, and location precision policy.
-4. **[S]** Select the managed P-256 KMS or HSM provider and the operational owner for key rotation and public DID verification-method continuity.
-5. **[S]** Decide whether the Green Goods platform verification DID is `did:web:greengoods.app` or another stable controlled DID.
-6. **[S]** Decide whether a Garden collection lives in the creator's repo, a Garden organization repo, or both when both identities exist.
-7. **[S]** Decide how to identify the evaluator DID for WorkApproval and Assessment. Without a DID mapping, those evaluations cannot be represented faithfully.
-8. **[S]** Decide whether Green Goods will later operate a backend-for-frontend for OAuth token custody or retain browser-only PDS writes.
-9. **[S]** Approve the new onchain `CertifiedMirrorLink` schema only after milestone-one reconciliation data proves the need and shape.
-10. **[S]** Decide whether Pattern C should ever be a Green Goods responsibility. It is not required for the Certified integration.
-
-## 15. Validation plan for implementation
-
-**[S]** Milestone-one targeted proof should include:
-
-- unit tests for OAuth state transitions and session deletion
-- test vectors for EIP-712 link proof construction and validation
-- upstream-compatible CID and signature vectors for P-256, raw `r || s`, and low-S normalization
-- queue migration, checkpoint, blocked-auth, and crash-recovery tests
-- EAS receipt parsing tests for wallet, passkey UserOp receipt, and embedded transaction hashes
-- contract-fork or deterministic receipt fixtures for source verification
-- PDS integration tests against a Certified test tenant with exact scopes
-- no-token-in-job and no-token-in-service-worker assertions
-- idempotency test that runs the mirror processor twice and observes one activity and one attachment
-- revocation test that reauthorizes without a second EAS attestation
-- privacy test that denied fields never enter the record sent to the agent or PDS
-
-**[I]** Because this is an auth, public-data, and cross-system write path, passing unit tests alone is not release proof. A real Certified authorization and PDS read-back are required.
-
-## 16. Evidence index
-
-### Green Goods repository
-
-- **[D]** Auth mode: `packages/shared/src/types/auth.ts:8-15`.
-- **[D]** Primary address: `packages/shared/src/hooks/auth/usePrimaryAddress.ts:31-58`.
-- **[D]** Client session storage: `packages/shared/src/modules/auth/session.ts:23-60`, `136-187`.
-- **[D]** Transaction sender boundary: `packages/shared/src/modules/transactions/types.ts:23-50`.
-- **[D]** Job shape and kinds: `packages/shared/src/types/job-queue.ts:21-95`.
-- **[D]** Queue database: `packages/shared/src/modules/job-queue/db.ts:15-50`.
-- **[D]** Work executor returns transaction hash: `packages/shared/src/modules/job-queue/job-executors.ts:12-84`.
-- **[D]** Zero EAS `refUID`: `packages/shared/src/utils/eas/transaction-builder.ts:31-49`, `138-210`.
-- **[D]** EAS GraphQL data layer: `packages/shared/src/modules/data/eas.ts:1-14`.
-- **[D]** Envio boundary: `packages/indexer/AGENTS.md:5-22`.
-- **[D]** Garden domain model: `packages/shared/src/types/domain.ts:128-180`.
-- **[D]** Garden form fields: `packages/shared/src/stores/useCreateGardenStore.ts:14-78`.
-- **[D]** Draft-first, online-only Garden controller: `packages/shared/src/hooks/admin-ui/garden/useCreateGardenController.ts:48-87`, `142-159`.
-- **[D]** Assessment UID wait: `packages/shared/src/hooks/assessment/useCreateAssessmentWorkflow.ts:276-299`.
-- **[D]** Existing onchain hypercert surface: `packages/shared/src/hooks/hypercerts/` and `packages/shared/src/modules/data/hypercerts-fetch.ts`.
-
-### Upstream
-
-- **[D]** [v1.1.0 schema reference](https://github.com/hypercerts-org/hypercerts-lexicon/blob/v1.1.0/SCHEMAS.md).
-- **[D]** [Lexicon style guide](https://github.com/hypercerts-org/hypercerts-lexicon/blob/v1.1.0/LEXICON_STYLE_GUIDE.md).
-- **[D]** [String constraints](https://github.com/hypercerts-org/hypercerts-lexicon/blob/v1.1.0/STRING_CONSTRAINTS.md).
-- **[D]** [Activity schema](https://github.com/hypercerts-org/hypercerts-lexicon/blob/v1.1.0/lexicons/org/hypercerts/claim/activity.json).
-- **[D]** [Collection schema](https://github.com/hypercerts-org/hypercerts-lexicon/blob/v1.1.0/lexicons/org/hypercerts/collection.json).
-- **[D]** [Attachment schema](https://github.com/hypercerts-org/hypercerts-lexicon/blob/v1.1.0/lexicons/org/hypercerts/context/attachment.json).
-- **[D]** [Measurement schema](https://github.com/hypercerts-org/hypercerts-lexicon/blob/v1.1.0/lexicons/org/hypercerts/context/measurement.json).
-- **[D]** [Evaluation schema](https://github.com/hypercerts-org/hypercerts-lexicon/blob/v1.1.0/lexicons/org/hypercerts/context/evaluation.json).
-- **[D]** [EVM link schema](https://github.com/hypercerts-org/hypercerts-lexicon/blob/v1.1.0/lexicons/app/certified/link/evm.json).
-- **[D]** [Signature definitions](https://github.com/hypercerts-org/hypercerts-lexicon/blob/v1.1.0/lexicons/app/certified/signature/defs.json).
-- **[D]** [Certified OAuth client at inspected revision](https://github.com/hypercerts-org/certified-app/blob/6788152c3c6318c3384633b9ccc26d512ed2469e/src/lib/auth/oauth-client.ts).
-- **[D]** [AT Protocol OAuth specification](https://atproto.com/specs/oauth).
-- **[D]** [AT Protocol OAuth scopes](https://atproto.com/specs/oauth#scopes).
-- **[D]** [Browser OAuth client 0.4.8](https://www.npmjs.com/package/@atproto/oauth-client-browser/v/0.4.8).
-- **[D]** [Node OAuth client 0.4.8](https://www.npmjs.com/package/@atproto/oauth-client-node/v/0.4.8).
-- **[D]** [AT Protocol attestation specification linked by the lexicon](https://tangled.org/strings/did:plc:cbkjy5n7bk3ax2wplmtjofq2/3m3fy2xuahc22).
+These sources establish concepts and candidate interfaces. They do not establish deployed
+interoperability, partner approval, or a live Green Goods integration.

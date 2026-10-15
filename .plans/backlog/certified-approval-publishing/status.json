@@ -1,0 +1,147 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "certified-approval-publishing",
+    "title": "Certified and Ma Earth Approval Publishing",
+    "kind": "feature",
+    "stage": "backlog"
+  },
+  "workflow": {
+    "overall_status": "backlog",
+    "priority": "p2",
+    "created_at": "2026-10-15T09:08:19.724Z",
+    "updated_at": "2026-10-15T09:21:29Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": null,
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": null,
+    "lanes": {}
+  },
+  "taxonomy": {
+    "initiative": "engineering-quality",
+    "tracks": [],
+    "work_types": ["research", "implementation"],
+    "surfaces": ["packages/shared", "packages/admin", "packages/agent", "docs"],
+    "depends_on_features": []
+  },
+  "notes": [
+    "Architecture and plan requested in PR #640; runtime implementation has not started.",
+    "Resolve D1-D9 gates in the public architecture before the affected implementation phase.",
+    "RESR-69 is related research and remains Backlog; no Linear sync performed.",
+    "Contracts and Envio EAS changes are outside the first release."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "blocked",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "Runtime work blocked pending phase 0 conformance and accepted scope; no behavior changed by planning."
+      },
+      "skill_tags": ["ui", "frontend-design", "react"],
+      "manual_blocked": true
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "blocked",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "Runtime work blocked pending phase 0 conformance and accepted scope; no behavior changed by planning."
+      },
+      "skill_tags": ["react", "tanstack-query", "data-layer"],
+      "manual_blocked": true
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No contract changes planned for account linking or approval publication."
+      },
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-10-15T09:08:19.741Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in backlog"
+    },
+    {
+      "timestamp": "2026-10-15T09:21:29Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "planned",
+      "branch": "codex/certified-approval-plan",
+      "note": "Document architecture and phased plan; runtime lanes blocked pending conformance."
+    }
+  ]
+}
