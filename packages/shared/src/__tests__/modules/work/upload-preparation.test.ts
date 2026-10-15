@@ -256,6 +256,30 @@ describe("preparing queued items in the background", () => {
     expect(ports.prepare).toHaveBeenCalledTimes(2);
   });
 
+  it("releases its claim and stops this document's retries after a module fails", async () => {
+    const { appCodeRecovery } = await import("../../../modules/app/cache-recovery");
+    const jobs = [queued("a"), queued("b")];
+    const before = structuredClone(jobs);
+    const { ports, held, advance } = harness(jobs, {
+      prepare: vi.fn(async (): Promise<PreparationResult> => {
+        appCodeRecovery.report(new Error("Failed to fetch dynamically imported module"));
+        return "retry-later";
+      }),
+    });
+    preparation = createUploadPreparation(ports);
+
+    await settled(preparation);
+    advance(1_000_000);
+    await settled(preparation);
+    preparation.prepareNow();
+    await settled(preparation);
+
+    expect(ports.prepare).toHaveBeenCalledOnce();
+    expect(held.size).toBe(0);
+    expect(uploadPreparationStore.getSnapshot().paused).toBe("app-code");
+    expect(jobs).toEqual(before);
+  });
+
   it("checks a blocked item again once a session, and leaves ready items alone", async () => {
     const blocked = queued("blocked", {
       preparation: { status: "blocked", reason: "NotGardenMember", checkedAt: "earlier" },

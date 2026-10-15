@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { expect, userEvent, within } from "storybook/test";
 import { ToastViewport } from "./ToastViewport";
 import { toastService } from "./toast.service";
+import { createUpdateToasts } from "./presets/update";
 
 const meta: Meta<typeof ToastViewport> = {
   title: "Shared/Feedback/ToastViewport",
@@ -121,6 +122,18 @@ export const TitleMessageAndAction: Story = {
     body.append(probe);
     await expect(getComputedStyle(action).color).toBe(getComputedStyle(probe).color);
     probe.remove();
+  },
+};
+
+/** Saved upload recovery uses the same persistent toast and explicit action as app updates. */
+export const QueuedUploadRecovery: Story = {
+  render: () => <ToastViewport position="bottom-center" />,
+  play: async ({ canvasElement }) => {
+    const toasts = createUpdateToasts(({ id, defaultMessage }) => defaultMessage ?? id);
+    toasts.codeUnavailable(() => {});
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByText("Restart to continue uploading")).toBeVisible();
+    await expect(await canvas.findByRole("button", { name: /^Update$/ })).toBeVisible();
   },
 };
 

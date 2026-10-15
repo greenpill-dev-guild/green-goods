@@ -11,6 +11,15 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type PropsWithChildren } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+const codeRecovery = vi.hoisted(() => ({ required: false }));
+vi.mock("../../../modules/app/cache-recovery", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../../modules/app/cache-recovery")>();
+  vi.spyOn(actual.appCodeRecovery, "getSnapshot").mockImplementation(() =>
+    Number(codeRecovery.required)
+  );
+  return actual;
+});
+
 // Mock logger and posthog
 vi.mock("../../../modules/app/logger", () => ({
   logger: {
@@ -166,6 +175,7 @@ function renderUpdateHook() {
 describe("hooks/app/useServiceWorkerUpdate", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    codeRecovery.required = false;
     Reflect.deleteProperty(navigator, "serviceWorker");
     installSynchronousMessageChannel();
   });
@@ -221,6 +231,45 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
   });
 
   describe("applyUpdate with no waiting worker", () => {
+    it("does not restart when recovery is dismissed during the update check", async () => {
+      codeRecovery.required = true;
+      vi.stubEnv("VITE_ENABLE_SW_DEV", "true");
+      let finishCheck!: () => void;
+      const checking = new Promise<void>((resolve) => {
+        finishCheck = resolve;
+      });
+      const registration = createMockRegistration({
+        update: vi.fn().mockResolvedValueOnce(undefined).mockReturnValueOnce(checking),
+      });
+      installServiceWorkerMock(registration);
+      const originalLocation = window.location;
+      const reload = vi.fn();
+      Object.defineProperty(window, "location", {
+        configurable: true,
+        value: { href: "https://www.greengoods.app/home", reload },
+      });
+      const { result, unmount } = renderUpdateHook();
+      try {
+        await waitFor(() => expect(result.current.phase).toBe("idle"));
+        await waitFor(() => expect(registration.update).toHaveBeenCalledOnce());
+        act(() => result.current.activateNow());
+        await waitFor(() => expect(registration.update).toHaveBeenCalledTimes(2));
+        act(() => result.current.dismissUpdate());
+        const target = createMockWorker({ state: "installed" });
+        Object.defineProperty(registration, "waiting", { configurable: true, value: target });
+        await act(async () => {
+          finishCheck();
+          await checking;
+        });
+        expect(target.postMessage).not.toHaveBeenCalled();
+        expect(reload).not.toHaveBeenCalled();
+      } finally {
+        finishCheck();
+        unmount();
+        Object.defineProperty(window, "location", { configurable: true, value: originalLocation });
+      }
+    });
+
     it("does nothing when no waiting worker", () => {
       const { result } = renderUpdateHook();
 
@@ -231,6 +280,49 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
       expect(result.current.isUpdating).toBe(false);
       expect(result.current.updateStalled).toBe(false);
       expect(result.current.phase).toBe("idle");
+    });
+
+    it.each([
+      { required: true, online: true, blocked: false, restarts: 1 },
+      { required: true, online: true, blocked: true, restarts: 0 },
+      { required: true, online: false, blocked: false, restarts: 0 },
+      { required: false, online: true, blocked: false, restarts: 0 },
+    ])("only restarts missing code on a safe connected page: %o", async ({
+      required,
+      online,
+      blocked,
+      restarts,
+    }) => {
+      codeRecovery.required = required;
+      const originalLocation = window.location;
+      const reload = vi.fn();
+      Object.defineProperty(window, "location", {
+        configurable: true,
+        value: { href: "https://www.greengoods.app/home", reload },
+      });
+      const connection = vi.spyOn(navigator, "onLine", "get").mockReturnValue(online);
+      const { result, unmount } = renderHook(() => useServiceWorkerUpdate(), {
+        wrapper: ({ children }) =>
+          createElement(ServiceWorkerUpdateProvider, {
+            isActivationBlocked: () => blocked,
+            children,
+          }),
+      });
+      try {
+        await act(async () => {
+          result.current.activateNow();
+          await Promise.resolve();
+        });
+        await act(async () => {
+          result.current.activateNow();
+          await Promise.resolve();
+        });
+        expect(reload).toHaveBeenCalledTimes(restarts);
+      } finally {
+        unmount();
+        connection.mockRestore();
+        Object.defineProperty(window, "location", { configurable: true, value: originalLocation });
+      }
     });
   });
 
