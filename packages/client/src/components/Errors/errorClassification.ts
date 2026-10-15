@@ -1,14 +1,8 @@
+import { isAppCodeLoadError } from "@green-goods/shared/modules/app/cache-recovery";
+
 export type ErrorCategory = "chunk" | "loop" | "network" | "offline" | "unknown";
 
 const CHUNK_RELOAD_SESSION_KEY = "gg-chunk-reload";
-
-const CHUNK_ERROR_PATTERNS = [
-  /chunkloaderror/i,
-  /loading chunk\s+\S+\s+failed/i,
-  /failed to fetch dynamically imported module/i,
-  /importing a module script failed/i,
-  /unable to preload css/i,
-];
 
 const LOOP_ERROR_PATTERNS = [
   /maximum update depth exceeded/i,
@@ -28,7 +22,7 @@ const NETWORK_ERROR_MESSAGES = [
 const OFFLINE_ERROR_MESSAGES = ["offline", "job_queue", "sync", "indexeddb"];
 
 export function isChunkLoadErrorMessage(rawMessage: string): boolean {
-  return CHUNK_ERROR_PATTERNS.some((pattern) => pattern.test(rawMessage));
+  return isAppCodeLoadError(rawMessage);
 }
 
 function getSessionStorage(): Storage | undefined {

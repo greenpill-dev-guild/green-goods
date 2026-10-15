@@ -4,6 +4,7 @@ import { useIntl } from "react-intl";
 import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { logger } from "../../modules/app/logger";
+import { appCodeRecovery } from "../../modules/app/cache-recovery";
 import { jobQueueDB } from "../../modules/job-queue/db";
 import { jobQueue } from "../../modules/job-queue/default-instance";
 import { uploadOutcomeToast } from "../../modules/work/upload-outcome-toast";
@@ -135,6 +136,7 @@ export function useWorkUploads(): WorkUploads {
       );
     },
     onSuccess: (outcome) => {
+      if (outcome?.status === "failed" && appCodeRecovery.report(outcome.error)) return;
       const toast = outcome && uploadOutcomeToast(outcome);
       if (!toast) return;
       if (outcome.status === "failed")
@@ -149,6 +151,7 @@ export function useWorkUploads(): WorkUploads {
     },
     onError: (error) => {
       logger.error("[useWorkUploads] Upload all stopped", { error });
+      if (appCodeRecovery.report(error)) return;
       toastService.error({
         id: "work-uploads",
         title: formatMessage({ id: "app.uploads.failedTitle" }),
