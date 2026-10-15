@@ -3,6 +3,11 @@ import { type FormatMessageFn, toastMessageIdsUpdate } from "./types";
 
 /** Default (English) fallback messages for app update toasts */
 const updateDefaults = {
+  codeUnavailable: {
+    title: "Restart to continue uploading",
+    message: "Your saved work is kept on this device. Update or restart the app, then try again.",
+    action: "Update",
+  },
   checking: {
     title: "Checking for update",
     message: "Looking for a newer version.",
@@ -50,6 +55,32 @@ const updateDefaults = {
  */
 export function createUpdateToasts(formatMessage: FormatMessageFn) {
   const localizedToasts = {
+    codeUnavailable: (onUpdate: () => void, onDismiss?: () => void) =>
+      toastService.info({
+        id: "app-update",
+        title: formatMessage({
+          id: toastMessageIdsUpdate.codeUnavailable.title,
+          defaultMessage: updateDefaults.codeUnavailable.title,
+        }),
+        message: formatMessage({
+          id: toastMessageIdsUpdate.codeUnavailable.message,
+          defaultMessage: updateDefaults.codeUnavailable.message,
+        }),
+        context: "app update",
+        persistent: true,
+        action: {
+          label: formatMessage({
+            id: toastMessageIdsUpdate.codeUnavailable.action,
+            defaultMessage: updateDefaults.codeUnavailable.action,
+          }),
+          onClick: onUpdate,
+          dismissOnClick: false,
+          testId: "update-code-recovery-button",
+        },
+        closable: true,
+        onDismiss,
+        suppressLogging: true,
+      }),
     applied: () =>
       toastService.success({
         id: "app-update",
