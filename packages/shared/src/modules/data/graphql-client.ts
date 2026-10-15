@@ -99,7 +99,10 @@ export class GQLClient implements GraphQLReader {
     } catch (error) {
       const normalizedError = error instanceof Error ? error : new Error(String(error));
 
-      if (connectivityStore.getStatusSnapshot().state !== "offline") {
+      // A device that changes networks breaks requests to every service; only a
+      // failure on a steady connection is a failure of this one.
+      void connectivityStore.failedOnSteadyConnection().then((steady) => {
+        if (!steady) return;
         trackGraphQLError(normalizedError, {
           source: "GQLClient.query",
           userAction: operationName
@@ -113,7 +116,7 @@ export class GQLClient implements GraphQLReader {
             is_offline: false,
           },
         });
-      }
+      });
 
       return { error: normalizedError };
     }
