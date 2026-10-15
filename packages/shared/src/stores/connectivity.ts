@@ -11,9 +11,10 @@ export const CONFIRMED_ONLINE_MAX_AGE_MS = 60_000;
 /** A send someone just asked for re-probes anything older than this. */
 const CONFIRM_ONLINE_MAX_AGE_MS = 15_000;
 /**
- * A request that fails this close to a browser network change says nothing
- * about the service it called. The browser can also report the change after
- * the request it broke has already failed.
+ * A request that fails this close to an unsteady connection (a browser network
+ * change, or a moment the store saw it degraded or offline) says nothing about
+ * the service it called. The browser can also report a change after the
+ * request it broke has already failed.
  */
 export const NETWORK_SETTLE_MS = 5_000;
 
@@ -26,10 +27,14 @@ let pending: Promise<void> | undefined;
 let generation = 0;
 let activeController: AbortController | undefined;
 let recheckTimer: ReturnType<typeof setTimeout> | undefined;
-let networkChangedAt: number | undefined;
+/** The last moment the connection was not steady: a browser network change or a non-online state. */
+let unsteadyAt: number | undefined;
 const isVisible = () => typeof document === "undefined" || document.visibilityState !== "hidden";
 
 function publish(state: ConnectivityState, checkedAt?: number) {
+  // Entering, staying in or leaving a non-online state marks the connection
+  // unsteady until now.
+  if (state !== "online" || snapshot.state !== "online") unsteadyAt = Date.now();
   snapshot = { state, checkedAt };
   // A slow or unreachable probe means the connection is unstable, not that
   // the browser has confirmed the device offline. Keep queries runnable while
@@ -135,7 +140,6 @@ onlineManager.setOnline(snapshot.state !== "offline");
 onlineManager.setEventListener(() => undefined);
 if (typeof window !== "undefined") {
   const offline = () => {
-    networkChangedAt = Date.now();
     generation++;
     activeController?.abort();
     clearTimeout(recheckTimer);
@@ -150,7 +154,9 @@ if (typeof window !== "undefined") {
     }
   };
   const online = () => {
-    networkChangedAt = Date.now();
+    // A network switch can report online with no offline first, and a probe
+    // may not publish for seconds.
+    unsteadyAt = Date.now();
     void check();
   };
   window.addEventListener("online", online);
@@ -210,18 +216,20 @@ export const connectivityStore = {
   // An individual API failure merely requests an independent origin check.
   reportNetworkFailure: () => (probeUrl ? check() : Promise.resolve()),
   /**
-   * Whether a request that failed just now met a steady connection, and so
-   * points at the service. Resolves after the settle window, once a network
-   * change the browser reports late has had time to arrive. A degraded
-   * connection is not steady: the origin probe failed too.
+   * Whether a request that started at `startedAt` and failed just now met a
+   * steady connection, and so points at the service. Steady means online now
+   * and never unsteady from shortly before the request started; a degraded
+   * connection is not steady, since the origin probe failed too. Resolves after
+   * the settle window, once a change the browser reports late, or a probe
+   * already under way, has had time to answer.
    */
-  failedOnSteadyConnection: async (): Promise<boolean> => {
-    const failedAt = Date.now();
+  failedOnSteadyConnection: async (startedAt = Date.now()): Promise<boolean> => {
     await new Promise((resolve) => setTimeout(resolve, NETWORK_SETTLE_MS));
+    if (pending) await pending;
     return (
       readOnline() &&
       snapshot.state === "online" &&
-      (networkChangedAt === undefined || networkChangedAt < failedAt - NETWORK_SETTLE_MS)
+      (unsteadyAt === undefined || unsteadyAt < startedAt - NETWORK_SETTLE_MS)
     );
   },
 };

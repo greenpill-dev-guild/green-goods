@@ -255,3 +255,47 @@ it.each([
   await vi.advanceTimersByTimeAsync(NETWORK_SETTLE_MS);
   await expect(result).resolves.toBe(steady);
 });
+
+it("classifies a request failure on a network change during the request", async () => {
+  vi.useFakeTimers();
+  await vi.advanceTimersByTimeAsync(NETWORK_SETTLE_MS + 1_000);
+  const startedAt = Date.now();
+  await vi.advanceTimersByTimeAsync(1_000);
+  window.dispatchEvent(new Event("offline"));
+  window.dispatchEvent(new Event("online"));
+  // The request hangs through the change and fails at the GraphQL timeout.
+  await vi.advanceTimersByTimeAsync(11_000);
+  const result = connectivityStore.failedOnSteadyConnection(startedAt);
+  await vi.advanceTimersByTimeAsync(NETWORK_SETTLE_MS);
+  await expect(result).resolves.toBe(false);
+});
+
+it("classifies a request failure on a degraded connection that recovers during the wait", async () => {
+  vi.useFakeTimers();
+  const request = vi.fn().mockRejectedValue(new TypeError("Failed to fetch"));
+  vi.stubGlobal("fetch", request);
+  stop = connectivityStore.configureProbe("/connectivity-check.txt");
+  await connectivityStore.check();
+  expect(connectivityStore.getStatusSnapshot().state).toBe("degraded");
+  // The failure lands just before the store's 30-second recheck, which then succeeds.
+  await vi.advanceTimersByTimeAsync(27_000);
+  const result = connectivityStore.failedOnSteadyConnection();
+  request.mockResolvedValue(new Response("ok"));
+  await vi.advanceTimersByTimeAsync(NETWORK_SETTLE_MS);
+  expect(connectivityStore.getStatusSnapshot().state).toBe("online");
+  await expect(result).resolves.toBe(false);
+});
+
+it("waits for a probe still running before classifying a request failure", async () => {
+  vi.useFakeTimers();
+  await vi.advanceTimersByTimeAsync(NETWORK_SETTLE_MS + 1_000);
+  vi.stubGlobal("fetch", vi.fn(unanswered));
+  // The installed app has just started probing; two 3-second attempts outlast the wait.
+  stop = connectivityStore.configureProbe("/connectivity-check.txt");
+  const result = connectivityStore.failedOnSteadyConnection();
+  await vi.advanceTimersByTimeAsync(NETWORK_SETTLE_MS);
+  expect(connectivityStore.getStatusSnapshot().state).toBe("online");
+  await vi.advanceTimersByTimeAsync(1_000);
+  await expect(result).resolves.toBe(false);
+  expect(connectivityStore.getStatusSnapshot().state).toBe("degraded");
+});

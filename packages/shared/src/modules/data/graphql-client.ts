@@ -84,6 +84,7 @@ export class GQLClient implements GraphQLReader {
     variables?: TVariables,
     operationName?: string
   ): Promise<{ data: TData; error?: undefined } | { data?: undefined; error: Error }> {
+    const startedAt = Date.now();
     try {
       // Cast to RequestDocument for graphql-request compatibility.
       // TypedDocumentNode is a subtype that includes the same runtime structure.
@@ -100,8 +101,9 @@ export class GQLClient implements GraphQLReader {
       const normalizedError = error instanceof Error ? error : new Error(String(error));
 
       // A device that changes networks breaks requests to every service; only a
-      // failure on a steady connection is a failure of this one.
-      void connectivityStore.failedOnSteadyConnection().then((steady) => {
+      // failure on a connection that stayed steady for the whole request is a
+      // failure of this one.
+      void connectivityStore.failedOnSteadyConnection(startedAt).then((steady) => {
         if (!steady) return;
         trackGraphQLError(normalizedError, {
           source: "GQLClient.query",
