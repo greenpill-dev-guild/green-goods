@@ -113,6 +113,7 @@ const sidebars: SidebarsConfig = {
         {type: 'doc', id: 'builders/integrations/hypercerts', label: 'Hypercerts'},
         {type: 'doc', id: 'builders/reference/certified-atproto-integration-spec-2026-07', label: 'Certified publishing (proposed)'},
         {type: 'doc', id: 'builders/reference/certified-atproto-topology-memo-2026-07', label: 'Certified identity decision'},
+        {type: 'doc', id: 'builders/reference/impact-integration-action-map', label: 'Impact actions and GainForest'},
         {type: 'doc', id: 'builders/integrations/karma', label: 'Karma GAP'},
         {type: 'doc', id: 'builders/integrations/ens', label: 'ENS'},
         {type: 'doc', id: 'builders/integrations/cookie-jar', label: 'Cookie Jar'},

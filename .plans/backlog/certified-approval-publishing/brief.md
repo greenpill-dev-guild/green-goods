@@ -23,7 +23,11 @@ policy once recovery, correction and privacy behavior are proven.
 
 First: Certified/Ma Earth account linking, Garden destination authority, previewed approval
 publication, durable recovery and receipts. Then: supervised pilot and opt-in automation.
-Bloom Network, Silvi and Regen Network follow as separate mappings after provider research.
+GainForest/Bumicerts follows as a separately scoped monitoring-evidence pilot. Bloom Network,
+Silvi and Regen Network follow through their own provider mappings. The architecture now maps
+Garden creation, initial assessment, Season/Campaign creation, commitment creation, Work
+submission/approval, commitment fulfillment, delta assessment and certificate minting. Only
+approval publishing is an initial public trigger; the remaining triggers need accepted scope.
 
 New DIDs/PDS hosting, new group provisioning, token minting, credit issuance, contract changes,
 Envio EAS indexing, generic integration infrastructure and public disclosure of private research

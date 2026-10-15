@@ -1,7 +1,9 @@
 # Certified and Ma Earth evaluation plan
 
 **Current state:** architecture/planning only. No runtime acceptance test below has run.
-The public architecture owns dependencies D1–D9; this file owns implementation proof expectations.
+The public architecture owns dependencies D1–D9; its linked action crosswalk owns G1–G5/A1–A4.
+This file owns implementation proof expectations. AC17–AC22 apply only when the relevant extension
+is accepted; they are not claims that every lifecycle trigger belongs in the first release.
 
 ## Acceptance matrix
 
@@ -23,6 +25,12 @@ The public architecture owns dependencies D1–D9; this file owns implementation
 | AC14 | Operational recovery | Restore from encrypted backup does not duplicate logical records; destination pause and sanitized alerting work | qa_pass_1 / 3 |
 | AC15 | Automatic consent | Standing policy covers exact fields/actions/revision; broadened scope or destination change requires renewed consent | ui, state_api / 4 |
 | AC16 | Regression and release | No approval-path regression, current-head selected local/CI checks, authenticated identity proof and sequential QA receipts | qa_pass_2 / each release |
+| AC17 | Shared records and independent views | Same repository/source/semantic role reuses a record across Ma Earth and Bumicerts; mapping revision, reconnect and indexing delay create no duplicate activity; each view has dated version evidence | state_api, qa_pass_1 / 5 |
+| AC18 | Monitoring provenance | Two visits preserve stable subjects, date/method/units/uncertainty; URI-only external links have captured versions; changed observations mark comparisons stale; no invented planting count or species | state_api / GainForest pilot |
+| AC19 | Assessment meaning | Baseline plan differs from measurements; v2/v3/kind/cycle mapping accepted; invalid baseline, chronology, revocation and incomparable methods block delta export | state_api / A1 |
+| AC20 | Commitment source completeness | Seeded is not Open; promise is not Work; both normal and dispute fulfillment are discovered; cancellation/correction and chain readiness proven; no inferred payment | state_api / A2 |
+| AC21 | Certificate provenance | New mint and existing-token registration remain distinct; active chain/product and evidence bundle checked; no implied Regen credits or automatic mint authority | state_api / A3 |
+| AC22 | External consent and loop prevention | Native schema/authority fixtures, ecological/community disclosure and license policy; imported evidence keeps origin; our own export cannot become new GG Work or re-export indefinitely | state_api, ui, qa_pass_1 / 5 |
 
 ## Proof strategy
 

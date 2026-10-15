@@ -93,8 +93,17 @@ automatically a protocol-level replacement for an earlier one.
 Begin with verified linking and read-only project selection. Next add explicit per-report preview
 and publication into an approved test project. Prove Ma Earth display, attribution, corrections,
 revocation and uncertain-delivery recovery in a supervised pilot. Enable standing automatic
-publication only after those gates pass. Bloom, Silvi and Regen remain later, independently gated
-work rather than assumptions inside the Certified implementation.
+publication only after those gates pass. GainForest, Bloom, Silvi and Regen remain later,
+independently gated work. The [ontology/action crosswalk](./impact-integration-action-map.md)
+maps all nine lifecycle actions and proposes a GainForest monitoring pilot.
+
+GainForest's documented Ma Earth relationship supports investigating reuse of an existing DID,
+repository and records. It does not prove shared grant scopes or AppView compatibility. One
+shared activity should have one record identity and separate visibility receipts per application;
+native biodiversity observations are additional evidence records with their own schema contract.
+The earlier GainForest research's browser-publishing suggestion is superseded for this plan by
+the durable Agent topology above. Foreground-only publication remains the explicit fallback if
+delegated background capabilities cannot be proven, with a correspondingly narrower product scope.
 
 The implementation Plan Hub remains in backlog. This PR updates the architecture and plan;
 runtime implementation and production publication have not been approved or performed by it.

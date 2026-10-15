@@ -7,6 +7,11 @@ The public architecture contains ten Mermaid diagrams across the seven requested
 and the backlog plan has fourteen bounded implementation checkpoints across six phases.
 Dependencies D1–D9 are unresolved; runtime lanes remain blocked and contract work is not applicable.
 
+The GainForest extension adds a separate nine-action ontology/provider crosswalk and five more
+diagrams, for fifteen total. It preserves the fourteen-checkpoint plan and six phases. New G1–G5
+and A1–A4 gates cover biodiversity evidence, AppView identity, assessments, commitments and
+certificates; they do not expand the first Certified linking/approval slice.
+
 ## Evidence boundary
 
 The current-code baseline is `b9176994beddb74c1f32240a1829a7e2c3805896`; the prior July documents
@@ -38,6 +43,11 @@ Agent/model: Codex / GPT-6 family | Coverage: 2026-10-15 planning turn
 |---|---|---|
 | investigate | 2026-10-15 08:59:09 → 2026-10-15 09:08:20 | Current source review, upstream schema checks, isolated PR checkout |
 | implement | 2026-10-15 09:08:20 → 2026-10-15 09:21:29 | Architecture, topology and backlog plan documents only |
+
+Additional segment: GainForest and action crosswalk. Investigation observed from
+2026-10-15 21:40:18 to 21:46:09 UTC; documentation drafting began at 21:46:09 UTC.
+Public provider schemas/documentation and current repository sources support the crosswalk;
+private research-session content and identifiers are excluded from Git.
 
 Final verification/publication boundaries belong in the chat handoff; this record is not a runtime
 completion claim. Human corrections observed in this segment: 0; human attention: unknown.

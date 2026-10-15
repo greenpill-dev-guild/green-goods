@@ -33,8 +33,10 @@ external account, provider record, or live publishing policy is changed by the p
 | Delivery survives offline submission, browser exit and retry | 6–9 | Chain scanner, durable intent, replay and crash recovery proof |
 | Ma Earth displays the result with correct attribution | 11–12 | Actual provider-visible project report and correction test |
 | Automatic publication follows user consent | 13 | Versioned standing policy, pause/revoke and stale-source checks |
-| Bloom, Silvi, Regen can follow | 14 | Separate conformance/mapping proposals without speculative adapter code |
-| Unresolved dependencies remain visible in PR | Every checkpoint | D1–D9 matrix and PR body updated with observed results |
+| GainForest, Bloom, Silvi, Regen can follow | 14 | GainForest monitoring pilot and independent native provider mappings without speculative adapter code |
+| All nine actions map to the ontology | Planning PR, 2, 14 | Crosswalk names authoritative sources, valid triggers, native representations and deferred gates |
+| Shared AT records do not duplicate across apps | 8–11, 14 | Stable semantic record identity; per-application visibility and explicit distinct-repository copies |
+| Unresolved dependencies remain visible in PR | Every checkpoint | D1–D9 and extension G1–G5/A1–A4 matrices updated with observed results |
 
 ## Scope and implementation boundaries
 
@@ -72,6 +74,8 @@ capabilities remain blocked. No live mutation is authorized by this planning ste
 - [ ] Resolve D2, D6, D7 and D8: integration-manager role, proof matrix, effective approval semantics,
   finality/backfill, public fields, retention, custody and production persistence.
 - [ ] Record choices in `spec.md`, `eval.md`, and the architecture; accept the implementation scope.
+- [ ] Review the nine-action ontology crosswalk. Keep approval publishing as the first public trigger;
+  assign later assessment, commitment and certificate gates without silently expanding phase 1.
 
 **Verify:** concrete accepted/rejected examples exist for linking, publication and correction.
 Phase 1 can begin once its subset of gates passes; later unresolved gates stay visible.
@@ -205,16 +209,24 @@ stale source, unknown authorship, and exhausted retries stop automatic delivery 
 
 ## Phase 5 — later provider mappings
 
-### 14. Open separately scoped provider research plans
+### 14. Scope the GainForest pilot and later provider/action plans
 
-**Targets:** new research brief/spec only, after a provider is selected.
+**Targets:** the action crosswalk and a separately accepted pilot/research brief; no runtime
+extension is authorized by completing this planning checkpoint.
 
+- [ ] GainForest: resolve G1–G5 with one existing project, baseline visit, approved Work,
+  follow-up and corrected observation. Start with explicit evidence links; prove shared record
+  identity, native organization/site references, units, licensing and independent AppView visibility.
+- [ ] Route assessment, cycle/commitment and certificate triggers through A1–A3 with their owning
+  teams. Preserve source lifecycle and actual product readiness; do not treat all actions as activities.
 - [ ] Bloom: establish its community/action/report identity and authenticated write contract.
 - [ ] Silvi: establish site/tree/monitoring schema and evidence rules. Regen: distinguish data anchor,
   attestation and credit issuance, then select the intended operation.
 
 **Verify:** each proposal has confirmed account authority, native object mapping, trigger, evidence,
-delivery semantics and acceptance criteria. No generic adapter framework is required in phase 1.
+delivery semantics and acceptance criteria. GainForest can progress independently of the other
+providers. A4 gates adoption into canonical ontology/projection sources after mappings are accepted.
+No generic adapter framework is required in phase 1.
 
 ## Validation and current status
 

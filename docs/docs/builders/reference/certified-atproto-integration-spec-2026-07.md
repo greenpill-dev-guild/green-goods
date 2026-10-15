@@ -26,6 +26,11 @@ compares the alternatives. The PR's backlog Plan Hub owns implementation sequenc
 owns the proposed architecture. Code owns existing behavior. All diagrams below are proposed
 unless their nodes explicitly say **existing**. Dependencies D1–D9 remain unresolved.
 
+The [ontology and user-action crosswalk](./impact-integration-action-map.md) extends this design
+with GainForest/Bumicerts and all nine requested Garden lifecycle actions. It adds five diagrams,
+the distinction between shared repository records and application visibility, and later gates
+G1–G5/A1–A4. The first implementation remains account linking and approval publication.
+
 ## 1. Product boundary and vocabulary
 
 The pilot experience is: **Connect Certified → choose a Garden's external project → approve
@@ -709,11 +714,23 @@ first release unless D4/D5 make them necessary.
 | 2 — Preview and publish | Durable source discovery, public preview, explicit consent, Certified publication receipts | Direct, queued and batch approvals each produce one intended report; crash/retry tests do not duplicate records |
 | 3 — Supervised Ma Earth pilot | Real project visibility, attribution, correction and recovery exercises | Actual Ma Earth display verified; positive-to-negative correction, disconnect during send, and lost-response recovery demonstrated |
 | 4 — Standing automatic policy | Opt-in automation, monitoring, bounded retries, restore drills, staged rollout | D6–D8 satisfied; no silent loss or stale positive report; pause/revoke controls demonstrated |
-| 5 — Other platforms | Independently scoped mappings for Bloom, Silvi, and Regen | Each provider's identity, write API, semantics and consent contract verified before implementation |
+| 5 — Evidence and other platforms | Separately scope a GainForest monitoring pilot, then selected Bloom, Silvi and Regen mappings | G1–G5 for GainForest; A1–A4 for broader source actions/provider mappings; each native contract verified before implementation |
 
 Phase 1 may ship linking while publication remains visibly unavailable. Phase 2 may prove Certified
 publishing while Ma Earth discovery is still blocked, but that is not a completed Ma Earth pilot.
 There are no calendar estimates until the external conformance gates have owners and evidence.
+
+GainForest adds sampling events, organism observations, typed measurements and acoustic evidence.
+Use the [action crosswalk](./impact-integration-action-map.md) for its pinned schemas and native
+project/site mapping. Ma Earth and Bumicerts may consume the same repository records: track each
+application's visibility separately and do not duplicate activities merely to reach another view.
+Shared login/infrastructure does not establish shared grants, supported records or indexing.
+GainForest's native evaluator correction fields also do not establish Hypercerts supersession.
+
+Garden creation, initial/delta assessment, cycle creation, commitment creation/fulfillment and
+certificate minting are separately gated source actions. Work submission supplies evidence in
+the first slice; Work Approval is its public trigger. The broader mapping is research, not
+authorization to build a generic event platform or enable every trigger at once.
 
 Bloom reporting should project into its actual community/action/report structure. Silvi should
 receive protocol-valid site/tree/monitoring evidence, not a generic approval relabeled as a tree
@@ -754,6 +771,8 @@ receipts prevent duplicate records after a worker/database restart.
   and [attachment](https://github.com/hypercerts-org/hypercerts-lexicon/blob/v1.5.1/lexicons/org/hypercerts/context/attachment.json).
 - [Evaluation semantics](https://docs.hypercerts.org/lexicons/hypercerts-lexicons/evaluation)
   and [EVM-link reference](https://docs.hypercerts.org/lexicons/certified-lexicons/evm-link).
+- [GainForest schema research pin](https://github.com/GainForest/lexicons/tree/6c27c30211d5815458120ae7e2dac69aca2469ad)
+  and [documented Ma Earth relationship](https://github.com/GainForest/gainforest-docs/blob/2cb3c43adb447b6e776a01484c9d86a10bcf674f/content/docs/ma-earth.mdx).
 - [Ma Earth](https://maearth.com/about), [Bloom vision](https://bloomnetwork.earth/vision),
   [Silvi user guide](https://docs.silvi.earth/silvi-app-user-guide/getting-started),
   and [Regen data module](https://docs.regen.network/modules/data/).

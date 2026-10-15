@@ -7,7 +7,9 @@ is the single design reference for component boundaries, sequence diagrams, ERD,
 DFD, activity and class diagrams, mapping rules and gates D1–D9. The
 [topology memo](../../../docs/docs/builders/reference/certified-atproto-topology-memo-2026-07.md)
 records the recommended delegated Agent topology and rejected alternatives. This hub does not
-duplicate those models.
+duplicate those models. The [ontology and user-action crosswalk](../../../docs/docs/builders/reference/impact-integration-action-map.md)
+owns the nine-action/provider mapping, GainForest evidence contract, shared-record/AppView model
+and gates G1–G5/A1–A4. Those extension gates do not expand the initial runtime scope.
 
 ## Users and behavior
 
@@ -28,7 +30,10 @@ Repository evidence was reviewed at `b9176994beddb74c1f32240a1829a7e2c3805896`. 
 lists exact source paths and upstream references checked on 2026-10-15. Candidate lexicons are
 v1.5.1; reference-page version drift, deployed OAuth scopes, CGS conditional writes, group custody,
 evaluation attribution and Ma Earth indexing remain gates. No live provider conformance test was
-performed for this planning update.
+performed for this planning update. GainForest research is pinned to lexicons commit
+`6c27c30211d5815458120ae7e2dac69aca2469ad` and documentation commit
+`2cb3c43adb447b6e776a01484c9d86a10bcf674f`. Earlier browser-only publishing advice is reconciled
+in the topology memo; this plan keeps the durable Agent recommendation pending conformance.
 
 ## Phase 0 decision register
 
@@ -69,3 +74,9 @@ may be installed or upgraded without explicit task approval.
 - An approved public preview becomes stale when source, destination, policy or grant epoch changes.
 - A later rejection cannot leave an old positive report presented as current without a visible correction state.
 - A disconnected grant can still have an already committed in-flight result; status must report the real outcome.
+- Ma Earth visibility and Bumicerts visibility can differ for the same record; a delayed view never causes a duplicate activity.
+- A new visit to existing trees is another observation round, not new planting work.
+- A delta export with an invalid or incomparable baseline is blocked even if the EAS transaction succeeded.
+- Fulfillment through dispute resolution must be discovered without inventing payout or ecological verification.
+- Registration of an existing Hypercert cannot be presented as a new mint.
+- Imported external evidence retains its origin and cannot re-enter the export queue as new GG work.
