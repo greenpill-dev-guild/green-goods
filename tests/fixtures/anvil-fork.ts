@@ -463,60 +463,6 @@ export async function revertToSnapshot(
   console.log(`⏪ Reverted to snapshot: ${snapshotId}`);
 }
 
-/**
- * Impersonate an account (allows sending transactions as that address)
- *
- * @param testClient - The test client from AnvilForkContext
- * @param address - The address to impersonate
- */
-export async function impersonateAccount(
-  testClient: TestClient,
-  address: `0x${string}`
-): Promise<void> {
-  await testClient.impersonateAccount({ address });
-  console.log(`🎭 Impersonating: ${address}`);
-}
-
-/**
- * Set the balance of an address
- *
- * @param testClient - The test client from AnvilForkContext
- * @param address - The address to set balance for
- * @param value - The balance in wei
- */
-export async function setBalance(
-  testClient: TestClient,
-  address: `0x${string}`,
-  value: bigint
-): Promise<void> {
-  await testClient.setBalance({ address, value });
-}
-
-/**
- * Increase the block timestamp
- *
- * @param testClient - The test client from AnvilForkContext
- * @param seconds - Number of seconds to increase by
- */
-export async function increaseTime(testClient: TestClient, seconds: number): Promise<void> {
-  await testClient.increaseTime({ seconds });
-  // Mine a block to apply the time change
-  await testClient.mine({ blocks: 1 });
-}
-
-/**
- * Set the next block's timestamp
- *
- * @param testClient - The test client from AnvilForkContext
- * @param timestamp - Unix timestamp for next block
- */
-export async function setNextBlockTimestamp(
-  testClient: TestClient,
-  timestamp: bigint
-): Promise<void> {
-  await testClient.setNextBlockTimestamp({ timestamp });
-}
-
 // ============================================================================
 // UTILITY EXPORTS
 // ============================================================================

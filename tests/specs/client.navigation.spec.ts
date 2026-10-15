@@ -3,8 +3,8 @@
  *
  * Tests for navigation flows, protected routes, and deep linking
  *
- * NOTE: Tests use wallet injection for authentication. Passkey-based auth tests
- * are skipped since virtual authenticator credentials are rejected by Pimlico.
+ * Manual navigation cases use legacy wallet storage injection; CI and qualified
+ * passkey journeys have their own fixtures and do not depend on this lane.
  */
 
 import { expect, test } from "@playwright/test";
@@ -32,61 +32,6 @@ test.describe("Client Navigation", () => {
           timeout: TIMEOUTS.elementVisible,
         });
       }
-    });
-
-    test("allows authenticated users to access protected routes", async ({ page }) => {
-      const helper = new ClientTestHelper(page);
-
-      // Use wallet injection for all platforms
-      await helper.injectWalletAuth();
-      await page.goto("/home?presentation=pwa");
-      await helper.waitForPageLoad();
-
-      const url = page.url();
-      if (url.includes("/home/login")) {
-        console.log("Auth injection not persisted - skipping protected route test");
-        return;
-      }
-
-      // Test navigation to various routes
-      const routes = [
-        { path: "/home", selector: "body" },
-        {
-          path: "/home/profile",
-          selector: '[data-testid="profile-page"], h1:has-text("Profile"), body',
-        },
-      ];
-
-      for (const route of routes) {
-        await page.goto(route.path);
-        await helper.waitForPageLoad();
-
-        // Should not redirect to login (if auth persisted)
-        const currentUrl = page.url();
-        if (!currentUrl.includes("/home/login")) {
-          // Page content should load
-          await expect(page.locator(route.selector.split(", ")[0]).first())
-            .toBeVisible({
-              timeout: TIMEOUTS.elementVisible,
-            })
-            .catch(() => {
-              // Fallback - just verify page loaded
-              expect(page.locator("body")).toBeTruthy();
-            });
-        }
-      }
-    });
-  });
-
-  test.describe("Deep Linking", () => {
-    test("preserves intended destination after login", async () => {
-      // This test requires completing a real login flow which we can't do with wallet injection
-      // SKIP: #338 owner:afo expiry:2026-10-16 — needs real login flow
-      test.skip(
-        true,
-        "Deep linking test skipped: requires completing real login flow. " +
-          "Tested via unit tests and manual testing."
-      );
     });
   });
 
@@ -187,33 +132,6 @@ test.describe("Client Navigation", () => {
 
       // Should be back on profile
       expect(page.url()).toBe(profileUrl);
-    });
-  });
-
-  test.describe("Error Pages", () => {
-    test("shows 404 page for non-existent routes", async ({ page }) => {
-      await page.goto("/this-page-does-not-exist-12345");
-      await page.waitForLoadState("domcontentloaded");
-
-      // Wait for React Router to handle the route
-      await page.waitForTimeout(1000);
-
-      // Should show 404 content, redirect to login (if unauthenticated), or redirect to home
-      const notFoundText = page.locator("text=/404|not found|page not found/i");
-      const isNotFound = await notFoundText
-        .isVisible({ timeout: TIMEOUTS.elementVisible })
-        .catch(() => false);
-      const isRedirected =
-        page.url().includes("/home/login") ||
-        page.url().includes("/home") ||
-        page.url().endsWith("/");
-
-      // For a SPA, any unmatched route might just stay on the same URL but show different content
-      // or redirect to a default route
-      const hasValidContent =
-        isNotFound || isRedirected || page.url().includes("/this-page-does-not-exist");
-
-      expect(hasValidContent).toBeTruthy();
     });
   });
 });

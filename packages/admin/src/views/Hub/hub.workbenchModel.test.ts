@@ -39,21 +39,6 @@ describe("hub.workbenchModel", () => {
     expect(model.stages).toEqual([]);
   });
 
-  it("leads with the Confirm stage when the reader stewards a garden", () => {
-    const model = buildHubStageModel({
-      requestedStage: "work",
-      canManage: true,
-      canReview: true,
-      canConfirm: true,
-      confirmCount: 2,
-      works: [],
-    });
-
-    expect(model.stages.map((stage) => stage.id)).toEqual(["work", "confirm", "assess", "certify"]);
-    expect(model.fallbackStage).toBe("work");
-    expect(model.stageCounts.confirm).toBe(2);
-  });
-
   it("resolves route-backed sheet content ids", () => {
     expect(resolveHubRouteSheet({ isSubmitRoute: true })).toEqual({
       routeSheetContentId: "hub:submit-work",

@@ -100,7 +100,9 @@ Correctness of what changed. Prioritize high-signal risk areas:
 - *Excess proof*: when tests change, ask which distinct failure each test catches and whether its
   assertion sits at the owning layer. Review repeated setup, duplicate layers, class-only or source
   assertions, and unexplained test/source growth against the [test budget](../../context/testing.md#test-budget).
-  Preserve tests for independent composition, recovery, interaction, and critical cleanup behavior.
+  Reject tests that only assert results supplied by their own mocked behavior, and repeated assertions
+  across layers without a distinct failure. Exercise the owning behavior through controlled external
+  edges. Preserve independent composition, recovery, interaction, and critical cleanup proof.
   Require same-failure surviving proof or verified absence of callers before accepting a deletion;
   test counts and line ratios alone do not justify one.
 

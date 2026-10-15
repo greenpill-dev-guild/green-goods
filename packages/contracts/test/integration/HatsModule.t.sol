@@ -858,7 +858,7 @@ contract HatsModuleTest is Test {
         adapter.createGardenHatTree(garden2, "Garden Two", address(0x9999));
     }
 
-    function test_createGardenHatTree_createsAllSixRoleHats() public {
+    function testIntegration_Hats_createsSixRoleHatsWithExpectedHierarchy() public {
         address gardenToken = address(0x7777);
         adapter.setGardenToken(gardenToken);
 
@@ -866,7 +866,7 @@ contract HatsModuleTest is Test {
         adapter.setProtocolHatIds(0, gardensHatId, 0);
 
         vm.prank(gardenToken);
-        adapter.createGardenHatTree(garden2, "Garden Two", address(0x9999));
+        uint256 adminHatId = adapter.createGardenHatTree(garden2, "Garden Two", address(0x9999));
 
         (
             uint256 ownerHatId,
@@ -879,6 +879,15 @@ contract HatsModuleTest is Test {
         ) = adapter.gardenHats(garden2);
 
         assertTrue(configured, "Garden should be configured");
+        assertEq(mockHats.getHatLevel(gardensHatId), 0);
+        assertEq(mockHats.getHatLevel(adminHatId), 1);
+        assertEq(mockHats.getHatLevel(ownerHatId), 2);
+        assertEq(mockHats.getAdminAtLevel(ownerHatId, 1), adminHatId);
+        assertTrue(mockHats.isTopHat(gardensHatId));
+        assertFalse(mockHats.isTopHat(ownerHatId));
+        assertTrue(mockHats.isAdminOfHat(address(adapter), ownerHatId));
+        assertTrue(mockHats.isAdminOfHat(garden2, ownerHatId));
+        assertFalse(mockHats.isAdminOfHat(user1, ownerHatId));
         assertGt(ownerHatId, 0, "Owner hat should be set");
         assertGt(operatorHatId, 0, "Operator hat should be set");
         assertGt(evaluatorHatId, 0, "Evaluator hat should be set");
@@ -1253,6 +1262,32 @@ contract HatsModuleTest is Test {
             GARDEN1_COMMUNITY_HAT
         );
         mockHats.setWearer(GARDEN1_OWNER_HAT, owner, true);
+    }
+
+    function testIntegration_Hats_rejectsGrantBeyondConfiguredRoleCapacity() public {
+        _configureGarden1WithOwner();
+        mockHats.changeHatMaxSupply(GARDEN1_GARDENER_HAT, 1);
+        adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Gardener);
+        assertTrue(adapter.isGardenerOf(garden1, user1));
+        vm.expectRevert(MockHats.MaxSupplyReached.selector);
+        adapter.grantRole(garden1, user2, IHatsModule.GardenRole.Gardener);
+        assertFalse(mockHats.wearers(GARDEN1_GARDENER_HAT, user2));
+    }
+
+    function testIntegration_Hats_rejectsInactiveGrantAndImmutableRevocation() public {
+        _configureGarden1WithOwner();
+        mockHats.setHatActive(GARDEN1_GARDENER_HAT, false);
+        vm.expectRevert(MockHats.HatNotActive.selector);
+        adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Gardener);
+        assertFalse(mockHats.wearers(GARDEN1_GARDENER_HAT, user1));
+        mockHats.setHatActive(GARDEN1_GARDENER_HAT, true);
+        adapter.grantRole(garden1, user1, IHatsModule.GardenRole.Gardener);
+        mockHats.makeHatImmutable(GARDEN1_GARDENER_HAT);
+        vm.expectRevert(MockHats.HatNotMutable.selector);
+        adapter.revokeRole(garden1, user1, IHatsModule.GardenRole.Gardener);
+        assertTrue(adapter.isGardenerOf(garden1, user1));
+        mockHats.setEligibility(GARDEN1_GARDENER_HAT, user1, false);
+        assertFalse(adapter.isGardenerOf(garden1, user1));
     }
 
     function test_grantRole_autoMintsProtocolGardenersHat() public {

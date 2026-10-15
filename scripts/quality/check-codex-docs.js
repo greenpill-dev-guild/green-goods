@@ -482,7 +482,7 @@ function validateRepoDerivedGuidanceFacts() {
     "tests/fixtures/contract-helpers.ts",
     "tests/helpers/test-utils.ts",
     "tests/helpers/test-config.ts",
-    "tests/mocks/pimlico-handlers.ts",
+    "tests/specs/client.passkey.spec.ts",
     "scripts/dev/test-e2e.js",
   ]) {
     if (!exists(relPath) || !testsReadme.includes(relPath)) {

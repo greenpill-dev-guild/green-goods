@@ -7,7 +7,7 @@ Loaded when writing, wiring, or diagnosing tests (Vitest unit/integration; Playw
 Alias → `packages/shared/src/__tests__/test-utils/`. Admin and Client import test helpers from
 `@green-goods/shared/testing`, not deep paths. Shared tests import the leaf module instead
 (`test-utils/render-helpers`, `query-client`, `query-client-render`, `mock-factories`,
-`offline-helpers`, `transaction-fakes`, …). The barrel loads every fixture into each file that
+`transaction-fakes`, …). The barrel loads every fixture into each file that
 imports it, so `test-quality` rejects it in Shared tests. Because Admin and Client tests import
 these helpers and `setupTests.base.ts`, a change to them selects the Admin and Client suites in
 checkpoint plans and starts their CI workflows (`sharedConsumerTestSupport` in the validation
@@ -15,8 +15,7 @@ policy).
 
 - `renderHookWithProviders` / `renderWithProviders` (= `renderWithQuery`) in `render-helpers.tsx` — wrap in QueryClient + `IntlProvider` (react-intl `MISSING_TRANSLATION` silenced).
 - `createTestQueryClient` (retry off, `gcTime`/`staleTime` 0); call `resetTestQueryClient()` in `afterEach`.
-- Mock factories (`mock-factories.ts`): `createMockGarden`, `createMockWork`, `createMockAction`, `createMockAuthContext`, `createMockSmartAccountClient`, `createMockFile`, … (18 factories).
-- Offline helpers (`offline-helpers.ts`): `createMockOfflineWork`/`Conflict`, `mockFetch`/`mockFetchSequence`/`mockFetchError`, `simulateNetworkConditions.{offline,online,slow}`.
+- Mock factories (`mock-factories.ts`) include `createMockGarden`, `createMockWork`, `createMockAction`, `createMockAuthContext`, `createMockSmartAccountClient`, and `createMockFile`.
 - `createSharedBarrelMock(actual, overrides)` — mock the shared barrel via `vi.importActual`, overriding only hooks (real exports auto-inherit; new hooks fail loud).
 - Re-exports `@testing-library/react`. Import `userEvent` from
   `@testing-library/user-event` only in DOM tests so Node projects do not load browser globals.
@@ -63,7 +62,7 @@ The September 22 two-point ratchet is closed (Afo, 2026-09-28): the global floor
 
 Prove a decision at the lowest layer that owns it. Add another layer when wiring, composition, recovery, or user interaction can fail independently. Use tables for pure decisions and existing `@green-goods/shared/testing` helpers for common setup. Keep test isolation enabled.
 
-For each new or retained test, name the failure it would catch and assert an observable result. Source assertions earn their place when the source contract itself is the requirement and no cheaper faithful signal exists. Spend more proof on money, identity, and data paths, including cleanup and failure behavior, without repeating every assertion across layers solely because a path is critical.
+For each new or retained test, name the failure it would catch and assert an observable result. A result supplied by a mock of that behavior proves only the mock; execute the owning behavior and control its external edges instead. Source assertions earn their place when the source contract itself is the requirement and no cheaper faithful signal exists. Spend more proof on money, identity, and data paths, including cleanup and failure behavior, without repeating every assertion across layers solely because a path is critical.
 
 When maintenance cost grows, review duplicate layers, repeated setup, class-only assertions, uncalled exports, and unexplained test/source growth. Counts and ratios identify candidates for inspection, not deletion targets. Before removing a test, identify surviving proof for the same failure or establish that its subject has no callers. Move tests with the code they protect, and remove exclusive tests only after verified-unused code is removed.
 
@@ -73,7 +72,7 @@ Three habits keep the suite from spreading into small files:
   subject or a different environment, and give it at least four cases or a
   `// TEST-QUALITY: allow-small-test-file - <reason>` comment saying why, in words on the same
   line. `test-quality` fails a new file below four cases without one, and treats an empty reason, a
-  template or a TODO as none.
+  template or a TODO as none. Use the exception for a valuable isolated regression; never add filler cases to reach four.
 - When a change adds more test lines than source lines, say so in one line of the pull request body
   or commit message, with the reason.
 - Run the focused file while you work (`bun run test <path>` in the package). Package-wide runs take
@@ -107,7 +106,7 @@ shrink when a violation is fixed, while every new or stale entry fails the check
 
 - Mutation hooks: assert the error path at both hook level (`isError` + handler/`logger.error` called) and component level (error toast surfaced). Errors are never swallowed.
 - Hook cleanup: verify timers cleared, listeners removed, `isMounted` guards on unmount — i.e. `.claude/rules/react-patterns.md` Rules 1-3.
-- Offline: `fake-indexeddb/auto` + `simulateNetworkConditions` / `navigator.onLine` spy; assert job-queue jobs transition pending → completed.
+- Offline: `fake-indexeddb/auto` + `navigator.onLine` spy; assert job-queue jobs transition pending → completed.
 - E2E (Playwright): critical journeys only, client PWA + admin with platform-specific auth (passkey / wallet-injection / mock-auth). Scope, helpers, runner: `tests/README.md`. Config + fixtures: `docs/docs/builders/testing/index.mdx`.
 
 ## Risk-triggered state and invariant matrix

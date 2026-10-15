@@ -58,10 +58,6 @@ via_ir = true
 paths = "src/mocks/Hats.sol"
 via_ir = true
 
-[[profile.default.compilation_restrictions]]
-paths = "src/mocks/Juicebox.sol"
-via_ir = true
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # PRODUCTION PROFILE — Deployment Optimized (Smallest Bytecode)
 # ═══════════════════════════════════════════════════════════════════════════════

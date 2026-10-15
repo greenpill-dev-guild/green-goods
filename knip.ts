@@ -62,7 +62,6 @@ const config: KnipConfig = {
         "src/types/index.ts",
         "src/__mocks__/index.ts",
         "src/__mocks__/browser/index.ts",
-        "src/__mocks__/server/index.ts",
         ".storybook/main.ts",
         ".storybook/preview.ts",
       ],

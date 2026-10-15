@@ -164,6 +164,8 @@ describe("PublicShell", () => {
     // SiteHeader should be present (look for the header element)
     const header = document.querySelector("header");
     expect(header).toBeInTheDocument();
+    expect(header!.className).toMatch(/fixed/);
+    expect(header!.className).toMatch(/top-0/);
 
     // Outlet content should also be present
     expect(screen.getByTestId("gardens-content")).toBeInTheDocument();

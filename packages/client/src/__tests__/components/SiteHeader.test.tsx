@@ -320,15 +320,6 @@ describe("SiteHeader", () => {
     await waitFor(() => expect(screen.getByRole("link", { name: "Green Goods" })).toHaveFocus());
   });
 
-  it("renders transparent on home (`/`) so the header floats over the hero image", () => {
-    renderHeader("/");
-    const header = document.querySelector("header");
-    expect(header).not.toBeNull();
-    expect(header!.getAttribute("data-variant")).toBe("transparent");
-    expect(header!.className).toMatch(/bg-transparent/);
-    expect(header!.className).not.toMatch(/backdrop-blur/);
-  });
-
   it("renders transparent on every public route (not just home)", () => {
     for (const route of ["/", "/gardens", "/impact", "/vaults", "/fund", "/actions"]) {
       cleanup();
@@ -339,6 +330,7 @@ describe("SiteHeader", () => {
         "transparent"
       );
       expect(header!.className, `expected bg-transparent on ${route}`).toMatch(/bg-transparent/);
+      expect(header!.className).not.toMatch(/backdrop-blur/);
     }
   });
 

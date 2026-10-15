@@ -42,11 +42,9 @@ contract MockOctantFactory is IOctantFactory {
 }
 
 /// @title MockOctantVault
-/// @notice Mock implementation of Octant vault for testing with configurable exchange rate
+/// @notice Mock implementation of Octant vault accounting for integration tests
 /// @dev Uses snake_case API matching the real MultistrategyVault.
-///      Exchange rate is configurable via setExchangeRate() to simulate yield accrual.
-///      Default is 1:1 (rateNumerator=1, rateDenominator=1). Setting rateNumerator=110
-///      and rateDenominator=100 simulates 10% yield (100 shares → 110 assets).
+///      Conversion fields default to 1:1; process_report can simulate new donation shares.
 contract MockOctantVault is IOctantVault {
     address public override asset;
     string public name;
@@ -110,13 +108,6 @@ contract MockOctantVault is IOctantVault {
 
     function setRevokeStrategyReverts(bool shouldRevert) external {
         revertOnRevokeStrategy = shouldRevert;
-    }
-
-    /// @notice Set exchange rate to simulate yield accrual (e.g., 110/100 = 10% yield)
-    function setExchangeRate(uint256 _numerator, uint256 _denominator) external {
-        require(_denominator > 0, "denominator must be > 0");
-        rateNumerator = _numerator;
-        rateDenominator = _denominator;
     }
 
     /// @notice Configure shares to mint during process_report (simulates yield → donation address)

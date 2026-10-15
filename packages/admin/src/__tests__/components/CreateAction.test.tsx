@@ -14,7 +14,6 @@ import { default as enMessages } from "@green-goods/shared/i18n/en.json";
 
 // ── Mock state ──────────────────────────────────────────
 
-const mockRegisterAction = vi.fn();
 const mockNavigate = vi.fn();
 const mockOnSubmit = vi.fn();
 const mockCreateAnother = vi.fn();
@@ -40,63 +39,6 @@ vi.mock("@green-goods/shared/components/Button", () => ({
 
 vi.mock("@green-goods/shared/components/ErrorBoundary/ErrorBoundary", () => ({
   ErrorBoundary: ({ children }: { children: React.ReactNode }) => children,
-}));
-
-vi.mock("@green-goods/shared/components/Form/StepIndicator", () => ({
-  StepIndicator: () => null,
-}));
-
-vi.mock("@green-goods/shared/components/Surface/Surface", () => ({
-  Surface: ({
-    as: Component = "div",
-    children,
-    ...props
-  }: React.HTMLAttributes<HTMLElement> & { as?: React.ElementType }) =>
-    React.createElement(Component, props, children),
-}));
-
-vi.mock("@green-goods/shared/components/Toast/toast.service", () => ({
-  toastService: { loading: vi.fn(), dismiss: vi.fn(), error: vi.fn() },
-}));
-
-vi.mock("@green-goods/shared/config/blockchain", () => ({
-  DEFAULT_CHAIN_ID: 42161,
-}));
-
-vi.mock("@green-goods/shared/config/default-chain", () => ({
-  DEFAULT_CHAIN_ID: 42161,
-}));
-
-vi.mock("@green-goods/shared/config/domain", () => ({
-  DOMAIN_CONFIG: {
-    0: { labelId: "app.domain.tab.solar" },
-    1: { labelId: "app.domain.tab.agro" },
-    2: { labelId: "app.domain.tab.education" },
-    3: { labelId: "app.domain.tab.waste" },
-  },
-}));
-
-vi.mock("@green-goods/shared/hooks/action/useActionForm", () => ({
-  createActionSchema: {
-    // Minimal Zod-compatible schema mock for zodResolver
-    _def: { typeName: "ZodObject" },
-    safeParseAsync: vi.fn().mockResolvedValue({ success: true, data: {} }),
-    safeParse: vi.fn().mockReturnValue({ success: true, data: {} }),
-    parseAsync: vi.fn().mockResolvedValue({}),
-    parse: vi.fn().mockReturnValue({}),
-    spa: vi.fn().mockResolvedValue({ success: true, data: {} }),
-  },
-}));
-
-vi.mock("@green-goods/shared/hooks/action/useActionOperations", () => ({
-  useActionOperations: () => ({
-    registerAction: mockRegisterAction,
-    isLoading: false,
-  }),
-}));
-
-vi.mock("@green-goods/shared/hooks/admin-ui/actions/actions.utils", () => ({
-  getActionsListSearch: () => ({}),
 }));
 
 vi.mock("@green-goods/shared/hooks/admin-ui/actions/useCreateActionController", () => ({
@@ -142,54 +84,6 @@ vi.mock("@green-goods/shared/hooks/admin-ui/useDirtyClose", () => ({
   }),
 }));
 
-vi.mock("@green-goods/shared/hooks/ui/useFormWizardStepValidation", () => ({
-  useFormWizardStepValidation: ({
-    currentStep,
-    steps,
-    stepFields,
-    trigger,
-    onValidNext,
-    onBack,
-    onStepClick,
-  }: {
-    currentStep: number;
-    steps: Array<{ id: string }>;
-    stepFields?: Record<string, string[]>;
-    trigger?: (fields?: string[], options?: { shouldFocus?: boolean }) => Promise<boolean>;
-    onValidNext: () => void;
-    onBack?: () => void;
-    onStepClick?: (stepIndex: number) => void;
-  }) => {
-    const [showValidation, setShowValidation] = React.useState(false);
-    React.useEffect(() => setShowValidation(false), [currentStep]);
-
-    const validateCurrentStep = async () => {
-      setShowValidation(true);
-      const fields = stepFields?.[steps[currentStep]?.id ?? ""];
-      if (!trigger || !fields?.length) return true;
-      return trigger(fields, { shouldFocus: true });
-    };
-
-    return {
-      showValidation,
-      setShowValidation,
-      validateCurrentStep,
-      validateAll: async () => (trigger ? trigger(undefined, { shouldFocus: true }) : true),
-      handleNext: async () => {
-        if (await validateCurrentStep()) onValidNext();
-      },
-      handleBack: () => {
-        setShowValidation(false);
-        onBack?.();
-      },
-      handleStepClick: (stepIndex: number) => {
-        setShowValidation(false);
-        onStepClick?.(stepIndex);
-      },
-    };
-  },
-}));
-
 vi.mock("@green-goods/shared/hooks/utils/useStepFocus", () => ({
   useStepFocus: () => ({ current: null }),
 }));
@@ -206,64 +100,9 @@ vi.mock("@green-goods/shared/modules/app/logger", async (importOriginal) => {
   };
 });
 
-vi.mock("@green-goods/shared/modules/data/ipfs/upload", () => ({
-  uploadFileToIPFS: vi.fn(),
-}));
-
-vi.mock("@green-goods/shared/stores/useSheetOrchestratorStore", () => ({
-  useSheetOrchestratorStore: Object.assign(
-    (selector: (state: Record<string, unknown>) => unknown) =>
-      selector({
-        setFormState: vi.fn(),
-        clearViewState: vi.fn(),
-        restoreViewState: vi.fn(() => null),
-      }),
-    {
-      getState: () => ({
-        setFormState: vi.fn(),
-        clearViewState: vi.fn(),
-        restoreViewState: vi.fn(() => null),
-      }),
-    }
-  ),
-}));
-
-vi.mock("@green-goods/shared/types/domain", () => ({
-  Domain: { SOLAR: 0, AGRO: 1, EDU: 2, WASTE: 3 },
-}));
-
-vi.mock("@green-goods/shared/utils/action/templates", () => ({
-  defaultTemplate: {
-    title: "Work Submission",
-    description: "",
-    feedbackPlaceholder: "",
-    inputs: [],
-  },
-}));
-
-vi.mock("@green-goods/shared/utils/navigation/admin-routes", () => ({
-  adminRoutes: {
-    actions: () => "/actions",
-  },
-}));
-
 vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
 }));
-
-vi.mock("@hookform/resolvers/zod", () => ({
-  zodResolver: () => async () => ({ values: {}, errors: {} }),
-}));
-
-vi.mock("react-router-dom", async () => {
-  const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
-  return {
-    ...actual,
-    useNavigate: () => mockNavigate,
-    Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) =>
-      React.createElement("a", { href: to, ...props }, children),
-  };
-});
 
 // Mock step components to keep tests lightweight
 vi.mock("@/components/Action/CreateActionSteps", () => ({
@@ -325,20 +164,6 @@ vi.mock("@/components/AdminButton", () => ({
 }));
 
 vi.mock("@/components/DiscardChangesDialog", () => ({ DiscardChangesDialog: () => null }));
-
-vi.mock("@/components/Layout/PageHeader", () => ({
-  PageHeader: ({ title, description }: { title: string; description?: React.ReactNode }) =>
-    React.createElement(
-      "div",
-      {},
-      React.createElement("h1", {}, title),
-      description ? React.createElement("p", {}, description) : null
-    ),
-}));
-
-vi.mock("@green-goods/shared/utils/styles/cn", () => ({
-  cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
-}));
 
 import { MemoryRouter } from "react-router-dom";
 import CreateAction from "../../views/Actions/CreateAction";

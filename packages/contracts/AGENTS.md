@@ -507,13 +507,12 @@ test/
 │   ├── ActionRegistry.t.sol
 │   ├── GardenToken.t.sol
 │   ├── WorkResolver.t.sol
+│   ├── GAPJsonBuilder.t.sol   # Production GAP JSON schema and escaping
 │   └── ...
 ├── integration/             # Multi-contract flows
 │   ├── GardenAccessControl.t.sol
 │   ├── GreenWillWorkflow.t.sol
 │   └── HatsModule.t.sol
-├── schema/                  # Schema validation
-│   └── KarmaGAPSchemaValidation.t.sol
 ├── helpers/                 # Test utilities
 ├── E2EWorkflow.t.sol        # End-to-end workflow
 ├── FuzzTests.t.sol          # Fuzz testing

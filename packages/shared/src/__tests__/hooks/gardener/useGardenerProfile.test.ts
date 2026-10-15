@@ -9,6 +9,9 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { encodeFunctionData, parseAbi } from "viem";
+import { logger } from "../../../modules/app/logger";
+import { toastService } from "../../../components/toast";
 import { createTestQueryClient } from "../../test-utils/query-client";
 import { renderHookWithProviders } from "../../test-utils/render-helpers";
 
@@ -105,13 +108,9 @@ describe("useGardenerProfile", () => {
 
       // Profile query is a placeholder returning null
       expect(result.current.profile).toBeNull();
-    });
-
-    it("provides loading and error states", () => {
-      const { result } = renderHookWithProviders(() => useGardenerProfile(), { queryClient });
-
-      expect(typeof result.current.isLoading).toBe("boolean");
-      expect(typeof result.current.refetch).toBe("function");
+      await act(async () => {
+        expect((await result.current.refetch()).data).toBeNull();
+      });
     });
   });
 
@@ -150,44 +149,36 @@ describe("useGardenerProfile", () => {
   });
 
   describe("individual field mutations", () => {
-    it("provides updateName function", () => {
+    it.each([
+      ["Name", "Alice"],
+      ["Bio", "Regenerative farmer"],
+      ["Location", "Portland, OR"],
+      ["Image", "ipfs://QmImage123"],
+    ] as const)("encodes and sends %s while exposing pending state", async (field, value) => {
+      let finish!: (hash: string) => void;
+      mockSendTransaction.mockReturnValueOnce(
+        new Promise<string>((resolve) => {
+          finish = resolve;
+        })
+      );
       const { result } = renderHookWithProviders(() => useGardenerProfile(), { queryClient });
-
-      expect(typeof result.current.updateName).toBe("function");
-      expect(result.current.isUpdatingName).toBe(false);
-    });
-
-    it("provides updateBio function", () => {
-      const { result } = renderHookWithProviders(() => useGardenerProfile(), { queryClient });
-
-      expect(typeof result.current.updateBio).toBe("function");
-      expect(result.current.isUpdatingBio).toBe(false);
-    });
-
-    it("provides updateLocation function", () => {
-      const { result } = renderHookWithProviders(() => useGardenerProfile(), { queryClient });
-
-      expect(typeof result.current.updateLocation).toBe("function");
-      expect(result.current.isUpdatingLocation).toBe(false);
-    });
-
-    it("provides updateImage function", () => {
-      const { result } = renderHookWithProviders(() => useGardenerProfile(), { queryClient });
-
-      expect(typeof result.current.updateImage).toBe("function");
-      expect(result.current.isUpdatingImage).toBe(false);
-    });
-
-    it("sends individual field update transaction", async () => {
-      const { result } = renderHookWithProviders(() => useGardenerProfile(), { queryClient });
-
+      act(() => result.current[`update${field}`](value));
+      await waitFor(() => expect(result.current[`isUpdating${field}`]).toBe(true));
+      expect(mockSendTransaction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: TEST_SMART_ACCOUNT,
+          value: 0n,
+          data: encodeFunctionData({
+            abi: parseAbi([`function update${field}(string)`]),
+            functionName: `update${field}`,
+            args: [value],
+          }),
+        })
+      );
       await act(async () => {
-        result.current.updateName("New Name");
+        finish(TEST_TX_HASH);
       });
-
-      await waitFor(() => {
-        expect(mockSendTransaction).toHaveBeenCalled();
-      });
+      await waitFor(() => expect(result.current[`isUpdating${field}`]).toBe(false));
     });
   });
 
@@ -212,7 +203,13 @@ describe("useGardenerProfile", () => {
         expect(result.current.isUpdating).toBe(false);
       });
 
-      // Error should be captured (toast.error called from onError)
+      expect(logger.error).toHaveBeenCalledWith(
+        "Profile update failed",
+        expect.objectContaining({ error: expect.any(Error) })
+      );
+      expect(toastService.error).toHaveBeenCalledWith(
+        expect.objectContaining({ context: "profile update", error: expect.any(Error) })
+      );
     });
   });
 });

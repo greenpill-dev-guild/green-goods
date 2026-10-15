@@ -47,7 +47,6 @@ import { useEffectiveToolbarPermissions } from "../../../hooks/roles/useEffectiv
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 const ADDR_USER = "0x1111111111111111111111111111111111111111";
-const ADDR_OTHER = "0x2222222222222222222222222222222222222222";
 
 function makeGarden(id: string, overrides: Record<string, unknown> = {}) {
   return {

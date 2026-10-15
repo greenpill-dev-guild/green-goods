@@ -437,17 +437,19 @@ describe("usePoolConsoleController", () => {
     const setTimeoutSpy = vi.spyOn(globalThis, "setTimeout");
 
     const { result } = renderController(queryClient);
-    expect(setTimeoutSpy.mock.calls.some(([, delay]) => delay === 2_147_483_647)).toBe(true);
+    const cappedTimer = setTimeoutSpy.mock.calls.find(([, delay]) => delay === 2_147_483_647)?.[0];
+    expect(cappedTimer).toEqual(expect.any(Function));
     expect(result.current.model.dueLive).toEqual([]);
 
     dateNow.mockReturnValue(NOW * 1000 + 2_147_483_647);
-    act(() => vi.runOnlyPendingTimers());
+    act(() => (cappedTimer as () => void)());
     expect(result.current.model.dueLive).toEqual([]);
     const remaining = (farDue + 1) * 1000 - (NOW * 1000 + 2_147_483_647);
-    expect(setTimeoutSpy.mock.calls.some(([, delay]) => delay === remaining)).toBe(true);
+    const rearmedTimer = setTimeoutSpy.mock.calls.find(([, delay]) => delay === remaining)?.[0];
+    expect(rearmedTimer).toEqual(expect.any(Function));
 
     dateNow.mockReturnValue((farDue + 1) * 1000);
-    act(() => vi.runOnlyPendingTimers());
+    act(() => (rearmedTimer as () => void)());
     expect(result.current.model.dueLive).toEqual([due]);
   });
 

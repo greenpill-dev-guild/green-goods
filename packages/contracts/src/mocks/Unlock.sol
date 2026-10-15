@@ -2,26 +2,7 @@
 // solhint-disable one-contract-per-file
 pragma solidity ^0.8.25;
 
-import { IUnlockFactory, IPublicLock } from "../interfaces/IUnlock.sol";
-
-/// @title MockUnlockFactory
-/// @notice Mock implementation of Unlock factory for testing
-contract MockUnlockFactory is IUnlockFactory {
-    uint16 public constant LATEST_VERSION = 14;
-    uint256 public lockCount;
-
-    /// @notice Creates a mock lock
-    function createUpgradeableLockAtVersion(bytes calldata, uint16) external override returns (address lock) {
-        lockCount++;
-        lock = address(new MockPublicLock());
-        return lock;
-    }
-
-    /// @notice Returns latest lock version
-    function publicLockLatestVersion() external pure override returns (uint16) {
-        return LATEST_VERSION;
-    }
-}
+import { IPublicLock } from "../interfaces/IUnlock.sol";
 
 /// @title MockPublicLock
 /// @notice Mock implementation of Unlock PublicLock for testing

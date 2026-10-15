@@ -10,7 +10,6 @@ export { createTestQueryClient, resetTestQueryClient } from "./query-client";
 export { renderHookWithQueryClient } from "./query-client-render";
 // Re-export mock factories, offline helpers, and centralized barrel mock
 export * from "./mock-factories";
-export * from "./offline-helpers";
 export * from "./transaction-fakes";
 export * from "./job-queue-fakes";
 export * from "./commitment-pooling-fixtures";

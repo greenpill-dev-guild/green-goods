@@ -30,8 +30,6 @@ import {
 // run against a fixture would read the repository being pushed instead.
 clearRepositoryLocalGitVariables();
 
-const GIBIBYTE = 1024 ** 3;
-
 test("check selects explicit checks without dropping mandatory overrides", () => {
   const options = parseArguments(["--only", "lint", "--plan", "--json"]);
   assert.equal(options.intent, "diagnose");

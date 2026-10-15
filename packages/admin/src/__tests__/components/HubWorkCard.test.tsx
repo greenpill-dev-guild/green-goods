@@ -324,10 +324,4 @@ describe("HubWorkCard", () => {
     renderCard();
     expect(screen.getByRole("button").className).toContain("rounded-[var(--m3-shape-md)]");
   });
-
-  it("is focusable (native button)", () => {
-    renderCard();
-    const card = screen.getByRole("button");
-    expect(card.tagName).toBe("BUTTON");
-  });
 });

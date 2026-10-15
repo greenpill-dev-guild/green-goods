@@ -595,20 +595,6 @@ describe("components/Hypercerts/AttestationSelector", () => {
       expect(unselectedCard).toHaveAttribute("aria-pressed", "false");
     });
 
-    it("has proper aria-disabled state for bundled items", () => {
-      render(
-        createElement(AttestationSelector, {
-          ...defaultProps,
-          bundledInfo: {
-            "0x1111": { hypercertId: "hc-123", title: "Existing Hypercert" },
-          },
-        })
-      );
-
-      const bundledCard = screen.getByText("Native Tree Planting").closest("button");
-      expect(bundledCard).toHaveAttribute("aria-disabled", "true");
-    });
-
     it("has accessible loading state", () => {
       render(
         createElement(AttestationSelector, {

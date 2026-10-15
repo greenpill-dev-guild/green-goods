@@ -1,294 +1,64 @@
 /**
- * Client Authentication E2E Tests
- *
- * Authentication flow testing:
- * - Login UI verification
- * - Wallet connection flow
- * - Auth state persistence (via wallet injection)
- *
- * NOTE: Real Pimlico passkey e2e runs are opt-in via RUN_REAL_PASSKEY_E2E=true.
- * Default CI coverage uses:
- * - Mocked passkey e2e: tests/specs/client.passkey.spec.ts
- * - Unit tests for auth services: packages/shared/src/__tests__/workflows/authServices.test.ts
+ * Manual wallet-storage checks. These do not exercise a real wallet connector.
+ * Qualified passkey rejection and reporting ceremonies live in the passkey preset.
  */
-
 import { expect, test } from "@playwright/test";
 import { ClientTestHelper, TEST_URLS } from "../helpers/test-utils";
 
-const CLIENT_URL = TEST_URLS.client;
-const RUN_REAL_PASSKEY_E2E = process.env.RUN_REAL_PASSKEY_E2E === "true";
+test.describe("Client injected-wallet storage", () => {
+  test.use({ baseURL: TEST_URLS.client });
 
-test.describe("Client Authentication Flows", () => {
-  test.use({ baseURL: CLIENT_URL });
+  test("shows authenticated UI from injected wallet storage", async ({ page }) => {
+    // Prefer wallet on iOS, but works on all platforms
+    const helper = new ClientTestHelper(page);
 
-  test.describe("Passkey Registration", () => {
-    // SKIP: #338 owner:afo expiry:2026-10-16 — needs real Pimlico API
-    test.skip(!RUN_REAL_PASSKEY_E2E, "Set RUN_REAL_PASSKEY_E2E=true to run against real Pimlico.");
+    await helper.authenticateWithWallet();
 
-    test.fixme(
-      "creates new passkey account with username",
-      "Covered in mocked suite (tests/specs/client.passkey.spec.ts)."
-    );
+    // Verify authenticated state
+    await page.waitForTimeout(2000);
+    expect(page.url()).toContain("/home");
 
-    test("handles passkey registration cancellation", async ({ page }) => {
-      // This test doesn't actually use passkey auth - just verifies UI
-      await page.goto("/home/login?presentation=pwa");
-      await page.waitForLoadState("domcontentloaded");
-      await page.waitForTimeout(1000);
+    // Look for authenticated UI elements
+    const authenticatedElements = [
+      '[data-testid="authenticated-nav"]',
+      '[data-testid="work-dashboard-button"]',
+      'nav:has(a[href="/home/profile"])',
+      'button[aria-label="Menu"]',
+    ];
 
-      // Verify login page loads correctly
-      const loginButton = page.getByTestId("login-button");
-      await expect(loginButton).toBeVisible({ timeout: 10000 });
-
-      // Click to show username input
-      await loginButton.click();
-      await page.waitForTimeout(500);
-
-      // Verify username input appears (if passkey flow shows it)
-      const usernameInput = page.getByTestId("username-input");
-      const hasUsernameInput = await usernameInput.isVisible({ timeout: 3000 }).catch(() => false);
-
-      // Either username input appears or we're still on login page
-      expect(hasUsernameInput || page.url().includes("/home/login")).toBeTruthy();
-    });
-
-    test.fixme(
-      "shows error message on passkey creation failure",
-      "Covered in mocked suite (tests/specs/client.passkey.spec.ts)."
-    );
+    let authElementFound = false;
+    for (const selector of authenticatedElements) {
+      if (
+        await page
+          .locator(selector)
+          .isVisible({ timeout: 3000 })
+          .catch(() => false)
+      ) {
+        authElementFound = true;
+        break;
+      }
+    }
+    expect(authElementFound).toBeTruthy();
   });
 
-  test.describe("Wallet Connection", () => {
-    test("connects wallet and authenticates", async ({ page }) => {
-      // Prefer wallet on iOS, but works on all platforms
-      const helper = new ClientTestHelper(page);
+  test("signs out wallet user and redirects to login", async ({ page }) => {
+    const helper = new ClientTestHelper(page);
 
-      try {
-        await helper.setupWalletAuth();
-        await helper.authenticateWithWallet();
+    // Use wallet injection
+    await helper.injectWalletAuth();
+    await page.goto("/home");
+    await helper.waitForPageLoad();
 
-        // Verify authenticated state
-        await page.waitForTimeout(2000);
-        expect(page.url()).toContain("/home");
+    const url = page.url();
+    // SKIP: #338 owner:afo expiry:2026-10-16 — wallet injection may not persist in this manual lane
+    test.skip(url.includes("/home/login"), "Wallet authentication did not persist");
 
-        // Look for authenticated UI elements
-        const authenticatedElements = [
-          '[data-testid="authenticated-nav"]',
-          '[data-testid="work-dashboard-button"]',
-          'nav:has(a[href="/home/profile"])',
-          'button[aria-label="Menu"]',
-        ];
+    await page.goto("/home/profile");
+    await helper.waitForPageLoad();
 
-        let authElementFound = false;
-        for (const selector of authenticatedElements) {
-          if (
-            await page
-              .locator(selector)
-              .isVisible({ timeout: 3000 })
-              .catch(() => false)
-          ) {
-            authElementFound = true;
-            break;
-          }
-        }
-        expect(authElementFound).toBeTruthy();
-      } finally {
-        await helper.cleanup();
-      }
-    });
-
-    test("shows wallet connection modal", async ({ page }) => {
-      await page.goto("/home/login?presentation=pwa");
-      await page.waitForLoadState("domcontentloaded");
-      await page.waitForTimeout(1000);
-
-      // Login button should be visible
-      const loginButton = page.getByTestId("login-button");
-      await expect(loginButton).toBeVisible({ timeout: 10000 });
-
-      // Wallet option is a tertiary text link ("Login with wallet")
-      // It could be a button or a link
-      const walletLink = page
-        .locator(
-          'button:has-text("Login with wallet"), a:has-text("Login with wallet"), text="Login with wallet"'
-        )
-        .first();
-      const hasWalletLink = await walletLink.isVisible({ timeout: 3000 }).catch(() => false);
-
-      if (hasWalletLink) {
-        await walletLink.click();
-        await page.waitForTimeout(2000);
-
-        // Reown AppKit modal uses w3m-modal tag or specific classes
-        const modalSelectors = [
-          "w3m-modal",
-          "appkit-modal",
-          '[data-testid="wallet-modal"]',
-          '[role="dialog"]',
-          'div[class*="modal"]',
-        ];
-
-        let modalFound = false;
-        for (const selector of modalSelectors) {
-          const element = page.locator(selector).first();
-          if (await element.isVisible({ timeout: 2000 }).catch(() => false)) {
-            modalFound = true;
-            break;
-          }
-        }
-
-        // Accept either modal showing or still on login page
-        expect(modalFound || page.url().includes("/home/login")).toBeTruthy();
-      } else {
-        // If no wallet link visible, the login button should still be functional
-        await expect(loginButton).toBeEnabled();
-      }
-    });
-
-    test("handles wallet connection rejection", async ({ page }) => {
-      await page.goto("/home/login?presentation=pwa");
-      await page.waitForLoadState("domcontentloaded");
-      await page.waitForTimeout(1000);
-
-      const loginButton = page.getByTestId("login-button");
-      await expect(loginButton).toBeVisible({ timeout: 10000 });
-
-      // Wallet option is a tertiary text link
-      const walletLink = page
-        .locator(
-          'button:has-text("Login with wallet"), a:has-text("Login with wallet"), text="Login with wallet"'
-        )
-        .first();
-      const hasWalletLink = await walletLink.isVisible({ timeout: 3000 }).catch(() => false);
-
-      if (hasWalletLink) {
-        await walletLink.click();
-        await page.waitForTimeout(2000);
-
-        // Try to close/cancel modal if it appears
-        const closeSelectors = [
-          'button[aria-label="Close"]',
-          'button[aria-label="Cancel"]',
-          'button:has-text("Cancel")',
-          'button:has-text("Close")',
-          '[data-testid="modal-close"]',
-          '[data-testid="app-sheet-close"]',
-        ];
-
-        let closed = false;
-        for (const selector of closeSelectors) {
-          const closeButton = page.locator(selector).first();
-          if (await closeButton.isVisible({ timeout: 1000 }).catch(() => false)) {
-            await closeButton.click();
-            closed = true;
-            await page.waitForTimeout(1000);
-            break;
-          }
-        }
-
-        // If no close button found, press Escape
-        if (!closed) {
-          await page.keyboard.press("Escape");
-          await page.waitForTimeout(1000);
-        }
-      }
-
-      // Should remain on login page
-      expect(page.url()).toContain("/home/login");
-      await expect(loginButton).toBeVisible();
-    });
-  });
-
-  test.describe("Auth State Persistence", () => {
-    test.describe("Passkey", () => {
-      // SKIP: #338 owner:afo expiry:2026-10-16 — needs real Pimlico API
-      test.skip(
-        !RUN_REAL_PASSKEY_E2E,
-        "Set RUN_REAL_PASSKEY_E2E=true to run against real Pimlico."
-      );
-
-      test.fixme(
-        "persists passkey session across page reloads",
-        "Covered in mocked suite (tests/specs/client.passkey.spec.ts)."
-      );
-    });
-
-    test("persists wallet session across page reloads", async ({ page }) => {
-      const helper = new ClientTestHelper(page);
-
-      // Use wallet injection for testing persistence
-      await helper.injectWalletAuth();
-      await page.goto("/home");
-      await helper.waitForPageLoad();
-
-      const url = page.url();
-      if (url.includes("/home/login")) {
-        console.log("Auth injection not persisted - skipping persistence test");
-        return;
-      }
-
-      // Reload page
-      await page.reload();
-      await helper.waitForPageLoad();
-
-      // Should still be authenticated (if storage persisted)
-      const newUrl = page.url();
-      // Either still on home (auth persisted) or redirected to login (storage cleared on reload)
-      expect(newUrl.includes("/home") || newUrl.includes("/home/login")).toBeTruthy();
-    });
-  });
-
-  test.describe("Sign Out", () => {
-    test.describe("Passkey", () => {
-      // SKIP: #338 owner:afo expiry:2026-10-16 — needs real Pimlico API
-      test.skip(
-        !RUN_REAL_PASSKEY_E2E,
-        "Set RUN_REAL_PASSKEY_E2E=true to run against real Pimlico."
-      );
-
-      test.fixme(
-        "signs out passkey user and redirects to login",
-        "Covered in mocked suite (tests/specs/client.passkey.spec.ts)."
-      );
-    });
-
-    test("signs out wallet user and redirects to login", async ({ page }) => {
-      const helper = new ClientTestHelper(page);
-
-      // Use wallet injection
-      await helper.injectWalletAuth();
-      await page.goto("/home");
-      await helper.waitForPageLoad();
-
-      const url = page.url();
-      // SKIP: #338 owner:afo expiry:2026-10-16 — wallet injection may not persist in this manual lane
-      test.skip(url.includes("/home/login"), "Wallet authentication did not persist");
-
-      await page.goto("/home/profile");
-      await helper.waitForPageLoad();
-
-      const signOutButton = page.getByRole("button", { name: /logout|log out|sign out/i });
-      await expect(signOutButton).toBeVisible();
-      await signOutButton.click();
-      await expect(page).toHaveURL(/\/home\/login/);
-    });
-  });
-
-  test.describe("Auth Error Handling", () => {
-    test("shows error message on authentication failure", async ({ page }) => {
-      await page.goto("/home/login?presentation=pwa");
-      await page.waitForLoadState("domcontentloaded");
-
-      // TODO: Simulate authentication failure
-      await expect(page.getByTestId("login-button")).toBeVisible();
-    });
-
-    test("allows retry after authentication error", async ({ page }) => {
-      await page.goto("/home/login?presentation=pwa");
-      await page.waitForLoadState("domcontentloaded");
-
-      // TODO: Simulate error and retry
-      await expect(page.getByTestId("login-button")).toBeVisible();
-    });
+    const signOutButton = page.getByRole("button", { name: /logout|log out|sign out/i });
+    await expect(signOutButton).toBeVisible();
+    await signOutButton.click();
+    await expect(page).toHaveURL(/\/home\/login/);
   });
 });

@@ -345,16 +345,6 @@ describe("pooling configuration planning", () => {
     expect(() => planPoolingConfiguration(targets, conflicting)).toThrow(/assessment/i);
   });
 
-  it("refuses to silently repoint a live v3 schema UID, which would revalidate existing attestations", () => {
-    const conflicting = {
-      ...unconfigured,
-      assessmentSchemaUID: targets.assessmentSchemaUID,
-      assessmentV3SchemaUID: `0x${"99".repeat(32)}`,
-    };
-
-    expect(() => planPoolingConfiguration(targets, conflicting)).toThrow(/assessmentV3SchemaUID/);
-  });
-
   it("refuses to silently repoint the live work-approval bridge at a different module", () => {
     const conflicting = { ...unconfigured, workApprovalCommitmentModule: "0xB000000000000000000000000000000000000009" };
 

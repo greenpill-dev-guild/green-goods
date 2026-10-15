@@ -25,6 +25,11 @@ const clearMachine = async () => ({ status: "clear" });
 test("package test selections retain their actual scope", () => {
   const admin = resolve("admin", "test", ["--suite", "hub"]);
   assert.equal(ADMIN_HUB_TESTS.length, 13);
+  for (const path of ADMIN_HUB_TESTS) {
+    assert.ok(existsSync(new URL(`../../packages/admin/${path}`, import.meta.url)), path);
+  }
+  assert.ok(ADMIN_HUB_TESTS.includes("src/__tests__/routes/IndexRoute.test.tsx"));
+  assert.ok(ADMIN_HUB_TESTS.includes("src/__tests__/components/CanvasLayout.test.tsx"));
   assert.deepEqual(admin.steps[0].args.slice(3), ADMIN_HUB_TESTS);
   assert.equal(admin.steps[0].env.APP_ENV, "test");
   assert.ok(resolve("shared", "test").steps[0].args.includes("src/**/*.live.test.ts"));

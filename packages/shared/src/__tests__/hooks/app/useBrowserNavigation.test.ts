@@ -25,6 +25,7 @@ describe("hooks/app/useBrowserNavigation", () => {
     mockLocation.pathname = "/";
     mockLocation.search = "";
     mockLocation.hash = "";
+    mockUseLocation.mockImplementation(() => ({ ...mockLocation, state: null, key: "test" }));
   });
 
   it("returns a number (forceUpdate counter)", () => {
@@ -45,7 +46,7 @@ describe("hooks/app/useBrowserNavigation", () => {
     rerender();
 
     // The counter should increment due to the location.pathname dependency
-    expect(result.current).toBeGreaterThanOrEqual(initial);
+    expect(result.current).toBeGreaterThan(initial);
   });
 
   it("increments on popstate event (browser back/forward)", () => {
@@ -88,6 +89,6 @@ describe("hooks/app/useBrowserNavigation", () => {
 
     rerender();
 
-    expect(result.current).toBeGreaterThanOrEqual(initial);
+    expect(result.current).toBeGreaterThan(initial);
   });
 });

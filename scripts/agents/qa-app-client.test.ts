@@ -1684,115 +1684,24 @@ describe("QA app client races", () => {
   // runs past Vitest's 5s default — the cause of the intermittent timeout here.
   const JSDOM_SUBPROCESS_TIMEOUT_MS = 120_000;
 
-  it("does not let a stale poll roll back a note that already showed saved", () => {
-    execFileSync(
-      "node",
-      [
-        "scripts/dev/node-cli.js",
-        "node",
-        "--input-type=module",
-        "--eval",
-        `await (${clientRaceHarness.toString()})()`,
-      ],
-      { cwd: repoRoot, stdio: "pipe" },
-    );
-  }, JSDOM_SUBPROCESS_TIMEOUT_MS);
-
-  it("keeps an unsent note across a page session and sends it on the next open", () => {
-    execFileSync(
-      "node",
-      [
-        "scripts/dev/node-cli.js",
-        "node",
-        "--input-type=module",
-        "--eval",
-        `await (${outboxDurabilityHarness.toString()})()`,
-      ],
-      { cwd: repoRoot, stdio: "pipe" },
-    );
-  }, JSDOM_SUBPROCESS_TIMEOUT_MS);
-
-  it("does not resend a verdict the server already stored alongside a later note", () => {
-    execFileSync(
-      "node",
-      [
-        "scripts/dev/node-cli.js",
-        "node",
-        "--input-type=module",
-        "--eval",
-        `await (${inFlightFieldHarness.toString()})()`,
-      ],
-      { cwd: repoRoot, stdio: "pipe" },
-    );
-  }, JSDOM_SUBPROCESS_TIMEOUT_MS);
-
-  it("surfaces expiry and will not move unsaved work to a switched wallet", () => {
-    execFileSync(
-      "node",
-      [
-        "scripts/dev/node-cli.js",
-        "node",
-        "--input-type=module",
-        "--eval",
-        `await (${authRecoveryHarness.toString()})()`,
-      ],
-      { cwd: repoRoot, stdio: "pipe" },
-    );
-  }, JSDOM_SUBPROCESS_TIMEOUT_MS);
-
-  it("keeps mutable and prototype-shaped display labels presentation-only", () => {
-    execFileSync(
-      "node",
-      [
-        "scripts/dev/node-cli.js",
-        "node",
-        "--input-type=module",
-        "--eval",
-        `await (${displayLabelHarness.toString()})()`,
-      ],
-      { cwd: repoRoot, stdio: "pipe" },
-    );
-  }, JSDOM_SUBPROCESS_TIMEOUT_MS);
-
-  it("keeps runs apart: keyed queues, read-only closed runs, compare, Re-QA, re-targeting, and rollover", () => {
-    execFileSync(
-      "node",
-      [
-        "scripts/dev/node-cli.js",
-        "node",
-        "--input-type=module",
-        "--eval",
-        `await (${runsHarness.toString()})()`,
-      ],
-      { cwd: repoRoot, stdio: "pipe" },
-    );
-  }, JSDOM_SUBPROCESS_TIMEOUT_MS);
-
-  it("offers work stranded by a closed run instead of sending it into the next one", () => {
-    execFileSync(
-      "node",
-      [
-        "scripts/dev/node-cli.js",
-        "node",
-        "--input-type=module",
-        "--eval",
-        `await (${carryPromptHarness.toString()})()`,
-      ],
-      { cwd: repoRoot, stdio: "inherit", timeout: JSDOM_SUBPROCESS_TIMEOUT_MS },
-    );
-  }, JSDOM_SUBPROCESS_TIMEOUT_MS);
-
-  it("orders a cross-surface journey, restores its view, and separates Act from Verify", () => {
-    execFileSync(
-      "node",
-      [
-        "scripts/dev/node-cli.js",
-        "node",
-        "--input-type=module",
-        "--eval",
-        `await (${journeyModeHarness.toString()})()`,
-      ],
-      { cwd: repoRoot, stdio: "pipe" },
-    );
-  }, JSDOM_SUBPROCESS_TIMEOUT_MS);
+  for (const [title, harness, stdio] of [
+    ["does not let a stale poll roll back a note that already showed saved", clientRaceHarness, "pipe"],
+    ["keeps an unsent note across a page session and sends it on the next open", outboxDurabilityHarness, "pipe"],
+    ["does not resend a verdict the server already stored alongside a later note", inFlightFieldHarness, "pipe"],
+    ["surfaces expiry and will not move unsaved work to a switched wallet", authRecoveryHarness, "pipe"],
+    ["keeps mutable and prototype-shaped display labels presentation-only", displayLabelHarness, "pipe"],
+    ["keeps runs apart: keyed queues, read-only closed runs, compare, Re-QA, re-targeting, and rollover", runsHarness, "pipe"],
+    ["offers work stranded by a closed run instead of sending it into the next one", carryPromptHarness, "inherit"],
+    ["orders a cross-surface journey, restores its view, and separates Act from Verify", journeyModeHarness, "pipe"],
+  ] as const) {
+    it(title, () => {
+      execFileSync("node", [
+        "scripts/dev/node-cli.js", "node", "--input-type=module", "--eval",
+        `await (${harness.toString()})()`,
+      ], {
+        cwd: repoRoot, stdio,
+        ...(stdio === "inherit" ? { timeout: JSDOM_SUBPROCESS_TIMEOUT_MS } : {}),
+      });
+    }, JSDOM_SUBPROCESS_TIMEOUT_MS);
+  }
 });
