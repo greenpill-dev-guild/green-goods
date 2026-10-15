@@ -1,17 +1,32 @@
+import { SETTLEMENT_ENABLED } from "@green-goods/shared/config/app";
 import { useProtocolFundingOperationsController } from "@green-goods/shared/hooks/admin-ui/pool/useProtocolFundingOperationsController";
 import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useCommitmentPools } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentPooling";
 import type { Address } from "@green-goods/shared/types/domain";
-import { useEffect, useMemo, useState } from "react";
+import { type ComponentProps, useEffect, useMemo, useState } from "react";
 import { shortAddress } from "@/views/Garden/Pool/poolFundingPresentation";
 import { ProtocolFundingOperationsCard } from "./ProtocolFundingOperationsCard";
 
-export function ProtocolFundingOperationsPanel({
+export function ProtocolFundingOperationsPanel(props: {
+  chainId: number;
+  protocolGarden: Address;
+  renderLayout?: ComponentProps<typeof ProtocolFundingOperationsCard>["renderLayout"];
+}) {
+  return SETTLEMENT_ENABLED ? (
+    <EnabledProtocolFundingOperationsPanel {...props} />
+  ) : (
+    (props.renderLayout?.(null, null) ?? null)
+  );
+}
+
+function EnabledProtocolFundingOperationsPanel({
   chainId,
   protocolGarden,
+  renderLayout,
 }: {
   chainId: number;
   protocolGarden: Address;
+  renderLayout?: ComponentProps<typeof ProtocolFundingOperationsCard>["renderLayout"];
 }) {
   const { data: gardensData, refetch: refetchGardens } = useGardens(chainId);
   const pools = useCommitmentPools({ chainId });
@@ -55,6 +70,7 @@ export function ProtocolFundingOperationsPanel({
   });
   return (
     <ProtocolFundingOperationsCard
+      renderLayout={renderLayout}
       operations={operations}
       gardens={options}
       targetGarden={targetGarden}

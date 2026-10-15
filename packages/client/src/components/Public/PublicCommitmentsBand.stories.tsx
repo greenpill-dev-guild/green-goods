@@ -40,8 +40,8 @@ const meta: Meta<typeof PublicCommitmentsBand> = {
       description: {
         component:
           "Community commitments on the public Impact page: offers and requests made, " +
-          "commitments kept, and funding received in US dollars using historical receipt-time prices. " +
-          "Unavailable figures are labelled and never replaced with zero.",
+          "and commitments kept. No money figure: payouts to Gardens are not part of this " +
+          "story. Unavailable figures are labelled and never replaced with zero.",
       },
     },
   },
@@ -58,35 +58,6 @@ export const NothingYet: Story = {
         commitmentsFulfilled: 0n,
         confirmedDisbursementTotal: 0n,
         confirmedDisbursementUsdCents: 0n,
-      })
-    ),
-  ],
-};
-export const PartialRead: Story = {
-  decorators: [
-    seeded(
-      impact({
-        confirmedDisbursementTotal: null,
-        confirmedDisbursementUsdCents: null,
-        unavailableSources: {
-          commitmentPools: false,
-          confirmedSettlement: true,
-          fundingValuation: true,
-        },
-      })
-    ),
-  ],
-};
-export const HistoricalPriceUnavailable: Story = {
-  decorators: [
-    seeded(
-      impact({
-        confirmedDisbursementUsdCents: null,
-        unavailableSources: {
-          commitmentPools: false,
-          confirmedSettlement: false,
-          fundingValuation: true,
-        },
       })
     ),
   ],

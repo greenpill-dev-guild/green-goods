@@ -2,7 +2,7 @@
 
 > Canonical curated-question library for PostHog reads across Green Goods routines and
 > skills. Two lenses (product/quality, growth/BD), one privacy boundary, one shared answer
-> per question. Formerly `.claude/skills/posthog-questions/SKILL.md` — moved here in the
+> per question. The retired `.claude/skills/posthog-questions/SKILL.md` moved here in the
 > 2026-07 round-2 consolidation because it is a data dictionary, not a procedure.
 
 Single source of truth for every PostHog read a routine or interactive skill should need. Routines reference questions **by name** (`errors.recent`, `funnel.onboarding`, etc.) — never paste raw HogQL into a routine prompt. When a question's underlying query needs to evolve, edit it here once and every consumer picks up the change.
@@ -721,7 +721,7 @@ A routine wiring this library should:
 
 Versions are recorded **inline on the question entry** as a dated `vX.Y.Z` bullet (see
 `failures.conversion-kill` v1.3.0). The `version:` front-matter field this section used to
-reference did not survive the move out of `.claude/skills/posthog-questions/SKILL.md`, and no
+reference was removed when `.claude/skills/posthog-questions/SKILL.md` was retired. No
 routine doc carries one — don't reintroduce it, record the bump on the question instead.
 
 Bump a question's inline version when:

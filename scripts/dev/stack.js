@@ -36,7 +36,7 @@ const pm2 = require("pm2");
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, "../..");
-const PRODUCTION_INDEXER_URL = "https://indexer.hyperindex.xyz/e6edffd/v1/graphql";
+const PRODUCTION_INDEXER_URL = "https://indexer.hyperindex.xyz/de3e5df/v1/graphql";
 const PRODUCTION_AGENT_URL = "https://agent.greengoods.app";
 const LOCAL_INDEXER_URL = "http://localhost:3006/v1/graphql";
 const ARBITRUM_PUBLIC_RPC_URL = "https://arb1.arbitrum.io/rpc";
@@ -524,8 +524,11 @@ function productionProfileEnv(group) {
 
 /**
  * Apply a stack profile without re-enabling explicitly disabled local Vite connections.
- * Hosted and fork profiles always use their own indexer: fork writes land only in the
- * local fork indexer, so a configured hosted indexer would hide them.
+ * Hosted and fork profiles always use their own indexer. For fork that is the local indexer this
+ * stack starts and its smoke check reads, so a configured hosted indexer cannot leave the apps
+ * on a service the stack never checked. It is not an indexer of the fork: the indexer's Envio
+ * config has no RPC source and its container is given no RPC variable, so it reads live Arbitrum
+ * through HyperSync and writes made on the Anvil fork never reach indexed reads.
  */
 export function applyGroupEnvironment(app, group) {
   const profileEnv = productionProfileEnv(group);

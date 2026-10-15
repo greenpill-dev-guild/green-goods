@@ -19,6 +19,10 @@ import { useEffect, useLayoutEffect, useRef } from "react";
  * re-focuses the pre-commit element after its mutation phase, which would undo
  * a restore made during layout.
  *
+ * The opener is whatever holds focus, and Safari does not focus a button or
+ * link on a click or tap. An opener that should get focus back there takes
+ * focus in its press handler, before it opens the surface.
+ *
  * @param open - Whether the surface is showing
  */
 export function useOpenerFocus(open: boolean): void {

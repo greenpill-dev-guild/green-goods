@@ -4,9 +4,11 @@ import { useHypercertListings } from "@green-goods/shared/hooks/hypercerts/useHy
 import type { Address } from "@green-goods/shared/types/domain";
 import type { RegisteredOrderView } from "@green-goods/shared/types/hypercerts";
 import { RiCloseLine, RiExchangeDollarLine, RiLoader4Line, RiTimeLine } from "@remixicon/react";
+import { useState } from "react";
 import { useIntl } from "react-intl";
 import { formatEther } from "viem";
 import { AdminButton } from "@/components/AdminButton";
+import { AdminConfirmDialog } from "@/components/AdminDialog";
 
 interface ActiveListingsTableProps {
   gardenAddress: Address;
@@ -52,56 +54,136 @@ function formatTimeRemaining(
 export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveListingsTableProps) {
   const intl = useIntl();
   const { listings, isLoading, error } = useHypercertListings(gardenAddress);
-  const { cancelListing, isCancelling } = useCancelListing(gardenAddress);
+  const {
+    cancelListing,
+    isCancelling,
+    pendingCancellation,
+    isCheckingConfirmation,
+    checkConfirmation,
+    confirmWalletCancellation,
+    error: cancellationError,
+  } = useCancelListing(gardenAddress);
+
+  const [reviewCancellation, setReviewCancellation] = useState<typeof pendingCancellation>();
+  const [isClearing, setIsClearing] = useState(false);
+  const [recoveryError, setRecoveryError] = useState(false);
+  const recoveryBusy = isCheckingConfirmation || isClearing;
+
+  const recoveryControls = pendingCancellation ? (
+    <>
+      <Alert variant="info">
+        <AdminButton size="sm" disabled={recoveryBusy} onClick={() => void checkConfirmation()}>
+          {intl.formatMessage({
+            id: "app.account.checkConfirmation",
+            defaultMessage: "Check confirmation",
+          })}
+        </AdminButton>
+        <AdminButton
+          size="sm"
+          variant="text"
+          disabled={recoveryBusy}
+          onClick={() => {
+            setRecoveryError(false);
+            setReviewCancellation(pendingCancellation);
+          }}
+        >
+          {intl.formatMessage({ id: "app.account.reviewCancellation" })}
+        </AdminButton>
+      </Alert>
+      {recoveryError && (
+        <Alert variant="error">
+          {intl.formatMessage({ id: "app.account.pendingRecoveryUnavailable" })}
+        </Alert>
+      )}
+      <AdminConfirmDialog
+        isOpen={Boolean(reviewCancellation && reviewCancellation === pendingCancellation)}
+        onClose={() => setReviewCancellation(undefined)}
+        title={intl.formatMessage({ id: "app.account.confirmCancellationTitle" })}
+        description={intl.formatMessage({ id: "app.account.confirmCancellationDescription" })}
+        confirmLabel={intl.formatMessage({ id: "app.account.confirmCancellation" })}
+        variant="warning"
+        tone="garden"
+        isLoading={isClearing}
+        confirmDisabled={recoveryBusy}
+        onError={() => setRecoveryError(true)}
+        onConfirm={async () => {
+          setIsClearing(true);
+          try {
+            await confirmWalletCancellation(true);
+            setReviewCancellation(undefined);
+          } finally {
+            setIsClearing(false);
+          }
+        }}
+      />
+    </>
+  ) : null;
+
+  const confirmationControl = (
+    <>
+      {recoveryControls}
+      {cancellationError && <Alert variant="error">{cancellationError.message}</Alert>}
+    </>
+  );
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center gap-2 py-8">
-        <RiLoader4Line className="h-5 w-5 animate-spin text-text-soft" />
-        <span className="body-sm text-text-soft">
-          {intl.formatMessage({
-            id: "app.admin.listings.loading",
-            defaultMessage: "Loading listings...",
-          })}
-        </span>
-      </div>
+      <>
+        {confirmationControl}
+        <div className="flex items-center justify-center gap-2 py-8">
+          <RiLoader4Line className="h-5 w-5 animate-spin text-text-soft" />
+          <span className="body-sm text-text-soft">
+            {intl.formatMessage({
+              id: "app.admin.listings.loading",
+              defaultMessage: "Loading listings...",
+            })}
+          </span>
+        </div>
+      </>
     );
   }
 
   if (error) {
     return (
-      <Alert variant="error">
-        {intl.formatMessage({
-          id: "app.admin.listings.loadError",
-          defaultMessage: "Failed to load listings",
-        })}
-      </Alert>
+      <>
+        {confirmationControl}
+        <Alert variant="error">
+          {intl.formatMessage({
+            id: "app.admin.listings.loadError",
+            defaultMessage: "Failed to load listings",
+          })}
+        </Alert>
+      </>
     );
   }
 
   if (listings.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-stroke-soft p-8 text-center">
-        <RiExchangeDollarLine className="mx-auto h-8 w-8 text-text-disabled" />
-        <p className="mt-2 body-sm text-text-soft">
-          {intl.formatMessage({
-            id: "app.admin.listings.empty",
-            defaultMessage: "No active listings",
-          })}
-        </p>
-        <p className="mt-1 body-xs text-text-disabled">
-          {intl.formatMessage({
-            id: "app.admin.listings.emptyHint",
-            defaultMessage:
-              "List your hypercerts for yield to allow supporters to purchase fractions",
-          })}
-        </p>
-      </div>
+      <>
+        {confirmationControl}
+        <div className="rounded-lg border border-dashed border-stroke-soft p-8 text-center">
+          <RiExchangeDollarLine className="mx-auto h-8 w-8 text-text-disabled" />
+          <p className="mt-2 body-sm text-text-soft">
+            {intl.formatMessage({
+              id: "app.admin.listings.empty",
+              defaultMessage: "No active listings",
+            })}
+          </p>
+          <p className="mt-1 body-xs text-text-disabled">
+            {intl.formatMessage({
+              id: "app.admin.listings.emptyHint",
+              defaultMessage:
+                "List your hypercerts for yield to allow supporters to purchase fractions",
+            })}
+          </p>
+        </div>
+      </>
     );
   }
 
   return (
     <div className="overflow-hidden rounded-lg border border-stroke-soft">
+      {confirmationControl}
       <table className="w-full text-left body-sm">
         <thead>
           <tr className="border-b border-stroke-soft bg-bg-soft">
@@ -184,13 +266,26 @@ export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveLi
                     <AdminButton
                       variant="danger"
                       size="sm"
-                      onClick={() => cancelListing(listing.orderId)}
-                      loading={isCancelling}
+                      onClick={() =>
+                        pendingCancellation ? checkConfirmation() : cancelListing(listing.orderId)
+                      }
+                      loading={!pendingCancellation && isCancelling}
+                      disabled={
+                        recoveryBusy ||
+                        (Boolean(pendingCancellation) &&
+                          pendingCancellation?.orderId !== listing.orderId)
+                      }
                       leadingIcon={<RiCloseLine />}
                     >
                       {intl.formatMessage({
-                        id: "app.admin.listings.cancel",
-                        defaultMessage: "Cancel",
+                        id:
+                          pendingCancellation?.orderId === listing.orderId
+                            ? "app.account.checkConfirmation"
+                            : "app.admin.listings.cancel",
+                        defaultMessage:
+                          pendingCancellation?.orderId === listing.orderId
+                            ? "Check confirmation"
+                            : "Cancel",
                       })}
                     </AdminButton>
                   ) : (

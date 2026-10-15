@@ -19,7 +19,7 @@ const prismDark = {
 const config: Config = {
   title: 'Green Goods Documentation',
   tagline: 'Bringing community and environmental actions on-chain',
-  favicon: 'img/favicon.ico', // Green Goods favicon from client app
+  favicon: 'img/favicon.ico', // Canonical Brand kit favicon at the established public URL
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
   future: {
@@ -38,6 +38,10 @@ const config: Config = {
   trailingSlash: false,
 
   onBrokenLinks: 'throw',
+
+  clientModules: [
+    './src/clientModules/mermaidExpand.ts',
+  ],
 
   // Even if you don't use internationalization, you can use this field to set
   // useful metadata like html lang. For example, if your site is Chinese, you
@@ -67,11 +71,61 @@ const config: Config = {
   ],
 
   plugins: [
+    // Publishes llms.txt plus a Markdown twin of every page for agents.
+    './plugins/llms-twins.mjs',
     [
       '@docusaurus/plugin-client-redirects',
       {
         redirects: [
-          {from: ['/builders/quality/gh-actions'], to: '/builders/deployments/gh-actions'},
+          // The old sidebar generated these category landings; each section now has a real page.
+          {from: ['/category/user-journeys'], to: '/builders/architecture/anatomy'},
+          {from: ['/category/packages-and-apis'], to: '/builders/packages'},
+          {from: ['/category/product-specifications'], to: '/builders/reference/economics-explorer'},
+          {from: ['/category/integrations'], to: '/builders/integrations'},
+          {from: ['/category/agentic-development'], to: '/builders/agentic'},
+          {from: ['/category/testing', '/category/quality-assurance'], to: '/builders/testing'},
+          {from: ['/category/build-ci-and-deployments'], to: '/builders/quality/gh-actions'},
+          {from: ['/builders/deployments/gh-actions'], to: '/builders/quality/gh-actions'},
+          {from: ['/builders/deployments/status'], to: '/builders/reference/deployments'},
+          {from: ['/builders/specs/revenue-explorer'], to: '/builders/reference/economics-explorer'},
+          {from: ['/reference/design-research'], to: '/builders/architecture/design'},
+          {
+            from: [
+              '/builders/testing/forge',
+              '/builders/testing/playwright',
+              '/builders/testing/vitest',
+              '/builders/testing/storybook',
+            ],
+            to: '/builders/testing',
+          },
+          {
+            from: ['/builders/architecture/erd', '/builders/architecture/sequence-diagrams'],
+            to: '/builders/architecture/data-model',
+          },
+          {from: ['/builders/integrations/entity-matrix'], to: '/builders/architecture/entity-matrix'},
+          {from: ['/builders/integrations/overview'], to: '/builders/integrations'},
+          {
+            from: [
+              '/builders/journeys/onboarding',
+              '/builders/journeys/work-submission',
+              '/builders/journeys/evaluation',
+              '/builders/journeys/funding',
+            ],
+            to: '/builders/architecture/anatomy',
+          },
+          {
+            from: ['/builders/journeys/persona-surfaces', '/builders/reference/persona-surfaces'],
+            to: '/builders/architecture/personas',
+          },
+          {from: ['/builders/env-management'], to: '/builders/getting-started'},
+          {
+            from: [
+              '/builders/ethereum-alignment',
+              '/builders/architecture/local-vs-global',
+              '/builders/architecture/modular-approach',
+            ],
+            to: '/builders/architecture',
+          },
           {
             from: [
               '/welcome/quickstart-gardener',
@@ -94,10 +148,8 @@ const config: Config = {
           {from: ['/operators/managing-actions'], to: '/community/steward-guide/creating-a-garden'},
           {from: ['/operators/reviewing-work'], to: '/community/steward-guide/reviewing-work'},
           {from: ['/operators/reporting-impact'], to: '/community/steward-guide/creating-impact-certificates'},
-          {
-            from: ['/welcome/quickstart-evaluator', '/evaluators/accessing-data'],
-            to: '/community/how-it-works',
-          },
+          {from: ['/welcome/quickstart-evaluator'], to: '/community/evaluator-guide'},
+          {from: ['/evaluators/accessing-data'], to: '/community/how-it-works'},
           {from: ['/evaluators/exploring-gardens'], to: '/community/how-it-works'},
           {
             from: ['/evaluators/using-attestation-data'],
@@ -105,7 +157,7 @@ const config: Config = {
           },
           {
             from: ['/evaluators/external-frameworks'],
-            to: '/community/steward-guide/making-an-assessment',
+            to: '/community/evaluator-guide/making-an-assessment',
           },
           {
             from: [
@@ -143,7 +195,7 @@ const config: Config = {
               '/developer/auto-translation-flow',
               '/developer/translation-troubleshooting',
             ],
-            to: '/builders/integrations/overview',
+            to: '/builders/integrations',
           },
           {
             from: [
@@ -153,7 +205,7 @@ const config: Config = {
               '/developer/monitoring',
               '/developer/contracts-handbook',
             ],
-            to: '/builders/deployments/status',
+            to: '/builders/reference/deployments',
           },
           {from: ['/developer/api-reference'], to: '/builders/packages/api-index'},
           {
@@ -268,14 +320,14 @@ const config: Config = {
           // developers/ → builders/
           {from: ['/developers/getting-started'], to: '/builders/getting-started'},
           {from: ['/developers/architecture'], to: '/builders/architecture'},
-          {from: ['/developers/integrations'], to: '/builders/integrations/overview'},
+          {from: ['/developers/integrations'], to: '/builders/integrations'},
           {from: ['/developers/build-patterns', '/builders/build-patterns'], to: '/builders/getting-started'},
           {from: ['/developers/operations', '/builders/operations'], to: '/builders/getting-started'},
           {from: ['/developers/reference'], to: '/builders/getting-started'},
-          {from: ['/developers/reference/entity-matrix'], to: '/builders/integrations/overview'},
+          {from: ['/developers/reference/entity-matrix'], to: '/builders/architecture/entity-matrix'},
           {from: ['/developers/reference/api-index'], to: '/builders/packages/api-index'},
           {from: ['/developers/reference/docs-writing-guide'], to: '/builders/how-to-contribute'},
-          {from: ['/developers/reference/deployment-indexer-status'], to: '/builders/deployments/status'},
+          {from: ['/developers/reference/deployment-indexer-status'], to: '/builders/reference/deployments'},
           {from: ['/developers/reference/agent-mcp-guide'], to: '/builders/agentic/mcp-guide'},
           {from: ['/developers/reference/docs-frontmatter-contract'], to: '/builders/how-to-contribute'},
           {
@@ -339,24 +391,24 @@ const config: Config = {
           {from: ['/community/operator-guide/creating-impact-certificates'], to: '/community/steward-guide/creating-impact-certificates'},
           {from: ['/community/operator-guide/earning-recognition'], to: '/community/steward-guide/creating-impact-certificates'},
           {from: ['/community/operator-guide'], to: '/community/steward-guide'},
-          {from: ['/community/operator-guide/making-an-assessment'], to: '/community/steward-guide/making-an-assessment'},
+          {from: ['/community/operator-guide/making-an-assessment'], to: '/community/evaluator-guide/making-an-assessment'},
           {from: ['/community/operator-guide/managing-actions'], to: '/community/steward-guide/managing-actions'},
           {from: ['/community/operator-guide/managing-certificates'], to: '/community/steward-guide/creating-impact-certificates'},
           {from: ['/community/operator-guide/managing-endowments'], to: '/community/steward-guide/funding-and-governance'},
           {from: ['/community/operator-guide/managing-governance'], to: '/community/steward-guide/funding-and-governance'},
           {from: ['/community/operator-guide/managing-payouts'], to: '/community/steward-guide/funding-and-governance'},
-          {from: ['/community/operator-guide/reporting-and-gap'], to: '/community/steward-guide/making-an-assessment'},
+          {from: ['/community/operator-guide/reporting-and-gap'], to: '/community/evaluator-guide/making-an-assessment'},
           {from: ['/community/operator-guide/reviewing-work'], to: '/community/steward-guide/reviewing-work'},
           // operator/ → community/steward-guide/
           {from: ['/operator/create-garden'], to: '/community/steward-guide/creating-a-garden'},
-          {from: ['/operator/create-assessments'], to: '/community/steward-guide/making-an-assessment'},
+          {from: ['/operator/create-assessments'], to: '/community/evaluator-guide/making-an-assessment'},
           {from: ['/operator/review-work'], to: '/community/steward-guide/reviewing-work'},
           {from: ['/operator/mint-and-list-hypercerts'], to: '/community/steward-guide/creating-impact-certificates'},
           {from: ['/operator/vaults-and-treasury'], to: '/community/steward-guide/funding-and-governance'},
           {from: ['/operator/conviction-and-signal-pools'], to: '/community/steward-guide/funding-and-governance'},
           {from: ['/operator/get-started-and-roles'], to: '/community/steward-guide/creating-a-garden'},
           {from: ['/operator/manage-actions'], to: '/community/steward-guide/managing-actions'},
-          {from: ['/operator/reporting-and-gap'], to: '/community/steward-guide/making-an-assessment'},
+          {from: ['/operator/reporting-and-gap'], to: '/community/evaluator-guide/making-an-assessment'},
           {from: ['/operator/cookie-jars'], to: '/community/steward-guide/funding-and-governance'},
 
           // gardener/ → community/gardener-guide/
@@ -366,23 +418,29 @@ const config: Config = {
           {from: ['/gardener/offline-sync-and-drafts'], to: '/community/gardener-guide/recovery-and-sync'},
           {from: ['/gardener/track-status-and-attestations'], to: '/community/gardener-guide/track-status-and-attestations'},
 
-          // evaluator/ legacy routes now point to visible docs until evaluator flows return
-          {from: ['/community/evaluator-guide'], to: '/community/how-it-works'},
+          // evaluator/ legacy routes: the role and assessments resolve to the Evaluator guide,
+          // data access to the builder pages.
           {from: ['/evaluator/verify-attestation-chains'], to: '/builders/integrations/eas'},
-          {from: ['/evaluator/get-started'], to: '/community/how-it-works'},
-          {from: ['/evaluator/cross-framework-mapping'], to: '/community/steward-guide/making-an-assessment'},
-          {from: ['/evaluator/export-and-analysis'], to: '/community/steward-guide/making-an-assessment'},
+          {from: ['/evaluator/get-started'], to: '/community/evaluator-guide'},
+          {from: ['/evaluator/cross-framework-mapping'], to: '/community/evaluator-guide/making-an-assessment'},
+          {from: ['/evaluator/export-and-analysis'], to: '/community/evaluator-guide/making-an-assessment'},
           {from: ['/evaluator/query-eas'], to: '/builders/integrations/eas'},
           {from: ['/evaluator/query-indexer'], to: '/builders/packages/api-index'},
           {from: ['/builders/glossary'], to: '/glossary'},
+          // The FAQ moved to the top level, and Make an Assessment to the Evaluator guide.
+          {from: ['/reference/faq'], to: '/faq'},
+          {
+            from: ['/community/steward-guide/making-an-assessment'],
+            to: '/community/evaluator-guide/making-an-assessment',
+          },
           {from: ['/reference/changelog'], to: '/reference/product-history'},
           {
             from: ['/reference/regenerative-design-framework'],
-            to: '/reference/design-research#sources',
+            to: '/builders/architecture/design#sources',
           },
           {
             from: ['/reference/regenerative-design-principles'],
-            to: '/reference/design-research#seven-principles',
+            to: '/builders/architecture/design#seven-principles',
           },
           {
             from: [
@@ -417,7 +475,7 @@ const config: Config = {
           },
           {
             from: ['/community/steward-guide/reporting-and-gap'],
-            to: '/community/steward-guide/making-an-assessment',
+            to: '/community/evaluator-guide/making-an-assessment',
           },
           {
             from: [
@@ -437,7 +495,7 @@ const config: Config = {
               '/community/evaluator-guide/cross-framework-mapping',
               '/community/evaluator-guide/export-and-analysis',
             ],
-            to: '/community/steward-guide/making-an-assessment',
+            to: '/community/evaluator-guide/making-an-assessment',
           },
           {
             from: ['/community/evaluator-guide/query-eas'],
@@ -493,53 +551,13 @@ const config: Config = {
     colorMode: {
       respectPrefersColorScheme: true,
     },
+    // Colors live in src/theme/Mermaid/palettes.ts, one palette per color mode. The two theme
+    // names here only tell the swizzled component which mode is active; it renders both modes
+    // on mermaid's `base` theme with the matching palette.
     mermaid: {
       theme: {
         light: 'base',
-        dark: 'base',
-      },
-      options: {
-        themeVariables: {
-          // Typography — match docs site font
-          fontFamily: '"Manrope", "Avenir Next", "Segoe UI", sans-serif',
-
-          // Primary (green) — nodes, default elements
-          primaryColor: '#dcfce7',
-          primaryTextColor: '#14532d',
-          primaryBorderColor: '#16a34a',
-          lineColor: '#16a34a',
-
-          // Secondary (blue) — alternate nodes
-          secondaryColor: '#dbeafe',
-          secondaryTextColor: '#1e3a5f',
-          secondaryBorderColor: '#1d4ed8',
-
-          // Tertiary (purple) — decision nodes, highlights
-          tertiaryColor: '#ede9fe',
-          tertiaryTextColor: '#4c1d95',
-          tertiaryBorderColor: '#7c3aed',
-
-          // Notes (amber)
-          noteBkgColor: '#fffbeb',
-          noteTextColor: '#92400e',
-          noteBorderColor: '#f59e0b',
-
-          // Subgraph / cluster styling
-          clusterBkg: '#f0fdf4',
-          clusterBorder: '#bbf7d0',
-
-          // Edge labels
-          edgeLabelBackground: '#f5f5f5',
-
-          // Sequence diagram actors
-          actorBkg: '#dcfce7',
-          actorBorder: '#16a34a',
-          actorTextColor: '#14532d',
-          signalColor: '#16a34a',
-          signalTextColor: '#14532d',
-          activationBkgColor: '#dbeafe',
-          activationBorderColor: '#1d4ed8',
-        },
+        dark: 'dark',
       },
     },
     navbar: {
@@ -547,7 +565,7 @@ const config: Config = {
       logo: {
         alt: 'Green Goods Logo',
         src: 'img/green-goods-logo.png',
-        srcDark: 'img/green-goods-logo.png', // Same logo for dark mode
+        srcDark: 'img/green-goods-logo.png', // Canonical dark green in both modes
         style: { height: '32px', width: 'auto' }, // Preserve aspect ratio (819x464 = 1.76:1)
       },
       items: [
@@ -564,32 +582,27 @@ const config: Config = {
           label: 'Builders',
         },
         {
-          to: '/brand',
-          label: 'Brand kit',
-          position: 'left',
-        },
-        {
           href: 'https://greengoods.app',
           label: 'App',
           position: 'right',
         },
         {
           href: 'https://admin.greengoods.app',
-          label: 'Dashboard',
+          label: 'Admin',
           position: 'right',
         },
       ],
     },
     footer: {
-      style: 'dark',
+      // Four links per column; the footer shares the page background in both color modes and
+      // carries no logo, so only its top border sets it apart from the content.
+      style: 'light',
       links: [
         {
           title: 'Community',
           items: [
-            { label: 'Welcome to Green Goods', to: '/' },
             { label: 'How It Works', to: '/community/how-it-works' },
-            { label: 'Why We Build', to: '/community/why-we-build' },
-            { label: 'Gardener Guide', to: '/community/gardener-guide/joining-a-garden' },
+            { label: 'Gardener Guide', to: '/community/gardener-guide/' },
             { label: 'Steward Guide', to: '/community/steward-guide/' },
             { label: 'Funder Guide', to: '/community/funder-guide/' },
           ],
@@ -599,8 +612,8 @@ const config: Config = {
           items: [
             { label: 'Getting Started', to: '/builders/getting-started' },
             { label: 'Architecture', to: '/builders/architecture' },
-            { label: 'Integrations', to: '/builders/integrations/overview' },
-            { label: 'How To Contribute', to: '/builders/how-to-contribute' },
+            { label: 'Integrations', to: '/builders/integrations' },
+            { label: 'First Contribution', to: '/builders/how-to-contribute' },
           ],
         },
         {
@@ -615,19 +628,13 @@ const config: Config = {
         {
           title: 'Resources',
           items: [
-            { label: 'Brand kit', to: '/brand' },
-            { label: 'FAQ', to: '/reference/faq' },
+            { label: 'FAQ', to: '/faq' },
             { label: 'Glossary', to: '/glossary' },
-            { label: 'Product History', to: '/reference/product-history' },
+            { label: 'Brand kit', to: '/brand' },
             { label: 'Credits', to: '/reference/credits' },
           ],
         },
       ],
-      logo: {
-        alt: 'Green Goods',
-        src: 'img/green-goods-logo.png',
-        width: 80,
-      },
       copyright: `Making grassroots conservation visible, verifiable, and funded.<br/>Copyright © ${new Date().getFullYear()} Greenpill Dev Guild.`,
     },
     prism: {

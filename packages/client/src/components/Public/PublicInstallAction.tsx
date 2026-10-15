@@ -14,9 +14,11 @@ import { useTunnelUrl } from "@green-goods/shared/hooks/app/useTunnelUrl";
 import {
   type MouseEventHandler,
   type ReactNode,
+  type RefObject,
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { useIntl } from "react-intl";
@@ -46,12 +48,19 @@ export interface PublicInstallActionProps {
   /** Used only by receipt surfaces that know the intended CTA is app-open. */
   forceOpenApp?: boolean;
   destination?: string;
+  /**
+   * Takes keyboard focus when the install sheet closes and the control that opened it can no
+   * longer hold it. The site header's drawer closes itself before the sheet opens, so the
+   * header names its menu button here.
+   */
+  focusFallbackRef?: RefObject<HTMLElement | null>;
 }
 
 export function PublicInstallAction({
   children,
   forceOpenApp = false,
   destination,
+  focusFallbackRef,
 }: PublicInstallActionProps) {
   const { formatMessage } = useIntl();
   const tunnelUrl = useTunnelUrl();
@@ -116,6 +125,13 @@ export function PublicInstallAction({
     [platform, launchUrl]
   );
   const [dialogMode, setDialogMode] = useState<PublicInstallDialogMode | null>(null);
+  // The sheet is opened from state, not from a Radix trigger, so Radix has nothing to hand
+  // focus back to when it closes. Remember the control that opened it.
+  const openerRef = useRef<HTMLElement | null>(null);
+  const openDialog = useCallback((mode: PublicInstallDialogMode, opener: HTMLElement) => {
+    openerRef.current = opener;
+    setDialogMode(mode);
+  }, []);
 
   // Gate "open-app" affordance on mobile: desktop users can't usefully launch
   // the installed PWA from a desktop browser even if `getInstalledRelatedApps`
@@ -181,7 +197,7 @@ export function PublicInstallAction({
       event.preventDefault();
 
       if (!isMobile) {
-        setDialogMode("desktopQr");
+        openDialog("desktopQr", event.currentTarget);
         return;
       }
 
@@ -189,7 +205,7 @@ export function PublicInstallAction({
       // and offered a native install that silently creates a home-screen shortcut
       // instead of a real WebAPK. Warn and steer to Chrome first (PRD-499).
       if (isBrave && platform === "android") {
-        setDialogMode("braveInstall");
+        openDialog("braveInstall", event.currentTarget);
         return;
       }
 
@@ -198,7 +214,7 @@ export function PublicInstallAction({
         return;
       }
 
-      setDialogMode("mobileSteps");
+      openDialog("mobileSteps", event.currentTarget);
     },
     [
       dispatchInstallAction,
@@ -209,6 +225,7 @@ export function PublicInstallAction({
       isInstallPending,
       isMobile,
       isOpenApp,
+      openDialog,
       platform,
       launchPath,
     ]
@@ -218,9 +235,26 @@ export function PublicInstallAction({
     (event) => {
       event.preventDefault();
       rememberSharedLink(launchPath);
-      setDialogMode("mobileSteps");
+      openDialog("mobileSteps", event.currentTarget);
     },
-    [launchPath]
+    [launchPath, openDialog]
+  );
+
+  const handleDialogCloseAutoFocus = useCallback(
+    (event: Event) => {
+      const candidates = [openerRef.current, focusFallbackRef?.current];
+      openerRef.current = null;
+      for (const element of candidates) {
+        if (!element?.isConnected) continue;
+        // The page is where the visitor left it, so do not let the browser scroll to the control.
+        element.focus({ preventScroll: true });
+        // A control that is hidden at this width stays connected but cannot take focus.
+        if (document.activeElement !== element) continue;
+        event.preventDefault();
+        return;
+      }
+    },
+    [focusFallbackRef]
   );
 
   const handleDialogPrimaryAction = useCallback<MouseEventHandler<HTMLButtonElement>>(
@@ -256,6 +290,7 @@ export function PublicInstallAction({
           if (!open) setDialogMode(null);
         }}
         onPrimaryAction={handleDialogPrimaryAction}
+        onCloseAutoFocus={handleDialogCloseAutoFocus}
       />
     </>
   );

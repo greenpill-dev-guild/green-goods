@@ -5,6 +5,7 @@ import test from "node:test";
 import {
   BASELINE_MAX_DAYS,
   checkProjectionIntegrity,
+  checkDomainDocumentation,
   checkQaCatalogRoles,
   checkSidecarIntegrity,
   collectAnchorFiles,
@@ -18,6 +19,7 @@ import {
   parseCanonicalEntityCounts,
   parseClientGlossaryTerms,
   parseGlossaryAnchors,
+  parseGlossaryTermHeadings,
   parseGlossaryTable,
   parseGraphqlEnum,
   parseSolidityEnum,
@@ -374,18 +376,44 @@ test("parseTermReferenceHeadings returns null when the section is absent", () =>
   assert.equal(parseTermReferenceHeadings("## Personas\n\n### Gardener\n"), null);
 });
 
-test("parseGlossaryAnchors collects explicit and slugified anchors at every level", () => {
+test("parseGlossaryTermHeadings reads the everyday section too, so both are held to declared terms", () => {
+  const source = [
+    "## Everyday terms",
+    "",
+    "### Impact Certificate {#impact-certificate}",
+    "### Made-Up Noun",
+    "",
+    "## Domain Entities",
+    "",
+    "### Not A Term Heading",
+    "",
+    "## Term Reference",
+    "",
+    "### Hat {#hat}",
+  ].join("\n");
+  assert.deepEqual(parseGlossaryTermHeadings(source), [
+    { display: "Impact Certificate", anchor: "impact-certificate" },
+    { display: "Made-Up Noun", anchor: "made-up-noun" },
+    { display: "Hat", anchor: "hat" },
+  ]);
+  // The community section can stand alone once formal terms move to Builders.
+  assert.deepEqual(parseGlossaryTermHeadings("## Everyday terms\n\n### Garden\n"), [{display: "Garden", anchor: "garden"}]);
+  assert.deepEqual(parseGlossaryTermHeadings("## Term Reference\n\n### Hat {#hat}\n"), [{ display: "Hat", anchor: "hat" }]);
+});
+
+test("parseGlossaryAnchors follows Docusaurus headings and does not invent a title target", () => {
   const anchors = parseGlossaryAnchors("# Glossary\n## Domain Entities\n### Garden Operator {#operator}\n");
-  assert.ok(anchors.has("glossary"));
+  assert.ok(!anchors.has("glossary"));
   assert.ok(anchors.has("domain-entities"));
   assert.ok(anchors.has("operator"));
   assert.ok(!anchors.has("garden-operator"));
 });
 
 test("parseGlossaryAnchors includes explicit HTML compatibility anchors", () => {
-  assert.deepEqual([...parseGlossaryAnchors('<a id="impact-certificate"></a>\n### Hypercert {#hypercert}')], [
+  assert.deepEqual([...parseGlossaryAnchors('<a id="impact-certificate"></a>\n### Hypercert {#hypercert}\n<TermAnchor id="garden" />')], [
     "hypercert",
     "impact-certificate",
+    "garden",
   ]);
 });
 
@@ -441,6 +469,18 @@ test("normalizeDocText strips markup and collapses whitespace", () => {
     normalizeDocText("A **bold** and *italic* `code` [link](https://x) \n  sentence."),
     "A bold and italic code link sentence."
   );
+});
+
+test("normalizeDocText decodes entities once while removing encoded backtick markup", () => {
+  for (const [input, expected] of [
+    ["&#96;Garden&#96;", "Garden"],
+    ["Garden &amp; Work", "Garden & Work"],
+    ["&amp;#96;", "&#96;"],
+    ["&amp;amp;", "&amp;"],
+    ["A &amp;#96;Garden&amp;#96; B", "A &#96;Garden&#96; B"],
+  ]) {
+    assert.equal(normalizeDocText(input), expected, input);
+  }
 });
 
 test("titleCase converts SCREAMING members", () => {
@@ -656,8 +696,21 @@ const miniOntology = {
       transitions: [{ from: ["Ready"], to: ["Ready"], layer: "on-chain", mechanism: "markPoolReady | guard" }],
     },
   ],
+  integrations: [
+    {
+      id: "karma",
+      display: "Karma GAP",
+      definition: "Project reporting.",
+      contract_source: "a.sol",
+      deployment_fields: ["karmaGAPModule"],
+      indexer_contracts: [],
+      additional_sources: [],
+      matrix_column: "Karma GAP",
+    },
+  ],
   integration_matrix: {
     protocols: ["Karma GAP", "Unlock"],
+    column_notes: { Unlock: "Vocabulary mapping only." },
     rows: [{ ref: "entity:garden", label: "Garden", cells: { "Karma GAP": "Project" } }],
   },
   pattern_watches: [],
@@ -696,6 +749,22 @@ const miniProjections = {
       example: "A person plants a tree.",
       aliases: ["field worker"],
       not_confused_with: ["Operator"],
+    },
+  ],
+  persona_journeys: [
+    {
+      ref: "persona:gardener",
+      context: "People in the field.",
+      engagements: [
+        {
+          when: "After doing the work",
+          what: "Submit it.",
+          where: ["client"],
+          term_refs: ["entity:garden"],
+          guide: "/community/gardener-guide/uploading-your-work",
+          code: ["a.sol"],
+        },
+      ],
     },
   ],
   marketing_claims: [
@@ -758,12 +827,50 @@ test("ontology renderer omits an empty specified-machines section", () => {
   assert.equal(rendered.includes("Specified machines without an implemented source"), false);
 });
 
-test("matrix renderer emits em-dash for missing cells and escapes pipes in mechanisms", () => {
+test("matrix columns must be claimed by one integration or carry a note", () => {
+  assert.deepEqual(checkSidecarIntegrity(miniOntology, () => true).filter((error) => /matrix/.test(error)), []);
+  const unmapped = structuredClone(miniOntology);
+  delete unmapped.integration_matrix.column_notes.Unlock;
+  assert.ok(checkSidecarIntegrity(unmapped, () => true).some((error) => error.includes('matrix column "Unlock": no integration claims it')));
+  const duplicate = structuredClone(miniOntology);
+  duplicate.integrations.push({ ...duplicate.integrations[0], id: "karma-two" });
+  assert.ok(checkSidecarIntegrity(duplicate, () => true).some((error) => error.includes('"Karma GAP" is already claimed by karma')));
+  const conflicting = structuredClone(miniOntology);
+  conflicting.integration_matrix.column_notes["Karma GAP"] = "Also noted.";
+  assert.ok(checkSidecarIntegrity(conflicting, () => true).some((error) => error.includes("notes describe unclaimed columns only")));
+  const missing = structuredClone(miniOntology);
+  delete missing.integrations[0].matrix_column;
+  assert.ok(checkSidecarIntegrity(missing, () => true).some((error) => error.includes("matrix_column is required")));
+  const undeclared = structuredClone(miniOntology);
+  undeclared.integrations[0].matrix_column = "Nope";
+  assert.ok(checkSidecarIntegrity(undeclared, () => true).some((error) => error.includes('"Nope" is not a declared integration_matrix protocol')));
+});
+
+test("matrix renderer reports code integrations and recorded networks per column", () => {
+  const integrations = {
+    karma: {
+      display: "Karma GAP",
+      networks: [{ chainId: 42161, name: "Arbitrum One", status: "Deployed", recorded: ["karmaGAPModule"] }],
+      totalNetworks: 4,
+      indexedContracts: [],
+    },
+  };
+  const matrix = renderEntityMatrixMdx(miniOntology, { integrations });
+  assert.ok(matrix.includes("| Karma GAP | [Karma GAP](/builders/integrations/karma) | Arbitrum One (Deployed) | 1 |"), matrix);
+  assert.ok(matrix.includes("| Unlock | Vocabulary mapping only, no code integration | — | 0 |"), matrix);
+  assert.ok(matrix.includes("- **Unlock**: Vocabulary mapping only."), matrix);
+  assert.equal(matrix.includes("Active integrations"), false);
+  assert.ok(renderEntityMatrixMdx(miniOntology).includes("deployment data not supplied"));
+});
+
+test("matrix renderer lists mapped terms per protocol and escapes pipes in mechanisms", () => {
   const matrix = renderEntityMatrixMdx(miniOntology);
-  assert.ok(matrix.includes("| Garden | Project | — |"));
+  assert.ok(matrix.includes("| Garden | Project | Entity |"), matrix);
   const reference = renderOntologyMdx(miniOntology, miniProjections);
   assert.ok(reference.includes("markPoolReady \\| guard"));
-  assert.ok(matrix.includes("### Entities"));
+  assert.ok(matrix.includes("### Karma GAP"));
+  assert.equal(matrix.includes("### Unlock"), false, "a column with no mapped terms gets no section");
+  assert.ok(matrix.includes("Protocols in the matrix with no mapped terms yet: Unlock."), matrix);
 });
 
 test("integrity rejects undeclared executable transition endpoints and relationship targets", () => {
@@ -786,6 +893,7 @@ test("integration metadata requires unique deployment fields and existing source
       definition: "Broken fixture.",
       contract_source: "missing.sol",
       deployment_fields: ["module", "module"],
+      remote_deployment_fields: { receiver: { 2: 1 }, module: { 2: 2 } },
       indexer_contracts: [],
       additional_sources: ["missing.ts"],
     },
@@ -796,6 +904,8 @@ test("integration metadata requires unique deployment fields and existing source
   assert.ok(errors.includes("integration Bad Integration: deployment_fields contains duplicates"));
   assert.ok(errors.includes("integration Bad Integration: source does not exist: missing.sol"));
   assert.ok(errors.includes("integration Bad Integration: source does not exist: missing.ts"));
+  assert.ok(errors.includes("integration Bad Integration: remote_deployment_fields names receiver, which is not a deployment field"));
+  assert.ok(errors.includes("integration Bad Integration: remote_deployment_fields.module must map a chain id to a different chain id"));
 });
 
 test("specified constraints and state machines require specs and planned anchors", () => {
@@ -934,6 +1044,35 @@ test("projection integrity requires capability and human coverage", () => {
   assert.ok(errors.includes("human concepts: missing persona:gardener"));
 });
 
+test("projection integrity requires a journey per persona and a built interaction to say where and show its code", () => {
+  const missing = structuredClone(miniProjections);
+  missing.persona_journeys = [];
+  assert.ok(checkProjectionIntegrity(miniOntology, missing, () => true).includes("persona journeys: missing persona:gardener"));
+
+  const broken = structuredClone(miniProjections);
+  Object.assign(broken.persona_journeys[0].engagements[0], { where: ["kiosk"], code: [], guide: "joining a garden" });
+  broken.persona_journeys[0].engagements.push({ when: "Later", what: "", where: [], term_refs: ["entity:nothing"], code: [] });
+  const errors = checkProjectionIntegrity(miniOntology, broken, () => true);
+  const first = "persona journey persona:gardener engagement 1";
+  assert.ok(errors.includes(`${first}: unknown surface "kiosk"`));
+  assert.ok(errors.includes(`${first}: code is required once the interaction is built`));
+  assert.ok(errors.some((error) => error.startsWith(`${first}: guide must be a docs route`)));
+  const second = "persona journey persona:gardener engagement 2";
+  assert.ok(errors.includes(`${second}: what is required`));
+  assert.ok(errors.includes(`${second}: unknown term entity:nothing`));
+  assert.ok(errors.includes(`${second}: where is required once the interaction is built`));
+
+  // While a term it relies on is only planned, an interaction may name no surface and no code yet.
+  const planned = structuredClone(miniProjections);
+  Object.assign(planned.capabilities[0], { implementation: "not-implemented", deployment: "not-deployed", activation: "inactive", integration: "not-integrated", availability: "planned" });
+  planned.marketing_claims = [];
+  Object.assign(planned.persona_journeys[0].engagements[0], { where: [], code: [] });
+  assert.deepEqual(checkProjectionIntegrity(miniOntology, planned, () => true), []);
+
+  // A code path a journey points at must exist.
+  const gone = checkProjectionIntegrity(miniOntology, miniProjections, (file) => file !== "a.sol");
+  assert.ok(gone.includes("persona journey persona:gardener engagement 1: code path does not exist: a.sol"));
+});
 test("projection integrity rejects unsupported availability", () => {
   const broken = structuredClone(miniProjections);
   broken.capabilities[0].activation = "inactive";
@@ -1013,4 +1152,49 @@ test("projection evidence collection includes chain-scoped records", () => {
     },
   };
   assert.ok(collectProjectionFiles(projections).has("chain-readback.json"));
+});
+
+
+test("formal documentation owns definition locks and all glossary pointers have a destination", () => {
+  const ontology = JSON.parse(readFileSync("packages/shared/src/ontology/green-goods-ontology.json", "utf8"));
+  const projections = JSON.parse(readFileSync("packages/shared/src/ontology/green-goods-projections.json", "utf8"));
+  const glossary = readFileSync("docs/docs/reference/glossary.generated.mdx", "utf8");
+  const formal = renderOntologyMdx(ontology, projections);
+  const checked = checkDomainDocumentation(ontology, projections, glossary, formal);
+  assert.deepEqual(checked.fatal, []);
+  assert.deepEqual(checked.findings, []);
+  for (const term of [...ontology.entities, ...ontology.personas, ...ontology.supporting_terms]) {
+    assert.ok(parseGlossaryAnchors(formal).has(term.id), term.id);
+  }
+  const garden = ontology.entities.find(term => term.id === "garden");
+  const tampered = formal.replace(garden.definition, "A stale meaning from another version.");
+  assert.ok(checkDomainDocumentation(ontology, projections, glossary, tampered).findings.some(f => f.subject === "docs:definition:garden"));
+  assert.ok(checkDomainDocumentation(ontology, projections, glossary, formal.replace('id="garden"', 'id="lost-garden"')).findings.some(f => f.guard === "docs-formal-anchor"));
+  assert.ok(checkDomainDocumentation(ontology, projections, glossary, formal.replace("## Entities", "## Removed Entities")).fatal.length > 0);
+  assert.ok(checkDomainDocumentation(ontology, projections, glossary, formal.replace('id="attestation"', 'id="removed-attestation"')).findings.some(f => f.guard === "docs-glossary-link"));
+});
+
+test("a canonical definition change updates formal content without copying it to community prose", () => {
+  const ontology = JSON.parse(readFileSync("packages/shared/src/ontology/green-goods-ontology.json", "utf8"));
+  const projections = JSON.parse(readFileSync("packages/shared/src/ontology/green-goods-projections.json", "utf8"));
+  const before = renderOntologyMdx(ontology, projections);
+  ontology.entities.find(term => term.id === "garden").definition = "A deliberately changed canonical definition.";
+  const after = renderOntologyMdx(ontology, projections);
+  assert.notEqual(before, after);
+  assert.ok(after.includes("A deliberately changed canonical definition."));
+  const glossary = readFileSync("docs/docs/reference/glossary.generated.mdx", "utf8");
+  assert.ok(checkDomainDocumentation(ontology, projections, glossary, before).findings.some(f => f.subject === "docs:definition:garden"));
+});
+
+
+test("regenerated formal definitions with MDX-sensitive text remain equal to their canonical source", () => {
+  const changed = JSON.parse(readFileSync("packages/shared/src/ontology/green-goods-ontology.json", "utf8"));
+  const projections = JSON.parse(readFileSync("packages/shared/src/ontology/green-goods-projections.json", "utf8"));
+  const glossary = readFileSync("docs/docs/reference/glossary.generated.mdx", "utf8");
+  changed.entities.find(term => term.id === "garden").definition += " Compare <value> & {target} | \`count\`.";
+  changed.personas.find(term => term.id === "gardener").definition += " Keep {role} & <scope>.";
+  const formal = renderOntologyMdx(changed, projections);
+  assert.deepEqual(checkDomainDocumentation(changed, projections, glossary, formal).findings, []);
+  const tampered = formal.replace("&lt;value&gt;", "&lt;different&gt;");
+  assert.ok(checkDomainDocumentation(changed, projections, glossary, tampered).findings.some(f => f.subject === "docs:definition:garden"));
 });

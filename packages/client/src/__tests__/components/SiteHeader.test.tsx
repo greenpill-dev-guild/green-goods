@@ -10,7 +10,7 @@
  * @vitest-environment happy-dom
  */
 
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
@@ -75,18 +75,20 @@ const messages: Record<string, string> = {
   "public.nav.closeMenu": "Close Menu",
 };
 
-function renderHeader(initialRoute = "/gardens") {
-  return render(
-    createElement(
-      MemoryRouter,
-      { initialEntries: [initialRoute] },
-      createElement(IntlProvider, {
-        locale: "en",
-        messages,
-        children: <SiteHeader />,
-      })
-    )
+function headerElement(initialRoute = "/gardens") {
+  return createElement(
+    MemoryRouter,
+    { initialEntries: [initialRoute] },
+    createElement(IntlProvider, {
+      locale: "en",
+      messages,
+      children: <SiteHeader />,
+    })
   );
+}
+
+function renderHeader(initialRoute = "/gardens") {
+  return render(headerElement(initialRoute));
 }
 
 describe("SiteHeader", () => {
@@ -247,13 +249,14 @@ describe("SiteHeader", () => {
     expect(screen.queryByText("Connect Wallet")).toBeNull();
   });
 
-  it("Escape key closes the drawer", () => {
+  it("Escape key closes the drawer", async () => {
     renderHeader();
     fireEvent.click(screen.getByRole("button", { name: /open menu/i }));
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     fireEvent.keyDown(document, { key: "Escape" });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(document.documentElement).not.toHaveClass("modal-open");
+    // The document lock lets go once Radix has released its own, a moment after the drawer.
+    await waitFor(() => expect(document.documentElement).not.toHaveClass("modal-open"));
   });
 
   it("moves keyboard focus into the drawer and returns it to the trigger on Escape", async () => {
@@ -265,6 +268,33 @@ describe("SiteHeader", () => {
     await waitFor(() => expect(drawer.contains(document.activeElement)).toBe(true));
     fireEvent.keyDown(document, { key: "Escape" });
     await waitFor(() => expect(trigger).toHaveFocus());
+  });
+
+  it.each([
+    { landsOn: "the menu button", widened: false },
+    // At desktop widths the menu button is hidden, so the visible home link takes focus instead.
+    { landsOn: "the home link once the window has widened to desktop", widened: true },
+  ])("returns focus to $landsOn when an install sheet opened from the drawer closes", async ({
+    widened,
+  }) => {
+    const view = renderHeader();
+    const menuButton = screen.getByRole("button", { name: /open menu/i });
+    fireEvent.click(menuButton);
+    // The drawer closes itself as its Install App opens the sheet, so that control is gone
+    // by the time the sheet closes.
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("link", { name: "Install App" }));
+    const sheet = screen.getByRole("dialog", { name: "Bring Green Goods into the field" });
+    await waitFor(() => expect(sheet.contains(document.activeElement)).toBe(true));
+    if (widened) {
+      mockUseMediaQuery.mockReturnValue(true);
+      view.rerender(headerElement());
+    }
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    await waitFor(() =>
+      expect(widened ? screen.getByRole("link", { name: "Green Goods" }) : menuButton).toHaveFocus()
+    );
   });
 
   it("closes from a navigation link even when its route is already active", () => {
@@ -309,6 +339,26 @@ describe("SiteHeader", () => {
         "transparent"
       );
       expect(header!.className, `expected bg-transparent on ${route}`).toMatch(/bg-transparent/);
+    }
+  });
+
+  it("brings the page to the top when the keyboard reaches the faded header", () => {
+    const scrollY = vi.spyOn(window, "scrollY", "get").mockReturnValue(400);
+    const scrollTo = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+    try {
+      renderHeader("/");
+      const header = document.querySelector("header") as HTMLElement;
+      // Faded out, yet still offered to the keyboard and to assistive technology.
+      expect(header.style.opacity).toBe("0");
+      expect(header).not.toHaveAttribute("aria-hidden");
+
+      act(() => screen.getByRole("link", { name: "Install App" }).focus());
+
+      expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: "instant" });
+      expect(header.style.opacity).toBe("1");
+    } finally {
+      scrollY.mockRestore();
+      scrollTo.mockRestore();
     }
   });
 

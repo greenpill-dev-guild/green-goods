@@ -3,12 +3,13 @@
  * shared chrome such as SheetActions, EmptyState, and toasts.
  *
  * Emphasis sets fill, outline, and colour; the corner comes from the surface
- * (DL-026, DL-029): the 16px field corner in the installed app, so a button and
- * the field beside it share one shape, and no corner on the public website,
- * whose editorial cards, dialogs, and panels are square. There is no shape
- * prop. Heights ride the field scale (DL-023): lg 48, md 44, sm 40, compact 32,
- * and the two short sizes keep a 48px hit area. The styles live in shared
- * `theme.css` as `.gg-button[data-*]` rules that read `--gg-button-*` tokens,
+ * (DL-026): the 16px field corner in the installed app (DL-029), so a button
+ * and the field beside it share one shape, and the capsule on the public
+ * website (DL-089), at rest and while pressed, while its editorial cards,
+ * dialogs, and panels stay square. There is no shape prop. Heights ride the
+ * field scale (DL-023): lg 48, md 44, sm 40, compact 32, and the two short
+ * sizes keep a 48px hit area. The styles live in shared `theme.css` as
+ * `.gg-button[data-*]` rules that read `--gg-button-*` tokens,
  * so a surface restyles its buttons by setting tokens, not props: the app's
  * corner and weight tokens sit on `:root`, the website overrides them through
  * `:root:has([data-site="website"])`, and the cockpit sets its own, plus the

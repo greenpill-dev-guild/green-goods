@@ -22,7 +22,8 @@ Loaded when working in `packages/contracts/`. Extends `packages/contracts/AGENTS
 > **Steward defaults:** Use the package-owned contracts CLI. Applicable Arbitrum operations
 > set `FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer`, and upgrades that need the
 > current proxy owner use sender `0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6`.
-> Applicable operations clear `PINATA_JWT_OP_REF` so media upload credentials do not block upgrades.
+> Release-boundary operations blank `PINATA_JWT` and `PINATA_GATEWAY`; they must not depend on media
+> upload credentials.
 > For signal-pool/yield wiring, simulate and then broadcast the explicit upgrade target, simulate and
 > then broadcast vault migration, and finish with `bun run contracts -- verify --network arbitrum`.
 > Broadcasting remains subject to release authorization; see `packages/contracts/AGENTS.md`.
@@ -439,5 +440,5 @@ Read these docs pages when you need deployment context or protocol details:
 
 - Deployment runbook: `packages/contracts/deployments/README.md`
 - System architecture and contract relationships: `docs/docs/builders/architecture.mdx`
-- Cross-protocol entity matrix: `docs/docs/builders/integrations/entity-matrix.mdx`
+- Cross-protocol entity matrix: `docs/docs/builders/architecture/entity-matrix.mdx`
 - EAS integration reference: `docs/docs/builders/integrations/eas.mdx`

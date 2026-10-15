@@ -28,9 +28,12 @@ import {
   type DevMockAuthRole,
 } from "../src/providers/DevAuthProvider";
 import { useAdminStore, type Garden as AdminStoreGarden } from "../src/stores/useAdminStore";
+import { type ListingSubmission, listingSubmissionKey, useListingSubmissionStore } from "../src/stores/useListingSubmissionStore";
 import { resetAdminStoryState } from "./adminStoryIsolation";
 import { STORYBOOK_NOW_SECONDS } from "./fixtures";
 import messages from "../src/i18n/en.json";
+
+export { DEV_MOCK_AUTH_ADDRESSES };
 
 /**
  * Freeze wall-clock time inside the Storybook preview iframe so fixture
@@ -140,8 +143,8 @@ export const withAdminStoryIsolation: Decorator = (Story, context) => {
  * it: the admin M3 type scale, Plus Jakarta Sans, and the Tier 1a colour
  * aliases for `admin`; the client typography rules for `app` and `website`;
  * and `data-site="website"` (the public shell's attribute, DL-026) around
- * website stories so the shared buttons take the square corner and semibold
- * label (DL-029).
+ * website stories so the shared buttons take the capsule corner and semibold
+ * label (DL-089).
  *
  * `withSurface` runs globally (preview.tsx) and infers the surface from the
  * story title — `Admin/*` → admin, `Client/Public/*` and `Public/*` → website,
@@ -516,6 +519,21 @@ export function withSeededQueryClient(
         <Story />
       </QueryClientProvider>
     );
+  };
+}
+
+export function withPendingListing(submission: ListingSubmission): Decorator {
+  return (Story, context) => {
+    useLayoutEffect(() => {
+      const store = useListingSubmissionStore.getState();
+      store.record(submission);
+      const key = listingSubmissionKey(submission.account, submission.chainId, submission.garden, submission.hypercertId);
+      return () => {
+        if (useListingSubmissionStore.getState().pending[key] === submission)
+          useListingSubmissionStore.getState().clear(key);
+      };
+    }, [context.id]);
+    return <Story {...context} />;
   };
 }
 

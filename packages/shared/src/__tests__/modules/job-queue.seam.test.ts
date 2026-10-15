@@ -522,6 +522,9 @@ describe("processJob", () => {
     });
     expect((await store.getJob("job-1"))?.lastError).toBe("send failed");
     expect(deps.analytics.jobProcessingError).toHaveBeenCalledOnce();
+    expect(vi.mocked(deps.analytics.jobProcessingError).mock.calls[0]?.[4]).toEqual(
+      new Error("send failed")
+    );
   });
 });
 

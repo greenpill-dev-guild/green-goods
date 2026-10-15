@@ -230,6 +230,102 @@ test("a run with no base judges committed work against origin/develop", (t) => {
   assert.match(result.stderr, /sample\.ts: modified file at 513 lines/);
 });
 
+test("main promotion retains the existing cap only for unchanged accepted develop files", (t) => {
+  const checker = Object.fromEntries(
+    [
+      "scripts/quality/check-source-structure.js",
+      "scripts/quality/check-staged-modules.mjs",
+      "scripts/lib/git-guardrails.mjs",
+    ].map((path) => [path, readFileSync(new URL(`../../${path}`, import.meta.url), "utf8")]),
+  );
+  const path = "packages/shared/src/utils/sample.ts";
+  const lines = (count) =>
+    Array.from({ length: count }, (_, index) => `const line${index} = ${index};\n`).join("");
+  const root = fixture({
+    ...checker,
+    "package.json": '{ "type": "module" }\n',
+    "packages/shared/package.json": '{ "exports": { ".": "./src/index.ts" } }\n',
+  });
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const { SOURCE_STRUCTURE_BASE_REF: _unset, ...environment } = fixtureGitEnvironment();
+  const git = (...args) => execFileSync("git", args, { cwd: root, env: environment, stdio: "pipe" }).toString().trim();
+  git("init");
+  git("add", ".");
+  git("commit", "-m", "seed main");
+  const main = git("rev-parse", "HEAD");
+  git("update-ref", "refs/remotes/origin/main", main);
+  mkdirSync(dirname(join(root, path)), { recursive: true });
+  writeFileSync(join(root, path), lines(400));
+  git("add", path);
+  git("commit", "-m", "accepted develop source");
+  const accepted = git("rev-parse", "HEAD");
+  git("update-ref", "refs/remotes/origin/develop", accepted);
+  const run = (base = main) => spawnSync(process.execPath, ["scripts/quality/check-source-structure.js", "--base", base], {
+    cwd: root, env: environment, encoding: "utf8",
+  });
+  const unchanged = run();
+  assert.equal(unchanged.status, 0, `${unchanged.stdout}${unchanged.stderr}`);
+
+  // Main push CI compares the merged tip with the previous main commit.
+  git("checkout", "--detach", main);
+  git("merge", "--no-ff", accepted, "-m", "promote develop into main");
+  const promoted = git("rev-parse", "HEAD");
+  git("update-ref", "refs/remotes/origin/main", promoted);
+  const afterMerge = run();
+  assert.equal(afterMerge.status, 0, `${afterMerge.stdout}${afterMerge.stderr}`);
+  writeFileSync(join(root, path), lines(401));
+  assert.match(run().stderr, /sample\.ts: new file at 401 lines/);
+  writeFileSync(join(root, path), lines(400));
+  git("update-ref", "refs/remotes/origin/main", main);
+  git("checkout", "--detach", accepted);
+
+  // Uncommitted or committed changes after develop acceptance still face the new-file cap.
+  writeFileSync(join(root, path), lines(401));
+  const dirty = run();
+  assert.equal(dirty.status, 1);
+  assert.match(dirty.stderr, /sample\.ts: new file at 401 lines/);
+  git("commit", "-am", "change the accepted source");
+  assert.match(run().stderr, /sample\.ts: new file at 401 lines/);
+  writeFileSync(join(root, path), lines(400));
+  git("commit", "-am", "restore accepted source");
+
+  const newPath = "packages/shared/src/utils/new.ts";
+  writeFileSync(join(root, newPath), lines(400));
+  assert.match(run().stderr, /new\.ts: new file at 400 lines/);
+  rmSync(join(root, newPath));
+
+  // A different comparison base must not inherit main's promotion classification.
+  writeFileSync(join(root, "other.txt"), "other\n");
+  git("add", "other.txt");
+  git("commit", "-m", "unrelated comparison base");
+  const other = git("rev-parse", "HEAD");
+  git("update-ref", "refs/remotes/origin/main", other);
+  assert.match(run(main).stderr, /sample\.ts: new file at 400 lines/);
+  git("update-ref", "refs/remotes/origin/main", main);
+
+  // A diverged develop branch cannot approve source that this candidate never accepted.
+  git("checkout", "--detach", accepted);
+  writeFileSync(join(root, "develop-only.txt"), "develop only\n");
+  git("add", "develop-only.txt");
+  git("commit", "-m", "diverged develop");
+  git("update-ref", "refs/remotes/origin/develop", "HEAD");
+  git("checkout", "--detach", other);
+  assert.match(run().stderr, /sample\.ts: new file at 400 lines/);
+
+  // Existing and frozen ceilings remain binding even when the blob matches develop.
+  writeFileSync(join(root, path), lines(501));
+  const frozenPath = "packages/agent/src/handlers/index.ts";
+  mkdirSync(dirname(join(root, frozenPath)), { recursive: true });
+  writeFileSync(join(root, frozenPath), lines(509));
+  git("add", path, frozenPath);
+  git("commit", "-m", "oversized accepted source");
+  git("update-ref", "refs/remotes/origin/develop", "HEAD");
+  const oversized = run();
+  assert.equal(oversized.status, 1);
+  assert.match(oversized.stderr, /sample\.ts: modified file at 501 lines/);
+  assert.match(oversized.stderr, /handlers\/index\.ts: 509 lines, above frozen ceiling 508/);
+});
+
 test("enforces capability direction across relative paths, aliases and import syntax", () => {
   const cases = [
     ["stores/transitions/assessment.ts", 'import { step } from "../../hooks/admin-ui/hypercerts/wizardTransitions";'],

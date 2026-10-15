@@ -1,142 +1,194 @@
 ---
-title: Review and Approve Work
-sidebar_label: Review and Approve Work
+title: Review Work
+sidebar_label: Review Work
 slug: /community/steward-guide/reviewing-work
-description: "Review gardener submissions, approve good evidence, or reject with useful feedback."
+description: "Review what gardeners submit: what good evidence looks like, how to choose a confidence level, and how to reject in a way that helps."
 audience: steward
 owner: docs
-last_verified: 2026-08-30
+last_verified: 2026-10-13
 feature_status: Live
-goal: "Walk a steward through approving or rejecting a gardener's submission, with the exact on-screen steps."
+goal: "Walk a steward through approving or rejecting a submission, with the judgment to do it consistently."
 difficulty: "standard"
-estimated_time: "2-10 minutes per submission."
-prereqs: "Garden owner/steward authority, pending work in the queue, and a signer on Arbitrum."
-next_steps: "./creating-impact-certificates"
-persona_context: "Stewards clearing the work queue and giving gardeners timely feedback."
+estimated_time: "2 to 10 minutes per submission."
+prereqs: "Steward or owner access to the garden, and work waiting for review."
+next_steps: "/community/steward-guide/creating-impact-certificates"
+persona_context: "Stewards clearing the review queue and giving gardeners timely, useful feedback."
 source_of_truth:
-  - packages/client/src/views/Home/Garden/Work.tsx
+  - packages/admin/src/views/Hub/index.tsx
+  - packages/admin/src/views/Hub/components/HubWorkQueue.tsx
+  - packages/admin/src/views/Hub/components/HubWorkCard.tsx
   - packages/admin/src/views/Garden/WorkDetail/index.tsx
   - packages/admin/src/views/Garden/WorkDetail/ReviewForm.tsx
   - packages/admin/src/views/Garden/WorkDetail/SubmissionDetails.tsx
+  - packages/admin/src/components/AdminReasonDialog.tsx
+  - packages/client/src/views/Home/Garden/Work.tsx
+  - packages/client/src/views/Home/Garden/WorkViewSection.tsx
   - packages/shared/src/hooks/work/useWorkApproval.ts
-  - packages/shared/src/hooks/work/useBatchWorkApproval.ts
+  - packages/shared/src/hooks/work/useWorkApprovalActions.ts
+  - packages/shared/src/modules/work/submit-approval-command.ts
+  - packages/contracts/src/resolvers/WorkApproval.sol
+  - packages/shared/src/i18n/en.json
 keywords:
   - approve work
-  - review work
-  - work queue
-  - attestation
+  - reject work
+  - review queue
+  - confidence
+  - feedback
 ---
 
-import {NextBestAction, StewardPathNav, StatusBadge} from "@site/src/components/docs";
+import {NextBestAction, StewardPathNav} from "@site/src/components/docs";
 
-# Review and Approve Work
-
-<StatusBadge status="Live" />
+# Review Work
 
 <StewardPathNav />
 
-## What this helps you do
+Reviewing is the heart of a steward's job. A gardener says "I did this." You look at the evidence and decide whether the garden stands behind it. Your decision is saved next to their work, with your reason, for anyone to read.
 
-Clear pending gardener submissions: review the action, evidence, and details, then approve good work or reject work that needs correction.
-
-Owners and stewards can approve or reject work. Evaluators can make assessments, but they cannot approve work unless they are also an owner or steward.
-
-You can review from the mobile app/PWA or from admin. Use the app when you are already in the garden. Use admin when you are working through a queue.
+Start with the judgment below, then follow either the [dashboard steps](#steps-in-the-dashboard) or the [phone steps](#steps-in-the-app).
 
 ## Before you start
 
-- You are signed in as a garden **owner** or **steward**.
-- There is at least one **pending** submission in the work queue.
-- You are online and ready to sign the decision.
-- If you use an external wallet, keep a little Arbitrum gas available.
+- **Be a steward or owner of the garden.** Evaluators cannot approve or reject work, and the dashboard does not show them the review queue.
+- **Review while the action is still open.** Once an action's end date passes, no decision can be recorded for work submitted under it.
+- **You cannot review your own work.** Another steward has to.
+- **Decisions are permanent.** You cannot change or undo one, so take the minute it needs.
 
-:::tip
-If you can see the submission but not the approve/reject controls, you do not have approval authority for that garden.
-:::
+## How to judge a submission
 
-## Step-by-step flow
+### What good evidence looks like
 
-### Option A: Review in the installed app
+Ask three questions. If the answer to all three is yes, approve.
 
-Use this when you are on mobile or already looking at the garden.
+1. **Does it show the work?** The photos show the thing the action is about, clearly enough to see it. A photo of a field is not a photo of forty seedlings.
+2. **Does it match what was claimed?** The numbers and notes fit what you can see, and fit what you know about the day.
+3. **Is it this gardener's own work, in this garden?** The place, the people, and the timing make sense for your garden.
 
-1. Open the Green Goods app and go to **Home**.
-2. Open the garden that owns the submission.
-3. Open the **Work** tab and select a pending submission.
-4. Review the action, details, media, and gardener notes.
-5. Tap **Approve** if the evidence is enough, or **Reject** if the gardener needs to fix or resubmit something.
-6. Follow the confidence and feedback steps below.
-7. Submit the decision and sign when prompted.
+You know your garden better than any outsider. That local knowledge is the reason a steward reviews, and it is fair to use it.
 
-### Option B: Review in admin
+### Choosing a confidence level
 
-Use this when you are clearing a larger queue or need desktop context.
+Every approval asks how sure you are. Be honest. A funder reading the record later will trust a garden whose "High" means something.
 
-1. Open the **Hub** workspace.
-2. Stay on **Work**.
-3. Use the garden picker when you only want one garden.
-4. Filter to **Pending** to see what still needs a decision.
+| Level | Use it when |
+|---|---|
+| **Low** | You believe the work happened, mostly because you trust the person. The photos alone would not convince a stranger |
+| **Medium** | The photos and details show the work, and nothing looks off. This fits most good submissions |
+| **High** | You saw it yourself, or the evidence is backed up another way: a receipt, a second person, a measurement |
 
-<img src="/img/screenshots/admin-work-queue.png" alt="Admin work queue filtered to pending submissions" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+### Writing a rejection that helps
 
-### Open one submission
+A rejection is the gardener's fix list. Say exactly what to change so the next try can pass.
 
-1. Click a submission.
-2. Review the action, garden, details, media, and notes.
-3. Compare the evidence against the action requirements and assessment context.
-4. If something is unclear, reject with a specific request instead of guessing.
+- **Name the thing:** the photo, the count, the action, the garden.
+- **Say what would fix it:** "Retake in daylight so the rows are visible" is useful. "Not enough evidence" is not.
+- **Keep it kind.** The gardener did the work in the field. You are asking for a clearer record, not doubting them.
 
-<img src="/img/screenshots/admin-work-detail.png" alt="Admin work detail page with submission evidence and review controls" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+A rejected submission cannot be edited. The gardener submits a new one, so your note is all they have to go on.
 
-### Approve or reject
+<a id="steps-in-the-cockpit"></a>
+
+## Steps in the dashboard
+
+Use the dashboard when you have several submissions to get through.
+
+1. Open **Hub**. You land on the **Work** tab, filtered to **Pending**.
+2. Tap a submission to open it. The evidence is on the left and **Steward Review** is on the right.
+3. Look through **Media Evidence**, then read **Submission Details**, including **Gardener notes**.
+
+<figure className="gg-figure gg-guide-product">
+  <img src="/img/screenshots/admin-review-queue-example.png" alt="A steward queue card with a seedling photograph, a note about moving 36 lettuce seedlings, Seedling Transplant, the sender and a Pending label." loading="lazy" width="366" height="358" />
+  <figcaption><strong>Open the record behind the card.</strong> The card gives you the action, sender and status. Read the full photos, numbers and note before deciding.
+  <span className="gg-overview-source">Source: local static Storybook, HubWorkQueue / With Example Photo, 13 October 2026; cropped to one card from 1440 × 900. Build recorded in the Plan Hub image ledger. Photo: <a href="https://commons.wikimedia.org/wiki/File:Seedlings.jpg">Leon Brooks, Seedlings</a>, public domain. The garden, sender and work record are fictional.</span></figcaption>
+</figure>
 
 To approve:
 
-1. In the installed app, tap **Approve** to open the decision panel. In admin, the confidence controls are already visible.
-2. Choose **Low**, **Medium**, or **High** confidence. **None** cannot be used for an approval.
-3. Add a short verification note if it helps the gardener or future reviewers. This note is optional for an approval.
-4. Tap **Submit** in the installed app or click **Approve** in admin, then sign when prompted.
+1. Choose a **Confidence level**: **Low**, **Medium**, or **High**. Nothing is chosen for you.
+2. Add a note under **Feedback** if you have one. It is optional. You can also record an **Audio review note**.
+3. Tap **Approve** and confirm.
 
-Use the confidence level that matches the evidence:
-
-- **Low:** Evidence is limited or primarily trust-based.
-- **Medium:** You reviewed relevant photo or document evidence.
-- **High:** The submission has strong corroborating evidence, such as a receipt, witness, or verifiable record.
-
-For an approval, Green Goods records the verification method as **Human** automatically. You do not need to choose a method.
+<figure className="gg-figure" style={{maxWidth: '560px'}}>
+  <img src="/img/screenshots/admin-review-form.webp" alt="The Steward Review form: a Confidence level row with Low, Medium, and High and the line Choose a confidence level to approve, an optional Feedback box, an optional Audio review note with a Record Audio Note button, a note saying who will see the decision, and the buttons Reject and Approve, with Approve greyed out" loading="lazy" width="1152" height="1080" />
+  <figcaption>Steward Review before a confidence level is chosen. Approve stays grey until you pick one. Source: deployed Storybook fixture, captured 12 October 2026. Build revision unavailable; fictional example data.</figcaption>
+</figure>
 
 To reject:
 
-1. Explain exactly what needs to change: the field, photo, count, action, or garden. The installed app requires feedback; in admin, always provide it so the gardener knows how to recover.
-2. Tap or click **Reject**, then submit and sign when prompted.
+1. Tap **Reject**.
+2. In **Reject Work**, answer **Why are you rejecting this?** A reason is required. The three suggestions underneath are a starting point, and your own words are better.
+3. Tap **Reject Work** and confirm.
 
-A rejection records **None** confidence automatically.
+<figure className="gg-figure" style={{maxWidth: '480px'}}>
+  <img src="/img/screenshots/admin-reject-work.webp" alt="The Reject Work dialog for a submission named Planted 50 native saplings: the line The gardener sees your reason, a required box labeled Why are you rejecting this? holding the text Details are missing, the suggestions Photos don't show the work, Details are missing, and Wrong action chosen, and the buttons Cancel and Reject Work" loading="lazy" width="960" height="900" />
+  <figcaption>Reject Work, with one of the three suggestions chosen. Source: deployed Storybook fixture, captured 12 October 2026. Build revision unavailable; fictional example data.</figcaption>
+</figure>
 
-:::tip
-Specific rejection feedback saves time. "Photo is too dark to verify tree count; retake in daylight and resubmit against this action" is better than "insufficient evidence."
-:::
+## Steps in the app
 
-## How to know it worked
+Use the app on your phone when you are at the garden.
 
-- The submission status changes to **Approved** or **Rejected**.
-- It drops out of the pending queue.
-- The gardener sees the new status and any rejection feedback in their Work Dashboard.
-- You can find the reviewed item again in the history/completed view.
+1. Open the garden from **Home** and tap its **Work** tab. Or open **Your Work**, stay on **Pending**, and set the filter to **Needs review**.
+2. Tap a submission. Its heading reads **Evaluate Work**.
+3. Tap **Approve** or **Reject**.
+4. In **Add Feedback**, check **Confidence** if you are approving. It starts on Medium, so change it if that is not right. Write feedback if it helps; a reason is required when you reject.
+5. Tap **Submit** and confirm.
+
+<figure className="gg-figure gg-guide-product">
+  <img src="/img/screenshots/client-review-work.png" alt="Evaluate Work on a phone, showing the garden, a seedling photograph and the Approve and Reject controls." loading="lazy" width="390" height="844" />
+  <figcaption><strong>Check the garden and the evidence.</strong> Scroll down for the recorded numbers and note before choosing <strong className="gg-inline-label">Approve</strong> or <strong className="gg-inline-label">Reject</strong>.
+  <span className="gg-overview-source">Source: local static Storybook, ReviewWork / Evaluate Example, 13 October 2026; 390 × 844. Build recorded in the Plan Hub image ledger. Photo: <a href="https://commons.wikimedia.org/wiki/File:Seedlings.jpg">Leon Brooks, Seedlings</a>, public domain. Fictional work; not evidence of the sample count or time.</span></figcaption>
+</figure>
+
+<figure className="gg-figure gg-guide-product">
+  <img src="/img/screenshots/client-review-feedback.png" alt="Add Feedback on the phone with Medium confidence selected, an example review note, Cancel and Submit." loading="lazy" width="390" height="844" />
+  <figcaption><strong>Make the decision your own.</strong> Medium is the starting confidence in the app. Change it when needed and write feedback that will help the gardener.
+  <span className="gg-overview-source">Source: local static Storybook, ReviewWork / Feedback Example, 13 October 2026; 390 × 844. Build recorded in the Plan Hub image ledger. All record and review data is fictional. Photo: <a href="https://commons.wikimedia.org/wiki/File:Seedlings.jpg">Leon Brooks, Seedlings</a>, public domain. No decision was submitted.</span></figcaption>
+</figure>
+
+With no signal, the app saves your decision on the phone. Send it later from **Your Work** with **Upload all**.
+
+## How you know it worked
+
+- **In the dashboard:** a message says **Approval submitted** or **Decision submitted**, and the submission leaves the **Pending** list. Approved work appears under the **Approved** filter.
+- **In the app:** a message says **Work approved** or **Work rejected**, and the submission shows **Approved** or **Rejected** with no buttons.
+
+## What happens next
+
+The gardener acts next, and Green Goods does not send them an alert. They see your decision and your feedback in **Your Work**, on the **Completed** tab. Tell them in your garden's chat, especially after a rejection.
+
+Approved work now counts toward the garden's record. It appears on the garden's page on the public website, and it can be bundled into an impact certificate.
+
+Approving does not pay the gardener. If your garden rewards work from its shared fund, that is a separate step. See [Funding and Governance](/community/steward-guide/funding-and-governance).
 
 ## If something goes wrong
 
-- **No Approve/Reject buttons.** You are not an owner/steward for this garden. Ask the garden owner to add the right role.
-- **Selected garden error.** Reload and open the submission from the queue again.
-- **Transaction cancelled.** Nothing was recorded. Retry when ready.
-- **Transaction failed.** Check the wallet message, make sure you are on Arbitrum, confirm the same signer is connected, and retry when the wallet has enough gas.
-- **Wrong decision.** Decisions are recorded once submitted. If you rejected valid work, ask the gardener to resubmit; if you approved weak evidence, flag it for the garden owner before assessment or certification.
-- **Still stuck.** Use the Green Goods Telegram support link in the docs footer.
+### Your account cannot decide
+
+**Independent review required** means you submitted the work; ask another steward to review it. **Owner or steward access required** means your role cannot record the decision; ask an owner or steward to add the Steward role.
+
+### Approve stays grey
+
+Choose a confidence level first. If **Action expired** appears, the action closed before a decision was recorded. Ask the gardener to submit again under an open action.
+
+### Someone already reviewed it
+
+For **This work has already been reviewed**, open the **Review Summary**. A second decision cannot replace it.
+
+### Sending failed
+
+For **Decision failed** or **Connection unstable**, check the status and connection before trying again. In the phone app, a saved offline decision waits in **Your Work** for **Upload all**; do not enter it a second time. See [Recover Unsent Work](/community/gardener-guide/recovery-and-sync).
+
+### You decided wrongly
+
+A recorded decision cannot be changed. If you rejected good work, ask the gardener to submit it again and review that new submission. If you approved weak work, tell the garden's owner before it goes into a certificate.
+
+To reach the Green Goods team, ask in the [Green Goods Telegram group](https://t.me/+N3o3_43iRec1Y2Jh).
 
 ## Next step
 
 <NextBestAction
   title="Mint an impact certificate"
-  why="Once the assessment and approved work tell a coherent story, package them into the certificate flow."
+  why="Once a body of approved work tells one clear story, you can bundle it into a single claim."
   actionLabel="Mint Impact Certificate"
-  actionHref="./creating-impact-certificates"
+  actionHref="/community/steward-guide/creating-impact-certificates"
 />

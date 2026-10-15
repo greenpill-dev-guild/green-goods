@@ -1,4 +1,5 @@
 import type { Job, WorkJobPayload } from "../../types/job-queue";
+import { parseContractError } from "../../utils/errors/contract-errors";
 import { getStorageQuota } from "../../utils/storage/quota";
 import { addBreadcrumb } from "../app/error-tracking";
 import { logger } from "../app/logger";
@@ -39,7 +40,8 @@ export async function trackJobProcessingError(
   job: Job,
   processingDuration: number,
   chainId: number,
-  maxRetries: number
+  maxRetries: number,
+  error: unknown
 ): Promise<void> {
   // Get IPFS status for debugging upload failures
   const ipfsStatus = getIpfsInitStatus();
@@ -54,6 +56,8 @@ export async function trackJobProcessingError(
       attempts: job.attempts + 1,
       max_retries: maxRetries,
       will_retry: job.attempts + 1 < maxRetries,
+      // A fixed family name, never the raw message: messages can carry addresses.
+      parsed_error_family: parseContractError(error).name,
       processing_duration_ms: processingDuration,
       chain_id: chainId,
       action_uid: (job.payload as WorkJobPayload)?.actionUID,
@@ -87,6 +91,7 @@ export function trackJobPermanentlyFailed(job: Job): void {
     {
       job_kind: job.kind,
       attempts: job.attempts,
+      parsed_error_family: job.lastError ? parseContractError(job.lastError).name : undefined,
       action_uid: (job.payload as WorkJobPayload)?.actionUID,
       ipfs_status: ipfsStatus.status,
       ipfs_client_ready: ipfsStatus.clientReady,

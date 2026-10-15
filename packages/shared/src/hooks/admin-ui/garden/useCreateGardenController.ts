@@ -21,20 +21,33 @@ export function useCreateGardenController() {
   const isOnline = useOnlineStatus();
 
   const { trigger, reset: resetValidationForm } = useCreateGardenForm();
-  const { state, openFlow, closeFlow, goNext, goBack, goToReview, submitCreation, retry, draft } =
-    useCreateGardenWorkflow();
-  const { loadDraft } = draft;
+  const {
+    state,
+    openFlow,
+    closeFlow,
+    goNext,
+    goBack,
+    goToReview,
+    submitCreation,
+    retry,
+    checkConfirmation,
+    confirmWalletCancellation,
+    recoveryKey,
+    draft,
+  } = useCreateGardenWorkflow();
+  const { loadDraft, draftKey } = draft;
 
-  const isSubmitting = state.value === "submitting";
+  const isPending = state.matches("pending") || state.matches("reconciling");
+  const isSubmitting = state.matches("submitting") || isPending;
   const hasError = state.value === "error";
   const isSuccess = state.value === "success";
   const txError = useTxErrorMessages(state.context.error);
   const plannedMemberCount = form.gardeners.length + form.stewards.length;
-  const initializedRef = useRef(false);
+  const initializedScopeRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (initializedRef.current) return;
-    initializedRef.current = true;
+    if (!draftKey || initializedScopeRef.current === draftKey) return;
+    initializedScopeRef.current = draftKey;
 
     let cancelled = false;
 
@@ -64,6 +77,9 @@ export function useCreateGardenController() {
 
       const restoredDraft = await loadDraft();
       if (cancelled || !restoredDraft) return;
+      const restored = useCreateGardenStore.getState();
+      if (restored.currentStep === restored.steps.length - 1 && restored.isReviewReady())
+        goToReview();
     };
 
     void initializeFlow();
@@ -71,7 +87,7 @@ export function useCreateGardenController() {
     return () => {
       cancelled = true;
     };
-  }, [openFlow, goToReview, loadDraft]);
+  }, [openFlow, goToReview, loadDraft, draftKey]);
 
   useEffect(() => {
     if (isSuccess) {
@@ -163,6 +179,7 @@ export function useCreateGardenController() {
   };
 
   const handleCancel = () => {
+    if (isSubmitting) return;
     closeFlow();
     navigate("/garden");
   };
@@ -182,6 +199,11 @@ export function useCreateGardenController() {
     isDetailsStep: currentStepConfig?.id === "details",
     isReviewStepActive: currentStepConfig?.id === "review",
     isSubmitting,
+    isPending,
+    isCheckingConfirmation: state.matches("reconciling"),
+    checkConfirmation,
+    confirmWalletCancellation,
+    recoveryKey,
     isTeamStep: currentStepConfig?.id === "team",
     retry,
     showValidation: stepValidation.showValidation,

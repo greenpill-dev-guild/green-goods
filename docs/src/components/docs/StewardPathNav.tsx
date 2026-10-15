@@ -1,25 +1,21 @@
 import Link from "@docusaurus/Link";
 import {useLocation} from "@docusaurus/router";
+import stewardPath from "@site/src/data/steward-path.json";
+
 import styles from "./styles.module.css";
 
-const STEWARD_PATH_ITEMS = [
-  {label: "Create a Garden", href: "/community/steward-guide/creating-a-garden"},
-  {label: "Make an Assessment", href: "/community/steward-guide/making-an-assessment"},
-  {label: "Review and Approve Work", href: "/community/steward-guide/reviewing-work"},
-  {
-    label: "Mint Impact Certificate",
-    href: "/community/steward-guide/creating-impact-certificates",
-  },
-];
+// The path lives in data so each steward page's Markdown twin prints the same links
+// (docs/scripts/llms.mjs).
+const STEWARD_PATH_ITEMS = stewardPath as {label: string; href: string}[];
 
 export function StewardPathNav() {
   const {pathname} = useLocation();
 
   return (
-    <nav className={styles.pathNav} aria-label="Steward guide path">
-      <span className={styles.pathNavLabel}>Steward path</span>
-      <ol className={styles.pathNavList}>
-        {STEWARD_PATH_ITEMS.map((item, index) => {
+    <nav className={styles.pathNav} aria-label="Steward tasks">
+      <span className={styles.pathNavLabel}>Steward guide</span>
+      <ul className={styles.pathNavList}>
+        {STEWARD_PATH_ITEMS.map((item) => {
           const active = pathname === item.href;
 
           return (
@@ -27,15 +23,15 @@ export function StewardPathNav() {
               <Link
                 className={styles.pathNavLink}
                 data-active={active ? "true" : undefined}
+                aria-current={active ? "page" : undefined}
                 to={item.href}
               >
-                <span className={styles.pathNavIndex}>{index + 1}</span>
                 <span>{item.label}</span>
               </Link>
             </li>
           );
         })}
-      </ol>
+      </ul>
     </nav>
   );
 }

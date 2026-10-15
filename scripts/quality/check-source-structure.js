@@ -176,6 +176,38 @@ function runGit(args, { allowFailure = false } = {}) {
   }
 }
 
+// Main promotion still audits the complete release diff. Source already accepted into an
+// ancestor develop commit is existing source only while its working-tree blob is unchanged.
+// This avoids treating subsequent, permitted growth on develop as a newly authored file again.
+function acceptedPromotionSource(base) {
+  const main = runGit(["rev-parse", "--verify", "origin/main^{commit}"], { allowFailure: true });
+  const resolvedBase = base && runGit(["rev-parse", "--verify", `${base}^{commit}`], { allowFailure: true });
+  if (!main || !resolvedBase) return undefined;
+  if (resolvedBase !== main) {
+    const head = runGit(["rev-parse", "HEAD"]);
+    const previousMain = runGit(["rev-parse", "--verify", `${main}^1`], { allowFailure: true });
+    // The main push compares its merged tip against event.before, the first parent.
+    if (head !== main || resolvedBase !== previousMain) return undefined;
+  }
+  const develop = runGit(["rev-parse", "--verify", "origin/develop^{commit}"], { allowFailure: true });
+  if (!develop || develop === main) return undefined;
+  try {
+    execFileSync("git", ["merge-base", "--is-ancestor", develop, "HEAD"], {
+      cwd: repoRoot,
+      stdio: "ignore",
+    });
+    return develop;
+  } catch {
+    return undefined;
+  }
+}
+
+function matchesAcceptedSource(filePath, acceptedSource) {
+  if (!acceptedSource) return false;
+  const acceptedBlob = runGit(["rev-parse", "--verify", `${acceptedSource}:${filePath}`], { allowFailure: true });
+  return Boolean(acceptedBlob) && acceptedBlob === runGit(["hash-object", "--no-filters", "--", filePath]);
+}
+
 // Resolve the base the way the other diff-aware checks do: an explicit --base, then CI's
 // SOURCE_STRUCTURE_BASE_REF, then origin/develop. A ref that does not resolve, such as a push
 // event's all-zero `before`, falls through to the next candidate.
@@ -863,6 +895,7 @@ function printDisallowedJavaScriptFailure(filePaths) {
 
 function run() {
   const base = resolveStructureBase(process.argv.slice(2));
+  const acceptedSource = acceptedPromotionSource(base);
   const { changed, added, movedFrom } = resolveChangedFiles(base);
   const allFiles = resolveAllFiles();
   const disallowedJavaScriptFiles = changed
@@ -905,6 +938,7 @@ function run() {
 
   const failures = [];
   let allowlistedChecks = 0;
+  let acceptedExistingChecks = 0;
   for (const filePath of relevantFiles) {
     const lineCount = readLineCount(filePath);
     const frozenCeiling = FROZEN_ALLOWLIST[filePath];
@@ -928,7 +962,10 @@ function run() {
       continue;
     }
 
-    if (added.has(filePath) && lineCount > NEW_FILE_MAX_LINES) {
+    const acceptedExisting = added.has(filePath) && lineCount > NEW_FILE_MAX_LINES &&
+      matchesAcceptedSource(filePath, acceptedSource);
+    if (acceptedExisting) acceptedExistingChecks += 1;
+    if (added.has(filePath) && lineCount > NEW_FILE_MAX_LINES && !acceptedExisting) {
       failures.push(
         `- ${filePath}: new file at ${lineCount} lines (limit ${NEW_FILE_MAX_LINES}). Split the new implementation into smaller files; new files do not get allowlist entries.`,
       );
@@ -966,6 +1003,9 @@ function run() {
   console.log(
     `✅ check-source-structure: ${policyViolations.length} known policy violation(s) matched the shrinking baseline; checked ${relevantFiles.length} changed non-test source file(s) ${scope}; ${allowlistedChecks} oversized baseline file(s) stayed within frozen ceilings.`,
   );
+  if (acceptedExistingChecks > 0) {
+    console.log(`${acceptedExistingChecks} unchanged source file(s) accepted at develop ${acceptedSource} retained the existing ${MODIFIED_FILE_MAX_LINES}-line cap during main promotion.`);
+  }
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

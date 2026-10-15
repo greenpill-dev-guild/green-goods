@@ -22,6 +22,9 @@ const sharedMocks = vi.hoisted(() => ({
   preparingOffline: vi.fn(),
   offlineReady: vi.fn(),
   dismiss: vi.fn(),
+  codeUnavailable: vi.fn(),
+  codeRecoveryRequired: 0,
+  codeRecoveryListeners: new Set<() => void>(),
   schedulePwaShellPreparation: vi.fn(),
   useApp: vi.fn(),
   useServiceWorkerUpdate: vi.fn(),
@@ -39,7 +42,20 @@ vi.mock("@green-goods/shared/components/Toast/presets/update", () => ({
     preparingOffline: sharedMocks.preparingOffline,
     offlineReady: sharedMocks.offlineReady,
     dismiss: sharedMocks.dismiss,
+    codeUnavailable: sharedMocks.codeUnavailable,
   }),
+}));
+
+vi.mock("@green-goods/shared/modules/app/cache-recovery", () => ({
+  appCodeRecovery: {
+    getSnapshot: () => sharedMocks.codeRecoveryRequired,
+    subscribe: (listener: () => void) => {
+      sharedMocks.codeRecoveryListeners.add(listener);
+      return () => {
+        sharedMocks.codeRecoveryListeners.delete(listener);
+      };
+    },
+  },
 }));
 
 vi.mock("@green-goods/shared/service-worker", () => ({
@@ -85,6 +101,8 @@ function mockPhase(phase: string) {
 describe("PwaUpdateNotifier", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    sharedMocks.codeRecoveryRequired = 0;
+    sharedMocks.codeRecoveryListeners.clear();
     sharedMocks.useApp.mockReturnValue({ isPwaPresentation: true });
     sharedMocks.useServiceWorkerUpdate.mockReturnValue({
       phase: "idle",
@@ -160,6 +178,43 @@ describe("PwaUpdateNotifier", () => {
     renderNotifier();
 
     expect(sharedMocks.ready).not.toHaveBeenCalled();
+  });
+
+  it("offers recovery immediately when queued preparation reports missing code", () => {
+    mockPhase("waiting");
+    const { unmount } = renderNotifier();
+    expect(sharedMocks.ready).not.toHaveBeenCalled();
+
+    act(() => {
+      sharedMocks.codeRecoveryRequired = 1;
+      for (const listener of sharedMocks.codeRecoveryListeners) listener();
+    });
+
+    expect(sharedMocks.codeUnavailable).toHaveBeenCalledWith(
+      sharedMocks.activateNow,
+      expect.any(Function)
+    );
+    expect(sharedMocks.activateNow).not.toHaveBeenCalled();
+    unmount();
+    expect(sharedMocks.codeRecoveryListeners.size).toBe(0);
+  });
+
+  it("lets the person dismiss recovery without applying an update", () => {
+    mockPhase("waiting");
+    sharedMocks.codeRecoveryRequired = 1;
+    const { rerender } = renderNotifier();
+    const dismiss = sharedMocks.codeUnavailable.mock.calls[0][1] as () => void;
+    act(dismiss);
+    rerender(notifierTree());
+
+    expect(sharedMocks.dismissUpdate).toHaveBeenCalledOnce();
+    expect(sharedMocks.activateNow).not.toHaveBeenCalled();
+    expect(sharedMocks.codeUnavailable).toHaveBeenCalledOnce();
+    act(() => {
+      sharedMocks.codeRecoveryRequired += 1;
+      for (const listener of sharedMocks.codeRecoveryListeners) listener();
+    });
+    expect(sharedMocks.codeUnavailable).toHaveBeenCalledTimes(2);
   });
 
   it("shows the restart action after the long-session threshold", () => {

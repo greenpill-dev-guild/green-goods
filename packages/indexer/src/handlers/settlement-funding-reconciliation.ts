@@ -25,7 +25,7 @@ async function getCommitment(
   );
 }
 
-export async function reconcileConsumedFunding(
+async function reconcileConsumedFunding(
   context: FundingReconciliationContext,
   commitment: Commitment
 ): Promise<void> {

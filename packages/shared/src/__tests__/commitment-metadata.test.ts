@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   buildCommitmentMetadata,
@@ -12,6 +12,12 @@ import {
   COMMITMENT_COMPOSER_DEFAULTS,
 } from "../hooks/commitment-pooling/useCommitmentComposerForm";
 import type { Address } from "../types/domain";
+
+// Preserve the future enabled reward metadata contract.
+vi.mock("../config/app", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../config/app")>()),
+  SETTLEMENT_ENABLED: true,
+}));
 
 describe("commitment metadata", () => {
   it("keeps a title to one line so a pasted paragraph cannot break a row", () => {

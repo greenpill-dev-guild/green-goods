@@ -78,7 +78,9 @@ validated paths, environment profile, root `.env` files, or a variable the check
 invalidates the fingerprint. The store keeps only a digest of the environment. `PATH`, `NODE`,
 git's exec path, nvm's variables and `MANPATH`, the re-exec markers and shell bookkeeping are left
 out, because the hook and Husky's `~/.config/husky/init.sh` change them without changing a check,
-and the toolchain versions already cover what `PATH` resolves.
+and the toolchain versions already cover what `PATH` resolves. A host tool shim's per-process loop
+guard (`DEV_MACHINE_SHIM_TRIED`) is left out for the same reason; the variables that say where such
+a shim runs a command are not.
 Turbo hashes an explicit `VITEST_MAX_WORKERS` too. A tampered store is rejected
 rather than trusted. A critical push may reuse exact passes too, so a pre-push hook right after a
 passing manual run finishes in seconds. Readiness, ship, merge, and release run every check fresh
@@ -133,6 +135,7 @@ Conditional additions when the change touches the relevant surface:
   `bun run --filter @green-goods/shared check:stories` and
   `bun run --filter @green-goods/shared check:story-quality`
 - Changed non-test source under `packages/*/src/**`: `bun run check --only source-structure`
+
 - Contract-touching changes: `bun run check --only contracts-verify-fast`; when protocol behavior changed,
   also run `bun run --filter @green-goods/contracts test:fork`
 - Frontend, UI, CSS, accessibility, or web-design changes: retrieve current guidance with
@@ -143,6 +146,13 @@ Conditional additions when the change touches the relevant surface:
   --project=admin-ci`
 - Agent runtime changes: `bun run --cwd packages/agent build`
 - Docs runtime, navigation, or build configuration changes: `bun run --cwd docs build`
+
+When explicitly auditing a main release diff, source structure keeps that complete comparison
+scope. A file introduced since main counts as existing source only if `origin/develop` is an
+ancestor of the candidate and the file's working-tree blob exactly matches that accepted commit.
+It retains the existing 500-line cap; changed or newly authored files retain the 350-line cap,
+and frozen ceilings and shrinking debt baselines remain binding. A diverged develop ref or a
+different comparison base cannot supply this classification.
 
 The root `bun run build` covers Contracts, Shared, Indexer, Client, and Admin. It does not build
 Agent or Docs; the conditional commands above close those scopes.

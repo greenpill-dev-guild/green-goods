@@ -801,6 +801,36 @@ describe("GardenPoolTab (W7)", () => {
     );
   });
 
+  it("retains a deferred reward with a reason and disables Send Now", () => {
+    mocks.controller = controller({
+      pendingCreates: [
+        {
+          jobId: "reward",
+          chainId: 42161,
+          poolId: "7",
+          direction: "OFFER",
+          title: "Rewarded promise",
+          unitLabel: "survey",
+          targetUnits: "1",
+          waitingForMembership: false,
+          settlementDeferred: true,
+          failed: false,
+          discardable: true,
+          createdAt: 1,
+        },
+      ],
+    });
+    renderTab();
+    const row = within(screen.getByTestId("pool-queued")).getByRole("listitem");
+    expect(row).toHaveTextContent("G$ reward deferred");
+    expect(row).toHaveTextContent("Sending G$ reward promises is unavailable in this release.");
+    const send = within(row).getByRole("button", { name: "Send Now" });
+    expect(send).toBeDisabled();
+    fireEvent.click(send);
+    expect(mocks.controller.acts.retryQueued).not.toHaveBeenCalled();
+    expect(within(row).getByRole("button", { name: "Discard" })).toBeEnabled();
+  });
+
   it("lists a lapsed group's queued copy on its own to discard, with no Finish Creating", () => {
     mocks.controller = controller({
       // The group's deadline has passed.

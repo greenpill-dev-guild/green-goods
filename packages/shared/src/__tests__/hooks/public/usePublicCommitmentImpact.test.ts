@@ -67,7 +67,7 @@ describe("public commitment impact transport", () => {
     });
   });
 
-  it("retries a partial snapshot after 30 seconds and stops once all figures are available", async () => {
+  it("reads a snapshot again after 30 seconds while the counts are missing, then stops", async () => {
     vi.useFakeTimers();
     const fetchSnapshot = vi
       .fn()
@@ -75,9 +75,10 @@ describe("public commitment impact transport", () => {
         ok: true,
         json: async () => ({
           ...response,
-          confirmedDisbursementUsdCents: null,
+          commitmentsMade: null,
+          commitmentsFulfilled: null,
           partialData: true,
-          unavailableSources: { ...response.unavailableSources, fundingValuation: true },
+          unavailableSources: { ...response.unavailableSources, commitmentPools: true },
         }),
       })
       .mockResolvedValue({ ok: true, json: async () => response });
@@ -87,16 +88,39 @@ describe("public commitment impact transport", () => {
     });
 
     await act(async () => vi.advanceTimersByTimeAsync(1));
-    expect(result.current.data?.partialData).toBe(true);
+    expect(result.current.data?.commitmentsMade).toBeNull();
     await act(async () => vi.advanceTimersByTimeAsync(29_998));
     expect(fetchSnapshot).toHaveBeenCalledOnce();
     await act(async () => vi.advanceTimersByTimeAsync(2));
     expect(fetchSnapshot).toHaveBeenCalledTimes(2);
-    expect(result.current.data?.confirmedDisbursementUsdCents).toBe(1234n);
-    expect(result.current.data?.partialData).toBe(false);
+    expect(result.current.data?.commitmentsMade).toBe(27n);
 
     await act(async () => vi.advanceTimersByTimeAsync(60_000));
     expect(fetchSnapshot).toHaveBeenCalledTimes(2);
+    unmount();
+  });
+
+  // No page shows the payout valuation, so its absence alone must not poll the Agent.
+  it("does not read again when only the payout valuation is missing", async () => {
+    vi.useFakeTimers();
+    const fetchSnapshot = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        ...response,
+        confirmedDisbursementUsdCents: null,
+        partialData: true,
+        unavailableSources: { ...response.unavailableSources, fundingValuation: true },
+      }),
+    });
+    vi.stubGlobal("fetch", fetchSnapshot);
+    const { result, unmount } = renderHookWithQueryClient(() => usePublicCommitmentImpact(42161), {
+      queryClient: createTestQueryClient(),
+    });
+
+    await act(async () => vi.advanceTimersByTimeAsync(1));
+    expect(result.current.data?.partialData).toBe(true);
+    await act(async () => vi.advanceTimersByTimeAsync(90_000));
+    expect(fetchSnapshot).toHaveBeenCalledOnce();
     unmount();
   });
 

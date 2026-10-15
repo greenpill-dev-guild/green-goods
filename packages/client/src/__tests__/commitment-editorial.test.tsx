@@ -436,6 +436,7 @@ beforeEach(() => {
       totalFetchedRecords: 0,
       partialData: false,
       sourceLimitReached: false,
+      certificateCount: 0,
       status: "empty",
     },
     isLoading: false,
@@ -526,7 +527,7 @@ describe("PublicEvidencePipeline", () => {
     expect(chips).not.toContain("Commitment");
     expect(chips).not.toContain("Confirmation");
     expect(chips).toEqual(
-      expect.arrayContaining(["All", "Assessment", "Work", "Impact Certificate"])
+      expect.arrayContaining(["All", "Assessment", "Submission", "Impact Certificate"])
     );
   });
 
@@ -550,6 +551,7 @@ describe("PublicEvidencePipeline", () => {
         totalFetchedRecords: 1,
         partialData: false,
         sourceLimitReached: false,
+        certificateCount: 1,
         status: "ready",
       },
       isLoading: false,
@@ -582,6 +584,7 @@ describe("PublicEvidencePipeline", () => {
         totalFetchedRecords: 1,
         partialData: false,
         sourceLimitReached: false,
+        certificateCount: 0,
         status: "ready",
       },
       isLoading: false,
@@ -622,7 +625,7 @@ describe("SectionNotice", () => {
 // ---------------------------------------------------------------------------
 
 describe("GardenDetail § 02 Commitments", () => {
-  it("keeps published commitments after approved work and omits empty certificates", () => {
+  it("keeps published commitments after approved work, and every section in place", () => {
     const { container } = renderGarden();
     // The hero is a labelled section too; the record ladder starts after it.
     const sections = Array.from(
@@ -630,14 +633,18 @@ describe("GardenDetail § 02 Commitments", () => {
     )
       .map((section) => section.getAttribute("aria-labelledby"))
       .filter((id) => id !== "public-garden-detail-title");
+    // Ordinals stay stable between Gardens: a Garden with no certificates still
+    // reads § 01 to § 04 and says what is absent (DESIGN.browser.md § /gardens/:id).
     expect(sections).toEqual([
       "public-garden-detail-notes",
       "public-garden-detail-commitments",
+      "public-garden-detail-certificates",
       "public-garden-detail-stewards",
     ]);
     expect(screen.getByText(en["public.gardenDetail.section.notes"])).toBeInTheDocument();
     expect(screen.getByText("§ 02: Commitments")).toBeInTheDocument();
-    expect(screen.queryByText("§ 03: Certificates")).not.toBeInTheDocument();
+    expect(screen.getByText(en["public.gardenDetail.section.certificates"])).toBeInTheDocument();
+    expect(screen.getByText(en["public.gardenDetail.certificates.empty"])).toBeInTheDocument();
     expect(screen.getByText(en["public.gardenDetail.section.stewards"])).toBeInTheDocument();
     expect(mockUsePublicGardenPool).toHaveBeenCalledWith(GARDEN_ID, {
       chainId: CHAIN_ID,
@@ -1216,13 +1223,14 @@ describe("/impact commitments band", () => {
     );
   });
 
-  it("shows offers and requests, kept commitments, and funding as three distinct counts", () => {
+  // The money figure left the band on 2026-10-12: "funding" framed a mutual-aid
+  // record as a funding product, and its USD valuation is often unavailable.
+  it("shows offers and requests and kept commitments as two counts, with no money figure", () => {
     const { container } = withProviders(createElement(PublicCommitmentsBand));
     expect(markerValue(en["public.pool.impact.made.label"])).toBe("61");
     expect(markerValue(en["public.pool.impact.kept.label"])).toBe("43");
-    expect(markerValue(en["public.pool.impact.support.label"])).toBe("$312.00");
-    expect(container.querySelectorAll("dt")).toHaveLength(3);
-    expect(container.textContent).not.toMatch(/%|open pools|G\$/i);
+    expect(container.querySelectorAll("dt")).toHaveLength(2);
+    expect(container.textContent).not.toMatch(/%|open pools|G\$|\$|funding/i);
     expect(mockUsePublicCommitmentImpact).toHaveBeenCalledWith(CHAIN_ID);
   });
 
@@ -1256,7 +1264,6 @@ describe("/impact commitments band", () => {
     for (const label of [
       en["public.pool.impact.made.label"],
       en["public.pool.impact.kept.label"],
-      en["public.pool.impact.support.label"],
     ]) {
       expect(markerValue(label)).toBe(en["public.impact.proof.unavailable"]);
     }
@@ -1264,7 +1271,7 @@ describe("/impact commitments band", () => {
     expect(container.textContent).not.toMatch(/—|\b0\b/);
   });
 
-  it("keeps commitment figures visible when historical dollar valuation is unavailable", () => {
+  it("reads as complete when only the payout valuation is unavailable", () => {
     mockUsePublicCommitmentImpact.mockReturnValue({
       data: impactData({
         confirmedDisbursementUsdCents: null,
@@ -1279,13 +1286,11 @@ describe("/impact commitments band", () => {
     const { container } = withProviders(createElement(PublicCommitmentsBand));
     expect(markerValue(en["public.pool.impact.made.label"])).toBe("61");
     expect(markerValue(en["public.pool.impact.kept.label"])).toBe("43");
-    expect(markerValue(en["public.pool.impact.support.label"])).toBe(
-      en["public.impact.proof.unavailable"]
-    );
-    expect(container.textContent).not.toMatch(/G\$|312/);
+    // The band shows no payout figure, so a missing valuation is nothing to apologise for.
+    expect(container).not.toHaveTextContent(en["public.pool.impact.partial"]);
   });
 
-  it("uses readiness phrasing before any commitments or funding are recorded", () => {
+  it("uses readiness phrasing before any commitments are recorded", () => {
     mockUsePublicCommitmentImpact.mockReturnValue({
       data: impactData({
         commitmentsMade: 0n,
@@ -1299,20 +1304,10 @@ describe("/impact commitments band", () => {
     for (const label of [
       en["public.pool.impact.made.label"],
       en["public.pool.impact.kept.label"],
-      en["public.pool.impact.support.label"],
     ]) {
       expect(markerValue(label)).toBe(en["public.pool.impact.noneYet"]);
     }
     expect(container.textContent).not.toMatch(/\b0\b/);
-  });
-
-  it("shows funding below one cent without calling a received transfer empty", () => {
-    mockUsePublicCommitmentImpact.mockReturnValue({
-      data: impactData({ confirmedDisbursementUsdCents: 0n }),
-      isLoading: false,
-    });
-    withProviders(createElement(PublicCommitmentsBand));
-    expect(markerValue(en["public.pool.impact.support.label"])).toBe("<$0.01");
   });
 
   it("never renders a provider address or per-garden ordering", () => {

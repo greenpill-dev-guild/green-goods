@@ -266,6 +266,41 @@ describe.each(["wallet", "passkey"] as const)("useBatchListForYield with %s", (m
   });
 
   describe("invalidation", () => {
+    it("keeps pending batches out of the retry state and refreshes listings", async () => {
+      mockSendTransaction.mockResolvedValueOnce({
+        hash: "0xSafeProposalIdentifier",
+        sponsored: false,
+        confirmation: "pending",
+      });
+      const { result } = renderHookWithQueryClient(() => useBatchListForYield(TEST_GARDEN), {
+        queryClient,
+      });
+      const listings = [
+        {
+          hypercertId: 1n,
+          fractionId: 1n,
+          currency: "0x0000000000000000000000000000000000000000" as const,
+          pricePerUnit: 1000n,
+          minUnitAmount: 1n,
+          maxUnitAmount: 1000n,
+          minUnitsToKeep: 0n,
+          sellLeftover: false,
+          durationDays: 30,
+        },
+      ];
+      await act(() => result.current.batchList(listings));
+      await waitFor(() => expect(result.current.progress.status).toBe("pending"));
+      expect(result.current.error).toBeNull();
+      expect(mockInvalidateQueries).toHaveBeenCalled();
+      await act(async () => {
+        result.current.reset();
+        await result.current.batchList(listings);
+      });
+      expect(result.current.progress.status).toBe("pending");
+      expect(mockSendTransaction).toHaveBeenCalledTimes(1);
+      expect(mockSignMakerAsk).toHaveBeenCalledTimes(1);
+    });
+
     it("keeps marketplace listing invalidation after a successful batch listing", async () => {
       const { result } = renderHookWithQueryClient(() => useBatchListForYield(TEST_GARDEN), {
         queryClient,

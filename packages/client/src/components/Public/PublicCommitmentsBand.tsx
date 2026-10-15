@@ -1,5 +1,4 @@
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
-import { formatUsdCents } from "@green-goods/shared/utils/blockchain/price-feeds";
 import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
 import { usePublicCommitmentImpact } from "@green-goods/shared/hooks/public/usePublicCommitmentImpact";
 import { useIntl } from "react-intl";
@@ -9,11 +8,14 @@ import { type PublicProofMarker, PublicProofMarkers } from "./PublicProofMarkers
 /**
  * Community commitment totals on the public Impact page. Counts include
  * offers and requests across every registered pool, including earlier seasons.
- * Funding includes only confirmed disbursements to Gardens. A failed read
- * remains unavailable rather than appearing as an empty record.
+ * A failed read remains unavailable rather than appearing as an empty record.
+ *
+ * The band shows no money figure (QA review, 2026-10-12). The Agent reports confirmed
+ * payouts to Gardens, but "funding" framed a mutual-aid record as a funding product
+ * and the USD valuation is often unavailable. Bringing it back is a product decision.
  */
 export function PublicCommitmentsBand({ chainId = DEFAULT_CHAIN_ID }: { chainId?: number }) {
-  const { formatMessage, formatNumber, locale } = useIntl();
+  const { formatMessage, formatNumber } = useIntl();
   const { data, isLoading } = usePublicCommitmentImpact(chainId);
   const { ref, revealed } = useInViewReveal<HTMLElement>();
 
@@ -54,31 +56,6 @@ export function PublicCommitmentsBand({ chainId = DEFAULT_CHAIN_ID }: { chainId?
     ...countMarker(data?.commitmentsFulfilled, formatNumber, noneYet),
   };
 
-  const confirmedTotal = data?.confirmedDisbursementUsdCents ?? null;
-  const support: PublicProofMarker = {
-    key: "support",
-    label: formatMessage({
-      id: "public.pool.impact.support.label",
-      defaultMessage: "Funding received (USD)",
-    }),
-    note: formatMessage({
-      id: "public.pool.impact.support.note",
-      defaultMessage: "Funding received by Gardens to support their communities’ work.",
-    }),
-    loading: isLoading,
-    unavailable: !isLoading && confirmedTotal === null,
-    ...(confirmedTotal !== null
-      ? (data?.confirmedDisbursementTotal ?? 0n) > 0n
-        ? {
-            value:
-              confirmedTotal === 0n
-                ? `<${formatUsdCents(1n, locale)}`
-                : formatUsdCents(confirmedTotal, locale),
-          }
-        : { phrase: noneYet }
-      : {}),
-  };
-
   return (
     <section
       ref={ref}
@@ -113,12 +90,8 @@ export function PublicCommitmentsBand({ chainId = DEFAULT_CHAIN_ID }: { chainId?
                 "Planting trees, maintaining solar panels, sharing skills. The work of a Garden starts with what its community needs and what people can offer. Commitments give that work a shared record: who will carry it out, when, and whether it was kept. Community members can follow what is happening in their Garden. Funders can see the work they help make possible.",
             })}
           </EditorialLede>
-          <PublicProofMarkers
-            layout="panel"
-            markers={[made, kept, support]}
-            unavailableDisplay="label"
-          />
-          {data?.partialData || failed ? (
+          <PublicProofMarkers layout="panel" markers={[made, kept]} unavailableDisplay="label" />
+          {made.unavailable || kept.unavailable ? (
             <p role="status" className="mt-6 max-w-xl text-sm leading-relaxed text-text-sub-600">
               {formatMessage({
                 id: "public.pool.impact.partial",

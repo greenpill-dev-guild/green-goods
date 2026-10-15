@@ -1,7 +1,7 @@
 import { Button } from "@green-goods/shared/components/Button";
 import type { PublicFieldNote } from "@green-goods/shared/hooks/public/usePublicGardenDetail";
 import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useIntl } from "react-intl";
 import { ImageWithFallback } from "@/components/Display/Image/ImageWithFallback";
 import {
@@ -35,9 +35,6 @@ export function FieldNotesSection({
   const { formatMessage } = useIntl();
   const [visibleCount, setVisibleCount] = useState(NOTES_PAGE_SIZE);
   const [openNote, setOpenNote] = useState<PublicFieldNote | null>(null);
-  // PublicRecordDrawer moves focus to its close button but does not put it
-  // back, so the tile that opened it holds the return target.
-  const triggerRef = useRef<HTMLButtonElement | null>(null);
 
   const visible = notes.slice(0, visibleCount);
 
@@ -46,11 +43,11 @@ export function FieldNotesSection({
       id="public-garden-detail-notes"
       kicker={formatMessage({
         id: "public.gardenDetail.section.notes",
-        defaultMessage: "§ 01: Field notes",
+        defaultMessage: "§ 01: Approved submissions",
       })}
       heading={formatMessage({
         id: "public.gardenDetail.notes.heading",
-        defaultMessage: "Recent approved work",
+        defaultMessage: "Recent approved submissions",
       })}
       helper={formatMessage({
         id: "public.gardenDetail.notes.helper",
@@ -64,28 +61,21 @@ export function FieldNotesSection({
         <SectionNotice
           message={formatMessage({
             id: "public.gardenDetail.notes.unavailable",
-            defaultMessage: "Field notes could not be loaded right now.",
+            defaultMessage: "Approved submissions could not be loaded right now.",
           })}
         />
       ) : notes.length === 0 ? (
         <SectionEmpty
           message={formatMessage({
             id: "public.gardenDetail.notes.empty",
-            defaultMessage: "No field notes yet. They appear when Work is approved.",
+            defaultMessage: "No approved submissions yet. They appear when Work is approved.",
           })}
         />
       ) : (
         <>
           <ul className="mt-12 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
             {visible.map((note) => (
-              <FieldNoteTile
-                key={note.id}
-                note={note}
-                onOpen={(element) => {
-                  triggerRef.current = element;
-                  setOpenNote(note);
-                }}
-              />
+              <FieldNoteTile key={note.id} note={note} onOpen={() => setOpenNote(note)} />
             ))}
           </ul>
 
@@ -111,7 +101,7 @@ export function FieldNotesSection({
               >
                 {formatMessage({
                   id: "public.gardenDetail.notes.loadMore",
-                  defaultMessage: "Show more entries",
+                  defaultMessage: "Show more submissions",
                 })}
               </Button>
             ) : null}
@@ -120,26 +110,13 @@ export function FieldNotesSection({
       )}
 
       {openNote ? (
-        <FieldNoteDialog
-          chainId={chainId}
-          note={openNote}
-          onClose={() => {
-            setOpenNote(null);
-            triggerRef.current?.focus();
-          }}
-        />
+        <FieldNoteDialog chainId={chainId} note={openNote} onClose={() => setOpenNote(null)} />
       ) : null}
     </Section>
   );
 }
 
-function FieldNoteTile({
-  note,
-  onOpen,
-}: {
-  note: PublicFieldNote;
-  onOpen: (element: HTMLButtonElement) => void;
-}) {
+function FieldNoteTile({ note, onOpen }: { note: PublicFieldNote; onOpen: () => void }) {
   const intl = useIntl();
   const { formatMessage } = intl;
   // A stored title can end in timestamps older submissions appended; readers see the title alone.
@@ -147,7 +124,7 @@ function FieldNoteTile({
     note.title,
     formatMessage({
       id: "public.gardenDetail.notes.untitled",
-      defaultMessage: "Untitled entry",
+      defaultMessage: "Untitled submission",
     })
   );
   const cover = note.media[0];
@@ -157,7 +134,12 @@ function FieldNoteTile({
       <button
         type="button"
         data-pressable="card"
-        onClick={(event) => onOpen(event.currentTarget)}
+        onClick={(event) => {
+          // Safari leaves a pressed button unfocused, and the drawer returns focus to the opener
+          // that holds it.
+          event.currentTarget.focus({ preventScroll: true });
+          onOpen();
+        }}
         className="group flex h-full w-full flex-col gap-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
       >
         <div className="relative aspect-[3/2] w-full overflow-hidden bg-editorial-warm">

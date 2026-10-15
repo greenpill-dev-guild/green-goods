@@ -25,10 +25,16 @@ import Work from ".";
 
 /** Submit Work on one step, for the east-beds promise unless `linked` is off. */
 const onStep =
-  (step: "media" | "review", { linked = true }: { linked?: boolean } = {}) =>
+  (
+    step: "media" | "review",
+    {
+      linked = true,
+      documentationPhoto = false,
+    }: { linked?: boolean; documentationPhoto?: boolean } = {}
+  ) =>
   () => {
     mocked(useWorkSubmissionFlowController).mockReturnValue(
-      submitWorkControllerFixture(step, { linked })
+      submitWorkControllerFixture(step, { linked, documentationPhoto })
     );
     mocked(useCommitment).mockReturnValue({
       commitment: SEEDLING_COMMITMENT,
@@ -102,4 +108,14 @@ export const PromiseSheet: Story = {
 /** Work that isn't for a promise pins nothing. */
 export const MediaWithoutAPromise: Story = {
   beforeEach: onStep("media", { linked: false }),
+};
+
+/** Real photo, fictional data, no promise: the documentation's evidence example. */
+export const MediaWithExamplePhoto: Story = {
+  beforeEach: onStep("media", { linked: false, documentationPhoto: true }),
+};
+
+/** The same example at Review, with count, time and a concrete field note. */
+export const ReviewWithExamplePhoto: Story = {
+  beforeEach: onStep("review", { linked: false, documentationPhoto: true }),
 };

@@ -78,21 +78,30 @@ describe("button shape guard (DL-023, DL-026)", () => {
     }
   });
 
-  it("uses the 16px field corner in the app and no corner on the public website (DL-029)", () => {
+  it("uses the 16px field corner in the app (DL-029) and the capsule on the public website (DL-089)", () => {
     const app = rootBlockWith("--gg-button-radius");
     expect(declaration(app, "--gg-button-radius")).toBe("var(--radius-lg)");
     expect(declaration(app, "--gg-button-radius-pressed")).toBe("var(--radius-squircle)");
     expect(declaration(app, "--gg-button-weight")).toBe("var(--text-label-sm--font-weight)");
 
+    // Every size takes the capsule and keeps it while pressed: all four corner
+    // tokens read the same step, so no website button can morph or fall back
+    // to the app's corner.
     const website = block(':root:has([data-site="website"])');
-    expect(declaration(website, "--gg-button-radius")).toBe("var(--radius-none)");
-    expect(declaration(website, "--gg-button-radius-pressed")).toBe("var(--radius-none)");
+    for (const token of [
+      "--gg-button-radius",
+      "--gg-button-radius-pressed",
+      "--gg-button-radius-compact",
+      "--gg-button-radius-compact-pressed",
+    ]) {
+      expect(declaration(website, token)).toBe("var(--radius-full)");
+    }
     expect(declaration(website, "--gg-button-weight")).toBe("var(--font-weight-semibold, 600)");
   });
 
-  it("projects the none step for the square website buttons", () => {
-    expect(generated).toMatch(/--gg-radius-none:\s*0px;/);
-    expect(theme).toMatch(/--radius-none:\s*var\(--gg-radius-none\);/);
+  it("projects the full step for the capsule website buttons", () => {
+    expect(generated).toMatch(/--gg-radius-full:\s*9999px;/);
+    expect(theme).toMatch(/--radius-full:\s*var\(--gg-radius-full\);/);
   });
 
   it("has retired the legacy gg-button-<variant> classes", () => {

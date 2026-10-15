@@ -166,7 +166,6 @@ function assertSafeTarget(relativePath) {
     ".codex",
     ".env",
     "env.schema",
-    "env.template",
     ".git",
     ".github",
     ".plans",

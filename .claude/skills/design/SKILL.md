@@ -2,7 +2,7 @@
 name: design
 user-invocable: false
 description: "Green Goods design direction — the Warm Earth design language (shape, motion, color, material tokens), admin cockpit vs client PWA surface identities, paradigm selection, layout composition, AI design-tool prompt contracts, and design review lenses. Use for design direction, visual language decisions, what paradigm or material a view should use, new views or components, UI polish passes, and preparing prompts for AI design tools."
-token_version: "2.20.0"
+token_version: "2.21.0"
 ---
 
 # Design Skill
@@ -84,7 +84,7 @@ Three principles woven throughout — not a checklist, a lens:
 
 ### Regenerative Design
 
-Does this design regenerate or extract? Make value flows visible, match complexity to community maturity, enrich stakeholder boundaries, make failure recoverable, reject manufactured engagement, build community capability, and keep the visual language grounded rather than financialized. The executable PR checks live in [review-checklist.md § Lens 1](./review-checklist.md#lens-1-regenerative-design); public rationale and sources live in `docs/docs/reference/design-research.md`.
+Does this design regenerate or extract? Make value flows visible, match complexity to community maturity, enrich stakeholder boundaries, make failure recoverable, reject manufactured engagement, build community capability, and keep the visual language grounded rather than financialized. The executable PR checks live in [review-checklist.md § Lens 1](./review-checklist.md#lens-1-regenerative-design); public rationale and sources live in `docs/docs/builders/architecture/design.mdx`.
 
 ### User Ecosystem Thinking
 

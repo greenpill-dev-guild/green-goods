@@ -90,6 +90,9 @@ const DEFAULT_HOOK_STATE = {
   isCreating: false,
   error: null,
   reset: mockReset,
+  checkConfirmation: vi.fn(),
+  isCheckingConfirmation: false,
+  confirmWalletCancellation: vi.fn(),
 };
 
 describe("components/Hypercerts/CreateListingDialog", () => {
@@ -180,4 +183,75 @@ describe("components/Hypercerts/CreateListingDialog", () => {
       expect(onOpenChange).toHaveBeenCalledWith(false);
     });
   });
+});
+
+it("shows a pending listing with confirmation checking and no retry or second signature", async () => {
+  const check = vi.fn();
+  mockUseCreateListing.mockReturnValue({
+    ...DEFAULT_HOOK_STATE,
+    step: "pending",
+    isCreating: true,
+    checkConfirmation: check,
+  });
+  render(
+    createElement(CreateListingDialog, {
+      open: true,
+      onOpenChange: vi.fn(),
+      gardenAddress: "0x1111111111111111111111111111111111111111",
+      hypercertId: 1n,
+      fractionId: 2n,
+    })
+  );
+  expect(screen.queryByRole("button", { name: /try again|sign & list/i })).not.toBeInTheDocument();
+  expect(screen.getByRole("alert")).toHaveTextContent("Transaction submitted");
+  await userEvent.click(screen.getByRole("button", { name: /check confirmation/i }));
+  expect(check).toHaveBeenCalledOnce();
+  expect(mockCreateListing).not.toHaveBeenCalled();
+});
+
+it.each([
+  "done",
+  "error",
+] as const)("keeps a restored pending listing in its %s result phase", (step) => {
+  mockUseCreateListing.mockReturnValue({
+    ...DEFAULT_HOOK_STATE,
+    step: "pending",
+    isCreating: true,
+  });
+  const props = {
+    open: true,
+    onOpenChange: vi.fn(),
+    gardenAddress: "0x1111111111111111111111111111111111111111" as const,
+    hypercertId: 1n,
+    fractionId: 2n,
+  };
+  const view = render(createElement(CreateListingDialog, props));
+  mockUseCreateListing.mockReturnValue({ ...DEFAULT_HOOK_STATE, step, isCreating: false });
+  view.rerender(createElement(CreateListingDialog, props));
+  expect(screen.queryByRole("button", { name: /sign & list/i })).not.toBeInTheDocument();
+  expect(
+    screen.getByRole("button", { name: step === "done" ? /done/i : /try again/i })
+  ).toBeInTheDocument();
+});
+
+it("closes a pending listing without resetting its persisted submission", async () => {
+  const close = vi.fn();
+  mockReset.mockClear();
+  mockUseCreateListing.mockReturnValue({
+    ...DEFAULT_HOOK_STATE,
+    step: "pending",
+    isCreating: true,
+  });
+  render(
+    createElement(CreateListingDialog, {
+      open: true,
+      onOpenChange: close,
+      gardenAddress: "0x1111111111111111111111111111111111111111",
+      hypercertId: 1n,
+      fractionId: 2n,
+    })
+  );
+  await userEvent.click(screen.getByLabelText("Close"));
+  expect(close).toHaveBeenCalledWith(false);
+  expect(mockReset).not.toHaveBeenCalled();
 });

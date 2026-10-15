@@ -2,56 +2,87 @@
 title: Product History
 sidebar_label: Product History
 slug: /reference/product-history
+description: "How Green Goods changed for the people using it, with released versions kept separate from early specifications and future work."
 audience: all
 owner: docs
-last_verified: 2026-10-09
-feature_status: Complete
+last_verified: 2026-10-12
+feature_status: Live
+source_of_truth:
+  - package.json
+  - SECURITY.md
+  - packages/shared/src/ontology/green-goods-projections.json
 ---
 
 # Product History
 
-Green Goods has changed substantially as the team learned from communities and from running the protocol. This page records the broad milestones without presenting old specifications as current implementation guidance. For current behavior, follow the builder guides and their linked code, configuration, ontology, and deployment sources.
+Green Goods began with recording conservation work and grew into a way to connect a community's work, review, and funding. This timeline explains the changes people using it would notice.
 
-The complete historical documents remain available in the repository's Git history.
+The published release notes below are the evidence for released versions. Early specifications describe the direction at the time. For instructions that match the current product, start with [How It Works](/community/how-it-works).
 
-## v0.1 {#v01}
+## v0.1: recording conservation work {#v01}
 
-The first product specification established the Garden, work-submission, attestation, and account-abstraction direction. It explored Privy, Ethereum Attestation Service, Pimlico, and token-bound accounts as the initial stack.
+**Early specification.** The first design focused on a gardener choosing an action, documenting what they did, and having it reviewed. Garden organizers would bring people and resources together. It explored how recognition and rewards might follow that work; those ideas were not a guarantee of payment.
 
-## v0.4 {#v04}
+The [archived specification](https://github.com/greenpill-dev-guild/green-goods/blob/v1.1.0/docs/docs/builders/specs/v0-1.mdx) records that starting point. It is not a release receipt or today's sign-in guide.
 
-The next specification shifted authentication toward passkeys and added Karma-based impact reporting to the proposed product shape. It also refined the user journeys around creating a Garden, submitting work, reviewing evidence, and making attestations.
+## v0.4: a garden's work record {#v04}
 
-## v1.0 {#v10}
+**January 2026 release.** Gardeners could record work with media and follow submissions in the app. Stewards could review evidence. The conservation focus included invasive-species removal, planting, and tending plants.
 
-The v1.0 planning cycle broadened Green Goods into a fuller impact-and-funding protocol. It explored Hypercerts, Octant vaults, Gardens conviction voting, Cookie Jar payouts, and a wider set of roles and action domains. Those ideas have since landed, changed, or been deferred independently; current code and the machine-readable ontology now own implementation and role claims.
+The [v0.4.0 release commit](https://github.com/greenpill-dev-guild/green-goods/commit/8ba29dbbe6db2ca556e5cb2030d70e297b0e6aad) records this version; the later [v1.1 release summary](https://github.com/greenpill-dev-guild/green-goods/pull/509) identifies it as the previous production release. The [v0.4 specification](https://github.com/greenpill-dev-guild/green-goods/blob/v1.1.0/docs/docs/builders/specs/v0-4.mdx) also explored impact reporting. Its proposed features should not all be read as shipped.
 
-## DID-ETHR modernization research {#did-ethr-modernization}
+## v1.0: connecting work and funding {#v10}
 
-A March 2026 proposal explored an updated `did:ethr` profile for account abstraction, interoperability, privacy, and conformance. It was research, not an adopted Green Goods implementation plan, and no active Plan Hub owns it.
+**Product design milestone.** The scope widened beyond biodiversity to Solar, Agroforestry, Education, and Waste. The design connected gardener submissions with assessments, impact certificates, shared garden funds, and endowments. It also explored community voting and reputation.
 
-## GreenWill research {#greenwill-research}
+These were separate pieces of work, with separate delivery dates. The [v1.0 specification](https://github.com/greenpill-dev-guild/green-goods/blob/v1.1.0/docs/docs/builders/specs/v1-0.mdx) is historical context, not evidence that every part became available at once.
 
-A March 2026 proposal set explored reputation badges and Greenpill Impact Framework-aligned measurement. Durable reputation choices are tracked in the `reputation-badging` Plan Hub; yield-to-impact framing is tracked in `yield-to-impact-codification`. The proposal documents themselves are historical research, not current protocol authority.
+## v1.1.0: clearer places to work {#v110}
 
-## OpenCred credential login research {#opencred-vc-login}
+**May 2026 release milestone.** Gardeners gained a refreshed public website and installed-app experience. The public garden view brought evidence and source records together. Stewards gained a redesigned dashboard, including a member roster and clearer navigation. Repeated messaging callbacks were made safer to retry.
 
-A March 2026 proposal explored using verifiable credentials for geographic Garden access and account linking. It was not adopted as an active implementation plan, so the proposal remains available only through Git history.
+The [merged release summary](https://github.com/greenpill-dev-guild/green-goods/pull/509) and [version tag](https://github.com/greenpill-dev-guild/green-goods/tree/v1.1.0) record this milestone. Its historical screenshots and labels may differ from the guides here.
 
-## Passkey recovery hardening {#passkey-recovery-hardening}
+## v1.2.0: steadier recording and funding {#v120}
 
-A March 2026 proposal explored production passkey-server topology, relying-party and origin rules, account-first recovery, and second-device access. The durable release constraints were carried into the `account-recovery-hardening` Plan Hub; the original proposal is retained through Git history.
+**Released 8 July 2026.** Installation and update messages became clearer. Work-media submission and stalled uploads gained recovery fixes. The funding page clarified the difference between donating to a shared fund and making an endowment; the endowment flow gained a currency display choice. Steward workflows and member management received further improvements.
 
-## v1.2.2 - September 2026 {#v122}
+Use the current [Install and Update](/community/gardener-guide/installing-and-updating), [Recover Unsent Work](/community/gardener-guide/recovery-and-sync), and [Funder Guide](/community/funder-guide/) for today's steps. [Release notes](https://github.com/greenpill-dev-guild/green-goods/releases/tag/v1.2.0).
 
-**Passkey sign-in can approve actions again**
+## v1.2.1: recovering from app updates {#v121}
 
-- **Passkey accounts** — if you sign in with a passkey, approving an action (joining a garden, submitting work) no longer fails with a prompt that appears to time out. Sign-in itself was always working; it was the approval step that could not find your saved passkey. Once the app updates, your existing passkey and your account work as before — there is nothing to re-register.
+**Released 30 July 2026.** A startup failure could show a recovery screen with **Reload**, rather than leaving the screen blank. App updates preserved open tabs, and some failures loading a new version recovered with one automatic reload. Passkey sign-in was enabled by default in production.
 
-Full notes: [GitHub Releases](https://github.com/greenpill-dev-guild/green-goods/releases).
+This version also had a passkey signing fault fixed in v1.2.2. Signing in and approving an action were different outcomes: sign-in could succeed while the action failed. [Release notes](https://github.com/greenpill-dev-guild/green-goods/releases/tag/v1.2.1).
 
-## v2.0.0 — planned October 2026 {#v200}
+## v1.2.2: passkey actions work again {#v122}
 
-The 2.0 release candidate connects commitment pools, promises, work evidence, and review across the gardener app, steward workspace, and public Garden records. It includes the rebuilt steward cockpit, offline and update improvements, passkey account continuity, and separate membership and steward access requests.
+**Released 12 September 2026.** People signing in with a passkey could approve actions again, including joining a garden and submitting work. The fix kept existing account addresses and passkeys: there was no need to create another account or register another passkey.
 
-The production release is scheduled for October 11, 2026, with its announcement on October 12. Deployment, authenticated acceptance, and each funding or settlement capability's activation checks still determine what is available live. This entry records the planned milestone; it is not a production completion receipt.
+If an old app version is still open, follow [Install and Update](/community/gardener-guide/installing-and-updating). [Release notes](https://github.com/greenpill-dev-guild/green-goods/releases/tag/v1.2.2).
+
+## v2.0.0: work and promises {#v200}
+
+**Next major version; production release not verified here.** The planned direction connects Commitment Pooling, promises, work evidence, and confirmation across the gardener app, steward dashboard, and public garden records. Read [where pooling fits](/community/how-it-works#commitment-pooling) for the idea.
+
+A release schedule does not establish that a feature is live. The latest published release found for this page on 12 October 2026 was v1.2.2. Pooling payment and settlement need their own activation evidence; this page does not promise automatic payment or ask existing users to migrate accounts.
+
+## Historical research
+
+These proposals explored possible directions. They are not extra released versions or instructions to change your account. The [historical source files](https://github.com/greenpill-dev-guild/green-goods/tree/v1.1.0/docs/docs/builders/specs) remain available.
+
+### Identity interoperability {#did-ethr-modernization}
+
+A March 2026 proposal explored identity interoperability and privacy. It was research, not an adopted implementation plan.
+
+### Reputation and impact measurement {#greenwill-research}
+
+March 2026 proposals explored reputation badges and impact measurement. Individual design and delivery decisions followed separately.
+
+### Credential-based access {#opencred-vc-login}
+
+A March 2026 proposal explored using credentials for geographic garden access and account linking. It was not adopted as an active implementation plan.
+
+### Passkey recovery research {#passkey-recovery-hardening}
+
+A March 2026 proposal explored account recovery and access from a second device. For current limits, read [Install and Update](/community/gardener-guide/installing-and-updating#if-something-goes-wrong).

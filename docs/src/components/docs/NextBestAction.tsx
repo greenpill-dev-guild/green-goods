@@ -1,5 +1,6 @@
 import Link from "@docusaurus/Link";
-import {RiArrowRightLine} from "@remixicon/react";
+import DocItemPaginator from "@theme/DocItem/Paginator";
+import {NextActionContext} from "./NextActionContext";
 import styles from "./styles.module.css";
 
 type NextBestActionProps = {
@@ -8,7 +9,6 @@ type NextBestActionProps = {
   actionLabel: string;
   actionHref: string;
   alternatives?: Array<{label: string; href: string}>;
-  markerLabel?: string;
 };
 
 export function NextBestAction({
@@ -17,19 +17,15 @@ export function NextBestAction({
   actionLabel,
   actionHref,
   alternatives = [],
-  markerLabel = "Next page",
 }: NextBestActionProps) {
   return (
-    <section className={styles.nextAction} aria-label={markerLabel}>
-      <p className={styles.nextActionMarker}>{markerLabel}</p>
-      <h2 className={styles.nextActionTitle}>{title}</h2>
+    <section className={styles.nextAction} aria-label={title}>
       <p className={styles.nextActionWhy}>{why}</p>
-      <Link to={actionHref} className={styles.nextActionPrimary}>
-        <span>{actionLabel}</span>
-        <RiArrowRightLine aria-hidden="true" />
-      </Link>
+      <NextActionContext.Provider value={{title: actionLabel, permalink: actionHref}}>
+        <DocItemPaginator />
+      </NextActionContext.Provider>
       {alternatives.length ? (
-        <ul className={styles.nextActionAlternatives}>
+        <ul className={styles.nextActionAlternatives} aria-label="Related guides">
           {alternatives.map((item) => (
             <li key={`${item.label}-${item.href}`}>
               <Link to={item.href}>{item.label}</Link>

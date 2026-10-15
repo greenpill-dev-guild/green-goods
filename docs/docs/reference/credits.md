@@ -1,247 +1,127 @@
 ---
-title: Credits & Licenses
+title: Credits
 slug: /reference/credits
 audience: all
 owner: docs
-last_verified: 2026-02-19
+last_verified: 2026-10-13
 feature_status: Live
 source_of_truth:
   - LICENSE
-  - AGENTS.md
+  - package.json
+  - packages/shared/package.json
+  - packages/client/package.json
+  - packages/admin/package.json
+  - packages/agent/package.json
+  - packages/agent/src/services/db/core.ts
+  - packages/indexer/package.json
+  - docs/package.json
+  - packages/shared/src/ontology/green-goods-projections.json
+  - packages/shared/src/modules/data/ipfs/pinata.ts
+  - packages/shared/src/modules/work/prepare-queued-work.ts
+  - packages/shared/src/hooks/analytics/useAnalyticsIdentity.ts
+  - packages/shared/src/modules/app/posthog-browser.ts
+  - packages/contracts/src/resolvers/Work.sol
+  - packages/contracts/src/resolvers/WorkApproval.sol
 ---
 
-# Credits & Licenses
+# Credits
 
-Built with love by the Greenpill Dev Guild and contributors worldwide.
-
----
+Green Goods is built by its team and contributors, with feedback from the communities using it. Thank you to everyone who writes code, tests a flow, improves a guide, translates a screen, or shares what happened in the field.
 
 ## License
 
-**MIT License**
-
-Green Goods is free and open-source software.
-
-```
-MIT License
-
-Copyright (c) 2024 Greenpill Dev Guild
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
-
-**Full license**: [LICENSE](https://github.com/greenpill-dev-guild/green-goods/tree/main/LICENSE)
-
----
+The code and documentation are available under the MIT License. Read the [License guide](/builders/reference/license) for what it permits, and the [full license](https://github.com/greenpill-dev-guild/green-goods/blob/develop/LICENSE) for its terms.
 
 ## Core Team
 
-### Greenpill Dev Guild
+### The Green Goods team
 
-Green Goods is developed by the [Greenpill Dev Guild](https://github.com/greenpill-dev-guild), a community of builders creating regenerative web3 infrastructure.
-
-**Key Contributors**:
-- Protocol design & smart contracts
-- Frontend development (PWA + admin)
-- Infrastructure & operations
-- Documentation & community
-
----
+Development happens in the open on [GitHub](https://github.com/greenpill-dev-guild/green-goods). The work includes the app, steward dashboard, contracts, infrastructure, documentation, and community support.
 
 ## Contributors
 
-Thank you to everyone who has contributed to Green Goods!
-
-**See full list**: [GitHub Contributors](https://github.com/greenpill-dev-guild/green-goods/graphs/contributors)
-
-**Ways to contribute**:
-- Code (features, fixes)
-- Documentation
-- Testing
-- Design
-- Community support
-- Translations
-
-[Contributing Guide →](../builders/getting-started)
-
----
+The [GitHub contributors list](https://github.com/greenpill-dev-guild/green-goods/graphs/contributors) and [release notes](https://github.com/greenpill-dev-guild/green-goods/releases) credit the people whose changes have landed. To take part, read [how to contribute](/builders/how-to-contribute).
 
 ## Built With
 
 ### Blockchain Infrastructure
 
-- **[Ethereum Attestation Service (EAS)](https://attest.sh)** - On-chain attestations
-- **[Karma GAP](https://gap.karmahq.xyz/)** - Grantee accountability protocol
-- **[Pimlico](https://pimlico.io)** - Smart account infrastructure
-- **[Reown (WalletConnect)](https://reown.com)** - Wallet connection
+Green Goods uses [Ethereum Attestation Service](https://attest.sh) for records, [Pimlico](https://pimlico.io) for smart-account infrastructure, and [Reown](https://reown.com) for wallet connections. The [Builders integrations](/builders/integrations) explain how these and other integrations fit together, including their current limits.
 
 ### Development Tools
 
-- **[React](https://react.dev)** - UI framework
-- **[Vite](https://vitejs.dev)** - Build tool
-- **[TypeScript](https://www.typescriptlang.org)** - Type safety
-- **[Tailwind CSS](https://tailwindcss.com)** - Styling
-- **[Radix UI](https://www.radix-ui.com)** - UI primitives
-- **[TanStack Query](https://tanstack.com/query)** - Data fetching
-- **[Viem](https://viem.sh)** - Ethereum client
-- **[Foundry](https://getfoundry.sh)** - Smart contract development
-- **[Envio](https://envio.dev)** - Blockchain indexer
+The apps use [React](https://react.dev), [Vite](https://vite.dev), and [TypeScript](https://www.typescriptlang.org). [Foundry](https://getfoundry.sh) supports contract development, [Envio](https://envio.dev) indexes records, and [Docusaurus](https://docusaurus.io) powers these docs.
 
 ### Infrastructure & Services
 
-- **[IPFS](https://ipfs.tech)** via **[Pinata](https://pinata.cloud)** - Decentralized storage
-- **[Vercel](https://vercel.com)** - Hosting & CDN
-- **[Docker](https://docker.com)** - Containerization
-- **[PostgreSQL](https://postgresql.org)** - Database
-- **[Biome](https://biomejs.dev)** - Formatting & linting
+Work media uses [IPFS](https://ipfs.tech) through [Pinata](https://pinata.cloud). Repository deployment and operations use Vercel and Docker; the messaging runtime uses SQLite. Biome checks formatting and linting. Current setup belongs in the [Builders guide](/builders/getting-started).
 
 ### Blockchain Networks
 
-- **[Arbitrum](https://arbitrum.io)** - Layer 2 scaling
-- **[Celo](https://celo.org)** - Carbon-negative blockchain
-- **[Sepolia](https://sepolia.dev)** - Ethereum testnet
+The main app and garden records use Arbitrum. Celo-related integrations and test networks have separate readiness and activation requirements. See [Deployments & Addresses](/builders/reference/deployments) for the current records; listing a network here does not promise that every feature runs on it.
 
 ### Open Source Libraries
 
-- **[OpenZeppelin Contracts](https://openzeppelin.com/contracts)** - Secure smart contract library
-- **[ERC-6551 (Tokenbound)](https://tokenbound.org)** - NFT accounts
-- **[Zustand](https://zustand-demo.pmnd.rs)** - State management
-- **[React Hook Form](https://react-hook-form.com)** - Form handling
-- **[Zod](https://zod.dev)** - Schema validation
-- **[graphql-request](https://github.com/jasonkuhrt/graphql-request)** - Lightweight GraphQL client
-
----
+The project also depends on work from OpenZeppelin, Viem, TanStack Query, Zustand, Radix UI, React Hook Form, Zod, and many other open-source contributors. The package manifests in the [repository](https://github.com/greenpill-dev-guild/green-goods) hold the current dependency lists.
 
 ## Funding & Support
 
 ### Grants & Sponsors
 
-Green Goods has been supported by:
-- Greenpill Network
-- (Additional grants/sponsors to be listed)
-
-**Interested in supporting Green Goods?**
-- Contact us: [Telegram](https://t.me/+N3o3_43iRec1Y2Jh)
-- Sponsor: [GitHub Sponsors](https://github.com/sponsors/greenpill-dev-guild)
-
----
+To discuss supporting Green Goods, contact the team through [Telegram](https://t.me/+N3o3_43iRec1Y2Jh). To support a garden directly, follow the [Funder Guide](/community/funder-guide/).
 
 ## Community Partners
 
 ### Regenerative Finance Ecosystem
 
-- **Gitcoin** - Public goods funding
-- **Optimism** - Retroactive funding
-- **ReFi DAO** - Regenerative finance community
-- **Karma GAP** - Impact reporting standard
+Green Goods grew from the Greenpill network's work on regenerative funding and community coordination. Shared tools and research help inform the product; using or discussing a tool does not imply a formal partnership.
 
-### Community Partners
+### Community Partners {#community-partners-1}
 
-- Local gardens and regenerative organizations
-- Bioregional networks
-- Community coordinators
-- (Partners to be listed as they onboard)
-
----
+Gardens, local organizers, testers, and community members shape the work through their experience and feedback. Contact the team about collaboration through the community chat.
 
 ## Acknowledgements
 
 ### Inspiration
 
-Green Goods builds on the work of:
-- **Kevin Owocki** - Gitcoin, regenerative cryptoeconomics
-- **Gitcoin community** - Quadratic funding, public goods
-- **Optimism** - Retroactive public goods funding
-- **Hypercerts team** - Impact certificates research
-- **EAS team** - Attestation infrastructure
+Thank you to the people exploring public-goods funding, impact measurement, and community verification, and to the teams maintaining the tools Green Goods uses.
 
 ### Special Thanks
 
-- Greenpill Network for vision and support
-- Early adopters and testers
-- Community members providing feedback
-- Open source contributors
-
----
+Thank you to early users and testers who point out confusing instructions, missing evidence, and recovery problems. Those observations improve both the product and these guides.
 
 ## Brand Assets
 
 ### Logo & Identity
 
-Download logos, transparent square assets, favicons, and app icons from the
-[Brand kit](/brand). The page also explains the available colors, file sizes, and usage guidance.
-
-**Usage Guidelines**:
-- Feel free to use in integrations
-- Maintain Green Goods branding
-- Don't imply official endorsement without permission
-
----
+Use the [Brand kit](/brand) for current logos, icons, palette, fonts, and editable templates. Keep proportions and space around the artwork. Do not imply official endorsement without permission. Brand usage guidance and open questions are on that page.
 
 ## Contact
 
 ### Development Team
 
-- 💬 **Telegram**: [Community Chat](https://t.me/+N3o3_43iRec1Y2Jh)
-- 🐙 **GitHub**: [greenpill-dev-guild/green-goods](https://github.com/greenpill-dev-guild/green-goods)
-- 📧 **Email**: Contact via GitHub or Telegram
-- 📣 **Twitter**: [@greengoodsapp](https://x.com/greengoodsapp)
+- [Telegram community chat](https://t.me/+N3o3_43iRec1Y2Jh)
+- [GitHub repository](https://github.com/greenpill-dev-guild/green-goods)
+- [Green Goods on X](https://x.com/greengoodsapp)
 
 ### For Press & Media
 
-Contact: [Telegram](https://t.me/+N3o3_43iRec1Y2Jh) for media inquiries
-
----
+Contact the team through Telegram for media inquiries and attribution questions.
 
 ## Contributing
 
-Want to be listed here? [Start contributing!](../builders/getting-started)
-
-All contributors are credited in:
-- GitHub contributors list
-- Release notes
-- This page
-- Future: Retroactive rewards via Hypercerts
-
----
+Start with [how to contribute](/builders/how-to-contribute). Accepted code and documentation changes appear in Git history and the contributor list. This page does not promise rewards for contributing.
 
 ## Legal
 
 ### Terms of Service
 
-Green Goods is provided "as is" under MIT License. See license above.
+The [MIT License](https://github.com/greenpill-dev-guild/green-goods/blob/develop/LICENSE) includes the software's terms and its “as is” warranty disclaimer. It does not guarantee service availability or results.
 
 ### Privacy
 
-- No personal data collected
-- Wallet addresses are pseudonymous
-- Photos uploaded are public
-- Analytics are anonymized
+Submissions, media links, account addresses, and recorded decisions are public. Records may show the account's chosen name. Usage and error analytics are linked to the account address when someone is signed in. Read the [FAQ privacy answers](/faq#privacy) before submitting information or photos.
 
 ### Disclaimer
 
-**No Investment Advice**: Green Goods is an impact documentation tool, not financial advice.
-
-**No Guarantees**: While we strive for reliability, no guarantees about uptime, data availability, or specific outcomes.
-
-**User Responsibility**: Users responsible for accuracy of their submissions and compliance with local laws.
-
----
-
-Thank you for being part of the Green Goods community! 🌱
+Green Goods records claims and community decisions; it does not guarantee their accuracy or a particular outcome. Approval does not guarantee payment. Endowments carry risks, including loss and limited withdrawal availability; read the [Funder Guide](/community/funder-guide/) before using them.

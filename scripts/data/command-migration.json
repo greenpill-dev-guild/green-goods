@@ -57,7 +57,7 @@
       "test:e2e:fork": "bun run browser e2e --preset fork",
       "test:e2e:passkey": "bun run browser e2e --preset passkey",
       "test:e2e:testnet": "bun run browser e2e --preset testnet",
-      "env:template:init": "node scripts/dev/env-template-init.js",
+      "env:template:init": "bun run env:sync",
       "version:bump": "node scripts/ops/bump-version.mjs",
       "version:check": "node scripts/ops/bump-version.mjs --check",
       "metrics:month": "node scripts/ops/month-metrics.mjs",

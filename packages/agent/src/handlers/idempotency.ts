@@ -5,7 +5,7 @@ import type { InboundMessage, OutboundResponse } from "../types";
 export type IdempotentHandler = "approve" | "reject" | "submit-confirm";
 export type IdempotentAction = "approval" | "rejection" | "submission";
 
-export function messageIdempotencyKey(handler: IdempotentHandler, message: InboundMessage): string {
+function messageIdempotencyKey(handler: IdempotentHandler, message: InboundMessage): string {
   return `${handler}:${message.platform}:${message.sender.platformId}:${message.id}`;
 }
 

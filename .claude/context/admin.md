@@ -275,5 +275,5 @@ Read these docs pages when you need steward workflow context or garden managemen
 - Manage gardeners: `docs/docs/community/steward-guide/index.mdx`
 - Review work submissions: `docs/docs/community/steward-guide/reviewing-work.mdx`
 - Configure actions: `docs/docs/community/steward-guide/managing-actions.mdx`
-- Assessment and reporting context: `docs/docs/community/steward-guide/making-an-assessment.mdx`
+- Assessment and reporting context: `docs/docs/community/evaluator-guide/making-an-assessment.mdx`
 - Steward getting started: `docs/docs/community/steward-guide/index.mdx`

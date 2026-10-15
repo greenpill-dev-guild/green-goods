@@ -48,6 +48,12 @@ const LAYOUT_CLASS = {
   },
 } as const;
 
+/** Columns by marker count; a pair keeps the width of the prose above it. */
+const COLUMN_CLASS: Record<number, string> = {
+  2: "grid-cols-2 md:max-w-3xl",
+  3: "grid-cols-1 md:grid-cols-3",
+};
+
 export function PublicProofMarkers({
   markers,
   layout = "strip",
@@ -65,7 +71,7 @@ export function PublicProofMarkers({
   const classes = LAYOUT_CLASS[layout];
   return (
     <dl
-      className={`${classes.list} ${markers.length === 3 ? "grid-cols-1 md:grid-cols-3" : "grid-cols-2 md:grid-cols-4"}`}
+      className={`${classes.list} ${COLUMN_CLASS[markers.length] ?? "grid-cols-2 md:grid-cols-4"}`}
     >
       {markers.map(({ key, label, note, value, phrase, loading, unavailable }) => (
         <div key={key} className="flex min-w-0 flex-col gap-3">

@@ -1,0 +1,32 @@
+[
+  {
+    "title": "Gardener",
+    "href": "/community/gardener-guide/",
+    "icon": "seedling",
+    "description": "Record your work in the field with photos and a few details, even without a signal."
+  },
+  {
+    "title": "Steward",
+    "href": "/community/steward-guide/",
+    "icon": "shield",
+    "description": "Bring people in, review their work, and look after the garden's funds."
+  },
+  {
+    "title": "Evaluator",
+    "href": "/community/evaluator-guide/",
+    "icon": "clipboard",
+    "description": "Help a garden write down its starting point and what it will measure."
+  },
+  {
+    "title": "Funder",
+    "href": "/community/funder-guide/",
+    "icon": "wallet",
+    "description": "Donate to a garden or endow it, and know where the money goes."
+  },
+  {
+    "title": "Builder",
+    "href": "/builders/getting-started",
+    "icon": "hammer",
+    "description": "Integrate with Green Goods contracts, APIs, and the shared component library."
+  }
+]

@@ -32,6 +32,7 @@ import {
   readEnginesNodeFloor,
   readPinnedNodeVersion,
 } from "../lib/dev-shared.js";
+import { secretSyncReadiness } from "../lib/env-schema.mjs";
 import { inspectSurface } from "./surface-leases.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -88,7 +89,6 @@ const marks = {
 };
 
 const results = [];
-let opReady = null;
 
 function usage(exitCode = 0) {
   const stream = exitCode === 0 ? process.stdout : process.stderr;
@@ -167,9 +167,10 @@ function hasOpRef(value) {
   return /^op:\/\//.test(value.trim());
 }
 
-function templateOpRefs(templatePath) {
-  if (!fs.existsSync(templatePath)) return [];
-  const text = fs.readFileSync(templatePath, "utf8");
+/** Keys whose env.schema value is a 1Password reference for `bun run env:sync` to resolve. */
+function schemaSecretReferenceKeys(schemaPath) {
+  if (!fs.existsSync(schemaPath)) return [];
+  const text = fs.readFileSync(schemaPath, "utf8");
   const refs = [];
   for (const rawLine of text.split(/\r?\n/)) {
     const line = rawLine.trim();
@@ -348,45 +349,14 @@ function checkContractSubmodules() {
   );
 }
 
-function checkOpReadiness() {
-  const templatePath = path.join(projectRoot, "env.template");
-  const opRefKeys = templateOpRefs(templatePath);
-
-  if (opRefKeys.length === 0) {
-    add(
-      "info",
-      "No 1Password refs in env.template",
-      ".env values are direct (or env.template doesn't exist yet). Skipping op signin check.",
-      "",
-      { check: "op:template-refs" }
-    );
-    opReady = true;
-    return;
-  }
-
-  if (!commandExists("op")) {
-    opReady = false;
-    add(
-      "fail",
-      "1Password CLI is not installed",
-      `${opRefKeys.length} op:// refs in env.template require resolution.`,
-      "Install the 1Password CLI from https://1password.com/downloads/command-line/, then run `bun run env:sync`.",
-      { check: "op:cli" }
-    );
-    return;
-  }
-
-  // Don't pre-check `op whoami` — it returns "not signed in" without a session token,
-  // but `op inject` itself triggers Touch ID via the desktop integration at sync time.
-  // The fact that .env exists and `env:check` passes is the real signal that resolution worked.
-  opReady = true;
-  add(
-    "info",
-    "1Password CLI present",
-    `${opRefKeys.length} op:// ref(s) in env.template will be resolved by \`bun run env:sync\` (Touch ID prompts then).`,
-    "",
-    { check: "op:cli-present" }
-  );
+function checkOpReadiness(schemaPath, hasEnvFile) {
+  // That .env exists and `env:check` passes is the real signal that resolution worked.
+  const verdict = secretSyncReadiness({
+    referenceCount: schemaSecretReferenceKeys(schemaPath).length,
+    hasOpCli: commandExists("op"),
+    hasEnvFile,
+  });
+  add(verdict.level, verdict.title, verdict.detail, verdict.fix, { check: verdict.check });
 }
 
 function checkEnvSchemaCompleteness() {
@@ -408,7 +378,7 @@ function checkEnvSchemaCompleteness() {
       "fail",
       ".env is incomplete vs env.schema",
       (envCheck.stderr || envCheck.stdout || "").trim().split("\n").slice(0, 5).join(" "),
-      "Run `bun run env:sync` to materialize from env.template, or fill missing keys in .env directly.",
+      "Run `bun run env:sync` to materialize from env.schema, or fill missing keys in .env directly.",
       { check: "env:schema-complete" }
     );
   }
@@ -417,8 +387,8 @@ function checkEnvSchemaCompleteness() {
 function checkEnv() {
   const envPath = path.join(projectRoot, ".env");
   const schemaPath = path.join(projectRoot, "env.schema");
+  // Only what is set counts. env.schema holds what a sync would write, references included.
   const envFile = parseEnvFile(envPath);
-  const schema = parseEnvFile(schemaPath);
 
   if (fs.existsSync(envPath)) {
     add("pass", "Root .env exists", "Package-level .env files are still not allowed.", "", {
@@ -448,24 +418,18 @@ function checkEnv() {
   if (fs.existsSync(envPath)) {
     checkEnvSchemaCompleteness();
   }
-  checkOpReadiness();
+  checkOpReadiness(schemaPath, fs.existsSync(envPath));
 
   const vitePinataJwt = valueFor(envFile, "VITE_PINATA_JWT");
-  const pinataJwtOpRef = valueFor(envFile, "PINATA_JWT_OP_REF");
   const pinataJwt = valueFor(envFile, "PINATA_JWT");
   const envioApiToken = valueFor(envFile, "ENVIO_API_TOKEN");
-  const envioApiTokenOpRef = valueFor(envFile, "ENVIO_API_TOKEN_OP_REF");
   const apiBaseUrl = ["prod", "prod-mirror"].includes(options.profile)
     ? "https://agent.greengoods.app"
     : ["full", "web"].includes(options.profile)
       ? "http://127.0.0.1:3005"
-      : valueFor(envFile, "VITE_API_BASE_URL") || schema.VITE_API_BASE_URL;
-  const hasPinataOpRef = hasOpRef(pinataJwtOpRef);
-  const hasPinataServer =
-    hasUsableValue(pinataJwt) || (options.profile === "upload" && hasPinataOpRef && opReady);
-  const hasEnvioApiToken =
-    (hasUsableValue(envioApiToken) && !hasOpRef(envioApiToken)) ||
-    (hasOpRef(envioApiTokenOpRef) && opReady);
+      : valueFor(envFile, "VITE_API_BASE_URL");
+  const hasPinataServer = hasUsableValue(pinataJwt);
+  const hasEnvioApiToken = hasUsableValue(envioApiToken) && !hasOpRef(envioApiToken);
 
   if (vitePinataJwt.trim()) {
     add(
@@ -481,7 +445,7 @@ function checkEnv() {
     add(
       "pass",
       "Pinata upload signing credential configured",
-      "Server-side secret value or OP ref was detected but not printed.",
+      "Server-side secret value was detected but not printed.",
       "",
       {
         check: "env:pinata",
@@ -492,7 +456,7 @@ function checkEnv() {
       requiredLevel(["upload"]),
       "Pinata upload signing credential missing",
       "Image reads can use public gateways, but upload-capable QA will fail.",
-      "Set PINATA_JWT in root .env, or in env.template as `PINATA_JWT=op://Vault/Item/credential` and run `bun run env:sync`.",
+      "Set PINATA_JWT in root .env, or run `bun run env:sync` to resolve its 1Password reference from env.schema.",
       { check: "env:pinata" }
     );
   }
@@ -525,7 +489,7 @@ function checkEnv() {
         "fail",
         "Envio API token missing for live-indexer mirror",
         "The local mirror can start without it, but live Arbitrum catch-up may stall or lag beyond the smoke threshold.",
-        "Set ENVIO_API_TOKEN in root .env, or set ENVIO_API_TOKEN_OP_REF in env.template and run `bun run env:sync`.",
+        "Set ENVIO_API_TOKEN in root .env, or give it a 1Password reference in env.schema and run `bun run env:sync`.",
         { check: "env:envio-api-token" }
       );
     }
@@ -543,7 +507,7 @@ function checkEnv() {
     );
   }
 
-  const rpId = valueFor(envFile, "VITE_PASSKEY_RP_ID") || schema.VITE_PASSKEY_RP_ID || "";
+  const rpId = valueFor(envFile, "VITE_PASSKEY_RP_ID");
   if (!rpId) {
     add("pass", "Passkey RP ID uses runtime fallback", "localhost in dev, greengoods.app otherwise.", "", {
       check: "env:passkey-rp-id",
@@ -580,7 +544,7 @@ function checkEnv() {
     add(
       "pass",
       "Hosted production indexer selected by stack overlay",
-      "VITE_ENVIO_INDEXER_URL=https://indexer.hyperindex.xyz/e6edffd/v1/graphql",
+      "VITE_ENVIO_INDEXER_URL=https://indexer.hyperindex.xyz/de3e5df/v1/graphql",
       "",
       { check: "env:indexer-url" }
     );
@@ -597,7 +561,7 @@ function checkEnv() {
     options.profile === "full" ||
     options.profile === "upload"
   ) {
-    const indexerUrl = options.profile === "full" ? "http://localhost:3006/v1/graphql" : valueFor(envFile, "VITE_ENVIO_INDEXER_URL") || schema.VITE_ENVIO_INDEXER_URL || "";
+    const indexerUrl = options.profile === "full" ? "http://localhost:3006/v1/graphql" : valueFor(envFile, "VITE_ENVIO_INDEXER_URL");
     if (indexerUrl.includes("localhost:3006")) {
       add("pass", "Indexer URL points to local GraphQL", "http://localhost:3006/v1/graphql", "", {
         check: "env:indexer-url",
@@ -633,7 +597,7 @@ function checkEnv() {
       { check: "env:chain-id" }
     );
   } else if (options.profile === "web") {
-    const chainId = valueFor(envFile, "VITE_CHAIN_ID") || schema.VITE_CHAIN_ID || "";
+    const chainId = valueFor(envFile, "VITE_CHAIN_ID");
     const knownChains = {
       "42161": "Arbitrum One (mainnet — real funds)",
       "11155111": "Sepolia (testnet)",
@@ -850,9 +814,9 @@ function printText() {
   console.log("- Production local mirror: production-backed local dev plus Docker and Envio v3 generated types.");
 
   console.log("\nSecret policy");
-  console.log("- `.env` is materialized from `env.template` via `bun run env:sync` (runs `op inject`).");
+  console.log("- `.env` is materialized from `env.schema` via `bun run env:sync` (runs `op inject`).");
   console.log("- Direct root `.env` values are fine for personal local-only credentials.");
-  console.log("- Shared team secrets: edit `env.template` with `op://Vault/Item/field` refs.");
+  console.log("- Shared team secrets: give the key an `op://Vault/Item/field` ref in `env.schema`.");
 
   console.log("\nRecommended entrypoints");
   console.log("- First clone: npm run setup");

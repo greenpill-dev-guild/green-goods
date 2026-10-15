@@ -119,6 +119,80 @@ function commitmentPayload(
   };
 }
 
+describe("deferred settlement creation", () => {
+  it("retains an unsent reward job without changing its payload or sending", async () => {
+    const payload = commitmentPayload({
+      consideration: { rail: 2, source: HOLDER, token: OTHER, amount: 1n },
+    });
+    const job: CommitmentJob<"commitment"> = {
+      id: "deferred",
+      kind: "commitment",
+      payload,
+      chainId: 42161,
+      moduleAddress: MODULE,
+      userAddress: HOLDER,
+    };
+    const before = structuredClone(job);
+    const deps = dependencies();
+    await expect(executeCommitmentJob(job, deps)).resolves.toEqual({
+      status: "waiting",
+      reason: "settlement-unavailable",
+    });
+    expect(job).toEqual(before);
+    expect(deps.send).not.toHaveBeenCalled();
+  });
+
+  it("reconciles an already-created reward job before applying release containment", async () => {
+    const payload = commitmentPayload({
+      consideration: { rail: 2, source: HOLDER, token: OTHER, amount: 1n },
+    });
+    const deps = dependencies({
+      readCommitmentId: vi.fn().mockResolvedValue(91n),
+      readCommitment: vi.fn().mockResolvedValue({
+        poolId: payload.poolId,
+        creator: HOLDER,
+        creationPayloadHash: hashCommitmentCreationPayload(payload),
+      }),
+    });
+    await expect(
+      executeCommitmentJob(
+        {
+          id: "deferred",
+          kind: "commitment",
+          payload,
+          chainId: 42161,
+          moduleAddress: MODULE,
+          userAddress: HOLDER,
+        },
+        deps
+      )
+    ).resolves.toEqual({ status: "recovered", entityId: 91n });
+    expect(deps.send).not.toHaveBeenCalled();
+  });
+
+  it("keeps an uncertain reward send pending without replacement", async () => {
+    const payload = commitmentPayload({
+      consideration: { rail: 2, source: HOLDER, token: OTHER, amount: 1n },
+    });
+    const deps = dependencies();
+    await expect(
+      executeCommitmentJob(
+        {
+          id: "deferred",
+          kind: "commitment",
+          payload,
+          chainId: 42161,
+          moduleAddress: MODULE,
+          userAddress: HOLDER,
+          submittedTxHash: ZERO_HASH,
+        },
+        deps
+      )
+    ).resolves.toEqual({ status: "waiting", reason: "pending-first-send" });
+    expect(deps.send).not.toHaveBeenCalled();
+  });
+});
+
 describe("display-group creation deadline", () => {
   it.each([
     { label: "just before", reconciledAt: 1_999, expected: "sent" },

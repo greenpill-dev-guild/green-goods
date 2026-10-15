@@ -7,7 +7,7 @@ Read-only, evidence-first review protocol for checking whether the Green Goods d
 Two modes:
 
 - **Full alignment review** (default) — the DesignMD sources, their runtime projections, and every surface (admin, client PWA, client browser, docs, Storybook, agentic guidance, repo instructions) that must stay in sync.
-- **Stack-only mode** (absorbed the former `stack-review.md`) — audits only the `design/` skill stack as infrastructure. See § Stack-only mode below.
+- **Stack-only mode** (replaced `stack-review.md`) — audits only the `design/` skill stack as infrastructure. See § Stack-only mode below.
 
 ## When to invoke
 
@@ -159,5 +159,5 @@ If nothing in Section 1 meets all constraints, say so. "Design system is aligned
 - `packages/shared/src/styles/theme.css`, `design-md.generated.css`, `design-md.generated.json` — runtime projections
 - `scripts/design/check-tokens.sh`, `scripts/design/check-vocab.sh`, `scripts/design/md-generate.mjs` — validators and generator
 - `packages/shared/.storybook/**`, `packages/shared/src/components/Tokens/**` — Storybook surface for the design system
-- `docs/docs/builders/packages/admin.mdx`, `docs/docs/builders/testing/storybook.mdx` — live UI and Storybook contracts
+- `docs/docs/builders/packages/admin.mdx`, `docs/docs/builders/testing/index.mdx` — live UI and Storybook contracts
 - `AGENTS.md`, local guides, and the optional `CLAUDE.md` compatibility import — canonical design-source routing

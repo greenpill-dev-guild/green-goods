@@ -3,14 +3,13 @@
 /**
  * Validate .env against env.schema.
  *
- * Replaces varlock's startup validation. Reads env.schema as the key contract,
- * checks .env has every required key non-empty. Never prints values.
+ * Reads env.schema as the key contract and checks that .env has every key the
+ * profile requires, non-empty. Never prints values.
  *
  * Exit 0 = valid. Exit 1 = missing/empty required keys.
  *
- * With no arguments, validates the conservative local-development baseline.
- * `--profile <name>` validates only keys annotated for that profile with
- * `# @required-in <profile>[,...]` in the schema.
+ * A profile's keys are the ones annotated `# @required-in <profile>[,...]` in the
+ * schema. With no arguments the profile is `dev`: what `bun run dev -- web` needs.
  */
 
 import path from "node:path";
@@ -27,18 +26,10 @@ const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, "../..");
 const schemaPath = path.join(projectRoot, "env.schema");
 const envPath = path.join(projectRoot, ".env");
-
-// Conservative required list: only the keys that MUST be present for `bun run dev -- web`
-// to function. It remains a fallback until `env.schema` carries `@required-in dev`.
-const baselineRequiredKeys = new Set([
-  "APP_ENV",
-  "VITE_CHAIN_ID",
-  "VITE_API_BASE_URL",
-  "VITE_ENVIO_INDEXER_URL",
-]);
+const DEFAULT_PROFILE = "dev";
 
 function parseArgs(args) {
-  const parsed = { profile: undefined, envSource: "file" };
+  const parsed = { profile: DEFAULT_PROFILE, envSource: "file" };
 
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
@@ -62,16 +53,6 @@ function parseArgs(args) {
   return parsed;
 }
 
-function requiredKeys(schema, profile) {
-  if (!profile) return schema.filter((entry) => baselineRequiredKeys.has(entry.key)).map((entry) => entry.key);
-
-  const profileKeys = requiredKeysForProfile(schema, profile);
-  if (profile === "dev" && profileKeys.length === 0) {
-    return schema.filter((entry) => baselineRequiredKeys.has(entry.key)).map((entry) => entry.key);
-  }
-  return profileKeys;
-}
-
 function main() {
   let options;
   try {
@@ -87,18 +68,30 @@ function main() {
     process.exit(1);
   }
 
-  const env = readEnvironment({ source: options.envSource, envFilePath: envPath });
-  if (!env) {
-    console.error("error: .env not found.");
-    console.error("  fix: Run `node scripts/dev/env-template-init.js` then `bun run env:sync` to create one.");
+  const requiredKeys = requiredKeysForProfile(schema, options.profile);
+  if (requiredKeys.length === 0) {
+    // A profile nothing is annotated for would pass whatever the environment holds.
+    console.error(`error: env.schema marks no key \`@required-in ${options.profile}\`.`);
+    console.error("  fix: Check the profile name, or restore the annotations in env.schema.");
     process.exit(1);
   }
 
-  const { missing, empty } = validateRequiredEnvironment(requiredKeys(schema, options.profile), env);
+  const env = readEnvironment({ source: options.envSource, envFilePath: envPath });
+  if (!env) {
+    console.error("error: .env not found.");
+    console.error(
+      "  fix: Run `bun run env:sync` to create one from env.schema, or `npm run setup -- --profile isolated` for a baseline without secrets."
+    );
+    process.exit(1);
+  }
+
+  const { missing, empty } = validateRequiredEnvironment(requiredKeys, env);
   const sourceLabel = options.envSource === "process" ? "process environment" : ".env";
 
   if (missing.length === 0 && empty.length === 0) {
-    console.log(`env-check: ${sourceLabel} satisfies env.schema (${schema.length} keys checked).`);
+    console.log(
+      `env-check: ${sourceLabel} has the ${requiredKeys.length} key(s) env.schema requires for ${options.profile}.`
+    );
     process.exit(0);
   }
 
@@ -116,9 +109,9 @@ function main() {
   console.error("");
   if (options.envSource === "file") {
     console.error("Fix:");
-    console.error("  - Add the missing keys to env.template (with op:// refs or plain values)");
-    console.error("  - Run `bun run env:sync` to materialize");
-    console.error("  - Or set the value directly in .env if it's a personal local credential");
+    console.error("  - Run `bun run env:sync` to rewrite .env from env.schema");
+    console.error("  - If a secret has no value there, give its key a 1Password reference in env.schema, or set it in your own .env");
+    console.error("  - Never write a secret's value into env.schema: the file is public. Only a non-secret default may be a plain value there");
   } else {
     console.error("Fix: set the missing values in the invoking process environment.");
   }

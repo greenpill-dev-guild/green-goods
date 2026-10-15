@@ -2,112 +2,111 @@
 title: Mint Impact Certificate
 sidebar_label: Mint Impact Certificate
 slug: /community/steward-guide/creating-impact-certificates
-description: "Mint a Hypercert-backed impact certificate from an assessment and approved garden work."
+description: "Bundle a body of approved work into one impact certificate: what belongs together, how to share its units, and what is still being switched on."
 audience: steward
 owner: docs
-last_verified: 2026-05-01
-feature_status: Live
-goal: "Help stewards open the certification flow, select approved work, review certificate metadata, allocate units, and mint."
-difficulty: "standard"
-estimated_time: "20-40 minutes for a prepared claim."
-prereqs: "An assessment, approved work, steward permission, contributor addresses, and an available certification flow."
-next_steps: "/community/steward-guide/"
-persona_context: "Stewards turning a defensible assessment and approval trail into an impact certificate."
+last_verified: 2026-10-13
+feature_status: In progress
+goal: "Help a steward decide what belongs in a certificate and walk the four steps of the form, with honest expectations about availability."
+difficulty: "advanced"
+estimated_time: "20 to 40 minutes for a prepared claim."
+prereqs: "Steward or owner access, approved work that belongs together, and the account address of each contributor."
+next_steps: "/community/steward-guide/funding-and-governance"
+persona_context: "Stewards turning a season of approved work into one claim a garden can show."
 source_of_truth:
   - packages/admin/src/views/Hub/CreateHypercert.tsx
   - packages/admin/src/views/Hub/components/HubRecordLists.tsx
+  - packages/admin/src/views/Hub/components/HubAssessmentInspector.tsx
   - packages/admin/src/components/Hypercerts/HypercertWizard/index.tsx
   - packages/admin/src/components/Hypercerts/Steps/AttestationSelector.tsx
   - packages/admin/src/components/Hypercerts/Steps/MetadataEditor.tsx
   - packages/admin/src/components/Hypercerts/Steps/DistributionConfig.tsx
   - packages/admin/src/components/Hypercerts/Steps/HypercertPreview.tsx
+  - packages/shared/src/hooks/hypercerts/useCreateHypercertWorkflow.ts
   - packages/shared/src/hooks/hypercerts/useMintHypercert.ts
+  - packages/shared/src/ontology/green-goods-projections.json
+  - packages/shared/src/i18n/en.json
 keywords:
   - impact certificate
   - hypercert
   - mint hypercert
   - steward
-  - certificate
 ---
 
-import {StewardPathNav, StatusBadge, StepFlow} from "@site/src/components/docs";
+import {NextBestAction, StatusBadge, StewardPathNav} from "@site/src/components/docs";
 
 # Mint Impact Certificate
 
-<StatusBadge status="Live" />
+<StatusBadge status="In progress" />
 
 <StewardPathNav />
 
-## What this helps you do
+An impact certificate bundles a body of approved work into one claim: "this garden did this, in this period." The dashboard calls it a **Hypercert**. It is the same thing.
 
-Mint an impact certificate after the garden has an assessment and approved work that support a clear claim. The current admin UI may call this **Create Hypercert** or **Mint Hypercert**; it is the same Hypercert-backed certificate flow.
-
-Use this page when the evidence is ready, not just when the queue is large. A good certificate groups work by a coherent impact claim, reporting period, or initiative.
-
-Owners and stewards can mint. Evaluators and funders can inspect the evidence, but they cannot finalize the certificate unless they also have owner/steward authority.
+:::note Still being switched on
+Certificates are not fully available yet. The form is in the dashboard for stewards and owners, and Green Goods is still building the path that makes a minted certificate show up and work everywhere. Before you plan a season around one, check [Honest Claims](/community/green-goods-claims) and ask the Green Goods team where your garden's network stands.
+:::
 
 ## Before you start
 
-- The garden has an assessment with the right domain and reporting window.
-- The work you want to include is **approved**, not pending.
-- The selected work belongs together as one defensible claim.
-- Contributor wallet addresses are ready.
-- You know how certificate units should be shared among contributors. This is the certificate allocation, not a separate splits contract.
-- **Create Hypercert** is available in admin for this garden.
+- **Be a steward or owner of the garden.** Evaluators can read certificates. They cannot create one.
+- **Have approved work that belongs together.** Pending and rejected work cannot go in. Work that is already in a certificate cannot go into a second one.
+- **Know the claim you are making:** what was done, by whom, and between which dates.
+- **Have each contributor's account address,** and agree how the certificate's units are shared among them.
+- **Take your time.** A certificate cannot be changed after it is minted.
 
-:::tip
-Do not include weak or unrelated work just to make the certificate look more impressive. It is better to mint a smaller certificate with a cleaner evidence trail.
-:::
+### What belongs in one certificate
 
-## Step-by-step flow
+Group work that tells one story: one kind of work, one period, one initiative. A smaller certificate with a clean trail is worth more than a large one padded with unrelated or weak submissions. If you are unsure whether a piece of work fits, leave it out. It can go into a later certificate.
 
-Start from the admin **Hub** workspace. Its **Hypercerts** tab lists the hypercerts the garden has minted, and **Create Hypercert** opens the form for the selected garden.
+## Steps
 
-<img src="/img/screenshots/admin-garden-impact.png" alt="Current admin impact surface with assessments and certificate context" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+1. Open **Hub** and tap **Create Hypercert**. You can also start from an assessment's record, or from the **Hypercerts** tab when it is empty.
+2. **Attestations:** select the approved work this certificate covers. Work marked **Bundled** is already in another certificate.
+3. **Metadata:** describe the impact. Give the certificate a title, say what work it covers, and set the dates the work ran between.
+4. **Distribution:** share the certificate's units among the contributors.
+5. **Review:** check everything, then tap **Mint Hypercert** and confirm. The dashboard may ask you to confirm a second time.
+6. When it reads **Hypercert minted**, tap **Done** to open its record.
 
-<StepFlow
-  steps={[
-    {
-      title: "Open Create Hypercert",
-      detail: "Select the garden, open Hub, and press Create Hypercert. You can also open an assessment from the Assessments tab and press Create Hypercert on its record.",
-    },
-    {
-      title: "Select approved work",
-      detail: "Choose the approved work records that belong to this certificate. Use the assessment domain and reporting window to keep the claim focused.",
-    },
-    {
-      title: "Review certificate metadata",
-      detail: "Check the title, description, work scope, impact scope, timeframes, and tags. Assessment-backed defaults are a starting point, not a substitute for review.",
-    },
-    {
-      title: "Allocate certificate units",
-      detail: "Assign units to the contributor addresses. Keep the allocation aligned with who did the verified work and make sure the total is valid.",
-    },
-    {
-      title: "Preview and mint",
-      detail: "Review the final certificate, selected evidence, contributor allocation, and chain. Submit only when the claim is accurate, then sign the mint transaction.",
-    },
-  ]}
-/>
+<figure className="gg-figure">
+  <img src="/img/builders/admin-hub-hypercerts.webp" alt="The Hub's Hypercerts tab in the steward dashboard, listing a minted certificate with its tags and the date it was minted" loading="lazy" width="2000" height="1250" />
+  <figcaption>The Hub's Hypercerts tab, where a garden's certificates are listed. Source: earlier Storybook fixture, October 2026. Exact capture day and build revision unrecorded; inspected 13 October 2026. Fictional example data.</figcaption>
+</figure>
 
-## How to know it worked
+## How you know it worked
 
-- The minting flow completes and shows a transaction hash or success state.
-- Admin opens the certificate detail page.
-- The detail page shows the expected title, description, work scope, evidence count, minted date, and total units.
-- If indexing is still catching up, the page shows a syncing state instead of a missing certificate.
-- Once indexed, the certificate is listed in the Hub's **Hypercerts** tab.
+- The **Review** step reads **Hypercert minted**.
+- **Done** opens the certificate's record.
+- The certificate appears on the Hub's **Hypercerts** tab. It can take a moment to show everywhere.
+
+## What happens next
+
+The certificate is now a public record that names the work it covers and each contributor's share.
+
+Two things do not happen yet, and it is better to say so to your gardeners than to let them expect otherwise:
+
+- **Contributors cannot collect or use their share inside Green Goods.** The share is recorded. There is no screen for claiming it.
+- **Nobody can buy a certificate through Green Goods.** There is no purchase step for funders in the product today.
 
 ## If something goes wrong
 
-- **No garden selected.** Pick the garden in admin, then reopen **Create Hypercert**.
-- **No permission.** Ask the garden owner to add you as an owner or steward.
-- **No approved work.** Return to [Review and Approve Work](./reviewing-work) and clear the relevant submissions first.
-- **Assessment filter hides expected work.** Check the assessment domain and reporting window. The work may belong in a different assessment or certificate.
-- **Distribution validation fails.** Recheck contributor addresses and unit totals before trying to mint.
-- **Create Hypercert is unavailable.** Contact the platform team or use the Telegram support link in the docs footer.
-- **Mint transaction fails.** Check the wallet message, make sure you are on Arbitrum, confirm the same signer is connected, and retry when the wallet has enough gas.
+| What you see | What to do |
+|---|---|
+| **You don't have permission to mint for this garden** | You need the Steward or Owner role in the garden shown at the top left |
+| **No approved, unbundled attestations are available yet** | There is no approved work left to bundle. [Review work](/community/steward-guide/reviewing-work) first |
+| **Select at least one attestation to continue** | Choose at least one piece of work in the first step |
+| You cannot move past **Metadata** | A title, what the work covers, and both dates are required |
+| You cannot move past **Distribution** | Check each contributor's address and that the shares add up |
+| The mint fails or never finishes | Do not try again and again. Note the message and ask the Green Goods team, because certificates are still being switched on |
+| The certificate is missing from the **Hypercerts** tab | Give it a moment. If it does not appear, send the Green Goods team the garden and the time you minted |
 
-## After minting
+To reach the Green Goods team, ask in the [Green Goods Telegram group](https://t.me/+N3o3_43iRec1Y2Jh).
 
-After minting, use the certificate detail page to inspect the evidence trail, monitor indexing, and continue with any listing or reporting steps your garden has planned.
+## Next step
+
+<NextBestAction
+  title="Look after the garden's funds"
+  why="See how support reaches your garden today, and what you can and cannot do with it from the dashboard."
+  actionLabel="Funding and Governance"
+  actionHref="/community/steward-guide/funding-and-governance"
+/>

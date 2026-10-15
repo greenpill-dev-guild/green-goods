@@ -19,6 +19,6 @@ import type { MessageDescriptor } from "react-intl";
  */
 export const EVIDENCE_KIND_LABELS: Record<PublicImpactEvidenceKind, MessageDescriptor> = {
   assessment: { id: "public.impact.kind.assessment", defaultMessage: "Assessment" },
-  work: { id: "public.impact.kind.work", defaultMessage: "Work" },
+  work: { id: "public.impact.kind.work", defaultMessage: "Submission" },
   certificate: { id: "public.impact.kind.certificate", defaultMessage: "Impact Certificate" },
 };

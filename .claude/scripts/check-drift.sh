@@ -167,9 +167,10 @@ PASS_COUNT=0
 echo ""
 echo "== Core Commands =="
 
-# Check that scripts exist in root package.json (not that they run successfully)
+# Check that scripts exist in root package.json (not that they run successfully).
+# Stopping services is `bun run dev -- stop`, an argument to `dev`, not a script of its own.
 ROOT_PKG="package.json"
-for cmd in dev dev:stop format lint test build setup; do
+for cmd in dev format lint test build setup; do
   if grep -q "\"$cmd\"" "$ROOT_PKG" 2>/dev/null; then
     pass
   else
@@ -186,17 +187,23 @@ echo ""
 echo "== Environment =="
 
 if [ -f "env.schema" ]; then
-  for var in VITE_CHAIN_ID VITE_API_BASE_URL VITE_PINATA_GATEWAY_URL PINATA_JWT_OP_REF PINATA_JWT; do
+  for var in VITE_CHAIN_ID VITE_API_BASE_URL VITE_PINATA_GATEWAY_URL PINATA_JWT; do
     if grep -q "$var" env.schema 2>/dev/null; then
       pass
     else
       drift "$var not found in env.schema"
     fi
   done
-  if grep -Fq 'PINATA_JWT=if($PINATA_JWT_OP_REF, op($PINATA_JWT_OP_REF),' env.schema 2>/dev/null; then
-    pass
+  # env.schema is the only tracked env file: a reference is the value of its own key.
+  if grep -Eq '^[A-Za-z0-9_]+_OP_REF=' env.schema 2>/dev/null; then
+    drift "Retired *_OP_REF companion key found in env.schema"
   else
-    drift "PINATA_JWT in env.schema does not derive from PINATA_JWT_OP_REF"
+    pass
+  fi
+  if [ -e "env.template" ]; then
+    drift "env.template is retired; env.schema holds the references"
+  else
+    pass
   fi
   if grep -q "VITE_STORACHA" env.schema 2>/dev/null; then
     drift "Stale VITE_STORACHA variable found in env.schema"

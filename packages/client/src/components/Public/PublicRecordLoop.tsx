@@ -1,54 +1,62 @@
 import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
-import { useIntl } from "react-intl";
+import { type MessageDescriptor, useIntl } from "react-intl";
 import { Link } from "react-router-dom";
-import { EditorialHeading, EditorialKicker, EditorialLinkArrow, EditorialNumeral } from "./atoms";
+import { EditorialHeading, EditorialKicker, EditorialNumeral } from "./atoms";
+import { CYCLE_LOOP_MESSAGE, CYCLE_STEP_MESSAGES } from "./cycleSteps";
 
 interface LoopStep {
-  numeral: string;
-  titleId: string;
-  defaultTitle: string;
-  bodyId: string;
-  defaultBody: string;
+  /** The stage the step belongs to, shown as a small label over its action. */
+  label: MessageDescriptor;
+  /** What the step asks of the people involved, as the row's title. */
+  action: MessageDescriptor;
+  description: MessageDescriptor;
+  /** Where the step can be seen on the site. */
   to: string;
 }
 
-const STEPS: readonly LoopStep[] = [
+/**
+ * The visitor's plan (Afo, 2026-10-13): the first three stages of the `/impact`
+ * cycle in its names and words, each led by the action it asks for, then funding.
+ * `/impact` keeps Learnings as its fourth stage; here the loop line closes it.
+ */
+const LOOP_STEPS: readonly LoopStep[] = [
   {
-    numeral: "1.",
-    titleId: "public.home.loop.work",
-    defaultTitle: "Do the work.",
-    bodyId: "public.home.loop.workBody",
-    defaultBody:
-      "Gardeners submit Work from the field as a signed record with media, details, and metadata. Stewards record approval or rejection separately.",
-    to: "/actions",
-  },
-  {
-    numeral: "2.",
-    titleId: "public.home.loop.verify",
-    defaultTitle: "Verify impact.",
-    bodyId: "public.home.loop.verifyBody",
-    defaultBody:
-      "Assessments define the baseline and evidence standard. Steward-approved Work can then be bundled into an Impact Certificate when that activation path is available.",
+    label: CYCLE_STEP_MESSAGES.needs.title,
+    action: { id: "public.home.loop.step.needs.action", defaultMessage: "Assess the needs." },
+    description: CYCLE_STEP_MESSAGES.needs.description,
     to: "/impact",
   },
   {
-    numeral: "3.",
-    titleId: "public.home.loop.fund",
-    defaultTitle: "Fund what grows.",
-    bodyId: "public.home.loop.fundBody",
-    defaultBody:
-      "A Garden's community and funders give directly today, or commit a deposit so yield supports the Work over time.",
+    label: CYCLE_STEP_MESSAGES.commitment.title,
+    action: {
+      id: "public.home.loop.step.commitment.action",
+      defaultMessage: "Plan, then commit.",
+    },
+    description: CYCLE_STEP_MESSAGES.commitment.description,
+    to: "/gardens",
+  },
+  {
+    label: CYCLE_STEP_MESSAGES.work.title,
+    action: { id: "public.home.loop.step.work.action", defaultMessage: "Report the work." },
+    description: CYCLE_STEP_MESSAGES.work.description,
+    to: "/actions",
+  },
+  {
+    label: { id: "public.home.loop.step.funding.label", defaultMessage: "Funding" },
+    action: { id: "public.home.loop.step.funding.action", defaultMessage: "Fund what grows." },
+    description: {
+      id: "public.home.loop.step.funding.description",
+      defaultMessage:
+        "Supporters donate to a Garden's shared fund or endow its Vault, whose yield supports the work.",
+    },
     to: "/fund",
   },
-] as const;
+];
 
 /**
- * PublicRecordLoop — visitor-facing narrative loop in editorial rhythm. Each
- * step is a hairline-bordered row with an italic numeral, a Fraunces title,
- * and a restrained body paragraph linking contextually to the relevant view.
- *
- * The public introduction follows the reader’s questions: what was done,
- * who reviewed it, and how to support the next steps.
+ * PublicRecordLoop — the home page's "How it works": four steps a Garden repeats,
+ * each a hairline row with its number and stage, a Fraunces action title, and a
+ * short body, linking to where that step can be seen on the site.
  */
 export function PublicRecordLoop() {
   const { formatMessage } = useIntl();
@@ -70,67 +78,50 @@ export function PublicRecordLoop() {
             })}
           </EditorialKicker>
           <EditorialHeading id="public-loop-title">
-            {formatMessage(
-              {
-                id: "public.home.loop.title",
-                defaultMessage: "Document. Review. <line2>Support what comes next.</line2>",
-              },
-              {
-                line2: (chunks) => <span className="block">{chunks}</span>,
-              }
-            )}
+            {formatMessage({
+              id: "public.home.loop.title",
+              defaultMessage: "Four steps, season after season.",
+            })}
           </EditorialHeading>
         </div>
 
         <ol className="mt-12">
-          {STEPS.map(({ numeral, titleId, defaultTitle, bodyId, defaultBody, to }, index) => (
+          {LOOP_STEPS.map((step, index) => (
             <li
-              key={titleId}
-              className={index === STEPS.length - 1 ? "border-b border-stroke-soft-200" : ""}
+              key={step.to + step.label.id}
+              className={index === LOOP_STEPS.length - 1 ? "border-b border-stroke-soft-200" : ""}
             >
               <Link
-                to={to}
+                to={step.to}
                 viewTransition
                 className="group grid grid-cols-[3rem_1fr] gap-4 border-t border-stroke-soft-200 py-7 transition-colors hover:bg-bg-white-0/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 sm:gap-x-6 xl:grid-cols-[7rem_1.1fr_1fr] xl:gap-12"
               >
-                <span className="pt-2">
-                  <EditorialNumeral>{numeral}</EditorialNumeral>
-                </span>
-                <h3 className="flex min-w-0 items-baseline gap-3 font-serif text-2xl font-normal leading-[1.05] tracking-[-0.018em] text-text-strong-950 group-hover:text-primary-action sm:justify-between md:text-3xl xl:justify-start xl:text-4xl">
-                  <span className="min-w-0">
-                    {formatMessage({ id: titleId, defaultMessage: defaultTitle })}
+                <EditorialNumeral className="leading-5">{`${index + 1}.`}</EditorialNumeral>
+                <div className="min-w-0">
+                  <span className="mb-2 block font-mono text-[11px] font-medium uppercase leading-5 tracking-[0.16em] text-text-soft-400">
+                    {formatMessage(step.label)}
                   </span>
-                  <span
-                    aria-hidden="true"
-                    className="shrink-0 text-base text-text-soft-400 transition-transform group-hover:translate-x-0.5 group-hover:text-primary-action md:text-2xl"
-                  >
-                    →
-                  </span>
-                </h3>
-                <p className="col-start-2 min-w-0 max-w-prose text-sm leading-[1.6] text-text-sub-600 md:text-base xl:col-start-auto">
-                  {formatMessage({ id: bodyId, defaultMessage: defaultBody })}
+                  <h3 className="flex min-w-0 items-baseline gap-3 font-serif text-2xl font-normal leading-[1.05] tracking-[-0.018em] text-text-strong-950 group-hover:text-primary-action sm:justify-between md:text-3xl xl:justify-start xl:text-4xl">
+                    <span className="min-w-0">{formatMessage(step.action)}</span>
+                    <span
+                      aria-hidden="true"
+                      className="shrink-0 text-base text-text-soft-400 transition-transform group-hover:translate-x-0.5 group-hover:text-primary-action md:text-2xl"
+                    >
+                      →
+                    </span>
+                  </h3>
+                </div>
+                <p className="col-start-2 min-w-0 max-w-prose text-sm leading-[1.6] text-text-sub-600 md:text-base xl:col-start-auto xl:mt-7">
+                  {formatMessage(step.description)}
                 </p>
               </Link>
             </li>
           ))}
         </ol>
 
-        <div className="mt-10 max-w-3xl">
-          <p className="font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-text-soft-400">
-            {formatMessage({
-              id: "public.home.loop.fieldGuideKicker",
-              defaultMessage: "Curious how the work gets planned?",
-            })}
-          </p>
-          <div className="mt-3">
-            <EditorialLinkArrow to="/actions">
-              {formatMessage({
-                id: "public.home.loop.fieldGuide",
-                defaultMessage: "Explore the types of work Gardens document",
-              })}
-            </EditorialLinkArrow>
-          </div>
-        </div>
+        <p className="mt-8 max-w-3xl font-serif text-base italic leading-[1.55] text-text-sub-600 md:text-lg">
+          {formatMessage(CYCLE_LOOP_MESSAGE)}
+        </p>
       </div>
     </section>
   );
