@@ -5,6 +5,8 @@ import { connectivityStore } from "../../stores/connectivity";
 import type { Address } from "../../types/domain";
 import { isDataSaverOn, networkInformation } from "../../utils/app/network-information";
 import { useAsyncSetup } from "../utils/useAsyncEffect";
+import { appCodeRecovery } from "../../modules/app/cache-recovery";
+import { logger } from "../../modules/app/logger";
 
 /**
  * Prepares the signed-in person's queued work and decisions in the background,
@@ -58,17 +60,25 @@ export function useWorkUploadPreparation(userAddress: Address | null | undefined
       const connection = networkInformation();
       const unsubscribeStatus = connectivityStore.subscribeStatus(schedule);
       const unsubscribeQueued = jobQueueEventBus.on("job:added", schedule);
+      const unsubscribeCode = appCodeRecovery.subscribe(schedule);
       connection?.addEventListener("change", schedule);
       schedule();
 
       return () => {
         unsubscribeStatus();
         unsubscribeQueued();
+        unsubscribeCode();
         connection?.removeEventListener("change", schedule);
         preparation.stop();
         preparationModule.setActiveUploadPreparation(undefined);
       };
     },
-    [userAddress, chainId, connected]
+    [userAddress, chainId, connected],
+    {
+      onError: (error) => {
+        appCodeRecovery.report(error);
+        logger.error("[useWorkUploadPreparation] Preparation could not load", { error });
+      },
+    }
   );
 }

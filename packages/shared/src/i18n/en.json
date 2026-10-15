@@ -3233,6 +3233,8 @@
   "app.toast.update.applying.title": "Finishing update",
   "app.toast.update.available.message": "A new version of Green Goods is ready.",
   "app.toast.update.available.title": "Update available",
+  "app.toast.update.codeUnavailable.title": "Restart to continue uploading",
+  "app.toast.update.codeUnavailable.message": "Your saved work is kept on this device. Update or restart the app, then try again.",
   "app.toast.update.checking.message": "Looking for a newer version.",
   "app.toast.update.checking.title": "Checking for update",
   "app.toast.update.downloading.message": "Getting the latest version in the background.",

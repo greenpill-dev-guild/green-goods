@@ -1,7 +1,8 @@
 import { createUpdateToasts } from "@green-goods/shared/components/Toast/presets/update";
 import { useApp } from "@green-goods/shared/providers/App";
 import { useServiceWorkerUpdate } from "@green-goods/shared/hooks/app/useServiceWorkerUpdate";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { appCodeRecovery } from "@green-goods/shared/modules/app/cache-recovery";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useIntl } from "react-intl";
 
 /**
@@ -23,6 +24,17 @@ function ServiceWorkerUpdateNotifier() {
   const retryingRef = useRef(false);
   // Bind the i18n-aware update toasts so es/pt render instead of hardcoded English.
   const updateToasts = useMemo(() => createUpdateToasts(formatMessage), [formatMessage]);
+  const codeUnavailable = useSyncExternalStore(
+    appCodeRecovery.subscribe,
+    appCodeRecovery.getSnapshot,
+    appCodeRecovery.getSnapshot
+  );
+  const [dismissedRecoveryRequest, setDismissedRecoveryRequest] = useState(0);
+  const recoveryDismissed = dismissedRecoveryRequest === codeUnavailable;
+  const dismissRecovery = useCallback(() => {
+    setDismissedRecoveryRequest(codeUnavailable);
+    dismissUpdate();
+  }, [codeUnavailable, dismissUpdate]);
 
   // A failed install recovers with a fresh check, not another activation. The
   // reader asked for it, so the toast follows the check through instead of
@@ -102,6 +114,19 @@ function ServiceWorkerUpdateNotifier() {
       phase !== previous &&
       (previous === "error" || previous === "install-failed") &&
       !retryingRef.current;
+    if (
+      codeUnavailable &&
+      !recoveryDismissed &&
+      phase !== "activating" &&
+      phase !== "error" &&
+      phase !== "install-failed"
+    ) {
+      // Code-load failures need attention now, not after the 30-minute prompt delay.
+      if (phase === "checking") updateToasts.checking();
+      else if (phase === "downloading") updateToasts.downloading();
+      else updateToasts.codeUnavailable(activateNow, dismissRecovery);
+      return;
+    }
     switch (phase) {
       case "waiting":
         if (shouldPrompt || failurePassed) updateToasts.ready(activateNow, dismissUpdate);
@@ -121,7 +146,17 @@ function ServiceWorkerUpdateNotifier() {
         if (failurePassed) updateToasts.dismiss();
         return;
     }
-  }, [phase, shouldPrompt, activateNow, retryDownload, dismissUpdate, updateToasts]);
+  }, [
+    phase,
+    shouldPrompt,
+    activateNow,
+    retryDownload,
+    dismissUpdate,
+    updateToasts,
+    codeUnavailable,
+    recoveryDismissed,
+    dismissRecovery,
+  ]);
 
   return null;
 }

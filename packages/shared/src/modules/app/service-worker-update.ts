@@ -10,6 +10,9 @@
 
 import { type QuietReport, SW_MESSAGE, SW_REPLY } from "./service-worker-protocol";
 
+/** Result of a manual update check; rejects when the check itself fails. */
+export type UpdateCheckResult = "up-to-date" | "ready" | "pending" | "failed";
+
 /**
  * Longest a download may run before the UI stops reporting it. The PWA shell
  * precache is well under a megabyte, so a healthy install settles in seconds;

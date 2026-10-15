@@ -13,6 +13,7 @@
 
 import type { Job } from "../../types/job-queue";
 import { logger } from "../app/logger";
+import { appCodeRecovery } from "../app/cache-recovery";
 import { hasRecordedSend, isTerminallyFailedJob } from "../job-queue/queue-policy";
 import { saveUnderClaim, type WorkClaim } from "../job-queue/work-claims";
 import { SimulationRejected } from "./simulation-rejected";
@@ -54,6 +55,9 @@ export async function prepareQueuedJob(
   } catch (error) {
     if (error instanceof Error && error.message === "submission-ownership-changed")
       return "skipped";
+    // A missing module cannot be retried within this document. Keep the job as
+    // it is and let the page offer an update; no send or failure is recorded.
+    if (appCodeRecovery.report(error)) return "retry-later";
     // The chain refused it: the same send would revert, so it waits for the person.
     if (error instanceof SimulationRejected && error.definitive)
       return record({ status: "blocked", reason: error.reason, checkedAt: checkedAt() }).catch(
