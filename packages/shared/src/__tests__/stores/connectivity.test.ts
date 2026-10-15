@@ -199,21 +199,48 @@ it("leaves a degraded connection to its scheduled recovery instead of probing fo
 });
 
 it.each([
-  { name: "a steady connection", before: undefined, after: undefined, steady: true },
+  {
+    name: "a steady connection",
+    before: undefined,
+    after: undefined,
+    degraded: false,
+    steady: true,
+  },
   {
     name: "a reconnect just before the failure",
     before: "online",
     after: undefined,
+    degraded: false,
     steady: false,
   },
   {
     name: "a disconnect the browser reports late",
     before: undefined,
     after: "offline",
+    degraded: false,
     steady: false,
   },
-] as const)("classifies a request failure on $name", async ({ before, after, steady }) => {
+  {
+    name: "a degraded connection",
+    before: undefined,
+    after: undefined,
+    degraded: true,
+    steady: false,
+  },
+] as const)("classifies a request failure on $name", async ({
+  before,
+  after,
+  degraded,
+  steady,
+}) => {
   vi.useFakeTimers();
+  if (degraded) {
+    // Both origin probes fail while the browser still reports a connection.
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
+    stop = connectivityStore.configureProbe("/connectivity-check.txt");
+    await connectivityStore.check();
+    expect(connectivityStore.getStatusSnapshot().state).toBe("degraded");
+  }
   await vi.advanceTimersByTimeAsync(NETWORK_SETTLE_MS + 1_000);
   if (before) {
     window.dispatchEvent(new Event(before));

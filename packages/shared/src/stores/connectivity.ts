@@ -212,14 +212,15 @@ export const connectivityStore = {
   /**
    * Whether a request that failed just now met a steady connection, and so
    * points at the service. Resolves after the settle window, once a network
-   * change the browser reports late has had time to arrive.
+   * change the browser reports late has had time to arrive. A degraded
+   * connection is not steady: the origin probe failed too.
    */
   failedOnSteadyConnection: async (): Promise<boolean> => {
     const failedAt = Date.now();
     await new Promise((resolve) => setTimeout(resolve, NETWORK_SETTLE_MS));
     return (
       readOnline() &&
-      snapshot.state !== "offline" &&
+      snapshot.state === "online" &&
       (networkChangedAt === undefined || networkChangedAt < failedAt - NETWORK_SETTLE_MS)
     );
   },
