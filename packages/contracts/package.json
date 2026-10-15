@@ -1,6 +1,6 @@
 {
   "name": "@green-goods/contracts",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "private": true,
   "description": "Contracts for Green Goods Protocol",
   "exports": {
