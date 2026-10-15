@@ -1,10 +1,13 @@
 # Green Goods 2.0.0 release pack
 
 Originally scheduled: release Sunday, October 11, 2026; announcement Monday, October 12.
-Released October 14, 2026. Production serves main `1b138dfba804d9db019a96d05675bbaa1a4162bc`,
-the signed `v2.0.0` tag and its [GitHub Release](https://github.com/greenpill-dev-guild/green-goods/releases/tag/v2.0.0)
-are published, and develop carries the production tree. The announcement is still pending.
-Dates use America/Los_Angeles.
+Released October 14, 2026 as the signed `v2.0.0` tag on main
+`1b138dfba804d9db019a96d05675bbaa1a4162bc`, with its [GitHub Release](https://github.com/greenpill-dev-guild/green-goods/releases/tag/v2.0.0).
+That evening the queued-upload recovery hotfix [#1105](https://github.com/greenpill-dev-guild/green-goods/pull/1105)
+shipped as the signed `v2.0.1` tag on main `1e79fcf1ec1423057262e4e25441abd855887e08`, with its
+[GitHub Release](https://github.com/greenpill-dev-guild/green-goods/releases/tag/v2.0.1). Production now
+serves `v2.0.1`, and [#1106](https://github.com/greenpill-dev-guild/green-goods/pull/1106) merged it back
+into develop. The announcement is still pending. Dates use America/Los_Angeles.
 Release owner and rollback operator: Afo, confirmed in the October 13 release conversation.
 
 This pack records observed rollout evidence and the limits of that evidence.
@@ -16,11 +19,11 @@ The owner merged #1057 at `d96e94143934a1db2655f3d2e9ba45837be41c46`, then
 `377aba5e1590f47290d51095e2d18b363d130f49`. All eleven main workflows succeeded at
 the latter commit, including both trusted-main source-map uploads.
 
-Production deployments, checked with `vercel inspect` on October 14. The serving ones come from
-the closeout at the tagged commit `1b138dfba` (below); the `377aba5e` ones are the prior
-production deployments.
+Production deployments for `v2.0.0`, checked with `vercel inspect` on October 14. The release
+ones come from the closeout at the tagged commit `1b138dfba` (below); the `377aba5e` ones are
+the deployments they replaced. The `v2.0.1` hotfix has since redeployed all three from `1e79fcf1e`.
 
-| Surface | Serving deployment at `1b138dfba` | Prior production deployment at `377aba5e` |
+| Surface | Release deployment at `1b138dfba` | Prior production deployment at `377aba5e` |
 |---|---|---|
 | Client | [GYnja7YfLJkLVzwjDKC9yrChCmbC](https://vercel.com/greenpilldevguild/green-goods/GYnja7YfLJkLVzwjDKC9yrChCmbC): READY, `greengoods.app` and `www.greengoods.app` | [DrfkyGdbhhtumXpgdjWcLgrqhcpD](https://vercel.com/greenpilldevguild/green-goods/DrfkyGdbhhtumXpgdjWcLgrqhcpD) |
 | Admin | [Ac4jrxrv7jXvHCV9J8JhNbz4WGdX](https://vercel.com/greenpilldevguild/green-goods-admin/Ac4jrxrv7jXvHCV9J8JhNbz4WGdX): READY, `admin.greengoods.app` | [4aXkCBjFjTVs7Qp1CroeLgRbqoTA](https://vercel.com/greenpilldevguild/green-goods-admin/4aXkCBjFjTVs7Qp1CroeLgRbqoTA) |
@@ -45,8 +48,8 @@ The closeout [#1098](https://github.com/greenpill-dev-guild/green-goods/pull/109
 the tagged commit `1b138dfba804d9db019a96d05675bbaa1a4162bc`. Every main workflow that ran there
 passed, including the trusted-main [Client](https://github.com/greenpill-dev-guild/green-goods/actions/runs/38620548598/job/116047516958)
 and [Admin](https://github.com/greenpill-dev-guild/green-goods/actions/runs/38620548487/job/116047434762)
-source-map uploads. The serving deployments in the table above come from that commit, and the
-production bundles carry `green-goods-client@1b138dfba804` and
+source-map uploads. The release deployments in the table above come from that commit, and the
+production bundles carried `green-goods-client@1b138dfba804` and
 `green-goods-admin@1b138dfba804`; these are deployment/HTTP checks. A read-only authenticated
 Brave check on October 14 rendered the production Client landing page, a public Garden with an
 active pooling season and an approved Work detail, and the Admin Hub. Nothing was signed and no
