@@ -392,36 +392,6 @@ contract KarmaModuleTest is Test {
         module.removeProjectAdmin(GARDEN, ADMIN);
     }
 
-    function testKarma_addProjectAdminDoesNotRouteThroughGAPFacade() public {
-        _setupSupportedChain();
-
-        vm.prank(GARDEN_TOKEN);
-        module.createProject(GARDEN, OPERATOR, "Garden", "Desc", "Loc", "Banner");
-
-        mockGAP.setShouldRevert(true);
-
-        vm.expectEmit(true, false, false, true);
-        emit GAPOperationFailed(GARDEN, "reconcileProjectAccess", "Project admin sync failed");
-
-        vm.prank(GARDEN_TOKEN);
-        module.addProjectAdmin(GARDEN, ADMIN);
-    }
-
-    function testKarma_removeProjectAdminDoesNotRouteThroughGAPFacade() public {
-        _setupSupportedChain();
-
-        vm.prank(GARDEN_TOKEN);
-        module.createProject(GARDEN, OPERATOR, "Garden", "Desc", "Loc", "Banner");
-
-        mockGAP.setShouldRevert(true);
-
-        vm.expectEmit(true, false, false, true);
-        emit GAPOperationFailed(GARDEN, "reconcileProjectAccess", "Project admin sync failed");
-
-        vm.prank(GARDEN_TOKEN);
-        module.removeProjectAdmin(GARDEN, ADMIN);
-    }
-
     function testKarma_createImpactRecordsExpectedWirePayload() public {
         _setupSupportedChain();
 

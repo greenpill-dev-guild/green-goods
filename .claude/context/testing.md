@@ -106,7 +106,7 @@ shrink when a violation is fixed, while every new or stale entry fails the check
 
 - Mutation hooks: assert the error path at both hook level (`isError` + handler/`logger.error` called) and component level (error toast surfaced). Errors are never swallowed.
 - Hook cleanup: verify timers cleared, listeners removed, `isMounted` guards on unmount — i.e. `.claude/rules/react-patterns.md` Rules 1-3.
-- Offline: `fake-indexeddb/auto` + `simulateNetworkConditions` / `navigator.onLine` spy; assert job-queue jobs transition pending → completed.
+- Offline: `fake-indexeddb/auto` + `navigator.onLine` spy; assert job-queue jobs transition pending → completed.
 - E2E (Playwright): critical journeys only, client PWA + admin with platform-specific auth (passkey / wallet-injection / mock-auth). Scope, helpers, runner: `tests/README.md`. Config + fixtures: `docs/docs/builders/testing/index.mdx`.
 
 ## Risk-triggered state and invariant matrix
