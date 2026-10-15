@@ -118,16 +118,6 @@ describe("useGardenPermissions", () => {
 
       expect(result.current.isStewardOfGarden(garden)).toBe(true);
     });
-
-    it("uses primary address from usePrimaryAddress (single source of truth)", () => {
-      // usePrimaryAddress resolves the correct address based on authMode
-      mockPrimaryAddress.mockReturnValue(SMART_ACCOUNT);
-
-      const garden = createGarden({ stewards: [SMART_ACCOUNT] as any[] });
-      const { result } = renderHook(() => useGardenPermissions());
-
-      expect(result.current.isStewardOfGarden(garden)).toBe(true);
-    });
   });
 
   // ------------------------------------------

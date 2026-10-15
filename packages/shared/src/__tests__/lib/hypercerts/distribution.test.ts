@@ -22,15 +22,6 @@ function createContributors(count: number): ContributorWeight[] {
   }));
 }
 
-function createAllowlistEntries(
-  addresses: string[],
-  units: bigint[]
-): AllowlistEntry[] {
-  return addresses.map((address, i) => ({
-    address: address as `0x${string}`,
-    units: units[i],
-  }));
-}
 
 // ============================================
 // sumUnits Tests

@@ -345,94 +345,20 @@ describe("useWorkMutationWithProgress", () => {
   // ------------------------------------------
 
   describe("updateProgress (wallet stage mapping)", () => {
-    it("maps 'validating' to 'compressing'", () => {
+    it.each([
+      ["validating", "compressing"],
+      ["uploading", "uploading"],
+      ["confirming", "confirming"],
+      ["syncing", "syncing"],
+      ["complete", "complete"],
+      ["unknown-stage", "idle"],
+    ])("maps %s to %s", (input, expected) => {
       const { result } = renderHookWithQueryClient(
         () => useWorkMutationWithProgress(createDefaultOptions()),
-        {
-          queryClient,
-        }
+        { queryClient }
       );
-
-      act(() => {
-        result.current.updateProgress("validating");
-      });
-
-      expect(result.current.progress.stage).toBe("compressing");
-    });
-
-    it("maps 'uploading' to 'uploading'", () => {
-      const { result } = renderHookWithQueryClient(
-        () => useWorkMutationWithProgress(createDefaultOptions()),
-        {
-          queryClient,
-        }
-      );
-
-      act(() => {
-        result.current.updateProgress("uploading");
-      });
-
-      expect(result.current.progress.stage).toBe("uploading");
-    });
-
-    it("maps 'confirming' to 'confirming'", () => {
-      const { result } = renderHookWithQueryClient(
-        () => useWorkMutationWithProgress(createDefaultOptions()),
-        {
-          queryClient,
-        }
-      );
-
-      act(() => {
-        result.current.updateProgress("confirming");
-      });
-
-      expect(result.current.progress.stage).toBe("confirming");
-    });
-
-    it("maps 'syncing' to 'syncing'", () => {
-      const { result } = renderHookWithQueryClient(
-        () => useWorkMutationWithProgress(createDefaultOptions()),
-        {
-          queryClient,
-        }
-      );
-
-      act(() => {
-        result.current.updateProgress("syncing");
-      });
-
-      expect(result.current.progress.stage).toBe("syncing");
-    });
-
-    it("maps 'complete' to 'complete'", () => {
-      const { result } = renderHookWithQueryClient(
-        () => useWorkMutationWithProgress(createDefaultOptions()),
-        {
-          queryClient,
-        }
-      );
-
-      act(() => {
-        result.current.updateProgress("complete");
-      });
-
-      expect(result.current.progress.stage).toBe("complete");
-    });
-
-    it("maps unknown stages to 'idle'", () => {
-      const { result } = renderHookWithQueryClient(
-        () => useWorkMutationWithProgress(createDefaultOptions()),
-        {
-          queryClient,
-        }
-      );
-
-      act(() => {
-        result.current.updateProgress("unknown-stage");
-      });
-
-      expect(result.current.progress.stage).toBe("idle");
+      act(() => result.current.updateProgress(input));
+      expect(result.current.progress.stage).toBe(expected);
     });
   });
 

@@ -7,7 +7,7 @@ Loaded when writing, wiring, or diagnosing tests (Vitest unit/integration; Playw
 Alias → `packages/shared/src/__tests__/test-utils/`. Admin and Client import test helpers from
 `@green-goods/shared/testing`, not deep paths. Shared tests import the leaf module instead
 (`test-utils/render-helpers`, `query-client`, `query-client-render`, `mock-factories`,
-`offline-helpers`, `transaction-fakes`, …). The barrel loads every fixture into each file that
+`transaction-fakes`, …). The barrel loads every fixture into each file that
 imports it, so `test-quality` rejects it in Shared tests. Because Admin and Client tests import
 these helpers and `setupTests.base.ts`, a change to them selects the Admin and Client suites in
 checkpoint plans and starts their CI workflows (`sharedConsumerTestSupport` in the validation
@@ -15,8 +15,7 @@ policy).
 
 - `renderHookWithProviders` / `renderWithProviders` (= `renderWithQuery`) in `render-helpers.tsx` — wrap in QueryClient + `IntlProvider` (react-intl `MISSING_TRANSLATION` silenced).
 - `createTestQueryClient` (retry off, `gcTime`/`staleTime` 0); call `resetTestQueryClient()` in `afterEach`.
-- Mock factories (`mock-factories.ts`): `createMockGarden`, `createMockWork`, `createMockAction`, `createMockAuthContext`, `createMockSmartAccountClient`, `createMockFile`, … (18 factories).
-- Offline helpers (`offline-helpers.ts`): `createMockOfflineWork`/`Conflict`, `mockFetch`/`mockFetchSequence`/`mockFetchError`, `simulateNetworkConditions.{offline,online,slow}`.
+- Mock factories (`mock-factories.ts`) include `createMockGarden`, `createMockWork`, `createMockAction`, `createMockAuthContext`, `createMockSmartAccountClient`, and `createMockFile`.
 - `createSharedBarrelMock(actual, overrides)` — mock the shared barrel via `vi.importActual`, overriding only hooks (real exports auto-inherit; new hooks fail loud).
 - Re-exports `@testing-library/react`. Import `userEvent` from
   `@testing-library/user-event` only in DOM tests so Node projects do not load browser globals.

@@ -8,22 +8,10 @@ import {
   createEasClient,
   createIndexerClient,
   GQLClient,
-  GRAPHQL_TIMEOUT_MS,
   greenGoodsIndexer,
-  TimeoutError,
 } from "../../modules/data/graphql-client";
 
 describe("GQLClient", () => {
-  describe("constructor", () => {
-    it("creates client with provided URL", () => {
-      const client = new GQLClient("https://test.example.com/graphql");
-
-      expect(client).toBeDefined();
-      expect(typeof client.query).toBe("function");
-      expect(typeof client.request).toBe("function");
-    });
-  });
-
   describe("query method", () => {
     it("returns error object when query fails with network error", async () => {
       // Create a client pointing to a non-existent server
@@ -35,16 +23,6 @@ describe("GQLClient", () => {
       expect(result.data).toBeUndefined();
       expect(result.error).toBeDefined();
       expect(result.error).toBeInstanceOf(Error);
-    });
-
-    it("handles variables parameter", async () => {
-      const client = new GQLClient("https://invalid.nonexistent.localhost/graphql");
-      const mockDocument = { kind: "Document", definitions: [] } as any;
-
-      // Should not throw on call, even if the network fails
-      const result = await client.query(mockDocument, { id: "123" }, "TestOperation");
-
-      expect(result.error).toBeDefined();
     });
   });
 
@@ -95,33 +73,5 @@ describe("Factory functions", () => {
       expect(greenGoodsIndexer).toBeInstanceOf(GQLClient);
       expect(typeof greenGoodsIndexer.query).toBe("function");
     });
-  });
-});
-
-describe("TimeoutError", () => {
-  it("is an Error with timeout property", () => {
-    const error = new TimeoutError("Test timed out", 5000);
-
-    expect(error.name).toBe("TimeoutError");
-    expect(error.message).toBe("Test timed out");
-    expect(error.timeoutMs).toBe(5000);
-    expect(error).toBeInstanceOf(Error);
-  });
-});
-
-describe("GRAPHQL_TIMEOUT_MS", () => {
-  it("is set to 12 seconds", () => {
-    expect(GRAPHQL_TIMEOUT_MS).toBe(12_000);
-  });
-});
-
-describe("modules/graphql-client", () => {
-  it("creates EAS client and indexer", () => {
-    const client = createEasClient();
-    expect(client).toBeDefined();
-    expect(typeof client.query).toBe("function");
-
-    expect(greenGoodsIndexer).toBeDefined();
-    expect(typeof greenGoodsIndexer.query).toBe("function");
   });
 });

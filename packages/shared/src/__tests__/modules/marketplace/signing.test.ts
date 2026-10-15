@@ -9,7 +9,7 @@
 import type { Address, Hex } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { buildMakerAsk, signMakerAsk, validateOrder } from "../../../modules/marketplace/signing";
-import type { CreateListingParams } from "../../../types/hypercerts";
+import { type CreateListingParams, LISTING_DEFAULTS } from "../../../types/hypercerts";
 import { ZERO_ADDRESS } from "../../../utils/blockchain/address";
 
 const mockReadiness = vi.hoisted(() => ({
@@ -107,6 +107,15 @@ describe("marketplace/signing", () => {
     mockReadiness.addresses.hypercertsModule = "0x6666666666666666666666666666666666666666";
     mockReadiness.addresses.strategyHypercertFractionOffer =
       "0x7777777777777777777777777777777777777777";
+  });
+
+  it("provides the recommended listing defaults", () => {
+    expect(LISTING_DEFAULTS.pricePerUnit).toBe(10n ** 13n);
+    expect(LISTING_DEFAULTS.minUnitAmount).toBe(1n);
+    expect(LISTING_DEFAULTS.maxUnitAmount).toBe(2n ** 256n - 1n);
+    expect(LISTING_DEFAULTS.minUnitsToKeep).toBe(0n);
+    expect(LISTING_DEFAULTS.sellLeftover).toBe(true);
+    expect(LISTING_DEFAULTS.durationDays).toBe(90);
   });
 
   describe("buildMakerAsk", () => {

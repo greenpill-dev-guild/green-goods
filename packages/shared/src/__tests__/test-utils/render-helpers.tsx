@@ -1,6 +1,6 @@
 /**
  * Render helpers: Query and Intl wrappers, render and renderHook with those providers, and the
- * small navigator and async helpers the test-utils barrel used to define itself. Import from here
+ * async helpers the test-utils barrel used to define itself. Import from here
  * in Shared tests; the barrel re-exports it for Admin and Client.
  */
 
@@ -9,7 +9,6 @@ import { type RenderHookOptions, renderHook } from "@testing-library/react";
 import type React from "react";
 import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
-import { vi } from "vitest";
 import enMessages from "../../i18n/en.json";
 import { createTestQueryClient, getTestQueryClient } from "./query-client";
 
@@ -73,54 +72,6 @@ export function renderHookWithProviders<TResult, TProps>(
   const wrapper = createTestWrapper(queryClient);
 
   return renderHook(hook, { wrapper, ...restOptions });
-}
-
-// ============================================
-// Mock Navigator Helpers
-// ============================================
-
-export function setNavigatorOnline(isOnline: boolean) {
-  Object.defineProperty(navigator, "onLine", {
-    configurable: true,
-    value: isOnline,
-    writable: true,
-  });
-}
-
-export function mockNavigatorCredentials() {
-  const mockCredentials = {
-    create: vi.fn(),
-    get: vi.fn(),
-  };
-
-  Object.defineProperty(navigator, "credentials", {
-    configurable: true,
-    value: mockCredentials,
-    writable: true,
-  });
-
-  return mockCredentials;
-}
-
-// ============================================
-// Async Helpers
-// ============================================
-
-/**
- * Waits for a condition to be true, with timeout
- */
-export async function waitForCondition(
-  condition: () => boolean,
-  timeout = 5000,
-  interval = 50
-): Promise<void> {
-  const start = Date.now();
-  while (!condition()) {
-    if (Date.now() - start > timeout) {
-      throw new Error("Condition not met within timeout");
-    }
-    await new Promise((resolve) => setTimeout(resolve, interval));
-  }
 }
 
 /**

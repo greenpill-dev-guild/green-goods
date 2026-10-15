@@ -2,7 +2,7 @@
  * Arbitrum On-Chain Yield Data Verification
  *
  * Integration test that makes real RPC calls to Arbitrum to verify
- * all queryable yield/APY data points. This file is excluded from the
+ * vault registry and protocol yield reads. This file is excluded from the
  * default shared test run and only executes when RUN_LIVE_RPC_TESTS=true
  * and ARBITRUM_RPC_URL (or ARBITRUM_RPC) is provided.
  *
@@ -16,11 +16,9 @@
 import { createPublicClient, http, type Address, formatUnits, parseAbi } from "viem";
 import { arbitrum } from "viem/chains";
 import { describe, it, expect, beforeAll } from "vitest";
-import { rayToApy, formatApy } from "../../utils/blockchain/aave";
 
 // ── Arbitrum addresses (from deployment artifacts + vaults.ts) ──────────
 
-const AAVE_V3_POOL = "0x794a61358D6845594F94dc1DB02A252b5b4814aD" as Address;
 const OCTANT_MODULE = "0x70b25a2bAAA4f2Ae477bab315a87A03cfe89CEe9" as Address;
 const YIELD_SPLITTER = "0x90896C86108528abB600Da3C48a1aa054958bDeb" as Address;
 
@@ -28,10 +26,6 @@ const WETH = "0x82af49447d8a07e3bd95bd0d56f35241523fbab1" as Address;
 const DAI = "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1" as Address;
 
 // ── ABIs (minimal, view-only) ───────────────────────────────────────────
-
-const AAVE_POOL_ABI = parseAbi([
-  "function getReserveData(address asset) view returns ((uint256 configuration, uint128 liquidityIndex, uint128 currentLiquidityRate, uint128 variableBorrowIndex, uint128 currentVariableBorrowRate, uint128 currentStableBorrowRate, uint40 lastUpdateTimestamp, uint16 id, address aTokenAddress, address stableDebtTokenAddress, address variableDebtTokenAddress, address interestRateStrategyAddress, uint128 accruedToTreasury, uint128 unbacked, uint128 isolationModeTotalDebt))",
-]);
 
 const OCTANT_MODULE_ABI = parseAbi([
   "function getSupportedAssets() view returns (address[])",
@@ -52,19 +46,6 @@ const YIELD_SPLITTER_ABI = parseAbi([
   "function minAllocationAmount() view returns (uint256)",
 ]);
 
-const ERC4626_ABI = parseAbi([
-  "function totalAssets() view returns (uint256)",
-  "function convertToAssets(uint256 shares) view returns (uint256)",
-  "function balanceOf(address owner) view returns (uint256)",
-  "function asset() view returns (address)",
-]);
-
-const ERC20_ABI = parseAbi([
-  "function balanceOf(address owner) view returns (uint256)",
-  "function symbol() view returns (string)",
-  "function decimals() view returns (uint8)",
-]);
-
 // ── Test setup ──────────────────────────────────────────────────────────
 
 const rpcUrl = process.env.ARBITRUM_RPC_URL || process.env.ARBITRUM_RPC;
@@ -76,65 +57,6 @@ describeIf("Arbitrum on-chain yield data (live RPC)", () => {
   const client = createPublicClient({
     chain: arbitrum,
     transport: http(rpcUrl),
-  });
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // 1. Aave V3 Reserve Data ��� the source of APY
-  // ═══════════════════════════════════════════════════════════════════════
-
-  describe("Aave V3 getReserveData", () => {
-    it("returns valid WETH reserve data with non-zero liquidity rate", async () => {
-      const data = await client.readContract({
-        address: AAVE_V3_POOL,
-        abi: AAVE_POOL_ABI,
-        functionName: "getReserveData",
-        args: [WETH],
-      });
-
-      console.log("WETH Reserve Data:", {
-        currentLiquidityRate: data.currentLiquidityRate.toString(),
-        currentVariableBorrowRate: data.currentVariableBorrowRate.toString(),
-        liquidityIndex: data.liquidityIndex.toString(),
-        aTokenAddress: data.aTokenAddress,
-        lastUpdateTimestamp: data.lastUpdateTimestamp,
-        id: data.id,
-      });
-
-      expect(data.aTokenAddress).not.toBe("0x0000000000000000000000000000000000000000");
-      expect(data.currentLiquidityRate).toBeGreaterThanOrEqual(0n);
-
-      const apy = rayToApy(data.currentLiquidityRate);
-      console.log(`WETH Supply APY: ${formatApy(apy)}`);
-      expect(Number.isFinite(apy)).toBe(true);
-      expect(apy).toBeGreaterThanOrEqual(0);
-      expect(apy).toBeLessThan(100); // sanity: <100% APY
-
-      const borrowApy = rayToApy(data.currentVariableBorrowRate);
-      console.log(`WETH Variable Borrow APY: ${formatApy(borrowApy)}`);
-    });
-
-    it("returns valid DAI reserve data with non-zero liquidity rate", async () => {
-      const data = await client.readContract({
-        address: AAVE_V3_POOL,
-        abi: AAVE_POOL_ABI,
-        functionName: "getReserveData",
-        args: [DAI],
-      });
-
-      console.log("DAI Reserve Data:", {
-        currentLiquidityRate: data.currentLiquidityRate.toString(),
-        currentVariableBorrowRate: data.currentVariableBorrowRate.toString(),
-        aTokenAddress: data.aTokenAddress,
-        id: data.id,
-      });
-
-      expect(data.aTokenAddress).not.toBe("0x0000000000000000000000000000000000000000");
-
-      const apy = rayToApy(data.currentLiquidityRate);
-      console.log(`DAI Supply APY: ${formatApy(apy)}`);
-      expect(Number.isFinite(apy)).toBe(true);
-      expect(apy).toBeGreaterThanOrEqual(0);
-    });
   });
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -260,73 +182,5 @@ describeIf("Arbitrum on-chain yield data (live RPC)", () => {
       });
       console.log(`Escrowed WETH fractions: ${formatUnits(escrowed, 18)}`);
     });
-  });
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // 5. Summary: Data availability matrix
-  // ═══════════════════════════════════════════════════════════════════════
-
-  it("prints complete data availability matrix", async () => {
-    const results: Record<string, string> = {};
-
-    // Aave data
-    for (const [symbol, address] of [
-      ["WETH", WETH],
-      ["DAI", DAI],
-    ] as const) {
-      try {
-        const data = await client.readContract({
-          address: AAVE_V3_POOL,
-          abi: AAVE_POOL_ABI,
-          functionName: "getReserveData",
-          args: [address],
-        });
-        const supplyApy = rayToApy(data.currentLiquidityRate);
-        const borrowApy = rayToApy(data.currentVariableBorrowRate);
-        results[`${symbol} Supply APY`] = formatApy(supplyApy);
-        results[`${symbol} Borrow APY`] = formatApy(borrowApy);
-        results[`${symbol} aToken`] = data.aTokenAddress;
-        results[`${symbol} Last Updated`] = new Date(
-          Number(data.lastUpdateTimestamp) * 1000
-        ).toISOString();
-      } catch (e) {
-        results[`${symbol} Reserve`] = `ERROR: ${(e as Error).message}`;
-      }
-    }
-
-    // Protocol config
-    try {
-      const threshold = await client.readContract({
-        address: YIELD_SPLITTER,
-        abi: YIELD_SPLITTER_ABI,
-        functionName: "minYieldThreshold",
-      });
-      results["Min Yield Threshold"] = `${formatUnits(threshold, 18)} ETH`;
-    } catch {
-      results["Min Yield Threshold"] = "ERROR";
-    }
-
-    try {
-      const assets = await client.readContract({
-        address: OCTANT_MODULE,
-        abi: OCTANT_MODULE_ABI,
-        functionName: "getSupportedAssets",
-      });
-      results["Supported Assets"] = assets.join(", ");
-    } catch {
-      results["Supported Assets"] = "ERROR";
-    }
-
-    console.log("\n╔══════════════════════════════════════════════════╗");
-    console.log("║   Arbitrum Yield Data Availability Matrix        ║");
-    console.log("╠══════════════════════════════════════════════════╣");
-    for (const [key, value] of Object.entries(results)) {
-      console.log(`║ ${key.padEnd(25)} │ ${value}`);
-    }
-    console.log("╚══════════════════════════════════════════════════╝\n");
-
-    // At minimum, the Aave calls should succeed
-    expect(results["WETH Supply APY"]).toMatch(/%$/);
-    expect(results["DAI Supply APY"]).toMatch(/%$/);
   });
 });

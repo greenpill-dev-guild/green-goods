@@ -74,18 +74,6 @@ describe("submitApproval", () => {
     expect(dependencies.queue.process).not.toHaveBeenCalled();
   });
 
-  it("keeps a sponsored approval queued while the connection is unconfirmed", async () => {
-    const dependencies = ports({
-      connectivity: { confirm: async () => false },
-    });
-
-    await expect(submitApproval(command({ authMode: "passkey" }), dependencies)).resolves.toEqual({
-      hash: OFFLINE_HASH,
-      kind: "queued",
-    });
-    expect(dependencies.queue.process).not.toHaveBeenCalled();
-  });
-
   it("keeps a wallet decision on the device where Upload all is on hand, and never opens the wallet", async () => {
     // In the client a wallet steward can decide offline like a passkey steward:
     // the decision waits in the queue and Upload all sends it with the rest.

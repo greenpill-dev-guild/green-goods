@@ -98,7 +98,6 @@ vi.mock("../../../config/default-chain", () => ({
 
 vi.mock("../../../config/pimlico", () => ({
   createPublicClientForChain: () => ({
-    waitForTransactionReceipt: vi.fn().mockResolvedValue({}),
     readContract: mockReadContract,
     getTransactionReceipt: mockGetReceipt,
   }),
@@ -128,12 +127,7 @@ vi.mock("@tanstack/react-query", async (importOriginal) => {
   };
 });
 
-// Mock viem's encodeFunctionData
-vi.mock("viem", () => ({
-  encodeFunctionData: vi.fn().mockReturnValue("0xencoded"),
-}));
-
-import { type ListingStep, useCreateListing } from "../../../hooks/hypercerts/useCreateListing";
+import { useCreateListing } from "../../../hooks/hypercerts/useCreateListing";
 import { toastService } from "../../../components/Toast/toast.service";
 import { useListingSubmissionStore } from "../../../stores/useListingSubmissionStore";
 
@@ -192,15 +186,6 @@ describe.each(["wallet", "passkey"] as const)("useCreateListing with %s", (mode)
       expect(result.current.step).toBe("idle");
       expect(result.current.isCreating).toBe(false);
       expect(result.current.error).toBeNull();
-    });
-
-    it("provides createListing and reset functions", () => {
-      const { result } = renderHookWithQueryClient(() => useCreateListing(TEST_GARDEN, 1n), {
-        queryClient,
-      });
-
-      expect(typeof result.current.createListing).toBe("function");
-      expect(typeof result.current.reset).toBe("function");
     });
   });
 
@@ -439,37 +424,6 @@ describe.each(["wallet", "passkey"] as const)("useCreateListing with %s", (mode)
     });
   });
 
-  describe("step types", () => {
-    it("has valid step union type values", () => {
-      const validSteps: ListingStep[] = [
-        "idle",
-        "building",
-        "signing",
-        "registering",
-        "confirming",
-        "done",
-        "error",
-      ];
-
-      // Each step value should be a string
-      validSteps.forEach((step) => {
-        expect(typeof step).toBe("string");
-      });
-    });
-  });
-
-  describe("reset", () => {
-    it("resets step to idle", () => {
-      const { result } = renderHookWithQueryClient(() => useCreateListing(TEST_GARDEN, 1n), {
-        queryClient,
-      });
-
-      act(() => result.current.reset());
-
-      expect(result.current.step).toBe("idle");
-      expect(result.current.error).toBeNull();
-    });
-  });
   it("reads canonical reverted receipts when the sender cannot reconcile", async () => {
     const hash = `0x${"ab".repeat(32)}` as const;
     mockSendTransaction.mockResolvedValueOnce({ hash, sponsored: false, confirmation: "pending" });

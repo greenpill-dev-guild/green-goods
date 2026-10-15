@@ -1,12 +1,14 @@
 /**
  * Fast Storage Unit Tests
  *
- * Exercises storage behavior against the suite's in-memory bun:sqlite emulator.
- * Real SQLite lifecycle and constraint coverage lives in storage.sqlite.test.ts.
+ * Exercises storage behavior against real in-memory SQLite through the unit adapter.
+ * Bun driver persistence, migration and constraint coverage lives in storage.sqlite.test.ts.
  */
 
+import { Database } from "bun:sqlite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { closeDB, getDB, initDB } from "../services/db";
+import { initSchema } from "../services/db/schema";
 import type { CreateUserInput, NewChatMessageInput, Session, WorkDraftData } from "../types";
 
 beforeAll(() => {
@@ -22,6 +24,29 @@ afterAll(async () => {
 // ============================================================================
 
 describe("User Management", () => {
+  it("adds locale to legacy users without changing stored rows and is safe to rerun", () => {
+    const database = new Database(":memory:");
+    try {
+      database.run(`CREATE TABLE users (
+        platform TEXT NOT NULL, platformId TEXT NOT NULL, privateKey TEXT NOT NULL,
+        address TEXT NOT NULL, currentGarden TEXT, role TEXT, createdAt INTEGER,
+        PRIMARY KEY (platform, platformId)
+      )`);
+      database.run(`INSERT INTO users VALUES
+        ('telegram', 'legacy-user', 'encrypted-key', '0xlegacy', 'legacy-garden', 'gardener', 123)`);
+      const before = database.query("SELECT * FROM users").get() as Record<string, unknown>;
+      initSchema(database);
+      expect(database.query("SELECT * FROM users").get()).toEqual({ ...before, locale: null });
+      database
+        .query("UPDATE users SET locale = ? WHERE platformId = ?")
+        .run("es-MX", "legacy-user");
+      initSchema(database);
+      expect(database.query("SELECT * FROM users").get()).toEqual({ ...before, locale: "es-MX" });
+    } finally {
+      database.close();
+    }
+  });
+
   it("creates and retrieves a user", async () => {
     const db = getDB();
     const platformId = `test-user-${Date.now()}`;

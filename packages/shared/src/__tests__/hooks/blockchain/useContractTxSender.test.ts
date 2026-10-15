@@ -19,7 +19,6 @@ import { MOCK_CONTRACT_ABI } from "../../test-utils/transaction-fakes";
 
 const mockWriteContractAsync = vi.fn();
 const mockSendUserOperation = vi.fn();
-const mockWaitForUserOperationReceipt = vi.fn();
 const mockWaitForTransactionReceipt = vi.fn().mockResolvedValue({ status: "success" });
 
 const mockSmartAccountClient = {
@@ -109,20 +108,10 @@ describe("useContractTxSender", () => {
     mockSmartAccountRef = mockSmartAccountClient;
     mockResolverAvailable = true;
     mockSendUserOperation.mockResolvedValue(MOCK_TX_HASH);
-    mockSendUserOperation.mockResolvedValue(MOCK_TX_HASH);
-    mockWaitForUserOperationReceipt.mockResolvedValue({
-      success: true,
-      receipt: { transactionHash: MOCK_TX_HASH },
-    });
     mockWriteContractAsync.mockResolvedValue(MOCK_TX_HASH);
     mockWaitForTransactionReceipt.mockResolvedValue({ status: "success" });
   });
   afterEach(() => vi.unstubAllEnvs());
-
-  it("returns a function", () => {
-    const { result } = renderHookWithQueryClient(() => useContractTxSender());
-    expect(typeof result.current).toBe("function");
-  });
 
   // ------------------------------------------
   // Passkey mode (smart account)

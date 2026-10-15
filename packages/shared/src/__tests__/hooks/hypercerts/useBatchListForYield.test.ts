@@ -109,10 +109,7 @@ vi.mock("viem", () => ({
 
 import { WalletWriteNotRetriedError } from "../../../utils/errors/wallet-network-refusal";
 import { useMarketplacePendingStore } from "../../../stores/useMarketplacePendingStore";
-import {
-  type BatchProgress,
-  useBatchListForYield,
-} from "../../../hooks/hypercerts/useBatchListForYield";
+import { useBatchListForYield } from "../../../hooks/hypercerts/useBatchListForYield";
 
 // ============================================
 // Test Suite
@@ -173,15 +170,6 @@ describe.each(["wallet", "passkey"] as const)("useBatchListForYield with %s", (m
         signed: 0,
         status: "idle",
       });
-    });
-
-    it("provides batchList and reset functions", () => {
-      const { result } = renderHookWithQueryClient(() => useBatchListForYield(TEST_GARDEN), {
-        queryClient,
-      });
-
-      expect(typeof result.current.batchList).toBe("function");
-      expect(typeof result.current.reset).toBe("function");
     });
   });
 
@@ -342,23 +330,6 @@ describe.each(["wallet", "passkey"] as const)("useBatchListForYield with %s", (m
       });
       expect(mockInvalidateQueries).toHaveBeenCalledWith({
         queryKey: ["greengoods", "marketplace"],
-      });
-    });
-  });
-
-  describe("progress types", () => {
-    it("has valid BatchProgress status values", () => {
-      const validStatuses: BatchProgress["status"][] = [
-        "idle",
-        "signing",
-        "submitting",
-        "confirming",
-        "done",
-        "error",
-      ];
-
-      validStatuses.forEach((status) => {
-        expect(typeof status).toBe("string");
       });
     });
   });

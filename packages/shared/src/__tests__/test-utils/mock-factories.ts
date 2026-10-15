@@ -9,15 +9,8 @@ import { vi } from "vitest";
 import { TOTAL_UNITS } from "../../lib/hypercerts/constants";
 import type { Action, Garden, Work, WorkApprovalDraft, WorkDraft } from "../../types/domain";
 import { Confidence, Domain, VerificationMethod } from "../../types/domain";
-import type { CookieJar } from "../../types/cookie-jar";
 import type { EASWorkApproval } from "../../types/eas-responses";
-import type {
-  AllowlistEntry,
-  HypercertAttestation,
-  HypercertDraft,
-  HypercertRecord,
-  OutcomeMetrics,
-} from "../../types/hypercerts";
+import type { HypercertAttestation, HypercertDraft, HypercertRecord } from "../../types/hypercerts";
 
 // ============================================
 // Address Constants
@@ -165,27 +158,6 @@ export function createMockAction(overrides?: Partial<Action>): Action {
     domain: Domain.AGRO,
     createdAt: Date.now(),
     inputs: [],
-    ...overrides,
-  };
-}
-
-// ============================================
-// CookieJar Factory
-// ============================================
-
-export function createMockCookieJar(overrides?: Partial<CookieJar>): CookieJar {
-  return {
-    jarAddress: "0xJar123456789012345678901234567890123456",
-    gardenAddress: MOCK_ADDRESSES.garden,
-    assetAddress: "0xAsset12345678901234567890123456789012345",
-    balance: 1000000000000000000n, // 1e18
-    currency: "0xAsset12345678901234567890123456789012345",
-    decimals: 18,
-    maxWithdrawal: 500000000000000000n, // 0.5e18
-    withdrawalInterval: 86400n, // 1 day in seconds
-    minDeposit: 0n,
-    isPaused: false,
-    emergencyWithdrawalEnabled: false,
     ...overrides,
   };
 }
@@ -366,26 +338,6 @@ export function createMockHypercertDraft(overrides: Partial<HypercertDraft> = {}
   };
 }
 
-export function createMockAllowlistEntry(overrides: Partial<AllowlistEntry> = {}): AllowlistEntry {
-  return {
-    address: MOCK_ADDRESSES.gardener as `0x${string}`,
-    units: TOTAL_UNITS / 2n,
-    label: "Test Contributor",
-    ...overrides,
-  };
-}
-
-export function createMockAllowlist(count = 2): AllowlistEntry[] {
-  const baseUnits = TOTAL_UNITS / BigInt(count);
-  const remainder = TOTAL_UNITS - baseUnits * BigInt(count);
-
-  return Array.from({ length: count }, (_, i) => ({
-    address: `0x${String(i + 1).padStart(40, "0")}` as `0x${string}`,
-    units: i === 0 ? baseUnits + remainder : baseUnits,
-    label: `Contributor ${i + 1}`,
-  }));
-}
-
 export function createMockHypercertRecord(
   overrides: Partial<HypercertRecord> = {}
 ): HypercertRecord {
@@ -405,27 +357,6 @@ export function createMockHypercertRecord(
     description: "A test hypercert record",
     workScopes: ["gardening", "planting"],
     status: "active",
-    ...overrides,
-  };
-}
-
-export function createMockOutcomeMetrics(overrides: Partial<OutcomeMetrics> = {}): OutcomeMetrics {
-  return {
-    predefined: {
-      trees_planted: {
-        value: 100,
-        unit: "trees",
-        aggregation: "sum",
-        label: "Trees Planted",
-      },
-      area_covered: {
-        value: 500,
-        unit: "sqm",
-        aggregation: "sum",
-        label: "Area Covered",
-      },
-    },
-    custom: {},
     ...overrides,
   };
 }

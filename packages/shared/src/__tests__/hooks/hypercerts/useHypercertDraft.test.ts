@@ -76,12 +76,7 @@ const mockStoreState = {
   allowlist: [] as Array<{ address: string; units: bigint }>,
 };
 
-// Keep track of subscriber callbacks
-let subscribeFn: ((state: typeof mockStoreState) => void) | null = null;
-const mockSubscribe = vi.fn((_selector: unknown, callback: unknown) => {
-  subscribeFn = callback as (state: typeof mockStoreState) => void;
-  return vi.fn(); // unsubscribe
-});
+const mockSubscribe = vi.fn((_selector: unknown, _callback: unknown) => vi.fn());
 
 vi.mock("../../../stores/useHypercertWizardStore", () => {
   const store = (selector: (state: typeof mockStoreState) => unknown) => selector(mockStoreState);
