@@ -58,7 +58,7 @@
     },
     "architectureRecord": "PRD-649",
     "project": null,
-    "projectId": "fa1b7a04-6eee-4f43-a861-07d8205aa0bf",
+    "projectId": null,
     "initiative": "Sustainability & Monetization + Impact Methodologies & Evaluator Flywheel",
     "milestones": {
       "scope_and_design": "2026-07-22",
@@ -1800,7 +1800,7 @@
       "lane": "system",
       "status": "linear_recorded",
       "branch": null,
-      "note": "Cleared linear.project. It named Commitment Pooling, which is Completed, so a lane issue a later sync created would have started in a closed project. Existing records are preserved (stateSyncMode preserve_existing), so the issues already in that project stay there; a created issue is routed by rule 4. No Linear write happened."
+      "note": "Cleared linear.project and linear.projectId. It named Commitment Pooling, which is Completed, so a lane issue a later sync created would have started in a closed project. Existing records are preserved (stateSyncMode preserve_existing), so the issues already in that project stay there; a created issue is routed by rule 4. No Linear write happened."
     }
   ]
 }
