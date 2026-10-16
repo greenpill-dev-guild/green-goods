@@ -112,3 +112,23 @@ parents and native blockers were checked. Two relation-type conflicts were corre
 Existing research states and the completed GainForest body were preserved. Publication timing
 belongs in the PR/chat. No runtime lane advanced.
 Human corrections observed in this segment: 0; human attention: unknown.
+
+
+## Provider research tracking — 2026-10-16
+
+Keep Bloom Network, Silvi, GainForest and Regen Network in Research under RESR-102. Each child
+links to native architecture and common research completion criteria; full lifecycle/action
+mapping, capability evidence, historical reconciliation, correction, disclosure and a reviewed
+recommendation are required. No Product delivery project or runtime activation is accepted.
+
+Task record: PR #640 | Type: research coordination | Outcome: Linear research tracking verified
+Agent/model: Codex / GPT-6 family | Coverage: research-only tracking follow-up
+
+| Phase | Start → end (UTC) | Evidence |
+|---|---|---|
+| investigate | 2026-10-16 03:02:03 → unknown | Live provider issues, states, sources and existing project inventory |
+| implement | unknown → 2026-10-16 03:04:32 | Research parent, four child updates and native architecture/source links |
+| verify | unknown → 2026-10-16 03:05:09 | Four Research children confirmed; statuses and completed RESR-98 description preserved; no new blocking relations |
+
+Publication evidence belongs in the PR/chat. Human corrections observed: 0; this turn accepts
+the research tracking direction. Human attention: unknown.

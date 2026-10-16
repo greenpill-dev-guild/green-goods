@@ -27,6 +27,11 @@ Checkpoint 1 is [RESR-69](https://linear.app/greenpill-dev-guild/issue/RESR-69);
 
 ## Provider research frontiers
 
+[RESR-102](https://linear.app/greenpill-dev-guild/issue/RESR-102) is the shared Research parent for
+Bloom Network, Silvi, GainForest and Regen Network. The accepted direction is to keep all four
+in Research, with provider-specific evidence and common completion criteria. No Product delivery
+project or runtime activation is accepted for these providers.
+
 | Provider | Frontier | Current evidence/state | Gates |
 |---|---|---|---|
 | Certified | [RESR-69](https://linear.app/greenpill-dev-guild/issue/RESR-69) | In Progress; verify deployed contract and Ma Earth path | D1–D9 |
@@ -36,8 +41,9 @@ Checkpoint 1 is [RESR-69](https://linear.app/greenpill-dev-guild/issue/RESR-69);
 | Regen Network | [RESR-96](https://linear.app/greenpill-dev-guild/issue/RESR-96) | In Review; existing research and pilot decision retained | R1–R3 |
 
 These research frontiers are related records, not blockers on initial Certified delivery. Each
-provider may later gain its own bounded implementation project/hub after conformance and pilot
-scope acceptance. The shared acceptance contract covers authority, native identity, public preview,
+provider remains in Research until a separate explicit decision accepts a bounded pilot and
+any Product implementation scope; completion of a research issue does not promote it automatically.
+The shared acceptance contract covers authority, native identity, public preview,
 historical matching, correction and lost-response recovery; provider acceptance and visibility stay native.
 
 ## Domain and adjacent records

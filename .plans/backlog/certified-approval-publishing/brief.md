@@ -25,8 +25,9 @@ First: Certified/Ma Earth account linking, Garden destination authority, preview
 publication, historical sync preview, durable recovery, comparison/repair and receipts. Then:
 supervised pilot and opt-in automation. Keep the observed assessment, evaluator judgment and
 planning content distinct; only the judgment is a candidate Hypercerts evaluation.
-GainForest/Bumicerts follows as a separately scoped monitoring-evidence pilot. Bloom Network,
-Silvi and Regen Network follow through their own provider mappings. The architecture now maps
+GainForest/Bumicerts, Bloom Network, Silvi and Regen Network remain research tracks under
+[RESR-102](https://linear.app/greenpill-dev-guild/issue/RESR-102). Their provider mappings and possible
+pilots inform research; any pilot or Product implementation needs a separate explicit acceptance. The architecture now maps
 Garden creation, initial assessment, Season/Campaign creation, commitment creation, Work
 submission/approval, commitment fulfillment, delta assessment and certificate minting. Only
 approval publishing is an initial public trigger; the remaining triggers need accepted scope.

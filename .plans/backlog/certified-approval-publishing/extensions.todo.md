@@ -60,9 +60,11 @@ public disclosure, grant custody or transaction signing must be accepted before 
 Social H1–H4 are now owned by the independent [sharing plan](../impact-sharing-report-exports/plan.todo.md);
 the rows above are architecture references rather than a second execution checklist. The
 [Linear map](./linear-map.md) records each provider's research frontier and the accepted assessment
-follow-on. Promote a provider to its own implementation hub/project only after its conformance,
-community, native object and pilot exit evidence are accepted. A research issue is not a runtime
-delivery commitment.
+follow-on. The accepted tracking direction keeps Bloom, Silvi, GainForest and Regen in Research
+under [RESR-102](https://linear.app/greenpill-dev-guild/issue/RESR-102). Their common research exit
+criteria cover native mappings, capability evidence, sync/corrections, data rights and a reviewed
+recommendation. Any later pilot or Product implementation scope needs a separate explicit decision;
+research completion never promotes the provider automatically.
 
 ## Cross-provider completion contract
 
