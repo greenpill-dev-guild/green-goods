@@ -35,11 +35,12 @@ routine limits; this file owns interactive routing and issue execution.
    [release-prep](../../docs/routines/release-prep.md) resolves. Look it up by
    that name when writing, because each release opens a new one. Leave the
    issue unprojected and correctly labeled only when no release project is
-   started. At a release project's closeout, move its open issues to the next
-   release project, or leave them unprojected until one starts. Customer Needs
-   stay unprojected. Never route new work into completed/staging umbrella
-   projects (e.g. `Green Goods`, `Coop`, `Network Website`, `Cookie Jar`) or
-   any project whose status is Completed.
+   started. Whoever closes a release project moves its open issues to the next
+   one, or leaves them unprojected until it starts; whoever creates the next
+   one moves them in. release-prep's cut-day steps count them as a reminder.
+   Customer Needs stay unprojected. Never route new work into completed/staging
+   umbrella projects (e.g. `Green Goods`, `Coop`, `Network Website`,
+   `Cookie Jar`) or any project whose status is Completed.
 5. **Label namespaces.** Use only `protocol:*`, `package:*`, `activity:*`,
    `funding:*`, `source:*`, `ai:*`, `session:*`. Retired families (`area:*`,
    `work:*`, `task:*`, `automation:*`, `health:*`, `grant:*`) and the retired
