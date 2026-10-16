@@ -36,7 +36,9 @@ routine limits; this file owns interactive routing and issue execution.
    [release-prep](../../docs/routines/release-prep.md) resolves. Look it up by
    that name when writing, because each release opens a new one. Leave the
    issue unprojected and correctly labeled only when no release project is
-   started. Whoever closes a release project moves its open issues to the next
+   started. A release project includes the Research team as well as Product;
+   if it does not, a Research issue stays unprojected and the writer says so.
+   Whoever closes a release project moves its open issues to the next
    one, or leaves them unprojected until it starts; whoever creates the next
    one moves them in. release-prep's cut-day steps count them as a reminder.
    Customer Needs stay unprojected. Never route new work into completed/staging

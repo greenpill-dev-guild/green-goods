@@ -236,7 +236,8 @@ stamps that label on its own pre-staged tracking Issues, so the label alone can 
 ordinary Backlog defect. Reuse requires the parent shape: **this run's exact expected title**
 (`QA session <date>`, or `QA session <date> · 2` for a second same-day call — the counter is
 the call's identity, since the week's `session` label is shared) and no `package:*` label. When that parent exists (the interactive sibling may have filed it),
-**reuse it** — add missing children under it and a comment for new context; never a second
+**reuse it** — route it to the release project first when it has no project or a Completed or
+Canceled one, then add missing children under it and a comment for new context; never a second
 parent, and never attach slices to anything that fails the shape test.
 
 Then the findings: list open Product Issues carrying `activity:build` or any `session:*` label, plus
