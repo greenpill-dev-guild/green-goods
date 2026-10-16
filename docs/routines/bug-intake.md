@@ -261,7 +261,7 @@ Source: the dedicated `#bug-report` channel (`DISCORD_BUGS_CHANNEL_ID`). The ret
    - Same error text, view name, or described behavior (likely duplicate — append context, do not create)
    - Same reporter + same surface within 7 days (likely duplicate; use private-context identifiers for matching only)
 
-   When a duplicate exists, add a Linear comment on the existing record with the safe display name (or `anonymous`), message URL, and a one-sentence quote. When that record is an Issue with no project, set its project per [Project routing](README.md#project-routing) in the same pass. Do not include Discord usernames, handles, or IDs in the Linear comment. Acknowledge the reporter on Discord with a link to the existing Linear record. Do not create a new record.
+   When a duplicate exists, add a Linear comment on the existing record with the safe display name (or `anonymous`), message URL, and a one-sentence quote. When that record is an Issue with no project, or one whose project is Completed or Canceled, set its project per [Project routing](README.md#project-routing) in the same pass. Do not include Discord usernames, handles, or IDs in the Linear comment. Acknowledge the reporter on Discord with a link to the existing Linear record. Do not create a new record.
 
 4. **Enrich with PostHog + optional Sentry (private context)** — for every report that survives dedupe and is enrichable per `## PostHog telemetry enrichment`, run the curated questions through the PostHog connector. If a Sentry connector/API surface is available, also run the `## Sentry root-cause enrichment` match for the inferred project. Carry the results forward as private context for step 5 and step 6:
    - The error hash, affected-session count, affected-user count, first/last seen, and app surface go into the Linear Customer Need body's `## PostHog evidence (safe summary)` block.
@@ -433,7 +433,7 @@ Run the sub-flow below twice — once with `inferred_type=bug` (ack target `#bug
 
    The Customer Need carries **no labels** — `save_customer_need` has no `labels` field. Provenance lives in the body; the canonical labels (`protocol:green-goods` + `source:telegram` + `ai:routine` + `activity:*`) go on the linked Issue created in step 8.
 
-8. **Create the linked Issue**. When the report is actionable per the same acceptance bar as Phase 1 step 6, create an accepted-bug Issue. Idea-source captures get a lightweight `activity:maintenance` + `Backlog` tracking Issue. Apply the same canonical labels for Issues (`protocol:green-goods` + `activity:build` or `activity:maintenance` + `package:<inferred>` + `source:telegram` + `ai:routine`) and privacy boundary.
+8. **Create the linked Issue**. When the report is actionable per the same acceptance bar as Phase 1 step 6, create an accepted-bug Issue. Idea-source captures get a lightweight `activity:maintenance` + `Backlog` tracking Issue. Apply the same canonical labels for Issues (`protocol:green-goods` + `activity:build` or `activity:maintenance` + `package:<inferred>` + `source:telegram` + `ai:routine`), the project routing of Phase 1 step 6, and the privacy boundary.
 
 9. **Mark the captured message triaged**:
    ```
@@ -493,7 +493,7 @@ The `google-drive` connector exposes only `title`, `fullText`, `mimeType`, `modi
 
    Drive notes are mixed-source so judgment is required: include the meeting attendees in `## Reporter context` and prefer the privacy-safe summary over verbatim quotes when in doubt.
 
-7. **Create accepted-bug Issue** only if the doc captures an actionable bug with a clear surface (rare — Drive notes usually need triage first). Apply the same canonical labels (`protocol:green-goods` + `activity:build` + `package:<inferred>` + `source:drive` + `ai:routine`) and privacy boundary as in Phase 1 step 6.
+7. **Create accepted-bug Issue** only if the doc captures an actionable bug with a clear surface (rare — Drive notes usually need triage first). Apply the same canonical labels (`protocol:green-goods` + `activity:build` + `package:<inferred>` + `source:drive` + `ai:routine`), project routing and privacy boundary as in Phase 1 step 6.
 
 8. **Reporter acknowledgement** is not applicable for Drive (no per-message back-channel). Drive-sourced records appear in the daily Discord summary as a batch.
 
@@ -543,8 +543,8 @@ The parent Issue body never carries replay URLs, session IDs, distinct IDs, wall
 After Phases 1–4, before posting the summary:
 
 1. List every Customer Need this run created and confirm it is associated with the expected project/customer context and includes source, evidence, dedupe notes, and privacy-safe summary.
-2. List every linked Issue this run created (per-report and recurring-pattern parent) and confirm it has the expected labels, status, source URL, and Customer Need link.
-3. List every duplicate detection — every existing Customer Need or Issue this run commented on — and confirm the comment landed and that each Issue among them now sits in the project [Project routing](README.md#project-routing) picks.
+2. List every linked Issue this run created (per-report and recurring-pattern parent) and confirm it has the expected labels, status, project (per [Project routing](README.md#project-routing)), source URL, and Customer Need link.
+3. List every duplicate detection — every existing Customer Need or Issue this run commented on — and confirm the comment landed and that, while a release project is started, no Issue among them is left without a project or in a Completed or Canceled one.
 4. List every rejection — every signal you read but did not act on — and the reason.
 5. Run a privacy grep across every body created or edited this run, **every comment this run posted**, **and across every captured `chat_messages.text` and attachment caption that this run consumed** for the strings `replay`, `session_id`, `distinct_id`, `0x`, the reporter identifiers seen this run, and any other token from the "private" column of the privacy-boundary table. Any hit in a Linear body or comment means the routine leaked private context — fail loud in Phase 7's `⚠ Failures this run` block and edit the offending body or comment in place to redact before the run completes. Hits in raw `chat_messages.text` or captions cause the run to drop that record's quote from the Phase 7 digest (Linear still records it, scrubbed) — never leak the raw text downstream.
 

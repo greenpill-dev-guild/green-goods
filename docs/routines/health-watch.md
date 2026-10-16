@@ -209,7 +209,8 @@ if no open Linear Issue matching the canonical labels + category marker:
                    corroboration, caveats>
 else:
   Linear: comment on the existing Issue with <dated append>,
-          and set its project as above when it has none
+          and set its project as above when it has none or its
+          project is Completed or Canceled
 ```
 
 **The body is a description, not a dashboard.** Say what is happening, what it

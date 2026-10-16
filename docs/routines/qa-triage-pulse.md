@@ -143,7 +143,7 @@ For each extracted item:
 
    If duplicate:
    - **Existing Customer Need**: append a comment with today's sync date + the verbatim quote; do NOT create a duplicate. Grep the drafted comment with the Phase 5 string list **before** posting — a comment is public the moment it lands, and a post-hoc edit does not unpublish it.
-   - **Existing Issue**: link as `relates to` if a Customer Need is being created; skip the new Customer Need if the Issue already covers the same behavior. When that Issue has no project, set it per [Project routing](README.md#project-routing) in the same pass.
+   - **Existing Issue**: link as `relates to` if a Customer Need is being created; skip the new Customer Need if the Issue already covers the same behavior. When that Issue has no project, or its project is Completed or Canceled, set it per [Project routing](README.md#project-routing) in the same pass.
 
 ## Phase 4: Pre-stage Customer Needs with Backlog tracking Issues
 

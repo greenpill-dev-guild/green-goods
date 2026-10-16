@@ -249,7 +249,7 @@ unattended — an uncertain match stays in this session's record (its slice, or 
 with a `possible duplicate of <key>` note for a human to settle. A confirmed match gets a
 comment on the existing Issue (today's date + the new evidence, privacy-grepped before posting)
 **and a `relatedTo` link to the session parent** (plus its project per Project routing when it has
-none), and the report lists it under Slices as
+none or its project is Completed or Canceled), and the report lists it under Slices as
 `already tracked: <key>` — so the fix queue and the parent's closure accounting still see it.
 Never a duplicate Issue.
 
