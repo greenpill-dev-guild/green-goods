@@ -8,7 +8,7 @@
 
 Read [brief.md](brief.md) for the problem and [spec.md](spec.md) for the current behaviour and
 evidence. The clean-room proof behind this plan is
-[reports/2026-10-16-clean-room-proof-third-review.md](reports/2026-10-16-clean-room-proof-third-review.md).
+[reports/2026-10-16-clean-room-proof-fifth-review.md](reports/2026-10-16-clean-room-proof-fifth-review.md).
 
 ## Decision Log
 
@@ -105,18 +105,27 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
     challenge can't answer a registration.
 - Backfill `credentialKey` by copying `credentialId` for existing rows. Directory sign-ups store
   the browser's base64url ID, and copying rather than decoding cannot misread one that also looks
-  like hex. Then give it a unique index, so the hex and base64url spellings of one passkey can't
-  sit under two names.
-- Keep the first-registration-wins rule. `credentialId` keeps the account's exact string for
-  Kernel, and uniqueness moves to `credentialKey`.
+  like hex.
+- Make the pair unique: one index on `(credentialKey, publicKey)`. That stops the hex and
+  base64url spellings of one passkey sitting under two names. ID bytes alone stay non-unique,
+  because an assertion's signature does not cover `rawId`. A client can claim anyone's ID bytes,
+  and only the pair is bound to a proven key.
+- Keep the first-registration-wins rule for names. `credentialId` keeps the account's exact
+  string for Kernel.
+- Drop the existing `credentialId UNIQUE` column constraint, or a claimed string could still
+  reserve someone else's ID. SQLite can't drop it in place, so rebuild `passkey_credentials` in
+  one transaction: new table, copy, swap, indexes.
 - **RED/GREEN**:
   - The store contract test covers both stores (memory and SQLite):
     - an adopted row;
     - a challenge used for the wrong purpose;
-    - one credential refused under a second name when its ID arrives in the other spelling.
+    - one credential refused under a second name when its ID arrives in the other spelling;
+    - a claimed ID with a different key stored beside the real one, neither blocking the other.
   - `storage.sqlite.test.ts` builds the v2.0.1 schema with a stored passkey and a pending
-    challenge, then runs `initSchema` over it. It asserts the new columns, their defaults, the
-    backfilled key and the unique index, and that both rows survive.
+    challenge, then runs `initSchema` over it. It asserts:
+    - the new columns and their defaults, and the backfilled key;
+    - the rebuilt table, with the pair index and no string-only unique `credentialId`;
+    - that both rows survive.
 
 ### Step 4: Ask the hosted server which passkey holds a name (state_api, agent)
 
@@ -160,7 +169,9 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
      proves which passkey the browser used, while the hosted account's address follows the
      hosted server's exact string, so the other spelling would point the name at a different
      account.
-  9. The credential's bytes are not held under another name.
+  9. The same credential, meaning its ID bytes and proven key together, is not held under
+     another name. `rawId` sits outside the assertion's signature, so ID bytes alone prove
+     nothing about who holds them.
   10. A hosted lookup failure answers `unavailable` with a refusal code the client does not retry
       (`-32000`, not the retried `-32603`).
   11. Store the ID string exactly, never re-encoded, with `credentialKey` beside it.
@@ -173,12 +184,15 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
     the ID in the other spelling, a taken name, the wrong site,
     an unadoptable domain, a hosted name held by another passkey, a hosted name submitted with the
     other spelling of its listed ID, and the hosted lookup down.
+  - A spoofed `rawId`, where an attacker's own assertion claims a victim's ID bytes, must neither
+    block the victim's later adoption nor open anything.
   - Successes:
     - a hosted name held by this passkey;
     - an identical retry after success, which returns the stored result;
     - a stored ID valid in both spellings, accepted through its base64url reading.
-  - The rig ran every refusal except the domain and hosted cases, plus the two-spelling success,
-    all against its prototype ([report](reports/2026-10-16-clean-room-proof-third-review.md), scenarios C and F).
+  - The rig ran every refusal except the domain and hosted cases, plus the two-spelling success
+    and the spoofed `rawId`, all against its prototype (scenarios C, F and G of the
+    [report](reports/2026-10-16-clean-room-proof-fifth-review.md)).
 
 ### Step 6: Adopt during sign-in, never in its way (state_api, shared)
 
@@ -199,7 +213,12 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
     already arrived. Otherwise use a locally made challenge and skip adoption for this sign-in.
   - Either way, check the assertion locally against the key the hosted server listed, as the
     directory path already does, and submit the completion in the background.
-  - So adoption adds no wait: the ceremony starts exactly when it does today.
+  - This replaces the hosted server's `startAuthentication` and `verifyAuthentication`: the app
+    no longer asks it for a challenge or a verdict. The local check covers what that verdict
+    covered: the challenge, origin, RP ID hash, user presence and verification, and the
+    signature against the listed key.
+  - So adoption adds no wait. The ceremony starts when the lookup answers, one hosted round trip
+    sooner than today.
 - **Only the hosted path merges**, because only it already waits on a lookup before the ceremony.
   "Use this device's passkey" and saved sessions adopt from step 7's button.
 - **When not to adopt.** Skip adoption when the directory lookup failed earlier in the same
@@ -208,8 +227,11 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
 - **Address guard.** Before sending, rebuild the Kernel address from the entry and compare it with
   the stored address. Send nothing on a mismatch.
 - **RED/GREEN** in `authServices.test.ts`:
-  - With the adoption start held open (a promise that never settles), hosted sign-in finishes with
-    the same calls and timing as today and sends no completion.
+  - With the adoption start held open (a promise that never settles), hosted sign-in starts its
+    ceremony as soon as the hosted lookup answers. It uses a local challenge, calls neither
+    `startAuthentication` nor `verifyAuthentication`, and sends no completion.
+  - The local check refuses what the hosted verdict refused: an assertion for another
+    credential, one signed by a key other than the listed one, and one over a stale challenge.
   - With the challenge ready before the lookup answers, sign-in completes, and the background
     completion carries that challenge, the hosted account's exact ID string (not the browser
     ID), its key and the page's RP ID.
@@ -243,6 +265,9 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
   of them share one label, well inside Chrome's limit.
 - Today both hosts answer that path with the app's HTML through the catch-all rewrite. A static
   file takes precedence, as `assetlinks.json` already does.
+- The file helps only entries whose domain the directory knows: directory sign-ups and adopted
+  accounts. An unadopted hosted account still asks for the page's own host. So it adopts on its
+  home site first (steps 6 and 7), and step 9's copy sends it there.
 - Add a smoke check: www and beta answer JSON whose `origins` match the list. Staging serves the
   beta deployment, so it gets the file too.
 
@@ -264,10 +289,15 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
   - both, anywhere else.
 - A directory or adopted entry carries its domain, so the copy names that site exactly. That
   covers a cross-site ceremony that fails with `SecurityError`, from a browser without
-  related-origin support. Where `PublicKeyCredential.getClientCapabilities()` exists, read
-  `relatedOrigins` first and show the copy without attempting the ceremony.
+  related-origin support.
+- A ceremony needs related origins only when the page's host is neither the entry's domain nor
+  under it. Only then, and only where `PublicKeyCredential.getClientCapabilities()` exists,
+  read `relatedOrigins` and show the copy without attempting the ceremony. A beta entry on beta
+  and an apex entry on admin always go ahead.
 - **RED/GREEN** in `loginScreenMessages.test.ts`, in en, es and pt: the copy for an unadopted
-  hosted name on www, on beta and on admin, and for an adopted beta entry on www.
+  hosted name on www, on beta and on admin, and for an adopted beta entry on www. With
+  `relatedOrigins: false`, a beta entry on beta and an apex entry on admin still run their
+  ceremony.
 
 ### Step 10: Telemetry (state_api)
 

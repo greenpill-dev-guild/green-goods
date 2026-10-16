@@ -170,6 +170,24 @@ const rig = {
       return { first, identicalRetry, otherNameReplay };
     }),
 
+  /**
+   * A dishonest client: sign a fresh challenge with the signer's own passkey, then claim another
+   * credential's ID by rewriting `id` and `rawId`, which the assertion's signature does not cover.
+   */
+  adoptSpoofed: (userName: string, signer: Signer, claimedId: string) =>
+    guarded(async () => {
+      const { challenge } = await post("/__dir/challenge", {});
+      const response = await getAssertion(signer, "greengoods.app", fromB64url(challenge));
+      const claimed = toB64url(new Uint8Array(getPasskeyRequestIds({ id: claimedId, signingId: claimedId })[0]));
+      return post("/__dir/adopt", {
+        userName,
+        credentialId: claimedId,
+        publicKey: signer.publicKey,
+        rpId: "greengoods.app",
+        response: { ...response, id: claimed, rawId: claimed },
+      });
+    }),
+
   /** Adoption attempted for a passkey this page's host cannot use without a related origin. */
   adoptEntry: (userName: string, entry: Entry) =>
     guarded(async () => {

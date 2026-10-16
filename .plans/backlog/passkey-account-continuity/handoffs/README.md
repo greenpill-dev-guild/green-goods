@@ -21,6 +21,13 @@
   - The resume steps below keep the decision gate.
   - Current-evidence links point at the second-review report.
   - The rig refuses unknown modes.
+- **Fifth review.** Codex raised four more findings the same day, all addressed:
+  - Credential uniqueness binds the ID bytes to the proven key, since `rawId` sits outside the
+    signature. A table rebuild drops the string-only constraint.
+  - The capability check runs only when a ceremony needs related origins.
+  - AC-4 now requires adoption on beta before cross-site sign-in, and the rig does exactly that.
+  - Step 6 says plainly that the hosted start and verify calls are replaced by a local check.
+  - The rig adds a spoofed-`rawId` scenario (G).
 - **Fourth review.** Codex raised one more finding the same day, and it is addressed:
   - A hosted name is adopted only under the hosted server's exact ID string, not just the same
     bytes.
@@ -28,9 +35,9 @@
 - **Third review.** Codex raised one finding the same day, and it is addressed:
   - An idempotent completion must match the stored ID string exactly.
   - The rig now refuses the held name when its ID arrives in the other spelling.
-- **Proven in clean-room Chromium** ([report](../reports/2026-10-16-clean-room-proof-third-review.md)):
-  - A beta-bound passkey signs in and signs on www and admin once beta serves
-    `/.well-known/webauthn`.
+- **Proven in clean-room Chromium** ([report](../reports/2026-10-16-clean-room-proof-fifth-review.md)):
+  - A beta-bound passkey, once adopted on beta, signs in by name and signs on www and admin, with
+    beta serving `/.well-known/webauthn`.
   - An app-made apex passkey, once adopted, signs in by name on admin and beta at the same
     address.
   - The deployed validator accepts every signature produced.

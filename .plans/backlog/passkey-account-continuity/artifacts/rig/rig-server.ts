@@ -97,7 +97,14 @@ type Entry = {
   credentialKey: string;
 };
 const entries = new Map<string, Entry>();
+/**
+ * Who holds a credential, keyed by its ID bytes and public key together. `rawId` sits outside the
+ * assertion's signature, so ID bytes alone are whatever the client claims; only the pair is bound
+ * to a proven key.
+ */
 const byCredential = new Map<string, string>();
+const credentialPair = (credentialKey: string, publicKey: string) =>
+  `${credentialKey}|${publicKey.toLowerCase().replace(/^0x/, "").replace(/^04(?=[\da-f]{128}$)/, "")}`;
 const pending = new Map<string, number>();
 
 const json = (body: unknown, status = 200) =>
@@ -232,14 +239,16 @@ async function adopt(request: Request) {
   if (identical) return json({ ok: true, alreadyAdopted: true, library });
   if (!challengeLive) return json({ ok: false, code: "challenge_expired" });
   if (existing) return json({ ok: false, code: "name_taken" });
-  // Uniqueness is on the credential's bytes, so a hex and a base64url spelling of one passkey
-  // cannot land under two names.
-  if (byCredential.has(credentialKey)) return json({ ok: false, code: "credential_exists" });
+  // Uniqueness is on the credential's bytes and its proven key together. A hex and a base64url
+  // spelling of one passkey cannot land under two names. A claim of someone else's ID bytes with
+  // another key cannot block that someone's own adoption, because the pair differs.
+  const pair = credentialPair(credentialKey, publicKey);
+  if (byCredential.has(pair)) return json({ ok: false, code: "credential_exists" });
 
   // The ID is kept exactly as the account stored it: Kernel hashes that string into the address.
   // The browser's own ID travels beside it, so a hex-shaped stored ID can still name the passkey.
   entries.set(userName, { id: credentialId, publicKey, rpId, origin, signingId: response.id, credentialKey });
-  byCredential.set(credentialKey, userName);
+  byCredential.set(pair, userName);
   return json({ ok: true, library, entry: { userName, id: credentialId, signingId: response.id, rpId, origin } });
 }
 

@@ -103,7 +103,11 @@ const signatures: { label: string; hash: `0x${string}`; signature: `0x${string}`
   await s.open("beta.greengoods.app");
   const created = must("create on beta", await s.call<{ id: string; publicKey: `0x${string}`; rawIdHex: string }>("createHostBound", "beta-tester"));
   betaEntry = { id: created.id, publicKey: created.publicKey, rpId: "beta.greengoods.app" };
-  const homeSignIn = await s.call<Signer & { rpId: string }>("signIn", "beta-tester", [betaEntry]);
+  // The hosted account's journey: a saved session on its home site adopts first, so the
+  // directory learns the passkey's domain. Only then can another site ask for it by name.
+  const rememberedOnBeta = await s.call("rememberCredential", created.id, created.publicKey, "beta.greengoods.app");
+  const adoptionOnBeta = await s.call("adoptStored", "beta-tester");
+  const homeSignIn = await s.call<Signer & { rpId: string }>("signIn", "beta-tester");
   // The same passkey listed under the hex form of its ID, as the hosted server stores some IDs.
   const homeSignInHexId = await s.call("signIn", "beta-tester", [{ ...betaEntry, id: created.rawIdHex }]);
   const homeHash = randomHash();
@@ -111,7 +115,7 @@ const signatures: { label: string; hash: `0x${string}`; signature: `0x${string}`
   signatures.push({ label: "beta passkey, signed on beta", hash: homeHash, signature: homeSig, publicKey: created.publicKey });
 
   await s.open("www.greengoods.app");
-  const wwwSignIn = await s.call<Signer & { rpId: string }>("signIn", "beta-tester", [betaEntry]);
+  const wwwSignIn = await s.call<Signer & { rpId: string }>("signIn", "beta-tester");
   const wwwSignInHexId = await s.call<Signer & { rpId: string }>("signIn", "beta-tester", [{ ...betaEntry, id: created.rawIdHex }]);
   const wwwHash = randomHash();
   const wwwSig = must("sign on www", await s.call<`0x${string}`>("signHash", must("sign in on www", wwwSignIn), betaEntry.rpId, wwwHash));
@@ -119,7 +123,7 @@ const signatures: { label: string; hash: `0x${string}`; signature: `0x${string}`
   const offSiteAdoption = await s.call("adoptEntry", "beta-tester", betaEntry);
 
   await s.open("admin.greengoods.app");
-  const adminSignIn = await s.call<Signer & { rpId: string }>("signIn", "beta-tester", [betaEntry]);
+  const adminSignIn = await s.call<Signer & { rpId: string }>("signIn", "beta-tester");
   const adminBetaHash = randomHash();
   const adminBetaSig = must("sign on admin", await s.call<`0x${string}`>("signHash", must("sign in on admin", adminSignIn), betaEntry.rpId, adminBetaHash));
   signatures.push({ label: "beta passkey, signed on admin through related origins", hash: adminBetaHash, signature: adminBetaSig, publicKey: created.publicKey });
@@ -127,6 +131,8 @@ const signatures: { label: string; hash: `0x${string}`; signature: `0x${string}`
 
   results.A_related_origins = {
     passkeysOnDevice: await s.passkeys(),
+    rememberedOnBeta,
+    adoptionOnBeta,
     signInOnBeta: homeSignIn,
     signInOnBetaWithHexStoredId: homeSignInHexId,
     signInOnWww: wwwSignIn,
@@ -235,6 +241,38 @@ let adoptedSignIn: Signer & { rpId: string };
     adoption,
     signInOnAdmin: adminSignIn,
   };
+  await s.close();
+}
+
+// ── G. A spoofed rawId: an attacker signs with their own passkey and claims a victim's ID ──
+// The assertion's signature does not cover `rawId`, so the claim passes the ID and signature
+// checks. The directory must still let the victim adopt, and the attacker's entry must open nothing.
+{
+  const s = await browserSession();
+  await s.open("www.greengoods.app");
+  const victim = must("victim create", await s.call<{ id: string; publicKey: `0x${string}` }>("createLegacyLocal", "victim-gardener"));
+  const attackerIdBytes = randomBytes(32);
+  const { privateKey, publicKey } = generateKeyPairSync("ec", { namedCurve: "P-256" });
+  const spki = publicKey.export({ type: "spki", format: "der" });
+  const attacker = {
+    id: attackerIdBytes.toString("base64url"),
+    publicKey: `0x${spki.subarray(spki.length - 64).toString("hex")}` as `0x${string}`,
+  };
+  await s.addPasskey({
+    credentialId: attackerIdBytes.toString("base64"),
+    rpId: "greengoods.app",
+    privateKey: privateKey.export({ type: "pkcs8", format: "der" }).toString("base64"),
+    userHandle: randomBytes(16).toString("base64"),
+  });
+  // The squat comes first, before the victim has adopted.
+  const spoofedClaim = await s.call("adoptSpoofed", "squatter", attacker, victim.id);
+  const victimAdoption = await s.call("adoptStored", "victim-gardener");
+  await s.open("admin.greengoods.app");
+  const victimSignIn = await s.call("signIn", "victim-gardener");
+  // The squatter's entry names the victim's credential with the attacker's key. A device holding
+  // the victim's passkey answers it, and the local check against the attacker's key refuses.
+  const squatterSignIn = await s.call("signIn", "squatter");
+  results.G_spoofed_raw_id = { spoofedClaim, victimAdoption, victimSignInOnAdmin: victimSignIn, squatterSignInOnAdmin: squatterSignIn };
   await s.close();
 }
 

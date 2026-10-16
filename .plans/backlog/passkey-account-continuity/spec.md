@@ -57,8 +57,11 @@ In the 30 days to 2026-10-16, 6 people used a passkey session on www and 3 on be
 4. **R4 Hex IDs.** Directory sign-in names a passkey whose stored ID is hex, as some hosted
    accounts are.
 5. **R5 Related origins.** A host-bound passkey signs in and signs on every Green Goods site in a
-   browser that supports related origin requests.
-6. **R6 Clear failures.** On the wrong site, or in a browser without related-origin support, the
+   browser that supports related origin requests, once its account is in the directory with its
+   domain. That happens when it is adopted on its home site. An unadopted hosted account's lookup
+   carries no domain, so the file alone can't help it.
+6. **R6 Clear failures.** On the wrong site, or in a browser without related-origin support when
+   the ceremony needs them (the page's host is neither the passkey's domain nor under it), the
    app replaces "Sign in was cancelled." with where the passkey works:
    - The exact site, when the entry carries its domain (directory and adopted entries).
    - The sites it may have been made on, for an unadopted hosted name, whose lookup carries no
@@ -100,8 +103,9 @@ sequenceDiagram
   end
 ```
 
-The person sees one passkey prompt, as today, and it starts as soon as the hosted lookup answers,
-exactly when it does today. A challenge that hasn't arrived by then is dropped, and the sign-in
+The person sees one passkey prompt, as today. It starts as soon as the hosted lookup answers, one
+hosted round trip sooner than today. The hosted server's own start and verify calls are replaced
+by a local check against the listed key, the check the directory path already runs. A challenge that hasn't arrived by then is dropped, and the sign-in
 goes ahead without adoption. Their next sign-in by name on any site finds the directory entry
 first.
 
@@ -133,10 +137,11 @@ domain, and its local check compares the page origin and the domain hash. The ri
   - The completion runs in the background, so it gets 10 seconds. That outlasts the agent's
     4-second hosted lookup.
 - **Store.**
-  - New columns: `signingId`, `credentialKey` (unique: the credential's bytes in base64url, taken
-    from the assertion's `rawId`) and
+  - New columns: `signingId`, `credentialKey` (the credential's bytes in base64url, taken from
+    the assertion's `rawId`; unique only together with `publicKey`) and
     `source` (`registered` or `adopted`), plus a challenge `purpose`.
   - All are added with `ensureColumn`. Existing rows are backfilled by copying `credentialId`.
+  - The table is rebuilt once to drop the string-only unique constraint on `credentialId`.
 
 ### Draft copy
 
@@ -162,7 +167,7 @@ screens say "clave de acceso" and "chave de acesso"; that mismatch predates this
 
 ## Research Evidence
 
-- **Clean-room proof (2026-10-16):** [reports/2026-10-16-clean-room-proof-third-review.md](reports/2026-10-16-clean-room-proof-third-review.md), which supersedes the three
+- **Clean-room proof (2026-10-16):** [reports/2026-10-16-clean-room-proof-fifth-review.md](reports/2026-10-16-clean-room-proof-fifth-review.md), which supersedes the four
   earlier reports of the same day.
   Headless Chromium 148 with a CDP virtual authenticator, the real hostnames on the default port
   through a local proxy, and the app's own sign-in, verifier, signing owner and Kernel encoding.
@@ -281,7 +286,13 @@ from any device the passkey syncs to.
     bytes matched to the assertion, a proven key, and the client's address guard before sending.
 - **One passkey under two names.**
   - Risk: the same credential's hex and base64url spellings pass a string-only uniqueness check.
-  - Mitigation: uniqueness on `credentialKey`, taken from the assertion's bytes.
+  - Mitigation: uniqueness on `credentialKey` and `publicKey` together.
+- **A spoofed `rawId`.**
+  - Risk: an assertion's signature does not cover `rawId`. A client can claim anyone's ID bytes
+    with its own key, and under byte-only uniqueness reserve them before the owner adopts.
+  - Mitigation: uniqueness on the pair, so the claim lands as a separate entry. It opens nothing,
+    because the local check refuses the real passkey's signature against the claimed key (rig
+    scenario G).
 - **An ID valid in both spellings.**
   - Risk: reading an even-length, all-hex base64url ID only as hex refuses a legitimate passkey.
   - Mitigation: accept either reading, as the app's sign-in already does, and key uniqueness on
