@@ -1,0 +1,178 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "app-cockpit-unification",
+    "title": "One Look for the App and the Cockpit",
+    "kind": "feature",
+    "stage": "backlog"
+  },
+  "workflow": {
+    "overall_status": "backlog",
+    "priority": "p2",
+    "created_at": "2026-10-10T09:56:00.510Z",
+    "updated_at": "2026-10-11T04:49:40Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": null,
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": null,
+    "lanes": {}
+  },
+  "taxonomy": {
+    "initiative": "design-system",
+    "tracks": ["client-pwa", "admin", "shared"],
+    "work_types": ["research", "implementation", "qa"],
+    "surfaces": ["packages/client", "packages/admin", "packages/shared"],
+    "depends_on_features": ["pwa-interface-simplification"]
+  },
+  "notes": [
+    "The maintainer asked for design research, a switchable mock, and this hub on a branch, then chose an option for every fork. Implementation scope remains open; no application, Linear, deployment, or transaction work is authorized.",
+    "Stated direction: unify look and feel and shared elements across the installed app and the steward cockpit with some variance per surface; no layout or structure change; track the work under the Cosmo-Local project.",
+    "Direction accepted in principle on 2026-10-10: the maintainer's pick for each of the thirteen forks and the workspace tone is recorded in spec.md. A pick locks only when a before and after pair of the real components is approved. Three picks differ from the recommendation: F6 keeps each bar's active state, F9 keeps each surface's filter control, F11 sets an 8px list gap.",
+    "The maintainer retired the strict Material 3 rule for the cockpit: it becomes the app's language at a denser setting, and what the picks keep (pills, 12px cards, the tone pill, inline filters, tones, density) stays as the cockpit's own. The decision-log rows and the rewritten cockpit guide and prompt contract are not written yet. The cockpit's Material-named tokens keep their names. The F9 pick reverses a preference stated earlier the same day; the maintainer confirmed it.",
+    "Also accepted in principle: a green focus ring in the app, one empty, loading and error anatomy, one set of type role names, and retiring the unused glass spec. A pick locks on pairs of the lab's ten screens at 390, 768 and 1280px, light and dark, in three languages where text must fit. The maintainer's aim is to land as much of the sequence as fits before the Cosmo-Local demonstration; the plan is saved first and no implementation is authorized.",
+    "artifacts/design-lab.html is a hand-built mock drawn from token values; artifacts/captures are Storybook evidence from the deployed build, not authenticated-session proof.",
+    "The garden-scoped Home and its switcher stay with the pwa-interface-simplification hub; only the shared look of the garden chip is in scope here.",
+    "No implementation lane is certified by document validation."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "blocked",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "Token and style steps prove themselves with rendered pairs and the design guards; steps that change a component's structure (tabs, the work card, the cockpit's phone sheet, empty states) need focused RED/GREEN proof. No implementation or test evidence is recorded by this planning task."
+      },
+      "skill_tags": ["ui", "design", "react"],
+      "ready_when_dependencies_met": false,
+      "manual_blocked": true,
+      "blocked_reason": "Design review: the picks are accepted in principle and lock on approved pairs of the real components. A bounded first slice and explicit execution authorization are still needed."
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "This hub proposes look and feel and shared presentation elements only; no data, hook, store, or API change is in scope."
+      },
+      "skill_tags": ["react", "tanstack-query", "data-layer"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No contract, settlement, or deployment work is in scope."
+      },
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": false,
+      "manual_blocked": true,
+      "branch": null,
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"],
+      "blocked_reason": "Implementation is not authorized or available for acceptance review."
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": false,
+      "manual_blocked": true,
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"],
+      "blocked_reason": "Implementation is not authorized or available for acceptance review."
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-10-10T09:56:00.666Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in backlog"
+    },
+    {
+      "timestamp": "2026-10-10T10:14:29Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "scoped",
+      "branch": null,
+      "note": "Recorded the stated direction, the divergence ledger, thirteen open forks, a conditional delivery sequence, and pending evaluation. Added the design lab and the Storybook captures as artifacts. No implementation dispatched."
+    },
+    {
+      "timestamp": "2026-10-11T04:09:16Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "scope_amended",
+      "branch": null,
+      "note": "Recorded the maintainer's picks for the thirteen forks and the workspace tone as accepted in principle, and the retired Material 3 rule for the cockpit. F6, F9 and F11 differ from the recommendation; the maintainer confirmed the F9 pick and that the picks stand under the retired rule. Updated the plan's sequence and the acceptance matrix to match. No implementation dispatched."
+    },
+    {
+      "timestamp": "2026-10-11T04:42:41Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "scope_amended",
+      "branch": null,
+      "note": "Recorded four changes without a fork as accepted in principle (focus ring, empty-state anatomy, type role names, glass spec), what a pair must show before a pick locks, and the timing aim. Added the empty-state step and three acceptance rows; renumbered the later steps. No implementation dispatched."
+    },
+    {
+      "timestamp": "2026-10-11T04:49:40Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "scope_amended",
+      "branch": null,
+      "note": "Recorded that the user round follows the slices and gates nothing, and that the cockpit's Material-named tokens keep their names. Split the delivery sequence into one slice per step, thirteen slices before acceptance. The maintainer asked for a Linear parent with an issue per slice; those records are not filed yet. No implementation dispatched."
+    }
+  ]
+}
