@@ -298,7 +298,7 @@ exposure: redact in place and fail loud in the Discord summary.
    after these two steps, never before.
 3. **Then the decisions child** when `Decisions needed` is non-empty: `Product decisions from QA
    session <date>` per § Product decisions child in the templates — `Backlog`, unassigned, the
-   parent label set, no `package:*`.
+   parent label set and project, no `package:*`.
 4. **Then each slice** as a sub-issue via `parentId`, body per the § QA slice template (problem
    cluster in prose with Test IDs and verdicts, "Where to start" map, "Done when" = the Test IDs
    re-record as pass, fix-posture pointer, validation command, source line).

@@ -28,8 +28,9 @@ routine limits; this file owns interactive routing and issue execution.
 3. **`.plans` stays the execution truth.** If a finding is mirrored from a
    `.plans/**` item, include the `.plans` link in the body and label the
    record `source:plans`. Never use GitHub Issues for backlog work.
-4. **Project routing.** Attach an issue to an active bounded project when its
-   scope clearly matches. A Green Goods Product or Research issue that no such
+4. **Project routing.** Attach an issue to an active bounded project, meaning
+   one in any status except Completed or Canceled, when its scope clearly
+   matches. A Green Goods Product or Research issue that no such
    project owns goes to the active release project: the started Product-team
    project named `Green Goods vX.Y.Z QA & Release`, the one
    [release-prep](../../docs/routines/release-prep.md) resolves. Look it up by
