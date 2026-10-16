@@ -531,7 +531,7 @@ After Phases 1–3, before the umbrella check, fold every PostHog match collecte
      unbounded one — the body has a 600-word backstop, so a long-lived pattern
      would eventually make its own refresh unwritable.
 
-   - If a parent Issue already exists, add the new Customer Needs through the relation surface (step 4) and refresh the counts and last-seen date in the body. Do not accumulate URLs in the description — the relations are the list.
+   - If a parent Issue already exists, first route it per [Project routing](README.md#project-routing) when it has no project or a Completed or Canceled one, then add the new Customer Needs through the relation surface (step 4) and refresh the counts and last-seen date in the body. Do not accumulate URLs in the description — the relations are the list.
 4. **Backlink** every contributing Customer Need to the parent Issue via Linear's relation surface (`relates to` or the parent's linked-issues field). The Customer Needs themselves are not edited beyond adding the relation.
 5. **Attach Sentry matches as root-cause context** when they point at the same top-line message/surface/release. Sentry issue IDs enrich the parent Issue body or comment with release and stack context; they do not replace the PostHog distinct-session threshold because Sentry event counts and PostHog session counts are not comparable.
 5. **Cap**: at most **2 new parent Issues per run** to keep human triage from drowning. Carry overflow into the next run.
