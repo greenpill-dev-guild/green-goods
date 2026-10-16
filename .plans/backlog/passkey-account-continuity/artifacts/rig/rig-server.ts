@@ -218,13 +218,15 @@ async function adopt(request: Request) {
   });
   if (!verified) return json({ ok: false, code: "verification_failed", library });
 
-  // Idempotent completion: the same name, credential bytes and key as a stored entry is that
-  // entry's result, whether or not the challenge is still live. The key comes from the
-  // assertion's own bytes, never from re-reading the submitted spelling.
+  // Idempotent completion: the same name, exact ID string, credential bytes and key as a stored
+  // entry is that entry's result, whether or not the challenge is still live. The ID string has
+  // to match too: Kernel hashes that exact string, so the other spelling of the same passkey is a
+  // different account. The key comes from the assertion's own bytes.
   const credentialKey = Buffer.from(rawId).toString("base64url");
   const existing = entries.get(userName);
   const identical =
     existing !== undefined &&
+    existing.id === credentialId &&
     existing.credentialKey === credentialKey &&
     existing.publicKey.toLowerCase() === publicKey.toLowerCase();
   if (identical) return json({ ok: true, alreadyAdopted: true, library });

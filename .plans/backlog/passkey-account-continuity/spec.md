@@ -122,7 +122,9 @@ domain, and its local check compares the page origin and the domain hash. The ri
 - **New RPC methods.** `gg_startPasskeyAdoption` and `gg_completePasskeyAdoption` run on the
   existing `/public/passkeys/rpc` route, with the same origin allowlist and the registration
   rate-limit class.
-  - Completion is idempotent: an identical request returns the stored result.
+  - Completion is idempotent. A request with the same name, exact ID string, credential bytes
+    and key as a stored entry returns that entry's result. The ID string must match exactly,
+    because Kernel hashes it.
   - When the hosted lookup is down, completion answers with a code viem does not retry.
 - **Adoption client.** The app calls these methods through its own client, with no transport
   retry.
@@ -159,7 +161,7 @@ screens say "clave de acceso" and "chave de acesso"; that mismatch predates this
 
 ## Research Evidence
 
-- **Clean-room proof (2026-10-16):** [reports/2026-10-16-clean-room-proof-second-review.md](reports/2026-10-16-clean-room-proof-second-review.md), which supersedes the two
+- **Clean-room proof (2026-10-16):** [reports/2026-10-16-clean-room-proof-third-review.md](reports/2026-10-16-clean-room-proof-third-review.md), which supersedes the three
   earlier reports of the same day.
   Headless Chromium 148 with a CDP virtual authenticator, the real hostnames on the default port
   through a local proxy, and the app's own sign-in, verifier, signing owner and Kernel encoding.

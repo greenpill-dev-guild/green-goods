@@ -166,6 +166,9 @@ let adoptedSignIn: Signer & { rpId: string };
   const mismatchedIdHex = await s.call("adoptStored", "legacy-gardener-4", { credentialId: betaRawIdHex });
   // This same passkey under a second name, its ID spelled in hex.
   const sameCredentialHex = await s.call("adoptStored", "legacy-gardener-5", { credentialIdForm: "hex" });
+  // This same passkey under the name it already holds, its ID spelled in hex: a different account
+  // to Kernel, so it must be refused, never answered with the stored result.
+  const sameNameOtherSpelling = await s.call("adoptStored", "legacy-gardener", { credentialIdForm: "hex" });
   // A different passkey asking for the name the first one now holds.
   must("second legacy create", await s.call("createLegacyLocal", "someone-else"));
   const takenName = await s.call("adoptStored", "legacy-gardener");
@@ -193,6 +196,7 @@ let adoptedSignIn: Signer & { rpId: string };
     adoptionWithMismatchedId: mismatchedId,
     adoptionWithMismatchedHexId: mismatchedIdHex,
     adoptionOfSameCredentialUnderHexId: sameCredentialHex,
+    adoptionOfSameNameOtherSpelling: sameNameOtherSpelling,
     adoptionOfTakenName: takenName,
     rememberedOnAdmin,
     signInOnAdmin: adminSignIn,

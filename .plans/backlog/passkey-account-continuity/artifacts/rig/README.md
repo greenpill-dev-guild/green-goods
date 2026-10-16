@@ -28,7 +28,7 @@ Chromium, virtual authenticator**. They are not authenticated-device proof.
 |---|---|
 | A | A passkey made for `beta.greengoods.app` signs in and signs a user operation on beta, and with the file in place on www and admin as well. An entry stored with a hex ID fails on beta and www (step 1's bug). Adoption from www is refused as off-site. |
 | A′ | Controls: with no file, and with a file that omits www, Chrome refuses the www ceremony. |
-| C | A passkey made by the app's local path under `greengoods.app` is adopted on www. An identical retry returns the stored result. Refused: a replay under another name, a wrong key, mismatched IDs in base64url and hex, the same passkey under a second name with its ID in hex, and a different passkey asking for the held name. Admin remembers nothing, yet signs in by name; so does beta. |
+| C | A passkey made by the app's local path under `greengoods.app` is adopted on www. An identical retry returns the stored result. Refused: a replay under another name, a wrong key, mismatched IDs in base64url and hex, the same passkey under a second name with its ID in hex, the held name sent again with its ID in hex, and a different passkey asking for the held name. Admin remembers nothing, yet signs in by name; so does beta. |
 | F | A passkey whose stored ID is valid hex and valid base64url (added through `WebAuthn.addCredential` with a known key) is adopted on www through its base64url reading, then signs in by name on admin. |
 | D | The Kernel address from the stored credential equals the one from the adopted entry. |
 | E | The deployed validator returns `0x1626ba7e` for each signature and `0xffffffff` for a tampered hash. |
@@ -77,7 +77,7 @@ Stop the server by its process ID, then delete `$RIG_CERT_DIR`.
   The real rules live in the agent with tests.
 - The control server accepts only the modes `off`, `on` and `admin-only`, and answers anything
   else with 400.
-- `results-2026-10-16-second-review.json` is the run behind
-  [the current report](../../reports/2026-10-16-clean-room-proof-second-review.md). The
+- `results-2026-10-16-third-review.json` is the run behind
+  [the current report](../../reports/2026-10-16-clean-room-proof-third-review.md). The `-second-review`,
   `-after-review` and plain `results-2026-10-16.json` files are earlier runs, each linked from its
   own superseded report. All keys and IDs come from throwaway virtual authenticators.

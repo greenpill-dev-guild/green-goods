@@ -21,7 +21,10 @@
   - The resume steps below keep the decision gate.
   - Current-evidence links point at the second-review report.
   - The rig refuses unknown modes.
-- **Proven in clean-room Chromium** ([report](../reports/2026-10-16-clean-room-proof-second-review.md)):
+- **Third review.** Codex raised one finding the same day, and it is addressed:
+  - An idempotent completion must match the stored ID string exactly.
+  - The rig now refuses the held name when its ID arrives in the other spelling.
+- **Proven in clean-room Chromium** ([report](../reports/2026-10-16-clean-room-proof-third-review.md)):
   - A beta-bound passkey signs in and signs on www and admin once beta serves
     `/.well-known/webauthn`.
   - An app-made apex passkey, once adopted, signs in by name on admin and beta at the same

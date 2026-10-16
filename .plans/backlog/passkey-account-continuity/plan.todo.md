@@ -8,7 +8,7 @@
 
 Read [brief.md](brief.md) for the problem and [spec.md](spec.md) for the current behaviour and
 evidence. The clean-room proof behind this plan is
-[reports/2026-10-16-clean-room-proof-second-review.md](reports/2026-10-16-clean-room-proof-second-review.md).
+[reports/2026-10-16-clean-room-proof-third-review.md](reports/2026-10-16-clean-room-proof-third-review.md).
 
 ## Decision Log
 
@@ -149,8 +149,10 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
   5. Either reading of the stored ID equals the assertion's `rawId`: hex, when the string is
      shaped like hex, or base64url. `getPasskeyRequestIds` already tries both.
   6. The assertion verifies with step 2's checker.
-  7. An identical completion returns the stored result: the same name, credential bytes and key
-     as a stored entry. Otherwise a spent or expired challenge refuses.
+  7. An identical completion returns the stored result. Identical means the same name, the exact
+     same stored ID string, the same credential bytes and the same key. The other spelling of the
+     same passkey is a different account to Kernel, so it is never identical. Otherwise a spent
+     or expired challenge refuses.
   8. The name is free, or the hosted server lists this same passkey for it (ID bytes and key).
   9. The credential's bytes are not held under another name.
   10. A hosted lookup failure answers `unavailable` with a refusal code the client does not retry
@@ -161,14 +163,15 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
   or credentials.
 - **RED/GREEN**:
   - Refusals: a replay under another name, a wrong key, a mismatched ID in base64url and in hex,
-    the same credential under a second name in the other spelling, a taken name, the wrong site,
+    the same credential under a second name in the other spelling, the held name sent again with
+    the ID in the other spelling, a taken name, the wrong site,
     an unadoptable domain, a hosted name held by another passkey, and the hosted lookup down.
   - Successes:
     - a hosted name held by this passkey;
     - an identical retry after success, which returns the stored result;
     - a stored ID valid in both spellings, accepted through its base64url reading.
   - The rig ran every refusal except the domain and hosted cases, plus the two-spelling success,
-    all against its prototype ([report](reports/2026-10-16-clean-room-proof-second-review.md), scenarios C and F).
+    all against its prototype ([report](reports/2026-10-16-clean-room-proof-third-review.md), scenarios C and F).
 
 ### Step 6: Adopt during sign-in, never in its way (state_api, shared)
 
