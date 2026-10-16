@@ -18,11 +18,13 @@ source_of_truth:
   - packages/client/src/views/Home/Garden/Compose/ComposeCommitment.tsx
   - packages/client/src/views/Home/Garden/Commitment
   - packages/client/src/views/Home/Garden/Commitment/CommitmentTeam.tsx
+  - packages/client/src/views/Home/Garden/Commitment/ConfirmNotYet.tsx
   - packages/shared/src/modules/commitment-pooling/acts.ts
   - packages/shared/src/modules/commitment-pooling/selectors.ts
   - packages/shared/src/hooks/client-ui/commitment/useGardenCommitmentController.ts
   - packages/shared/src/config/app.ts
   - packages/contracts/src/lib/CommitmentPooling/ConfirmLib.sol
+  - packages/contracts/src/lib/CommitmentPooling/TerminalLib.sol
   - packages/contracts/src/lib/CommitmentPooling/WorkCreditLib.sol
   - packages/shared/src/i18n/en.json
   - docs/releases/2.0.0/README.md
@@ -109,8 +111,10 @@ Work does not need a promise to be valid. When starting from [Submit Work](/comm
 ### 4. Let the right person confirm
 
 1. The eligible confirmer opens the promise and checks the evidence. The action is **Confirm It Was Kept**; the review may ask **Did the help arrive?** or **Was the work you asked for done?**
-2. Read the confirmation count before confirming. One person's confirmation may be only part of a group's required total.
-3. If the promise is not ready to be called kept, use **Not Yet** when offered and explain what still needs doing. This sends a note to the stewards; it does not cancel the promise. Sending that note needs a connection.
+2. Your confirmation cannot be taken back, and it may be only part of a group's required total. Read the confirmation count and check the evidence before choosing the button shown: **Confirm It Was Kept**, **Confirm the Help Arrived**, or **Confirm the Work Was Done**.
+3. If the help is not ready to be called kept, choose **Not Yet** when offered. Write what still needs doing, then choose **Send to the Stewards** while online. Once it arrives, the promise reads **Under review by stewards** and ordinary confirmation stops until the review is resolved. It does not cancel the promise.
+
+Opening **Not Yet** or saving its explanation does not send it. If sending fails, the explanation stays on this phone and the promise stays ready to confirm. Read its current status before using **Try Again**; ask your steward if the outcome is uncertain.
 
 ## How you know it worked
 

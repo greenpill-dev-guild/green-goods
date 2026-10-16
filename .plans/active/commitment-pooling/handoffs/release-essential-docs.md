@@ -307,3 +307,57 @@ the existing heading/body fonts, article shell, numbered instructions, native ca
 tables and a single primary next action. Product signing, real-device/offline behavior, owner
 visual acceptance and unfamiliar-reader testing remain pending; these Docs reads do not certify
 those workflows. Fresh illustrations and detailed exception/settlement operations remain PRD-727.
+
+## PR #1109 pre-merge review, October 15
+
+Inspected live head `f9d8c49c2a4179502e7498feb610629d1a4dd1d7` on
+`chore/pooling-release-docs`, targeting `develop` at
+`754accee69770e06a809f636d741b9abda357ca3`. The tracked repository/ref and clean
+checkout match the live head. This is the trusted same-repository documentation branch; no
+dependency, hook, or runtime changes are introduced by the corrections below.
+
+Feedback snapshot: zero reviews, zero inline comments/threads, and one informational CodeRabbit
+draft-skip notice (comment 6204945387, last updated 2026-10-16T00:09:05Z). REST review, inline and
+conversation pages were exhausted at fewer than 100 items; the thread connector also returned zero.
+There is no external actionable feedback to close. Do not treat a skipped bot review as an approval.
+
+The full 38-file union was reviewed in three batches: authored guides/navigation and release links;
+ontology/projections/query expectation and CI evidence coverage; then hub/plan records. Generated
+digest-only deltas and the changed projection fields were checked structurally. Pool chain gates,
+settlement flags, existing lane states and Linear state-preservation configuration are unchanged.
+
+| Finding | Root cause and bounded correction | Status |
+|---|---|---|
+| R1: Optional pooling inside required onboarding | Keep the five-step ordinary work/recovery sequence; put Promises in an optional paragraph. Checked steward task navigation remains unordered. | Fixed in working tree |
+| R2: Not Yet described as a note without its state change | Document the final Send to the Stewards action, Under review by stewards result, blocked ordinary confirmation, and failed-send recovery. Sweep the guide, FAQ and recovery page. Exact confirmation labels and irreversible confirmation are stated before acting. | Fixed in working tree |
+| R3: Client Help path given to dashboard users | Use dashboard Settings → Support, with the phone Profile entry; keep Client Profile → Help guidance unchanged. | Fixed in working tree |
+
+Source proof: Client ConfirmSheet/ConfirmNotYet and its controller map Not Yet to
+TerminalLib.raiseDispute; ConfirmLib accepts ordinary confirmation only from ReadyForConfirmation.
+Admin AccountSurface and AccountSettingsPanel own the dashboard support entry. No runtime behavior
+is changed, so TDD is not applicable; document audit, build/twins, source comparison and rendered
+reading supply closure proof. Targeted validation and publication results follow in the PR/chat.
+
+PRD-727 retains detailed dispute resolution/fallback/cancellation/expiry operations, settlement,
+full builder/partner documentation, fresh illustrations and the outstanding signed/device/human QA.
+No lane is certified and no Linear record is changed by this bounded review.
+
+Task record: PRD-1156 / PR #1109 review | Type: guidance | Outcome: fixes prepared
+Agent/model: Codex / GPT-6 | Coverage: this pre-merge follow-up
+
+| Phase | Start → end (UTC) | Result |
+|---|---|---|
+| Investigate / review | 2026-10-16 00:18:39 → 00:22:24 | Exact live head, complete feedback, three diff batches and owning control/state paths inspected. |
+| Implement / verify | 2026-10-16 00:22:24 → ongoing | Six scoped Markdown/MDX files; no runtime change. |
+
+Human corrections: 0 observed; attention: unknown.
+
+Targeted closure proof: Docs audit passed with zero hard findings and the same two advisory
+endpoint warnings; Docs tests passed 92/92; production Docs build/search covered 73/73 routes;
+plan-hub validation passed 27 hubs; guidance links passed 91 files; whitespace checks passed.
+Brave public localhost static Docs rendering verified the five-step onboarding list excludes
+Promises, the confirmation section explains the sent review state and failed-send distinction,
+the dashboard Support path is correct, and the existing FAQ fragment opens its updated answer.
+No page-wide overflow was observed at the desktop viewport. Rendered Docs proof is not signed
+product or device/offline proof. The post-commit Push Gate covers the full 38-file PR union,
+including the four focused consumer tests selected by the review plan; fresh CI must follow.
