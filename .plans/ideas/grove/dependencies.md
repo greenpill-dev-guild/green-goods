@@ -1,6 +1,6 @@
 # Grove dependency map
 
-**Status:** proposed choices, inspected 11 October 2026. No packages or model weights were installed. “Existing” means present in the inspected Green Goods manifests, not automatically available to a future extension bundle. New dependencies require task-specific approval and the repository's release-age gate before pinning.
+**Status:** proposed choices, Green Goods/Coop inspected 11 October; KOI revision added 16 October 2026. No packages or model weights were installed. “Existing” means present in the inspected Green Goods manifests, not automatically available to a future extension bundle. New dependencies require task-specific approval and the repository's release-age gate before pinning.
 
 ## Platform and presentation
 
@@ -37,11 +37,23 @@ The renderer does not supply the timeline, permission logic, evidence inspector 
 | [Transformers.js](https://huggingface.co/blog/transformersjs-chrome-extension) (`@huggingface/transformers`) | Tokenization and local model execution API in isolated inference host | New; leading runtime candidate, based on Coop/Hugging Face pattern |
 | [ONNX Runtime Web](https://onnxruntime.ai/docs/tutorials/web/) (`onnxruntime-web`) | Underlying WASM/WebGPU execution used by the selected runtime | Runtime dependency; pin compatible assets, avoid duplicate incompatible direct installs |
 | [Gemma](https://ai.google.dev/gemma/docs/core) model artifact | Local relationship proposals, source quotes and contextual explanation | Model weights, not a JS library. Gemma E2B is the benchmark candidate; exact model revision, quantization, tokenizer, license and digests remain pending S0 |
-| OpenJev | Possible fast scoring of a fixed set of relevance/category candidates before richer extraction | Optional research candidate, exact intended repository unresolved; not a graph renderer and not required for the first slice |
+| OpenJev / OJV | User-confirmed name in the visualization discussion | Exact repository/API remains unverified; not selected or required for the spike |
 
-Several independent projects use the name OpenJev. For example, [kw2828/OpenJev](https://github.com/kw2828/OpenJev) describes candidate scoring and a browser Qwen demo, while [zhihz/openjev](https://github.com/zhihz/openjev) is another local decision preview. Neither link is claimed to be the user's intended package.
+The earlier decision-scorer assumption is withdrawn. Do not install an unrelated package with the same name or add a Neo4j service to satisfy a guessed dependency.
 
-If adopted later, a candidate scorer would sit after capture/normalization and before expensive enrichment: rules → candidate set → scorer → enrich or abstain. Compare it with rules and the already-loaded Gemma on labeled examples. Its relative score is not calibrated confidence or evidence; it cannot approve knowledge or write to the graph. A second model/server is justified only by measured quality or resource savings and a browser-compatible package. Do not conflate OpenJev with ONNX Runtime.
+## KOI interoperability and optional service
+
+| Component | Role / where it runs | Decision |
+|---|---|---|
+| KOI protocol schemas + a small TypeScript adapter | RID/manifests/bundles, signed exchange and partial-node lifecycle in Extension | Build; pin wire fixtures and prove against the Python reference before claiming interoperability |
+| Native Web Crypto | P-256/SHA-256, raw signatures and key encoding | Built-in; independent local node keys, never wallet keys |
+| RFC 8785 canonical JSON implementation | Deterministic content hashes | Select/pin an audited browser-compatible implementation or narrowly verified adaptation; distinct from envelope serialization |
+| `koi-net` 2.1.2 + `rid-lib` 3.3.0 reference revisions | Controlled Python full-node fixture and cross-language oracle | Optional runtime outside browser; baseline versions, not approved installs |
+| Metagov KOI Obsidian plugin | TypeScript partial-node design reference | Adapt only inspected pieces; replace host-specific APIs and verify async crypto correctly |
+| Grove collection inventory + durable peer fixture store | Recovery after missed events, explicit withdrawals and outgoing-object verification | Build application contract; not a base KOI cursor/ack guarantee |
+| `koi-net-graph-extension`, RDFLib / pySHACL | Optional named-graph projection/validation at a future full node | Deferred; no Python/RDF engine or Neo4j required in the extension |
+
+Exact commits, licenses, reference limitations and [reuse decisions](koi-integration.md#pinned-evidence-and-reuse-limits) govern this list. Dexie owns local inbox/outbox and history; the optional peer never becomes a prerequisite for local graph use. The first spike selects one controlled peer, not the Regen processor's entire service stack.
 
 ## Browser facilities and Green Goods integration
 

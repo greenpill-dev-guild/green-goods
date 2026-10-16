@@ -44,9 +44,15 @@ The profile imports only the types the slice uses. A shared envelope carries can
 5. An AI can propose a new term or mapping for review. It cannot expand the allowed vocabulary in place. Unknown types remain visible as unresolved intake and do not become generic accepted edges.
 6. A changed pack creates an explicit migration/reinterpretation proposal. Historical views use the old interpretation; the current view changes only after the new mapping is validated. Deletion/erasure still follows the storage contract.
 
+## KOI transports the profile
+
+The partial node exchanges source objects and pinned profile assets using KOI RIDs, manifests and bundles. These identify versions and delivery participants; they do not replace domain entity IDs or authorize garden access. Preserve KOI publisher/RID/hash beside canonical entity references. Pin JSON-LD contexts locally; unknown or changed packs require explicit validation.
+
+Keep protocol WorkApproval, Commons editorial state, local relationship review, activity class (`recorded`, `reported`, `planned`) and KOI subscription approval in separate fields. A signed resource can suggest a planned agroforestry trial; accepting its relevance never records a completed trial. See the [KOI integration contract](koi-integration.md).
+
 ## Smallest useful first alignment
 
-Use Green Goods Garden, Action, Work and WorkApproval plus the Commons draft Source and supporting Concept/Term. Keep `memory:Question`, `memory:Resource`, `memory:relevantTo`, `memory:addresses` and `memory:aboutConcept` as visibly local additions where needed. Add Article/Playbook and Claim/Evidence only when their actual schemas and queries are implemented.
+Use Green Goods Garden, Action, Work and WorkApproval plus the Commons draft Source and supporting Concept/Term. Keep `memory:Question`, `memory:Resource`, `memory:PlannedActivity`, `memory:relevantTo`, `memory:addresses` and `memory:aboutConcept` as visibly local additions where needed. Add Article/Playbook and Claim/Evidence only when their actual schemas and queries are implemented.
 
 The earlier `memory:Source` and `memory:Claim` placeholders should be replaced by explicit Commons draft mappings before S2 is finalized. Captured text remains a `sourceRevisions` storage record; it does not need a competing semantic Source class. No migration is needed now because Grove has no runtime data.
 

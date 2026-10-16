@@ -10,7 +10,7 @@
     "overall_status": "idea",
     "priority": "p2",
     "created_at": "2026-10-11T10:02:56.686Z",
-    "updated_at": "2026-10-11T22:41:51.503026Z"
+    "updated_at": "2026-10-16T23:19:08Z"
   },
   "links": {
     "brief": "brief.md",
@@ -36,9 +36,11 @@
   "notes": [
     "User selected Grove as the extension brand; packages/extension remains the proposed code package.",
     "User authorized this planning branch and draft PR only; product implementation and dependency installation remain unstarted.",
-    "The living graph is the core interface; the MVP is one garden on one desktop browser profile.",
+    "The living graph is the core interface; the first spike uses isolated Vida Verde and TAS workspaces with one active garden view on one desktop profile.",
     "All product gates remain unrun. Local acceptance of a relationship is distinct from protocol WorkApproval.",
-    "Exact Coop source licensing, model compatibility and commons draft mappings remain implementation prerequisites."
+    "Exact Coop source licensing, model compatibility and commons draft mappings remain implementation prerequisites.",
+    "KOI partial-node architecture selected for planning: browser-owned history and inference, optional controlled full node, explicit sharing and scoped reconciliation.",
+    "User authorized updating draft PR #1073; K1/K2 and E9\u2013E11 remain unrun. No production peer, dependency installation or runtime implementation is authorized by this plan revision."
   ],
   "lanes": {
     "ui": {
@@ -148,6 +150,14 @@
       "status": "idea",
       "note": "Expand the Grove plan with composed ontology proposal, learning and ingestion diagrams, dependency categories, graph reference screenshots and a Claude Code design prompt; implementation remains unstarted.",
       "timestamp": "2026-10-11T22:41:51.503026Z",
+      "branch": "research/grove-mvp-plan"
+    },
+    {
+      "actor": "codex",
+      "lane": "system",
+      "status": "idea",
+      "note": "Revise the local-first Grove architecture for KOI and scope Vida Verde/TAS end-to-end spike; preserve all implementation lane states.",
+      "timestamp": "2026-10-16T23:19:08Z",
       "branch": "research/grove-mvp-plan"
     }
   ]

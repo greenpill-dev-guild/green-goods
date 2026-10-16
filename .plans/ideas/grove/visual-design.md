@@ -45,6 +45,8 @@ Use root [DESIGN.md](../../../DESIGN.md) and the [AI UI brief](../../../.claude/
 
 ## Visual contract
 
+- Use the simple path garden overview → Soil care/topic → new connection → source, with a visible garden breadcrumb and Back to topic. Preserve selection, camera and timeline when returning. Mycelium curves and quiet organic clusters support readable labeled relationships; network topology stays out of the garden view.
+- Planned activity is independently labeled and filterable, even when a person accepts the plan. Show source/activity time separately from when Grove learned about it; use the [Vida Verde/TAS spike](first-spike.md) for this scenario.
 - Begin with one selected garden and a small meaningful neighborhood. Reveal labels and neighboring detail with focus; offer an explicit broader view. Do not open to a dense full-network tangle by default.
 - Keep a compact search/filter row, a clear “Since last visit” scope, one evidence inspector and a recorded-time control. Settings and capture status are utilities in the same workspace.
 - Distinguish newness from review: a new-node ring or edge mark plus a count/text label; dashed proposed relationships; solid accepted relationships; a distinct selected treatment. Rejected items can be filtered out. Never encode meaning through color alone.
