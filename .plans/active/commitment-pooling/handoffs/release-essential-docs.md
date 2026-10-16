@@ -263,7 +263,7 @@ Agent/model: Codex / GPT-6 | Coverage: October 15 implementation, after the comp
 | Implement | 2026-10-15 22:43:32 → end unknown | Guides, supporting links, FAQ and documentary availability prepared in isolated checkout. Small clarity changes continued during verification. |
 | Verify | 2026-10-15 22:56:23 → 23:07:40 | Selected checks passed cumulatively; public Docs browser proof and final handoff checks. Earlier checks ran during implementation; their phase start is unknown. |
 
-Human corrections: 1 observed in this segment (generated artwork must not show human faces); attention: unknown.
+Human corrections: 0 observed in this segment; attention: unknown.
 
 ## Planning record
 
@@ -281,7 +281,7 @@ files; that result is not prose-format validation. The direct link/whitespace re
 the task-file evidence. Checks describe this shared working copy, not the committed HEAD or a
 release candidate. Rendered proof: none; this change only creates a planning handoff.
 
-Human corrections: 1 observed in this segment (generated artwork must not show human faces); attention: unknown.
+Human corrections: 0 observed in this segment; attention: unknown.
 
 ## Publication follow-up record
 
@@ -294,7 +294,7 @@ Agent/model: Codex / GPT-6 | Coverage: follow-up after local implementation
 | Implement | 2026-10-15 23:51:09 → 23:54:05 | Completed coverage and navigation gaps on verified develop. |
 | Verify | 2026-10-15 23:54:05 → ongoing | Fresh Docs tests 92/92, build/search 73/73, authority/ontology/vocabulary, public Brave navigation and reading checks passed; post-commit push gate follows. |
 
-Human corrections: 1 observed in this segment (generated artwork must not show human faces); attention: unknown.
+Human corrections: 0 observed in this segment; attention: unknown.
 
 Publication review batches: (1) authored guides, role navigation and FAQ; (2) ontology claim,
 generated output and query expectation; (3) evidence-path CI selection and hub records. All task
@@ -455,3 +455,65 @@ change in this correction; dependencies, lockfile, permissions, tests and CI req
 |---|---|---|
 | Publish / inspect CI | 2026-10-16 02:55:56 → 03:29:35 | ad473e2ee published; Docs CI passed, Design interaction bootstrap regression identified. |
 | Implement / verify correction | 2026-10-16 03:29:35 → ongoing | No-face artwork, ordinary-preview-only initialization, repeated Docs/rendered proof; final publication and current-head CI follow in PR/chat. |
+
+## Deep-review fixes, October 15
+
+The user authorized all six findings from the follow-up review for PRD-1156 / #1109.
+
+1. Keep a Promise now distinguishes making an offer, fulfilling a request, making a request,
+   receiving an offer, and contributing to a team. Recipients follow confirmation guidance;
+   providers follow the evidence steps. The existing FAQ fragment remains valid.
+2. Seed Promises explains grouped partial results: created copies are published; copies that
+   did not send remain queued within the group. Finish Creating sends only those pending
+   copies. Individual queued rows retain Send Now / Try Again instructions and the example
+   explicitly avoids recreating successful copies.
+3. The old PWA glossary fragment sits beside Installed app. Both smart-account fragments lead
+   to the formal Builders definition. A regression assertion failed before the generator fix
+   and passed afterward; published anchor retention and uniqueness still pass.
+4. End a Season, the minting guide, the Hypercerts integration and glossary distinguish the
+   generic approved-work wizard from unavailable cycle-specific certification. The cycle can
+   remain Reconciled. Archiving is final. Future cycle certification stays under PRD-727.
+5. Nine Builder pages now open with distinct contextual diagrams, covering the previously
+   missing Agent, Contracts, Indexer and Monorepo Map visuals. Repeated Builder screenshots
+   were replaced or linked from their owning guide. Diagrams center in the article, and the
+   package map was simplified after phone review. No generated raster artwork was added or
+   changed; the no-human-faces requirement remains in force.
+6. Three historical correction counts accidentally overwritten by the no-faces follow-up were
+   restored to their earlier values. The actual no-faces correction remains recorded once in
+   its own implementation segment.
+
+The additional local Brand preview limitation is addressed: the page lives at `/brand-kit`,
+with a static `/brand` forwarding page. Download URLs stay unchanged. The footer, credits and
+Docs README name the canonical page. The two certificate-form evidence inputs are added to
+Docs workflow path selection and validation inputs; no gate, permission, dependency, lockfile
+or baseline was weakened.
+
+Verification: Docs tests 96/96 and source generator/ontology tests 118/118 pass. The selected
+bounded review checks pass (validation-system tests, Shared ontology query test and the focused
+Docs tests). The production build and search cover 76/76 live routes without broken-anchor
+warnings. The authority audit has zero hard findings and the same two existing endpoint
+advisories; all 17 generated projections are current. The post-commit Push Gate and current-head
+CI evidence follow in the PR publication record. All nine workflows passed on the preceding
+head e510e0806c15e1bfb974b30efa47342b310e22bd, including Storybook interactions.
+
+Rendered proof: Brave extension, public localhost Docs, 2026-10-15. Nine Builder openings and
+four corrected task guides were reviewed at 1440×1000 and 390×844; opening diagrams are visible,
+centered, and have no page-wide overflow. The package map also renders in dark appearance.
+Both legacy glossary links reach their definitions in the production preview, the existing FAQ
+fragment reaches the role explanation, and a fresh `/brand` request reaches Brand kit. The
+checked production build is served on localhost:3003 for user review. These are public Docs
+reads, not signed product, physical-device/offline or unfamiliar-reader acceptance. Those QA
+limits and broader pooling, settlement, delta assessment and partner narratives remain PRD-727.
+No Linear records or hub lane states were changed; the PR remains draft and unmerged.
+
+Task record: PRD-1156 / #1109 deep-review fixes | Type: fix | Outcome: implementation verified
+Agent/model: Codex / GPT-6 | Coverage: this six-finding correction segment
+
+| Phase | Start → end (UTC) | Result |
+|---|---|---|
+| Investigate | 2026-10-16 05:16:15 → 05:20:07 | Clean isolated PR head and current behavior verified. |
+| Implement | 2026-10-16 05:20:07 → 05:28:43 | Approved guide, visual, alias, route and historical-record fixes; focused checks also ran during implementation. |
+| Verify / review | 2026-10-16 05:28:43 → 05:33:26 | Final source checks, rendered reading and production-preview review. |
+| Publish | 2026-10-16 05:33:26 → ongoing | Exact task staging, pre-commit, post-commit gate and current-head CI follow in PR/chat. |
+
+Human corrections: 0 observed in this segment; attention: unknown.

@@ -16,7 +16,9 @@ generated_from:
   - packages/contracts/src/lib/CommitmentPooling/CyclesLib.sol
   - packages/contracts/src/lib/CommitmentPooling/WorkCreditLib.sol
   - packages/contracts/src/modules/CookieJar.sol
+  - packages/shared/src/hooks/admin-ui/hypercerts/types.ts
   - packages/shared/src/hooks/garden/useGardenPermissions.ts
+  - packages/shared/src/hooks/hypercerts/useMintHypercert.ts
   - packages/shared/src/i18n/en.json
   - packages/shared/src/modules/assessment/create-assessment-command.ts
   - packages/shared/src/modules/commitment-pooling/selectors.ts
@@ -26,7 +28,7 @@ generated_from:
   - packages/shared/src/workflows/auth-passkey-adapters.ts
   - scripts/data/banned-vocabulary.json
   - scripts/quality/ontology-render.mjs
-source_digest: "sha256:1f92b259f59e65a50dd21473eacbf22b3f8afa2a90491f17b2bc5c5584a27732"
+source_digest: "sha256:2c7b55f1ba26489f70440476caeb95707a74608dcfae406e70bec6543de0d04b"
 source_of_truth:
   - packages/admin/src/components/Assessment/CreateAssessmentSteps/StrategyKernelStep.tsx
   - packages/client/src/components/Public/PublicEndowmentPanel.tsx
@@ -37,7 +39,9 @@ source_of_truth:
   - packages/contracts/src/lib/CommitmentPooling/CyclesLib.sol
   - packages/contracts/src/lib/CommitmentPooling/WorkCreditLib.sol
   - packages/contracts/src/modules/CookieJar.sol
+  - packages/shared/src/hooks/admin-ui/hypercerts/types.ts
   - packages/shared/src/hooks/garden/useGardenPermissions.ts
+  - packages/shared/src/hooks/hypercerts/useMintHypercert.ts
   - packages/shared/src/i18n/en.json
   - packages/shared/src/modules/assessment/create-assessment-command.ts
   - packages/shared/src/modules/commitment-pooling/selectors.ts
@@ -314,7 +318,7 @@ Kept does not mean paid. A Settled list groups finished records; it is not a lis
 
 A prepared period is written down but not open. Open accepts promises. Reconciled is an ended period. Archived is final and prevents creating a certificate from that cycle later; history remains readable.
 
-Reconcile a season, consider its certificate, then decide whether to archive it. [Guide](/community/steward-guide/end-a-season).
+Leave a reconciled season unarchived if you want future cycle-specific certification. The current dashboard cannot create a certificate linked to that cycle. [Guide](/community/steward-guide/end-a-season).
 
 ### Outcomes, metrics and targets {#assessment-measures}
 
@@ -339,6 +343,8 @@ Changing sign-in methods can show a different garden list. [Guide](/community/ga
 A sign-in credential unlocked through your device, such as with a fingerprint, face or screen lock. Recovery depends on access to the passkey, including a synced copy where available.
 
 Sign in with the same passkey on a new phone if it travelled with your Apple or Google account. [Guide](/community/gardener-guide/installing-and-updating).
+
+<a id="pwa-progressive-web-app"></a>
 
 ### Installed app {#pwa}
 
@@ -409,10 +415,7 @@ A funding wallet needs a little ETH on Arbitrum for its fee. [Guide](/community/
 <TermAnchor id="mdr" to="/reference/ontology#mdr" />
 <TermAnchor id="on-chain" to="/reference/ontology#on-chain" />
 <TermAnchor id="outcome" to="/reference/ontology#outcome" />
-<a id="pwa-progressive-web-app"></a>
-
 <TermAnchor id="resolver" to="/reference/ontology#resolver" />
 <TermAnchor id="schema" to="/reference/ontology#schema" />
-<a id="smart-account-account-abstraction"></a>
-
+<TermAnchor id="smart-account-account-abstraction" to="/reference/ontology#smart-account" />
 <TermAnchor id="smart-account" to="/reference/ontology#smart-account" />

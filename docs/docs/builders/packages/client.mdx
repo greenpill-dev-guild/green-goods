@@ -4,7 +4,7 @@ sidebar_label: Client
 slug: /builders/packages/client
 audience: developer
 owner: docs
-last_verified: 2026-10-11
+last_verified: 2026-10-15
 feature_status: Live
 source_of_truth:
   - packages/client/AGENTS.md
@@ -24,10 +24,15 @@ two presentations. Visitors get an editorial public website; gardeners get an in
 captures work offline in the field. Most business logic comes from [shared](./shared); this
 package owns route composition and presentation.
 
-<figure className="gg-figure">
-    <img src="/img/builders/site-home.webp" alt="The public home page in the browser shell, with the site header and the headline From good intentions to green outcomes" loading="lazy" width="2000" height="1250" />
-    <figcaption>The public shell: site header, editorial pages, public data only.</figcaption>
-  </figure>
+```mermaid
+flowchart TB
+  accTitle: Two Client presentations
+  accDescr: Client bootstrap selects the public website or installed app; each shell renders views over Shared capabilities.
+  entry["Client bootstrap and routes"] --> public["PublicShell · public website"]
+  entry --> app["AppShell · installed PWA"]
+  public --> shared["Shared data, hooks and UI"]
+  app --> shared
+```
 
 ## The two shells
 
@@ -40,13 +45,7 @@ Never mix the two. If a route or shell change blurs the paths, check `router.tsx
 component, and the matching Storybook story in the same pass. To tour the PWA without a wallet,
 use the [mock-auth URL from Getting Started](../getting-started#path-a-run-against-hosted-services).
 
-<div className="gg-figure-grid">
-
-  <figure className="gg-figure">
-    <img src="/img/builders/client-work-dashboard.webp" alt="The installed PWA's Your Work sheet: Pending and Completed tabs, an Upload all button, and the gardener's queued items with their states" loading="lazy" width="780" height="1688" />
-    <figcaption>The app shell: bottom navigation, offline capture, the gardener's own work.</figcaption>
-  </figure>
-</div>
+Follow [one work submission](../architecture/anatomy) to see the app’s capture, queue and review path.
 
 ## Inside `src`
 

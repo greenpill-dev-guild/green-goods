@@ -4,7 +4,7 @@ sidebar_label: QA
 slug: /builders/packages/qa
 audience: developer
 owner: docs
-last_verified: 2026-10-10
+last_verified: 2026-10-15
 feature_status: Live
 source_of_truth:
   - packages/qa/AGENTS.md
@@ -23,10 +23,15 @@ a deployed checklist where two people can record the same test case at the same 
 their own verdict and notes. It exists because a shared artifact checklist could only ever have one
 writer; this is the same interface with a real store behind it.
 
-<figure className="gg-figure">
-  <img src="/img/screenshots/qa-app-recorded-issues.webp" alt="Synthetic QA app data filtered to Issues: one case recorded as Fail with a reproduction note and one as Blocked with the reason it could not proceed" loading="lazy" />
-  <figcaption>Two testers' verdicts side by side on the Issues filter. This example uses synthetic data.</figcaption>
-</figure>
+```mermaid
+flowchart TB
+  accTitle: Independent QA writers
+  accDescr: Each tester saves to their own result shard for the run. The shared view combines those independent records without overwriting another tester.
+  a["Tester A · local draft"] --> shardA["A’s result shard"]
+  b["Tester B · local draft"] --> shardB["B’s result shard"]
+  shardA --> view["Combined run view"]
+  shardB --> view
+```
 
 
 ## How it stays correct with two writers

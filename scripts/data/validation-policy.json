@@ -648,6 +648,8 @@
         "packages/shared/src/modules/assessment/create-assessment-command.ts",
         "packages/shared/src/modules/commitment-pooling/selectors.ts",
         "packages/shared/src/modules/transactions/wallet-sender.ts",
+        "packages/shared/src/hooks/admin-ui/hypercerts/types.ts",
+        "packages/shared/src/hooks/hypercerts/useMintHypercert.ts",
         "packages/shared/src/workflows/auth-passkey-adapters.ts"
       ]
     },
@@ -2010,6 +2012,8 @@
         "packages/shared/src/modules/assessment/create-assessment-command.ts",
         "packages/shared/src/modules/commitment-pooling/selectors.ts",
         "packages/shared/src/modules/transactions/wallet-sender.ts",
+        "packages/shared/src/hooks/admin-ui/hypercerts/types.ts",
+        "packages/shared/src/hooks/hypercerts/useMintHypercert.ts",
         "packages/shared/src/workflows/auth-passkey-adapters.ts"
       ],
       "prefixes": [

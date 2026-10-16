@@ -111,7 +111,9 @@ Community and Builders pages share one voice:
 
 ### Brand downloads
 
-`docs/reference/brand.mdx` owns the public `/brand` page. Original exports remain in
+The Brand kit page lives at `/brand-kit`. `static/brand/index.html` forwards the old `/brand` URL so the page does not collide with its download directory. Keep the `/brand/v2/` and `/brand/v3/` asset URLs stable.
+
+`docs/reference/brand.mdx` owns the public `/brand-kit` page. Original exports remain in
 `static/brand/v2/`; canonical dark-green icons, palette, fonts, graphics and templates live in
 `static/brand/v3/`, with complete and focused ZIPs in `static/brand/`. `src/data/brand-kit-v3.json` owns the current
 file inventory, dimensions, source node IDs, colors, and public URLs.

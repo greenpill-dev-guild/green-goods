@@ -921,7 +921,6 @@ export function renderGlossary({ root, sources, digest }) {
   const everyday = glossaryEverydayEntries(ontology, projections);
   const everydayRefs = new Set(everyday.map((entry) => entry.ref));
   const sentence = (text) => (/[.!?]$/.test(text) ? text : `${text}.`);
-  const legacyAnchors = (ref) => (GLOSSARY_LEGACY_ANCHORS[ref] ?? []).map((id) => `<a id="${id}"></a>\n\n`).join("");
   let body = pageHeader(
     { title: "Glossary", slug: "/glossary", audience: "all", sources, digest },
     "Glossary",
@@ -948,6 +947,12 @@ export function renderGlossary({ root, sources, digest }) {
     if (!term.source_of_truth?.length) throw new Error(`Missing glossary authority: ${term.id}`);
     for (const source of term.source_of_truth) if (!existsSync(path.join(root, source))) throw new Error(`Missing glossary authority: ${source}`);
     usedAnchors.add(term.id);
+    const publishedRef = PUBLISHED_GLOSSARY_TERMS.find(([, anchor]) => anchor === term.id)?.[0];
+    for (const id of GLOSSARY_LEGACY_ANCHORS[publishedRef] ?? []) {
+      if (usedAnchors.has(id)) throw new Error(`Duplicate community glossary alias: ${id}`);
+      usedAnchors.add(id);
+      body += `<a id="${id}"></a>\n\n`;
+    }
     body += `### ${esc(term.label)} {#${term.id}}\n\n${esc(term.meaning)}\n\n${esc(term.example)} [Guide](${term.guide}).\n\n`;
   }
   // Preserve historical fragments without displaying a second technical glossary.
@@ -962,9 +967,10 @@ export function renderGlossary({ root, sources, digest }) {
   for (const [ref, anchor] of PUBLISHED_GLOSSARY_TERMS) {
     const term = terms.get(ref);
     if (!term) throw new Error(`Published glossary link ${anchor} needs a declared replacement for ${ref}`);
-    if (everydayRefs.has(ref)) continue;
-    body += legacyAnchors(ref);
-    if (!usedAnchors.has(anchor)) body += `<TermAnchor id="${anchor}" to="/reference/ontology#${term.id}" />\n`;
+    if (everydayRefs.has(ref) || usedAnchors.has(anchor)) continue;
+    for (const id of [...(GLOSSARY_LEGACY_ANCHORS[ref] ?? []), anchor]) {
+      body += `<TermAnchor id="${id}" to="/reference/ontology#${term.id}" />\n`;
+    }
   }
   return body;
 }

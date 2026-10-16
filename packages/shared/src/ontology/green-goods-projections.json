@@ -1162,9 +1162,13 @@
       "id": "cycle-states",
       "label": "Season and campaign states",
       "meaning": "A prepared period is written down but not open. Open accepts promises. Reconciled is an ended period. Archived is final and prevents creating a certificate from that cycle later; history remains readable.",
-      "example": "Reconcile a season, consider its certificate, then decide whether to archive it.",
+      "example": "Leave a reconciled season unarchived if you want future cycle-specific certification. The current dashboard cannot create a certificate linked to that cycle.",
       "guide": "/community/steward-guide/end-a-season",
-      "source_of_truth": ["packages/contracts/src/lib/CommitmentPooling/CyclesLib.sol"]
+      "source_of_truth": [
+        "packages/contracts/src/lib/CommitmentPooling/CyclesLib.sol",
+        "packages/shared/src/hooks/admin-ui/hypercerts/types.ts",
+        "packages/shared/src/hooks/hypercerts/useMintHypercert.ts"
+      ]
     },
     {
       "id": "assessment-measures",

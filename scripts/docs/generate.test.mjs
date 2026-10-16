@@ -657,6 +657,9 @@ test("glossary leads with plain entries for the everyday terms and keeps every a
   for (const anchor of appAnchors) {
     assert.match(everyday.text, new RegExp(`^### .+ \\{#${anchor}\\}$`, "m"), anchor);
   }
+  // Secondary published fragments must land on a definition, not an empty footer anchor.
+  assert.match(rendered, /<a id="pwa-progressive-web-app"><\/a>\s+### Installed app \{#pwa\}/);
+  assert.match(rendered, /<TermAnchor id="smart-account-account-abstraction" to="\/reference\/ontology#smart-account" \/>/);
   // An entry is the term's plain-language record. Its formal definition stays in the tables.
   const sidecar = readJson(REPO_ROOT, "packages/shared/src/ontology/green-goods-ontology.json");
   const projectionData = readJson(REPO_ROOT, "packages/shared/src/ontology/green-goods-projections.json");
