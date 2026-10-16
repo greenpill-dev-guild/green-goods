@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-08-25T06:09:38.829Z",
-    "updated_at": "2026-10-06T20:54:01Z"
+    "updated_at": "2026-10-16T18:57:14.626Z"
   },
   "links": {
     "brief": "brief.md",
@@ -22,7 +22,7 @@
   },
   "linear": {
     "parentIssue": "RESR-73",
-    "project": "Commitment Pooling",
+    "project": "Cosmo-Local Integration",
     "initiative": null,
     "syncDirection": "plans_to_linear_visibility",
     "lastSyncedAt": "2026-08-25T06:39:35.972Z",
@@ -215,6 +215,14 @@
       "status": "linear_state_preservation_enabled",
       "branch": null,
       "note": "Existing Linear states are preserved during manifest updates. Local lane certification remains independent; this records no external write or sync confirmation."
+    },
+    {
+      "timestamp": "2026-10-16T18:57:14.626Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded linear.project as Cosmo-Local Integration, where RESR-73 already lives; it was Commitment Pooling, which is Completed. No Linear write happened: this aligns the hub with Linear."
     }
   ]
 }

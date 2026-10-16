@@ -59,6 +59,11 @@ decision log is a human-gated local step, never yours.
   `protocol:green-goods`, `package:*`, `activity:qa`, `source:qa-session` (resolve-or-create),
   `ai:routine`, and the per-session `session:<YYYY-MM-DD>` (resolve-or-create). A missing family
   fails loud — do not invent records under a different label.
+- Resolve the active release project and the active bounded projects by name at run start as well.
+  The `QA session` parent goes to the release project. Each slice goes to a bounded project that
+  clearly owns its subject, otherwise the release project, per
+  [Project routing](README.md#project-routing). With no release project started, an Issue that no
+  bounded project owns stays unprojected; that is not a lookup failure.
 - Issue bodies follow [`.claude/context/linear-routing-rules.md`](../../.claude/context/linear-routing-rules.md)
   § Issue structure (clear, simple, concise, human-friendly; 6-heading / 600-word backstops — the
   `QA session YYYY-MM-DD` parent title is exempt from the word backstop) and the two templates in
@@ -231,7 +236,8 @@ stamps that label on its own pre-staged tracking Issues, so the label alone can 
 ordinary Backlog defect. Reuse requires the parent shape: **this run's exact expected title**
 (`QA session <date>`, or `QA session <date> · 2` for a second same-day call — the counter is
 the call's identity, since the week's `session` label is shared) and no `package:*` label. When that parent exists (the interactive sibling may have filed it),
-**reuse it** — add missing children under it and a comment for new context; never a second
+**reuse it** — route it to the release project first when it has no project or a Completed or
+Canceled one, then add missing children under it and a comment for new context; never a second
 parent, and never attach slices to anything that fails the shape test.
 
 Then the findings: list open Product Issues carrying `activity:build` or any `session:*` label, plus
@@ -243,7 +249,8 @@ matches that way), or the same PostHog error hash. Wording or surface similarity
 unattended — an uncertain match stays in this session's record (its slice, or `Not sliced`)
 with a `possible duplicate of <key>` note for a human to settle. A confirmed match gets a
 comment on the existing Issue (today's date + the new evidence, privacy-grepped before posting)
-**and a `relatedTo` link to the session parent**, and the report lists it under Slices as
+**and a `relatedTo` link to the session parent** (plus its project per Project routing when it has
+none or its project is Completed or Canceled), and the report lists it under Slices as
 `already tracked: <key>` — so the fix queue and the parent's closure accounting still see it.
 Never a duplicate Issue.
 
@@ -292,7 +299,7 @@ exposure: redact in place and fail loud in the Discord summary.
    after these two steps, never before.
 3. **Then the decisions child** when `Decisions needed` is non-empty: `Product decisions from QA
    session <date>` per § Product decisions child in the templates — `Backlog`, unassigned, the
-   parent label set, no `package:*`.
+   parent label set and project, no `package:*`.
 4. **Then each slice** as a sub-issue via `parentId`, body per the § QA slice template (problem
    cluster in prose with Test IDs and verdicts, "Where to start" map, "Done when" = the Test IDs
    re-record as pass, fix-posture pointer, validation command, source line).

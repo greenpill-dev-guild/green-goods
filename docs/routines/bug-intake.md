@@ -49,7 +49,7 @@ You do NOT create GitHub issues — GitHub is for PRs and code review only, not 
 
 ## Linear surface
 
-This routine writes Customer Needs and Issues into the **Linear Product team, unprojected by default**. The retired `Green Goods` umbrella project is no longer a routing destination — every new record lives unprojected unless a bounded active project clearly owns the work. Never route new Issues into staging/completed projects (`Green Goods`, `Coop`, `Network Website`, `Cookie Jar`, `Story Board`).
+This routine writes Customer Needs and Issues into the **Linear Product team**. Customer Needs stay unprojected. Issues follow [Project routing](README.md#project-routing): a bounded active project when one clearly owns the work, otherwise the active release project, and unprojected only when no release project is started. The retired `Green Goods` umbrella project is no longer a routing destination. Never route new Issues into staging/completed projects (`Green Goods`, `Coop`, `Network Website`, `Cookie Jar`, `Story Board`).
 
 Resolve the team, status, and label IDs at the start of every run and cache them for the duration:
 
@@ -57,6 +57,8 @@ Resolve the team, status, and label IDs at the start of every run and cache them
 team            = Linear team where name == "Product"
 issue_statuses  = team.workflowStates  // expect Backlog, Todo, In Progress, In Review, Done, Cancelled
 labels          = team.labels          // expect the canonical label families listed below
+release_project = started Product-team project named "Green Goods vX.Y.Z QA & Release"  // none is valid: Issues stay unprojected
+bounded_projects = other Product-team projects that are not Completed or Canceled  // use one only when it clearly owns the work
 ```
 
 If the Product team, expected Issue statuses, or required canonical labels are missing, **fail loud** in the Discord summary. Do not invent records under a different team or skip labels silently.
@@ -259,7 +261,7 @@ Source: the dedicated `#bug-report` channel (`DISCORD_BUGS_CHANNEL_ID`). The ret
    - Same error text, view name, or described behavior (likely duplicate — append context, do not create)
    - Same reporter + same surface within 7 days (likely duplicate; use private-context identifiers for matching only)
 
-   When a duplicate exists, add a Linear comment on the existing record with the safe display name (or `anonymous`), message URL, and a one-sentence quote. Do not include Discord usernames, handles, or IDs in the Linear comment. Acknowledge the reporter on Discord with a link to the existing Linear record. Do not create a new record.
+   When a duplicate exists, add a Linear comment on the existing record with the safe display name (or `anonymous`), message URL, and a one-sentence quote. When that record is an Issue with no project, or one whose project is Completed or Canceled, set its project per [Project routing](README.md#project-routing) in the same pass. Do not include Discord usernames, handles, or IDs in the Linear comment. Acknowledge the reporter on Discord with a link to the existing Linear record. Do not create a new record.
 
 4. **Enrich with PostHog + optional Sentry (private context)** — for every report that survives dedupe and is enrichable per `## PostHog telemetry enrichment`, run the curated questions through the PostHog connector. If a Sentry connector/API surface is available, also run the `## Sentry root-cause enrichment` match for the inferred project. Carry the results forward as private context for step 5 and step 6:
    - The error hash, affected-session count, affected-user count, first/last seen, and app surface go into the Linear Customer Need body's `## PostHog evidence (safe summary)` block.
@@ -347,7 +349,7 @@ Source: the dedicated `#bug-report` channel (`DISCORD_BUGS_CHANNEL_ID`). The ret
 
    Drop anything you cannot fill rather than writing a placeholder — if the fix is not suggestable yet, that is the lightweight tracking pattern (`activity:maintenance` + `Backlog`), not a "Needs investigation" heading. Do not restate the verbatim quote or the reporter list; those live on the linked Customer Need.
 
-   Project: leave **unprojected** on the Product team. Apply labels: `protocol:green-goods` + `activity:build` + `package:<inferred>` (omit if unknown) + `source:discord` + `ai:routine`. Status: `Todo`. Link the Issue to the Customer Need via Linear's relationship surface ("relates to" or the Customer Need's linked-issues field, whichever the Linear API exposes). The Issue body inherits the same privacy boundary — never paste replay URLs, session IDs, distinct IDs, wallet addresses, or reporter identifiers into it.
+   Project: per [Project routing](README.md#project-routing), the `bounded_projects` entry that clearly owns the work, otherwise the `release_project`, or none when no release project is started. Apply labels: `protocol:green-goods` + `activity:build` + `package:<inferred>` (omit if unknown) + `source:discord` + `ai:routine`. Status: `Todo`. Link the Issue to the Customer Need via Linear's relationship surface ("relates to" or the Customer Need's linked-issues field, whichever the Linear API exposes). The Issue body inherits the same privacy boundary — never paste replay URLs, session IDs, distinct IDs, wallet addresses, or reporter identifiers into it.
 
 7. **Acknowledge on Discord** — reply with the Linear URL and add ✅ reaction in `#bug-report`. Since the standalone ack post was retired (Phase 6), this threaded reply IS the reporter's acknowledgement. When acknowledging, link the Customer Need (not the Issue), because the Customer Need is the user-facing record:
 
@@ -431,7 +433,7 @@ Run the sub-flow below twice — once with `inferred_type=bug` (ack target `#bug
 
    The Customer Need carries **no labels** — `save_customer_need` has no `labels` field. Provenance lives in the body; the canonical labels (`protocol:green-goods` + `source:telegram` + `ai:routine` + `activity:*`) go on the linked Issue created in step 8.
 
-8. **Create the linked Issue**. When the report is actionable per the same acceptance bar as Phase 1 step 6, create an accepted-bug Issue. Idea-source captures get a lightweight `activity:maintenance` + `Backlog` tracking Issue. Apply the same canonical labels for Issues (`protocol:green-goods` + `activity:build` or `activity:maintenance` + `package:<inferred>` + `source:telegram` + `ai:routine`) and privacy boundary.
+8. **Create the linked Issue**. When the report is actionable per the same acceptance bar as Phase 1 step 6, create an accepted-bug Issue. Idea-source captures get a lightweight `activity:maintenance` + `Backlog` tracking Issue. Apply the same canonical labels for Issues (`protocol:green-goods` + `activity:build` or `activity:maintenance` + `package:<inferred>` + `source:telegram` + `ai:routine`), the project routing of Phase 1 step 6, and the privacy boundary.
 
 9. **Mark the captured message triaged**:
    ```
@@ -491,7 +493,7 @@ The `google-drive` connector exposes only `title`, `fullText`, `mimeType`, `modi
 
    Drive notes are mixed-source so judgment is required: include the meeting attendees in `## Reporter context` and prefer the privacy-safe summary over verbatim quotes when in doubt.
 
-7. **Create accepted-bug Issue** only if the doc captures an actionable bug with a clear surface (rare — Drive notes usually need triage first). Apply the same canonical labels (`protocol:green-goods` + `activity:build` + `package:<inferred>` + `source:drive` + `ai:routine`) and privacy boundary as in Phase 1 step 6.
+7. **Create accepted-bug Issue** only if the doc captures an actionable bug with a clear surface (rare — Drive notes usually need triage first). Apply the same canonical labels (`protocol:green-goods` + `activity:build` + `package:<inferred>` + `source:drive` + `ai:routine`), project routing and privacy boundary as in Phase 1 step 6.
 
 8. **Reporter acknowledgement** is not applicable for Drive (no per-message back-channel). Drive-sourced records appear in the daily Discord summary as a batch.
 
@@ -501,7 +503,7 @@ After Phases 1–3, before the umbrella check, fold every PostHog match collecte
 
 1. **Re-run the recurring-pattern probe** (curated question 4 in `## PostHog telemetry enrichment`) over the last 30 days, including matches from before this run.
 2. **Threshold gate**: a hash is a recurring pattern when its 30-day distinct-session count is **≥ 50**. Below threshold, the per-report Customer Needs from Phases 1–3 stand on their own. Do not aggregate.
-3. **Find or create the parent Issue** unprojected on the Product team:
+3. **Find or create the parent Issue** on the Product team, routed like the per-report Issues (a `bounded_projects` entry that clearly owns the work, otherwise the `release_project`):
    - Look for an open Issue carrying `protocol:green-goods` + `ai:routine` + `activity:build` + a `pattern:posthog-{error-hash-prefix}` label. If the label set is missing on the team, fail loud in the Phase 7 summary and skip aggregation rather than inventing a parent.
    - If none exists and the threshold is met, create one Issue whose title is a plain verb-led sentence naming the failure — "Fix the credential request that never resolves on garden join", not `Recurring: {error}`. The `Recurring:` prefix was retired 2026-08-27 and a `PreToolUse` hook now rejects it; the `pattern:posthog-*` label marks the record as a recurring parent. Status `Todo`, labels `protocol:green-goods` + `activity:build` + `package:<inferred>` + `ai:routine` + `pattern:posthog-{error-hash-prefix}`. The parent Issue body uses the safe-summary fields only:
 
@@ -529,7 +531,7 @@ After Phases 1–3, before the umbrella check, fold every PostHog match collecte
      unbounded one — the body has a 600-word backstop, so a long-lived pattern
      would eventually make its own refresh unwritable.
 
-   - If a parent Issue already exists, add the new Customer Needs through the relation surface (step 4) and refresh the counts and last-seen date in the body. Do not accumulate URLs in the description — the relations are the list.
+   - If a parent Issue already exists, first route it per [Project routing](README.md#project-routing) when it has no project or a Completed or Canceled one, then add the new Customer Needs through the relation surface (step 4) and refresh the counts and last-seen date in the body. Do not accumulate URLs in the description — the relations are the list.
 4. **Backlink** every contributing Customer Need to the parent Issue via Linear's relation surface (`relates to` or the parent's linked-issues field). The Customer Needs themselves are not edited beyond adding the relation.
 5. **Attach Sentry matches as root-cause context** when they point at the same top-line message/surface/release. Sentry issue IDs enrich the parent Issue body or comment with release and stack context; they do not replace the PostHog distinct-session threshold because Sentry event counts and PostHog session counts are not comparable.
 5. **Cap**: at most **2 new parent Issues per run** to keep human triage from drowning. Carry overflow into the next run.
@@ -541,8 +543,8 @@ The parent Issue body never carries replay URLs, session IDs, distinct IDs, wall
 After Phases 1–4, before posting the summary:
 
 1. List every Customer Need this run created and confirm it is associated with the expected project/customer context and includes source, evidence, dedupe notes, and privacy-safe summary.
-2. List every linked Issue this run created (per-report and recurring-pattern parent) and confirm it has the expected labels, status, source URL, and Customer Need link.
-3. List every duplicate detection — every existing Customer Need or Issue this run commented on — and confirm the comment landed.
+2. List every linked Issue this run created (per-report and recurring-pattern parent) and confirm it has the expected labels, status, project (per [Project routing](README.md#project-routing)), source URL, and Customer Need link.
+3. List every duplicate detection — every existing Customer Need or Issue this run commented on — and confirm the comment landed, that each Issue this run re-routed now sits in the project [Project routing](README.md#project-routing) picks (or in none only when no bounded project owns it and no release project is started), and that each Issue already in a live project stayed there.
 4. List every rejection — every signal you read but did not act on — and the reason.
 5. Run a privacy grep across every body created or edited this run, **every comment this run posted**, **and across every captured `chat_messages.text` and attachment caption that this run consumed** for the strings `replay`, `session_id`, `distinct_id`, `0x`, the reporter identifiers seen this run, and any other token from the "private" column of the privacy-boundary table. Any hit in a Linear body or comment means the routine leaked private context — fail loud in Phase 7's `⚠ Failures this run` block and edit the offending body or comment in place to redact before the run completes. Hits in raw `chat_messages.text` or captions cause the run to drop that record's quote from the Phase 7 digest (Linear still records it, scrubbed) — never leak the raw text downstream.
 
@@ -599,7 +601,7 @@ accepted_count   = count Issues on team=Product where:
 {if more than 3: "…plus {n} more captured, all in Linear."}
 {if duplicates merged: "{K} duplicate report(s) merged into existing records."}
 
-{if raw_signal_count + accepted_count > 3: "📋 Triage queue · {raw_signal_count} raw signals + {accepted_count} accepted bugs → the Product team's unprojected `protocol:green-goods` view."}
+{if raw_signal_count + accepted_count > 3: "📋 Triage queue · {raw_signal_count} raw signals + {accepted_count} accepted bugs → the Product team's `protocol:green-goods` records."}
 {if any_failure: "⚠ {short failure list — e.g. Linear project lookup failed, posthog unreachable, in-thread ack failed for <msg url>, privacy grep flagged a body}"}
 ```
 
@@ -629,6 +631,6 @@ The @mention fires when triage is piling up (`raw_signal_count + accepted_count 
 - **No nagging.** If an existing Customer Need covers a new report, comment once with the new reporter info; do not re-comment if the same record gets multiple references in one run.
 - **No duplicate of `/linear issue` records.** When a teammate already filed via the Linear/Discord integration, the Linear record exists; this routine merges context but does not create a parallel record.
 - **1-hour runtime cap.** Intake is lightweight. If the run takes longer than an hour, something is wrong.
-- **Project routing discipline.** Customer Needs and accepted-bug Issues live unprojected on the Product team. Never route into the retired `Green Goods`, `Coop`, `Network Website`, `Cookie Jar`, or `Story Board` projects. Graduate to a bounded active project only when one already exists for this work.
+- **Project routing discipline.** Customer Needs live unprojected on the Product team. Accepted-bug Issues follow [Project routing](README.md#project-routing): a bounded active project when one already exists for this work, otherwise the active release project, and unprojected only when none is started. Never route into the retired `Green Goods`, `Coop`, `Network Website`, `Cookie Jar`, or `Story Board` projects.
 - **Acknowledgement model (2026-07-30).** Discord-source reports are acknowledged with the inline `Tracked → ${customer_need_url}` threaded reply + ✅ reaction in `#bug-report` (Phase 1 step 7; reply and reaction are attempted, recorded, and retried independently) — never with standalone ack messages. Telegram and Drive records are acknowledged as item lines in the Phase 7 digest; Telegram reporters get NO Telegram-side ack — no DM, no group reply — by design.
-- **Fail loud, not silent.** A missing Linear project, a missing label, a 401 from Linear, or a 401/503 from the agent messages API (`${BOT_API_URL}/api/messages`, per the Phase 2 preflight) must appear in the Discord summary so the user can fix the wiring. Do not skip records to keep the run "green."
+- **Fail loud, not silent.** A failed Linear project lookup (an absent release project between releases is a valid state, not a failure), a missing label, a 401 from Linear, or a 401/503 from the agent messages API (`${BOT_API_URL}/api/messages`, per the Phase 2 preflight) must appear in the Discord summary so the user can fix the wiring. Do not skip records to keep the run "green."

@@ -30,7 +30,7 @@ model: claude-opus-5
 
 # Prompt
 
-You are the health-watch routine for Green Goods. Run the five health checks below. Open or update **Linear Product Issues** (unprojected, accepted operational health work) only for **real anomalies** — be conservative about what counts. Most days, this routine should post a one-line all-green summary and create no Issues.
+You are the health-watch routine for Green Goods. Run the five health checks below. Open or update **Linear Product Issues** (accepted operational health work) only for **real anomalies** — be conservative about what counts. Most days, this routine should post a one-line all-green summary and create no Issues.
 
 The retired GitHub Project #4 / Bug Board / Sprints flow is no longer the routing destination. GitHub is for PRs and code review only — health-watch never writes GitHub Issues, never adds Project items, and never sets iteration/Sprints fields.
 
@@ -38,7 +38,7 @@ The retired GitHub Project #4 / Bug Board / Sprints flow is no longer the routin
 
 - All env vars are loaded; do not read `.env`.
 - `DISCORD_USER_ID_AFO` is Afo's Discord snowflake ID (numeric). Use `<@${DISCORD_USER_ID_AFO}>` in messages to @mention him only on real anomalies.
-- **Linear is the canonical surface for accepted operational health work.** Issues live unprojected on the Product team and carry the canonical scheme (`protocol:green-goods` + `activity:maintenance` for operational anomalies or `activity:build` for code fixes + `package:*` + `ai:routine`). The deprecated `Green Goods` umbrella project is no longer a routing destination. Resolve team/label/status IDs by name at the start of every run; on lookup failure, fail loud in the Discord summary. Pass labels to `save_issue` as **bare child names** (`["green-goods", "maintenance", "routine"]`), not the `group:child` display form: the API does not accept the prefixed form, and one unresolvable entry rejects the whole array and files nothing.
+- **Linear is the canonical surface for accepted operational health work.** Issues live on the Product team, routed per [Project routing](README.md#project-routing) (a bounded active project that clearly owns the work, otherwise the active release project, unprojected only when none is started), and carry the canonical scheme (`protocol:green-goods` + `activity:maintenance` for operational anomalies or `activity:build` for code fixes + `package:*` + `ai:routine`). The deprecated `Green Goods` umbrella project is no longer a routing destination. Resolve team/label/status IDs, the active release project and the active bounded projects by name at the start of every run; on lookup failure, fail loud in the Discord summary. An absent release project between releases is a valid state, not a lookup failure. Pass labels to `save_issue` as **bare child names** (`["green-goods", "maintenance", "routine"]`), not the `group:child` display form: the API does not accept the prefixed form, and one unresolvable entry rejects the whole array and files nothing.
 
 ## Threshold philosophy
 
@@ -52,7 +52,7 @@ The previous spec used a 50-block indexer threshold (~12.5s at Arbitrum's 250ms 
 
 ## Categories and checks
 
-Each category maps to a Linear label combination — old `health:*` GitHub labels are retired. Issues are unprojected on the Product team and use the canonical scheme:
+Each category maps to a Linear label combination — old `health:*` GitHub labels are retired. Issues use the canonical scheme:
 
 | Check | Linear labels (in addition to `protocol:green-goods` + `activity:maintenance` or `activity:build` + `ai:routine`) |
 |---|---|
@@ -192,7 +192,7 @@ For each category that warrants an Issue:
 if no open Linear Issue matching the canonical labels + category marker:
   Linear: create Issue
     team        = Product
-    project     = (none — unprojected)
+    project     = a bounded project from Setup that clearly owns the work, else the release project (none when no release project is started)
     title       = "<plain sentence that contains the category phrase>"
                   // no "<category>:" prefix; the phrase sits inside the
                   // sentence, because § Auto-close matches on it to find
@@ -208,7 +208,9 @@ if no open Linear Issue matching the canonical labels + category marker:
     comment #1  = <the full evidence: tables, per-URL breakdowns, Sentry
                    corroboration, caveats>
 else:
-  Linear: comment on the existing Issue with <dated append>
+  Linear: comment on the existing Issue with <dated append>,
+          and set its project as above when it has none or its
+          project is Completed or Canceled
 ```
 
 **The body is a description, not a dashboard.** Say what is happening, what it
@@ -306,5 +308,5 @@ health-watch: indexer={status}, vercel={status}, contracts={status_or_deferred},
 - **Auto-close stale recoveries.** Don't let recovered conditions sit as open Issues — transition them to `Done` with evidence.
 - **Linear is the only Issue surface.** No GitHub Issue writes, no GitHub Project items, no `Sprints` / iteration field updates. The retired `health:*` GitHub label set is not used.
 - **No CI check.** CI is intentionally not a health-watch signal — this routine's environment has no GitHub access (no connector, no token, no `gh`), and `main`-branch CI failures already surface via GitHub's native notifications. Do not re-add a `gh`- or Actions-based CI check here.
-- **Project routing discipline.** Every Issue is unprojected on the Product team. Never route into the retired `Green Goods`, `Coop`, `Network Website`, `Cookie Jar`, or `Story Board` projects.
+- **Project routing discipline.** Every Issue follows [Project routing](README.md#project-routing): a bounded active project that clearly owns the work, otherwise the active release project, or unprojected when none is started. Never route into the retired `Green Goods`, `Coop`, `Network Website`, `Cookie Jar`, or `Story Board` projects.
 - **Terse narration.** Keep working narration terse — the Discord summary, any Linear Issues, and the one-line summary are the only products of this run.

@@ -903,7 +903,7 @@ function linearProjectForStatus(status, warnings) {
     return project;
   }
 
-  warnings.push("No explicit linear.project; manifest leaves issues unprojected.");
+  warnings.push("No explicit linear.project: updates keep each issue's Linear project, and a create starts unprojected unless the applier routes it to the active release project (routing rule 4).");
   return null;
 }
 

@@ -143,7 +143,7 @@ For each extracted item:
 
    If duplicate:
    - **Existing Customer Need**: append a comment with today's sync date + the verbatim quote; do NOT create a duplicate. Grep the drafted comment with the Phase 5 string list **before** posting — a comment is public the moment it lands, and a post-hoc edit does not unpublish it.
-   - **Existing Issue**: link as `relates to` if a Customer Need is being created; skip the new Customer Need if the Issue already covers the same behavior.
+   - **Existing Issue**: link as `relates to` if a Customer Need is being created; skip the new Customer Need if the Issue already covers the same behavior. When that Issue has no project, or its project is Completed or Canceled, set it per [Project routing](README.md#project-routing) in the same pass.
 
 ## Phase 4: Pre-stage Customer Needs with Backlog tracking Issues
 
@@ -152,6 +152,7 @@ Linear requires every Customer Need to link to an Issue. Grep every drafted body
 1. **First, create the Backlog tracking Issue** on the Product team. Title: a plain action-verb-led sentence with **no prefix** — "Investigate the PWA install hang on Android", not "[tracking] Install hangs". The `[tracking]` prefix is retired (2026-08-27): the `maintenance` label plus `Backlog` state already say the work is uncommitted, and a `PreToolUse` hook now rejects the prefix. Body: the problem in one or two plain paragraphs, then one source line — **no headings unless the item genuinely needs them; clear, simple, concise (backstops: 6 headings / 600 words)**, and no Reproduction/Expected/Actual at this routine stage. Drop any section you cannot fill rather than writing "—" or a paragraph reporting that PostHog matched nothing; note tooling gaps in the Discord summary instead. Full contract: [`.claude/context/linear-routing-rules.md`](../../.claude/context/linear-routing-rules.md) § Issue structure.
    - Labels: `protocol:green-goods` + ONE `package:*` (primary surface; omit if unknown) + `activity:build` (clear bug) or `activity:maintenance` (idea / polish / unclear actionability) + `source:drive` + `source:qa-triage-pulse` + `ai:routine` + `session:<YYYY-MM-DD>`. Pass labels to `save_issue` as **bare child names** (`["green-goods", "qa", "routine"]`), not the `group:child` display form: the API does not accept the prefixed form, and one unresolvable entry rejects the whole array and files nothing.
    - Status: `Backlog` for all. The routine never claims work as `Todo`; the interactive `/qa-triage` skill promotes selected tracking Issues to `Todo` during the human triage gate.
+   - Project: per [Project routing](README.md#project-routing), a bounded active project that clearly owns the item, otherwise the active release project (resolve both by name this run), or none when no release project is started.
    - Priority: P3 (Low) by default. P2 (Medium) when PostHog confirms ≥50 sessions in 30d. The routine never sets P0/P1 — humans decide release-blocker status.
 
 2. **Then, create the Customer Need** linked to that Issue via the `issue` parameter. Use the terse raw-signal body shape from [`linear-templates.md`](../../.claude/skills/qa-triage/linear-templates.md):
