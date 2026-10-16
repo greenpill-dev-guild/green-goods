@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-10-16T19:35:57.040Z",
-    "updated_at": "2026-10-16T20:10:00Z"
+    "updated_at": "2026-10-16T20:45:00Z"
   },
   "links": {
     "brief": "brief.md",
@@ -34,11 +34,11 @@
     "depends_on_features": []
   },
   "notes": [
-    "Planned and de-risked on 2026-10-16; blocked on decisions 1 to 8 in plan.todo.md. Step 6 depends on decision 2 and step 8 on decision 4.",
+    "Planned and de-risked on 2026-10-16; blocked on decisions 1 to 7 in plan.todo.md. Step 6 depends on decision 2 and step 8 on decision 4.",
     "Clean-room proof: reports/2026-10-16-clean-room-proof.md (clean-room Chromium, virtual authenticator; signatures checked by read-only eth_call). Device proof is plan step 11 and is Afo's.",
     "Shared auth workflows and the agent passkey directory are critical surfaces: read every touched line and keep the selector's critical override.",
     "Never re-encode a stored passkey credential ID: Kernel hashes that exact string into the account address.",
-    "Related records: PRD-1107 built the directory; COM-39 holds the move plan this hub proposes to replace (draft in handoffs/com-39-update-draft.md). Name rules belong to green-goods-name-reservation.",
+    "Related records: PRD-1107 built the directory; COM-39 was rewritten around this plan on 2026-10-16 (decision 8, text in handoffs/com-39-update-draft.md). Name rules belong to green-goods-name-reservation.",
     "status.json is authoritative; set a concrete <type>/<work-description> branch only when work begins."
   ],
   "lanes": {
@@ -142,6 +142,14 @@
       "status": "planned",
       "branch": null,
       "note": "Wrote brief, spec, plan, eval, the clean-room proof report and the portable rig; contracts lane marked n/a."
+    },
+    {
+      "timestamp": "2026-10-16T20:45:00Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "planning_reconciled",
+      "branch": null,
+      "note": "Decision 8 answered: Afo chose the COM-39 rewrite, which was posted the same day."
     }
   ]
 }

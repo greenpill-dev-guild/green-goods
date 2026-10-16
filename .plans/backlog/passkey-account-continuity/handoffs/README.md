@@ -3,7 +3,8 @@
 ## State (2026-10-16)
 
 - **Planned and de-risked; nothing implemented.** Lanes are `todo`; `contracts` is `n/a`.
-- **Waiting on Afo:** decisions 1 to 8 in [plan.todo.md](../plan.todo.md#decision-log). Step 6
+- **Waiting on Afo:** decisions 1 to 7 in [plan.todo.md](../plan.todo.md#decision-log). Decision 8
+  is answered: COM-39 was rewritten on 2026-10-16. Step 6
   depends on decision 2, and step 8 on decision 4.
 - **Proven in clean-room Chromium** ([report](../reports/2026-10-16-clean-room-proof.md)):
   - A beta-bound passkey signs in and signs on www and admin once beta serves

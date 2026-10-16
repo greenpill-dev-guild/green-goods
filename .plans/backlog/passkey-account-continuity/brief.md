@@ -23,7 +23,8 @@ started:
 - **Three staging test sign-ups (June to July)**, whose origin the hosted server stopped
   accepting (probed 4 October 2026).
 
-The current plan for these people (COM-39) moves them to new accounts. A new passkey means a new
+COM-39 first planned to move these people to new accounts; it was rewritten around this plan on
+16 October 2026. A new passkey means a new
 smart-account address, which loses garden membership, roles, work history and the Green Goods
 name, and gives stewards re-adding work.
 

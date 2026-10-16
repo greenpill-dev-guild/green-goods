@@ -1,7 +1,9 @@
-# COM-39 update (draft, not posted)
+# COM-39 update
 
-Posting this needs Afo's go-ahead. When posting, write issue references as href-only `<issue>`
-tags in the description so Linear resolves them, then check the round-trip.
+Posted on 2026-10-16 after Afo chose the rewrite: the title and description below. The live
+description links PR #1111, and says "the shared Green Goods domain" instead of the bare domain,
+which Linear turns into a link. The PRD-1107 mention round-tripped, and the issue stayed in
+Backlog.
 
 ---
 

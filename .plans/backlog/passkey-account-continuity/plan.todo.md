@@ -2,7 +2,7 @@
 
 **Feature Slug**: `passkey-account-continuity`
 **Stage**: `backlog`
-**Status**: `ACTIVE — planned and de-risked; waiting on decisions 1 to 8`
+**Status**: `ACTIVE — planned and de-risked; waiting on decisions 1 to 7`
 **Created**: `2026-10-16T19:35:57.040Z`
 **Last Updated**: `2026-10-16`
 
@@ -12,8 +12,8 @@ evidence. The clean-room proof behind this plan is
 
 ## Decision Log
 
-Every row is proposed. Nothing below is decided until Afo answers it; the recommendation is the
-plan's default if he agrees.
+Rows 1 to 7 are proposed. Nothing in them is decided until Afo answers it; the recommendation is
+the plan's default if he agrees. Row 8 was answered on 2026-10-16.
 
 | # | Decision | Recommendation | Rationale |
 |---|---|---|---|
@@ -24,7 +24,7 @@ plan's default if he agrees.
 | 5 | A remembered name that is now taken (January to August accounts were never reserved) | Ask for another name in the adoption step. | The account follows the passkey, not the name, so a new name changes nothing else. A silent suffix would leave people guessing their own sign-in name. |
 | 6 | Where the saved-session action lives | A row in the account screens that already exist (client profile, admin account panel), never a banner. | Existing chrome, no layout shift; it shows only for passkey sessions without a directory entry. |
 | 7 | The three staging test accounts from June and July | Confirm they are team tests, then drop them. Support-assisted if not. | The hosted server stopped accepting the staging origin (probed 4 October), so they can't sign in by name to adopt. |
-| 8 | COM-39 | Rewrite it around keeping accounts, with moving as the fallback. Draft: [handoffs/com-39-update-draft.md](handoffs/com-39-update-draft.md). | It counts only from late June and plans a move. |
+| 8 | COM-39 | **Decided 2026-10-16:** rewritten around keeping accounts, with moving as the fallback ([handoffs/com-39-update-draft.md](handoffs/com-39-update-draft.md)). | Afo chose the rewrite. The old text counted only from late June and planned a move. |
 
 ## Research / Plan Gate
 
@@ -32,9 +32,10 @@ plan's default if he agrees.
 - [x] Identify the existing repo pattern to mirror: the directory's registration rules and store,
       and the app's in-page ceremony with a local signature check
 - [x] List human judgment points before implementation (decisions 1 to 8)
+- [x] Decision 8: COM-39 rewritten (2026-10-16)
 - [x] Define what is out of scope ([brief.md](brief.md))
 - [x] Prove the risky parts before planning steps (clean-room report)
-- [ ] Afo answers decisions 1 to 8
+- [ ] Afo answers decisions 1 to 7
 - [ ] Choose validation per step with `bun run check --plan -- --intent qa` at implementation time
 
 ## Requirements Coverage
@@ -214,7 +215,7 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
   2.6.0 while `@peculiar/asn1-ecc` 2.10.0 uses 2.10.0, so `verifyAuthenticationResponse` throws
   "Cannot get schema for 'ECDSASigValue' target" for every ES256 assertion. Registration is
   unaffected (attestation `none`). Fixing it changes dependencies, which needs approval.
-- **F2.** Rewrite COM-39 (decision 8).
+- **F2.** Rewrite COM-39 (decision 8). Done on 2026-10-16.
 - **F3.** Retire the hosted fallback once telemetry shows few unadopted hosted names signing in.
 
 ## Validation

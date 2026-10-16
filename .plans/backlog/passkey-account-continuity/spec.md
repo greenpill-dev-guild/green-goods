@@ -253,6 +253,6 @@ from any device the passkey syncs to.
 
 ## Related
 
-- PRD-1107 built the directory. COM-39 holds the current move plan (decision 8).
+- PRD-1107 built the directory. COM-39 was rewritten around this plan on 2026-10-16 (decision 8).
 - `green-goods-name-reservation` owns name normalization and reservation; adoption applies the
   directory's existing name rules (`isRegistrablePasskeyName`).

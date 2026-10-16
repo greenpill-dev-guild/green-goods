@@ -9,7 +9,7 @@
    restore and signing behave as before. Sign-in never waits on adoption.
 4. **Evidence quality.** Every claim carries its evidence label: clean-room Chromium with a
    virtual authenticator, authenticated device, or a read-only `eth_call`.
-5. **Human judgment.** Decisions 1 to 8 in [plan.todo.md](plan.todo.md) are answered before any
+5. **Human judgment.** Decisions 1 to 7 in [plan.todo.md](plan.todo.md) are answered before any
    step starts. Shared auth and the agent directory keep the critical override.
 
 ## Acceptance Checks
