@@ -91,7 +91,7 @@ Each track carries the same fields. The routine reads them literally, so keep th
 - The existing Linear blockers set the foundation order: RESR-46 (base attestation schema) → RESR-49 (data standards, baselines, governance) → RESR-14 (evaluator workflow and rubric v0.1). RESR-77 defines report and certificate meaning against that foundation; RESR-8 (yield-to-impact language) consumes track 3; RESR-47 (IFRS S1/S2 mapping) is downstream and optional.
 - RESR-65 (metric inventory) was Canceled and GROW-15 (first House of Alignment report) is Done. RESR-6 (taxonomy and glossary v1) and RESR-52 (reviewer and methodology collaborators) are Done.
 - Linear documents: *Consolidation Memo — Impact Framework v0.1 Architecture*, *Literature Review Addendum — Biodiversity Infrastructure, Standards, MRV, and Certification Layers*, *Research Memo — IFRS S1/S2 Constraint Ladder*, *Research Memo — Outcome-Based Verification: Savory EOV and Backstory's Prove (2026-08-23)*, *Impact-Claim Domain Taxonomy & Glossary v1*, *A measurement framework for Green Goods regen impact*.
-- The public garden impact API (the machine-readable surface shipped in PR 782, `packages/agent/src/api/routes/public-garden-impact.ts`) and `.plans/ideas/environmental-data-inputs/` with RESR-10 and RESR-72 (Open Forest Protocol and Silvi as verified-outcome inputs). Those issues are unprojected after their former project was Canceled. Environmental data inputs remain an MRV sub-question here until a specific provider and pilot make a bounded research project useful.
+- The public garden impact API (the machine-readable surface shipped in PR 782, `packages/agent/src/api/routes/public-garden-impact.ts`) and `.plans/ideas/environmental-data-inputs/` with RESR-10 and RESR-72 (Open Forest Protocol and Silvi as verified-outcome inputs). Their former project was Canceled, and no bounded project owns them yet. Environmental data inputs remain an MRV sub-question here until a specific provider and pilot make a bounded research project useful.
 
 **Status surface.** Project status update on *Impact Framework v0.1 Refresh*.
 
@@ -224,7 +224,7 @@ Each track carries the same fields. The routine reads them literally, so keep th
 **Anchors.**
 - RESR-15 lists Juicebox and Revnet as a Season Two funding rail to compare (initiator, principal control, yield control, evidence trigger, funder view).
 - `.plans/active/commitment-pooling/reports/linear/linear-apply-pack.md` section B3 (AgroforestDAO's Revnet stays outside pooling v1 scope; the module never custodies funds).
-- RESR-76 (frame what a Revnet would add to a garden's goods and services beyond pooling and vaults; Todo, unassigned, in Q4 December; related to RESR-15 and RESR-73). No project or plan hub exists, by design, until the framing lands.
+- RESR-76 (frame what a Revnet would add to a garden's goods and services beyond pooling and vaults; Todo, unassigned, in Q4 December; related to RESR-15 and RESR-73). No bounded project or plan hub exists, by design, until the framing lands.
 
 **Status surface.** Comment on RESR-76.
 

@@ -49,7 +49,7 @@ You do NOT create GitHub issues — GitHub is for PRs and code review only, not 
 
 ## Linear surface
 
-This routine writes Customer Needs and Issues into the **Linear Product team, unprojected by default**. The retired `Green Goods` umbrella project is no longer a routing destination — every new record lives unprojected unless a bounded active project clearly owns the work. Never route new Issues into staging/completed projects (`Green Goods`, `Coop`, `Network Website`, `Cookie Jar`, `Story Board`).
+This routine writes Customer Needs and Issues into the **Linear Product team**. Customer Needs stay unprojected. Issues follow [Project routing](README.md#project-routing): a bounded active project when one clearly owns the work, otherwise the active release project, and unprojected only when no release project is started. The retired `Green Goods` umbrella project is no longer a routing destination. Never route new Issues into staging/completed projects (`Green Goods`, `Coop`, `Network Website`, `Cookie Jar`, `Story Board`).
 
 Resolve the team, status, and label IDs at the start of every run and cache them for the duration:
 
@@ -57,6 +57,7 @@ Resolve the team, status, and label IDs at the start of every run and cache them
 team            = Linear team where name == "Product"
 issue_statuses  = team.workflowStates  // expect Backlog, Todo, In Progress, In Review, Done, Cancelled
 labels          = team.labels          // expect the canonical label families listed below
+release_project = started Product-team project named "Green Goods vX.Y.Z QA & Release"  // none is valid: Issues stay unprojected
 ```
 
 If the Product team, expected Issue statuses, or required canonical labels are missing, **fail loud** in the Discord summary. Do not invent records under a different team or skip labels silently.
@@ -347,7 +348,7 @@ Source: the dedicated `#bug-report` channel (`DISCORD_BUGS_CHANNEL_ID`). The ret
 
    Drop anything you cannot fill rather than writing a placeholder — if the fix is not suggestable yet, that is the lightweight tracking pattern (`activity:maintenance` + `Backlog`), not a "Needs investigation" heading. Do not restate the verbatim quote or the reporter list; those live on the linked Customer Need.
 
-   Project: leave **unprojected** on the Product team. Apply labels: `protocol:green-goods` + `activity:build` + `package:<inferred>` (omit if unknown) + `source:discord` + `ai:routine`. Status: `Todo`. Link the Issue to the Customer Need via Linear's relationship surface ("relates to" or the Customer Need's linked-issues field, whichever the Linear API exposes). The Issue body inherits the same privacy boundary — never paste replay URLs, session IDs, distinct IDs, wallet addresses, or reporter identifiers into it.
+   Project: the `release_project` resolved at the start of the run, or none when no release project is started ([Project routing](README.md#project-routing)). Apply labels: `protocol:green-goods` + `activity:build` + `package:<inferred>` (omit if unknown) + `source:discord` + `ai:routine`. Status: `Todo`. Link the Issue to the Customer Need via Linear's relationship surface ("relates to" or the Customer Need's linked-issues field, whichever the Linear API exposes). The Issue body inherits the same privacy boundary — never paste replay URLs, session IDs, distinct IDs, wallet addresses, or reporter identifiers into it.
 
 7. **Acknowledge on Discord** — reply with the Linear URL and add ✅ reaction in `#bug-report`. Since the standalone ack post was retired (Phase 6), this threaded reply IS the reporter's acknowledgement. When acknowledging, link the Customer Need (not the Issue), because the Customer Need is the user-facing record:
 
@@ -501,7 +502,7 @@ After Phases 1–3, before the umbrella check, fold every PostHog match collecte
 
 1. **Re-run the recurring-pattern probe** (curated question 4 in `## PostHog telemetry enrichment`) over the last 30 days, including matches from before this run.
 2. **Threshold gate**: a hash is a recurring pattern when its 30-day distinct-session count is **≥ 50**. Below threshold, the per-report Customer Needs from Phases 1–3 stand on their own. Do not aggregate.
-3. **Find or create the parent Issue** unprojected on the Product team:
+3. **Find or create the parent Issue** on the Product team, in the `release_project` when one is started:
    - Look for an open Issue carrying `protocol:green-goods` + `ai:routine` + `activity:build` + a `pattern:posthog-{error-hash-prefix}` label. If the label set is missing on the team, fail loud in the Phase 7 summary and skip aggregation rather than inventing a parent.
    - If none exists and the threshold is met, create one Issue whose title is a plain verb-led sentence naming the failure — "Fix the credential request that never resolves on garden join", not `Recurring: {error}`. The `Recurring:` prefix was retired 2026-08-27 and a `PreToolUse` hook now rejects it; the `pattern:posthog-*` label marks the record as a recurring parent. Status `Todo`, labels `protocol:green-goods` + `activity:build` + `package:<inferred>` + `ai:routine` + `pattern:posthog-{error-hash-prefix}`. The parent Issue body uses the safe-summary fields only:
 
@@ -599,7 +600,7 @@ accepted_count   = count Issues on team=Product where:
 {if more than 3: "…plus {n} more captured, all in Linear."}
 {if duplicates merged: "{K} duplicate report(s) merged into existing records."}
 
-{if raw_signal_count + accepted_count > 3: "📋 Triage queue · {raw_signal_count} raw signals + {accepted_count} accepted bugs → the Product team's unprojected `protocol:green-goods` view."}
+{if raw_signal_count + accepted_count > 3: "📋 Triage queue · {raw_signal_count} raw signals + {accepted_count} accepted bugs → the Product team's `protocol:green-goods` records."}
 {if any_failure: "⚠ {short failure list — e.g. Linear project lookup failed, posthog unreachable, in-thread ack failed for <msg url>, privacy grep flagged a body}"}
 ```
 
@@ -629,6 +630,6 @@ The @mention fires when triage is piling up (`raw_signal_count + accepted_count 
 - **No nagging.** If an existing Customer Need covers a new report, comment once with the new reporter info; do not re-comment if the same record gets multiple references in one run.
 - **No duplicate of `/linear issue` records.** When a teammate already filed via the Linear/Discord integration, the Linear record exists; this routine merges context but does not create a parallel record.
 - **1-hour runtime cap.** Intake is lightweight. If the run takes longer than an hour, something is wrong.
-- **Project routing discipline.** Customer Needs and accepted-bug Issues live unprojected on the Product team. Never route into the retired `Green Goods`, `Coop`, `Network Website`, `Cookie Jar`, or `Story Board` projects. Graduate to a bounded active project only when one already exists for this work.
+- **Project routing discipline.** Customer Needs live unprojected on the Product team. Accepted-bug Issues follow [Project routing](README.md#project-routing): a bounded active project when one already exists for this work, otherwise the active release project, and unprojected only when none is started. Never route into the retired `Green Goods`, `Coop`, `Network Website`, `Cookie Jar`, or `Story Board` projects.
 - **Acknowledgement model (2026-07-30).** Discord-source reports are acknowledged with the inline `Tracked → ${customer_need_url}` threaded reply + ✅ reaction in `#bug-report` (Phase 1 step 7; reply and reaction are attempted, recorded, and retried independently) — never with standalone ack messages. Telegram and Drive records are acknowledged as item lines in the Phase 7 digest; Telegram reporters get NO Telegram-side ack — no DM, no group reply — by design.
 - **Fail loud, not silent.** A missing Linear project, a missing label, a 401 from Linear, or a 401/503 from the agent messages API (`${BOT_API_URL}/api/messages`, per the Phase 2 preflight) must appear in the Discord summary so the user can fix the wiring. Do not skip records to keep the run "green."

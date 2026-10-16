@@ -304,6 +304,11 @@ restate them here. Plan-specific deltas:
 - A `linear-sync` update record leaves out any field the hub does not record, such as a parent,
   milestone, due date, or project; keep that field's current Linear value. On a create record, null
   means the new issue starts without that field.
+- Record `linear.project` only for a bounded project that owns the hub's work, never for a release
+  project: each release opens a new one, so the pin goes stale at the cut, and issues a later sync
+  creates, or updates outside `preserve_existing`, would land in a completed project. While the
+  field is null, an update keeps each issue's current Linear project and a created issue is routed
+  by rule 4.
 
 ### Progress Updates
 
