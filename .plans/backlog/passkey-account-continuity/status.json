@@ -1,0 +1,147 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "passkey-account-continuity",
+    "title": "Keep Older Passkey Accounts Working on Every Site",
+    "kind": "feature",
+    "stage": "backlog"
+  },
+  "workflow": {
+    "overall_status": "backlog",
+    "priority": "p2",
+    "created_at": "2026-10-16T19:35:57.040Z",
+    "updated_at": "2026-10-16T20:10:00Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": null,
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": null,
+    "lanes": {}
+  },
+  "taxonomy": {
+    "initiative": "identity-wallet",
+    "tracks": ["shared", "agent", "client", "admin"],
+    "work_types": ["implementation", "research"],
+    "surfaces": ["packages/shared", "packages/agent", "packages/client", "packages/admin"],
+    "depends_on_features": []
+  },
+  "notes": [
+    "Planned and de-risked on 2026-10-16; blocked on decisions 1 to 8 in plan.todo.md. Step 6 depends on decision 2 and step 8 on decision 4.",
+    "Clean-room proof: reports/2026-10-16-clean-room-proof.md (clean-room Chromium, virtual authenticator; signatures checked by read-only eth_call). Device proof is plan step 11 and is Afo's.",
+    "Shared auth workflows and the agent passkey directory are critical surfaces: read every touched line and keep the selector's critical override.",
+    "Never re-encode a stored passkey credential ID: Kernel hashes that exact string into the account address.",
+    "Related records: PRD-1107 built the directory; COM-39 holds the move plan this hub proposes to replace (draft in handoffs/com-39-update-draft.md). Name rules belong to green-goods-name-reservation.",
+    "status.json is authoritative; set a concrete <type>/<work-description> branch only when work begins."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "todo",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": ""
+      },
+      "skill_tags": ["ui", "frontend-design", "react"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": ""
+      },
+      "skill_tags": ["data-layer", "auth", "agent"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No contract change: the deployed WebAuthn validator already accepts related-origin and adopted signatures (clean-room report, scenario E)."
+      },
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["ui", "state_api"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-10-16T19:35:57.076Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in backlog"
+    },
+    {
+      "timestamp": "2026-10-16T20:10:00Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "planned",
+      "branch": null,
+      "note": "Wrote brief, spec, plan, eval, the clean-room proof report and the portable rig; contracts lane marked n/a."
+    }
+  ]
+}
