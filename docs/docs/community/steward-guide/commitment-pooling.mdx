@@ -1,43 +1,98 @@
 ---
-title: Run a Commitment Pool
-sidebar_label: Commitment Pool
-slug: /community/steward-guide/commitment-pooling
-description: "Set up a Garden pool, seed commitments, and review their lifecycle."
+title: Open a Pool
+sidebar_label: Open a Pool
+slug: /community/steward-guide/open-a-pool
+description: "Set your garden's promise rules and open its first season or campaign."
 audience: steward
 owner: docs
-last_verified: 2026-10-09
+last_verified: 2026-10-15
 feature_status: Live
-goal: "Help a steward find the right review and understand each wallet step before acting."
+goal: "Set your garden's promise rules and open its first season or campaign."
 difficulty: "standard"
-estimated_time: "Varies by action."
-prereqs: "A Garden with a registered pool and an account authorized for the selected action."
-next_steps: "./reviewing-work"
-persona_context: "Stewards configure pools and review commitments for their Garden."
+estimated_time: "3 to 5 minutes to read. Signing and review time vary."
+prereqs: "Steward access to the selected garden, its registered pool, and a connection for setup and direct changes."
+next_steps: "/community/steward-guide/seed-promises"
+persona_context: "Stewards setting shared rules, preparing promises, and keeping reviews moving."
 source_of_truth:
   - packages/admin/src/views/Garden/Pool
+  - packages/admin/src/components/Layout/AccountSettingsPanel.tsx
+  - packages/admin/src/components/Layout/AccountSurface.tsx
+  - packages/admin/src/views/Garden/Pool/CommitmentDialog/CommitmentRecovery.tsx
+  - packages/admin/src/views/Garden/Pool/CommitmentDialog/CommitmentAssessmentDialog.tsx
   - packages/admin/src/views/Hub/components/HubConfirmQueue.tsx
   - packages/admin/src/views/Community/components/CommunityCoordinationTab.tsx
+  - packages/shared/src/hooks/admin-ui/pool/usePoolConsoleController.ts
   - packages/shared/src/hooks/commitment-pooling/useCommitmentPoolSetupSequence.ts
+  - packages/shared/src/hooks/commitment-pooling/useCommitmentMutations.ts
+  - packages/shared/src/hooks/commitment-pooling/useSettlement.ts
+  - packages/shared/src/modules/commitment-pooling/acts.ts
+  - packages/shared/src/config/app.ts
+  - packages/contracts/src/lib/CommitmentPooling/ConfirmLib.sol
+  - packages/contracts/src/lib/CommitmentPooling/WorkCreditLib.sol
+  - packages/shared/src/i18n/en.json
+  - docs/releases/2.0.0/README.md
+keywords:
+  - commitment pool
+  - promises
+  - season
+  - campaign
+  - seed promises
+  - confirmation
 ---
 
-# Run a Commitment Pool
+import {NextBestAction, StewardPathNav} from "@site/src/components/docs";
 
-Open the Garden's **Promises** tab in admin to read the pool's status, funding, cycles, commitments, and claims. Check the Garden and connected account before starting a write. The pool status and any review shown for an action tell you whether it is available; seeing a row does not grant permission to act on it.
+# Open a Pool
 
-## Set up and change the pool
+Open a shared place for your garden's promises. Agree the participation rules and the season or campaign before people take work up.
 
-A registered **Not Ready** pool shows **Set Up Commitments**. The setup flow collects how the pool works, the season, and its split. Read the wallet-prompt count before starting; the progress list shows each write as it runs. Once a season opens, its split is fixed. **Pool Settings** lets an authorized steward update the agreement and per-person limit. A save with two changes can require two wallet prompts; if it stops partway, read which change landed before trying the remainder.
+<figure className="gg-figure gg-overview-photo gg-guide-opening">
+  <img src="/img/community/guide-open.webp" alt="A shared planning table with blank task cards, seeds and tools prepared for a new season." width="1672" height="941" loading="eager" />
+</figure>
 
-## Seed and review commitments
+<StewardPathNav />
 
-**Seed Promises** walks through the commitment, reward, confirmers, and final review. Check the reward's token and exact amount, and make sure a confirmer is independent of the contributor. **Add Another** builds a tray; **Create All** sends each commitment through its own wallet prompt. The done screen lists each row's result and transaction link where available. Press **Done** to close the wizard after reading the results. A row that waits on the Promises tab has **Send Now**; read its current status before trying to send it.
 
-In **Hub → Confirm**, the selected Garden in the header sets the confirmation scope. A row may name another Garden's pool if this Garden has the confirmation authority. **Confirm Kept…** opens a review naming the commitment, pool, contributor, and confirmation progress before any wallet prompt. Read whether your confirmation finishes the threshold or is one of several. Fallback and disputed decisions have their own review paths. Protocol confirmations live in **Community → Coordination**.
+## Before you start
 
-## Seasons, claims, and transfers
+- Sign in to [the steward dashboard](https://admin.greengoods.app) with access to the selected garden. [Get steward access](/community/steward-guide/#get-steward-access) if needed.
+- Check the garden name at the top left, then open **Garden → Promises**. Read the target before signing.
+- Have a steady connection for setup and direct changes. New money-reward promises, settlement configuration and payouts are deferred.
+- The pool must be registered. A read failure does not prove there is no pool; ask the person responsible for garden setup.
+- Agree the purpose, commitment limit, dates, recognition split and evidence rules.
 
-**Resume Pool** and **Send for Confirmation** show wallet and chain progress on the action that started them. If an action says it is queued on this device, check its status before retrying; a queued line is not proof of a chain result.
+## Steps
 
-**End Season…** reconciles an open season after its commitments finish. It stops new commitments in that season and leaves its record ready for an impact certificate. **Archive Season…** is a separate, final action on a reconciled season: make any intended certificate first. Each dialog names its target and requires an online connection to confirm. Accepting a claim sends directly when you press **Accept**. Transfer dispatch opens a review; read the affected commitment and transfer details before signing.
+If the pool is **Not Ready**, choose **Set Up Commitments**. If it is already taking commitments, read its existing rules and continue to [Seed Promises](/community/steward-guide/seed-promises).
 
-If a wallet prompt is refused or a read fails, return to the action's current status before sending again. A transaction that was broadcast but has not yet appeared in a readback needs reconciliation rather than an assumed retry.
+:::warning Opening fixes the split
+A season or campaign's split becomes fixed when it opens. Read it before signing. A prepared season is only written down; people cannot make promises in it until it opens.
+:::
+
+1. In **How It Works**, write what the pool is for and how many open commitments one person may hold.
+2. In **The Season**, enter its name and dates. A season is the main period of work, with only one running at a time. A campaign is a focused effort that can run beside it, or on its own.
+3. In **The Split**, review how recognition is shared. Make each allocation add up to 100%. This records terms; it does not distribute money.
+4. In **Open**, check the target, the changes, and the wallet-prompt count. Choose **Set Up and Open**. For a later season or campaign, use the opening action shown for that case.
+5. Keep the flow open and follow its progress until the season is shown as open. Several changes may share one wallet prompt, or need separate prompts.
+
+Use **Pool Settings** to change the agreement or commitment limit later. A save can contain more than one change. If it stops partway, the successful changes remain recorded; inspect the progress and current pool before retrying what remains.
+
+## How you know it worked
+
+The pool and intended season show they are open, rather than merely prepared.
+
+## What happens next
+
+Seed the promises people can take up. A season is the main period, with only one running at a time; a campaign is a focused effort that can run beside it or on its own.
+
+## If something goes wrong
+
+If pool creation or season creation has an uncertain result, check the garden’s pool and season list before trying again. A pool that already exists does not need to be opened twice.
+
+If a second season cannot open, finish the running season or use a campaign. If the pool is paused, read why; an authorized steward can use **Resume Pool** when appropriate.
+
+For an app problem, open **Settings → Support** in the dashboard. On a phone, find **Settings** under **Profile**. Share the affected record's link.
+
+## Next step
+
+<NextBestAction title="Seed Promises" why="Create the work and help that members can take up in this period." actionLabel="Seed Promises" actionHref="/community/steward-guide/seed-promises" />

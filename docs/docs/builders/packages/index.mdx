@@ -4,7 +4,7 @@ sidebar_label: Monorepo Map
 slug: /builders/packages
 audience: developer
 owner: docs
-last_verified: 2026-10-11
+last_verified: 2026-10-15
 feature_status: Live
 source_of_truth:
   - AGENTS.md
@@ -19,6 +19,15 @@ keywords:
 
 Seven packages, one rule: find the owner before you change anything. Each package has its own page
 with a map of its `src` folders, its commands, and the conventions that actually bite.
+
+```mermaid
+flowchart TB
+  accTitle: Protocol data across packages
+  accDescr: Contracts emit events to Indexer. Shared wraps protocol data for Client, Admin and Agent. The text below explains Agent's direct reporting queries and the independent QA app.
+  contracts["Contracts · protocol"] --> indexer["Indexer · event read models"]
+  indexer --> shared["Shared · data, state and UI"]
+  shared --> apps["Client · website and PWA<br/>Admin · steward cockpit<br/>Agent · messages and API"]
+```
 
 ## The packages
 

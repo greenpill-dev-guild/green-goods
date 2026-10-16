@@ -1,0 +1,91 @@
+---
+title: End a Season
+sidebar_label: End a Season
+slug: /community/steward-guide/end-a-season
+description: "Finish a season or campaign and understand the final archive decision."
+audience: steward
+owner: docs
+last_verified: 2026-10-15
+feature_status: Live
+goal: "Finish a season or campaign and understand the final archive decision."
+difficulty: "standard"
+estimated_time: "3 to 5 minutes to read. Signing and review time vary."
+prereqs: "Steward access to the selected garden, its registered pool, and a connection for setup and direct changes."
+next_steps: "/community/steward-guide/review-promises"
+persona_context: "Stewards setting shared rules, preparing promises, and keeping reviews moving."
+source_of_truth:
+  - packages/admin/src/views/Garden/Pool
+  - packages/admin/src/components/Layout/AccountSettingsPanel.tsx
+  - packages/admin/src/components/Layout/AccountSurface.tsx
+  - packages/admin/src/views/Garden/Pool/CommitmentDialog/CommitmentRecovery.tsx
+  - packages/admin/src/views/Garden/Pool/CommitmentDialog/CommitmentAssessmentDialog.tsx
+  - packages/admin/src/views/Hub/components/HubConfirmQueue.tsx
+  - packages/admin/src/views/Community/components/CommunityCoordinationTab.tsx
+  - packages/shared/src/hooks/admin-ui/pool/usePoolConsoleController.ts
+  - packages/shared/src/hooks/commitment-pooling/useCommitmentPoolSetupSequence.ts
+  - packages/shared/src/hooks/commitment-pooling/useCommitmentMutations.ts
+  - packages/shared/src/hooks/commitment-pooling/useSettlement.ts
+  - packages/shared/src/modules/commitment-pooling/acts.ts
+  - packages/shared/src/config/app.ts
+  - packages/shared/src/hooks/admin-ui/hypercerts/types.ts
+  - packages/shared/src/hooks/hypercerts/useMintHypercert.ts
+  - packages/contracts/src/lib/CommitmentPooling/ConfirmLib.sol
+  - packages/contracts/src/lib/CommitmentPooling/WorkCreditLib.sol
+  - packages/shared/src/i18n/en.json
+  - docs/releases/2.0.0/README.md
+keywords:
+  - commitment pool
+  - promises
+  - season
+  - campaign
+  - seed promises
+  - confirmation
+---
+
+import {NextBestAction, StewardPathNav} from "@site/src/components/docs";
+
+# End a Season
+
+End a completed season or campaign to preserve its shared result. Reconciliation and archiving are separate actions.
+
+<figure className="gg-figure gg-overview-photo gg-guide-opening">
+  <img src="/img/community/guide-end.webp" alt="Harvest baskets and filed records beside tools returned to their racks." width="1672" height="941" loading="eager" />
+</figure>
+
+<StewardPathNav />
+
+
+## Before you start
+
+- Sign in to [the steward dashboard](https://admin.greengoods.app) with access to the selected garden. [Get steward access](/community/steward-guide/#get-steward-access) if needed.
+- Check the garden name at the top left, then open **Garden → Promises**. Read the target before signing.
+- Have a steady connection for setup and direct changes. New money-reward promises, settlement configuration and payouts are deferred.
+- Check all commitments in the period. Passing the end date does not finish them.
+- Decide whether the garden wants an impact certificate before considering archive.
+
+## Steps
+
+1. Check that every commitment in the season has finished. If the page says some are still live, follow those records first. The end date alone does not finish them.
+2. Choose **End Season…** or **End Campaign…**, check the named target, and confirm while online. The record becomes **Reconciled** and stops accepting commitments in that period.
+3. Decide whether to keep the period available for future certification. The current dashboard cannot create a certificate linked to a pool season or campaign. If your garden wants that option, leave the period **Reconciled** and ask the Green Goods team before archiving.
+4. If the garden has completed its review and does not need that option, consider **Archive…**. Read **Archive This Season** or **Archive This Campaign** before confirming. Archiving is final and prevents making a certificate from that cycle later; its history remains readable.
+
+## How you know it worked
+
+The ended period reads **Reconciled** and stops accepting commitments. If you later archive it, its history remains readable but the archive decision is final.
+
+## What happens next
+
+A reconciled period can stay readable without being archived. The separate [Mint Impact Certificate](/community/steward-guide/creating-impact-certificates) form bundles approved work; it does not select or certify a pool cycle. Cycle-specific certification remains unavailable in the current dashboard. A kept promise or reconciled period is not a payout receipt.
+
+## If something goes wrong
+
+If closing or archiving has an uncertain result, reload the season and check its state before acting again. Archive only after the required review is complete; it cannot be undone.
+
+If live commitments remain, follow those records first. Do not open duplicate seasons to bypass the existing period. Money-reward and settlement operations remain deferred.
+
+For an app problem, open **Settings → Support** in the dashboard. On a phone, find **Settings** under **Profile**. Share the affected record's link.
+
+## Next step
+
+<NextBestAction title="Review Promises" why="Check the remaining records before deciding whether another season is ready to end." actionLabel="Review Promises" actionHref="/community/steward-guide/review-promises" />

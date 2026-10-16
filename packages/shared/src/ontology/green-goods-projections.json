@@ -269,15 +269,19 @@
       "implementation": "implemented",
       "deployment": "deployed",
       "activation": "active",
-      "integration": "not-integrated",
-      "availability": "deployed-not-available",
+      "integration": "integrated",
+      "availability": "available",
       "evidence": [
         {
-          "file": "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol",
-          "note": "Cycle struct and lifecycle interface are implemented in the deployed pooling boundary."
+          "file": "docs/releases/2.0.0/README.md",
+          "note": "The released Garden coordination cut includes offers/requests and seasons/campaigns. Its October 14 production read-back returned commitments and cycles with the app field lists; a live public open season and the actual Promises tab were read in Brave on October 15. This does not establish signed mutation or payout proof."
+        },
+        {
+          "file": "packages/shared/src/config/app.ts",
+          "note": "The app release defers new money-reward promises and settlement writes. Entity availability describes the included coordination only; chain/action permissions and pool state still apply."
         }
       ],
-      "verified_at": "2026-08-15"
+      "verified_at": "2026-10-15"
     },
     {
       "ref": "entity:commitment-series",
@@ -344,15 +348,19 @@
       "implementation": "implemented",
       "deployment": "deployed",
       "activation": "active",
-      "integration": "not-integrated",
-      "availability": "deployed-not-available",
+      "integration": "integrated",
+      "availability": "available",
       "evidence": [
         {
-          "file": ".plans/active/commitment-pooling/status.json",
-          "note": "Onchain coordination is active; product integration and user surfaces remain blocked."
+          "file": "docs/releases/2.0.0/README.md",
+          "note": "The released Garden coordination cut includes offers/requests and seasons/campaigns. Its October 14 production read-back returned commitments and cycles with the app field lists; a live public open season and the actual Promises tab were read in Brave on October 15. This does not establish signed mutation or payout proof."
+        },
+        {
+          "file": "packages/shared/src/config/app.ts",
+          "note": "The app release defers new money-reward promises and settlement writes. Entity availability describes the included coordination only; chain/action permissions and pool state still apply."
         }
       ],
-      "verified_at": "2026-08-15"
+      "verified_at": "2026-10-15"
     },
     {
       "ref": "entity:commitment-contributor",
@@ -482,12 +490,12 @@
     },
     {
       "ref": "entity:season",
-      "plain_name": "A shared period of coordinated work",
+      "plain_name": "The garden's main period of coordinated work",
       "why_it_matters": "It gives planning and reflection a calm common rhythm.",
       "who_touches_it": ["Gardener", "Steward", "Evaluator"],
-      "example": "A quarter of Actions, Work, and Assessments.",
+      "example": "A planting season holds promises, work and the assessments that frame it.",
       "aliases": ["garden season"],
-      "not_confused_with": ["Commitment Cycle"]
+      "not_confused_with": ["a deadline that completes promises automatically"]
     },
     {
       "ref": "entity:need",
@@ -510,11 +518,11 @@
     {
       "ref": "entity:commitment-cycle",
       "plain_name": "A bounded run of a commitment pool",
-      "why_it_matters": "It snapshots time and recognition rules for a coherent period.",
+      "why_it_matters": "A season or campaign is a cycle with its own dates and recognition rules.",
       "who_touches_it": ["Steward", "Gardener"],
       "example": "A Season cycle opens with a six-role allocation.",
       "aliases": ["cycle"],
-      "not_confused_with": ["Season"]
+      "not_confused_with": ["an individual promise"]
     },
     {
       "ref": "entity:commitment-series",
@@ -554,19 +562,19 @@
     },
     {
       "ref": "entity:commitment",
-      "plain_name": "A bounded promise to offer or request support",
+      "plain_name": "An agreement to provide help or ask for it",
       "why_it_matters": "It makes responsibility, evidence, confirmation, and unit accounting explicit.",
       "who_touches_it": ["Gardener", "Steward", "Community Member"],
-      "example": "Offer three rides, with one lead and two contributors.",
-      "aliases": ["offer", "request"],
+      "example": "A neighbour offers a seedling-care session, records the work, and asks the recipient to confirm it.",
+      "aliases": ["offer", "request", "Promise"],
       "not_confused_with": ["Attestation", "Need"]
     },
     {
       "ref": "entity:commitment-contributor",
       "plain_name": "A person credited on a commitment",
-      "why_it_matters": "It separates accountable leadership from the people whose verified contribution earns recognition.",
+      "why_it_matters": "Joining a team and having a contribution recorded are different steps. The team cannot confirm its own promise.",
       "who_touches_it": ["Gardener", "Steward"],
-      "example": "Two gardeners share verified contribution on one fulfilled commitment.",
+      "example": "Two gardeners contribute approved work to a promise. Another eligible person confirms it.",
       "aliases": ["contributor"],
       "not_confused_with": ["lead provider", "confirmer"]
     },
@@ -718,18 +726,26 @@
     },
     {
       "id": "commitment-pooling",
-      "claim": "Green Goods has deployed onchain coordination for bounded offers, requests, cycles, contributors, and confirmation.",
+      "claim": "Green Goods includes Garden promise coordination: offers, requests, work linking, and independent confirmation.",
       "audience": ["steward", "community", "partner"],
-      "maturity": "deployed-not-available",
+      "maturity": "available",
       "term_refs": ["entity:commitment-pool", "entity:commitment"],
       "evidence": [
         {
-          "file": ".plans/active/commitment-pooling/status.json",
-          "note": "Pooling is unpaused with 18 registered pools; the Arbitrum indexer and shared reads are available for the staging QA walkthrough, while the product flow stays pre-release until that QA lands."
+          "file": "docs/releases/2.0.0/README.md",
+          "note": "The October 14 release receipt records the production 2.0 rollout, live pooling/indexer read-back, and read-only Garden/season observation. The 2.0.1 hotfix preserves the narrowed scope."
+        },
+        {
+          "file": "packages/shared/src/config/app.ts",
+          "note": "SETTLEMENT_ENABLED remains false. New money-reward creation and settlement mutations stay blocked; deployed settlement contracts do not establish app availability."
+        },
+        {
+          "file": "packages/shared/src/modules/commitment-pooling/selectors.ts",
+          "note": "The supported-chain capability gate and open Garden pool still determine availability. Public production Garden and Promises reads were observed in Brave on October 15; no signed action or payout was performed."
         }
       ],
-      "safe_wording": "The coordination protocol is deployed, but it is not yet an available Green Goods product flow.",
-      "verified_at": "2026-09-03"
+      "safe_wording": "Garden promises, work linking, and confirmation are included in the 2.0 release on supported, open Garden pools. New money-reward promises and settlement writes are deferred.",
+      "verified_at": "2026-10-15"
     },
     {
       "id": "community-needs",
@@ -888,7 +904,7 @@
           "what": "Run the commitment pool: set it up, seed it, confirm commitments, and close them.",
           "where": ["admin"],
           "term_refs": ["entity:commitment-pool"],
-          "guide": "/community/steward-guide/commitment-pooling",
+          "guide": "/community/steward-guide/open-a-pool",
           "code": ["packages/admin/src/views/Garden/Pool"]
         },
         {
@@ -997,6 +1013,252 @@
           "code": []
         }
       ]
+    }
+  ],
+  "community_terms": [
+    {
+      "id": "offer",
+      "label": "Offer",
+      "meaning": "A promise made by the person or garden providing help. The recipient or designated independent people normally confirm it.",
+      "example": "You offer a repair session; the neighbour who takes it up receives the help.",
+      "guide": "/community/gardener-guide/make-a-promise",
+      "source_of_truth": [
+        "packages/shared/src/i18n/en.json",
+        "packages/shared/src/modules/commitment-pooling/selectors.ts"
+      ]
+    },
+    {
+      "id": "request",
+      "label": "Request",
+      "meaning": "A promise asking someone else to provide help. The person who asked normally confirms it. A request to take a promise up is a separate participation decision.",
+      "example": "You request a repair session; the neighbour taking it up provides the help.",
+      "guide": "/community/gardener-guide/make-a-promise",
+      "source_of_truth": [
+        "packages/shared/src/i18n/en.json",
+        "packages/shared/src/modules/commitment-pooling/selectors.ts"
+      ]
+    },
+    {
+      "id": "take-up",
+      "label": "Take up",
+      "meaning": "Agree to the part described by a promise. Some promises allow direct take-up; others wait for a steward to accept the request.",
+      "example": "Taking up a request makes you its provider. Taking up an offer makes you its recipient.",
+      "guide": "/community/gardener-guide/keep-a-promise",
+      "source_of_truth": [
+        "packages/shared/src/i18n/en.json",
+        "packages/shared/src/modules/commitment-pooling/selectors.ts"
+      ]
+    },
+    {
+      "id": "campaign",
+      "label": "Campaign",
+      "meaning": "A focused period of promises. It can run beside the garden's main season or on its own. Both seasons and campaigns are commitment cycles.",
+      "example": "A waste-cleanup campaign runs during the longer garden season.",
+      "guide": "/community/steward-guide/open-a-pool",
+      "source_of_truth": [
+        "packages/shared/src/i18n/en.json",
+        "packages/shared/src/modules/commitment-pooling/selectors.ts"
+      ]
+    },
+    {
+      "id": "lead-provider",
+      "label": "Lead and provider",
+      "meaning": "The provider is the person or garden responsible for delivering the help. The lead coordinates its team. A person acting for a provider garden is not the same identity as that garden.",
+      "example": "A steward takes a request up for their garden; the provider record names the garden.",
+      "guide": "/community/gardener-guide/keep-a-promise",
+      "source_of_truth": [
+        "packages/shared/src/i18n/en.json",
+        "packages/shared/src/modules/commitment-pooling/selectors.ts"
+      ]
+    },
+    {
+      "id": "confirmer",
+      "label": "Confirmer",
+      "meaning": "A person or garden eligible to check that a promise was kept. Providers and contributing team members cannot confirm their own promise, including through a fallback.",
+      "example": "The recipient checks the evidence after the team finishes.",
+      "guide": "/community/gardener-guide/confirm-a-promise",
+      "source_of_truth": ["packages/contracts/src/lib/CommitmentPooling/ConfirmLib.sol"]
+    },
+    {
+      "id": "confirmation",
+      "label": "Confirmation",
+      "meaning": "A recorded decision that a promise was kept. The required confirmation count is the number of valid decisions needed. A confirmation cannot be taken back.",
+      "example": "One of three required confirmations has arrived; two are still needed.",
+      "guide": "/community/gardener-guide/confirm-a-promise",
+      "source_of_truth": ["packages/contracts/src/lib/CommitmentPooling/ConfirmLib.sol"]
+    },
+    {
+      "id": "proof",
+      "label": "Proof",
+      "meaning": "Photos, notes or links supplied toward a promise about help or a service. Garden-work promises use the required work submissions and approvals.",
+      "example": "A repairer adds photos and a note about the completed repair.",
+      "guide": "/community/gardener-guide/keep-a-promise",
+      "source_of_truth": [
+        "packages/shared/src/i18n/en.json",
+        "packages/shared/src/modules/commitment-pooling/selectors.ts"
+      ]
+    },
+    {
+      "id": "work-requirement",
+      "label": "Work requirement",
+      "meaning": "An action and amount of work a promise requires. When an action appears twice, the exact requirement row matters.",
+      "example": "Two planting rows may refer to different plots or amounts.",
+      "guide": "/community/gardener-guide/keep-a-promise",
+      "source_of_truth": ["packages/contracts/src/lib/CommitmentPooling/WorkCreditLib.sol"]
+    },
+    {
+      "id": "linked-work",
+      "label": "Linked and counted work",
+      "meaning": "Linked work points a submission at a promise's requirement. Approval reviews that submission. Counting applies eligible approved work toward the requirement. These are separate results.",
+      "example": "Approved linked work can still be waiting for a steward to count it.",
+      "guide": "/community/steward-guide/review-promises",
+      "source_of_truth": ["packages/contracts/src/lib/CommitmentPooling/WorkCreditLib.sol"]
+    },
+    {
+      "id": "recognition",
+      "label": "Recognition and split",
+      "meaning": "Recognition records contribution. A split describes its allocation and becomes fixed when the season or campaign opens. It does not itself distribute money.",
+      "example": "A season records how recognition is shared before promises begin.",
+      "guide": "/community/steward-guide/open-a-pool",
+      "source_of_truth": [
+        "packages/shared/src/i18n/en.json",
+        "packages/shared/src/modules/commitment-pooling/selectors.ts"
+      ]
+    },
+    {
+      "id": "commitment-limit",
+      "label": "Commitment limit",
+      "meaning": "The pool's limit on a provider's open commitments. It helps keep more promises from being taken up than can be delivered.",
+      "example": "A provider must finish an existing commitment before taking another when at the limit.",
+      "guide": "/community/steward-guide/open-a-pool",
+      "source_of_truth": [
+        "packages/shared/src/i18n/en.json",
+        "packages/shared/src/modules/commitment-pooling/selectors.ts"
+      ]
+    },
+    {
+      "id": "seeding",
+      "label": "Seed promises",
+      "meaning": "Create promises for people to take up, one at a time or in a batch. Each row has its own result.",
+      "example": "Three created promises and one failed row are a partly completed batch.",
+      "guide": "/community/steward-guide/seed-promises",
+      "source_of_truth": [
+        "packages/shared/src/i18n/en.json",
+        "packages/shared/src/modules/commitment-pooling/selectors.ts"
+      ]
+    },
+    {
+      "id": "promise-states",
+      "label": "Promise states",
+      "meaning": "Offered or Asked for describes help available or needed. In progress and Partly approved describe work underway. Proof added and Waiting to be confirmed describe evidence awaiting a decision. Team set means the team and contribution record are fixed. Under review by stewards pauses ordinary confirmation. Kept means enough valid confirmations arrived. Withdrawn and Lapsed remain readable history.",
+      "example": "Kept does not mean paid. A Settled list groups finished records; it is not a list of payment receipts.",
+      "guide": "/community/gardener-guide/confirm-a-promise",
+      "source_of_truth": [
+        "packages/shared/src/i18n/en.json",
+        "packages/shared/src/modules/commitment-pooling/selectors.ts"
+      ]
+    },
+    {
+      "id": "cycle-states",
+      "label": "Season and campaign states",
+      "meaning": "A prepared period is written down but not open. Open accepts promises. Reconciled is an ended period. Archived is final and prevents creating a certificate from that cycle later; history remains readable.",
+      "example": "Leave a reconciled season unarchived if you want future cycle-specific certification. The current dashboard cannot create a certificate linked to that cycle.",
+      "guide": "/community/steward-guide/end-a-season",
+      "source_of_truth": [
+        "packages/contracts/src/lib/CommitmentPooling/CyclesLib.sol",
+        "packages/shared/src/hooks/admin-ui/hypercerts/types.ts",
+        "packages/shared/src/hooks/hypercerts/useMintHypercert.ts"
+      ]
+    },
+    {
+      "id": "assessment-measures",
+      "label": "Outcomes, metrics and targets",
+      "meaning": "An outcome is the change sought. A metric or indicator is how it is measured. A target is the result aimed for, within a reporting period. A domain is the area of work: Solar, Agroforestry, Education or Waste.",
+      "example": "Measure soil organic matter twice a year, aiming to move from 1% to 2%.",
+      "guide": "/community/evaluator-guide/making-an-assessment",
+      "source_of_truth": [
+        "packages/admin/src/components/Assessment/CreateAssessmentSteps/StrategyKernelStep.tsx"
+      ]
+    },
+    {
+      "id": "delta-assessment",
+      "label": "Post or delta assessment",
+      "meaning": "A later assessment comparing results with a baseline. The current dashboard creates initial assessments only; it does not offer a delta submission.",
+      "example": "Keep the starting assessment and later measurements together while agreeing the supported next step with the garden.",
+      "guide": "/community/evaluator-guide/",
+      "source_of_truth": ["packages/shared/src/modules/assessment/create-assessment-command.ts"]
+    },
+    {
+      "id": "account",
+      "label": "Account and wallet",
+      "meaning": "Your account address identifies your membership and records. A passkey account and a separately connected wallet are different accounts.",
+      "example": "Changing sign-in methods can show a different garden list.",
+      "guide": "/community/gardener-guide/installing-and-updating",
+      "source_of_truth": ["packages/client/src/views/Login/index.tsx"]
+    },
+    {
+      "id": "passkey",
+      "label": "Passkey",
+      "meaning": "A sign-in credential unlocked through your device, such as with a fingerprint, face or screen lock. Recovery depends on access to the passkey, including a synced copy where available.",
+      "example": "Sign in with the same passkey on a new phone if it travelled with your Apple or Google account.",
+      "guide": "/community/gardener-guide/installing-and-updating",
+      "source_of_truth": ["packages/shared/src/workflows/auth-passkey-adapters.ts"]
+    },
+    {
+      "id": "pwa",
+      "label": "Installed app",
+      "meaning": "The Green Goods website installed on your phone. Also called a progressive web app or PWA. It keeps work on that device while a connection is unavailable.",
+      "example": "Record in the field, then send from the same account and phone.",
+      "guide": "/community/gardener-guide/installing-and-updating",
+      "source_of_truth": ["packages/client/src/routes/presentationMode.ts"]
+    },
+    {
+      "id": "owner",
+      "label": "Owner",
+      "meaning": "The garden role responsible for its highest-level permissions and setup. It is different from being the owner of a personal wallet.",
+      "example": "Ask the garden owner or a steward to arrange the access you need.",
+      "guide": "/community/steward-guide/managing-members",
+      "source_of_truth": ["packages/shared/src/hooks/garden/useGardenPermissions.ts"]
+    },
+    {
+      "id": "work-states",
+      "label": "Work states",
+      "meaning": "A Draft is unfinished recording. To upload is saved work waiting to be sent. Sending or checking is not proof of arrival. In review waits for a steward. Approved and Rejected are recorded review decisions.",
+      "example": "A work item can be Approved while a related promise still waits for counted work or confirmation.",
+      "guide": "/community/gardener-guide/track-status-and-attestations",
+      "source_of_truth": ["packages/client/src/views/Home/WorkDashboard/PendingTab.tsx"]
+    },
+    {
+      "id": "donation",
+      "label": "Donation",
+      "meaning": "A gift to the garden's shared fund. It cannot be withdrawn by the donor.",
+      "example": "Support immediate supplies through Donate.",
+      "guide": "/community/funder-guide/donating-to-a-garden",
+      "source_of_truth": ["packages/contracts/src/modules/CookieJar.sol"]
+    },
+    {
+      "id": "endowment-shares",
+      "label": "Endowment shares and earnings",
+      "meaning": "Shares represent a deposit's portion of the endowment. Earnings support its configured destinations, rather than a return for the depositor. The amount available to withdraw can be lower than the deposit.",
+      "example": "Endowed is a historical deposit total; Available is the number used when considering a withdrawal.",
+      "guide": "/community/funder-guide/withdraw-from-a-vault",
+      "source_of_truth": ["packages/client/src/components/Public/PublicEndowmentPanel.tsx"]
+    },
+    {
+      "id": "claim",
+      "label": "Claim from a shared fund",
+      "meaning": "A gardener asks for a capped amount under the garden's fund rules and supplies a purpose. This is separate from taking up a promise, approving work, or confirming it.",
+      "example": "A gardener claims for supplies from the Cookie Jar.",
+      "guide": "/community/gardener-guide/track-status-and-attestations",
+      "source_of_truth": ["packages/contracts/src/modules/CookieJar.sol"]
+    },
+    {
+      "id": "network-fee",
+      "label": "Network fee",
+      "meaning": "The cost of recording a transaction on the network. Wallet users need the network's fee token; passkey sponsorship depends on the supported flow.",
+      "example": "A funding wallet needs a little ETH on Arbitrum for its fee.",
+      "guide": "/community/funder-guide/",
+      "source_of_truth": ["packages/shared/src/modules/transactions/wallet-sender.ts"]
     }
   ]
 }

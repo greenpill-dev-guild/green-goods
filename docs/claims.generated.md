@@ -1,7 +1,5 @@
 ---
-title: What Green Goods Can Honestly Claim
-sidebar_label: Capability & Claims
-slug: /community/green-goods-claims
+title: Capability and claims evidence
 audience: all
 owner: docs
 feature_status: Live
@@ -9,7 +7,7 @@ generated: true
 generator: scripts/quality/check-ontology.mjs
 generated_from:
   - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:6c9669e985a7db4ee73f5efbc11dfad4945640f280c2ea07d448ca2175250b04"
+source_digest: "sha256:615112355c4915482846fa7511f6bd4e1c183d116c5872a1a756dc2cbe961675"
 source_of_truth:
   - packages/shared/src/ontology/green-goods-projections.json
 ---
@@ -62,15 +60,13 @@ This ledger separates what people can use now from deployed protocol capability,
 
 **Evidence:** `packages/contracts/deployments/42161-latest.json` — Vault and Cookie Jar modules are deployed. (verified 2026-08-15)
 
-## deployed-not-available
+### Garden promises, work linking, and confirmation are included in the 2.0 release on supported, open Garden pools. New money-reward promises and settlement writes are deferred.
 
-### The coordination protocol is deployed, but it is not yet an available Green Goods product flow.
-
-**Internal claim:** Green Goods has deployed onchain coordination for bounded offers, requests, cycles, contributors, and confirmation.
+**Internal claim:** Green Goods includes Garden promise coordination: offers, requests, work linking, and independent confirmation.
 
 **Audience:** steward · community · partner
 
-**Evidence:** `.plans/active/commitment-pooling/status.json` — Pooling is unpaused with 18 registered pools; the Arbitrum indexer and shared reads are available for the staging QA walkthrough, while the product flow stays pre-release until that QA lands. (verified 2026-09-03)
+**Evidence:** `docs/releases/2.0.0/README.md` — The October 14 release receipt records the production 2.0 rollout, live pooling/indexer read-back, and read-only Garden/season observation. The 2.0.1 hotfix preserves the narrowed scope.<br />`packages/shared/src/config/app.ts` — SETTLEMENT_ENABLED remains false. New money-reward creation and settlement mutations stay blocked; deployed settlement contracts do not establish app availability.<br />`packages/shared/src/modules/commitment-pooling/selectors.ts` — The supported-chain capability gate and open Garden pool still determine availability. Public production Garden and Promises reads were observed in Brave on October 15; no signed action or payout was performed. (verified 2026-10-15)
 
 ## in-build
 

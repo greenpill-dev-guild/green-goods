@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   getOntologyManifestVersion,
+  getOntologyChainMaturity,
   getOntologyMaturity,
   getOntologyRelationships,
   getOntologySafeClaims,
@@ -25,10 +26,21 @@ describe("ontology query seam", () => {
     expect(getOntologySurfaces("not-a-term")).toEqual([]);
   });
 
-  it("keeps protocol deployment separate from product availability", () => {
+  it("reports released coordination without promising deferred money actions", () => {
     expect(getOntologyMaturity("Commitment")?.deployment).toBe("deployed");
-    expect(getOntologyMaturity("Commitment")?.availability).toBe("deployed-not-available");
-    expect(getOntologySafeClaims("Commitment")[0]?.safe_wording).toContain("not yet");
+    expect(getOntologyMaturity("Commitment")?.availability).toBe("available");
+    expect(getOntologySafeClaims("Commitment")[0]?.safe_wording).toContain(
+      "New money-reward promises and settlement writes are deferred"
+    );
+    expect(getOntologyMaturity("entity:commitment-series")?.availability).toBe(
+      "deployed-not-available"
+    );
+    expect(getOntologyChainMaturity("entity:commitment-pool", 42161)?.availability).toBe(
+      "available"
+    );
+    expect(getOntologyChainMaturity("entity:commitment-pool", 11155111)?.deployment).toBe(
+      "not-deployed"
+    );
   });
 
   it("returns declared relationships and manifest metadata", () => {

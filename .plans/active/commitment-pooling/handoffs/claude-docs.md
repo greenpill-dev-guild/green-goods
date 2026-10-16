@@ -1,5 +1,10 @@
 # Commitment Pooling - Claude Docs Handoff
 
+> **2026-10-15 release slice:** [Release-essential Garden promise guides](release-essential-docs.md)
+> implement PRD-1156 on the merged #896 foundation. PRD-727 retains its full scope.
+> The app includes Garden coordination and defers new money rewards and settlement writes.
+> This bounded delivery does not certify this historical lane or authorize publication.
+
 ## Status
 
 - Execution sub-lane: docs

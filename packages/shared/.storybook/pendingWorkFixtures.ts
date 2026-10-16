@@ -189,17 +189,23 @@ export function pendingWorkFixture(
   documentationPhoto = false
 ): PendingWorkFixture {
   if (documentationPhoto) {
+    const submissions = [
+      { ...SEEDLING_QUEUED, feedback: DOCUMENTATION_SUBMISSION.note, media: [DOCUMENTATION_SUBMISSION.photo] },
+      COMPOST,
+      HERBS,
+      EDGING,
+      MULCH_LOG,
+      POND,
+    ];
+    const drafts = [SEEDLING_DRAFT];
+    const proofs = [FENCE_PROOF, WORKSHOP_PROOF_DRAFT];
     return {
-      submissions: [{
-        ...SEEDLING_QUEUED,
-        feedback: DOCUMENTATION_SUBMISSION.note,
-        media: [DOCUMENTATION_SUBMISSION.photo],
-      }],
-      drafts: [],
-      proofs: [],
-      linkedWorkIds: new Set(),
-      linkedWorkUIDs: new Set(),
-      onPhone: 1,
+      submissions,
+      drafts,
+      proofs,
+      linkedWorkIds: new Set([HERBS.id, SEEDLING_QUEUED.id]),
+      linkedWorkUIDs: new Set([POND.id.toLowerCase()]),
+      onPhone: submissions.filter(work => work.status === "offline").length + drafts.length + proofs.length,
     };
   }
   const afterCancel = moment !== "all";

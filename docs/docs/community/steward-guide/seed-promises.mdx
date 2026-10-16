@@ -1,0 +1,99 @@
+---
+title: Seed Promises
+sidebar_label: Seed Promises
+slug: /community/steward-guide/seed-promises
+description: "Create clear offers or requests, individually or in a checked batch."
+audience: steward
+owner: docs
+last_verified: 2026-10-15
+feature_status: Live
+goal: "Create clear offers or requests, individually or in a checked batch."
+difficulty: "standard"
+estimated_time: "3 to 5 minutes to read. Signing and review time vary."
+prereqs: "Steward access to the selected garden, its registered pool, and a connection for setup and direct changes."
+next_steps: "/community/steward-guide/review-promises"
+persona_context: "Stewards setting shared rules, preparing promises, and keeping reviews moving."
+source_of_truth:
+  - packages/admin/src/views/Garden/Pool
+  - packages/admin/src/components/Layout/AccountSettingsPanel.tsx
+  - packages/admin/src/components/Layout/AccountSurface.tsx
+  - packages/admin/src/views/Garden/Pool/CommitmentDialog/CommitmentRecovery.tsx
+  - packages/admin/src/views/Garden/Pool/CommitmentDialog/CommitmentAssessmentDialog.tsx
+  - packages/admin/src/views/Hub/components/HubConfirmQueue.tsx
+  - packages/admin/src/views/Community/components/CommunityCoordinationTab.tsx
+  - packages/shared/src/hooks/admin-ui/pool/usePoolConsoleController.ts
+  - packages/shared/src/hooks/commitment-pooling/useCommitmentPoolSetupSequence.ts
+  - packages/shared/src/hooks/commitment-pooling/useCommitmentMutations.ts
+  - packages/shared/src/hooks/commitment-pooling/useSettlement.ts
+  - packages/shared/src/modules/commitment-pooling/acts.ts
+  - packages/shared/src/config/app.ts
+  - packages/contracts/src/lib/CommitmentPooling/ConfirmLib.sol
+  - packages/contracts/src/lib/CommitmentPooling/WorkCreditLib.sol
+  - packages/shared/src/i18n/en.json
+  - docs/releases/2.0.0/README.md
+keywords:
+  - commitment pool
+  - promises
+  - season
+  - campaign
+  - seed promises
+  - confirmation
+---
+
+import {NextBestAction, StewardPathNav} from "@site/src/components/docs";
+
+# Seed Promises
+
+Prepare promises that people can understand and take up. Seeding can create one promise or a batch with different requirements.
+
+<figure className="gg-figure gg-overview-photo gg-guide-opening">
+  <img src="/img/community/guide-seed.webp" alt="Separate planting, tool-repair and bicycle-repair kits prepared as practical tasks." width="1672" height="941" loading="eager" />
+</figure>
+
+<StewardPathNav />
+
+
+## Before you start
+
+- Sign in to [the steward dashboard](https://admin.greengoods.app) with access to the selected garden. [Get steward access](/community/steward-guide/#get-steward-access) if needed.
+- Check the garden name at the top left, then open **Garden → Promises**. Read the target before signing.
+- Have a steady connection for setup and direct changes. New money-reward promises, settlement configuration and payouts are deferred.
+- Open the intended pool and season or campaign first.
+- Agree the action counts, deadline, team policy and independent confirmers.
+
+## Steps
+
+Choose **Seed Promises**. As an illustrative example, your garden can request seedling-care sessions with a required planting action and a named independent reviewer.
+
+1. In **What**, choose whether the pool offers help or requests it, the kind of promise, its title, and its season or campaign.
+2. In **How Much**, set how many promises to create and what each asks for. For garden work, choose the required action rows and counts. Check the team policy and deadline.
+3. In **Proof & Confirmation**, choose who can confirm, how many confirmations are needed, and whether taking it up needs steward approval. The provider and contributing team cannot confirm their own promise. A named group must have enough independent people to meet its threshold.
+4. Leave **Does this come with a reward?** at **No** for this release. A displayed old reward or active contract is not permission to create a new money reward.
+5. In **Review**, check each answer. Use **Add Another** if preparing different promises together, then choose **Create Promise** or **Create … Promises**, as shown.
+6. Read the result for every promise, then return to **Promises**. A group can show both **created** copies and copies that **didn’t send**. Keep the created copies and use **Finish Creating (n)** to send the rest. An individual queued row offers **Send Now** or **Try Again** instead.
+
+**Success:** the intended promises appear in the pool with the right terms and current status. A partly completed batch stays partly completed; do not recreate its successful rows.
+
+## How you know it worked
+
+Each intended promise appears with the correct terms and a result showing whether it has reached the shared record. Queued is not recorded.
+
+## What happens next
+
+Members take promises up directly or ask for steward approval. Share [Keep a Promise](/community/gardener-guide/keep-a-promise) with them.
+
+## If something goes wrong
+
+After an interrupted seed batch, return to **Promises** on the same device and compare the group with your intended list:
+
+- **n created** counts the copies already published to the shared record.
+- **n didn’t send** counts copies still waiting in your queue. Choose **Finish Creating (n)** on that group to send those copies. They appear within the group rather than as separate queued rows.
+- An individual queued promise has its own **Send Now** or **Try Again** control. Read its status and any recorded transaction before retrying.
+
+For example, if a group shows **3 created** and **2 didn’t send**, choose **Finish Creating (2)**. Do not seed five new copies or recreate the three successful ones. Leave the reward choice at **No** for this release.
+
+For an app problem, open **Settings → Support** in the dashboard. On a phone, find **Settings** under **Profile**. Share the affected record's link.
+
+## Next step
+
+<NextBestAction title="Review Promises" why="Decide participation requests and follow evidence through to confirmation." actionLabel="Review Promises" actionHref="/community/steward-guide/review-promises" />

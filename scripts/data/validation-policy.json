@@ -218,7 +218,7 @@
         ".github/workflows/ontology.yml",
         "docs/docs/builders/architecture/data-model.mdx",
         "docs/docs/builders/architecture/entity-matrix.mdx",
-        "docs/docs/community/green-goods-claims.generated.mdx",
+        "docs/claims.generated.md",
         "docs/docs/reference/glossary.generated.mdx",
         "docs/docs/reference/ontology.generated.mdx",
         "packages/client/src/components/Public/PublicWhoTendsAGarden.tsx",
@@ -299,7 +299,10 @@
         "scripts/quality/check-ontology.mjs",
         "scripts/quality/ontology-render.mjs",
         "scripts/quality/check-ontology.test.mjs",
-        "scripts/data/ontology-drift-baseline.json"
+        "scripts/data/ontology-drift-baseline.json",
+        "docs/releases/2.0.0/README.md",
+        "packages/shared/src/config/app.ts",
+        "packages/shared/src/modules/commitment-pooling/selectors.ts"
       ],
       "prefixes": ["packages/shared/src/modules/job-queue/"],
       "excludeValidationOnlyFrom": ["shared"]
@@ -631,7 +634,23 @@
         "scripts/mcp/brave-devtools.mjs",
         "scripts/quality/check-ontology.mjs",
         "scripts/quality/ontology-render.mjs",
-        "scripts/quality/task-routing-contract.mjs"
+        "scripts/quality/task-routing-contract.mjs",
+        "packages/admin/src/components/Assessment/CreateAssessmentSteps/StrategyKernelStep.tsx",
+        "packages/client/src/components/Public/PublicEndowmentPanel.tsx",
+        "packages/client/src/routes/presentationMode.ts",
+        "packages/client/src/views/Home/WorkDashboard/PendingTab.tsx",
+        "packages/client/src/views/Login/index.tsx",
+        "packages/contracts/src/lib/CommitmentPooling/ConfirmLib.sol",
+        "packages/contracts/src/lib/CommitmentPooling/CyclesLib.sol",
+        "packages/contracts/src/lib/CommitmentPooling/WorkCreditLib.sol",
+        "packages/shared/src/hooks/garden/useGardenPermissions.ts",
+        "packages/shared/src/i18n/en.json",
+        "packages/shared/src/modules/assessment/create-assessment-command.ts",
+        "packages/shared/src/modules/commitment-pooling/selectors.ts",
+        "packages/shared/src/modules/transactions/wallet-sender.ts",
+        "packages/shared/src/hooks/admin-ui/hypercerts/types.ts",
+        "packages/shared/src/hooks/hypercerts/useMintHypercert.ts",
+        "packages/shared/src/workflows/auth-passkey-adapters.ts"
       ]
     },
     {
@@ -1979,7 +1998,23 @@
         ".github/workflows/docs.yml",
         "packages/contracts/config/command-migration.json",
         "packages/contracts/script/cli/operations.mjs",
-        "packages/contracts/script/utils/package-commands.mjs"
+        "packages/contracts/script/utils/package-commands.mjs",
+        "packages/admin/src/components/Assessment/CreateAssessmentSteps/StrategyKernelStep.tsx",
+        "packages/client/src/components/Public/PublicEndowmentPanel.tsx",
+        "packages/client/src/routes/presentationMode.ts",
+        "packages/client/src/views/Home/WorkDashboard/PendingTab.tsx",
+        "packages/client/src/views/Login/index.tsx",
+        "packages/contracts/src/lib/CommitmentPooling/ConfirmLib.sol",
+        "packages/contracts/src/lib/CommitmentPooling/CyclesLib.sol",
+        "packages/contracts/src/lib/CommitmentPooling/WorkCreditLib.sol",
+        "packages/shared/src/hooks/garden/useGardenPermissions.ts",
+        "packages/shared/src/i18n/en.json",
+        "packages/shared/src/modules/assessment/create-assessment-command.ts",
+        "packages/shared/src/modules/commitment-pooling/selectors.ts",
+        "packages/shared/src/modules/transactions/wallet-sender.ts",
+        "packages/shared/src/hooks/admin-ui/hypercerts/types.ts",
+        "packages/shared/src/hooks/hypercerts/useMintHypercert.ts",
+        "packages/shared/src/workflows/auth-passkey-adapters.ts"
       ],
       "prefixes": [
         ".claude/skills/",
@@ -2020,7 +2055,7 @@
         ".github/workflows/ontology.yml",
         "docs/docs/builders/architecture/data-model.mdx",
         "docs/docs/builders/architecture/entity-matrix.mdx",
-        "docs/docs/community/green-goods-claims.generated.mdx",
+        "docs/claims.generated.md",
         "docs/docs/reference/glossary.generated.mdx",
         "docs/docs/reference/ontology.generated.mdx",
         "packages/client/src/components/Public/PublicWhoTendsAGarden.tsx",
@@ -2101,7 +2136,10 @@
         "scripts/quality/check-ontology.mjs",
         "scripts/quality/ontology-render.mjs",
         "scripts/quality/check-ontology.test.mjs",
-        "scripts/data/ontology-drift-baseline.json"
+        "scripts/data/ontology-drift-baseline.json",
+        "docs/releases/2.0.0/README.md",
+        "packages/shared/src/config/app.ts",
+        "packages/shared/src/modules/commitment-pooling/selectors.ts"
       ],
       "prefixes": ["packages/shared/src/modules/job-queue/"],
       "excludeValidationOnlyFrom": ["shared"]

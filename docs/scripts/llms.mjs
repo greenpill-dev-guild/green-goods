@@ -287,6 +287,7 @@ export function markdownTwin(
     return result;
   };
   const body = outsideFencedCode(withoutFrontmatter, (text) => expandProjections(inlineCopyCommands(text.replace(IMPORT_STATEMENT, "")))
+      .replace(/<TermAnchor id="([^"]+)" to="([^"]+)" \/>/g, '<a id="$1"></a>[Reference]($2)')
       .replace(/<TermAnchor id="([^"]+)" \/>/g, '<a id="$1"></a>')
       .replace(/<FaqQuestion id="([^"]+)" question="([^"]+)">/g, (_, id, question) => `### ${question.replaceAll("&quot;", '"')} {#${id}}`)
       .replace(/<\/?FaqQuestions>|<\/FaqQuestion>/g, ""))

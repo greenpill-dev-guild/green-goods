@@ -40,9 +40,15 @@ import {NextBestAction, StewardPathNav} from "@site/src/components/docs";
 
 # Review Work
 
-<StewardPathNav />
 
 Reviewing is the heart of a steward's job. A gardener says "I did this." You look at the evidence and decide whether the garden stands behind it. Your decision is saved next to their work, with your reason, for anyone to read.
+
+<figure className="gg-figure gg-guide-product">
+  <img src="/img/screenshots/admin-review-queue-example.png" alt="A steward queue card with a seedling photograph, a note about moving 36 lettuce seedlings, Seedling Transplant, the sender and a Pending label." loading="eager" width="366" height="358" />
+  <figcaption><strong>Open the record behind the card.</strong> The card gives you the action, sender and status. Read the full photos, numbers and note before deciding.</figcaption>
+</figure>
+
+<StewardPathNav />
 
 Start with the judgment below, then follow either the [dashboard steps](#steps-in-the-dashboard) or the [phone steps](#steps-in-the-app).
 
@@ -95,11 +101,6 @@ Use the dashboard when you have several submissions to get through.
 2. Tap a submission to open it. The evidence is on the left and **Steward Review** is on the right.
 3. Look through **Media Evidence**, then read **Submission Details**, including **Gardener notes**.
 
-<figure className="gg-figure gg-guide-product">
-  <img src="/img/screenshots/admin-review-queue-example.png" alt="A steward queue card with a seedling photograph, a note about moving 36 lettuce seedlings, Seedling Transplant, the sender and a Pending label." loading="lazy" width="366" height="358" />
-  <figcaption><strong>Open the record behind the card.</strong> The card gives you the action, sender and status. Read the full photos, numbers and note before deciding.
-  <span className="gg-overview-source">Source: local static Storybook, HubWorkQueue / With Example Photo, 13 October 2026; cropped to one card from 1440 × 900. Build recorded in the Plan Hub image ledger. Photo: <a href="https://commons.wikimedia.org/wiki/File:Seedlings.jpg">Leon Brooks, Seedlings</a>, public domain. The garden, sender and work record are fictional.</span></figcaption>
-</figure>
 
 To approve:
 
@@ -109,7 +110,7 @@ To approve:
 
 <figure className="gg-figure" style={{maxWidth: '560px'}}>
   <img src="/img/screenshots/admin-review-form.webp" alt="The Steward Review form: a Confidence level row with Low, Medium, and High and the line Choose a confidence level to approve, an optional Feedback box, an optional Audio review note with a Record Audio Note button, a note saying who will see the decision, and the buttons Reject and Approve, with Approve greyed out" loading="lazy" width="1152" height="1080" />
-  <figcaption>Steward Review before a confidence level is chosen. Approve stays grey until you pick one. Source: deployed Storybook fixture, captured 12 October 2026. Build revision unavailable; fictional example data.</figcaption>
+  <figcaption>Steward Review before a confidence level is chosen. Approve stays grey until you pick one.</figcaption>
 </figure>
 
 To reject:
@@ -120,7 +121,7 @@ To reject:
 
 <figure className="gg-figure" style={{maxWidth: '480px'}}>
   <img src="/img/screenshots/admin-reject-work.webp" alt="The Reject Work dialog for a submission named Planted 50 native saplings: the line The gardener sees your reason, a required box labeled Why are you rejecting this? holding the text Details are missing, the suggestions Photos don't show the work, Details are missing, and Wrong action chosen, and the buttons Cancel and Reject Work" loading="lazy" width="960" height="900" />
-  <figcaption>Reject Work, with one of the three suggestions chosen. Source: deployed Storybook fixture, captured 12 October 2026. Build revision unavailable; fictional example data.</figcaption>
+  <figcaption>Reject Work, with one of the three suggestions chosen.</figcaption>
 </figure>
 
 ## Steps in the app
@@ -135,14 +136,12 @@ Use the app on your phone when you are at the garden.
 
 <figure className="gg-figure gg-guide-product">
   <img src="/img/screenshots/client-review-work.png" alt="Evaluate Work on a phone, showing the garden, a seedling photograph and the Approve and Reject controls." loading="lazy" width="390" height="844" />
-  <figcaption><strong>Check the garden and the evidence.</strong> Scroll down for the recorded numbers and note before choosing <strong className="gg-inline-label">Approve</strong> or <strong className="gg-inline-label">Reject</strong>.
-  <span className="gg-overview-source">Source: local static Storybook, ReviewWork / Evaluate Example, 13 October 2026; 390 × 844. Build recorded in the Plan Hub image ledger. Photo: <a href="https://commons.wikimedia.org/wiki/File:Seedlings.jpg">Leon Brooks, Seedlings</a>, public domain. Fictional work; not evidence of the sample count or time.</span></figcaption>
+  <figcaption><strong>Check the garden and the evidence.</strong> Scroll down for the recorded numbers and note before choosing <strong className="gg-inline-label">Approve</strong> or <strong className="gg-inline-label">Reject</strong>.</figcaption>
 </figure>
 
 <figure className="gg-figure gg-guide-product">
   <img src="/img/screenshots/client-review-feedback.png" alt="Add Feedback on the phone with Medium confidence selected, an example review note, Cancel and Submit." loading="lazy" width="390" height="844" />
-  <figcaption><strong>Make the decision your own.</strong> Medium is the starting confidence in the app. Change it when needed and write feedback that will help the gardener.
-  <span className="gg-overview-source">Source: local static Storybook, ReviewWork / Feedback Example, 13 October 2026; 390 × 844. Build recorded in the Plan Hub image ledger. All record and review data is fictional. Photo: <a href="https://commons.wikimedia.org/wiki/File:Seedlings.jpg">Leon Brooks, Seedlings</a>, public domain. No decision was submitted.</span></figcaption>
+  <figcaption><strong>Make the decision your own.</strong> Medium is the starting confidence in the app. Change it when needed and write feedback that will help the gardener.</figcaption>
 </figure>
 
 With no signal, the app saves your decision on the phone. Send it later from **Your Work** with **Upload all**.
@@ -158,7 +157,7 @@ The gardener acts next, and Green Goods does not send them an alert. They see yo
 
 Approved work now counts toward the garden's record. It appears on the garden's page on the public website, and it can be bundled into an impact certificate.
 
-Approving does not pay the gardener. If your garden rewards work from its shared fund, that is a separate step. See [Funding and Governance](/community/steward-guide/funding-and-governance).
+Approving does not pay the gardener. If your garden rewards work from its shared fund, that is a separate step. See [Manage Garden Funding](/community/steward-guide/funding-and-governance).
 
 ## If something goes wrong
 

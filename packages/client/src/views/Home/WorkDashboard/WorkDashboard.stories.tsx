@@ -88,7 +88,7 @@ interface DashboardFrameProps {
   tab: "pending" | "completed";
   /** Where the Pending list stands, as the frames draw it. */
   moment?: Moment;
-  /** Opt-in sourced photograph and one fictional work record; generic scenarios stay unchanged. */
+  /** Opt-in sourced photograph and fictional work, promise proof and draft records; generic scenarios stay unchanged. */
   documentationPhoto?: boolean;
   /** A steward's view: work waiting for their review, and their reviews still on this phone. */
   toReview?: Work[];
@@ -285,9 +285,14 @@ const meta: Meta<typeof DashboardFrame> = {
 export default meta;
 type Story = StoryObj<typeof DashboardFrame>;
 
-/** A single fictional seedling record waiting for the gardener to send it. */
+/** A mixed garden record: work, promise-linked drafts and proof waiting on this phone. */
 export const PendingWithExamplePhoto: Story = {
-  args: { documentationPhoto: true, uploads: { readyCount: 1 } },
+  args: { documentationPhoto: true, uploads: { readyCount: 2 } },
+};
+
+/** Saved items that need a connection before they can reach a steward. */
+export const RecoveryWithExamplePhoto: Story = {
+  args: { documentationPhoto: true, pendingFilter: "upload", uploads: { readyCount: 2 } },
 };
 
 export const OfflineWithExamplePhoto: Story = {
@@ -309,6 +314,17 @@ export const CompletedWithExamplePhoto: Story = {
         media: [DOCUMENTATION_SUBMISSION.photo],
         feedback: DOCUMENTATION_SUBMISSION.note,
       },
+      gardenWork("0x5eed05", "Compost Turn", {
+        status: "approved",
+        gardenerAddress: JOURNEY_VIEWER,
+        actionUID: 2,
+      }),
+      gardenWork("0x5eed06", "Path Edging", {
+        status: "rejected",
+        gardenerAddress: JOURNEY_VIEWER,
+        actionUID: 6,
+        feedback: "Add a photo showing the full repaired edge.",
+      }),
     ],
   },
 };

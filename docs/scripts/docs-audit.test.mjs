@@ -282,3 +282,21 @@ test("broken redirect fragment exits nonzero", () => {
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+for (const [target, valid] of [
+  ["https://github.com/greenpill-dev-guild/green-goods/releases", true],
+  ["http://github.com/example", false],
+  ["https://user:password@github.com/example", false],
+  ["javascript:alert(1)", false],
+]) {
+  test(`external redirect ${target} is ${valid ? "accepted" : "rejected"}`, () => {
+    const root = fixture();
+    try {
+      writeFileSync(path.join(root, "docs/docusaurus.config.ts"), `export default {redirects: [{from: '/old', to: '${target}'}]};`);
+      const result = runAudit(root);
+      assert.equal(result.status, valid ? 0 : 1, result.stderr);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+}

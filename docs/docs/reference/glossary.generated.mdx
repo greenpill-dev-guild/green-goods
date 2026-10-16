@@ -7,14 +7,48 @@ feature_status: Live
 generated: true
 generator: scripts/docs/generate.mjs
 generated_from:
+  - packages/admin/src/components/Assessment/CreateAssessmentSteps/StrategyKernelStep.tsx
+  - packages/client/src/components/Public/PublicEndowmentPanel.tsx
+  - packages/client/src/routes/presentationMode.ts
+  - packages/client/src/views/Home/WorkDashboard/PendingTab.tsx
+  - packages/client/src/views/Login/index.tsx
+  - packages/contracts/src/lib/CommitmentPooling/ConfirmLib.sol
+  - packages/contracts/src/lib/CommitmentPooling/CyclesLib.sol
+  - packages/contracts/src/lib/CommitmentPooling/WorkCreditLib.sol
+  - packages/contracts/src/modules/CookieJar.sol
+  - packages/shared/src/hooks/admin-ui/hypercerts/types.ts
+  - packages/shared/src/hooks/garden/useGardenPermissions.ts
+  - packages/shared/src/hooks/hypercerts/useMintHypercert.ts
+  - packages/shared/src/i18n/en.json
+  - packages/shared/src/modules/assessment/create-assessment-command.ts
+  - packages/shared/src/modules/commitment-pooling/selectors.ts
+  - packages/shared/src/modules/transactions/wallet-sender.ts
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
+  - packages/shared/src/workflows/auth-passkey-adapters.ts
   - scripts/data/banned-vocabulary.json
   - scripts/quality/ontology-render.mjs
-source_digest: "sha256:9d5b4080c4deb43025f1cbfe64022e80a2c504fda1c5e984afdde3d191ac6f78"
+source_digest: "sha256:2c7b55f1ba26489f70440476caeb95707a74608dcfae406e70bec6543de0d04b"
 source_of_truth:
+  - packages/admin/src/components/Assessment/CreateAssessmentSteps/StrategyKernelStep.tsx
+  - packages/client/src/components/Public/PublicEndowmentPanel.tsx
+  - packages/client/src/routes/presentationMode.ts
+  - packages/client/src/views/Home/WorkDashboard/PendingTab.tsx
+  - packages/client/src/views/Login/index.tsx
+  - packages/contracts/src/lib/CommitmentPooling/ConfirmLib.sol
+  - packages/contracts/src/lib/CommitmentPooling/CyclesLib.sol
+  - packages/contracts/src/lib/CommitmentPooling/WorkCreditLib.sol
+  - packages/contracts/src/modules/CookieJar.sol
+  - packages/shared/src/hooks/admin-ui/hypercerts/types.ts
+  - packages/shared/src/hooks/garden/useGardenPermissions.ts
+  - packages/shared/src/hooks/hypercerts/useMintHypercert.ts
+  - packages/shared/src/i18n/en.json
+  - packages/shared/src/modules/assessment/create-assessment-command.ts
+  - packages/shared/src/modules/commitment-pooling/selectors.ts
+  - packages/shared/src/modules/transactions/wallet-sender.ts
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
+  - packages/shared/src/workflows/auth-passkey-adapters.ts
   - scripts/data/banned-vocabulary.json
   - scripts/quality/ontology-render.mjs
 ---
@@ -29,6 +63,48 @@ import TermAnchor from "@site/src/components/docs/TermAnchor";
 The words you will meet in Green Goods, in plain language. Each entry says what the word means, why it matters, and what it is easy to mix it up with. Formal definitions and technical reference live in the [Builders ontology](/reference/ontology).
 
 ## Everyday terms
+
+<a id="commitment"></a>
+
+### Promise {#promise}
+
+**An agreement to provide help or ask for it.** It makes responsibility, evidence, confirmation, and unit accounting explicit.
+
+- **For example:** A neighbour offers a seedling-care session, records the work, and asks the recipient to confirm it.
+- **Also called:** Commitment, offer, request.
+- **Not the same as:** Attestation, Need.
+- **Read more:** [Make a Promise](/community/gardener-guide/make-a-promise).
+
+### Commitment Pool {#commitment-pool}
+
+**A governed home for promises.** It gives a Garden rules and bounds for coordinating offers and requests.
+
+- **For example:** A Garden pool coordinates transport offers under a charter.
+- **Also called:** pool.
+- **Not the same as:** Vault, Cookie Jar.
+- **Read more:** [Open a Pool](/community/steward-guide/open-a-pool).
+
+### Season {#season}
+
+**The garden's main period of coordinated work.** It gives planning and reflection a calm common rhythm.
+
+- **For example:** A planting season holds promises, work and the assessments that frame it.
+- **Also called:** garden season.
+- **Not the same as:** a deadline that completes promises automatically.
+- **Availability:** The app records seasons as Commitment Cycles. The broader planning concept has no separate record.
+- **Read more:** [Open a Pool](/community/steward-guide/open-a-pool).
+
+<a id="commitment-contributor"></a>
+
+### Contributor {#contributor}
+
+**A person credited on a commitment.** Joining a team and having a contribution recorded are different steps. The team cannot confirm its own promise.
+
+- **For example:** Two gardeners contribute approved work to a promise. Another eligible person confirms it.
+- **Also called:** Commitment Contributor.
+- **Not the same as:** lead provider, confirmer.
+- **Availability:** Team membership and contributions are available; contributor payouts remain deferred.
+- **Read more:** [Keep a Promise](/community/gardener-guide/keep-a-promise).
 
 ### Garden {#garden}
 
@@ -73,7 +149,7 @@ The words you will meet in Green Goods, in plain language. Each entry says what 
 - **For example:** A soil-health baseline with targets and selected Actions.
 - **Also called:** baseline.
 - **Not the same as:** Work Approval.
-- **Read more:** [Make an Assessment](/community/evaluator-guide/making-an-assessment).
+- **Read more:** [Make an Initial Assessment](/community/evaluator-guide/making-an-assessment).
 
 <a id="hypercert"></a>
 
@@ -152,82 +228,194 @@ The words you will meet in Green Goods, in plain language. Each entry says what 
 - **Not the same as:** Gardener.
 - **Read more:** [How It Works](/community/how-it-works).
 
-## Builder reference {#formal-definitions}
+## Words in the app
 
-Definitions, allowed surfaces, and technical terms are generated together in the [ontology](/reference/ontology). Older links still work below.
+### Offer {#offer}
 
-#### [Domain entities](/reference/ontology#entities) {#domain-entities}
+A promise made by the person or garden providing help. The recipient or designated independent people normally confirm it.
 
-#### [Personas](/reference/ontology#personas) {#personas}
+You offer a repair session; the neighbour who takes it up receives the help. [Guide](/community/gardener-guide/make-a-promise).
 
-#### [Formal term reference](/reference/ontology#entities) {#term-reference}
+### Request {#request}
 
-#### [Language policy](/reference/ontology#language-policy) {#language-policy}
+A promise asking someone else to provide help. The person who asked normally confirms it. A request to take a promise up is a separate participation decision.
 
-#### [Vocabulary policy](/reference/ontology#language-policy) {#lint-enforced-terms}
+You request a repair session; the neighbour taking it up provides the help. [Guide](/community/gardener-guide/make-a-promise).
 
-#### [Admin vocabulary](/reference/ontology#language-policy) {#admin-prompt-vocabulary}
+### Take up {#take-up}
 
-#### [Client vocabulary](/reference/ontology#language-policy) {#client-prompt-vocabulary}
+Agree to the part described by a promise. Some promises allow direct take-up; others wait for a steward to accept the request.
 
-#### [Attestation](/reference/ontology#attestation) {#attestation}
+Taking up a request makes you its provider. Taking up an offer makes you its recipient. [Guide](/community/gardener-guide/keep-a-promise).
 
-#### [Hat](/reference/ontology#hat) {#hat}
+### Campaign {#campaign}
 
-#### [Season](/reference/ontology#season) {#season}
+A focused period of promises. It can run beside the garden's main season or on its own. Both seasons and campaigns are commitment cycles.
 
-#### [Need](/reference/ontology#need) {#need}
+A waste-cleanup campaign runs during the longer garden season. [Guide](/community/steward-guide/open-a-pool).
 
-#### [Commitment Pool](/reference/ontology#commitment-pool) {#commitment-pool}
+### Lead and provider {#lead-provider}
 
-#### [Commitment Cycle](/reference/ontology#commitment-cycle) {#commitment-cycle}
+The provider is the person or garden responsible for delivering the help. The lead coordinates its team. A person acting for a provider garden is not the same identity as that garden.
 
-#### [Commitment Series](/reference/ontology#commitment-series) {#commitment-series}
+A steward takes a request up for their garden; the provider record names the garden. [Guide](/community/gardener-guide/keep-a-promise).
 
-#### [Commitment Provider Exposure](/reference/ontology#commitment-provider-exposure) {#commitment-provider-exposure}
+### Confirmer {#confirmer}
 
-#### [Commitment Unit Summary](/reference/ontology#commitment-unit-summary) {#commitment-unit-summary}
+A person or garden eligible to check that a promise was kept. Providers and contributing team members cannot confirm their own promise, including through a fallback.
 
-#### [Commitment Series Cycle Summary](/reference/ontology#commitment-series-cycle-summary) {#commitment-series-cycle-summary}
+The recipient checks the evidence after the team finishes. [Guide](/community/gardener-guide/confirm-a-promise).
 
-#### [Commitment](/reference/ontology#commitment) {#commitment}
+### Confirmation {#confirmation}
 
-#### [Commitment Contributor](/reference/ontology#commitment-contributor) {#commitment-contributor}
+A recorded decision that a promise was kept. The required confirmation count is the number of valid decisions needed. A confirmation cannot be taken back.
 
-#### [Commitment Payout Plan](/reference/ontology#commitment-payout-plan) {#commitment-payout-plan}
+One of three required confirmations has arrived; two are still needed. [Guide](/community/gardener-guide/confirm-a-promise).
 
-#### [Domain](/reference/ontology#domain) {#domain}
+### Proof {#proof}
 
-#### [EAS (Ethereum Attestation Service)](/reference/ontology#eas) {#eas}
+Photos, notes or links supplied toward a promise about help or a service. Garden-work promises use the required work submissions and approvals.
 
-#### [Eight Forms of Capital](/reference/ontology#eight-forms-of-capital) {#eight-forms-of-capital}
+A repairer adds photos and a note about the completed repair. [Guide](/community/gardener-guide/keep-a-promise).
 
-#### [Impact Token](/reference/ontology#impact-token) {#impact-token}
+### Work requirement {#work-requirement}
 
-#### [Indicator](/reference/ontology#indicator) {#indicator}
+An action and amount of work a promise requires. When an action appears twice, the exact requirement row matters.
 
-#### [IPFS (InterPlanetary File System)](/reference/ontology#ipfs) {#ipfs}
+Two planting rows may refer to different plots or amounts. [Guide](/community/gardener-guide/keep-a-promise).
 
-#### [Karma GAP (Grantee Accountability Protocol)](/reference/ontology#karma-gap) {#karma-gap}
+### Linked and counted work {#linked-work}
 
-#### [MDR (Media-Details-Review)](/reference/ontology#mdr) {#mdr}
+Linked work points a submission at a promise's requirement. Approval reviews that submission. Counting applies eligible approved work toward the requirement. These are separate results.
 
-#### [On-Chain](/reference/ontology#on-chain) {#on-chain}
+Approved linked work can still be waiting for a steward to count it. [Guide](/community/steward-guide/review-promises).
 
-#### [Outcome](/reference/ontology#outcome) {#outcome}
+### Recognition and split {#recognition}
 
-#### [Owner](/reference/ontology#owner) {#owner}
+Recognition records contribution. A split describes its allocation and becomes fixed when the season or campaign opens. It does not itself distribute money.
 
-#### [Passkey](/reference/ontology#passkey) {#passkey}
+A season records how recognition is shared before promises begin. [Guide](/community/steward-guide/open-a-pool).
+
+### Commitment limit {#commitment-limit}
+
+The pool's limit on a provider's open commitments. It helps keep more promises from being taken up than can be delivered.
+
+A provider must finish an existing commitment before taking another when at the limit. [Guide](/community/steward-guide/open-a-pool).
+
+### Seed promises {#seeding}
+
+Create promises for people to take up, one at a time or in a batch. Each row has its own result.
+
+Three created promises and one failed row are a partly completed batch. [Guide](/community/steward-guide/seed-promises).
+
+### Promise states {#promise-states}
+
+Offered or Asked for describes help available or needed. In progress and Partly approved describe work underway. Proof added and Waiting to be confirmed describe evidence awaiting a decision. Team set means the team and contribution record are fixed. Under review by stewards pauses ordinary confirmation. Kept means enough valid confirmations arrived. Withdrawn and Lapsed remain readable history.
+
+Kept does not mean paid. A Settled list groups finished records; it is not a list of payment receipts. [Guide](/community/gardener-guide/confirm-a-promise).
+
+### Season and campaign states {#cycle-states}
+
+A prepared period is written down but not open. Open accepts promises. Reconciled is an ended period. Archived is final and prevents creating a certificate from that cycle later; history remains readable.
+
+Leave a reconciled season unarchived if you want future cycle-specific certification. The current dashboard cannot create a certificate linked to that cycle. [Guide](/community/steward-guide/end-a-season).
+
+### Outcomes, metrics and targets {#assessment-measures}
+
+An outcome is the change sought. A metric or indicator is how it is measured. A target is the result aimed for, within a reporting period. A domain is the area of work: Solar, Agroforestry, Education or Waste.
+
+Measure soil organic matter twice a year, aiming to move from 1% to 2%. [Guide](/community/evaluator-guide/making-an-assessment).
+
+### Post or delta assessment {#delta-assessment}
+
+A later assessment comparing results with a baseline. The current dashboard creates initial assessments only; it does not offer a delta submission.
+
+Keep the starting assessment and later measurements together while agreeing the supported next step with the garden. [Guide](/community/evaluator-guide/).
+
+### Account and wallet {#account}
+
+Your account address identifies your membership and records. A passkey account and a separately connected wallet are different accounts.
+
+Changing sign-in methods can show a different garden list. [Guide](/community/gardener-guide/installing-and-updating).
+
+### Passkey {#passkey}
+
+A sign-in credential unlocked through your device, such as with a fingerprint, face or screen lock. Recovery depends on access to the passkey, including a synced copy where available.
+
+Sign in with the same passkey on a new phone if it travelled with your Apple or Google account. [Guide](/community/gardener-guide/installing-and-updating).
 
 <a id="pwa-progressive-web-app"></a>
 
-#### [PWA (Progressive Web App)](/reference/ontology#pwa) {#pwa}
+### Installed app {#pwa}
 
-#### [Resolver](/reference/ontology#resolver) {#resolver}
+The Green Goods website installed on your phone. Also called a progressive web app or PWA. It keeps work on that device while a connection is unavailable.
 
-#### [Schema](/reference/ontology#schema) {#schema}
+Record in the field, then send from the same account and phone. [Guide](/community/gardener-guide/installing-and-updating).
 
-<a id="smart-account-account-abstraction"></a>
+### Owner {#owner}
 
-#### [Smart Account (Account Abstraction)](/reference/ontology#smart-account) {#smart-account}
+The garden role responsible for its highest-level permissions and setup. It is different from being the owner of a personal wallet.
+
+Ask the garden owner or a steward to arrange the access you need. [Guide](/community/steward-guide/managing-members).
+
+### Work states {#work-states}
+
+A Draft is unfinished recording. To upload is saved work waiting to be sent. Sending or checking is not proof of arrival. In review waits for a steward. Approved and Rejected are recorded review decisions.
+
+A work item can be Approved while a related promise still waits for counted work or confirmation. [Guide](/community/gardener-guide/track-status-and-attestations).
+
+### Donation {#donation}
+
+A gift to the garden's shared fund. It cannot be withdrawn by the donor.
+
+Support immediate supplies through Donate. [Guide](/community/funder-guide/donating-to-a-garden).
+
+### Endowment shares and earnings {#endowment-shares}
+
+Shares represent a deposit's portion of the endowment. Earnings support its configured destinations, rather than a return for the depositor. The amount available to withdraw can be lower than the deposit.
+
+Endowed is a historical deposit total; Available is the number used when considering a withdrawal. [Guide](/community/funder-guide/withdraw-from-a-vault).
+
+### Claim from a shared fund {#claim}
+
+A gardener asks for a capped amount under the garden's fund rules and supplies a purpose. This is separate from taking up a promise, approving work, or confirming it.
+
+A gardener claims for supplies from the Cookie Jar. [Guide](/community/gardener-guide/track-status-and-attestations).
+
+### Network fee {#network-fee}
+
+The cost of recording a transaction on the network. Wallet users need the network's fee token; passkey sponsorship depends on the supported flow.
+
+A funding wallet needs a little ETH on Arbitrum for its fee. [Guide](/community/funder-guide/).
+
+<TermAnchor id="formal-definitions" to="/reference/ontology#entities" />
+<TermAnchor id="domain-entities" to="/reference/ontology#entities" />
+<TermAnchor id="personas" to="/reference/ontology#personas" />
+<TermAnchor id="term-reference" to="/reference/ontology#entities" />
+<TermAnchor id="language-policy" to="/reference/ontology#language-policy" />
+<TermAnchor id="lint-enforced-terms" to="/reference/ontology#language-policy" />
+<TermAnchor id="admin-prompt-vocabulary" to="/reference/ontology#language-policy" />
+<TermAnchor id="client-prompt-vocabulary" to="/reference/ontology#language-policy" />
+<TermAnchor id="attestation" to="/reference/ontology#attestation" />
+<TermAnchor id="hat" to="/reference/ontology#hat" />
+<TermAnchor id="need" to="/reference/ontology#need" />
+<TermAnchor id="commitment-cycle" to="/reference/ontology#commitment-cycle" />
+<TermAnchor id="commitment-series" to="/reference/ontology#commitment-series" />
+<TermAnchor id="commitment-provider-exposure" to="/reference/ontology#commitment-provider-exposure" />
+<TermAnchor id="commitment-unit-summary" to="/reference/ontology#commitment-unit-summary" />
+<TermAnchor id="commitment-series-cycle-summary" to="/reference/ontology#commitment-series-cycle-summary" />
+<TermAnchor id="commitment-payout-plan" to="/reference/ontology#commitment-payout-plan" />
+<TermAnchor id="domain" to="/reference/ontology#domain" />
+<TermAnchor id="eas" to="/reference/ontology#eas" />
+<TermAnchor id="eight-forms-of-capital" to="/reference/ontology#eight-forms-of-capital" />
+<TermAnchor id="impact-token" to="/reference/ontology#impact-token" />
+<TermAnchor id="indicator" to="/reference/ontology#indicator" />
+<TermAnchor id="ipfs" to="/reference/ontology#ipfs" />
+<TermAnchor id="karma-gap" to="/reference/ontology#karma-gap" />
+<TermAnchor id="mdr" to="/reference/ontology#mdr" />
+<TermAnchor id="on-chain" to="/reference/ontology#on-chain" />
+<TermAnchor id="outcome" to="/reference/ontology#outcome" />
+<TermAnchor id="resolver" to="/reference/ontology#resolver" />
+<TermAnchor id="schema" to="/reference/ontology#schema" />
+<TermAnchor id="smart-account-account-abstraction" to="/reference/ontology#smart-account" />
+<TermAnchor id="smart-account" to="/reference/ontology#smart-account" />
