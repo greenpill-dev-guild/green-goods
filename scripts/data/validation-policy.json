@@ -299,7 +299,10 @@
         "scripts/quality/check-ontology.mjs",
         "scripts/quality/ontology-render.mjs",
         "scripts/quality/check-ontology.test.mjs",
-        "scripts/data/ontology-drift-baseline.json"
+        "scripts/data/ontology-drift-baseline.json",
+        "docs/releases/2.0.0/README.md",
+        "packages/shared/src/config/app.ts",
+        "packages/shared/src/modules/commitment-pooling/selectors.ts"
       ],
       "prefixes": ["packages/shared/src/modules/job-queue/"],
       "excludeValidationOnlyFrom": ["shared"]
@@ -2101,7 +2104,10 @@
         "scripts/quality/check-ontology.mjs",
         "scripts/quality/ontology-render.mjs",
         "scripts/quality/check-ontology.test.mjs",
-        "scripts/data/ontology-drift-baseline.json"
+        "scripts/data/ontology-drift-baseline.json",
+        "docs/releases/2.0.0/README.md",
+        "packages/shared/src/config/app.ts",
+        "packages/shared/src/modules/commitment-pooling/selectors.ts"
       ],
       "prefixes": ["packages/shared/src/modules/job-queue/"],
       "excludeValidationOnlyFrom": ["shared"]

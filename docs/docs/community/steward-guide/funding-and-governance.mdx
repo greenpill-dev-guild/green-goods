@@ -14,6 +14,7 @@ prereqs: "Steward or owner access to a garden that has a shared fund or an endow
 next_steps: "/community/steward-guide/"
 persona_context: "Stewards looking after a garden's money and explaining it to their community."
 source_of_truth:
+  - packages/shared/src/config/app.ts
   - packages/admin/src/views/Community/index.tsx
   - packages/admin/src/views/Community/components/CommunityEndowmentTab.tsx
   - packages/admin/src/views/Community/components/CommunityPayoutsTab.tsx
@@ -56,6 +57,10 @@ A garden can hold money in two ways. This page explains both, shows what you can
 | **Where it is** | **Community**, **Payouts** tab | **Community**, **Endowment** tab |
 
 Both are normally set up when the garden is created. If **Payouts** says **No cookie jars found for this garden**, or **Endowment** says **No vault available yet**, ask the Green Goods team.
+
+## Where promises fit
+
+[Commitment Pooling](/community/steward-guide/commitment-pooling) coordinates specific promises and their evidence. It is separate from the shared fund and endowment described here. The 2.0 release includes promises without new money rewards; it defers new promise payouts and settlement-account changes. Approving work or confirming a promise does not send money.
 
 ## Before you start
 

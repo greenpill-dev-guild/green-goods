@@ -1,0 +1,147 @@
+---
+title: Make and keep a promise
+sidebar_label: Commitments
+slug: /community/gardener-guide/commitments
+description: "Make an offer or request, take one up, add the right evidence, and see who confirms it was kept."
+audience: gardener
+owner: docs
+last_verified: 2026-10-15
+feature_status: Live
+goal: "Follow a promise from agreement to independent confirmation without confusing work approval with payment."
+difficulty: "standard"
+estimated_time: "5 minutes to read. Doing the work and waiting for review take longer."
+prereqs: "The account that joined your garden, an open pool, and an agreement about the work or help."
+next_steps: "/community/gardener-guide/uploading-your-work"
+persona_context: "Gardeners offering help, asking for it, or providing evidence toward a promise."
+source_of_truth:
+  - packages/client/src/views/Home/CommitmentsSheet/index.tsx
+  - packages/client/src/views/Home/Garden/Compose/ComposeCommitment.tsx
+  - packages/client/src/views/Home/Garden/Commitment
+  - packages/client/src/views/Home/Garden/Commitment/CommitmentTeam.tsx
+  - packages/shared/src/modules/commitment-pooling/acts.ts
+  - packages/shared/src/modules/commitment-pooling/selectors.ts
+  - packages/shared/src/hooks/client-ui/commitment/useGardenCommitmentController.ts
+  - packages/shared/src/config/app.ts
+  - packages/contracts/src/lib/CommitmentPooling/ConfirmLib.sol
+  - packages/contracts/src/lib/CommitmentPooling/WorkCreditLib.sol
+  - packages/shared/src/i18n/en.json
+  - docs/releases/2.0.0/README.md
+keywords:
+  - promises
+  - commitments
+  - offer
+  - request
+  - proof
+  - confirmation
+---
+
+import {NextBestAction} from "@site/src/components/docs";
+
+# Make and keep a promise
+
+A promise records help that someone agrees to give and how others will check it. In the app, **Promises** is where your garden makes offers, asks for help, and follows each commitment through to confirmation.
+
+:::info What is available
+Garden promises are included in the 2.0 release. Your garden must have an open pool, and each action depends on your role and the promise's current state. New money rewards and payouts through promises are deferred; a promise marked kept is not a payment receipt.
+:::
+
+## Before you start
+
+- Sign in with the account that joined this garden. Visitors can read records, but taking part requires membership.
+- Agree what help means and what evidence will show it happened. Check the amount of work, deadline, people involved, and who confirms it.
+- Use your own evidence. Uploaded photos and details can become public before the work record is sent. Read the [privacy guidance](/faq#is-what-i-upload-private).
+
+## Steps
+
+### 1. Open your garden's Promises
+
+1. Open your garden in the app and tap **Promises**.
+2. Open a promise and read its terms, work requirements, team, and confirmation details. A season is the garden's main period of work; a campaign is a focused effort beside it. A promise can also stand on its own.
+3. Check which part is yours:
+
+| Kind | Who provides the help? | Who normally confirms it? |
+|---|---|---|
+| **Offer** | The person making the offer | The person it is made to or who takes it up |
+| **Request** | The person who takes up the request | The person who asked |
+
+A promise can name a group of confirmers instead. The person doing the work and everyone on its contributing team are excluded from confirming it, including through a steward fallback.
+
+**Example:** you offer a seedling-care session, and a neighbour takes it up. You do the session and supply evidence; your neighbour confirms it. If your neighbour requests the session first and you take it up, you still provide the help and your neighbour still confirms it.
+
+### 2. Make a promise or take one up
+
+**To make one:**
+
+1. Use **+** in the garden's Promises and choose an offer or request.
+2. Follow the questions about the kind of help, how much, and its details. Garden work names the garden's actions; other help uses proof such as photos, notes, or links.
+3. Read the final review, including who acts next, then choose **Make This Offer**, **Make This Request**, or **Request This Work**, as shown.
+
+**To take one up:**
+
+1. Open it and choose **Take This Up**. If it shows **Ask to take this up**, your request waits for a steward's decision.
+2. Read your request's status before making plans around it. Asking does not reserve the promise: someone else may be accepted first.
+
+**To help on an existing team:** open the promise's **Team** section. If it offers **Join the Team**, connect to the internet, choose it, and wait for your name to appear in the team record. If the lead chooses who joins, ask them instead. Joining does not take the promise up again or count as a contribution; add your actual work or proof before the team is fixed.
+
+Watch the saved or sending status after making or taking up a promise. A promise waiting on this phone is not yet a shared agreement. Return to **Promises** and use its send or retry control when the status asks you to.
+
+### 3. Record what you contributed
+
+:::warning Finish the team's contributions first
+When a promise becomes ready for confirmation, its team and contribution record are fixed. For garden work, counted approvals and any required assessment can make this happen automatically; there is no manual Send for Confirmation step. For other proof, read the warning before sending. Joining the team alone does not count as a contribution.
+:::
+
+Use the evidence path the promise asks for:
+
+**Garden work**
+
+1. Open the promise and choose **Link Work**. Pick an existing submission that matches the garden and action, or start the work submission offered for the required row.
+2. If the same action appears more than once, choose the exact requirement it fulfils. Check the submission before choosing **Link This Work**.
+3. Follow the work through review. **Linked**, **Approved**, and **Counted toward this promise** are different results. An approved item may still say **Approved · waiting for a steward to count it**; ask your steward to check it rather than submitting the work again.
+
+Work does not need a promise to be valid. When starting from [Submit Work](/community/gardener-guide/uploading-your-work), the optional **Promise** choice can connect it to the right requirement.
+
+**Other help or services**
+
+1. Choose **Add Proof**, add evidence and a short explanation, then review it.
+2. Choose **Add This Proof**. The lead can use **Add and Send** when offered, or return to the promise and choose **Send for Confirmation** once the team is finished.
+
+### 4. Let the right person confirm
+
+1. The eligible confirmer opens the promise and checks the evidence. The action is **Confirm It Was Kept**; the review may ask **Did the help arrive?** or **Was the work you asked for done?**
+2. Read the confirmation count before confirming. One person's confirmation may be only part of a group's required total.
+3. If the promise is not ready to be called kept, use **Not Yet** when offered and explain what still needs doing. This sends a note to the stewards; it does not cancel the promise. Sending that note needs a connection.
+
+## How you know it worked
+
+The promise's record shows it as **kept** once enough valid confirmations have arrived. A confirmation saved on your phone or still sending has not reached that result yet. Read the history to see who confirmed and whether a steward used a fallback with a reason.
+
+## What happens next
+
+For linked garden work, a steward reviews the work first; the promise's eligible confirmer acts after its requirements are counted. For other proof, the lead sends it for confirmation, then the eligible confirmer acts.
+
+**Kept does not mean paid.** The current release does not create new money-reward promises or send their payouts. Donations to the garden's shared fund and endowments are separate arrangements.
+
+## If something goes wrong
+
+| What you see | What to do |
+|---|---|
+| **Promises are not ready here yet**, or the pool is not open | Ask your steward whether this garden is taking promises. A visible record does not mean every action is available |
+| No take-up or proof action | Check your account, garden membership, whose turn it is, and whether an action is already waiting to send |
+| A request is waiting or declined | Read its status and reason. A steward acts next on a waiting request; ask again only when the page offers a new request |
+| Approved work is not counted | Look for **Link It** if it is not linked. If it is linked, ask your steward to check its counting status |
+| **Team set** | New people cannot join. Tell your steward about a missing contribution; do not recreate the work to get around it |
+| A send is waiting or uncertain | Keep the same account and device. Read its status and history before retrying. Do not create a duplicate; see [Recover Unsent Work](/community/gardener-guide/recovery-and-sync) |
+
+**Need to take back your own offer or request?** Before anyone takes it up, the creator may see **Withdraw This**. It needs a connection and a reason; review **Withdraw This Offer** or **Withdraw This Request** before confirming. Once someone has taken it up, ask your steward about the existing record. Withdrawal is not a universal undo, and taking it up is different from joining a team, which also needs a connection.
+
+If the record still does not make sense, send its link to your steward. For an app problem, open **Profile → Help**.
+
+## Next step
+
+<NextBestAction
+  title="Record the work"
+  why="If your promise requires garden work, record the real task and link it to the requirement it fulfils."
+  actionLabel="Submit Work"
+  actionHref="/community/gardener-guide/uploading-your-work"
+/>

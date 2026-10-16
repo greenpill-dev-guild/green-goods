@@ -269,15 +269,19 @@
       "implementation": "implemented",
       "deployment": "deployed",
       "activation": "active",
-      "integration": "not-integrated",
-      "availability": "deployed-not-available",
+      "integration": "integrated",
+      "availability": "available",
       "evidence": [
         {
-          "file": "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol",
-          "note": "Cycle struct and lifecycle interface are implemented in the deployed pooling boundary."
+          "file": "docs/releases/2.0.0/README.md",
+          "note": "The released Garden coordination cut includes offers/requests and seasons/campaigns. Its October 14 production read-back returned commitments and cycles with the app field lists; a live public open season and the actual Promises tab were read in Brave on October 15. This does not establish signed mutation or payout proof."
+        },
+        {
+          "file": "packages/shared/src/config/app.ts",
+          "note": "The app release defers new money-reward promises and settlement writes. Entity availability describes the included coordination only; chain/action permissions and pool state still apply."
         }
       ],
-      "verified_at": "2026-08-15"
+      "verified_at": "2026-10-15"
     },
     {
       "ref": "entity:commitment-series",
@@ -344,15 +348,19 @@
       "implementation": "implemented",
       "deployment": "deployed",
       "activation": "active",
-      "integration": "not-integrated",
-      "availability": "deployed-not-available",
+      "integration": "integrated",
+      "availability": "available",
       "evidence": [
         {
-          "file": ".plans/active/commitment-pooling/status.json",
-          "note": "Onchain coordination is active; product integration and user surfaces remain blocked."
+          "file": "docs/releases/2.0.0/README.md",
+          "note": "The released Garden coordination cut includes offers/requests and seasons/campaigns. Its October 14 production read-back returned commitments and cycles with the app field lists; a live public open season and the actual Promises tab were read in Brave on October 15. This does not establish signed mutation or payout proof."
+        },
+        {
+          "file": "packages/shared/src/config/app.ts",
+          "note": "The app release defers new money-reward promises and settlement writes. Entity availability describes the included coordination only; chain/action permissions and pool state still apply."
         }
       ],
-      "verified_at": "2026-08-15"
+      "verified_at": "2026-10-15"
     },
     {
       "ref": "entity:commitment-contributor",
@@ -718,18 +726,26 @@
     },
     {
       "id": "commitment-pooling",
-      "claim": "Green Goods has deployed onchain coordination for bounded offers, requests, cycles, contributors, and confirmation.",
+      "claim": "Green Goods includes Garden promise coordination: offers, requests, work linking, and independent confirmation.",
       "audience": ["steward", "community", "partner"],
-      "maturity": "deployed-not-available",
+      "maturity": "available",
       "term_refs": ["entity:commitment-pool", "entity:commitment"],
       "evidence": [
         {
-          "file": ".plans/active/commitment-pooling/status.json",
-          "note": "Pooling is unpaused with 18 registered pools; the Arbitrum indexer and shared reads are available for the staging QA walkthrough, while the product flow stays pre-release until that QA lands."
+          "file": "docs/releases/2.0.0/README.md",
+          "note": "The October 14 release receipt records the production 2.0 rollout, live pooling/indexer read-back, and read-only Garden/season observation. The 2.0.1 hotfix preserves the narrowed scope."
+        },
+        {
+          "file": "packages/shared/src/config/app.ts",
+          "note": "SETTLEMENT_ENABLED remains false. New money-reward creation and settlement mutations stay blocked; deployed settlement contracts do not establish app availability."
+        },
+        {
+          "file": "packages/shared/src/modules/commitment-pooling/selectors.ts",
+          "note": "The supported-chain capability gate and open Garden pool still determine availability. Public production Garden and Promises reads were observed in Brave on October 15; no signed action or payout was performed."
         }
       ],
-      "safe_wording": "The coordination protocol is deployed, but it is not yet an available Green Goods product flow.",
-      "verified_at": "2026-09-03"
+      "safe_wording": "Garden promises, work linking, and confirmation are included in the 2.0 release on supported, open Garden pools. New money-reward promises and settlement writes are deferred.",
+      "verified_at": "2026-10-15"
     },
     {
       "id": "community-needs",

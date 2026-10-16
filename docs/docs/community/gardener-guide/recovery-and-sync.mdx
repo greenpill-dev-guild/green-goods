@@ -14,6 +14,9 @@ prereqs: "The installed app, the account you used to record the work, and a conn
 next_steps: "/community/gardener-guide/track-status-and-attestations"
 persona_context: "Gardeners who recorded work with a weak or missing signal and need to get it to their steward."
 source_of_truth:
+  - packages/client/src/views/Home/Garden/Commitment/QueuedActRow.tsx
+  - packages/client/src/views/Home/Garden/Commitment/CommitmentTeam.tsx
+  - packages/client/src/views/Home/Garden/Commitment/CommitmentActionBar.tsx
   - packages/client/src/views/Home/WorkDashboard/PendingTab.tsx
   - packages/client/src/views/Home/WorkDashboard/buildPendingRows.ts
   - packages/client/src/views/Home/WorkDashboard/uploadActions.tsx
@@ -130,6 +133,12 @@ If you choose **Discard**, a confirmation asks **Discard this work?** Tap **Keep
 - The item's label reads **In review**.
 - A message says how many items were uploaded and that they were saved to the garden's record.
 - The number on the **Your Work** button drops.
+
+## Promise actions waiting on this phone
+
+A promise action can have its own saved or sending status. Return to that garden's **Promises**, open the same record, and read the queued action before using its send or retry control. **Your Work → Pending** also holds queued proof when the proof flow directs you there. Do not treat every promise action as an ordinary work upload or create another promise to replace an uncertain send.
+
+Taking back an untaken offer or request and joining a team need a connection; they do not become an offline promise to act later. See [Make and keep a promise](/community/gardener-guide/commitments#if-something-goes-wrong) for the action-specific next step.
 
 ## What happens next
 

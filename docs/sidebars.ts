@@ -16,6 +16,7 @@ const sidebars: SidebarsConfig = {
         {type: 'doc', id: 'community/gardener-guide/joining-a-garden', label: 'Join a Garden'},
         {type: 'doc', id: 'community/gardener-guide/uploading-your-work', label: 'Submit Work'},
         {type: 'doc', id: 'community/gardener-guide/track-status-and-attestations', label: 'Track Your Work'},
+        {type: 'doc', id: 'community/gardener-guide/commitments', label: 'Commitments'},
         {type: 'doc', id: 'community/gardener-guide/recovery-and-sync', label: 'Recover Unsent Work'},
       ],
     },

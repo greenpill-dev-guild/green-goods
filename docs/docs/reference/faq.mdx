@@ -8,6 +8,10 @@ owner: docs
 last_verified: 2026-10-12
 feature_status: Live
 source_of_truth:
+  - packages/shared/src/modules/commitment-pooling/acts.ts
+  - packages/shared/src/config/app.ts
+  - packages/contracts/src/lib/CommitmentPooling/ConfirmLib.sol
+  - packages/client/src/views/Home/Garden/Commitment/CommitmentTeam.tsx
   - packages/client/src/routes/presentationMode.ts
   - packages/client/src/views/Login/index.tsx
   - packages/client/src/views/Profile/AccountInfo.tsx
@@ -149,6 +153,44 @@ Many gardens have a shared fund that gardeners can claim from, in the app, under
 
 </FaqQuestion>
 
+## Promises
+
+<FaqQuestion id="why-can-i-not-take-up-a-promise" question="Why can I not take up a promise?">
+
+Check that you are using the account that joined the garden, that its pool is open, and that someone else has not already taken it up. An action already waiting to send can also hide the button. **Ask to take this up** waits for a steward; it is not an accepted promise yet. See [make or take up a promise](/community/gardener-guide/commitments#2-make-a-promise-or-take-one-up).
+
+</FaqQuestion>
+
+<FaqQuestion id="who-confirms-a-promise" question="Who confirms a promise was kept?">
+
+Usually the person receiving the help: whoever takes up an offer, or the person who made a request. A promise can name a group and require more than one confirmation. The provider and contributing team cannot confirm their own promise, even as stewards. Read the [confirmation step](/community/gardener-guide/commitments#4-let-the-right-person-confirm).
+
+</FaqQuestion>
+
+<FaqQuestion id="approved-work-promise-still-waiting" question="My work was approved. Why is the promise still waiting?">
+
+The work must be linked to the right requirement and its approval counted. Other required work or an assessment may still be missing. When those are complete, the eligible confirmer still has to confirm the promise. Ask your steward about an approval waiting to be counted; do not submit the same work again. See [work for a promise](/community/gardener-guide/track-status-and-attestations#work-for-a-promise).
+
+</FaqQuestion>
+
+<FaqQuestion id="can-i-withdraw-a-promise" question="Can I withdraw a promise?">
+
+The creator can withdraw an offer or request before someone takes it up, when **Withdraw This** is offered. It needs a connection and a reason. Once it is taken up, ask your steward about the existing record. Withdrawal is not a universal undo. See [promise recovery](/community/gardener-guide/commitments#if-something-goes-wrong).
+
+</FaqQuestion>
+
+<FaqQuestion id="promise-without-internet" question="What happens to a promise action without internet?">
+
+Read the action's status: some actions save on this phone, while joining a team and withdrawing need a connection. A saved action has not arrived yet. Keep its existing record and use the send or retry control it offers; do not create a duplicate. See [promise actions waiting on this phone](/community/gardener-guide/recovery-and-sync#promise-actions-waiting-on-this-phone).
+
+</FaqQuestion>
+
+<FaqQuestion id="does-kept-mean-paid" question="Does kept mean paid?">
+
+No. Kept records that the required confirmation arrived. The 2.0 release defers new money-reward promises and settlement payouts. Existing payment histories can remain readable, but a pending transfer is not money received. Donations and endowments remain separate ways to [support a garden](/community/funder-guide/).
+
+</FaqQuestion>
+
 ## Privacy
 
 <FaqQuestion id="is-what-i-upload-private" question="Is what I upload private?">
@@ -260,7 +302,7 @@ Write assessments: a garden's starting point, its goals, and what it will measur
 
 <FaqQuestion id="what-can-people-use-right-now-and-what-is-still-being-built" question="What can people use right now, and what is still being built?">
 
-[Honest Claims](/community/green-goods-claims) keeps the current list. Gardens, documenting work, steward review, assessments, donations, and endowments are in use. Impact certificates are still being switched on. Community voting on priorities is not available.
+[Honest Claims](/community/green-goods-claims) keeps the current list. Gardens, documenting work, steward review, assessments, donations, endowments, and Garden promises are in use. New money-reward promises and settlement payouts are deferred. The [promise guide](/community/gardener-guide/commitments) explains the included flow. Impact certificates are still being switched on. Community voting on priorities is not available.
 
 </FaqQuestion>
 

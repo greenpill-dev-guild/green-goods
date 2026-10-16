@@ -15,6 +15,9 @@ prereqs: "At least one piece of work started or submitted."
 next_steps: "/community/gardener-guide/recovery-and-sync"
 persona_context: "Gardeners waiting on a steward's review, or wondering what happens after approval."
 source_of_truth:
+  - packages/client/src/views/Home/Garden/Commitment/CommitmentWork.tsx
+  - packages/shared/src/modules/commitment-pooling/acts.ts
+  - packages/contracts/src/lib/CommitmentPooling/WorkCreditLib.sol
   - packages/client/src/views/Home/WorkDashboard/index.tsx
   - packages/client/src/views/Home/WorkDashboard/PendingTab.tsx
   - packages/client/src/views/Home/WorkDashboard/CompletedTab.tsx
@@ -136,6 +139,12 @@ What approval does not do:
 
 - **It does not pay you by itself.** No payment is attached to an approval.
 - **It does not measure the outcome.** It records a steward's review of your evidence. It is not a scientific measurement of what changed.
+
+### Work for a promise
+
+If your work contributes to a promise, open that promise from the garden's **Promises** tab. **Linked** means the work is attached to it. **Approved** means a steward reviewed the work. **Counted toward this promise** means that approval reached its requirement. If approved work is still waiting to be counted, ask your steward to check the existing record; do not upload a duplicate.
+
+Once the required work is counted, the eligible confirmer acts next. Confirmation that the promise was kept is separate from work approval and from payment. The [promise guide](/community/gardener-guide/commitments) covers both garden-work and other-proof paths.
 
 ### How gardeners get rewarded
 

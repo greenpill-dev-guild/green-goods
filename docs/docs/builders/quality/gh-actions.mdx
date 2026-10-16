@@ -26,7 +26,7 @@ generated_from:
   - package.json
   - scripts/data/validation-policy.json
   - scripts/data/workflow-catalog.json
-source_digest: "sha256:0bc6c820a4611bc6c519b1294900462455791da62b00b7451cc2803673b31d1c"
+source_digest: "sha256:38cd64ef6c3aad14a36314f63be668a0769b15500c6081e1e51ce57c71267f99"
 source_of_truth:
   - .github/workflows/admin.yml
   - .github/workflows/agent.yml
@@ -72,7 +72,7 @@ import {CopyCommand} from "@site/src/components/docs";
 | [Design](#design) | Checks the design system: Storybook, story coverage, and DesignMD token parity, with optional Chromatic publishing. | pull requests that touch its paths (44 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
 | [Docs](#docs) | Tests the docs generators, audits documentation authority, checks that generated projections and ontology pages are current, and builds the docs site. | pull requests that touch its paths (78 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
 | [Indexer](#indexer) | Builds and tests the Envio indexer handlers against the contract ABIs and deployment artifacts. | pull requests that touch its paths (10 path filters); pushes to `main` and `develop` that touch its paths | No |
-| [Ontology](#ontology) | Validates the ontology sidecar against the code it anchors and keeps its generated reference pages current. | pull requests that touch its paths (93 path filters); pushes to `main` and `develop` that touch its paths | No |
+| [Ontology](#ontology) | Validates the ontology sidecar against the code it anchors and keeps its generated reference pages current. | pull requests that touch its paths (96 path filters); pushes to `main` and `develop` that touch its paths | No |
 | [Release](#release) | Builds and publishes a tagged release. | pushed tags matching `v*.*.*` | No |
 | [Shared](#shared) | Typechecks and tests the shared package: hooks, providers, protocol modules, and UI foundations. | pull requests that touch its paths (12 path filters); pushes to `main` and `develop` that touch its paths; a schedule (`19 7 * * 1` UTC) | No |
 | [Supply Chain Guardrails](#supply-chain-guardrails) | Four lanes over the repository's own safety surfaces: formatting on every run; the supply-chain audit of manifests, lockfiles, and the release-age rule; guidance integrity (agent guidance, skill contracts, immutable plan reports, the QA test ID ledger, test quality, and plan hub validation); and workflow performance parity, which pins the validation selector, the git hooks, and the package test configurations. | pull requests that touch its paths (39 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
@@ -202,7 +202,7 @@ Builds and tests the Envio indexer handlers against the contract ABIs and deploy
 Validates the ontology sidecar against the code it anchors and keeps its generated reference pages current.
 
 - **Use it when:** Ontology edits, the data model and entity matrix projections, or a source the sidecar points at.
-- **Runs on:** pull requests that touch its paths (93 path filters); pushes to `main` and `develop` that touch its paths.
+- **Runs on:** pull requests that touch its paths (96 path filters); pushes to `main` and `develop` that touch its paths.
 - **Jobs:** `ontology-drift`.
 - **Required status:** no, but the CI Gate waits for it on a pull request that touches its paths.
 - **File:** [.github/workflows/ontology.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/ontology.yml)
