@@ -550,9 +550,7 @@ function renderEvidenceList(evidence) {
 export function renderMarketingClaimsMdx(projections) {
   const lines = [
     "---",
-    "title: What Green Goods Can Honestly Claim",
-    "sidebar_label: Capability & Claims",
-    "slug: /community/green-goods-claims",
+    "title: Capability and claims evidence",
     "audience: all",
     "owner: docs",
     "feature_status: Live",

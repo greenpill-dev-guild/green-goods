@@ -1,3 +1,5 @@
+// Initialize module spies before any provider imports a mocked hook.
+import "storybook/internal/mocking-utils/mocker-runtime";
 import "./storybook.css";
 import type { Preview } from "@storybook/react";
 import { sb } from "storybook/test";

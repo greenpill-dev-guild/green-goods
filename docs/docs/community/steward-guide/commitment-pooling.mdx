@@ -1,17 +1,17 @@
 ---
-title: Run a Commitment Pool
-sidebar_label: Commitment Pool
-slug: /community/steward-guide/commitment-pooling
-description: "Open your garden's pool, seed promises, review participation and confirmation, and close a season safely."
+title: Open a Pool
+sidebar_label: Open a Pool
+slug: /community/steward-guide/open-a-pool
+description: "Set your garden's promise rules and open its first season or campaign."
 audience: steward
 owner: docs
 last_verified: 2026-10-15
 feature_status: Live
-goal: "Run the released Garden promise flow and distinguish work review, confirmation, and payment."
+goal: "Set your garden's promise rules and open its first season or campaign."
 difficulty: "standard"
-estimated_time: "10 minutes to read. Wallet prompts and review time vary."
+estimated_time: "3 to 5 minutes to read. Signing and review time vary."
 prereqs: "Steward access to the selected garden, its registered pool, and a connection for setup and direct changes."
-next_steps: "/community/steward-guide/reviewing-work"
+next_steps: "/community/steward-guide/seed-promises"
 persona_context: "Stewards setting shared rules, preparing promises, and keeping reviews moving."
 source_of_truth:
   - packages/admin/src/views/Garden/Pool
@@ -42,28 +42,28 @@ keywords:
 
 import {NextBestAction, StewardPathNav} from "@site/src/components/docs";
 
-# Run a Commitment Pool
+# Open a Pool
+
+Open a shared place for your garden's promises. Agree the participation rules and the season or campaign before people take work up.
+
+<figure className="gg-figure gg-overview-photo gg-guide-opening">
+  <img src="/img/community/guide-open.webp" alt="A community arranges a seasonal plan together around a workshop table." width="1774" height="887" loading="eager" />
+</figure>
 
 <StewardPathNav />
 
-A pool is your garden's shared place for promises and the rules for taking part. Use it to agree what help is needed, follow the evidence, and confirm what was kept.
-
-:::info Scope of the 2.0 release
-Garden promises, work linking, participation review, and confirmation are included. New money-reward promises, settlement-account configuration, and payout actions are deferred, even where an older funding record is readable. Use promises without a money reward in this guide; work approval and confirmation do not pay anyone.
-:::
 
 ## Before you start
 
-- Sign in to [the steward dashboard](https://admin.greengoods.app) with access to this garden. [Get steward access](/community/steward-guide/#get-steward-access) if needed.
-- Check the garden name at the top left, then open **Garden → Promises**. Each review names the pool it affects; read that target before signing.
-- The pool must be registered. If the page says it is not registered or cannot be read, resolve that with the person responsible for your garden's setup. A read failure does not prove there is no pool.
-- Agree the purpose, per-person commitment limit, season or campaign, evidence rules, and independent confirmers with your garden. Have a steady connection for setup and direct changes.
+- Sign in to [the steward dashboard](https://admin.greengoods.app) with access to the selected garden. [Get steward access](/community/steward-guide/#get-steward-access) if needed.
+- Check the garden name at the top left, then open **Garden → Promises**. Read the target before signing.
+- Have a steady connection for setup and direct changes. New money-reward promises, settlement configuration and payouts are deferred.
+- The pool must be registered. A read failure does not prove there is no pool; ask the person responsible for garden setup.
+- Agree the purpose, commitment limit, dates, recognition split and evidence rules.
 
 ## Steps
 
-### 1. Set up the pool and open a season
-
-If the pool is **Not Ready**, choose **Set Up Commitments**. If it is already taking commitments, read its existing rules and continue to step 2.
+If the pool is **Not Ready**, choose **Set Up Commitments**. If it is already taking commitments, read its existing rules and continue to [Seed Promises](/community/steward-guide/seed-promises).
 
 :::warning Opening fixes the split
 A season or campaign's split becomes fixed when it opens. Read it before signing. A prepared season is only written down; people cannot make promises in it until it opens.
@@ -77,91 +77,22 @@ A season or campaign's split becomes fixed when it opens. Read it before signing
 
 Use **Pool Settings** to change the agreement or commitment limit later. A save can contain more than one change. If it stops partway, the successful changes remain recorded; inspect the progress and current pool before retrying what remains.
 
-### 2. Seed promises people can take up
-
-Choose **Seed Promises**. As an illustrative example, your garden can request seedling-care sessions with a required planting action and a named independent reviewer.
-
-1. In **What**, choose whether the pool offers help or requests it, the kind of promise, its title, and its season or campaign.
-2. In **How Much**, set how many promises to create and what each asks for. For garden work, choose the required action rows and counts. Check the team policy and deadline.
-3. In **Proof & Confirmation**, choose who can confirm, how many confirmations are needed, and whether taking it up needs steward approval. The provider and contributing team cannot confirm their own promise. A named group must have enough independent people to meet its threshold.
-4. Leave **Does this come with a reward?** at **No** for this release. A displayed old reward or active contract is not permission to create a new money reward.
-5. In **Review**, check each answer. Use **Add Another** if preparing different promises together, then choose **Create Promise** or **Create … Promises**, as shown.
-6. Read the result for every promise. A created or queued item is not the same as one recorded by the shared system. Return to **Promises** and use **Send Now** only for the row whose status asks for it.
-
-**Success:** the intended promises appear in the pool with the right terms and current status. A partly completed batch stays partly completed; do not recreate its successful rows.
-
-### 3. Review who takes a promise up
-
-Open **Review Promises** in the pool. For each waiting request, check the promise, the account or garden taking it up, and any reason before choosing **Accept** or declining it.
-
-Acceptance sends directly when you choose **Accept** and confirm any signing prompt. Check the result before acting again. A request from a steward on behalf of another garden names that garden as the provider; the person who sent the request is a separate identity.
-
-The pool may also allow eligible members to take promises up directly. Those do not need a separate participation decision from you.
-
-### 4. Keep work review and promise confirmation separate
-
-**Before readiness, check the team and contributions.** Readiness freezes them. Nobody on that team may confirm the promise, even if they also have a steward role.
-
-For **garden work**, use the existing [Review Work guide](/community/steward-guide/reviewing-work) to review the linked submission. A work item can be linked and approved without its approval being counted toward the promise yet. If it says **Approved · waiting for a steward to count it**:
-
-1. In **Garden → Promises**, open the affected promise and inspect its requirements and **Recovery** section.
-2. When **Count Approved Linked Work** shows approved links waiting, choose **Count Linked Work**.
-3. Read the named promise and the warning that counting can fix the team, then confirm **Count Linked Work**.
-4. Wait for **Approved linked work counted.** If it reads **Waiting for indexed confirmation…**, check that result before retrying. If a newer work decision needs review, return to the work record first. Do not ask the gardener to upload a duplicate.
-
-If the promise requires an assessment, ask an evaluator or steward to [make an assessment](/community/evaluator-guide/making-an-assessment) for the provider garden. Before readiness, choose **Attach Assessment…** when offered, then review **Attach an Assessment** and choose the current assessment that applies. If none is listed, record it for that provider garden first; an assessment from another garden does not fill the requirement.
-
-Counted work that meets all required rows, together with any required assessment, can make the promise ready for confirmation automatically. Do not use **Send for Confirmation** as the garden-work readiness step. Other supported proof flows have their own send-for-confirmation action.
-
-For confirmation:
-
-1. Open **Hub → Confirm** and check the selected garden in the header. It scopes your authority; a row can concern another garden's pool if this garden has permission to confirm it.
-2. Open **Confirm Kept…** and read the target, provider, evidence, and confirmation count.
-3. Confirm only if the promise was kept and you are eligible. Your confirmation may be one of several required; watch the count after it arrives.
-
-Fallback and disputed decisions have separate reviews and record their reason. Do not use fallback to approve your own contribution. Protocol-wide coordination lives in **Community → Coordination** and is outside this garden runbook.
-
-### 5. End a season, then decide whether to archive it
-
-1. Check that every commitment in the season has finished. If the page says some are still live, follow those records first. The end date alone does not finish them.
-2. Choose **End Season…** or **End Campaign…**, check the named target, and confirm while online. The record becomes **Reconciled** and stops accepting commitments in that period.
-3. If the garden wants an impact certificate and certificate creation is available, [make it while the season is reconciled](/community/steward-guide/creating-impact-certificates).
-4. Only then consider **Archive…**. Read **Archive This Season** or **Archive This Campaign** before confirming. Archiving is final and prevents making a certificate from that cycle later; its history remains readable.
-
 ## How you know it worked
 
-- The pool and its intended season show they are open, rather than merely prepared.
-- Each seeded promise has its own visible result; nothing remains only in the local queue unnoticed.
-- Kept promises show the required confirmation result and who confirmed them.
-- An ended season reads **Reconciled**. It is separate from the later archive action.
+The pool and intended season show they are open, rather than merely prepared.
 
 ## What happens next
 
-Members make or take up promises, the people providing help add evidence, stewards review required work, and eligible confirmers decide whether the promise was kept. Share the [gardener guide](/community/gardener-guide/commitments) so each person knows their part.
-
-A kept promise is a coordination result. This release does not send new promise payouts. Existing transfer histories may still show pending or completed records; dispatch is not proof that money arrived. The [funding guide](/community/steward-guide/funding-and-governance) explains the separate shared fund and endowment.
+Seed the promises people can take up. A season is the main period, with only one running at a time; a campaign is a focused effort that can run beside it or on its own.
 
 ## If something goes wrong
 
-| What you see | What to do |
-|---|---|
-| Setup stopped after some changes | Read the progress list and existing pool or season. Keep what landed; retry only the unfinished changes |
-| A wallet prompt closed without a clear result | Check the current record and transaction status first. An uncertain broadcast needs checking, not an assumed retry |
-| A promise remains on this device | Use its current send/retry control. Keep successful rows and avoid creating the same promise again |
-| The pool is paused | Read why. An authorized steward can use **Resume Pool** when appropriate; wait for the updated status before continuing |
-| A second season cannot open | Finish the running season, or start a campaign beside it. Do not create duplicate seasons to bypass the rule |
-| Work is approved but the promise is waiting | Check the exact linked requirement, counting status, other required work, and any required assessment |
-| A required assessment is missing | Record it for the provider garden, then use **Attach Assessment…** before readiness; see [Make an Assessment](/community/evaluator-guide/making-an-assessment) |
-| You cannot confirm | Check whose confirmation is required, the threshold, the selected garden, and whether you contributed. Steward access does not override self-confirmation rules |
-| The funding record is visible but money controls are missing | New money rewards and settlement actions are deferred in this release. Do not retry them through another screen |
+If pool creation or season creation has an uncertain result, check the garden’s pool and season list before trying again. A pool that already exists does not need to be opened twice.
 
-Ask another steward or the garden owner about the record first. For an app problem, open **Settings → Support** in the dashboard. On a phone, find **Settings** under **Profile**. Share the affected promise's link.
+If a second season cannot open, finish the running season or use a campaign. If the pool is paused, read why; an authorized steward can use **Resume Pool** when appropriate.
+
+For an app problem, open **Settings → Support** in the dashboard. On a phone, find **Settings** under **Profile**. Share the affected record's link.
 
 ## Next step
 
-<NextBestAction
-  title="Review the evidence"
-  why="For garden-work promises, the next useful step is to review the submitted work and check its counting status."
-  actionLabel="Review Work"
-  actionHref="/community/steward-guide/reviewing-work"
-/>
+<NextBestAction title="Seed Promises" why="Create the work and help that members can take up in this period." actionLabel="Seed Promises" actionHref="/community/steward-guide/seed-promises" />

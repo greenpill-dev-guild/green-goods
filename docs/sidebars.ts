@@ -16,7 +16,9 @@ const sidebars: SidebarsConfig = {
         {type: 'doc', id: 'community/gardener-guide/joining-a-garden', label: 'Join a Garden'},
         {type: 'doc', id: 'community/gardener-guide/uploading-your-work', label: 'Submit Work'},
         {type: 'doc', id: 'community/gardener-guide/track-status-and-attestations', label: 'Track Your Work'},
-        {type: 'doc', id: 'community/gardener-guide/commitments', label: 'Commitments'},
+        {type: 'doc', id: 'community/gardener-guide/commitments', label: 'Make a Promise'},
+        {type: 'doc', id: 'community/gardener-guide/keep-a-promise', label: 'Keep a Promise'},
+        {type: 'doc', id: 'community/gardener-guide/confirm-a-promise', label: 'Confirm a Promise'},
         {type: 'doc', id: 'community/gardener-guide/recovery-and-sync', label: 'Recover Unsent Work'},
       ],
     },
@@ -28,11 +30,14 @@ const sidebars: SidebarsConfig = {
         {type: 'doc', id: 'community/steward-guide/managing-members', label: 'Manage Members'},
         // Stewards write assessments too, and an assessment comes before the work it frames.
         // The page lives in the Evaluator guide; this entry links to it.
-        {type: 'ref', id: 'community/evaluator-guide/making-an-assessment', label: 'Make an Assessment'},
+        {type: 'ref', id: 'community/evaluator-guide/making-an-assessment', label: 'Make an Initial Assessment'},
         {type: 'doc', id: 'community/steward-guide/reviewing-work', label: 'Review Work'},
-        {type: 'doc', id: 'community/steward-guide/commitment-pooling', label: 'Commitment Pool'},
+        {type: 'doc', id: 'community/steward-guide/commitment-pooling', label: 'Open a Pool'},
+        {type: 'doc', id: 'community/steward-guide/seed-promises', label: 'Seed Promises'},
+        {type: 'doc', id: 'community/steward-guide/review-promises', label: 'Review Promises'},
+        {type: 'doc', id: 'community/steward-guide/end-a-season', label: 'End a Season'},
         {type: 'doc', id: 'community/steward-guide/creating-impact-certificates', label: 'Mint Impact Certificate'},
-        {type: 'doc', id: 'community/steward-guide/funding-and-governance', label: 'Funding and Governance'},
+        {type: 'doc', id: 'community/steward-guide/funding-and-governance', label: 'Manage Garden Funding'},
       ],
     },
     {
@@ -40,7 +45,7 @@ const sidebars: SidebarsConfig = {
       label: 'Evaluator',
       link: {type: 'doc', id: 'community/evaluator-guide/index'},
       items: [
-        {type: 'doc', id: 'community/evaluator-guide/making-an-assessment', label: 'Make an Assessment'},
+        {type: 'doc', id: 'community/evaluator-guide/making-an-assessment', label: 'Make an Initial Assessment'},
       ],
     },
     {
@@ -55,17 +60,6 @@ const sidebars: SidebarsConfig = {
     },
     {type: 'doc', id: 'reference/faq', label: 'FAQ'},
     {type: 'doc', id: 'reference/glossary.generated', label: 'Glossary'},
-    {type: 'doc', id: 'community/green-goods-claims.generated', label: 'Capability & Claims'},
-    {
-      type: 'category',
-      label: 'Reference',
-      collapsed: true,
-      items: [
-        {type: 'doc', id: 'reference/product-history', label: 'Product History'},
-        {type: 'doc', id: 'reference/brand', label: 'Brand kit'},
-        {type: 'doc', id: 'reference/credits', label: 'Credits'},
-      ],
-    },
   ],
 
   buildersSidebar: [
@@ -143,14 +137,8 @@ const sidebars: SidebarsConfig = {
       label: 'Reference',
       collapsed: true,
       items: [
-        {
-          type: 'category',
-          label: 'Garden setup (deployer)',
-          items: [
-            {type: 'doc', id: 'community/steward-guide/creating-a-garden', label: 'Create a Garden'},
-            {type: 'doc', id: 'community/steward-guide/managing-actions', label: 'Manage Actions'},
-          ],
-        },
+        {type: 'doc', id: 'community/steward-guide/creating-a-garden', label: 'Create a Garden'},
+        {type: 'doc', id: 'community/steward-guide/managing-actions', label: 'Manage Actions'},
         {type: 'doc', id: 'builders/reference/deployments', label: 'Deployments & Addresses'},
         {type: 'doc', id: 'builders/reference/economics-explorer', label: 'Economics Explorer'},
         {type: 'doc', id: 'reference/ontology.generated', label: 'Ontology'},

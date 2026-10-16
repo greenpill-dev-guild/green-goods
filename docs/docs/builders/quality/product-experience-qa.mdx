@@ -36,6 +36,11 @@ recover from, and trust this flow? Passing builds prove the code runs; a QA walk
 experience works. Anyone on the team can take one. If you can open the app and describe honestly
 what you saw, you are qualified.
 
+<figure className="gg-figure">
+  <img src="/img/screenshots/qa-app-priority-view.webp" alt="Synthetic QA app data in Priority view, with the P0 run-first band and priority chips visible" loading="lazy" />
+  <figcaption>The Priority view groups the run sheet into P0, P1, and P2 bands. This example uses synthetic data.</figcaption>
+</figure>
+
 ## Where QA happens
 
 Walks are recorded in the [QA app](https://qa.greengoods.app): a shared checklist where each tester
@@ -44,10 +49,6 @@ or N/A call and a short note, saved as you go. Blocked means a required path can
 means the case is outside the agreed scope. Each team pass is a **run**: the app records into the
 open run, a tester starts a new run before a re-QA, and closed runs stay readable and comparable.
 
-<figure className="gg-figure">
-  <img src="/img/screenshots/qa-app-priority-view.webp" alt="Synthetic QA app data in Priority view, with the P0 run-first band and priority chips visible" loading="lazy" />
-  <figcaption>The Priority view groups the run sheet into P0, P1, and P2 bands. This example uses synthetic data.</figcaption>
-</figure>
 
 The app can follow the catalog by area (**Walk**), by urgency (**Priority**), or as a
 cross-surface flow (**Journey**). [Test Cases](./test-cases) is the public catalog behind it,

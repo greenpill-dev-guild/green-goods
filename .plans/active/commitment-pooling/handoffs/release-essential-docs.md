@@ -361,3 +361,76 @@ the dashboard Support path is correct, and the existing FAQ fragment opens its u
 No page-wide overflow was observed at the desktop viewport. Rendered Docs proof is not signed
 product or device/offline proof. The post-commit Push Gate covers the full 38-file PR union,
 including the four focused consumer tests selected by the review plan; fresh CI must follow.
+
+
+## Action guides and visual consistency follow-up, October 15
+
+The user approved the preceding audit plan for PRD-1156 and requested implementation and a push
+into draft #1109, without merging. This section supersedes earlier scope notes that deferred
+release-essential illustrations and glossary explanations. It does not complete the PRD-727 hub.
+
+- The two pooling pages now become seven task pages: Make, Keep and Confirm a Promise; Open a
+  Pool, Seed Promises, Review Promises and End a Season. Existing broad URLs redirect to the
+  appropriate role guide's Promises section. Promises stays outside required onboarding.
+- Make an Initial Assessment names the supported baseline task. Evaluator guidance distinguishes
+  later/post/delta assessment without inventing a submission path: the current command creates
+  initial assessments only. A delta procedure, full pooling operations and product QA remain PRD-727.
+- Community navigation no longer contains Capability & Claims, Product History or a nested
+  Reference bucket. The claims evidence is still generated and checked at `docs/claims.generated.md`.
+  Historical research redirects to the actual archived files at tag v1.1.0; releases go to GitHub.
+  Brand and credits remain in the footer. Builder Reference loses the extra Garden setup level.
+- The glossary has 17 everyday concepts and 26 source-backed UI explanations. Promise keeps the
+  old Commitment fragment. Formal/technical legacy fragments lead to Builders ontology without
+  visible stub sections. Season and contributor notes distinguish live coordination from the
+  broader model or deferred payouts; application capability flags and chain gates are untouched.
+- All 26 community guides now have a visible opening image at desktop and phone sizes. Seventeen
+  distinct images were generated with the built-in image tool and reviewed; prompts, dimensions
+  and hashes live in `docs/assets/illustrations.json`. Editorial openings fill the article.
+  Standalone figures center; existing product figures pair the screenshot with explanation on
+  desktop and center it above the text on phones. Required third-party attribution is retained.
+- Three new Storybook captures show richer Your Work: multiple work items, linked drafts and
+  proofs, plus two approvals and a rejection. Recovery has its own To upload variant. Provenance
+  moved to `docs/assets/capture-ledger.json`; visible captions explain the task instead of saying
+  editorial illustration or repeating website/source metadata.
+
+Reuse: the existing role indexes, StewardPathNav, NextBestAction, figure CSS, projection renderer,
+TermAnchor and documentation fixture branch own this work. No new documentation framework or
+runtime pooling behavior was introduced. TermAnchor retains build-time anchor collection and
+adds legacy fragment forwarding. Docs audit explicitly checks valid credential-free HTTPS archive
+redirects while retaining internal target validation, with negative HTTP/credentials/script tests.
+New projection evidence inputs are added to Docs workflow and validation selection. The claims
+output path is updated in ontology workflow/selection; no check or baseline is weakened.
+
+Verification: Docs tests pass 96/96; generator/ontology tests pass 118/118, including the final availability-note
+assertions. The authority audit has zero hard findings and two existing endpoint advisories.
+Production Docs build and search cover 76/76 routes. The selected QA checks pass across Shared,
+Client, Admin and Agent, plus validation-system tests, source structure, test quality, ontology,
+generated outputs and story quality. Storybook production build passes (422 components / 2260
+stories). A temporary cross-checkout dependency-link issue was corrected locally without installing
+packages, changing manifests or changing the lockfile. Storybook preview explicitly initializes
+its mock runtime before provider imports so module spies work for these captures.
+
+Rendered proof: Brave extension, public localhost Docs static build and Storybook, 2026-10-15;
+26 community openings at 390×844 and 1440×1000, all with images in the initial viewport and no
+page-wide overflow. Screenshot/text pairs intentionally use side-by-side layout on desktop.
+Both light and dark appearance, navigation, glossary fragments, retired routes and search are
+checked as described in the PR. These are fictional fixture/public Docs reads, not authenticated
+wallet, signed mutation, physical-device, offline-storage, owner or unfamiliar-reader acceptance.
+The local static server has an existing `/brand` directory collision; Brand is outside the changed guide routes. Product route/deployment behavior was not changed
+for that preview quirk.
+
+Remaining PRD-727: detailed dispute/fallback/cancellation/expiry and protocol coordination;
+settlement/recovery/payouts, ongoing offers/exchange/credit, complete builder/partner narratives,
+post/delta assessment UX and guide, translations and outstanding signed/device/human QA. Videos
+remain PRD-728. Live PRD-1156 was observed In Progress and PRD-727 Todo; no Linear records or hub
+lane states were changed. The PR remains draft and unmerged.
+
+Task record: PRD-1156 / #1109 action guides | Type: guidance | Outcome: implementation verified
+Agent/model: Codex / GPT-6 | Coverage: this implementation follow-up
+
+| Phase | Start → end (UTC) | Result |
+|---|---|---|
+| Investigate / implement | 2026-10-16 01:50:18 → 02:26:02 | Current PR checked; approved source, navigation, glossary, imagery and fixture changes prepared. |
+| Verify / review | 2026-10-16 02:26:02 → ongoing | Docs/build, source checks, Storybook and rendered reading; publication evidence follows in PR/chat. |
+
+Human corrections: 0 observed in this segment; attention: unknown.

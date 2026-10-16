@@ -757,6 +757,16 @@ const auditSidebarAndRedirectTargets = async () => {
 
   const config = await fs.readFile(docusaurusConfigPath, "utf8");
   for (const match of config.matchAll(/\bto:\s*["']([^"']+)["']/g)) {
+    // The redirect plugin also supports external destinations for retired source material.
+    if (/^https?:/.test(match[1])) {
+      try {
+        const url = new URL(match[1]);
+        if (url.protocol !== "https:" || url.username || url.password) throw new Error("unsafe URL");
+      } catch {
+        fail("docs/docusaurus.config.ts", `Invalid external redirect target: ${match[1]}`);
+      }
+      continue;
+    }
     const target = redirectTarget(match[1]);
     if (!docSlugSet.has(target.slug)) {
       fail("docs/docusaurus.config.ts", `Redirect target not found: ${match[1]}`);

@@ -90,7 +90,7 @@ owns the community glossary and entity matrix (and other documentation views):
 - `docs/docs/reference/ontology.generated.mdx`
 - `docs/docs/builders/architecture/entity-matrix.mdx`
 - `docs/docs/reference/glossary.generated.mdx`
-- `docs/docs/community/green-goods-claims.generated.mdx`
+- `docs/claims.generated.md`
 - `packages/shared/src/ontology/agent-manifest.generated.json`
 
 Every output carries a generated-file notice and must remain deterministic.

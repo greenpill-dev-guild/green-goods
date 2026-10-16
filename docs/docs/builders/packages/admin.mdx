@@ -23,6 +23,11 @@ where stewards review submitted work, manage gardens and actions, and run their 
 operations. It's an operator surface by design, so it favors utility copy, one dominant workspace
 per route, and restrained color over marketing polish.
 
+<figure className="gg-figure">
+    <img src="/img/builders/admin-hub-work.webp" alt="The Hub workspace: the app bar with the garden chip, the Work tab listing approved submissions as cards, and the navigation dock" loading="lazy" width="2000" height="1250" />
+    <figcaption>The Hub on its Work tab: AppBar, workspace canvas, and the navigation dock.</figcaption>
+  </figure>
+
 The cockpit opens for an address that is a steward, owner, or evaluator of at least one garden; a
 protocol deployer also gets the protocol garden. Anyone else who signs in sees a no-access screen,
 where they can request steward access. A gardener or funder role alone does not open the cockpit,
@@ -37,10 +42,7 @@ profile, settings, and notifications render in a right-docked `AdminSideSheet` (
 mobile). The `/hub` route is the reference surface for new page composition.
 
 <div className="gg-figure-grid">
-  <figure className="gg-figure">
-    <img src="/img/builders/admin-hub-work.webp" alt="The Hub workspace: the app bar with the garden chip, the Work tab listing approved submissions as cards, and the navigation dock" loading="lazy" width="2000" height="1250" />
-    <figcaption>The Hub on its Work tab: AppBar, workspace canvas, and the navigation dock.</figcaption>
-  </figure>
+
   <figure className="gg-figure">
     <img src="/img/builders/admin-actions-registry.webp" alt="The Actions workspace: domain filter tabs, a search field, and two action cards, Water quality check and Canopy baseline, each with its status" loading="lazy" width="2000" height="1250" />
     <figcaption>The Actions workspace: the registry a steward maintains for the garden.</figcaption>
@@ -80,7 +82,7 @@ The admin reads through the same [indexer](./indexer) read models and shared
 the forked cockpit shell and the `Admin*` wrapper components.
 
 Commitment pooling spans three scopes, and the
-[steward commitment-pool guide](/community/steward-guide/commitment-pooling) walks the rendered
+[steward commitment-pool guide](/community/steward-guide/open-a-pool) walks the rendered
 setup, seed, Confirm, settings, cycle, and transfer reviews. The pool console owns the selected
 garden's pool and cycle context, the Hub's Confirm tab uses the selected confirming garden, and
 Community's Coordination tab holds protocol confirmations. Keep those scopes distinct when you

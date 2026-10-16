@@ -421,12 +421,12 @@
       "layers": {
         "docs": "docs/docs/reference/glossary.generated.mdx"
       },
-      "note": "No dedicated on-chain or typed representation today; the commitment-pooling Cycle (type Season) becomes its first formal representation.",
+      "note": "The commitment-pooling Cycle of type Season is its formal representation. A Campaign is another Cycle type, not the garden's main Season.",
       "relationships": [
         {
           "to": "commitment-cycle",
           "kind": "formalized-by",
-          "note": "implemented in Commitment Pooling; not yet integrated into the product surface"
+          "note": "implemented by the released Garden pooling surface"
         }
       ],
       "semantic_status": "canonical",
@@ -726,7 +726,7 @@
     }
   ],
   "personas_note": "The on-chain hat tree has six roles; the Owner hat carries full garden control but has no dedicated persona — owners act through the Steward surfaces.",
-  "supporting_terms_note": "Terms projected into the generated glossary's Term Reference section but deliberately excluded from the canonical entity and persona sets. Declaring them here prevents public definitions from accumulating orphan nouns.",
+  "supporting_terms_note": "Technical terms kept in this Builders reference and deliberately excluded from the canonical entity and persona sets. Declaring them here preserves their meaning and published glossary links.",
   "supporting_terms": [
     {
       "id": "domain",

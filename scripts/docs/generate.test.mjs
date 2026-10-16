@@ -648,6 +648,10 @@ test("glossary leads with plain entries for the everyday terms and keeps every a
   assert.doesNotMatch(rendered, /\| Term \| Type \|/);
   assert.doesNotMatch(rendered, /^## Domain Entities$/m);
   assert.match(rendered, /\/reference\/ontology#entities/);
+  assert.doesNotMatch(rendered, /## Builder reference|#### \[Domain entities/);
+  assert.match(everyday.text, /### Promise \{#promise\}/);
+  assert.match(rendered, /### Campaign \{#campaign\}/);
+  assert.match(rendered, /### Confirmer \{#confirmer\}/);
   // The anchors packages/client/src/views/Public/Glossary.tsx deep-links land on plain entries.
   const appAnchors = ["action", "assessment", "cookie-jar", "evaluator", "garden", "gardener", "impact-certificate", "steward", "vault", "work"];
   for (const anchor of appAnchors) {
@@ -664,7 +668,7 @@ test("glossary leads with plain entries for the everyday terms and keeps every a
   assert.ok(!rendered.includes(garden.definition));
   // A term has one heading on the page, so no anchor is defined twice.
   assert.equal((rendered.match(/^### Garden \{#garden\}$/gm) ?? []).length, 1);
-  const anchors = [...rendered.matchAll(/\{#([a-z0-9-]+)\}|<a id="([a-z0-9-]+)"><\/a>|<TermAnchor id="([a-z0-9-]+)" \/>/g)].map((match) => match[1] ?? match[2] ?? match[3]);
+  const anchors = [...rendered.matchAll(/\{#([a-z0-9-]+)\}|<a id="([a-z0-9-]+)"><\/a>|<TermAnchor id="([a-z0-9-]+)"(?: to="[^"]+")? \/>/g)].map((match) => match[1] ?? match[2] ?? match[3]);
   assert.equal(new Set(anchors).size, anchors.length, "duplicate anchor on the glossary page");
   // Every term keeps an anchor: canonical entities, personas, supporting terms, and the old aliases.
   const expected = [
@@ -1177,6 +1181,9 @@ test("community glossary follows human concepts, rejects stale output, and canno
       writeFileSync(target, readFileSync(path.join(REPO_ROOT, source)));
     }
     assert.deepEqual(syncProjections({root, projections: [projection], check: false}), []);
+    const glossary = renderProjection(root, projection);
+    assert.match(glossary, /Team membership and contributions are available; contributor payouts remain deferred/);
+    assert.match(glossary, /The app records seasons as Commitment Cycles/);
     const file = path.join(root, "packages/shared/src/ontology/green-goods-projections.json");
     const data = JSON.parse(readFileSync(file, "utf8"));
     data.human_concepts.find(concept => concept.ref === "entity:garden").example = "A new plain-language example.";

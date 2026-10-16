@@ -1,0 +1,116 @@
+---
+title: Review Promises
+sidebar_label: Review Promises
+slug: /community/steward-guide/review-promises
+description: "Review participation, count approved linked work, and check independent confirmation."
+audience: steward
+owner: docs
+last_verified: 2026-10-15
+feature_status: Live
+goal: "Review participation, count approved linked work, and check independent confirmation."
+difficulty: "standard"
+estimated_time: "3 to 5 minutes to read. Signing and review time vary."
+prereqs: "Steward access to the selected garden, its registered pool, and a connection for setup and direct changes."
+next_steps: "/community/steward-guide/end-a-season"
+persona_context: "Stewards setting shared rules, preparing promises, and keeping reviews moving."
+source_of_truth:
+  - packages/admin/src/views/Garden/Pool
+  - packages/admin/src/components/Layout/AccountSettingsPanel.tsx
+  - packages/admin/src/components/Layout/AccountSurface.tsx
+  - packages/admin/src/views/Garden/Pool/CommitmentDialog/CommitmentRecovery.tsx
+  - packages/admin/src/views/Garden/Pool/CommitmentDialog/CommitmentAssessmentDialog.tsx
+  - packages/admin/src/views/Hub/components/HubConfirmQueue.tsx
+  - packages/admin/src/views/Community/components/CommunityCoordinationTab.tsx
+  - packages/shared/src/hooks/admin-ui/pool/usePoolConsoleController.ts
+  - packages/shared/src/hooks/commitment-pooling/useCommitmentPoolSetupSequence.ts
+  - packages/shared/src/hooks/commitment-pooling/useCommitmentMutations.ts
+  - packages/shared/src/hooks/commitment-pooling/useSettlement.ts
+  - packages/shared/src/modules/commitment-pooling/acts.ts
+  - packages/shared/src/config/app.ts
+  - packages/contracts/src/lib/CommitmentPooling/ConfirmLib.sol
+  - packages/contracts/src/lib/CommitmentPooling/WorkCreditLib.sol
+  - packages/shared/src/i18n/en.json
+  - docs/releases/2.0.0/README.md
+keywords:
+  - commitment pool
+  - promises
+  - season
+  - campaign
+  - seed promises
+  - confirmation
+---
+
+import {NextBestAction, StewardPathNav} from "@site/src/components/docs";
+
+# Review Promises
+
+Keep each promise moving by reviewing participation and evidence. Taking someone onto a promise, approving their work, counting it, and confirming the promise are separate decisions.
+
+<figure className="gg-figure gg-overview-photo gg-guide-opening">
+  <img src="/img/community/guide-review.webp" alt="A steward checks a planting record with the people who did the work." width="1672" height="941" loading="eager" />
+</figure>
+
+<StewardPathNav />
+
+
+## Before you start
+
+- Sign in to [the steward dashboard](https://admin.greengoods.app) with access to the selected garden. [Get steward access](/community/steward-guide/#get-steward-access) if needed.
+- Check the garden name at the top left, then open **Garden → Promises**. Read the target before signing.
+- Have a steady connection for setup and direct changes. New money-reward promises, settlement configuration and payouts are deferred.
+- Check the promise's terms, provider, team, requirements and confirmation rules. A contributing steward cannot confirm their own promise.
+
+## Steps
+
+### Review who takes it up
+
+Open **Review Promises** in the pool. For each waiting request, check the promise, the account or garden taking it up, and any reason before choosing **Accept** or declining it.
+
+Acceptance sends directly when you choose **Accept** and confirm any signing prompt. Check the result before acting again. A request from a steward on behalf of another garden names that garden as the provider; the person who sent the request is a separate identity.
+
+The pool may also allow eligible members to take promises up directly. Those do not need a separate participation decision from you.
+
+### Count work and check confirmation
+
+**Before readiness, check the team and contributions.** Readiness freezes them. Nobody on that team may confirm the promise, even if they also have a steward role.
+
+For **garden work**, use the existing [Review Work guide](/community/steward-guide/reviewing-work) to review the linked submission. A work item can be linked and approved without its approval being counted toward the promise yet. If it says **Approved · waiting for a steward to count it**:
+
+1. In **Garden → Promises**, open the affected promise and inspect its requirements and **Recovery** section.
+2. When **Count Approved Linked Work** shows approved links waiting, choose **Count Linked Work**.
+3. Read the named promise and the warning that counting can fix the team, then confirm **Count Linked Work**.
+4. Wait for **Approved linked work counted.** If it reads **Waiting for indexed confirmation…**, check that result before retrying. If a newer work decision needs review, return to the work record first. Do not ask the gardener to upload a duplicate.
+
+If the promise requires an assessment, ask an evaluator or steward to [make an assessment](/community/evaluator-guide/making-an-assessment) for the provider garden. Before readiness, choose **Attach Assessment…** when offered, then review **Attach an Assessment** and choose the current assessment that applies. If none is listed, record it for that provider garden first; an assessment from another garden does not fill the requirement.
+
+Counted work that meets all required rows, together with any required assessment, can make the promise ready for confirmation automatically. Do not use **Send for Confirmation** as the garden-work readiness step. Other supported proof flows have their own send-for-confirmation action.
+
+For confirmation:
+
+1. Open **Hub → Confirm** and check the selected garden in the header. It scopes your authority; a row can concern another garden's pool if this garden has permission to confirm it.
+2. Open **Confirm Kept…** and read the target, provider, evidence, and confirmation count.
+3. Confirm only if the promise was kept and you are eligible. Your confirmation may be one of several required; watch the count after it arrives.
+
+Fallback and disputed decisions have separate reviews and record their reason. Do not use fallback to approve your own contribution. Protocol-wide coordination lives in **Community → Coordination** and is outside this garden runbook.
+
+## How you know it worked
+
+The participation request has a recorded decision. Required work is counted, any required provider-garden assessment is attached, and the confirmation count reflects valid decisions.
+
+## What happens next
+
+Eligible confirmers act once the promise is ready. Readiness fixes the team and contributions. After all promises finish, the season can be ended.
+
+## If something goes wrong
+
+After an uncertain review transaction, reopen that promise and read its current status and history. Retry only a decision that has not already reached the record.
+
+If work is approved but the promise is waiting, inspect the exact requirement, counting status, other required work and assessment. An assessment from another garden does not fill the requirement.
+
+If confirmation is unavailable, check the selected garden, threshold and your eligibility. Fallback does not override self-confirmation exclusions. Detailed dispute and protocol coordination operations remain outside this guide.
+
+For an app problem, open **Settings → Support** in the dashboard. On a phone, find **Settings** under **Profile**. Share the affected record's link.
+
+## Next step
+
+<NextBestAction title="End a Season" why="Once every promise has finished, close the work period and decide what to preserve." actionLabel="End a Season" actionHref="/community/steward-guide/end-a-season" />

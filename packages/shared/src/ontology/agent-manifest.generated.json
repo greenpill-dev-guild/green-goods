@@ -460,7 +460,7 @@
         {
           "to": "commitment-cycle",
           "kind": "formalized-by",
-          "note": "implemented in Commitment Pooling; not yet integrated into the product surface"
+          "note": "implemented by the released Garden pooling surface"
         }
       ],
       "maturity": {
@@ -790,7 +790,7 @@
       "definition": "A module-native promise record (offer or request) with one accountable lead, an optional contributor roster, repeatable action requirements, direction-aware confirmation, unit accounting in a non-transferable register, and evidence/work linkage — deliberately not an EAS attestation.",
       "semantic_status": "canonical",
       "surfaces": ["admin", "client", "community", "docs"],
-      "aliases": ["offer", "request"],
+      "aliases": ["offer", "request", "Promise"],
       "relationships": [
         {
           "to": "commitment-pool",

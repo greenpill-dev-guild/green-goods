@@ -1,0 +1,191 @@
+{
+  "assets": [
+    {
+      "file": "docs/static/img/community/guide-make.webp",
+      "created_at": "2026-10-15",
+      "method": "built-in image_gen",
+      "page": "Make a Promise",
+      "scene_prompt": "Two neighbours agree on a seedling-care session beside a growing space.",
+      "shared_prompt": "Natural editorial illustration with photographic material detail, warm earth and muted leaf green, soft daylight, calm practical mood. Wide landscape composition, central subjects inside the middle 60% for mobile cropping. No text, logos, visible app screens, badges, money imagery or collage.",
+      "width": 1672,
+      "height": 941,
+      "sha256": "9b1c1a7bbd057610380be3fe98d35a0f476b1bf508e85bced2c79818c8edb424"
+    },
+    {
+      "file": "docs/static/img/community/guide-keep.webp",
+      "created_at": "2026-10-15",
+      "method": "built-in image_gen",
+      "page": "Keep a Promise",
+      "scene_prompt": "three neighbours repairing a low wooden fence beside a growing area, one fits a rail, one holds it steady and another records the completed work with a phone whose screen is not visible",
+      "shared_prompt": "Natural editorial illustration with photographic material detail, warm earth and muted leaf green, soft daylight, calm practical mood. Wide landscape composition, central subjects inside the middle 60% for mobile cropping. No text, logos, visible app screens, badges, money imagery or collage.",
+      "width": 1672,
+      "height": 941,
+      "sha256": "6d13da8f6dbdda126e19556b0c18a5288771e990349f5e7a899d935d843a6465"
+    },
+    {
+      "file": "docs/static/img/community/guide-confirm.webp",
+      "created_at": "2026-10-15",
+      "method": "built-in image_gen",
+      "page": "Confirm a Promise",
+      "scene_prompt": "a neighbour independently inspecting repaired garden-tool handles with the person who delivered the repairs, checking the practical result carefully",
+      "shared_prompt": "Natural editorial illustration with photographic material detail, warm earth and muted leaf green, soft daylight, calm practical mood. Wide landscape composition, central subjects inside the middle 60% for mobile cropping. No text, logos, visible app screens, badges, money imagery or collage.",
+      "width": 1672,
+      "height": 941,
+      "sha256": "d87ec5f6241016a8a77456514802cab0093080b3ebc315c88f579bdd3ccfc1dc"
+    },
+    {
+      "file": "docs/static/img/community/guide-open.webp",
+      "created_at": "2026-10-15",
+      "method": "built-in image_gen",
+      "page": "Open a Pool",
+      "scene_prompt": "a small community group around a shared planning table in a shaded workshop, arranging a seasonal calendar of blank coloured cards and garden tools before work begins",
+      "shared_prompt": "Natural editorial illustration with photographic material detail, warm earth and muted leaf green, soft daylight, calm practical mood. Wide landscape composition, central subjects inside the middle 60% for mobile cropping. No text, logos, visible app screens, badges, money imagery or collage.",
+      "width": 1774,
+      "height": 887,
+      "sha256": "c3297d452526036e9bea66e272d0b15dabab2ec3d2b3f997f711dd44b2eff02b"
+    },
+    {
+      "file": "docs/static/img/community/guide-seed.webp",
+      "created_at": "2026-10-15",
+      "method": "built-in image_gen",
+      "page": "Seed Promises",
+      "scene_prompt": "a coordinator arranging several distinct practical tasks on a community noticeboard with blank cards, seed trays, repair tools and a bicycle nearby",
+      "shared_prompt": "Natural editorial illustration with photographic material detail, warm earth and muted leaf green, soft daylight, calm practical mood. Wide landscape composition, central subjects inside the middle 60% for mobile cropping. No text, logos, visible app screens, badges, money imagery or collage.",
+      "width": 1672,
+      "height": 941,
+      "sha256": "803485db80932b97da18f50f55583850a6a797f947d9f48cbb571a4eff2013f4"
+    },
+    {
+      "file": "docs/static/img/community/guide-review.webp",
+      "created_at": "2026-10-15",
+      "method": "built-in image_gen",
+      "page": "Review Promises",
+      "scene_prompt": "a steward at an outdoor workbench comparing a completed planting task with a notebook while a team explains what they did",
+      "shared_prompt": "Natural editorial illustration with photographic material detail, warm earth and muted leaf green, soft daylight, calm practical mood. Wide landscape composition, central subjects inside the middle 60% for mobile cropping. No text, logos, visible app screens, badges, money imagery or collage.",
+      "width": 1672,
+      "height": 941,
+      "sha256": "d14823c79b971f6be7ae7c143a7dd35304ffbde706a21159deb3f10bf7d50773"
+    },
+    {
+      "file": "docs/static/img/community/guide-end.webp",
+      "created_at": "2026-10-15",
+      "method": "built-in image_gen",
+      "page": "End a Season",
+      "scene_prompt": "a community team at the end of a growing season reviewing a harvest and completed repairs at a long table, storing tools neatly for the next season",
+      "shared_prompt": "Natural editorial illustration with photographic material detail, warm earth and muted leaf green, soft daylight, calm practical mood. Wide landscape composition, central subjects inside the middle 60% for mobile cropping. No text, logos, visible app screens, badges, money imagery or collage.",
+      "width": 1774,
+      "height": 887,
+      "sha256": "eeae843c90f9831128d6703a53f25ceff235d3699a4f491d46abccce45b5cf4e"
+    },
+    {
+      "file": "docs/static/img/community/guide-gardener.webp",
+      "created_at": "2026-10-15",
+      "method": "built-in image_gen",
+      "page": "Gardener Guide",
+      "scene_prompt": "a field contributor with gloves and practical tools pausing beside a compost area to document completed work on a phone, screen turned away",
+      "shared_prompt": "Natural editorial illustration with photographic material detail, warm earth and muted leaf green, soft daylight, calm practical mood. Wide landscape composition, central subjects inside the middle 60% for mobile cropping. No text, logos, visible app screens, badges, money imagery or collage.",
+      "width": 1672,
+      "height": 941,
+      "sha256": "e6991796fe2e974611301fb0f4157e7a9bcf1b42654907dbede5d4ffc10af266"
+    },
+    {
+      "file": "docs/static/img/community/guide-steward.webp",
+      "created_at": "2026-10-15",
+      "method": "built-in image_gen",
+      "page": "Steward Guide",
+      "scene_prompt": "a community organiser welcoming a new volunteer at a shared workshop, a practical task board and neatly stored tools in the background",
+      "shared_prompt": "Natural editorial illustration with photographic material detail, warm earth and muted leaf green, soft daylight, calm practical mood. Wide landscape composition, central subjects inside the middle 60% for mobile cropping. No text, logos, visible app screens, badges, money imagery or collage.",
+      "width": 1672,
+      "height": 941,
+      "sha256": "2e44048d3c185d265078d83e634ad95931bafa80f2c262673f22305744fff749"
+    },
+    {
+      "file": "docs/static/img/community/guide-evaluator.webp",
+      "created_at": "2026-10-15",
+      "method": "built-in image_gen",
+      "page": "Evaluator Guide",
+      "scene_prompt": "an evaluator taking a careful soil sample beside a marked growing plot with a measuring tape and field notebook, before work starts",
+      "shared_prompt": "Natural editorial illustration with photographic material detail, warm earth and muted leaf green, soft daylight, calm practical mood. Wide landscape composition, central subjects inside the middle 60% for mobile cropping. No text, logos, visible app screens, badges, money imagery or collage.",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "5daf105699e64d3032350b68b1369f0fae0ee89f27fd52f808b4e02451405ffa"
+    },
+    {
+      "file": "docs/static/img/community/guide-funder.webp",
+      "created_at": "2026-10-15",
+      "method": "built-in image_gen",
+      "page": "Funder Guide",
+      "scene_prompt": "a visitor discussing the community's plans with a local coordinator beside maintained solar panels and a growing plot",
+      "shared_prompt": "Natural editorial illustration with photographic material detail, warm earth and muted leaf green, soft daylight, calm practical mood. Wide landscape composition, central subjects inside the middle 60% for mobile cropping. No text, logos, visible app screens, badges, money imagery or collage.",
+      "width": 1774,
+      "height": 887,
+      "sha256": "d1c06956aa0165db1beac357e1d51ac97800381f684cf601f826254dece28894"
+    },
+    {
+      "file": "docs/static/img/community/guide-submit.webp",
+      "created_at": "2026-10-15",
+      "method": "built-in image_gen",
+      "page": "Submit Work",
+      "scene_prompt": "a contributor documenting a completed compost-turning task with a phone, beside an open compost bay and a fork, screen facing away",
+      "shared_prompt": "Natural editorial illustration with photographic material detail, warm earth and muted leaf green, soft daylight, calm practical mood. Wide landscape composition, central subjects inside the middle 60% for mobile cropping. No text, logos, visible app screens, badges, money imagery or collage.",
+      "width": 1672,
+      "height": 941,
+      "sha256": "b9a215da5dc9d9399b97afe6e1c53f5cb7b3d0418683d816a163bdb77cecd79b"
+    },
+    {
+      "file": "docs/static/img/community/guide-donate.webp",
+      "created_at": "2026-10-15",
+      "method": "built-in image_gen",
+      "page": "Donate to a Garden",
+      "scene_prompt": "a community deciding which immediate supplies to replenish, hands arranging gloves, seed packets and repair materials on a simple table",
+      "shared_prompt": "Natural editorial illustration with photographic material detail, warm earth and muted leaf green, soft daylight, calm practical mood. Wide landscape composition, central subjects inside the middle 60% for mobile cropping. No text, logos, visible app screens, badges, money imagery or collage.",
+      "width": 1672,
+      "height": 941,
+      "sha256": "31212fda58c736d71c85f5fbdfbec19913afc3b5c980237aac0ede46759c434a"
+    },
+    {
+      "file": "docs/static/img/community/guide-endow.webp",
+      "created_at": "2026-10-15",
+      "method": "built-in image_gen",
+      "page": "Endow a Garden",
+      "scene_prompt": "a well-tended young orchard with a rainwater tank and a tool shelter, a coordinator and supporter discussing its care over several seasons",
+      "shared_prompt": "Natural editorial illustration with photographic material detail, warm earth and muted leaf green, soft daylight, calm practical mood. Wide landscape composition, central subjects inside the middle 60% for mobile cropping. No text, logos, visible app screens, badges, money imagery or collage.",
+      "width": 1774,
+      "height": 887,
+      "sha256": "414e8de40d0407fd8c5d54fae92fa4eaa6044f72c8072b7c10913fd70d6bec28"
+    },
+    {
+      "file": "docs/static/img/community/guide-recover.webp",
+      "created_at": "2026-10-15",
+      "method": "built-in image_gen",
+      "page": "Recover Unsent Work",
+      "scene_prompt": "a contributor back under a workshop roof checking their phone after field work, tools and muddy boots beside the bench, screen facing away",
+      "shared_prompt": "Natural editorial illustration with photographic material detail, warm earth and muted leaf green, soft daylight, calm practical mood. Wide landscape composition, central subjects inside the middle 60% for mobile cropping. No text, logos, visible app screens, badges, money imagery or collage.",
+      "width": 1672,
+      "height": 941,
+      "sha256": "0c7bd0892b13464a9b307f4c7aa29c5239e413268a1a212577db285706168c8c"
+    },
+    {
+      "file": "docs/static/img/community/guide-track.webp",
+      "created_at": "2026-10-15",
+      "method": "built-in image_gen",
+      "page": "Track Your Work",
+      "scene_prompt": "a contributor reviewing several dated field-notebook entries and photos at a workbench, with compost, planting and repair tools providing context",
+      "shared_prompt": "Natural editorial illustration with photographic material detail, warm earth and muted leaf green, soft daylight, calm practical mood. Wide landscape composition, central subjects inside the middle 60% for mobile cropping. No text, logos, visible app screens, badges, money imagery or collage.",
+      "width": 1774,
+      "height": 887,
+      "sha256": "7c16d19d69230940c8d0268a418e595c2ad7b4ef2ea75457c7ce040ba4a78f80"
+    },
+    {
+      "file": "docs/static/img/community/guide-withdraw.webp",
+      "created_at": "2026-10-15",
+      "method": "built-in image_gen",
+      "page": "Remove an Endowment",
+      "scene_prompt": "A supporter gathers their own notebook and bag after a community meeting while the growing space continues behind them.",
+      "shared_prompt": "Natural editorial illustration with photographic material detail, warm earth and muted leaf green, soft daylight, calm practical mood. Wide landscape composition, central subjects inside the middle 60% for mobile cropping. No text, logos, visible app screens, badges, money imagery or collage.",
+      "width": 1536,
+      "height": 1024,
+      "sha256": "1cd7d8ba101f4fb430a6d3cd0e1d0716ac11731d938d7071a5d10518cc868cfb"
+    }
+  ]
+}

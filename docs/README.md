@@ -4,9 +4,9 @@ The Docusaurus site serves two audiences from one source tree:
 
 - **Community** explains current Green Goods flows for gardeners, stewards, evaluators, and funders.
 - **Builders** explains architecture, package boundaries, integrations, testing, and agent workflows.
-- **Reference** holds the shared glossary, formal ontology, product history, design rationale, FAQ, brand kit, and credits.
+- **Reference** holds the shared glossary, formal ontology, design rationale, FAQ, brand kit, and credits.
 
-A page's sidebar can differ from its folder. The FAQ (served at `/faq`), the glossary, product history, the brand kit, and credits live in `docs/reference/` and are listed in the Community sidebar. The formal ontology lives there too and is listed under Builders. `sidebars.ts` owns placement.
+A page's sidebar can differ from its folder. The FAQ (served at `/faq`) and glossary live in `docs/reference/` and are listed in the Community sidebar. Brand kit and Credits live in the same folder and are linked from the footer. The formal ontology lives there too and is listed under Builders. `sidebars.ts` owns placement.
 
 Implementation facts come from code and configuration. Authored pages explain flows and stable rationale; generated pages project routes, exports, deployment artifacts, ontology, workflows, and QA scenarios from their owning sources.
 
@@ -71,7 +71,9 @@ Each page must make sense when opened directly from a message or a search result
 
 Check every label against the owning view or `packages/shared/src/i18n/en.json`, and every statement about review, rewards, privacy, or money against the code that enforces it, before it goes on a page.
 
-Screenshots support the text and never carry a step alone. Each one needs alt text that says what is shown and a caption that names its source, capture date, viewport/crop where relevant, and build revision when available. If the deployed fixture exposes no revision, say so. Take them from a Storybook fixture, a demo, or a public page, never from a live garden's members or photos. The docs audit fails on an image nothing uses, but it does not check that an `<img>` path exists, so confirm each new path yourself.
+Every community guide opens with its title, a short purpose and a contextual visual before prerequisites. Editorial illustrations fill the article width. Center standalone screenshots at a readable width; keep a side-by-side layout only when the adjacent text explains the image. Preserve detailed captures beside their steps. Use distinct opening artwork for each guide, with page-specific scenes or meaningful variants.
+
+Screenshots support the text and never carry a step alone. Capture the real interface from a Storybook fixture, demo or public page, never a live garden's private member records or photos. Use useful alt text and short instructional captions where they add meaning. Capture date, fixture, viewport and revision belong in the [asset ledger](assets/capture-ledger.json), not repeated in page captions. New generated artwork and its prompts are recorded in the [illustration ledger](assets/illustrations.json). Preserve third-party attribution and licenses. Verify every new image path, intrinsic dimensions and opening crop on phone and desktop.
 
 ### Glossary and ontology ownership
 

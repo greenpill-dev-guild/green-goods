@@ -1,7 +1,5 @@
 ---
-title: What Green Goods Can Honestly Claim
-sidebar_label: Capability & Claims
-slug: /community/green-goods-claims
+title: Capability and claims evidence
 audience: all
 owner: docs
 feature_status: Live
@@ -9,7 +7,7 @@ generated: true
 generator: scripts/quality/check-ontology.mjs
 generated_from:
   - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:8d916b18aeee4ae974050c8a87bb1f77e0780f114f5d74f04c44967d4137d6b3"
+source_digest: "sha256:4a8c39acecb87e52817ba9b9edce2c1d76f78eeeab7b969c009e64559ad131f0"
 source_of_truth:
   - packages/shared/src/ontology/green-goods-projections.json
 ---
