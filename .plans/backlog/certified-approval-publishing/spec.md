@@ -3,13 +3,18 @@
 ## Architecture authority
 
 The [public architecture specification](../../../docs/docs/builders/reference/certified-atproto-integration-spec-2026-07.md)
-is the single design reference for component boundaries, sequence diagrams, ERD, state machines,
+owns the Certified first-slice component boundaries, sequence diagrams, ERD, state machines,
 DFD, activity and class diagrams, mapping rules and gates D1–D9. The
 [topology memo](../../../docs/docs/builders/reference/certified-atproto-topology-memo-2026-07.md)
 records the recommended delegated Agent topology and rejected alternatives. This hub does not
 duplicate those models. The [ontology and user-action crosswalk](../../../docs/docs/builders/reference/impact-integration-action-map.md)
 owns the nine-action/provider mapping, GainForest evidence contract, shared-record/AppView model
-and gates G1–G5/A1–A4. Those extension gates do not expand the initial runtime scope.
+and gates G1–G5/A1–A4. The [sync/sharing architecture](../../../docs/docs/builders/reference/impact-sync-and-sharing-architecture.md)
+owns historical selection, comparison, recovery and capability boundaries (S1/S2/M1/H1/H2).
+The [provider architectures](../../../docs/docs/builders/reference/impact-provider-architectures.md)
+own each later provider topology and SI1–SI3/B1–B3/R1–R3. The initial source trigger remains Work
+Approval; safe historical sync/reconciliation is part of that publishing slice. Later source and
+provider activation remains separately gated in [extensions.todo.md](./extensions.todo.md).
 
 ## Users and behavior
 
@@ -49,6 +54,17 @@ in the topology memo; this plan keeps the durable Agent recommendation pending c
 | Credential and DB custody | Existing Agent runtime with encrypted grants, durable database and tested restore | Needs D7 deployment proof |
 | Correction display | Explicit correction of stale external positive reports, with retained source/CID audit | Needs D6 provider demonstration |
 
+## Additional decisions from the architecture expansion
+
+| Decision | Recommendation | Status |
+|---|---|---|
+| Assessment projection | Separate observed measurements, evaluator interpretation and planning targets; baseline/delta judgment can be an evaluation | Working proposal; A1 domain acceptance pending |
+| Historical publication | Immutable bounded manifest, current effective approval and consent, explicit preview | Required product capability; S1 policy/conformance pending |
+| Reconciliation | Compare desired, last acknowledged and fresh remote versions; preserve edits/deletions/uncertain outcomes | Required product capability; S2 native contract pending |
+| Shared transport | Capability-based coordinator; extract AT mechanics when Certified and GainForest conformance prove reuse | Proposed; M1 |
+| Silvi AT path | Conditional on actual NSIDs/deployed API; support native/export alternative | Unresolved; SI1 |
+| Social delivery | Native share/composers plus public page and downloadable cards/report; no initial social OAuth | Proposed track; H1/H2 |
+
 ## Lane mapping and constraints
 
 | Lane | Scope | State |
@@ -80,3 +96,8 @@ may be installed or upgraded without explicit task approval.
 - Fulfillment through dispute resolution must be discovered without inventing payout or ecological verification.
 - Registration of an existing Hypercert cannot be presented as a new mint.
 - Imported external evidence retains its origin and cannot re-enter the export queue as new GG work.
+
+- Historical sync never re-submits source Work or automatically republishes an old positive decision.
+- Remote edits/deletions and unknown reads cannot be treated as missing uploads.
+- Manual exports and social handoffs remain unverified until independent evidence exists.
+- Regen data anchoring, semantic attestation, registry acceptance and issuance remain distinct.

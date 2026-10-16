@@ -2,7 +2,8 @@
 
 **Current state:** architecture/planning only. No runtime acceptance test below has run.
 The public architecture owns dependencies D1–D9; its linked action crosswalk owns G1–G5/A1–A4.
-This file owns implementation proof expectations. AC17–AC22 apply only when the relevant extension
+The sync/provider architectures own S/M/H/SI/B/R gates. This file owns implementation proof
+expectations. AC17–AC22 and AC27–AC32 apply only when the relevant extension
 is accepted; they are not claims that every lifecycle trigger belongs in the first release.
 
 ## Acceptance matrix
@@ -31,6 +32,17 @@ is accepted; they are not claims that every lifecycle trigger belongs in the fir
 | AC20 | Commitment source completeness | Seeded is not Open; promise is not Work; both normal and dispute fulfillment are discovered; cancellation/correction and chain readiness proven; no inferred payment | state_api / A2 |
 | AC21 | Certificate provenance | New mint and existing-token registration remain distinct; active chain/product and evidence bundle checked; no implied Regen credits or automatic mint authority | state_api / A3 |
 | AC22 | External consent and loop prevention | Native schema/authority fixtures, ecological/community disclosure and license policy; imported evidence keeps origin; our own export cannot become new GG Work or re-export indefinitely | state_api, ui, qa_pass_1 / 5 |
+
+| AC23 | Historical coverage | Bounded range/upper watermark, page crash, overlapping live scan and gaps; old work uses current effective decision and consent | state_api, ui / 2 |
+| AC24 | Comparison and adoption | Desired/base/remote comparisons, exact-match lost response, changed remote payload, deleted record and pre-existing adoption; unsupported readback never means missing | state_api / 2 |
+| AC25 | Sync controls | Preview selection and exclusions, scope counts/freshness, pause/cancel, partial resume and read-only Check sync; no false all-synced result | ui, state_api / 2 |
+| AC26 | Reconnect and restore | Same identity rotates grants without losing mappings; different identity blocks replay; backup restore retains reserved keys and uncertain outcomes | state_api / 2–3 |
+| AC27 | Assessment decomposition | Diagnosis can be evaluation; observations require metric/unit/method; targets and missing values never become measured outcomes; correct subject and evaluator | state_api / A1 |
+| AC28 | Silvi native workflow | Existing asset/repeat claim, method/capture requirements, AT/native/export mode, timeout recovery, independent review/payment | state_api, qa_pass_1 / SI pilot |
+| AC29 | Bloom reporting | Community authority, deduplicated manifest, native report or user-reported receipt, independent peer review/rewards and actual correction | state_api, qa_pass_1 / B pilot |
+| AC30 | Regen operations | Native content hash/IRI, raw vs graph, explicit signer/network/fees, persisted tx before broadcast, sequence/timeout recovery, correction version; anchor is not attestation | state_api, qa_pass_1 / R pilot |
+| AC31 | Social/report output | Public preview equals crawler page/assets; missing vs targets vs observed, no double counting, PNG/PDF/text accessibility, sensitive-media exclusion, stale/correction behavior; cancelled/copy/handoff never claims Published | ui, state_api / H track |
+| AC32 | Modular provider boundary | Certified and second adapter pass capability-specific conformance and faults; unsupported operations disabled; one provider outage cannot block source actions or other destinations | state_api / M1 |
 
 ## Proof strategy
 

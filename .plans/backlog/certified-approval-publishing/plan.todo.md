@@ -2,7 +2,7 @@
 
 **Feature Slug**: `certified-approval-publishing`  
 **Status**: BACKLOG — architecture proposed; runtime execution pending phase 0  
-**Created / Last Updated**: 2026-10-15  
+**Created / Last Updated**: 2026-10-15 / 2026-10-16
 **PR**: [#640](https://github.com/greenpill-dev-guild/green-goods/pull/640)  
 **Related research**: RESR-69 (Backlog when inspected; not changed by this plan)
 
@@ -30,13 +30,18 @@ external account, provider record, or live publishing policy is changed by the p
 | Steward connects an existing Certified identity | 3–5 | Verified account/DID, replay rejection and authenticated browser proof |
 | Garden selects the correct external project | 4–5 | Both authorities checked; explicit existing project binding and disconnect |
 | Work approvals cross-post under native provider structure | 6–10 | Activity/evaluation/evidence/project receipts with exact source provenance |
-| Delivery survives offline submission, browser exit and retry | 6–9 | Chain scanner, durable intent, replay and crash recovery proof |
+| Delivery survives offline submission, browser exit and retry | 6–10 | Chain scanner, durable intent, replay and recovery controls |
+| Historical work can be synced and compared | 6–10 | Bounded manifest, adoption preview, current consent, three-way comparison and gaps visible |
+| Assessments can contain evaluations without turning targets into measurements | 2, extension A1 | Accepted examples and exact source/subject/evaluator/version mapping |
+| Every provider has a native architecture | Planning PR, 14 | Individual components, sequence, ERD, review lifecycle, transport and recovery |
+| Simple social sharing and impact exports | Extension H | Public page, X/LinkedIn/Facebook/native or fallback, versioned cards/PDF/text, honest handoff status |
+| Future providers remain modular | 8–9, extension G2 | Capabilities and two-adapter conformance; no changes to core Work behavior |
 | Ma Earth displays the result with correct attribution | 11–12 | Actual provider-visible project report and correction test |
 | Automatic publication follows user consent | 13 | Versioned standing policy, pause/revoke and stale-source checks |
 | GainForest, Bloom, Silvi, Regen can follow | 14 | GainForest monitoring pilot and independent native provider mappings without speculative adapter code |
 | All nine actions map to the ontology | Planning PR, 2, 14 | Crosswalk names authoritative sources, valid triggers, native representations and deferred gates |
 | Shared AT records do not duplicate across apps | 8–11, 14 | Stable semantic record identity; per-application visibility and explicit distinct-repository copies |
-| Unresolved dependencies remain visible in PR | Every checkpoint | D1–D9 and extension G1–G5/A1–A4 matrices updated with observed results |
+| Unresolved dependencies remain visible in PR | Every checkpoint | Core D gates plus G/A, S/M/H, SI/B/R extension gates with observed evidence |
 
 ## Scope and implementation boundaries
 
@@ -71,8 +76,8 @@ capabilities remain blocked. No live mutation is authorized by this planning ste
 
 ### 2. Set the Green Goods authority and operating policy
 
-- [ ] Resolve D2, D6, D7 and D8: integration-manager role, proof matrix, effective approval semantics,
-  finality/backfill, public fields, retention, custody and production persistence.
+- [ ] Resolve D2, D6, D7 and D8 plus S1/S2: integration-manager role, proof matrix, effective approval
+  semantics, history ranges/consent, comparison/remote deletion policy, public fields and persistence.
 - [ ] Record choices in `spec.md`, `eval.md`, and the architecture; accept the implementation scope.
 - [ ] Review the nine-action ontology crosswalk. Keep approval publishing as the first public trigger;
   assign later assessment, commitment and certificate gates without silently expanding phase 1.
@@ -117,16 +122,19 @@ browser evidence covers signing, switching accounts, reconnect and disconnect. D
 
 ## Phase 2 — explicit preview and Certified publication
 
-### 6. Reconcile confirmed approval sources
+### 6. Discover current and historical approval sources
 
 **Proposed files:** Agent `approval-source-reader.ts`, `source-reconciler.ts`, store transaction
 extension and behavioral scanner test in `services/impact-publication`.
 
-- [ ] Scan configured Gardens with canonical receipt/finality checks, overlap cursor and explicit activation block.
-- [ ] Atomically store source and eligible intent with deduplication and batch-aware source extraction.
+- [ ] Scan configured Gardens with finality, overlap and activation bounds; capture immutable historical
+  selection manifests and coverage gaps without changing the live cursor.
+- [ ] Atomically store source pages/checkpoints and deduplicated candidate intents; preserve current
+  effective decisions and batch-aware source extraction. Discovery alone authorizes no send.
 
 **Verify:** direct, queued and batched approvals are each discovered once; replay, crash before
-cursor commit, out-of-order records and reorgs produce the expected source state.
+cursor commit, range overlap, current rejection of old approvals, gaps and reorgs produce the
+expected source state. A completed discovery cursor never means delivery is complete.
 
 ### 7. Project and consent to public evidence
 
@@ -150,24 +158,28 @@ under `services/impact-publication`.
 **Verify:** exact deployed API fixtures prove unknown-outcome recovery and CAS behavior; a missing
 remote capability blocks the operation instead of falling back to blind overwrite.
 
-### 9. Add durable worker and restart recovery
+### 9. Add durable worker and destination reconciliation
 
 **Proposed files:** Agent `publication-worker.ts`, repository lease/checkpoint extension,
 existing runtime lifecycle registration, worker recovery test.
 
 - [ ] Reserve keys/payloads, lease intents, checkpoint each stage, and retry known transient failures within a budget.
-- [ ] Recheck source and grant epochs; reconcile uncertain writes and disconnect races.
+- [ ] Recheck source/grant epochs; compare desired, last acknowledged and fresh remote versions.
+  Classify current/missing/stale/conflict/deleted/uncertain and resume only eligible missing stages.
 
 **Verify:** fault injection after every external write creates no duplicate logical records; concurrent
-workers, partial success, lease expiry, process restart and grant revocation preserve actual outcomes.
+workers, partial success, lease expiry, process restart, remote edits/deletions, restore and same-identity
+reconnect preserve actual outcomes. Split persistence/worker wiring if this exceeds four files.
 
-### 10. Expose preview and publication receipts
+### 10. Expose history preview, comparison and repair controls
 
 **Proposed files:** Shared publication-status hook, Admin preview component, Admin work-detail
 integration and its UI test (split as needed).
 
 - [ ] Present the exact public payload, destination and reviewer; require explicit consent in the pilot.
-- [ ] Show approval, publication and Ma Earth visibility separately with clear repair actions.
+- [ ] Show approval, publication, native acceptance and visibility separately; add Sync history, Check sync,
+  retry-eligible, conflict review and pause in the existing integration controls. Expose range/freshness
+  and issue counts; manual read-only comparison must work without granting new write consent.
 
 **Verify:** provider failure never changes Green Goods approval success; browser closure loses no
 intent; UI reflects partial/blocked/uncertain results without claiming Ma Earth visibility.
@@ -207,21 +219,23 @@ is fresh. Runtime lanes remain pending until their RED/GREEN evidence exists.
 **Verify:** current consent and both authorities are checked at send time; unsupported correction,
 stale source, unknown authorship, and exhausted retries stop automatic delivery with visible reasons.
 
-## Phase 5 — later provider mappings
+## Phase 5 — independent provider and source extensions
 
 ### 14. Scope the GainForest pilot and later provider/action plans
 
-**Targets:** the action crosswalk and a separately accepted pilot/research brief; no runtime
-extension is authorized by completing this planning checkpoint.
+**Targets:** the provider architectures, action crosswalk and separately accepted track briefs in
+[extensions.todo.md](./extensions.todo.md). Those checkpoints own provider/social decomposition;
+no runtime extension is authorized by completing this planning checkpoint.
 
 - [ ] GainForest: resolve G1–G5 with one existing project, baseline visit, approved Work,
   follow-up and corrected observation. Start with explicit evidence links; prove shared record
   identity, native organization/site references, units, licensing and independent AppView visibility.
 - [ ] Route assessment, cycle/commitment and certificate triggers through A1–A3 with their owning
   teams. Preserve source lifecycle and actual product readiness; do not treat all actions as activities.
-- [ ] Bloom: establish its community/action/report identity and authenticated write contract.
-- [ ] Silvi: establish site/tree/monitoring schema and evidence rules. Regen: distinguish data anchor,
-  attestation and credit issuance, then select the intended operation.
+- [ ] Select independent Silvi (SI), Bloom (B) and Regen (R) tracks when partner contracts are known.
+  Silvi AT reuse is conditional; native API/export alternatives remain explicit.
+- [ ] Scope social track H separately: public pages, user-driven sharing and versioned report exports
+  can proceed after H1/H2. Preserve semantic labels, coverage, unique counts and correction policy.
 
 **Verify:** each proposal has confirmed account authority, native object mapping, trigger, evidence,
 delivery semantics and acceptance criteria. GainForest can progress independently of the other

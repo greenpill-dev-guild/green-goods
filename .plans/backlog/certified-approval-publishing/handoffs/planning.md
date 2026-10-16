@@ -7,8 +7,8 @@ The public architecture contains ten Mermaid diagrams across the seven requested
 and the backlog plan has fourteen bounded implementation checkpoints across six phases.
 Dependencies D1–D9 are unresolved; runtime lanes remain blocked and contract work is not applicable.
 
-The GainForest extension adds a separate nine-action ontology/provider crosswalk and five more
-diagrams, for fifteen total. It preserves the fourteen-checkpoint plan and six phases. New G1–G5
+The 2026-10-15 GainForest extension added a separate nine-action ontology/provider crosswalk and five more
+diagrams, for fifteen at that checkpoint. It preserved the fourteen-checkpoint plan and six phases. New G1–G5
 and A1–A4 gates cover biodiversity evidence, AppView identity, assessments, commitments and
 certificates; they do not expand the first Certified linking/approval slice.
 
@@ -51,3 +51,21 @@ private research-session content and identifiers are excluded from Git.
 
 Final verification/publication boundaries belong in the chat handoff; this record is not a runtime
 completion claim. Human corrections observed in this segment: 0; human attention: unknown.
+
+
+## Architecture expansion — 2026-10-16
+
+Add provider-specific architecture for GainForest, Silvi, Bloom and Regen, plus a shared
+sync/reconciliation and social-sharing design. Assessment interpretations can be evaluations;
+observations, targets and qualitative evidence retain distinct projections. This is a working
+proposal pending A1 acceptance, not an ontology edit. Silvi AT deployment remains unverified;
+GainForest's public AT lexicons are established. Native/export alternatives remain explicit.
+
+Core steps 6–10 now include historical selection, current consent, three-way comparison, partial
+resume and visible repair controls. The fourteen core checkpoints remain; `extensions.todo.md`
+breaks later work into independent tracks. Thirty-two acceptance cases and thirty-five diagrams cover the expanded design.
+No runtime lane advanced and no provider/social record was published.
+
+Task segment: investigation began 2026-10-16 00:44:40 UTC; drafting was underway at 00:55:27 UTC.
+Final verification/publication timing belongs in the chat handoff. Human feedback corrected the
+previous architecture's provider depth and incomplete sync treatment; attention remains unknown.

@@ -1,10 +1,10 @@
 ---
 title: "Impact integrations: ontology and user actions"
-sidebar_label: Impact actions and GainForest (proposed)
+sidebar_label: Impact actions and assessments (proposed)
 slug: /builders/integrations/impact-action-map
 audience: developer
 owner: docs
-last_verified: 2026-10-15
+last_verified: 2026-10-16
 feature_status: Planned
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
@@ -26,7 +26,10 @@ separates data anchoring, verifier attestations and credit issuance.
 The first implementation remains **Certified account linking and explicit Work Approval
 publication**. The [architecture](./certified-atproto-integration-spec-2026-07.md) owns that
 delivery model and its ten diagrams. This crosswalk adds the wider action model, GainForest
-research, five extension diagrams and gates G1–G5/A1–A4. It does not activate other triggers.
+research, assessment semantics, six extension diagrams and gates G1–G5/A1–A4. The
+[provider architectures](./impact-provider-architectures.md) and
+[sync/sharing design](./impact-sync-and-sharing-architecture.md) extend the execution model.
+It does not activate other triggers.
 All external mappings below are proposals; public schemas establish possible shapes, not
 production write access or application compatibility.
 
@@ -50,6 +53,70 @@ the baseline-linked delta path for kind 1. Gate A1 must reconcile the baseline/d
 readers and validity policy before exporting assessments. This planning PR leaves canonical
 ontology and generated documentation unchanged.
 
+## 1a. Is an Assessment also a Hypercerts evaluation?
+
+**Recommended working direction, pending domain acceptance:** Assessment is a GG domain concept
+whose public projection can contain several record types. Work Approval is our first evaluation
+trigger, not the only thing the Hypercerts evaluation lexicon can represent. Keep baseline
+assessment, outcome assessment and Work review distinct in GG even when each has an evaluative part.
+
+The [Hypercerts evaluation contract](https://github.com/hypercerts-org/hypercerts-lexicon/blob/v1.5.1/lexicons/org/hypercerts/context/evaluation.json)
+allows a versioned subject, named evaluators, summary, supporting measurements and a report.
+The [measurement contract](https://github.com/hypercerts-org/hypercerts-lexicon/blob/v1.5.1/lexicons/org/hypercerts/context/measurement.json)
+represents quantitative observations. This supports a decomposition; it does not require turning
+every assessment into a judgment about performed Work.
+
+| Content in a GG Assessment | Proposed Hypercerts representation | Constraint |
+|---|---|---|
+| Diagnosis or evaluator interpretation of current conditions | `context.evaluation` with exact subject/version and attributable author | Project collection or feature may be the subject, subject to AppView support; no invented Work activity solely to obtain a subject |
+| Actual observation with metric, value, unit, time and method | `context.measurement` plus underlying evidence | Only observed data; typed validity and units are checked beyond lexicon shape |
+| Qualitative field notes, methodology, images and full assessment | `context.attachment` or typed report content | Preserve evidence and assessment source IDs; a narrative is not automatically a numeric measurement |
+| SMART targets, selected Actions and strategy | Planning report/attachment; optional planned-work representation only after acceptance | A target of 100 trees is neither 100 measured trees nor a completed activity |
+| Baseline-to-follow-up interpretation | A distinct outcome evaluation citing both observations and their versions | Match subjects, method, units, dates and uncertainty; change alone does not establish causal impact |
+| Steward decision on a submitted Work | Work-review evaluation of that activity version | Preserve approval/rejection, GG method and reviewer relationship; confidence 0–3 is not ecological performance |
+
+```mermaid
+flowchart TB
+  A[GG Assessment and source UID] --> D{Meaning of each part}
+  D -->|Observed quantity| M[Measurement and evidence]
+  D -->|Interpretation| E[Evaluation]
+  D -->|Targets and strategy| P[Planning attachment]
+  D -->|Qualitative evidence| N[Evidence attachment]
+  M -->|Exact supporting versions| E
+  E --> S[Project or feature subject version]
+  B[Baseline and follow-up versions] -->|Comparable methods| E
+  W[GG Work Approval] --> WE[Separate Work-review evaluation]
+  WE --> ACT[Reviewed activity version]
+```
+
+For example, “increase survival from a measured 60% to a target 80%” yields one observed baseline
+measurement and one target in the plan, not two measurements. A later comparable 70% observation
+can support a +10 percentage-point comparison; it does not prove the work caused that change.
+If the baseline is missing, the outcome comparison is blocked even if the assessment transaction
+succeeded. A diagnosis with no reliable numeric observations can still be an attributable evaluation
+with evidence; a plan with no judgment can remain an attachment without an evaluation.
+
+The current [assessment reader](https://github.com/greenpill-dev-guild/green-goods/blob/b9176994beddb74c1f32240a1829a7e2c3805896/packages/shared/src/modules/assessment/assessment-detail.ts)
+reads diagnosis, targets, selected Actions and evidence from the config/metrics files. The
+`metricsCid` name is not proof that those contents are measured outcomes. Its presentation fallback
+for an absent target must not become a reported observed zero. The exporter needs a validated raw
+assessment projection that distinguishes missing, intended, observed and interpreted values.
+
+The [acknowledgement schema](https://github.com/hypercerts-org/hypercerts-lexicon/blob/v1.5.1/lexicons/org/hypercerts/context/acknowledgement.json)
+expresses acceptance/rejection of a record or relationship. It may support an author's response to
+an evaluation or consent to inclusion; it does not replace the evidence-bearing GG Work Approval.
+Likewise GainForest's native evaluator record has its own results/correction contract. Its records
+cannot be placed directly in Hypercerts `evaluation.measurements`, which expects Hypercerts
+measurement references; use explicit evidence links or a validated derived measurement with origin.
+
+Before activating assessments, resolve A1 with concrete examples: which initial diagnoses warrant
+an evaluation, which evaluator/subject is appropriate, how kind 2 is interpreted, and how baseline
+and delta semantics enter the canonical ontology. D5/D6 also apply to authorship and correction.
+An operator/steward-authored assessment must not be presented as an independent ecological audit.
+Hypercerts v1.5.1 has no evaluation `supersedes`/`neg` fields, so another evaluation alone does not
+supersede an old conclusion. Prove the destination's correction display before automation.
+This proposal changes no Assessment source, ontology definition or production trigger.
+
 ## 2. Nine actions, authoritative facts and publication eligibility
 
 Publication follows a confirmed source fact and consent, never a button click, optimistic toast,
@@ -59,7 +126,7 @@ indexed contracts; canonical receipts/state establish eligibility. EAS remains o
 | User action | Ontology and source of truth | Proposed trigger and guard | First delivery or later |
 |---|---|---|---|
 | Garden Creation | `garden`; Garden token/account and `GardenMinted` | Confirm chain/token/account, then offer an explicit binding to an existing external project. Garden creation does not prove external ownership or complete all Garden initialization. | Phase 1 can bind an existing Garden; automatic creation of external projects is deferred |
-| Initial Assessment | `assessment` + `attestation`; EAS schema/version, recipient, author and config | After a valid baseline assessment, prepare a selected plan/report. Export actual baseline observations separately from targets and proposed Actions. Do not infer baseline kind from missing v2 fields. | Later; A1 |
+| Initial Assessment | `assessment` + `attestation`; EAS schema/version, recipient, author and config | After a valid baseline assessment, prepare a selected plan/report and an attributable diagnosis evaluation when present. Export actual baseline observations separately from targets and proposed Actions. Do not infer baseline kind from missing v2 fields. | Later; A1 |
 | Commitment Season/Campaign Creation | `commitment-pool`, `commitment-cycle`, `season`, vocabulary `cycle-type`; `CycleSeeded` | Preserve pool ID, cycle ID, Season/Campaign type and timing. A seeded cycle is not open; opening has its own allocation snapshot. One open Season per pool; Campaigns may overlap. | Later; A2 |
 | Commitment Creation | `commitment`; `CommitmentCreated` and current module state | Export a clearly labeled offer/request and requirements only after explicit consent. Preserve accountable lead, direction, scope, units and optional cycle. Creation is not acceptance, performance or fulfillment. | Later; A2 |
 | Work Submission | `work`, `action`, `attestation`; confirmed Work UID | Build a private candidate for an activity and evidence. The first delivery waits for an eligible approval before public export. Any future unreviewed export must say unreviewed and use its own policy. | Source material in phase 2; independent submission publishing deferred |
@@ -96,7 +163,7 @@ below means appropriately typed attachment/content, not a new invented provider 
 | Action | Certified / Ma Earth candidate | GainForest / Bumicerts candidate and constraint |
 |---|---|---|
 | Garden Creation | Bind to an existing project collection; Garden and external project keep separate identities | Select the actual organization/project and site records used by the application. A `dwc.event.projectRef` names organization info, not automatically the Hypercerts collection URI |
-| Initial Assessment | Baseline/strategy report attachment; feature for the observed subject and measurement records only for actual observations | Sampling `dwc.event`, organism `dwc.occurrence`, typed `dwc.measurement`; an assessment plan is not a field observation |
+| Initial Assessment | Baseline/strategy attachment; diagnosis evaluation where present; project/feature subject and measurements only for actual observations | Sampling `dwc.event`, organism `dwc.occurrence`, typed `dwc.measurement`; an assessment plan is not a field observation |
 | Season/Campaign Creation | Optional nested collection or linked cycle report, with explicit parent project and cycle identity | Monitoring programme/event grouping only if the cycle actually represents a survey programme; a funding Campaign is not a sampling event |
 | Commitment Creation | A labeled promise/requirements report linked to the project; no direct commitment contract equivalent is established | Optional project plan reference. Do not emit organism observations or performed activities for promises |
 | Work Submission | Candidate `org.hypercerts.claim.activity` and `org.hypercerts.context.attachment`; publish after approval in the pilot | The activity can reference already authorized field observations, files or acoustic deployments. Work can have many observations; observation and Work identities remain separate |
@@ -112,7 +179,9 @@ TID keys. Do not copy the first provider's key or reference rules into another s
 
 ### Bloom, Silvi and Regen
 
-These are semantic research candidates, not assertions of available write APIs. Bloom documents
+These semantic mappings are expanded into provider-specific components, sequences, entity models
+and reconciliation rules in the [provider architectures](./impact-provider-architectures.md).
+They are not assertions of available write APIs. Bloom documents
 community action, reporting and peer review; Silvi documents sites/assets, methodology-defined
 claims and review/payout; Regen documents data anchoring separately from attestation and its
 ecocredit module. Each provider needs an explicit account/authority mapping and conformance plan.

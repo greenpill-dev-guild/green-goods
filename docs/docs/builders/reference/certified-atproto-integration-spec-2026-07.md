@@ -4,7 +4,7 @@ sidebar_label: Certified approval publishing (proposed)
 slug: /builders/specs/certified-atproto-integration-spec-2026-07
 audience: developer
 owner: docs
-last_verified: 2026-10-15
+last_verified: 2026-10-16
 feature_status: Planned
 source_of_truth:
   - packages/contracts/src/resolvers/WorkApproval.sol
@@ -27,9 +27,11 @@ owns the proposed architecture. Code owns existing behavior. All diagrams below 
 unless their nodes explicitly say **existing**. Dependencies D1–D9 remain unresolved.
 
 The [ontology and user-action crosswalk](./impact-integration-action-map.md) extends this design
-with GainForest/Bumicerts and all nine requested Garden lifecycle actions. It adds five diagrams,
-the distinction between shared repository records and application visibility, and later gates
-G1–G5/A1–A4. The first implementation remains account linking and approval publication.
+with all nine Garden lifecycle actions and an explicit assessment/evaluation distinction. The
+[provider architectures](./impact-provider-architectures.md) detail GainForest, Silvi, Bloom and
+Regen. The [sync and sharing design](./impact-sync-and-sharing-architecture.md) owns historical
+backfill, three-way reconciliation, modular capabilities and social report exports. D1–D9 gate
+this first slice; extension gates do not all block Certified account linking and approval publishing.
 
 ## 1. Product boundary and vocabulary
 
@@ -432,6 +434,10 @@ Verify configured EAS/schema/resolver, successful canonical receipt, Work/Garden
 chain-specific finality. Use `(blockNumber, transactionIndex, logIndex)` for deterministic ordering;
 the optional commitment `decisionSequence` is extra evidence, not a universal requirement.
 Select an activation block during onboarding. Historical backfill is an explicit previewed action.
+The [sync workflow](./impact-sync-and-sharing-architecture.md#3-historical-sync-and-reconciliation-are-product-workflows)
+defines range manifests, dry runs, current consent, adoption of existing records, checkpoint recovery
+and manual/scheduled comparison. These are required in the first publishing slice, not deferred
+until automation. A source scan cursor is not a remote-delivery acknowledgement.
 
 Approval decisions remain attributable to their reviewers. Current Work reads select the latest
 `createdAt` bucket and treat conflicting decisions in that bucket as unknown. The proposed scanner
@@ -453,9 +459,14 @@ still identify v1.4.1; deployed service compatibility must pass D1.
 | Existing Garden project | `org.hypercerts.collection`, `type: project` | Select an existing URI; preserve all unrelated fields/items; items use `itemIdentifier: {uri, cid}` |
 | Work snapshot | `org.hypercerts.claim.activity` | Required title, shortDescription, createdAt; preserve work dates separately; include only consented contributors and location |
 | Evidence snapshot | `org.hypercerts.context.attachment` | Required title/createdAt; set subjects to activity/evaluation strong references; content is an array of typed URI/blob values |
-| Steward decision | `org.hypercerts.context.evaluation` | Required evaluators/summary/createdAt; always set subject to activity URI **and CID**; state Green Goods review method and relationship |
+| Steward decision (first evaluation trigger) | `org.hypercerts.context.evaluation` | Required evaluators/summary/createdAt; always set subject to activity URI **and CID**; state Green Goods review method and relationship |
 | EAS provenance | Approved evidence/report content | Include chain/EAS/schema/source UIDs and decision provenance in an allowlisted report; do not invent extra protocol fields |
 | Reviewer attribution | Verified account-to-DID binding | Name only verified, consenting evaluators; publishing under a group does not prove the named person signed the external record |
+
+Assessment interpretations may also map to evaluations; observed quantities map to measurements,
+while targets and strategy remain planning content. See the
+[assessment decision](./impact-integration-action-map.md#1a-is-an-assessment-also-a-hypercerts-evaluation).
+This is a later source trigger under A1, not a change to the first approval slice.
 
 Do not map confidence `0–3` to an ecological outcome score. Preserve confidence, verification
 method, and decision as evidence with their Green Goods meaning. Do not invent measurements,
@@ -711,7 +722,7 @@ first release unless D4/D5 make them necessary.
 |---|---|---|
 | 0 — Conformance and decisions | Resolve provider contract, authorship, custody, privacy, and runtime choices | D1–D9 evidence matrix with explicit pass/block results; test identities and projects agreed |
 | 1 — Link and configure | Verified account link, read-only project discovery, Garden destination, disconnect | Correct account/DID displayed; unauthorized Garden denied; no publication enabled by linking alone |
-| 2 — Preview and publish | Durable source discovery, public preview, explicit consent, Certified publication receipts | Direct, queued and batch approvals each produce one intended report; crash/retry tests do not duplicate records |
+| 2 — Preview, history and publish | Durable source discovery, historical preview, explicit consent, native receipts and reconciliation controls | Current consent covers old work; direct/queued/batch approvals converge; partial sends, unknown outcomes and remote conflicts remain distinguishable |
 | 3 — Supervised Ma Earth pilot | Real project visibility, attribution, correction and recovery exercises | Actual Ma Earth display verified; positive-to-negative correction, disconnect during send, and lost-response recovery demonstrated |
 | 4 — Standing automatic policy | Opt-in automation, monitoring, bounded retries, restore drills, staged rollout | D6–D8 satisfied; no silent loss or stale positive report; pause/revoke controls demonstrated |
 | 5 — Evidence and other platforms | Separately scope a GainForest monitoring pilot, then selected Bloom, Silvi and Regen mappings | G1–G5 for GainForest; A1–A4 for broader source actions/provider mappings; each native contract verified before implementation |
@@ -735,8 +746,10 @@ authorization to build a generic event platform or enable every trigger at once.
 Bloom reporting should project into its actual community/action/report structure. Silvi should
 receive protocol-valid site/tree/monitoring evidence, not a generic approval relabeled as a tree
 event. Regen anchoring, attestation and credit issuance are distinct operations: a Green Goods
-approval is not automatically a Regen verification or credit. These are later investigations;
-no production write API or shared identity delegation is assumed for any of them.
+approval is not automatically a Regen verification or credit. Their [provider architectures](./impact-provider-architectures.md) now define individual pilots,
+transport choices, native entity models and recovery rules. No production write API or shared
+identity delegation is assumed. [Social sharing](./impact-sync-and-sharing-architecture.md#4-social-sharing-and-social-friendly-impact-reports)
+is an independent, user-driven release after public-data gates, without waiting for every provider.
 
 ## 15. Verification and operational acceptance
 
