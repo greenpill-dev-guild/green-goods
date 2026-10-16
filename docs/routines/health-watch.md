@@ -38,7 +38,7 @@ The retired GitHub Project #4 / Bug Board / Sprints flow is no longer the routin
 
 - All env vars are loaded; do not read `.env`.
 - `DISCORD_USER_ID_AFO` is Afo's Discord snowflake ID (numeric). Use `<@${DISCORD_USER_ID_AFO}>` in messages to @mention him only on real anomalies.
-- **Linear is the canonical surface for accepted operational health work.** Issues live on the Product team, in the active release project per [Project routing](README.md#project-routing) (unprojected when no release project is started), and carry the canonical scheme (`protocol:green-goods` + `activity:maintenance` for operational anomalies or `activity:build` for code fixes + `package:*` + `ai:routine`). The deprecated `Green Goods` umbrella project is no longer a routing destination. Resolve team/label/status IDs and the active release project by name at the start of every run; on lookup failure, fail loud in the Discord summary. Pass labels to `save_issue` as **bare child names** (`["green-goods", "maintenance", "routine"]`), not the `group:child` display form: the API does not accept the prefixed form, and one unresolvable entry rejects the whole array and files nothing.
+- **Linear is the canonical surface for accepted operational health work.** Issues live on the Product team, routed per [Project routing](README.md#project-routing) (a bounded active project that clearly owns the work, otherwise the active release project, unprojected only when none is started), and carry the canonical scheme (`protocol:green-goods` + `activity:maintenance` for operational anomalies or `activity:build` for code fixes + `package:*` + `ai:routine`). The deprecated `Green Goods` umbrella project is no longer a routing destination. Resolve team/label/status IDs, the active release project and the active bounded projects by name at the start of every run; on lookup failure, fail loud in the Discord summary. Pass labels to `save_issue` as **bare child names** (`["green-goods", "maintenance", "routine"]`), not the `group:child` display form: the API does not accept the prefixed form, and one unresolvable entry rejects the whole array and files nothing.
 
 ## Threshold philosophy
 
@@ -192,7 +192,7 @@ For each category that warrants an Issue:
 if no open Linear Issue matching the canonical labels + category marker:
   Linear: create Issue
     team        = Product
-    project     = the active release project from Setup (none when no release project is started)
+    project     = a bounded project from Setup that clearly owns the work, else the release project (none when no release project is started)
     title       = "<plain sentence that contains the category phrase>"
                   // no "<category>:" prefix; the phrase sits inside the
                   // sentence, because § Auto-close matches on it to find
@@ -306,5 +306,5 @@ health-watch: indexer={status}, vercel={status}, contracts={status_or_deferred},
 - **Auto-close stale recoveries.** Don't let recovered conditions sit as open Issues — transition them to `Done` with evidence.
 - **Linear is the only Issue surface.** No GitHub Issue writes, no GitHub Project items, no `Sprints` / iteration field updates. The retired `health:*` GitHub label set is not used.
 - **No CI check.** CI is intentionally not a health-watch signal — this routine's environment has no GitHub access (no connector, no token, no `gh`), and `main`-branch CI failures already surface via GitHub's native notifications. Do not re-add a `gh`- or Actions-based CI check here.
-- **Project routing discipline.** Every Issue follows [Project routing](README.md#project-routing): the active release project, or unprojected when none is started. Never route into the retired `Green Goods`, `Coop`, `Network Website`, `Cookie Jar`, or `Story Board` projects.
+- **Project routing discipline.** Every Issue follows [Project routing](README.md#project-routing): a bounded active project that clearly owns the work, otherwise the active release project, or unprojected when none is started. Never route into the retired `Green Goods`, `Coop`, `Network Website`, `Cookie Jar`, or `Story Board` projects.
 - **Terse narration.** Keep working narration terse — the Discord summary, any Linear Issues, and the one-line summary are the only products of this run.

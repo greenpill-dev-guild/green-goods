@@ -278,7 +278,7 @@ Apply these thresholds to the question outputs:
 For each anomaly:
 
 1. **Dedupe** against existing open Linear Customer Needs/Issues on the Product team filtered by `protocol:green-goods` + `activity:build`. Match by the **curated question name** carried in the signal line (`funnel.onboarding` and the like) plus the affected surface — that pair is stable across runs and survives the prose body shape, whereas the old `## Anomaly type` heading was retired with the section scaffolding on 2026-08-27. If a duplicate exists, **append a comment** with the new numbers and refresh the date — do not create a parallel Issue.
-2. **Create** the Linear Issue per the body schema above on the Product team, in the active release project (resolve it by name this run; unprojected when none is started). Status: `Backlog` (exploratory) or `Todo` (well-scoped, e.g., funnel breakage with a clear culprit step).
+2. **Create** the Linear Issue per the body schema above on the Product team, routed per [Project routing](README.md#project-routing): a bounded active project that clearly owns the work, otherwise the active release project (resolve both by name this run), or unprojected when no release project is started. Status: `Backlog` (exploratory) or `Todo` (well-scoped, e.g., funnel breakage with a clear culprit step).
 3. **Cap**: at most **3 new Linear Issues per run**. If more anomalies exist, surface them in the digest body and let the human triage which to escalate next week.
 
 ## Phase 2b: Funnel-to-backlog correlation
@@ -316,7 +316,7 @@ If the status-update write fails (auth, initiative not resolvable, etc.), surfac
 
 Before posting:
 
-1. List every Linear Issue this run created/refreshed and confirm: on the Product team in the active release project (or unprojected when none is started), expected canonical labels (`protocol:green-goods`, `activity:build`, `package:*`, one `ai:*` value — `ai:routine` by default or `ai:codex` when the Issue clears the Codex-ready bar), body matches schema, no private fields.
+1. List every Linear Issue this run created/refreshed and confirm: on the Product team in the project [Project routing](README.md#project-routing) picks (unprojected only when no release project is started), expected canonical labels (`protocol:green-goods`, `activity:build`, `package:*`, one `ai:*` value — `ai:routine` by default or `ai:codex` when the Issue clears the Codex-ready bar), body matches schema, no private fields.
 2. Confirm the weekly digest status update: posted to the resolved initiative, body matches the schema, health set, no private fields. Confirm NO GitHub PR, branch, or `docs/metrics/` file was created.
 3. **Privacy grep** across every Linear body (anomaly Issues + the weekly digest status update), **every evidence comment this run drafted or posted** (drafts are checked before Phase 2 posts them; this pass is the backstop), and the Discord post for the strings `replay`, `session_id`, `distinct_id`, `0x` (wallet addresses are public on-chain, but treat as suspect — confirm each one is a deliberate `garden_address` reference, not a `distinct_id`), full stack URLs with query strings, and any reporter identifiers. Any unintended hit means the routine leaked private context — fail loud in the `⚠ Failures this run` block and edit the offending body or comment in place to redact before saving.
 4. Confirm the Discord post and `#funding` cross-post fit the schema. Drop excess content rather than expanding sections.

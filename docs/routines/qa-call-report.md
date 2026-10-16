@@ -59,9 +59,11 @@ decision log is a human-gated local step, never yours.
   `protocol:green-goods`, `package:*`, `activity:qa`, `source:qa-session` (resolve-or-create),
   `ai:routine`, and the per-session `session:<YYYY-MM-DD>` (resolve-or-create). A missing family
   fails loud — do not invent records under a different label.
-- Resolve the active release project by name at run start as well, and put the parent Issue and its
-  slices in it per [Project routing](README.md#project-routing). With no release project started,
-  they stay unprojected; that is not a lookup failure.
+- Resolve the active release project and the active bounded projects by name at run start as well.
+  The `QA session` parent goes to the release project. Each slice goes to a bounded project that
+  clearly owns its subject, otherwise the release project, per
+  [Project routing](README.md#project-routing). With no release project started, an Issue that no
+  bounded project owns stays unprojected; that is not a lookup failure.
 - Issue bodies follow [`.claude/context/linear-routing-rules.md`](../../.claude/context/linear-routing-rules.md)
   § Issue structure (clear, simple, concise, human-friendly; 6-heading / 600-word backstops — the
   `QA session YYYY-MM-DD` parent title is exempt from the word backstop) and the two templates in

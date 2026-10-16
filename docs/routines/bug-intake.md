@@ -58,6 +58,7 @@ team            = Linear team where name == "Product"
 issue_statuses  = team.workflowStates  // expect Backlog, Todo, In Progress, In Review, Done, Cancelled
 labels          = team.labels          // expect the canonical label families listed below
 release_project = started Product-team project named "Green Goods vX.Y.Z QA & Release"  // none is valid: Issues stay unprojected
+bounded_projects = other Product-team projects that are not Completed or Canceled  // use one only when it clearly owns the work
 ```
 
 If the Product team, expected Issue statuses, or required canonical labels are missing, **fail loud** in the Discord summary. Do not invent records under a different team or skip labels silently.
@@ -348,7 +349,7 @@ Source: the dedicated `#bug-report` channel (`DISCORD_BUGS_CHANNEL_ID`). The ret
 
    Drop anything you cannot fill rather than writing a placeholder — if the fix is not suggestable yet, that is the lightweight tracking pattern (`activity:maintenance` + `Backlog`), not a "Needs investigation" heading. Do not restate the verbatim quote or the reporter list; those live on the linked Customer Need.
 
-   Project: the `release_project` resolved at the start of the run, or none when no release project is started ([Project routing](README.md#project-routing)). Apply labels: `protocol:green-goods` + `activity:build` + `package:<inferred>` (omit if unknown) + `source:discord` + `ai:routine`. Status: `Todo`. Link the Issue to the Customer Need via Linear's relationship surface ("relates to" or the Customer Need's linked-issues field, whichever the Linear API exposes). The Issue body inherits the same privacy boundary — never paste replay URLs, session IDs, distinct IDs, wallet addresses, or reporter identifiers into it.
+   Project: per [Project routing](README.md#project-routing), the `bounded_projects` entry that clearly owns the work, otherwise the `release_project`, or none when no release project is started. Apply labels: `protocol:green-goods` + `activity:build` + `package:<inferred>` (omit if unknown) + `source:discord` + `ai:routine`. Status: `Todo`. Link the Issue to the Customer Need via Linear's relationship surface ("relates to" or the Customer Need's linked-issues field, whichever the Linear API exposes). The Issue body inherits the same privacy boundary — never paste replay URLs, session IDs, distinct IDs, wallet addresses, or reporter identifiers into it.
 
 7. **Acknowledge on Discord** — reply with the Linear URL and add ✅ reaction in `#bug-report`. Since the standalone ack post was retired (Phase 6), this threaded reply IS the reporter's acknowledgement. When acknowledging, link the Customer Need (not the Issue), because the Customer Need is the user-facing record:
 
@@ -502,7 +503,7 @@ After Phases 1–3, before the umbrella check, fold every PostHog match collecte
 
 1. **Re-run the recurring-pattern probe** (curated question 4 in `## PostHog telemetry enrichment`) over the last 30 days, including matches from before this run.
 2. **Threshold gate**: a hash is a recurring pattern when its 30-day distinct-session count is **≥ 50**. Below threshold, the per-report Customer Needs from Phases 1–3 stand on their own. Do not aggregate.
-3. **Find or create the parent Issue** on the Product team, in the `release_project` when one is started:
+3. **Find or create the parent Issue** on the Product team, routed like the per-report Issues (a `bounded_projects` entry that clearly owns the work, otherwise the `release_project`):
    - Look for an open Issue carrying `protocol:green-goods` + `ai:routine` + `activity:build` + a `pattern:posthog-{error-hash-prefix}` label. If the label set is missing on the team, fail loud in the Phase 7 summary and skip aggregation rather than inventing a parent.
    - If none exists and the threshold is met, create one Issue whose title is a plain verb-led sentence naming the failure — "Fix the credential request that never resolves on garden join", not `Recurring: {error}`. The `Recurring:` prefix was retired 2026-08-27 and a `PreToolUse` hook now rejects it; the `pattern:posthog-*` label marks the record as a recurring parent. Status `Todo`, labels `protocol:green-goods` + `activity:build` + `package:<inferred>` + `ai:routine` + `pattern:posthog-{error-hash-prefix}`. The parent Issue body uses the safe-summary fields only:
 
