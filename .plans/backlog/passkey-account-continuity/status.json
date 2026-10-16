@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-10-16T19:35:57.040Z",
-    "updated_at": "2026-10-16T20:45:00Z"
+    "updated_at": "2026-10-16T22:47:03Z"
   },
   "links": {
     "brief": "brief.md",
@@ -136,20 +136,20 @@
       "note": "Scaffolded feature hub in backlog"
     },
     {
-      "timestamp": "2026-10-16T20:10:00Z",
+      "timestamp": "2026-10-16T22:44:01Z",
       "actor": "claude",
       "lane": "system",
       "status": "planned",
       "branch": null,
-      "note": "Wrote brief, spec, plan, eval, the clean-room proof report and the portable rig; contracts lane marked n/a."
+      "note": "Wrote brief, spec, plan, eval, the clean-room proof report and the portable rig; contracts lane marked n/a. Timestamp: the commit that recorded it."
     },
     {
-      "timestamp": "2026-10-16T20:45:00Z",
+      "timestamp": "2026-10-16T22:47:03Z",
       "actor": "claude",
       "lane": "system",
       "status": "planning_reconciled",
       "branch": null,
-      "note": "Decision 8 answered: Afo chose the COM-39 rewrite, which was posted the same day."
+      "note": "Decision 8 answered: Afo chose the COM-39 rewrite, which was posted the same day. Timestamp: the commit that recorded it."
     }
   ]
 }

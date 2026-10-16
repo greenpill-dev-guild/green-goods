@@ -40,8 +40,13 @@ Agent/model: Claude Code, claude-opus-5-5 | Coverage: planning segment on 2026-1
 
 | Phase | Start → end (UTC) | Result / evidence or blocker |
 |---|---|---|
-| investigate | unknown → 2026-10-16T19:20Z | Rig built; scenarios A to E passed, and A found the hex-ID failure (report above) |
-| implement | 2026-10-16T19:35Z → 2026-10-16T20:10Z | Hub written: brief, spec, plan, eval, report, rig, COM-39 draft |
-| verify | 2026-10-16T20:00Z → 2026-10-16T20:10Z | Portable rig rerun from the hub (results-2026-10-16.json); `plan-hub validate` run before handoff |
+| investigate | unknown → 2026-10-16T19:34Z | Rig built; scenarios A to E passed, and A found the hex-ID failure (first full results file written 19:34:12Z) |
+| implement | 2026-10-16T19:35Z → unknown | Hub scaffolded 19:35:57Z; brief, spec, plan, eval, report, rig and COM-39 draft written |
+| verify | 2026-10-16T19:41Z → unknown | Portable rig rerun from the hub (log written 19:41:57Z); `plan-hub validate`, guidance links, immutable reports, Biome |
+| wait | unknown → unknown | Afo's choice of delivery and Linear records; resolved (PR, COM-39 rewrite) |
+| publish | 2026-10-16T22:43Z → 2026-10-16T22:47Z | Worktree from develop, commits `0c09b4128` and `556932c65`, push gate passed, PR #1111 opened 22:44:48Z |
+
+Times are observed boundaries: file and log write times, the scaffold time, commit times and the
+PR's creation time. Anything not observed is `unknown`.
 
 Human corrections: 0; attention: unknown.
