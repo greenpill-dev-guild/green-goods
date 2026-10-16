@@ -4,7 +4,7 @@
 **Status**: BACKLOG — architecture proposed; runtime execution pending phase 0  
 **Created / Last Updated**: 2026-10-15 / 2026-10-16
 **PR**: [#640](https://github.com/greenpill-dev-guild/green-goods/pull/640)  
-**Related research**: RESR-69 (Backlog when inspected; not changed by this plan)
+**Related research**: [RESR-69](https://linear.app/greenpill-dev-guild/issue/RESR-69) — In Progress; conformance remains open
 
 The [public architecture](../../../docs/docs/builders/reference/certified-atproto-integration-spec-2026-07.md)
 owns diagrams and dependency IDs. This hub owns execution order and evidence. No runtime code,
@@ -250,3 +250,16 @@ specified in [eval.md](./eval.md), not reported as run. The implementation lanes
 contracts are not applicable. Planning validation and phase timing are recorded in the chat
 handoff and [planning handoff](./handoffs/planning.md); future QA records must identify the exact
 tested implementation SHA and a clean path-scoped worktree.
+
+
+## Linear visibility and independent tracks
+
+The [Linear map](./linear-map.md) records the project, roadmap, checkpoint issues and native
+blockers. This is a thin checkpoint mirror: `.plans` owns scope, execution state and proof; Linear
+owns scheduling, assignees and cross-team visibility. `preserve_existing` prevents a later manifest
+from resetting independently owned live records. No canonical lane issue is duplicated.
+
+Social checkpoints H1–H4 now have their own [plan hub](../impact-sharing-report-exports/plan.todo.md)
+and project, with no dependency on Certified linking. Provider conformance remains research;
+GainForest, Silvi, Bloom and Regen do not block the first Certified slice. Runtime implementation,
+partner writes and deployment are not authorized by tracker synchronization.

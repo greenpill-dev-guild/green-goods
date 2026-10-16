@@ -24,8 +24,8 @@ live account, grant or external report was created during planning.
 
 Resolve phase 0 with the provider and Green Goods owners, recording evidence for each dependency.
 Accept a bounded runtime implementation scope before opening implementation lanes. Preserve the
-parked draft PR's keep-open intent. Related research RESR-69 remains Backlog; this update does not
-change its workflow state.
+parked draft PR's keep-open intent. At that planning checkpoint RESR-69 was described as Backlog; the live issue is now In Progress
+and its current conformance scope/project are recorded in the Linear map.
 
 ## Validation receipt
 
@@ -90,3 +90,25 @@ Agent/model: Codex / GPT-6 family | Coverage: assessment decision follow-up only
 
 Verification/publication completion is recorded in the PR and chat. Human corrections in this
 follow-up: 0 (decision acceptance); human attention: unknown.
+
+
+## Linear synchronization — 2026-10-16
+
+Create the Certified and independent sharing projects under Community Evidence Mesh. Record thin
+Product checkpoint mirrors, native blockers and source links in `linear-map.md`. Refresh RESR-69,
+RESR-96, RESR-49 and RESR-77; preserve RESR-98 Done and PRD-744's existing scope. Conformance
+frontiers are RESR-99 (GainForest), RESR-100 (Silvi), RESR-101 (Bloom), and RESR-96 (Regen).
+
+Task record: PR #640 | Type: planning and coordination | Outcome: projects/issues created and native dependencies verified
+Agent/model: Codex / GPT-6 family | Coverage: authorized Linear-sync turn only
+
+| Phase | Start → end (UTC) | Evidence |
+|---|---|---|
+| investigate | 2026-10-16 02:31:32 → 2026-10-16 02:33:04 | Live teams, labels, project inventory, issue states and routing contract |
+| implement | 2026-10-16 02:33:04 → unknown | Native projects/issues, existing record updates, independent sharing hub and plan mappings |
+
+Live verification completed at 2026-10-16 02:43:56 UTC: both projects, 22 new issues, source labels,
+parents and native blockers were checked. Two relation-type conflicts were corrected and read back.
+Existing research states and the completed GainForest body were preserved. Publication timing
+belongs in the PR/chat. No runtime lane advanced.
+Human corrections observed in this segment: 0; human attention: unknown.

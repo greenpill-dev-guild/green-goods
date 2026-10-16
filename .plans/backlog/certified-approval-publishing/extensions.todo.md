@@ -55,6 +55,15 @@ These are independent tracks, not one eighteen-step batch. A contract capability
 unknown selects export/manual status or stays blocked. Product decisions about ecological meaning,
 public disclosure, grant custody or transaction signing must be accepted before runtime activation.
 
+## Tracking and promotion
+
+Social H1–H4 are now owned by the independent [sharing plan](../impact-sharing-report-exports/plan.todo.md);
+the rows above are architecture references rather than a second execution checklist. The
+[Linear map](./linear-map.md) records each provider's research frontier and the accepted assessment
+follow-on. Promote a provider to its own implementation hub/project only after its conformance,
+community, native object and pilot exit evidence are accepted. A research issue is not a runtime
+delivery commitment.
+
 ## Cross-provider completion contract
 
 Each selected integration must demonstrate account/destination authority, exact public preview,
