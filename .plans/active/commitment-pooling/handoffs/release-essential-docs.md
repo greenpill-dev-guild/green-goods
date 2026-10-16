@@ -263,7 +263,7 @@ Agent/model: Codex / GPT-6 | Coverage: October 15 implementation, after the comp
 | Implement | 2026-10-15 22:43:32 → end unknown | Guides, supporting links, FAQ and documentary availability prepared in isolated checkout. Small clarity changes continued during verification. |
 | Verify | 2026-10-15 22:56:23 → 23:07:40 | Selected checks passed cumulatively; public Docs browser proof and final handoff checks. Earlier checks ran during implementation; their phase start is unknown. |
 
-Human corrections: 0 observed in this segment; attention: unknown.
+Human corrections: 1 observed in this segment (generated artwork must not show human faces); attention: unknown.
 
 ## Planning record
 
@@ -281,7 +281,7 @@ files; that result is not prose-format validation. The direct link/whitespace re
 the task-file evidence. Checks describe this shared working copy, not the committed HEAD or a
 release candidate. Rendered proof: none; this change only creates a planning handoff.
 
-Human corrections: 0 observed in this segment; attention: unknown.
+Human corrections: 1 observed in this segment (generated artwork must not show human faces); attention: unknown.
 
 ## Publication follow-up record
 
@@ -294,7 +294,7 @@ Agent/model: Codex / GPT-6 | Coverage: follow-up after local implementation
 | Implement | 2026-10-15 23:51:09 → 23:54:05 | Completed coverage and navigation gaps on verified develop. |
 | Verify | 2026-10-15 23:54:05 → ongoing | Fresh Docs tests 92/92, build/search 73/73, authority/ontology/vocabulary, public Brave navigation and reading checks passed; post-commit push gate follows. |
 
-Human corrections: 0 observed in this segment; attention: unknown.
+Human corrections: 1 observed in this segment (generated artwork must not show human faces); attention: unknown.
 
 Publication review batches: (1) authored guides, role navigation and FAQ; (2) ontology claim,
 generated output and query expectation; (3) evidence-path CI selection and hub records. All task
@@ -385,7 +385,10 @@ release-essential illustrations and glossary explanations. It does not complete 
   broader model or deferred payouts; application capability flags and chain gates are untouched.
 - All 26 community guides now have a visible opening image at desktop and phone sizes. Seventeen
   distinct images were generated with the built-in image tool and reviewed; prompts, dimensions
-  and hashes live in `docs/assets/illustrations.json`. Editorial openings fill the article.
+  and hashes live in `docs/assets/illustrations.json`. After the user's no-faces correction, all
+  seventeen were replaced with distinct scenes of tools, places and completed work without people.
+  The older generated artwork still used by the site was visually checked and has no faces.
+  The README and image ledger preserve that constraint. Editorial openings fill the article.
   Standalone figures center; existing product figures pair the screenshot with explanation on
   desktop and center it above the text on phones. Required third-party attribution is retained.
 - Three new Storybook captures show richer Your Work: multiple work items, linked drafts and
@@ -407,8 +410,11 @@ Production Docs build and search cover 76/76 routes. The selected QA checks pass
 Client, Admin and Agent, plus validation-system tests, source structure, test quality, ontology,
 generated outputs and story quality. Storybook production build passes (422 components / 2260
 stories). A temporary cross-checkout dependency-link issue was corrected locally without installing
-packages, changing manifests or changing the lockfile. Storybook preview explicitly initializes
-its mock runtime before provider imports so module spies work for these captures.
+packages, changing manifests or changing the lockfile. The initial preview bootstrap caused the
+published Storybook interaction job to load a second mocker. The follow-up moves initialization
+into ordinary-preview annotations only; Vitest retains its own runtime. The normal Storybook
+preview renders the rich recovery fixture. Local interaction-test attempts stop at Chromium's
+macOS MachPort permission failure before importing a story, so CI must confirm interaction proof.
 
 Rendered proof: Brave extension, public localhost Docs static build and Storybook, 2026-10-15;
 26 community openings at 390×844 and 1440×1000, all with images in the initial viewport and no
@@ -433,4 +439,19 @@ Agent/model: Codex / GPT-6 | Coverage: this implementation follow-up
 | Investigate / implement | 2026-10-16 01:50:18 → 02:26:02 | Current PR checked; approved source, navigation, glossary, imagery and fixture changes prepared. |
 | Verify / review | 2026-10-16 02:26:02 → ongoing | Docs/build, source checks, Storybook and rendered reading; publication evidence follows in PR/chat. |
 
-Human corrections: 0 observed in this segment; attention: unknown.
+Human corrections: 1 observed in this segment (generated artwork must not show human faces); attention: unknown.
+
+
+No-faces follow-up, October 15: all 17 replacements, alt text, dimensions and asset hashes are
+current. Docs tests pass 96/96; production build/search cover 76/76 routes; authority and generated
+checks pass with the same two advisory endpoint warnings. Brave extension, public localhost Docs:
+all 26 opening images load in the initial phone viewport without page-wide overflow; the desktop
+openings were visually reviewed again at 1440×1000. The new still-life/landscape images have no
+people, including within the small photographs in Track Your Work. Existing third-party photography
+and actual UI captures retain their provenance. The Storybook configuration is the only harness
+change in this correction; dependencies, lockfile, permissions, tests and CI requirements remain intact.
+
+| Phase | Start → end (UTC) | Result |
+|---|---|---|
+| Publish / inspect CI | 2026-10-16 02:55:56 → 03:29:35 | ad473e2ee published; Docs CI passed, Design interaction bootstrap regression identified. |
+| Implement / verify correction | 2026-10-16 03:29:35 → ongoing | No-face artwork, ordinary-preview-only initialization, repeated Docs/rendered proof; final publication and current-head CI follow in PR/chat. |
