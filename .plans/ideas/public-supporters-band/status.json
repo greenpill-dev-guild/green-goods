@@ -174,7 +174,7 @@
       "lane": "system",
       "status": "linear_recorded",
       "branch": null,
-      "note": "Cleared linear.project. It named Green Goods Seasons & Campaigns, which no longer exists in Linear, so a create action could not resolve it. Existing records are preserved (stateSyncMode preserve_existing); a created issue is routed by rule 4."
+      "note": "Cleared linear.project. It named Green Goods Seasons & Campaigns, which no longer exists in Linear, so a create action could not resolve it. Existing records are preserved (stateSyncMode preserve_existing); a created issue is routed by rule 4. No Linear write happened."
     }
   ],
   "taxonomy": {

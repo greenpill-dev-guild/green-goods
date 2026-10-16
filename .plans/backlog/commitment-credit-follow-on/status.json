@@ -409,7 +409,7 @@
       "lane": "system",
       "status": "linear_recorded",
       "branch": null,
-      "note": "Cleared linear.project. It named Commitment Pooling, which is Completed, so any issue a later sync created would have started in a closed project. Existing records are preserved (stateSyncMode preserve_existing), so PRD-697 and PRD-787 keep their current Linear project either way; open work with no bounded project sits in the active release project."
+      "note": "Cleared linear.project. It named Commitment Pooling, which is Completed, so any issue a later sync created would have started in a closed project. Existing records are preserved (stateSyncMode preserve_existing), so PRD-697 and PRD-787 keep their current Linear project either way; open work with no bounded project sits in the active release project. No Linear write happened."
     }
   ]
 }

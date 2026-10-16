@@ -222,7 +222,7 @@
       "lane": "system",
       "status": "linear_recorded",
       "branch": null,
-      "note": "Recorded Linear parent/lane issue identifiers"
+      "note": "Recorded linear.project as Cosmo-Local Integration, where RESR-73 already lives; it was Commitment Pooling, which is Completed. No Linear write happened: this aligns the hub with Linear."
     }
   ]
 }

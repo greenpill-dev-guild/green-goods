@@ -1800,7 +1800,7 @@
       "lane": "system",
       "status": "linear_recorded",
       "branch": null,
-      "note": "Cleared linear.project. It named Commitment Pooling, which is Completed, so a lane issue a later sync created would have started in a closed project. Existing records are preserved (stateSyncMode preserve_existing), so the issues already in that project stay there; a created issue is routed by rule 4."
+      "note": "Cleared linear.project. It named Commitment Pooling, which is Completed, so a lane issue a later sync created would have started in a closed project. Existing records are preserved (stateSyncMode preserve_existing), so the issues already in that project stay there; a created issue is routed by rule 4. No Linear write happened."
     }
   ]
 }
