@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-10-16T19:35:57.040Z",
-    "updated_at": "2026-10-16T23:01:14Z"
+    "updated_at": "2026-10-16T23:19:01Z"
   },
   "links": {
     "brief": "brief.md",
@@ -35,7 +35,7 @@
   },
   "notes": [
     "Planned and de-risked on 2026-10-16; blocked on decisions 1 to 7 in plan.todo.md. Step 6 depends on decision 2 and step 8 on decision 4.",
-    "Clean-room proof: reports/2026-10-16-clean-room-proof.md (clean-room Chromium, virtual authenticator; signatures checked by read-only eth_call). Device proof is plan step 11 and is Afo's.",
+    "Clean-room proof: reports/2026-10-16-clean-room-proof-second-review.md, which supersedes the two earlier reports of the same day (clean-room Chromium, virtual authenticator; signatures checked by read-only eth_call). Device proof is plan step 11 and is Afo's.",
     "Shared auth workflows and the agent passkey directory are critical surfaces: read every touched line and keep the selector's critical override.",
     "Never re-encode a stored passkey credential ID: Kernel hashes that exact string into the account address.",
     "Related records: PRD-1107 built the directory; COM-39 was rewritten around this plan on 2026-10-16 (decision 8, text in handoffs/com-39-update-draft.md). Name rules belong to green-goods-name-reservation.",
@@ -158,6 +158,14 @@
       "status": "planning_reconciled",
       "branch": null,
       "note": "Addressed the first Codex review: adoption calls run beside the hosted lookup on a no-retry, 3-second client; completion is idempotent; uniqueness is on credential bytes; a v2.0.1 upgrade test and mismatched-ID refusals are planned; wrong-site copy names the sites a hosted account may come from. Rig rerun adds admin signing and the new refusals. Timestamp: the observed rig rerun."
+    },
+    {
+      "timestamp": "2026-10-16T23:19:01Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "planning_reconciled",
+      "branch": null,
+      "note": "Addressed the second review (Codex and CodeRabbit): stored IDs match under either reading and the credential key comes from the assertion; the completion gets a 10-second deadline; positive tests planned for the hosted race and the taken-name row; the resume steps keep the decision gate; current-evidence links point at the second-review report; the rig refuses unknown modes. Timestamp: the observed rig rerun."
     }
   ]
 }

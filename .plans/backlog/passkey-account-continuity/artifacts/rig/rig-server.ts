@@ -66,6 +66,7 @@ if (!build.success) {
 const bundle = await build.outputs[0].text();
 
 type Mode = "off" | "on" | "admin-only";
+const MODES: readonly Mode[] = ["off", "on", "admin-only"];
 let mode: Mode = "off";
 const wellKnownHits: { host: string; mode: Mode; served: boolean }[] = [];
 const proxyLog: string[] = [];
@@ -105,12 +106,17 @@ const json = (body: unknown, status = 200) =>
 const normalizeName = (value: unknown) =>
   typeof value === "string" ? value.trim().toLowerCase() : "";
 
-function hexOrBase64UrlBytes(id: string): Uint8Array {
+/**
+ * Every byte sequence a stored credential ID can stand for. An even-length all-hex string is
+ * also valid base64url, so both readings are kept, as `getPasskeyRequestIds` does in the app.
+ */
+function credentialIdReadings(id: string): Uint8Array[] {
+  const readings = [Uint8Array.from(Buffer.from(id, "base64url"))];
   const hex = id.replace(/^0x/, "");
   if (hex.length > 0 && hex.length % 2 === 0 && /^[\da-f]+$/i.test(hex)) {
-    return Uint8Array.from(hex.match(/.{2}/g)!, (byte) => parseInt(byte, 16));
+    readings.unshift(Uint8Array.from(hex.match(/.{2}/g)!, (byte) => parseInt(byte, 16)));
   }
-  return Uint8Array.from(Buffer.from(id, "base64url"));
+  return readings;
 }
 
 function sameBytes(a: Uint8Array, b: Uint8Array) {
@@ -165,8 +171,9 @@ async function adopt(request: Request) {
   pending.delete(challenge);
   const challengeLive = expiresAt !== undefined && expiresAt >= Date.now();
 
-  const credentialBytes = hexOrBase64UrlBytes(credentialId);
-  if (!sameBytes(credentialBytes, Buffer.from(response.rawId, "base64url"))) {
+  // The stored ID must stand for the bytes the browser just used, under either reading.
+  const rawId = Uint8Array.from(Buffer.from(response.rawId, "base64url"));
+  if (!credentialIdReadings(credentialId).some((reading) => sameBytes(reading, rawId))) {
     return json({ ok: false, code: "credential_mismatch" });
   }
 
@@ -212,8 +219,9 @@ async function adopt(request: Request) {
   if (!verified) return json({ ok: false, code: "verification_failed", library });
 
   // Idempotent completion: the same name, credential bytes and key as a stored entry is that
-  // entry's result, whether or not the challenge is still live.
-  const credentialKey = Buffer.from(credentialBytes).toString("base64url");
+  // entry's result, whether or not the challenge is still live. The key comes from the
+  // assertion's own bytes, never from re-reading the submitted spelling.
+  const credentialKey = Buffer.from(rawId).toString("base64url");
   const existing = entries.get(userName);
   const identical =
     existing !== undefined &&
@@ -299,7 +307,9 @@ Bun.serve({
   fetch(request) {
     const url = new URL(request.url);
     if (url.pathname === "/mode") {
-      mode = (url.searchParams.get("ror") as Mode) ?? "off";
+      const requested = url.searchParams.get("ror") ?? "off";
+      if (!MODES.includes(requested as Mode)) return json({ ok: false, code: "bad_mode" }, 400);
+      mode = requested as Mode;
       return json({ mode });
     }
     if (url.pathname === "/reset") {

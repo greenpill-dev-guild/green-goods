@@ -64,7 +64,8 @@ In the 30 days to 2026-10-16, 6 people used a passkey session on www and 3 on be
      domain.
 7. **R7 Sign-in first.** Adoption never blocks, delays or fails a sign-in:
    - Its calls run beside the hosted lookup, never before the ceremony.
-   - They use their own short timeout and are never retried.
+   - They are never retried. The start call has a 3-second timeout, and the background
+     completion has 10 seconds.
    - Without the directory, sign-in runs as today.
 8. **R8 Same account.** Adoption sends nothing unless the entry rebuilds the session's own
    address.
@@ -92,7 +93,7 @@ sequenceDiagram
   Device-->>App: assertion
   App->>App: check assertion against the listed key, open the session
   opt Only when the adoption challenge was used
-    App-)Dir: gg_completePasskeyAdoption(name, ids, key, domain, assertion)
+    App-)Dir: gg_completePasskeyAdoption(name, ids, key, domain, assertion) (10 s, no retry)
     Dir->>Hosted: same passkey under this name?
     Dir-->>App: adopted, the stored result for a retry, or a refusal the app logs
   end
@@ -123,12 +124,16 @@ domain, and its local check compares the page origin and the domain hash. The ri
   rate-limit class.
   - Completion is idempotent: an identical request returns the stored result.
   - When the hosted lookup is down, completion answers with a code viem does not retry.
-- **Adoption client.** The app calls these methods through its own client, with a 3-second
-  timeout and no transport retry.
+- **Adoption client.** The app calls these methods through its own client, with no transport
+  retry.
+  - The start call sits beside sign-in, so it gets 3 seconds.
+  - The completion runs in the background, so it gets 10 seconds. That outlasts the agent's
+    4-second hosted lookup.
 - **Store.**
-  - New columns: `signingId`, `credentialKey` (the credential's bytes in base64url, unique) and
+  - New columns: `signingId`, `credentialKey` (unique: the credential's bytes in base64url, taken
+    from the assertion's `rawId`) and
     `source` (`registered` or `adopted`), plus a challenge `purpose`.
-  - All are added with `ensureColumn`, and existing rows are backfilled.
+  - All are added with `ensureColumn`. Existing rows are backfilled by copying `credentialId`.
 
 ### Draft copy
 
@@ -154,8 +159,8 @@ screens say "clave de acceso" and "chave de acesso"; that mismatch predates this
 
 ## Research Evidence
 
-- **Clean-room proof (2026-10-16):** [reports/2026-10-16-clean-room-proof-after-review.md](reports/2026-10-16-clean-room-proof-after-review.md), which supersedes the first
-  report of the same day.
+- **Clean-room proof (2026-10-16):** [reports/2026-10-16-clean-room-proof-second-review.md](reports/2026-10-16-clean-room-proof-second-review.md), which supersedes the two
+  earlier reports of the same day.
   Headless Chromium 148 with a CDP virtual authenticator, the real hostnames on the default port
   through a local proxy, and the app's own sign-in, verifier, signing owner and Kernel encoding.
   Signatures were checked against the deployed validator with a read-only `eth_call`.
@@ -245,7 +250,8 @@ from any device the passkey syncs to.
 - **Performance:** adoption adds no wait to a sign-in.
   - The challenge request runs beside the hosted lookup, and the ceremony starts when the lookup
     answers, as today.
-  - Adoption calls have a 3-second timeout and no transport retry.
+  - Adoption calls are never retried. The start call gets 3 seconds and the background
+    completion 10.
   - The completion runs after the session opens.
 - **Offline / sync:** adoption needs the network and is skipped offline; nothing is queued.
 - **Localization:** en, es and pt for every new string.
@@ -272,7 +278,11 @@ from any device the passkey syncs to.
     client's address guard before sending.
 - **One passkey under two names.**
   - Risk: the same credential's hex and base64url spellings pass a string-only uniqueness check.
-  - Mitigation: uniqueness on `credentialKey`, the credential's bytes.
+  - Mitigation: uniqueness on `credentialKey`, taken from the assertion's bytes.
+- **An ID valid in both spellings.**
+  - Risk: reading an even-length, all-hex base64url ID only as hex refuses a legitimate passkey.
+  - Mitigation: accept either reading, as the app's sign-in already does, and key uniqueness on
+    the assertion's bytes (rig scenario F).
 - **The hosted server down during adoption.**
   - Risk: the directory can't confirm who holds a hosted name.
   - Mitigation: refuse with a non-retried `unavailable` and try again at a later sign-in; sign-in
@@ -280,7 +290,8 @@ from any device the passkey syncs to.
 - **A retried completion after a lost response.**
   - Risk: an automatic retry meets the spent challenge and reports an expiry instead of the real
     outcome.
-  - Mitigation: no transport retry for adoption calls, and identical completions return the stored
+  - Mitigation: no transport retry for adoption calls, a completion deadline longer than the
+    agent's hosted lookup, and identical completions return the stored
     result.
 - **An upgrade that misses the new columns.**
   - Risk: `CREATE TABLE IF NOT EXISTS` leaves the production table as it was.

@@ -1,6 +1,7 @@
 // Runner: drives clean-room Chromium with a virtual passkey through the rig, then checks the
 // resulting signatures against the deployed Kernel WebAuthn validator on Arbitrum One with a
 // read-only eth_call (state override, no transaction).
+import { generateKeyPairSync, randomBytes } from "node:crypto";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
 
@@ -70,6 +71,12 @@ async function browserSession() {
         resident: credential.isResidentCredential,
       }));
     },
+    /** Put a passkey with chosen ID bytes and a known key on the virtual authenticator. */
+    addPasskey: (credential: { credentialId: string; rpId: string; privateKey: string; userHandle: string }) =>
+      cdp.send("WebAuthn.addCredential", {
+        authenticatorId,
+        credential: { ...credential, isResidentCredential: true, signCount: 0 },
+      }),
     close: () => browser.close(),
   };
 }
@@ -190,6 +197,39 @@ let adoptedSignIn: Signer & { rpId: string };
     rememberedOnAdmin,
     signInOnAdmin: adminSignIn,
     signInOnBeta: betaSignIn,
+  };
+  await s.close();
+}
+
+// ── F. A stored ID that is valid hex and valid base64url, adopted on www, used on admin ──
+// The authenticator holds the base64url reading (24 bytes). A reader that always took the hex
+// reading (16 bytes) would refuse this legitimate passkey as a mismatch.
+{
+  const AMBIGUOUS_ID = "deadbeefcafe0123456789abcdef0123";
+  const idBytes = Buffer.from(AMBIGUOUS_ID, "base64url");
+  if (idBytes.toString("base64url") !== AMBIGUOUS_ID) throw new Error("ambiguous ID is not canonical base64url");
+  const { privateKey, publicKey } = generateKeyPairSync("ec", { namedCurve: "P-256" });
+  const spki = publicKey.export({ type: "spki", format: "der" });
+  const ambiguousKey = `0x${spki.subarray(spki.length - 64).toString("hex")}` as `0x${string}`;
+
+  const s = await browserSession();
+  await s.open("www.greengoods.app");
+  await s.addPasskey({
+    credentialId: idBytes.toString("base64"),
+    rpId: "greengoods.app",
+    privateKey: privateKey.export({ type: "pkcs8", format: "der" }).toString("base64"),
+    userHandle: randomBytes(16).toString("base64"),
+  });
+  const remembered = await s.call("rememberCredential", AMBIGUOUS_ID, ambiguousKey, "greengoods.app");
+  const adoption = await s.call("adoptStored", "ambiguous-id");
+  await s.open("admin.greengoods.app");
+  const adminSignIn = await s.call("signIn", "ambiguous-id");
+  results.F_ambiguous_id = {
+    storedId: AMBIGUOUS_ID,
+    readings: { hexBytes: AMBIGUOUS_ID.length / 2, base64urlBytes: idBytes.length },
+    remembered,
+    adoption,
+    signInOnAdmin: adminSignIn,
   };
   await s.close();
 }

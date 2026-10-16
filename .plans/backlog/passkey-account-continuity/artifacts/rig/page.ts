@@ -10,6 +10,8 @@ import {
   getPasskeyRequestIds,
   getStoredCredential,
   getStoredRpId,
+  setStoredCredential,
+  setStoredRpId,
 } from "../../../../../packages/shared/src/modules/auth/session.ts";
 import { createPasskeyOwner } from "../../../../../packages/shared/src/workflows/auth-passkey-adapters.ts";
 import { signInWithDirectory } from "../../../../../packages/shared/src/workflows/auth-passkey-directory.ts";
@@ -127,6 +129,13 @@ const rig = {
     }),
 
   readStored: () => ({ credential: getStoredCredential(), rpId: getStoredRpId() }),
+
+  /** Remember a credential the way a signed-in session does, for a passkey the runner injected. */
+  rememberCredential: (id: string, publicKey: `0x${string}`, rpId: string) => {
+    setStoredCredential({ id, publicKey } as Parameters<typeof setStoredCredential>[0]);
+    setStoredRpId(rpId);
+    return { credential: getStoredCredential(), rpId: getStoredRpId() };
+  },
 
   /**
    * Adoption as designed: prove possession of the remembered passkey over a server challenge.

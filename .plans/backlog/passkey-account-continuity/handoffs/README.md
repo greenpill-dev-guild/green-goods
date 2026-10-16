@@ -13,7 +13,15 @@
   - A v2.0.1 upgrade test and mismatched-ID refusals are planned.
   - The wrong-site copy names the sites a hosted account may come from.
   - The rig now signs on admin, and the report and raw results come from one run.
-- **Proven in clean-room Chromium** ([report](../reports/2026-10-16-clean-room-proof-after-review.md)):
+- **Second review.** Codex and CodeRabbit reviewed the fix commit and raised eight findings, all
+  addressed the same day:
+  - Stored IDs match under either reading, and the key comes from the assertion's bytes.
+  - The completion gets a 10-second deadline.
+  - Positive tests are planned for the hosted race and the taken-name row.
+  - The resume steps below keep the decision gate.
+  - Current-evidence links point at the second-review report.
+  - The rig refuses unknown modes.
+- **Proven in clean-room Chromium** ([report](../reports/2026-10-16-clean-room-proof-second-review.md)):
   - A beta-bound passkey signs in and signs on www and admin once beta serves
     `/.well-known/webauthn`.
   - An app-made apex passkey, once adopted, signs in by name on admin and beta at the same
@@ -37,7 +45,8 @@
 1. Read the decision answers. Promote the hub with
    `node scripts/harness/plan-hub.mjs move --feature passkey-account-continuity --to active`, then
    run the Linear gate from the plan skill.
-2. Start at step 1. Steps 1 to 5 can land before any user-visible change.
+2. Only once decisions 1 to 7 are answered, start at step 1. Steps 1 to 5 can land before any
+   user-visible change, but none of them starts before the decisions.
 3. Rerun the rig ([artifacts/rig/README.md](../artifacts/rig/README.md)) after steps 1, 5 and 8.
 
 ## Task record

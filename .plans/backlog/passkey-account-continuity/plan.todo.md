@@ -8,7 +8,7 @@
 
 Read [brief.md](brief.md) for the problem and [spec.md](spec.md) for the current behaviour and
 evidence. The clean-room proof behind this plan is
-[reports/2026-10-16-clean-room-proof-after-review.md](reports/2026-10-16-clean-room-proof-after-review.md).
+[reports/2026-10-16-clean-room-proof-second-review.md](reports/2026-10-16-clean-room-proof-second-review.md).
 
 ## Decision Log
 
@@ -97,12 +97,15 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
   alters a live table, so new definitions alone would not reach production.
   - On `passkey_credentials`:
     - `signingId`, nullable: the browser's base64url credential ID.
-    - `credentialKey`: the credential's bytes in base64url, whatever spelling `credentialId` uses.
+    - `credentialKey`: the credential's bytes in base64url, taken from the assertion's `rawId`
+      at adoption, never by re-reading the submitted string, which can be valid hex and valid
+      base64url at once.
     - `source`: `TEXT NOT NULL DEFAULT 'registered'`, and `adopted` for adoption.
   - On the challenge table, `purpose` (`TEXT NOT NULL DEFAULT 'registration'`), so an adoption
     challenge can't answer a registration.
-- Backfill `credentialKey` from `credentialId` for existing rows; directory sign-ups are already
-  base64url. Then give it a unique index, so the hex and base64url spellings of one passkey can't
+- Backfill `credentialKey` by copying `credentialId` for existing rows. Directory sign-ups store
+  the browser's base64url ID, and copying rather than decoding cannot misread one that also looks
+  like hex. Then give it a unique index, so the hex and base64url spellings of one passkey can't
   sit under two names.
 - Keep the first-registration-wins rule. `credentialId` keeps the account's exact string for
   Kernel, and uniqueness moves to `credentialKey`.
@@ -143,7 +146,8 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
      `beta.greengoods.app` or `staging.greengoods.app`.
   3. The page sits on that domain or under it, so adoption happens where the passkey already works.
   4. The challenge is spent before anything else. Its verdict is applied at rule 7.
-  5. The stored ID's bytes (hex or base64url) equal the assertion's `rawId`.
+  5. Either reading of the stored ID equals the assertion's `rawId`: hex, when the string is
+     shaped like hex, or base64url. `getPasskeyRequestIds` already tries both.
   6. The assertion verifies with step 2's checker.
   7. An identical completion returns the stored result: the same name, credential bytes and key
      as a stored entry. Otherwise a spent or expired challenge refuses.
@@ -159,10 +163,12 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
   - Refusals: a replay under another name, a wrong key, a mismatched ID in base64url and in hex,
     the same credential under a second name in the other spelling, a taken name, the wrong site,
     an unadoptable domain, a hosted name held by another passkey, and the hosted lookup down.
-  - Successes: a hosted name held by this passkey, and an identical retry after success returning
-    the stored result.
-  - The rig ran every refusal except the domain and hosted cases, all against its prototype
-    ([report](reports/2026-10-16-clean-room-proof-after-review.md)).
+  - Successes:
+    - a hosted name held by this passkey;
+    - an identical retry after success, which returns the stored result;
+    - a stored ID valid in both spellings, accepted through its base64url reading.
+  - The rig ran every refusal except the domain and hosted cases, plus the two-spelling success,
+    all against its prototype ([report](reports/2026-10-16-clean-room-proof-second-review.md), scenarios C and F).
 
 ### Step 6: Adopt during sign-in, never in its way (state_api, shared)
 
@@ -171,8 +177,12 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
 `packages/shared/src/workflows/authServices.ts`,
 `packages/shared/src/__tests__/workflows/authServices.test.ts`
 
-- Adoption calls get their own directory client, with no transport retry and a 3-second timeout.
-  The sign-in client keeps its 6-second timeout and one retry.
+- Adoption calls get their own directory client, with no transport retry.
+  - The start call sits beside sign-in and has a 3-second timeout.
+  - The completion runs in the background with 10 seconds. That outlasts the agent's 4-second
+    hosted lookup plus verification, so a slow hosted server is never reported as a failure
+    after the agent has stored the adoption.
+  - The sign-in client keeps its 6-second timeout and one retry.
 - **Hosted sign-in on its home site.**
   - Start `gg_startPasskeyAdoption` at the same moment as the hosted lookup, never before it.
   - When the lookup answers, run the ceremony at once. Use the adoption challenge if it has
@@ -190,6 +200,9 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
 - **RED/GREEN** in `authServices.test.ts`:
   - With the adoption start held open (a promise that never settles), hosted sign-in finishes with
     the same calls and timing as today and sends no completion.
+  - With the challenge ready before the lookup answers, sign-in completes, and the background
+    completion carries that challenge, the hosted account's exact ID string (not the browser
+    ID), its key and the page's RP ID.
   - Assert the ID handed to Kernel, not a mocked address.
 - This step runs only if decision 2 is accepted. Otherwise step 7 is the sole trigger.
 
@@ -203,6 +216,10 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
   every Green Goods site", with one button that runs the adoption prompt. For a taken name
   (decision 5), ask for a new name in the same row.
 - Draft copy is in [spec.md](spec.md#draft-copy).
+- **RED/GREEN** in a component test, with the shared hook mocked at its boundary:
+  - The row appears for a passkey session without a directory entry.
+  - A taken name keeps the row and asks for another name.
+  - Adopting under the new name succeeds, and the row disappears.
 
 ### Step 8: The related-origins file (ui, client)
 
