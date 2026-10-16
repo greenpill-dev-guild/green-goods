@@ -58,7 +58,7 @@ in the topology memo; this plan keeps the durable Agent recommendation pending c
 
 | Decision | Recommendation | Status |
 |---|---|---|
-| Assessment projection | Separate observed measurements, evaluator interpretation and planning targets; baseline/delta judgment can be an evaluation | Working proposal; A1 domain acceptance pending |
+| Assessment projection | Separate observations/measurements, evaluator interpretation and recommended work/targets; only interpretation becomes an evaluation, with Work Approval its own review type | Accepted working direction on 2026-10-15 (America/Los_Angeles); A1 source/subject/validity details and provider conformance remain open |
 | Historical publication | Immutable bounded manifest, current effective approval and consent, explicit preview | Required product capability; S1 policy/conformance pending |
 | Reconciliation | Compare desired, last acknowledged and fresh remote versions; preserve edits/deletions/uncertain outcomes | Required product capability; S2 native contract pending |
 | Shared transport | Capability-based coordinator; extract AT mechanics when Certified and GainForest conformance prove reuse | Proposed; M1 |

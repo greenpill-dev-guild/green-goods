@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-10-15T09:08:19.724Z",
-    "updated_at": "2026-10-16T00:55:27Z"
+    "updated_at": "2026-10-16T01:39:06Z"
   },
   "links": {
     "brief": "brief.md",
@@ -39,7 +39,8 @@
     "RESR-69 is related research and remains Backlog; no Linear sync performed.",
     "Contracts and Envio EAS changes are outside the first release.",
     "GainForest/Bumicerts and all nine user actions mapped; G1-G5/A1-A4 gate later extensions. First runtime slice remains Certified linking and approval publication.",
-    "Expand assessment semantics, required historical sync/reconciliation, four native provider architectures and independent social-sharing/report track. Capability-based modules proposed; runtime lanes unchanged."
+    "Expand assessment semantics, required historical sync/reconciliation, four native provider architectures and independent social-sharing/report track. Capability-based modules proposed; runtime lanes unchanged.",
+    "Assessment observation/interpretation/recommended-work split accepted as the working direction on 2026-10-15 Pacific; remaining A1 mapping and validity details stay open, with no runtime lane advanced."
   ],
   "lanes": {
     "ui": {
@@ -160,6 +161,14 @@
       "status": "planned",
       "branch": "docs/certified-approval-plan",
       "note": "Document sync, assessment evaluation choices, provider architectures and modular social-sharing extensions; no runtime implementation or provider writes."
+    },
+    {
+      "timestamp": "2026-10-16T01:39:06Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "planned",
+      "branch": "docs/certified-approval-plan",
+      "note": "Record accepted assessment split as working direction; retain remaining A1 details, provider conformance and runtime gates."
     }
   ]
 }

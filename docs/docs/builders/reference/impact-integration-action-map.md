@@ -55,7 +55,7 @@ ontology and generated documentation unchanged.
 
 ## 1a. Is an Assessment also a Hypercerts evaluation?
 
-**Recommended working direction, pending domain acceptance:** Assessment is a GG domain concept
+**Accepted working direction (2026-10-15, America/Los_Angeles):** Assessment is a GG domain concept
 whose public projection can contain several record types. Work Approval is our first evaluation
 trigger, not the only thing the Hypercerts evaluation lexicon can represent. Keep baseline
 assessment, outcome assessment and Work review distinct in GG even when each has an evaluative part.
@@ -115,7 +115,10 @@ and delta semantics enter the canonical ontology. D5/D6 also apply to authorship
 An operator/steward-authored assessment must not be presented as an independent ecological audit.
 Hypercerts v1.5.1 has no evaluation `supersedes`/`neg` fields, so another evaluation alone does not
 supersede an old conclusion. Prove the destination's correction display before automation.
-This proposal changes no Assessment source, ontology definition or production trigger.
+Acceptance covers the observation/interpretation/recommended-work split. Only the interpretation
+becomes an evaluation; Work Approval remains its own review type. It does not resolve the remaining
+A1 source, subject and validity details or change an Assessment source, ontology definition or
+production trigger.
 
 ## 2. Nine actions, authoritative facts and publication eligibility
 
@@ -442,7 +445,7 @@ they do not all block the initial Certified link/approval slice.
 | G3 | Monitoring method and reviewer roles / ecological partner + community | Versioned sample dataset with stable subjects, units, effort, missing observations, baseline/delta relation and correction examples; blocks ecological inference and automated assessment mapping |
 | G4 | Disclosure, licensing, reuse and models / Garden/community data authority | Field/media policy including sensitive coordinates, collective consent, attribution, benefit terms and any model access; blocks disclosure outside the accepted approval policy |
 | G5 | Indexing, correction, bulk ingest and operations / GainForest + Agent maintainer | Actual limits, import/export provenance, loop prevention, lost-response recovery, correction display and pilot support ownership; blocks automatic GainForest rollout |
-| A1 | Assessment semantics / ontology + assessment owners | Reconcile baseline-focused definition with v3 kinds, validate baseline/cycle/chronology/revocation policy, distinguish plan from observed data; blocks baseline/delta automation |
+| A1 | Assessment semantics / ontology + assessment owners | The observation/interpretation/recommended-work split is accepted as the working direction. Reconcile the baseline-focused definition with v3 kinds, confirm exact subjects/evaluators, and validate baseline/cycle/chronology/revocation policy; these remaining decisions block baseline/delta automation |
 | A2 | Cycle and commitment source lifecycle / pooling + product owners | Selected-chain product readiness, seed/open and promise/performance distinctions, all fulfillment paths, explicit source-scope routing and cancellation corrections; blocks commitment/cycle automation |
 | A3 | Certificate identity and eligibility / certificate + domain owners | Product activation, mint-vs-registration detection, approved evidence bundle provenance, issuance authority and no implied external credits; blocks certificate automation |
 | A4 | Provider semantics and ontology adoption / domain + provider owners | Accepted field mappings, auth/role contracts and loss/correction cases for Bloom/Silvi/Regen; update canonical integration/projection sources only after acceptance, without advertising proposals as live |

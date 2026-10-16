@@ -58,7 +58,8 @@ completion claim. Human corrections observed in this segment: 0; human attention
 Add provider-specific architecture for GainForest, Silvi, Bloom and Regen, plus a shared
 sync/reconciliation and social-sharing design. Assessment interpretations can be evaluations;
 observations, targets and qualitative evidence retain distinct projections. This is a working
-proposal pending A1 acceptance, not an ontology edit. Silvi AT deployment remains unverified;
+proposal at this checkpoint, subsequently accepted as the working direction below; it is not an
+ontology edit. Silvi AT deployment remains unverified;
 GainForest's public AT lexicons are established. Native/export alternatives remain explicit.
 
 Core steps 6–10 now include historical selection, current consent, three-way comparison, partial
@@ -69,3 +70,23 @@ No runtime lane advanced and no provider/social record was published.
 Task segment: investigation began 2026-10-16 00:44:40 UTC; drafting was underway at 00:55:27 UTC.
 Final verification/publication timing belongs in the chat handoff. Human feedback corrected the
 previous architecture's provider depth and incomplete sync treatment; attention remains unknown.
+
+
+## Assessment direction accepted — 2026-10-15 Pacific / 2026-10-16 UTC
+
+Accept the three-part split as the working direction: observations/measurements, evaluator
+interpretation, and recommended work/targets. Only the interpretation becomes a Hypercerts
+evaluation; Work Approval remains a separate review type. A1 still requires exact source-kind,
+subject, evaluator, baseline-validity and canonical ontology mapping decisions. Provider
+conformance, runtime scope and publication gates remain open; no implementation lane advances.
+
+Task record: PR #640 | Type: guidance | Outcome: accepted decision recorded
+Agent/model: Codex / GPT-6 family | Coverage: assessment decision follow-up only
+
+| Phase | Start → end (UTC) | Result / evidence |
+|---|---|---|
+| investigate | 2026-10-16 01:38:35 → 2026-10-16 01:39:06 | Confirmed user acceptance, clean isolated checkout and affected decision records |
+| implement | 2026-10-16 01:39:06 → 2026-10-16 01:39:56 | Record accepted direction; preserve unresolved A1 details and runtime gates |
+
+Verification/publication completion is recorded in the PR and chat. Human corrections in this
+follow-up: 0 (decision acceptance); human attention: unknown.
