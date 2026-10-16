@@ -26,9 +26,9 @@ Chromium, virtual authenticator**. They are not authenticated-device proof.
 
 | ID | What it shows |
 |---|---|
-| A | A passkey made for `beta.greengoods.app` signs in and signs on beta, and with the file in place also on www and admin. An entry stored with a hex ID fails on every site (step 1's bug). Adoption from www is refused as off-site. |
+| A | A passkey made for `beta.greengoods.app` signs in and signs a user operation on beta, and with the file in place on www and admin as well. An entry stored with a hex ID fails on beta and www (step 1's bug). Adoption from www is refused as off-site. |
 | A′ | Controls: with no file, and with a file that omits www, Chrome refuses the www ceremony. |
-| C | A passkey made by the app's local path under `greengoods.app` is adopted on www. Replay, wrong-key and taken-name attempts are refused. Admin remembers nothing, yet signs in by name; so does beta. |
+| C | A passkey made by the app's local path under `greengoods.app` is adopted on www. An identical retry returns the stored result. Refused: a replay under another name, a wrong key, mismatched IDs in base64url and hex, the same passkey under a second name with its ID in hex, and a different passkey asking for the held name. Admin remembers nothing, yet signs in by name; so does beta. |
 | D | The Kernel address from the stored credential equals the one from the adopted entry. |
 | E | The deployed validator returns `0x1626ba7e` for each signature and `0xffffffff` for a tampered hash. |
 
@@ -65,8 +65,15 @@ Stop the server by its process ID, then delete `$RIG_CERT_DIR`.
   isolated install layout, so update it if the layout changes.
 - `run.ts` calls `RIG_RPC_URLS` (comma-separated; it defaults to public Arbitrum endpoints) for
   reads only.
-- The adoption endpoint here is a prototype of plan step 5, not the agent's code. The real rules
-  live in the agent with tests.
-- `results-2026-10-16.json` is the run behind
-  [the dated report](../../reports/2026-10-16-clean-room-proof.md). Its keys and IDs come from a
-  throwaway virtual authenticator.
+- The adoption endpoint here is a prototype of plan step 5, not the agent's code. It runs the
+  checks in step 5's order:
+  1. Spend the challenge.
+  2. Match the submitted ID's bytes to the assertion.
+  3. Prove possession.
+  4. Apply the challenge verdict, the name rule and byte-level credential uniqueness.
+
+  The real rules live in the agent with tests.
+- `results-2026-10-16-after-review.json` is the run behind
+  [the current report](../../reports/2026-10-16-clean-room-proof-after-review.md).
+  `results-2026-10-16.json` is the earlier run linked from the first report. Keys and IDs in both
+  come from a throwaway virtual authenticator.

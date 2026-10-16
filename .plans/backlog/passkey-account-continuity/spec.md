@@ -58,9 +58,14 @@ In the 30 days to 2026-10-16, 6 people used a passkey session on www and 3 on be
 5. **R5 Related origins.** A host-bound passkey signs in and signs on every Green Goods site in a
    browser that supports related origin requests.
 6. **R6 Clear failures.** On the wrong site, or in a browser without related-origin support, the
-   app says where the passkey works instead of "Sign in was cancelled."
-7. **R7 Sign-in first.** Adoption never blocks, delays or fails a sign-in. Without the directory,
-   sign-in runs as today.
+   app replaces "Sign in was cancelled." with where the passkey works:
+   - The exact site, when the entry carries its domain (directory and adopted entries).
+   - The sites it may have been made on, for an unadopted hosted name, whose lookup carries no
+     domain.
+7. **R7 Sign-in first.** Adoption never blocks, delays or fails a sign-in:
+   - Its calls run beside the hosted lookup, never before the ceremony.
+   - They use their own short timeout and are never retried.
+   - Without the directory, sign-in runs as today.
 8. **R8 Same account.** Adoption sends nothing unless the entry rebuilds the session's own
    address.
 9. **R9 Telemetry.** Adoption outcomes, plus off-site hosted failures, are measurable without
@@ -76,21 +81,31 @@ sequenceDiagram
   participant Hosted as Hosted passkey server
   participant Dir as Directory (agent)
   participant Device as Device passkey
-  App->>Hosted: pks_getCredentials(name)
-  Hosted-->>App: id, public key
-  App->>Dir: gg_startPasskeyAdoption
-  Dir-->>App: challenge
-  App->>Device: get(challenge, this host)
+  par Lookup and challenge at the same moment
+    App->>Hosted: pks_getCredentials(name)
+    Hosted-->>App: id, public key
+  and
+    App->>Dir: gg_startPasskeyAdoption (3 s timeout, no retry)
+    Dir-->>App: challenge, if it arrives in time
+  end
+  App->>Device: get(adoption challenge if it arrived, else a local one; this host)
   Device-->>App: assertion
   App->>App: check assertion against the listed key, open the session
-  App-)Dir: gg_completePasskeyAdoption(name, ids, key, domain, assertion)
-  Dir->>Hosted: same passkey under this name?
-  Dir-->>App: adopted (or a refusal the app logs and retries later)
+  opt Only when the adoption challenge was used
+    App-)Dir: gg_completePasskeyAdoption(name, ids, key, domain, assertion)
+    Dir->>Hosted: same passkey under this name?
+    Dir-->>App: adopted, the stored result for a retry, or a refusal the app logs
+  end
 ```
 
-The person sees one passkey prompt, as today. Their next sign-in by name on any site finds the
-directory entry first. A saved session gets the same exchange from a button in the account screen
-(decision 6). An app-made account adopts from "Use this device's passkey" or that button.
+The person sees one passkey prompt, as today, and it starts as soon as the hosted lookup answers,
+exactly when it does today. A challenge that hasn't arrived by then is dropped, and the sign-in
+goes ahead without adoption. Their next sign-in by name on any site finds the directory entry
+first.
+
+Only the hosted path merges, because it is the one that already waits on a lookup before its
+ceremony. A saved session, or "Use this device's passkey" (the only way in for the app-made
+group), adopts from a button in the account screen (decision 6).
 
 ### Related origins (decision 4)
 
@@ -103,10 +118,17 @@ domain, and its local check compares the page origin and the domain hash. The ri
 ### Contract changes
 
 - `PasskeyDirectoryCredential` gains optional `signingId`. `id` stays the Kernel identity input.
-- New RPC methods `gg_startPasskeyAdoption` and `gg_completePasskeyAdoption` on the existing
-  `/public/passkeys/rpc` route, with the same origin allowlist and the registration rate-limit
-  class.
-- Store: `signingId`, `source` (`registered` or `adopted`) and a challenge `purpose`.
+- **New RPC methods.** `gg_startPasskeyAdoption` and `gg_completePasskeyAdoption` run on the
+  existing `/public/passkeys/rpc` route, with the same origin allowlist and the registration
+  rate-limit class.
+  - Completion is idempotent: an identical request returns the stored result.
+  - When the hosted lookup is down, completion answers with a code viem does not retry.
+- **Adoption client.** The app calls these methods through its own client, with a 3-second
+  timeout and no transport retry.
+- **Store.**
+  - New columns: `signingId`, `credentialKey` (the credential's bytes in base64url, unique) and
+    `source` (`registered` or `adopted`), plus a challenge `purpose`.
+  - All are added with `ensureColumn`, and existing rows are backfilled.
 
 ### Draft copy
 
@@ -120,15 +142,20 @@ screens say "clave de acceso" and "chave de acesso"; that mismatch predates this
 | `app.account.passkeyEverywhere.action` | Turn on | Activar | Ativar |
 | `app.account.passkeyEverywhere.done` | Done. Sign in with {name} on any Green Goods site. | Listo. Inicia sesión con {name} en cualquier sitio de Green Goods. | Pronto. Entre com {name} em qualquer site do Green Goods. |
 | `app.account.passkeyEverywhere.nameTaken` | {name} is taken. Choose another name to sign in with. Your account stays the same. | {name} ya está en uso. Elige otro nombre para iniciar sesión. Tu cuenta no cambia. | {name} já está em uso. Escolha outro nome para entrar. Sua conta continua a mesma. |
-| `app.login.error.otherSite` | Sign in didn't finish. If you made this account on another Green Goods site, sign in there once to use it everywhere. | No se completó el inicio de sesión. Si creaste esta cuenta en otro sitio de Green Goods, inicia sesión allí una vez para usarla en todas partes. | O login não foi concluído. Se você criou esta conta em outro site do Green Goods, entre lá uma vez para usá-la em qualquer lugar. |
+| `app.login.error.otherSite` | Sign in didn't finish. If you made this account on {sites}, sign in there once to use it everywhere. | No se completó el inicio de sesión. Si creaste esta cuenta en {sites}, inicia sesión allí una vez para usarla en todas partes. | O login não foi concluído. Se você criou esta conta em {sites}, entre lá uma vez para usá-la em qualquer lugar. |
 | `app.login.error.relatedOriginUnsupported` | This browser can't use your passkey here. Sign in on {site} instead, or update your browser. | Este navegador no puede usar tu passkey aquí. Inicia sesión en {site} o actualiza tu navegador. | Este navegador não consegue usar sua passkey aqui. Entre em {site} ou atualize seu navegador. |
 
-If decision 2 is declined, `app.login.error.otherSite` ends instead with "sign in there and turn
-on Sign in on every Green Goods site."
+- `{sites}` lists the hosted sites other than the current one: `beta.greengoods.app` on www,
+  `www.greengoods.app` on beta, and both, joined by "or", anywhere else. The hosted lookup carries
+  no domain (plan step 4), so the copy can only name where hosted accounts were made.
+- `{site}` is the exact domain a directory or adopted entry carries.
+- If decision 2 is declined, `app.login.error.otherSite` ends instead with "sign in there and turn
+  on Sign in on every Green Goods site."
 
 ## Research Evidence
 
-- **Clean-room proof (2026-10-16):** [reports/2026-10-16-clean-room-proof.md](reports/2026-10-16-clean-room-proof.md).
+- **Clean-room proof (2026-10-16):** [reports/2026-10-16-clean-room-proof-after-review.md](reports/2026-10-16-clean-room-proof-after-review.md), which supersedes the first
+  report of the same day.
   Headless Chromium 148 with a CDP virtual authenticator, the real hostnames on the default port
   through a local proxy, and the app's own sign-in, verifier, signing owner and Kernel encoding.
   Signatures were checked against the deployed validator with a read-only `eth_call`.
@@ -215,8 +242,11 @@ from any device the passkey syncs to.
   - Possession is proven, and a hosted name must match its listed passkey.
   - Rate limits use the registration class.
 - **Privacy:** names, keys and IDs stay out of logs and telemetry, as the directory already does.
-- **Performance:** at most one extra request in a sign-in. The hosted lookup keeps its 4-second
-  timeout, and adoption runs after the session opens.
+- **Performance:** adoption adds no wait to a sign-in.
+  - The challenge request runs beside the hosted lookup, and the ceremony starts when the lookup
+    answers, as today.
+  - Adoption calls have a 3-second timeout and no transport retry.
+  - The completion runs after the session opens.
 - **Offline / sync:** adoption needs the network and is skipped offline; nothing is queued.
 - **Localization:** en, es and pt for every new string.
 
@@ -234,15 +264,27 @@ from any device the passkey syncs to.
 
 - **A browser without related-origin support.**
   - Risk: a host-bound passkey stays on its home site there.
-  - Mitigation: decision 4's copy names that site, and adoption still gives sign-in by name across
+  - Mitigation: step 9's copy names that site, and adoption still gives sign-in by name across
     devices on the home site.
 - **An adopted entry that opens a different account.**
   - Risk: a re-encoded ID or the wrong key would point the name at another address.
-  - Mitigation: the exact ID string, matched ID bytes, a proven key, and the client's address guard
-    before sending.
+  - Mitigation: the exact ID string, ID bytes matched to the assertion, a proven key, and the
+    client's address guard before sending.
+- **One passkey under two names.**
+  - Risk: the same credential's hex and base64url spellings pass a string-only uniqueness check.
+  - Mitigation: uniqueness on `credentialKey`, the credential's bytes.
 - **The hosted server down during adoption.**
   - Risk: the directory can't confirm who holds a hosted name.
-  - Mitigation: refuse with `unavailable` and retry later; sign-in is unaffected.
+  - Mitigation: refuse with a non-retried `unavailable` and try again at a later sign-in; sign-in
+    is unaffected.
+- **A retried completion after a lost response.**
+  - Risk: an automatic retry meets the spent challenge and reports an expiry instead of the real
+    outcome.
+  - Mitigation: no transport retry for adoption calls, and identical completions return the stored
+    result.
+- **An upgrade that misses the new columns.**
+  - Risk: `CREATE TABLE IF NOT EXISTS` leaves the production table as it was.
+  - Mitigation: `ensureColumn`, plus a test that upgrades a v2.0.1 database.
 - **A wrong related-origins response.**
   - Risk: the app's HTML is served instead of the file, or it's served with the wrong type.
   - Mitigation: a static file, an explicit header, and a smoke check on www and beta.

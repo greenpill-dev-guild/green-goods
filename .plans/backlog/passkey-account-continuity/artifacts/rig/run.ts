@@ -88,6 +88,7 @@ await control("/reset");
 // ── A. A host-bound beta passkey, used from www and admin through Related Origin Requests ──
 await control("/mode?ror=on");
 let betaEntry: Entry;
+let betaRawIdHex = "";
 const signatures: { label: string; hash: `0x${string}`; signature: `0x${string}`; publicKey: `0x${string}` }[] = [];
 {
   const s = await browserSession();
@@ -112,6 +113,10 @@ const signatures: { label: string; hash: `0x${string}`; signature: `0x${string}`
 
   await s.open("admin.greengoods.app");
   const adminSignIn = await s.call<Signer & { rpId: string }>("signIn", "beta-tester", [betaEntry]);
+  const adminBetaHash = randomHash();
+  const adminBetaSig = must("sign on admin", await s.call<`0x${string}`>("signHash", must("sign in on admin", adminSignIn), betaEntry.rpId, adminBetaHash));
+  signatures.push({ label: "beta passkey, signed on admin through related origins", hash: adminBetaHash, signature: adminBetaSig, publicKey: created.publicKey });
+  betaRawIdHex = created.rawIdHex;
 
   results.A_related_origins = {
     passkeysOnDevice: await s.passkeys(),
@@ -147,15 +152,22 @@ let adoptedSignIn: Signer & { rpId: string };
   const s = await browserSession();
   await s.open("www.greengoods.app");
   legacy = must("legacy create", await s.call("createLegacyLocal", "legacy-gardener"));
-  const adoption = await s.call<{ first: unknown; replay: unknown }>("adoptStored", "legacy-gardener");
+  const adoption = await s.call("adoptStored", "legacy-gardener");
   const wrongKey = await s.call("adoptStored", "legacy-gardener-2", { publicKey: betaEntry.publicKey });
-  const sameNameAgain = await s.call("adoptStored", "legacy-gardener");
+  // Another credential's ID, in both spellings, sent with this passkey's assertion.
+  const mismatchedId = await s.call("adoptStored", "legacy-gardener-3", { credentialId: betaEntry.id });
+  const mismatchedIdHex = await s.call("adoptStored", "legacy-gardener-4", { credentialId: betaRawIdHex });
+  // This same passkey under a second name, its ID spelled in hex.
+  const sameCredentialHex = await s.call("adoptStored", "legacy-gardener-5", { credentialIdForm: "hex" });
+  // A different passkey asking for the name the first one now holds.
+  must("second legacy create", await s.call("createLegacyLocal", "someone-else"));
+  const takenName = await s.call("adoptStored", "legacy-gardener");
 
   await s.open("admin.greengoods.app");
   const rememberedOnAdmin = await s.call("readStored");
   const adminSignIn = await s.call<Signer & { rpId: string }>("signIn", "legacy-gardener");
   if (adminSignIn.failed || !adminSignIn.value) {
-    console.log(JSON.stringify({ partial: results, legacy, adoption, wrongKey, sameNameAgain, rememberedOnAdmin, adminSignIn, log: await control("/log") }, null, 2));
+    console.log(JSON.stringify({ partial: results, legacy, adoption, wrongKey, takenName, rememberedOnAdmin, adminSignIn, log: await control("/log") }, null, 2));
     process.exit(2);
   }
   adoptedSignIn = must("sign in on admin", adminSignIn);
@@ -171,7 +183,10 @@ let adoptedSignIn: Signer & { rpId: string };
     legacyStoredRpId: legacy.storedRpId,
     adoption,
     adoptionWithWrongKey: wrongKey,
-    adoptionOfTakenName: sameNameAgain,
+    adoptionWithMismatchedId: mismatchedId,
+    adoptionWithMismatchedHexId: mismatchedIdHex,
+    adoptionOfSameCredentialUnderHexId: sameCredentialHex,
+    adoptionOfTakenName: takenName,
     rememberedOnAdmin,
     signInOnAdmin: adminSignIn,
     signInOnBeta: betaSignIn,

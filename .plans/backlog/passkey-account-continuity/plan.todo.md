@@ -8,7 +8,7 @@
 
 Read [brief.md](brief.md) for the problem and [spec.md](spec.md) for the current behaviour and
 evidence. The clean-room proof behind this plan is
-[reports/2026-10-16-clean-room-proof.md](reports/2026-10-16-clean-room-proof.md).
+[reports/2026-10-16-clean-room-proof-after-review.md](reports/2026-10-16-clean-room-proof-after-review.md).
 
 ## Decision Log
 
@@ -47,8 +47,8 @@ the plan's default if he agrees. Row 8 was answered on 2026-10-16.
 | R3 Remembered names that are taken get a new name | `state_api`, `ui` | 5, 7 | ⏳ |
 | R4 Directory sign-in names a passkey stored with a hex ID | `state_api` | 1 | ⏳ |
 | R5 Host-bound passkeys work on other Green Goods sites | `ui` | 8 | ⏳ |
-| R6 The app says where a passkey works when a browser can't share it | `ui` | 9 | ⏳ |
-| R7 Sign-in never waits on adoption | `state_api` | 6 | ⏳ |
+| R6 The app says where a passkey works, or which sites it may work on | `ui` | 9 | ⏳ |
+| R7 Sign-in never waits on adoption | `state_api` | 5, 6 | ⏳ |
 | R8 Adoption keeps the same account address | `state_api` | 6 | ⏳ |
 | R9 Telemetry sizes what is left, without names | `state_api` | 10 | ⏳ |
 
@@ -90,14 +90,30 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
 **Files**: `packages/agent/src/services/db/schema.ts`,
 `packages/agent/src/services/db/passkey-directory.ts`,
 `packages/agent/src/services/passkey-directory-adapters.ts`,
-`packages/agent/src/__tests__/test-utils/passkey-directory-store-contract.ts`
+`packages/agent/src/__tests__/test-utils/passkey-directory-store-contract.ts`,
+`packages/agent/src/__tests__/storage.sqlite.test.ts`
 
-- Add nullable `signingId` and `source` (`registered` by default, `adopted` for adoption) to
-  `passkey_credentials`, and a `purpose` column to the challenge table so adoption challenges
-  can't answer a registration. Migrate in place: existing rows read as `registered`.
-- Keep the first-registration-wins rule and the unique credential rule.
-- **RED/GREEN**: the store contract test covers both stores (memory and SQLite) for an adopted
-  row and for a challenge used for the wrong purpose.
+- Add columns with the schema's existing `ensureColumn` helper. `CREATE TABLE IF NOT EXISTS` never
+  alters a live table, so new definitions alone would not reach production.
+  - On `passkey_credentials`:
+    - `signingId`, nullable: the browser's base64url credential ID.
+    - `credentialKey`: the credential's bytes in base64url, whatever spelling `credentialId` uses.
+    - `source`: `TEXT NOT NULL DEFAULT 'registered'`, and `adopted` for adoption.
+  - On the challenge table, `purpose` (`TEXT NOT NULL DEFAULT 'registration'`), so an adoption
+    challenge can't answer a registration.
+- Backfill `credentialKey` from `credentialId` for existing rows; directory sign-ups are already
+  base64url. Then give it a unique index, so the hex and base64url spellings of one passkey can't
+  sit under two names.
+- Keep the first-registration-wins rule. `credentialId` keeps the account's exact string for
+  Kernel, and uniqueness moves to `credentialKey`.
+- **RED/GREEN**:
+  - The store contract test covers both stores (memory and SQLite):
+    - an adopted row;
+    - a challenge used for the wrong purpose;
+    - one credential refused under a second name when its ID arrives in the other spelling.
+  - `storage.sqlite.test.ts` builds the v2.0.1 schema with a stored passkey and a pending
+    challenge, then runs `initSchema` over it. It asserts the new columns, their defaults, the
+    backfilled key and the unique index, and that both rows survive.
 
 ### Step 4: Ask the hosted server which passkey holds a name (state_api, agent)
 
@@ -106,6 +122,8 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
 
 - Return the hosted server's listed credentials (`id`, `publicKey`) rather than a yes or no. The
   existing name check becomes "any listed". Keep the 4-second timeout and key-free error text.
+- The listing carries no domain, and nothing else reliably derives one. Step 9's copy is shaped
+  by that.
 
 ### Step 5: The adoption calls (state_api, agent)
 
@@ -124,33 +142,56 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
   2. The domain is one a passkey can already carry: `greengoods.app`, `www.greengoods.app`,
      `beta.greengoods.app` or `staging.greengoods.app`.
   3. The page sits on that domain or under it, so adoption happens where the passkey already works.
-  4. The challenge is spent before anything else.
+  4. The challenge is spent before anything else. Its verdict is applied at rule 7.
   5. The stored ID's bytes (hex or base64url) equal the assertion's `rawId`.
   6. The assertion verifies with step 2's checker.
-  7. The name is free, or the hosted server lists this same passkey for it (ID bytes and key).
-  8. A hosted lookup failure answers `unavailable`.
-  9. Store the ID string exactly, never re-encoded.
-- **RED/GREEN**: one test per refusal the rig exercised (replay, wrong key, taken name, wrong
-  site), plus a hosted name held by another passkey, a hosted name held by this passkey, and an
-  unadoptable domain.
+  7. An identical completion returns the stored result: the same name, credential bytes and key
+     as a stored entry. Otherwise a spent or expired challenge refuses.
+  8. The name is free, or the hosted server lists this same passkey for it (ID bytes and key).
+  9. The credential's bytes are not held under another name.
+  10. A hosted lookup failure answers `unavailable` with a refusal code the client does not retry
+      (`-32000`, not the retried `-32603`).
+  11. Store the ID string exactly, never re-encoded, with `credentialKey` beside it.
 
-### Step 6: Adopt inside sign-in, never in its way (state_api, shared)
+  Refusals after rule 5 need a proven assertion, so an unproven caller learns nothing about names
+  or credentials.
+- **RED/GREEN**:
+  - Refusals: a replay under another name, a wrong key, a mismatched ID in base64url and in hex,
+    the same credential under a second name in the other spelling, a taken name, the wrong site,
+    an unadoptable domain, a hosted name held by another passkey, and the hosted lookup down.
+  - Successes: a hosted name held by this passkey, and an identical retry after success returning
+    the stored result.
+  - The rig ran every refusal except the domain and hosted cases, all against its prototype
+    ([report](reports/2026-10-16-clean-room-proof-after-review.md)).
+
+### Step 6: Adopt during sign-in, never in its way (state_api, shared)
 
 **Files**: new `packages/shared/src/workflows/auth-passkey-adoption.ts`,
+`packages/shared/src/config/passkeyServer.ts` (the adoption client),
 `packages/shared/src/workflows/authServices.ts`,
 `packages/shared/src/__tests__/workflows/authServices.test.ts`
 
-- Hosted sign-in on its home site: look the name up on the hosted server for its key, take the
-  ceremony challenge from `gg_startPasskeyAdoption`, run the ceremony under the page's host, and
-  check it locally against the listed key, as the directory path already does. Then submit the
-  adoption in the background.
-- "Use this device's passkey" does the same with the remembered credential.
-- If the directory can't be reached, sign-in runs exactly as today. An adoption failure is logged
-  and retried next time, never shown as a sign-in failure.
-- Before sending, rebuild the Kernel address from the entry and compare it with the stored
-  address; send nothing on a mismatch. **RED/GREEN** in `authServices.test.ts`: assert the ID
-  handed to Kernel, not a mocked address.
-- Only if decision 2 is accepted. Otherwise step 7 is the sole trigger.
+- Adoption calls get their own directory client, with no transport retry and a 3-second timeout.
+  The sign-in client keeps its 6-second timeout and one retry.
+- **Hosted sign-in on its home site.**
+  - Start `gg_startPasskeyAdoption` at the same moment as the hosted lookup, never before it.
+  - When the lookup answers, run the ceremony at once. Use the adoption challenge if it has
+    already arrived. Otherwise use a locally made challenge and skip adoption for this sign-in.
+  - Either way, check the assertion locally against the key the hosted server listed, as the
+    directory path already does, and submit the completion in the background.
+  - So adoption adds no wait: the ceremony starts exactly when it does today.
+- **Only the hosted path merges**, because only it already waits on a lookup before the ceremony.
+  "Use this device's passkey" and saved sessions adopt from step 7's button.
+- **When not to adopt.** Skip adoption when the directory lookup failed earlier in the same
+  sign-in. An adoption failure is logged and tried again at a later sign-in, never shown as a
+  sign-in failure.
+- **Address guard.** Before sending, rebuild the Kernel address from the entry and compare it with
+  the stored address. Send nothing on a mismatch.
+- **RED/GREEN** in `authServices.test.ts`:
+  - With the adoption start held open (a promise that never settles), hosted sign-in finishes with
+    the same calls and timing as today and sends no completion.
+  - Assert the ID handed to Kernel, not a mocked address.
+- This step runs only if decision 2 is accepted. Otherwise step 7 is the sole trigger.
 
 ### Step 7: One action for saved sessions (ui)
 
@@ -188,10 +229,18 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
 - When the hosted server lists the name and the ceremony is refused, show the "made on another
   site" copy instead of "Sign in was cancelled." WebAuthn reports a missing passkey and a
   dismissal the same way, so the copy must read true in both cases.
-- When a cross-site ceremony fails with `SecurityError` (a browser without related-origin
-  support), name the site where the passkey works. Where
-  `PublicKeyCredential.getClientCapabilities()` exists, read `relatedOrigins` first and show that
-  copy without attempting the ceremony.
+- The hosted server never says which site a passkey belongs to (step 4). Hosted accounts were made
+  only on www and beta, with staging retired. So for an unadopted hosted name, the copy names the
+  hosted sites other than the current one:
+  - beta, when the person is on www;
+  - www, when on beta;
+  - both, anywhere else.
+- A directory or adopted entry carries its domain, so the copy names that site exactly. That
+  covers a cross-site ceremony that fails with `SecurityError`, from a browser without
+  related-origin support. Where `PublicKeyCredential.getClientCapabilities()` exists, read
+  `relatedOrigins` first and show the copy without attempting the ceremony.
+- **RED/GREEN** in `loginScreenMessages.test.ts`, in en, es and pt: the copy for an unadopted
+  hosted name on www, on beta and on admin, and for an adopted beta entry on www.
 
 ### Step 10: Telemetry (state_api)
 

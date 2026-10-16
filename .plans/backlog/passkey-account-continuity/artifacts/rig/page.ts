@@ -128,25 +128,37 @@ const rig = {
 
   readStored: () => ({ credential: getStoredCredential(), rpId: getStoredRpId() }),
 
-  /** Adoption as designed: prove possession of the remembered passkey over a server challenge. */
-  adoptStored: (userName: string, overrides: { publicKey?: `0x${string}` } = {}) =>
+  /**
+   * Adoption as designed: prove possession of the remembered passkey over a server challenge.
+   * Overrides send a wrong key, another credential's ID, or this credential's ID in hex form.
+   */
+  adoptStored: (
+    userName: string,
+    overrides: { publicKey?: `0x${string}`; credentialId?: string; credentialIdForm?: "hex" } = {}
+  ) =>
     guarded(async () => {
       const credential = getStoredCredential();
       const rpId = getStoredRpId();
       if (!credential || !rpId) throw new Error("This browser remembers no passkey");
+      const storedBytes = new Uint8Array(getPasskeyRequestIds(credential)[0]);
       const { challenge } = await post("/__dir/challenge", {});
       const response = await getAssertion(credential, rpId, fromB64url(challenge));
       const body = {
         userName,
-        credentialId: credential.id,
+        credentialId:
+          overrides.credentialId ??
+          (overrides.credentialIdForm === "hex" ? bytesToHex(storedBytes).slice(2) : credential.id),
         publicKey: overrides.publicKey ?? credential.publicKey,
         rpId,
         response,
       };
       const first = await post("/__dir/adopt", body);
-      // A copy of the same answer must be refused: a challenge answers one adoption.
-      const replay = await post("/__dir/adopt", { ...body, userName: `${userName}-again` });
-      return { first, replay };
+      // The same request again, as a lost response and a retry would send it: it must report the
+      // stored result, not an expired challenge.
+      const identicalRetry = await post("/__dir/adopt", body);
+      // The same answer under another name must be refused: a challenge answers one adoption.
+      const otherNameReplay = await post("/__dir/adopt", { ...body, userName: `${userName}-again` });
+      return { first, identicalRetry, otherNameReplay };
     }),
 
   /** Adoption attempted for a passkey this page's host cannot use without a related origin. */

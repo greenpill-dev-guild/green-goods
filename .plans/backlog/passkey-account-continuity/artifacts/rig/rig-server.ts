@@ -86,8 +86,17 @@ const ADOPTABLE_RP_IDS = new Set([
 ]);
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 
-type Entry = { id: string; publicKey: `0x${string}`; rpId: string; origin: string; signingId?: string };
+type Entry = {
+  id: string;
+  publicKey: `0x${string}`;
+  rpId: string;
+  origin: string;
+  signingId?: string;
+  /** The credential's bytes in base64url, whatever spelling `id` uses. */
+  credentialKey: string;
+};
 const entries = new Map<string, Entry>();
+const byCredential = new Map<string, string>();
 const pending = new Map<string, number>();
 
 const json = (body: unknown, status = 200) =>
@@ -150,15 +159,16 @@ async function adopt(request: Request) {
   } catch {
     return json({ ok: false, code: "verification_failed" });
   }
-  // One challenge, one attempt, spent before anything else is checked.
+  // One challenge, one attempt: spent before anything else is checked. Its verdict is applied
+  // after proof of possession, so an identical retry can be answered from the stored result.
   const expiresAt = pending.get(challenge);
   pending.delete(challenge);
-  if (!expiresAt || expiresAt < Date.now()) return json({ ok: false, code: "challenge_expired" });
+  const challengeLive = expiresAt !== undefined && expiresAt >= Date.now();
 
-  if (!sameBytes(hexOrBase64UrlBytes(credentialId), Buffer.from(response.rawId, "base64url"))) {
+  const credentialBytes = hexOrBase64UrlBytes(credentialId);
+  if (!sameBytes(credentialBytes, Buffer.from(response.rawId, "base64url"))) {
     return json({ ok: false, code: "credential_mismatch" });
   }
-  if (entries.has(userName)) return json({ ok: false, code: "name_taken" });
 
   // Diagnostic only: the agent's WebAuthn library as installed. Its ES256 check needs the ASN.1
   // schema from @peculiar/asn1-ecc, which resolves a different @peculiar/asn1-schema copy.
@@ -201,9 +211,25 @@ async function adopt(request: Request) {
   });
   if (!verified) return json({ ok: false, code: "verification_failed", library });
 
+  // Idempotent completion: the same name, credential bytes and key as a stored entry is that
+  // entry's result, whether or not the challenge is still live.
+  const credentialKey = Buffer.from(credentialBytes).toString("base64url");
+  const existing = entries.get(userName);
+  const identical =
+    existing !== undefined &&
+    existing.credentialKey === credentialKey &&
+    existing.publicKey.toLowerCase() === publicKey.toLowerCase();
+  if (identical) return json({ ok: true, alreadyAdopted: true, library });
+  if (!challengeLive) return json({ ok: false, code: "challenge_expired" });
+  if (existing) return json({ ok: false, code: "name_taken" });
+  // Uniqueness is on the credential's bytes, so a hex and a base64url spelling of one passkey
+  // cannot land under two names.
+  if (byCredential.has(credentialKey)) return json({ ok: false, code: "credential_exists" });
+
   // The ID is kept exactly as the account stored it: Kernel hashes that string into the address.
   // The browser's own ID travels beside it, so a hex-shaped stored ID can still name the passkey.
-  entries.set(userName, { id: credentialId, publicKey, rpId, origin, signingId: response.id });
+  entries.set(userName, { id: credentialId, publicKey, rpId, origin, signingId: response.id, credentialKey });
+  byCredential.set(credentialKey, userName);
   return json({ ok: true, library, entry: { userName, id: credentialId, signingId: response.id, rpId, origin } });
 }
 
@@ -278,6 +304,7 @@ Bun.serve({
     }
     if (url.pathname === "/reset") {
       entries.clear();
+      byCredential.clear();
       pending.clear();
       wellKnownHits.length = 0;
       proxyLog.length = 0;

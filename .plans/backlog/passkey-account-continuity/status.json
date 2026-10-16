@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-10-16T19:35:57.040Z",
-    "updated_at": "2026-10-16T22:47:03Z"
+    "updated_at": "2026-10-16T23:01:14Z"
   },
   "links": {
     "brief": "brief.md",
@@ -150,6 +150,14 @@
       "status": "planning_reconciled",
       "branch": null,
       "note": "Decision 8 answered: Afo chose the COM-39 rewrite, which was posted the same day. Timestamp: the commit that recorded it."
+    },
+    {
+      "timestamp": "2026-10-16T23:01:14Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "planning_reconciled",
+      "branch": null,
+      "note": "Addressed the first Codex review: adoption calls run beside the hosted lookup on a no-retry, 3-second client; completion is idempotent; uniqueness is on credential bytes; a v2.0.1 upgrade test and mismatched-ID refusals are planned; wrong-site copy names the sites a hosted account may come from. Rig rerun adds admin signing and the new refusals. Timestamp: the observed rig rerun."
     }
   ]
 }

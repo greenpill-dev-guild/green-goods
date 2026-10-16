@@ -6,7 +6,14 @@
 - **Waiting on Afo:** decisions 1 to 7 in [plan.todo.md](../plan.todo.md#decision-log). Decision 8
   is answered: COM-39 was rewritten on 2026-10-16. Step 6
   depends on decision 2, and step 8 on decision 4.
-- **Proven in clean-room Chromium** ([report](../reports/2026-10-16-clean-room-proof.md)):
+- **First review.** Codex's review of the first commit raised eight findings, all addressed on
+  2026-10-16:
+  - Adoption calls get their own no-retry, 3-second client and run beside the hosted lookup.
+  - Completion is idempotent, and uniqueness is on credential bytes.
+  - A v2.0.1 upgrade test and mismatched-ID refusals are planned.
+  - The wrong-site copy names the sites a hosted account may come from.
+  - The rig now signs on admin, and the report and raw results come from one run.
+- **Proven in clean-room Chromium** ([report](../reports/2026-10-16-clean-room-proof-after-review.md)):
   - A beta-bound passkey signs in and signs on www and admin once beta serves
     `/.well-known/webauthn`.
   - An app-made apex passkey, once adopted, signs in by name on admin and beta at the same
