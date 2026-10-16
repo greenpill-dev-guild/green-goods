@@ -21,6 +21,10 @@
   - The resume steps below keep the decision gate.
   - Current-evidence links point at the second-review report.
   - The rig refuses unknown modes.
+- **Fourth review.** Codex raised one more finding the same day, and it is addressed:
+  - A hosted name is adopted only under the hosted server's exact ID string, not just the same
+    bytes.
+  - The rig has no hosted lookup, so this rule is a planned test, not rig evidence.
 - **Third review.** Codex raised one finding the same day, and it is addressed:
   - An idempotent completion must match the stored ID string exactly.
   - The rig now refuses the held name when its ID arrives in the other spelling.

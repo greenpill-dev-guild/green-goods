@@ -125,6 +125,8 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
 
 - Return the hosted server's listed credentials (`id`, `publicKey`) rather than a yes or no. The
   existing name check becomes "any listed". Keep the 4-second timeout and key-free error text.
+- Keep each `id` exactly as the hosted server lists it. Step 5 compares it as a string, because
+  a hosted account's address follows that exact string.
 - The listing carries no domain, and nothing else reliably derives one. Step 9's copy is shaped
   by that.
 
@@ -153,7 +155,11 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
      same stored ID string, the same credential bytes and the same key. The other spelling of the
      same passkey is a different account to Kernel, so it is never identical. Otherwise a spent
      or expired challenge refuses.
-  8. The name is free, or the hosted server lists this same passkey for it (ID bytes and key).
+  8. The name is free, or the hosted server lists this same passkey for it: the same key, and an
+     `id` string exactly equal to the submitted stored ID. Bytes are not enough here. Rule 5 only
+     proves which passkey the browser used, while the hosted account's address follows the
+     hosted server's exact string, so the other spelling would point the name at a different
+     account.
   9. The credential's bytes are not held under another name.
   10. A hosted lookup failure answers `unavailable` with a refusal code the client does not retry
       (`-32000`, not the retried `-32603`).
@@ -165,7 +171,8 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
   - Refusals: a replay under another name, a wrong key, a mismatched ID in base64url and in hex,
     the same credential under a second name in the other spelling, the held name sent again with
     the ID in the other spelling, a taken name, the wrong site,
-    an unadoptable domain, a hosted name held by another passkey, and the hosted lookup down.
+    an unadoptable domain, a hosted name held by another passkey, a hosted name submitted with the
+    other spelling of its listed ID, and the hosted lookup down.
   - Successes:
     - a hosted name held by this passkey;
     - an identical retry after success, which returns the stored result;

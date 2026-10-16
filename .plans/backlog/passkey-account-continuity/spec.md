@@ -50,7 +50,8 @@ In the 30 days to 2026-10-16, 6 people used a passkey session on www and 3 on be
    entry keeps the stored credential ID string exactly, the browser's credential ID, the public
    key, the passkey's domain and the origin it was adopted from.
 2. **R2 Hosted names keep their owner.** A name the hosted server holds can be adopted only by the
-   passkey the hosted server lists for it, with equal ID bytes and public key.
+   passkey the hosted server lists for it. That takes the same public key and the listed ID string
+   exactly; matching bytes are not enough, because the account's address follows that string.
 3. **R3 Taken remembered names.** An app-made account whose remembered name is now taken, in
    either list, is asked for another name. The account does not change.
 4. **R4 Hex IDs.** Directory sign-in names a passkey whose stored ID is hex, as some hosted
@@ -276,8 +277,8 @@ from any device the passkey syncs to.
     devices on the home site.
 - **An adopted entry that opens a different account.**
   - Risk: a re-encoded ID or the wrong key would point the name at another address.
-  - Mitigation: the exact ID string, ID bytes matched to the assertion, a proven key, and the
-    client's address guard before sending.
+  - Mitigation: the exact ID string (for a hosted name, the hosted server's own string), ID
+    bytes matched to the assertion, a proven key, and the client's address guard before sending.
 - **One passkey under two names.**
   - Risk: the same credential's hex and base64url spellings pass a string-only uniqueness check.
   - Mitigation: uniqueness on `credentialKey`, taken from the assertion's bytes.
