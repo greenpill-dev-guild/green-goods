@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p1",
     "created_at": "2026-07-19T21:59:29.102Z",
-    "updated_at": "2026-10-06T21:01:43Z"
+    "updated_at": "2026-10-16T18:57:16Z"
   },
   "links": {
     "brief": "brief.md",
@@ -20,7 +20,7 @@
   },
   "linear": {
     "parentIssue": "PRD-697",
-    "project": "Commitment Pooling",
+    "project": null,
     "initiative": null,
     "syncDirection": "plans_to_linear_visibility",
     "lastSyncedAt": "2026-08-01T19:58:33.443Z",
@@ -402,6 +402,14 @@
       "status": "linear_state_preservation_enabled",
       "branch": null,
       "note": "Existing Linear states are preserved during manifest updates; local Backlog placement does not demote a Todo or later mirror state. This records no external write or sync confirmation."
+    },
+    {
+      "timestamp": "2026-10-16T18:57:16Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Cleared linear.project. It named Commitment Pooling, which is Completed, so any issue a later sync created would have started in a closed project. Existing records are preserved (stateSyncMode preserve_existing), so PRD-697 and PRD-787 keep their current Linear project either way; open work with no bounded project sits in the active release project."
     }
   ]
 }

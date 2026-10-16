@@ -2,12 +2,12 @@
 
 **Feature Slug**: `cosmo-local-credit-interop`
 **Linear Issue**: [RESR-73](https://linear.app/greenpill-dev-guild/issue/RESR-73) (parent-only mirror)
-**Linear Project**: Commitment Pooling
+**Linear Project**: Cosmo-Local Integration
 **Linear Source**: source:plans
 **Stage**: `backlog`
 **Status**: `RESEARCH IN PROGRESS — backlog placement; no implementation authorized`
 **Created**: 2026-08-25
-**Last Updated**: `2026-10-06`
+**Last Updated**: `2026-10-16`
 **Companion documents**: [`brief.md`](./brief.md) · [`spec.md`](./spec.md) ·
 [`tensions.md`](./tensions.md) · [`resources.md`](./resources.md) · [`eval.md`](./eval.md)
 
