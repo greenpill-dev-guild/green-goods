@@ -1,5 +1,11 @@
 # Commitment Pooling Plan
 
+> **2026-10-09 project split:** Commitment Pooling is Completed in Linear as foundation scope.
+> Remaining integration and operational evidence now belong to Cosmo-Local Integration; see the
+> [reconciliation record](../../backlog/cosmo-local-credit-interop/project-reconciliation.md).
+> This source hub stays active for unresolved evidence. Existing lane states are not certified
+> or archived by the Linear closeout. Historical schedules below are not current dispatch dates.
+
 **Feature Slug**: `commitment-pooling`
 **Stage**: `active`
 **Status**: `IMPLEMENTED — roadmap Done; deployed QA, release, documentation and evidence remain open`

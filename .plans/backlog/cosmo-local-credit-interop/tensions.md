@@ -1,5 +1,9 @@
 # Integration Tensions — Green Goods × Cosmo-Local Credit
 
+> Historical research from August 2026. The [current architecture](spec.md) supersedes retired
+> assumptions about weighted issuance, venue ownership and dispatch order. Reverify external
+> configuration before use; this record grants no implementation or transaction authority.
+
 **Date**: 2026-08-25
 **Posture**: analysis only
 **Source basis**: `cosmo-local-credit/protocol` `README.md` / `docs/SPEC.md` / `docs/DEPLOY.md`,

@@ -2,6 +2,8 @@
 
 **Stage:** backlog · **Posture:** design and scope review; implementation not authorized
 
+**Linear:** [RESR-93](https://linear.app/greenpill-dev-guild/issue/RESR-93), planning mirror in [Cosmo-Local Integration](https://linear.app/greenpill-dev-guild/project/cosmo-local-integration-6273120022c7).
+
 Make Home feel like the member's garden, with a short view of what happened, what needs their
 attention, and how they can participate. Keep the familiar Home / Garden / Profile navigation,
 one-tap app sheets, and Warm Earth design language.
@@ -57,6 +59,11 @@ permitted next action without making everyone's home a management dashboard. Val
 observed tasks; no reduction in effort or completion time has been measured yet.
 
 ## Read next
+
+- [Hackathon discussion](../cosmo-local-credit-interop/hackathon-discussion.md): current integration
+  target, PWA recommendations, narrative and tracked gaps. The 2026-10-09 request authorizes planning
+  and Linear visibility; it does not accept a layout or dispatch implementation. This supersedes
+  this brief's earlier prohibition on Linear updates only.
 
 - [Specification and design decisions](spec.md): current sources, proposed flows, open choices.
 - [Plan](plan.todo.md): design gate and conditional delivery sequence.

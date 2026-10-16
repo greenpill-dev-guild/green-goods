@@ -2,7 +2,7 @@
   "version": 2,
   "feature": {
     "slug": "cosmo-local-credit-interop",
-    "title": "Cosmo-Local Credit Voucher Interoperability",
+    "title": "Cosmo-Local Integration",
     "kind": "feature",
     "stage": "backlog"
   },
@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-08-25T06:09:38.829Z",
-    "updated_at": "2026-10-06T20:54:01Z"
+    "updated_at": "2026-10-09T19:29:59Z"
   },
   "links": {
     "brief": "brief.md",
@@ -18,17 +18,30 @@
     "plan": "plan.todo.md",
     "eval": "eval.md",
     "tensions": "tensions.md",
-    "resources": "resources.md"
+    "resources": "resources.md",
+    "hackathon": "hackathon-discussion.md",
+    "whitepaper_review": "whitepaper-v8-review.md",
+    "reconciliation": "project-reconciliation.md",
+    "research_pitch_handoff": "handoffs/claude-fable-research-pitch.md"
   },
   "linear": {
     "parentIssue": "RESR-73",
-    "project": "Commitment Pooling",
+    "project": "Cosmo-Local Integration",
     "initiative": null,
     "syncDirection": "plans_to_linear_visibility",
-    "lastSyncedAt": "2026-08-25T06:39:35.972Z",
+    "lastSyncedAt": "2026-10-09T19:29:59Z",
     "lanes": {},
     "laneSyncMode": "parent_only",
-    "stateSyncMode": "preserve_existing"
+    "stateSyncMode": "preserve_existing",
+    "projectId": "3343b772-4705-4e3a-8415-f28d5a78045d",
+    "trackers": {
+      "implementation": "PRD-857",
+      "go_no_go": "PRD-1197",
+      "issuer_terms": "COM-46",
+      "pitch_research": "RESR-94",
+      "pitch": "MAR-32",
+      "hackathon": "GROW-43"
+    }
   },
   "taxonomy": {
     "initiative": "protocol-readiness",
@@ -46,6 +59,10 @@
     "depends_on_features": ["commitment-pooling", "community-interface"]
   },
   "notes": [
+    "2026-10-09: user-authorized project split and canonical planning reconciliation complete. Cosmo-Local Integration now owns this work; PRD-1197 owns the active go/no-go, COM-46 issuer terms, RESR-94 diaspora research. The current brief/spec/plan/eval supersede the August model. Claude Fable handoff authorizes research and draft materials only. Existing lanes and manual blocks are unchanged.",
+    "2026-10-09: Linear readback verified the project split, new gap issues and affected ownership/dependencies. lastSyncedAt records this bounded planning sync only; historical lane evidence and unrelated external source documents were not recertified.",
+    "2026-10-09: whitepaper-v8-review.md records the v0.8 architecture review, missing CLC implementation in checkout 06a31dbf5, 275 passing focused foundation tests, proposed acceptance gaps and the hub/community/Nigerian diaspora/institution narrative. Findings posted to RESR-73, PRD-857 and MAR-32; report remains local. No runtime changes, lane transitions, scope dispatch or gate changes.",
+    "2026-10-09: hackathon-discussion.md records the current PRD-857 target, retired August assumptions, PWA coordination and unresolved architecture/narrative gaps. RESR-74 has dated completed findings. Canonical brief/spec/tasks/evaluation reconciliation remains pending; do not dispatch retired valuation, pool-type or Gnosis-payment-rail steps. Existing lane states and deployment gates remain unchanged. Planning gaps were posted to RESR-73; PWA planning is RESR-93. No implementation or deployment is authorized by this update.",
     "Scoping and architecture hub. No implementation, deployment, custody change, venue integration, or partner commitment is authorized here.",
     "Slices are dependency statements, not a schedule. Each requires its own scope lock and explicit human dispatch.",
     "PRD-651 gates are unchanged: federation is stage four of four, and every pooling-tier mainnet action still needs external audit, 3-of-5 Safe, 48h timelock, two weeks testnet, tested rollback, and human authorization.",
@@ -215,6 +232,22 @@
       "status": "linear_state_preservation_enabled",
       "branch": null,
       "note": "Existing Linear states are preserved during manifest updates. Local lane certification remains independent; this records no external write or sync confirmation."
+    },
+    {
+      "timestamp": "2026-10-09T09:58:32Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "planning_gaps_recorded",
+      "branch": null,
+      "note": "Recorded the user-requested hackathon discussion and source conflicts, added historical-model notices and linked PWA planning. Existing execution states, Linear cycles/dates and mainnet gates preserved."
+    },
+    {
+      "timestamp": "2026-10-09T19:23:18Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "planning_reconciled",
+      "branch": "codex/cosmo-local-planning",
+      "note": "2026-10-09: user-authorized project split and canonical planning reconciliation complete. Cosmo-Local Integration now owns this work; PRD-1197 owns the active go/no-go, COM-46 issuer terms, RESR-94 diaspora research. The current brief/spec/plan/eval supersede the August model. Claude Fable handoff authorizes research and draft materials only. Existing lanes and manual blocks are unchanged."
     }
   ]
 }

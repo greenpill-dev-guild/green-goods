@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p1",
     "created_at": "2026-07-19T21:59:29.102Z",
-    "updated_at": "2026-10-06T21:01:43Z"
+    "updated_at": "2026-10-09T19:29:59Z"
   },
   "links": {
     "brief": "brief.md",
@@ -20,10 +20,10 @@
   },
   "linear": {
     "parentIssue": "PRD-697",
-    "project": "Commitment Pooling",
+    "project": null,
     "initiative": null,
     "syncDirection": "plans_to_linear_visibility",
-    "lastSyncedAt": "2026-08-01T19:58:33.443Z",
+    "lastSyncedAt": "2026-10-09T19:29:59Z",
     "lanes": {
       "contracts": {
         "issue": "PRD-785"
@@ -52,6 +52,8 @@
     "depends_on_features": ["commitment-pooling"]
   },
   "notes": [
+    "2026-10-09: PRD-697 and PRD-787 removed from the completed Commitment Pooling project and remain unprojected as the separate lending companion. Historical Done delivery records retain their projects. Gates and lane evidence are unchanged; do not regroup issues through a bulk mirror sync.",
+    "2026-10-09: Linear readback verified the project split, new gap issues and affected ownership/dependencies. lastSyncedAt records this bounded planning sync only; historical lane evidence and unrelated external source documents were not recertified.",
     "Explicitly unblocked into the August Commitment Pooling wave on 2026-08-01 (pooling plan register #73). The Credit implementation range after pre-credit head 238e4e218 remains an additive companion with no pooling storage or lifecycle changes. The same integration PR also carries the pre-credit pooling hardening at 238e4e218: AcceptanceLib, ClaimsLib, and ExchangeLib enforce current claim authority, and ICommitmentPoolingModule adds PricedOfferClaimRequiresSteward. Those trust-boundary and ABI changes are an explicit upstream dependency, not unrecorded Credit work.",
     "All three contracts dispatch gates cleared 2026-08-09: PR #694 merged at c60b38dea, Afo approved the interest-free records-only posture, and spec.md plus coverage-ledger.md freeze the initial ABI against pre-credit HEAD 238e4e218 and the post-review additions at implementation commit 89fffc972.",
     "Settlement seam locked 2026-08-01: option (a), DisbursementKind.LoanPrincipal on the SettlementModule (settlement-spec 2026-08-01 amendment). The (b) commitmentId==0 path was preferred only when credit was a post-deploy addition; building both modules in one wave makes the explicit kind the cleaner invariant.",
@@ -402,6 +404,14 @@
       "status": "linear_state_preservation_enabled",
       "branch": null,
       "note": "Existing Linear states are preserved during manifest updates; local Backlog placement does not demote a Todo or later mirror state. This records no external write or sync confirmation."
+    },
+    {
+      "timestamp": "2026-10-09T19:23:18Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "planning_reconciled",
+      "branch": "codex/cosmo-local-planning",
+      "note": "2026-10-09: PRD-697 and PRD-787 removed from the completed Commitment Pooling project and remain unprojected as the separate lending companion. Historical Done delivery records retain their projects. Gates and lane evidence are unchanged; do not regroup issues through a bulk mirror sync."
     }
   ]
 }
