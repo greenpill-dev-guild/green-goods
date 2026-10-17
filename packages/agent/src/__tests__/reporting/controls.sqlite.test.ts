@@ -131,7 +131,10 @@ describe("operator controls", () => {
 
     const core = coreFor(path);
     ensureControls(core, INITIAL_CONTROLS);
-    expect(core.db.query("PRAGMA user_version").get()).toEqual({ user_version: 4 });
+    // The upgrade runs every later migration, so it ends on the newest schema.
+    expect(core.db.query("PRAGMA user_version").get()).toEqual({
+      user_version: REPORTING_MIGRATIONS.at(-1)?.version,
+    });
     expect(readControl(core, "publication")).toEqual({ enabled: true, version: 3 });
     expect(readControl(core, "voice")).toEqual({ enabled: false, version: 1 });
     expect(setControl(core, "voice", true, { actor: "operator", reason: "pilot" })).toEqual({

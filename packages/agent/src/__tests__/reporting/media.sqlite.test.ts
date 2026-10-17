@@ -3,7 +3,8 @@ import sharp from "sharp";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { setControl } from "../../services/reporting/controls";
 import { loadDraft } from "../../services/reporting/drafts";
-import { ADA, Harness } from "./support/harness";
+import { modelSpend } from "../../services/reporting/model-spend";
+import { ADA, Harness, spendDailyModelCap } from "./support/harness";
 import { scriptedOpenAI, VIDEO_CLIP, zip } from "./support/media";
 
 /**
@@ -122,6 +123,7 @@ describe("photos", () => {
       }
     ).format.schema.properties.facts.items.properties.field.enum;
     expect(schema).not.toContain("timeSpentMinutes");
+    expect(modelSpend(harness.core).calls).toEqual({ "openai:media:answered": 1 });
   });
 });
 
@@ -216,7 +218,7 @@ describe("spreadsheets", () => {
     return new Uint8Array(await book.xlsx.writeBuffer());
   }
 
-  it("says a file was only kept, not read, while model processing is off", async () => {
+  it("says a file was only kept, not read, while model processing is off or its spend is capped", async () => {
     await plantingDraft();
     const replies = await send(
       "sheet-1",
@@ -227,6 +229,19 @@ describe("spreadsheets", () => {
     expect(replies).not.toContain("I read your file and added what I could to your report.");
     expect(replies.at(-1)).toContain("Seedlings planted?");
     expect(draft()?.content.details.seedlings).toBeUndefined();
+
+    // Once the day's model spend reaches its cap, a file is kept unread the same way.
+    const openai = scriptedOpenAI([]);
+    harness.openai = openai.config;
+    setControl(harness.core, "model_processing", true, { actor: "test", reason: "spend cap" });
+    spendDailyModelCap(harness.core);
+    const capped = await send(
+      "sheet-2",
+      await workbook(),
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    expect(capped).toContain("I saved your file privately. I'll ask you for the details instead.");
+    expect(openai.requests).toHaveLength(0);
   });
 
   it("computes totals from visible literal cells, never from a cached formula or the model", async () => {

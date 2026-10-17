@@ -1,10 +1,13 @@
 import * as z from "zod";
 import { InterpretationUnavailableError } from "./interpretation";
+import type { ModelMeter, ModelPurpose } from "./model-spend";
 
 /**
  * One OpenAI Responses call with a strict JSON schema and no stored response. Callers pass only
  * the task content; every failure (transport, status, refusal, incomplete or unparsable output)
  * becomes an InterpretationUnavailableError so the conversation falls back to plain questions.
+ * The meter hears about every request sent, with the tokens billed whenever the reply states them,
+ * including replies whose output is then rejected.
  */
 export interface OpenAIConfig {
   apiKey: string;
@@ -29,6 +32,13 @@ const responseSchema = z.object({
   ),
 });
 
+const usageSchema = z.object({
+  usage: z.object({
+    input_tokens: z.number().int().nonnegative(),
+    output_tokens: z.number().int().nonnegative(),
+  }),
+});
+
 export function dataUrl(mime: string, bytes: Uint8Array): string {
   return `data:${mime};base64,${Buffer.from(bytes).toString("base64")}`;
 }
@@ -36,15 +46,18 @@ export function dataUrl(mime: string, bytes: Uint8Array): string {
 export async function structuredResponse(
   config: OpenAIConfig,
   input: {
+    purpose: Extract<ModelPurpose, "extraction" | "media">;
     instructions: string;
     content: InputPart[];
     schemaName: string;
     schema: object;
     maxOutputTokens: number;
   },
-  signal: AbortSignal
+  signal: AbortSignal,
+  meter?: ModelMeter
 ): Promise<{ model: string; output: unknown }> {
   const call = config.fetch ?? fetch;
+  const sent = { provider: "openai", model: config.model, purpose: input.purpose } as const;
   let response: Response;
   try {
     response = await call(`${config.baseUrl.replace(/\/+$/, "")}/responses`, {
@@ -70,10 +83,23 @@ export async function structuredResponse(
       signal,
     });
   } catch {
+    meter?.({ ...sent, outcome: "unanswered" });
     throw new InterpretationUnavailableError(signal.aborted ? "timeout" : "provider_error");
   }
-  if (!response.ok) throw new InterpretationUnavailableError("provider_error");
-  const body = responseSchema.safeParse(await response.json().catch(() => null));
+  if (!response.ok) {
+    meter?.({ ...sent, outcome: "failed" });
+    throw new InterpretationUnavailableError("provider_error");
+  }
+  const json: unknown = await response.json().catch(() => null);
+  const usage = usageSchema.safeParse(json);
+  meter?.({
+    ...sent,
+    outcome: "answered",
+    ...(usage.success
+      ? { inputTokens: usage.data.usage.input_tokens, outputTokens: usage.data.usage.output_tokens }
+      : {}),
+  });
+  const body = responseSchema.safeParse(json);
   if (!body.success || (body.data.status && body.data.status !== "completed")) {
     throw new InterpretationUnavailableError("malformed");
   }

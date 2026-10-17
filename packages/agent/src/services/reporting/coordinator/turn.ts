@@ -28,6 +28,7 @@ import {
   holdsLease,
   releaseConversationLease,
 } from "../leases";
+import { modelMeter } from "../model-spend";
 import type { ReportingCore } from "../runtime";
 import {
   answerConnectionOffer,
@@ -255,7 +256,8 @@ async function gatherExternal(
           : [],
         observations: [],
       },
-      deps.interpretationTimeoutMs
+      deps.interpretationTimeoutMs,
+      modelMeter(core)
     );
     // A garden the model read for a report that has none yet: its activities are read in this
     // turn too, so the reply can ask which activity instead of failing to list them.

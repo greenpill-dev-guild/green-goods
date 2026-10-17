@@ -4,6 +4,7 @@ import {
   type InterpretedIntent,
   InterpretationUnavailableError,
 } from "./interpretation";
+import type { ModelMeter } from "./model-spend";
 
 /**
  * Jev routing: typed Choice judgments over a bounded snapshot. Jev picks the turn's intent and,
@@ -104,12 +105,15 @@ function stateFor(request: InterpretationRequest) {
   };
 }
 
+/** Jev's replies state no tokens or price, so the meter counts its calls without a cost. */
 export async function routeWithJev(
   config: JevConfig,
   request: InterpretationRequest,
-  signal: AbortSignal
+  signal: AbortSignal,
+  meter?: ModelMeter
 ): Promise<Routing> {
   const request_ = config.fetch ?? fetch;
+  const sent = { provider: "jev", model: config.model, purpose: "routing" } as const;
   let response: Response;
   try {
     response = await request_(`${config.baseUrl.replace(/\/+$/, "")}/v1/systemone`, {
@@ -126,8 +130,10 @@ export async function routeWithJev(
       signal,
     });
   } catch {
+    meter?.({ ...sent, outcome: "unanswered" });
     throw new InterpretationUnavailableError(signal.aborted ? "timeout" : "provider_error");
   }
+  meter?.({ ...sent, outcome: response.ok ? "answered" : "failed" });
   if (!response.ok) throw new InterpretationUnavailableError("provider_error");
   const parsed = responseSchema.safeParse(await response.json().catch(() => null));
   if (!parsed.success || !parsed.data.answers.intent) {

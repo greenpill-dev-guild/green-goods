@@ -3,6 +3,7 @@ import { readControl } from "../controls";
 import { inTransaction } from "../database";
 import type { ClaimedJob } from "../jobs";
 import type { PrivateMediaStore } from "../media-store";
+import { modelMeter, modelProcessingOn } from "../model-spend";
 import type { OpenAIConfig } from "../openai-responses";
 import type { ReportingCore } from "../runtime";
 import type { InboundMediaFetcher, InboundMediaReference } from "../transport";
@@ -130,11 +131,7 @@ async function sourceFor(
     if (excluded.hiddenSheets.length || excluded.hiddenRows || excluded.hiddenColumns)
       warnings.push("hidden_content_excluded");
     warnings.push(...read.table.warnings);
-    if (
-      detected.kind === "xlsx" &&
-      deps.openai &&
-      readControl(deps.core, "model_processing").enabled
-    ) {
+    if (detected.kind === "xlsx" && deps.openai && modelProcessingOn(deps.core)) {
       // PDF charts can reveal values from hidden cells even when those cells are not printed.
       // Keep native visible-cell reading whenever hidden content exists or documents are paused.
       if (
@@ -298,7 +295,7 @@ export async function processMedia(deps: MediaDeps, job: ClaimedJob): Promise<Jo
     }
   }
 
-  const modelOn = Boolean(deps.openai) && readControl(core, "model_processing").enabled;
+  const modelOn = Boolean(deps.openai) && modelProcessingOn(core);
   let extraction: MediaExtraction | null = null;
   if (!limitation && source && modelOn && deps.openai) {
     const draft = safeDraft(core, asset.draft_id);
@@ -312,7 +309,8 @@ export async function processMedia(deps: MediaDeps, job: ClaimedJob): Promise<Jo
           actionTitle: draft?.snapshot?.definition.title ?? null,
           inputs,
         },
-        AbortSignal.timeout(45_000)
+        AbortSignal.timeout(45_000),
+        modelMeter(core)
       );
     } catch {
       // A transcript is used in full even when no details could be proposed from it.

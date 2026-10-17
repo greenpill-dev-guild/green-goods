@@ -6,6 +6,7 @@ import {
 } from "../../services/reporting/interpretation";
 import { extractWithOpenAI } from "../../services/reporting/model-extraction";
 import { routeWithJev } from "../../services/reporting/model-routing";
+import type { ModelCall } from "../../services/reporting/model-spend";
 import { transcribeVoice } from "../../services/reporting/media/transcribe";
 import { extractFromMedia } from "../../services/reporting/media/extract";
 
@@ -53,6 +54,16 @@ function recorder(body: unknown, status = 200) {
 }
 
 const signal = () => new AbortController().signal;
+
+/** A meter that keeps what each adapter reports, in order. */
+function meter() {
+  const calls: ModelCall[] = [];
+  return { calls, record: (call: ModelCall) => void calls.push(call) };
+}
+
+const offline = (async () => {
+  throw new TypeError("fetch failed");
+}) as unknown as typeof fetch;
 
 describe("Jev routing", () => {
   const config = { apiKey: "jev-test", baseUrl: "https://jev.test", model: "jev-latest" };
@@ -116,6 +127,25 @@ describe("Jev routing", () => {
     await expect(
       routeWithJev({ ...config, fetch: malformed.fetchStub }, request, signal())
     ).rejects.toMatchObject({ reason: "malformed" });
+  });
+
+  it("counts every request it sends, without tokens or a price", async () => {
+    const spend = meter();
+    const answered = recorder({ model: "x", answers: {} });
+    const limited = recorder({ error: "rate limited" }, 429);
+    for (const fetchStub of [answered.fetchStub, limited.fetchStub, offline]) {
+      await routeWithJev({ ...config, fetch: fetchStub }, request, signal(), spend.record).catch(
+        () => undefined
+      );
+    }
+    expect(spend.calls).toEqual(
+      ["answered", "failed", "unanswered"].map((outcome) => ({
+        provider: "jev",
+        model: "jev-latest",
+        purpose: "routing",
+        outcome,
+      }))
+    );
   });
 });
 
@@ -190,32 +220,58 @@ describe("OpenAI extraction", () => {
       extractWithOpenAI({ ...config, fetch: incomplete.fetchStub }, withAction, signal())
     ).rejects.toMatchObject({ reason: "malformed" });
   });
+
+  it("reports every request with the tokens billed, also for output it then rejects", async () => {
+    const spend = meter();
+    // An incomplete answer is still billed for what it used.
+    const billed = recorder({
+      ...output({}, "incomplete"),
+      usage: { input_tokens: 900, output_tokens: 40, total_tokens: 940 },
+    });
+    const refused = recorder({ error: "server error" }, 500);
+    for (const fetchStub of [billed.fetchStub, refused.fetchStub, offline]) {
+      await expect(
+        extractWithOpenAI({ ...config, fetch: fetchStub }, withAction, signal(), spend.record)
+      ).rejects.toBeInstanceOf(InterpretationUnavailableError);
+    }
+    const sent = { provider: "openai", model: "test-model", purpose: "extraction" };
+    expect(spend.calls).toEqual([
+      { ...sent, outcome: "answered", inputTokens: 900, outputTokens: 40 },
+      { ...sent, outcome: "failed" },
+      { ...sent, outcome: "unanswered" },
+    ]);
+  });
 });
 
 describe("combined interpreter", () => {
   it("uses Jev's decisions, OpenAI's facts, and survives one provider failing", async () => {
+    const meters: unknown[] = [];
     const interpreter = createModelInterpreter({
-      route: async () => ({
-        intent: "report_content",
-        gardenKey: "tas",
-        actionUID: 7,
-        model: "jev",
-      }),
-      extract: async () => ({
-        intent: "status",
-        gardenKey: "aiyeloja",
-        actionUID: null,
-        facts: [{ field: "timeSpentMinutes", value: 180, kind: "reported" }],
-        model: "openai",
-      }),
+      route: async (_request, _signal, meter) => {
+        meters.push(meter);
+        return { intent: "report_content", gardenKey: "tas", actionUID: 7, model: "jev" };
+      },
+      extract: async (_request, _signal, meter) => {
+        meters.push(meter);
+        return {
+          intent: "status",
+          gardenKey: "aiyeloja",
+          actionUID: null,
+          facts: [{ field: "timeSpentMinutes", value: 180, kind: "reported" }],
+          model: "openai",
+        };
+      },
     });
-    expect(await interpreter?.interpret(request, signal())).toEqual({
+    const spend = meter();
+    expect(await interpreter?.interpret(request, signal(), spend.record)).toEqual({
       intent: "report_content",
       gardenKey: "tas",
       actionUID: 7,
       facts: [{ field: "timeSpentMinutes", value: 180, kind: "reported" }],
       models: ["jev", "openai"],
     });
+    // Both providers report to the turn's meter.
+    expect(meters).toEqual([spend.record, spend.record]);
 
     const routingOnly = createModelInterpreter({
       route: async () => ({ intent: "status", gardenKey: null, actionUID: null, model: "jev" }),
@@ -295,7 +351,7 @@ describe("OpenAI voice transcription", () => {
     expect(
       await transcribeVoice(
         { ...config, fetch: fetchStub },
-        { wav: new Uint8Array([1, 2, 3]), locale: "pt-BR" },
+        { wav: new Uint8Array([1, 2, 3]), locale: "pt-BR", seconds: 4 },
         signal()
       )
     ).toEqual({ model: config.transcriptionModel, text: "Planted twelve seedlings." });
@@ -314,7 +370,7 @@ describe("OpenAI voice transcription", () => {
     await expect(
       transcribeVoice(
         { ...config, fetch: malformed.fetchStub },
-        { wav: new Uint8Array([1]), locale: "yo" },
+        { wav: new Uint8Array([1]), locale: "yo", seconds: 4 },
         signal()
       )
     ).rejects.toMatchObject({ reason: "malformed" });
@@ -323,9 +379,40 @@ describe("OpenAI voice transcription", () => {
     await expect(
       transcribeVoice(
         { ...config, fetch: unavailable.fetchStub },
-        { wav: new Uint8Array([1]), locale: "en" },
+        { wav: new Uint8Array([1]), locale: "en", seconds: 4 },
         signal()
       )
     ).rejects.toMatchObject({ reason: "provider_error" });
+  });
+
+  it("reports the tokens billed, or the recording's length when the reply states none", async () => {
+    const spend = meter();
+    const voice = { wav: new Uint8Array([1]), locale: "en", seconds: 42 };
+    const replies = [
+      {
+        type: "tokens",
+        input_tokens: 120,
+        input_token_details: { audio_tokens: 120, text_tokens: 0 },
+        output_tokens: 30,
+        total_tokens: 150,
+      },
+      { type: "duration", seconds: 41 },
+      undefined,
+    ];
+    for (const usage of replies) {
+      const { fetchStub } = recorder({ text: "Planted.", ...(usage ? { usage } : {}) });
+      await transcribeVoice({ ...config, fetch: fetchStub }, voice, signal(), spend.record);
+    }
+    const sent = {
+      provider: "openai",
+      model: config.transcriptionModel,
+      purpose: "transcription",
+      outcome: "answered",
+    };
+    expect(spend.calls).toEqual([
+      { ...sent, inputTokens: 120, outputTokens: 30 },
+      { ...sent, audioSeconds: 41 },
+      { ...sent, audioSeconds: 42 },
+    ]);
   });
 });

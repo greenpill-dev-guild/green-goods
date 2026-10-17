@@ -2,6 +2,7 @@ import { activeConsentId } from "../consent";
 import { readControl } from "../controls";
 import { DraftContentUnavailableError, type DraftRecord, openDraftFor } from "../drafts";
 import { type InboxEventRow, readInboxPayload } from "../inbox";
+import { modelProcessingOn } from "../model-spend";
 import {
   type AccountBinding,
   activeAccount,
@@ -140,7 +141,7 @@ export function loadTurnContext(core: ReportingCore, event: InboxEventRow): Turn
     review: binding ? openReviewFor(core, binding.participantId, event.conversation_id) : null,
     account: binding ? activeAccount(core, binding.participantId, core.settings.chainId) : null,
     intakeEnabled: readControl(core, "intake").enabled,
-    modelEnabled: readControl(core, "model_processing").enabled,
+    modelEnabled: modelProcessingOn(core),
     noticeSent: Boolean(notice?.notice_sent_at),
   };
 }

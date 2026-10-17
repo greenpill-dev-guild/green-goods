@@ -81,4 +81,23 @@ export const REPORTING_MIGRATIONS: readonly ReportingMigration[] = [
       `CREATE INDEX browser_recognitions_participant ON browser_recognitions(participant_id)`,
     ],
   },
+  {
+    version: 5,
+    name: "model spend ledger",
+    statements: [
+      `CREATE TABLE model_calls (
+        id TEXT PRIMARY KEY,
+        day TEXT NOT NULL,
+        provider TEXT NOT NULL CHECK (provider IN ('openai','jev')),
+        model TEXT NOT NULL,
+        purpose TEXT NOT NULL CHECK (purpose IN ('routing','extraction','media','transcription')),
+        outcome TEXT NOT NULL CHECK (outcome IN ('answered','failed','unanswered')),
+        input_tokens INTEGER CHECK (input_tokens >= 0),
+        output_tokens INTEGER CHECK (output_tokens >= 0),
+        cost_micro_usd INTEGER CHECK (cost_micro_usd >= 0),
+        created_at INTEGER NOT NULL
+      )`,
+      `CREATE INDEX model_calls_day ON model_calls(day)`,
+    ],
+  },
 ];

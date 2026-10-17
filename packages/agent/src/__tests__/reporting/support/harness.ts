@@ -11,6 +11,7 @@ import type { AccountProofVerifier } from "../../../services/reporting/browser-a
 import { watchOwnerAttempt } from "../../../services/reporting/owner-attempt-watch";
 import { createFilesystemMediaStore } from "../../../services/reporting/media-store";
 import { processMedia } from "../../../services/reporting/media/process";
+import { recordModelCall } from "../../../services/reporting/model-spend";
 import type { OpenAIConfig } from "../../../services/reporting/openai-responses";
 import { prepareOperation } from "../../../services/reporting/preparation";
 import { reconcileOperation } from "../../../services/reporting/reconciliation";
@@ -324,4 +325,15 @@ export function summaryToken(texts: readonly string[]): string {
     .find(Boolean);
   if (!token) throw new Error("No summary token was sent");
   return token;
+}
+
+/** Records far more than a day's model spend cap, so model processing stays off until 00:00 UTC. */
+export function spendDailyModelCap(core: ReportingCore): void {
+  recordModelCall(core, {
+    provider: "openai",
+    model: "gpt-4.1-mini-2025-04-14",
+    purpose: "extraction",
+    outcome: "answered",
+    inputTokens: 1_000_000_000,
+  });
 }
