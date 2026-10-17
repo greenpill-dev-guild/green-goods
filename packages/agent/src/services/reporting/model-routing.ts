@@ -4,7 +4,7 @@ import {
   type InterpretedIntent,
   InterpretationUnavailableError,
 } from "./interpretation";
-import type { ModelMeter } from "./model-spend";
+import { type ModelMeter, tokenCeiling } from "./model-spend";
 
 /**
  * Jev routing: typed Choice judgments over a bounded snapshot. Jev picks the turn's intent and,
@@ -112,9 +112,13 @@ function stateFor(request: InterpretationRequest) {
   };
 }
 
+/** Room for any framing Jev adds to the questions, which the request does not show. */
+const JEV_FRAMING_RESERVE_TOKENS = 1_000;
+
 /**
  * Jev bills input tokens only and states them in each reply's `usage`. The meter reserves the
- * request at four characters a token before it is sent and settles it with what the reply states.
+ * request at its token ceiling plus room for Jev's own framing before it is sent, and settles it
+ * with what the reply states.
  */
 export async function routeWithJev(
   config: JevConfig,
@@ -132,7 +136,7 @@ export async function routeWithJev(
     provider: "jev",
     model: config.model,
     purpose: "routing",
-    reserve: { inputTokens: Math.ceil(body.length / 4) },
+    reserve: { inputTokens: tokenCeiling(body) + JEV_FRAMING_RESERVE_TOKENS },
   });
   let response: Response;
   try {

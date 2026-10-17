@@ -1,6 +1,6 @@
 import * as z from "zod";
 import { InterpretationUnavailableError } from "./interpretation";
-import type { ModelMeter, ModelPurpose } from "./model-spend";
+import { type ModelMeter, type ModelPurpose, tokenCeiling } from "./model-spend";
 
 /**
  * One OpenAI Responses call with a strict JSON schema and no stored response. Callers pass only
@@ -44,17 +44,18 @@ export function dataUrl(mime: string, bytes: Uint8Array): string {
 }
 
 /**
- * Generous ceilings, not prices, held against the daily cap until a reply states its usage: text
- * at four characters a token, an image at 2,500 tokens and a file at 3,000 tokens for each of the
+ * Held against the daily cap until a reply states its usage. Text is reserved at its token
+ * ceiling, one token per UTF-8 byte. An image's or a file's bytes say little about its tokens, so
+ * those get generous allowances instead: 2,500 tokens an image, and 7,000 tokens for each of the
  * at most 20 pages a PDF may have (media/documents.ts).
  */
 const IMAGE_RESERVE_TOKENS = 2_500;
-const FILE_RESERVE_TOKENS = 20 * 3_000;
+const FILE_RESERVE_TOKENS = 20 * 7_000;
 
 function reservedInputTokens(instructions: string, content: readonly InputPart[]): number {
-  let tokens = Math.ceil(instructions.length / 4);
+  let tokens = tokenCeiling(instructions);
   for (const part of content) {
-    if (part.type === "input_text") tokens += Math.ceil(part.text.length / 4);
+    if (part.type === "input_text") tokens += tokenCeiling(part.text);
     else tokens += part.type === "input_image" ? IMAGE_RESERVE_TOKENS : FILE_RESERVE_TOKENS;
   }
   return tokens;

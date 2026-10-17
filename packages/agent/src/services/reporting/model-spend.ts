@@ -48,6 +48,15 @@ export type ModelSettlement =
  */
 export type ModelMeter = (request: ModelRequest) => (settlement: ModelSettlement) => void;
 
+/**
+ * The most tokens a text can become: every common tokenizer spends at least one UTF-8 byte on
+ * each token, so the byte count bounds it whatever the script, where four characters a token
+ * undercounts emoji and non-Latin text. Reservations use it so a crash cannot hide spend.
+ */
+export function tokenCeiling(text: string): number {
+  return Buffer.byteLength(text, "utf8");
+}
+
 /** Two US dollars per UTC day (Afo, 2026-10-16). */
 const DAILY_CAP_MICRO_USD = 2_000_000;
 

@@ -59,6 +59,13 @@ function recorder(body: unknown, status = 200) {
 
 const signal = () => new AbortController().signal;
 
+/** Emoji and non-Latin text tokenize to more than one token per four characters. */
+const inOtherScripts = {
+  ...request,
+  content: { ...request.content, actionUID: 7 },
+  message: { sourceEntryId: "src-2", text: "种了十二棵猴面包树 🌱🌱 أشجار الباوباب" },
+} as InterpretationRequest;
+
 type Metered = ModelRequest & { settled?: ModelSettlement };
 
 /** A meter that keeps each request as it was recorded before sending, and how it was settled. */
@@ -151,12 +158,16 @@ describe("Jev routing", () => {
     });
     const limited = recorder({ error: "rate limited" }, 429);
     for (const fetchStub of [answered.fetchStub, limited.fetchStub, offline]) {
-      await routeWithJev({ ...config, fetch: fetchStub }, request, signal(), spend.record).catch(
-        () => undefined
-      );
+      await routeWithJev(
+        { ...config, fetch: fetchStub },
+        inOtherScripts,
+        signal(),
+        spend.record
+      ).catch(() => undefined);
     }
-    // The reservation is the body actually sent, at four characters a token.
-    const reserve = { inputTokens: Math.ceil(String(answered.calls[0]?.init.body).length / 4) };
+    // The body actually sent at one token per UTF-8 byte, plus room for Jev's own framing.
+    const body = String(answered.calls[0]?.init.body);
+    const reserve = { inputTokens: Buffer.byteLength(body, "utf8") + 1_000 };
     const sent = { provider: "jev", model: "jev-latest", purpose: "routing", reserve };
     expect(spend.calls).toEqual([
       { ...sent, settled: { outcome: "answered", usage: { inputTokens: 296, outputTokens: 20 } } },
@@ -248,7 +259,7 @@ describe("OpenAI extraction", () => {
     const refused = recorder({ error: "server error" }, 500);
     for (const fetchStub of [billed.fetchStub, refused.fetchStub, offline]) {
       await expect(
-        extractWithOpenAI({ ...config, fetch: fetchStub }, withAction, signal(), spend.record)
+        extractWithOpenAI({ ...config, fetch: fetchStub }, inOtherScripts, signal(), spend.record)
       ).rejects.toBeInstanceOf(InterpretationUnavailableError);
     }
     expect(spend.calls.map((call) => call.settled)).toEqual([
@@ -256,7 +267,7 @@ describe("OpenAI extraction", () => {
       { outcome: "failed" },
       { outcome: "unanswered" },
     ]);
-    // Reserved before sending: the output ceiling, and the text input at four characters a token.
+    // Reserved before sending: the output ceiling, and every sent text at one token per UTF-8 byte.
     const [first] = spend.calls;
     expect(first).toMatchObject({ provider: "openai", model: "test-model", purpose: "extraction" });
     expect(first?.reserve.outputTokens).toBe(1_200);
@@ -266,7 +277,7 @@ describe("OpenAI extraction", () => {
       }
     ).input.flatMap((message) => message.content.map((part) => part.text));
     expect(first?.reserve.inputTokens).toBe(
-      sentText.reduce((tokens, text) => tokens + Math.ceil(text.length / 4), 0)
+      sentText.reduce((tokens, text) => tokens + Buffer.byteLength(text, "utf8"), 0)
     );
   });
 });
