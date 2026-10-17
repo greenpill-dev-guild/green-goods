@@ -70,7 +70,8 @@ In the 30 days to 2026-10-16, 6 people used a passkey session on www and 3 on be
    - Its calls run beside the hosted lookup, never before the ceremony.
    - They are never retried. The start call has a 3-second timeout, and the background
      completion has 10 seconds.
-   - Without the directory, sign-in runs as today.
+   - Without the directory, including when its lookup fails, sign-in runs as today, with the
+     hosted server's own challenge and verdict.
 8. **R8 Same account.** Adoption sends nothing unless the entry rebuilds the session's own
    address.
 9. **R9 Telemetry.** Adoption outcomes, plus off-site hosted failures, are measurable without
@@ -111,7 +112,9 @@ challenge that hasn't arrived by then is dropped, and the sign-in goes ahead wit
 Their next sign-in by name on any site finds the directory entry first.
 
 Only the hosted path merges, because it is the one that already waits on a lookup before its
-ceremony. A saved session, or "Use this device's passkey" (the only way in for the app-made
+ceremony. It merges only after the directory has answered that it doesn't hold the name. When
+the directory lookup fails, sign-in takes today's hosted path, the hosted start and verify calls
+included. A saved session, or "Use this device's passkey" (the only way in for the app-made
 group), adopts from a button in the account screen (decision 6).
 
 ### Related origins (decision 4)
@@ -124,10 +127,13 @@ domain, and its local check compares the page origin and the domain hash. The ri
 
 ### Contract changes
 
-- `PasskeyDirectoryCredential` gains optional `signingId`. `id` stays the Kernel identity input.
+- `PasskeyDirectoryCredential` gains optional `signingId`, which the lookup fills from the stored
+  `credentialKey`. `id` stays the Kernel identity input.
 - **New RPC methods.** `gg_startPasskeyAdoption` and `gg_completePasskeyAdoption` run on the
   existing `/public/passkeys/rpc` route, with the same origin allowlist and the registration
   rate-limit class.
+  - Completion takes no browser ID; the agent derives it from the assertion's `rawId`. It
+    rewrites the key into the stored form, `0x04` then lowercase x and y.
   - Completion is idempotent. A request with the same name, exact ID string, credential bytes
     and key as a stored entry returns that entry's result. The ID string must match exactly,
     because Kernel hashes it.
@@ -138,11 +144,12 @@ domain, and its local check compares the page origin and the domain hash. The ri
   - The completion runs in the background, so it gets 10 seconds. That outlasts the agent's
     4-second hosted lookup.
 - **Store.**
-  - New columns: `signingId`, `credentialKey` (the credential's bytes in base64url, taken from
-    the assertion's `rawId`; unique only together with `publicKey`) and
-    `source` (`registered` or `adopted`), plus a challenge `purpose`.
+  - New columns: `credentialKey` (the credential's bytes in base64url, taken from the
+    assertion's `rawId`; unique only together with `publicKey`, which every row stores in one
+    spelling) and `source` (`registered` or `adopted`), plus a challenge `purpose`.
   - All are added with `ensureColumn`. Existing rows are backfilled by copying `credentialId`.
   - The table is rebuilt once to drop the string-only unique constraint on `credentialId`.
+  - `initSchema` then sets `user_version` 9, up from 8.
 
 ### Draft copy
 
@@ -280,7 +287,7 @@ from any device the passkey syncs to.
 |---|---|---|
 | Shared auth workflows, contract, verifier, telemetry | `state_api` | Steps 1, 2, 6, 10 |
 | Agent directory store, hosted lookup, RPC | `state_api` | Steps 3, 4, 5 |
-| Account row, copy, related-origins file | `ui` | Steps 7, 8, 9 |
+| Account row, copy, related-origins file, builder docs | `ui` | Steps 7, 8, 9 |
 | Contracts | `contracts` | `n/a`: the validator already accepts these signatures |
 | QA | `qa_pass_1`, `qa_pass_2` | Step 11, sequential |
 
@@ -295,14 +302,21 @@ from any device the passkey syncs to.
   - Mitigation: the exact ID string (for a hosted name, the hosted server's own string), ID
     bytes matched to the assertion, a proven key, and the client's address guard before sending.
 - **One passkey under two names.**
-  - Risk: the same credential's hex and base64url spellings pass a string-only uniqueness check.
-  - Mitigation: uniqueness on `credentialKey` and `publicKey` together.
+  - Risk: the hex and base64url spellings of one credential's ID, or its key written with or
+    without `04` or in another case, pass a string-only uniqueness check.
+  - Mitigation: uniqueness on `credentialKey` and `publicKey` together, with every key stored in
+    one spelling.
 - **A spoofed `rawId`.**
   - Risk: an assertion's signature does not cover `rawId`. A client can claim anyone's ID bytes
     with its own key, and under byte-only uniqueness reserve them before the owner adopts.
   - Mitigation: uniqueness on the pair, so the claim lands as a separate entry. It opens nothing,
     because the local check refuses the real passkey's signature against the claimed key (rig
     scenario G).
+- **A client-chosen browser ID.**
+  - Risk: a stored browser ID the client picked would make every directory sign-in ask for the
+    wrong credential.
+  - Mitigation: there is no such input. `signingId` is `credentialKey`, from the assertion's
+    `rawId`, which rule 5 matched to the stored ID.
 - **An ID valid in both spellings.**
   - Risk: reading an even-length, all-hex base64url ID only as hex refuses a legitimate passkey.
   - Mitigation: accept either reading, as the app's sign-in already does, and key uniqueness on
@@ -317,6 +331,11 @@ from any device the passkey syncs to.
   - Risk: the directory can't confirm who holds a hosted name.
   - Mitigation: refuse with a non-retried `unavailable` and try again at a later sign-in; sign-in
     is unaffected.
+- **The directory down during hosted sign-in.**
+  - Risk: replacing the hosted verdict there too would drop whatever it checks, just when
+    nothing else can answer.
+  - Mitigation: the merged path needs a directory answer first. A failed directory lookup takes
+    today's hosted path, start and verify included.
 - **A retried completion after a lost response.**
   - Risk: an automatic retry meets the spent challenge and reports an expiry instead of the real
     outcome.
@@ -325,7 +344,8 @@ from any device the passkey syncs to.
     result.
 - **An upgrade that misses the new columns.**
   - Risk: `CREATE TABLE IF NOT EXISTS` leaves the production table as it was.
-  - Mitigation: `ensureColumn`, plus a test that upgrades a v2.0.1 database.
+  - Mitigation: `ensureColumn`, plus a test that upgrades a v2.0.1 database and checks that
+    `user_version` moves from 8 to 9.
 - **A wrong related-origins response.**
   - Risk: the app's HTML is served instead of the file, or it's served with the wrong type.
   - Mitigation: a static file, an explicit header, and a smoke check on www and beta.

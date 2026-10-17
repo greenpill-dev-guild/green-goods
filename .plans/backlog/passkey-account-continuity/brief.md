@@ -43,7 +43,8 @@ name, and gives stewards re-adding work.
 
 - In scope: adding older accounts to the directory with proof that the person holds the passkey;
   a related-origins file (`/.well-known/webauthn`) on www and beta; directory sign-in for stored
-  IDs in hex form; sign-in copy for a passkey made on another site; telemetry to size what is left.
+  IDs in hex form; sign-in copy for a passkey made on another site; the builder passkey page;
+  telemetry to size what is left.
 - Out of scope: moving anyone to a new account (kept only as a support fallback); Green Goods
   ENS names (`green-goods-name-reservation`); the Gnosis passkey validator; retiring the hosted
   server; admin-made hosted passkeys (none exist, because admin passkey creation shipped with the

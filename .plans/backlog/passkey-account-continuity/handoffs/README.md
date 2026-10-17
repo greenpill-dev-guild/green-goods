@@ -21,6 +21,15 @@
   - The resume steps below keep the decision gate.
   - Current-evidence links point at the second-review report.
   - The rig refuses unknown modes.
+- **Seventh review.** Codex raised five findings at 00:34 UTC on 2026-10-17, all addressed:
+  - Every stored key has one spelling (`0x04`, lowercase), so a key written another way can't put
+    one passkey under two names. The hosted fallback compares keys by point.
+  - When the directory lookup fails, hosted sign-in runs exactly as today, verdict included. The
+    merged path needs a directory answer first.
+  - The browser ID is no longer an input. The lookup's `signingId` is `credentialKey`, taken from
+    the assertion's `rawId`.
+  - Step 9 rewrites the builder passkey page, which still says older accounts sign in as before.
+  - Step 3 raises the database's `user_version` from 8 to 9, with tests.
 - **Sixth review.** Codex raised one finding at 00:03 UTC on 2026-10-17, and it is addressed:
   - Step 6 no longer calls the local check the hosted verdict's equal. It doesn't read the
     signature counter, and the hosted lookup returns no counter to compare.
@@ -82,7 +91,7 @@ Agent/model: Claude Code, claude-opus-5-5 | Coverage: planning segment on 2026-1
 | verify | 2026-10-16T19:41Z → unknown | Portable rig rerun from the hub (log written 19:41:57Z); `plan-hub validate`, guidance links, immutable reports, Biome |
 | wait | unknown → unknown | Afo's choice of delivery and Linear records; resolved (PR, COM-39 rewrite) |
 | publish | 2026-10-16T22:43Z → 2026-10-16T22:47Z | Worktree from develop, commits `0c09b4128` and `556932c65`, push gate passed, PR #1111 opened 22:44:48Z |
-| review | 2026-10-16T22:52Z → unknown | Six review rounds (Codex 20 findings, CodeRabbit 3). First review 22:52:19Z; fixes in `61e4591c0`, `291b53161`, `74a2c80d5`, `0cc1fe244` and `45d50a51a`, and round six edited at 2026-10-17T00:21:43Z |
+| review | 2026-10-16T22:52Z → unknown | Seven review rounds (Codex 25 findings, CodeRabbit 3). First review 22:52:19Z; fixes in `61e4591c0`, `291b53161`, `74a2c80d5`, `0cc1fe244`, `45d50a51a` and `21357984c`, and round seven edited at 2026-10-17T00:54:56Z |
 
 Times are observed boundaries: file and log write times, the scaffold time, commit times and the
 PR's creation time. Anything not observed is `unknown`.
