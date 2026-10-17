@@ -22,7 +22,7 @@ recommendation is the plan's default if Afo agrees. Row 8 was answered on 2026-1
 | 3 | What checks the proof of possession on the agent | The app's own WebCrypto verifier, moved into `@green-goods/shared/public-contracts` so both sides run one implementation. | The agent's `@simplewebauthn/server`, as locked, throws on every ES256 assertion: it resolves `@peculiar/asn1-schema` 2.6.0 while the signature schema in `@peculiar/asn1-ecc` registers in 2.10.0. Fixing that is a dependency change; track it separately (follow-up F1). |
 | 4 | Publish `/.well-known/webauthn` on www and beta | Yes, listing every Green Goods origin. | It's the only way to use a host-bound passkey on another site without a new account. Chrome refused the cross-site ceremony without the file and when www was missing from it. |
 | 5 | A remembered name that is now taken (January to August accounts were never reserved) | Ask for another name in the adoption step. | The account follows the passkey, not the name, so a new name changes nothing else. A silent suffix would leave people guessing their own sign-in name. |
-| 6 | Where the saved-session action lives | A row in the account screens that already exist (client profile, admin account panel), never a banner. | Existing chrome, no layout shift; it shows only while the session's passkey has no directory entry. |
+| 6 | Where the saved-session action lives | A row in the account screens that already exist (client profile, admin account panel), never a banner. | Existing chrome, no layout shift; it shows only while the session's account has no directory entry. |
 | 7 | The three staging test accounts from June and July | Confirm they are team tests, then drop them. Support-assisted if not. | The hosted server stopped accepting the staging origin (probed 4 October), so they can't sign in by name to adopt. |
 | 8 | COM-39 | **Decided 2026-10-16:** rewritten around keeping accounts, with moving as the fallback ([handoffs/com-39-update-draft.md](handoffs/com-39-update-draft.md)). | Afo chose the rewrite. The old text counted only from late June and planned a move. |
 | 9 | The signature counter, once hosted sign-in stops asking the hosted server for a verdict (step 6) | Don't track it, as the directory's own sign-in doesn't today. List the gap in the spec's risks, and revisit if the account's on-chain check ever reads the counter. | The deployed validator decides what the account can sign, and its source says it ignores the counter, so a copied key signs without any sign-in. Synced passkeys from Apple and Google report 0, so for most people there is nothing to compare. Every adopted account moves to the directory's sign-in, whichever trigger adopts it, so keeping the hosted verdict in step 6 alone would only delay the change. Tracking adds a column, one more call, and a refusal that keeps the owner out until support clears it ([step 6](#step-6-adopt-during-sign-in-never-in-its-way-state_api-shared)). |
@@ -116,17 +116,22 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
 - Backfill `credentialKey` by copying `credentialId` for existing rows. Directory sign-ups store
   the browser's base64url ID, and copying rather than decoding cannot misread one that also looks
   like hex.
-- Make the pair unique: one index on `(credentialKey, publicKey)`. That stops the hex and
-  base64url spellings of one passkey sitting under two names. ID bytes alone stay non-unique,
-  because an assertion's signature does not cover `rawId`. A client can claim anyone's ID bytes,
-  and only the pair is bound to a proven key.
+- Make the account unique: one index on `(credentialId, publicKey)`, the exact string Kernel
+  hashes and the key in its stored form. Together they give the Kernel address, so one account
+  can't sit under two names.
+  - The other spelling of one passkey is another account. A device that cached a legacy
+    spelling keeps it (`authServices.test.ts`, "preserves an authenticated legacy ID
+    spelling"), so that spelling may adopt under another name, in either order.
+  - ID bytes stay non-unique, because an assertion's signature does not cover `rawId`. A client
+    can claim anyone's ID bytes; with its own key, the claim lands as its own entry.
   - `publicKey` has one spelling per point: `0x04`, then lowercase x and y. Registration
     already writes that form (`uncompressedP256PublicKey`), and step 5 rewrites an adopted key
     into it. The verifier accepts the point with or without `04` and in either case, so a
-    raw-text index would let one passkey hold two names.
-- Move each store's own duplicate check to the pair too. Today the SQLite insert refuses any row
-  whose `credentialId` string is already stored (`SELECT 1 ... WHERE credentialId = ?`), and the
-  memory store compares the same strings, so a claimed string would still block the owner.
+    raw-text index would let one account hold two names.
+- Move each store's own duplicate check to the same `(credentialId, publicKey)` key. Today the
+  SQLite insert refuses any row whose `credentialId` string is already stored
+  (`SELECT 1 ... WHERE credentialId = ?`), and the memory store compares the same strings, so a
+  claimed string would still block the owner.
 - Keep the first-registration-wins rule for names. `credentialId` keeps the account's exact
   string for Kernel.
 - Drop the existing `credentialId UNIQUE` column constraint, or a claimed string could still
@@ -140,16 +145,17 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
     - an adopted row;
     - a challenge used for the wrong purpose, and an adoption challenge kept with its name,
       domain and origin;
-    - one credential refused under a second name when its ID arrives in the other spelling;
-    - one credential refused under a second name when its key arrives without `04` or in upper
-      case;
+    - the other spelling of a held passkey accepted under another name, as its own account;
+    - one account refused under a second name, including when its key arrives without `04` or
+      in upper case;
     - a claimed ID with a different key stored beside the real one, neither blocking the other;
     - a registration after the upgrade, which writes `credentialKey`, offers it from the lookup
-      as `signingId`, and refuses the same credential under another name.
+      as `signingId`, and refuses the same account under another name.
   - `storage.sqlite.test.ts` builds the v2.0.1 schema with a stored passkey and a pending
     challenge, then runs `initSchema` over it. It asserts:
     - the new columns and their defaults, and the backfilled key;
-    - the rebuilt table, with the pair index and no string-only unique `credentialId`;
+    - the rebuilt table, with the `(credentialId, publicKey)` index and no string-only unique
+      `credentialId`;
     - that both rows survive;
     - `user_version` 9, and that a second `initSchema` changes nothing. The file's two
       existing assertions of 8 move to 9.
@@ -207,9 +213,9 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
      enough here. Rule 5 only proves which passkey the browser used, while the hosted account's
      address follows the hosted server's exact string, so the other spelling would point the
      name at a different account.
-  9. The same credential, meaning its ID bytes and proven key together, is not held under
-     another name. `rawId` sits outside the assertion's signature, so ID bytes alone prove
-     nothing about who holds them.
+  9. The same account, meaning its exact ID string and proven key together, is not held under
+     another name. The other spelling of the same passkey is another account to Kernel, so it
+     may be. ID bytes decide nothing here: `rawId` sits outside the assertion's signature.
   10. A hosted lookup failure answers `unavailable` with a refusal code the client does not retry
       (`-32000`, not the retried `-32603`).
   11. Store the ID string exactly, never re-encoded, with `credentialKey` beside it and the key in
@@ -222,23 +228,26 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
   - Extend the `/data` snapshot item in the Production Checklist of `packages/agent/README.md`
     to say so, and to ask for a restore rehearsal before a release that adds adoption.
   - Take a consistent backup of `/data/agent.db`, restore it into a separate volume, and check
-    that `passkey_credentials` keeps every row, its pair index and `user_version` 9 (AC-13).
+    that `passkey_credentials` keeps every row, its account index and `user_version` 9 (AC-13).
   - Keep the snapshot ID and restore details in the private recovery record, with only a dated
     summary in the release's operations receipt, as the 2.0.0 runbook does.
 - **RED/GREEN**:
   - Refusals: a replay under another name, a wrong key, a mismatched ID in base64url and in hex,
-    the same credential under a second name in the other ID spelling or with its key spelled
-    another way (no `04`, upper case), the held name sent again with the ID in the other
-    spelling, a taken name, the wrong site, an unadoptable domain, a hosted name held by another
-    passkey, a hosted name submitted with the other spelling of its listed ID, a key that isn't
-    a P-256 point, a completion for another name, domain or origin than its challenge's, and
-    the hosted lookup down.
+    the same account under a second name, including with its key spelled another way (no `04`,
+    upper case), the held name sent again with the ID in the other spelling, a taken name, the
+    wrong site, an unadoptable domain, a hosted name held by another passkey, a hosted name
+    submitted with the other spelling of its listed ID, a key that isn't a P-256 point, a
+    completion for another name, domain or origin than its challenge's, and the hosted lookup
+    down.
   - Completion runs through the real JSON-RPC route (`api/routes/passkey-directory.ts`) with the
     software passkey's JSON-encoded assertion and succeeds; a malformed field refuses.
   - A spoofed `rawId`, where an attacker's own assertion claims a victim's ID bytes, must neither
     block the victim's later adoption nor open anything.
   - Successes:
     - a hosted name held by this passkey;
+    - the other spelling of a held passkey, as its own account, in either order: a fresh device
+      adopts the hosted spelling, then the device that cached the legacy spelling adopts it
+      under a new name, and each name signs in to its own address;
     - an identical retry after success, which returns the stored result;
     - a stored ID valid in both spellings, accepted through its base64url reading;
     - a hex stored ID, whose lookup then offers the assertion's `rawId` in base64url as
@@ -247,6 +256,8 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
     challenge-binding cases, plus the two-spelling success and the spoofed `rawId`, all against
     its prototype (scenarios C, F and G of the
     [report](reports/2026-10-16-clean-room-proof-fifth-review.md)).
+  - The prototype's pair-only index refused the other spelling under a second name. This plan
+    now accepts it as its own account, so that case is a planned test, not rig evidence.
 
 ### Step 6: Adopt during sign-in, never in its way (state_api, shared)
 
@@ -335,17 +346,19 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
 `packages/shared/src/i18n/{en,es,pt}.json`,
 `packages/shared/src/__tests__/workflows/auth-passkey-adoption.test.ts`
 
-- Show a row while the session's passkey has no directory entry: "Sign in on other Green Goods
+- Show a row while the session's account has no directory entry: "Sign in on other Green Goods
   sites", with one button that runs the adoption prompt.
-  - Look the name up and compare the entry with the session's credential, by ID bytes and by
-    key point. No entry, or an entry for another passkey, shows the row; an entry for this
-    passkey hides it.
+  - Look the name up and compare the entry with the session's account: the exact ID string and
+    the key point, which together give its Kernel address. No entry, or an entry for another
+    account, shows the row, including one for the other spelling of this passkey. An entry for
+    this account hides it.
   - When another passkey holds the name (decision 5), the row asks for a new name.
   - Its start call carries the session's name and passkey domain (`cachedPasskeyRpId`).
 - Draft copy is in [spec.md](spec.md#draft-copy).
 - **RED/GREEN** in a component test, with the shared hook mocked at its boundary:
-  - The row appears for a passkey session without a directory entry and when another passkey
-    holds its name. It stays hidden when the entry is this passkey's.
+  - The row appears for a passkey session without a directory entry, when another passkey
+    holds its name, and when the entry holds the other spelling of this passkey. It stays
+    hidden when the entry is this account's.
   - A taken name keeps the row and asks for another name.
   - Adopting under the new name succeeds, and the row disappears.
 - **RED/GREEN** for the hook itself, in `auth-passkey-adoption.test.ts`, with only the browser,

@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-10-16T19:35:57.040Z",
-    "updated_at": "2026-10-17T02:30:08Z"
+    "updated_at": "2026-10-17T02:42:25Z"
   },
   "links": {
     "brief": "brief.md",
@@ -238,6 +238,14 @@
       "status": "planning_reconciled",
       "branch": null,
       "note": "Addressed the tenth review (Codex, four findings): the account row compares the directory entry with the session's passkey, so a name held by another passkey keeps the row and its rename; a workflow test drives the saved-session hook through start, ceremony and completion; step 9 includes the two workflows that know the entry's domain and the hosted lookup, carrying that context to the copy; on www and beta a hosted name's refusal starts with Try again here. No rig change. Timestamp: the observed edit time."
+    },
+    {
+      "timestamp": "2026-10-17T02:42:25Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "planning_reconciled",
+      "branch": null,
+      "note": "Addressed the eleventh review (Codex, one finding): uniqueness now follows the account, the exact credentialId with the key, not the passkey, because the other ID spelling is another Kernel account and the app keeps a cached legacy spelling; that spelling may adopt under another name in either order, and the account row compares exact ID strings. Reverses the earlier rule the prototype held, so that case is a planned test. No rig change. Timestamp: the observed edit time."
     }
   ]
 }

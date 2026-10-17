@@ -154,8 +154,10 @@ domain, and its local check compares the page origin and the domain hash. The ri
     4-second hosted lookup.
 - **Store.**
   - New columns: `credentialKey` (the credential's bytes in base64url, taken from the
-    assertion's `rawId`; unique only together with `publicKey`, which every row stores in one
-    spelling) and `source` (`registered` or `adopted`), plus a challenge `purpose`.
+    assertion's `rawId`) and `source` (`registered` or `adopted`), plus a challenge `purpose`.
+  - The unique key is the account: the exact `credentialId` with `publicKey`, which every row
+    stores in one spelling. The other spelling of one passkey is another account and may hold
+    another name.
   - All are added with `ensureColumn`. Existing rows are backfilled by copying `credentialId`, and
     every new row writes `credentialKey`: a registration from its credential ID, an adoption
     from `rawId`.
@@ -320,15 +322,22 @@ from any device the passkey syncs to.
   - Risk: a re-encoded ID or the wrong key would point the name at another address.
   - Mitigation: the exact ID string (for a hosted name, the hosted server's own string), ID
     bytes matched to the assertion, a proven key, and the client's address guard before sending.
-- **One passkey under two names.**
-  - Risk: the hex and base64url spellings of one credential's ID, or its key written with or
-    without `04` or in another case, pass a string-only uniqueness check.
-  - Mitigation: uniqueness on `credentialKey` and `publicKey` together, with every key stored in
+- **One account under two names.**
+  - Risk: its key written with or without `04`, or in another case, passes a raw-text
+    uniqueness check.
+  - Mitigation: uniqueness on the exact `credentialId` and `publicKey`, with every key stored in
     one spelling.
+- **A legacy spelling left behind.**
+  - Risk: the hex and base64url spellings of one passkey's ID are two accounts to Kernel, and
+    the app keeps a cached legacy spelling when it matches the saved address. Holding one
+    passkey to one name would let whichever spelling adopted first lock the other out.
+  - Mitigation: the other spelling adopts under another name as its own account, in either
+    order, and the account row compares exact ID strings.
 - **A spoofed `rawId`.**
   - Risk: an assertion's signature does not cover `rawId`. A client can claim anyone's ID bytes
     with its own key, and under byte-only uniqueness reserve them before the owner adopts.
-  - Mitigation: uniqueness on the pair, so the claim lands as a separate entry. It opens nothing,
+  - Mitigation: uniqueness on the exact ID string and key, so the claim lands as a separate
+    entry. It opens nothing,
     because the local check refuses the real passkey's signature against the claimed key (rig
     scenario G).
 - **A client-chosen browser ID.**
