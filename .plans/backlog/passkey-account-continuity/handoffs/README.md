@@ -21,6 +21,8 @@
   - The resume steps below keep the decision gate.
   - Current-evidence links point at the second-review report.
   - The rig refuses unknown modes.
+- **CodeRabbit, after the thirteenth review.** One finding, addressed: completion writes the
+  challenge's domain and origin to the adopted row's existing `rpId` and `origin` columns.
 - **Thirteenth review.** Codex raised one finding at 03:03 UTC on 2026-10-17, and it is
   addressed: `switchingAccounts` compares the exact ID string as well as the key, so the device
   that cached a legacy spelling signs in by both names, each to its own address (step 1).

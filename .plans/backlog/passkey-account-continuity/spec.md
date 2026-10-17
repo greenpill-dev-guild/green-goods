@@ -139,6 +139,8 @@ domain, and its local check compares the page origin and the domain hash. The ri
   rate-limit class.
   - The start takes the name and the passkey's domain. Its challenge is stored with both and the
     origin, and completion must match all three.
+  - Successful completion writes the challenge's domain and origin to the adopted row's existing
+    `rpId` and `origin` columns.
   - Completion takes no browser ID; the agent derives it from the assertion's `rawId`. It
     rewrites the key into the stored form, `0x04` then lowercase x and y.
   - The assertion travels as base64url JSON. The route decodes it into the shared check's byte
@@ -155,6 +157,8 @@ domain, and its local check compares the page origin and the domain hash. The ri
 - **Store.**
   - New columns: `credentialKey` (the credential's bytes in base64url, taken from the
     assertion's `rawId`) and `source` (`registered` or `adopted`), plus a challenge `purpose`.
+  - For an adopted row, the existing `rpId` and `origin` columns keep the passkey's domain and the
+    page it was adopted from, both taken from its challenge.
   - The unique key is the account: the exact `credentialId` with `publicKey`, which every row
     stores in one spelling. The other spelling of one passkey is another account and may hold
     another name.

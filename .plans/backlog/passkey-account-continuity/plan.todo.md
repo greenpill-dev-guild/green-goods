@@ -147,7 +147,7 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
   the new shape. It is set after every other statement, so a rebuild that throws leaves 8.
 - **RED/GREEN**:
   - The store contract test covers both stores (memory and SQLite):
-    - an adopted row;
+    - an adopted row, with its challenge's domain and origin in `rpId` and `origin`;
     - a challenge used for the wrong purpose, and an adoption challenge kept with its name,
       domain and origin;
     - the other spelling of a held passkey accepted under another name, as its own account;
@@ -223,8 +223,9 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
      may be. ID bytes decide nothing here: `rawId` sits outside the assertion's signature.
   10. A hosted lookup failure answers `unavailable` with a refusal code the client does not retry
       (`-32000`, not the retried `-32603`).
-  11. Store the ID string exactly, never re-encoded, with `credentialKey` beside it and the key in
-      the stored form.
+  11. Store the ID string exactly, never re-encoded, with `credentialKey` beside it, the key in the
+      stored form, and the challenge's domain and origin in the row's existing `rpId` and
+      `origin`.
 
   Refusals after rule 5 need a proven assertion, so an unproven caller learns nothing about names
   or credentials.
