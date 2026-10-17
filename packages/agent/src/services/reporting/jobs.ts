@@ -6,6 +6,11 @@ import type { ReportingCore } from "./runtime";
  * reconciliation and cleanup. External work runs from these leased records, never from side
  * effects during rehydration. A dedupe key makes enqueueing idempotent; a fence stops a worker
  * whose lease expired from recording a result after another worker reclaimed the job.
+ *
+ * A job whose process died is rerun from the start once its lease expires, so every handler must
+ * survive a crash at any point. Each kind's rerun contract (reads only, checkpointed effects,
+ * exact signed bytes, or cleanup) is declared and crash-tested in job-reruns.sqlite.test.ts;
+ * a new kind needs an entry there.
  */
 export type JobKind =
   | "process_media"
