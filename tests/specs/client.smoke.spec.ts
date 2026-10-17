@@ -62,7 +62,7 @@ test.describe("Client PWA", () => {
 
     test("wallet flow - inject auth and navigate (iOS Safari)", async ({ page }, testInfo) => {
       // Only run this storage-injection diagnostic on iOS Safari. Qualified specs own passkey proof.
-      // SKIP: #338 owner:afo expiry:2026-10-16 — platform-conditional, only iOS Safari
+      // SKIP: #338 owner:afo expiry:2027-01-16 — platform-conditional, only iOS Safari
       test.skip(!isIOS(testInfo.project.name), "Wallet injection only needed for iOS Safari");
 
       const helper = new ClientTestHelper(page);
