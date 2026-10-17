@@ -38,8 +38,17 @@ export function isRegistrablePasskeyName(name: string): boolean {
 }
 
 export type PasskeyDirectoryCredential = {
-  /** Credential ID as the browser reports it, base64url without padding. */
+  /**
+   * The ID the account was made with. Kernel hashes this exact string into the account address,
+   * so it is never re-encoded: base64url for a directory sign-up, possibly hex for an adopted
+   * hosted account.
+   */
   id: string;
+  /**
+   * The browser's credential ID, base64url without padding. It names the bytes the ceremony
+   * asks for; without it, both readings of `id` are tried.
+   */
+  signingId?: string;
   /** Uncompressed P-256 public key as hex, with the 0x04 point prefix. */
   publicKey: `0x${string}`;
   /** The domain the passkey was created under. A browser offers it only for this domain. */
