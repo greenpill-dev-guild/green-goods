@@ -66,17 +66,29 @@ interface Price {
   outputPerMillionTokens: number;
   /** The provider's own per-minute estimate for transcriptions. */
   perMinute?: number;
+  /** The context window: no request can bill more input than this. */
+  maxInputTokens?: number;
+  /** Tokens each 32-pixel patch of an input image costs. */
+  tokensPerImagePatch?: number;
 }
 
 /**
  * List prices of the models config.ts pins, read on 2026-10-16: OpenAI's Standard tier from
  * https://developers.openai.com/api/docs/pricing, and Jev from https://docs.typesafe.ai/models,
  * which bills input tokens only. Cached input is charged at the full input price so the cap rounds
- * up, never down. A model missing here is recorded without a cost and cannot reach the cap, so
- * pinning a new model means adding its price.
+ * up, never down. The context window and image rule come from
+ * https://developers.openai.com/api/docs/models/gpt-4.1-mini and
+ * https://developers.openai.com/api/docs/guides/images-vision, read on 2026-10-17. A model missing
+ * here is recorded without a cost and cannot reach the cap, so pinning a new model means adding
+ * its price.
  */
 const PRICES: Readonly<Record<string, Price>> = {
-  "gpt-4.1-mini-2025-04-14": { inputPerMillionTokens: 400_000, outputPerMillionTokens: 1_600_000 },
+  "gpt-4.1-mini-2025-04-14": {
+    inputPerMillionTokens: 400_000,
+    outputPerMillionTokens: 1_600_000,
+    maxInputTokens: 1_047_576,
+    tokensPerImagePatch: 1.62,
+  },
   "gpt-4o-mini-transcribe-2025-12-15": {
     inputPerMillionTokens: 1_250_000,
     outputPerMillionTokens: 5_000_000,
@@ -84,6 +96,21 @@ const PRICES: Readonly<Record<string, Price>> = {
   },
   "jev-1.13.0": { inputPerMillionTokens: 42_000, outputPerMillionTokens: 0 },
 };
+
+/**
+ * The most input one image of at most `edge` pixels a side can bill: its whole 32-pixel patches at
+ * the model's rate, plus the one token of rounding the provider's guide allows. Null for a model
+ * whose image rule is not recorded.
+ */
+export function imageTokenCeiling(model: string, edge: number): number | null {
+  const perPatch = PRICES[model]?.tokensPerImagePatch;
+  return perPatch === undefined ? null : Math.ceil(Math.ceil(edge / 32) ** 2 * perPatch) + 1;
+}
+
+/** The most input any one request can bill: the model's context window, or null when unknown. */
+export function inputTokenCeiling(model: string): number | null {
+  return PRICES[model]?.maxInputTokens ?? null;
+}
 
 function utcDay(now: number): string {
   return new Date(now).toISOString().slice(0, 10);

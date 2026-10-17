@@ -1,6 +1,12 @@
 import * as z from "zod";
 import { InterpretationUnavailableError } from "./interpretation";
-import { type ModelMeter, type ModelPurpose, tokenCeiling } from "./model-spend";
+import {
+  imageTokenCeiling,
+  inputTokenCeiling,
+  type ModelMeter,
+  type ModelPurpose,
+  tokenCeiling,
+} from "./model-spend";
 
 /**
  * One OpenAI Responses call with a strict JSON schema and no stored response. Callers pass only
@@ -44,26 +50,33 @@ export function dataUrl(mime: string, bytes: Uint8Array): string {
 }
 
 /**
- * Held against the daily cap until a reply states its usage. The whole request is reserved at its
- * token ceiling, one token per UTF-8 byte: instructions, content, the output schema and the JSON
- * around them, whose structure more than covers the provider's own message framing. An image's
- * or a file's encoded bytes say little about its tokens, so those are swapped for generous
- * allowances: 2,500 tokens an image, and 7,000 tokens for each of the at most 20 pages a PDF may
- * have (media/documents.ts).
+ * Held against the daily cap until a reply states its usage, and a true ceiling of it. The request
+ * apart from its images and files is reserved at one token per UTF-8 byte: instructions, content,
+ * the output schema and the JSON around them, whose structure more than covers the provider's own
+ * message framing. An image's encoded bytes say nothing useful about its tokens, so it is reserved
+ * at the model's ceiling for an image of its largest possible size. A file is billed for its
+ * extracted text and an image of every page, which nothing short of the whole context window
+ * bounds, so a request with one reserves that.
  */
-const IMAGE_RESERVE_TOKENS = 2_500;
-const FILE_RESERVE_TOKENS = 20 * 7_000;
-
-function reservedInputTokens(request: object, content: readonly InputPart[]): number {
+function reservedInputTokens(
+  model: string,
+  request: object,
+  content: readonly InputPart[],
+  imageEdge: number | undefined
+): number {
   const withoutBinaries = JSON.stringify(request, (key, value) =>
     key === "image_url" || key === "file_data" ? "" : value
   );
+  const window = inputTokenCeiling(model);
   let tokens = tokenCeiling(withoutBinaries);
   for (const part of content) {
-    if (part.type === "input_image") tokens += IMAGE_RESERVE_TOKENS;
-    else if (part.type === "input_file") tokens += FILE_RESERVE_TOKENS;
+    if (part.type === "input_file") return window ?? tokens;
+    if (part.type === "input_image") {
+      const image = imageEdge === undefined ? null : imageTokenCeiling(model, imageEdge);
+      tokens += image ?? window ?? 0;
+    }
   }
-  return tokens;
+  return window === null ? tokens : Math.min(tokens, window);
 }
 
 export async function structuredResponse(
@@ -75,6 +88,8 @@ export async function structuredResponse(
     schemaName: string;
     schema: object;
     maxOutputTokens: number;
+    /** The most pixels a side of any image in `content`; without it an image reserves the window. */
+    imageEdge?: number;
   },
   signal: AbortSignal,
   meter?: ModelMeter
@@ -102,7 +117,7 @@ export async function structuredResponse(
     model: config.model,
     purpose: input.purpose,
     reserve: {
-      inputTokens: reservedInputTokens(request, input.content),
+      inputTokens: reservedInputTokens(config.model, request, input.content, input.imageEdge),
       outputTokens: input.maxOutputTokens,
     },
   });

@@ -277,25 +277,57 @@ describe("OpenAI extraction", () => {
     expect(first?.reserve.inputTokens).toBe(Buffer.byteLength(sent, "utf8"));
   });
 
-  it("reserves an image at its allowance instead of its encoded size", async () => {
-    const spend = meter();
-    const { calls, fetchStub } = recorder(
-      output({ observations: [], uncertain: [], facts: [] }, "completed")
-    );
-    await extractFromMedia(
-      { ...config, fetch: fetchStub },
-      { kind: "image", bytes: new Uint8Array(30_000), mime: "image/jpeg" },
-      { locale: "en", actionTitle: "Tree planting", inputs: request.actions[0]!.inputs },
-      signal(),
-      spend.record
-    );
-    const withoutImage = JSON.stringify(JSON.parse(String(calls[0]?.init.body)), (key, value) =>
-      key === "image_url" ? "" : value
-    );
-    expect(spend.calls[0]?.reserve.inputTokens).toBe(
-      Buffer.byteLength(withoutImage, "utf8") + 2_500
-    );
-    expect(spend.calls[0]?.purpose).toBe("media");
+  describe("reserving images and files at a true ceiling", () => {
+    const pinned = { ...config, model: "gpt-4.1-mini-2025-04-14" };
+    const context = {
+      locale: "en",
+      actionTitle: "Tree planting",
+      inputs: request.actions[0]!.inputs,
+    };
+
+    it("reserves a photo at the model's ceiling for the largest image the agent sends", async () => {
+      const spend = meter();
+      const { calls, fetchStub } = recorder(
+        output({ observations: [], uncertain: [], facts: [] }, "completed")
+      );
+      await extractFromMedia(
+        { ...pinned, fetch: fetchStub },
+        { kind: "image", bytes: new Uint8Array(30_000), mime: "image/jpeg" },
+        context,
+        signal(),
+        spend.record
+      );
+      const withoutImage = JSON.stringify(JSON.parse(String(calls[0]?.init.body)), (key, value) =>
+        key === "image_url" ? "" : value
+      );
+      // A 2,048-pixel square is 64 x 64 patches of 32 pixels at 1.62 tokens a patch, 6,636, plus
+      // the one token of rounding OpenAI's guide allows.
+      expect(spend.calls[0]?.reserve.inputTokens).toBe(
+        Buffer.byteLength(withoutImage, "utf8") + 6_637
+      );
+      expect(spend.calls[0]?.purpose).toBe("media");
+    });
+
+    it("reserves the whole context window for a request that carries a file", async () => {
+      const spend = meter();
+      const { fetchStub } = recorder(
+        output({ observations: [], uncertain: [], facts: [] }, "completed")
+      );
+      await extractFromMedia(
+        { ...pinned, fetch: fetchStub },
+        {
+          kind: "document",
+          bytes: new Uint8Array(Buffer.from("%PDF-1.7 report")),
+          filename: "attachment.pdf",
+          mime: "application/pdf",
+          pages: 3,
+        },
+        context,
+        signal(),
+        spend.record
+      );
+      expect(spend.calls[0]?.reserve.inputTokens).toBe(1_047_576);
+    });
   });
 });
 

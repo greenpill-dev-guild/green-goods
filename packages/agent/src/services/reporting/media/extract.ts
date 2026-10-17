@@ -8,6 +8,7 @@ import {
   type OpenAIConfig,
   structuredResponse,
 } from "../openai-responses";
+import { MAX_IMAGE_EDGE } from "./image";
 import { sumRange, type TableExtract, tableText } from "./tables";
 
 /**
@@ -205,6 +206,8 @@ export async function extractFromMedia(
       schemaName: "media_fields",
       schema: schemaFor(fields),
       maxOutputTokens: 1_500,
+      // Every photo is sanitized to fit this edge before it is read.
+      imageEdge: MAX_IMAGE_EDGE,
     },
     signal,
     meter
