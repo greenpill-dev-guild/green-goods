@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-16T19:35:57.040Z",
-    "updated_at": "2026-10-17T07:07:33.596Z"
+    "updated_at": "2026-10-17T07:22:09.673Z"
   },
   "links": {
     "brief": "brief.md",
@@ -67,24 +67,25 @@
     },
     "state_api": {
       "owner": "codex",
-      "status": "ready",
-      "branch": null,
+      "status": "in_progress",
+      "branch": "feature/passkey-account-continuity",
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
       "tdd": {
         "mode": "required",
-        "status": "pending",
+        "status": "green_recorded",
         "red": {
-          "command": "",
-          "evidence": ""
+          "command": "bun run --cwd packages/shared test src/__tests__/workflows/authServices.test.ts; bun run --cwd packages/agent test src/__tests__/passkey-directory.test.ts; bun run --cwd packages/agent test --scope sqlite src/__tests__/storage.sqlite.test.ts",
+          "evidence": "Steps 1 and 3 RED before the fixes (2026-10-17): authServices 2 failed of 42 (a hex-stored entry and the legacy device both refused with 'Passkey server authentication failed'; after the hex fix alone the hosted spelling's name still failed 'did not match the expected account address'); passkey-directory 5 failed of 29 (key spelling, a claimed ID beside the owner, challenge purpose, signingId in the lookup); storage.sqlite 9 failed (user_version 9, the v2.0.1 upgrade, store contract). Step 2 is a behavior-preserving move with GREEN only."
         },
         "green": {
-          "command": "",
-          "evidence": ""
+          "command": "same three commands, then shared auth files and agent typecheck, test typecheck and lint",
+          "evidence": "authServices 42 of 42; six shared auth files 141 of 141; passkey-assertion with the byte form 60 of 60 across three files; passkey-directory 29 of 29; sqlite scope 21 files, 203 of 203; shared-typecheck, source-structure, agent-typecheck, agent-test-typecheck and lint passed."
         },
         "note": ""
       },
-      "skill_tags": ["data-layer", "auth", "agent"]
+      "skill_tags": ["data-layer", "auth", "agent"],
+      "manual_blocked": false
     },
     "contracts": {
       "owner": "codex",
@@ -312,6 +313,22 @@
       "status": "linear_recorded",
       "branch": null,
       "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-10-17T07:22:08.290Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "feature/passkey-account-continuity",
+      "note": "Steps 1 to 3 implemented on feature/passkey-account-continuity (a76570cfd, b89b06bef, 8c1e84f86); steps 4 to 6 and 10 remain."
+    },
+    {
+      "timestamp": "2026-10-17T07:22:09.674Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "feature/passkey-account-continuity",
+      "note": "Recorded RED/GREEN TDD proof"
     }
   ]
 }
