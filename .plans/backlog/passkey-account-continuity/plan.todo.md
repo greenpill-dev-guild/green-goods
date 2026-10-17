@@ -354,6 +354,15 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
     this account hides it.
   - When another passkey holds the name (decision 5), the row asks for a new name.
   - Its start call carries the session's name and passkey domain (`cachedPasskeyRpId`).
+  - After a successful adoption, the hook saves the adopted name, normalized, with
+    `setStoredUsername`, so the next lookup asks for that name and the row stays hidden.
+- **The button reports its own outcome.** Unlike step 6's background adoption, the person
+  asked for this one.
+  - While it runs, the button is busy and can't be pressed twice.
+  - A dismissed or cancelled prompt returns the row to idle, with no error.
+  - Offline, a start that times out, an unavailable hosted lookup (`-32000`) or any other
+    refusal shows the `failed` copy and keeps the button, so the person can try again. Step
+    10 logs the reason.
 - Draft copy is in [spec.md](spec.md#draft-copy).
 - **RED/GREEN** in a component test, with the shared hook mocked at its boundary:
   - The row appears for a passkey session without a directory entry, when another passkey
@@ -361,6 +370,8 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
     hidden when the entry is this account's.
   - A taken name keeps the row and asks for another name.
   - Adopting under the new name succeeds, and the row disappears.
+  - A cancelled prompt returns the row to idle without an error. Offline, a timed-out start
+    and an unavailable hosted lookup show the `failed` copy, with the button still there.
 - **RED/GREEN** for the hook itself, in `auth-passkey-adoption.test.ts`, with only the browser,
   the directory client and the session stubbed: a cached app-made credential goes through start,
   ceremony and completion.
@@ -368,6 +379,10 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
     that RP ID.
   - The completion carries the exact stored ID string and key, in step 5's wire form.
   - The address guard sends nothing for an entry that rebuilds another address.
+  - After adopting under a new name, the stored username is that name, normalized. A remount
+    looks it up and keeps the row hidden.
+  - A cancelled ceremony sends no completion, and an unavailable hosted lookup comes back as a
+    retryable failure.
 
 ### Step 8: The related-origins file (ui, client)
 

@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-10-16T19:35:57.040Z",
-    "updated_at": "2026-10-17T02:42:25Z"
+    "updated_at": "2026-10-17T02:53:30Z"
   },
   "links": {
     "brief": "brief.md",
@@ -246,6 +246,14 @@
       "status": "planning_reconciled",
       "branch": null,
       "note": "Addressed the eleventh review (Codex, one finding): uniqueness now follows the account, the exact credentialId with the key, not the passkey, because the other ID spelling is another Kernel account and the app keeps a cached legacy spelling; that spelling may adopt under another name in either order, and the account row compares exact ID strings. Reverses the earlier rule the prototype held, so that case is a planned test. No rig change. Timestamp: the observed edit time."
+    },
+    {
+      "timestamp": "2026-10-17T02:53:30Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "planning_reconciled",
+      "branch": null,
+      "note": "Addressed the twelfth review (Codex, two findings): after adoption the saved-session hook saves the adopted name with setStoredUsername, with a remount test; the account-screen button reports busy, cancelled and failed states, with new failed copy in en, es and pt and tests. No rig change. Timestamp: the observed edit time."
     }
   ]
 }
