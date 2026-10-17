@@ -267,18 +267,35 @@ describe("OpenAI extraction", () => {
       { outcome: "failed" },
       { outcome: "unanswered" },
     ]);
-    // Reserved before sending: the output ceiling, and every sent text at one token per UTF-8 byte.
+    // Reserved before sending: the output ceiling, and the whole request body, output schema
+    // included, at one token per UTF-8 byte.
     const [first] = spend.calls;
     expect(first).toMatchObject({ provider: "openai", model: "test-model", purpose: "extraction" });
     expect(first?.reserve.outputTokens).toBe(1_200);
-    const sentText = (
-      JSON.parse(String(billed.calls[0]?.init.body)) as {
-        input: Array<{ content: Array<{ text: string }> }>;
-      }
-    ).input.flatMap((message) => message.content.map((part) => part.text));
-    expect(first?.reserve.inputTokens).toBe(
-      sentText.reduce((tokens, text) => tokens + Buffer.byteLength(text, "utf8"), 0)
+    const sent = String(billed.calls[0]?.init.body);
+    expect(JSON.parse(sent).text.format.schema).toBeDefined();
+    expect(first?.reserve.inputTokens).toBe(Buffer.byteLength(sent, "utf8"));
+  });
+
+  it("reserves an image at its allowance instead of its encoded size", async () => {
+    const spend = meter();
+    const { calls, fetchStub } = recorder(
+      output({ observations: [], uncertain: [], facts: [] }, "completed")
     );
+    await extractFromMedia(
+      { ...config, fetch: fetchStub },
+      { kind: "image", bytes: new Uint8Array(30_000), mime: "image/jpeg" },
+      { locale: "en", actionTitle: "Tree planting", inputs: request.actions[0]!.inputs },
+      signal(),
+      spend.record
+    );
+    const withoutImage = JSON.stringify(JSON.parse(String(calls[0]?.init.body)), (key, value) =>
+      key === "image_url" ? "" : value
+    );
+    expect(spend.calls[0]?.reserve.inputTokens).toBe(
+      Buffer.byteLength(withoutImage, "utf8") + 2_500
+    );
+    expect(spend.calls[0]?.purpose).toBe("media");
   });
 });
 

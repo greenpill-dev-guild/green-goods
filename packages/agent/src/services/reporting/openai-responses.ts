@@ -44,19 +44,24 @@ export function dataUrl(mime: string, bytes: Uint8Array): string {
 }
 
 /**
- * Held against the daily cap until a reply states its usage. Text is reserved at its token
- * ceiling, one token per UTF-8 byte. An image's or a file's bytes say little about its tokens, so
- * those get generous allowances instead: 2,500 tokens an image, and 7,000 tokens for each of the
- * at most 20 pages a PDF may have (media/documents.ts).
+ * Held against the daily cap until a reply states its usage. The whole request is reserved at its
+ * token ceiling, one token per UTF-8 byte: instructions, content, the output schema and the JSON
+ * around them, whose structure more than covers the provider's own message framing. An image's
+ * or a file's encoded bytes say little about its tokens, so those are swapped for generous
+ * allowances: 2,500 tokens an image, and 7,000 tokens for each of the at most 20 pages a PDF may
+ * have (media/documents.ts).
  */
 const IMAGE_RESERVE_TOKENS = 2_500;
 const FILE_RESERVE_TOKENS = 20 * 7_000;
 
-function reservedInputTokens(instructions: string, content: readonly InputPart[]): number {
-  let tokens = tokenCeiling(instructions);
+function reservedInputTokens(request: object, content: readonly InputPart[]): number {
+  const withoutBinaries = JSON.stringify(request, (key, value) =>
+    key === "image_url" || key === "file_data" ? "" : value
+  );
+  let tokens = tokenCeiling(withoutBinaries);
   for (const part of content) {
-    if (part.type === "input_text") tokens += tokenCeiling(part.text);
-    else tokens += part.type === "input_image" ? IMAGE_RESERVE_TOKENS : FILE_RESERVE_TOKENS;
+    if (part.type === "input_image") tokens += IMAGE_RESERVE_TOKENS;
+    else if (part.type === "input_file") tokens += FILE_RESERVE_TOKENS;
   }
   return tokens;
 }
@@ -75,12 +80,29 @@ export async function structuredResponse(
   meter?: ModelMeter
 ): Promise<{ model: string; output: unknown }> {
   const call = config.fetch ?? fetch;
+  const request = {
+    model: config.model,
+    store: false,
+    max_output_tokens: input.maxOutputTokens,
+    input: [
+      { role: "system", content: [{ type: "input_text", text: input.instructions }] },
+      { role: "user", content: input.content },
+    ],
+    text: {
+      format: {
+        type: "json_schema",
+        name: input.schemaName,
+        strict: true,
+        schema: input.schema,
+      },
+    },
+  };
   const settle = meter?.({
     provider: "openai",
     model: config.model,
     purpose: input.purpose,
     reserve: {
-      inputTokens: reservedInputTokens(input.instructions, input.content),
+      inputTokens: reservedInputTokens(request, input.content),
       outputTokens: input.maxOutputTokens,
     },
   });
@@ -89,23 +111,7 @@ export async function structuredResponse(
     response = await call(`${config.baseUrl.replace(/\/+$/, "")}/responses`, {
       method: "POST",
       headers: { authorization: `Bearer ${config.apiKey}`, "content-type": "application/json" },
-      body: JSON.stringify({
-        model: config.model,
-        store: false,
-        max_output_tokens: input.maxOutputTokens,
-        input: [
-          { role: "system", content: [{ type: "input_text", text: input.instructions }] },
-          { role: "user", content: input.content },
-        ],
-        text: {
-          format: {
-            type: "json_schema",
-            name: input.schemaName,
-            strict: true,
-            schema: input.schema,
-          },
-        },
-      }),
+      body: JSON.stringify(request),
       signal,
     });
   } catch {
