@@ -8,6 +8,7 @@ import {
 } from "@green-goods/shared/public-contracts";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { closeDB, getDB, initDB } from "../services/db";
+import { passkeyDirectoryQueries } from "../services/db/passkey-directory";
 import { initSchema } from "../services/db/schema";
 import {
   createGardenJoinRequestCipher,
@@ -58,7 +59,7 @@ describe("agent storage with real bun:sqlite", () => {
         "users",
       ])
     );
-    expect(sqlite.query("PRAGMA user_version").get()).toEqual({ user_version: 8 });
+    expect(sqlite.query("PRAGMA user_version").get()).toEqual({ user_version: 9 });
     expect(sqlite.query("PRAGMA foreign_keys").get()).toEqual({ foreign_keys: 1 });
 
     expect(() =>
@@ -122,7 +123,129 @@ describe("agent storage with real bun:sqlite", () => {
       expect(sqlite.query("SELECT COUNT(*) AS count FROM garden_join_requests").get()).toEqual({
         count: 2,
       });
-      expect(sqlite.query("PRAGMA user_version").get()).toEqual({ user_version: 8 });
+      expect(sqlite.query("PRAGMA user_version").get()).toEqual({ user_version: 9 });
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  it("upgrades a v2.0.1 passkey directory without losing passkeys or pending challenges", () => {
+    const sqlite = new Database(":memory:");
+    // "credential" in base64url, as a directory sign-up stores it, and the same bytes in hex.
+    const browserId = "Y3JlZGVudGlhbA";
+    const hexId = "63726564656e7469616c";
+    const key = `0x04${"1a".repeat(32)}${"2b".repeat(32)}` as const;
+    const passkeyTables = () =>
+      sqlite
+        .query(
+          `SELECT type, name, sql FROM sqlite_master
+            WHERE tbl_name IN ('passkey_credentials', 'passkey_registration_challenges')
+            ORDER BY name`
+        )
+        .all();
+    try {
+      sqlite.exec(`
+        CREATE TABLE passkey_credentials (
+          userName TEXT PRIMARY KEY,
+          credentialId TEXT NOT NULL UNIQUE,
+          publicKey TEXT NOT NULL,
+          rpId TEXT NOT NULL,
+          origin TEXT NOT NULL,
+          createdAt TEXT NOT NULL
+        );
+        CREATE TABLE passkey_registration_challenges (
+          challenge TEXT PRIMARY KEY,
+          userName TEXT NOT NULL,
+          rpId TEXT NOT NULL,
+          origin TEXT NOT NULL,
+          expiresAt INTEGER NOT NULL
+        );
+        PRAGMA user_version = 8;
+      `);
+      sqlite
+        .query("INSERT INTO passkey_credentials VALUES (?, ?, ?, ?, ?, ?)")
+        .run(
+          "ana",
+          browserId,
+          key,
+          "greengoods.app",
+          "https://www.greengoods.app",
+          "2026-10-15T12:00:00.000Z"
+        );
+      sqlite
+        .query("INSERT INTO passkey_registration_challenges VALUES (?, ?, ?, ?, ?)")
+        .run("pending", "bea", "greengoods.app", "https://beta.greengoods.app", 4_102_444_800_000);
+
+      initSchema(sqlite);
+      const upgraded = passkeyTables();
+      initSchema(sqlite);
+      expect(passkeyTables()).toEqual(upgraded);
+
+      expect(sqlite.query("SELECT * FROM passkey_credentials").all()).toEqual([
+        {
+          userName: "ana",
+          credentialId: browserId,
+          credentialKey: browserId,
+          publicKey: key,
+          rpId: "greengoods.app",
+          origin: "https://www.greengoods.app",
+          source: "registered",
+          createdAt: "2026-10-15T12:00:00.000Z",
+        },
+      ]);
+      expect(sqlite.query("SELECT * FROM passkey_registration_challenges").all()).toEqual([
+        {
+          challenge: "pending",
+          userName: "bea",
+          rpId: "greengoods.app",
+          origin: "https://beta.greengoods.app",
+          expiresAt: 4_102_444_800_000,
+          purpose: "registration",
+        },
+      ]);
+
+      const columns = sqlite.query("PRAGMA table_info(passkey_credentials)").all() as Array<{
+        name: string;
+        notnull: number;
+        dflt_value: string | null;
+      }>;
+      expect(columns.find(({ name }) => name === "credentialKey")).toMatchObject({ notnull: 1 });
+      expect(columns.find(({ name }) => name === "source")).toMatchObject({
+        notnull: 1,
+        dflt_value: "'registered'",
+      });
+      const uniqueKeys = (
+        sqlite.query("PRAGMA index_list(passkey_credentials)").all() as Array<{
+          name: string;
+          unique: number;
+        }>
+      )
+        .filter(({ unique }) => unique === 1)
+        .map(({ name }) =>
+          (sqlite.query(`PRAGMA index_info(${name})`).all() as Array<{ name: string }>).map(
+            (column) => column.name
+          )
+        );
+      expect(uniqueKeys).toContainEqual(["credentialId", "publicKey"]);
+      expect(uniqueKeys).not.toContainEqual(["credentialId"]);
+      expect(sqlite.query("PRAGMA user_version").get()).toEqual({ user_version: 9 });
+
+      // After the upgrade one account still holds one name, and the other spelling of the same
+      // passkey is its own account.
+      const store = passkeyDirectoryQueries(sqlite);
+      const later = {
+        credentialKey: browserId,
+        publicKey: key,
+        rpId: "greengoods.app",
+        origin: "https://www.greengoods.app",
+        createdAt: "2026-10-17T12:00:00.000Z",
+      };
+      expect(
+        store.insert({ ...later, userName: "cai", credentialId: browserId, source: "registered" })
+      ).toEqual({ ok: false, reason: "credential_exists" });
+      expect(
+        store.insert({ ...later, userName: "cai", credentialId: hexId, source: "adopted" })
+      ).toEqual({ ok: true });
     } finally {
       sqlite.close();
     }
