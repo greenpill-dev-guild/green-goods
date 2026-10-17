@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-10-16T19:35:57.040Z",
-    "updated_at": "2026-10-17T02:26:38Z"
+    "updated_at": "2026-10-17T02:30:08Z"
   },
   "links": {
     "brief": "brief.md",
@@ -230,6 +230,14 @@
       "status": "planning_reconciled",
       "branch": null,
       "note": "Addressed CodeRabbit's review of cd46bf895: R6 now limits the neutral related-origins copy to a cross-site SecurityError in a browser that reported support or can't report it, as step 9 does, and step 9 adds a test that a NotAllowedError keeps its own copy. Timestamp: the observed edit time."
+    },
+    {
+      "timestamp": "2026-10-17T02:30:08Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "planning_reconciled",
+      "branch": null,
+      "note": "Addressed the tenth review (Codex, four findings): the account row compares the directory entry with the session's passkey, so a name held by another passkey keeps the row and its rename; a workflow test drives the saved-session hook through start, ceremony and completion; step 9 includes the two workflows that know the entry's domain and the hosted lookup, carrying that context to the copy; on www and beta a hosted name's refusal starts with Try again here. No rig change. Timestamp: the observed edit time."
     }
   ]
 }

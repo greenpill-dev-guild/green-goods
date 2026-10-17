@@ -22,7 +22,7 @@ recommendation is the plan's default if Afo agrees. Row 8 was answered on 2026-1
 | 3 | What checks the proof of possession on the agent | The app's own WebCrypto verifier, moved into `@green-goods/shared/public-contracts` so both sides run one implementation. | The agent's `@simplewebauthn/server`, as locked, throws on every ES256 assertion: it resolves `@peculiar/asn1-schema` 2.6.0 while the signature schema in `@peculiar/asn1-ecc` registers in 2.10.0. Fixing that is a dependency change; track it separately (follow-up F1). |
 | 4 | Publish `/.well-known/webauthn` on www and beta | Yes, listing every Green Goods origin. | It's the only way to use a host-bound passkey on another site without a new account. Chrome refused the cross-site ceremony without the file and when www was missing from it. |
 | 5 | A remembered name that is now taken (January to August accounts were never reserved) | Ask for another name in the adoption step. | The account follows the passkey, not the name, so a new name changes nothing else. A silent suffix would leave people guessing their own sign-in name. |
-| 6 | Where the saved-session action lives | A row in the account screens that already exist (client profile, admin account panel), never a banner. | Existing chrome, no layout shift; it shows only for passkey sessions without a directory entry. |
+| 6 | Where the saved-session action lives | A row in the account screens that already exist (client profile, admin account panel), never a banner. | Existing chrome, no layout shift; it shows only while the session's passkey has no directory entry. |
 | 7 | The three staging test accounts from June and July | Confirm they are team tests, then drop them. Support-assisted if not. | The hosted server stopped accepting the staging origin (probed 4 October), so they can't sign in by name to adopt. |
 | 8 | COM-39 | **Decided 2026-10-16:** rewritten around keeping accounts, with moving as the fallback ([handoffs/com-39-update-draft.md](handoffs/com-39-update-draft.md)). | Afo chose the rewrite. The old text counted only from late June and planned a move. |
 | 9 | The signature counter, once hosted sign-in stops asking the hosted server for a verdict (step 6) | Don't track it, as the directory's own sign-in doesn't today. List the gap in the spec's risks, and revisit if the account's on-chain check ever reads the counter. | The deployed validator decides what the account can sign, and its source says it ignores the counter, so a copied key signs without any sign-in. Synced passkeys from Apple and Google report 0, so for most people there is nothing to compare. Every adopted account moves to the directory's sign-in, whichever trigger adopts it, so keeping the hosted verdict in step 6 alone would only delay the change. Tracking adds a column, one more call, and a refusal that keeps the owner out until support clears it ([step 6](#step-6-adopt-during-sign-in-never-in-its-way-state_api-shared)). |
@@ -332,17 +332,29 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
 
 **Files**: a shared hook in `packages/shared/src/hooks/auth/` (for example
 `usePasskeyAdoption.ts`), the client profile screen, `packages/admin/src/components/Layout/AccountProfilePanel.tsx`,
-`packages/shared/src/i18n/{en,es,pt}.json`
+`packages/shared/src/i18n/{en,es,pt}.json`,
+`packages/shared/src/__tests__/workflows/auth-passkey-adoption.test.ts`
 
-- Show a row only for passkey sessions whose name has no matching directory entry: "Sign in on
-  other Green Goods sites", with one button that runs the adoption prompt. Its start call
-  carries the session's name and passkey domain (`cachedPasskeyRpId`). For a taken name
-  (decision 5), ask for a new name in the same row.
+- Show a row while the session's passkey has no directory entry: "Sign in on other Green Goods
+  sites", with one button that runs the adoption prompt.
+  - Look the name up and compare the entry with the session's credential, by ID bytes and by
+    key point. No entry, or an entry for another passkey, shows the row; an entry for this
+    passkey hides it.
+  - When another passkey holds the name (decision 5), the row asks for a new name.
+  - Its start call carries the session's name and passkey domain (`cachedPasskeyRpId`).
 - Draft copy is in [spec.md](spec.md#draft-copy).
 - **RED/GREEN** in a component test, with the shared hook mocked at its boundary:
-  - The row appears for a passkey session without a directory entry.
+  - The row appears for a passkey session without a directory entry and when another passkey
+    holds its name. It stays hidden when the entry is this passkey's.
   - A taken name keeps the row and asks for another name.
   - Adopting under the new name succeeds, and the row disappears.
+- **RED/GREEN** for the hook itself, in `auth-passkey-adoption.test.ts`, with only the browser,
+  the directory client and the session stubbed: a cached app-made credential goes through start,
+  ceremony and completion.
+  - The start carries the session's name and `cachedPasskeyRpId`, and the ceremony runs under
+    that RP ID.
+  - The completion carries the exact stored ID string and key, in step 5's wire form.
+  - The address guard sends nothing for an entry that rebuilds another address.
 
 ### Step 8: The related-origins file (ui, client)
 
@@ -365,9 +377,12 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
 ### Step 9: Say where the passkey works (ui, shared)
 
 **Files**: `packages/shared/src/workflows/auth-passkey-errors.ts`,
+`packages/shared/src/workflows/auth-passkey-directory.ts`,
+`packages/shared/src/workflows/authServices.ts`,
 `packages/shared/src/hooks/auth/login-error-message.ts`,
 `packages/shared/src/i18n/{en,es,pt}.json`,
 `packages/shared/src/__tests__/hooks/loginScreenMessages.test.ts`,
+`packages/shared/src/__tests__/workflows/authServices.test.ts`,
 `docs/docs/builders/integrations/passkey.mdx`
 
 - When the hosted server lists the name and the ceremony is refused, show the "made on another
@@ -379,6 +394,9 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
   - beta, when the person is on www;
   - www, when on beta;
   - both, anywhere else.
+- On www and beta, either of which can be the account's home site, the refusal may only be a
+  dismissed prompt. So the copy there (`otherSiteHome`) starts with "Try again here." before it
+  names the other site. Elsewhere, such as admin, `otherSite` names both.
 - A directory or adopted entry carries its domain, so the copy names that site exactly. When a
   cross-site ceremony fails with `SecurityError`, what the browser reported decides the copy:
   - `relatedOrigins: false`: the unsupported-browser copy, shown before any ceremony (next
@@ -387,6 +405,12 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
     Show the neutral `relatedOriginFailed` copy, which names the site and never says to update
     the browser.
   - No `getClientCapabilities()`: the cause can't be told apart, so the neutral copy too.
+- **Carry the context to the copy.** Only the workflows know what the copy needs.
+  `signInWithDirectory` knows the entry's domain before its ceremony, and `authenticateByName`
+  knows that a refusal followed a hosted lookup that listed the name. Both wrap the ceremony's
+  error in a typed sign-in error from `auth-passkey-errors.ts` that carries `hostedName`, the
+  entry's `domain` when there is one, and the `relatedOrigins` result. `login-error-message.ts`
+  maps that error to copy; a bare DOM exception keeps today's copy.
 - A ceremony needs related origins only when the page's host is neither the entry's domain nor
   under it. Only then, and only where `PublicKeyCredential.getClientCapabilities()` exists,
   read `relatedOrigins` and show the copy without attempting the ceremony. A beta entry on beta
@@ -401,10 +425,14 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
   - Proof: render the root plan and run what it selects for docs, at least
     `bun run audit -- --ci` and `bun run build` from `docs/`.
 - **RED/GREEN** in `loginScreenMessages.test.ts`, in en, es and pt: the copy for an unadopted
-  hosted name on www, on beta and on admin, and for an adopted beta entry on www. With
+  hosted name on www and beta, which starts with "Try again here.", and on admin, and for an
+  adopted beta entry on www. With
   `relatedOrigins: false`, a beta entry on beta and an apex entry on admin still run their
   ceremony. With `relatedOrigins: true` and a missing file (`SecurityError`), the neutral copy
   shows, never the update-your-browser copy. A `NotAllowedError` there keeps its own copy.
+- **RED/GREEN** through the workflows, in `authServices.test.ts`: a hosted `NotAllowedError`
+  reaches the message helper marked as a hosted name, and a directory `SecurityError` carries
+  the entry's domain and the capability result.
 
 ### Step 10: Telemetry (state_api)
 

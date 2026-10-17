@@ -21,6 +21,14 @@
   - The resume steps below keep the decision gate.
   - Current-evidence links point at the second-review report.
   - The rig refuses unknown modes.
+- **Tenth review.** Codex raised four findings at 02:26 UTC on 2026-10-17, all addressed:
+  - The account row compares the directory entry with the session's passkey, so a name held by
+    another passkey keeps the row and its rename.
+  - A workflow test drives the saved-session hook through start, ceremony and completion.
+  - Step 9 includes the two workflows that know the entry's domain and the hosted lookup, and
+    they carry that context to the copy.
+  - On www and beta, a hosted name's refusal starts with "Try again here.", since it may only be
+    a dismissed prompt on the account's own site.
 - **CodeRabbit, after the ninth review.** One finding, addressed: R6 now gives the neutral
   related-origins copy only to a cross-site `SecurityError`, as step 9 does, and a refused
   assertion keeps its own copy.
@@ -109,7 +117,7 @@ Agent/model: Claude Code, claude-opus-5-5 | Coverage: planning segment on 2026-1
 | verify | 2026-10-16T19:41Z → unknown | Portable rig rerun from the hub (log written 19:41:57Z); `plan-hub validate`, guidance links, immutable reports, Biome |
 | wait | unknown → unknown | Afo's choice of delivery and Linear records; resolved (PR, COM-39 rewrite) |
 | publish | 2026-10-16T22:43Z → 2026-10-16T22:47Z | Worktree from develop, commits `0c09b4128` and `556932c65`, push gate passed, PR #1111 opened 22:44:48Z |
-| review | 2026-10-16T22:52Z → unknown | Nine review rounds (Codex 32 findings, CodeRabbit 3). First review 22:52:19Z; fixes in `61e4591c0`, `291b53161`, `74a2c80d5`, `0cc1fe244`, `45d50a51a`, `21357984c`, `3fb07707e` and `8a7779a77`, and round nine edited at 2026-10-17T02:19:42Z |
+| review | 2026-10-16T22:52Z → unknown | Ten review rounds (Codex 36 findings, CodeRabbit 4). First review 22:52:19Z; fixes in `61e4591c0`, `291b53161`, `74a2c80d5`, `0cc1fe244`, `45d50a51a`, `21357984c`, `3fb07707e`, `8a7779a77`, `cd46bf895` and `82f714599`, and round ten edited at 2026-10-17T02:30:08Z |
 | sync | 2026-10-17T01:56:37Z → unknown | Expired test skips fixed on develop by #1112 (`1c9eca913`); develop merged into this branch as `c3a8fec26` |
 
 Times are observed boundaries: file and log write times, the scaffold time, commit times and the

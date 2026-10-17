@@ -65,7 +65,8 @@ In the 30 days to 2026-10-16, 6 people used a passkey session on www and 3 on be
    app replaces "Sign in was cancelled." with where the passkey works:
    - The exact site, when the entry carries its domain (directory and adopted entries).
    - The sites it may have been made on, for an unadopted hosted name, whose lookup carries no
-     domain.
+     domain. On www and beta the copy also says to try again, since the refusal there may be a
+     dismissed prompt on the account's own site.
    - Neutral copy that names the site, when a cross-site ceremony fails with `SecurityError`
      and the browser reported related-origin support or can't report it. It never tells the
      person to update a browser that works. Other failures, such as a refused assertion, keep
@@ -174,19 +175,22 @@ screens say "clave de acceso" and "chave de acesso"; that mismatch predates this
 | `app.account.passkeyEverywhere.done` | Done. You can sign in with {name} on other Green Goods sites, in browsers that allow it, from any device that has this passkey. | Listo. Puedes iniciar sesión con {name} en otros sitios de Green Goods, en los navegadores que lo permiten, desde cualquier dispositivo que tenga esta passkey. | Pronto. Você pode entrar com {name} em outros sites do Green Goods, nos navegadores que permitem isso, de qualquer dispositivo que tenha esta passkey. |
 | `app.account.passkeyEverywhere.nameTaken` | {name} is taken. Choose another name to sign in with. Your account stays the same. | {name} ya está en uso. Elige otro nombre para iniciar sesión. Tu cuenta no cambia. | {name} já está em uso. Escolha outro nome para entrar. Sua conta continua a mesma. |
 | `app.login.error.otherSite` | Sign in didn't finish. If you made this account on {sites}, sign in there once. After that it can work on other Green Goods sites too. | No se completó el inicio de sesión. Si creaste esta cuenta en {sites}, inicia sesión allí una vez. Después podrá funcionar también en otros sitios de Green Goods. | O login não foi concluído. Se você criou esta conta em {sites}, entre lá uma vez. Depois ela poderá funcionar também em outros sites do Green Goods. |
+| `app.login.error.otherSiteHome` | Sign in didn't finish. Try again here. If you made this account on {sites}, sign in there once; after that it can work here too. | No se completó el inicio de sesión. Inténtalo de nuevo aquí. Si creaste esta cuenta en {sites}, inicia sesión allí una vez; después podrá funcionar también aquí. | O login não foi concluído. Tente de novo aqui. Se você criou esta conta em {sites}, entre lá uma vez; depois ela poderá funcionar aqui também. |
 | `app.login.error.relatedOriginUnsupported` | This browser can't use your passkey here. Sign in on {site} instead, or update your browser. | Este navegador no puede usar tu passkey aquí. Inicia sesión en {site} o actualiza tu navegador. | Este navegador não consegue usar sua passkey aqui. Entre em {site} ou atualize seu navegador. |
 | `app.login.error.relatedOriginFailed` | Your passkey couldn't be used on this site just now. Sign in on {site} instead. | No se pudo usar tu passkey en este sitio en este momento. Inicia sesión en {site}. | Não foi possível usar sua passkey neste site agora. Entre em {site}. |
 
 - `{sites}` lists the hosted sites other than the current one: `beta.greengoods.app` on www,
   `www.greengoods.app` on beta, and both, joined by "or", anywhere else. The hosted lookup carries
   no domain (plan step 4), so the copy can only name where hosted accounts were made.
+- On www and beta, each possibly a hosted account's home site, the copy is `otherSiteHome`. Its
+  "Try again here." keeps it true when the refusal was only a dismissed prompt.
 - `{site}` is the exact domain a directory or adopted entry carries.
 - The row and its done message promise no more than adoption gives. A passkey made for one site
   reaches the others only in a browser with related-origin support, and adoption puts no
   passkey on a device it hasn't synced to.
 - If decision 2 is declined, `app.login.error.otherSite` reads instead "Sign in didn't finish. If
   you made this account on {sites}, sign in there and turn on Sign in on other Green Goods
-  sites."
+  sites." `otherSiteHome` keeps "Try again here." before that sentence.
 
 ## Research Evidence
 
