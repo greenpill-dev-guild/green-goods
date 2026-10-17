@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-10-16T19:35:57.040Z",
-    "updated_at": "2026-10-17T05:09:40Z"
+    "updated_at": "2026-10-17T05:24:37Z"
   },
   "links": {
     "brief": "brief.md",
@@ -278,6 +278,14 @@
       "status": "planning_reconciled",
       "branch": null,
       "note": "Logged Codex's finding on fa5cc950e as open item O1 in plan.todo.md (an omitted relatedOrigins key is unknown; attempt the ceremony), per Afo's direction to record later findings for implementation instead of fixing them in this PR. Timestamp: the observed edit time."
+    },
+    {
+      "timestamp": "2026-10-17T05:24:37Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "planning_reconciled",
+      "branch": null,
+      "note": "Logged Codex's five findings on bf45b41ac as open items O2 to O6 in plan.todo.md (structured refusal reasons, name validation at start and completion, app-made sign-ins and decision 2, telemetry proof, the challenge's wire form), per Afo's direction. Timestamp: the observed edit time."
     }
   ]
 }

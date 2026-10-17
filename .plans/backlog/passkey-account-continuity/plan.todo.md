@@ -501,6 +501,30 @@ it changes.
   omitted key, or a query that rejects, like a missing method: attempt the ceremony, and on a
   cross-site `SecurityError` show the neutral copy, never the unsupported-browser copy. Add a test
   for the omitted key. Raised by Codex on `fa5cc950e`.
+- **O2. A refusal the hook can read (steps 5 and 7).** `name_taken` and a hosted outage both
+  answer `-32000` with only a message today, so the saved-session hook can't tell a taken name,
+  which needs the rename, from a failure that needs a retry. Give adoption refusals a structured
+  reason (`error.data.reason`) or distinct codes, and test both outcomes through the real client.
+  Raised by Codex on `bf45b41ac`.
+- **O3. Validate names at start and completion (step 5).** Run the directory's existing name
+  check (`isRegistrablePasskeyName`: 3 to 64 characters, no control characters) in
+  `gg_startPasskeyAdoption` and again at completion, with a route-level refusal test for an
+  invalid name. Normalizing alone doesn't enforce it. Raised by Codex on `bf45b41ac`.
+- **O4. App-made sign-ins and decision 2 (steps 6 and 7).** Step 6 leaves "Use this device's
+  passkey" out of automatic adoption, but that is how a signed-out January-to-August account
+  signs in. So that group, about 45 people, would still need the account-screen action, while
+  decision 2's rationale says recent sign-ins need no extra step. Settle it with decision 2:
+  adopt inside that sign-in too, with a test for the signed-out local-cache path, or narrow the
+  promise. Raised by Codex on `bf45b41ac`.
+- **O5. Prove the telemetry (step 10).** No acceptance check covers R9. Add workflow-level
+  assertions that background adoption, the saved-session action and typed related-origin
+  failures emit `auth_passkey_adoption_started`, `_success` and categorized `_failed`, plus
+  `hosted_name` and `related_origin`, and that no name, credential ID or key enters a payload.
+  Raised by Codex on `bf45b41ac`.
+- **O6. The challenge's wire form (steps 5 and 6).** The start response crosses JSON-RPC, which
+  has no byte type, and `navigator.credentials.get` needs the exact bytes. Return the challenge in
+  base64url, decode it in the adoption client, and test start through completion over the real
+  JSON-RPC transport. Raised by Codex on `bf45b41ac`.
 
 ## Follow-ups outside this plan
 
