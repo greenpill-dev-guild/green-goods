@@ -1,8 +1,9 @@
 # Keep Older Passkey Accounts Working on Every Site Plan
 
 **Feature Slug**: `passkey-account-continuity`
-**Stage**: `backlog`
-**Status**: `ACTIVE — planned and de-risked; decisions answered 2026-10-17, ready to promote`
+**Stage**: `active`
+**Status**: `ACTIVE — implementing steps 1 to 3`
+**Linear Issue**: `PRD-1154` (read-only mirror; COM-39 owns community outreach)
 **Created**: `2026-10-16T19:35:57.040Z`
 **Last Updated**: `2026-10-17`
 
