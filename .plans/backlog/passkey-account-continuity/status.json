@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-10-16T19:35:57.040Z",
-    "updated_at": "2026-10-17T04:59:51Z"
+    "updated_at": "2026-10-17T05:09:40Z"
   },
   "links": {
     "brief": "brief.md",
@@ -270,6 +270,14 @@
       "status": "planning_reconciled",
       "branch": null,
       "note": "Addressed CodeRabbit's review of a0dcfbc46: completion writes the challenge's domain and origin to the adopted row's existing rpId and origin columns (spec contract and store, step 5 rule 11, the store test and AC-2). Timestamp: the observed edit time."
+    },
+    {
+      "timestamp": "2026-10-17T05:09:40Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "planning_reconciled",
+      "branch": null,
+      "note": "Logged Codex's finding on fa5cc950e as open item O1 in plan.todo.md (an omitted relatedOrigins key is unknown; attempt the ceremony), per Afo's direction to record later findings for implementation instead of fixing them in this PR. Timestamp: the observed edit time."
     }
   ]
 }

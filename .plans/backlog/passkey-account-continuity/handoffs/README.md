@@ -4,6 +4,9 @@
 
 - **Planned and de-risked; nothing implemented.** Lanes are `todo`; `contracts` is `n/a`.
 - **Waiting on Afo:** decisions 1 to 7 and 9 in [plan.todo.md](../plan.todo.md#decision-log).
+- **Open review items:** later review findings go to
+  [plan.todo.md](../plan.todo.md#open-review-items) for the implementation steps, by Afo's
+  direction on 2026-10-17. O1 is the first.
   Decision 8 is answered: COM-39 was rewritten on 2026-10-16. Step 6 depends on decisions 2 and
   9, and step 8 on decision 4.
 - **First review.** Codex's review of the first commit raised eight findings, all addressed on

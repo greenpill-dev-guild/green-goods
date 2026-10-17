@@ -490,6 +490,18 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
   3. A beta-bound passkey signs in on www once step 8 is live.
   4. Accounts 1 and 2 each sign a garden action on admin.
 
+## Open Review Items
+
+Afo's direction on 2026-10-17: review findings that arrive after #1111's thirteenth round are
+recorded here for the implementation steps to settle, not fixed in this PR. Each names the step
+it changes.
+
+- **O1. An omitted capability is unknown (step 9, AC-6).** WebAuthn lets a browser leave the
+  `relatedOrigins` key out of `getClientCapabilities()`, and absence means unknown. Treat an
+  omitted key, or a query that rejects, like a missing method: attempt the ceremony, and on a
+  cross-site `SecurityError` show the neutral copy, never the unsupported-browser copy. Add a test
+  for the omitted key. Raised by Codex on `fa5cc950e`.
+
 ## Follow-ups outside this plan
 
 - **F1. Lockfile duplicate.** `@simplewebauthn/server` 13.3.3 resolves `@peculiar/asn1-schema`
