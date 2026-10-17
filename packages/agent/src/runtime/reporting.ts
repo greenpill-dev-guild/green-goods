@@ -194,6 +194,8 @@ export function createReportingRuntime(options: ReportingRuntimeOptions): Report
     retention_sweep: (job) => sweepRetention({ core, media }, job),
     ...options.jobs?.(core),
   };
+  // Aborted by `stop()`: the pass in flight finishes the unit in hand and claims nothing more.
+  const stopping = new AbortController();
   const workerDeps = {
     core,
     catalog: options.catalog,
@@ -202,6 +204,7 @@ export function createReportingRuntime(options: ReportingRuntimeOptions): Report
     transport: options.transport,
     jobs,
     workerId: options.workerId ?? `agent-${process.pid}`,
+    stopping: stopping.signal,
   };
 
   let timer: ReturnType<typeof setInterval> | null = null;
@@ -248,6 +251,7 @@ export function createReportingRuntime(options: ReportingRuntimeOptions): Report
     async stop() {
       if (timer) clearInterval(timer);
       timer = null;
+      stopping.abort();
       await running?.catch(() => undefined);
       core.db.close();
     },

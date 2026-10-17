@@ -16,11 +16,13 @@ import {
   resolveChannelSubject,
   retireLookupVersion,
 } from "../../services/reporting/identity-store";
+import { enqueueJob } from "../../services/reporting/jobs";
 import {
   acquireConversationLease,
   holdsLease,
   renewConversationLease,
 } from "../../services/reporting/leases";
+import { tick } from "../../services/reporting/worker";
 import { TestBrowser } from "./support/browser";
 import {
   adaAccount,
@@ -165,6 +167,52 @@ describe("stale work", () => {
         }
       )
     ).toEqual({ n: 1 });
+  });
+});
+
+describe("shutdown", () => {
+  it("finishes the turn in hand with its model result and leaves the rest for the next pass", async () => {
+    await reportUntilSummary(harness);
+    setControl(harness.core, "model_processing", true, { actor: "test", reason: "shutdown" });
+    const stopping = new AbortController();
+    harness.interpreter.responses = [correction];
+    // The process is told to stop while the first turn waits on the model.
+    harness.interpreter.duringCall = () => stopping.abort();
+    await harness.post(harness.message(ADA, { text: "Actually it was 14 seedlings" }));
+    await harness.post(harness.message(ADA, { text: "It took two hours" }));
+    enqueueJob(harness.core, {
+      kind: "retention_sweep",
+      subjectId: "retention",
+      dedupeKey: "retention:shutdown",
+    });
+    const sent = harness.transport.sent.length;
+    const pending = () =>
+      one<{ n: number }>(
+        "SELECT count(*) AS n FROM inbox_events WHERE kind = 'message' AND state = 'pending'"
+      ).n;
+
+    expect(await tick({ ...harness.deps(), stopping: stopping.signal })).toEqual({
+      statuses: 0,
+      turns: 1,
+      jobs: 0,
+      sent: 0,
+    });
+    expect(currentDraft()?.content.conflicts.map((conflict) => conflict.field)).toEqual([
+      "details.seedlings",
+    ]);
+    expect(pending()).toBe(1);
+    expect(
+      one("SELECT state, lease_holder FROM processing_jobs WHERE dedupe_key = 'retention:shutdown'")
+    ).toEqual({ state: "pending", lease_holder: null });
+    expect(harness.transport.sent.length).toBe(sent);
+
+    // The next process takes up the message, the job and the replies the stop left waiting.
+    await harness.drain();
+    expect(pending()).toBe(0);
+    expect(
+      one("SELECT state FROM processing_jobs WHERE dedupe_key = 'retention:shutdown'")
+    ).toEqual({ state: "succeeded" });
+    expect(harness.transport.sent.length).toBeGreaterThan(sent);
   });
 });
 
