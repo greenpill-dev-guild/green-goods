@@ -1,6 +1,6 @@
 # Grove dependency map
 
-**Status:** proposed choices, Green Goods/Coop inspected 11 October; KOI revision added 16 October 2026. No packages or model weights were installed. “Existing” means present in the inspected Green Goods manifests, not automatically available to a future extension bundle. New dependencies require task-specific approval and the repository's release-age gate before pinning.
+**Status:** proposed choices, Green Goods/Coop inspected 11 October; KOI and Pi Durable revisions added 16 October 2026. No packages or model weights were installed. “Existing” means present in the inspected Green Goods manifests, not automatically available to a future extension bundle. New dependencies require task-specific approval and the repository's release-age gate before pinning.
 
 ## Platform and presentation
 
@@ -20,7 +20,7 @@ The renderer does not supply the timeline, permission logic, evidence inspector 
 
 | Component | Role / where it runs | Decision |
 |---|---|---|
-| [Dexie](https://dexie.org/docs/Dexie/Dexie.transaction()) (`dexie`) / IndexedDB | Local source, entity and assertion revisions; jobs; atomic change batches | Existing Shared declaration `4.4.6`; Grove builds its own DB schema, history and replay |
+| [Dexie](https://dexie.org/docs/Dexie/Dexie.transaction()) (`dexie`) / IndexedDB | Local source, entity and assertion revisions; dispatch and command receipts; atomic change batches | Existing Shared declaration `4.4.6`; Grove builds its own DB schema, history and replay |
 | [Zod](https://zod.dev/) (`zod`) | Validate bridge input, imports, model proposals, exports and per-type schemas | Existing Shared declaration `^4.4.3`; use the repository's resolved compatible release |
 | [MiniSearch](https://lucaong.github.io/minisearch/) (`minisearch`) | Rebuildable local text index over eligible records | Conditional; exact-ID/label filtering works first; no vector DB needed for the slice |
 | Green Goods ontology query API + pinned Commons draft + Grove profile | One allowed vocabulary and explicit cross-source mappings | Data/contracts to compose, not a new graph server or automatic reasoner |
@@ -41,6 +41,20 @@ The renderer does not supply the timeline, permission logic, evidence inspector 
 
 The earlier decision-scorer assumption is withdrawn. Do not install an unrelated package with the same name or add a Neo4j service to satisfy a guessed dependency.
 
+## Durable execution
+
+| Component | Role / where it runs | Decision |
+|---|---|---|
+| `@earendil-works/pi-durable` | Custom-task investigation phases, persisted control state and recovery in Extension | Selected architecture; new install requires approval/release-age checks and P0 browser proof. Research baseline 1.3.0 / commit `8efd314…`, not a claimed browser build |
+| `@earendil-works/chord` | Pi's document/context/delta machinery | Required compatible Pi dependency; internal execution state, not garden federation or ontology authority |
+| `@earendil-works/pi-ai` | Pi runtime dependency; optional future custom Gemma provider | Use compatible version set and narrow imports. First workflow calls the existing Gemma bridge from a task, without a new conversation/tool loop or cloud fallback |
+| TypeBox | Pi's argument/runtime validation dependency | Transitive; Grove's domain contracts remain authoritative in their existing schemas, with explicit mapping if tools are later exposed |
+| Grove Pi `Storage` over Dexie/IndexedDB | Browser execution persistence, IDs, scans, documents and atomic Pi batches | Build and pass upstream conformance cases; no supplied Dexie adapter is assumed |
+| Grove knowledge commands + receipts | Idempotent graph mutations across Pi/knowledge commits | Build; source/profile/model preconditions, payload digest and stable operation ID |
+| Pi Node SQLite / Cloudflare adapters | Potential later full-node scheduling | Deferred; no service is required for local execution. Node defaults do not imply power-loss guarantees |
+
+The [execution contract](durable-execution.md) owns version evidence, lifecycle, scheduling and privacy. Do not import coding-agent tools, code mode, shell/file capabilities, subagent workflows or all provider catalogs into the Grove runtime. Inspect the actual transitive bundle and packaged code in P0; declaring a dependency does not establish its browser cost.
+
 ## KOI interoperability and optional service
 
 | Component | Role / where it runs | Decision |
@@ -59,8 +73,8 @@ Exact commits, licenses, reference limitations and [reuse decisions](koi-integra
 
 | Component | Role | Decision |
 |---|---|---|
-| MV3 service worker + `runtime` messaging | Short-lived coordinator and validated requests | Built-in browser APIs; persist jobs because the worker can suspend |
-| Offscreen document + isolated sandbox | Model lifecycle independent of the open graph tab | Browser facilities plus code to build; packaged CSP/message proof required |
+| MV3 service worker + `runtime` messaging | Short-lived coordinator and validated requests | Built-in browser APIs; persist capture/dispatch intent, reopen/resume the single runner at supported wake points |
+| Offscreen document + isolated sandbox | Isolated model lifecycle; any background runner host requires its own valid browser reason | Browser facilities plus code to build; packaged CSP/message proof required |
 | WebGPU / WASM | Inference and renderer execution capabilities | Feature-detect and benchmark; WASM availability does not promise usable Gemma performance |
 | Cache Storage / browser storage facilities | Model asset caching and small settings | Separate from graph revisions; inspect quotas and recovery; no cloud sync implied |
 | Green Goods garden/work readers + new Hub bridge | Bounded public snapshots, garden binding and same-device digest | Reuse readers; build snapshot, origin checks and digest contract; credentials stay in Hub |

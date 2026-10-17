@@ -10,7 +10,7 @@
     "overall_status": "idea",
     "priority": "p2",
     "created_at": "2026-10-11T10:02:56.686Z",
-    "updated_at": "2026-10-16T23:19:08Z"
+    "updated_at": "2026-10-17T02:45:27Z"
   },
   "links": {
     "brief": "brief.md",
@@ -40,7 +40,9 @@
     "All product gates remain unrun. Local acceptance of a relationship is distinct from protocol WorkApproval.",
     "Exact Coop source licensing, model compatibility and commons draft mappings remain implementation prerequisites.",
     "KOI partial-node architecture selected for planning: browser-owned history and inference, optional controlled full node, explicit sharing and scoped reconciliation.",
-    "User authorized updating draft PR #1073; K1/K2 and E9\u2013E11 remain unrun. No production peer, dependency installation or runtime implementation is authorized by this plan revision."
+    "User authorized updating draft PR #1073; K1/K2 and E9–E11 remain unrun. No production peer, dependency installation or runtime implementation is authorized by this plan revision.",
+    "User selected Pi Durable for resumable local investigations; Dexie retains garden knowledge/history and idempotent graph-command receipts, and KOI retains scoped exchange.",
+    "P0–P2 and E12–E14 are planned browser storage, execution, recovery and privacy gates. Pi installation and product implementation remain unstarted; no lane is completed."
   ],
   "lanes": {
     "ui": {
@@ -158,6 +160,14 @@
       "status": "idea",
       "note": "Revise the local-first Grove architecture for KOI and scope Vida Verde/TAS end-to-end spike; preserve all implementation lane states.",
       "timestamp": "2026-10-16T23:19:08Z",
+      "branch": "research/grove-mvp-plan"
+    },
+    {
+      "actor": "codex",
+      "lane": "system",
+      "status": "idea",
+      "note": "Select Pi Durable custom-task investigations; add browser storage, command receipts, one runner owner and Vida Verde/TAS interruption/review proof. Implementation remains unstarted.",
+      "timestamp": "2026-10-17T02:45:27Z",
       "branch": "research/grove-mvp-plan"
     }
   ]

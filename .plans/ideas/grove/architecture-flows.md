@@ -1,6 +1,6 @@
 # Grove learning loops and ingestion
 
-These are proposed system flows. Solid arrows describe the bounded MVP or controlled spike; dotted arrows mark later integrations. KOI exchange is optional: disconnecting the full node does not interrupt the local loop. People make garden decisions in Green Goods. Grove stores evidence and suggestions locally and returns reviewed insights to the same-device Hub.
+These are proposed system flows. Solid arrows describe the bounded MVP or controlled spike; dotted arrows mark later integrations. KOI exchange is optional: disconnecting the full node does not interrupt the local loop. Pi Durable owns resumable local investigations; the graph remains the only primary interface. People make garden decisions in Green Goods. Grove stores evidence and suggestions locally and returns reviewed insights to the same-device Hub.
 
 ## Two loops joined by garden memory
 
@@ -20,7 +20,8 @@ flowchart LR
   end
   subgraph E["External loop · find and contextualize"]
     S["Consented browsing and curated resources"] --> C["Capture source and provenance"]
-    C --> X["Local relevance and relationship proposals"]
+    C --> PI["Pi Durable investigation<br/>Pinned sources · checkpointed phases"]
+    PI --> X["Local relevance and relationship proposals"]
   end
   W --> K
   R --> K
@@ -58,17 +59,22 @@ flowchart TB
   T --> B
   E --> B
   V --> B
-  B --> D["Transaction 1<br/>Save source and structured records<br/>Append change sequence · queue enrichment"]
+  B --> D["Transaction 1<br/>Save source and structured records<br/>Append change sequence · dispatch intent"]
   D --> G["Graph shows durable capture immediately"]
-  D --> J["Resumable enrichment job<br/>Bounded chunks + garden neighborhood"]
+  D --> J["Pi Durable custom task<br/>Keyed admission · pinned source/context"]
+  J <--> PS[("Local Pi execution storage")]
   J --> M["Local Gemma<br/>Propose links and source quotes"]
   M --> Z{"Schema, IDs, predicate endpoints<br/>and exact evidence spans valid?"}
-  Z -->|Yes| S["Transaction 2<br/>Store proposals and changes<br/>Complete job"]
+  Z -->|Yes| PREP["Save prepared command in Dexie<br/>Stable operation key and payload digest"]
+  PREP --> CP["Pi checkpoint references prepared result"]
+  CP --> S["Knowledge command transaction<br/>Store proposals, changes and receipt"]
+  S --> DONE["Separate Pi commit<br/>Checkpoint receipt · ready for review"]
   Z -->|No| F["Source stays saved<br/>Show failure or abstention<br/>Bounded retry / manual link"]
   S --> G
   G --> U["Human inspects and reviews"]
   U --> R["Transaction 3<br/>Check expected revision<br/>Append decision and change"]
   R --> G
+  R --> FOLLOW["Atomic review follow-up dispatch<br/>New keyed Pi task when requested"]
   R -->|"Only accepted and explicitly included fields"| O["Same-device Hub digest"]
   R --> PREVIEW["Preview selected public-safe projection"]
   PREVIEW -->|"User confirms recipient and fields"| OB["Persist scoped outbox"]
@@ -77,26 +83,36 @@ flowchart TB
 
 Structured protocol import bypasses inference; the model only proposes additional interpretation. Already-validated structured resource records can also import directly. Note/page extraction is untrusted input. Instructions found inside content never grant tool, network or graph-write access.
 
-Network access and inference occur outside IndexedDB transactions. A save is acknowledged only after its transaction commits. Invalid mapping input is quarantined; interrupted jobs resume from persisted state. Partial snapshots do not prove deletion, and stale model/review results cannot overwrite newer revisions. See the [storage and review contract](spec.md#knowledge-contract-and-time).
+Pi checkpoints and garden mutations commit separately; stable command receipts recover the gap. Pi owns investigation scheduling, while deterministic capture and KOI delivery have their own workers. Network access and inference occur outside IndexedDB transactions. A save is acknowledged only after its transaction commits. Invalid mapping input is quarantined; interrupted jobs resume from persisted state. Partial snapshots do not prove deletion, and stale model/review results cannot overwrite newer revisions. See the [storage and review contract](spec.md#knowledge-contract-and-time).
 
 ## Why the graph feels alive
 
 ```mermaid
 sequenceDiagram
   participant C as Capture / Hub adapter
-  participant D as Dexie revisions
-  participant M as Local model host
+  participant D as Dexie garden memory
+  participant P as Pi runner
+  participant X as Pi execution storage
+  participant M as Local Gemma host
   participant G as Graph tab
   participant U as Person
-  C->>D: Save source + records + queued job (sequence 41)
-  D-->>G: Committed change: new source node
-  D->>M: Leased job, pinned source/profile versions
-  M-->>D: Validated proposal, transaction commits (42)
-  D-->>G: New relationship, retain camera and positions
+  C->>D: Save source + dispatch intent (garden sequence 41)
+  D-->>G: Committed source appears
+  D->>P: Submit stable run key and pinned references
+  P->>X: Persist task admission / checkpoint
+  P->>M: Bounded source packet outside transactions
+  M-->>P: Untrusted candidates
+  P->>D: Validate and persist prepared command
+  P->>X: Checkpoint prepared reference
+  P->>D: Apply command ID + digest + expected revisions
+  D-->>G: Commit proposal + receipt (garden sequence 42)
+  D-->>P: Original receipt, also on retry
+  P->>X: Checkpoint receipt; task ready for review
   U->>G: Inspect quote and accept expected revision
-  G->>D: Append review revision (43)
-  D-->>G: Reviewed relationship
-  U->>G: Compare sequences 41 and 43
+  G->>D: Review + optional follow-up dispatch (43)
+  D-->>G: Committed review; WorkApproval unchanged
+  D->>P: New keyed follow-up if requested
+  U->>G: Compare garden sequences 41 and 43
   G->>D: Read historical projections
   D-->>G: Source only vs source + reviewed relationship
 ```
@@ -117,3 +133,5 @@ flowchart LR
 ```
 
 The [first-spike walkthrough](first-spike.md) defines the public evidence, failure cases and limits. The [KOI contract](koi-integration.md) separates current-object exchange from durable local history and describes the application-level collection inventory used for recovery.
+
+The [Pi execution contract](durable-execution.md) defines host ownership, source privacy, review continuation and interruption recovery. A Pi execution sequence is never substituted for the garden timeline sequence.

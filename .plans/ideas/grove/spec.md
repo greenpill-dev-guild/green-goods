@@ -2,7 +2,7 @@
 
 **Status:** implementation proposal; planning requested, product build not started.
 **Updated:** 16 October 2026. **Owner:** Grove idea hub. **Package:** `packages/extension` (proposed).
-**Companions:** [implementation sequence](plan.todo.md), [evaluation and evidence](eval.md), [ontology alignment](ontology-alignment.md), [learning loops](architecture-flows.md), [dependency map](dependencies.md), [visual exploration](visual-design.md), [KOI contract](koi-integration.md), [Vida Verde/TAS spike](first-spike.md).
+**Companions:** [implementation sequence](plan.todo.md), [evaluation and evidence](eval.md), [ontology alignment](ontology-alignment.md), [learning loops](architecture-flows.md), [dependency map](dependencies.md), [visual exploration](visual-design.md), [KOI contract](koi-integration.md), [Pi Durable execution](durable-execution.md), [Vida Verde/TAS spike](first-spike.md).
 
 Build a local browser extension whose main interface is a living garden graph. A steward can connect a garden from the Admin Hub, preserve useful research, inspect the relationships between research and recorded work, review suggested connections, and see what changed over time.
 
@@ -17,7 +17,7 @@ Grove is the user-selected brand for this extension: **Grove by Green Goods — 
 | Public Garden, Action, Work and WorkApproval records selected through the Hub | Private garden API credentials, signer access, onchain writes |
 | Explicit page capture, then opt-in capture on selected research domains | Whole-history capture, unrestricted crawling, broad background access |
 | User-selected text/Markdown notes; a pinned commons vocabulary and curated resource list | Automatic Drive ingestion, PDF/OCR/media parsing, live commons publishing |
-| One local Gemma configuration for suggested connections | Provider marketplace, fine-tuning, autonomous external actions |
+| Pi Durable custom-task investigations with one local Gemma configuration | Provider marketplace, fine-tuning, autonomous external actions |
 | Personal accept/reject/correct decisions with provenance | Garden governance votes, protocol WorkApproval, community truth certification |
 | Same-device Hub insight digest and graph deep links | Shared server-side insight storage or unattended private-data refresh |
 | Partial KOI node; optional controlled full-node resource exchange and explicit single-object sharing | Public federation, continuous private connectors, CRDT, sensor mesh, AT publishing |
@@ -42,6 +42,8 @@ The first spike uses source-backed Vida Verde and TAS fixtures and real bounded 
 | D11 | Browser partial KOI node with an optional full node | Reuse identity/exchange without requiring a server for local garden memory |
 | D12 | Grove owns history, scoped inbox/outbox and collection reconciliation | KOI event signals/current-object caches do not guarantee durable history or complete delivery |
 | D13 | Keep planned, reported and recorded activity distinct from review and transport state | A signature, local acceptance or recent import cannot prove completed work |
+| D14 | Pi Durable owns investigation execution, using a conformant browser storage adapter | Resume bounded multi-step work while local graph memory stays usable independently |
+| D15 | Idempotent Grove commands connect Pi checkpoints to garden mutations | Recover separate commits without duplicate edges, stale writes or broadened sharing |
 
 Dependencies and a bounded implementation still need task-specific authorization before installation. Publishing this plan changes no application package, manifest, lockfile, license or runtime.
 
@@ -55,6 +57,7 @@ Green Goods source baseline: `06a31dbf55c25e1edfca35423f0e3a7c77184c16`, inspect
 | [Garden reader](../../../packages/shared/src/modules/data/indexer-garden.ts) | Existing garden mapping, configured chain, hidden-garden behavior | Shared adds a bounded snapshot builder; preserve the existing default-chain rule. |
 | [Work list](../../../packages/shared/src/modules/work/work-list.ts) | Work identity and existing approval resolution, including partial and conflicting results | Snapshot adapter must preserve unknown approval state and coverage. Never interpret a failed read as rejection or deletion. |
 | [Public impact contract](../../../packages/shared/src/public-contracts/garden-impact.ts) and [readers](../../../packages/shared/src/modules/data/public-garden-impact-readers.ts) | Provenance and partial-data conventions; relevant lower-level readers | Its summary and capped recent-work response are not a complete graph export. A dedicated bounded snapshot is new. |
+| [Pi Durable specification](https://github.com/earendil-works/pi/blob/8efd314fa3d3232ce197d8d7a6a5660530b9d83e/packages/durable/docs/spec.md) | Versioned task phases, persisted execution state, admission deduplication and committed progress | Extension builds browser storage, lifecycle and command adapters; no supplied Dexie/Gemma integration is assumed. See [execution ownership](durable-execution.md). |
 | [Shared dependencies](../../../packages/shared/package.json), logger, i18n and primitives | Existing Dexie, Zod, domain types and UI foundations | Extension DB is separate from the PWA's transactional job queue. Browser-origin storage is not automatically shared. |
 | [Coop capture handler](https://github.com/greenpill-dev-guild/coop/blob/901f57871ec578b0a31bb38c1eacdd0a85eed83a/packages/extension/src/background/handlers/capture.ts) | Snapshot extraction, URL/content deduplication and saved-before-routing pattern | Adapt small functions to garden identity and capture consent. Do not import Coop routing, drafts, side panel or notification flows. |
 | [Coop WXT configuration](https://github.com/greenpill-dev-guild/coop/blob/901f57871ec578b0a31bb38c1eacdd0a85eed83a/packages/extension/wxt.config.ts) | Learn from service-worker bundling and packaged ONNX assets | New minimal manifest, permissions and build integration. Do not copy broad permissions or unrelated bundling workarounds. |
@@ -72,9 +75,14 @@ flowchart LR
   Pack[Pinned ontology and resource pack] --> Ingest[Validate and normalize]
   Capture --> Ingest
   BG --> Ingest
-  Ingest --> DB[(Dexie: revisions, jobs, changes)]
-  DB --> Model[Offscreen host and isolated local model]
-  Model -->|Untrusted proposal| Ingest
+  Ingest --> DB[(Dexie: revisions, dispatch, receipts)]
+  DB -->|Keyed investigation request| Runner[Pi Durable custom-task runner]
+  Runner <--> PS[(Local Pi execution storage)]
+  Runner --> Model[Isolated local Gemma host]
+  Model -->|Untrusted proposal| Runner
+  Runner -->|Validated prepared command| Command[Grove knowledge commands]
+  Command -->|Atomic graph change and receipt| DB
+  DB -->|Existing or new receipt| Runner
   DB --> Query[Scoped temporal query]
   Query --> Graph[Graphology and Sigma graph tab]
   Graph -->|Review command| BG
@@ -95,10 +103,11 @@ flowchart LR
 | `packages/extension/src/graph/` | Canvas adapter, controls, inspector and saved layout |
 | `packages/extension/src/runtime/` | Browser capture and local inference lifecycle |
 | `packages/extension/src/koi/` | Browser protocol adapter, independent node identity, peer policy and resumable exchange |
+| `packages/extension/src/execution/` | Pi composition, browser storage, versioned investigation phases, scoped admission and command adapter |
 
 Names are proposed paths, not claims that files exist. Shared never imports Extension. Domain transitions remain independent of React, Sigma and Chrome APIs. New Shared imports use declared package exports; existing internal readers are called inside Shared. Add a narrow ontology leaf export if bundling the existing root API pulls unrelated modules. Do not deep-import Shared `src` from Extension. All React hooks remain in Shared under repository policy.
 
-The graph and Hub require a real shared contract; persistence and model implementation remain local to Extension. Removing the knowledge-store module would scatter revision, deduplication and review rules across capture, model and graph consumers, so that module has a concrete responsibility. No microservice per local capability or generic agent framework is needed. The optional full node is a real network boundary. It is test infrastructure in the spike; a production service and continuous connectors require separate scope. The [KOI contract](koi-integration.md) owns transport, authorization, reconciliation and upstream limitations.
+The graph and Hub require a real shared contract; persistence and model implementation remain local to Extension. Removing the knowledge-store module would scatter revision, deduplication and review rules across capture, model and graph consumers, so that module has a concrete responsibility. No microservice per local capability or generic agent framework is needed. The optional full node is a real network boundary. It is test infrastructure in the spike; a production service and continuous connectors require separate scope. The [KOI contract](koi-integration.md) owns transport, authorization, reconciliation and upstream limitations. The [Pi Durable contract](durable-execution.md) selects custom tasks for investigation execution. Start with one runner owner and one active investigation; graph tabs do not open competing Harness writers. The graph-document host pauses safely on close and resumes on reopen; broader offscreen scheduling requires its own lifecycle proof.
 
 ## Hub connection contract
 
@@ -127,13 +136,15 @@ Use an IndexedDB database owned by the extension. Every record and query is scop
 | `entityRevisions` | Stable entity ID, canonical type reference, revision, properties, recorded sequence, optional activity/validity time |
 | `assertionRevisions` | Stable edge ID, subject/predicate/object, evidence spans, origin, review state, revision, recorded sequence, optional validity interval |
 | `changes` | Ordered batch sequence and affected record IDs, distinguishing additions, updates, reviews, corrections and removals |
-| `jobs` | Idempotency key, state, attempts, lease/expiry, source revision, extractor/model versions, error |
+| `jobs` / dispatch outbox | Durable intake/dispatch requests; Pi admission ID and input digest for investigations. Deterministic capture/KOI workers retain their own operation-specific retries; no second model scheduler |
+| `preparedCommands`, `commandReceipts`, `investigationSummaries` | Erasure-controlled proposal payloads/references, command ID and payload digest, atomic mutation receipt, minimal committed run summary |
+| Pi-owned browser tables/database | Conformant execution records, checkpoints, IDs and documents; garden references only, separate sequence namespace |
 | `views` | Device-local seen cursor, filters, selection and node positions; no domain authority |
 | `peerBindings` | Workspace/collection allowlist, trusted node key reference and local connection policy; no wallet identity |
 | `inbox`, `outbox`, `syncState` | Validated operation/revision identity, persisted delivery attempts, explicit share projection and reconciled collection generation |
 | `ontologyPacks` | Pinned vocabulary/schema/mapping version, digest, publisher/source and draft status |
 
-Keep revisions append-only in normal use. A transaction allocates one workspace sequence, writes the batch and affected revisions, and marks the job completed together. Expired leases permit retry; stale model responses cannot overwrite newer source or review revisions. Acknowledgement follows commit. Display notifications are expendable: another tab can recover changes by reading after its last sequence.
+Keep revisions append-only in normal use. A knowledge command transaction allocates one workspace sequence and writes affected revisions plus its duplicate-protection receipt atomically. Matching command retries return the original receipt; a different payload under the same ID rejects. Source capture and human review atomically append any follow-up dispatch intent. Pi admission/checkpoint commits occur separately and recover through stable request/command IDs. Pi owns investigation phase scheduling, while deterministic intake/delivery workers retain operation-specific leases. Stale or erased source/model/review revisions cannot overwrite newer decisions. Acknowledgement follows the owning commit; no cross-store atomicity is claimed. Display notifications are expendable: another tab can recover changes by reading after its last sequence.
 
 For the MVP, query indexed revisions to select the latest revision at or before a sequence. A current-state cache may accelerate the present view. Add periodic checkpoints only if measurement warrants them. This is local revision history, not a new event-sourced architecture for the Green Goods protocol.
 
@@ -154,13 +165,13 @@ See the [internal/external learning loops and ingestion diagrams](architecture-f
 1. Receive a scoped, signature/hash-validated KOI bundle or capture from an explicit action or enabled research scope. Save the source revision first. Strip form controls, credentials and hidden input; treat the retained text as untrusted evidence, never instructions.
 2. Normalize conservative URL identity plus content hash. Preserve distinct changed content at one URL. Exact canonical entity IDs win; name similarity produces a suggestion, never an automatic merge.
 3. Map structured Garden/Work/Action/WorkApproval records without a model. Record source coverage and source state separately from local review state.
-4. Build a bounded model packet: selected source chunks, allowed ontology IDs, current question and a small garden neighborhood. For the first slice, request at most three candidate links to existing entities and an evidence quote for each. The model cannot create protocol records or choose external tools.
+4. Admit a keyed Pi investigation through the dispatch outbox, pinning source hash, garden sequence, profile/mapping and model versions. Its custom phases build a bounded model packet: selected source chunks, allowed ontology IDs, current question and a small garden neighborhood. For the first slice, request at most three candidate links to existing entities and an evidence quote for each. The model cannot create protocol records or choose external tools.
 5. Validate Zod shape, allowed predicate/endpoint types, candidate IDs and exact quote spans in the captured source revision. Quote existence is evidence traceability, not proof of relevance; human review remains necessary.
-6. Commit valid proposals and a change batch. Invalid or empty output leaves the source saved, with enrichment failed or no connection found. Persist bounded retries and allow manual linking.
+6. Persist a validated prepared command under the run/step key, then apply it through Grove's idempotent knowledge command. Graph revisions and its receipt commit together; Pi subsequently checkpoints the receipt. Invalid or empty output leaves the source saved, with enrichment failed or no connection found. Bound retries in the task and allow manual linking. Raw source text and spans remain in erasure-controlled stores, outside Pi execution records.
 7. Patch the visible Graphology projection using committed changes. Retain existing coordinates and camera; place new nodes near connected context. Unrelated metadata refreshes do not count as new knowledge.
-8. Accept, reject or correct from the inspector. Persist the decision with actor/device, timestamp and rationale when supplied. Retrieval can exclude rejected suggestions and use accepted mappings; this is feedback-driven retrieval, not model training.
+8. Accept, reject or correct from the inspector. Persist the decision with actor/device, timestamp and rationale when supplied. Retrieval can exclude rejected suggestions and use accepted mappings; this is feedback-driven retrieval, not model training. A review may enqueue a keyed follow-up investigation in that same graph transaction. The previous task has already ended as ready for review; no live invocation waits for a person.
 
-Research-session capture is off by default and enabled for selected domains with optional host permissions. It processes allowed active-page navigations while the browser is running; it does not request browser history or universal host access. Closing a research session stops new captures. Model enrichment may continue through the offscreen host; unsupported or interrupted inference remains queued. Do not keep service workers alive with artificial loops.
+Research-session capture is off by default and enabled for selected domains with optional host permissions. It processes allowed active-page navigations while the browser is running; it does not request browser history or universal host access. Closing a research session stops new captures. Pi investigations resume only when their supported host is running; source capture remains independent. The first host is the graph document or its dedicated worker, with isolated model execution. Offscreen execution is conditional on valid browser reasons and lifecycle proof; unsupported/interrupted inference remains persisted. Do not keep service workers alive with artificial loops.
 
 Curated external sourcing in the MVP means a versioned list of public resources indexed by commons concepts and linked to garden questions. Refresh known resources on demand. Arbitrary search engines, autonomous crawling, availability verification and private-context-bearing external searches are deferred.
 
@@ -184,6 +195,7 @@ Run Vida Verde first, then TAS through the same implementation. Completing the s
 
 ## Remaining implementation frontiers
 
+- Pi's browser storage/bundle, single ownership, interrupted execution and migration must pass P0/E12 before integration; experimental upstream APIs require a pinned compatible version set. A failed gate does not authorize moving private execution to a server.
 - Exact model artifact and minimum supported device depend on measured quality, memory and latency.
 - Commons authority must supply or approve the pinned draft mapping before claiming commons conformance. A fixture pack proves mechanics only.
 - Source-code reuse needs an exact licensed Coop revision; technical similarity is not a reuse permission.
