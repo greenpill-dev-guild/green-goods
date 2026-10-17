@@ -98,6 +98,9 @@ export interface ReportingRuntime {
   messaging: MessagingRouteDeps;
   tickOnce(): Promise<TickSummary>;
   start(): void;
+  /** Stops new work at once, leaving the database open; shutdown calls it before anything else. */
+  quiesce(): void;
+  /** Quiesces, waits for the unit in hand, then closes the database. */
   stop(): Promise<void>;
 }
 
@@ -209,6 +212,13 @@ export function createReportingRuntime(options: ReportingRuntimeOptions): Report
 
   let timer: ReturnType<typeof setInterval> | null = null;
   let running: Promise<TickSummary> | null = null;
+  // Synchronous, so shutdown can call it before awaiting anything: no new pass starts, and the
+  // pass in flight claims nothing after its current unit. The database stays open for routes.
+  const quiesce = () => {
+    if (timer) clearInterval(timer);
+    timer = null;
+    stopping.abort();
+  };
   const tickOnce = async (): Promise<TickSummary> => {
     // One pass at a time: an overlapping interval waits for the pass already in flight.
     if (running) return running;
@@ -248,10 +258,9 @@ export function createReportingRuntime(options: ReportingRuntimeOptions): Report
       }, config.workerIntervalMs);
       log.info({ intervalMs: config.workerIntervalMs }, "Reporting worker started");
     },
+    quiesce,
     async stop() {
-      if (timer) clearInterval(timer);
-      timer = null;
-      stopping.abort();
+      quiesce();
       await running?.catch(() => undefined);
       core.db.close();
     },

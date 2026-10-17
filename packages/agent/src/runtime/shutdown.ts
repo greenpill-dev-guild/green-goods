@@ -21,6 +21,11 @@ export type ShutdownHandler = (signal: string, exitCode?: number) => Promise<voi
 export interface ShutdownDeps {
   bot: StoppableBot;
   botMode: BotMode;
+  /**
+   * Synchronous steps that stop background work from claiming anything new. They run first, so
+   * no new work starts while the server and the other cleanup tasks are still being awaited.
+   */
+  quiesce?: Array<() => void>;
   cleanupTasks: CleanupTask[];
   exit: (code: number) => void;
   logger: ShutdownLogger;
@@ -30,6 +35,7 @@ export interface ShutdownDeps {
 export function createShutdownHandler({
   bot,
   botMode,
+  quiesce = [],
   cleanupTasks,
   exit,
   logger,
@@ -46,6 +52,18 @@ export function createShutdownHandler({
     shuttingDown = true;
     logger.info({ signal }, "Shutting down gracefully");
 
+    const logCleanupFailure = (cleanup: string, error: unknown) => {
+      logger.error({ cleanup, err: error, signal }, "Shutdown cleanup failed");
+    };
+
+    for (const [index, step] of quiesce.entries()) {
+      try {
+        step();
+      } catch (error) {
+        logCleanupFailure(`quiesce[${index}]`, error);
+      }
+    }
+
     if (botMode === "polling") {
       try {
         bot.stop(signal);
@@ -53,10 +71,6 @@ export function createShutdownHandler({
         logger.warn({ err: error, signal }, "Telegram bot stop failed during shutdown");
       }
     }
-
-    const logCleanupFailure = (cleanup: string, error: unknown) => {
-      logger.error({ cleanup, err: error, signal }, "Shutdown cleanup failed");
-    };
 
     try {
       await server.close();

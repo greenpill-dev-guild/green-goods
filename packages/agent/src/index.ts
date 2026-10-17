@@ -317,13 +317,16 @@ async function main(): Promise<void> {
   const shutdown = createShutdownHandler({
     bot,
     botMode: config.telegramRuntimeDisabled ? "webhook" : config.mode,
+    // The reporting worker claims nothing new from the first moment of shutdown; it finishes its
+    // unit in hand first among the cleanups, while the services that unit may use are still up.
+    quiesce: reporting ? [() => reporting.quiesce()] : [],
     cleanupTasks: [
+      ...(reporting ? [() => reporting.stop()] : []),
       () => rateLimiter.destroy(),
       () => clearBlockchainCache(),
       closeDB,
       shutdownAgentAnalytics,
       shutdownAgentSentry,
-      ...(reporting ? [() => reporting.stop()] : []),
     ],
     exit: (code) => process.exit(code),
     logger,
