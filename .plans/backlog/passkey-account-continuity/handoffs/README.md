@@ -21,6 +21,13 @@
   - The resume steps below keep the decision gate.
   - Current-evidence links point at the second-review report.
   - The rig refuses unknown modes.
+- **Eighth review.** Codex raised three findings at 01:01 UTC on 2026-10-17, all addressed:
+  - The account row's draft copy no longer promises every site and device. It names other Green
+    Goods sites, in browsers that allow it, on devices that have the passkey.
+  - `gg_startPasskeyAdoption` takes the name and domain. Its challenge is stored with them and the
+    origin, and completion must match all three.
+  - Step 5 extends the agent's Production Checklist, and AC-13 requires a restore rehearsal before
+    step 5 deploys.
 - **Seventh review.** Codex raised five findings at 00:34 UTC on 2026-10-17, all addressed:
   - Every stored key has one spelling (`0x04`, lowercase), so a key written another way can't put
     one passkey under two names. The hosted fallback compares keys by point.
@@ -91,7 +98,7 @@ Agent/model: Claude Code, claude-opus-5-5 | Coverage: planning segment on 2026-1
 | verify | 2026-10-16T19:41Z → unknown | Portable rig rerun from the hub (log written 19:41:57Z); `plan-hub validate`, guidance links, immutable reports, Biome |
 | wait | unknown → unknown | Afo's choice of delivery and Linear records; resolved (PR, COM-39 rewrite) |
 | publish | 2026-10-16T22:43Z → 2026-10-16T22:47Z | Worktree from develop, commits `0c09b4128` and `556932c65`, push gate passed, PR #1111 opened 22:44:48Z |
-| review | 2026-10-16T22:52Z → unknown | Seven review rounds (Codex 25 findings, CodeRabbit 3). First review 22:52:19Z; fixes in `61e4591c0`, `291b53161`, `74a2c80d5`, `0cc1fe244`, `45d50a51a` and `21357984c`, and round seven edited at 2026-10-17T00:54:56Z |
+| review | 2026-10-16T22:52Z → unknown | Eight review rounds (Codex 28 findings, CodeRabbit 3). First review 22:52:19Z; fixes in `61e4591c0`, `291b53161`, `74a2c80d5`, `0cc1fe244`, `45d50a51a`, `21357984c` and `3fb07707e`, and round eight edited at 2026-10-17T01:07:03Z |
 
 Times are observed boundaries: file and log write times, the scaffold time, commit times and the
 PR's creation time. Anything not observed is `unknown`.

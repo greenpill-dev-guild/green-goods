@@ -104,7 +104,8 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
       already matched those bytes to the stored ID.
     - `source`: `TEXT NOT NULL DEFAULT 'registered'`, and `adopted` for adoption.
   - On the challenge table, `purpose` (`TEXT NOT NULL DEFAULT 'registration'`), so an adoption
-    challenge can't answer a registration.
+    challenge can't answer a registration. An adoption challenge fills the table's existing
+    `userName`, `rpId` and `origin` from the start call (step 5), so completion is held to them.
 - Backfill `credentialKey` by copying `credentialId` for existing rows. Directory sign-ups store
   the browser's base64url ID, and copying rather than decoding cannot misread one that also looks
   like hex.
@@ -127,7 +128,8 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
 - **RED/GREEN**:
   - The store contract test covers both stores (memory and SQLite):
     - an adopted row;
-    - a challenge used for the wrong purpose;
+    - a challenge used for the wrong purpose, and an adoption challenge kept with its name,
+      domain and origin;
     - one credential refused under a second name when its ID arrives in the other spelling;
     - one credential refused under a second name when its key arrives without `04` or in upper
       case;
@@ -158,9 +160,12 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
 `packages/agent/src/api/routes/passkey-directory.ts`,
 `packages/shared/src/public-contracts/passkey-directory.ts`,
 `packages/agent/src/__tests__/passkey-directory.test.ts`,
-`packages/agent/src/__tests__/test-utils/software-passkey.ts` (add an assertion maker)
+`packages/agent/src/__tests__/test-utils/software-passkey.ts` (add an assertion maker),
+`packages/agent/README.md` (the Production Checklist)
 
-- `gg_startPasskeyAdoption` issues a single-use challenge (5 minutes, purpose `adoption`).
+- `gg_startPasskeyAdoption` takes the name and the passkey's domain, applies rules 1 to 3, and
+  issues a single-use challenge (5 minutes, purpose `adoption`). It stores the challenge with
+  the normalized name, the domain as its `rpId`, and the origin.
   `gg_completePasskeyAdoption` takes the name, the stored credential ID string, the public key,
   the passkey's domain and the assertion. It takes no browser ID: the agent derives it from the
   assertion's `rawId` (step 3's `credentialKey`). Both use the `passkey_registration` rate-limit
@@ -170,7 +175,8 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
   2. The domain is one a passkey can already carry: `greengoods.app`, `www.greengoods.app`,
      `beta.greengoods.app` or `staging.greengoods.app`.
   3. The page sits on that domain or under it, so adoption happens where the passkey already works.
-  4. The challenge is spent before anything else. Its verdict is applied at rule 7.
+  4. The challenge is spent before anything else. Its verdict, which includes the name, domain
+     and origin it was started for, is applied at rule 7.
   5. Either reading of the stored ID equals the assertion's `rawId`: hex, when the string is
      shaped like hex, or base64url. `getPasskeyRequestIds` already tries both.
   6. The submitted key is rewritten into the stored form (`0x04`, then lowercase x and y), and a
@@ -179,7 +185,7 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
   7. An identical completion returns the stored result. Identical means the same name, the exact
      same stored ID string, the same credential bytes and the same key. The other spelling of the
      same passkey is a different account to Kernel, so it is never identical. Otherwise a spent
-     or expired challenge refuses.
+     or expired challenge refuses, as does one started for another name, domain or origin.
   8. The name is free, or the hosted server lists this same passkey for it: the same key in the
      stored form, and an `id` string exactly equal to the submitted stored ID. Bytes are not
      enough here. Rule 5 only proves which passkey the browser used, while the hosted account's
@@ -195,13 +201,22 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
 
   Refusals after rule 5 need a proven assertion, so an unproven caller learns nothing about names
   or credentials.
+- **Recovery, before step 5 deploys.** The directory becomes the only record of an adopted
+  account's passkey, as it already is for directory sign-ups.
+  - Extend the `/data` snapshot item in the Production Checklist of `packages/agent/README.md`
+    to say so, and to ask for a restore rehearsal before a release that adds adoption.
+  - Take a consistent backup of `/data/agent.db`, restore it into a separate volume, and check
+    that `passkey_credentials` keeps every row, its pair index and `user_version` 9 (AC-13).
+  - Keep the snapshot ID and restore details in the private recovery record, with only a dated
+    summary in the release's operations receipt, as the 2.0.0 runbook does.
 - **RED/GREEN**:
   - Refusals: a replay under another name, a wrong key, a mismatched ID in base64url and in hex,
     the same credential under a second name in the other ID spelling or with its key spelled
     another way (no `04`, upper case), the held name sent again with the ID in the other
     spelling, a taken name, the wrong site, an unadoptable domain, a hosted name held by another
     passkey, a hosted name submitted with the other spelling of its listed ID, a key that isn't
-    a P-256 point, and the hosted lookup down.
+    a P-256 point, a completion for another name, domain or origin than its challenge's, and
+    the hosted lookup down.
   - A spoofed `rawId`, where an attacker's own assertion claims a victim's ID bytes, must neither
     block the victim's later adoption nor open anything.
   - Successes:
@@ -210,8 +225,9 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
     - a stored ID valid in both spellings, accepted through its base64url reading;
     - a hex stored ID, whose lookup then offers the assertion's `rawId` in base64url as
       `signingId`: the credential that was proven, not one the client named.
-  - The rig ran every refusal except the domain and hosted cases, plus the two-spelling success
-    and the spoofed `rawId`, all against its prototype (scenarios C, F and G of the
+  - The rig ran every refusal except the domain, hosted, key-spelling, non-point key and
+    challenge-binding cases, plus the two-spelling success and the spoofed `rawId`, all against
+    its prototype (scenarios C, F and G of the
     [report](reports/2026-10-16-clean-room-proof-fifth-review.md)).
 
 ### Step 6: Adopt during sign-in, never in its way (state_api, shared)
@@ -229,7 +245,9 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
   - The sign-in client keeps its 6-second timeout and one retry.
 - **Hosted sign-in on its home site**, once the directory has answered that it doesn't hold the
   name:
-  - Start `gg_startPasskeyAdoption` at the same moment as the hosted lookup, never before it.
+  - Start `gg_startPasskeyAdoption` with the typed name and the page's host as the domain, at the
+    same moment as the hosted lookup, never before it. A hosted passkey's domain is the host
+    that made it, which on its home site is the page's host.
   - When the lookup answers, run the ceremony at once. Use the adoption challenge if it has
     already arrived. Otherwise use a locally made challenge and skip adoption for this sign-in.
   - Either way, check the assertion locally against the key the hosted server listed, as the
@@ -298,7 +316,8 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
 `packages/shared/src/i18n/{en,es,pt}.json`
 
 - Show a row only for passkey sessions whose name has no matching directory entry: "Sign in on
-  every Green Goods site", with one button that runs the adoption prompt. For a taken name
+  other Green Goods sites", with one button that runs the adoption prompt. Its start call
+  carries the session's name and passkey domain (`cachedPasskeyRpId`). For a taken name
   (decision 5), ask for a new name in the same row.
 - Draft copy is in [spec.md](spec.md#draft-copy).
 - **RED/GREEN** in a component test, with the shared hook mocked at its boundary:

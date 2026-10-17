@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-10-16T19:35:57.040Z",
-    "updated_at": "2026-10-17T00:54:56Z"
+    "updated_at": "2026-10-17T01:07:03Z"
   },
   "links": {
     "brief": "brief.md",
@@ -35,7 +35,7 @@
   },
   "notes": [
     "Planned and de-risked on 2026-10-16; blocked on decisions 1 to 7 and 9 in plan.todo.md. Step 6 depends on decisions 2 and 9, and step 8 on decision 4.",
-    "Clean-room proof: reports/2026-10-16-clean-room-proof-fifth-review.md, which supersedes the four earlier reports of the same day (clean-room Chromium, virtual authenticator; signatures checked by read-only eth_call). Device proof is plan step 11 and is Afo's.",
+    "Clean-room proof: reports/2026-10-16-clean-room-proof-fifth-review.md, which supersedes the four earlier reports of the same day (clean-room Chromium, virtual authenticator; signatures checked by read-only eth_call). Device proof (plan step 11) and the restore rehearsal before step 5 deploys (AC-13) are Afo's.",
     "Shared auth workflows and the agent passkey directory are critical surfaces: read every touched line and keep the selector's critical override.",
     "Never re-encode a stored passkey credential ID: Kernel hashes that exact string into the account address.",
     "Related records: PRD-1107 built the directory; COM-39 was rewritten around this plan on 2026-10-16 (decision 8, text in handoffs/com-39-update-draft.md). Name rules belong to green-goods-name-reservation.",
@@ -206,6 +206,14 @@
       "status": "planning_reconciled",
       "branch": null,
       "note": "Addressed the seventh review (Codex, five findings): every stored key has one spelling so the pair index can't be bypassed, and the hosted fallback compares keys by point; a failed directory lookup keeps today's hosted sign-in, verdict included; the completion takes no browser ID, and the lookup's signingId is credentialKey; step 9 rewrites the builder passkey page; step 3 raises user_version from 8 to 9 with tests. No rig change. Timestamp: the observed edit time."
+    },
+    {
+      "timestamp": "2026-10-17T01:07:03Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "planning_reconciled",
+      "branch": null,
+      "note": "Addressed the eighth review (Codex, three findings): the account row's draft copy promises other sites only in browsers that allow it and on devices that have the passkey; gg_startPasskeyAdoption takes the name and domain, its challenge is stored with them and the origin, and completion must match all three; step 5 extends the agent's Production Checklist and AC-13 requires a restore rehearsal before step 5 deploys. Also corrected which refusals the rig ran. No rig change. Timestamp: the observed edit time."
     }
   ]
 }

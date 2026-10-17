@@ -132,6 +132,8 @@ domain, and its local check compares the page origin and the domain hash. The ri
 - **New RPC methods.** `gg_startPasskeyAdoption` and `gg_completePasskeyAdoption` run on the
   existing `/public/passkeys/rpc` route, with the same origin allowlist and the registration
   rate-limit class.
+  - The start takes the name and the passkey's domain. Its challenge is stored with both and the
+    origin, and completion must match all three.
   - Completion takes no browser ID; the agent derives it from the assertion's `rawId`. It
     rewrites the key into the stored form, `0x04` then lowercase x and y.
   - Completion is idempotent. A request with the same name, exact ID string, credential bytes
@@ -158,20 +160,24 @@ screens say "clave de acceso" and "chave de acesso"; that mismatch predates this
 
 | Key (proposed) | en | es | pt |
 |---|---|---|---|
-| `app.account.passkeyEverywhere.title` | Sign in on every Green Goods site | Inicia sesión en todos los sitios de Green Goods | Entre em todos os sites do Green Goods |
-| `app.account.passkeyEverywhere.body` | Your passkey works here. Turn this on to use it on every Green Goods site and device, with the same account. | Tu passkey funciona aquí. Activa esto para usarla en todos los sitios y dispositivos de Green Goods, con la misma cuenta. | Sua passkey funciona aqui. Ative isto para usá-la em todos os sites e dispositivos do Green Goods, com a mesma conta. |
+| `app.account.passkeyEverywhere.title` | Sign in on other Green Goods sites | Inicia sesión en otros sitios de Green Goods | Entre em outros sites do Green Goods |
+| `app.account.passkeyEverywhere.body` | Your passkey works here. Turn this on to sign in by name, with the same account, on other Green Goods sites: in browsers that allow it, and on devices that have this passkey. | Tu passkey funciona aquí. Activa esto para iniciar sesión con tu nombre, con la misma cuenta, en otros sitios de Green Goods: en los navegadores que lo permiten y en los dispositivos que tienen esta passkey. | Sua passkey funciona aqui. Ative isto para entrar com seu nome, com a mesma conta, em outros sites do Green Goods: nos navegadores que permitem isso e nos dispositivos que têm esta passkey. |
 | `app.account.passkeyEverywhere.action` | Turn on | Activar | Ativar |
-| `app.account.passkeyEverywhere.done` | Done. Sign in with {name} on any Green Goods site. | Listo. Inicia sesión con {name} en cualquier sitio de Green Goods. | Pronto. Entre com {name} em qualquer site do Green Goods. |
+| `app.account.passkeyEverywhere.done` | Done. You can sign in with {name} on other Green Goods sites, in browsers that allow it, from any device that has this passkey. | Listo. Puedes iniciar sesión con {name} en otros sitios de Green Goods, en los navegadores que lo permiten, desde cualquier dispositivo que tenga esta passkey. | Pronto. Você pode entrar com {name} em outros sites do Green Goods, nos navegadores que permitem isso, de qualquer dispositivo que tenha esta passkey. |
 | `app.account.passkeyEverywhere.nameTaken` | {name} is taken. Choose another name to sign in with. Your account stays the same. | {name} ya está en uso. Elige otro nombre para iniciar sesión. Tu cuenta no cambia. | {name} já está em uso. Escolha outro nome para entrar. Sua conta continua a mesma. |
-| `app.login.error.otherSite` | Sign in didn't finish. If you made this account on {sites}, sign in there once to use it everywhere. | No se completó el inicio de sesión. Si creaste esta cuenta en {sites}, inicia sesión allí una vez para usarla en todas partes. | O login não foi concluído. Se você criou esta conta em {sites}, entre lá uma vez para usá-la em qualquer lugar. |
+| `app.login.error.otherSite` | Sign in didn't finish. If you made this account on {sites}, sign in there once. After that it can work on other Green Goods sites too. | No se completó el inicio de sesión. Si creaste esta cuenta en {sites}, inicia sesión allí una vez. Después podrá funcionar también en otros sitios de Green Goods. | O login não foi concluído. Se você criou esta conta em {sites}, entre lá uma vez. Depois ela poderá funcionar também em outros sites do Green Goods. |
 | `app.login.error.relatedOriginUnsupported` | This browser can't use your passkey here. Sign in on {site} instead, or update your browser. | Este navegador no puede usar tu passkey aquí. Inicia sesión en {site} o actualiza tu navegador. | Este navegador não consegue usar sua passkey aqui. Entre em {site} ou atualize seu navegador. |
 
 - `{sites}` lists the hosted sites other than the current one: `beta.greengoods.app` on www,
   `www.greengoods.app` on beta, and both, joined by "or", anywhere else. The hosted lookup carries
   no domain (plan step 4), so the copy can only name where hosted accounts were made.
 - `{site}` is the exact domain a directory or adopted entry carries.
-- If decision 2 is declined, `app.login.error.otherSite` ends instead with "sign in there and turn
-  on Sign in on every Green Goods site."
+- The row and its done message promise no more than adoption gives. A passkey made for one site
+  reaches the others only in a browser with related-origin support, and adoption puts no
+  passkey on a device it hasn't synced to.
+- If decision 2 is declined, `app.login.error.otherSite` reads instead "Sign in didn't finish. If
+  you made this account on {sites}, sign in there and turn on Sign in on other Green Goods
+  sites."
 
 ## Research Evidence
 
@@ -351,8 +357,9 @@ from any device the passkey syncs to.
   - Mitigation: a static file, an explicit header, and a smoke check on www and beta.
 - **Losing the directory database.**
   - Risk: it becomes the only record for adopted accounts as well.
-  - Mitigation: the existing Fly volume backup concern now covers more rows; record it in the
-    agent runbook before step 5 ships.
+  - Mitigation: step 5 extends the `/data` snapshot item in the agent's Production Checklist
+    (`packages/agent/README.md`). Before it deploys, a restore into a separate volume must keep
+    every `passkey_credentials` row (AC-13).
 
 ## Related
 
