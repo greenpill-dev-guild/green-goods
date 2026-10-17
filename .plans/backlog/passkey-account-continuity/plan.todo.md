@@ -83,8 +83,13 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
 
 - Move the pure check (type, challenge, origin, RP ID hash, UP and UV flags, P-256 signature) with
   no logger import. Use the existing leaf; add no new export subpath.
-- **GREEN**: the existing verifier tests pass at the new location, and the agent test in step 5
-  imports it through `@green-goods/shared/public-contracts` under Bun.
+- Give it bytes, not a browser `Credential`: `authenticatorData`, `clientDataJSON` and `signature`
+  as `Uint8Array`. The app's wrapper reads them from the `Credential` the ceremony returns, and
+  the agent decodes them from the request (step 5). The rig wrapped decoded bytes in a fake
+  `Credential` (`rig-server.ts`); production code must not copy that.
+- **GREEN**: the existing verifier tests pass through the app's wrapper, a new test calls the byte
+  form directly, and the agent test in step 5 imports it through
+  `@green-goods/shared/public-contracts` under Bun.
 
 ### Step 3: Store adopted entries (state_api, agent)
 
@@ -101,7 +106,9 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
       at adoption, never by re-reading the submitted string, which can be valid hex and valid
       base64url at once. Step 5's lookup returns it as `signingId`. No separate browser-ID column:
       a browser's credential ID is `rawId` in base64url by definition, and step 5's rule 5 has
-      already matched those bytes to the stored ID.
+      already matched those bytes to the stored ID. Every insert writes it, and the rebuilt
+      table declares it `NOT NULL`: a registration from its verified credential ID, already
+      the browser's base64url ID, and an adoption from `rawId`.
     - `source`: `TEXT NOT NULL DEFAULT 'registered'`, and `adopted` for adoption.
   - On the challenge table, `purpose` (`TEXT NOT NULL DEFAULT 'registration'`), so an adoption
     challenge can't answer a registration. An adoption challenge fills the table's existing
@@ -117,6 +124,9 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
     already writes that form (`uncompressedP256PublicKey`), and step 5 rewrites an adopted key
     into it. The verifier accepts the point with or without `04` and in either case, so a
     raw-text index would let one passkey hold two names.
+- Move each store's own duplicate check to the pair too. Today the SQLite insert refuses any row
+  whose `credentialId` string is already stored (`SELECT 1 ... WHERE credentialId = ?`), and the
+  memory store compares the same strings, so a claimed string would still block the owner.
 - Keep the first-registration-wins rule for names. `credentialId` keeps the account's exact
   string for Kernel.
 - Drop the existing `credentialId UNIQUE` column constraint, or a claimed string could still
@@ -133,7 +143,9 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
     - one credential refused under a second name when its ID arrives in the other spelling;
     - one credential refused under a second name when its key arrives without `04` or in upper
       case;
-    - a claimed ID with a different key stored beside the real one, neither blocking the other.
+    - a claimed ID with a different key stored beside the real one, neither blocking the other;
+    - a registration after the upgrade, which writes `credentialKey`, offers it from the lookup
+      as `signingId`, and refuses the same credential under another name.
   - `storage.sqlite.test.ts` builds the v2.0.1 schema with a stored passkey and a pending
     challenge, then runs `initSchema` over it. It asserts:
     - the new columns and their defaults, and the backfilled key;
@@ -170,6 +182,10 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
   the passkey's domain and the assertion. It takes no browser ID: the agent derives it from the
   assertion's `rawId` (step 3's `credentialKey`). Both use the `passkey_registration` rate-limit
   class.
+- **Wire form.** The assertion travels as WebAuthn's JSON form: base64url strings for `id`,
+  `rawId`, `response.authenticatorData`, `response.clientDataJSON` and `response.signature`. The
+  route decodes them into step 2's byte input before rule 5, and a missing or malformed field
+  refuses.
 - Rules, in order, as prototyped in the rig:
   1. The origin is explicitly allowed.
   2. The domain is one a passkey can already carry: `greengoods.app`, `www.greengoods.app`,
@@ -217,6 +233,8 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
     passkey, a hosted name submitted with the other spelling of its listed ID, a key that isn't
     a P-256 point, a completion for another name, domain or origin than its challenge's, and
     the hosted lookup down.
+  - Completion runs through the real JSON-RPC route (`api/routes/passkey-directory.ts`) with the
+    software passkey's JSON-encoded assertion and succeeds; a malformed field refuses.
   - A spoofed `rawId`, where an attacker's own assertion claims a victim's ID bytes, must neither
     block the victim's later adoption nor open anything.
   - Successes:
@@ -251,7 +269,8 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
   - When the lookup answers, run the ceremony at once. Use the adoption challenge if it has
     already arrived. Otherwise use a locally made challenge and skip adoption for this sign-in.
   - Either way, check the assertion locally against the key the hosted server listed, as the
-    directory path already does, and submit the completion in the background.
+    directory path already does, and submit the completion in the background, in step 5's wire
+    form.
   - This replaces the hosted server's `startAuthentication` and `verifyAuthentication`: the app
     no longer asks it for a challenge or a verdict. The local check covers the challenge,
     origin, RP ID hash, user presence and verification, and the signature against the listed
@@ -360,9 +379,14 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
   - beta, when the person is on www;
   - www, when on beta;
   - both, anywhere else.
-- A directory or adopted entry carries its domain, so the copy names that site exactly. That
-  covers a cross-site ceremony that fails with `SecurityError`, from a browser without
-  related-origin support.
+- A directory or adopted entry carries its domain, so the copy names that site exactly. When a
+  cross-site ceremony fails with `SecurityError`, what the browser reported decides the copy:
+  - `relatedOrigins: false`: the unsupported-browser copy, shown before any ceremony (next
+    bullet).
+  - `relatedOrigins: true`: the browser supports the feature, so the file or its list is wrong.
+    Show the neutral `relatedOriginFailed` copy, which names the site and never says to update
+    the browser.
+  - No `getClientCapabilities()`: the cause can't be told apart, so the neutral copy too.
 - A ceremony needs related origins only when the page's host is neither the entry's domain nor
   under it. Only then, and only where `PublicKeyCredential.getClientCapabilities()` exists,
   read `relatedOrigins` and show the copy without attempting the ceremony. A beta entry on beta
@@ -379,23 +403,30 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
 - **RED/GREEN** in `loginScreenMessages.test.ts`, in en, es and pt: the copy for an unadopted
   hosted name on www, on beta and on admin, and for an adopted beta entry on www. With
   `relatedOrigins: false`, a beta entry on beta and an apex entry on admin still run their
-  ceremony.
+  ceremony. With `relatedOrigins: true` and a missing file (`SecurityError`), the neutral copy
+  shows, never the update-your-browser copy.
 
 ### Step 10: Telemetry (state_api)
 
 **Files**: `packages/shared/src/modules/app/analytics-events.ts` and its callers
 
 - `auth_passkey_adoption_started`, `_success` and `_failed` (with a reason), plus two fields on
-  `auth_passkey_login_failed`: `hosted_name` and `related_origin`. No names or keys.
+  `auth_passkey_login_failed`: `hosted_name` and `related_origin` (`unsupported`, `failed` or
+  `unknown`, step 9's three cases), so a broken file shows up as `failed`. No names or keys.
 
 ### Step 11: Proof (qa)
 
-- Rerun the clean-room rig ([artifacts/rig/README.md](artifacts/rig/README.md)) on the branch.
+- Rerun the clean-room rig ([artifacts/rig/README.md](artifacts/rig/README.md)) on the branch,
+  with a www-bound hosted passkey added to scenario A: it adopts on www, then signs in by name
+  on admin, which needs www's file.
 - Authenticated device proof, which passkey signing requires (AGENTS.md, Browser Evidence), on
   Android Chrome and iPhone Safari. Afo runs it:
   1. A January-to-August-style account adopts on www, then signs in by name on admin.
-  2. A beta-bound passkey signs in on www once step 8 is live.
-  3. A garden action signs from admin.
+  2. A September-style account, made on www through the hosted server, adopts on www, then
+     signs in by name on admin once step 8 is live. That ceremony needs www's file, and it is
+     the brief's success signal.
+  3. A beta-bound passkey signs in on www once step 8 is live.
+  4. Accounts 1 and 2 each sign a garden action on admin.
 
 ## Follow-ups outside this plan
 

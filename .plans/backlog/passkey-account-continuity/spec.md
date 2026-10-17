@@ -66,6 +66,8 @@ In the 30 days to 2026-10-16, 6 people used a passkey session on www and 3 on be
    - The exact site, when the entry carries its domain (directory and adopted entries).
    - The sites it may have been made on, for an unadopted hosted name, whose lookup carries no
      domain.
+   - Neutral copy that names the site, when the browser reported related-origin support and
+     the ceremony still failed. It never tells the person to update a browser that works.
 7. **R7 Sign-in first.** Adoption never blocks, delays or fails a sign-in:
    - Its calls run beside the hosted lookup, never before the ceremony.
    - They are never retried. The start call has a 3-second timeout, and the background
@@ -136,6 +138,8 @@ domain, and its local check compares the page origin and the domain hash. The ri
     origin, and completion must match all three.
   - Completion takes no browser ID; the agent derives it from the assertion's `rawId`. It
     rewrites the key into the stored form, `0x04` then lowercase x and y.
+  - The assertion travels as base64url JSON. The route decodes it into the shared check's byte
+    input and refuses a malformed field.
   - Completion is idempotent. A request with the same name, exact ID string, credential bytes
     and key as a stored entry returns that entry's result. The ID string must match exactly,
     because Kernel hashes it.
@@ -149,7 +153,9 @@ domain, and its local check compares the page origin and the domain hash. The ri
   - New columns: `credentialKey` (the credential's bytes in base64url, taken from the
     assertion's `rawId`; unique only together with `publicKey`, which every row stores in one
     spelling) and `source` (`registered` or `adopted`), plus a challenge `purpose`.
-  - All are added with `ensureColumn`. Existing rows are backfilled by copying `credentialId`.
+  - All are added with `ensureColumn`. Existing rows are backfilled by copying `credentialId`, and
+    every new row writes `credentialKey`: a registration from its credential ID, an adoption
+    from `rawId`.
   - The table is rebuilt once to drop the string-only unique constraint on `credentialId`.
   - `initSchema` then sets `user_version` 9, up from 8.
 
@@ -167,6 +173,7 @@ screens say "clave de acceso" and "chave de acesso"; that mismatch predates this
 | `app.account.passkeyEverywhere.nameTaken` | {name} is taken. Choose another name to sign in with. Your account stays the same. | {name} ya está en uso. Elige otro nombre para iniciar sesión. Tu cuenta no cambia. | {name} já está em uso. Escolha outro nome para entrar. Sua conta continua a mesma. |
 | `app.login.error.otherSite` | Sign in didn't finish. If you made this account on {sites}, sign in there once. After that it can work on other Green Goods sites too. | No se completó el inicio de sesión. Si creaste esta cuenta en {sites}, inicia sesión allí una vez. Después podrá funcionar también en otros sitios de Green Goods. | O login não foi concluído. Se você criou esta conta em {sites}, entre lá uma vez. Depois ela poderá funcionar também em outros sites do Green Goods. |
 | `app.login.error.relatedOriginUnsupported` | This browser can't use your passkey here. Sign in on {site} instead, or update your browser. | Este navegador no puede usar tu passkey aquí. Inicia sesión en {site} o actualiza tu navegador. | Este navegador não consegue usar sua passkey aqui. Entre em {site} ou atualize seu navegador. |
+| `app.login.error.relatedOriginFailed` | Your passkey couldn't be used on this site just now. Sign in on {site} instead. | No se pudo usar tu passkey en este sitio en este momento. Inicia sesión en {site}. | Não foi possível usar sua passkey neste site agora. Entre em {site}. |
 
 - `{sites}` lists the hosted sites other than the current one: `beta.greengoods.app` on www,
   `www.greengoods.app` on beta, and both, joined by "or", anywhere else. The hosted lookup carries

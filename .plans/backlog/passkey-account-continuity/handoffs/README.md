@@ -21,6 +21,14 @@
   - The resume steps below keep the decision gate.
   - Current-evidence links point at the second-review report.
   - The rig refuses unknown modes.
+- **Ninth review.** Codex raised four findings at 02:14 UTC on 2026-10-17, all addressed:
+  - Every insert writes `credentialKey`, registration included, and both stores' own duplicate
+    check moves to the ID-and-key pair.
+  - The shared check takes bytes. A completion's assertion travels as base64url JSON, decoded at
+    the route, with a test through the real JSON-RPC route.
+  - The device walk adds the brief's success signal: a September www account on admin.
+  - A related-origins failure in a browser that reported support gets neutral copy, never "update
+    your browser".
 - **Eighth review.** Codex raised three findings at 01:01 UTC on 2026-10-17, all addressed:
   - The account row's draft copy no longer promises every site and device. It names other Green
     Goods sites, in browsers that allow it, on devices that have the passkey.
@@ -98,7 +106,8 @@ Agent/model: Claude Code, claude-opus-5-5 | Coverage: planning segment on 2026-1
 | verify | 2026-10-16T19:41Z → unknown | Portable rig rerun from the hub (log written 19:41:57Z); `plan-hub validate`, guidance links, immutable reports, Biome |
 | wait | unknown → unknown | Afo's choice of delivery and Linear records; resolved (PR, COM-39 rewrite) |
 | publish | 2026-10-16T22:43Z → 2026-10-16T22:47Z | Worktree from develop, commits `0c09b4128` and `556932c65`, push gate passed, PR #1111 opened 22:44:48Z |
-| review | 2026-10-16T22:52Z → unknown | Eight review rounds (Codex 28 findings, CodeRabbit 3). First review 22:52:19Z; fixes in `61e4591c0`, `291b53161`, `74a2c80d5`, `0cc1fe244`, `45d50a51a`, `21357984c` and `3fb07707e`, and round eight edited at 2026-10-17T01:07:03Z |
+| review | 2026-10-16T22:52Z → unknown | Nine review rounds (Codex 32 findings, CodeRabbit 3). First review 22:52:19Z; fixes in `61e4591c0`, `291b53161`, `74a2c80d5`, `0cc1fe244`, `45d50a51a`, `21357984c`, `3fb07707e` and `8a7779a77`, and round nine edited at 2026-10-17T02:19:42Z |
+| sync | 2026-10-17T01:56:37Z → unknown | Expired test skips fixed on develop by #1112 (`1c9eca913`); develop merged into this branch as `c3a8fec26` |
 
 Times are observed boundaries: file and log write times, the scaffold time, commit times and the
 PR's creation time. Anything not observed is `unknown`.
