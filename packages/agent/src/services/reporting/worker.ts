@@ -13,6 +13,10 @@ const log = createLogger("reporting");
  * One pass over every durable queue: provider statuses, conversation turns, background jobs and
  * the outbox. Tests call `drain` for deterministic schedules; the process runtime calls `tick`
  * on an interval. Statuses, outcomes and reconciliation run under every operating pause.
+ *
+ * Once `stopping` is aborted, a pass finishes the turn, job or send in hand and claims nothing
+ * else, so a shutdown waits for one unit instead of a whole pass. Work left unclaimed stays
+ * pending and the next process takes it up; nothing is interrupted part way.
  */
 export type JobOutcome =
   | { status: "done" }
@@ -53,7 +57,7 @@ function applyPendingStatuses(deps: ReportingWorkerDeps): number {
 async function runJobs(deps: ReportingWorkerDeps, limit: number): Promise<number> {
   const kinds = Object.keys(deps.jobs) as JobKind[];
   let ran = 0;
-  while (ran < limit) {
+  while (ran < limit && !deps.stopping?.aborted) {
     const job = claimJob(deps.core, deps.workerId, kinds);
     if (!job) break;
     ran += 1;
@@ -88,16 +92,22 @@ async function refreshGardens(core: ReportingWorkerDeps["core"]): Promise<void> 
 }
 
 export async function tick(deps: ReportingWorkerDeps): Promise<TickSummary> {
+  const summary: TickSummary = { statuses: 0, turns: 0, jobs: 0, sent: 0 };
+  // Checked before every phase, since a stop can arrive during any await before it.
+  const stopped = () => deps.stopping?.aborted === true;
+  if (stopped()) return summary;
   await refreshGardens(deps.core);
-  const statuses = applyPendingStatuses(deps);
-  let turns = 0;
+  if (stopped()) return summary;
+  summary.statuses = applyPendingStatuses(deps);
   for (const conversationId of conversationsWithWork(deps.core)) {
-    turns += await processConversation(deps, conversationId, deps.workerId);
+    if (stopped()) return summary;
+    summary.turns += await processConversation(deps, conversationId, deps.workerId);
   }
-  const jobs = await runJobs(deps, 25);
+  summary.jobs = await runJobs(deps, 25);
+  if (stopped()) return summary;
   inTransaction(deps.core.db, () => recoverStalledDispatches(deps.core, 5 * 60 * 1000));
-  const { sent } = await dispatchOutbox(deps.core, deps.transport);
-  return { statuses, turns, jobs, sent };
+  summary.sent = (await dispatchOutbox(deps.core, deps.transport, 50, deps.stopping)).sent;
+  return summary;
 }
 
 /** Runs ticks until a full pass does no work, bounded so a livelock fails loudly in tests. */
