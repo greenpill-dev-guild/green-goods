@@ -505,3 +505,31 @@ describe("OpenAI voice transcription", () => {
     ]);
   });
 });
+
+describe("a request the daily spend cap refuses", () => {
+  it("is never sent, and every adapter reports model processing as off", async () => {
+    // What the ledger's meter throws once the day's recorded cost has reached the cap.
+    const capReached: ModelMeter = () => {
+      throw new InterpretationUnavailableError("disabled");
+    };
+    const { calls, fetchStub } = recorder({});
+    const jev = { apiKey: "jev-test", baseUrl: "https://jev.test", model: "jev-latest" };
+    const openai = {
+      apiKey: "sk-test",
+      baseUrl: "https://openai.test/v1",
+      model: "test-model",
+      transcriptionModel: "gpt-4o-mini-transcribe-2025-12-15",
+      fetch: fetchStub,
+    };
+    const voice = { wav: new Uint8Array([1]), locale: "en", seconds: 4 };
+    const sends = [
+      () => routeWithJev({ ...jev, fetch: fetchStub }, request, signal(), capReached),
+      () => extractWithOpenAI(openai, request, signal(), capReached),
+      () => transcribeVoice(openai, voice, signal(), capReached),
+    ];
+    for (const send of sends) {
+      await expect(send()).rejects.toMatchObject({ reason: "disabled" });
+    }
+    expect(calls).toHaveLength(0);
+  });
+});

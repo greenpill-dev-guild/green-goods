@@ -1,6 +1,7 @@
 import { createLogger } from "../logger";
 import { readControl } from "./controls";
 import { inTransaction } from "./database";
+import { InterpretationUnavailableError } from "./interpretation";
 import type { ReportingCore } from "./runtime";
 
 const log = createLogger("reporting");
@@ -15,7 +16,9 @@ const log = createLogger("reporting");
  *
  * Once a UTC day's recorded cost reaches the cap, model processing stops exactly as if its operator
  * switch were off: chat turns ask plain questions, files are kept unread and voice notes are
- * declined, until 00:00 UTC.
+ * declined, until 00:00 UTC. The meter enforces the cap itself, in the transaction that would
+ * record each request, so requests started together, such as a turn's routing and extraction,
+ * cannot all pass a check made before either was recorded.
  */
 export type ModelPurpose = "routing" | "extraction" | "media" | "transcription";
 
@@ -44,7 +47,9 @@ export type ModelSettlement =
 
 /**
  * Records a request before it is sent and returns how to settle it. Adapters call it once per
- * request and settle once, with what the reply said.
+ * request and settle once, with what the reply said. Once the day's recorded cost has reached the
+ * cap it records nothing and throws InterpretationUnavailableError("disabled"), the error adapters
+ * already report, so the request is never sent.
  */
 export type ModelMeter = (request: ModelRequest) => (settlement: ModelSettlement) => void;
 
@@ -138,11 +143,14 @@ function spentOn(core: ReportingCore, day: string): number {
   return row.spent;
 }
 
-/** Runs one ledger write and logs the moment it carries the day across the cap. */
-function writeAndWatch(core: ReportingCore, day: string, write: () => void): void {
+/**
+ * Runs one ledger write and logs the moment it carries the day across the cap. The write sees the
+ * day's recorded cost as read in its own transaction, so no other write can change it first.
+ */
+function writeAndWatch(core: ReportingCore, day: string, write: (spent: number) => void): void {
   inTransaction(core.db, () => {
     const before = spentOn(core, day);
-    write();
+    write(before);
     const after = spentOn(core, day);
     if (before < DAILY_CAP_MICRO_USD && after >= DAILY_CAP_MICRO_USD) {
       log.warn(
@@ -160,7 +168,9 @@ export function modelMeter(core: ReportingCore): ModelMeter {
     const now = core.clock.now();
     const day = utcDay(now);
     const reserved = costMicroUsd(request.model, request.reserve);
-    writeAndWatch(core, day, () =>
+    writeAndWatch(core, day, (spent) => {
+      // Model processing is off for the rest of the day: refused before anything is recorded.
+      if (spent >= DAILY_CAP_MICRO_USD) throw new InterpretationUnavailableError("disabled");
       core.db
         .query(
           `INSERT INTO model_calls
@@ -175,8 +185,8 @@ export function modelMeter(core: ReportingCore): ModelMeter {
           purpose: request.purpose,
           cost: reserved,
           now,
-        })
-    );
+        });
+    });
     return (settlement) => {
       const usage = settlement.outcome === "answered" ? settlement.usage : undefined;
       // A stated bill replaces the reservation; an error reply bills nothing; otherwise the

@@ -1,7 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { loadReportingProviders } from "../../services/reporting/config";
 import { setControl } from "../../services/reporting/controls";
-import { createModelInterpreter } from "../../services/reporting/interpretation";
+import {
+  createModelInterpreter,
+  InterpretationUnavailableError,
+} from "../../services/reporting/interpretation";
 import { extractWithOpenAI } from "../../services/reporting/model-extraction";
 import {
   modelMeter,
@@ -18,8 +21,8 @@ import { ADA, Harness, spendDailyModelCap } from "./support/harness";
 
 /**
  * The model spend ledger and its $2 daily cap on real SQLite: pricing, reservations held by requests
- * that never settle, the UTC day boundary, the operator view, and a chat turn that stops calling the
- * model at the cap. Provider replies are scripted; live billing is not exercised. Files and voice
+ * that never settle, requests the meter refuses at the cap, the UTC day boundary, the operator view,
+ * and a chat turn that stops calling the model at the cap. Provider replies are scripted; live billing is not exercised. Files and voice
  * notes at the cap are covered beside their own pause cases in media.sqlite.test.ts and
  * voice.sqlite.test.ts.
  */
@@ -37,7 +40,10 @@ const EXTRACTION = "gpt-4.1-mini-2025-04-14";
 const TRANSCRIPTION = "gpt-4o-mini-transcribe-2025-12-15";
 
 /** Records a request as an adapter would, settling it unless the process "dies" first. */
-function send(request: Partial<ModelRequest>, settlement: ModelSettlement | null): void {
+function send(
+  request: Partial<ModelRequest>,
+  settlement: ModelSettlement | null
+): (settlement: ModelSettlement) => void {
   const settle = modelMeter(harness.core)({
     provider: "openai",
     model: EXTRACTION,
@@ -46,6 +52,7 @@ function send(request: Partial<ModelRequest>, settlement: ModelSettlement | null
     ...request,
   });
   if (settlement) settle(settlement);
+  return settle;
 }
 
 function answered(usage: ModelUsage): ModelSettlement {
@@ -90,6 +97,8 @@ describe("model spend ledger", () => {
       calls: { "openai:extraction:unanswered": 1 },
     });
     expect(modelProcessingOn(harness.core)).toBe(false);
+    // The restarted process cannot send more: its next request is refused at exactly the cap.
+    expect(() => send({}, null)).toThrow(new InterpretationUnavailableError("disabled"));
   });
 
   it("has a price for every model this build pins", () => {
@@ -107,23 +116,34 @@ describe("model spend ledger", () => {
     expect(costs().every((cost) => cost !== null && cost > 0)).toBe(true);
   });
 
-  it("turns model processing off for the rest of the UTC day once $2 is spent", () => {
+  it("refuses model requests for the rest of the UTC day once $2 is recorded, even ones sent together", () => {
     setControl(harness.core, "model_processing", true, { actor: "test", reason: "spend cap" });
     harness.clock.time = Date.parse("2026-10-16T23:00:00Z");
     send({}, answered({ inputTokens: 4_999_997 }));
     expect(modelSpend(harness.core).spentMicroUsd).toBe(1_999_999);
     expect(modelProcessingOn(harness.core)).toBe(true);
 
-    send({}, answered({ inputTokens: 3 }));
-    expect(modelSpend(harness.core)).toMatchObject({
+    // A turn records its routing and extraction requests one after the other before sending
+    // either. The first reservation carries the day past the cap, so the meter refuses the second
+    // without recording it, and its adapter never sends it.
+    const settleFirst = send({ reserve: { inputTokens: 3 } }, null);
+    expect(() => send({ reserve: { inputTokens: 3 } }, null)).toThrow(
+      new InterpretationUnavailableError("disabled")
+    );
+    settleFirst(answered({ inputTokens: 3 }));
+    expect(modelSpend(harness.core)).toEqual({
       day: "2026-10-16",
       spentMicroUsd: 2_000_001,
+      capMicroUsd: 2_000_000,
       capReached: true,
+      calls: { "openai:extraction:answered": 2 },
     });
     expect(modelProcessingOn(harness.core)).toBe(false);
 
+    // The meter takes requests again from 00:00 UTC.
     harness.clock.time = Date.parse("2026-10-17T00:00:00Z");
     expect(modelProcessingOn(harness.core)).toBe(true);
+    send({}, answered({ inputTokens: 1 }));
     // The operator's switch still decides under the cap.
     setControl(harness.core, "model_processing", false, { actor: "test", reason: "paused" });
     expect(modelProcessingOn(harness.core)).toBe(false);
