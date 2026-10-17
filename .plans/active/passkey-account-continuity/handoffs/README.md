@@ -2,7 +2,10 @@
 
 ## State (2026-10-17)
 
-- **Planned and de-risked; nothing implemented.** Lanes are `todo`; `contracts` is `n/a`.
+- **Implementing.** Steps 1 to 3 are done on `feature/passkey-account-continuity`: hex-stored
+  directory IDs and exact-ID account switching (`a76570cfd`), the shared byte-input verifier
+  (`b89b06bef`), and the account-keyed store (`8c1e84f86`). `state_api` is in progress;
+  `contracts` is `n/a`. The Linear parent is PRD-1154, preserved read-only.
 - **Decisions answered.** On 2026-10-17 Afo took the plan's recommendation for decisions 1 to 7
   and 9, and settled O4 under decision 2: "Use this device's passkey" adopts inside its sign-in
   too. Decision 8 was answered on 2026-10-16 (COM-39 rewritten). Still Afo's to do: confirm the

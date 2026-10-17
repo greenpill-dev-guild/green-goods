@@ -65,6 +65,8 @@ export {
   type PasskeyDirectoryCredential,
 } from "./passkey-directory";
 
+export { type PasskeyAssertionBytes, verifyPasskeyAssertionBytes } from "./passkey-assertion";
+
 export * from "./core";
 export * from "./saved-offers";
 

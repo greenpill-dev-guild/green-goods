@@ -51,11 +51,11 @@ Start the servers in one terminal, then run the scenarios in another with the sa
 `RIG_CERT_DIR`:
 
 ```bash
-bun run .plans/backlog/passkey-account-continuity/artifacts/rig/rig-server.ts
+bun run .plans/active/passkey-account-continuity/artifacts/rig/rig-server.ts
 ```
 
 ```bash
-RIG_RESULTS="$RIG_CERT_DIR/results.json" bun run .plans/backlog/passkey-account-continuity/artifacts/rig/run.ts
+RIG_RESULTS="$RIG_CERT_DIR/results.json" bun run .plans/active/passkey-account-continuity/artifacts/rig/run.ts
 ```
 
 Stop the server by its process ID, then delete `$RIG_CERT_DIR`.
