@@ -6,11 +6,12 @@
    reach, and the deployed WebAuthn validator accepts its signatures there.
 2. **Safety.** Adoption refuses every case in AC-3. No name, key or credential ID reaches a log.
 3. **Regression safety.** Directory sign-up and sign-in, hosted sign-in on its home site, session
-   restore and signing behave as before. Sign-in never waits on adoption.
+   restore and signing behave as before. Sign-in never waits on adoption. Hosted sign-in's local
+   check doesn't read the signature counter (AC-12).
 4. **Evidence quality.** Every claim carries its evidence label: clean-room Chromium with a
    virtual authenticator, authenticated device, or a read-only `eth_call`.
-5. **Human judgment.** Decisions 1 to 7 in [plan.todo.md](plan.todo.md) are answered before any
-   step starts. Shared auth and the agent directory keep the critical override.
+5. **Human judgment.** Decisions 1 to 7 and 9 in [plan.todo.md](plan.todo.md) are answered before
+   any step starts. Shared auth and the agent directory keep the critical override.
 
 ## Acceptance Checks
 
@@ -27,12 +28,14 @@
 | AC-9 | Regression review | Existing passkey specs and auth tests pass, and the critical gate is green | `qa_pass_2` | `node scripts/dev/ci-local.js --intent push` receipts |
 | AC-10 | Sign-in and adoption race | With the adoption start held open, hosted sign-in starts its ceremony when the hosted lookup answers, makes no retry, and sends no completion. With the challenge ready first, the background completion carries that challenge and the hosted account's exact ID, key and RP ID. Hosted `startAuthentication` and `verifyAuthentication` are no longer called. The local check refuses another credential, another key and a stale challenge. | `state_api` | Unit tests for both orders after step 6. Not measured in the rig. |
 | AC-11 | Store upgrade | A v2.0.1 database gains the new columns with defaults and backfill. It is rebuilt with a unique `(credentialKey, publicKey)` pair in place of the string-only `credentialId` constraint, and keeps its passkeys and pending challenges. | `state_api` | `storage.sqlite.test.ts` after step 3 |
+| AC-12 | Signature counter (decision 9) | By default, the local check that replaces the hosted verdict doesn't read the counter, and the spec lists that under risks. If decision 9 chooses tracking: a counter that isn't above a nonzero stored one is refused (0 included), 0 over 0 is accepted, adoption stores the counter, and the record call never lowers it or accepts another key's signature. | `state_api` | Not measured in the rig. Unit and route tests after steps 2, 5 and 6, only if tracking is chosen. |
 
 ## Test Strategy
 
 - **Unit (shared):**
   - directory sign-in with hex and base64url IDs;
   - the verifier at its new home;
+  - the verifier's counter rule, only if decision 9 chooses tracking (AC-12);
   - the adoption client's address guard, its silent failure, and its no-wait rule with a
     never-settling start (AC-10);
   - error copy per site.
@@ -41,7 +44,8 @@
     both spellings and an identical retry;
   - the store rules for both stores, including cross-spelling uniqueness;
   - the v2.0.1 upgrade in `storage.sqlite.test.ts` (AC-11);
-  - the hosted lookup with a stubbed fetch.
+  - the hosted lookup with a stubbed fetch;
+  - the counter record call, only if decision 9 chooses tracking (AC-12).
 - **Integration:** the clean-room rig in [artifacts/rig/](artifacts/rig/README.md), rerun on the
   branch. Cross-site ceremonies need real hostnames on the default port, so this stays a
   scripted manual proof rather than a CI test (proof limit).

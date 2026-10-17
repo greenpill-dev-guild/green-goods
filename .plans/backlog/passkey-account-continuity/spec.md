@@ -105,9 +105,10 @@ sequenceDiagram
 
 The person sees one passkey prompt, as today. It starts as soon as the hosted lookup answers, one
 hosted round trip sooner than today. The hosted server's own start and verify calls are replaced
-by a local check against the listed key, the check the directory path already runs. A challenge that hasn't arrived by then is dropped, and the sign-in
-goes ahead without adoption. Their next sign-in by name on any site finds the directory entry
-first.
+by a local check against the listed key, the check the directory path already runs. That check
+doesn't read the signature counter, which the hosted verdict may compare (decision 9). A
+challenge that hasn't arrived by then is dropped, and the sign-in goes ahead without adoption.
+Their next sign-in by name on any site finds the directory entry first.
 
 Only the hosted path merges, because it is the one that already waits on a lookup before its
 ceremony. A saved session, or "Use this device's passkey" (the only way in for the app-made
@@ -174,8 +175,16 @@ screens say "clave de acceso" and "chave de acesso"; that mismatch predates this
   Signatures were checked against the deployed validator with a read-only `eth_call`.
 - **Validator source:** WebAuthn validator `0xbA45a2BFb8De3D24cA9D7F1B551E14dFF5d690Fd` on
   Arbitrum One (verified source). Its `WebAuthn.verifySignature` checks the flags, the response
-  type, the challenge and the P-256 signature. It states that it does not check the origin or the
-  RP ID hash.
+  type, the challenge and the P-256 signature. It states that it does not check the origin, the
+  RP ID hash or the signature counter.
+- **Signature counter:** the app's verifier (`modules/auth/passkey-assertion.ts`) reads no
+  counter, the directory store keeps none, and the hosted lookup returns only an ID and a key
+  (`PasskeyServerCredential` in `authServices.ts`). Synced passkeys from Apple and Google report
+  0 on every sign-in. That rests on secondary sources
+  ([uzyn, 2025](https://uzyn.com/2025/passkey-has-a-theft-detection-feature-but-big-tech-broke-it/),
+  [MojoAuth](https://mojoauth.com/blog/signcount-is-dead-why-passkey-clone-detection-doesnt-work-anymore));
+  none is first-party. [WebAuthn](https://www.w3.org/TR/webauthn-3/#sctn-verifying-assertion)
+  compares counters only when either value is nonzero, and leaves refusal to the relying party.
 - **Live probes (2026-10-16):** the www, beta, admin and beta.admin bundles all carry the directory
   client. The agent accepts the apex, www, beta, staging, admin, beta.admin and staging-admin
   origins and refuses other subdomains. `/.well-known/webauthn` on www and beta answers 200
@@ -238,7 +247,7 @@ from any device the passkey syncs to.
 
 ## Human Judgment Points
 
-- Decisions 1 to 8 in [plan.todo.md](plan.todo.md#decision-log).
+- Decisions 1 to 9 in [plan.todo.md](plan.todo.md#decision-log).
 - Protected or high-risk surfaces: shared Auth workflows and the agent's passkey directory (both
   critical), and the client's static `.well-known` folder and `vercel.json`.
 - Keep visible during review: the directory becomes the record for adopted accounts too; the
@@ -253,6 +262,7 @@ from any device the passkey syncs to.
   - Both the origin allowlist and the domain allowlist apply.
   - Adoption happens on the passkey's own domain.
   - Possession is proven, and a hosted name must match its listed passkey.
+  - The signature counter follows decision 9. The validator ignores it either way.
   - Rate limits use the registration class.
 - **Privacy:** names, keys and IDs stay out of logs and telemetry, as the directory already does.
 - **Performance:** adoption adds no wait to a sign-in.
@@ -297,6 +307,12 @@ from any device the passkey syncs to.
   - Risk: reading an even-length, all-hex base64url ID only as hex refuses a legitimate passkey.
   - Mitigation: accept either reading, as the app's sign-in already does, and key uniqueness on
     the assertion's bytes (rig scenario F).
+- **A copied passkey that counts its signatures.**
+  - Risk: the local check that replaces the hosted verdict doesn't read the signature counter, so
+    it can't notice a copy the hosted verdict might have refused.
+  - Mitigation: what the account can sign doesn't depend on it, because the validator ignores the
+    counter. Decision 9 chooses whether the directory tracks it and refuses a counter that isn't
+    above a nonzero stored one.
 - **The hosted server down during adoption.**
   - Risk: the directory can't confirm who holds a hosted name.
   - Mitigation: refuse with a non-retried `unavailable` and try again at a later sign-in; sign-in

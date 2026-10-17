@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-10-16T19:35:57.040Z",
-    "updated_at": "2026-10-16T23:54:10Z"
+    "updated_at": "2026-10-17T00:21:43Z"
   },
   "links": {
     "brief": "brief.md",
@@ -34,7 +34,7 @@
     "depends_on_features": []
   },
   "notes": [
-    "Planned and de-risked on 2026-10-16; blocked on decisions 1 to 7 in plan.todo.md. Step 6 depends on decision 2 and step 8 on decision 4.",
+    "Planned and de-risked on 2026-10-16; blocked on decisions 1 to 7 and 9 in plan.todo.md. Step 6 depends on decisions 2 and 9, and step 8 on decision 4.",
     "Clean-room proof: reports/2026-10-16-clean-room-proof-fifth-review.md, which supersedes the four earlier reports of the same day (clean-room Chromium, virtual authenticator; signatures checked by read-only eth_call). Device proof is plan step 11 and is Afo's.",
     "Shared auth workflows and the agent passkey directory are critical surfaces: read every touched line and keep the selector's critical override.",
     "Never re-encode a stored passkey credential ID: Kernel hashes that exact string into the account address.",
@@ -190,6 +190,14 @@
       "status": "planning_reconciled",
       "branch": null,
       "note": "Addressed the fifth review (Codex): uniqueness binds ID bytes to the proven key, with a table rebuild to drop the string-only constraint; the capability check runs only when a ceremony needs related origins; AC-4 requires adoption on beta first; step 6 states the hosted start/verify replacement. Rig rerun adds the spoofed-rawId scenario G and the adopt-first journey. Timestamp: the observed rig rerun."
+    },
+    {
+      "timestamp": "2026-10-17T00:21:43Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "planning_reconciled",
+      "branch": null,
+      "note": "Addressed the sixth review (Codex): step 6 no longer claims the local check covers the hosted verdict, since it never reads the signature counter and the hosted lookup returns none; new decision 9 asks whether the directory tracks the counter (recommended: no, because the deployed validator ignores it and synced passkeys report 0), with the tracking design and its tests in step 6 and AC-12. No rig change. Timestamp: the observed edit time."
     }
   ]
 }

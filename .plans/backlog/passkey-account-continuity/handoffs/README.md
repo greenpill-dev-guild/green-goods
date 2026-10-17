@@ -1,11 +1,11 @@
 # Handoffs: passkey-account-continuity
 
-## State (2026-10-16)
+## State (2026-10-17)
 
 - **Planned and de-risked; nothing implemented.** Lanes are `todo`; `contracts` is `n/a`.
-- **Waiting on Afo:** decisions 1 to 7 in [plan.todo.md](../plan.todo.md#decision-log). Decision 8
-  is answered: COM-39 was rewritten on 2026-10-16. Step 6
-  depends on decision 2, and step 8 on decision 4.
+- **Waiting on Afo:** decisions 1 to 7 and 9 in [plan.todo.md](../plan.todo.md#decision-log).
+  Decision 8 is answered: COM-39 was rewritten on 2026-10-16. Step 6 depends on decisions 2 and
+  9, and step 8 on decision 4.
 - **First review.** Codex's review of the first commit raised eight findings, all addressed on
   2026-10-16:
   - Adoption calls get their own no-retry, 3-second client and run beside the hosted lookup.
@@ -21,6 +21,12 @@
   - The resume steps below keep the decision gate.
   - Current-evidence links point at the second-review report.
   - The rig refuses unknown modes.
+- **Sixth review.** Codex raised one finding at 00:03 UTC on 2026-10-17, and it is addressed:
+  - Step 6 no longer calls the local check the hosted verdict's equal. It doesn't read the
+    signature counter, and the hosted lookup returns no counter to compare.
+  - New decision 9 asks whether the directory tracks the counter. The plan recommends not,
+    because the validator ignores it and synced passkeys report 0. Step 6 holds the tracking
+    design and its tests, and AC-12 covers both answers.
 - **Fifth review.** Codex raised four more findings the same day, all addressed:
   - Credential uniqueness binds the ID bytes to the proven key, since `rawId` sits outside the
     signature. A table rebuild drops the string-only constraint.
@@ -59,8 +65,9 @@
 1. Read the decision answers. Promote the hub with
    `node scripts/harness/plan-hub.mjs move --feature passkey-account-continuity --to active`, then
    run the Linear gate from the plan skill.
-2. Only once decisions 1 to 7 are answered, start at step 1. Steps 1 to 5 can land before any
-   user-visible change, but none of them starts before the decisions.
+2. Only once decisions 1 to 7 and 9 are answered, start at step 1. If decision 9 chooses
+   tracking, first fold step 6's counter design into steps 2, 3 and 5. Steps 1 to 5 can land
+   before any user-visible change, but none of them starts before the decisions.
 3. Rerun the rig ([artifacts/rig/README.md](../artifacts/rig/README.md)) after steps 1, 5 and 8.
 
 ## Task record
@@ -75,6 +82,7 @@ Agent/model: Claude Code, claude-opus-5-5 | Coverage: planning segment on 2026-1
 | verify | 2026-10-16T19:41Z → unknown | Portable rig rerun from the hub (log written 19:41:57Z); `plan-hub validate`, guidance links, immutable reports, Biome |
 | wait | unknown → unknown | Afo's choice of delivery and Linear records; resolved (PR, COM-39 rewrite) |
 | publish | 2026-10-16T22:43Z → 2026-10-16T22:47Z | Worktree from develop, commits `0c09b4128` and `556932c65`, push gate passed, PR #1111 opened 22:44:48Z |
+| review | 2026-10-16T22:52Z → unknown | Six review rounds (Codex 20 findings, CodeRabbit 3). First review 22:52:19Z; fixes in `61e4591c0`, `291b53161`, `74a2c80d5`, `0cc1fe244` and `45d50a51a`, and round six edited at 2026-10-17T00:21:43Z |
 
 Times are observed boundaries: file and log write times, the scaffold time, commit times and the
 PR's creation time. Anything not observed is `unknown`.

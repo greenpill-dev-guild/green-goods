@@ -2,9 +2,9 @@
 
 **Feature Slug**: `passkey-account-continuity`
 **Stage**: `backlog`
-**Status**: `ACTIVE — planned and de-risked; waiting on decisions 1 to 7`
+**Status**: `ACTIVE — planned and de-risked; waiting on decisions 1 to 7 and 9`
 **Created**: `2026-10-16T19:35:57.040Z`
-**Last Updated**: `2026-10-16`
+**Last Updated**: `2026-10-17`
 
 Read [brief.md](brief.md) for the problem and [spec.md](spec.md) for the current behaviour and
 evidence. The clean-room proof behind this plan is
@@ -12,8 +12,8 @@ evidence. The clean-room proof behind this plan is
 
 ## Decision Log
 
-Rows 1 to 7 are proposed. Nothing in them is decided until Afo answers it; the recommendation is
-the plan's default if he agrees. Row 8 was answered on 2026-10-16.
+Rows 1 to 7 and 9 are proposed. Nothing in them is decided until Afo answers it; the
+recommendation is the plan's default if Afo agrees. Row 8 was answered on 2026-10-16.
 
 | # | Decision | Recommendation | Rationale |
 |---|---|---|---|
@@ -25,17 +25,18 @@ the plan's default if he agrees. Row 8 was answered on 2026-10-16.
 | 6 | Where the saved-session action lives | A row in the account screens that already exist (client profile, admin account panel), never a banner. | Existing chrome, no layout shift; it shows only for passkey sessions without a directory entry. |
 | 7 | The three staging test accounts from June and July | Confirm they are team tests, then drop them. Support-assisted if not. | The hosted server stopped accepting the staging origin (probed 4 October), so they can't sign in by name to adopt. |
 | 8 | COM-39 | **Decided 2026-10-16:** rewritten around keeping accounts, with moving as the fallback ([handoffs/com-39-update-draft.md](handoffs/com-39-update-draft.md)). | Afo chose the rewrite. The old text counted only from late June and planned a move. |
+| 9 | The signature counter, once hosted sign-in stops asking the hosted server for a verdict (step 6) | Don't track it, as the directory's own sign-in doesn't today. List the gap in the spec's risks, and revisit if the account's on-chain check ever reads the counter. | The deployed validator decides what the account can sign, and its source says it ignores the counter, so a copied key signs without any sign-in. Synced passkeys from Apple and Google report 0, so for most people there is nothing to compare. Every adopted account moves to the directory's sign-in, whichever trigger adopts it, so keeping the hosted verdict in step 6 alone would only delay the change. Tracking adds a column, one more call, and a refusal that keeps the owner out until support clears it ([step 6](#step-6-adopt-during-sign-in-never-in-its-way-state_api-shared)). |
 
 ## Research / Plan Gate
 
 - [x] Record research evidence in `spec.md`
 - [x] Identify the existing repo pattern to mirror: the directory's registration rules and store,
       and the app's in-page ceremony with a local signature check
-- [x] List human judgment points before implementation (decisions 1 to 8)
+- [x] List human judgment points before implementation (decisions 1 to 9)
 - [x] Decision 8: COM-39 rewritten (2026-10-16)
 - [x] Define what is out of scope ([brief.md](brief.md))
 - [x] Prove the risky parts before planning steps (clean-room report)
-- [ ] Afo answers decisions 1 to 7
+- [ ] Afo answers decisions 1 to 7 and 9
 - [ ] Choose validation per step with `bun run check --plan -- --intent qa` at implementation time
 
 ## Requirements Coverage
@@ -214,9 +215,13 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
   - Either way, check the assertion locally against the key the hosted server listed, as the
     directory path already does, and submit the completion in the background.
   - This replaces the hosted server's `startAuthentication` and `verifyAuthentication`: the app
-    no longer asks it for a challenge or a verdict. The local check covers what that verdict
-    covered: the challenge, origin, RP ID hash, user presence and verification, and the
-    signature against the listed key.
+    no longer asks it for a challenge or a verdict. The local check covers the challenge,
+    origin, RP ID hash, user presence and verification, and the signature against the listed
+    key.
+  - It does not cover the signature counter. It never reads bytes 33 to 36 of the authenticator
+    data, and the hosted lookup returns no counter to compare. Whether the hosted verdict
+    compares one, or checks anything else, is unverified, so the local check is not claimed as
+    its equal. Decision 9 settles the counter.
   - So adoption adds no wait. The ceremony starts when the lookup answers, one hosted round trip
     sooner than today.
 - **Only the hosted path merges**, because only it already waits on a lookup before the ceremony.
@@ -226,12 +231,29 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
   sign-in failure.
 - **Address guard.** Before sending, rebuild the Kernel address from the entry and compare it with
   the stored address. Send nothing on a mismatch.
+- **Signature counter (decision 9).** Whichever trigger adopts an account, its later sign-ins
+  run the directory's local check, which doesn't read the counter today. With decision 9's
+  default nothing more changes, and the spec lists the gap under risks. If decision 9 chooses
+  tracking instead:
+  - Step 3 adds a `signCount` column. Registration and adoption store the assertion's counter,
+    and the lookup returns it.
+  - Step 2's verifier refuses a counter that isn't above a nonzero stored one, as WebAuthn
+    describes.
+  - After a sign-in that reports a nonzero counter, the app sends the assertion to a new
+    `gg_recordPasskeyCounter` beside step 5's calls. It runs step 2's check without the
+    challenge and keeps the higher value. No fresh challenge is needed, because a replayed
+    assertion only repeats a count that was already real.
+  - The merged sign-in has nothing to compare, since the hosted lookup returns no counter, so
+    tracking starts at adoption.
+  - Tests: against a nonzero stored counter, the verifier refuses an equal one, a lower one and
+    0, and accepts a higher one; it accepts 0 over 0. The record call never lowers the stored
+    value and refuses another key's signature.
 - **RED/GREEN** in `authServices.test.ts`:
   - With the adoption start held open (a promise that never settles), hosted sign-in starts its
     ceremony as soon as the hosted lookup answers. It uses a local challenge, calls neither
     `startAuthentication` nor `verifyAuthentication`, and sends no completion.
-  - The local check refuses what the hosted verdict refused: an assertion for another
-    credential, one signed by a key other than the listed one, and one over a stale challenge.
+  - The local check refuses an assertion for another credential, one signed by a key other
+    than the listed one, and one over a stale challenge.
   - With the challenge ready before the lookup answers, sign-in completes, and the background
     completion carries that challenge, the hosted account's exact ID string (not the browser
     ID), its key and the page's RP ID.
