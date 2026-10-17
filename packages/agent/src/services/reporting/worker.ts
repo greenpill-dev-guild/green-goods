@@ -93,14 +93,18 @@ async function refreshGardens(core: ReportingWorkerDeps["core"]): Promise<void> 
 
 export async function tick(deps: ReportingWorkerDeps): Promise<TickSummary> {
   const summary: TickSummary = { statuses: 0, turns: 0, jobs: 0, sent: 0 };
-  if (deps.stopping?.aborted) return summary;
+  // Checked before every phase, since a stop can arrive during any await before it.
+  const stopped = () => deps.stopping?.aborted === true;
+  if (stopped()) return summary;
   await refreshGardens(deps.core);
+  if (stopped()) return summary;
   summary.statuses = applyPendingStatuses(deps);
   for (const conversationId of conversationsWithWork(deps.core)) {
-    if (deps.stopping?.aborted) return summary;
+    if (stopped()) return summary;
     summary.turns += await processConversation(deps, conversationId, deps.workerId);
   }
   summary.jobs = await runJobs(deps, 25);
+  if (stopped()) return summary;
   inTransaction(deps.core.db, () => recoverStalledDispatches(deps.core, 5 * 60 * 1000));
   summary.sent = (await dispatchOutbox(deps.core, deps.transport, 50, deps.stopping)).sent;
   return summary;

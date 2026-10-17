@@ -16,6 +16,7 @@ import {
   resolveChannelSubject,
   retireLookupVersion,
 } from "../../services/reporting/identity-store";
+import { acceptInboundEvent } from "../../services/reporting/inbox";
 import { enqueueJob } from "../../services/reporting/jobs";
 import {
   acquireConversationLease,
@@ -213,6 +214,41 @@ describe("shutdown", () => {
       one("SELECT state FROM processing_jobs WHERE dedupe_key = 'retention:shutdown'")
     ).toEqual({ state: "succeeded" });
     expect(harness.transport.sent.length).toBeGreaterThan(sent);
+  });
+});
+
+describe("shutdown during the garden refresh", () => {
+  it("takes up no delivery status once a stop arrives while the gardens are read", async () => {
+    acceptInboundEvent(harness.core, {
+      kind: "delivery_status",
+      providerRealm: ADA.realm,
+      eventId: "status-during-stop",
+      providerMessageId: "out-1",
+      status: "delivered",
+      occurredAt: harness.clock.now(),
+    });
+    const stopping = new AbortController();
+    const refresh = harness.gardens.refresh.bind(harness.gardens);
+    harness.gardens.refresh = async (...args) => {
+      stopping.abort();
+      return refresh(...args);
+    };
+    const pending = () =>
+      one<{ n: number }>(
+        "SELECT count(*) AS n FROM inbox_events WHERE kind = 'delivery_status' AND state = 'pending'"
+      ).n;
+
+    expect(await tick({ ...harness.deps(), stopping: stopping.signal })).toEqual({
+      statuses: 0,
+      turns: 0,
+      jobs: 0,
+      sent: 0,
+    });
+    expect(pending()).toBe(1);
+
+    harness.gardens.refresh = refresh;
+    await harness.drain();
+    expect(pending()).toBe(0);
   });
 });
 
