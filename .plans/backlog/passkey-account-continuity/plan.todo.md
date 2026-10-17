@@ -72,8 +72,13 @@ line and keep the selector's critical override.
 - `signInWithDirectory` passes `{ id, signingId: credential.signingId }` to
   `getPasskeyRequestIds` and `matchesBrowserId`, instead of `signingId: credential.id`. Today that
   disables the hex branch, so a hex ID is read as base64url and names the wrong bytes.
+- `switchingAccounts` compares the exact ID string as well as the key point. The other spelling
+  of one passkey is another account (step 3), so signing in by that spelling's name is a switch.
+  Compared by key alone, it keeps the saved-address check on, and the sign-in fails.
 - **RED**: an entry with a hex `id` fails sign-in (the rig shows `NotAllowedError` on beta and
   www). **GREEN**: it signs in, and the session keeps the hex string as `credential.id`.
+- **RED/GREEN**: a device that cached a legacy hex spelling signs in by both names. Its own name
+  keeps the saved address, and the hosted spelling's name switches to that account's address.
 
 ### Step 2: One assertion verifier for the app and the agent (state_api)
 
@@ -247,7 +252,7 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
     - a hosted name held by this passkey;
     - the other spelling of a held passkey, as its own account, in either order: a fresh device
       adopts the hosted spelling, then the device that cached the legacy spelling adopts it
-      under a new name, and each name signs in to its own address;
+      under a new name, and each name signs in to its own address (step 1 tests the sign-in);
     - an identical retry after success, which returns the stored result;
     - a stored ID valid in both spellings, accepted through its base64url reading;
     - a hex stored ID, whose lookup then offers the assertion's `rawId` in base64url as

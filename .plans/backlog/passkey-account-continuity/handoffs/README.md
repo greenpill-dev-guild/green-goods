@@ -21,6 +21,9 @@
   - The resume steps below keep the decision gate.
   - Current-evidence links point at the second-review report.
   - The rig refuses unknown modes.
+- **Thirteenth review.** Codex raised one finding at 03:03 UTC on 2026-10-17, and it is
+  addressed: `switchingAccounts` compares the exact ID string as well as the key, so the device
+  that cached a legacy spelling signs in by both names, each to its own address (step 1).
 - **Twelfth review.** Codex raised two findings at 02:52 UTC on 2026-10-17, both addressed:
   - After adoption, the saved-session hook saves the adopted name with `setStoredUsername`,
     so a reload doesn't bring the row back.
@@ -130,7 +133,7 @@ Agent/model: Claude Code, claude-opus-5-5 | Coverage: planning segment on 2026-1
 | verify | 2026-10-16T19:41Z → unknown | Portable rig rerun from the hub (log written 19:41:57Z); `plan-hub validate`, guidance links, immutable reports, Biome |
 | wait | unknown → unknown | Afo's choice of delivery and Linear records; resolved (PR, COM-39 rewrite) |
 | publish | 2026-10-16T22:43Z → 2026-10-16T22:47Z | Worktree from develop, commits `0c09b4128` and `556932c65`, push gate passed, PR #1111 opened 22:44:48Z |
-| review | 2026-10-16T22:52Z → unknown | Twelve review rounds (Codex 39 findings, CodeRabbit 4). First review 22:52:19Z; fixes in `61e4591c0`, `291b53161`, `74a2c80d5`, `0cc1fe244`, `45d50a51a`, `21357984c`, `3fb07707e`, `8a7779a77`, `cd46bf895`, `82f714599`, `f8f17bc6b` and `0873fc4c5`, and round twelve edited at 2026-10-17T02:53:30Z; round eleven was edited at 2026-10-17T02:42:25Z |
+| review | 2026-10-16T22:52Z → unknown | Thirteen review rounds (Codex 40 findings, CodeRabbit 4). First review 22:52:19Z; fixes in `61e4591c0`, `291b53161`, `74a2c80d5`, `0cc1fe244`, `45d50a51a`, `21357984c`, `3fb07707e`, `8a7779a77`, `cd46bf895`, `82f714599`, `f8f17bc6b`, `0873fc4c5` and `ad9e022f3`, and round thirteen edited at 2026-10-17T03:06:47Z; round twelve was edited at 2026-10-17T02:53:30Z; round eleven was edited at 2026-10-17T02:42:25Z |
 | sync | 2026-10-17T01:56:37Z → unknown | Expired test skips fixed on develop by #1112 (`1c9eca913`); develop merged into this branch as `c3a8fec26` |
 
 Times are observed boundaries: file and log write times, the scaffold time, commit times and the
