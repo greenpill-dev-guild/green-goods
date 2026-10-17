@@ -19,7 +19,9 @@ const log = createLogger("reporting");
  * until 00:00 UTC. Only the consent notice still says AI may read messages, since a consent given
  * that day outlasts it. The meter enforces the cap itself, in the transaction that would
  * record each request, so requests started together, such as a turn's routing and extraction,
- * cannot all pass a check made before either was recorded.
+ * cannot all pass a check made before either was recorded. The request that carries the day
+ * across the cap is still sent, so a day can close at most one reservation over it: about $0.42,
+ * for a request carrying a file.
  */
 export type ModelPurpose = "routing" | "extraction" | "media" | "transcription";
 
@@ -74,6 +76,8 @@ interface Price {
   perMinute?: number;
   /** The context window: no request can bill more input than this. */
   maxInputTokens?: number;
+  /** The model's own output limit, which bounds a request that cannot set one, as a transcription. */
+  maxOutputTokens?: number;
   /** Tokens each 32-pixel patch of an input image costs. */
   tokensPerImagePatch?: number;
 }
@@ -82,8 +86,9 @@ interface Price {
  * List prices of the models config.ts pins, read on 2026-10-16: OpenAI's Standard tier from
  * https://developers.openai.com/api/docs/pricing, and Jev from https://docs.typesafe.ai/models,
  * which bills input tokens only. Cached input is charged at the full input price so the cap rounds
- * up, never down. The context window and image rule come from
- * https://developers.openai.com/api/docs/models/gpt-4.1-mini and
+ * up, never down. The context windows, output limit and image rule come from
+ * https://developers.openai.com/api/docs/models/gpt-4.1-mini,
+ * https://developers.openai.com/api/docs/models/gpt-4o-mini-transcribe and
  * https://developers.openai.com/api/docs/guides/images-vision, read on 2026-10-17. A model missing
  * here is recorded without a cost and cannot reach the cap, so pinning a new model means adding
  * its price.
@@ -99,6 +104,8 @@ const PRICES: Readonly<Record<string, Price>> = {
     inputPerMillionTokens: 1_250_000,
     outputPerMillionTokens: 5_000_000,
     perMinute: 3_000,
+    maxInputTokens: 16_000,
+    maxOutputTokens: 2_000,
   },
   "jev-1.13.0": { inputPerMillionTokens: 42_000, outputPerMillionTokens: 0 },
 };
@@ -116,6 +123,11 @@ export function imageTokenCeiling(model: string, edge: number): number | null {
 /** The most input any one request can bill: the model's context window, or null when unknown. */
 export function inputTokenCeiling(model: string): number | null {
   return PRICES[model]?.maxInputTokens ?? null;
+}
+
+/** The most output any one request can bill: the model's own output limit, or null when unknown. */
+export function outputTokenCeiling(model: string): number | null {
+  return PRICES[model]?.maxOutputTokens ?? null;
 }
 
 function utcDay(now: number): string {

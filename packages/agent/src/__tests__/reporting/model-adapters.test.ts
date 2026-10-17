@@ -473,7 +473,7 @@ describe("OpenAI voice transcription", () => {
     ).rejects.toMatchObject({ reason: "provider_error" });
   });
 
-  it("reserves the recording's length, then settles with the tokens or duration billed", async () => {
+  it("reserves the model's own token limits, then settles with the tokens or duration billed", async () => {
     const spend = meter();
     const voice = { wav: new Uint8Array([1]), locale: "en", seconds: 42 };
     const replies = [
@@ -495,7 +495,9 @@ describe("OpenAI voice transcription", () => {
       provider: "openai",
       model: config.transcriptionModel,
       purpose: "transcription",
-      reserve: { audioSeconds: 42 },
+      // Its 16,000-token context window and 2,000-token output limit bound what one request bills;
+      // the per-minute price only estimates it.
+      reserve: { inputTokens: 16_000, outputTokens: 2_000 },
     };
     // A reply without usage settles with none, and the reserved recording length stands.
     expect(spend.calls).toEqual([
