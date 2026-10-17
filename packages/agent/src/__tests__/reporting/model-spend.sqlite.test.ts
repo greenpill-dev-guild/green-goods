@@ -4,10 +4,12 @@ import { setControl } from "../../services/reporting/controls";
 import { createModelInterpreter } from "../../services/reporting/interpretation";
 import { extractWithOpenAI } from "../../services/reporting/model-extraction";
 import {
-  type ModelCall,
+  modelMeter,
   modelProcessingOn,
+  type ModelRequest,
+  type ModelSettlement,
   modelSpend,
-  recordModelCall,
+  type ModelUsage,
 } from "../../services/reporting/model-spend";
 import { operatorSnapshot } from "../../services/reporting/ops";
 import { drain } from "../../services/reporting/worker";
@@ -15,10 +17,11 @@ import { reportUntilSummary } from "./support/flows";
 import { ADA, Harness, spendDailyModelCap } from "./support/harness";
 
 /**
- * The model spend ledger and its $2 daily cap on real SQLite: pricing, the UTC day boundary, the
- * operator view, and a chat turn that stops calling the model at the cap. Provider replies are
- * scripted; live billing is not exercised. Files and voice notes at the cap are covered beside
- * their own pause cases in media.sqlite.test.ts and voice.sqlite.test.ts.
+ * The model spend ledger and its $2 daily cap on real SQLite: pricing, reservations held by requests
+ * that never settle, the UTC day boundary, the operator view, and a chat turn that stops calling the
+ * model at the cap. Provider replies are scripted; live billing is not exercised. Files and voice
+ * notes at the cap are covered beside their own pause cases in media.sqlite.test.ts and
+ * voice.sqlite.test.ts.
  */
 let harness: Harness;
 
@@ -33,14 +36,20 @@ afterEach(() => {
 const EXTRACTION = "gpt-4.1-mini-2025-04-14";
 const TRANSCRIPTION = "gpt-4o-mini-transcribe-2025-12-15";
 
-function call(fields: Partial<ModelCall>): ModelCall {
-  return {
+/** Records a request as an adapter would, settling it unless the process "dies" first. */
+function send(request: Partial<ModelRequest>, settlement: ModelSettlement | null): void {
+  const settle = modelMeter(harness.core)({
     provider: "openai",
     model: EXTRACTION,
     purpose: "extraction",
-    outcome: "answered",
-    ...fields,
-  };
+    reserve: {},
+    ...request,
+  });
+  if (settlement) settle(settlement);
+}
+
+function answered(usage: ModelUsage): ModelSettlement {
+  return { outcome: "answered", usage };
 }
 
 function costs(): Array<number | null> {
@@ -52,43 +61,60 @@ function costs(): Array<number | null> {
 }
 
 describe("model spend ledger", () => {
-  it("prices answered calls at the pinned rate, rounding up, and leaves unknown costs out", () => {
-    const calls: Array<Partial<ModelCall>> = [
-      { inputTokens: 1_000, outputTokens: 100 },
-      { inputTokens: 3, outputTokens: 0 },
-      { model: TRANSCRIPTION, purpose: "transcription", inputTokens: 120, outputTokens: 30 },
-      { model: TRANSCRIPTION, purpose: "transcription", audioSeconds: 42 },
-      { outcome: "failed" },
-      { outcome: "unanswered" },
-      { provider: "jev", model: "jev-1.13.0", purpose: "routing" },
-      { model: "a-model-without-a-price", inputTokens: 1_000 },
-    ];
-    for (const fields of calls) recordModelCall(harness.core, call(fields));
-    // $0.40/$1.60 per million tokens; $1.25/$5 for audio tokens or $0.003 a minute.
-    expect(costs()).toEqual([560, 2, 300, 2_100, null, null, null, null]);
+  it("replaces a reservation with the bill a reply states, and bills nothing for an error reply", () => {
+    const reserve = { inputTokens: 1_000, outputTokens: 1_200 };
+    const transcription = { model: TRANSCRIPTION, purpose: "transcription" } as const;
+    const jev = { provider: "jev", model: "jev-1.13.0", purpose: "routing" } as const;
+    send({ reserve }, answered({ inputTokens: 1_000, outputTokens: 100 }));
+    send({}, answered({ inputTokens: 3, outputTokens: 0 }));
+    send(transcription, answered({ inputTokens: 120, outputTokens: 30 }));
+    send(transcription, answered({ audioSeconds: 42 }));
+    send(jev, answered({ inputTokens: 296, outputTokens: 20 }));
+    send({ reserve }, { outcome: "failed" });
+    // A timeout or a reply without usage may still have been billed, so the reservation stands.
+    send({ reserve }, { outcome: "unanswered" });
+    send({ reserve }, { outcome: "answered" });
+    send({ model: "a-model-without-a-price", reserve }, answered({ inputTokens: 1_000 }));
+    // $0.40/$1.60 per million tokens; $1.25/$5 for audio tokens or $0.003 a minute; Jev $0.042
+    // per million input tokens, output free.
+    expect(costs()).toEqual([560, 2, 300, 2_100, 13, null, 2_320, 2_320, null]);
+  });
+
+  it("keeps a request whose process died before it settled against the cap", () => {
+    setControl(harness.core, "model_processing", true, { actor: "test", reason: "spend cap" });
+    // Recorded before it was sent; the process never came back to settle it.
+    send({ reserve: { inputTokens: 5_000_000 } }, null);
+    expect(modelSpend(harness.core)).toMatchObject({
+      spentMicroUsd: 2_000_000,
+      capReached: true,
+      calls: { "openai:extraction:unanswered": 1 },
+    });
+    expect(modelProcessingOn(harness.core)).toBe(false);
   });
 
   it("has a price for every model this build pins", () => {
-    const { openai } = loadReportingProviders({
+    const { openai, interpretation } = loadReportingProviders({
       AGENT_REPORTING_OPENAI_API_KEY: "sk-test",
       AGENT_REPORTING_JEV_API_KEY: "jev-test",
     });
-    const pinned = [openai?.model, openai?.transcriptionModel].filter((model): model is string =>
-      Boolean(model)
-    );
-    expect(pinned).toHaveLength(2);
-    for (const model of pinned) recordModelCall(harness.core, call({ model, inputTokens: 1_000 }));
+    const pinned = [
+      openai?.model,
+      openai?.transcriptionModel,
+      interpretation.provider === "jev" ? interpretation.model : null,
+    ].filter((model): model is string => Boolean(model));
+    expect(pinned).toHaveLength(3);
+    for (const model of pinned) send({ model }, answered({ inputTokens: 1_000_000 }));
     expect(costs().every((cost) => cost !== null && cost > 0)).toBe(true);
   });
 
   it("turns model processing off for the rest of the UTC day once $2 is spent", () => {
     setControl(harness.core, "model_processing", true, { actor: "test", reason: "spend cap" });
     harness.clock.time = Date.parse("2026-10-16T23:00:00Z");
-    recordModelCall(harness.core, call({ inputTokens: 4_999_997 }));
+    send({}, answered({ inputTokens: 4_999_997 }));
     expect(modelSpend(harness.core).spentMicroUsd).toBe(1_999_999);
     expect(modelProcessingOn(harness.core)).toBe(true);
 
-    recordModelCall(harness.core, call({ inputTokens: 3 }));
+    send({}, answered({ inputTokens: 3 }));
     expect(modelSpend(harness.core)).toMatchObject({
       day: "2026-10-16",
       spentMicroUsd: 2_000_001,
@@ -161,16 +187,16 @@ describe("model spend ledger", () => {
   });
 
   it("shows the day's spend and calls to the operator, from a ledger with no identifiers", () => {
-    recordModelCall(harness.core, call({ inputTokens: 1_000, outputTokens: 100 }));
-    recordModelCall(harness.core, call({ outcome: "unanswered" }));
-    recordModelCall(
-      harness.core,
-      call({ provider: "jev", model: "jev-1.13.0", purpose: "routing" })
+    send({}, answered({ inputTokens: 1_000, outputTokens: 100 }));
+    send({}, { outcome: "unanswered" });
+    send(
+      { provider: "jev", model: "jev-1.13.0", purpose: "routing" },
+      answered({ inputTokens: 296, outputTokens: 20 })
     );
 
     expect(operatorSnapshot(harness.core).modelSpend).toEqual({
       day: "2026-09-27",
-      spentMicroUsd: 560,
+      spentMicroUsd: 573,
       capMicroUsd: 2_000_000,
       capReached: false,
       calls: {

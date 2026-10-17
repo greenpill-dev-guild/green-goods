@@ -12,19 +12,23 @@ import type { ReportingCore } from "./runtime";
  * exact signed bytes, or cleanup) is declared and crash-tested in job-reruns.sqlite.test.ts;
  * a new kind needs an entry there.
  */
-export type JobKind =
-  | "process_media"
-  | "resolve_authority"
-  | "prepare_operation"
-  | "execute_delegated"
-  | "watch_owner_attempt"
-  | "review_list"
-  | "review_open"
-  | "review_authority"
-  | "reconcile_operation"
-  | "reconcile_grant"
-  | "purge_private_content"
-  | "retention_sweep";
+/** Every kind of background job; the rerun contracts and the test harness are checked against it. */
+export const JOB_KINDS = [
+  "process_media",
+  "resolve_authority",
+  "prepare_operation",
+  "execute_delegated",
+  "watch_owner_attempt",
+  "review_list",
+  "review_open",
+  "review_authority",
+  "reconcile_operation",
+  "reconcile_grant",
+  "purge_private_content",
+  "retention_sweep",
+] as const;
+
+export type JobKind = (typeof JOB_KINDS)[number];
 
 export interface ClaimedJob {
   id: string;

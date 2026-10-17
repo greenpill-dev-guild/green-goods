@@ -6,33 +6,47 @@ import type { ReportingCore } from "./runtime";
 const log = createLogger("reporting");
 
 /**
- * The model spend ledger and its daily cap (technical brief §11.3). Each provider adapter reports
- * every request it sends: the pinned model, the outcome and the tokens the provider billed. The
- * ledger prices the call and keeps it with no message content and no participant, conversation or
- * account identifier. Once a UTC day's recorded cost reaches the cap, model processing stops
- * exactly as if its operator switch were off: chat turns ask plain questions, files are kept
- * unread and voice notes are declined, until 00:00 UTC.
+ * The model spend ledger and its daily cap (technical brief §11.3). Every provider request is
+ * recorded before it leaves, holding a reservation: the most it can plausibly bill. When the reply
+ * states its bill, that replaces the reservation; an error reply bills nothing. A request whose
+ * process dies before it settles stays recorded as unanswered and keeps its reservation, so a crash
+ * loop cannot spend past the cap unseen. Rows carry no message content and no participant,
+ * conversation or account identifier.
  *
- * A request that got no answer (a network error or timeout) may still have been billed; its cost
- * is unknown and it counts toward nothing but the call totals in the operator view.
+ * Once a UTC day's recorded cost reaches the cap, model processing stops exactly as if its operator
+ * switch were off: chat turns ask plain questions, files are kept unread and voice notes are
+ * declined, until 00:00 UTC.
  */
 export type ModelPurpose = "routing" | "extraction" | "media" | "transcription";
 
-/** One request to a model provider, as its adapter reports it. */
-export interface ModelCall {
-  provider: "openai" | "jev";
-  model: string;
-  purpose: ModelPurpose;
-  /** `answered`: a 2xx reply; `failed`: an error reply; `unanswered`: no reply at all. */
-  outcome: "answered" | "failed" | "unanswered";
+/** What a request bills: the provider's stated usage, or an estimate of it. */
+export interface ModelUsage {
   inputTokens?: number;
   outputTokens?: number;
-  /** A transcription's recording length, priced per minute when the reply reports no tokens. */
+  /** A transcription's recording length, priced per minute. */
   audioSeconds?: number;
 }
 
-/** Records one provider call. Adapters call it once for every request they send. */
-export type ModelMeter = (call: ModelCall) => void;
+/** One request, recorded before it is sent. */
+export interface ModelRequest {
+  provider: "openai" | "jev";
+  model: string;
+  purpose: ModelPurpose;
+  /** The most the request can plausibly bill; it counts until the reply states the bill. */
+  reserve: ModelUsage;
+}
+
+/** `answered`: a 2xx reply; `failed`: an error reply; `unanswered`: no reply at all. */
+export type ModelSettlement =
+  | { outcome: "answered"; usage?: ModelUsage }
+  | { outcome: "failed" }
+  | { outcome: "unanswered" };
+
+/**
+ * Records a request before it is sent and returns how to settle it. Adapters call it once per
+ * request and settle once, with what the reply said.
+ */
+export type ModelMeter = (request: ModelRequest) => (settlement: ModelSettlement) => void;
 
 /** Two US dollars per UTC day (Afo, 2026-10-16). */
 const DAILY_CAP_MICRO_USD = 2_000_000;
@@ -46,10 +60,11 @@ interface Price {
 }
 
 /**
- * Standard-tier list prices of the models config.ts pins, read from
- * https://developers.openai.com/api/docs/pricing on 2026-10-16. Cached input is charged at the
- * full input price so the cap rounds up, never down. A model missing here is recorded without a
- * cost and cannot reach the cap, so pinning a new model means adding its price.
+ * List prices of the models config.ts pins, read on 2026-10-16: OpenAI's Standard tier from
+ * https://developers.openai.com/api/docs/pricing, and Jev from https://docs.typesafe.ai/models,
+ * which bills input tokens only. Cached input is charged at the full input price so the cap rounds
+ * up, never down. A model missing here is recorded without a cost and cannot reach the cap, so
+ * pinning a new model means adding its price.
  */
 const PRICES: Readonly<Record<string, Price>> = {
   "gpt-4.1-mini-2025-04-14": { inputPerMillionTokens: 400_000, outputPerMillionTokens: 1_600_000 },
@@ -58,23 +73,24 @@ const PRICES: Readonly<Record<string, Price>> = {
     outputPerMillionTokens: 5_000_000,
     perMinute: 3_000,
   },
+  "jev-1.13.0": { inputPerMillionTokens: 42_000, outputPerMillionTokens: 0 },
 };
 
 function utcDay(now: number): string {
   return new Date(now).toISOString().slice(0, 10);
 }
 
-function costMicroUsd(call: ModelCall): number | null {
-  const price = PRICES[call.model];
-  if (!price || call.outcome !== "answered") return null;
-  if (call.inputTokens !== undefined || call.outputTokens !== undefined) {
+function costMicroUsd(model: string, usage: ModelUsage): number | null {
+  const price = PRICES[model];
+  if (!price) return null;
+  if (usage.inputTokens !== undefined || usage.outputTokens !== undefined) {
     const priced =
-      (call.inputTokens ?? 0) * price.inputPerMillionTokens +
-      (call.outputTokens ?? 0) * price.outputPerMillionTokens;
+      (usage.inputTokens ?? 0) * price.inputPerMillionTokens +
+      (usage.outputTokens ?? 0) * price.outputPerMillionTokens;
     return Math.ceil(priced / 1_000_000);
   }
-  if (call.audioSeconds !== undefined && price.perMinute !== undefined) {
-    return Math.ceil((call.audioSeconds * price.perMinute) / 60);
+  if (usage.audioSeconds !== undefined && price.perMinute !== undefined) {
+    return Math.ceil((usage.audioSeconds * price.perMinute) / 60);
   }
   return null;
 }
@@ -86,42 +102,71 @@ function spentOn(core: ReportingCore, day: string): number {
   return row.spent;
 }
 
-export function recordModelCall(core: ReportingCore, call: ModelCall): void {
-  const now = core.clock.now();
-  const day = utcDay(now);
-  const cost = costMicroUsd(call);
+/** Runs one ledger write and logs the moment it carries the day across the cap. */
+function writeAndWatch(core: ReportingCore, day: string, write: () => void): void {
   inTransaction(core.db, () => {
     const before = spentOn(core, day);
-    core.db
-      .query(
-        `INSERT INTO model_calls
-           (id, day, provider, model, purpose, outcome, input_tokens, output_tokens, cost_micro_usd, created_at)
-         VALUES ($id, $day, $provider, $model, $purpose, $outcome, $input, $output, $cost, $now)`
-      )
-      .run({
-        id: core.ids.id(),
-        day,
-        provider: call.provider,
-        model: call.model,
-        purpose: call.purpose,
-        outcome: call.outcome,
-        input: call.inputTokens ?? null,
-        output: call.outputTokens ?? null,
-        cost,
-        now,
-      });
-    if (cost !== null && before < DAILY_CAP_MICRO_USD && before + cost >= DAILY_CAP_MICRO_USD) {
+    write();
+    const after = spentOn(core, day);
+    if (before < DAILY_CAP_MICRO_USD && after >= DAILY_CAP_MICRO_USD) {
       log.warn(
-        { day, spentMicroUsd: before + cost, capMicroUsd: DAILY_CAP_MICRO_USD },
+        { day, spentMicroUsd: after, capMicroUsd: DAILY_CAP_MICRO_USD },
         "Daily model spend cap reached; model processing is off until 00:00 UTC"
       );
     }
   });
 }
 
-/** A meter that writes each reported call to this reporting database. */
+/** A meter that writes each request to this reporting database before it is sent. */
 export function modelMeter(core: ReportingCore): ModelMeter {
-  return (call) => recordModelCall(core, call);
+  return (request) => {
+    const id = core.ids.id();
+    const now = core.clock.now();
+    const day = utcDay(now);
+    const reserved = costMicroUsd(request.model, request.reserve);
+    writeAndWatch(core, day, () =>
+      core.db
+        .query(
+          `INSERT INTO model_calls
+             (id, day, provider, model, purpose, outcome, input_tokens, output_tokens, cost_micro_usd, created_at)
+           VALUES ($id, $day, $provider, $model, $purpose, 'unanswered', NULL, NULL, $cost, $now)`
+        )
+        .run({
+          id,
+          day,
+          provider: request.provider,
+          model: request.model,
+          purpose: request.purpose,
+          cost: reserved,
+          now,
+        })
+    );
+    return (settlement) => {
+      const usage = settlement.outcome === "answered" ? settlement.usage : undefined;
+      // A stated bill replaces the reservation; an error reply bills nothing; otherwise the
+      // reservation stands, because a reply without usage or a timeout may still have been billed.
+      const cost =
+        settlement.outcome === "failed"
+          ? null
+          : usage
+            ? costMicroUsd(request.model, usage)
+            : reserved;
+      writeAndWatch(core, day, () =>
+        core.db
+          .query(
+            `UPDATE model_calls SET outcome = $outcome, input_tokens = $input, output_tokens = $output,
+               cost_micro_usd = $cost WHERE id = $id`
+          )
+          .run({
+            id,
+            outcome: settlement.outcome,
+            input: usage?.inputTokens ?? null,
+            output: usage?.outputTokens ?? null,
+            cost,
+          })
+      );
+    };
+  };
 }
 
 export interface ModelSpend {

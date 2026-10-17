@@ -6,7 +6,11 @@ import {
 } from "../../services/reporting/interpretation";
 import { extractWithOpenAI } from "../../services/reporting/model-extraction";
 import { routeWithJev } from "../../services/reporting/model-routing";
-import type { ModelCall } from "../../services/reporting/model-spend";
+import type {
+  ModelMeter,
+  ModelRequest,
+  ModelSettlement,
+} from "../../services/reporting/model-spend";
 import { transcribeVoice } from "../../services/reporting/media/transcribe";
 import { extractFromMedia } from "../../services/reporting/media/extract";
 
@@ -55,10 +59,19 @@ function recorder(body: unknown, status = 200) {
 
 const signal = () => new AbortController().signal;
 
-/** A meter that keeps what each adapter reports, in order. */
+type Metered = ModelRequest & { settled?: ModelSettlement };
+
+/** A meter that keeps each request as it was recorded before sending, and how it was settled. */
 function meter() {
-  const calls: ModelCall[] = [];
-  return { calls, record: (call: ModelCall) => void calls.push(call) };
+  const calls: Metered[] = [];
+  const record: ModelMeter = (request) => {
+    const entry: Metered = { ...request };
+    calls.push(entry);
+    return (settlement) => {
+      entry.settled = settlement;
+    };
+  };
+  return { calls, record };
 }
 
 const offline = (async () => {
@@ -129,23 +142,27 @@ describe("Jev routing", () => {
     ).rejects.toMatchObject({ reason: "malformed" });
   });
 
-  it("counts every request it sends, without tokens or a price", async () => {
+  it("records each request before sending it and settles it with the input tokens Jev bills", async () => {
     const spend = meter();
-    const answered = recorder({ model: "x", answers: {} });
+    const answered = recorder({
+      model: "jev-1.13.0",
+      answers: { intent: { type: "choice", choice: "status", confidence: 0.9 } },
+      usage: { input_tokens: 296, output_tokens: 20 },
+    });
     const limited = recorder({ error: "rate limited" }, 429);
     for (const fetchStub of [answered.fetchStub, limited.fetchStub, offline]) {
       await routeWithJev({ ...config, fetch: fetchStub }, request, signal(), spend.record).catch(
         () => undefined
       );
     }
-    expect(spend.calls).toEqual(
-      ["answered", "failed", "unanswered"].map((outcome) => ({
-        provider: "jev",
-        model: "jev-latest",
-        purpose: "routing",
-        outcome,
-      }))
-    );
+    // The reservation is the body actually sent, at four characters a token.
+    const reserve = { inputTokens: Math.ceil(String(answered.calls[0]?.init.body).length / 4) };
+    const sent = { provider: "jev", model: "jev-latest", purpose: "routing", reserve };
+    expect(spend.calls).toEqual([
+      { ...sent, settled: { outcome: "answered", usage: { inputTokens: 296, outputTokens: 20 } } },
+      { ...sent, settled: { outcome: "failed" } },
+      { ...sent, settled: { outcome: "unanswered" } },
+    ]);
   });
 });
 
@@ -221,7 +238,7 @@ describe("OpenAI extraction", () => {
     ).rejects.toMatchObject({ reason: "malformed" });
   });
 
-  it("reports every request with the tokens billed, also for output it then rejects", async () => {
+  it("records each request before sending it and settles it with the tokens billed, also for output it rejects", async () => {
     const spend = meter();
     // An incomplete answer is still billed for what it used.
     const billed = recorder({
@@ -234,12 +251,23 @@ describe("OpenAI extraction", () => {
         extractWithOpenAI({ ...config, fetch: fetchStub }, withAction, signal(), spend.record)
       ).rejects.toBeInstanceOf(InterpretationUnavailableError);
     }
-    const sent = { provider: "openai", model: "test-model", purpose: "extraction" };
-    expect(spend.calls).toEqual([
-      { ...sent, outcome: "answered", inputTokens: 900, outputTokens: 40 },
-      { ...sent, outcome: "failed" },
-      { ...sent, outcome: "unanswered" },
+    expect(spend.calls.map((call) => call.settled)).toEqual([
+      { outcome: "answered", usage: { inputTokens: 900, outputTokens: 40 } },
+      { outcome: "failed" },
+      { outcome: "unanswered" },
     ]);
+    // Reserved before sending: the output ceiling, and the text input at four characters a token.
+    const [first] = spend.calls;
+    expect(first).toMatchObject({ provider: "openai", model: "test-model", purpose: "extraction" });
+    expect(first?.reserve.outputTokens).toBe(1_200);
+    const sentText = (
+      JSON.parse(String(billed.calls[0]?.init.body)) as {
+        input: Array<{ content: Array<{ text: string }> }>;
+      }
+    ).input.flatMap((message) => message.content.map((part) => part.text));
+    expect(first?.reserve.inputTokens).toBe(
+      sentText.reduce((tokens, text) => tokens + Math.ceil(text.length / 4), 0)
+    );
   });
 });
 
@@ -385,7 +413,7 @@ describe("OpenAI voice transcription", () => {
     ).rejects.toMatchObject({ reason: "provider_error" });
   });
 
-  it("reports the tokens billed, or the recording's length when the reply states none", async () => {
+  it("reserves the recording's length, then settles with the tokens or duration billed", async () => {
     const spend = meter();
     const voice = { wav: new Uint8Array([1]), locale: "en", seconds: 42 };
     const replies = [
@@ -407,12 +435,13 @@ describe("OpenAI voice transcription", () => {
       provider: "openai",
       model: config.transcriptionModel,
       purpose: "transcription",
-      outcome: "answered",
+      reserve: { audioSeconds: 42 },
     };
+    // A reply without usage settles with none, and the reserved recording length stands.
     expect(spend.calls).toEqual([
-      { ...sent, inputTokens: 120, outputTokens: 30 },
-      { ...sent, audioSeconds: 41 },
-      { ...sent, audioSeconds: 42 },
+      { ...sent, settled: { outcome: "answered", usage: { inputTokens: 120, outputTokens: 30 } } },
+      { ...sent, settled: { outcome: "answered", usage: { audioSeconds: 41 } } },
+      { ...sent, settled: { outcome: "answered" } },
     ]);
   });
 });

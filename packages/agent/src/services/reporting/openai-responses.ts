@@ -6,8 +6,8 @@ import type { ModelMeter, ModelPurpose } from "./model-spend";
  * One OpenAI Responses call with a strict JSON schema and no stored response. Callers pass only
  * the task content; every failure (transport, status, refusal, incomplete or unparsable output)
  * becomes an InterpretationUnavailableError so the conversation falls back to plain questions.
- * The meter hears about every request sent, with the tokens billed whenever the reply states them,
- * including replies whose output is then rejected.
+ * The meter records every request before it is sent and settles it with the tokens billed whenever
+ * the reply states them, including replies whose output is then rejected.
  */
 export interface OpenAIConfig {
   apiKey: string;
@@ -43,6 +43,23 @@ export function dataUrl(mime: string, bytes: Uint8Array): string {
   return `data:${mime};base64,${Buffer.from(bytes).toString("base64")}`;
 }
 
+/**
+ * Generous ceilings, not prices, held against the daily cap until a reply states its usage: text
+ * at four characters a token, an image at 2,500 tokens and a file at 3,000 tokens for each of the
+ * at most 20 pages a PDF may have (media/documents.ts).
+ */
+const IMAGE_RESERVE_TOKENS = 2_500;
+const FILE_RESERVE_TOKENS = 20 * 3_000;
+
+function reservedInputTokens(instructions: string, content: readonly InputPart[]): number {
+  let tokens = Math.ceil(instructions.length / 4);
+  for (const part of content) {
+    if (part.type === "input_text") tokens += Math.ceil(part.text.length / 4);
+    else tokens += part.type === "input_image" ? IMAGE_RESERVE_TOKENS : FILE_RESERVE_TOKENS;
+  }
+  return tokens;
+}
+
 export async function structuredResponse(
   config: OpenAIConfig,
   input: {
@@ -57,7 +74,15 @@ export async function structuredResponse(
   meter?: ModelMeter
 ): Promise<{ model: string; output: unknown }> {
   const call = config.fetch ?? fetch;
-  const sent = { provider: "openai", model: config.model, purpose: input.purpose } as const;
+  const settle = meter?.({
+    provider: "openai",
+    model: config.model,
+    purpose: input.purpose,
+    reserve: {
+      inputTokens: reservedInputTokens(input.instructions, input.content),
+      outputTokens: input.maxOutputTokens,
+    },
+  });
   let response: Response;
   try {
     response = await call(`${config.baseUrl.replace(/\/+$/, "")}/responses`, {
@@ -83,20 +108,24 @@ export async function structuredResponse(
       signal,
     });
   } catch {
-    meter?.({ ...sent, outcome: "unanswered" });
+    settle?.({ outcome: "unanswered" });
     throw new InterpretationUnavailableError(signal.aborted ? "timeout" : "provider_error");
   }
   if (!response.ok) {
-    meter?.({ ...sent, outcome: "failed" });
+    settle?.({ outcome: "failed" });
     throw new InterpretationUnavailableError("provider_error");
   }
   const json: unknown = await response.json().catch(() => null);
   const usage = usageSchema.safeParse(json);
-  meter?.({
-    ...sent,
+  settle?.({
     outcome: "answered",
     ...(usage.success
-      ? { inputTokens: usage.data.usage.input_tokens, outputTokens: usage.data.usage.output_tokens }
+      ? {
+          usage: {
+            inputTokens: usage.data.usage.input_tokens,
+            outputTokens: usage.data.usage.output_tokens,
+          },
+        }
       : {}),
   });
   const body = responseSchema.safeParse(json);

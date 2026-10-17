@@ -1,15 +1,15 @@
 import * as z from "zod";
 import { InterpretationUnavailableError } from "../interpretation";
-import type { ModelCall, ModelMeter } from "../model-spend";
+import type { ModelMeter, ModelUsage } from "../model-spend";
 import type { OpenAIConfig } from "../openai-responses";
 
 /**
  * One OpenAI Audio transcription of a normalized voice note, with the model the operator pinned.
  * Only the decoded recording and a language hint leave the Agent; the result is plain text that
  * the report rules then treat as transcribed, never as something the gardener typed. Every failure
- * becomes an InterpretationUnavailableError so the media job can retry or explain. The meter hears
- * about every request: with the billed tokens when the reply states them, otherwise with the
- * recording's length, which the provider prices per minute.
+ * becomes an InterpretationUnavailableError so the media job can retry or explain. The meter
+ * records every request before it is sent, reserving the recording's length, which the provider
+ * prices per minute, and settles it with the tokens or duration the reply bills.
  */
 const LANGUAGES = new Set(["en", "es", "pt"]);
 const transcriptSchema = z.object({ text: z.string().max(10_000) });
@@ -23,12 +23,9 @@ const usageSchema = z.object({
   ]),
 });
 
-function billed(
-  json: unknown,
-  recordedSeconds: number
-): Pick<ModelCall, "inputTokens" | "outputTokens" | "audioSeconds"> {
+function billed(json: unknown): ModelUsage | undefined {
   const parsed = usageSchema.safeParse(json);
-  if (!parsed.success) return { audioSeconds: recordedSeconds };
+  if (!parsed.success) return undefined;
   const { usage } = parsed.data;
   return "seconds" in usage
     ? { audioSeconds: usage.seconds }
@@ -41,11 +38,12 @@ export async function transcribeVoice(
   signal: AbortSignal,
   meter?: ModelMeter
 ): Promise<{ model: string; text: string }> {
-  const sent = {
+  const settle = meter?.({
     provider: "openai",
     model: config.transcriptionModel,
     purpose: "transcription",
-  } as const;
+    reserve: { audioSeconds: input.seconds },
+  });
   const form = new FormData();
   form.append(
     "file",
@@ -66,15 +64,16 @@ export async function transcribeVoice(
       signal,
     });
   } catch {
-    meter?.({ ...sent, outcome: "unanswered" });
+    settle?.({ outcome: "unanswered" });
     throw new InterpretationUnavailableError(signal.aborted ? "timeout" : "provider_error");
   }
   if (!response.ok) {
-    meter?.({ ...sent, outcome: "failed" });
+    settle?.({ outcome: "failed" });
     throw new InterpretationUnavailableError("provider_error");
   }
   const json: unknown = await response.json().catch(() => null);
-  meter?.({ ...sent, outcome: "answered", ...billed(json, input.seconds) });
+  const usage = billed(json);
+  settle?.({ outcome: "answered", ...(usage ? { usage } : {}) });
   const body = transcriptSchema.safeParse(json);
   if (!body.success) throw new InterpretationUnavailableError("malformed");
   return { model: config.transcriptionModel, text: body.data.text.trim() };

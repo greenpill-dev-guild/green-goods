@@ -49,6 +49,13 @@ const responseSchema = z.object({
   model: z.string(),
   answers: z.record(z.string(), answerSchema),
 });
+// The API reference marks both counts as integers; the official SDK allows null for either.
+const usageSchema = z.object({
+  usage: z.object({
+    input_tokens: z.number().int().nonnegative().nullable(),
+    output_tokens: z.number().int().nonnegative().nullable(),
+  }),
+});
 
 type Question = { type: "choice"; instructions: string; criteria: Record<string, string> };
 
@@ -105,7 +112,10 @@ function stateFor(request: InterpretationRequest) {
   };
 }
 
-/** Jev's replies state no tokens or price, so the meter counts its calls without a cost. */
+/**
+ * Jev bills input tokens only and states them in each reply's `usage`. The meter reserves the
+ * request at four characters a token before it is sent and settles it with what the reply states.
+ */
 export async function routeWithJev(
   config: JevConfig,
   request: InterpretationRequest,
@@ -113,7 +123,17 @@ export async function routeWithJev(
   meter?: ModelMeter
 ): Promise<Routing> {
   const request_ = config.fetch ?? fetch;
-  const sent = { provider: "jev", model: config.model, purpose: "routing" } as const;
+  const body = JSON.stringify({
+    state: stateFor(request),
+    model: config.model,
+    questions: questionsFor(request),
+  });
+  const settle = meter?.({
+    provider: "jev",
+    model: config.model,
+    purpose: "routing",
+    reserve: { inputTokens: Math.ceil(body.length / 4) },
+  });
   let response: Response;
   try {
     response = await request_(`${config.baseUrl.replace(/\/+$/, "")}/v1/systemone`, {
@@ -122,20 +142,31 @@ export async function routeWithJev(
         authorization: `Bearer ${config.apiKey}`,
         "content-type": "application/json",
       },
-      body: JSON.stringify({
-        state: stateFor(request),
-        model: config.model,
-        questions: questionsFor(request),
-      }),
+      body,
       signal,
     });
   } catch {
-    meter?.({ ...sent, outcome: "unanswered" });
+    settle?.({ outcome: "unanswered" });
     throw new InterpretationUnavailableError(signal.aborted ? "timeout" : "provider_error");
   }
-  meter?.({ ...sent, outcome: response.ok ? "answered" : "failed" });
-  if (!response.ok) throw new InterpretationUnavailableError("provider_error");
-  const parsed = responseSchema.safeParse(await response.json().catch(() => null));
+  if (!response.ok) {
+    settle?.({ outcome: "failed" });
+    throw new InterpretationUnavailableError("provider_error");
+  }
+  const json: unknown = await response.json().catch(() => null);
+  const usage = usageSchema.safeParse(json);
+  settle?.({
+    outcome: "answered",
+    ...(usage.success && usage.data.usage.input_tokens !== null
+      ? {
+          usage: {
+            inputTokens: usage.data.usage.input_tokens,
+            outputTokens: usage.data.usage.output_tokens ?? 0,
+          },
+        }
+      : {}),
+  });
+  const parsed = responseSchema.safeParse(json);
   if (!parsed.success || !parsed.data.answers.intent) {
     throw new InterpretationUnavailableError("malformed");
   }

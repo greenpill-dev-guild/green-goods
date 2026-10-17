@@ -2,8 +2,9 @@ import sharp from "sharp";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { setControl } from "../../services/reporting/controls";
 import { loadDraft } from "../../services/reporting/drafts";
-import type { JobKind } from "../../services/reporting/jobs";
+import { JOB_KINDS, type JobKind } from "../../services/reporting/jobs";
 import type { PrivateMediaStore } from "../../services/reporting/media-store";
+import { modelSpend } from "../../services/reporting/model-spend";
 import { operationById } from "../../services/reporting/operations";
 import { purgePrivateContent } from "../../services/reporting/retention";
 import { drain, type ReportingWorkerDeps } from "../../services/reporting/worker";
@@ -160,6 +161,11 @@ describe("rerun after a crash", () => {
     // The model call a crash cut off is asked again; the download and the photo are reused.
     expect(openai.requests).toHaveLength(2);
     expect(downloads).toBe(1);
+    // The cut-off request was recorded before it left, so its reservation still counts.
+    expect(modelSpend(harness.core).calls).toEqual({
+      "openai:media:answered": 1,
+      "openai:media:unanswered": 1,
+    });
     expect(one("SELECT state FROM media_assets")).toEqual({ state: "ready" });
     const content = draft()?.content;
     expect(content?.details.seedlings).toBe(12);
@@ -247,8 +253,9 @@ describe("rerun after a crash", () => {
     });
   });
 
-  it("declares a rerun contract for every job the worker runs", () => {
-    // Agent CI typechecks source only, so this is what holds a new job kind to the table.
-    expect(Object.keys(RERUN).sort()).toEqual(Object.keys(harness.deps().jobs).sort());
+  it("declares a rerun contract for every job kind, and the harness runs every kind", () => {
+    // Agent CI typechecks source only, so the source list is what holds a new kind to the table.
+    expect(Object.keys(RERUN).sort()).toEqual([...JOB_KINDS].sort());
+    expect(Object.keys(harness.deps().jobs).sort()).toEqual([...JOB_KINDS].sort());
   });
 });
