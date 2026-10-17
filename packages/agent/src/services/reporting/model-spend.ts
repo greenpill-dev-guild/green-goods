@@ -14,9 +14,10 @@ const log = createLogger("reporting");
  * loop cannot spend past the cap unseen. Rows carry no message content and no participant,
  * conversation or account identifier.
  *
- * Once a UTC day's recorded cost reaches the cap, model processing stops exactly as if its operator
- * switch were off: chat turns ask plain questions, files are kept unread and voice notes are
- * declined, until 00:00 UTC. The meter enforces the cap itself, in the transaction that would
+ * Once a UTC day's recorded cost reaches the cap, model processing stops as if its operator switch
+ * were off: chat turns ask plain questions, files are kept unread and voice notes are declined,
+ * until 00:00 UTC. Only the consent notice still says AI may read messages, since a consent given
+ * that day outlasts it. The meter enforces the cap itself, in the transaction that would
  * record each request, so requests started together, such as a turn's routing and extraction,
  * cannot all pass a check made before either was recorded.
  */

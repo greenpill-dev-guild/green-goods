@@ -206,6 +206,16 @@ describe("model spend ledger", () => {
     expect(costs()).toHaveLength(2);
   });
 
+  it("still tells a newcomer that AI may read their messages on a day the cap is reached", async () => {
+    setControl(harness.core, "model_processing", true, { actor: "test", reason: "spend cap" });
+    spendDailyModelCap(harness.core);
+    // Their consent outlasts the day, and the model reads their messages again from 00:00 UTC.
+    const [notice] = await harness.say(ADA, "Planted twelve seedlings today");
+    expect(notice).toContain(
+      "the messages and files you send here and may use AI to understand them."
+    );
+  });
+
   it("shows the day's spend and calls to the operator, from a ledger with no identifiers", () => {
     send({}, answered({ inputTokens: 1_000, outputTokens: 100 }));
     send({}, { outcome: "unanswered" });
