@@ -2,7 +2,7 @@
 
 **Feature Slug**: `passkey-account-continuity`
 **Stage**: `backlog`
-**Status**: `ACTIVE — planned and de-risked; waiting on decisions 1 to 7 and 9`
+**Status**: `ACTIVE — planned and de-risked; decisions answered 2026-10-17, ready to promote`
 **Created**: `2026-10-16T19:35:57.040Z`
 **Last Updated**: `2026-10-17`
 
@@ -12,20 +12,20 @@ evidence. The clean-room proof behind this plan is
 
 ## Decision Log
 
-Rows 1 to 7 and 9 are proposed. Nothing in them is decided until Afo answers it; the
-recommendation is the plan's default if Afo agrees. Row 8 was answered on 2026-10-16.
+Every row is decided. Afo took the plan's recommendation for rows 1 to 7 and 9 on 2026-10-17,
+and settled open item O4 under row 2. Row 8 was answered on 2026-10-16.
 
 | # | Decision | Recommendation | Rationale |
 |---|---|---|---|
-| 1 | Keep older accounts instead of moving them to new ones | Keep them: add them to the directory, and share host-bound passkeys across sites with a related-origins file. Moving stays a support fallback. | A move costs the address, gardens, roles, history and name. Both keep-paths passed the clean-room proof, including the deployed validator accepting the signatures. |
-| 2 | When an account is added to the directory | Inside the next sign-in on the site where it already works, using the same passkey prompt; plus one action in the account screen for people with a saved session. | Recent sign-ins need no extra step. A saved session never prompts, so it needs a button. |
-| 3 | What checks the proof of possession on the agent | The app's own WebCrypto verifier, moved into `@green-goods/shared/public-contracts` so both sides run one implementation. | The agent's `@simplewebauthn/server`, as locked, throws on every ES256 assertion: it resolves `@peculiar/asn1-schema` 2.6.0 while the signature schema in `@peculiar/asn1-ecc` registers in 2.10.0. Fixing that is a dependency change; track it separately (follow-up F1). |
-| 4 | Publish `/.well-known/webauthn` on www and beta | Yes, listing every Green Goods origin. | It's the only way to use a host-bound passkey on another site without a new account. Chrome refused the cross-site ceremony without the file and when www was missing from it. |
-| 5 | A remembered name that is now taken (January to August accounts were never reserved) | Ask for another name in the adoption step. | The account follows the passkey, not the name, so a new name changes nothing else. A silent suffix would leave people guessing their own sign-in name. |
-| 6 | Where the saved-session action lives | A row in the account screens that already exist (client profile, admin account panel), never a banner. | Existing chrome, no layout shift; it shows only while the session's account has no directory entry. |
-| 7 | The three staging test accounts from June and July | Confirm they are team tests, then drop them. Support-assisted if not. | The hosted server stopped accepting the staging origin (probed 4 October), so they can't sign in by name to adopt. |
+| 1 | Keep older accounts instead of moving them to new ones | **Decided 2026-10-17:** keep them: add them to the directory, and share host-bound passkeys across sites with a related-origins file. Moving stays a support fallback. | A move costs the address, gardens, roles, history and name. Both keep-paths passed the clean-room proof, including the deployed validator accepting the signatures. |
+| 2 | When an account is added to the directory | **Decided 2026-10-17:** inside the next sign-in on the site where it already works, using the same passkey prompt, for the hosted path and for "Use this device's passkey" (O4); plus one action in the account screen for people with a saved session. | Recent sign-ins need no extra step, and "Use this device's passkey" is how a signed-out January-to-August account signs in. A saved session never prompts, so it needs a button. |
+| 3 | What checks the proof of possession on the agent | **Decided 2026-10-17:** the app's own WebCrypto verifier, moved into `@green-goods/shared/public-contracts` so both sides run one implementation. | The agent's `@simplewebauthn/server`, as locked, throws on every ES256 assertion: it resolves `@peculiar/asn1-schema` 2.6.0 while the signature schema in `@peculiar/asn1-ecc` registers in 2.10.0. Fixing that is a dependency change; track it separately (follow-up F1). |
+| 4 | Publish `/.well-known/webauthn` on www and beta | **Decided 2026-10-17:** yes, listing every Green Goods origin. | It's the only way to use a host-bound passkey on another site without a new account. Chrome refused the cross-site ceremony without the file and when www was missing from it. |
+| 5 | A remembered name that is now taken (January to August accounts were never reserved) | **Decided 2026-10-17:** ask for another name in the adoption step. | The account follows the passkey, not the name, so a new name changes nothing else. A silent suffix would leave people guessing their own sign-in name. |
+| 6 | Where the saved-session action lives | **Decided 2026-10-17:** a row in the account screens that already exist (client profile, admin account panel), never a banner. | Existing chrome, no layout shift; it shows only while the session's account has no directory entry. |
+| 7 | The three staging test accounts from June and July | **Decided 2026-10-17:** confirm they are team tests, then drop them; support-assisted if not. The confirmation is still Afo's to do. | The hosted server stopped accepting the staging origin (probed 4 October), so they can't sign in by name to adopt. |
 | 8 | COM-39 | **Decided 2026-10-16:** rewritten around keeping accounts, with moving as the fallback ([handoffs/com-39-update-draft.md](handoffs/com-39-update-draft.md)). | Afo chose the rewrite. The old text counted only from late June and planned a move. |
-| 9 | The signature counter, once hosted sign-in stops asking the hosted server for a verdict (step 6) | Don't track it, as the directory's own sign-in doesn't today. List the gap in the spec's risks, and revisit if the account's on-chain check ever reads the counter. | The deployed validator decides what the account can sign, and its source says it ignores the counter, so a copied key signs without any sign-in. Synced passkeys from Apple and Google report 0, so for most people there is nothing to compare. Every adopted account moves to the directory's sign-in, whichever trigger adopts it, so keeping the hosted verdict in step 6 alone would only delay the change. Tracking adds a column, one more call, and a refusal that keeps the owner out until support clears it ([step 6](#step-6-adopt-during-sign-in-never-in-its-way-state_api-shared)). |
+| 9 | The signature counter, once hosted sign-in stops asking the hosted server for a verdict (step 6) | **Decided 2026-10-17:** don't track it, as the directory's own sign-in doesn't today. List the gap in the spec's risks, and revisit if the account's on-chain check ever reads the counter. | The deployed validator decides what the account can sign, and its source says it ignores the counter, so a copied key signs without any sign-in. Synced passkeys from Apple and Google report 0, so for most people there is nothing to compare. Every adopted account moves to the directory's sign-in, whichever trigger adopts it, so keeping the hosted verdict in step 6 alone would only delay the change. Tracking adds a column, one more call, and a refusal that keeps the owner out until support clears it ([step 6](#step-6-adopt-during-sign-in-never-in-its-way-state_api-shared)). |
 
 ## Research / Plan Gate
 
@@ -36,7 +36,8 @@ recommendation is the plan's default if Afo agrees. Row 8 was answered on 2026-1
 - [x] Decision 8: COM-39 rewritten (2026-10-16)
 - [x] Define what is out of scope ([brief.md](brief.md))
 - [x] Prove the risky parts before planning steps (clean-room report)
-- [ ] Afo answers decisions 1 to 7 and 9
+- [x] Afo answers decisions 1 to 7 and 9 (2026-10-17: the plan's recommendations, with O4
+      settled under decision 2)
 - [ ] Choose validation per step with `bun run check --plan -- --intent qa` at implementation time
 
 ## Requirements Coverage
@@ -295,11 +296,19 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
   - It does not cover the signature counter. It never reads bytes 33 to 36 of the authenticator
     data, and the hosted lookup returns no counter to compare. Whether the hosted verdict
     compares one, or checks anything else, is unverified, so the local check is not claimed as
-    its equal. Decision 9 settles the counter.
+    its equal. Decision 9 leaves the counter untracked.
   - So adoption adds no wait. The ceremony starts when the lookup answers, one hosted round trip
     sooner than today.
-- **Only the hosted path merges**, because only it already waits on a lookup before the ceremony.
-  "Use this device's passkey" and saved sessions adopt from step 7's button.
+- **"Use this device's passkey" merges too (O4, decision 2).** It is how a signed-out
+  January-to-August account signs in, so it adopts inside that sign-in, without a wait.
+  - When the sign-in screen offers the remembered passkey, look the remembered name up. If the
+    directory holds no entry for this account, request an adoption challenge for that name and
+    the stored domain (`cachedPasskeyRpId`) right away, before the person taps.
+  - At the tap, use that challenge if it has arrived; otherwise use a local challenge and skip
+    adoption, as the hosted path does. Check the assertion against the remembered key, then
+    submit the completion in the background.
+  - The challenge lives 5 minutes, so a screen left open longer just signs in without adoption.
+- **Saved sessions** never prompt, so they adopt from step 7's button.
 - **When the directory is down.** If the directory lookup failed earlier in the same sign-in,
   start no adoption and run today's hosted sign-in unchanged: the hosted server's
   `startAuthentication`, the ceremony and `verifyAuthentication`. R7 promises sign-in as today
@@ -312,27 +321,19 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
   one as lower-case strings (`authServices.ts:229`). A session that signed in through the
   directory caches the directory's `0x04` spelling, so compare x and y there, as `keyCoordinates`
   already does in the directory sign-in.
-- **Signature counter (decision 9).** Whichever trigger adopts an account, its later sign-ins
-  run the directory's local check, which doesn't read the counter today. With decision 9's
-  default nothing more changes, and the spec lists the gap under risks. If decision 9 chooses
-  tracking instead:
-  - Step 3 adds a `signCount` column. Registration and adoption store the assertion's counter,
-    and the lookup returns it.
-  - Step 2's verifier refuses a counter that isn't above a nonzero stored one, as WebAuthn
-    describes.
-  - After a sign-in that reports a nonzero counter, the app sends the assertion to a new
-    `gg_recordPasskeyCounter` beside step 5's calls. It runs step 2's check without the
-    challenge and keeps the higher value. No fresh challenge is needed, because a replayed
-    assertion only repeats a count that was already real.
-  - The merged sign-in has nothing to compare, since the hosted lookup returns no counter, so
-    tracking starts at adoption.
-  - Tests: against a nonzero stored counter, the verifier refuses an equal one, a lower one and
-    0, and accepts a higher one; it accepts 0 over 0. The record call never lowers the stored
-    value and refuses another key's signature.
+- **Signature counter (decision 9: not tracked).** Whichever trigger adopts an account, its later
+  sign-ins run the directory's local check, which doesn't read the counter. Nothing more changes
+  here, and the spec lists the gap under risks. The option not taken was a `signCount` column, a
+  refusal when a counter isn't above a nonzero stored one, and a record call that only raises it;
+  revisit it if the account's on-chain check ever reads the counter.
 - **RED/GREEN** in `authServices.test.ts`:
   - With the adoption start held open (a promise that never settles), hosted sign-in starts its
     ceremony as soon as the hosted lookup answers. It uses a local challenge, calls neither
     `startAuthentication` nor `verifyAuthentication`, and sends no completion.
+  - Signed out, on "Use this device's passkey": with the challenge ready at the tap, sign-in
+    opens the same address and the completion goes out in the background. With the start held
+    open, the ceremony runs at the tap with a local challenge and sends no completion. With an
+    entry for this account already in the directory, no challenge is requested.
   - With the directory lookup failing, hosted sign-in calls `startAuthentication` and
     `verifyAuthentication` as today and starts no adoption.
   - A cached key and a hosted key that differ only in spelling still match, so the cached ID
@@ -343,7 +344,7 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
     completion carries that challenge, the hosted account's exact ID string (not the browser
     ID), its key and the page's RP ID.
   - Assert the ID handed to Kernel, not a mocked address.
-- This step runs only if decision 2 is accepted. Otherwise step 7 is the sole trigger.
+- Decision 2 was accepted on 2026-10-17, so this step runs, for both sign-in paths.
 
 ### Step 7: One action for saved sessions (ui)
 
@@ -510,12 +511,11 @@ it changes.
   check (`isRegistrablePasskeyName`: 3 to 64 characters, no control characters) in
   `gg_startPasskeyAdoption` and again at completion, with a route-level refusal test for an
   invalid name. Normalizing alone doesn't enforce it. Raised by Codex on `bf45b41ac`.
-- **O4. App-made sign-ins and decision 2 (steps 6 and 7).** Step 6 leaves "Use this device's
-  passkey" out of automatic adoption, but that is how a signed-out January-to-August account
-  signs in. So that group, about 45 people, would still need the account-screen action, while
-  decision 2's rationale says recent sign-ins need no extra step. Settle it with decision 2:
-  adopt inside that sign-in too, with a test for the signed-out local-cache path, or narrow the
-  promise. Raised by Codex on `bf45b41ac`.
+- **O4. App-made sign-ins and decision 2 (steps 6 and 7). Settled 2026-10-17.** Step 6 had left
+  "Use this device's passkey" out of automatic adoption, though it is how a signed-out
+  January-to-August account signs in. Afo settled it under decision 2: that sign-in adopts too,
+  with its challenge requested when the sign-in screen offers the remembered passkey, and a test
+  for the signed-out path (step 6). Raised by Codex on `bf45b41ac`.
 - **O5. Prove the telemetry (step 10).** No acceptance check covers R9. Add workflow-level
   assertions that background adoption, the saved-session action and typed related-origin
   failures emit `auth_passkey_adoption_started`, `_success` and categorized `_failed`, plus

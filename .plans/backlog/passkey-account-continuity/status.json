@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-10-16T19:35:57.040Z",
-    "updated_at": "2026-10-17T05:24:37Z"
+    "updated_at": "2026-10-17T06:56:25Z"
   },
   "links": {
     "brief": "brief.md",
@@ -34,7 +34,7 @@
     "depends_on_features": []
   },
   "notes": [
-    "Planned and de-risked on 2026-10-16; blocked on decisions 1 to 7 and 9 in plan.todo.md. Step 6 depends on decisions 2 and 9, and step 8 on decision 4.",
+    "Planned and de-risked on 2026-10-16; decisions 1 to 9 answered by 2026-10-17 (the plan's recommendations, with O4 settled under decision 2). Ready to promote to active; open review items O1 to O6 are in plan.todo.md.",
     "Clean-room proof: reports/2026-10-16-clean-room-proof-fifth-review.md, which supersedes the four earlier reports of the same day (clean-room Chromium, virtual authenticator; signatures checked by read-only eth_call). Device proof (plan step 11) and the restore rehearsal before step 5 deploys (AC-13) are Afo's.",
     "Shared auth workflows and the agent passkey directory are critical surfaces: read every touched line and keep the selector's critical override.",
     "Never re-encode a stored passkey credential ID: Kernel hashes that exact string into the account address.",
@@ -286,6 +286,14 @@
       "status": "planning_reconciled",
       "branch": null,
       "note": "Logged Codex's five findings on bf45b41ac as open items O2 to O6 in plan.todo.md (structured refusal reasons, name validation at start and completion, app-made sign-ins and decision 2, telemetry proof, the challenge's wire form), per Afo's direction. Timestamp: the observed edit time."
+    },
+    {
+      "timestamp": "2026-10-17T06:56:25Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "planning_reconciled",
+      "branch": null,
+      "note": "Recorded Afo's answers: the plan's recommendations for decisions 1 to 7 and 9, with O4 settled under decision 2 (Use this device's passkey adopts inside its sign-in, its challenge requested when the sign-in screen offers the remembered passkey). Decision 9's tracking design is kept only as the option not taken. Timestamp: the observed edit time."
     }
   ]
 }

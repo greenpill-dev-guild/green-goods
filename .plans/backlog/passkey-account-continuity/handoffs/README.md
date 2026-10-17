@@ -3,12 +3,13 @@
 ## State (2026-10-17)
 
 - **Planned and de-risked; nothing implemented.** Lanes are `todo`; `contracts` is `n/a`.
-- **Waiting on Afo:** decisions 1 to 7 and 9 in [plan.todo.md](../plan.todo.md#decision-log).
+- **Decisions answered.** On 2026-10-17 Afo took the plan's recommendation for decisions 1 to 7
+  and 9, and settled O4 under decision 2: "Use this device's passkey" adopts inside its sign-in
+  too. Decision 8 was answered on 2026-10-16 (COM-39 rewritten). Still Afo's to do: confirm the
+  three staging accounts are team tests (decision 7).
 - **Open review items:** later review findings go to
   [plan.todo.md](../plan.todo.md#open-review-items) for the implementation steps, by Afo's
-  direction on 2026-10-17: O1 to O6 so far. O4 bears on decision 2, so answer them together.
-  Decision 8 is answered: COM-39 was rewritten on 2026-10-16. Step 6 depends on decisions 2 and
-  9, and step 8 on decision 4.
+  direction on 2026-10-17: O1 to O6, with O4 settled.
 - **First review.** Codex's review of the first commit raised eight findings, all addressed on
   2026-10-16:
   - Adoption calls get their own no-retry, 3-second client and run beside the hosted lookup.
@@ -121,9 +122,8 @@
 1. Read the decision answers. Promote the hub with
    `node scripts/harness/plan-hub.mjs move --feature passkey-account-continuity --to active`, then
    run the Linear gate from the plan skill.
-2. Only once decisions 1 to 7 and 9 are answered, start at step 1. If decision 9 chooses
-   tracking, first fold step 6's counter design into steps 2, 3 and 5. Steps 1 to 5 can land
-   before any user-visible change, but none of them starts before the decisions.
+2. The decisions are answered, so start at step 1 and fold in the open review items each step
+   names. Steps 1 to 5 can land before any user-visible change.
 3. Rerun the rig ([artifacts/rig/README.md](../artifacts/rig/README.md)) after steps 1, 5 and 8.
 
 ## Task record

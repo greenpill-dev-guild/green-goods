@@ -72,7 +72,9 @@ In the 30 days to 2026-10-16, 6 people used a passkey session on www and 3 on be
      person to update a browser that works. Other failures, such as a refused assertion, keep
      their own copy.
 7. **R7 Sign-in first.** Adoption never blocks, delays or fails a sign-in:
-   - Its calls run beside the hosted lookup, never before the ceremony.
+   - Its calls never hold up the ceremony. On the hosted path they run beside the hosted lookup;
+     on "Use this device's passkey" the challenge is requested when the sign-in screen offers
+     the remembered passkey.
    - They are never retried. The start call has a 3-second timeout, and the background
      completion has 10 seconds.
    - Without the directory, including when its lookup fails, sign-in runs as today, with the
@@ -116,11 +118,12 @@ doesn't read the signature counter, which the hosted verdict may compare (decisi
 challenge that hasn't arrived by then is dropped, and the sign-in goes ahead without adoption.
 Their next sign-in by name on any site finds the directory entry first.
 
-Only the hosted path merges, because it is the one that already waits on a lookup before its
-ceremony. It merges only after the directory has answered that it doesn't hold the name. When
+The hosted path merges only after the directory has answered that it doesn't hold the name. When
 the directory lookup fails, sign-in takes today's hosted path, the hosted start and verify calls
-included. A saved session, or "Use this device's passkey" (the only way in for the app-made
-group), adopts from a button in the account screen (decision 6).
+included. "Use this device's passkey", the app-made group's way in, merges too (O4): its
+challenge is requested when the sign-in screen offers the remembered passkey, so it adds no wait
+either. A saved session never prompts, so it adopts from a button in the account screen
+(decision 6).
 
 ### Related origins (decision 4)
 
@@ -195,9 +198,6 @@ screens say "clave de acceso" and "chave de acesso"; that mismatch predates this
 - The row and its done message promise no more than adoption gives. A passkey made for one site
   reaches the others only in a browser with related-origin support, and adoption puts no
   passkey on a device it hasn't synced to.
-- If decision 2 is declined, `app.login.error.otherSite` reads instead "Sign in didn't finish. If
-  you made this account on {sites}, sign in there and turn on Sign in on other Green Goods
-  sites." `otherSiteHome` keeps "Try again here." before that sentence.
 
 ## Research Evidence
 
@@ -280,7 +280,7 @@ from any device the passkey syncs to.
 
 ## Human Judgment Points
 
-- Decisions 1 to 9 in [plan.todo.md](plan.todo.md#decision-log).
+- Decisions 1 to 9 in [plan.todo.md](plan.todo.md#decision-log), all answered by 2026-10-17.
 - Protected or high-risk surfaces: shared Auth workflows and the agent's passkey directory (both
   critical), and the client's static `.well-known` folder and `vercel.json`.
 - Keep visible during review: the directory becomes the record for adopted accounts too; the
@@ -295,7 +295,7 @@ from any device the passkey syncs to.
   - Both the origin allowlist and the domain allowlist apply.
   - Adoption happens on the passkey's own domain.
   - Possession is proven, and a hosted name must match its listed passkey.
-  - The signature counter follows decision 9. The validator ignores it either way.
+  - The signature counter isn't tracked (decision 9). The validator ignores it either way.
   - Rate limits use the registration class.
 - **Privacy:** names, keys and IDs stay out of logs and telemetry, as the directory already does.
 - **Performance:** adoption adds no wait to a sign-in.
@@ -358,8 +358,8 @@ from any device the passkey syncs to.
   - Risk: the local check that replaces the hosted verdict doesn't read the signature counter, so
     it can't notice a copy the hosted verdict might have refused.
   - Mitigation: what the account can sign doesn't depend on it, because the validator ignores the
-    counter. Decision 9 chooses whether the directory tracks it and refuses a counter that isn't
-    above a nonzero stored one.
+    counter. Decision 9 chose not to track it; revisit if the account's on-chain check ever reads
+    the counter.
 - **The hosted server down during adoption.**
   - Risk: the directory can't confirm who holds a hosted name.
   - Mitigation: refuse with a non-retried `unavailable` and try again at a later sign-in; sign-in

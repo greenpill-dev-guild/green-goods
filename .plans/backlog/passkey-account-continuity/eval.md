@@ -10,8 +10,8 @@
    check doesn't read the signature counter (AC-12).
 4. **Evidence quality.** Every claim carries its evidence label: clean-room Chromium with a
    virtual authenticator, authenticated device, or a read-only `eth_call`.
-5. **Human judgment.** Decisions 1 to 7 and 9 in [plan.todo.md](plan.todo.md) are answered before
-   any step starts. Shared auth and the agent directory keep the critical override.
+5. **Human judgment.** Decisions 1 to 9 in [plan.todo.md](plan.todo.md) were answered by
+   2026-10-17. Shared auth and the agent directory keep the critical override.
 6. **Recovery.** AC-13 passes before step 5 deploys, because adoption makes the directory the
    only record of more accounts.
 
@@ -28,9 +28,9 @@
 | AC-7 | Saved sessions | The account row shows while the session's account has no directory entry, including when another passkey or the other spelling of this one holds its name, and stays hidden when the entry is this account's. A taken name keeps the row and asks for another name, and adopting under the new name succeeds. The row disappears after adoption, and stays hidden after a reload because the session saves the adopted name. A cancelled prompt leaves the row idle; offline, a timed-out start and an unavailable lookup show the `failed` copy. The hook sends the session's name and domain, the exact stored ID and key, and nothing when the address guard fails. | `ui` | Component test and Storybook after step 7, plus a workflow test of the hook with only the browser, directory client and session stubbed |
 | AC-8 | QA review | The full journey on Android Chrome and iPhone Safari, including a September www account that adopts on www, signs in on admin and signs a garden action (the brief's success signal) | `qa_pass_1` | Authenticated device proof (step 11) |
 | AC-9 | Regression review | Existing passkey specs and auth tests pass, and the critical gate is green | `qa_pass_2` | `node scripts/dev/ci-local.js --intent push` receipts |
-| AC-10 | Sign-in and adoption race | With the adoption start held open, hosted sign-in starts its ceremony when the hosted lookup answers, makes no retry, and sends no completion. With the challenge ready first, the background completion carries that challenge and the hosted account's exact ID, key and RP ID. After a directory answer, hosted `startAuthentication` and `verifyAuthentication` are no longer called; after a failed directory lookup, both run as today and no adoption starts. The local check refuses another credential, another key and a stale challenge. A cached key and a hosted key that differ only in spelling still match. | `state_api` | Unit tests for both orders after step 6. Not measured in the rig. |
+| AC-10 | Sign-in and adoption race | With the adoption start held open, hosted sign-in starts its ceremony when the hosted lookup answers, makes no retry, and sends no completion. With the challenge ready first, the background completion carries that challenge and the hosted account's exact ID, key and RP ID. After a directory answer, hosted `startAuthentication` and `verifyAuthentication` are no longer called; after a failed directory lookup, both run as today and no adoption starts. The local check refuses another credential, another key and a stale challenge. A cached key and a hosted key that differ only in spelling still match. On "Use this device's passkey", a ready challenge adopts in the background, a held-open start adds no wait, and an account already in the directory requests no challenge. | `state_api` | Unit tests for both orders after step 6. Not measured in the rig. |
 | AC-11 | Store upgrade | A v2.0.1 database gains the new columns with defaults and backfill. It is rebuilt with a unique `(credentialId, publicKey)` account key in place of the string-only `credentialId` constraint, keeps its passkeys and pending challenges, and moves `user_version` from 8 to 9. A second `initSchema` changes nothing, and a registration after the upgrade writes `credentialKey`. | `state_api` | `storage.sqlite.test.ts` after step 3 |
-| AC-12 | Signature counter (decision 9) | By default, the local check that replaces the hosted verdict doesn't read the counter, and the spec lists that under risks. If decision 9 chooses tracking: a counter that isn't above a nonzero stored one is refused (0 included), 0 over 0 is accepted, adoption stores the counter, and the record call never lowers it or accepts another key's signature. | `state_api` | Not measured in the rig. Unit and route tests after steps 2, 5 and 6, only if tracking is chosen. |
+| AC-12 | Signature counter (decision 9) | The local check that replaces the hosted verdict doesn't read the counter, and the spec lists that under risks. Decision 9 chose not to track it. | `state_api` | Nothing to test while the counter is untracked. |
 | AC-13 | Directory recovery | Before step 5 deploys, the agent's Production Checklist says the directory is the only record of adopted passkeys, and a consistent backup restored into a separate volume keeps every `passkey_credentials` row, its account index and `user_version` 9. | `qa_pass_2` | Afo runs it. The private recovery record keeps the details, and the release's operations receipt a dated summary. |
 
 ## Test Strategy
@@ -38,10 +38,10 @@
 - **Unit (shared):**
   - directory sign-in with hex and base64url IDs;
   - the verifier at its new home;
-  - the verifier's counter rule, only if decision 9 chooses tracking (AC-12);
   - the adoption client's address guard, its silent failure, and its no-wait rule with a
     never-settling start (AC-10);
   - the outage path, which keeps today's hosted calls, and key matching by point (AC-10);
+  - signed-out adoption on "Use this device's passkey" and its no-wait rule (AC-10);
   - error copy per site, including a related-origins failure in a browser that reported
     support.
 - **Unit and route (agent):**
@@ -50,8 +50,7 @@
   - the store rules for both stores: one account per name across key spellings, the other ID
     spelling as its own account, and a registration after the upgrade;
   - the v2.0.1 upgrade and the move to `user_version` 9 in `storage.sqlite.test.ts` (AC-11);
-  - the hosted lookup with a stubbed fetch;
-  - the counter record call, only if decision 9 chooses tracking (AC-12).
+  - the hosted lookup with a stubbed fetch.
 - **Docs:** after step 9, `bun run audit -- --ci` and `bun run build` from `docs/` (AC-6).
 - **Operations:** the restore rehearsal before step 5 deploys (AC-13).
 - **Integration:** the clean-room rig in [artifacts/rig/](artifacts/rig/README.md), rerun on the
