@@ -50,7 +50,7 @@ test.describe("Client injected-wallet storage", () => {
     await helper.waitForPageLoad();
 
     const url = page.url();
-    // SKIP: #338 owner:afo expiry:2026-10-16 — wallet injection may not persist in this manual lane
+    // SKIP: #338 owner:afo expiry:2027-01-16 — wallet injection may not persist in this manual lane
     test.skip(url.includes("/home/login"), "Wallet authentication did not persist");
 
     await page.goto("/home/profile");
