@@ -21,6 +21,9 @@
   - The resume steps below keep the decision gate.
   - Current-evidence links point at the second-review report.
   - The rig refuses unknown modes.
+- **CodeRabbit, after the ninth review.** One finding, addressed: R6 now gives the neutral
+  related-origins copy only to a cross-site `SecurityError`, as step 9 does, and a refused
+  assertion keeps its own copy.
 - **Ninth review.** Codex raised four findings at 02:14 UTC on 2026-10-17, all addressed:
   - Every insert writes `credentialKey`, registration included, and both stores' own duplicate
     check moves to the ID-and-key pair.

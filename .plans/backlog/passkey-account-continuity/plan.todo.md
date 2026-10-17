@@ -404,7 +404,7 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
   hosted name on www, on beta and on admin, and for an adopted beta entry on www. With
   `relatedOrigins: false`, a beta entry on beta and an apex entry on admin still run their
   ceremony. With `relatedOrigins: true` and a missing file (`SecurityError`), the neutral copy
-  shows, never the update-your-browser copy.
+  shows, never the update-your-browser copy. A `NotAllowedError` there keeps its own copy.
 
 ### Step 10: Telemetry (state_api)
 

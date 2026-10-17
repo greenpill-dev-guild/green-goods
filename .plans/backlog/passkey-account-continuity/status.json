@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-10-16T19:35:57.040Z",
-    "updated_at": "2026-10-17T02:19:42Z"
+    "updated_at": "2026-10-17T02:26:38Z"
   },
   "links": {
     "brief": "brief.md",
@@ -222,6 +222,14 @@
       "status": "planning_reconciled",
       "branch": null,
       "note": "Addressed the ninth review (Codex, four findings): every insert writes credentialKey, registration included, and both stores' duplicate check moves to the ID-and-key pair; the shared check takes bytes and the completion's assertion travels as base64url JSON decoded at the route, tested through the real JSON-RPC route; the device walk adds a September www account on admin, the brief's success signal; a related-origins failure in a browser that reported support gets neutral copy. No rig change. Timestamp: the observed edit time."
+    },
+    {
+      "timestamp": "2026-10-17T02:26:38Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "planning_reconciled",
+      "branch": null,
+      "note": "Addressed CodeRabbit's review of cd46bf895: R6 now limits the neutral related-origins copy to a cross-site SecurityError in a browser that reported support or can't report it, as step 9 does, and step 9 adds a test that a NotAllowedError keeps its own copy. Timestamp: the observed edit time."
     }
   ]
 }

@@ -66,8 +66,10 @@ In the 30 days to 2026-10-16, 6 people used a passkey session on www and 3 on be
    - The exact site, when the entry carries its domain (directory and adopted entries).
    - The sites it may have been made on, for an unadopted hosted name, whose lookup carries no
      domain.
-   - Neutral copy that names the site, when the browser reported related-origin support and
-     the ceremony still failed. It never tells the person to update a browser that works.
+   - Neutral copy that names the site, when a cross-site ceremony fails with `SecurityError`
+     and the browser reported related-origin support or can't report it. It never tells the
+     person to update a browser that works. Other failures, such as a refused assertion, keep
+     their own copy.
 7. **R7 Sign-in first.** Adoption never blocks, delays or fails a sign-in:
    - Its calls run beside the hosted lookup, never before the ceremony.
    - They are never retried. The start call has a 3-second timeout, and the background
