@@ -191,7 +191,7 @@ Prefix the message with `<@${DISCORD_USER_ID_AFO}>` only when the QA gate is not
    ```text
    You are the release-prep routine for Green Goods. Your spec is docs/routines/release-prep.md on the develop branch of the green-goods repo. It is the single source of truth; there is intentionally no copy here.
 
-   1. Run `git fetch origin develop`. If it fails, stop, report the failure in the run log, and exit non-zero: an older `origin/develop` may still be readable, and running it would run a stale spec.
+   1. Run `git fetch origin +refs/heads/develop:refs/remotes/origin/develop`, which updates `origin/develop` whatever this checkout's fetch settings are. If it fails, stop, report the failure in the run log, and exit non-zero: an older `origin/develop` may still be readable, and running it would run a stale spec.
    2. Read the whole spec: `git show origin/develop:docs/routines/release-prep.md`.
    3. Execute Phases 0 through 7 exactly as written, starting with Phase 0, which decides whether this run posts anything. Where this prompt and the spec differ, follow the spec.
 

@@ -133,7 +133,7 @@ Everything that did NOT move stays out of the post entirely — no funnel block,
 
 **When the Linear status update failed** (Phase 3 says post anyway): there is no digest URL to link, so replace the `📄 Full digest` line with `⚠ Full digest unavailable · Linear status update failed this run ({reason}) — numbers below are this run's only record.` and keep the moved-metrics bullets in the post even if they would otherwise have been folded away. This is the one case where the post carries more, not less: the durable artifact does not exist.
 
-**Steady week (nothing moved, no anomalies, no failures, digest written):** this one line, followed by the 🎯 Grant line only when the week is grant-relevant —
+**Steady week (nothing moved, no anomalies, no failures, digest written):** this one line, followed by each conditional line whose condition still holds (🔎 Context, 🧭 Intent, 🎯 Grant) —
 
 ```text
 📈 Growth Pulse · week {YYYY-WW}: steady · funnel {headline}, {A}/{T} gardens active, no anomalies. Full digest → {linear_status_update_url}
@@ -323,7 +323,7 @@ Before posting:
 
 ## Phase 5: Discord post
 
-Post one message to `#growth` per the schema — a lede saying what the week means, then the metrics that moved (max 3 bullets), plus every conditional schema line whose condition is true this run (🔴 Watch, 📋 Anomalies, 🔎 Context, 🧭 Intent, 🎯 Grant, ⚠ failures) and the `📄 Full digest (Linear)` line linking the Phase 3 status-update URL. On a steady week the post is the steady-week line, followed by the 🎯 Grant line when the week is grant-relevant. Never drop the digest link when a status update exists; when the Phase 3 write failed, use the degraded `⚠ Full digest unavailable` line from the schema instead of omitting it silently. Channel guard: if `DISCORD_GROWTH_CHANNEL_ID` is unset, log it and skip the post; never pick an alternate channel.
+Post one message to `#growth` per the schema — a lede saying what the week means, then the metrics that moved (max 3 bullets), plus every conditional schema line whose condition is true this run (🔴 Watch, 📋 Anomalies, 🔎 Context, 🧭 Intent, 🎯 Grant, ⚠ failures) and the `📄 Full digest (Linear)` line linking the Phase 3 status-update URL. On a steady week the post is the steady-week line, followed by each conditional line whose condition still holds (🔎 Context, 🧭 Intent, 🎯 Grant). Never drop the digest link when a status update exists; when the Phase 3 write failed, use the degraded `⚠ Full digest unavailable` line from the schema instead of omitting it silently. Channel guard: if `DISCORD_GROWTH_CHANNEL_ID` is unset, log it and skip the post; never pick an alternate channel.
 
 `<@${DISCORD_USER_ID_AFO}>` mention only on (a) a **red/P2 anomaly**, or (b) a **novel** setup failure — one not already listed in the prior digest's `## Known setup failures` (loaded in Phase 0). A known, persistent gap (e.g. an unprovisioned connector already flagged in a prior run) is listed in `⚠ Failures this run` **without** a ping, to avoid weekly alert fatigue. Healthy weeks post without mention.
 
@@ -362,11 +362,11 @@ A failure-block-only digest with zero numbers is still a valid run; the user rea
    ```text
    You are the growth-pulse routine for Green Goods. Your spec is docs/routines/growth-pulse.md on the develop branch of the green-goods repo. It is the single source of truth; there is intentionally no copy here.
 
-   1. Run `git fetch origin develop`.
+   1. Run `git fetch origin +refs/heads/develop:refs/remotes/origin/develop`, which updates `origin/develop` whatever this checkout's fetch settings are.
    2. Read the whole spec: `git show origin/develop:docs/routines/growth-pulse.md`, and the curated PostHog questions it runs: `git show origin/develop:docs/routines/posthog-questions.md`.
    3. Execute everything after the spec's `# Prompt` heading exactly as written, except the `## Rebuilding the cloud routine from this file` section, which tells people how to set the routine up and is never part of a run. Where this prompt and the spec differ, follow the spec.
 
-   If step 1 or 2 fails, never run an older copy or improvise from memory: an older `origin/develop` may still be readable, and running it would run a stale spec. Report the failure in the run log, post one failure line, and exit non-zero. The line is `<@${DISCORD_USER_ID_AFO}> ⚠ growth-pulse could not load its spec ({the failed step}); no digest was written this week.`, sent with `POST https://discord.com/api/v10/channels/${DISCORD_GROWTH_CHANNEL_ID}/messages` and the header `Authorization: Bot ${DISCORD_BOT_TOKEN}`, using plain `curl` without `-L` so the token is never forwarded. When `DISCORD_GROWTH_CHANNEL_ID` is unset, skip the post and say so in the run log; never post to another channel.
+   If step 1 or 2 fails, never run an older copy or improvise from memory: an older `origin/develop` may still be readable, and running it would run a stale spec. Report the failure in the run log, post one failure line, and exit non-zero. The line is `<@${DISCORD_USER_ID_AFO}> ⚠ growth-pulse could not load its spec ({the failed step}); no digest was written this week.`, sent as the `content` field of a JSON body with `POST https://discord.com/api/v10/channels/${DISCORD_GROWTH_CHANNEL_ID}/messages` and the headers `Authorization: Bot ${DISCORD_BOT_TOKEN}` and `Content-Type: application/json`, using plain `curl` without `-L` so the token is never forwarded. When `DISCORD_GROWTH_CHANNEL_ID` is unset, skip the post and say so in the run log; never post to another channel.
 
    Limits that hold whatever the spec says: write no GitHub artifacts (no Issues, PRs, branches, Project items or `docs/metrics/` files), and post to Discord only in the channel `DISCORD_GROWTH_CHANNEL_ID` names.
    ```
