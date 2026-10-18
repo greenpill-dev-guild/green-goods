@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # check-vocab.sh
-# Enforces the Lens 1 (Regenerative) banned-vocabulary rule on user-facing strings.
+# Enforces the Lens 1 (Regenerative) banned-vocabulary rule on user-facing strings,
+# and US spelling in English copy (DESIGN.md § Voice & Copy).
 #
-# Source of truth: scripts/data/banned-vocabulary.json (.linter_enforced)
+# Source of truth: scripts/data/banned-vocabulary.json (.linter_enforced, .renamed_terms, .us_spelling)
 # Human-readable projection: docs/docs/reference/glossary.generated.mdx § Language policy
 # Framework: .claude/skills/design/review-checklist.md § Lens 1
 #
@@ -234,4 +235,68 @@ if [[ -n "$LOCALE_HITS" ]]; then
   exit 1
 fi
 
-echo "✅ check-vocab: no banned, renamed, or untranslated vocabulary in ${#FOUND_FILES[@]} i18n file(s)."
+# ---------------------------------------------------------------------------
+# US spelling: English copy writes "canceled", never "cancelled".
+# Walks parsed English values, so message keys (which keep names such as
+# "app.pool.cycleState.cancelled"), ICU argument names and select or plural
+# keys (wire values such as CANCELLED) are never read; branch text is.
+# ---------------------------------------------------------------------------
+if command -v python3 >/dev/null 2>&1; then
+  SPELLING_HITS="$(python3 - "$VOCAB_JSON" <<'PYEOF'
+import glob, json, re, sys
+
+CHOICE = re.compile(r"\{\s*\w+\s*,\s*(?:select|plural|selectordinal)\s*,")
+
+
+def branch_text(message):
+    """Keep each select/plural branch's text and drop the keys that choose it."""
+    out, i = [], 0
+    while (choice := CHOICE.search(message, i)) is not None:
+        out.append(message[i:choice.start()])
+        depth, branches, j = 1, [], choice.end()
+        while j < len(message) and depth:
+            character = message[j]
+            depth += {"{": 1, "}": -1}.get(character, 0)
+            if depth >= 2 or (character == "}" and depth == 1):
+                branches.append(character)
+            j += 1
+        out.append(" " + branch_text("".join(branches)) + " ")
+        i = j
+    return "".join(out) + message[i:]
+
+
+section = json.load(open(sys.argv[1])).get("us_spelling", {})
+terms = section.get("terms", {})
+exempt = set(section.get("exempt_keys", []))
+hits = []
+if terms:
+    pattern = re.compile(r"\b(" + "|".join(re.escape(t) for t in terms) + r")\b", re.I)
+    for spec in section.get("globs", []):
+        for path in sorted(glob.glob(spec)):
+            for key, value in json.load(open(path)).items():
+                if key in exempt or not isinstance(value, str):
+                    continue
+                # ICU argument references are code the component passes, not copy.
+                prose = re.sub(r"\{\s*\w+\s*[,}]", " ", branch_text(value))
+                for match in pattern.finditer(prose):
+                    word = match.group(0)
+                    hits.append(f"{path}: {key}: {word} -> {terms[word.lower()]}")
+print("\n".join(hits))
+PYEOF
+)"
+else
+  echo "⚠️  check-vocab: skipping US spelling (python3 not available)"
+  SPELLING_HITS=""
+fi
+
+if [[ -n "$SPELLING_HITS" ]]; then
+  echo "❌ UK spelling found in English copy:"
+  echo "$SPELLING_HITS"
+  echo
+  echo "English copy uses US spelling; message keys keep their names. See:"
+  echo "  DESIGN.md § Voice & Copy"
+  echo "  scripts/data/banned-vocabulary.json (.us_spelling)"
+  exit 1
+fi
+
+echo "✅ check-vocab: no banned, renamed, untranslated, or UK-spelled vocabulary in ${#FOUND_FILES[@]} i18n file(s)."

@@ -53,7 +53,7 @@ export function CommitmentReasonDialogs({
         description={formatMessage({
           id: "cockpit.garden.pool.commitment.cancel.description",
           defaultMessage:
-            "Accepted becomes Cancelled with a recorded reason. Committed units release; the member sees the reason, never “cancelled” alone.",
+            "Accepted becomes Canceled with a recorded reason. Committed units release; the member sees the reason, never “canceled” alone.",
         })}
         confirmLabel={formatMessage({
           id: "cockpit.garden.pool.commitment.cancel.confirm",

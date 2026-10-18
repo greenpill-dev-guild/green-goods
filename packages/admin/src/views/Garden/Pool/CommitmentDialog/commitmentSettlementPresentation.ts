@@ -49,7 +49,7 @@ const STEP_LABELS: Record<SettlementStepId, Message> = {
   },
   acknowledgement: {
     id: "cockpit.garden.pool.settlement.step.acknowledgement",
-    defaultMessage: "Celo acknowledgement",
+    defaultMessage: "Celo acknowledgment",
   },
 };
 
@@ -127,7 +127,7 @@ const DISPLAY_LABELS: Record<
   },
   "acknowledgement-pending": {
     id: "cockpit.garden.pool.settlement.display.acknowledgement-pending",
-    defaultMessage: "Awaiting acknowledgement",
+    defaultMessage: "Awaiting acknowledgment",
     variant: "warning",
   },
   "delivery-delayed": {
@@ -147,7 +147,7 @@ const DISPLAY_LABELS: Record<
   },
   cancelled: {
     id: "cockpit.garden.pool.settlement.display.cancelled",
-    defaultMessage: "Cancelled",
+    defaultMessage: "Canceled",
     variant: "neutral",
   },
   unknown: {

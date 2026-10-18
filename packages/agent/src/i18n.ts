@@ -112,7 +112,7 @@ const enMessages = {
   "status.submissionsRemaining": "Submissions remaining",
   "status.title":
     "📊 *Your Status*\n\n*Wallet:* `{wallet}`\n*Role:* {role}\n*Garden:* {garden}\n*Session:* {session}\n*Submissions remaining:* {remaining}/{limit}",
-  "submit.cancelled": "❌ Submission cancelled.",
+  "submit.cancelled": "❌ Submission canceled.",
   "submit.confirm":
     "📋 *Confirm your submission:*\n\n*Tasks:*\n{tasks}\n\n*Notes:* {notes}\n*Date:* {date}",
   "submit.gardenerOnly": "This action is only available for gardeners.",

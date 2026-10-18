@@ -70,7 +70,7 @@ Two sections after the tracks, *Candidate tracks* and *Candidate questions*, hol
 
 **Open.**
 1. Which network-membership path, if any, the completed RESR-74 findings support. Next step: carry its live-deployment findings into the go or no-go decision and name any remaining partner terms. Answerable by the team and Grassroots Economics.
-2. The Grassroots Economics questions (supported versions for third-party use, licence for deployed interaction, quoter and limiter behaviour in production, wrap restriction to fulfilled commitments, who owns the pool a Green Goods voucher lists into). Next step: confirm whether the 19 August conversation happened and what it produced; if not, send the five prepared questions. Answerable by Grassroots Economics.
+2. The Grassroots Economics questions (supported versions for third-party use, license for deployed interaction, quoter and limiter behavior in production, wrap restriction to fulfilled commitments, who owns the pool a Green Goods voucher lists into). Next step: confirm whether the 19 August conversation happened and what it produced; if not, send the five prepared questions. Answerable by Grassroots Economics.
 3. The pilot's falsifiable question: do vouchers move through a third party, or does everything settle bilaterally? Next step: collect the pilot-evidence-spec metrics from one garden cycle. Answerable only by pilot data.
 4. The second confirmer on a redemption has no answer yet (RESR-73 tensions). Next step: a design note in the exchange brief.
 5. Pilot-garden adoption: the Tech & Sun weekly sync of 2026-09-01 recorded a next step to present the protocol and team incentives to the garden team. Next step: the presentation and its feedback into *Feedback & Notes*.
@@ -183,7 +183,7 @@ Presets are conditional on the accepted recommendation.
 - Do not move payouts off Arbitrum to reach an off-ramp; Breet, Kotani, Fonbnk, and VALR publish Arbitrum USDC paths.
 - Nigeria: regulator-verifiable routes only; no provider selected. South Africa: VALR is the strongest verified technical corridor, but no in-app route is selected.
 - Community currencies and G$ support local circulation; they are not a substitute for a credible cash exit.
-- A provider is a candidate, not a selection, until entity eligibility, exact network and asset direction, minimum, all-in quote, payout rail, refund behaviour, and current regulatory status are proven.
+- A provider is a candidate, not a selection, until entity eligibility, exact network and asset direction, minimum, all-in quote, payout rail, refund behavior, and current regulatory status are proven.
 - The independent review (RESR-71) confirmed 3 of 20 high-impact claims as written and corrected 17.
 
 **Open.**
@@ -227,7 +227,7 @@ Presets are conditional on the accepted recommendation.
 **Open.**
 1. Pilot cohort, baseline and metric set: reporting completion/correction, total gardener and operator time, language/device coverage, support load and consent comprehension. A successful prototype is not pilot-effectiveness evidence.
 2. Pilot provider provisioning, templates, geography/pricing and applicable processing/retention terms. SMS is excluded from the current prototype and must not re-enter through this research track implicitly.
-3. Live content-processing quality/coverage, latency and cost, including RESR-79's labelled-set comparison against the deterministic walk; exact Kernel permission/custody compatibility and gas limits; browser/account handoff and deployed configuration proof. Track these evidence gates without treating a selected provider as a passed evaluation. No live or shadow processing of gardener reports before the provider/consent gate passes; use synthetic fixtures meanwhile.
+3. Live content-processing quality/coverage, latency and cost, including RESR-79's labeled-set comparison against the deterministic walk; exact Kernel permission/custody compatibility and gas limits; browser/account handoff and deployed configuration proof. Track these evidence gates without treating a selected provider as a passed evaluation. No live or shadow processing of gardener reports before the provider/consent gate passes; use synthetic fixtures meanwhile.
 4. Operational readiness before real intake: support rehearsal, provider settings and the remaining audit/backup retention schedule. The support owner, the support address and local draft-data retention decisions are settled; their implementation is not: the chat and its pages do not show the address yet, and the mailbox is unverified.
 5. How activity fields and evidence map to the base attestation recommendation in track 2. Next step: one worked example per prototype garden domain.
 

@@ -177,7 +177,7 @@ export function demoCommitments(V: Address): CommitmentReadModel[] {
       confirmationCount: 1,
       fulfilledBy: ROSA,
       confirmationPath: "POOL_FALLBACK",
-      fallbackReason: "The neighbour who took this up moved away before confirming.",
+      fallbackReason: "The neighbor who took this up moved away before confirming.",
       targetUnits: 2n,
     }),
     // Lapsed: offer it again.

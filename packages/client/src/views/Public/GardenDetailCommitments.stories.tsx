@@ -253,7 +253,7 @@ const meta: Meta<typeof CommitmentsSection> = {
           "Season and every open Campaign sit beside the pool-wide exact-label unit rows; " +
           "finished cycles follow newest first, then the line that ties fulfilled commitments " +
           "to the certificates. Readiness copy before launch keeps the same panel. A failed " +
-          "read renders em dashes with a section-scoped retry; cancelled cycles, pause reasons, " +
+          "read renders em dashes with a section-scoped retry; canceled cycles, pause reasons, " +
           "provider rows, and addresses never appear.",
       },
     },

@@ -156,7 +156,7 @@ export function eventLabel(event: CommitmentEventRecord, formatMessage: FormatMe
     FULFILLED: { id: "cockpit.garden.pool.commitment.event.fulfilled", defaultMessage: "Kept" },
     CANCELLED: {
       id: "cockpit.garden.pool.commitment.event.cancelled",
-      defaultMessage: "Cancelled",
+      defaultMessage: "Canceled",
     },
     EXPIRED: { id: "cockpit.garden.pool.commitment.event.expired", defaultMessage: "Expired" },
     DISPUTED: {

@@ -33,14 +33,14 @@ export function useTxErrorMessages(error: unknown): TxErrorMessages {
 
   const title = formatMessage({
     id: view.titleKey,
-    defaultMessage: view.severity === "warning" ? "Transaction cancelled" : "Transaction failed",
+    defaultMessage: view.severity === "warning" ? "Transaction canceled" : "Transaction failed",
   });
 
   const message =
     view.kind === "cancelled"
       ? formatMessage({
           id: view.messageKey,
-          defaultMessage: "Transaction was cancelled. Please try again when ready.",
+          defaultMessage: "Transaction was canceled. Please try again when ready.",
         })
       : isMeaningfulTxErrorMessage(view.rawMessage)
         ? view.rawMessage

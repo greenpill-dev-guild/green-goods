@@ -73,7 +73,7 @@ describe("PoolClaimsCard (Review Promises)", () => {
     expect(within(review).getByRole("heading", { name: "Review Promises" })).toBeVisible();
     expect(
       within(review).getByText(
-        "Neighbours asking to take a promise up. Approving one closes the others on that promise."
+        "Neighbors asking to take a promise up. Approving one closes the others on that promise."
       )
     ).toBeInTheDocument();
     expect(within(review).queryByText("Nothing to review.")).not.toBeInTheDocument();

@@ -101,12 +101,12 @@ export const DomainPalette: Story = {
           name="domain-waste"
           className="bg-domain-waste"
           inkClassName="text-static-white"
-          description="Harbour blue — Waste ink."
+          description="Harbor blue — Waste ink."
         />
         <Swatch
           name="domain-waste-soft"
           className="bg-domain-waste-soft"
-          description="Pale harbour — Waste plate / chip surface."
+          description="Pale harbor — Waste plate / chip surface."
         />
       </div>
     </section>

@@ -103,7 +103,7 @@ flyctl checks list --app green-goods
 curl -fsS https://agent.greengoods.app/health
 ```
 
-Expected result: one `app` machine in `started`, checks `1 total, 1 passing`, and `/health` returning HTTP 200. If the Fly UI shows a grey icon, confirm whether the machine is briefly `starting` or `replacing` during deploy:
+Expected result: one `app` machine in `started`, checks `1 total, 1 passing`, and `/health` returning HTTP 200. If the Fly UI shows a gray icon, confirm whether the machine is briefly `starting` or `replacing` during deploy:
 
 ```bash
 flyctl machines list --app green-goods
