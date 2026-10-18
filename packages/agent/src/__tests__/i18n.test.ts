@@ -42,7 +42,8 @@ describe("agent i18n", () => {
     ) as { us_spelling: { terms: Record<string, string>; exempt_phrases?: string[] } };
     const ukForm = new RegExp(`\\b(${Object.keys(usSpelling.terms).join("|")})\\b`, "gi");
     // Comments and the three kinds of string literal, in source order. A comment is skipped, a
-    // literal followed by a colon is a key such as "submit.cancelled", and every other one is copy.
+    // literal that starts an object member and is followed by a colon is a key such as
+    // "submit.cancelled", and every other one is copy, a ternary's first branch included.
     const token =
       /\/\/[^\n]*|\/\*[\s\S]*?\*\/|"((?:[^"\\\n]|\\.)*)"|'((?:[^'\\\n]|\\.)*)'|`((?:[^`\\]|\\.)*)`/g;
     const valuesOf = (source: string, opening: string, closing = "} as const") => {
@@ -51,9 +52,19 @@ describe("agent i18n", () => {
       const end = source.indexOf(closing, start);
       expect(end, `${opening} no longer ends with ${closing}`).toBeGreaterThan(start);
       const block = source.slice(start, end);
-      return [...block.matchAll(token)]
+      const lexemes = [...block.matchAll(token)];
+      // With comments blanked, a key that follows one still starts its member.
+      let code = block;
+      for (const { 0: lexeme, index = 0 } of lexemes.filter(([lexeme]) => lexeme.startsWith("/"))) {
+        code = code.slice(0, index) + " ".repeat(lexeme.length) + code.slice(index + lexeme.length);
+      }
+      return lexemes
         .filter(([lexeme]) => !lexeme.startsWith("/"))
-        .filter((match) => !/^\s*:/.test(block.slice((match.index ?? 0) + match[0].length)))
+        .filter(({ 0: lexeme, index = 0 }) => {
+          const followedByColon = /^\s*:/.test(code.slice(index + lexeme.length));
+          const startsMember = /(?:^|[{,])$/.test(code.slice(0, index).trimEnd());
+          return !(followedByColon && startsMember);
+        })
         .map(([, double, single, template]) =>
           (double ?? single ?? template ?? "").replace(/\$\{[^}]*\}/g, " ")
         );
@@ -63,12 +74,15 @@ describe("agent i18n", () => {
       `  // don't read "this comment"`,
       '  "review.cancelled": `Review cancelled for ${name}`,',
       "  joined: \"one \" + 'two',",
+      '  plural: (n: number) => (n === 1 ? "item" : "items"),',
       "} as const;",
     ].join("\n");
     expect(valuesOf(sample, "const sample = {").map((value) => value.trim())).toEqual([
       "Review cancelled for",
       "one",
       "two",
+      "item",
+      "items",
     ]);
     // Placeholders, inline code and URLs are names, not copy.
     const proseOf = (value: string) => {
