@@ -152,6 +152,10 @@
     {
       "date": "2026-10-18",
       "event": "First v5 run (manual fire after #1118 on 2026-10-18) reviewed: AC-1, AC-5, AC-6, AC-7 (creation) and AC-9 (absence branch) pass; AC-3 and AC-11 pass in part (queue behaviour, budget) with their other halves pending the fetch-accounting and memo-order spec fixes; AC-12 not exercised; AC-2's partial retries and AC-4 wait for the 2026-10-24 run, AC-2's idempotence for a controlled same-day rerun; AC-8 and AC-10 pending. Radar issue and pinned note not found; duplicate-trigger check unverifiable from this account; spec findings recorded in reports/2026-10-18-first-v5-run.md."
+    },
+    {
+      "date": "2026-10-18",
+      "event": "v5.1 intake shape decided after the first live run: one intake thread per run opened from the digest, numbered ledger lines, answers in that thread, one mention per sharer per run only for a ❔ question, four thread reads; the three run-review spec findings folded in. The ten per-share threads of 2026-10-18 are archived by the steward."
     }
   ]
 }
