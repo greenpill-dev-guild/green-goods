@@ -528,8 +528,10 @@ try {
 const ukForms = new Map(Object.entries(usSpelling.terms ?? {}));
 const ukFormPattern = new RegExp(`\\b(${[...ukForms.keys()].map(escapeRegExp).join("|") || "(?!)"})\\b`, "gi");
 const exemptPhrases = usSpelling.exempt_phrases ?? [];
-// A link keeps its title, which a reader sees as a tooltip, and loses its target.
-const linkTarget = /\]\([^)\s]*(?:\s+"([^"]*)")?\)/g;
+// A link keeps its title, which a reader sees as a tooltip, and loses its destination, which may sit
+// in angle brackets or hold balanced parentheses. A title is double-quoted, single-quoted or
+// parenthesized.
+const linkTarget = /\]\((?:<[^>\n]*>|(?:[^()\s]|\([^()\s]*\))*)(?:\s+(?:"([^"]*)"|'([^']*)'|\(([^)]*)\)))?\s*\)/g;
 const readableAttributes = ["alt", "title", "aria-label", "aria-description", "placeholder", "label"];
 // A JSX prop's expression value, such as {CycleState.Cancelled} or {{maxWidth: "560px"}}.
 const braceValue = "\\{(?:[^{}\\n]|\\{(?:[^{}\\n]|\\{[^{}\\n]*\\})*\\})*\\}";
@@ -547,8 +549,8 @@ const notProse = new RegExp(
   ].join("|"),
   "g",
 );
-// An HTML comment is never rendered and a code element is code, even when either spans lines.
-const unrendered = /<!--[\s\S]*?--!?>|<code\b[^>]*>[\s\S]*?<\/code>/g;
+// An HTML or MDX comment is never rendered and a code element is code, even across lines.
+const unrendered = /<!--[\s\S]*?--!?>|\{\/\*[\s\S]*?\*\/\}|<code\b[^>]*>[\s\S]*?<\/code>/g;
 // A JSX or HTML tag is markup, even across lines, so its name and props, bare ones such as
 // <Status cancelled /> included, are names; only the values of readableAttributes stay copy.
 const tagAttribute = `[A-Za-z_][\\w:.-]*(?:\\s*=\\s*(?:"[^"]*"|'[^']*'|${braceValue}))?|\\{\\.\\.\\.[^{}\\n]*\\}`;
@@ -607,7 +609,9 @@ const ukSpellingsIn = (text, {identifiers = new Set(), commonMark = false} = {})
   const frontmatterEnd = lines[0] === "---" ? lines.indexOf("---", 1) : -1;
   const found = [];
   const checkProse = (value, line) => {
-    let prose = value.replace(linkTarget, (_, title) => ` ${title ?? ""} `).replace(notProse, " ");
+    let prose = value
+      .replace(linkTarget, (_, double, single, parenthesized) => ` ${double ?? single ?? parenthesized ?? ""} `)
+      .replace(notProse, " ");
     for (const phrase of exemptPhrases) prose = prose.split(phrase).join(" ");
     // A table row is read cell by cell, so each cell starts its own sentence.
     for (const segment of /^\s*\|/.test(prose) ? prose.split(/(?<!\\)\|/) : [prose]) {
