@@ -70,6 +70,13 @@ describe("agent i18n", () => {
       "one",
       "two",
     ]);
+    // Placeholders, inline code and URLs are names, not copy.
+    const proseOf = (value: string) => {
+      let prose = value.replace(/\{\w+\}|`[^`]*`|https?:\/\/\S+/g, " ");
+      for (const phrase of usSpelling.exempt_phrases ?? []) prose = prose.split(phrase).join(" ");
+      return prose;
+    };
+    expect(proseOf("Open https://grey.example/help, `grey` or {grey}").match(ukForm)).toBeNull();
     const catalogs = [
       { file: "../i18n.ts", opening: "const enMessages = {", least: 50 },
       {
@@ -88,14 +95,12 @@ describe("agent i18n", () => {
         closing
       );
       expect(values.length, file).toBeGreaterThanOrEqual(least);
-      return values.flatMap((value) => {
-        let prose = value.replace(/\{\w+\}|`[^`]*`/g, " ");
-        for (const phrase of usSpelling.exempt_phrases ?? []) prose = prose.split(phrase).join(" ");
-        return [...prose.matchAll(ukForm)].map(
+      return values.flatMap((value) =>
+        [...proseOf(value).matchAll(ukForm)].map(
           ([word]) =>
             `${file}: "${word}" should be "${usSpelling.terms[word.toLowerCase()]}" in ${value}`
-        );
-      });
+        )
+      );
     });
 
     expect(hits).toEqual([]);

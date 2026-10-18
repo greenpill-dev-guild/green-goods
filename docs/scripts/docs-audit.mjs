@@ -531,22 +531,26 @@ const exemptPhrases = usSpelling.exempt_phrases ?? [];
 // A link keeps its title, which a reader sees as a tooltip, and loses its target.
 const linkTarget = /\]\([^)\s]*(?:\s+"([^"]*)")?\)/g;
 const readableAttributes = ["alt", "title", "aria-label", "aria-description", "placeholder", "label"];
+// A JSX prop's expression value, such as {CycleState.Cancelled} or {{maxWidth: "560px"}}.
+const braceValue = "\\{(?:[^{}\\n]|\\{(?:[^{}\\n]|\\{[^{}\\n]*\\})*\\})*\\}";
 const notProse = new RegExp(
   [
-    "`[^`\\n]*`",
+    // A code span closes on a backtick run as long as the one that opened it; an escaped backtick
+    // opens nothing.
+    "(?<![\\\\`])(?<tick>`+)(?!`)[^\\n]*?(?<!`)\\k<tick>(?!`)",
     "<code\\b[^>]*>[\\s\\S]*?<\\/code>",
     "<https?:\\/\\/[^>]+>",
     "https?:\\/\\/[^\\s)\\]>\"'`]+",
     "\\{#[^}]*\\}",
-    `(?<![\\w:-])(?!(?:${readableAttributes.join("|")})=)[A-Za-z][\\w:-]*=(?:"[^"]*"|'[^']*')`,
+    `(?<![\\w:-])(?!(?:${readableAttributes.join("|")})=)[A-Za-z][\\w:-]*=(?:"[^"]*"|'[^']*'|${braceValue})`,
   ].join("|"),
   "g",
 );
 const htmlComment = /<!--[\s\S]*?--!?>/g;
 const renderedFrontmatterKeys = ["title", "sidebar_label", "description"];
 
-// The ontology's enum members (Cancelled, CANCELLED) are identifiers. A generated page prints them
-// without code marks, so on a generated page they are not read as copy.
+// The ontology's enum members (Cancelled, CANCELLED) are identifiers that a generated page prints
+// without code marks: in table cells that list only members, and inside sentences.
 const enumNames = new Set();
 const collectEnumNames = (node, key) => {
   if (Array.isArray(node)) {
@@ -559,6 +563,16 @@ const collectEnumNames = (node, key) => {
   }
 };
 collectEnumNames(ontology);
+// A member that starts a sentence or a cell of prose is copy, as in "Cancelled requests stay listed".
+const isEnumName = (identifiers, segment, index, word) => {
+  if (!identifiers.has(word)) return false;
+  if (segment.split(/[\s,·]+/).filter(Boolean).every((token) => identifiers.has(token))) return true;
+  const lead = segment
+    .slice(0, index)
+    .replace(/^\s*(?:(?:[-*+>]|\d+[.)]|#{1,6})\s+)*/, "")
+    .replace(/[\s*_]+$/, "");
+  return lead !== "" && !/[.!?]["'’”)\]]*$/.test(lead);
+};
 
 // commonMark is true for the guides outside the docs site, which GitHub renders as CommonMark; the
 // site parses every page as MDX, where an indented line is text, not code.
@@ -570,8 +584,11 @@ const ukSpellingsIn = (text, {identifiers = new Set(), commonMark = false} = {})
   const checkProse = (value, line) => {
     let prose = value.replace(linkTarget, (_, title) => ` ${title ?? ""} `).replace(notProse, " ");
     for (const phrase of exemptPhrases) prose = prose.split(phrase).join(" ");
-    for (const [, word] of prose.matchAll(ukFormPattern)) {
-      if (!identifiers.has(word)) found.push({line, word, us: ukForms.get(word.toLowerCase())});
+    // A table row is read cell by cell, so each cell starts its own sentence.
+    for (const segment of /^\s*\|/.test(prose) ? prose.split(/(?<!\\)\|/) : [prose]) {
+      for (const {0: word, index} of segment.matchAll(ukFormPattern)) {
+        if (!isEnumName(identifiers, segment, index, word)) found.push({line, word, us: ukForms.get(word.toLowerCase())});
+      }
     }
   };
   // Parsed, so a folded or literal block value is read whole. Only the keys a reader sees are copy;

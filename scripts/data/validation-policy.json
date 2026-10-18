@@ -1954,6 +1954,7 @@
         "packages/agent/vitest.config.ts",
         "packages/client/package.json",
         "packages/client/DESIGN.browser.md",
+        "packages/client/DESIGN.md",
         "packages/client/DESIGN.pwa.md",
         "packages/client/src/config/routes.tsx",
         "packages/client/src/config/pwaRouting.ts",

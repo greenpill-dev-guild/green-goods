@@ -268,8 +268,9 @@ if terms:
             for key, value in json.load(open(path)).items():
                 if key in exempt or not isinstance(value, str):
                     continue
-                # ICU argument references are code the component passes, not copy.
-                prose = re.sub(r"\{\s*\w+\s*[,}]", " ", branch_text(value))
+                # ICU argument references are code the component passes, and URLs are
+                # addresses; neither is copy.
+                prose = re.sub(r"\{\s*\w+\s*[,}]|https?://\S+", " ", branch_text(value))
                 for match in pattern.finditer(prose):
                     word = match.group(0)
                     hits.append(f"{path}: {key}: {word} -> {terms[word.lower()]}")
