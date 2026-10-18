@@ -124,7 +124,7 @@ export function PublicProofBand({
               {formatMessage({
                 id: "public.home.proof.body",
                 defaultMessage:
-                  "Documented activity across the gardens listed here, and the commitments members have kept across Green Goods. A steward's approval confirms a submission was reviewed; environmental outcomes need their own measurements and assessments.",
+                  "Documented activity across the gardens listed here, and the promises members have kept across Green Goods. A steward's approval confirms a submission was reviewed; environmental outcomes need their own measurements and assessments.",
               })}
             </EditorialLede>
           </div>
@@ -199,7 +199,7 @@ export function PublicProofBand({
               value={commitmentsKept}
               isLoading={isCommitmentsLoading}
               labelId="public.pool.impact.kept.label"
-              defaultLabel="Commitments kept"
+              defaultLabel="Promises kept"
               noteId="public.pool.impact.kept.note"
               defaultNote="Work carried out and confirmed by the people involved."
             />

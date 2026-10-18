@@ -202,7 +202,7 @@ const messages: Record<string, string> = {
   "public.gardenDetail.section.notes": "§ 01: Approved submissions",
   "public.gardenDetail.section.certificates": "§ 03: Certificates",
   "public.gardenDetail.section.stewards": "§ 04: Stewards",
-  "public.pool.garden.kicker": "§ 02: Commitments",
+  "public.pool.garden.kicker": "§ 02: Promises",
   "public.pool.garden.heading.preparing": "This garden is preparing its pool",
   "public.pool.garden.state.notReady": "Offers and requests open once the pool is ready.",
   "public.gardenDetail.notes.heading": "Recent approved submissions",

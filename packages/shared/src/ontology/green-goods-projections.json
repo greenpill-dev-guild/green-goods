@@ -406,7 +406,7 @@
       "who_touches_it": ["Steward", "Gardener"],
       "example": "Plant native species and capture before-and-after photos.",
       "aliases": ["work template"],
-      "not_confused_with": ["Work", "Commitment"]
+      "not_confused_with": ["Work", "Promise"]
     },
     {
       "ref": "entity:work",
@@ -554,12 +554,12 @@
     },
     {
       "ref": "entity:commitment",
-      "plain_name": "A bounded promise to offer or request support",
-      "why_it_matters": "It makes responsibility, evidence, confirmation, and unit accounting explicit.",
+      "plain_name": "What a member offers or asks for in a pool: a workshop, a planting, a repair",
+      "why_it_matters": "It keeps a shared record of who will do it, by when, and whether it was kept.",
       "who_touches_it": ["Gardener", "Steward", "Community Member"],
-      "example": "Offer three rides, with one lead and two contributors.",
-      "aliases": ["offer", "request"],
-      "not_confused_with": ["Attestation", "Need"]
+      "example": "A gardener offers a composting workshop, and the member who takes it up confirms it was kept.",
+      "aliases": ["promise", "offer", "request"],
+      "not_confused_with": ["a work record", "a payment"]
     },
     {
       "ref": "entity:commitment-contributor",
@@ -733,7 +733,7 @@
     },
     {
       "id": "community-needs",
-      "claim": "Communities will be able to name Needs, signal support, and connect commitments and funding evidence.",
+      "claim": "Communities will be able to name Needs, signal support, and connect promises and funding evidence.",
       "audience": ["community", "steward", "funder"],
       "maturity": "planned",
       "term_refs": ["entity:need", "entity:commitment"],
