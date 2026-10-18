@@ -22,7 +22,7 @@ connectors:
   - posthog
   - linear
   - google-calendar
-model: claude-opus-5-5  # the model it re-enables on; the disabled trigger still names claude-opus-5
+model: claude-opus-5  # the disabled live trigger's model; re-enable or rebuild it on claude-opus-5-5
 status: disabled  # off since 2026-08-24; re-enabling on claude-opus-5-5 with the bootstrap below once DISCORD_GROWTH_CHANNEL_ID names #growth (the channel formerly named #funding). 2026-05-25 — weekly digest posts to Linear (initiative status update), no GitHub PR. Consolidates metrics digest + guild-weekly-checkin numbers + guild-product-development-synthesis growth signals
 ---
 
