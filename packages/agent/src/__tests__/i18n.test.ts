@@ -41,44 +41,65 @@ describe("agent i18n", () => {
       )
     ) as { us_spelling: { terms: Record<string, string>; exempt_phrases?: string[] } };
     const ukForm = new RegExp(`\\b(${Object.keys(usSpelling.terms).join("|")})\\b`, "gi");
-    // Comments and the three kinds of string literal, in source order. A comment is skipped, a
-    // literal that starts an object member and is followed by a colon is a key such as
-    // "submit.cancelled", and every other one is copy, a ternary's first branch included.
-    const token =
-      /\/\/[^\n]*|\/\*[\s\S]*?\*\/|"((?:[^"\\\n]|\\.)*)"|'((?:[^'\\\n]|\\.)*)'|`((?:[^`\\]|\\.)*)`/g;
-    // A template's text is copy, and so is each string literal inside its interpolations, such as
-    // either branch of `${done ? "Done" : "Open"}`; one that is compared against is a wire value.
-    const quoted = /"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'/y;
-    const templateValues = (body: string): string[] => {
-      let text = "";
-      const inner: string[] = [];
-      let at = 0;
-      for (let open = body.indexOf("${"); open !== -1; open = body.indexOf("${", at)) {
-        text += `${body.slice(at, open)} `;
-        let close = open + 2;
-        for (let depth = 1; close < body.length && depth > 0; ) {
-          quoted.lastIndex = close;
-          const literal = quoted.exec(body);
-          if (literal) {
-            close += literal[0].length;
-            continue;
+    // A small lexer for the catalogs, in source order. Comments are skipped and each string literal
+    // keeps its position. A template yields its text and, recursively, the literals inside its
+    // interpolations, nested templates included. A literal that starts an object member and is
+    // followed by a colon is a key such as "submit.cancelled", and one that is compared against is a
+    // wire value; every other one is copy, a ternary's first branch included.
+    type Literal = { index: number; end: number; values: string[] };
+    type Lexed = { literals: Literal[]; comments: Array<[number, number]>; end: number };
+    const compared = (code: string, { index, end }: Literal) =>
+      /[=!]==?\s*$/.test(code.slice(Math.max(0, index - 40), index)) ||
+      /^\s*[=!]==?/.test(code.slice(end, end + 40));
+    const lex = (source: string, at = 0, closesOnBrace = false): Lexed => {
+      const literals: Literal[] = [];
+      const comments: Array<[number, number]> = [];
+      for (let depth = 0; at < source.length; ) {
+        const character = source[at];
+        if (source.startsWith("//", at) || source.startsWith("/*", at)) {
+          const line = source[at + 1] === "/";
+          const close = line ? source.indexOf("\n", at) : source.indexOf("*/", at + 2);
+          const end = close === -1 ? source.length : line ? close : close + 2;
+          comments.push([at, end]);
+          at = end;
+        } else if (character === '"' || character === "'") {
+          let end = at + 1;
+          while (end < source.length && source[end] !== character && source[end] !== "\n") {
+            end += source[end] === "\\" ? 2 : 1;
           }
-          if (body[close] === "{") depth += 1;
-          if (body[close] === "}") depth -= 1;
-          close += 1;
+          literals.push({ index: at, end: end + 1, values: [source.slice(at + 1, end)] });
+          at = end + 1;
+        } else if (character === "`") {
+          let text = "";
+          const inner: string[] = [];
+          let end = at + 1;
+          while (end < source.length && source[end] !== "`") {
+            if (source[end] === "\\") {
+              text += source.slice(end, end + 2);
+              end += 2;
+            } else if (source.startsWith("${", end)) {
+              const interpolation = lex(source, end + 2, true);
+              for (const literal of interpolation.literals) {
+                if (!compared(source, literal)) inner.push(...literal.values);
+              }
+              text += " ";
+              end = interpolation.end;
+            } else {
+              text += source[end];
+              end += 1;
+            }
+          }
+          literals.push({ index: at, end: end + 1, values: [text, ...inner] });
+          at = end + 1;
+        } else {
+          if (closesOnBrace && character === "}" && depth === 0)
+            return { literals, comments, end: at + 1 };
+          if (character === "{") depth += 1;
+          if (character === "}") depth -= 1;
+          at += 1;
         }
-        const expression = body.slice(open + 2, close - 1);
-        for (const { 0: literal, index = 0 } of expression.matchAll(
-          new RegExp(quoted.source, "g")
-        )) {
-          const compared =
-            /[=!]==?\s*$/.test(expression.slice(0, index)) ||
-            /^\s*[=!]==?/.test(expression.slice(index + literal.length));
-          if (!compared) inner.push(literal.slice(1, -1));
-        }
-        at = close;
       }
-      return [text + body.slice(at), ...inner];
+      return { literals, comments, end: at };
     };
     const valuesOf = (source: string, opening: string, closing = "} as const") => {
       const start = source.indexOf(opening);
@@ -86,22 +107,19 @@ describe("agent i18n", () => {
       const end = source.indexOf(closing, start);
       expect(end, `${opening} no longer ends with ${closing}`).toBeGreaterThan(start);
       const block = source.slice(start, end);
-      const lexemes = [...block.matchAll(token)];
+      const { literals, comments } = lex(block);
       // With comments blanked, a key that follows one still starts its member.
       let code = block;
-      for (const { 0: lexeme, index = 0 } of lexemes.filter(([lexeme]) => lexeme.startsWith("/"))) {
-        code = code.slice(0, index) + " ".repeat(lexeme.length) + code.slice(index + lexeme.length);
-      }
-      return lexemes
-        .filter(([lexeme]) => !lexeme.startsWith("/"))
-        .filter(({ 0: lexeme, index = 0 }) => {
-          const followedByColon = /^\s*:/.test(code.slice(index + lexeme.length));
-          const startsMember = /(?:^|[{,])$/.test(code.slice(0, index).trimEnd());
-          return !(followedByColon && startsMember);
+      for (const [from, to] of comments)
+        code = code.slice(0, from) + " ".repeat(to - from) + code.slice(to);
+      return literals
+        .filter((literal) => {
+          const key =
+            /^\s*:/.test(code.slice(literal.end)) &&
+            /(?:^|[{,])$/.test(code.slice(0, literal.index).trimEnd());
+          return !key && !compared(code, literal);
         })
-        .flatMap(([, double, single, template]) =>
-          template === undefined ? [double ?? single ?? ""] : templateValues(template)
-        );
+        .flatMap((literal) => literal.values);
     };
     const sample = [
       "const sample = {",
@@ -110,6 +128,7 @@ describe("agent i18n", () => {
       "  joined: \"one \" + 'two',",
       '  plural: (n: number) => (n === 1 ? "item" : "items"),',
       '  status: `Review ${state === "done" ? "finished" : "open"}`,',
+      '  nested: `Review ${done ? `Finished for ${name}` : "Open"}`,',
       "} as const;",
     ].join("\n");
     expect(valuesOf(sample, "const sample = {").map((value) => value.trim())).toEqual([
@@ -121,6 +140,9 @@ describe("agent i18n", () => {
       "Review",
       "finished",
       "open",
+      "Review",
+      "Finished for",
+      "Open",
     ]);
     // Placeholders, inline code and URLs are names, not copy.
     const proseOf = (value: string) => {

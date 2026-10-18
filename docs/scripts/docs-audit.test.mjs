@@ -235,6 +235,13 @@ test("UK spelling in docs prose or design guidance exits nonzero, while names st
       "A bare prop is a name too: <Status cancelled />.",
       "A code span can wrap: `the",
       "cancelled state` stays code.",
+      '<Status>{state === CycleState.Cancelled ? "Closed" : "Open"}</Status>',
+      '{state === "cancelled" ? "Stopped" : "Open"}',
+      "<Status>",
+      "  {state === CycleState.Cancelled",
+      '    ? "Closed"',
+      '    : "Open"}',
+      "</Status>",
       "{/* An MDX comment is cancelled from the page. */}",
       "{/*",
       "So is one that spans lines, cancelled or not.",
@@ -310,7 +317,7 @@ Requests stop at pre-disbursement Cancelled.
     assert.equal(clean.status, 0, clean.stderr);
 
     // A folded frontmatter value is rendered page metadata, read whole across its lines.
-    const dirty = `${readFileSync(file, "utf8")}The row reads cancelled.\n\n    MDX reads this indented line as text, so cancelled counts.\n\nSee [the garden](https://example.com/g "The favourite garden") and <span aria-label="A grey icon">x</span>.\n\nAn escaped \\\`grey\\\` mark is text.\n\n<img\n  src="/img/x.png"\n  alt="A grey mark"\n/>\n\nSee [the guide](https://example.com/guide 'The favourite guide').\n\nA lone \`tick stops at a blank line,\n\nso cancelled here counts.\n\n- A \`list item\n- cancelled in the next one counts.\n`.replace(
+    const dirty = `${readFileSync(file, "utf8")}The row reads cancelled.\n\n    MDX reads this indented line as text, so cancelled counts.\n\nSee [the garden](https://example.com/g "The favourite garden") and <span aria-label="A grey icon">x</span>.\n\nAn escaped \\\`grey\\\` mark is text.\n\n<img\n  src="/img/x.png"\n  alt="A grey mark"\n/>\n\nSee [the guide](https://example.com/guide 'The favourite guide').\n\nA lone \`tick stops at a blank line,\n\nso cancelled here counts.\n\n- A \`list item\n- cancelled in the next one counts.\n\n<Status>{done ? "The cycle was cancelled." : "Open"}</Status>\n\nAn escaped \\{cancelled} brace is text.\n`.replace(
       "slug: /builders/test\n",
       "slug: /builders/test\ndescription: >-\n  How the field\n  turns grey.\n",
     );
@@ -340,6 +347,9 @@ Requests stop at pre-disbursement Cancelled.
     // A code span stops at a blank line and at a new list item.
     assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${lineOf("so cancelled here counts.")}: "cancelled"`), result.stderr);
     assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${lineOf("- cancelled in the next one counts.")}: "cancelled"`), result.stderr);
+    // A string an MDX expression renders is copy, and an escaped brace is text.
+    assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${lineOf('<Status>{done ? "The cycle was cancelled." : "Open"}</Status>')}: "cancelled"`), result.stderr);
+    assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${lineOf("An escaped \\{cancelled} brace is text.")}: "cancelled"`), result.stderr);
     // A single-quoted link title is copy too.
     assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${lineOf("See [the guide](https://example.com/guide 'The favourite guide').")}: "favourite"`), result.stderr);
     assert.ok(
@@ -355,7 +365,7 @@ Requests stop at pre-disbursement Cancelled.
     assert.match(result.stderr, new RegExp(`reference/generated\\.mdx: UK spelling on line ${cancelledLine}: "cancelled".* Fix it in the source this page is generated from\\.`));
     const sentenceStart = generatedLineOf("Cancelled requests remain visible.");
     assert.ok(result.stderr.includes(`reference/generated.mdx: UK spelling on line ${sentenceStart}: "Cancelled"`), result.stderr);
-    assert.equal(result.stderr.match(/UK spelling/g)?.length, 14, result.stderr);
+    assert.equal(result.stderr.match(/UK spelling/g)?.length, 16, result.stderr);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

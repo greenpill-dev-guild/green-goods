@@ -609,6 +609,57 @@ const bracketBalance = (line) => {
   const code = line.replace(/\/\/.*|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`/g, "");
   return (code.match(/[{[(]/g)?.length ?? 0) - (code.match(/[}\])]/g)?.length ?? 0);
 };
+// In MDX, braces hold a JavaScript expression, such as {done ? "Closed" : "Open"}. Only its string
+// literals and template text can render, so the rest is blanked in place, and a literal that is
+// compared against is code too. readExpression reads from just inside an opening brace to just past
+// the brace that closes it, adding the ranges that can render to kept. An escaped brace is text.
+const readExpression = (text, at, kept) => {
+  for (let depth = 0; at < text.length; ) {
+    const character = text[at];
+    if (text.startsWith("//", at) || text.startsWith("/*", at)) {
+      const line = text[at + 1] === "/";
+      const close = line ? text.indexOf("\n", at) : text.indexOf("*/", at + 2);
+      at = close === -1 ? text.length : line ? close : close + 2;
+    } else if (character === '"' || character === "'") {
+      let end = at + 1;
+      while (end < text.length && text[end] !== character && text[end] !== "\n") end += text[end] === "\\" ? 2 : 1;
+      const compared =
+        /[=!]==?\s*$/.test(text.slice(Math.max(0, at - 40), at)) || /^\s*[=!]==?/.test(text.slice(end + 1, end + 41));
+      if (!compared) kept.push([at + 1, end]);
+      at = end + 1;
+    } else if (character === "`") {
+      let from = at + 1;
+      for (at += 1; at < text.length && text[at] !== "`"; ) {
+        if (text[at] === "\\") at += 2;
+        else if (text.startsWith("${", at)) {
+          kept.push([from, at]);
+          at = readExpression(text, at + 2, kept);
+          from = at;
+        } else at += 1;
+      }
+      kept.push([from, at]);
+      at += 1;
+    } else {
+      if (character === "}" && depth === 0) return at + 1;
+      if (character === "{") depth += 1;
+      if (character === "}") depth -= 1;
+      at += 1;
+    }
+  }
+  return at;
+};
+const expressionText = (text) => {
+  const out = text.split("");
+  for (let open = text.indexOf("{"); open !== -1; open = text.indexOf("{", open + 1)) {
+    if (text[open - 1] === "\\") continue;
+    const kept = [];
+    const end = readExpression(text, open + 1, kept);
+    for (let at = open; at < end; at += 1) if (out[at] !== "\n") out[at] = " ";
+    for (const [from, to] of kept) for (let at = from; at < to; at += 1) out[at] = text[at];
+    open = end - 1;
+  }
+  return out.join("");
+};
 
 // commonMark is true for the guides outside the docs site, which GitHub renders as CommonMark; the
 // site parses every page as MDX, where an indented line is text, not code.
@@ -638,6 +689,7 @@ const ukSpellingsIn = (text, {identifiers = new Set(), commonMark = false} = {})
       checkProse(frontmatter[key], lines.findIndex((line) => line.startsWith(`${key}:`)) + 1);
     }
   }
+  const prose = new Set();
   let fence = null;
   let esm = null;
   let indentedCode = false;
@@ -676,8 +728,13 @@ const ukSpellingsIn = (text, {identifiers = new Set(), commonMark = false} = {})
       return;
     }
     if (fence !== null) return;
-    checkProse(line, index + 1);
+    prose.add(index);
   });
+  // An MDX expression can span lines, so it is read once the code lines are set aside.
+  let body = lines.map((line, index) => (prose.has(index) ? line : "")).join("\n");
+  if (!commonMark) body = expressionText(body);
+  const bodyLines = body.split("\n");
+  for (const index of prose) checkProse(bodyLines[index], index + 1);
   return found;
 };
 
