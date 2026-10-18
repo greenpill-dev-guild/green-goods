@@ -1,5 +1,20 @@
 import { Database } from "bun:sqlite";
 
+/**
+ * A directory entry. One account, its exact ID string with its key, holds one name: Kernel hashes
+ * the string into the address, so the other spelling of one passkey is another account. The ID
+ * string alone is not unique, because a client can claim any credential's ID.
+ */
+const PASSKEY_CREDENTIAL_COLUMNS = `
+  userName TEXT PRIMARY KEY,
+  credentialId TEXT NOT NULL,
+  credentialKey TEXT NOT NULL,
+  publicKey TEXT NOT NULL,
+  rpId TEXT NOT NULL,
+  origin TEXT NOT NULL,
+  source TEXT NOT NULL DEFAULT 'registered',
+  createdAt TEXT NOT NULL`;
+
 export function initSchema(db: Database): void {
   db.run(`
       CREATE TABLE IF NOT EXISTS garden_join_requests (
@@ -60,24 +75,29 @@ export function initSchema(db: Database): void {
       CREATE INDEX IF NOT EXISTS idx_saved_offers_owner_active
       ON saved_offers(chainId, owner, deleted, updatedAt)
     `);
-  db.run(`
-      CREATE TABLE IF NOT EXISTS passkey_credentials (
-        userName TEXT PRIMARY KEY,
-        credentialId TEXT NOT NULL UNIQUE,
-        publicKey TEXT NOT NULL,
-        rpId TEXT NOT NULL,
-        origin TEXT NOT NULL,
-        createdAt TEXT NOT NULL
-      )
-    `);
+  db.run(`CREATE TABLE IF NOT EXISTS passkey_credentials (${PASSKEY_CREDENTIAL_COLUMNS})`);
   db.run(`
       CREATE TABLE IF NOT EXISTS passkey_registration_challenges (
         challenge TEXT PRIMARY KEY,
         userName TEXT NOT NULL,
         rpId TEXT NOT NULL,
         origin TEXT NOT NULL,
-        expiresAt INTEGER NOT NULL
+        expiresAt INTEGER NOT NULL,
+        purpose TEXT NOT NULL DEFAULT 'registration'
       )
+    `);
+  ensureColumn(db, "passkey_credentials", "credentialKey", "TEXT");
+  ensureColumn(db, "passkey_credentials", "source", "TEXT NOT NULL DEFAULT 'registered'");
+  ensureColumn(
+    db,
+    "passkey_registration_challenges",
+    "purpose",
+    "TEXT NOT NULL DEFAULT 'registration'"
+  );
+  keyPasskeysByAccount(db);
+  db.run(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_passkey_credentials_account
+      ON passkey_credentials(credentialId, publicKey)
     `);
   db.run(`
       CREATE TABLE IF NOT EXISTS profile_avatars (
@@ -286,17 +306,60 @@ export function initSchema(db: Database): void {
     `CREATE INDEX IF NOT EXISTS idx_funding_intent_events_intent
        ON funding_intent_events(intentId, createdAt)`
   );
-  db.run("PRAGMA user_version = 8");
+  db.run("PRAGMA user_version = 9");
 }
 
 function ensureColumn(
   db: Database,
-  table: "funding_intents" | "funding_intent_events" | "users",
+  table:
+    | "funding_intents"
+    | "funding_intent_events"
+    | "users"
+    | "passkey_credentials"
+    | "passkey_registration_challenges",
   column: string,
   definition: string
 ): void {
   const columns = db.query(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
   if (!columns.some((info) => info.name === column)) {
     db.run(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
+}
+
+/**
+ * Directory tables made before adoption kept `credentialId` unique on its own, which would let a
+ * claimed ID block the passkey's owner. SQLite can't drop that constraint in place, so the table is
+ * rebuilt once, in one transaction. Its rows came from sign-ups, which store the browser's base64url
+ * ID, so `credentialKey` is filled by copying that string, never by decoding it.
+ */
+function keyPasskeysByAccount(db: Database): void {
+  const uniqueIndexes = (
+    db.query("PRAGMA index_list(passkey_credentials)").all() as Array<{
+      name: string;
+      unique: number;
+    }>
+  ).filter(({ unique }) => unique === 1);
+  const idAloneIsUnique = uniqueIndexes.some(({ name }) => {
+    const columns = db.query(`PRAGMA index_info(${name})`).all() as Array<{ name: string }>;
+    return columns.length === 1 && columns[0].name === "credentialId";
+  });
+  if (!idAloneIsUnique) return;
+
+  db.run("BEGIN IMMEDIATE");
+  try {
+    db.run(`CREATE TABLE passkey_credentials_by_account (${PASSKEY_CREDENTIAL_COLUMNS})`);
+    db.run(`
+      INSERT INTO passkey_credentials_by_account
+        (userName, credentialId, credentialKey, publicKey, rpId, origin, source, createdAt)
+      SELECT userName, credentialId, COALESCE(credentialKey, credentialId), publicKey, rpId,
+        origin, source, createdAt
+      FROM passkey_credentials
+    `);
+    db.run("DROP TABLE passkey_credentials");
+    db.run("ALTER TABLE passkey_credentials_by_account RENAME TO passkey_credentials");
+    db.run("COMMIT");
+  } catch (error) {
+    db.run("ROLLBACK");
+    throw error;
   }
 }

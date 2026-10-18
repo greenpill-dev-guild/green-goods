@@ -113,7 +113,12 @@ describe("passkey directory", () => {
     for (const origin of [WWW, ADMIN]) {
       const found = await call(app, "pks_getCredentials", [{ userName: "ana" }], origin);
       expect(found.result).toEqual([
-        { id: passkey.credentialId, publicKey: passkey.publicKey, rpId: DOMAIN },
+        {
+          id: passkey.credentialId,
+          signingId: passkey.credentialId,
+          publicKey: passkey.publicKey,
+          rpId: DOMAIN,
+        },
       ]);
     }
   });
@@ -127,7 +132,12 @@ describe("passkey directory", () => {
     expect(again.error?.message).toBe("That name is already registered.");
     const found = await call(app, "pks_getCredentials", [{ userName: "@ana" }]);
     expect(found.result).toEqual([
-      { id: first.passkey.credentialId, publicKey: first.passkey.publicKey, rpId: DOMAIN },
+      {
+        id: first.passkey.credentialId,
+        signingId: first.passkey.credentialId,
+        publicKey: first.passkey.publicKey,
+        rpId: DOMAIN,
+      },
     ]);
     expect((await call(app, "pks_startRegistration", [{ userName: "ab" }])).error?.code).toBe(
       -32602

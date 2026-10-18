@@ -4,10 +4,12 @@
  */
 
 import * as db from "./db";
-import type {
-  PasskeyInsertResult,
-  PendingPasskeyRegistration,
-  StoredPasskey,
+import {
+  type PasskeyChallengePurpose,
+  type PasskeyInsertResult,
+  type PendingPasskeyRegistration,
+  type StoredPasskey,
+  storedPasskeyPublicKey,
 } from "./db/passkey-directory";
 import type { HostedPasskeyNameCheck, PasskeyDirectoryStore } from "./passkey-directory";
 
@@ -64,13 +66,15 @@ export class MemoryPasskeyDirectoryStore implements PasskeyDirectoryStore {
   }
 
   async insert(passkey: StoredPasskey): Promise<PasskeyInsertResult> {
+    const publicKey = storedPasskeyPublicKey(passkey.publicKey);
     if (this.passkeys.has(passkey.userName)) return { ok: false, reason: "name_taken" };
+    // One account, its exact ID string with its key, holds one name.
     for (const existing of this.passkeys.values()) {
-      if (existing.credentialId === passkey.credentialId) {
+      if (existing.credentialId === passkey.credentialId && existing.publicKey === publicKey) {
         return { ok: false, reason: "credential_exists" };
       }
     }
-    this.passkeys.set(passkey.userName, passkey);
+    this.passkeys.set(passkey.userName, { ...passkey, publicKey });
     return { ok: true };
   }
 
@@ -81,12 +85,13 @@ export class MemoryPasskeyDirectoryStore implements PasskeyDirectoryStore {
 
   async takeChallenge(
     challenge: string,
-    now: number
+    now: number,
+    purpose: PasskeyChallengePurpose
   ): Promise<PendingPasskeyRegistration | undefined> {
     this.dropExpired(now);
     const pending = this.challenges.get(challenge);
     this.challenges.delete(challenge);
-    return pending;
+    return pending?.purpose === purpose ? pending : undefined;
   }
 
   private dropExpired(now: number): void {
@@ -104,6 +109,7 @@ export function createSqlitePasskeyDirectoryStore(): PasskeyDirectoryStore {
     findByName: async (userName) => queries().findByName(userName),
     insert: async (passkey) => queries().insert(passkey),
     saveChallenge: async (pending, now) => queries().saveChallenge(pending, now),
-    takeChallenge: async (challenge, now) => queries().takeChallenge(challenge, now),
+    takeChallenge: async (challenge, now, purpose) =>
+      queries().takeChallenge(challenge, now, purpose),
   };
 }

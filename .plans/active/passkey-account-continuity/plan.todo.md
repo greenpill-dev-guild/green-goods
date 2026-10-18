@@ -1,8 +1,9 @@
 # Keep Older Passkey Accounts Working on Every Site Plan
 
 **Feature Slug**: `passkey-account-continuity`
-**Stage**: `backlog`
-**Status**: `ACTIVE — planned and de-risked; decisions answered 2026-10-17, ready to promote`
+**Stage**: `active`
+**Status**: `ACTIVE — steps 1 to 3 implemented on feature/passkey-account-continuity; step 4 next`
+**Linear Issue**: `PRD-1154` (read-only mirror; COM-39 owns community outreach)
 **Created**: `2026-10-16T19:35:57.040Z`
 **Last Updated**: `2026-10-17`
 
@@ -62,6 +63,8 @@ line and keep the selector's critical override.
 
 ### Step 1: Directory sign-in names hex-ID passkeys (state_api)
 
+**Done 2026-10-17** in `a76570cfd`.
+
 **Files**: `packages/shared/src/public-contracts/passkey-directory.ts`,
 `packages/shared/src/workflows/auth-passkey-directory.ts`,
 `packages/shared/src/__tests__/workflows/authServices.test.ts`
@@ -83,6 +86,8 @@ line and keep the selector's critical override.
 
 ### Step 2: One assertion verifier for the app and the agent (state_api)
 
+**Done 2026-10-17** in `b89b06bef`.
+
 **Files**: new `packages/shared/src/public-contracts/passkey-assertion.ts`, its export from the
 existing `public-contracts` index, `packages/shared/src/modules/auth/passkey-assertion.ts` (keeps
 its logging and delegates), `packages/shared/src/__tests__/modules/passkey-assertion.test.ts`
@@ -98,6 +103,10 @@ its logging and delegates), `packages/shared/src/__tests__/modules/passkey-asser
   `@green-goods/shared/public-contracts` under Bun.
 
 ### Step 3: Store adopted entries (state_api, agent)
+
+**Done 2026-10-17** in `8c1e84f86`. The
+registration path also writes `credentialKey` and `source`, and the lookup already returns
+`credentialKey` as `signingId` (a step 5 file, needed for step 3's test).
 
 **Files**: `packages/agent/src/services/db/schema.ts`,
 `packages/agent/src/services/db/passkey-directory.ts`,

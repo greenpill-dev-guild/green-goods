@@ -731,6 +731,63 @@ describe("createAuthServices", () => {
       ).rejects.toThrow("did not match the expected account address");
     });
 
+    it("signs in to an entry whose ID is stored in hex, and keeps that string as the identity", async () => {
+      // The bytes 0xdeadbeef: the browser names them 3q2-7w, and an adopted hosted account may
+      // store them in hex. Kernel hashes the stored string, so the session must keep it.
+      harness.directory.getCredentials.mockResolvedValue([
+        { ...DIRECTORY_CREDENTIAL, id: "deadbeef" },
+      ]);
+
+      await expect(
+        invoke(harness.services.authenticatePasskey, { userName: USER, chainId: CHAIN_ID })
+      ).resolves.toMatchObject({ credential: { id: "deadbeef", signingId: CREDENTIAL.id } });
+
+      const request = harness.calls.getWebAuthnCredential.mock.calls[0]?.[0] as {
+        publicKey?: { allowCredentials?: Array<{ id: BufferSource }> };
+      };
+      const offered = request.publicKey?.allowCredentials?.map(({ id }) =>
+        Array.from(new Uint8Array(id as ArrayBuffer))
+      );
+      expect(offered).toContainEqual([0xde, 0xad, 0xbe, 0xef]);
+      expect(harness.sessionSpies.setCredential).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "deadbeef" })
+      );
+    });
+
+    it("opens each spelling's own account on a device that remembers the legacy one", async () => {
+      // One passkey, two accounts to Kernel: the hex string this device kept, and the hosted
+      // server's base64url string. Each name must reach its own address.
+      const rememberLegacy = () => {
+        harness.state.credential = {
+          ...CREDENTIAL,
+          id: "deadbeef",
+          publicKey: DIRECTORY_CREDENTIAL.publicKey,
+        };
+        harness.state.expectedAddress = ADDRESS;
+      };
+      harness.calls.buildSmartAccount.mockImplementation(async (credential: P256Credential) => ({
+        client: {} as SmartAccountClient,
+        address: credential.id === "deadbeef" ? ADDRESS : OTHER_ADDRESS,
+      }));
+
+      rememberLegacy();
+      harness.directory.getCredentials.mockResolvedValue([
+        { ...DIRECTORY_CREDENTIAL, id: "deadbeef" },
+      ]);
+      await expect(
+        invoke(harness.services.authenticatePasskey, { userName: USER, chainId: CHAIN_ID })
+      ).resolves.toMatchObject({ credential: { id: "deadbeef" }, smartAccountAddress: ADDRESS });
+
+      rememberLegacy();
+      harness.directory.getCredentials.mockResolvedValue([DIRECTORY_CREDENTIAL]);
+      await expect(
+        invoke(harness.services.authenticatePasskey, { userName: "hosted-name", chainId: CHAIN_ID })
+      ).resolves.toMatchObject({
+        credential: { id: CREDENTIAL.id },
+        smartAccountAddress: OTHER_ADDRESS,
+      });
+    });
+
     it("leaves an account made before the directory on the hosted server", async () => {
       harness.server.getCredentials.mockResolvedValue([SERVER_CREDENTIAL]);
 
