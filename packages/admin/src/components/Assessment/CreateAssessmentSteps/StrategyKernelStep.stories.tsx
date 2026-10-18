@@ -1,3 +1,4 @@
+import { DOCUMENTATION_ASSESSMENT } from "../../../../../shared/.storybook/documentationAssessment";
 import { useCreateAssessmentStore } from "@green-goods/shared/stores/useCreateAssessmentStore";
 import { CynefinPhase, Domain, type SmartOutcome } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
@@ -231,4 +232,14 @@ export const OutcomesHoldStill: Story = {
     await expect(canvas.getAllByText("What you'll count")).toHaveLength(1);
     await expect(canvas.getAllByText("How much")).toHaveLength(1);
   },
+};
+
+export const Documentation: Story = {
+  decorators: [
+    (Story) => (
+      <WithAssessmentStore seed={{ ...DOCUMENTATION_ASSESSMENT, domain: Domain.AGRO }}>
+        <Story />
+      </WithAssessmentStore>
+    ),
+  ],
 };

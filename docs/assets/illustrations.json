@@ -188,6 +188,39 @@
       "height": 941,
       "sha256": "2902c8a4271756b548a8896813e486a8364f03c1f2633c6682f78e4c2abfd0ce",
       "edit_prompt": "Remove upper-right camera-like symbol; preserve all other objects and composition. No people, faces, text, logos or watermarks."
+    },
+    {
+      "file": "packages/shared/.storybook/fixture-art/documentation-seedlings-generated.jpg",
+      "created_at": "2026-10-17",
+      "method": "built-in image_gen; JPEG format conversion and size normalization only",
+      "page": "Fictional work and promise evidence in the community guides",
+      "scene_prompt": "Documentary phone photograph of freshly transplanted vegetable seedlings in moist garden soil, with natural imperfections and no text or overlays.",
+      "shared_prompt": "Realistic documentary task evidence. No people, human faces, heads, body parts, reflections, background figures, portraits, logos, readable text, UI or watermarks. These images illustrate fictional records and do not prove actual work.",
+      "width": 960,
+      "height": 720,
+      "sha256": "9a9e75271841bfc6ed156f20c9568b0d0d2d678a8a8b3c2b283b954f73b0f744"
+    },
+    {
+      "file": "packages/shared/.storybook/fixture-art/documentation-fence-after.jpg",
+      "created_at": "2026-10-17",
+      "method": "built-in image_gen; JPEG format conversion and size normalization only",
+      "page": "Fictional work and promise evidence in the community guides",
+      "scene_prompt": "Documentary phone photograph of a weathered garden fence with two fresh central replacement slats, neat screws and empty work gloves beside a tool on the ground.",
+      "shared_prompt": "Realistic documentary task evidence. No people, human faces, heads, body parts, reflections, background figures, portraits, logos, readable text, UI or watermarks. These images illustrate fictional records and do not prove actual work.",
+      "width": 960,
+      "height": 720,
+      "sha256": "5168878f12ad4a3bff9c3140de0b381af664ab4c39f19c031a94e6a2902576a0"
+    },
+    {
+      "file": "packages/shared/.storybook/fixture-art/documentation-fence-before.jpg",
+      "created_at": "2026-10-17",
+      "method": "built-in image_gen; JPEG format conversion and size normalization only",
+      "page": "Fictional work and promise evidence in the community guides",
+      "scene_prompt": "Before variant of the same fictional fence, same camera and daylight: two weathered split loose central slats, no new wood, no gloves or tool.",
+      "shared_prompt": "Realistic documentary task evidence. No people, human faces, heads, body parts, reflections, background figures, portraits, logos, readable text, UI or watermarks. These images illustrate fictional records and do not prove actual work.",
+      "width": 960,
+      "height": 720,
+      "sha256": "ddc909ddfabd41a8ac42b2bd876845520e453efdd1a398ce5d7e459c164143d7"
     }
   ],
   "visual_constraints": {

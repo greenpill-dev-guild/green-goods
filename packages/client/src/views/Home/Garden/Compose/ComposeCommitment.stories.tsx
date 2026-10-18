@@ -1,3 +1,5 @@
+import { COMMITMENT_COMPOSER_DEFAULTS } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
+import { AUTUMN_PLANTING } from "../../../../../../shared/.storybook/clientJourneyFixtures";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
 import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
@@ -130,5 +132,55 @@ export const StartFresh: Story = {
       expect(screen.queryByRole("dialog", { name: "Resume Your Draft?" })).not.toBeInTheDocument()
     );
     await expect(useCommitmentComposerDraftStore.getState().drafts[DRAFT_KEY]).toBeUndefined();
+  },
+};
+
+const documentationDraft = () => {
+  const cleanup = withSavedDraft("Repair the north fence panel")();
+  mocked(useGardens).mockReturnValue({
+    data: [{ id: GARDEN, name: "Riverside Commons Garden" }],
+  } as unknown as ReturnType<typeof useGardens>);
+  mocked(useCommitmentCycles).mockReturnValue({
+    cycles: [AUTUMN_PLANTING],
+  } as unknown as ReturnType<typeof useCommitmentCycles>);
+  mocked(useCommitmentCycleNames).mockReturnValue({
+    byCycleId: new Map([["3", { status: "resolved", name: "Autumn Planting" }]]),
+  } as unknown as ReturnType<typeof useCommitmentCycleNames>);
+  useCommitmentComposerDraftStore.setState({
+    drafts: {
+      [DRAFT_KEY]: {
+        values: {
+          ...COMMITMENT_COMPOSER_DEFAULTS,
+          direction: "OFFER",
+          kind: "SERVICE",
+          title: "Repair the north fence panel",
+          unitLabel: "repair",
+          targetUnits: 1,
+          dueInDays: 14,
+          cycleId: "3",
+          note: "Replace two damaged slats beside the compost bays. Dele can help with measuring and fastening.",
+        },
+        clientCommitmentId: "documentation-offer",
+        updatedAt: STORYBOOK_NOW_SECONDS * 1000,
+      },
+    },
+  });
+  return cleanup;
+};
+
+export const Documentation: Story = {
+  beforeEach: documentationDraft,
+  play: async () => {
+    await userEvent.click(await screen.findByRole("button", { name: "Resume Draft" }));
+  },
+};
+
+export const DocumentationReview: Story = {
+  beforeEach: documentationDraft,
+  play: async () => {
+    await userEvent.click(await screen.findByRole("button", { name: "Resume Draft" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Next" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Next" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Next" }));
   },
 };

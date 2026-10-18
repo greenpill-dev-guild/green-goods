@@ -517,3 +517,58 @@ Agent/model: Codex / GPT-6 | Coverage: this six-finding correction segment
 | Publish | 2026-10-16 05:33:26 → ongoing | Exact task staging, pre-commit, post-commit gate and current-head CI follow in PR/chat. |
 
 Human corrections: 0 observed in this segment; attention: unknown.
+
+
+## Task screenshots, October 17
+
+The accepted PRD-1156 follow-up adds 37 distinct product captures across 16 task guides. Each
+capture renders the actual product component with fictional records, and the capture ledger
+records its story, dimensions, hash and limits. Three new generated task photographs show
+seedlings and a fence before and after repair; none contains people or faces. Opening visuals
+remain in place, and the new figures center beside the instructions they explain.
+
+The guides now show promise creation, teams, linked work, proof and confirmation; pool opening,
+seeding, participation, counting and season close; giving, endowing and withdrawing; installation
+and settings; garden setup, actions, funding and certificates; and one coherent initial assessment.
+The installation captures show the app's instructions, not simulated operating-system menus.
+The seeding example has no reward, and the certificate guide retains the cycle-certification limit.
+The participation instruction now uses the actual Approve control.
+
+The supporting changes are stories, fictional fixtures and four Storybook spy registrations.
+Application behavior, dependencies, lockfiles, permissions and CI requirements are unchanged.
+No new business behavior or delta assessment functionality is implied.
+
+Verification: Docs tests pass 96/96, production build/search cover 76/76 routes, and the authority
+audit reports zero hard findings with the same two existing endpoint advisories. Shared, Client
+and Admin story/test typechecks pass, as do the story-quality checks and production Storybook
+build. All 37 asset hashes and dimensions match the ledger and their guide references. The
+focused Shared ontology test passes; the existing ontology baseline is unchanged.
+
+Rendered proof: Storybook component captures and Chromium in-app browser, public localhost
+Docs. All 16 updated guides were reviewed at 1440×1000; figures load, center and have no
+page-wide overflow. Eight guides were also checked at 390×844: Make, Keep and Confirm a
+Promise; Open a Pool; Seed and Review Promises; End a Season; Donate to a Garden. The other
+eight phone checks remain pending because local browser use became disabled in Work settings.
+The checked production preview remains available at localhost:3003.
+
+Broader QA limits: Agent unit tests passed 526 with one existing skip. The native SQLite suite
+passed 185 but had 11 timeout or hook-timeout failures; those unchanged paths are outside this
+documentation task. Aggregate validation-harness tests initially timed out; the final isolated
+three-case recheck passed under the original limits. No timeout, test or gate was weakened.
+The post-commit Push Gate and current-head CI results follow in the PR publication record.
+These captures and Docs reads do not prove authenticated signing, money movement, physical-device
+installation, offline recovery or unfamiliar-reader acceptance. Broader pooling, settlement,
+post/delta assessment and outstanding product QA remain under PRD-727; videos remain PRD-728.
+No Linear state or Plan Hub lane was changed. The PR remains draft and unmerged.
+
+Task record: PRD-1156 / #1109 task screenshots | Type: guidance | Outcome: implementation complete; publication pending
+Agent/model: Codex / unknown | Coverage: accepted screenshot follow-up
+
+| Phase | Start → end (UTC) | Result |
+|---|---|---|
+| Investigate | 2026-10-18 01:44:28 → unknown | Existing guide coverage and real component stories inspected. |
+| Implement | unknown → 2026-10-18 02:31:28 | Guides, realistic fixtures, captures and provenance updated; rendered corrections included. |
+| Verify / review | 2026-10-18 02:31:28 → 03:16:43 | Targeted checks and desktop review passed; remaining phone review blocked by disabled browser access. |
+| Publish | 2026-10-18 03:16:43 → ongoing | Exact staging, pre-commit, post-commit Push Gate and current-head CI follow in PR/chat. |
+
+Human corrections: 0 observed in this segment; attention: unknown.
