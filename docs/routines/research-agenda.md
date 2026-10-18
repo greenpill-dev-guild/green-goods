@@ -18,7 +18,7 @@ Each track carries the same fields. The routine reads them literally, so keep th
   - `graduated` — the decision landed; implementation lives on Product and in `.plans/`; research only watches for new questions.
   - `blocked (external)` — the next step needs a party outside the team.
   - `horizon` — direction-setting work with its own gates.
-- **Note** — optional; the qualifiers that do not fit the two lists (what already graduated, which phase is running). `Horizon` and `Stage` carry exactly one value each from the lists above, so the routine can compare them literally. Like Anchors, a Note never carries Linear state.
+- **Note** — optional; the qualifiers that do not fit the two lists (what already graduated, which phase is running). `Horizon` and `Stage` carry exactly one value each from the lists above, so the routine can compare them literally. Like Anchors, a Note never carries a Linear state, owner, date or project name; it speaks the agenda's own vocabulary of stages, phases and frontiers.
 - **Question** — the one question the track exists to answer, in product terms.
 - **Anchors** — the corpus for the track, as identifiers and topics only: Linear issue identifiers, project and initiative names, document titles, `.plans/` paths and Drive document titles. Never a state, owner, due date, cycle, target or project membership; Linear owns those and the routine reads them live every run, so the agenda cannot drift on them.
 - **Status surface** — where the routine writes the weekly state of the track (a project status update, an initiative status update, or a comment on the anchor issue).
@@ -46,7 +46,7 @@ Two sections after the tracks, *Candidate tracks* and *Candidate questions*, hol
 ## 1. Commitment pooling
 
 **Horizon:** now · **Stage:** evidencing
-**Note:** v1 (contracts and indexer) has graduated to Product under the *Commitment Pooling* project; the open frontier, exchange and interoperability, runs under *Cosmo-Local Integration*.
+**Note:** v1 (contracts and indexer) has graduated to Product; the open frontier is exchange and interoperability.
 
 **Question.** Can gardens coordinate, keep, and settle commitments on Green Goods, and can kept commitments become value that moves beyond the garden without Green Goods holding funds?
 
@@ -202,7 +202,7 @@ Presets are conditional on the accepted recommendation.
 ## 5. Accessible impact reporting via WhatsApp and SMS
 
 **Horizon:** quarter · **Stage:** graduated
-**Note:** the entry-criteria research graduated to Product and the active Plan Hub. Pilot research remains open; graduation does not establish implementation or live proof.
+**Note:** the entry-criteria research graduated to Product. Pilot research remains open; graduation does not establish implementation or live proof.
 
 **Question.** What must be true for gardeners to report impact from WhatsApp or SMS without installing the app, with a short account step only when signing is required, and what pilot proves lower total reporting burden rather than burden moved onto operators?
 
@@ -274,7 +274,7 @@ The completed PRD-998 tracker and start gate do not authorize redispatch, and th
 ## 7. Community infrastructure with AI for data sovereignty (Community Evidence Mesh)
 
 **Horizon:** 12mo · **Stage:** horizon
-**Note:** August 2026 to July 2027; Phase 0 (foundation) runs August to September 2026.
+**Note:** Phase 0 (foundation) is the current phase.
 
 **Question.** How does Green Goods become a community-owned evidence layer where AI proposes but never originates evidence, raw data stays local by default, and communities can run, export, and stop the infrastructure themselves?
 

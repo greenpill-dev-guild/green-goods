@@ -17,7 +17,7 @@
 | 5 | Opportunities land as one weekly comment on a Growth radar issue; promotion stays human. | Mirrors GROW-51; acceptance of Growth work is human. Confirmed as A3. |
 | 6 | Intake runs inside the Saturday run only. | Share volume does not yet justify a second cron. Confirmed as A4. |
 | 7 | Three candidate tracks enter the pending document for the 29 Oct boundary. | External impact integrations; supporter and diaspora funding; Capsula and Brazil. Confirmed as A5. |
-| 8 | Budgets: 12 classification fetches, 10 thread replies, 20 thread reads per run; comments stay at 3. | Bounds a 23-link week inside the one-hour run. Confirmed as A6. |
+| 8 | Budgets: 12 classification fetches, 40 reactions, 10 thread replies, 20 thread reads per run; comments stay at 3. | Bounds a 23-link week inside the one-hour run. Confirmed as A6. |
 
 ## Research / Plan Gate
 
@@ -58,8 +58,8 @@
    and avoid manual Friday fires; pin the "share with one line of why" note.
 5. **First live run**: the Saturday after steps 1 to 4 land. Read the memo, the run log, the channel, the pending-edits document and the radar comment;
    record AC-1 to AC-9 and AC-11 in [eval.md](eval.md), and schedule the controlled run for AC-10.
-6. **Cycle ritual on 29 Oct**: add the brief's three candidate tracks to the pending-edits document
-   as panel lines where the routine has not listed them, run the skill's `review`, confirm or reject
+6. **Cycle ritual on 29 Oct**: check that the three seeded candidate tracks are in the pending-edits document, run the skill's
+   `review`, confirm or reject
    each candidate, set the cycle theme.
 7. **Follow-ups outside this repo**: the guild grant scout reads the agenda's settled facts and
    the latest research memo; `docs/teams/research.md` in `greenpill-dev-guild/.github` still says

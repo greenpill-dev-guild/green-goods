@@ -31,10 +31,16 @@ loop closes in minutes instead of a memo read. The design lives in
    Refuse to continue on any other document, and never create one: the routine creates it.
 2. **Read the agenda** from the current checkout and record its edition line. Stop if the working
    tree already carries uncommitted changes to the agenda that the user did not ask for.
-3. **Apply.** Three kinds of ticked line, handled in this order. A `[x]` line under *Candidate
-   tracks* runs `candidates` first; it needs no agenda anchor. A `[x]` line under *Proposed edits*
-   names exact anchor text: show `old → new` and apply it with an exact-match replace that must
-   match once; a line whose anchor no longer matches is skipped and reported, never guessed. A `[x]` line under *Candidate questions* becomes a numbered `Open` item on the track its `track:`
+3. **Apply.** After a refresh, ticked lines sit under *Accepted, not yet applied* in three typed
+   subsections (*Candidate tracks*, *Proposed edits*, *Candidate questions*); before one they still
+   sit under their original sections. Dispatch by that type, in this order. A `[x]` line typed
+   *Candidate tracks* runs `candidates` first; it needs no agenda anchor. A `[x]` line typed
+   *Proposed edits* names exact anchor text: show `old → new` and apply it with an exact-match
+   replace that must match once; a line whose anchor no longer matches is skipped and reported,
+   never guessed. Apply is idempotent: an edit whose new text is already in place, or a question
+   already present as an `Open` item on its track, is marked applied without a second edition
+   bump, so a failed document patch (step 5) can be retried safely. A `[x]` line typed *Candidate
+   questions* becomes a numbered `Open` item on the track its `track:`
    field names, written in the agenda's shape: the question, its next concrete step and who can
    answer it, from the line's `next:` and `who:` fields. When any of the three fields reads
    `unassigned` or `unset`, ask the user for it, or whether the question waits for a candidate

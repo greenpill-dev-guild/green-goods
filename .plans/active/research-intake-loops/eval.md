@@ -29,6 +29,7 @@
 | AC-8 | R12 | The skill's `apply` changes only the ticked lines plus the edition and change log, and moves the lines to Applied. | human | dry run diff on a scratch agenda copy |
 | AC-9 | R15, R16 | The radar comment appears only when an opportunity exists, never creates an issue, and each status update ends with the bars-met line. | human | Linear radar issue; one status update |
 | AC-10 | R4, R19 | With `SEND_MESSAGES_IN_THREADS` or `CREATE_PUBLIC_THREADS` missing, the run falls back to channel replies, names the missing permission in the footer, and still posts the digest. | human | one controlled run with `SEND_MESSAGES_IN_THREADS` removed from the bot, after the first run; until then recorded as not exercised |
+| AC-12 | R19 | A failed write appears in the memo's failed-writes list and is retried once on the next run. | human | observed when a write fails; not exercised deliberately |
 | AC-11 | R21 | The first v5 run records its start and end in the memo's mode line, finishes within 40 minutes, and its run log shows no rate-limit rejection before Phase 5. | human | trigger run log; memo mode line |
 
 ## Test Strategy

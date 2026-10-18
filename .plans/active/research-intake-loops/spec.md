@@ -31,13 +31,15 @@ stays fail-closed, and the agenda stays human-owned in substance.
 a question in a full sentence. Bot messages, messages whose `type` is a thread system message,
 emoji-only messages and messages posted inside threads are context, not shares; a repost of a
 handled share is a share, classified as a noted duplicate. A share is complete when the message carries one of the routine's own four reactions
-(`reactions[].me` is true) and a thread on it (message flag `HAS_THREAD`, `1 << 5`; the thread's id
-equals the message id) holds a reply authored by the bot. A share with exactly one signal is
+(`reactions[].me` is true) and either a thread on it (message flag `HAS_THREAD`, `1 << 5`; the
+thread's id equals the message id) holds a reply authored by the bot or a bot channel message
+references the share (the permission fallback). A share with exactly one signal is
 partial: it is not fetched or classified again and stays in the retry set for the missing write,
 first in line next run. `HAS_THREAD` alone proves nothing, since anyone may open a thread, and
 checking it costs one thread read. Lookback: the seven-day window for the
-ledger, then pagination with `before=` through the whole fourteen-day window before filtering for
-unhandled shares, so a missed share behind a page of handled ones is still found.
+ledger, then pagination with `before=` through the whole recovery window (fourteen days, or the
+continuity window start when it is earlier) before filtering for unhandled shares, so a missed
+share behind a page of handled ones is still found.
 
 **R2. Fetch for classification.** Each new share's links are fetched once for classification,
 up to twelve fetches per run, oldest share first. Rules carried from Phase 3: public `https`
@@ -98,7 +100,9 @@ last message id read come from the memos' share rows, section 3, plus this run's
 `GET /channels/{thread.id}/messages?limit=50`, skipping the `THREAD_STARTER_MESSAGE` (type 21)
 and its own messages, at most twenty thread reads per run. Only threads with new activity are
 read: the share's message object carries its `thread` with `last_message_id`, so unchanged
-threads are skipped; threads beyond the cap are recorded as deferred and read first next run. A human line in a ❔ thread
+threads are skipped; threads beyond the cap are recorded as deferred and read first next run; a retained thread whose
+share is older than the fetch window is checked through its thread object for new activity
+before any message read. A human line in a ❔ thread
 reclassifies the share as filed or candidate: the routine adds the new reaction, leaves ❔ in
 place, and posts one follow-up reply. A "yes", "keep" or a sharpened question in a 🌱 thread
 marks the candidate `confirmed in its thread on {date}` in the pending-edits document (R10); the
@@ -141,6 +145,9 @@ Maintained by research-synthesis v5 · refreshed {date} · agenda edition read v
 Tick a box to accept. Leave it unticked to defer. Delete the line to reject.
 Ticked edits are applied by the research-agenda skill, which bumps the edition.
 ## Accepted, not yet applied
+### Proposed edits
+### Candidate questions
+### Candidate tracks
 ## Proposed edits
 ### Track {n} · {name}
 - [ ] {exact edit} · evidence: {citation} · first proposed {date} · runs: {k}
@@ -157,15 +164,16 @@ Ticked edits are applied by the research-agenda skill, which bumps the edition.
 ```
 
 Refresh rule, every run after Phase 2: read the current content with `get_document`; a `[x]`
-line anywhere in the document moves to *Accepted, not yet applied* on the refresh and stays there
-until the skill moves it to *Applied*, never carried forward unticked or recreated; carry every unticked line forward with `runs` incremented only when the header's `refreshed` date is
+line anywhere in the document moves under *Accepted, not yet applied*, into the subsection named
+after the section it came from, on the refresh and stays there until the skill moves it to
+*Applied*, never carried forward unticked or recreated; carry every unticked line forward with `runs` incremented only when the header's `refreshed` date is
 earlier than today, so a same-date rerun neither ages a proposal nor flags it; mark lines at four
 or more runs `decide or drop`;
 move a line to *Dropped this week* when the agenda already contains the edit or its anchor no longer
 exists; a line the previous memo listed that the document no longer carries was deleted by a
 human, so move it to *Rejected* with the date and its evidence and never propose it again on the
-same evidence; add this run's proposals and candidates; prune *Applied* lines older than two weeks
-and *Rejected* lines older than eight. Write once with `save_document` `content` so a rerun converges. Cap: one document write
+same evidence; add this run's proposals and candidates; prune *Applied* lines older than two weeks; never prune *Rejected*, and compact a rejected line
+older than eight weeks to its item and evidence citation. Write once with `save_document` `content` so a rerun converges. Cap: one document write
 per run. A failed write joins the memo's failed-writes list and is retried next run. The memo's
 section 8 keeps the proposals as memory substrate; the digest footer links the document.
 
@@ -183,8 +191,9 @@ edits waiting is the loop's nag; it never mentions anyone.
   *Applied* with the date and edition. A ticked candidate track runs `candidates` without needing
   an anchor; a ticked candidate question becomes an `Open` item on the track its `track:` field
   names, written with the next step and answerer from its `next:` and `who:` fields, and the skill
-  asks for any of the three that is unset. The commit stays with
-  the user; the skill names the files.
+  asks for any of the three that is unset. Apply is idempotent: an edit whose new text is already in place, or a question already present as
+  an `Open` item on its track, is marked applied without a second edition bump, so a failed document
+  patch can be retried safely. The commit stays with the user; the skill names the files.
 - `review`: the cycle-boundary ritual. Show unticked proposals grouped by track with evidence
   links, candidate questions and candidate tracks; tick or delete lines in the document from the
   user's answers (`save_document` `patch`); then run `apply`.
@@ -204,8 +213,8 @@ document from the first run that sees it, with the issues and hubs it would gath
 for recurrence; a panel member may add a candidate line directly. Candidate questions from R3 and
 R6 and from off-track call-note topics are listed under *Candidate questions* the same way. The
 agenda's own candidate sections hold only confirmed entries, made at a cycle boundary with the
-skill's `candidates` mode; the three candidates the brief names go into the pending document for
-the 29 October review.
+skill's `candidates` mode; the run that creates the document seeds the three candidates the brief names, so the 29 October
+review finds them.
 
 ### Loop D: research to growth, with product pull
 
@@ -252,7 +261,7 @@ panel's.
 | Write or read | v4 | v5 |
 |---|---|---|
 | Discord post in `#research` | 1 | 1 |
-| Reactions on shares | 0 | unbounded within the lookback |
+| Reactions on shares | 0 | 40 |
 | Thread replies (new and follow-up) | 0 | 10 |
 | Thread reads | 0 | 20 |
 | Classification fetches | 0 | 12 |
