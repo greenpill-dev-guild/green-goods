@@ -420,7 +420,7 @@
     {
       "ref": "entity:work-approval",
       "plain_name": "A reviewer's recorded decision on submitted work",
-      "why_it_matters": "It keeps what happened separate from the judgement about it, so neither can quietly rewrite the other.",
+      "why_it_matters": "It keeps what happened separate from the judgment about it, so neither can quietly rewrite the other.",
       "who_touches_it": ["Steward", "Gardener"],
       "example": "A steward approves a planting submission with feedback and a confidence level.",
       "aliases": ["work review", "approval attestation"],
@@ -548,7 +548,7 @@
       "plain_name": "A recurring offer's lifecycle totals for one cycle",
       "why_it_matters": "It shows how instances of one recurring offer progressed during a bounded coordination period.",
       "who_touches_it": ["Steward", "Gardener"],
-      "example": "A weekly transport series has three fulfilled and one cancelled instance this cycle.",
+      "example": "A weekly transport series has three fulfilled and one canceled instance this cycle.",
       "aliases": ["series cycle summary"],
       "not_confused_with": ["Commitment Unit Summary"]
     },
@@ -800,8 +800,8 @@
           "code": ["packages/client/src/views/Home/WalletSheet/CookieJarTab.tsx"]
         },
         {
-          "when": "When neighbours make promises",
-          "what": "Follow the garden's commitments, confirm one a neighbour has kept, and record work toward one.",
+          "when": "When neighbors make promises",
+          "what": "Follow the garden's commitments, confirm one a neighbor has kept, and record work toward one.",
           "where": ["client"],
           "term_refs": ["entity:commitment"],
           "code": [
@@ -884,7 +884,7 @@
           ]
         },
         {
-          "when": "When neighbours make promises",
+          "when": "When neighbors make promises",
           "what": "Run the commitment pool: set it up, seed it, confirm commitments, and close them.",
           "where": ["admin"],
           "term_refs": ["entity:commitment-pool"],
@@ -973,7 +973,7 @@
     },
     {
       "ref": "persona:community-member",
-      "context": "Community members live with the results. They are residents and neighbours who may never submit work themselves, yet they are the people the work is for.",
+      "context": "Community members live with the results. They are residents and neighbors who may never submit work themselves, yet they are the people the work is for.",
       "engagements": [
         {
           "when": "Any time",

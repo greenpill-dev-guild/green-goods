@@ -143,7 +143,7 @@ export function storyPoolConsole(
       charter: {
         version: 1,
         purpose:
-          "Neighbours in Rio offer help and ask for it: rides, tools, workshops, garden work. Commitments are kept in the open and confirmed by the person they were made to.",
+          "Neighbors in Rio offer help and ask for it: rides, tools, workshops, garden work. Commitments are kept in the open and confirmed by the person they were made to.",
       },
       isLoading: false,
       isUnavailable: false,

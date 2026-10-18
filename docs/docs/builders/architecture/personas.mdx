@@ -9,7 +9,7 @@ generator: scripts/docs/generate.mjs
 generated_from:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:4885635d510d454a2da695aef5853be803f7dd1ed22a408e30a21b103098aa1d"
+source_digest: "sha256:4f47846539e01fccc455b6cb1baec938503dfdd3090b43a2549934006c771e75"
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
@@ -54,7 +54,7 @@ Gardeners are the people in the field: planting, cleaning, teaching, repairing. 
 | When messaging is easier | Choose the garden in a chat with the Telegram bot, describe the work in a text or voice message, and confirm it. The bot holds the submission until a steward approves or rejects it there. Choosing a garden in the chat is not membership: the gardener still has to be a member of it. | Messaging agent |
 | While a steward reviews | Follow each submission from pending to approved or rejected, and read the steward's feedback. [Guide](/community/gardener-guide/track-status-and-attestations). | Client app |
 | When the garden pays an allowance | Claim from the garden's cookie jar, up to its cap. | Client app |
-| When neighbours make promises | Follow the garden's commitments, confirm one a neighbour has kept, and record work toward one. *Deployed, not switched on yet.* | Client app |
+| When neighbors make promises | Follow the garden's commitments, confirm one a neighbor has kept, and record work toward one. *Deployed, not switched on yet.* | Client app |
 
 <details>
 <summary>Where this lives in the code</summary>
@@ -65,7 +65,7 @@ Gardeners are the people in the field: planting, cleaning, teaching, repairing. 
 - **When messaging is easier**: `packages/agent/src/handlers/join.ts`, `packages/agent/src/handlers/submit.ts`
 - **While a steward reviews**: `packages/client/src/views/Home/WorkDashboard`
 - **When the garden pays an allowance**: `packages/client/src/views/Home/WalletSheet/CookieJarTab.tsx`
-- **When neighbours make promises**: `packages/client/src/views/Home/CommitmentsSheet`, `packages/client/src/views/Garden/WorkCommitmentSelection.tsx`
+- **When neighbors make promises**: `packages/client/src/views/Home/CommitmentsSheet`, `packages/client/src/views/Garden/WorkCommitmentSelection.tsx`
 
 </details>
 
@@ -87,7 +87,7 @@ Stewards run a garden day to day. They are usually a chapter lead or a program m
 | When work arrives by message | List what gardeners sent through the Telegram bot and approve or reject each one there. An approval records the work and its approval together. | Messaging agent |
 | As people join | Accept requests to join, grant and revoke roles, and decide whether anyone may join without asking. | Admin cockpit, Client app |
 | When money arrives | Follow the garden's vaults and what they have paid out, deposit or withdraw, and harvest yield so it is distributed. The garden's own vaults and jar are created when the garden is minted, not set up here; the cockpit's cookie jar screens create campaign jars, which are a separate thing. [Guide](/community/steward-guide/funding-and-governance). | Admin cockpit |
-| When neighbours make promises | Run the commitment pool: set it up, seed it, confirm commitments, and close them. [Guide](/community/steward-guide/commitment-pooling). | Admin cockpit |
+| When neighbors make promises | Run the commitment pool: set it up, seed it, confirm commitments, and close them. [Guide](/community/steward-guide/commitment-pooling). | Admin cockpit |
 | At the end of a period | Bundle approved work into an impact certificate that funders can hold a share of. *Still being built.* [Guide](/community/steward-guide/creating-impact-certificates). | Admin cockpit |
 
 <details>
@@ -100,7 +100,7 @@ Stewards run a garden day to day. They are usually a chapter lead or a program m
 - **When work arrives by message**: `packages/agent/src/handlers/pending.ts`, `packages/agent/src/handlers/approve.ts`, `packages/agent/src/handlers/reject.ts`
 - **As people join**: `packages/admin/src/views/Community/components/CommunityJoinRequests.tsx`, `packages/admin/src/components/Garden/ManageMembersDialog.tsx`, `packages/admin/src/components/Garden/GardenSettingsEditor.tsx`, `packages/client/src/components/Features/Garden/GardenJoinRequestsQueue.tsx`
 - **When money arrives**: `packages/admin/src/views/Garden/Vault.tsx`, `packages/admin/src/components/Vault/PositionCard.tsx`, `packages/admin/src/views/Community/components/CommunityPayoutsTab.tsx`, `packages/admin/src/views/Cookies`
-- **When neighbours make promises**: `packages/admin/src/views/Garden/Pool`
+- **When neighbors make promises**: `packages/admin/src/views/Garden/Pool`
 - **At the end of a period**: `packages/admin/src/views/Hub/CreateHypercert.tsx`
 
 </details>
@@ -155,7 +155,7 @@ Funders are people and organizations who want their money to follow verified wor
 
 ## Community Member {#community-member}
 
-Community members live with the results. They are residents and neighbours who may never submit work themselves, yet they are the people the work is for. Community voice should shape needs and accountability, not sit outside the record.
+Community members live with the results. They are residents and neighbors who may never submit work themselves, yet they are the people the work is for. Community voice should shape needs and accountability, not sit outside the record.
 
 - **On-chain role:** the `community` hat.
 - **Definition:** A local resident affected by a garden's Work. Signals or attests that Work exists and is healthy, and helps prioritize future Actions through public signal and conviction flows.

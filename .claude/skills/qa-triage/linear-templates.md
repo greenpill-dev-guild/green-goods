@@ -69,7 +69,7 @@ That's it. Two paragraphs, max. No `## Need statement` (the verbatim quote IS th
 prose. Fold the surface and the trigger into the sentence rather than giving
 each its own heading: "Editing a garden and changing its image makes the edit
 impossible to cancel — the operator has to reload. Leaving the image alone and
-cancelling works fine, so the image change is the trigger.">
+canceling works fine, so the image change is the trigger.">
 
 **Done when**
 - <observable, checkable outcome>
@@ -151,7 +151,7 @@ the 2026-08-27 board audit made the issue worse:
 **Workflow state**:
 - `Todo` when surface + behavior are clear and a fix path is suggestable.
 - `Backlog` when the fix is exploratory.
-- Never `In Progress`, `In Review`, `Done`, or `Cancelled` — humans drive those transitions.
+- Never `In Progress`, `In Review`, `Done`, or `Canceled` — humans drive those transitions.
 
 ---
 
@@ -231,7 +231,7 @@ Todo queue budget <N> this session: <T> Todo, <B> Backlog. Every accepted cluste
   telemetry has no tester predicate) — one line each>
 - investigate: <a symptom whose cause or intent is unknown — one line; a slice
   only after someone looks>
-- environment: <behaviour caused by the harness or environment, not the product —
+- environment: <behavior caused by the harness or environment, not the product —
   one line>
 
 **Done when**

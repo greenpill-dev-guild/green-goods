@@ -1,9 +1,9 @@
 import { RiCloseLine, RiImageLine } from "@remixicon/react";
 import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
+import { useLocalizedRelativeTime } from "../../../hooks/app/useLocalizedRelativeTime";
 import type { Address, WorkDisplayStatus } from "../../../types/domain";
 import { cn } from "../../../utils/styles/cn";
-import { formatRelativeTime } from "../../../utils/relativeTime";
 import { toWorkDisplayTitle } from "../../../utils/work/workTitles";
 import { ImageWithFallback } from "../../Display/ImageWithFallback";
 import { getStatusColors } from "../../StatusBadge";
@@ -159,8 +159,10 @@ export const WorkCard: React.FC<WorkCardProps> = ({
   };
 
   const [isPreviewOpen, setIsPreviewOpen] = React.useState(false);
+  // Through react-intl, so the age follows the reader's language; the plain util is English-only.
+  const formatAge = useLocalizedRelativeTime();
 
-  const timeAgo = formatRelativeTime(work.createdAt);
+  const timeAgo = formatAge(work.createdAt);
   // Hosted titles can end in the timestamps older submissions appended; the card never shows them.
   const displayTitle = toWorkDisplayTitle(work.title, "");
   const thumbUrl = work.mediaPreview?.[0];

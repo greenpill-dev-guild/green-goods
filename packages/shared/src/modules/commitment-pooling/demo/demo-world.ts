@@ -319,7 +319,7 @@ export function buildDemoWorld(viewer: Address): DemoWorld {
     "bafy-demo-c1019": metadata("Fix the greenhouse door"),
     "bafy-demo-c1020": metadata("Compost delivery, taken up by the garden"),
     "bafy-demo-c1021": metadata(
-      "Facilitation for a neighbouring garden",
+      "Facilitation for a neighboring garden",
       "Any garden in the network may take this up."
     ),
   };

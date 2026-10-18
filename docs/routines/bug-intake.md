@@ -55,7 +55,7 @@ Resolve the team, status, and label IDs at the start of every run and cache them
 
 ```
 team            = Linear team where name == "Product"
-issue_statuses  = team.workflowStates  // expect Backlog, Todo, In Progress, In Review, Done, Cancelled
+issue_statuses  = team.workflowStates  // expect Backlog, Todo, In Progress, In Review, Done, Canceled
 labels          = team.labels          // expect the canonical label families listed below
 release_project = started Product-team project named "Green Goods vX.Y.Z QA & Release"  // none is valid: Issues stay unprojected
 bounded_projects = other Product-team projects that are not Completed or Canceled  // use one only when it clearly owns the work
@@ -276,7 +276,7 @@ Source: the dedicated `#bug-report` channel (`DISCORD_BUGS_CHANNEL_ID`). The ret
    Discord #bug-report — {message-url}
    Reported by **{display name or "anonymous"}** on {YYYY-MM-DD HH:MM TZ}
 
-   > {quoted message text — verbatim, no editorialising}
+   > {quoted message text — verbatim, no editorializing}
 
    ## Reporter context
    - Customer / garden: {garden name and Linear customer record if linked, else "unknown"}
@@ -351,7 +351,7 @@ Source: the dedicated `#bug-report` channel (`DISCORD_BUGS_CHANNEL_ID`). The ret
 
    Project: per [Project routing](README.md#project-routing), the `bounded_projects` entry that clearly owns the work, otherwise the `release_project`, or none when no release project is started. Apply labels: `protocol:green-goods` + `activity:build` + `package:<inferred>` (omit if unknown) + `source:discord` + `ai:routine`. Status: `Todo`. Link the Issue to the Customer Need via Linear's relationship surface ("relates to" or the Customer Need's linked-issues field, whichever the Linear API exposes). The Issue body inherits the same privacy boundary — never paste replay URLs, session IDs, distinct IDs, wallet addresses, or reporter identifiers into it.
 
-7. **Acknowledge on Discord** — reply with the Linear URL and add ✅ reaction in `#bug-report`. Since the standalone ack post was retired (Phase 6), this threaded reply IS the reporter's acknowledgement. When acknowledging, link the Customer Need (not the Issue), because the Customer Need is the user-facing record:
+7. **Acknowledge on Discord** — reply with the Linear URL and add ✅ reaction in `#bug-report`. Since the standalone ack post was retired (Phase 6), this threaded reply IS the reporter's acknowledgment. When acknowledging, link the Customer Need (not the Issue), because the Customer Need is the user-facing record:
 
    ```
    POST https://discord.com/api/v10/channels/${DISCORD_BUGS_CHANNEL_ID}/messages
@@ -374,9 +374,9 @@ If `BOT_API_URL` is not configured, skip this phase silently.
 - **503** (`API authentication not configured`) → the agent itself has no `BOT_API_TOKEN` set. Skip and record: `Telegram intake blocked: agent has no BOT_API_TOKEN — set the Fly secret on app green-goods.`
 - **network error / host unreachable** (with `BOT_API_URL` set) → skip and record: `Telegram intake blocked: agent unreachable at BOT_API_URL.`
 
-Only an unset `BOT_API_URL` is a silent skip; a configured-but-failing endpoint always surfaces in the Phase 7 summary so the wiring can be fixed. Telegram-side reporters have no other acknowledgement surface, so a dark intake path is high-priority signal, not a quiet no-op.
+Only an unset `BOT_API_URL` is a silent skip; a configured-but-failing endpoint always surfaces in the Phase 7 summary so the wiring can be fixed. Telegram-side reporters have no other acknowledgment surface, so a dark intake path is high-priority signal, not a quiet no-op.
 
-The agent persists every freeform message posted in allowlisted forum topics into its `chat_messages` table, tagging each row with `inferredType` derived from which Fly secret (`TELEGRAM_BUGS_TOPIC` → `bug`, `TELEGRAM_IDEAS_TOPIC` → `idea`) matched the message's chat+thread. The bot stays silent in the Green Goods chat — it never replies, reacts, or DMs reporters. Team-facing acknowledgement happens via the Phase 7 digest; **do NOT call any `/api/notify`-style endpoint**, and do NOT reply in the Telegram topic.
+The agent persists every freeform message posted in allowlisted forum topics into its `chat_messages` table, tagging each row with `inferredType` derived from which Fly secret (`TELEGRAM_BUGS_TOPIC` → `bug`, `TELEGRAM_IDEAS_TOPIC` → `idea`) matched the message's chat+thread. The bot stays silent in the Green Goods chat — it never replies, reacts, or DMs reporters. Team-facing acknowledgment happens via the Phase 7 digest; **do NOT call any `/api/notify`-style endpoint**, and do NOT reply in the Telegram topic.
 
 Run the sub-flow below twice — once with `inferred_type=bug` (ack target `#bug-report`), once with `inferred_type=idea` (ack target `#product`):
 
@@ -443,7 +443,7 @@ Run the sub-flow below twice — once with `inferred_type=bug` (ack target `#bug
    ```
    On dedupe-detected duplicates, mark `triaged` too — the message has been processed, just not into a new record.
 
-10. **No Telegram-side ack.** The Phase 7 digest is the only team-facing acknowledgement of Telegram captures.
+10. **No Telegram-side ack.** The Phase 7 digest is the only team-facing acknowledgment of Telegram captures.
 
 ## Phase 3: Google Drive notes
 
@@ -495,7 +495,7 @@ The `google-drive` connector exposes only `title`, `fullText`, `mimeType`, `modi
 
 7. **Create accepted-bug Issue** only if the doc captures an actionable bug with a clear surface (rare — Drive notes usually need triage first). Apply the same canonical labels (`protocol:green-goods` + `activity:build` + `package:<inferred>` + `source:drive` + `ai:routine`), project routing and privacy boundary as in Phase 1 step 6.
 
-8. **Reporter acknowledgement** is not applicable for Drive (no per-message back-channel). Drive-sourced records appear in the daily Discord summary as a batch.
+8. **Reporter acknowledgment** is not applicable for Drive (no per-message back-channel). Drive-sourced records appear in the daily Discord summary as a batch.
 
 ## Phase 4: Recurring-pattern roll-up
 
@@ -550,11 +550,11 @@ After Phases 1–4, before posting the summary:
 
 Carry these into Phase 7 so the digest is verifiable.
 
-## Phase 6: Acknowledgements (in-thread only — 2026-07-30)
+## Phase 6: Acknowledgments (in-thread only — 2026-07-30)
 
-Standalone per-capture ack messages are retired; they were the single largest source of routine noise on Discord (up to 8 extra messages per run on top of the digest). Acknowledgement now works like this:
+Standalone per-capture ack messages are retired; they were the single largest source of routine noise on Discord (up to 8 extra messages per run on top of the digest). Acknowledgment now works like this:
 
-- **Discord-source reports**: the Phase 1 step 7 threaded `Tracked → {customer_need_url}` reply + ✅ reaction on the reporter's own message in `#bug-report` IS the acknowledgement — the reporter sees it attached to their message, and the channel gains no standalone posts. Duplicates get the same threaded reply pointing at the existing record (Phase 1 step 3).
+- **Discord-source reports**: the Phase 1 step 7 threaded `Tracked → {customer_need_url}` reply + ✅ reaction on the reporter's own message in `#bug-report` IS the acknowledgment — the reporter sees it attached to their message, and the channel gains no standalone posts. Duplicates get the same threaded reply pointing at the existing record (Phase 1 step 3).
 - **Telegram- and Drive-source records** (including Telegram duplicates merged into existing records): no standalone Discord message. They are acknowledged as item lines in the Phase 7 digest, which posts whenever anything was captured and carries what the old ack did (type, source, one-line summary, Linear link).
 - The bot stays silent in Telegram either way (no DMs, no group replies — unchanged).
 
@@ -615,7 +615,7 @@ Source-by-source count breakdowns, ack tallies, and enrichment telemetry stay OU
 
 This digest is **public**. Replay URLs, session IDs, distinct IDs, wallet/user identifiers, and reporter identifiers must not appear here. If a private replay link needs to reach Afo, send it via DM to `<@${DISCORD_USER_ID_AFO}>` in a separate message — never inline in this `#product` digest.
 
-The @mention fires when triage is piling up (`raw_signal_count + accepted_count > 3`) or when anything in `any_failure` needs human attention — that covers setup and wiring failures, an unreachable PostHog, a privacy-grep hit, and a failed in-thread acknowledgement. This keeps Discord notifications signal-heavy and matches the existing notification policy.
+The @mention fires when triage is piling up (`raw_signal_count + accepted_count > 3`) or when anything in `any_failure` needs human attention — that covers setup and wiring failures, an unreachable PostHog, a privacy-grep hit, and a failed in-thread acknowledgment. This keeps Discord notifications signal-heavy and matches the existing notification policy.
 
 ## Caps and guardrails
 
@@ -632,5 +632,5 @@ The @mention fires when triage is piling up (`raw_signal_count + accepted_count 
 - **No duplicate of `/linear issue` records.** When a teammate already filed via the Linear/Discord integration, the Linear record exists; this routine merges context but does not create a parallel record.
 - **1-hour runtime cap.** Intake is lightweight. If the run takes longer than an hour, something is wrong.
 - **Project routing discipline.** Customer Needs live unprojected on the Product team. Accepted-bug Issues follow [Project routing](README.md#project-routing): a bounded active project when one already exists for this work, otherwise the active release project, and unprojected only when none is started. Never route into the retired `Green Goods`, `Coop`, `Network Website`, `Cookie Jar`, or `Story Board` projects.
-- **Acknowledgement model (2026-07-30).** Discord-source reports are acknowledged with the inline `Tracked → ${customer_need_url}` threaded reply + ✅ reaction in `#bug-report` (Phase 1 step 7; reply and reaction are attempted, recorded, and retried independently) — never with standalone ack messages. Telegram and Drive records are acknowledged as item lines in the Phase 7 digest; Telegram reporters get NO Telegram-side ack — no DM, no group reply — by design.
+- **Acknowledgment model (2026-07-30).** Discord-source reports are acknowledged with the inline `Tracked → ${customer_need_url}` threaded reply + ✅ reaction in `#bug-report` (Phase 1 step 7; reply and reaction are attempted, recorded, and retried independently) — never with standalone ack messages. Telegram and Drive records are acknowledged as item lines in the Phase 7 digest; Telegram reporters get NO Telegram-side ack — no DM, no group reply — by design.
 - **Fail loud, not silent.** A failed Linear project lookup (an absent release project between releases is a valid state, not a failure), a missing label, a 401 from Linear, or a 401/503 from the agent messages API (`${BOT_API_URL}/api/messages`, per the Phase 2 preflight) must appear in the Discord summary so the user can fix the wiring. Do not skip records to keep the run "green."

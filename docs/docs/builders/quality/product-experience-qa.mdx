@@ -81,18 +81,18 @@ Journey mode is for two people who need to meet at the same handoffs. Both selec
 **Journey**; Tester A takes **Protocol & review** and Tester B takes **Garden & member**. **View**
 picks whose recorded results you read, and **Part** picks which side of the workflow is yours.
 Use two real, allowlisted wallets and keep the same identity from beginning to end: A is the
-protocol steward and an independent steward or evaluator of the test Garden, never on a
-contributor roster; B is a steward and member of that Garden, so B can claim for it and
+protocol steward and an independent steward or evaluator of the test garden, never on a
+contributor roster; B is a steward and member of that garden, so B can claim for it and
 contribute the Work.
 
 | Phase | Tester A — Protocol & review | Tester B — Garden & member | Meet here |
 |---|---|---|---|
-| Prepare | Record a starting assessment, then open the test Season and one Campaign. | Read the assessment and confirm the open cycle is visible. | Both people see the same Garden and cycle. The assessment adds context; it is not a prerequisite. |
-| Protocol asks | Seed an approval-gated protocol Request, then accept B's Garden claim. | Open the Request and choose to take it up **for this Garden**. | The claim becomes Accepted. The Request stays in the protocol pool and names the Garden as provider. |
+| Prepare | Record a starting assessment, then open the test Season and one Campaign. | Read the assessment and confirm the open cycle is visible. | Both people see the same garden and cycle. The assessment adds context; it is not a prerequisite. |
+| Protocol asks | Seed an approval-gated protocol Request, then accept B's garden claim. | Open the Request and choose to take it up **for this garden**. | The claim becomes Accepted. The Request stays in the protocol pool and names the garden as provider. |
 | Garden delivers | Review B's linked Work and evidence, approve it, then confirm fulfillment as the Request creator. | As accountable lead, submit Work and evidence against the original protocol Request. | Approved Work makes the Request ready, then Fulfilled. A stays outside the contributor roster. |
-| Garden earns | Exercise the protocol-to-Garden earned payout step. | Verify the destination Garden Safe or its readiness state. | If settlement is unavailable, both record Blocked with the visible gate; nobody says value moved. |
-| Garden distributes | Seed a separate commitment in the open Garden Campaign, then review and confirm B's delivery. | Take up the local commitment and submit its Work and evidence. | This is a second record, not a moved or mirrored protocol Request. |
-| Member receives | Exercise the Garden-to-member contributor payout. | Verify the receiving account when the path is enabled. | If settlement is unavailable, record Blocked and keep the completed non-value workflow intact. |
+| Garden earns | Exercise the protocol-to-garden earned payout step. | Verify the destination Garden Safe or its readiness state. | If settlement is unavailable, both record Blocked with the visible gate; nobody says value moved. |
+| Garden distributes | Seed a separate commitment in the open garden Campaign, then review and confirm B's delivery. | Take up the local commitment and submit its Work and evidence. | This is a second record, not a moved or mirrored protocol Request. |
+| Member receives | Exercise the garden-to-member contributor payout. | Verify the receiving account when the path is enabled. | If settlement is unavailable, record Blocked and keep the completed non-value workflow intact. |
 
 <figure className="gg-figure">
   <img src="/img/screenshots/qa-app-journey-view.jpg" alt="Synthetic QA app Journey view showing Prepare and Protocol asks phases, Admin and PWA surfaces, and explicit Act, Verify, and Handoff labels" loading="lazy" />
@@ -100,7 +100,7 @@ contribute the Work.
 </figure>
 
 Think of the service relay as **two records, one treasury relay**: the protocol Request stays in
-the protocol pool while the Garden earns for delivering it, and the Garden then creates its own
+the protocol pool while the garden earns for delivering it, and the garden then creates its own
 commitment for the member who did the Work. A **Protocol treasury top-up** is different again:
 discretionary funding with no commitment ID, never a stand-in for earned compensation.
 
@@ -121,7 +121,7 @@ time, recording as they go. The QA app is the shared checklist; this is the chec
   Journey with a Part per person for a shared flow. Where possible, people test work they did not
   build.
 - One wallet identity and one product role per person for the whole Journey, and both people can
-  see the test Garden before the first handoff.
+  see the test garden before the first handoff.
 - The write boundary is agreed: which funding and on-chain flows run end to end with real
   transactions, and which stop at the review step. The catalog's Transaction kind marks the cases
   this touches.
@@ -205,7 +205,7 @@ Session <slug>. [Meeting notes](<drive-url>) — or "App-only run — no meeting
 
 ## What every journey must prove
 
-- The entrypoint, role, and selected Garden are clear; a wallet on the wrong network is told so
+- The entrypoint, role, and selected garden are clear; a wallet on the wrong network is told so
   and pointed to the fix.
 - Loading, empty, disabled, error, offline, and recovery states are usable.
 - A visible interaction changes state and provides legible feedback.

@@ -172,7 +172,7 @@ export function DomainContextStep({
             error={(showValidation && fieldErrors.title) || undefined}
             helperText={formatMessage({
               id: "app.admin.assessment.strategyKernel.titleHelp",
-              defaultMessage: "Summarise this assessment in a few words.",
+              defaultMessage: "Summarize this assessment in a few words.",
             })}
           />
           <AdminTextField

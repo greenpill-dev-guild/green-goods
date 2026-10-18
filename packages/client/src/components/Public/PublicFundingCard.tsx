@@ -447,7 +447,7 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
                       id: txErrorView.titleKey,
                       defaultMessage:
                         txErrorView.severity === "warning"
-                          ? "Transaction cancelled"
+                          ? "Transaction canceled"
                           : "Transaction failed",
                     }),
                   }

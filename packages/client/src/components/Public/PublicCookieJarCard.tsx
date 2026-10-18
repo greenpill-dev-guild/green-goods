@@ -489,7 +489,7 @@ function CampaignCookieJarInlineActions({
   const txErrorTitle = formatMessage({
     id: txErrorView.titleKey,
     defaultMessage:
-      txErrorView.severity === "warning" ? "Transaction cancelled" : "Transaction failed",
+      txErrorView.severity === "warning" ? "Transaction canceled" : "Transaction failed",
   });
   const txErrorMessage = isMeaningfulTxErrorMessage(txErrorView.rawMessage)
     ? txErrorView.rawMessage

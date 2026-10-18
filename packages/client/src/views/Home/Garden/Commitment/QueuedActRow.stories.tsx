@@ -87,7 +87,7 @@ export const WalletNotSentWrongNetwork: Story = {
         "Your wallet needs to be on Arbitrum One for this. Switch it there, then try again."
       )
     ).toBeVisible();
-    await expect(canvas.queryByText(/signature cancelled/i)).toBeNull();
+    await expect(canvas.queryByText(/signature canceled/i)).toBeNull();
     // Nothing sends it for them, so the row must not say it will.
     await expect(canvas.queryByText(/sends when you're connected/i)).toBeNull();
     await expect(canvas.getByRole("button", { name: "Send take-up" })).toBeEnabled();

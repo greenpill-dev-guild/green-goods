@@ -81,7 +81,7 @@ export function CommitmentsSection({
             })
           : formatMessage({
               id: "public.pool.garden.heading",
-              defaultMessage: "Commitments between neighbours",
+              defaultMessage: "Commitments between neighbors",
             })
       }
     >
@@ -124,7 +124,7 @@ function stateSentence(
     return formatMessage({
       id: "public.pool.garden.state.notReady",
       defaultMessage:
-        "Offers and requests between neighbours open once this garden's pool is ready.",
+        "Offers and requests between neighbors open once this garden's pool is ready.",
     });
   }
   switch (state) {
@@ -163,8 +163,7 @@ function stateSentence(
           })
         : formatMessage({
             id: "public.pool.garden.state.open",
-            defaultMessage:
-              "Neighbours can offer and take up commitments in this garden right now.",
+            defaultMessage: "Neighbors can offer and take up commitments in this garden right now.",
           });
   }
 }
@@ -240,7 +239,7 @@ function PoolRecord({
             {formatMessage({
               id: "public.pool.garden.empty",
               defaultMessage:
-                "No commitments have been made yet. They appear here as neighbours offer and take them up.",
+                "No commitments have been made yet. They appear here as neighbors offer and take them up.",
             })}
           </PanelNote>
         ) : (
