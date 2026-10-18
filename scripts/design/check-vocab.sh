@@ -189,7 +189,8 @@ fi
 # (PRD-749), never the English word or a synonym that drifted in.
 # Message KEYS stay English, so this walks parsed values rather than raw lines,
 # and skips ICU argument references ("{steward}", "{stewards, plural...}").
-# A proper name may keep one listed word in one key (.locale_term_exemptions).
+# A key may keep an exact proper-name phrase (.locale_allowed_phrases); only that
+# phrase is removed before matching, so the rest of the value is still checked.
 # ---------------------------------------------------------------------------
 if command -v python3 >/dev/null 2>&1; then
   LOCALE_HITS="$(python3 - "$VOCAB_JSON" <<'PYEOF'
@@ -198,7 +199,7 @@ import json, re, sys
 vocab = json.load(open(sys.argv[1]))
 renamed = vocab.get("renamed_terms", {})
 locale_terms = renamed.get("locale_terms", {})
-exemptions = renamed.get("locale_term_exemptions", {})
+allowed_phrases = renamed.get("locale_allowed_phrases", {})
 hits = []
 for path, terms in locale_terms.items():
     try:
@@ -206,14 +207,15 @@ for path, terms in locale_terms.items():
     except OSError:
         continue
     pattern = re.compile(r"\b(" + "|".join(re.escape(t) for t in terms) + r")\b", re.I)
-    exempt = exemptions.get(path, {})
+    phrases = allowed_phrases.get(path, {})
     for key, value in catalog.items():
         if not isinstance(value, str):
             continue
         # ICU argument references are code the component passes, not copy.
         prose = re.sub(r"\{\s*\w+\s*[,}]", " ", value)
-        allowed = {term.lower() for term in exempt.get(key, [])}
-        if any(match.group(0).lower() not in allowed for match in pattern.finditer(prose)):
+        for phrase in phrases.get(key, []):
+            prose = prose.replace(phrase, " ")
+        if pattern.search(prose):
             hits.append(f"{path}: {key} = {value}")
 print("\n".join(hits))
 PYEOF
