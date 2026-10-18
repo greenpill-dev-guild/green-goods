@@ -172,12 +172,12 @@ Users shift between archetypes during a session. Design for the transition, not 
 When one person acts on behalf of another (steward submitting for a gardener), the interface must distinguish the surrogate from the direct user. This pattern exists in the field but has no designed support.
 
 ```
-┌─────────────────────────────────────┐
-│  Submitting as:  {name} (Gardener)  │
-│  Submitted by:   {name} (Steward)   │
-│  ─────────────────────────────────  │
-│  [Photo] [Details] [Submit]         │
-└─────────────────────────────────────┘
+┌───────────────────────────────────────────┐
+│  Submitting as:  {gardenerName}           │
+│  Submitted by:   {stewardName} (Steward)  │
+│  ───────────────────────────────────────  │
+│  [Photo] [Details] [Submit]               │
+└───────────────────────────────────────────┘
 ```
 
 **Data integrity**: Surrogate submissions must record both the surrogate (who submitted) and the attributed gardener (whose work it is). The attestation must reflect the actual worker, not the submitter. This intersects with `product.md` Data Integrity Requirement #4 (no self-attestation): the surrogate cannot also approve the work they submitted.
