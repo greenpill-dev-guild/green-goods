@@ -248,7 +248,8 @@ The routine never creates, edits, relabels or restates a Growth issue. The diges
 Green Goods routine and is recorded as the second research-synthesis exception in the README's
 Linear environment section.
 
-**R16. Bars met and the graduation ask.** Every status update and ledger state line ends with
+**R16. Bars met and the graduation ask.** Every status update carries, as its last content line
+before the signature, and every ledger state line ends with
 `Implementable when: {k} of {n} bars met ({the met bars in a few words})`, counted against the
 numbered list from R9. When every bar is met and the track's stage is not `graduated`, the digest's
 🔴 Needs you block asks for the graduation decision, with the mention, since the decision is the

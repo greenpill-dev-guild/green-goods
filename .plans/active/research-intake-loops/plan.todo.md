@@ -37,7 +37,7 @@
 | R12 `research-agenda` skill | none (skill) | Step 3 | ✅ in the PR |
 | R14 to R16 growth and product pull | none (routine spec, README) | Step 2 | ✅ in the PR |
 | R17 to R21 caps, guardrails, failures, phase order, run budget | none (routine spec) | Step 2 | ✅ in the PR |
-| Bot permissions, radar issue, duplicate trigger, pinned note | human | Step 4 | ⚠️ permissions proven by the 2026-10-18 run; radar issue and pinned note not found that day |
+| Bot permissions, radar issue, duplicate trigger, pinned note | human | Step 4 | ⚠️ permissions proven by the 2026-10-18 run; radar issue and pinned note not found that day; the duplicate-trigger check is reported done by Afo but not verifiable from this account until a cron Saturday shows one digest |
 
 ## Sequencing
 

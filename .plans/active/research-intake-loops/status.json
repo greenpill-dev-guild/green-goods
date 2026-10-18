@@ -151,7 +151,7 @@
     },
     {
       "date": "2026-10-18",
-      "event": "First v5 run (manual fire after #1118, session cse_01FxS38gAW8fcbaEvHJ5Jbpb) reviewed: AC-1, AC-3, AC-5, AC-6, AC-7 (creation), AC-9 (absence branch) and AC-11 pass; AC-12 not exercised; AC-2, AC-4 wait for the 2026-10-24 run; AC-8 and AC-10 pending. Radar issue and pinned note not found; two spec findings (digest length, memo section 11) recorded in reports/2026-10-18-first-v5-run.md."
+      "event": "First v5 run (manual fire after #1118 on 2026-10-18) reviewed: AC-1, AC-5, AC-6, AC-7 (creation) and AC-9 (absence branch) pass; AC-3 and AC-11 pass in part (queue behaviour, budget) with their other halves pending the fetch-accounting and memo-order spec fixes; AC-12 not exercised; AC-2's partial retries and AC-4 wait for the 2026-10-24 run, AC-2's idempotence for a controlled same-day rerun; AC-8 and AC-10 pending. Radar issue and pinned note not found; duplicate-trigger check unverifiable from this account; spec findings recorded in reports/2026-10-18-first-v5-run.md."
     }
   ]
 }
