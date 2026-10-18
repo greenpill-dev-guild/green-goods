@@ -255,7 +255,7 @@ export function CommitmentRecovery({
             >
               {formatMessage({
                 id: "cockpit.garden.pool.commitment.act.cancel",
-                defaultMessage: "Cancel Commitment…",
+                defaultMessage: "Cancel Promise…",
               })}
             </AdminButton>
           </div>

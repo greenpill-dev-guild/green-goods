@@ -98,7 +98,7 @@ export function CommitmentAssessmentDialog({
           {formatMessage({
             id: "cockpit.garden.pool.commitment.attach.empty",
             defaultMessage:
-              "No current assessment is recorded for the provider garden yet. An evaluator records one from the Hub; this commitment cannot be sent for confirmation until then.",
+              "No current assessment is recorded for the provider garden yet. An evaluator records one from the Hub; this promise cannot be sent for confirmation until then.",
           })}
         </p>
       ) : (

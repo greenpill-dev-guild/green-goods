@@ -389,7 +389,7 @@ describe("GardenPoolTab (W7)", () => {
     mocks.controller = controller({ pool: null, poolId: undefined, cycles: [], commitments: [] });
     renderTab();
     expect(screen.getByText(/no commitment pool/i)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /set up commitments/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /set up promises/i })).not.toBeInTheDocument();
   });
 
   it("renders the setup checklist for a pool that has never opened and opens the setup flow", () => {
@@ -407,12 +407,12 @@ describe("GardenPoolTab (W7)", () => {
       charter: { charter: null, isLoading: false, isUnavailable: false },
     });
     renderTab();
-    expect(screen.getByText(/not taking commitments yet/i)).toBeInTheDocument();
+    expect(screen.getByText(/not taking promises yet/i)).toBeInTheDocument();
     expect(screen.getByText(/agreement not written yet/i)).toBeInTheDocument();
-    expect(screen.getByText(/commitment limit not set/i)).toBeInTheDocument();
+    expect(screen.getByText(/promise limit not set/i)).toBeInTheDocument();
     // Before the pool is ready the first-run flow owns the charter and the cap.
     expect(screen.queryByRole("button", { name: /edit pool/i })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /set up commitments/i }));
+    fireEvent.click(screen.getByRole("button", { name: /set up promises/i }));
     expect(screen.getByTestId("pool-setup-flow")).toHaveTextContent("first-run");
   });
 
@@ -431,7 +431,7 @@ describe("GardenPoolTab (W7)", () => {
     fireEvent.click(screen.getByRole("button", { name: /edit pool/i }));
     const dialog = await screen.findByRole("dialog");
     expect(
-      within(dialog).getByLabelText(/how many commitments one person can hold at once/i)
+      within(dialog).getByLabelText(/how many promises one person can hold at once/i)
     ).toBeInTheDocument();
   });
 
@@ -471,7 +471,7 @@ describe("GardenPoolTab (W7)", () => {
     expect(screen.getByText("Market rides")).toBeInTheDocument();
     expect(screen.getByText("Neighbourly help in Rocinha")).toBeInTheDocument();
     expect(screen.getByText(/24 per person at once/i)).toBeInTheDocument();
-    expect(screen.getByText(/taking commitments/i)).toBeInTheDocument();
+    expect(screen.getByText(/taking promises/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /start campaign/i }));
     expect(screen.getByTestId("pool-setup-flow")).toHaveTextContent("campaign");
   });
@@ -484,8 +484,8 @@ describe("GardenPoolTab (W7)", () => {
       cycles: [cycle({ commitmentsAccepted: 3n, commitmentsFulfilled: 2n })],
     });
     renderTab();
-    expect(screen.getByText(/3 commitments/)).toHaveTextContent(/2 kept/);
-    expect(screen.queryByText(/5 commitments/)).not.toBeInTheDocument();
+    expect(screen.getByText(/3 promises/)).toHaveTextContent(/2 kept/);
+    expect(screen.queryByText(/5 promises/)).not.toBeInTheDocument();
   });
 
   it("groups commitments under Open · Confirmed · Past and opens a row in the inspector", () => {
@@ -655,7 +655,7 @@ describe("GardenPoolTab (W7)", () => {
   it("keeps Close pool out of reach while anything is live, and names the live count", () => {
     renderTab();
     expect(screen.queryByRole("button", { name: /close pool/i })).not.toBeInTheDocument();
-    expect(screen.getByText(/2 live commitments/i)).toBeInTheDocument();
+    expect(screen.getByText(/2 live promises/i)).toBeInTheDocument();
   });
 
   it("offers Close pool only once every cycle and commitment has finished", async () => {
@@ -947,7 +947,7 @@ describe("GardenPoolTab (W7)", () => {
       commitments: [],
     });
     renderTab();
-    const setUp = screen.getByRole("button", { name: /set up commitments/i });
+    const setUp = screen.getByRole("button", { name: /set up promises/i });
     expect(setUp).toBeDisabled();
     // The reason sits with the act it holds, not only in the status card.
     const card = setUp.closest("[data-component='PoolNotReadyCard']") as HTMLElement;
@@ -985,6 +985,6 @@ describe("Garden workspace Promises tab visibility", () => {
     expect(screen.getByRole("heading", { name: /pool funding/i })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /pause/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /close pool/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /set up commitments/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /set up promises/i })).not.toBeInTheDocument();
   });
 });

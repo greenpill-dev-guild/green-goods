@@ -308,7 +308,7 @@ describe("CommitmentSettlement", () => {
       <CommitmentSettlement settlement={ineligible} tone="garden" />
     );
     expect(
-      screen.getByText("No Celo G$ consideration is declared on this commitment.")
+      screen.getByText("No Celo G$ consideration is declared on this promise.")
     ).toBeInTheDocument();
     expect(screen.queryByTestId("settlement-steps")).not.toBeInTheDocument();
     first.unmount();

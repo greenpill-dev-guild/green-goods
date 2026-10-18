@@ -57,12 +57,12 @@ export function PoolCycleDialogs({
             ? formatMessage({
                 id: "cockpit.garden.pool.endCycle.campaignDescription",
                 defaultMessage:
-                  "Nobody can make or take up commitments in this campaign any more. Its record is reconciled and ready for an impact certificate.",
+                  "Nobody can make or take up promises in this campaign any more. Its record is reconciled and ready for an impact certificate.",
               })
             : formatMessage({
                 id: "cockpit.garden.pool.endCycle.seasonDescription",
                 defaultMessage:
-                  "Nobody can make or take up commitments in this season any more. Its record is reconciled and ready for an impact certificate, and a new season can start.",
+                  "Nobody can make or take up promises in this season any more. Its record is reconciled and ready for an impact certificate, and a new season can start.",
               })
         }
         confirmLabel={

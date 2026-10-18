@@ -16,7 +16,7 @@ export function CommitmentDialogLoading() {
       role="status"
       aria-label={formatMessage({
         id: "cockpit.garden.pool.commitment.loading",
-        defaultMessage: "Loading the commitment",
+        defaultMessage: "Loading the promise",
       })}
     >
       <div className="h-8 w-2/3 rounded-[var(--m3-shape-sm)] skeleton-shimmer" aria-hidden />
@@ -50,7 +50,7 @@ export function CommitmentDialogNotFound({
       <AdminCardTitle>
         {formatMessage({
           id: "cockpit.garden.pool.commitment.notFound.title",
-          defaultMessage: "This commitment couldn’t be loaded",
+          defaultMessage: "This promise couldn’t be loaded",
         })}
       </AdminCardTitle>
       <p className="max-w-sm body-sm text-text-soft">
