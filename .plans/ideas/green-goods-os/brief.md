@@ -8,6 +8,10 @@ This is the user's central proposition for the whole product, protocol and ecosy
 
 The pitch is intended for audiences such as Ma Earth, Hypercerts, 5th World and The BioFi Project. Their documented activities support possible relevance, not partner interest. The [source register](evidence-register.md#partner-audience-research) separates those facts from proposed collaboration. No outreach has occurred.
 
+## Relationship to Grove
+
+[Grove’s architecture and implementation plan (PR #1073)](https://github.com/greenpill-dev-guild/green-goods/pull/1073) owns the current browser-extension direction: a local-first living garden graph, KOI knowledge infrastructure, Pi Durable orchestration and a first spike using Vida Verde and TAS. Use that plan for extension implementation decisions. This hub preserves the broader Green Goods OS research, product exploration and pitch drafts; its earlier extension and prototype proposals are historical context where they differ from Grove. Merging this research does not approve the pitch or authorize implementation.
+
 ## Read in sequence
 
 1. [Technical and licensing research](research.md): baselines, architecture, threats, rights, costs and gates.

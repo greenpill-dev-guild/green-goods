@@ -8,6 +8,10 @@ Read the nearest AGENTS.md, then this hub's `brief.md`, `pitch-revision.md`, `ar
 
 The current package contains technical/licensing research, evidence register, PRD, strategy/theory of change, historical market assumptions, multiple rejected decks, two three-slide visual checkpoints and the v3 cover pair. The most recent checkpoint is `artifacts/visual-direction-v3/`, with the agreed cover, the solution sample and the sixteen-slide core deck `green-goods-pitch-core-v3.pptx`, each with renders, notes and receipts. Structural and rendering checks passed; the core deck awaits review. Never equate package integrity with a persuasive pitch or user acceptance.
 
+## Grove implementation handoff
+
+For browser-extension architecture and implementation, follow [Grove’s plan in PR #1073](https://github.com/greenpill-dev-guild/green-goods/pull/1073): the local-first living garden graph, KOI, Pi Durable and the Vida Verde/TAS spike. This research-to-pitch handoff governs the broader proposal and deck work. Earlier extension, sensor and AT prototype proposals here do not override Grove’s implementation plan.
+
 ## Latest decisions and immediate task
 
 Decided on 9 October 2026 Pacific (10 October UTC) after the typography and copy discussion: Fraunces Medium 500 upright for the cover title with no italic, Land care in charcoal and within reach in the website's accent green `#1A7544`; an 18-word third-person subtitle for land stewards over three lines at 20 pt, chosen from measured shorter options after the 27-word version ran to five lines; composition C1, the v2 linen panel left and the conceptual garden scene right; and approval to fetch the Fraunces Medium cut, with nothing installed. Regular 400 was rendered alongside and not chosen. Inter Semibold, Newsreader and Source Serif 4 were considered and not chosen. Previous corrections remain binding: include knowledge silos in the unequal-access slide, use no AI-generated human faces, position images on the right of split compositions, and explain the actual solution rather than saying only that Green Goods connects tools, knowledge and support.
