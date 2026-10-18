@@ -77,7 +77,7 @@ export function CommitmentsSection({
         preparing
           ? formatMessage({
               id: "public.pool.garden.heading.preparing",
-              defaultMessage: "This Garden is preparing its pool",
+              defaultMessage: "This garden is preparing its pool",
             })
           : formatMessage({
               id: "public.pool.garden.heading",
@@ -124,7 +124,7 @@ function stateSentence(
     return formatMessage({
       id: "public.pool.garden.state.notReady",
       defaultMessage:
-        "Offers and requests between neighbours open once this Garden's pool is ready.",
+        "Offers and requests between neighbours open once this garden's pool is ready.",
     });
   }
   switch (state) {
@@ -138,18 +138,18 @@ function stateSentence(
       return formatMessage({
         id: "public.pool.garden.state.paused",
         defaultMessage:
-          "This Garden has paused new commitments for now. Its record stays readable.",
+          "This garden has paused new commitments for now. Its record stays readable.",
       });
     case "CLOSED":
       return formatMessage({
         id: "public.pool.garden.state.closed",
-        defaultMessage: "This Garden's pool has closed. What it kept stays on the record.",
+        defaultMessage: "This garden's pool has closed. What it kept stays on the record.",
       });
     case "COMPOSTED":
       return formatMessage({
         id: "public.pool.garden.state.composted",
         defaultMessage:
-          "This Garden's pool has been composted, ready for the next season. Its record stays here.",
+          "This garden's pool has been composted, ready for the next season. Its record stays here.",
       });
     default:
       // OPEN. Between seasons, the record framing carries the sentence.
@@ -159,12 +159,12 @@ function stateSentence(
         ? formatMessage({
             id: "public.pool.garden.state.betweenSeasons",
             defaultMessage:
-              "The next season has not opened yet. What the Garden has kept so far stays here.",
+              "The next season has not opened yet. What the garden has kept so far stays here.",
           })
         : formatMessage({
             id: "public.pool.garden.state.open",
             defaultMessage:
-              "Neighbours can offer and take up commitments in this Garden right now.",
+              "Neighbours can offer and take up commitments in this garden right now.",
           });
   }
 }
@@ -177,7 +177,7 @@ function UnavailableRecord({ onRetry }: { onRetry: () => void }) {
     <PanelLead
       lede={formatMessage({
         id: "public.pool.garden.unavailable",
-        defaultMessage: "This Garden's commitments could not be loaded just now.",
+        defaultMessage: "This garden's commitments could not be loaded just now.",
       })}
       aside={
         <SectionNotice

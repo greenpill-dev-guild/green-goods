@@ -46,7 +46,7 @@ const TERMS: readonly GlossaryTerm[] = [
     defaultLabel: "Assessment",
     bodyId: "public.glossary.term.assessment.body",
     defaultBody:
-      "The diagnosis-and-plan stage of a Garden's season, written by stewards and evaluators to name what the place needs and what counts as good.",
+      "The diagnosis-and-plan stage of a garden's season, written by stewards and evaluators to name what the place needs and what counts as good.",
     docsPath: "/glossary#assessment",
   },
   {
@@ -55,7 +55,7 @@ const TERMS: readonly GlossaryTerm[] = [
     defaultLabel: "Cookie Jar",
     bodyId: "public.glossary.term.cookieJar.body",
     defaultBody:
-      "A shared fund where supporters give to a Garden's near-term Work. Only approved members can claim from a jar, so the funds reach the right hands.",
+      "A shared fund where supporters give to a garden's near-term Work. Only approved members can claim from a jar, so the funds reach the right hands.",
     docsPath: "/glossary#cookie-jar",
   },
   {
@@ -64,7 +64,7 @@ const TERMS: readonly GlossaryTerm[] = [
     defaultLabel: "Evaluator",
     bodyId: "public.glossary.term.evaluator.body",
     defaultBody:
-      "A person who strengthens Assessments, methods, and impact claims. Evaluators do not approve submitted Work; Stewards record those decisions.",
+      "A person who strengthens Assessments, methods, and impact claims. Evaluators do not approve submitted Work; stewards record those decisions.",
     docsPath: "/glossary#evaluator",
   },
   {
@@ -73,7 +73,7 @@ const TERMS: readonly GlossaryTerm[] = [
     defaultLabel: "Garden",
     bodyId: "public.glossary.term.garden.body",
     defaultBody:
-      "A community of gardeners doing regenerative work in a place. Each Garden has its own Vault, steward, and gardeners, and its own public record.",
+      "A community of gardeners doing regenerative work in a place. Each garden has its own Vault, steward, and gardeners, and its own public record.",
     docsPath: "/glossary#garden",
   },
   {
@@ -100,7 +100,7 @@ const TERMS: readonly GlossaryTerm[] = [
     defaultLabel: "Steward",
     bodyId: "public.glossary.term.steward.body",
     defaultBody:
-      "The person who runs a Garden: assembling the plan, accepting gardeners, and recording approval or rejection for submitted Work.",
+      "The person who runs a garden: assembling the plan, accepting gardeners, and recording approval or rejection for submitted Work.",
     docsPath: "/glossary#steward",
   },
   {
@@ -109,7 +109,7 @@ const TERMS: readonly GlossaryTerm[] = [
     defaultLabel: "Vault",
     bodyId: "public.glossary.term.vault.body",
     defaultBody:
-      "A long-term deposit attached to a Garden whose yield supports the Garden's Work over many seasons. Endowing a Vault keeps the principal in place.",
+      "A long-term deposit attached to a garden whose yield supports the garden's Work over many seasons. Endowing a Vault keeps the principal in place.",
     docsPath: "/glossary#vault",
   },
   {

@@ -87,7 +87,7 @@ export function PublicCommitmentsBand({ chainId = DEFAULT_CHAIN_ID }: { chainId?
             {formatMessage({
               id: "public.pool.impact.lifecycle",
               defaultMessage:
-                "Planting trees, maintaining solar panels, sharing skills. The work of a Garden starts with what its community needs and what people can offer. Commitments give that work a shared record: who will carry it out, when, and whether it was kept. Community members can follow what is happening in their Garden. Funders can see the work they help make possible.",
+                "Planting trees, maintaining solar panels, sharing skills. The work of a garden starts with what its community needs and what people can offer. Commitments give that work a shared record: who will carry it out, when, and whether it was kept. Community members can follow what is happening in their garden. Funders can see the work they help make possible.",
             })}
           </EditorialLede>
           <PublicProofMarkers layout="panel" markers={[made, kept]} unavailableDisplay="label" />

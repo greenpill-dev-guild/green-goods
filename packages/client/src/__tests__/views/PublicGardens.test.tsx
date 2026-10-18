@@ -66,13 +66,13 @@ const messages: Record<string, string> = {
   "public.gardens.archiveTitle": "Browse every Garden under documentation.",
   "public.gardens.kicker": "Living Archive",
   "public.gardens.searchLabel": "Search Gardens",
-  "public.gardens.searchPlaceholder": "Search Gardens…",
+  "public.gardens.searchPlaceholder": "Search gardens…",
   "public.gardens.empty": "Gardens will appear here as they come online.",
-  "public.gardens.noMatches": 'No Gardens match "{query}".',
+  "public.gardens.noMatches": 'No gardens match "{query}".',
   "public.gardens.gardeners": "{count} gardeners",
   "public.gardens.works": "{count} entries",
   "public.gardens.archiveCount":
-    "{count, plural, one {# Garden} other {# Gardens}} · updated daily",
+    "{count, plural, one {# garden} other {# gardens}} · updated daily",
 };
 
 function renderView() {
@@ -138,7 +138,7 @@ describe("GardensGallery", () => {
     const user = userEvent.setup();
     renderView();
     await user.type(screen.getByLabelText("Search Gardens"), "zzzzzzzz");
-    expect(screen.getByText('No Gardens match "zzzzzzzz".')).toBeInTheDocument();
+    expect(screen.getByText('No gardens match "zzzzzzzz".')).toBeInTheDocument();
   });
 
   it("shows the empty state when no Gardens are loaded", () => {

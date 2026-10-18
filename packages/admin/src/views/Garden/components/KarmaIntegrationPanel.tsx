@@ -37,7 +37,7 @@ const STATUS_PRESENTATION = {
     badgeId: "cockpit.garden.karma.status.noProject",
     badgeDefault: "No profile",
     bodyId: "cockpit.garden.karma.body.noProject",
-    bodyDefault: "This Garden does not have a Karma profile yet.",
+    bodyDefault: "This garden does not have a Karma profile yet.",
     variant: "warning",
   },
   "stale-details": {
@@ -58,7 +58,7 @@ const STATUS_PRESENTATION = {
     badgeId: "cockpit.garden.karma.status.failed",
     badgeDefault: "Sync failed",
     bodyId: "cockpit.garden.karma.body.failed",
-    bodyDefault: "The last Karma sync did not finish. Your Garden data is safe and you can retry.",
+    bodyDefault: "The last Karma sync did not finish. Your garden data is safe and you can retry.",
     variant: "error",
   },
   retrying: {
@@ -72,7 +72,7 @@ const STATUS_PRESENTATION = {
     badgeId: "cockpit.garden.karma.status.synced",
     badgeDefault: "Synced",
     bodyId: "cockpit.garden.karma.body.synced",
-    bodyDefault: "The Karma profile and Garden role access are current.",
+    bodyDefault: "The Karma profile and garden role access are current.",
     variant: "success",
   },
 } satisfies Record<KarmaIntegrationStatusName, KarmaStatusPresentation>;

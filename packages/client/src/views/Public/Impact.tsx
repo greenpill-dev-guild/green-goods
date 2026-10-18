@@ -209,7 +209,7 @@ export default function ImpactPage() {
         value: "all",
         label: formatMessage({
           id: "public.impact.filters.gardenAll",
-          defaultMessage: "All Gardens",
+          defaultMessage: "All gardens",
         }),
       },
       ...[...gardens]
@@ -257,7 +257,7 @@ export default function ImpactPage() {
       formatMessage({ id: "public.home.proof.works", defaultMessage: "Approved submissions" }),
       formatMessage({
         id: "public.home.proof.worksNote",
-        defaultMessage: "Work reviewed by a Garden's stewards.",
+        defaultMessage: "Work reviewed by a garden's stewards.",
       }),
       counts.fieldNoteCount
     ),
@@ -352,7 +352,7 @@ export default function ImpactPage() {
         intro={formatMessage({
           id: "public.impact.pipeline.intro",
           defaultMessage:
-            "A Garden identifies local needs, agrees on the work, documents what happens, and learns from the evidence. Measured outcomes depend on the methods and assessments each project publishes.",
+            "A garden identifies local needs, agrees on the work, documents what happens, and learns from the evidence. Measured outcomes depend on the methods and assessments each project publishes.",
         })}
       />
 
@@ -389,7 +389,7 @@ export default function ImpactPage() {
             className="mt-8 flex flex-wrap items-center gap-x-2 gap-y-4"
             aria-label={formatMessage({
               id: "public.impact.filters.label",
-              defaultMessage: "Filter evidence by record kind, domain, and Garden",
+              defaultMessage: "Filter evidence by record kind, domain, and garden",
             })}
           >
             {KIND_FILTERS.map((entry) => (
@@ -494,7 +494,7 @@ export default function ImpactPage() {
                     : formatMessage({
                         id: "public.impact.evidence.empty",
                         defaultMessage:
-                          "Assessment evidence will appear here as Gardens publish it.",
+                          "Assessment evidence will appear here as gardens publish it.",
                       })}
                 </p>
                 {kindFilter !== "all" || domainFilter !== "all" ? (
@@ -586,7 +586,7 @@ export default function ImpactPage() {
                 {formatMessage({
                   id: "public.impact.evidence.partialData",
                   defaultMessage:
-                    "Showing the most recent evidence we could load. More may be available across Gardens.",
+                    "Showing the most recent evidence we could load. More may be available across gardens.",
                 })}
               </p>
             </div>

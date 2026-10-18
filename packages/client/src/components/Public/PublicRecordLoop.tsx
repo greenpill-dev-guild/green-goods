@@ -47,7 +47,7 @@ const LOOP_STEPS: readonly LoopStep[] = [
     description: {
       id: "public.home.loop.step.funding.description",
       defaultMessage:
-        "Supporters donate to a Garden's shared fund or endow its Vault, whose yield supports the work.",
+        "Supporters donate to a garden's shared fund or endow its Vault, whose yield supports the work.",
     },
     to: "/fund",
   },
