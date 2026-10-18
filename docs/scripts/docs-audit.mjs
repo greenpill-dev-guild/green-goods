@@ -537,9 +537,6 @@ const readableAttributes = ["alt", "title", "aria-label", "aria-description", "p
 const braceValue = "\\{(?:[^{}\\n]|\\{(?:[^{}\\n]|\\{[^{}\\n]*\\})*\\})*\\}";
 const notProse = new RegExp(
   [
-    // A code span closes on a backtick run as long as the one that opened it; an escaped backtick
-    // opens nothing.
-    "(?<![\\\\`])(?<tick>`+)(?!`)[^\\n]*?(?<!`)\\k<tick>(?!`)",
     "<https?:\\/\\/[^>]+>",
     "https?:\\/\\/[^\\s)\\]>\"'`]+",
     "\\{#[^}]*\\}",
@@ -549,8 +546,21 @@ const notProse = new RegExp(
   ].join("|"),
   "g",
 );
-// An HTML or MDX comment is never rendered and a code element is code, even across lines.
-const unrendered = /<!--[\s\S]*?--!?>|\{\/\*[\s\S]*?\*\/\}|<code\b[^>]*>[\s\S]*?<\/code>/g;
+// Blanked from the whole text in one pass, so whichever starts first wins: an HTML or MDX comment,
+// which is never rendered; a code element; and a code span. A span closes on a backtick run as long
+// as the one that opened it and may continue onto the next line of its paragraph, but not past a
+// blank line or into a new block. An escaped backtick opens nothing, and three at the start of a
+// line open a fence instead.
+const unrendered = new RegExp(
+  [
+    "<!--[\\s\\S]*?--!?>",
+    "\\{\\/\\*[\\s\\S]*?\\*\\/\\}",
+    "<code\\b[^>]*>[\\s\\S]*?<\\/code>",
+    "(?<![\\\\`])(?!(?<=(?:^|\\n) {0,3})`{3})(?<tick>`+)(?!`)" +
+      "(?:[^\\n]|\\n(?![ \\t]*(?:\\n|#{1,6}[ \\t]|[-*+][ \\t]|\\d+[.)][ \\t]|>|\\||`{3}|~{3})))*?(?<!`)\\k<tick>(?!`)",
+  ].join("|"),
+  "g",
+);
 // A JSX or HTML tag is markup, even across lines, so its name and props, bare ones such as
 // <Status cancelled /> included, are names; only the values of readableAttributes stay copy.
 const tagAttribute = `[A-Za-z_][\\w:.-]*(?:\\s*=\\s*(?:"[^"]*"|'[^']*'|${braceValue}))?|\\{\\.\\.\\.[^{}\\n]*\\}`;

@@ -46,6 +46,40 @@ describe("agent i18n", () => {
     // "submit.cancelled", and every other one is copy, a ternary's first branch included.
     const token =
       /\/\/[^\n]*|\/\*[\s\S]*?\*\/|"((?:[^"\\\n]|\\.)*)"|'((?:[^'\\\n]|\\.)*)'|`((?:[^`\\]|\\.)*)`/g;
+    // A template's text is copy, and so is each string literal inside its interpolations, such as
+    // either branch of `${done ? "Done" : "Open"}`; one that is compared against is a wire value.
+    const quoted = /"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'/y;
+    const templateValues = (body: string): string[] => {
+      let text = "";
+      const inner: string[] = [];
+      let at = 0;
+      for (let open = body.indexOf("${"); open !== -1; open = body.indexOf("${", at)) {
+        text += `${body.slice(at, open)} `;
+        let close = open + 2;
+        for (let depth = 1; close < body.length && depth > 0; ) {
+          quoted.lastIndex = close;
+          const literal = quoted.exec(body);
+          if (literal) {
+            close += literal[0].length;
+            continue;
+          }
+          if (body[close] === "{") depth += 1;
+          if (body[close] === "}") depth -= 1;
+          close += 1;
+        }
+        const expression = body.slice(open + 2, close - 1);
+        for (const { 0: literal, index = 0 } of expression.matchAll(
+          new RegExp(quoted.source, "g")
+        )) {
+          const compared =
+            /[=!]==?\s*$/.test(expression.slice(0, index)) ||
+            /^\s*[=!]==?/.test(expression.slice(index + literal.length));
+          if (!compared) inner.push(literal.slice(1, -1));
+        }
+        at = close;
+      }
+      return [text + body.slice(at), ...inner];
+    };
     const valuesOf = (source: string, opening: string, closing = "} as const") => {
       const start = source.indexOf(opening);
       expect(start, `the catalog no longer declares ${opening}`).toBeGreaterThanOrEqual(0);
@@ -65,8 +99,8 @@ describe("agent i18n", () => {
           const startsMember = /(?:^|[{,])$/.test(code.slice(0, index).trimEnd());
           return !(followedByColon && startsMember);
         })
-        .map(([, double, single, template]) =>
-          (double ?? single ?? template ?? "").replace(/\$\{[^}]*\}/g, " ")
+        .flatMap(([, double, single, template]) =>
+          template === undefined ? [double ?? single ?? ""] : templateValues(template)
         );
     };
     const sample = [
@@ -75,6 +109,7 @@ describe("agent i18n", () => {
       '  "review.cancelled": `Review cancelled for ${name}`,',
       "  joined: \"one \" + 'two',",
       '  plural: (n: number) => (n === 1 ? "item" : "items"),',
+      '  status: `Review ${state === "done" ? "finished" : "open"}`,',
       "} as const;",
     ].join("\n");
     expect(valuesOf(sample, "const sample = {").map((value) => value.trim())).toEqual([
@@ -83,6 +118,9 @@ describe("agent i18n", () => {
       "two",
       "item",
       "items",
+      "Review",
+      "finished",
+      "open",
     ]);
     // Placeholders, inline code and URLs are names, not copy.
     const proseOf = (value: string) => {
