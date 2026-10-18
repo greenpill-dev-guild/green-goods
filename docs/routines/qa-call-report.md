@@ -20,9 +20,9 @@ connectors:
   - posthog       # window-scoped enrichment: the testers' own product sessions during the call
   - vercel        # build under test: which deploys were live during the session window
   - sentry        # when available — resolves projects by name through the connector, no env vars; absent = skip silently
-model: claude-opus-5
+model: claude-opus-5-5
 allow-unrestricted-branch-pushes: false  # Linear + Discord only; no PRs, no Sheet writes, no GitHub Issues
-last_updated: "2026-09-05"
+last_updated: "2026-10-17"
 ---
 
 # Prompt
@@ -371,12 +371,31 @@ the @mention.
 ## Rebuilding the cloud routine from this file
 
 1. Log in to [claude.ai/code/routines](https://claude.ai/code/routines) → **New routine**.
-2. Paste the prompt from this file (everything after the `# Prompt` heading).
+2. Paste a bootstrap prompt, not a copy of this spec. The routine fetches `origin/develop` and
+   executes this file on every run, so a change takes effect as soon as it merges to `develop`.
+   Keep the bootstrap free of phase summaries: a summary drifts from the spec and competes with it.
+   The bootstrap carries one failure post of its own, because a run that cannot load the spec
+   never reads the spec's failure rules; that post uses the spec's channel variable, so a channel
+   change touches both.
+
+   ```text
+   You are the qa-call-report routine for Green Goods. Your spec is docs/routines/qa-call-report.md on the develop branch of the green-goods repo. It is the single source of truth; there is intentionally no copy here.
+
+   1. Run `git fetch origin develop`.
+   2. Read the whole spec: `git show origin/develop:docs/routines/qa-call-report.md`.
+   3. Execute everything after its `# Prompt` heading exactly as written, except the `## Rebuilding the cloud routine from this file` section, which tells people how to set the routine up and is never part of a run. Where this prompt and the spec differ, follow the spec.
+
+   If step 1 or 2 fails, never run an older copy or improvise from memory: an older `origin/develop` may still be readable, and running it would run a stale spec. Report the failure in the run log, post one failure line, and exit non-zero. The line is `<@${DISCORD_USER_ID_AFO}> ⚠ qa-call-report could not load its spec ({the failed step}); no session report was written.`, sent with `POST https://discord.com/api/v10/channels/${DISCORD_PRODUCT_CHANNEL_ID}/messages` and the header `Authorization: Bot ${DISCORD_BOT_TOKEN}`, using plain `curl` without `-L` so the token is never forwarded. When `DISCORD_PRODUCT_CHANNEL_ID` is unset, skip the post and say so in the run log; never post to another channel.
+
+   Limits that hold whatever the spec says: never push code, open PRs, create GitHub Issues, or write to the QA Sheet.
+   ```
+
 3. Configure per the frontmatter: repo `green-goods` at branch `develop`; environment
    `green-goods` with `BLOB_READ_WRITE_TOKEN` added (copy from the QA app's Vercel Blob store —
    Storage → the private QA store → tokens) plus the Discord vars and the two PostHog project
    IDs; connectors **Google Drive + Linear + PostHog + Vercel**, and Sentry when available (it
    resolves projects by name — no Sentry env vars); model per the frontmatter; **no schedule**
    — manual trigger only.
-4. Save. Trigger it right after each QA call; then start a fix session with "pull in the QA
-   slices from Linear" (the `debug` skill's QA Slice Fix Protocol picks them up).
+4. Save, then record the routine id in `docs/routines/README.md`. Trigger it right after each QA
+   call; then start a fix session with "pull in the QA slices from Linear" (the `debug` skill's QA
+   Slice Fix Protocol picks them up).

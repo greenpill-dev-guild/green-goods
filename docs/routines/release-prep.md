@@ -14,7 +14,7 @@ env-vars:
 connectors:
   - github # read-only: open PRs, commit ranges, existing releases/tags
   - linear # read-only: the active release project's name (version), targetDate (Phase 0 window), description (why and what ships), and QA complete milestone (release gate)
-model: claude-opus-5
+model: claude-opus-5-5
 allow-unrestricted-branch-pushes: false # read + draft only; no commits, no PRs, no tags
 last_updated: "2026-09-16"
 ---
