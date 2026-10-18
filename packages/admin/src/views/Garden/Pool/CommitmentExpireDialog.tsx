@@ -47,7 +47,7 @@ export function CommitmentExpireDialog({
         {
           id: "cockpit.garden.pool.expire.description",
           defaultMessage:
-            "“{title}” is past due. Expiring it supersedes any waiting claims and releases what the pool reserved for it. This is final — the record stays, and members see it as expired.",
+            "“{title}” is past due. Expiring it supersedes any waiting claims and releases what the pool reserved for it. This is final: the record stays, and members see it as expired.",
         },
         { title }
       )}

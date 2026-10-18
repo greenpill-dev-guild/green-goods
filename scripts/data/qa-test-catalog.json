@@ -16,7 +16,7 @@
     {
       "id": "journey",
       "label": "Journey",
-      "verifies": "A person completes, or is honestly gated out of, a flow in the UI — no wallet transaction involved"
+      "verifies": "A person completes, or is honestly gated out of, a flow in the UI (no wallet transaction involved)"
     },
     {
       "id": "transaction",
@@ -9401,7 +9401,7 @@
       "priority": "P1",
       "kind": "transaction",
       "area": "Impact",
-      "scenario": "Hypercert marketplace: approvals gate, list for yield, cancel listing — including whether it's reachable at all",
+      "scenario": "Hypercert marketplace: approvals gate, list for yield, cancel listing, including whether it's reachable at all",
       "preconditions": ["Minted hypercert"],
       "steps": [
         "Open the hypercert marketplace panel (note if unreachable)",
@@ -9499,7 +9499,7 @@
       "priority": "P1",
       "kind": "content",
       "area": "Site",
-      "scenario": "Glossary anchor links resolve — they are a client API",
+      "scenario": "Glossary anchor links resolve (they are a client API)",
       "preconditions": ["Docs site available"],
       "steps": [
         "Open two or three /glossary#term URLs that the client links to",
@@ -10066,7 +10066,7 @@
       "priority": "P1",
       "kind": "content",
       "area": "Guide Truth",
-      "scenario": "Funder guide walks true against the editorial funding surfaces (donate, fund, vaults, withdraw) — read-only",
+      "scenario": "Funder guide walks true, read-only, against the editorial funding surfaces (donate, fund, vaults, withdraw)",
       "preconditions": ["Production site + docs"],
       "steps": [
         "Open the funder guide beside /fund and /vaults",

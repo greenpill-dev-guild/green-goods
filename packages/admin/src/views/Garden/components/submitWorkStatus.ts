@@ -87,7 +87,7 @@ export function submitWorkSendStatus(input: {
         description: formatMessage({
           id: "app.admin.work.submit.failureMessage",
           defaultMessage:
-            "The work submission didn't go through. Check your wallet connection — you may need to reconnect — then try again.",
+            "The work submission didn't go through. Check your wallet connection (you may need to reconnect), then try again.",
         }),
       };
   }

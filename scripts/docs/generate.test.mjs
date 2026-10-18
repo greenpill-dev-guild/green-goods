@@ -629,7 +629,7 @@ test("personas page gives each persona a section, its journey, and the surfaces 
     }
   }
   // One that relies on a term people cannot use yet says so, and names no surface it does not have.
-  assert.match(rendered, /Name a community need[^|]*\*Planned, not built yet\.\* \| — \|/);
+  assert.match(rendered, /Name a community need[^|]*\*Planned, not built yet\.\* \| None \|/);
 });
 
 test("glossary leads with plain entries for the everyday terms and keeps every anchor people link to", () => {
