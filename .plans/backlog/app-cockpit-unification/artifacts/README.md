@@ -68,12 +68,18 @@ states, then the card primitives. Open it from this folder so it finds its image
   switch per type. Since version 13 every row card shares one row height (72px by default), one
   title line and one detail line; two title lines stay available per type. A detail that does not
   fit drops out whole, last first.
+- **The detail-line rules** (version 14) apply the five rules the maintainer agreed on 18 October
+  to every proposed card: each type's details in the spec's order, the status and at most two
+  details, nothing the card already shows, short ages and dates, and an action only on the row that
+  needs the reader, below the text. The most important detail stays beside the status pill and
+  shortens if it must. A Detail line switch shows the line as it was before the rules, and a table
+  counts the details each version drops or shortens, in all four text sets.
 - **The card tweaker** sits in a rail beside the census on a wide screen and folds into a panel at
   the bottom on a narrow one. Its live preview, pinned above the dials, draws the section in view or
   a chosen card type at the app's or the cockpit's density, with that type's title lines beside it.
-  Its dials set the status layout, the sample text, the row photo, the row height, the title and
-  detail sizes, whether rows without a photo show an icon, where "Confirming…" shows, light or dark
-  cards and which surface the object sheets show. Each object also has its own options and title lines beside its
+  Its dials set the status layout, the detail line, the sample text, the row photo, the row height,
+  the title and detail sizes, whether rows without a photo show an icon, where "Confirming…" shows,
+  light or dark cards and which surface the object sheets show. Each object also has its own options and title lines beside its
   Proposed heading. A dot marks the pick, or the recommendation where nothing is decided. Copy picks
   puts every choice on one line, starting `Census picks:`, with the same fallbacks as the lab. The
   census's own choices persist under `gg-card-census-v2`.

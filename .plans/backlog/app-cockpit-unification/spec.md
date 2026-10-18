@@ -194,6 +194,12 @@ pairs:
 | People | one count ("12 works") | The role (the chip) |
 | Jars, vaults and pools | limit · cooldown | Nothing; the amount stays on the right |
 
+The census applies the rules from version 14 and measures them: at the app's density in a 390px
+tile, the row cards drop or shorten 2 of 18 details in English and 5 of 18 in Portuguese, against
+6 of 24 and 11 of 24 before. Most of what remains is the jar rows, where the amount on the right
+leaves too little room for two details; whether jars keep one detail, or the amount moves into the
+line, is open.
+
 Open against the picks:
 
 - **F9 and the earlier preference: settled.** Earlier the same day the maintainer preferred the

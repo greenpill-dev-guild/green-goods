@@ -172,5 +172,29 @@ census to follow the lab's design system:
 - The published artifact, version 12: the served `census.html` matched the build byte for byte, and
   the main page's link opened it in the in-app browser with the lab's saved state applied.
 
+## Card census, detail-line rules
+
+Checked on 2026-10-18 after the maintainer asked for the agreed detail-line rules in the census
+(version 14, built on version 13):
+
+- In headless Chromium (Playwright) at 1440×900, 1180×820 and 390×844: no console error and no
+  horizontal overflow, and under the rules no row carries more than two details. Each type showed
+  its details in the spec's order, ages read "2 hr. ago", "hace 2 h" and "há 2 h", the app's
+  promise rows had no button, the cockpit's row that needs the reader showed Confirm below the text
+  while a confirming row showed no action, and Before reproduced version 13's line.
+- Details dropped or shortened on the row cards, at the app's density in a 390px tile:
+
+  | Detail line | English | Long English | Spanish | Portuguese |
+  |---|---|---|---|---|
+  | Before the rules | 6 of 24 | 6 of 24 | 9 of 24 | 11 of 24 |
+  | With the rules | 2 of 18 | 2 of 18 | 4 of 18 | 5 of 18 |
+
+  What remains is mostly the jar rows: the amount on the right leaves their detail line 150 to
+  200px, so they drop their second detail in every language and shorten their first in Spanish and
+  Portuguese. In Portuguese the "Precisa de você" pill also pushes out a promise's second detail,
+  the least important one, as rule 1 intends.
+- The published artifact, version 14: the served `census.html` matched the build byte for byte, and
+  the main page's link opened it in the in-app browser with the rules and the table in place.
+
 These are document and mock checks. No application code changed, so no implementation, usability or
 release evidence exists yet.
