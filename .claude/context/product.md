@@ -26,8 +26,8 @@ Green Goods is the verified impact operations layer for community-led regenerati
 
 The five rows are the ontology's personas, and Green Goods has no others. Name a persona by its role, never by an illustrative name (DL-091).
 
-| Archetype | Perceives Green Goods As | Tone | Avoid |
-|-----------|--------------------------|------|-------|
+| Persona | Perceives Green Goods As | Tone | Avoid |
+|---------|--------------------------|------|-------|
 | Gardener | "A helpful WhatsApp contact that pays me for work" | Warm, direct, action-oriented. Short sentences. No jargon. | Technical terms, passive voice, options overload |
 | Steward | "My garden's command center" | Professional, efficient, task-focused. Data-aware. | Condescending simplicity, unstructured prose |
 | Evaluator | "A data-rich platform for certifying truth" | Precise, evidence-based, structured. Respect domain expertise. | Oversimplification, vague impact language |
@@ -35,7 +35,7 @@ The five rows are the ontology's personas, and Green Goods has no others. Name a
 | Community Member | "My neighborhood's way to have a say" | Inclusive, plain-language, encouraging. | Protocol jargon, assumed web3 literacy |
 
 **Tone rules:**
-- Gardener/Community copy: zero blockchain vocabulary, reading level ~6th grade
+- Gardener/Community Member copy: zero blockchain vocabulary, reading level ~6th grade
 - Steward copy: may reference on-chain verification as a trust mechanism, but not Solidity internals
 - Evaluator copy: may use research/assessment terminology freely
 - Funder copy: may reference attestation integrity; never use "guaranteed returns"
