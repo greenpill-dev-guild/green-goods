@@ -18,6 +18,7 @@
 | 6 | Intake runs inside the Saturday run only. | Share volume does not yet justify a second cron. Confirmed as A4. |
 | 7 | Three candidate tracks enter the pending document for the 29 Oct boundary. | External impact integrations; supporter and diaspora funding; Capsula and Brazil. Confirmed as A5. |
 | 8 | Budgets: 12 classification fetches, 40 reactions, 10 thread replies, 20 thread reads per run; comments stay at 3. | Bounds a 23-link week inside the one-hour run. Confirmed as A6. |
+| 9 | v5.1: one intake thread per run replaces the thread per share; a sharer is mentioned only for a ❔ question, once per run; answers go in that thread; thread reads drop to four. | The first v5 run's ten threads and ten mentions were too loud (Afo, 2026-10-18). |
 
 ## Research / Plan Gate
 
@@ -37,6 +38,7 @@
 | R12 `research-agenda` skill | none (skill) | Step 3 | ✅ in the PR |
 | R14 to R16 growth and product pull | none (routine spec, README) | Step 2 | ✅ in the PR |
 | R17 to R21 caps, guardrails, failures, phase order, run budget | none (routine spec) | Step 2 | ✅ in the PR |
+| v5.1 intake thread (R1, R4 to R6, R8, R17, R18, R20 amended) | none (routine spec, hub, eval) | Step 8 | ✅ in the v5.1 PR |
 | Bot permissions, radar issue, duplicate trigger, pinned note | human | Step 4 | ⚠️ permissions proven by the 2026-10-18 run; radar issue and pinned note not found that day; the duplicate-trigger check is reported done by Afo but not verifiable from this account until a cron Saturday shows one digest |
 
 ## Sequencing
@@ -68,6 +70,10 @@
 7. **Follow-ups outside this repo**: the guild grant scout reads the agenda's settled facts and
    the latest research memo; `docs/teams/research.md` in `greenpill-dev-guild/.github` still says
    the Saturday synthesis is retired and carries merge-conflict markers.
+
+8. **v5.1 quiet intake** (`docs/routines/research-synthesis.md` Phases 1b, 4, 5, 5a, 5b, 6, the
+   guardrails and a migration note; hub R1, R2, R4 to R6, R8, R17, R18, R20, R21; AC-1, AC-2, AC-4,
+   AC-10): decided after the first live run, in its own PR to `develop` before the 2026-10-24 fire.
 
 Steps 1 to 3 can land in one PR or three; the routine only needs `develop` to carry all three
 before step 5.
