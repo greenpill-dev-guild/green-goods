@@ -46,8 +46,10 @@ loop closes in minutes instead of a memo read. The design lives in
    `unassigned` or `unset`, ask the user for it, or whether the question waits for a candidate
    track, before applying anything, and never file it under the agenda's own *Candidate
    questions* section, which holds only unconfirmed proposals.
-4. **Edition.** Bump the `**Edition:**` line to `v{n+1} · {today}` and prepend a change-log entry
-   that lists the applied edits in one sentence each with their evidence. One bump per run.
+4. **Edition.** When at least one agenda change was newly applied this run, bump the
+   `**Edition:**` line to `v{n+1} · {today}` and prepend a change-log entry that lists the applied
+   edits in one sentence each with their evidence. One bump per run, and none on a run that only
+   marks already-present edits applied, such as a retry after a failed document patch.
 5. **Write back** with `save_document` `patch`: move each applied line to *Applied* as
    `{edit} · applied {date} · edition v{n+1}` and touch nothing else. Report a failed patch and
    keep the agenda change; the routine reconciles the document on its next run.
@@ -61,14 +63,17 @@ Group the unticked lines by track with their evidence links and `runs` count, th
 questions, then the candidate tracks. Ask in numbered rounds, accept, defer or reject per line,
 with lines at four or more runs first under "decide or drop"; for each accepted candidate
 question, ask which track takes it, the next concrete step and who can answer it, and write the
-answers into the line's `track:`, `next:` and `who:` fields. Write
-the answers as `[x]` or deletions through `save_document` `patch`, then run `apply`. Close with the cycle theme as one
+answers into the line's `track:`, `next:` and `who:` fields. Write accepted answers as `[x]`, and move rejected lines into the document's *Rejected* section
+with the date and their evidence rather than deleting them, so the routine's tombstone rule holds,
+all through `save_document` `patch`; then run `apply`. Close with the cycle theme as one
 question; the user writes it, the skill records nothing for it.
 
 ## Candidates mode
 
-Append a track section built from this template, numbered after the last track, and remove the
-confirmed candidate from *Candidate tracks* in both the agenda and the document. The skill fills
+Append a track section built from this template, numbered after the last track, unless a section
+with that track name already exists, in which case the earlier promotion landed and the pending
+line is marked applied without touching the agenda; then remove the confirmed candidate from
+*Candidate tracks* in both the agenda and the document. The skill fills
 Anchors from the candidate's issues and hubs, by identifier only, and removes those identifiers
 from any other track's Anchors and from the watch-only list, so each anchor belongs to exactly one
 track; the user fills the rest before the edition bump.

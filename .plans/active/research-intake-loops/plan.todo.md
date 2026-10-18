@@ -57,7 +57,8 @@
    Dev Guild Research Synthesis routine is disabled (its trigger is not visible from this account)
    and avoid manual Friday fires; pin the "share with one line of why" note.
 5. **First live run**: the Saturday after steps 1 to 4 land. Read the memo, the run log, the channel, the pending-edits document and the radar comment;
-   record AC-1 to AC-9 and AC-11 in [eval.md](eval.md), and schedule the controlled run for AC-10.
+   record AC-1 to AC-9 and AC-11 in [eval.md](eval.md), AC-12 when a write failed, and schedule the
+   controlled run for AC-10.
 6. **Cycle ritual on 29 Oct**: check that the three seeded candidate tracks are in the pending-edits document, run the skill's
    `review`, confirm or reject
    each candidate, set the cycle theme.

@@ -36,7 +36,7 @@
 
 - Unit and integration: none; no package code changes.
 - E2E / Playwright: none.
-- Manual checks: AC-1 to AC-11 above, each labelled with where it was observed; AC-10 needs its own controlled run.
+- Manual checks: AC-1 to AC-12 above, each labelled with where it was observed; AC-10 needs its own controlled run and AC-12 is recorded when a write fails.
 - TDD proof: `not_applicable` for every lane, recorded in `status.json` when the hub promotes.
 
 ## QA Sequence

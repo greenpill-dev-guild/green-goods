@@ -84,7 +84,8 @@ Reverse any of these in review; each is a one-line change to the spec.
 - A5. Three candidate tracks enter the pending document for the 29 Oct cycle boundary: external
   impact integrations; supporter and diaspora funding; Capsula and Brazil.
 - A6. Budgets per run: twelve classification fetches and ten thread replies, oldest first;
-  reactions unbounded inside a fourteen-day lookback for unhandled shares; comments stay at three.
+  reactions capped at forty per run (set in review round 4; the brief first said unbounded) inside a
+  fourteen-day lookback for unhandled shares; comments stay at three.
 
 ## Open questions
 

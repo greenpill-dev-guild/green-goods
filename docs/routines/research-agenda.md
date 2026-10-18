@@ -27,7 +27,7 @@ Each track carries the same fields. The routine reads them literally, so keep th
 - **Implementable when** — the bar at which research is done and the work graduates to Product, as a numbered list of bars. The routine counts the bars met and asks for the graduation decision when all of them are.
 - **Watch keywords** — how the routine classifies a Discord share or a call-note passage onto this track.
 
-Two sections after the tracks, *Candidate tracks* and *Candidate questions*, hold what the routine proposes and the panel has not yet confirmed.
+Two sections after the tracks, *Candidate tracks* and *Candidate questions*, hold only entries the panel has confirmed; proposals wait in the pending-edits document.
 
 ## The agenda at a glance
 
