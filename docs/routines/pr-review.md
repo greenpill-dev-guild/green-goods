@@ -18,7 +18,7 @@ env-vars:
 connectors:
   - vercel
   - linear  # OAuth connector only, no key — the primary posting surface
-model: claude-opus-5
+model: claude-opus-5  # unverified: no readable trigger for this routine on 2026-10-17
 ---
 
 # Prompt

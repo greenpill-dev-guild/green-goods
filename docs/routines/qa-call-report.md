@@ -20,7 +20,7 @@ connectors:
   - posthog       # window-scoped enrichment: the testers' own product sessions during the call
   - vercel        # build under test: which deploys were live during the session window
   - sentry        # when available — resolves projects by name through the connector, no env vars; absent = skip silently
-model: claude-opus-5
+model: claude-opus-5-5
 allow-unrestricted-branch-pushes: false  # Linear + Discord only; no PRs, no Sheet writes, no GitHub Issues
 last_updated: "2026-10-17"
 ---

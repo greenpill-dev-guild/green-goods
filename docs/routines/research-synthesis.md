@@ -14,7 +14,7 @@ env-vars:
 connectors:
   - google-drive   # call notes (Gemini) + memo continuity + linked docs
   - linear         # OAuth connector only, no API key (guild rule 2026-07-04)
-model: claude-fable-5  # cross-track connection-finding and literature verification are genuine-ambiguity work; weekly cadence keeps the cost small
+model: claude-fable-5-1  # cross-track connection-finding and literature verification are genuine-ambiguity work; weekly cadence keeps the cost small
 allow-unrestricted-branch-pushes: false  # synthesis routine, no PRs
 status: active  # v4 (2026-09-02). Supersedes the guild-level research-synthesis v3 (greenpill-dev-guild/.github routines/claude/research-synthesis.md). Trigger trig_01Wkc4tG6XTgRkw7R23Kc57a ("Green Goods Research Synthesis") was created on 2026-09-02 pointing at this file; the old guild trigger trig_01AVZbVmfUjHcVLbKzsurhyb is to be disabled in the routines UI. See § Migration for the two UI edits the new trigger still needs.
 ---
@@ -283,7 +283,7 @@ Decided on 2026-09-02 by the steward: the guild-level research synthesis is reti
 
 **Still needed in the routines UI, before Saturday 2026-09-05 00:00 UTC.**
 
-1. On **Green Goods Research Synthesis**: set the model to **`claude-fable-5`** (the API left it on the platform default; a routine left there silently runs the wrong tier). The Google Drive and Linear connectors were attached in the UI on 2026-09-02 (PostHog and Miro are attached too and unused). Bash, Read, Glob, Grep, and WebFetch are already allowed, so the clone, the outside pass, and the Discord REST calls can run. Optionally add `greenpill-dev-guild/green-goods` as a source to skip the clone.
+1. On **Green Goods Research Synthesis**: set the model to **`claude-fable-5`** (the API left it on the platform default; a routine left there silently runs the wrong tier). The Google Drive and Linear connectors were attached in the UI on 2026-09-02 (PostHog and Miro are attached too and unused). Bash, Read, Glob, Grep, and WebFetch are already allowed, so the clone, the outside pass, and the Discord REST calls can run. Optionally add `greenpill-dev-guild/green-goods` as a source to skip the clone. **Model set:** the trigger runs `claude-fable-5-1` (checked 2026-10-17).
 2. **Disable** **Dev Guild Research Synthesis**. Until it is disabled, both routines fire on Saturday and `#research` gets a v3 digest and a v4 digest.
 3. Re-authorize the Linear connector; the 2026-08-29 run failed closed on an expired authorization.
 4. Merge this spec and `research-agenda.md` to `develop`; the pointer clones the default branch, and without them the first run fails closed with a one-line post rather than improvising.
