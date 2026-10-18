@@ -438,6 +438,48 @@ dialog.zoom .zimg { padding: 16px; background: #FFFFFF; overflow: auto; }
 dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height: auto; }
 .foot-note { margin-top: 40px; font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 14px; }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } .pv.flash { animation: none; } }
+
+/* ===== One row for every card type: a set height, a centred lead slot, one title line and one
+   detail line. Status lives in the pill, never on a line of its own. (Row height, Title size,
+   Detail size, Icons and Confirming in the dock.) ===== */
+.spec { --rowh: 72px; --leadsz: 48px; --s-kick: 11px; --s-sub-fs: 13px; }
+.spec.rh-88 { --rowh: 88px; --leadsz: 56px; }
+.spec.rh-64 { --rowh: 64px; --leadsz: 40px; }
+.spec.rh-64 .ir:not(.compact) .body { padding-block: 6px; gap: 2px; }
+.spec .ir:not(.compact) { height: var(--rowh); min-height: 0; align-items: center; }
+/* Status under or above the title costs a line by design, and two title lines are opt-in, so those rows grow from the set height. */
+.spec.stl-under .ir:not(.compact), .spec.stl-above .ir:not(.compact), .spec .ir:not(.compact):has(.title.l2) { height: auto; min-height: var(--rowh); }
+.spec .ir .lead.photo { align-self: stretch; }
+.spec .ir .lead.thumb, .spec .ir .lead.tile, .spec .ir .lead.av { width: var(--leadsz); height: var(--leadsz); margin: 0 0 0 12px; align-self: center; }
+.spec .ir .lead.tile { font-size: calc(var(--leadsz) * 0.46); }
+.spec .ir .lead.av { font-size: calc(var(--leadsz) * 0.3); }
+.spec.icons-hide .ir .lead.tile { display: none; }
+/* The detail line stays one line. Details that don't fit wrap onto a second line that the clamp
+   hides, so a narrow row drops its last details whole (separator included) instead of cutting them. */
+.spec .ir:not(.compact) .meta { max-height: 22px; }
+.spec .ir:not(.compact) .meta .mrow { row-gap: 12px; }
+/* A single detail too long for the row on its own ends in an ellipsis. */
+.spec .ir:not(.compact) .meta .mi { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* A person with no name: a generated avatar, and the short address in a quiet monospace. */
+.spec .ir .lead.av.gen { background: linear-gradient(135deg, var(--g1), var(--g2)); }
+.spec .title.addr { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: calc(var(--s-title) - 1.5px); font-weight: 500; color: var(--s-sub); letter-spacing: 0; }
+.spec .addr { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.94em; color: var(--s-sub); letter-spacing: 0; }
+/* Title size: the cockpit keeps 14px until a pick takes both surfaces down. */
+.spec.app.ts-15 { --s-title: 15px; }
+.spec.ts-14 { --s-title: 14px; }
+.spec.ts-13 { --s-title: 13px; }
+/* Details and labels. */
+.spec.ms-11_5 { --s-meta: 11.5px; --s-kick: 10.5px; --s-sub-fs: 12.5px; }
+.spec.ms-11 { --s-meta: 11px; --s-kick: 10px; --s-sub-fs: 12px; }
+.spec.app.ms-11_5 { --s-pill: 11.5px; }
+.spec.app.ms-11 { --s-pill: 11px; }
+.spec .kick { font-size: var(--s-kick); }
+.spec .mc .sub { font-size: var(--s-sub-fs); }
+.spec.ms-11_5 .fl .k, .spec.ms-11 .fl .k { font-size: var(--s-meta); }
+/* The wide desktop card gets a narrower photo, leaving more room for its text. Below 761px it stacks. */
+@media (min-width: 761px) {
+  .spec .mc.wide .media { width: 144px; min-height: 120px; }
+}
 </style>
 </head>
 <body>
@@ -466,7 +508,8 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
       <h3>What you can test</h3>
       <ul>
         <li>Four places for the status pill, side by side.</li>
-        <li>One or two title lines for each card type.</li>
+        <li>One row height, title size and detail size for every card type, with one title line by default (two stay available per type).</li>
+        <li>Where a pending confirmation shows, and rows with their icons hidden.</li>
         <li>Long, Spanish and Portuguese titles, to see where text runs out.</li>
       </ul>
     </div>
@@ -510,7 +553,7 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
 
   <section class="obj" id="types">
     <div class="obj-h"><h2>Every card type</h2><div class="octl" id="typeCtl"></div></div>
-    <p>Every card type built from the four shapes, with your current settings, one phone wide. Set how many lines each title may take: two lines suit a title that describes what someone did or promised; one line suits a name. A title that runs out ends in an ellipsis and shows in full when you point at it.</p>
+    <p>Every card type built from the four shapes, with your current settings, one phone wide. Titles take one line, so every row keeps the same height; a title that runs out ends in an ellipsis and shows in full when you point at it. Two lines stay available for each type. A detail that doesn't fit drops out whole, last first.</p>
     <div class="types" id="typeGrid"></div>
   </section>
 
@@ -681,7 +724,7 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
     offer: L("Offer", "Oferta", "Oferta"), request: L("Request", "Petición", "Pedido"), dueFri: L("due Fri 24 Oct", "vence vie 24 oct", "vence sex 24 out"), taken: L("4 of 10 taken", "4 de 10 tomadas", "4 de 10 assumidas"),
     keptOn: L("kept 12 Oct", "cumplido el 12 oct", "cumprido em 12 out"), dueNov: L("due 2 Nov", "vence 2 nov", "vence 2 nov"),
     confirm: L("Confirm", "Confirmar", "Confirmar"), openBtn: L("Open", "Abrir", "Abrir"),
-    phase: L("Confirming on Arbitrum One…", "Confirmando en Arbitrum One…", "A confirmar na Arbitrum One…"), queue: L("Saved on this phone, not sent", "Guardado en este teléfono, sin enviar", "Salvo neste telefone, não enviado"),
+    phase: L("Confirming…", "Confirmando…", "A confirmar…"), queueShort: L("Not sent", "Sin enviar", "Não enviado"), queue: L("Saved on this phone, not sent", "Guardado en este teléfono, sin enviar", "Salvo neste telefone, não enviado"),
     assessment: L("Assessment", "Evaluación", "Avaliação"), hypercert: L("Hypercert", "Hypercert", "Hypercert"),
     gardener: L("Gardener", "Jardinero", "Jardineiro"), steward: L("Steward", "Responsable", "Responsável"), funder: L("Funder", "Financiador", "Financiador"),
     claim: L("Claim", "Retirar", "Sacar"), deposit: L("Deposit", "Depositar", "Depositar")
@@ -810,7 +853,8 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
   }
   function specOpen(surface, obj, extra, stl, isDesk) {
     var sy = sys(surface, obj, isDesk);
-    return '<div class="spec ' + surface + " " + sy.cls + " stl-" + (stl || state.stl) + (extra ? " " + extra : "") + '" style="' + sy.style.replace(/"/g, "'") + '">';
+    var tw = " rh-" + state.rowh + " ts-" + state.tsize + " ms-" + String(state.msize).replace(".", "_") + " icons-" + state.icons + " cf-" + state.confirm;
+    return '<div class="spec ' + surface + " " + sy.cls + " stl-" + (stl || state.stl) + tw + (extra ? " " + extra : "") + '" style="' + sy.style.replace(/"/g, "'") + '">';
   }
   // A group of one object inside a mixed specimen keeps that object's workspace tone.
   function grp(surface, obj, html) { return '<div class="grp" style="' + toneStyle(surface, obj) + '">' + html + "</div>"; }
@@ -818,11 +862,19 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
   /* ---------- the four shapes ---------- */
   function tx(o) { if (typeof o === "string") return o; return o[state.lang] || o.en; }
   function pill(st, place) { return st ? '<span class="pill ' + st[0] + " pl-" + place + '"><span class="pt">' + esc(tx(st[1])) + "</span></span>" : ""; }
-  function titleHtml(text, lines) { var t = tx(text); return '<div class="title l' + (lines || "2") + '" title="' + esc(t) + '">' + esc(t) + "</div>"; }
+  // A short wallet address (0x1a2b…9f3e) reads as an ID, not a name, so it gets the quiet monospace.
+  function isAddr(t) { return /^0x[0-9a-fA-F]{2,}/.test(t); }
+  function titleHtml(text, lines, addr) { var t = tx(text); return '<div class="title l' + (lines || "2") + (addr || isAddr(t) ? " addr" : "") + '" title="' + esc(t) + '">' + esc(t) + "</div>"; }
   function metaHtml(parts, st) {
     return '<div class="meta"><div class="mrow">' + pill(st, "details") + parts.filter(Boolean).map(function (p) {
-      return p.soft ? '<span class="mi soft">' + esc(tx(p.soft)) + "</span>" : '<span class="mi">' + esc(tx(p)) + "</span>";
+      var t = tx(p.soft || p), cls = "mi" + (p.soft ? " soft" : "") + (isAddr(t) ? " addr" : "");
+      return '<span class="' + cls + '">' + esc(t) + "</span>";
     }).join("") + "</div></div>";
+  }
+  // A generated avatar for a person with no name: two hues taken from the address.
+  function genAv(seed) {
+    var h = 0; for (var i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) % 360;
+    return '<div class="lead av gen" style="--g1:hsl(' + h + ' 55% 72%);--g2:hsl(' + ((h + 70) % 360) + ' 48% 50%)" aria-hidden="true"></div>';
   }
   // The small line above a title: the item's kind, and in layout E its status.
   function kicker(kind, st) {
@@ -835,19 +887,28 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
     if (o.lead === "photo") { photo = true; lead = '<div class="lead photo" style="--ph:' + PH[o.dom] + '"><span class="ic">' + ic(DOM_IC[o.dom] || "sprout") + "</span>" + pill(o.status, "photo") + "</div>"; }
     else if (o.lead === "thumb") lead = '<div class="lead thumb" style="--ph:' + PH[o.dom] + '"></div>';
     else if (o.lead === "tile") lead = '<div class="lead tile">' + ic(o.icon) + "</div>";
-    else if (o.lead === "av") lead = '<div class="lead av">' + esc(o.initials) + "</div>";
+    else if (o.lead === "av") lead = o.addr ? genAv(tx(o.title)) : '<div class="lead av">' + esc(o.initials) + "</div>";
     var trail = "";
     if (o.trail === "chev") trail = '<div class="trail">' + ic("chev") + "</div>";
     else if (o.trail === "btn") trail = '<div class="trail"><span class="btn' + (o.btnSec ? " sec" : "") + '">' + esc(tx(o.btn)) + "</span></div>";
     else if (o.trail === "amt") trail = '<div class="trail"><div class="amt">' + esc(o.amt[0]) + "<small>" + esc(tx(o.amt[1])) + "</small></div></div>";
     else if (o.trail === "chip") trail = '<div class="trail"><span class="chip">' + esc(tx(o.chip)) + "</span></div>";
+    // One title line and one detail line: the item's kind leads the details instead of sitting
+    // on a line above the title, and a pending state (confirming, or a promise still on the phone)
+    // goes where the Confirming dial puts it, never on a line of its own.
+    var st = o.status, meta = (o.meta || []).slice();
+    if (o.eyebrow) meta.unshift(o.eyebrow);
+    if (o.extra) {
+      var pend = o.extra[0] === "phase" ? W.phase : W.queueShort;
+      if (state.confirm === "pill") st = [o.extra[0] === "phase" ? "info" : "warn", pend];
+      else if (state.confirm === "detail") meta = meta.filter(function (p) { return !p.soft; }).concat([pend]);
+    }
     var body;
-    if (o.compact) body = '<div class="body">' + titleHtml(o.title, "1") + metaHtml(o.meta) + "</div>";
-    else body = '<div class="body">' + kicker(o.eyebrow, o.status) +
-      '<div class="top">' + titleHtml(o.title, o.lines) + pill(o.status, "corner") + "</div>" +
-      (o.status ? '<div class="pl-row">' + pill(o.status, "under") + "</div>" : "") + metaHtml(o.meta, o.status) +
-      (o.extra ? '<div class="extra ' + o.extra[0] + '">' + ic(o.extra[0] === "phase" ? "clock" : "phone") + "<span>" + esc(tx(o.extra[1])) + "</span></div>" : "") + "</div>";
-    var cls = "sc row ir" + (o.compact ? " compact" : "") + (photo ? " has-photo" : "") + (o.status ? " has-edge e-" + o.status[0] : "") + (o.selected ? " selected" : "");
+    if (o.compact) body = '<div class="body">' + titleHtml(o.title, "1", o.addr) + metaHtml(o.meta) + "</div>";
+    else body = '<div class="body">' + kicker(null, st) +
+      '<div class="top">' + titleHtml(o.title, o.lines, o.addr) + pill(st, "corner") + "</div>" +
+      (st ? '<div class="pl-row">' + pill(st, "under") + "</div>" : "") + metaHtml(meta, st) + "</div>";
+    var cls = "sc row ir" + (o.compact ? " compact" : "") + (photo ? " has-photo" : "") + (st ? " has-edge e-" + st[0] : "") + (o.selected ? " selected" : "");
     return '<div class="' + cls + '"><span class="tick">' + ic("check") + "</span>" + lead + body + trail + "</div>";
   }
   function mediaCard(o) {
@@ -858,7 +919,7 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
     if (o.count) media += '<span class="mcount">' + esc(o.count) + "</span>";
     media += pill(o.status, "photo") + "</div>";
     var foot = "";
-    if (o.foot || o.status) foot = '<div class="mfoot"><span class="ml">' + pill(o.status, "details") + (o.foot ? "<span>" + esc(tx(o.foot[0])) + "</span>" : "") + "</span>" + (o.foot && o.foot[1] ? '<span class="soft">' + esc(tx(o.foot[1])) + "</span>" : "") + "</div>";
+    if (o.foot || o.status) foot = '<div class="mfoot"><span class="ml">' + pill(o.status, "details") + (o.foot ? "<span" + (isAddr(tx(o.foot[0])) ? ' class="addr"' : "") + ">" + esc(tx(o.foot[0])) + "</span>" : "") + "</span>" + (o.foot && o.foot[1] ? '<span class="soft">' + esc(tx(o.foot[1])) + "</span>" : "") + "</div>";
     var body = '<div class="body">' + kicker(null, o.status) + '<div class="top">' + titleHtml(o.title, o.lines) + pill(o.status, "corner") + "</div>" +
       (o.status ? '<div class="pl-row">' + pill(o.status, "under") + "</div>" : "") +
       (o.sub ? '<div class="sub">' + esc(tx(o.sub)) + "</div>" : "") + foot +
@@ -946,7 +1007,7 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
     var sy = sys(s, "people"), lines = state.lines.people;
     var p = [{ i: "MA", meta: [W.gardener, { soft: L("12 works", "12 trabajos", "12 trabalhos") }], chip: W.gardener }, { i: "CH", meta: [W.steward, { soft: "Botanic Commons" }], chip: W.steward }, { i: "0x", meta: [W.funder, { soft: "40 DAI" }], chip: W.funder }];
     return list(p.slice(0, opt.count || 3).map(function (x, i) {
-      return itemRow({ lead: "av", initials: x.i, title: TITLES.people[i], lines: lines, meta: x.meta, compact: o.shape === "compact", trail: o.shape === "compact" ? null : "chip", chip: x.chip });
+      return itemRow({ lead: "av", initials: x.i, addr: x.i === "0x", title: TITLES.people[i], lines: lines, meta: x.meta, compact: o.shape === "compact", trail: o.shape === "compact" ? null : "chip", chip: x.chip });
     }).join(""), sy, true);
   };
   R.jars = function (s, o, opt) {
@@ -983,6 +1044,11 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
     { key: "stl", label: "Status", opts: [["details", "With details", STL[3][2]], ["corner", "Corner", STL[0][2]], ["under", "Under title", STL[1][2]], ["photo", "On photo", STL[2][2]], ["above", "Above title", STL[4][2]]] },
     { key: "lang", label: "Text", opts: [["en", "English", "Typical English titles."], ["long", "Long", "Long English titles, to see where the clamp starts."], ["es", "Español", "Spanish titles and the product's Spanish status words."], ["pt", "Português", "Portuguese titles and the product's Portuguese status words."]] },
     { key: "media", label: "Row photo", opts: [["88", "88px", "The app's 88px photo, as it ships."], ["72", "72px", "A smaller photo, so more rows fit."], ["56", "56px", "A thumbnail."]] },
+    { key: "rowh", label: "Row height", opts: [["72", "72px", "Every row card is 72px tall: a 48px lead, one title line and one detail line."], ["88", "88px", "Every row card is 88px tall, as the app's photo row is today: a 56px lead and more air."], ["64", "64px", "Every row card is 64px tall: a 40px lead, the densest list."]] },
+    { key: "tsize", label: "Title size", opts: [["base", "16 / 14", "Today: 16px titles in the app, 14px in the cockpit."], ["15", "15 / 14", "App titles a step smaller; the cockpit keeps 14px."], ["14", "14 / 14", "14px titles on both surfaces."], ["13", "13 / 13", "13px titles on both surfaces, for the longest titles."]] },
+    { key: "msize", label: "Detail size", opts: [["12", "12px", "Today: 12px details and labels."], ["11.5", "11.5px", "Details and labels half a step smaller."], ["11", "11px", "11px details and labels."]] },
+    { key: "icons", label: "Icons", opts: [["show", "Show", "Rows without a photo lead with a centred icon tile."], ["hide", "Hide", "Rows without a photo start with the title. People keep their avatar."]] },
+    { key: "confirm", label: "Confirming", opts: [["pill", "In the pill", "While it settles, the status pill reads Confirming… (or Not sent for a promise still on the phone). The row keeps its height."], ["detail", "In the details", "The detail line reads Confirming… (or Not sent) in place of the date until it settles."], ["none", "Hidden", "The row keeps its usual status; nothing mentions confirming."]] },
     { key: "theme", label: "Cards", opts: [["light", "Light", "The cards in the light theme."], ["dark", "Dark", "The cards in the dark theme, with your F13 dark card."]] },
     { key: "show", label: "Object sheets", opts: [["both", "Both", "The app and the cockpit side by side in each object's sheet."], ["app", "App", "Only the app in each object's sheet."], ["cockpit", "Cockpit", "Only the cockpit in each object's sheet."]] }
   ];
@@ -990,7 +1056,7 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
   var TYPES = ["work", "commitments", "actions", "records", "gardens", "people", "jars", "facts", "states"];
   var NAMES = { work: "Work", commitments: "Commitments", actions: "Actions", records: "Assessments and hypercerts", gardens: "Gardens", people: "People", jars: "Jars, vaults and pools", facts: "Facts", states: "Empty and error states" };
   var LINE_TYPES = ["work", "commitments", "actions", "records", "gardens", "people", "jars"];
-  var LINES_DEF = { work: "2", commitments: "2", actions: "2", records: "2", gardens: "1", people: "1", jars: "1" };
+  var LINES_DEF = { work: "1", commitments: "1", actions: "1", records: "1", gardens: "1", people: "1", jars: "1" };
   var OBJ = {
     commitments: [{ key: "shape", label: "Shape", opts: [["row", "Item row", "A row with a direction icon or avatar, the status and one action."], ["media", "Media card", "A card with a banner."]] },
                   { key: "lead", label: "Lead", opts: [["icon", "Icon", "The row starts with the offer or request icon."], ["avatar", "Avatar", "The row starts with the other person's initials."]] }],
@@ -1006,7 +1072,7 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
              { key: "mark", label: "Mark", opts: [["tile", "Icon tile", "A round icon tile above the title."], ["none", "None", "Text and the action only."]] }]
   };
   function defaults() {
-    var d = { pv: "app", pvType: "follow", tdens: "app", cdens: "app", lines: Object.assign({}, LINES_DEF) };
+    var d = { v: 3, pv: "app", pvType: "follow", tdens: "app", cdens: "app", lines: Object.assign({}, LINES_DEF) };
     DIALS.forEach(function (c) { d[c.key] = c.opts[0][0]; });
     Object.keys(OBJ).forEach(function (k) { d[k] = {}; OBJ[k].forEach(function (c) { d[k][c.key] = c.opts[0][0]; }); });
     return d;
@@ -1017,7 +1083,8 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
     if (saved && typeof saved === "object") {
       DIALS.forEach(function (c) { if (c.opts.some(function (o) { return o[0] === saved[c.key]; })) state[c.key] = saved[c.key]; });
       Object.keys(OBJ).forEach(function (k) { if (saved[k]) OBJ[k].forEach(function (c) { var v = saved[k][c.key]; if (c.opts.some(function (o) { return o[0] === v; })) state[k][c.key] = v; }); });
-      if (saved.lines) LINE_TYPES.forEach(function (t) { if (saved.lines[t] === "1" || saved.lines[t] === "2") state.lines[t] = saved.lines[t]; });
+      // Title lines saved before one line became the default are not restored.
+      if (saved.lines && saved.v === 3) LINE_TYPES.forEach(function (t) { if (saved.lines[t] === "1" || saved.lines[t] === "2") state.lines[t] = saved.lines[t]; });
       ["pv", "tdens", "cdens"].forEach(function (k) { if (saved[k] === "app" || saved[k] === "cockpit") state[k] = saved[k]; });
       if (saved.pvType === "follow" || TYPES.indexOf(saved.pvType) > -1) state.pvType = saved.pvType;
     }
@@ -1199,6 +1266,7 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
 
   function picksLine() {
     var parts = ["Status " + STL.filter(function (l) { return l[0] === state.stl; })[0][1].replace(/^[A-D] · /, ""), "Row photo " + state.media + "px"];
+    parts.push("Row height " + state.rowh + "px", "Title size " + optName(dial("tsize"), state.tsize), "Detail size " + state.msize + "px", "Icons " + optName(dial("icons"), state.icons), "Confirming " + optName(dial("confirm"), state.confirm));
     parts.push("Title lines: " + LINE_TYPES.map(function (t) { return NAMES[t].toLowerCase() + " " + state.lines[t]; }).join(", "));
     Object.keys(OBJ).forEach(function (k) { parts.push(NAMES[k] + ": " + OBJ[k].map(function (c) { return c.label.toLowerCase() + " " + optName(c, state[k][c.key]); }).join(", ")); });
     parts.push("Design system: " + SYSC.map(function (c) { return c.label + " " + optName(c, lab[c.key]); }).join(", "));
