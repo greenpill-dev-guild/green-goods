@@ -148,6 +148,10 @@
     {
       "date": "2026-10-18",
       "event": "Brief and spec accepted by Afo; moved to active; agenda v5, routine spec v5, README rows and the research-agenda skill implemented in a PR to develop. All lanes n/a (docs and skill work)."
+    },
+    {
+      "date": "2026-10-18",
+      "event": "First v5 run (manual fire after #1118, session cse_01FxS38gAW8fcbaEvHJ5Jbpb) reviewed: AC-1, AC-3, AC-5, AC-6, AC-7 (creation), AC-9 (absence branch) and AC-11 pass; AC-12 not exercised; AC-2, AC-4 wait for the 2026-10-24 run; AC-8 and AC-10 pending. Radar issue and pinned note not found; two spec findings (digest length, memo section 11) recorded in reports/2026-10-18-first-v5-run.md."
     }
   ]
 }

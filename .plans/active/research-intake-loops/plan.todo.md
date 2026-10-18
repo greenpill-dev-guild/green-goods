@@ -2,7 +2,7 @@
 
 **Feature Slug**: `research-intake-loops`
 **Stage**: `active`
-**Status**: `ACTIVE — steps 1 to 3 implemented in the PR to develop; step 4 is Afo's; steps 5 to 7 follow the first live run`
+**Status**: `ACTIVE — steps 1 to 3 merged in #1118; step 5 recorded on 2026-10-18 from the first v5 run; step 4's radar issue and pinned note still open; steps 6 and 7 follow`
 **Created**: `2026-10-18`
 **Last Updated**: `2026-10-18`
 
@@ -37,7 +37,7 @@
 | R12 `research-agenda` skill | none (skill) | Step 3 | ✅ in the PR |
 | R14 to R16 growth and product pull | none (routine spec, README) | Step 2 | ✅ in the PR |
 | R17 to R21 caps, guardrails, failures, phase order, run budget | none (routine spec) | Step 2 | ✅ in the PR |
-| Bot permissions, radar issue, duplicate trigger, pinned note | human | Step 4 | ⏳ |
+| Bot permissions, radar issue, duplicate trigger, pinned note | human | Step 4 | ⚠️ permissions proven by the 2026-10-18 run; radar issue and pinned note not found that day |
 
 ## Sequencing
 
@@ -58,7 +58,10 @@
    and avoid manual Friday fires; pin the "share with one line of why" note.
 5. **First live run**: the Saturday after steps 1 to 4 land. Read the memo, the run log, the channel, the pending-edits document and the radar comment;
    record AC-1 to AC-9 and AC-11 in [eval.md](eval.md), AC-12 when a write failed, and schedule the
-   controlled run for AC-10.
+   controlled run for AC-10. Done 2026-10-18 on a manual fire after #1118 merged:
+   [reports/2026-10-18-first-v5-run.md](reports/2026-10-18-first-v5-run.md); AC-2, AC-4 and the
+   carry-forward half of AC-7 wait for the 2026-10-24 run; the AC-8 dry run and the AC-10 controlled
+   run are still to schedule.
 6. **Cycle ritual on 29 Oct**: check that the three seeded candidate tracks are in the pending-edits document, run the skill's
    `review`, confirm or reject
    each candidate, set the cycle theme.
