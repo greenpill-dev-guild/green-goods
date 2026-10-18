@@ -170,11 +170,15 @@ function claimNext(
   });
 }
 
-/** Sends due replies in commit order, one conversation at a time. Holds while messages are paused. */
+/**
+ * Sends due replies in commit order, one conversation at a time. Holds while messages are paused.
+ * Once `stopping` is aborted it finishes the send in hand and claims no other reply.
+ */
 export async function dispatchOutbox(
   core: ReportingCore,
   transport: OutboundTransport,
-  limit = 50
+  limit = 50,
+  stopping?: AbortSignal
 ): Promise<{ sent: number; held: boolean }> {
   if (!readControl(core, "outbound_messages").enabled) return { sent: 0, held: true };
   const conversations = core.db
@@ -186,6 +190,7 @@ export async function dispatchOutbox(
   let sent = 0;
   for (const { conversation_id: conversationId } of conversations) {
     for (;;) {
+      if (stopping?.aborted) return { sent, held: false };
       const claim = claimNext(core, conversationId);
       if (!claim) break;
       const chat = decryptConversationChat(core, conversationId);

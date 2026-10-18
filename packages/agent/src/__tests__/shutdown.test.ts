@@ -79,6 +79,36 @@ describe("shutdown handler", () => {
     expect(deps.exit).toHaveBeenCalledWith(1);
   });
 
+  it("quiesces background work before closing the server or running any cleanup", async () => {
+    const order: string[] = [];
+    const deps = createDeps({
+      quiesce: [
+        () => {
+          order.push("quiesce reporting");
+          throw new Error("timer already cleared");
+        },
+        () => order.push("quiesce other"),
+      ],
+      server: {
+        close: vi.fn(async () => {
+          order.push("server.close");
+        }),
+      },
+      cleanupTasks: [() => void order.push("cleanup")],
+    });
+    const shutdown = createShutdownHandler(deps);
+
+    await shutdown("SIGTERM");
+
+    // A step that throws is logged and the rest of shutdown still runs.
+    expect(order).toEqual(["quiesce reporting", "quiesce other", "server.close", "cleanup"]);
+    expect(deps.logger.error).toHaveBeenCalledWith(
+      expect.objectContaining({ cleanup: "quiesce[0]", signal: "SIGTERM" }),
+      "Shutdown cleanup failed"
+    );
+    expect(deps.exit).toHaveBeenCalledWith(0);
+  });
+
   it("runs shutdown only once", async () => {
     let resolveClose: (() => void) | undefined;
     const closePromise = new Promise<void>((resolve) => {

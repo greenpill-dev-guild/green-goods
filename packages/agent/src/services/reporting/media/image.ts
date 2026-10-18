@@ -5,7 +5,10 @@ import sharp from "sharp";
  * resized within a fixed edge, flattened and re-encoded as JPEG. Sharp writes no metadata unless
  * asked, so EXIF location, device and author fields never reach a model, the browser or IPFS.
  */
-const LIMITS = { maxInputPixels: 40_000_000, maxEdge: 2_048, quality: 85 };
+/** No sanitized photo is wider or taller than this, which bounds what reading it can cost. */
+export const MAX_IMAGE_EDGE = 2_048;
+
+const LIMITS = { maxInputPixels: 40_000_000, maxEdge: MAX_IMAGE_EDGE, quality: 85 };
 
 // One expensive decode at a time per worker.
 sharp.concurrency(1);

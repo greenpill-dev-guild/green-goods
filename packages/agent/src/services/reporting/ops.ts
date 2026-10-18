@@ -1,13 +1,16 @@
 import { CONTROL_NAMES, readControl } from "./controls";
+import { type ModelSpend, modelSpend } from "./model-spend";
 import type { ReportingCore } from "./runtime";
 
 /**
  * Operator view of the reporting queues: counts and states only, never message content, subjects
  * or account addresses. It shows what is waiting, what is quarantined, what needs investigation
- * (failed jobs, reconciliation conflicts, uncertain attempts) and the operating switches.
+ * (failed jobs, reconciliation conflicts, uncertain attempts), the operating switches and the
+ * day's model spend against its cap.
  */
 export interface OperatorSnapshot {
   controls: Record<string, { enabled: boolean; version: number }>;
+  modelSpend: ModelSpend;
   inbox: Record<string, number>;
   jobs: Record<string, number>;
   failedJobs: Array<{ id: string; kind: string; errorCode: string | null; attempts: number }>;
@@ -26,6 +29,7 @@ export function operatorSnapshot(core: ReportingCore): OperatorSnapshot {
   const controls = Object.fromEntries(CONTROL_NAMES.map((name) => [name, readControl(core, name)]));
   return {
     controls,
+    modelSpend: modelSpend(core),
     inbox: countBy(core, "SELECT state AS key, count(*) AS n FROM inbox_events GROUP BY state"),
     jobs: countBy(
       core,

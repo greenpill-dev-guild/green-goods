@@ -63,9 +63,11 @@ export function createLiveReportingRuntime(input: {
   const interpreter = createModelInterpreter({
     route:
       interpretation.provider === "jev"
-        ? (request, signal) => routeWithJev(interpretation, request, signal)
+        ? (request, signal, meter) => routeWithJev(interpretation, request, signal, meter)
         : null,
-    extract: openai ? (request, signal) => extractWithOpenAI(openai, request, signal) : null,
+    extract: openai
+      ? (request, signal, meter) => extractWithOpenAI(openai, request, signal, meter)
+      : null,
   });
   return createReportingRuntime({
     config,
