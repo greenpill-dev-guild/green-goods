@@ -1,7 +1,8 @@
 # One Look for the App and the Cockpit — Specification
 
 **Status:** research and design proposal. On 18 October the maintainer locked the picks for the
-thirteen forks, the workspace tone and the cards. No implementation has started.
+thirteen forks, the workspace tone and the cards, and then the three questions still open. No
+implementation has started.
 **Evidence date:** 2026-10-09 for the divergence ledger (code read at `develop` `288e9ab46`), and
 2026-10-10 for the component readings behind the design lab. Code references describe the inspected
 tree, not a deployment. Recheck them when implementation starts.
@@ -169,7 +170,7 @@ take one of four shapes. The maintainer chose, each on the research's recommenda
 
 The public website keeps its editorial cards. Only the shared pieces it already renders change.
 
-**The detail line, accepted in principle on 18 October.** Asked how cards can stop their detail
+**The detail line, agreed and then locked with the card picks on 18 October.** Asked how cards can stop their detail
 lines wrapping, the maintainer agreed to five rules. Version 13 of the census already keeps the line
 to one line and drops whole details from the end instead of cutting words; the rules decide what
 it drops, and make dropping rare.
@@ -248,17 +249,29 @@ cuts 2 of 5 Spanish and 2 of 5 Portuguese titles and no English one; a 390px pho
 4 Spanish and 3 Portuguese. A cut title ends in an ellipsis and shows in full on hover. Long English titles end in an ellipsis everywhere. Rows with the pill under the title
 take one fixed 88px height, so a card never grows to fit.
 
-Open against the picks:
+Questions raised against the picks, all settled by 18 October:
 
 - **F9 and the earlier preference: settled.** Earlier the same day the maintainer preferred the
   app's filter button ([brief](brief.md#stated-direction), item 6). The pick keeps the cockpit's
   chips, and the maintainer confirmed the pick when asked.
-- **F3 and the app's message lines.** The unified field anatomy reserves one message line. The app
-  reserves two today (DL-018) so that a long message does not move the form. With one line reserved,
-  a two-line message would. Judge it on the pair in Spanish and Portuguese.
-- **F7 on the cockpit's phone.** The app's work row removes the photo mosaic from the cockpit's
-  phone queue. Judge it on the pair, with a steward who triages by photo if one is available.
-- **F8 on desktop.** The cap on an equal-width tab row is still unset.
+- **F3 and the app's message lines: settled.** Each surface keeps its own reserve under a field:
+  two lines in the app (DL-018, chosen because many real messages wrap on a 360px phone in English,
+  Spanish and Portuguese) and one in the cockpit (its rule that a message never moves the form).
+  The reserve becomes a per-surface setting like the button corner; the rest of the field anatomy is
+  shared, and a longer message grows the slot rather than scrolling. On the pair, the longest
+  Spanish and Portuguese cockpit messages are measured in two-column forms at 640px, where a message
+  has about 205px; if several wrap, the cockpit reserves two lines too.
+- **F7 on the cockpit's phone: settled.** The cockpit's phone queue takes the work row. Its work
+  card is one button that opens the work's page, where approval happens, so the queue only chooses
+  what to open; a photo-grid card is about 300px tall on a phone, so two fit a screen, against about
+  six 88px rows. The row keeps the first photo with the photo count on it. A steward who sorts by
+  photo checks it on the pair; if the photo is too small to judge, the fix belongs on the work's
+  page, not in a second card design.
+- **F8 on desktop: settled.** Each equal-width tab is at most 180px wide on desktop, the row aligned
+  left and never wider than the content: 720px for the cockpit's four-tab rows (Hub, Garden,
+  Community), 360px for a two-tab row. The longest label, "Coordenação", measures 94px in Plus
+  Jakarta Sans at 14px, about 170px with its icon, count badge and padding. Phones keep full-width
+  tabs.
 - **Where a card's status sits, and how many lines a title takes: settled.** Raised on 17 October,
   when the pill in the title's corner cut titles off. The
   [card census](artifacts/card-census.html#layouts) measured five placements, and on 18 October the
@@ -436,11 +449,11 @@ The levers, ranked by visible change per unit of work:
 ## Decisions to resolve
 
 Each fork lists its options with the recommendation first, then what it touches. The maintainer's
-pick is repeated under each fork; every pick is accepted in principle and none is locked (see
+pick is repeated under each fork; every pick was locked on 18 October (see
 [Direction accepted in principle](#direction-accepted-in-principle)). The lab switches every option
 live.
 
-| Fork | Recommendation | Pick, accepted in principle |
+| Fork | Recommendation | Pick, locked on 18 October |
 |---|---|---|
 | F1 Typeface | Plus Jakarta Sans on both | As recommended |
 | F2 Ground | Linen canvas, white cards, one dark ladder | As recommended |
@@ -469,7 +482,7 @@ Touches the app's `index.html` (font links and the static loading screen), its `
 [banned-vocabulary.json](../../../scripts/data/banned-vocabulary.json), whose client prompt list
 names the cockpit's face as a term to avoid.
 
-**Pick, accepted in principle:** the recommended option.
+**Pick, locked on 18 October:** the recommended option.
 
 ### F2 One ground
 
@@ -482,7 +495,7 @@ names the cockpit's face as a term to avoid.
 Touches the app-scope surface tokens and the dark block in `theme.css`, the static loading screen's
 colours, and the app's token audit. Every green-on-surface ratio was measured on white.
 
-**Pick, accepted in principle:** the recommended option.
+**Pick, locked on 18 October:** the recommended option.
 
 ### F3 Controls: corners and fields
 
@@ -497,8 +510,9 @@ The cockpit's filled field with an underline is the most Material-specific piece
 Its outlined variant already exists, so converging is a default change, not a new component. The
 app's secondary boundary should move to a 3:1 token under any option.
 
-**Pick, accepted in principle:** the recommended option. The cockpit keeps its pills as its own
-corner, no longer on Material 3's authority.
+**Pick, locked on 18 October:** the recommended option. The cockpit keeps its pills as its own
+corner, no longer on Material 3's authority. The message slot is set per surface: two lines in the
+app (DL-018), one in the cockpit.
 
 ### F4 Chips
 
@@ -509,7 +523,7 @@ corner, no longer on Material 3's authority.
 
 DL-065 (no check mark on a selected chip) carries over unchanged.
 
-**Pick, accepted in principle:** the recommended option.
+**Pick, locked on 18 October:** the recommended option.
 
 ### F5 Sheets on phones
 
@@ -522,7 +536,7 @@ DL-065 (no check mark on a selected chip) carries over unchanged.
 The title size stays per density (18px in the app, 22px in the cockpit). Drag-to-dismiss is
 behaviour and stays the app's.
 
-**Pick, accepted in principle:** the recommended option.
+**Pick, locked on 18 October:** the recommended option.
 
 ### F6 The bottom bar's active state
 
@@ -533,7 +547,7 @@ behaviour and stays the app's.
 
 The app's bar stays solid. A backdrop blur costs frames on the low-end phones the app targets.
 
-**Pick, accepted in principle:** the recommended option, revised on 17 October from keeping each
+**Pick, locked on 18 October:** the recommended option, revised on 17 October from keeping each
 bar's own active state.
 
 ### F7 Cards and rows
@@ -550,15 +564,18 @@ bar's own active state.
 A work item has three anatomies today: the shared `WorkCard` row in the app, the cockpit's
 `HubWorkCard` mosaic, and the shared `WorkbenchRow` for record lists.
 
-**Pick, accepted in principle:** the app's cards everywhere, revised on 17 October from the
+**Pick, locked on 18 October:** the app's cards everywhere, revised on 17 October from the
 recommended option. The cockpit gives up its 12px raised card. On a phone its queue takes the app's
-work row; on desktop it keeps the wide photo-grid card (F12) in the app's card style.
+work row; on desktop it keeps the wide photo-grid card (F12) in the app's card style. The row
+stays on the cockpit's phone queue (settled on 18 October); a steward who sorts by photo checks it
+on the pair.
 
 ### F8 Tabs
 
 - **The app's tabs on both, equal width** (recommended): `StandardTabs` as shipped. Equal cells, a
   tinted active cell with a 2px underline, a solid count badge, an icon when a tab has one. On
-  desktop the row is capped (720px in the lab) so the cells stay readable.
+  desktop each cell is capped at 180px and the row aligns left (720px for four tabs, as the lab
+  draws), so the cells stay readable.
 - **The cockpit rail on both**: an underline rail at content width with the grey count chip. The
   app's four garden tabs would scroll at 320px.
 - **Keep both**: two tab vocabularies for the same job.
@@ -566,7 +583,7 @@ work row; on desktop it keeps the wide photo-grid card (F12) in the app's card s
 Touches `AdminTabRail`: it gains the equal-width layout and the tinted active cell, and its count
 chip becomes the shared badge. The tab height stays per surface (DL-011).
 
-**Pick, accepted in principle:** the recommended option.
+**Pick, locked on 18 October:** the recommended option.
 
 ### F9 Filter control
 
@@ -578,7 +595,7 @@ chip becomes the shared badge. The tab height stays per surface (DL-011).
 DL-082 holds under every option: Pending and Approved stay scopes of one list. See the judgment
 point below about where those two scopes live.
 
-**Pick, accepted in principle:** keep both. It reverses the preference stated earlier the same day
+**Pick, locked on 18 October:** keep both. It reverses the preference stated earlier the same day
 for the app's button, and the maintainer confirmed it when asked. The cockpit's chips still take the
 capsule from F4.
 
@@ -595,7 +612,7 @@ semibold and a white ring on the Your Work and Promises launchers; a 10px-tall p
 button; 16px with 12px medium in tabs. The Your Work count appears on the bar and on its launcher at
 the same time, in two of those styles.
 
-**Pick, accepted in principle:** the recommended option.
+**Pick, locked on 18 October:** the recommended option.
 
 ### F11 List spacing
 
@@ -605,7 +622,7 @@ the same time, in two of those styles.
 - **One divided card on both**: rows inside one card. Suits settings rows, not work items.
 - **Keep both**: 12px in the app, 14px in the cockpit's grid, none in its divided record lists.
 
-**Pick, accepted in principle:** the recommended 12px gap on both, revised on 17 October from 8px.
+**Pick, locked on 18 October:** the recommended 12px gap on both, revised on 17 October from 8px.
 
 ### F12 Desktop work card
 
@@ -617,7 +634,7 @@ the same time, in two of those styles.
 Touches `HubWorkCard`'s layout from the desktop breakpoint and the grid's column rule. Phones keep
 the tall card unless F7 says otherwise.
 
-**Pick, accepted in principle:** the recommended option.
+**Pick, locked on 18 October:** the recommended option.
 
 ### F13 Dark cards
 
@@ -633,7 +650,7 @@ the tall card unless F7 says otherwise.
 Touches the dark surface ladder and the first elevation step in `admin-m3-tokens.css`. With F2's one
 ladder the app's dark cards follow the same step.
 
-**Pick, accepted in principle:** the recommended option.
+**Pick, locked on 18 October:** the recommended option.
 
 ## Human judgment points
 
@@ -646,11 +663,10 @@ ladder the app's dark cards follow the same step.
 - **F9 would have cost a tap.** Pending and Approved are one tap apart in the cockpit's toolbar
   today. Behind a filter button they would be two. The pick keeps them inline, so this point is
   closed unless the pick changes.
-- **F8 on desktop.** Equal cells across a 1176px content column are very wide. The lab caps the row
-  at 720px; the real cap needs a rendered pair.
-- **F7 on the cockpit's phone.** A row removes the mosaic from the phone queue. If stewards triage
-  by photo on a phone, the mosaic card should stay there too. The pick, the app's cards everywhere,
-  puts the app's work row there, so this stays a live check on the rendered pair.
+- **F8 on desktop.** Equal cells across a 1176px content column are very wide. Settled on 18
+  October: each tab is at most 180px wide and the row aligns left.
+- **F7 on the cockpit's phone.** A row removes the mosaic from the phone queue. Settled on 18
+  October: the row stays, and a steward who sorts by photo checks it on the rendered pair.
 - **The Cosmo-Local demonstration.** The research's view was that only the token slice is small
   enough to precede it, and only if the width and contrast measurements pass. The maintainer's aim
   is to land as much of the sequence as fits before it. The measurements still gate the token slice,
