@@ -18,7 +18,7 @@ env-vars:
 connectors:
   - vercel
   - linear  # OAuth connector only, no key — the primary posting surface
-model: claude-opus-5  # unverified: no readable trigger for this routine on 2026-10-17
+model: claude-opus-5-5  # the routine tier, for a rebuild; the live trigger could not be found on 2026-10-17, so the model it runs is unverified
 ---
 
 # Prompt

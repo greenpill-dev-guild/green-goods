@@ -254,16 +254,18 @@ This collaboration pattern mirrors how `bug-intake` works today: routine creates
 
 1. Log in to [claude.ai/code/routines](https://claude.ai/code/routines).
 2. Click **New routine** (or use `/schedule` in Claude Code).
-3. Paste a bootstrap prompt, not a copy of this spec. The routine fetches `origin/develop` and executes this file on every run, so a change takes effect as soon as it merges to `develop`. Keep the bootstrap free of phase summaries: a summary drifts from the spec and competes with it.
+3. Paste a bootstrap prompt, not a copy of this spec. The routine fetches `origin/develop` and executes this file on every run, so a change takes effect as soon as it merges to `develop`. Keep the bootstrap free of phase summaries: a summary drifts from the spec and competes with it. The bootstrap carries one failure post of its own, because a run that cannot load the spec never reads the spec's failure rules; that post uses the spec's channel variable, so a channel change touches both.
 
    ```text
    You are the qa-triage-pulse routine for Green Goods. Your spec is docs/routines/qa-triage-pulse.md on the develop branch of the green-goods repo. It is the single source of truth; there is intentionally no copy here.
 
-   1. Run `git fetch origin develop`. If it fails, stop, report the failure in the run log, and exit non-zero: an older `origin/develop` may still be readable, and running it would run a stale spec.
+   1. Run `git fetch origin develop`.
    2. Read the whole spec: `git show origin/develop:docs/routines/qa-triage-pulse.md`.
    3. Execute everything after its `# Prompt` heading exactly as written, except the `## Rebuilding the cloud routine from this file` section, which tells people how to set the routine up and is never part of a run. Where this prompt and the spec differ, follow the spec.
 
-   Limits that hold whatever the spec says: never push code, open PRs, create GitHub Issues, or write to the QA Sheet. If the spec is missing or unreadable, stop, report the failure in the run log, and exit non-zero. Never improvise from memory or an older copy.
+   If step 1 or 2 fails, never run an older copy or improvise from memory: an older `origin/develop` may still be readable, and running it would run a stale spec. Report the failure in the run log, post one failure line, and exit non-zero. The line is `<@${DISCORD_USER_ID_AFO}> ⚠ qa-triage-pulse could not load its spec ({the failed step}); nothing was triaged this run.`, sent with `POST https://discord.com/api/v10/channels/${DISCORD_PRODUCT_CHANNEL_ID}/messages` and the header `Authorization: Bot ${DISCORD_BOT_TOKEN}`, using plain `curl` without `-L` so the token is never forwarded. When `DISCORD_PRODUCT_CHANNEL_ID` is unset, skip the post and say so in the run log; never post to another channel.
+
+   Limits that hold whatever the spec says: never push code, open PRs, create GitHub Issues, or write to the QA Sheet.
    ```
 
 4. Configure the repo, environment (green-goods, `env_01CRAWm3KauPFp4ntqdAufPR`), env vars, connectors, model, and cron per the frontmatter above.
