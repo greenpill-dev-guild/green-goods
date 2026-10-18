@@ -380,7 +380,7 @@ the @mention.
 
    1. Run `git fetch origin develop`. If it fails, stop, report the failure in the run log, and exit non-zero: an older `origin/develop` may still be readable, and running it would run a stale spec.
    2. Read the whole spec: `git show origin/develop:docs/routines/qa-call-report.md`.
-   3. Execute everything after its `# Prompt` heading exactly as written. Where this prompt and the spec differ, follow the spec.
+   3. Execute everything after its `# Prompt` heading exactly as written, except the `## Rebuilding the cloud routine from this file` section, which tells people how to set the routine up and is never part of a run. Where this prompt and the spec differ, follow the spec.
 
    Limits that hold whatever the spec says: never push code, open PRs, create GitHub Issues, or write to the QA Sheet. If the spec is missing or unreadable, stop, report the failure in the run log, and exit non-zero. Never improvise from memory or an older copy.
    ```
