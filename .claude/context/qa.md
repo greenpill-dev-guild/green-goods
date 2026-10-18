@@ -253,12 +253,12 @@ For the commitment relay, two people keep two distinct allowlisted wallets and o
 the entire walk:
 
 - **Protocol & review** is the protocol steward and independent steward or evaluator of the test
-  Garden. This person must remain outside both contributor rosters.
-- **Garden & member** is a steward and member of the test Garden. This person makes the institutional
+  garden. This person must remain outside both contributor rosters.
+- **Garden & member** is a steward and member of the test garden. This person makes the institutional
   claim and contributes the Work and evidence.
 
-The protocol Request stays in the protocol pool after the Garden claims it. The protocol-to-Garden
-payout is earned compensation. The Garden-to-member obligation is a separate Garden-pool commitment.
+The protocol Request stays in the protocol pool after the garden claims it. The protocol-to-garden
+payout is earned compensation. The garden-to-member obligation is a separate garden-pool commitment.
 The Protocol treasury top-up is discretionary funding with no commitment ID and never substitutes
 for earned compensation. A starting assessment adds context but does not gate opening a Season or
 Campaign.
