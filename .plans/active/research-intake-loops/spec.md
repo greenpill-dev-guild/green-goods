@@ -30,7 +30,7 @@ stays fail-closed, and the agenda stays human-owned in substance.
 `DISCORD_RESEARCH_CHANNEL_ID` that carries at least one `http(s)` link or an attachment, or asks
 a question in a full sentence. Bot messages, messages whose `type` is a thread system message,
 emoji-only messages and messages posted inside threads are context, not shares; a repost of a
-handled share is a share, classified as a noted duplicate. A share is handled when the message carries one of the routine's own four reactions (`reactions[].me` is true); nothing else counts (v5.1: the thread-reply signal and the partial state are retired, and `HAS_THREAD` proves nothing since anyone may open a thread). Lookback: the seven-day window for the
+handled share is a share, classified as a noted duplicate. A share is handled when the message carries one of the routine's own four reactions (`reactions[].me` is true); nothing else counts (v5.1: the thread-reply signal and the partial state are retired, and `HAS_THREAD` proves nothing since anyone may open a thread), except that a share an intake receipt lists as reaction-pending is treated as handled for classification and the ledger while only its reaction is retried (R19). Lookback: the seven-day window for the
 ledger, then pagination with `before=` through the whole recovery window (fourteen days, or the
 continuity window start when it is earlier) before filtering for unhandled shares, so a missed
 share behind a page of handled ones is still found.
@@ -58,7 +58,7 @@ Reaction: `PUT /channels/{channel.id}/messages/{message.id}/reactions/{emoji}/@m
 unicode emoji percent-encoded in the path, `Authorization: Bot`, no body; needs
 `ADD_REACTIONS` and `READ_MESSAGE_HISTORY`. Reactions are capped at forty per run (R17); shares beyond the cap stay queued without a reaction.
 
-**R4. One intake thread per run (v5.1).** After the digest posts, the routine opens one public thread from the digest message (`POST /channels/{channel.id}/messages/{digest.id}/threads`, name `📥 Intake · week of {date}`, `auto_archive_duration` 1440; the thread id equals the digest id) and posts the ledger into it: one message per sharer, at most ten messages per run, numbered lines in channel order, then the queued range, then `Refiled` lines, each message with `allowed_mentions` `{"parse": []}` and the `SUPPRESS_NOTIFICATIONS` flag (`1 << 12`, settable on Create Message per the Discord docs). Mentions: none, except one `<@author.id>` as the last line of a sharer's message when they have at least one ❔ line, with `allowed_mentions` naming only them and no suppress flag on that message. A thread opened from a message just posted raises no `THREAD_CREATED` row in the channel. On a 403 from the thread creation or a message inside it, one channel message referencing the digest carries the counts and the ❔ lines, the missing permission is recorded in the memo and the next footer, and nothing is retried that run. Per-share threads and replies (v5's R4) are retired; the routine never posts into a thread on a share. Phase 1b classifies shares from at most ten distinct sharers per run, so every classified share gets its line; a same-date rerun resumes Phase 5b (the thread, then the missing sharers' messages) instead of skipping it; after the ledger the run writes one Drive `intake receipt` (digest id, thread id, ledger message ids, failed messages, fallback, cuts, memo URL, read-back cursors), the durable record the memo cannot carry because it is written before the post. Permissions the bot needs on `#research`: `VIEW_CHANNEL`, `READ_MESSAGE_HISTORY`, `ADD_REACTIONS`, `CREATE_PUBLIC_THREADS`, `SEND_MESSAGES_IN_THREADS`, plus the `SEND_MESSAGES` it already has for the digest.
+**R4. One intake thread per run (v5.1).** After the digest posts, the routine opens one public thread from the digest message (`POST /channels/{channel.id}/messages/{digest.id}/threads`, name `📥 Intake · week of {date}`, `auto_archive_duration` 1440; the thread id equals the digest id) and posts the ledger into it: one message per sharer, at most ten messages per run, numbered lines in channel order, then the queued range, then `Refiled` lines, each message with `allowed_mentions` `{"parse": []}` and the `SUPPRESS_NOTIFICATIONS` flag (`1 << 12`, settable on Create Message per the Discord docs). Mentions: none, except one `<@author.id>` as the last line of a sharer's message when they have at least one ❔ line, with `allowed_mentions` naming only them and no suppress flag on that message. A thread opened from a message just posted raises no `THREAD_CREATED` row in the channel. On a 403 from the thread creation or a message inside it, one channel message referencing the digest carries the counts and the ❔ lines, the missing permission is recorded in the memo and the next footer, and nothing is retried that run. Per-share threads and replies (v5's R4) are retired; the routine never posts into a thread on a share. Phase 1b classifies shares from at most ten distinct sharers per run less the failed ledger messages carried in, so retries and every classified share fit the cap; a same-date rerun resumes Phase 5b (the thread, then the missing sharers' messages) instead of skipping it; after the ledger the run writes one Drive `intake receipt` (digest id, thread id, ledger message ids, failed messages, fallback, cuts, memo URL, read-back cursors), the durable record the memo cannot carry because it is written before the post. Permissions the bot needs on `#research`: `VIEW_CHANNEL`, `READ_MESSAGE_HISTORY`, `ADD_REACTIONS`, `CREATE_PUBLIC_THREADS`, `SEND_MESSAGES_IN_THREADS`, plus the `SEND_MESSAGES` it already has for the digest.
 
 **R5. Ledger line templates.** House style v2, at most 160 characters per line, no tables, URLs wrapped in `<…>`, never a quote from a fetched page: 🧭 `{n}. 🧭 {title or domain} → track {t} Open {k} ({item})`; 🌱 `{n}. 🌱 {title or domain} → candidate question parked for the {date} review`; ❔ `{n}. ❔ {title or domain}`; 📥 `{n}. 📥 {title or domain} · noted: {reason}`; queued `{a} to {b}. ⏳ queued for next Saturday: {domains}`; refiled `↩️ {n} of {date}: {new line, shortened} · thank you`; question `<@id> {numbers} need one line each: which question does it answer? Reply "{n}: …".`
 
@@ -234,7 +234,7 @@ agenda is never edited by the routine. No Growth issue is created or changed.
 
 **R19. Failure handling.** Every new write class (reaction, thread, follow-up reply, document,
 radar comment) is checked for a 2xx or a returned URL and recorded separately in the memo's
-writes section; a failed write is retried once next run through the existing continuity rule; a failed ledger message is listed in the intake receipt and posted first into the next run's thread.
+writes section; a failed write is retried once next run through the existing continuity rule; a failed ledger message is listed in the intake receipt and posted first into the next run's thread, counted inside its ten-message cap; a failed reaction is listed with the share's outcome and retried alone, never through a second classification or ledger line; the digest is never reposted without dedupe evidence.
 The digest is posted even when every intake step failed, with the failures named in the footer;
 a failed intake step never disguises itself as a quiet week. The fail-closed preflights of Phase 0
 are unchanged.
@@ -278,8 +278,7 @@ the existing Linear writes. Phase 5a performs the reactions before the digest po
   1560813283563540562 to `#research` at 00:34 UTC, repointed its six Linear writes, trashed the
   pending memo, and then met the five-hour limit after 154 turns and 29 minutes with 14 rate-limit
   events. The retired guild trigger returns 404 from this account.
-- Open inferences: that sharers will answer a ❔ thread (the success signal measures it); that ten
-  thread replies per run suffice (sized once Q1 in the brief is answered).
+- Open inferences: that sharers will answer a ❔ line in the intake thread (the success signal measures it); that ten ledger messages per run, less carried retries, suffice (v5.1).
 
 ## Human Judgment Points
 
@@ -290,7 +289,7 @@ the existing Linear writes. Phase 5a performs the reactions before the digest po
 - Sensitive surfaces: `docs/routines/*` are live routine prompts and get the same Codex and
   CodeRabbit review passes the v4 spec had; `.claude/settings.json` is harness configuration and
   the one-line skill registration is reported, never slipped in.
-- Tradeoffs to keep visible: thread replies add bot traffic to a human channel; the pending
+- Tradeoffs to keep visible: the intake thread adds one thread and a few messages a week to a human channel (v5.1 replaced per-share replies after the first run proved too loud); the pending
   document is one more surface and earns its place only if the footer count and the cycle ritual
   keep it short; the Growth radar is read by nobody until someone owns promotion.
 
@@ -301,9 +300,8 @@ the existing Linear writes. Phase 5a performs the reactions before the digest po
 - Privacy: unchanged rules on call notes; display names only in the memo; no fetched text in
   Linear or Discord beyond titles.
 - Security: public `https` fetches with a 2 MB bound, no credentials, no redirects off the public
-  web, injection rule extended to thread replies and fetched pages.
-- Idempotency: reaction and thread dedupe on two independent signals; the document is rewritten
-  from state so a rerun converges; the radar comment and status updates keep the six-day rule.
+  web, injection rule extended to intake-thread lines and fetched pages; every channel and thread message carries `allowed_mentions`.
+- Idempotency (v5.1): the reaction is the handled signal; a reaction that failed after its ledger line posted is listed in the intake receipt as pending and retried alone; a same-date rerun resumes Phase 5b from the thread's state and never reposts the digest without dedupe evidence; the document is rewritten from state so a rerun converges; the radar comment and status updates keep the six-day rule.
 - Localization and offline: not applicable.
 
 ## Package / Lane Mapping
@@ -317,9 +315,9 @@ the existing Linear writes. Phase 5a performs the reactions before the digest po
 
 ## Risks
 
-- Thread noise when shares spike: capped at ten replies, the rest reacted 📥 and rolled up.
-- Sharers ignore the threads: the success signal measures replies over four runs; if nobody
-  answers, drop ❔ threads and keep reactions only.
+- Thread noise when shares spike (v5.1): one intake thread with at most ten messages, retries counted inside the cap, the rest queued unreacted for next week.
+- Sharers ignore the intake thread: the success signal measures answers over four runs; if nobody
+  answers, drop the ❔ question line and keep reactions plus the ledger only.
 - The pending document becomes another unread surface: the footer count, the four-run
   `decide or drop` flag and the cycle ritual keep it short; if it still grows, cut proposals to
   `Open` and `Stage` changes only.
