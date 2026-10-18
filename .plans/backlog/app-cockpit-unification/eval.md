@@ -135,8 +135,13 @@ Checked on 2026-10-17 when the card census was added:
 - In headless Chromium (Playwright) at 1440×900 and 390×844, in light and dark: no console error and
   no horizontal overflow. A shape dial, an object option, Copy picks (clipboard route) and the full
   size view all worked.
+- The card tweaker's live preview, added after the first review found no visible preview while
+  turning a dial: at 1440×900, 1180×820 and 390×844 the preview stayed in the window, followed the
+  section in view, changed with a dial and with the density switch, and Reset and Copy picks
+  worked from the visible buttons.
 - In the published artifact, opened in the in-app browser: the main page's link opens the census,
-  the captures load, the dials change the proposed cards, and the census links back.
+  the captures load, the dials change the proposed cards and the tweaker's preview, and the census
+  links back.
 
 These are document and mock checks. No application code changed, so no implementation, usability or
 release evidence exists yet.

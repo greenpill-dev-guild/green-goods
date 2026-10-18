@@ -54,11 +54,14 @@ states, then the card primitives. Open it from this folder so it finds its image
   state block) at the app's density and the cockpit's. Like the lab, it is a mock drawn from the
   tokens and starts on the accepted picks: Plus Jakarta Sans, the linen ground, the app's cards,
   a 12px list gap and the lighter dark card.
-- **The dock** holds the shape dials (card corner, row corner, card edge, status, row photo, list
-  gap, selection, light or dark, and which surface to show). Each object has its own options
-  beside its Proposed heading. A dot marks the pick, or the recommendation where nothing is
-  decided. Copy picks puts every choice on one line, starting `Census picks:`, with the same
-  fallbacks as the lab. The choices persist under `gg-card-census-v1`.
+- **The card tweaker** holds the shape dials (card corner, row corner, card edge, status, row
+  photo, list gap, selection, light or dark, and which surface to show). On a wide screen it is a
+  rail beside the census; on a narrow one it folds into a panel at the bottom. Its live preview,
+  pinned above the dials, draws the object section in view at the app's or the cockpit's density,
+  so each change shows where you make it. Each object also has its own options beside its Proposed
+  heading. A dot marks the pick, or the recommendation where nothing is decided. Copy picks puts
+  every choice on one line, starting `Census picks:`, with the same fallbacks as the lab. The
+  choices persist under `gg-card-census-v1`.
 
 ## The captures
 

@@ -8,8 +8,9 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap">
 <style>
 /* Layout: a field guide. Each object is a specimen sheet: today's cards pinned in a scrolling strip,
-   the proposed build beneath them at the app's and the cockpit's density, with the shape dials in a
-   dock that stays at the bottom of the window. Chrome tokens match the main research page. */
+   the proposed build beneath them at the app's and the cockpit's density. The card tweaker sits in a
+   rail beside the sheets (a bottom panel on a narrow screen), with a live preview of the object in
+   view above its dials. Chrome tokens match the main research page. */
 :root {
   color-scheme: light;
   --bg: #FAF8F5;
@@ -152,7 +153,7 @@ code { font-family: var(--font-mono); font-size: 0.84em; background: var(--accen
 .spec.cockpit { --s-body: 14px; --s-title: 14px; --s-title-w: 600; --s-meta: 12px; --s-pill: 11px; --s-pill-w: 600; --s-acc: #2547D0; --s-acc-on: #FFFFFF; --s-acc-text: #2547D0; --s-acc-tint: rgba(51,92,255,0.08); --s-btn-r: 999px; --s-btn-h: 32px; --s-btn-fs: 14px; }
 .spec.desk { width: 100%; border-radius: 14px; }
 .panel.full { flex: 1 1 100%; }
-.spec.wide2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.spec.wide2 { grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); }
 .dark-specs .spec {
   --s-canvas: #110C08; --s-card: #2A231C; --s-ink: #FAFAF9; --s-sub: #D6D3D1; --s-soft: #A8A29E;
   --s-border: rgba(250,250,249,0.12); --s-hair: rgba(250,250,249,0.10); --s-grey: #342C24; --s-tint: #1A1410;
@@ -271,25 +272,61 @@ code { font-family: var(--font-mono); font-size: 0.84em; background: var(--accen
 .spec .sb.compact.no-mark { grid-template-columns: minmax(0, 1fr); }
 
 /* the shape overview */
-.shapes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-top: 18px; }
+.shapes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(400px, 100%), 1fr)); gap: 16px; margin-top: 18px; }
 .shape { min-width: 0; display: grid; gap: 10px; align-content: start; }
 .shape .spec { width: 100%; }
 .shape h3 { color: var(--fg-strong); letter-spacing: 0.04em; }
 .shape p { font-size: 14px; color: var(--muted); margin: 0; }
 
-/* the dock */
-.dock { position: sticky; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); z-index: 30; margin-top: 48px; background: var(--card); border: 1px solid var(--line-strong); border-radius: 16px; box-shadow: var(--shadow); padding: 10px 14px 9px; display: grid; gap: 8px; font-size: 12px; }
-.dock .rows { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: flex-end; }
-.dock .ctl { display: grid; gap: 3px; justify-items: start; }
-.dock .seg-l { font-size: 11px; margin: 0; }
-.dock .seg button { font-size: 12px; line-height: 20px; padding: 0 8px; }
-.dock .foot { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; color: var(--muted); font-size: 12px; line-height: 16px; }
-.dock .hint { flex: 1 1 240px; min-width: 0; }
-.dock .lnk { font: inherit; font-weight: 600; color: var(--accent); background: transparent; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; white-space: nowrap; }
-.dock .lnk:focus-visible, .dock .toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.dock .copyrow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.dock .copyrow input { flex: 1 1 260px; min-width: 0; height: 28px; padding: 0 8px; font-family: var(--font-mono); font-size: 11px; color: var(--fg); background: var(--bg); border: 1px solid var(--line-strong); border-radius: 8px; }
-.dock .toggle { display: none; }
+/* the card tweaker: a rail beside the census on a wide screen, a bottom panel on a narrow one.
+   Its live preview sits at the top and follows the object section in view. */
+.shell { max-width: 1600px; margin: 0 auto; }
+.rail { background: var(--card); border: 1px solid var(--line-strong); border-radius: 16px; box-shadow: var(--shadow); font-size: 12px; color: var(--fg); }
+.rail-body { display: grid; gap: 10px; padding: 12px 14px; }
+.rail-title { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.rail-title b { font-family: var(--font-display); font-size: 15px; color: var(--fg-strong); }
+.pv-wrap { position: sticky; top: 0; z-index: 2; background: var(--card); display: grid; gap: 8px; padding: 2px 0 10px; border-bottom: 1px solid var(--line); }
+.pv-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pv-h h3 { font-size: 11px; display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.pv-h h3 span { text-transform: none; letter-spacing: 0; font-family: var(--font-body); font-weight: 600; font-size: 12px; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pv { border-radius: 18px; }
+.pv .spec { width: 100%; padding: 12px; border-radius: 16px; }
+.pv.flash { animation: pvflash 0.7s ease-out; }
+@keyframes pvflash { from { box-shadow: 0 0 0 3px var(--accent); } to { box-shadow: 0 0 0 3px transparent; } }
+.rail .rows { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: flex-end; }
+.rail .ctl { display: grid; gap: 3px; justify-items: start; }
+.rail .seg-l { font-size: 11px; margin: 0; }
+.rail .seg { flex-wrap: wrap; }
+.rail .seg button { font-size: 11.5px; line-height: 22px; padding: 0 7px; }
+.rail .foot { display: grid; gap: 6px; color: var(--muted); font-size: 12px; line-height: 16px; }
+.rail .acts { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.rail .lnk { font: inherit; font-weight: 600; color: var(--accent); background: transparent; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; white-space: nowrap; }
+.rail .lnk:focus-visible, .rail .toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.rail .copyrow { display: grid; gap: 4px; }
+.rail .copyrow input { min-width: 0; height: 28px; padding: 0 8px; font-family: var(--font-mono); font-size: 11px; color: var(--fg); background: var(--bg); border: 1px solid var(--line-strong); border-radius: 8px; }
+.rail .toggle { display: none; }
+.rail .foot-acts { display: none; }
+@media (min-width: 1100px) {
+  .shell { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 28px; align-items: start; }
+  .shell > .wrap { max-width: none; margin: 0; min-width: 0; }
+  .rail { position: sticky; top: calc(16px + env(safe-area-inset-top, 0px)); max-height: calc(100dvh - 32px); overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+  .pv .spec > :nth-child(n+4) { display: none; }
+}
+@media (max-width: 1099px) {
+  .rail { position: sticky; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); z-index: 30; margin-top: 40px; max-height: 76dvh; overflow: auto; overscroll-behavior: contain; }
+  .rail .toggle { display: flex; position: sticky; top: 0; z-index: 3; align-items: center; justify-content: space-between; width: 100%; font: inherit; font-family: var(--font-display); font-size: 13px; font-weight: 600; line-height: 40px; color: var(--fg); background: var(--card); border: 0; border-radius: 16px; padding: 0 14px; cursor: pointer; }
+  .rail .toggle::after { content: ""; width: 8px; height: 8px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: translateY(-2px) rotate(45deg); }
+  .rail.collapsed .toggle::after { transform: translateY(2px) rotate(225deg); }
+  .rail.collapsed .rail-body { display: none; }
+  .rail-body { padding-top: 0; }
+  .rail-title { display: none; }
+  .rail .foot-acts { display: flex; }
+  .pv-wrap { top: 40px; }
+  .pv .spec > :nth-child(n+3) { display: none; }
+  .rail .seg button { line-height: 30px; font-size: 13px; padding: 0 10px; }
+  .rail .copyrow input { height: 34px; font-size: 16px; }
+}
+@media (prefers-reduced-motion: reduce) { .pv.flash { animation: none; } }
 @media (max-width: 760px) {
   .notes { grid-template-columns: minmax(0, 1fr); }
   .shapes { grid-template-columns: minmax(0, 1fr); }
@@ -300,14 +337,7 @@ code { font-family: var(--font-mono); font-size: 0.84em; background: var(--accen
   .spec .mc.wide .media { width: 100%; min-height: 0; aspect-ratio: 16 / 9; }
   .specs { flex-direction: column; align-items: stretch; }
   .panel { width: 100%; }
-  .dock { padding: 6px 10px; max-height: 60dvh; overflow: auto; overscroll-behavior: contain; }
-  .dock .toggle { display: flex; align-items: center; justify-content: space-between; width: 100%; font: inherit; font-family: var(--font-display); font-size: 13px; font-weight: 600; line-height: 34px; color: var(--fg); background: transparent; border: 0; padding: 0 2px; cursor: pointer; }
-  .dock .toggle::after { content: ""; width: 8px; height: 8px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: translateY(-2px) rotate(45deg); }
-  .dock.collapsed .toggle::after { transform: translateY(2px) rotate(225deg); }
-  .dock.collapsed .rows, .dock.collapsed .foot, .dock.collapsed .copyrow { display: none; }
-  .dock .seg { flex-wrap: wrap; }
-  .dock .seg button, .octl .seg button { line-height: 30px; font-size: 13px; padding: 0 10px; }
-  .dock .copyrow input { height: 34px; font-size: 16px; }
+  .octl .seg button { line-height: 30px; font-size: 13px; padding: 0 10px; }
 }
 @media (pointer: coarse) { .seg button { line-height: 30px; } }
 
@@ -325,11 +355,12 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
 </style>
 </head>
 <body>
-<div class="wrap census">
+<div class="shell census">
+<main class="wrap">
   <nav class="crumb"><a id="back" href="design-lab.html">Design lab</a> · card census</nav>
   <div class="eyebrow">Design research · App and cockpit cards · 17 October 2026</div>
   <h1>Card Census</h1>
-  <p class="lede">Every card the app and the cockpit draw today, object by object, with the proposed version beneath it, built from four shared shapes. Tweak the shapes in the dock, set each object's options, then copy your picks back into the chat.</p>
+  <p class="lede">Every card the app and the cockpit draw today, object by object, with the proposed version beneath it, built from four shared shapes. Tweak the shapes in the card tweaker, watch its live preview, set each object's options, then copy your picks back into the chat.</p>
 
   <div class="tally" aria-label="What the census counted">
     <div><b>107</b><span>card, row and tile components</span></div>
@@ -377,7 +408,7 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
 
   <section class="obj" id="shapes">
     <div class="obj-h"><h2>The four shapes</h2><span class="count">Shown at the app's density</span></div>
-    <p class="obj-sum">Nearly every card in the census is one of these. Each lives once in Shared, at two densities, and every object's card is built from them. The dials in the dock change all four at once.</p>
+    <p class="obj-sum">Nearly every card in the census is one of these. Each lives once in Shared, at two densities, and every object's card is built from them. The dials in the card tweaker change all four at once, and its live preview shows each change as you make it.</p>
     <div class="shapes" id="shape-board"></div>
   </section>
 
@@ -482,12 +513,20 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
 
   <p class="foot-note">The proposed cards are a mock drawn from the design tokens, not the shipped components. They settle direction and proportion, not exact sizes. Example names, gardens and amounts are invented. A pick locks only when a before and after pair of the real components is approved.</p>
 
-  <div class="dock" id="dock" aria-label="Shape dials">
-    <button type="button" class="toggle" id="dockToggle" aria-expanded="true" aria-controls="dockRows">Shape dials</button>
+</main>
+<aside class="rail" id="dock" aria-label="Card tweaker">
+  <button type="button" class="toggle" id="dockToggle" aria-expanded="true" aria-controls="railBody">Card tweaker</button>
+  <div class="rail-body" id="railBody">
+    <div class="pv-wrap">
+      <div class="rail-title"><b>Card tweaker</b><span class="acts"><button type="button" class="lnk js-reset">Reset to picks</button><button type="button" class="lnk js-copy">Copy picks</button></span></div>
+      <div class="copyrow" id="copyRow" hidden><label for="copyText">Copying is blocked here. Press Cmd+C or Ctrl+C:</label><input id="copyText" type="text" readonly></div>
+      <div class="pv-h"><h3>Live preview <span id="pvObj"></span></h3><span class="ctl" role="group" aria-label="Preview density"><span class="seg"><button type="button" data-pv="app" aria-pressed="true">App</button><button type="button" data-pv="cockpit" aria-pressed="false">Cockpit</button></span></span></div>
+      <div class="pv" id="preview" aria-live="polite"></div>
+    </div>
     <div class="rows" id="dockRows"></div>
-    <div class="foot"><span class="hint" id="hint">A dot marks your pick, or the recommendation where nothing is decided. Point at an option to read what it does.</span><button type="button" class="lnk" id="reset">Reset to picks</button><button type="button" class="lnk" id="copy">Copy picks</button></div>
-    <div class="copyrow" id="copyRow" hidden><label for="copyText">Copying is blocked here. Press Cmd+C or Ctrl+C:</label><input id="copyText" type="text" readonly></div>
+    <div class="foot"><span class="hint" id="hint">A dot marks your pick, or the recommendation where nothing is decided. Point at an option to read what it does.</span><span class="acts foot-acts"><button type="button" class="lnk js-reset">Reset to picks</button><button type="button" class="lnk js-copy">Copy picks</button></span></div>
   </div>
+</aside>
 </div>
 
 <dialog class="zoom" id="zoom" aria-labelledby="zoomCap">
@@ -717,14 +756,16 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
   }
   var DEF = defaults();
   var state = defaults();
+  var pvSurface = "app";
   try {
     var saved = JSON.parse(localStorage.getItem(KEY) || "null");
     if (saved && typeof saved === "object") {
       DIALS.forEach(function (c) { if (saved[c.key] && c.opts.some(function (o) { return o[0] === saved[c.key]; })) state[c.key] = saved[c.key]; });
       Object.keys(OBJ).forEach(function (k) { if (saved[k]) OBJ[k].forEach(function (c) { var v = saved[k][c.key]; if (v && c.opts.some(function (o) { return o[0] === v; })) state[k][c.key] = v; }); });
+      if (saved.pv === "app" || saved.pv === "cockpit") pvSurface = saved.pv;
     }
   } catch (e) {}
-  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+  function save() { try { var o = JSON.parse(JSON.stringify(state)); o.pv = pvSurface; localStorage.setItem(KEY, JSON.stringify(o)); } catch (e) {} }
 
   var hintEl = document.getElementById("hint");
   var HINT0 = hintEl.textContent;
@@ -780,7 +821,39 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
       return '<div class="shape"><h3>' + c[0] + '</h3><div class="spec app">' + c[2] + "</div><p>" + c[1] + "</p></div>";
     }).join("");
   }
-  function renderAll() { applyDials(); renderShapes(); Object.keys(OBJ).forEach(renderObj); }
+  /* the live preview: the object section in view, at the chosen density */
+  var SECTION_IDS = ["shapes", "work", "commitments", "actions", "records", "gardens", "people", "jars", "facts", "states", "primitives"];
+  var PV_NAMES = { shapes: "The four shapes", primitives: "Card primitives" };
+  var pv = document.getElementById("preview"), pvObj = document.getElementById("pvObj"), currentId = null;
+  function sectionNow() {
+    var line = window.innerHeight * 0.45, cur = "shapes";
+    SECTION_IDS.forEach(function (id) { var el = document.getElementById(id); if (el && el.getBoundingClientRect().top <= line) cur = id; });
+    return cur;
+  }
+  function shapesPreview() {
+    var w = WORK[0];
+    return itemRow({ lead: "photo", dom: w.dom, title: w.title, status: w.status, meta: [w.who, { soft: w.when }] }) +
+      mediaCard({ dom: "garden", banner: true, icon: "sprout", title: "Botanic Commons", sub: "Lagos · 24 members · 3 actions" }) +
+      factList(FACTS.slice(0, 3), state.facts.label, state.facts.rows) +
+      stateBlock({ icon: "inbox", t: "Nothing moving right now", d: "New promises show up here.", btn: "Offer something" }, "compact", state.states.mark);
+  }
+  function renderPreview(flash) {
+    var id = sectionNow();
+    currentId = id;
+    pv.innerHTML = '<div class="spec ' + pvSurface + '">' + (R[id] ? R[id](pvSurface, state[id]) : shapesPreview()) + "</div>";
+    pvObj.textContent = OBJ_NAMES[id] || PV_NAMES[id] || "";
+    document.querySelectorAll(".pv-h button[data-pv]").forEach(function (x) { x.setAttribute("aria-pressed", String(x.getAttribute("data-pv") === pvSurface)); });
+    if (flash) { pv.classList.remove("flash"); void pv.offsetWidth; pv.classList.add("flash"); }
+  }
+  var ticking = false;
+  function onMove() {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(function () { ticking = false; if (sectionNow() !== currentId) renderPreview(false); });
+  }
+  window.addEventListener("scroll", onMove, { passive: true });
+  window.addEventListener("resize", onMove);
+  function renderAll() { applyDials(); renderShapes(); Object.keys(OBJ).forEach(renderObj); renderPreview(false); }
 
   function picksLine() {
     var parts = DIALS.filter(function (c) { return c.key !== "theme" && c.key !== "show"; }).map(function (c) {
@@ -800,8 +873,11 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
       save();
       b.parentNode.querySelectorAll("button").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
       if (g === "dial") { applyDials(); } else { renderObj(g); if (g === "facts" || g === "states") renderShapes(); }
+      renderPreview(true);
       return;
     }
+    var pb = ev.target.closest(".pv-h button[data-pv]");
+    if (pb) { pvSurface = pb.getAttribute("data-pv"); save(); renderPreview(true); return; }
     var shot = ev.target.closest(".shot button");
     if (shot) {
       var img = shot.querySelector("img"), cap = shot.parentNode.querySelector("figcaption");
@@ -821,10 +897,10 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
   document.addEventListener("mouseover", hintFor);
   document.addEventListener("focusin", hintFor);
   document.getElementById("dock").addEventListener("mouseleave", function () { hintEl.textContent = HINT0; });
-  document.getElementById("reset").addEventListener("click", function () {
-    state = defaults(); save(); buildControls(); renderAll();
+  function resetAll() {
+    state = defaults(); save(); buildControls(); renderAll(); renderPreview(true);
     hintEl.textContent = "Back on your picks and the recommendations.";
-  });
+  }
   var copyTimer = 0;
   function legacyCopy(text) {
     var ta = document.createElement("textarea"), ok = false;
@@ -835,8 +911,8 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
     document.body.removeChild(ta);
     return ok;
   }
-  document.getElementById("copy").addEventListener("click", function () {
-    var btn = this, text = picksLine(), row = document.getElementById("copyRow"), field = document.getElementById("copyText");
+  function copyPicks(btn) {
+    var text = picksLine(), row = document.getElementById("copyRow"), field = document.getElementById("copyText");
     function copied() { row.hidden = true; btn.textContent = "Copied"; clearTimeout(copyTimer); copyTimer = setTimeout(function () { btn.textContent = "Copy picks"; }, 2200); }
     function shown() { row.hidden = false; field.value = text; field.focus(); field.select(); }
     function refused() { if (legacyCopy(text)) copied(); else shown(); }
@@ -844,13 +920,18 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
       if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(copied, refused);
       else refused();
     } catch (e) { refused(); }
+  }
+  document.addEventListener("click", function (ev) {
+    if (ev.target.closest(".js-reset")) resetAll();
+    var cb = ev.target.closest(".js-copy");
+    if (cb) copyPicks(cb);
   });
   var dock = document.getElementById("dock"), toggle = document.getElementById("dockToggle");
   toggle.addEventListener("click", function () {
     var c = dock.classList.toggle("collapsed");
     toggle.setAttribute("aria-expanded", String(!c));
   });
-  if (window.matchMedia && window.matchMedia("(max-width: 760px)").matches) { dock.classList.add("collapsed"); toggle.setAttribute("aria-expanded", "false"); }
+  if (window.matchMedia && window.matchMedia("(max-width: 1099px)").matches) { dock.classList.add("collapsed"); toggle.setAttribute("aria-expanded", "false"); }
 
   buildControls();
   renderAll();
