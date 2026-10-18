@@ -25,6 +25,8 @@ generated_from:
   - .claude/skills/qa-session/SKILL.md
   - .claude/skills/qa-triage/README.md
   - .claude/skills/qa-triage/SKILL.md
+  - .claude/skills/research-agenda/README.md
+  - .claude/skills/research-agenda/SKILL.md
   - .claude/skills/research/README.md
   - .claude/skills/research/SKILL.md
   - .claude/skills/resolve-pr-comments/README.md
@@ -33,7 +35,7 @@ generated_from:
   - .claude/skills/review/SKILL.md
   - .claude/skills/ship/README.md
   - .claude/skills/ship/SKILL.md
-source_digest: "sha256:ad57a94a77ee62d0622b9ae4bce83f5fd5ec1798edcb3208d33239f8a07be08c"
+source_digest: "sha256:52af2550db9586910d6ce5c3e98f3fae2d2824576c74f056a36ed34f6efa3c64"
 source_of_truth:
   - .claude/skills/audit/README.md
   - .claude/skills/audit/SKILL.md
@@ -53,6 +55,8 @@ source_of_truth:
   - .claude/skills/qa-session/SKILL.md
   - .claude/skills/qa-triage/README.md
   - .claude/skills/qa-triage/SKILL.md
+  - .claude/skills/research-agenda/README.md
+  - .claude/skills/research-agenda/SKILL.md
   - .claude/skills/research/README.md
   - .claude/skills/research/SKILL.md
   - .claude/skills/resolve-pr-comments/README.md
@@ -66,7 +70,7 @@ source_of_truth:
 <!-- GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs --scope <scope>`. -->
 # Skills Catalog
 
-Skills are packaged workflows. A coding agent, or you driving one, runs a skill by name for a specific kind of task. The catalog below is the quick index; each skill's own section follows, projected from its folder, where the README and SKILL.md stay the source of truth. 13 skills are catalogued; the [task routing](/builders/agentic/task-routing) page says which one a kind of task should reach for.
+Skills are packaged workflows. A coding agent, or you driving one, runs a skill by name for a specific kind of task. The catalog below is the quick index; each skill's own section follows, projected from its folder, where the README and SKILL.md stay the source of truth. 14 skills are catalogued; the [task routing](/builders/agentic/task-routing) page says which one a kind of task should reach for.
 
 ## Catalog
 
@@ -82,6 +86,7 @@ Skills are packaged workflows. A coding agent, or you driving one, runs a skill 
 | [qa-session](#qa-session) | While you walk the product live, with a partner, or from a recorded transcript, and want issues fixed as you find them. | Type `/qa-session` or announce a QA walk. |
 | [qa-triage](#qa-triage) | After a QA call or Build Sync, or when a qa-session hands over findings it deferred. | Type `/qa-triage` after a QA call or handoff. |
 | [research](#research) | When a product, architecture, or implementation question needs evidence before anyone decides. | Describe the bounded question; research intent activates it. |
+| [research-agenda](#research-agenda) | At a Research cycle boundary, or whenever the Saturday research digest says accepted edits are waiting. | Type `/research-agenda`, or `/research-agenda review` at a cycle boundary, or `/research-agenda candidates <name>` after the panel confirms a candidate track. |
 | [resolve-pr-comments](#resolve-pr-comments) | When a pull request has review threads or requested changes to work through. | Ask to address or resolve a PR's review comments. |
 | [review](#review) | Before merging, or any time you want to know whether a PR, branch, or set of changes is ready. | Type `/review [package\|PR\|path]`. |
 | [ship](#ship) | When your change is ready to commit, push, or open as a pull request. | Commit, push, or PR intent activates it. |
@@ -185,6 +190,16 @@ Evidence-first answers before decisions. Research reconciles repository and prim
 - **How to invoke:** Describe the bounded question; research intent activates it.
 
 [Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/develop/.claude/skills/research)
+
+## research-agenda {#research-agenda}
+
+Applies the research agenda edits the panel ticked in the Linear document *Research agenda · pending edits*, runs the cycle-boundary review of unticked proposals and candidates, and promotes a confirmed candidate track into `docs/routines/research-agenda.md`. The weekly `research-synthesis` routine proposes; this skill is the hand that applies, so the agenda stays human-owned.
+
+- **When to use it:** At a Research cycle boundary, or whenever the Saturday research digest says accepted edits are waiting.
+- **What you get:** The agenda file updated with exactly the ticked edits, the edition bumped with a change-log line, and the document's lines moved to Applied; the commit stays yours.
+- **How to invoke:** Type `/research-agenda`, or `/research-agenda review` at a cycle boundary, or `/research-agenda candidates <name>` after the panel confirms a candidate track.
+
+[Skill folder](https://github.com/greenpill-dev-guild/green-goods/tree/develop/.claude/skills/research-agenda)
 
 ## resolve-pr-comments {#resolve-pr-comments}
 
