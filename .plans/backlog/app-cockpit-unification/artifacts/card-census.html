@@ -1,0 +1,1461 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Card Census</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: a field guide. The design system the lab sets comes first, then the status and title
+   layouts side by side, then every card type at a glance, then one specimen sheet per object (today's
+   real cards above the proposed build). The card tweaker sits in a rail beside the sheets (a bottom
+   panel on a narrow screen) with a live preview above its dials. Chrome tokens match the main page. */
+:root {
+  color-scheme: light;
+  --bg: #FAF8F5;
+  --card: #FFFFFF;
+  --fg: #292524;
+  --fg-strong: #0C0A09;
+  --muted: #78716C;
+  --line: #E7E5E4;
+  --line-strong: #D6D3D1;
+  --accent: #1A7544;
+  --accent-ink: #FFFFFF;
+  --accent-soft: rgba(31, 193, 107, 0.12);
+  --mark: #1FC16B;
+  --cockpit: #2547D0;
+  --cockpit-soft: rgba(53, 89, 233, 0.12);
+  --amber: #B45309;
+  --amber-soft: #FDF1DC;
+  --shadow: 0 10px 28px rgba(20, 14, 8, 0.10);
+  --font-display: "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif;
+  --font-body: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #110C08; --card: #201913; --fg: #E7E5E4; --fg-strong: #FAFAF9; --muted: #A8A29E;
+    --line: rgba(250, 250, 249, 0.10); --line-strong: rgba(250, 250, 249, 0.20);
+    --accent: #C2F5DA; --accent-ink: #0C0A09; --accent-soft: rgba(194, 245, 218, 0.14); --mark: #3EE089;
+    --cockpit: #C0D5FF; --cockpit-soft: rgba(192, 213, 255, 0.16); --amber: #FCD34D; --amber-soft: rgba(252, 211, 77, 0.14);
+    --shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #110C08; --card: #201913; --fg: #E7E5E4; --fg-strong: #FAFAF9; --muted: #A8A29E;
+  --line: rgba(250, 250, 249, 0.10); --line-strong: rgba(250, 250, 249, 0.20);
+  --accent: #C2F5DA; --accent-ink: #0C0A09; --accent-soft: rgba(194, 245, 218, 0.14); --mark: #3EE089;
+  --cockpit: #C0D5FF; --cockpit-soft: rgba(192, 213, 255, 0.16); --amber: #FCD34D; --amber-soft: rgba(252, 211, 77, 0.14);
+  --shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+  color-scheme: dark;
+}
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+* { box-sizing: border-box; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 16px; line-height: 1.55; padding-inline: 16px; padding-block: 32px 24px; -webkit-font-smoothing: antialiased; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+.wrap { max-width: 1180px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--font-display); color: var(--fg-strong); text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(34px, 5vw, 50px); line-height: 1.05; font-weight: 700; letter-spacing: -0.02em; }
+h2 { font-size: 26px; line-height: 1.2; font-weight: 700; letter-spacing: -0.01em; }
+h3 { font-size: 13px; line-height: 1.3; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
+p { max-width: 72ch; margin: 10px 0; }
+a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+code { font-family: var(--font-mono); font-size: 0.84em; background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; color: var(--fg-strong); }
+.crumb { font-size: 14px; margin-bottom: 18px; }
+.eyebrow { font-family: var(--font-display); font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+.lede { font-size: 19px; line-height: 1.5; max-width: 62ch; }
+.tally { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 22px 0 6px; padding: 14px 0; border-top: 1px solid var(--line-strong); border-bottom: 1px solid var(--line-strong); }
+.tally div { display: flex; align-items: baseline; gap: 8px; }
+.tally b { font-family: var(--font-display); font-size: 26px; font-weight: 700; color: var(--fg-strong); font-variant-numeric: tabular-nums; line-height: 1; }
+.tally span { font-size: 14px; color: var(--muted); }
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 22px 0 8px; }
+.notes > div { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; min-width: 0; font-size: 14.5px; }
+.notes h3 { margin-bottom: 6px; }
+.notes p { margin: 6px 0; }
+.notes ul { margin: 6px 0 0; padding-left: 18px; }
+.notes li { margin: 3px 0; }
+.tag { display: inline-block; font-family: var(--font-display); font-size: 11.5px; font-weight: 600; letter-spacing: 0.02em; padding: 1px 9px; border-radius: 999px; line-height: 18px; vertical-align: middle; white-space: nowrap; }
+.tag.app { background: var(--accent-soft); color: var(--accent); }
+.tag.cockpit { background: var(--cockpit-soft); color: var(--cockpit); }
+.tag.shared { background: var(--amber-soft); color: var(--amber); }
+.tag.public { background: var(--line); color: var(--muted); }
+.toc { display: flex; flex-wrap: wrap; gap: 6px; margin: 18px 0 0; padding: 0; list-style: none; }
+.toc a { display: inline-block; font-family: var(--font-display); font-size: 13px; font-weight: 600; text-decoration: none; color: var(--fg); border: 1px solid var(--line-strong); border-radius: 999px; padding: 4px 12px; background: var(--card); }
+.toc a:hover { border-color: var(--accent); color: var(--accent); }
+.toc a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.lnk { font: inherit; font-weight: 600; color: var(--accent); background: transparent; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; white-space: nowrap; }
+.lnk:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* sheets */
+.obj { margin-top: 56px; padding-top: 22px; border-top: 1px solid var(--line-strong); scroll-margin-top: 12px; }
+.obj-h { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 20px; }
+.obj-h .count { font-size: 14px; color: var(--muted); }
+.block-h { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin: 20px 0 10px; }
+.block-h h3 { display: flex; align-items: center; gap: 8px; }
+.ev { font-family: var(--font-body); font-size: 12px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--muted); border: 1px dashed var(--line-strong); border-radius: 999px; padding: 1px 9px; }
+.note { font-size: 13.5px; color: var(--muted); }
+#layouts, #types { container-type: inline-size; }
+
+/* controls */
+.octl { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 2px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--card); }
+.seg-l { font-family: var(--font-display); font-size: 12px; font-weight: 600; color: var(--muted); margin-right: 4px; white-space: nowrap; }
+.ctl { display: inline-flex; align-items: center; gap: 6px; }
+.seg button { font: inherit; font-family: var(--font-body); font-size: 12.5px; font-weight: 500; line-height: 22px; padding: 0 10px; border: 0; border-radius: 7px; background: transparent; color: var(--fg); cursor: pointer; white-space: nowrap; }
+.seg button:hover { background: var(--accent-soft); }
+.seg button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.seg button.picked::after { content: ""; display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--mark); margin-left: 6px; vertical-align: 2px; }
+.seg button[aria-pressed="true"].picked::after { background: var(--accent-ink); }
+
+/* the design system the lab sets */
+.sysgrid { display: flex; flex-wrap: wrap; gap: 12px 18px; margin-top: 14px; padding: 14px 16px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; }
+.sysgrid .ctl { display: grid; gap: 4px; justify-items: start; }
+.sysgrid .seg button { font-size: 12px; padding: 0 8px; }
+.sys-src { font-size: 14px; margin: 10px 0 0; }
+.sys-src b { font-weight: 600; color: var(--fg-strong); }
+.sys-diff { font-size: 13.5px; color: var(--amber); margin: 10px 0 0; }
+.sys-pv { margin-top: 18px; }
+
+/* status and title layouts, side by side at a phone's width */
+.cmp { display: grid; grid-template-columns: minmax(0, 390px); gap: 28px 24px; margin-top: 16px; align-items: start; }
+@container (min-width: 700px) { .cmp { grid-template-columns: repeat(2, minmax(0, 390px)); } }
+.cmp-col { min-width: 0; display: grid; gap: 8px; align-content: start; }
+.cmp-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.cmp-h h3 { color: var(--fg-strong); letter-spacing: 0.04em; }
+.cmp-d { margin: 0; font-size: 13.5px; line-height: 1.45; color: var(--muted); min-height: 2.9em; }
+.use { font: inherit; font-family: var(--font-body); font-size: 12.5px; font-weight: 600; color: var(--accent); background: var(--card); border: 1px solid var(--line-strong); border-radius: 999px; padding: 3px 12px; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+.use[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+.use:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.cmp-col .spec { width: 100%; }
+.cmp-col.on .spec { outline: 2px solid var(--accent); outline-offset: 3px; }
+.cut { margin: 0; font-size: 12.5px; font-weight: 600; color: var(--accent); }
+.cut.bad { color: var(--amber); }
+.cmp-rec { min-width: 0; display: grid; gap: 12px; padding: 14px 16px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; font-size: 14.5px; }
+.cmp-rec p { margin: 0; }
+.cmp-rec b { color: var(--fg-strong); }
+.cuts { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.cuts caption { caption-side: top; text-align: left; font-size: 12.5px; color: var(--muted); padding-bottom: 6px; }
+.cuts th, .cuts td { padding: 5px 6px; border-top: 1px solid var(--line); text-align: right; white-space: nowrap; }
+.cuts th:first-child { text-align: left; white-space: normal; }
+.cuts thead th { font-weight: 600; color: var(--muted); font-size: 12px; border-top: 0; }
+.cuts td.bad { color: var(--amber); font-weight: 600; }
+.cuts td.zero { color: var(--accent); }
+.cuts tr.on th { color: var(--fg-strong); }
+.cuts .lang-on { background: var(--accent-soft); }
+
+/* every card type */
+.types { display: grid; grid-template-columns: minmax(0, 390px); gap: 28px 24px; margin-top: 16px; align-items: start; }
+@container (min-width: 700px) {
+  .types { grid-template-columns: repeat(2, minmax(0, 390px)); }
+  .tile[data-type="states"] { grid-column: 1 / -1; }
+  .tile[data-type="states"] .spec { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container (min-width: 1150px) {
+  .types { grid-template-columns: repeat(3, minmax(0, 390px)); }
+  .tile[data-type="states"] { grid-column: auto; }
+  .tile[data-type="states"] .spec { grid-template-columns: minmax(0, 1fr); }
+}
+.tile { min-width: 0; display: grid; gap: 8px; align-content: start; }
+.tile-h { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; min-height: 32px; }
+.tile-n { display: grid; min-width: 0; }
+.tile-n b { font-family: var(--font-display); font-size: 15px; line-height: 1.3; color: var(--fg-strong); }
+.tile-n span { font-size: 12px; line-height: 1.3; color: var(--muted); }
+.tile .spec { width: 100%; }
+
+/* today: real captures in a scrolling strip */
+.strip { display: flex; gap: 14px; overflow-x: auto; padding: 2px 2px 12px; scroll-snap-type: x proximity; scrollbar-width: thin; }
+.shot { flex: 0 0 auto; width: var(--w, 280px); max-width: 82vw; scroll-snap-align: start; margin: 0; min-width: 0; }
+.shot button { display: block; width: 100%; padding: 0; border: 1px solid var(--line-strong); border-radius: 12px; background: #FFFFFF; cursor: zoom-in; overflow: hidden; }
+.shot button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.shot img { display: block; width: 100%; height: auto; max-height: 420px; object-fit: contain; object-position: top left; background: #FFFFFF; }
+.shot.tall button { position: relative; }
+.shot.tall img { height: 420px; max-height: none; object-fit: cover; object-position: top center; }
+.shot.tall button::after { content: "Tap for full height"; position: absolute; left: 0; right: 0; bottom: 0; padding: 26px 10px 8px; font-size: 12px; font-weight: 600; color: #57534E; text-align: center; background: linear-gradient(180deg, rgba(255,255,255,0), #FFFFFF 68%); }
+.shot figcaption { margin-top: 7px; font-size: 13px; line-height: 1.4; color: var(--muted); }
+.shot figcaption .nm { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; color: var(--fg); font-weight: 600; }
+.shot figcaption .nm code { background: none; padding: 0; font-size: 13px; color: var(--fg-strong); }
+.shot figcaption .what { display: block; }
+.shot figcaption .src { display: block; font-family: var(--font-mono); font-size: 11px; overflow-wrap: anywhere; }
+.coderefs { font-size: 13.5px; color: var(--muted); margin: 4px 0 0; max-width: none; }
+.coderefs code { font-size: 12px; }
+
+/* proposed panels */
+.specs { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start; }
+.panel { min-width: 0; display: grid; gap: 8px; }
+.panel.full { flex: 1 1 100%; }
+.panel[hidden] { display: none !important; }
+.panel-l { font-family: var(--font-display); font-size: 11px; line-height: 16px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.panel-l span { text-transform: none; letter-spacing: 0; font-weight: 500; font-family: var(--font-body); }
+.keeps { font-size: 14px; color: var(--muted); margin-top: 12px; }
+.keeps b { color: var(--fg); font-weight: 600; }
+
+/* ===== specimens. The design-system values arrive as inline custom properties on each .spec ===== */
+.spec {
+  --s-ink: #0C0A09; --s-sub: #57534E; --s-soft: #78716C;
+  --s-info-bg: #EBF1FF; --s-info-fg: #182F8B; --s-info-bd: #D5E2FF;
+  --s-ok-bg: #E0FAEC; --s-ok-fg: #0B4627; --s-ok-bd: #C2F5DA;
+  --s-warn-bg: #FFF3E4; --s-warn-fg: #713A0A; --s-warn-bd: #FFD9B5;
+  --s-err-bg: #FFEBEC; --s-err-fg: #681219; --s-err-bd: #FFD5D8;
+  --s-neu-bg: #F5F5F4; --s-neu-fg: #57534E; --s-neu-bd: #E7E5E4;
+  --s-e-ok: #1FC16B; --s-e-warn: #F59E0B; --s-e-err: #EF4444; --s-e-info: #335CFF; --s-e-neu: #A8A29E;
+  --s-photo-dim: 1;
+  width: 390px; max-width: 100%; background: var(--s-canvas, #FAF8F5); color: var(--s-ink);
+  font-family: var(--s-font, "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif); font-size: var(--s-body); line-height: 1.4;
+  border: 1px solid var(--line-strong); border-radius: 20px; padding: 16px; display: grid; gap: var(--gap, 12px); align-content: start;
+}
+.spec.app { --s-body: 16px; --s-title: 16px; --s-title-w: 500; --s-meta: 12px; --s-pill: 12px; --s-pill-w: 500; --s-btn-h: 40px; --s-btn-fs: 15px; }
+.spec.cockpit { --s-body: 14px; --s-title: 14px; --s-title-w: 600; --s-meta: 12px; --s-pill: 11px; --s-pill-w: 600; --s-btn-h: 32px; --s-btn-fs: 14px; }
+.spec.sdark {
+  --s-ink: #FAFAF9; --s-sub: #D6D3D1; --s-soft: #A8A29E;
+  --s-info-bg: rgba(192,213,255,0.16); --s-info-fg: #C0D5FF; --s-info-bd: rgba(192,213,255,0.25);
+  --s-ok-bg: rgba(194,245,218,0.16); --s-ok-fg: #C2F5DA; --s-ok-bd: rgba(194,245,218,0.25);
+  --s-warn-bg: rgba(252,211,77,0.16); --s-warn-fg: #FCD34D; --s-warn-bd: rgba(252,211,77,0.25);
+  --s-err-bg: rgba(255,151,160,0.16); --s-err-fg: #FF97A0; --s-err-bd: rgba(255,151,160,0.25);
+  --s-neu-bg: rgba(250,250,249,0.08); --s-neu-fg: #D6D3D1; --s-neu-bd: rgba(250,250,249,0.14);
+  --s-e-ok: #1FC16B; --s-e-warn: #FBBF24; --s-e-err: #F87171; --s-e-info: #6B8CFF; --s-e-neu: #78716C;
+  --s-photo-dim: 0.82;
+  border-color: rgba(250,250,249,0.16);
+}
+.spec.desk { width: 100%; border-radius: 14px; }
+.spec.desk-grid { grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); }
+.spec.desk-grid.tall { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+.spec svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+.spec .grp { display: contents; }
+
+/* the card surface (F7) */
+.spec .sc { background: var(--s-card, #FFFFFF); border-radius: var(--card-r, 24px); border: 1px solid var(--s-card-bd, #E7E5E4); box-shadow: var(--s-card-sh, none); overflow: hidden; position: relative; min-width: 0; }
+.spec .sc.row { border-radius: var(--row-r, 16px); }
+.spec .sc.e-ok { --edge: var(--s-e-ok); } .spec .sc.e-warn { --edge: var(--s-e-warn); } .spec .sc.e-err { --edge: var(--s-e-err); } .spec .sc.e-info { --edge: var(--s-e-info); } .spec .sc.e-neu { --edge: var(--s-e-neu); }
+.spec.edge-on .sc.has-edge { border-left: var(--edge-w, 2px) solid var(--edge); }
+/* a list drawn as one card with divided rows (F11 Divided) */
+.spec .dl { display: grid; background: var(--s-card); border: 1px solid var(--s-card-bd); box-shadow: var(--s-card-sh); border-radius: var(--card-r, 24px); overflow: hidden; min-width: 0; }
+.spec .dl > .sc { border-radius: 0; border-width: 0; box-shadow: none; }
+.spec.edge-on .dl > .sc.has-edge { border-left: var(--edge-w, 2px) solid var(--edge); }
+.spec .dl > .sc + .sc { border-top: 1px solid var(--s-hair); }
+/* selection */
+.spec.sel-border3 .sc.selected { border-color: var(--s-acc-text); box-shadow: inset 0 0 0 2px var(--s-acc-text); }
+.spec.sel-ring .sc.selected { border-color: var(--s-acc-text); box-shadow: 0 0 0 3px var(--s-acc-tint); }
+.spec .sc .tick { display: none; position: absolute; top: 10px; right: 10px; width: 24px; height: 24px; border-radius: 999px; background: var(--s-acc); color: var(--s-acc-on); align-items: center; justify-content: center; font-size: 14px; z-index: 3; }
+.spec.sel-ring .sc.selected .tick { display: inline-flex; }
+
+/* pills, chips, buttons (F3, F4) */
+.spec .pill { display: inline-flex; align-items: center; border-radius: 999px; padding: 2px 8px; font-size: var(--s-pill); font-weight: var(--s-pill-w); line-height: 16px; border: 1px solid transparent; white-space: nowrap; flex-shrink: 0; max-width: 100%; min-width: 0; }
+.spec .pill .pt { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.spec.cockpit .pill { padding: 3px 10px; line-height: 14px; }
+.spec .pill.ok { background: var(--s-ok-bg); color: var(--s-ok-fg); border-color: var(--s-ok-bd); }
+.spec .pill.warn { background: var(--s-warn-bg); color: var(--s-warn-fg); border-color: var(--s-warn-bd); }
+.spec .pill.err { background: var(--s-err-bg); color: var(--s-err-fg); border-color: var(--s-err-bd); }
+.spec .pill.info { background: var(--s-info-bg); color: var(--s-info-fg); border-color: var(--s-info-bd); }
+.spec .pill.neu { background: var(--s-neu-bg); color: var(--s-neu-fg); border-color: var(--s-neu-bd); }
+.spec .chip { display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: var(--chip-r, 999px); border: 1px solid var(--s-hair); font-size: 12px; font-weight: 400; color: var(--s-sub); white-space: nowrap; flex-shrink: 0; background: var(--s-card); }
+.spec.cockpit .chip { background: transparent; font-weight: 500; }
+.spec .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: calc(var(--s-btn-h) - 8px); padding: 0 12px; border-radius: var(--btn-r, 16px); font-size: 13px; font-weight: var(--btn-w, 500); background: var(--s-acc); color: var(--s-acc-on); white-space: nowrap; border: 1px solid transparent; flex-shrink: 0; }
+.spec .btn.sec { border-color: var(--btn-outline); }
+.spec.app .btn.sec { background: var(--s-card); color: var(--s-ink); }
+.spec.cockpit .btn.sec { background: transparent; color: var(--s-acc-text); }
+.spec .btn.lg { height: var(--s-btn-h); padding: 0 16px; font-size: var(--s-btn-fs); }
+
+/* status layouts: the pill is drawn in each place and the layout shows one */
+.spec .pl-corner, .spec .pl-under, .spec .pl-details, .spec .pl-photo, .spec .pl-row { display: none; }
+.spec.stl-corner .pl-corner, .spec.stl-under .pl-under, .spec.stl-details .pl-details, .spec.stl-photo .pl-photo { display: inline-flex; }
+.spec.stl-under .pl-row { display: flex; }
+.spec.stl-photo .sc:not(.has-photo) .pl-row { display: flex; }
+.spec.stl-photo .sc:not(.has-photo) .pl-under { display: inline-flex; }
+/* title lines */
+.spec .title { min-width: 0; overflow-wrap: anywhere; }
+.spec .title.l1 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.spec .title.l2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* shape 1: the item row */
+.spec .ir { display: flex; align-items: stretch; min-height: var(--media, 88px); }
+.spec .ir .lead { flex-shrink: 0; position: relative; }
+.spec .ir .lead.photo { width: var(--media, 88px); background: var(--ph); }
+.spec .ir .lead.photo::before { content: ""; position: absolute; inset: 0; background: rgba(0,0,0,calc(1 - var(--s-photo-dim))); }
+.spec .ir .lead.photo .ic { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.85); font-size: 22px; }
+.spec .ir .lead.photo .pl-photo { position: absolute; left: 5px; right: 5px; bottom: 5px; justify-content: center; font-size: 11px; line-height: 15px; padding: 1px 5px; z-index: 1; }
+.spec .ir .lead.thumb { width: 48px; height: 48px; margin: 12px 0 0 12px; border-radius: 12px; background: var(--ph); }
+.spec .ir .lead.tile { width: 44px; height: 44px; margin: 12px 0 0 12px; border-radius: 12px; background: var(--s-grey); color: var(--s-sub); display: flex; align-items: center; justify-content: center; font-size: 22px; }
+.spec .ir .lead.av { width: 40px; height: 40px; margin: 12px 0 0 12px; border-radius: 999px; background: var(--s-acc-tint); color: var(--s-acc-text); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; letter-spacing: 0.02em; }
+.spec .ir .body { flex: 1 1 auto; min-width: 0; padding: 10px 12px; display: flex; flex-direction: column; justify-content: center; gap: 3px; }
+.spec .kick { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; margin: 0; font-size: 11px; line-height: 16px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; color: var(--s-soft); }
+.spec .kick.only-status { display: none; }
+.spec.stl-above .kick.only-status { display: flex; }
+.spec .pl-above { display: none; align-items: center; gap: 5px; }
+.spec.stl-above .pl-above { display: inline-flex; }
+.spec .pl-above i { width: 7px; height: 7px; border-radius: 50%; background: var(--dot); flex-shrink: 0; }
+.spec .pl-above.ok { color: var(--s-ok-fg); --dot: var(--s-e-ok); }
+.spec .pl-above.warn { color: var(--s-warn-fg); --dot: var(--s-e-warn); }
+.spec .pl-above.err { color: var(--s-err-fg); --dot: var(--s-e-err); }
+.spec .pl-above.info { color: var(--s-info-fg); --dot: var(--s-e-info); }
+.spec .pl-above.neu { color: var(--s-neu-fg); --dot: var(--s-e-neu); }
+.spec .top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; min-width: 0; }
+.spec .top .title { flex: 1 1 auto; }
+.spec .ir .title { font-size: var(--s-title); font-weight: var(--s-title-w); line-height: 1.4; }
+/* The detail line: each item carries its separator in a 12px left pad, and the row is pulled 12px
+   left inside a clipping box, so a separator that would start a wrapped line is hidden. */
+.spec .meta { font-size: var(--s-meta); color: var(--s-sub); line-height: 18px; min-width: 0; overflow: hidden; }
+.spec .meta .mrow { display: flex; flex-wrap: wrap; align-items: center; row-gap: 3px; margin-left: -12px; }
+.spec .meta .mi { white-space: nowrap; position: relative; padding-left: 12px; }
+.spec .meta .mi::before { content: "\2022"; position: absolute; left: 3px; color: var(--s-soft); }
+.spec .meta .pill + .mi::before { content: none; }
+.spec .meta .pl-details { margin-left: 12px; }
+/* Rule 1: the status pill and the most important detail travel together, so that detail never wraps
+   away; it shortens with an ellipsis if it must, and the details after it drop whole. */
+.spec .meta .mlead { display: inline-flex; align-items: center; min-width: 0; max-width: 100%; flex: 0 1 auto; }
+.spec .meta .soft { color: var(--s-soft); }
+.spec .ir .extra { font-size: var(--s-meta); line-height: 16px; display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+.spec .ir .extra.phase { color: var(--s-info-fg); }
+.spec .ir .extra.queue { color: var(--s-warn-fg); }
+.spec .ir .trail { flex-shrink: 0; display: flex; align-items: center; padding: 0 12px 0 0; color: var(--s-soft); font-size: 18px; }
+.spec .ir .trail .amt { text-align: right; font-size: var(--s-title); font-weight: 600; color: var(--s-ink); line-height: 1.2; font-variant-numeric: tabular-nums; }
+.spec .ir .trail .amt small { display: block; font-size: var(--s-meta); font-weight: 400; color: var(--s-soft); }
+.spec .ir.compact { min-height: 0; }
+.spec .ir.compact .lead.av { width: 32px; height: 32px; margin: 8px 0 8px 10px; font-size: 11px; }
+.spec .ir.compact .body { padding: 8px 10px; flex-direction: row; align-items: center; justify-content: space-between; gap: 8px; }
+.spec .ir.compact .meta { flex: 0 0 auto; }
+.spec .ir.compact .meta .mrow { margin-left: 0; }
+.spec .ir.compact .meta .mi:first-of-type { padding-left: 0; }
+.spec .ir.compact .meta .mi:first-of-type::before { content: none; }
+
+/* shape 2: the media card */
+.spec .mc .media { position: relative; aspect-ratio: 16 / 9; background: var(--ph); display: grid; }
+.spec .mc .media::before { content: ""; position: absolute; inset: 0; background: rgba(0,0,0,calc(1 - var(--s-photo-dim))); z-index: 1; pointer-events: none; }
+.spec .mc .media.banner { aspect-ratio: auto; height: 104px; }
+.spec .mc .media.grid { grid-template-columns: 1.35fr 1fr; gap: 1px; background: var(--s-hair); }
+.spec .mc .media.grid i { background: var(--ph); display: block; }
+.spec .mc .media.grid i:first-child { grid-row: span 2; }
+.spec .mc .media .ic { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.85); font-size: 26px; pointer-events: none; }
+.spec .mc .media .dchip { position: absolute; left: 8px; bottom: 8px; border-radius: var(--chip-r, 999px); padding: 3px 10px; font-size: 11px; font-weight: 600; line-height: 14px; background: var(--s-dchip); color: var(--s-sub); z-index: 2; }
+.spec .mc .media .mcount { position: absolute; right: 8px; bottom: 8px; border-radius: 999px; padding: 3px 8px; font-size: 11px; font-weight: 500; line-height: 14px; background: rgba(0,0,0,0.6); color: #FFFFFF; z-index: 2; }
+.spec .mc .media .pl-photo { position: absolute; left: 8px; top: 8px; z-index: 2; max-width: calc(100% - 16px); }
+.spec .mc .body { padding: 12px 14px 14px; display: grid; gap: 6px; min-width: 0; align-content: start; }
+.spec .mc .title { font-size: var(--s-title); font-weight: 600; line-height: 1.4; }
+.spec .mc .sub { font-size: 13px; color: var(--s-sub); line-height: 18px; }
+.spec .mc .mfoot { font-size: var(--s-meta); color: var(--s-sub); display: flex; align-items: center; justify-content: space-between; gap: 4px 10px; min-width: 0; }
+.spec .mc .mfoot .ml { display: flex; flex-wrap: wrap; align-items: center; gap: 3px 7px; min-width: 0; }
+.spec .mc .mfoot .soft { color: var(--s-soft); white-space: nowrap; }
+.spec .mc.wide { display: flex; }
+.spec .mc.wide .media { width: 200px; aspect-ratio: auto; min-height: 132px; flex-shrink: 0; }
+.spec .mc.wide .body { flex: 1 1 auto; align-content: center; }
+
+/* shape 3: the fact row */
+.spec .fl .fr { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.4fr); gap: 4px 12px; padding: 10px 14px; font-size: 14px; line-height: 20px; align-items: baseline; }
+.spec.cockpit .fl .fr { font-size: 13px; padding: 9px 14px; }
+.spec .fl .fr .k { color: var(--s-sub); }
+.spec .fl .fr .v { color: var(--s-ink); font-weight: 500; min-width: 0; overflow-wrap: anywhere; }
+.spec .fl.above .fr { grid-template-columns: minmax(0, 1fr); gap: 0; }
+.spec .fl.above .fr .k { font-size: 12px; line-height: 16px; }
+.spec .fl.divided .fr + .fr { border-top: 1px solid var(--s-hair); }
+.spec .fl.spaced { display: grid; gap: 6px; padding: 6px 0; }
+.spec .fl.spaced .fr { margin: 0 8px; background: var(--s-tint); border-radius: 10px; }
+
+/* shape 4: the state block */
+.spec .sb { display: grid; justify-items: center; text-align: center; gap: 8px; padding: 28px 20px; }
+.spec .sb .mark { width: 56px; height: 56px; border-radius: 999px; background: var(--s-acc-tint); color: var(--s-acc-text); display: flex; align-items: center; justify-content: center; font-size: 26px; }
+.spec .sb .mark.err { background: var(--s-err-bg); color: var(--s-err-fg); }
+.spec .sb .t { font-size: calc(var(--s-title) + 2px); font-weight: 600; line-height: 1.35; }
+.spec .sb .d { font-size: 14px; color: var(--s-sub); line-height: 20px; max-width: 34ch; }
+.spec.cockpit .sb .d { font-size: 13px; }
+.spec .sb .btn { margin-top: 6px; }
+.spec .sb.compact { grid-template-columns: auto minmax(0, 1fr); justify-items: start; text-align: left; padding: 14px 16px; column-gap: 12px; row-gap: 2px; align-items: center; }
+.spec .sb.compact .mark { width: 40px; height: 40px; font-size: 20px; grid-row: span 2; }
+.spec .sb.compact .t { font-size: var(--s-title); }
+.spec .sb.compact .btn { grid-column: 1 / -1; margin-top: 8px; }
+.spec .sb.no-mark .mark { display: none; }
+.spec .sb.compact.no-mark { grid-template-columns: minmax(0, 1fr); }
+
+/* the card tweaker: a rail beside the census on a wide screen, a bottom panel on a narrow one */
+.shell { max-width: 1600px; margin: 0 auto; }
+.rail { background: var(--card); border: 1px solid var(--line-strong); border-radius: 16px; box-shadow: var(--shadow); font-size: 12px; color: var(--fg); }
+.rail-body { display: grid; gap: 10px; padding: 12px 14px; }
+.rail-title { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.rail-title b { font-family: var(--font-display); font-size: 15px; color: var(--fg-strong); }
+.pv-wrap { position: sticky; top: 0; z-index: 2; background: var(--card); display: grid; gap: 8px; padding: 2px 0 10px; border-bottom: 1px solid var(--line); }
+.pv-h { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 8px; }
+.pv-h h3 { font-size: 11px; }
+.pv-h select { font: inherit; font-family: var(--font-body); font-size: 12px; height: 26px; color: var(--fg); background: var(--bg); border: 1px solid var(--line-strong); border-radius: 8px; padding: 0 6px; max-width: 100%; }
+.pv-sel { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 8px; }
+.pv { border-radius: 18px; }
+.pv .spec { width: 100%; padding: 12px; border-radius: 16px; }
+.pv.flash { animation: pvflash 0.7s ease-out; }
+@keyframes pvflash { from { box-shadow: 0 0 0 3px var(--accent); } to { box-shadow: 0 0 0 3px transparent; } }
+.pv-opts { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; }
+.pv-opts .pv-for { font-family: var(--font-display); font-size: 12px; font-weight: 600; color: var(--fg-strong); }
+.sys-line { font-size: 12px; color: var(--muted); line-height: 16px; margin: 0; }
+.rail .rows { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: flex-end; }
+.rail .ctl { display: grid; gap: 3px; justify-items: start; }
+.rail .seg-l { font-size: 11px; margin: 0; }
+.rail .seg button { font-size: 11.5px; line-height: 22px; padding: 0 7px; }
+.rail .foot { display: grid; gap: 6px; color: var(--muted); font-size: 12px; line-height: 16px; }
+.rail .acts { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.rail .copyrow { display: grid; gap: 4px; }
+.rail .copyrow input { min-width: 0; height: 28px; padding: 0 8px; font-family: var(--font-mono); font-size: 11px; color: var(--fg); background: var(--bg); border: 1px solid var(--line-strong); border-radius: 8px; }
+.rail .toggle { display: none; }
+.rail .rail-bar { display: none; }
+.rail .foot-acts { display: none; }
+.rail .toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (min-width: 1100px) {
+  .shell { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 28px; align-items: start; }
+  .shell > .wrap { max-width: none; margin: 0; min-width: 0; }
+  .rail { position: sticky; top: calc(16px + env(safe-area-inset-top, 0px)); max-height: calc(100dvh - 32px); overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+  .pv .spec > :nth-child(n+4) { display: none; }
+}
+@media (max-width: 1099px) {
+  .rail { position: sticky; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); z-index: 30; margin-top: 40px; max-height: 76dvh; overflow: auto; overscroll-behavior: contain; }
+  /* The folded bar keeps Copy picks in reach without opening the tweaker. */
+  .rail .rail-bar { display: flex; position: sticky; top: 0; z-index: 3; align-items: center; background: var(--card); border-radius: 16px; }
+  .rail .rail-bar .bar-copy { flex: 0 0 auto; padding: 0 14px; line-height: 40px; }
+  .rail .toggle { display: flex; flex: 1 1 auto; min-width: 0; align-items: center; justify-content: space-between; font: inherit; font-family: var(--font-display); font-size: 13px; font-weight: 600; line-height: 40px; color: var(--fg); background: var(--card); border: 0; border-radius: 16px; padding: 0 14px; cursor: pointer; }
+  .rail .toggle::after { content: ""; width: 8px; height: 8px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: translateY(-2px) rotate(45deg); }
+  .rail.collapsed .toggle::after { transform: translateY(2px) rotate(225deg); }
+  .rail.collapsed .rail-body { display: none; }
+  .rail-body { padding-top: 0; }
+  .rail-title { display: none; }
+  .rail .foot-acts { display: flex; }
+  .pv-wrap { top: 40px; }
+  .pv .spec > :nth-child(n+3) { display: none; }
+  .rail .seg button { line-height: 30px; font-size: 13px; padding: 0 10px; }
+  .rail .copyrow input { height: 34px; font-size: 16px; }
+}
+@media (max-width: 760px) {
+  .notes { grid-template-columns: minmax(0, 1fr); }
+  .spec { width: 100%; }
+  .spec.desk-grid, .spec.desk-grid.tall { grid-template-columns: minmax(0, 1fr); }
+  .spec .mc.wide { display: block; }
+  .spec .mc.wide .media { width: 100%; min-height: 0; aspect-ratio: 16 / 9; }
+  .specs { flex-direction: column; align-items: stretch; }
+  .panel { width: 100%; }
+  .octl .seg button, .sysgrid .seg button, .tile-h .seg button { line-height: 30px; font-size: 13px; padding: 0 10px; }
+}
+@media (pointer: coarse) { .seg button { line-height: 30px; } }
+
+/* the zoom dialog */
+dialog.zoom { width: min(1100px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 0; border: 1px solid var(--line-strong); border-radius: 16px; background: var(--card); color: var(--fg); box-shadow: var(--shadow); }
+dialog.zoom::backdrop { background: rgba(12, 10, 9, 0.55); }
+dialog.zoom .zbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--card); }
+dialog.zoom .zbar p { margin: 0; font-size: 14px; }
+dialog.zoom .zbar button { font: inherit; font-weight: 600; font-size: 14px; color: var(--fg); background: var(--bg); border: 1px solid var(--line-strong); border-radius: 999px; padding: 4px 14px; cursor: pointer; }
+dialog.zoom .zbar button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+dialog.zoom .zimg { padding: 16px; background: #FFFFFF; overflow: auto; }
+dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+.foot-note { margin-top: 40px; font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 14px; }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } .pv.flash { animation: none; } }
+
+/* ===== One row for every card type: a set height, a centred lead slot, one title line and one
+   detail line. Status lives in the pill, never on a line of its own. (Row height, Title size,
+   Detail size, Icons and Confirming in the dock.) ===== */
+.spec { --rowh: 72px; --leadsz: 48px; --s-kick: 11px; --s-sub-fs: 13px; }
+.spec.rh-88 { --rowh: 88px; --leadsz: 56px; }
+.spec.rh-64 { --rowh: 64px; --leadsz: 40px; }
+.spec.rh-64 .ir:not(.compact) .body { padding-block: 6px; gap: 2px; }
+.spec .ir:not(.compact) { height: var(--rowh); min-height: 0; align-items: center; }
+/* Status under or above the title costs a line by design, and two title lines are opt-in, so those rows grow from the set height. */
+/* The pill under the title and the label above it cost a line by design, so every row in those layouts
+   takes one fixed height, at least 88px, instead of growing to fit; a card never outgrows its
+   neighbours. Two-line titles stay an opt-in for a whole card type, so those rows grow together. */
+.spec.stl-under .ir:not(.compact), .spec.stl-above .ir:not(.compact) { height: max(var(--rowh), 88px); }
+.spec.stl-under .ir:not(.compact) .body, .spec.stl-above .ir:not(.compact) .body { padding-block: 8px; gap: 2px; }
+.spec .ir:not(.compact):has(.title.l2) { height: auto; min-height: var(--rowh); }
+.spec .ir .lead.photo { align-self: stretch; }
+.spec .ir .lead.thumb, .spec .ir .lead.tile, .spec .ir .lead.av { width: var(--leadsz); height: var(--leadsz); margin: 0 0 0 12px; align-self: center; }
+.spec .ir .lead.tile { font-size: calc(var(--leadsz) * 0.46); }
+.spec .ir .lead.av { font-size: calc(var(--leadsz) * 0.3); }
+.spec.icons-hide .ir .lead.tile { display: none; }
+/* The detail line stays one line. Details that don't fit wrap onto a second line that the clamp
+   hides, so a narrow row drops its last details whole (separator included) instead of cutting them. */
+/* One detail line, always the same height, so a detail that drops never shifts the row's content. */
+.spec .ir:not(.compact) .meta { height: 18px; max-height: 18px; }
+.spec.stl-details .ir:not(.compact) .meta { height: 22px; max-height: 22px; }
+.spec .ir:not(.compact) .meta .mrow { row-gap: 12px; }
+/* A single detail too long for the row on its own ends in an ellipsis. */
+.spec .ir:not(.compact) .meta .mi { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* A person with no name: a generated avatar, and the short address in a quiet monospace. */
+.spec .ir .lead.av.gen { background: linear-gradient(135deg, var(--g1), var(--g2)); }
+.spec .title.addr { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: calc(var(--s-title) - 1.5px); font-weight: 500; color: var(--s-sub); letter-spacing: 0; }
+.spec .addr { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.94em; color: var(--s-sub); letter-spacing: 0; }
+/* Title size: the cockpit keeps 14px until a pick takes both surfaces down. */
+.spec.app.ts-15 { --s-title: 15px; }
+.spec.ts-14 { --s-title: 14px; }
+.spec.ts-13 { --s-title: 13px; }
+.spec.app.ts-15-13 { --s-title: 15px; }
+.spec.cockpit.ts-15-13 { --s-title: 13px; }
+/* Details and labels. */
+.spec.ms-11_5 { --s-meta: 11.5px; --s-kick: 10.5px; --s-sub-fs: 12.5px; }
+.spec.ms-11 { --s-meta: 11px; --s-kick: 10px; --s-sub-fs: 12px; }
+.spec.app.ms-11_5 { --s-pill: 11.5px; }
+.spec.app.ms-11 { --s-pill: 11px; }
+.spec .kick { font-size: var(--s-kick); }
+.spec .mc .sub { font-size: var(--s-sub-fs); }
+.spec.ms-11_5 .fl .k, .spec.ms-11 .fl .k { font-size: var(--s-meta); }
+/* The detail-line rules agreed on 18 October: a row's photo carries its photo count. The one row
+   that needs the reader shows its action at its right, so every row keeps one height. */
+.spec .ir .lead.photo .pcount { position: absolute; top: 5px; right: 5px; z-index: 1; display: inline-flex; align-items: center; gap: 3px; border-radius: 999px; padding: 1px 6px; font-size: 11px; font-weight: 600; line-height: 15px; background: rgba(0,0,0,0.6); color: #FFFFFF; }
+.spec .ir .lead.photo .pcount svg { font-size: 11px; }
+.locked { margin: 18px 0 0; padding: 12px 16px; max-width: 804px; background: var(--accent-soft); border-radius: 14px; font-size: 14.5px; }
+.locked b { color: var(--fg-strong); }
+.rules-box { margin: 16px 0 6px; max-width: 804px; display: grid; gap: 10px; padding: 14px 16px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; font-size: 14.5px; }
+.rules-box p { margin: 0; }
+.rules-box b { color: var(--fg-strong); }
+.rules-box ol { margin: 0; padding-left: 20px; display: grid; gap: 3px; }
+.rules-box li { margin: 0; }
+/* The wide desktop card gets a narrower photo, leaving more room for its text. Below 761px it stacks. */
+@media (min-width: 761px) {
+  .spec .mc.wide .media { width: 144px; min-height: 120px; }
+}
+</style>
+</head>
+<body>
+<div class="shell census">
+<main class="wrap">
+  <nav class="crumb"><a id="back" href="design-lab.html">Design lab</a> · card census</nav>
+  <div class="eyebrow">Design research · App and cockpit cards · 17 October 2026</div>
+  <h1>Card Census</h1>
+  <p class="lede">Every card the app and the cockpit draw today, object by object, beside the version built from four shared shapes. Every proposed card follows the design system you set in the lab. Compare where the status sits, set how many lines each card type's title may take, and copy your picks back into the chat.</p>
+
+  <div class="tally" aria-label="What the census counted">
+    <div><b>107</b><span>card, row and tile components</span></div>
+    <div><b>14</b><span>in Shared</span></div>
+    <div><b>64</b><span>in the app</span></div>
+    <div><b>35</b><span>in the cockpit</span></div>
+    <div><b>5</b><span>card primitives</span></div>
+    <div><b>4</b><span>shared shapes proposed</span></div>
+  </div>
+
+  <div class="notes">
+    <div>
+      <h3>How to read it</h3>
+      <p>Start with your design system, then the status and title layouts, then every card type at a glance. Each object further down shows <b>today's</b> real components, captured from Storybook, above the <b>proposed</b> version.</p>
+    </div>
+    <div>
+      <h3>What you can test</h3>
+      <ul>
+        <li>Four places for the status pill, side by side.</li>
+        <li>One row height, title size and detail size for every card type, with one title line by default (two stay available per type).</li>
+        <li>Where a pending confirmation shows, and rows with their icons hidden.</li>
+        <li>Long, Spanish and Portuguese titles, to see where text runs out.</li>
+        <li>The detail-line rules agreed on 18 October against the line before them, with the details each one drops counted.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Evidence</h3>
+      <p>Captures: the deployed Storybook build of 18 October, headless Chromium at 2x, light theme. Labeled <b>Storybook</b>, not a signed-in session.</p>
+      <p>Counts and paths: <code>develop</code> at <code>b30ac410f</code>. The proposed cards are a hand-built mock.</p>
+    </div>
+  </div>
+
+  <p class="locked"><b>Locked on 18 October.</b> The census opens on your picks: the status pill under the title, the agreed detail-line rules, 88px rows with an 88px photo, 15 / 13 titles, 11px details, one title line for every type, icons shown, Confirming in the pill, one detail on a jar row and one pill per card. Every lab fork is locked as recorded. The other options stay for comparison.</p>
+
+  <ul class="toc" aria-label="Sections">
+    <li><a href="#system">Your design system</a></li>
+    <li><a href="#layouts">Status and titles</a></li>
+    <li><a href="#types">Every card type</a></li>
+    <li><a href="#work">Work</a></li>
+    <li><a href="#commitments">Commitments</a></li>
+    <li><a href="#actions">Actions</a></li>
+    <li><a href="#records">Assessments and hypercerts</a></li>
+    <li><a href="#gardens">Gardens</a></li>
+    <li><a href="#people">People</a></li>
+    <li><a href="#jars">Jars, vaults and pools</a></li>
+    <li><a href="#facts">Facts</a></li>
+    <li><a href="#states">Empty and error states</a></li>
+    <li><a href="#primitives">Card primitives</a></li>
+  </ul>
+
+  <section class="obj" id="system">
+    <div class="obj-h"><h2>Your design system</h2><span class="count">Shared with the lab</span></div>
+    <p>The lab's forks that shape a card. Every proposed card on this page follows them, and a change here changes the lab in this browser too. A dot marks the pick you recorded on 17 October.</p>
+    <p class="sys-src" id="sysSrc"></p>
+    <div class="sysgrid" id="sysCtl"></div>
+    <p class="sys-diff" id="sysDiff" hidden></p>
+    <div class="specs sys-pv" id="sysPv"></div>
+  </section>
+
+  <section class="obj" id="layouts">
+    <div class="obj-h"><h2>Status and titles</h2><div class="octl" id="cmpCtl"></div></div>
+    <p>Where the status pill sits decides how much room a title gets. Today the pill shares the title's line, so a long title, or a long status word in Spanish or Portuguese, gets cut off. Each column draws the same five cards with the status in a different place, at a phone's width, and counts the titles that get cut off. Switch the text to Long, Español or Português to push them.</p>
+    <div class="cmp" id="cmp"></div>
+  </section>
+
+  <section class="obj" id="types">
+    <div class="obj-h"><h2>Every card type</h2><div class="octl" id="typeCtl"></div></div>
+    <p>Every card type built from the four shapes, with your current settings, one phone wide. Titles take one line, so every row keeps the same height; a title that runs out ends in an ellipsis and shows in full when you point at it. Two lines stay available for each type. A detail that doesn't fit drops out whole, last first.</p>
+    <div class="rules-box">
+      <p><b>The cards follow the rules agreed on 18 October.</b> Switch Detail line to Before to see the line as it was.</p>
+      <ol>
+        <li>Each card type orders its details by importance, so the least useful drops first.</li>
+        <li>The status and at most two details. A third fact belongs on the item's own page.</li>
+        <li>Nothing the card already shows: the icon says offer or request, the chip says a person's role, the chrome names the garden.</li>
+        <li>Short ages and dates in every language, and an age is always a number.</li>
+        <li>A row opens its item when tapped. An action stays only on the row that needs you, at its right, so every row keeps one height.</li>
+        <li>One pill per card: the status. Any other label becomes a state that replaces it, a detail, or a mark on the photo.</li>
+      </ol>
+      <table class="cuts" id="drops"></table>
+    </div>
+    <div class="types" id="typeGrid"></div>
+  </section>
+
+  
+  <section class="obj" id="work">
+    <div class="obj-h"><h2>Work</h2><span class="count">3 designs in use · 1 shared row nothing renders</span></div>
+    <p class="obj-sum">On a phone the app shows work as a row: a photo, the title, a status pill and a coloured edge. Its upload queue uses a different card. The cockpit shows the same work as a card with a photo grid on top. Shared also has a workbench row with the right fields that nothing renders.</p>
+    <div class="block-h"><h3>Today <span class="ev">Storybook</span></h3></div>
+    <div class="strip"><figure class="shot tall" style="--w:360px"><button type="button" aria-label="Open WorkCard full size"><img src="census/work-sharedrow.webp" width="768" height="3118" loading="lazy" alt="WorkCard: The row the app renders, in every status"></button><figcaption><span class="nm"><code>WorkCard</code> <span class="tag app">app</span> <span class="tag shared">Shared code</span></span><span class="what">The row the app renders, in every status</span><span class="src">shared/components/Cards/WorkCard/WorkCard.tsx · 416 lines</span></figcaption></figure><figure class="shot tall" style="--w:360px"><button type="button" aria-label="Open PendingCard full size"><img src="census/work-pending.webp" width="768" height="1432" loading="lazy" alt="PendingCard: The upload queue, every kind"></button><figcaption><span class="nm"><code>PendingCard</code> <span class="tag app">app</span></span><span class="what">The upload queue, every kind</span><span class="src">client/components/Cards/Work/PendingCard.tsx · 178 lines · rendered in 2 files</span></figcaption></figure><figure class="shot" style="--w:360px"><button type="button" aria-label="Open DraftCard full size"><img src="census/work-draft.webp" width="768" height="232" loading="lazy" alt="DraftCard: A saved draft"></button><figcaption><span class="nm"><code>DraftCard</code> <span class="tag app">app</span></span><span class="what">A saved draft</span><span class="src">client/components/Cards/Work/DraftCard.tsx · 81 lines</span></figcaption></figure><figure class="shot" style="--w:355px"><button type="button" aria-label="Open HubWorkCard full size"><img src="census/work-hubcard.webp" width="710" height="608" loading="lazy" alt="HubWorkCard: The photo-grid card"></button><figcaption><span class="nm"><code>HubWorkCard</code> <span class="tag cockpit">cockpit</span></span><span class="what">The photo-grid card</span><span class="src">admin/views/Hub/components/HubWorkCard.tsx · 313 lines</span></figcaption></figure><figure class="shot" style="--w:560px"><button type="button" aria-label="Open HubWorkQueue full size"><img src="census/work-hubqueue.webp" width="1600" height="977" loading="lazy" alt="HubWorkQueue: The Hub queue, four cards"></button><figcaption><span class="nm"><code>HubWorkQueue</code> <span class="tag cockpit">cockpit</span></span><span class="what">The Hub queue, four cards</span><span class="src">admin/views/Hub/components/HubWorkCard.tsx · 313 lines</span></figcaption></figure><figure class="shot" style="--w:360px"><button type="button" aria-label="Open WorkbenchRow full size"><img src="census/work-workbenchrow.webp" width="858" height="428" loading="lazy" alt="WorkbenchRow: A shared row that nothing renders"></button><figcaption><span class="nm"><code>WorkbenchRow</code> <span class="tag shared">shared</span></span><span class="what">A shared row that nothing renders</span><span class="src">shared/components/Canvas/WorkbenchRow.tsx · 139 lines</span></figcaption></figure></div>
+    <p class="coderefs">Also in the code, without a story: <code>WorkMediaPhotoCard</code> (app, 89 lines, a photo in Submit Work); <code>PendingPhotoTile</code> (app, 100 lines, a queued photo).</p>
+    <div class="block-h"><h3>Proposed <span class="ev">Mock</span></h3><div class="octl" data-obj="work"></div></div>
+    <div class="specs" data-obj="work"></div>
+    <p class="keeps"><b>Stays with work:</b> the upload-queue states (saved, uploading, blocked), the photo count, and the photo grid on the cockpit's desktop card.</p>
+  </section>
+  <section class="obj" id="commitments">
+    <div class="obj-h"><h2>Commitments</h2><span class="count">5 designs in the app · 2 rows in a cockpit pool card</span></div>
+    <p class="obj-sum">The app gives promises five separate designs: a row, a group row, the pinned promise in Submit Work, a queued act and a pending creation. The cockpit lists them as rows inside its Offers and Requests card. The shared status badge is the only piece both use.</p>
+    <div class="block-h"><h3>Today <span class="ev">Storybook</span></h3></div>
+    <div class="strip"><figure class="shot" style="--w:352px"><button type="button" aria-label="Open CommitmentRow full size"><img src="census/com-row.webp" width="704" height="232" loading="lazy" alt="CommitmentRow: A promise that needs you"></button><figcaption><span class="nm"><code>CommitmentRow</code> <span class="tag app">app</span></span><span class="what">A promise that needs you</span><span class="src">client/components/Features/Commitments/CommitmentRow.tsx · 145 lines · rendered in 5 files</span></figcaption></figure><figure class="shot" style="--w:352px"><button type="button" aria-label="Open CommitmentRow full size"><img src="census/com-row-settled.webp" width="704" height="232" loading="lazy" alt="CommitmentRow: A promise that was kept"></button><figcaption><span class="nm"><code>CommitmentRow</code> <span class="tag app">app</span></span><span class="what">A promise that was kept</span><span class="src">client/components/Features/Commitments/CommitmentRow.tsx · 145 lines</span></figcaption></figure><figure class="shot" style="--w:360px"><button type="button" aria-label="Open PromiseGroupRow full size"><img src="census/com-group.webp" width="720" height="248" loading="lazy" alt="PromiseGroupRow: A group of promises"></button><figcaption><span class="nm"><code>PromiseGroupRow</code> <span class="tag app">app</span></span><span class="what">A group of promises</span><span class="src">client/components/Features/Commitments/PromiseGroupRow.tsx · 127 lines</span></figcaption></figure><figure class="shot" style="--w:360px"><button type="button" aria-label="Open PinnedPromiseCard full size"><img src="census/com-pinned.webp" width="832" height="180" loading="lazy" alt="PinnedPromiseCard: The promise a submission is for"></button><figcaption><span class="nm"><code>PinnedPromiseCard</code> <span class="tag app">app</span></span><span class="what">The promise a submission is for</span><span class="src">client/components/Features/Commitments/PinnedPromiseCard.tsx · 56 lines</span></figcaption></figure><figure class="shot" style="--w:360px"><button type="button" aria-label="Open QueuedActRow full size"><img src="census/com-queued.webp" width="832" height="484" loading="lazy" alt="QueuedActRow: Saved on this phone, not sent"></button><figcaption><span class="nm"><code>QueuedActRow</code> <span class="tag app">app</span></span><span class="what">Saved on this phone, not sent</span><span class="src">client/views/Home/Garden/Commitment/QueuedActRow.tsx · 325 lines</span></figcaption></figure><figure class="shot" style="--w:560px"><button type="button" aria-label="Open PoolCommitmentsCard full size"><img src="census/com-poolcard.webp" width="1350" height="482" loading="lazy" alt="PoolCommitmentsCard: Offers and Requests, the pool card"></button><figcaption><span class="nm"><code>PoolCommitmentsCard</code> <span class="tag cockpit">cockpit</span></span><span class="what">Offers and Requests, the pool card</span><span class="src">admin/views/Garden/Pool/PoolCommitmentsCard.tsx · 498 lines</span></figcaption></figure><figure class="shot" style="--w:360px"><button type="button" aria-label="Open PoolGroupRow full size"><img src="census/com-poolgroup.webp" width="900" height="152" loading="lazy" alt="PoolGroupRow: A group in the pool"></button><figcaption><span class="nm"><code>PoolGroupRow</code> <span class="tag cockpit">cockpit</span></span><span class="what">A group in the pool</span><span class="src">admin/views/Garden/Pool/PoolGroupRow.tsx · 180 lines</span></figcaption></figure><figure class="shot" style="--w:360px"><button type="button" aria-label="Open WaitingForApprovalRow full size"><img src="census/com-waiting.webp" width="894" height="176" loading="lazy" alt="WaitingForApprovalRow: A request waiting for approval"></button><figcaption><span class="nm"><code>WaitingForApprovalRow</code> <span class="tag cockpit">cockpit</span></span><span class="what">A request waiting for approval</span><span class="src">admin/views/Garden/Pool/WaitingForApprovalRow.tsx · 222 lines</span></figcaption></figure><figure class="shot tall" style="--w:360px"><button type="button" aria-label="Open ActPhaseLine full size"><img src="census/com-phase.webp" width="900" height="1814" loading="lazy" alt="ActPhaseLine: The act phase line, which stays with commitments"></button><figcaption><span class="nm"><code>ActPhaseLine</code> <span class="tag cockpit">cockpit</span></span><span class="what">The act phase line, which stays with commitments</span><span class="src">admin/components/ActPhaseLine.tsx · 55 lines · rendered in 5 files</span></figcaption></figure></div>
+    <p class="coderefs">Also in the code, without a story: <code>PendingCreationRow</code> (app, 196 lines, a promise still being created); <code>CommitmentPeople</code> (app, 196 lines, labelled facts; the cockpit has a 42-line component of the same name that does a different job).</p>
+    <div class="block-h"><h3>Proposed <span class="ev">Mock</span></h3><div class="octl" data-obj="commitments"></div></div>
+    <div class="specs" data-obj="commitments"></div>
+    <p class="keeps"><b>Stays with commitments:</b> the act phase line (waiting on the wallet, confirming, done, queued, failed), the queue and retry states, and who a promise is between.</p>
+  </section>
+  <section class="obj" id="actions">
+    <div class="obj-h"><h2>Actions</h2><span class="count">2 pickers · 1 workspace card · 1 public card</span></div>
+    <p class="obj-sum">Picking an action for a submission is one job with two designs: the app's banner card and the cockpit's selectable card. The cockpit's Actions workspace lists its templates with the shared workbench card. The public site has its own editorial card, which stays.</p>
+    <div class="block-h"><h3>Today <span class="ev">Storybook</span></h3></div>
+    <div class="strip"><figure class="shot" style="--w:360px"><button type="button" aria-label="Open ActionCard full size"><img src="census/act-card.webp" width="772" height="566" loading="lazy" alt="ActionCard: Picking an action, one selected"></button><figcaption><span class="nm"><code>ActionCard</code> <span class="tag app">app</span></span><span class="what">Picking an action, one selected</span><span class="src">client/components/Cards/Action/ActionCard.tsx · 95 lines</span></figcaption></figure><figure class="shot" style="--w:560px"><button type="button" aria-label="Open ActionChooserGrid full size"><img src="census/act-chooser.webp" width="1600" height="1015" loading="lazy" alt="ActionChooserGrid: Picking an action in Submit Work"></button><figcaption><span class="nm"><code>ActionChooserGrid</code> <span class="tag cockpit">cockpit</span></span><span class="what">Picking an action in Submit Work</span><span class="src">admin/views/Garden/components/ActionChooserGrid.tsx · 147 lines</span></figcaption></figure><figure class="shot" style="--w:360px"><button type="button" aria-label="Open AdminSelectableCard full size"><img src="census/act-selectable.webp" width="900" height="250" loading="lazy" alt="AdminSelectableCard: The cockpit&#x27;s selectable card"></button><figcaption><span class="nm"><code>AdminSelectableCard</code> <span class="tag cockpit">cockpit</span></span><span class="what">The cockpit&#x27;s selectable card</span><span class="src">admin/components/AdminSelectableCard.tsx · 91 lines · rendered in 6 files</span></figcaption></figure><figure class="shot" style="--w:560px"><button type="button" aria-label="Open WorkbenchCard full size"><img src="census/act-workbench.webp" width="1600" height="606" loading="lazy" alt="WorkbenchCard: The Actions workspace list"></button><figcaption><span class="nm"><code>WorkbenchCard</code> <span class="tag cockpit">cockpit</span> <span class="tag shared">Shared code</span></span><span class="what">The Actions workspace list</span><span class="src">shared/components/Canvas/WorkbenchCard.tsx · 139 lines · rendered in 2 files</span></figcaption></figure><figure class="shot tall" style="--w:560px"><button type="button" aria-label="Open ActionDetailPanel full size"><img src="census/act-detail.webp" width="1600" height="1331" loading="lazy" alt="ActionDetailPanel: An action&#x27;s detail"></button><figcaption><span class="nm"><code>ActionDetailPanel</code> <span class="tag cockpit">cockpit</span></span><span class="what">An action&#x27;s detail</span><span class="src">admin/views/Actions/ActionDetailPanel.tsx · 213 lines</span></figcaption></figure></div>
+    <p class="coderefs">Also in the code, without a story: <code>PublicActionCard</code> (public site, 106 lines, stays editorial).</p>
+    <div class="block-h"><h3>Proposed <span class="ev">Mock</span></h3><div class="octl" data-obj="actions"></div></div>
+    <div class="specs" data-obj="actions"></div>
+    <p class="keeps"><b>Stays with actions:</b> the requirements line (how many photos), the domain, and the selected mark.</p>
+  </section>
+  <section class="obj" id="records">
+    <div class="obj-h"><h2>Assessments and hypercerts</h2><span class="count">1 card in the app · 2 records in the cockpit</span></div>
+    <p class="obj-sum">The app shows assessments as an inline card in its Assessments tab. The cockpit's Hub lists assessments and hypercerts with the shared workbench card, and its garden pages use a plain list row for recent assessments.</p>
+    <div class="block-h"><h3>Today <span class="ev">Storybook</span></h3></div>
+    <div class="strip"><figure class="shot" style="--w:320px"><button type="button" aria-label="Open AssessmentCard full size"><img src="census/asm-app.webp" width="640" height="772" loading="lazy" alt="AssessmentCard: Inside the Assessments tab"></button><figcaption><span class="nm"><code>AssessmentCard</code> <span class="tag app">app</span></span><span class="what">Inside the Assessments tab</span><span class="src">client/components/Features/Garden/Assessments.tsx · 249 lines</span></figcaption></figure><figure class="shot" style="--w:560px"><button type="button" aria-label="Open HubAssessmentList full size"><img src="census/asm-hub.webp" width="1600" height="316" loading="lazy" alt="HubAssessmentList: Assessments in the Hub"></button><figcaption><span class="nm"><code>HubAssessmentList</code> <span class="tag cockpit">cockpit</span></span><span class="what">Assessments in the Hub</span><span class="src">admin/views/Hub/components/HubRecordLists.tsx · 280 lines</span></figcaption></figure><figure class="shot" style="--w:560px"><button type="button" aria-label="Open HubHypercertList full size"><img src="census/asm-hypercerts.webp" width="1538" height="452" loading="lazy" alt="HubHypercertList: Hypercerts in the Hub"></button><figcaption><span class="nm"><code>HubHypercertList</code> <span class="tag cockpit">cockpit</span></span><span class="what">Hypercerts in the Hub</span><span class="src">admin/views/Hub/components/HubRecordLists.tsx · 280 lines</span></figcaption></figure><figure class="shot" style="--w:318px"><button type="button" aria-label="Open AdminListRow full size"><img src="census/asm-listrow.webp" width="636" height="424" loading="lazy" alt="AdminListRow: Recent assessments on a garden"></button><figcaption><span class="nm"><code>AdminListRow</code> <span class="tag cockpit">cockpit</span></span><span class="what">Recent assessments on a garden</span><span class="src">admin/components/AdminListRow.tsx · 41 lines · rendered in 4 files</span></figcaption></figure></div>
+    
+    <div class="block-h"><h3>Proposed <span class="ev">Mock</span></h3><div class="octl" data-obj="records"></div></div>
+    <div class="specs" data-obj="records"></div>
+    <p class="keeps"><b>Stays with assessments and hypercerts:</b> the reporting period, the outcome count and the minted state.</p>
+  </section>
+  <section class="obj" id="gardens">
+    <div class="obj-h"><h2>Gardens</h2><span class="count">1 shared card · 1 chip · 2 public designs</span></div>
+    <p class="obj-sum">The app's garden card is Shared code, wrapped by an app component of the same name that looks up names. The cockpit has no garden card; it names the selected garden with a chip. The public site has its own card and row, which stay.</p>
+    <div class="block-h"><h3>Today <span class="ev">Storybook</span></h3></div>
+    <div class="strip"><figure class="shot" style="--w:360px"><button type="button" aria-label="Open GardenCard full size"><img src="census/gdn-card.webp" width="768" height="622" loading="lazy" alt="GardenCard: The app&#x27;s garden card"></button><figcaption><span class="nm"><code>GardenCard</code> <span class="tag app">app</span> <span class="tag shared">Shared code</span></span><span class="what">The app&#x27;s garden card</span><span class="src">shared/components/Cards/GardenCard/GardenCard.tsx · 291 lines</span></figcaption></figure><figure class="shot" style="--w:220px"><button type="button" aria-label="Open GardenChip full size"><img src="census/gdn-chip.webp" width="436" height="128" loading="lazy" alt="GardenChip: The selected garden"></button><figcaption><span class="nm"><code>GardenChip</code> <span class="tag cockpit">cockpit</span> <span class="tag shared">Shared code</span></span><span class="what">The selected garden</span><span class="src">shared/components/Canvas/GardenChip.tsx · 258 lines</span></figcaption></figure></div>
+    <p class="coderefs">Also in the code, without a story: <code>PublicGardenCard</code> (public site, 80 lines, stays editorial); <code>PublicGardenRow</code> (public site, 198 lines, stays editorial).</p>
+    <div class="block-h"><h3>Proposed <span class="ev">Mock</span></h3><div class="octl" data-obj="gardens"></div></div>
+    <div class="specs" data-obj="gardens"></div>
+    <p class="keeps"><b>Stays with gardens:</b> the banner fallback and the member and steward counts.</p>
+  </section>
+  <section class="obj" id="people">
+    <div class="obj-h"><h2>People</h2><span class="count">2 in the app · 5 in the cockpit · 1 public</span></div>
+    <p class="obj-sum">People appear in hand-built rows on both surfaces: garden members and send recipients in the app; funders, group members, claimants and names in the cockpit.</p>
+    <div class="block-h"><h3>Today <span class="ev">Storybook</span></h3></div>
+    <div class="strip"><figure class="shot" style="--w:360px"><button type="button" aria-label="Open GardenMemberRow full size"><img src="census/ppl-gardeners.webp" width="776" height="540" loading="lazy" alt="GardenMemberRow: Members in the Gardeners tab"></button><figcaption><span class="nm"><code>GardenMemberRow</code> <span class="tag app">app</span></span><span class="what">Members in the Gardeners tab</span><span class="src">client/components/Features/Garden/Gardeners.tsx · 357 lines</span></figcaption></figure><figure class="shot" style="--w:360px"><button type="button" aria-label="Open FunderRow full size"><img src="census/ppl-funder.webp" width="888" height="196" loading="lazy" alt="FunderRow: A funder"></button><figcaption><span class="nm"><code>FunderRow</code> <span class="tag cockpit">cockpit</span></span><span class="what">A funder</span><span class="src">admin/components/Vault/FunderRow.tsx · 60 lines · rendered in 2 files</span></figcaption></figure><figure class="shot" style="--w:360px"><button type="button" aria-label="Open GroupPeopleList full size"><img src="census/ppl-group.webp" width="900" height="801" loading="lazy" alt="GroupPeopleList: People in a group of promises"></button><figcaption><span class="nm"><code>GroupPeopleList</code> <span class="tag cockpit">cockpit</span></span><span class="what">People in a group of promises</span><span class="src">admin/views/Garden/Pool/Group/GroupPeopleList.tsx · 221 lines</span></figcaption></figure><figure class="shot" style="--w:360px"><button type="button" aria-label="Open PersonName full size"><img src="census/ppl-person.webp" width="900" height="1019" loading="lazy" alt="PersonName: A name in a chip"></button><figcaption><span class="nm"><code>PersonName</code> <span class="tag cockpit">cockpit</span></span><span class="what">A name in a chip</span><span class="src">admin/components/PersonName.tsx · 35 lines · rendered in 5 files</span></figcaption></figure><figure class="shot tall" style="--w:360px"><button type="button" aria-label="Open CommitmentPeople full size"><img src="census/ppl-commitment.webp" width="900" height="1814" loading="lazy" alt="CommitmentPeople: Who a promise is between"></button><figcaption><span class="nm"><code>CommitmentPeople</code> <span class="tag cockpit">cockpit</span></span><span class="what">Who a promise is between</span><span class="src">admin/views/Garden/Pool/CommitmentPeople.tsx · 42 lines · rendered in 2 files</span></figcaption></figure></div>
+    <p class="coderefs">Also in the code, without a story: <code>MemberRow</code> (app, 120 lines, choosing who to send to); <code>ClaimantName</code> (cockpit, 39 lines); <code>PersonaRow</code> (public site, 281 lines, stays editorial).</p>
+    <div class="block-h"><h3>Proposed <span class="ev">Mock</span></h3><div class="octl" data-obj="people"></div></div>
+    <div class="specs" data-obj="people"></div>
+    <p class="keeps"><b>Stays with people:</b> every name comes from the shared address display, so a person reads the same everywhere.</p>
+  </section>
+  <section class="obj" id="jars">
+    <div class="obj-h"><h2>Jars, vaults and pools</h2><span class="count">3 in the app · 3 in the cockpit · 7 on the public site</span></div>
+    <p class="obj-sum">Cookie jars, deposits, vault positions and pools each have their own card. Only the cockpit's have stories. The public site's seven stay on its editorial design.</p>
+    <div class="block-h"><h3>Today <span class="ev">Storybook</span></h3></div>
+    <div class="strip"><figure class="shot" style="--w:360px"><button type="button" aria-label="Open PositionCard full size"><img src="census/jar-position.webp" width="900" height="1046" loading="lazy" alt="PositionCard: An endowment position"></button><figcaption><span class="nm"><code>PositionCard</code> <span class="tag cockpit">cockpit</span></span><span class="what">An endowment position</span><span class="src">admin/components/Vault/PositionCard.tsx · 469 lines</span></figcaption></figure><figure class="shot" style="--w:360px"><button type="button" aria-label="Open CookieJarPayoutCard full size"><img src="census/jar-payout.webp" width="760" height="836" loading="lazy" alt="CookieJarPayoutCard: A garden&#x27;s cookie jar"></button><figcaption><span class="nm"><code>CookieJarPayoutCard</code> <span class="tag cockpit">cockpit</span></span><span class="what">A garden&#x27;s cookie jar</span><span class="src">admin/views/Hub/components/CookieJarPayoutCard.tsx · 216 lines</span></figcaption></figure><figure class="shot" style="--w:560px"><button type="button" aria-label="Open GardenPoolCard full size"><img src="census/jar-pools.webp" width="1600" height="307" loading="lazy" alt="GardenPoolCard: A garden&#x27;s pool in Community"></button><figcaption><span class="nm"><code>GardenPoolCard</code> <span class="tag cockpit">cockpit</span></span><span class="what">A garden&#x27;s pool in Community</span><span class="src">admin/views/Community/components/CommunityPools.tsx · 345 lines</span></figcaption></figure></div>
+    <p class="coderefs">Also in the code, without a story: <code>CookieJarCard</code> (app, 179 lines, the endowment sheet); <code>JarCard</code> (app, 417 lines, inside the wallet sheet); <code>MyDepositRow</code> (app, 145 lines, the endowment sheet); <code>PublicCookieJarCard</code> (public site, 756 lines, stays editorial); <code>VaultAssetCard</code> (public site, 767 lines, inside the Fund page); <code>EndowmentAssetRow</code> (public site, 719 lines, inside the endowment panel).</p>
+    <div class="block-h"><h3>Proposed <span class="ev">Mock</span></h3><div class="octl" data-obj="jars"></div></div>
+    <div class="specs" data-obj="jars"></div>
+    <p class="keeps"><b>Stays with jars, vaults and pools:</b> amounts with their asset, limits and cooldowns, and the harvest state.</p>
+  </section>
+  <section class="obj" id="facts">
+    <div class="obj-h"><h2>Facts</h2><span class="count">6 in the cockpit · 4 in the app · 1 public</span></div>
+    <p class="obj-sum">Review, detail and settings screens list a label and its value. About eleven local rows do it, each slightly differently, and only two have stories.</p>
+    <div class="block-h"><h3>Today <span class="ev">Storybook</span></h3></div>
+    <div class="strip"><figure class="shot" style="--w:360px"><button type="button" aria-label="Open FlowStatusRow full size"><img src="census/fact-flow.webp" width="900" height="317" loading="lazy" alt="FlowStatusRow: A review summary before signing"></button><figcaption><span class="nm"><code>FlowStatusRow</code> <span class="tag cockpit">cockpit</span></span><span class="what">A review summary before signing</span><span class="src">admin/components/Layout/FlowStatusRow.tsx · 141 lines · rendered in 8 files</span></figcaption></figure><figure class="shot" style="--w:360px"><button type="button" aria-label="Open AdminSettingRow full size"><img src="census/fact-setting.webp" width="900" height="817" loading="lazy" alt="AdminSettingRow: A setting with a switch"></button><figcaption><span class="nm"><code>AdminSettingRow</code> <span class="tag cockpit">cockpit</span></span><span class="what">A setting with a switch</span><span class="src">admin/components/AdminSettingRow.tsx · 58 lines · rendered in 4 files</span></figcaption></figure></div>
+    <p class="coderefs">Also in the code, without a story: <code>DetailRow</code> (cockpit, 143 lines, work detail); <code>InfoRow</code> (cockpit, 171 lines, account settings); <code>ReviewRow</code> (cockpit, 264 lines, Create Assessment); <code>ReviewRow</code> (cockpit, 212 lines, Submit Work review); <code>SummaryRow</code> (app, 128 lines, wallet send review); <code>ReadinessRow</code> (app, 152 lines, pool readiness); <code>SettingRow</code> (app, 425 lines, app settings); <code>SignedOutRow</code> (app, 204 lines, the account sheet); <code>EditorialMetaRow</code> (public site, 536 lines, stays editorial).</p>
+    <div class="block-h"><h3>Proposed <span class="ev">Mock</span></h3><div class="octl" data-obj="facts"></div></div>
+    <div class="specs" data-obj="facts"></div>
+    <p class="keeps"><b>Stays with facts:</b> a setting row's switch and a review row's edit link.</p>
+  </section>
+  <section class="obj" id="states">
+    <div class="obj-h"><h2>Empty and error states</h2><span class="count">2 in Shared · 4 in the app · 3 in the cockpit</span></div>
+    <p class="obj-sum">Shared already has an empty state built for both surfaces. The app still keeps its own, rendered in 20 files, and several screens draw their own state cards.</p>
+    <div class="block-h"><h3>Today <span class="ev">Storybook</span></h3></div>
+    <div class="strip"><figure class="shot" style="--w:360px"><button type="button" aria-label="Open EmptyStateShell full size"><img src="census/st-shell.webp" width="807" height="430" loading="lazy" alt="EmptyStateShell: The shared empty state"></button><figcaption><span class="nm"><code>EmptyStateShell</code> <span class="tag shared">shared</span></span><span class="what">The shared empty state</span><span class="src">shared/components/Canvas/EmptyStateShell.tsx · 31 lines · rendered in 3 files</span></figcaption></figure><figure class="shot" style="--w:332px"><button type="button" aria-label="Open CommitmentStateLadder full size"><img src="census/st-ladder.webp" width="664" height="349" loading="lazy" alt="CommitmentStateLadder: Nothing moving yet"></button><figcaption><span class="nm"><code>CommitmentStateLadder</code> <span class="tag app">app</span></span><span class="what">Nothing moving yet</span><span class="src">client/components/Features/Commitments/CommitmentStateLadder.tsx · 326 lines · rendered in 4 files</span></figcaption></figure><figure class="shot" style="--w:360px"><button type="button" aria-label="Open CommitmentStateLadder full size"><img src="census/st-ladder-error.webp" width="768" height="308" loading="lazy" alt="CommitmentStateLadder: A read error"></button><figcaption><span class="nm"><code>CommitmentStateLadder</code> <span class="tag app">app</span></span><span class="what">A read error</span><span class="src">client/components/Features/Commitments/CommitmentStateLadder.tsx · 326 lines</span></figcaption></figure><figure class="shot" style="--w:360px"><button type="button" aria-label="Open JoinToActCard full size"><img src="census/st-join.webp" width="768" height="308" loading="lazy" alt="JoinToActCard: Join the garden first"></button><figcaption><span class="nm"><code>JoinToActCard</code> <span class="tag app">app</span></span><span class="what">Join the garden first</span><span class="src">client/views/Home/Garden/Commitment/JoinToAct.tsx · 154 lines</span></figcaption></figure><figure class="shot" style="--w:360px"><button type="button" aria-label="Open PoolNotReadyCard full size"><img src="census/st-notready.webp" width="900" height="403" loading="lazy" alt="PoolNotReadyCard: A pool that is not ready"></button><figcaption><span class="nm"><code>PoolNotReadyCard</code> <span class="tag cockpit">cockpit</span></span><span class="what">A pool that is not ready</span><span class="src">admin/views/Garden/Pool/PoolNotReadyCard.tsx · 55 lines</span></figcaption></figure></div>
+    <p class="coderefs">Also in the code, without a story: <code>EmptyState</code> (shared, 168 lines, in ListPrimitives, built for both surfaces); <code>EmptyState</code> (app, 86 lines, rendered in 20 files); <code>SectionStateCard</code> (cockpit, 88 lines); <code>ErrorCard</code> (cockpit, 241 lines, the route error); <code>StatusCard</code> (app, 214 lines, a reporting outcome).</p>
+    <div class="block-h"><h3>Proposed <span class="ev">Mock</span></h3><div class="octl" data-obj="states"></div></div>
+    <div class="specs" data-obj="states"></div>
+    <p class="keeps"><b>Stays with empty and error states:</b> each screen's own words and its own recovery action.</p>
+  </section>
+
+  <section class="obj" id="primitives">
+    <div class="obj-h"><h2>Card primitives</h2><span class="count">5 today · 1 proposed</span></div>
+    <p>Five components draw a card's surface. The app has its own <code>Card</code>, the cockpit has <code>AdminCard</code>, and Shared has three that no app renders. The proposal keeps one card surface, set by F7 in <a href="#system">your design system</a>.</p>
+    <div class="block-h"><h3>Today <span class="ev">Storybook</span></h3></div>
+    <div class="strip"><figure class="shot" style="--w:560px"><button type="button" aria-label="Open AdminCard full size"><img src="census/prim-admincard.webp" width="1600" height="766" loading="lazy" alt="AdminCard: Every variant"></button><figcaption><span class="nm"><code>AdminCard</code> <span class="tag cockpit">cockpit</span></span><span class="what">Every variant</span><span class="src">admin/components/AdminCard.tsx · 158 lines · rendered in 40 files</span></figcaption></figure><figure class="shot" style="--w:560px"><button type="button" aria-label="Open CardBase full size"><img src="census/prim-cardbase.webp" width="1600" height="221" loading="lazy" alt="CardBase: Every mode; no app renders it"></button><figcaption><span class="nm"><code>CardBase</code> <span class="tag shared">shared</span></span><span class="what">Every mode; no app renders it</span><span class="src">shared/components/Cards/CardBase.tsx · 191 lines</span></figcaption></figure><figure class="shot" style="--w:560px"><button type="button" aria-label="Open Surface full size"><img src="census/prim-surface.webp" width="1600" height="339" loading="lazy" alt="Surface: The glass tiers being retired"></button><figcaption><span class="nm"><code>Surface</code> <span class="tag shared">shared</span></span><span class="what">The glass tiers being retired</span><span class="src">shared/components/Surface/Surface.tsx · 158 lines · rendered in 3 files</span></figcaption></figure><figure class="shot" style="--w:560px"><button type="button" aria-label="Open StatCard full size"><img src="census/prim-statcard.webp" width="1600" height="312" loading="lazy" alt="StatCard: No app renders it"></button><figcaption><span class="nm"><code>StatCard</code> <span class="tag shared">shared</span></span><span class="what">No app renders it</span><span class="src">shared/components/StatCard.tsx · 72 lines</span></figcaption></figure></div><p class="coderefs">Also in the code, without a story: <code>Card</code> (app, 97 lines, rendered in 13 files).</p>
+  </section>
+
+  <p class="foot-note">The proposed cards are a mock drawn from the design tokens, not the shipped components. They settle direction and proportion, not exact sizes. Example names, gardens, titles and amounts are invented; the status words and progress lines in Spanish and Portuguese come from the product's own translations.</p>
+</main>
+<aside class="rail" id="dock" aria-label="Card tweaker">
+  <div class="rail-bar"><button type="button" class="toggle" id="dockToggle" aria-expanded="true" aria-controls="railBody">Card tweaker</button><button type="button" class="lnk js-copy bar-copy">Copy picks</button></div>
+  <div class="rail-body" id="railBody">
+    <div class="pv-wrap">
+      <div class="rail-title"><b>Card tweaker</b><span class="acts"><button type="button" class="lnk js-reset">Reset to picks</button><button type="button" class="lnk js-copy">Copy picks</button></span></div>
+      <div class="copyrow" id="copyRow" hidden><label for="copyText">Copying is blocked here. Press Cmd+C or Ctrl+C:</label><input id="copyText" type="text" readonly></div>
+      <div class="pv-h"><h3>Live preview</h3><span class="ctl" role="group" aria-label="Preview density"><span class="seg"><button type="button" data-pv="app" aria-pressed="true">App</button><button type="button" data-pv="cockpit" aria-pressed="false">Cockpit</button></span></span></div>
+      <div class="pv-sel"><label class="ctl"><span class="seg-l">Show</span><select id="pvType" aria-label="Card type in the preview"></select></label></div>
+      <div class="pv" id="preview" aria-live="polite"></div>
+      <div class="pv-opts" id="pvOpts"></div>
+    </div>
+    <div class="rows" id="dockRows"></div>
+    <p class="sys-line" id="sysLine"></p>
+    <div class="foot"><span class="hint" id="hint">A dot marks your pick, or the recommendation where nothing is decided. Point at an option to read what it does.</span><span class="acts foot-acts"><button type="button" class="lnk js-reset">Reset to picks</button><button type="button" class="lnk js-copy">Copy picks</button></span></div>
+  </div>
+</aside>
+</div>
+
+<dialog class="zoom" id="zoom" aria-labelledby="zoomCap">
+  <div class="zbar"><p id="zoomCap"></p><button type="button" id="zoomClose">Close</button></div>
+  <div class="zimg"><img id="zoomImg" alt=""></div>
+</dialog>
+
+<script>
+(function () {
+  "use strict";
+  var KEY = "gg-card-census-v2", LAB_KEY = "gg-lab-state-v5";
+
+  /* ---------- icons and photo placeholders ---------- */
+  var IC = {
+    leaf: '<path d="M5 19c0-8 6-14 14-14 0 8-6 14-14 14z"/><path d="M5 19l7-7"/>',
+    bin: '<path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/>',
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/>',
+    book: '<path d="M4 5h6a2 2 0 0 1 2 2v12a2 2 0 0 0-2-2H4z"/><path d="M20 5h-6a2 2 0 0 0-2 2v12a2 2 0 0 1 2-2h6z"/>',
+    offer: '<path d="M7 17L17 7"/><path d="M9 7h8v8"/>',
+    request: '<path d="M17 7L7 17"/><path d="M15 17H7V9"/>',
+    chev: '<path d="M9 6l6 6-6 6"/>',
+    check: '<path d="M5 12l5 5 9-10"/>',
+    jar: '<path d="M8 4h8"/><path d="M9 4v3l-2 3v9a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-9l-2-3V4"/>',
+    vault: '<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/>',
+    pool: '<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3 2.7-5 6-5s6 2 6 5"/><path d="M16 5a3 3 0 0 1 0 6"/><path d="M21 20c0-2.4-1.6-4.2-4-4.8"/>',
+    inbox: '<path d="M4 13h4l2 3h4l2-3h4"/><path d="M4 13l2-8h12l2 8v6H4z"/>',
+    alert: '<path d="M12 8v5"/><path d="M12 16h.01"/><path d="M10.3 4.3L2.6 18a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0z"/>',
+    cert: '<rect x="6" y="3" width="12" height="11" rx="2"/><path d="M9 14v7l3-2 3 2v-7"/>',
+    clip: '<rect x="5" y="5" width="14" height="16" rx="2"/><path d="M9 3h6v4H9z"/><path d="M8 12h8M8 16h5"/>',
+    sprout: '<path d="M12 20v-8"/><path d="M12 12c0-4-3-6-7-6 0 4 3 6 7 6z"/><path d="M12 10c0-3 2-5 6-5 0 3-2 5-6 5"/>',
+    clock: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>',
+    phone: '<rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2"/>',
+    img: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/>'
+  };
+  function ic(n) { return '<svg viewBox="0 0 24 24" aria-hidden="true">' + (IC[n] || "") + "</svg>"; }
+  var PH = { agro: "linear-gradient(160deg,#C9DFB8,#86B072)", waste: "linear-gradient(160deg,#CBDAE2,#88A3B2)", solar: "linear-gradient(160deg,#F4E4C2,#D9B877)", edu: "linear-gradient(160deg,#E3D8EF,#B39CD0)", garden: "linear-gradient(160deg,#D6E6C6,#9DBF85 60%,#7FA36A)", garden2: "linear-gradient(160deg,#D2E2EA,#9BB9C9 60%,#7E9FB2)" };
+  var DOM_IC = { agro: "leaf", waste: "bin", solar: "sun", edu: "book" };
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+
+  /* ---------- sample text: English, long English, Spanish, Portuguese ---------- */
+  function L(en, es, pt, long) { return { en: en, es: es, pt: pt, long: long || en }; }
+  var W = {
+    approved: L("Approved", "Aprobado", "Aprovado"), pending: L("Pending", "Pendiente", "Pendente"), rejected: L("Rejected", "Rechazado", "Rejeitado"),
+    review: L("In review", "En revisión", "Em revisão"), needs: L("Needs you", "Te necesita", "Precisa de você"), progress: L("In progress", "En curso", "Em andamento"),
+    kept: L("Kept", "Cumplido", "Cumprido"), recorded: L("Recorded", "Registrada", "Registrada"), draft: L("Draft", "Borrador", "Rascunho"), minted: L("Minted", "Acuñado", "Cunhado"),
+    active: L("Active", "Activo", "Ativo"), accruing: L("Accruing", "Acumulando", "Acumulando"), open: L("Open", "Abierta", "Aberta"),
+    agro: L("Agroforestry", "Agroforestería", "Agrofloresta"), waste: L("Waste", "Residuos", "Resíduos"), solar: L("Solar", "Solar", "Solar"), edu: L("Education", "Educación", "Educação"),
+    h2: L("2 hours ago", "hace 2 horas", "há 2 horas"), h6: L("6 hours ago", "hace 6 horas", "há 6 horas"), d3: L("3 days ago", "hace 3 días", "há 3 dias"), d4: L("4 days ago", "hace 4 días", "há 4 dias"),
+    offer: L("Offer", "Oferta", "Oferta"), request: L("Request", "Petición", "Pedido"), dueFri: L("due Fri 24 Oct", "vence vie 24 oct", "vence sex 24 out"), taken: L("4 of 10 taken", "4 de 10 tomadas", "4 de 10 assumidas"),
+    keptOn: L("kept 12 Oct", "cumplido el 12 oct", "cumprido em 12 out"), dueNov: L("due 2 Nov", "vence 2 nov", "vence 2 nov"),
+    confirm: L("Confirm", "Confirmar", "Confirmar"), openBtn: L("Open", "Abrir", "Abrir"),
+    phase: L("Confirming…", "Confirmando…", "A confirmar…"), queueShort: L("Not sent", "Sin enviar", "Não enviado"), queue: L("Saved on this phone, not sent", "Guardado en este teléfono, sin enviar", "Salvo neste telefone, não enviado"),
+    assessment: L("Assessment", "Evaluación", "Avaliação"), hypercert: L("Hypercert", "Hypercert", "Hypercert"),
+    gardener: L("Gardener", "Jardinero", "Jardineiro"), steward: L("Steward", "Responsable", "Responsável"), funder: L("Funder", "Financiador", "Financiador"),
+    claim: L("Claim", "Retirar", "Sacar"), deposit: L("Deposit", "Depositar", "Depositar"),
+    due24: L("due 24 Oct", "vence 24 oct", "vence 24 out"), jan12: L("12 Jan", "12 ene", "12 jan"), today: L("today", "hoy", "hoje")
+  };
+  var TITLES = {
+    work: [L("Planted 50 native saplings", "Plantamos 50 plántulas nativas", "Plantamos 50 mudas nativas", "Planted 50 native saplings along the eastern ridge before the rains"),
+           L("River bank cleanup", "Limpieza de la orilla del río", "Limpeza da margem do rio", "River bank cleanup with the school group after the Saturday market"),
+           L("Panel cleaning after the harmattan dust", "Limpieza de paneles tras el polvo del harmatán", "Limpeza dos painéis depois da poeira do harmatã", "Panel cleaning after the harmattan dust on the east and west arrays"),
+           L("Led a composting workshop", "Dimos un taller de compostaje", "Fizemos uma oficina de compostagem", "Led a composting workshop for families from three neighbouring streets")],
+    commitments: [L("Water the seedlings weekly", "Regar las plántulas cada semana", "Regar as mudas toda semana", "Water the seedlings weekly until the first rains arrive in November"),
+                  L("Run a composting workshop", "Dar un taller de compostaje", "Fazer uma oficina de compostagem", "Run a composting workshop for the neighbouring school gardens"),
+                  L("Repair the drip line", "Reparar la línea de goteo", "Consertar a linha de gotejamento", "Repair the drip line on the north beds and replace the timer")],
+    actions: [L("Plant native trees", "Plantar árboles nativos", "Plantar árvores nativas", "Plant native trees and record how many survive after thirty days"),
+              L("Clear plastic from the river bank", "Retirar plástico de la orilla del río", "Retirar plástico da margem do rio", "Clear plastic from the river bank before the rainy season starts"),
+              L("Maintain the solar array", "Mantener los paneles solares", "Manter os painéis solares", "Maintain the solar array and log the inverter reading"),
+              L("Teach a seed-saving class", "Enseñar a guardar semillas", "Ensinar a guardar sementes", "Teach a seed-saving class at the community library")],
+    actionSubs: [L("2 photos required", "2 fotos obligatorias", "2 fotos obrigatórias"), L("Before and after photos", "Fotos de antes y después", "Fotos de antes e depois"), L("1 photo and a reading", "1 foto y una lectura", "1 foto e uma leitura"), L("Attendance and a photo", "Asistencia y una foto", "Presença e uma foto")],
+    records: [L("Soil health baseline, spring 2026", "Línea base de salud del suelo, primavera 2026", "Linha de base da saúde do solo, primavera de 2026", "Soil health baseline for the eastern ridge, spring 2026 reporting period"),
+              L("Panel output check", "Revisión de la producción de los paneles", "Verificação da produção dos painéis", "Panel output check after the harmattan season, west array"),
+              L("Eastern ridge canopy, autumn 2025", "Dosel de la cresta oriental, otoño 2025", "Dossel da crista leste, outono de 2025", "Eastern ridge canopy restoration, autumn 2025 season")],
+    gardens: [L("Botanic Commons", "Botanic Commons", "Botanic Commons", "Botanic Commons Community Food Forest"), L("Riverside Commons", "Riverside Commons", "Riverside Commons", "Riverside Commons and Seed Library")],
+    gardenSubs: [L("Lagos · 24 members · 3 actions", "Lagos · 24 miembros · 3 acciones", "Lagos · 24 membros · 3 ações"), L("Accra · 11 members · 2 actions", "Acra · 11 miembros · 2 acciones", "Acra · 11 membros · 2 ações")],
+    people: [L("maria.eth", "maria.eth", "maria.eth", "maria.botaniccommons.eth"), L("chidi.eth", "chidi.eth", "chidi.eth", "chidi-the-steward.eth"), L("0x91cC…0F7e", "0x91cC…0F7e", "0x91cC…0F7e")],
+    jars: [L("Garden cookie jar", "Tarro de Galletas del jardín", "Pote de Cookies do jardim", "Botanic Commons cookie jar for seedlings"),
+           L("Endowment position", "Posición en la provisión", "Posição na provisão", "Endowment position in the community vault"),
+           L("Commitment pool", "Fondo de promesas", "Fundo de promessas", "Commitment pool for the dry season")]
+  };
+
+  /* ---------- the design system, shared with the lab ---------- */
+  var RECORDED = { font: "pjs", ground: "linen", controls: "rec", chips: "capsule", sheet: "rec", nav: "pill", cards: "app", tabs: "app", filter: "today", badge: "one", list: "gap12", deskcard: "wide", darkcards: "step", tone: "today" };
+  var SYSC = [
+    { key: "font", label: "F1 Typeface", opts: [["split", "Today", "Inter in the app, Plus Jakarta Sans in the cockpit."], ["pjs", "Jakarta", "Plus Jakarta Sans on both."], ["inter", "Inter", "Inter on both."]] },
+    { key: "ground", label: "F2 Ground", opts: [["split", "Today", "A white page in the app, linen in the cockpit."], ["linen", "Linen", "Linen behind white cards on both."], ["white", "White", "White on both."]] },
+    { key: "controls", label: "F3 Buttons", opts: [["today", "Today", "16px buttons in the app, pills in the cockpit."], ["rec", "Per surface", "Each surface keeps its corner; weight and outline unified."], ["c16", "16px", "16px corners on both."], ["pill", "Pills", "Pills on both."]] },
+    { key: "chips", label: "F4 Chips", opts: [["today", "Today", "Capsules in the app, 8px chips in the cockpit."], ["capsule", "Capsules", "Capsule chips on both."], ["square", "8px", "8px chips on both."]] },
+    { key: "cards", label: "F7 Cards", opts: [["today", "Today", "App: bordered 24px cards and 16px rows. Cockpit: raised 12px cards."], ["rec", "Shared", "One hairline surface, each surface keeps its corner, a 48px photo in the row."], ["app", "App", "The app's cards everywhere: 24px cards, 16px rows with the status edge."], ["cockpit", "Cockpit", "The cockpit's raised 12px cards everywhere, work as photo-grid cards."]] },
+    { key: "list", label: "F11 List spacing", opts: [["today", "Today", "12px in the app, 14px in the cockpit."], ["gap8", "8px", "8px between cards."], ["gap12", "12px", "12px between cards."], ["divided", "Divided", "One card with divided rows."]] },
+    { key: "deskcard", label: "F12 Desktop card", opts: [["tall", "Today", "The cockpit's desktop work card stacks its photo grid on top."], ["wide", "Wide", "The photo grid on the left, two cards to a row."]] },
+    { key: "darkcards", label: "F13 Dark cards", opts: [["today", "Today", "The cockpit's dark card sits close to the page."], ["step", "Lighter", "The dark card one step lighter."], ["outline", "Hairline", "A hairline around today's dark card."], ["both", "Both", "Lighter, with a hairline."]] },
+    { key: "tone", label: "Workspace tone", opts: [["today", "Today", "A tone per cockpit workspace: Hub blue, Garden green, Community amber, Actions purple."], ["green", "One green", "The app's green in every workspace."]] }
+  ];
+  function optName(c, v) { var o = c.opts.filter(function (x) { return x[0] === v; })[0]; return o ? o[1] : v; }
+  var labSource = "recorded", lab = {};
+  function readLab() {
+    var parsed = null;
+    try { parsed = JSON.parse(localStorage.getItem(LAB_KEY) || "null"); } catch (e) { parsed = null; }
+    labSource = parsed && typeof parsed === "object" ? "lab" : "recorded";
+    var out = {};
+    SYSC.forEach(function (c) {
+      var v = parsed && parsed[c.key];
+      out[c.key] = c.opts.some(function (o) { return o[0] === v; }) ? v : RECORDED[c.key];
+    });
+    lab = out;
+  }
+  // Writes keep every other key the lab stores (its theme, its stage, its screens).
+  function writeLab(changes) {
+    Object.keys(changes).forEach(function (k) { lab[k] = changes[k]; });
+    try {
+      var cur = JSON.parse(localStorage.getItem(LAB_KEY) || "null");
+      if (!cur || typeof cur !== "object") cur = Object.assign({}, RECORDED);
+      Object.keys(changes).forEach(function (k) { cur[k] = changes[k]; });
+      if ("darkcards" in changes && Object.keys(changes).length === 1) cur.theme = "dark"; // as the lab does: choosing a dark-card option shows it
+      localStorage.setItem(LAB_KEY, JSON.stringify(cur));
+      labSource = "lab";
+    } catch (e) {}
+  }
+  var INTER = "Inter, system-ui, -apple-system, 'Segoe UI', sans-serif", PJS = "'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif";
+  // Tones: the lab's green, blue and amber; purple is the cockpit's Actions workspace (DL-045).
+  var TONES = {
+    light: { green: ["#1A7544", "#FFFFFF", "#1A7544", "rgba(31,193,107,0.10)"], blue: ["#2547D0", "#FFFFFF", "#2547D0", "rgba(51,92,255,0.08)"], amber: ["#B45309", "#FFFFFF", "#92400E", "rgba(217,119,6,0.08)"], purple: ["#5B2CC9", "#FFFFFF", "#5B2CC9", "rgba(91,44,201,0.08)"] },
+    dark: { greenApp: ["#C2F5DA", "#0C0A09", "#C2F5DA", "rgba(194,245,218,0.12)"], green: ["#C2F5DA", "#16643B", "#C2F5DA", "rgba(194,245,218,0.10)"], blue: ["#C0D5FF", "#182F8B", "#C0D5FF", "rgba(192,213,255,0.10)"], amber: ["#FDE68A", "#78350F", "#FDE68A", "rgba(253,230,138,0.10)"], purple: ["#CAC0FF", "#3D1D86", "#CAC0FF", "rgba(202,192,255,0.10)"] }
+  };
+  var TONE_OF = { work: "blue", records: "blue", facts: "blue", states: "blue", commitments: "green", gardens: "green", jars: "green", people: "amber", actions: "purple" };
+  function tone(surface, obj) {
+    var dark = state.theme === "dark";
+    if (surface === "app") return dark ? TONES.dark.greenApp : TONES.light.green;
+    return TONES[dark ? "dark" : "light"][lab.tone === "green" ? "green" : (TONE_OF[obj] || "blue")];
+  }
+  function toneStyle(surface, obj) { var T = tone(surface, obj); return "--s-acc:" + T[0] + ";--s-acc-on:" + T[1] + ";--s-acc-text:" + T[2] + ";--s-acc-tint:" + T[3]; }
+  /* What one surface draws with the current design system. Mirrors the lab's tokensFor. */
+  function sys(surface, obj, isDesk) {
+    var s = lab, isApp = surface === "app", dark = state.theme === "dark";
+    var ground = s.ground === "split" ? (isApp ? "white" : "linen") : s.ground;
+    var oneLadder = s.ground !== "split", warm = oneLadder ? s.ground === "linen" : !isApp;
+    var font = s.font === "split" ? (isApp ? INTER : PJS) : (s.font === "pjs" ? PJS : INTER);
+    var c = s.cards, cardR, rowR, surf, wi, sel, edge;
+    if (c === "today") { cardR = isApp ? 24 : 12; rowR = isApp ? 16 : 12; surf = isApp ? "border" : "elevated"; wi = isApp ? "row" : "card"; sel = isApp ? "border3" : "ring"; edge = isApp ? 2 : 0; }
+    else if (c === "rec") { cardR = isApp ? 24 : 12; rowR = isApp ? 16 : 12; surf = "hairline"; wi = isDesk ? "card" : "shared"; sel = "ring"; edge = isApp ? 2 : 0; }
+    else if (c === "app") { cardR = 24; rowR = 16; surf = "border"; wi = isDesk ? "card" : "row"; sel = "border3"; edge = 2; }
+    else { cardR = 12; rowR = 12; surf = "elevated"; wi = "card"; sel = "ring"; edge = 0; }
+    var v = {};
+    if (!dark) {
+      var appFaint = isApp && ground === "white";
+      v.canvas = ground === "linen" ? "#FAF8F5" : "#FFFFFF"; v.card = "#FFFFFF";
+      v.hair = appFaint ? "#F5F5F4" : "#E7E5E4"; v.appBorder = v.hair;
+      v.grey = ground === "linen" ? "#F5F2ED" : "#F5F5F4"; v.tint = "#FAFAF9";
+      v.elev1 = "0 1px 2px rgba(0,0,0,0.3), 0 1px 3px 1px rgba(0,0,0,0.15)"; v.hairlineCard = "#E7E5E4"; v.borderSh = "0 1px 2px rgba(0,0,0,0.04)";
+      v.dchip = "rgba(255,255,255,0.9)";
+    } else {
+      var dc = s.darkcards, lift = dc === "step" || dc === "both", line = dc === "outline" || dc === "both";
+      var applyDc = !isApp || oneLadder, up = applyDc && lift, appStone = isApp && !warm;
+      v.canvas = warm ? "#110C08" : "#0C0A09";
+      v.card = warm ? (up ? "#2A231C" : "#201913") : (isApp ? (up ? "#161412" : "#0C0A09") : (up ? "#292524" : "#1C1917"));
+      v.hair = appStone ? "#292524" : "rgba(250,250,249,0.10)"; v.appBorder = appStone ? "#292524" : "rgba(250,250,249,0.12)";
+      v.grey = warm ? "#342C24" : "#292524"; v.tint = warm ? "#1A1410" : "#161412";
+      v.elev1 = (applyDc && line) ? "0 0 0 1px rgba(250,250,249,0.14)" : ((applyDc && lift) ? "0 0 0 1px rgba(250,250,249,0.08)" : "0 0 0 1px rgba(250,250,249,0.06)");
+      v.hairlineCard = (applyDc && line) ? "rgba(250,250,249,0.14)" : "rgba(250,250,249,0.12)"; v.borderSh = "none";
+      v.dchip = "rgba(20,16,12,0.85)";
+    }
+    var cardBd, cardSh;
+    if (surf === "elevated") { cardBd = "transparent"; cardSh = v.elev1; }
+    else if (surf === "hairline") { cardBd = v.hairlineCard; cardSh = "none"; }
+    else { cardBd = v.appBorder; cardSh = v.borderSh; }
+    var unify = s.controls !== "today";
+    var btnR = s.controls === "c16" ? "16px" : (s.controls === "pill" ? "999px" : (isApp ? "16px" : "999px"));
+    var btnW = unify ? 500 : (isApp ? 400 : 500);
+    var outline = unify ? (dark ? "#A8A29E" : "#78716C") : (isApp ? (dark ? "#44403C" : "#D6D3D1") : (dark ? "#A8A29E" : "#78716C"));
+    var chipR = s.chips === "today" ? (isApp ? "999px" : "8px") : (s.chips === "square" ? "8px" : "999px");
+    var lg = s.list, divided = lg === "divided" && !isDesk, gap;
+    if (isDesk) gap = lg === "today" ? 14 : (lg === "gap8" ? 8 : (lg === "gap12" ? 12 : 8));
+    else gap = divided ? 12 : (lg === "today" ? (isApp ? 12 : 14) : (lg === "gap8" ? 8 : 12));
+    var style = "--s-font:" + font + ";--s-canvas:" + v.canvas + ";--s-card:" + v.card + ";--s-card-bd:" + cardBd + ";--s-card-sh:" + cardSh + ";--s-hair:" + v.hair +
+      ";--s-grey:" + v.grey + ";--s-tint:" + v.tint + ";--s-dchip:" + v.dchip + ";--card-r:" + cardR + "px;--row-r:" + rowR + "px;--edge-w:" + edge + "px;--btn-r:" + btnR +
+      ";--btn-w:" + btnW + ";--btn-outline:" + outline + ";--chip-r:" + chipR + ";--gap:" + gap + "px;--media:" + state.media + "px;" + toneStyle(surface, obj);
+    return { cls: "cs-" + surf + " sel-" + sel + (edge > 0 ? " edge-on" : "") + (dark ? " sdark" : ""), style: style, wi: wi, divided: divided };
+  }
+  function specOpen(surface, obj, extra, stl, isDesk) {
+    var sy = sys(surface, obj, isDesk);
+    var tw = " rh-" + state.rowh + " ts-" + state.tsize + " ms-" + String(state.msize).replace(".", "_") + " icons-" + state.icons + " cf-" + state.confirm;
+    return '<div class="spec ' + surface + " " + sy.cls + " stl-" + (stl || state.stl) + tw + (extra ? " " + extra : "") + '" style="' + sy.style.replace(/"/g, "'") + '">';
+  }
+  // A group of one object inside a mixed specimen keeps that object's workspace tone.
+  function grp(surface, obj, html) { return '<div class="grp" style="' + toneStyle(surface, obj) + '">' + html + "</div>"; }
+
+  /* ---------- the four shapes ---------- */
+  function tx(o) { if (typeof o === "string") return o; return o[state.lang] || o.en; }
+  // The detail-line rules agreed on 18 October, or the line as it was before them.
+  function rules() { return state.drules !== "before"; }
+  // Rule 4: short ages in every language, always a number ("2 hr. ago", "hace 2 h", "há 2 h").
+  function rtf(lang, v, unit) {
+    try { return new Intl.RelativeTimeFormat(lang, { style: "short", numeric: "always" }).format(-v, unit); } catch (e) { return v + " " + unit + " ago"; }
+  }
+  function ago(v, unit) { return { en: rtf("en", v, unit), es: rtf("es", v, unit), pt: rtf("pt", v, unit), long: rtf("en", v, unit) }; }
+  function pill(st, place) { return st ? '<span class="pill ' + st[0] + " pl-" + place + '"><span class="pt">' + esc(tx(st[1])) + "</span></span>" : ""; }
+  // A short wallet address (0x1a2b…9f3e) reads as an ID, not a name, so it gets the quiet monospace.
+  function isAddr(t) { return /^0x[0-9a-fA-F]{2,}/.test(t); }
+  function titleHtml(text, lines, addr) { var t = tx(text); return '<div class="title l' + (lines || "2") + (addr || isAddr(t) ? " addr" : "") + '" title="' + esc(t) + '">' + esc(t) + "</div>"; }
+  function metaHtml(parts, st) {
+    var items = parts.filter(Boolean).map(function (p) {
+      var t = tx(p.soft || p), cls = "mi" + (p.soft ? " soft" : "") + (isAddr(t) ? " addr" : "");
+      return '<span class="' + cls + '">' + esc(t) + "</span>";
+    });
+    // Rule 1: the most important detail stays beside the status pill; the ones after it drop whole.
+    var head = rules() && items.length ? '<span class="mlead">' + pill(st, "details") + items.shift() + "</span>" : pill(st, "details");
+    return '<div class="meta"><div class="mrow">' + head + items.join("") + "</div></div>";
+  }
+  // A generated avatar for a person with no name: two hues taken from the address.
+  function genAv(seed) {
+    var h = 0; for (var i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) % 360;
+    return '<div class="lead av gen" style="--g1:hsl(' + h + ' 55% 72%);--g2:hsl(' + ((h + 70) % 360) + ' 48% 50%)" aria-hidden="true"></div>';
+  }
+  // The small line above a title: the item's kind, and in layout E its status.
+  function kicker(kind, st) {
+    if (!kind && !st) return "";
+    return '<p class="kick' + (kind ? "" : " only-status") + '">' + (kind ? "<span>" + esc(tx(kind)) + "</span>" : "") +
+      (st ? '<span class="pl-above ' + st[0] + '"><i></i>' + esc(tx(st[1])) + "</span>" : "") + "</p>";
+  }
+  function itemRow(o) {
+    var lead = "", photo = false;
+    if (o.lead === "photo") { photo = true; lead = '<div class="lead photo" style="--ph:' + PH[o.dom] + '"><span class="ic">' + ic(DOM_IC[o.dom] || "sprout") + "</span>" + (o.photos ? '<span class="pcount">' + ic("img") + o.photos + "</span>" : "") + pill(o.status, "photo") + "</div>"; }
+    else if (o.lead === "thumb") lead = '<div class="lead thumb" style="--ph:' + PH[o.dom] + '"></div>';
+    else if (o.lead === "tile") lead = '<div class="lead tile">' + ic(o.icon) + "</div>";
+    else if (o.lead === "av") lead = o.addr ? genAv(tx(o.title)) : '<div class="lead av">' + esc(o.initials) + "</div>";
+    // An action takes the row's right slot, in place of the chevron or the amount, so the row keeps its height.
+    if (o.action) { o.trail = "btn"; o.btn = o.action; o.btnSec = !!o.actionSec; }
+    var trail = "";
+    if (o.trail === "chev") trail = '<div class="trail">' + ic("chev") + "</div>";
+    else if (o.trail === "btn") trail = '<div class="trail"><span class="btn' + (o.btnSec ? " sec" : "") + '">' + esc(tx(o.btn)) + "</span></div>";
+    else if (o.trail === "amt") trail = '<div class="trail"><div class="amt">' + esc(o.amt[0]) + "<small>" + esc(tx(o.amt[1])) + "</small></div></div>";
+    else if (o.trail === "chip") trail = '<div class="trail"><span class="chip">' + esc(tx(o.chip)) + "</span></div>";
+    // One title line and one detail line: the item's kind leads the details instead of sitting
+    // on a line above the title, and a pending state (confirming, or a promise still on the phone)
+    // goes where the Confirming dial puts it, never on a line of its own.
+    var st = o.status, meta = (o.meta || []).slice();
+    // Under the agreed rules each object passes its own details, the kind among them only where no icon shows it.
+    if (o.eyebrow && !rules()) meta.unshift(o.eyebrow);
+    if (o.extra) {
+      var pend = o.extra[0] === "phase" ? W.phase : W.queueShort;
+      if (state.confirm === "pill") st = [o.extra[0] === "phase" ? "info" : "warn", pend];
+      else if (state.confirm === "detail") meta = meta.filter(function (p) { return !p.soft; }).concat([pend]);
+    }
+    var body;
+    if (o.compact) body = '<div class="body">' + titleHtml(o.title, "1", o.addr) + metaHtml(o.meta) + "</div>";
+    else body = '<div class="body">' + kicker(null, st) +
+      '<div class="top">' + titleHtml(o.title, o.lines, o.addr) + pill(st, "corner") + "</div>" +
+      (st ? '<div class="pl-row">' + pill(st, "under") + "</div>" : "") + metaHtml(meta, st) + "</div>";
+    var cls = "sc row ir" + (o.compact ? " compact" : "") + (photo ? " has-photo" : "") + (st ? " has-edge e-" + st[0] : "") + (o.selected ? " selected" : "");
+    return '<div class="' + cls + '"><span class="tick">' + ic("check") + "</span>" + lead + body + trail + "</div>";
+  }
+  function mediaCard(o) {
+    var media = o.grid
+      ? '<div class="media grid" style="--ph:' + PH[o.dom] + '"><i></i><i style="filter:brightness(1.06)"></i><i style="filter:brightness(0.94)"></i>'
+      : '<div class="media' + (o.banner ? " banner" : "") + '" style="--ph:' + PH[o.dom] + '"><span class="ic">' + ic(o.icon || DOM_IC[o.dom]) + "</span>";
+    if (o.dchip) media += '<span class="dchip">' + esc(tx(o.dchip)) + "</span>";
+    if (o.count) media += '<span class="mcount">' + esc(o.count) + "</span>";
+    media += pill(o.status, "photo") + "</div>";
+    var foot = "";
+    if (o.foot || o.status) foot = '<div class="mfoot"><span class="ml">' + pill(o.status, "details") + (o.foot ? "<span" + (isAddr(tx(o.foot[0])) ? ' class="addr"' : "") + ">" + esc(tx(o.foot[0])) + "</span>" : "") + "</span>" + (o.foot && o.foot[1] ? '<span class="soft">' + esc(tx(o.foot[1])) + "</span>" : "") + "</div>";
+    var body = '<div class="body">' + kicker(null, o.status) + '<div class="top">' + titleHtml(o.title, o.lines) + pill(o.status, "corner") + "</div>" +
+      (o.status ? '<div class="pl-row">' + pill(o.status, "under") + "</div>" : "") +
+      (o.sub ? '<div class="sub">' + esc(tx(o.sub)) + "</div>" : "") + foot +
+      (o.btn ? '<div><span class="btn">' + esc(tx(o.btn)) + "</span></div>" : "") + "</div>";
+    var cls = "sc mc" + (o.wide ? " wide" : "") + " has-photo" + (o.status ? " has-edge e-" + o.status[0] : "") + (o.selected ? " selected" : "");
+    return '<div class="' + cls + '"><span class="tick">' + ic("check") + "</span>" + media + body + "</div>";
+  }
+  function factList(pairs, label, rows) {
+    return '<div class="sc fl ' + label + " " + rows + '">' + pairs.map(function (p) { return '<div class="fr"><div class="k">' + esc(tx(p[0])) + '</div><div class="v">' + esc(tx(p[1])) + "</div></div>"; }).join("") + "</div>";
+  }
+  function stateBlock(o, size, mark) {
+    return '<div class="sc sb ' + size + (mark === "none" ? " no-mark" : "") + '"><div class="mark' + (o.err ? " err" : "") + '">' + ic(o.icon) + '</div><div class="t">' + esc(tx(o.t)) + '</div><div class="d">' + esc(tx(o.d)) + "</div>" + (o.btn ? '<span class="btn lg' + (o.btnSec ? " sec" : "") + '">' + esc(tx(o.btn)) + "</span>" : "") + "</div>";
+  }
+  function list(html, sy, isList) { return isList && sy.divided ? '<div class="dl">' + html + "</div>" : html; }
+
+  /* ---------- the objects ---------- */
+  var WORK = [
+    { dom: "agro", status: ["ok", W.approved], who: "maria.eth", when: W.h2, age: ago(2, "hour"), photos: 3 },
+    { dom: "waste", status: ["warn", W.pending], who: "chidi.eth", when: W.h6, age: ago(6, "hour"), photos: 2 },
+    { dom: "solar", status: ["err", W.rejected], who: "0x7B2e…41C9", when: W.d3, age: ago(3, "day"), photos: 1 },
+    { dom: "edu", status: ["info", W.review], who: "tomi.eth", when: W.d4, age: ago(4, "day"), photos: 2 }
+  ];
+  var R = {};
+  R.work = function (s, o, opt) {
+    opt = opt || {};
+    var lines = state.lines.work, n = opt.count || (opt.desk ? 4 : 3);
+    function card(w, i, wide) { return mediaCard({ dom: w.dom, grid: true, wide: wide, dchip: W[w.dom], count: "1 / " + w.photos, title: TITLES.work[i], lines: lines, status: w.status, foot: [w.who, rules() ? w.age : w.when] }); }
+    if (opt.desk) return WORK.slice(0, n).map(function (w, i) { return card(w, i, lab.deskcard === "wide"); }).join("");
+    var sy = sys(s, "work"), wi = sy.wi;
+    return list(WORK.slice(0, n).map(function (w, i) {
+      if (wi === "card") return card(w, i, false);
+      // Rules: who, then the age; the photo count rides on the photo.
+      return itemRow({ lead: wi === "shared" ? "thumb" : "photo", dom: w.dom, title: TITLES.work[i], lines: lines, status: w.status, meta: [w.who, { soft: rules() ? w.age : w.when }], photos: rules() ? w.photos : 0 });
+    }).join(""), sy, wi !== "card");
+  };
+  R.commitments = function (s, o, opt) {
+    opt = opt || {};
+    var sy = sys(s, "commitments"), lines = state.lines.commitments;
+    var items = [
+      { dir: "offer", status: ["warn", W.needs], meta: [W.offer, "tomi.eth", { soft: W.dueFri }], btn: s === "cockpit" ? W.confirm : W.openBtn, extra: s === "cockpit" ? ["phase", W.phase] : null, initials: "TO",
+        due: W.due24, person: "tomi.eth", act: s === "cockpit" ? W.confirm : null },
+      { dir: "request", status: ["info", W.progress], meta: [W.request, W.taken, { soft: W.dueNov }], initials: "BC", extra: s === "app" ? ["queue", W.queue] : null,
+        due: W.dueNov, person: "ade.eth", initialsRule: "AD" },
+      { dir: "offer", status: ["ok", W.kept], meta: [W.offer, "maria.eth", { soft: W.keptOn }], initials: "MA", due: W.keptOn, person: "maria.eth" }
+    ];
+    var R2 = rules();
+    return list(items.slice(0, opt.count || 3).map(function (c, i) {
+      // Rules: the due date, then the other person; offer or request is the icon's to say, and with an
+      // avatar lead the person is too, so the direction takes the second place. The row opens when
+      // tapped; only the row that needs the reader keeps an action, at its right.
+      var second = o.lead === "icon" ? c.person : W[c.dir];
+      // A promise that is confirming no longer needs the reader, so under the rules the cockpit's
+      // confirming state sits on another row than the one that asks for Confirm.
+      var extra = R2 && s === "cockpit" ? (i === 1 ? ["phase", W.phase] : null) : c.extra;
+      var r = { title: TITLES.commitments[i], lines: lines, status: c.status, meta: R2 ? [{ soft: c.due }, second] : c.meta, extra: extra };
+      if (o.lead === "icon") { r.lead = "tile"; r.icon = c.dir; } else { r.lead = "av"; r.initials = R2 && c.initialsRule ? c.initialsRule : c.initials; }
+      if (R2) { r.trail = "chev"; r.action = c.act || null; }
+      else if (i === 0) { r.trail = "btn"; r.btn = c.btn; } else r.trail = "chev";
+      return itemRow(r);
+    }).join(""), sy, true);
+  };
+  R.actions = function (s, o, opt) {
+    opt = opt || {};
+    var lines = state.lines.actions, doms = ["agro", "waste", "solar", "edu"];
+    return doms.slice(0, opt.count || 4).map(function (d, i) {
+      return o.shape === "media"
+        ? mediaCard({ dom: d, banner: true, title: TITLES.actions[i], lines: lines, sub: TITLES.actionSubs[i], dchip: W[d], selected: i === 0 })
+        // Rules: what the action asks for; the domain only when no icon shows it.
+        : itemRow({ lead: "tile", icon: DOM_IC[d], eyebrow: W[d], title: TITLES.actions[i], lines: lines, meta: rules() && state.icons === "hide" ? [W[d], TITLES.actionSubs[i]] : [TITLES.actionSubs[i]], selected: i === 0 });
+    }).join("");
+  };
+  R.records = function (s, o, opt) {
+    opt = opt || {};
+    var sy = sys(s, "records"), lines = state.lines.records;
+    var recs = [
+      { kind: W.assessment, dom: "agro", icon: "clip", status: ["info", W.recorded], meta: [L("4 outcomes", "4 resultados", "4 resultados"), { soft: L("2 days ago", "hace 2 días", "há 2 dias") }], date: ago(2, "day") },
+      { kind: W.assessment, dom: "solar", icon: "clip", status: ["neu", W.draft], meta: [L("2 outcomes", "2 resultados", "2 resultados"), { soft: L("today", "hoy", "hoje") }], date: W.today },
+      { kind: W.hypercert, dom: "garden", icon: "cert", status: ["ok", W.minted], meta: [L("120 units", "120 unidades", "120 unidades"), { soft: L("12 Jan 2026", "12 ene 2026", "12 jan 2026") }], date: W.jan12 }
+    ];
+    var R2 = rules();
+    return list(recs.slice(0, opt.count || 3).map(function (r, i) {
+      // Rules: the date, then the count; the kind word only when no icon shows it, in place of the count.
+      var meta = !R2 ? r.meta : (state.icons === "hide" ? [r.kind, { soft: r.date }] : [{ soft: r.date }, r.meta[0]]);
+      return itemRow({ lead: "tile", icon: r.icon, eyebrow: r.kind, title: TITLES.records[i], lines: lines, status: r.status, meta: meta, trail: "chev" });
+    }).join(""), sy, true);
+  };
+  R.gardens = function (s, o) {
+    var lines = state.lines.gardens, ph = ["garden", "garden2"];
+    var foot = [[L("2 stewards", "2 responsables", "2 responsáveis"), L("Open to join", "Abierto a nuevos miembros", "Aberto a novos membros")], [L("1 steward", "1 responsable", "1 responsável"), L("Invite only", "Solo por invitación", "Somente por convite")]];
+    // Rules: members, then the place; stewards and how to join move to the garden's own page.
+    var members = [L("24 members", "24 miembros", "24 membros"), L("11 members", "11 miembros", "11 membros")], place = [L("Lagos", "Lagos", "Lagos"), L("Accra", "Acra", "Acra")];
+    var R2 = rules();
+    return [0, 1].map(function (i) {
+      return o.shape === "media"
+        ? mediaCard({ dom: ph[i], banner: true, icon: "sprout", title: TITLES.gardens[i], lines: lines, sub: R2 ? tx(members[i]) + " · " + tx(place[i]) : TITLES.gardenSubs[i], foot: R2 ? null : foot[i] })
+        : itemRow({ lead: "photo", dom: ph[i], title: TITLES.gardens[i], lines: lines, meta: R2 ? [members[i], { soft: place[i] }] : [TITLES.gardenSubs[i]], trail: "chev" });
+    }).join("");
+  };
+  R.people = function (s, o, opt) {
+    opt = opt || {};
+    var sy = sys(s, "people"), lines = state.lines.people;
+    var p = [{ i: "MA", meta: [W.gardener, { soft: L("12 works", "12 trabajos", "12 trabalhos") }], chip: W.gardener, count: L("12 works", "12 trabajos", "12 trabalhos") },
+             { i: "CH", meta: [W.steward, { soft: "Botanic Commons" }], chip: W.steward, count: L("2 gardens", "2 jardines", "2 jardins") },
+             { i: "0x", meta: [W.funder, { soft: "40 DAI" }], chip: W.funder, count: L("40 DAI given", "40 DAI aportados", "40 DAI doados") }];
+    var R2 = rules(), compact = o.shape === "compact";
+    return list(p.slice(0, opt.count || 3).map(function (x, i) {
+      // Rules: one count, since the chip says the role; a compact row has no chip, so it gives the role.
+      var meta = !R2 ? x.meta : (compact ? [x.chip] : [x.count]);
+      return itemRow({ lead: "av", initials: x.i, addr: x.i === "0x", title: TITLES.people[i], lines: lines, meta: meta, compact: compact, trail: compact ? null : "chip", chip: x.chip });
+    }).join(""), sy, true);
+  };
+  R.jars = function (s, o, opt) {
+    opt = opt || {};
+    var sy = sys(s, "jars"), lines = state.lines.jars;
+    var j = [
+      { icon: "jar", dom: "solar", status: ["ok", W.active], meta: [L("0.01 WETH a claim", "0.01 WETH por retiro", "0.01 WETH por saque"), { soft: L("1 day cooldown", "1 día de espera", "1 dia de espera") }], amt: ["0.42", L("WETH left", "WETH disponibles", "WETH restantes")], btn: W.claim },
+      { icon: "vault", dom: "garden2", status: ["info", W.accruing], meta: [L("8 depositors", "8 depositantes", "8 depositantes"), { soft: L("12 harvests", "12 cosechas", "12 colheitas") }], amt: ["12", L("WETH deposited", "WETH depositados", "WETH depositados")], btn: W.deposit },
+      { icon: "pool", dom: "garden", status: ["ok", W.open], meta: [L("6 open promises", "6 promesas abiertas", "6 promessas abertas"), { soft: L("2 waiting", "2 en espera", "2 aguardando") }], amt: ["6", L("open", "abiertas", "abertas")], btn: W.openBtn }
+    ];
+    var R2 = rules();
+    // Rules: one detail, since the amount takes the right side; the cooldown and harvests belong on the
+    // jar's own page. The claim shows only on the jar you can claim from, in the amount's place.
+    if (R2) { j[0].meta = [j[0].meta[0]]; j[1].meta = [j[1].meta[0]]; j[2].meta = [L("2 waiting", "2 en espera", "2 aguardando")]; }
+    return list(j.slice(0, opt.count || 3).map(function (x, i) {
+      var act = o.trail === "action" && i === 0 ? x.btn : null;
+      if (R2) return itemRow({ lead: "tile", icon: x.icon, title: TITLES.jars[i], lines: lines, status: x.status, meta: x.meta, trail: "amt", amt: x.amt, action: act, actionSec: true });
+      return itemRow({ lead: "tile", icon: x.icon, title: TITLES.jars[i], lines: lines, status: x.status, meta: x.meta, trail: o.trail === "action" ? "btn" : "amt", amt: x.amt, btn: x.btn, btnSec: true });
+    }).join(""), sy, true);
+  };
+  var FACTS = [[L("Action", "Acción", "Ação"), TITLES.actions[0]], [L("Garden", "Jardín", "Jardim"), "Botanic Commons"], [L("Submitted", "Enviado", "Enviado"), L("12 Oct 2026, 9:40", "12 oct 2026, 9:40", "12 out 2026, 9:40")], [L("Photos", "Fotos", "Fotos"), "3"], [L("Confirms it", "Lo confirma", "Quem confirma"), "chidi.eth"], [L("Reward", "Recompensa", "Recompensa"), "0.01 WETH"]];
+  R.facts = function (s, o) { return factList(FACTS, o.label, o.rows); };
+  R.states = function (s, o) {
+    return stateBlock({ icon: "inbox", t: s === "app" ? L("Nothing moving right now", "Nada en curso por ahora", "Nada em andamento agora") : L("No work waiting for review", "No hay trabajo por revisar", "Nenhum trabalho aguardando revisão"),
+      d: s === "app" ? L("When you offer something or take up a neighbour's offer, it lives here until it is settled.", "Cuando ofreces algo o aceptas la oferta de un vecino, queda aquí hasta que se cumple.", "Quando você oferece algo ou aceita a oferta de um vizinho, fica aqui até ser cumprido.") : L("When gardeners submit work, it lands here for you to check.", "Cuando los jardineros envían trabajo, llega aquí para que lo revises.", "Quando os jardineiros enviam trabalho, ele chega aqui para você revisar."),
+      btn: s === "app" ? L("Offer something", "Ofrecer algo", "Oferecer algo") : L("Open the queue", "Abrir la cola", "Abrir a fila") }, o.size, o.mark) +
+      stateBlock({ icon: "alert", err: true, t: L("Couldn't load commitments", "No se pudieron cargar las promesas", "Não foi possível carregar as promessas"), d: L("Your promises are safe. Check your connection and try again.", "Tus promesas están a salvo. Revisa tu conexión e inténtalo de nuevo.", "Suas promessas estão seguras. Verifique sua conexão e tente novamente."), btn: L("Try again", "Reintentar", "Tentar novamente"), btnSec: true }, o.size, o.mark);
+  };
+
+  /* ---------- census settings ---------- */
+  var STL = [
+    ["corner", "A · Pill in the corner", "Today. The pill shares the title's line and takes its width, so long titles and long status words cut off."],
+    ["under", "B · Pill under the title", "The title gets the full width, but every card with a status grows by a line."],
+    ["photo", "C · Pill on the photo", "Saves the line where there is a photo. Long status words run out of room on a small photo; cards without one fall back to B."],
+    ["details", "D · Pill with the details", "The pill leads the detail line. The title gets the full width and the card keeps today's height."],
+    ["above", "E · Status above the title", "A small coloured label leads the card, so a review queue scans by status. The card gains a short line."]
+  ];
+  var DIALS = [
+    { key: "stl", label: "Status", def: "under", opts: [["details", "With details", STL[3][2]], ["corner", "Corner", STL[0][2]], ["under", "Under title", STL[1][2]], ["photo", "On photo", STL[2][2]], ["above", "Above title", STL[4][2]]] },
+    { key: "drules", label: "Detail line", opts: [["rules", "Agreed rules", "The rules agreed on 18 October: the status and at most two details, most important first; nothing the card already shows; short ages and dates; an action only on the row that needs you, at its right, so every row keeps one height."], ["before", "Before", "The detail line as it was before the rules, to compare."]] },
+    { key: "lang", label: "Text", opts: [["en", "English", "Typical English titles."], ["long", "Long", "Long English titles, to see where the clamp starts."], ["es", "Español", "Spanish titles and the product's Spanish status words."], ["pt", "Português", "Portuguese titles and the product's Portuguese status words."]] },
+    { key: "media", label: "Row photo", opts: [["88", "88px", "The app's 88px photo, as it ships."], ["72", "72px", "A smaller photo, so more rows fit."], ["56", "56px", "A thumbnail."]] },
+    { key: "rowh", label: "Row height", def: "88", opts: [["72", "72px", "Every row card is 72px tall: a 48px lead, one title line and one detail line."], ["88", "88px", "Every row card is 88px tall, as the app's photo row is today: a 56px lead and more air."], ["64", "64px", "Every row card is 64px tall: a 40px lead, the densest list."]] },
+    { key: "tsize", label: "Title size", def: "15-13", opts: [["base", "16 / 14", "Today: 16px titles in the app, 14px in the cockpit."], ["15", "15 / 14", "App titles a step smaller; the cockpit keeps 14px."], ["15-13", "15 / 13", "Your pick: 15px titles in the app and 13px in the cockpit."], ["14", "14 / 14", "14px titles on both surfaces."], ["13", "13 / 13", "13px titles on both surfaces, for the longest titles."]] },
+    { key: "msize", label: "Detail size", def: "11", opts: [["12", "12px", "Today: 12px details and labels."], ["11.5", "11.5px", "Details and labels half a step smaller."], ["11", "11px", "11px details and labels."]] },
+    { key: "icons", label: "Icons", opts: [["show", "Show", "Rows without a photo lead with a centred icon tile."], ["hide", "Hide", "Rows without a photo start with the title. People keep their avatar."]] },
+    { key: "confirm", label: "Confirming", opts: [["pill", "In the pill", "While it settles, the status pill reads Confirming… (or Not sent for a promise still on the phone). The row keeps its height."], ["detail", "In the details", "The detail line reads Confirming… (or Not sent) in place of the date until it settles."], ["none", "Hidden", "The row keeps its usual status; nothing mentions confirming."]] },
+    { key: "theme", label: "Cards", opts: [["light", "Light", "The cards in the light theme."], ["dark", "Dark", "The cards in the dark theme, with your F13 dark card."]] },
+    { key: "show", label: "Object sheets", opts: [["both", "Both", "The app and the cockpit side by side in each object's sheet."], ["app", "App", "Only the app in each object's sheet."], ["cockpit", "Cockpit", "Only the cockpit in each object's sheet."]] }
+  ];
+  var DENS = [["app", "App", "At the app's density: 16px titles."], ["cockpit", "Cockpit", "At the cockpit's density: 14px titles."]];
+  var TYPES = ["work", "commitments", "actions", "records", "gardens", "people", "jars", "facts", "states"];
+  var NAMES = { work: "Work", commitments: "Commitments", actions: "Actions", records: "Assessments and hypercerts", gardens: "Gardens", people: "People", jars: "Jars, vaults and pools", facts: "Facts", states: "Empty and error states" };
+  var LINE_TYPES = ["work", "commitments", "actions", "records", "gardens", "people", "jars"];
+  var LINES_DEF = { work: "1", commitments: "1", actions: "1", records: "1", gardens: "1", people: "1", jars: "1" };
+  var OBJ = {
+    // Commitments, assessments and jars have no picture of their own, so they take the item row only.
+    commitments: [{ key: "lead", label: "Lead", opts: [["icon", "Icon", "The row starts with the offer or request icon."], ["avatar", "Avatar", "The row starts with the other person's initials."]] }],
+    actions: [{ key: "shape", label: "Picker", opts: [["media", "Media card", "Pick an action from cards with a banner: the app's picker."], ["row", "Item row", "Pick an action from rows with an icon."]] }],
+    gardens: [{ key: "shape", label: "Shape", opts: [["media", "Media card", "A garden is a card with its banner: the app's garden card."], ["row", "Item row", "A garden is a row with a photo."]] }],
+    people: [{ key: "shape", label: "Shape", opts: [["row", "Item row", "A person is a row with an avatar and a role."], ["compact", "Compact row", "One line per person."]] }],
+    jars: [{ key: "trail", label: "Action", opts: [["amount", "None", "The row ends with its amount and opens when tapped."], ["action", "Show", "The jar you can claim from shows Claim at its right, in place of the amount, so the row keeps its height."]] }],
+    facts: [{ key: "label", label: "Label", opts: [["beside", "Beside", "The label sits to the left of its value."], ["above", "Above", "The label sits above its value."]] },
+            { key: "rows", label: "Rows", opts: [["divided", "Divided", "One card with divided rows."], ["spaced", "Spaced", "Each fact on its own tinted row."]] }],
+    states: [{ key: "size", label: "Size", opts: [["full", "Full", "A centred block for an empty list or a failed page."], ["compact", "Compact", "A one-line block inside a card."]] },
+             { key: "mark", label: "Mark", opts: [["tile", "Icon tile", "A round icon tile above the title."], ["none", "None", "Text and the action only."]] }]
+  };
+  function defaults() {
+    var d = { v: 3, pv: "app", pvType: "follow", tdens: "app", cdens: "app", lines: Object.assign({}, LINES_DEF) };
+    // A dial starts on its recorded pick when it has one, otherwise on its first option.
+    DIALS.forEach(function (c) { d[c.key] = c.def || c.opts[0][0]; });
+    Object.keys(OBJ).forEach(function (k) { d[k] = {}; OBJ[k].forEach(function (c) { d[k][c.key] = c.opts[0][0]; }); });
+    return d;
+  }
+  var DEF = defaults(), state = defaults();
+  try {
+    var saved = JSON.parse(localStorage.getItem(KEY) || "null");
+    if (saved && typeof saved === "object") {
+      DIALS.forEach(function (c) { if (c.opts.some(function (o) { return o[0] === saved[c.key]; })) state[c.key] = saved[c.key]; });
+      Object.keys(OBJ).forEach(function (k) { if (saved[k]) OBJ[k].forEach(function (c) { var v = saved[k][c.key]; if (c.opts.some(function (o) { return o[0] === v; })) state[k][c.key] = v; }); });
+      // Title lines saved before one line became the default are not restored.
+      if (saved.lines && saved.v === 3) LINE_TYPES.forEach(function (t) { if (saved.lines[t] === "1" || saved.lines[t] === "2") state.lines[t] = saved.lines[t]; });
+      ["pv", "tdens", "cdens"].forEach(function (k) { if (saved[k] === "app" || saved[k] === "cockpit") state[k] = saved[k]; });
+      if (saved.pvType === "follow" || TYPES.indexOf(saved.pvType) > -1) state.pvType = saved.pvType;
+    }
+  } catch (e) {}
+  readLab();
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+
+  /* ---------- controls ---------- */
+  var hintEl = document.getElementById("hint"), HINT0 = hintEl.textContent;
+  function segHtml(group, c, current, def, sid, shortLabel) {
+    return '<span class="ctl" role="group" aria-label="' + esc(c.label) + '"><span class="seg-l">' + esc(shortLabel || c.label) + '</span><span class="seg" data-sid="' + sid + '">' +
+      c.opts.map(function (o) {
+        return '<button type="button" data-group="' + group + '" data-key="' + c.key + '" data-v="' + o[0] + '" data-d="' + esc(o[2] || "") + '" aria-pressed="' + (current === o[0]) + '"' + (def === o[0] ? ' class="picked"' : "") + ">" + esc(o[1]) + "</button>";
+      }).join("") + "</span></span>";
+  }
+  function dial(key) { return DIALS.filter(function (c) { return c.key === key; })[0]; }
+  function linesSeg(t, sid) {
+    return segHtml("lines", { key: t, label: NAMES[t] + " title lines", opts: [["1", "1 line", "The title stays on one line and ends in an ellipsis."], ["2", "2 lines", "The title may wrap to a second line, then ends in an ellipsis."]] }, state.lines[t], LINES_DEF[t], sid, "Title");
+  }
+  function buildControls() {
+    document.getElementById("dockRows").innerHTML = DIALS.map(function (c) { return segHtml("dial", c, state[c.key], DEF[c.key], "dock-" + c.key); }).join("");
+    document.getElementById("sysCtl").innerHTML = SYSC.map(function (c) { return segHtml("sys", c, lab[c.key], RECORDED[c.key], "sys-" + c.key); }).join("") +
+      segHtml("dial", { key: "theme", label: "Theme", opts: dial("theme").opts }, state.theme, "light", "sys-theme");
+    document.getElementById("cmpCtl").innerHTML = segHtml("cdens", { key: "cdens", label: "Density", opts: DENS }, state.cdens, "app", "cmp-dens") + segHtml("dial", dial("lang"), state.lang, "en", "cmp-lang");
+    document.getElementById("typeCtl").innerHTML = segHtml("tdens", { key: "tdens", label: "Density", opts: DENS }, state.tdens, "app", "types-dens") + segHtml("dial", dial("stl"), state.stl, DEF.stl, "types-stl") + segHtml("dial", dial("drules"), state.drules, "rules", "types-drules") + segHtml("dial", dial("lang"), state.lang, "en", "types-lang");
+    TYPES.forEach(function (k) {
+      var host = document.querySelector('.octl[data-obj="' + k + '"]');
+      if (!host) return;
+      var html = k === "work" ? '<span class="note">Shape set by F7 and F12 in <a href="#system">your design system</a>.</span>' : "";
+      if (OBJ[k]) html += OBJ[k].map(function (c) { return segHtml(k, c, state[k][c.key], DEF[k][c.key], "obj-" + k + "-" + c.key); }).join("");
+      if (LINE_TYPES.indexOf(k) > -1) html += linesSeg(k, "obj-" + k + "-lines");
+      host.innerHTML = html;
+    });
+    var sel = document.getElementById("pvType");
+    sel.innerHTML = '<option value="follow">The section in view</option>' + TYPES.map(function (t) { return '<option value="' + t + '">' + esc(NAMES[t]) + "</option>"; }).join("");
+    sel.value = state.pvType;
+    document.querySelectorAll(".pv-h button[data-pv]").forEach(function (x) { x.setAttribute("aria-pressed", String(x.getAttribute("data-pv") === state.pv)); });
+  }
+
+  /* ---------- rendering ---------- */
+  function panel(surface, label, inner, extraCls, obj, isDesk) {
+    return '<div class="panel' + (isDesk ? " full" : "") + '" data-surface="' + surface + '"><div class="panel-l">' + label + "</div>" + specOpen(surface, obj, extraCls, null, isDesk) + inner + "</div></div>";
+  }
+  function deskCls() { return "desk desk-grid" + (lab.deskcard === "wide" ? "" : " tall"); }
+  function renderObj(k) {
+    var host = document.querySelector('.specs[data-obj="' + k + '"]');
+    if (!host) return;
+    var o = state[k] || {};
+    var html = panel("app", "App <span>· phone</span>", R[k]("app", o), "", k) + panel("cockpit", "Cockpit <span>· phone</span>", R[k]("cockpit", o), "", k);
+    if (k === "work") html += panel("cockpit", "Cockpit <span>· desktop</span>", R.work("cockpit", o, { desk: true }), deskCls(), k, true);
+    host.innerHTML = html;
+    host.querySelectorAll(".panel[data-surface]").forEach(function (p) { var s = p.getAttribute("data-surface"); p.hidden = !(state.show === "both" || state.show === s); });
+  }
+  function mixed(surface) {
+    return grp(surface, "work", R.work(surface, null, { count: 2 })) + grp(surface, "commitments", R.commitments(surface, state.commitments, { count: 1 })) + grp(surface, "people", R.people(surface, { shape: "row" }, { count: 1 }));
+  }
+  function renderSystem() {
+    document.getElementById("sysSrc").innerHTML = labSource === "lab"
+      ? "<b>Read from the lab in this browser.</b> A change here changes the lab too."
+      : "<b>Your recorded picks.</b> The lab has nothing saved in this browser, so these are the picks you pasted on 17 October. A change here saves them for the lab too.";
+    var ds = SYSC.filter(function (c) { return lab[c.key] !== RECORDED[c.key]; }).map(function (c) { return c.label + ": " + optName(c, lab[c.key]) + " (recorded: " + optName(c, RECORDED[c.key]) + ")"; });
+    var diff = document.getElementById("sysDiff");
+    diff.hidden = ds.length === 0;
+    diff.innerHTML = ds.length ? "Differs from your recorded picks: " + esc(ds.join("; ")) + '. <button type="button" class="lnk" id="sysReset">Use my recorded picks</button>' : "";
+    document.getElementById("sysPv").innerHTML = panel("app", "App <span>· phone</span>", mixed("app"), "", "work") + panel("cockpit", "Cockpit <span>· phone</span>", mixed("cockpit"), "", "work") +
+      panel("cockpit", "Cockpit <span>· desktop</span>", R.work("cockpit", null, { desk: true, count: 2 }), deskCls(), "work", true);
+    var names = ["font", "ground", "cards", "list", "darkcards"].map(function (k) { var c = SYSC.filter(function (x) { return x.key === k; })[0]; return optName(c, lab[k]); });
+    document.getElementById("sysLine").innerHTML = "Design system: " + esc("type " + names[0] + ", ground " + names[1] + ", cards " + names[2] + ", list " + names[3] + ", dark cards " + names[4]) + '. <a href="#system">Change it</a>';
+  }
+  function compareInner(d) {
+    return grp(d, "work", R.work(d, null, { count: 2 })) + grp(d, "commitments", R.commitments(d, state.commitments, { count: 1 })) + grp(d, "records", R.records(d, state.records || {}, { count: 1 })) + grp(d, "jars", R.jars(d, state.jars, { count: 1 }));
+  }
+  function renderCompare() {
+    var d = state.cdens;
+    document.getElementById("cmp").innerHTML = STL.map(function (l) {
+      var on = state.stl === l[0];
+      return '<div class="cmp-col' + (on ? " on" : "") + '" data-stl="' + l[0] + '"><div class="cmp-h"><h3>' + esc(l[1]) + '</h3><button type="button" class="use" data-stl="' + l[0] + '" aria-pressed="' + on + '">' + (on ? "In use" : "Use this") + '</button></div><p class="cmp-d">' + esc(l[2]) + '</p><p class="cut" aria-live="polite"></p>' +
+        specOpen(d, "work", "", l[0]) + compareInner(d) + "</div></div>";
+    }).join("") +
+      '<div class="cmp-rec"><p><b>Locked on 18 October: B, the pill under the title.</b> The title keeps the card\'s full width, the pill gets a line of its own, and every row in a list takes one 88px height. D, the pill with the details, was the recommendation; it keeps rows at 72px.</p><table class="cuts" id="cuts"></table></div>';
+  }
+  /* Count the titles a layout cuts short: measured on the cards in each column, and for every language
+     on hidden copies at the same width. */
+  var probe = document.createElement("div");
+  probe.setAttribute("aria-hidden", "true");
+  probe.style.cssText = "position:absolute;left:-10000px;top:0;visibility:hidden;pointer-events:none;";
+  document.body.appendChild(probe);
+  var LANGS = [["en", "English"], ["long", "Long"], ["es", "Español"], ["pt", "Português"]];
+  function cutCount(root) {
+    var n = 0, total = 0;
+    root.querySelectorAll(".title").forEach(function (t) { total++; if (t.scrollHeight > t.clientHeight + 1 || t.scrollWidth > t.clientWidth + 1) n++; });
+    return [n, total];
+  }
+  // A row's detail line is one line: a detail that wrapped below it is hidden by the clamp (dropped),
+  // and one that ends in an ellipsis is shortened. Either way the reader cannot read it whole.
+  function dropCount(root) {
+    var n = 0, total = 0;
+    root.querySelectorAll(".ir:not(.compact) .meta .mrow").forEach(function (row) {
+      var top = row.getBoundingClientRect().top;
+      row.querySelectorAll(".mi").forEach(function (mi) { total++; if (mi.getBoundingClientRect().top - top > 8 || mi.scrollWidth > mi.clientWidth + 1) n++; });
+    });
+    return [n, total];
+  }
+  function typesInner(d) { return LINE_TYPES.map(function (t) { return grp(d, t, R[t](d, state[t] || {}, { count: 2 })); }).join(""); }
+  function measure() {
+    var cols = document.querySelectorAll("#cmp .cmp-col");
+    if (!cols.length) return;
+    cols.forEach(function (c) {
+      var spec = c.querySelector(".spec"), r = cutCount(spec), dr = dropCount(spec), el = c.querySelector(".cut");
+      el.textContent = (r[0] === 0 ? "Every title shows in full" : r[0] + " of " + r[1] + " titles cut off") +
+        (dr[0] === 0 ? " · every detail shows" : " · " + dr[0] + " of " + dr[1] + " details dropped or shortened");
+      el.classList.toggle("bad", r[0] > 0 || dr[0] > 0);
+    });
+    var w = Math.round(cols[0].querySelector(".spec").getBoundingClientRect().width), keep = state.lang, d = state.cdens, total = 0;
+    probe.style.width = w + "px";
+    var rows = STL.map(function (l) {
+      return '<tr' + (state.stl === l[0] ? ' class="on"' : "") + '><th scope="row">' + esc(l[1].replace(" · ", " ")) + "</th>" + LANGS.map(function (lg) {
+        state.lang = lg[0];
+        probe.innerHTML = specOpen(d, "work", "", l[0]) + compareInner(d) + "</div>";
+        var r = cutCount(probe); total = r[1];
+        return '<td class="' + (r[0] ? "bad" : "zero") + (keep === lg[0] ? " lang-on" : "") + '">' + r[0] + "</td>";
+      }).join("") + "</tr>";
+    }).join("");
+    // The details each row card drops, before and with the agreed rules, on hidden copies at a tile's width.
+    var tile = document.querySelector("#typeGrid .tile .spec"), tw = tile ? Math.round(tile.getBoundingClientRect().width) : w, keepR = state.drules, td = state.tdens;
+    probe.style.width = tw + "px";
+    var drows = [["before", "Before the rules"], ["rules", "With the rules"]].map(function (m) {
+      state.drules = m[0];
+      return "<tr" + (keepR === m[0] ? ' class="on"' : "") + '><th scope="row">' + m[1] + "</th>" + LANGS.map(function (lg) {
+        state.lang = lg[0];
+        probe.innerHTML = specOpen(td, "work") + typesInner(td) + "</div>";
+        var r = dropCount(probe);
+        return '<td class="' + (r[0] ? "bad" : "zero") + (keep === lg[0] ? " lang-on" : "") + '">' + r[0] + " of " + r[1] + "</td>";
+      }).join("") + "</tr>";
+    }).join("");
+    state.drules = keepR;
+    document.getElementById("drops").innerHTML = "<caption>Details dropped or shortened on the row cards below, at " + (td === "app" ? "the app's" : "the cockpit's") + " density and " + tw + "px wide</caption><thead><tr><th scope=\"col\">Detail line</th>" +
+      LANGS.map(function (lg) { return '<th scope="col"' + (keep === lg[0] ? ' class="lang-on"' : "") + ">" + lg[1] + "</th>"; }).join("") + "</tr></thead><tbody>" + drows + "</tbody>";
+    state.lang = keep;
+    probe.innerHTML = "";
+    document.getElementById("cuts").innerHTML = "<caption>Titles cut off, of " + total + ", at " + (d === "app" ? "the app's" : "the cockpit's") + " density and " + w + "px wide</caption><thead><tr><th scope=\"col\">Layout</th>" +
+      LANGS.map(function (lg) { return '<th scope="col"' + (keep === lg[0] ? ' class="lang-on"' : "") + ">" + lg[1] + "</th>"; }).join("") + "</tr></thead><tbody>" + rows + "</tbody>";
+  }
+  function shapeName(t, d, o) {
+    if (t === "work") { var w = sys(d, "work").wi; return w === "card" ? "Media card with a photo grid" : (w === "shared" ? "Item row with a 48px photo" : "Item row with a photo"); }
+    if (t === "facts") return "Fact rows";
+    if (t === "states") return "State blocks";
+    return o.shape === "media" ? "Media card" : (o.shape === "compact" ? "Compact item row" : "Item row");
+  }
+  // Rule 1: each type's details, most important first.
+  var ORDER = { work: "who, age", commitments: "due date, other person", actions: "what it asks for", records: "date, outcomes or units", gardens: "members, place", people: "one count", jars: "one, the limit" };
+  function renderTypes() {
+    var d = state.tdens;
+    document.getElementById("typeGrid").innerHTML = TYPES.map(function (t) {
+      var o = state[t] || {};
+      var sub = shapeName(t, d, o) + (rules() && ORDER[t] ? " · details: " + ORDER[t] : "");
+      return '<div class="tile" data-type="' + t + '"><div class="tile-h"><div class="tile-n"><b>' + esc(NAMES[t]) + "</b><span>" + esc(sub) + "</span></div>" +
+        (LINE_TYPES.indexOf(t) > -1 ? linesSeg(t, "tile-" + t) : "") + "</div>" + specOpen(d, t) + R[t](d, o, { count: 2 }) + "</div></div>";
+    }).join("");
+  }
+  var SECTION_IDS = ["system", "layouts", "types"].concat(TYPES, ["primitives"]);
+  var pv = document.getElementById("preview"), currentId = null;
+  function sectionInView() {
+    var line = window.innerHeight * 0.45, cur = SECTION_IDS[0];
+    SECTION_IDS.forEach(function (id) { var el = document.getElementById(id); if (el && el.getBoundingClientRect().top <= line) cur = id; });
+    return cur;
+  }
+  function previewType() { var s = sectionInView(); return TYPES.indexOf(s) > -1 ? s : "work"; }
+  function renderPreview(flash) {
+    var id = state.pvType === "follow" ? previewType() : state.pvType;
+    currentId = id;
+    pv.innerHTML = specOpen(state.pv, id) + R[id](state.pv, state[id] || {}) + "</div>";
+    document.getElementById("pvOpts").innerHTML = '<span class="pv-for">' + esc(NAMES[id]) + "</span>" + (LINE_TYPES.indexOf(id) > -1 ? linesSeg(id, "pv-lines") : "");
+    if (flash) { pv.classList.remove("flash"); void pv.offsetWidth; pv.classList.add("flash"); }
+  }
+  var ticking = false;
+  function onMove() {
+    if (ticking || state.pvType !== "follow") return;
+    ticking = true;
+    requestAnimationFrame(function () { ticking = false; if (previewType() !== currentId) renderPreview(false); });
+  }
+  window.addEventListener("scroll", onMove, { passive: true });
+  window.addEventListener("resize", onMove);
+  function renderAll() { buildControls(); renderSystem(); renderCompare(); renderTypes(); TYPES.forEach(renderObj); renderPreview(false); measure(); }
+  var measureTick = false;
+  function remeasure() { if (measureTick) return; measureTick = true; requestAnimationFrame(function () { measureTick = false; measure(); }); }
+  window.addEventListener("resize", remeasure);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(remeasure);
+
+  /* Re-render after a change and keep what the reader was looking at in place: the control they used
+     when it sits in the page, or the section in view when they used the rail. */
+  function selectorFor(el) {
+    if (!el) return null;
+    var seg = el.closest(".seg[data-sid]");
+    if (seg) return '.seg[data-sid="' + seg.getAttribute("data-sid") + '"] button[data-v="' + el.getAttribute("data-v") + '"]';
+    if (el.matches(".use[data-stl]")) return '.use[data-stl="' + el.getAttribute("data-stl") + '"]';
+    return el.id ? "#" + el.id : null;
+  }
+  function rerender(el) {
+    var own = selectorFor(el), focused = !!el && document.activeElement === el;
+    var anchorSel = own && el.closest(".wrap") ? own : "#" + sectionInView();
+    var anchor = document.querySelector(anchorSel), before = anchor ? anchor.getBoundingClientRect().top : 0;
+    renderAll();
+    var now = document.querySelector(anchorSel);
+    if (anchor && now) window.scrollBy(0, now.getBoundingClientRect().top - before);
+    if (focused && own) { var f = document.querySelector(own); if (f) f.focus({ preventScroll: true }); }
+    renderPreview(true);
+  }
+
+  function picksLine() {
+    var parts = ["Status " + STL.filter(function (l) { return l[0] === state.stl; })[0][1].replace(/^[A-E] · /, ""), "Detail line " + optName(dial("drules"), state.drules), "Row photo " + state.media + "px"];
+    parts.push("Row height " + state.rowh + "px", "Title size " + optName(dial("tsize"), state.tsize), "Detail size " + state.msize + "px", "Icons " + optName(dial("icons"), state.icons), "Confirming " + optName(dial("confirm"), state.confirm));
+    parts.push("Title lines: " + LINE_TYPES.map(function (t) { return NAMES[t].toLowerCase() + " " + state.lines[t]; }).join(", "));
+    Object.keys(OBJ).forEach(function (k) { parts.push(NAMES[k] + ": " + OBJ[k].map(function (c) { return c.label.toLowerCase() + " " + optName(c, state[k][c.key]); }).join(", ")); });
+    parts.push("Design system: " + SYSC.map(function (c) { return c.label + " " + optName(c, lab[c.key]); }).join(", "));
+    return "Census picks: " + parts.join("; ");
+  }
+
+  /* ---------- events ---------- */
+  document.addEventListener("click", function (ev) {
+    var b = ev.target.closest(".seg button[data-key]");
+    if (b) {
+      var g = b.getAttribute("data-group"), k = b.getAttribute("data-key"), v = b.getAttribute("data-v");
+      if (g === "sys") { var ch = {}; ch[k] = v; writeLab(ch); if (k === "darkcards") state.theme = "dark"; }
+      else if (g === "dial") state[k] = v;
+      else if (g === "lines") state.lines[k] = v;
+      else if (g === "tdens" || g === "cdens") state[g] = v;
+      else if (state[g]) state[g][k] = v;
+      save(); rerender(b);
+      return;
+    }
+    var u = ev.target.closest(".use[data-stl]");
+    if (u) { state.stl = u.getAttribute("data-stl"); save(); rerender(u); return; }
+    if (ev.target.closest("#sysReset")) { writeLab(Object.assign({}, RECORDED)); rerender(document.getElementById("sysCtl")); hintEl.textContent = "Your design system is back on your recorded picks."; return; }
+    var pb = ev.target.closest(".pv-h button[data-pv]");
+    if (pb) { state.pv = pb.getAttribute("data-pv"); save(); buildControls(); renderPreview(true); return; }
+    if (ev.target.closest(".js-reset")) { resetAll(); return; }
+    var cb = ev.target.closest(".js-copy");
+    if (cb) { copyPicks(cb); return; }
+    var shot = ev.target.closest(".shot button");
+    if (shot) {
+      var img = shot.querySelector("img"), cap = shot.parentNode.querySelector("figcaption");
+      document.getElementById("zoomImg").src = img.src;
+      document.getElementById("zoomImg").alt = img.alt;
+      document.getElementById("zoomCap").textContent = cap ? cap.textContent.replace(/\s+/g, " ").trim() : img.alt;
+      var dlg = document.getElementById("zoom");
+      if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
+    }
+  });
+  document.getElementById("pvType").addEventListener("change", function () { state.pvType = this.value; save(); renderPreview(true); });
+  window.addEventListener("storage", function (e) { if (e.key === LAB_KEY) { readLab(); renderAll(); } });
+  document.getElementById("zoomClose").addEventListener("click", function () { var d = document.getElementById("zoom"); if (d.close) d.close(); else d.removeAttribute("open"); });
+  document.getElementById("zoom").addEventListener("click", function (ev) { if (ev.target === this && this.close) this.close(); });
+  function hintFor(ev) { var b = ev.target.closest && ev.target.closest(".rail .seg button[data-d]"); if (b) hintEl.textContent = b.getAttribute("data-d"); }
+  document.addEventListener("mouseover", hintFor);
+  document.addEventListener("focusin", hintFor);
+  document.getElementById("dock").addEventListener("mouseleave", function () { hintEl.textContent = HINT0; });
+  function resetAll() {
+    state = defaults(); save(); rerender(null);
+    hintEl.textContent = "Back on the recommendations. Your design system is unchanged.";
+  }
+  var copyTimer = 0;
+  function legacyCopy(text) {
+    var ta = document.createElement("textarea"), ok = false;
+    ta.value = text; ta.setAttribute("readonly", ""); ta.setAttribute("aria-hidden", "true");
+    ta.style.cssText = "position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;";
+    document.body.appendChild(ta); ta.select();
+    try { ok = document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta);
+    return ok;
+  }
+  function copyPicks(btn) {
+    var text = picksLine(), row = document.getElementById("copyRow"), field = document.getElementById("copyText");
+    function copied() { row.hidden = true; btn.textContent = "Copied"; clearTimeout(copyTimer); copyTimer = setTimeout(function () { btn.textContent = "Copy picks"; }, 2200); }
+    // Where the clipboard is refused, show the line selected in a field, opening the folded tweaker if need be.
+    function shown() { dock.classList.remove("collapsed"); toggle.setAttribute("aria-expanded", "true"); row.hidden = false; field.value = text; field.focus(); field.select(); }
+    function refused() { if (legacyCopy(text)) copied(); else shown(); }
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(copied, refused);
+      else refused();
+    } catch (e) { refused(); }
+  }
+  var dock = document.getElementById("dock"), toggle = document.getElementById("dockToggle");
+  toggle.addEventListener("click", function () { var c = dock.classList.toggle("collapsed"); toggle.setAttribute("aria-expanded", String(!c)); });
+  if (window.matchMedia && window.matchMedia("(max-width: 1099px)").matches) { dock.classList.add("collapsed"); toggle.setAttribute("aria-expanded", "false"); }
+
+  renderAll();
+})();
+</script>
+</body>
+</html>

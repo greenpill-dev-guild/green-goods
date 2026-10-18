@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "description": "Machine-readable source for Green Goods vocabulary enforcement. The linter reads linter_enforced, renamed_terms, and us_spelling. Prompt-only lists guide design agents and are projected into the public glossary.",
+  "description": "Machine-readable source for Green Goods vocabulary enforcement. The linter reads linter_enforced, renamed_terms, and us_spelling; the docs audit and the agent copy test read us_spelling. Prompt-only lists guide design agents and are projected into the public glossary.",
   "linter_enforced": {
     "scope": "user-facing strings in i18n JSON message values",
     "globs": [
@@ -86,7 +86,7 @@
     "locale_terms_rationale": "Locked visible terms on every surface (decided 2026-10-18): steward is es responsable, pt responsável; garden is es jardín, pt jardim. Each list holds the English words and the synonyms that drifted in before. locale_allowed_phrases names, per key, the exact proper-name phrase the check removes before matching (Gardens is the conviction-voting product; Green Goods Community Garden is a garden's name), so any other occurrence of a listed word in that key still fails. Participante, compromiso and custodia are correct elsewhere, so they are not listed; the shared locale-coverage test guards dotación and dotação, and requires promesa / promessa wherever English says promise. The agent's es and pt chat copy is held to the same lists by packages/agent/src/__tests__/locale-terms.test.ts. ICU argument names are code and are skipped."
   },
   "us_spelling": {
-    "scope": "English message values in i18n JSON catalogs; keys and ICU argument names are code and are skipped",
+    "scope": "English copy: i18n catalog values (globs, check-vocab.sh), hand-written docs, release notes and design guidance (docs-audit.mjs), and the agent's English chat copy (its i18n test); keys, code, URLs and ICU argument names are skipped",
     "globs": [
       "packages/shared/src/i18n/en.json",
       "packages/client/src/i18n/en.json",
@@ -185,7 +185,8 @@
       "analysing": "analyzing"
     },
     "exempt_keys": [],
-    "rationale": "English copy uses US spelling (decided 2026-10-17; DESIGN.md § Voice & Copy). Each UK form maps to the US word to use. A message that quotes a third-party name or title in its own spelling goes in exempt_keys."
+    "exempt_phrases": [],
+    "rationale": "English copy uses US spelling (decided 2026-10-17; DESIGN.md § Voice & Copy). Each UK form maps to the US word to use. A third-party name or title quoted in its own spelling goes in exempt_keys (a catalog message) or exempt_phrases (docs and agent copy)."
   },
   "prompt_vocabulary_admin_banned": {
     "scope": "AI-prompt vocabulary for admin-cockpit screens; guidance only",
@@ -233,6 +234,14 @@
     {
       "path": "scripts/design/check-vocab.sh",
       "reads": "linter_enforced, renamed_terms, and us_spelling"
+    },
+    {
+      "path": "docs/scripts/docs-audit.mjs",
+      "reads": "us_spelling for hand-written docs, release notes and design guidance"
+    },
+    {
+      "path": "packages/agent/src/__tests__/i18n.test.ts",
+      "reads": "us_spelling for the agent's English chat copy"
     },
     {
       "path": "packages/agent/src/__tests__/locale-terms.test.ts",

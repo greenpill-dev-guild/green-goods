@@ -257,7 +257,11 @@ def branch_text(message):
         while j < len(message) and depth:
             character = message[j]
             depth += {"{": 1, "}": -1}.get(character, 0)
-            if depth >= 2 or (character == "}" and depth == 1):
+            # Each branch loses its own braces, so a one-word branch such as
+            # {cancelled} is read as text, not as an argument reference.
+            if (character == "{" and depth == 2) or (character == "}" and depth == 1):
+                branches.append(" ")
+            elif depth >= 2:
                 branches.append(character)
             j += 1
         out.append(" " + branch_text("".join(branches)) + " ")
@@ -276,8 +280,9 @@ if terms:
             for key, value in json.load(open(path)).items():
                 if key in exempt or not isinstance(value, str):
                     continue
-                # ICU argument references are code the component passes, not copy.
-                prose = re.sub(r"\{\s*\w+\s*[,}]", " ", branch_text(value))
+                # ICU argument references are code the component passes, and URLs are
+                # addresses; neither is copy.
+                prose = re.sub(r"\{\s*\w+\s*[,}]|https?://\S+", " ", branch_text(value))
                 for match in pattern.finditer(prose):
                     word = match.group(0)
                     hits.append(f"{path}: {key}: {word} -> {terms[word.lower()]}")
