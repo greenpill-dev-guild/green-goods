@@ -9,7 +9,7 @@ generator: scripts/docs/generate.mjs
 generated_from:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:1763a6b1779d10d75d860bcc3ae1f16fb4dde29c256120b8c103402a53b4c377"
+source_digest: "sha256:4885635d510d454a2da695aef5853be803f7dd1ed22a408e30a21b103098aa1d"
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
@@ -25,7 +25,7 @@ Green Goods is built for five kinds of people. Each one is tied to an on-chain h
 | Persona | In one line | Works in |
 |---|---|---|
 | [Gardener](#gardener) | A person doing and documenting the work | Client app, Messaging agent |
-| [Steward](#steward) | A person stewarding Garden operations | Admin cockpit, Client app, Messaging agent |
+| [Steward](#steward) | A person stewarding garden operations | Admin cockpit, Client app, Messaging agent |
 | [Evaluator](#evaluator) | A person shaping assessment and impact rigor | Admin cockpit, Public site |
 | [Funder](#funder) | A person or organization supporting the work | Client app, Public site |
 | [Community Member](#community-member) | A local person affected by the work | Client app, Public site |
@@ -110,7 +110,7 @@ Stewards run a garden day to day. They are usually a chapter lead or a program m
 Evaluators bring the method. They are people with domain expertise, such as an agronomist or a researcher, who help a garden say what it will measure and whether the result holds up. They do not approve or reject work; that stays with stewards. Evaluators help communities frame baselines, methods, outcomes, and defensible claims.
 
 - **On-chain role:** the `evaluator` hat.
-- **Definition:** A person who authors or strengthens Assessments and attests impact methodology or outcomes. Evaluators do not approve or reject submitted Work; that authority belongs to Stewards.
+- **Definition:** A person who authors or strengthens Assessments and attests impact methodology or outcomes. Evaluators do not approve or reject submitted Work; that authority belongs to stewards.
 - **Also called:** impact assessor.
 - **Not the same as:** Steward, Work approver.
 
@@ -158,7 +158,7 @@ Funders are people and organizations who want their money to follow verified wor
 Community members live with the results. They are residents and neighbours who may never submit work themselves, yet they are the people the work is for. Community voice should shape needs and accountability, not sit outside the record.
 
 - **On-chain role:** the `community` hat.
-- **Definition:** A local resident affected by a Garden's Work. Signals or attests that Work exists and is healthy, and helps prioritize future Actions through public signal and conviction flows.
+- **Definition:** A local resident affected by a garden's Work. Signals or attests that Work exists and is healthy, and helps prioritize future Actions through public signal and conviction flows.
 - **Also called:** resident.
 - **Not the same as:** Gardener.
 
@@ -178,6 +178,6 @@ Community members live with the results. They are residents and neighbours who m
 
 ## The owner
 
-The on-chain hat tree has six roles; the Owner hat carries full garden control but has no dedicated persona — owners act through the Steward surfaces.
+The on-chain hat tree has six roles; the Owner hat carries full garden control but has no dedicated persona — owners act through the steward surfaces.
 
 Which surfaces may *name* a persona, in copy and in data, is a separate vocabulary rule. The [formal ontology](/reference/ontology#personas) carries it in its surfaces column.

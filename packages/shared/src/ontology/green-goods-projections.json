@@ -15,7 +15,7 @@
         },
         {
           "file": "packages/client/src/views/Public/GardenDetail.tsx",
-          "note": "The client exposes a public Garden surface."
+          "note": "The client exposes a public garden surface."
         }
       ],
       "verified_at": "2026-08-15"
@@ -178,7 +178,7 @@
         },
         {
           "file": "packages/client/src/components/Public/PublicWhoTendsAGarden.tsx",
-          "note": "The public client explains active Garden roles."
+          "note": "The public client explains active garden roles."
         }
       ],
       "verified_at": "2026-08-15"
@@ -446,10 +446,10 @@
     },
     {
       "ref": "entity:vault",
-      "plain_name": "A Garden's long-term fund",
+      "plain_name": "A garden's long-term fund",
       "why_it_matters": "A deposit can stay in place while what it earns supports ongoing work.",
       "who_touches_it": ["Funder", "Steward"],
-      "example": "A funder endows a Garden, and what the deposit earns supports the Garden's work.",
+      "example": "A funder endows a garden, and what the deposit earns supports the garden's work.",
       "aliases": ["endowment"],
       "not_confused_with": ["Cookie Jar", "a guaranteed deposit"]
     },
@@ -501,9 +501,9 @@
     {
       "ref": "entity:commitment-pool",
       "plain_name": "A governed home for promises",
-      "why_it_matters": "It gives a Garden rules and bounds for coordinating offers and requests.",
+      "why_it_matters": "It gives a garden rules and bounds for coordinating offers and requests.",
       "who_touches_it": ["Steward", "Gardener", "Community Member"],
-      "example": "A Garden pool coordinates transport offers under a charter.",
+      "example": "A garden pool coordinates transport offers under a charter.",
       "aliases": ["pool"],
       "not_confused_with": ["Vault", "Cookie Jar"]
     },
@@ -528,7 +528,7 @@
     {
       "ref": "entity:commitment-provider-exposure",
       "plain_name": "A lead provider's current open load",
-      "why_it_matters": "It lets a Garden apply its coordination limits without rewriting prior commitment history.",
+      "why_it_matters": "It lets a garden apply its coordination limits without rewriting prior commitment history.",
       "who_touches_it": ["Steward", "Gardener"],
       "example": "A lead provider currently holds two open commitments in one pool.",
       "aliases": ["provider exposure"],
@@ -575,7 +575,7 @@
       "plain_name": "A frozen split for declared support",
       "why_it_matters": "It proves conservation and contributor amounts before any payment dispatch.",
       "who_touches_it": ["Steward", "Gardener"],
-      "example": "A Garden retains part and assigns the rest to eligible contributors.",
+      "example": "A garden retains part and assigns the rest to eligible contributors.",
       "aliases": ["payout plan"],
       "not_confused_with": ["recognition weights", "payment receipt"]
     },
@@ -590,7 +590,7 @@
     },
     {
       "ref": "persona:steward",
-      "plain_name": "A person stewarding Garden operations",
+      "plain_name": "A person stewarding garden operations",
       "why_it_matters": "Stewards turn community policy into accountable review and coordination.",
       "who_touches_it": ["Gardener", "Evaluator", "Funder", "Community Member"],
       "example": "A steward adds members and approves or rejects submitted Work.",
@@ -620,7 +620,7 @@
       "plain_name": "A local person affected by the work",
       "why_it_matters": "Community voice should shape needs and accountability, not sit outside the record.",
       "who_touches_it": ["Steward", "Gardener"],
-      "example": "A resident reads the public record of approved Work in a nearby Garden.",
+      "example": "A resident reads the public record of approved Work in a nearby garden.",
       "aliases": ["resident"],
       "not_confused_with": ["Gardener"]
     }
@@ -628,7 +628,7 @@
   "marketing_claims": [
     {
       "id": "place-rooted-coordination",
-      "claim": "Green Goods gives a real community, its roles, and its records one accountable Garden.",
+      "claim": "Green Goods gives a real community, its roles, and its records one accountable garden.",
       "audience": ["community", "steward", "funder"],
       "maturity": "available",
       "term_refs": ["entity:garden", "entity:hat"],
@@ -638,7 +638,7 @@
           "note": "Garden and Hats modules are deployed on Arbitrum."
         }
       ],
-      "safe_wording": "Communities can organize people and records around a shared Garden.",
+      "safe_wording": "Communities can organize people and records around a shared garden.",
       "verified_at": "2026-08-15"
     },
     {
@@ -665,7 +665,7 @@
       "evidence": [
         {
           "file": "packages/contracts/src/resolvers/WorkApproval.sol",
-          "note": "Work Approval is Steward-only and separate from Work submission."
+          "note": "Work Approval is steward-only and separate from Work submission."
         }
       ],
       "safe_wording": "Stewards review Work and record an approval or rejection separately.",
@@ -673,7 +673,7 @@
     },
     {
       "id": "assessment-rigor",
-      "claim": "Stewards and Evaluators can define a baseline and strategy before Work begins.",
+      "claim": "Stewards and evaluators can define a baseline and strategy before Work begins.",
       "audience": ["steward", "evaluator", "funder"],
       "maturity": "available",
       "term_refs": ["entity:assessment", "persona:evaluator"],
