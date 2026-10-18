@@ -260,6 +260,11 @@ The names that carry the work. Domain entities, personas, relationships, and lif
 | Impact | Output, result, metric | Bridges community and chain. |
 | Document | Log, record, capture | Gardeners document their work. |
 
+**Lower case in running text (DL-090).** In a sentence, garden, gardener, steward, evaluator,
+funder, and community member stay lower case in English, Spanish, and Portuguese ("this garden",
+"este jardín", "o responsável"); Title Case stays only where DL-012 and DL-013 put it, in titles,
+action labels, and named acts, and in a garden's own name ("Community Garden").
+
 **Plain titles, methods in helper text (DL-047).** Step, section, and field titles use plain
 questions and nouns ("How Predictable Is This Work?", "What You'll Measure"); a framework or
 method name (strategy kernel, Cynefin, SMART) appears only as helper text, in parentheses after the
