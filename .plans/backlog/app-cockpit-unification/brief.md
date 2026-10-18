@@ -62,6 +62,10 @@ questions about how the choices stand. The full record is in
   light and dark, with Spanish and Portuguese where text must fit.
 - **Timing.** As much of the sequence as fits should land before the Cosmo-Local demonstration.
   The plan is saved first; no implementation is authorized yet.
+- **Tracking.** The Linear parent is PRD-1266, with one sub-issue per delivery step, in the active
+  release project rather than the Cosmo-Local project: the 15 October four-goal plan gave PWA and
+  admin delivery to the release project. PRD-1261, the member and steward pilot-journey pass, stays
+  separate.
 
 ## The resulting shape
 
@@ -78,8 +82,8 @@ wide desktop work card.
 
 This hub owns the look and feel shared by the installed app and the steward cockpit: surface
 tokens, shared chrome recipes, and the guides and gates that pin them. It does not authorize
-application edits, Linear records, deployment, a layout or flow change, a merge of the two apps, or
-a change to the public website beyond what a shared piece forces. The garden-scoped Home and its
+application edits, deployment, a layout or flow change, a merge of the two apps, or a change to the
+public website beyond what a shared piece forces. Its Linear records exist for tracking only. The garden-scoped Home and its
 switcher belong to [PWA Interface Simplification](../pwa-interface-simplification/brief.md).
 
 ## Success signal

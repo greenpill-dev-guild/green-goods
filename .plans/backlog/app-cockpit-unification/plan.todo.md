@@ -3,13 +3,15 @@
 **Feature Slug:** `app-cockpit-unification`
 **Stage:** backlog
 **Status:** DESIGN REVIEW — picks accepted in principle; no implementation authorized
-**Created / Last Updated:** 2026-10-10
+**Created / Last Updated:** 2026-10-10 / 2026-10-17
+**Linear Issue:** PRD-1266
+**Linear Source:** source:plans
 
 The stated direction is in [brief.md](brief.md); the evidence, requirements and open decisions are
-in [spec.md](spec.md). [status.json](status.json) owns lane state. This plan creates no Linear
-record. The maintainer asked for the work to be tracked under the Cosmo-Local project; create that
-record through the plan skill's start gate once the forks are decided. No implementation task has
-been dispatched.
+in [spec.md](spec.md). [status.json](status.json) owns lane state. Linear mirrors this plan for
+visibility: the parent issue PRD-1266 sits in the active release project, with one sub-issue per
+delivery step, listed under the sequence below. This plan stays the execution truth. No
+implementation task has been dispatched.
 
 ## Design gate
 
@@ -34,6 +36,7 @@ been dispatched.
       in three languages where text must fit.
 - [x] Record the timing aim: as much of the sequence as fits before the Cosmo-Local demonstration.
       This is an aim, not an authorization.
+- [x] File the Linear parent and one sub-issue per delivery step in the active release project.
 - [ ] Lock each pick: render that pair from the real components and get it approved before rollout.
 - [ ] Measure the typeface change in English, Spanish and Portuguese at 320 to 390px.
 - [ ] Re-run the contrast audits on the accepted ground and dark ladder.
@@ -73,7 +76,14 @@ data lane is needed; a discovered need returns to scope review.
 
 The maintainer's aim is to land as much of this sequence as fits before the Cosmo-Local
 demonstration. The order above is the order to attempt it in: the token steps first, then the chrome
-recipes. No step is authorized yet, and each waits on its approved pair.
+recipes. No step is authorized yet, and each waits on its approved pair. The release project admits
+each finished step to its release at the QA gate, or defers it.
+
+**Linear sub-issues.** Each step from 1 to 13 has its own sub-issue under PRD-1266: step 1 is
+PRD-1267, step 2 PRD-1268, and so on in order to step 13, PRD-1279. Step 12 is blocked by RESR-93,
+the PWA simplification scope decision. Acceptance runs under the parent. PRD-1261, the bounded pass
+that aligns the member promise and work journey with its steward review, applies the accepted
+direction to those journeys and is tracked separately.
 
 ## Requirements coverage
 
@@ -86,7 +96,7 @@ recipes. No step is authorized yet, and each waits on its approved pair.
 | R5 the accepted forks F7 to F13 | 2, 4 to 8 |
 | R6 contrast and focus | 2, 3 |
 | R7 three-language widths | 1, 5 |
-| R8 tracked under the Cosmo-Local project | Start gate, before step 1 |
+| R8 tracked in Linear | Done: PRD-1266 and its sub-issues |
 
 ## Execution rules
 

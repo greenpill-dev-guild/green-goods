@@ -106,6 +106,12 @@ a rule rolls out to it.
 Cosmo-Local demonstration. That is an aim, not an authorization. This record saves the plan, and no
 implementation has started.
 
+**Tracking.** On 17 October the maintainer chose the active release project for the Linear records
+over the Cosmo-Local project named earlier, because the 15 October four-goal plan gave PWA and admin
+delivery to the release project. The parent is PRD-1266, with one sub-issue per delivery step.
+PRD-1261, a bounded pass that aligns the member promise and work journey with its steward review,
+applies the accepted direction to those journeys and stays a separate issue.
+
 Open against the picks:
 
 - **F9 and the earlier preference: settled.** Earlier the same day the maintainer preferred the
@@ -282,7 +288,7 @@ The levers, ranked by visible change per unit of work:
 | R5 | Cards, tabs, the filter control, the count badge, list spacing, the desktop work card and the cockpit's dark cards follow the accepted forks F7 to F13. | Stated direction, items 4 to 11 of the brief. |
 | R6 | Control boundaries meet 3:1, text meets its existing contrast floor on the new ground, and one focus-ring role serves both surfaces. | The measurements above; existing accessibility rules. |
 | R7 | No fitted width regresses in English, Spanish or Portuguese at phone widths. | Existing width and line rules in the app's design guide. |
-| R8 | The work is tracked as part of the Cosmo-Local project once the forks are decided. | Stated direction. |
+| R8 | The work is tracked in Linear: a parent issue with one sub-issue per delivery step, in the active release project, which owns PWA and admin delivery for the Cosmo-Local plan. | Stated direction; project changed on 2026-10-17. |
 
 ## Decisions to resolve
 
