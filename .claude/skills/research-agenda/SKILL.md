@@ -31,12 +31,14 @@ loop closes in minutes instead of a memo read. The design lives in
    Refuse to continue on any other document, and never create one: the routine creates it.
 2. **Read the agenda** from the current checkout and record its edition line. Stop if the working
    tree already carries uncommitted changes to the agenda that the user did not ask for.
-3. **Apply.** For each `[x]` line under *Proposed edits*, *Candidate questions* and *Candidate
-   tracks*: locate the exact anchor text the edit names; show `old → new`; apply it with an
-   exact-match replace that must match once. A line whose anchor no longer matches is skipped and
-   reported, never guessed. A ticked candidate question becomes an `Open` item on the track it
-   names or, with no track, a line under the agenda's *Candidate questions*. A ticked candidate
-   track runs `candidates`.
+3. **Apply.** Three kinds of ticked line, handled in this order. A `[x]` line under *Candidate
+   tracks* runs `candidates` first; it needs no agenda anchor. A `[x]` line under *Proposed edits*
+   names exact anchor text: show `old → new` and apply it with an exact-match replace that must
+   match once; a line whose anchor no longer matches is skipped and reported, never guessed. A
+   `[x]` line under *Candidate questions* becomes a numbered `Open` item on the track its `track:`
+   field names; when the field reads `unassigned`, ask the user which track takes it, or whether
+   it waits for a candidate track, before applying anything, and never file it under the agenda's
+   own *Candidate questions* section, which holds only unconfirmed proposals.
 4. **Edition.** Bump the `**Edition:**` line to `v{n+1} · {today}` and prepend a change-log entry
    that lists the applied edits in one sentence each with their evidence. One bump per run.
 5. **Write back** with `save_document` `patch`: move each applied line to *Applied* as
@@ -50,16 +52,18 @@ loop closes in minutes instead of a memo read. The design lives in
 
 Group the unticked lines by track with their evidence links and `runs` count, then the candidate
 questions, then the candidate tracks. Ask in numbered rounds, accept, defer or reject per line,
-with lines at four or more runs first under "decide or drop". Write the answers as `[x]` or
-deletions through `save_document` `patch`, then run `apply`. Close with the cycle theme as one
+with lines at four or more runs first under "decide or drop"; for each accepted candidate
+question, ask which track takes it and write the answer into the line's `track:` field. Write
+the answers as `[x]` or deletions through `save_document` `patch`, then run `apply`. Close with the cycle theme as one
 question; the user writes it, the skill records nothing for it.
 
 ## Candidates mode
 
 Append a track section built from this template, numbered after the last track, and remove the
 confirmed candidate from *Candidate tracks* in both the agenda and the document. The skill fills
-Anchors from the candidate's issues and hubs, by identifier only; the user fills the rest before
-the edition bump.
+Anchors from the candidate's issues and hubs, by identifier only, and removes those identifiers
+from any other track's Anchors and from the watch-only list, so each anchor belongs to exactly one
+track; the user fills the rest before the edition bump.
 
 ```markdown
 ## {n}. {Track name}

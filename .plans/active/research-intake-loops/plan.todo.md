@@ -56,8 +56,8 @@
    `Research → growth radar` issue on Growth; confirm in the routines UI that the guild-level
    Dev Guild Research Synthesis routine is disabled (its trigger is not visible from this account)
    and avoid manual Friday fires; pin the "share with one line of why" note.
-5. **First live run**: the Saturday after steps 1 to 4 land. Read the memo and the channel; record
-   AC-1 to AC-9 in [eval.md](eval.md).
+5. **First live run**: the Saturday after steps 1 to 4 land. Read the memo, the run log, the channel, the pending-edits document and the radar comment;
+   record AC-1 to AC-9 and AC-11 in [eval.md](eval.md), and schedule the controlled run for AC-10.
 6. **Cycle ritual on 29 Oct**: run the skill's `review`, confirm or reject the three candidate
    tracks, set the cycle theme.
 7. **Follow-ups outside this repo**: the guild grant scout reads the agenda's settled facts and

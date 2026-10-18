@@ -46,14 +46,14 @@ Two sections after the tracks, *Candidate tracks* and *Candidate questions*, hol
 ## 1. Commitment pooling
 
 **Horizon:** now · **Stage:** evidencing
-**Note:** v1 (contracts and indexer) has graduated to Product; the open frontier is exchange and interoperability.
+**Note:** v1 (contracts and indexer) has graduated to Product under the *Commitment Pooling* project; the open frontier, exchange and interoperability, runs under *Cosmo-Local Integration*.
 
 **Question.** Can gardens coordinate, keep, and settle commitments on Green Goods, and can kept commitments become value that moves beyond the garden without Green Goods holding funds?
 
 **Why it matters.** This is the product's core loop and the current RESR cycle theme (Q3 September: Evaluations, Commitments & Yield Impact). It carries the G$ settlement arrangement with GoodDollar's House of Alignment, the SustainableFinance.Live hackathon entry (GROW-43, PRD-857), and the first path from contribution to value.
 
 **Anchors.**
-- Linear projects [Commitment Pooling](https://linear.app/greenpill-dev-guild/project/commitment-pooling-4bc53572f354) (the delivered foundation) and [Cosmo-Local Integration](https://linear.app/greenpill-dev-guild/project/cosmo-local-integration-6273120022c7) (the open integration, pilot preparation, release evidence and hackathon work).
+- Linear projects [Commitment Pooling](https://linear.app/greenpill-dev-guild/project/commitment-pooling-4bc53572f354) and [Cosmo-Local Integration](https://linear.app/greenpill-dev-guild/project/cosmo-local-integration-6273120022c7).
 - RESR-73 (design record for the Cosmo-Local voucher integration) and RESR-74 (live-deployment read). RESR-57 and RESR-58 (external brief and v1 scenarios) are the canonical scenario pack.
 - PRD-650 (foundation roadmap), PRD-649 (architecture record), PRD-651 (exchange, redemption, federation; evidence-gated), PRD-796 (compatibility boundary), PRD-857 (the two-pool hackathon outcome) with PRD-1096 (rehearsal on a local copy of Gnosis), PRD-1097 (funder passport), PRD-1100 (go live) and PRD-1197 (the go or no-go record); COM-46 (issuer terms and capacity) and COM-28 (the pilot).
 - Linear documents: *Commitment Pooling — Lifecycle And Aggregator Semantics*, *Pool Identity + Capability Architecture*, *Settlement Capability — Vouchers On Shared Pool Identity*, *Proof Capability*, *Feedback & Notes*.
@@ -96,7 +96,7 @@ Exchange work then moves through the PRD-651 gates (external audit, 3-of-5 Safe,
 **Anchors.**
 - Linear project [Impact Framework v0.1 Refresh](https://linear.app/greenpill-dev-guild/project/impact-framework-v01-refresh-79f8601bb953) under the *Impact Methodologies & Evaluator Flywheel* initiative.
 - RESR-46 (base attestation schema), RESR-49 (data standards, baselines, governance), RESR-14 (evaluator workflow and rubric v0.1). RESR-77 defines report and certificate meaning against that foundation; RESR-8 (yield-to-impact language) consumes track 3; RESR-47 (IFRS S1/S2 mapping) is downstream and optional.
-- RESR-65 (metric inventory), GROW-15 (first House of Alignment report), RESR-6 (taxonomy and glossary v1) and RESR-52 (reviewer and methodology collaborators) as the closed foundation records.
+- RESR-65 (metric inventory), GROW-15 (first House of Alignment report), RESR-6 (taxonomy and glossary v1) and RESR-52 (reviewer and methodology collaborators), the foundation records.
 - Linear documents: *Consolidation Memo — Impact Framework v0.1 Architecture*, *Literature Review Addendum — Biodiversity Infrastructure, Standards, MRV, and Certification Layers*, *Research Memo — IFRS S1/S2 Constraint Ladder*, *Research Memo — Outcome-Based Verification: Savory EOV and Backstory's Prove (2026-08-23)*, *Impact-Claim Domain Taxonomy & Glossary v1*, *A measurement framework for Green Goods regen impact*.
 - The public garden impact API (the machine-readable surface shipped in PR 782, `packages/agent/src/api/routes/public-garden-impact.ts`) and `.plans/ideas/environmental-data-inputs/` with RESR-10 and RESR-72 (Open Forest Protocol and Silvi as verified-outcome inputs). Environmental data inputs remain an MRV sub-question here until a specific provider and pilot make a bounded research project useful.
 
