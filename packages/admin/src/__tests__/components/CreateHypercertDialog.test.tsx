@@ -484,7 +484,7 @@ describe("CreateHypercert dialog", () => {
       // A declined request reads as a warning, in the row that held the mint's progress.
       const row = document.querySelector('[data-component="FlowStatusRow"]');
       expect(row).toHaveAttribute("data-tone", "warning");
-      expect(row).toHaveTextContent("Transaction was cancelled");
+      expect(row).toHaveTextContent("Transaction was canceled");
       expect(
         screen.getByRole("heading", { name: "app.hypercerts.wizard.step.preview.title" })
       ).toBeInTheDocument();

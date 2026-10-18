@@ -158,7 +158,7 @@ export function CommitmentSettlement({ settlement, tone, target }: CommitmentSet
             {formatMessage({
               id: "cockpit.garden.pool.settlement.description",
               defaultMessage:
-                "Paid from the paying garden's Celo Safe in the order the settlement module accepts: plan, finalize, prepare, dispatch, acknowledgement.",
+                "Paid from the paying garden's Celo Safe in the order the settlement module accepts: plan, finalize, prepare, dispatch, acknowledgment.",
             })}
           </p>
         </div>

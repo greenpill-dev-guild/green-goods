@@ -568,16 +568,16 @@
         "Visit gardens in different pool states (none/charter/open/dormant)",
         "Read unit summaries and open-cycle cards",
         "Page finished cycles with show-more",
-        "Confirm no cancelled cycle appears anywhere"
+        "Confirm no canceled cycle appears anywhere"
       ],
-      "expected": "Each state reads honestly (no pool / charter seeded / open season+campaigns / dormant between seasons); unit summaries use exact labels; finished cycles page with show-more; cancelled cycles NEVER appear; a metadata outage shows the notice, not broken cards",
+      "expected": "Each state reads honestly (no pool / charter seeded / open season+campaigns / dormant between seasons); unit summaries use exact labels; finished cycles page with show-more; canceled cycles NEVER appear; a metadata outage shows the notice, not broken cards",
       "evidence": "Screenshots per state",
       "role": "none",
       "tags": ["garden-records"],
       "requiresProduction": false,
       "status": "retired",
       "retiredOn": "2026-09-21",
-      "retiredReason": "Split by outcome: pool states, unit labels, finished cycles, cancelled cycles, and a metadata outage are independent results. Paging finished cycles was already PUB-045.",
+      "retiredReason": "Split by outcome: pool states, unit labels, finished cycles, canceled cycles, and a metadata outage are independent results. Paging finished cycles was already PUB-045.",
       "replacedBy": ["PUB-056", "PUB-057", "PUB-045", "PUB-058", "PUB-059"],
       "source": "qa-session-2026-08-29"
     },
@@ -596,7 +596,7 @@
         "Open the public page of a garden in each state you can reach",
         "Read the Commitments section's heading and sentence"
       ],
-      "expected": "The sentence matches the state: not ready says offers and requests open once the pool is ready, under the heading This Garden is preparing its pool; ready says the charter and baseline are in place; open says neighbours can offer and take up commitments right now; between seasons says the next season has not opened yet; paused, closed, and composted each say so and keep the record readable",
+      "expected": "The sentence matches the state: not ready says offers and requests open once the pool is ready, under the heading This Garden is preparing its pool; ready says the charter and baseline are in place; open says neighbors can offer and take up commitments right now; between seasons says the next season has not opened yet; paused, closed, and composted each say so and keep the record readable",
       "evidence": "Screenshot of the section in each state reached",
       "role": "none",
       "tags": ["garden-records"],
@@ -631,13 +631,13 @@
       "priority": "P1",
       "kind": "data-integrity",
       "area": "Gardens",
-      "scenario": "A cancelled cycle never appears on the public page",
-      "preconditions": ["A garden with a cancelled season or campaign (ADM-059)"],
+      "scenario": "A canceled cycle never appears on the public page",
+      "preconditions": ["A garden with a canceled season or campaign (ADM-059)"],
       "steps": [
         "Open the garden's public page",
         "Read the open cycles and page through the finished ones"
       ],
-      "expected": "The cancelled cycle appears nowhere: not among the open cycles and not among the finished ones",
+      "expected": "The canceled cycle appears nowhere: not among the open cycles and not among the finished ones",
       "evidence": "Screenshots of the open and finished cycles",
       "role": "none",
       "tags": ["garden-records"],
@@ -2294,7 +2294,7 @@
         "Claim from the in-drawer jar",
         "Compare with a claim from the wallet drawer"
       ],
-      "expected": "The in-drawer jar claim pays out and matches the wallet-drawer claim behaviour",
+      "expected": "The in-drawer jar claim pays out and matches the wallet-drawer claim behavior",
       "evidence": "Screenshot of the claim result",
       "role": "gardener",
       "tags": ["endowment", "cookies", "tx"],
@@ -2566,7 +2566,7 @@
       "priority": "P1",
       "kind": "journey",
       "area": "Work",
-      "scenario": "Work detail reads media, details, status, feedback, and the commitment it fulfils",
+      "scenario": "Work detail reads media, details, status, feedback, and the commitment it fulfills",
       "preconditions": [
         "A reviewed work with media in a garden the gardener belongs to",
         "A work linked to a commitment"
@@ -2578,8 +2578,8 @@
         "Open the linked work and follow its commitment",
         "Use back"
       ],
-      "expected": "Media renders with a download; details and status match the submission; a reviewed work shows the steward's feedback and approved or rejected status; a linked work names the commitment it fulfils and opens it; back returns to the garden",
-      "evidence": "Screenshots of the detail and the fulfils section",
+      "expected": "Media renders with a download; details and status match the submission; a reviewed work shows the steward's feedback and approved or rejected status; a linked work names the commitment it fulfills and opens it; back returns to the garden",
+      "evidence": "Screenshots of the detail and the fulfills section",
       "role": "gardener",
       "tags": ["work"],
       "requiresProduction": false,
@@ -3781,7 +3781,7 @@
       "requiresProduction": false,
       "status": "retired",
       "retiredOn": "2026-09-21",
-      "retiredReason": "The behaviour changed: Offer It Again now opens the composer on the earlier offer's answers instead of returning to the garden, and it goes to whoever made the commitment.",
+      "retiredReason": "The behavior changed: Offer It Again now opens the composer on the earlier offer's answers instead of returning to the garden, and it goes to whoever made the commitment.",
       "replacedBy": ["PWA-115"],
       "source": "qa-runs-review-fixes-2026-09-08"
     },
@@ -6643,7 +6643,7 @@
         "Type a reason and confirm",
         "Read the cycles list and the public garden page"
       ],
-      "expected": "Cancel names its blast radius and requires a reason; the cancellation is one transaction; the cycle shows as cancelled in the console and never appears on the public commitments story (PUB-058)",
+      "expected": "Cancel names its blast radius and requires a reason; the cancellation is one transaction; the cycle shows as canceled in the console and never appears on the public commitments story (PUB-058)",
       "evidence": "Screenshots of the cancel dialog and the public page",
       "role": "steward",
       "tags": ["garden-pool", "cycle", "tx"],
@@ -6928,7 +6928,7 @@
         "Type 2.5, go on to the review, and read the reward",
         "Cancel out"
       ],
-      "expected": "Before the token is known the amount waits with Enter the token address first.; once the token is read the field is labelled with its symbol, such as Amount (USDC), and takes 2.5 as 2.5 of that token; the review reads External payout record · 2.5 and the symbol; nothing is sent",
+      "expected": "Before the token is known the amount waits with Enter the token address first.; once the token is read the field is labeled with its symbol, such as Amount (USDC), and takes 2.5 as 2.5 of that token; the review reads External payout record · 2.5 and the symbol; nothing is sent",
       "evidence": "Screenshots of the field and of the review",
       "role": "steward",
       "tags": ["garden-pool", "commitment"],
@@ -7515,14 +7515,14 @@
       "priority": "P1",
       "kind": "transaction",
       "area": "Garden · Pool",
-      "scenario": "Cancelling the open season frees the pool to start another",
+      "scenario": "Canceling the open season frees the pool to start another",
       "preconditions": ["Steward with manage rights", "An open season with no live commitments"],
       "steps": [
         "Press Cancel Season…, type a reason, and confirm",
         "Read the cycles card",
         "Press Start Season and start a new one"
       ],
-      "expected": "After the cancellation the card reads No season running and offers Start Season; starting a new season is accepted, so a rehearsal season can be cancelled and replaced by the real one",
+      "expected": "After the cancellation the card reads No season running and offers Start Season; starting a new season is accepted, so a rehearsal season can be canceled and replaced by the real one",
       "evidence": "Screenshots of the card after the cancellation and with the new season",
       "role": "steward",
       "tags": ["garden-pool", "cycle", "tx"],
@@ -7540,7 +7540,7 @@
       "scenario": "End Season… ends a season whose commitments have all finished",
       "preconditions": [
         "Steward with manage rights",
-        "An open season with no live commitments: every commitment in it kept, cancelled, or expired"
+        "An open season with no live commitments: every commitment in it kept, canceled, or expired"
       ],
       "steps": [
         "Read the season's acts on the cycles card",
@@ -7569,7 +7569,7 @@
         "An open season with at least one live commitment"
       ],
       "steps": ["Read the season on the cycles card"],
-      "expected": "End Season… is not offered; the season says how many commitments are still live and that it can end once each is kept, cancelled or expired",
+      "expected": "End Season… is not offered; the season says how many commitments are still live and that it can end once each is kept, canceled or expired",
       "evidence": "Screenshot of the season with its live count",
       "role": "steward",
       "tags": ["garden-pool", "cycle"],
@@ -7785,7 +7785,7 @@
       "preconditions": ["Steward who may resolve", "Four disputed commitments, one per outcome"],
       "steps": [
         "Press Resolve… and read the outcome choices",
-        "Resolve one as Restore Previous, one as Kept, one as Cancelled, and one as Expired, each with a reason"
+        "Resolve one as Restore Previous, one as Kept, one as Canceled, and one as Expired, each with a reason"
       ],
       "expected": "Each outcome names what it does before sending and requires a reason; each lands as one transaction and the band moves to the chosen state; the reasons are in the timeline",
       "evidence": "Screenshots of the four resolved bands",
@@ -7852,15 +7852,15 @@
       "priority": "P0",
       "kind": "transaction",
       "area": "Garden · Commitment",
-      "scenario": "Resolve a dispute as Cancelled",
+      "scenario": "Resolve a dispute as Canceled",
       "preconditions": ["Steward of the pool's garden", "A disputed commitment (ADM-077)"],
       "steps": [
-        "Press Resolve… and choose Cancelled",
+        "Press Resolve… and choose Canceled",
         "Type a reason and resolve",
         "Read the commitment's state and timeline"
       ],
-      "expected": "A reason is required; resolving is one transaction; the commitment reads Cancelled with the reason, and the reason is in the timeline",
-      "evidence": "Screenshot of the Cancelled state with its reason",
+      "expected": "A reason is required; resolving is one transaction; the commitment reads Canceled with the reason, and the reason is in the timeline",
+      "evidence": "Screenshot of the Canceled state with its reason",
       "role": "steward",
       "tags": ["commitment", "tx"],
       "requiresProduction": false,
@@ -7902,7 +7902,7 @@
         "That commitment, disputed, which had not expired before the dispute (ADM-077)"
       ],
       "steps": ["Press Resolve… and read the dialog"],
-      "expected": "Kept is not offered to you; the dialog says you can't mark this kept because nobody confirms their own work, and that a steward who isn't on it may; Restore Previous State, Cancelled, and Expired are still offered",
+      "expected": "Kept is not offered to you; the dialog says you can't mark this kept because nobody confirms their own work, and that a steward who isn't on it may; Restore Previous State, Canceled, and Expired are still offered",
       "evidence": "Screenshot of the dialog without Kept",
       "role": "steward",
       "tags": ["commitment"],
@@ -7923,7 +7923,7 @@
         "A commitment that ran out of time and was disputed afterwards (ADM-064, then ADM-077)"
       ],
       "steps": ["Press Resolve… and read the dialog"],
-      "expected": "Kept is not offered, even to a steward who is not on the roster; the dialog says a record that had expired can't be kept; Restore Previous State, Cancelled, and Expired are still offered",
+      "expected": "Kept is not offered, even to a steward who is not on the roster; the dialog says a record that had expired can't be kept; Restore Previous State, Canceled, and Expired are still offered",
       "evidence": "Screenshot of the dialog without Kept",
       "role": "steward",
       "tags": ["commitment"],
@@ -7996,7 +7996,7 @@
         "Type a reason and press Cancel Commitment",
         "Read the commitment in the app's drawer as its provider"
       ],
-      "expected": "The reason is required and the dialog states the effect; the cancel is one transaction; the commitment reads cancelled with its reason and sits under History in the app",
+      "expected": "The reason is required and the dialog states the effect; the cancel is one transaction; the commitment reads canceled with its reason and sits under History in the app",
       "evidence": "Screenshots of the cancel dialog and the app's History",
       "role": "steward",
       "tags": ["commitment", "tx"],
@@ -8353,8 +8353,8 @@
       "scenario": "Cancel a disbursement with a reason",
       "preconditions": ["A plan with an undispatched disbursement"],
       "steps": ["Press Cancel… on the row", "Type a reason and confirm"],
-      "expected": "The reason is required; the cancel is one transaction; the row reads cancelled with the reason and the plan status reflects it",
-      "evidence": "Screenshot of the cancelled row",
+      "expected": "The reason is required; the cancel is one transaction; the row reads canceled with the reason and the plan status reflects it",
+      "evidence": "Screenshot of the canceled row",
       "role": "steward",
       "tags": ["settlement", "tx"],
       "requiresProduction": false,
@@ -8713,7 +8713,7 @@
         "Press Cancel… on the queued row, read the confirmation, and press Cancel Transfer",
         "Press Refresh Funding"
       ],
-      "expected": "The queued row offers Cancel… with a confirmation; cancelling is one transaction and the row leaves the queue; Refresh Funding re-reads the facts from chain",
+      "expected": "The queued row offers Cancel… with a confirmation; canceling is one transaction and the row leaves the queue; Refresh Funding re-reads the facts from chain",
       "evidence": "Screenshots of the confirmation and the refreshed card",
       "role": "steward",
       "tags": ["protocol-funding", "tx"],
@@ -9978,7 +9978,7 @@
         "Read each FAQ answer against the product",
         "Compare the product history page with the latest releases"
       ],
-      "expected": "FAQ answers describe current behaviour; the product history covers the latest releases and the old changelog URL redirects to it",
+      "expected": "FAQ answers describe current behavior; the product history covers the latest releases and the old changelog URL redirects to it",
       "evidence": "List of stale answers or missing releases",
       "role": "none",
       "tags": ["docs", "reference"],
@@ -10614,7 +10614,7 @@
         "Open its menu and read the actions, then close it",
         "On Actions read the button, and as a deployer press it"
       ],
-      "expected": "On Garden, Community, and the Hub the button shows a plain plus on that workspace's own colour (green, amber, and blue); while its menu is open it shows a close icon and each action carries its own icon and label, and closing the menu brings the plus back; on Actions a deployer's button shows the same plus beside Create Action and opens that flow directly, and a steward has no button there",
+      "expected": "On Garden, Community, and the Hub the button shows a plain plus on that workspace's own color (green, amber, and blue); while its menu is open it shows a close icon and each action carries its own icon and label, and closing the menu brings the plus back; on Actions a deployer's button shows the same plus beside Create Action and opens that flow directly, and a steward has no button there",
       "evidence": "Screenshots of each button closed and one menu open",
       "role": "steward",
       "tags": ["shell", "responsive"],

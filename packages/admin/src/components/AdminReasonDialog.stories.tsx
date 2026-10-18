@@ -47,7 +47,7 @@ export const Danger: Story = {
     variant: "danger",
     title: "Cancel This Commitment",
     description:
-      "Accepted becomes Cancelled with a recorded reason. Committed units release; the member sees the reason, never “cancelled” alone.",
+      "Accepted becomes Canceled with a recorded reason. Committed units release; the member sees the reason, never “canceled” alone.",
     confirmLabel: "Cancel Commitment",
     cancelLabel: "Keep Commitment",
     suggestions: ["Withdrawn by agreement", "No longer needed", "Duplicate commitment"],

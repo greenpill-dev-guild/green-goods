@@ -306,7 +306,7 @@ const COPY = {
     noPasskey: "No passkey found for that username.",
     network: "Passkey recovery is temporarily unavailable.",
     recoveryNameTaken: "That name is already registered.",
-    cancelled: "Sign in was cancelled.",
+    cancelled: "Sign in was canceled.",
   },
 } as const;
 
@@ -422,7 +422,7 @@ export const UsernameTaken: Story = {
 };
 
 export const PasskeyCancelled: Story = {
-  name: "Auth · Error · passkey prompt cancelled",
+  name: "Auth · Error · passkey prompt canceled",
   args: { ...entryReturningArgs, errorMessage: COPY.err.cancelled },
 };
 
@@ -462,7 +462,7 @@ const CATALOG: ReadonlyArray<{ label: string; args: SplashStoryArgs }> = [
     label: "Error · name taken",
     args: { ...createFormArgs, errorMessage: COPY.err.recoveryNameTaken },
   },
-  { label: "Error · cancelled", args: PasskeyCancelled.args as SplashStoryArgs },
+  { label: "Error · canceled", args: PasskeyCancelled.args as SplashStoryArgs },
   { label: "Loading", args: LoadingPending.args as SplashStoryArgs },
   { label: "Wallet fallback", args: WalletFallback.args as SplashStoryArgs },
 ];

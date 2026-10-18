@@ -46,7 +46,7 @@ export function getFriendlyLoginErrorMessage(
         })
       : intl.formatMessage({
           id: "app.login.error.cancelled",
-          defaultMessage: "Sign in was cancelled.",
+          defaultMessage: "Sign in was canceled.",
         });
   }
   if (

@@ -17,7 +17,7 @@ Unified PR review flow combining the design lenses. Run in order — each lens b
 
 > Can someone tell where they are, what they are acting on, and what will happen?
 
-Run the five-minute review in root [`DESIGN.md` § Interface Principles](../../../DESIGN.md#interface-principles) ("How we follow them"). It is the source; this lens only puts it first. The pass fails if any of its six questions fails: the five-second read, one primary action, no scope leaks or silent scope-changing tabs, designed in-between states, on-system values without colour-only status, and explicit context for every mount of a shared organism.
+Run the five-minute review in root [`DESIGN.md` § Interface Principles](../../../DESIGN.md#interface-principles) ("How we follow them"). It is the source; this lens only puts it first. The pass fails if any of its six questions fails: the five-second read, one primary action, no scope leaks or silent scope-changing tabs, designed in-between states, on-system values without color-only status, and explicit context for every mount of a shared organism.
 
 ---
 

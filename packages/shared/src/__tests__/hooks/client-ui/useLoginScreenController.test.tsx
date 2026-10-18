@@ -104,7 +104,7 @@ describe("useLoginScreenController", () => {
     await act(async () => result.current.loginWithPasskey());
     auth.current = { ...auth.current, error: Object.assign(new Error(closed.message), closed) };
     rerender();
-    expect(result.current.loginError).toBe("Sign in was cancelled.");
+    expect(result.current.loginError).toBe("Sign in was canceled.");
   });
 
   it("tells the user when recovery signed in to a different account than the one they named", async () => {

@@ -107,7 +107,7 @@ export const DOMAIN_GUIDANCE: Record<Domain, DomainGuidance> = {
       "Describe the energy access situation, infrastructure being deployed, and target community.",
     diagnosisPlaceholder:
       "e.g., Rural households in Sector 5 rely on diesel generators averaging 4 hours daily. High fuel cost ($12/week) limits productive electricity use and creates indoor health risks...",
-    smartOutcomeExample: "e.g., Households in the neighbourhood have reliable power after dark",
+    smartOutcomeExample: "e.g., Households in the neighborhood have reliable power after dark",
     cynefinExamples: {
       [CynefinPhase.CLEAR]:
         "Standard rooftop installation with proven equipment and trained installers.",

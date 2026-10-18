@@ -10,7 +10,7 @@ const meta: Meta<typeof PoolReasonDialogs> = {
     docs: {
       description: {
         component:
-          "The pool console's three reasoned acts. Pausing names how many open commitments stop; cancelling a cycle and declining a claim each say what the member sees. Every one pins its reason before the call, so none of them can be sent blank.",
+          "The pool console's three reasoned acts. Pausing names how many open commitments stop; canceling a cycle and declining a claim each say what the member sees. Every one pins its reason before the call, so none of them can be sent blank.",
       },
     },
   },
