@@ -206,6 +206,18 @@
       ]
     },
     {
+      "check": "em-dashes",
+      "note": "The check reads the three i18n catalogs and every docs/docs page. An em dash that reaches a generated page through its source also changes the regenerated page, so the docs prefix selects it.",
+      "exact": [
+        "packages/shared/src/i18n/en.json",
+        "packages/shared/src/i18n/es.json",
+        "packages/shared/src/i18n/pt.json",
+        "scripts/design/check-em-dashes.mjs",
+        "scripts/design/check-em-dashes.test.mjs"
+      ],
+      "prefixes": ["docs/docs/"]
+    },
+    {
       "check": "ontology",
       "exact": [
         ".plans/backlog/commitment-credit-follow-on/spec.md",
@@ -1442,6 +1454,16 @@
       "expectedSignal": "vocabulary completes successfully",
       "freshness": "exact-inputs-and-toolchain",
       "budgetSeconds": 60,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "em-dashes",
+      "command": "node scripts/dev/node-cli.js node --test scripts/design/check-em-dashes.test.mjs && node scripts/design/check-em-dashes.mjs",
+      "risk": "an em dash returns to an i18n catalog value or an authored docs page",
+      "expectedSignal": "the i18n catalogs and authored docs pages carry no em dash, and the check's fixtures pass",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 5,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },

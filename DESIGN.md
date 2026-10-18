@@ -266,6 +266,8 @@ method name (strategy kernel, Cynefin, SMART) appears only as helper text, in pa
 plain question. A flow never preselects a choice the person has to make, such as an assessment's
 domain.
 
+**No em dashes (2026-10-18).** Human-facing copy never uses an em dash (U+2014). Restructure the sentence with a period, colon, comma, or parentheses, never a hyphen or a spaced en dash. Ontology definitions keep their punctuation, and `bun run check --only em-dashes` rejects em dashes in the i18n catalogs and authored docs pages.
+
 ### Writing Checklist
 
 Before shipping copy:

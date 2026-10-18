@@ -140,6 +140,9 @@ jobs:
       - name: Check banned vocabulary
         run: bun run check --only vocabulary
 
+      - name: Check em dashes
+        run: bun run check --only em-dashes
+
   storybook:
     name: Storybook
     runs-on: ubuntu-latest
