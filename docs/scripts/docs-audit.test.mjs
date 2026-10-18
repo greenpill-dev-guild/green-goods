@@ -15,12 +15,17 @@ function fixture() {
   mkdirSync(path.join(root, "packages/shared/src/ontology"), { recursive: true });
   writeFileSync(
     path.join(root, "packages/shared/src/ontology/green-goods-ontology.json"),
-    JSON.stringify({personas: [{id: "gardener"}, {id: "steward"}, {id: "evaluator"}, {id: "funder"}, {id: "community-member"}]}),
+    JSON.stringify({
+      personas: [{id: "gardener"}, {id: "steward"}, {id: "evaluator"}, {id: "funder"}, {id: "community-member"}],
+      enums: [{members: ["None", "Cancelled"]}],
+    }),
   );
   mkdirSync(path.join(root, "scripts/data"), { recursive: true });
   writeFileSync(
     path.join(root, "scripts/data/banned-vocabulary.json"),
-    JSON.stringify({us_spelling: {terms: {cancelled: "canceled", grey: "gray"}, exempt_phrases: ["Grey Matter Fund"]}}),
+    JSON.stringify({
+      us_spelling: {terms: {cancelled: "canceled", grey: "gray", favourite: "favorite"}, exempt_phrases: ["Grey Matter Fund"]},
+    }),
   );
   writeFileSync(path.join(root, "authority.ts"), "export const authority = true;\n");
   writeFileSync(
@@ -234,19 +239,50 @@ test("UK spelling in docs prose or design guidance exits nonzero, while names st
       "cancelled",
       "```",
       "",
+      "````markdown",
+      "```js",
+      "cancelled",
+      "```",
+      "````",
+      "",
     ].join("\n");
     writeFileSync(file, readFileSync(file, "utf8") + names);
+    // A generated page prints the ontology's enum members as plain text; they are names too.
+    const generated = path.join(root, "docs/docs/reference/generated.mdx");
+    writeFileSync(
+      generated,
+      `---
+audience: developer
+owner: engineering
+feature_status: Live
+slug: /reference/generated
+generated: true
+generator: authority.ts
+source_digest: "sha256:${"0".repeat(64)}"
+generated_from:
+  - authority.ts
+source_of_truth:
+  - authority.ts
+---
+# Generated
+
+| State | Where |
+|---|---|
+| Cancelled | on-chain |
+`,
+    );
     const clean = runAudit(root);
     assert.equal(clean.status, 0, clean.stderr);
 
     // A folded frontmatter value is rendered page metadata, read whole across its lines.
-    const dirty = `${readFileSync(file, "utf8")}The row reads cancelled.\n`.replace(
+    const dirty = `${readFileSync(file, "utf8")}The row reads cancelled.\nSee [the garden](https://example.com/g "The favourite garden") and <span aria-label="A grey icon">x</span>.\n`.replace(
       "slug: /builders/test\n",
       "slug: /builders/test\ndescription: >-\n  How the field\n  turns grey.\n",
     );
     writeFileSync(file, dirty);
     const lineOf = (text) => dirty.split("\n").indexOf(text) + 1;
     writeFileSync(path.join(root, "DESIGN.md"), "# Design\n\nA grey border marks the field.\n");
+    writeFileSync(generated, `${readFileSync(generated, "utf8")}\nThe cycle was cancelled.\n`);
     const result = runAudit(root);
     assert.equal(result.status, 1);
     assert.ok(
@@ -256,8 +292,12 @@ test("UK spelling in docs prose or design guidance exits nonzero, while names st
       result.stderr,
     );
     assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${lineOf("description: >-")}: "grey"`), result.stderr);
+    const linkLine = lineOf('See [the garden](https://example.com/g "The favourite garden") and <span aria-label="A grey icon">x</span>.');
+    assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${linkLine}: "favourite"`), result.stderr);
+    assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${linkLine}: "grey"`), result.stderr);
     assert.match(result.stderr, /DESIGN\.md: UK spelling on line 3: "grey"/);
-    assert.equal(result.stderr.match(/UK spelling/g)?.length, 3, result.stderr);
+    assert.match(result.stderr, /reference\/generated\.mdx: UK spelling on line 20: "cancelled".* Fix it in the source this page is generated from\./);
+    assert.equal(result.stderr.match(/UK spelling/g)?.length, 6, result.stderr);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

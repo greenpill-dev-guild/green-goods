@@ -514,8 +514,9 @@ try {
 const allowedAudiences = new Set(["all", "developer", ...ontology.personas.map((persona) => persona.id)]);
 
 // English copy uses US spelling (DESIGN.md § Voice & Copy). The UK forms come from the vocabulary
-// sidecar the catalog check reads. Only prose is read: code, link targets, URLs, heading ids and
-// markup attributes other than alt and title are names, and a generated page is fixed at its source.
+// sidecar the catalog check reads. Only what a reader sees is read: code, link targets, URLs,
+// heading ids and markup attributes are names, while link titles and the attributes listed in
+// readableAttributes stay copy. A generated page is read too and fixed at its source.
 const vocabularyPath = "scripts/data/banned-vocabulary.json";
 let usSpelling;
 try {
@@ -527,21 +528,48 @@ try {
 const ukForms = new Map(Object.entries(usSpelling.terms ?? {}));
 const ukFormPattern = new RegExp(`\\b(${[...ukForms.keys()].map(escapeRegExp).join("|") || "(?!)"})\\b`, "gi");
 const exemptPhrases = usSpelling.exempt_phrases ?? [];
-const notProse =
-  /`[^`\n]*`|\]\([^)\s]*(?:\s+"[^"]*")?\)|<https?:\/\/[^>]+>|https?:\/\/[^\s)\]>"'`]+|\{#[^}]*\}|\b(?!alt\b|title\b)[\w:-]+="[^"]*"/g;
+// A link keeps its title, which a reader sees as a tooltip, and loses its target.
+const linkTarget = /\]\([^)\s]*(?:\s+"([^"]*)")?\)/g;
+const readableAttributes = ["alt", "title", "aria-label", "aria-description", "placeholder", "label"];
+const notProse = new RegExp(
+  [
+    "`[^`\\n]*`",
+    "<code\\b[^>]*>[\\s\\S]*?<\\/code>",
+    "<https?:\\/\\/[^>]+>",
+    "https?:\\/\\/[^\\s)\\]>\"'`]+",
+    "\\{#[^}]*\\}",
+    `(?<![\\w:-])(?!(?:${readableAttributes.join("|")})=)[A-Za-z][\\w:-]*=(?:"[^"]*"|'[^']*')`,
+  ].join("|"),
+  "g",
+);
 const htmlComment = /<!--[\s\S]*?--!?>/g;
 const renderedFrontmatterKeys = ["title", "sidebar_label", "description"];
 
-const ukSpellingsIn = (text) => {
+// The ontology's enum members (Cancelled, CANCELLED) are identifiers. A generated page prints them
+// without code marks, so on a generated page they are not read as copy.
+const enumNames = new Set();
+const collectEnumNames = (node, key) => {
+  if (Array.isArray(node)) {
+    for (const item of node) {
+      if (["members", "from", "to"].includes(key) && typeof item === "string") enumNames.add(item);
+      collectEnumNames(item, key);
+    }
+  } else if (node && typeof node === "object") {
+    for (const [childKey, child] of Object.entries(node)) collectEnumNames(child, childKey);
+  }
+};
+collectEnumNames(ontology);
+
+const ukSpellingsIn = (text, {identifiers = new Set()} = {}) => {
   // An HTML comment is never rendered, even across lines; blanking it keeps the line numbers.
   const lines = text.replace(htmlComment, (comment) => comment.replace(/[^\n]/g, " ")).split("\n");
   const frontmatterEnd = lines[0] === "---" ? lines.indexOf("---", 1) : -1;
   const found = [];
   const checkProse = (value, line) => {
-    let prose = value.replace(notProse, " ");
+    let prose = value.replace(linkTarget, (_, title) => ` ${title ?? ""} `).replace(notProse, " ");
     for (const phrase of exemptPhrases) prose = prose.split(phrase).join(" ");
     for (const [, word] of prose.matchAll(ukFormPattern)) {
-      found.push({line, word, us: ukForms.get(word.toLowerCase())});
+      if (!identifiers.has(word)) found.push({line, word, us: ukForms.get(word.toLowerCase())});
     }
   };
   // Parsed, so a folded or literal block value is read whole. Only the keys a reader sees are copy;
@@ -556,9 +584,14 @@ const ukSpellingsIn = (text) => {
   lines.forEach((line, index) => {
     if (index <= frontmatterEnd) return;
     const trimmed = line.trimStart();
-    const marker = /^(```|~~~)/.exec(trimmed)?.[1];
-    if (marker) {
-      fence = fence === null ? marker : fence === marker ? null : fence;
+    const delimiter = /^(`{3,}|~{3,})/.exec(trimmed)?.[1];
+    if (delimiter) {
+      // A fence closes only on its own character, at least as long, with nothing after it, so a
+      // four-backtick fence can show a three-backtick example.
+      const closes =
+        fence !== null && delimiter[0] === fence[0] && delimiter.length >= fence.length && !trimmed.slice(delimiter.length).trim();
+      if (fence === null) fence = delimiter;
+      else if (closes) fence = null;
       return;
     }
     if (fence !== null || /^(?:import|export)\s/.test(trimmed)) return;
@@ -567,9 +600,10 @@ const ukSpellingsIn = (text) => {
   return found;
 };
 
-const failUkSpellings = (relativePath, text) => {
-  for (const {line, word, us} of ukSpellingsIn(text)) {
-    fail(relativePath, `UK spelling on line ${line}: "${word}"; English copy uses US spelling ("${us}"), see DESIGN.md § Voice & Copy.`);
+const failUkSpellings = (relativePath, text, {generated = false} = {}) => {
+  const where = generated ? " Fix it in the source this page is generated from." : "";
+  for (const {line, word, us} of ukSpellingsIn(text, {identifiers: generated ? enumNames : undefined})) {
+    fail(relativePath, `UK spelling on line ${line}: "${word}"; English copy uses US spelling ("${us}"), see DESIGN.md § Voice & Copy.${where}`);
   }
 };
 
@@ -625,9 +659,7 @@ for (const filePath of allDocs) {
 
   auditedDocuments.push({filePath, relativePath, frontmatter, body, slug: docSlug});
 
-  if (frontmatter?.generated !== true) {
-    failUkSpellings(relativePath, raw);
-  }
+  failUkSpellings(relativePath, raw, {generated: frontmatter?.generated === true});
 
   if (unlisted) {
     fail(relativePath, "Public docs must not set unlisted: true.");

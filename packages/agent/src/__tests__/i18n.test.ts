@@ -45,10 +45,12 @@ describe("agent i18n", () => {
     // literal followed by a colon is a key such as "submit.cancelled", and every other one is copy.
     const token =
       /\/\/[^\n]*|\/\*[\s\S]*?\*\/|"((?:[^"\\\n]|\\.)*)"|'((?:[^'\\\n]|\\.)*)'|`((?:[^`\\]|\\.)*)`/g;
-    const valuesOf = (source: string, opening: string) => {
+    const valuesOf = (source: string, opening: string, closing = "} as const") => {
       const start = source.indexOf(opening);
       expect(start, `the catalog no longer declares ${opening}`).toBeGreaterThanOrEqual(0);
-      const block = source.slice(start, source.indexOf("} as const", start));
+      const end = source.indexOf(closing, start);
+      expect(end, `${opening} no longer ends with ${closing}`).toBeGreaterThan(start);
+      const block = source.slice(start, end);
       return [...block.matchAll(token)]
         .filter(([lexeme]) => !lexeme.startsWith("/"))
         .filter((match) => !/^\s*:/.test(block.slice((match.index ?? 0) + match[0].length)))
@@ -69,13 +71,23 @@ describe("agent i18n", () => {
       "two",
     ]);
     const catalogs = [
-      { file: "../i18n.ts", opening: "const enMessages = {" },
-      { file: "../services/reporting/copy/en.ts", opening: "export const EN_REPORTING_COPY = {" },
+      { file: "../i18n.ts", opening: "const enMessages = {", least: 50 },
+      {
+        file: "../services/reporting/copy/en.ts",
+        opening: "export const EN_REPORTING_COPY = {",
+        least: 50,
+      },
+      // The Telegram command menu, which reporting mode publishes to every chat.
+      { file: "../platforms/telegram-commands.ts", opening: "  en: [", closing: "  ],", least: 6 },
     ];
 
-    const hits = catalogs.flatMap(({ file, opening }) => {
-      const values = valuesOf(readFileSync(new URL(file, import.meta.url), "utf8"), opening);
-      expect(values.length, file).toBeGreaterThan(50);
+    const hits = catalogs.flatMap(({ file, opening, closing, least }) => {
+      const values = valuesOf(
+        readFileSync(new URL(file, import.meta.url), "utf8"),
+        opening,
+        closing
+      );
+      expect(values.length, file).toBeGreaterThanOrEqual(least);
       return values.flatMap((value) => {
         let prose = value.replace(/\{\w+\}|`[^`]*`/g, " ");
         for (const phrase of usSpelling.exempt_phrases ?? []) prose = prose.split(phrase).join(" ");
