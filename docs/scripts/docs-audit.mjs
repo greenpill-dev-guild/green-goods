@@ -560,7 +560,9 @@ const collectEnumNames = (node, key) => {
 };
 collectEnumNames(ontology);
 
-const ukSpellingsIn = (text, {identifiers = new Set()} = {}) => {
+// commonMark is true for the guides outside the docs site, which GitHub renders as CommonMark; the
+// site parses every page as MDX, where an indented line is text, not code.
+const ukSpellingsIn = (text, {identifiers = new Set(), commonMark = false} = {}) => {
   // An HTML comment is never rendered, even across lines; blanking it keeps the line numbers.
   const lines = text.replace(htmlComment, (comment) => comment.replace(/[^\n]/g, " ")).split("\n");
   const frontmatterEnd = lines[0] === "---" ? lines.indexOf("---", 1) : -1;
@@ -581,9 +583,23 @@ const ukSpellingsIn = (text, {identifiers = new Set()} = {}) => {
     }
   }
   let fence = null;
+  let indentedCode = false;
+  let previousBlank = true;
+  let inList = false;
   lines.forEach((line, index) => {
     if (index <= frontmatterEnd) return;
     const trimmed = line.trimStart();
+    const blank = trimmed === "";
+    if (commonMark && fence === null) {
+      // An indented code block starts after a blank line, outside a list, four spaces or a tab in,
+      // and runs while its lines stay indented or blank. In a list, the indent continues an item.
+      const indented = /^(?: {4}|\t)/.test(line);
+      if (indentedCode && (blank || indented)) return;
+      indentedCode = !blank && indented && previousBlank && !inList;
+      if (indentedCode) return;
+      if (!blank) inList = /^(?:[-*+]|\d+[.)])\s/.test(trimmed) || (inList && /^\s/.test(line));
+      previousBlank = blank;
+    }
     const delimiter = /^(`{3,}|~{3,})/.exec(trimmed)?.[1];
     if (delimiter) {
       // A fence closes only on its own character, at least as long, with nothing after it, so a
@@ -600,9 +616,9 @@ const ukSpellingsIn = (text, {identifiers = new Set()} = {}) => {
   return found;
 };
 
-const failUkSpellings = (relativePath, text, {generated = false} = {}) => {
+const failUkSpellings = (relativePath, text, {generated = false, commonMark = false} = {}) => {
   const where = generated ? " Fix it in the source this page is generated from." : "";
-  for (const {line, word, us} of ukSpellingsIn(text, {identifiers: generated ? enumNames : undefined})) {
+  for (const {line, word, us} of ukSpellingsIn(text, {identifiers: generated ? enumNames : undefined, commonMark})) {
     fail(relativePath, `UK spelling on line ${line}: "${word}"; English copy uses US spelling ("${us}"), see DESIGN.md § Voice & Copy.${where}`);
   }
 };
@@ -626,7 +642,7 @@ const usSpellingGuides = async () => {
 };
 
 for (const filePath of await usSpellingGuides()) {
-  failUkSpellings(path.relative(repoRoot, filePath).replace(/\\/g, "/"), await fs.readFile(filePath, "utf8"));
+  failUkSpellings(path.relative(repoRoot, filePath).replace(/\\/g, "/"), await fs.readFile(filePath, "utf8"), {commonMark: true});
 }
 
 const allDocs = await walk(docsRoot);

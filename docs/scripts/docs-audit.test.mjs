@@ -271,17 +271,22 @@ source_of_truth:
 | Cancelled | on-chain |
 `,
     );
+    // DESIGN.md is CommonMark, so an indented block after a blank line is code there.
+    const design = path.join(root, "DESIGN.md");
+    const indentedCode = "# Design\n\n    cancelled is a status name in this code block\n";
+    writeFileSync(design, indentedCode);
     const clean = runAudit(root);
     assert.equal(clean.status, 0, clean.stderr);
 
     // A folded frontmatter value is rendered page metadata, read whole across its lines.
-    const dirty = `${readFileSync(file, "utf8")}The row reads cancelled.\nSee [the garden](https://example.com/g "The favourite garden") and <span aria-label="A grey icon">x</span>.\n`.replace(
+    const dirty = `${readFileSync(file, "utf8")}The row reads cancelled.\n\n    MDX reads this indented line as text, so cancelled counts.\n\nSee [the garden](https://example.com/g "The favourite garden") and <span aria-label="A grey icon">x</span>.\n`.replace(
       "slug: /builders/test\n",
       "slug: /builders/test\ndescription: >-\n  How the field\n  turns grey.\n",
     );
     writeFileSync(file, dirty);
     const lineOf = (text) => dirty.split("\n").indexOf(text) + 1;
-    writeFileSync(path.join(root, "DESIGN.md"), "# Design\n\nA grey border marks the field.\n");
+    // In CommonMark an indented line that continues a list item is prose, not code.
+    writeFileSync(design, `${indentedCode}\nA grey border marks the field.\n\n- A list item\n    keeps a grey continuation.\n`);
     writeFileSync(generated, `${readFileSync(generated, "utf8")}\nThe cycle was cancelled.\n`);
     const result = runAudit(root);
     assert.equal(result.status, 1);
@@ -295,9 +300,17 @@ source_of_truth:
     const linkLine = lineOf('See [the garden](https://example.com/g "The favourite garden") and <span aria-label="A grey icon">x</span>.');
     assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${linkLine}: "favourite"`), result.stderr);
     assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${linkLine}: "grey"`), result.stderr);
-    assert.match(result.stderr, /DESIGN\.md: UK spelling on line 3: "grey"/);
+    assert.ok(
+      result.stderr.includes(
+        `builders/test.mdx: UK spelling on line ${lineOf("    MDX reads this indented line as text, so cancelled counts.")}: "cancelled"`,
+      ),
+      result.stderr,
+    );
+    assert.match(result.stderr, /DESIGN\.md: UK spelling on line 5: "grey"/);
+    assert.match(result.stderr, /DESIGN\.md: UK spelling on line 8: "grey"/);
+    assert.doesNotMatch(result.stderr, /DESIGN\.md: UK spelling on line 3:/);
     assert.match(result.stderr, /reference\/generated\.mdx: UK spelling on line 20: "cancelled".* Fix it in the source this page is generated from\./);
-    assert.equal(result.stderr.match(/UK spelling/g)?.length, 6, result.stderr);
+    assert.equal(result.stderr.match(/UK spelling/g)?.length, 8, result.stderr);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
