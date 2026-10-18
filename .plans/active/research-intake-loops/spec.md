@@ -30,12 +30,12 @@ stays fail-closed, and the agenda stays human-owned in substance.
 `DISCORD_RESEARCH_CHANNEL_ID` that carries at least one `http(s)` link or an attachment, or asks
 a question in a full sentence. Bot messages, messages whose `type` is a thread system message,
 emoji-only messages and messages posted inside threads are context, not shares; a repost of a
-handled share is a share, classified as a noted duplicate. A share is handled when the message
-carries one of the routine's own four reactions (`reactions[].me` is true) or when a thread on it
-(message flag `HAS_THREAD`, `1 << 5`; the thread's id equals the message id) holds a reply
-authored by the bot; `HAS_THREAD` alone proves nothing, since anyone may open a thread, and
-checking it costs one thread read. The two signals are checked independently; a share with one
-and not the other gets only the missing one retried. Lookback: the seven-day window for the
+handled share is a share, classified as a noted duplicate. A share is complete when the message carries one of the routine's own four reactions
+(`reactions[].me` is true) and a thread on it (message flag `HAS_THREAD`, `1 << 5`; the thread's id
+equals the message id) holds a reply authored by the bot. A share with exactly one signal is
+partial: it is not fetched or classified again and stays in the retry set for the missing write,
+first in line next run. `HAS_THREAD` alone proves nothing, since anyone may open a thread, and
+checking it costs one thread read. Lookback: the seven-day window for the
 ledger, then pagination with `before=` through the whole fourteen-day window before filtering for
 unhandled shares, so a missed share behind a page of handled ones is still found.
 
@@ -110,8 +110,8 @@ and left unfollowed. A thread read that fails marks the run degraded and is name
 **R7. Digest block.** The `📥 New input` block becomes `📥 Shares`: one sentence with the counts
 that changed what a reader does next (arrived, filed, candidates parked, need a why), then at
 most two named shares that advanced a frontier question, each with the track it feeds. The
-outside-pass sources that advanced an `Open` item keep their place in the same block. The
-quiet-week line is unchanged; a week with shares and no track movement is not quiet.
+outside-pass sources that advanced an `Open` item keep their place in the same block. The quiet-week line is unchanged; a week with shares and no track movement is not quiet, and the
+mandatory pending-edits refresh never counts against quietness.
 
 **R8. Memo rows.** Section 3 of the memo gains one row per share: message id, thread id, author
 display name, outcome, track and `Open` item, fetch result, reply status, reaction status,
@@ -150,6 +150,8 @@ Ticked edits are applied by the research-agenda skill, which bumps the edition.
 - [ ] {name}: {issues and hubs it would gather} · first proposed {date} · runs: {k}
 ## Dropped this week
 - {item} · {why}
+## Rejected
+- {item} · rejected {date} · evidence then: {citation}
 ## Applied
 - {edit} · applied {date} · edition v{n}
 ```
@@ -159,9 +161,11 @@ line anywhere in the document moves to *Accepted, not yet applied* on the refres
 until the skill moves it to *Applied*, never carried forward unticked or recreated; carry every unticked line forward with `runs` incremented only when the header's `refreshed` date is
 earlier than today, so a same-date rerun neither ages a proposal nor flags it; mark lines at four
 or more runs `decide or drop`;
-move a line to *Dropped this week* when the agenda already contains the edit, its anchor no longer
-exists, or a human deleted it; add this run's proposals; prune *Applied* lines older than two
-weeks. Write once with `save_document` `content` so a rerun converges. Cap: one document write
+move a line to *Dropped this week* when the agenda already contains the edit or its anchor no longer
+exists; a line the previous memo listed that the document no longer carries was deleted by a
+human, so move it to *Rejected* with the date and its evidence and never propose it again on the
+same evidence; add this run's proposals and candidates; prune *Applied* lines older than two weeks
+and *Rejected* lines older than eight. Write once with `save_document` `content` so a rerun converges. Cap: one document write
 per run. A failed write joins the memo's failed-writes list and is retried next run. The memo's
 section 8 keeps the proposals as memory substrate; the digest footer links the document.
 
@@ -195,11 +199,13 @@ configuration, Linear issues, states or labels, and it never runs git write comm
 ### Loop C: candidates
 
 **R13. Candidate tracks.** A Research issue (never one on the watch-only list) or `.plans` hub that
-matches no track's anchors or watch keywords in two consecutive runs is listed under *Candidate tracks* in the pending
-document with the issues and hubs it would gather. Candidate questions from R3 and R6 and from
-call-note topics dropped as off-track in two consecutive runs are listed under *Candidate
-questions*. The panel confirms at a cycle boundary with the skill's `candidates` mode. The first
-edition carries three candidates named in the brief.
+matches no track's anchors or watch keywords is listed under *Candidate tracks* in the pending
+document from the first run that sees it, with the issues and hubs it would gather and a run count
+for recurrence; a panel member may add a candidate line directly. Candidate questions from R3 and
+R6 and from off-track call-note topics are listed under *Candidate questions* the same way. The
+agenda's own candidate sections hold only confirmed entries, made at a cycle boundary with the
+skill's `candidates` mode; the three candidates the brief names go into the pending document for
+the 29 October review.
 
 ### Loop D: research to growth, with product pull
 
