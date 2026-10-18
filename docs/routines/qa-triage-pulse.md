@@ -20,7 +20,7 @@ connectors:
   - vercel        # deploy correlation for PostHog-matched items (gated on first_seen)
 model: claude-opus-5
 allow-unrestricted-branch-pushes: false  # Customer Needs only; no PRs, no Sheet writes, no GitHub Issues
-last_updated: "2026-06-10"
+last_updated: "2026-10-17"
 last_verified: "2026-05-13"
 ---
 
@@ -252,12 +252,19 @@ This collaboration pattern mirrors how `bug-intake` works today: routine creates
 
 ## Rebuilding the cloud routine from this file
 
-1. Log in to claude.ai/code/routines.
+1. Log in to [claude.ai/code/routines](https://claude.ai/code/routines).
 2. Click **New routine** (or use `/schedule` in Claude Code).
-3. Paste the prompt from this file (everything after the `# Prompt` heading).
-4. Configure repos, environment, connectors, and triggers per the frontmatter above:
-   - Environment: green-goods (`env_01CRAWm3KauPFp4ntqdAufPR`)
-   - Cron: `0 21 * * 3`
-   - Connectors: Google-Drive, Linear, PostHog
-   - Model: `claude-opus-4-7[1m]`
-5. Save.
+3. Paste a bootstrap prompt, not a copy of this spec. The routine fetches `origin/develop` and executes this file on every run, so a change takes effect as soon as it merges to `develop`. Keep the bootstrap free of phase summaries: a summary drifts from the spec and competes with it.
+
+   ```text
+   You are the qa-triage-pulse routine for Green Goods. Your spec is docs/routines/qa-triage-pulse.md on the develop branch of the green-goods repo. It is the single source of truth; there is intentionally no copy here.
+
+   1. Run `git fetch origin develop`. If it fails, stop, report the failure in the run log, and exit non-zero: an older `origin/develop` may still be readable, and running it would run a stale spec.
+   2. Read the whole spec: `git show origin/develop:docs/routines/qa-triage-pulse.md`.
+   3. Execute everything after its `# Prompt` heading exactly as written. Where this prompt and the spec differ, follow the spec.
+
+   Limits that hold whatever the spec says: never push code, open PRs, create GitHub Issues, or write to the QA Sheet. If the spec is missing or unreadable, stop, report the failure in the run log, and exit non-zero. Never improvise from memory or an older copy.
+   ```
+
+4. Configure the repo, environment (green-goods, `env_01CRAWm3KauPFp4ntqdAufPR`), env vars, connectors, model, and cron per the frontmatter above.
+5. Save, then record the routine id in `docs/routines/README.md`. If the bootstrap is ever pointed at `main`, spec changes take effect only once they land on `main`.

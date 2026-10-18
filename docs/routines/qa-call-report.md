@@ -22,7 +22,7 @@ connectors:
   - sentry        # when available — resolves projects by name through the connector, no env vars; absent = skip silently
 model: claude-opus-5
 allow-unrestricted-branch-pushes: false  # Linear + Discord only; no PRs, no Sheet writes, no GitHub Issues
-last_updated: "2026-09-05"
+last_updated: "2026-10-17"
 ---
 
 # Prompt
@@ -371,12 +371,26 @@ the @mention.
 ## Rebuilding the cloud routine from this file
 
 1. Log in to [claude.ai/code/routines](https://claude.ai/code/routines) → **New routine**.
-2. Paste the prompt from this file (everything after the `# Prompt` heading).
+2. Paste a bootstrap prompt, not a copy of this spec. The routine fetches `origin/develop` and
+   executes this file on every run, so a change takes effect as soon as it merges to `develop`.
+   Keep the bootstrap free of phase summaries: a summary drifts from the spec and competes with it.
+
+   ```text
+   You are the qa-call-report routine for Green Goods. Your spec is docs/routines/qa-call-report.md on the develop branch of the green-goods repo. It is the single source of truth; there is intentionally no copy here.
+
+   1. Run `git fetch origin develop`. If it fails, stop, report the failure in the run log, and exit non-zero: an older `origin/develop` may still be readable, and running it would run a stale spec.
+   2. Read the whole spec: `git show origin/develop:docs/routines/qa-call-report.md`.
+   3. Execute everything after its `# Prompt` heading exactly as written. Where this prompt and the spec differ, follow the spec.
+
+   Limits that hold whatever the spec says: never push code, open PRs, create GitHub Issues, or write to the QA Sheet. If the spec is missing or unreadable, stop, report the failure in the run log, and exit non-zero. Never improvise from memory or an older copy.
+   ```
+
 3. Configure per the frontmatter: repo `green-goods` at branch `develop`; environment
    `green-goods` with `BLOB_READ_WRITE_TOKEN` added (copy from the QA app's Vercel Blob store —
    Storage → the private QA store → tokens) plus the Discord vars and the two PostHog project
    IDs; connectors **Google Drive + Linear + PostHog + Vercel**, and Sentry when available (it
    resolves projects by name — no Sentry env vars); model per the frontmatter; **no schedule**
    — manual trigger only.
-4. Save. Trigger it right after each QA call; then start a fix session with "pull in the QA
-   slices from Linear" (the `debug` skill's QA Slice Fix Protocol picks them up).
+4. Save, then record the routine id in `docs/routines/README.md`. Trigger it right after each QA
+   call; then start a fix session with "pull in the QA slices from Linear" (the `debug` skill's QA
+   Slice Fix Protocol picks them up).
