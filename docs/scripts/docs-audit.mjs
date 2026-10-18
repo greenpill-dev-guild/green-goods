@@ -528,11 +528,13 @@ const ukForms = new Map(Object.entries(usSpelling.terms ?? {}));
 const ukFormPattern = new RegExp(`\\b(${[...ukForms.keys()].map(escapeRegExp).join("|") || "(?!)"})\\b`, "gi");
 const exemptPhrases = usSpelling.exempt_phrases ?? [];
 const notProse =
-  /`[^`\n]*`|\]\([^)\s]*(?:\s+"[^"]*")?\)|<https?:\/\/[^>]+>|https?:\/\/[^\s)\]>"'`]+|\{#[^}]*\}|\b(?!alt\b|title\b)[\w:-]+="[^"]*"|<!--.*?-->/g;
+  /`[^`\n]*`|\]\([^)\s]*(?:\s+"[^"]*")?\)|<https?:\/\/[^>]+>|https?:\/\/[^\s)\]>"'`]+|\{#[^}]*\}|\b(?!alt\b|title\b)[\w:-]+="[^"]*"/g;
+const htmlComment = /<!--[\s\S]*?--!?>/g;
 const renderedFrontmatterKey = /^(?:title|sidebar_label|description):/;
 
 const ukSpellingsIn = (text) => {
-  const lines = text.split("\n");
+  // An HTML comment is never rendered, even across lines; blanking it keeps the line numbers.
+  const lines = text.replace(htmlComment, (comment) => comment.replace(/[^\n]/g, " ")).split("\n");
   const frontmatterEnd = lines[0] === "---" ? lines.indexOf("---", 1) : -1;
   const found = [];
   let fence = null;
