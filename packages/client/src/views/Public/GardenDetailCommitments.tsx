@@ -71,7 +71,7 @@ export function CommitmentsSection({
       id="public-garden-detail-commitments"
       kicker={formatMessage({
         id: "public.pool.garden.kicker",
-        defaultMessage: "§ 02: Commitments",
+        defaultMessage: "§ 02: Promises",
       })}
       heading={
         preparing
@@ -81,7 +81,7 @@ export function CommitmentsSection({
             })
           : formatMessage({
               id: "public.pool.garden.heading",
-              defaultMessage: "Commitments between neighbors",
+              defaultMessage: "Promises between neighbors",
             })
       }
     >
@@ -137,8 +137,7 @@ function stateSentence(
     case "PAUSED":
       return formatMessage({
         id: "public.pool.garden.state.paused",
-        defaultMessage:
-          "This Garden has paused new commitments for now. Its record stays readable.",
+        defaultMessage: "This Garden has paused new promises for now. Its record stays readable.",
       });
     case "CLOSED":
       return formatMessage({
@@ -163,7 +162,7 @@ function stateSentence(
           })
         : formatMessage({
             id: "public.pool.garden.state.open",
-            defaultMessage: "Neighbors can offer and take up commitments in this Garden right now.",
+            defaultMessage: "Neighbors can offer and take up promises in this Garden right now.",
           });
   }
 }
@@ -176,7 +175,7 @@ function UnavailableRecord({ onRetry }: { onRetry: () => void }) {
     <PanelLead
       lede={formatMessage({
         id: "public.pool.garden.unavailable",
-        defaultMessage: "This Garden's commitments could not be loaded just now.",
+        defaultMessage: "This Garden's promises could not be loaded just now.",
       })}
       aside={
         <SectionNotice
@@ -239,7 +238,7 @@ function PoolRecord({
             {formatMessage({
               id: "public.pool.garden.empty",
               defaultMessage:
-                "No commitments have been made yet. They appear here as neighbors offer and take them up.",
+                "No promises have been made yet. They appear here as neighbors offer and take them up.",
             })}
           </PanelNote>
         ) : (
@@ -254,7 +253,7 @@ function PoolRecord({
                 ? formatMessage({
                     id: "public.pool.garden.record.keptRateNote",
                     defaultMessage:
-                      "Kept commitments over every commitment taken up and not mutually released. Commitments still in progress count until they are kept.",
+                      "Kept promises over every promise taken up and not mutually released. Promises still in progress count until they are kept.",
                   })
                 : formatMessage({
                     id: "public.pool.garden.record.countsOnlyNote",

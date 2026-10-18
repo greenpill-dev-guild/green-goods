@@ -463,7 +463,7 @@ describe("PublicEvidencePipeline", () => {
     const titles = within(list)
       .getAllByRole("listitem")
       .map((item) => within(item).getByRole("heading", { level: 3 }).textContent?.trim());
-    expect(titles).toEqual(["Needs", "Commitment", "Work", "Learnings"]);
+    expect(titles).toEqual(["Needs", "Promise", "Work", "Learnings"]);
     for (const heading of within(list).getAllByRole("heading", { level: 3 })) {
       expect(heading).toHaveClass("relative", "z-10", "bg-bg-weak-50");
     }
@@ -504,14 +504,14 @@ describe("PublicEvidencePipeline", () => {
     const titles = within(list)
       .getAllByRole("listitem")
       .map((item) => within(item).getByRole("heading", { level: 3 }).textContent?.trim());
-    expect(titles).toEqual(["Necesidades", "Compromiso", "Trabajo", "Aprendizajes"]);
+    expect(titles).toEqual(["Necesidades", "Promesa", "Trabajo", "Aprendizajes"]);
     expect(list).toHaveTextContent(es["public.impact.pipeline.step.commitment.description"]);
     expect(list).toHaveTextContent(es["public.impact.pipeline.step.work.description"]);
     expect(list).not.toHaveTextContent("Work begins as a commitment to someone");
     expect(screen.getByText(es["public.impact.pipeline.loop"])).toBeInTheDocument();
 
     // Tooltip definitions come from the shared first-exposure family.
-    fireEvent.click(within(list).getByRole("button", { name: "Compromiso" }));
+    fireEvent.click(within(list).getByRole("button", { name: "Promesa" }));
     expect(screen.getByRole("tooltip")).toHaveTextContent(es["public.pool.terms.commitment"]);
   });
 
@@ -524,7 +524,7 @@ describe("PublicEvidencePipeline", () => {
       .getAllByRole("button", { pressed: false })
       .concat(within(filters).getAllByRole("button", { pressed: true }))
       .map((chip) => chip.textContent?.replace(/\d+$/, "").trim());
-    expect(chips).not.toContain("Commitment");
+    expect(chips).not.toContain("Promise");
     expect(chips).not.toContain("Confirmation");
     expect(chips).toEqual(
       expect.arrayContaining(["All", "Assessment", "Submission", "Impact Certificate"])
@@ -642,7 +642,7 @@ describe("GardenDetail § 02 Commitments", () => {
       "public-garden-detail-stewards",
     ]);
     expect(screen.getByText(en["public.gardenDetail.section.notes"])).toBeInTheDocument();
-    expect(screen.getByText("§ 02: Commitments")).toBeInTheDocument();
+    expect(screen.getByText("§ 02: Promises")).toBeInTheDocument();
     expect(screen.getByText(en["public.gardenDetail.section.certificates"])).toBeInTheDocument();
     expect(screen.getByText(en["public.gardenDetail.certificates.empty"])).toBeInTheDocument();
     expect(screen.getByText(en["public.gardenDetail.section.stewards"])).toBeInTheDocument();
@@ -1214,7 +1214,7 @@ describe("/impact commitments band", () => {
       "public-impact-ledger-title",
     ]);
     expect(screen.getByText("§ 01: Proof markers")).toBeInTheDocument();
-    expect(screen.getByText("§ 02: Commitments")).toBeInTheDocument();
+    expect(screen.getByText("§ 02: Promises")).toBeInTheDocument();
     expect(screen.getByText("§ 03: The cycle")).toBeInTheDocument();
     expect(screen.getByText("§ 04: Evidence ledger")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /See the Gardens/ })).toHaveAttribute(
@@ -1240,7 +1240,7 @@ describe("/impact commitments band", () => {
     const figures = container.querySelector("dl") as HTMLElement;
     expect(intro.compareDocumentPosition(figures) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(
-      screen.getByRole("heading", { name: "Commitments within communities" })
+      screen.getByRole("heading", { name: "Promises within communities" })
     ).toBeInTheDocument();
     expect(container.textContent).not.toContain("—");
   });
