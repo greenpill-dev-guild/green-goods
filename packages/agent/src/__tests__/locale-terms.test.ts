@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { type AgentLocale, type AgentMessageKey, agentMessage } from "../i18n";
 import { ES_REPORTING_COPY } from "../services/reporting/copy/es";
 import { PT_REPORTING_COPY } from "../services/reporting/copy/pt";
+import { parseCommand } from "../services/reporting/coordinator/commands";
 
 type Locale = Exclude<AgentLocale, "en">;
 
@@ -28,23 +29,31 @@ const reportingCopy: Record<Locale, Record<string, string>> = {
   pt: PT_REPORTING_COPY,
 };
 
-const drifted: Record<Locale, string> = {
-  es: "Únete al Huerto Comunitario o pide a un steward que te agregue.",
-  pt: "Entre em outra horta ou peça a um steward para adicionar você.",
+const drifted: Record<Locale, string[]> = {
+  es: ["Únete al Huerto Comunitario o pide a un steward que te agregue.", "(STEWARDS) Aprobar"],
+  pt: ["Entre em outra horta ou peça a um steward para adicionar você.", "Ver minhas HORTAS"],
 };
 
-/** Messages that use an off-glossary word. Placeholders and typed command words (GARDEN) are code. */
+// A typed command is its own English name (GARDEN reads as garden). HORTAS also reads as garden,
+// but it is an alias, not the name, so a shouted drifted word is still checked.
+function withoutTypedCommands(message: string): string {
+  return message.replace(/\b[A-Z]{2,}\b/g, (word) =>
+    parseCommand(word)?.kind === word.toLowerCase() ? " " : word
+  );
+}
+
+/** Messages that use an off-glossary word. Placeholders and typed command words are code. */
 function strays(locale: Locale, messages: string[]): string[] {
   const terms = vocabulary.renamed_terms.locale_terms[`packages/shared/src/i18n/${locale}.json`];
   const pattern = new RegExp(`\\b(${terms.join("|")})\\b`, "i");
   return messages.filter((message) =>
-    pattern.test(message.replace(/\{\w+\}/g, " ").replace(/\b[A-Z]{2,}\b/g, " "))
+    pattern.test(withoutTypedCommands(message.replace(/\{\w+\}/g, " ")))
   );
 }
 
 describe.each(["es", "pt"] as const)("%s chat copy uses the locked terms", (locale) => {
-  it("flags a drifted word but not a typed command word", () => {
-    expect(strays(locale, [drifted[locale], "Envía GARDEN"])).toEqual([drifted[locale]]);
+  it("flags a drifted word, even shouted, but not a typed command word", () => {
+    expect(strays(locale, [...drifted[locale], "Envía GARDEN"])).toEqual(drifted[locale]);
   });
 
   it("keeps the reporting copy on the locked terms", () => {
