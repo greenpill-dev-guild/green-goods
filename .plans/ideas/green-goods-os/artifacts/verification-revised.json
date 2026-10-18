@@ -1,0 +1,75 @@
+{
+  "final_file": "/Users/afo/Code/greenpill/green-goods/.plans/ideas/green-goods-os/artifacts/green-goods-os-pitch-revised.pptx",
+  "sha256": "81f962dc3c9525c11dde97e9cc14f0967f66b48b5af92f37f7d329047e75894d",
+  "slide_count": 26,
+  "core_slides": 18,
+  "appendix_slides": 8,
+  "editable_shapes": 201,
+  "native_tables": 9,
+  "embedded_images": 2,
+  "speaker_notes_parts": 26,
+  "all_notes_substantive": true,
+  "arithmetic": "independently recalculated; assertions passed",
+  "package_integrity": {
+    "chart_count": 0,
+    "claim_boundary": "Structural package checks only; no slide text, notes, formulas, chart values, or native PowerPoint execution were inspected.",
+    "finding_count": 0,
+    "findings": [],
+    "notes_parts_skipped": 26,
+    "relationship_part_count": 62,
+    "slide_count": 26,
+    "status": "pass",
+    "exitCode": 0,
+    "findingCount": 0,
+    "warnings": []
+  },
+  "layout": {
+    "finding_count": 0,
+    "findings": [],
+    "font_policy": {
+      "checked_text_script_count": 384,
+      "native_font_rendering_verified": false,
+      "observed_font_families": ["Helvetica Neue"],
+      "observed_font_use_counts": {
+        "Helvetica Neue": 384
+      },
+      "passed": true,
+      "performed": true
+    },
+    "slide_count": 26,
+    "slide_size_in": [13.3333, 7.5],
+    "warning_count": 0,
+    "warnings": [],
+    "exitCode": 0,
+    "findingCount": 0,
+    "fontPolicy": {
+      "checked_text_script_count": 384,
+      "native_font_rendering_verified": false,
+      "observed_font_families": ["Helvetica Neue"],
+      "observed_font_use_counts": {
+        "Helvetica Neue": 384
+      },
+      "passed": true,
+      "performed": true
+    }
+  },
+  "first_party_reimport": {
+    "performed": true,
+    "passed": true,
+    "slideCount": 26,
+    "sha256": "81f962dc3c9525c11dde97e9cc14f0967f66b48b5af92f37f7d329047e75894d",
+    "runtimeNodeModules": "/Users/afo/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules",
+    "nodeExecutable": "/Users/afo/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node"
+  },
+  "native_powerpoint_or_google_slides_tested": false,
+  "product_tests_run": false,
+  "visual_review": "26 initial final-render slides inspected individually at 1280x720; final five content repairs re-rendered and inspected, with unchanged slides compared by render hash.",
+  "render_comparison": {
+    "same": [1, 2, 3, 5, 7, 8, 10, 11, 13, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26],
+    "changed": [4, 6, 9, 12, 14],
+    "claim": "All 26 slides rendered from final PPTX; same slides match full-size images previously visually inspected; changed slides received a fresh full-size visual inspection."
+  },
+  "local_links_checked": 108,
+  "distinct_deck_sources": 42,
+  "pinned_repository_targets_checked": 13
+}
