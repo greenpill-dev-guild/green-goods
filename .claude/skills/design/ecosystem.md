@@ -41,13 +41,14 @@ Archetypes categorize relationships by **function**, not identity. Unlike person
                              │
                         impact flows to
                              │
-     AMBIENT          ┌──────┴──────┐          OBLIQUE
+     AMBIENT          ┌──────┴───────┐         OBLIQUE
    Neighbors     ◄────│    DIRECT    │────►   Researchers
-   Bystanders         │   Maria      │        using EAS
-                      │   David      │        data
-                      │   Dr. Chen   │
-                      │   Amara      │
-                      │   Kwame      │
+   Bystanders         │   Gardeners  │        using EAS
+                      │   Stewards   │        data
+                      │   Evaluators │
+                      │   Funders    │
+                      │   Community  │
+                      │   members    │
                       └───┬────┬─────┘
                           │    │
             ┌─────────────┘    └─────────────┐
@@ -64,13 +65,13 @@ Archetypes categorize relationships by **function**, not identity. Unlike person
     (need steward setup)
 ```
 
-**Multi-archetype nexus**: David (Steward) occupies four archetypes simultaneously:
+**Multi-archetype nexus**: a steward occupies four archetypes simultaneously:
 - **Direct** — uses admin dashboard
-- **Governing** — approves/rejects work, shaping Maria's experience
+- **Governing** — approves/rejects work, shaping each gardener's experience
 - **Intermediary** — onboards gardeners (B2B2C channel)
 - **Generative** — creates actions and assessment frameworks, reshaping what the system *is*
 
-Each archetype has different UX needs. Governing-David needs blast radius awareness (who does this approval affect?). Intermediary-David needs onboarding efficiency (how fast can he get a gardener started?). Designing for one flat "Steward" persona misses the relational complexity.
+Each archetype has different UX needs. As a Governing user, the steward needs blast radius awareness (who does this approval affect?). As an Intermediary, the same steward needs onboarding efficiency (how fast can a new gardener get started?). Designing for one flat "Steward" persona misses the relational complexity.
 
 ---
 
@@ -80,13 +81,13 @@ What to look for once you have expanded your view beyond the direct user:
 
 ### Interconnectedness
 
-No user's experience is independent. Maria's submission experience is shaped by whether David approved her last submission quickly or slowly, which depends on whether Dr. Chen's assessment framework gave David clear criteria, which depends on whether Amara's funding report asked for data the assessment framework doesn't capture.
+No user's experience is independent. A gardener's submission experience is shaped by whether the steward approved their last submission quickly or slowly, which depends on whether the evaluator's assessment framework gave the steward clear criteria, which depends on whether the funder's report asked for data the assessment framework doesn't capture.
 
 **Design implication**: When modifying a surface, trace the relational chain. Who upstream provides the data shown here? Who downstream acts on what happens here? Show those connections in the UI where they matter.
 
 ### Synthesis
 
-The whole exceeds the sum of its parts. Optimizing Maria's MDR flow + David's batch approval + Dr. Chen's rubric + Amara's export *individually* does not guarantee the combined system works.
+The whole exceeds the sum of its parts. Optimizing the gardener's MDR flow + the steward's batch approval + the evaluator's rubric + the funder's export *individually* does not guarantee the combined system works.
 
 **Design implication**: Test flows end-to-end across archetypes, not just within a single user's journey. Does the chain from capture → verification → certification → funding actually produce the emergent outcome?
 
@@ -125,7 +126,7 @@ Extends the Jarvis Principle ([surfaces.md](./surfaces.md) § Progressive Disclo
 | **Engage** | Full detail | + Who else is affected? (complementary/parallel users) |
 | **Deep Dive** | Raw data, audit trail | + Full ecosystem trace (attestation chain visualization) |
 
-Example: When David reviews Maria's work submission, the Glance layer shows her photo and note. The Scan layer adds: "1 of 12 pending · Amara's Q2 report includes this garden." This is ecosystem-aware disclosure — it surfaces the Governing → Complementary user relationship without cluttering the primary view.
+Example: When a steward reviews a gardener's work submission, the Glance layer shows the gardener's photo and note. The Scan layer adds: "1 of 12 pending · {funderName}'s Q2 report includes this garden." This is ecosystem-aware disclosure — it surfaces the Governing → Complementary user relationship without cluttering the primary view.
 
 ### 2. Cascade Awareness
 
@@ -133,10 +134,10 @@ When one user's action affects another user's experience, make the cascade visib
 
 | Action | Cascade | UI Pattern |
 |--------|---------|-----------|
-| Steward rejects work | Gardener sees rejection; Funder's verified count decreases | Confirmation shows: "Maria will see this rejection. Q2 verified count: 47 → 46." |
+| Steward rejects work | Gardener sees rejection; Funder's verified count decreases | Confirmation shows: "{gardenerName} will see this rejection. Q2 verified count: 47 → 46." |
 | Owner removes steward role | All gardeners in that garden lose their reviewer | Warning: "12 gardeners will have no active reviewer." |
-| Evaluator publishes assessment | Assessment becomes part of garden's Hypercert metadata | Preview: "This assessment will appear in the impact certificate Amara purchased." |
-| Gardener submits work | Enters steward's review queue; adds to garden's pending count | Confirmation: "David will review this. Currently 3 pending in his queue." |
+| Evaluator publishes assessment | Assessment becomes part of garden's Hypercert metadata | Preview: "This assessment will appear in the impact certificate {funderName} purchased." |
+| Gardener submits work | Enters steward's review queue; adds to garden's pending count | Confirmation: "{stewardName} will review this. Currently 3 pending in their queue." |
 
 **Design rule**: The higher the governing power, the more cascade context is mandatory. Owners see full blast radius. Gardeners see only their own downstream (submission → pending → approved).
 
@@ -159,10 +160,10 @@ Users shift between archetypes during a session. Design for the transition, not 
 
 | Transition | Trigger | UI Pattern |
 |------------|---------|-----------|
-| David: Direct → Governing | Opens review queue | Dashboard shifts from personal metrics to review-mode with cascade indicators |
-| Maria: Direct → Conglomerate | Habitual daily use | Interface simplifies over time — fewer onboarding cues, tighter MDR flow |
-| Kwame: Ambient → Direct | Neighbor tells him about a vote | Low-barrier entry: deep link to specific vote with plain-language context |
-| Amara: Direct → Complementary | Views a Hypercert created by Dr. Chen's assessment | Certificate view shows the full provenance chain, not just the final artifact |
+| Steward: Direct → Governing | Opens review queue | Dashboard shifts from personal metrics to review-mode with cascade indicators |
+| Gardener: Direct → Conglomerate | Habitual daily use | Interface simplifies over time — fewer onboarding cues, tighter MDR flow |
+| Community Member: Ambient → Direct | A neighbor tells them about a vote | Low-barrier entry: deep link to specific vote with plain-language context |
+| Funder: Direct → Complementary | Views a Hypercert created by an evaluator's assessment | Certificate view shows the full provenance chain, not just the final artifact |
 
 **Design rule**: Transitions should feel like *focus shifts*, not *mode switches*. The adaptive surface paradigm applies — the user shifts attention between surfaces without the interface rebuilding itself.
 
@@ -171,12 +172,12 @@ Users shift between archetypes during a session. Design for the transition, not 
 When one person acts on behalf of another (steward submitting for a gardener), the interface must distinguish the surrogate from the direct user. This pattern exists in the field but has no designed support.
 
 ```
-┌─────────────────────────────────────┐
-│  Submitting as:  Maria Okafor       │
-│  Submitted by:   David (Steward)   │
-│  ─────────────────────────────────  │
-│  [Photo] [Details] [Submit]         │
-└─────────────────────────────────────┘
+┌───────────────────────────────────────────┐
+│  Submitting as:  {gardenerName}           │
+│  Submitted by:   {stewardName} (Steward)  │
+│  ───────────────────────────────────────  │
+│  [Photo] [Details] [Submit]               │
+└───────────────────────────────────────────┘
 ```
 
 **Data integrity**: Surrogate submissions must record both the surrogate (who submitted) and the attributed gardener (whose work it is). The attestation must reflect the actual worker, not the submitter. This intersects with `product.md` Data Integrity Requirement #4 (no self-attestation): the surrogate cannot also approve the work they submitted.
@@ -211,5 +212,5 @@ For simple, single-user surfaces (a form, a settings page, a static view), the A
 | **EPIC 2023** — "Toward an Ethnography of Friction and Ease in Complex Systems" | Three frictions, three systems phenomena, theoretical foundation |
 | **NNGroup** — "User-Ecosystem Thinking: An Anthropologic Approach to Design" | Practitioner-oriented framework summary |
 | **MHCLG Digital** — "Applying User Ecosystem Thinking in Funding Service" | UK gov case study: workshop format, surprises, outcomes |
-| **Green Goods Personas** | `docs/docs/builders/architecture/personas.mdx#personas` — Gardener, Steward, Evaluator, Funder, Community Member, projected from the ontology |
+| **Green Goods Personas** | `docs/docs/builders/architecture/personas.mdx` — Gardener, Steward, Evaluator, Funder, Community Member, projected from the ontology |
 | **Green Goods Tone** | `.claude/context/product.md` § Persona & Tone Quick-Reference |
