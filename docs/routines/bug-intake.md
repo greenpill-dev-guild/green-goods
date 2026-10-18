@@ -1,7 +1,7 @@
 ---
 routine-name: bug-intake
 trigger:
-  schedule: "0 4 * * 1,3,5"  # 04:00 local, Mon/Wed/Fri. Reduced 2026-05-07 from daily M-F to give triage time between runs.
+  schedule: "0 11 * * 1,3,5"  # Mon/Wed/Fri 11:00 UTC (= 04:00 PDT / 03:00 PST), as the live trigger runs. Reduced 2026-05-07 from daily M-F to give triage time between runs.
 max-duration: 1h  # intake is lightweight — no audit phase
 repos:
   - green-goods

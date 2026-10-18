@@ -1,7 +1,7 @@
 ---
 routine-name: growth-pulse
 trigger:
-  schedule: "0 9 * * 1"  # Monday 09:00 — start of week after weekend data settles
+  schedule: "0 16 * * 1"  # Monday 16:00 UTC (= 09:00 PDT / 08:00 PST) — start of week after weekend data settles
 max-duration: 2h
 repos:
   - green-goods
@@ -371,5 +371,5 @@ A failure-block-only digest with zero numbers is still a valid run; the user rea
    Limits that hold whatever the spec says: write no GitHub artifacts (no Issues, PRs, branches, Project items or `docs/metrics/` files), and post to Discord only in the channel `DISCORD_GROWTH_CHANNEL_ID` names.
    ```
 
-3. Configure per the frontmatter: repo `green-goods`, environment, env vars, connectors and model. The Monday 09:00 Pacific schedule is the cron `0 16 * * 1` in claude.ai, which stores crons in UTC, so the run lands at 09:00 PDT and 08:00 PST.
+3. Configure per the frontmatter: repo `green-goods`, environment, env vars, connectors, model and cron. The cron is in UTC, as claude.ai stores it.
 4. Save, then record the routine id in `docs/routines/README.md`.
