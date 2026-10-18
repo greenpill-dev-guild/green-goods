@@ -40,13 +40,21 @@ Visual preference alone is not acceptance. Record wrong turns and hesitation, no
 | A14 | Empty, loading and error states | One anatomy on both surfaces in two sizes; each state keeps its copy and its actions; nothing reachable from a state today is lost. |
 | A15 | Type role names | Both surfaces name their type roles title, body, label and meta; each role keeps its size on each surface; no Material role name remains in the cockpit's views or guides. |
 | A16 | Glass | The design guide describes solid surfaces and the cockpit's one translucent dock; the five-thickness material spec is gone and nothing rendered changes. |
+| A17 | Card shapes | Shared holds one card surface and the four shapes, each at two densities; every object card in scope is built from them; no card primitive is left without a consumer. |
+| A18 | One home per object | Each object's card code lives in one place; no two card components share a name; every new Shared path is a deliberate export. |
+| A19 | Cockpit controls | For each migrated family, the cockpit renders only the shared controls; density, hit areas, pill corners and the tone budget are unchanged; Rules 15 and 18 and the wrapper-adoption sweep describe the new direction. |
 
 ## Guards the work trips
 
 These checks will fail or need an explicit update. Each failure is intended; none is worked around.
 
 - [check-tokens.sh](../../../scripts/design/check-tokens.sh): token presence, the cockpit's raw-token
-  sweep and the token version coupling.
+  sweep and the token version coupling. Its wrapper-adoption sweep fails shared fields, raw buttons
+  and legacy cards in the cockpit, with a burn-down baseline in
+  [design-token-usage-baseline.tsv](../../../scripts/data/design-token-usage-baseline.tsv); step 20
+  turns it around one control family at a time.
+- [Rules 15 and 18](../../../.claude/rules/frontend-design.md): the cockpit's field family and its
+  "AdminButton only" invariant. Step 20 rewrites the parts it reverses; step 13 the rest of Rule 18.
 - [md-generate.mjs](../../../scripts/design/md-generate.mjs): the generated design files and the
   app's token audit go stale when a token or a line number moves.
 - [AdminDensityScale.guard.test.tsx](../../../packages/admin/src/__tests__/components/AdminDensityScale.guard.test.tsx):

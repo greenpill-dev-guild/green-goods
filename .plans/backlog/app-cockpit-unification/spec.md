@@ -112,6 +112,51 @@ delivery to the release project. The parent is PRD-1266, with one sub-issue per 
 PRD-1261, a bounded pass that aligns the member promise and work journey with its steward review,
 applies the accepted direction to those journeys and stays a separate issue.
 
+**Cards and code structure, accepted in principle on 17 October.** A census of `develop` at
+`b30ac410f` on 17 October counted 107 distinct card, row and tile components: 14 in Shared, 64 in
+the app and 35 in the cockpit. They sit on five card primitives, and the three in Shared have no
+real use in either app:
+
+| Card primitive | Used in |
+|---|---|
+| The app's `Card` | about 14 files |
+| `AdminCard` | 41 files |
+| Shared `Surface`, built on the glass tiers being retired | a few cockpit files |
+| Shared `CardBase` and Shared's own `Card` | none |
+
+Each object has several designs. Work has three: the app's row card (Shared `WorkCard`, wrapped by
+an app `WorkCard` that resolves names), the upload-queue card (`PendingCard`, `DraftCard`) and the
+cockpit's photo-grid card (`HubWorkCard`). Commitments have five rows and cards in the app and two
+rows inside a pool card in the cockpit. Picking an action uses `ActionCard` in the app and
+`AdminSelectableCard` in the cockpit. Assessments and hypercerts use an inline card in the app and
+`WorkbenchCard` in the cockpit. Jars and vaults have ten cards and rows in the app, counting the
+public site, and three in the cockpit. About eleven local label-and-value rows, three `EmptyState`
+components and about eight local state cards repeat the rest. Behind the names, nearly all of them
+take one of four shapes. The maintainer chose, each on the research's recommendation:
+
+- **Four shared shapes.** An item row (media on the left, then title, status, one line of detail
+  and an action), a media card (a photo or banner first), a fact row (a label and its value) and a
+  state block (empty, loading, error or not ready) live in Shared, each at two densities. Every
+  object's card is built from them. Parts unique to one object stay with it: the cockpit's act
+  phase line, the upload-queue states and the photo grid. Shared's `WorkbenchRow` already takes the
+  item row's props (eyebrow, title, description, meta, status, icon or thumbnail, selected) and is
+  the starting point; nothing renders it today.
+- **The cockpit's controls fold into the shared family, phased.** With Material 3 retired, the
+  cockpit renders the shared controls tuned by its own token block, the mechanism DL-031 already
+  uses for the shared pieces it renders. One control family moves at a time, after the card work.
+  Today `AdminButton` appears in 111 cockpit files, `AdminTextField` in 44, `AdminCard` in 41 and
+  `AdminDialog` in 31. This reverses Rule 18's "AdminButton only" invariant and the cockpit clause
+  of Rule 15, and the design token check's wrapper-adoption sweep, which today fails shared fields
+  in the cockpit, has to turn around with it.
+- **One home per object.** The four shapes live in one Shared folder. An object's card moves into
+  Shared when both surfaces render it, and route assembly stays in each app's `views/`. Files move
+  with the step that consolidates their object, not in one restructuring. Shared exports each
+  component path by name, so every new Shared path is an export decision under the
+  [export taxonomy](../../../.claude/context/codebase-architecture.md#export-taxonomy).
+- **Tracking.** The new work joins this plan as steps 14 to 20 and is filed under PRD-1266.
+
+The public website keeps its editorial cards. Only the shared pieces it already renders change.
+
 Open against the picks:
 
 - **F9 and the earlier preference: settled.** Earlier the same day the maintainer preferred the
@@ -286,6 +331,8 @@ The levers, ranked by visible change per unit of work:
 | R3 | Each surface keeps a recognisable dialect: density, corners, accent model, motion, navigation chrome. | Stated direction ("some variance"). |
 | R4 | A shared element is one module that each surface tunes through tokens. Neither surface restyles a shared piece. | DL-031, Rules 18 and 19. |
 | R5 | Cards, tabs, the filter control, the count badge, list spacing, the desktop work card and the cockpit's dark cards follow the accepted forks F7 to F13. | Stated direction, items 4 to 11 of the brief. |
+| R9 | Every object card on both surfaces is built from four shared shapes: item row, media card, fact row and state block. Each object's card code has one home. | Maintainer's choice, 2026-10-17. |
+| R10 | The cockpit renders the shared controls, tuned by its own tokens, one control family at a time after the card work. Density, hit areas and pill corners stay the cockpit's. | Maintainer's choice, 2026-10-17; reverses part of Rules 15 and 18. |
 | R6 | Control boundaries meet 3:1, text meets its existing contrast floor on the new ground, and one focus-ring role serves both surfaces. | The measurements above; existing accessibility rules. |
 | R7 | No fitted width regresses in English, Spanish or Portuguese at phone widths. | Existing width and line rules in the app's design guide. |
 | R8 | The work is tracked in Linear: a parent issue with one sub-issue per delivery step, in the active release project, which owns PWA and admin delivery for the Cosmo-Local plan. | Stated direction; project changed on 2026-10-17. |

@@ -62,6 +62,10 @@ questions about how the choices stand. The full record is in
   light and dark, with Spanish and Portuguese where text must fit.
 - **Timing.** As much of the sequence as fits should land before the Cosmo-Local demonstration.
   The plan is saved first; no implementation is authorized yet.
+- **Cards and code, 17 October.** Every object's card is built from four shared shapes: an item
+  row, a media card, a fact row and a state block. Each object's card code gets one home, moved
+  as that object is consolidated. After the card work, the cockpit renders the shared controls,
+  tuned by its own tokens, one control family at a time.
 - **Tracking.** The Linear parent is PRD-1266, with one sub-issue per delivery step, in the active
   release project rather than the Cosmo-Local project: the 15 October four-goal plan gave PWA and
   admin delivery to the release project. PRD-1261, the member and steward pilot-journey pass, stays

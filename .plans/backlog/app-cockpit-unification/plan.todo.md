@@ -37,6 +37,8 @@ implementation task has been dispatched.
 - [x] Record the timing aim: as much of the sequence as fits before the Cosmo-Local demonstration.
       This is an aim, not an authorization.
 - [x] File the Linear parent and one sub-issue per delivery step in the active release project.
+- [x] Set the card model, the future of the cockpit's controls, the folder rule and where the
+      consolidation is tracked (17 October).
 - [ ] Lock each pick: render that pair from the real components and get it approved before rollout.
 - [ ] Measure the typeface change in English, Spanish and Portuguese at 320 to 390px.
 - [ ] Re-run the contrast audits on the accepted ground and dark ladder.
@@ -60,27 +62,37 @@ bounded change, and split a step that would mix independent behaviours.
 | 4. Count badge (F10) | `ui` | One badge recipe in Shared; the app's bar, launchers, filter count and tabs and the cockpit's tab rail consume it. | Every consumer renders the same badge; counts above 9 and 99 still fit. |
 | 5. Tabs (F8) | `ui` | The cockpit's tab rail takes the equal-width tinted layout and the shared badge. | Rendered pairs of every tab row at phone, tablet and desktop widths in three languages. |
 | 6. Chips (F4) | `ui` | Capsule chips with one selected treatment in the cockpit's filter row. The filter control keeps its form on each surface (the F9 pick). | One chip shape on both; DL-082 scopes unchanged; keyboard and screen-reader paths unchanged. |
-| 7. Cards, rows and list gap (F7, F11) | `ui` | One card surface; the work-item row on phones; an 8px list gap token. | Rendered pairs of every list at every width; a visible card edge in both themes. |
-| 8. Wide desktop work card (F12) | `ui` | The cockpit's desktop work card lies wide with its mosaic on the left; the grid's column rule follows. | Mosaic variants for no photo, one, two and three or more photos; phone widths unaffected. |
+| 7. Cards, rows and list gap (F7, F11) | `ui` | One card surface in place of the five card primitives; the shared item row, grown from `WorkbenchRow`, first used by the work item on phones; an 8px list gap token. | Rendered pairs of every list at every width; a visible card edge in both themes. |
+| 8. Wide desktop work card (F12) | `ui` | The cockpit's desktop work card lies wide with its mosaic on the left, as the first use of the shared media card; the grid's column rule follows. | Mosaic variants for no photo, one, two and three or more photos; phone widths unaffected. |
 | 9. Phone sheets (F5) | `ui` | The cockpit's phone sheet takes the shared surface, grip and header. Its centred desktop dialog does not change. | Sheet open, close, focus return and Back unchanged. |
 | 10. Fields (F3 fields) | `ui` | Outlined fields by default on both surfaces, with one label and message anatomy. Neither bottom bar changes (the F6 pick). | Field message lines do not move layout, checked with the longest Spanish and Portuguese messages. |
-| 11. Empty, loading and error states | `ui` | One anatomy in two sizes, set by each surface's density. | Every state keeps its copy and its actions on both surfaces; rendered pairs of each state. |
+| 11. Empty, loading and error states | `ui` | The shared state block: one anatomy in two sizes, set by each surface's density, grown from the shared `EmptyState`. The app's own `EmptyState` and the local state cards move onto it. | Every state keeps its copy and its actions on both surfaces; rendered pairs of each state. |
 | 12. Garden context chip in the app | `ui` | Render the shared `GardenChip` on the app's density. Waits on the Home decision in the PWA simplification hub. | Selection behaviour owned by that hub; this step proves only the shared look. |
 | 13. Guides and gates | `ui` | Decision-log rows, including the retired Material 3 rule; the token version and generated design files; Storybook parity numbers; both surface guides and both prompt contracts, with the cockpit's rewritten around the app's language; the glass spec retired from the design guide; the vocabulary list. The cockpit's Material-named tokens keep their names. | The design checks and the documentation generator pass. |
-| 14. Acceptance | `qa_pass_1`, then `qa_pass_2` | User-facing review, then an independent regression review. | Criteria in [eval.md](eval.md), with fresh receipts for the changed surfaces. |
+| 14. Fact rows | `ui` | One shared fact row, a label and its value with an optional action, in place of about eleven local label-and-value rows on both surfaces, the cockpit's two `ReviewRow`s among them. | Every review, detail and settings screen that lists facts renders the shared row; rendered pairs of each. |
+| 15. Commitment cards | `ui` | The app's five commitment rows and cards and the cockpit's pool rows move onto the item row, with the act phase line and queue states as the object's own parts. Commitments get one home. | Rendered pairs of every commitment list in both surfaces, in every act phase and queue state. |
+| 16. Pickers and record cards | `ui` | One action picker for both surfaces; assessment and hypercert record cards on the item row; the app's garden card as a media card. | Picking an action works the same by pointer and keyboard on both surfaces; rendered pairs of each list. |
+| 17. People rows | `ui` | Member, funder and claimant rows on the item row with an avatar, each name through the shared address display. | Rendered pairs of every people list; names resolve as they do today. |
+| 18. Jar and vault cards | `ui` | The app's and the cockpit's jar, deposit and position cards on the item row or media card. The public site's cards stay editorial. | Rendered pairs of every jar and vault list in the app and the cockpit; amounts and assets read as they do today. |
+| 19. Unused card code | `ui` | Remove Shared's unused card exports (`CardBase`, its own `Card`, `StatCard`, `ProposalCardConviction`, `SortSelect`, `ListToolbar`) and `Surface`'s glass tiers once nothing renders them; rename the app's wrapper cards that share a Shared card's name. | No export without a consumer or a recorded reason; no two card components share a name. |
+| 20. Cockpit controls onto the shared family | `ui` | Phased, one family at a time: buttons and icon buttons; fields, checkboxes and chips; dialogs and sheets; cards and tabs. Each phase retires its `Admin*` files, rewrites the matching part of Rules 15 and 18, and turns the design token check's wrapper-adoption sweep around. Split into one issue per phase when scheduled. | Each phase: the cockpit renders only the shared family for its controls; density, hit areas and pill corners unchanged; the design checks pass. |
+| 21. Acceptance | `qa_pass_1`, then `qa_pass_2` | User-facing review, then an independent regression review. | Criteria in [eval.md](eval.md), with fresh receipts for the changed surfaces. |
 
 Steps 1 to 3 are token edits and can land alone. Steps 4 to 11 are the shared chrome recipes and
 depend on steps 1 to 3 only for their final look, not for their structure. Step 12 depends on
-another hub. Step 13 travels with whichever step changes a pinned number. No contract, indexer or
-data lane is needed; a discovered need returns to scope review.
+another hub. Step 13 travels with whichever step changes a pinned number. Steps 14 to 19 build each
+remaining object's cards from the four shapes, so they follow steps 7, 8 and 11, which create the
+card surface, the item row, the media card and the state block. Step 20 comes last. No contract,
+indexer or data lane is needed; a discovered need returns to scope review.
 
 The maintainer's aim is to land as much of this sequence as fits before the Cosmo-Local
 demonstration. The order above is the order to attempt it in: the token steps first, then the chrome
 recipes. No step is authorized yet, and each waits on its approved pair. The release project admits
 each finished step to its release at the QA gate, or defers it.
 
-**Linear sub-issues.** Each step from 1 to 13 has its own sub-issue under PRD-1266: step 1 is
-PRD-1267, step 2 PRD-1268, and so on in order to step 13, PRD-1279. Step 12 is blocked by RESR-93,
+**Linear sub-issues.** Each step from 1 to 20 has its own sub-issue under PRD-1266. Steps 1 to 13
+are PRD-1267 to PRD-1279 in order. Steps 14 to 20 are PRD-1280, PRD-1281, PRD-1283, PRD-1284,
+PRD-1285, PRD-1286 and PRD-1287; PRD-1282 belongs to other work. Step 12 is blocked by RESR-93,
 the PWA simplification scope decision. Acceptance runs under the parent. PRD-1261, the bounded pass
 that aligns the member promise and work journey with its steward review, applies the accepted
 direction to those journeys and is tracked separately.
@@ -89,7 +101,7 @@ direction to those journeys and is tracked separately.
 
 | Requirement | Planned steps |
 |---|---|
-| R1 no layout or flow change | Every step; checked in step 14 |
+| R1 no layout or flow change | Every step; checked in step 21 |
 | R2 one product | 1 to 11 |
 | R3 a dialect per surface | 1 to 11, by leaving the dials alone |
 | R4 shared elements through tokens | 3 to 12 |
@@ -97,6 +109,8 @@ direction to those journeys and is tracked separately.
 | R6 contrast and focus | 2, 3 |
 | R7 three-language widths | 1, 5 |
 | R8 tracked in Linear | Done: PRD-1266 and its sub-issues |
+| R9 cards from four shared shapes, one home per object | 7, 8, 11, 14 to 19 |
+| R10 the cockpit renders the shared controls | 20 |
 
 ## Execution rules
 
@@ -106,6 +120,9 @@ direction to those journeys and is tracked separately.
 - Show a rendered pair of the real components against `develop` before rolling a rule across pages,
   and cover every sibling page at every width in the first pass.
 - Never restyle a shared piece from the cockpit; move the token (DL-031).
+- Build an object's card from the four shared shapes. A new card needs a product reason, as the
+  architecture guide already requires.
+- Move an object's files with the step that consolidates it, and give each object one home.
 - Keep the public website on its own dialect. Scope every app token change to the app presentation.
 - For a token or style change, the proof is a rendered pair plus the guards. State that proof limit
   explicitly in the lane handoff; it does not waive behaviour proof where a component's structure
