@@ -24,7 +24,7 @@ connectors:
   - linear
   - google-calendar
 model: claude-opus-5  # disabled since 2026-08-24, so it missed the 2026-09-30 move to claude-opus-5-5
-status: active  # 2026-05-25 — weekly digest posts to Linear (initiative status update), no GitHub PR. Consolidates metrics digest + guild-weekly-checkin numbers + guild-product-development-synthesis growth signals
+status: disabled  # the trigger has been off since 2026-08-24 and keeps its cron for re-enabling. 2026-05-25 — weekly digest posts to Linear (initiative status update), no GitHub PR. Consolidates metrics digest + guild-weekly-checkin numbers + guild-product-development-synthesis growth signals
 ---
 
 # Prompt
