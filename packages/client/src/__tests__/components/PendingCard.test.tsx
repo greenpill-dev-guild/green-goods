@@ -54,6 +54,20 @@ describe("PendingCard", () => {
     expect(onResume).toHaveBeenCalledOnce();
   });
 
+  it("gives a day-old draft's age as a number, as work rows do", () => {
+    renderWithIntl(
+      <DraftCard
+        draft={draft({ updatedAt: Date.now() - 24 * 3_600_000 })}
+        actionTitle="Mulching"
+        onResume={vi.fn()}
+        onDelete={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText("1 day ago")).toBeInTheDocument();
+    expect(screen.queryByText("Yesterday")).not.toBeInTheDocument();
+  });
+
   it("marks a draft that keeps a promise", () => {
     renderWithIntl(
       <DraftCard
