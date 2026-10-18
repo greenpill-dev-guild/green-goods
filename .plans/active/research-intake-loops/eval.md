@@ -1,6 +1,6 @@
 # Research intake, drift and growth loops Evaluation Plan
 
-**Status**: `IN EVIDENCE 2026-10-18 — first v5 run recorded in [reports/2026-10-18-first-v5-run.md](reports/2026-10-18-first-v5-run.md); AC-2, AC-4 and the carry-forward half of AC-7 wait for the 2026-10-24 run; AC-8 and AC-10 pending`
+**Status**: `IN EVIDENCE 2026-10-18 — first v5 run recorded in [reports/2026-10-18-first-v5-run.md](reports/2026-10-18-first-v5-run.md); open: AC-2 (partial retries on 2026-10-24; idempotence on a controlled same-day rerun), AC-3's fetch-count and oldest-first halves, AC-4, AC-7's carry-forward, the AC-8 dry run, the AC-10 controlled run, AC-11's memo end time; AC-12 unexercised`
 
 ## Release Gates
 
