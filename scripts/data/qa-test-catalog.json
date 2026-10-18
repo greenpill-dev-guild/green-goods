@@ -1,5 +1,5 @@
 {
-  "$comment": "Upstream source of truth for QA scenario DEFINITIONS only — results, owners, and defect links live in the Google Sheet and per-run artifacts, never here. Active tabs merged in v2: the installed-PWA iOS/Android tabs became one 'PWA' tab (device-specific rows keep their [iOS]/[Android] scenario prefix and MUST carry requiresProduction or requiresDevice), and 'Cross Surface' dissolved into concrete per-surface rows. Catalog v3 adds top-level journeys: ordered, role-aware choreography over active Test IDs. A case's kind may still be 'journey'; that category describes what the individual case verifies, while top-level journeys describe how people walk multiple cases together. Retired cases keep their historical tab and are never deleted; IDs are never reused. requiresProduction = cannot pass on localhost; requiresDevice = needs a real installed device; the 'tx' tag marks rows whose walk involves real wallet transactions. Every case carries exactly one 'kind' from the top-level kinds list — the public docs expose this category axis, while the QA app keeps its priority and area views; kind 'transaction' if and only if the row carries the 'tx' tag. Lifecycle: every case carries a 'status' from the top-level statuses list. A new case enters as active by pull request with the next number in its surface prefix; wording, step, and evidence edits stay in place; when what a case proves changes it is retired (retiredOn, retiredReason, optional replacedBy naming active successors) and the new check gets a new ID, so past verdicts keep their meaning. Every id ever issued is also registered in scripts/data/qa-test-id-ledger.json (append-only); the contract test rejects a catalog whose ids drift from that ledger.",
+  "$comment": "Upstream source of truth for QA scenario DEFINITIONS only: results, owners, and defect links live in the Google Sheet and per-run artifacts, never here. Active tabs merged in v2: the installed-PWA iOS/Android tabs became one 'PWA' tab (device-specific rows keep their [iOS]/[Android] scenario prefix and MUST carry requiresProduction or requiresDevice), and 'Cross Surface' dissolved into concrete per-surface rows. Catalog v3 adds top-level journeys: ordered, role-aware choreography over active Test IDs. A case's kind may still be 'journey'; that category describes what the individual case verifies, while top-level journeys describe how people walk multiple cases together. Retired cases keep their historical tab and are never deleted; IDs are never reused. requiresProduction = cannot pass on localhost; requiresDevice = needs a real installed device; the 'tx' tag marks rows whose walk involves real wallet transactions. Every case carries exactly one 'kind' from the top-level kinds list. The public docs expose this category axis, while the QA app keeps its priority and area views; kind 'transaction' if and only if the row carries the 'tx' tag. Lifecycle: every case carries a 'status' from the top-level statuses list. A new case enters as active by pull request with the next number in its surface prefix; wording, step, and evidence edits stay in place; when what a case proves changes it is retired (retiredOn, retiredReason, optional replacedBy naming active successors) and the new check gets a new ID, so past verdicts keep their meaning. Every id ever issued is also registered in scripts/data/qa-test-id-ledger.json (append-only); the contract test rejects a catalog whose ids drift from that ledger.",
   "version": 3,
   "tabs": ["Public Website", "PWA", "Admin Dashboard", "Docs"],
   "statuses": [
@@ -368,7 +368,7 @@
       "requiresProduction": true,
       "status": "active",
       "source": "qa-session-2026-08-29",
-      "requiresProductionReason": "Needs the public production URL — link-preview debuggers cannot reach localhost"
+      "requiresProductionReason": "Needs the public production URL: link-preview debuggers cannot reach localhost"
     },
     {
       "id": "PUB-033",
@@ -378,7 +378,7 @@
       "kind": "content",
       "area": "Site-wide",
       "scenario": "Editorial vocabulary holds: no admin/cockpit jargon on public pages",
-      "expected": "Public pages use the editorial vocabulary only — no cockpit/internal terms, frozen names intact; lint:vocab excludes prompt-only wording, so this human sweep is the gate",
+      "expected": "Public pages use the editorial vocabulary only (no cockpit/internal terms, frozen names intact); lint:vocab excludes prompt-only wording, so this human sweep is the gate",
       "preconditions": ["Frozen-name list and surface prompt contracts (design skill)"],
       "steps": [
         "Sweep the surface's primary routes reading every heading, label, and empty state",
@@ -727,7 +727,7 @@
         "Open the certificates section and follow an external link",
         "Check steward names resolve (ENS where set) and avatars fall back"
       ],
-      "expected": "Certificates render with working external links (new tab); stewards show resolved names — ENS where available, truncated addresses otherwise — with graceful avatar fallbacks",
+      "expected": "Certificates render with working external links (new tab); stewards show resolved names (ENS where available, truncated addresses otherwise) with graceful avatar fallbacks",
       "evidence": "Screenshot of both sections",
       "role": "none",
       "tags": ["garden-records"],
@@ -810,7 +810,7 @@
         "Retry with a wallet on the wrong network",
         "Confirm a switch-network prompt gates the action"
       ],
-      "expected": "No wallet shows clear instructions, wrong network prompts a switch and blocks the transaction path — never a blank or broken state",
+      "expected": "No wallet shows clear instructions, wrong network prompts a switch and blocks the transaction path, never a blank or broken state",
       "evidence": "Screenshots of both states",
       "role": "none",
       "tags": ["wallet", "error-recovery", "funding"],
@@ -1417,7 +1417,7 @@
       "scenario": "Install App branches: desktop QR dialog, mobile steps, copy-URL, Open App flip",
       "preconditions": ["Public URL available"],
       "steps": [
-        "Click Install App on desktop — verify the QR dialog and copy-URL",
+        "Click Install App on desktop, then verify the QR dialog and copy-URL",
         "Repeat at mobile width for the step list",
         "If installed, confirm the label flips to Open App"
       ],
@@ -4799,7 +4799,7 @@
       "steps": [
         "Open a pending submission as steward on desktop",
         "Approve one with optional feedback",
-        "Reject another — confirm feedback is required",
+        "Reject another and confirm feedback is required",
         "Cancel a third; follow the fulfills chip"
       ],
       "expected": "Approve/reject respect the role gate; reject stays disabled until feedback exists; cancel writes nothing; the fulfills chip opens the commitment",
@@ -4928,10 +4928,10 @@
       ],
       "steps": [
         "Local dev:prod: warm-reload the app and confirm fast interactive with no re-optimization reload loop",
-        "Local dev:prod: note (but do not fail on) cold-transform watchdog trips — reproduce warm before judging",
+        "Local dev:prod: note (but do not fail on) cold-transform watchdog trips, and reproduce warm before judging",
         "Production build or hosted origin: clear caches, cold-start, and time to interactive against the watchdog budget"
       ],
-      "expected": "Local dev:prod: warm reloads are fast and no dependency re-optimization reload loop appears — a cold Vite transform tripping the boot watchdog locally is an environment artifact, never a defect. Hosted/production build: a cleared-cache cold start stays under the boot watchdog threshold and never shows the recovery screen",
+      "expected": "Local dev:prod: warm reloads are fast and no dependency re-optimization reload loop appears. A cold Vite transform tripping the boot watchdog locally is an environment artifact, never a defect. Hosted/production build: a cleared-cache cold start stays under the boot watchdog threshold and never shows the recovery screen",
       "evidence": "Console timings screenshot",
       "role": "none",
       "tags": ["performance"],
@@ -5205,7 +5205,7 @@
         "Load the hub; read the error state",
         "Restore and retry"
       ],
-      "expected": "The canvas shows an honest error/retry state — never a blank shell — and recovers on retry once the network returns",
+      "expected": "The canvas shows an honest error/retry state (never a blank shell) and recovers on retry once the network returns",
       "evidence": "Screenshot of error + recovery",
       "role": "steward",
       "tags": ["error-recovery"],
@@ -5271,7 +5271,7 @@
         "Check action descriptions for diacritics",
         "Repeat spot checks in Spanish"
       ],
-      "expected": "No English-formatted dates, no raw '1 sessions'-style plurals, diacritics intact — locale-key parity alone is not language-quality proof",
+      "expected": "No English-formatted dates, no raw '1 sessions'-style plurals, diacritics intact. Locale-key parity alone is not language-quality proof",
       "evidence": "Screenshots of pt/es views with real records",
       "role": "steward",
       "tags": ["i18n", "locale"],
@@ -5287,7 +5287,7 @@
       "kind": "content",
       "area": "App-wide",
       "scenario": "Admin vocabulary holds: cockpit language, no editorial 'hero/story' terms",
-      "expected": "Cockpit copy stays in the admin vocabulary — no client editorial terms; Title Case action labels per DL-012; frozen names intact",
+      "expected": "Cockpit copy stays in the admin vocabulary (no client editorial terms); Title Case action labels per DL-012; frozen names intact",
       "preconditions": ["Frozen-name list and surface prompt contracts (design skill)"],
       "steps": [
         "Sweep the surface's primary routes reading every heading, label, and empty state",
@@ -5399,7 +5399,7 @@
         "Immediately attempt a second decision on the same submission",
         "Where safely reproducible, interrupt the approval transaction and observe the result"
       ],
-      "expected": "A second decision is blocked or disabled; a failed approval transaction surfaces an error and the submission stays Pending — status never lies",
+      "expected": "A second decision is blocked or disabled; a failed approval transaction surfaces an error and the submission stays Pending, so status never lies",
       "evidence": "Screenshots of the blocked second decision and the failure state",
       "role": "steward",
       "tags": ["review", "tx", "integrity"],
@@ -5765,7 +5765,7 @@
         "Sign in as a deployer; follow the funnel into /garden/create",
         "Complete creation and confirm landing in the new workspace"
       ],
-      "expected": "A steward with no gardens gets an honest empty/no-access state — never a blank shell and never a create CTA (creation is deployer-gated); a fresh deployer is funneled into create-garden and lands in the new workspace on completion",
+      "expected": "A steward with no gardens gets an honest empty/no-access state, never a blank shell and never a create CTA (creation is deployer-gated); a fresh deployer is funneled into create-garden and lands in the new workspace on completion",
       "evidence": "Screenshot of empty state",
       "role": "steward",
       "tags": ["garden-lifecycle", "tx"],
@@ -9476,7 +9476,7 @@
       "area": "Site",
       "scenario": "Local search returns relevant results with keyboard flow",
       "preconditions": [
-        "Built docs site (bun run --cwd docs build, served) or the deployed docs site — the dev server has no search index"
+        "Built docs site (bun run --cwd docs build, served) or the deployed docs site, since the dev server has no search index"
       ],
       "steps": [
         "Focus the search input",
@@ -10336,7 +10336,7 @@
         "Scroll through the full list",
         "Open an item deep in the list and return"
       ],
-      "expected": "Lists scroll smoothly, load progressively or paginate, and returning preserves position — no jank or unbounded loading",
+      "expected": "Lists scroll smoothly, load progressively or paginate, and returning preserves position, with no jank or unbounded loading",
       "evidence": "Screen recording of the scroll",
       "role": "any",
       "tags": ["performance", "lists"],

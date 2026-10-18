@@ -192,50 +192,50 @@ session and an agent with only Linear access can navigate parent → slices.
 
 ```markdown
 <Two or three sentences a teammate would write: what was walked, by how many
-testers, on which surfaces, and the headline — "P0 coverage is green except
+testers, on which surfaces, and the headline, such as "P0 coverage is green except
 review actions; two cross-surface failures trace to shared date handling.">
 
 Build under test: client `<sha>` · admin `<sha>`
 Run: Run <N> · <label> · <environment>
-Environment: <production | beta (staging) | local — the session default; a verdict taken elsewhere carries a `[beta]`, `[prod]`, or `[local]` note prefix>
+Environment: <production | beta (staging) | local: the session default; a verdict taken elsewhere carries a `[beta]`, `[prod]`, or `[local]` note prefix>
 Full report: [QA session YYYY-MM-DD · full report](<linear-document-url>)
 
 ## Results by priority
-- P0: <walked>/<total> — <pass> pass · <fail> fail · <blocked> blocked · <na> n/a · <noted> noted only
-- P1: <walked>/<total> — …
-- P2: <walked>/<total> — …
+- P0: <walked>/<total> (<pass> pass · <fail> fail · <blocked> blocked · <na> n/a · <noted> noted only)
+- P1: <walked>/<total> (…)
+- P2: <walked>/<total> (…)
 
 ## Results by kind
-- Journey: <walked>/<total> — …
-- Transaction: <walked>/<total> — …
+- Journey: <walked>/<total> (…)
+- Transaction: <walked>/<total> (…)
 - <one line per catalog kind, in catalog order>
 
 ## Decisions from the call
-- <ruling the team aligned on, one line each — drop the section when none>
+- <ruling the team aligned on, one line each (drop the section when none)>
 
 ## Decisions needed
-- <a product or design ruling the testing surfaced but nobody has made — one line each, with the Test IDs it blocks; mirrored in the session's decisions child (§ Product decisions child) — drop the section when none>
+- <a product or design ruling the testing surfaced but nobody has made: one line each, with the Test IDs it blocks; mirrored in the session's decisions child (§ Product decisions child). Drop the section when none>
 
 ## Slices
 Todo queue budget <N> this session: <T> Todo, <B> Backlog. Every accepted cluster is tracked.
-- <one line per slice: what it covers and its Test IDs — Linear renders the
-  sub-issue links; include its priority and Todo/Backlog state, in queue order>
-- already tracked: <PRD-NNN> — <one line> (an existing open Issue, related to
+- <one line per slice: what it covers and its Test IDs (Linear renders the
+  sub-issue links); include its priority and Todo/Backlog state, in queue order>
+- already tracked: <PRD-NNN> · <one line> (an existing open Issue, related to
   this parent so the fix queue still sees it)
 - standing since <date>: <a never-filed fail from an earlier walk that the gate
-  accepted as a slice — one line>
+  accepted as a slice, in one line>
 
 ## Not sliced
 - <note-only follow-ups without an exact Test ID, and `[derived:telemetry]`
-  uncorrelated window errors (testers or ordinary production traffic — the
-  telemetry has no tester predicate) — one line each>
-- investigate: <a symptom whose cause or intent is unknown — one line; a slice
+  uncorrelated window errors (testers or ordinary production traffic, since the
+  telemetry has no tester predicate), one line each>
+- investigate: <a symptom whose cause or intent is unknown, in one line; a slice
   only after someone looks>
-- environment: <behavior caused by the harness or environment, not the product —
-  one line>
+- environment: <behavior caused by the harness or environment, not the product,
+  in one line>
 
 **Done when**
-- every slice below — and every related already-tracked Issue — is Done or explicitly
+- every slice below, and every related already-tracked Issue, is Done or explicitly
   deferred, and the re-QA walk has re-recorded its Test IDs
 - every `Decisions needed` line has its ruling recorded on the decisions child and that child
   is Done or Canceled, and every `investigate:` line under Not sliced is promoted to a slice or
@@ -245,7 +245,7 @@ Session <slug>. [Meeting notes](<drive-url>)
 ```
 
 **Source-line variants**: with notes, `Session <slug>. [Meeting notes](<drive-url>)`; app-only
-(no notes found in the discovery window), `Session <slug>. App-only run — no meeting notes
+(no notes found in the discovery window), `Session <slug>. App-only run: no meeting notes
 found.` Never fabricate a Drive link. **Refreshing the report later**: send the unchanged
 `title` in the same `save_issue` payload — the lint gate resolves the length exemption from the
 payload alone, so an `{id, description}` update without the title is rejected as oversized
