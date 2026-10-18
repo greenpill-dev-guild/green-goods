@@ -15,7 +15,17 @@ function fixture() {
   mkdirSync(path.join(root, "packages/shared/src/ontology"), { recursive: true });
   writeFileSync(
     path.join(root, "packages/shared/src/ontology/green-goods-ontology.json"),
-    JSON.stringify({personas: [{id: "gardener"}, {id: "steward"}, {id: "evaluator"}, {id: "funder"}, {id: "community-member"}]}),
+    JSON.stringify({
+      personas: [{id: "gardener"}, {id: "steward"}, {id: "evaluator"}, {id: "funder"}, {id: "community-member"}],
+      enums: [{members: ["None", "Cancelled"]}],
+    }),
+  );
+  mkdirSync(path.join(root, "scripts/data"), { recursive: true });
+  writeFileSync(
+    path.join(root, "scripts/data/banned-vocabulary.json"),
+    JSON.stringify({
+      us_spelling: {terms: {cancelled: "canceled", grey: "gray", favourite: "favorite"}, exempt_phrases: ["Grey Matter Fund"]},
+    }),
   );
   writeFileSync(path.join(root, "authority.ts"), "export const authority = true;\n");
   writeFileSync(
@@ -205,6 +215,157 @@ cat packages/client/src/an-example-that-need-not-exist.ts
     assert.equal(result.status, 1);
     assert.match(result.stderr, /client\.mdx: Repository path not found: packages\/client\/src\/index\.tsx/);
     assert.match(result.stderr, /client\.mdx: Repository path not found: src\/routes\//);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("UK spelling in docs prose or design guidance exits nonzero, while names stay free", () => {
+  const root = fixture();
+  try {
+    const file = path.join(root, "docs/docs/builders/test.mdx");
+    const names = [
+      "",
+      "## Approve stays gray {#approve-stays-grey}",
+      "",
+      "The `cancelled` state, [the guide](https://example.com/grey-area) and https://example.com/grey stay as written.",
+      '<img src="/img/grey.png" alt="Approve looks gray" />',
+      "The Grey Matter Fund keeps its own name.",
+      'A ``cancelled`` span keeps its name, as does <Status state={CycleState.Cancelled} style={{color: "grey"}} />.',
+      "A bare prop is a name too: <Status cancelled />.",
+      "A code span can wrap: `the",
+      "cancelled state` stays code.",
+      '<Status>{state === CycleState.Cancelled ? "Closed" : "Open"}</Status>',
+      '{state === "cancelled" ? "Stopped" : "Open"}',
+      "<Status>",
+      "  {state === CycleState.Cancelled",
+      '    ? "Closed"',
+      '    : "Open"}',
+      "</Status>",
+      "{/* An MDX comment is cancelled from the page. */}",
+      "{/*",
+      "So is one that spans lines, cancelled or not.",
+      "*/}",
+      "<Status",
+      "  cancelled",
+      '  state="grey"',
+      "/>",
+      "<!--",
+      "A comment is cancelled from the page, across lines.",
+      "-->",
+      "<code>",
+      "cancelled",
+      "</code>",
+      "",
+      "```text",
+      "cancelled",
+      "```",
+      "",
+      "````markdown",
+      "```js",
+      "cancelled",
+      "```",
+      "````",
+      "",
+      // MDX reads an import or export to a blank line where its code is complete.
+      "import {",
+      "  Cancelled,",
+      '} from "@site/src/components/docs";',
+      "",
+      "export const states = [",
+      "",
+      '  "cancelled",',
+      "];",
+      "",
+      "",
+    ].join("\n");
+    writeFileSync(file, readFileSync(file, "utf8") + names);
+    // A generated page prints the ontology's enum members as plain text: in a cell of members and
+    // inside a sentence they are names too.
+    const generated = path.join(root, "docs/docs/reference/generated.mdx");
+    writeFileSync(
+      generated,
+      `---
+audience: developer
+owner: engineering
+feature_status: Live
+slug: /reference/generated
+generated: true
+generator: authority.ts
+source_digest: "sha256:${"0".repeat(64)}"
+generated_from:
+  - authority.ts
+source_of_truth:
+  - authority.ts
+---
+# Generated
+
+| State | Where |
+|---|---|
+| Cancelled | on-chain |
+
+Requests stop at pre-disbursement Cancelled.
+`,
+    );
+    // DESIGN.md is CommonMark, so an indented block after a blank line is code there.
+    const design = path.join(root, "DESIGN.md");
+    const indentedCode = "# Design\n\n    cancelled is a status name in this code block\n";
+    // A link loses its destination whatever form its title takes.
+    const designLinks = "\n[One](./grey 'Garden guide'), [two](./grey (Garden guide)) and [three](<./grey area>) lose their destinations.\n";
+    writeFileSync(design, indentedCode + designLinks);
+    const clean = runAudit(root);
+    assert.equal(clean.status, 0, clean.stderr);
+
+    // A folded frontmatter value is rendered page metadata, read whole across its lines.
+    const dirty = `${readFileSync(file, "utf8")}The row reads cancelled.\n\n    MDX reads this indented line as text, so cancelled counts.\n\nSee [the garden](https://example.com/g "The favourite garden") and <span aria-label="A grey icon">x</span>.\n\nAn escaped \\\`grey\\\` mark is text.\n\n<img\n  src="/img/x.png"\n  alt="A grey mark"\n/>\n\nSee [the guide](https://example.com/guide 'The favourite guide').\n\nA lone \`tick stops at a blank line,\n\nso cancelled here counts.\n\n- A \`list item\n- cancelled in the next one counts.\n\n<Status>{done ? "The cycle was cancelled." : "Open"}</Status>\n\nAn escaped \\{cancelled} brace is text.\n`.replace(
+      "slug: /builders/test\n",
+      "slug: /builders/test\ndescription: >-\n  How the field\n  turns grey.\n",
+    );
+    writeFileSync(file, dirty);
+    const lineOf = (text) => dirty.split("\n").indexOf(text) + 1;
+    // In CommonMark an indented line that continues a list item is prose, not code.
+    writeFileSync(design, `${indentedCode}${designLinks}\nA grey border marks the field.\n\n- A list item\n    keeps a grey continuation.\n`);
+    // Starting a sentence, a member is copy.
+    const generatedDirty = `${readFileSync(generated, "utf8")}\nThe cycle was cancelled.\nCancelled requests remain visible.\n`;
+    writeFileSync(generated, generatedDirty);
+    const generatedLineOf = (text) => generatedDirty.split("\n").indexOf(text) + 1;
+    const result = runAudit(root);
+    assert.equal(result.status, 1);
+    assert.ok(
+      result.stderr.includes(
+        `builders/test.mdx: UK spelling on line ${lineOf("The row reads cancelled.")}: "cancelled"; English copy uses US spelling ("canceled")`,
+      ),
+      result.stderr,
+    );
+    assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${lineOf("description: >-")}: "grey"`), result.stderr);
+    const linkLine = lineOf('See [the garden](https://example.com/g "The favourite garden") and <span aria-label="A grey icon">x</span>.');
+    assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${linkLine}: "favourite"`), result.stderr);
+    assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${linkLine}: "grey"`), result.stderr);
+    assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${lineOf("An escaped \\`grey\\` mark is text.")}: "grey"`), result.stderr);
+    // A tag that spans lines keeps a readable value on its own line.
+    assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${lineOf('  alt="A grey mark"')}: "grey"`), result.stderr);
+    // A code span stops at a blank line and at a new list item.
+    assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${lineOf("so cancelled here counts.")}: "cancelled"`), result.stderr);
+    assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${lineOf("- cancelled in the next one counts.")}: "cancelled"`), result.stderr);
+    // A string an MDX expression renders is copy, and an escaped brace is text.
+    assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${lineOf('<Status>{done ? "The cycle was cancelled." : "Open"}</Status>')}: "cancelled"`), result.stderr);
+    assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${lineOf("An escaped \\{cancelled} brace is text.")}: "cancelled"`), result.stderr);
+    // A single-quoted link title is copy too.
+    assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${lineOf("See [the guide](https://example.com/guide 'The favourite guide').")}: "favourite"`), result.stderr);
+    assert.ok(
+      result.stderr.includes(
+        `builders/test.mdx: UK spelling on line ${lineOf("    MDX reads this indented line as text, so cancelled counts.")}: "cancelled"`,
+      ),
+      result.stderr,
+    );
+    assert.match(result.stderr, /DESIGN\.md: UK spelling on line 7: "grey"/);
+    assert.match(result.stderr, /DESIGN\.md: UK spelling on line 10: "grey"/);
+    assert.doesNotMatch(result.stderr, /DESIGN\.md: UK spelling on line 3:/);
+    const cancelledLine = generatedLineOf("The cycle was cancelled.");
+    assert.match(result.stderr, new RegExp(`reference/generated\\.mdx: UK spelling on line ${cancelledLine}: "cancelled".* Fix it in the source this page is generated from\\.`));
+    const sentenceStart = generatedLineOf("Cancelled requests remain visible.");
+    assert.ok(result.stderr.includes(`reference/generated.mdx: UK spelling on line ${sentenceStart}: "Cancelled"`), result.stderr);
+    assert.equal(result.stderr.match(/UK spelling/g)?.length, 16, result.stderr);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
