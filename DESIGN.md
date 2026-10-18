@@ -266,7 +266,7 @@ method name (strategy kernel, Cynefin, SMART) appears only as helper text, in pa
 plain question. A flow never preselects a choice the person has to make, such as an assessment's
 domain.
 
-**US spelling (2026-10-17).** All English copy uses US spelling (canceled, neighbor, color, gray, fulfill); quoted third-party names keep theirs, and `bun run check --only vocabulary` rejects the common UK forms in the English catalog.
+**US spelling (2026-10-17).** All English copy uses US spelling (canceled, neighbor, color, gray, fulfill); quoted third-party names keep theirs, and the vocabulary check, the docs audit and the agent's copy test reject the common UK forms.
 
 ### Writing Checklist
 
