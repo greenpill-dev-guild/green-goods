@@ -6,7 +6,7 @@ Guild-level routines live in [`greenpill-dev-guild/.github/routines/claude/`](ht
 
 ## Portfolio
 
-Status is the state of the live trigger: `active` means it is enabled and fires on its cadence.
+Status is the state of the live trigger: `active` means it is enabled and fires on its cadence. Cadence is the trigger's cron time in UTC, which is the earliest a run starts. The scheduler starts each run some minutes after it, by an amount that varies by routine and by run (up to 14 minutes so far), so a trigger's `next_run_at` can read 16:08 for a 16:00 cadence.
 
 | File | Status | Cadence | Channel | Issue surface |
 |---|---|---|---|---|
