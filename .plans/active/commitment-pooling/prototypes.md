@@ -9,7 +9,7 @@
 
 | Date | Change |
 |---|---|
-| 2026-10-18 | Persona metadata follows DL-091 (`.claude/skills/design/decision-log.md`): the meta line names only the canonical ontology persona and no longer asks for a named research persona from the deleted `docs/docs/reference/design-research.md`; persona labels drop their names ("Gardener (Maria)" → "Gardener"), and Operator reads Steward, the ontology's persona. The people the steps and frames name stay as each storyboard's sample cast. |
+| 2026-10-18 | Persona metadata follows DL-091 (`.claude/skills/design/decision-log.md`): the meta line names only the canonical ontology persona and no longer asks for a named research persona from the deleted `docs/docs/reference/design-research.md`; persona labels drop their names ("Gardener (Maria)" → "Gardener"), and Operator reads Steward, the ontology's persona. Acting roles (recipient, helper, lead, protocol or settlement steward) map to the persona who plays them, on the evidence of each journey's role chips, and `hifi/journeys.ts` documents the rule on its `persona` field. The people the steps and frames name stay as each storyboard's sample cast. |
 | 2026-08-20 | The garden's commitments section is a **record across seasons and campaigns**, not one live cycle (Afo). §4.1's Editorial column had said so all along — aggregates stay through Paused, Closed and Composted — while §7.1 had narrowed to a single active cycle, which left a garden between seasons with nothing true to say and gave no rule for §4.2's legal "one open Season plus N open Campaigns". W15 becomes eight states: `record` (lifetime made/kept + kept rate, the live season as the current chapter, finished seasons and campaigns listed beneath), `between-seasons`, `paused`, and the five it had. The scope change moves the §7.2 threshold to pool lifetime, which downgrades its indexer prerequisite from a new per-(cycle, provider) sentinel entity to a `distinctProviderCount` counter on `CommitmentPool` — the cheap one Decision Log #161 had already costed. Fixtures gain `PRIOR_CYCLES` and derive `POOL_RECORD_LIVE` and `POOL_LIFETIME` from it, so no screen can print a total that contradicts the rows beneath it. `.ecycle` styled; `kept` joins the C.32 StatCell dash exemption because a lifetime total is not "so far". 523 states / 743 hotspots / 334 scenes, zero warnings. |
 | 2026-08-19 | Editorial surface, made buildable (Decision Log #161). `/gardens/:id` is a page, so W15 draws the real section ladder with the commitments panel at `§ 02` between field notes and certificates. W15 gains `empty`, `loading`, and `read-error`, and W16 gains `support-in-flight` — the acceptance had always named readiness, live, dispatched, confirming, confirmed, empty, and error, and the editorial surface had drawn five frames in total. `read-error` renders an em dash where a count would be, because a failed EAS read is not an empty garden; `support-in-flight` leaves the published G$ figure exactly where it was while a delivery awaits acknowledgment. Copy is swept to "commitment" (C.14) and the `commitmentrs` find-and-replace artifact is gone from the fixtures, the flows, and the legacy shim. Two gate additions: `.eunits`/`.erow` were used by W15 and never styled, and the unknown-value em dash is now a named exemption in the C.32 dash scan rather than an unlisted trip. 521 states / 740 hotspots / 332 scenes, zero warnings. |
 | 2026-07-11 | Created. Post-review decisions folded (register #34–register #35): MF-1/2a/3/4/5 adopted, MF-12 resolved September, join-request queue tracked (register #35). |
@@ -57,7 +57,7 @@
 **Frame ids** — `W1…W26` are the implemented legacy commitment-pooling family; `W2a` is the evidence sheet and `W2b` is the team/contribution sheet inside W2. The §18 additions include six deltas plus NET-NEW `W27`; the bilateral wave adds W28–W31. These remain planned rather than drawn in hi-fi. September community frames take a `CI-` prefix (`CI-W1…CI-W14`) because that file numbers its own W1–W14 independently (CI-WF:32-443).
 
 **Per-storyboard anatomy** — a meta line, a flow graph, then a numbered steps table:
-- **Meta**: canonical ontology persona (`packages/shared/src/ontology/green-goods-ontology.json`) · owning scenario(s) · surfaces · garden theme. The people a storyboard names (Maria, João, Ana, …) are its sample cast, never personas (DL-091).
+- **Meta**: canonical ontology persona (`packages/shared/src/ontology/green-goods-ontology.json`) · owning scenario(s) · surfaces · garden theme. The people a storyboard names (Maria, João, Ana, …) are its sample cast, never personas (DL-091). Acting roles such as recipient, lead or settlement steward go in the steps; the persona field names only the persona who plays them.
 - **Flow graph**: mermaid — screens as nodes, user actions as edge labels.
 - **Steps table**: **Screen** (frame cite) · **User action** · **System response** (contract event / job kind) · **State** (§4 table names; on-chain vs derived per CS §5) · **If it fails** (recovery pointer). A failure row worth its own walk points at a sibling storyboard rather than repeating it.
 
@@ -75,45 +75,45 @@ account for the additional executable entries.
 
 | SB | Journey | Persona(s) | Scenario(s) | Surface(s) |
 |---|---|---|---|---|
-| SB-1 | Offer → promise kept | Gardener + recipient | S1 | Client PWA (+ editorial echo) |
-| SB-2 | Request → help arrives (evidence-only SupportService) | Gardener + helper | S2 | Client PWA |
+| SB-1 | Offer → promise kept | Gardener ×2 | S1 | Client PWA (+ editorial echo) |
+| SB-2 | Request → help arrives (evidence-only SupportService) | Gardener ×2 | S2 | Client PWA |
 | SB-3 | Steward-reviewed claim: pending / declined / ask again / accepted / superseded | Gardener ×2 + Steward | S3 | Client PWA + Admin |
 | SB-4 | Evidence, work linkage, assessment gate (DomainImpact) | Gardener + Evaluator + Steward | S4 | Client PWA + Admin |
-| SB-5 | "Not yet" → dispute → four resolutions | Recipient + Steward | S5 | Client PWA + Admin |
-| SB-6 | Expiry → offer again (+ admin re-seed) | Gardener + Steward + permissionless caller | S1/S5 edge | Client PWA + Admin |
+| SB-5 | "Not yet" → dispute → four resolutions | Gardener + Steward | S5 | Client PWA + Admin |
+| SB-6 | Expiry → offer again (+ admin re-seed) | Gardener + Steward | S1/S5 edge | Client PWA + Admin |
 | SB-7 | Offline draft → queued → synced / retry / membership wait | Gardener | S6 | Client PWA |
-| SB-8 | Analog capture (+ steward override + fallback confirmation) | Steward + gardener | S7 | Admin + Client PWA |
+| SB-8 | Analog capture (+ steward override + fallback confirmation) | Steward + Gardener | S7 | Admin + Client PWA |
 | SB-9 | Pool readiness → cycles: seed, open, pause, close, compost | Steward | S5/S13 admin side | Admin (+ gardener echo) |
 | SB-10 | Declared consideration → payout recorded | Steward + Gardener | S13 | Admin + Client PWA |
 | SB-11 | G$ support arrives (+ send onward; delivery blocked) | Gardener | S8/S9 gardener side | Client PWA |
-| SB-12 | Funding routes → CCIP dispatch → authenticated acknowledgment | Garden Steward + automated protocol executor | S8/S9 steward side | Admin |
-| SB-13 | Cross-garden claim on the protocol pool | Garden steward | S14 | Client PWA + Admin |
+| SB-12 | Funding routes → CCIP dispatch → authenticated acknowledgment | Steward | S8/S9 steward side | Admin |
+| SB-13 | Cross-garden claim on the protocol pool | Steward | S14 | Client PWA + Admin |
 | SB-14 | Need → triage → seeded promise (September) | Community Member + Steward | S10 | Community PWA + Admin |
-| SB-15 | Follow a garden's promises publicly | Neighbour or funder | S11 | Editorial (+ client echo) |
+| SB-15 | Follow a garden's promises publicly | Community Member or Funder | S11 | Editorial (+ client echo) |
 | SB-16 | Withdraw an offer before acceptance | Gardener | S1 edge | Client PWA |
 | SB-17 | Recover a stalled promise | Steward | S5 | Admin (+ client echo) |
 | SB-18 | Find every promise waiting on you | Gardener | S6 | Client PWA |
-| SB-19 | Pay a garden team from its Safe | Garden steward | S14 settlement | Admin (+ client echo) |
+| SB-19 | Pay a garden team from its Safe | Steward | S14 settlement | Admin (+ client echo) |
 | SB-20 | Open a campaign beside the season | Steward | S5 | Admin |
-| SB-21 | Move from Community to this garden's pool | Protocol steward | S14 | Admin |
-| SB-22 | Start a baseline from the Hub | Steward or evaluator | S4 | Admin |
-| SB-23 | Register an existing settlement account | Settlement steward | S8 | Admin |
-| SB-24 | Check command transport and route authority | Protocol deployer | S8/S9 | Admin |
-| SB-25 | Recover or cancel one settlement delivery | Settlement steward | S8 | Admin |
+| SB-21 | Move from Community to this garden's pool | Steward | S14 | Admin |
+| SB-22 | Start a baseline from the Hub | Steward or Evaluator | S4 | Admin |
+| SB-23 | Register an existing settlement account | Steward | S8 | Admin |
+| SB-24 | Check command transport and route authority | Steward | S8/S9 | Admin |
+| SB-25 | Recover or cancel one settlement delivery | Steward | S8 | Admin |
 | SB-26 | Wait for readiness, then start the first promise | Gardener | S1 gates | Client PWA |
 | SB-27 | Open a campaign while no Season is running | Gardener | S1 campaign window | Client PWA |
 | SB-28 | Confirm while a Season is under review | Gardener | S1 review window | Client PWA |
-| SB-29 | Offer and confirm an evidence-only service | Gardener + recipient | S1 SupportService | Client PWA |
+| SB-29 | Offer and confirm an evidence-only service | Gardener ×2 | S1 SupportService | Client PWA |
 | SB-30 | Finish a Campaign promise while it is reviewing | Gardener | S1 campaign review | Client PWA |
-| SB-31 | Cancel an immutable queued batch | Settlement steward | S8 batch recovery | Admin |
+| SB-31 | Cancel an immutable queued batch | Steward | S8 batch recovery | Admin |
 | SB-32 | Wind down a season while its pool stays paused | Steward | S5 paused wind-down | Admin (+ gardener echo) |
-| SB-33 | Recognize and pay a commitment team | Lead + contributors + steward | S1 group commitment | Client PWA + Admin |
-| SB-34 | Seed or top up a garden outside a commitment | Protocol steward / module owner | S9 discretionary treasury support | Admin |
-| SB-35 | Create and accept a bilateral exchange pair | Two offer creators | Exchange wave | Client PWA |
-| SB-36 | Start from an Offer template | Gardener or steward | Exchange wave | Client PWA + Admin |
+| SB-33 | Recognize and pay a commitment team | Gardeners + Steward | S1 group commitment | Client PWA + Admin |
+| SB-34 | Seed or top up a garden outside a commitment | Steward | S9 discretionary treasury support | Admin |
+| SB-35 | Create and accept a bilateral exchange pair | Gardener ×2 | Exchange wave | Client PWA |
+| SB-36 | Start from an Offer template | Gardener or Steward | Exchange wave | Client PWA + Admin |
 | SB-37 | Save offer details, then offer over time | Gardener | S15 ongoing Offer creation | Client PWA |
 | SB-38 | Create an ongoing Offer and dependent place offline | Gardener | S15 offline dependency | Client PWA |
-| SB-39 | Take up one pre-created available place | Member | S15 claimant view | Client PWA |
+| SB-39 | Take up one pre-created available place | Gardener | S15 claimant view | Client PWA |
 | SB-40 | Read one ongoing Offer's exact Story | Gardener | S15 Story and renewal | Client PWA |
 | SB-41 | Rest, resume, and retire an ongoing Offer | Gardener | S15 holder lifecycle | Client PWA |
 
@@ -129,7 +129,7 @@ proves recognition and payment stay linked but distinct.
 
 **At a glance** — Maria offers garden work; after linked work approvals and the required assessment, João confirms it was kept.
 
-**Persona**: Gardener offers; a recipient takes it up and confirms. **Scenario**: S1 (LAP:164-167). **Surfaces**: client PWA, admin work/assessment echoes, editorial echo. **Theme**: Rocinha's "Prune the north beds" DomainImpact promise.
+**Persona**: Gardener offers; a second Gardener takes it up and, as recipient, confirms. **Scenario**: S1 (LAP:164-167). **Surfaces**: client PWA, admin work/assessment echoes, editorial echo. **Theme**: Rocinha's "Prune the north beds" DomainImpact promise.
 
 ```mermaid
 flowchart LR
@@ -290,7 +290,7 @@ REALIZED — source sketch for W10@attach-assessment (MF-13, AdminDialog)
 
 **At a glance** — a confirmer says "not yet"; a steward resolves the dispute to one of four outcomes; every reason lands in the gardener timeline.
 
-**Persona**: recipient/confirmer raises; Steward resolves. **Scenario**: S5 dispute half (LAP:184-187). **Surfaces**: client PWA + admin.
+**Persona**: Gardener, as recipient and confirmer, raises; Steward resolves. **Scenario**: S5 dispute half (LAP:184-187). **Surfaces**: client PWA + admin.
 
 ```mermaid
 flowchart LR
@@ -610,7 +610,7 @@ flowchart LR
 
 **At a glance** — a garden steward claims a protocol-pool promise for her garden; providerGarden becomes the EAS recipient while the root pool keeps ownership.
 
-**Persona**: garden steward claims a protocol-pool commitment **for her garden**. **Scenario**: S14 — protocol pool + cross-garden claim (PT:42); identity formulas CS:577-589. **Surfaces**: client PWA + admin Community → Pools.
+**Persona**: Steward claims a protocol-pool commitment **for her garden**. **Scenario**: S14 — protocol pool + cross-garden claim (PT:42); identity formulas CS:577-589. **Surfaces**: client PWA + admin Community → Pools.
 
 ```mermaid
 flowchart LR
@@ -970,7 +970,7 @@ Multilateral exchange, transferable vouchers, quoter, limiter, venue, and
 
 ### SB-35 — Create and accept a bilateral exchange pair
 
-**Persona**: two offer creators. Ana created Offer A; Maria creates Offer B in exchange for A. **Surface**: Client PWA.
+**Persona**: two Gardeners. Ana created Offer A; Maria creates Offer B in exchange for A. **Surface**: Client PWA.
 **Frames**: W31 → W28/W3 → W29 → W30 → ordinary W2 details.
 
 ```mermaid
@@ -1082,7 +1082,7 @@ place drafts recoverable and explains what they were waiting for.
 
 ### SB-39 — Take up one place that is already open
 
-**Persona**: Member. **Frames**: W34@claimant-view → W2@accepted → W34@active-one.
+**Persona**: Gardener. **Frames**: W34@claimant-view → W2@accepted → W34@active-one.
 
 | Step | Person action | System response | Review state | Recovery |
 |---|---|---|---|---|

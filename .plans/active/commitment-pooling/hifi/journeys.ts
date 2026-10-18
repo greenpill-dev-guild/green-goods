@@ -35,6 +35,11 @@ export type SB = {
    * the stage pill and in the Reference tab, so nothing is lost.
    */
   desc: string;
+  /**
+   * The ontology persona or personas acting: Gardener, Steward, Evaluator, Funder,
+   * Community Member (DL-091). Acting roles such as recipient, lead or settlement
+   * steward belong in desc, the title and the role chips, never here.
+   */
   persona: string;
   /** Internal scenario provenance (S1, S5/S13…). Never shipped, never rendered. */
   scen: string;
@@ -60,7 +65,7 @@ export const SBS: SB[] = [
 // sitting and ends when the commitment is queued; the taking-up (sb55) and the
 // proving (sb56) are their own walks. Old mid-ribbon hashes (#sb1/6, #sb29/5+)
 // retire exactly as #sb9 did.
-{ id: "sb61", n: 29, title: "Arrive for the first time", desc: "A new member opens Commitments, finds it empty, browses the garden's pool, and reads one whole commitment before deciding anything.", persona: "New member", scen: "S6 · first run", reviewVisible: true, reviewGroup: "client", chapter: "arrive", roles: ["gardener"], steps: [
+{ id: "sb61", n: 29, title: "Arrive for the first time", desc: "A new member opens Commitments, finds it empty, browses the garden's pool, and reads one whole commitment before deciding anything.", persona: "Gardener", scen: "S6 · first run", reviewVisible: true, reviewGroup: "client", chapter: "arrive", roles: ["gardener"], steps: [
   { f: "W5@empty", hot: { h: "w5.browse-gardens", l: "Browse gardens" }, st: "Nothing yet", ev: "the commitments control sits in the Home header from the first launch, so this empty state is also the first thing a member of a garden with no commitments sees. It carries the one sentence that says what a commitment IS, and it reads as an invitation rather than a failure" },
   { f: "W1", hot: { h: "w1.open-offer", l: "Prune the north beds" }, st: "Pool open", ev: "the pool tab now says in one line what this pool is for, in the garden's own words. That sentence lived on the empty-pool state alone, which is the one screen almost nobody sees twice, while the steward's console carried it every day", br: [{ l: "A pool with nothing in it yet", to: "screen:W1@empty-open" }] },
   { f: "W2@browse-offered", hot: null, st: "Offered", ev: "reading one whole commitment is the fastest way to learn the shape of all of them: what is being given, by whom, what proves it, and who says it was kept. Nothing here is an act, because the card carried none either", br: [{ l: "Take it up", to: "sb55:1" }, { l: "Offer something yourself", to: "sb1:0" }, { l: "Ask for what you need", to: "sb2:0" }] },
@@ -77,7 +82,7 @@ export const SBS: SB[] = [
 ]},
 // The other half of the old sb1: the neighbour's act, and the mirror the
 // "Take up a commitment" chapter was missing — it held the request side only.
-{ id: "sb55", n: 7, title: "Take up an offer", desc: "João takes up Maria's open offer from the pool tab; one tap turns a by-lined card into a commitment with a face on both sides.", persona: "Neighbour", scen: "S1 · receiving side", reviewVisible: true, reviewGroup: "client", chapter: "take-up", roles: ["gardener"], steps: [
+{ id: "sb55", n: 7, title: "Take up an offer", desc: "João takes up Maria's open offer from the pool tab; one tap turns a by-lined card into a commitment with a face on both sides.", persona: "Gardener", scen: "S1 · receiving side", reviewVisible: true, reviewGroup: "client", chapter: "take-up", roles: ["gardener"], steps: [
   { f: "W1", hot: { h: "w1.open-offer", l: "Prune the north beds" }, st: "Pool open", ev: "the card carries no act of its own (2026-08-16): tapping it opens the commitment, so a neighbour reads the whole thing before deciding", cite: "UX:129" },
   { f: "W2@browse-offered", hot: { h: "w2.take-up-browse", l: "Take this up" }, st: "Offered", ev: "the one act sits in the fixed bottom bar, after the terms, the people and the proof rules are on screen" },
   { f: "W2@accepted", hot: null, st: "Accepted", ev: "the commitment now has both people on it — and the next acts belong to them in turn: Maria proves it, João confirms it", br: [{ l: "Prove it with work", to: "sb4a:0" }, { l: "Confirm a commitment kept", to: "sb42:0" }, { l: "Steward-reviewed offers wait for a decision", to: "screen:W1@claim-pending" }] },
@@ -93,7 +98,7 @@ export const SBS: SB[] = [
 ]},
 // Exchange is PARKED (iteration 2, Afo decision): no client journey walks it
 // pending a dedicated design session. W28–W30 remain in the Screen library.
-{ id: "sb2", n: 4, title: "Make a request", desc: "David asks the garden for a hand and declares G$ support right on the phone — the one extra step stewards get and gardeners never see.", persona: "Steward — gardeners' requests skip the Support step", scen: "S2 · proof-only request", reviewVisible: true, reviewGroup: "client", chapter: "ask", roles: ["steward", "gardener"], steps: [
+{ id: "sb2", n: 4, title: "Make a request", desc: "David asks the garden for a hand and declares G$ support right on the phone — the one extra step stewards get and gardeners never see.", persona: "Steward", scen: "S2 · proof-only request", reviewVisible: true, reviewGroup: "client", chapter: "ask", roles: ["steward", "gardener"], steps: [
   { f: "W1", hot: { h: "w1.create", l: "Offer or request" }, st: "Pool open", ev: "requests start at the same floating door as offers" },
   { f: "W1@create-open", hot: { h: "w1.request", l: "Request" }, st: "Doors open", ev: "the request door mirrors the offer door — direction fixed, never re-asked" },
   { f: "W3@request-what", hot: { h: "w3.request-continue-what" }, alts: [{ h: "w3.request-choose-work", to: "screen:W3@request-work-what" }], st: "1 · What", ev: "help-or-a-service vs garden work as equal cards, then where it runs and a title the garden suggests" },
@@ -114,7 +119,7 @@ export const SBS: SB[] = [
   { f: "W1@request-work-queued", hot: null, marks: ["w1.queued-card"], st: "Queued", ev: "the request queues with its requirement rows intact" },
   { f: "W1@request-work-open", hot: null, st: "Open", ev: "live on the pool tab among everything else, with the needed work named on its card. Taking it up happens in the commitment, where that act lives", br: [{ l: "A helper takes it up and submits work", to: "sb43:0" }, { l: "Approvals land, then you confirm", to: "sb42:0" }] },
 ]},
-{ id: "sb43", n: 6, title: "Help with what was requested", desc: "João takes up Ana's open request, does it, attaches proof, and sends it back for her confirmation.", persona: "Helper", scen: "S2 · providing side", reviewVisible: true, reviewGroup: "client", chapter: "take-up", roles: ["gardener"], steps: [
+{ id: "sb43", n: 6, title: "Help with what was requested", desc: "João takes up Ana's open request, does it, attaches proof, and sends it back for her confirmation.", persona: "Gardener", scen: "S2 · providing side", reviewVisible: true, reviewGroup: "client", chapter: "take-up", roles: ["gardener"], steps: [
   { f: "W1@request-open", hot: { h: "w1.open-request", l: "Ride to the market on Saturday" }, st: "Requested", ev: "the card opens the request rather than accepting it — what taking it up means is read on the commitment, not guessed from a button" },
   { f: "W2@browse-requested", hot: { h: "w2.help-browse", l: "I can help" }, st: "Requested → Accepted", ev: "open requests accept the first neighbour, from the detail's fixed bar", br: [{ l: "Steward-reviewed requests wait for a decision", to: "screen:W1@claim-pending" }, { l: "Ongoing offers: take one up", to: "screen:W34@claimant-view" }, { l: "Campaign requests work the same way", to: "screen:W1@campaign-market" }] },
   { f: "W2@request-active", hot: { h: "w2.add-evidence-request", l: "Add proof" }, st: "Accepted", ev: "the one next act sits in the commitment's fixed bottom bar" },
@@ -128,7 +133,7 @@ export const SBS: SB[] = [
 // Campaign take-up dropped as its own journey (iteration 2): it repeated
 // "Help with what was requested" — the campaign cast lives on as W1/W2/W2a
 // states and the branch link on sb43's first scene.
-{ id: "sb4a", n: 8, title: "Prove it with work", desc: "A gardener submits work from the Garden tab and points it at the commitment it fulfills; each approval counts toward one named requirement.", persona: "Gardener (provider)", scen: "S4 · AGRO+EDU", reviewVisible: true, reviewGroup: "client", chapter: "keep", roles: ["gardener"], steps: [
+{ id: "sb4a", n: 8, title: "Prove it with work", desc: "A gardener submits work from the Garden tab and points it at the commitment it fulfills; each approval counts toward one named requirement.", persona: "Gardener", scen: "S4 · AGRO+EDU", reviewVisible: true, reviewGroup: "client", chapter: "keep", roles: ["gardener"], steps: [
   { f: "WFLOW@intro-promises", hot: { h: "wflow.intro-continue" }, alts: [{ h: "wflow.promise-row", to: "screen:WFLOW@intro-promise" }], st: "1 · Intro", ev: "the AppBar Garden tab is the shipping work flow — and a commitment-holder's intro opens with their commitments, standing from first paint, never popping up mid-flow; tap one to scope the flow, or continue with plain garden work", cite: "uiux §5.7 addendum 2026-08-14" },
   { f: "WFLOW@media", hot: { h: "wflow.media-continue" }, st: "2 · Media", ev: "camera, gallery, voice note from the bar — the interaction every pooling capture now mirrors" },
   { f: "WFLOW@details", hot: { h: "wflow.details-continue" }, st: "3 · Details", ev: "time spent, then the inputs THIS action asks for, then feedback — the shipped step. The commitment was chosen at the intro, so nothing here asks again" },
@@ -151,7 +156,7 @@ export const SBS: SB[] = [
   { f: "W2@send-confirm", hot: { h: "w2.send-confirm-go", l: "Send it" }, st: "Naming what it does", ev: "sending freezes the team and stops further proof counting, so it says so before it happens — submitForConfirmation is the act a service needs because it has no approver to reach readiness for it" },
   { f: "W2@support-ready-pending", hot: null, st: "Ready — queued", ev: "now it waits on the person Maria helped", br: [{ l: "The recipient confirms", to: "sb42:0" }] },
 ]},
-{ id: "sb42", n: 9, title: "Confirm a commitment kept", desc: "João finds what is waiting on him in the wallet and confirms the commitment was kept — a positive-only act that queues offline.", persona: "Recipient", scen: "S1 · confirmation", reviewVisible: true, reviewGroup: "client", chapter: "confirm", roles: ["gardener"], steps: [
+{ id: "sb42", n: 9, title: "Confirm a commitment kept", desc: "João finds what is waiting on him in the wallet and confirms the commitment was kept — a positive-only act that queues offline.", persona: "Gardener", scen: "S1 · confirmation", reviewVisible: true, reviewGroup: "client", chapter: "confirm", roles: ["gardener"], steps: [
   { f: "W5", hot: { h: "w5.inbox-row", l: "Review" }, st: "Wallet", ev: "everything waiting on you, across gardens — the drawer's inbox opens the same sheet the commitment does" },
   { f: "W4", hot: { h: "w4.confirm", l: "Confirm — commitment kept" }, alts: [{ h: "w4.not-yet", l: "Not yet", to: "sb5:2" }], st: "ReadyForConfirmation", ev: "the sheet names the eligibility path before the act; cycle-state banners never block confirmation" },
   { f: "W4@confirmed-pending", hot: null, skipTargetReason: "w4.done returns to the pool tab, which is what its button says; the next scene is the commitment as João can reopen it from the wallet, not a screen this flow navigates to", st: "Queued", ev: "the positive-only confirmation queues offline like everything else" },
@@ -161,21 +166,21 @@ export const SBS: SB[] = [
 // the stewards' resolution, which is sb47's act on another surface — and the
 // flow's closing "Ready again" scene duplicated sb47's own echo of it. The
 // member's flow now ends where the member's part ends: under review.
-{ id: "sb5", n: 10, title: "Say “not yet”", desc: "Saying not yet is its own act with its own reason — never a negative confirmation; the commitment then goes quiet under steward review.", persona: "Recipient (confirmer)", scen: "S5", reviewVisible: true, reviewGroup: "client", chapter: "confirm", roles: ["gardener"], steps: [
+{ id: "sb5", n: 10, title: "Say “not yet”", desc: "Saying not yet is the recipient's own act, with its own reason — never a negative confirmation; the commitment then goes quiet under steward review.", persona: "Gardener", scen: "S5", reviewVisible: true, reviewGroup: "client", chapter: "confirm", roles: ["gardener"], steps: [
   { f: "W5", hot: { h: "w5.inbox-row", l: "Review" }, st: "Wallet", ev: "the same inbox row — confirming honestly includes saying not yet" },
   { f: "W4", hot: { h: "w4.not-yet", l: "Not yet" }, st: "ReadyForConfirmation", ev: "not-yet is a separate act with its own reason — never a negative confirmation" },
   { f: "W4@not-yet", hot: { h: "w4.not-yet-send", l: "Send to the stewards" }, st: "Reason", ev: "common reasons fill the still-required field; your words stay yours" },
   { f: "W2@disputed", hot: null, st: "Under review", ev: "the member ceiling is “under review by stewards” — CTAs pause, nothing is public, and what happens next is the stewards' act, not theirs" },
   { f: "W5", hot: null, st: "Waiting", ev: "and this is where you watch it: a quiet row in Live, no act and no badge, because nothing is waiting on you. Saying not yet used to hand the commitment to somebody else and leave you with nowhere to follow it", br: [{ l: "The steward's resolution", to: "sb47:0" }] },
 ]},
-{ id: "sb45", n: 11, title: "The team behind a commitment", desc: "João opens a commitment whose team is still forming and joins it himself — membership shows only once the indexed roster confirms it.", persona: "Contributor", scen: "S1 · group commitment", reviewVisible: true, reviewGroup: "client", chapter: "team", roles: ["gardener"], steps: [
+{ id: "sb45", n: 11, title: "The team behind a commitment", desc: "João opens a commitment whose team is still forming and joins it himself — membership shows only once the indexed roster confirms it.", persona: "Gardener", scen: "S1 · group commitment", reviewVisible: true, reviewGroup: "client", chapter: "team", roles: ["gardener"], steps: [
   { f: "W1", hot: { h: "w1.open-team-offer", l: "Open the team commitment" }, st: "Pool open", ev: "a forming team is visible right on the card — and opening it lands on the COMMITMENT, not a bare team screen", cite: "iteration 2 E8" },
   { f: "W2@accepted-joinable", hot: { h: "w2.team-strip", l: "Open team — join in" }, st: "Accepted", ev: "the people are above the fold: creator, counterparty, and the team strip in the commitment's own context. The seat is a neighbour eligible to join, not the provider, so the screen says Maria is working on this rather than handing them her acts" },
   { f: "W2b@open-eligible", hot: { h: "w2b.join", l: "Join this commitment" }, st: "Open team", ev: "eligible open-team members join on their own" },
   { f: "W2b@join-submitted", hot: null, st: "Pending", ev: "membership renders only after the indexed roster confirms it" },
   { f: "W2b@open-member", hot: null, st: "On the team", ev: "planned responsibilities are planning, never recognition credit", br: [{ l: "Readiness freezes roster and credit", to: "screen:W2b@frozen" }, { l: "Recognition preview", to: "screen:W2b@recognition" }] },
 ]},
-{ id: "sb54", n: 18, title: "Add people to your team", desc: "Maria leads a group commitment and adds a contributor from the commitment detail — planning responsibility, never recognition credit.", persona: "Lead", scen: "S1 · group commitment · lead side", reviewVisible: true, reviewGroup: "client", chapter: "team", roles: ["gardener"], steps: [
+{ id: "sb54", n: 18, title: "Add people to your team", desc: "Maria leads a group commitment and adds a contributor from the commitment detail — planning responsibility, never recognition credit.", persona: "Gardener", scen: "S1 · group commitment · lead side", reviewVisible: true, reviewGroup: "client", chapter: "team", roles: ["gardener"], steps: [
   { f: "W1", hot: null, st: "Pool open", ev: "your own commitment, its team forming — adding people is the lead's act" },
   { f: "W2", hot: { h: "w2.open-team-forming", l: "Manage the team" }, st: "Accepted", ev: "the lead manages the roster from the commitment detail" },
   { f: "W2b@forming", hot: { h: "w2b.add", l: "Add people" }, st: "The team", ev: "one team surface: how people join, who is on it, and how credit is shared — no longer split between a creation detour and a roster screen", cite: "iteration 2 E8 — the flow your review found missing" },
@@ -207,13 +212,13 @@ export const SBS: SB[] = [
   { f: "W23@send-pending", hot: null, st: "Sending", ev: "the send keeps its state visibly until it lands" },
   { f: "W23@balance", hot: null, st: "Balance", ev: "done — the record stays in the wallet history", br: [{ l: "If a send fails", to: "screen:W23@send-failed" }, { l: "Contributor receipts", to: "screen:W23@contributor-receipt" }] },
 ]},
-{ id: "sb18", n: 15, title: "Find everything waiting on you", desc: "One cross-garden home: what waits on you first, then your own commitments by garden, then what you keep ready to offer.", persona: "Gardener across gardens", scen: "S6 · wallet drawer", reviewVisible: true, reviewGroup: "client", chapter: "arrive", roles: ["gardener"], steps: [
+{ id: "sb18", n: 15, title: "Find everything waiting on you", desc: "One cross-garden home: what waits on you first, then your own commitments by garden, then what you keep ready to offer.", persona: "Gardener", scen: "S6 · wallet drawer", reviewVisible: true, reviewGroup: "client", chapter: "arrive", roles: ["gardener"], steps: [
   { f: "W5", hot: { h: "w5.inbox-row", l: "Review" }, st: "Wallet", ev: "one cross-garden home: waiting-on-you first, then your commitments by garden, then Things I can offer" },
   { f: "W4", hot: null, st: "ReadyForConfirmation", ev: "the inbox row opens the same confirmation sheet the commitment itself opens", br: [{ l: "Confirm a commitment kept", to: "sb42:1" }] },
   { f: "W5@queued", hot: null, st: "Queued", ev: "queued commitments ride at the top of their garden group with the offline banner" },
   { f: "W5@waiting-membership", hot: null, st: "Waiting", ev: "membership-gated sends wait without spending attempts" },
 ]},
-{ id: "sb13", n: 16, title: "Claim a protocol commitment for your garden", desc: "Leila claims a Green Goods commitment for her garden and follows the whole arc — acceptance, the work, the support arriving.", persona: "Garden steward", scen: "S14", reviewVisible: true, reviewGroup: "client", chapter: "money", roles: ["steward"], steps: [
+{ id: "sb13", n: 16, title: "Claim a protocol commitment for your garden", desc: "Leila claims a Green Goods commitment for her garden and follows the whole arc — acceptance, the work, the support arriving.", persona: "Steward", scen: "S14", reviewVisible: true, reviewGroup: "client", chapter: "money", roles: ["steward"], steps: [
   { f: "W1", hot: null, st: "Pool open", ev: "the protocol pool seeds commitments gardens can claim; they surface in your garden's pool tab" },
   { f: "W25", hot: { h: "w25.ask", l: "Ask to take this up" }, st: "Protocol commitment", ev: "the claim card names what the garden would provide and what support is declared" },
   { f: "W25@context-chooser", hot: { h: "w25.continue" }, st: "Context", ev: "as myself vs for this garden — the locked pre-claim choice; no custody moves either way" },
@@ -386,7 +391,7 @@ export const SBS: SB[] = [
   { f: "W7@cancel-cycle-confirm", hot: { h: "w7.cancel-cycle-confirm", l: "Cancel season" }, st: "Cancel — confirm", ev: `the season's own counts (${SEASON_LIVE.made} commitments, ${SEASON_LIVE.kept} kept) are named before the cancel, alongside the reason members will read`, cite: "UX:77" },
   { f: "W7@open-no-cycle", hot: null, who: "David", st: "Cycle cancelled · pool open", ev: "only the season ended — the pool stays open without an active cycle, and the next season starts from Quick actions", cite: "CS:104", br: [{ l: "The member's quiet reason banner", to: "screen:W1@cancelled-cycle" }] },
 ]},
-{ id: "sb10", n: 10, title: "Confirm on the fallback path and record the payout", desc: "A reward declared as a reference only: David confirms on the garden fallback path, then records the payout executed elsewhere.", persona: "Steward + gardener", scen: "S13 · July's only rail", reviewVisible: true, reviewGroup: "admin", chapter: "recognition", roles: ["steward"], steps: [
+{ id: "sb10", n: 10, title: "Confirm on the fallback path and record the payout", desc: "A reward declared as a reference only: David confirms on the garden fallback path, then records the payout executed elsewhere.", persona: "Steward + Gardener", scen: "S13 · July's only rail", reviewVisible: true, reviewGroup: "admin", chapter: "recognition", roles: ["steward"], steps: [
   { f: "W13", hot: { h: "w13.row", l: "open the garden-fallback row" }, alts: [{ h: "w13.protocol-row", l: "or an opted-in Green Goods team row", to: "screen:W10@protocol-fallback-confirm" }], who: "David", st: "ReadyForConfirmation", ev: "Hub Confirm stage labels ordinary, garden fallback, and Green Goods team fallback eligibility distinctly; the reward was declared at seeding as the composer's Advanced detour", cite: "UX §6.9", br: [{ l: "Where the reward rail was declared", to: "screen:W8@step3" }] },
   { f: "W10@detail-fallback-eligible", hot: null, st: "ReadyForConfirmation · ordinary path unreachable", ev: "the indexed eligibility result exposes garden fallback only after the ordinary named/default path can no longer reach threshold", cite: "CS §6.1" },
   { f: "W10@external-fulfilled", hot: null, st: "Fulfilled", ev: "confirmFulfillmentAsFallback records the non-contributor garden steward and required reason; the reward is now recordable", cite: "CS §6.1" },
@@ -394,7 +399,7 @@ export const SBS: SB[] = [
   { f: "W10@record-payout", hot: { h: "w10.payout-confirm", l: "Record payout" }, st: "Payout confirmation", ev: "the steward reviews the declared reward and records the executed rail reference", cite: "UX:302" },
   { f: "W7", hot: null, who: "David", st: "Payment recorded", ev: "recordConsiderationPaid closes the loop in the workspace; the member's row reads reward released on their side", cite: "UX:143,202", br: [{ l: "The member's reward row", to: "screen:W2@reward-released" }] },
 ]},
-{ id: "sb12", n: 12, title: "Dispatch queued support and close the loop", desc: "Three payouts prepared, batched, and dispatched to Celo — including what happens to the one that comes back failed.", persona: "Steward + protocol executor", scen: "S8/S9 · pre-broadcast proof", reviewVisible: true, reviewGroup: "admin", chapter: "ggops", roles: ["green-goods-team"], steps: [
+{ id: "sb12", n: 12, title: "Dispatch queued support and close the loop", desc: "Three payouts prepared, batched, and dispatched to Celo — including what happens to the one that comes back failed.", persona: "Steward", scen: "S8/S9 · pre-broadcast proof", reviewVisible: true, reviewGroup: "admin", chapter: "ggops", roles: ["green-goods-team"], steps: [
   { f: "W21@payout-finalized", hot: { h: "w21.prepare-payout", l: "Prepare Maria payout" }, st: "Finalized · 0 of 3 prepared", ev: "the steward materializes exactly one immutable queued child from Maria's frozen row", cite: "SS §3" },
   { f: "W21@payout-prepared", hot: { h: "w21.prepare-ana", l: "Prepare Ana payout" }, st: "Pending · 1 of 3 prepared", ev: "Ana's still-unprepared non-zero row remains explicitly actionable", cite: "SS §3" },
   { f: "W21@payout-prepared-2", hot: { h: "w21.prepare-kwame", l: "Prepare Kwame payout" }, st: "Pending · 2 of 3 prepared", ev: "Kwame's final payable row materializes its immutable child", cite: "SS §3" },
@@ -413,7 +418,7 @@ export const SBS: SB[] = [
 ]},
 // The Green Goods stewards' side of a garden claim, split from sb13
 // (2026-08-10): acceptance and verification live where that team acts.
-{ id: "sb46", n: 46, title: "Accept a garden's claim", desc: "The Green Goods stewards accept Awka Hub as the provider, then verify the commitment the providing garden may never confirm itself.", persona: "Protocol steward", scen: "S14", reviewVisible: true, reviewGroup: "admin", chapter: "ggops", roles: ["green-goods-team"], steps: [
+{ id: "sb46", n: 46, title: "Accept a garden's claim", desc: "The Green Goods stewards accept Awka Hub as the provider, then verify the commitment the providing garden may never confirm itself.", persona: "Steward", scen: "S14", reviewVisible: true, reviewGroup: "admin", chapter: "ggops", roles: ["green-goods-team"], steps: [
   { f: "W12", hot: { h: "w12.accept", l: "Accept" }, who: "protocol steward", ev: "accept consumes the stored terms → providerGarden derived · other pending rows Superseded", cite: "CS:733", skipTargetReason: "the claimant garden's accepted view is linked as a branch; the protocol steward continues in the confirmations queue", br: [{ l: "Leila's garden sees the claim accepted", to: "screen:W25@accepted" }] },
   { f: "W12", hot: { h: "w12.confirm-row", l: "confirmations queue" }, ev: "the protocol confirmations queue mirrors the Hub Confirm grammar", cite: "WF:417" },
   { f: "W10@garden-ready", hot: null, st: "ReadyForConfirmation", ev: "the protocol stewards verify it — the providing garden is excluded from confirming its own commitment", cite: "UX:318 · CS:743", br: [{ l: "Where the G$ goes next", to: "sb19:0" }] },
@@ -421,7 +426,7 @@ export const SBS: SB[] = [
 // The other end of the same rail (register #96): the protocol pool making its
 // own asks and offers to gardens. Full coverage: seed here → claim in sb13 →
 // accept in sb46 → pay in sb19.
-{ id: "sb49", n: 49, title: "Seed a protocol commitment for gardens", desc: "An authorized protocol steward reviews an ask or offer, queues it, and waits for indexed publication.", persona: "Protocol steward", scen: "S14 · protocol seeding", reviewVisible: true, reviewGroup: "admin", chapter: "ggops", roles: ["green-goods-team"], steps: [
+{ id: "sb49", n: 49, title: "Seed a protocol commitment for gardens", desc: "An authorized protocol steward reviews an ask or offer, queues it, and waits for indexed publication.", persona: "Steward", scen: "S14 · protocol seeding", reviewVisible: true, reviewGroup: "admin", chapter: "ggops", roles: ["green-goods-team"], steps: [
   { f: "W12", hot: { h: "w12.seed", l: "Seed a protocol commitment" }, who: "root-garden steward", st: "Authorized · pool Open", ev: "A root-garden steward or owner can seed this service. Module ownership alone does not bypass root-garden membership; a steward of another garden has a read-only view.", br: [{ l: "Other garden steward", to: "screen:W12@protocol-reader" }, { l: "Owner without root-garden membership", to: "screen:W12@protocol-owner" }] },
   { f: "W12@seed-protocol", hot: { h: "w12.seed-confirm", l: "Seed this protocol request" }, who: "protocol steward", st: "Review direction and end", ev: "Request or Offer is explicit. The review shows an open season and due date; at least one lifecycle bound is required.", br: [{ l: "Offer to gardens", to: "screen:W12@seed-offer" }, { l: "Missing season and due date", to: "screen:W12@seed-unbounded" }] },
   { f: "W12@seed-queued", hot: null, st: "Queued · not published", ev: "The creation is saved on this device. Reconnecting sends the same queued job; it is not claimable yet.", br: [{ l: "Send failed · retry", to: "screen:W12@seed-failed" }] },
@@ -430,7 +435,7 @@ export const SBS: SB[] = [
 ]},
 // The money leg: a provider garden turns declared support into one conserved
 // plan, then pays the credited contributors from its own Safe.
-{ id: "sb19", n: 19, title: "Pay a garden team from its Safe", desc: "Declared support becomes one conserved payout plan — drafted, finalized, prepared, and dispatched from the garden's own Safe.", persona: "Garden steward", scen: "S14 · settlement", reviewVisible: true, reviewGroup: "admin", chapter: "settlement", roles: ["steward"], steps: [
+{ id: "sb19", n: 19, title: "Pay a garden team from its Safe", desc: "Declared support becomes one conserved payout plan — drafted, finalized, prepared, and dispatched from the garden's own Safe.", persona: "Steward", scen: "S14 · settlement", reviewVisible: true, reviewGroup: "admin", chapter: "settlement", roles: ["steward"], steps: [
   { f: "W21@gate-status", hot: null, st: "gate enabled", ev: "member delivery is enabled and the route is registered — the precondition for queueing anything at all", cite: "SS §3.1" },
   { f: "W10@garden-ready", hot: { h: "w10.garden-confirm", l: "Confirm — commitment kept" }, st: "ReadyForConfirmation", ev: "confirmFulfillment by a named protocol steward; no reason is stored on the ordinary path", cite: "CS:743" },
   { f: "W10@garden-fulfilled", hot: { h: "w10.queue-settlement-garden", l: "Set contributor payout" }, st: "Fulfilled", ev: "the CeloSettlement rail replaces Record payout and starts from recognition weights — the two rails are exclusive", cite: "AM §2 · SS §3" },
@@ -445,7 +450,7 @@ export const SBS: SB[] = [
   { f: "W24@funding", hot: { h: "w24.queue-funding-confirm", l: "Queue seed / top up" }, st: "Authorized treasury action", ev: "only a protocol steward or SettlementModule owner may submit; deployer status alone is insufficient", cite: "SS §3.1.3" },
   { f: "W21@protocol-funding-queued", hot: null, st: "Funding · ProtocolToGarden · Queued", ev: "the emitted row has no commitment ID and cannot be mistaken for an earned contributor reward", cite: "SS §3.1.3", br: [{ l: "What each member sees arrive", to: "screen:W2@garden-support-arrived" }] },
 ]},
-{ id: "sb59", n: 29, title: "Accept a funded claim and return it if needed", desc: "A Garden Steward records Maria's deposit, accepts the funded claim, then queues the same amount back when the commitment ends without delivery.", persona: "Garden Steward", scen: "Member-funded priced Offer · settlement", reviewVisible: true, reviewGroup: "admin", chapter: "settlement", roles: ["steward"], steps: [
+{ id: "sb59", n: 29, title: "Accept a funded claim and return it if needed", desc: "A Garden Steward records Maria's deposit, accepts the funded claim, then queues the same amount back when the commitment ends without delivery.", persona: "Steward", scen: "Member-funded priced Offer · settlement", reviewVisible: true, reviewGroup: "admin", chapter: "settlement", roles: ["steward"], steps: [
   { f: "W7@claims", hot: { h: "w7.open-funded-claim", l: "Review Funding" }, st: "Claim waiting", ev: "the priced Offer claim is a separate checkpoint; no deposit or acceptance is inferred from Maria's request" },
   { f: "W37@claim", hot: { h: "w37.record-funding", l: "Create funding record" }, st: "Funding not pledged", ev: "recordFunding freezes Maria, the 40 G$ price, the Rocinha Safe, and her refund account; an exact retry returns the same record" },
   { f: "W37@pledged", hot: { h: "w37.record-deposit", l: "Record checked deposit" }, st: "Pledged", ev: "the steward checks the Safe transfer and its unique reference before recording the full deposit" },
@@ -460,7 +465,7 @@ export const SBS: SB[] = [
 // in. This flow walks what they can see as a pool matures — the moment the
 // small-community threshold flips counts into a rate, and the states a garden
 // spends most of its life in once it has a record behind it.
-{ id: "sb15", n: 15, title: "Follow a garden's commitments from the public site", desc: "A signed-out reader watches one garden's public page mature — readiness copy, then counts, then a record spanning seasons that survives the quiet stretches.", persona: "Neighbour or funder (signed out)", scen: "S11 · editorial", reviewVisible: true, reviewGroup: "editorial", chapter: "public-story", roles: ["public"], steps: [
+{ id: "sb15", n: 15, title: "Follow a garden's commitments from the public site", desc: "A signed-out reader watches one garden's public page mature — readiness copy, then counts, then a record spanning seasons that survives the quiet stretches.", persona: "Community Member or Funder", scen: "S11 · editorial", reviewVisible: true, reviewGroup: "editorial", chapter: "public-story", roles: ["public"], steps: [
   { f: "W15@pre-launch", hot: null, st: "pool NotReady", ev: "readiness copy only — a garden preparing its pool publishes no numbers", cite: "UX:352 · UX:57" },
   { f: "W15@empty", hot: null, marks: ["w15.empty"], st: "open, nothing yet", ev: "the section never disappears — an open pool with no commitments says so where § 02 sits", cite: "UX:352" },
   { f: "W15@counts-only", hot: null, marks: ["w15.counts"], st: "below threshold", ev: "a first season publishes counts and no percentage: nine commitments between two people is not a sample a rate can describe fairly", cite: "UX:350 · UX:364" },
@@ -472,7 +477,7 @@ export const SBS: SB[] = [
 ]},
 // The /impact page's own short walk, split from sb15 (2026-08-10) so the
 // editorial tab reads as two honest stories: one garden, then the protocol.
-{ id: "sb48", n: 48, title: "See protocol-wide impact", desc: "The same story protocol-wide: the impact page links back to the gardens instead of ranking them, and offers a way in.", persona: "Neighbour or funder (signed out)", scen: "S11 · editorial", reviewVisible: true, reviewGroup: "editorial", chapter: "public-story", roles: ["public"], steps: [
+{ id: "sb48", n: 48, title: "See protocol-wide impact", desc: "The same story protocol-wide: the impact page links back to the gardens instead of ranking them, and offers a way in.", persona: "Community Member or Funder", scen: "S11 · editorial", reviewVisible: true, reviewGroup: "editorial", chapter: "public-story", roles: ["public"], steps: [
   { f: "W16@band", hot: null, marks: ["w16.see-gardens"], st: "protocol aggregate", ev: "the impact page carries the same story protocol-wide, and links back to the gardens rather than ranking them", cite: "UX:373-375" },
   { f: "W16@support-in-flight", hot: null, marks: ["w16.in-flight"], st: "dispatched, not arrived", ev: "40 G$ is in flight and the published figure does not move — only an authenticated acknowledgment may claim arrival", cite: "SS:62" },
   { f: "W16@pipeline-delta", hot: { h: "w16.install", l: "Install the app" }, marks: ["w16.pipeline"], ev: "the proof pipeline gains Commitment and Confirmation stages; the install CTA is the reader's way in", cite: "UX:375" },
@@ -504,7 +509,7 @@ export const SBS: SB[] = [
   { f: "W7M@fab-open", hot: { h: "w7m.dial-seed", l: "Seed a commitment" }, who: "David", st: "Speed dial", ev: "more than one view action opens the speed dial — the primary sits nearest the trigger, mirroring the desktop row's primary-rightmost emphasis", cite: "UX:299" },
   { f: "W7M@seed-sheet", hot: null, who: "David", st: "Seed — bottom sheet", ev: "the same seed dialog, presented as a bottom sheet on the phone — one action set, one dialog, two presentations", cite: "UX:299" },
 ]},
-{ id: "sb21", n: 21, title: "Move from Community to this garden's pool", desc: "The Community workspace narrows from protocol scope to one garden, then hands off to that garden's full Pool workspace.", persona: "Protocol steward", scen: "S14 · workspace handoff", reviewVisible: true, reviewGroup: "admin", chapter: "ggops", roles: ["green-goods-team"], steps: [
+{ id: "sb21", n: 21, title: "Move from Community to this garden's pool", desc: "The Community workspace narrows from protocol scope to one garden, then hands off to that garden's full Pool workspace.", persona: "Steward", scen: "S14 · workspace handoff", reviewVisible: true, reviewGroup: "admin", chapter: "ggops", roles: ["green-goods-team"], steps: [
   { f: "W12", hot: { h: "w12.tab-garden", l: "This garden" }, st: "Protocol pool", ev: "the Community workspace narrows from protocol scope to the selected garden", cite: "UX:314" },
   { f: "W12@current-garden", hot: { h: "w12.open-garden-pool", l: "Open garden pool" }, st: "Rocinha summary", ev: "the summary offers one direct handoff to the full Garden Pool workspace", cite: "UX:314" },
   { f: "W7", hot: null, st: "Pool Open", ev: "Rocinha's triage-first Pool view opens", cite: "UX:261" },
@@ -512,27 +517,27 @@ export const SBS: SB[] = [
 // Regrown 2026-08-10 (register #96): the baseline is the pool's starting
 // record — its own assessment story, ending at the readiness checklist it
 // satisfies, not folded into work approval.
-{ id: "sb22", n: 22, title: "Record the garden's starting assessment", desc: "The pool's starting record end to end: attributed to the garden, made before any commitment, attested, and completing the checklist.", persona: "Evaluator + steward", scen: "S4 · assessment entry", reviewVisible: true, reviewGroup: "admin", chapter: "assess", roles: ["evaluator", "steward"], steps: [
+{ id: "sb22", n: 22, title: "Record the garden's starting assessment", desc: "The pool's starting record end to end: attributed to the garden, made before any commitment, attested, and completing the checklist.", persona: "Evaluator + Steward", scen: "S4 · assessment entry", reviewVisible: true, reviewGroup: "admin", chapter: "assess", roles: ["evaluator", "steward"], steps: [
   { f: "W13@assess", hot: { h: "w13.new-assessment", l: "Create assessment" }, st: "Assess stage", ev: "the existing Hub stage opens the extended assessment flow", cite: "UX:257" },
   { f: "W14@baseline", hot: { h: "w14.continue", l: "Continue" }, marks: ["w14.kind"], st: "For the garden · at the start", ev: "attributed to the garden overall, at the start — the first measurement for this garden and domain derives the wire Baseline, which an evaluator or steward may attest", cite: "CS:760-761" },
   { f: "W14@kernel", hot: { h: "w14.continue-kernel", l: "Continue" }, st: "Strategy Kernel", ev: "the existing step continues unchanged — diagnosis, outcomes, complexity", cite: "UX:257" },
   { f: "W14@harvest", hot: { h: "w14.attest", l: "Attest assessment" }, st: "Actions & Harvest", ev: "actions and the reporting period close the form; attesting records the starting assessment", cite: "UX:257", skipTargetReason: "the starting-record walk lands on the readiness checklist its attestation satisfies; the Assess stage remains the flow's canonical exit" },
   { f: "W7@preflight-complete", hot: null, st: "Readiness · starting record satisfied", ev: "the qualifying starting assessment completes the pool's readiness checklist beside the charter and provider cap", cite: "UX:298", br: [{ l: "Mark the pool ready and open the season", to: "sb9a:2" }] },
 ]},
-{ id: "sb23", n: 23, title: "Register an existing garden settlement account", desc: "The settlement steward registers an already-deployed Celo Safe, which is what opens the garden's disbursement queue.", persona: "Settlement steward", scen: "S8 · account setup", reviewVisible: true, reviewGroup: "admin", chapter: "settlement", roles: ["steward"], steps: [
+{ id: "sb23", n: 23, title: "Register an existing garden settlement account", desc: "The settlement steward registers an already-deployed Celo Safe, which is what opens the garden's disbursement queue.", persona: "Steward", scen: "S8 · account setup", reviewVisible: true, reviewGroup: "admin", chapter: "settlement", roles: ["steward"], steps: [
   { f: "W21@unregistered", hot: { h: "w21.setup", l: "Register existing account" }, st: "Unregistered", ev: "the empty settlement section leads with the one available next action", cite: "SS:169" },
   { f: "W21@register-account", hot: { h: "w21.register-confirm", l: "Register account" }, st: "Verified route", ev: "registerSettlementAccount stores the already-deployed Celo Safe after governance verification", cite: "SS:169" },
   { f: "W21@registered", hot: { h: "w21.open-queue", l: "Open disbursement queue" }, st: "Registered", ev: "the result names the Safe, recovery policy, and scoped executor role", cite: "SS:169" },
   { f: "W21", hot: null, st: "Queue available", ev: "the ordinary settlement queue is now reachable", cite: "SS §3.1" },
 ]},
-{ id: "sb24", n: 24, title: "Check command transport and its route gate", desc: "Before anything is dispatched, transport health and the scoped executor authority behind the route are inspected as release proof.", persona: "Protocol deployer", scen: "S8/S9 · execution readiness", reviewVisible: true, reviewGroup: "admin", chapter: "ggops", roles: ["green-goods-team"], steps: [
+{ id: "sb24", n: 24, title: "Check command transport and its route gate", desc: "Before anything is dispatched, transport health and the scoped executor authority behind the route are inspected as release proof.", persona: "Steward", scen: "S8/S9 · execution readiness", reviewVisible: true, reviewGroup: "admin", chapter: "ggops", roles: ["green-goods-team"], steps: [
   { f: "W24", hot: { h: "w24.tab-ccip", l: "CCIP" }, st: "Cross-garden queue", ev: "Operations opens on actionable queued deliveries", cite: "SS §3" },
   { f: "W24@ccip", hot: { h: "w24.tab-queue", l: "Queue" }, st: "Transport health", ev: "native reserves, peers, and acknowledgment deferrals stay distinct from payment state", cite: "SS §4" },
   { f: "W24", hot: { h: "w24.execute", l: "Dispatch" }, st: "Queued", ev: "the selected row opens its command console", cite: "SS §3" },
   { f: "W22", hot: { h: "w22.route-gate", l: "Open route gate" }, st: "Queued batch", ev: "the settlement steward inspects production authority before dispatch", cite: "SS §6" },
   { f: "W22@role-guard", hot: null, st: "Route gate", ev: "scoped executor role, no Safe ownership, canonical selectors, and caps remain explicit release proof", cite: "SS §6" },
 ]},
-{ id: "sb25", n: 25, title: "Recover or cancel one settlement delivery", desc: "An authenticated failure unlocks exactly one new attempt; a queued unbatched delivery can instead be cancelled with a reason.", persona: "Settlement steward", scen: "S8 · member recovery", reviewVisible: true, reviewGroup: "admin", chapter: "settlement", roles: ["steward"], steps: [
+{ id: "sb25", n: 25, title: "Recover or cancel one settlement delivery", desc: "An authenticated failure unlocks exactly one new attempt; a queued unbatched delivery can instead be cancelled with a reason.", persona: "Steward", scen: "S8 · member recovery", reviewVisible: true, reviewGroup: "admin", chapter: "settlement", roles: ["steward"], steps: [
   { f: "W22@outcome", hot: { h: "w22.requeue-member", l: "Source follow-up" }, st: "Authenticated failure", ev: "only a bounded failure acknowledgment unlocks a new logical attempt", cite: "SS:182" },
   { f: "W21@requeue-confirm", hot: { h: "w21.requeue-confirm", l: "Requeue attempt" }, st: "Failed", ev: "the confirmation names the preserved attempt, cleared batch, incremented attempt, and that the new key waits for dispatch", cite: "SS:182" },
   { f: "W21@requeued", hot: { h: "w21.open-queue", l: "Back to queue" }, st: "Queued · attempt 2", ev: "the new attempt is visible beside its immutable failed predecessor; dispatch, not requeue, creates its execution key", cite: "SS:182" },
@@ -543,7 +548,7 @@ export const SBS: SB[] = [
 // Split 2026-08-10: Maria's service offer runs start-to-finish as her own acts;
 // João's take-up and confirmation land as read-only beats. The acted service
 // confirmation stays walkable in sb30 and in the W4 service cast states.
-{ id: "sb31", n: 31, title: "Cancel an immutable queued batch", desc: "The only destructive option on a batch takes every member with it, and the confirmation names them before it runs.", persona: "Settlement steward", scen: "S8 · batch recovery", reviewVisible: true, reviewGroup: "admin", chapter: "settlement", roles: ["steward"], steps: [
+{ id: "sb31", n: 31, title: "Cancel an immutable queued batch", desc: "The only destructive option on a batch takes every member with it, and the confirmation names them before it runs.", persona: "Steward", scen: "S8 · batch recovery", reviewVisible: true, reviewGroup: "admin", chapter: "settlement", roles: ["steward"], steps: [
   { f: "W22", hot: { h: "w22.cancel-batch", l: "Cancel whole batch" }, st: "Queued batch", ev: "the only destructive option applies to the entire immutable member set", cite: "SS §3.1.3" },
   { f: "W22@cancel-batch-confirm", hot: { h: "w22.cancel-batch-confirm", l: "Cancel batch" }, st: "Reason required", ev: "the confirmation names both members and the atomic blast radius before cancelBatch", cite: "SS §3.1.3" },
   { f: "W21@batch-cancelled", hot: null, st: "Cancelled from Queued", ev: "the result preserves the two-member snapshot and recorded reason", cite: "SS §3.1.3" },
@@ -574,12 +579,12 @@ export const SBS: SB[] = [
 // the freeze, and the recognition preview — all on the member surface.
 // The other money leg: treasury support that is deliberately NOT a reward. It
 // shares the transport queue with contributor payouts and nothing else.
-{ id: "sb34", n: 34, title: "Seed or top up a garden outside a commitment", desc: "Treasury support that is deliberately not a reward — the same transport queue, no commitment, nothing that reads as earned.", persona: "Protocol steward / module owner", scen: "S9 · discretionary treasury support", reviewVisible: true, reviewGroup: "admin", chapter: "ggops", roles: ["green-goods-team"], steps: [
+{ id: "sb34", n: 34, title: "Seed or top up a garden outside a commitment", desc: "Treasury support that is deliberately not a reward — the same transport queue, no commitment, nothing that reads as earned.", persona: "Steward", scen: "S9 · discretionary treasury support", reviewVisible: true, reviewGroup: "admin", chapter: "ggops", roles: ["green-goods-team"], steps: [
   { f: "W24@flows", hot: { h: "w24.queue-funding", l: "Seed / top up" }, ev: "the funds board separates commitment-earned contributor payout plans from an explicitly authorized non-commitment treasury action", cite: "register #69 · SS §3.1.3" },
   { f: "W24@funding", hot: { h: "w24.queue-funding-confirm", l: "Queue seed / top up" }, st: "Explicit treasury review", ev: "queueFunding derives the GG protocol Safe, selected registered garden Safe, and canonical G$; it carries no commitmentId and grants no agent or keeper value authority", cite: "SS §3.1.3 · AM §2" },
   { f: "W21@protocol-funding-queued", hot: null, st: "Queued funding", ev: "the resulting row has no commitment ID, shares the transport queue, and remains typed as Funding rather than a commitment reward", cite: "SS §3.1.2" },
 ]},
-{ id: "sb14", n: 14, title: "Turn a neighbour's need into a seeded commitment", desc: "Kwame describes a need in his own words, neighbours support it, and a steward turns the thread into a seeded commitment.", persona: "Neighbour + steward", scen: "S10 · September", reviewVisible: false, reviewGroup: "admin", chapter: "commitments", roles: ["steward"], steps: [
+{ id: "sb14", n: 14, title: "Turn a neighbour's need into a seeded commitment", desc: "Kwame describes a need in his own words, neighbours support it, and a steward turns the thread into a seeded commitment.", persona: "Community Member + Steward", scen: "S10 · September", reviewVisible: false, reviewGroup: "admin", chapter: "commitments", roles: ["steward"], steps: [
   { f: "C3", hot: { m: "What is your community trying to solve?", l: "Describe the problem by voice or text" }, who: "Kwame", surface: "community", ev: "kind-free Need · words captured by voice or typing · Request/Offer belongs to seeding a commitment", cite: "CI-WF:96" },
   { f: "C4", hot: { m: "[Share with my garden]", l: "Share with my garden" }, surface: "community", marks: ["Waiting for garden membership. No send"], ev: "offline-queueable Need — may wait for membership without consuming sends", cite: "CI-WF:150" },
   { f: "C1", hot: { m: "[Support]", l: "neighbours Support" }, surface: "community", ev: "latest directional signal wins; support and non-support remain separate; board orders by recency + status, never funding", cite: "CI-SPEC §6/§8" },
