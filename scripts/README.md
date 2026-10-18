@@ -184,7 +184,7 @@ Client startup prints one `[vite-watch]` line with the checkout, client root, wa
 | `check-tokens.sh` | `bun run check --only design-tokens` | DesignMD ↔ `theme.css` drift + `data/design-token-usage-baseline.tsv` audit |
 | `check-guidance-examples.mjs` | `bun run check --only design-tokens`, Design CI | Code-fence-aware guard against hardcoded motion, color, radius, and shadow values in design implementation examples |
 | `check-guidance-examples.test.mjs` | `bun run check --only review-guardrails-test`, Design CI | Fixture tests for design-example token allowances and hardcoded-value failures |
-| `check-vocab.sh` | `bun run check --only vocabulary` | Banned-vocabulary scan over i18n strings |
+| `check-vocab.sh` | `bun run check --only vocabulary` | Banned-vocabulary and US-spelling scan over i18n strings |
 | `md-generate.mjs` | `node scripts/design/md-generate.mjs` / `check:design-generated` | Regenerate committed DesignMD JSON/CSS projections and write the detailed client PWA token audit to the ignored `output/design/` CI-artifact path |
 | `md-generate.test.mjs` | Design CI guardrail tests | Prove that passing, contrast-failing, and stale-token runs retain the PWA audit artifact |
 | `filter-comment-hits.mjs` | `check-tokens.sh` | Mask parsed TS/TSX and CSS comments before matching source hits; retain exact baseline rows and fail on invalid input |

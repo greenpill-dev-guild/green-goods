@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "description": "Machine-readable source for Green Goods vocabulary enforcement. The linter reads linter_enforced and renamed_terms. Prompt-only lists guide design agents and are projected into the public glossary.",
+  "description": "Machine-readable source for Green Goods vocabulary enforcement. The linter reads linter_enforced, renamed_terms, and us_spelling. Prompt-only lists guide design agents and are projected into the public glossary.",
   "linter_enforced": {
     "scope": "user-facing strings in i18n JSON message values",
     "globs": [
@@ -36,6 +36,58 @@
       "packages/shared/src/i18n/pt.json": ["steward", "stewards"]
     },
     "locale_terms_rationale": "Locked visible terms: es Responsable, pt Responsável. ICU argument names are code and are skipped."
+  },
+  "us_spelling": {
+    "scope": "English message values in i18n JSON catalogs; keys and ICU argument names are code and are skipped",
+    "globs": [
+      "packages/shared/src/i18n/en.json",
+      "packages/client/src/i18n/en.json",
+      "packages/admin/src/i18n/en.json"
+    ],
+    "terms": {
+      "cancelled": "canceled",
+      "cancelling": "canceling",
+      "neighbour": "neighbor",
+      "neighbours": "neighbors",
+      "neighbourhood": "neighborhood",
+      "neighbouring": "neighboring",
+      "colour": "color",
+      "colours": "colors",
+      "coloured": "colored",
+      "grey": "gray",
+      "greyed": "grayed",
+      "behaviour": "behavior",
+      "favour": "favor",
+      "favourite": "favorite",
+      "honour": "honor",
+      "centre": "center",
+      "centred": "centered",
+      "catalogue": "catalog",
+      "licence": "license",
+      "labelled": "labeled",
+      "labelling": "labeling",
+      "modelled": "modeled",
+      "travelled": "traveled",
+      "travelling": "traveling",
+      "fulfil": "fulfill",
+      "fulfils": "fulfills",
+      "fulfilment": "fulfillment",
+      "acknowledgement": "acknowledgment",
+      "judgement": "judgment",
+      "programme": "program",
+      "practise": "practice",
+      "organise": "organize",
+      "organised": "organized",
+      "organisation": "organization",
+      "recognise": "recognize",
+      "recognised": "recognized",
+      "realise": "realize",
+      "summarise": "summarize",
+      "prioritise": "prioritize",
+      "analyse": "analyze"
+    },
+    "exempt_keys": [],
+    "rationale": "English copy uses US spelling (decided 2026-10-17; DESIGN.md § Voice & Copy). Each UK form maps to the US word to use. A message that quotes a third-party name or title in its own spelling goes in exempt_keys."
   },
   "prompt_vocabulary_admin_banned": {
     "scope": "AI-prompt vocabulary for admin-cockpit screens; guidance only",
@@ -82,7 +134,7 @@
   "consumers": [
     {
       "path": "scripts/design/check-vocab.sh",
-      "reads": "linter_enforced and renamed_terms"
+      "reads": "linter_enforced, renamed_terms, and us_spelling"
     },
     {
       "path": "scripts/docs/renderers.mjs",
