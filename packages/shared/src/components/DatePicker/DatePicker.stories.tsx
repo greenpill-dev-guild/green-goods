@@ -226,7 +226,7 @@ export const ChangingMonth: Story = {
     docs: {
       description: {
         story:
-          "The two month arrows take a press anywhere on them. The month title is laid out across the same row, and when it was a positioned box it painted over the inner half of each arrow, so a press on an arrow's centre landed on the title and the month did not change.",
+          "The two month arrows take a press anywhere on them. The month title is laid out across the same row, and when it was a positioned box it painted over the inner half of each arrow, so a press on an arrow's center landed on the title and the month did not change.",
       },
     },
   },

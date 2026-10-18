@@ -1843,7 +1843,7 @@
       location.reload();
     } catch (error) {
       // Code 4001 is the wallet's own "user rejected" — not an error to dress up.
-      if (error && error.code === 4001) return fail("Sign-in cancelled in the wallet.");
+      if (error && error.code === 4001) return fail("Sign-in canceled in the wallet.");
       fail((error && error.message) || "Sign-in failed.");
     }
   }

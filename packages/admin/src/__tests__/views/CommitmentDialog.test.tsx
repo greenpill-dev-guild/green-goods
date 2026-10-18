@@ -469,7 +469,7 @@ describe("CommitmentDialogPanel (W10)", () => {
     fireEvent.click(screen.getByRole("button", { name: /^resolve/i }));
     const dialog = screen.getByRole("dialog", { name: /resolve the dispute/i });
     expect(within(dialog).queryByRole("radio", { name: /^kept/i })).not.toBeInTheDocument();
-    fireEvent.click(within(dialog).getByRole("radio", { name: /cancelled/i }));
+    fireEvent.click(within(dialog).getByRole("radio", { name: /canceled/i }));
     fireEvent.click(within(dialog).getByRole("button", { name: /^resolve$/i }));
     const acts = mocks.controller!.acts;
     await waitFor(() => expect(acts.resolveDispute).toHaveBeenCalledWith("CANCELLED", "because"));

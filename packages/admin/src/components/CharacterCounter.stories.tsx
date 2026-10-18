@@ -7,7 +7,7 @@ import { CharacterCounter } from "./CharacterCounter";
 
 // A pool's purpose as a steward might write it: 528 characters, past the 420 limit.
 const PURPOSE =
-  "Neighbours in Rocinha offer help and ask for it: rides to the clinic, tools from the library on Rua Um, workshops in the community kitchen, and garden work on the terraces above the school. Commitments are kept in the open and confirmed by the person they were made to, so everyone can see what was promised and what was done. Offers and requests count the same. Nobody is paid in advance, and a commitment that is not kept simply expires, without a penalty, so the next neighbour can pick it up and carry it through the season.";
+  "Neighbors in Rocinha offer help and ask for it: rides to the clinic, tools from the library on Rua Um, workshops in the community kitchen, and garden work on the terraces above the school. Commitments are kept in the open and confirmed by the person they were made to, so everyone can see what was promised and what was done. Offers and requests count the same. Nobody is paid in advance, and a commitment that is not kept simply expires, without a penalty, so the next neighbour can pick it up and carry it through the season.";
 
 // 68 characters, 73 UTF-8 bytes: the accents and the dash take more than one each.
 const GARDEN_NAME = "Jardim Agroecológico da Associação de Moradores da Rocinha — Cachopa";

@@ -180,7 +180,7 @@ describe("CommitmentSettlement", () => {
     );
     expect(stepStatus("dispatch")).toBe("done");
     expect(stepStatus("acknowledgement")).toBe("current");
-    expect(screen.getByText("Awaiting acknowledgement")).toBeInTheDocument();
+    expect(screen.getByText("Awaiting acknowledgment")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Resend…" })).toBeEnabled();
     second.unmount();
 

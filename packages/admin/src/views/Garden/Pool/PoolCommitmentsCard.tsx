@@ -346,7 +346,7 @@ export function PoolCommitmentsCard({
               {formatMessage({
                 id: "cockpit.garden.pool.commitments.emptyBody",
                 defaultMessage:
-                  "Offers and requests between neighbours show up here. Seed the first one to begin.",
+                  "Offers and requests between neighbors show up here. Seed the first one to begin.",
               })}
             </p>
           </div>

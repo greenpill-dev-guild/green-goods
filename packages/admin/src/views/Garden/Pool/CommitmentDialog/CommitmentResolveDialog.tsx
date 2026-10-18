@@ -121,7 +121,7 @@ export function CommitmentResolveDialog({
             value: "CANCELLED",
             label: formatMessage({
               id: "cockpit.garden.pool.commitment.resolve.cancelled",
-              defaultMessage: "Cancelled",
+              defaultMessage: "Canceled",
             }),
           },
           {

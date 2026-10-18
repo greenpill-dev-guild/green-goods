@@ -270,7 +270,7 @@ export const JoinDisconnected: Story = {
 export const ConnectFailed: Story = {
   args: {
     ...LinkReturning.args,
-    failure: { reason: "prompt_closed", spoken: "Sign in was cancelled." },
+    failure: { reason: "prompt_closed", spoken: "Sign in was canceled." },
   },
 };
 export const PasskeyNotHere: Story = {
@@ -282,7 +282,7 @@ export const PasskeyNotHere: Story = {
 export const CreateNotMade: Story = {
   args: {
     ...CreateAccount.args,
-    failure: { reason: "not_created", spoken: "Sign in was cancelled." },
+    failure: { reason: "not_created", spoken: "Sign in was canceled." },
   },
 };
 export const CreateNameTaken: Story = {

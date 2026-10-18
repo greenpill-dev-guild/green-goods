@@ -796,7 +796,7 @@
     {
       "id": "resolver",
       "display": "Resolver",
-      "reason": "The contract that gates an attestation; declared per schema as `resolver`, not modelled as an entity."
+      "reason": "The contract that gates an attestation; declared per schema as `resolver`, not modeled as an entity."
     },
     {
       "id": "schema",

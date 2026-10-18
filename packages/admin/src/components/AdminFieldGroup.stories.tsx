@@ -13,7 +13,7 @@ const meta: Meta<typeof AdminFieldGroup> = {
     docs: {
       description: {
         component:
-          "Group-shaped member of the admin field family: fieldset+legend (or labelled div) with hint and error anatomy on the same tokens as AdminTextField, for checkbox grids, repeating-row editors, and upload wells.",
+          "Group-shaped member of the admin field family: fieldset+legend (or labeled div) with hint and error anatomy on the same tokens as AdminTextField, for checkbox grids, repeating-row editors, and upload wells.",
       },
     },
   },

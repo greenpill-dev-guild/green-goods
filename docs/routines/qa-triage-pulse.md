@@ -237,7 +237,7 @@ This collaboration pattern mirrors how `bug-intake` works today: routine creates
 | Don't | Why |
 |-------|-----|
 | Create Todo Issues directly | Severity, assignee, and Todo-vs-Backlog status require human judgment — the routine only creates Backlog tracking Issues. The interactive `/qa-triage` skill promotes them when the human approves. |
-| Append rows to the QA Sheet | Same reason; the Sheet writes need scope-lock and the privacy-exception re-acknowledgement |
+| Append rows to the QA Sheet | Same reason; the Sheet writes need scope-lock and the privacy-exception re-acknowledgment |
 | Hardcode Linear team / label IDs | Resolve by name at runtime via the Linear connector; IDs change |
 | Forget `switch-project` before a PostHog call | Connector defaults to the wrong project; silently returns zero |
 | Run Vercel correlation for items without a PostHog match | Wastes ~1-2s per item with nothing to anchor to; the correlation block needs a `first_seen` timestamp |
