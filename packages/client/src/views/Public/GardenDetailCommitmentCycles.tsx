@@ -314,7 +314,7 @@ export function CertificatesTieIn() {
         {formatMessage({
           id: "public.pool.garden.certificatesTieIn",
           defaultMessage:
-            "Fulfilled commitments from these seasons are anchored in the certificates below.",
+            "Fulfilled promises from these seasons are anchored in the certificates below.",
         })}
       </p>
       <a href="#public-garden-detail-certificates" className={ARROW_LINK_CLASS}>
