@@ -91,7 +91,7 @@ Does this design regenerate or extract? Make value flows visible, match complexi
 The interface exists in an ecosystem of interconnected people. A single design decision cascades across users who may never see the same screen. Based on Youngblood, Chesluk, and Haidary's framework (BIS Publishers, 2021).
 
 - **Design for relationships, not individuals** — 15 archetypes classify users by their functional relationship to the artifact (Direct, Governing, Dependent, Autonomic, etc.), not by demographics. A person occupies multiple archetypes simultaneously.
-- **Make cascades visible** — When a governing user's action affects dependent users, show the blast radius before confirmation. "Reject" is not just a button — it is a decision that reaches Maria.
+- **Make cascades visible** — When a governing user's action affects dependent users, show the blast radius before confirmation. "Reject" is not just a button — it is a decision that reaches the gardener.
 - **Surface autonomic actors** — On-chain contracts, indexers, and resolvers are not infrastructure. They are non-human actors whose behavior shapes every user's experience. Give them visible state.
 
 Full framework, Green Goods ecosystem map, and design patterns: [ecosystem.md](./ecosystem.md)

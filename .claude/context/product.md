@@ -24,20 +24,22 @@ Green Goods is the verified impact operations layer for community-led regenerati
 
 ### Persona & Tone Quick-Reference
 
-| Archetype | Persona | Perceives Green Goods As | Tone | Avoid |
-|-----------|---------|--------------------------|------|-------|
-| Gardener | Maria | "A helpful WhatsApp contact that pays me for work" | Warm, direct, action-oriented. Short sentences. No jargon. | Technical terms, passive voice, options overload |
-| Steward | David | "My garden's command center" | Professional, efficient, task-focused. Data-aware. | Condescending simplicity, unstructured prose |
-| Evaluator | Dr. Chen | "A data-rich platform for certifying truth" | Precise, evidence-based, structured. Respect domain expertise. | Oversimplification, vague impact language |
-| Funder | Amara | "A high-yield savings account that heals the planet" | Confident, transparent, audit-friendly. Lead with verified data. | Hype, unsubstantiated claims, blockchain jargon |
-| Community | Kwame | "My neighborhood's way to have a say" | Inclusive, plain-language, encouraging. | Protocol jargon, assumed web3 literacy |
+The five rows are the ontology's personas, and Green Goods has no others. Name a persona by its role, never by an illustrative name (DL-091).
+
+| Archetype | Perceives Green Goods As | Tone | Avoid |
+|-----------|--------------------------|------|-------|
+| Gardener | "A helpful WhatsApp contact that pays me for work" | Warm, direct, action-oriented. Short sentences. No jargon. | Technical terms, passive voice, options overload |
+| Steward | "My garden's command center" | Professional, efficient, task-focused. Data-aware. | Condescending simplicity, unstructured prose |
+| Evaluator | "A data-rich platform for certifying truth" | Precise, evidence-based, structured. Respect domain expertise. | Oversimplification, vague impact language |
+| Funder | "A high-yield savings account that heals the planet" | Confident, transparent, audit-friendly. Lead with verified data. | Hype, unsubstantiated claims, blockchain jargon |
+| Community Member | "My neighborhood's way to have a say" | Inclusive, plain-language, encouraging. | Protocol jargon, assumed web3 literacy |
 
 **Tone rules:**
 - Gardener/Community copy: zero blockchain vocabulary, reading level ~6th grade
 - Steward copy: may reference on-chain verification as a trust mechanism, but not Solidity internals
 - Evaluator copy: may use research/assessment terminology freely
 - Funder copy: may reference attestation integrity; never use "guaranteed returns"
-- For full persona profiles with behavioral scenarios: `docs/docs/builders/architecture/design.mdx`
+- For who each persona is, what they do, when, and on which surface: `docs/docs/builders/architecture/personas.mdx`, generated from the ontology
 - For vocabulary constraints (Use/Avoid lists): see Messaging Constraints below
 
 ## UX Quality Bars
