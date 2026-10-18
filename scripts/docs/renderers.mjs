@@ -786,14 +786,22 @@ export function renderSkills({ root, sources, digest }) {
 }
 
 // The terms a community reader meets in the guides, in the order the work happens: the place,
-// the work, the review, the plan, the claim, the two funds, then the people. Each leads the
-// glossary with its plain-language record from the projection data and links to its guide.
-// This is a list of terms, not a rule. The ontology's `surfaces` field says where a term may
-// appear in product copy; it does not say who reads it.
-// Commitment terms are left out on purpose until their availability records are reconciled.
+// the work and what members promise, the review, the plan, the claim, the two funds, then the
+// people. Each leads the glossary with its plain-language record from the projection data and
+// links to its guide. This is a list of terms, not a rule. The ontology's `surfaces` field says
+// where a term may appear in product copy; it does not say who reads it.
+// Pooling has one everyday term, the promise; its other terms stay in the builder reference.
 const GLOSSARY_EVERYDAY = [
   { ref: "entity:garden", guide: ["How It Works", "/community/how-it-works"] },
   { ref: "entity:action", guide: ["Manage Actions", "/community/steward-guide/managing-actions"] },
+  // Every surface calls a commitment a promise; the word stays only in the feature's name. Offer
+  // and request are its two kinds, not other names for it, so the entry words that line itself.
+  {
+    ref: "entity:commitment",
+    heading: "Promise",
+    alsoCalled: ["commitment, as in the feature name Commitment Pooling"],
+    guide: ["Where Commitment Pooling fits", "/community/how-it-works#commitment-pooling"],
+  },
   { ref: "entity:work", guide: ["Submit Work", "/community/gardener-guide/uploading-your-work"] },
   { ref: "entity:work-approval", guide: ["Review Work", "/community/steward-guide/reviewing-work"] },
   { ref: "entity:assessment", guide: ["Make an Assessment", "/community/evaluator-guide/making-an-assessment"] },
@@ -835,7 +843,7 @@ export function glossaryEverydayEntries(ontology, projections, selection = GLOSS
   ]);
   const conceptByRef = new Map(projections.human_concepts.map((concept) => [concept.ref, concept]));
   const availabilityByRef = new Map((projections.capabilities ?? []).map((item) => [item.ref, item.availability]));
-  return selection.map(({ ref, heading, guide }) => {
+  return selection.map(({ ref, heading, alsoCalled, guide }) => {
     const term = terms.get(ref);
     if (!term) throw new Error(`Glossary everyday term ${ref} is not a canonical entity or persona`);
     const concept = conceptByRef.get(ref);
@@ -845,6 +853,14 @@ export function glossaryEverydayEntries(ontology, projections, selection = GLOSS
     if (title !== term.display && !aliases.some((alias) => alias.toLowerCase() === title.toLowerCase())) {
       throw new Error(`Glossary heading "${title}" is neither the display name nor a declared alias of ${ref}`);
     }
+    // An entry may word its "Also called" line, but each item still opens with a declared name.
+    const names = [term.display, ...aliases].map((name) => name.toLowerCase());
+    for (const text of alsoCalled ?? []) {
+      const opening = text.toLowerCase();
+      if (!names.some((name) => opening === name || opening.startsWith(`${name},`))) {
+        throw new Error(`Glossary "Also called" item "${text}" does not open with a declared name of ${ref}`);
+      }
+    }
     const anchor = title === term.display ? term.id : headingAnchor(title);
     return {
       ref,
@@ -853,7 +869,7 @@ export function glossaryEverydayEntries(ontology, projections, selection = GLOSS
       // The canonical id and any older anchor keep resolving when the heading is an alias.
       aliasAnchors: [...(anchor === term.id ? [] : [term.id]), ...(GLOSSARY_LEGACY_ANCHORS[ref] ?? [])],
       concept,
-      alsoCalled: [
+      alsoCalled: alsoCalled ?? [
         ...(title === term.display ? [] : [term.display]),
         ...aliases.filter((alias) => alias.toLowerCase() !== title.toLowerCase()),
       ],

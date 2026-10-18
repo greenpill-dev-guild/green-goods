@@ -29,7 +29,7 @@ export function PublicCommitmentsBand({ chainId = DEFAULT_CHAIN_ID }: { chainId?
     key: "made",
     label: formatMessage({
       id: "public.pool.impact.made.label",
-      defaultMessage: "Commitments made",
+      defaultMessage: "Promises made",
     }),
     note: formatMessage({
       id: "public.pool.impact.made.note",
@@ -44,7 +44,7 @@ export function PublicCommitmentsBand({ chainId = DEFAULT_CHAIN_ID }: { chainId?
     key: "kept",
     label: formatMessage({
       id: "public.pool.impact.kept.label",
-      defaultMessage: "Commitments kept",
+      defaultMessage: "Promises kept",
     }),
     note: formatMessage({
       id: "public.pool.impact.kept.note",
@@ -68,13 +68,13 @@ export function PublicCommitmentsBand({ chainId = DEFAULT_CHAIN_ID }: { chainId?
           <EditorialKicker className="mb-5">
             {formatMessage({
               id: "public.pool.impact.kicker",
-              defaultMessage: "§ 02: Commitments",
+              defaultMessage: "§ 02: Promises",
             })}
           </EditorialKicker>
           <EditorialHeading id="public-impact-commitments-title" className="max-w-4xl">
             {formatMessage({
               id: "public.pool.impact.title",
-              defaultMessage: "Commitments within communities",
+              defaultMessage: "Promises within communities",
             })}
           </EditorialHeading>
         </header>
@@ -87,7 +87,7 @@ export function PublicCommitmentsBand({ chainId = DEFAULT_CHAIN_ID }: { chainId?
             {formatMessage({
               id: "public.pool.impact.lifecycle",
               defaultMessage:
-                "Planting trees, maintaining solar panels, sharing skills. The work of a Garden starts with what its community needs and what people can offer. Commitments give that work a shared record: who will carry it out, when, and whether it was kept. Community members can follow what is happening in their Garden. Funders can see the work they help make possible.",
+                "Planting trees, maintaining solar panels, sharing skills. The work of a Garden starts with what its community needs and what people can offer. Promises give that work a shared record: who will carry it out, when, and whether it was kept. Community members can follow what is happening in their Garden. Funders can see the work they help make possible.",
             })}
           </EditorialLede>
           <PublicProofMarkers layout="panel" markers={[made, kept]} unavailableDisplay="label" />

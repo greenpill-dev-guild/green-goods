@@ -710,6 +710,13 @@ test("an everyday glossary entry needs a plain-language record and a name the on
     () => glossaryEverydayEntries(ontology, projections, [{ ref: "entity:garden", heading: "Plot", guide: ["Join", "/join"] }]),
     /"Plot" is neither the display name nor a declared alias of entity:garden/,
   );
+  // An entry can word its other names, as long as each opens with one the ontology declares.
+  const [worded] = glossaryEverydayEntries(ontology, projections, [{ ref: "entity:garden", alsoCalled: ["community garden, on the sign"], guide: ["Join", "/join"] }]);
+  assert.deepEqual(worded.alsoCalled, ["community garden, on the sign"]);
+  assert.throws(
+    () => glossaryEverydayEntries(ontology, projections, [{ ref: "entity:garden", alsoCalled: ["allotment, on the sign"], guide: ["Join", "/join"] }]),
+    /"allotment, on the sign" does not open with a declared name of entity:garden/,
+  );
 });
 
 test("data model projects layered diagrams, every relationship, and all lifecycles", () => {
