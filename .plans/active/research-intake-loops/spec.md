@@ -29,10 +29,12 @@ stays fail-closed, and the agenda stays human-owned in substance.
 **R1. What a share is, and when it counts as handled.** A share is a human message in
 `DISCORD_RESEARCH_CHANNEL_ID` that carries at least one `http(s)` link or an attachment, or asks
 a question in a full sentence. Bot messages, messages whose `type` is a thread system message,
-emoji-only messages and messages posted inside threads are context, not shares. A share is
-handled when the message carries one of the routine's own four reactions (`reactions[].me` is
-true) or has a thread (message flag `HAS_THREAD`, `1 << 5`; the thread's id equals the message
-id) containing a bot-authored reply. The two signals are checked independently; a share with one
+emoji-only messages and messages posted inside threads are context, not shares; a repost of a
+handled share is a share, classified as a noted duplicate. A share is handled when the message
+carries one of the routine's own four reactions (`reactions[].me` is true) or when a thread on it
+(message flag `HAS_THREAD`, `1 << 5`; the thread's id equals the message id) holds a reply
+authored by the bot; `HAS_THREAD` alone proves nothing, since anyone may open a thread, and
+checking it costs one thread read. The two signals are checked independently; a share with one
 and not the other gets only the missing one retried. Lookback: the seven-day window for the
 ledger, then pagination with `before=` through the whole fourteen-day window before filtering for
 unhandled shares, so a missed share behind a page of handled ones is still found.
@@ -143,7 +145,7 @@ Ticked edits are applied by the research-agenda skill, which bumps the edition.
 ### Track {n} · {name}
 - [ ] {exact edit} · evidence: {citation} · first proposed {date} · runs: {k}
 ## Candidate questions
-- [ ] "{question}" · source: {share | call note} · {date} · track: {n | unassigned}{ · confirmed in its thread on {date}}
+- [ ] "{question}" · source: {share | call note} · {date} · track: {n | unassigned} · next: {step | unset} · who: {answerer | unset}{ · confirmed in its thread on {date}}
 ## Candidate tracks
 - [ ] {name}: {issues and hubs it would gather} · first proposed {date} · runs: {k}
 ## Dropped this week
@@ -154,8 +156,9 @@ Ticked edits are applied by the research-agenda skill, which bumps the edition.
 
 Refresh rule, every run after Phase 2: read the current content with `get_document`; a `[x]`
 line anywhere in the document moves to *Accepted, not yet applied* on the refresh and stays there
-until the skill moves it to *Applied*, never carried forward unticked or recreated; carry every
-unticked line forward with `runs` incremented; mark lines at four or more runs `decide or drop`;
+until the skill moves it to *Applied*, never carried forward unticked or recreated; carry every unticked line forward with `runs` incremented only when the header's `refreshed` date is
+earlier than today, so a same-date rerun neither ages a proposal nor flags it; mark lines at four
+or more runs `decide or drop`;
 move a line to *Dropped this week* when the agenda already contains the edit, its anchor no longer
 exists, or a human deleted it; add this run's proposals; prune *Applied* lines older than two
 weeks. Write once with `save_document` `content` so a rerun converges. Cap: one document write
@@ -175,7 +178,8 @@ edits waiting is the loop's nag; it never mentions anyone.
   edition line, append one change-log line naming the applied edits, and move the lines to
   *Applied* with the date and edition. A ticked candidate track runs `candidates` without needing
   an anchor; a ticked candidate question becomes an `Open` item on the track its `track:` field
-  names, and the skill asks for the track when the field reads `unassigned`. The commit stays with
+  names, written with the next step and answerer from its `next:` and `who:` fields, and the skill
+  asks for any of the three that is unset. The commit stays with
   the user; the skill names the files.
 - `review`: the cycle-boundary ritual. Show unticked proposals grouped by track with evidence
   links, candidate questions and candidate tracks; tick or delete lines in the document from the
@@ -269,8 +273,9 @@ are unchanged.
 
 **R21. Run budget.** The 17 Oct v4 run took 154 turns and 29 minutes, met 14 rate-limit events
 on the way, posted and wrote everything, and then ended on the five-hour usage limit at its final
-step. v5 budgets turns as well as writes: the Product updated-since scan is dropped in favour of
-the per-track keyword searches already specified; call notes are read through `get_file_metadata`
+step. v5 budgets turns as well as writes: the Product updated-since scan is dropped in favour of the per-track keyword searches already
+specified, while the Research team's own updated-since list stays (one page), since candidate
+tracks are found there; call notes are read through `get_file_metadata`
 with the largest snippet and only the summary, decisions and next-steps sections, never a full
 transcript export; classification fetches run as one batched shell step per run; reactions,
 thread creation and thread reads run as one batched shell step each. Target: at most 180 turns

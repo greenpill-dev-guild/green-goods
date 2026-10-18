@@ -34,11 +34,12 @@ loop closes in minutes instead of a memo read. The design lives in
 3. **Apply.** Three kinds of ticked line, handled in this order. A `[x]` line under *Candidate
    tracks* runs `candidates` first; it needs no agenda anchor. A `[x]` line under *Proposed edits*
    names exact anchor text: show `old → new` and apply it with an exact-match replace that must
-   match once; a line whose anchor no longer matches is skipped and reported, never guessed. A
-   `[x]` line under *Candidate questions* becomes a numbered `Open` item on the track its `track:`
-   field names; when the field reads `unassigned`, ask the user which track takes it, or whether
-   it waits for a candidate track, before applying anything, and never file it under the agenda's
-   own *Candidate questions* section, which holds only unconfirmed proposals.
+   match once; a line whose anchor no longer matches is skipped and reported, never guessed. A `[x]` line under *Candidate questions* becomes a numbered `Open` item on the track its `track:`
+   field names, written in the agenda's shape: the question, its next concrete step and who can
+   answer it, from the line's `next:` and `who:` fields. When any of the three fields reads
+   `unassigned` or `unset`, ask the user for it, or whether the question waits for a candidate
+   track, before applying anything, and never file it under the agenda's own *Candidate
+   questions* section, which holds only unconfirmed proposals.
 4. **Edition.** Bump the `**Edition:**` line to `v{n+1} · {today}` and prepend a change-log entry
    that lists the applied edits in one sentence each with their evidence. One bump per run.
 5. **Write back** with `save_document` `patch`: move each applied line to *Applied* as
@@ -53,7 +54,8 @@ loop closes in minutes instead of a memo read. The design lives in
 Group the unticked lines by track with their evidence links and `runs` count, then the candidate
 questions, then the candidate tracks. Ask in numbered rounds, accept, defer or reject per line,
 with lines at four or more runs first under "decide or drop"; for each accepted candidate
-question, ask which track takes it and write the answer into the line's `track:` field. Write
+question, ask which track takes it, the next concrete step and who can answer it, and write the
+answers into the line's `track:`, `next:` and `who:` fields. Write
 the answers as `[x]` or deletions through `save_document` `patch`, then run `apply`. Close with the cycle theme as one
 question; the user writes it, the skill records nothing for it.
 
