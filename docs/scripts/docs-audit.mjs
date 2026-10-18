@@ -513,6 +513,75 @@ try {
 }
 const allowedAudiences = new Set(["all", "developer", ...ontology.personas.map((persona) => persona.id)]);
 
+// English copy uses US spelling (DESIGN.md § Voice & Copy). The UK forms come from the vocabulary
+// sidecar the catalog check reads. Only prose is read: code, link targets, URLs, heading ids and
+// markup attributes other than alt and title are names, and a generated page is fixed at its source.
+const vocabularyPath = "scripts/data/banned-vocabulary.json";
+let usSpelling;
+try {
+  usSpelling = JSON.parse(await fs.readFile(path.resolve(repoRoot, vocabularyPath), "utf8")).us_spelling ?? {};
+} catch (error) {
+  fail(vocabularyPath, `Missing or invalid vocabulary sidecar for the US-spelling rule: ${error.message}`);
+  usSpelling = {};
+}
+const ukForms = new Map(Object.entries(usSpelling.terms ?? {}));
+const ukFormPattern = new RegExp(`\\b(${[...ukForms.keys()].map(escapeRegExp).join("|") || "(?!)"})\\b`, "gi");
+const exemptPhrases = usSpelling.exempt_phrases ?? [];
+const notProse =
+  /`[^`\n]*`|\]\([^)\s]*(?:\s+"[^"]*")?\)|<https?:\/\/[^>]+>|https?:\/\/[^\s)\]>"'`]+|\{#[^}]*\}|\b(?!alt\b|title\b)[\w:-]+="[^"]*"|<!--.*?-->/g;
+const renderedFrontmatterKey = /^(?:title|sidebar_label|description):/;
+
+const ukSpellingsIn = (text) => {
+  const lines = text.split("\n");
+  const frontmatterEnd = lines[0] === "---" ? lines.indexOf("---", 1) : -1;
+  const found = [];
+  let fence = null;
+  lines.forEach((line, index) => {
+    if (index <= frontmatterEnd && !renderedFrontmatterKey.test(line)) return;
+    const trimmed = line.trimStart();
+    const marker = /^(```|~~~)/.exec(trimmed)?.[1];
+    if (marker) {
+      fence = fence === null ? marker : fence === marker ? null : fence;
+      return;
+    }
+    if (fence !== null || /^(?:import|export)\s/.test(trimmed)) return;
+    let prose = line.replace(notProse, " ");
+    for (const phrase of exemptPhrases) prose = prose.split(phrase).join(" ");
+    for (const [, word] of prose.matchAll(ukFormPattern)) {
+      found.push({line: index + 1, word, us: ukForms.get(word.toLowerCase())});
+    }
+  });
+  return found;
+};
+
+const failUkSpellings = (relativePath, text) => {
+  for (const {line, word, us} of ukSpellingsIn(text)) {
+    fail(relativePath, `UK spelling on line ${line}: "${word}"; English copy uses US spelling ("${us}"), see DESIGN.md § Voice & Copy.`);
+  }
+};
+
+// Copy outside the docs site that readers still meet: release notes and the design guidance.
+const usSpellingGuides = async () => {
+  const optionalWalk = (relativeDir) => walk(path.resolve(repoRoot, relativeDir)).catch(() => []);
+  const packageDesigns = [];
+  for (const entry of await fs.readdir(path.resolve(repoRoot, "packages"), {withFileTypes: true}).catch(() => [])) {
+    if (!entry.isDirectory()) continue;
+    for (const name of await fs.readdir(path.resolve(repoRoot, "packages", entry.name)).catch(() => [])) {
+      if (/^DESIGN.*\.md$/.test(name)) packageDesigns.push(path.resolve(repoRoot, "packages", entry.name, name));
+    }
+  }
+  return [
+    ...["DESIGN.md", "docs/DESIGN.md"].map((relativePath) => path.resolve(repoRoot, relativePath)).filter(existsSync),
+    ...packageDesigns,
+    ...(await optionalWalk("docs/releases")),
+    ...(await optionalWalk(".claude/skills/design")),
+  ];
+};
+
+for (const filePath of await usSpellingGuides()) {
+  failUkSpellings(path.relative(repoRoot, filePath).replace(/\\/g, "/"), await fs.readFile(filePath, "utf8"));
+}
+
 const allDocs = await walk(docsRoot);
 const docFileSet = new Set(allDocs.map((filePath) => path.normalize(filePath)));
 const docSlugSet = new Set();
@@ -542,6 +611,10 @@ for (const filePath of allDocs) {
   }
 
   auditedDocuments.push({filePath, relativePath, frontmatter, body, slug: docSlug});
+
+  if (frontmatter?.generated !== true) {
+    failUkSpellings(relativePath, raw);
+  }
 
   if (unlisted) {
     fail(relativePath, "Public docs must not set unlisted: true.");

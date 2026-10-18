@@ -17,6 +17,11 @@ function fixture() {
     path.join(root, "packages/shared/src/ontology/green-goods-ontology.json"),
     JSON.stringify({personas: [{id: "gardener"}, {id: "steward"}, {id: "evaluator"}, {id: "funder"}, {id: "community-member"}]}),
   );
+  mkdirSync(path.join(root, "scripts/data"), { recursive: true });
+  writeFileSync(
+    path.join(root, "scripts/data/banned-vocabulary.json"),
+    JSON.stringify({us_spelling: {terms: {cancelled: "canceled", grey: "gray"}, exempt_phrases: ["Grey Matter Fund"]}}),
+  );
   writeFileSync(path.join(root, "authority.ts"), "export const authority = true;\n");
   writeFileSync(
     path.join(root, "docs/docs/builders/test.mdx"),
@@ -205,6 +210,43 @@ cat packages/client/src/an-example-that-need-not-exist.ts
     assert.equal(result.status, 1);
     assert.match(result.stderr, /client\.mdx: Repository path not found: packages\/client\/src\/index\.tsx/);
     assert.match(result.stderr, /client\.mdx: Repository path not found: src\/routes\//);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("UK spelling in docs prose or design guidance exits nonzero, while names stay free", () => {
+  const root = fixture();
+  try {
+    const file = path.join(root, "docs/docs/builders/test.mdx");
+    const names = [
+      "",
+      "## Approve stays gray {#approve-stays-grey}",
+      "",
+      "The `cancelled` state, [the guide](https://example.com/grey-area) and https://example.com/grey stay as written.",
+      '<img src="/img/grey.png" alt="Approve looks gray" />',
+      "The Grey Matter Fund keeps its own name.",
+      "",
+      "```text",
+      "cancelled",
+      "```",
+      "",
+    ].join("\n");
+    writeFileSync(file, readFileSync(file, "utf8") + names);
+    const clean = runAudit(root);
+    assert.equal(clean.status, 0, clean.stderr);
+
+    writeFileSync(file, `${readFileSync(file, "utf8")}The row reads cancelled.\n`);
+    const line = readFileSync(file, "utf8").split("\n").indexOf("The row reads cancelled.") + 1;
+    writeFileSync(path.join(root, "DESIGN.md"), "# Design\n\nA grey border marks the field.\n");
+    const result = runAudit(root);
+    assert.equal(result.status, 1);
+    assert.ok(
+      result.stderr.includes(`builders/test.mdx: UK spelling on line ${line}: "cancelled"; English copy uses US spelling ("canceled")`),
+      result.stderr,
+    );
+    assert.match(result.stderr, /DESIGN\.md: UK spelling on line 3: "grey"/);
+    assert.equal(result.stderr.match(/UK spelling/g)?.length, 2, result.stderr);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

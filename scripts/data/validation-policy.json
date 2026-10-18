@@ -170,6 +170,12 @@
       "exact": ["scripts/lib/vitest-shared-graph.mjs"]
     },
     {
+      "check": "agent-test",
+      "runInQa": true,
+      "note": "The agent's i18n test reads us_spelling from this sidecar to check the English chat copy.",
+      "exact": ["scripts/data/banned-vocabulary.json"]
+    },
+    {
       "check": "source-structure",
       "match": "all",
       "prefixes": ["packages/"],
@@ -191,7 +197,12 @@
     },
     {
       "check": "design-guardrails",
-      "exact": ["DESIGN.md", "docs/DESIGN.md", "packages/shared/src/hooks/app/useTheme.ts"],
+      "exact": [
+        "DESIGN.md",
+        "docs/DESIGN.md",
+        "packages/shared/src/hooks/app/useTheme.ts",
+        "scripts/data/banned-vocabulary.json"
+      ],
       "prefixes": [
         "packages/client/src/",
         "packages/admin/src/",
