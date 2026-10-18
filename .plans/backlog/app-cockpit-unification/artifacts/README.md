@@ -71,9 +71,13 @@ states, then the card primitives. Open it from this folder so it finds its image
 - **The detail-line rules** (version 14) apply the five rules the maintainer agreed on 18 October
   to every proposed card: each type's details in the spec's order, the status and at most two
   details, nothing the card already shows, short ages and dates, and an action only on the row that
-  needs the reader, below the text. The most important detail stays beside the status pill and
+  needs the reader, in its right slot. The most important detail stays beside the status pill and
   shortens if it must. A Detail line switch shows the line as it was before the rules, and a table
   counts the details each version drops or shortens, in all four text sets.
+- **Version 15** keeps every row card one height (the action takes the row's right slot instead of
+  a line below the text), offers commitments, assessments and jars as item rows only, since they
+  have no picture for a media card, adds the maintainer's 15 / 13 title size as the pick, and puts
+  Copy picks on the folded tweaker bar.
 - **The card tweaker** sits in a rail beside the census on a wide screen and folds into a panel at
   the bottom on a narrow one. Its live preview, pinned above the dials, draws the section in view or
   a chosen card type at the app's or the cockpit's density, with that type's title lines beside it.

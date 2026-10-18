@@ -196,5 +196,13 @@ Checked on 2026-10-18 after the maintainer asked for the agreed detail-line rule
 - The published artifact, version 14: the served `census.html` matched the build byte for byte, and
   the main page's link opened it in the in-app browser with the rules and the table in place.
 
+Version 15, checked the same day in headless Chromium at 1440×900, 1180×820 and 390×844: every row
+card in the card-type tiles, the object sheets and the design-system preview measured 72px, with the
+rules and before them, including the cockpit's row with Confirm in its right slot and the jar with
+Claim in its amount's place. Commitments, records and jars rendered no media card and no shape
+control. The 15 / 13 title size was the default and the dot, with 15px app and 13px cockpit titles.
+At 390px the folded tweaker bar showed Copy picks, and it copied the line. No console error and no
+horizontal overflow; the served `census.html` matched the build byte for byte.
+
 These are document and mock checks. No application code changed, so no implementation, usability or
 release evidence exists yet.

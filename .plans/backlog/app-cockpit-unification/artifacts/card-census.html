@@ -396,6 +396,7 @@ code { font-family: var(--font-mono); font-size: 0.84em; background: var(--accen
 .rail .copyrow { display: grid; gap: 4px; }
 .rail .copyrow input { min-width: 0; height: 28px; padding: 0 8px; font-family: var(--font-mono); font-size: 11px; color: var(--fg); background: var(--bg); border: 1px solid var(--line-strong); border-radius: 8px; }
 .rail .toggle { display: none; }
+.rail .rail-bar { display: none; }
 .rail .foot-acts { display: none; }
 .rail .toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 @media (min-width: 1100px) {
@@ -406,7 +407,10 @@ code { font-family: var(--font-mono); font-size: 0.84em; background: var(--accen
 }
 @media (max-width: 1099px) {
   .rail { position: sticky; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); z-index: 30; margin-top: 40px; max-height: 76dvh; overflow: auto; overscroll-behavior: contain; }
-  .rail .toggle { display: flex; position: sticky; top: 0; z-index: 3; align-items: center; justify-content: space-between; width: 100%; font: inherit; font-family: var(--font-display); font-size: 13px; font-weight: 600; line-height: 40px; color: var(--fg); background: var(--card); border: 0; border-radius: 16px; padding: 0 14px; cursor: pointer; }
+  /* The folded bar keeps Copy picks in reach without opening the tweaker. */
+  .rail .rail-bar { display: flex; position: sticky; top: 0; z-index: 3; align-items: center; background: var(--card); border-radius: 16px; }
+  .rail .rail-bar .bar-copy { flex: 0 0 auto; padding: 0 14px; line-height: 40px; }
+  .rail .toggle { display: flex; flex: 1 1 auto; min-width: 0; align-items: center; justify-content: space-between; font: inherit; font-family: var(--font-display); font-size: 13px; font-weight: 600; line-height: 40px; color: var(--fg); background: var(--card); border: 0; border-radius: 16px; padding: 0 14px; cursor: pointer; }
   .rail .toggle::after { content: ""; width: 8px; height: 8px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: translateY(-2px) rotate(45deg); }
   .rail.collapsed .toggle::after { transform: translateY(2px) rotate(225deg); }
   .rail.collapsed .rail-body { display: none; }
@@ -471,6 +475,8 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
 .spec.app.ts-15 { --s-title: 15px; }
 .spec.ts-14 { --s-title: 14px; }
 .spec.ts-13 { --s-title: 13px; }
+.spec.app.ts-15-13 { --s-title: 15px; }
+.spec.cockpit.ts-15-13 { --s-title: 13px; }
 /* Details and labels. */
 .spec.ms-11_5 { --s-meta: 11.5px; --s-kick: 10.5px; --s-sub-fs: 12.5px; }
 .spec.ms-11 { --s-meta: 11px; --s-kick: 10px; --s-sub-fs: 12px; }
@@ -479,12 +485,10 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
 .spec .kick { font-size: var(--s-kick); }
 .spec .mc .sub { font-size: var(--s-sub-fs); }
 .spec.ms-11_5 .fl .k, .spec.ms-11 .fl .k { font-size: var(--s-meta); }
-/* The detail-line rules agreed on 18 October: a row's photo carries its photo count, and the one
-   row that needs the reader shows its action below the text, so that row alone grows. */
+/* The detail-line rules agreed on 18 October: a row's photo carries its photo count. The one row
+   that needs the reader shows its action at its right, so every row keeps one height. */
 .spec .ir .lead.photo .pcount { position: absolute; top: 5px; right: 5px; z-index: 1; display: inline-flex; align-items: center; gap: 3px; border-radius: 999px; padding: 1px 6px; font-size: 11px; font-weight: 600; line-height: 15px; background: rgba(0,0,0,0.6); color: #FFFFFF; }
 .spec .ir .lead.photo .pcount svg { font-size: 11px; }
-.spec .ir .ract { margin-top: 6px; display: flex; }
-.spec .ir:not(.compact):has(.ract) { height: auto; min-height: var(--rowh); }
 .rules-box { margin: 16px 0 6px; max-width: 804px; display: grid; gap: 10px; padding: 14px 16px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; font-size: 14.5px; }
 .rules-box p { margin: 0; }
 .rules-box b { color: var(--fg-strong); }
@@ -576,7 +580,7 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
         <li>The status and at most two details. A third fact belongs on the item's own page.</li>
         <li>Nothing the card already shows: the icon says offer or request, the chip says a person's role, the chrome names the garden.</li>
         <li>Short ages and dates in every language, and an age is always a number.</li>
-        <li>A row opens its item when tapped. An action stays only on the row that needs you, below the text.</li>
+        <li>A row opens its item when tapped. An action stays only on the row that needs you, at its right, so every row keeps one height.</li>
       </ol>
       <table class="cuts" id="drops"></table>
     </div>
@@ -685,7 +689,7 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
   <p class="foot-note">The proposed cards are a mock drawn from the design tokens, not the shipped components. They settle direction and proportion, not exact sizes. Example names, gardens, titles and amounts are invented; the status words and progress lines in Spanish and Portuguese come from the product's own translations.</p>
 </main>
 <aside class="rail" id="dock" aria-label="Card tweaker">
-  <button type="button" class="toggle" id="dockToggle" aria-expanded="true" aria-controls="railBody">Card tweaker</button>
+  <div class="rail-bar"><button type="button" class="toggle" id="dockToggle" aria-expanded="true" aria-controls="railBody">Card tweaker</button><button type="button" class="lnk js-copy bar-copy">Copy picks</button></div>
   <div class="rail-body" id="railBody">
     <div class="pv-wrap">
       <div class="rail-title"><b>Card tweaker</b><span class="acts"><button type="button" class="lnk js-reset">Reset to picks</button><button type="button" class="lnk js-copy">Copy picks</button></span></div>
@@ -926,6 +930,8 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
     else if (o.lead === "thumb") lead = '<div class="lead thumb" style="--ph:' + PH[o.dom] + '"></div>';
     else if (o.lead === "tile") lead = '<div class="lead tile">' + ic(o.icon) + "</div>";
     else if (o.lead === "av") lead = o.addr ? genAv(tx(o.title)) : '<div class="lead av">' + esc(o.initials) + "</div>";
+    // An action takes the row's right slot, in place of the chevron or the amount, so the row keeps its height.
+    if (o.action) { o.trail = "btn"; o.btn = o.action; o.btnSec = !!o.actionSec; }
     var trail = "";
     if (o.trail === "chev") trail = '<div class="trail">' + ic("chev") + "</div>";
     else if (o.trail === "btn") trail = '<div class="trail"><span class="btn' + (o.btnSec ? " sec" : "") + '">' + esc(tx(o.btn)) + "</span></div>";
@@ -946,8 +952,7 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
     if (o.compact) body = '<div class="body">' + titleHtml(o.title, "1", o.addr) + metaHtml(o.meta) + "</div>";
     else body = '<div class="body">' + kicker(null, st) +
       '<div class="top">' + titleHtml(o.title, o.lines, o.addr) + pill(st, "corner") + "</div>" +
-      (st ? '<div class="pl-row">' + pill(st, "under") + "</div>" : "") + metaHtml(meta, st) +
-      (o.action ? '<div class="ract"><span class="btn' + (o.actionSec ? " sec" : "") + '">' + esc(tx(o.action)) + "</span></div>" : "") + "</div>";
+      (st ? '<div class="pl-row">' + pill(st, "under") + "</div>" : "") + metaHtml(meta, st) + "</div>";
     var cls = "sc row ir" + (o.compact ? " compact" : "") + (photo ? " has-photo" : "") + (st ? " has-edge e-" + st[0] : "") + (o.selected ? " selected" : "");
     return '<div class="' + cls + '"><span class="tick">' + ic("check") + "</span>" + lead + body + trail + "</div>";
   }
@@ -1009,11 +1014,8 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
     return list(items.slice(0, opt.count || 3).map(function (c, i) {
       // Rules: the due date, then the other person; offer or request is the icon's to say, and with an
       // avatar lead the person is too, so the direction takes the second place. The row opens when
-      // tapped; only the row that needs the reader keeps an action, below the text.
+      // tapped; only the row that needs the reader keeps an action, at its right.
       var second = o.lead === "icon" ? c.person : W[c.dir];
-      if (o.shape === "media") return R2
-        ? mediaCard({ dom: i === 1 ? "edu" : "agro", banner: true, icon: c.dir, title: TITLES.commitments[i], lines: lines, status: c.status, sub: [tx(c.due), tx(c.person)].join(" · "), btn: c.act || null })
-        : mediaCard({ dom: i === 1 ? "edu" : "agro", banner: true, icon: c.dir, title: TITLES.commitments[i], lines: lines, status: c.status, sub: [tx(c.meta[0]), tx(c.meta[1])].join(" · "), btn: i === 0 ? c.btn : null });
       // A promise that is confirming no longer needs the reader, so under the rules the cockpit's
       // confirming state sits on another row than the one that asks for Confirm.
       var extra = R2 && s === "cockpit" ? (i === 1 ? ["phase", W.phase] : null) : c.extra;
@@ -1022,7 +1024,7 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
       if (R2) { r.trail = "chev"; r.action = c.act || null; }
       else if (i === 0) { r.trail = "btn"; r.btn = c.btn; } else r.trail = "chev";
       return itemRow(r);
-    }).join(""), sy, o.shape !== "media");
+    }).join(""), sy, true);
   };
   R.actions = function (s, o, opt) {
     opt = opt || {};
@@ -1046,10 +1048,8 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
     return list(recs.slice(0, opt.count || 3).map(function (r, i) {
       // Rules: the date, then the count; the kind word only when no icon shows it, in place of the count.
       var meta = !R2 ? r.meta : (state.icons === "hide" ? [r.kind, { soft: r.date }] : [{ soft: r.date }, r.meta[0]]);
-      return o.shape === "media"
-        ? mediaCard({ dom: r.dom, banner: true, icon: r.icon, dchip: r.kind, title: TITLES.records[i], lines: lines, status: r.status, foot: R2 ? [r.date, r.meta[0]] : [r.meta[0], r.meta[1].soft] })
-        : itemRow({ lead: "tile", icon: r.icon, eyebrow: r.kind, title: TITLES.records[i], lines: lines, status: r.status, meta: meta, trail: "chev" });
-    }).join(""), sy, o.shape !== "media");
+      return itemRow({ lead: "tile", icon: r.icon, eyebrow: r.kind, title: TITLES.records[i], lines: lines, status: r.status, meta: meta, trail: "chev" });
+    }).join(""), sy, true);
   };
   R.gardens = function (s, o) {
     var lines = state.lines.gardens, ph = ["garden", "garden2"];
@@ -1086,14 +1086,13 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
     ];
     var R2 = rules();
     // Rules: the limit, then the cooldown (the pool puts what is waiting first); the amount stays on
-    // the right, and the claim shows only on the jar you can claim from, below the text.
+    // the right, and the claim shows only on the jar you can claim from, in the amount's place.
     if (R2) j[2].meta = [L("2 waiting", "2 en espera", "2 aguardando"), { soft: L("6 open promises", "6 promesas abiertas", "6 promessas abertas") }];
     return list(j.slice(0, opt.count || 3).map(function (x, i) {
       var act = o.trail === "action" && i === 0 ? x.btn : null;
-      if (o.shape === "media") return mediaCard({ dom: x.dom, banner: true, icon: x.icon, title: TITLES.jars[i], lines: lines, status: x.status, sub: x.amt[0] + " " + tx(x.amt[1]), foot: [x.meta[0], x.meta[1].soft], btn: R2 ? act : (o.trail === "action" ? x.btn : null) });
       if (R2) return itemRow({ lead: "tile", icon: x.icon, title: TITLES.jars[i], lines: lines, status: x.status, meta: x.meta, trail: "amt", amt: x.amt, action: act, actionSec: true });
       return itemRow({ lead: "tile", icon: x.icon, title: TITLES.jars[i], lines: lines, status: x.status, meta: x.meta, trail: o.trail === "action" ? "btn" : "amt", amt: x.amt, btn: x.btn, btnSec: true });
-    }).join(""), sy, o.shape !== "media");
+    }).join(""), sy, true);
   };
   var FACTS = [[L("Action", "Acción", "Ação"), TITLES.actions[0]], [L("Garden", "Jardín", "Jardim"), "Botanic Commons"], [L("Submitted", "Enviado", "Enviado"), L("12 Oct 2026, 9:40", "12 oct 2026, 9:40", "12 out 2026, 9:40")], [L("Photos", "Fotos", "Fotos"), "3"], [L("Confirms it", "Lo confirma", "Quem confirma"), "chidi.eth"], [L("Reward", "Recompensa", "Recompensa"), "0.01 WETH"]];
   R.facts = function (s, o) { return factList(FACTS, o.label, o.rows); };
@@ -1114,11 +1113,11 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
   ];
   var DIALS = [
     { key: "stl", label: "Status", opts: [["details", "With details", STL[3][2]], ["corner", "Corner", STL[0][2]], ["under", "Under title", STL[1][2]], ["photo", "On photo", STL[2][2]], ["above", "Above title", STL[4][2]]] },
-    { key: "drules", label: "Detail line", opts: [["rules", "Agreed rules", "The rules agreed on 18 October: the status and at most two details, most important first; nothing the card already shows; short ages and dates; an action only on the row that needs you, below the text."], ["before", "Before", "The detail line as it was before the rules, to compare."]] },
+    { key: "drules", label: "Detail line", opts: [["rules", "Agreed rules", "The rules agreed on 18 October: the status and at most two details, most important first; nothing the card already shows; short ages and dates; an action only on the row that needs you, at its right, so every row keeps one height."], ["before", "Before", "The detail line as it was before the rules, to compare."]] },
     { key: "lang", label: "Text", opts: [["en", "English", "Typical English titles."], ["long", "Long", "Long English titles, to see where the clamp starts."], ["es", "Español", "Spanish titles and the product's Spanish status words."], ["pt", "Português", "Portuguese titles and the product's Portuguese status words."]] },
     { key: "media", label: "Row photo", opts: [["88", "88px", "The app's 88px photo, as it ships."], ["72", "72px", "A smaller photo, so more rows fit."], ["56", "56px", "A thumbnail."]] },
     { key: "rowh", label: "Row height", opts: [["72", "72px", "Every row card is 72px tall: a 48px lead, one title line and one detail line."], ["88", "88px", "Every row card is 88px tall, as the app's photo row is today: a 56px lead and more air."], ["64", "64px", "Every row card is 64px tall: a 40px lead, the densest list."]] },
-    { key: "tsize", label: "Title size", opts: [["base", "16 / 14", "Today: 16px titles in the app, 14px in the cockpit."], ["15", "15 / 14", "App titles a step smaller; the cockpit keeps 14px."], ["14", "14 / 14", "14px titles on both surfaces."], ["13", "13 / 13", "13px titles on both surfaces, for the longest titles."]] },
+    { key: "tsize", label: "Title size", def: "15-13", opts: [["base", "16 / 14", "Today: 16px titles in the app, 14px in the cockpit."], ["15", "15 / 14", "App titles a step smaller; the cockpit keeps 14px."], ["15-13", "15 / 13", "Your pick: 15px titles in the app and 13px in the cockpit."], ["14", "14 / 14", "14px titles on both surfaces."], ["13", "13 / 13", "13px titles on both surfaces, for the longest titles."]] },
     { key: "msize", label: "Detail size", opts: [["12", "12px", "Today: 12px details and labels."], ["11.5", "11.5px", "Details and labels half a step smaller."], ["11", "11px", "11px details and labels."]] },
     { key: "icons", label: "Icons", opts: [["show", "Show", "Rows without a photo lead with a centred icon tile."], ["hide", "Hide", "Rows without a photo start with the title. People keep their avatar."]] },
     { key: "confirm", label: "Confirming", opts: [["pill", "In the pill", "While it settles, the status pill reads Confirming… (or Not sent for a promise still on the phone). The row keeps its height."], ["detail", "In the details", "The detail line reads Confirming… (or Not sent) in place of the date until it settles."], ["none", "Hidden", "The row keeps its usual status; nothing mentions confirming."]] },
@@ -1131,14 +1130,12 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
   var LINE_TYPES = ["work", "commitments", "actions", "records", "gardens", "people", "jars"];
   var LINES_DEF = { work: "1", commitments: "1", actions: "1", records: "1", gardens: "1", people: "1", jars: "1" };
   var OBJ = {
-    commitments: [{ key: "shape", label: "Shape", opts: [["row", "Item row", "A row with a direction icon or avatar, the status and one action."], ["media", "Media card", "A card with a banner."]] },
-                  { key: "lead", label: "Lead", opts: [["icon", "Icon", "The row starts with the offer or request icon."], ["avatar", "Avatar", "The row starts with the other person's initials."]] }],
+    // Commitments, assessments and jars have no picture of their own, so they take the item row only.
+    commitments: [{ key: "lead", label: "Lead", opts: [["icon", "Icon", "The row starts with the offer or request icon."], ["avatar", "Avatar", "The row starts with the other person's initials."]] }],
     actions: [{ key: "shape", label: "Picker", opts: [["media", "Media card", "Pick an action from cards with a banner: the app's picker."], ["row", "Item row", "Pick an action from rows with an icon."]] }],
-    records: [{ key: "shape", label: "Shape", opts: [["row", "Item row", "Assessments and hypercerts as rows."], ["media", "Media card", "As cards with a banner."]] }],
     gardens: [{ key: "shape", label: "Shape", opts: [["media", "Media card", "A garden is a card with its banner: the app's garden card."], ["row", "Item row", "A garden is a row with a photo."]] }],
     people: [{ key: "shape", label: "Shape", opts: [["row", "Item row", "A person is a row with an avatar and a role."], ["compact", "Compact row", "One line per person."]] }],
-    jars: [{ key: "shape", label: "Shape", opts: [["row", "Item row", "A jar, position or pool is a row."], ["media", "Media card", "A card with a banner."]] },
-           { key: "trail", label: "Action", opts: [["amount", "None", "The row ends with its amount and opens when tapped."], ["action", "Show", "The jar you can claim from shows Claim: below the text under the agreed rules, at the right before them."]] }],
+    jars: [{ key: "trail", label: "Action", opts: [["amount", "None", "The row ends with its amount and opens when tapped."], ["action", "Show", "The jar you can claim from shows Claim at its right, in place of the amount, so the row keeps its height."]] }],
     facts: [{ key: "label", label: "Label", opts: [["beside", "Beside", "The label sits to the left of its value."], ["above", "Above", "The label sits above its value."]] },
             { key: "rows", label: "Rows", opts: [["divided", "Divided", "One card with divided rows."], ["spaced", "Spaced", "Each fact on its own tinted row."]] }],
     states: [{ key: "size", label: "Size", opts: [["full", "Full", "A centred block for an empty list or a failed page."], ["compact", "Compact", "A one-line block inside a card."]] },
@@ -1146,7 +1143,8 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
   };
   function defaults() {
     var d = { v: 3, pv: "app", pvType: "follow", tdens: "app", cdens: "app", lines: Object.assign({}, LINES_DEF) };
-    DIALS.forEach(function (c) { d[c.key] = c.opts[0][0]; });
+    // A dial starts on its recorded pick when it has one, otherwise on its first option.
+    DIALS.forEach(function (c) { d[c.key] = c.def || c.opts[0][0]; });
     Object.keys(OBJ).forEach(function (k) { d[k] = {}; OBJ[k].forEach(function (c) { d[k][c.key] = c.opts[0][0]; }); });
     return d;
   }
@@ -1228,7 +1226,7 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
     document.getElementById("sysLine").innerHTML = "Design system: " + esc("type " + names[0] + ", ground " + names[1] + ", cards " + names[2] + ", list " + names[3] + ", dark cards " + names[4]) + '. <a href="#system">Change it</a>';
   }
   function compareInner(d) {
-    return grp(d, "work", R.work(d, null, { count: 2 })) + grp(d, "commitments", R.commitments(d, state.commitments, { count: 1 })) + grp(d, "records", R.records(d, state.records, { count: 1 })) + grp(d, "jars", R.jars(d, state.jars, { count: 1 }));
+    return grp(d, "work", R.work(d, null, { count: 2 })) + grp(d, "commitments", R.commitments(d, state.commitments, { count: 1 })) + grp(d, "records", R.records(d, state.records || {}, { count: 1 })) + grp(d, "jars", R.jars(d, state.jars, { count: 1 }));
   }
   function renderCompare() {
     var d = state.cdens;
@@ -1432,7 +1430,8 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
   function copyPicks(btn) {
     var text = picksLine(), row = document.getElementById("copyRow"), field = document.getElementById("copyText");
     function copied() { row.hidden = true; btn.textContent = "Copied"; clearTimeout(copyTimer); copyTimer = setTimeout(function () { btn.textContent = "Copy picks"; }, 2200); }
-    function shown() { row.hidden = false; field.value = text; field.focus(); field.select(); }
+    // Where the clipboard is refused, show the line selected in a field, opening the folded tweaker if need be.
+    function shown() { dock.classList.remove("collapsed"); toggle.setAttribute("aria-expanded", "true"); row.hidden = false; field.value = text; field.focus(); field.select(); }
     function refused() { if (legacyCopy(text)) copied(); else shown(); }
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(copied, refused);

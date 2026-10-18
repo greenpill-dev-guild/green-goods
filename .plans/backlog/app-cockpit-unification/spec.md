@@ -179,7 +179,9 @@ it drops, and make dropping rare.
    "24 Oct", without the weekday). An age is always a number, "1 day ago" and never "yesterday",
    the wording the maintainer chose for every card on 18 October.
 5. A list row opens its item when tapped. An action stays on a row only where the row needs the
-   reader, and then it sits below the text, not beside it.
+   reader, and then it takes the row's right slot, in place of the chevron, so the row keeps its
+   height. (Revised on 18 October: the rule first put the action below the text, which made that
+   one card taller.)
 
 The order each type would follow, proposed with the rules and still to be confirmed on rendered
 pairs:
@@ -199,6 +201,14 @@ tile, the row cards drop or shorten 2 of 18 details in English and 5 of 18 in Po
 6 of 24 and 11 of 24 before. Most of what remains is the jar rows, where the amount on the right
 leaves too little room for two details; whether jars keep one detail, or the amount moves into the
 line, is open.
+
+Two more rulings the same day, from the census review:
+
+- **Every card keeps one height.** No state, action or language makes one card in a list taller
+  than its neighbours. Layouts that add a line by design (the pill under the title, the label above
+  it) and two-line titles stay opt-in choices for a whole card type, never a single card.
+- **A media card needs a picture of its own.** Work, gardens, actions and hypercerts have one;
+  commitments, assessments and jars, vaults and pools do not, so they take the item row only.
 
 Open against the picks:
 
@@ -220,7 +230,8 @@ Open against the picks:
   (18 October) gives every type one row height (72px), one title line and one detail line by
   default, with two title lines still available per type, and adds dials for row height, title
   size, detail size, icons and where "Confirming…" shows. The placement, the title lines and those
-  sizes wait for the maintainer's picks.
+  sizes wait for the maintainer's picks, except the title size: on 18 October the maintainer chose
+  15px titles in the app and 13px in the cockpit.
 
 ## Evidence and its limits
 
