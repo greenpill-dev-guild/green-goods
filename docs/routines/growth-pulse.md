@@ -4,7 +4,7 @@ trigger:
   schedule: "0 16 * * 1"  # Monday 16:00 UTC (= 09:00 PDT / 08:00 PST) — start of week after weekend data settles
 max-duration: 2h
 repos:
-  - green-goods
+  - green-goods  # checked out at develop, the default branch: Phase 2c and the claims check read files from the checkout
 environment: green-goods  # env_01CRAWm3KauPFp4ntqdAufPR, the environment the live trigger uses
 network-access: full
 env-vars:
@@ -22,8 +22,8 @@ connectors:
   - posthog
   - linear
   - google-calendar
-model: claude-opus-5-5
-status: active  # re-enabled after being off from 2026-08-24, posting to #growth (the channel formerly named #funding). 2026-05-25 — weekly digest posts to Linear (initiative status update), no GitHub PR. Consolidates metrics digest + guild-weekly-checkin numbers + guild-product-development-synthesis growth signals
+model: claude-opus-5-5  # the model it re-enables on; the disabled trigger still names claude-opus-5
+status: disabled  # off since 2026-08-24; re-enabling on claude-opus-5-5 with the bootstrap below once DISCORD_GROWTH_CHANNEL_ID names #growth (the channel formerly named #funding). 2026-05-25 — weekly digest posts to Linear (initiative status update), no GitHub PR. Consolidates metrics digest + guild-weekly-checkin numbers + guild-product-development-synthesis growth signals
 ---
 
 # Prompt
@@ -366,10 +366,10 @@ A failure-block-only digest with zero numbers is still a valid run; the user rea
    2. Read the whole spec: `git show origin/develop:docs/routines/growth-pulse.md`, and the curated PostHog questions it runs: `git show origin/develop:docs/routines/posthog-questions.md`.
    3. Execute everything after the spec's `# Prompt` heading exactly as written, except the `## Rebuilding the cloud routine from this file` section, which tells people how to set the routine up and is never part of a run. Where this prompt and the spec differ, follow the spec.
 
-   If step 1 or 2 fails, never run an older copy or improvise from memory: an older `origin/develop` may still be readable, and running it would run a stale spec. Report the failure in the run log, post one failure line, and exit non-zero. The line is `<@${DISCORD_USER_ID_AFO}> ⚠ growth-pulse could not load its spec ({the failed step}); no digest was written this week.`, sent as the `content` field of a JSON body with `POST https://discord.com/api/v10/channels/${DISCORD_GROWTH_CHANNEL_ID}/messages` and the headers `Authorization: Bot ${DISCORD_BOT_TOKEN}` and `Content-Type: application/json`, using plain `curl` without `-L` so the token is never forwarded. When `DISCORD_GROWTH_CHANNEL_ID` is unset, skip the post and say so in the run log; never post to another channel.
+   If step 1 or 2 fails, never run an older copy or improvise from memory: an older `origin/develop` may still be readable, and running it would run a stale spec. Report the failure in the run log, post one failure line, and exit non-zero. The line is `<@${DISCORD_USER_ID_AFO}> ⚠ growth-pulse could not load its spec ({the failed step}); no digest was written this week.`, sent as the `content` field of a JSON body built with an encoder such as `jq -n --arg`, never by hand, with `POST https://discord.com/api/v10/channels/${DISCORD_GROWTH_CHANNEL_ID}/messages` and the headers `Authorization: Bot ${DISCORD_BOT_TOKEN}` and `Content-Type: application/json`, using plain `curl` without `-L` so the token is never forwarded. When `DISCORD_GROWTH_CHANNEL_ID` is unset, skip the post and say so in the run log; never post to another channel.
 
    Limits that hold whatever the spec says: write no GitHub artifacts (no Issues, PRs, branches, Project items or `docs/metrics/` files), and post to Discord only in the channel `DISCORD_GROWTH_CHANNEL_ID` names.
    ```
 
-3. Configure per the frontmatter: repo `green-goods`, environment, env vars, connectors, model and cron. The cron is in UTC, as claude.ai stores it.
+3. Configure per the frontmatter: repo `green-goods` checked out at `develop` (the default branch, so the files a run reads from the checkout match the spec it fetched), environment, env vars, connectors, model and cron. The cron is in UTC, as claude.ai stores it.
 4. Save, then record the routine id in `docs/routines/README.md`.
