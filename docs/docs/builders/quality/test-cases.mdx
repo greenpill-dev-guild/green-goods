@@ -15,7 +15,7 @@ generated_from:
   - playwright.config.ts
   - scripts/data/qa-test-catalog.json
   - scripts/data/validation-policy.json
-source_digest: "sha256:e23de824e702d040e8900f7bc109ff2a24f7a71555c02d56718ec954aee3d3a8"
+source_digest: "sha256:c87d6ae38b16f7d77d09e8156c199b91c44775fb860ec1a72a3ed409911d8cee"
 source_of_truth:
   - package.json
   - packages/admin/vitest.config.ts
@@ -55,31 +55,31 @@ Guided journeys choreograph active Test IDs across surfaces. A case's kind still
 
 ### Service relay: Green Goods → Garden → members
 
-Two people follow a protocol Request from the Green Goods pool through Garden delivery, then use a separate Garden commitment to recognize the member's work. Both commitments are the garden-work type: each becomes ready through approved linked Work, not through evidence and Send for Confirmation.
+Two people follow a protocol Request from the Green Goods pool through garden delivery, then use a separate garden commitment to recognize the member's work. Both commitments are the garden-work type: each becomes ready through approved linked Work, not through evidence and Send for Confirmation.
 
 **Parts**
 
-- **Protocol & review** — Protocol steward and independent steward or evaluator of the test Garden; never a contributor.
-- **Garden & member** — Steward and member of the test Garden; institutional claimant, accountable lead, and contributor.
+- **Protocol & review** — Protocol steward and independent steward or evaluator of the test garden; never a contributor.
+- **Garden & member** — Steward and member of the test garden; institutional claimant, accountable lead, and contributor.
 
 **Phases and Test IDs**
 
 **Prepare**
 
 1. `ADM-037` — Act: Protocol & review; verify: Garden & member
-   - **Handoff:** Wait until the Garden member can see the starting assessment.
+   - **Handoff:** Wait until the garden member can see the starting assessment.
 2. `PWA-046` — Act: Garden & member
 3. `ADM-038` — Act: Protocol & review; verify: Garden & member
-   - **Handoff:** Both people confirm the same Garden and open cycle are visible; the assessment is context, not a prerequisite.
+   - **Handoff:** Both people confirm the same garden and open cycle are visible; the assessment is context, not a prerequisite.
 
 **Protocol asks**
 
 4. `ADM-139` — Act: Protocol & review; verify: Garden & member
-   - **Handoff:** Wait until the Request appears in the protocol pool for the Garden member.
+   - **Handoff:** Wait until the Request appears in the protocol pool for the garden member.
 5. `PWA-047` — Act: Garden & member; verify: Protocol & review
-   - **Handoff:** The protocol reviewer waits for the pending Garden claim before accepting it.
+   - **Handoff:** The protocol reviewer waits for the pending garden claim before accepting it.
 6. `ADM-040` — Act: Protocol & review; verify: Garden & member
-   - **Handoff:** Both people verify the Request remains in the protocol pool and names the Garden as provider.
+   - **Handoff:** Both people verify the Request remains in the protocol pool and names the garden as provider.
 
 **Garden delivers**
 
@@ -92,13 +92,13 @@ Two people follow a protocol Request from the Green Goods pool through Garden de
 **Garden earns**
 
 10. `ADM-043` — Act: Protocol & review; verify: Garden & member
-   - **Handoff:** The Garden member verifies the destination Garden Safe or its readiness state.
+   - **Handoff:** The garden member verifies the destination Garden Safe or its readiness state.
    - **Known gate:** Protocol-to-Garden G$ settlement requires enabled settlement UI and value authority. If either is unavailable, record Blocked and continue with the non-value steps.
 
 **Garden distributes**
 
 11. `ADM-140` — Act: Protocol & review; verify: Garden & member
-   - **Handoff:** Seed it as Garden work with one action row, so the member's Work can link to it. Wait until the separate local commitment appears in the open Garden Campaign.
+   - **Handoff:** Seed it as Garden work with one action row, so the member's Work can link to it. Wait until the separate local commitment appears in the open garden Campaign.
 12. `PWA-049` — Act: Garden & member
 13. `PWA-050` — Act: Garden & member; verify: Protocol & review
    - **Handoff:** The reviewer waits for the local Work and evidence before opening review.
@@ -109,17 +109,17 @@ Two people follow a protocol Request from the Green Goods pool through Garden de
 **Member receives**
 
 16. `ADM-044` — Act: Protocol & review; verify: Garden & member
-   - **Handoff:** The Garden member verifies the receiving account or the visible readiness state.
+   - **Handoff:** The garden member verifies the receiving account or the visible readiness state.
    - **Known gate:** Garden-to-member G$ settlement requires enabled contributor payout UI and value authority. If either is unavailable, record Blocked without changing the completed non-value workflow.
 
 ### Protocol treasury top-up
 
-Check discretionary funding readiness, queue a ProtocolToGarden top-up when authorized, and verify the Garden balance without referencing a commitment.
+Check discretionary funding readiness, queue a ProtocolToGarden top-up when authorized, and verify the garden balance without referencing a commitment.
 
 **Parts**
 
 - **Protocol & review** — Protocol steward with authority to inspect and, when approved, queue treasury funding.
-- **Garden & member** — Test-Garden steward who verifies the destination Garden and its balance.
+- **Garden & member** — Test-garden steward who verifies the destination garden and its balance.
 
 **Phases and Test IDs**
 
@@ -130,7 +130,7 @@ Check discretionary funding readiness, queue a ProtocolToGarden top-up when auth
 **Queue top-up**
 
 2. `ADM-045` — Act: Protocol & review; verify: Garden & member
-   - **Handoff:** The Garden steward verifies the destination Garden and balance; no commitment ID is involved.
+   - **Handoff:** The garden steward verifies the destination garden and balance; no commitment ID is involved.
    - **Known gate:** Protocol treasury funding requires explicit value authority and a live ProtocolToGarden funding path. If unavailable, record Blocked and do not imply that funds moved.
 
 
@@ -223,10 +223,10 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 |---|---|---|---|---|
 | `PWA-020` | Journey | Auth | Wallet login in the app connects, signs, and recovers from a rejected signature | Recording of reject + retry |
 | `PWA-028` | Transaction | Wallet | Claim from a garden cookie jar in the Wallet drawer (purpose required) | Screenshot of claim result |
-| `PWA-047` | Transaction | Commitments | Claim the protocol Request for the test Garden | Screenshot of the pending Garden claim |
+| `PWA-047` | Transaction | Commitments | Claim the protocol Request for the test garden | Screenshot of the pending garden claim |
 | `PWA-048` | Transaction | Work | Submit Work and evidence against the original protocol Request | Screenshot of the linked Work and evidence on the Request |
-| `PWA-049` | Transaction | Commitments | Take up the separate local Garden commitment | Screenshot with the local commitment ID and Garden Campaign context |
-| `PWA-050` | Transaction | Work | Submit Work and evidence for the local Garden commitment | Screenshot of the local Work and evidence link |
+| `PWA-049` | Transaction | Commitments | Take up the separate local garden commitment | Screenshot with the local commitment ID and garden Campaign context |
+| `PWA-050` | Transaction | Work | Submit Work and evidence for the local garden commitment | Screenshot of the local Work and evidence link |
 | `PWA-051` | Transaction | Garden | Join an open garden from the garden page | Screenshot of the joined state and toast |
 | `PWA-052` | Transaction | Garden | Request to join a closed garden with a note, then withdraw the request | Screenshots of the pending and withdrawn states |
 | `PWA-053` | Transaction | Garden | Steward welcomes one join request and declines another with a reason | Screenshot of the queue before and after |
@@ -272,7 +272,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `PWA-040` | Resilience | Offline | Offline mid-browse: toggle devtools offline while navigating, then reconnect | Screenshot of offline state |
 | `PWA-041` | Resilience | Update | Desktop service-worker update: banner on a new deploy, refresh applies cleanly | Screenshot of the banner |
 | `PWA-042` | Accessibility | App-wide | Keyboard and focus smoke on the desktop shell: wizard, drawers, dialogs | Notes per surface + screenshots |
-| `PWA-046` | Journey | Garden | Garden member can read the starting assessment | Screenshot of the assessment in the test Garden |
+| `PWA-046` | Journey | Garden | Garden member can read the starting assessment | Screenshot of the assessment in the test garden |
 | `PWA-054` | Transaction | Garden | A declined gardener resubmits a join request | Screenshot of the decline reason and the new pending request |
 | `PWA-055` | Journey | Garden | Governance drawer shows the current stake to eligible roles only | Screenshots of the drawer and the gardener view |
 | `PWA-056` | Transaction | Garden | Allocate conviction support points in the governance drawer | Screenshot of the updated stake |
@@ -371,11 +371,11 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-012` | Transaction | Hub · Work | Full review decision path completes with actions visible | Screen recording; screenshot of the action region at ~1084x637 |
 | `ADM-018` | Transaction | Hub · Work | Decision integrity: no double decisions, honest tx failure | Screenshots of the blocked second decision and the failure state |
 | `ADM-038` | Transaction | Garden · Pool | Open the test Season and Campaign independently of assessment state | Screenshot of the open Season and Campaign |
-| `ADM-040` | Transaction | Garden · Pool | Accept the test Garden's institutional claim | Screenshot showing Accepted, the Garden provider, and protocol-pool context |
+| `ADM-040` | Transaction | Garden · Pool | Accept the test garden's institutional claim | Screenshot showing Accepted, the garden provider, and protocol-pool context |
 | `ADM-041` | Transaction | Hub · Work | Approve Work linked to the protocol Request without joining its contributors | Screenshot of the approved Work and contributor roster |
 | `ADM-042` | Transaction | Hub · Confirm | Confirm the protocol Request after its Work is approved | Screenshot of the Fulfilled protocol Request |
-| `ADM-043` | Transaction | Garden · Settlement | Settle earned G$ compensation from the protocol to the Garden | Screenshot of the Garden beneficiary and completed settlement or visible gate |
-| `ADM-044` | Transaction | Garden · Settlement | Settle the Garden's contributor payout to the member | Screenshot of the member recipient and completed payout or visible gate |
+| `ADM-043` | Transaction | Garden · Settlement | Settle earned G$ compensation from the protocol to the garden | Screenshot of the garden beneficiary and completed settlement or visible gate |
+| `ADM-044` | Transaction | Garden · Settlement | Settle the garden's contributor payout to the member | Screenshot of the member recipient and completed payout or visible gate |
 | `ADM-046` | Transaction | Hub · Assessments | Submit an assessment end to end from the admin | Screen recording of the submission and a screenshot of the recorded assessment |
 | `ADM-048` | Transaction | Garden · Settings | Save garden name, description, and location, one wallet confirmation each, and resume a stopped save | Screenshots of the mid-run error and the saved state |
 | `ADM-052` | Transaction | Community · Members | Batch-add members by address, ENS name, and clipboard paste | Screenshots of the staged list and the updated directory |
@@ -402,7 +402,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-120` | Transaction | Garden · Settlement | Dispatch a prepared disbursement | Screenshots of the dispatched row and the plan status |
 | `ADM-121` | Transaction | Garden · Settlement | Resend… sends the same command again for a dispatched row | Screenshot of the review for Resend… and the row afterwards |
 | `ADM-125` | Transaction | Garden · Pool | Seeding asks the wallet to confirm and the commitment appears without a reload | Screen recording from the press to the commitment appearing |
-| `ADM-139` | Transaction | Garden · Pool | Seed an approval-gated protocol Request for garden work the test Garden can deliver | Screenshot of the Request in the protocol pool |
+| `ADM-139` | Transaction | Garden · Pool | Seed an approval-gated protocol Request for garden work the test garden can deliver | Screenshot of the Request in the protocol pool |
 | `ADM-140` | Transaction | Garden · Pool | Seed a commitment: 4-step wizard, named confirmers, review before sending | Screenshots of the rejected confirmer and the review |
 | `ADM-144` | Journey | Hub · Confirm | Hub → Confirm lists only what the garden in the header confirms | Screenshots of Hub → Confirm with each garden selected |
 | `ADM-145` | Transaction | Hub · Confirm | Confirm Kept… reviews the commitment before confirming it | Screenshots of the review and of the commitment afterwards |
@@ -421,8 +421,8 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-030` | Transaction | Hub · Work | Admin submit-work wizard with review-step edit jumps and offline queueing | Screenshot of review step |
 | `ADM-031` | Journey | Hub · Work | Hub queue at volume: full scroll, search/sort, deep item open and return | Recording of scroll return |
 | `ADM-033` | Transaction | Garden · Lifecycle | First-run: zero-garden steward sees an honest no-access state; a deployer gets the create funnel | Screenshot of empty state |
-| `ADM-037` | Transaction | Hub · Assessments | Record a starting assessment for the test Garden | Screenshot of the recorded assessment with the Garden identity visible |
-| `ADM-045` | Transaction | Community · Coordination | Queue a discretionary protocol-to-garden treasury top-up | Screenshot of the queue confirmation naming the Garden, and the resulting balance or visible gate |
+| `ADM-037` | Transaction | Hub · Assessments | Record a starting assessment for the test garden | Screenshot of the recorded assessment with the garden identity visible |
+| `ADM-045` | Transaction | Community · Coordination | Queue a discretionary protocol-to-garden treasury top-up | Screenshot of the queue confirmation naming the garden, and the resulting balance or visible gate |
 | `ADM-049` | Transaction | Garden · Settings | Upload a garden banner, then remove it with undo | Screenshots of the preview, the staged removal, and the cleared banner |
 | `ADM-050` | Transaction | Garden · Settings | Toggle open joining and set the gardener cap | Screenshots of the settings and the app's join control |
 | `ADM-051` | Journey | Garden · Settings | Domain rules and the dirty-close prompt in garden settings | Screenshots of the domain error and the discard prompt |
