@@ -35,6 +35,8 @@
       "packages/shared/src/i18n/es.json": [
         "steward",
         "stewards",
+        "garden",
+        "gardens",
         "coordinador",
         "coordinadores",
         "coordinadora",
@@ -49,6 +51,8 @@
       "packages/shared/src/i18n/pt.json": [
         "steward",
         "stewards",
+        "garden",
+        "gardens",
         "coordenador",
         "coordenadores",
         "coordenadora",
@@ -61,7 +65,21 @@
         "hortas"
       ]
     },
-    "locale_terms_rationale": "Locked visible terms on every surface (decided 2026-10-18): steward is es responsable, pt responsável; garden is es jardín, pt jardim. Each list holds the English word and the synonyms that drifted in before. Participante, compromiso and the Gardens product name are correct elsewhere, so they are not listed; dotación and dotação are guarded by the shared locale-coverage test. ICU argument names are code and are skipped."
+    "locale_term_exemptions": {
+      "packages/shared/src/i18n/es.json": {
+        "app.community.title": ["gardens"],
+        "app.conviction.description": ["gardens"],
+        "cockpit.garden.pool.target.protocolNote": ["garden"],
+        "cockpit.garden.pool.target.protocolRecord": ["garden"]
+      },
+      "packages/shared/src/i18n/pt.json": {
+        "app.community.title": ["gardens"],
+        "app.conviction.description": ["gardens"],
+        "cockpit.garden.pool.target.protocolNote": ["garden"],
+        "cockpit.garden.pool.target.protocolRecord": ["garden"]
+      }
+    },
+    "locale_terms_rationale": "Locked visible terms on every surface (decided 2026-10-18): steward is es responsable, pt responsável; garden is es jardín, pt jardim. Each list holds the English words and the synonyms that drifted in before. locale_term_exemptions lets one key keep one listed word, and nothing else: Gardens is the conviction-voting product and Green Goods Community Garden is a proper name. Participante, compromiso and custodia are correct elsewhere, so they are not listed; dotación and dotação are guarded by the shared locale-coverage test. ICU argument names are code and are skipped."
   },
   "prompt_vocabulary_admin_banned": {
     "scope": "AI-prompt vocabulary for admin-cockpit screens; guidance only",
