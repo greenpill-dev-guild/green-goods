@@ -773,7 +773,7 @@ describe("GardenCommitment", () => {
     await userEvent.click(screen.getByRole("button", { name: "Link Work" }));
     await userEvent.click(screen.getByRole("radio", { name: /Prune the north beds/ }));
 
-    const row = screen.getByRole("group", { name: "Which row it fulfils" });
+    const row = screen.getByRole("group", { name: "Which row it fulfills" });
     expect(
       within(row).getByRole("radio", { name: /Requirement 1.*Prune the north beds/ })
     ).toBeInTheDocument();
@@ -1039,7 +1039,7 @@ describe("GardenCommitment", () => {
 
       expect(screen.getByText("Saved on this phone, not sent")).toBeInTheDocument();
       // Only the change of network was declined, so it never reads as a signature.
-      expect(screen.queryByText(/signature cancelled/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/signature canceled/i)).not.toBeInTheDocument();
       expect(
         screen.getByText(
           "Your wallet needs to be on Arbitrum One for this. Switch it there, then try again."
@@ -1222,11 +1222,11 @@ describe("GardenCommitment", () => {
     );
     render();
 
-    expect(screen.getByText("Signature cancelled. Nothing was sent")).toBeInTheDocument();
+    expect(screen.getByText("Signature canceled. Nothing was sent")).toBeInTheDocument();
     expect(
       screen.getByText("No proof on the promise yet. Yours is still on this phone (see above).")
     ).toBeInTheDocument();
-    const line = screen.getByText("Sending was cancelled. Nothing was sent").closest("li");
+    const line = screen.getByText("Sending was canceled. Nothing was sent").closest("li");
     expect(line).toHaveAttribute("data-local", "true");
   });
 

@@ -110,7 +110,7 @@ export function PoolReasonDialogs({
           {
             id: "cockpit.garden.pool.cancelCycle.description",
             defaultMessage:
-              "“{name}” has no live commitments. Cancelling ends it for everyone in it; each commitment keeps its own record, and members see the reason you give here.",
+              "“{name}” has no live commitments. Canceling ends it for everyone in it; each commitment keeps its own record, and members see the reason you give here.",
           },
           {
             name:

@@ -63,7 +63,7 @@ export function WorkCommitmentSelection({
         );
   const description = intl.formatMessage({
     id: "app.garden.commitment.description",
-    defaultMessage: "Choose the promise and exact requirement this work fulfils.",
+    defaultMessage: "Choose the promise and exact requirement this work fulfills.",
   });
   const readFailed = error !== null || intentStatus === "unavailable";
   const intentInvalid = intentStatus === "invalid";

@@ -47,7 +47,7 @@ export function PoolClaimsCard({ console: pool, onDecline, onOpen }: PoolClaimsC
       ? formatMessage({
           id: "cockpit.garden.pool.approvals.description",
           defaultMessage:
-            "Neighbours asking to take a promise up. Approving one closes the others on that promise.",
+            "Neighbors asking to take a promise up. Approving one closes the others on that promise.",
         })
       : formatMessage(
           {

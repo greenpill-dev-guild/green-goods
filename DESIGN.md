@@ -266,6 +266,8 @@ method name (strategy kernel, Cynefin, SMART) appears only as helper text, in pa
 plain question. A flow never preselects a choice the person has to make, such as an assessment's
 domain.
 
+**US spelling (2026-10-17).** All English copy uses US spelling (canceled, neighbor, color, gray, fulfill); quoted third-party names keep theirs, and `bun run check --only vocabulary` rejects the common UK forms in the English catalog.
+
 ### Writing Checklist
 
 Before shipping copy:
@@ -283,7 +285,7 @@ Surface-specific copy patterns (browser editorial, PWA gardener-facing, admin ut
 
 Full specs in [`.claude/skills/design/language.md`](.claude/skills/design/language.md). AI prompts should honor these one-line rules:
 
-- **Shape** — *Fixed* (badges, avatars), *Capsule* (icon buttons, chips), *Concentric* (nested: `child_radius = parent_radius − padding`). Buttons take one corner per surface whatever their emphasis: the 16px field corner (`rounded.lg`) in the installed app, tightening to 12px while pressed, with the 32px compact size at 12px at rest and 8px while pressed (DL-029, DL-038), and the capsule (`rounded.full`) on the public website, at rest and while pressed (DL-089); fill, outline, and colour carry emphasis. Fields are 16px (`rounded.lg`). Buttons and fields share one height scale: 48 / 44 / 40 / 32px.
+- **Shape** — *Fixed* (badges, avatars), *Capsule* (icon buttons, chips), *Concentric* (nested: `child_radius = parent_radius − padding`). Buttons take one corner per surface whatever their emphasis: the 16px field corner (`rounded.lg`) in the installed app, tightening to 12px while pressed, with the 32px compact size at 12px at rest and 8px while pressed (DL-029, DL-038), and the capsule (`rounded.full`) on the public website, at rest and while pressed (DL-089); fill, outline, and color carry emphasis. Fields are 16px (`rounded.lg`). Buttons and fields share one height scale: 48 / 44 / 40 / 32px.
 - **Motion** — Named spring tokens only (`--spring-spatial`, `--spring-spatial-fast`, `--spring-effects`, etc.). Never hardcoded `cubic-bezier` or `duration`. Things settle like a leaf on water.
 - **Material** — Five thicknesses (ultrathin 20% / thin 40% / regular 65% / thick 85% / solid 100%). Match thickness to content density. Never body text on ultrathin. Admin limits glass to Navigation/FAB chrome only; the admin `AppBar` root stays transparent and dialogs/side sheets stay solid.
 - **Elevation** — Five Z-layers (Z0 substrate → Z4 overlay). Admin workspace action/detail flows open in centered `AdminDialog`; the canvas stays at rest and depth comes from the dialog scrim/elevation. Global AppBar surfaces use solid `AdminSideSheet`. Viewport dialogs and PWA sheets may use the shared scrim token.
@@ -310,20 +312,20 @@ The principles come from three books, restated in our own words and applied to G
 4. **Show where the steward is and what they are acting on.** From any screen it must be obvious which section this is and which garden is in scope; the trunk test (drop someone on the page and ask them to name it) should pass without hesitation. A control never acts outside the scope the page announces. When the scope genuinely differs, as with the protocol pool, the screen looks different; a different default tab is not enough. *(DMMT ch. 6, pp. 96–113; ch. 3, p. 56)* The garden in the header is the only garden a screen can change, and protocol work lives in the Green Goods Community Garden, whose pool the protocol pool is.
 5. **Keep conventions, and break them only for clarity.** Reuse patterns people already know, ours and the wider web's, so they learn once. When sameness would hide a difference that matters, clarity wins over consistency. *(DMMT ch. 3, pp. 48–56)*
 6. **Cut what is not earning its place.** Remove happy talk and instructions nobody reads. Say the one thing the steward needs, where they need it. *(DMMT ch. 5, pp. 77–80)*
-7. **Spend goodwill carefully.** Patience is a reserve. Silence at a moment of uncertainty (a wallet prompt with no word about why, a wait with no progress) drains it fastest; candour, saved steps, and recoverable mistakes refill it. *(DMMT ch. 11, pp. 204–211)*
+7. **Spend goodwill carefully.** Patience is a reserve. Silence at a moment of uncertainty (a wallet prompt with no word about why, a wait with no progress) drains it fastest; candor, saved steps, and recoverable mistakes refill it. *(DMMT ch. 11, pp. 204–211)*
 8. **Watch one real person use it.** Opinions do not settle design questions; watching someone try the flow does. Before a consequential flow ships, one person outside the build walks it cold while thinking aloud, and the worst problems are fixed first. *(DMMT ch. 8–9, pp. 135–170)*
 
 ### How a screen shows what matters
 
-9. **Rank everything.** Decide what is primary, secondary, and tertiary on each screen, and let weight, colour, and position carry that ranking. When something does not stand out, quiet its neighbours rather than making it louder. *(RUI "Not all elements are equal" and "Emphasize by de-emphasizing", pp. 36–47)* On a screen that ends in a signature, the target of the write is the most prominent fact after the title.
+9. **Rank everything.** Decide what is primary, secondary, and tertiary on each screen, and let weight, color, and position carry that ranking. When something does not stand out, quiet its neighbors rather than making it louder. *(RUI "Not all elements are equal" and "Emphasize by de-emphasizing", pp. 36–47)* On a screen that ends in a signature, the target of the write is the most prominent fact after the title.
 10. **One primary action per moment.** Actions form a pyramid: one clear primary, a few secondary, the rest tertiary. A destructive act stays modest where it sits and becomes the loud, primary action only inside its own confirmation. *(RUI "Semantics are secondary", pp. 60–62)*
 11. **Let values speak for themselves.** Format and context often already say what a value is. Add a label only when they do not, and keep it quieter than the value. *(RUI "Labels are a last resort", pp. 48–52)*
 12. **Design the in-between states on purpose.** Empty, loading, waiting on a wallet, three of six done, stopped part-way, finished: each is a screen someone will see, and each is designed rather than left to a spinner. *(RUI "Don't overlook empty states", pp. 234–237; AD ch. 4, p. 99)* A multi-signature act says how many prompts are coming, shows each one landing, names where it stopped, and ends on a clear done state.
-13. **Choose from the systems, not from scratch.** Spacing, type sizes, colour shades, elevation, and radii come from the defined scales; a value outside them is drift, not a decision. Colour is never the only signal. *(RUI "Limit your choices", pp. 28–32; spacing pp. 66–75; type pp. 102–107; colour pp. 142–168; depth pp. 180–185)*
+13. **Choose from the systems, not from scratch.** Spacing, type sizes, color shades, elevation, and radii come from the defined scales; a value outside them is drift, not a decision. Color is never the only signal. *(RUI "Limit your choices", pp. 28–32; spacing pp. 66–75; type pp. 102–107; color pp. 142–168; depth pp. 180–185)*
 
 ### How the system stays whole
 
-14. **Name each piece by what it is responsible for.** Atoms (a button, a step marker), molecules (a labelled field, the line naming a write's target), organisms (a pool console, a setup flow), templates, and pages. The larger and more stateful the piece, the more care each new placement needs. *(AD ch. 2, pp. 39–61)*
+14. **Name each piece by what it is responsible for.** Atoms (a button, a step marker), molecules (a labeled field, the line naming a write's target), organisms (a pool console, a setup flow), templates, and pages. The larger and more stateful the piece, the more care each new placement needs. *(AD ch. 2, pp. 39–61)*
 15. **Reuse is a decision, and an organism is handed its context.** Promote a pattern to shared when a second real need matches the first one's context, not because the pattern already exists. An organism that writes is told its target and never infers it from wherever it happens to be mounted, and we keep track of everywhere it is used. *(AD ch. 5, p. 155; ch. 1, pp. 35–36; ch. 3, pp. 88–91)* The pool console has one home, the Garden workspace's Pool tab, and its protocol context comes from the pool itself.
 16. **Prove patterns with real and worst-case content.** A pattern is finished when real pages hold up: long names, zero items, errors, pending states, elevated permissions. Storybook carries those states for every pattern, not only the tidy one. *(AD ch. 2, pp. 48–54; ch. 3, pp. 77–81)*
 17. **Fix at the pattern, everywhere it lives.** When a flaw shows up in one placement, check every other placement and fix the shared piece once. The pattern library and the product are built from the same components, so they cannot drift apart. *(AD ch. 5, pp. 140–163)*
@@ -347,7 +349,7 @@ These are how the principles above apply to on-chain acts, not a separate rulebo
   2. Is the most important thing the most prominent, with one primary action? (9, 10)
   3. Does any control act outside the scope the page announces, or any tab change scope without saying so? (4)
   4. Are the in-between states designed and in Storybook: empty, loading, waiting, part-way, failed, done? (12, 16)
-  5. Is every value on the defined scales, and does no status rely on colour alone? (13)
+  5. Is every value on the defined scales, and does no status rely on color alone? (13)
   6. If a shared organism changed: where else is it mounted, and does each mount hand it its context? (15, 17)
 - **Before a consequential flow ships,** someone outside the build walks it cold, thinking aloud (8).
 - **Where it is enforced:** this section is the source. The design review checklist carries it as its clarity lens (`.claude/skills/design/review-checklist.md`), and every frontend rule points here (`.claude/rules/frontend-design.md`, Rule 20).
@@ -358,7 +360,7 @@ These are how the principles above apply to on-chain acts, not a separate rulebo
 - Use role vocabulary (canvas/ink/stone/green) when describing designs to AI tools
 - Use semantic color tokens in code, never raw values
 - Let the canvas breathe — generous whitespace
-- Give every button on a surface the same corner; show importance with fill, outline, and colour
+- Give every button on a surface the same corner; show importance with fill, outline, and color
 - Celebrate milestone moments with expressive motion
 - Design for sunlight readability (high contrast on warm backgrounds)
 - Use spring physics for all transitions

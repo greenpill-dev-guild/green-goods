@@ -71,7 +71,7 @@ describe("Celo contributor receipts", () => {
 
   it("shows a cancelled receipt", () => {
     show({ receipts: [{ ...receipt, delivery: { status: "cancelled", from: "queued" } }] });
-    expect(screen.getByText("Support cancelled")).toBeInTheDocument();
+    expect(screen.getByText("Support canceled")).toBeInTheDocument();
   });
 
   it("retains a receipt with neutral promise text when metadata is unavailable", () => {

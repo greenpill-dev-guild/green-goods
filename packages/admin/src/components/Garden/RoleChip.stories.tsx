@@ -10,7 +10,7 @@ const meta: Meta<typeof RoleChip> = {
     docs: {
       description: {
         component:
-          "A garden role in the membership dialogs: the role's colour pair around its singular name. Manage Members tags each roster row with it; Add Members tags each queued person with the role they are getting.",
+          "A garden role in the membership dialogs: the role's color pair around its singular name. Manage Members tags each roster row with it; Add Members tags each queued person with the role they are getting.",
       },
     },
   },

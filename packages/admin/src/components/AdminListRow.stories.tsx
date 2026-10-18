@@ -33,7 +33,7 @@ const RECENT_ASSESSMENTS = [
   { id: "soil", title: "Soil health check", date: "Sep 12, 2026" },
   {
     id: "workshop",
-    title: "Workshop cohort check-in with the neighbouring school gardens",
+    title: "Workshop cohort check-in with the neighboring school gardens",
     date: "Aug 30, 2026",
   },
 ];

@@ -25,8 +25,8 @@ policy).
 - Shared, client, and admin use inherited `node` and `dom` projects: DOM-free `.test.ts`
   suites run in Node, while `.test.tsx` and documented DOM exceptions run in a DOM: happy-dom
   in all three. Keep coverage at the root config, never inside a project.
-- A DOM test that depends on jsdom behaviour pins it with `@vitest-environment jsdom` and a
-  comment saying which behaviour, such as authored inline style values, `Storage.prototype` spies,
+- A DOM test that depends on jsdom behavior pins it with `@vitest-environment jsdom` and a
+  comment saying which behavior, such as authored inline style values, `Storage.prototype` spies,
   `MessagePort` identity, or an accessible name joined from adjacent inline elements (happy-dom
   gives a span no computed display, so Testing Library adds a space between them).
 - Shared's Node tests that mock and stub nothing share one module graph in
@@ -49,7 +49,7 @@ policy).
 ## GG mock / DOM conventions (`setupTests.base.ts` + per-package setup)
 
 - Strict `fetch`: any unmocked call throws ("Mock this endpoint explicitly") — mock via `mockFetch` or the test's own module mock.
-- Reown AppKit is aliased to stubs in every package (see above), so no test loads or contacts it; a test that needs its behaviour mocks `config/appkit` or `AppKitProvider`. `react-hot-toast` mocked in admin.
+- Reown AppKit is aliased to stubs in every package (see above), so no test loads or contacts it; a test that needs its behavior mocks `config/appkit` or `AppKitProvider`. `react-hot-toast` mocked in admin.
 - DOM polyfills so Radix / floating-ui primitives render: `HTMLDialogElement.showModal/close`, `matchMedia`, `ResizeObserver`, `IntersectionObserver`, `scrollIntoView` (admin); `fake-indexeddb/auto` for IndexedDB. Drive dialogs/menus with `fireEvent` (neither test DOM does layout or pointer hit-testing). These live in setup — don't re-stub per test.
 
 ## Coverage

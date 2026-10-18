@@ -151,7 +151,7 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   own act creates more of them.
 - **No overflow menus on the admin surface.** If two acts are legal at the same moment and one
   is rare or destructive, offer the rare one *inside the flow of the common one*, where its
-  context is already on screen — the way cancelling a season is offered inside the close flow.
+  context is already on screen — the way canceling a season is offered inside the close flow.
   An overflow hides the act from anyone who doesn't know to look.
 - **New capability arrives as a row on an existing card, not a new tab** (uiux §5: "every
   screen is designed so a settlement row can be added without moving anything").
@@ -196,7 +196,7 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
 - **A commitment row's edge tells its direction (DL-052).** A 3px edge on the row's inline start
   marks offers in the primary tone and requests in the information tone. The state chip is
   unchanged, and the direction word stays where the chip does not already say it, so direction
-  never rests on colour alone. Markers such as "Needs you" sit at the 12px label size in sentence
+  never rests on color alone. Markers such as "Needs you" sit at the 12px label size in sentence
   case. Proof: `CommitmentRow` in
   [CommitmentRow.tsx](../../../packages/client/src/components/Features/Commitments/CommitmentRow.tsx).
 - **Banners teach once; chips carry state.** Repeating per-row conditions (past due, expired,

@@ -73,7 +73,7 @@ Phase 3b dedupe catches the other's records if both ran.
   `defect`, `polish`, `decision`, `investigate`, `catalog`, or `environment`. Write the `catalog`
   observations to `tmp/qa-triage/<slug>/catalog-feedback.md` — they feed the next catalog change
   and never reach Linear; at Phase 7 copy the file, de-attributed (no verdicts, no tester names),
-  into the plan hub that owns the next catalog change (the hub of the feature whose behaviour those
+  into the plan hub that owns the next catalog change (the hub of the feature whose behavior those
   cases test) before the workspace is removed, so cleanup cannot lose it. A note that says "major regression", "major blocker", or "completely
   broken" proposes Urgent for its cluster; the priority stays derived until the gate confirms.
 - **Phases 3-5** — `defect` and `polish` observations cluster into slices: same catalog area +
@@ -403,7 +403,7 @@ Title shape for track-only Issues: a plain action-verb-led sentence, no prefix �
 
 Single bulk prompt up front, then surface only the items where the proposed assignee differs from the default — never ask 27 separate questions.
 
-> Default assignee for all N filed Issues: (a) Afo, (b) Claude (unlabelled), (c) unassigned, (d) other engineer (name).
+> Default assignee for all N filed Issues: (a) Afo, (b) Claude (unlabeled), (c) unassigned, (d) other engineer (name).
 > Per-item overrides? Reply with bullets like `5:gferreira525, 12-15:claude, 18:unassigned` or `confirm` to accept the default for everything.
 
 Then, before writing, the assistant surfaces a **proposed exceptions list** for the user to ratify — items where the bulk default seems wrong given context (e.g., an admin bug when the default is Gui, a PWA architectural bug when the default is Claude). The user sees only items that need a decision, not the whole list.

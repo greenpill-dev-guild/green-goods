@@ -119,10 +119,10 @@ vectors, preview sheets, and the export README are bundled in the ZIP rather tha
 
 The docs-owned `src/components/docs/BrandAssets.tsx` is the closest existing implementation.
 Its original size selectors and disclosures hid available variants and downloads. Its current
-catalogue focuses on dark green, white and black: paired standard/enlarged logo previews, one
+catalog focuses on dark green, white and black: paired standard/enlarged logo previews, one
 symbol framing, and direct SVG/512/1024/2048 PNG links. `AssetPreview` shares the existing preview
 behavior between `LogoCard`'s framing comparison and the single-asset `AssetCard`; download rules
-stay local to this docs catalogue. Favicons and home-screen files share one Website files section.
+stay local to this docs catalog. Favicons and home-screen files share one Website files section.
 Other colors, landscape/original framing and uncommon sizes remain in the unchanged complete kit
 and family ZIPs. Keep these bundles beside their relevant sections and avoid selectors or
 disclosures. Fonts come from the existing vendored social-card fonts;
@@ -132,7 +132,7 @@ the recorded Figma vector shapes and identify themselves as kit compositions.
 Keep the `/brand` route and existing versioned download paths stable when adding a new export.
 Dark green (`#367D44`) is the canonical brand color, confirmed by the owner on 4 October 2026.
 Brand artwork and the downloadable CSS do not override application or docs UI tokens. Keep
-original Figma green and optional recolors labelled as reference colors. Preserve v2 downloads,
+original Figma green and optional recolors labeled as reference colors. Preserve v2 downloads,
 including `static/brand/green-goods-brand-kit-v2.zip` and `static/brand/v2/website-ready/` files.
 
 ## Generated pages

@@ -179,8 +179,8 @@ function ReviewInFlow({ stage }: { stage: MintingState["status"] }) {
     stage,
     failure: {
       tone: "warning",
-      title: "Transaction cancelled",
-      description: "Transaction was cancelled. Please try again when ready.",
+      title: "Transaction canceled",
+      description: "Transaction was canceled. Please try again when ready.",
     },
     formatMessage,
   });

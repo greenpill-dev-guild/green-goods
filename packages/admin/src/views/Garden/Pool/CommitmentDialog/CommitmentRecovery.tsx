@@ -241,7 +241,7 @@ export function CommitmentRecovery({
               <span className="text-text-soft">
                 {formatMessage({
                   id: "cockpit.garden.pool.commitment.accepted.calledOffHint",
-                  defaultMessage: "Cancelling releases the committed units and records why.",
+                  defaultMessage: "Canceling releases the committed units and records why.",
                 })}
               </span>
             </p>

@@ -162,7 +162,7 @@ This:
 ```markdown
 Editing a garden and changing its image makes the edit impossible to cancel —
 the dialog stops responding and the operator has to reload. Leaving the image
-alone and cancelling works fine, so the image change is the trigger.
+alone and canceling works fine, so the image change is the trigger.
 
 **Done when**
 - Cancel dismisses the dialog after an image change, discarding the edit.
