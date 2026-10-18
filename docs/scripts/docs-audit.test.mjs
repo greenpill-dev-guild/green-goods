@@ -235,6 +235,9 @@ test("UK spelling in docs prose or design guidance exits nonzero, while names st
       "<!--",
       "A comment is cancelled from the page, across lines.",
       "-->",
+      "<code>",
+      "cancelled",
+      "</code>",
       "",
       "```text",
       "cancelled",
@@ -245,6 +248,17 @@ test("UK spelling in docs prose or design guidance exits nonzero, while names st
       "cancelled",
       "```",
       "````",
+      "",
+      // MDX reads an import or export to a blank line where its code is complete.
+      "import {",
+      "  Cancelled,",
+      '} from "@site/src/components/docs";',
+      "",
+      "export const states = [",
+      "",
+      '  "cancelled",',
+      "];",
+      "",
       "",
     ].join("\n");
     writeFileSync(file, readFileSync(file, "utf8") + names);

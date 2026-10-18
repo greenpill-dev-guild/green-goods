@@ -538,7 +538,6 @@ const notProse = new RegExp(
     // A code span closes on a backtick run as long as the one that opened it; an escaped backtick
     // opens nothing.
     "(?<![\\\\`])(?<tick>`+)(?!`)[^\\n]*?(?<!`)\\k<tick>(?!`)",
-    "<code\\b[^>]*>[\\s\\S]*?<\\/code>",
     "<https?:\\/\\/[^>]+>",
     "https?:\\/\\/[^\\s)\\]>\"'`]+",
     "\\{#[^}]*\\}",
@@ -546,7 +545,8 @@ const notProse = new RegExp(
   ].join("|"),
   "g",
 );
-const htmlComment = /<!--[\s\S]*?--!?>/g;
+// An HTML comment is never rendered and a code element is code, even when either spans lines.
+const unrendered = /<!--[\s\S]*?--!?>|<code\b[^>]*>[\s\S]*?<\/code>/g;
 const renderedFrontmatterKeys = ["title", "sidebar_label", "description"];
 
 // The ontology's enum members (Cancelled, CANCELLED) are identifiers that a generated page prints
@@ -573,12 +573,19 @@ const isEnumName = (identifiers, segment, index, word) => {
     .replace(/[\s*_]+$/, "");
   return lead !== "" && !/[.!?]["'’”)\]]*$/.test(lead);
 };
+// MDX reads a line that starts with import or export as ESM, up to a blank line where the code so
+// far is complete, so a blank line inside an open bracket stays in the block.
+const bracketBalance = (line) => {
+  const code = line.replace(/\/\/.*|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`/g, "");
+  return (code.match(/[{[(]/g)?.length ?? 0) - (code.match(/[}\])]/g)?.length ?? 0);
+};
 
 // commonMark is true for the guides outside the docs site, which GitHub renders as CommonMark; the
 // site parses every page as MDX, where an indented line is text, not code.
 const ukSpellingsIn = (text, {identifiers = new Set(), commonMark = false} = {}) => {
-  // An HTML comment is never rendered, even across lines; blanking it keeps the line numbers.
-  const lines = text.replace(htmlComment, (comment) => comment.replace(/[^\n]/g, " ")).split("\n");
+  // Blanking what is unrendered or code from the whole text keeps the line numbers.
+  const blanked = text.replace(unrendered, (block) => block.replace(/[^\n]/g, " "));
+  const lines = blanked.split("\n");
   const frontmatterEnd = lines[0] === "---" ? lines.indexOf("---", 1) : -1;
   const found = [];
   const checkProse = (value, line) => {
@@ -593,13 +600,14 @@ const ukSpellingsIn = (text, {identifiers = new Set(), commonMark = false} = {})
   };
   // Parsed, so a folded or literal block value is read whole. Only the keys a reader sees are copy;
   // the rest of the frontmatter is names and paths.
-  const {frontmatter} = frontmatterEnd > 0 ? parseFrontmatter(text) : {frontmatter: null};
+  const {frontmatter} = frontmatterEnd > 0 ? parseFrontmatter(blanked) : {frontmatter: null};
   for (const key of renderedFrontmatterKeys) {
     if (typeof frontmatter?.[key] === "string") {
       checkProse(frontmatter[key], lines.findIndex((line) => line.startsWith(`${key}:`)) + 1);
     }
   }
   let fence = null;
+  let esm = null;
   let indentedCode = false;
   let previousBlank = true;
   let inList = false;
@@ -607,6 +615,14 @@ const ukSpellingsIn = (text, {identifiers = new Set(), commonMark = false} = {})
     if (index <= frontmatterEnd) return;
     const trimmed = line.trimStart();
     const blank = trimmed === "";
+    if (!commonMark && fence === null) {
+      if (esm === null && /^(?:import|export)\s/.test(line)) esm = 0;
+      if (esm !== null && (!blank || esm > 0)) {
+        esm += bracketBalance(line);
+        return;
+      }
+      esm = null;
+    }
     if (commonMark && fence === null) {
       // An indented code block starts after a blank line, outside a list, four spaces or a tab in,
       // and runs while its lines stay indented or blank. In a list, the indent continues an item.
@@ -627,7 +643,7 @@ const ukSpellingsIn = (text, {identifiers = new Set(), commonMark = false} = {})
       else if (closes) fence = null;
       return;
     }
-    if (fence !== null || /^(?:import|export)\s/.test(trimmed)) return;
+    if (fence !== null) return;
     checkProse(line, index + 1);
   });
   return found;
