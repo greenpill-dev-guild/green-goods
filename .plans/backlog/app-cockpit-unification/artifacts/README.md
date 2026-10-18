@@ -65,13 +65,15 @@ states, then the card primitives. Open it from this folder so it finds its image
   English, Spanish and Portuguese on hidden copies at the column's width. The recommendation is the
   pill leading the detail line.
 - **Every card type** shows each object built from the shapes, one phone wide, with a title-lines
-  switch per type. The default gives two lines to work, commitments, actions, and assessments and
-  hypercerts, and one line to gardens, people, and jars, vaults and pools.
+  switch per type. Since version 13 every row card shares one row height (72px by default), one
+  title line and one detail line; two title lines stay available per type. A detail that does not
+  fit drops out whole, last first.
 - **The card tweaker** sits in a rail beside the census on a wide screen and folds into a panel at
   the bottom on a narrow one. Its live preview, pinned above the dials, draws the section in view or
   a chosen card type at the app's or the cockpit's density, with that type's title lines beside it.
-  Its dials set the status layout, the sample text, the row photo, light or dark cards and which
-  surface the object sheets show. Each object also has its own options and title lines beside its
+  Its dials set the status layout, the sample text, the row photo, the row height, the title and
+  detail sizes, whether rows without a photo show an icon, where "Confirming…" shows, light or dark
+  cards and which surface the object sheets show. Each object also has its own options and title lines beside its
   Proposed heading. A dot marks the pick, or the recommendation where nothing is decided. Copy picks
   puts every choice on one line, starting `Census picks:`, with the same fallbacks as the lab. The
   census's own choices persist under `gg-card-census-v2`.

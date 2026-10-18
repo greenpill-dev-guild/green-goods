@@ -164,6 +164,36 @@ take one of four shapes. The maintainer chose, each on the research's recommenda
 
 The public website keeps its editorial cards. Only the shared pieces it already renders change.
 
+**The detail line, accepted in principle on 18 October.** Asked how cards can stop their detail
+lines wrapping, the maintainer agreed to five rules. Version 13 of the census already keeps the line
+to one line and drops whole details from the end instead of cutting words; the rules decide what
+it drops, and make dropping rare.
+
+1. Each card type orders its details by importance, so the least useful detail is last and drops
+   first.
+2. A detail line holds the status and at most two details. A third fact belongs on the item's own
+   page.
+3. A detail never repeats what the card already shows: the lead icon says offer or request, the chip
+   says a person's role, and the chrome names the garden, except in a list that mixes gardens.
+4. Ages and dates take their short forms in every language ("2 hr. ago", "hace 2 h", "há 2 h";
+   "24 Oct", without the weekday). An age is always a number, "1 day ago" and never "yesterday",
+   the wording the maintainer chose for every card on 18 October.
+5. A list row opens its item when tapped. An action stays on a row only where the row needs the
+   reader, and then it sits below the text, not beside it.
+
+The order each type would follow, proposed with the rules and still to be confirmed on rendered
+pairs:
+
+| Card type | Detail line, most important first | Moves out of the line |
+|---|---|---|
+| Work | who · age | The garden name, except in a list that mixes gardens; the photo count, onto the photo |
+| Commitments | due date · other person | Offer or request (the lead icon); "4 of 10 taken" (the promise's page) |
+| Actions | what it asks for ("2 photos") | The domain (the banner's chip) |
+| Assessments and hypercerts | date · outcomes or units | The kind, when the icon shows it |
+| Gardens | members · place | Stewards and "open to join" (the garden's page) |
+| People | one count ("12 works") | The role (the chip) |
+| Jars, vaults and pools | limit · cooldown | Nothing; the amount stays on the right |
+
 Open against the picks:
 
 - **F9 and the earlier preference: settled.** Earlier the same day the maintainer preferred the
@@ -180,10 +210,11 @@ Open against the picks:
   [card census](artifacts/card-census.html#layouts) measures five placements. In a 390px column at
   the app's density, the corner cuts 1 of 5 English titles and 3 of 5 Spanish and Portuguese ones;
   the other four placements cut none in English. The recommendation is the pill leading the detail
-  line: the title keeps the full width and the card keeps today's height. For title lines, the
-  recommendation is two lines for work, commitments, actions, and assessments and hypercerts, and
-  one line for gardens, people, and jars, vaults and pools, with the full title on hover. Both wait
-  for the maintainer's picks.
+  line: the title keeps the full width and the card keeps today's height. Version 13 of the census
+  (18 October) gives every type one row height (72px), one title line and one detail line by
+  default, with two title lines still available per type, and adds dials for row height, title
+  size, detail size, icons and where "Confirming…" shows. The placement, the title lines and those
+  sizes wait for the maintainer's picks.
 
 ## Evidence and its limits
 

@@ -63,7 +63,7 @@ bounded change, and split a step that would mix independent behaviours.
 | 4. Count badge (F10) | `ui` | One badge recipe in Shared; the app's bar, launchers, filter count and tabs and the cockpit's tab rail consume it. | Every consumer renders the same badge; counts above 9 and 99 still fit. |
 | 5. Tabs (F8) | `ui` | The cockpit's tab rail takes the equal-width tinted layout and the shared badge. | Rendered pairs of every tab row at phone, tablet and desktop widths in three languages. |
 | 6. Chips (F4) | `ui` | Capsule chips with one selected treatment in the cockpit's filter row. The filter control keeps its form on each surface (the F9 pick). | One chip shape on both; DL-082 scopes unchanged; keyboard and screen-reader paths unchanged. |
-| 7. Cards, rows and list gap (F7, F11) | `ui` | The app's card as the one card surface (24px, a visible edge, a faint shadow) in place of the five card primitives; the shared item row in the app's work-row style (16px, the 2px status edge), first used by the work item on phones on both surfaces; a 12px list gap token. | Rendered pairs of every list at every width; a visible card edge in both themes. |
+| 7. Cards, rows and list gap (F7, F11) | `ui` | The app's card as the one card surface (24px, a visible edge, a faint shadow) in place of the five card primitives; the shared item row in the app's work-row style (16px, the 2px status edge), first used by the work item on phones on both surfaces, with its detail line kept to one line by the spec's detail-line rules; a 12px list gap token. | Rendered pairs of every list at every width; a visible card edge in both themes; no detail line wraps at 320, 360 or 390px in English, Spanish or Portuguese. |
 | 8. Wide desktop work card (F12) | `ui` | The cockpit's desktop work card lies wide with its mosaic on the left, as the first use of the shared media card; the grid's column rule follows. | Mosaic variants for no photo, one, two and three or more photos; phone widths unaffected. |
 | 9. Phone sheets (F5) | `ui` | The cockpit's phone sheet takes the shared surface, grip and header. Its centred desktop dialog does not change. | Sheet open, close, focus return and Back unchanged. |
 | 10. Fields (F3 fields) | `ui` | Outlined fields by default on both surfaces, with one label and message anatomy. | Field message lines do not move layout, checked with the longest Spanish and Portuguese messages. |
@@ -84,7 +84,8 @@ Steps 1 to 3 are token edits and can land alone. Steps 4 to 11 are the shared ch
 depend on steps 1 to 3 only for their final look, not for their structure. Step 12 depends on
 another hub. Step 13 travels with whichever step changes a pinned number. Steps 14 to 19 build each
 remaining object's cards from the four shapes, so they follow steps 7, 8 and 11, which create the
-card surface, the item row, the media card and the state block. Step 20 comes after the card work.
+card surface, the item row, the media card and the state block. Each sets its object's detail line
+by the spec's detail-line rules. Step 20 comes after the card work.
 Step 21 is a chrome recipe like steps 4 to 11 and can land with them. No contract,
 indexer or data lane is needed; a discovered need returns to scope review.
 
