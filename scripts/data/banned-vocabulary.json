@@ -32,10 +32,36 @@
     "replacement": "steward",
     "rationale": "The garden role is a Steward. Deployed GardenRole and isOperator wire names remain code identifiers; visible role copy uses Steward. The exempt key refers to literal solar field technicians.",
     "locale_terms": {
-      "packages/shared/src/i18n/es.json": ["steward", "stewards"],
-      "packages/shared/src/i18n/pt.json": ["steward", "stewards"]
+      "packages/shared/src/i18n/es.json": [
+        "steward",
+        "stewards",
+        "coordinador",
+        "coordinadores",
+        "coordinadora",
+        "coordinadoras",
+        "custodio",
+        "custodios",
+        "huerto",
+        "huertos",
+        "huerta",
+        "huertas"
+      ],
+      "packages/shared/src/i18n/pt.json": [
+        "steward",
+        "stewards",
+        "coordenador",
+        "coordenadores",
+        "coordenadora",
+        "coordenadoras",
+        "zelador",
+        "zeladores",
+        "zeladora",
+        "zeladoras",
+        "horta",
+        "hortas"
+      ]
     },
-    "locale_terms_rationale": "Locked visible terms: es Responsable, pt Responsável. ICU argument names are code and are skipped."
+    "locale_terms_rationale": "Locked visible terms on every surface (decided 2026-10-18): steward is es responsable, pt responsável; garden is es jardín, pt jardim. Each list holds the English word and the synonyms that drifted in before. Participante, compromiso and the Gardens product name are correct elsewhere, so they are not listed; dotación and dotação are guarded by the shared locale-coverage test. ICU argument names are code and are skipped."
   },
   "prompt_vocabulary_admin_banned": {
     "scope": "AI-prompt vocabulary for admin-cockpit screens; guidance only",

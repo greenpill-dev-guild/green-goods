@@ -185,7 +185,8 @@ fi
 
 # ---------------------------------------------------------------------------
 # Locale-scoped terms: a word that is correct in one catalog and drift in another.
-# English says "Steward"; Spanish and Portuguese translate it (PRD-749).
+# English says "steward" and "garden"; Spanish and Portuguese use their locked words
+# (PRD-749), never the English word or a synonym that drifted in.
 # Message KEYS stay English, so this walks parsed values rather than raw lines,
 # and skips ICU argument references ("{steward}", "{stewards, plural...}").
 # ---------------------------------------------------------------------------
@@ -218,10 +219,10 @@ else
 fi
 
 if [[ -n "$LOCALE_HITS" ]]; then
-  echo "❌ Untranslated role term found in a localized catalog:"
+  echo "❌ Off-glossary term found in a localized catalog:"
   echo "$LOCALE_HITS"
   echo
-  echo "Locked visible terms: es Responsable, pt Responsável. See:"
+  echo "Locked visible terms: steward is es responsable, pt responsável; garden is es jardín, pt jardim. See:"
   echo "  scripts/data/banned-vocabulary.json (.renamed_terms.locale_terms)"
   exit 1
 fi
