@@ -4,6 +4,8 @@
 
 *Your garden’s living knowledge.*
 
+**Linear tracker:** [RESR-103 · Grove by Green Goods roadmap](https://linear.app/greenpill-dev-guild/issue/RESR-103/grove-by-green-goods-roadmap). Research backlog; parent-only visibility, with implementation checkpoints owned by this hub.
+
 Grove preserves useful research and connects it to a garden’s work, evidence and resources. Its main interface is a living graph: inspect nodes and relationships, see what is new, filter and query, review suggested connections, and view earlier knowledge states.
 
 The MVP serves one active garden view on one desktop browser profile, with isolated Vida Verde and TAS workspaces in the first spike. Grove acts as a partial KOI node; an optional full node supports explicit exchange without owning the local graph. Pi Durable coordinates resumable local investigations and records execution checkpoints; Dexie remains the garden memory. It connects through the Green Goods Admin Hub, stores versioned knowledge locally, and uses one local Gemma configuration for evidence-linked proposals. Local review remains distinct from protocol WorkApproval and community governance.
