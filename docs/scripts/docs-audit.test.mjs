@@ -232,6 +232,11 @@ test("UK spelling in docs prose or design guidance exits nonzero, while names st
       '<img src="/img/grey.png" alt="Approve looks gray" />',
       "The Grey Matter Fund keeps its own name.",
       'A ``cancelled`` span keeps its name, as does <Status state={CycleState.Cancelled} style={{color: "grey"}} />.',
+      "A bare prop is a name too: <Status cancelled />.",
+      "<Status",
+      "  cancelled",
+      '  state="grey"',
+      "/>",
       "<!--",
       "A comment is cancelled from the page, across lines.",
       "-->",
@@ -297,7 +302,7 @@ Requests stop at pre-disbursement Cancelled.
     assert.equal(clean.status, 0, clean.stderr);
 
     // A folded frontmatter value is rendered page metadata, read whole across its lines.
-    const dirty = `${readFileSync(file, "utf8")}The row reads cancelled.\n\n    MDX reads this indented line as text, so cancelled counts.\n\nSee [the garden](https://example.com/g "The favourite garden") and <span aria-label="A grey icon">x</span>.\n\nAn escaped \\\`grey\\\` mark is text.\n`.replace(
+    const dirty = `${readFileSync(file, "utf8")}The row reads cancelled.\n\n    MDX reads this indented line as text, so cancelled counts.\n\nSee [the garden](https://example.com/g "The favourite garden") and <span aria-label="A grey icon">x</span>.\n\nAn escaped \\\`grey\\\` mark is text.\n\n<img\n  src="/img/x.png"\n  alt="A grey mark"\n/>\n`.replace(
       "slug: /builders/test\n",
       "slug: /builders/test\ndescription: >-\n  How the field\n  turns grey.\n",
     );
@@ -322,6 +327,8 @@ Requests stop at pre-disbursement Cancelled.
     assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${linkLine}: "favourite"`), result.stderr);
     assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${linkLine}: "grey"`), result.stderr);
     assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${lineOf("An escaped \\`grey\\` mark is text.")}: "grey"`), result.stderr);
+    // A tag that spans lines keeps a readable value on its own line.
+    assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${lineOf('  alt="A grey mark"')}: "grey"`), result.stderr);
     assert.ok(
       result.stderr.includes(
         `builders/test.mdx: UK spelling on line ${lineOf("    MDX reads this indented line as text, so cancelled counts.")}: "cancelled"`,
@@ -335,7 +342,7 @@ Requests stop at pre-disbursement Cancelled.
     assert.match(result.stderr, new RegExp(`reference/generated\\.mdx: UK spelling on line ${cancelledLine}: "cancelled".* Fix it in the source this page is generated from\\.`));
     const sentenceStart = generatedLineOf("Cancelled requests remain visible.");
     assert.ok(result.stderr.includes(`reference/generated.mdx: UK spelling on line ${sentenceStart}: "Cancelled"`), result.stderr);
-    assert.equal(result.stderr.match(/UK spelling/g)?.length, 10, result.stderr);
+    assert.equal(result.stderr.match(/UK spelling/g)?.length, 11, result.stderr);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

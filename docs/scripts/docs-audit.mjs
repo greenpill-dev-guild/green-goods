@@ -541,12 +541,30 @@ const notProse = new RegExp(
     "<https?:\\/\\/[^>]+>",
     "https?:\\/\\/[^\\s)\\]>\"'`]+",
     "\\{#[^}]*\\}",
+    // An attribute of a tag the markup pass below cannot read whole, such as one with a prop
+    // value that spans lines.
     `(?<![\\w:-])(?!(?:${readableAttributes.join("|")})=)[A-Za-z][\\w:-]*=(?:"[^"]*"|'[^']*'|${braceValue})`,
   ].join("|"),
   "g",
 );
 // An HTML comment is never rendered and a code element is code, even when either spans lines.
 const unrendered = /<!--[\s\S]*?--!?>|<code\b[^>]*>[\s\S]*?<\/code>/g;
+// A JSX or HTML tag is markup, even across lines, so its name and props, bare ones such as
+// <Status cancelled /> included, are names; only the values of readableAttributes stay copy.
+const tagAttribute = `[A-Za-z_][\\w:.-]*(?:\\s*=\\s*(?:"[^"]*"|'[^']*'|${braceValue}))?|\\{\\.\\.\\.[^{}\\n]*\\}`;
+const markupTag = new RegExp(`<\\/?[A-Za-z][\\w.:-]*(?:\\s+(?:${tagAttribute}))*\\s*\\/?>`, "g");
+const readableValue = new RegExp(
+  `(?<![\\w:.-])(?:${readableAttributes.join("|")})\\s*=\\s*(?:"([^"]*)"|'([^']*)'|(${braceValue}))`,
+  "gd",
+);
+const markupText = (tag) => {
+  const text = tag.replace(/[^\n]/g, " ").split("");
+  for (const match of tag.matchAll(readableValue)) {
+    const [start, end] = match.indices.slice(1).find(Boolean);
+    for (let at = start; at < end; at += 1) text[at] = tag[at];
+  }
+  return text.join("");
+};
 const renderedFrontmatterKeys = ["title", "sidebar_label", "description"];
 
 // The ontology's enum members (Cancelled, CANCELLED) are identifiers that a generated page prints
@@ -583,8 +601,8 @@ const bracketBalance = (line) => {
 // commonMark is true for the guides outside the docs site, which GitHub renders as CommonMark; the
 // site parses every page as MDX, where an indented line is text, not code.
 const ukSpellingsIn = (text, {identifiers = new Set(), commonMark = false} = {}) => {
-  // Blanking what is unrendered or code from the whole text keeps the line numbers.
-  const blanked = text.replace(unrendered, (block) => block.replace(/[^\n]/g, " "));
+  // Blanking what is unrendered, code or markup from the whole text keeps the line numbers.
+  const blanked = text.replace(unrendered, (block) => block.replace(/[^\n]/g, " ")).replace(markupTag, markupText);
   const lines = blanked.split("\n");
   const frontmatterEnd = lines[0] === "---" ? lines.indexOf("---", 1) : -1;
   const found = [];

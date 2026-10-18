@@ -86,6 +86,8 @@ describe("agent i18n", () => {
       },
       // The Telegram command menu, which reporting mode publishes to every chat.
       { file: "../platforms/telegram-commands.ts", opening: "  en: [", closing: "  ],", least: 6 },
+      // The labels the browser signing and review pages show, which views.ts builds.
+      { file: "../services/reporting/views.ts", opening: "const VIEW_COPY = {", least: 15 },
     ];
 
     const hits = catalogs.flatMap(({ file, opening, closing, least }) => {

@@ -249,7 +249,11 @@ def branch_text(message):
         while j < len(message) and depth:
             character = message[j]
             depth += {"{": 1, "}": -1}.get(character, 0)
-            if depth >= 2 or (character == "}" and depth == 1):
+            # Each branch loses its own braces, so a one-word branch such as
+            # {cancelled} is read as text, not as an argument reference.
+            if (character == "{" and depth == 2) or (character == "}" and depth == 1):
+                branches.append(" ")
+            elif depth >= 2:
                 branches.append(character)
             j += 1
         out.append(" " + branch_text("".join(branches)) + " ")
