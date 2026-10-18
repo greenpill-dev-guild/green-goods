@@ -1,0 +1,860 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Card Census</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: a field guide. Each object is a specimen sheet: today's cards pinned in a scrolling strip,
+   the proposed build beneath them at the app's and the cockpit's density, with the shape dials in a
+   dock that stays at the bottom of the window. Chrome tokens match the main research page. */
+:root {
+  color-scheme: light;
+  --bg: #FAF8F5;
+  --card: #FFFFFF;
+  --fg: #292524;
+  --fg-strong: #0C0A09;
+  --muted: #78716C;
+  --line: #E7E5E4;
+  --line-strong: #D6D3D1;
+  --accent: #1A7544;
+  --accent-ink: #FFFFFF;
+  --accent-soft: rgba(31, 193, 107, 0.12);
+  --mark: #1FC16B;
+  --cockpit: #2547D0;
+  --cockpit-soft: rgba(53, 89, 233, 0.12);
+  --amber: #B45309;
+  --amber-soft: #FDF1DC;
+  --shadow: 0 10px 28px rgba(20, 14, 8, 0.10);
+  --font-display: "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif;
+  --font-body: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #110C08; --card: #201913; --fg: #E7E5E4; --fg-strong: #FAFAF9; --muted: #A8A29E;
+    --line: rgba(250, 250, 249, 0.10); --line-strong: rgba(250, 250, 249, 0.20);
+    --accent: #C2F5DA; --accent-ink: #0C0A09; --accent-soft: rgba(194, 245, 218, 0.14); --mark: #3EE089;
+    --cockpit: #C0D5FF; --cockpit-soft: rgba(192, 213, 255, 0.16); --amber: #FCD34D; --amber-soft: rgba(252, 211, 77, 0.14);
+    --shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #110C08; --card: #201913; --fg: #E7E5E4; --fg-strong: #FAFAF9; --muted: #A8A29E;
+  --line: rgba(250, 250, 249, 0.10); --line-strong: rgba(250, 250, 249, 0.20);
+  --accent: #C2F5DA; --accent-ink: #0C0A09; --accent-soft: rgba(194, 245, 218, 0.14); --mark: #3EE089;
+  --cockpit: #C0D5FF; --cockpit-soft: rgba(192, 213, 255, 0.16); --amber: #FCD34D; --amber-soft: rgba(252, 211, 77, 0.14);
+  --shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+  color-scheme: dark;
+}
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+* { box-sizing: border-box; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 16px; line-height: 1.55; padding-inline: 16px; padding-block: 32px 24px; -webkit-font-smoothing: antialiased; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+.wrap { max-width: 1180px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--font-display); color: var(--fg-strong); text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(34px, 5vw, 50px); line-height: 1.05; font-weight: 700; letter-spacing: -0.02em; }
+h2 { font-size: 26px; line-height: 1.2; font-weight: 700; letter-spacing: -0.01em; }
+h3 { font-size: 13px; line-height: 1.3; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
+p { max-width: 72ch; margin: 10px 0; }
+a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+code { font-family: var(--font-mono); font-size: 0.84em; background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; color: var(--fg-strong); }
+.crumb { font-size: 14px; margin-bottom: 18px; }
+.eyebrow { font-family: var(--font-display); font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+.lede { font-size: 19px; line-height: 1.5; max-width: 62ch; }
+.tally { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 22px 0 6px; padding: 14px 0; border-top: 1px solid var(--line-strong); border-bottom: 1px solid var(--line-strong); }
+.tally div { display: flex; align-items: baseline; gap: 8px; }
+.tally b { font-family: var(--font-display); font-size: 26px; font-weight: 700; color: var(--fg-strong); font-variant-numeric: tabular-nums; line-height: 1; }
+.tally span { font-size: 14px; color: var(--muted); }
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 22px 0 8px; }
+.notes > div { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; min-width: 0; font-size: 14.5px; }
+.notes h3 { margin-bottom: 6px; }
+.notes p { margin: 6px 0; }
+.notes ul { margin: 6px 0 0; padding-left: 18px; }
+.notes li { margin: 3px 0; }
+.tag { display: inline-block; font-family: var(--font-display); font-size: 11.5px; font-weight: 600; letter-spacing: 0.02em; padding: 1px 9px; border-radius: 999px; line-height: 18px; vertical-align: middle; white-space: nowrap; }
+.tag.app { background: var(--accent-soft); color: var(--accent); }
+.tag.cockpit { background: var(--cockpit-soft); color: var(--cockpit); }
+.tag.shared { background: var(--amber-soft); color: var(--amber); }
+.tag.public { background: var(--line); color: var(--muted); }
+.toc { display: flex; flex-wrap: wrap; gap: 6px; margin: 18px 0 0; padding: 0; list-style: none; }
+.toc a { display: inline-block; font-family: var(--font-display); font-size: 13px; font-weight: 600; text-decoration: none; color: var(--fg); border: 1px solid var(--line-strong); border-radius: 999px; padding: 4px 12px; background: var(--card); }
+.toc a:hover { border-color: var(--accent); color: var(--accent); }
+.toc a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* one object, one sheet */
+.obj { margin-top: 56px; padding-top: 22px; border-top: 1px solid var(--line-strong); scroll-margin-top: 12px; }
+.obj-h { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 20px; }
+.obj-h .count { font-size: 14px; color: var(--muted); }
+.obj-sum { color: var(--fg); }
+.block-h { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin: 20px 0 10px; }
+.block-h h3 { display: flex; align-items: center; gap: 8px; }
+.ev { font-family: var(--font-body); font-size: 12px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--muted); border: 1px dashed var(--line-strong); border-radius: 999px; padding: 1px 9px; }
+
+/* today: real captures in a scrolling strip */
+.strip { display: flex; gap: 14px; overflow-x: auto; padding: 2px 2px 12px; scroll-snap-type: x proximity; scrollbar-width: thin; }
+.shot { flex: 0 0 auto; width: var(--w, 280px); max-width: 82vw; scroll-snap-align: start; margin: 0; min-width: 0; }
+.shot button { display: block; width: 100%; padding: 0; border: 1px solid var(--line-strong); border-radius: 12px; background: #FFFFFF; cursor: zoom-in; overflow: hidden; }
+.shot button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.shot img { display: block; width: 100%; height: auto; max-height: 420px; object-fit: contain; object-position: top left; background: #FFFFFF; }
+.shot.tall button { position: relative; }
+.shot.tall img { height: 420px; max-height: none; object-fit: cover; object-position: top center; }
+.shot.tall button::after { content: "Tap for full height"; position: absolute; left: 0; right: 0; bottom: 0; padding: 26px 10px 8px; font-size: 12px; font-weight: 600; color: #57534E; text-align: center; background: linear-gradient(180deg, rgba(255,255,255,0), #FFFFFF 68%); }
+.shot figcaption { margin-top: 7px; font-size: 13px; line-height: 1.4; color: var(--muted); }
+.shot figcaption .nm { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; color: var(--fg); font-weight: 600; }
+.shot figcaption .nm code { background: none; padding: 0; font-size: 13px; color: var(--fg-strong); }
+.shot figcaption .what { display: block; }
+.shot figcaption .src { display: block; font-family: var(--font-mono); font-size: 11px; overflow-wrap: anywhere; }
+.coderefs { font-size: 13.5px; color: var(--muted); margin: 4px 0 0; max-width: none; }
+.coderefs code { font-size: 12px; }
+
+/* proposed: specimens built from the four shapes */
+.octl { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.seg { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--card); }
+.seg-l { font-family: var(--font-display); font-size: 12px; font-weight: 600; color: var(--muted); margin-right: 4px; white-space: nowrap; }
+.ctl { display: inline-flex; align-items: center; gap: 6px; }
+.seg button { font: inherit; font-family: var(--font-body); font-size: 12.5px; font-weight: 500; line-height: 22px; padding: 0 10px; border: 0; border-radius: 7px; background: transparent; color: var(--fg); cursor: pointer; white-space: nowrap; }
+.seg button:hover { background: var(--accent-soft); }
+.seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.seg button.picked::after { content: ""; display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--mark); margin-left: 6px; vertical-align: 2px; }
+.seg button[aria-pressed="true"].picked::after { background: var(--accent-ink); }
+.specs { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start; }
+.panel { min-width: 0; display: grid; gap: 8px; }
+.panel[hidden] { display: none !important; }
+.panel-l { font-family: var(--font-display); font-size: 11px; line-height: 16px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.panel-l span { text-transform: none; letter-spacing: 0; font-weight: 500; font-family: var(--font-body); }
+.keeps { font-size: 14px; color: var(--muted); margin-top: 12px; }
+.keeps b { color: var(--fg); font-weight: 600; }
+
+/* ===== specimen tokens: the accepted direction, independent of the page theme ===== */
+.spec {
+  --s-canvas: #FAF8F5; --s-card: #FFFFFF; --s-ink: #0C0A09; --s-sub: #57534E; --s-soft: #78716C;
+  --s-border: #E7E5E4; --s-hair: #E7E5E4; --s-grey: #F5F2ED; --s-tint: #FAFAF9;
+  --s-shadow: 0 1px 2px rgba(0, 0, 0, 0.04); --s-raised: 0 1px 2px rgba(0,0,0,0.3), 0 1px 3px 1px rgba(0,0,0,0.15);
+  --s-info-bg: #EBF1FF; --s-info-fg: #182F8B; --s-info-bd: #D5E2FF;
+  --s-ok-bg: #E0FAEC; --s-ok-fg: #0B4627; --s-ok-bd: #C2F5DA;
+  --s-warn-bg: #FFF3E4; --s-warn-fg: #713A0A; --s-warn-bd: #FFD9B5;
+  --s-err-bg: #FFEBEC; --s-err-fg: #681219; --s-err-bd: #FFD5D8;
+  --s-neu-bg: #F5F5F4; --s-neu-fg: #57534E; --s-neu-bd: #E7E5E4;
+  --s-e-ok: #1FC16B; --s-e-warn: #F59E0B; --s-e-err: #EF4444; --s-e-info: #335CFF; --s-e-neu: #A8A29E;
+  --s-photo-dim: 1;
+  width: 360px; max-width: 100%; background: var(--s-canvas); color: var(--s-ink);
+  font-family: "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif; font-size: var(--s-body); line-height: 1.4;
+  border: 1px solid var(--line-strong); border-radius: 20px; padding: 16px; display: grid; gap: var(--gap); align-content: start;
+}
+.spec.app { --s-body: 16px; --s-title: 16px; --s-title-w: 500; --s-meta: 12px; --s-pill: 12px; --s-pill-w: 500; --s-acc: #1A7544; --s-acc-on: #FFFFFF; --s-acc-text: #1A7544; --s-acc-tint: rgba(31,193,107,0.10); --s-btn-r: 16px; --s-btn-h: 40px; --s-btn-fs: 15px; }
+.spec.cockpit { --s-body: 14px; --s-title: 14px; --s-title-w: 600; --s-meta: 12px; --s-pill: 11px; --s-pill-w: 600; --s-acc: #2547D0; --s-acc-on: #FFFFFF; --s-acc-text: #2547D0; --s-acc-tint: rgba(51,92,255,0.08); --s-btn-r: 999px; --s-btn-h: 32px; --s-btn-fs: 14px; }
+.spec.desk { width: 100%; border-radius: 14px; }
+.panel.full { flex: 1 1 100%; }
+.spec.wide2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.dark-specs .spec {
+  --s-canvas: #110C08; --s-card: #2A231C; --s-ink: #FAFAF9; --s-sub: #D6D3D1; --s-soft: #A8A29E;
+  --s-border: rgba(250,250,249,0.12); --s-hair: rgba(250,250,249,0.10); --s-grey: #342C24; --s-tint: #1A1410;
+  --s-shadow: none; --s-raised: 0 0 0 1px rgba(250,250,249,0.08);
+  --s-info-bg: rgba(192,213,255,0.16); --s-info-fg: #C0D5FF; --s-info-bd: rgba(192,213,255,0.25);
+  --s-ok-bg: rgba(194,245,218,0.16); --s-ok-fg: #C2F5DA; --s-ok-bd: rgba(194,245,218,0.25);
+  --s-warn-bg: rgba(252,211,77,0.16); --s-warn-fg: #FCD34D; --s-warn-bd: rgba(252,211,77,0.25);
+  --s-err-bg: rgba(255,151,160,0.16); --s-err-fg: #FF97A0; --s-err-bd: rgba(255,151,160,0.25);
+  --s-neu-bg: rgba(250,250,249,0.08); --s-neu-fg: #D6D3D1; --s-neu-bd: rgba(250,250,249,0.14);
+  --s-e-ok: #1FC16B; --s-e-warn: #FBBF24; --s-e-err: #F87171; --s-e-info: #6B8CFF; --s-e-neu: #78716C;
+  --s-photo-dim: 0.82;
+  border-color: rgba(250,250,249,0.16);
+}
+.dark-specs .spec.app { --s-acc: #C2F5DA; --s-acc-on: #0C0A09; --s-acc-text: #C2F5DA; --s-acc-tint: rgba(194,245,218,0.12); }
+.dark-specs .spec.cockpit { --s-acc: #C0D5FF; --s-acc-on: #182F8B; --s-acc-text: #C0D5FF; --s-acc-tint: rgba(192,213,255,0.10); }
+.spec svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+.spec .trunc { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* the card surface (one for every shape) and its edge dial */
+.spec .sc { background: var(--s-card); border-radius: var(--card-r); border: 1px solid var(--s-border); box-shadow: var(--s-shadow); overflow: hidden; position: relative; min-width: 0; }
+.edge-hairline .spec .sc { box-shadow: none; border-color: var(--s-hair); }
+.edge-raised .spec .sc { border-color: transparent; box-shadow: var(--s-raised); }
+.spec .sc.row { border-radius: var(--row-r); }
+/* status: a 2px edge, a pill, or both */
+.spec .sc.e-ok { --edge: var(--s-e-ok); } .spec .sc.e-warn { --edge: var(--s-e-warn); } .spec .sc.e-err { --edge: var(--s-e-err); } .spec .sc.e-info { --edge: var(--s-e-info); } .spec .sc.e-neu { --edge: var(--s-e-neu); }
+.st-both .spec .sc.has-edge, .st-edge .spec .sc.has-edge { border-left: 2px solid var(--edge); }
+.st-edge .spec .pill.status { display: none; }
+.spec .pill { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 2px 8px; font-size: var(--s-pill); font-weight: var(--s-pill-w); line-height: 16px; border: 1px solid transparent; white-space: nowrap; flex-shrink: 0; }
+.spec.cockpit .pill { padding: 3px 10px; line-height: 14px; }
+.spec .pill.ok { background: var(--s-ok-bg); color: var(--s-ok-fg); border-color: var(--s-ok-bd); }
+.spec .pill.warn { background: var(--s-warn-bg); color: var(--s-warn-fg); border-color: var(--s-warn-bd); }
+.spec .pill.err { background: var(--s-err-bg); color: var(--s-err-fg); border-color: var(--s-err-bd); }
+.spec .pill.info { background: var(--s-info-bg); color: var(--s-info-fg); border-color: var(--s-info-bd); }
+.spec .pill.neu { background: var(--s-neu-bg); color: var(--s-neu-fg); border-color: var(--s-neu-bd); }
+.spec .chip { display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--s-border); font-size: 12px; font-weight: 500; color: var(--s-sub); white-space: nowrap; flex-shrink: 0; background: var(--s-card); }
+.spec .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: var(--s-btn-h); padding: 0 14px; border-radius: var(--s-btn-r); font-size: var(--s-btn-fs); font-weight: 500; background: var(--s-acc); color: var(--s-acc-on); white-space: nowrap; border: 1px solid transparent; flex-shrink: 0; }
+.spec .btn.sec { background: var(--s-card); color: var(--s-ink); border-color: var(--s-soft); }
+/* selection dial */
+.sel-border3 .spec .sc.selected { box-shadow: inset 0 0 0 3px var(--s-acc-text); border-color: transparent; }
+.sel-ring .spec .sc.selected { border-color: var(--s-acc-text); box-shadow: 0 0 0 3px var(--s-acc-tint); }
+.spec .sc .tick { display: none; position: absolute; top: 10px; right: 10px; width: 24px; height: 24px; border-radius: 999px; background: var(--s-acc); color: var(--s-acc-on); align-items: center; justify-content: center; font-size: 14px; z-index: 2; }
+.sel-ring .spec .sc.selected .tick { display: inline-flex; }
+
+/* shape 1: the item row */
+.spec .ir { display: flex; align-items: stretch; min-height: var(--media); }
+.spec .ir .lead { flex-shrink: 0; position: relative; }
+.spec .ir .lead.photo { width: var(--media); background: var(--ph); filter: brightness(var(--s-photo-dim)); }
+.spec .ir .lead.photo .ic { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.85); font-size: 22px; }
+.spec .ir .lead.tile { width: 44px; height: 44px; margin: 12px 0 0 12px; border-radius: 12px; background: var(--s-grey); color: var(--s-sub); display: flex; align-items: center; justify-content: center; font-size: 22px; }
+.spec .ir .lead.av { width: 40px; height: 40px; margin: 12px 0 0 12px; border-radius: 999px; background: var(--s-acc-tint); color: var(--s-acc-text); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; letter-spacing: 0.02em; }
+.spec .ir .body { flex: 1 1 auto; min-width: 0; padding: 10px 12px; display: flex; flex-direction: column; gap: 3px; }
+.spec.app .ir .body { padding: 8px 12px; }
+.spec .ir .eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 0.03em; color: var(--s-soft); text-transform: uppercase; }
+.spec .ir .top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; min-width: 0; }
+.spec .ir .title { font-size: var(--s-title); font-weight: var(--s-title-w); line-height: 1.45; min-width: 0; }
+.spec .ir .meta { font-size: var(--s-meta); color: var(--s-sub); line-height: 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 0 4px; min-width: 0; }
+.spec .ir .meta .mi { white-space: nowrap; }
+.spec .ir .meta .mi + .mi::before { content: "\2022"; margin: 0 5px 0 1px; color: var(--s-soft); }
+.spec .ir .tags { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 4px; }
+.spec .btn.sm { height: calc(var(--s-btn-h) - 8px); padding: 0 12px; font-size: 13px; }
+.spec .ir .meta .soft { color: var(--s-soft); }
+.spec .ir .extra { font-size: var(--s-meta); line-height: 16px; display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+.spec .ir .extra.phase { color: var(--s-info-fg); }
+.spec .ir .extra.queue { color: var(--s-warn-fg); }
+.spec .ir .trail { flex-shrink: 0; display: flex; align-items: center; padding: 0 12px 0 0; color: var(--s-soft); font-size: 18px; }
+.spec .ir .trail .amt { text-align: right; font-size: var(--s-title); font-weight: 600; color: var(--s-ink); line-height: 1.2; font-variant-numeric: tabular-nums; }
+.spec .ir .trail .amt small { display: block; font-size: var(--s-meta); font-weight: 400; color: var(--s-soft); }
+.spec .ir.compact { min-height: 0; }
+.spec .ir.compact .lead.av { width: 32px; height: 32px; margin: 8px 0 8px 10px; font-size: 11px; }
+.spec .ir.compact .body { padding: 8px 10px; flex-direction: row; align-items: center; justify-content: space-between; gap: 8px; }
+.spec .ir.compact .meta { flex: 0 0 auto; }
+
+/* shape 2: the media card (stacked, or wide with the media on the left) */
+.spec .mc .media { position: relative; aspect-ratio: 16 / 9; background: var(--ph); filter: brightness(var(--s-photo-dim)); display: grid; }
+.spec .mc .media.banner { aspect-ratio: auto; height: 104px; }
+.spec .mc .media.grid { grid-template-columns: 1.35fr 1fr; gap: 1px; background: var(--s-hair); }
+.spec .mc .media.grid i { background: var(--ph); display: block; }
+.spec .mc .media.grid i:first-child { grid-row: span 2; }
+.spec .mc .media .ic { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.85); font-size: 26px; pointer-events: none; }
+.spec .mc .media .dchip { position: absolute; left: 8px; bottom: 8px; border-radius: 999px; padding: 3px 10px; font-size: 11px; font-weight: 600; line-height: 14px; background: var(--s-card); color: var(--s-sub); }
+.spec .mc .media .mcount { position: absolute; right: 8px; bottom: 8px; border-radius: 999px; padding: 3px 8px; font-size: 11px; font-weight: 500; line-height: 14px; background: rgba(0,0,0,0.6); color: #FFFFFF; }
+.spec .mc .body { padding: 12px 14px 14px; display: grid; gap: 6px; }
+.spec .mc .top { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 6px 8px; }
+.spec .mc .title { font-size: var(--s-title); font-weight: 600; line-height: 1.4; min-width: 0; }
+.spec .mc .sub { font-size: 13px; color: var(--s-sub); line-height: 18px; }
+.spec .mc .meta { font-size: var(--s-meta); color: var(--s-sub); display: flex; justify-content: space-between; gap: 10px; }
+.spec .mc .meta .soft { color: var(--s-soft); }
+.spec .mc.wide { display: flex; }
+.spec .mc.wide .media { width: 200px; aspect-ratio: auto; min-height: 132px; flex-shrink: 0; }
+.spec .mc.wide .body { flex: 1 1 auto; min-width: 0; align-content: center; }
+
+/* shape 3: the fact row */
+.spec .fl .fr { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.4fr); gap: 4px 12px; padding: 10px 14px; font-size: 14px; line-height: 20px; align-items: baseline; }
+.spec.cockpit .fl .fr { font-size: 13px; padding: 9px 14px; }
+.spec .fl .fr .k { color: var(--s-sub); }
+.spec .fl .fr .v { color: var(--s-ink); font-weight: 500; min-width: 0; overflow-wrap: anywhere; }
+.spec .fl.above .fr { grid-template-columns: minmax(0, 1fr); gap: 0; }
+.spec .fl.above .fr .k { font-size: 12px; line-height: 16px; }
+.spec .fl.divided .fr + .fr { border-top: 1px solid var(--s-hair); }
+.spec .fl.spaced { display: grid; gap: 6px; padding: 6px 0; }
+.spec .fl.spaced .fr { margin: 0 8px; background: var(--s-tint); border-radius: 10px; }
+
+/* shape 4: the state block */
+.spec .sb { display: grid; justify-items: center; text-align: center; gap: 8px; padding: 28px 20px; }
+.spec .sb .mark { width: 56px; height: 56px; border-radius: 999px; background: var(--s-acc-tint); color: var(--s-acc-text); display: flex; align-items: center; justify-content: center; font-size: 26px; }
+.spec .sb .mark.err { background: var(--s-err-bg); color: var(--s-err-fg); }
+.spec .sb .t { font-size: calc(var(--s-title) + 2px); font-weight: 600; line-height: 1.35; }
+.spec .sb .d { font-size: 14px; color: var(--s-sub); line-height: 20px; max-width: 34ch; }
+.spec.cockpit .sb .d { font-size: 13px; }
+.spec .sb .btn { margin-top: 6px; }
+.spec .sb.compact { grid-template-columns: auto minmax(0, 1fr); justify-items: start; text-align: left; padding: 14px 16px; column-gap: 12px; row-gap: 2px; align-items: center; }
+.spec .sb.compact .mark { width: 40px; height: 40px; font-size: 20px; grid-row: span 2; }
+.spec .sb.compact .t { font-size: var(--s-title); }
+.spec .sb.compact .btn { grid-column: 1 / -1; margin-top: 8px; }
+.spec .sb.no-mark .mark { display: none; }
+.spec .sb.compact.no-mark { grid-template-columns: minmax(0, 1fr); }
+
+/* the shape overview */
+.shapes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-top: 18px; }
+.shape { min-width: 0; display: grid; gap: 10px; align-content: start; }
+.shape .spec { width: 100%; }
+.shape h3 { color: var(--fg-strong); letter-spacing: 0.04em; }
+.shape p { font-size: 14px; color: var(--muted); margin: 0; }
+
+/* the dock */
+.dock { position: sticky; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); z-index: 30; margin-top: 48px; background: var(--card); border: 1px solid var(--line-strong); border-radius: 16px; box-shadow: var(--shadow); padding: 10px 14px 9px; display: grid; gap: 8px; font-size: 12px; }
+.dock .rows { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: flex-end; }
+.dock .ctl { display: grid; gap: 3px; justify-items: start; }
+.dock .seg-l { font-size: 11px; margin: 0; }
+.dock .seg button { font-size: 12px; line-height: 20px; padding: 0 8px; }
+.dock .foot { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; color: var(--muted); font-size: 12px; line-height: 16px; }
+.dock .hint { flex: 1 1 240px; min-width: 0; }
+.dock .lnk { font: inherit; font-weight: 600; color: var(--accent); background: transparent; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; white-space: nowrap; }
+.dock .lnk:focus-visible, .dock .toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.dock .copyrow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.dock .copyrow input { flex: 1 1 260px; min-width: 0; height: 28px; padding: 0 8px; font-family: var(--font-mono); font-size: 11px; color: var(--fg); background: var(--bg); border: 1px solid var(--line-strong); border-radius: 8px; }
+.dock .toggle { display: none; }
+@media (max-width: 760px) {
+  .notes { grid-template-columns: minmax(0, 1fr); }
+  .shapes { grid-template-columns: minmax(0, 1fr); }
+  .spec { width: 100%; }
+  .spec.desk { width: 100%; }
+  .spec.wide2 { grid-template-columns: minmax(0, 1fr); }
+  .spec .mc.wide { display: block; }
+  .spec .mc.wide .media { width: 100%; min-height: 0; aspect-ratio: 16 / 9; }
+  .specs { flex-direction: column; align-items: stretch; }
+  .panel { width: 100%; }
+  .dock { padding: 6px 10px; max-height: 60dvh; overflow: auto; overscroll-behavior: contain; }
+  .dock .toggle { display: flex; align-items: center; justify-content: space-between; width: 100%; font: inherit; font-family: var(--font-display); font-size: 13px; font-weight: 600; line-height: 34px; color: var(--fg); background: transparent; border: 0; padding: 0 2px; cursor: pointer; }
+  .dock .toggle::after { content: ""; width: 8px; height: 8px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: translateY(-2px) rotate(45deg); }
+  .dock.collapsed .toggle::after { transform: translateY(2px) rotate(225deg); }
+  .dock.collapsed .rows, .dock.collapsed .foot, .dock.collapsed .copyrow { display: none; }
+  .dock .seg { flex-wrap: wrap; }
+  .dock .seg button, .octl .seg button { line-height: 30px; font-size: 13px; padding: 0 10px; }
+  .dock .copyrow input { height: 34px; font-size: 16px; }
+}
+@media (pointer: coarse) { .seg button { line-height: 30px; } }
+
+/* the zoom dialog */
+dialog.zoom { width: min(1100px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 0; border: 1px solid var(--line-strong); border-radius: 16px; background: var(--card); color: var(--fg); box-shadow: var(--shadow); }
+dialog.zoom::backdrop { background: rgba(12, 10, 9, 0.55); }
+dialog.zoom .zbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--card); }
+dialog.zoom .zbar p { margin: 0; font-size: 14px; }
+dialog.zoom .zbar button { font: inherit; font-weight: 600; font-size: 14px; color: var(--fg); background: var(--bg); border: 1px solid var(--line-strong); border-radius: 999px; padding: 4px 14px; cursor: pointer; }
+dialog.zoom .zbar button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+dialog.zoom .zimg { padding: 16px; background: #FFFFFF; overflow: auto; }
+dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+.foot-note { margin-top: 40px; font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 14px; }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+<div class="wrap census">
+  <nav class="crumb"><a id="back" href="design-lab.html">Design lab</a> · card census</nav>
+  <div class="eyebrow">Design research · App and cockpit cards · 17 October 2026</div>
+  <h1>Card Census</h1>
+  <p class="lede">Every card the app and the cockpit draw today, object by object, with the proposed version beneath it, built from four shared shapes. Tweak the shapes in the dock, set each object's options, then copy your picks back into the chat.</p>
+
+  <div class="tally" aria-label="What the census counted">
+    <div><b>107</b><span>card, row and tile components</span></div>
+    <div><b>14</b><span>in Shared</span></div>
+    <div><b>64</b><span>in the app</span></div>
+    <div><b>35</b><span>in the cockpit</span></div>
+    <div><b>5</b><span>card primitives</span></div>
+    <div><b>4</b><span>shared shapes proposed</span></div>
+  </div>
+
+  <div class="notes">
+    <div>
+      <h3>How to read it</h3>
+      <p><b>Today</b> shows real components captured from Storybook. Tap one to see it full size. Components with no story are listed under the strip.</p>
+      <p><b>Proposed</b> shows the same object built from the four shapes, at the app's density and the cockpit's.</p>
+    </div>
+    <div>
+      <h3>What the proposal assumes</h3>
+      <ul>
+        <li>Your picks: Plus Jakarta Sans, the linen ground, the app's cards everywhere, a 12px list gap, the lighter dark card.</li>
+        <li>Each surface keeps its density, its button corner and its tone.</li>
+        <li>A dot in a control marks your pick, or the recommendation where nothing is decided.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Evidence</h3>
+      <p>Captures: the deployed Storybook build of 18 October, headless Chromium at 2x, light theme. Labeled <b>Storybook</b>, not a signed-in session.</p>
+      <p>Counts and paths: <code>develop</code> at <code>b30ac410f</code>. The proposed cards are a hand-built mock.</p>
+    </div>
+  </div>
+
+  <ul class="toc" aria-label="Objects">
+    <li><a href="#shapes">The four shapes</a></li>
+    <li><a href="#work">Work</a></li>
+    <li><a href="#commitments">Commitments</a></li>
+    <li><a href="#actions">Actions</a></li>
+    <li><a href="#records">Assessments and hypercerts</a></li>
+    <li><a href="#gardens">Gardens</a></li>
+    <li><a href="#people">People</a></li>
+    <li><a href="#jars">Jars, vaults and pools</a></li>
+    <li><a href="#facts">Facts</a></li>
+    <li><a href="#states">Empty and error states</a></li>
+    <li><a href="#primitives">Card primitives</a></li>
+  </ul>
+
+  <section class="obj" id="shapes">
+    <div class="obj-h"><h2>The four shapes</h2><span class="count">Shown at the app's density</span></div>
+    <p class="obj-sum">Nearly every card in the census is one of these. Each lives once in Shared, at two densities, and every object's card is built from them. The dials in the dock change all four at once.</p>
+    <div class="shapes" id="shape-board"></div>
+  </section>
+
+  
+  <section class="obj" id="work">
+    <div class="obj-h"><h2>Work</h2><span class="count">3 designs in use · 1 shared row nothing renders</span></div>
+    <p class="obj-sum">On a phone the app shows work as a row: a photo, the title, a status pill and a coloured edge. Its upload queue uses a different card. The cockpit shows the same work as a card with a photo grid on top. Shared also has a workbench row with the right fields that nothing renders.</p>
+    <div class="block-h"><h3>Today <span class="ev">Storybook</span></h3></div>
+    <div class="strip"><figure class="shot tall" style="--w:360px"><button type="button" aria-label="Open WorkCard full size"><img src="census/work-sharedrow.webp" width="768" height="3118" loading="lazy" alt="WorkCard: The row the app renders, in every status"></button><figcaption><span class="nm"><code>WorkCard</code> <span class="tag app">app</span> <span class="tag shared">Shared code</span></span><span class="what">The row the app renders, in every status</span><span class="src">shared/components/Cards/WorkCard/WorkCard.tsx · 416 lines</span></figcaption></figure><figure class="shot tall" style="--w:360px"><button type="button" aria-label="Open PendingCard full size"><img src="census/work-pending.webp" width="768" height="1432" loading="lazy" alt="PendingCard: The upload queue, every kind"></button><figcaption><span class="nm"><code>PendingCard</code> <span class="tag app">app</span></span><span class="what">The upload queue, every kind</span><span class="src">client/components/Cards/Work/PendingCard.tsx · 178 lines · rendered in 2 files</span></figcaption></figure><figure class="shot" style="--w:360px"><button type="button" aria-label="Open DraftCard full size"><img src="census/work-draft.webp" width="768" height="232" loading="lazy" alt="DraftCard: A saved draft"></button><figcaption><span class="nm"><code>DraftCard</code> <span class="tag app">app</span></span><span class="what">A saved draft</span><span class="src">client/components/Cards/Work/DraftCard.tsx · 81 lines</span></figcaption></figure><figure class="shot" style="--w:355px"><button type="button" aria-label="Open HubWorkCard full size"><img src="census/work-hubcard.webp" width="710" height="608" loading="lazy" alt="HubWorkCard: The photo-grid card"></button><figcaption><span class="nm"><code>HubWorkCard</code> <span class="tag cockpit">cockpit</span></span><span class="what">The photo-grid card</span><span class="src">admin/views/Hub/components/HubWorkCard.tsx · 313 lines</span></figcaption></figure><figure class="shot" style="--w:560px"><button type="button" aria-label="Open HubWorkQueue full size"><img src="census/work-hubqueue.webp" width="1600" height="977" loading="lazy" alt="HubWorkQueue: The Hub queue, four cards"></button><figcaption><span class="nm"><code>HubWorkQueue</code> <span class="tag cockpit">cockpit</span></span><span class="what">The Hub queue, four cards</span><span class="src">admin/views/Hub/components/HubWorkCard.tsx · 313 lines</span></figcaption></figure><figure class="shot" style="--w:360px"><button type="button" aria-label="Open WorkbenchRow full size"><img src="census/work-workbenchrow.webp" width="858" height="428" loading="lazy" alt="WorkbenchRow: A shared row that nothing renders"></button><figcaption><span class="nm"><code>WorkbenchRow</code> <span class="tag shared">shared</span></span><span class="what">A shared row that nothing renders</span><span class="src">shared/components/Canvas/WorkbenchRow.tsx · 139 lines</span></figcaption></figure></div>
+    <p class="coderefs">Also in the code, without a story: <code>WorkMediaPhotoCard</code> (app, 89 lines, a photo in Submit Work); <code>PendingPhotoTile</code> (app, 100 lines, a queued photo).</p>
+    <div class="block-h"><h3>Proposed <span class="ev">Mock</span></h3><div class="octl" data-obj="work"></div></div>
+    <div class="specs" data-obj="work"></div>
+    <p class="keeps"><b>Stays with work:</b> the upload-queue states (saved, uploading, blocked), the photo count, and the photo grid on the cockpit's desktop card.</p>
+  </section>
+  <section class="obj" id="commitments">
+    <div class="obj-h"><h2>Commitments</h2><span class="count">5 designs in the app · 2 rows in a cockpit pool card</span></div>
+    <p class="obj-sum">The app gives promises five separate designs: a row, a group row, the pinned promise in Submit Work, a queued act and a pending creation. The cockpit lists them as rows inside its Offers and Requests card. The shared status badge is the only piece both use.</p>
+    <div class="block-h"><h3>Today <span class="ev">Storybook</span></h3></div>
+    <div class="strip"><figure class="shot" style="--w:352px"><button type="button" aria-label="Open CommitmentRow full size"><img src="census/com-row.webp" width="704" height="232" loading="lazy" alt="CommitmentRow: A promise that needs you"></button><figcaption><span class="nm"><code>CommitmentRow</code> <span class="tag app">app</span></span><span class="what">A promise that needs you</span><span class="src">client/components/Features/Commitments/CommitmentRow.tsx · 145 lines · rendered in 5 files</span></figcaption></figure><figure class="shot" style="--w:352px"><button type="button" aria-label="Open CommitmentRow full size"><img src="census/com-row-settled.webp" width="704" height="232" loading="lazy" alt="CommitmentRow: A promise that was kept"></button><figcaption><span class="nm"><code>CommitmentRow</code> <span class="tag app">app</span></span><span class="what">A promise that was kept</span><span class="src">client/components/Features/Commitments/CommitmentRow.tsx · 145 lines</span></figcaption></figure><figure class="shot" style="--w:360px"><button type="button" aria-label="Open PromiseGroupRow full size"><img src="census/com-group.webp" width="720" height="248" loading="lazy" alt="PromiseGroupRow: A group of promises"></button><figcaption><span class="nm"><code>PromiseGroupRow</code> <span class="tag app">app</span></span><span class="what">A group of promises</span><span class="src">client/components/Features/Commitments/PromiseGroupRow.tsx · 127 lines</span></figcaption></figure><figure class="shot" style="--w:360px"><button type="button" aria-label="Open PinnedPromiseCard full size"><img src="census/com-pinned.webp" width="832" height="180" loading="lazy" alt="PinnedPromiseCard: The promise a submission is for"></button><figcaption><span class="nm"><code>PinnedPromiseCard</code> <span class="tag app">app</span></span><span class="what">The promise a submission is for</span><span class="src">client/components/Features/Commitments/PinnedPromiseCard.tsx · 56 lines</span></figcaption></figure><figure class="shot" style="--w:360px"><button type="button" aria-label="Open QueuedActRow full size"><img src="census/com-queued.webp" width="832" height="484" loading="lazy" alt="QueuedActRow: Saved on this phone, not sent"></button><figcaption><span class="nm"><code>QueuedActRow</code> <span class="tag app">app</span></span><span class="what">Saved on this phone, not sent</span><span class="src">client/views/Home/Garden/Commitment/QueuedActRow.tsx · 325 lines</span></figcaption></figure><figure class="shot" style="--w:560px"><button type="button" aria-label="Open PoolCommitmentsCard full size"><img src="census/com-poolcard.webp" width="1350" height="482" loading="lazy" alt="PoolCommitmentsCard: Offers and Requests, the pool card"></button><figcaption><span class="nm"><code>PoolCommitmentsCard</code> <span class="tag cockpit">cockpit</span></span><span class="what">Offers and Requests, the pool card</span><span class="src">admin/views/Garden/Pool/PoolCommitmentsCard.tsx · 498 lines</span></figcaption></figure><figure class="shot" style="--w:360px"><button type="button" aria-label="Open PoolGroupRow full size"><img src="census/com-poolgroup.webp" width="900" height="152" loading="lazy" alt="PoolGroupRow: A group in the pool"></button><figcaption><span class="nm"><code>PoolGroupRow</code> <span class="tag cockpit">cockpit</span></span><span class="what">A group in the pool</span><span class="src">admin/views/Garden/Pool/PoolGroupRow.tsx · 180 lines</span></figcaption></figure><figure class="shot" style="--w:360px"><button type="button" aria-label="Open WaitingForApprovalRow full size"><img src="census/com-waiting.webp" width="894" height="176" loading="lazy" alt="WaitingForApprovalRow: A request waiting for approval"></button><figcaption><span class="nm"><code>WaitingForApprovalRow</code> <span class="tag cockpit">cockpit</span></span><span class="what">A request waiting for approval</span><span class="src">admin/views/Garden/Pool/WaitingForApprovalRow.tsx · 222 lines</span></figcaption></figure><figure class="shot tall" style="--w:360px"><button type="button" aria-label="Open ActPhaseLine full size"><img src="census/com-phase.webp" width="900" height="1814" loading="lazy" alt="ActPhaseLine: The act phase line, which stays with commitments"></button><figcaption><span class="nm"><code>ActPhaseLine</code> <span class="tag cockpit">cockpit</span></span><span class="what">The act phase line, which stays with commitments</span><span class="src">admin/components/ActPhaseLine.tsx · 55 lines · rendered in 5 files</span></figcaption></figure></div>
+    <p class="coderefs">Also in the code, without a story: <code>PendingCreationRow</code> (app, 196 lines, a promise still being created); <code>CommitmentPeople</code> (app, 196 lines, labelled facts; the cockpit has a 42-line component of the same name that does a different job).</p>
+    <div class="block-h"><h3>Proposed <span class="ev">Mock</span></h3><div class="octl" data-obj="commitments"></div></div>
+    <div class="specs" data-obj="commitments"></div>
+    <p class="keeps"><b>Stays with commitments:</b> the act phase line (waiting on the wallet, confirming, done, queued, failed), the queue and retry states, and who a promise is between.</p>
+  </section>
+  <section class="obj" id="actions">
+    <div class="obj-h"><h2>Actions</h2><span class="count">2 pickers · 1 workspace card · 1 public card</span></div>
+    <p class="obj-sum">Picking an action for a submission is one job with two designs: the app's banner card and the cockpit's selectable card. The cockpit's Actions workspace lists its templates with the shared workbench card. The public site has its own editorial card, which stays.</p>
+    <div class="block-h"><h3>Today <span class="ev">Storybook</span></h3></div>
+    <div class="strip"><figure class="shot" style="--w:360px"><button type="button" aria-label="Open ActionCard full size"><img src="census/act-card.webp" width="772" height="566" loading="lazy" alt="ActionCard: Picking an action, one selected"></button><figcaption><span class="nm"><code>ActionCard</code> <span class="tag app">app</span></span><span class="what">Picking an action, one selected</span><span class="src">client/components/Cards/Action/ActionCard.tsx · 95 lines</span></figcaption></figure><figure class="shot" style="--w:560px"><button type="button" aria-label="Open ActionChooserGrid full size"><img src="census/act-chooser.webp" width="1600" height="1015" loading="lazy" alt="ActionChooserGrid: Picking an action in Submit Work"></button><figcaption><span class="nm"><code>ActionChooserGrid</code> <span class="tag cockpit">cockpit</span></span><span class="what">Picking an action in Submit Work</span><span class="src">admin/views/Garden/components/ActionChooserGrid.tsx · 147 lines</span></figcaption></figure><figure class="shot" style="--w:360px"><button type="button" aria-label="Open AdminSelectableCard full size"><img src="census/act-selectable.webp" width="900" height="250" loading="lazy" alt="AdminSelectableCard: The cockpit&#x27;s selectable card"></button><figcaption><span class="nm"><code>AdminSelectableCard</code> <span class="tag cockpit">cockpit</span></span><span class="what">The cockpit&#x27;s selectable card</span><span class="src">admin/components/AdminSelectableCard.tsx · 91 lines · rendered in 6 files</span></figcaption></figure><figure class="shot" style="--w:560px"><button type="button" aria-label="Open WorkbenchCard full size"><img src="census/act-workbench.webp" width="1600" height="606" loading="lazy" alt="WorkbenchCard: The Actions workspace list"></button><figcaption><span class="nm"><code>WorkbenchCard</code> <span class="tag cockpit">cockpit</span> <span class="tag shared">Shared code</span></span><span class="what">The Actions workspace list</span><span class="src">shared/components/Canvas/WorkbenchCard.tsx · 139 lines · rendered in 2 files</span></figcaption></figure><figure class="shot tall" style="--w:560px"><button type="button" aria-label="Open ActionDetailPanel full size"><img src="census/act-detail.webp" width="1600" height="1331" loading="lazy" alt="ActionDetailPanel: An action&#x27;s detail"></button><figcaption><span class="nm"><code>ActionDetailPanel</code> <span class="tag cockpit">cockpit</span></span><span class="what">An action&#x27;s detail</span><span class="src">admin/views/Actions/ActionDetailPanel.tsx · 213 lines</span></figcaption></figure></div>
+    <p class="coderefs">Also in the code, without a story: <code>PublicActionCard</code> (public site, 106 lines, stays editorial).</p>
+    <div class="block-h"><h3>Proposed <span class="ev">Mock</span></h3><div class="octl" data-obj="actions"></div></div>
+    <div class="specs" data-obj="actions"></div>
+    <p class="keeps"><b>Stays with actions:</b> the requirements line (how many photos), the domain, and the selected mark set in the dock.</p>
+  </section>
+  <section class="obj" id="records">
+    <div class="obj-h"><h2>Assessments and hypercerts</h2><span class="count">1 card in the app · 2 records in the cockpit</span></div>
+    <p class="obj-sum">The app shows assessments as an inline card in its Assessments tab. The cockpit's Hub lists assessments and hypercerts with the shared workbench card, and its garden pages use a plain list row for recent assessments.</p>
+    <div class="block-h"><h3>Today <span class="ev">Storybook</span></h3></div>
+    <div class="strip"><figure class="shot" style="--w:320px"><button type="button" aria-label="Open AssessmentCard full size"><img src="census/asm-app.webp" width="640" height="772" loading="lazy" alt="AssessmentCard: Inside the Assessments tab"></button><figcaption><span class="nm"><code>AssessmentCard</code> <span class="tag app">app</span></span><span class="what">Inside the Assessments tab</span><span class="src">client/components/Features/Garden/Assessments.tsx · 249 lines</span></figcaption></figure><figure class="shot" style="--w:560px"><button type="button" aria-label="Open HubAssessmentList full size"><img src="census/asm-hub.webp" width="1600" height="316" loading="lazy" alt="HubAssessmentList: Assessments in the Hub"></button><figcaption><span class="nm"><code>HubAssessmentList</code> <span class="tag cockpit">cockpit</span></span><span class="what">Assessments in the Hub</span><span class="src">admin/views/Hub/components/HubRecordLists.tsx · 280 lines</span></figcaption></figure><figure class="shot" style="--w:560px"><button type="button" aria-label="Open HubHypercertList full size"><img src="census/asm-hypercerts.webp" width="1538" height="452" loading="lazy" alt="HubHypercertList: Hypercerts in the Hub"></button><figcaption><span class="nm"><code>HubHypercertList</code> <span class="tag cockpit">cockpit</span></span><span class="what">Hypercerts in the Hub</span><span class="src">admin/views/Hub/components/HubRecordLists.tsx · 280 lines</span></figcaption></figure><figure class="shot" style="--w:318px"><button type="button" aria-label="Open AdminListRow full size"><img src="census/asm-listrow.webp" width="636" height="424" loading="lazy" alt="AdminListRow: Recent assessments on a garden"></button><figcaption><span class="nm"><code>AdminListRow</code> <span class="tag cockpit">cockpit</span></span><span class="what">Recent assessments on a garden</span><span class="src">admin/components/AdminListRow.tsx · 41 lines · rendered in 4 files</span></figcaption></figure></div>
+    
+    <div class="block-h"><h3>Proposed <span class="ev">Mock</span></h3><div class="octl" data-obj="records"></div></div>
+    <div class="specs" data-obj="records"></div>
+    <p class="keeps"><b>Stays with assessments and hypercerts:</b> the reporting period, the outcome count and the minted state.</p>
+  </section>
+  <section class="obj" id="gardens">
+    <div class="obj-h"><h2>Gardens</h2><span class="count">1 shared card · 1 chip · 2 public designs</span></div>
+    <p class="obj-sum">The app's garden card is Shared code, wrapped by an app component of the same name that looks up names. The cockpit has no garden card; it names the selected garden with a chip. The public site has its own card and row, which stay.</p>
+    <div class="block-h"><h3>Today <span class="ev">Storybook</span></h3></div>
+    <div class="strip"><figure class="shot" style="--w:360px"><button type="button" aria-label="Open GardenCard full size"><img src="census/gdn-card.webp" width="768" height="622" loading="lazy" alt="GardenCard: The app&#x27;s garden card"></button><figcaption><span class="nm"><code>GardenCard</code> <span class="tag app">app</span> <span class="tag shared">Shared code</span></span><span class="what">The app&#x27;s garden card</span><span class="src">shared/components/Cards/GardenCard/GardenCard.tsx · 291 lines</span></figcaption></figure><figure class="shot" style="--w:220px"><button type="button" aria-label="Open GardenChip full size"><img src="census/gdn-chip.webp" width="436" height="128" loading="lazy" alt="GardenChip: The selected garden"></button><figcaption><span class="nm"><code>GardenChip</code> <span class="tag cockpit">cockpit</span> <span class="tag shared">Shared code</span></span><span class="what">The selected garden</span><span class="src">shared/components/Canvas/GardenChip.tsx · 258 lines</span></figcaption></figure></div>
+    <p class="coderefs">Also in the code, without a story: <code>PublicGardenCard</code> (public site, 80 lines, stays editorial); <code>PublicGardenRow</code> (public site, 198 lines, stays editorial).</p>
+    <div class="block-h"><h3>Proposed <span class="ev">Mock</span></h3><div class="octl" data-obj="gardens"></div></div>
+    <div class="specs" data-obj="gardens"></div>
+    <p class="keeps"><b>Stays with gardens:</b> the banner fallback and the member and steward counts.</p>
+  </section>
+  <section class="obj" id="people">
+    <div class="obj-h"><h2>People</h2><span class="count">2 in the app · 5 in the cockpit · 1 public</span></div>
+    <p class="obj-sum">People appear in hand-built rows on both surfaces: garden members and send recipients in the app; funders, group members, claimants and names in the cockpit.</p>
+    <div class="block-h"><h3>Today <span class="ev">Storybook</span></h3></div>
+    <div class="strip"><figure class="shot" style="--w:360px"><button type="button" aria-label="Open GardenMemberRow full size"><img src="census/ppl-gardeners.webp" width="776" height="540" loading="lazy" alt="GardenMemberRow: Members in the Gardeners tab"></button><figcaption><span class="nm"><code>GardenMemberRow</code> <span class="tag app">app</span></span><span class="what">Members in the Gardeners tab</span><span class="src">client/components/Features/Garden/Gardeners.tsx · 357 lines</span></figcaption></figure><figure class="shot" style="--w:360px"><button type="button" aria-label="Open FunderRow full size"><img src="census/ppl-funder.webp" width="888" height="196" loading="lazy" alt="FunderRow: A funder"></button><figcaption><span class="nm"><code>FunderRow</code> <span class="tag cockpit">cockpit</span></span><span class="what">A funder</span><span class="src">admin/components/Vault/FunderRow.tsx · 60 lines · rendered in 2 files</span></figcaption></figure><figure class="shot" style="--w:360px"><button type="button" aria-label="Open GroupPeopleList full size"><img src="census/ppl-group.webp" width="900" height="801" loading="lazy" alt="GroupPeopleList: People in a group of promises"></button><figcaption><span class="nm"><code>GroupPeopleList</code> <span class="tag cockpit">cockpit</span></span><span class="what">People in a group of promises</span><span class="src">admin/views/Garden/Pool/Group/GroupPeopleList.tsx · 221 lines</span></figcaption></figure><figure class="shot" style="--w:360px"><button type="button" aria-label="Open PersonName full size"><img src="census/ppl-person.webp" width="900" height="1019" loading="lazy" alt="PersonName: A name in a chip"></button><figcaption><span class="nm"><code>PersonName</code> <span class="tag cockpit">cockpit</span></span><span class="what">A name in a chip</span><span class="src">admin/components/PersonName.tsx · 35 lines · rendered in 5 files</span></figcaption></figure><figure class="shot tall" style="--w:360px"><button type="button" aria-label="Open CommitmentPeople full size"><img src="census/ppl-commitment.webp" width="900" height="1814" loading="lazy" alt="CommitmentPeople: Who a promise is between"></button><figcaption><span class="nm"><code>CommitmentPeople</code> <span class="tag cockpit">cockpit</span></span><span class="what">Who a promise is between</span><span class="src">admin/views/Garden/Pool/CommitmentPeople.tsx · 42 lines · rendered in 2 files</span></figcaption></figure></div>
+    <p class="coderefs">Also in the code, without a story: <code>MemberRow</code> (app, 120 lines, choosing who to send to); <code>ClaimantName</code> (cockpit, 39 lines); <code>PersonaRow</code> (public site, 281 lines, stays editorial).</p>
+    <div class="block-h"><h3>Proposed <span class="ev">Mock</span></h3><div class="octl" data-obj="people"></div></div>
+    <div class="specs" data-obj="people"></div>
+    <p class="keeps"><b>Stays with people:</b> every name comes from the shared address display, so a person reads the same everywhere.</p>
+  </section>
+  <section class="obj" id="jars">
+    <div class="obj-h"><h2>Jars, vaults and pools</h2><span class="count">3 in the app · 3 in the cockpit · 7 on the public site</span></div>
+    <p class="obj-sum">Cookie jars, deposits, vault positions and pools each have their own card. Only the cockpit's have stories. The public site's seven stay on its editorial design.</p>
+    <div class="block-h"><h3>Today <span class="ev">Storybook</span></h3></div>
+    <div class="strip"><figure class="shot" style="--w:360px"><button type="button" aria-label="Open PositionCard full size"><img src="census/jar-position.webp" width="900" height="1046" loading="lazy" alt="PositionCard: An endowment position"></button><figcaption><span class="nm"><code>PositionCard</code> <span class="tag cockpit">cockpit</span></span><span class="what">An endowment position</span><span class="src">admin/components/Vault/PositionCard.tsx · 469 lines</span></figcaption></figure><figure class="shot" style="--w:360px"><button type="button" aria-label="Open CookieJarPayoutCard full size"><img src="census/jar-payout.webp" width="760" height="836" loading="lazy" alt="CookieJarPayoutCard: A garden&#x27;s cookie jar"></button><figcaption><span class="nm"><code>CookieJarPayoutCard</code> <span class="tag cockpit">cockpit</span></span><span class="what">A garden&#x27;s cookie jar</span><span class="src">admin/views/Hub/components/CookieJarPayoutCard.tsx · 216 lines</span></figcaption></figure><figure class="shot" style="--w:560px"><button type="button" aria-label="Open GardenPoolCard full size"><img src="census/jar-pools.webp" width="1600" height="307" loading="lazy" alt="GardenPoolCard: A garden&#x27;s pool in Community"></button><figcaption><span class="nm"><code>GardenPoolCard</code> <span class="tag cockpit">cockpit</span></span><span class="what">A garden&#x27;s pool in Community</span><span class="src">admin/views/Community/components/CommunityPools.tsx · 345 lines</span></figcaption></figure></div>
+    <p class="coderefs">Also in the code, without a story: <code>CookieJarCard</code> (app, 179 lines, the endowment sheet); <code>JarCard</code> (app, 417 lines, inside the wallet sheet); <code>MyDepositRow</code> (app, 145 lines, the endowment sheet); <code>PublicCookieJarCard</code> (public site, 756 lines, stays editorial); <code>VaultAssetCard</code> (public site, 767 lines, inside the Fund page); <code>EndowmentAssetRow</code> (public site, 719 lines, inside the endowment panel).</p>
+    <div class="block-h"><h3>Proposed <span class="ev">Mock</span></h3><div class="octl" data-obj="jars"></div></div>
+    <div class="specs" data-obj="jars"></div>
+    <p class="keeps"><b>Stays with jars, vaults and pools:</b> amounts with their asset, limits and cooldowns, and the harvest state.</p>
+  </section>
+  <section class="obj" id="facts">
+    <div class="obj-h"><h2>Facts</h2><span class="count">6 in the cockpit · 4 in the app · 1 public</span></div>
+    <p class="obj-sum">Review, detail and settings screens list a label and its value. About eleven local rows do it, each slightly differently, and only two have stories.</p>
+    <div class="block-h"><h3>Today <span class="ev">Storybook</span></h3></div>
+    <div class="strip"><figure class="shot" style="--w:360px"><button type="button" aria-label="Open FlowStatusRow full size"><img src="census/fact-flow.webp" width="900" height="317" loading="lazy" alt="FlowStatusRow: A review summary before signing"></button><figcaption><span class="nm"><code>FlowStatusRow</code> <span class="tag cockpit">cockpit</span></span><span class="what">A review summary before signing</span><span class="src">admin/components/Layout/FlowStatusRow.tsx · 141 lines · rendered in 8 files</span></figcaption></figure><figure class="shot" style="--w:360px"><button type="button" aria-label="Open AdminSettingRow full size"><img src="census/fact-setting.webp" width="900" height="817" loading="lazy" alt="AdminSettingRow: A setting with a switch"></button><figcaption><span class="nm"><code>AdminSettingRow</code> <span class="tag cockpit">cockpit</span></span><span class="what">A setting with a switch</span><span class="src">admin/components/AdminSettingRow.tsx · 58 lines · rendered in 4 files</span></figcaption></figure></div>
+    <p class="coderefs">Also in the code, without a story: <code>DetailRow</code> (cockpit, 143 lines, work detail); <code>InfoRow</code> (cockpit, 171 lines, account settings); <code>ReviewRow</code> (cockpit, 264 lines, Create Assessment); <code>ReviewRow</code> (cockpit, 212 lines, Submit Work review); <code>SummaryRow</code> (app, 128 lines, wallet send review); <code>ReadinessRow</code> (app, 152 lines, pool readiness); <code>SettingRow</code> (app, 425 lines, app settings); <code>SignedOutRow</code> (app, 204 lines, the account sheet); <code>EditorialMetaRow</code> (public site, 536 lines, stays editorial).</p>
+    <div class="block-h"><h3>Proposed <span class="ev">Mock</span></h3><div class="octl" data-obj="facts"></div></div>
+    <div class="specs" data-obj="facts"></div>
+    <p class="keeps"><b>Stays with facts:</b> a setting row's switch and a review row's edit link.</p>
+  </section>
+  <section class="obj" id="states">
+    <div class="obj-h"><h2>Empty and error states</h2><span class="count">2 in Shared · 4 in the app · 3 in the cockpit</span></div>
+    <p class="obj-sum">Shared already has an empty state built for both surfaces. The app still keeps its own, rendered in 20 files, and several screens draw their own state cards.</p>
+    <div class="block-h"><h3>Today <span class="ev">Storybook</span></h3></div>
+    <div class="strip"><figure class="shot" style="--w:360px"><button type="button" aria-label="Open EmptyStateShell full size"><img src="census/st-shell.webp" width="807" height="430" loading="lazy" alt="EmptyStateShell: The shared empty state"></button><figcaption><span class="nm"><code>EmptyStateShell</code> <span class="tag shared">shared</span></span><span class="what">The shared empty state</span><span class="src">shared/components/Canvas/EmptyStateShell.tsx · 31 lines · rendered in 3 files</span></figcaption></figure><figure class="shot" style="--w:332px"><button type="button" aria-label="Open CommitmentStateLadder full size"><img src="census/st-ladder.webp" width="664" height="349" loading="lazy" alt="CommitmentStateLadder: Nothing moving yet"></button><figcaption><span class="nm"><code>CommitmentStateLadder</code> <span class="tag app">app</span></span><span class="what">Nothing moving yet</span><span class="src">client/components/Features/Commitments/CommitmentStateLadder.tsx · 326 lines · rendered in 4 files</span></figcaption></figure><figure class="shot" style="--w:360px"><button type="button" aria-label="Open CommitmentStateLadder full size"><img src="census/st-ladder-error.webp" width="768" height="308" loading="lazy" alt="CommitmentStateLadder: A read error"></button><figcaption><span class="nm"><code>CommitmentStateLadder</code> <span class="tag app">app</span></span><span class="what">A read error</span><span class="src">client/components/Features/Commitments/CommitmentStateLadder.tsx · 326 lines</span></figcaption></figure><figure class="shot" style="--w:360px"><button type="button" aria-label="Open JoinToActCard full size"><img src="census/st-join.webp" width="768" height="308" loading="lazy" alt="JoinToActCard: Join the garden first"></button><figcaption><span class="nm"><code>JoinToActCard</code> <span class="tag app">app</span></span><span class="what">Join the garden first</span><span class="src">client/views/Home/Garden/Commitment/JoinToAct.tsx · 154 lines</span></figcaption></figure><figure class="shot" style="--w:360px"><button type="button" aria-label="Open PoolNotReadyCard full size"><img src="census/st-notready.webp" width="900" height="403" loading="lazy" alt="PoolNotReadyCard: A pool that is not ready"></button><figcaption><span class="nm"><code>PoolNotReadyCard</code> <span class="tag cockpit">cockpit</span></span><span class="what">A pool that is not ready</span><span class="src">admin/views/Garden/Pool/PoolNotReadyCard.tsx · 55 lines</span></figcaption></figure></div>
+    <p class="coderefs">Also in the code, without a story: <code>EmptyState</code> (shared, 168 lines, in ListPrimitives, built for both surfaces); <code>EmptyState</code> (app, 86 lines, rendered in 20 files); <code>SectionStateCard</code> (cockpit, 88 lines); <code>ErrorCard</code> (cockpit, 241 lines, the route error); <code>StatusCard</code> (app, 214 lines, a reporting outcome).</p>
+    <div class="block-h"><h3>Proposed <span class="ev">Mock</span></h3><div class="octl" data-obj="states"></div></div>
+    <div class="specs" data-obj="states"></div>
+    <p class="keeps"><b>Stays with empty and error states:</b> each screen's own words and its own recovery action.</p>
+  </section>
+
+  <section class="obj" id="primitives">
+    <div class="obj-h"><h2>Card primitives</h2><span class="count">5 today · 1 proposed</span></div>
+    <p class="obj-sum">Five components draw a card's surface. The app has its own <code>Card</code>, the cockpit has <code>AdminCard</code>, and Shared has three that no app renders. The proposal keeps one card surface, the app's: a 24px corner, a visible edge and a faint shadow. The card corner and edge dials above set it.</p>
+    <div class="block-h"><h3>Today <span class="ev">Storybook</span></h3></div>
+    <div class="strip"><figure class="shot" style="--w:560px"><button type="button" aria-label="Open AdminCard full size"><img src="census/prim-admincard.webp" width="1600" height="766" loading="lazy" alt="AdminCard: Every variant"></button><figcaption><span class="nm"><code>AdminCard</code> <span class="tag cockpit">cockpit</span></span><span class="what">Every variant</span><span class="src">admin/components/AdminCard.tsx · 158 lines · rendered in 40 files</span></figcaption></figure><figure class="shot" style="--w:560px"><button type="button" aria-label="Open CardBase full size"><img src="census/prim-cardbase.webp" width="1600" height="221" loading="lazy" alt="CardBase: Every mode; no app renders it"></button><figcaption><span class="nm"><code>CardBase</code> <span class="tag shared">shared</span></span><span class="what">Every mode; no app renders it</span><span class="src">shared/components/Cards/CardBase.tsx · 191 lines</span></figcaption></figure><figure class="shot" style="--w:560px"><button type="button" aria-label="Open Surface full size"><img src="census/prim-surface.webp" width="1600" height="339" loading="lazy" alt="Surface: The glass tiers being retired"></button><figcaption><span class="nm"><code>Surface</code> <span class="tag shared">shared</span></span><span class="what">The glass tiers being retired</span><span class="src">shared/components/Surface/Surface.tsx · 158 lines · rendered in 3 files</span></figcaption></figure><figure class="shot" style="--w:560px"><button type="button" aria-label="Open StatCard full size"><img src="census/prim-statcard.webp" width="1600" height="312" loading="lazy" alt="StatCard: No app renders it"></button><figcaption><span class="nm"><code>StatCard</code> <span class="tag shared">shared</span></span><span class="what">No app renders it</span><span class="src">shared/components/StatCard.tsx · 72 lines</span></figcaption></figure></div><p class="coderefs">Also in the code, without a story: <code>Card</code> (app, 97 lines, rendered in 13 files).</p>
+  </section>
+
+  <p class="foot-note">The proposed cards are a mock drawn from the design tokens, not the shipped components. They settle direction and proportion, not exact sizes. Example names, gardens and amounts are invented. A pick locks only when a before and after pair of the real components is approved.</p>
+
+  <div class="dock" id="dock" aria-label="Shape dials">
+    <button type="button" class="toggle" id="dockToggle" aria-expanded="true" aria-controls="dockRows">Shape dials</button>
+    <div class="rows" id="dockRows"></div>
+    <div class="foot"><span class="hint" id="hint">A dot marks your pick, or the recommendation where nothing is decided. Point at an option to read what it does.</span><button type="button" class="lnk" id="reset">Reset to picks</button><button type="button" class="lnk" id="copy">Copy picks</button></div>
+    <div class="copyrow" id="copyRow" hidden><label for="copyText">Copying is blocked here. Press Cmd+C or Ctrl+C:</label><input id="copyText" type="text" readonly></div>
+  </div>
+</div>
+
+<dialog class="zoom" id="zoom" aria-labelledby="zoomCap">
+  <div class="zbar"><p id="zoomCap"></p><button type="button" id="zoomClose">Close</button></div>
+  <div class="zimg"><img id="zoomImg" alt=""></div>
+</dialog>
+
+<script>
+(function () {
+  "use strict";
+  var KEY = "gg-card-census-v1";
+
+  /* ---------- icons ---------- */
+  var IC = {
+    leaf: '<path d="M5 19c0-8 6-14 14-14 0 8-6 14-14 14z"/><path d="M5 19l7-7"/>',
+    bin: '<path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/>',
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/>',
+    book: '<path d="M4 5h6a2 2 0 0 1 2 2v12a2 2 0 0 0-2-2H4z"/><path d="M20 5h-6a2 2 0 0 0-2 2v12a2 2 0 0 1 2-2h6z"/>',
+    offer: '<path d="M7 17L17 7"/><path d="M9 7h8v8"/>',
+    request: '<path d="M17 7L7 17"/><path d="M15 17H7V9"/>',
+    chev: '<path d="M9 6l6 6-6 6"/>',
+    check: '<path d="M5 12l5 5 9-10"/>',
+    jar: '<path d="M8 4h8"/><path d="M9 4v3l-2 3v9a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-9l-2-3V4"/>',
+    vault: '<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/>',
+    pool: '<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3 2.7-5 6-5s6 2 6 5"/><path d="M16 5a3 3 0 0 1 0 6"/><path d="M21 20c0-2.4-1.6-4.2-4-4.8"/>',
+    inbox: '<path d="M4 13h4l2 3h4l2-3h4"/><path d="M4 13l2-8h12l2 8v6H4z"/>',
+    alert: '<path d="M12 8v5"/><path d="M12 16h.01"/><path d="M10.3 4.3L2.6 18a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0z"/>',
+    cert: '<rect x="6" y="3" width="12" height="11" rx="2"/><path d="M9 14v7l3-2 3 2v-7"/>',
+    clip: '<rect x="5" y="5" width="14" height="16" rx="2"/><path d="M9 3h6v4H9z"/><path d="M8 12h8M8 16h5"/>',
+    sprout: '<path d="M12 20v-8"/><path d="M12 12c0-4-3-6-7-6 0 4 3 6 7 6z"/><path d="M12 10c0-3 2-5 6-5 0 3-2 5-6 5"/>',
+    clock: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>',
+    phone: '<rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2"/>'
+  };
+  function ic(n) { return '<svg viewBox="0 0 24 24" aria-hidden="true">' + (IC[n] || "") + "</svg>"; }
+  var PH = {
+    agro: "linear-gradient(160deg,#C9DFB8,#86B072)",
+    waste: "linear-gradient(160deg,#CBDAE2,#88A3B2)",
+    solar: "linear-gradient(160deg,#F4E4C2,#D9B877)",
+    edu: "linear-gradient(160deg,#E3D8EF,#B39CD0)",
+    garden: "linear-gradient(160deg,#D6E6C6,#9DBF85 60%,#7FA36A)",
+    garden2: "linear-gradient(160deg,#D2E2EA,#9BB9C9 60%,#7E9FB2)"
+  };
+  var DOM_IC = { agro: "leaf", waste: "bin", solar: "sun", edu: "book" };
+  var DOM_NAME = { agro: "Agroforestry", waste: "Waste", solar: "Solar", edu: "Education" };
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+
+  /* ---------- the four shapes ---------- */
+  function pill(st) { return st ? '<span class="pill status ' + st[0] + '">' + esc(st[1]) + "</span>" : ""; }
+  function meta(parts) {
+    return '<div class="meta">' + parts.filter(Boolean).map(function (p) {
+      return typeof p === "string" ? '<span class="mi">' + esc(p) + "</span>" : '<span class="mi soft">' + esc(p.soft) + "</span>";
+    }).join("") + "</div>";
+  }
+  function itemRow(o, surface) {
+    var lead = "";
+    if (o.lead === "photo") lead = '<div class="lead photo" style="--ph:' + PH[o.dom] + '"><span class="ic">' + ic(DOM_IC[o.dom]) + "</span></div>";
+    else if (o.lead === "tile") lead = '<div class="lead tile">' + ic(o.icon) + "</div>";
+    else if (o.lead === "av") lead = '<div class="lead av">' + esc(o.initials) + "</div>";
+    var trail = "";
+    if (o.trail === "chev") trail = '<div class="trail">' + ic("chev") + "</div>";
+    else if (o.trail === "btn") trail = '<div class="trail"><span class="btn sm' + (o.btnSec ? " sec" : "") + '">' + esc(o.btn) + "</span></div>";
+    else if (o.trail === "amt") trail = '<div class="trail"><div class="amt">' + esc(o.amt[0]) + "<small>" + esc(o.amt[1]) + "</small></div></div>";
+    else if (o.trail === "chip") trail = '<div class="trail"><span class="chip">' + esc(o.chip) + "</span></div>";
+    var compact = o.compact;
+    var body = compact
+      ? '<div class="body"><div class="title trunc">' + esc(o.title) + "</div>" + meta(o.meta) + "</div>"
+      : '<div class="body">' + (o.eyebrow ? '<div class="eyebrow">' + esc(o.eyebrow) + "</div>" : "") +
+        '<div class="top"><div class="title trunc">' + esc(o.title) + "</div>" + (o.pillBelow ? "" : pill(o.status)) + "</div>" + meta(o.meta) +
+        (o.pillBelow && o.status ? '<div class="tags">' + pill(o.status) + "</div>" : "") +
+        (o.extra ? '<div class="extra ' + o.extra[0] + '">' + ic(o.extra[0] === "phase" ? "clock" : "phone") + "<span>" + esc(o.extra[1]) + "</span></div>" : "") + "</div>";
+    var cls = "sc row ir" + (compact ? " compact" : "") + (o.status ? " has-edge e-" + o.status[0] : "") + (o.selected ? " selected" : "");
+    return '<div class="' + cls + '"><span class="tick">' + ic("check") + "</span>" + lead + body + trail + "</div>";
+  }
+  function mediaCard(o) {
+    var media;
+    if (o.grid) media = '<div class="media grid" style="--ph:' + PH[o.dom] + '"><i></i><i style="filter:brightness(1.06)"></i><i style="filter:brightness(0.94)"></i>';
+    else media = '<div class="media' + (o.banner ? " banner" : "") + '" style="--ph:' + PH[o.dom] + '"><span class="ic">' + ic(o.icon || DOM_IC[o.dom]) + "</span>";
+    if (o.dchip) media += '<span class="dchip">' + esc(o.dchip) + "</span>";
+    if (o.count) media += '<span class="mcount">' + esc(o.count) + "</span>";
+    media += "</div>";
+    var body = '<div class="body"><div class="top"><div class="title">' + esc(o.title) + "</div>" + pill(o.status) + "</div>" +
+      (o.sub ? '<div class="sub">' + esc(o.sub) + "</div>" : "") +
+      (o.meta ? '<div class="meta"><span>' + esc(o.meta[0]) + '</span><span class="soft">' + esc(o.meta[1] || "") + "</span></div>" : "") +
+      (o.btn ? '<div><span class="btn">' + esc(o.btn) + "</span></div>" : "") + "</div>";
+    var cls = "sc mc" + (o.wide ? " wide" : "") + (o.status ? " has-edge e-" + o.status[0] : "") + (o.selected ? " selected" : "");
+    return '<div class="' + cls + '"><span class="tick">' + ic("check") + "</span>" + media + body + "</div>";
+  }
+  function factList(pairs, label, rows) {
+    return '<div class="sc fl ' + label + " " + rows + '">' + pairs.map(function (p) {
+      return '<div class="fr"><div class="k">' + esc(p[0]) + '</div><div class="v">' + esc(p[1]) + "</div></div>";
+    }).join("") + "</div>";
+  }
+  function stateBlock(o, size, mark) {
+    return '<div class="sc sb ' + size + (mark === "none" ? " no-mark" : "") + '"><div class="mark' + (o.err ? " err" : "") + '">' + ic(o.icon) + '</div><div class="t">' + esc(o.t) + '</div><div class="d">' + esc(o.d) + "</div>" + (o.btn ? '<span class="btn' + (o.btnSec ? " sec" : "") + '">' + esc(o.btn) + "</span>" : "") + "</div>";
+  }
+
+  /* ---------- example content ---------- */
+  var WORK = [
+    { dom: "agro", title: "Planted 50 native saplings", status: ["ok", "Approved"], who: "maria.eth", when: "2 hours ago", garden: "Botanic Commons", photos: 3 },
+    { dom: "waste", title: "River bank cleanup", status: ["warn", "Pending"], who: "chidi.eth", when: "6 hours ago", garden: "Riverside Commons", photos: 2 },
+    { dom: "solar", title: "Panel cleaning after the harmattan dust", status: ["err", "Rejected"], who: "0x7B2e…41C9", when: "3 days ago", garden: "Tech and Sun Hub", photos: 1 }
+  ];
+  var FACTS = [["Action", "Plant native trees"], ["Garden", "Botanic Commons"], ["Submitted", "12 Oct 2026, 9:40"], ["Photos", "3"], ["Confirms it", "chidi.eth"], ["Reward", "0.01 WETH"]];
+
+  /* ---------- object renderers: each returns one panel's specimens for a surface ---------- */
+  var R = {};
+  R.work = function (s, o, desk) {
+    if (desk) {
+      return WORK.concat([{ dom: "edu", title: "Led a composting workshop", status: ["info", "In review"], who: "tomi.eth", when: "4 days ago", garden: "Botanic Commons", photos: 2 }]).map(function (w) {
+        return o.desk === "wide"
+          ? mediaCard({ dom: w.dom, grid: true, wide: true, dchip: DOM_NAME[w.dom], count: "1 / " + w.photos, title: w.title, status: w.status, sub: w.garden, meta: [w.who, "submitted " + w.when] })
+          : itemRow({ lead: "photo", dom: w.dom, eyebrow: DOM_NAME[w.dom], title: w.title, status: w.status, meta: [w.who, { soft: w.when }] });
+      }).join("");
+    }
+    return WORK.map(function (w) {
+      return o.phone === "media"
+        ? mediaCard({ dom: w.dom, grid: s === "cockpit", dchip: DOM_NAME[w.dom], count: "1 / " + w.photos, title: w.title, status: w.status, sub: w.garden, meta: [w.who, w.when] })
+        : itemRow({ lead: "photo", dom: w.dom, title: w.title, status: w.status, meta: [w.who, { soft: w.when }] });
+    }).join("");
+  };
+  R.commitments = function (s, o) {
+    var items = [
+      { dir: "offer", title: "Water the seedlings weekly", status: ["warn", "Needs you"], meta: ["Offer", "tomi.eth", { soft: "due Fri 24 Oct" }], btn: s === "cockpit" ? "Confirm" : "Open", extra: s === "cockpit" ? ["phase", "Confirming on Arbitrum One…"] : null, initials: "TO" },
+      { dir: "request", title: "Run a composting workshop", status: ["info", "In progress"], meta: ["Request", "4 of 10 taken", { soft: "due 2 Nov" }], initials: "BC", extra: s === "app" ? ["queue", "Saved on this phone, not sent"] : null },
+      { dir: "offer", title: "Repair the drip line", status: ["ok", "Kept"], meta: ["Offer", "maria.eth", { soft: "kept 12 Oct" }], initials: "MA" }
+    ];
+    return items.map(function (c, i) {
+      if (o.shape === "media") return mediaCard({ dom: i === 1 ? "edu" : "agro", banner: true, icon: c.dir, title: c.title, status: c.status, sub: c.meta.filter(function (m) { return typeof m === "string"; }).join(" · "), btn: i === 0 ? c.btn : null });
+      var r = { title: c.title, status: c.status, meta: c.meta, extra: c.extra, pillBelow: true };
+      if (o.lead === "icon") { r.lead = "tile"; r.icon = c.dir; } else { r.lead = "av"; r.initials = c.initials; }
+      if (i === 0) { r.trail = "btn"; r.btn = c.btn; } else r.trail = "chev";
+      return itemRow(r);
+    }).join("");
+  };
+  R.actions = function (s, o) {
+    var acts = [["agro", "Plant native trees", "2 photos required"], ["waste", "Clear plastic from the river bank", "Before and after photos"], ["solar", "Maintain the solar array", "1 photo and a reading"], ["edu", "Teach a seed-saving class", "Attendance and a photo"]];
+    return acts.map(function (a, i) {
+      return o.shape === "media"
+        ? mediaCard({ dom: a[0], banner: true, title: a[1], sub: a[2], dchip: DOM_NAME[a[0]], selected: i === 0 })
+        : itemRow({ lead: "tile", icon: DOM_IC[a[0]], eyebrow: DOM_NAME[a[0]], title: a[1], meta: [a[2]], selected: i === 0 });
+    }).join("");
+  };
+  R.records = function (s, o) {
+    var recs = [
+      { kind: "Assessment", dom: "agro", icon: "clip", title: "Soil health baseline, spring 2026", status: ["info", "Recorded"], meta: ["4 outcomes", { soft: "2 days ago" }] },
+      { kind: "Assessment", dom: "solar", icon: "clip", title: "Panel output check", status: ["neu", "Draft"], meta: ["2 outcomes", { soft: "today" }] },
+      { kind: "Hypercert", dom: "garden", icon: "cert", title: "Eastern ridge canopy, autumn 2025", status: ["ok", "Minted"], meta: ["120 units", { soft: "12 Jan 2026" }] }
+    ];
+    return recs.map(function (r) {
+      return o.shape === "media"
+        ? mediaCard({ dom: r.dom, banner: true, icon: r.icon, dchip: r.kind, title: r.title, status: r.status, meta: [r.meta[0], r.meta[1].soft] })
+        : itemRow({ lead: "tile", icon: r.icon, eyebrow: r.kind + " · " + (DOM_NAME[r.dom] || "Garden"), title: r.title, status: r.status, meta: r.meta, trail: "chev" });
+    }).join("");
+  };
+  R.gardens = function (s, o) {
+    var g = [
+      { ph: "garden", title: "Botanic Commons", sub: "Lagos · 24 members · 3 actions", meta: ["2 stewards", "Open to join"] },
+      { ph: "garden2", title: "Riverside Commons", sub: "Accra · 11 members · 2 actions", meta: ["1 steward", "Invite only"] }
+    ];
+    return g.map(function (x) {
+      return o.shape === "media"
+        ? mediaCard({ dom: x.ph, banner: true, icon: "sprout", title: x.title, sub: x.sub, meta: x.meta })
+        : itemRow({ lead: "photo", dom: x.ph, title: x.title, meta: [x.sub], trail: "chev" });
+    }).join("").replace(/--ph:undefined/g, "--ph:" + PH.garden);
+  };
+  R.people = function (s, o) {
+    var p = [
+      { i: "MA", name: "maria.eth", meta: ["Gardener", { soft: "12 works" }], chip: "Gardener" },
+      { i: "CH", name: "chidi.eth", meta: ["Steward", { soft: "Botanic Commons" }], chip: "Steward" },
+      { i: "0x", name: "0x91cC…0F7e", meta: ["Funder", { soft: "40 DAI" }], chip: "Funder" }
+    ];
+    return p.map(function (x) {
+      return itemRow({ lead: "av", initials: x.i, title: x.name, meta: x.meta, compact: o.shape === "compact", trail: o.shape === "compact" ? null : "chip", chip: x.chip });
+    }).join("");
+  };
+  R.jars = function (s, o) {
+    var j = [
+      { icon: "jar", dom: "solar", title: "Garden cookie jar", status: ["ok", "Active"], meta: ["0.01 WETH a claim", { soft: "1 day cooldown" }], amt: ["0.42", "WETH left"], btn: "Claim" },
+      { icon: "vault", dom: "garden2", title: "Endowment position", status: ["info", "Accruing"], meta: ["8 depositors", { soft: "12 harvests" }], amt: ["12", "WETH deposited"], btn: "Deposit" },
+      { icon: "pool", dom: "garden", title: "Commitment pool", status: ["ok", "Open"], meta: ["6 open promises", { soft: "2 waiting" }], amt: ["6", "open"], btn: "Open" }
+    ];
+    return j.map(function (x) {
+      if (o.shape === "media") return mediaCard({ dom: x.dom, banner: true, icon: x.icon, title: x.title, status: x.status, sub: x.amt[0] + " " + x.amt[1], meta: [x.meta[0], x.meta[1].soft], btn: o.trail === "action" ? x.btn : null });
+      return itemRow({ lead: "tile", icon: x.icon, title: x.title, status: x.status, meta: x.meta, trail: o.trail === "action" ? "btn" : "amt", amt: x.amt, btn: x.btn, btnSec: true });
+    }).join("");
+  };
+  R.facts = function (s, o) { return factList(FACTS, o.label, o.rows); };
+  R.states = function (s, o) {
+    return stateBlock({ icon: "inbox", t: s === "app" ? "Nothing moving right now" : "No work waiting for review", d: s === "app" ? "When you offer something or take up a neighbour's offer, it lives here until it is settled." : "When gardeners submit work, it lands here for you to check.", btn: s === "app" ? "Offer something" : "Open the queue" }, o.size, o.mark) +
+      stateBlock({ icon: "alert", err: true, t: "Couldn't load commitments", d: "Your promises are safe. Check your connection and try again.", btn: "Try again", btnSec: true }, o.size, o.mark);
+  };
+
+  /* ---------- controls ---------- */
+  var DIALS = [
+    { key: "cardR", label: "Card corner", opts: [["24", "24px", "The app's card corner, your F7 pick."], ["16", "16px", "One step tighter: the app's work-row corner on every card."], ["12", "12px", "The cockpit's card corner today."]] },
+    { key: "rowR", label: "Row corner", opts: [["16", "16px", "The app's work-row corner, your F7 pick."], ["12", "12px", "Rows share the cockpit's 12px."], ["8", "8px", "Tight rows, closer to a list than to cards."]] },
+    { key: "edge", label: "Card edge", opts: [["border", "Border", "A visible border and a faint shadow: the app's card."], ["hairline", "Hairline", "A hairline and no shadow."], ["raised", "Raised", "No border, a raised shadow: the cockpit's card today."]] },
+    { key: "status", label: "Status", opts: [["both", "Edge and pill", "A 2px coloured edge and a status pill: the app's row."], ["pill", "Pill", "The status pill only."], ["edge", "Edge", "The coloured edge only, no pill."]] },
+    { key: "media", label: "Row photo", opts: [["88", "88px", "The app's 88px photo, your F7 pick."], ["72", "72px", "A smaller photo, so more rows fit."], ["56", "56px", "A thumbnail."]] },
+    { key: "gap", label: "List gap", opts: [["12", "12px", "12px between cards, your F11 pick."], ["8", "8px", "Tighter lists."], ["16", "16px", "Looser lists."]] },
+    { key: "select", label: "Selected", opts: [["border3", "3px border", "A 3px border marks the selected card: the app's way."], ["ring", "Ring", "A border, a soft ring and a check mark."]] },
+    { key: "theme", label: "Cards", opts: [["light", "Light", "The cards in the light theme."], ["dark", "Dark", "The cards in the dark theme, with the lighter dark card from F13."]] },
+    { key: "show", label: "Show", opts: [["both", "Both", "The app and the cockpit side by side."], ["app", "App", "Only the app's density."], ["cockpit", "Cockpit", "Only the cockpit's density."]] }
+  ];
+  var OBJ = {
+    work: [{ key: "phone", label: "On phones", opts: [["row", "Item row", "On phones a work item is the app's row: photo, title, status, one line."], ["media", "Media card", "On phones a work item is a card with its photo on top."]] },
+           { key: "desk", label: "Cockpit desktop", opts: [["wide", "Wide card", "The F12 pick: the photo grid on the left, two cards to a row."], ["row", "Item rows", "Desktop uses the same item row as phones."]] }],
+    commitments: [{ key: "shape", label: "Shape", opts: [["row", "Item row", "A row with a direction icon, status and one action."], ["media", "Media card", "A card with a banner."]] },
+                  { key: "lead", label: "Lead", opts: [["icon", "Icon", "The row starts with the offer or request icon."], ["avatar", "Avatar", "The row starts with the other person's initials."]] }],
+    actions: [{ key: "shape", label: "Picker", opts: [["media", "Media card", "Pick an action from cards with a banner: the app's picker."], ["row", "Item row", "Pick an action from rows with an icon."]] }],
+    records: [{ key: "shape", label: "Shape", opts: [["row", "Item row", "Assessments and hypercerts as rows."], ["media", "Media card", "As cards with a banner."]] }],
+    gardens: [{ key: "shape", label: "Shape", opts: [["media", "Media card", "A garden is a card with its banner: the app's garden card."], ["row", "Item row", "A garden is a row with a photo."]] }],
+    people: [{ key: "shape", label: "Shape", opts: [["row", "Item row", "A person is a row with an avatar and a role."], ["compact", "Compact row", "One line per person."]] }],
+    jars: [{ key: "shape", label: "Shape", opts: [["row", "Item row", "A jar, position or pool is a row."], ["media", "Media card", "A card with a banner."]] },
+           { key: "trail", label: "Right side", opts: [["amount", "Amount", "The row ends with its amount."], ["action", "Action", "The row ends with its main action."]] }],
+    facts: [{ key: "label", label: "Label", opts: [["beside", "Beside", "The label sits to the left of its value."], ["above", "Above", "The label sits above its value."]] },
+            { key: "rows", label: "Rows", opts: [["divided", "Divided", "One card with divided rows."], ["spaced", "Spaced", "Each fact on its own tinted row."]] }],
+    states: [{ key: "size", label: "Size", opts: [["full", "Full", "A centred block for an empty list or a failed page."], ["compact", "Compact", "A one-line block inside a card."]] },
+             { key: "mark", label: "Mark", opts: [["tile", "Icon tile", "A round icon tile above the title."], ["none", "None", "Text and the action only."]] }]
+  };
+  var OBJ_NAMES = { work: "Work", commitments: "Commitments", actions: "Actions", records: "Assessments and hypercerts", gardens: "Gardens", people: "People", jars: "Jars, vaults and pools", facts: "Facts", states: "States" };
+  function defaults() {
+    var d = {};
+    DIALS.forEach(function (c) { d[c.key] = c.opts[0][0]; });
+    Object.keys(OBJ).forEach(function (k) { d[k] = {}; OBJ[k].forEach(function (c) { d[k][c.key] = c.opts[0][0]; }); });
+    return d;
+  }
+  var DEF = defaults();
+  var state = defaults();
+  try {
+    var saved = JSON.parse(localStorage.getItem(KEY) || "null");
+    if (saved && typeof saved === "object") {
+      DIALS.forEach(function (c) { if (saved[c.key] && c.opts.some(function (o) { return o[0] === saved[c.key]; })) state[c.key] = saved[c.key]; });
+      Object.keys(OBJ).forEach(function (k) { if (saved[k]) OBJ[k].forEach(function (c) { var v = saved[k][c.key]; if (v && c.opts.some(function (o) { return o[0] === v; })) state[k][c.key] = v; }); });
+    }
+  } catch (e) {}
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+
+  var hintEl = document.getElementById("hint");
+  var HINT0 = hintEl.textContent;
+  function segHtml(group, c, current, def) {
+    return '<span class="ctl" role="group" aria-label="' + esc(c.label) + '"><span class="seg-l">' + esc(c.label) + '</span><span class="seg">' +
+      c.opts.map(function (o) {
+        return '<button type="button" data-group="' + group + '" data-key="' + c.key + '" data-v="' + o[0] + '" data-d="' + esc(o[2]) + '" aria-pressed="' + (current === o[0]) + '"' + (def === o[0] ? ' class="picked"' : "") + ">" + esc(o[1]) + "</button>";
+      }).join("") + "</span></span>";
+  }
+  function buildControls() {
+    document.getElementById("dockRows").innerHTML = DIALS.map(function (c) { return segHtml("dial", c, state[c.key], DEF[c.key]); }).join("");
+    Object.keys(OBJ).forEach(function (k) {
+      var host = document.querySelector('.octl[data-obj="' + k + '"]');
+      if (host) host.innerHTML = OBJ[k].map(function (c) { return segHtml(k, c, state[k][c.key], DEF[k][c.key]); }).join("");
+    });
+  }
+
+  /* ---------- render ---------- */
+  var root = document.querySelector(".census");
+  function applyDials() {
+    root.style.setProperty("--card-r", state.cardR + "px");
+    root.style.setProperty("--row-r", state.rowR + "px");
+    root.style.setProperty("--media", state.media + "px");
+    root.style.setProperty("--gap", state.gap + "px");
+    root.classList.remove("edge-border", "edge-hairline", "edge-raised", "st-both", "st-pill", "st-edge", "sel-border3", "sel-ring", "dark-specs");
+    root.classList.add("edge-" + state.edge, "st-" + state.status, "sel-" + state.select);
+    if (state.theme === "dark") root.classList.add("dark-specs");
+    document.querySelectorAll(".panel[data-surface]").forEach(function (p) {
+      var s = p.getAttribute("data-surface");
+      p.hidden = !(state.show === "both" || state.show === s);
+    });
+  }
+  function panel(surface, label, inner, extraCls) {
+    return '<div class="panel' + (extraCls && extraCls.indexOf("desk") > -1 ? " full" : "") + '" data-surface="' + surface + '"><div class="panel-l">' + label + '</div><div class="spec ' + surface + (extraCls ? " " + extraCls : "") + '">' + inner + "</div></div>";
+  }
+  function renderObj(k) {
+    var host = document.querySelector('.specs[data-obj="' + k + '"]');
+    if (!host) return;
+    var o = state[k];
+    var html = panel("app", 'App <span>· phone · 16px</span>', R[k]("app", o)) + panel("cockpit", 'Cockpit <span>· phone · 14px</span>', R[k]("cockpit", o));
+    if (k === "work") html += panel("cockpit", 'Cockpit <span>· desktop · 14px</span>', R.work("cockpit", o, true), "desk wide2");
+    host.innerHTML = html;
+  }
+  function renderShapes() {
+    var w = WORK[0];
+    var cards = [
+      ["Item row", "Media on the left, then title, status, one line of detail and an action. Work, commitments, actions, records, people and jars.", itemRow({ lead: "photo", dom: w.dom, title: w.title, status: w.status, meta: [w.who, { soft: w.when }] })],
+      ["Media card", "A photo or banner first. Gardens, picking an action, and the cockpit's wide desktop work card.", mediaCard({ dom: "garden", banner: true, icon: "sprout", title: "Botanic Commons", sub: "Lagos · 24 members · 3 actions" })],
+      ["Fact row", "A label and its value, for review, detail and settings screens. About eleven local copies today.", factList(FACTS.slice(0, 3), state.facts.label, state.facts.rows)],
+      ["State block", "Empty, loading, error or not ready, at two sizes. Three empty states and about eight state cards today.", stateBlock({ icon: "inbox", t: "Nothing moving right now", d: "New promises show up here.", btn: "Offer something" }, "compact", state.states.mark)]
+    ];
+    document.getElementById("shape-board").innerHTML = cards.map(function (c) {
+      return '<div class="shape"><h3>' + c[0] + '</h3><div class="spec app">' + c[2] + "</div><p>" + c[1] + "</p></div>";
+    }).join("");
+  }
+  function renderAll() { applyDials(); renderShapes(); Object.keys(OBJ).forEach(renderObj); }
+
+  function picksLine() {
+    var parts = DIALS.filter(function (c) { return c.key !== "theme" && c.key !== "show"; }).map(function (c) {
+      return c.label + " " + c.opts.filter(function (o) { return o[0] === state[c.key]; })[0][1];
+    });
+    Object.keys(OBJ).forEach(function (k) {
+      parts.push(OBJ_NAMES[k] + ": " + OBJ[k].map(function (c) { return c.label.toLowerCase() + " " + c.opts.filter(function (o) { return o[0] === state[k][c.key]; })[0][1]; }).join(", "));
+    });
+    return "Census picks: " + parts.join("; ");
+  }
+
+  document.addEventListener("click", function (ev) {
+    var b = ev.target.closest(".seg button[data-key]");
+    if (b) {
+      var g = b.getAttribute("data-group"), k = b.getAttribute("data-key"), v = b.getAttribute("data-v");
+      if (g === "dial") state[k] = v; else state[g][k] = v;
+      save();
+      b.parentNode.querySelectorAll("button").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
+      if (g === "dial") { applyDials(); } else { renderObj(g); if (g === "facts" || g === "states") renderShapes(); }
+      return;
+    }
+    var shot = ev.target.closest(".shot button");
+    if (shot) {
+      var img = shot.querySelector("img"), cap = shot.parentNode.querySelector("figcaption");
+      document.getElementById("zoomImg").src = img.src;
+      document.getElementById("zoomImg").alt = img.alt;
+      document.getElementById("zoomCap").textContent = cap ? cap.textContent.replace(/\s+/g, " ").trim() : img.alt;
+      var dlg = document.getElementById("zoom");
+      if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
+    }
+  });
+  document.getElementById("zoomClose").addEventListener("click", function () { var d = document.getElementById("zoom"); if (d.close) d.close(); else d.removeAttribute("open"); });
+  document.getElementById("zoom").addEventListener("click", function (ev) { if (ev.target === this && this.close) this.close(); });
+  function hintFor(ev) {
+    var b = ev.target.closest && ev.target.closest(".seg button[data-d]");
+    if (b) hintEl.textContent = b.getAttribute("data-d");
+  }
+  document.addEventListener("mouseover", hintFor);
+  document.addEventListener("focusin", hintFor);
+  document.getElementById("dock").addEventListener("mouseleave", function () { hintEl.textContent = HINT0; });
+  document.getElementById("reset").addEventListener("click", function () {
+    state = defaults(); save(); buildControls(); renderAll();
+    hintEl.textContent = "Back on your picks and the recommendations.";
+  });
+  var copyTimer = 0;
+  function legacyCopy(text) {
+    var ta = document.createElement("textarea"), ok = false;
+    ta.value = text; ta.setAttribute("readonly", ""); ta.setAttribute("aria-hidden", "true");
+    ta.style.cssText = "position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;";
+    document.body.appendChild(ta); ta.select();
+    try { ok = document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta);
+    return ok;
+  }
+  document.getElementById("copy").addEventListener("click", function () {
+    var btn = this, text = picksLine(), row = document.getElementById("copyRow"), field = document.getElementById("copyText");
+    function copied() { row.hidden = true; btn.textContent = "Copied"; clearTimeout(copyTimer); copyTimer = setTimeout(function () { btn.textContent = "Copy picks"; }, 2200); }
+    function shown() { row.hidden = false; field.value = text; field.focus(); field.select(); }
+    function refused() { if (legacyCopy(text)) copied(); else shown(); }
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(copied, refused);
+      else refused();
+    } catch (e) { refused(); }
+  });
+  var dock = document.getElementById("dock"), toggle = document.getElementById("dockToggle");
+  toggle.addEventListener("click", function () {
+    var c = dock.classList.toggle("collapsed");
+    toggle.setAttribute("aria-expanded", String(!c));
+  });
+  if (window.matchMedia && window.matchMedia("(max-width: 760px)").matches) { dock.classList.add("collapsed"); toggle.setAttribute("aria-expanded", "false"); }
+
+  buildControls();
+  renderAll();
+})();
+</script>
+</body>
+</html>

@@ -126,5 +126,17 @@ run opened the file in headless Chromium (Playwright):
 - Copy picks produced the same line by each of its three routes: the clipboard, the older copy
   command when the clipboard refuses, and the selected text field when both refuse.
 
+## Card census check
+
+Checked on 2026-10-17 when the card census was added:
+
+- All 45 stories it shows rendered from the deployed Storybook (built 18 October) without a page
+  error, and each capture was checked for an error or empty state in its rendered text.
+- In headless Chromium (Playwright) at 1440×900 and 390×844, in light and dark: no console error and
+  no horizontal overflow. A shape dial, an object option, Copy picks (clipboard route) and the full
+  size view all worked.
+- In the published artifact, opened in the in-app browser: the main page's link opens the census,
+  the captures load, the dials change the proposed cards, and the census links back.
+
 These are document and mock checks. No application code changed, so no implementation, usability or
 release evidence exists yet.

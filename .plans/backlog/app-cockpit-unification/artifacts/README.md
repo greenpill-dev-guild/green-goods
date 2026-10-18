@@ -1,7 +1,8 @@
-# Artifacts: the design lab and the Storybook captures
+# Artifacts: the design lab, the card census and the Storybook captures
 
-Two things live here: an interactive mock for choosing between the options in
-[spec.md](../spec.md#decisions-to-resolve), and the rendered evidence the diagnosis rests on.
+Three things live here: an interactive mock for choosing between the options in
+[spec.md](../spec.md#decisions-to-resolve), a census of every card the two surfaces draw, and the
+rendered evidence the diagnosis rests on.
 
 ## The design lab
 
@@ -38,6 +39,26 @@ names, gardens and addresses are invented.
 The choices persist in the browser's local storage under `gg-lab-state-v5`. The block between the
 `lab:start` and `lab:end` comments is the lab itself; the rest of the file is the page chrome that
 lets it stand alone.
+
+## The card census
+
+[card-census.html](card-census.html) takes the cards object by object: work, commitments, actions,
+assessments and hypercerts, gardens, people, jars, vaults and pools, facts, and empty and error
+states, then the card primitives. Open it from this folder so it finds its images in `census/`.
+
+- **Today** shows the real components, 45 captures from the deployed Storybook build of 18 October
+  2026, headless Chromium at 2x in the light theme. **Evidence class: Storybook**, not a signed-in
+  session. Each caption gives the component, its surface, its file and its size, read at `develop`
+  `b30ac410f`. Components with no story are listed under each strip.
+- **Proposed** draws the same object from the four shared shapes (item row, media card, fact row,
+  state block) at the app's density and the cockpit's. Like the lab, it is a mock drawn from the
+  tokens and starts on the accepted picks: Plus Jakarta Sans, the linen ground, the app's cards,
+  a 12px list gap and the lighter dark card.
+- **The dock** holds the shape dials (card corner, row corner, card edge, status, row photo, list
+  gap, selection, light or dark, and which surface to show). Each object has its own options
+  beside its Proposed heading. A dot marks the pick, or the recommendation where nothing is
+  decided. Copy picks puts every choice on one line, starting `Census picks:`, with the same
+  fallbacks as the lab. The choices persist under `gg-card-census-v1`.
 
 ## The captures
 
