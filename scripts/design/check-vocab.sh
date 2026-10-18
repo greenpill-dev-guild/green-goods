@@ -230,11 +230,32 @@ fi
 # ---------------------------------------------------------------------------
 # US spelling: English copy writes "canceled", never "cancelled".
 # Walks parsed English values, so message keys (which keep names such as
-# "app.pool.cycleState.cancelled") and ICU argument names are never read.
+# "app.pool.cycleState.cancelled"), ICU argument names and select or plural
+# keys (wire values such as CANCELLED) are never read; branch text is.
 # ---------------------------------------------------------------------------
 if command -v python3 >/dev/null 2>&1; then
   SPELLING_HITS="$(python3 - "$VOCAB_JSON" <<'PYEOF'
 import glob, json, re, sys
+
+CHOICE = re.compile(r"\{\s*\w+\s*,\s*(?:select|plural|selectordinal)\s*,")
+
+
+def branch_text(message):
+    """Keep each select/plural branch's text and drop the keys that choose it."""
+    out, i = [], 0
+    while (choice := CHOICE.search(message, i)) is not None:
+        out.append(message[i:choice.start()])
+        depth, branches, j = 1, [], choice.end()
+        while j < len(message) and depth:
+            character = message[j]
+            depth += {"{": 1, "}": -1}.get(character, 0)
+            if depth >= 2 or (character == "}" and depth == 1):
+                branches.append(character)
+            j += 1
+        out.append(" " + branch_text("".join(branches)) + " ")
+        i = j
+    return "".join(out) + message[i:]
+
 
 section = json.load(open(sys.argv[1])).get("us_spelling", {})
 terms = section.get("terms", {})
@@ -248,7 +269,7 @@ if terms:
                 if key in exempt or not isinstance(value, str):
                     continue
                 # ICU argument references are code the component passes, not copy.
-                prose = re.sub(r"\{\s*\w+\s*[,}]", " ", value)
+                prose = re.sub(r"\{\s*\w+\s*[,}]", " ", branch_text(value))
                 for match in pattern.finditer(prose):
                     word = match.group(0)
                     hits.append(f"{path}: {key}: {word} -> {terms[word.lower()]}")
