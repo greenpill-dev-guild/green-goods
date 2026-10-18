@@ -861,6 +861,15 @@ test("a receipt covers the environment a check runs with, not only the plan", as
   const shimmed = (pid) => ({ ...nvmLoaded, DEV_MACHINE_SHIM_TRIED: `${pid}:node:/Users/dev/.local/share/mise/shims` });
   assert.equal((await run(shimmed(70001))).results[0].reused, true);
   assert.equal((await run(shimmed(70002))).results[0].reused, true);
+  // A push can hand the hook its focus in GREEN_GOODS_PUSH_TEST_PATHS and GG_PUSH_GATE_ARGS. The
+  // hook turns them into --test-path and --check flags, which the plan records, so a manual run
+  // given the same flags made the same proof.
+  const focused = {
+    ...nvmLoaded,
+    GREEN_GOODS_PUSH_TEST_PATHS: "shared:src/__tests__/workflows/authServices.test.ts",
+    GG_PUSH_GATE_ARGS: "--check ontology",
+  };
+  assert.equal((await run(focused)).results[0].reused, true);
   assert.equal(runs, 3);
   await run({ ...shimmed(70003), DEV_MACHINE_ENTRY: "builder /Users/dev/green-goods" });
   assert.equal(runs, 4);
