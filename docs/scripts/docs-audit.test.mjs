@@ -239,17 +239,25 @@ test("UK spelling in docs prose or design guidance exits nonzero, while names st
     const clean = runAudit(root);
     assert.equal(clean.status, 0, clean.stderr);
 
-    writeFileSync(file, `${readFileSync(file, "utf8")}The row reads cancelled.\n`);
-    const line = readFileSync(file, "utf8").split("\n").indexOf("The row reads cancelled.") + 1;
+    // A folded frontmatter value is rendered page metadata, read whole across its lines.
+    const dirty = `${readFileSync(file, "utf8")}The row reads cancelled.\n`.replace(
+      "slug: /builders/test\n",
+      "slug: /builders/test\ndescription: >-\n  How the field\n  turns grey.\n",
+    );
+    writeFileSync(file, dirty);
+    const lineOf = (text) => dirty.split("\n").indexOf(text) + 1;
     writeFileSync(path.join(root, "DESIGN.md"), "# Design\n\nA grey border marks the field.\n");
     const result = runAudit(root);
     assert.equal(result.status, 1);
     assert.ok(
-      result.stderr.includes(`builders/test.mdx: UK spelling on line ${line}: "cancelled"; English copy uses US spelling ("canceled")`),
+      result.stderr.includes(
+        `builders/test.mdx: UK spelling on line ${lineOf("The row reads cancelled.")}: "cancelled"; English copy uses US spelling ("canceled")`,
+      ),
       result.stderr,
     );
+    assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${lineOf("description: >-")}: "grey"`), result.stderr);
     assert.match(result.stderr, /DESIGN\.md: UK spelling on line 3: "grey"/);
-    assert.equal(result.stderr.match(/UK spelling/g)?.length, 2, result.stderr);
+    assert.equal(result.stderr.match(/UK spelling/g)?.length, 3, result.stderr);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

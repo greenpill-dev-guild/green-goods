@@ -41,21 +41,40 @@ describe("agent i18n", () => {
       )
     ) as { us_spelling: { terms: Record<string, string>; exempt_phrases?: string[] } };
     const ukForm = new RegExp(`\\b(${Object.keys(usSpelling.terms).join("|")})\\b`, "gi");
-    const literal = /"((?:[^"\\\n]|\\.)*)"|'((?:[^'\\\n]|\\.)*)'/g;
+    // Comments and the three kinds of string literal, in source order. A comment is skipped, a
+    // literal followed by a colon is a key such as "submit.cancelled", and every other one is copy.
+    const token =
+      /\/\/[^\n]*|\/\*[\s\S]*?\*\/|"((?:[^"\\\n]|\\.)*)"|'((?:[^'\\\n]|\\.)*)'|`((?:[^`\\]|\\.)*)`/g;
+    const valuesOf = (source: string, opening: string) => {
+      const start = source.indexOf(opening);
+      expect(start, `the catalog no longer declares ${opening}`).toBeGreaterThanOrEqual(0);
+      const block = source.slice(start, source.indexOf("} as const", start));
+      return [...block.matchAll(token)]
+        .filter(([lexeme]) => !lexeme.startsWith("/"))
+        .filter((match) => !/^\s*:/.test(block.slice((match.index ?? 0) + match[0].length)))
+        .map(([, double, single, template]) =>
+          (double ?? single ?? template ?? "").replace(/\$\{[^}]*\}/g, " ")
+        );
+    };
+    const sample = [
+      "const sample = {",
+      `  // don't read "this comment"`,
+      '  "review.cancelled": `Review cancelled for ${name}`,',
+      "  joined: \"one \" + 'two',",
+      "} as const;",
+    ].join("\n");
+    expect(valuesOf(sample, "const sample = {").map((value) => value.trim())).toEqual([
+      "Review cancelled for",
+      "one",
+      "two",
+    ]);
     const catalogs = [
       { file: "../i18n.ts", opening: "const enMessages = {" },
       { file: "../services/reporting/copy/en.ts", opening: "export const EN_REPORTING_COPY = {" },
     ];
 
     const hits = catalogs.flatMap(({ file, opening }) => {
-      const source = readFileSync(new URL(file, import.meta.url), "utf8");
-      const start = source.indexOf(opening);
-      expect(start, `${file} no longer declares ${opening}`).toBeGreaterThanOrEqual(0);
-      const block = source.slice(start, source.indexOf("} as const", start));
-      // A literal followed by a colon is a key, such as "submit.cancelled"; only values are copy.
-      const values = [...block.matchAll(literal)]
-        .filter((match) => !/^\s*:/.test(block.slice((match.index ?? 0) + match[0].length)))
-        .map(([, double, single]) => double ?? single ?? "");
+      const values = valuesOf(readFileSync(new URL(file, import.meta.url), "utf8"), opening);
       expect(values.length, file).toBeGreaterThan(50);
       return values.flatMap((value) => {
         let prose = value.replace(/\{\w+\}|`[^`]*`/g, " ");

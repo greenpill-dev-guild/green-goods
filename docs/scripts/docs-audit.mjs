@@ -530,16 +530,31 @@ const exemptPhrases = usSpelling.exempt_phrases ?? [];
 const notProse =
   /`[^`\n]*`|\]\([^)\s]*(?:\s+"[^"]*")?\)|<https?:\/\/[^>]+>|https?:\/\/[^\s)\]>"'`]+|\{#[^}]*\}|\b(?!alt\b|title\b)[\w:-]+="[^"]*"/g;
 const htmlComment = /<!--[\s\S]*?--!?>/g;
-const renderedFrontmatterKey = /^(?:title|sidebar_label|description):/;
+const renderedFrontmatterKeys = ["title", "sidebar_label", "description"];
 
 const ukSpellingsIn = (text) => {
   // An HTML comment is never rendered, even across lines; blanking it keeps the line numbers.
   const lines = text.replace(htmlComment, (comment) => comment.replace(/[^\n]/g, " ")).split("\n");
   const frontmatterEnd = lines[0] === "---" ? lines.indexOf("---", 1) : -1;
   const found = [];
+  const checkProse = (value, line) => {
+    let prose = value.replace(notProse, " ");
+    for (const phrase of exemptPhrases) prose = prose.split(phrase).join(" ");
+    for (const [, word] of prose.matchAll(ukFormPattern)) {
+      found.push({line, word, us: ukForms.get(word.toLowerCase())});
+    }
+  };
+  // Parsed, so a folded or literal block value is read whole. Only the keys a reader sees are copy;
+  // the rest of the frontmatter is names and paths.
+  const {frontmatter} = frontmatterEnd > 0 ? parseFrontmatter(text) : {frontmatter: null};
+  for (const key of renderedFrontmatterKeys) {
+    if (typeof frontmatter?.[key] === "string") {
+      checkProse(frontmatter[key], lines.findIndex((line) => line.startsWith(`${key}:`)) + 1);
+    }
+  }
   let fence = null;
   lines.forEach((line, index) => {
-    if (index <= frontmatterEnd && !renderedFrontmatterKey.test(line)) return;
+    if (index <= frontmatterEnd) return;
     const trimmed = line.trimStart();
     const marker = /^(```|~~~)/.exec(trimmed)?.[1];
     if (marker) {
@@ -547,11 +562,7 @@ const ukSpellingsIn = (text) => {
       return;
     }
     if (fence !== null || /^(?:import|export)\s/.test(trimmed)) return;
-    let prose = line.replace(notProse, " ");
-    for (const phrase of exemptPhrases) prose = prose.split(phrase).join(" ");
-    for (const [, word] of prose.matchAll(ukFormPattern)) {
-      found.push({line: index + 1, word, us: ukForms.get(word.toLowerCase())});
-    }
+    checkProse(line, index + 1);
   });
   return found;
 };

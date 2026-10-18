@@ -1823,6 +1823,7 @@
         "biome.json",
         "env.schema",
         "scripts/quality/check-source-structure.js",
+        "scripts/data/banned-vocabulary.json",
         ".github/actions/setup-js/action.yml",
         ".github/workflows/agent.yml",
         "scripts/dev/package-commands.mjs"
