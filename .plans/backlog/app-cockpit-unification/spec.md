@@ -175,6 +175,15 @@ Open against the picks:
 - **F7 on the cockpit's phone.** The app's work row removes the photo mosaic from the cockpit's
   phone queue. Judge it on the pair, with a steward who triages by photo if one is available.
 - **F8 on desktop.** The cap on an equal-width tab row is still unset.
+- **Where a card's status sits, and how many lines a title takes.** Raised on 17 October: with the
+  pill in the title's corner, as both surfaces draw it today, titles get cut off. The
+  [card census](artifacts/card-census.html#layouts) measures five placements. In a 390px column at
+  the app's density, the corner cuts 1 of 5 English titles and 3 of 5 Spanish and Portuguese ones;
+  the other four placements cut none in English. The recommendation is the pill leading the detail
+  line: the title keeps the full width and the card keeps today's height. For title lines, the
+  recommendation is two lines for work, commitments, actions, and assessments and hypercerts, and
+  one line for gardens, people, and jars, vaults and pools, with the full title on hover. Both wait
+  for the maintainer's picks.
 
 ## Evidence and its limits
 

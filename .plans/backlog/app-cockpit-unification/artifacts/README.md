@@ -52,16 +52,32 @@ states, then the card primitives. Open it from this folder so it finds its image
   `b30ac410f`. Components with no story are listed under each strip.
 - **Proposed** draws the same object from the four shared shapes (item row, media card, fact row,
   state block) at the app's density and the cockpit's. Like the lab, it is a mock drawn from the
-  tokens and starts on the accepted picks: Plus Jakarta Sans, the linen ground, the app's cards,
-  a 12px list gap and the lighter dark card.
-- **The card tweaker** holds the shape dials (card corner, row corner, card edge, status, row
-  photo, list gap, selection, light or dark, and which surface to show). On a wide screen it is a
-  rail beside the census; on a narrow one it folds into a panel at the bottom. Its live preview,
-  pinned above the dials, draws the object section in view at the app's or the cockpit's density,
-  so each change shows where you make it. Each object also has its own options beside its Proposed
-  heading. A dot marks the pick, or the recommendation where nothing is decided. Copy picks puts
-  every choice on one line, starting `Census picks:`, with the same fallbacks as the lab. The
-  choices persist under `gg-card-census-v1`.
+  tokens.
+- **Your design system** comes first. The census reads the lab's saved forks from the same browser
+  (`gg-lab-state-v5`) and draws every proposed card with them: typeface, ground, buttons, chips,
+  cards, list spacing, desktop card, dark cards and workspace tone. With nothing saved it uses the
+  picks recorded on 17 October. A change here is written back to the lab and keeps the lab's other
+  settings. When the lab's values differ from the recorded picks, a note lists them and one button
+  restores the recorded picks.
+- **Status and titles** draws the same five cards with the status in five places: in the corner
+  (today), under the title, on the photo, leading the detail line, and as a small label above the
+  title. Each column counts the titles it cuts off, and a table repeats the count for English, long
+  English, Spanish and Portuguese on hidden copies at the column's width. The recommendation is the
+  pill leading the detail line.
+- **Every card type** shows each object built from the shapes, one phone wide, with a title-lines
+  switch per type. The default gives two lines to work, commitments, actions, and assessments and
+  hypercerts, and one line to gardens, people, and jars, vaults and pools.
+- **The card tweaker** sits in a rail beside the census on a wide screen and folds into a panel at
+  the bottom on a narrow one. Its live preview, pinned above the dials, draws the section in view or
+  a chosen card type at the app's or the cockpit's density, with that type's title lines beside it.
+  Its dials set the status layout, the sample text, the row photo, light or dark cards and which
+  surface the object sheets show. Each object also has its own options and title lines beside its
+  Proposed heading. A dot marks the pick, or the recommendation where nothing is decided. Copy picks
+  puts every choice on one line, starting `Census picks:`, with the same fallbacks as the lab. The
+  census's own choices persist under `gg-card-census-v2`.
+
+The Spanish and Portuguese status words and progress lines come from the product's translation
+files; titles, names and amounts are invented.
 
 ## The captures
 

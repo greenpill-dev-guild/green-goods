@@ -7,10 +7,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap">
 <style>
-/* Layout: a field guide. Each object is a specimen sheet: today's cards pinned in a scrolling strip,
-   the proposed build beneath them at the app's and the cockpit's density. The card tweaker sits in a
-   rail beside the sheets (a bottom panel on a narrow screen), with a live preview of the object in
-   view above its dials. Chrome tokens match the main research page. */
+/* Layout: a field guide. The design system the lab sets comes first, then the status and title
+   layouts side by side, then every card type at a glance, then one specimen sheet per object (today's
+   real cards above the proposed build). The card tweaker sits in a rail beside the sheets (a bottom
+   panel on a narrow screen) with a live preview above its dials. Chrome tokens match the main page. */
 :root {
   color-scheme: light;
   --bg: #FAF8F5;
@@ -87,15 +87,85 @@ code { font-family: var(--font-mono); font-size: 0.84em; background: var(--accen
 .toc a { display: inline-block; font-family: var(--font-display); font-size: 13px; font-weight: 600; text-decoration: none; color: var(--fg); border: 1px solid var(--line-strong); border-radius: 999px; padding: 4px 12px; background: var(--card); }
 .toc a:hover { border-color: var(--accent); color: var(--accent); }
 .toc a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.lnk { font: inherit; font-weight: 600; color: var(--accent); background: transparent; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; white-space: nowrap; }
+.lnk:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-/* one object, one sheet */
+/* sheets */
 .obj { margin-top: 56px; padding-top: 22px; border-top: 1px solid var(--line-strong); scroll-margin-top: 12px; }
-.obj-h { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 20px; }
+.obj-h { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 20px; }
 .obj-h .count { font-size: 14px; color: var(--muted); }
-.obj-sum { color: var(--fg); }
 .block-h { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin: 20px 0 10px; }
 .block-h h3 { display: flex; align-items: center; gap: 8px; }
 .ev { font-family: var(--font-body); font-size: 12px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--muted); border: 1px dashed var(--line-strong); border-radius: 999px; padding: 1px 9px; }
+.note { font-size: 13.5px; color: var(--muted); }
+#layouts, #types { container-type: inline-size; }
+
+/* controls */
+.octl { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 2px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--card); }
+.seg-l { font-family: var(--font-display); font-size: 12px; font-weight: 600; color: var(--muted); margin-right: 4px; white-space: nowrap; }
+.ctl { display: inline-flex; align-items: center; gap: 6px; }
+.seg button { font: inherit; font-family: var(--font-body); font-size: 12.5px; font-weight: 500; line-height: 22px; padding: 0 10px; border: 0; border-radius: 7px; background: transparent; color: var(--fg); cursor: pointer; white-space: nowrap; }
+.seg button:hover { background: var(--accent-soft); }
+.seg button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.seg button.picked::after { content: ""; display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--mark); margin-left: 6px; vertical-align: 2px; }
+.seg button[aria-pressed="true"].picked::after { background: var(--accent-ink); }
+
+/* the design system the lab sets */
+.sysgrid { display: flex; flex-wrap: wrap; gap: 12px 18px; margin-top: 14px; padding: 14px 16px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; }
+.sysgrid .ctl { display: grid; gap: 4px; justify-items: start; }
+.sysgrid .seg button { font-size: 12px; padding: 0 8px; }
+.sys-src { font-size: 14px; margin: 10px 0 0; }
+.sys-src b { font-weight: 600; color: var(--fg-strong); }
+.sys-diff { font-size: 13.5px; color: var(--amber); margin: 10px 0 0; }
+.sys-pv { margin-top: 18px; }
+
+/* status and title layouts, side by side at a phone's width */
+.cmp { display: grid; grid-template-columns: minmax(0, 390px); gap: 28px 24px; margin-top: 16px; align-items: start; }
+@container (min-width: 700px) { .cmp { grid-template-columns: repeat(2, minmax(0, 390px)); } }
+.cmp-col { min-width: 0; display: grid; gap: 8px; align-content: start; }
+.cmp-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.cmp-h h3 { color: var(--fg-strong); letter-spacing: 0.04em; }
+.cmp-d { margin: 0; font-size: 13.5px; line-height: 1.45; color: var(--muted); min-height: 2.9em; }
+.use { font: inherit; font-family: var(--font-body); font-size: 12.5px; font-weight: 600; color: var(--accent); background: var(--card); border: 1px solid var(--line-strong); border-radius: 999px; padding: 3px 12px; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+.use[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+.use:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.cmp-col .spec { width: 100%; }
+.cmp-col.on .spec { outline: 2px solid var(--accent); outline-offset: 3px; }
+.cut { margin: 0; font-size: 12.5px; font-weight: 600; color: var(--accent); }
+.cut.bad { color: var(--amber); }
+.cmp-rec { min-width: 0; display: grid; gap: 12px; padding: 14px 16px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; font-size: 14.5px; }
+.cmp-rec p { margin: 0; }
+.cmp-rec b { color: var(--fg-strong); }
+.cuts { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.cuts caption { caption-side: top; text-align: left; font-size: 12.5px; color: var(--muted); padding-bottom: 6px; }
+.cuts th, .cuts td { padding: 5px 6px; border-top: 1px solid var(--line); text-align: right; white-space: nowrap; }
+.cuts th:first-child { text-align: left; white-space: normal; }
+.cuts thead th { font-weight: 600; color: var(--muted); font-size: 12px; border-top: 0; }
+.cuts td.bad { color: var(--amber); font-weight: 600; }
+.cuts td.zero { color: var(--accent); }
+.cuts tr.on th { color: var(--fg-strong); }
+.cuts .lang-on { background: var(--accent-soft); }
+
+/* every card type */
+.types { display: grid; grid-template-columns: minmax(0, 390px); gap: 28px 24px; margin-top: 16px; align-items: start; }
+@container (min-width: 700px) {
+  .types { grid-template-columns: repeat(2, minmax(0, 390px)); }
+  .tile[data-type="states"] { grid-column: 1 / -1; }
+  .tile[data-type="states"] .spec { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container (min-width: 1150px) {
+  .types { grid-template-columns: repeat(3, minmax(0, 390px)); }
+  .tile[data-type="states"] { grid-column: auto; }
+  .tile[data-type="states"] .spec { grid-template-columns: minmax(0, 1fr); }
+}
+.tile { min-width: 0; display: grid; gap: 8px; align-content: start; }
+.tile-h { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; min-height: 32px; }
+.tile-n { display: grid; min-width: 0; }
+.tile-n b { font-family: var(--font-display); font-size: 15px; line-height: 1.3; color: var(--fg-strong); }
+.tile-n span { font-size: 12px; line-height: 1.3; color: var(--muted); }
+.tile .spec { width: 100%; }
 
 /* today: real captures in a scrolling strip */
 .strip { display: flex; gap: 14px; overflow-x: auto; padding: 2px 2px 12px; scroll-snap-type: x proximity; scrollbar-width: thin; }
@@ -114,30 +184,19 @@ code { font-family: var(--font-mono); font-size: 0.84em; background: var(--accen
 .coderefs { font-size: 13.5px; color: var(--muted); margin: 4px 0 0; max-width: none; }
 .coderefs code { font-size: 12px; }
 
-/* proposed: specimens built from the four shapes */
-.octl { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
-.seg { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--card); }
-.seg-l { font-family: var(--font-display); font-size: 12px; font-weight: 600; color: var(--muted); margin-right: 4px; white-space: nowrap; }
-.ctl { display: inline-flex; align-items: center; gap: 6px; }
-.seg button { font: inherit; font-family: var(--font-body); font-size: 12.5px; font-weight: 500; line-height: 22px; padding: 0 10px; border: 0; border-radius: 7px; background: transparent; color: var(--fg); cursor: pointer; white-space: nowrap; }
-.seg button:hover { background: var(--accent-soft); }
-.seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
-.seg button.picked::after { content: ""; display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--mark); margin-left: 6px; vertical-align: 2px; }
-.seg button[aria-pressed="true"].picked::after { background: var(--accent-ink); }
+/* proposed panels */
 .specs { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start; }
 .panel { min-width: 0; display: grid; gap: 8px; }
+.panel.full { flex: 1 1 100%; }
 .panel[hidden] { display: none !important; }
 .panel-l { font-family: var(--font-display); font-size: 11px; line-height: 16px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
 .panel-l span { text-transform: none; letter-spacing: 0; font-weight: 500; font-family: var(--font-body); }
 .keeps { font-size: 14px; color: var(--muted); margin-top: 12px; }
 .keeps b { color: var(--fg); font-weight: 600; }
 
-/* ===== specimen tokens: the accepted direction, independent of the page theme ===== */
+/* ===== specimens. The design-system values arrive as inline custom properties on each .spec ===== */
 .spec {
-  --s-canvas: #FAF8F5; --s-card: #FFFFFF; --s-ink: #0C0A09; --s-sub: #57534E; --s-soft: #78716C;
-  --s-border: #E7E5E4; --s-hair: #E7E5E4; --s-grey: #F5F2ED; --s-tint: #FAFAF9;
-  --s-shadow: 0 1px 2px rgba(0, 0, 0, 0.04); --s-raised: 0 1px 2px rgba(0,0,0,0.3), 0 1px 3px 1px rgba(0,0,0,0.15);
+  --s-ink: #0C0A09; --s-sub: #57534E; --s-soft: #78716C;
   --s-info-bg: #EBF1FF; --s-info-fg: #182F8B; --s-info-bd: #D5E2FF;
   --s-ok-bg: #E0FAEC; --s-ok-fg: #0B4627; --s-ok-bd: #C2F5DA;
   --s-warn-bg: #FFF3E4; --s-warn-fg: #713A0A; --s-warn-bd: #FFD9B5;
@@ -145,19 +204,14 @@ code { font-family: var(--font-mono); font-size: 0.84em; background: var(--accen
   --s-neu-bg: #F5F5F4; --s-neu-fg: #57534E; --s-neu-bd: #E7E5E4;
   --s-e-ok: #1FC16B; --s-e-warn: #F59E0B; --s-e-err: #EF4444; --s-e-info: #335CFF; --s-e-neu: #A8A29E;
   --s-photo-dim: 1;
-  width: 360px; max-width: 100%; background: var(--s-canvas); color: var(--s-ink);
-  font-family: "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif; font-size: var(--s-body); line-height: 1.4;
-  border: 1px solid var(--line-strong); border-radius: 20px; padding: 16px; display: grid; gap: var(--gap); align-content: start;
+  width: 390px; max-width: 100%; background: var(--s-canvas, #FAF8F5); color: var(--s-ink);
+  font-family: var(--s-font, "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif); font-size: var(--s-body); line-height: 1.4;
+  border: 1px solid var(--line-strong); border-radius: 20px; padding: 16px; display: grid; gap: var(--gap, 12px); align-content: start;
 }
-.spec.app { --s-body: 16px; --s-title: 16px; --s-title-w: 500; --s-meta: 12px; --s-pill: 12px; --s-pill-w: 500; --s-acc: #1A7544; --s-acc-on: #FFFFFF; --s-acc-text: #1A7544; --s-acc-tint: rgba(31,193,107,0.10); --s-btn-r: 16px; --s-btn-h: 40px; --s-btn-fs: 15px; }
-.spec.cockpit { --s-body: 14px; --s-title: 14px; --s-title-w: 600; --s-meta: 12px; --s-pill: 11px; --s-pill-w: 600; --s-acc: #2547D0; --s-acc-on: #FFFFFF; --s-acc-text: #2547D0; --s-acc-tint: rgba(51,92,255,0.08); --s-btn-r: 999px; --s-btn-h: 32px; --s-btn-fs: 14px; }
-.spec.desk { width: 100%; border-radius: 14px; }
-.panel.full { flex: 1 1 100%; }
-.spec.wide2 { grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); }
-.dark-specs .spec {
-  --s-canvas: #110C08; --s-card: #2A231C; --s-ink: #FAFAF9; --s-sub: #D6D3D1; --s-soft: #A8A29E;
-  --s-border: rgba(250,250,249,0.12); --s-hair: rgba(250,250,249,0.10); --s-grey: #342C24; --s-tint: #1A1410;
-  --s-shadow: none; --s-raised: 0 0 0 1px rgba(250,250,249,0.08);
+.spec.app { --s-body: 16px; --s-title: 16px; --s-title-w: 500; --s-meta: 12px; --s-pill: 12px; --s-pill-w: 500; --s-btn-h: 40px; --s-btn-fs: 15px; }
+.spec.cockpit { --s-body: 14px; --s-title: 14px; --s-title-w: 600; --s-meta: 12px; --s-pill: 11px; --s-pill-w: 600; --s-btn-h: 32px; --s-btn-fs: 14px; }
+.spec.sdark {
+  --s-ink: #FAFAF9; --s-sub: #D6D3D1; --s-soft: #A8A29E;
   --s-info-bg: rgba(192,213,255,0.16); --s-info-fg: #C0D5FF; --s-info-bd: rgba(192,213,255,0.25);
   --s-ok-bg: rgba(194,245,218,0.16); --s-ok-fg: #C2F5DA; --s-ok-bd: rgba(194,245,218,0.25);
   --s-warn-bg: rgba(252,211,77,0.16); --s-warn-fg: #FCD34D; --s-warn-bd: rgba(252,211,77,0.25);
@@ -167,54 +221,90 @@ code { font-family: var(--font-mono); font-size: 0.84em; background: var(--accen
   --s-photo-dim: 0.82;
   border-color: rgba(250,250,249,0.16);
 }
-.dark-specs .spec.app { --s-acc: #C2F5DA; --s-acc-on: #0C0A09; --s-acc-text: #C2F5DA; --s-acc-tint: rgba(194,245,218,0.12); }
-.dark-specs .spec.cockpit { --s-acc: #C0D5FF; --s-acc-on: #182F8B; --s-acc-text: #C0D5FF; --s-acc-tint: rgba(192,213,255,0.10); }
+.spec.desk { width: 100%; border-radius: 14px; }
+.spec.desk-grid { grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); }
+.spec.desk-grid.tall { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
 .spec svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
-.spec .trunc { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.spec .grp { display: contents; }
 
-/* the card surface (one for every shape) and its edge dial */
-.spec .sc { background: var(--s-card); border-radius: var(--card-r); border: 1px solid var(--s-border); box-shadow: var(--s-shadow); overflow: hidden; position: relative; min-width: 0; }
-.edge-hairline .spec .sc { box-shadow: none; border-color: var(--s-hair); }
-.edge-raised .spec .sc { border-color: transparent; box-shadow: var(--s-raised); }
-.spec .sc.row { border-radius: var(--row-r); }
-/* status: a 2px edge, a pill, or both */
+/* the card surface (F7) */
+.spec .sc { background: var(--s-card, #FFFFFF); border-radius: var(--card-r, 24px); border: 1px solid var(--s-card-bd, #E7E5E4); box-shadow: var(--s-card-sh, none); overflow: hidden; position: relative; min-width: 0; }
+.spec .sc.row { border-radius: var(--row-r, 16px); }
 .spec .sc.e-ok { --edge: var(--s-e-ok); } .spec .sc.e-warn { --edge: var(--s-e-warn); } .spec .sc.e-err { --edge: var(--s-e-err); } .spec .sc.e-info { --edge: var(--s-e-info); } .spec .sc.e-neu { --edge: var(--s-e-neu); }
-.st-both .spec .sc.has-edge, .st-edge .spec .sc.has-edge { border-left: 2px solid var(--edge); }
-.st-edge .spec .pill.status { display: none; }
-.spec .pill { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 2px 8px; font-size: var(--s-pill); font-weight: var(--s-pill-w); line-height: 16px; border: 1px solid transparent; white-space: nowrap; flex-shrink: 0; }
+.spec.edge-on .sc.has-edge { border-left: var(--edge-w, 2px) solid var(--edge); }
+/* a list drawn as one card with divided rows (F11 Divided) */
+.spec .dl { display: grid; background: var(--s-card); border: 1px solid var(--s-card-bd); box-shadow: var(--s-card-sh); border-radius: var(--card-r, 24px); overflow: hidden; min-width: 0; }
+.spec .dl > .sc { border-radius: 0; border-width: 0; box-shadow: none; }
+.spec.edge-on .dl > .sc.has-edge { border-left: var(--edge-w, 2px) solid var(--edge); }
+.spec .dl > .sc + .sc { border-top: 1px solid var(--s-hair); }
+/* selection */
+.spec.sel-border3 .sc.selected { border-color: var(--s-acc-text); box-shadow: inset 0 0 0 2px var(--s-acc-text); }
+.spec.sel-ring .sc.selected { border-color: var(--s-acc-text); box-shadow: 0 0 0 3px var(--s-acc-tint); }
+.spec .sc .tick { display: none; position: absolute; top: 10px; right: 10px; width: 24px; height: 24px; border-radius: 999px; background: var(--s-acc); color: var(--s-acc-on); align-items: center; justify-content: center; font-size: 14px; z-index: 3; }
+.spec.sel-ring .sc.selected .tick { display: inline-flex; }
+
+/* pills, chips, buttons (F3, F4) */
+.spec .pill { display: inline-flex; align-items: center; border-radius: 999px; padding: 2px 8px; font-size: var(--s-pill); font-weight: var(--s-pill-w); line-height: 16px; border: 1px solid transparent; white-space: nowrap; flex-shrink: 0; max-width: 100%; min-width: 0; }
+.spec .pill .pt { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .spec.cockpit .pill { padding: 3px 10px; line-height: 14px; }
 .spec .pill.ok { background: var(--s-ok-bg); color: var(--s-ok-fg); border-color: var(--s-ok-bd); }
 .spec .pill.warn { background: var(--s-warn-bg); color: var(--s-warn-fg); border-color: var(--s-warn-bd); }
 .spec .pill.err { background: var(--s-err-bg); color: var(--s-err-fg); border-color: var(--s-err-bd); }
 .spec .pill.info { background: var(--s-info-bg); color: var(--s-info-fg); border-color: var(--s-info-bd); }
 .spec .pill.neu { background: var(--s-neu-bg); color: var(--s-neu-fg); border-color: var(--s-neu-bd); }
-.spec .chip { display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--s-border); font-size: 12px; font-weight: 500; color: var(--s-sub); white-space: nowrap; flex-shrink: 0; background: var(--s-card); }
-.spec .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: var(--s-btn-h); padding: 0 14px; border-radius: var(--s-btn-r); font-size: var(--s-btn-fs); font-weight: 500; background: var(--s-acc); color: var(--s-acc-on); white-space: nowrap; border: 1px solid transparent; flex-shrink: 0; }
-.spec .btn.sec { background: var(--s-card); color: var(--s-ink); border-color: var(--s-soft); }
-/* selection dial */
-.sel-border3 .spec .sc.selected { box-shadow: inset 0 0 0 3px var(--s-acc-text); border-color: transparent; }
-.sel-ring .spec .sc.selected { border-color: var(--s-acc-text); box-shadow: 0 0 0 3px var(--s-acc-tint); }
-.spec .sc .tick { display: none; position: absolute; top: 10px; right: 10px; width: 24px; height: 24px; border-radius: 999px; background: var(--s-acc); color: var(--s-acc-on); align-items: center; justify-content: center; font-size: 14px; z-index: 2; }
-.sel-ring .spec .sc.selected .tick { display: inline-flex; }
+.spec .chip { display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: var(--chip-r, 999px); border: 1px solid var(--s-hair); font-size: 12px; font-weight: 400; color: var(--s-sub); white-space: nowrap; flex-shrink: 0; background: var(--s-card); }
+.spec.cockpit .chip { background: transparent; font-weight: 500; }
+.spec .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: calc(var(--s-btn-h) - 8px); padding: 0 12px; border-radius: var(--btn-r, 16px); font-size: 13px; font-weight: var(--btn-w, 500); background: var(--s-acc); color: var(--s-acc-on); white-space: nowrap; border: 1px solid transparent; flex-shrink: 0; }
+.spec .btn.sec { border-color: var(--btn-outline); }
+.spec.app .btn.sec { background: var(--s-card); color: var(--s-ink); }
+.spec.cockpit .btn.sec { background: transparent; color: var(--s-acc-text); }
+.spec .btn.lg { height: var(--s-btn-h); padding: 0 16px; font-size: var(--s-btn-fs); }
+
+/* status layouts: the pill is drawn in each place and the layout shows one */
+.spec .pl-corner, .spec .pl-under, .spec .pl-details, .spec .pl-photo, .spec .pl-row { display: none; }
+.spec.stl-corner .pl-corner, .spec.stl-under .pl-under, .spec.stl-details .pl-details, .spec.stl-photo .pl-photo { display: inline-flex; }
+.spec.stl-under .pl-row { display: flex; }
+.spec.stl-photo .sc:not(.has-photo) .pl-row { display: flex; }
+.spec.stl-photo .sc:not(.has-photo) .pl-under { display: inline-flex; }
+/* title lines */
+.spec .title { min-width: 0; overflow-wrap: anywhere; }
+.spec .title.l1 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.spec .title.l2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
 /* shape 1: the item row */
-.spec .ir { display: flex; align-items: stretch; min-height: var(--media); }
+.spec .ir { display: flex; align-items: stretch; min-height: var(--media, 88px); }
 .spec .ir .lead { flex-shrink: 0; position: relative; }
-.spec .ir .lead.photo { width: var(--media); background: var(--ph); filter: brightness(var(--s-photo-dim)); }
+.spec .ir .lead.photo { width: var(--media, 88px); background: var(--ph); }
+.spec .ir .lead.photo::before { content: ""; position: absolute; inset: 0; background: rgba(0,0,0,calc(1 - var(--s-photo-dim))); }
 .spec .ir .lead.photo .ic { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.85); font-size: 22px; }
+.spec .ir .lead.photo .pl-photo { position: absolute; left: 5px; right: 5px; bottom: 5px; justify-content: center; font-size: 11px; line-height: 15px; padding: 1px 5px; z-index: 1; }
+.spec .ir .lead.thumb { width: 48px; height: 48px; margin: 12px 0 0 12px; border-radius: 12px; background: var(--ph); }
 .spec .ir .lead.tile { width: 44px; height: 44px; margin: 12px 0 0 12px; border-radius: 12px; background: var(--s-grey); color: var(--s-sub); display: flex; align-items: center; justify-content: center; font-size: 22px; }
 .spec .ir .lead.av { width: 40px; height: 40px; margin: 12px 0 0 12px; border-radius: 999px; background: var(--s-acc-tint); color: var(--s-acc-text); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; letter-spacing: 0.02em; }
-.spec .ir .body { flex: 1 1 auto; min-width: 0; padding: 10px 12px; display: flex; flex-direction: column; gap: 3px; }
-.spec.app .ir .body { padding: 8px 12px; }
-.spec .ir .eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 0.03em; color: var(--s-soft); text-transform: uppercase; }
-.spec .ir .top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; min-width: 0; }
-.spec .ir .title { font-size: var(--s-title); font-weight: var(--s-title-w); line-height: 1.45; min-width: 0; }
-.spec .ir .meta { font-size: var(--s-meta); color: var(--s-sub); line-height: 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 0 4px; min-width: 0; }
-.spec .ir .meta .mi { white-space: nowrap; }
-.spec .ir .meta .mi + .mi::before { content: "\2022"; margin: 0 5px 0 1px; color: var(--s-soft); }
-.spec .ir .tags { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 4px; }
-.spec .btn.sm { height: calc(var(--s-btn-h) - 8px); padding: 0 12px; font-size: 13px; }
-.spec .ir .meta .soft { color: var(--s-soft); }
+.spec .ir .body { flex: 1 1 auto; min-width: 0; padding: 10px 12px; display: flex; flex-direction: column; justify-content: center; gap: 3px; }
+.spec .kick { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; margin: 0; font-size: 11px; line-height: 16px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; color: var(--s-soft); }
+.spec .kick.only-status { display: none; }
+.spec.stl-above .kick.only-status { display: flex; }
+.spec .pl-above { display: none; align-items: center; gap: 5px; }
+.spec.stl-above .pl-above { display: inline-flex; }
+.spec .pl-above i { width: 7px; height: 7px; border-radius: 50%; background: var(--dot); flex-shrink: 0; }
+.spec .pl-above.ok { color: var(--s-ok-fg); --dot: var(--s-e-ok); }
+.spec .pl-above.warn { color: var(--s-warn-fg); --dot: var(--s-e-warn); }
+.spec .pl-above.err { color: var(--s-err-fg); --dot: var(--s-e-err); }
+.spec .pl-above.info { color: var(--s-info-fg); --dot: var(--s-e-info); }
+.spec .pl-above.neu { color: var(--s-neu-fg); --dot: var(--s-e-neu); }
+.spec .top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; min-width: 0; }
+.spec .top .title { flex: 1 1 auto; }
+.spec .ir .title { font-size: var(--s-title); font-weight: var(--s-title-w); line-height: 1.4; }
+/* The detail line: each item carries its separator in a 12px left pad, and the row is pulled 12px
+   left inside a clipping box, so a separator that would start a wrapped line is hidden. */
+.spec .meta { font-size: var(--s-meta); color: var(--s-sub); line-height: 18px; min-width: 0; overflow: hidden; }
+.spec .meta .mrow { display: flex; flex-wrap: wrap; align-items: center; row-gap: 3px; margin-left: -12px; }
+.spec .meta .mi { white-space: nowrap; position: relative; padding-left: 12px; }
+.spec .meta .mi::before { content: "\2022"; position: absolute; left: 3px; color: var(--s-soft); }
+.spec .meta .pill + .mi::before { content: none; }
+.spec .meta .pl-details { margin-left: 12px; }
+.spec .meta .soft { color: var(--s-soft); }
 .spec .ir .extra { font-size: var(--s-meta); line-height: 16px; display: flex; align-items: center; gap: 6px; margin-top: 2px; }
 .spec .ir .extra.phase { color: var(--s-info-fg); }
 .spec .ir .extra.queue { color: var(--s-warn-fg); }
@@ -225,25 +315,30 @@ code { font-family: var(--font-mono); font-size: 0.84em; background: var(--accen
 .spec .ir.compact .lead.av { width: 32px; height: 32px; margin: 8px 0 8px 10px; font-size: 11px; }
 .spec .ir.compact .body { padding: 8px 10px; flex-direction: row; align-items: center; justify-content: space-between; gap: 8px; }
 .spec .ir.compact .meta { flex: 0 0 auto; }
+.spec .ir.compact .meta .mrow { margin-left: 0; }
+.spec .ir.compact .meta .mi:first-of-type { padding-left: 0; }
+.spec .ir.compact .meta .mi:first-of-type::before { content: none; }
 
-/* shape 2: the media card (stacked, or wide with the media on the left) */
-.spec .mc .media { position: relative; aspect-ratio: 16 / 9; background: var(--ph); filter: brightness(var(--s-photo-dim)); display: grid; }
+/* shape 2: the media card */
+.spec .mc .media { position: relative; aspect-ratio: 16 / 9; background: var(--ph); display: grid; }
+.spec .mc .media::before { content: ""; position: absolute; inset: 0; background: rgba(0,0,0,calc(1 - var(--s-photo-dim))); z-index: 1; pointer-events: none; }
 .spec .mc .media.banner { aspect-ratio: auto; height: 104px; }
 .spec .mc .media.grid { grid-template-columns: 1.35fr 1fr; gap: 1px; background: var(--s-hair); }
 .spec .mc .media.grid i { background: var(--ph); display: block; }
 .spec .mc .media.grid i:first-child { grid-row: span 2; }
 .spec .mc .media .ic { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.85); font-size: 26px; pointer-events: none; }
-.spec .mc .media .dchip { position: absolute; left: 8px; bottom: 8px; border-radius: 999px; padding: 3px 10px; font-size: 11px; font-weight: 600; line-height: 14px; background: var(--s-card); color: var(--s-sub); }
-.spec .mc .media .mcount { position: absolute; right: 8px; bottom: 8px; border-radius: 999px; padding: 3px 8px; font-size: 11px; font-weight: 500; line-height: 14px; background: rgba(0,0,0,0.6); color: #FFFFFF; }
-.spec .mc .body { padding: 12px 14px 14px; display: grid; gap: 6px; }
-.spec .mc .top { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 6px 8px; }
-.spec .mc .title { font-size: var(--s-title); font-weight: 600; line-height: 1.4; min-width: 0; }
+.spec .mc .media .dchip { position: absolute; left: 8px; bottom: 8px; border-radius: var(--chip-r, 999px); padding: 3px 10px; font-size: 11px; font-weight: 600; line-height: 14px; background: var(--s-dchip); color: var(--s-sub); z-index: 2; }
+.spec .mc .media .mcount { position: absolute; right: 8px; bottom: 8px; border-radius: 999px; padding: 3px 8px; font-size: 11px; font-weight: 500; line-height: 14px; background: rgba(0,0,0,0.6); color: #FFFFFF; z-index: 2; }
+.spec .mc .media .pl-photo { position: absolute; left: 8px; top: 8px; z-index: 2; max-width: calc(100% - 16px); }
+.spec .mc .body { padding: 12px 14px 14px; display: grid; gap: 6px; min-width: 0; align-content: start; }
+.spec .mc .title { font-size: var(--s-title); font-weight: 600; line-height: 1.4; }
 .spec .mc .sub { font-size: 13px; color: var(--s-sub); line-height: 18px; }
-.spec .mc .meta { font-size: var(--s-meta); color: var(--s-sub); display: flex; justify-content: space-between; gap: 10px; }
-.spec .mc .meta .soft { color: var(--s-soft); }
+.spec .mc .mfoot { font-size: var(--s-meta); color: var(--s-sub); display: flex; align-items: center; justify-content: space-between; gap: 4px 10px; min-width: 0; }
+.spec .mc .mfoot .ml { display: flex; flex-wrap: wrap; align-items: center; gap: 3px 7px; min-width: 0; }
+.spec .mc .mfoot .soft { color: var(--s-soft); white-space: nowrap; }
 .spec .mc.wide { display: flex; }
 .spec .mc.wide .media { width: 200px; aspect-ratio: auto; min-height: 132px; flex-shrink: 0; }
-.spec .mc.wide .body { flex: 1 1 auto; min-width: 0; align-content: center; }
+.spec .mc.wide .body { flex: 1 1 auto; align-content: center; }
 
 /* shape 3: the fact row */
 .spec .fl .fr { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.4fr); gap: 4px 12px; padding: 10px 14px; font-size: 14px; line-height: 20px; align-items: baseline; }
@@ -271,41 +366,35 @@ code { font-family: var(--font-mono); font-size: 0.84em; background: var(--accen
 .spec .sb.no-mark .mark { display: none; }
 .spec .sb.compact.no-mark { grid-template-columns: minmax(0, 1fr); }
 
-/* the shape overview */
-.shapes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(400px, 100%), 1fr)); gap: 16px; margin-top: 18px; }
-.shape { min-width: 0; display: grid; gap: 10px; align-content: start; }
-.shape .spec { width: 100%; }
-.shape h3 { color: var(--fg-strong); letter-spacing: 0.04em; }
-.shape p { font-size: 14px; color: var(--muted); margin: 0; }
-
-/* the card tweaker: a rail beside the census on a wide screen, a bottom panel on a narrow one.
-   Its live preview sits at the top and follows the object section in view. */
+/* the card tweaker: a rail beside the census on a wide screen, a bottom panel on a narrow one */
 .shell { max-width: 1600px; margin: 0 auto; }
 .rail { background: var(--card); border: 1px solid var(--line-strong); border-radius: 16px; box-shadow: var(--shadow); font-size: 12px; color: var(--fg); }
 .rail-body { display: grid; gap: 10px; padding: 12px 14px; }
 .rail-title { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .rail-title b { font-family: var(--font-display); font-size: 15px; color: var(--fg-strong); }
 .pv-wrap { position: sticky; top: 0; z-index: 2; background: var(--card); display: grid; gap: 8px; padding: 2px 0 10px; border-bottom: 1px solid var(--line); }
-.pv-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.pv-h h3 { font-size: 11px; display: flex; align-items: baseline; gap: 6px; min-width: 0; }
-.pv-h h3 span { text-transform: none; letter-spacing: 0; font-family: var(--font-body); font-weight: 600; font-size: 12px; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pv-h { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 8px; }
+.pv-h h3 { font-size: 11px; }
+.pv-h select { font: inherit; font-family: var(--font-body); font-size: 12px; height: 26px; color: var(--fg); background: var(--bg); border: 1px solid var(--line-strong); border-radius: 8px; padding: 0 6px; max-width: 100%; }
+.pv-sel { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 8px; }
 .pv { border-radius: 18px; }
 .pv .spec { width: 100%; padding: 12px; border-radius: 16px; }
 .pv.flash { animation: pvflash 0.7s ease-out; }
 @keyframes pvflash { from { box-shadow: 0 0 0 3px var(--accent); } to { box-shadow: 0 0 0 3px transparent; } }
+.pv-opts { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; }
+.pv-opts .pv-for { font-family: var(--font-display); font-size: 12px; font-weight: 600; color: var(--fg-strong); }
+.sys-line { font-size: 12px; color: var(--muted); line-height: 16px; margin: 0; }
 .rail .rows { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: flex-end; }
 .rail .ctl { display: grid; gap: 3px; justify-items: start; }
 .rail .seg-l { font-size: 11px; margin: 0; }
-.rail .seg { flex-wrap: wrap; }
 .rail .seg button { font-size: 11.5px; line-height: 22px; padding: 0 7px; }
 .rail .foot { display: grid; gap: 6px; color: var(--muted); font-size: 12px; line-height: 16px; }
 .rail .acts { display: flex; flex-wrap: wrap; gap: 6px 16px; }
-.rail .lnk { font: inherit; font-weight: 600; color: var(--accent); background: transparent; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; white-space: nowrap; }
-.rail .lnk:focus-visible, .rail .toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .rail .copyrow { display: grid; gap: 4px; }
 .rail .copyrow input { min-width: 0; height: 28px; padding: 0 8px; font-family: var(--font-mono); font-size: 11px; color: var(--fg); background: var(--bg); border: 1px solid var(--line-strong); border-radius: 8px; }
 .rail .toggle { display: none; }
 .rail .foot-acts { display: none; }
+.rail .toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 @media (min-width: 1100px) {
   .shell { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 28px; align-items: start; }
   .shell > .wrap { max-width: none; margin: 0; min-width: 0; }
@@ -326,18 +415,15 @@ code { font-family: var(--font-mono); font-size: 0.84em; background: var(--accen
   .rail .seg button { line-height: 30px; font-size: 13px; padding: 0 10px; }
   .rail .copyrow input { height: 34px; font-size: 16px; }
 }
-@media (prefers-reduced-motion: reduce) { .pv.flash { animation: none; } }
 @media (max-width: 760px) {
   .notes { grid-template-columns: minmax(0, 1fr); }
-  .shapes { grid-template-columns: minmax(0, 1fr); }
   .spec { width: 100%; }
-  .spec.desk { width: 100%; }
-  .spec.wide2 { grid-template-columns: minmax(0, 1fr); }
+  .spec.desk-grid, .spec.desk-grid.tall { grid-template-columns: minmax(0, 1fr); }
   .spec .mc.wide { display: block; }
   .spec .mc.wide .media { width: 100%; min-height: 0; aspect-ratio: 16 / 9; }
   .specs { flex-direction: column; align-items: stretch; }
   .panel { width: 100%; }
-  .octl .seg button { line-height: 30px; font-size: 13px; padding: 0 10px; }
+  .octl .seg button, .sysgrid .seg button, .tile-h .seg button { line-height: 30px; font-size: 13px; padding: 0 10px; }
 }
 @media (pointer: coarse) { .seg button { line-height: 30px; } }
 
@@ -351,7 +437,7 @@ dialog.zoom .zbar button:focus-visible { outline: 2px solid var(--accent); outli
 dialog.zoom .zimg { padding: 16px; background: #FFFFFF; overflow: auto; }
 dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height: auto; }
 .foot-note { margin-top: 40px; font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 14px; }
-@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } .pv.flash { animation: none; } }
 </style>
 </head>
 <body>
@@ -360,7 +446,7 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
   <nav class="crumb"><a id="back" href="design-lab.html">Design lab</a> · card census</nav>
   <div class="eyebrow">Design research · App and cockpit cards · 17 October 2026</div>
   <h1>Card Census</h1>
-  <p class="lede">Every card the app and the cockpit draw today, object by object, with the proposed version beneath it, built from four shared shapes. Tweak the shapes in the card tweaker, watch its live preview, set each object's options, then copy your picks back into the chat.</p>
+  <p class="lede">Every card the app and the cockpit draw today, object by object, beside the version built from four shared shapes. Every proposed card follows the design system you set in the lab. Compare where the status sits, set how many lines each card type's title may take, and copy your picks back into the chat.</p>
 
   <div class="tally" aria-label="What the census counted">
     <div><b>107</b><span>card, row and tile components</span></div>
@@ -374,15 +460,14 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
   <div class="notes">
     <div>
       <h3>How to read it</h3>
-      <p><b>Today</b> shows real components captured from Storybook. Tap one to see it full size. Components with no story are listed under the strip.</p>
-      <p><b>Proposed</b> shows the same object built from the four shapes, at the app's density and the cockpit's.</p>
+      <p>Start with your design system, then the status and title layouts, then every card type at a glance. Each object further down shows <b>today's</b> real components, captured from Storybook, above the <b>proposed</b> version.</p>
     </div>
     <div>
-      <h3>What the proposal assumes</h3>
+      <h3>What you can test</h3>
       <ul>
-        <li>Your picks: Plus Jakarta Sans, the linen ground, the app's cards everywhere, a 12px list gap, the lighter dark card.</li>
-        <li>Each surface keeps its density, its button corner and its tone.</li>
-        <li>A dot in a control marks your pick, or the recommendation where nothing is decided.</li>
+        <li>Four places for the status pill, side by side.</li>
+        <li>One or two title lines for each card type.</li>
+        <li>Long, Spanish and Portuguese titles, to see where text runs out.</li>
       </ul>
     </div>
     <div>
@@ -392,8 +477,10 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
     </div>
   </div>
 
-  <ul class="toc" aria-label="Objects">
-    <li><a href="#shapes">The four shapes</a></li>
+  <ul class="toc" aria-label="Sections">
+    <li><a href="#system">Your design system</a></li>
+    <li><a href="#layouts">Status and titles</a></li>
+    <li><a href="#types">Every card type</a></li>
     <li><a href="#work">Work</a></li>
     <li><a href="#commitments">Commitments</a></li>
     <li><a href="#actions">Actions</a></li>
@@ -406,10 +493,25 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
     <li><a href="#primitives">Card primitives</a></li>
   </ul>
 
-  <section class="obj" id="shapes">
-    <div class="obj-h"><h2>The four shapes</h2><span class="count">Shown at the app's density</span></div>
-    <p class="obj-sum">Nearly every card in the census is one of these. Each lives once in Shared, at two densities, and every object's card is built from them. The dials in the card tweaker change all four at once, and its live preview shows each change as you make it.</p>
-    <div class="shapes" id="shape-board"></div>
+  <section class="obj" id="system">
+    <div class="obj-h"><h2>Your design system</h2><span class="count">Shared with the lab</span></div>
+    <p>The lab's forks that shape a card. Every proposed card on this page follows them, and a change here changes the lab in this browser too. A dot marks the pick you recorded on 17 October.</p>
+    <p class="sys-src" id="sysSrc"></p>
+    <div class="sysgrid" id="sysCtl"></div>
+    <p class="sys-diff" id="sysDiff" hidden></p>
+    <div class="specs sys-pv" id="sysPv"></div>
+  </section>
+
+  <section class="obj" id="layouts">
+    <div class="obj-h"><h2>Status and titles</h2><div class="octl" id="cmpCtl"></div></div>
+    <p>Where the status pill sits decides how much room a title gets. Today the pill shares the title's line, so a long title, or a long status word in Spanish or Portuguese, gets cut off. Each column draws the same five cards with the status in a different place, at a phone's width, and counts the titles that get cut off. Switch the text to Long, Español or Português to push them.</p>
+    <div class="cmp" id="cmp"></div>
+  </section>
+
+  <section class="obj" id="types">
+    <div class="obj-h"><h2>Every card type</h2><div class="octl" id="typeCtl"></div></div>
+    <p>Every card type built from the four shapes, with your current settings, one phone wide. Set how many lines each title may take: two lines suit a title that describes what someone did or promised; one line suits a name. A title that runs out ends in an ellipsis and shows in full when you point at it.</p>
+    <div class="types" id="typeGrid"></div>
   </section>
 
   
@@ -441,7 +543,7 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
     <p class="coderefs">Also in the code, without a story: <code>PublicActionCard</code> (public site, 106 lines, stays editorial).</p>
     <div class="block-h"><h3>Proposed <span class="ev">Mock</span></h3><div class="octl" data-obj="actions"></div></div>
     <div class="specs" data-obj="actions"></div>
-    <p class="keeps"><b>Stays with actions:</b> the requirements line (how many photos), the domain, and the selected mark set in the dock.</p>
+    <p class="keeps"><b>Stays with actions:</b> the requirements line (how many photos), the domain, and the selected mark.</p>
   </section>
   <section class="obj" id="records">
     <div class="obj-h"><h2>Assessments and hypercerts</h2><span class="count">1 card in the app · 2 records in the cockpit</span></div>
@@ -506,13 +608,12 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
 
   <section class="obj" id="primitives">
     <div class="obj-h"><h2>Card primitives</h2><span class="count">5 today · 1 proposed</span></div>
-    <p class="obj-sum">Five components draw a card's surface. The app has its own <code>Card</code>, the cockpit has <code>AdminCard</code>, and Shared has three that no app renders. The proposal keeps one card surface, the app's: a 24px corner, a visible edge and a faint shadow. The card corner and edge dials above set it.</p>
+    <p>Five components draw a card's surface. The app has its own <code>Card</code>, the cockpit has <code>AdminCard</code>, and Shared has three that no app renders. The proposal keeps one card surface, set by F7 in <a href="#system">your design system</a>.</p>
     <div class="block-h"><h3>Today <span class="ev">Storybook</span></h3></div>
     <div class="strip"><figure class="shot" style="--w:560px"><button type="button" aria-label="Open AdminCard full size"><img src="census/prim-admincard.webp" width="1600" height="766" loading="lazy" alt="AdminCard: Every variant"></button><figcaption><span class="nm"><code>AdminCard</code> <span class="tag cockpit">cockpit</span></span><span class="what">Every variant</span><span class="src">admin/components/AdminCard.tsx · 158 lines · rendered in 40 files</span></figcaption></figure><figure class="shot" style="--w:560px"><button type="button" aria-label="Open CardBase full size"><img src="census/prim-cardbase.webp" width="1600" height="221" loading="lazy" alt="CardBase: Every mode; no app renders it"></button><figcaption><span class="nm"><code>CardBase</code> <span class="tag shared">shared</span></span><span class="what">Every mode; no app renders it</span><span class="src">shared/components/Cards/CardBase.tsx · 191 lines</span></figcaption></figure><figure class="shot" style="--w:560px"><button type="button" aria-label="Open Surface full size"><img src="census/prim-surface.webp" width="1600" height="339" loading="lazy" alt="Surface: The glass tiers being retired"></button><figcaption><span class="nm"><code>Surface</code> <span class="tag shared">shared</span></span><span class="what">The glass tiers being retired</span><span class="src">shared/components/Surface/Surface.tsx · 158 lines · rendered in 3 files</span></figcaption></figure><figure class="shot" style="--w:560px"><button type="button" aria-label="Open StatCard full size"><img src="census/prim-statcard.webp" width="1600" height="312" loading="lazy" alt="StatCard: No app renders it"></button><figcaption><span class="nm"><code>StatCard</code> <span class="tag shared">shared</span></span><span class="what">No app renders it</span><span class="src">shared/components/StatCard.tsx · 72 lines</span></figcaption></figure></div><p class="coderefs">Also in the code, without a story: <code>Card</code> (app, 97 lines, rendered in 13 files).</p>
   </section>
 
-  <p class="foot-note">The proposed cards are a mock drawn from the design tokens, not the shipped components. They settle direction and proportion, not exact sizes. Example names, gardens and amounts are invented. A pick locks only when a before and after pair of the real components is approved.</p>
-
+  <p class="foot-note">The proposed cards are a mock drawn from the design tokens, not the shipped components. They settle direction and proportion, not exact sizes. Example names, gardens, titles and amounts are invented; the status words and progress lines in Spanish and Portuguese come from the product's own translations.</p>
 </main>
 <aside class="rail" id="dock" aria-label="Card tweaker">
   <button type="button" class="toggle" id="dockToggle" aria-expanded="true" aria-controls="railBody">Card tweaker</button>
@@ -520,10 +621,13 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
     <div class="pv-wrap">
       <div class="rail-title"><b>Card tweaker</b><span class="acts"><button type="button" class="lnk js-reset">Reset to picks</button><button type="button" class="lnk js-copy">Copy picks</button></span></div>
       <div class="copyrow" id="copyRow" hidden><label for="copyText">Copying is blocked here. Press Cmd+C or Ctrl+C:</label><input id="copyText" type="text" readonly></div>
-      <div class="pv-h"><h3>Live preview <span id="pvObj"></span></h3><span class="ctl" role="group" aria-label="Preview density"><span class="seg"><button type="button" data-pv="app" aria-pressed="true">App</button><button type="button" data-pv="cockpit" aria-pressed="false">Cockpit</button></span></span></div>
+      <div class="pv-h"><h3>Live preview</h3><span class="ctl" role="group" aria-label="Preview density"><span class="seg"><button type="button" data-pv="app" aria-pressed="true">App</button><button type="button" data-pv="cockpit" aria-pressed="false">Cockpit</button></span></span></div>
+      <div class="pv-sel"><label class="ctl"><span class="seg-l">Show</span><select id="pvType" aria-label="Card type in the preview"></select></label></div>
       <div class="pv" id="preview" aria-live="polite"></div>
+      <div class="pv-opts" id="pvOpts"></div>
     </div>
     <div class="rows" id="dockRows"></div>
+    <p class="sys-line" id="sysLine"></p>
     <div class="foot"><span class="hint" id="hint">A dot marks your pick, or the recommendation where nothing is decided. Point at an option to read what it does.</span><span class="acts foot-acts"><button type="button" class="lnk js-reset">Reset to picks</button><button type="button" class="lnk js-copy">Copy picks</button></span></div>
   </div>
 </aside>
@@ -537,9 +641,9 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
 <script>
 (function () {
   "use strict";
-  var KEY = "gg-card-census-v1";
+  var KEY = "gg-card-census-v2", LAB_KEY = "gg-lab-state-v5";
 
-  /* ---------- icons ---------- */
+  /* ---------- icons and photo placeholders ---------- */
   var IC = {
     leaf: '<path d="M5 19c0-8 6-14 14-14 0 8-6 14-14 14z"/><path d="M5 19l7-7"/>',
     bin: '<path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/>',
@@ -561,180 +665,334 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
     phone: '<rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2"/>'
   };
   function ic(n) { return '<svg viewBox="0 0 24 24" aria-hidden="true">' + (IC[n] || "") + "</svg>"; }
-  var PH = {
-    agro: "linear-gradient(160deg,#C9DFB8,#86B072)",
-    waste: "linear-gradient(160deg,#CBDAE2,#88A3B2)",
-    solar: "linear-gradient(160deg,#F4E4C2,#D9B877)",
-    edu: "linear-gradient(160deg,#E3D8EF,#B39CD0)",
-    garden: "linear-gradient(160deg,#D6E6C6,#9DBF85 60%,#7FA36A)",
-    garden2: "linear-gradient(160deg,#D2E2EA,#9BB9C9 60%,#7E9FB2)"
-  };
+  var PH = { agro: "linear-gradient(160deg,#C9DFB8,#86B072)", waste: "linear-gradient(160deg,#CBDAE2,#88A3B2)", solar: "linear-gradient(160deg,#F4E4C2,#D9B877)", edu: "linear-gradient(160deg,#E3D8EF,#B39CD0)", garden: "linear-gradient(160deg,#D6E6C6,#9DBF85 60%,#7FA36A)", garden2: "linear-gradient(160deg,#D2E2EA,#9BB9C9 60%,#7E9FB2)" };
   var DOM_IC = { agro: "leaf", waste: "bin", solar: "sun", edu: "book" };
-  var DOM_NAME = { agro: "Agroforestry", waste: "Waste", solar: "Solar", edu: "Education" };
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
 
-  /* ---------- the four shapes ---------- */
-  function pill(st) { return st ? '<span class="pill status ' + st[0] + '">' + esc(st[1]) + "</span>" : ""; }
-  function meta(parts) {
-    return '<div class="meta">' + parts.filter(Boolean).map(function (p) {
-      return typeof p === "string" ? '<span class="mi">' + esc(p) + "</span>" : '<span class="mi soft">' + esc(p.soft) + "</span>";
-    }).join("") + "</div>";
+  /* ---------- sample text: English, long English, Spanish, Portuguese ---------- */
+  function L(en, es, pt, long) { return { en: en, es: es, pt: pt, long: long || en }; }
+  var W = {
+    approved: L("Approved", "Aprobado", "Aprovado"), pending: L("Pending", "Pendiente", "Pendente"), rejected: L("Rejected", "Rechazado", "Rejeitado"),
+    review: L("In review", "En revisión", "Em revisão"), needs: L("Needs you", "Te necesita", "Precisa de você"), progress: L("In progress", "En curso", "Em andamento"),
+    kept: L("Kept", "Cumplido", "Cumprido"), recorded: L("Recorded", "Registrada", "Registrada"), draft: L("Draft", "Borrador", "Rascunho"), minted: L("Minted", "Acuñado", "Cunhado"),
+    active: L("Active", "Activo", "Ativo"), accruing: L("Accruing", "Acumulando", "Acumulando"), open: L("Open", "Abierta", "Aberta"),
+    agro: L("Agroforestry", "Agroforestería", "Agrofloresta"), waste: L("Waste", "Residuos", "Resíduos"), solar: L("Solar", "Solar", "Solar"), edu: L("Education", "Educación", "Educação"),
+    h2: L("2 hours ago", "hace 2 horas", "há 2 horas"), h6: L("6 hours ago", "hace 6 horas", "há 6 horas"), d3: L("3 days ago", "hace 3 días", "há 3 dias"), d4: L("4 days ago", "hace 4 días", "há 4 dias"),
+    offer: L("Offer", "Oferta", "Oferta"), request: L("Request", "Petición", "Pedido"), dueFri: L("due Fri 24 Oct", "vence vie 24 oct", "vence sex 24 out"), taken: L("4 of 10 taken", "4 de 10 tomadas", "4 de 10 assumidas"),
+    keptOn: L("kept 12 Oct", "cumplido el 12 oct", "cumprido em 12 out"), dueNov: L("due 2 Nov", "vence 2 nov", "vence 2 nov"),
+    confirm: L("Confirm", "Confirmar", "Confirmar"), openBtn: L("Open", "Abrir", "Abrir"),
+    phase: L("Confirming on Arbitrum One…", "Confirmando en Arbitrum One…", "A confirmar na Arbitrum One…"), queue: L("Saved on this phone, not sent", "Guardado en este teléfono, sin enviar", "Salvo neste telefone, não enviado"),
+    assessment: L("Assessment", "Evaluación", "Avaliação"), hypercert: L("Hypercert", "Hypercert", "Hypercert"),
+    gardener: L("Gardener", "Jardinero", "Jardineiro"), steward: L("Steward", "Responsable", "Responsável"), funder: L("Funder", "Financiador", "Financiador"),
+    claim: L("Claim", "Retirar", "Sacar"), deposit: L("Deposit", "Depositar", "Depositar")
+  };
+  var TITLES = {
+    work: [L("Planted 50 native saplings", "Plantamos 50 plántulas nativas", "Plantamos 50 mudas nativas", "Planted 50 native saplings along the eastern ridge before the rains"),
+           L("River bank cleanup", "Limpieza de la orilla del río", "Limpeza da margem do rio", "River bank cleanup with the school group after the Saturday market"),
+           L("Panel cleaning after the harmattan dust", "Limpieza de paneles tras el polvo del harmatán", "Limpeza dos painéis depois da poeira do harmatã", "Panel cleaning after the harmattan dust on the east and west arrays"),
+           L("Led a composting workshop", "Dimos un taller de compostaje", "Fizemos uma oficina de compostagem", "Led a composting workshop for families from three neighbouring streets")],
+    commitments: [L("Water the seedlings weekly", "Regar las plántulas cada semana", "Regar as mudas toda semana", "Water the seedlings weekly until the first rains arrive in November"),
+                  L("Run a composting workshop", "Dar un taller de compostaje", "Fazer uma oficina de compostagem", "Run a composting workshop for the neighbouring school gardens"),
+                  L("Repair the drip line", "Reparar la línea de goteo", "Consertar a linha de gotejamento", "Repair the drip line on the north beds and replace the timer")],
+    actions: [L("Plant native trees", "Plantar árboles nativos", "Plantar árvores nativas", "Plant native trees and record how many survive after thirty days"),
+              L("Clear plastic from the river bank", "Retirar plástico de la orilla del río", "Retirar plástico da margem do rio", "Clear plastic from the river bank before the rainy season starts"),
+              L("Maintain the solar array", "Mantener los paneles solares", "Manter os painéis solares", "Maintain the solar array and log the inverter reading"),
+              L("Teach a seed-saving class", "Enseñar a guardar semillas", "Ensinar a guardar sementes", "Teach a seed-saving class at the community library")],
+    actionSubs: [L("2 photos required", "2 fotos obligatorias", "2 fotos obrigatórias"), L("Before and after photos", "Fotos de antes y después", "Fotos de antes e depois"), L("1 photo and a reading", "1 foto y una lectura", "1 foto e uma leitura"), L("Attendance and a photo", "Asistencia y una foto", "Presença e uma foto")],
+    records: [L("Soil health baseline, spring 2026", "Línea base de salud del suelo, primavera 2026", "Linha de base da saúde do solo, primavera de 2026", "Soil health baseline for the eastern ridge, spring 2026 reporting period"),
+              L("Panel output check", "Revisión de la producción de los paneles", "Verificação da produção dos painéis", "Panel output check after the harmattan season, west array"),
+              L("Eastern ridge canopy, autumn 2025", "Dosel de la cresta oriental, otoño 2025", "Dossel da crista leste, outono de 2025", "Eastern ridge canopy restoration, autumn 2025 season")],
+    gardens: [L("Botanic Commons", "Botanic Commons", "Botanic Commons", "Botanic Commons Community Food Forest"), L("Riverside Commons", "Riverside Commons", "Riverside Commons", "Riverside Commons and Seed Library")],
+    gardenSubs: [L("Lagos · 24 members · 3 actions", "Lagos · 24 miembros · 3 acciones", "Lagos · 24 membros · 3 ações"), L("Accra · 11 members · 2 actions", "Acra · 11 miembros · 2 acciones", "Acra · 11 membros · 2 ações")],
+    people: [L("maria.eth", "maria.eth", "maria.eth", "maria.botaniccommons.eth"), L("chidi.eth", "chidi.eth", "chidi.eth", "chidi-the-steward.eth"), L("0x91cC…0F7e", "0x91cC…0F7e", "0x91cC…0F7e")],
+    jars: [L("Garden cookie jar", "Tarro de Galletas del jardín", "Pote de Cookies do jardim", "Botanic Commons cookie jar for seedlings"),
+           L("Endowment position", "Posición en la provisión", "Posição na provisão", "Endowment position in the community vault"),
+           L("Commitment pool", "Fondo de promesas", "Fundo de promessas", "Commitment pool for the dry season")]
+  };
+
+  /* ---------- the design system, shared with the lab ---------- */
+  var RECORDED = { font: "pjs", ground: "linen", controls: "rec", chips: "capsule", sheet: "rec", nav: "pill", cards: "app", tabs: "app", filter: "today", badge: "one", list: "gap12", deskcard: "wide", darkcards: "step", tone: "today" };
+  var SYSC = [
+    { key: "font", label: "F1 Typeface", opts: [["split", "Today", "Inter in the app, Plus Jakarta Sans in the cockpit."], ["pjs", "Jakarta", "Plus Jakarta Sans on both."], ["inter", "Inter", "Inter on both."]] },
+    { key: "ground", label: "F2 Ground", opts: [["split", "Today", "A white page in the app, linen in the cockpit."], ["linen", "Linen", "Linen behind white cards on both."], ["white", "White", "White on both."]] },
+    { key: "controls", label: "F3 Buttons", opts: [["today", "Today", "16px buttons in the app, pills in the cockpit."], ["rec", "Per surface", "Each surface keeps its corner; weight and outline unified."], ["c16", "16px", "16px corners on both."], ["pill", "Pills", "Pills on both."]] },
+    { key: "chips", label: "F4 Chips", opts: [["today", "Today", "Capsules in the app, 8px chips in the cockpit."], ["capsule", "Capsules", "Capsule chips on both."], ["square", "8px", "8px chips on both."]] },
+    { key: "cards", label: "F7 Cards", opts: [["today", "Today", "App: bordered 24px cards and 16px rows. Cockpit: raised 12px cards."], ["rec", "Shared", "One hairline surface, each surface keeps its corner, a 48px photo in the row."], ["app", "App", "The app's cards everywhere: 24px cards, 16px rows with the status edge."], ["cockpit", "Cockpit", "The cockpit's raised 12px cards everywhere, work as photo-grid cards."]] },
+    { key: "list", label: "F11 List spacing", opts: [["today", "Today", "12px in the app, 14px in the cockpit."], ["gap8", "8px", "8px between cards."], ["gap12", "12px", "12px between cards."], ["divided", "Divided", "One card with divided rows."]] },
+    { key: "deskcard", label: "F12 Desktop card", opts: [["tall", "Today", "The cockpit's desktop work card stacks its photo grid on top."], ["wide", "Wide", "The photo grid on the left, two cards to a row."]] },
+    { key: "darkcards", label: "F13 Dark cards", opts: [["today", "Today", "The cockpit's dark card sits close to the page."], ["step", "Lighter", "The dark card one step lighter."], ["outline", "Hairline", "A hairline around today's dark card."], ["both", "Both", "Lighter, with a hairline."]] },
+    { key: "tone", label: "Workspace tone", opts: [["today", "Today", "A tone per cockpit workspace: Hub blue, Garden green, Community amber, Actions purple."], ["green", "One green", "The app's green in every workspace."]] }
+  ];
+  function optName(c, v) { var o = c.opts.filter(function (x) { return x[0] === v; })[0]; return o ? o[1] : v; }
+  var labSource = "recorded", lab = {};
+  function readLab() {
+    var parsed = null;
+    try { parsed = JSON.parse(localStorage.getItem(LAB_KEY) || "null"); } catch (e) { parsed = null; }
+    labSource = parsed && typeof parsed === "object" ? "lab" : "recorded";
+    var out = {};
+    SYSC.forEach(function (c) {
+      var v = parsed && parsed[c.key];
+      out[c.key] = c.opts.some(function (o) { return o[0] === v; }) ? v : RECORDED[c.key];
+    });
+    lab = out;
   }
-  function itemRow(o, surface) {
-    var lead = "";
-    if (o.lead === "photo") lead = '<div class="lead photo" style="--ph:' + PH[o.dom] + '"><span class="ic">' + ic(DOM_IC[o.dom]) + "</span></div>";
+  // Writes keep every other key the lab stores (its theme, its stage, its screens).
+  function writeLab(changes) {
+    Object.keys(changes).forEach(function (k) { lab[k] = changes[k]; });
+    try {
+      var cur = JSON.parse(localStorage.getItem(LAB_KEY) || "null");
+      if (!cur || typeof cur !== "object") cur = Object.assign({}, RECORDED);
+      Object.keys(changes).forEach(function (k) { cur[k] = changes[k]; });
+      if ("darkcards" in changes && Object.keys(changes).length === 1) cur.theme = "dark"; // as the lab does: choosing a dark-card option shows it
+      localStorage.setItem(LAB_KEY, JSON.stringify(cur));
+      labSource = "lab";
+    } catch (e) {}
+  }
+  var INTER = "Inter, system-ui, -apple-system, 'Segoe UI', sans-serif", PJS = "'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif";
+  // Tones: the lab's green, blue and amber; purple is the cockpit's Actions workspace (DL-045).
+  var TONES = {
+    light: { green: ["#1A7544", "#FFFFFF", "#1A7544", "rgba(31,193,107,0.10)"], blue: ["#2547D0", "#FFFFFF", "#2547D0", "rgba(51,92,255,0.08)"], amber: ["#B45309", "#FFFFFF", "#92400E", "rgba(217,119,6,0.08)"], purple: ["#5B2CC9", "#FFFFFF", "#5B2CC9", "rgba(91,44,201,0.08)"] },
+    dark: { greenApp: ["#C2F5DA", "#0C0A09", "#C2F5DA", "rgba(194,245,218,0.12)"], green: ["#C2F5DA", "#16643B", "#C2F5DA", "rgba(194,245,218,0.10)"], blue: ["#C0D5FF", "#182F8B", "#C0D5FF", "rgba(192,213,255,0.10)"], amber: ["#FDE68A", "#78350F", "#FDE68A", "rgba(253,230,138,0.10)"], purple: ["#CAC0FF", "#3D1D86", "#CAC0FF", "rgba(202,192,255,0.10)"] }
+  };
+  var TONE_OF = { work: "blue", records: "blue", facts: "blue", states: "blue", commitments: "green", gardens: "green", jars: "green", people: "amber", actions: "purple" };
+  function tone(surface, obj) {
+    var dark = state.theme === "dark";
+    if (surface === "app") return dark ? TONES.dark.greenApp : TONES.light.green;
+    return TONES[dark ? "dark" : "light"][lab.tone === "green" ? "green" : (TONE_OF[obj] || "blue")];
+  }
+  function toneStyle(surface, obj) { var T = tone(surface, obj); return "--s-acc:" + T[0] + ";--s-acc-on:" + T[1] + ";--s-acc-text:" + T[2] + ";--s-acc-tint:" + T[3]; }
+  /* What one surface draws with the current design system. Mirrors the lab's tokensFor. */
+  function sys(surface, obj, isDesk) {
+    var s = lab, isApp = surface === "app", dark = state.theme === "dark";
+    var ground = s.ground === "split" ? (isApp ? "white" : "linen") : s.ground;
+    var oneLadder = s.ground !== "split", warm = oneLadder ? s.ground === "linen" : !isApp;
+    var font = s.font === "split" ? (isApp ? INTER : PJS) : (s.font === "pjs" ? PJS : INTER);
+    var c = s.cards, cardR, rowR, surf, wi, sel, edge;
+    if (c === "today") { cardR = isApp ? 24 : 12; rowR = isApp ? 16 : 12; surf = isApp ? "border" : "elevated"; wi = isApp ? "row" : "card"; sel = isApp ? "border3" : "ring"; edge = isApp ? 2 : 0; }
+    else if (c === "rec") { cardR = isApp ? 24 : 12; rowR = isApp ? 16 : 12; surf = "hairline"; wi = isDesk ? "card" : "shared"; sel = "ring"; edge = isApp ? 2 : 0; }
+    else if (c === "app") { cardR = 24; rowR = 16; surf = "border"; wi = isDesk ? "card" : "row"; sel = "border3"; edge = 2; }
+    else { cardR = 12; rowR = 12; surf = "elevated"; wi = "card"; sel = "ring"; edge = 0; }
+    var v = {};
+    if (!dark) {
+      var appFaint = isApp && ground === "white";
+      v.canvas = ground === "linen" ? "#FAF8F5" : "#FFFFFF"; v.card = "#FFFFFF";
+      v.hair = appFaint ? "#F5F5F4" : "#E7E5E4"; v.appBorder = v.hair;
+      v.grey = ground === "linen" ? "#F5F2ED" : "#F5F5F4"; v.tint = "#FAFAF9";
+      v.elev1 = "0 1px 2px rgba(0,0,0,0.3), 0 1px 3px 1px rgba(0,0,0,0.15)"; v.hairlineCard = "#E7E5E4"; v.borderSh = "0 1px 2px rgba(0,0,0,0.04)";
+      v.dchip = "rgba(255,255,255,0.9)";
+    } else {
+      var dc = s.darkcards, lift = dc === "step" || dc === "both", line = dc === "outline" || dc === "both";
+      var applyDc = !isApp || oneLadder, up = applyDc && lift, appStone = isApp && !warm;
+      v.canvas = warm ? "#110C08" : "#0C0A09";
+      v.card = warm ? (up ? "#2A231C" : "#201913") : (isApp ? (up ? "#161412" : "#0C0A09") : (up ? "#292524" : "#1C1917"));
+      v.hair = appStone ? "#292524" : "rgba(250,250,249,0.10)"; v.appBorder = appStone ? "#292524" : "rgba(250,250,249,0.12)";
+      v.grey = warm ? "#342C24" : "#292524"; v.tint = warm ? "#1A1410" : "#161412";
+      v.elev1 = (applyDc && line) ? "0 0 0 1px rgba(250,250,249,0.14)" : ((applyDc && lift) ? "0 0 0 1px rgba(250,250,249,0.08)" : "0 0 0 1px rgba(250,250,249,0.06)");
+      v.hairlineCard = (applyDc && line) ? "rgba(250,250,249,0.14)" : "rgba(250,250,249,0.12)"; v.borderSh = "none";
+      v.dchip = "rgba(20,16,12,0.85)";
+    }
+    var cardBd, cardSh;
+    if (surf === "elevated") { cardBd = "transparent"; cardSh = v.elev1; }
+    else if (surf === "hairline") { cardBd = v.hairlineCard; cardSh = "none"; }
+    else { cardBd = v.appBorder; cardSh = v.borderSh; }
+    var unify = s.controls !== "today";
+    var btnR = s.controls === "c16" ? "16px" : (s.controls === "pill" ? "999px" : (isApp ? "16px" : "999px"));
+    var btnW = unify ? 500 : (isApp ? 400 : 500);
+    var outline = unify ? (dark ? "#A8A29E" : "#78716C") : (isApp ? (dark ? "#44403C" : "#D6D3D1") : (dark ? "#A8A29E" : "#78716C"));
+    var chipR = s.chips === "today" ? (isApp ? "999px" : "8px") : (s.chips === "square" ? "8px" : "999px");
+    var lg = s.list, divided = lg === "divided" && !isDesk, gap;
+    if (isDesk) gap = lg === "today" ? 14 : (lg === "gap8" ? 8 : (lg === "gap12" ? 12 : 8));
+    else gap = divided ? 12 : (lg === "today" ? (isApp ? 12 : 14) : (lg === "gap8" ? 8 : 12));
+    var style = "--s-font:" + font + ";--s-canvas:" + v.canvas + ";--s-card:" + v.card + ";--s-card-bd:" + cardBd + ";--s-card-sh:" + cardSh + ";--s-hair:" + v.hair +
+      ";--s-grey:" + v.grey + ";--s-tint:" + v.tint + ";--s-dchip:" + v.dchip + ";--card-r:" + cardR + "px;--row-r:" + rowR + "px;--edge-w:" + edge + "px;--btn-r:" + btnR +
+      ";--btn-w:" + btnW + ";--btn-outline:" + outline + ";--chip-r:" + chipR + ";--gap:" + gap + "px;--media:" + state.media + "px;" + toneStyle(surface, obj);
+    return { cls: "cs-" + surf + " sel-" + sel + (edge > 0 ? " edge-on" : "") + (dark ? " sdark" : ""), style: style, wi: wi, divided: divided };
+  }
+  function specOpen(surface, obj, extra, stl, isDesk) {
+    var sy = sys(surface, obj, isDesk);
+    return '<div class="spec ' + surface + " " + sy.cls + " stl-" + (stl || state.stl) + (extra ? " " + extra : "") + '" style="' + sy.style.replace(/"/g, "'") + '">';
+  }
+  // A group of one object inside a mixed specimen keeps that object's workspace tone.
+  function grp(surface, obj, html) { return '<div class="grp" style="' + toneStyle(surface, obj) + '">' + html + "</div>"; }
+
+  /* ---------- the four shapes ---------- */
+  function tx(o) { if (typeof o === "string") return o; return o[state.lang] || o.en; }
+  function pill(st, place) { return st ? '<span class="pill ' + st[0] + " pl-" + place + '"><span class="pt">' + esc(tx(st[1])) + "</span></span>" : ""; }
+  function titleHtml(text, lines) { var t = tx(text); return '<div class="title l' + (lines || "2") + '" title="' + esc(t) + '">' + esc(t) + "</div>"; }
+  function metaHtml(parts, st) {
+    return '<div class="meta"><div class="mrow">' + pill(st, "details") + parts.filter(Boolean).map(function (p) {
+      return p.soft ? '<span class="mi soft">' + esc(tx(p.soft)) + "</span>" : '<span class="mi">' + esc(tx(p)) + "</span>";
+    }).join("") + "</div></div>";
+  }
+  // The small line above a title: the item's kind, and in layout E its status.
+  function kicker(kind, st) {
+    if (!kind && !st) return "";
+    return '<p class="kick' + (kind ? "" : " only-status") + '">' + (kind ? "<span>" + esc(tx(kind)) + "</span>" : "") +
+      (st ? '<span class="pl-above ' + st[0] + '"><i></i>' + esc(tx(st[1])) + "</span>" : "") + "</p>";
+  }
+  function itemRow(o) {
+    var lead = "", photo = false;
+    if (o.lead === "photo") { photo = true; lead = '<div class="lead photo" style="--ph:' + PH[o.dom] + '"><span class="ic">' + ic(DOM_IC[o.dom] || "sprout") + "</span>" + pill(o.status, "photo") + "</div>"; }
+    else if (o.lead === "thumb") lead = '<div class="lead thumb" style="--ph:' + PH[o.dom] + '"></div>';
     else if (o.lead === "tile") lead = '<div class="lead tile">' + ic(o.icon) + "</div>";
     else if (o.lead === "av") lead = '<div class="lead av">' + esc(o.initials) + "</div>";
     var trail = "";
     if (o.trail === "chev") trail = '<div class="trail">' + ic("chev") + "</div>";
-    else if (o.trail === "btn") trail = '<div class="trail"><span class="btn sm' + (o.btnSec ? " sec" : "") + '">' + esc(o.btn) + "</span></div>";
-    else if (o.trail === "amt") trail = '<div class="trail"><div class="amt">' + esc(o.amt[0]) + "<small>" + esc(o.amt[1]) + "</small></div></div>";
-    else if (o.trail === "chip") trail = '<div class="trail"><span class="chip">' + esc(o.chip) + "</span></div>";
-    var compact = o.compact;
-    var body = compact
-      ? '<div class="body"><div class="title trunc">' + esc(o.title) + "</div>" + meta(o.meta) + "</div>"
-      : '<div class="body">' + (o.eyebrow ? '<div class="eyebrow">' + esc(o.eyebrow) + "</div>" : "") +
-        '<div class="top"><div class="title trunc">' + esc(o.title) + "</div>" + (o.pillBelow ? "" : pill(o.status)) + "</div>" + meta(o.meta) +
-        (o.pillBelow && o.status ? '<div class="tags">' + pill(o.status) + "</div>" : "") +
-        (o.extra ? '<div class="extra ' + o.extra[0] + '">' + ic(o.extra[0] === "phase" ? "clock" : "phone") + "<span>" + esc(o.extra[1]) + "</span></div>" : "") + "</div>";
-    var cls = "sc row ir" + (compact ? " compact" : "") + (o.status ? " has-edge e-" + o.status[0] : "") + (o.selected ? " selected" : "");
+    else if (o.trail === "btn") trail = '<div class="trail"><span class="btn' + (o.btnSec ? " sec" : "") + '">' + esc(tx(o.btn)) + "</span></div>";
+    else if (o.trail === "amt") trail = '<div class="trail"><div class="amt">' + esc(o.amt[0]) + "<small>" + esc(tx(o.amt[1])) + "</small></div></div>";
+    else if (o.trail === "chip") trail = '<div class="trail"><span class="chip">' + esc(tx(o.chip)) + "</span></div>";
+    var body;
+    if (o.compact) body = '<div class="body">' + titleHtml(o.title, "1") + metaHtml(o.meta) + "</div>";
+    else body = '<div class="body">' + kicker(o.eyebrow, o.status) +
+      '<div class="top">' + titleHtml(o.title, o.lines) + pill(o.status, "corner") + "</div>" +
+      (o.status ? '<div class="pl-row">' + pill(o.status, "under") + "</div>" : "") + metaHtml(o.meta, o.status) +
+      (o.extra ? '<div class="extra ' + o.extra[0] + '">' + ic(o.extra[0] === "phase" ? "clock" : "phone") + "<span>" + esc(tx(o.extra[1])) + "</span></div>" : "") + "</div>";
+    var cls = "sc row ir" + (o.compact ? " compact" : "") + (photo ? " has-photo" : "") + (o.status ? " has-edge e-" + o.status[0] : "") + (o.selected ? " selected" : "");
     return '<div class="' + cls + '"><span class="tick">' + ic("check") + "</span>" + lead + body + trail + "</div>";
   }
   function mediaCard(o) {
-    var media;
-    if (o.grid) media = '<div class="media grid" style="--ph:' + PH[o.dom] + '"><i></i><i style="filter:brightness(1.06)"></i><i style="filter:brightness(0.94)"></i>';
-    else media = '<div class="media' + (o.banner ? " banner" : "") + '" style="--ph:' + PH[o.dom] + '"><span class="ic">' + ic(o.icon || DOM_IC[o.dom]) + "</span>";
-    if (o.dchip) media += '<span class="dchip">' + esc(o.dchip) + "</span>";
+    var media = o.grid
+      ? '<div class="media grid" style="--ph:' + PH[o.dom] + '"><i></i><i style="filter:brightness(1.06)"></i><i style="filter:brightness(0.94)"></i>'
+      : '<div class="media' + (o.banner ? " banner" : "") + '" style="--ph:' + PH[o.dom] + '"><span class="ic">' + ic(o.icon || DOM_IC[o.dom]) + "</span>";
+    if (o.dchip) media += '<span class="dchip">' + esc(tx(o.dchip)) + "</span>";
     if (o.count) media += '<span class="mcount">' + esc(o.count) + "</span>";
-    media += "</div>";
-    var body = '<div class="body"><div class="top"><div class="title">' + esc(o.title) + "</div>" + pill(o.status) + "</div>" +
-      (o.sub ? '<div class="sub">' + esc(o.sub) + "</div>" : "") +
-      (o.meta ? '<div class="meta"><span>' + esc(o.meta[0]) + '</span><span class="soft">' + esc(o.meta[1] || "") + "</span></div>" : "") +
-      (o.btn ? '<div><span class="btn">' + esc(o.btn) + "</span></div>" : "") + "</div>";
-    var cls = "sc mc" + (o.wide ? " wide" : "") + (o.status ? " has-edge e-" + o.status[0] : "") + (o.selected ? " selected" : "");
+    media += pill(o.status, "photo") + "</div>";
+    var foot = "";
+    if (o.foot || o.status) foot = '<div class="mfoot"><span class="ml">' + pill(o.status, "details") + (o.foot ? "<span>" + esc(tx(o.foot[0])) + "</span>" : "") + "</span>" + (o.foot && o.foot[1] ? '<span class="soft">' + esc(tx(o.foot[1])) + "</span>" : "") + "</div>";
+    var body = '<div class="body">' + kicker(null, o.status) + '<div class="top">' + titleHtml(o.title, o.lines) + pill(o.status, "corner") + "</div>" +
+      (o.status ? '<div class="pl-row">' + pill(o.status, "under") + "</div>" : "") +
+      (o.sub ? '<div class="sub">' + esc(tx(o.sub)) + "</div>" : "") + foot +
+      (o.btn ? '<div><span class="btn">' + esc(tx(o.btn)) + "</span></div>" : "") + "</div>";
+    var cls = "sc mc" + (o.wide ? " wide" : "") + " has-photo" + (o.status ? " has-edge e-" + o.status[0] : "") + (o.selected ? " selected" : "");
     return '<div class="' + cls + '"><span class="tick">' + ic("check") + "</span>" + media + body + "</div>";
   }
   function factList(pairs, label, rows) {
-    return '<div class="sc fl ' + label + " " + rows + '">' + pairs.map(function (p) {
-      return '<div class="fr"><div class="k">' + esc(p[0]) + '</div><div class="v">' + esc(p[1]) + "</div></div>";
-    }).join("") + "</div>";
+    return '<div class="sc fl ' + label + " " + rows + '">' + pairs.map(function (p) { return '<div class="fr"><div class="k">' + esc(tx(p[0])) + '</div><div class="v">' + esc(tx(p[1])) + "</div></div>"; }).join("") + "</div>";
   }
   function stateBlock(o, size, mark) {
-    return '<div class="sc sb ' + size + (mark === "none" ? " no-mark" : "") + '"><div class="mark' + (o.err ? " err" : "") + '">' + ic(o.icon) + '</div><div class="t">' + esc(o.t) + '</div><div class="d">' + esc(o.d) + "</div>" + (o.btn ? '<span class="btn' + (o.btnSec ? " sec" : "") + '">' + esc(o.btn) + "</span>" : "") + "</div>";
+    return '<div class="sc sb ' + size + (mark === "none" ? " no-mark" : "") + '"><div class="mark' + (o.err ? " err" : "") + '">' + ic(o.icon) + '</div><div class="t">' + esc(tx(o.t)) + '</div><div class="d">' + esc(tx(o.d)) + "</div>" + (o.btn ? '<span class="btn lg' + (o.btnSec ? " sec" : "") + '">' + esc(tx(o.btn)) + "</span>" : "") + "</div>";
   }
+  function list(html, sy, isList) { return isList && sy.divided ? '<div class="dl">' + html + "</div>" : html; }
 
-  /* ---------- example content ---------- */
+  /* ---------- the objects ---------- */
   var WORK = [
-    { dom: "agro", title: "Planted 50 native saplings", status: ["ok", "Approved"], who: "maria.eth", when: "2 hours ago", garden: "Botanic Commons", photos: 3 },
-    { dom: "waste", title: "River bank cleanup", status: ["warn", "Pending"], who: "chidi.eth", when: "6 hours ago", garden: "Riverside Commons", photos: 2 },
-    { dom: "solar", title: "Panel cleaning after the harmattan dust", status: ["err", "Rejected"], who: "0x7B2e…41C9", when: "3 days ago", garden: "Tech and Sun Hub", photos: 1 }
+    { dom: "agro", status: ["ok", W.approved], who: "maria.eth", when: W.h2, photos: 3 },
+    { dom: "waste", status: ["warn", W.pending], who: "chidi.eth", when: W.h6, photos: 2 },
+    { dom: "solar", status: ["err", W.rejected], who: "0x7B2e…41C9", when: W.d3, photos: 1 },
+    { dom: "edu", status: ["info", W.review], who: "tomi.eth", when: W.d4, photos: 2 }
   ];
-  var FACTS = [["Action", "Plant native trees"], ["Garden", "Botanic Commons"], ["Submitted", "12 Oct 2026, 9:40"], ["Photos", "3"], ["Confirms it", "chidi.eth"], ["Reward", "0.01 WETH"]];
-
-  /* ---------- object renderers: each returns one panel's specimens for a surface ---------- */
   var R = {};
-  R.work = function (s, o, desk) {
-    if (desk) {
-      return WORK.concat([{ dom: "edu", title: "Led a composting workshop", status: ["info", "In review"], who: "tomi.eth", when: "4 days ago", garden: "Botanic Commons", photos: 2 }]).map(function (w) {
-        return o.desk === "wide"
-          ? mediaCard({ dom: w.dom, grid: true, wide: true, dchip: DOM_NAME[w.dom], count: "1 / " + w.photos, title: w.title, status: w.status, sub: w.garden, meta: [w.who, "submitted " + w.when] })
-          : itemRow({ lead: "photo", dom: w.dom, eyebrow: DOM_NAME[w.dom], title: w.title, status: w.status, meta: [w.who, { soft: w.when }] });
-      }).join("");
-    }
-    return WORK.map(function (w) {
-      return o.phone === "media"
-        ? mediaCard({ dom: w.dom, grid: s === "cockpit", dchip: DOM_NAME[w.dom], count: "1 / " + w.photos, title: w.title, status: w.status, sub: w.garden, meta: [w.who, w.when] })
-        : itemRow({ lead: "photo", dom: w.dom, title: w.title, status: w.status, meta: [w.who, { soft: w.when }] });
-    }).join("");
+  R.work = function (s, o, opt) {
+    opt = opt || {};
+    var lines = state.lines.work, n = opt.count || (opt.desk ? 4 : 3);
+    function card(w, i, wide) { return mediaCard({ dom: w.dom, grid: true, wide: wide, dchip: W[w.dom], count: "1 / " + w.photos, title: TITLES.work[i], lines: lines, status: w.status, foot: [w.who, w.when] }); }
+    if (opt.desk) return WORK.slice(0, n).map(function (w, i) { return card(w, i, lab.deskcard === "wide"); }).join("");
+    var sy = sys(s, "work"), wi = sy.wi;
+    return list(WORK.slice(0, n).map(function (w, i) {
+      if (wi === "card") return card(w, i, false);
+      return itemRow({ lead: wi === "shared" ? "thumb" : "photo", dom: w.dom, title: TITLES.work[i], lines: lines, status: w.status, meta: [w.who, { soft: w.when }] });
+    }).join(""), sy, wi !== "card");
   };
-  R.commitments = function (s, o) {
+  R.commitments = function (s, o, opt) {
+    opt = opt || {};
+    var sy = sys(s, "commitments"), lines = state.lines.commitments;
     var items = [
-      { dir: "offer", title: "Water the seedlings weekly", status: ["warn", "Needs you"], meta: ["Offer", "tomi.eth", { soft: "due Fri 24 Oct" }], btn: s === "cockpit" ? "Confirm" : "Open", extra: s === "cockpit" ? ["phase", "Confirming on Arbitrum One…"] : null, initials: "TO" },
-      { dir: "request", title: "Run a composting workshop", status: ["info", "In progress"], meta: ["Request", "4 of 10 taken", { soft: "due 2 Nov" }], initials: "BC", extra: s === "app" ? ["queue", "Saved on this phone, not sent"] : null },
-      { dir: "offer", title: "Repair the drip line", status: ["ok", "Kept"], meta: ["Offer", "maria.eth", { soft: "kept 12 Oct" }], initials: "MA" }
+      { dir: "offer", status: ["warn", W.needs], meta: [W.offer, "tomi.eth", { soft: W.dueFri }], btn: s === "cockpit" ? W.confirm : W.openBtn, extra: s === "cockpit" ? ["phase", W.phase] : null, initials: "TO" },
+      { dir: "request", status: ["info", W.progress], meta: [W.request, W.taken, { soft: W.dueNov }], initials: "BC", extra: s === "app" ? ["queue", W.queue] : null },
+      { dir: "offer", status: ["ok", W.kept], meta: [W.offer, "maria.eth", { soft: W.keptOn }], initials: "MA" }
     ];
-    return items.map(function (c, i) {
-      if (o.shape === "media") return mediaCard({ dom: i === 1 ? "edu" : "agro", banner: true, icon: c.dir, title: c.title, status: c.status, sub: c.meta.filter(function (m) { return typeof m === "string"; }).join(" · "), btn: i === 0 ? c.btn : null });
-      var r = { title: c.title, status: c.status, meta: c.meta, extra: c.extra, pillBelow: true };
+    return list(items.slice(0, opt.count || 3).map(function (c, i) {
+      if (o.shape === "media") return mediaCard({ dom: i === 1 ? "edu" : "agro", banner: true, icon: c.dir, title: TITLES.commitments[i], lines: lines, status: c.status, sub: [tx(c.meta[0]), tx(c.meta[1])].join(" · "), btn: i === 0 ? c.btn : null });
+      var r = { title: TITLES.commitments[i], lines: lines, status: c.status, meta: c.meta, extra: c.extra };
       if (o.lead === "icon") { r.lead = "tile"; r.icon = c.dir; } else { r.lead = "av"; r.initials = c.initials; }
       if (i === 0) { r.trail = "btn"; r.btn = c.btn; } else r.trail = "chev";
       return itemRow(r);
-    }).join("");
+    }).join(""), sy, o.shape !== "media");
   };
-  R.actions = function (s, o) {
-    var acts = [["agro", "Plant native trees", "2 photos required"], ["waste", "Clear plastic from the river bank", "Before and after photos"], ["solar", "Maintain the solar array", "1 photo and a reading"], ["edu", "Teach a seed-saving class", "Attendance and a photo"]];
-    return acts.map(function (a, i) {
+  R.actions = function (s, o, opt) {
+    opt = opt || {};
+    var lines = state.lines.actions, doms = ["agro", "waste", "solar", "edu"];
+    return doms.slice(0, opt.count || 4).map(function (d, i) {
       return o.shape === "media"
-        ? mediaCard({ dom: a[0], banner: true, title: a[1], sub: a[2], dchip: DOM_NAME[a[0]], selected: i === 0 })
-        : itemRow({ lead: "tile", icon: DOM_IC[a[0]], eyebrow: DOM_NAME[a[0]], title: a[1], meta: [a[2]], selected: i === 0 });
+        ? mediaCard({ dom: d, banner: true, title: TITLES.actions[i], lines: lines, sub: TITLES.actionSubs[i], dchip: W[d], selected: i === 0 })
+        : itemRow({ lead: "tile", icon: DOM_IC[d], eyebrow: W[d], title: TITLES.actions[i], lines: lines, meta: [TITLES.actionSubs[i]], selected: i === 0 });
     }).join("");
   };
-  R.records = function (s, o) {
+  R.records = function (s, o, opt) {
+    opt = opt || {};
+    var sy = sys(s, "records"), lines = state.lines.records;
     var recs = [
-      { kind: "Assessment", dom: "agro", icon: "clip", title: "Soil health baseline, spring 2026", status: ["info", "Recorded"], meta: ["4 outcomes", { soft: "2 days ago" }] },
-      { kind: "Assessment", dom: "solar", icon: "clip", title: "Panel output check", status: ["neu", "Draft"], meta: ["2 outcomes", { soft: "today" }] },
-      { kind: "Hypercert", dom: "garden", icon: "cert", title: "Eastern ridge canopy, autumn 2025", status: ["ok", "Minted"], meta: ["120 units", { soft: "12 Jan 2026" }] }
+      { kind: W.assessment, dom: "agro", icon: "clip", status: ["info", W.recorded], meta: [L("4 outcomes", "4 resultados", "4 resultados"), { soft: L("2 days ago", "hace 2 días", "há 2 dias") }] },
+      { kind: W.assessment, dom: "solar", icon: "clip", status: ["neu", W.draft], meta: [L("2 outcomes", "2 resultados", "2 resultados"), { soft: L("today", "hoy", "hoje") }] },
+      { kind: W.hypercert, dom: "garden", icon: "cert", status: ["ok", W.minted], meta: [L("120 units", "120 unidades", "120 unidades"), { soft: L("12 Jan 2026", "12 ene 2026", "12 jan 2026") }] }
     ];
-    return recs.map(function (r) {
+    return list(recs.slice(0, opt.count || 3).map(function (r, i) {
       return o.shape === "media"
-        ? mediaCard({ dom: r.dom, banner: true, icon: r.icon, dchip: r.kind, title: r.title, status: r.status, meta: [r.meta[0], r.meta[1].soft] })
-        : itemRow({ lead: "tile", icon: r.icon, eyebrow: r.kind + " · " + (DOM_NAME[r.dom] || "Garden"), title: r.title, status: r.status, meta: r.meta, trail: "chev" });
-    }).join("");
+        ? mediaCard({ dom: r.dom, banner: true, icon: r.icon, dchip: r.kind, title: TITLES.records[i], lines: lines, status: r.status, foot: [r.meta[0], r.meta[1].soft] })
+        : itemRow({ lead: "tile", icon: r.icon, eyebrow: r.kind, title: TITLES.records[i], lines: lines, status: r.status, meta: r.meta, trail: "chev" });
+    }).join(""), sy, o.shape !== "media");
   };
   R.gardens = function (s, o) {
-    var g = [
-      { ph: "garden", title: "Botanic Commons", sub: "Lagos · 24 members · 3 actions", meta: ["2 stewards", "Open to join"] },
-      { ph: "garden2", title: "Riverside Commons", sub: "Accra · 11 members · 2 actions", meta: ["1 steward", "Invite only"] }
-    ];
-    return g.map(function (x) {
+    var lines = state.lines.gardens, ph = ["garden", "garden2"];
+    var foot = [[L("2 stewards", "2 responsables", "2 responsáveis"), L("Open to join", "Abierto a nuevos miembros", "Aberto a novos membros")], [L("1 steward", "1 responsable", "1 responsável"), L("Invite only", "Solo por invitación", "Somente por convite")]];
+    return [0, 1].map(function (i) {
       return o.shape === "media"
-        ? mediaCard({ dom: x.ph, banner: true, icon: "sprout", title: x.title, sub: x.sub, meta: x.meta })
-        : itemRow({ lead: "photo", dom: x.ph, title: x.title, meta: [x.sub], trail: "chev" });
-    }).join("").replace(/--ph:undefined/g, "--ph:" + PH.garden);
-  };
-  R.people = function (s, o) {
-    var p = [
-      { i: "MA", name: "maria.eth", meta: ["Gardener", { soft: "12 works" }], chip: "Gardener" },
-      { i: "CH", name: "chidi.eth", meta: ["Steward", { soft: "Botanic Commons" }], chip: "Steward" },
-      { i: "0x", name: "0x91cC…0F7e", meta: ["Funder", { soft: "40 DAI" }], chip: "Funder" }
-    ];
-    return p.map(function (x) {
-      return itemRow({ lead: "av", initials: x.i, title: x.name, meta: x.meta, compact: o.shape === "compact", trail: o.shape === "compact" ? null : "chip", chip: x.chip });
+        ? mediaCard({ dom: ph[i], banner: true, icon: "sprout", title: TITLES.gardens[i], lines: lines, sub: TITLES.gardenSubs[i], foot: foot[i] })
+        : itemRow({ lead: "photo", dom: ph[i], title: TITLES.gardens[i], lines: lines, meta: [TITLES.gardenSubs[i]], trail: "chev" });
     }).join("");
   };
-  R.jars = function (s, o) {
+  R.people = function (s, o, opt) {
+    opt = opt || {};
+    var sy = sys(s, "people"), lines = state.lines.people;
+    var p = [{ i: "MA", meta: [W.gardener, { soft: L("12 works", "12 trabajos", "12 trabalhos") }], chip: W.gardener }, { i: "CH", meta: [W.steward, { soft: "Botanic Commons" }], chip: W.steward }, { i: "0x", meta: [W.funder, { soft: "40 DAI" }], chip: W.funder }];
+    return list(p.slice(0, opt.count || 3).map(function (x, i) {
+      return itemRow({ lead: "av", initials: x.i, title: TITLES.people[i], lines: lines, meta: x.meta, compact: o.shape === "compact", trail: o.shape === "compact" ? null : "chip", chip: x.chip });
+    }).join(""), sy, true);
+  };
+  R.jars = function (s, o, opt) {
+    opt = opt || {};
+    var sy = sys(s, "jars"), lines = state.lines.jars;
     var j = [
-      { icon: "jar", dom: "solar", title: "Garden cookie jar", status: ["ok", "Active"], meta: ["0.01 WETH a claim", { soft: "1 day cooldown" }], amt: ["0.42", "WETH left"], btn: "Claim" },
-      { icon: "vault", dom: "garden2", title: "Endowment position", status: ["info", "Accruing"], meta: ["8 depositors", { soft: "12 harvests" }], amt: ["12", "WETH deposited"], btn: "Deposit" },
-      { icon: "pool", dom: "garden", title: "Commitment pool", status: ["ok", "Open"], meta: ["6 open promises", { soft: "2 waiting" }], amt: ["6", "open"], btn: "Open" }
+      { icon: "jar", dom: "solar", status: ["ok", W.active], meta: [L("0.01 WETH a claim", "0.01 WETH por retiro", "0.01 WETH por saque"), { soft: L("1 day cooldown", "1 día de espera", "1 dia de espera") }], amt: ["0.42", L("WETH left", "WETH disponibles", "WETH restantes")], btn: W.claim },
+      { icon: "vault", dom: "garden2", status: ["info", W.accruing], meta: [L("8 depositors", "8 depositantes", "8 depositantes"), { soft: L("12 harvests", "12 cosechas", "12 colheitas") }], amt: ["12", L("WETH deposited", "WETH depositados", "WETH depositados")], btn: W.deposit },
+      { icon: "pool", dom: "garden", status: ["ok", W.open], meta: [L("6 open promises", "6 promesas abiertas", "6 promessas abertas"), { soft: L("2 waiting", "2 en espera", "2 aguardando") }], amt: ["6", L("open", "abiertas", "abertas")], btn: W.openBtn }
     ];
-    return j.map(function (x) {
-      if (o.shape === "media") return mediaCard({ dom: x.dom, banner: true, icon: x.icon, title: x.title, status: x.status, sub: x.amt[0] + " " + x.amt[1], meta: [x.meta[0], x.meta[1].soft], btn: o.trail === "action" ? x.btn : null });
-      return itemRow({ lead: "tile", icon: x.icon, title: x.title, status: x.status, meta: x.meta, trail: o.trail === "action" ? "btn" : "amt", amt: x.amt, btn: x.btn, btnSec: true });
-    }).join("");
+    return list(j.slice(0, opt.count || 3).map(function (x, i) {
+      if (o.shape === "media") return mediaCard({ dom: x.dom, banner: true, icon: x.icon, title: TITLES.jars[i], lines: lines, status: x.status, sub: x.amt[0] + " " + tx(x.amt[1]), foot: [x.meta[0], x.meta[1].soft], btn: o.trail === "action" ? x.btn : null });
+      return itemRow({ lead: "tile", icon: x.icon, title: TITLES.jars[i], lines: lines, status: x.status, meta: x.meta, trail: o.trail === "action" ? "btn" : "amt", amt: x.amt, btn: x.btn, btnSec: true });
+    }).join(""), sy, o.shape !== "media");
   };
+  var FACTS = [[L("Action", "Acción", "Ação"), TITLES.actions[0]], [L("Garden", "Jardín", "Jardim"), "Botanic Commons"], [L("Submitted", "Enviado", "Enviado"), L("12 Oct 2026, 9:40", "12 oct 2026, 9:40", "12 out 2026, 9:40")], [L("Photos", "Fotos", "Fotos"), "3"], [L("Confirms it", "Lo confirma", "Quem confirma"), "chidi.eth"], [L("Reward", "Recompensa", "Recompensa"), "0.01 WETH"]];
   R.facts = function (s, o) { return factList(FACTS, o.label, o.rows); };
   R.states = function (s, o) {
-    return stateBlock({ icon: "inbox", t: s === "app" ? "Nothing moving right now" : "No work waiting for review", d: s === "app" ? "When you offer something or take up a neighbour's offer, it lives here until it is settled." : "When gardeners submit work, it lands here for you to check.", btn: s === "app" ? "Offer something" : "Open the queue" }, o.size, o.mark) +
-      stateBlock({ icon: "alert", err: true, t: "Couldn't load commitments", d: "Your promises are safe. Check your connection and try again.", btn: "Try again", btnSec: true }, o.size, o.mark);
+    return stateBlock({ icon: "inbox", t: s === "app" ? L("Nothing moving right now", "Nada en curso por ahora", "Nada em andamento agora") : L("No work waiting for review", "No hay trabajo por revisar", "Nenhum trabalho aguardando revisão"),
+      d: s === "app" ? L("When you offer something or take up a neighbour's offer, it lives here until it is settled.", "Cuando ofreces algo o aceptas la oferta de un vecino, queda aquí hasta que se cumple.", "Quando você oferece algo ou aceita a oferta de um vizinho, fica aqui até ser cumprido.") : L("When gardeners submit work, it lands here for you to check.", "Cuando los jardineros envían trabajo, llega aquí para que lo revises.", "Quando os jardineiros enviam trabalho, ele chega aqui para você revisar."),
+      btn: s === "app" ? L("Offer something", "Ofrecer algo", "Oferecer algo") : L("Open the queue", "Abrir la cola", "Abrir a fila") }, o.size, o.mark) +
+      stateBlock({ icon: "alert", err: true, t: L("Couldn't load commitments", "No se pudieron cargar las promesas", "Não foi possível carregar as promessas"), d: L("Your promises are safe. Check your connection and try again.", "Tus promesas están a salvo. Revisa tu conexión e inténtalo de nuevo.", "Suas promessas estão seguras. Verifique sua conexão e tente novamente."), btn: L("Try again", "Reintentar", "Tentar novamente"), btnSec: true }, o.size, o.mark);
   };
 
-  /* ---------- controls ---------- */
-  var DIALS = [
-    { key: "cardR", label: "Card corner", opts: [["24", "24px", "The app's card corner, your F7 pick."], ["16", "16px", "One step tighter: the app's work-row corner on every card."], ["12", "12px", "The cockpit's card corner today."]] },
-    { key: "rowR", label: "Row corner", opts: [["16", "16px", "The app's work-row corner, your F7 pick."], ["12", "12px", "Rows share the cockpit's 12px."], ["8", "8px", "Tight rows, closer to a list than to cards."]] },
-    { key: "edge", label: "Card edge", opts: [["border", "Border", "A visible border and a faint shadow: the app's card."], ["hairline", "Hairline", "A hairline and no shadow."], ["raised", "Raised", "No border, a raised shadow: the cockpit's card today."]] },
-    { key: "status", label: "Status", opts: [["both", "Edge and pill", "A 2px coloured edge and a status pill: the app's row."], ["pill", "Pill", "The status pill only."], ["edge", "Edge", "The coloured edge only, no pill."]] },
-    { key: "media", label: "Row photo", opts: [["88", "88px", "The app's 88px photo, your F7 pick."], ["72", "72px", "A smaller photo, so more rows fit."], ["56", "56px", "A thumbnail."]] },
-    { key: "gap", label: "List gap", opts: [["12", "12px", "12px between cards, your F11 pick."], ["8", "8px", "Tighter lists."], ["16", "16px", "Looser lists."]] },
-    { key: "select", label: "Selected", opts: [["border3", "3px border", "A 3px border marks the selected card: the app's way."], ["ring", "Ring", "A border, a soft ring and a check mark."]] },
-    { key: "theme", label: "Cards", opts: [["light", "Light", "The cards in the light theme."], ["dark", "Dark", "The cards in the dark theme, with the lighter dark card from F13."]] },
-    { key: "show", label: "Show", opts: [["both", "Both", "The app and the cockpit side by side."], ["app", "App", "Only the app's density."], ["cockpit", "Cockpit", "Only the cockpit's density."]] }
+  /* ---------- census settings ---------- */
+  var STL = [
+    ["corner", "A · Pill in the corner", "Today. The pill shares the title's line and takes its width, so long titles and long status words cut off."],
+    ["under", "B · Pill under the title", "The title gets the full width, but every card with a status grows by a line."],
+    ["photo", "C · Pill on the photo", "Saves the line where there is a photo. Long status words run out of room on a small photo; cards without one fall back to B."],
+    ["details", "D · Pill with the details", "The pill leads the detail line. The title gets the full width and the card keeps today's height."],
+    ["above", "E · Status above the title", "A small coloured label leads the card, so a review queue scans by status. The card gains a short line."]
   ];
+  var DIALS = [
+    { key: "stl", label: "Status", opts: [["details", "With details", STL[3][2]], ["corner", "Corner", STL[0][2]], ["under", "Under title", STL[1][2]], ["photo", "On photo", STL[2][2]], ["above", "Above title", STL[4][2]]] },
+    { key: "lang", label: "Text", opts: [["en", "English", "Typical English titles."], ["long", "Long", "Long English titles, to see where the clamp starts."], ["es", "Español", "Spanish titles and the product's Spanish status words."], ["pt", "Português", "Portuguese titles and the product's Portuguese status words."]] },
+    { key: "media", label: "Row photo", opts: [["88", "88px", "The app's 88px photo, as it ships."], ["72", "72px", "A smaller photo, so more rows fit."], ["56", "56px", "A thumbnail."]] },
+    { key: "theme", label: "Cards", opts: [["light", "Light", "The cards in the light theme."], ["dark", "Dark", "The cards in the dark theme, with your F13 dark card."]] },
+    { key: "show", label: "Object sheets", opts: [["both", "Both", "The app and the cockpit side by side in each object's sheet."], ["app", "App", "Only the app in each object's sheet."], ["cockpit", "Cockpit", "Only the cockpit in each object's sheet."]] }
+  ];
+  var DENS = [["app", "App", "At the app's density: 16px titles."], ["cockpit", "Cockpit", "At the cockpit's density: 14px titles."]];
+  var TYPES = ["work", "commitments", "actions", "records", "gardens", "people", "jars", "facts", "states"];
+  var NAMES = { work: "Work", commitments: "Commitments", actions: "Actions", records: "Assessments and hypercerts", gardens: "Gardens", people: "People", jars: "Jars, vaults and pools", facts: "Facts", states: "Empty and error states" };
+  var LINE_TYPES = ["work", "commitments", "actions", "records", "gardens", "people", "jars"];
+  var LINES_DEF = { work: "2", commitments: "2", actions: "2", records: "2", gardens: "1", people: "1", jars: "1" };
   var OBJ = {
-    work: [{ key: "phone", label: "On phones", opts: [["row", "Item row", "On phones a work item is the app's row: photo, title, status, one line."], ["media", "Media card", "On phones a work item is a card with its photo on top."]] },
-           { key: "desk", label: "Cockpit desktop", opts: [["wide", "Wide card", "The F12 pick: the photo grid on the left, two cards to a row."], ["row", "Item rows", "Desktop uses the same item row as phones."]] }],
-    commitments: [{ key: "shape", label: "Shape", opts: [["row", "Item row", "A row with a direction icon, status and one action."], ["media", "Media card", "A card with a banner."]] },
+    commitments: [{ key: "shape", label: "Shape", opts: [["row", "Item row", "A row with a direction icon or avatar, the status and one action."], ["media", "Media card", "A card with a banner."]] },
                   { key: "lead", label: "Lead", opts: [["icon", "Icon", "The row starts with the offer or request icon."], ["avatar", "Avatar", "The row starts with the other person's initials."]] }],
     actions: [{ key: "shape", label: "Picker", opts: [["media", "Media card", "Pick an action from cards with a banner: the app's picker."], ["row", "Item row", "Pick an action from rows with an icon."]] }],
     records: [{ key: "shape", label: "Shape", opts: [["row", "Item row", "Assessments and hypercerts as rows."], ["media", "Media card", "As cards with a banner."]] }],
@@ -747,137 +1005,227 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
     states: [{ key: "size", label: "Size", opts: [["full", "Full", "A centred block for an empty list or a failed page."], ["compact", "Compact", "A one-line block inside a card."]] },
              { key: "mark", label: "Mark", opts: [["tile", "Icon tile", "A round icon tile above the title."], ["none", "None", "Text and the action only."]] }]
   };
-  var OBJ_NAMES = { work: "Work", commitments: "Commitments", actions: "Actions", records: "Assessments and hypercerts", gardens: "Gardens", people: "People", jars: "Jars, vaults and pools", facts: "Facts", states: "States" };
   function defaults() {
-    var d = {};
+    var d = { pv: "app", pvType: "follow", tdens: "app", cdens: "app", lines: Object.assign({}, LINES_DEF) };
     DIALS.forEach(function (c) { d[c.key] = c.opts[0][0]; });
     Object.keys(OBJ).forEach(function (k) { d[k] = {}; OBJ[k].forEach(function (c) { d[k][c.key] = c.opts[0][0]; }); });
     return d;
   }
-  var DEF = defaults();
-  var state = defaults();
-  var pvSurface = "app";
+  var DEF = defaults(), state = defaults();
   try {
     var saved = JSON.parse(localStorage.getItem(KEY) || "null");
     if (saved && typeof saved === "object") {
-      DIALS.forEach(function (c) { if (saved[c.key] && c.opts.some(function (o) { return o[0] === saved[c.key]; })) state[c.key] = saved[c.key]; });
-      Object.keys(OBJ).forEach(function (k) { if (saved[k]) OBJ[k].forEach(function (c) { var v = saved[k][c.key]; if (v && c.opts.some(function (o) { return o[0] === v; })) state[k][c.key] = v; }); });
-      if (saved.pv === "app" || saved.pv === "cockpit") pvSurface = saved.pv;
+      DIALS.forEach(function (c) { if (c.opts.some(function (o) { return o[0] === saved[c.key]; })) state[c.key] = saved[c.key]; });
+      Object.keys(OBJ).forEach(function (k) { if (saved[k]) OBJ[k].forEach(function (c) { var v = saved[k][c.key]; if (c.opts.some(function (o) { return o[0] === v; })) state[k][c.key] = v; }); });
+      if (saved.lines) LINE_TYPES.forEach(function (t) { if (saved.lines[t] === "1" || saved.lines[t] === "2") state.lines[t] = saved.lines[t]; });
+      ["pv", "tdens", "cdens"].forEach(function (k) { if (saved[k] === "app" || saved[k] === "cockpit") state[k] = saved[k]; });
+      if (saved.pvType === "follow" || TYPES.indexOf(saved.pvType) > -1) state.pvType = saved.pvType;
     }
   } catch (e) {}
-  function save() { try { var o = JSON.parse(JSON.stringify(state)); o.pv = pvSurface; localStorage.setItem(KEY, JSON.stringify(o)); } catch (e) {} }
+  readLab();
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
 
-  var hintEl = document.getElementById("hint");
-  var HINT0 = hintEl.textContent;
-  function segHtml(group, c, current, def) {
-    return '<span class="ctl" role="group" aria-label="' + esc(c.label) + '"><span class="seg-l">' + esc(c.label) + '</span><span class="seg">' +
+  /* ---------- controls ---------- */
+  var hintEl = document.getElementById("hint"), HINT0 = hintEl.textContent;
+  function segHtml(group, c, current, def, sid, shortLabel) {
+    return '<span class="ctl" role="group" aria-label="' + esc(c.label) + '"><span class="seg-l">' + esc(shortLabel || c.label) + '</span><span class="seg" data-sid="' + sid + '">' +
       c.opts.map(function (o) {
-        return '<button type="button" data-group="' + group + '" data-key="' + c.key + '" data-v="' + o[0] + '" data-d="' + esc(o[2]) + '" aria-pressed="' + (current === o[0]) + '"' + (def === o[0] ? ' class="picked"' : "") + ">" + esc(o[1]) + "</button>";
+        return '<button type="button" data-group="' + group + '" data-key="' + c.key + '" data-v="' + o[0] + '" data-d="' + esc(o[2] || "") + '" aria-pressed="' + (current === o[0]) + '"' + (def === o[0] ? ' class="picked"' : "") + ">" + esc(o[1]) + "</button>";
       }).join("") + "</span></span>";
   }
+  function dial(key) { return DIALS.filter(function (c) { return c.key === key; })[0]; }
+  function linesSeg(t, sid) {
+    return segHtml("lines", { key: t, label: NAMES[t] + " title lines", opts: [["1", "1 line", "The title stays on one line and ends in an ellipsis."], ["2", "2 lines", "The title may wrap to a second line, then ends in an ellipsis."]] }, state.lines[t], LINES_DEF[t], sid, "Title");
+  }
   function buildControls() {
-    document.getElementById("dockRows").innerHTML = DIALS.map(function (c) { return segHtml("dial", c, state[c.key], DEF[c.key]); }).join("");
-    Object.keys(OBJ).forEach(function (k) {
+    document.getElementById("dockRows").innerHTML = DIALS.map(function (c) { return segHtml("dial", c, state[c.key], DEF[c.key], "dock-" + c.key); }).join("");
+    document.getElementById("sysCtl").innerHTML = SYSC.map(function (c) { return segHtml("sys", c, lab[c.key], RECORDED[c.key], "sys-" + c.key); }).join("") +
+      segHtml("dial", { key: "theme", label: "Theme", opts: dial("theme").opts }, state.theme, "light", "sys-theme");
+    document.getElementById("cmpCtl").innerHTML = segHtml("cdens", { key: "cdens", label: "Density", opts: DENS }, state.cdens, "app", "cmp-dens") + segHtml("dial", dial("lang"), state.lang, "en", "cmp-lang");
+    document.getElementById("typeCtl").innerHTML = segHtml("tdens", { key: "tdens", label: "Density", opts: DENS }, state.tdens, "app", "types-dens") + segHtml("dial", dial("stl"), state.stl, "details", "types-stl") + segHtml("dial", dial("lang"), state.lang, "en", "types-lang");
+    TYPES.forEach(function (k) {
       var host = document.querySelector('.octl[data-obj="' + k + '"]');
-      if (host) host.innerHTML = OBJ[k].map(function (c) { return segHtml(k, c, state[k][c.key], DEF[k][c.key]); }).join("");
+      if (!host) return;
+      var html = k === "work" ? '<span class="note">Shape set by F7 and F12 in <a href="#system">your design system</a>.</span>' : "";
+      if (OBJ[k]) html += OBJ[k].map(function (c) { return segHtml(k, c, state[k][c.key], DEF[k][c.key], "obj-" + k + "-" + c.key); }).join("");
+      if (LINE_TYPES.indexOf(k) > -1) html += linesSeg(k, "obj-" + k + "-lines");
+      host.innerHTML = html;
     });
+    var sel = document.getElementById("pvType");
+    sel.innerHTML = '<option value="follow">The section in view</option>' + TYPES.map(function (t) { return '<option value="' + t + '">' + esc(NAMES[t]) + "</option>"; }).join("");
+    sel.value = state.pvType;
+    document.querySelectorAll(".pv-h button[data-pv]").forEach(function (x) { x.setAttribute("aria-pressed", String(x.getAttribute("data-pv") === state.pv)); });
   }
 
-  /* ---------- render ---------- */
-  var root = document.querySelector(".census");
-  function applyDials() {
-    root.style.setProperty("--card-r", state.cardR + "px");
-    root.style.setProperty("--row-r", state.rowR + "px");
-    root.style.setProperty("--media", state.media + "px");
-    root.style.setProperty("--gap", state.gap + "px");
-    root.classList.remove("edge-border", "edge-hairline", "edge-raised", "st-both", "st-pill", "st-edge", "sel-border3", "sel-ring", "dark-specs");
-    root.classList.add("edge-" + state.edge, "st-" + state.status, "sel-" + state.select);
-    if (state.theme === "dark") root.classList.add("dark-specs");
-    document.querySelectorAll(".panel[data-surface]").forEach(function (p) {
-      var s = p.getAttribute("data-surface");
-      p.hidden = !(state.show === "both" || state.show === s);
-    });
+  /* ---------- rendering ---------- */
+  function panel(surface, label, inner, extraCls, obj, isDesk) {
+    return '<div class="panel' + (isDesk ? " full" : "") + '" data-surface="' + surface + '"><div class="panel-l">' + label + "</div>" + specOpen(surface, obj, extraCls, null, isDesk) + inner + "</div></div>";
   }
-  function panel(surface, label, inner, extraCls) {
-    return '<div class="panel' + (extraCls && extraCls.indexOf("desk") > -1 ? " full" : "") + '" data-surface="' + surface + '"><div class="panel-l">' + label + '</div><div class="spec ' + surface + (extraCls ? " " + extraCls : "") + '">' + inner + "</div></div>";
-  }
+  function deskCls() { return "desk desk-grid" + (lab.deskcard === "wide" ? "" : " tall"); }
   function renderObj(k) {
     var host = document.querySelector('.specs[data-obj="' + k + '"]');
     if (!host) return;
-    var o = state[k];
-    var html = panel("app", 'App <span>· phone · 16px</span>', R[k]("app", o)) + panel("cockpit", 'Cockpit <span>· phone · 14px</span>', R[k]("cockpit", o));
-    if (k === "work") html += panel("cockpit", 'Cockpit <span>· desktop · 14px</span>', R.work("cockpit", o, true), "desk wide2");
+    var o = state[k] || {};
+    var html = panel("app", "App <span>· phone</span>", R[k]("app", o), "", k) + panel("cockpit", "Cockpit <span>· phone</span>", R[k]("cockpit", o), "", k);
+    if (k === "work") html += panel("cockpit", "Cockpit <span>· desktop</span>", R.work("cockpit", o, { desk: true }), deskCls(), k, true);
     host.innerHTML = html;
+    host.querySelectorAll(".panel[data-surface]").forEach(function (p) { var s = p.getAttribute("data-surface"); p.hidden = !(state.show === "both" || state.show === s); });
   }
-  function renderShapes() {
-    var w = WORK[0];
-    var cards = [
-      ["Item row", "Media on the left, then title, status, one line of detail and an action. Work, commitments, actions, records, people and jars.", itemRow({ lead: "photo", dom: w.dom, title: w.title, status: w.status, meta: [w.who, { soft: w.when }] })],
-      ["Media card", "A photo or banner first. Gardens, picking an action, and the cockpit's wide desktop work card.", mediaCard({ dom: "garden", banner: true, icon: "sprout", title: "Botanic Commons", sub: "Lagos · 24 members · 3 actions" })],
-      ["Fact row", "A label and its value, for review, detail and settings screens. About eleven local copies today.", factList(FACTS.slice(0, 3), state.facts.label, state.facts.rows)],
-      ["State block", "Empty, loading, error or not ready, at two sizes. Three empty states and about eight state cards today.", stateBlock({ icon: "inbox", t: "Nothing moving right now", d: "New promises show up here.", btn: "Offer something" }, "compact", state.states.mark)]
-    ];
-    document.getElementById("shape-board").innerHTML = cards.map(function (c) {
-      return '<div class="shape"><h3>' + c[0] + '</h3><div class="spec app">' + c[2] + "</div><p>" + c[1] + "</p></div>";
+  function mixed(surface) {
+    return grp(surface, "work", R.work(surface, null, { count: 2 })) + grp(surface, "commitments", R.commitments(surface, state.commitments, { count: 1 })) + grp(surface, "people", R.people(surface, { shape: "row" }, { count: 1 }));
+  }
+  function renderSystem() {
+    document.getElementById("sysSrc").innerHTML = labSource === "lab"
+      ? "<b>Read from the lab in this browser.</b> A change here changes the lab too."
+      : "<b>Your recorded picks.</b> The lab has nothing saved in this browser, so these are the picks you pasted on 17 October. A change here saves them for the lab too.";
+    var ds = SYSC.filter(function (c) { return lab[c.key] !== RECORDED[c.key]; }).map(function (c) { return c.label + ": " + optName(c, lab[c.key]) + " (recorded: " + optName(c, RECORDED[c.key]) + ")"; });
+    var diff = document.getElementById("sysDiff");
+    diff.hidden = ds.length === 0;
+    diff.innerHTML = ds.length ? "Differs from your recorded picks: " + esc(ds.join("; ")) + '. <button type="button" class="lnk" id="sysReset">Use my recorded picks</button>' : "";
+    document.getElementById("sysPv").innerHTML = panel("app", "App <span>· phone</span>", mixed("app"), "", "work") + panel("cockpit", "Cockpit <span>· phone</span>", mixed("cockpit"), "", "work") +
+      panel("cockpit", "Cockpit <span>· desktop</span>", R.work("cockpit", null, { desk: true, count: 2 }), deskCls(), "work", true);
+    var names = ["font", "ground", "cards", "list", "darkcards"].map(function (k) { var c = SYSC.filter(function (x) { return x.key === k; })[0]; return optName(c, lab[k]); });
+    document.getElementById("sysLine").innerHTML = "Design system: " + esc("type " + names[0] + ", ground " + names[1] + ", cards " + names[2] + ", list " + names[3] + ", dark cards " + names[4]) + '. <a href="#system">Change it</a>';
+  }
+  function compareInner(d) {
+    return grp(d, "work", R.work(d, null, { count: 2 })) + grp(d, "commitments", R.commitments(d, state.commitments, { count: 1 })) + grp(d, "records", R.records(d, state.records, { count: 1 })) + grp(d, "jars", R.jars(d, state.jars, { count: 1 }));
+  }
+  function renderCompare() {
+    var d = state.cdens;
+    document.getElementById("cmp").innerHTML = STL.map(function (l) {
+      var on = state.stl === l[0];
+      return '<div class="cmp-col' + (on ? " on" : "") + '" data-stl="' + l[0] + '"><div class="cmp-h"><h3>' + esc(l[1]) + '</h3><button type="button" class="use" data-stl="' + l[0] + '" aria-pressed="' + on + '">' + (on ? "In use" : "Use this") + '</button></div><p class="cmp-d">' + esc(l[2]) + '</p><p class="cut" aria-live="polite"></p>' +
+        specOpen(d, "work", "", l[0]) + compareInner(d) + "</div></div>";
+    }).join("") +
+      '<div class="cmp-rec"><p><b>Recommendation: D, the pill with the details.</b> The title keeps the card\'s full width, the card stays the height it is today, and a long status word wraps onto the detail line instead of cutting the title. The coloured edge still marks status at a glance, and the pill names it in words.</p><table class="cuts" id="cuts"></table></div>';
+  }
+  /* Count the titles a layout cuts short: measured on the cards in each column, and for every language
+     on hidden copies at the same width. */
+  var probe = document.createElement("div");
+  probe.setAttribute("aria-hidden", "true");
+  probe.style.cssText = "position:absolute;left:-10000px;top:0;visibility:hidden;pointer-events:none;";
+  document.body.appendChild(probe);
+  var LANGS = [["en", "English"], ["long", "Long"], ["es", "Español"], ["pt", "Português"]];
+  function cutCount(root) {
+    var n = 0, total = 0;
+    root.querySelectorAll(".title").forEach(function (t) { total++; if (t.scrollHeight > t.clientHeight + 1 || t.scrollWidth > t.clientWidth + 1) n++; });
+    return [n, total];
+  }
+  function measure() {
+    var cols = document.querySelectorAll("#cmp .cmp-col");
+    if (!cols.length) return;
+    cols.forEach(function (c) {
+      var r = cutCount(c.querySelector(".spec")), el = c.querySelector(".cut");
+      el.textContent = r[0] === 0 ? "Every title shows in full" : r[0] + " of " + r[1] + " titles cut off";
+      el.classList.toggle("bad", r[0] > 0);
+    });
+    var w = Math.round(cols[0].querySelector(".spec").getBoundingClientRect().width), keep = state.lang, d = state.cdens, total = 0;
+    probe.style.width = w + "px";
+    var rows = STL.map(function (l) {
+      return '<tr' + (state.stl === l[0] ? ' class="on"' : "") + '><th scope="row">' + esc(l[1].replace(" · ", " ")) + "</th>" + LANGS.map(function (lg) {
+        state.lang = lg[0];
+        probe.innerHTML = specOpen(d, "work", "", l[0]) + compareInner(d) + "</div>";
+        var r = cutCount(probe); total = r[1];
+        return '<td class="' + (r[0] ? "bad" : "zero") + (keep === lg[0] ? " lang-on" : "") + '">' + r[0] + "</td>";
+      }).join("") + "</tr>";
+    }).join("");
+    state.lang = keep;
+    probe.innerHTML = "";
+    document.getElementById("cuts").innerHTML = "<caption>Titles cut off, of " + total + ", at " + (d === "app" ? "the app's" : "the cockpit's") + " density and " + w + "px wide</caption><thead><tr><th scope=\"col\">Layout</th>" +
+      LANGS.map(function (lg) { return '<th scope="col"' + (keep === lg[0] ? ' class="lang-on"' : "") + ">" + lg[1] + "</th>"; }).join("") + "</tr></thead><tbody>" + rows + "</tbody>";
+  }
+  function shapeName(t, d, o) {
+    if (t === "work") { var w = sys(d, "work").wi; return w === "card" ? "Media card with a photo grid" : (w === "shared" ? "Item row with a 48px photo" : "Item row with a photo"); }
+    if (t === "facts") return "Fact rows";
+    if (t === "states") return "State blocks";
+    return o.shape === "media" ? "Media card" : (o.shape === "compact" ? "Compact item row" : "Item row");
+  }
+  function renderTypes() {
+    var d = state.tdens;
+    document.getElementById("typeGrid").innerHTML = TYPES.map(function (t) {
+      var o = state[t] || {};
+      return '<div class="tile" data-type="' + t + '"><div class="tile-h"><div class="tile-n"><b>' + esc(NAMES[t]) + "</b><span>" + esc(shapeName(t, d, o)) + "</span></div>" +
+        (LINE_TYPES.indexOf(t) > -1 ? linesSeg(t, "tile-" + t) : "") + "</div>" + specOpen(d, t) + R[t](d, o, { count: 2 }) + "</div></div>";
     }).join("");
   }
-  /* the live preview: the object section in view, at the chosen density */
-  var SECTION_IDS = ["shapes", "work", "commitments", "actions", "records", "gardens", "people", "jars", "facts", "states", "primitives"];
-  var PV_NAMES = { shapes: "The four shapes", primitives: "Card primitives" };
-  var pv = document.getElementById("preview"), pvObj = document.getElementById("pvObj"), currentId = null;
-  function sectionNow() {
-    var line = window.innerHeight * 0.45, cur = "shapes";
+  var SECTION_IDS = ["system", "layouts", "types"].concat(TYPES, ["primitives"]);
+  var pv = document.getElementById("preview"), currentId = null;
+  function sectionInView() {
+    var line = window.innerHeight * 0.45, cur = SECTION_IDS[0];
     SECTION_IDS.forEach(function (id) { var el = document.getElementById(id); if (el && el.getBoundingClientRect().top <= line) cur = id; });
     return cur;
   }
-  function shapesPreview() {
-    var w = WORK[0];
-    return itemRow({ lead: "photo", dom: w.dom, title: w.title, status: w.status, meta: [w.who, { soft: w.when }] }) +
-      mediaCard({ dom: "garden", banner: true, icon: "sprout", title: "Botanic Commons", sub: "Lagos · 24 members · 3 actions" }) +
-      factList(FACTS.slice(0, 3), state.facts.label, state.facts.rows) +
-      stateBlock({ icon: "inbox", t: "Nothing moving right now", d: "New promises show up here.", btn: "Offer something" }, "compact", state.states.mark);
-  }
+  function previewType() { var s = sectionInView(); return TYPES.indexOf(s) > -1 ? s : "work"; }
   function renderPreview(flash) {
-    var id = sectionNow();
+    var id = state.pvType === "follow" ? previewType() : state.pvType;
     currentId = id;
-    pv.innerHTML = '<div class="spec ' + pvSurface + '">' + (R[id] ? R[id](pvSurface, state[id]) : shapesPreview()) + "</div>";
-    pvObj.textContent = OBJ_NAMES[id] || PV_NAMES[id] || "";
-    document.querySelectorAll(".pv-h button[data-pv]").forEach(function (x) { x.setAttribute("aria-pressed", String(x.getAttribute("data-pv") === pvSurface)); });
+    pv.innerHTML = specOpen(state.pv, id) + R[id](state.pv, state[id] || {}) + "</div>";
+    document.getElementById("pvOpts").innerHTML = '<span class="pv-for">' + esc(NAMES[id]) + "</span>" + (LINE_TYPES.indexOf(id) > -1 ? linesSeg(id, "pv-lines") : "");
     if (flash) { pv.classList.remove("flash"); void pv.offsetWidth; pv.classList.add("flash"); }
   }
   var ticking = false;
   function onMove() {
-    if (ticking) return;
+    if (ticking || state.pvType !== "follow") return;
     ticking = true;
-    requestAnimationFrame(function () { ticking = false; if (sectionNow() !== currentId) renderPreview(false); });
+    requestAnimationFrame(function () { ticking = false; if (previewType() !== currentId) renderPreview(false); });
   }
   window.addEventListener("scroll", onMove, { passive: true });
   window.addEventListener("resize", onMove);
-  function renderAll() { applyDials(); renderShapes(); Object.keys(OBJ).forEach(renderObj); renderPreview(false); }
+  function renderAll() { buildControls(); renderSystem(); renderCompare(); renderTypes(); TYPES.forEach(renderObj); renderPreview(false); measure(); }
+  var measureTick = false;
+  function remeasure() { if (measureTick) return; measureTick = true; requestAnimationFrame(function () { measureTick = false; measure(); }); }
+  window.addEventListener("resize", remeasure);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(remeasure);
+
+  /* Re-render after a change and keep what the reader was looking at in place: the control they used
+     when it sits in the page, or the section in view when they used the rail. */
+  function selectorFor(el) {
+    if (!el) return null;
+    var seg = el.closest(".seg[data-sid]");
+    if (seg) return '.seg[data-sid="' + seg.getAttribute("data-sid") + '"] button[data-v="' + el.getAttribute("data-v") + '"]';
+    if (el.matches(".use[data-stl]")) return '.use[data-stl="' + el.getAttribute("data-stl") + '"]';
+    return el.id ? "#" + el.id : null;
+  }
+  function rerender(el) {
+    var own = selectorFor(el), focused = !!el && document.activeElement === el;
+    var anchorSel = own && el.closest(".wrap") ? own : "#" + sectionInView();
+    var anchor = document.querySelector(anchorSel), before = anchor ? anchor.getBoundingClientRect().top : 0;
+    renderAll();
+    var now = document.querySelector(anchorSel);
+    if (anchor && now) window.scrollBy(0, now.getBoundingClientRect().top - before);
+    if (focused && own) { var f = document.querySelector(own); if (f) f.focus({ preventScroll: true }); }
+    renderPreview(true);
+  }
 
   function picksLine() {
-    var parts = DIALS.filter(function (c) { return c.key !== "theme" && c.key !== "show"; }).map(function (c) {
-      return c.label + " " + c.opts.filter(function (o) { return o[0] === state[c.key]; })[0][1];
-    });
-    Object.keys(OBJ).forEach(function (k) {
-      parts.push(OBJ_NAMES[k] + ": " + OBJ[k].map(function (c) { return c.label.toLowerCase() + " " + c.opts.filter(function (o) { return o[0] === state[k][c.key]; })[0][1]; }).join(", "));
-    });
+    var parts = ["Status " + STL.filter(function (l) { return l[0] === state.stl; })[0][1].replace(/^[A-D] · /, ""), "Row photo " + state.media + "px"];
+    parts.push("Title lines: " + LINE_TYPES.map(function (t) { return NAMES[t].toLowerCase() + " " + state.lines[t]; }).join(", "));
+    Object.keys(OBJ).forEach(function (k) { parts.push(NAMES[k] + ": " + OBJ[k].map(function (c) { return c.label.toLowerCase() + " " + optName(c, state[k][c.key]); }).join(", ")); });
+    parts.push("Design system: " + SYSC.map(function (c) { return c.label + " " + optName(c, lab[c.key]); }).join(", "));
     return "Census picks: " + parts.join("; ");
   }
 
+  /* ---------- events ---------- */
   document.addEventListener("click", function (ev) {
     var b = ev.target.closest(".seg button[data-key]");
     if (b) {
       var g = b.getAttribute("data-group"), k = b.getAttribute("data-key"), v = b.getAttribute("data-v");
-      if (g === "dial") state[k] = v; else state[g][k] = v;
-      save();
-      b.parentNode.querySelectorAll("button").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
-      if (g === "dial") { applyDials(); } else { renderObj(g); if (g === "facts" || g === "states") renderShapes(); }
-      renderPreview(true);
+      if (g === "sys") { var ch = {}; ch[k] = v; writeLab(ch); if (k === "darkcards") state.theme = "dark"; }
+      else if (g === "dial") state[k] = v;
+      else if (g === "lines") state.lines[k] = v;
+      else if (g === "tdens" || g === "cdens") state[g] = v;
+      else if (state[g]) state[g][k] = v;
+      save(); rerender(b);
       return;
     }
+    var u = ev.target.closest(".use[data-stl]");
+    if (u) { state.stl = u.getAttribute("data-stl"); save(); rerender(u); return; }
+    if (ev.target.closest("#sysReset")) { writeLab(Object.assign({}, RECORDED)); rerender(document.getElementById("sysCtl")); hintEl.textContent = "Your design system is back on your recorded picks."; return; }
     var pb = ev.target.closest(".pv-h button[data-pv]");
-    if (pb) { pvSurface = pb.getAttribute("data-pv"); save(); renderPreview(true); return; }
+    if (pb) { state.pv = pb.getAttribute("data-pv"); save(); buildControls(); renderPreview(true); return; }
+    if (ev.target.closest(".js-reset")) { resetAll(); return; }
+    var cb = ev.target.closest(".js-copy");
+    if (cb) { copyPicks(cb); return; }
     var shot = ev.target.closest(".shot button");
     if (shot) {
       var img = shot.querySelector("img"), cap = shot.parentNode.querySelector("figcaption");
@@ -888,18 +1236,17 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
       if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
     }
   });
+  document.getElementById("pvType").addEventListener("change", function () { state.pvType = this.value; save(); renderPreview(true); });
+  window.addEventListener("storage", function (e) { if (e.key === LAB_KEY) { readLab(); renderAll(); } });
   document.getElementById("zoomClose").addEventListener("click", function () { var d = document.getElementById("zoom"); if (d.close) d.close(); else d.removeAttribute("open"); });
   document.getElementById("zoom").addEventListener("click", function (ev) { if (ev.target === this && this.close) this.close(); });
-  function hintFor(ev) {
-    var b = ev.target.closest && ev.target.closest(".seg button[data-d]");
-    if (b) hintEl.textContent = b.getAttribute("data-d");
-  }
+  function hintFor(ev) { var b = ev.target.closest && ev.target.closest(".rail .seg button[data-d]"); if (b) hintEl.textContent = b.getAttribute("data-d"); }
   document.addEventListener("mouseover", hintFor);
   document.addEventListener("focusin", hintFor);
   document.getElementById("dock").addEventListener("mouseleave", function () { hintEl.textContent = HINT0; });
   function resetAll() {
-    state = defaults(); save(); buildControls(); renderAll(); renderPreview(true);
-    hintEl.textContent = "Back on your picks and the recommendations.";
+    state = defaults(); save(); rerender(null);
+    hintEl.textContent = "Back on the recommendations. Your design system is unchanged.";
   }
   var copyTimer = 0;
   function legacyCopy(text) {
@@ -921,19 +1268,10 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
       else refused();
     } catch (e) { refused(); }
   }
-  document.addEventListener("click", function (ev) {
-    if (ev.target.closest(".js-reset")) resetAll();
-    var cb = ev.target.closest(".js-copy");
-    if (cb) copyPicks(cb);
-  });
   var dock = document.getElementById("dock"), toggle = document.getElementById("dockToggle");
-  toggle.addEventListener("click", function () {
-    var c = dock.classList.toggle("collapsed");
-    toggle.setAttribute("aria-expanded", String(!c));
-  });
+  toggle.addEventListener("click", function () { var c = dock.classList.toggle("collapsed"); toggle.setAttribute("aria-expanded", String(!c)); });
   if (window.matchMedia && window.matchMedia("(max-width: 1099px)").matches) { dock.classList.add("collapsed"); toggle.setAttribute("aria-expanded", "false"); }
 
-  buildControls();
   renderAll();
 })();
 </script>

@@ -143,5 +143,33 @@ Checked on 2026-10-17 when the card census was added:
   the captures load, the dials change the proposed cards and the tweaker's preview, and the census
   links back.
 
+## Card census, second round
+
+Checked on 2026-10-17 after the maintainer asked for status and title-line layouts and for the
+census to follow the lab's design system:
+
+- In headless Chromium (Playwright) at 1440×900, 1180×820 and 390×844: no console error and no
+  horizontal overflow. With nothing saved, the census used the recorded picks. With a different lab
+  state saved, it followed that state, listed the differences and restored the recorded picks from
+  its button. Writing a fork kept the lab's own settings, and choosing a dark-card option switched
+  both the lab and the census to dark, as the lab does.
+- The five status layouts rendered side by side. Every layout but the corner gave the title the
+  full width of the row's text column; the corner left it 48 to 70 percent, least on the commitment
+  that needs you. A title-lines switch applied everywhere
+  the type appears, the clicked control stayed in place, keyboard focus stayed on it, and the
+  tweaker's preview followed the section in view.
+- Titles cut off, of five, at the app's density in a 390px column:
+
+  | Layout | English | Long English | Spanish | Portuguese |
+  |---|---|---|---|---|
+  | In the corner (today) | 1 | 5 | 3 | 3 |
+  | Under the title, on the photo, with the details, above the title | 0 | 5 | 1 | 1 |
+
+  At 356px, the column width on a 390px phone, the corner layout cut 3 English titles and the
+  others none. The single Spanish and Portuguese cut in the other layouts is the jar name on its
+  one line. Every layout cuts the long English titles at two lines.
+- The published artifact, version 12: the served `census.html` matched the build byte for byte, and
+  the main page's link opened it in the in-app browser with the lab's saved state applied.
+
 These are document and mock checks. No application code changed, so no implementation, usability or
 release evidence exists yet.
