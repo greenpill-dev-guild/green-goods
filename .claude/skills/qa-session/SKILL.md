@@ -295,14 +295,14 @@ wallets and never exchange identities or role assignments midway through the flo
 
 - Read the lane's role before starting and verify each wallet can actually hold it. For the service
   relay, **Protocol & review** stays outside both contributor rosters; **Garden & member** is a
-  steward and member of the test Garden.
+  steward and member of the test garden.
 - Follow the phase order. **Act** identifies the person changing state; **Verify** identifies the
   person who must independently observe it. The actor waits at every named handoff.
 - Both people may record their own verdict on cases explicitly shared for verification. A known gate
   never records Blocked automatically: attempt the step, name the visible gate when it blocks, then
   continue the remaining non-value steps.
 - Preserve the product model in observations: the protocol Request stays in the protocol pool; the
-  Garden's member obligation is a separate Garden commitment; a Protocol treasury top-up has no
+  garden's member obligation is a separate garden commitment; a Protocol treasury top-up has no
   commitment ID and is not earned compensation; a starting assessment is context, not a cycle gate.
 
 One agent may guide both people on the same call, or each person may use their own agent. With two

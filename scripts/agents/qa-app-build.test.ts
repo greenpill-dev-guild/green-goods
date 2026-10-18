@@ -373,13 +373,13 @@ describe("QA app build", () => {
     }
     const builtById = new Map(built.cases.map((testCase: { id: string }) => [testCase.id, testCase]));
     expect(builtById.get("ADM-038").preconditions).toContain(
-      "The test Garden commitment pool is ready",
+      "The test garden commitment pool is ready",
     );
     expect(builtById.get("ADM-043").preconditions).toContain(
       "The destination Garden Safe is known",
     );
     expect(builtById.get("ADM-045").preconditions).toContain(
-      "The destination Garden and amount are explicitly authorized",
+      "The destination garden and amount are explicitly authorized",
     );
     expect(builtById.get("ADM-045").role).toBe("steward");
     for (const locale of Object.values(built.locales) as Array<{
