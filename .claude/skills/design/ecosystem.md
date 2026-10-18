@@ -126,7 +126,7 @@ Extends the Jarvis Principle ([surfaces.md](./surfaces.md) § Progressive Disclo
 | **Engage** | Full detail | + Who else is affected? (complementary/parallel users) |
 | **Deep Dive** | Raw data, audit trail | + Full ecosystem trace (attestation chain visualization) |
 
-Example: When a steward reviews a gardener's work submission, the Glance layer shows the gardener's photo and note. The Scan layer adds: "1 of 12 pending · A funder's Q2 report includes this garden." This is ecosystem-aware disclosure — it surfaces the Governing → Complementary user relationship without cluttering the primary view.
+Example: When a steward reviews a gardener's work submission, the Glance layer shows the gardener's photo and note. The Scan layer adds: "1 of 12 pending · {funderName}'s Q2 report includes this garden." This is ecosystem-aware disclosure — it surfaces the Governing → Complementary user relationship without cluttering the primary view.
 
 ### 2. Cascade Awareness
 
@@ -134,10 +134,10 @@ When one user's action affects another user's experience, make the cascade visib
 
 | Action | Cascade | UI Pattern |
 |--------|---------|-----------|
-| Steward rejects work | Gardener sees rejection; Funder's verified count decreases | Confirmation shows: "The gardener will see this rejection. Q2 verified count: 47 → 46." |
+| Steward rejects work | Gardener sees rejection; Funder's verified count decreases | Confirmation shows: "{gardenerName} will see this rejection. Q2 verified count: 47 → 46." |
 | Owner removes steward role | All gardeners in that garden lose their reviewer | Warning: "12 gardeners will have no active reviewer." |
-| Evaluator publishes assessment | Assessment becomes part of garden's Hypercert metadata | Preview: "This assessment will appear in the impact certificate a funder purchased." |
-| Gardener submits work | Enters steward's review queue; adds to garden's pending count | Confirmation: "A steward will review this. Currently 3 pending in the review queue." |
+| Evaluator publishes assessment | Assessment becomes part of garden's Hypercert metadata | Preview: "This assessment will appear in the impact certificate {funderName} purchased." |
+| Gardener submits work | Enters steward's review queue; adds to garden's pending count | Confirmation: "{stewardName} will review this. Currently 3 pending in their queue." |
 
 **Design rule**: The higher the governing power, the more cascade context is mandatory. Owners see full blast radius. Gardeners see only their own downstream (submission → pending → approved).
 
@@ -173,8 +173,8 @@ When one person acts on behalf of another (steward submitting for a gardener), t
 
 ```
 ┌─────────────────────────────────────┐
-│  Submitting as:  <name> (Gardener)  │
-│  Submitted by:   <name> (Steward)   │
+│  Submitting as:  {name} (Gardener)  │
+│  Submitted by:   {name} (Steward)   │
 │  ─────────────────────────────────  │
 │  [Photo] [Details] [Submit]         │
 └─────────────────────────────────────┘
