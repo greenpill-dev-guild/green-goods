@@ -191,13 +191,13 @@ Prefix the message with `<@${DISCORD_USER_ID_AFO}>` only when the QA gate is not
    ```text
    You are the release-prep routine for Green Goods. Your spec is docs/routines/release-prep.md on the develop branch of the green-goods repo. It is the single source of truth; there is intentionally no copy here.
 
-   1. Run `git fetch origin develop`. If it fails, stop, report the failure in the run log, and exit non-zero: an older `origin/develop` may still be readable, and running it would run a stale spec.
+   1. Run `git fetch origin +refs/heads/develop:refs/remotes/origin/develop`, which updates `origin/develop` whatever this checkout's fetch settings are. If it fails, stop, report the failure in the run log, and exit non-zero: an older `origin/develop` may still be readable, and running it would run a stale spec.
    2. Read the whole spec: `git show origin/develop:docs/routines/release-prep.md`.
    3. Execute Phases 0 through 7 exactly as written, starting with Phase 0, which decides whether this run posts anything. Where this prompt and the spec differ, follow the spec.
 
    Read and draft only: never commit, merge, tag, open PRs, or cut the release. If the spec is missing or unreadable, stop, report the failure in the run log, and exit non-zero. Never improvise from memory or an older copy.
    ```
 
-4. Configure repo (`green-goods`), environment (`green-goods`), connectors (`github`, `linear`), env vars (`DISCORD_BOT_TOKEN`, `DISCORD_ENGINEERING_CHANNEL_ID`, `DISCORD_USER_ID_AFO`), full network access, model, and the cron `0 16 * * 1-5`. The Discord bot needs View Channel, Send Messages, and Read Message History in `#engineering`, because Phase 0 reads its own markers back.
+4. Configure repo (`green-goods`, checked out at `develop`, its default branch, because the brief inspects checked-in files), environment (`green-goods`), connectors (`github`, `linear`), env vars (`DISCORD_BOT_TOKEN`, `DISCORD_ENGINEERING_CHANNEL_ID`, `DISCORD_USER_ID_AFO`), full network access, model, and the cron `0 16 * * 1-5`. The Discord bot needs View Channel, Send Messages, and Read Message History in `#engineering`, because Phase 0 reads its own markers back.
 5. Save. A manual run always posts a full brief, so trigger one only when a brief in `#engineering` is wanted.
 6. Record the routine id in `docs/routines/README.md`. If the bootstrap is ever pointed at `main`, spec changes take effect only once they land on `main`.
