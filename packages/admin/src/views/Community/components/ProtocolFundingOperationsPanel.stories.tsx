@@ -48,7 +48,7 @@ const meta: Meta<typeof ProtocolFundingOperationsPanel> = {
     docs: {
       description: {
         component:
-          "Integration story for the registered-pool recipient catalogue and protocol funding controller. Without a live wallet, the action state remains read-only.",
+          "Integration story for the registered-pool recipient catalog and protocol funding controller. Without a live wallet, the action state remains read-only.",
       },
     },
   },

@@ -112,7 +112,7 @@ export const ChooseRow: Story = {
   args: { requirements: [row(0, 44, 1), row(1, 44, 2)] },
   play: async () => {
     await userEvent.click(await screen.findByRole("radio", { name: /Planting Event/ }));
-    const rowSelect = screen.getByRole("group", { name: "Which row it fulfils" });
+    const rowSelect = screen.getByRole("group", { name: "Which row it fulfills" });
     await expect(screen.getByRole("button", { name: "Link This Work" })).toBeDisabled();
     await userEvent.click(within(rowSelect).getByRole("radio", { name: /Requirement 2/ }));
     await expect(screen.getByRole("button", { name: "Link This Work" })).toBeEnabled();

@@ -230,7 +230,7 @@ export const LIVE_PROMISES: JourneyRow[] = [
   // The frame draws a group of ten here (PRD-1029); until groups land it is one ordinary row.
   row("Survey one household about rain barrel use", { direction: "REQUEST", derivedState: "ACTIVE", unitLabel: "survey" }),
   row(
-    "Water the seedling beds every morning while the Okafor family is travelling",
+    "Water the seedling beds every morning while the Okafor family is traveling",
     { direction: "OFFER", derivedState: "OFFERED", onchainState: "OFFERED", state: "OFFERED", targetUnits: 7n, unitLabel: "mornings" }
   ),
   row(

@@ -85,7 +85,7 @@ SHAs) beside the per-run shards, and exactly one run is open at any time:
   failing, regressed, and newly walked, and the **Re-QA** filter lists what the compared run left
   failing or blocked. A verdict on a case retired since that run is read on each active successor
   named by the catalog's `replacedBy` chain (the build ships that reverse map as `replaces`) and
-  labelled *inherited*.
+  labeled *inherited*.
 
 ### Work stranded by a closed run
 
@@ -94,7 +94,7 @@ happens to it depends on who typed it, because the page cannot tell a verdict re
 from one recorded on another day:
 
 - **Typed in this page session** — it follows the run boundary and is sent, which is the case the
-  behaviour exists for: a tester mid-save when a teammate rolls over, where losing the work is the
+  behavior exists for: a tester mid-save when a teammate rolls over, where losing the work is the
   worse outcome.
 - **Recovered from storage** — it stays under the run it was recorded in and is offered instead, with
   how many cases it holds and when the tester last edited them. They send it to the open run or keep

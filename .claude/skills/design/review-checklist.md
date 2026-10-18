@@ -17,7 +17,7 @@ Unified PR review flow combining the design lenses. Run in order: each lens buil
 
 > Can someone tell where they are, what they are acting on, and what will happen?
 
-Run the five-minute review in root [`DESIGN.md` § Interface Principles](../../../DESIGN.md#interface-principles) ("How we follow them"). It is the source; this lens only puts it first. The pass fails if any of its six questions fails: the five-second read, one primary action, no scope leaks or silent scope-changing tabs, designed in-between states, on-system values without colour-only status, and explicit context for every mount of a shared organism.
+Run the five-minute review in root [`DESIGN.md` § Interface Principles](../../../DESIGN.md#interface-principles) ("How we follow them"). It is the source; this lens only puts it first. The pass fails if any of its six questions fails: the five-second read, one primary action, no scope leaks or silent scope-changing tabs, designed in-between states, on-system values without color-only status, and explicit context for every mount of a shared organism.
 
 ---
 
@@ -200,7 +200,7 @@ To move rows out of **Proposed** / **Partial**:
 A checklist agents run once per PR catches what we remember. Automated checks catch what we forget. The combination is the whole system: manual review for judgment, CI for vigilance. Keep this table honest: every row marked **Wired** must execute without error from a clean checkout.
 
 **Implementation notes**:
-- `lint:vocab` runs `scripts/design/check-vocab.sh` against `packages/*/src/i18n/*.json` and reads only `linter_enforced.terms` from `scripts/data/banned-vocabulary.json`. Biome's linter is disabled repo-wide so a shell grep is the practical substitute; select it for i18n/vocabulary changes and run it in Design CI.
+- `lint:vocab` runs `scripts/design/check-vocab.sh` against `packages/*/src/i18n/*.json` and reads `linter_enforced`, `renamed_terms`, and `us_spelling` (English values only) from `scripts/data/banned-vocabulary.json`. Biome's linter is disabled repo-wide so a shell grep is the practical substitute; select it for i18n/vocabulary changes and run it in Design CI.
 - `check:design-tokens` runs `scripts/design/check-tokens.sh`, which verifies every spec'd Warm Earth token (springs, materials, border) exists in its source (`theme.css` for shared/client tokens; `packages/admin/src/styles/admin-m3-tokens.css` + `admin-m3-components.css` for admin M3/tone tokens) AND that `token_version` is declared in `design/SKILL.md`.
 
 ---

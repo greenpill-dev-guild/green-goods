@@ -63,7 +63,7 @@ export function ProtocolFundingRows({
       }),
       cancelled: formatMessage({
         id: "cockpit.community.protocolFunding.row.cancelled",
-        defaultMessage: "Cancelled",
+        defaultMessage: "Canceled",
       }),
       unknown: formatMessage({
         id: "cockpit.community.protocolFunding.row.unknown",

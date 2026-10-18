@@ -144,7 +144,7 @@ describe("useAdminLoginController", () => {
     mocks.login.mockRejectedValueOnce(new Error("Passkey authentication was cancelled"));
     const { result } = renderHookWithProviders(() => useAdminLoginController());
     await act(() => result.current.signInWithStoredPasskey());
-    expect(result.current.error).toBe("Sign in was cancelled.");
+    expect(result.current.error).toBe("Sign in was canceled.");
     expect(result.current.isSigningIn).toBe(false);
     expect(mocks.trackError).not.toHaveBeenCalled();
   });
@@ -179,7 +179,7 @@ describe("useAdminLoginController", () => {
 
   it.each([
     ["Passkey recovery is unavailable right now", "Passkey recovery is temporarily unavailable."],
-    ["Passkey authentication was cancelled", "Sign in was cancelled."],
+    ["Passkey authentication was cancelled", "Sign in was canceled."],
     ["Passkey address mismatch", "That passkey is for a different account."],
     ["No passkey found", "No passkey found for that username."],
   ])("shows the actor's asynchronous failure: %s", async (message, expected) => {

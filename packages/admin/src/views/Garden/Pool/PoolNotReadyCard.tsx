@@ -33,7 +33,7 @@ export function PoolNotReadyCard({
         {formatMessage({
           id: "cockpit.garden.pool.notReady.body",
           defaultMessage:
-            "Neighbours can offer help and ask for it here once you’ve set up how this pool works.",
+            "Neighbors can offer help and ask for it here once you’ve set up how this pool works.",
         })}
       </p>
       <AdminButton type="button" variant="filled" onClick={onSetUp} disabled={!isOnline}>

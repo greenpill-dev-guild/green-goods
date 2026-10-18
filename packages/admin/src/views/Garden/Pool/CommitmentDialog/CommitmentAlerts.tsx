@@ -49,7 +49,7 @@ export function CommitmentAlerts({
           {formatMessage(
             {
               id: "cockpit.garden.pool.commitment.cancelled.withReason",
-              defaultMessage: "Cancelled: “{reason}”.",
+              defaultMessage: "Canceled: “{reason}”.",
             },
             { reason: cancelReason.reason.reason }
           )}

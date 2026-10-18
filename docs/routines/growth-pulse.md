@@ -212,7 +212,7 @@ Title is a plain sentence naming what moved — "Onboarding funnel broke at the 
 {What moved, over what window, and why it matters — two or three plain
 sentences. Name the affected surface and gardens inside them.}
 
-{One signal line naming the curated question, so later runs can recognise the
+{One signal line naming the curated question, so later runs can recognize the
 same anomaly: "`funnel.onboarding`: 18% conversion, down from 41% over 7d."}
 
 {One sentence on the suspected cause or next step; say plainly when it needs

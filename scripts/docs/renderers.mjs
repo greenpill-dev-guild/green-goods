@@ -767,7 +767,7 @@ export function renderSkills({ root, sources, digest }) {
   let body = pageHeader(
     { title: "Skills Catalog", slug: "/builders/agentic/skills", sources, digest },
     "Skills Catalog",
-    `Skills are packaged workflows. A coding agent, or you driving one, runs a skill by name for a specific kind of task. The catalog below is the quick index; each skill's own section follows, projected from its folder, where the README and SKILL.md stay the source of truth. ${skills.length} skills are catalogued; the [task routing](/builders/agentic/task-routing) page says which one a kind of task should reach for.`
+    `Skills are packaged workflows. A coding agent, or you driving one, runs a skill by name for a specific kind of task. The catalog below is the quick index; each skill's own section follows, projected from its folder, where the README and SKILL.md stay the source of truth. ${skills.length} skills are cataloged; the [task routing](/builders/agentic/task-routing) page says which one a kind of task should reach for.`
   );
   // Table cells keep inline code but cannot carry a pipe.
   const cell = (value) => String(value).replaceAll("|", "\\|");

@@ -23,7 +23,7 @@ function row(id: string, title: string, prompt: number, why?: string): TxProgres
 
 const charter = row("charter", "Write the agreement", 1, "Records what the pool is for.");
 const cap = row("cap", "Set the commitment limit", 1, "Caps how many offers one person holds.");
-const open = row("open", "Open the pool", 2, "Lets neighbours offer and ask.");
+const open = row("open", "Open the pool", 2, "Lets neighbors offer and ask.");
 
 const meta: Meta<typeof TxProgressList> = {
   title: "Admin/Primitives/TxProgressList",

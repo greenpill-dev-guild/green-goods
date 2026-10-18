@@ -99,7 +99,7 @@ drift from 12px to 20px.
 
 ### Button Corners and Emphasis
 
-Emphasis is carried by fill, outline, and colour. The corner belongs to the surface, so a primary and the secondary beside it always share one shape (DL-026): in the app that shape is the field's (DL-029), and on the website it is the capsule (DL-089):
+Emphasis is carried by fill, outline, and color. The corner belongs to the surface, so a primary and the secondary beside it always share one shape (DL-026): in the app that shape is the field's (DL-029), and on the website it is the capsule (DL-089):
 
 | Element | Installed app | Public website | Morph on Press | Use |
 |---------|---------------|----------------|----------------|-----|
@@ -682,7 +682,7 @@ append-only ledger where all ongoing design decisions land:
 |----------|--------|-----------|
 | Interaction model | Complement: lift-and-press (cards) + shape morph (buttons) | Different elements get different physics; richer tactile vocabulary |
 | Motion system | Named spring tokens replacing hardcoded beziers | Semantic names enable motion scheme switching; consistent vocabulary |
-| Button shape | One corner per surface, whatever the emphasis: 16px in the app, the capsule on the website (DL-026; values DL-029 and DL-089; superseding the capsule-primary rule) | A primary and its secondary sit side by side, so mixed shapes read as inconsistent; fill and colour already carry emphasis |
+| Button shape | One corner per surface, whatever the emphasis: 16px in the app, the capsule on the website (DL-026; values DL-029 and DL-089; superseding the capsule-primary rule) | A primary and its secondary sit side by side, so mixed shapes read as inconsistent; fill and color already carry emphasis |
 | Component scope | Admin-relevant subset (3 button sizes, toolbar, sheets, nav, progress) | Focus on what the revamp needs now; extend vocabulary later |
 | Document depth | Comprehensive standalone spec | language.md should be self-contained enough to guide implementation without jumping between files |
 | Spatial arch integration | Deep: all beziers → tokens, radii → concentric types, full vocabulary alignment | Spatial architecture is the first consumer of Warm Earth; coherence matters |

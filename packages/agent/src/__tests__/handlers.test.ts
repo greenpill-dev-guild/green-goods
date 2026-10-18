@@ -545,7 +545,7 @@ describe("handleCancelSubmission", () => {
 
     const result = await handleCancelSubmission(message, deps);
 
-    expect(result.response.text).toContain("cancelled");
+    expect(result.response.text).toContain("canceled");
     expect(result.clearSession).toBe(true);
   });
 });

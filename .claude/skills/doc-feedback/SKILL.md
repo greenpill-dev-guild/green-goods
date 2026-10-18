@@ -87,7 +87,7 @@ Surface the inferred mode (e.g. *"Inferring **out-of-repo** mode from filename `
 
 #### Step 2 — Triage list
 
-Produce a numbered list, one row per **open comment** plus one block summarising tracked-change suggestions. For each comment:
+Produce a numbered list, one row per **open comment** plus one block summarizing tracked-change suggestions. For each comment:
 
 - `N. [^cid]` — comment id from `feedback.md`
 - 1-line distillation of the comment body
