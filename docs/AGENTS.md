@@ -21,7 +21,7 @@ authored/generated boundary, local workflow, and deployment setup.
 
 Run from `docs/` after rendering the root validation plan:
 
-- `bun run audit -- --ci` — check document authorities and links.
+- `bun run audit -- --ci` — check document authorities, links and US spelling.
 - `bun run test` — verify documentation generators and helpers when their behavior changes.
 - `bun run build` — verify navigation, MDX, theme, and production output when affected.
 - `bun run check:search-index` — verify the built search index when search inputs change.
