@@ -194,7 +194,7 @@ commitment records: the protocol Request stays in the protocol pool with the Gar
 then the Garden creates a separate local commitment for its member. The treasury top-up has no
 commitment identity and does not substitute for earned compensation.
 
-Two-person sessions use two allowlisted wallets throughout. The protocol reviewer and Garden member
+Two-person sessions use two allowlisted wallets throughout. The protocol reviewer and garden member
 each select their own Part, wait for the other person to observe every named handoff, and may both
 record a verdict on explicitly shared verification cases. Existing results remain keyed only by Test
 ID and signing wallet, so Journey mode needs no state API, Blob, or migration change.

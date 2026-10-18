@@ -621,8 +621,8 @@ const config: Config = {
           items: [
             { label: 'Telegram', href: 'https://t.me/+N3o3_43iRec1Y2Jh' },
             { label: 'X (Twitter)', href: 'https://x.com/greengoodsapp' },
+            { label: 'LinkedIn', href: 'https://www.linkedin.com/company/greengoodsapp/' },
             { label: 'GitHub', href: 'https://github.com/greenpill-dev-guild/green-goods' },
-            { label: 'Blog', href: 'https://paragraph.com/@greenpilldevguild' },
           ],
         },
         {
