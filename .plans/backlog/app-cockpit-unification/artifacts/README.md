@@ -78,6 +78,9 @@ states, then the card primitives. Open it from this folder so it finds its image
   a line below the text), offers commitments, assessments and jars as item rows only, since they
   have no picture for a media card, adds the maintainer's 15 / 13 title size as the pick, and puts
   Copy picks on the folded tweaker bar.
+- **Version 16** records the maintainer's picks, locked on 18 October: the census opens on them and
+  marks them with dots, rows with the pill under the title take one fixed 88px height, a jar row
+  carries one detail, and the rules box adds one pill per card.
 - **The card tweaker** sits in a rail beside the census on a wide screen and folds into a panel at
   the bottom on a narrow one. Its live preview, pinned above the dials, draws the section in view or
   a chosen card type at the app's or the cockpit's density, with that type's title lines beside it.

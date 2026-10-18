@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-10-10T09:56:00.510Z",
-    "updated_at": "2026-10-18T20:48:42Z"
+    "updated_at": "2026-10-18T21:28:38Z"
   },
   "links": {
     "brief": "brief.md",
@@ -46,6 +46,7 @@
     "Card census, second round (2026-10-17): the census follows the lab's saved design system and compares five places for a card's status, with the titles each cuts off counted in four text sets; the pill leading the detail line and per-type title lines (two for work, commitments, actions, assessments and hypercerts; one for gardens, people, and jars, vaults and pools) are recommended and await the maintainer's picks.",
     "Detail line, accepted in principle on 2026-10-18: one line; the status plus at most two details, ordered by importance per card type so the least useful drops first; no detail repeats what the card shows; short ages and dates, an age always a number; a row's action only where the row needs the reader, below the text. The per-type order is proposed and recorded in spec.md. Version 13 of the census, from another session, set one 72px row height and one title line by default.",
     "Census review, 2026-10-18: every card keeps one height (rule 5 revised: an action takes the row's right slot, not a line below the text); a media card needs a picture of its own, so commitments, assessments and jars take the item row only; the maintainer picked 15px app and 13px cockpit titles. Census version 15.",
+    "Locked on 2026-10-18 at the maintainer's request: every fork and the workspace tone, and the card picks (status pill under the title, the detail-line rules, 88px rows and photo, 15px app and 13px cockpit titles, 11px details, one title line, one detail on a jar row, one pill per card). The before and after pairs stay as each step's acceptance evidence; a failing pair reopens only its own pick. Census version 16.",
     "artifacts/design-lab.html is a hand-built mock drawn from token values; artifacts/captures are Storybook evidence from the deployed build, not authenticated-session proof.",
     "The garden-scoped Home and its switcher stay with the pwa-interface-simplification hub; only the shared look of the garden chip is in scope here.",
     "No implementation lane is certified by document validation."

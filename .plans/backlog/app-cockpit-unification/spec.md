@@ -1,7 +1,7 @@
 # One Look for the App and the Cockpit — Specification
 
-**Status:** research and design proposal. The maintainer's picks for the thirteen forks and the
-workspace tone are accepted in principle. None is locked.
+**Status:** research and design proposal. On 18 October the maintainer locked the picks for the
+thirteen forks, the workspace tone and the cards. No implementation has started.
 **Evidence date:** 2026-10-09 for the divergence ledger (code read at `develop` `288e9ab46`), and
 2026-10-10 for the component readings behind the design lab. Code references describe the inspected
 tree, not a deployment. Recheck them when implementation starts.
@@ -36,9 +36,14 @@ choices over with its Copy picks control, and answered two questions about their
 section records what was chosen. The recommendations and their reasoning stay under
 [Decisions to resolve](#decisions-to-resolve).
 
-**Standing.** Every pick is accepted in principle. A pick locks when a before and after pair of the
-real components is approved, and only a locked pick is a specification. The lab is a mock, so a pick
-made there settles direction, not proportions.
+**Standing.** Locked on 18 October. The maintainer pasted the card picks from the census and asked
+to lock them, then chose to lock the lab picks the census line does not cover as well (F5, F6, F8,
+F9 and F10). Every pick in the table below and every card pick under
+[Card picks, locked on 18 October](#card-picks-locked-on-18-october) is now the specification. The
+lab and the census are mocks, so the before and after pairs of the real components stay as each
+delivery step's acceptance evidence; a pair that shows a problem reopens that one pick, not the
+rest. (Until 18 October every pick was accepted in principle and a pick was to lock on its approved
+pair.)
 
 **The cockpit's Material 3 rule is retired.** Asked how that rule should read once the app's tabs,
 chips, cards and sheets move into the cockpit, the maintainer chose to retire it: the cockpit
@@ -101,8 +106,8 @@ in the lab. The maintainer accepted all four on the same terms as the picks:
 - **Glass.** Solid surfaces everywhere. The cockpit's dock stays the one translucent piece, and the
   unused five-thickness material spec leaves the design guide.
 
-**What a pair must show.** A pick locks on a before and after pair of the ten screens the lab draws,
-rendered from the real components. In the app: Home, a garden page, Your Work, Submit Work and
+**What a pair must show.** Each delivery step is accepted on a before and after pair of the ten
+screens the lab draws, rendered from the real components. In the app: Home, a garden page, Your Work, Submit Work and
 Profile. In the cockpit: Hub, Garden, Community, Create Assessment and Profile. Each is shown at
 390, 768 and 1280px, in light and dark, with Spanish and Portuguese wherever text must fit. A width
 a surface does not support is recorded as not applicable. Every other route gets its own pair before
@@ -183,8 +188,7 @@ it drops, and make dropping rare.
    height. (Revised on 18 October: the rule first put the action below the text, which made that
    one card taller.)
 
-The order each type would follow, proposed with the rules and still to be confirmed on rendered
-pairs:
+The order each type follows, locked with the card picks on 18 October:
 
 | Card type | Detail line, most important first | Moves out of the line |
 |---|---|---|
@@ -194,13 +198,14 @@ pairs:
 | Assessments and hypercerts | date · outcomes or units | The kind, when the icon shows it |
 | Gardens | members · place | Stewards and "open to join" (the garden's page) |
 | People | one count ("12 works") | The role (the chip) |
-| Jars, vaults and pools | limit · cooldown | Nothing; the amount stays on the right |
+| Jars, vaults and pools | one detail: the limit ("0.01 WETH a claim"; the pool shows what is waiting) | The cooldown and harvests (the jar's page); the amount stays on the right |
 
 The census applies the rules from version 14 and measures them: at the app's density in a 390px
 tile, the row cards drop or shorten 2 of 18 details in English and 5 of 18 in Portuguese, against
-6 of 24 and 11 of 24 before. Most of what remains is the jar rows, where the amount on the right
-leaves too little room for two details; whether jars keep one detail, or the amount moves into the
-line, is open.
+6 of 24 and 11 of 24 before. Most of what remained was the jar rows, where the amount on the right
+leaves too little room for two details, so on 18 October the maintainer gave a jar row one detail.
+With the locked picks (census version 16), no detail drops or shortens in English, Spanish or
+Portuguese, in a 390px tile or on a 390px phone.
 
 Two more rulings the same day, from the census review:
 
@@ -209,6 +214,39 @@ Two more rulings the same day, from the census review:
   it) and two-line titles stay opt-in choices for a whole card type, never a single card.
 - **A media card needs a picture of its own.** Work, gardens, actions and hypercerts have one;
   commitments, assessments and jars, vaults and pools do not, so they take the item row only.
+
+### Card picks, locked on 18 October
+
+The maintainer's census line, locked together with the answers to four closing questions:
+
+| Decision | Locked pick |
+|---|---|
+| Where the status sits | B, the pill under the title (the recommendation was D, the pill leading the detail line) |
+| Detail line | The agreed rules above |
+| Row height | 88px for every item row, with an 88px photo |
+| Title size | 15px in the app, 13px in the cockpit |
+| Detail size | 11px details and labels |
+| Title lines | One line for every card type; the full title on hover |
+| Icons | Rows without a photo lead with an icon tile |
+| Confirming | While an act settles, the status pill reads "Confirming…" (or "Not sent" for a promise still on the phone) |
+| Commitments | Item row led by the offer or request icon |
+| Actions | Picked from media cards with a banner |
+| Gardens | Media card with the garden's banner |
+| People | Item row with an avatar and one role chip |
+| Jars, vaults and pools | Item row with one detail and no action on the row |
+| Facts | Label beside its value, divided rows |
+| Empty and error states | Full size, with an icon tile |
+
+**One pill per card.** A card shows one pill, its status. Any other label becomes one of three
+things: a state that replaces the status (an error, a retry, "Confirming…", "Not sent"), one of the
+two details (feedback reads "1 comment"), or a mark on the photo (the photo count, the domain). A
+person's row keeps one role chip, the highest role. Today the app's work row can add a photo-count
+chip and feedback, error and retry badges on a third line; those fold into the rule above.
+
+**What the locked layout costs.** With one title line at 15px, a 390px column at the app's density
+cuts 2 of 5 Spanish and 2 of 5 Portuguese titles and no English one; a 390px phone cuts 1 English,
+4 Spanish and 3 Portuguese. A cut title ends in an ellipsis and shows in full on hover. Long English titles end in an ellipsis everywhere. Rows with the pill under the title
+take one fixed 88px height, so a card never grows to fit.
 
 Open against the picks:
 
@@ -221,17 +259,11 @@ Open against the picks:
 - **F7 on the cockpit's phone.** The app's work row removes the photo mosaic from the cockpit's
   phone queue. Judge it on the pair, with a steward who triages by photo if one is available.
 - **F8 on desktop.** The cap on an equal-width tab row is still unset.
-- **Where a card's status sits, and how many lines a title takes.** Raised on 17 October: with the
-  pill in the title's corner, as both surfaces draw it today, titles get cut off. The
-  [card census](artifacts/card-census.html#layouts) measures five placements. In a 390px column at
-  the app's density, the corner cuts 1 of 5 English titles and 3 of 5 Spanish and Portuguese ones;
-  the other four placements cut none in English. The recommendation is the pill leading the detail
-  line: the title keeps the full width and the card keeps today's height. Version 13 of the census
-  (18 October) gives every type one row height (72px), one title line and one detail line by
-  default, with two title lines still available per type, and adds dials for row height, title
-  size, detail size, icons and where "Confirming…" shows. The placement, the title lines and those
-  sizes wait for the maintainer's picks, except the title size: on 18 October the maintainer chose
-  15px titles in the app and 13px in the cockpit.
+- **Where a card's status sits, and how many lines a title takes: settled.** Raised on 17 October,
+  when the pill in the title's corner cut titles off. The
+  [card census](artifacts/card-census.html#layouts) measured five placements, and on 18 October the
+  maintainer locked the pill under the title, one title line and the sizes in
+  [Card picks, locked on 18 October](#card-picks-locked-on-18-october).
 
 ## Evidence and its limits
 

@@ -455,7 +455,12 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
 .spec.rh-64 .ir:not(.compact) .body { padding-block: 6px; gap: 2px; }
 .spec .ir:not(.compact) { height: var(--rowh); min-height: 0; align-items: center; }
 /* Status under or above the title costs a line by design, and two title lines are opt-in, so those rows grow from the set height. */
-.spec.stl-under .ir:not(.compact), .spec.stl-above .ir:not(.compact), .spec .ir:not(.compact):has(.title.l2) { height: auto; min-height: var(--rowh); }
+/* The pill under the title and the label above it cost a line by design, so every row in those layouts
+   takes one fixed height, at least 88px, instead of growing to fit; a card never outgrows its
+   neighbours. Two-line titles stay an opt-in for a whole card type, so those rows grow together. */
+.spec.stl-under .ir:not(.compact), .spec.stl-above .ir:not(.compact) { height: max(var(--rowh), 88px); }
+.spec.stl-under .ir:not(.compact) .body, .spec.stl-above .ir:not(.compact) .body { padding-block: 8px; gap: 2px; }
+.spec .ir:not(.compact):has(.title.l2) { height: auto; min-height: var(--rowh); }
 .spec .ir .lead.photo { align-self: stretch; }
 .spec .ir .lead.thumb, .spec .ir .lead.tile, .spec .ir .lead.av { width: var(--leadsz); height: var(--leadsz); margin: 0 0 0 12px; align-self: center; }
 .spec .ir .lead.tile { font-size: calc(var(--leadsz) * 0.46); }
@@ -463,7 +468,9 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
 .spec.icons-hide .ir .lead.tile { display: none; }
 /* The detail line stays one line. Details that don't fit wrap onto a second line that the clamp
    hides, so a narrow row drops its last details whole (separator included) instead of cutting them. */
-.spec .ir:not(.compact) .meta { max-height: 22px; }
+/* One detail line, always the same height, so a detail that drops never shifts the row's content. */
+.spec .ir:not(.compact) .meta { height: 18px; max-height: 18px; }
+.spec.stl-details .ir:not(.compact) .meta { height: 22px; max-height: 22px; }
 .spec .ir:not(.compact) .meta .mrow { row-gap: 12px; }
 /* A single detail too long for the row on its own ends in an ellipsis. */
 .spec .ir:not(.compact) .meta .mi { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
@@ -489,6 +496,8 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
    that needs the reader shows its action at its right, so every row keeps one height. */
 .spec .ir .lead.photo .pcount { position: absolute; top: 5px; right: 5px; z-index: 1; display: inline-flex; align-items: center; gap: 3px; border-radius: 999px; padding: 1px 6px; font-size: 11px; font-weight: 600; line-height: 15px; background: rgba(0,0,0,0.6); color: #FFFFFF; }
 .spec .ir .lead.photo .pcount svg { font-size: 11px; }
+.locked { margin: 18px 0 0; padding: 12px 16px; max-width: 804px; background: var(--accent-soft); border-radius: 14px; font-size: 14.5px; }
+.locked b { color: var(--fg-strong); }
 .rules-box { margin: 16px 0 6px; max-width: 804px; display: grid; gap: 10px; padding: 14px 16px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; font-size: 14.5px; }
 .rules-box p { margin: 0; }
 .rules-box b { color: var(--fg-strong); }
@@ -539,6 +548,8 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
     </div>
   </div>
 
+  <p class="locked"><b>Locked on 18 October.</b> The census opens on your picks: the status pill under the title, the agreed detail-line rules, 88px rows with an 88px photo, 15 / 13 titles, 11px details, one title line for every type, icons shown, Confirming in the pill, one detail on a jar row and one pill per card. Every lab fork is locked as recorded. The other options stay for comparison.</p>
+
   <ul class="toc" aria-label="Sections">
     <li><a href="#system">Your design system</a></li>
     <li><a href="#layouts">Status and titles</a></li>
@@ -574,13 +585,14 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
     <div class="obj-h"><h2>Every card type</h2><div class="octl" id="typeCtl"></div></div>
     <p>Every card type built from the four shapes, with your current settings, one phone wide. Titles take one line, so every row keeps the same height; a title that runs out ends in an ellipsis and shows in full when you point at it. Two lines stay available for each type. A detail that doesn't fit drops out whole, last first.</p>
     <div class="rules-box">
-      <p><b>The detail line follows the five rules agreed on 18 October.</b> Switch Detail line to Before to see the line as it was.</p>
+      <p><b>The cards follow the rules agreed on 18 October.</b> Switch Detail line to Before to see the line as it was.</p>
       <ol>
         <li>Each card type orders its details by importance, so the least useful drops first.</li>
         <li>The status and at most two details. A third fact belongs on the item's own page.</li>
         <li>Nothing the card already shows: the icon says offer or request, the chip says a person's role, the chrome names the garden.</li>
         <li>Short ages and dates in every language, and an age is always a number.</li>
         <li>A row opens its item when tapped. An action stays only on the row that needs you, at its right, so every row keeps one height.</li>
+        <li>One pill per card: the status. Any other label becomes a state that replaces it, a detail, or a mark on the photo.</li>
       </ol>
       <table class="cuts" id="drops"></table>
     </div>
@@ -1085,9 +1097,9 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
       { icon: "pool", dom: "garden", status: ["ok", W.open], meta: [L("6 open promises", "6 promesas abiertas", "6 promessas abertas"), { soft: L("2 waiting", "2 en espera", "2 aguardando") }], amt: ["6", L("open", "abiertas", "abertas")], btn: W.openBtn }
     ];
     var R2 = rules();
-    // Rules: the limit, then the cooldown (the pool puts what is waiting first); the amount stays on
-    // the right, and the claim shows only on the jar you can claim from, in the amount's place.
-    if (R2) j[2].meta = [L("2 waiting", "2 en espera", "2 aguardando"), { soft: L("6 open promises", "6 promesas abiertas", "6 promessas abertas") }];
+    // Rules: one detail, since the amount takes the right side; the cooldown and harvests belong on the
+    // jar's own page. The claim shows only on the jar you can claim from, in the amount's place.
+    if (R2) { j[0].meta = [j[0].meta[0]]; j[1].meta = [j[1].meta[0]]; j[2].meta = [L("2 waiting", "2 en espera", "2 aguardando")]; }
     return list(j.slice(0, opt.count || 3).map(function (x, i) {
       var act = o.trail === "action" && i === 0 ? x.btn : null;
       if (R2) return itemRow({ lead: "tile", icon: x.icon, title: TITLES.jars[i], lines: lines, status: x.status, meta: x.meta, trail: "amt", amt: x.amt, action: act, actionSec: true });
@@ -1112,13 +1124,13 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
     ["above", "E · Status above the title", "A small coloured label leads the card, so a review queue scans by status. The card gains a short line."]
   ];
   var DIALS = [
-    { key: "stl", label: "Status", opts: [["details", "With details", STL[3][2]], ["corner", "Corner", STL[0][2]], ["under", "Under title", STL[1][2]], ["photo", "On photo", STL[2][2]], ["above", "Above title", STL[4][2]]] },
+    { key: "stl", label: "Status", def: "under", opts: [["details", "With details", STL[3][2]], ["corner", "Corner", STL[0][2]], ["under", "Under title", STL[1][2]], ["photo", "On photo", STL[2][2]], ["above", "Above title", STL[4][2]]] },
     { key: "drules", label: "Detail line", opts: [["rules", "Agreed rules", "The rules agreed on 18 October: the status and at most two details, most important first; nothing the card already shows; short ages and dates; an action only on the row that needs you, at its right, so every row keeps one height."], ["before", "Before", "The detail line as it was before the rules, to compare."]] },
     { key: "lang", label: "Text", opts: [["en", "English", "Typical English titles."], ["long", "Long", "Long English titles, to see where the clamp starts."], ["es", "Español", "Spanish titles and the product's Spanish status words."], ["pt", "Português", "Portuguese titles and the product's Portuguese status words."]] },
     { key: "media", label: "Row photo", opts: [["88", "88px", "The app's 88px photo, as it ships."], ["72", "72px", "A smaller photo, so more rows fit."], ["56", "56px", "A thumbnail."]] },
-    { key: "rowh", label: "Row height", opts: [["72", "72px", "Every row card is 72px tall: a 48px lead, one title line and one detail line."], ["88", "88px", "Every row card is 88px tall, as the app's photo row is today: a 56px lead and more air."], ["64", "64px", "Every row card is 64px tall: a 40px lead, the densest list."]] },
+    { key: "rowh", label: "Row height", def: "88", opts: [["72", "72px", "Every row card is 72px tall: a 48px lead, one title line and one detail line."], ["88", "88px", "Every row card is 88px tall, as the app's photo row is today: a 56px lead and more air."], ["64", "64px", "Every row card is 64px tall: a 40px lead, the densest list."]] },
     { key: "tsize", label: "Title size", def: "15-13", opts: [["base", "16 / 14", "Today: 16px titles in the app, 14px in the cockpit."], ["15", "15 / 14", "App titles a step smaller; the cockpit keeps 14px."], ["15-13", "15 / 13", "Your pick: 15px titles in the app and 13px in the cockpit."], ["14", "14 / 14", "14px titles on both surfaces."], ["13", "13 / 13", "13px titles on both surfaces, for the longest titles."]] },
-    { key: "msize", label: "Detail size", opts: [["12", "12px", "Today: 12px details and labels."], ["11.5", "11.5px", "Details and labels half a step smaller."], ["11", "11px", "11px details and labels."]] },
+    { key: "msize", label: "Detail size", def: "11", opts: [["12", "12px", "Today: 12px details and labels."], ["11.5", "11.5px", "Details and labels half a step smaller."], ["11", "11px", "11px details and labels."]] },
     { key: "icons", label: "Icons", opts: [["show", "Show", "Rows without a photo lead with a centred icon tile."], ["hide", "Hide", "Rows without a photo start with the title. People keep their avatar."]] },
     { key: "confirm", label: "Confirming", opts: [["pill", "In the pill", "While it settles, the status pill reads Confirming… (or Not sent for a promise still on the phone). The row keeps its height."], ["detail", "In the details", "The detail line reads Confirming… (or Not sent) in place of the date until it settles."], ["none", "Hidden", "The row keeps its usual status; nothing mentions confirming."]] },
     { key: "theme", label: "Cards", opts: [["light", "Light", "The cards in the light theme."], ["dark", "Dark", "The cards in the dark theme, with your F13 dark card."]] },
@@ -1180,7 +1192,7 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
     document.getElementById("sysCtl").innerHTML = SYSC.map(function (c) { return segHtml("sys", c, lab[c.key], RECORDED[c.key], "sys-" + c.key); }).join("") +
       segHtml("dial", { key: "theme", label: "Theme", opts: dial("theme").opts }, state.theme, "light", "sys-theme");
     document.getElementById("cmpCtl").innerHTML = segHtml("cdens", { key: "cdens", label: "Density", opts: DENS }, state.cdens, "app", "cmp-dens") + segHtml("dial", dial("lang"), state.lang, "en", "cmp-lang");
-    document.getElementById("typeCtl").innerHTML = segHtml("tdens", { key: "tdens", label: "Density", opts: DENS }, state.tdens, "app", "types-dens") + segHtml("dial", dial("stl"), state.stl, "details", "types-stl") + segHtml("dial", dial("drules"), state.drules, "rules", "types-drules") + segHtml("dial", dial("lang"), state.lang, "en", "types-lang");
+    document.getElementById("typeCtl").innerHTML = segHtml("tdens", { key: "tdens", label: "Density", opts: DENS }, state.tdens, "app", "types-dens") + segHtml("dial", dial("stl"), state.stl, DEF.stl, "types-stl") + segHtml("dial", dial("drules"), state.drules, "rules", "types-drules") + segHtml("dial", dial("lang"), state.lang, "en", "types-lang");
     TYPES.forEach(function (k) {
       var host = document.querySelector('.octl[data-obj="' + k + '"]');
       if (!host) return;
@@ -1235,7 +1247,7 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
       return '<div class="cmp-col' + (on ? " on" : "") + '" data-stl="' + l[0] + '"><div class="cmp-h"><h3>' + esc(l[1]) + '</h3><button type="button" class="use" data-stl="' + l[0] + '" aria-pressed="' + on + '">' + (on ? "In use" : "Use this") + '</button></div><p class="cmp-d">' + esc(l[2]) + '</p><p class="cut" aria-live="polite"></p>' +
         specOpen(d, "work", "", l[0]) + compareInner(d) + "</div></div>";
     }).join("") +
-      '<div class="cmp-rec"><p><b>Recommendation: D, the pill with the details.</b> The title keeps the card\'s full width, the card stays the height it is today, and a long status word wraps onto the detail line instead of cutting the title. The coloured edge still marks status at a glance, and the pill names it in words.</p><table class="cuts" id="cuts"></table></div>';
+      '<div class="cmp-rec"><p><b>Locked on 18 October: B, the pill under the title.</b> The title keeps the card\'s full width, the pill gets a line of its own, and every row in a list takes one 88px height. D, the pill with the details, was the recommendation; it keeps rows at 72px.</p><table class="cuts" id="cuts"></table></div>';
   }
   /* Count the titles a layout cuts short: measured on the cards in each column, and for every language
      on hidden copies at the same width. */
@@ -1306,7 +1318,7 @@ dialog.zoom .zimg img { display: block; margin: 0 auto; max-width: 100%; height:
     return o.shape === "media" ? "Media card" : (o.shape === "compact" ? "Compact item row" : "Item row");
   }
   // Rule 1: each type's details, most important first.
-  var ORDER = { work: "who, age", commitments: "due date, other person", actions: "what it asks for", records: "date, outcomes or units", gardens: "members, place", people: "one count", jars: "limit, cooldown" };
+  var ORDER = { work: "who, age", commitments: "due date, other person", actions: "what it asks for", records: "date, outcomes or units", gardens: "members, place", people: "one count", jars: "one, the limit" };
   function renderTypes() {
     var d = state.tdens;
     document.getElementById("typeGrid").innerHTML = TYPES.map(function (t) {

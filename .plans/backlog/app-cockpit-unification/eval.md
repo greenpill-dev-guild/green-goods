@@ -44,6 +44,8 @@ Visual preference alone is not acceptance. Record wrong turns and hesitation, no
 | A18 | One home per object | Each object's card code lives in one place; no two card components share a name; every new Shared path is a deliberate export. |
 | A19 | Cockpit controls | For each migrated family, the cockpit renders only the shared controls; density, hit areas, pill corners and the tone budget are unchanged; Rules 15 and 18 and the wrapper-adoption sweep describe the new direction. |
 | A20 | Detail lines | Every item row's detail line stays on one line at 320, 360 and 390px in English, Spanish and Portuguese; each card type shows its details in the accepted order, and a detail that does not fit drops whole; an age is always a number. |
+| A21 | One height | Every card in a list is the same height on both surfaces, in every state, action and language; the pill under the title never makes a row grow. |
+| A22 | One pill per card | A card shows one pill, its status; an error, a retry or a pending state replaces it, feedback is a detail, and the photo count sits on the photo. |
 
 ## Guards the work trips
 
@@ -203,6 +205,21 @@ Claim in its amount's place. Commitments, records and jars rendered no media car
 control. The 15 / 13 title size was the default and the dot, with 15px app and 13px cockpit titles.
 At 390px the folded tweaker bar showed Copy picks, and it copied the line. No console error and no
 horizontal overflow; the served `census.html` matched the build byte for byte.
+
+## Locked picks check
+
+Checked on 2026-10-18 after the maintainer locked the card picks (census version 16), in headless
+Chromium (Playwright) at 1440×900, 1180×820 and 390×844, in a fresh browser:
+
+- The census opened on the locked picks, with the dots on them: the pill under the title, the
+  agreed rules, 88px rows and photo, 15 / 13 titles, 11px details.
+- Every row card in the card-type tiles, the object sheets and the design-system preview measured
+  88px, in English, Spanish and Portuguese, with no row clipping its content and the titles of each
+  list at one offset.
+- No detail dropped or shortened in any of the four text sets at any of the three widths, against
+  up to 6 of 24 before the rules; jar rows carried one detail.
+- No console error and no horizontal overflow; the served `census.html` matched the build byte for
+  byte.
 
 These are document and mock checks. No application code changed, so no implementation, usability or
 release evidence exists yet.
