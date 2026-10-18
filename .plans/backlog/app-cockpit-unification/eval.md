@@ -31,11 +31,11 @@ Visual preference alone is not acceptance. Record wrong turns and hesitation, no
 | A5 | Chips (F4); filter kept per surface (F9) | One chip shape and selected treatment on both; each surface's filter control works as it does today by pointer and keyboard; Pending and Approved remain inline scopes of one list in the cockpit (DL-082). |
 | A6 | Tabs (F8) | Equal-width cells on both surfaces; the longest Spanish and Portuguese labels fit at 320px; the selected tab is exposed to assistive technology as it is today on each surface. |
 | A7 | Count badge (F10) | One badge on the app's bar, launchers, filter and tabs and on the cockpit's tabs; 9+, 99+ and single digits fit; the badge keeps the action contrast pair (DL-017). |
-| A8 | Cards, rows and lists (F7, F11) | One card surface; a visible card edge in both themes; an 8px gap on every list, with each card still reading as its own card; the app keeps its status edge. |
+| A8 | Cards, rows and lists (F7, F11) | The app's card on both surfaces (24px, a visible edge) and its work row on phones; a visible card edge in both themes; a 12px gap on every list; the status edge on both surfaces. |
 | A9 | Desktop work card (F12) | The mosaic renders for no photo, one, two, and three or more photos, with its domain and count chips; phone widths keep the accepted phone layout. |
 | A10 | Dark cards (F13) | A card is distinguishable from the canvas in the cockpit's dark theme without a zoomed screenshot; chips and wells on a card remain distinguishable from the card. |
-| A11 | Sheets (F5); bars kept per surface (F6) | The cockpit's phone sheet uses the shared surface and header; open, close, focus return and Back behave as before; each bar keeps its active state and the app's bar stays solid. |
-| A12 | Each surface keeps its own | Density, hit areas, button and card corners, the bar's active state, the filter control, workspace tone, motion and navigation chrome are unchanged on each surface. |
+| A11 | Sheets (F5) and the bar's active pill (F6) | The cockpit's phone sheet uses the shared surface and header; open, close, focus return and Back behave as before; both bars show a pill behind the active icon, green in the app and the workspace tone in the cockpit; the app's bar stays solid. |
+| A12 | Each surface keeps its own | Density, hit areas, button corners, the filter control, workspace tone, motion and navigation chrome are unchanged on each surface. |
 | A13 | The public website | No visual change on public routes unless a fork names one. |
 | A14 | Empty, loading and error states | One anatomy on both surfaces in two sizes; each state keeps its copy and its actions; nothing reachable from a state today is lost. |
 | A15 | Type role names | Both surfaces name their type roles title, body, label and meta; each role keeps its size on each surface; no Material role name remains in the cockpit's views or guides. |

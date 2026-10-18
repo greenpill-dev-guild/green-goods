@@ -46,6 +46,11 @@ becomes the app's language at a denser setting, and its guide and prompt contrac
 around that. The options passed over were keeping Material 3 with named shared pieces, and keeping
 it strict so that only tokens cross.
 
+On 17 October the maintainer pasted a revised set of picks from the lab. It changed three forks: the
+bottom bar takes the pill on both (F6, previously each bar kept its own active state), the app's
+cards go everywhere (F7, previously one surface with a corner per surface), and the list gap is
+12px (F11, previously 8px). The table shows the current picks.
+
 | Fork | Pick | Against the recommendation |
 |---|---|---|
 | F1 Typeface | Plus Jakarta Sans on both | Same |
@@ -53,34 +58,35 @@ it strict so that only tokens cross.
 | F3 Controls | Corner per surface; weight, outline and field anatomy unified | Same |
 | F4 Chips | Capsules on both | Same |
 | F5 Phone sheets | One surface and header | Same |
-| F6 Bottom bar | Keep each surface's active state | Differs: the recommendation was the pill on both |
-| F7 Cards and rows | One surface and row anatomy, corner per surface | Same |
+| F6 Bottom bar | Pill behind the active icon on both | Same (revised 17 October) |
+| F7 Cards and rows | The app's cards everywhere | Differs: the recommendation was one surface with a corner per surface (revised 17 October) |
 | F8 Tabs | The app's tabs on both, equal width | Same |
 | F9 Filter control | Keep each surface's control | Differs: the recommendation was the app's button on both |
 | F10 Count badge | One 16px badge, 11px semibold | Same |
-| F11 List spacing | 8px gap on both | Differs: the recommendation was 12px |
+| F11 List spacing | 12px gap on both | Same (revised 17 October) |
 | F12 Desktop work card | Wide, mosaic on the left | Same |
 | F13 Dark cards | Card one step lighter | Same |
 | Workspace tone | A tone per workspace in the cockpit | Same |
 
-What the three differing picks change:
+What the two differing picks change:
 
-- **F6.** Neither bar changes. The app keeps its filled icon and green label, and the cockpit keeps
-  its tone pill. The shared count badge (F10) still lands on the app's bar.
+- **F7.** The app's cards go everywhere: 24px cards with a visible edge and a faint shadow, 16px
+  work rows with the 2px status edge, tinted information cards, and a 3px border to mark a selected
+  card. The cockpit gives up its 12px raised card. On a phone the cockpit's queue takes the app's
+  work row and loses the photo grid; on desktop the cockpit keeps its wide photo-grid card (F12) in
+  the app's card style.
 - **F9.** Neither filter control changes its form. The app keeps its round button and sheet. The
   cockpit keeps its inline chips and sort, and those chips take the capsule shape and the selected
   fill from F4. Pending and Approved stay one tap apart, and nothing new opens from a button on
   desktop.
-- **F11.** The app's work list tightens from 12px to 8px and the cockpit's grid from 14px to 8px.
-  That is tighter than either list is today, and the card from F7 has a hairline and no drop shadow.
-  The rendered pair is where to judge it.
 
 What the retired rule means against these picks. The maintainer confirmed this reading when asked:
-the picks stand. They keep several things that Material 3 used to justify in the cockpit: its pills
-(F3), its tone pill in the bar (F6), its inline filter row (F9), its 12px card corner (F7) and its
-tones. They now stand as the cockpit's own dials, kept because they were chosen. What leaves with the rule is the filled field with an underline, elevation
-as the card surface, the 8px chip, the underline tab rail, the grey count chip and the warm grey
-phone sheet. The cockpit's Material-named tokens keep their names: its views already use the shared
+the picks stand. As revised on 17 October, they keep several things that Material 3 used to justify
+in the cockpit: its pills (F3), its tone pill in the bar (F6, which the app now takes in green), its
+inline filter row (F9) and its tones. They now stand as the cockpit's own dials, kept because they
+were chosen. What leaves with the rule is the filled field with an underline, elevation as the card
+surface, the 12px card corner, the 8px chip, the underline tab rail, the grey count chip and the
+warm grey phone sheet. The cockpit's Material-named tokens keep their names: its views already use the shared
 token names, so the layer is an internal detail, and a name changes only if a step has to touch it.
 The type role names are settled below.
 
@@ -138,9 +144,10 @@ take one of four shapes. The maintainer chose, each on the research's recommenda
   and an action), a media card (a photo or banner first), a fact row (a label and its value) and a
   state block (empty, loading, error or not ready) live in Shared, each at two densities. Every
   object's card is built from them. Parts unique to one object stay with it: the cockpit's act
-  phase line, the upload-queue states and the photo grid. Shared's `WorkbenchRow` already takes the
-  item row's props (eyebrow, title, description, meta, status, icon or thumbnail, selected) and is
-  the starting point; nothing renders it today.
+  phase line, the upload-queue states and the photo grid. With F7 set to the app's cards, the item
+  row looks like the app's work row, which Shared's `WorkCard` already renders. Shared's
+  `WorkbenchRow` already takes the item row's props (eyebrow, title, description, meta, status,
+  icon or thumbnail, selected), so its interface is the starting point; nothing renders it today.
 - **The cockpit's controls fold into the shared family, phased.** With Material 3 retired, the
   cockpit renders the shared controls tuned by its own token block, the mechanism DL-031 already
   uses for the shared pieces it renders. One control family moves at a time, after the card work.
@@ -165,8 +172,8 @@ Open against the picks:
 - **F3 and the app's message lines.** The unified field anatomy reserves one message line. The app
   reserves two today (DL-018) so that a long message does not move the form. With one line reserved,
   a two-line message would. Judge it on the pair in Spanish and Portuguese.
-- **F7 on the cockpit's phone.** The shared row removes the photo mosaic from the cockpit's phone
-  queue. Judge it on the pair, with a steward who triages by photo if one is available.
+- **F7 on the cockpit's phone.** The app's work row removes the photo mosaic from the cockpit's
+  phone queue. Judge it on the pair, with a steward who triages by photo if one is available.
 - **F8 on desktop.** The cap on an equal-width tab row is still unset.
 
 ## Evidence and its limits
@@ -351,12 +358,12 @@ live.
 | F3 Controls | Corner per surface; unify weight, outline and field anatomy | As recommended |
 | F4 Chips | Capsules on both | As recommended |
 | F5 Phone sheets | One surface and header | As recommended |
-| F6 Bottom bar | Pill behind the active icon on both | Keep both |
-| F7 Cards and rows | One surface and row anatomy, corner per surface | As recommended |
+| F6 Bottom bar | Pill behind the active icon on both | As recommended (revised 17 October) |
+| F7 Cards and rows | One surface and row anatomy, corner per surface | The app's cards everywhere (revised 17 October) |
 | F8 Tabs | The app's tabs on both, equal width | As recommended |
 | F9 Filter control | The app's filter button on both | Keep both; confirmed, reversing the earlier preference |
 | F10 Count badge | One 16px badge, 11px semibold | As recommended |
-| F11 List spacing | 12px gap on both | 8px gap on both |
+| F11 List spacing | 12px gap on both | As recommended (revised 17 October) |
 | F12 Desktop work card | Wide, mosaic on the left | As recommended |
 | F13 Dark cards | Card one step lighter | As recommended |
 
@@ -437,8 +444,8 @@ behaviour and stays the app's.
 
 The app's bar stays solid. A backdrop blur costs frames on the low-end phones the app targets.
 
-**Pick, accepted in principle:** keep both. Neither bar changes, and the most repeated element
-stays different by choice.
+**Pick, accepted in principle:** the recommended option, revised on 17 October from keeping each
+bar's own active state.
 
 ### F7 Cards and rows
 
@@ -454,7 +461,9 @@ stays different by choice.
 A work item has three anatomies today: the shared `WorkCard` row in the app, the cockpit's
 `HubWorkCard` mosaic, and the shared `WorkbenchRow` for record lists.
 
-**Pick, accepted in principle:** the recommended option.
+**Pick, accepted in principle:** the app's cards everywhere, revised on 17 October from the
+recommended option. The cockpit gives up its 12px raised card. On a phone its queue takes the app's
+work row; on desktop it keeps the wide photo-grid card (F12) in the app's card style.
 
 ### F8 Tabs
 
@@ -507,7 +516,7 @@ the same time, in two of those styles.
 - **One divided card on both**: rows inside one card. Suits settings rows, not work items.
 - **Keep both**: 12px in the app, 14px in the cockpit's grid, none in its divided record lists.
 
-**Pick, accepted in principle:** 8px gap on both, not the recommended 12px.
+**Pick, accepted in principle:** the recommended 12px gap on both, revised on 17 October from 8px.
 
 ### F12 Desktop work card
 
@@ -550,9 +559,9 @@ ladder the app's dark cards follow the same step.
   closed unless the pick changes.
 - **F8 on desktop.** Equal cells across a 1176px content column are very wide. The lab caps the row
   at 720px; the real cap needs a rendered pair.
-- **F7 on the cockpit's phone.** The recommended row removes the mosaic from the phone queue. If
-  stewards triage by photo on a phone, the mosaic card should stay there too. The pick takes the
-  recommended row, so this stays a live check on the rendered pair.
+- **F7 on the cockpit's phone.** A row removes the mosaic from the phone queue. If stewards triage
+  by photo on a phone, the mosaic card should stay there too. The pick, the app's cards everywhere,
+  puts the app's work row there, so this stays a live check on the rendered pair.
 - **The Cosmo-Local demonstration.** The research's view was that only the token slice is small
   enough to precede it, and only if the width and contrast measurements pass. The maintainer's aim
   is to land as much of the sequence as fits before it. The measurements still gate the token slice,

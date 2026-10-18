@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-10-10T09:56:00.510Z",
-    "updated_at": "2026-10-18T03:29:16Z"
+    "updated_at": "2026-10-18T03:39:45Z"
   },
   "links": {
     "brief": "brief.md",
@@ -38,10 +38,10 @@
   "notes": [
     "The maintainer asked for design research, a switchable mock, and this hub on a branch, then chose an option for every fork. Implementation scope remains open; no application, deployment, or transaction work is authorized.",
     "Stated direction: unify look and feel and shared elements across the installed app and the steward cockpit with some variance per surface; no layout or structure change. Tracking moved from the Cosmo-Local project to the active release project on 2026-10-17, because the 15 October four-goal plan gave PWA and admin delivery to the release project.",
-    "Direction accepted in principle on 2026-10-10: the maintainer's pick for each of the thirteen forks and the workspace tone is recorded in spec.md. A pick locks only when a before and after pair of the real components is approved. Three picks differ from the recommendation: F6 keeps each bar's active state, F9 keeps each surface's filter control, F11 sets an 8px list gap.",
-    "The maintainer retired the strict Material 3 rule for the cockpit: it becomes the app's language at a denser setting, and what the picks keep (pills, 12px cards, the tone pill, inline filters, tones, density) stays as the cockpit's own. The decision-log rows and the rewritten cockpit guide and prompt contract are not written yet. The cockpit's Material-named tokens keep their names. The F9 pick reverses a preference stated earlier the same day; the maintainer confirmed it.",
+    "Direction accepted in principle on 2026-10-10 and revised on 2026-10-17: the maintainer's pick for each of the thirteen forks and the workspace tone is recorded in spec.md. A pick locks only when a before and after pair of the real components is approved. Two picks differ from the recommendation: F7 puts the app's cards everywhere, and F9 keeps each surface's filter control. The 17 October revision set F6 to the pill on both, F7 to the app's cards and F11 to a 12px gap.",
+    "The maintainer retired the strict Material 3 rule for the cockpit: it becomes the app's language at a denser setting, and what the picks keep (pills, the tone pill, inline filters, tones, density) stays as the cockpit's own. The decision-log rows and the rewritten cockpit guide and prompt contract are not written yet. The cockpit's Material-named tokens keep their names. The F9 pick reverses a preference stated earlier the same day; the maintainer confirmed it.",
     "Also accepted in principle: a green focus ring in the app, one empty, loading and error anatomy, one set of type role names, and retiring the unused glass spec. A pick locks on pairs of the lab's ten screens at 390, 768 and 1280px, light and dark, in three languages where text must fit. The maintainer's aim is to land as much of the sequence as fits before the Cosmo-Local demonstration; the plan is saved first and no implementation is authorized.",
-    "Linear: parent PRD-1266 with one hand-written sub-issue per delivery step, all in Backlog: steps 1 to 13 are PRD-1267 to PRD-1279, steps 14 to 20 are PRD-1280, PRD-1281, PRD-1283, PRD-1284, PRD-1285, PRD-1286 and PRD-1287. laneSyncMode parent_only stops a sync from creating duplicate lane issues, and stateSyncMode preserve_existing keeps a sync from overwriting the hand-written bodies. PRD-1261, the member and steward pilot-journey cohesion pass, is related and tracked separately.",
+    "Linear: parent PRD-1266 with one hand-written sub-issue per delivery step, all in Backlog: steps 1 to 13 are PRD-1267 to PRD-1279, steps 14 to 20 are PRD-1280, PRD-1281, PRD-1283, PRD-1284, PRD-1285, PRD-1286 and PRD-1287, and step 21 is PRD-1288. laneSyncMode parent_only stops a sync from creating duplicate lane issues, and stateSyncMode preserve_existing keeps a sync from overwriting the hand-written bodies. PRD-1261, the member and steward pilot-journey cohesion pass, is related and tracked separately.",
     "Cards and code, accepted in principle on 2026-10-17: every object card is built from four shared shapes (item row, media card, fact row, state block) at two densities; each object's card code gets one home, moved with the step that consolidates it; after the card work the cockpit renders the shared controls tuned by its own tokens, one control family at a time, which reverses part of Rules 15 and 18 and the wrapper-adoption sweep. Census of develop b30ac410f: 107 card, row and tile components (14 Shared, 64 app, 35 cockpit) on five card primitives.",
     "artifacts/design-lab.html is a hand-built mock drawn from token values; artifacts/captures are Storybook evidence from the deployed build, not authenticated-session proof.",
     "The garden-scoped Home and its switcher stay with the pwa-interface-simplification hub; only the shared look of the garden chip is in scope here.",
@@ -193,6 +193,14 @@
       "status": "scope_amended",
       "branch": null,
       "note": "Recorded the card model, the cockpit control fold-in and the one-home-per-object rule, accepted in principle; added steps 14 to 20 (fact rows, commitment cards, pickers and record cards, people rows, jar and vault cards, unused card code, cockpit controls) and filed them under PRD-1266; acceptance moved to step 21. No implementation dispatched."
+    },
+    {
+      "timestamp": "2026-10-18T03:39:45Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "scope_amended",
+      "branch": null,
+      "note": "Recorded the maintainer's revised picks of 17 October: F6 pill on both, F7 the app's cards everywhere, F11 12px. Step 7 now uses the app's card and work row with a 12px gap; step 21 adds the bottom bar's active pill; acceptance moved to step 22. No implementation dispatched."
     }
   ]
 }

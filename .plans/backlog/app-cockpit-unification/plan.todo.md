@@ -25,7 +25,8 @@ implementation task has been dispatched.
 - [x] F9 judgment point: the pick keeps Pending and Approved inline in the cockpit.
 - [x] Confirm the F9 pick against the earlier stated preference for the app's filter button.
 - [x] Say what the cockpit keeps as its own now that Material 3 no longer decides it: what the picks
-      keep (pills, 12px cards, the tone pill, inline filters, tones, density).
+      keep (pills, the tone pill, inline filters, tones, density; the 12px card went with the
+      revised F7 on 17 October).
 - [x] Decide what happens to the cockpit's Material-named token layer: the names stay, and one
       changes only if a step has to touch it.
 - [x] Set the user round: after slices land, as follow-up input. It gates nothing.
@@ -62,10 +63,10 @@ bounded change, and split a step that would mix independent behaviours.
 | 4. Count badge (F10) | `ui` | One badge recipe in Shared; the app's bar, launchers, filter count and tabs and the cockpit's tab rail consume it. | Every consumer renders the same badge; counts above 9 and 99 still fit. |
 | 5. Tabs (F8) | `ui` | The cockpit's tab rail takes the equal-width tinted layout and the shared badge. | Rendered pairs of every tab row at phone, tablet and desktop widths in three languages. |
 | 6. Chips (F4) | `ui` | Capsule chips with one selected treatment in the cockpit's filter row. The filter control keeps its form on each surface (the F9 pick). | One chip shape on both; DL-082 scopes unchanged; keyboard and screen-reader paths unchanged. |
-| 7. Cards, rows and list gap (F7, F11) | `ui` | One card surface in place of the five card primitives; the shared item row, grown from `WorkbenchRow`, first used by the work item on phones; an 8px list gap token. | Rendered pairs of every list at every width; a visible card edge in both themes. |
+| 7. Cards, rows and list gap (F7, F11) | `ui` | The app's card as the one card surface (24px, a visible edge, a faint shadow) in place of the five card primitives; the shared item row in the app's work-row style (16px, the 2px status edge), first used by the work item on phones on both surfaces; a 12px list gap token. | Rendered pairs of every list at every width; a visible card edge in both themes. |
 | 8. Wide desktop work card (F12) | `ui` | The cockpit's desktop work card lies wide with its mosaic on the left, as the first use of the shared media card; the grid's column rule follows. | Mosaic variants for no photo, one, two and three or more photos; phone widths unaffected. |
 | 9. Phone sheets (F5) | `ui` | The cockpit's phone sheet takes the shared surface, grip and header. Its centred desktop dialog does not change. | Sheet open, close, focus return and Back unchanged. |
-| 10. Fields (F3 fields) | `ui` | Outlined fields by default on both surfaces, with one label and message anatomy. Neither bottom bar changes (the F6 pick). | Field message lines do not move layout, checked with the longest Spanish and Portuguese messages. |
+| 10. Fields (F3 fields) | `ui` | Outlined fields by default on both surfaces, with one label and message anatomy. | Field message lines do not move layout, checked with the longest Spanish and Portuguese messages. |
 | 11. Empty, loading and error states | `ui` | The shared state block: one anatomy in two sizes, set by each surface's density, grown from the shared `EmptyState`. The app's own `EmptyState` and the local state cards move onto it. | Every state keeps its copy and its actions on both surfaces; rendered pairs of each state. |
 | 12. Garden context chip in the app | `ui` | Render the shared `GardenChip` on the app's density. Waits on the Home decision in the PWA simplification hub. | Selection behaviour owned by that hub; this step proves only the shared look. |
 | 13. Guides and gates | `ui` | Decision-log rows, including the retired Material 3 rule; the token version and generated design files; Storybook parity numbers; both surface guides and both prompt contracts, with the cockpit's rewritten around the app's language; the glass spec retired from the design guide; the vocabulary list. The cockpit's Material-named tokens keep their names. | The design checks and the documentation generator pass. |
@@ -76,13 +77,15 @@ bounded change, and split a step that would mix independent behaviours.
 | 18. Jar and vault cards | `ui` | The app's and the cockpit's jar, deposit and position cards on the item row or media card. The public site's cards stay editorial. | Rendered pairs of every jar and vault list in the app and the cockpit; amounts and assets read as they do today. |
 | 19. Unused card code | `ui` | Remove Shared's unused card exports (`CardBase`, its own `Card`, `StatCard`, `ProposalCardConviction`, `SortSelect`, `ListToolbar`) and `Surface`'s glass tiers once nothing renders them; rename the app's wrapper cards that share a Shared card's name. | No export without a consumer or a recorded reason; no two card components share a name. |
 | 20. Cockpit controls onto the shared family | `ui` | Phased, one family at a time: buttons and icon buttons; fields, checkboxes and chips; dialogs and sheets; cards and tabs. Each phase retires its `Admin*` files, rewrites the matching part of Rules 15 and 18, and turns the design token check's wrapper-adoption sweep around. Split into one issue per phase when scheduled. | Each phase: the cockpit renders only the shared family for its controls; density, hit areas and pill corners unchanged; the design checks pass. |
-| 21. Acceptance | `qa_pass_1`, then `qa_pass_2` | User-facing review, then an independent regression review. | Criteria in [eval.md](eval.md), with fresh receipts for the changed surfaces. |
+| 21. Bottom bar active state (F6) | `ui` | The app's bottom bar shows its active tab with a green pill behind the icon, the cockpit's recipe; each bar keeps its chrome, and the app's bar stays solid. | Rendered pairs of both bars in light and dark; labels, count badges and focus unchanged. |
+| 22. Acceptance | `qa_pass_1`, then `qa_pass_2` | User-facing review, then an independent regression review. | Criteria in [eval.md](eval.md), with fresh receipts for the changed surfaces. |
 
 Steps 1 to 3 are token edits and can land alone. Steps 4 to 11 are the shared chrome recipes and
 depend on steps 1 to 3 only for their final look, not for their structure. Step 12 depends on
 another hub. Step 13 travels with whichever step changes a pinned number. Steps 14 to 19 build each
 remaining object's cards from the four shapes, so they follow steps 7, 8 and 11, which create the
-card surface, the item row, the media card and the state block. Step 20 comes last. No contract,
+card surface, the item row, the media card and the state block. Step 20 comes after the card work.
+Step 21 is a chrome recipe like steps 4 to 11 and can land with them. No contract,
 indexer or data lane is needed; a discovered need returns to scope review.
 
 The maintainer's aim is to land as much of this sequence as fits before the Cosmo-Local
@@ -90,9 +93,9 @@ demonstration. The order above is the order to attempt it in: the token steps fi
 recipes. No step is authorized yet, and each waits on its approved pair. The release project admits
 each finished step to its release at the QA gate, or defers it.
 
-**Linear sub-issues.** Each step from 1 to 20 has its own sub-issue under PRD-1266. Steps 1 to 13
+**Linear sub-issues.** Each step from 1 to 21 has its own sub-issue under PRD-1266. Steps 1 to 13
 are PRD-1267 to PRD-1279 in order. Steps 14 to 20 are PRD-1280, PRD-1281, PRD-1283, PRD-1284,
-PRD-1285, PRD-1286 and PRD-1287; PRD-1282 belongs to other work. Step 12 is blocked by RESR-93,
+PRD-1285, PRD-1286 and PRD-1287; PRD-1282 belongs to other work. Step 21 is PRD-1288. Step 12 is blocked by RESR-93,
 the PWA simplification scope decision. Acceptance runs under the parent. PRD-1261, the bounded pass
 that aligns the member promise and work journey with its steward review, applies the accepted
 direction to those journeys and is tracked separately.
@@ -101,8 +104,8 @@ direction to those journeys and is tracked separately.
 
 | Requirement | Planned steps |
 |---|---|
-| R1 no layout or flow change | Every step; checked in step 21 |
-| R2 one product | 1 to 11 |
+| R1 no layout or flow change | Every step; checked in step 22 |
+| R2 one product | 1 to 11, 21 |
 | R3 a dialect per surface | 1 to 11, by leaving the dials alone |
 | R4 shared elements through tokens | 3 to 12 |
 | R5 the accepted forks F7 to F13 | 2, 4 to 8 |

@@ -48,13 +48,14 @@ questions about how the choices stand. The full record is in
   components is approved. Until then it is direction, not a specification.
 - **The cockpit's Material 3 rule is retired.** The cockpit becomes the app's language at a denser
   setting, and its guide and prompt contract are to be rewritten around that.
-- **Eleven of the fourteen picks match the recommendation.** Three do not: the bottom bar keeps each
-  surface's active state (F6), the filter control stays as it is on each surface (F9), and the list
-  gap is 8px, not 12px (F11).
+- **Twelve of the fourteen picks match the recommendation.** Two do not: the app's cards go
+  everywhere (F7), and the filter control stays as it is on each surface (F9). A revised set of
+  picks on 17 October changed three forks: the bottom bar takes the pill on both (F6), cards follow
+  the app (F7), and the list gap is 12px (F11).
 - **The F9 pick reverses item 6 and was confirmed.** Item 6 above preferred the app's filter button.
   The pick keeps the cockpit's inline chips, and the maintainer confirmed it when asked.
-- **What the picks keep stays the cockpit's own.** Its pills, its 12px cards, its tone pill and its
-  inline filters remain by choice, no longer on Material 3's authority.
+- **What the picks keep stays the cockpit's own.** Its pills, its tone pill and its inline filters
+  remain by choice, no longer on Material 3's authority. Its 12px card goes with the revised F7.
 - **Four changes without a fork are accepted on the same terms.** A green focus ring in the app,
   one empty, loading and error anatomy, one set of type role names, and the unused glass spec
   retired.
@@ -75,12 +76,11 @@ questions about how the choices stand. The full record is in
 
 One language, with the cockpit as its denser setting. Both surfaces share Plus Jakarta Sans, the
 linen ground with white cards, one warm dark ladder with the card a step lighter, capsule chips, the
-app's equal-width tabs, one count badge, one card surface and work-item anatomy, an 8px list gap, a
-control-grade outline with outlined fields, one focus role, one empty-state anatomy, one set of
-type role names, and the phone sheet surface and header. Each surface
-keeps its density, its button and card corners, the active state of its bottom bar, its filter
-control, its motion and its navigation chrome. The cockpit keeps a tone per workspace and gains the
-wide desktop work card.
+app's equal-width tabs, one count badge, the app's cards and work rows with a 12px list gap, the
+pill behind the active bottom-bar icon, a control-grade outline with outlined fields, one focus
+role, one empty-state anatomy, one set of type role names, and the phone sheet surface and header.
+Each surface keeps its density, its button corners, its filter control, its motion and its
+navigation chrome. The cockpit keeps a tone per workspace and gains the wide desktop work card.
 
 ## Scope and boundaries
 
