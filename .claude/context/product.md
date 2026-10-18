@@ -10,17 +10,17 @@ Verified, low-friction impact capture + standardized reporting + funding primiti
 
 Green Goods is the verified impact operations layer for community-led regeneration -- capture evidence in the field, validate it locally, export funder-ready impact reporting with cryptographic public verification.
 
-## User Archetypes (Priority Order)
+## Personas (Priority Order)
 
-| # | Archetype | What They Want | Primary Constraint | Tech Comfort |
-|---|-----------|----------------|-------------------|--------------|
+| # | Persona | What They Want | Primary Constraint | Tech Comfort |
+|---|---------|----------------|-------------------|--------------|
 | 1 | **Gardener** | Rewards, recognition, impact visibility | Low connectivity, low patience for forms | None assumed |
 | 2 | **Garden Steward** | Find opportunities/resources for community | Admin overhead, reporting burden | Moderate |
 | 3 | **Evaluator** | Uphold expertise, iterate methodologies, gather research insights | Time, domain complexity | Moderate-high |
 | 4 | **Funder** | Verified impact for funding confidence | Budget/allocation strategy, trust | Varies |
 | 5 | **Community Member** | Community improvements, better resources | Awareness, access | None assumed |
 
-**Decision rule:** When two archetypes conflict, resolve in priority order. Gardener experience wins unless doing so blocks Steward onboarding (Stewards are the distribution channel).
+**Decision rule:** When two personas conflict, resolve in priority order. Gardener experience wins unless doing so blocks Steward onboarding (Stewards are the distribution channel).
 
 ### Persona & Tone Quick-Reference
 
