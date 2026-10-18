@@ -381,12 +381,12 @@ Decided on 2026-09-02 by the steward: the guild-level research synthesis is reti
 
 **Done from the session.** A new trigger, `trig_01Wkc4tG6XTgRkw7R23Kc57a` (**Green Goods Research Synthesis**, environment `guild-routines`, cron `0 0 * * 6`, next fire Saturday 2026-09-05 shortly after 00:00 UTC; the platform anchors the exact minute), carries the pointer prompt above. The pointer clones this repository when the trigger carries no green-goods checkout, so the trigger needs no source configuration. The old guild trigger, `trig_01AVZbVmfUjHcVLbKzsurhyb` (**Dev Guild Research Synthesis**), could not be changed from the session: the routines API refuses agent edits to routines a person created.
 
-**Still needed in the routines UI, before Saturday 2026-09-05 00:00 UTC.**
+**UI steps from the migration, as of 2026-10-17.** Steps 1 and 4 are done. Steps 2 and 3 could not be checked from the session's account, where the routines API returns not found for the v3 trigger.
 
-1. On **Green Goods Research Synthesis**: set the model to **`claude-fable-5`** (the API left it on the platform default; a routine left there silently runs the wrong tier). The Google Drive and Linear connectors were attached in the UI on 2026-09-02 (PostHog and Miro are attached too and unused). Bash, Read, Glob, Grep, and WebFetch are already allowed, so the clone, the outside pass, and the Discord REST calls can run. Optionally add `greenpill-dev-guild/green-goods` as a source to skip the clone.
+1. Done: **Green Goods Research Synthesis** runs `claude-fable-5-1`, the model its frontmatter names. The Google Drive and Linear connectors were attached in the UI on 2026-09-02 (PostHog and Miro are attached too and unused). Bash, Read, Glob, Grep, and WebFetch are already allowed, so the clone, the outside pass, and the Discord REST calls can run. Optionally add `greenpill-dev-guild/green-goods` as a source to skip the clone.
 2. **Disable** **Dev Guild Research Synthesis**. Until it is disabled, both routines fire on Saturday and `#research` gets a v3 digest and a v4 digest.
 3. Re-authorize the Linear connector; the 2026-08-29 run failed closed on an expired authorization.
-4. Merge this spec and `research-agenda.md` to `develop`; the pointer clones the default branch, and without them the first run fails closed with a one-line post rather than improvising.
+4. Done: this spec and `research-agenda.md` are on `develop`, the default branch the pointer clones.
 
 Watch the first fire. Under house style v2 a quiet week is one line, so a Saturday with no line at all means the transcript needs checking (a Fable decline looks identical to a quiet run).
 
