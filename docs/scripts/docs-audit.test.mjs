@@ -327,7 +327,7 @@ Requests stop at pre-disbursement Cancelled.
     // Code indented inside a list item is code, and a link definition shows only its title.
     writeFileSync(
       design,
-      `${indentedCode}${designLinks}\nA grey border marks the field.\n\n- A list item\n    keeps a grey continuation.\n\n- An item with code\n\n      cancelled in an indented block inside the item\n\n[guide]: ./grey "Garden guide"\n[ref]: ./x "The favourite ref"\n\nThe <code>cancelled</code> state stays a name.\n\nSee <img ALT="A favourite logo" src="x.png"> here.\n`,
+      `${indentedCode}${designLinks}\nA grey border marks the field.\n\n- A list item\n    keeps a grey continuation.\n\n- An item with code\n\n      cancelled in an indented block inside the item\n\n[guide]: ./grey "Garden guide"\n[ref]: ./x "The favourite ref"\n\nThe <code>cancelled</code> state stays a name.\n\nSee <img ALT="A favourite logo" src="x.png"> here.\n\nA <img alt="The grey > the rest" src="x.png"> tag.\n\nAn <img alt=favourite src=x.png> tag.\n\nAn <img data-note="alt=grey" src="x.png"> keeps its note a name.\n`,
     );
     // Starting a sentence, a member is copy.
     const generatedDirty = `${readFileSync(generated, "utf8")}\nThe cycle was cancelled.\nCancelled requests remain visible.\n`;
@@ -371,11 +371,14 @@ Requests stop at pre-disbursement Cancelled.
     assert.doesNotMatch(result.stderr, /DESIGN\.md: UK spelling on line 3:/);
     assert.match(result.stderr, /DESIGN\.md: UK spelling on line 17: "favourite"/);
     assert.match(result.stderr, /DESIGN\.md: UK spelling on line 21: "favourite"/);
+    // A quoted value can hold ">" or "alt=", and a value can go unquoted.
+    assert.match(result.stderr, /DESIGN\.md: UK spelling on line 23: "grey"/);
+    assert.match(result.stderr, /DESIGN\.md: UK spelling on line 25: "favourite"/);
     const cancelledLine = generatedLineOf("The cycle was cancelled.");
     assert.match(result.stderr, new RegExp(`reference/generated\\.mdx: UK spelling on line ${cancelledLine}: "cancelled".* Fix it in the source this page is generated from\\.`));
     const sentenceStart = generatedLineOf("Cancelled requests remain visible.");
     assert.ok(result.stderr.includes(`reference/generated.mdx: UK spelling on line ${sentenceStart}: "Cancelled"`), result.stderr);
-    assert.equal(result.stderr.match(/UK spelling/g)?.length, 20, result.stderr);
+    assert.equal(result.stderr.match(/UK spelling/g)?.length, 22, result.stderr);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -455,6 +458,48 @@ test("UK spelling in docs component copy exits nonzero, while names stay free", 
       "  return <p>Visible</p>;",
       "}",
       "",
+      "// A spread passes its properties as props, a declaration's call renders what it returns, a named",
+      "// callback renders like an inline one, and injected HTML renders its text but not its code.",
+      'const answerProps = { question: "A grey spread question", tone: "grey" };',
+      "function formatLabel(value: string) {",
+      "  return value;",
+      "}",
+      "function rowLabel() {",
+      '  return "A cancelled named row";',
+      "}",
+      "export function Extras({ rows }: { rows: string[] }) {",
+      "  return (",
+      "    <div>",
+      "      <Answer {...answerProps} />",
+      '      {formatLabel("A favourite formatted label")}',
+      "      {rows.map(rowLabel)}",
+      '      <div dangerouslySetInnerHTML={{ __html: "<p>A grey injected note</p><code>grey-code</code>" }} />',
+      "    </div>",
+      "  );",
+      "}",
+      "",
+      "// A component that keeps its props whole renders the ones it reads.",
+      "export function Card(props: { question: string; caption: string; tone: string }) {",
+      "  const { caption } = props;",
+      "  return (",
+      "    <details data-tone={props.tone}>",
+      "      <summary>{props.question}</summary>",
+      "      {caption}",
+      "    </details>",
+      "  );",
+      "}",
+      "",
+      "// Data imported from another module is read where that module defines it.",
+      'import { colors, ids, labels } from "../../data/labels";',
+      "export function List() {",
+      "  return (",
+      "    <ul>",
+      "      {labels.map((label, index) => <li key={ids[index]}>{label}</li>)}",
+      "      {colors.map((color) => <li key={color.hex}>{color.name}</li>)}",
+      "    </ul>",
+      "  );",
+      "}",
+      "",
     ].join("\n");
     mkdirSync(path.join(root, "docs/src/components/docs"), { recursive: true });
     writeFileSync(path.join(root, "docs/src/components/docs/Sample.tsx"), component);
@@ -476,15 +521,44 @@ test("UK spelling in docs component copy exits nonzero, while names stay free", 
         "",
       ].join("\n"),
     );
+    // A module's exports are read where a component or a page renders them, through a re-export too.
+    mkdirSync(path.join(root, "docs/src/data"), { recursive: true });
+    writeFileSync(
+      path.join(root, "docs/src/data/labels.ts"),
+      'export const labels = ["A cancelled list label"];\nexport const ids = ["grey-id"];\nexport const pageNote = "A favourite page note";\nexport const colors = [{ name: "Warm grey", hex: "#cccccc" }];\n',
+    );
+    writeFileSync(path.join(root, "docs/src/components/docs/index.ts"), 'export { pageNote } from "../../data/labels";\n');
+    // A default import names the component its module exports.
+    writeFileSync(
+      path.join(root, "docs/src/components/docs/Panel.tsx"),
+      "export default function Panel({ question }: { question: string }) {\n  return <p>{question}</p>;\n}\n",
+    );
     const page = path.join(root, "docs/docs/builders/test.mdx");
     // An import alias names the same component, so <Reply> renders Answer's question.
     writeFileSync(
       page,
       `${readFileSync(page, "utf8")}\n<Answer question="Why is the favourite grey?" tone="grey" />\n\nimport {Answer as Reply} from "@site/src/components/docs";\n\n<Reply question="A grey reply" tone="grey" />\n`,
     );
+    const extras = [
+      'import Box from "@site/src/components/docs/Panel";',
+      'import {pageNote} from "@site/src/components/docs";',
+      "",
+      '<Card question="A favourite card question" caption="A cancelled card caption" tone="grey" />',
+      "",
+      '<Answer {...{question: "A favourite spread question", tone: "grey"}} />',
+      "",
+      '<Box question="A grey box question" />',
+      "",
+      '<div dangerouslySetInnerHTML={{__html: "<p>A favourite injected page note</p>"}} />',
+      "",
+      "{pageNote}",
+      "",
+    ];
+    writeFileSync(page, `${readFileSync(page, "utf8")}\n${extras.join("\n")}`);
     const pageLines = readFileSync(page, "utf8").split("\n");
     const pageLine = pageLines.indexOf('<Answer question="Why is the favourite grey?" tone="grey" />') + 1;
     const replyLine = pageLines.indexOf('<Reply question="A grey reply" tone="grey" />') + 1;
+    const extraLine = (text) => pageLines.indexOf(text) + 1;
     // A JSON file is read for the fields its importers render: Palette shows a color's name and role,
     // keys rows by id and shows hex as code.
     mkdirSync(path.join(root, "docs/src/data"), { recursive: true });
@@ -550,6 +624,10 @@ test("UK spelling in docs component copy exits nonzero, while names stay free", 
       ["A grey blank", "grey"],
       ["A cancelled empty label", "cancelled"],
       ["A favourite shown caption", "favourite"],
+      ["A grey spread question", "grey"],
+      ["A favourite formatted label", "favourite"],
+      ["A cancelled named row", "cancelled"],
+      ["A grey injected note", "grey"],
     ]) {
       assert.ok(result.stderr.includes(`docs/src/components/docs/Sample.tsx: UK spelling on line ${lineOf(text)}: "${word}"`), result.stderr);
     }
@@ -564,7 +642,23 @@ test("UK spelling in docs component copy exits nonzero, while names stay free", 
     assert.ok(result.stderr.includes('docs/src/data/palette.json: UK spelling on line 3: "grey"'), result.stderr);
     assert.ok(result.stderr.includes('docs/src/data/palette.json: UK spelling on line 3: "favourite"'), result.stderr);
     assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${noticeLine}: "favourite"`), result.stderr);
-    assert.equal(result.stderr.match(/UK spelling/g)?.length, 29, result.stderr);
+    // Card reads question and caption from its props object and keeps tone a name.
+    const cardLine = extraLine('<Card question="A favourite card question" caption="A cancelled card caption" tone="grey" />');
+    assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${cardLine}: "favourite"`), result.stderr);
+    assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${cardLine}: "cancelled"`), result.stderr);
+    assert.ok(!result.stderr.includes(`builders/test.mdx: UK spelling on line ${cardLine}: "grey"`), result.stderr);
+    for (const [text, word] of [
+      ['<Answer {...{question: "A favourite spread question", tone: "grey"}} />', "favourite"],
+      ['<Box question="A grey box question" />', "grey"],
+      ['<div dangerouslySetInnerHTML={{__html: "<p>A favourite injected page note</p>"}} />', "favourite"],
+    ]) {
+      assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${extraLine(text)}: "${word}"`), result.stderr);
+    }
+    assert.ok(result.stderr.includes('docs/src/data/labels.ts: UK spelling on line 1: "cancelled"'), result.stderr);
+    assert.ok(result.stderr.includes('docs/src/data/labels.ts: UK spelling on line 3: "favourite"'), result.stderr);
+    // Like JSON, exported data is read for the fields its importers render: List shows a color's name.
+    assert.ok(result.stderr.includes('docs/src/data/labels.ts: UK spelling on line 4: "grey"'), result.stderr);
+    assert.equal(result.stderr.match(/UK spelling/g)?.length, 41, result.stderr);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
