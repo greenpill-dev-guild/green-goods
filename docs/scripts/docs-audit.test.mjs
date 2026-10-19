@@ -439,6 +439,15 @@ test("UK spelling in docs component copy exits nonzero, while names stay free", 
       'const trigger = document.createElement("button");',
       'trigger.textContent = "Grey expand";',
       "",
+      "// A component renders what it returns, and a destructured local reads its part of the value.",
+      'export function Empty() { return "No favourite items"; }',
+      'const Blank = () => "A grey blank";',
+      "export function Labels() {",
+      '  const [emptyLabel] = ["A cancelled empty label"];',
+      '  const { caption: shown } = { caption: "A favourite shown caption" };',
+      "  return <p>{emptyLabel} {shown}</p>;",
+      "}",
+      "",
     ].join("\n");
     mkdirSync(path.join(root, "docs/src/components/docs"), { recursive: true });
     writeFileSync(path.join(root, "docs/src/components/docs/Sample.tsx"), component);
@@ -461,8 +470,28 @@ test("UK spelling in docs component copy exits nonzero, while names stay free", 
       ].join("\n"),
     );
     const page = path.join(root, "docs/docs/builders/test.mdx");
-    writeFileSync(page, `${readFileSync(page, "utf8")}\n<Answer question="Why is the favourite grey?" tone="grey" />\n`);
-    const pageLine = readFileSync(page, "utf8").split("\n").indexOf('<Answer question="Why is the favourite grey?" tone="grey" />') + 1;
+    // An import alias names the same component, so <Reply> renders Answer's question.
+    writeFileSync(
+      page,
+      `${readFileSync(page, "utf8")}\n<Answer question="Why is the favourite grey?" tone="grey" />\n\nimport {Answer as Reply} from "@site/src/components/docs";\n\n<Reply question="A grey reply" tone="grey" />\n`,
+    );
+    const pageLines = readFileSync(page, "utf8").split("\n");
+    const pageLine = pageLines.indexOf('<Answer question="Why is the favourite grey?" tone="grey" />') + 1;
+    const replyLine = pageLines.indexOf('<Reply question="A grey reply" tone="grey" />') + 1;
+    // The site's configuration and sidebar labels are copy; their routes and URLs are names.
+    writeFileSync(
+      path.join(root, "docs/docusaurus.config.ts"),
+      [
+        "export default {",
+        '  title: "Green Goods",',
+        '  tagline: "A favourite tagline",',
+        "  redirects: [{ from: '/old', to: '/reference/product-history#version-1-0' }],",
+        '  themeConfig: { navbar: { items: [{ label: "Grey guides", href: "https://example.com/grey" }] } },',
+        "};",
+        "",
+      ].join("\n"),
+    );
+    writeFileSync(path.join(root, "docs/sidebars.ts"), 'export default [{ type: "category", label: "Favourite guides", items: [\'builders/test\'] }];\n');
     // JSON data a component renders is read for its copy-named fields; a generated file names its source.
     mkdirSync(path.join(root, "docs/src/data"), { recursive: true });
     writeFileSync(path.join(root, "docs/src/data/paths.json"), '{\n  "items": [\n    { "title": "Favourite paths", "href": "/grey" }\n  ]\n}\n');
@@ -490,6 +519,10 @@ test("UK spelling in docs component copy exits nonzero, while names stay free", 
       ["A cancelled question", "cancelled"],
       ["Zoom to the favourite view", "favourite"],
       ["Grey expand", "Grey"],
+      ["No favourite items", "favourite"],
+      ["A grey blank", "grey"],
+      ["A cancelled empty label", "cancelled"],
+      ["A favourite shown caption", "favourite"],
     ]) {
       assert.ok(result.stderr.includes(`docs/src/components/docs/Sample.tsx: UK spelling on line ${lineOf(text)}: "${word}"`), result.stderr);
     }
@@ -497,7 +530,11 @@ test("UK spelling in docs component copy exits nonzero, while names stay free", 
     assert.match(result.stderr, /docs\/src\/data\/generated\.json: UK spelling on line 3: "Cancelled".* Fix it in the source this file is generated from\./);
     assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${pageLine}: "favourite"`), result.stderr);
     assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${pageLine}: "grey"`), result.stderr);
-    assert.equal(result.stderr.match(/UK spelling/g)?.length, 18, result.stderr);
+    assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${replyLine}: "grey"`), result.stderr);
+    assert.ok(result.stderr.includes('docs/docusaurus.config.ts: UK spelling on line 3: "favourite"'), result.stderr);
+    assert.ok(result.stderr.includes('docs/docusaurus.config.ts: UK spelling on line 5: "Grey"'), result.stderr);
+    assert.ok(result.stderr.includes('docs/sidebars.ts: UK spelling on line 1: "Favourite"'), result.stderr);
+    assert.equal(result.stderr.match(/UK spelling/g)?.length, 26, result.stderr);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

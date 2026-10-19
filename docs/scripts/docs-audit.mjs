@@ -596,7 +596,7 @@ const isFunction = (node) => node?.type === "ArrowFunctionExpression" || node?.t
 const ownsReturns = (node) => isFunction(node) || ["FunctionDeclaration", "ObjectMethod", "ClassMethod", "ClassPrivateMethod"].includes(node.type);
 const propertyKey = (property) => (property.key.type === "Identifier" ? property.key.name : property.key.value);
 // Copy-named properties hold copy, in component data, JSON data and the props a page passes.
-const copyKeys = new Set([...readableAttributes, "body", "caption", "description", "display", "heading", "help", "hint", "message", "note", "subtitle", "summary", "text", "tooltip"]);
+const copyKeys = new Set([...readableAttributes, "body", "caption", "description", "display", "heading", "help", "hint", "message", "note", "subtitle", "summary", "tagline", "text", "tooltip", "copyright"]);
 const calleeName = (call) =>
   call?.type === "CallExpression" ? (call.callee.type === "MemberExpression" ? call.callee.property.name : call.callee.name) : undefined;
 // A module's simple bindings, by name: const and let initializers, the initial value of a useState
@@ -626,13 +626,37 @@ const collectBindings = (program) => {
       if (property.value.type === "AssignmentPattern") bind(local.name, property.value.right);
     }
   };
+  // A destructured local takes the matching element or property of its initializer, or the whole
+  // initializer when that is not a literal array or object.
+  const destructure = (pattern, value) => {
+    if (!pattern || !value) return;
+    if (pattern.type === "Identifier") bind(pattern.name, value);
+    if (pattern.type === "AssignmentPattern") {
+      destructure(pattern.left, value);
+      destructure(pattern.left, pattern.right);
+    }
+    if (pattern.type === "ArrayPattern") {
+      pattern.elements.forEach((element, index) =>
+        destructure(element, value.type === "ArrayExpression" ? value.elements[index] : value),
+      );
+    }
+    if (pattern.type === "ObjectPattern") {
+      for (const property of pattern.properties) {
+        if (property.type !== "ObjectProperty") continue;
+        const match = value.type === "ObjectExpression"
+          ? value.properties.find((candidate) => candidate.type === "ObjectProperty" && propertyKey(candidate) === propertyKey(property))
+          : null;
+        destructure(property.value, match ? match.value : value);
+      }
+    }
+  };
   walkTree(program, (node) => {
     if (node.type === "FunctionDeclaration" && node.id) functions.set(node.id.name, node);
     if (node.type !== "VariableDeclarator" || !node.init) return;
-    if (node.id.type === "Identifier") bind(node.id.name, node.init);
     if (node.id.type === "Identifier" && isFunction(node.init)) functions.set(node.id.name, node.init);
     const [state] = node.id.type === "ArrayPattern" ? node.id.elements : [];
     if (state?.type === "Identifier" && calleeName(node.init) === "useState") bind(state.name, node.init.arguments[0]);
+    else destructure(node.id, node.init);
   });
   for (const [name, fn] of functions) propsOf(name, fn);
   walkTree(program, (node) => {
@@ -644,6 +668,19 @@ const collectBindings = (program) => {
   });
   return bindings;
 };
+// Local names a module gives imported components, such as Answer for {QuickAnswer as Answer}.
+const importAliases = (program) => {
+  const aliases = new Map();
+  for (const statement of program.body) {
+    if (statement.type !== "ImportDeclaration") continue;
+    for (const specifier of statement.specifiers) {
+      const imported = specifier.imported?.name ?? specifier.imported?.value;
+      if (specifier.type === "ImportSpecifier" && imported) aliases.set(specifier.local.name, imported);
+    }
+  }
+  return aliases;
+};
+const isComponentName = (name) => /^[A-Z]/.test(name ?? "");
 // The props each docs component renders, by component name, as its source shows them; a page or a
 // component that passes one of these props passes copy.
 const renderedProps = new Map();
@@ -651,8 +688,9 @@ const renderedPropCount = () => [...renderedProps.values()].reduce((count, props
 let renderedPropsVersion = 0;
 // DOM properties a reader sees, so element.textContent = label renders label.
 const domCopyProperties = new Set(["textContent", "innerText", "title", "alt", "placeholder", "label", "ariaLabel", "ariaDescription"]);
-// Readers for one module: renderedStrings and componentCopy, resolving names through its bindings.
-const copyReaders = (bindings = new Map()) => {
+// Readers for one module: renderedStrings and componentCopy, resolving names through its bindings
+// and the components it imports under other names through its aliases.
+const copyReaders = (bindings = new Map(), aliases = new Map()) => {
   // A bound value can be reached through many names and calls, so what it renders is worked out once.
   const resolving = new Set();
   const resolved = new Map();
@@ -667,7 +705,7 @@ const copyReaders = (bindings = new Map()) => {
   const elementStrings = (node, emit, read) => {
     if (node.type === "JSXOpeningElement") {
       for (const attribute of node.attributes) {
-        if (attribute.type === "JSXAttribute") attributeStrings(attribute, emit, jsxName(node.name));
+        if (attribute.type === "JSXAttribute") attributeStrings(attribute, emit, aliases.get(jsxName(node.name)) ?? jsxName(node.name));
       }
       return true;
     }
@@ -804,6 +842,19 @@ const copyReaders = (bindings = new Map()) => {
         if (!returnsRender) break;
         renderedStrings(node.argument, emit);
         return;
+      // A component, by React's capitalized name or as a module's default export, renders its returns.
+      case "FunctionDeclaration":
+        if (!isComponentName(node.id?.name)) break;
+        callbackStrings(node, emit);
+        return;
+      case "VariableDeclarator":
+        if (node.id.type !== "Identifier" || !isComponentName(node.id.name) || !isFunction(node.init)) break;
+        callbackStrings(node.init, emit);
+        return;
+      case "ExportDefaultDeclaration":
+        if (node.declaration.type !== "FunctionDeclaration" && !isFunction(node.declaration)) break;
+        callbackStrings(node.declaration, emit);
+        return;
       case "ObjectProperty":
         if (isCopyProperty(node)) renderedStrings(node.value, emit);
         else componentCopy(node.value, emit, returnsRender);
@@ -872,13 +923,25 @@ const ukSpellingsIn = (text, {identifiers = new Set(), commonMark = false} = {})
   const {found, check} = spellingCollector(identifiers);
   const tree = (commonMark ? commonMarkGuide : mdxPage).parse(text.replace(notMdx, blankKeepingLines));
   const lineOf = (node) => node.position?.start.line ?? 1;
+  const pageAliases = new Map();
+  for (const node of tree.children) {
+    if (node.type !== "mdxjsEsm") continue;
+    try {
+      for (const [local, imported] of importAliases(parseModule(node.value, {sourceType: "module", plugins: ["jsx"]}).program)) {
+        pageAliases.set(local, imported);
+      }
+    } catch {
+      // The docs build reports an import it cannot parse.
+    }
+  }
   const readAttributes = (element) => {
     for (const attribute of element.attributes ?? []) {
       if (attribute.type !== "mdxJsxAttribute") continue;
       const line = attribute.position?.start.line ?? lineOf(element);
       const expression = attribute.value?.type === "mdxJsxAttributeValueExpression" ? attribute.value.value : null;
       // A readable attribute is copy, and so is a prop the component renders, such as a question.
-      if (readableAttributes.includes(attribute.name) || renderedProps.get(element.name)?.has(attribute.name)) {
+      const component = pageAliases.get(element.name) ?? element.name;
+      if (readableAttributes.includes(attribute.name) || renderedProps.get(component)?.has(attribute.name)) {
         if (typeof attribute.value === "string") check(attribute.value, line);
         else if (expression !== null) expressionStrings(expression, line, check);
       } else if (expression !== null) {
@@ -998,16 +1061,20 @@ for (const filePath of guideFiles) {
 // render, read like component data. Tests render nothing. A generated data file is read at its
 // source when this audit reads that source, and otherwise read itself, its errors naming the source.
 const relativeToRepo = (filePath) => path.relative(repoRoot, filePath).replace(/\\/g, "/");
-const docsSourceFiles = (await walkAllFiles(path.resolve(repoRoot, "docs/src"))).filter(
-  (filePath) => /\.(?:jsx?|tsx?|json)$/.test(filePath) && !/\.(?:test|spec)\.|[\\/]__tests__[\\/]/.test(filePath),
-);
+const docsSourceFiles = [
+  ...(await walkAllFiles(path.resolve(repoRoot, "docs/src"))).filter(
+    (filePath) => /\.(?:jsx?|tsx?|json)$/.test(filePath) && !/\.(?:test|spec)\.|[\\/]__tests__[\\/]/.test(filePath),
+  ),
+  // The site title, tagline, navbar and footer labels, and the sidebar's labels are copy too.
+  ...[docusaurusConfigPath, sidebarsPath].filter(existsSync),
+];
 const auditedSources = new Set([...guideFiles, ...docsSourceFiles.filter((filePath) => !filePath.endsWith(".json"))].map(relativeToRepo));
 const parsedModules = new Map();
 for (const filePath of docsSourceFiles.filter((file) => !file.endsWith(".json"))) {
   const plugins = filePath.endsWith(".ts") ? ["typescript"] : filePath.endsWith(".tsx") ? ["typescript", "jsx"] : ["jsx"];
   try {
     const {program} = parseModule(await fs.readFile(filePath, "utf8"), {sourceType: "module", plugins});
-    parsedModules.set(filePath, {program, readers: copyReaders(collectBindings(program))});
+    parsedModules.set(filePath, {program, readers: copyReaders(collectBindings(program), importAliases(program))});
   } catch (error) {
     warn(relativeToRepo(filePath), `Skipped the US-spelling check, since the file does not parse: ${error.message}`);
   }
