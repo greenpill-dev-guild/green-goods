@@ -20,7 +20,7 @@
   },
   "linear": {
     "parentIssue": "PRD-1293",
-    "project": "Green Goods v2.1.0 QA & Release",
+    "project": null,
     "initiative": null,
     "syncDirection": "plans_to_linear_visibility",
     "lastSyncedAt": null,
@@ -37,7 +37,8 @@
     "Mark unused lanes as n/a before promoting QA.",
     "status.json is authoritative; set a concrete <type>/<work-description> branch only when work begins.",
     "Use targeted bun run test or bun run test as the iterative gate for the touched surface; coverage is scheduled or pre-merge evidence.",
-    ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist."
+    ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist.",
+    "linear.project stays null: release projects rotate, so the active one is looked up at write time, never persisted (Codex on #1138)."
   ],
   "lanes": {
     "ui": {
