@@ -217,7 +217,7 @@ describe("QA report rendering", () => {
     const report = renderReport(model(cases, [shard("Afo", entries)]), { kinds: KINDS }, { variant: "private" });
 
     expect(report).toContain(
-      "## Results by priority\n- P0: 5/7 — 3 pass · 1 fail · 1 blocked\n- P1: 5/9 — 1 pass · 1 fail · 1 blocked · 1 n/a · 1 noted only\n- P2: 0/2\n",
+      "## Results by priority\n- P0: 5/7 (3 pass · 1 fail · 1 blocked)\n- P1: 5/9 (1 pass · 1 fail · 1 blocked · 1 n/a · 1 noted only)\n- P2: 0/2\n",
     );
   });
 
@@ -233,7 +233,7 @@ describe("QA report rendering", () => {
       { variant: "public" },
     );
 
-    expect(report).toContain("## Results by kind\n- Journey: 1/1 — 1 fail\n- Transaction: 0/1\n- Content & vocabulary: 1/1 — 1 pass\n");
+    expect(report).toContain("## Results by kind\n- Journey: 1/1 (1 fail)\n- Transaction: 0/1\n- Content & vocabulary: 1/1 (1 pass)\n");
   });
 
   it("keeps notes and testers private, and lets no label, note, or address into the public variant", () => {
@@ -246,10 +246,10 @@ describe("QA report rendering", () => {
     const privateReport = renderReport(model(cases, shards), { kinds: KINDS }, { variant: "private" });
     const publicReport = renderReport(model(cases, shards), { kinds: KINDS }, { variant: "public" });
 
-    expect(privateReport).toContain("- `PUB-001` · P0 · Journey · Garden Discovery — Fail — Afo: wallet 0xdeadbeef prompted twice");
+    expect(privateReport).toContain("- `PUB-001` · P0 · Journey · Garden Discovery · Fail · Afo: wallet 0xdeadbeef prompted twice");
     expect(privateReport).toContain("- Afo: 1 touched · 1 decided");
     expect(privateReport).toContain("- 0x1234…5678: 1 touched · 1 decided");
-    expect(publicReport).toContain("- `PUB-001` · P0 · Journey · Garden Discovery — Fail\n");
+    expect(publicReport).toContain("- `PUB-001` · P0 · Journey · Garden Discovery · Fail\n");
     expect(publicReport).toContain("## Testers\n- 2 testers\n");
     for (const secret of ["Afo", "0x", "prompted twice"]) expect(publicReport).not.toContain(secret);
   });
@@ -426,7 +426,7 @@ describe("QA report delta and gaps", () => {
 
   it("names the missing baseline instead of faking a delta", () => {
     const report = renderReport(model([makeCase()], []), { kinds: KINDS }, { variant: "public" });
-    expect(report).toContain("## Delta\n- No baseline supplied — pass --previous <earlier qa-state.json> to compare.\n");
+    expect(report).toContain("## Delta\n- No baseline supplied. Pass --previous <earlier qa-state.json> to compare.\n");
   });
 
   it("groups never-walked cases by priority and measures staleness from the window end", () => {
@@ -443,7 +443,7 @@ describe("QA report delta and gaps", () => {
     });
     const report = renderReport(built, { kinds: KINDS }, { variant: "public" });
     expect(report).toContain("## Coverage gaps\n- Never walked this session: P0 (1) · P1 (1)\n- P0 not walked: `PUB-002`\n");
-    expect(report).toContain("- Stale (>30 days by entry timestamp) (1): `PUB-002` — last entry 2026-07-01T12:00:00.000Z\n");
+    expect(report).toContain("- Stale (>30 days by entry timestamp) (1): `PUB-002` (last entry 2026-07-01T12:00:00.000Z)\n");
   });
 });
 
@@ -465,7 +465,7 @@ describe("QA report skipped cases", () => {
     expect(model.issues.map((issue) => issue.id)).toEqual(["PUB-003"]);
     expect(model.skipped).toEqual({ ids: ["PUB-001", "PUB-003"], excluded: 1 });
     const report = renderReport(model, { kinds: KINDS }, { variant: "private" });
-    expect(report).toContain("Skipped: `PUB-001`, `PUB-003` — recorded N/A during the walk; 1 in-window entry set aside");
+    expect(report).toContain("Skipped (recorded N/A during the walk): `PUB-001`, `PUB-003`; 1 in-window entry set aside");
     expect(buildReportModel(cases, merged, options).skipped).toEqual({ ids: [], excluded: 0 });
     expect(() => buildReportModel(cases, merged, { ...options, skipped: ["PUB-999"] })).toThrow(/--skipped.*PUB-999/);
   });
@@ -567,7 +567,7 @@ describe("QA report CLI", () => {
     const publicReport = readFileSync(written.publicReport as string, "utf8");
     expect(privateReport).toContain("QA session 2026-09-02");
     expect(privateReport).toContain("PRIVATE NOTE CANARY");
-    expect(privateReport).toContain("- P0: 1/1 — 1 fail");
+    expect(privateReport).toContain("- P0: 1/1 (1 fail)");
     expect(publicReport).not.toContain("PRIVATE NOTE CANARY");
     expect(publicReport).not.toContain("Afo");
   });
@@ -644,7 +644,7 @@ describe("QA report review hardening", () => {
       { kinds: KINDS },
       { variant: "private" },
     );
-    expect(report).toContain("— Fail — Afo / Gui: first line / ## Forged heading / - forged item");
+    expect(report).toContain("· Fail · Afo / Gui: first line / ## Forged heading / - forged item");
     expect(report).not.toMatch(/^## Forged heading$/m);
     expect(report).not.toMatch(/^- forged item$/m);
     expect(report).toContain("- Afo / Gui: 1 touched · 1 decided");
@@ -883,9 +883,9 @@ describe("QA report review hardening", () => {
     const report = readFileSync(written.report, "utf8");
 
     expect(report).toContain("Notes: results.csv for 2 case(s)");
-    expect(report).toContain("`PUB-001` · P0 · Journey · Home — Fail — Afo: redacted, wallet removed");
-    expect(report).toContain("`PUB-002` · P0 · Journey · Home — Fail — Afo: keep me");
-    expect(report).toContain("`PUB-003` · P0 · Journey · Home — Blocked\n");
+    expect(report).toContain("`PUB-001` · P0 · Journey · Home · Fail · Afo: redacted, wallet removed");
+    expect(report).toContain("`PUB-002` · P0 · Journey · Home · Fail · Afo: keep me");
+    expect(report).toContain("`PUB-003` · P0 · Journey · Home · Blocked\n");
     for (const erased of ["PRIVATE NOTE CANARY", "erase me"]) expect(report).not.toContain(erased);
   });
 

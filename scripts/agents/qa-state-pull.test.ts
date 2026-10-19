@@ -258,7 +258,7 @@ describe("qa:pull artifact-set commit", () => {
         { catalog, repoRoot },
       );
       const report = readFileSync(written.report, "utf8");
-      expect(report).toContain("- P0: 1/1 — 1 pass");
+      expect(report).toContain("- P0: 1/1 (1 pass)");
       expect(report).not.toContain("1 fail");
     } finally {
       rmSync(outDir, { recursive: true, force: true });
