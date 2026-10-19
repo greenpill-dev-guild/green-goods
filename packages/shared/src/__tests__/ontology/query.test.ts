@@ -30,6 +30,8 @@ describe("ontology query seam", () => {
     expect(getOntologyMaturity("Commitment Payout Plan")?.availability).toBe(
       "deployed-not-available"
     );
+    expect(getOntologyMaturity("Commitment")?.deployment).toBe("deployed");
+    expect(getOntologyMaturity("Commitment")?.availability).toBe("available");
     expect(getOntologySafeClaims("Commitment")[0]?.safe_wording).toContain("not switched on yet");
   });
 
