@@ -429,24 +429,24 @@ describe("a linked account's reporting gardens", () => {
   it.each([
     {
       locale: "es",
-      join: `Aún no veo ${ada} en ningún huerto, así que no hay adónde enviar este reporte. Está guardado.\n\nÚnete al Huerto Comunitario aquí abajo, o pide a un administrador de tu huerto que agregue esta cuenta. Un huerto al que acabas de unirte puede tardar unos minutos en aparecer aquí.\n1. Revisar de nuevo`,
+      join: `Aún no veo ${ada} en ningún jardín, así que no hay adónde enviar este reporte. Está guardado.\n\nÚnete al Jardín Comunitario aquí abajo, o pide a un responsable de tu jardín que agregue esta cuenta. Un jardín al que acabas de unirte puede tardar unos minutos en aparecer aquí.\n1. Revisar de nuevo`,
       again: "Revisar de nuevo",
       taken:
-        "Aiyeloja Family Garden es tu único huerto, así que lo usaré para este reporte. Envía GARDEN para cambiarlo, o JOIN para unirte a otro huerto.",
-      own: "¿Para cuál de tus huertos es este reporte?\n1. TAS\n2. Aiyeloja Family Garden\n3. Unirse a otro huerto",
+        "Aiyeloja Family Garden es tu único jardín, así que lo usaré para este reporte. Envía GARDEN para cambiarlo, o JOIN para unirte a otro jardín.",
+      own: "¿Para cuál de tus jardines es este reporte?\n1. TAS\n2. Aiyeloja Family Garden\n3. Unirse a otro jardín",
       failed:
-        "No puedo cargar tus huertos en este momento. Es un problema de mi lado y tu reporte está guardado. Toca Intentar de nuevo o envía cualquier mensaje.\n1. Intentar de nuevo",
+        "No puedo cargar tus jardines en este momento. Es un problema de mi lado y tu reporte está guardado. Toca Intentar de nuevo o envía cualquier mensaje.\n1. Intentar de nuevo",
       retry: "Intentar de nuevo",
     },
     {
       locale: "pt",
-      join: `Ainda não vejo ${ada} em nenhuma horta, então não há para onde enviar este relato. Ele está guardado.\n\nEntre no Jardim Comunitário aqui abaixo, ou peça a um responsável pela sua horta para adicionar esta conta. Uma horta em que você acabou de entrar pode levar alguns minutos para aparecer aqui.\n1. Verificar de novo`,
+      join: `Ainda não vejo ${ada} em nenhum jardim, então não há para onde enviar este relato. Ele está guardado.\n\nEntre no Jardim Comunitário aqui abaixo, ou peça a um responsável pelo seu jardim para adicionar esta conta. Um jardim em que você acabou de entrar pode levar alguns minutos para aparecer aqui.\n1. Verificar de novo`,
       again: "Verificar de novo",
       taken:
-        "Aiyeloja Family Garden é a sua única horta, então vou usá-la para este relato. Envie GARDEN para trocar, ou JOIN para entrar em outra horta.",
-      own: "Para qual das suas hortas é este relato?\n1. TAS\n2. Aiyeloja Family Garden\n3. Entrar em outra horta",
+        "Aiyeloja Family Garden é o seu único jardim, então vou usá-lo para este relato. Envie GARDEN para trocar, ou JOIN para entrar em outro jardim.",
+      own: "Para qual dos seus jardins é este relato?\n1. TAS\n2. Aiyeloja Family Garden\n3. Entrar em outro jardim",
       failed:
-        "Não consigo carregar suas hortas agora. O problema é do meu lado e seu relato está guardado. Toque em Tentar de novo ou envie qualquer mensagem.\n1. Tentar de novo",
+        "Não consigo carregar seus jardins agora. O problema é do meu lado e seu relato está guardado. Toque em Tentar de novo ou envie qualquer mensagem.\n1. Tentar de novo",
       retry: "Tentar de novo",
     },
   ])("answers in $locale for no garden, a failed read, one garden and several", async (copy) => {
