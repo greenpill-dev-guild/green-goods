@@ -39,7 +39,7 @@ export function SeedStepWhat({
         id={`${noteId}-cycle`}
         label={formatMessage({
           id: "cockpit.garden.pool.seed.contextQuestion",
-          defaultMessage: "What does this commitment tie to?",
+          defaultMessage: "What does this promise tie to?",
         })}
         value={values.cycleId}
         onChange={(event) => form.setValue("cycleId", event.target.value, { shouldDirty: true })}

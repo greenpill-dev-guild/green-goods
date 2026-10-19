@@ -26,7 +26,7 @@ export function PoolNotReadyCard({
       <AdminCardTitle>
         {formatMessage({
           id: "cockpit.garden.pool.notReady.title",
-          defaultMessage: "This garden isn’t taking commitments yet",
+          defaultMessage: "This garden isn’t taking promises yet",
         })}
       </AdminCardTitle>
       <p className="max-w-md body-sm text-text-soft">
@@ -39,7 +39,7 @@ export function PoolNotReadyCard({
       <AdminButton type="button" variant="filled" onClick={onSetUp} disabled={!isOnline}>
         {formatMessage({
           id: "cockpit.garden.pool.act.setUp",
-          defaultMessage: "Set Up Commitments",
+          defaultMessage: "Set Up Promises",
         })}
       </AdminButton>
       {isOnline ? null : (

@@ -147,7 +147,7 @@ export function AllocationEditor({
       }),
       hint: formatMessage({
         id: "cockpit.garden.pool.split.gardenersHint",
-        defaultMessage: "Shared among the gardeners whose commitments were kept",
+        defaultMessage: "Shared among the gardeners whose promises were kept",
       }),
     },
     {

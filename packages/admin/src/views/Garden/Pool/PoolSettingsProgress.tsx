@@ -33,13 +33,13 @@ function stoppedSummary(rows: readonly PoolSetupStepState[], formatMessage: Form
   if (saved("setPoolCharter") && planned("setProviderOpenCommitmentCap")) {
     return formatMessage({
       id: "cockpit.garden.pool.settings.stopped.agreementOnly",
-      defaultMessage: "The new agreement is saved. The commitment limit is not.",
+      defaultMessage: "The new agreement is saved. The promise limit is not.",
     });
   }
   if (saved("setProviderOpenCommitmentCap") && planned("setPoolCharter")) {
     return formatMessage({
       id: "cockpit.garden.pool.settings.stopped.limitOnly",
-      defaultMessage: "The new commitment limit is saved. The agreement is not.",
+      defaultMessage: "The new promise limit is saved. The agreement is not.",
     });
   }
   return formatMessage({

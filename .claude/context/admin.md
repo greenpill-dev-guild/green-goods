@@ -2,7 +2,7 @@
 
 Loaded when working in `packages/admin/`. Extends `packages/admin/AGENTS.md`.
 
-**Primary persona**: David (Steward). For tone guidance and UX constraints, see `.claude/context/product.md` § Persona & Tone Quick-Reference.
+**Primary persona**: Steward. For tone guidance and UX constraints, see `.claude/context/product.md` § Persona & Tone Quick-Reference.
 
 **Design routing**: surface authority `packages/admin/DESIGN.md` · package rules `packages/admin/AGENTS.md` · AI prompt procedure `.claude/skills/design/prompt-contract.md` · public explanation `docs/docs/builders/packages/admin.mdx`.
 

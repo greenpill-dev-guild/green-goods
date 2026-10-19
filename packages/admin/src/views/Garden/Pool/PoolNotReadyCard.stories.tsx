@@ -10,7 +10,7 @@ const meta: Meta<typeof PoolNotReadyCard> = {
     docs: {
       description: {
         component:
-          "The Promises tab before the pool takes commitments: what setting up gives the garden, and Set Up Commitments. Offline the act waits and says why beneath it.",
+          "The Promises tab before the pool takes promises: what setting up gives the garden, and Set Up Promises. Offline the act waits and says why beneath it.",
       },
     },
   },
@@ -34,7 +34,7 @@ export const Offline: Story = {
   args: { isOnline: false },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByRole("button", { name: "Set Up Commitments" })).toBeDisabled();
+    await expect(canvas.getByRole("button", { name: "Set Up Promises" })).toBeDisabled();
     await expect(canvas.getByRole("status")).toHaveTextContent(/needs a connection/i);
   },
 };

@@ -588,13 +588,13 @@
       "priority": "P1",
       "kind": "content",
       "area": "Gardens",
-      "scenario": "A garden's Commitments section says what state its pool is in",
+      "scenario": "A garden's Promises section says what state its pool is in",
       "preconditions": [
         "Gardens in as many pool states as the environment has: not ready, ready, open, between seasons, paused, closed, composted"
       ],
       "steps": [
         "Open the public page of a garden in each state you can reach",
-        "Read the Commitments section's heading and sentence"
+        "Read the Promises section's heading and sentence"
       ],
       "expected": "The sentence matches the state: not ready says offers and requests open once the pool is ready, under the heading This garden is preparing its pool; ready says the charter and baseline are in place; open says neighbors can offer and take up commitments right now; between seasons says the next season has not opened yet; paused, closed, and composted each say so and keep the record readable",
       "evidence": "Screenshot of the section in each state reached",
@@ -614,7 +614,7 @@
       "scenario": "Unit summaries on the public page use the commitments' own unit labels",
       "preconditions": ["A garden whose pool has commitments in at least two different units"],
       "steps": [
-        "Open the garden's public page and read the unit summaries in the Commitments section"
+        "Open the garden's public page and read the unit summaries in the Promises section"
       ],
       "expected": "Each summary carries its unit label exactly as it was written on the commitments, and different units are never added together",
       "evidence": "Screenshot of the unit summaries",
@@ -658,7 +658,7 @@
       ],
       "steps": [
         "Open a garden's public page while the cycle names cannot be loaded",
-        "Read the Commitments section"
+        "Read the Promises section"
       ],
       "expected": "The section says some season names could not be loaded right now; the cards still render with a fallback name; nothing else on the page is affected",
       "evidence": "Screenshot of the notice with the cards",
@@ -5716,7 +5716,7 @@
         "Confirm it (ADM-145) and wait until it leaves the queue",
         "Open the copied address"
       ],
-      "expected": "The commitment dialog says This commitment is not in your confirmation queue any more. and offers no act on it; the stage no longer lists it",
+      "expected": "The commitment dialog says This promise is not in your confirmation queue any more. and offers no act on it; the stage no longer lists it",
       "evidence": "Screenshot of the dialog opened from the copied address",
       "role": "steward",
       "tags": ["commitment", "confirm", "stale-data", "deep-link"],
@@ -5974,7 +5974,7 @@
       "preconditions": ["Steward with manage rights on a garden with a registered NotReady pool"],
       "steps": [
         "Open /garden/pool and read the setup checklist",
-        "Press Set Up Commitments and complete the flow",
+        "Press Set Up Promises and complete the flow",
         "Read the pool status card and the app's garden tabs"
       ],
       "expected": "The console shows the setup state and checklist instead of an empty list; the flow pins its documents before any chain write and names a failure if pinning fails; on success the status card shows the pool and its readiness and the app's garden gains a Pool tab",
@@ -5992,14 +5992,14 @@
       "priority": "P2",
       "kind": "resilience",
       "area": "Garden · Pool",
-      "scenario": "Offline, Set Up Commitments says why it waits",
+      "scenario": "Offline, Set Up Promises says why it waits",
       "preconditions": ["Steward with manage rights on a garden with a registered NotReady pool"],
       "steps": [
         "Open /garden/pool",
-        "Turn the network off and read the card with Set Up Commitments",
+        "Turn the network off and read the card with Set Up Promises",
         "Turn the network back on and read it again"
       ],
-      "expected": "Offline, Set Up Commitments is closed and the card says Needs a connection. Pool changes are sent straight to the chain.; back online, Set Up Commitments is offered again and the line is gone",
+      "expected": "Offline, Set Up Promises is closed and the card says Needs a connection. Pool changes are sent straight to the chain.; back online, Set Up Promises is offered again and the line is gone",
       "evidence": "Screenshots of the card offline and online",
       "role": "steward",
       "tags": ["garden-pool", "offline"],
@@ -6018,7 +6018,7 @@
       "preconditions": ["Steward with manage rights on a garden with a registered NotReady pool"],
       "steps": [
         "Open /garden/pool and read the note on the Pool Status card",
-        "Press Set Up Commitments and read the wallet-prompt count before a write",
+        "Press Set Up Promises and read the wallet-prompt count before a write",
         "Close the flow and discard it"
       ],
       "expected": "The note says setting up takes four short steps and that the wallet will ask up to six times, fewer when it can take several changes at once; nothing is sent when the flow is discarded",
@@ -6042,7 +6042,7 @@
         "A passage longer than 420 characters, copied to paste"
       ],
       "steps": [
-        "On the garden with no pool, open /garden/pool, press Set Up Commitments, and read the count under What this pool is for",
+        "On the garden with no pool, open /garden/pool, press Set Up Promises, and read the count under What this pool is for",
         "Type a few words and read the count, then paste the passage and read the field and its count",
         "Delete one character and read the count, then go on to The Season, paste the passage into Name, and read the field and its count",
         "Close the flow and discard it, then on the garden with a pool press Edit Pool and read the count under What this pool is for"
@@ -6140,7 +6140,7 @@
       "area": "Garden · Pool",
       "scenario": "The setup split explains when it becomes fixed",
       "preconditions": ["Steward with manage rights on a garden with a registered NotReady pool"],
-      "steps": ["Open Set Up Commitments and go to The Split", "Read the note above the presets"],
+      "steps": ["Open Set Up Promises and go to The Split", "Read the note above the presets"],
       "expected": "The Split says the split is fixed for good once the season opens and explains that it determines how the season's impact certificate is shared",
       "evidence": "Screenshot of The Split note",
       "role": "steward",
@@ -6159,7 +6159,7 @@
       "scenario": "Split presets name every role and its share",
       "preconditions": ["Steward with manage rights on a garden with a registered NotReady pool"],
       "steps": [
-        "Open Set Up Commitments and go to The Split",
+        "Open Set Up Promises and go to The Split",
         "Read the Garden-led (standard) preset"
       ],
       "expected": "The preset maps its six shares to Gardeners 60 %, Treasury 15 %, Steward 10 %, Evaluator 5 %, Community 5 %, and Funder 5 %",
@@ -6179,7 +6179,7 @@
       "area": "Garden · Pool",
       "scenario": "Each split share explains its purpose",
       "preconditions": ["Steward with manage rights on a garden with a registered NotReady pool"],
-      "steps": ["Open Set Up Commitments and go to The Split", "Read the hint under each share"],
+      "steps": ["Open Set Up Promises and go to The Split", "Read the hint under each share"],
       "expected": "Each of the six shares has a role-specific hint explaining what the allocation is for",
       "evidence": "Screenshot of the share hints",
       "role": "steward",
@@ -6198,7 +6198,7 @@
       "scenario": "Setup names the final write before it begins",
       "preconditions": ["Steward with manage rights on a garden with a registered NotReady pool"],
       "steps": [
-        "Open Set Up Commitments and reach the final review",
+        "Open Set Up Promises and reach the final review",
         "Read the final action, then discard the flow"
       ],
       "expected": "The final action reads Set Up and Open, and discarding the flow sends nothing",
@@ -6777,7 +6777,7 @@
       "preconditions": ["Steward with manage rights on a garden with a pool"],
       "steps": [
         "Press Edit Pool and read the current values",
-        "Change What this pool is for and How many commitments one person can hold at once, and read the dialog",
+        "Change What this pool is for and How many promises one person can hold at once, and read the dialog",
         "Press Save Settings and confirm each wallet prompt",
         "Read the dialog and the console"
       ],
@@ -6802,12 +6802,12 @@
         "A wallet that asks once for each change: with both settings changed, the dialog says the wallet will ask twice"
       ],
       "steps": [
-        "Change What this pool is for and How many commitments one person can hold at once, and press Save Settings",
+        "Change What this pool is for and How many promises one person can hold at once, and press Save Settings",
         "Confirm the first wallet prompt and reject the second",
         "Read the dialog",
         "Press Try Again and confirm the wallet prompt"
       ],
-      "expected": "After the rejection the dialog says The new agreement is saved. The commitment limit is not. and that the wallet will ask once more; Try Again sends only the limit, with one wallet prompt; the dialog ends on Settings saved.",
+      "expected": "After the rejection the dialog says The new agreement is saved. The promise limit is not. and that the wallet will ask once more; Try Again sends only the limit, with one wallet prompt; the dialog ends on Settings saved.",
       "evidence": "Screenshots of the stopped dialog and of Settings saved",
       "role": "steward",
       "tags": ["garden-pool", "tx"],
@@ -7234,7 +7234,7 @@
         "Reject the prompt and read the row",
         "Press the row's Send Now or Try Again, confirm in the wallet, and read the row until it leaves"
       ],
-      "expected": "While the wallet asks, the row says Confirm in your wallet. and its buttons are closed; after the rejection it says It didn’t go through, and nothing changed. You can try again. and the row stays; once confirmed it says Confirming on Arbitrum One… (or the network in use), then Sent. This row leaves once the index shows the commitment., and the row leaves when the commitment appears in the list",
+      "expected": "While the wallet asks, the row says Confirm in your wallet. and its buttons are closed; after the rejection it says It didn’t go through, and nothing changed. You can try again. and the row stays; once confirmed it says Confirming on Arbitrum One… (or the network in use), then Sent. This row leaves once the index shows the promise., and the row leaves when the commitment appears in the list",
       "evidence": "Screenshots of the row after the rejection and while it sends",
       "role": "steward",
       "tags": ["garden-pool", "commitment", "queue", "tx"],
@@ -7442,10 +7442,10 @@
       "priority": "P1",
       "kind": "journey",
       "area": "Garden · Pool",
-      "scenario": "More offers than your commitment limit holds seeding and says why",
+      "scenario": "More offers than your promise limit holds seeding and says why",
       "preconditions": [
         "Steward with manage rights",
-        "The pool's commitment limit set in Pool Settings to the number of open commitments you already provide in this pool, so you have room for no more (ADM-147). With none open, seed one offer first and set the limit to 1"
+        "The pool's promise limit set in Pool Settings to the number of open commitments you already provide in this pool, so you have room for no more (ADM-147). With none open, seed one offer first and set the limit to 1"
       ],
       "steps": [
         "Run the seed wizard with The pool offers to the review",
@@ -7467,10 +7467,10 @@
       "priority": "P2",
       "kind": "journey",
       "area": "Garden · Pool",
-      "scenario": "At your commitment limit, Add Another Like This is held for an offer but not for a request",
+      "scenario": "At your promise limit, Add Another Like This is held for an offer but not for a request",
       "preconditions": [
         "Steward with manage rights",
-        "The pool's commitment limit set in Pool Settings so you have room for exactly one more open commitment (ADM-147)"
+        "The pool's promise limit set in Pool Settings so you have room for exactly one more open commitment (ADM-147)"
       ],
       "steps": [
         "Run the seed wizard with The pool offers to the review and read the footer and the note",
@@ -7992,8 +7992,8 @@
       "scenario": "Cancel a commitment with a reason from the inspector",
       "preconditions": ["Steward with manage rights", "A commitment that has not been fulfilled"],
       "steps": [
-        "Press Cancel Commitment… with an empty reason",
-        "Type a reason and press Cancel Commitment",
+        "Press Cancel Promise… with an empty reason",
+        "Type a reason and press Cancel Promise",
         "Read the commitment in the app's drawer as its provider"
       ],
       "expected": "The reason is required and the dialog states the effect; the cancel is one transaction; the commitment reads canceled with its reason and sits under History in the app",

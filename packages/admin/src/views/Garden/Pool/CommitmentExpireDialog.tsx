@@ -41,7 +41,7 @@ export function CommitmentExpireDialog({
       variant="danger"
       title={formatMessage({
         id: "cockpit.garden.pool.expire.title",
-        defaultMessage: "Expire This Commitment",
+        defaultMessage: "Expire This Promise",
       })}
       description={formatMessage(
         {

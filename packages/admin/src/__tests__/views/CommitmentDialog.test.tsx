@@ -355,10 +355,10 @@ describe("CommitmentDialogPanel (W10)", () => {
     );
     await waitFor(() => expect(acts.markReady).toHaveBeenCalledWith("because"));
 
-    fireEvent.click(screen.getByRole("button", { name: /cancel commitment/i }));
+    fireEvent.click(screen.getByRole("button", { name: /cancel promise/i }));
     fireEvent.click(
-      within(screen.getByRole("dialog", { name: /cancel this commitment/i })).getByRole("button", {
-        name: /^cancel commitment$/i,
+      within(screen.getByRole("dialog", { name: /cancel this promise/i })).getByRole("button", {
+        name: /^cancel promise$/i,
       })
     );
     await waitFor(() => expect(acts.cancel).toHaveBeenCalledWith("because"));
@@ -509,7 +509,7 @@ describe("CommitmentDialogPanel (W10)", () => {
     fireEvent.click(screen.getByRole("button", { name: /^confirm kept…$/i }));
     const acts = mocks.controller!.acts;
     expect(acts.confirmOrdinary).not.toHaveBeenCalled();
-    const review = screen.getByRole("dialog", { name: /confirm this commitment kept/i });
+    const review = screen.getByRole("dialog", { name: /confirm this promise kept/i });
     expect(review).toHaveTextContent(/“Repair tool handles” in .+’s pool/);
     expect(review).toHaveTextContent(/kept by/i);
     expect(review).toHaveTextContent(
