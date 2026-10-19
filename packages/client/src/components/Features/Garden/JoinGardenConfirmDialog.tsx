@@ -37,7 +37,7 @@ export function JoinGardenConfirmDialog({
       description={intl.formatMessage(
         {
           id: "app.profile.joinGardenConfirmDescription",
-          defaultMessage: "You'll join {gardenName} as a Gardener and can submit work right away.",
+          defaultMessage: "You'll join {gardenName} as a gardener and can submit work right away.",
         },
         { gardenName }
       )}

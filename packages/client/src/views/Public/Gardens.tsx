@@ -81,7 +81,7 @@ export default function GardensGallery() {
         lede={formatMessage({
           id: "public.gardens.heroLede",
           defaultMessage:
-            "Explore community-led projects working on land restoration, waste, education, and clean energy. Meet the people behind each Garden and discover how to support their work.",
+            "Explore community-led projects working on land restoration, waste, education, and clean energy. Meet the people behind each garden and discover how to support their work.",
         })}
       />
 
@@ -122,7 +122,7 @@ export default function GardensGallery() {
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder={formatMessage({
                   id: "public.gardens.searchPlaceholder",
-                  defaultMessage: "Search Gardens…",
+                  defaultMessage: "Search gardens…",
                 })}
                 className="text-text-strong-950"
               />
@@ -139,7 +139,7 @@ export default function GardensGallery() {
                 ? formatMessage(
                     {
                       id: "public.gardens.archiveCount",
-                      defaultMessage: "{count, plural, one {# Garden} other {# Gardens}}",
+                      defaultMessage: "{count, plural, one {# garden} other {# gardens}}",
                     },
                     { count: filtered.length }
                   )
@@ -176,7 +176,7 @@ export default function GardensGallery() {
                       ? formatMessage(
                           {
                             id: "public.gardens.noMatches",
-                            defaultMessage: 'No Gardens match "{query}".',
+                            defaultMessage: 'No gardens match "{query}".',
                           },
                           { query: query.trim() }
                         )

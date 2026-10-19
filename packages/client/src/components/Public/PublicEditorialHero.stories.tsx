@@ -236,7 +236,7 @@ export const Fund: Story = {
           "many seasons"
         )}
         lede="Direct support reaches a Garden's Cookie Jar. Quiet endowment places support into a Vault designed so yield helps the Garden over time."
-        disclaimer="Funding supports the Garden directly. It is not tax-deductible, charitable, or nonprofit-backed unless separately configured."
+        disclaimer="Funding supports the garden directly. It is not tax-deductible, charitable, or nonprofit-backed unless separately configured."
       />
       <NextSection>Donate or Endow — both are first-class.</NextSection>
     </>

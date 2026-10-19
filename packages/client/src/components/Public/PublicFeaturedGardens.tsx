@@ -102,7 +102,7 @@ export function PublicFeaturedGardens() {
             <EditorialKicker className="mb-3">
               {formatMessage({
                 id: "public.home.featured.kicker",
-                defaultMessage: "§ 01: Featured Gardens",
+                defaultMessage: "§ 01: Featured gardens",
               })}
             </EditorialKicker>
             <EditorialHeading id="public-featured-title">
@@ -151,7 +151,7 @@ export function PublicFeaturedGardens() {
           <p className="mt-10 max-w-md text-sm text-text-sub-600">
             {formatMessage({
               id: "public.home.featured.empty",
-              defaultMessage: "Featured Gardens will appear here as they come online.",
+              defaultMessage: "Featured gardens will appear here as they come online.",
             })}
           </p>
         ) : (

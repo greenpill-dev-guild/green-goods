@@ -239,7 +239,7 @@ export default function ActionsGallery() {
         lede={formatMessage({
           id: "public.actions.heroLede",
           defaultMessage:
-            "Actions are the templates Gardens use to document Work across solar, agroforestry, education, and waste. Each one names what to do, what to capture, and what proof comes next.",
+            "Actions are the templates gardens use to document Work across solar, agroforestry, education, and waste. Each one names what to do, what to capture, and what proof comes next.",
         })}
       />
 

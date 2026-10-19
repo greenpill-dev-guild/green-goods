@@ -452,7 +452,7 @@ describe("VaultsPage", () => {
     expect(screen.queryByText("Ready for checkout")).not.toBeInTheDocument();
     expect(
       screen.getByText(
-        "This page is for Octant-backed campaigns. For the wider Green Goods network, explore Gardens."
+        "This page is for Octant-backed campaigns. For the wider Green Goods network, explore gardens."
       )
     ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Explore Gardens" })).toHaveAttribute(

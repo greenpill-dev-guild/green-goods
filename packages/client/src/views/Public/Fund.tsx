@@ -145,7 +145,7 @@ function VaultAggregationSection({ summary }: { summary: PublicVaultSummary }) {
             {formatMessage({
               id: "public.fund.vaults.lede",
               defaultMessage:
-                "Endow places a long-term deposit in a Garden's Vault. Donate sends support straight to a Garden's shared fund.",
+                "Endow places a long-term deposit in a garden's Vault. Donate sends support straight to a garden's shared fund.",
             })}
           </p>
         </header>
@@ -273,14 +273,14 @@ function VaultAssetCard({ asset }: { asset: PublicVaultSummaryAsset }) {
         <VaultMetric
           label={formatMessage({
             id: "public.fund.vaults.readyToHarvest",
-            defaultMessage: "Yield ready for Gardens",
+            defaultMessage: "Yield ready for gardens",
           })}
           value={readyToHarvestValue}
         />
         <VaultMetric
           label={formatMessage({
             id: "public.fund.vaults.routed",
-            defaultMessage: "Routed to Gardens",
+            defaultMessage: "Routed to gardens",
           })}
           value={routedValue}
         />
@@ -464,7 +464,7 @@ function FundPageContent() {
         lede={formatMessage({
           id: "public.fund.heroLede",
           defaultMessage:
-            "Choose a Garden whose work you want to support. Donate to its shared fund, or explore a longer-term endowment. You can read its approved submissions before contributing.",
+            "Choose a garden whose work you want to support. Donate to its shared fund, or explore a longer-term endowment. You can read its approved submissions before contributing.",
         })}
       />
 
@@ -493,8 +493,8 @@ function FundPageContent() {
                         : "public.fund.gardenQuery.stale",
                     defaultMessage:
                       resolved.status === "ambiguous"
-                        ? 'We couldn\'t tell which Garden you meant by "{query}". Pick one below.'
-                        : 'We couldn\'t find a Garden matching "{query}". Browse the list below.',
+                        ? 'We couldn\'t tell which garden you meant by "{query}". Pick one below.'
+                        : 'We couldn\'t find a garden matching "{query}". Browse the list below.',
                   },
                   { query: resolved.rawQuery ?? "" }
                 )}
@@ -536,9 +536,9 @@ function FundPageContent() {
               titleId="public.fund.paths.donateTitle"
               defaultTitle="Donate"
               ledeId="public.fund.paths.donateLede"
-              defaultLede="Direct support that reaches a Garden's shared fund today and funds the season's most immediate work."
+              defaultLede="Direct support that reaches a garden's shared fund today and funds the season's most immediate work."
               routesId="public.fund.paths.donateRoutes"
-              defaultRoutes="Goes to this Garden's shared fund."
+              defaultRoutes="Goes to this garden's shared fund."
               bestForId="public.fund.paths.donateBestFor"
               defaultBestFor="Immediate needs and near-term work."
               learnMoreId="public.fund.paths.donateLearnMore"
@@ -572,7 +572,7 @@ function FundPageContent() {
               {formatMessage({
                 id: "public.fund.dialog.taxDisclaimer",
                 defaultMessage:
-                  "Both paths support the Garden directly. Neither is tax-deductible, charitable, or nonprofit-backed unless separately configured.",
+                  "Both paths support the garden directly. Neither is tax-deductible, charitable, or nonprofit-backed unless separately configured.",
               })}
             </p>
             <p className="mt-2">
@@ -607,7 +607,7 @@ function FundPageContent() {
                 <EditorialKicker className="mb-3">
                   {formatMessage({
                     id: "public.fund.gardens.kicker",
-                    defaultMessage: "§ 03: Choose a Garden",
+                    defaultMessage: "§ 03: Choose a garden",
                   })}
                 </EditorialKicker>
                 <EditorialHeading id="public-fund-gardens-title">
