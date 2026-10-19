@@ -324,7 +324,11 @@ Requests stop at pre-disbursement Cancelled.
     writeFileSync(file, dirty);
     const lineOf = (text) => dirty.split("\n").indexOf(text) + 1;
     // In CommonMark an indented line that continues a list item is prose, not code.
-    writeFileSync(design, `${indentedCode}${designLinks}\nA grey border marks the field.\n\n- A list item\n    keeps a grey continuation.\n`);
+    // Code indented inside a list item is code, and a link definition shows only its title.
+    writeFileSync(
+      design,
+      `${indentedCode}${designLinks}\nA grey border marks the field.\n\n- A list item\n    keeps a grey continuation.\n\n- An item with code\n\n      cancelled in an indented block inside the item\n\n[guide]: ./grey "Garden guide"\n[ref]: ./x "The favourite ref"\n`,
+    );
     // Starting a sentence, a member is copy.
     const generatedDirty = `${readFileSync(generated, "utf8")}\nThe cycle was cancelled.\nCancelled requests remain visible.\n`;
     writeFileSync(generated, generatedDirty);
@@ -361,11 +365,56 @@ Requests stop at pre-disbursement Cancelled.
     assert.match(result.stderr, /DESIGN\.md: UK spelling on line 7: "grey"/);
     assert.match(result.stderr, /DESIGN\.md: UK spelling on line 10: "grey"/);
     assert.doesNotMatch(result.stderr, /DESIGN\.md: UK spelling on line 3:/);
+    assert.match(result.stderr, /DESIGN\.md: UK spelling on line 17: "favourite"/);
     const cancelledLine = generatedLineOf("The cycle was cancelled.");
     assert.match(result.stderr, new RegExp(`reference/generated\\.mdx: UK spelling on line ${cancelledLine}: "cancelled".* Fix it in the source this page is generated from\\.`));
     const sentenceStart = generatedLineOf("Cancelled requests remain visible.");
     assert.ok(result.stderr.includes(`reference/generated.mdx: UK spelling on line ${sentenceStart}: "Cancelled"`), result.stderr);
-    assert.equal(result.stderr.match(/UK spelling/g)?.length, 16, result.stderr);
+    assert.equal(result.stderr.match(/UK spelling/g)?.length, 17, result.stderr);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("UK spelling in docs component copy exits nonzero, while names stay free", () => {
+  const root = fixture();
+  try {
+    const component = [
+      'import styles from "./grey-panel.module.css";',
+      "",
+      "export const presets = [",
+      '  { id: "grey-preset", label: "Favourite preset", description: "A grey chart", color: "grey" },',
+      "];",
+      "",
+      "export function Sample({ state }: { state: string }) {",
+      '  setCopyLabel("Copy the grey link");',
+      "  return (",
+      '    <section className="grey-panel" aria-label="Cancelled presets">',
+      '      <h2>{state === "cancelled" ? "Closed" : "Grey area"}</h2>',
+      "      <p>The favourite key</p>",
+      "    </section>",
+      "  );",
+      "}",
+      "",
+    ].join("\n");
+    mkdirSync(path.join(root, "docs/src/components/docs"), { recursive: true });
+    writeFileSync(path.join(root, "docs/src/components/docs/Sample.tsx"), component);
+    // A test renders nothing, so its strings are names.
+    writeFileSync(path.join(root, "docs/src/components/docs/Sample.test.tsx"), 'test("a grey test name", () => {});\n');
+    const result = runAudit(root);
+    assert.equal(result.status, 1);
+    const lineOf = (text) => component.split("\n").findIndex((line) => line.includes(text)) + 1;
+    for (const [text, word] of [
+      ["Favourite preset", "Favourite"],
+      ["A grey chart", "grey"],
+      ["Copy the grey link", "grey"],
+      ["Cancelled presets", "Cancelled"],
+      ["Grey area", "Grey"],
+      ["The favourite key", "favourite"],
+    ]) {
+      assert.ok(result.stderr.includes(`docs/src/components/docs/Sample.tsx: UK spelling on line ${lineOf(text)}: "${word}"`), result.stderr);
+    }
+    assert.equal(result.stderr.match(/UK spelling/g)?.length, 6, result.stderr);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

@@ -38,7 +38,7 @@
     "locale_terms_rationale": "Locked visible terms: es Responsable, pt Responsável. ICU argument names are code and are skipped."
   },
   "us_spelling": {
-    "scope": "English copy: i18n catalog values (globs, check-vocab.sh), hand-written docs, release notes and design guidance (docs-audit.mjs), and the agent's English chat copy (its i18n test); keys, code, URLs and ICU argument names are skipped",
+    "scope": "English copy: i18n catalog values (globs, check-vocab.sh), hand-written docs, release notes, design guidance and the docs site's components (docs-audit.mjs), and the agent's English chat copy (its i18n test); keys, code, URLs and ICU argument names are skipped",
     "globs": [
       "packages/shared/src/i18n/en.json",
       "packages/client/src/i18n/en.json",

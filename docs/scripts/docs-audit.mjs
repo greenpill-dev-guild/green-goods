@@ -5,6 +5,13 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import {fileURLToPath} from "node:url";
 import * as yaml from "js-yaml";
+import {parse as parseModule, parseExpression} from "@babel/parser";
+import remarkDirective from "remark-directive";
+import remarkFrontmatter from "remark-frontmatter";
+import remarkGfm from "remark-gfm";
+import remarkMdx from "remark-mdx";
+import remarkParse from "remark-parse";
+import {unified} from "unified";
 import { auditDeveloperGuides, auditWorkflowCommands, auditRetiredCommandCallers, auditCommandPolicy } from "./developer-guides.mjs";
 import { resolveCommand } from "../../packages/contracts/script/cli/operations.mjs";
 
@@ -514,9 +521,9 @@ try {
 const allowedAudiences = new Set(["all", "developer", ...ontology.personas.map((persona) => persona.id)]);
 
 // English copy uses US spelling (DESIGN.md § Voice & Copy). The UK forms come from the vocabulary
-// sidecar the catalog check reads. Only what a reader sees is read: code, link targets, URLs,
-// heading ids and markup attributes are names, while link titles and the attributes listed in
-// readableAttributes stay copy. A generated page is read too and fixed at its source.
+// sidecar the catalog check reads. Pages, guides and docs components are parsed the way the docs
+// build and GitHub read them, and only what a reader sees is checked. A generated page is read too
+// and fixed at its source.
 const vocabularyPath = "scripts/data/banned-vocabulary.json";
 let usSpelling;
 try {
@@ -528,56 +535,11 @@ try {
 const ukForms = new Map(Object.entries(usSpelling.terms ?? {}));
 const ukFormPattern = new RegExp(`\\b(${[...ukForms.keys()].map(escapeRegExp).join("|") || "(?!)"})\\b`, "gi");
 const exemptPhrases = usSpelling.exempt_phrases ?? [];
-// A link keeps its title, which a reader sees as a tooltip, and loses its destination, which may sit
-// in angle brackets or hold balanced parentheses. A title is double-quoted, single-quoted or
-// parenthesized.
-const linkTarget = /\]\((?:<[^>\n]*>|(?:[^()\s]|\([^()\s]*\))*)(?:\s+(?:"([^"]*)"|'([^']*)'|\(([^)]*)\)))?\s*\)/g;
 const readableAttributes = ["alt", "title", "aria-label", "aria-description", "placeholder", "label"];
-// A JSX prop's expression value, such as {CycleState.Cancelled} or {{maxWidth: "560px"}}.
-const braceValue = "\\{(?:[^{}\\n]|\\{(?:[^{}\\n]|\\{[^{}\\n]*\\})*\\})*\\}";
-const notProse = new RegExp(
-  [
-    "<https?:\\/\\/[^>]+>",
-    "https?:\\/\\/[^\\s)\\]>\"'`]+",
-    "\\{#[^}]*\\}",
-    // An attribute of a tag the markup pass below cannot read whole, such as one with a prop
-    // value that spans lines.
-    `(?<![\\w:-])(?!(?:${readableAttributes.join("|")})=)[A-Za-z][\\w:-]*=(?:"[^"]*"|'[^']*'|${braceValue})`,
-  ].join("|"),
-  "g",
-);
-// Blanked from the whole text in one pass, so whichever starts first wins: an HTML or MDX comment,
-// which is never rendered; a code element; and a code span. A span closes on a backtick run as long
-// as the one that opened it and may continue onto the next line of its paragraph, but not past a
-// blank line or into a new block. An escaped backtick opens nothing, and three at the start of a
-// line open a fence instead.
-const unrendered = new RegExp(
-  [
-    "<!--[\\s\\S]*?--!?>",
-    "\\{\\/\\*[\\s\\S]*?\\*\\/\\}",
-    "<code\\b[^>]*>[\\s\\S]*?<\\/code>",
-    "(?<![\\\\`])(?!(?<=(?:^|\\n) {0,3})`{3})(?<tick>`+)(?!`)" +
-      "(?:[^\\n]|\\n(?![ \\t]*(?:\\n|#{1,6}[ \\t]|[-*+][ \\t]|\\d+[.)][ \\t]|>|\\||`{3}|~{3})))*?(?<!`)\\k<tick>(?!`)",
-  ].join("|"),
-  "g",
-);
-// A JSX or HTML tag is markup, even across lines, so its name and props, bare ones such as
-// <Status cancelled /> included, are names; only the values of readableAttributes stay copy.
-const tagAttribute = `[A-Za-z_][\\w:.-]*(?:\\s*=\\s*(?:"[^"]*"|'[^']*'|${braceValue}))?|\\{\\.\\.\\.[^{}\\n]*\\}`;
-const markupTag = new RegExp(`<\\/?[A-Za-z][\\w.:-]*(?:\\s+(?:${tagAttribute}))*\\s*\\/?>`, "g");
-const readableValue = new RegExp(
-  `(?<![\\w:.-])(?:${readableAttributes.join("|")})\\s*=\\s*(?:"([^"]*)"|'([^']*)'|(${braceValue}))`,
-  "gd",
-);
-const markupText = (tag) => {
-  const text = tag.replace(/[^\n]/g, " ").split("");
-  for (const match of tag.matchAll(readableValue)) {
-    const [start, end] = match.indices.slice(1).find(Boolean);
-    for (let at = start; at < end; at += 1) text[at] = tag[at];
-  }
-  return text.join("");
-};
 const renderedFrontmatterKeys = ["title", "sidebar_label", "description"];
+// A URL in text, such as an autolinked https://… address, is a name.
+const urlInText = /(?:https?:\/\/|www\.)[^\s)\]>"'`]+/g;
+const blankKeepingLines = (text) => text.replace(/[^\n]/g, " ");
 
 // The ontology's enum members (Cancelled, CANCELLED) are identifiers that a generated page prints
 // without code marks: in table cells that list only members, and inside sentences.
@@ -597,150 +559,263 @@ collectEnumNames(ontology);
 const isEnumName = (identifiers, segment, index, word) => {
   if (!identifiers.has(word)) return false;
   if (segment.split(/[\s,·]+/).filter(Boolean).every((token) => identifiers.has(token))) return true;
-  const lead = segment
-    .slice(0, index)
-    .replace(/^\s*(?:(?:[-*+>]|\d+[.)]|#{1,6})\s+)*/, "")
-    .replace(/[\s*_]+$/, "");
+  const lead = segment.slice(0, index).trimEnd();
   return lead !== "" && !/[.!?]["'’”)\]]*$/.test(lead);
 };
-// MDX reads a line that starts with import or export as ESM, up to a blank line where the code so
-// far is complete, so a blank line inside an open bracket stays in the block.
-const bracketBalance = (line) => {
-  const code = line.replace(/\/\/.*|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`/g, "");
-  return (code.match(/[{[(]/g)?.length ?? 0) - (code.match(/[}\])]/g)?.length ?? 0);
-};
-// In MDX, braces hold a JavaScript expression, such as {done ? "Closed" : "Open"}. Only its string
-// literals and template text can render, so the rest is blanked in place, and a literal that is
-// compared against is code too. readExpression reads from just inside an opening brace to just past
-// the brace that closes it, adding the ranges that can render to kept. An escaped brace is text.
-const readExpression = (text, at, kept) => {
-  for (let depth = 0; at < text.length; ) {
-    const character = text[at];
-    if (text.startsWith("//", at) || text.startsWith("/*", at)) {
-      const line = text[at + 1] === "/";
-      const close = line ? text.indexOf("\n", at) : text.indexOf("*/", at + 2);
-      at = close === -1 ? text.length : line ? close : close + 2;
-    } else if (character === '"' || character === "'") {
-      let end = at + 1;
-      while (end < text.length && text[end] !== character && text[end] !== "\n") end += text[end] === "\\" ? 2 : 1;
-      const compared =
-        /[=!]==?\s*$/.test(text.slice(Math.max(0, at - 40), at)) || /^\s*[=!]==?/.test(text.slice(end + 1, end + 41));
-      if (!compared) kept.push([at + 1, end]);
-      at = end + 1;
-    } else if (character === "`") {
-      let from = at + 1;
-      for (at += 1; at < text.length && text[at] !== "`"; ) {
-        if (text[at] === "\\") at += 2;
-        else if (text.startsWith("${", at)) {
-          kept.push([from, at]);
-          at = readExpression(text, at + 2, kept);
-          from = at;
-        } else at += 1;
-      }
-      kept.push([from, at]);
-      at += 1;
-    } else {
-      if (character === "}" && depth === 0) return at + 1;
-      if (character === "{") depth += 1;
-      if (character === "}") depth -= 1;
-      at += 1;
-    }
-  }
-  return at;
-};
-const expressionText = (text) => {
-  const out = text.split("");
-  for (let open = text.indexOf("{"); open !== -1; open = text.indexOf("{", open + 1)) {
-    if (text[open - 1] === "\\") continue;
-    const kept = [];
-    const end = readExpression(text, open + 1, kept);
-    for (let at = open; at < end; at += 1) if (out[at] !== "\n") out[at] = " ";
-    for (const [from, to] of kept) for (let at = from; at < to; at += 1) out[at] = text[at];
-    open = end - 1;
-  }
-  return out.join("");
-};
 
-// commonMark is true for the guides outside the docs site, which GitHub renders as CommonMark; the
-// site parses every page as MDX, where an indented line is text, not code.
-const ukSpellingsIn = (text, {identifiers = new Set(), commonMark = false} = {}) => {
-  // Blanking what is unrendered, code or markup from the whole text keeps the line numbers.
-  const blanked = text.replace(unrendered, (block) => block.replace(/[^\n]/g, " ")).replace(markupTag, markupText);
-  const lines = blanked.split("\n");
-  const frontmatterEnd = lines[0] === "---" ? lines.indexOf("---", 1) : -1;
+// Collects UK forms in pieces of copy. A piece sits in a segment, the paragraph, heading or table
+// cell it belongs to, at an offset; the segment is where a sentence starts and a phrase can span.
+const spellingCollector = (identifiers = new Set()) => {
   const found = [];
-  const checkProse = (value, line) => {
-    let prose = value
-      .replace(linkTarget, (_, double, single, parenthesized) => ` ${double ?? single ?? parenthesized ?? ""} `)
-      .replace(notProse, " ");
-    for (const phrase of exemptPhrases) prose = prose.split(phrase).join(" ");
-    // A table row is read cell by cell, so each cell starts its own sentence.
-    for (const segment of /^\s*\|/.test(prose) ? prose.split(/(?<!\\)\|/) : [prose]) {
-      for (const {0: word, index} of segment.matchAll(ukFormPattern)) {
-        if (!isEnumName(identifiers, segment, index, word)) found.push({line, word, us: ukForms.get(word.toLowerCase())});
-      }
+  const check = (piece, line, segment = piece, offset = 0) => {
+    let visible = segment.replace(urlInText, blankKeepingLines);
+    for (const phrase of exemptPhrases) visible = visible.split(phrase).join(" ".repeat(phrase.length));
+    for (const {0: word, index} of piece.matchAll(ukFormPattern)) {
+      const at = offset + index;
+      if (visible.slice(at, at + word.length) !== word || isEnumName(identifiers, segment, at, word)) continue;
+      found.push({line: line + (piece.slice(0, index).match(/\n/g)?.length ?? 0), word, us: ukForms.get(word.toLowerCase())});
     }
   };
-  // Parsed, so a folded or literal block value is read whole. Only the keys a reader sees are copy;
-  // the rest of the frontmatter is names and paths.
-  const {frontmatter} = frontmatterEnd > 0 ? parseFrontmatter(blanked) : {frontmatter: null};
-  for (const key of renderedFrontmatterKeys) {
-    if (typeof frontmatter?.[key] === "string") {
-      checkProse(frontmatter[key], lines.findIndex((line) => line.startsWith(`${key}:`)) + 1);
-    }
+  return {found, check};
+};
+
+// The strings a JavaScript expression renders: string literals, template text and JSX text. A
+// literal that is compared against, an object key, a member name, a type, an argument passed to a
+// call and the value of a JSX attribute a reader does not see are names; a callback passed to a call
+// is still read, since it can render.
+const comparisons = new Set(["===", "!==", "==", "!="]);
+const syntaxKeys = new Set(["loc", "start", "end", "range", "extra", "leadingComments", "trailingComments", "innerComments", "typeAnnotation", "typeParameters", "typeArguments", "returnType"]);
+const jsxName = (name) => (name?.type === "JSXNamespacedName" ? `${name.namespace.name}:${name.name.name}` : name?.name);
+const isFunction = (node) => node?.type === "ArrowFunctionExpression" || node?.type === "FunctionExpression";
+const renderedStrings = (node, emit) => {
+  if (Array.isArray(node)) {
+    for (const item of node) renderedStrings(item, emit);
+    return;
   }
-  const prose = new Set();
-  let fence = null;
-  let esm = null;
-  let indentedCode = false;
-  let previousBlank = true;
-  let inList = false;
-  lines.forEach((line, index) => {
-    if (index <= frontmatterEnd) return;
-    const trimmed = line.trimStart();
-    const blank = trimmed === "";
-    if (!commonMark && fence === null) {
-      if (esm === null && /^(?:import|export)\s/.test(line)) esm = 0;
-      if (esm !== null && (!blank || esm > 0)) {
-        esm += bracketBalance(line);
-        return;
+  if (!node || typeof node.type !== "string") return;
+  switch (node.type) {
+    case "StringLiteral":
+    case "JSXText":
+      emit(node.value, node.loc.start.line);
+      return;
+    case "TemplateLiteral":
+      for (const quasi of node.quasis) emit(quasi.value.cooked ?? quasi.value.raw, quasi.loc.start.line);
+      renderedStrings(node.expressions, emit);
+      return;
+    case "JSXAttribute":
+      if (readableAttributes.includes(jsxName(node.name))) renderedStrings(node.value, emit);
+      return;
+    case "ObjectProperty":
+      renderedStrings(node.value, emit);
+      return;
+    case "MemberExpression":
+    case "OptionalMemberExpression":
+      renderedStrings(node.object, emit);
+      return;
+    case "SwitchCase":
+      renderedStrings(node.consequent, emit);
+      return;
+    case "BinaryExpression":
+      if (!comparisons.has(node.operator)) break;
+      for (const side of [node.left, node.right]) {
+        if (side.type !== "StringLiteral" && side.type !== "TemplateLiteral") renderedStrings(side, emit);
       }
-      esm = null;
-    }
-    if (commonMark && fence === null) {
-      // An indented code block starts after a blank line, outside a list, four spaces or a tab in,
-      // and runs while its lines stay indented or blank. In a list, the indent continues an item.
-      const indented = /^(?: {4}|\t)/.test(line);
-      if (indentedCode && (blank || indented)) return;
-      indentedCode = !blank && indented && previousBlank && !inList;
-      if (indentedCode) return;
-      if (!blank) inList = /^(?:[-*+]|\d+[.)])\s/.test(trimmed) || (inList && /^\s/.test(line));
-      previousBlank = blank;
-    }
-    const delimiter = /^(`{3,}|~{3,})/.exec(trimmed)?.[1];
-    if (delimiter) {
-      // A fence closes only on its own character, at least as long, with nothing after it, so a
-      // four-backtick fence can show a three-backtick example.
-      const closes =
-        fence !== null && delimiter[0] === fence[0] && delimiter.length >= fence.length && !trimmed.slice(delimiter.length).trim();
-      if (fence === null) fence = delimiter;
-      else if (closes) fence = null;
+      return;
+    case "CallExpression":
+    case "OptionalCallExpression":
+    case "NewExpression":
+      renderedStrings(node.callee, emit);
+      for (const argument of node.arguments) {
+        if (isFunction(argument)) renderedStrings(argument.body, emit);
+        else componentCopy(argument, emit);
+      }
+      return;
+    case "TSAsExpression":
+    case "TSSatisfiesExpression":
+    case "TSNonNullExpression":
+      renderedStrings(node.expression, emit);
+      return;
+    case "TaggedTemplateExpression":
+    case "ImportDeclaration":
+    case "ExportAllDeclaration":
+    case "Directive":
+      return;
+  }
+  if (node.type.startsWith("TS")) return;
+  for (const [key, value] of Object.entries(node)) if (!syntaxKeys.has(key)) renderedStrings(value, emit);
+};
+
+// In a docs component, copy is what its JSX shows and the data it renders: JSX text, readable
+// attributes, what a JSX expression renders, the value of a copy-named property such as label or
+// description, the value setAttribute gives a readable attribute, and the text a set…Label or
+// set…Text call sets. Ids, keys, class names, CSS values, and event and element names are names.
+const copyKeys = new Set([...readableAttributes, "body", "caption", "description", "heading", "help", "hint", "message", "note", "subtitle", "summary", "text", "tooltip"]);
+const copySetter = /^set\w*(?:Label|Text|Title|Message|Description)$/;
+const componentCopy = (node, emit) => {
+  if (Array.isArray(node)) {
+    for (const item of node) componentCopy(item, emit);
+    return;
+  }
+  if (!node || typeof node.type !== "string") return;
+  switch (node.type) {
+    case "JSXText":
+      emit(node.value, node.loc.start.line);
+      return;
+    case "JSXAttribute":
+      if (readableAttributes.includes(jsxName(node.name))) renderedStrings(node.value, emit);
+      return;
+    case "JSXExpressionContainer":
+      renderedStrings(node.expression, emit);
+      return;
+    case "ObjectProperty": {
+      const key = node.key.type === "Identifier" ? node.key.name : node.key.value;
+      if (!node.computed && copyKeys.has(key)) renderedStrings(node.value, emit);
+      else componentCopy(node.value, emit);
       return;
     }
-    if (fence !== null) return;
-    prose.add(index);
+    case "CallExpression":
+    case "OptionalCallExpression": {
+      const callee = node.callee.type.endsWith("MemberExpression") ? node.callee.property.name : node.callee.name;
+      const [first, second] = node.arguments;
+      if (callee === "setAttribute" && first?.type === "StringLiteral" && readableAttributes.includes(first.value)) {
+        renderedStrings(second, emit);
+      } else if (copySetter.test(callee ?? "")) {
+        renderedStrings(first, emit);
+      }
+      componentCopy(node.callee, emit);
+      componentCopy(node.arguments, emit);
+      return;
+    }
+    case "ImportDeclaration":
+    case "ExportAllDeclaration":
+    case "TaggedTemplateExpression":
+      return;
+  }
+  if (node.type.startsWith("TS") && !["TSAsExpression", "TSSatisfiesExpression", "TSNonNullExpression"].includes(node.type)) return;
+  for (const [key, value] of Object.entries(node)) if (!syntaxKeys.has(key)) componentCopy(value, emit);
+};
+
+// An MDX expression, such as {done ? "Closed" : "Open"}, renders its strings. One that holds only a
+// comment, {/* … */}, renders nothing.
+const expressionStrings = (source, line, emit) => {
+  let expression;
+  try {
+    expression = parseExpression(source, {plugins: ["jsx"]});
+  } catch {
+    return;
+  }
+  renderedStrings(expression, (text, at) => emit(text, line + at - 1));
+};
+// Raw HTML in a CommonMark guide: comments and code elements are not copy, a tag is markup read only
+// for its readable attributes, and the text between tags is copy.
+const readableHtmlAttribute = new RegExp(`(?<![\\w:.-])(?:${readableAttributes.join("|")})\\s*=\\s*(?:"([^"]*)"|'([^']*)')`, "gd");
+const htmlText = (html) =>
+  html.replace(/<!--[\s\S]*?--!?>|<(code|pre)\b[^>]*>[\s\S]*?<\/\1>/gi, blankKeepingLines).replace(/<[^>]*>/g, (tag) => {
+    const kept = blankKeepingLines(tag).split("");
+    for (const match of tag.matchAll(readableHtmlAttribute)) {
+      const [start, end] = match.indices.slice(1).find(Boolean);
+      for (let at = start; at < end; at += 1) kept[at] = tag[at];
+    }
+    return kept.join("");
   });
-  // An MDX expression can span lines, so it is read once the code lines are set aside.
-  let body = lines.map((line, index) => (prose.has(index) ? line : "")).join("\n");
-  if (!commonMark) body = expressionText(body);
-  const bodyLines = body.split("\n");
-  for (const index of prose) checkProse(bodyLines[index], index + 1);
-  return found;
+
+// The docs build parses a page as MDX with the plugins @docusaurus/mdx-loader uses, after it reads
+// HTML comments and {#id} heading ids, which are not MDX; GitHub renders a guide as CommonMark with
+// GFM. Both are blanked first, keeping line numbers.
+const mdxPage = unified().use(remarkParse).use(remarkFrontmatter, ["yaml"]).use(remarkGfm).use(remarkDirective).use(remarkMdx);
+const commonMarkGuide = unified().use(remarkParse).use(remarkFrontmatter, ["yaml"]).use(remarkGfm);
+const notMdx = /<!--[\s\S]*?--!?>|\{#[^\s{}]+\}/g;
+const phrasing = new Set(["text", "emphasis", "strong", "delete", "inlineCode", "break", "link", "linkReference", "image", "imageReference", "footnoteReference", "html", "mdxTextExpression", "mdxJsxTextElement", "textDirective"]);
+const codeElements = new Set(["code", "pre"]);
+
+// commonMark is true for the guides outside the docs site; the site parses every page as MDX.
+const ukSpellingsIn = (text, {identifiers = new Set(), commonMark = false} = {}) => {
+  const {found, check} = spellingCollector(identifiers);
+  const tree = (commonMark ? commonMarkGuide : mdxPage).parse(text.replace(notMdx, blankKeepingLines));
+  const lineOf = (node) => node.position?.start.line ?? 1;
+  const readAttributes = (element) => {
+    for (const attribute of element.attributes ?? []) {
+      if (attribute.type !== "mdxJsxAttribute" || !readableAttributes.includes(attribute.name)) continue;
+      const line = attribute.position?.start.line ?? lineOf(element);
+      if (typeof attribute.value === "string") check(attribute.value, line);
+      else if (attribute.value?.type === "mdxJsxAttributeValueExpression") expressionStrings(attribute.value.value, line, check);
+    }
+  };
+  // A segment's text is read in order, with code and markup standing in as a word, so a sentence
+  // starts where the reader sees one; titles, alt text and expressions are read on their own.
+  const readSegment = (block) => {
+    const pieces = [];
+    const flatten = (node) => {
+      if (node.type === "text") {
+        pieces.push({text: node.value, line: lineOf(node), copy: true});
+        return;
+      }
+      if (node.type === "link" || node.type === "image") {
+        if (node.title) check(node.title, lineOf(node));
+        if (node.type === "image" && node.alt) check(node.alt, lineOf(node));
+      }
+      if (node.type === "html") check(htmlText(node.value), lineOf(node));
+      if (node.type === "mdxTextExpression") expressionStrings(node.value, lineOf(node), check);
+      if (node.type === "mdxJsxTextElement") readAttributes(node);
+      const hidden = ["inlineCode", "image", "imageReference", "footnoteReference", "html", "mdxTextExpression"].includes(node.type) ||
+        (node.type === "mdxJsxTextElement" && codeElements.has(node.name));
+      if (hidden) pieces.push({text: " x ", copy: false});
+      else if (node.type === "break") pieces.push({text: "\n", copy: false});
+      else for (const child of node.children ?? []) flatten(child);
+    };
+    for (const child of block.children) flatten(child);
+    const segment = pieces.map((piece) => piece.text).join("");
+    let offset = 0;
+    for (const piece of pieces) {
+      if (piece.copy) check(piece.text, piece.line, segment, offset);
+      offset += piece.text.length;
+    }
+  };
+  const readBlock = (node) => {
+    switch (node.type) {
+      case "code":
+      case "mdxjsEsm":
+      case "yaml":
+        return;
+      case "html":
+        check(htmlText(node.value), lineOf(node));
+        return;
+      case "mdxFlowExpression":
+        expressionStrings(node.value, lineOf(node), check);
+        return;
+      case "definition":
+        if (node.title) check(node.title, lineOf(node));
+        return;
+      case "mdxJsxFlowElement":
+        readAttributes(node);
+        if (codeElements.has(node.name)) return;
+    }
+    if (node.children?.some((child) => phrasing.has(child.type))) readSegment(node);
+    else for (const child of node.children ?? []) readBlock(child);
+  };
+  // Rendered frontmatter, parsed so a folded or literal block value is read whole.
+  const {frontmatter} = tree.children[0]?.type === "yaml" ? parseFrontmatter(text) : {frontmatter: null};
+  const lines = text.split("\n");
+  for (const key of renderedFrontmatterKeys) {
+    if (typeof frontmatter?.[key] === "string") {
+      check(frontmatter[key], lines.findIndex((line) => line.startsWith(`${key}:`)) + 1);
+    }
+  }
+  readBlock(tree);
+  return found.sort((left, right) => left.line - right.line);
 };
 
 const failUkSpellings = (relativePath, text, {generated = false, commonMark = false} = {}) => {
   const where = generated ? " Fix it in the source this page is generated from." : "";
-  for (const {line, word, us} of ukSpellingsIn(text, {identifiers: generated ? enumNames : undefined, commonMark})) {
+  let found;
+  try {
+    found = ukSpellingsIn(text, {identifiers: generated ? enumNames : undefined, commonMark});
+  } catch (error) {
+    // The docs build rejects a page it cannot parse, so the build reports the syntax error.
+    warn(relativePath, `Skipped the US-spelling check, since the page does not parse: ${error.message}`);
+    return;
+  }
+  for (const {line, word, us} of found) {
     fail(relativePath, `UK spelling on line ${line}: "${word}"; English copy uses US spelling ("${us}"), see DESIGN.md § Voice & Copy.${where}`);
   }
 };
@@ -765,6 +840,26 @@ const usSpellingGuides = async () => {
 
 for (const filePath of await usSpellingGuides()) {
   failUkSpellings(path.relative(repoRoot, filePath).replace(/\\/g, "/"), await fs.readFile(filePath, "utf8"), {commonMark: true});
+}
+
+// The docs site's components and the data they render, parsed as TypeScript and JSX; their tests
+// render nothing.
+const docsComponents = (await walkAllFiles(path.resolve(repoRoot, "docs/src"))).filter(
+  (filePath) => /\.(?:jsx?|tsx?)$/.test(filePath) && !/\.test\.|[\\/]__tests__[\\/]/.test(filePath),
+);
+for (const filePath of docsComponents) {
+  const relativePath = path.relative(repoRoot, filePath).replace(/\\/g, "/");
+  const {found, check} = spellingCollector();
+  try {
+    const plugins = filePath.endsWith(".ts") ? ["typescript"] : filePath.endsWith(".tsx") ? ["typescript", "jsx"] : ["jsx"];
+    componentCopy(parseModule(await fs.readFile(filePath, "utf8"), {sourceType: "module", plugins}).program, check);
+  } catch (error) {
+    warn(relativePath, `Skipped the US-spelling check, since the file does not parse: ${error.message}`);
+    continue;
+  }
+  for (const {line, word, us} of found) {
+    fail(relativePath, `UK spelling on line ${line}: "${word}"; English copy uses US spelling ("${us}"), see DESIGN.md § Voice & Copy.`);
+  }
 }
 
 const allDocs = await walk(docsRoot);
