@@ -327,7 +327,7 @@ Requests stop at pre-disbursement Cancelled.
     // Code indented inside a list item is code, and a link definition shows only its title.
     writeFileSync(
       design,
-      `${indentedCode}${designLinks}\nA grey border marks the field.\n\n- A list item\n    keeps a grey continuation.\n\n- An item with code\n\n      cancelled in an indented block inside the item\n\n[guide]: ./grey "Garden guide"\n[ref]: ./x "The favourite ref"\n\nThe <code>cancelled</code> state stays a name.\n`,
+      `${indentedCode}${designLinks}\nA grey border marks the field.\n\n- A list item\n    keeps a grey continuation.\n\n- An item with code\n\n      cancelled in an indented block inside the item\n\n[guide]: ./grey "Garden guide"\n[ref]: ./x "The favourite ref"\n\nThe <code>cancelled</code> state stays a name.\n\nSee <img ALT="A favourite logo" src="x.png"> here.\n`,
     );
     // Starting a sentence, a member is copy.
     const generatedDirty = `${readFileSync(generated, "utf8")}\nThe cycle was cancelled.\nCancelled requests remain visible.\n`;
@@ -370,11 +370,12 @@ Requests stop at pre-disbursement Cancelled.
     assert.match(result.stderr, /DESIGN\.md: UK spelling on line 10: "grey"/);
     assert.doesNotMatch(result.stderr, /DESIGN\.md: UK spelling on line 3:/);
     assert.match(result.stderr, /DESIGN\.md: UK spelling on line 17: "favourite"/);
+    assert.match(result.stderr, /DESIGN\.md: UK spelling on line 21: "favourite"/);
     const cancelledLine = generatedLineOf("The cycle was cancelled.");
     assert.match(result.stderr, new RegExp(`reference/generated\\.mdx: UK spelling on line ${cancelledLine}: "cancelled".* Fix it in the source this page is generated from\\.`));
     const sentenceStart = generatedLineOf("Cancelled requests remain visible.");
     assert.ok(result.stderr.includes(`reference/generated.mdx: UK spelling on line ${sentenceStart}: "Cancelled"`), result.stderr);
-    assert.equal(result.stderr.match(/UK spelling/g)?.length, 19, result.stderr);
+    assert.equal(result.stderr.match(/UK spelling/g)?.length, 20, result.stderr);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -448,6 +449,12 @@ test("UK spelling in docs component copy exits nonzero, while names stay free", 
       "  return <p>{emptyLabel} {shown}</p>;",
       "}",
       "",
+      "// JSX a component builds and never returns renders nothing.",
+      "export function Hidden() {",
+      '  const diagnostic = <span>A favourite fixture</span>;',
+      "  return <p>Visible</p>;",
+      "}",
+      "",
     ].join("\n");
     mkdirSync(path.join(root, "docs/src/components/docs"), { recursive: true });
     writeFileSync(path.join(root, "docs/src/components/docs/Sample.tsx"), component);
@@ -478,6 +485,26 @@ test("UK spelling in docs component copy exits nonzero, while names stay free", 
     const pageLines = readFileSync(page, "utf8").split("\n");
     const pageLine = pageLines.indexOf('<Answer question="Why is the favourite grey?" tone="grey" />') + 1;
     const replyLine = pageLines.indexOf('<Reply question="A grey reply" tone="grey" />') + 1;
+    // A JSON file is read for the fields its importers render: Palette shows a color's name and role,
+    // keys rows by id and shows hex as code.
+    mkdirSync(path.join(root, "docs/src/data"), { recursive: true });
+    writeFileSync(
+      path.join(root, "docs/src/data/palette.json"),
+      '{\n  "colors": [\n    { "id": "cancelled-id", "name": "Warm grey", "hex": "#cccccc", "role": "A favourite role" }\n  ]\n}\n',
+    );
+    writeFileSync(
+      path.join(root, "docs/src/components/docs/Palette.tsx"),
+      [
+        'import palette from "../../data/palette.json";',
+        "export function Palette() {",
+        "  return <ul>{palette.colors.map((color) => <li key={color.id}>{color.name} {color.role} <code>{color.hex}</code></li>)}</ul>;",
+        "}",
+        "",
+      ].join("\n"),
+    );
+    // A page's ESM constant renders where the page uses it.
+    writeFileSync(page, `${readFileSync(page, "utf8")}\nexport const notice = "A favourite notice";\n\n{notice}\n`);
+    const noticeLine = readFileSync(page, "utf8").split("\n").indexOf('export const notice = "A favourite notice";') + 1;
     // The site's configuration and sidebar labels are copy; their routes and URLs are names.
     writeFileSync(
       path.join(root, "docs/docusaurus.config.ts"),
@@ -534,7 +561,10 @@ test("UK spelling in docs component copy exits nonzero, while names stay free", 
     assert.ok(result.stderr.includes('docs/docusaurus.config.ts: UK spelling on line 3: "favourite"'), result.stderr);
     assert.ok(result.stderr.includes('docs/docusaurus.config.ts: UK spelling on line 5: "Grey"'), result.stderr);
     assert.ok(result.stderr.includes('docs/sidebars.ts: UK spelling on line 1: "Favourite"'), result.stderr);
-    assert.equal(result.stderr.match(/UK spelling/g)?.length, 26, result.stderr);
+    assert.ok(result.stderr.includes('docs/src/data/palette.json: UK spelling on line 3: "grey"'), result.stderr);
+    assert.ok(result.stderr.includes('docs/src/data/palette.json: UK spelling on line 3: "favourite"'), result.stderr);
+    assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${noticeLine}: "favourite"`), result.stderr);
+    assert.equal(result.stderr.match(/UK spelling/g)?.length, 29, result.stderr);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

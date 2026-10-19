@@ -690,12 +690,16 @@ let renderedPropsVersion = 0;
 const domCopyProperties = new Set(["textContent", "innerText", "title", "alt", "placeholder", "label", "ariaLabel", "ariaDescription"]);
 // Readers for one module: renderedStrings and componentCopy, resolving names through its bindings
 // and the components it imports under other names through its aliases.
-const copyReaders = (bindings = new Map(), aliases = new Map()) => {
+// dataKeys are the extra fields a JSON file's importers render, read like copy-named properties.
+const copyReaders = (bindings = new Map(), aliases = new Map(), dataKeys = new Set()) => {
   // A bound value can be reached through many names and calls, so what it renders is worked out once.
   const resolving = new Set();
   const resolved = new Map();
   let resolvedVersion = renderedPropsVersion;
-  const isCopyProperty = (property) => !property.computed && copyKeys.has(propertyKey(property));
+  // The fields this module renders from its objects, such as color.name, for the JSON it imports.
+  const renderedMembers = new Set();
+  const isCopyProperty = (property) =>
+    !property.computed && (copyKeys.has(propertyKey(property)) || dataKeys.has(propertyKey(property)));
   const attributeStrings = (attribute, emit, element) => {
     const name = jsxName(attribute.name);
     if (readableAttributes.includes(name) || renderedProps.get(element)?.has(name)) renderedStrings(attribute.value, emit);
@@ -769,6 +773,7 @@ const copyReaders = (bindings = new Map(), aliases = new Map()) => {
         return;
       case "MemberExpression":
       case "OptionalMemberExpression":
+        if (!node.computed && node.property.type === "Identifier") renderedMembers.add(node.property.name);
         renderedStrings(node.object, emit);
         return;
       case "SwitchCase":
@@ -821,6 +826,9 @@ const copyReaders = (bindings = new Map(), aliases = new Map()) => {
       return;
     }
     if (!node || typeof node.type !== "string") return;
+    // In a component or callback body, JSX renders only once it is returned or reached through a
+    // rendered binding, so JSX built and left aside is not copy.
+    if (returnsRender && (node.type === "JSXElement" || node.type === "JSXFragment")) return;
     if (elementStrings(node, emit, componentCopy)) return;
     switch (node.type) {
       case "JSXText":
@@ -881,24 +889,27 @@ const copyReaders = (bindings = new Map(), aliases = new Map()) => {
     const nested = ownsReturns(node) ? false : returnsRender;
     for (const [key, value] of Object.entries(node)) if (!syntaxKeys.has(key)) componentCopy(value, emit, nested);
   };
-  return {renderedStrings, componentCopy};
+  return {renderedStrings, componentCopy, renderedMembers};
 };
-const pageReaders = copyReaders();
 
 // An MDX expression, such as {done ? "Closed" : "Open"}, renders its strings, and the value of a
 // prop is read like component data. One that holds only a comment, {/* … */}, renders nothing.
-const expressionStrings = (source, line, emit, read = pageReaders.renderedStrings) => {
+// It is parsed at its own line, so a literal reports where it stands; Babel takes a start line only
+// with a start column and index.
+const startingAt = (line) => ({startLine: line, startColumn: 0, startIndex: 0});
+const expressionStrings = (source, line, emit, read) => {
   let expression;
   try {
-    expression = parseExpression(source, {plugins: ["jsx"]});
+    expression = parseExpression(source, {plugins: ["jsx"], ...startingAt(line)});
   } catch {
     return;
   }
-  read(expression, (text, at) => emit(text, line + at - 1));
+  read(expression, emit);
 };
 // Raw HTML in a CommonMark guide: comments and code elements are not copy, a tag is markup read only
 // for its readable attributes, and the text between tags is copy.
-const readableHtmlAttribute = new RegExp(`(?<![\\w:.-])(?:${readableAttributes.join("|")})\\s*=\\s*(?:"([^"]*)"|'([^']*)')`, "gd");
+// HTML attribute names ignore case, so ALT is alt.
+const readableHtmlAttribute = new RegExp(`(?<![\\w:.-])(?:${readableAttributes.join("|")})\\s*=\\s*(?:"([^"]*)"|'([^']*)')`, "gdi");
 const htmlText = (html) =>
   html.replace(/<!--[\s\S]*?--!?>|<(code|pre)\b[^>]*>[\s\S]*?<\/\1>/gi, blankKeepingLines).replace(/<[^>]*>/g, (tag) => {
     const kept = blankKeepingLines(tag).split("");
@@ -923,17 +934,21 @@ const ukSpellingsIn = (text, {identifiers = new Set(), commonMark = false} = {})
   const {found, check} = spellingCollector(identifiers);
   const tree = (commonMark ? commonMarkGuide : mdxPage).parse(text.replace(notMdx, blankKeepingLines));
   const lineOf = (node) => node.position?.start.line ?? 1;
+  // A page's ESM imports components, sometimes under other names, and declares constants it renders;
+  // parsed at their own lines, they give the page's expressions their bindings.
   const pageAliases = new Map();
+  const pageBindings = new Map();
   for (const node of tree.children) {
     if (node.type !== "mdxjsEsm") continue;
     try {
-      for (const [local, imported] of importAliases(parseModule(node.value, {sourceType: "module", plugins: ["jsx"]}).program)) {
-        pageAliases.set(local, imported);
-      }
+      const {program} = parseModule(node.value, {sourceType: "module", plugins: ["jsx"], ...startingAt(lineOf(node))});
+      for (const [local, imported] of importAliases(program)) pageAliases.set(local, imported);
+      for (const [name, values] of collectBindings(program)) pageBindings.set(name, [...(pageBindings.get(name) ?? []), ...values]);
     } catch {
       // The docs build reports an import it cannot parse.
     }
   }
+  const page = copyReaders(pageBindings, pageAliases);
   const readAttributes = (element) => {
     for (const attribute of element.attributes ?? []) {
       if (attribute.type !== "mdxJsxAttribute") continue;
@@ -943,10 +958,10 @@ const ukSpellingsIn = (text, {identifiers = new Set(), commonMark = false} = {})
       const component = pageAliases.get(element.name) ?? element.name;
       if (readableAttributes.includes(attribute.name) || renderedProps.get(component)?.has(attribute.name)) {
         if (typeof attribute.value === "string") check(attribute.value, line);
-        else if (expression !== null) expressionStrings(expression, line, check);
+        else if (expression !== null) expressionStrings(expression, line, check, page.renderedStrings);
       } else if (expression !== null) {
         // Data a component renders, such as items={[{label: "…"}]}, is read for its copy-named fields.
-        expressionStrings(expression, line, check, pageReaders.componentCopy);
+        expressionStrings(expression, line, check, page.componentCopy);
       }
     }
   };
@@ -966,7 +981,7 @@ const ukSpellingsIn = (text, {identifiers = new Set(), commonMark = false} = {})
       if ((node.type === "link" || node.type === "image") && node.title) check(node.title, lineOf(node));
       if ((node.type === "image" || node.type === "imageReference") && node.alt) check(node.alt, lineOf(node));
       if (node.type === "html") check(htmlText(node.value), lineOf(node));
-      if (node.type === "mdxTextExpression") expressionStrings(node.value, lineOf(node), check);
+      if (node.type === "mdxTextExpression") expressionStrings(node.value, lineOf(node), check, page.renderedStrings);
       if (node.type === "mdxJsxTextElement") readAttributes(node);
       const hidden = ["inlineCode", "image", "imageReference", "footnoteReference", "html", "mdxTextExpression"].includes(node.type) ||
         (node.type === "mdxJsxTextElement" && codeElements.has(node.name));
@@ -992,7 +1007,7 @@ const ukSpellingsIn = (text, {identifiers = new Set(), commonMark = false} = {})
         check(htmlText(node.value), lineOf(node));
         return;
       case "mdxFlowExpression":
-        expressionStrings(node.value, lineOf(node), check);
+        expressionStrings(node.value, lineOf(node), check, page.renderedStrings);
         return;
       case "definition":
         if (node.title) check(node.title, lineOf(node));
@@ -1083,6 +1098,19 @@ for (let learned = -1; learned !== renderedPropCount(); ) {
   learned = renderedPropCount();
   for (const {program, readers} of parsedModules.values()) readers.componentCopy(program, () => {});
 }
+// A JSON file is read for its copy-named fields and for the fields its importers render, such as a
+// palette's name and role.
+const renderedJsonFields = new Map();
+for (const [filePath, {program, readers}] of parsedModules) {
+  for (const statement of program.body) {
+    if (statement.type !== "ImportDeclaration" || !statement.source.value.endsWith(".json")) continue;
+    const source = statement.source.value;
+    const target = source.startsWith("@site/")
+      ? path.resolve(repoRoot, "docs", source.slice("@site/".length))
+      : path.resolve(path.dirname(filePath), source);
+    renderedJsonFields.set(target, new Set([...(renderedJsonFields.get(target) ?? []), ...readers.renderedMembers]));
+  }
+}
 for (const filePath of docsSourceFiles) {
   const relativePath = relativeToRepo(filePath);
   const source = await fs.readFile(filePath, "utf8");
@@ -1096,7 +1124,7 @@ for (const filePath of docsSourceFiles) {
       );
       generated = envelope.has("$generated");
       if (generated && auditedSources.has(envelope.get("source")?.value)) continue;
-      pageReaders.componentCopy(data, check);
+      copyReaders(new Map(), new Map(), renderedJsonFields.get(filePath)).componentCopy(data, check);
     } else {
       const parsed = parsedModules.get(filePath);
       if (!parsed) continue;
