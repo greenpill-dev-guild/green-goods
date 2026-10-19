@@ -110,7 +110,7 @@ function stepCopy(
           definition={formatMessage({
             id: "public.pool.terms.commitment",
             defaultMessage:
-              "An offer or request recorded in a Garden's pool, naming who will carry it out and the window to deliver it in.",
+              "An offer or request recorded in a garden's pool, naming who will carry it out and the window to deliver it in.",
           })}
         />
       ),

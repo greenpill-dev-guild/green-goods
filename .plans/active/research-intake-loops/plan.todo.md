@@ -2,7 +2,7 @@
 
 **Feature Slug**: `research-intake-loops`
 **Stage**: `active`
-**Status**: `ACTIVE — steps 1 to 3 merged in #1118; step 5 recorded on 2026-10-18 from the first v5 run; step 4's radar issue and pinned note still open; steps 6 and 7 follow`
+**Status**: `ACTIVE — steps 1 to 3 merged in #1118, step 8 in #1121 and #1122; steps 5 and 8 recorded on 2026-10-18 from the first v5 and v5.1 runs; step 4's radar issue and pinned note still open; steps 6 and 7 follow`
 **Created**: `2026-10-18`
 **Last Updated**: `2026-10-18`
 
@@ -74,6 +74,8 @@
 8. **v5.1 quiet intake** (`docs/routines/research-synthesis.md` Phases 1b, 4, 5, 5a, 5b, 6, the
    guardrails and a migration note; hub R1, R2, R4 to R6, R8, R17, R18, R20, R21; AC-1, AC-2, AC-4,
    AC-10): decided after the first live run, in its own PR to `develop` before the 2026-10-24 fire.
+   Merged in #1121 and #1122 on 2026-10-18; the first v5.1 run (a manual fire the same evening) is
+   recorded in [reports/2026-10-18-first-v5-1-run.md](reports/2026-10-18-first-v5-1-run.md).
 
 Steps 1 to 3 can land in one PR or three; the routine only needs `develop` to carry all three
 before step 5.

@@ -50,7 +50,7 @@ const messages: Record<string, string> = {
   "public.home.featured.kicker": "§ 01 — Featured Gardens",
   "public.home.featured.title": "Tended places, openly recorded.",
   "public.home.featured.cta": "Browse All Gardens",
-  "public.home.featured.empty": "Featured Gardens will appear here as they come online.",
+  "public.home.featured.empty": "Featured gardens will appear here as they come online.",
   "public.surface.error": "This public record is temporarily unavailable. Please try again.",
   "public.surface.retry": "Try Again",
   "public.gardens.gardeners": "{count} gardeners",
@@ -277,7 +277,7 @@ describe("PublicFeaturedGardens", () => {
 
     expect(screen.queryByTestId("public-featured-grid")).toBeNull();
     expect(
-      screen.getByText("Featured Gardens will appear here as they come online.")
+      screen.getByText("Featured gardens will appear here as they come online.")
     ).toBeInTheDocument();
   });
 
@@ -295,7 +295,7 @@ describe("PublicFeaturedGardens", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "This public record is temporarily unavailable. Please try again."
     );
-    expect(screen.queryByText("Featured Gardens will appear here as they come online.")).toBeNull();
+    expect(screen.queryByText("Featured gardens will appear here as they come online.")).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
     expect(refetch).toHaveBeenCalledTimes(1);

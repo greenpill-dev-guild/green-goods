@@ -11,7 +11,7 @@ generated_from:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
   - scripts/quality/ontology-render.mjs
-source_digest: "sha256:6185561a06309e232b768f5f1be5e3b855c112dae5cab6071adbecadd156f4d3"
+source_digest: "sha256:82d62f3bec59185dbde2eeed20d831eef16a9ce942145aee1bc0bd8337da55a7"
 source_of_truth:
   - packages/indexer/schema.graphql
   - packages/shared/src/ontology/green-goods-ontology.json
@@ -177,8 +177,8 @@ stateDiagram-v2
   syncing --> sync_failed: a recoverable queue or upload failure preserves the job for…
   uploading --> sync_failed: a recoverable queue or upload failure preserves the job for…
   uploading --> pending: successful EAS Work attestation submission creates the pend…
-  pending --> approved: a Steward records a separate Work Approval attestation
-  pending --> rejected: a Steward records a separate Work Approval attestation
+  pending --> approved: a steward records a separate Work Approval attestation
+  pending --> rejected: a steward records a separate Work Approval attestation
 ```
 
 | From | To | Layer | Mechanism |
@@ -187,7 +187,7 @@ stateDiagram-v2
 | syncing | uploading | off-chain | queued media begins uploading before the attestation is submitted |
 | syncing, uploading | sync_failed | off-chain | a recoverable queue or upload failure preserves the job for retry |
 | uploading | pending | on-chain | successful EAS Work attestation submission creates the pending public record |
-| pending | approved, rejected | on-chain | a Steward records a separate Work Approval attestation |
+| pending | approved, rejected | on-chain | a steward records a separate Work Approval attestation |
 
 ### commitment-pool {#commitment-pool}
 

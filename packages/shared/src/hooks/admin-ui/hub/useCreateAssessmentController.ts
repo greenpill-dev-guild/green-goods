@@ -438,7 +438,7 @@ export function useCreateAssessmentController() {
     const payload = buildWorkflowPayload(form);
     if (!payload) {
       refuseSubmit(
-        { id: "app.assessment.selectGarden", defaultMessage: "Select a Garden" },
+        { id: "app.assessment.selectGarden", defaultMessage: "Select a garden" },
         {
           id: "app.assessment.selectGardenMessage",
           defaultMessage: "Choose a garden to link this assessment.",

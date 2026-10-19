@@ -124,7 +124,7 @@ export function PublicProofBand({
               {formatMessage({
                 id: "public.home.proof.body",
                 defaultMessage:
-                  "Documented activity across the Gardens listed here, and the promises members have kept across Green Goods. A steward's approval confirms a submission was reviewed; environmental outcomes need their own measurements and assessments.",
+                  "Documented activity across the gardens listed here, and the promises members have kept across Green Goods. A steward's approval confirms a submission was reviewed; environmental outcomes need their own measurements and assessments.",
               })}
             </EditorialLede>
           </div>
@@ -150,7 +150,7 @@ export function PublicProofBand({
               {formatMessage({
                 id: "public.home.proof.empty",
                 defaultMessage:
-                  "The first records will appear here as Gardens publish their work, season by season.",
+                  "The first records will appear here as gardens publish their work, season by season.",
               })}
             </p>
           </div>
@@ -183,7 +183,7 @@ export function PublicProofBand({
               labelId="public.home.proof.works"
               defaultLabel="Approved submissions"
               noteId="public.home.proof.worksNote"
-              defaultNote="Work reviewed by a Garden's stewards."
+              defaultNote="Work reviewed by a garden's stewards."
             />
             <ProofMarker
               className="col-span-2 @min-[70rem]:col-[2/span_2]"

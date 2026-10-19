@@ -43,7 +43,7 @@
       "id": "cookie-jar",
       "display": "Cookie Jar",
       "matrix_column": "Cookie Jar",
-      "definition": "Cookie Jars are Garden-linked distribution primitives. Deployment artifacts and indexer configuration own recorded availability.",
+      "definition": "Cookie Jars are garden-linked distribution primitives. Deployment artifacts and indexer configuration own recorded availability.",
       "contract_source": "packages/contracts/src/modules/CookieJar.sol",
       "deployment_fields": ["cookieJarFactory", "cookieJarModule"],
       "indexer_contracts": ["CookieJarFactory"],
@@ -77,7 +77,7 @@
       "id": "ens",
       "display": "ENS",
       "matrix_column": "ENS",
-      "definition": "ENS connects Garden identity to names across the configured registry, receiver, and application resolution paths.",
+      "definition": "ENS connects garden identity to names across the configured registry, receiver, and application resolution paths.",
       "contract_source": "packages/contracts/src/registries/ENS.sol",
       "deployment_fields": ["ensReceiver", "greenGoodsENS"],
       "remote_deployment_fields": {
@@ -92,7 +92,7 @@
       "id": "gardens",
       "display": "Gardens",
       "matrix_column": "Gardens V2",
-      "definition": "The Gardens module connects a Green Goods Garden to governance communities and signal pools.",
+      "definition": "The Gardens module connects a Green Goods garden to governance communities and signal pools.",
       "contract_source": "packages/contracts/src/modules/Gardens.sol",
       "deployment_fields": ["gardensModule"],
       "indexer_contracts": [],
@@ -102,7 +102,7 @@
       "id": "hats",
       "display": "Hats Protocol",
       "matrix_column": "Hats Protocol",
-      "definition": "Hats provides the on-chain role hierarchy used to authorize Garden responsibilities.",
+      "definition": "Hats provides the on-chain role hierarchy used to authorize garden responsibilities.",
       "contract_source": "packages/contracts/src/modules/Hats.sol",
       "deployment_fields": ["hatsModule"],
       "indexer_contracts": ["HatsModule"],
@@ -122,7 +122,7 @@
       "id": "karma",
       "display": "Karma GAP",
       "matrix_column": "Karma GAP",
-      "definition": "Karma GAP connects Garden activity with project reporting and milestone records.",
+      "definition": "Karma GAP connects garden activity with project reporting and milestone records.",
       "contract_source": "packages/contracts/src/modules/Karma.sol",
       "deployment_fields": ["karmaGAPModule"],
       "indexer_contracts": ["KarmaGAPModule"],
@@ -132,7 +132,7 @@
       "id": "octant",
       "display": "Octant",
       "matrix_column": "Octant",
-      "definition": "Octant provides Garden vault creation, deposits, withdrawals, and yield-donation mechanics.",
+      "definition": "Octant provides garden vault creation, deposits, withdrawals, and yield-donation mechanics.",
       "contract_source": "packages/contracts/src/modules/Octant.sol",
       "deployment_fields": ["octantFactory", "octantModule"],
       "indexer_contracts": ["OctantModule", "OctantVault"],
@@ -142,7 +142,7 @@
       "id": "tokenbound",
       "display": "Tokenbound Accounts",
       "matrix_column": "Tokenbound",
-      "definition": "ERC-6551 token-bound accounts make each Garden token an on-chain account that holds the Garden's treasury, role Hats, and attested records.",
+      "definition": "ERC-6551 token-bound accounts make each Garden token an on-chain account that holds the garden's treasury, role Hats, and attested records.",
       "contract_source": "packages/contracts/src/accounts/Garden.sol",
       "deployment_fields": ["accountProxy", "gardenAccountImpl", "gardenToken"],
       "indexer_contracts": ["GardenAccount", "GardenToken"],
@@ -707,7 +707,7 @@
       "id": "evaluator",
       "display": "Evaluator",
       "hat": "evaluator",
-      "definition": "A person who authors or strengthens Assessments and attests impact methodology or outcomes. Evaluators do not approve or reject submitted Work; that authority belongs to Stewards.",
+      "definition": "A person who authors or strengthens Assessments and attests impact methodology or outcomes. Evaluators do not approve or reject submitted Work; that authority belongs to stewards.",
       "surfaces": ["admin", "client", "public", "docs"]
     },
     {
@@ -721,11 +721,11 @@
       "id": "community-member",
       "display": "Community Member",
       "hat": "community",
-      "definition": "A local resident affected by a Garden's Work. Signals or attests that Work exists and is healthy, and helps prioritize future Actions through public signal and conviction flows.",
+      "definition": "A local resident affected by a garden's Work. Signals or attests that Work exists and is healthy, and helps prioritize future Actions through public signal and conviction flows.",
       "surfaces": ["client", "public", "docs"]
     }
   ],
-  "personas_note": "The on-chain hat tree has six roles; the Owner hat carries full garden control but has no dedicated persona — owners act through the Steward surfaces.",
+  "personas_note": "The on-chain hat tree has six roles; the Owner hat carries full garden control but has no dedicated persona — owners act through the steward surfaces.",
   "supporting_terms_note": "Terms projected into the generated glossary's Term Reference section but deliberately excluded from the canonical entity and persona sets. Declaring them here prevents public definitions from accumulating orphan nouns.",
   "supporting_terms": [
     {
@@ -3589,7 +3589,7 @@
           "from": ["pending"],
           "to": ["approved", "rejected"],
           "layer": "on-chain",
-          "mechanism": "a Steward records a separate Work Approval attestation"
+          "mechanism": "a steward records a separate Work Approval attestation"
         }
       ],
       "source_status": "implemented",

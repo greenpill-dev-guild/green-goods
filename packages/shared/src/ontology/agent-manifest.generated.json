@@ -37,7 +37,7 @@
           },
           {
             "file": "packages/client/src/views/Public/GardenDetail.tsx",
-            "note": "The client exposes a public Garden surface."
+            "note": "The client exposes a public garden surface."
           }
         ],
         "verified_at": "2026-08-15"
@@ -46,7 +46,7 @@
         {
           "id": "place-rooted-coordination",
           "maturity": "available",
-          "safe_wording": "Communities can organize people and records around a shared Garden.",
+          "safe_wording": "Communities can organize people and records around a shared garden.",
           "verified_at": "2026-08-15"
         }
       ]
@@ -433,7 +433,7 @@
           },
           {
             "file": "packages/client/src/components/Public/PublicWhoTendsAGarden.tsx",
-            "note": "The public client explains active Garden roles."
+            "note": "The public client explains active garden roles."
           }
         ],
         "verified_at": "2026-08-15"
@@ -442,7 +442,7 @@
         {
           "id": "place-rooted-coordination",
           "maturity": "available",
-          "safe_wording": "Communities can organize people and records around a shared Garden.",
+          "safe_wording": "Communities can organize people and records around a shared garden.",
           "verified_at": "2026-08-15"
         }
       ]
@@ -970,7 +970,7 @@
       "id": "evaluator",
       "kind": "persona",
       "canonical": "Evaluator",
-      "definition": "A person who authors or strengthens Assessments and attests impact methodology or outcomes. Evaluators do not approve or reject submitted Work; that authority belongs to Stewards.",
+      "definition": "A person who authors or strengthens Assessments and attests impact methodology or outcomes. Evaluators do not approve or reject submitted Work; that authority belongs to stewards.",
       "semantic_status": "canonical",
       "surfaces": ["admin", "client", "public", "docs"],
       "aliases": ["impact assessor"],
@@ -1003,7 +1003,7 @@
       "id": "community-member",
       "kind": "persona",
       "canonical": "Community Member",
-      "definition": "A local resident affected by a Garden's Work. Signals or attests that Work exists and is healthy, and helps prioritize future Actions through public signal and conviction flows.",
+      "definition": "A local resident affected by a garden's Work. Signals or attests that Work exists and is healthy, and helps prioritize future Actions through public signal and conviction flows.",
       "semantic_status": "canonical",
       "surfaces": ["client", "public", "docs"],
       "aliases": ["resident"],

@@ -242,7 +242,7 @@ export function VaultsPageContent({
             {formatMessage({
               id: "public.vaults.boundary.body",
               defaultMessage:
-                "This page is for Octant-backed campaigns. For the wider Green Goods network, explore Gardens.",
+                "This page is for Octant-backed campaigns. For the wider Green Goods network, explore gardens.",
             })}
           </p>
           <Link
