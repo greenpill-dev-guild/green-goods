@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-18",
-    "updated_at": "2026-10-18"
+    "updated_at": "2026-10-19T06:02:21.181Z"
   },
   "links": {
     "brief": "brief.md",
@@ -19,7 +19,7 @@
     "eval": "eval.md"
   },
   "linear": {
-    "parentIssue": null,
+    "parentIssue": "PRD-1293",
     "project": null,
     "initiative": null,
     "syncDirection": "plans_to_linear_visibility",
@@ -37,7 +37,8 @@
     "Mark unused lanes as n/a before promoting QA.",
     "status.json is authoritative; set a concrete <type>/<work-description> branch only when work begins.",
     "Use targeted bun run test or bun run test as the iterative gate for the touched surface; coverage is scheduled or pre-merge evidence.",
-    ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist."
+    ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist.",
+    "linear.project stays null: release projects rotate, so the active one is looked up at write time, never persisted (Codex on #1138)."
   ],
   "lanes": {
     "ui": {
@@ -160,6 +161,14 @@
     {
       "date": "2026-10-18",
       "event": "First v5.1 run (manual fire, evening, a same-date rerun on top of the v5 run) reviewed: no second digest, ten reactions, one intake thread under the digest with one 13-line ledger message and one mention, intake receipt written, pending-edits document refreshed without ageing; AC-1, AC-3 and AC-11 pass, AC-7's refresh half passes, AC-2 partly exercised; two small spec findings (same-title rerun memo, recovered lines merged into the sharer's message) in reports/2026-10-18-first-v5-1-run.md."
+    },
+    {
+      "timestamp": "2026-10-19T06:02:21.181Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
     }
   ]
 }
