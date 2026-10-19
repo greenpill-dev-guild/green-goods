@@ -14,7 +14,7 @@ const meta: Meta<typeof SetupFlowFooter> = {
     },
   },
   args: {
-    title: "Set Up Commitments",
+    title: "Set Up Promises",
     intent: "first-run",
     isCampaign: false,
     stepIndex: 0,

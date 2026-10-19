@@ -55,7 +55,7 @@ export function PoolFundingDialogFinancialSections({
           <Fact
             label={formatMessage({
               id: "cockpit.garden.pool.funding.expected",
-              defaultMessage: "Expected commitments",
+              defaultMessage: "Expected promise rewards",
             })}
             value={amount(snapshot?.expected ?? null)}
           />

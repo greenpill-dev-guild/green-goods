@@ -48,7 +48,7 @@ export function CommitmentReasonDialogs({
         variant="danger"
         title={formatMessage({
           id: "cockpit.garden.pool.commitment.cancel.title",
-          defaultMessage: "Cancel This Commitment",
+          defaultMessage: "Cancel This Promise",
         })}
         description={formatMessage({
           id: "cockpit.garden.pool.commitment.cancel.description",
@@ -57,11 +57,11 @@ export function CommitmentReasonDialogs({
         })}
         confirmLabel={formatMessage({
           id: "cockpit.garden.pool.commitment.cancel.confirm",
-          defaultMessage: "Cancel Commitment",
+          defaultMessage: "Cancel Promise",
         })}
         cancelLabel={formatMessage({
           id: "cockpit.garden.pool.commitment.cancel.keep",
-          defaultMessage: "Keep Commitment",
+          defaultMessage: "Keep It Live",
         })}
         suggestions={[
           formatMessage({
@@ -74,7 +74,7 @@ export function CommitmentReasonDialogs({
           }),
           formatMessage({
             id: "cockpit.garden.pool.commitment.cancel.suggestion.duplicate",
-            defaultMessage: "Duplicate commitment",
+            defaultMessage: "Duplicate promise",
           }),
         ]}
         blockedReason={blockedReason}
@@ -95,7 +95,7 @@ export function CommitmentReasonDialogs({
         description={formatMessage({
           id: "cockpit.garden.pool.commitment.markReady.description",
           defaultMessage:
-            "A steward override, separate from sending for confirmation. Moves the commitment to Ready without the recipient’s send; the reason is stored and shows in the member timeline.",
+            "A steward override, separate from sending for confirmation. Moves the promise to Ready without the recipient’s send; the reason is stored and shows in the member timeline.",
         })}
         confirmLabel={formatMessage({
           id: "cockpit.garden.pool.commitment.markReady.confirm",
@@ -133,7 +133,7 @@ export function CommitmentReasonDialogs({
         description={formatMessage({
           id: "cockpit.garden.pool.commitment.dispute.description",
           defaultMessage:
-            "Freezes the commitment for review. Members see “under review by stewards”, never dispute language.",
+            "Freezes the promise for review. Members see “under review by stewards”, never dispute language.",
         })}
         confirmLabel={formatMessage({
           id: "cockpit.garden.pool.commitment.dispute.confirm",
@@ -307,7 +307,7 @@ export function CommitmentDeclineClaimDialog({
       description={formatMessage({
         id: "cockpit.garden.pool.declineClaim.description",
         defaultMessage:
-          "Only this request is declined; others stay pending and the commitment stays claimable. The person sees your reason and may ask again.",
+          "Only this request is declined; others stay pending and the promise stays claimable. The person sees your reason and may ask again.",
       })}
       confirmLabel={formatMessage({
         id: "cockpit.garden.pool.declineClaim.confirm",
