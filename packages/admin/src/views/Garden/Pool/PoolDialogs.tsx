@@ -96,7 +96,7 @@ export function PoolDialogs({
         description={formatMessage({
           id: "cockpit.garden.pool.close.description",
           defaultMessage:
-            "Closing ends participation for every member. Every cycle is finished and no commitment is live; history stays with the garden. Archiving and reopening stay available.",
+            "Closing ends participation for every member. Every cycle is finished and no promise is live; history stays with the garden. Archiving and reopening stay available.",
         })}
         confirmLabel={formatMessage({
           id: "cockpit.garden.pool.close.confirm",
@@ -126,7 +126,7 @@ export function PoolDialogs({
         description={formatMessage({
           id: "cockpit.garden.pool.compost.description",
           defaultMessage:
-            "Archiving keeps this closed pool’s seasons, commitments, reasons, and history readable. Reopening later begins from set-up.",
+            "Archiving keeps this closed pool’s seasons, promises, reasons, and history readable. Reopening later begins from set-up.",
         })}
         confirmLabel={formatMessage({
           id: "cockpit.garden.pool.compost.confirm",

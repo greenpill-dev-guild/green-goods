@@ -69,7 +69,7 @@ export function CommitmentFacts({
             : commitment.commitmentType === "SEASON_CAMPAIGN"
               ? formatMessage({
                   id: "cockpit.garden.pool.seed.kind.seasonCampaign",
-                  defaultMessage: "Season / campaign commitment",
+                  defaultMessage: "Season / campaign promise",
                 })
               : commitment.commitmentType === "STEWARD_CAPTURED"
                 ? formatMessage({

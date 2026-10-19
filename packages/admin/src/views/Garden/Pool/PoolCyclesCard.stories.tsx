@@ -44,7 +44,7 @@ export const OpenSeasonWithCampaigns: Story = {
   args: { console: storyPoolConsole() },
   play: async ({ canvasElement }) => {
     await expect(
-      within(canvasElement).getByText(/3 commitments are still live\./)
+      within(canvasElement).getByText(/3 promises are still live\./)
     ).toBeInTheDocument();
   },
 };

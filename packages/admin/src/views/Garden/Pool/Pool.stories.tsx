@@ -78,7 +78,7 @@ export const Open: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(await canvas.findByText("Season of First Rains")).toBeVisible();
-    await expect(await canvas.findByText("Taking commitments")).toBeVisible();
+    await expect(await canvas.findByText("Taking promises")).toBeVisible();
   },
 };
 
@@ -86,7 +86,7 @@ export const NotReady: Story = {
   decorators: decorators(NOT_READY_SEEDS),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByRole("button", { name: "Set Up Commitments" })).toBeVisible();
+    await expect(await canvas.findByRole("button", { name: "Set Up Promises" })).toBeVisible();
   },
 };
 
