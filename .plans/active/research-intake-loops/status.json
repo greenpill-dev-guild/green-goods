@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-18",
-    "updated_at": "2026-10-18"
+    "updated_at": "2026-10-19T06:02:21.181Z"
   },
   "links": {
     "brief": "brief.md",
@@ -19,8 +19,8 @@
     "eval": "eval.md"
   },
   "linear": {
-    "parentIssue": null,
-    "project": null,
+    "parentIssue": "PRD-1293",
+    "project": "Green Goods v2.1.0 QA & Release",
     "initiative": null,
     "syncDirection": "plans_to_linear_visibility",
     "lastSyncedAt": null,
@@ -160,6 +160,14 @@
     {
       "date": "2026-10-18",
       "event": "First v5.1 run (manual fire, evening, a same-date rerun on top of the v5 run) reviewed: no second digest, ten reactions, one intake thread under the digest with one 13-line ledger message and one mention, intake receipt written, pending-edits document refreshed without ageing; AC-1, AC-3 and AC-11 pass, AC-7's refresh half passes, AC-2 partly exercised; two small spec findings (same-title rerun memo, recovered lines merged into the sharer's message) in reports/2026-10-18-first-v5-1-run.md."
+    },
+    {
+      "timestamp": "2026-10-19T06:02:21.181Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
     }
   ]
 }
