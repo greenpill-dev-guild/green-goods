@@ -130,7 +130,7 @@ export function ProtocolFundingOperationsCard({
             {formatMessage({
               id: "cockpit.community.protocolFunding.description",
               defaultMessage:
-                "Queue a discretionary protocol Safe top-up to a registered garden Safe. This does not fulfill or alter a commitment.",
+                "Queue a discretionary protocol Safe top-up to a registered garden Safe. This does not fulfill or alter a promise.",
             })}
           </p>
         </div>

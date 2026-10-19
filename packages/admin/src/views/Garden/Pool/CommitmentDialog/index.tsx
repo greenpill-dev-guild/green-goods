@@ -116,7 +116,7 @@ function CommitmentRecord({
   const title =
     dialog.title ??
     formatMessage(
-      { id: "cockpit.garden.pool.row.untitled", defaultMessage: "Commitment {id}" },
+      { id: "cockpit.garden.pool.row.untitled", defaultMessage: "Promise {id}" },
       { id: commitment.commitmentId.toString() }
     );
   const actDisabled = !dialog.isOnline || dialog.isActing;
@@ -343,7 +343,7 @@ function CommitmentRecord({
         )} ${formatMessage({
           id: "cockpit.garden.pool.commitment.reconciliation.warning",
           defaultMessage:
-            "Counting work can make the commitment ready for confirmation and freeze its contributor roster.",
+            "Counting work can make the promise ready for confirmation and freeze its contributor roster.",
         })}`}
         confirmLabel={formatMessage({
           id: "cockpit.garden.pool.commitment.reconciliation.confirm",

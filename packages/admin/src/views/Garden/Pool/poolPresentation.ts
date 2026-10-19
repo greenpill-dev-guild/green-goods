@@ -29,7 +29,7 @@ export function poolStatusChip(
       return {
         label: formatMessage({
           id: "cockpit.garden.pool.status.notReady",
-          defaultMessage: "Not taking commitments yet",
+          defaultMessage: "Not taking promises yet",
         }),
         variant: "neutral",
       };
@@ -46,7 +46,7 @@ export function poolStatusChip(
         ? {
             label: formatMessage({
               id: "cockpit.garden.pool.status.open",
-              defaultMessage: "Taking commitments",
+              defaultMessage: "Taking promises",
             }),
             variant: "success",
           }

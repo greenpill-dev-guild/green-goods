@@ -128,7 +128,7 @@ export function setupFlowTitle(
   return intent === "first-run"
     ? formatMessage({
         id: "cockpit.garden.pool.setup.title",
-        defaultMessage: "Set Up Commitments",
+        defaultMessage: "Set Up Promises",
       })
     : isCampaign
       ? formatMessage({
@@ -182,7 +182,7 @@ export function stepBlockedReason(id: StepId, input: StepValidity): StepBlockedR
       if (input.capValue === null || input.capValue <= 0n)
         return {
           id: "cockpit.garden.pool.setup.blocked.cap",
-          defaultMessage: "Say how many commitments one person can hold at once.",
+          defaultMessage: "Say how many promises one person can hold at once.",
         };
       return null;
     case "cycle":

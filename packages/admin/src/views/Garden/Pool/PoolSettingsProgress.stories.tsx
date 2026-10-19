@@ -86,7 +86,7 @@ export const AgreementSavedLimitNot: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(
-      canvas.getByText("The new agreement is saved. The commitment limit is not.")
+      canvas.getByText("The new agreement is saved. The promise limit is not.")
     ).toBeInTheDocument();
     await expect(canvas.getByText(/Your wallet will ask once more\./)).toBeInTheDocument();
   },

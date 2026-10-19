@@ -49,7 +49,7 @@ export function PoolCyclesCard({
       {
         id: "cockpit.garden.pool.cycle.meta",
         defaultMessage:
-          "{made, plural, one {# commitment} other {# commitments}} · {kept} kept · runs through {end}",
+          "{made, plural, one {# promise} other {# promises}} · {kept} kept · runs through {end}",
       },
       {
         // `commitmentsAccepted` is the lifetime milestone: every commitment
@@ -71,7 +71,7 @@ export function PoolCyclesCard({
           {
             id: "cockpit.garden.pool.cycle.endBlocked",
             defaultMessage:
-              "{count, plural, one {# commitment is still live.} other {# commitments are still live.}} It can end once each is kept, canceled or expired.",
+              "{count, plural, one {# promise is still live.} other {# promises are still live.}} It can end once each is kept, canceled or expired.",
           },
           { count: act.liveCommitments.toString() }
         )}
