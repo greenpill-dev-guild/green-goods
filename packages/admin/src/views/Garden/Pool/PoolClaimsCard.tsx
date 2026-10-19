@@ -34,7 +34,7 @@ export function PoolClaimsCard({ console: pool, onDecline, onOpen }: PoolClaimsC
   const titleOf = (row: PoolClaimRequestRow) =>
     (row.commitment.metadataCID && titles.get(row.commitment.metadataCID.trim())?.title) ??
     formatMessage(
-      { id: "cockpit.garden.pool.row.untitled", defaultMessage: "Commitment {id}" },
+      { id: "cockpit.garden.pool.row.untitled", defaultMessage: "Promise {id}" },
       { id: row.commitment.commitmentId.toString() }
     );
 

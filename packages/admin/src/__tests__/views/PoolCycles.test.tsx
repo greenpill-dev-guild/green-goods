@@ -116,9 +116,9 @@ describe("ending a season or campaign", () => {
     );
     renderWithProviders(<Harness pool={pool} />);
 
-    expect(screen.getByText(/^3 commitments are still live\./)).toBeInTheDocument();
+    expect(screen.getByText(/^3 promises are still live\./)).toBeInTheDocument();
     expect(
-      within(screen.getByTestId("pool-cycle-13")).getByText(/^1 commitment is still live\./)
+      within(screen.getByTestId("pool-cycle-13")).getByText(/^1 promise is still live\./)
     ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^end/i })).not.toBeInTheDocument();
   });

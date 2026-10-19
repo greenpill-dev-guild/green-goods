@@ -191,7 +191,7 @@ describe("PoolSettingsDialog", () => {
     fireEvent.change(screen.getByLabelText(/what this pool is for/i), {
       target: { value: "  Lend all year.  " },
     });
-    fireEvent.change(screen.getByLabelText(/how many commitments one person/i), {
+    fireEvent.change(screen.getByLabelText(/how many promises one person/i), {
       target: { value: "12" },
     });
     expect(screen.getByText(/your wallet will ask you twice/i)).toBeInTheDocument();
@@ -242,7 +242,7 @@ describe("PoolSettingsDialog", () => {
     expect(agreement).toHaveAccessibleDescription(/shorten this to 420 characters or fewer/i);
 
     // Only the limit changes, so the older agreement is not written again.
-    fireEvent.change(screen.getByLabelText(/how many commitments one person/i), {
+    fireEvent.change(screen.getByLabelText(/how many promises one person/i), {
       target: { value: "12" },
     });
     expect(save).toBeEnabled();
@@ -259,7 +259,7 @@ describe("PoolSettingsDialog", () => {
     const { dialog } = renderDialog();
 
     const progress = within(dialog()).getByTestId("pool-settings-progress");
-    expect(progress).toHaveTextContent("The new agreement is saved. The commitment limit is not.");
+    expect(progress).toHaveTextContent("The new agreement is saved. The promise limit is not.");
     expect(progress).toHaveTextContent("Your wallet will ask once more.");
     expect(
       within(progress)

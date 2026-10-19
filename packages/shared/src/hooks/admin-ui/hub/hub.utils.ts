@@ -161,7 +161,7 @@ const SEARCH_PLACEHOLDERS: Record<HubPipelineStage, { id: string; defaultMessage
   },
   confirm: {
     id: "cockpit.hub.search.confirmPlaceholder",
-    defaultMessage: "Search commitments to confirm",
+    defaultMessage: "Search promises to confirm",
   },
 };
 
