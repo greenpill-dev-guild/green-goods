@@ -90,3 +90,21 @@ open. Fresh document checks on 2026-10-08 at 01:31 UTC:
   whitespace/link check covers the Markdown documents.
 
 No push or application-readiness claim is part of this commit request.
+
+## Scope lock check (2026-10-18)
+
+Checked on 2026-10-18 at about 23:45 UTC in the `research/pwa-garden-home-scope-lock` worktree on
+develop `1a960dba3`, before the commit that records the lock:
+
+- `node scripts/harness/plan-hub.mjs validate`: 32 feature hubs validated, no errors.
+- A read-only link check resolved all 41 local Markdown links and anchors in this hub, the
+  artifacts README included.
+- `biome format --write` on `status.json` applied no fixes (the main checkout's binary with this
+  worktree's configuration).
+- `node scripts/quality/check-immutable-plan-reports.mjs`: existing dated reports unchanged.
+  `node scripts/quality/check-guidance-links.mjs`: 93 guidance files OK.
+- `git diff --check`: clean. The added text contains no em dashes.
+
+These are working-tree document checks. The lab in `artifacts/` is a mock drawn from the locked
+tokens, not application proof, and the code findings come from the labeled mock-auth localhost walk
+recorded in spec.md. No application code changed and no implementation lane is passed.

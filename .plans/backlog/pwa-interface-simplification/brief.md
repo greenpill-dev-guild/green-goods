@@ -1,6 +1,13 @@
 # PWA Interface Simplification
 
-**Stage:** backlog · **Posture:** design and scope review; implementation not authorized
+**Stage:** backlog · **Posture:** scope locked on 18 October 2026; implementation waits for a separate go
+
+**Linear:** [RESR-93](https://linear.app/greenpill-dev-guild/issue/RESR-93) in
+[Green Goods 2.1.0](https://linear.app/greenpill-dev-guild/project/green-goods-v210-qa-and-release-9bcaf982d5e5).
+PRD-1260 owns the PWA delivery, PRD-1261 the bounded paired PWA/admin cohesion slice, PRD-1262
+release acceptance, and PRD-1278 the shared garden chip's look in the app. The 15 October four-goal
+alignment connects this scope to Cosmo-Local, the pitch and the public Q4 strategy; that record
+stays with the Cosmo-Local hub and its Linear project.
 
 Make Home feel like the member's garden, with a short view of what happened, what needs their
 attention, and how they can participate. Keep the familiar Home / Garden / Profile navigation,
@@ -13,8 +20,8 @@ other sections. Personal sheets live in the header, while garden actions also ap
 These are useful capabilities, but their placement asks returning members to navigate the app's
 structure before getting back to their community or work.
 
-This hub captures the product direction from the PWA design discussion. It does not approve a
-finished layout or replace the domain and integration decisions in other hubs.
+This hub captures the product direction from the PWA design discussion and, since 18 October, the
+locked scope. It does not replace the domain and integration decisions in other hubs.
 
 ## Confirmed direction
 
@@ -29,22 +36,39 @@ finished layout or replace the domain and integration decisions in other hubs.
 5. **Evolve the existing interface.** Explore a revised homepage rather than making the current
    garden detail page the final home unchanged. Resolve the competing header and banner controls.
 
-## Recommended starting point — awaiting design acceptance
+## Locked scope (18 October 2026)
 
-Use a compact garden journal: a small identity header, bounded activity preview, a clear resume
-area, then participation cards. Put permission-specific responsibilities in a small management
-entry after unfinished work. Keep full records and financial operations in their existing owners.
+The maintainer locked these after the findings and the lab recorded in
+[spec.md](spec.md#decisions-locked-on-18-october-2026).
 
-Compare this with a featured-activity composition before choosing a layout. A prototype's selected
-variant is not an acceptance decision. Personal-sheet filtering and the exact management placement
-remain open in [spec.md](spec.md#decisions-to-resolve).
+1. **Selection is implicit.** One garden opens itself. Several open the last garden used on this
+   device. Several with nothing remembered open the switcher once; dismissing it leaves a quiet
+   prompt on Home.
+2. **A garden is "mine"** when the account is a gardener, steward, owner or evaluator in it. A
+   pending request shows as awaiting review in the switcher and in Explore. A depositor reaches
+   Endowment from the garden page and has no place in the switcher.
+3. **Home is the compact journal:** recent activity, then Continue, then Take part, then one About
+   row. Featured activity and the promoted garden page stay as lab variants.
+4. **Promises and Your Work open scoped to the active garden,** with an "Also in other gardens"
+   row that widens the list and names the garden on each extra row.
+5. **About and management** sit in one About row at the end of Home for now, reviewed after the
+   first slice. Steward and evaluator duties surface in Continue.
+6. **Visiting never switches.** A garden opened by link, from Explore or from a row is a visit.
+   Only the chip changes the active garden, among the member's gardens or through Explore gardens,
+   where any garden can be viewed and requested.
+7. **Two delivery slices:** context, chip, discovery and Submit Work preselection first; the
+   journal sections and the scoped sheets second.
+8. **The active garden is a device preference** per chain and account in a Shared store. It is
+   never account state and never written on-chain or to the agent.
 
 ## Scope and boundaries
 
 This hub owns PWA Home composition, garden context, sheet entry points, and submission entry/resume
-continuity. It does not authorize application edits, deployment, transactions, Linear updates,
-role-policy changes, new financial instruments, or a merge of the client and Community PWAs.
-No dependency, contract, indexer, or admin redesign is proposed.
+continuity. The lock authorizes recording the scope and its Linear visibility. It does not authorize
+application edits, deployment, transactions, role-policy changes, new financial instruments, or a
+merge of the client and Community PWAs. No dependency, contract, indexer, or admin redesign is
+proposed. PRD-1261 separately covers consistent shared patterns on the selected member/steward
+journeys while preserving each surface's design dialect and permissions.
 
 CLC is useful context for keeping evidence, confirmation, rewards, and future obligations distinct.
 The homepage improvement can stand on its own before any CLC integration ships.
@@ -58,7 +82,10 @@ observed tasks; no reduction in effort or completion time has been measured yet.
 
 ## Read next
 
-- [Specification and design decisions](spec.md): current sources, proposed flows, open choices.
-- [Plan](plan.todo.md): design gate and conditional delivery sequence.
+- [Specification and locked decisions](spec.md): current sources, the state architecture, the
+  implementation areas, and what stays open.
+- [Plan](plan.todo.md): the design gate and the two delivery slices.
 - [Evaluation](eval.md): usability, recovery, permission, and regression checks.
+- [Design lab](artifacts/README.md): the interactive lab with every scenario, composition and
+  variation at 390 and 360px in three languages.
 - [Machine status](status.json): authoritative lane state; no execution lane is ready.

@@ -10,21 +10,30 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-10-06T05:42:17.126Z",
-    "updated_at": "2026-10-06T05:46:26Z"
+    "updated_at": "2026-10-18T23:40:00Z"
   },
   "links": {
     "brief": "brief.md",
     "spec": "spec.md",
     "plan": "plan.todo.md",
-    "eval": "eval.md"
+    "eval": "eval.md",
+    "lab": "artifacts/README.md"
   },
   "linear": {
-    "parentIssue": null,
-    "project": null,
+    "parentIssue": "RESR-93",
+    "project": "Green Goods v2.1.0 QA & Release",
     "initiative": null,
     "syncDirection": "plans_to_linear_visibility",
-    "lastSyncedAt": null,
-    "lanes": {}
+    "lastSyncedAt": "2026-10-16T04:18:44Z",
+    "lanes": {},
+    "laneSyncMode": "parent_only",
+    "stateSyncMode": "preserve_existing",
+    "projectId": "ea2b60bb-4716-4e81-ab78-c9c991f69203",
+    "trackers": {
+      "implementation": "PRD-1260",
+      "design_cohesion": "PRD-1261",
+      "release_acceptance": "PRD-1262"
+    }
   },
   "taxonomy": {
     "initiative": "design-system",
@@ -34,9 +43,15 @@
     "depends_on_features": []
   },
   "notes": [
-    "User authorized creation of this planning hub only. Design acceptance and implementation scope remain open; no application, Linear, deployment, or transaction work is authorized.",
+    "2026-10-18: scope locked by the maintainer after the findings and the lab: implicit selection with a one-time chooser; gardener, steward, owner and evaluator define my gardens; the compact journal; Promises and Your Work scoped to the active garden; one About row for now; visiting never switches; two delivery slices; a device preference per chain and account. Recorded in spec.md, plan.todo.md and brief.md; the lab is in artifacts/. Implementation still awaits a separate go.",
+    "2026-10-18: the 15 to 16 October amendments pointed at Cosmo-Local records that live with that hub's own branch; this hub now references them by Linear issue and project instead of relative links.",
+    "2026-10-15: bounded Linear readback verified both project overviews, four milestone descriptions and 21 issue records after the four-goal alignment. Eleven dependency requirements and no cycles were checked. lastSyncedAt covers this planning sync only; no execution lane, unrelated record or live deployment was certified.",
+    "2026-10-15: user-authorized four-goal alignment and voucher terminology. Cosmo-Local owns integration, pilot, pitch and Q4 strategy content; 2.1.0 owns PWA/admin delivery, public-site delivery and release acceptance. Existing lane/execution objects and workflow status are unchanged; no implementation or live action dispatched.",
+    "2026-10-09: RESR-93 moved into Cosmo-Local Integration for hackathon coordination; the separate PWA scope and design acceptance gate remain unchanged. No execution lane was dispatched.",
+    "2026-10-09: Linear readback verified the project split, new gap issues and affected ownership/dependencies. lastSyncedAt records this bounded planning sync only; historical lane evidence and unrelated external source documents were not recertified.",
+    "The 2026-10-09 user request extends planning authorization to hackathon discussion and Linear visibility through RESR-93, superseding the earlier no-Linear boundary. Design acceptance and implementation scope remain open; no application, deployment, or transaction work is authorized.",
     "Confirmed direction: garden-scoped Home; recent activity, unfinished work, then participation; selective previews; one-tap existing sheets; familiar bottom navigation; garden context carried into submission.",
-    "Compact journal, management placement, and personal-sheet filtering remain recommendations, not accepted design specifications.",
+    "Before 2026-10-18 the compact journal, management placement, and personal-sheet filtering were recommendations; the lock above settled them.",
     "Existing Community, Commitment Pooling, Credit, CLC, and Steward Cockpit hubs retain their own decisions and execution state.",
     "No external integration or contract deployment is a prerequisite for the bounded homepage simplification.",
     "Keep private call evidence and authenticated-session data out of Git. No implementation lane is certified by document validation."
@@ -64,7 +79,7 @@
       "skill_tags": ["ui", "design", "react"],
       "ready_when_dependencies_met": false,
       "manual_blocked": true,
-      "blocked_reason": "Planning only: await accepted design decisions, a bounded implementation scope, and explicit execution authorization."
+      "blocked_reason": "Scope locked on 2026-10-18; await explicit execution authorization and the first-slice handoff."
     },
     "state_api": {
       "owner": "codex",
@@ -88,7 +103,7 @@
       "skill_tags": ["react", "tanstack-query", "data-layer"],
       "ready_when_dependencies_met": false,
       "manual_blocked": true,
-      "blocked_reason": "Planning only: await accepted design decisions, a bounded implementation scope, and explicit execution authorization."
+      "blocked_reason": "Scope locked on 2026-10-18; await explicit execution authorization and the first-slice handoff."
     },
     "contracts": {
       "owner": "codex",
@@ -150,6 +165,46 @@
       "note": "Recorded confirmed product direction, open design decisions, source boundaries, conditional delivery steps, and pending evaluation. No implementation dispatched.",
       "timestamp": "2026-10-06T05:42:17Z",
       "branch": null
+    },
+    {
+      "timestamp": "2026-10-09T09:58:17.035Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-10-09T10:00:46.226Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_sync_confirmed",
+      "branch": null,
+      "note": "Confirmed that the current Plan Hub state is reflected in Linear"
+    },
+    {
+      "timestamp": "2026-10-09T19:23:18Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "planning_reconciled",
+      "branch": "codex/cosmo-local-planning",
+      "note": "2026-10-09: RESR-93 moved into Cosmo-Local Integration for hackathon coordination; the separate PWA scope and design acceptance gate remain unchanged. No execution lane was dispatched."
+    },
+    {
+      "timestamp": "2026-10-16T04:18:44Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "planning_reconciled",
+      "branch": null,
+      "note": "Aligned the four user-approved goals and voucher terminology across Cosmo-Local and Green Goods 2.1.0; preserved all existing execution objects, workflow state and issue states. PWA scope remains pending acceptance. Local documents are uncommitted."
+    },
+    {
+      "timestamp": "2026-10-18T23:40:00Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "scope_locked",
+      "branch": "research/pwa-garden-home-scope-lock",
+      "note": "Recorded the maintainer's eight locked decisions, the rechecked code findings, the persistence and state architecture, the two delivery slices and the design lab. Lanes stay blocked until execution is authorized."
     }
   ]
 }

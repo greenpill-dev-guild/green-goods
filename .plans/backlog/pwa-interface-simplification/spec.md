@@ -1,8 +1,10 @@
 # PWA Interface Simplification — Specification
 
-**Status:** design proposal; confirmed direction is separated from proposed behavior below.
-**Evidence date:** 2026-10-06. Code references describe the inspected working tree, not a deployment
-certification. Recheck them when implementation starts, particularly where concurrent work lands.
+**Status:** scope locked on 18 October 2026. The decisions at the end are the maintainer's; the
+proposals above them record how they were reached.
+**Evidence date:** 2026-10-06, rechecked on 2026-10-18 against develop `eeda2d4e5`. Code
+references describe the inspected working tree, not a deployment certification. Recheck them when
+implementation starts, particularly where concurrent work lands.
 
 The target is the signed-in PWA experience. Preserve public website and anonymous discovery
 behavior when reusing components or routes shared with the browser surface.
@@ -27,6 +29,48 @@ Earlier design exploration inspected Home, garden detail, and Promises in **auth
 That was rendered evidence for those visited surfaces only. Your Work was not verified opening in
 that session; its behavior above is code-derived. Local static design previews were prototypes,
 not application or installed-PWA proof. This hub introduces no new rendered implementation proof.
+
+## What the code does today (rechecked 18 October 2026)
+
+Evidence: a mock-auth localhost walk on Arbitrum with the production indexer (the main checkout at
+`06a31dbf5`, whose journey files match develop `eeda2d4e5`) and the unification hub's Storybook
+captures. The `steward` mock belongs to no garden on Arbitrum; the `deployer` mock is a steward of
+TAS HUB and the Community Garden and a gardener in Aiyeloja Family Garden.
+
+1. Nothing in the PWA remembers a garden; the selection exists only while `/home/:id` is open. The
+   cockpit holds the pattern: the last garden per chain-and-account key in local storage, the URL
+   wins and is written back, a status that keeps loading and error apart from no gardens, and a
+   stale-list guard. The store shape and the resolution rule carry over; the hooks do not, since
+   they read admin role queries.
+2. "My gardens" has no owner. Five derivations differ:
+
+   | Where | Counts as mine |
+   |---|---|
+   | Home filter, Profile list | gardeners, stewards |
+   | Arrival toast, Submit Work | gardeners, stewards, pending open joins |
+   | Offline cache | gardeners, stewards, owners |
+   | Reviewer gardens | stewards, evaluators by on-chain check |
+   | Cockpit eligibility | stewards, owners, evaluators |
+
+   An evaluator-only account has review work in Your Work but an empty My gardens. A depositor
+   sees Endowment on a garden page but is a member nowhere.
+3. The one-garden shortcut already exists in the arrival toast: its action opens the only garden
+   and, with several, narrows the directory to mine.
+4. Submit Work's garden precedence is a promise link, then a resumed draft, then a garden passed
+   in navigation state, then the picker.
+5. Home's header holds Filters, Wallet, Promises and Your Work. The garden banner holds Back,
+   Notifications for stewards, Governance, Endowment, Share and the join action, and with the
+   title and the tab rail takes about 330px of an 844px screen before content.
+6. Your Work merges my work and my reviews across gardens, and Promises lists the viewer's inbox
+   across pools; neither names the garden on a row.
+7. Offline keeps work lists for every joined garden and photos only for the garden in view plus
+   my own work.
+8. A member with no garden lands on the full directory; the empty "mine" copy says "You don't
+   steward any gardens yet"; Submit Work offers the Community Garden onramp; a pending join
+   request shows on the garden page and nowhere else.
+9. The install handoff redirects Home to a remembered record link; visiting by link is its own act.
+10. The directory is the chain's newest fifty gardens; a member's gardens should be read by
+    account before that cap bites.
 
 ## Requirements
 
@@ -76,8 +120,9 @@ Best starting point for frequent visits. Risk: weak images may make the garden f
 Risk: delays unfinished work on small screens. Test with the same content and tasks as A.
 
 Simply promoting the current garden detail unchanged remains a possible intermediate delivery
-step, not the accepted final composition. A new credits tab and a separate role-specific navigation
-system are outside this proposal.
+step, not the accepted final composition. A new voucher tab and a separate role-specific navigation
+system are outside this proposal. The planned CLC instrument is called a service voucher;
+Cosmo-Local Credit remains the product-family name.
 
 ## Sheets and deeper destinations
 
@@ -168,7 +213,7 @@ status; it must not suggest every approved work item automatically earns spendab
 | [Steward Cockpit UX](../../active/steward-cockpit-ux/status.json) | Admin experience and its delivery state. Only its existing garden-switching pattern informs this PWA design. |
 
 These are coordination references, not blanket blockers. Home simplification does not require a
-new CLC capability, credit UI, Community app, or contract deployment.
+new CLC capability, voucher UI, Community app, or contract deployment.
 
 ## Design guidance
 
@@ -184,20 +229,79 @@ Reference guidance from user-supplied books: Steve Krug's *Don't Make Me Think, 
 selective previews and familiar sheets; they do not determine the product's permissions or policy.
 No book files, private call excerpts, personal data, or authenticated screenshots belong in this hub.
 
-## Decisions to resolve
+## Decisions locked on 18 October 2026
 
-1. **Composition:** compact journal or featured activity; how much activity fits before unfinished
-   work becomes hard to find? Recommendation: compact journal with a bounded preview.
-2. **Personal scope:** should Promises and Your Work open filtered to this garden or across all of
-   the member's gardens? Recommendation: retain account-wide personal sheets initially, clearly
-   label garden context, and use scoped entry points from Home sections. Test for confusion.
-3. **Garden operations:** accept the conditional management entry, and choose discoverable homes
-   for Endowment, governance, notifications, sharing, Gardeners, and Insights. Preserve actual
-   capability access, including non-steward depositors.
-4. **First delivery boundary:** homepage/context first, then submission-entry continuity, or one
-   combined release? Recommendation: design the whole journey together and deliver bounded slices
-   after the first slice works coherently on its own.
+The maintainer answered the open questions on 18 October after the findings above and the lab in
+[artifacts](artifacts/README.md). Where a lock differs from the recommendation, the lock stands.
 
-A future implementation scope lock must also settle selection persistence, direct-link behavior,
-and any conflict between role descriptions and current capability predicates. Do not resolve a
-policy conflict by broadening access in a UI change.
+1. **Selection.** Implicit, with a one-time chooser. One garden opens itself. Several open the
+   last garden used on this device. Several with nothing remembered open the switcher once on Home;
+   dismissing it leaves a quiet prompt card, and only a pick writes the memory.
+2. **Candidate set.** A garden is "mine" when the account is a gardener, steward, owner or
+   evaluator in it. A pending request shows as awaiting review in the switcher and in Explore
+   gardens. A depositor keeps Endowment on the garden page and has no place in the switcher.
+3. **Composition.** The compact journal: recent activity, Continue, Take part, then one About row.
+   Featured activity and the promoted garden page stay as lab variants to compare against.
+4. **Sheet scope.** Promises and Your Work open scoped to the active garden, with an "Also in other
+   gardens" row that widens the list and names the garden on each extra row. The header badge keeps
+   counting everything on this phone (DL-061). This differs from the recommendation.
+5. **About and management.** One About row at the end of Home for now: Insights, Gardeners,
+   Share, Endowment for stewards and depositors, Governance when configured. Steward and evaluator
+   duties surface in Continue. The garden page keeps its banner actions for visitors. Review the
+   placement after the first slice renders.
+6. **Links.** Visiting a garden by link, from Explore or from a row never changes the active
+   garden. Only the chip switches, among the member's gardens or through Explore gardens, where
+   any garden can be viewed and requested.
+7. **Delivery.** Two slices: the context contract, the chip and switcher, discovery and Submit
+   Work preselection first; the journal sections and the scoped sheets second. Steps are in
+   [plan.todo.md](plan.todo.md#conditional-delivery-sequence).
+8. **Persistence.** The active garden is a device preference per chain and account in a Shared
+   store, never account state.
+
+Role descriptions and current capability predicates differ in one place: the ontology says
+evaluators do not approve work, while the garden page lets an on-chain evaluator review. The lock
+does not resolve that policy; the Home duties row for an evaluator points at Insights, and any
+change to review authority returns to its owner.
+
+## Persistence and state architecture
+
+- **What it is.** A device preference that must work offline and never leak between accounts.
+  Nothing on-chain or in the agent needs it, so nothing stores it there.
+- **Where it lives.** A small Shared store persisted to local storage under its own key, shaped like
+  the cockpit's: one garden id per `chainId:address` scope. It stays separate from the UI store,
+  which resets on account change and persists only filters. The cockpit keeps its own key because
+  its candidate set differs.
+- **One membership owner.** A pure Shared module answers which roles an account holds in a garden
+  from the garden record (gardener, steward, owner, evaluator) plus a pending open join. A hook over
+  it returns the candidate gardens with loaded, error and stale flags. Home, the switcher, Submit
+  Work, Profile's list and the offline scheduler read it, retiring the five derivations above. It is
+  also where an account-filtered indexer read lands when the fifty-garden cap bites.
+- **The resolver.** One hook combines the candidate set and the stored id into a status: `loading`
+  while the set is unknown, keeping a cached garden so an offline open goes straight in; `error`
+  when the read failed with nothing cached, kept apart from no gardens; `none` for zero candidates;
+  one candidate selects itself and is written; a stored id that is still eligible wins; several
+  with no eligible stored id gives `choose`.
+- **A membership that ends.** The stored id fails eligibility on the next load and the resolver
+  falls through. Nothing is deleted behind the member's back, and no garden the account cannot see
+  is ever selected.
+- **URL.** Home stays at `/home` and the garden is not in the URL. Record links keep `/home/:id`
+  and only visit. Switching from the chip writes the store and stays on Home.
+- **Who reads it.** Home and the chip; Submit Work as the last fallback after a promise link, a
+  resumed draft and navigation state, never overriding them; the offline scheduler's photo garden,
+  active first and the viewed garden second; the two scoped sheets; Profile's list, to mark it.
+- **Who never reads it.** The job queue, draft records, promise links and submission payloads,
+  which carry their own garden address, and every permission check, which keeps reading the garden
+  on the record or route. A write always takes its garden from the thing being acted on.
+- **Proof.** Pure resolver tests for zero, one, several, stored-eligible, stored-stale,
+  cached-while-loading, error-without-cache and an account switch; a controller test for the
+  precedence order; an offline policy test; Home rendering for the five states; locale coverage;
+  a mock-auth walk, with queue and offline behaviour recorded as authenticated proof pending.
+
+## Open after the first slice
+
+- Whether the About row stays at the end of Home, moves into the switcher, or returns to header
+  icons; the lab draws all three.
+- Whether a garden with strong photos earns the featured card over the rows.
+- Whether the arrival toast keeps any branch once Home shows drafts and uploads.
+- Whether the cockpit and the app should share one memory of the last garden; they keep separate
+  keys for now.
