@@ -244,7 +244,7 @@ export function PublicWhoTendsAGarden() {
           <EditorialKicker className="mb-3">
             {formatMessage({
               id: "public.home.personas.kicker",
-              defaultMessage: "§ 04: Who tends a Garden",
+              defaultMessage: "§ 04: Who tends a garden",
             })}
           </EditorialKicker>
           <EditorialHeading id="public-home-personas-title">

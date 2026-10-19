@@ -444,7 +444,7 @@ describe("FundPage", () => {
 
   it("renders a stale-query message for /fund?garden=missing", () => {
     renderView(["/fund?garden=missing"]);
-    expect(screen.getByText(/Garden matching "missing"/)).toBeInTheDocument();
+    expect(screen.getByText(/garden matching "missing"/)).toBeInTheDocument();
   });
 
   it("places Manage Endowments as a text button in the Garden selection section", () => {
@@ -576,7 +576,7 @@ describe("FundPage", () => {
     expect(container.querySelector("details")).toBeNull();
     expect(screen.getByText("§ 01: Endowment engine")).toBeInTheDocument();
     expect(screen.getByText("§ 02: Ways to support")).toBeInTheDocument();
-    expect(screen.getByText("§ 03: Choose a Garden")).toBeInTheDocument();
+    expect(screen.getByText("§ 03: Choose a garden")).toBeInTheDocument();
   });
 
   it("wires the vault stats section into the reveal lifecycle", () => {
@@ -597,9 +597,9 @@ describe("FundPage", () => {
     expect(daiCard).toHaveTextContent("2,005 DAI");
     expect(daiCard).toHaveTextContent("APR");
     expect(daiCard).toHaveTextContent("5.10%");
-    expect(daiCard).toHaveTextContent("Yield ready for Gardens");
+    expect(daiCard).toHaveTextContent("Yield ready for gardens");
     expect(daiCard).toHaveTextContent("5 DAI");
-    expect(daiCard).toHaveTextContent("Routed to Gardens");
+    expect(daiCard).toHaveTextContent("Routed to gardens");
     expect(daiCard).toHaveTextContent("20 DAI");
     expect(daiCard).toHaveTextContent("Vaults");
     expect(daiCard).toHaveTextContent("1 vault");
@@ -611,9 +611,9 @@ describe("FundPage", () => {
     expect(ethCard).toHaveTextContent("1.25 ETH");
     expect(ethCard).toHaveTextContent("APR");
     expect(ethCard).toHaveTextContent("2.50%");
-    expect(ethCard).toHaveTextContent("Yield ready for Gardens");
+    expect(ethCard).toHaveTextContent("Yield ready for gardens");
     expect(ethCard).toHaveTextContent("0.05 ETH");
-    expect(ethCard).toHaveTextContent("Routed to Gardens");
+    expect(ethCard).toHaveTextContent("Routed to gardens");
     expect(ethCard).toHaveTextContent("0.1 ETH");
     expect(ethCard).toHaveTextContent("Vaults");
     expect(ethCard).toHaveTextContent("1 vault");

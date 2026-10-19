@@ -53,14 +53,14 @@ const messages: Record<string, string> = {
   "public.home.getInTouch.consent":
     "By subscribing, you agree to receive seasonal Green Goods updates. Unsubscribe any time.",
   "public.home.getInTouch.description":
-    "Quiet dispatches from the Gardens: what's planted, what's tended, what's ready to be funded. No urgency. No tracking. One opt-in.",
+    "Quiet dispatches from the gardens: what's planted, what's tended, what's ready to be funded. No urgency. No tracking. One opt-in.",
   "public.home.getInTouch.emailLabel": "Your email",
   "public.home.getInTouch.emailPlaceholder": "you@example.com",
   "public.home.getInTouch.help": "One signup, no hoops. Your email stays with us.",
   "public.home.getInTouch.kicker": "Section 05: Get In Touch",
   "public.home.getInTouch.scheduleCall": "Schedule a Call",
   "public.home.getInTouch.scheduleIntro":
-    "Want to talk through a Garden, funding path, or partnership? Book a quiet half-hour with the team.",
+    "Want to talk through a garden, funding path, or partnership? Book a quiet half-hour with the team.",
   "public.home.getInTouch.submit": "Subscribe",
   "public.home.getInTouch.submitting": "Subscribing...",
   "public.home.getInTouch.success.subscribed":

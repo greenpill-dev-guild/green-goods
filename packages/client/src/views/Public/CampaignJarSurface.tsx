@@ -413,7 +413,7 @@ export default function CampaignJarSurface() {
         lede={formatMessage({
           id: "public.cookies.description",
           defaultMessage:
-            "Campaign jars hold funds for seasonal work, event rewards, and Garden cohort budgets. Connect a wallet to claim from jars on your allowlist, or add funds to keep the jar full.",
+            "Campaign jars hold funds for seasonal work, event rewards, and garden cohort budgets. Connect a wallet to claim from jars on your allowlist, or add funds to keep the jar full.",
         })}
       />
 

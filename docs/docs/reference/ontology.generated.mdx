@@ -10,7 +10,7 @@ generator: scripts/quality/check-ontology.mjs
 generated_from:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:577f031408cd0afd2380a1cb3b14d2ccf477e4bfe42bfd404621fc3f0fba7c87"
+source_digest: "sha256:ae6901cce3f690e2da5f5227ebcb8c01c470756f8ae033b0ce418a1f214bdd72"
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
@@ -64,11 +64,11 @@ The ontology currently declares 21 canonical concepts. Availability does not cha
 |---|---|---|---|
 | <TermAnchor id="gardener" />**Gardener** | gardener | admin · client · agent · public · docs | A person doing regenerative Work in a garden. Submits Work, holds gardener Hats, receives credit toward Hypercerts and yield splits. |
 | <TermAnchor id="steward" />**Steward** | steward | admin · client · agent · public · docs | A person who stewards a garden — creates Actions, approves Work, configures Vault and Hat hierarchy. Holds the garden's steward Hats (the deployed Operator role). |
-| <TermAnchor id="evaluator" />**Evaluator** | evaluator | admin · client · public · docs | A person who authors or strengthens Assessments and attests impact methodology or outcomes. Evaluators do not approve or reject submitted Work; that authority belongs to Stewards. |
+| <TermAnchor id="evaluator" />**Evaluator** | evaluator | admin · client · public · docs | A person who authors or strengthens Assessments and attests impact methodology or outcomes. Evaluators do not approve or reject submitted Work; that authority belongs to stewards. |
 | <TermAnchor id="funder" />**Funder** | funder | admin · client · public · docs | A person or org who deposits into a garden's Vault, holds Hypercert fractions, receives yield distributions per configured splits. |
-| <TermAnchor id="community-member" />**Community Member** | community | client · public · docs | A local resident affected by a Garden's Work. Signals or attests that Work exists and is healthy, and helps prioritize future Actions through public signal and conviction flows. |
+| <TermAnchor id="community-member" />**Community Member** | community | client · public · docs | A local resident affected by a garden's Work. Signals or attests that Work exists and is healthy, and helps prioritize future Actions through public signal and conviction flows. |
 
-The on-chain hat tree has six roles; the Owner hat carries full garden control but has no dedicated persona — owners act through the Steward surfaces.
+The on-chain hat tree has six roles; the Owner hat carries full garden control but has no dedicated persona — owners act through the steward surfaces.
 
 ## Supporting terms
 
@@ -848,7 +848,7 @@ The union in types/domain.ts documents itself as the single source of truth: pen
 | syncing | uploading | off-chain | queued media begins uploading before the attestation is submitted |
 | syncing · uploading | sync_failed | off-chain | a recoverable queue or upload failure preserves the job for retry |
 | uploading | pending | on-chain | successful EAS Work attestation submission creates the pending public record |
-| pending | approved · rejected | on-chain | a Steward records a separate Work Approval attestation |
+| pending | approved · rejected | on-chain | a steward records a separate Work Approval attestation |
 
 ### `commitment-pool`
 

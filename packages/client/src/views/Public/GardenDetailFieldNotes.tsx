@@ -52,7 +52,7 @@ export function FieldNotesSection({
       helper={formatMessage({
         id: "public.gardenDetail.notes.helper",
         defaultMessage:
-          "Photos, notes, and details submitted by participants and approved by this Garden’s stewards. Approval records a local review; it does not by itself measure environmental outcomes.",
+          "Photos, notes, and details submitted by participants and approved by this garden’s stewards. Approval records a local review; it does not by itself measure environmental outcomes.",
       })}
     >
       {loading ? (

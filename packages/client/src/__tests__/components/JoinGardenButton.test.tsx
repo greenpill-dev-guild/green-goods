@@ -65,7 +65,7 @@ describe("JoinGardenButton", () => {
     fireEvent.click(screen.getByRole("button", { name: "Join Garden" }));
     expect(mockJoinGarden).not.toHaveBeenCalled();
     expect(
-      screen.getByText("You'll join Open Garden as a Gardener and can submit work right away.")
+      screen.getByText("You'll join Open Garden as a gardener and can submit work right away.")
     ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Join" }));
