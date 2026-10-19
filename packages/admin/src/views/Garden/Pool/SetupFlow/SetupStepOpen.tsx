@@ -83,7 +83,7 @@ export function SetupStepOpen({
               ? formatMessage(
                   {
                     id: "cockpit.garden.pool.setup.done.firstRun",
-                    defaultMessage: "{garden} is taking commitments",
+                    defaultMessage: "{garden} is taking promises",
                   },
                   { garden: gardenName }
                 )
@@ -130,7 +130,7 @@ export function SetupStepOpen({
     summaryRows.push([
       formatMessage({
         id: "cockpit.garden.pool.status.cap",
-        defaultMessage: "Commitment limit",
+        defaultMessage: "Promise limit",
       }),
       formatMessage(
         {
@@ -229,7 +229,7 @@ export function SetupStepOpen({
             ? formatMessage({
                 id: "cockpit.garden.pool.setup.openNoteFirstRun",
                 defaultMessage:
-                  "Opening records how this pool works, then opens the pool and its first season together. Neighbors can make and take up commitments straight away.",
+                  "Opening records how this pool works, then opens the pool and its first season together. Neighbors can make and take up promises straight away.",
               })
             : isCampaign
               ? formatMessage({

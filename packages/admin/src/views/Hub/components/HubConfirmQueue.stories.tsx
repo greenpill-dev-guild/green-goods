@@ -130,8 +130,8 @@ export const ConfirmKeptReview: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(await canvas.findByRole("button", { name: "Confirm Kept…" }, ROWS));
-    const review = await screen.findByRole("dialog", { name: "Confirm This Commitment Kept" });
-    await expect(review).toHaveTextContent("This closes the commitment as kept, for everyone.");
+    const review = await screen.findByRole("dialog", { name: "Confirm This Promise Kept" });
+    await expect(review).toHaveTextContent("This closes the promise as kept, for everyone.");
   },
 };
 
@@ -209,7 +209,7 @@ export const ConfirmedInPlace: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(await canvas.findByRole("button", { name: "Confirm Kept…" }, ROWS));
-    const review = await screen.findByRole("dialog", { name: "Confirm This Commitment Kept" });
+    const review = await screen.findByRole("dialog", { name: "Confirm This Promise Kept" });
     await userEvent.click(within(review).getByRole("button", { name: "Confirm Kept" }));
     await expect(await canvas.findByText("Confirmed", {}, ROWS)).toBeVisible();
     await expect(canvas.queryByRole("button", { name: "Confirm Kept…" })).toBeNull();

@@ -280,7 +280,7 @@ function ProtocolOperations({
         {formatMessage({
           id: "cockpit.community.pools.confirmationsHint",
           defaultMessage:
-            "Commitments from any garden that opted in and that nobody local can still confirm. Only these rows reach the team; no other garden's pool is browsed here.",
+            "Promises from any garden that opted in and that nobody local can still confirm. Only these rows reach the team; no other garden's pool is browsed here.",
         })}
       </p>
       <HubConfirmQueue

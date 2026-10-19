@@ -226,15 +226,15 @@ const ELIGIBILITY_MESSAGES: Record<SettlementEligibilityBlocker, Message> = {
   },
   "not-fulfilled": {
     id: "cockpit.garden.pool.settlement.ineligible.not-fulfilled",
-    defaultMessage: "The commitment is not fulfilled yet.",
+    defaultMessage: "The promise is not kept yet.",
   },
   "no-celo-consideration": {
     id: "cockpit.garden.pool.settlement.ineligible.no-celo-consideration",
-    defaultMessage: "No Celo G$ consideration is declared on this commitment.",
+    defaultMessage: "No Celo G$ consideration is declared on this promise.",
   },
   "payer-garden-unknown": {
     id: "cockpit.garden.pool.settlement.ineligible.payer-garden-unknown",
-    defaultMessage: "The paying garden is not set on this commitment.",
+    defaultMessage: "The paying garden is not set on this promise.",
   },
 };
 

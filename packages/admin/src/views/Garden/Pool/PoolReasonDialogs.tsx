@@ -32,7 +32,7 @@ export function PoolReasonDialogs({
   const claimTitle = (row: PoolClaimRequestRow) =>
     (row.commitment.metadataCID && pool.titles.get(row.commitment.metadataCID.trim())?.title) ??
     formatMessage(
-      { id: "cockpit.garden.pool.row.untitled", defaultMessage: "Commitment {id}" },
+      { id: "cockpit.garden.pool.row.untitled", defaultMessage: "Promise {id}" },
       { id: row.commitment.commitmentId.toString() }
     );
   return (
@@ -49,7 +49,7 @@ export function PoolReasonDialogs({
           {
             id: "cockpit.garden.pool.pause.description",
             defaultMessage:
-              "Pausing stops new commitments, claims, and confirmations across {count, plural, one {# open commitment} other {# open commitments}}. Proof, work linkage, and recovery stay open; resuming clears this reason.",
+              "Pausing stops new promises, claims, and confirmations across {count, plural, one {# open promise} other {# open promises}}. Proof, work linkage, and recovery stay open; resuming clears this reason.",
           },
           { count: pool.model.groups.open.length }
         )}
@@ -110,7 +110,7 @@ export function PoolReasonDialogs({
           {
             id: "cockpit.garden.pool.cancelCycle.description",
             defaultMessage:
-              "“{name}” has no live commitments. Canceling ends it for everyone in it; each commitment keeps its own record, and members see the reason you give here.",
+              "“{name}” has no live promises. Canceling ends it for everyone in it; each promise keeps its own record, and members see the reason you give here.",
           },
           {
             name:
@@ -184,7 +184,7 @@ export function PoolReasonDialogs({
         description={formatMessage({
           id: "cockpit.garden.pool.declineClaim.description",
           defaultMessage:
-            "Only this request is declined; others stay pending and the commitment stays claimable. The person sees your reason and may ask again.",
+            "Only this request is declined; others stay pending and the promise stays claimable. The person sees your reason and may ask again.",
         })}
         confirmLabel={formatMessage({
           id: "cockpit.garden.pool.declineClaim.confirm",

@@ -60,7 +60,7 @@ export function GardenSheetDescriptor({
       return {
         title: formatMessage({
           id: "cockpit.garden.pool.commitment.title",
-          defaultMessage: "Commitment",
+          defaultMessage: "Promise",
         }),
         content: (
           <CommitmentDialogPanel

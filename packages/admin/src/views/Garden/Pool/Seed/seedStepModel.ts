@@ -176,7 +176,7 @@ const SEED_ERROR_MESSAGES = {
   },
   confirmersTooMany: {
     id: "cockpit.garden.pool.seed.error.confirmersTooMany",
-    defaultMessage: "That is more confirmers than one commitment can name.",
+    defaultMessage: "That is more confirmers than one promise can name.",
   },
   thresholdAtLeastOne: {
     id: "cockpit.garden.pool.seed.error.thresholdAtLeastOne",

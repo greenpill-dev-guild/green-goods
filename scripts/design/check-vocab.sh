@@ -186,16 +186,22 @@ fi
 
 # ---------------------------------------------------------------------------
 # Locale-scoped terms: a word that is correct in one catalog and drift in another.
-# English says "Steward"; Spanish and Portuguese translate it (PRD-749).
+# English says "steward" and "garden"; Spanish and Portuguese use their locked words
+# (PRD-749), never the English word or a synonym that drifted in.
 # Message KEYS stay English, so this walks parsed values rather than raw lines,
 # and skips ICU argument references ("{steward}", "{stewards, plural...}").
+# A key may keep an exact proper-name phrase (.locale_allowed_phrases); only that
+# phrase, standing as a whole phrase, is removed before matching, so the rest of the
+# value is still checked and "Community Gardens" is not taken for "Community Garden".
 # ---------------------------------------------------------------------------
 if command -v python3 >/dev/null 2>&1; then
   LOCALE_HITS="$(python3 - "$VOCAB_JSON" <<'PYEOF'
 import json, re, sys
 
 vocab = json.load(open(sys.argv[1]))
-locale_terms = vocab.get("renamed_terms", {}).get("locale_terms", {})
+renamed = vocab.get("renamed_terms", {})
+locale_terms = renamed.get("locale_terms", {})
+allowed_phrases = renamed.get("locale_allowed_phrases", {})
 hits = []
 for path, terms in locale_terms.items():
     try:
@@ -203,11 +209,14 @@ for path, terms in locale_terms.items():
     except OSError:
         continue
     pattern = re.compile(r"\b(" + "|".join(re.escape(t) for t in terms) + r")\b", re.I)
+    phrases = allowed_phrases.get(path, {})
     for key, value in catalog.items():
         if not isinstance(value, str):
             continue
         # ICU argument references are code the component passes, not copy.
         prose = re.sub(r"\{\s*\w+\s*[,}]", " ", value)
+        for phrase in phrases.get(key, []):
+            prose = re.sub(r"(?<!\w)" + re.escape(phrase) + r"(?!\w)", " ", prose)
         if pattern.search(prose):
             hits.append(f"{path}: {key} = {value}")
 print("\n".join(hits))
@@ -219,10 +228,10 @@ else
 fi
 
 if [[ -n "$LOCALE_HITS" ]]; then
-  echo "❌ Untranslated role term found in a localized catalog:"
+  echo "❌ Off-glossary term found in a localized catalog:"
   echo "$LOCALE_HITS"
   echo
-  echo "Locked visible terms: es Responsable, pt Responsável. See:"
+  echo "Locked visible terms: steward is es responsable, pt responsável; garden is es jardín, pt jardim. See:"
   echo "  scripts/data/banned-vocabulary.json (.renamed_terms.locale_terms)"
   exit 1
 fi
