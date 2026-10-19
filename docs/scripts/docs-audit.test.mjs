@@ -422,9 +422,22 @@ test("UK spelling in docs component copy exits nonzero, while names stay free", 
       "  return (",
       "    <p>",
       "      {note} {label}",
+      '      <code>grey-token</code> <pre>cancelled</pre> <CodeBlock>grey</CodeBlock>',
+      '      <Answer question="A cancelled question" tone="grey" />',
       "    </p>",
       "  );",
       "}",
+      "",
+      "// A local DOM helper passes its arguments to properties a reader sees.",
+      "const control = (label: string, title: string) => {",
+      '  const el = document.createElement("button");',
+      "  el.textContent = label;",
+      "  el.title = title;",
+      "  return el;",
+      "};",
+      'control("+", "Zoom to the favourite view");',
+      'const trigger = document.createElement("button");',
+      'trigger.textContent = "Grey expand";',
       "",
     ].join("\n");
     mkdirSync(path.join(root, "docs/src/components/docs"), { recursive: true });
@@ -432,6 +445,24 @@ test("UK spelling in docs component copy exits nonzero, while names stay free", 
     // A test renders nothing, so its strings are names.
     writeFileSync(path.join(root, "docs/src/components/docs/Sample.test.tsx"), 'test("a grey test name", () => {});\n');
     writeFileSync(path.join(root, "docs/src/components/docs/Sample.spec.tsx"), 'test("a grey spec name", () => {});\n');
+    // Answer renders its question prop and keeps tone as a name, so a page or a component passing a
+    // question passes copy.
+    writeFileSync(
+      path.join(root, "docs/src/components/docs/Answer.tsx"),
+      [
+        "export function Answer({ question, tone }: { question: string; tone: string }) {",
+        "  return (",
+        "    <details data-tone={tone}>",
+        "      <summary>{question}</summary>",
+        "    </details>",
+        "  );",
+        "}",
+        "",
+      ].join("\n"),
+    );
+    const page = path.join(root, "docs/docs/builders/test.mdx");
+    writeFileSync(page, `${readFileSync(page, "utf8")}\n<Answer question="Why is the favourite grey?" tone="grey" />\n`);
+    const pageLine = readFileSync(page, "utf8").split("\n").indexOf('<Answer question="Why is the favourite grey?" tone="grey" />') + 1;
     // JSON data a component renders is read for its copy-named fields; a generated file names its source.
     mkdirSync(path.join(root, "docs/src/data"), { recursive: true });
     writeFileSync(path.join(root, "docs/src/data/paths.json"), '{\n  "items": [\n    { "title": "Favourite paths", "href": "/grey" }\n  ]\n}\n');
@@ -456,12 +487,17 @@ test("UK spelling in docs component copy exits nonzero, while names stay free", 
       ["A cancelled caption", "cancelled"],
       ["A grey note", "grey"],
       ["Favourite label", "Favourite"],
+      ["A cancelled question", "cancelled"],
+      ["Zoom to the favourite view", "favourite"],
+      ["Grey expand", "Grey"],
     ]) {
       assert.ok(result.stderr.includes(`docs/src/components/docs/Sample.tsx: UK spelling on line ${lineOf(text)}: "${word}"`), result.stderr);
     }
     assert.ok(result.stderr.includes('docs/src/data/paths.json: UK spelling on line 3: "Favourite"'), result.stderr);
     assert.match(result.stderr, /docs\/src\/data\/generated\.json: UK spelling on line 3: "Cancelled".* Fix it in the source this file is generated from\./);
-    assert.equal(result.stderr.match(/UK spelling/g)?.length, 13, result.stderr);
+    assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${pageLine}: "favourite"`), result.stderr);
+    assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${pageLine}: "grey"`), result.stderr);
+    assert.equal(result.stderr.match(/UK spelling/g)?.length, 18, result.stderr);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

@@ -567,13 +567,18 @@ const isEnumName = (identifiers, segment, index, word) => {
 // cell it belongs to, at an offset; the segment is where a sentence starts and a phrase can span.
 const spellingCollector = (identifiers = new Set()) => {
   const found = [];
+  const seen = new Set();
   const check = (piece, line, segment = piece, offset = 0) => {
     let visible = segment.replace(urlInText, blankKeepingLines);
     for (const phrase of exemptPhrases) visible = visible.split(phrase).join(" ".repeat(phrase.length));
     for (const {0: word, index} of piece.matchAll(ukFormPattern)) {
       const at = offset + index;
       if (visible.slice(at, at + word.length) !== word || isEnumName(identifiers, segment, at, word)) continue;
-      found.push({line: line + (piece.slice(0, index).match(/\n/g)?.length ?? 0), word, us: ukForms.get(word.toLowerCase())});
+      const foundLine = line + (piece.slice(0, index).match(/\n/g)?.length ?? 0);
+      const key = [foundLine, word, offset + index, segment].join("\u0000");
+      if (seen.has(key)) continue;
+      seen.add(key);
+      found.push({line: foundLine, word, us: ukForms.get(word.toLowerCase())});
     }
   };
   return {found, check};
@@ -594,34 +599,83 @@ const propertyKey = (property) => (property.key.type === "Identifier" ? property
 const copyKeys = new Set([...readableAttributes, "body", "caption", "description", "display", "heading", "help", "hint", "message", "note", "subtitle", "summary", "text", "tooltip"]);
 const calleeName = (call) =>
   call?.type === "CallExpression" ? (call.callee.type === "MemberExpression" ? call.callee.property.name : call.callee.name) : undefined;
-// A module's simple bindings, by name: const and let initializers, and the initial value of a
-// useState pair. Shadowed names share an entry, so a rendered name reads every value it may hold.
+// A module's simple bindings, by name: const and let initializers, the initial value of a useState
+// pair, a local function's parameters as each call passes them, and a component's destructured
+// props, which stand for whatever a page passes. Shadowed names share an entry, so a rendered name
+// reads every value it may hold.
 const collectBindings = (program) => {
   const bindings = new Map();
   const bind = (name, value) => value && bindings.set(name, [...(bindings.get(name) ?? []), value]);
-  const visit = (node) => {
+  const functions = new Map();
+  const walkTree = (node, visit) => {
     if (Array.isArray(node)) {
-      node.forEach(visit);
+      for (const item of node) walkTree(item, visit);
       return;
     }
     if (!node || typeof node.type !== "string") return;
-    if (node.type === "VariableDeclarator" && node.init) {
-      if (node.id.type === "Identifier") bind(node.id.name, node.init);
-      const [state] = node.id.type === "ArrayPattern" ? node.id.elements : [];
-      if (state?.type === "Identifier" && calleeName(node.init) === "useState") bind(state.name, node.init.arguments[0]);
-    }
-    for (const [key, value] of Object.entries(node)) if (!syntaxKeys.has(key)) visit(value);
+    visit(node);
+    for (const [key, value] of Object.entries(node)) if (!syntaxKeys.has(key)) walkTree(value, visit);
   };
-  visit(program);
+  const propsOf = (component, fn) => {
+    const [first] = fn.params;
+    for (const property of first?.type === "ObjectPattern" ? first.properties : []) {
+      if (property.type !== "ObjectProperty" || property.key.type !== "Identifier") continue;
+      const local = property.value.type === "AssignmentPattern" ? property.value.left : property.value;
+      if (local.type !== "Identifier") continue;
+      bind(local.name, {type: "PropReference", component, prop: property.key.name});
+      if (property.value.type === "AssignmentPattern") bind(local.name, property.value.right);
+    }
+  };
+  walkTree(program, (node) => {
+    if (node.type === "FunctionDeclaration" && node.id) functions.set(node.id.name, node);
+    if (node.type !== "VariableDeclarator" || !node.init) return;
+    if (node.id.type === "Identifier") bind(node.id.name, node.init);
+    if (node.id.type === "Identifier" && isFunction(node.init)) functions.set(node.id.name, node.init);
+    const [state] = node.id.type === "ArrayPattern" ? node.id.elements : [];
+    if (state?.type === "Identifier" && calleeName(node.init) === "useState") bind(state.name, node.init.arguments[0]);
+  });
+  for (const [name, fn] of functions) propsOf(name, fn);
+  walkTree(program, (node) => {
+    const fn = node.type === "CallExpression" && node.callee.type === "Identifier" ? functions.get(node.callee.name) : undefined;
+    fn?.params.forEach((param, index) => {
+      const local = param.type === "AssignmentPattern" ? param.left : param;
+      if (local.type === "Identifier") bind(local.name, node.arguments[index] ?? param.right);
+    });
+  });
   return bindings;
 };
+// The props each docs component renders, by component name, as its source shows them; a page or a
+// component that passes one of these props passes copy.
+const renderedProps = new Map();
+const renderedPropCount = () => [...renderedProps.values()].reduce((count, props) => count + props.size, 0);
+let renderedPropsVersion = 0;
+// DOM properties a reader sees, so element.textContent = label renders label.
+const domCopyProperties = new Set(["textContent", "innerText", "title", "alt", "placeholder", "label", "ariaLabel", "ariaDescription"]);
 // Readers for one module: renderedStrings and componentCopy, resolving names through its bindings.
 const copyReaders = (bindings = new Map()) => {
+  // A bound value can be reached through many names and calls, so what it renders is worked out once.
   const resolving = new Set();
+  const resolved = new Map();
+  let resolvedVersion = renderedPropsVersion;
   const isCopyProperty = (property) => !property.computed && copyKeys.has(propertyKey(property));
-  const attributeStrings = (attribute, emit) => {
-    if (readableAttributes.includes(jsxName(attribute.name))) renderedStrings(attribute.value, emit);
+  const attributeStrings = (attribute, emit, element) => {
+    const name = jsxName(attribute.name);
+    if (readableAttributes.includes(name) || renderedProps.get(element)?.has(name)) renderedStrings(attribute.value, emit);
     else if (attribute.value?.type === "JSXExpressionContainer") componentCopy(attribute.value.expression, emit);
+  };
+  // A JSX element's attributes are read for the element they sit on; a code element's children are code.
+  const elementStrings = (node, emit, read) => {
+    if (node.type === "JSXOpeningElement") {
+      for (const attribute of node.attributes) {
+        if (attribute.type === "JSXAttribute") attributeStrings(attribute, emit, jsxName(node.name));
+      }
+      return true;
+    }
+    if (node.type === "JSXElement" && codeElements.has(jsxName(node.openingElement.name))) {
+      read(node.openingElement, emit);
+      return true;
+    }
+    return false;
   };
   // A callback renders an arrow's expression body, or what its block body returns; the rest of the
   // block is read like any component code.
@@ -633,7 +687,15 @@ const copyReaders = (bindings = new Map()) => {
       return;
     }
     if (!node || typeof node.type !== "string") return;
+    if (elementStrings(node, emit, renderedStrings)) return;
     switch (node.type) {
+      case "PropReference": {
+        const props = renderedProps.get(node.component) ?? new Set();
+        renderedProps.set(node.component, props);
+        if (!props.has(node.prop)) renderedPropsVersion += 1;
+        props.add(node.prop);
+        return;
+      }
       case "StringLiteral":
       case "JSXText":
         emit(node.value, node.loc.start.line);
@@ -650,11 +712,21 @@ const copyReaders = (bindings = new Map()) => {
         else componentCopy(node.value, emit);
         return;
       case "Identifier":
+        if (resolvedVersion !== renderedPropsVersion) {
+          resolved.clear();
+          resolvedVersion = renderedPropsVersion;
+        }
         for (const value of bindings.get(node.name) ?? []) {
           if (resolving.has(value)) continue;
-          resolving.add(value);
-          renderedStrings(value, emit);
-          resolving.delete(value);
+          let strings = resolved.get(value);
+          if (!strings) {
+            strings = [];
+            resolving.add(value);
+            renderedStrings(value, (text, line) => strings.push([text, line]));
+            resolving.delete(value);
+            resolved.set(value, strings);
+          }
+          for (const [text, line] of strings) emit(text, line);
         }
         return;
       case "MemberExpression":
@@ -711,10 +783,17 @@ const copyReaders = (bindings = new Map()) => {
       return;
     }
     if (!node || typeof node.type !== "string") return;
+    if (elementStrings(node, emit, componentCopy)) return;
     switch (node.type) {
       case "JSXText":
         emit(node.value, node.loc.start.line);
         return;
+      case "AssignmentExpression":
+        if (node.left.type === "MemberExpression" && !node.left.computed && domCopyProperties.has(node.left.property.name)) {
+          renderedStrings(node.right, emit);
+          return;
+        }
+        break;
       case "JSXAttribute":
         attributeStrings(node, emit);
         return;
@@ -786,7 +865,7 @@ const mdxPage = unified().use(remarkParse).use(remarkFrontmatter, ["yaml"]).use(
 const commonMarkGuide = unified().use(remarkParse).use(remarkFrontmatter, ["yaml"]).use(remarkGfm);
 const notMdx = /<!--[\s\S]*?--!?>|\{#[^\s{}]+\}/g;
 const phrasing = new Set(["text", "emphasis", "strong", "delete", "inlineCode", "break", "link", "linkReference", "image", "imageReference", "footnoteReference", "html", "mdxTextExpression", "mdxJsxTextElement", "textDirective"]);
-const codeElements = new Set(["code", "pre"]);
+const codeElements = new Set(["code", "pre", "CodeBlock"]);
 
 // commonMark is true for the guides outside the docs site; the site parses every page as MDX.
 const ukSpellingsIn = (text, {identifiers = new Set(), commonMark = false} = {}) => {
@@ -798,7 +877,8 @@ const ukSpellingsIn = (text, {identifiers = new Set(), commonMark = false} = {})
       if (attribute.type !== "mdxJsxAttribute") continue;
       const line = attribute.position?.start.line ?? lineOf(element);
       const expression = attribute.value?.type === "mdxJsxAttributeValueExpression" ? attribute.value.value : null;
-      if (readableAttributes.includes(attribute.name)) {
+      // A readable attribute is copy, and so is a prop the component renders, such as a question.
+      if (readableAttributes.includes(attribute.name) || renderedProps.get(element.name)?.has(attribute.name)) {
         if (typeof attribute.value === "string") check(attribute.value, line);
         else if (expression !== null) expressionStrings(expression, line, check);
       } else if (expression !== null) {
@@ -922,6 +1002,20 @@ const docsSourceFiles = (await walkAllFiles(path.resolve(repoRoot, "docs/src")))
   (filePath) => /\.(?:jsx?|tsx?|json)$/.test(filePath) && !/\.(?:test|spec)\.|[\\/]__tests__[\\/]/.test(filePath),
 );
 const auditedSources = new Set([...guideFiles, ...docsSourceFiles.filter((filePath) => !filePath.endsWith(".json"))].map(relativeToRepo));
+const parsedModules = new Map();
+for (const filePath of docsSourceFiles.filter((file) => !file.endsWith(".json"))) {
+  const plugins = filePath.endsWith(".ts") ? ["typescript"] : filePath.endsWith(".tsx") ? ["typescript", "jsx"] : ["jsx"];
+  try {
+    const {program} = parseModule(await fs.readFile(filePath, "utf8"), {sourceType: "module", plugins});
+    parsedModules.set(filePath, {program, readers: copyReaders(collectBindings(program))});
+  } catch (error) {
+    warn(relativeToRepo(filePath), `Skipped the US-spelling check, since the file does not parse: ${error.message}`);
+  }
+}
+for (let learned = -1; learned !== renderedPropCount(); ) {
+  learned = renderedPropCount();
+  for (const {program, readers} of parsedModules.values()) readers.componentCopy(program, () => {});
+}
 for (const filePath of docsSourceFiles) {
   const relativePath = relativeToRepo(filePath);
   const source = await fs.readFile(filePath, "utf8");
@@ -937,9 +1031,9 @@ for (const filePath of docsSourceFiles) {
       if (generated && auditedSources.has(envelope.get("source")?.value)) continue;
       pageReaders.componentCopy(data, check);
     } else {
-      const plugins = filePath.endsWith(".ts") ? ["typescript"] : filePath.endsWith(".tsx") ? ["typescript", "jsx"] : ["jsx"];
-      const {program} = parseModule(source, {sourceType: "module", plugins});
-      copyReaders(collectBindings(program)).componentCopy(program, check);
+      const parsed = parsedModules.get(filePath);
+      if (!parsed) continue;
+      parsed.readers.componentCopy(parsed.program, check);
     }
   } catch (error) {
     warn(relativePath, `Skipped the US-spelling check, since the file does not parse: ${error.message}`);
