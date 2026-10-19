@@ -580,13 +580,26 @@ const spellingCollector = (identifiers = new Set()) => {
 };
 
 // The strings a JavaScript expression renders: string literals, template text and JSX text. A
-// literal that is compared against, an object key, a member name, a type, an argument passed to a
-// call and the value of a JSX attribute a reader does not see are names; a callback passed to a call
-// is still read, since it can render.
+// literal that is compared against, an object key, a member name, a type and an argument passed to
+// a call are names. An object renders only its copy-named properties, a JSX attribute a reader does
+// not see is read only for copy-shaped data, and a callback renders what it returns.
 const comparisons = new Set(["===", "!==", "==", "!="]);
 const syntaxKeys = new Set(["loc", "start", "end", "range", "extra", "leadingComments", "trailingComments", "innerComments", "typeAnnotation", "typeParameters", "typeArguments", "returnType"]);
 const jsxName = (name) => (name?.type === "JSXNamespacedName" ? `${name.namespace.name}:${name.name.name}` : name?.name);
 const isFunction = (node) => node?.type === "ArrowFunctionExpression" || node?.type === "FunctionExpression";
+const ownsReturns = (node) => isFunction(node) || ["FunctionDeclaration", "ObjectMethod", "ClassMethod", "ClassPrivateMethod"].includes(node.type);
+const propertyKey = (property) => (property.key.type === "Identifier" ? property.key.name : property.key.value);
+// Copy-named properties hold copy, in component data, JSON data and the props a page passes.
+const copyKeys = new Set([...readableAttributes, "body", "caption", "description", "display", "heading", "help", "hint", "message", "note", "subtitle", "summary", "text", "tooltip"]);
+const isCopyProperty = (property) => !property.computed && copyKeys.has(propertyKey(property));
+const attributeStrings = (attribute, emit) => {
+  if (readableAttributes.includes(jsxName(attribute.name))) renderedStrings(attribute.value, emit);
+  else if (attribute.value?.type === "JSXExpressionContainer") componentCopy(attribute.value.expression, emit);
+};
+// A callback renders an arrow's expression body, or what its block body returns; the rest of the
+// block is read like any component code.
+const callbackStrings = (callback, emit) =>
+  callback.body.type === "BlockStatement" ? componentCopy(callback.body, emit, true) : renderedStrings(callback.body, emit);
 const renderedStrings = (node, emit) => {
   if (Array.isArray(node)) {
     for (const item of node) renderedStrings(item, emit);
@@ -603,10 +616,11 @@ const renderedStrings = (node, emit) => {
       renderedStrings(node.expressions, emit);
       return;
     case "JSXAttribute":
-      if (readableAttributes.includes(jsxName(node.name))) renderedStrings(node.value, emit);
+      attributeStrings(node, emit);
       return;
     case "ObjectProperty":
-      renderedStrings(node.value, emit);
+      if (isCopyProperty(node)) renderedStrings(node.value, emit);
+      else componentCopy(node.value, emit);
       return;
     case "MemberExpression":
     case "OptionalMemberExpression":
@@ -626,7 +640,7 @@ const renderedStrings = (node, emit) => {
     case "NewExpression":
       renderedStrings(node.callee, emit);
       for (const argument of node.arguments) {
-        if (isFunction(argument)) renderedStrings(argument.body, emit);
+        if (isFunction(argument)) callbackStrings(argument, emit);
         else componentCopy(argument, emit);
       }
       return;
@@ -642,6 +656,10 @@ const renderedStrings = (node, emit) => {
       return;
   }
   if (node.type.startsWith("TS")) return;
+  if (isFunction(node)) {
+    callbackStrings(node, emit);
+    return;
+  }
   for (const [key, value] of Object.entries(node)) if (!syntaxKeys.has(key)) renderedStrings(value, emit);
 };
 
@@ -649,11 +667,12 @@ const renderedStrings = (node, emit) => {
 // attributes, what a JSX expression renders, the value of a copy-named property such as label or
 // description, the value setAttribute gives a readable attribute, and the text a set…Label or
 // set…Text call sets. Ids, keys, class names, CSS values, and event and element names are names.
-const copyKeys = new Set([...readableAttributes, "body", "caption", "description", "heading", "help", "hint", "message", "note", "subtitle", "summary", "text", "tooltip"]);
+// returnsRender is true inside a callback a JSX expression renders: its returns render, while a
+// function nested in it returns for itself.
 const copySetter = /^set\w*(?:Label|Text|Title|Message|Description)$/;
-const componentCopy = (node, emit) => {
+const componentCopy = (node, emit, returnsRender = false) => {
   if (Array.isArray(node)) {
-    for (const item of node) componentCopy(item, emit);
+    for (const item of node) componentCopy(item, emit, returnsRender);
     return;
   }
   if (!node || typeof node.type !== "string") return;
@@ -662,17 +681,19 @@ const componentCopy = (node, emit) => {
       emit(node.value, node.loc.start.line);
       return;
     case "JSXAttribute":
-      if (readableAttributes.includes(jsxName(node.name))) renderedStrings(node.value, emit);
+      attributeStrings(node, emit);
       return;
     case "JSXExpressionContainer":
       renderedStrings(node.expression, emit);
       return;
-    case "ObjectProperty": {
-      const key = node.key.type === "Identifier" ? node.key.name : node.key.value;
-      if (!node.computed && copyKeys.has(key)) renderedStrings(node.value, emit);
-      else componentCopy(node.value, emit);
+    case "ReturnStatement":
+      if (!returnsRender) break;
+      renderedStrings(node.argument, emit);
       return;
-    }
+    case "ObjectProperty":
+      if (isCopyProperty(node)) renderedStrings(node.value, emit);
+      else componentCopy(node.value, emit, returnsRender);
+      return;
     case "CallExpression":
     case "OptionalCallExpression": {
       const callee = node.callee.type.endsWith("MemberExpression") ? node.callee.property.name : node.callee.name;
@@ -682,8 +703,8 @@ const componentCopy = (node, emit) => {
       } else if (copySetter.test(callee ?? "")) {
         renderedStrings(first, emit);
       }
-      componentCopy(node.callee, emit);
-      componentCopy(node.arguments, emit);
+      componentCopy(node.callee, emit, returnsRender);
+      componentCopy(node.arguments, emit, returnsRender);
       return;
     }
     case "ImportDeclaration":
@@ -692,19 +713,20 @@ const componentCopy = (node, emit) => {
       return;
   }
   if (node.type.startsWith("TS") && !["TSAsExpression", "TSSatisfiesExpression", "TSNonNullExpression"].includes(node.type)) return;
-  for (const [key, value] of Object.entries(node)) if (!syntaxKeys.has(key)) componentCopy(value, emit);
+  const nested = ownsReturns(node) ? false : returnsRender;
+  for (const [key, value] of Object.entries(node)) if (!syntaxKeys.has(key)) componentCopy(value, emit, nested);
 };
 
-// An MDX expression, such as {done ? "Closed" : "Open"}, renders its strings. One that holds only a
-// comment, {/* … */}, renders nothing.
-const expressionStrings = (source, line, emit) => {
+// An MDX expression, such as {done ? "Closed" : "Open"}, renders its strings, and the value of a
+// prop is read like component data. One that holds only a comment, {/* … */}, renders nothing.
+const expressionStrings = (source, line, emit, read = renderedStrings) => {
   let expression;
   try {
     expression = parseExpression(source, {plugins: ["jsx"]});
   } catch {
     return;
   }
-  renderedStrings(expression, (text, at) => emit(text, line + at - 1));
+  read(expression, (text, at) => emit(text, line + at - 1));
 };
 // Raw HTML in a CommonMark guide: comments and code elements are not copy, a tag is markup read only
 // for its readable attributes, and the text between tags is copy.
@@ -735,21 +757,31 @@ const ukSpellingsIn = (text, {identifiers = new Set(), commonMark = false} = {})
   const lineOf = (node) => node.position?.start.line ?? 1;
   const readAttributes = (element) => {
     for (const attribute of element.attributes ?? []) {
-      if (attribute.type !== "mdxJsxAttribute" || !readableAttributes.includes(attribute.name)) continue;
+      if (attribute.type !== "mdxJsxAttribute") continue;
       const line = attribute.position?.start.line ?? lineOf(element);
-      if (typeof attribute.value === "string") check(attribute.value, line);
-      else if (attribute.value?.type === "mdxJsxAttributeValueExpression") expressionStrings(attribute.value.value, line, check);
+      const expression = attribute.value?.type === "mdxJsxAttributeValueExpression" ? attribute.value.value : null;
+      if (readableAttributes.includes(attribute.name)) {
+        if (typeof attribute.value === "string") check(attribute.value, line);
+        else if (expression !== null) expressionStrings(expression, line, check);
+      } else if (expression !== null) {
+        // Data a component renders, such as items={[{label: "…"}]}, is read for its copy-named fields.
+        expressionStrings(expression, line, check, componentCopy);
+      }
     }
   };
   // A segment's text is read in order, with code and markup standing in as a word, so a sentence
   // starts where the reader sees one; titles, alt text and expressions are read on their own.
   const readSegment = (block) => {
     const pieces = [];
+    // Inline raw HTML arrives tag by tag, so the text of a code element sits between its tags.
+    let insideCode = 0;
     const flatten = (node) => {
       if (node.type === "text") {
-        pieces.push({text: node.value, line: lineOf(node), copy: true});
+        pieces.push(insideCode > 0 ? {text: " x ", copy: false} : {text: node.value, line: lineOf(node), copy: true});
         return;
       }
+      if (node.type === "html" && /^<(?:code|pre)\b[^>]*(?<!\/)>$/i.test(node.value)) insideCode += 1;
+      if (node.type === "html" && /^<\/(?:code|pre)\s*>$/i.test(node.value)) insideCode = Math.max(0, insideCode - 1);
       if (node.type === "link" || node.type === "image") {
         if (node.title) check(node.title, lineOf(node));
         if (node.type === "image" && node.alt) check(node.alt, lineOf(node));
@@ -805,8 +837,12 @@ const ukSpellingsIn = (text, {identifiers = new Set(), commonMark = false} = {})
   return found.sort((left, right) => left.line - right.line);
 };
 
+const reportUkSpellings = (relativePath, found, where = "") => {
+  for (const {line, word, us} of found) {
+    fail(relativePath, `UK spelling on line ${line}: "${word}"; English copy uses US spelling ("${us}"), see DESIGN.md § Voice & Copy.${where}`);
+  }
+};
 const failUkSpellings = (relativePath, text, {generated = false, commonMark = false} = {}) => {
-  const where = generated ? " Fix it in the source this page is generated from." : "";
   let found;
   try {
     found = ukSpellingsIn(text, {identifiers: generated ? enumNames : undefined, commonMark});
@@ -815,9 +851,7 @@ const failUkSpellings = (relativePath, text, {generated = false, commonMark = fa
     warn(relativePath, `Skipped the US-spelling check, since the page does not parse: ${error.message}`);
     return;
   }
-  for (const {line, word, us} of found) {
-    fail(relativePath, `UK spelling on line ${line}: "${word}"; English copy uses US spelling ("${us}"), see DESIGN.md § Voice & Copy.${where}`);
-  }
+  reportUkSpellings(relativePath, found, generated ? " Fix it in the source this page is generated from." : "");
 };
 
 // Copy outside the docs site that readers still meet: release notes and the design guidance.
@@ -842,24 +876,29 @@ for (const filePath of await usSpellingGuides()) {
   failUkSpellings(path.relative(repoRoot, filePath).replace(/\\/g, "/"), await fs.readFile(filePath, "utf8"), {commonMark: true});
 }
 
-// The docs site's components and the data they render, parsed as TypeScript and JSX; their tests
-// render nothing.
-const docsComponents = (await walkAllFiles(path.resolve(repoRoot, "docs/src"))).filter(
-  (filePath) => /\.(?:jsx?|tsx?)$/.test(filePath) && !/\.test\.|[\\/]__tests__[\\/]/.test(filePath),
-);
-for (const filePath of docsComponents) {
+// The docs site's components and modules, parsed as TypeScript and JSX, and the JSON data they
+// render, read like component data. Tests render nothing; a generated data file is fixed at its source.
+for (const filePath of await walkAllFiles(path.resolve(repoRoot, "docs/src"))) {
+  const json = filePath.endsWith(".json");
+  if ((!json && !/\.(?:jsx?|tsx?)$/.test(filePath)) || /\.test\.|[\\/]__tests__[\\/]/.test(filePath)) continue;
   const relativePath = path.relative(repoRoot, filePath).replace(/\\/g, "/");
+  const source = await fs.readFile(filePath, "utf8");
   const {found, check} = spellingCollector();
+  let generated = false;
   try {
-    const plugins = filePath.endsWith(".ts") ? ["typescript"] : filePath.endsWith(".tsx") ? ["typescript", "jsx"] : ["jsx"];
-    componentCopy(parseModule(await fs.readFile(filePath, "utf8"), {sourceType: "module", plugins}).program, check);
+    if (json) {
+      const data = parseExpression(source);
+      generated = data.type === "ObjectExpression" && data.properties.some((property) => propertyKey(property) === "$generated");
+      componentCopy(data, check);
+    } else {
+      const plugins = filePath.endsWith(".ts") ? ["typescript"] : filePath.endsWith(".tsx") ? ["typescript", "jsx"] : ["jsx"];
+      componentCopy(parseModule(source, {sourceType: "module", plugins}).program, check);
+    }
   } catch (error) {
     warn(relativePath, `Skipped the US-spelling check, since the file does not parse: ${error.message}`);
     continue;
   }
-  for (const {line, word, us} of found) {
-    fail(relativePath, `UK spelling on line ${line}: "${word}"; English copy uses US spelling ("${us}"), see DESIGN.md § Voice & Copy.`);
-  }
+  reportUkSpellings(relativePath, found, generated ? " Fix it in the source this file is generated from." : "");
 }
 
 const allDocs = await walk(docsRoot);
