@@ -156,6 +156,10 @@
     {
       "date": "2026-10-18",
       "event": "v5.1 intake shape decided after the first live run: one intake thread per run opened from the digest, numbered ledger lines, answers in that thread, one mention per sharer per run only for a ❔ question, four thread reads; the three run-review spec findings folded in. The ten per-share threads of 2026-10-18 are archived by the steward."
+    },
+    {
+      "date": "2026-10-18",
+      "event": "First v5.1 run (manual fire, evening, a same-date rerun on top of the v5 run) reviewed: no second digest, ten reactions, one intake thread under the digest with one 13-line ledger message and one mention, intake receipt written, pending-edits document refreshed without ageing; AC-1, AC-3 and AC-11 pass, AC-7's refresh half passes, AC-2 partly exercised; two small spec findings (same-title rerun memo, recovered lines merged into the sharer's message) in reports/2026-10-18-first-v5-1-run.md."
     }
   ]
 }
