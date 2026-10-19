@@ -42,11 +42,20 @@ describe("account requests in plain words", () => {
   });
 
   it("reads a garden word alone as a command, and a command button as its word", () => {
-    expect(["GARDEN", "huerto", "hortas"].map((text) => parseCommand(text)?.kind)).toEqual([
-      "garden",
-      "garden",
-      "garden",
-    ]);
+    // The chat says jardín and jardim; the older huerto and horta still work.
+    const gardenWords = [
+      "GARDEN",
+      "huerto",
+      "hortas",
+      "Jardín",
+      "jardin",
+      "jardines",
+      "JARDIM",
+      "jardins",
+    ];
+    expect(gardenWords.map((text) => parseCommand(text)?.kind)).toEqual(
+      gardenWords.map(() => "garden")
+    );
     expect(["join", "unirme", "participar"].map((text) => parseCommand(text)?.kind)).toEqual([
       "join",
       "join",
@@ -54,6 +63,7 @@ describe("account requests in plain words", () => {
     ]);
     // A story that names a garden, or a button of some question, is neither.
     expect(parseCommand("garden beds weeded")).toBeNull();
+    expect(parseCommand("jardín regado")).toBeNull();
     expect(replyCommand(commandReplyId("garden"))).toEqual({ kind: "garden" });
     expect(replyCommand("p:prompt-1:0")).toBeNull();
     expect(replyCommand(commandReplyId("planted"))).toBeNull();

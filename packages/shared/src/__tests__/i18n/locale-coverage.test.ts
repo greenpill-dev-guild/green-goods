@@ -622,6 +622,31 @@ describe("i18n locale coverage", () => {
 
       expect(strays, `Use provisión / provisão instead:\n${strays.join("\n")}`).toEqual([]);
     });
+
+    // Promise is promesa and promessa on every surface (18 Oct 2026). Compromiso and compromisso
+    // stay right where English still says commitment, so each message is held to its English
+    // source instead of banning a word.
+    it("should say promesa and promessa wherever English says promise", () => {
+      const icuArguments = /\{\s*\w+\s*[,}]/g;
+      const promise = /\bpromis(?:e|es|ed|ing)\b/i;
+      const localized = [
+        { locale: "es", catalog: es as LocaleCatalog, word: /\bprome(?:sa|t)/i },
+        { locale: "pt", catalog: pt as LocaleCatalog, word: /\bprome(?:ssa|t)/i },
+      ];
+      const promised = Object.entries(en as LocaleCatalog).filter(([, value]) =>
+        promise.test(value.replace(icuArguments, " "))
+      );
+      const strays = promised.flatMap(([key]) =>
+        localized
+          .filter(
+            ({ catalog, word }) => !word.test((catalog[key] ?? "").replace(icuArguments, " "))
+          )
+          .map(({ locale }) => `${locale}:${key}`)
+      );
+
+      expect(promised.length).toBeGreaterThan(100);
+      expect(strays, `Use promesa / promessa (or prometer):\n${strays.join("\n")}`).toEqual([]);
+    });
   });
 });
 
