@@ -28,9 +28,16 @@
     "recharts": "3.9.2"
   },
   "devDependencies": {
+    "@babel/parser": "8.0.4",
     "@docusaurus/module-type-aliases": "3.10.2",
     "@docusaurus/types": "3.10.2",
-    "typescript": "~7.0.2"
+    "remark-directive": "3.0.1",
+    "remark-frontmatter": "5.0.0",
+    "remark-gfm": "4.0.1",
+    "remark-mdx": "3.1.1",
+    "remark-parse": "11.0.0",
+    "typescript": "~7.0.2",
+    "unified": "11.0.5"
   },
   "browserslist": {
     "production": [
