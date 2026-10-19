@@ -26,9 +26,11 @@ describe("ontology query seam", () => {
   });
 
   it("keeps protocol deployment separate from product availability", () => {
-    expect(getOntologyMaturity("Commitment")?.deployment).toBe("deployed");
-    expect(getOntologyMaturity("Commitment")?.availability).toBe("deployed-not-available");
-    expect(getOntologySafeClaims("Commitment")[0]?.safe_wording).toContain("not yet");
+    expect(getOntologyMaturity("Commitment Payout Plan")?.deployment).toBe("deployed");
+    expect(getOntologyMaturity("Commitment Payout Plan")?.availability).toBe(
+      "deployed-not-available"
+    );
+    expect(getOntologySafeClaims("Commitment")[0]?.safe_wording).toContain("not switched on yet");
   });
 
   it("returns declared relationships and manifest metadata", () => {
