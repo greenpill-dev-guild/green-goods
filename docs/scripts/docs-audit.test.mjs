@@ -317,7 +317,7 @@ Requests stop at pre-disbursement Cancelled.
     assert.equal(clean.status, 0, clean.stderr);
 
     // A folded frontmatter value is rendered page metadata, read whole across its lines.
-    const dirty = `${readFileSync(file, "utf8")}The row reads cancelled.\n\n    MDX reads this indented line as text, so cancelled counts.\n\nSee [the garden](https://example.com/g "The favourite garden") and <span aria-label="A grey icon">x</span>.\n\nAn escaped \\\`grey\\\` mark is text.\n\n<img\n  src="/img/x.png"\n  alt="A grey mark"\n/>\n\nSee [the guide](https://example.com/guide 'The favourite guide').\n\nA lone \`tick stops at a blank line,\n\nso cancelled here counts.\n\n- A \`list item\n- cancelled in the next one counts.\n\n<Status>{done ? "The cycle was cancelled." : "Open"}</Status>\n\nAn escaped \\{cancelled} brace is text.\n\n<Paths items={[{label: "The favourite path", href: "/grey"}]} />\n`.replace(
+    const dirty = `${readFileSync(file, "utf8")}The row reads cancelled.\n\n    MDX reads this indented line as text, so cancelled counts.\n\nSee [the garden](https://example.com/g "The favourite garden") and <span aria-label="A grey icon">x</span>.\n\nAn escaped \\\`grey\\\` mark is text.\n\n<img\n  src="/img/x.png"\n  alt="A grey mark"\n/>\n\nSee [the guide](https://example.com/guide 'The favourite guide').\n\nA lone \`tick stops at a blank line,\n\nso cancelled here counts.\n\n- A \`list item\n- cancelled in the next one counts.\n\n<Status>{done ? "The cycle was cancelled." : "Open"}</Status>\n\nAn escaped \\{cancelled} brace is text.\n\n<Paths items={[{label: "The favourite path", href: "/grey"}]} />\n\n![The favourite logo][brand]\n\n[brand]: /img/grey-logo.png\n`.replace(
       "slug: /builders/test\n",
       "slug: /builders/test\ndescription: >-\n  How the field\n  turns grey.\n",
     );
@@ -354,6 +354,8 @@ Requests stop at pre-disbursement Cancelled.
     // A string an MDX expression renders is copy, and an escaped brace is text.
     assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${lineOf('<Status>{done ? "The cycle was cancelled." : "Open"}</Status>')}: "cancelled"`), result.stderr);
     assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${lineOf("An escaped \\{cancelled} brace is text.")}: "cancelled"`), result.stderr);
+    // A reference-style image's alt text is copy, and its definition's destination a name.
+    assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${lineOf("![The favourite logo][brand]")}: "favourite"`), result.stderr);
     // Data a page passes to a component is read for its copy-named fields.
     assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${lineOf('<Paths items={[{label: "The favourite path", href: "/grey"}]} />')}: "favourite"`), result.stderr);
     // A single-quoted link title is copy too.
@@ -372,7 +374,7 @@ Requests stop at pre-disbursement Cancelled.
     assert.match(result.stderr, new RegExp(`reference/generated\\.mdx: UK spelling on line ${cancelledLine}: "cancelled".* Fix it in the source this page is generated from\\.`));
     const sentenceStart = generatedLineOf("Cancelled requests remain visible.");
     assert.ok(result.stderr.includes(`reference/generated.mdx: UK spelling on line ${sentenceStart}: "Cancelled"`), result.stderr);
-    assert.equal(result.stderr.match(/UK spelling/g)?.length, 18, result.stderr);
+    assert.equal(result.stderr.match(/UK spelling/g)?.length, 19, result.stderr);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -398,16 +400,29 @@ test("UK spelling in docs component copy exits nonzero, while names stay free", 
       "  );",
       "}",
       "",
-      "export function Rows({ rows }: { rows: Array<{ closed: boolean }> }) {",
+      "export function Rows({ rows }: { rows: Array<{ closed: boolean; open: boolean }> }) {",
       "  return (",
       "    <ul>",
       "      {rows.map((row) => {",
       '        const tone = row.closed ? "grey" : "green";',
       '        const style = { color: "grey" };',
-      '        if (row.closed) return <li title="The favourite row" style={style}>{tone}</li>;',
+      '        if (row.closed) return <Badge title="The favourite row" tone={tone} style={style} />;',
+      '        const caption = "A cancelled caption";',
+      "        if (row.open) return <span>{caption}</span>;",
       '        return "Cancelled row";',
       "      })}",
       "    </ul>",
+      "  );",
+      "}",
+      "",
+      'const note = "A grey note";',
+      "",
+      "export function Notes() {",
+      '  const [label] = useState("Favourite label");',
+      "  return (",
+      "    <p>",
+      "      {note} {label}",
+      "    </p>",
       "  );",
       "}",
       "",
@@ -416,6 +431,7 @@ test("UK spelling in docs component copy exits nonzero, while names stay free", 
     writeFileSync(path.join(root, "docs/src/components/docs/Sample.tsx"), component);
     // A test renders nothing, so its strings are names.
     writeFileSync(path.join(root, "docs/src/components/docs/Sample.test.tsx"), 'test("a grey test name", () => {});\n');
+    writeFileSync(path.join(root, "docs/src/components/docs/Sample.spec.tsx"), 'test("a grey spec name", () => {});\n');
     // JSON data a component renders is read for its copy-named fields; a generated file names its source.
     mkdirSync(path.join(root, "docs/src/data"), { recursive: true });
     writeFileSync(path.join(root, "docs/src/data/paths.json"), '{\n  "items": [\n    { "title": "Favourite paths", "href": "/grey" }\n  ]\n}\n');
@@ -435,12 +451,36 @@ test("UK spelling in docs component copy exits nonzero, while names stay free", 
       ["The favourite key", "favourite"],
       ["The favourite row", "favourite"],
       ["Cancelled row", "Cancelled"],
+      // A name a JSX expression renders reads what its binding holds: a local, a module constant,
+      // or a useState pair's initial value.
+      ["A cancelled caption", "cancelled"],
+      ["A grey note", "grey"],
+      ["Favourite label", "Favourite"],
     ]) {
       assert.ok(result.stderr.includes(`docs/src/components/docs/Sample.tsx: UK spelling on line ${lineOf(text)}: "${word}"`), result.stderr);
     }
     assert.ok(result.stderr.includes('docs/src/data/paths.json: UK spelling on line 3: "Favourite"'), result.stderr);
     assert.match(result.stderr, /docs\/src\/data\/generated\.json: UK spelling on line 3: "Cancelled".* Fix it in the source this file is generated from\./);
-    assert.equal(result.stderr.match(/UK spelling/g)?.length, 10, result.stderr);
+    assert.equal(result.stderr.match(/UK spelling/g)?.length, 13, result.stderr);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("generated docs data is read at its source when the audit reads that source", () => {
+  const root = fixture();
+  try {
+    // ONBOARDING.md is a guide; the docs site shows its projection as code, so the projection is not read.
+    writeFileSync(path.join(root, "ONBOARDING.md"), "# Onboarding\n\nRead the favourite guide first.\n\n```bash\nrun grey-tool\n```\n");
+    mkdirSync(path.join(root, "docs/src/data"), { recursive: true });
+    writeFileSync(
+      path.join(root, "docs/src/data/onboarding.json"),
+      JSON.stringify({ $generated: "GENERATED FILE: do not edit.", source: "ONBOARDING.md", text: "Read the favourite guide first. run grey-tool" }),
+    );
+    const result = runAudit(root);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /ONBOARDING\.md: UK spelling on line 3: "favourite"/);
+    assert.equal(result.stderr.match(/UK spelling/g)?.length, 1, result.stderr);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
