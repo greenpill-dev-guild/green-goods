@@ -238,7 +238,7 @@ Tone shifts by context while voice stays constant:
 | **Submitting work** | Supportive, clear | "Add a photo and a few words about what you did today." |
 | **Hero moments** | Celebratory, genuine | "Your first contribution. This garden is growing because of you." |
 | **Errors** | Calm, constructive | "That didn't go through. Your work is saved. Try again when you're ready." |
-| **Offline** | Reassuring, matter-of-fact | "You're offline. Everything is saved locally and will sync when you reconnect." |
+| **Offline** | Reassuring, matter-of-fact | "You're offline. Your work is saved on this phone and will send when you reconnect." |
 | **Admin / steward** | Efficient, status-oriented | "3 submissions pending review. 1 flagged for follow-up." |
 | **Funding / impact** | Respectful, concrete | "This garden has documented 47 actions across 3 seasons." |
 

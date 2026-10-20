@@ -4,7 +4,7 @@ sidebar_label: Brand voice
 slug: /brand-voice
 audience: all
 owner: docs
-last_verified: 2026-10-19
+last_verified: 2026-10-20
 feature_status: Live
 source_of_truth:
   - DESIGN.md
@@ -37,7 +37,7 @@ keywords:
   - style guide
 ---
 
-Version 1.2, 2026-10-19. Owner: Afo.
+Version 1.2, 2026-10-20. Owner: Afo.
 
 **Scope.** Rules for anyone, person or agent, who writes Green Goods copy: product strings, the public website, docs, release notes, announcements, and funder or partner documents. Pull request and issue bodies are developer-facing; they follow the spelling and punctuation rules in section 6.7 but not this page's voice. Audiences by name, numbers, partner work, and anything else that should not sit in a public repository live in the internal strategy addendum (a shared Google Doc), not here.
 
@@ -49,7 +49,7 @@ Version 1.2, 2026-10-19. Owner: Afo.
 - Enforcement: the mechanical rules are checked, not trusted. `bun run check --only vocabulary` rejects banned and retired terms, UK spellings, and the old Spanish and Portuguese role words in the three shared catalogs (`packages/shared/src/i18n`); the docs audit rejects UK spellings in docs pages and design guides; `bun run check --only em-dashes` rejects em dashes in those catalogs, docs pages, and design guides. The chat bot's copy in `packages/agent` has its own spelling test and is not yet covered by the vocabulary and em dash checks, so it is reviewed by eye until they extend to it. Section 9 marks which checklist items a machine covers.
 - Review: a change to copy is reviewed against this page the way a change to layout is reviewed against the design skill. Dated copy decisions still get a row in the design decision log.
 
-**Writing conventions in this file.** US spelling. No em dashes anywhere in Green Goods prose. In running text, "garden", the role words, and the domain nouns are lower case; Title Case belongs to titles, labels, and named acts.
+**Writing conventions in this file.** US spelling. No em dashes anywhere in Green Goods prose. In running text, "garden", the role words, and the domain nouns are lower case; Title Case belongs to titles, action labels, and named acts.
 
 ---
 
@@ -142,7 +142,7 @@ Tone shifts by context while the voice stays constant.
 | Submitting work | Supportive, clear | "Add a photo and a few words about what you did today." |
 | Hero moments (first work, garden created, certificate minted) | Celebratory, genuine; one sentence, no confetti language | "Your first contribution. This garden is growing because of you." |
 | Errors | Calm, constructive; never blames the person; says what is safe | "That didn't go through. Your work is saved. Try again when you're ready." |
-| Offline | Reassuring, matter-of-fact | "You're offline. Everything is saved locally and will sync when you reconnect." |
+| Offline | Reassuring, matter-of-fact; promises only what the queue holds | "You're offline. Your work is saved on this phone and will send when you reconnect." Operations that need a connection (approving work, creating an assessment or a garden) say so instead: "Approving needs a connection. Nothing is lost." |
 | Admin and steward | Efficient, status-oriented | "3 submissions pending review. 1 flagged for follow-up." |
 | Funding and impact | Respectful, concrete; numbers breathe | "This garden has documented 47 actions across 3 seasons." |
 | Failure states (a page or screen cannot load) | An ordinary page: a title, one sentence, one action; nothing lost, no codes | "This public record is temporarily unavailable. Please try again." |
@@ -177,7 +177,7 @@ Tone shifts by context while the voice stays constant.
 - Instructions are direct and second person: "Describe what you did", not "Please provide a description."
 - Labels are short nouns: "Photo", "Method", "Confidence".
 - Empty states encourage and suggest the next action: "No work yet. Start by documenting what you see."
-- Sync status is calm: "Saved locally", "Synced", "Syncing…".
+- Sync status is calm: "Saved locally", "Synced", "Syncing…". Recording work queues offline; approving, creating an assessment, or creating a garden needs a connection, and copy says which.
 - Errors never blame the person: "We couldn't submit that", not "Your submission failed."
 - A draft stays on the phone it was written on while the app and its data remain, and copy says so when it matters (keep the app installed, do not clear its data). Never promise more than that.
 - Say: "Let's see what's grown in your garden." / "Your work is in good hands." / "Go do more of what matters."
@@ -214,7 +214,7 @@ The [Glossary](/glossary) is generated from the ontology and is the authority; t
 | work approval | A steward's recorded decision on submitted work, kept separate from the record of what happened. Stewards approve work; evaluators assess, they do not approve. |
 | assessment | A starting point and a plan: what a place needs and what good evidence should show. Assessment comes before work, not after it. |
 | impact certificate | One claim that bundles a body of approved work. Turning approved work into a certificate is in build (Capability and Claims), so copy describes what a certificate represents, not a funding path that is live. |
-| vault | A garden's long-term fund. A deposit can stay in place while what it earns supports ongoing work. |
+| vault | A garden's long-term fund. A deposit can stay in place while what it earns supports ongoing work; a strategy or contract loss can reduce what comes back or delay a withdrawal, and copy says so wherever it invites a deposit. |
 | cookie jar | A shared fund for near-term needs, with a limit on each claim. |
 | promise | What a member offers or asks for in a pool: a workshop, a planting, a repair. "Promise" is the word in every user-facing surface, in all three languages. "Commitment Pooling" remains the feature name; "commitment" otherwise stays in code and contracts. |
 | pool | The container that holds a garden's promises. "Pool" names only the container. |
@@ -345,7 +345,7 @@ Drawn from shipped copy and approved release material. Lines marked "adapted" we
 | "We're still pilot focused, learning alongside the communities using Green Goods." | 2.0 announcement | Limits up front |
 | "Start by describing what you see. We'll help with the rest." | DESIGN.md tone spectrum | Patient onboarding |
 | "Add a photo and a few words about what you did today." | DESIGN.md tone spectrum | Supportive instruction |
-| "You're offline. Everything is saved locally and will sync when you reconnect." | DESIGN.md tone spectrum | Reassuring |
+| "You're offline. Your work is saved on this phone and will send when you reconnect." | DESIGN.md tone spectrum | Reassuring, bounded to the queue |
 | "3 submissions pending review. 1 flagged for follow-up." | Admin copy voice | Status, no narrative |
 | "We couldn't submit that." | Client prompt contract | Error without blame |
 | "Connect the wallet you endowed with, and we'll show you the gardens your support is growing." | Public fund page, endowments view | Warm, concrete, no custody claim |

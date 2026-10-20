@@ -58,7 +58,7 @@ The categories below are contract-specific framing: *why* client output should r
 
 The client speaks **to the community, about the work**. The admin speaks **about the work, to the steward**. Same garden, different dialects. Cross-surface voice pillars and terminology live in the root [`DESIGN.md § Voice & Copy`](../../../DESIGN.md#voice--copy).
 
-**Say:** "Let's see what's grown in your garden." / "Your work is in good hands." / "The reviewer will take it from here." / "Go do more of what matters."
+**Say:** "Let's see what's grown in your garden." / "Your work is in good hands." / "Your steward will take it from here." / "Go do more of what matters."
 
 **Don't say:** "Processing submission..." / "Review queued." / "1 of 12 pending." / "Submit another?"
 
