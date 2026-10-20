@@ -625,3 +625,50 @@ Agent/model: Codex / unknown | Coverage: publication blockers and eight remainin
 | Verify / review | unknown → ongoing | Test governance passes, 17 cases discovered, local Chromium startup blocked; eight mobile guide reviews complete. Final Docs build and publication evidence follow in PR/chat. |
 
 Human corrections: 0 observed in this segment; attention: unknown.
+
+
+## Develop integration, October 19
+
+The user explicitly authorized integrating current develop into #1109. The first merge
+resolved 29 conflicts against 2f78c495, retaining the action guides, 37 captures and face-free
+artwork while incorporating develop's current 2.0 availability evidence, US spelling and copy
+checks. Both plan history entries survive; upstream Linear routing and the broader blocked
+PRD-727 lane remain unchanged. Generated outputs were rebuilt from their owning sources.
+The Promise glossary entry keeps develop's alias wording without appearing twice.
+
+Develop then advanced to f2eb2ef8. Its routines update was integrated as well; the only added
+conflict was a generated MCP-guide digest, resolved by regeneration. Git's configured SSH proxy
+was unavailable and the public HTTPS fetch returned 403. The connected GitHub API supplied the
+public commit and blob objects; their Git hashes, signed commit bytes and complete target tree
+were verified before integration. No credential, signing or persistent transport setting changed.
+The merge commits use the same unsigned GitHub API path as the earlier publication.
+
+Before the final tip refresh, Docs tests passed 99/99, generator/ontology tests 118/118 and the
+Shared ontology query tests 5/5. Docs authority and the em-dash check passed; production build
+and search covered 76/76 routes. The two existing endpoint advisories remain. Exact installed
+parser dependencies were linked into this isolated worktree; no dependencies were installed or
+upgraded and no lockfile was changed by this work. Final committed-tree validation and current-head
+CI are recorded on #1109.
+
+Rendered proof: Chromium in-app browser, public localhost Docs, October 19. Open a Pool was
+reviewed at desktop and 390px phone width; all three figures loaded, centered and fit. Join a
+Garden and Review Work were read on phone, and the glossary rendered one Promise heading with
+no visible Builder reference section or horizontal overflow. The earlier full 16-guide mobile
+review remains applicable to the unchanged capture assets. This is public Docs layout proof,
+not authenticated signing or device QA. The production preview remains on localhost:3003.
+
+PRD-727 still owns broader pooling, settlement/payouts, post/delta assessment and signed,
+physical-device, offline and unfamiliar-reader QA. The local Chromium startup and earlier
+Agent SQLite timeouts remain limits until their owning executable checks establish otherwise.
+Videos remain PRD-728. Keep #1109 draft and unmerged; no Linear state or hub lane was closed.
+
+Task record: PRD-1156 / #1109 task screenshots | Type: integration | Outcome: integration complete; final publication proof pending
+Agent/model: Codex / unknown | Coverage: authorized develop integration
+
+| Phase | Start → end (UTC) | Result |
+|---|---|---|
+| Investigate | 2026-10-20 02:09:40 → unknown | Clean branch, live develop and conflict authorities inspected. |
+| Implement | unknown → 2026-10-20 02:22:09 | Original 29 conflicts resolved; the advanced tip integrated and projections regenerated. |
+| Verify / review | unknown → ongoing | Focused tests and rendered Docs proof passed; final post-commit gate and CI follow on #1109. |
+
+Human corrections: 0 observed in this segment; attention: unknown.
