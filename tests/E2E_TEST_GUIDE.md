@@ -12,8 +12,8 @@ rejection/account recovery, seeded read-only work exploration and production PWA
 offline reload. See [the runner contract](README.md#projects-and-focused-runs) for
 exact qualification and evidence limits.
 
-Manual wallet-storage diagnostics do not establish real connector or session
-restoration behavior. Removed always-skipped work/offline suites supplied no active
+The legacy-wallet smoke case explicitly selects a disconnected dev mock session;
+it does not establish real connector or session restoration behavior. Removed always-skipped work/offline suites supplied no active
 proof; the current CI specs exercise those journeys.
 
 ## Test Structure
@@ -24,14 +24,13 @@ tests/
 │   ├── admin.smoke.spec.ts   # Admin basic functionality
 │   ├── admin.auth.spec.ts    # Admin authentication flows
 │   ├── client.smoke.spec.ts  # Client basic functionality  
-│   ├── client.auth.spec.ts   # Client authentication flows
+│   ├── client.session-navigation.ci.spec.ts  # Mock-auth sessions and navigation
 │   ├── client.offline-work-submission.ci.spec.ts  # Offline upload/recovery
 │   ├── client.work-submission.ci.spec.ts  # Required work details validation
 │   ├── client.work-approval.ci.spec.ts    # Work approval
 │   ├── client.passkey.spec.ts  # Qualified WebAuthn rejection
 │   ├── client.reporting-account.passkey.spec.ts  # Qualified account recovery
 │   ├── client.pwa-preview.spec.ts  # Production worker/cache proof
-│   ├── client.navigation.spec.ts  # Navigation and routing
 │   └── performance.spec.ts   # Performance metrics
 ├── helpers/
 │   ├── test-utils.ts        # Test helpers and utilities
@@ -48,7 +47,7 @@ tests/
 bun run browser e2e --preset all
 
 # Run specific test file
-bun exec playwright test client.auth.spec.ts
+bun x playwright test --project=client-ci client.session-navigation.ci.spec.ts
 
 # Run in headed mode for debugging
 bun exec playwright test --headed
@@ -83,8 +82,8 @@ await expect(element).toBeVisible({ timeout: TIMEOUTS.elementVisible });
 
 Virtual authenticators require Chromium. Run `bun run browser e2e --preset passkey`
 for the spec-local CDP ceremonies; use the supported dev mock-auth fixture for CI
-content journeys. iOS wallet-storage smoke is a separate diagnostic, not a
-WebAuthn substitute or successful-login claim.
+content journeys. The disconnected-session smoke runs on every browser, including
+iOS; it is not a WebAuthn substitute or real-wallet restoration claim.
 
 ### 3. Offline Tests Failing
 - **Issue**: Offline indicator not found

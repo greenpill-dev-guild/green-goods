@@ -29,6 +29,11 @@ Cookie Jars let a garden's community hand out small, capped allowances without a
 every withdrawal. Where vaults hold an endowment, a jar holds spending money; it's the difference
 between a treasury and a kitchen tin everyone trusts each other to dip into.
 
+<figure className="gg-figure">
+  <img src="/img/builders/site-cookies.webp" alt="The public Cookies page: a hero reading Shared cookie jars for seasonal campaign work, above the seasonal jars list" loading="lazy" width="2000" height="1250" />
+  <figcaption>Campaign jars appear on the public Cookies page; garden jars are claimed in the installed app.</figcaption>
+</figure>
+
 The jars come from [1Hive's Cookie Jar](https://github.com/1Hive/cookie-jar) protocol. When a
 garden is minted, the mint asks the Green Goods Cookie Jar module to deploy one jar per supported
 asset through 1Hive's `CookieJarFactory`. That call is best-effort: with no module configured it
@@ -65,10 +70,6 @@ flowchart LR
   gardeners([Gardener hat wearers]) -->|claim up to the limit| jar
 ```
 
-<figure className="gg-figure">
-  <img src="/img/builders/site-cookies.webp" alt="The public Cookies page: a hero reading Shared cookie jars for seasonal campaign work, above the seasonal jars list" loading="lazy" width="2000" height="1250" />
-  <figcaption>The public Cookies page is the campaign-jar surface: seasonal jars with an allowlist. Garden jars are claimed in the installed app instead.</figcaption>
-</figure>
 
 ## Where it lives in the code
 

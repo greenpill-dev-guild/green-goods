@@ -9,6 +9,7 @@ owner: docs
 last_verified: 2026-10-12
 feature_status: Live
 source_of_truth:
+  - packages/shared/src/config/app.ts
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
   - packages/shared/src/i18n/en.json
@@ -32,12 +33,12 @@ import {NextBestAction} from "@site/src/components/docs";
 
 Green Goods helps communities make their regenerative work visible. Someone cares for soil and trees, clears waste, maintains panels, or teaches a class. The evidence may be scattered across photos, notebooks, and chat threads. A supporter who was not there needs a way to understand what happened and who checked it.
 
-We are building the tools to change that.
-
 <figure className="gg-figure gg-overview-photo">
   <img src="/img/community/editorial-fund.webp" alt="Two people work together to place a young tree in a pot, with tools close by." width="1536" height="1024" fetchPriority="high" decoding="async" />
-  <figcaption>There are people behind every piece of work. Editorial illustration reused from Green Goods' website Fund imagery; no real people or project are identified.</figcaption>
 </figure>
+
+We are building the tools to change that.
+
 
 ## The problem
 
@@ -53,7 +54,7 @@ Three things get in the way of good work being recognized.
 - **Trust starts with neighbors.** A steward who knows the place and the people is a better first reviewer than a distant form. So review in Green Goods is local.
 - **Tools should fit the field.** You can record without a signal, sign in with a passkey, and use the app in English, Spanish, or Portuguese.
 - **Records should outlive the tool.** What a garden records is public and stays readable outside Green Goods.
-- **Honesty beats polish.** We say what works today and what does not yet. [Honest Claims](/community/green-goods-claims) keeps that list.
+- **Honesty beats polish.** We say what works today and what does not yet. Availability and limits are explained beside the relevant guide.
 
 Green Goods grew out of the Greenpill network of builders and local communities, and it is built in the open.
 
@@ -72,9 +73,8 @@ Their work is small in any one day and large over a year. Green Goods is built t
 <figure className="gg-figure gg-overview-photo">
   <img src="/img/community/community-waste-sorting.jpg" alt="Three Wings of the Ocean volunteers sort waste collected from a beach into separate groups." width="1280" height="853" loading="lazy" />
   <figcaption>
-    A real community example: Wings of the Ocean volunteers sorting waste in Mallorca in 2021.
-    This illustrates the kind of work a waste crew does; it is not a Green Goods project.
-    Photo: <a href="https://commons.wikimedia.org/wiki/File:Wings_of_the_Ocean_-_Tri_d%C3%A9chets_%C3%A0_Majorque_(2021).jpg">Victor Janjić</a>, <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>; Wikimedia's resized version, cropped for display.
+    Wings of the Ocean volunteers sorting waste, Mallorca, 2021. This is not a Green Goods project.
+    Photo: <a href="https://commons.wikimedia.org/wiki/File:Wings_of_the_Ocean_-_Tri_d%C3%A9chets_%C3%A0_Majorque_(2021).jpg">Victor Janjić</a>, <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>; resized by Wikimedia and cropped for display.
   </figcaption>
 </figure>
 
@@ -84,7 +84,7 @@ A garden also needs to agree on what happens next: who will do the work, what su
 
 **Commitment Pooling** gives those promises a shared home and rules for checking them. It connects planning with evidence and confirmation, so a community can follow a promise from agreement to review. Financial support, when agreed, has its own conditions and payment steps. It is not guaranteed by a work approval.
 
-Commitment Pooling is part of Green Goods 2.0. [How It Works](/community/how-it-works#commitment-pooling) explains how it fits alongside the garden's existing funding flows.
+Garden promises are part of the 2.0 release; new money rewards and promise payouts are deferred. [How It Works](/community/how-it-works#commitment-pooling) explains the connection, and [Make a Promise](/community/gardener-guide/make-a-promise) shows your next step.
 
 ## More than money
 
@@ -92,7 +92,6 @@ A tree is not only carbon. It is also food, shade, a lesson for someone's child,
 
 <figure className="gg-figure gg-overview-photo">
   <img src="/img/community/editorial-solar-workshop.webp" alt="Two adults' hands inspect a small solar panel on a wooden workbench, with a notebook and tools beside it." width="1774" height="887" loading="lazy" />
-  <figcaption>Tools, shared knowledge, and practical skills are part of a garden's value, too. AI-generated editorial illustration, created for these docs on 12 October 2026; not a real person, workshop, or location.</figcaption>
 </figure>
 
 | Form | What it means |
@@ -119,10 +118,10 @@ Those connections help explain the purpose of a project. Recording an action doe
 Green Goods is free and open source. Anyone can read how it works, check it, and build on it. If that is you, start with the [builder docs](/builders/getting-started).
 
 <NextBestAction
-  title="Next: What Green Goods can claim"
-  why="See what people can use today, what is still being built, and what is only planned."
-  actionLabel="Read Honest Claims"
-  actionHref="/community/green-goods-claims"
+  title="Next: How It Works"
+  why="Follow the people and records involved in a garden's work."
+  actionLabel="How It Works"
+  actionHref="/community/how-it-works"
   alternatives={[
     { label: "Gardener Guide", href: "/community/gardener-guide/" },
     { label: "Builder Docs", href: "/builders/getting-started" }

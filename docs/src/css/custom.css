@@ -319,12 +319,13 @@ a svg[class*="iconExternalLink"] {
    One figure pattern for screenshots and captures: bordered image, a quiet
    caption, and an optional grid for side-by-side frames. */
 .gg-figure {
-  margin: 1.25rem 0;
+  margin: 1.25rem auto;
 }
 
 .gg-figure img {
   display: block;
   max-width: 100%;
+  margin-inline: auto;
   height: auto;
   border: 1px solid var(--ifm-color-emphasis-300);
   border-radius: var(--radius-md);
@@ -344,6 +345,10 @@ a svg[class*="iconExternalLink"] {
 
 /* Overview photography stays within the article. The product view has its own text beside it,
    so readers can understand the connection without reading labels inside a small screenshot. */
+.gg-guide-opening {
+  width: 100%;
+}
+
 .gg-overview-photo img {
   width: 100%;
   aspect-ratio: 2.4;

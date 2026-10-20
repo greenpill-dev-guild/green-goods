@@ -19,7 +19,7 @@ generated_from:
   - docs/routines/sync-triage-pulse.md
   - scripts/data/agent-connectors.json
   - scripts/mcp/brave-devtools.mjs
-source_digest: "sha256:e4b2bb0fb9d4cb0bc6b9e641ac9d1a3300a7637a99929aa69b8946997b921a2d"
+source_digest: "sha256:b72df9cba4415fc8536f79aa13c1b683fcc6e035aa9b7451afea1efde1a79864"
 source_of_truth:
   - .mcp.json
   - AGENTS.md
@@ -39,6 +39,15 @@ source_of_truth:
 # Agent and MCP Guide
 
 An agent reaches tools in two ways here. MCP servers checked into this repository start with the project for anyone who clones it. Connected services are hosted tools, such as the backlog, telemetry, and deployments, that an agent reaches through a connector in the coding app, signed in by the person using it. Repository guidance says how each may be used.
+
+```mermaid
+flowchart LR
+  A[Repository task] --> B[Configured MCP server]
+  A --> C[Connected service]
+  B --> D[Authorized tool]
+  C --> D
+  D --> E[Evidence and review]
+```
 
 ## MCP servers in this repository
 

@@ -4,7 +4,7 @@ These files are the lane-level dispatch surfaces for .plans/active/commitment-po
 
 ## File index
 
-All 36 files in this directory. The plan hub's document map points here for the enumeration, so
+The plan hub's document map points here for the handoff inventory, so
 **a new handoff must get a row below in the same change** — this file previously described source
 order only, and a reader following the map could miss an active dispatch surface entirely.
 
@@ -29,6 +29,7 @@ order only, and a reader following the map could miss an active dispatch surface
 | `ui-deferred-scope.md` | Scope the closed `ui_client`, `ui_admin` and `editorial` lanes left unbuilt, for triage before closeout | Afo | todo |
 | `claude-community.md` | September Community interface work (PRD-682 track) | Claude | Follow-on wave |
 | `claude-docs.md` | Post-QA documentation polish (PRD-727) | Claude | Blocked until QA1 |
+| [release-essential-docs.md](release-essential-docs.md) | Released Garden promise guides (PRD-1156); full feature stays with PRD-727 | Codex / Afo | Release guides implemented; selected checks passed; human QA and full PRD-727 lane remain separate |
 | `claude-walkthrough-videos.md` | Post-certification walkthrough videos (PRD-728) | Claude | Blocked until QA2 |
 | `claude-qa-pass-1.md` | Staging QA pass 1 (PRD-729), split 2026-08-24 into Wave 1 agent functional QA (dispatched via `../prompt-qa-functional.md`) and Wave 2 human experience QA | Claude (Wave 1) + Afolabi Aiyeloja (Wave 2) | D1 surfaces merged; lane manually gated — Wave 1 dispatchable pre-gate as evidence |
 | `codex-qa-pass-2.md` | QA pass 2 (PRD-730) | Codex | Blocked until docs polish lands |

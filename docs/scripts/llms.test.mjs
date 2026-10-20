@@ -71,6 +71,9 @@ No. Treat submissions as public. [Recovery](/community/gardener-guide/recovery-a
     const twin = markdownTwin('import TermAnchor from "@site/src/components/docs/TermAnchor";\n\n| Term | Meaning |\n|---|---|\n| <TermAnchor id="attestation" />Attestation | A record |\n', "Ontology");
     assert.match(twin, /<a id="attestation"><\/a>Attestation/);
     assert.doesNotMatch(twin, /TermAnchor/);
+    const legacy = markdownTwin('<TermAnchor id="eas" to="/reference/ontology#eas" />', "Glossary");
+    assert.match(legacy, /<a id="eas"><\/a>\[Reference\]\(\/reference\/ontology#eas\)/);
+    assert.doesNotMatch(legacy, /TermAnchor/);
   });
 
   test("give a title to pages without their own heading", () => {

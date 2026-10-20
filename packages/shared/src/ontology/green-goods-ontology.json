@@ -732,7 +732,7 @@
     }
   ],
   "personas_note": "The on-chain hat tree has six roles; the Owner hat carries full garden control but has no dedicated persona — owners act through the steward surfaces.",
-  "supporting_terms_note": "Terms projected into the generated glossary's Term Reference section but deliberately excluded from the canonical entity and persona sets. Declaring them here prevents public definitions from accumulating orphan nouns.",
+  "supporting_terms_note": "Technical terms kept in this Builders reference and deliberately excluded from the canonical entity and persona sets. Declaring them here preserves their meaning and published glossary links.",
   "supporting_terms": [
     {
       "id": "domain",

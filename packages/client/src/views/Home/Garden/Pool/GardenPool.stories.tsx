@@ -19,7 +19,7 @@ import {
   withRouter,
   withSeededQueryClient,
 } from "../../../../../../shared/.storybook/decorators";
-import { FIXTURE_IMAGE_BANNER } from "../../../../../../shared/.storybook/fixtures";
+import FIXTURE_IMAGE_BANNER from "../../../../../../shared/.storybook/fixture-art/documentation-seedlings-generated.jpg?url";
 import { resetHookMocks } from "../../../../../../shared/.storybook/moduleMocks";
 import { StandardTabs } from "@/components/Navigation";
 import { buildGardenTabs } from "../gardenTabs";
