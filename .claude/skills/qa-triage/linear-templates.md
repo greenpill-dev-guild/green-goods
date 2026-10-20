@@ -403,7 +403,7 @@ QA Sync — <meeting-title> on <YYYY-MM-DD>. Speaker: <name>. [Notes](<drive-url
 When this tracking Issue comes from `source:qa-session`, use the QA session source line and exact
 Test ID defined above. Track-only status does not weaken the linkage rule.
 
-The Customer Need then links to this Issue via the `issue` parameter and carries the full verbatim quote + Reporter context in its body.
+For a track-only item, the Customer Need then links to this Issue via the `issue` parameter and carries the full verbatim quote + Reporter context in its body. An issue-only item gets no Customer Need; [SKILL.md § Phase 2](./SKILL.md) says which sync items are issue-only.
 
 ---
 
@@ -418,6 +418,7 @@ Linear's API constraint that Customer Needs must link to an Issue eliminates the
 | Idea / feature request / UX polish | Attach (`activity:maintenance`) | `Backlog` | Yes, linked |
 | Steward pain — "this is awkward" | Attach (`activity:maintenance`) | `Backlog` | Yes, linked |
 | Strategic gap tied to architecture rework | Attach (`activity:architecture`) | `Backlog` | Yes, linked |
+| Sync item the team raised itself, with no PostHog match: a chore, a tooling or process change, a bug or an idea | The bug's Issue above, otherwise Attach (`activity:maintenance`) | As above, otherwise `Backlog` | No (`issue-only`) |
 | Question / "me too" / no actionable content | Skip both | — | No |
 | Duplicate of existing record | No new Issue | — | Comment on existing if user wants the verbatim preserved |
 | `[derived:posthog]` accepted in Phase 4 | Main (`activity:build`) | `Todo` | Yes, linked (telemetry-only body) |
@@ -434,4 +435,4 @@ Linear's API constraint that Customer Needs must link to an Issue eliminates the
 The call-report states above are subject to the QA slice's Todo queue budget; overflow lands in
 `Backlog`, with priority unchanged.
 
-The default for ambiguous items is **track-only** — create a Customer Need linked to a lightweight Backlog tracking Issue. The Issue exists only because Linear requires a link target; it is not committed work until a human promotes it.
+The default for ambiguous items is **track-only** — create a Customer Need linked to a lightweight Backlog tracking Issue. The Issue exists only because Linear requires a link target; it is not committed work until a human promotes it. A sync item that is unclear about who raised it defaults to **issue-only** instead: the tracking Issue alone.
