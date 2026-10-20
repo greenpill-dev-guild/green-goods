@@ -35,7 +35,7 @@ The five rows are the ontology's personas, and Green Goods has no others. Name a
 | Community Member | "My neighborhood's way to have a say" | Inclusive, plain-language, encouraging. | Protocol jargon, assumed web3 literacy |
 
 **Tone rules:**
-- Gardener/Community Member copy: zero blockchain vocabulary, reading level ~6th grade
+- Gardener/Community Member copy: zero blockchain vocabulary in ordinary copy, reading level ~6th grade; the DL-094 safety cases still apply (a privacy or permanence notice may name the network, a link names its explorer)
 - Steward copy: may reference on-chain verification as a trust mechanism, but not Solidity internals
 - Evaluator copy: may use research/assessment terminology freely
 - Funder copy: may reference attestation integrity; never use "guaranteed returns"
@@ -96,7 +96,7 @@ When connectivity is lost or degraded, features degrade predictably:
 | Work submission | Queued offline (IndexedDB job queue) | Toast: "Saved -- will upload when online" + the item in Your Work › Pending, sent with Upload all |
 | Garden list | Cached data served (TanStack Query cache) | Stale data with staleness indicator |
 | Action list | Cached data served | Stale data with staleness indicator |
-| Work approvals (installed app, passkey) | Queued offline (user-scoped job queue, `submitApprovalToQueue` with `queueWalletDecisions`) | Toast: the decision stays on this device until it is uploaded; the item waits in Your Work |
+| Work approvals (installed app, passkey or wallet) | Queued offline (user-scoped job queue, `submitApprovalToQueue`; the client passes `queueWalletDecisions` so wallet decisions queue too) | Toast: the decision stays on this device until it is uploaded; the item waits in Your Work |
 | Work approvals (admin cockpit, wallet) | Blocked (the review form submits directly and refuses an unsteady wallet connection) | Disabled action with a connection notice; nothing is queued |
 | Assessments | Blocked (requires on-chain transaction) | Disabled button + tooltip: "Requires internet connection" |
 | Photo capture | Available offline (stored as blob in IndexedDB) | Normal UI, uploaded on sync |

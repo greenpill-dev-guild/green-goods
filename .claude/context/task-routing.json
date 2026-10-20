@@ -328,7 +328,7 @@
       "requiredAuthorities": [
         "the reviewed .docx export",
         "the target document's owning surface",
-        "brand voice guidelines (docs/docs/reference/brand-voice.mdx)"
+        "brand voice guidelines when the reviewed document carries brand-facing copy (docs/docs/reference/brand-voice.mdx)"
       ],
       "output": "A triaged feedback record and each accepted item addressed in the agreed in-repo or out-of-repo mode.",
       "handoff": "Route discovered product defects to debugging and net-new scope to planning.",
