@@ -96,7 +96,8 @@ When connectivity is lost or degraded, features degrade predictably:
 | Work submission | Queued offline (IndexedDB job queue) | Toast: "Saved -- will upload when online" + the item in Your Work › Pending, sent with Upload all |
 | Garden list | Cached data served (TanStack Query cache) | Stale data with staleness indicator |
 | Action list | Cached data served | Stale data with staleness indicator |
-| Work approvals | Queued offline (user-scoped job queue, `submitApprovalToQueue`) | Toast: the decision stays on this device until it is uploaded; the item waits in Your Work |
+| Work approvals (installed app, passkey) | Queued offline (user-scoped job queue, `submitApprovalToQueue` with `queueWalletDecisions`) | Toast: the decision stays on this device until it is uploaded; the item waits in Your Work |
+| Work approvals (admin cockpit, wallet) | Blocked (the review form submits directly and refuses an unsteady wallet connection) | Disabled action with a connection notice; nothing is queued |
 | Assessments | Blocked (requires on-chain transaction) | Disabled button + tooltip: "Requires internet connection" |
 | Photo capture | Available offline (stored as blob in IndexedDB) | Normal UI, uploaded on sync |
 | Auth (passkey) | Works offline once authenticated | No change if session active |
@@ -118,7 +119,7 @@ When connectivity is lost or degraded, features degrade predictably:
 | Local (job queue) | `queued`, `syncing`, `synced`, `failed` | IndexedDB (`green-goods-job-queue` v5) | Transient -- until on-chain confirmation |
 
 State transitions:
-```
+```text
 Local work submission:  queued → syncing → synced (then on-chain "pending" until a steward decides)
 Local work approval:    queued → syncing → synced (then on-chain "approved" or "rejected" directly; the
                         queued decision is projected with a pending-until-confirmed flag, never as "pending" work)
