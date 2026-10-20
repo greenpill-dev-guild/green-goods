@@ -270,10 +270,11 @@ cookie jar, and impact certificate take the same rule: lower case in running tex
 in titles, action labels, and named acts ("Submit Work", the Work tab).
 
 **Protocol names (DL-094).** A protocol or chain name appears only where the reader needs it to act
-or to verify: a funding surface, a builder page, the labeled "using your own wallet" box, a wallet or
-transaction step that moves an asset on a named network, a privacy or permanence notice, and a link
-that names the explorer it opens. Never as positioning, and never in onboarding, work capture,
-review, or community copy.
+or to verify: a funding surface, a builder page, the labeled "using your own wallet" box, a transaction
+step (a confirmation that spends gas or cannot be undone, or a wallet action on a named network), a
+privacy or permanence notice, and a link that names the explorer it opens. Never as positioning,
+and never in onboarding, work capture, review, or community copy; progress and status copy stays
+plain.
 
 **Plain titles, methods in helper text (DL-047).** Step, section, and field titles use plain
 questions and nouns ("How Predictable Is This Work?", "What You'll Measure"); a framework or
