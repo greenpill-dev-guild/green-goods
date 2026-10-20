@@ -4,7 +4,7 @@ trigger:
   schedule: "30 14 * * 1,3,5"  # Mon/Wed/Fri 14:30 UTC (= 07:30 PT) — reduced from daily 2026-07-18; red-only posting unchanged, Sentry alerting covers off-days
 repos:
   - green-goods
-environment: green-goods-routines-extended
+environment: green-goods
 network-access: full
 env-vars:
   - ARBITRUM_RPC_URL
@@ -310,3 +310,24 @@ health-watch: indexer={status}, vercel={status}, contracts={status_or_deferred},
 - **No CI check.** CI is intentionally not a health-watch signal — this routine's environment has no GitHub access (no connector, no token, no `gh`), and `main`-branch CI failures already surface via GitHub's native notifications. Do not re-add a `gh`- or Actions-based CI check here.
 - **Project routing discipline.** Every Issue follows [Project routing](README.md#project-routing): a bounded active project that clearly owns the work, otherwise the active release project, or unprojected when none is started. Never route into the retired `Green Goods`, `Coop`, `Network Website`, `Cookie Jar`, or `Story Board` projects.
 - **Terse narration.** Keep working narration terse — the Discord summary, any Linear Issues, and the one-line summary are the only products of this run.
+
+## Rebuilding the cloud routine from this file
+
+1. Log in to [claude.ai/code/routines](https://claude.ai/code/routines).
+2. Click **New routine** (or use `/schedule` in Claude Code).
+3. Paste a bootstrap prompt, not a copy of this spec. The routine fetches `origin/develop` and executes this file on every run, so a change takes effect as soon as it merges to `develop`. Keep the bootstrap free of phase summaries: a summary drifts from the spec and competes with it. The bootstrap carries one failure post of its own, because a run that cannot load the spec never reads the spec's failure rules; that post uses the spec's channel variable, so a channel change touches both.
+
+   ```text
+   You are the health-watch routine for Green Goods. Your spec is docs/routines/health-watch.md on the develop branch of the green-goods repo. It is the single source of truth; there is intentionally no copy here.
+
+   1. Run `git fetch origin +refs/heads/develop:refs/remotes/origin/develop`, which updates `origin/develop` whatever this checkout's fetch settings are.
+   2. Read the whole spec: `git show origin/develop:docs/routines/health-watch.md`.
+   3. Execute everything after its `# Prompt` heading exactly as written, except the `## Rebuilding the cloud routine from this file` section, which tells people how to set the routine up and is never part of a run. Where this prompt and the spec differ, follow the spec.
+
+   If step 1 or 2 fails, never run an older copy or improvise from memory: an older `origin/develop` may still be readable, and running it would run a stale spec. Report the failure in the run log, post one failure line, and exit non-zero. The line is `<@${DISCORD_USER_ID_AFO}> ⚠ health-watch could not load its spec ({the failed step}); no health checks ran this run.`, sent as the `content` field of a JSON body built with an encoder such as `jq -n --arg`, never by hand, with `POST https://discord.com/api/v10/channels/${DISCORD_ENGINEERING_CHANNEL_ID}/messages` and the headers `Authorization: Bot ${DISCORD_BOT_TOKEN}` and `Content-Type: application/json`, using plain `curl` without `-L` so the token is never forwarded. When `DISCORD_ENGINEERING_CHANNEL_ID` is unset, skip the post and say so in the run log; never post to another channel.
+
+   Limits that hold whatever the spec says: never push code, open PRs, or create GitHub Issues or Project items; post to Discord only in the channel `DISCORD_ENGINEERING_CHANNEL_ID` names.
+   ```
+
+4. Configure the repo (`green-goods`, checked out at `develop`, its default branch, so the files a run reads from the checkout match the spec it fetched), environment (green-goods, `env_01CRAWm3KauPFp4ntqdAufPR`), env vars, connectors, model, and cron per the frontmatter above.
+5. Save, then record the routine id in `docs/routines/README.md`. If the bootstrap is ever pointed at `main`, spec changes take effect only once they land on `main`.
