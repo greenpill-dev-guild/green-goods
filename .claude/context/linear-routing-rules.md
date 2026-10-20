@@ -28,11 +28,22 @@ routine limits; this file owns interactive routing and issue execution.
 3. **`.plans` stays the execution truth.** If a finding is mirrored from a
    `.plans/**` item, include the `.plans` link in the body and label the
    record `source:plans`. Never use GitHub Issues for backlog work.
-4. **Project routing.** Attach to an active bounded project only when the
-   scope clearly matches. Never route new work into completed/staging umbrella
-   projects (e.g. `Green Goods`, `Coop`, `Network Website`, `Cookie Jar`) or
-   any project whose status is Completed. Otherwise leave the issue
-   unprojected and correctly labeled.
+4. **Project routing.** Attach an issue to an active bounded project, meaning
+   one in any status except Completed or Canceled, when its scope clearly
+   matches. A Green Goods Product or Research issue that no such
+   project owns goes to the active release project: the started Product-team
+   project named `Green Goods vX.Y.Z QA & Release`, the one
+   [release-prep](../../docs/routines/release-prep.md) resolves. Look it up by
+   that name when writing, because each release opens a new one. Leave the
+   issue unprojected and correctly labeled only when no release project is
+   started. A release project includes the Research team as well as Product;
+   if it does not, a Research issue stays unprojected and the writer says so.
+   Whoever closes a release project moves its open issues to the next
+   one, or leaves them unprojected until it starts; whoever creates the next
+   one moves them in. release-prep's cut-day steps count them as a reminder.
+   Customer Needs stay unprojected. Never route new work into completed/staging
+   umbrella projects (e.g. `Green Goods`, `Coop`, `Network Website`,
+   `Cookie Jar`) or any project whose status is Completed.
 5. **Label namespaces.** Use only `protocol:*`, `package:*`, `activity:*`,
    `funding:*`, `source:*`, `ai:*`, `session:*`. Retired families (`area:*`,
    `work:*`, `task:*`, `automation:*`, `health:*`, `grant:*`) and the retired
@@ -141,7 +152,7 @@ Investigate the dialog dismiss path.
 PostHog (Admin 262122): no matching exception signature. A cancel button that
 fails to dismiss does not necessarily throw.
 ## Source
-qa-triage-pulse · auto-extracted · session:2026-07-29
+sync-triage-pulse · auto-extracted · session:2026-07-29
 ## Authoritative QA finding
 Cancel is broken in the garden edit dialog. [...repeats the whole defect...]
 ```
@@ -151,7 +162,7 @@ This:
 ```markdown
 Editing a garden and changing its image makes the edit impossible to cancel —
 the dialog stops responding and the operator has to reload. Leaving the image
-alone and cancelling works fine, so the image change is the trigger.
+alone and canceling works fine, so the image change is the trigger.
 
 **Done when**
 - Cancel dismisses the dialog after an image change, discarding the edit.

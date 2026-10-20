@@ -9,6 +9,7 @@ import {
 import type { Hex } from "viem";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { verifyPasskeyAssertion } from "../../modules/auth/passkey-assertion";
+import { verifyPasskeyAssertionBytes } from "../../public-contracts";
 
 // The shared test setup replaces `crypto` with a toy that cannot check a signature, so these
 // tests hand the check the real WebCrypto a browser gives it.
@@ -128,5 +129,57 @@ describe("verifyPasskeyAssertion", () => {
 
     expect(await check(response, `0x04${directoryEntry.coordinates}`)).toBe(false);
     expect(await check(response, "0x1234")).toBe(false);
+  });
+});
+
+describe("verifyPasskeyAssertionBytes", () => {
+  /** The bytes the agent decodes from a request, taken here from a real signed response. */
+  function bytesOf(response: Credential) {
+    const assertion = (response as PublicKeyCredential).response as AuthenticatorAssertionResponse;
+    return {
+      authenticatorData: new Uint8Array(assertion.authenticatorData),
+      clientDataJSON: new Uint8Array(assertion.clientDataJSON),
+      signature: new Uint8Array(assertion.signature),
+    };
+  }
+
+  it("checks an assertion's bytes against the key, with no browser Credential", async () => {
+    const device = keyPair();
+    const other = keyPair();
+    const bytes = bytesOf(signIn(device.privateKey));
+    const expected = { challenge: CHALLENGE, rpId: RP_ID, origin: ORIGIN };
+
+    expect(
+      await verifyPasskeyAssertionBytes({
+        ...bytes,
+        ...expected,
+        publicKey: `0x04${device.coordinates}`,
+      })
+    ).toBe(true);
+    expect(
+      await verifyPasskeyAssertionBytes({
+        ...bytes,
+        ...expected,
+        publicKey: `0x04${other.coordinates}`,
+      })
+    ).toBe(false);
+  });
+
+  it("throws on input it can't read, so the caller decides what to log", async () => {
+    const device = keyPair();
+    const bytes = bytesOf(signIn(device.privateKey));
+    const expected = { challenge: CHALLENGE, rpId: RP_ID, origin: ORIGIN };
+
+    await expect(
+      verifyPasskeyAssertionBytes({ ...bytes, ...expected, publicKey: "0x1234" })
+    ).rejects.toThrow("not an uncompressed P-256 point");
+    await expect(
+      verifyPasskeyAssertionBytes({
+        ...bytes,
+        ...expected,
+        clientDataJSON: new TextEncoder().encode("not json"),
+        publicKey: `0x04${device.coordinates}`,
+      })
+    ).rejects.toThrow();
   });
 });

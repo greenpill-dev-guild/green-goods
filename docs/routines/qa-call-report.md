@@ -20,9 +20,9 @@ connectors:
   - posthog       # window-scoped enrichment: the testers' own product sessions during the call
   - vercel        # build under test: which deploys were live during the session window
   - sentry        # when available — resolves projects by name through the connector, no env vars; absent = skip silently
-model: claude-opus-5
+model: claude-opus-5-5
 allow-unrestricted-branch-pushes: false  # Linear + Discord only; no PRs, no Sheet writes, no GitHub Issues
-last_updated: "2026-09-05"
+last_updated: "2026-10-17"
 ---
 
 # Prompt
@@ -59,6 +59,11 @@ decision log is a human-gated local step, never yours.
   `protocol:green-goods`, `package:*`, `activity:qa`, `source:qa-session` (resolve-or-create),
   `ai:routine`, and the per-session `session:<YYYY-MM-DD>` (resolve-or-create). A missing family
   fails loud — do not invent records under a different label.
+- Resolve the active release project and the active bounded projects by name at run start as well.
+  The `QA session` parent goes to the release project. Each slice goes to a bounded project that
+  clearly owns its subject, otherwise the release project, per
+  [Project routing](README.md#project-routing). With no release project started, an Issue that no
+  bounded project owns stays unprojected; that is not a lookup failure.
 - Issue bodies follow [`.claude/context/linear-routing-rules.md`](../../.claude/context/linear-routing-rules.md)
   § Issue structure (clear, simple, concise, human-friendly; 6-heading / 600-word backstops — the
   `QA session YYYY-MM-DD` parent title is exempt from the word backstop) and the two templates in
@@ -199,7 +204,7 @@ the Discord summary, never a stopped run.
    SHA — this line is what ties the session's verdicts to a deployable.
 2. **PostHog, window-scoped** — `switch-project` per surface (App `163591` for PWA/website,
    Admin `262122` for admin; skip docs). Run the degraded-telemetry probe first
-   ([`qa-triage-pulse.md`](./qa-triage-pulse.md) § Phase 3): structurally empty exception
+   ([`sync-triage-pulse.md`](./sync-triage-pulse.md) § Phase 3): structurally empty exception
    payloads → flag `posthog: degraded` and skip per-slice matching. When healthy:
    - per fail/blocked slice, match exceptions inside the session window against the slice's
      surface and route; stash safe-summary fields only (error hash, sessions, users, first/last
@@ -231,7 +236,8 @@ stamps that label on its own pre-staged tracking Issues, so the label alone can 
 ordinary Backlog defect. Reuse requires the parent shape: **this run's exact expected title**
 (`QA session <date>`, or `QA session <date> · 2` for a second same-day call — the counter is
 the call's identity, since the week's `session` label is shared) and no `package:*` label. When that parent exists (the interactive sibling may have filed it),
-**reuse it** — add missing children under it and a comment for new context; never a second
+**reuse it** — route it to the release project first when it has no project or a Completed or
+Canceled one, then add missing children under it and a comment for new context; never a second
 parent, and never attach slices to anything that fails the shape test.
 
 Then the findings: list open Product Issues carrying `activity:build` or any `session:*` label, plus
@@ -243,7 +249,8 @@ matches that way), or the same PostHog error hash. Wording or surface similarity
 unattended — an uncertain match stays in this session's record (its slice, or `Not sliced`)
 with a `possible duplicate of <key>` note for a human to settle. A confirmed match gets a
 comment on the existing Issue (today's date + the new evidence, privacy-grepped before posting)
-**and a `relatedTo` link to the session parent**, and the report lists it under Slices as
+**and a `relatedTo` link to the session parent** (plus its project per Project routing when it has
+none or its project is Completed or Canceled), and the report lists it under Slices as
 `already tracked: <key>` — so the fix queue and the parent's closure accounting still see it.
 Never a duplicate Issue.
 
@@ -292,7 +299,7 @@ exposure: redact in place and fail loud in the Discord summary.
    after these two steps, never before.
 3. **Then the decisions child** when `Decisions needed` is non-empty: `Product decisions from QA
    session <date>` per § Product decisions child in the templates — `Backlog`, unassigned, the
-   parent label set, no `package:*`.
+   parent label set and project, no `package:*`.
 4. **Then each slice** as a sub-issue via `parentId`, body per the § QA slice template (problem
    cluster in prose with Test IDs and verdicts, "Where to start" map, "Done when" = the Test IDs
    re-record as pass, fix-posture pointer, validation command, source line).
@@ -351,7 +358,7 @@ the @mention.
 |-------|-----|
 | Create one Issue per failed test case | The slice is the work unit (one slice = one branch = one PR); test-case detail lives inside the slice body and the report |
 | Set `In Progress` or assignees — or `Done` on anything with open work | Fix sessions and humans drive those; you create `Todo`/`Backlog` records, plus the one carve-out: an all-pass session's parent is created `Done`, a record with nothing to fix |
-| Write Customer Needs or Sheet rows | The report + slices are the session record; the Sheet belongs to the interactive skill with its privacy re-acknowledgement |
+| Write Customer Needs or Sheet rows | The report + slices are the session record; the Sheet belongs to the interactive skill with its privacy re-acknowledgment |
 | Hand-count coverage or derive severity | Rollups come from `bun run qa report` (the pull joined to the catalog); case priority + verdict only seed Linear queue priority, while defect severity remains an independent triage decision |
 | Copy tester names, wallets, or replay URLs into Linear | Aggregate coverage only — the privacy boundary in [`.claude/context/qa.md`](../../.claude/context/qa.md) |
 | File when `/qa-triage --call` already ran this session | One writer per session — dedupe links instead |
@@ -364,12 +371,31 @@ the @mention.
 ## Rebuilding the cloud routine from this file
 
 1. Log in to [claude.ai/code/routines](https://claude.ai/code/routines) → **New routine**.
-2. Paste the prompt from this file (everything after the `# Prompt` heading).
+2. Paste a bootstrap prompt, not a copy of this spec. The routine fetches `origin/develop` and
+   executes this file on every run, so a change takes effect as soon as it merges to `develop`.
+   Keep the bootstrap free of phase summaries: a summary drifts from the spec and competes with it.
+   The bootstrap carries one failure post of its own, because a run that cannot load the spec
+   never reads the spec's failure rules; that post uses the spec's channel variable, so a channel
+   change touches both.
+
+   ```text
+   You are the qa-call-report routine for Green Goods. Your spec is docs/routines/qa-call-report.md on the develop branch of the green-goods repo. It is the single source of truth; there is intentionally no copy here.
+
+   1. Run `git fetch origin +refs/heads/develop:refs/remotes/origin/develop`, which updates `origin/develop` whatever this checkout's fetch settings are.
+   2. Read the whole spec: `git show origin/develop:docs/routines/qa-call-report.md`.
+   3. Execute everything after its `# Prompt` heading exactly as written, except the `## Rebuilding the cloud routine from this file` section, which tells people how to set the routine up and is never part of a run. Where this prompt and the spec differ, follow the spec.
+
+   If step 1 or 2 fails, never run an older copy or improvise from memory: an older `origin/develop` may still be readable, and running it would run a stale spec. Report the failure in the run log, post one failure line, and exit non-zero. The line is `<@${DISCORD_USER_ID_AFO}> ⚠ qa-call-report could not load its spec ({the failed step}); no session report was written.`, sent as the `content` field of a JSON body built with an encoder such as `jq -n --arg`, never by hand, with `POST https://discord.com/api/v10/channels/${DISCORD_PRODUCT_CHANNEL_ID}/messages` and the headers `Authorization: Bot ${DISCORD_BOT_TOKEN}` and `Content-Type: application/json`, using plain `curl` without `-L` so the token is never forwarded. When `DISCORD_PRODUCT_CHANNEL_ID` is unset, skip the post and say so in the run log; never post to another channel.
+
+   Limits that hold whatever the spec says: never push code, open PRs, create GitHub Issues, or write to the QA Sheet.
+   ```
+
 3. Configure per the frontmatter: repo `green-goods` at branch `develop`; environment
    `green-goods` with `BLOB_READ_WRITE_TOKEN` added (copy from the QA app's Vercel Blob store —
    Storage → the private QA store → tokens) plus the Discord vars and the two PostHog project
    IDs; connectors **Google Drive + Linear + PostHog + Vercel**, and Sentry when available (it
    resolves projects by name — no Sentry env vars); model per the frontmatter; **no schedule**
    — manual trigger only.
-4. Save. Trigger it right after each QA call; then start a fix session with "pull in the QA
-   slices from Linear" (the `debug` skill's QA Slice Fix Protocol picks them up).
+4. Save, then record the routine id in `docs/routines/README.md`. Trigger it right after each QA
+   call; then start a fix session with "pull in the QA slices from Linear" (the `debug` skill's QA
+   Slice Fix Protocol picks them up).

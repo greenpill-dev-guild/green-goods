@@ -69,7 +69,7 @@ export function CommitmentFacts({
             : commitment.commitmentType === "SEASON_CAMPAIGN"
               ? formatMessage({
                   id: "cockpit.garden.pool.seed.kind.seasonCampaign",
-                  defaultMessage: "Season / campaign commitment",
+                  defaultMessage: "Season / campaign promise",
                 })
               : commitment.commitmentType === "STEWARD_CAPTURED"
                 ? formatMessage({
@@ -195,12 +195,12 @@ export function CommitmentFacts({
               commitment.confirmationPath === "POOL_FALLBACK" ? (
                 formatMessage({
                   id: "cockpit.garden.pool.commitment.path.garden",
-                  defaultMessage: "your garden steward — fallback",
+                  defaultMessage: "your garden steward (fallback)",
                 })
               ) : commitment.confirmationPath === "PROTOCOL_FALLBACK" ? (
                 formatMessage({
                   id: "cockpit.garden.pool.commitment.path.protocol",
-                  defaultMessage: "Green Goods team — fallback",
+                  defaultMessage: "Green Goods team (fallback)",
                 })
               ) : commitment.fulfilledBy ? (
                 <span className="inline-flex max-w-full items-center gap-1">

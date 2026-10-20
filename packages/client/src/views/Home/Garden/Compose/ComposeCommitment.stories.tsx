@@ -123,7 +123,7 @@ export const ResumeDraft: Story = {
 
 export const StartFresh: Story = {
   beforeEach: withSavedDraft(
-    "Weekly compost pickup for the school garden and the two neighbouring plots"
+    "Weekly compost pickup for the school garden and the two neighboring plots"
   ),
   play: async () => {
     const prompt = within(await screen.findByRole("dialog", { name: "Resume Your Draft?" }));

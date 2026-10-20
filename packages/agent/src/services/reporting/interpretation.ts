@@ -6,6 +6,7 @@ import type {
 } from "@green-goods/shared/modules/agent-reporting";
 import type { WorkInput } from "@green-goods/shared/types/domain";
 import { createLogger } from "../logger";
+import type { ModelMeter } from "./model-spend";
 
 const log = createLogger("reporting");
 
@@ -59,7 +60,12 @@ export interface InterpretationResult {
 }
 
 export interface ReportInterpreter {
-  interpret(request: InterpretationRequest, signal: AbortSignal): Promise<InterpretationResult>;
+  /** `meter` hears about every provider request the interpretation sends. */
+  interpret(
+    request: InterpretationRequest,
+    signal: AbortSignal,
+    meter?: ModelMeter
+  ): Promise<InterpretationResult>;
 }
 
 export class InterpretationUnavailableError extends Error {
@@ -72,13 +78,14 @@ export class InterpretationUnavailableError extends Error {
 export async function interpretWithDeadline(
   interpreter: ReportInterpreter | null,
   request: InterpretationRequest,
-  timeoutMs: number
+  timeoutMs: number,
+  meter?: ModelMeter
 ): Promise<InterpretationResult | null> {
   if (!interpreter) return null;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await interpreter.interpret(request, controller.signal);
+    return await interpreter.interpret(request, controller.signal, meter);
   } catch (error) {
     // The turn goes on without the model; the operator's log says that it did, and why.
     log.warn(
@@ -107,7 +114,8 @@ export function createModelInterpreter(providers: {
   route:
     | ((
         request: InterpretationRequest,
-        signal: AbortSignal
+        signal: AbortSignal,
+        meter?: ModelMeter
       ) => Promise<{
         intent: InterpretedIntent;
         gardenKey: string | null;
@@ -118,7 +126,8 @@ export function createModelInterpreter(providers: {
   extract:
     | ((
         request: InterpretationRequest,
-        signal: AbortSignal
+        signal: AbortSignal,
+        meter?: ModelMeter
       ) => Promise<{
         intent: InterpretedIntent;
         gardenKey: string | null;
@@ -131,10 +140,10 @@ export function createModelInterpreter(providers: {
   const { route, extract } = providers;
   if (!route && !extract) return null;
   return {
-    async interpret(request, signal) {
+    async interpret(request, signal, meter) {
       const [routing, extraction] = await Promise.allSettled([
-        route ? route(request, signal) : Promise.resolve(null),
-        extract ? extract(request, signal) : Promise.resolve(null),
+        route ? route(request, signal, meter) : Promise.resolve(null),
+        extract ? extract(request, signal, meter) : Promise.resolve(null),
       ]);
       const routed = routing.status === "fulfilled" ? routing.value : null;
       const extracted = extraction.status === "fulfilled" ? extraction.value : null;

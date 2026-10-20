@@ -135,10 +135,13 @@ jobs:
         run: bun run check --only docs-design-parity
 
       - name: Run design guardrail tests
-        run: node --test scripts/design/check-guidance-examples.test.mjs scripts/design/token-usage.test.mjs scripts/design/md-generate.test.mjs scripts/dev/playwright-setup.test.mjs
+        run: node --test scripts/design/check-guidance-examples.test.mjs scripts/design/token-usage.test.mjs scripts/design/md-generate.test.mjs scripts/design/check-vocab.test.mjs scripts/dev/playwright-setup.test.mjs
 
       - name: Check banned vocabulary
         run: bun run check --only vocabulary
+
+      - name: Check em dashes
+        run: bun run check --only em-dashes
 
   storybook:
     name: Storybook

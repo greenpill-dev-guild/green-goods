@@ -180,7 +180,7 @@ describe("CommitmentSettlement", () => {
     );
     expect(stepStatus("dispatch")).toBe("done");
     expect(stepStatus("acknowledgement")).toBe("current");
-    expect(screen.getByText("Awaiting acknowledgement")).toBeInTheDocument();
+    expect(screen.getByText("Awaiting acknowledgment")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Resend…" })).toBeEnabled();
     second.unmount();
 
@@ -308,7 +308,7 @@ describe("CommitmentSettlement", () => {
       <CommitmentSettlement settlement={ineligible} tone="garden" />
     );
     expect(
-      screen.getByText("No Celo G$ consideration is declared on this commitment.")
+      screen.getByText("No Celo G$ consideration is declared on this promise.")
     ).toBeInTheDocument();
     expect(screen.queryByTestId("settlement-steps")).not.toBeInTheDocument();
     first.unmount();

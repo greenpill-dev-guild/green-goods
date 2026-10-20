@@ -15,7 +15,17 @@ function fixture() {
   mkdirSync(path.join(root, "packages/shared/src/ontology"), { recursive: true });
   writeFileSync(
     path.join(root, "packages/shared/src/ontology/green-goods-ontology.json"),
-    JSON.stringify({personas: [{id: "gardener"}, {id: "steward"}, {id: "evaluator"}, {id: "funder"}, {id: "community-member"}]}),
+    JSON.stringify({
+      personas: [{id: "gardener"}, {id: "steward"}, {id: "evaluator"}, {id: "funder"}, {id: "community-member"}],
+      enums: [{members: ["None", "Cancelled"]}],
+    }),
+  );
+  mkdirSync(path.join(root, "scripts/data"), { recursive: true });
+  writeFileSync(
+    path.join(root, "scripts/data/banned-vocabulary.json"),
+    JSON.stringify({
+      us_spelling: {terms: {cancelled: "canceled", grey: "gray", favourite: "favorite"}, exempt_phrases: ["Grey Matter Fund"]},
+    }),
   );
   writeFileSync(path.join(root, "authority.ts"), "export const authority = true;\n");
   writeFileSync(
@@ -205,6 +215,469 @@ cat packages/client/src/an-example-that-need-not-exist.ts
     assert.equal(result.status, 1);
     assert.match(result.stderr, /client\.mdx: Repository path not found: packages\/client\/src\/index\.tsx/);
     assert.match(result.stderr, /client\.mdx: Repository path not found: src\/routes\//);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("UK spelling in docs prose or design guidance exits nonzero, while names stay free", () => {
+  const root = fixture();
+  try {
+    const file = path.join(root, "docs/docs/builders/test.mdx");
+    const names = [
+      "",
+      "## Approve stays gray {#approve-stays-grey}",
+      "",
+      "The `cancelled` state, [the guide](https://example.com/grey-area) and https://example.com/grey stay as written.",
+      '<img src="/img/grey.png" alt="Approve looks gray" />',
+      "The Grey Matter Fund keeps its own name.",
+      'A ``cancelled`` span keeps its name, as does <Status state={CycleState.Cancelled} style={{color: "grey"}} />.',
+      "A bare prop is a name too: <Status cancelled />.",
+      "A code span can wrap: `the",
+      "cancelled state` stays code.",
+      '<Status>{state === CycleState.Cancelled ? "Closed" : "Open"}</Status>',
+      '{state === "cancelled" ? "Stopped" : "Open"}',
+      "<Status>",
+      "  {state === CycleState.Cancelled",
+      '    ? "Closed"',
+      '    : "Open"}',
+      "</Status>",
+      "{/* An MDX comment is cancelled from the page. */}",
+      "{/*",
+      "So is one that spans lines, cancelled or not.",
+      "*/}",
+      "<Status",
+      "  cancelled",
+      '  state="grey"',
+      "/>",
+      "<!--",
+      "A comment is cancelled from the page, across lines.",
+      "-->",
+      "<code>",
+      "cancelled",
+      "</code>",
+      "",
+      "```text",
+      "cancelled",
+      "```",
+      "",
+      "````markdown",
+      "```js",
+      "cancelled",
+      "```",
+      "````",
+      "",
+      // MDX reads an import or export to a blank line where its code is complete.
+      "import {",
+      "  Cancelled,",
+      '} from "@site/src/components/docs";',
+      "",
+      "export const states = [",
+      "",
+      '  "cancelled",',
+      "];",
+      "",
+      "",
+    ].join("\n");
+    writeFileSync(file, readFileSync(file, "utf8") + names);
+    // A generated page prints the ontology's enum members as plain text: in a cell of members and
+    // inside a sentence they are names too.
+    const generated = path.join(root, "docs/docs/reference/generated.mdx");
+    writeFileSync(
+      generated,
+      `---
+audience: developer
+owner: engineering
+feature_status: Live
+slug: /reference/generated
+generated: true
+generator: authority.ts
+source_digest: "sha256:${"0".repeat(64)}"
+generated_from:
+  - authority.ts
+source_of_truth:
+  - authority.ts
+---
+# Generated
+
+| State | Where |
+|---|---|
+| Cancelled | on-chain |
+
+Requests stop at pre-disbursement Cancelled.
+`,
+    );
+    // DESIGN.md is CommonMark, so an indented block after a blank line is code there.
+    const design = path.join(root, "DESIGN.md");
+    const indentedCode = "# Design\n\n    cancelled is a status name in this code block\n";
+    // A link loses its destination whatever form its title takes.
+    const designLinks = "\n[One](./grey 'Garden guide'), [two](./grey (Garden guide)) and [three](<./grey area>) lose their destinations.\n";
+    writeFileSync(design, indentedCode + designLinks);
+    const clean = runAudit(root);
+    assert.equal(clean.status, 0, clean.stderr);
+
+    // A folded frontmatter value is rendered page metadata, read whole across its lines.
+    const dirty = `${readFileSync(file, "utf8")}The row reads cancelled.\n\n    MDX reads this indented line as text, so cancelled counts.\n\nSee [the garden](https://example.com/g "The favourite garden") and <span aria-label="A grey icon">x</span>.\n\nAn escaped \\\`grey\\\` mark is text.\n\n<img\n  src="/img/x.png"\n  alt="A grey mark"\n/>\n\nSee [the guide](https://example.com/guide 'The favourite guide').\n\nA lone \`tick stops at a blank line,\n\nso cancelled here counts.\n\n- A \`list item\n- cancelled in the next one counts.\n\n<Status>{done ? "The cycle was cancelled." : "Open"}</Status>\n\nAn escaped \\{cancelled} brace is text.\n\n<Paths items={[{label: "The favourite path", href: "/grey"}]} />\n\n![The favourite logo][brand]\n\n[brand]: /img/grey-logo.png\n`.replace(
+      "slug: /builders/test\n",
+      "slug: /builders/test\ndescription: >-\n  How the field\n  turns grey.\n",
+    );
+    writeFileSync(file, dirty);
+    const lineOf = (text) => dirty.split("\n").indexOf(text) + 1;
+    // In CommonMark an indented line that continues a list item is prose, not code.
+    // Code indented inside a list item is code, and a link definition shows only its title.
+    writeFileSync(
+      design,
+      `${indentedCode}${designLinks}\nA grey border marks the field.\n\n- A list item\n    keeps a grey continuation.\n\n- An item with code\n\n      cancelled in an indented block inside the item\n\n[guide]: ./grey "Garden guide"\n[ref]: ./x "The favourite ref"\n\nThe <code>cancelled</code> state stays a name.\n\nSee <img ALT="A favourite logo" src="x.png"> here.\n\nA <img alt="The grey > the rest" src="x.png"> tag.\n\nAn <img alt=favourite src=x.png> tag.\n\nAn <img data-note="alt=grey" src="x.png"> keeps its note a name.\n`,
+    );
+    // Starting a sentence, a member is copy.
+    const generatedDirty = `${readFileSync(generated, "utf8")}\nThe cycle was cancelled.\nCancelled requests remain visible.\n`;
+    writeFileSync(generated, generatedDirty);
+    const generatedLineOf = (text) => generatedDirty.split("\n").indexOf(text) + 1;
+    const result = runAudit(root);
+    assert.equal(result.status, 1);
+    assert.ok(
+      result.stderr.includes(
+        `builders/test.mdx: UK spelling on line ${lineOf("The row reads cancelled.")}: "cancelled"; English copy uses US spelling ("canceled")`,
+      ),
+      result.stderr,
+    );
+    assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${lineOf("description: >-")}: "grey"`), result.stderr);
+    const linkLine = lineOf('See [the garden](https://example.com/g "The favourite garden") and <span aria-label="A grey icon">x</span>.');
+    assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${linkLine}: "favourite"`), result.stderr);
+    assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${linkLine}: "grey"`), result.stderr);
+    assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${lineOf("An escaped \\`grey\\` mark is text.")}: "grey"`), result.stderr);
+    // A tag that spans lines keeps a readable value on its own line.
+    assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${lineOf('  alt="A grey mark"')}: "grey"`), result.stderr);
+    // A code span stops at a blank line and at a new list item.
+    assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${lineOf("so cancelled here counts.")}: "cancelled"`), result.stderr);
+    assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${lineOf("- cancelled in the next one counts.")}: "cancelled"`), result.stderr);
+    // A string an MDX expression renders is copy, and an escaped brace is text.
+    assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${lineOf('<Status>{done ? "The cycle was cancelled." : "Open"}</Status>')}: "cancelled"`), result.stderr);
+    assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${lineOf("An escaped \\{cancelled} brace is text.")}: "cancelled"`), result.stderr);
+    // A reference-style image's alt text is copy, and its definition's destination a name.
+    assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${lineOf("![The favourite logo][brand]")}: "favourite"`), result.stderr);
+    // Data a page passes to a component is read for its copy-named fields.
+    assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${lineOf('<Paths items={[{label: "The favourite path", href: "/grey"}]} />')}: "favourite"`), result.stderr);
+    // A single-quoted link title is copy too.
+    assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${lineOf("See [the guide](https://example.com/guide 'The favourite guide').")}: "favourite"`), result.stderr);
+    assert.ok(
+      result.stderr.includes(
+        `builders/test.mdx: UK spelling on line ${lineOf("    MDX reads this indented line as text, so cancelled counts.")}: "cancelled"`,
+      ),
+      result.stderr,
+    );
+    assert.match(result.stderr, /DESIGN\.md: UK spelling on line 7: "grey"/);
+    assert.match(result.stderr, /DESIGN\.md: UK spelling on line 10: "grey"/);
+    assert.doesNotMatch(result.stderr, /DESIGN\.md: UK spelling on line 3:/);
+    assert.match(result.stderr, /DESIGN\.md: UK spelling on line 17: "favourite"/);
+    assert.match(result.stderr, /DESIGN\.md: UK spelling on line 21: "favourite"/);
+    // A quoted value can hold ">" or "alt=", and a value can go unquoted.
+    assert.match(result.stderr, /DESIGN\.md: UK spelling on line 23: "grey"/);
+    assert.match(result.stderr, /DESIGN\.md: UK spelling on line 25: "favourite"/);
+    const cancelledLine = generatedLineOf("The cycle was cancelled.");
+    assert.match(result.stderr, new RegExp(`reference/generated\\.mdx: UK spelling on line ${cancelledLine}: "cancelled".* Fix it in the source this page is generated from\\.`));
+    const sentenceStart = generatedLineOf("Cancelled requests remain visible.");
+    assert.ok(result.stderr.includes(`reference/generated.mdx: UK spelling on line ${sentenceStart}: "Cancelled"`), result.stderr);
+    assert.equal(result.stderr.match(/UK spelling/g)?.length, 22, result.stderr);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("UK spelling in docs component copy exits nonzero, while names stay free", () => {
+  const root = fixture();
+  try {
+    const component = [
+      'import styles from "./grey-panel.module.css";',
+      "",
+      "export const presets = [",
+      '  { id: "grey-preset", label: "Favourite preset", description: "A grey chart", color: "grey" },',
+      "];",
+      "",
+      "export function Sample({ state }: { state: string }) {",
+      '  setCopyLabel("Copy the grey link");',
+      "  return (",
+      '    <section className="grey-panel" aria-label="Cancelled presets">',
+      '      <h2>{state === "cancelled" ? "Closed" : "Grey area"}</h2>',
+      "      <p>The favourite key</p>",
+      "    </section>",
+      "  );",
+      "}",
+      "",
+      "export function Rows({ rows }: { rows: Array<{ closed: boolean; open: boolean }> }) {",
+      "  return (",
+      "    <ul>",
+      "      {rows.map((row) => {",
+      '        const tone = row.closed ? "grey" : "green";',
+      '        const style = { color: "grey" };',
+      '        if (row.closed) return <Badge title="The favourite row" tone={tone} style={style} />;',
+      '        const caption = "A cancelled caption";',
+      "        if (row.open) return <span>{caption}</span>;",
+      '        return "Cancelled row";',
+      "      })}",
+      "    </ul>",
+      "  );",
+      "}",
+      "",
+      'const note = "A grey note";',
+      "",
+      "export function Notes() {",
+      '  const [label] = useState("Favourite label");',
+      "  return (",
+      "    <p>",
+      "      {note} {label}",
+      '      <code>grey-token</code> <pre>cancelled</pre> <CodeBlock>grey</CodeBlock>',
+      '      <Answer question="A cancelled question" tone="grey" />',
+      "    </p>",
+      "  );",
+      "}",
+      "",
+      "// A local DOM helper passes its arguments to properties a reader sees.",
+      "const control = (label: string, title: string) => {",
+      '  const el = document.createElement("button");',
+      "  el.textContent = label;",
+      "  el.title = title;",
+      "  return el;",
+      "};",
+      'control("+", "Zoom to the favourite view");',
+      'const trigger = document.createElement("button");',
+      'trigger.textContent = "Grey expand";',
+      "",
+      "// A component renders what it returns, and a destructured local reads its part of the value.",
+      'export function Empty() { return "No favourite items"; }',
+      'const Blank = () => "A grey blank";',
+      "export function Labels() {",
+      '  const [emptyLabel] = ["A cancelled empty label"];',
+      '  const { caption: shown } = { caption: "A favourite shown caption" };',
+      "  return <p>{emptyLabel} {shown}</p>;",
+      "}",
+      "",
+      "// JSX a component builds and never returns renders nothing.",
+      "export function Hidden() {",
+      '  const diagnostic = <span>A favourite fixture</span>;',
+      "  return <p>Visible</p>;",
+      "}",
+      "",
+      "// A spread passes its properties as props, a declaration's call renders what it returns, a named",
+      "// callback renders like an inline one, and injected HTML renders its text but not its code.",
+      'const answerProps = { question: "A grey spread question", tone: "grey" };',
+      "function formatLabel(value: string) {",
+      "  return value;",
+      "}",
+      "function rowLabel() {",
+      '  return "A cancelled named row";',
+      "}",
+      "export function Extras({ rows }: { rows: string[] }) {",
+      "  return (",
+      "    <div>",
+      "      <Answer {...answerProps} />",
+      '      {formatLabel("A favourite formatted label")}',
+      "      {rows.map(rowLabel)}",
+      '      <div dangerouslySetInnerHTML={{ __html: "<p>A grey injected note</p><code>grey-code</code>" }} />',
+      "    </div>",
+      "  );",
+      "}",
+      "",
+      "// A component that keeps its props whole renders the ones it reads.",
+      "export function Card(props: { question: string; caption: string; tone: string }) {",
+      "  const { caption } = props;",
+      "  return (",
+      "    <details data-tone={props.tone}>",
+      "      <summary>{props.question}</summary>",
+      "      {caption}",
+      "    </details>",
+      "  );",
+      "}",
+      "",
+      "// Data imported from another module is read where that module defines it.",
+      'import { colors, ids, labels } from "../../data/labels";',
+      "export function List() {",
+      "  return (",
+      "    <ul>",
+      "      {labels.map((label, index) => <li key={ids[index]}>{label}</li>)}",
+      "      {colors.map((color) => <li key={color.hex}>{color.name}</li>)}",
+      "    </ul>",
+      "  );",
+      "}",
+      "",
+    ].join("\n");
+    mkdirSync(path.join(root, "docs/src/components/docs"), { recursive: true });
+    writeFileSync(path.join(root, "docs/src/components/docs/Sample.tsx"), component);
+    // A test renders nothing, so its strings are names.
+    writeFileSync(path.join(root, "docs/src/components/docs/Sample.test.tsx"), 'test("a grey test name", () => {});\n');
+    writeFileSync(path.join(root, "docs/src/components/docs/Sample.spec.tsx"), 'test("a grey spec name", () => {});\n');
+    // Answer renders its question prop and keeps tone as a name, so a page or a component passing a
+    // question passes copy.
+    writeFileSync(
+      path.join(root, "docs/src/components/docs/Answer.tsx"),
+      [
+        "export function Answer({ question, tone }: { question: string; tone: string }) {",
+        "  return (",
+        "    <details data-tone={tone}>",
+        "      <summary>{question}</summary>",
+        "    </details>",
+        "  );",
+        "}",
+        "",
+      ].join("\n"),
+    );
+    // A module's exports are read where a component or a page renders them, through a re-export too.
+    mkdirSync(path.join(root, "docs/src/data"), { recursive: true });
+    writeFileSync(
+      path.join(root, "docs/src/data/labels.ts"),
+      'export const labels = ["A cancelled list label"];\nexport const ids = ["grey-id"];\nexport const pageNote = "A favourite page note";\nexport const colors = [{ name: "Warm grey", hex: "#cccccc" }];\n',
+    );
+    writeFileSync(path.join(root, "docs/src/components/docs/index.ts"), 'export { pageNote } from "../../data/labels";\n');
+    // A default import names the component its module exports.
+    writeFileSync(
+      path.join(root, "docs/src/components/docs/Panel.tsx"),
+      "export default function Panel({ question }: { question: string }) {\n  return <p>{question}</p>;\n}\n",
+    );
+    const page = path.join(root, "docs/docs/builders/test.mdx");
+    // An import alias names the same component, so <Reply> renders Answer's question.
+    writeFileSync(
+      page,
+      `${readFileSync(page, "utf8")}\n<Answer question="Why is the favourite grey?" tone="grey" />\n\nimport {Answer as Reply} from "@site/src/components/docs";\n\n<Reply question="A grey reply" tone="grey" />\n`,
+    );
+    const extras = [
+      'import Box from "@site/src/components/docs/Panel";',
+      'import {pageNote} from "@site/src/components/docs";',
+      "",
+      '<Card question="A favourite card question" caption="A cancelled card caption" tone="grey" />',
+      "",
+      '<Answer {...{question: "A favourite spread question", tone: "grey"}} />',
+      "",
+      '<Box question="A grey box question" />',
+      "",
+      '<div dangerouslySetInnerHTML={{__html: "<p>A favourite injected page note</p>"}} />',
+      "",
+      "{pageNote}",
+      "",
+    ];
+    writeFileSync(page, `${readFileSync(page, "utf8")}\n${extras.join("\n")}`);
+    const pageLines = readFileSync(page, "utf8").split("\n");
+    const pageLine = pageLines.indexOf('<Answer question="Why is the favourite grey?" tone="grey" />') + 1;
+    const replyLine = pageLines.indexOf('<Reply question="A grey reply" tone="grey" />') + 1;
+    const extraLine = (text) => pageLines.indexOf(text) + 1;
+    // A JSON file is read for the fields its importers render: Palette shows a color's name and role,
+    // keys rows by id and shows hex as code.
+    mkdirSync(path.join(root, "docs/src/data"), { recursive: true });
+    writeFileSync(
+      path.join(root, "docs/src/data/palette.json"),
+      '{\n  "colors": [\n    { "id": "cancelled-id", "name": "Warm grey", "hex": "#cccccc", "role": "A favourite role" }\n  ]\n}\n',
+    );
+    writeFileSync(
+      path.join(root, "docs/src/components/docs/Palette.tsx"),
+      [
+        'import palette from "../../data/palette.json";',
+        "export function Palette() {",
+        "  return <ul>{palette.colors.map((color) => <li key={color.id}>{color.name} {color.role} <code>{color.hex}</code></li>)}</ul>;",
+        "}",
+        "",
+      ].join("\n"),
+    );
+    // A page's ESM constant renders where the page uses it.
+    writeFileSync(page, `${readFileSync(page, "utf8")}\nexport const notice = "A favourite notice";\n\n{notice}\n`);
+    const noticeLine = readFileSync(page, "utf8").split("\n").indexOf('export const notice = "A favourite notice";') + 1;
+    // The site's configuration and sidebar labels are copy; their routes and URLs are names.
+    writeFileSync(
+      path.join(root, "docs/docusaurus.config.ts"),
+      [
+        "export default {",
+        '  title: "Green Goods",',
+        '  tagline: "A favourite tagline",',
+        "  redirects: [{ from: '/old', to: '/reference/product-history#version-1-0' }],",
+        '  themeConfig: { navbar: { items: [{ label: "Grey guides", href: "https://example.com/grey" }] } },',
+        "};",
+        "",
+      ].join("\n"),
+    );
+    writeFileSync(path.join(root, "docs/sidebars.ts"), 'export default [{ type: "category", label: "Favourite guides", items: [\'builders/test\'] }];\n');
+    // JSON data a component renders is read for its copy-named fields; a generated file names its source.
+    mkdirSync(path.join(root, "docs/src/data"), { recursive: true });
+    writeFileSync(path.join(root, "docs/src/data/paths.json"), '{\n  "items": [\n    { "title": "Favourite paths", "href": "/grey" }\n  ]\n}\n');
+    writeFileSync(
+      path.join(root, "docs/src/data/generated.json"),
+      '{\n  "$generated": "GENERATED FILE: do not edit.",\n  "rows": [{ "label": "Cancelled runs", "id": "grey" }]\n}\n',
+    );
+    const result = runAudit(root);
+    assert.equal(result.status, 1);
+    const lineOf = (text) => component.split("\n").findIndex((line) => line.includes(text)) + 1;
+    for (const [text, word] of [
+      ["Favourite preset", "Favourite"],
+      ["A grey chart", "grey"],
+      ["Copy the grey link", "grey"],
+      ["Cancelled presets", "Cancelled"],
+      ["Grey area", "Grey"],
+      ["The favourite key", "favourite"],
+      ["The favourite row", "favourite"],
+      ["Cancelled row", "Cancelled"],
+      // A name a JSX expression renders reads what its binding holds: a local, a module constant,
+      // or a useState pair's initial value.
+      ["A cancelled caption", "cancelled"],
+      ["A grey note", "grey"],
+      ["Favourite label", "Favourite"],
+      ["A cancelled question", "cancelled"],
+      ["Zoom to the favourite view", "favourite"],
+      ["Grey expand", "Grey"],
+      ["No favourite items", "favourite"],
+      ["A grey blank", "grey"],
+      ["A cancelled empty label", "cancelled"],
+      ["A favourite shown caption", "favourite"],
+      ["A grey spread question", "grey"],
+      ["A favourite formatted label", "favourite"],
+      ["A cancelled named row", "cancelled"],
+      ["A grey injected note", "grey"],
+    ]) {
+      assert.ok(result.stderr.includes(`docs/src/components/docs/Sample.tsx: UK spelling on line ${lineOf(text)}: "${word}"`), result.stderr);
+    }
+    assert.ok(result.stderr.includes('docs/src/data/paths.json: UK spelling on line 3: "Favourite"'), result.stderr);
+    assert.match(result.stderr, /docs\/src\/data\/generated\.json: UK spelling on line 3: "Cancelled".* Fix it in the source this file is generated from\./);
+    assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${pageLine}: "favourite"`), result.stderr);
+    assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${pageLine}: "grey"`), result.stderr);
+    assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${replyLine}: "grey"`), result.stderr);
+    assert.ok(result.stderr.includes('docs/docusaurus.config.ts: UK spelling on line 3: "favourite"'), result.stderr);
+    assert.ok(result.stderr.includes('docs/docusaurus.config.ts: UK spelling on line 5: "Grey"'), result.stderr);
+    assert.ok(result.stderr.includes('docs/sidebars.ts: UK spelling on line 1: "Favourite"'), result.stderr);
+    assert.ok(result.stderr.includes('docs/src/data/palette.json: UK spelling on line 3: "grey"'), result.stderr);
+    assert.ok(result.stderr.includes('docs/src/data/palette.json: UK spelling on line 3: "favourite"'), result.stderr);
+    assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${noticeLine}: "favourite"`), result.stderr);
+    // Card reads question and caption from its props object and keeps tone a name.
+    const cardLine = extraLine('<Card question="A favourite card question" caption="A cancelled card caption" tone="grey" />');
+    assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${cardLine}: "favourite"`), result.stderr);
+    assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${cardLine}: "cancelled"`), result.stderr);
+    assert.ok(!result.stderr.includes(`builders/test.mdx: UK spelling on line ${cardLine}: "grey"`), result.stderr);
+    for (const [text, word] of [
+      ['<Answer {...{question: "A favourite spread question", tone: "grey"}} />', "favourite"],
+      ['<Box question="A grey box question" />', "grey"],
+      ['<div dangerouslySetInnerHTML={{__html: "<p>A favourite injected page note</p>"}} />', "favourite"],
+    ]) {
+      assert.ok(result.stderr.includes(`builders/test.mdx: UK spelling on line ${extraLine(text)}: "${word}"`), result.stderr);
+    }
+    assert.ok(result.stderr.includes('docs/src/data/labels.ts: UK spelling on line 1: "cancelled"'), result.stderr);
+    assert.ok(result.stderr.includes('docs/src/data/labels.ts: UK spelling on line 3: "favourite"'), result.stderr);
+    // Like JSON, exported data is read for the fields its importers render: List shows a color's name.
+    assert.ok(result.stderr.includes('docs/src/data/labels.ts: UK spelling on line 4: "grey"'), result.stderr);
+    assert.equal(result.stderr.match(/UK spelling/g)?.length, 41, result.stderr);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("generated docs data is read at its source when the audit reads that source", () => {
+  const root = fixture();
+  try {
+    // ONBOARDING.md is a guide; the docs site shows its projection as code, so the projection is not read.
+    writeFileSync(path.join(root, "ONBOARDING.md"), "# Onboarding\n\nRead the favourite guide first.\n\n```bash\nrun grey-tool\n```\n");
+    mkdirSync(path.join(root, "docs/src/data"), { recursive: true });
+    writeFileSync(
+      path.join(root, "docs/src/data/onboarding.json"),
+      JSON.stringify({ $generated: "GENERATED FILE: do not edit.", source: "ONBOARDING.md", text: "Read the favourite guide first. run grey-tool" }),
+    );
+    const result = runAudit(root);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /ONBOARDING\.md: UK spelling on line 3: "favourite"/);
+    assert.equal(result.stderr.match(/UK spelling/g)?.length, 1, result.stderr);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

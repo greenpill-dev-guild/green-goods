@@ -83,11 +83,12 @@ export const publicSocialPreviews = {
     cardTitleAccent: "growing",
     cardTitleLines: ["A small gesture,", "growing over", "many seasons"],
     cardLede:
-      "Choose a Garden whose work you want to support. Donate to its shared fund, or explore a longer-term endowment. Read its approved work before contributing.",
+      "Choose a garden whose work you want to support. Donate to its shared fund, or explore a longer-term endowment. You can read its approved submissions before contributing.",
     cardLedeLines: [
-      "Choose a Garden whose work you want to support.",
+      "Choose a garden whose work you want to support.",
       "Donate to its shared fund, or explore a longer-term",
-      "endowment. Read its approved work before contributing.",
+      "endowment. You can read its approved submissions",
+      "before contributing.",
     ],
     heroImagePath: "/images/hero-fund.webp",
     socialImageAlt: "Green Goods Fund route social preview",
@@ -96,7 +97,7 @@ export const publicSocialPreviews = {
     path: "/impact",
     title: "Impact | Green Goods",
     description:
-      "Explore work approved by Garden stewards and the assessments supporting its claims.",
+      "Explore work approved by garden stewards and the assessments supporting its claims.",
     cardTitle: "See how Garden work becomes evidence",
     cardTitleAccent: "evidence",
     cardTitleLines: ["See how Garden", "work becomes", "evidence"],
@@ -114,14 +115,14 @@ export const publicSocialPreviews = {
     path: "/actions",
     title: "Actions | Green Goods",
     description:
-      "Browse the templates Gardens use to document Work across solar, agroforestry, education, and waste.",
+      "Browse the templates gardens use to document Work across solar, agroforestry, education, and waste.",
     cardTitle: "A field guide for regenerative work",
     cardTitleAccent: "regenerative work",
     cardTitleLines: ["A field guide for", "regenerative", "work"],
     cardLede:
-      "Actions are the templates Gardens use to document Work across solar, agroforestry, education, and waste. Each one names what to do, what to capture, and what proof comes next.",
+      "Actions are the templates gardens use to document Work across solar, agroforestry, education, and waste. Each one names what to do, what to capture, and what proof comes next.",
     cardLedeLines: [
-      "Actions are the templates Gardens use to document",
+      "Actions are the templates gardens use to document",
       "Work across solar, agroforestry, education, and waste.",
       "Each one names what to do, what to capture, and",
       "what proof comes next.",
@@ -138,11 +139,11 @@ export const publicSocialPreviews = {
     cardTitleAccent: "Gardens",
     cardTitleLines: ["Explore the", "Gardens growing", "the public record"],
     cardLede:
-      "Explore community-led projects working on land restoration, waste, education, and clean energy. Meet the people behind each Garden and discover how to support their work.",
+      "Explore community-led projects working on land restoration, waste, education, and clean energy. Meet the people behind each garden and discover how to support their work.",
     cardLedeLines: [
       "Explore community-led projects working on land",
       "restoration, waste, education, and clean energy.",
-      "Meet the people behind each Garden and discover",
+      "Meet the people behind each garden and discover",
       "how to support their work.",
     ],
     heroImagePath: "/images/hero-garden.webp",
@@ -152,15 +153,15 @@ export const publicSocialPreviews = {
     path: "/cookies",
     title: "Cookie Jars | Green Goods",
     description:
-      "Shared cookie jars hold funds for seasonal work, event rewards, and Garden cohort budgets.",
+      "Shared cookie jars hold funds for seasonal work, event rewards, and garden cohort budgets.",
     cardTitle: "Shared cookie jars for seasonal campaign work",
     cardTitleAccent: "cookie jars",
-    cardTitleLines: ["Shared cookie jars", "for seasonal", "campaign work"],
+    cardTitleLines: ["Shared cookie", "jars for seasonal", "campaign work"],
     cardLede:
-      "Campaign jars hold funds for seasonal work, event rewards, and Garden cohort budgets. Connect a wallet to claim from jars on your allowlist, or add funds to keep the jar full.",
+      "Campaign jars hold funds for seasonal work, event rewards, and garden cohort budgets. Connect a wallet to claim from jars on your allowlist, or add funds to keep the jar full.",
     cardLedeLines: [
       "Campaign jars hold funds for seasonal work, event",
-      "rewards, and Garden cohort budgets. Connect a",
+      "rewards, and garden cohort budgets. Connect a",
       "wallet to claim from jars on your allowlist, or add funds",
       "to keep the jar full.",
     ],

@@ -24,6 +24,7 @@ import {
 } from "@simplewebauthn/server";
 import { cose } from "@simplewebauthn/server/helpers";
 import type {
+  PasskeyChallengePurpose,
   PasskeyInsertResult,
   PendingPasskeyRegistration,
   StoredPasskey,
@@ -52,10 +53,17 @@ export type PasskeyRelyingParty = {
 export type PasskeyDirectoryStore = {
   findByName(userName: string): Promise<StoredPasskey | undefined>;
   insert(passkey: StoredPasskey): Promise<PasskeyInsertResult>;
-  /** Remember a started sign-up, and drop the ones that expired before `now`. */
+  /** Remember a started ceremony, and drop the ones that expired before `now`. */
   saveChallenge(pending: PendingPasskeyRegistration, now: number): Promise<void>;
-  /** Hand out a pending registration once; expired or unknown challenges return nothing. */
-  takeChallenge(challenge: string, now: number): Promise<PendingPasskeyRegistration | undefined>;
+  /**
+   * Hand out a pending challenge once, for its own purpose only. It is spent either way; an
+   * expired, unknown or mismatched challenge returns nothing.
+   */
+  takeChallenge(
+    challenge: string,
+    now: number,
+    purpose: PasskeyChallengePurpose
+  ): Promise<PendingPasskeyRegistration | undefined>;
 };
 
 /** Whether the hosted passkey server that predates this directory already holds a name. */
@@ -194,6 +202,7 @@ export function createPasskeyDirectory(deps: PasskeyDirectoryDeps): PasskeyDirec
       await deps.store.saveChallenge(
         {
           challenge: options.challenge,
+          purpose: "registration",
           userName,
           rpId,
           origin: input.origin,
@@ -211,7 +220,7 @@ export function createPasskeyDirectory(deps: PasskeyDirectoryDeps): PasskeyDirec
       if (!response || !challenge) throw new PasskeyDirectoryError("verification_failed");
 
       // The challenge is spent whether or not the rest succeeds: one sign-up, one attempt.
-      const pending = await deps.store.takeChallenge(challenge, now());
+      const pending = await deps.store.takeChallenge(challenge, now(), "registration");
       if (!pending || pending.userName !== userName || pending.origin !== input.origin) {
         throw new PasskeyDirectoryError("registration_expired");
       }
@@ -239,9 +248,12 @@ export function createPasskeyDirectory(deps: PasskeyDirectoryDeps): PasskeyDirec
       const result = await deps.store.insert({
         userName,
         credentialId: credential.id,
+        // A sign-up's ID is the browser's own base64url ID, so it is also the credential's key.
+        credentialKey: credential.id,
         publicKey,
         rpId: pending.rpId,
         origin: pending.origin,
+        source: "registered",
         createdAt: new Date(now()).toISOString(),
       });
       if (!result.ok) {
@@ -259,7 +271,14 @@ export function createPasskeyDirectory(deps: PasskeyDirectoryDeps): PasskeyDirec
       if (!userName) return [];
       const stored = await deps.store.findByName(userName);
       if (!stored) return [];
-      return [{ id: stored.credentialId, publicKey: stored.publicKey, rpId: stored.rpId }];
+      return [
+        {
+          id: stored.credentialId,
+          signingId: stored.credentialKey,
+          publicKey: stored.publicKey,
+          rpId: stored.rpId,
+        },
+      ];
     },
   };
 }

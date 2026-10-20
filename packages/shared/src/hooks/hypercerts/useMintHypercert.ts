@@ -195,7 +195,7 @@ export function useMintHypercert(options: UseMintHypercertOptions = {}): UseMint
           title: formatMessage({
             id: errorView.titleKey,
             defaultMessage:
-              errorView.severity === "warning" ? "Transaction cancelled" : "Transaction failed",
+              errorView.severity === "warning" ? "Transaction canceled" : "Transaction failed",
           }),
           message: displayMessage,
           context: "hypercert minting",

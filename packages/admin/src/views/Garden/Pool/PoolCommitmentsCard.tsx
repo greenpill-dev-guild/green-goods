@@ -96,7 +96,7 @@ export function PoolCommitmentsCard({
   const titleOf = (commitment: CommitmentReadModel) =>
     (commitment.metadataCID && titles.get(commitment.metadataCID.trim())?.title) ??
     formatMessage(
-      { id: "cockpit.garden.pool.row.untitled", defaultMessage: "Commitment {id}" },
+      { id: "cockpit.garden.pool.row.untitled", defaultMessage: "Promise {id}" },
       { id: commitment.commitmentId.toString() }
     );
 
@@ -173,7 +173,7 @@ export function PoolCommitmentsCard({
             role="group"
             aria-label={formatMessage({
               id: "cockpit.garden.pool.commitments.scope",
-              defaultMessage: "Commitment scope",
+              defaultMessage: "Promise scope",
             })}
           >
             <AdminFilterChip
@@ -251,7 +251,7 @@ export function PoolCommitmentsCard({
                     {row.title ??
                       formatMessage({
                         id: "cockpit.garden.pool.queued.untitled",
-                        defaultMessage: "New commitment",
+                        defaultMessage: "New promise",
                       })}
                   </span>
                   <StatusBadge variant={chip.variant} size="sm">
@@ -322,8 +322,7 @@ export function PoolCommitmentsCard({
                       chainId={pool.chainId}
                       confirmed={formatMessage({
                         id: "cockpit.garden.pool.queued.sent",
-                        defaultMessage:
-                          "Sent. This row leaves once the index shows the commitment.",
+                        defaultMessage: "Sent. This row leaves once the index shows the promise.",
                       })}
                     />
                   </div>
@@ -339,14 +338,14 @@ export function PoolCommitmentsCard({
             <AdminCardTitle>
               {formatMessage({
                 id: "cockpit.garden.pool.commitments.emptyTitle",
-                defaultMessage: "No commitments yet",
+                defaultMessage: "No promises yet",
               })}
             </AdminCardTitle>
             <p className="max-w-sm body-sm text-text-soft">
               {formatMessage({
                 id: "cockpit.garden.pool.commitments.emptyBody",
                 defaultMessage:
-                  "Offers and requests between neighbours show up here. Seed the first one to begin.",
+                  "Offers and requests between neighbors show up here. Seed the first one to begin.",
               })}
             </p>
           </div>

@@ -10,7 +10,7 @@ generator: scripts/quality/check-ontology.mjs
 generated_from:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:fe0711b4120819bbdb46b09ec2d6f8c548c89d2839ec38d797238b585772a129"
+source_digest: "sha256:5c08aea77e183c4eabcb422a5388c15c7ec3f26880497478d224aff17fd67d57"
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
@@ -50,13 +50,13 @@ The ontology currently declares 21 canonical concepts. Availability does not cha
 | <TermAnchor id="need" />**Need** | canonical | planned | not-implemented · not-deployed · inactive · not-integrated | community · admin · client · public · docs | A community-authored statement of a place-based problem paired with a desired outcome. A Need can gather signals, moderation, linked commitments, and verified funding attribution without becoming a commitment or payment itself. | spec |
 | <TermAnchor id="commitment-pool" />**Commitment Pool** | canonical | available | implemented · deployed · active · integrated | admin · client · docs | A garden-anchored (or protocol root-garden) pool that registers, curates, and reconciles commitments under a charter. | contracts · indexer (CommitmentPool) · spec |
 | <TermAnchor id="commitment-cycle" />**Commitment Cycle** | canonical | available | implemented · deployed · active · integrated | admin · client · docs | A bounded run of a pool — a Season or Campaign — seeded with timing and an immutable six-role allocation snapshot at open. | contracts · indexer (CommitmentCycle) · spec |
-| <TermAnchor id="commitment-series" />**Commitment Series** | canonical | deployed-not-available | implemented · deployed · active · not-integrated | admin · client · docs | The internal durable, pool-scoped identity for one Offer used over time. It groups ordinary Offer instances without creating obligations automatically, merging history across pools, or becoming a separate product noun. | contracts · indexer (CommitmentSeries) · spec |
+| <TermAnchor id="commitment-series" />**Commitment Series** | canonical | deployed-not-available | implemented · deployed · active · partial | admin · client · docs | The internal durable, pool-scoped identity for one Offer used over time. It groups ordinary Offer instances without creating obligations automatically, merging history across pools, or becoming a separate product noun. | contracts · indexer (CommitmentSeries) · spec |
 | <TermAnchor id="commitment-provider-exposure" />**Commitment Provider Exposure** | canonical | deployed-not-available | implemented · deployed · active · not-integrated | admin · client · docs | The current count of open commitments held by one accountable lead provider in one pool, derived only from self-describing register unit events. | indexer (CommitmentProviderExposure) · spec |
-| <TermAnchor id="commitment-unit-summary" />**Commitment Unit Summary** | canonical | deployed-not-available | implemented · deployed · active · not-integrated | admin · client · docs | Exact-label pool or cycle totals for expected, approved, fulfilled, and open commitment units; unlike label hashes are never combined. | indexer (CommitmentUnitSummary) · spec |
+| <TermAnchor id="commitment-unit-summary" />**Commitment Unit Summary** | canonical | available | implemented · deployed · active · integrated | admin · client · docs | Exact-label pool or cycle totals for expected, approved, fulfilled, and open commitment units; unlike label hashes are never combined. | indexer (CommitmentUnitSummary) · spec |
 | <TermAnchor id="commitment-series-cycle-summary" />**Commitment Series Cycle Summary** | canonical | deployed-not-available | implemented · deployed · active · not-integrated | admin · client · docs | Current lifecycle counts for the instances of one commitment series within one cycle. | indexer (CommitmentSeriesCycleSummary) · spec |
 | <TermAnchor id="commitment" />**Commitment** | canonical | available | implemented · deployed · active · integrated | admin · client · community · docs | A module-native promise record (offer or request) with one accountable lead, an optional contributor roster, repeatable action requirements, direction-aware confirmation, unit accounting in a non-transferable register, and evidence/work linkage — deliberately not an EAS attestation. | contracts · spec |
-| <TermAnchor id="commitment-contributor" />**Commitment Contributor** | canonical | deployed-not-available | implemented · deployed · active · not-integrated | admin · client · community · docs | A person on a commitment's roster whose approved Work or confirmed evidence can earn Hypercert recognition and a contributor payout; one roster member is the accountable lead. | contracts · spec |
-| <TermAnchor id="commitment-payout-plan" />**Commitment Payout Plan** | canonical | deployed-not-available | implemented · deployed · inactive · partial | admin · client · docs | A garden-managed split of a fulfilled commitment's declared support into an explicit garden-retained amount and contributor child payouts. Its complete recognition vector is hash-bound, payment weights derive from amounts, and explicit finalization freezes it before dispatch. | contracts · indexer (CommitmentPayoutPlan) · shared · spec |
+| <TermAnchor id="commitment-contributor" />**Commitment Contributor** | canonical | deployed-not-available | implemented · deployed · active · partial | admin · client · community · docs | A person on a commitment's roster whose approved Work or confirmed evidence can earn Hypercert recognition and a contributor payout; one roster member is the accountable lead. | contracts · spec |
+| <TermAnchor id="commitment-payout-plan" />**Commitment Payout Plan** | canonical | deployed-not-available | implemented · deployed · active · partial | admin · client · docs | A garden-managed split of a fulfilled commitment's declared support into an explicit garden-retained amount and contributor child payouts. Its complete recognition vector is hash-bound, payment weights derive from amounts, and explicit finalization freezes it before dispatch. | contracts · indexer (CommitmentPayoutPlan) · shared · spec |
 
 ## Personas
 
@@ -64,11 +64,11 @@ The ontology currently declares 21 canonical concepts. Availability does not cha
 |---|---|---|---|
 | <TermAnchor id="gardener" />**Gardener** | gardener | admin · client · agent · public · docs | A person doing regenerative Work in a garden. Submits Work, holds gardener Hats, receives credit toward Hypercerts and yield splits. |
 | <TermAnchor id="steward" />**Steward** | steward | admin · client · agent · public · docs | A person who stewards a garden — creates Actions, approves Work, configures Vault and Hat hierarchy. Holds the garden's steward Hats (the deployed Operator role). |
-| <TermAnchor id="evaluator" />**Evaluator** | evaluator | admin · client · public · docs | A person who authors or strengthens Assessments and attests impact methodology or outcomes. Evaluators do not approve or reject submitted Work; that authority belongs to Stewards. |
+| <TermAnchor id="evaluator" />**Evaluator** | evaluator | admin · client · public · docs | A person who authors or strengthens Assessments and attests impact methodology or outcomes. Evaluators do not approve or reject submitted Work; that authority belongs to stewards. |
 | <TermAnchor id="funder" />**Funder** | funder | admin · client · public · docs | A person or org who deposits into a garden's Vault, holds Hypercert fractions, receives yield distributions per configured splits. |
-| <TermAnchor id="community-member" />**Community Member** | community | client · public · docs | A local resident affected by a Garden's Work. Signals or attests that Work exists and is healthy, and helps prioritize future Actions through public signal and conviction flows. |
+| <TermAnchor id="community-member" />**Community Member** | community | client · public · docs | A local resident affected by a garden's Work. Signals or attests that Work exists and is healthy, and helps prioritize future Actions through public signal and conviction flows. |
 
-The on-chain hat tree has six roles; the Owner hat carries full garden control but has no dedicated persona — owners act through the Steward surfaces.
+The on-chain hat tree has six roles; the Owner hat carries full garden control but has no dedicated persona — owners act through the steward surfaces.
 
 ## Supporting terms
 
@@ -89,7 +89,7 @@ Technical terms kept in this Builders reference and deliberately excluded from t
 | <TermAnchor id="owner" />**Owner** | A &#96;garden-role&#96; member with no dedicated persona — see personas_note. |
 | <TermAnchor id="passkey" />**Passkey** | Authentication credential; account infrastructure, not domain vocabulary. |
 | <TermAnchor id="pwa" />**PWA (Progressive Web App)** | A delivery surface, listed under Surfaces rather than entities. |
-| <TermAnchor id="resolver" />**Resolver** | The contract that gates an attestation; declared per schema as &#96;resolver&#96;, not modelled as an entity. |
+| <TermAnchor id="resolver" />**Resolver** | The contract that gates an attestation; declared per schema as &#96;resolver&#96;, not modeled as an entity. |
 | <TermAnchor id="schema" />**Schema** | The attestation template layer; the sidecar's &#96;schemas&#96; section is its canon. |
 | <TermAnchor id="smart-account" />**Smart Account (Account Abstraction)** | Wallet infrastructure, not domain vocabulary. |
 
@@ -848,7 +848,7 @@ The union in types/domain.ts documents itself as the single source of truth: pen
 | syncing | uploading | off-chain | queued media begins uploading before the attestation is submitted |
 | syncing · uploading | sync_failed | off-chain | a recoverable queue or upload failure preserves the job for retry |
 | uploading | pending | on-chain | successful EAS Work attestation submission creates the pending public record |
-| pending | approved · rejected | on-chain | a Steward records a separate Work Approval attestation |
+| pending | approved · rejected | on-chain | a steward records a separate Work Approval attestation |
 
 ### `commitment-pool`
 

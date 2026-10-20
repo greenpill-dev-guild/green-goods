@@ -7,7 +7,7 @@ generated: true
 generator: scripts/quality/check-ontology.mjs
 generated_from:
   - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:615112355c4915482846fa7511f6bd4e1c183d116c5872a1a756dc2cbe961675"
+source_digest: "sha256:051327046834d15c5fae3957d7870d31855b9d99ff8b99b91eb4bab2801ba653"
 source_of_truth:
   - packages/shared/src/ontology/green-goods-projections.json
 ---
@@ -20,9 +20,9 @@ This ledger separates what people can use now from deployed protocol capability,
 
 ## available
 
-### Communities can organize people and records around a shared Garden.
+### Communities can organize people and records around a shared garden.
 
-**Internal claim:** Green Goods gives a real community, its roles, and its records one accountable Garden.
+**Internal claim:** Green Goods gives a real community, its roles, and its records one accountable garden.
 
 **Audience:** community · steward · funder
 
@@ -42,11 +42,11 @@ This ledger separates what people can use now from deployed protocol capability,
 
 **Audience:** steward · funder · evaluator
 
-**Evidence:** `packages/contracts/src/resolvers/WorkApproval.sol` — Work Approval is Steward-only and separate from Work submission. (verified 2026-08-15)
+**Evidence:** `packages/contracts/src/resolvers/WorkApproval.sol` — Work Approval is steward-only and separate from Work submission. (verified 2026-08-15)
 
 ### Assessments make the baseline, plan, and evidence standard explicit.
 
-**Internal claim:** Stewards and Evaluators can define a baseline and strategy before Work begins.
+**Internal claim:** Stewards and evaluators can define a baseline and strategy before Work begins.
 
 **Audience:** steward · evaluator · funder
 
@@ -60,13 +60,13 @@ This ledger separates what people can use now from deployed protocol capability,
 
 **Evidence:** `packages/contracts/deployments/42161-latest.json` — Vault and Cookie Jar modules are deployed. (verified 2026-08-15)
 
-### Garden promises, work linking, and confirmation are included in the 2.0 release on supported, open Garden pools. New money-reward promises and settlement writes are deferred.
+### Gardens can run a commitment pool in Green Goods 2.0: members make, take up, and confirm promises. G$ rewards and contributor payouts are not switched on yet.
 
-**Internal claim:** Green Goods includes Garden promise coordination: offers, requests, work linking, and independent confirmation.
+**Internal claim:** Green Goods 2.0 lets garden members make, take up, and confirm promises in a commitment pool, and lets stewards set up and run the pool and its seasons.
 
 **Audience:** steward · community · partner
 
-**Evidence:** `docs/releases/2.0.0/README.md` — The October 14 release receipt records the production 2.0 rollout, live pooling/indexer read-back, and read-only Garden/season observation. The 2.0.1 hotfix preserves the narrowed scope.<br />`packages/shared/src/config/app.ts` — SETTLEMENT_ENABLED remains false. New money-reward creation and settlement mutations stay blocked; deployed settlement contracts do not establish app availability.<br />`packages/shared/src/modules/commitment-pooling/selectors.ts` — The supported-chain capability gate and open Garden pool still determine availability. Public production Garden and Promises reads were observed in Brave on October 15; no signed action or payout was performed. (verified 2026-10-15)
+**Evidence:** `packages/client/src/views/Public/GardenDetail.tsx` — Release 2.0 (production v2.0.1) offers promise acts in the client app and the steward console, and the public garden page lists a pool's promises. On 2026-10-18 the production indexer returned 18 registered Arbitrum pools and 42 promises, and the pooling and settlement contracts were unpaused; settlement stays off in the app. (verified 2026-10-18)
 
 ## in-build
 
@@ -82,7 +82,7 @@ This ledger separates what people can use now from deployed protocol capability,
 
 ### Community Needs is a planned layer, not a feature people can use today.
 
-**Internal claim:** Communities will be able to name Needs, signal support, and connect commitments and funding evidence.
+**Internal claim:** Communities will be able to name Needs, signal support, and connect promises and funding evidence.
 
 **Audience:** community · steward · funder
 

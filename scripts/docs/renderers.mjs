@@ -287,7 +287,7 @@ export function renderPersonas({ root, sources, digest }) {
       const statuses = (engagement.term_refs ?? []).map((ref) => availabilityByRef.get(ref));
       const note = UNAVAILABLE_NOTES.find(([status]) => statuses.includes(status))?.[1];
       const guide = engagement.guide ? ` [Guide](${engagement.guide}).` : "";
-      const where = names(SURFACES.filter(([id]) => engagement.where.includes(id))) || "—";
+      const where = names(SURFACES.filter(([id]) => engagement.where.includes(id))) || "None";
       body += `| ${esc(engagement.when)} | ${esc(sentence(engagement.what))}${note ? ` *${note}*` : ""}${guide} | ${where} |\n`;
     }
     const anchored = journey.engagements.filter((engagement) => engagement.code.length);
@@ -768,7 +768,7 @@ export function renderSkills({ root, sources, digest }) {
   let body = pageHeader(
     { title: "Skills Catalog", slug: "/builders/agentic/skills", sources, digest },
     "Skills Catalog",
-    `Skills are packaged workflows. A coding agent, or you driving one, runs a skill by name for a specific kind of task. The catalog below is the quick index; each skill's own section follows, projected from its folder, where the README and SKILL.md stay the source of truth. ${skills.length} skills are catalogued; the [task routing](/builders/agentic/task-routing) page says which one a kind of task should reach for.`
+    `Skills are packaged workflows. A coding agent, or you driving one, runs a skill by name for a specific kind of task. The catalog below is the quick index; each skill's own section follows, projected from its folder, where the README and SKILL.md stay the source of truth. ${skills.length} skills are cataloged; the [task routing](/builders/agentic/task-routing) page says which one a kind of task should reach for.`
   );
   // Table cells keep inline code but cannot carry a pipe.
   const cell = (value) => String(value).replaceAll("|", "\\|");
@@ -793,12 +793,19 @@ export function renderSkills({ root, sources, digest }) {
 // appear in product copy; it does not say who reads it.
 // Released promise terms use product-facing names; formal implementation terms stay in Builders.
 const GLOSSARY_EVERYDAY = [
-  { ref: "entity:commitment", heading: "Promise", guide: ["Make a Promise", "/community/gardener-guide/make-a-promise"] },
   { ref: "entity:commitment-pool", guide: ["Open a Pool", "/community/steward-guide/open-a-pool"] },
   { ref: "entity:season", availabilityNote: "The app records seasons as Commitment Cycles. The broader planning concept has no separate record.", guide: ["Open a Pool", "/community/steward-guide/open-a-pool"] },
   { ref: "entity:commitment-contributor", heading: "Contributor", availabilityNote: "Team membership and contributions are available; contributor payouts remain deferred.", guide: ["Keep a Promise", "/community/gardener-guide/keep-a-promise"] },
   { ref: "entity:garden", guide: ["How It Works", "/community/how-it-works"] },
   { ref: "entity:action", guide: ["Manage Actions", "/community/steward-guide/managing-actions"] },
+  // Every surface calls a commitment a promise; the word stays only in the feature's name. Offer
+  // and request are its two kinds, not other names for it, so the entry words that line itself.
+  {
+    ref: "entity:commitment",
+    heading: "Promise",
+    alsoCalled: ["commitment, as in the feature name Commitment Pooling"],
+    guide: ["Make a Promise", "/community/gardener-guide/make-a-promise"],
+  },
   { ref: "entity:work", guide: ["Submit Work", "/community/gardener-guide/uploading-your-work"] },
   { ref: "entity:work-approval", guide: ["Review Work", "/community/steward-guide/reviewing-work"] },
   { ref: "entity:assessment", guide: ["Make an Initial Assessment", "/community/evaluator-guide/making-an-assessment"] },
@@ -840,7 +847,7 @@ export function glossaryEverydayEntries(ontology, projections, selection = GLOSS
   ]);
   const conceptByRef = new Map(projections.human_concepts.map((concept) => [concept.ref, concept]));
   const availabilityByRef = new Map((projections.capabilities ?? []).map((item) => [item.ref, item.availability]));
-  return selection.map(({ ref, heading, guide, availabilityNote }) => {
+  return selection.map(({ ref, heading, alsoCalled, guide, availabilityNote }) => {
     const term = terms.get(ref);
     if (!term) throw new Error(`Glossary everyday term ${ref} is not a canonical entity or persona`);
     const concept = conceptByRef.get(ref);
@@ -850,6 +857,14 @@ export function glossaryEverydayEntries(ontology, projections, selection = GLOSS
     if (title !== term.display && !aliases.some((alias) => alias.toLowerCase() === title.toLowerCase())) {
       throw new Error(`Glossary heading "${title}" is neither the display name nor a declared alias of ${ref}`);
     }
+    // An entry may word its "Also called" line, but each item still opens with a declared name.
+    const names = [term.display, ...aliases].map((name) => name.toLowerCase());
+    for (const text of alsoCalled ?? []) {
+      const opening = text.toLowerCase();
+      if (!names.some((name) => opening === name || opening.startsWith(`${name},`))) {
+        throw new Error(`Glossary "Also called" item "${text}" does not open with a declared name of ${ref}`);
+      }
+    }
     const anchor = title === term.display ? term.id : headingAnchor(title);
     return {
       ref,
@@ -858,7 +873,7 @@ export function glossaryEverydayEntries(ontology, projections, selection = GLOSS
       // The canonical id and any older anchor keep resolving when the heading is an alias.
       aliasAnchors: [...(anchor === term.id ? [] : [term.id]), ...(GLOSSARY_LEGACY_ANCHORS[ref] ?? [])],
       concept,
-      alsoCalled: [
+      alsoCalled: alsoCalled ?? [
         ...(title === term.display ? [] : [term.display]),
         ...aliases.filter((alias) => alias.toLowerCase() !== title.toLowerCase()),
       ],
@@ -1133,8 +1148,8 @@ export function renderGitHubActions({ root, sources, digest }) {
 // same shape as the QA app's Priority view, so the page and the run sheet read
 // the same way. Priority meaning lives here; kind meaning lives in the catalog.
 const QA_PRIORITY_MEANINGS = [
-  ["P0", "walk first — the highest-priority coverage for an applicable session"],
-  ["P1", "walk next — important coverage after the P0 band"],
+  ["P0", "walk first (the highest-priority coverage for an applicable session)"],
+  ["P1", "walk next (important coverage after the P0 band)"],
   ["P2", "walk after P0 and P1 when the session scope allows"],
 ];
 
@@ -1147,11 +1162,11 @@ export function renderQaCatalog({ root, sources, digest }) {
     "Test Cases",
     "This page projects scenario definitions only. Live results, identities, owners, defect links, and session evidence are intentionally excluded."
   );
-  body += "Each surface groups its cases by priority — the same P0/P1/P2 bands as the [QA app's](https://qa.greengoods.app) Priority view — and sorts by ID within a band. IDs are permanent addresses: never renumbered, never reused; retired cases keep their ID in the catalog history.\n\n";
-  body += QA_PRIORITY_MEANINGS.map(([priority, meaning]) => `- **${priority}** — ${meaning}.`).join("\n");
+  body += "Each surface groups its cases by priority (the same P0/P1/P2 bands as the [QA app's](https://qa.greengoods.app) Priority view) and sorts by ID within a band. IDs are permanent addresses: never renumbered, never reused; retired cases keep their ID in the catalog history.\n\n";
+  body += QA_PRIORITY_MEANINGS.map(([priority, meaning]) => `- **${priority}**: ${meaning}.`).join("\n");
   body += "\n\nPriority sets run order only. A failure's severity is assigned separately during triage.";
   body += "\n\nEach case carries one **kind**, the category axis:\n\n";
-  body += catalog.kinds.map((kind) => `- **${esc(kind.label)}** — ${esc(kind.verifies)}.`).join("\n");
+  body += catalog.kinds.map((kind) => `- **${esc(kind.label)}**: ${esc(kind.verifies)}.`).join("\n");
   if (catalog.journeys?.length) {
     body += "\n\n## Guided journeys\n\n";
     body += "Guided journeys choreograph active Test IDs across surfaces. A case's kind still describes that individual check; a guided journey describes who acts, who verifies, and when the handoff happens.\n\n";
@@ -1159,7 +1174,7 @@ export function renderQaCatalog({ root, sources, digest }) {
       const lanes = new Map(journey.lanes.map((lane) => [lane.id, lane]));
       body += `### ${esc(journey.label)}\n\n${esc(journey.summary)}\n\n`;
       body += "**Parts**\n\n";
-      body += journey.lanes.map((lane) => `- **${esc(lane.label)}** — ${esc(lane.role)}.`).join("\n");
+      body += journey.lanes.map((lane) => `- **${esc(lane.label)}**: ${esc(lane.role)}.`).join("\n");
       body += "\n\n**Phases and Test IDs**\n\n";
       let stepNumber = 0;
       for (const phase of journey.phases) {
@@ -1171,10 +1186,10 @@ export function renderQaCatalog({ root, sources, digest }) {
           const verify = (step.verifyLaneIds ?? [])
             .map((laneId) => lanes.get(laneId)?.label ?? laneId)
             .join(", ");
-          const roles = `Act: ${esc(lead)}${verify ? `; verify: ${esc(verify)}` : ""}`;
+          const roles = `act: ${esc(lead)}${verify ? `; verify: ${esc(verify)}` : ""}`;
           const handoff = step.handoff ? `\n   - **Handoff:** ${esc(step.handoff)}` : "";
           const knownGate = step.knownGate ? `\n   - **Known gate:** ${esc(step.knownGate)}` : "";
-          return `${stepNumber}. \`${esc(step.caseId)}\` — ${roles}${handoff}${knownGate}`;
+          return `${stepNumber}. \`${esc(step.caseId)}\` (${roles})${handoff}${knownGate}`;
         });
         body += `**${esc(phase.label)}**\n\n${renderedSteps.join("\n")}\n\n`;
       }
@@ -1182,10 +1197,10 @@ export function renderQaCatalog({ root, sources, digest }) {
   }
   body += "\n\n## How this catalog changes {#lifecycle}\n\n";
   body += "`scripts/data/qa-test-catalog.json` is the source of truth, and it changes the way code does: by pull request. Every case carries one **status**:\n\n";
-  body += catalog.statuses.map((status) => `- **${esc(status.id)}** — ${esc(status.means)}.`).join("\n");
+  body += catalog.statuses.map((status) => `- **${esc(status.id)}**: ${esc(status.means)}.`).join("\n");
   body += "\n\n- A new case enters as `active`, takes the next number in its surface prefix, is appended to the ID ledger (`scripts/data/qa-test-id-ledger.json`), and names where it came from in `source`.\n";
-  body += "- Wording, step, and evidence edits happen in place — the ID keeps meaning the same check.\n";
-  body += "- When what a case proves changes, it is retired with `retiredOn`, `retiredReason`, and `replacedBy` when successors exist, and the new check gets a new ID — so every past verdict keeps its meaning.\n";
+  body += "- Wording, step, and evidence edits happen in place, so the ID keeps meaning the same check.\n";
+  body += "- When what a case proves changes, it is retired with `retiredOn`, `retiredReason`, and `replacedBy` when successors exist, and the new check gets a new ID, so every past verdict keeps its meaning.\n";
   body += "- After a catalog change merges, redeploy the QA app (a deployment pins the catalog revision it shipped with) and regenerate this page with `node scripts/docs/generate.mjs`; CI rejects a stale copy.\n\n";
   body += "The catalog contract test enforces all of this, and [retired cases](#retired-cases) are listed at the end of this page.\n\n";
   for (const tab of catalog.tabs) {
@@ -1197,7 +1212,7 @@ export function renderQaCatalog({ root, sources, digest }) {
       const band = tabCases.filter((candidate) => candidate.priority === priority);
       if (band.length === 0) continue;
       rendered += band.length;
-      const bandTitle = priority === "P0" ? `${priority} — run these first` : priority;
+      const bandTitle = priority === "P0" ? `${priority}: run these first` : priority;
       body += `### ${bandTitle} (${band.length}) {#${tabSlug}-${priority.toLowerCase()}}\n\n`;
       body += "| ID | Kind | Area | Scenario | Evidence requested |\n|---|---|---|---|---|\n";
       for (const item of band) body += `| \`${esc(item.id)}\` | ${esc(kindLabels.get(item.kind) ?? item.kind)} | ${esc(item.area)} | ${esc(item.scenario)} | ${esc(item.evidence)} |\n`;
@@ -1209,7 +1224,7 @@ export function renderQaCatalog({ root, sources, digest }) {
   body += "## Retired cases {#retired-cases}\n\nRetired cases never ship to a run sheet, but their IDs stay reserved and their history stays here.\n\n";
   body += "| ID | Was | Retired on | Why | Covered now by |\n|---|---|---|---|---|\n";
   for (const item of retired) {
-    const successors = (item.replacedBy ?? []).map((id) => `\`${esc(id)}\``).join(", ") || "—";
+    const successors = (item.replacedBy ?? []).map((id) => `\`${esc(id)}\``).join(", ") || "None";
     body += `| \`${esc(item.id)}\` | ${esc(item.tab)} · ${esc(item.scenario)} | ${esc(item.retiredOn)} | ${esc(item.retiredReason)} | ${successors} |\n`;
   }
   body += "\n";

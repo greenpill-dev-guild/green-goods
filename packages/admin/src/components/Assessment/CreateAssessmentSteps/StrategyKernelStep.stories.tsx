@@ -147,7 +147,7 @@ export const SubmittingState: Story = {
           diagnosis: "Rural households rely on diesel generators averaging 4h/day.",
           smartOutcomes: [
             {
-              description: "Households in the neighbourhood have reliable power after dark",
+              description: "Households in the neighborhood have reliable power after dark",
               metric: "householdsServed",
               target: 50,
             },

@@ -270,8 +270,8 @@ export const ProofNotSent: Story = {
   beforeEach: atStage("notSent"),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText("Signature cancelled. Nothing was sent")).toBeVisible();
-    await expect(canvas.getByText("Sending was cancelled. Nothing was sent")).toBeVisible();
+    await expect(canvas.getByText("Signature canceled. Nothing was sent")).toBeVisible();
+    await expect(canvas.getByText("Sending was canceled. Nothing was sent")).toBeVisible();
   },
 };
 

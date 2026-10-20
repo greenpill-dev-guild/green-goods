@@ -49,7 +49,7 @@ export function CommitmentAlerts({
           {formatMessage(
             {
               id: "cockpit.garden.pool.commitment.cancelled.withReason",
-              defaultMessage: "Cancelled: “{reason}”.",
+              defaultMessage: "Canceled: “{reason}”.",
             },
             { reason: cancelReason.reason.reason }
           )}
@@ -67,7 +67,7 @@ export function CommitmentAlerts({
               : formatMessage({
                   id: "cockpit.garden.pool.commitment.fallback.protocol",
                   defaultMessage:
-                    "Nobody on the ordinary path can still confirm this, and the commitment lets the Green Goods team step in. As a protocol steward you may confirm it with a recorded reason; every contributor is excluded.",
+                    "Nobody on the ordinary path can still confirm this, and the promise lets the Green Goods team step in. As a protocol steward you may confirm it with a recorded reason; every contributor is excluded.",
                 })}
           </Alert>
         </div>

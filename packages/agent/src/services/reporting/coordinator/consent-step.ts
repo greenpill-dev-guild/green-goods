@@ -16,7 +16,7 @@ import type { TurnWriter } from "./writer";
  */
 export function sendConsentNotice(writer: TurnWriter): void {
   const { core, ctx } = writer;
-  const processors = ctx.modelEnabled ? writer.text("consent.processors") : "";
+  const processors = ctx.modelSwitchOn ? writer.text("consent.processors") : "";
   writer.ask(
     {
       subjectKind: "consent",

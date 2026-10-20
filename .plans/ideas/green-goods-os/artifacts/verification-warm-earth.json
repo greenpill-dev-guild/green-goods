@@ -1,0 +1,75 @@
+{
+  "final_file": "/Users/afo/Code/greenpill/green-goods/.plans/ideas/green-goods-os/artifacts/green-goods-os-pitch-warm-earth.pptx",
+  "sha256": "026b520dcf4bdadbb5ba0043931905cc68451da951bd21ee163072ce996c46b3",
+  "slide_count": 26,
+  "core_slides": 18,
+  "appendix_slides": 8,
+  "editable_shapes": 202,
+  "native_tables": 9,
+  "embedded_images": 3,
+  "speaker_notes_parts": 26,
+  "content_preservation": "All 26 slide text sequences match the revised deck after only cover casing and repeated-footer normalization; all 26 notes match exactly.",
+  "package_integrity": {
+    "chart_count": 0,
+    "claim_boundary": "Structural package checks only; no slide text, notes, formulas, chart values, or native PowerPoint execution were inspected.",
+    "finding_count": 0,
+    "findings": [],
+    "notes_parts_skipped": 26,
+    "relationship_part_count": 62,
+    "slide_count": 26,
+    "status": "pass",
+    "exitCode": 0,
+    "findingCount": 0,
+    "warnings": []
+  },
+  "layout": {
+    "finding_count": 0,
+    "findings": [],
+    "font_policy": {
+      "checked_text_script_count": 384,
+      "native_font_rendering_verified": false,
+      "observed_font_families": ["Fraunces", "Inter"],
+      "observed_font_use_counts": {
+        "Fraunces": 49,
+        "Inter": 335
+      },
+      "passed": true,
+      "performed": true
+    },
+    "slide_count": 26,
+    "slide_size_in": [13.3333, 7.5],
+    "warning_count": 0,
+    "warnings": [],
+    "exitCode": 0,
+    "findingCount": 0,
+    "fontPolicy": {
+      "checked_text_script_count": 384,
+      "native_font_rendering_verified": false,
+      "observed_font_families": ["Fraunces", "Inter"],
+      "observed_font_use_counts": {
+        "Fraunces": 49,
+        "Inter": 335
+      },
+      "passed": true,
+      "performed": true
+    }
+  },
+  "first_party_reimport": {
+    "performed": true,
+    "passed": true,
+    "slideCount": 26,
+    "sha256": "026b520dcf4bdadbb5ba0043931905cc68451da951bd21ee163072ce996c46b3",
+    "runtimeNodeModules": "/Users/afo/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules",
+    "nodeExecutable": "/Users/afo/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node"
+  },
+  "font_source": "Repository-vendored Fraunces regular/italic and Inter regular; registered in rendering process only.",
+  "fonts_embedded": false,
+  "font_bundle": "green-goods-pitch-fonts.zip",
+  "native_powerpoint_or_google_slides_tested": false,
+  "visual_review": "26 slides inspected individually at 1280\u00d7720 after restyling; final cover and nine table slides inspected again after refinement. Other 16 final render hashes match inspected images.",
+  "render_comparison": {
+    "same": [2, 3, 4, 5, 6, 7, 8, 9, 11, 13, 14, 15, 16, 17, 18, 20],
+    "changed": [1, 10, 12, 19, 21, 22, 23, 24, 25, 26]
+  },
+  "product_tests_run": false
+}

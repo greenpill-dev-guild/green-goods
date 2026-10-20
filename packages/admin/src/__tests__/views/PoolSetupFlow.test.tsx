@@ -232,7 +232,7 @@ async function fillHow() {
   fireEvent.change(within(dialog()).getByLabelText(/what this pool is for/i), {
     target: { value: "Neighbourly help in Rocinha" },
   });
-  const capField = within(dialog()).getByLabelText(/how many commitments/i);
+  const capField = within(dialog()).getByLabelText(/how many promises/i);
   fireEvent.change(capField, { target: { value: "24" } });
 }
 
@@ -473,7 +473,7 @@ describe("PoolSetupFlow (W11)", () => {
       recognitionPolicy: { equalParticipationBps: 2000, verifiedContributionBps: 8000 },
     });
     await waitFor(() => expect(screen.getByTestId("pool-setup-done")).toBeInTheDocument());
-    expect(within(dialog()).getByText(/rocinha is taking commitments/i)).toBeInTheDocument();
+    expect(within(dialog()).getByText(/rocinha is taking promises/i)).toBeInTheDocument();
     await waitFor(() => expect(pool.refetch).toHaveBeenCalled());
     // Finishing never closes the flow by itself: the steward reads what is live, then leaves.
     expect(onClose).not.toHaveBeenCalled();

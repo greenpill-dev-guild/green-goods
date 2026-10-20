@@ -629,7 +629,7 @@ test("personas page gives each persona a section, its journey, and the surfaces 
     }
   }
   // One that relies on a term people cannot use yet says so, and names no surface it does not have.
-  assert.match(rendered, /Name a community need[^|]*\*Planned, not built yet\.\* \| — \|/);
+  assert.match(rendered, /Name a community need[^|]*\*Planned, not built yet\.\* \| None \|/);
 });
 
 test("glossary leads with plain entries for the everyday terms and keeps every anchor people link to", () => {
@@ -716,6 +716,13 @@ test("an everyday glossary entry needs a plain-language record and a name the on
   assert.throws(
     () => glossaryEverydayEntries(ontology, projections, [{ ref: "entity:garden", heading: "Plot", guide: ["Join", "/join"] }]),
     /"Plot" is neither the display name nor a declared alias of entity:garden/,
+  );
+  // An entry can word its other names, as long as each opens with one the ontology declares.
+  const [worded] = glossaryEverydayEntries(ontology, projections, [{ ref: "entity:garden", alsoCalled: ["community garden, on the sign"], guide: ["Join", "/join"] }]);
+  assert.deepEqual(worded.alsoCalled, ["community garden, on the sign"]);
+  assert.throws(
+    () => glossaryEverydayEntries(ontology, projections, [{ ref: "entity:garden", alsoCalled: ["allotment, on the sign"], guide: ["Join", "/join"] }]),
+    /"allotment, on the sign" does not open with a declared name of entity:garden/,
   );
 });
 

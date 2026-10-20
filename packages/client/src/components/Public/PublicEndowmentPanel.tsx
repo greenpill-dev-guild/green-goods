@@ -194,7 +194,7 @@ export function PublicEndowmentPanel({
                   : formatMessage({
                       id: "public.fund.endowments.connect.lede",
                       defaultMessage:
-                        "Connect the wallet you endowed with, and we'll show you the Gardens your support is growing.",
+                        "Connect the wallet you endowed with, and we'll show you the gardens your support is growing.",
                     })}
               </Dialog.Description>
             </div>
@@ -280,7 +280,7 @@ export function PublicEndowmentPanel({
                   {formatMessage({
                     id: "public.fund.endowments.empty.body",
                     defaultMessage:
-                      "When this wallet endows a Garden, those positions will appear here grouped by Garden.",
+                      "When this wallet endows a garden, those positions will appear here grouped by garden.",
                   })}
                 </p>
               </div>
@@ -357,7 +357,7 @@ function EndowmentPortfolio({
               {formatMessage(
                 {
                   id: "public.fund.endowments.summary.gardenCount",
-                  defaultMessage: "{count, plural, one {# Garden} other {# Gardens}}",
+                  defaultMessage: "{count, plural, one {# garden} other {# gardens}}",
                 },
                 { count: gardenCount }
               )}

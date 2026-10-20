@@ -1,0 +1,199 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "grove",
+    "title": "Grove by Green Goods",
+    "kind": "feature",
+    "stage": "ideas"
+  },
+  "workflow": {
+    "overall_status": "idea",
+    "priority": "p2",
+    "created_at": "2026-10-11T10:02:56.686Z",
+    "updated_at": "2026-10-18T03:16:57.089Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": "RESR-103",
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": "2026-10-18T03:16:57.089Z",
+    "lanes": {},
+    "laneSyncMode": "parent_only"
+  },
+  "taxonomy": {
+    "initiative": "environmental-data",
+    "tracks": ["docs"],
+    "work_types": ["research"],
+    "surfaces": [".plans/ideas/grove/"],
+    "depends_on_features": []
+  },
+  "notes": [
+    "User selected Grove as the extension brand; packages/extension remains the proposed code package.",
+    "User authorized this planning branch and draft PR only; product implementation and dependency installation remain unstarted.",
+    "The living graph is the core interface; the first spike uses isolated Vida Verde and TAS workspaces with one active garden view on one desktop profile.",
+    "All product gates remain unrun. Local acceptance of a relationship is distinct from protocol WorkApproval.",
+    "Exact Coop source licensing, model compatibility and commons draft mappings remain implementation prerequisites.",
+    "KOI partial-node architecture selected for planning: browser-owned history and inference, optional controlled full node, explicit sharing and scoped reconciliation.",
+    "User authorized updating draft PR #1073; K1/K2 and E9–E11 remain unrun. No production peer, dependency installation or runtime implementation is authorized by this plan revision.",
+    "User selected Pi Durable for resumable local investigations; Dexie retains garden knowledge/history and idempotent graph-command receipts, and KOI retains scoped exchange.",
+    "P0–P2 and E12–E14 are planned browser storage, execution, recovery and privacy gates. Pi installation and product implementation remain unstarted; no lane is completed."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "todo",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/README.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": ""
+      },
+      "skill_tags": ["ui", "frontend-design", "react"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/README.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": ""
+      },
+      "skill_tags": ["react", "tanstack-query", "data-layer"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/README.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No contract behavior is part of the proposed Grove MVP."
+      },
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/README.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/README.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-10-11T10:02:56.690Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in ideas"
+    },
+    {
+      "actor": "codex",
+      "lane": "system",
+      "status": "idea",
+      "note": "Publish the user-named Grove MVP as a standalone planning hub; no implementation started.",
+      "timestamp": "2026-10-11T10:04:05.568413Z",
+      "branch": "research/grove-mvp-plan"
+    },
+    {
+      "actor": "codex",
+      "lane": "system",
+      "status": "idea",
+      "note": "Expand the Grove plan with composed ontology proposal, learning and ingestion diagrams, dependency categories, graph reference screenshots and a Claude Code design prompt; implementation remains unstarted.",
+      "timestamp": "2026-10-11T22:41:51.503026Z",
+      "branch": "research/grove-mvp-plan"
+    },
+    {
+      "actor": "codex",
+      "lane": "system",
+      "status": "idea",
+      "note": "Revise the local-first Grove architecture for KOI and scope Vida Verde/TAS end-to-end spike; preserve all implementation lane states.",
+      "timestamp": "2026-10-16T23:19:08Z",
+      "branch": "research/grove-mvp-plan"
+    },
+    {
+      "actor": "codex",
+      "lane": "system",
+      "status": "idea",
+      "note": "Select Pi Durable custom-task investigations; add browser storage, command receipts, one runner owner and Vida Verde/TAS interruption/review proof. Implementation remains unstarted.",
+      "timestamp": "2026-10-17T02:45:27Z",
+      "branch": "research/grove-mvp-plan"
+    },
+    {
+      "timestamp": "2026-10-18T03:15:06.667Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-10-18T03:15:54.566Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-10-18T03:16:57.089Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_sync_confirmed",
+      "branch": null,
+      "note": "Confirmed that the current Plan Hub state is reflected in Linear"
+    }
+  ]
+}

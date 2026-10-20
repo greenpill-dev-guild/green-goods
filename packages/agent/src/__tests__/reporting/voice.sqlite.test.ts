@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { setControl } from "../../services/reporting/controls";
 import { loadDraft } from "../../services/reporting/drafts";
-import { ADA, Harness } from "./support/harness";
+import { modelSpend } from "../../services/reporting/model-spend";
+import { ADA, Harness, spendDailyModelCap } from "./support/harness";
 import { scriptedOpenAI } from "./support/media";
 
 /**
@@ -81,6 +82,7 @@ describe("voice notes", () => {
     expect(openai.transcriptions).toHaveLength(2);
     expect(next.join("\n")).not.toContain("Can I transcribe");
     expect(next[0]).toContain("I heard: “and watered them”");
+    expect(modelSpend(harness.core).calls["openai:transcription:answered"]).toBe(2);
   });
 
   it("keeps a declined note untranscribed and returns to the open question", async () => {
@@ -144,5 +146,13 @@ describe("voice notes", () => {
     const replies = await sendVoice("voice-2");
     expect(replies.join("\n")).toContain("I can't listen to voice notes right now");
     expect(voiceConsents()).toBe(0);
+
+    // A day whose model spend reached its cap declines a note the same way, sending nothing.
+    const openai = voiceOn([SAID]);
+    spendDailyModelCap(harness.core);
+    expect((await sendVoice("voice-3")).join("\n")).toContain(
+      "I can't listen to voice notes right now"
+    );
+    expect(openai.transcriptions).toEqual([]);
   });
 });

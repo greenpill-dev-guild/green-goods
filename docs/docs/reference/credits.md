@@ -80,7 +80,7 @@ Green Goods grew from the Greenpill network's work on regenerative funding and c
 
 Gardens, local organizers, testers, and community members shape the work through their experience and feedback. Contact the team about collaboration through the community chat.
 
-## Acknowledgements
+## Acknowledgments {#acknowledgements}
 
 ### Inspiration
 

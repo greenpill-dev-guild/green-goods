@@ -37,7 +37,7 @@ export function SetupStepHow({
         placeholder={formatMessage({
           id: "cockpit.garden.pool.setup.purposePlaceholder",
           defaultMessage:
-            "Neighbours offer help and ask for it: rides, tools, workshops, garden work. Commitments are kept in the open and confirmed by the person they were made to.",
+            "Neighbors offer help and ask for it: rides, tools, workshops, garden work. Promises are kept in the open and confirmed by the person they were made to.",
         })}
         showCount
         textareaProps={{ maxLength: POOL_PURPOSE_MAX_LENGTH }}
@@ -45,7 +45,7 @@ export function SetupStepHow({
       <AdminTextField
         label={formatMessage({
           id: "cockpit.garden.pool.settings.cap",
-          defaultMessage: "How many commitments one person can hold at once",
+          defaultMessage: "How many promises one person can hold at once",
         })}
         value={cap}
         onChange={(event) => onCapChange(event.target.value)}

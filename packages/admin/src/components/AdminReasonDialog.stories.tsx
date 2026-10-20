@@ -45,12 +45,12 @@ export const Default: Story = {
 export const Danger: Story = {
   args: {
     variant: "danger",
-    title: "Cancel This Commitment",
+    title: "Cancel This Promise",
     description:
-      "Accepted becomes Cancelled with a recorded reason. Committed units release; the member sees the reason, never “cancelled” alone.",
-    confirmLabel: "Cancel Commitment",
-    cancelLabel: "Keep Commitment",
-    suggestions: ["Withdrawn by agreement", "No longer needed", "Duplicate commitment"],
+      "Accepted becomes Canceled with a recorded reason. Committed units release; the member sees the reason, never “canceled” alone.",
+    confirmLabel: "Cancel Promise",
+    cancelLabel: "Keep It Live",
+    suggestions: ["Withdrawn by agreement", "No longer needed", "Duplicate promise"],
   },
 };
 

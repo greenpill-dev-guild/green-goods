@@ -25,7 +25,7 @@ const meta = {
       description: {
         component:
           "Progress stepper for the admin action flows. Horizontal (compact dots + connectors + a " +
-          "'Step N of M · Label' line) sits in the ActionFlowShell header on mobile; vertical (labelled " +
+          "'Step N of M · Label' line) sits in the ActionFlowShell header on mobile; vertical (labeled " +
           "rail) sits in the desktop step-rail. The accent follows the workspace tone (Hub blue / Garden " +
           "green / …) — see HubToned; completed steps fill with a check and connectors grow a tone fill " +
           "as each step completes.",

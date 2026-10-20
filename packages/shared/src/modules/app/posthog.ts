@@ -25,7 +25,7 @@ const IS_DEBUG = import.meta.env.VITE_POSTHOG_DEBUG === "true";
  * array of `{ type, value, ... }`) and no longer sets the legacy top-level
  * `$exception_type` / `$exception_message` properties on the `$exception` event.
  *
- * Downstream consumers still read those top-level fields: the `qa-triage-pulse`,
+ * Downstream consumers still read those top-level fields: the `sync-triage-pulse`,
  * `health-watch`, and `bug-intake` cloud routines and the `posthog-questions`
  * HogQL library group/filter on `properties.$exception_type` and
  * `properties.$exception_message`. Since the posthog-js upgrade those queries have

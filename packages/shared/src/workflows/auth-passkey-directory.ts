@@ -20,8 +20,9 @@ export type DirectorySignIn = {
   /** The domain the passkey was created under; every later signature must name it too. */
   rpId: string;
   /**
-   * True when this device remembers a different passkey. The address it remembers is a claim
-   * about that passkey, so it says nothing about the account being opened now.
+   * True when this device remembers a different account: another passkey, or another spelling
+   * of this passkey's ID. The address it remembers is a claim about that account, so it says
+   * nothing about the account being opened now.
    */
   switchingAccounts: boolean;
 };
@@ -62,7 +63,7 @@ export async function signInWithDirectory(
       rpId,
       userVerification: "required",
       allowCredentials: credentials.flatMap((credential) =>
-        getPasskeyRequestIds({ id: credential.id, signingId: credential.id }).map((id) => ({
+        getPasskeyRequestIds({ id: credential.id, signingId: credential.signingId }).map((id) => ({
           id,
           type: "public-key",
           transports: ["internal", "hybrid"],
@@ -73,7 +74,7 @@ export async function signInWithDirectory(
   });
   if (!response) throw new Error("Passkey authentication was cancelled");
   const held = credentials.find((credential) =>
-    matchesBrowserId({ id: credential.id, signingId: credential.id }, response.id)
+    matchesBrowserId({ id: credential.id, signingId: credential.signingId }, response.id)
   );
   // The account address follows the public key, so a key that does not match the device's
   // passkey would open a different account. Fail closed instead.
@@ -92,8 +93,11 @@ export async function signInWithDirectory(
     },
     userName: context.userName,
     rpId,
+    // An account is its exact ID string with its key: Kernel hashes the string, so the other
+    // spelling of the same passkey is another account, and signing in to it is a switch.
     switchingAccounts: remembered
-      ? keyCoordinates(remembered.publicKey) !== keyCoordinates(held.publicKey)
+      ? remembered.id !== held.id ||
+        keyCoordinates(remembered.publicKey) !== keyCoordinates(held.publicKey)
       : false,
   };
 }

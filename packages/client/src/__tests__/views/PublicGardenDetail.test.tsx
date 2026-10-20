@@ -183,7 +183,7 @@ import GardenDetail from "../../views/Public/GardenDetail";
 
 const messages: Record<string, string> = {
   "public.gardenDetail.notFound": "Garden not found",
-  "public.gardenDetail.unavailable": "This Garden could not be loaded",
+  "public.gardenDetail.unavailable": "This garden could not be loaded",
   "public.gardenDetail.unavailableHelp": "Could not read it right now.",
   "public.gardenDetail.retry": "Try Again",
   "public.gardenDetail.notFoundHelp": "The link may be stale.",
@@ -192,7 +192,7 @@ const messages: Record<string, string> = {
   "public.gardenDetail.description.heading": "About this garden",
   "public.gardenDetail.place.empty": "Garden narrative will appear here.",
   "public.gardenDetail.support": "Support This Garden",
-  "public.gardenDetail.unlisted": "This Garden is not in the public lists.",
+  "public.gardenDetail.unlisted": "This garden is not in the public lists.",
   "public.gardenDetail.evidence.cta": "View Public Evidence",
   "public.gardenDetail.stats.entries": "Approved submissions",
   "public.gardenDetail.stats.handsAtWork": "Garden members",
@@ -202,12 +202,12 @@ const messages: Record<string, string> = {
   "public.gardenDetail.section.notes": "§ 01: Approved submissions",
   "public.gardenDetail.section.certificates": "§ 03: Certificates",
   "public.gardenDetail.section.stewards": "§ 04: Stewards",
-  "public.pool.garden.kicker": "§ 02: Commitments",
-  "public.pool.garden.heading.preparing": "This Garden is preparing its pool",
+  "public.pool.garden.kicker": "§ 02: Promises",
+  "public.pool.garden.heading.preparing": "This garden is preparing its pool",
   "public.pool.garden.state.notReady": "Offers and requests open once the pool is ready.",
   "public.gardenDetail.notes.heading": "Recent approved submissions",
   "public.gardenDetail.notes.helper":
-    "Photos, notes, and details submitted by participants and approved by this Garden’s stewards. Approval records a local review; it does not by itself measure environmental outcomes.",
+    "Photos, notes, and details submitted by participants and approved by this garden’s stewards. Approval records a local review; it does not by itself measure environmental outcomes.",
   "public.gardenDetail.notes.empty": "No approved submissions yet.",
   "public.gardenDetail.notes.untitled": "Untitled entry",
   "public.gardenDetail.notes.showing": "Showing {shown} of {total}",
@@ -232,8 +232,8 @@ const messages: Record<string, string> = {
     "{count, plural, one {# source record} other {# source records}}",
   "public.gardenDetail.stewards.heading": "Stewards",
   "public.gardenDetail.stewards.helper":
-    "The local coordinators who review submissions and care for this Garden.",
-  "public.gardenDetail.stewards.empty": "No stewards are listed for this Garden yet.",
+    "The local coordinators who review submissions and care for this garden.",
+  "public.gardenDetail.stewards.empty": "No stewards are listed for this garden yet.",
   "public.source.close": "Close",
   "public.nav.installApp": "Install App",
   "public.nav.openApp": "Open App",
@@ -342,7 +342,7 @@ describe("GardenDetail", () => {
     const location = screen.getByText("Austin, TX");
     expect(title.compareDocumentPosition(location) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     // A listed Garden says nothing about lists, and crawlers may index it.
-    expect(screen.queryByText("This Garden is not in the public lists.")).toBeNull();
+    expect(screen.queryByText("This garden is not in the public lists.")).toBeNull();
     expect(document.head.querySelector('meta[name="robots"]')).toBeNull();
   });
 
@@ -358,7 +358,7 @@ describe("GardenDetail", () => {
     mockUsePublicGardenDetail.mockReturnValue(detailResult({ unlisted: true }));
     renderView();
 
-    expect(screen.getByText("This Garden is not in the public lists.")).toBeInTheDocument();
+    expect(screen.getByText("This garden is not in the public lists.")).toBeInTheDocument();
     // The funding list leaves it out, so the page offers no way into it.
     expect(screen.queryByRole("link", { name: "Support This Garden" })).toBeNull();
     await waitFor(() => {
@@ -399,7 +399,7 @@ describe("GardenDetail", () => {
       expect(section?.querySelector(`h2#${id}`)).toHaveTextContent(title);
       expect(container.querySelectorAll(`[id="${id}"]`)).toHaveLength(1);
     }
-    expect(screen.queryByText("This Garden is preparing its pool")).not.toBeInTheDocument();
+    expect(screen.queryByText("This garden is preparing its pool")).not.toBeInTheDocument();
     // An absent thing says it is absent, so § 03 never drops out of the ladder.
     expect(screen.getByText("No approved submissions yet.")).toBeInTheDocument();
     expect(screen.getByText("No Impact Certificates yet.")).toBeInTheDocument();
@@ -824,7 +824,7 @@ describe("GardenDetail", () => {
     expect(within(hero).getByText(pt["public.sharedLink.unavailableHelp"])).toBeInTheDocument();
     expect(within(hero).queryByRole("link")).not.toBeInTheDocument();
     const explore = screen.getByRole("region", { name: pt["public.gardenDetail.explore.title"] });
-    expect(within(explore).getByRole("link", { name: "Explorar Jardins" })).toHaveAttribute(
+    expect(within(explore).getByRole("link", { name: "Explorar jardins" })).toHaveAttribute(
       "href",
       "/gardens"
     );
@@ -847,9 +847,9 @@ describe("GardenDetail", () => {
     mockUsePublicGardens.mockReturnValue({ data: undefined, isLoading: false, isError: true });
     renderView("/gardens/solar-community-garden");
 
-    expect(screen.getByText("This Garden could not be loaded")).toBeInTheDocument();
+    expect(screen.getByText("This garden could not be loaded")).toBeInTheDocument();
     expect(screen.queryByText("Garden not found")).not.toBeInTheDocument();
-    const hero = screen.getByRole("region", { name: "This Garden could not be loaded" });
+    const hero = screen.getByRole("region", { name: "This garden could not be loaded" });
     expect(within(hero).queryByRole("link")).not.toBeInTheDocument();
     const explore = screen.getByRole("region", { name: "Find a garden to explore" });
     expect(within(explore).getByRole("link", { name: "Browse Gardens" })).toHaveAttribute(
@@ -873,6 +873,6 @@ describe("GardenDetail", () => {
     renderView();
 
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Solar Community Garden");
-    expect(screen.queryByText("This Garden could not be loaded")).not.toBeInTheDocument();
+    expect(screen.queryByText("This garden could not be loaded")).not.toBeInTheDocument();
   });
 });

@@ -1,4 +1,4 @@
-# October 2026 — v2.0.0
+# October 2026: v2.0.0
 
 Published October 14, 2026 as the curated section of the [v2.0.0 GitHub Release](https://github.com/greenpill-dev-guild/green-goods/releases/tag/v2.0.0), above the generated PR notes. Scope narrowed October 13 to the app-only cut. The original October 11 date is not a deployment receipt.
 

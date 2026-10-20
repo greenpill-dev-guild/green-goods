@@ -6,6 +6,11 @@ import {
 } from "../../services/reporting/interpretation";
 import { extractWithOpenAI } from "../../services/reporting/model-extraction";
 import { routeWithJev } from "../../services/reporting/model-routing";
+import type {
+  ModelMeter,
+  ModelRequest,
+  ModelSettlement,
+} from "../../services/reporting/model-spend";
 import { transcribeVoice } from "../../services/reporting/media/transcribe";
 import { extractFromMedia } from "../../services/reporting/media/extract";
 
@@ -53,6 +58,32 @@ function recorder(body: unknown, status = 200) {
 }
 
 const signal = () => new AbortController().signal;
+
+/** Emoji and non-Latin text tokenize to more than one token per four characters. */
+const inOtherScripts = {
+  ...request,
+  content: { ...request.content, actionUID: 7 },
+  message: { sourceEntryId: "src-2", text: "种了十二棵猴面包树 🌱🌱 أشجار الباوباب" },
+} as InterpretationRequest;
+
+type Metered = ModelRequest & { settled?: ModelSettlement };
+
+/** A meter that keeps each request as it was recorded before sending, and how it was settled. */
+function meter() {
+  const calls: Metered[] = [];
+  const record: ModelMeter = (request) => {
+    const entry: Metered = { ...request };
+    calls.push(entry);
+    return (settlement) => {
+      entry.settled = settlement;
+    };
+  };
+  return { calls, record };
+}
+
+const offline = (async () => {
+  throw new TypeError("fetch failed");
+}) as unknown as typeof fetch;
 
 describe("Jev routing", () => {
   const config = { apiKey: "jev-test", baseUrl: "https://jev.test", model: "jev-latest" };
@@ -116,6 +147,33 @@ describe("Jev routing", () => {
     await expect(
       routeWithJev({ ...config, fetch: malformed.fetchStub }, request, signal())
     ).rejects.toMatchObject({ reason: "malformed" });
+  });
+
+  it("records each request before sending it and settles it with the input tokens Jev bills", async () => {
+    const spend = meter();
+    const answered = recorder({
+      model: "jev-1.13.0",
+      answers: { intent: { type: "choice", choice: "status", confidence: 0.9 } },
+      usage: { input_tokens: 296, output_tokens: 20 },
+    });
+    const limited = recorder({ error: "rate limited" }, 429);
+    for (const fetchStub of [answered.fetchStub, limited.fetchStub, offline]) {
+      await routeWithJev(
+        { ...config, fetch: fetchStub },
+        inOtherScripts,
+        signal(),
+        spend.record
+      ).catch(() => undefined);
+    }
+    // The body actually sent at one token per UTF-8 byte, plus room for Jev's own framing.
+    const body = String(answered.calls[0]?.init.body);
+    const reserve = { inputTokens: Buffer.byteLength(body, "utf8") + 1_000 };
+    const sent = { provider: "jev", model: "jev-latest", purpose: "routing", reserve };
+    expect(spend.calls).toEqual([
+      { ...sent, settled: { outcome: "answered", usage: { inputTokens: 296, outputTokens: 20 } } },
+      { ...sent, settled: { outcome: "failed" } },
+      { ...sent, settled: { outcome: "unanswered" } },
+    ]);
   });
 });
 
@@ -190,32 +248,118 @@ describe("OpenAI extraction", () => {
       extractWithOpenAI({ ...config, fetch: incomplete.fetchStub }, withAction, signal())
     ).rejects.toMatchObject({ reason: "malformed" });
   });
+
+  it("records each request before sending it and settles it with the tokens billed, also for output it rejects", async () => {
+    const spend = meter();
+    // An incomplete answer is still billed for what it used.
+    const billed = recorder({
+      ...output({}, "incomplete"),
+      usage: { input_tokens: 900, output_tokens: 40, total_tokens: 940 },
+    });
+    const refused = recorder({ error: "server error" }, 500);
+    for (const fetchStub of [billed.fetchStub, refused.fetchStub, offline]) {
+      await expect(
+        extractWithOpenAI({ ...config, fetch: fetchStub }, inOtherScripts, signal(), spend.record)
+      ).rejects.toBeInstanceOf(InterpretationUnavailableError);
+    }
+    expect(spend.calls.map((call) => call.settled)).toEqual([
+      { outcome: "answered", usage: { inputTokens: 900, outputTokens: 40 } },
+      { outcome: "failed" },
+      { outcome: "unanswered" },
+    ]);
+    // Reserved before sending: the output ceiling, and the whole request body, output schema
+    // included, at one token per UTF-8 byte.
+    const [first] = spend.calls;
+    expect(first).toMatchObject({ provider: "openai", model: "test-model", purpose: "extraction" });
+    expect(first?.reserve.outputTokens).toBe(1_200);
+    const sent = String(billed.calls[0]?.init.body);
+    expect(JSON.parse(sent).text.format.schema).toBeDefined();
+    expect(first?.reserve.inputTokens).toBe(Buffer.byteLength(sent, "utf8"));
+  });
+
+  describe("reserving images and files at a true ceiling", () => {
+    const pinned = { ...config, model: "gpt-4.1-mini-2025-04-14" };
+    const context = {
+      locale: "en",
+      actionTitle: "Tree planting",
+      inputs: request.actions[0]!.inputs,
+    };
+
+    it("reserves a photo at the model's ceiling for the largest image the agent sends", async () => {
+      const spend = meter();
+      const { calls, fetchStub } = recorder(
+        output({ observations: [], uncertain: [], facts: [] }, "completed")
+      );
+      await extractFromMedia(
+        { ...pinned, fetch: fetchStub },
+        { kind: "image", bytes: new Uint8Array(30_000), mime: "image/jpeg" },
+        context,
+        signal(),
+        spend.record
+      );
+      const withoutImage = JSON.stringify(JSON.parse(String(calls[0]?.init.body)), (key, value) =>
+        key === "image_url" ? "" : value
+      );
+      // A 2,048-pixel square is 64 x 64 patches of 32 pixels at 1.62 tokens a patch, 6,636, plus
+      // the one token of rounding OpenAI's guide allows.
+      expect(spend.calls[0]?.reserve.inputTokens).toBe(
+        Buffer.byteLength(withoutImage, "utf8") + 6_637
+      );
+      expect(spend.calls[0]?.purpose).toBe("media");
+    });
+
+    it("reserves the whole context window for a request that carries a file", async () => {
+      const spend = meter();
+      const { fetchStub } = recorder(
+        output({ observations: [], uncertain: [], facts: [] }, "completed")
+      );
+      await extractFromMedia(
+        { ...pinned, fetch: fetchStub },
+        {
+          kind: "document",
+          bytes: new Uint8Array(Buffer.from("%PDF-1.7 report")),
+          filename: "attachment.pdf",
+          mime: "application/pdf",
+          pages: 3,
+        },
+        context,
+        signal(),
+        spend.record
+      );
+      expect(spend.calls[0]?.reserve.inputTokens).toBe(1_047_576);
+    });
+  });
 });
 
 describe("combined interpreter", () => {
   it("uses Jev's decisions, OpenAI's facts, and survives one provider failing", async () => {
+    const meters: unknown[] = [];
     const interpreter = createModelInterpreter({
-      route: async () => ({
-        intent: "report_content",
-        gardenKey: "tas",
-        actionUID: 7,
-        model: "jev",
-      }),
-      extract: async () => ({
-        intent: "status",
-        gardenKey: "aiyeloja",
-        actionUID: null,
-        facts: [{ field: "timeSpentMinutes", value: 180, kind: "reported" }],
-        model: "openai",
-      }),
+      route: async (_request, _signal, meter) => {
+        meters.push(meter);
+        return { intent: "report_content", gardenKey: "tas", actionUID: 7, model: "jev" };
+      },
+      extract: async (_request, _signal, meter) => {
+        meters.push(meter);
+        return {
+          intent: "status",
+          gardenKey: "aiyeloja",
+          actionUID: null,
+          facts: [{ field: "timeSpentMinutes", value: 180, kind: "reported" }],
+          model: "openai",
+        };
+      },
     });
-    expect(await interpreter?.interpret(request, signal())).toEqual({
+    const spend = meter();
+    expect(await interpreter?.interpret(request, signal(), spend.record)).toEqual({
       intent: "report_content",
       gardenKey: "tas",
       actionUID: 7,
       facts: [{ field: "timeSpentMinutes", value: 180, kind: "reported" }],
       models: ["jev", "openai"],
     });
+    // Both providers report to the turn's meter.
+    expect(meters).toEqual([spend.record, spend.record]);
 
     const routingOnly = createModelInterpreter({
       route: async () => ({ intent: "status", gardenKey: null, actionUID: null, model: "jev" }),
@@ -295,7 +439,7 @@ describe("OpenAI voice transcription", () => {
     expect(
       await transcribeVoice(
         { ...config, fetch: fetchStub },
-        { wav: new Uint8Array([1, 2, 3]), locale: "pt-BR" },
+        { wav: new Uint8Array([1, 2, 3]), locale: "pt-BR", seconds: 4 },
         signal()
       )
     ).toEqual({ model: config.transcriptionModel, text: "Planted twelve seedlings." });
@@ -314,7 +458,7 @@ describe("OpenAI voice transcription", () => {
     await expect(
       transcribeVoice(
         { ...config, fetch: malformed.fetchStub },
-        { wav: new Uint8Array([1]), locale: "yo" },
+        { wav: new Uint8Array([1]), locale: "yo", seconds: 4 },
         signal()
       )
     ).rejects.toMatchObject({ reason: "malformed" });
@@ -323,9 +467,71 @@ describe("OpenAI voice transcription", () => {
     await expect(
       transcribeVoice(
         { ...config, fetch: unavailable.fetchStub },
-        { wav: new Uint8Array([1]), locale: "en" },
+        { wav: new Uint8Array([1]), locale: "en", seconds: 4 },
         signal()
       )
     ).rejects.toMatchObject({ reason: "provider_error" });
+  });
+
+  it("reserves the model's own token limits, then settles with the tokens or duration billed", async () => {
+    const spend = meter();
+    const voice = { wav: new Uint8Array([1]), locale: "en", seconds: 42 };
+    const replies = [
+      {
+        type: "tokens",
+        input_tokens: 120,
+        input_token_details: { audio_tokens: 120, text_tokens: 0 },
+        output_tokens: 30,
+        total_tokens: 150,
+      },
+      { type: "duration", seconds: 41 },
+      undefined,
+    ];
+    for (const usage of replies) {
+      const { fetchStub } = recorder({ text: "Planted.", ...(usage ? { usage } : {}) });
+      await transcribeVoice({ ...config, fetch: fetchStub }, voice, signal(), spend.record);
+    }
+    const sent = {
+      provider: "openai",
+      model: config.transcriptionModel,
+      purpose: "transcription",
+      // Its 16,000-token context window and 2,000-token output limit bound what one request bills;
+      // the per-minute price only estimates it.
+      reserve: { inputTokens: 16_000, outputTokens: 2_000 },
+    };
+    // A reply without usage settles with none, and the reserved recording length stands.
+    expect(spend.calls).toEqual([
+      { ...sent, settled: { outcome: "answered", usage: { inputTokens: 120, outputTokens: 30 } } },
+      { ...sent, settled: { outcome: "answered", usage: { audioSeconds: 41 } } },
+      { ...sent, settled: { outcome: "answered" } },
+    ]);
+  });
+});
+
+describe("a request the daily spend cap refuses", () => {
+  it("is never sent, and every adapter reports model processing as off", async () => {
+    // What the ledger's meter throws once the day's recorded cost has reached the cap.
+    const capReached: ModelMeter = () => {
+      throw new InterpretationUnavailableError("disabled");
+    };
+    const { calls, fetchStub } = recorder({});
+    const jev = { apiKey: "jev-test", baseUrl: "https://jev.test", model: "jev-latest" };
+    const openai = {
+      apiKey: "sk-test",
+      baseUrl: "https://openai.test/v1",
+      model: "test-model",
+      transcriptionModel: "gpt-4o-mini-transcribe-2025-12-15",
+      fetch: fetchStub,
+    };
+    const voice = { wav: new Uint8Array([1]), locale: "en", seconds: 4 };
+    const sends = [
+      () => routeWithJev({ ...jev, fetch: fetchStub }, request, signal(), capReached),
+      () => extractWithOpenAI(openai, request, signal(), capReached),
+      () => transcribeVoice(openai, voice, signal(), capReached),
+    ];
+    for (const send of sends) {
+      await expect(send()).rejects.toMatchObject({ reason: "disabled" });
+    }
+    expect(calls).toHaveLength(0);
   });
 });

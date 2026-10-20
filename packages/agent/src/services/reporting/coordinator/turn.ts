@@ -28,6 +28,7 @@ import {
   holdsLease,
   releaseConversationLease,
 } from "../leases";
+import { modelMeter } from "../model-spend";
 import type { ReportingCore } from "../runtime";
 import {
   answerConnectionOffer,
@@ -79,6 +80,11 @@ export interface CoordinatorDeps {
   commands?: Partial<
     Record<string, (writer: TurnWriter, plan: Extract<TurnPlan, { kind: "command" }>) => void>
   >;
+  /**
+   * Aborted once the process is stopping. A turn already under way finishes and commits, because
+   * cutting off its model call would answer the gardener without the model; no other turn starts.
+   */
+  stopping?: AbortSignal;
 }
 
 const MAX_REPLANS = 3;
@@ -250,7 +256,8 @@ async function gatherExternal(
           : [],
         observations: [],
       },
-      deps.interpretationTimeoutMs
+      deps.interpretationTimeoutMs,
+      modelMeter(core)
     );
     // A garden the model read for a report that has none yet: its activities are read in this
     // turn too, so the reply can ask which activity instead of failing to list them.
@@ -444,6 +451,7 @@ export async function processConversation(
   const seen = new Map<string, number>();
   try {
     for (;;) {
+      if (deps.stopping?.aborted) break;
       const event = nextConversationEvent(core, conversationId);
       if (!event) break;
       // A turn must move its event on; one that keeps coming back is parked, not spun on.

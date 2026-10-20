@@ -294,7 +294,7 @@ describe("CommunityPools", () => {
     renderPools(GARDEN);
     const card = screen.getByTestId("current-garden-pool");
     expect(within(card).getByText("Rocinha")).toBeInTheDocument();
-    expect(within(card).getByText(/taking commitments/i)).toBeInTheDocument();
+    expect(within(card).getByText(/taking promises/i)).toBeInTheDocument();
     fireEvent.click(within(card).getByRole("button", { name: /open the pool console/i }));
     expect(mocks.navigate).toHaveBeenCalledWith(
       expect.stringMatching(/^\/garden\/pool\?gardenId=/)

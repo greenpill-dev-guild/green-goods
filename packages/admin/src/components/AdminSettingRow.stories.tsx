@@ -14,7 +14,7 @@ const meta: Meta<typeof AdminSettingRow> = {
     docs: {
       description: {
         component:
-          "A field title (left) paired with a trailing control (right) — the inline setting-row grammar for toggles and compact controls in admin forms and dialogs. The title uses the shared FormField label treatment, so setting rows never read smaller or greyer than the stacked text fields beside them. Pass `labelId` and reference it from a Radix-style control's `aria-labelledby` (e.g. Switch).",
+          "A field title (left) paired with a trailing control (right) — the inline setting-row grammar for toggles and compact controls in admin forms and dialogs. The title uses the shared FormField label treatment, so setting rows never read smaller or grayer than the stacked text fields beside them. Pass `labelId` and reference it from a Radix-style control's `aria-labelledby` (e.g. Switch).",
       },
     },
   },

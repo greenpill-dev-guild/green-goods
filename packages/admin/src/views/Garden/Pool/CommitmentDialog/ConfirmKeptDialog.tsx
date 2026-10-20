@@ -56,7 +56,7 @@ export function ConfirmKeptDialog({
       tone={tone}
       title={formatMessage({
         id: "cockpit.garden.pool.confirmKept.title",
-        defaultMessage: "Confirm This Commitment Kept",
+        defaultMessage: "Confirm This Promise Kept",
       })}
       target={
         <GardenPoolTarget
@@ -80,14 +80,13 @@ export function ConfirmKeptDialog({
         closes
           ? formatMessage({
               id: "cockpit.garden.pool.confirmKept.closes",
-              defaultMessage:
-                "This closes the commitment as kept, for everyone. It cannot be undone.",
+              defaultMessage: "This closes the promise as kept, for everyone. It cannot be undone.",
             })
           : formatMessage(
               {
                 id: "cockpit.garden.pool.confirmKept.counts",
                 defaultMessage:
-                  "Yours is confirmation {next} of the {threshold} needed, and it cannot be taken back. The commitment closes as kept when the last one lands.",
+                  "Yours is confirmation {next} of the {threshold} needed, and it cannot be taken back. The promise closes as kept when the last one lands.",
               },
               { next, threshold }
             )

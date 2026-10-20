@@ -71,17 +71,17 @@ export function CommitmentsSection({
       id="public-garden-detail-commitments"
       kicker={formatMessage({
         id: "public.pool.garden.kicker",
-        defaultMessage: "§ 02: Commitments",
+        defaultMessage: "§ 02: Promises",
       })}
       heading={
         preparing
           ? formatMessage({
               id: "public.pool.garden.heading.preparing",
-              defaultMessage: "This Garden is preparing its pool",
+              defaultMessage: "This garden is preparing its pool",
             })
           : formatMessage({
               id: "public.pool.garden.heading",
-              defaultMessage: "Commitments between neighbours",
+              defaultMessage: "Promises between neighbors",
             })
       }
     >
@@ -124,7 +124,7 @@ function stateSentence(
     return formatMessage({
       id: "public.pool.garden.state.notReady",
       defaultMessage:
-        "Offers and requests between neighbours open once this Garden's pool is ready.",
+        "Offers and requests between neighbors open once this garden's pool is ready.",
     });
   }
   switch (state) {
@@ -137,19 +137,18 @@ function stateSentence(
     case "PAUSED":
       return formatMessage({
         id: "public.pool.garden.state.paused",
-        defaultMessage:
-          "This Garden has paused new commitments for now. Its record stays readable.",
+        defaultMessage: "This garden has paused new promises for now. Its record stays readable.",
       });
     case "CLOSED":
       return formatMessage({
         id: "public.pool.garden.state.closed",
-        defaultMessage: "This Garden's pool has closed. What it kept stays on the record.",
+        defaultMessage: "This garden's pool has closed. What it kept stays on the record.",
       });
     case "COMPOSTED":
       return formatMessage({
         id: "public.pool.garden.state.composted",
         defaultMessage:
-          "This Garden's pool has been composted, ready for the next season. Its record stays here.",
+          "This garden's pool has been composted, ready for the next season. Its record stays here.",
       });
     default:
       // OPEN. Between seasons, the record framing carries the sentence.
@@ -159,12 +158,11 @@ function stateSentence(
         ? formatMessage({
             id: "public.pool.garden.state.betweenSeasons",
             defaultMessage:
-              "The next season has not opened yet. What the Garden has kept so far stays here.",
+              "The next season has not opened yet. What the garden has kept so far stays here.",
           })
         : formatMessage({
             id: "public.pool.garden.state.open",
-            defaultMessage:
-              "Neighbours can offer and take up commitments in this Garden right now.",
+            defaultMessage: "Neighbors can offer and take up promises in this garden right now.",
           });
   }
 }
@@ -177,7 +175,7 @@ function UnavailableRecord({ onRetry }: { onRetry: () => void }) {
     <PanelLead
       lede={formatMessage({
         id: "public.pool.garden.unavailable",
-        defaultMessage: "This Garden's commitments could not be loaded just now.",
+        defaultMessage: "This garden's promises could not be loaded just now.",
       })}
       aside={
         <SectionNotice
@@ -240,7 +238,7 @@ function PoolRecord({
             {formatMessage({
               id: "public.pool.garden.empty",
               defaultMessage:
-                "No commitments have been made yet. They appear here as neighbours offer and take them up.",
+                "No promises have been made yet. They appear here as neighbors offer and take them up.",
             })}
           </PanelNote>
         ) : (
@@ -255,7 +253,7 @@ function PoolRecord({
                 ? formatMessage({
                     id: "public.pool.garden.record.keptRateNote",
                     defaultMessage:
-                      "Kept commitments over every commitment taken up and not mutually released. Commitments still in progress count until they are kept.",
+                      "Kept promises over every promise taken up and not mutually released. Promises still in progress count until they are kept.",
                   })
                 : formatMessage({
                     id: "public.pool.garden.record.countsOnlyNote",

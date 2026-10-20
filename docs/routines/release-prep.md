@@ -14,7 +14,7 @@ env-vars:
 connectors:
   - github # read-only: open PRs, commit ranges, existing releases/tags
   - linear # read-only: the active release project's name (version), targetDate (Phase 0 window), description (why and what ships), and QA complete milestone (release gate)
-model: claude-opus-5
+model: claude-opus-5-5
 allow-unrestricted-branch-pushes: false # read + draft only; no commits, no PRs, no tags
 last_updated: "2026-09-16"
 ---
@@ -89,7 +89,7 @@ Also run `git log origin/develop..origin/main`: commits on `main` that `develop`
 
 ## Phase 2 — Draft release notes
 
-Draft highlights for `vX.Y.Z`, grouped by product area (gardener app, steward cockpit, public site, protocol, platform) and led by the reason the release exists. Start from the **What ships** section of the release project's description, check each line against the Phase 1 range, add anything significant it misses, and flag any line the range does not support. Include the would-be title `"<Month Year> — vX.Y.Z"`.
+Draft highlights for `vX.Y.Z`, grouped by product area (gardener app, steward cockpit, public site, protocol, platform) and led by the reason the release exists. Start from the **What ships** section of the release project's description, check each line against the Phase 1 range, add anything significant it misses, and flag any line the range does not support. Include the would-be title `"<Month Year>: vX.Y.Z"`.
 
 Do not group by commit type. On tag push, `.github/workflows/release.yml` runs `gh release create --generate-notes`, which lists merged PRs only, so commits that reached `develop` without a PR are missing from the generated notes. These highlights are what the human pastes into the GitHub Release after it is created.
 
@@ -132,6 +132,7 @@ List what the human does on cut day, each with its evidence:
   Neither check touches the checkout; never run `git merge` in the checkout itself.
 - **Indexer switch**: inspect every checked-in endpoint in `packages/shared/src/config/blockchain.ts`, `packages/client/vite.config.ts`, `packages/admin/vite.config.ts`, `scripts/ops/ipfs-repin.ts`, `scripts/dev/stack.js`, `scripts/dev/smoke-prod.js`, `scripts/dev/doctor.js`, and `ecosystem.config.cjs` on both branches. Compare the full URL in every file with the verified final deployment recorded in the release pack; a matching Shared fallback alone is insufficient. Flag a missing or different endpoint as incomplete. Confirm schema, representative records, and Arbitrum/Celo sync before listing the switch as complete. This routine cannot read Vercel environment variables, so production's `VITE_ENVIO_INDEXER_URL` and a rebuild from that configuration still need a human or deployment receipt.
 - **Contracts**: summarize contract changes per contract from `git diff --stat origin/main...origin/develop -- packages/contracts/src`, and list the `packages/contracts/deployments/*-latest.json` files changed in the range as deployments to confirm against what is live. Do not flag contract commits one by one.
+- **Release project rollover**: count the release project's open issues (any state except Done, Canceled or Duplicate). Before the project is marked Completed, a person or an authorized session moves them to the next release project, or leaves them unprojected until one starts, per [routing rule 4](../../.claude/context/linear-routing-rules.md#invariant-rules). This routine only counts them.
 
 ### 5c — Open PRs and critical surfaces
 
@@ -190,13 +191,13 @@ Prefix the message with `<@${DISCORD_USER_ID_AFO}>` only when the QA gate is not
    ```text
    You are the release-prep routine for Green Goods. Your spec is docs/routines/release-prep.md on the develop branch of the green-goods repo. It is the single source of truth; there is intentionally no copy here.
 
-   1. Run `git fetch origin develop`. If it fails, stop, report the failure in the run log, and exit non-zero: an older `origin/develop` may still be readable, and running it would run a stale spec.
+   1. Run `git fetch origin +refs/heads/develop:refs/remotes/origin/develop`, which updates `origin/develop` whatever this checkout's fetch settings are. If it fails, stop, report the failure in the run log, and exit non-zero: an older `origin/develop` may still be readable, and running it would run a stale spec.
    2. Read the whole spec: `git show origin/develop:docs/routines/release-prep.md`.
    3. Execute Phases 0 through 7 exactly as written, starting with Phase 0, which decides whether this run posts anything. Where this prompt and the spec differ, follow the spec.
 
    Read and draft only: never commit, merge, tag, open PRs, or cut the release. If the spec is missing or unreadable, stop, report the failure in the run log, and exit non-zero. Never improvise from memory or an older copy.
    ```
 
-4. Configure repo (`green-goods`), environment (`green-goods`), connectors (`github`, `linear`), env vars (`DISCORD_BOT_TOKEN`, `DISCORD_ENGINEERING_CHANNEL_ID`, `DISCORD_USER_ID_AFO`), full network access, model, and the cron `0 16 * * 1-5`. The Discord bot needs View Channel, Send Messages, and Read Message History in `#engineering`, because Phase 0 reads its own markers back.
+4. Configure repo (`green-goods`, checked out at `develop`, its default branch, because the brief inspects checked-in files), environment (`green-goods`), connectors (`github`, `linear`), env vars (`DISCORD_BOT_TOKEN`, `DISCORD_ENGINEERING_CHANNEL_ID`, `DISCORD_USER_ID_AFO`), full network access, model, and the cron `0 16 * * 1-5`. The Discord bot needs View Channel, Send Messages, and Read Message History in `#engineering`, because Phase 0 reads its own markers back.
 5. Save. A manual run always posts a full brief, so trigger one only when a brief in `#engineering` is wanted.
 6. Record the routine id in `docs/routines/README.md`. If the bootstrap is ever pointed at `main`, spec changes take effect only once they land on `main`.

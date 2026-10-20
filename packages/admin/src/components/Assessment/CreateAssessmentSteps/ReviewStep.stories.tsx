@@ -58,8 +58,8 @@ const FAILURES: Record<
 > = {
   declined: {
     tone: "warning",
-    title: "Transaction cancelled",
-    description: "Transaction was cancelled. Please try again when ready.",
+    title: "Transaction canceled",
+    description: "Transaction was canceled. Please try again when ready.",
   },
   broken: {
     tone: "error",

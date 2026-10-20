@@ -113,6 +113,8 @@ If a question's output would name a single user (one row per `distinct_id`), it 
 
 Private-default. The eight bug-intake / debug / release-health questions.
 
+**Error hash.** The `errors.*` questions and `quality.top-failures` hash each error as `cityHash64(concat(toString(message), toString(url)))`. HogQL's `concat` reads a missing message or URL as an empty string, so every exception still gets a hash. On 2026-10-19 this form replaced the two-argument `cityHash64(a, b)`, which HogQL now rejects, and every hash value changed: a hash recorded before that date, such as a QA Sheet `PostHog Hash` cell or an older Linear body, will not match the new hash for the same error.
+
 ### `errors.recent`
 
 - **Lens**: product-quality
@@ -121,7 +123,7 @@ Private-default. The eight bug-intake / debug / release-health questions.
 - **HogQL**:
   ```sql
   SELECT
-    cityHash64(toString(properties.$exception_message), toString(properties.$current_url)) AS error_hash,
+    cityHash64(concat(toString(properties.$exception_message), toString(properties.$current_url))) AS error_hash,
     properties.$exception_type AS exception_type,
     properties.$exception_message AS message,
     properties.$current_url AS current_url,
@@ -155,7 +157,7 @@ Private-default. The eight bug-intake / debug / release-health questions.
     FROM events
     WHERE event = '$exception'
       AND timestamp > now() - interval {window:String}
-      AND cityHash64(toString(properties.$exception_message), toString(properties.$current_url)) = {error_hash:UInt64}
+      AND cityHash64(concat(toString(properties.$exception_message), toString(properties.$current_url))) = {error_hash:UInt64}
   )
   SELECT
     properties.$exception_type AS exception_type,
@@ -186,7 +188,7 @@ Private-default. The eight bug-intake / debug / release-health questions.
 - **HogQL**:
   ```sql
   SELECT
-    cityHash64(toString(properties.$exception_message), toString(properties.$current_url)) AS error_hash,
+    cityHash64(concat(toString(properties.$exception_message), toString(properties.$current_url))) AS error_hash,
     properties.$exception_message AS message,
     count(DISTINCT $session_id) AS sessions_30d,
     count(DISTINCT distinct_id) AS users_30d,
@@ -211,7 +213,7 @@ Private-default. The eight bug-intake / debug / release-health questions.
 - **HogQL**:
   ```sql
   SELECT
-    cityHash64(toString(properties.$exception_message), toString(properties.$current_url)) AS error_hash,
+    cityHash64(concat(toString(properties.$exception_message), toString(properties.$current_url))) AS error_hash,
     properties.$exception_message AS message,
     properties.$current_url AS current_url,
     count(DISTINCT $session_id) AS affected_sessions,
@@ -321,7 +323,7 @@ Private-default. The eight bug-intake / debug / release-health questions.
 - **HogQL**:
   ```sql
   SELECT
-    cityHash64(toString(properties.$exception_message), toString(properties.$current_url)) AS error_hash,
+    cityHash64(concat(toString(properties.$exception_message), toString(properties.$current_url))) AS error_hash,
     properties.$exception_type AS exception_type,
     properties.$exception_message AS message,
     properties.$current_url AS current_url,

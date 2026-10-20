@@ -6,6 +6,7 @@ import {
   type InterpretedIntent,
   type ProposedFact,
 } from "./interpretation";
+import type { ModelMeter } from "./model-spend";
 import { type OpenAIConfig, structuredResponse } from "./openai-responses";
 
 export type { OpenAIConfig } from "./openai-responses";
@@ -107,7 +108,8 @@ const outputSchema = z.object({
 export async function extractWithOpenAI(
   config: OpenAIConfig,
   request: InterpretationRequest,
-  signal: AbortSignal
+  signal: AbortSignal,
+  meter?: ModelMeter
 ): Promise<Extraction> {
   const fields = allowedFields(request);
   const snapshot = {
@@ -122,13 +124,15 @@ export async function extractWithOpenAI(
   const { model, output: raw } = await structuredResponse(
     config,
     {
+      purpose: "extraction",
       instructions: INSTRUCTIONS,
       content: [{ type: "input_text", text: JSON.stringify(snapshot) }],
       schemaName: "report_fields",
       schema: schemaFor(request, fields),
       maxOutputTokens: 1_200,
     },
-    signal
+    signal,
+    meter
   );
   const parsed = outputSchema.safeParse(raw);
   if (!parsed.success) throw new InterpretationUnavailableError("malformed");

@@ -63,7 +63,7 @@ export const Default: Story = {
           {fieldRow("Email", "alex@wefa.world")}
         </div>
         <SheetDivider />
-        {sectionTitle("Organisation")}
+        {sectionTitle("Organization")}
         <div className="mt-2 space-y-2">
           {fieldRow("Workspace", "Green Goods Network")}
           {fieldRow("Role", "Deployer")}

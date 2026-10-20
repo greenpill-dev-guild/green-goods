@@ -170,6 +170,12 @@
       "exact": ["scripts/lib/vitest-shared-graph.mjs"]
     },
     {
+      "check": "agent-test",
+      "runInQa": true,
+      "note": "The agent's i18n test reads us_spelling from this sidecar to check the English chat copy.",
+      "exact": ["scripts/data/banned-vocabulary.json"]
+    },
+    {
       "check": "source-structure",
       "match": "all",
       "prefixes": ["packages/"],
@@ -191,7 +197,12 @@
     },
     {
       "check": "design-guardrails",
-      "exact": ["DESIGN.md", "docs/DESIGN.md", "packages/shared/src/hooks/app/useTheme.ts"],
+      "exact": [
+        "DESIGN.md",
+        "docs/DESIGN.md",
+        "packages/shared/src/hooks/app/useTheme.ts",
+        "scripts/data/banned-vocabulary.json"
+      ],
       "prefixes": [
         "packages/client/src/",
         "packages/admin/src/",
@@ -204,6 +215,18 @@
         ".claude/skills/design/",
         "scripts/design/"
       ]
+    },
+    {
+      "check": "em-dashes",
+      "note": "The check reads the three i18n catalogs and every docs/docs page. An em dash that reaches a generated page through its source also changes the regenerated page, so the docs prefix selects it.",
+      "exact": [
+        "packages/shared/src/i18n/en.json",
+        "packages/shared/src/i18n/es.json",
+        "packages/shared/src/i18n/pt.json",
+        "scripts/design/check-em-dashes.mjs",
+        "scripts/design/check-em-dashes.test.mjs"
+      ],
+      "prefixes": ["docs/docs/"]
     },
     {
       "check": "ontology",
@@ -556,6 +579,8 @@
         ".claude/skills/qa-session/SKILL.md",
         ".claude/skills/qa-triage/README.md",
         ".claude/skills/qa-triage/SKILL.md",
+        ".claude/skills/research-agenda/README.md",
+        ".claude/skills/research-agenda/SKILL.md",
         ".claude/skills/research/README.md",
         ".claude/skills/research/SKILL.md",
         ".claude/skills/resolve-pr-comments/README.md",
@@ -1463,6 +1488,16 @@
       "capabilities": ["dependencies"]
     },
     {
+      "id": "em-dashes",
+      "command": "node scripts/dev/node-cli.js node --test scripts/design/check-em-dashes.test.mjs && node scripts/design/check-em-dashes.mjs",
+      "risk": "an em dash returns to an i18n catalog value or an authored docs page",
+      "expectedSignal": "the i18n catalogs and authored docs pages carry no em dash, and the check's fixtures pass",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 5,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
       "id": "react-patterns",
       "command": "node scripts/quality/check-react-patterns.js",
       "risk": "Independently selectable repository verification must retain its behavior.",
@@ -1829,6 +1864,7 @@
         "biome.json",
         "env.schema",
         "scripts/quality/check-source-structure.js",
+        "scripts/data/banned-vocabulary.json",
         ".github/actions/setup-js/action.yml",
         ".github/workflows/agent.yml",
         "scripts/dev/package-commands.mjs"
@@ -1959,6 +1995,7 @@
         "packages/agent/vitest.config.ts",
         "packages/client/package.json",
         "packages/client/DESIGN.browser.md",
+        "packages/client/DESIGN.md",
         "packages/client/DESIGN.pwa.md",
         "packages/client/src/config/routes.tsx",
         "packages/client/src/config/pwaRouting.ts",

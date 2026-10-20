@@ -26,20 +26,20 @@ export function PoolNotReadyCard({
       <AdminCardTitle>
         {formatMessage({
           id: "cockpit.garden.pool.notReady.title",
-          defaultMessage: "This garden isn’t taking commitments yet",
+          defaultMessage: "This garden isn’t taking promises yet",
         })}
       </AdminCardTitle>
       <p className="max-w-md body-sm text-text-soft">
         {formatMessage({
           id: "cockpit.garden.pool.notReady.body",
           defaultMessage:
-            "Neighbours can offer help and ask for it here once you’ve set up how this pool works.",
+            "Neighbors can offer help and ask for it here once you’ve set up how this pool works.",
         })}
       </p>
       <AdminButton type="button" variant="filled" onClick={onSetUp} disabled={!isOnline}>
         {formatMessage({
           id: "cockpit.garden.pool.act.setUp",
-          defaultMessage: "Set Up Commitments",
+          defaultMessage: "Set Up Promises",
         })}
       </AdminButton>
       {isOnline ? null : (

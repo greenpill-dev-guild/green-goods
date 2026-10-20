@@ -2018,6 +2018,22 @@ test("CI Gate expects exactly the workflows whose path filters start", () => {
   assert.deepEqual(problems, []);
 });
 
+test("every package DESIGN file starts Docs, whose audit reads its spelling", () => {
+  // docs/scripts/docs-audit.mjs reads packages/*/DESIGN*.md, so a new design file needs Docs CI too.
+  const designs = readdirSync(join(repositoryRoot, "packages"), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .flatMap((entry) =>
+      readdirSync(join(repositoryRoot, "packages", entry.name))
+        .filter((name) => /^DESIGN.*\.md$/.test(name))
+        .map((name) => `packages/${entry.name}/${name}`),
+    );
+  assert.ok(designs.length > 0);
+  const unrouted = designs.filter(
+    (path) => !selectExpectedWorkflows({ changedPaths: [path], intent: "merge", ci: true }).includes("Docs"),
+  );
+  assert.deepEqual(unrouted, []);
+});
+
 test("Shared test support that Client and Admin tests import reaches their suites and workflows", () => {
   const consumerWorkflows = (changedPath) =>
     selectExpectedWorkflows({ changedPaths: [changedPath], intent: "merge", ci: true }).filter((name) =>

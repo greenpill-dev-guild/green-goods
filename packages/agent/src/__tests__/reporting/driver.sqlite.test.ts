@@ -25,6 +25,38 @@ describe("loopback reporting driver", () => {
     }
   });
 
+  it("quiesces at once: a message still arrives, but no pass takes it up", async () => {
+    const driver = await startDriver({ port: 0 });
+    try {
+      driver.runtime.quiesce();
+      // Routes keep the database open while the server drains, so intake still records it.
+      const accepted = await fetch(`${driver.url}/__synthetic/events`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          kind: "message",
+          providerRealm: "whatsapp-fixture:wefa",
+          eventId: "after-quiesce",
+          providerMessageId: "after-quiesce-in",
+          chat: { externalChatId: "chat-quiesce", kind: "direct" },
+          sender: { externalSubjectId: "subject-quiesce" },
+          sentAt: Date.now(),
+          text: "Hello",
+        }),
+      });
+      expect(accepted.status).toBe(202);
+      expect(await driver.runtime.tickOnce()).toEqual({
+        statuses: 0,
+        turns: 0,
+        jobs: 0,
+        sent: 0,
+      });
+      expect(driver.transport.sent).toHaveLength(0);
+    } finally {
+      await driver.stop();
+    }
+  });
+
   it("removes the data directory it made when it stops, and leaves a caller's in place", async () => {
     const driver = await startDriver({ port: 0 });
     expect(existsSync(driver.dataDir)).toBe(true);

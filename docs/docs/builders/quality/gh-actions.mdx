@@ -26,7 +26,7 @@ generated_from:
   - package.json
   - scripts/data/validation-policy.json
   - scripts/data/workflow-catalog.json
-source_digest: "sha256:0cfe6ad0894b13e9138096db76ac86038d9a6eb64192c0ed9fcb2a26e60d2b24"
+source_digest: "sha256:70d25a3762f85c727479e15f315868f65cd4f048a340e08a8e2fa37316af3aec"
 source_of_truth:
   - .github/workflows/admin.yml
   - .github/workflows/agent.yml
@@ -61,7 +61,7 @@ import {CopyCommand} from "@site/src/components/docs";
 | Workflow | Purpose | Runs on | Required |
 |---|---|---|---|
 | [Admin](#admin) | Builds and tests the steward cockpit when admin code, the shared code it imports, or the shared test support changes. | pull requests that touch its paths (29 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
-| [Agent](#agent) | Typechecks and tests the messaging agent and its public HTTP API when agent or shared code changes. | pull requests that touch its paths (15 path filters); pushes to `main` and `develop` that touch its paths | No |
+| [Agent](#agent) | Typechecks and tests the messaging agent and its public HTTP API when agent or shared code changes. | pull requests that touch its paths (16 path filters); pushes to `main` and `develop` that touch its paths | No |
 | [CI Gate](#ci-gate) | The one required status. It derives the workflows a pull request's changed files should trigger, waits for each to register and report, and fails as soon as one fails or never shows up, so path-filtered workflows cannot silently weaken branch protection. | every pull request | Yes |
 | [Client](#client) | Builds, tests, and runs the client Playwright project for the public site and the installed PWA. | pull requests that touch its paths (36 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
 | [CodeQL Cache Prune](#codeql-cache-prune) | Deletes stale CodeQL overlay databases from the Actions cache so they cannot evict the Foundry caches the contracts jobs rely on. | pushes to `develop`; a schedule (`37 * * * *` UTC); manual dispatch | No |
@@ -70,7 +70,7 @@ import {CopyCommand} from "@site/src/components/docs";
 | [Contracts](#contracts) | Compiles, lints, and tests the Solidity packages and the contract script suite. | pull requests that touch its paths (9 path filters); pushes to `main` and `develop` that touch its paths; a call from another workflow | No |
 | [Coverage Nightly](#coverage-nightly) | Enforces the measured coverage floors across the packages. Pull requests run plain package tests for fast feedback; this lane measures. | pushes to `main`; a schedule (`43 8 * * *` UTC); manual dispatch | No |
 | [Design](#design) | Checks the design system: Storybook, story coverage, and DesignMD token parity, with optional Chromatic publishing. | pull requests that touch its paths (44 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
-| [Docs](#docs) | Tests the docs generators, audits documentation authority, checks that generated projections and ontology pages are current, and builds the docs site. | pull requests that touch its paths (94 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
+| [Docs](#docs) | Tests the docs generators, audits documentation authority, checks that generated projections and ontology pages are current, and builds the docs site. | pull requests that touch its paths (95 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
 | [Indexer](#indexer) | Builds and tests the Envio indexer handlers against the contract ABIs and deployment artifacts. | pull requests that touch its paths (10 path filters); pushes to `main` and `develop` that touch its paths | No |
 | [Ontology](#ontology) | Validates the ontology sidecar against the code it anchors and keeps its generated reference pages current. | pull requests that touch its paths (96 path filters); pushes to `main` and `develop` that touch its paths | No |
 | [Release](#release) | Builds and publishes a tagged release. | pushed tags matching `v*.*.*` | No |
@@ -92,7 +92,7 @@ Builds and tests the steward cockpit when admin code, the shared code it imports
 Typechecks and tests the messaging agent and its public HTTP API when agent or shared code changes.
 
 - **Use it when:** Bot, webhook, or public API changes.
-- **Runs on:** pull requests that touch its paths (15 path filters); pushes to `main` and `develop` that touch its paths.
+- **Runs on:** pull requests that touch its paths (16 path filters); pushes to `main` and `develop` that touch its paths.
 - **Jobs:** `lint-typecheck-build`, `test`.
 - **Required status:** no, but the CI Gate waits for it on a pull request that touches its paths.
 - **File:** [.github/workflows/agent.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/agent.yml)
@@ -182,7 +182,7 @@ Checks the design system: Storybook, story coverage, and DesignMD token parity, 
 Tests the docs generators, audits documentation authority, checks that generated projections and ontology pages are current, and builds the docs site.
 
 - **Use it when:** Anything under docs/, the generator scripts, the skills catalog, or a source a projection reads.
-- **Runs on:** pull requests that touch its paths (94 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch.
+- **Runs on:** pull requests that touch its paths (95 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch.
 - **Jobs:** `build`.
 - **Required status:** no, but the CI Gate waits for it on a pull request that touches its paths.
 - **File:** [.github/workflows/docs.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/docs.yml)

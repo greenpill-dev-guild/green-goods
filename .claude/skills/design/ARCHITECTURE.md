@@ -1,6 +1,6 @@
 # Design Skill Architecture
 
-One-page map. Read this first when you need design context — it points to the right artifact for the question you actually have.
+One-page map. Read this first when you need design context: it points to the right artifact for the question you actually have.
 
 ---
 
@@ -13,7 +13,7 @@ One-page map. Read this first when you need design context — it points to the 
 
 Dependency chain: `implementation.md → SKILL.md → root DESIGN.md front matter → generated artifacts → runtime projections`.
 
-**AI design tools and coding agents** are platform-agnostic consumers of this stack — fed `ai-ui-brief.md` + `DESIGN.md` + the surface-specific prompt contract, their output is mapped back to existing components. No platform-specific skill — see `design/SKILL.md § Working with AI Design Tools` for the contract.
+**AI design tools and coding agents** are platform-agnostic consumers of this stack. Fed `ai-ui-brief.md` + `DESIGN.md` + the surface-specific prompt contract, their output is mapped back to existing components. No platform-specific skill. See `design/SKILL.md § Working with AI Design Tools` for the contract.
 
 ---
 
@@ -28,10 +28,10 @@ Root `DESIGN.md` front matter is the canonical DesignMD token source. Surface `D
 | `packages/client/DESIGN.pwa.md` | Installed PWA field tool, Inter, bottom AppBar |
 | `packages/client/DESIGN.browser.md` | Public browser site, editorial browser treatment |
 | `docs/DESIGN.md` | Docusaurus documentation dialect, Manrope/Bricolage/IBM Plex Mono |
-| `design/language.md` | Implementation guide — shape, motion, color, material, hero moments |
+| `design/language.md` | Implementation guide: shape, motion, color, material, hero moments |
 | `design/ai-ui-brief.md` | Reusable AI UI/CSS build brief and external reference role map |
 | `packages/shared/src/styles/design-md.generated.css` | Generated DesignMD CSS projection |
-| `packages/shared/src/styles/theme.css` | Runtime consumer — springs, materials, blur, colors |
+| `packages/shared/src/styles/theme.css` | Runtime consumer: springs, materials, blur, colors |
 | `packages/client/src/styles/typography.css` | Client type scale utilities |
 
 ---
@@ -48,9 +48,9 @@ Root `DESIGN.md` front matter is the canonical DesignMD token source. Surface `D
 | Decision: which paradigm for this surface? | `design/SKILL.md § Paradigm Selection` |
 | Decision: which component / primitive? | `design/implementation.md § New Component Runbook` (10 steps) |
 | Surface-specific brief | `packages/admin/DESIGN.md`, `packages/client/DESIGN.pwa.md`, `packages/client/DESIGN.browser.md`, `docs/DESIGN.md` |
-| Locked design decisions (DL-NNN ledger, graduation ladder) | `design/decision-log.md` — append-only; `qa-session` close gate and design rounds append here |
-| PR review (per-change, 4 lenses) | `design/review-checklist.md` — Regenerative → Spatial → Ecosystem → Compliance |
-| Design-system alignment (full repo, or stack-only self-audit) | `design/system-alignment-review.md` — DesignMD files, Warm Earth, `theme.css`, Storybook, admin, client PWA/browser, docs, agentic guidance, Claude + Codex instructions; § Stack-only mode for `design/` infrastructure alone |
+| Locked design decisions (DL-NNN ledger, graduation ladder) | `design/decision-log.md` (append-only; `qa-session` close gate and design rounds append here) |
+| PR review (per-change, 4 lenses) | `design/review-checklist.md`: Regenerative → Spatial → Ecosystem → Compliance |
+| Design-system alignment (full repo, or stack-only self-audit) | `design/system-alignment-review.md`: DesignMD files, Warm Earth, `theme.css`, Storybook, admin, client PWA/browser, docs, agentic guidance, Claude + Codex instructions; § Stack-only mode for `design/` infrastructure alone |
 | Ecosystem / cascade / archetype analysis | `design/ecosystem.md` |
 | Regenerative review checks | `design/review-checklist.md` § Lens 1 |
 | Inspiration / sources / research frameworks | `design/language.md § Philosophy` (Sources) |
@@ -60,7 +60,7 @@ Root `DESIGN.md` front matter is the canonical DesignMD token source. Surface `D
 
 ## Version Coupling
 
-`design/SKILL.md` carries `token_version` — the canonical Warm Earth token spec version, verified by `check:design-tokens`. Root DesignMD front matter changes also require regenerating DesignMD artifacts.
+`design/SKILL.md` carries `token_version`, the canonical Warm Earth token spec version, verified by `check:design-tokens`. Root DesignMD front matter changes also require regenerating DesignMD artifacts.
 
 | When you change… | Do |
 |------------------|-----|
@@ -83,8 +83,8 @@ bun run check --only vocabulary            # lint-enforced banned terms in i18n 
 AI design tools should map output to these exports. Full palette lives in the prompt contracts; here's the quick locator.
 
 **Admin** (`packages/admin/src/components/`):
-- Layout shell: `CanvasLayout`, `AppBar` (admin top context bar), `MainSheet`, `NavigationBar`, `FabButton` (the old side-sheet renderers are deleted — every workspace overlay is a centered `AdminDialog`; the three global AppBar surfaces render in `AdminSideSheet`)
-- M3 wrappers (the `packages/admin/src/components/Admin*.tsx` exports are the roster of record — 21 wrappers across 18 files today; `AdminConfirmDialog` lives in `AdminDialog.tsx`, `AdminSelect`/`AdminTextArea` in `AdminTextField.tsx`): `AdminButton`, `AdminCard`, `AdminCheckbox`, `AdminChoiceGroup`, `AdminConfirmDialog`, `AdminDialog`, `AdminFilterChip`, `AdminInlineField`, `AdminLinearProgress`, `AdminReasonDialog`, `AdminSearchToolbar`, `AdminSelect`, `AdminSelectableCard`, `AdminSettingRow`, `AdminSideSheet`, `AdminSortSelect`, `AdminTabRail`, `AdminTextArea`, `AdminTextField`, `AdminTooltip`, `AdminViewActions` (`AdminBadge`/`AdminFab`/`AdminListItem` deleted 2026-08-29)
+- Layout shell: `CanvasLayout`, `AppBar` (admin top context bar), `MainSheet`, `NavigationBar`, `FabButton` (the old side-sheet renderers are deleted: every workspace overlay is a centered `AdminDialog`; the three global AppBar surfaces render in `AdminSideSheet`)
+- M3 wrappers (the `packages/admin/src/components/Admin*.tsx` exports are the roster of record: 21 wrappers across 18 files today; `AdminConfirmDialog` lives in `AdminDialog.tsx`, `AdminSelect`/`AdminTextArea` in `AdminTextField.tsx`): `AdminButton`, `AdminCard`, `AdminCheckbox`, `AdminChoiceGroup`, `AdminConfirmDialog`, `AdminDialog`, `AdminFilterChip`, `AdminInlineField`, `AdminLinearProgress`, `AdminReasonDialog`, `AdminSearchToolbar`, `AdminSelect`, `AdminSelectableCard`, `AdminSettingRow`, `AdminSideSheet`, `AdminSortSelect`, `AdminTabRail`, `AdminTextArea`, `AdminTextField`, `AdminTooltip`, `AdminViewActions` (`AdminBadge`/`AdminFab`/`AdminListItem` deleted 2026-08-29)
 
 **Client / shared** (`packages/shared/src/components/`, exported from `@green-goods/shared`):
 - Shell: presentation-mode loaders, `PublicShell` (browser), `PwaRuntime` / `AppShell` (installed PWA), `SiteHeader` (browser), `AppBar` (installed PWA)
@@ -112,12 +112,12 @@ The filesystem is the registry: `design/SKILL.md` frontmatter (`name`, `descript
 
 ## Related
 
-- [SKILL.md](./SKILL.md) — Design philosophy, paradigms, decision tree
-- [language.md](./language.md) — Implementation guide
-- [ai-ui-brief.md](./ai-ui-brief.md) — Reusable AI UI/CSS prompt contract and reference role map
-- [review-checklist.md](./review-checklist.md) — 4-lens PR review (per-change)
-- [system-alignment-review.md](./system-alignment-review.md) — Design-system alignment review: full-repo, plus § Stack-only mode for the `design/` stack itself
-- [prompt-contract.md](./prompt-contract.md) — Admin AI prompt vocabulary + palette
-- [client-prompt-contract.md](./client-prompt-contract.md) — Client AI prompt vocabulary + palette
-- Root `DESIGN.md`, `packages/admin/DESIGN.md`, `packages/client/DESIGN.pwa.md`, `packages/client/DESIGN.browser.md`, `docs/DESIGN.md` — DesignMD source and dialect briefs
-- [implementation.md](./implementation.md) — implementation guidance + component runbook
+- [SKILL.md](./SKILL.md): Design philosophy, paradigms, decision tree
+- [language.md](./language.md): Implementation guide
+- [ai-ui-brief.md](./ai-ui-brief.md): Reusable AI UI/CSS prompt contract and reference role map
+- [review-checklist.md](./review-checklist.md): 4-lens PR review (per-change)
+- [system-alignment-review.md](./system-alignment-review.md): Design-system alignment review, full-repo, plus § Stack-only mode for the `design/` stack itself
+- [prompt-contract.md](./prompt-contract.md): Admin AI prompt vocabulary + palette
+- [client-prompt-contract.md](./client-prompt-contract.md): Client AI prompt vocabulary + palette
+- Root `DESIGN.md`, `packages/admin/DESIGN.md`, `packages/client/DESIGN.pwa.md`, `packages/client/DESIGN.browser.md`, `docs/DESIGN.md`: DesignMD source and dialect briefs
+- [implementation.md](./implementation.md): implementation guidance + component runbook

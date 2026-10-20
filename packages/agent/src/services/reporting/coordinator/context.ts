@@ -2,6 +2,7 @@ import { activeConsentId } from "../consent";
 import { readControl } from "../controls";
 import { DraftContentUnavailableError, type DraftRecord, openDraftFor } from "../drafts";
 import { type InboxEventRow, readInboxPayload } from "../inbox";
+import { modelProcessingOn } from "../model-spend";
 import {
   type AccountBinding,
   activeAccount,
@@ -36,7 +37,13 @@ export interface TurnContext {
   review: ReviewRecord | null;
   account: AccountBinding | null;
   intakeEnabled: boolean;
+  /** The model may read this turn: its operator switch is on and today's spend is under the cap. */
   modelEnabled: boolean;
+  /**
+   * The operator's model switch alone, which the consent notice follows: a consent given on a day
+   * the spend cap was reached still covers the days after it, when the model reads again.
+   */
+  modelSwitchOn: boolean;
   noticeSent: boolean;
 }
 
@@ -140,7 +147,8 @@ export function loadTurnContext(core: ReportingCore, event: InboxEventRow): Turn
     review: binding ? openReviewFor(core, binding.participantId, event.conversation_id) : null,
     account: binding ? activeAccount(core, binding.participantId, core.settings.chainId) : null,
     intakeEnabled: readControl(core, "intake").enabled,
-    modelEnabled: readControl(core, "model_processing").enabled,
+    modelEnabled: modelProcessingOn(core),
+    modelSwitchOn: readControl(core, "model_processing").enabled,
     noticeSent: Boolean(notice?.notice_sent_at),
   };
 }

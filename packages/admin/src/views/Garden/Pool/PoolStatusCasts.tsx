@@ -92,7 +92,7 @@ export function PoolStatusCasts({
           {formatMessage({
             id: "cockpit.garden.pool.readError.body",
             defaultMessage:
-              "Something went wrong reaching the indexer. Nothing about the pool, its seasons, or its commitments has changed.",
+              "Something went wrong reaching the indexer. Nothing about the pool, its seasons, or its promises has changed.",
           })}
         </p>
         <AdminButton
