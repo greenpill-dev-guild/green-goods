@@ -1,8 +1,8 @@
-# Ecosystem — Relational Architecture
+# Ecosystem: Relational Architecture
 
 Design for webs of people, not isolated users. Every surface exists in an ecosystem where one person's experience shapes another's. This lens complements the Adaptive Surface (information hierarchy) and Inclusive Design (accessibility) with a third question: **whose experience composes with whose?**
 
-Based on [User Ecosystem Thinking](https://www.rethinkingusers.com/) (Youngblood, Chesluk, Haidary — BIS Publishers, 2021) and the EPIC 2023 paper "Toward an Ethnography of Friction and Ease in Complex Systems."
+Based on [User Ecosystem Thinking](https://www.rethinkingusers.com/) (Youngblood, Chesluk, and Haidary, BIS Publishers, 2021) and the EPIC 2023 paper "Toward an Ethnography of Friction and Ease in Complex Systems."
 
 ---
 
@@ -17,18 +17,18 @@ Archetypes categorize relationships by **function**, not identity. Unlike person
 | 3 | **Intermediary** | Enables others to engage through their own engagement | Steward onboarding gardeners (B2B2C distribution channel) |
 | 4 | **Governing** | Engagement significantly affects another's quality of engagement | Steward approving/rejecting work; Owner assigning roles via Hats |
 | 5 | **Dependent** | Engages as enabled by another user | Gardener depends on Steward creating garden and actions first |
-| 6 | **Terminal** | The focus of another's use — not a user themselves | Community whose impact is being measured |
+| 6 | **Terminal** | The focus of another's use, not a user themselves | Community whose impact is being measured |
 | 7 | **Surrogate** | Engages as a stand-in for another | Steward submitting work on behalf of a gardener without a phone |
 | 8 | **Serial** | Engages in a chain of others engaging | Attestation chain: Gardener → Steward → Evaluator → Funder |
 | 9 | **Parallel** | Engages alongside others who engage similarly | Multiple gardeners submitting to the same action |
-| 10 | **Complementary** | Engages alongside others who engage differently | Gardener and Funder both interact with the same Hypercert — one created it, the other purchases it |
+| 10 | **Complementary** | Engages alongside others who engage differently | Gardener and Funder both interact with the same Hypercert: one created it, the other purchases it |
 | 11 | **Generative** | Engagement alters the solution itself | Steward configuring new actions, creating assessment frameworks |
-| 12 | **Oblique** | Engages through byproducts of others' engagements | Researcher finding attestation data on EAS explorer — never touched Green Goods |
+| 12 | **Oblique** | Engages through byproducts of others' engagements | Researcher finding attestation data on EAS explorer, who never touched Green Goods |
 | 13 | **Ambient** | Engages through the solution's effect on their environment | Community members benefiting from regenerative work without knowing attestations exist |
-| 14 | **Autonomic** | Engages automatically, without conscious awareness | On-chain contracts, indexer, EAS resolver — non-human actors processing attestations |
+| 14 | **Autonomic** | Engages automatically, without conscious awareness | On-chain contracts, indexer, EAS resolver: non-human actors processing attestations |
 | 15 | **Conglomerate** | Engages intimately, technology as extension of self | A gardener for whom the app has become "just how I document my work" |
 
-**Design rule**: When you can only name Direct and Governing users, you have not mapped the ecosystem. The difficulty of populating the other archetypes is itself diagnostic — it reveals blind spots.
+**Design rule**: When you can only name Direct and Governing users, you have not mapped the ecosystem. The difficulty of populating the other archetypes is itself diagnostic: it reveals blind spots.
 
 ---
 
@@ -66,10 +66,10 @@ Archetypes categorize relationships by **function**, not identity. Unlike person
 ```
 
 **Multi-archetype nexus**: a steward occupies four archetypes simultaneously:
-- **Direct** — uses admin dashboard
-- **Governing** — approves/rejects work, shaping each gardener's experience
-- **Intermediary** — onboards gardeners (B2B2C channel)
-- **Generative** — creates actions and assessment frameworks, reshaping what the system *is*
+- **Direct**: uses admin dashboard
+- **Governing**: approves/rejects work, shaping each gardener's experience
+- **Intermediary**: onboards gardeners (B2B2C channel)
+- **Generative**: creates actions and assessment frameworks, reshaping what the system *is*
 
 Each archetype has different UX needs. As a Governing user, the steward needs blast radius awareness (who does this approval affect?). As an Intermediary, the same steward needs onboarding efficiency (how fast can a new gardener get started?). Designing for one flat "Steward" persona misses the relational complexity.
 
@@ -93,7 +93,7 @@ The whole exceeds the sum of its parts. Optimizing the gardener's MDR flow + the
 
 ### Emergence
 
-Some experiences aren't attributable to any single design decision. When a garden community develops shared understanding of "what good work looks like" through repeated submission-approval cycles, that's an emergent property — produced by interaction patterns, not designed explicitly.
+Some experiences aren't attributable to any single design decision. When a garden community develops shared understanding of "what good work looks like" through repeated submission-approval cycles, that's an emergent property: produced by interaction patterns, not designed explicitly.
 
 **Design implication**: Create conditions for positive emergence (consistent feedback loops, transparent criteria) and watch for negative emergence (gaming, rubber-stamp approvals, community distrust).
 
@@ -126,7 +126,7 @@ Extends the Jarvis Principle ([surfaces.md](./surfaces.md) § Progressive Disclo
 | **Engage** | Full detail | + Who else is affected? (complementary/parallel users) |
 | **Deep Dive** | Raw data, audit trail | + Full ecosystem trace (attestation chain visualization) |
 
-Example: When a steward reviews a gardener's work submission, the Glance layer shows the gardener's photo and note. The Scan layer adds: "1 of 12 pending · {funderName}'s Q2 report includes this garden." This is ecosystem-aware disclosure — it surfaces the Governing → Complementary user relationship without cluttering the primary view.
+Example: When a steward reviews a gardener's work submission, the Glance layer shows the gardener's photo and note. The Scan layer adds: "1 of 12 pending · {funderName}'s Q2 report includes this garden." This is ecosystem-aware disclosure: it surfaces the Governing → Complementary user relationship without cluttering the primary view.
 
 ### 2. Cascade Awareness
 
@@ -143,16 +143,16 @@ When one user's action affects another user's experience, make the cascade visib
 
 ### 3. Autonomic User Surfaces
 
-On-chain contracts, indexers, and resolvers are Autonomic Users — non-human actors whose behavior shapes every other user's experience. Make their state visible rather than treating them as invisible infrastructure.
+On-chain contracts, indexers, and resolvers are Autonomic Users: non-human actors whose behavior shapes every other user's experience. Make their state visible rather than treating them as invisible infrastructure.
 
 | Autonomic Actor | What It Does | Surface Pattern |
 |-----------------|-------------|-----------------|
-| **EAS Resolver** | Validates attestation schema | Status indicator: "Verifying schema..." → "Confirmed" or "Schema mismatch — contact steward" |
+| **EAS Resolver** | Validates attestation schema | Status indicator: "Verifying schema..." → "Confirmed" or "Schema mismatch: contact steward" |
 | **Envio Indexer** | Materializes on-chain events | Sync indicator: "Last indexed: 2 min ago" (staleness, not loading spinner) |
 | **Job Queue** | Queues offline submissions | Home tab count + Your Work › Pending: "To upload" · Upload all |
 | **Smart Contracts** | Enforce role-based access | Permission indicator: "Your role: Gardener · Can submit work, cannot approve" |
 
-**Material guidance**: Autonomic user surfaces are **Ambient Display** paradigm ([SKILL.md](./SKILL.md)) — Thin material, peripheral, glanceable. They should never demand attention unless something breaks. When an autonomic actor fails (resolver rejects, indexer falls behind), promote to **Command Surface** paradigm with Thick material.
+**Material guidance**: Autonomic user surfaces are **Ambient Display** paradigm ([SKILL.md](./SKILL.md)): Thin material, peripheral, glanceable. They should never demand attention unless something breaks. When an autonomic actor fails (resolver rejects, indexer falls behind), promote to **Command Surface** paradigm with Thick material.
 
 ### 4. Multi-Archetype Transitions
 
@@ -161,11 +161,11 @@ Users shift between archetypes during a session. Design for the transition, not 
 | Transition | Trigger | UI Pattern |
 |------------|---------|-----------|
 | Steward: Direct → Governing | Opens review queue | Dashboard shifts from personal metrics to review-mode with cascade indicators |
-| Gardener: Direct → Conglomerate | Habitual daily use | Interface simplifies over time — fewer onboarding cues, tighter MDR flow |
+| Gardener: Direct → Conglomerate | Habitual daily use | Interface simplifies over time (fewer onboarding cues, tighter MDR flow) |
 | Community Member: Ambient → Direct | A neighbor tells them about a vote | Low-barrier entry: deep link to specific vote with plain-language context |
 | Funder: Direct → Complementary | Views a Hypercert created by an evaluator's assessment | Certificate view shows the full provenance chain, not just the final artifact |
 
-**Design rule**: Transitions should feel like *focus shifts*, not *mode switches*. The adaptive surface paradigm applies — the user shifts attention between surfaces without the interface rebuilding itself.
+**Design rule**: Transitions should feel like *focus shifts*, not *mode switches*. The adaptive surface paradigm applies: the user shifts attention between surfaces without the interface rebuilding itself.
 
 ### 5. Surrogate User Support
 
@@ -208,9 +208,9 @@ For simple, single-user surfaces (a form, a settings page, a static view), the A
 
 | Source | Authority On |
 |--------|-------------|
-| **Rethinking Users** (Youngblood, Chesluk, Haidary — BIS 2021) | 15 archetypes, 6 exercise cards, ecosystem mapping toolkit |
-| **EPIC 2023** — "Toward an Ethnography of Friction and Ease in Complex Systems" | Three frictions, three systems phenomena, theoretical foundation |
-| **NNGroup** — "User-Ecosystem Thinking: An Anthropologic Approach to Design" | Practitioner-oriented framework summary |
-| **MHCLG Digital** — "Applying User Ecosystem Thinking in Funding Service" | UK gov case study: workshop format, surprises, outcomes |
-| **Green Goods Personas** | `docs/docs/builders/architecture/personas.mdx` — Gardener, Steward, Evaluator, Funder, Community Member, projected from the ontology |
+| **Rethinking Users** (Youngblood, Chesluk, and Haidary, BIS 2021) | 15 archetypes, 6 exercise cards, ecosystem mapping toolkit |
+| **EPIC 2023**: "Toward an Ethnography of Friction and Ease in Complex Systems" | Three frictions, three systems phenomena, theoretical foundation |
+| **NNGroup**: "User-Ecosystem Thinking: An Anthropologic Approach to Design" | Practitioner-oriented framework summary |
+| **MHCLG Digital**: "Applying User Ecosystem Thinking in Funding Service" | UK gov case study: workshop format, surprises, outcomes |
+| **Green Goods Personas** | `docs/docs/builders/architecture/personas.mdx`: Gardener, Steward, Evaluator, Funder, Community Member, projected from the ontology |
 | **Green Goods Tone** | `.claude/context/product.md` § Persona & Tone Quick-Reference |

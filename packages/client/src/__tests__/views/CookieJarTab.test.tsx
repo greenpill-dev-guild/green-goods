@@ -289,7 +289,7 @@ describe("CookieJarTab", () => {
 
     // Offline reads fail closed — an empty list proves nothing.
     expect(
-      screen.getByText("You're offline — cookie jars can't refresh right now.")
+      screen.getByText("You're offline, so cookie jars can't refresh right now.")
     ).toBeInTheDocument();
     expect(screen.queryByText("No cookie jars yet")).not.toBeInTheDocument();
   });

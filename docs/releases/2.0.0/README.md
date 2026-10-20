@@ -55,7 +55,7 @@ Brave check on October 14 rendered the production Client landing page, a public 
 active pooling season and an approved Work detail, and the Admin Hub. Nothing was signed and no
 private identities were recorded. No production error canary was run.
 
-## Approved app scope — October 13
+## Approved app scope (October 13)
 
 Afo narrowed 2.0.0 to Garden promises, documented Work and review, the steward workspace,
 Profile/access requests, passkey continuity, and installed-app recovery/update behavior.

@@ -417,7 +417,7 @@ describe("SendTab", () => {
     render(<SendTab />);
 
     expect(
-      screen.getByText("You're offline — balances can't refresh right now.")
+      screen.getByText("You're offline, so balances can't refresh right now.")
     ).toBeInTheDocument();
     expect(screen.queryByText("No tokens yet")).not.toBeInTheDocument();
     // Retry is pointless without a connection.
@@ -429,8 +429,8 @@ describe("SendTab", () => {
     render(<SendTab />);
 
     expect(
-      screen.getByText("You're offline — balances can't refresh right now.")
-    ).toHaveTextContent("You're offline — balances can't refresh right now.");
+      screen.getByText("You're offline, so balances can't refresh right now.")
+    ).toHaveTextContent("You're offline, so balances can't refresh right now.");
     expect(screen.getByRole("button", { name: /^Send USDC/ })).toBeInTheDocument();
   });
 

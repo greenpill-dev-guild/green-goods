@@ -1,14 +1,14 @@
-# Admin UX Brief — canonical (Afo, 2026-08-16)
+# Admin UX Brief: canonical (Afo, 2026-08-16)
 
 The standing brief for all admin-console UI work: the shipped console in `packages/admin`,
 admin-surface prototypes (the commitment-pooling hifi set and successors), and any AI-generated
-admin design. Written by Afo during the 2026-08-16 admin prototype review; supersedes nothing —
+admin design. Written by Afo during the 2026-08-16 admin prototype review. It supersedes nothing:
 it fills the interaction-design layer the skill previously left implicit. The repo-specific
 codification of these principles (with shipped-code citations) is
 [interaction-patterns.md](./interaction-patterns.md); this file is the source brief and the
 authoritative external-reference list.
 
-Improve the existing product — not just its visual styling — so it becomes simpler, more
+Improve the existing product (not just its visual styling) so it becomes simpler, more
 consistent, accessible, responsive, and efficient for frequent administrative work. Continue from
 the repository's current state. Preserve existing functionality, routes, permissions, data
 contracts, and approved work unless a change is necessary to improve usability or fix an
@@ -19,29 +19,29 @@ inconsistency.
 Do not copy the visual branding of these systems. Extract their usability principles and adapt
 them to our product, brand, users, and technical stack.
 
-1. **Nielsen Norman Group's usability heuristics** — https://www.nngroup.com/articles/ten-usability-heuristics/
+1. **Nielsen Norman Group's usability heuristics**: https://www.nngroup.com/articles/ten-usability-heuristics/
    Apply: clear system status and timely feedback · familiar language instead of implementation
    terminology · user control, cancellation, undo, and safe exits · consistent controls and
    established conventions · error prevention before error messaging · recognition rather than
    reliance on memory · efficient workflows for both new and experienced users · minimal, relevant
    presentation · specific, actionable error recovery · contextual help where users may need it.
-2. **GOV.UK Design System** — https://design-system.service.gov.uk/
+2. **GOV.UK Design System**: https://design-system.service.gov.uk/
    Study its task-focused patterns for: forms and field grouping · validation and error summaries ·
    transactional workflows · confirmation states · clear content hierarchy · progressive
    disclosure · plain-language instructions · accessible, predictable controls.
-3. **U.S. Web Design System** — https://designsystem.digital.gov/
+3. **U.S. Web Design System**: https://designsystem.digital.gov/
    Reference for: accessible and mobile-friendly components · consistent navigation and page
    structure · forms, filters, tables, alerts, and status messages · inclusive interaction
    patterns · semantic HTML and progressive enhancement.
-4. **Laws of UX** — https://lawsofux.com/
+4. **Laws of UX**: https://lawsofux.com/
    Apply: Hick's Law (reduce and organize choices) · Fitts's Law (make important targets easy to
    reach and select) · Jakob's Law (follow familiar interface conventions) · Tesler's Law (manage
    unavoidable complexity instead of passing it to users) · Cognitive Load (reveal information at
    the moment it becomes useful) · Proximity and common-region (visually group related information).
-5. **web.dev Responsive Design** — https://web.dev/learn/design
+5. **web.dev Responsive Design**: https://web.dev/learn/design
    Modern responsive-layout practice. The console must remain usable at every supported viewport
    without unintended page overflow, clipped actions, unreadable content, or broken navigation.
-6. **Refactoring UI** — https://refactoringui.com/
+6. **Refactoring UI**: https://refactoringui.com/
    Practical guidance for: visual hierarchy · spacing and alignment · typography · color and
    contrast · component polish · reducing unnecessary borders · using emphasis intentionally ·
    creating rhythm and consistency.

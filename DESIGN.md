@@ -150,7 +150,7 @@ components:
 
 ## Relationship to Codebase
 
-This file uses **role vocabulary** (neutral/primary/secondary/tertiary = canvas/ink/stone/accent). The codebase uses its own internal token naming — `--color-primary`, `bg-primary`, and `bg-primary-base` are historical implementation labels that resolve to the **green accent/action family**, not the DesignMD `primary` role. Neither renames — this file translates between them.
+This file uses **role vocabulary** (neutral/primary/secondary/tertiary = canvas/ink/stone/accent). The codebase uses its own internal token naming: `--color-primary`, `bg-primary`, and `bg-primary-base` are historical implementation labels that resolve to the **green accent/action family**, not the DesignMD `primary` role. Neither renames. This file translates between them.
 
 Green fills that carry text, a number, or a glyph use a contrast-safe action pair: filled CTAs, count badges, step markers, selected chips, and pills. Light mode uses `tertiary-action` with white `on-tertiary-action` (5.72:1; DL-017). In the dark PWA, `tertiary-dark` pale mint pairs with near-black `on-tertiary-dark` ink (16.34:1; DL-088). White text never sits on mint or bright `tertiary` fills.
 
@@ -162,28 +162,28 @@ Green foregrounds and selection marks on a PWA surface use `--primary-on-surface
 
 ## Creative Direction
 
-**Empathy statement:** Green Goods is a community garden. When users arrive, they should feel they've stepped into an open, sun-warmed garden where diverse beds grow side by side. The interface is the soil — warm, grounding, and ready for planting. Not a dashboard. Not a terminal. A place where impact takes root.
+**Empathy statement:** Green Goods is a community garden. When users arrive, they should feel they've stepped into an open, sun-warmed garden where diverse beds grow side by side. The interface is the soil: warm, grounding, and ready for planting. Not a dashboard. Not a terminal. A place where impact takes root.
 
-**Design concept:** *Warm Earth* — architectural warmth of sun-bleached linen, the quiet authority of a well-kept garden journal, and the vibrant punctuation of new growth. Handmade but precise, like a beautifully organized seed catalog.
+**Design concept:** *Warm Earth*. The architectural warmth of sun-bleached linen, the quiet authority of a well-kept garden journal, and the vibrant punctuation of new growth. Handmade but precise, like a beautifully organized seed catalog.
 
 **Key aesthetic words:**
 - Sun-bleached linen, warm parchment, garden journal
 - Soft charcoal ink on cream paper
 - Terracotta clay, worn wood, pressed leaves
-- The green of new growth — vivid but not neon
-- Spring physics — things settle, bounce gently, feel alive
+- The green of new growth, vivid but not neon
+- Spring physics: things settle, bounce gently, feel alive
 
 ## Design Language: Warm Earth
 
 A synthesis of Material Design 3 Expressive warmth with Apple Liquid Glass structural precision. Three qualities guide every decision:
 
-1. **Warmth** — Higher chroma, spring motion, shape morphing. Friendly and alive, not sterile.
-2. **Clarity** — Concentricity, functional layers, content-forward hierarchy. Structure is self-evident, never decorated into existence.
-3. **Purpose** — Every element serves the mission. No engagement hacking. No dark patterns.
+1. **Warmth**: Higher chroma, spring motion, shape morphing. Friendly and alive, not sterile.
+2. **Clarity**: Concentricity, functional layers, content-forward hierarchy. Structure is self-evident, never decorated into existence.
+3. **Purpose**: Every element serves the mission. No engagement hacking. No dark patterns.
 
 ## Color Hierarchy
 
-Four roles, defined by **how much of the screen each occupies** — not a palette ranking:
+Four roles, defined by **how much of the screen each occupies**, not a palette ranking:
 
 | Role | Volume | Color | Hex (light / dark) | Job |
 |------|--------|-------|--------------------|-----|
@@ -192,11 +192,11 @@ Four roles, defined by **how much of the screen each occupies** — not a palett
 | **Secondary (stone)** | 3-5% | Earth stone | #78716C / #A8A29E | Metadata, borders, labels |
 | **Tertiary (accent)** | 1-3% | Garden green | #1FC16B | CTAs, active states, value-flow |
 
-**Rule:** Tertiary (green) is third in volume but first in visual pull. The bright flower — draws the eye *because* everything else is quiet. Flooding the screen with green is the #1 failure mode.
+**Rule:** Tertiary (green) is third in volume but first in visual pull. The bright flower draws the eye *because* everything else is quiet. Flooding the screen with green is the #1 failure mode.
 
 **Supporting accents** (situational, not core hierarchy):
-- **Amber** #D97706 — Warnings, seasonal indicators, secondary warmth
-- **Sky** #3B82F6 — Information, external links, evaluation/assessment context
+- **Amber** #D97706: Warnings, seasonal indicators, secondary warmth
+- **Sky** #3B82F6: Information, external links, evaluation/assessment context
 
 **State colors:** Information (Sky), Warning (Amber), Error (red), Success (Tertiary green).
 
@@ -204,7 +204,7 @@ Four roles, defined by **how much of the screen each occupies** — not a palett
 
 | Role | Font | Weight | Use |
 |------|------|--------|-----|
-| **Editorial headlines** | Serif display (Fraunces, Lora, or Newsreader) | 600-700 | Browser site only — garden/impact editorial pages |
+| **Editorial headlines** | Serif display (Fraunces, Lora, or Newsreader) | 600-700 | Browser site only (garden/impact editorial pages) |
 | **App headlines** | Inter (client PWA) / Plus Jakarta Sans (admin) | 600-700 | Functional headings |
 | **Body** | Inter (client) / Plus Jakarta Sans (admin) | 400-500 | Core reading text |
 | **Labels / timestamps** | Inter (client) / Plus Jakarta Sans (admin) | 500 | Utility text, metadata |
@@ -213,7 +213,7 @@ Four roles, defined by **how much of the screen each occupies** — not a palett
 
 ## Voice & Copy
 
-> Companion to the visual creative direction. Same brief — verbal expression instead of visual.
+> Companion to the visual creative direction. Same brief: verbal expression instead of visual.
 
 **Voice:** Green Goods speaks like a knowledgeable neighbor who runs the community garden. Warm but not gushing. Practical but not clinical. Knows soil science but explains it by pointing at the compost pile.
 
@@ -237,7 +237,7 @@ Tone shifts by context while voice stays constant:
 | **Onboarding** | Encouraging, patient | "Start by describing what you see. We'll help with the rest." |
 | **Submitting work** | Supportive, clear | "Add a photo and a few words about what you did today." |
 | **Hero moments** | Celebratory, genuine | "Your first contribution. This garden is growing because of you." |
-| **Errors** | Calm, constructive | "That didn't go through. Your work is saved — try again when you're ready." |
+| **Errors** | Calm, constructive | "That didn't go through. Your work is saved. Try again when you're ready." |
 | **Offline** | Reassuring, matter-of-fact | "You're offline. Everything is saved locally and will sync when you reconnect." |
 | **Admin / steward** | Efficient, status-oriented | "3 submissions pending review. 1 flagged for follow-up." |
 | **Funding / impact** | Respectful, concrete | "This garden has documented 47 actions across 3 seasons." |
@@ -273,6 +273,8 @@ domain.
 
 **US spelling (2026-10-17).** All English copy uses US spelling (canceled, neighbor, color, gray, fulfill); quoted third-party names keep theirs, and the vocabulary check, the docs audit and the agent's copy test reject the common UK forms.
 
+**No em dashes (2026-10-18).** Human-facing copy never uses an em dash (U+2014). Restructure the sentence with a period, colon, comma, or parentheses, never a hyphen or a spaced en dash. Ontology definitions keep their punctuation, and `bun run check --only em-dashes` rejects em dashes in the i18n catalogs and authored docs pages.
+
 ### Writing Checklist
 
 Before shipping copy:
@@ -290,12 +292,12 @@ Surface-specific copy patterns (browser editorial, PWA gardener-facing, admin ut
 
 Full specs in [`.claude/skills/design/language.md`](.claude/skills/design/language.md). AI prompts should honor these one-line rules:
 
-- **Shape** — *Fixed* (badges, avatars), *Capsule* (icon buttons, chips), *Concentric* (nested: `child_radius = parent_radius − padding`). Buttons take one corner per surface whatever their emphasis: the 16px field corner (`rounded.lg`) in the installed app, tightening to 12px while pressed, with the 32px compact size at 12px at rest and 8px while pressed (DL-029, DL-038), and the capsule (`rounded.full`) on the public website, at rest and while pressed (DL-089); fill, outline, and color carry emphasis. Fields are 16px (`rounded.lg`). Buttons and fields share one height scale: 48 / 44 / 40 / 32px.
-- **Motion** — Named spring tokens only (`--spring-spatial`, `--spring-spatial-fast`, `--spring-effects`, etc.). Never hardcoded `cubic-bezier` or `duration`. Things settle like a leaf on water.
-- **Material** — Five thicknesses (ultrathin 20% / thin 40% / regular 65% / thick 85% / solid 100%). Match thickness to content density. Never body text on ultrathin. Admin limits glass to Navigation/FAB chrome only; the admin `AppBar` root stays transparent and dialogs/side sheets stay solid.
-- **Elevation** — Five Z-layers (Z0 substrate → Z4 overlay). Admin workspace action/detail flows open in centered `AdminDialog`; the canvas stays at rest and depth comes from the dialog scrim/elevation. Global AppBar surfaces use solid `AdminSideSheet`. Viewport dialogs and PWA sheets may use the shared scrim token.
-- **Progressive disclosure** — Four layers: Glance (<1s) → Scan (1-3s) → Engage (3s+) → Deep Dive (intentional).
-- **Hero moments** — Garden creation, first submission, hypercert mint. Amplify shape + color + motion + typography + material together. Succession-aware: pioneer=simple, intermediate=moderate, climax=full.
+- **Shape**: *Fixed* (badges, avatars), *Capsule* (icon buttons, chips), *Concentric* (nested: `child_radius = parent_radius − padding`). Buttons take one corner per surface whatever their emphasis: the 16px field corner (`rounded.lg`) in the installed app, tightening to 12px while pressed, with the 32px compact size at 12px at rest and 8px while pressed (DL-029, DL-038), and the capsule (`rounded.full`) on the public website, at rest and while pressed (DL-089); fill, outline, and color carry emphasis. Fields are 16px (`rounded.lg`). Buttons and fields share one height scale: 48 / 44 / 40 / 32px.
+- **Motion**: Named spring tokens only (`--spring-spatial`, `--spring-spatial-fast`, `--spring-effects`, etc.). Never hardcoded `cubic-bezier` or `duration`. Things settle like a leaf on water.
+- **Material**: Five thicknesses (ultrathin 20% / thin 40% / regular 65% / thick 85% / solid 100%). Match thickness to content density. Never body text on ultrathin. Admin limits glass to Navigation/FAB chrome only; the admin `AppBar` root stays transparent and dialogs/side sheets stay solid.
+- **Elevation**: Five Z-layers (Z0 substrate → Z4 overlay). Admin workspace action/detail flows open in centered `AdminDialog`; the canvas stays at rest and depth comes from the dialog scrim/elevation. Global AppBar surfaces use solid `AdminSideSheet`. Viewport dialogs and PWA sheets may use the shared scrim token.
+- **Progressive disclosure**: Four layers. Glance (<1s) → Scan (1-3s) → Engage (3s+) → Deep Dive (intentional).
+- **Hero moments**: Garden creation, first submission, hypercert mint. Amplify shape + color + motion + typography + material together. Succession-aware: pioneer=simple, intermediate=moderate, climax=full.
 
 ## Interface Principles
 
@@ -364,7 +366,7 @@ These are how the principles above apply to on-chain acts, not a separate rulebo
 **Do:**
 - Use role vocabulary (canvas/ink/stone/green) when describing designs to AI tools
 - Use semantic color tokens in code, never raw values
-- Let the canvas breathe — generous whitespace
+- Let the canvas breathe: generous whitespace
 - Give every button on a surface the same corner; show importance with fill, outline, and color
 - Celebrate milestone moments with expressive motion
 - Design for sunlight readability (high contrast on warm backgrounds)
@@ -377,13 +379,13 @@ These are how the principles above apply to on-chain acts, not a separate rulebo
 
 **Don't:**
 - Let a control act outside the garden the page announces, or a tab change scope silently (Interface Principle 4)
-- Flood the screen with green — it's the accent (1-3%), not the canvas
-- Use dark scrims behind parallel admin sheets — depth comes from canvas recession and sheet material
+- Flood the screen with green: it's the accent (1-3%), not the canvas
+- Use dark scrims behind parallel admin sheets: depth comes from canvas recession and sheet material
 - Mix serif and sans-serif on the same surface (except browser editorial)
 - Add decorative gradients behind routine UI
-- Use generic placeholder copy — real content makes the design real
-- Animate without intent — every motion should aid comprehension
+- Use generic placeholder copy: real content makes the design real
+- Animate without intent: every motion should aid comprehension
 - Use countdown timers, leaderboards, or streak mechanics
 - Add re-engagement notifications or FOMO-driven urgency
-- Design competitive comparisons — show verified impact, not rankings
-- Use trading-floor aesthetics — this is a garden, not a terminal
+- Design competitive comparisons: show verified impact, not rankings
+- Use trading-floor aesthetics: this is a garden, not a terminal
