@@ -720,7 +720,7 @@
       "id": "funder",
       "display": "Funder",
       "hat": "funder",
-      "definition": "A person or organization who funds a garden's Work, from an individual or diaspora supporter to a grantmaker, institution, or crypto ecosystem fund. A funder donates to the garden's Cookie Jar, endows its Vault, or backs the garden through a grant or partnership. A donation is a gift with nothing to withdraw. An endowment is a Vault deposit the funder can redeem, less any strategy or contract loss; its yield is donated onward through the garden's configured splits, never paid to the funder. Giving needs no role; a steward or owner may grant the funder Hat, which makes its holder a garden member.",
+      "definition": "A person or organization who funds a garden's work, from an individual or diaspora supporter to a grantmaker, institution, or crypto ecosystem fund. A funder donates to the garden's cookie jar, endows its vault, or backs the garden through a grant or partnership. A donation is a gift with nothing to withdraw. An endowment is a vault deposit the funder can redeem, less any strategy or contract loss; its yield is donated onward through the garden's configured splits, never paid to the funder. Giving needs no role; a steward or owner may grant the funder Hat, which makes its holder a garden member.",
       "surfaces": ["admin", "client", "public", "docs"]
     },
     {

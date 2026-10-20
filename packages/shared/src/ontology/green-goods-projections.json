@@ -649,7 +649,7 @@
       "plain_name": "A person or organization supporting the work",
       "why_it_matters": "Funding connects credible evidence to durable community capacity.",
       "who_touches_it": ["Steward", "Gardener"],
-      "example": "One funder donates to a garden's Cookie Jar, another endows its Vault, and a grantmaker backs the same garden through a grant.",
+      "example": "One funder donates to a garden's cookie jar, another endows its vault, and a grantmaker backs the same garden through a grant.",
       "aliases": ["supporter"],
       "not_confused_with": ["Community Member"]
     },
