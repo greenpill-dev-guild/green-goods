@@ -7,7 +7,7 @@ surface: client-pwa
 dialect: installed-pwa
 ---
 
-# Green Goods Client PWA — Design Brief
+# Green Goods Client PWA: Design Brief
 
 > Installed PWA creative direction for the gardener-facing field tool. Use with the root `DESIGN.md`; lint this overlay and the root file separately.
 
@@ -29,7 +29,7 @@ dialect: installed-pwa
 
 **Layout philosophy:**
 - Mobile-first, thumb-zone optimized
-- AppBar: 3 tabs — Home (with notification badge), Garden, Profile
+- AppBar with 3 tabs: Home (with notification badge), Garden, Profile
 - AppBar hides for immersive surfaces: Submit Work (`/home/garden/*`), a garden's own page and everything under it (`/home/:id/**`: the garden banner carries back, and work detail, promise detail, composer and proof routes carry their own fixed action bar exactly where the nav would sit), and whenever any sheet or dialog is open (DL-015). `isImmersiveAppRoute` in `config/pwaRouting.ts` owns the route rule. Sheet primitives register themselves while open, so there is no list of sheets to keep in sync
 - Sheet heights (DL-014): every bottom sheet names one tier and never sets its own height. `compact` sizes to its content up to 50% (confirmations, resume prompts, gardener and badge details, a pool's agreement, Offer or Request); `half` holds 50% (short choices and a single preview: take a promise up, the profile photo, season and campaign details, the promise from Submit Work); `tall` holds 70% (lists and short forms: notifications, link work, request to join, withdraw an offer, conviction, the promise mid-proof); `full` holds 85% (tabbed workspaces, long reviews, and the garden filters: wallet, promises, your work, endowment, filter gardens, vault checkout, confirm a promise). Photo viewers and public records open full screen. The steward feedback drawer on a work page is not a sheet but caps at the half value and renders the shared header. No other height exists: the sheet surface sets no cap of its own and the centered dialogs share one 90vh cap
 - Sheet header (DL-028): every sheet and dialog renders the one shared header (`SheetHeader`, through `PwaSheet`, `AppSheet`, the work dashboard, and the centered `DialogShell` and `ConfirmDialog`): a 40×6 grip that drags to dismiss on every bottom sheet, the title at 18px semibold on a 24px line, an optional description at 14px on a 20px line, both wrapping rather than clipping, no leading icon (a confirmation's tone lives in its filled action and its alertdialog role), a 44px borderless Close button labeled "Close" on the title's line, and no rule under the header; a hairline appears only while the body scrolls under it, and a tab rail sits directly under the header with its own rule. The title labels the dialog. Below the header, every heading in the body (section headings, group labels over lists, and empty, error, and success state titles) uses `SheetHeading`: 14px semibold on a 20px line in the strong text color, in sentence case, never small capitals. The client stylesheet carries no element type rules (`h1`–`h6`, `p`), so the shared header renders as declared; the legacy client type utilities (`title-section`, `body-sm-regular`) are gone with it
@@ -49,22 +49,22 @@ dialect: installed-pwa
 - Safe areas: `env(safe-area-inset-bottom)` for notched devices
 
 **Typography:**
-- Inter only — no serif. This is a tool, not a magazine.
+- Inter only, no serif. This is a tool, not a magazine.
 - Type comes from the shared theme tokens and the shared components' own rules. The client's legacy type utilities (`.title-screen`, `.label-md`, `.body-md-regular`, and siblings) read tokens no stylesheet defines and are being retired; `.title-section` and `.body-sm-regular` are already gone (DL-028). The client stylesheet sets no element type sizes, so every heading names its own size and weight (`typographyLayer.guard.test.ts` fails a heading that does not)
-- Compact type scale — body-sm and label-md are the workhorses
+- Compact type scale: body-sm and label-md are the workhorses
 
 **Content hierarchy:**
-1. Active garden context — always visible, always grounding
-2. Work in progress — drafts, submissions, the thing you're doing now
-3. Garden activity — what others are contributing
-4. Your impact — personal contribution history
+1. Active garden context: always visible, always grounding
+2. Work in progress: drafts, submissions, the thing you're doing now
+3. Garden activity: what others are contributing
+4. Your impact: personal contribution history
 
 **Words:** the app calls commitments promises: the garden's Promises tab, Home's Promises launcher and sheet, and every string that names them ("Promesas", "Promessas"). Offers and requests are both promises; "pool" names only the container (its agreement, a paused or closed pool). Code identifiers, routes, the ontology, and the docs keep "commitment" (DL-059).
 
 **Offline behavior:**
-- Warm, reassuring offline indicators — not error-red
+- Warm, reassuring offline indicators, not error-red
 - Your Work has two tabs, Pending and Completed. Pending is one list sorted by what needs you: can't upload, work to review (stewards), to upload, drafts, checking, then sent work in review; unsent proof lists beside work. Home's Your Work badge counts what is still on this phone (drafts, work and reviews to upload or being checked, unsent proof), not sent work in review, and Upload all sends what is ready without a count (DL-061)
-- Draft persistence is invisible — you never lose work — and a work draft keeps the promise it is for: resuming it brings the promise back into Submit Work, checked against the live promises (DL-062)
+- Draft persistence is invisible (you never lose work), and a work draft keeps the promise it is for: resuming it brings the promise back into Submit Work, checked against the live promises (DL-062)
 
 **Window Controls Overlay:** CSS is ready for desktop PWA titlebar integration (`.app-titlebar` with `app-region: drag`). Currently prepared but not active in components.
 
@@ -80,7 +80,7 @@ The PWA inherits the Warm Earth core. Green accents follow one theme-aware rhyth
 - A red fill that carries white text (the filled danger button, error badges) uses `--error-action`, red-700 in both themes (DL-053).
 - Shared runtime aliases scope the mint palette to PWA presentation and Storybook app surfaces; public and admin retain their own palettes. The static boot fallback mirrors the dark action pair before styles load.
 
-**Dynamic garden theming** (future): Each garden can tint the experience with accent color derived from its banner image. Foundation palette remains — only the accent shifts.
+**Dynamic garden theming** (future): Each garden can tint the experience with accent color derived from its banner image. The foundation palette stays, and only the accent shifts.
 
 ---
 
@@ -104,6 +104,6 @@ The PWA inherits the Warm Earth core. Green accents follow one theme-aware rhyth
 
 **Don't:**
 - Show `SiteHeader` or hamburger navigation in installed PWA mode
-- Use editorial serif in the PWA — it is an app, not a magazine
+- Use editorial serif in the PWA (it is an app, not a magazine)
 - Replace the PWA green roles with admin workspace colors
 - Make the funding or submission flow feel transactional

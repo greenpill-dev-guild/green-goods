@@ -218,7 +218,7 @@
     },
     {
       "check": "em-dashes",
-      "note": "The check reads the three i18n catalogs and every docs/docs page. An em dash that reaches a generated page through its source also changes the regenerated page, so the docs prefix selects it.",
+      "note": "The check reads the three i18n catalogs, every docs/docs page, and the design guides: each DESIGN*.md at the root, in docs, and in each package, and the design skill's pages. An em dash that reaches a generated page through its source also changes the regenerated page, so the docs prefix selects it. The DESIGN*.md guides route through the next rule.",
       "exact": [
         "packages/shared/src/i18n/en.json",
         "packages/shared/src/i18n/es.json",
@@ -226,7 +226,12 @@
         "scripts/design/check-em-dashes.mjs",
         "scripts/design/check-em-dashes.test.mjs"
       ],
-      "prefixes": ["docs/docs/"]
+      "prefixes": ["docs/docs/", ".claude/skills/design/"]
+    },
+    {
+      "check": "em-dashes",
+      "note": "The same globs check-em-dashes reads and Design CI starts on, so a new DESIGN*.md guide is checked without a policy edit.",
+      "globs": ["DESIGN*.md", "docs/DESIGN*.md", "packages/*/DESIGN*.md"]
     },
     {
       "check": "ontology",
@@ -1471,8 +1476,8 @@
     {
       "id": "em-dashes",
       "command": "node scripts/dev/node-cli.js node --test scripts/design/check-em-dashes.test.mjs && node scripts/design/check-em-dashes.mjs",
-      "risk": "an em dash returns to an i18n catalog value or an authored docs page",
-      "expectedSignal": "the i18n catalogs and authored docs pages carry no em dash, and the check's fixtures pass",
+      "risk": "an em dash returns to an i18n catalog value, an authored docs page, or a design guide",
+      "expectedSignal": "the i18n catalogs, authored docs pages, and design guides carry no em dash, and the check's fixtures pass",
       "freshness": "exact-inputs-and-toolchain",
       "budgetSeconds": 5,
       "stopRule": "stop-dependent-checks",
@@ -1904,15 +1909,12 @@
       "exact": [
         "AGENTS.md",
         "CLAUDE.md",
-        "DESIGN.md",
         "package.json",
-        "docs/DESIGN.md",
         "docs/docs/builders/packages/admin.mdx",
         "docs/docs/builders/testing/index.mdx",
         "docs/src/css/custom.css",
         "scripts/data/banned-vocabulary.json",
         "packages/admin/AGENTS.md",
-        "packages/admin/DESIGN.md",
         "packages/shared/AGENTS.md",
         "packages/shared/package.json",
         "packages/shared/vitest.storybook.config.ts",
@@ -1930,7 +1932,6 @@
       "prefixes": [
         ".claude/skills/design/",
         "packages/admin/src/",
-        "packages/client/DESIGN",
         "packages/client/src/",
         "packages/shared/.storybook/",
         "packages/shared/src/components/",
@@ -1940,6 +1941,7 @@
         "packages/shared/src/hooks/ui/",
         "scripts/design/"
       ],
+      "globs": ["DESIGN*.md", "docs/DESIGN*.md", "packages/*/DESIGN*.md"],
       "excludeTests": true
     },
     "Docs": {

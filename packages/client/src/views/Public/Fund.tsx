@@ -550,7 +550,7 @@ function FundPageContent() {
               titleId="public.fund.paths.endowTitle"
               defaultTitle="Endow"
               ledeId="public.fund.paths.endowLede"
-              defaultLede="A long-term deposit in the Garden's Vault that stays withdrawable, its yield supporting the Garden season after season — not a personal return."
+              defaultLede="Make a withdrawable deposit whose investment earnings support the garden over time. The deposit and withdrawals carry risks; read the terms before contributing."
               routesId="public.fund.paths.endowRoutes"
               defaultRoutes="Goes to this Garden's Vault endowment."
               bestForId="public.fund.paths.endowBestFor"
@@ -576,12 +576,11 @@ function FundPageContent() {
               })}
             </p>
             <p className="mt-2">
-              <span className="font-mono uppercase tracking-[0.16em] text-text-soft-400">
+              <span className="block font-mono uppercase tracking-[0.16em] text-text-soft-400">
                 {formatMessage({
                   id: "public.fund.paths.endowRiskLabel",
                   defaultMessage: "On Endow",
                 })}
-                {" — "}
               </span>
               {formatMessage({
                 id: "public.fund.dialog.endow.risk",

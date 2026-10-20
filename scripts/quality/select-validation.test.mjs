@@ -1996,6 +1996,7 @@ test("CI Gate expects exactly the workflows whose path filters start", () => {
       ...(rule.exact ?? []),
       ...(rule.prefixes ?? []).map(prefixProbe),
       ...(rule.extensions ?? []).map((extension) => `probe/probe${extension}`),
+      ...(rule.globs ?? []).map(probeFor),
       ...supportProbes,
     ]) {
       if (expects(probe) && !filterRuns(pullRequest, probe)) {
@@ -2744,6 +2745,17 @@ test("every docs generator input selects docs-generated, and the policy lists no
     (entry) => entry.check === "docs-generated" && entry.exact?.includes("scripts/data/validation-policy.json"),
   );
   assert.deepEqual(rule.exact.filter((path) => !sources.includes(path)), [], "Remove exact entries the generator no longer reads");
+});
+
+test("every design guide, and a new one at the root, in docs, or in a package, runs the em dash check locally and in Design CI", async () => {
+  const { designGuides } = await import("../design/check-em-dashes.mjs");
+  const guides = [...designGuides(repositoryRoot), "DESIGN.browser.md", "docs/DESIGN.browser.md", "packages/agent/DESIGN.md"];
+  const unrouted = guides.filter(
+    (guide) =>
+      !ids(selectValidation({ intent: "push", changedPaths: [guide] })).includes("em-dashes") ||
+      !selectExpectedWorkflows({ changedPaths: [guide], intent: "merge", ci: true }).includes("Design"),
+  );
+  assert.deepEqual(unrouted, [], "Route each design guide to the em-dashes rule and the Design workflow");
 });
 
 test("every file a certified seam fingerprints selects test-quality", () => {
