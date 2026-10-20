@@ -99,7 +99,7 @@ components:
     rounded: "{rounded.sm}"
 ---
 
-# Green Goods Docs — Design Brief
+# Green Goods Docs: Design Brief
 
 > Documentation dialect for Docusaurus pages. Use with the root `DESIGN.md`; lint this overlay and the root file separately. This file preserves the current docs identity instead of restyling docs into the client browser or admin dialects.
 

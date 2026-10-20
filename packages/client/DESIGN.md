@@ -9,7 +9,7 @@ dialects:
   browser: packages/client/DESIGN.browser.md
 ---
 
-# Green Goods Client — Design Index
+# Green Goods Client: Design Index
 
 The client package serves two experiences from one codebase. Do not prompt, review, or implement client UI from this index alone; pair the root `DESIGN.md` with the dialect file that matches the surface.
 
