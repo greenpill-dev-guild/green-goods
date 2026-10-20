@@ -218,7 +218,7 @@ Lookup order, first match wins:
 
    > Found pre-staged items from sync-triage-pulse: {date} {call} ({N}){, {date} {call} ({N})}. Resume one batch (reply with its date), run a fresh extract from notes, or quit? `[<date> / fresh / quit]`
 
-   On a date: populate `extraction.md` from that batch's Backlog tracking-Issue + Customer Need pairs (one item per pair, using the Need's verbatim source and the Issue's summary / safe evidence blocks), skip Phases 2 and 3 (Codex dispatch + PostHog cross-ref already done by the routine), and jump straight to Phase 4 with the batch as the numbered triage list. Resume one batch per invocation, then run `/qa-triage session:<date>` for another. On `fresh`: ignore the pre-stage and continue to step 1 below; the Phase 6 confirm step will detect duplicates against the existing Customer Needs.
+   On a date: populate `extraction.md` from that batch's Backlog tracking Issues (one item per Issue: its linked Customer Need's verbatim source when it has one, otherwise the Issue's own source line, plus the Issue's summary / safe evidence blocks; the routine files the team's own work without a Need), skip Phases 2 and 3 (Codex dispatch + PostHog cross-ref already done by the routine), and jump straight to Phase 4 with the batch as the numbered triage list. Resume one batch per invocation, then run `/qa-triage session:<date>` for another. On `fresh`: ignore the pre-stage and continue to step 1 below; the Phase 6 confirm step will detect duplicates against the existing Customer Needs.
 
    The resume path cuts the user's interactive triage to ~5 minutes after a call. See [`sync-triage-pulse.md`](../../../docs/routines/sync-triage-pulse.md) for the routine's contract.
 
