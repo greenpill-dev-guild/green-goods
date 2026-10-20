@@ -49,7 +49,7 @@ Version 1.2, 2026-10-20. Owner: Afo.
 **How agents use this file.**
 - Routing: the repository agent guide (`AGENTS.md`, "Read when relevant") sends any task that writes copy a gardener, steward, funder, partner, or visitor reads here first, then to the owning surface `DESIGN.md`. The task-routing manifest names this page as a required authority for document review; the design skill routes to it only when a design task carries copy, so visual-only work does not load it. Codex reaches the same files through the repository's agent guide, and the docs site publishes this page in its LLM index (`llms.txt`).
 - The same file, two paths: this page is the only copy. `.claude/brand-voice-guidelines.md` is a symbolic link to it, which is where the brand-voice plugin's enforce-voice command and other tools expect guidelines to live.
-- Enforcement: the mechanical rules are checked, not trusted. `bun run check --only vocabulary` rejects banned and retired terms, UK spellings, and the old Spanish and Portuguese role words in the three shared catalogs (`packages/shared/src/i18n`); the docs audit rejects UK spellings in docs pages and design guides; `bun run check --only em-dashes` rejects em dashes in those catalogs, docs pages, and design guides. The chat bot's copy in `packages/agent` has its own spelling test and is not yet covered by the vocabulary and em dash checks, so it is reviewed by eye until they extend to it. Section 9 marks which checklist items a machine covers.
+- Enforcement: the mechanical rules are checked, not trusted. `bun run check --only vocabulary` rejects banned and retired terms, UK spellings, and the old Spanish and Portuguese role words in the three shared catalogs (`packages/shared/src/i18n`); the docs audit rejects UK spellings in docs pages and design guides; `bun run check --only em-dashes` rejects em dashes in those catalogs, docs pages, and design guides. The chat bot's copy in `packages/agent` is held to the same vocabulary file by the agent's copy tests (banned and retired terms, UK spellings, and the locked locale terms), and the em dash check reads its chat copy modules too. Section 9 marks which checklist items a machine covers.
 - Review: a change to copy is reviewed against this page the way a change to layout is reviewed against the design skill. Dated copy decisions still get a row in the design decision log.
 
 **Writing conventions in this file.** US spelling. No em dashes anywhere in Green Goods prose. In running text, "garden", the role words, and the domain nouns are lower case; Title Case belongs to titles, action labels, and named acts.
@@ -326,10 +326,10 @@ Items marked (machine) are covered by a check in the validation pipeline; the re
 - [ ] Is blockchain invisible where it should be?
 - [ ] Would it make sense to someone who has never heard of web3?
 - [ ] Is it shorter than the first draft?
-- [ ] US spelling? (machine: catalogs, docs pages, design guides)
-- [ ] No em dashes? (machine: catalogs, docs pages, design guides)
+- [ ] US spelling? (machine: catalogs, bot chat copy, docs pages, design guides)
+- [ ] No em dashes? (machine: catalogs, bot chat copy, docs pages, design guides)
 - [ ] Lower-case garden, role words, and domain nouns in running text, Title Case only on titles and actions?
-- [ ] No retired or banned words? (machine: the growth-hacking list and operator in the shared catalogs; commitment in user copy, hands at work, and guaranteed returns by eye)
+- [ ] No retired or banned words? (machine: the growth-hacking list and operator in the shared catalogs and the bot chat copy; commitment in user copy, hands at work, and guaranteed returns by eye)
 - [ ] No hand-typed counts or traction figures beyond the one owner-cleared headline figure, and is that figure still current?
 - [ ] Does it claim only what the claims ledger claims?
 - [ ] For product strings: Spanish and Portuguese present, accents intact, locked terms used? (machine for coverage and locked terms)
@@ -379,7 +379,7 @@ Drawn from shipped copy and approved release material. Lines marked "adapted" we
 ## 11. Localization
 
 - The product ships in English, Spanish, and Portuguese: a new string in the shared catalogs or the bot copy is not done until its Spanish and Portuguese strings exist, with accents intact (an accents guard is planned; until it lands, review by eye). The docs site is English only today.
-- Locked terms, applied on every surface including hero copy, count notes, and the chat bot. The vocabulary check enforces them in the three shared catalogs; the bot's own locale-terms test covers the garden and steward words, and its promise and endowment terms are reviewed by eye until the checks extend to it. Steward is "responsable" (es) and "responsável" (pt); garden is "jardín" (es) and "jardim" (pt); endowment is "provisión" / "proveer" (es) and "provisão" / "provisionar" (pt); promises are "promesas" (es) and "promessas" (pt). The check also rejects the old words: coordinador, custodio, administrador, and huerto in Spanish; coordenador, zelador, and horta in Portuguese; the English word "garden" left untranslated.
+- Locked terms, applied on every surface including hero copy, count notes, and the chat bot. The vocabulary check (shared catalogs) and the agent's copy tests (bot chat copy) enforce the steward and garden words and reject their retired synonyms; the promise and endowment terms are conventions reviewed by eye. Steward is "responsable" (es) and "responsável" (pt); garden is "jardín" (es) and "jardim" (pt); endowment is "provisión" / "proveer" (es) and "provisão" / "provisionar" (pt); promises are "promesas" (es) and "promessas" (pt). The check also rejects the old words: coordinador, custodio, administrador, and huerto in Spanish; coordenador, zelador, and horta in Portuguese; the English word "garden" left untranslated.
 - Spanish and Portuguese keep native sentence-style casing everywhere, including titles and action labels.
 - Gender follows the noun: "promesa" and "promessa" are feminine, so articles, adjectives, and pronouns that point back at a promise agree with it, including count strings beside the noun. The verb for taking a promise up is "aceptar" / "aceitar".
 - The same voice applies: warm, plain, no blame, no em dashes, no protocol names where English has none.
