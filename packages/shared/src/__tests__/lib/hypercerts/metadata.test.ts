@@ -10,6 +10,7 @@ import type {
   HypercertDraft,
 } from "../../../types/hypercerts";
 import { DEFAULT_PROTOCOL_VERSION } from "../../../lib/hypercerts/constants";
+import { validateMetadata } from "../../../lib/hypercerts/validation";
 
 // ============================================
 // Test Helpers
@@ -443,15 +444,16 @@ describe("formatHypercertMetadata", () => {
       expect(result.hidden_properties?.domain).toBe("education");
     });
 
-    it("defaults domain to mutual_credit when not found", () => {
+    it("omits domain when no attestation names one, and still passes upload validation", () => {
       const draft = createMockDraft();
       const attestations = [
-        createMockAttestation({ domain: undefined }),
+        createMockAttestation({ id: `0x${"1".repeat(64)}`, domain: undefined }),
       ];
 
       const result = format({ draft, attestations });
 
-      expect(result.hidden_properties?.domain).toBe("mutual_credit");
+      expect(result.hidden_properties).not.toHaveProperty("domain");
+      expect(validateMetadata(result)).toEqual({ valid: true, errors: {} });
     });
 
     it("includes protocol version", () => {
