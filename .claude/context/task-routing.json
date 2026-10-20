@@ -313,8 +313,7 @@
       "requiredAuthorities": [
         "owning surface DESIGN.md dialect",
         "design skill prompt contracts",
-        "shared design tokens",
-        "brand voice guidelines (docs/docs/reference/brand-voice.mdx)"
+        "shared design tokens"
       ],
       "output": "A grounded paradigm, material, or layout decision, design review findings, or an AI design-tool prompt contract.",
       "handoff": "Send cross-surface token or dialect changes to planning; send implementation defects to debugging.",

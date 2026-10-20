@@ -34,9 +34,9 @@ Version 1.2, 2026-10-19. Owner: Afo.
 **How people use this file.** Read sections 1 to 3 before writing. Run the checklist in section 9 before shipping. When this file and a source of truth disagree, the source wins and this file gets corrected; section 16 lists the sources and section 15 says what each one owns.
 
 **How agents use this file.**
-- Routing: the repository agent guide (`AGENTS.md`, "Read when relevant") sends any task that writes user-facing or human-facing prose here first, then to the owning surface `DESIGN.md`. The task-routing manifest names this page as a required authority for design direction and document review. Codex reaches the same files through the repository's agent guide, and the docs site publishes this page in its LLM index (`llms.txt`).
+- Routing: the repository agent guide (`AGENTS.md`, "Read when relevant") sends any task that writes user-facing or human-facing prose here first, then to the owning surface `DESIGN.md`. The task-routing manifest names this page as a required authority for document review; the design skill routes to it only when a design task carries copy, so visual-only work does not load it. Codex reaches the same files through the repository's agent guide, and the docs site publishes this page in its LLM index (`llms.txt`).
 - The same file, two paths: this page is the only copy. `.claude/brand-voice-guidelines.md` is a symbolic link to it, which is where the brand-voice plugin's enforce-voice command and other tools expect guidelines to live.
-- Enforcement: the mechanical rules are checked, not trusted. `bun run check --only vocabulary` rejects banned and retired terms, UK spellings, and the old Spanish and Portuguese role words in every i18n string; the docs audit rejects UK spellings in docs pages and design guides; `bun run check --only em-dashes` rejects em dashes in catalogs, docs pages, and design guides. Section 9 marks which checklist items a machine covers.
+- Enforcement: the mechanical rules are checked, not trusted. `bun run check --only vocabulary` rejects banned and retired terms, UK spellings, and the old Spanish and Portuguese role words in the three shared catalogs (`packages/shared/src/i18n`); the docs audit rejects UK spellings in docs pages and design guides; `bun run check --only em-dashes` rejects em dashes in those catalogs, docs pages, and design guides. The chat bot's copy in `packages/agent` has its own spelling test and is not yet covered by the vocabulary and em dash checks, so it is reviewed by eye until they extend to it. Section 9 marks which checklist items a machine covers.
 - Review: a change to copy is reviewed against this page the way a change to layout is reviewed against the design skill. Dated copy decisions still get a row in the design decision log.
 
 **Writing conventions in this file.** US spelling. No em dashes anywhere in Green Goods prose. In running text, "garden" and the role words are lower case; Title Case belongs to titles, labels, and named acts.
@@ -234,7 +234,7 @@ The [Glossary](/glossary) is generated from the ontology and is the authority; t
 | domain | vertical | Taxonomy term |
 
 ### 6.3 Retired words
-"Operator" and "operators" (all surfaces, all languages; deployed role identifiers keep the old name as code). "Commitment" in user-facing copy, except inside the feature name. "Approved work" as a count label. "Hands at work". "Mutual credit" as a domain (see 6.5). "Dotación", "dotação", and the invented verbs "endonar", "endotar", "endowar", "endossar" for endowment. The vocabulary check rejects the retired role words in every catalog.
+"Operator" and "operators" (all surfaces, all languages; deployed role identifiers keep the old name as code). "Commitment" in user-facing copy, except inside the feature name. "Approved work" as a count label. "Hands at work". "Mutual credit" as a domain name in copy (see 6.5). "Dotación", "dotação", and the invented verbs "endonar", "endotar", "endowar", "endossar" for endowment. The vocabulary check rejects the retired role words in every catalog.
 
 ### 6.4 Banned vocabulary
 - Rejected by the vocabulary check in every i18n string: streak, countdown, leaderboard, FOMO, urgent, limited time, re-engagement, retention hook. These signal growth-hacking patterns that conflict with the regenerative lens.
@@ -242,7 +242,7 @@ The [Glossary](/glossary) is generated from the ontology and is the authority; t
 - Surface-specific design and prompt vocabulary (what stays out of the admin, what stays out of the app) lives in `scripts/data/banned-vocabulary.json` and is summarized in section 5. The app and cockpit unification plan may revise those lists; the file is the authority, not this summary.
 
 ### 6.5 Domains
-Four domains: agroforestry, waste management, solar (hub development), and education. Mutual credit is retired as a domain: the need it named is served by commitment pooling and promises. A partner integration's service-credit instrument gets its own name when that integration ships; it is not a domain.
+Copy names four domains: agroforestry, waste management, solar (hub development), and education. The ontology still declares mutual credit as a deferred fifth domain for records that carry it, and the runtime keeps its label for those records; it is not offered as a choice, and copy does not present it as a domain. The owner has decided to retire it, which lands when the ontology and the runtime vocabulary migrate together (section 14). A partner integration's service-credit instrument gets its own name when that integration ships; it is not a domain.
 
 ### 6.6 Capitalization
 - Running text: garden, gardener, steward, evaluator, funder, and community member are lower case, in English, Spanish, and Portuguese ("this garden", "este jardín", "o responsável"). This is DL-090.
@@ -274,7 +274,7 @@ Four domains: agroforestry, waste management, solar (hub development), and educa
 5. Blockchain is implementation, not copy. On-chain words appear only where section 2 allows them.
 6. External copy is short and scannable: a one-line intro, headers, two or three sentences per section, hyphen bullets in plain-text fields. People do not read dense things.
 7. Errors state what is safe ("Your work is saved") before what to do next. No codes, no stack traces, no blame.
-8. Every empty state suggests the next action in one sentence.
+8. In the app and on the website, every empty state suggests the next action in one sentence. Admin empty states stay a terse acknowledgment ("No items in queue"), as section 5 says.
 9. Every docs page ends with next steps, and links say where they go.
 10. Permission-giving where people hesitate; strict where the integrity of the record is at stake.
 11. Translation is part of the copy, not an afterthought: a new English string ships with Spanish and Portuguese, accents intact, locked terms used.
@@ -337,7 +337,7 @@ Drawn from shipped copy and approved release material. Lines marked "adapted" we
 | "You're offline. Everything is saved locally and will sync when you reconnect." | DESIGN.md tone spectrum | Reassuring |
 | "3 submissions pending review. 1 flagged for follow-up." | Admin copy voice | Status, no narrative |
 | "We couldn't submit that." | Client prompt contract | Error without blame |
-| "Every contribution lands with the garden, not a platform account." | Public fund page | Ownership, concrete |
+| "Connect the wallet you endowed with, and we'll show you the gardens your support is growing." | Public fund page, endowments view | Warm, concrete, no custody claim |
 | "The people who do the work should be the ones who are seen for it." | Why We Build | Belief, plain |
 | "Good work often leaves no trace." | How It Works | Grounded opening |
 | "This public record is temporarily unavailable. Please try again." | Browser design guide | Calm failure state |
@@ -410,6 +410,7 @@ Voice copy only needs to know the following. Everything visual belongs to the de
 3. **Legal attribution.** Brand-facing mentions of other organizations are gone from docs chrome and contributor copy. The copyright holder line in the docs footer and on the License page stays until the operating entity is settled; then the holder is decided once.
 4. **Community app dialect.** Written when the surface is designed, before its first strings ship.
 5. **Spanish and Portuguese tone addendum.** Owned by a native-speaking steward on the product team; one page; due with the next localization pass.
+6. **Mutual credit retirement.** Decided by the owner; lands when the ontology's deferred fifth domain and the runtime vocabulary (the domain enum, catalog labels, selectors) migrate in one change. Until then copy names four domains and the ontology keeps five.
 
 ---
 
@@ -423,7 +424,8 @@ This page is the entry point for voice. It restates only what a writer needs to 
 | Design skill (`.claude/skills/design/`: `language.md`, `prompt-contract.md`, `client-prompt-contract.md`, `decision-log.md`, `review-checklist.md`) | Surface dialects for AI design tools, materials, motion, prompt vocabulary, dated decisions | Section 5 summarizes the copy half of each dialect; visual and prompt rules stay there; copy decisions still get a decision-log row |
 | App and cockpit unification plan (`.plans/backlog/app-cockpit-unification/`) | Future material, layout, and naming changes across the admin and the app | This page names dialects by what they say, not how they look, so it survives the unification; if surfaces are renamed, section 3's table follows |
 | Ontology, generated glossary, `banned-vocabulary.json` | Terms, personas, domains, enforced vocabulary | Section 6 is a reading of them; the files are machine-checked and win on any divergence |
-| Community and builder docs tone contracts (their plan hubs) | Docs register and page conventions | Borrowed in section 5; the contracts win for docs pages |
+| Docs guide (`docs/AGENTS.md`) and the builder docs tone contract (`.plans/active/builder-docs-rebuild/spec.md`) | Docs page conventions and the developer register | The community docs register is written out in section 5, which owns it now that its plan hub has closed; the builder contract wins for builder pages |
+| `.claude/context/product.md` | Persona tone rows and the audience priority rule | A row describes how a persona arrives and the tone that fits, never what the product promises; the Capability and Claims page and section 8 outrank it |
 | Brand kit page and kit data | Visual identity | Section 12 is a pointer |
 | Release packs (`docs/releases/`) | Approved copy per release | Section 10 draws model lines from them; each release pack applies this page |
 | Internal strategy addendum (shared Google Doc) | Audiences by name, numbers, channel plans, partner-specific registers, byline and entity decisions | This page carries the rules those decisions produce, never the names or figures |
@@ -437,14 +439,13 @@ This page is the entry point for voice. It restates only what a writer needs to 
 |---|---|
 | `DESIGN.md` § Voice & Copy | Core voice, pillars, tone spectrum, terminology table, writing checklist, casing, spelling, and punctuation rules |
 | `.claude/skills/design/prompt-contract.md` and `client-prompt-contract.md` | Admin and app dialects, say and don't-say pairs, prompt vocabulary |
-| `.plans/active/community-docs-revamp/spec.md` § Voice and tone contract (lands with its plan hub) | Docs register, reading level, protocol-name rule, permission-giving |
 | `.plans/active/builder-docs-rebuild/spec.md` § Tone contract | Builder docs register |
 | `packages/shared/src/ontology/green-goods-ontology.json` | Entities, personas, domains, allowed surfaces |
 | `docs/docs/reference/glossary.generated.mdx` | Plain-language definitions (generated) |
 | `scripts/data/banned-vocabulary.json` | Banned terms, retired terms, US spelling list, locked locale terms, prompt vocabulary |
 | `packages/shared/src/i18n/en.json`, `es.json`, `pt.json` | Shipped strings and locked translations |
 | `.claude/skills/design/decision-log.md` | Dated copy decisions (DL-012, DL-013, DL-047, DL-071, DL-077, DL-079, DL-083 to DL-085, DL-087, DL-090, DL-091) |
-| `.claude/context/product.md` | Persona tone rows and the audience priority rule |
+| `.claude/context/product.md` | Persona tone rows and the audience priority rule, outranked by the Capability and Claims page on what the product promises |
 | `docs/docs/community/welcome.mdx`, `why-we-build.mdx`, `how-it-works.mdx`, `docs/docs/reference/faq.mdx` | Public explanatory voice and the "is not" claims |
 | `docs/docs/community/green-goods-claims.generated.mdx` | What the product can honestly claim (generated) |
 | `docs/releases/` | Curated release notes and approved announcement copy per release |
