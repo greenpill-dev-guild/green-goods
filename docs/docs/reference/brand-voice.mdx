@@ -17,6 +17,9 @@ source_of_truth:
   - packages/shared/src/i18n/en.json
   - packages/shared/src/i18n/es.json
   - packages/shared/src/i18n/pt.json
+  - packages/agent/src/services/reporting/copy/en.ts
+  - packages/agent/src/services/reporting/copy/es.ts
+  - packages/agent/src/services/reporting/copy/pt.ts
   - docs/docs/reference/glossary.generated.mdx
   - docs/claims.generated.md
   - docs/docs/reference/brand.mdx
@@ -44,9 +47,9 @@ Version 1.2, 2026-10-20. Owner: Afo.
 **How people use this file.** Read sections 1 to 3 before writing. Run the checklist in section 9 before shipping. When this file and a source of truth disagree, the source wins and this file gets corrected; section 16 lists the sources and section 15 says what each one owns.
 
 **How agents use this file.**
-- Routing: the repository agent guide (`AGENTS.md`, "Read when relevant") sends any task that writes copy a gardener, steward, funder, partner, or visitor reads here first, then to the owning surface `DESIGN.md`. The task-routing manifest names this page as a required authority for document review; the design skill routes to it only when a design task carries copy, so visual-only work does not load it. Codex reaches the same files through the repository's agent guide, and the docs site publishes this page in its LLM index (`llms.txt`).
+- Routing: the repository agent guide (`AGENTS.md`, "Read when relevant") sends any task that writes copy a gardener, steward, funder, partner, or visitor reads here first, then to the owning surface `DESIGN.md`. The task-routing manifest names this page as a required authority for document review and design direction when the task carries brand-facing copy; visual-only design work and internal technical documents do not load it. Codex reaches the same files through the repository's agent guide, and the docs site publishes this page in its LLM index (`llms.txt`).
 - The same file, two paths: this page is the only copy. `.claude/brand-voice-guidelines.md` is a symbolic link to it, which is where the brand-voice plugin's enforce-voice command and other tools expect guidelines to live.
-- Enforcement: the mechanical rules are checked, not trusted. `bun run check --only vocabulary` rejects banned and retired terms, UK spellings, and the old Spanish and Portuguese role words in the three shared catalogs (`packages/shared/src/i18n`); the docs audit rejects UK spellings in docs pages and design guides; `bun run check --only em-dashes` rejects em dashes in those catalogs, docs pages, and design guides. The chat bot's copy in `packages/agent` has its own spelling test and is not yet covered by the vocabulary and em dash checks, so it is reviewed by eye until they extend to it. Section 9 marks which checklist items a machine covers.
+- Enforcement: the mechanical rules are checked, not trusted. `bun run check --only vocabulary` rejects banned and retired terms, UK spellings, and the old Spanish and Portuguese role words in the three shared catalogs (`packages/shared/src/i18n`); the docs audit rejects UK spellings in docs pages and design guides; `bun run check --only em-dashes` rejects em dashes in those catalogs, docs pages, and design guides. The chat bot's copy in `packages/agent` is held to the same vocabulary file by the agent's copy tests (banned and retired terms, UK spellings, and the locked steward and garden words with their retired synonyms; the bot's promise and endowment terms are reviewed by eye), and the em dash check reads its chat copy modules too. Section 9 marks which checklist items a machine covers.
 - Review: a change to copy is reviewed against this page the way a change to layout is reviewed against the design skill. Dated copy decisions still get a row in the design decision log.
 
 **Writing conventions in this file.** US spelling. No em dashes anywhere in Green Goods prose. In running text, "garden", the role words, and the domain nouns are lower case; Title Case belongs to titles, action labels, and named acts.
@@ -57,7 +60,7 @@ Version 1.2, 2026-10-20. Owner: Afo.
 
 **Brand line (website hero, keep as is):** From good intentions to green outcomes.
 
-**Descriptor (one sentence for every meta description, README, docs tagline, deck one-liner):**
+**Descriptor (the one sentence for product-overview metadata: the client site's meta description, the repository README's lead line, the docs site tagline, the deck one-liner; individual pages and package READMEs describe their own content):**
 
 > Green Goods helps communities name their needs, make promises, document regenerative work, review it together, and turn the record into support.
 
@@ -69,7 +72,7 @@ Today a garden names its needs through an assessment, set by stewards and evalua
 
 **Mission, in one sentence:** Green Goods makes a community's regenerative work visible to the people who were not there, so support can follow delivery instead of paperwork.
 
-**The loop, in plain words:** a garden names its needs, members make promises, gardeners document the work, stewards review it and record their decision separately, evaluators assess what changed, and funders support more of it.
+**The loop, in plain words:** stewards and evaluators name what the garden needs and what counts as success in an assessment, members make promises, gardeners document the work, stewards review it and record their decision separately, and funders support more of it. Assessing what changed against that baseline is a planned step, so copy does not describe it as live.
 
 **What Green Goods is not** (say so when a reader might assume otherwise):
 
@@ -87,16 +90,16 @@ Five product personas carry fixed meanings in the ontology. One more audience ap
 
 | Audience | Who they are | Tone | Avoid | Technical vocabulary allowed |
 |---|---|---|---|---|
-| Gardener | Does and documents the work, often on a shared phone with weak signal, in the app or by chat | Warm, direct, action-oriented; short sentences | Technical terms, passive voice, option overload | None. No blockchain words. About a 6th-grade reading level |
+| Gardener | Does and documents the work, often on a shared phone with weak signal, in the app or by chat | Warm, direct, action-oriented; short sentences | Technical terms, passive voice, option overload | None in ordinary copy; only the DL-094 safety cases (a privacy or permanence notice may name the network, a link names its explorer). About a 6th-grade reading level |
 | Steward | Runs the garden: the season's plan, members, and review of work | Professional, efficient, task-focused, data-aware | Condescending simplicity, unstructured prose | May describe on-chain review as a trust mechanism; never contract internals |
-| Evaluator | Sets baselines and evidence standards, then assesses what changed | Precise, evidence-based, structured; respects domain expertise | Oversimplification, vague impact language | Research and assessment terminology is fine |
-| Funder (also called supporter) | Anyone who supports the work: an individual giving to a garden, a diaspora supporter, a grantmaker, an institution, a crypto ecosystem fund | Confident, transparent, evidence-first; lead with reviewed records | Hype, unsubstantiated claims, anything resembling an investment pitch | Traditional funders and institutions: describe Green Goods as a field data and MRV tool, no web3 words. In funder documents and decks for crypto ecosystem funders: attestation and chain words in an appendix, never the headline. On product funding surfaces DL-094 applies: a vault page may name the protocol that holds the deposit. Never "guaranteed returns" |
-| Community member | A local person affected by the work, who confirms work done for them and, once Community Needs ships, names needs directly | Inclusive, plain, encouraging | Protocol jargon, assumed web3 literacy | None. About a 6th-grade reading level |
+| Evaluator | Sets baselines and evidence standards before work begins; assessing what changed against them is planned | Precise, evidence-based, structured; respects domain expertise | Oversimplification, vague impact language | Research and assessment terminology is fine |
+| Funder (also called supporter) | In copy, anyone who supports the work: an individual giving to a garden, a diaspora supporter, a grantmaker, an institution, a crypto ecosystem fund. The ontology's Funder persona is narrower today (the vault depositor who holds certificate fractions and receives configured yield); widening it to match is a pending ontology change (section 14) | Confident, transparent, evidence-first; lead with reviewed records | Hype, unsubstantiated claims, anything resembling an investment pitch | Traditional funders and institutions: describe Green Goods as a field data and MRV tool, no web3 words. In funder documents and decks for crypto ecosystem funders: attestation and chain words in an appendix, never the headline. On product funding surfaces DL-094 applies: a vault page may name the protocol that holds the deposit. Never "guaranteed returns" |
+| Community member | A local person affected by the work, who confirms work done for them and, once Community Needs ships, names needs directly | Inclusive, plain, encouraging | Protocol jargon, assumed web3 literacy | None in ordinary copy; only the DL-094 safety cases. About a 6th-grade reading level |
 | Partners and builders (external copy) | Ecosystem tools, integrators, researchers | Direct, specific, documented | Marketing superlatives | Protocol and chain names allowed on builder pages and in appendices |
 
 **Framing rule.** For traditional funders and non-technical audiences, Green Goods is a field data and MRV (measurement, reporting, and verification) tool for community-led regenerative work. Web3-native language appears only in crypto ecosystem contexts, and even there it stays in the appendix, never the lead.
 
-**Where protocol names may appear (DL-094).** Funding surfaces (a vault page may name the protocol that holds the deposit), builder pages, and the single labeled "using your own wallet" box a community page may carry. Nowhere else in gardener, steward, or community copy. Two narrow exceptions follow from the claims discipline: a privacy or permanence notice may name the network that makes a photo public and undeletable, and a link names the explorer it opens ("View on EAS Explorer"), because a link must say where it goes.
+**Where protocol names may appear (DL-094).** A protocol or chain name appears only where the reader needs it to act or to verify: a funding surface (a vault page names the protocol that holds the deposit), a builder page, the labeled "using your own wallet" box a community page may carry, a transaction step (a confirmation that spends gas or cannot be undone, a wallet action on a named network such as "Send G$ on Celo", and the note that follows it), a privacy or permanence notice that names the network making a photo public and undeletable, and a link that names the explorer it opens. Never as positioning, and never in onboarding, work capture, review, or community copy, where the product's own labels carry the meaning. Progress and status copy stays plain ("Recording your decision…", not "Syncing with blockchain…"); the shipped status strings that still say otherwise migrate under open item 5, and new copy follows the rule.
 
 **Priority rule when two audiences conflict.** Gardener experience wins, unless that blocks steward onboarding; stewards are how a garden arrives.
 
@@ -140,11 +143,11 @@ Tone shifts by context while the voice stays constant.
 |---|---|---|
 | Onboarding | Encouraging, patient | "Start by describing what you see. We'll help with the rest." |
 | Submitting work | Supportive, clear | "Add a photo and a few words about what you did today." |
-| Hero moments (first work, garden created, certificate minted) | Celebratory, genuine; one sentence, no confetti language | "Your first contribution. This garden is growing because of you." |
+| Hero moments in the app (first work submitted, a promise kept, a season closing) | Celebratory, genuine; one sentence, no confetti language. Admin completions (a garden created, a certificate minted) end in the admin register: a status line and Done, no celebration | "Your first contribution. This garden is growing because of you." |
 | Errors | Calm, constructive; never blames the person; says what is safe | "That didn't go through. Your work is saved. Try again when you're ready." |
-| Offline | Reassuring, matter-of-fact; promises only what the queue holds | "You're offline. Your work is saved on this phone and will send when you reconnect." Operations that need a connection (creating an assessment or a garden) say so instead: "Creating an assessment needs a connection. Nothing is lost." A steward's decision on work queues like work does: "Your decision stays on this device until you upload it." |
+| Offline | Reassuring, matter-of-fact; promises only what the queue holds, and the queue waits for Upload all | "You're offline. Your work is saved on this phone. When you're back online, open Your Work and tap Upload all." Operations that need a connection (creating an assessment or a garden) say so instead: "Creating an assessment needs a connection. Nothing is lost." In the installed app a steward's decision on work, with a passkey or a wallet, queues like work does: "Your decision stays on this device until you upload it." In the admin cockpit a wallet decision needs a connection, and copy says so. |
 | Admin and steward | Efficient, status-oriented | "3 submissions pending review. 1 flagged for follow-up." |
-| Funding and impact | Respectful, concrete; numbers breathe | "This garden has documented 47 actions across 3 seasons." |
+| Funding and impact | Respectful, concrete; numbers breathe | "This garden has documented [count] actions across [seasons] seasons." (both values from live data) |
 | Failure states (a page or screen cannot load) | An ordinary page: a title, one sentence, one action; nothing lost, no codes | "This public record is temporarily unavailable. Please try again." |
 | Docs (community and builder) | Second person, active, plain; why before what; one idea per sentence | "Your garden's stewards review your work. There is no fixed time." |
 | Announcements and Green Goods channels | Warm, plain, pilot-focused; states limits up front; invites replies; thanks testers; at most one or two emoji; never "Gm" or "LFG" | "We're still pilot focused, learning alongside the communities using Green Goods." |
@@ -168,7 +171,7 @@ Tone shifts by context while the voice stays constant.
 ### Editorial website
 - Headlines are evocative and magazine-weight; subheads bridge feeling and information.
 - Garden descriptions lead with the place and what it grows, never with the technology.
-- Impact numbers breathe: "47 documented actions" beats a sentence about how many actions community members documented.
+- Impact numbers breathe: "[count] documented actions" (a live figure) beats a sentence about how many actions community members documented.
 - Calls to action are warm imperatives: "Fund this garden", not "Contribute now".
 - Hero titles carry no closing period.
 - A failed page looks like the website: the banner hero, a title, one sentence, a reload link.
@@ -191,11 +194,11 @@ Tone shifts by context while the voice stays constant.
 
 | Surface | Borrows | Adjustments |
 |---|---|---|
-| Docs, community track | Editorial website, made plain | Second person, active, about an 8th-grade reading level; why before what; condition before instruction; one idea per sentence; sentence-case headings; contractions fine; no superlatives. The product's own labels are the vocabulary; no protocol or chain names except inside the one "using your own wallet" box. Permission-giving where people hesitate; strict where the integrity of the record is at stake. Money and privacy statements describe what the code and contracts do and never repeat a guarantee from interface copy. Task pages end with next steps, and links say where they go |
+| Docs, community track | Editorial website, made plain | Second person, active, about an 8th-grade reading level; why before what; condition before instruction; one idea per sentence; sentence-case headings; contractions fine; no superlatives. The product's own labels are the vocabulary; protocol and chain names appear only where DL-094 allows them (the wallet box, a funding or transaction step, a privacy or permanence notice, a link that names its explorer). Permission-giving where people hesitate; strict where the integrity of the record is at stake. Money and privacy statements describe what the code and contracts do and never repeat a guarantee from interface copy. Task pages end with next steps, and links say where they go |
 | Docs, builders track | Docs community register, for developers | Same rules; generated reference pages stay terse; protocol names allowed |
 | Release notes | Editorial website, trimmed | One plain opening sentence on what the release does for people; sections by audience ("For gardeners", "For stewards"); a short "Protocol and platform" section; links. Deferred or disabled capabilities are stated in the same note |
 | Announcements and community posts | PWA app warmth, website clarity | One-line opener, what changed in two or three short paragraphs, an invitation to try it and reply, thanks, a link. Spanish and Portuguese versions are reviewed by a speaker before posting |
-| Chat reporting bot | PWA app, in conversation | Short first-person turns, one question at a time, a count of what remains, a summary to check before publishing. Gardeners and stewards (and garden owners) message the bot directly to report; other roles are not supported yet |
+| Chat reporting bot | PWA app, in conversation | Short first-person turns, one question at a time, a count of what remains, a summary to check before publishing. Gardeners and stewards message the bot directly to report; other roles, including owner-only accounts, are not supported yet |
 | Funder and partner documents | Editorial website, evidence-first | Claims carry source tags; chain detail in an appendix; short sections under headers, two or three sentences each |
 
 ---
@@ -216,7 +219,7 @@ The [Glossary](/glossary) is generated from the ontology and is the authority; t
 | impact certificate | One claim that bundles a body of approved work. Turning approved work into a certificate is in build (the claims ledger says so), so copy describes what a certificate represents, not a funding path that is live. |
 | vault | A garden's long-term fund. A deposit can stay in place while what it earns supports ongoing work; a strategy or contract loss can reduce what comes back or delay a withdrawal, and copy says so wherever it invites a deposit. |
 | cookie jar | A shared fund for near-term needs, with a limit on each claim. |
-| promise | What a member offers or asks for in a pool: a workshop, a planting, a repair. "Promise" is the word in every user-facing surface, in all three languages. "Commitment Pooling" remains the feature name; "commitment" otherwise stays in code and contracts. |
+| promise | What a member offers or asks for in a pool: a workshop, a planting, a repair. "Promise" is the word in every user-facing surface, in all three languages. "Commitment Pooling" remains the feature name, and the ontology's formal entity names (Commitment Pool, Commitment Cycle, Commitment Contributor) keep the word on builder pages and in the glossary's builder reference; everywhere else copy says promise, and "commitment" otherwise stays in code and contracts. |
 | pool | The container that holds a garden's promises. "Pool" names only the container. |
 | season, campaign | A garden's cycle of promises and work. A garden's season is its pool's Season-type cycle. Their details sheets show only what the record holds. |
 | gardener, steward, evaluator, funder, community member | The five personas. Definitions in section 2. The ontology's garden roles also include owner, which has no persona of its own; name it when enumerating roles or permissions. |
@@ -234,23 +237,23 @@ The [Glossary](/glossary) is generated from the ontology and is the authority; t
 | work | task, activity | Regenerative work is the core concept. "Submission" names the act of sending work and the Work Submissions list, never the work itself |
 | action | action type | The thing a gardener can do. "Action template" names the browsable template records on the public site |
 | promise | commitment (in user-facing copy) | The plain word for what a member offers |
-| fund (verb) | contribute, invest | Funding a garden |
+| fund (verb) | invest | Funding a garden. "Fund" is the call to action; "contribute" is the umbrella word for giving before a supporter picks the Donate or Endow path |
 | donate | (allowed only as the name of the direct-giving path) | The path a supporter takes to give directly; "fund" everywhere else |
-| impact | output, result | Bridges community and chain. "Metric" stays the name of the assessment field (Outcome, Metric, Target), never a synonym for impact |
+| impact | result (as a vague synonym) | Bridges community and chain. "Output" and "Outcome" are stages of the impact model (activity, output, outcome, impact) and keep their meaning; "Metric" stays the name of the assessment field (Outcome, Metric, Target) |
 | document (verb) | log, capture | Gardeners document their work. "Record" is fine in plain explanation of what the product keeps |
 | approved submissions | approved work (as a public count label) | Public count label |
 | garden members | hands at work, participants | Public count of gardeners and stewards, each address counted once |
 | waste management | cleanup | Domain name |
 | solar (hub development) | hub | Domain name |
-| agroforestry | agro | "Agro" is a code identifier only |
+| agroforestry | agro (in prose) | "Agro", "Edu", "Solar", and "Waste" are the compact domain labels on chips and short lists; prose and headings use the full names |
 | domain | vertical | Taxonomy term |
 
 ### 6.3 Retired words
-"Operator" and "operators" in user-facing role copy, in all languages. The deployed role identifier keeps the old name as code, and the glossary keeps "Garden Operator" as an explanatory alias so builders can map older records; neither is a license to write it in copy. "Commitment" in user-facing copy, except inside the feature name. "Approved work" as a count label. "Hands at work". "Mutual credit" as a domain name in copy (see 6.5). "Dotación", "dotação", and the invented verbs "endonar", "endotar", "endowar", "endossar" for endowment. The vocabulary check rejects the retired role words in every catalog.
+"Operator" and "operators" in user-facing role copy, in all languages. The deployed role identifier keeps the old name as code, and the glossary keeps "Garden Operator" as an explanatory alias so builders can map older records; neither is a license to write it in copy. "Commitment" in user-facing copy, except inside the feature name and the ontology's formal entity names on builder surfaces. "Approved work" as a count label. "Hands at work". "Mutual credit" as a domain name in copy (see 6.5). "Dotación", "dotação", and the invented verbs "endonar", "endotar", "endowar", "endossar" for endowment. The vocabulary check rejects the retired role words in every catalog.
 
 ### 6.4 Banned vocabulary
 - Rejected by the vocabulary check in every i18n string: streak, countdown, leaderboard, FOMO, urgent, limited time, re-engagement, retention hook. These signal growth-hacking patterns that conflict with the regenerative lens.
-- Nowhere: "guaranteed returns", "passive income", any phrase that frames a garden's funds as an investment.
+- Nowhere: "guaranteed returns", "passive income", or any phrase that promises the supporter a return or frames a gift as an investment. Describing how an endowment earns (a vault's investment earnings fund the work) is allowed where the deposit's risks and the loss limitation sit beside it, as the shipped endowment copy does.
 - Surface-specific design and prompt vocabulary (what stays out of the admin, what stays out of the app) lives in `scripts/data/banned-vocabulary.json` and is summarized in section 5. The app and cockpit unification plan may revise those lists; the file is the authority, not this summary.
 
 ### 6.5 Domains
@@ -265,7 +268,7 @@ Copy names four domains: agroforestry, waste management, solar (hub development)
 
 ### 6.7 Spelling and punctuation
 - US spelling in all English copy: neighbor, color, center, organize, canceled, gray, license, behavior. The vocabulary check rejects UK forms in catalogs; the docs audit rejects them in docs pages and design guides. Quoted third-party names keep their own spelling.
-- No em dashes anywhere: prose, product strings, docs, release titles, announcements, in any language. Restructure with periods, colons, commas, or parentheses, never a hyphen or a spaced en dash. `bun run check --only em-dashes` enforces it. Canonical ontology definitions keep their existing punctuation, and a lone em dash standing in for a missing or unreadable figure in a table or metric is a data placeholder, not prose, and stays.
+- No em dashes anywhere: prose, product strings, docs, release titles, announcements, in any language. Restructure with periods, colons, commas, or parentheses, never a hyphen or a spaced en dash. `bun run check --only em-dashes` enforces it in the catalogs, the bot copy, docs pages, and design guides; release packs under `docs/releases/` are reviewed by eye. Canonical ontology definitions keep their existing punctuation, and a lone em dash standing in for a missing or unreadable figure in a table or metric is a data placeholder, not prose, and stays.
 - Contractions are welcome in app and docs copy. Exclamation marks are rare: one per screen at most, never in errors or status.
 - Ellipsis for in-progress states ("Syncing…") and, on an action label, to say the action opens another step before anything happens ("End Season…", "Archive…"); never in prose.
 
@@ -285,7 +288,7 @@ Copy names four domains: agroforestry, waste management, solar (hub development)
 5. Blockchain is implementation, not copy. On-chain words appear only where section 2 allows them.
 6. External copy is short and scannable: a one-line intro, headers, two or three sentences per section, hyphen bullets in plain-text fields. People do not read dense things.
 7. Errors state what is safe ("Your work is saved") before what to do next. No codes, no stack traces, no blame.
-8. In the app and on the website, every empty state suggests the next action in one sentence. Admin empty states stay a terse acknowledgment ("No items in queue"), as section 5 says.
+8. In the app, every empty state suggests the next action in one sentence. On the website, an empty state suggests an action only where the visitor has one; a public record with nothing yet stays a quiet "nothing here yet" line, never an invented statistic or an unrelated call to action. Admin empty states stay a terse acknowledgment ("No items in queue"), as section 5 says.
 9. Authored community and builder task pages end with next steps, and links say where they go. Reference and generated pages stay terse.
 10. Permission-giving where people hesitate; strict where the integrity of the record is at stake.
 11. Product strings are localized: a new string in the shared catalogs or the bot copy ships with Spanish and Portuguese, accents intact, locked terms used. The docs site is English only today. Community announcements get Spanish and Portuguese versions when those communities are the audience, reviewed by a speaker.
@@ -303,7 +306,7 @@ Never state or imply:
 - a charitable receipt, nonprofit backing, or tax deductibility;
 - instant, self-service, or universal availability; Green Goods is pilot-focused until it is not;
 - automatic impact verification or AI verification of work;
-- "guaranteed returns", yield promises, or any investment framing of a garden's funds.
+- "guaranteed returns", yield promises, or any framing of a gift as an investment for the supporter; saying that a vault's earnings fund the work is fine when the risks and the loss limitation sit beside it.
 
 Always:
 
@@ -323,13 +326,13 @@ Items marked (machine) are covered by a check in the validation pipeline; the re
 - [ ] Is blockchain invisible where it should be?
 - [ ] Would it make sense to someone who has never heard of web3?
 - [ ] Is it shorter than the first draft?
-- [ ] US spelling? (machine: catalogs, docs pages, design guides)
-- [ ] No em dashes? (machine: catalogs, docs pages, design guides)
+- [ ] US spelling? (machine: catalogs, bot chat copy, docs pages, design guides)
+- [ ] No em dashes? (machine: catalogs, bot chat copy, docs pages, design guides)
 - [ ] Lower-case garden, role words, and domain nouns in running text, Title Case only on titles and actions?
-- [ ] No retired or banned words: operator, commitment in user copy, hands at work, streak, urgent, guaranteed returns? (machine for the catalog lists)
-- [ ] No hand-typed counts or traction numbers?
+- [ ] No retired or banned words? (machine: the growth-hacking list and operator in the shared catalogs and the bot chat copy; commitment in user copy, hands at work, and guaranteed returns by eye)
+- [ ] No hand-typed counts or traction figures beyond the one owner-cleared headline figure, and is that figure still current?
 - [ ] Does it claim only what the claims ledger claims?
-- [ ] For product strings: Spanish and Portuguese present, accents intact, locked terms used? (machine for coverage and locked terms)
+- [ ] For product strings: Spanish and Portuguese present, accents intact, locked terms used? (machine: coverage and every locked term in the shared catalogs; the bot's steward and garden words; the bot's promise and endowment terms by eye)
 - [ ] Does it speak as Green Goods, with no other organization's byline?
 
 ---
@@ -345,7 +348,7 @@ Drawn from shipped copy and approved release material. Lines marked "adapted" we
 | "We're still pilot focused, learning alongside the communities using Green Goods." | 2.0 announcement | Limits up front |
 | "Start by describing what you see. We'll help with the rest." | DESIGN.md tone spectrum | Patient onboarding |
 | "Add a photo and a few words about what you did today." | DESIGN.md tone spectrum | Supportive instruction |
-| "You're offline. Your work is saved on this phone and will send when you reconnect." | DESIGN.md tone spectrum | Reassuring, bounded to the queue |
+| "You're offline. Your work is saved on this phone. When you're back online, open Your Work and tap Upload all." | DESIGN.md tone spectrum | Reassuring, bounded to the queue and its Upload all step |
 | "3 submissions pending review. 1 flagged for follow-up." | Admin copy voice | Status, no narrative |
 | "We couldn't submit that." | Client prompt contract | Error without blame |
 | "Connect the wallet you endowed with, and we'll show you the gardens your support is growing." | Public fund page, endowments view | Warm, concrete, no custody claim |
@@ -376,7 +379,7 @@ Drawn from shipped copy and approved release material. Lines marked "adapted" we
 ## 11. Localization
 
 - The product ships in English, Spanish, and Portuguese: a new string in the shared catalogs or the bot copy is not done until its Spanish and Portuguese strings exist, with accents intact (an accents guard is planned; until it lands, review by eye). The docs site is English only today.
-- Locked terms, applied on every surface including hero copy, count notes, and the chat bot, and enforced by the vocabulary check: steward is "responsable" (es) and "responsável" (pt); garden is "jardín" (es) and "jardim" (pt); endowment is "provisión" / "proveer" (es) and "provisão" / "provisionar" (pt); promises are "promesas" (es) and "promessas" (pt). The check also rejects the old words: coordinador, custodio, administrador, and huerto in Spanish; coordenador, zelador, and horta in Portuguese; the English word "garden" left untranslated.
+- Locked terms, applied on every surface including hero copy, count notes, and the chat bot. The vocabulary check (shared catalogs) and the agent's copy tests (bot chat copy) enforce the steward and garden words and reject their retired synonyms; the promise and endowment terms are checked in the shared catalogs by the locale-coverage test and reviewed by eye in the bot chat copy. Steward is "responsable" (es) and "responsável" (pt); garden is "jardín" (es) and "jardim" (pt); endowment is "provisión" / "proveer" (es) and "provisão" / "provisionar" (pt); promises are "promesas" (es) and "promessas" (pt). The check also rejects the old words: coordinador, custodio, administrador, and huerto in Spanish; coordenador, zelador, and horta in Portuguese; the English word "garden" left untranslated.
 - Spanish and Portuguese keep native sentence-style casing everywhere, including titles and action labels.
 - Gender follows the noun: "promesa" and "promessa" are feminine, so articles, adjectives, and pronouns that point back at a promise agree with it, including count strings beside the noun. The verb for taking a promise up is "aceptar" / "aceitar".
 - The same voice applies: warm, plain, no blame, no em dashes, no protocol names where English has none.
@@ -403,8 +406,8 @@ Voice copy only needs to know the following. Everything visual belongs to the de
 | 1 Positioning | High | Owner-approved wording; shipped Welcome, FAQ, the claims ledger |
 | 2 Audiences | High | Ontology and product context; the framing rule and protocol-name placement are owner decisions |
 | 3 Voice and dialects | High for voice and the three dialects; the fourth is a placeholder by design | DESIGN.md; admin and client contracts; owner direction |
-| 4 Tone by context | High for the seven product rows; Medium for docs, announcements, funder documents, and chat rows | Product rows are canonical; the others rest on one approved release pack and two contracts |
-| 5 Dialect patterns | High | Admin and client prompt contracts, community voice contract, decision log |
+| 4 Tone by context | High for the eight product rows; Medium for docs, announcements, funder documents, and chat rows | Product rows are canonical; the others rest on one approved release pack and two contracts |
+| 5 Dialect patterns | High for the admin, website, and app; Medium for the bot | Admin and client prompt contracts, the docs guide, the decision log, and the bot's shipped reporting copy (`packages/agent/src/services/reporting/copy/`) |
 | 6 Terminology | High | Ontology, glossary, banned-vocabulary file, decision log, owner decisions |
 | 7 Style rules | High | Contracts and owner feedback |
 | 8 Claims discipline | High | The claims ledger, release notes, FAQ |
@@ -419,6 +422,8 @@ Voice copy only needs to know the following. Everything visual belongs to the de
 1. **Legal attribution.** Brand-facing mentions of other organizations are gone from docs chrome and contributor copy. The copyright holder line in the docs footer and on the License page stays until the operating entity is settled; then the holder is decided once.
 2. **Community app dialect.** Written when the surface is designed, before its first strings ship.
 3. **Spanish and Portuguese tone addendum.** Owned by a native-speaking steward on the product team; one page; due with the next localization pass.
+4. **Funder persona scope.** The owner treats funders and supporters as one audience; the ontology still defines the Funder persona as the vault depositor. Widening the persona (and its generated personas page) is an ontology change under the Ontology Alignment project; until it lands, section 2's row says which meaning applies where.
+5. **Progress and completion strings that name the chain.** Shipped progress and completion copy still names the chain in places: the admin work submission and the certificate banner ("Syncing with blockchain"), the wallet work-toast sequence ("Saving images to IPFS", "Your contribution is now on-chain"), and whatever else an audit of the catalogs finds, in three languages. They migrate to plain status copy as a follow-up; the transaction confirmations that name gas, irreversibility, or a network stay as DL-094 allows.
 
 ---
 
@@ -451,6 +456,7 @@ This page is the entry point for voice. It restates only what a writer needs to 
 | `docs/docs/reference/glossary.generated.mdx` | Plain-language definitions (generated) |
 | `scripts/data/banned-vocabulary.json` | Banned terms, retired terms, US spelling list, locked locale terms, prompt vocabulary |
 | `packages/shared/src/i18n/en.json`, `es.json`, `pt.json` | Shipped strings and locked translations |
+| `packages/agent/src/services/reporting/copy/en.ts`, `es.ts`, `pt.ts` | The chat reporting bot's shipped copy |
 | `.claude/skills/design/decision-log.md` | Dated copy decisions (DL-012, DL-013, DL-047, DL-071, DL-077, DL-079, DL-083 to DL-085, DL-087, DL-090 to DL-094) |
 | `.claude/context/product.md` | Persona tone rows and the audience priority rule, outranked by the claims ledger on what the product promises |
 | `docs/docs/community/welcome.mdx`, `why-we-build.mdx`, `how-it-works.mdx`, `docs/docs/reference/faq.mdx` | Public explanatory voice and the "is not" claims |
