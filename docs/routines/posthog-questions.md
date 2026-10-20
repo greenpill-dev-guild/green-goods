@@ -115,18 +115,18 @@ Private-default. The eight bug-intake / debug / release-health questions.
 
 **Error events.** The `errors.*` questions and `quality.top-failures` read two events: `$exception`, which PostHog's exception autocapture sends for unhandled errors, and `error_tracked`, which `trackError` in `packages/shared/src/modules/app/error-categories.ts` sends for every error the apps report, handled or not. An unhandled error or a crash report sends both. Each question takes the message, type and stack from the `$exception_*` fields and falls back to `error_message`, `error_type` and `error_stack`, so an error sent both ways lands in one group and its session and user counts stay distinct. Before v1.1.0 (2026-10-19) these questions read only `$exception` and missed every handled error: on App that was 94 of 104 error groups over the previous 30 days, and on Admin all of them. Questions that count events rather than distinct sessions or users, such as `release.error-rate-delta` and the `errors_observed` count in `replay.user-sessions`, still read only `$exception`, because counting both events there would count one error twice.
 
-**Error hash.** Each of these questions hashes an error as `cityHash64(concat(toString(message), toString(url)))`, where the message is `$exception_message` or, when that is absent, `error_message`. HogQL's `concat` reads a missing message or URL as an empty string, so every error gets a hash. On 2026-10-19 this form replaced the two-argument `cityHash64(a, b)`, which HogQL now rejects, and every hash value changed: a hash recorded before that date, such as a QA Sheet `PostHog Hash` cell or an older Linear body, will not match the new hash for the same error. Reading `error_tracked` too left the hash of every `$exception` error unchanged.
+**Error hash.** Each of these questions hashes an error as `cityHash64(concat(toString(message), '\n', toString(url)))`, where the message is `$exception_message` or, when that is absent, `error_message`, so an error sent both ways gets one hash. The newline keeps the two fields apart, since a URL never contains one: without it, message `ab` on URL `c` and message `a` on URL `bc` would share a hash. HogQL's `concat` reads a missing message or URL as an empty string, so every error gets a hash. This form dates from v1.1.0 (2026-10-19) and replaced the two-argument `cityHash64(a, b)`, which HogQL now rejects. Every hash value changed with it, so a hash recorded before it, such as a QA Sheet `PostHog Hash` cell or an older Linear body, will not match the new hash for the same error. Match such a record by its Linear URL or title instead, as `/qa-triage` and sync-triage-pulse already do when no hash matches.
 
 ### `errors.recent`
 
 - **Lens**: product-quality
 - **Default privacy**: public-safe (aggregate counts only)
 - **What it answers**: recent errors grouped by message + URL with affected-session counts.
-- **v1.1.0 (2026-10-19): handled errors count.** Reads `error_tracked` as well as `$exception`; see Error events above.
+- **v1.1.0 (2026-10-19): handled errors count.** Reads `error_tracked` as well as `$exception`, and the hash keeps message and URL apart; see Error events and Error hash above.
 - **HogQL**:
   ```sql
   SELECT
-    cityHash64(concat(toString(coalesce(properties.$exception_message, properties.error_message)), toString(properties.$current_url))) AS error_hash,
+    cityHash64(concat(toString(coalesce(properties.$exception_message, properties.error_message)), '\n', toString(properties.$current_url))) AS error_hash,
     coalesce(properties.$exception_type, properties.error_type) AS exception_type,
     coalesce(properties.$exception_message, properties.error_message) AS message,
     properties.$current_url AS current_url,
@@ -153,7 +153,7 @@ Private-default. The eight bug-intake / debug / release-health questions.
 - **Lens**: product-quality
 - **Default privacy**: private-only (returns replay URLs and per-session rows)
 - **What it answers**: full detail for one error hash including a sample of the top stack frame plus per-session replay links.
-- **v1.1.0 (2026-10-19): handled errors count.** Reads `error_tracked` as well as `$exception`; see Error events above. `sample_stack` now reads `error_stack`, because `$exception_stack_trace_raw` was never recorded.
+- **v1.1.0 (2026-10-19): handled errors count.** Reads `error_tracked` as well as `$exception`, and the hash keeps message and URL apart; see Error events and Error hash above. `sample_stack` now reads `error_stack`, because `$exception_stack_trace_raw` was never recorded.
 - **HogQL**:
   ```sql
   WITH matches AS (
@@ -161,7 +161,7 @@ Private-default. The eight bug-intake / debug / release-health questions.
     FROM events
     WHERE event IN ('$exception', 'error_tracked')
       AND timestamp > now() - interval {window:String}
-      AND cityHash64(concat(toString(coalesce(properties.$exception_message, properties.error_message)), toString(properties.$current_url))) = {error_hash:UInt64}
+      AND cityHash64(concat(toString(coalesce(properties.$exception_message, properties.error_message)), '\n', toString(properties.$current_url))) = {error_hash:UInt64}
   )
   SELECT
     coalesce(properties.$exception_type, properties.error_type) AS exception_type,
@@ -189,11 +189,11 @@ Private-default. The eight bug-intake / debug / release-health questions.
 - **Lens**: product-quality
 - **Default privacy**: public-safe
 - **What it answers**: distinct-session count per error hash over a 30-day window — the input to bug-intake's recurring-pattern roll-up (≥50 sessions threshold).
-- **v1.1.0 (2026-10-19): handled errors count.** Reads `error_tracked` as well as `$exception`; see Error events above. No error reached the 50-session threshold either way on 2026-10-19: the largest App group had 36 sessions.
+- **v1.1.0 (2026-10-19): handled errors count.** Reads `error_tracked` as well as `$exception`, and the hash keeps message and URL apart; see Error events and Error hash above. No error reached the 50-session threshold either way on 2026-10-19: the largest App group had 36 sessions.
 - **HogQL**:
   ```sql
   SELECT
-    cityHash64(concat(toString(coalesce(properties.$exception_message, properties.error_message)), toString(properties.$current_url))) AS error_hash,
+    cityHash64(concat(toString(coalesce(properties.$exception_message, properties.error_message)), '\n', toString(properties.$current_url))) AS error_hash,
     coalesce(properties.$exception_message, properties.error_message) AS message,
     count(DISTINCT $session_id) AS sessions_30d,
     count(DISTINCT distinct_id) AS users_30d,
@@ -215,11 +215,11 @@ Private-default. The eight bug-intake / debug / release-health questions.
 - **Lens**: product-quality
 - **Default privacy**: private-only (matches may include single-user evidence)
 - **What it answers**: free-text fuzzy match between a verbatim bug-report quote and recent error messages or event names.
-- **v1.1.0 (2026-10-19): handled errors count.** Reads `error_tracked` as well as `$exception`; see Error events above.
+- **v1.1.0 (2026-10-19): handled errors count.** Reads `error_tracked` as well as `$exception`, and the hash keeps message and URL apart; see Error events and Error hash above.
 - **HogQL**:
   ```sql
   SELECT
-    cityHash64(concat(toString(coalesce(properties.$exception_message, properties.error_message)), toString(properties.$current_url))) AS error_hash,
+    cityHash64(concat(toString(coalesce(properties.$exception_message, properties.error_message)), '\n', toString(properties.$current_url))) AS error_hash,
     coalesce(properties.$exception_message, properties.error_message) AS message,
     properties.$current_url AS current_url,
     count(DISTINCT $session_id) AS affected_sessions,
@@ -326,11 +326,11 @@ Private-default. The eight bug-intake / debug / release-health questions.
 - **Lens**: product-quality
 - **Default privacy**: public-safe
 - **What it answers**: the top 10 errors in a window, ranked by affected-user count rather than session count (better signal for prioritization).
-- **v1.1.0 (2026-10-19): handled errors count.** Reads `error_tracked` as well as `$exception`; see Error events above.
+- **v1.1.0 (2026-10-19): handled errors count.** Reads `error_tracked` as well as `$exception`, and the hash keeps message and URL apart; see Error events and Error hash above.
 - **HogQL**:
   ```sql
   SELECT
-    cityHash64(concat(toString(coalesce(properties.$exception_message, properties.error_message)), toString(properties.$current_url))) AS error_hash,
+    cityHash64(concat(toString(coalesce(properties.$exception_message, properties.error_message)), '\n', toString(properties.$current_url))) AS error_hash,
     coalesce(properties.$exception_type, properties.error_type) AS exception_type,
     coalesce(properties.$exception_message, properties.error_message) AS message,
     properties.$current_url AS current_url,
