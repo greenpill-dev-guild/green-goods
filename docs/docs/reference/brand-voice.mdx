@@ -15,6 +15,8 @@ source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - scripts/data/banned-vocabulary.json
   - packages/shared/src/i18n/en.json
+  - packages/shared/src/i18n/es.json
+  - packages/shared/src/i18n/pt.json
   - docs/docs/reference/glossary.generated.mdx
   - docs/docs/community/green-goods-claims.generated.mdx
   - docs/docs/reference/brand.mdx
@@ -257,7 +259,7 @@ Copy names four domains: agroforestry, waste management, solar (hub development)
 - US spelling in all English copy: neighbor, color, center, organize, canceled, gray, license, behavior. The vocabulary check rejects UK forms in catalogs; the docs audit rejects them in docs pages and design guides. Quoted third-party names keep their own spelling.
 - No em dashes anywhere: prose, product strings, docs, release titles, announcements, in any language. Restructure with periods, colons, commas, or parentheses, never a hyphen or a spaced en dash. `bun run check --only em-dashes` enforces it. Canonical ontology definitions keep their existing punctuation, and a lone em dash standing in for a missing or unreadable figure in a table or metric is a data placeholder, not prose, and stays.
 - Contractions are welcome in app and docs copy. Exclamation marks are rare: one per screen at most, never in errors or status.
-- Ellipsis only for in-progress states ("Syncing…").
+- Ellipsis for in-progress states ("Syncing…") and, on an action label, to say the action opens another step before anything happens ("End Season…", "Archive…"); never in prose.
 
 ### 6.8 Numbers
 - Live product counts (the public site's own figures) may appear anywhere.
