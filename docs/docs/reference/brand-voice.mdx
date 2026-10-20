@@ -17,6 +17,7 @@ source_of_truth:
   - packages/shared/src/i18n/en.json
   - packages/shared/src/i18n/es.json
   - packages/shared/src/i18n/pt.json
+  - packages/agent/src/services/reporting/copy/en.ts
   - docs/docs/reference/glossary.generated.mdx
   - docs/claims.generated.md
   - docs/docs/reference/brand.mdx
@@ -376,7 +377,7 @@ Drawn from shipped copy and approved release material. Lines marked "adapted" we
 ## 11. Localization
 
 - The product ships in English, Spanish, and Portuguese: a new string in the shared catalogs or the bot copy is not done until its Spanish and Portuguese strings exist, with accents intact (an accents guard is planned; until it lands, review by eye). The docs site is English only today.
-- Locked terms, applied on every surface including hero copy, count notes, and the chat bot, and enforced by the vocabulary check: steward is "responsable" (es) and "responsável" (pt); garden is "jardín" (es) and "jardim" (pt); endowment is "provisión" / "proveer" (es) and "provisão" / "provisionar" (pt); promises are "promesas" (es) and "promessas" (pt). The check also rejects the old words: coordinador, custodio, administrador, and huerto in Spanish; coordenador, zelador, and horta in Portuguese; the English word "garden" left untranslated.
+- Locked terms, applied on every surface including hero copy, count notes, and the chat bot. The vocabulary check enforces them in the three shared catalogs; the bot's own locale-terms test covers the garden and steward words, and its promise and endowment terms are reviewed by eye until the checks extend to it. Steward is "responsable" (es) and "responsável" (pt); garden is "jardín" (es) and "jardim" (pt); endowment is "provisión" / "proveer" (es) and "provisão" / "provisionar" (pt); promises are "promesas" (es) and "promessas" (pt). The check also rejects the old words: coordinador, custodio, administrador, and huerto in Spanish; coordenador, zelador, and horta in Portuguese; the English word "garden" left untranslated.
 - Spanish and Portuguese keep native sentence-style casing everywhere, including titles and action labels.
 - Gender follows the noun: "promesa" and "promessa" are feminine, so articles, adjectives, and pronouns that point back at a promise agree with it, including count strings beside the noun. The verb for taking a promise up is "aceptar" / "aceitar".
 - The same voice applies: warm, plain, no blame, no em dashes, no protocol names where English has none.
@@ -404,7 +405,7 @@ Voice copy only needs to know the following. Everything visual belongs to the de
 | 2 Audiences | High | Ontology and product context; the framing rule and protocol-name placement are owner decisions |
 | 3 Voice and dialects | High for voice and the three dialects; the fourth is a placeholder by design | DESIGN.md; admin and client contracts; owner direction |
 | 4 Tone by context | High for the seven product rows; Medium for docs, announcements, funder documents, and chat rows | Product rows are canonical; the others rest on one approved release pack and two contracts |
-| 5 Dialect patterns | High | Admin and client prompt contracts, community voice contract, decision log |
+| 5 Dialect patterns | High for the admin, website, and app; Medium for the bot | Admin and client prompt contracts, the docs guide, the decision log, and the bot's shipped reporting copy (`packages/agent/src/services/reporting/copy/`) |
 | 6 Terminology | High | Ontology, glossary, banned-vocabulary file, decision log, owner decisions |
 | 7 Style rules | High | Contracts and owner feedback |
 | 8 Claims discipline | High | The claims ledger, release notes, FAQ |
@@ -452,6 +453,7 @@ This page is the entry point for voice. It restates only what a writer needs to 
 | `docs/docs/reference/glossary.generated.mdx` | Plain-language definitions (generated) |
 | `scripts/data/banned-vocabulary.json` | Banned terms, retired terms, US spelling list, locked locale terms, prompt vocabulary |
 | `packages/shared/src/i18n/en.json`, `es.json`, `pt.json` | Shipped strings and locked translations |
+| `packages/agent/src/services/reporting/copy/en.ts`, `es.ts`, `pt.ts` | The chat reporting bot's shipped copy |
 | `.claude/skills/design/decision-log.md` | Dated copy decisions (DL-012, DL-013, DL-047, DL-071, DL-077, DL-079, DL-083 to DL-085, DL-087, DL-090 to DL-094) |
 | `.claude/context/product.md` | Persona tone rows and the audience priority rule, outranked by the claims ledger on what the product promises |
 | `docs/docs/community/welcome.mdx`, `why-we-build.mdx`, `how-it-works.mdx`, `docs/docs/reference/faq.mdx` | Public explanatory voice and the "is not" claims |

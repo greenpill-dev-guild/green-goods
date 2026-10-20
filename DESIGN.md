@@ -292,7 +292,7 @@ Before shipping copy:
 - [ ] Is it concrete? (Can the reader picture it?)
 - [ ] Is it active? (Subject → verb → object?)
 - [ ] Is the audience right? (Gardener ≠ steward ≠ funder)
-- [ ] Is blockchain invisible outside funding surfaces, builder pages, and the wallet box (DL-094)? On-chain is implementation, not copy.
+- [ ] Is blockchain invisible except where the reader needs a protocol name to act or verify (DL-094)? On-chain is implementation, not copy.
 - [ ] Would it make sense to someone who's never heard of web3?
 - [ ] Is it shorter than your first draft?
 
