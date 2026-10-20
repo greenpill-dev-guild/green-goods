@@ -88,11 +88,12 @@ filter, not the list.
 You rarely need a real passkey ceremony in development. The dev-only bypass from
 [Getting Started](../getting-started#path-a-run-against-hosted-services)
 (`?mockAuth=steward&presentation=pwa`) signs you in as a test identity. The Playwright passkey
-project (`tests/specs/client.passkey.spec.ts`) drives a virtual authenticator and expects the
-directory to reject its substitute, which proves the ceremony wiring rather than a signed-in
-session; the real Pimlico cases in `tests/specs/client.auth.spec.ts` run only with
-`RUN_REAL_PASSKEY_E2E=true` and are otherwise skipped or marked fixme. The authenticated path,
-account creation, and the sponsored transaction are proven on a device, not in CI.
+project (`tests/specs/client.passkey.spec.ts`) drives a virtual authenticator and expects its
+strict server substitute to reject the credential, leaving the user signed out after reload.
+The reporting-account passkey specs exercise recovery against local substitutes and stop before
+signing. `tests/specs/client.session-navigation.ci.spec.ts` checks mock-auth sessions and navigation;
+it does not prove a wallet or passkey ceremony. Real-device biometrics, remote passkey services,
+account creation on a chain and sponsored transactions still need authenticated device QA.
 
 Local development keeps passkeys local-only unless `VITE_PASSKEY_SERVER_ENABLED=true` enables the
 local agent directory. `VITE_PASSKEY_RP_ID` is a local-development override; deployed sites,

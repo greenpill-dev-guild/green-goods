@@ -572,3 +572,56 @@ Agent/model: Codex / unknown | Coverage: accepted screenshot follow-up
 | Publish | 2026-10-18 03:16:43 → ongoing | Exact staging, pre-commit, post-commit Push Gate and current-head CI follow in PR/chat. |
 
 Human corrections: 0 observed in this segment; attention: unknown.
+
+
+## Publication blockers and mobile completion, October 19
+
+The user authorized resolving the six expired E2E exemptions, finishing the eight remaining
+mobile reviews and pushing #1109 without merging. The screenshot commit fac60a75 remains
+part of this publication; no generated artwork or application business behavior changed.
+
+The expired skips were resolved without new expiry dates or test-quality exemptions:
+
+- Six existing session/navigation cases now share `client.session-navigation.ci.spec.ts`,
+  discovered by the existing Client CI pattern. They use the canonical mock-auth/backend
+  fixtures and test reload, profile logout, protected routes, mobile navigation, garden Back
+  and browser history. Conditional early returns and assumptions about retired menu/breadcrumb
+  controls were removed. The Playwright configuration is unchanged.
+- The wallet-storage smoke diagnostic now verifies rejection when no real connector exists,
+  including on iOS, rather than treating a login redirect as authentication success.
+- The unreachable authenticated-offline reload case was removed from the development-worker
+  suite. Development workers do not precache navigation, and production deliberately omits
+  dev mock auth. The production navigation-cache proof and missing-cache control remain in
+  `client.pwa-preview.spec.ts`; authenticated offline replay remains a separate PRD-727 limit.
+- Test-guide references and the stale passkey claim were corrected to name the surviving proof.
+
+Test-quality, format, lint, source structure and Docs consistency pass. The affected Playwright
+selection discovers 17 cases across three files with no conditional test skips. A local execution
+attempt stopped before the first case: macOS denied Chromium MachPort startup. This is an
+execution limit, not a passing browser test; current-head Client CI must supply executable proof.
+Docs tests pass 96/96. Final production build, post-commit Push Gate and current-head GitHub CI
+results follow in the PR publication record. No gate, timeout, baseline or permission was weakened.
+
+Rendered proof: Chromium in-app browser, public localhost Docs, October 19. The remaining eight
+guides were reviewed at 390×844: Endow a Garden, Remove an Endowment, Install and Update the App,
+Make an Initial Assessment, Create a Garden, Manage Actions, Manage Garden Funding and Mint Impact
+Certificate. Their captures load, center within the article and fit without page-wide overflow.
+Full-page views were also inspected. Combined with the prior eight phone reviews, all 16 updated
+task guides now have phone and desktop layout proof. This does not establish physical-device
+installation, authenticated sessions, signed transactions or offline storage behavior.
+
+Broader pooling, dispute/fallback/cancellation/expiry, settlement and payouts, post/delta assessment,
+complete Builder/partner narratives, translations, signed/device/offline and unfamiliar-reader QA
+remain under PRD-727. The earlier Agent SQLite timeout failures remain a broader QA follow-up.
+Videos remain PRD-728. No Linear state or hub lane was changed.
+
+Task record: PRD-1156 / #1109 task screenshots | Type: fix | Outcome: verification complete; publication pending
+Agent/model: Codex / unknown | Coverage: publication blockers and eight remaining mobile reviews
+
+| Phase | Start → end (UTC) | Result |
+|---|---|---|
+| Investigate | 2026-10-20 01:39:14 → unknown | Clean isolated fac60a75, live PR head/base, expired skips and supported proof seams inspected. |
+| Implement | unknown → 2026-10-20 01:47:34 | Existing cases consolidated and corrected; no test exemptions or config changes. |
+| Verify / review | unknown → ongoing | Test governance passes, 17 cases discovered, local Chromium startup blocked; eight mobile guide reviews complete. Final Docs build and publication evidence follow in PR/chat. |
+
+Human corrections: 0 observed in this segment; attention: unknown.

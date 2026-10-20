@@ -24,14 +24,13 @@ tests/
 │   ├── admin.smoke.spec.ts   # Admin basic functionality
 │   ├── admin.auth.spec.ts    # Admin authentication flows
 │   ├── client.smoke.spec.ts  # Client basic functionality  
-│   ├── client.auth.spec.ts   # Client authentication flows
+│   ├── client.session-navigation.ci.spec.ts  # Mock-auth sessions and navigation
 │   ├── client.offline-work-submission.ci.spec.ts  # Offline upload/recovery
 │   ├── client.work-submission.ci.spec.ts  # Required work details validation
 │   ├── client.work-approval.ci.spec.ts    # Work approval
 │   ├── client.passkey.spec.ts  # Qualified WebAuthn rejection
 │   ├── client.reporting-account.passkey.spec.ts  # Qualified account recovery
 │   ├── client.pwa-preview.spec.ts  # Production worker/cache proof
-│   ├── client.navigation.spec.ts  # Navigation and routing
 │   └── performance.spec.ts   # Performance metrics
 ├── helpers/
 │   ├── test-utils.ts        # Test helpers and utilities
@@ -48,7 +47,7 @@ tests/
 bun run browser e2e --preset all
 
 # Run specific test file
-bun exec playwright test client.auth.spec.ts
+bun x playwright test --project=client-ci client.session-navigation.ci.spec.ts
 
 # Run in headed mode for debugging
 bun exec playwright test --headed

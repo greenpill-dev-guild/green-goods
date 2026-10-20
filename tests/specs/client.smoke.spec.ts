@@ -3,25 +3,18 @@
  *
  * Minimal tests for the client PWA:
  * - Unauthenticated redirect to login
- * - Wallet storage injection diagnostic (iOS Safari)
+ * - Rejection of fabricated wallet storage without a connector
  * - View gardens data
  *
  * Authentication strategy:
- * - CI/mobile Chrome: supported dev mock-auth seam and mocked backend
- * - iOS Safari: legacy storage diagnostic; its URL check does not establish successful authentication
+ * - Authenticated UI: supported dev mock-auth seam and mocked backend
+ * - Wallet storage: negative access check without a connector on every browser
  */
 import { expect, test } from "@playwright/test";
 import { MOCK_CLIENT_GARDEN } from "../helpers/mock-backend";
 import { ClientTestHelper, setupAuthenticatedClient, TEST_URLS } from "../helpers/test-utils";
 
 const CLIENT_URL = TEST_URLS.client;
-
-/**
- * Detect if current browser is iOS Safari
- */
-function isIOS(projectName: string | undefined): boolean {
-  return projectName === "mobile-safari";
-}
 
 test.describe("Client PWA", () => {
   test.use({ baseURL: CLIENT_URL });
@@ -60,31 +53,17 @@ test.describe("Client PWA", () => {
       await expect(page.getByTestId("login-button")).toBeVisible();
     });
 
-    test("wallet flow - inject auth and navigate (iOS Safari)", async ({ page }, testInfo) => {
-      // Only run this storage-injection diagnostic on iOS Safari. Qualified specs own passkey proof.
-      // SKIP: #338 owner:afo expiry:2026-10-16 — platform-conditional, only iOS Safari
-      test.skip(!isIOS(testInfo.project.name), "Wallet injection only needed for iOS Safari");
-
+    test("wallet storage alone does not authorize a protected route", async ({ page }) => {
       const helper = new ClientTestHelper(page);
-
-      // Inject wallet state before navigating
       await helper.injectWalletAuth();
-
-      // Navigate to home (should not redirect to login)
-      await page.goto("/home");
+      await page.goto("/home?presentation=pwa");
       await helper.waitForPageLoad();
 
-      const url = page.url();
-
-      if (url.includes("/home")) {
-        // Auth worked - verify we're on home page
-        await expect(page.locator("body")).toBeVisible();
-      } else {
-        // Auth injection didn't persist - this is expected in some cases
-        // iOS Safari has stricter localStorage rules
-        console.log("Auth injection not persisted on iOS - wallet flow would be needed");
-        expect(url).toContain("/home/login");
-      }
+      // No connector or dev-auth override exists. Fabricated storage must not
+      // grant access on any browser, including iOS Safari.
+      await expect(page).toHaveURL(/\/home\/login/);
+      await expect(page.getByTestId("login-button")).toBeVisible();
+      await expect(page.getByTestId("authenticated-nav")).toHaveCount(0);
     });
   });
 

@@ -50,7 +50,8 @@ Useful references:
 
 The config keeps CI lanes and optional manual projects separate:
 
-- `client-ci` and `admin-ci` run deterministic smoke and CI specs.
+- `client-ci` runs deterministic smoke, mock-auth session, navigation and CI specs.
+- `admin-ci` runs deterministic authentication, smoke and production-flow specs.
 - `client-full`, `chromium`, and `performance` are the default desktop wrapper projects.
 - `mobile-chrome`, `mobile-safari`, and `iphone-16-pro` are explicit device/diagnostic projects.
 - `anvil-fork`, `passkey-mock`, and `testnet` are explicit integration projects.
@@ -60,7 +61,7 @@ Use Bun to launch the checked-in Playwright CLI:
 ```bash
 bun x playwright test --project=client-ci
 bun x playwright test --project=admin-ci
-bun x playwright test tests/specs/client.navigation.spec.ts
+bun x playwright test tests/specs/client.session-navigation.ci.spec.ts
 
 bun run browser e2e --preset fork
 bun run browser e2e --preset passkey
@@ -125,9 +126,11 @@ cases do not prove browser-to-fork-to-indexer integration or authenticated-sessi
 
 ## Authentication
 
-- Client CI and deterministic mobile smoke use `setupAuthenticatedClient` with dev mock auth and
-  the mocked backend. Legacy manual wallet-storage cases provide narrower diagnostics. The
-  `passkey-mock` project owns real virtual-WebAuthn ceremonies against strict local substitutes.
+- Client CI, navigation and deterministic mobile smoke use `setupAuthenticatedClient` with dev
+  mock auth and the mocked backend. The wallet-storage smoke case verifies that fabricated storage
+  without a connector does not authorize access. The `passkey-mock` project owns real
+  virtual-WebAuthn ceremonies against strict local substitutes. Mock logout proves the profile
+  control and test-session transition, not a real wallet disconnect.
 - Admin cockpit specs use deterministic `sessionStorage` mock auth plus GraphQL route interception.
   Mock both `**/api/graphql` and `**/v1/graphql` when the test can traverse the Vite proxy.
 - Browser automation here is clean-room test evidence. Label it as such; root
