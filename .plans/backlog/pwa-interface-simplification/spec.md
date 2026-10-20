@@ -310,9 +310,9 @@ drawn in the lab as a tweak with the decision as its default:
     review and join requests), each opening the work, the promise, Your Work or Gardeners.
 12. **The Home header is sticky,** with a hairline once content scrolls under it. The chip keeps
     declaring the garden at any scroll position.
-13. **Submit Work's first step leads with promises.** The pinned garden, then the garden's open
-    asks as rows where one tap picks the promise and its action together, then the domain tabs and
-    action cards for other work. The promise intent flows into the later steps as today (D16).
+13. **Submit Work's first step** (revised on 20 October, see decision 16): one question, with the
+    actions a promise of the member's still needs first. The promise intent flows into the later
+    steps as today (D16).
 14. **No Highlights strip.** Home stays rows in the confirmed order; the carousel stays in the lab
     for comparison only.
 15. **Badges count the active garden.** See decision 4 as revised.
@@ -320,6 +320,36 @@ drawn in the lab as a tweak with the decision as its default:
 Decisions 10 to 15 took the recommendation except 15, where the recommendation was a phone-wide
 badge with the sheet's subtitle naming what waits in other gardens; the maintainer chose the
 garden-only count so the badge and the sheet always agree.
+
+## Review round on 20 October 2026
+
+The maintainer reviewed the Start step variants with the two design books in hand and asked for
+the gardening flow to be designed around its real states rather than Home's pattern of lists and
+teases. What the review settled:
+
+16. **One question.** The first step asks what the member did and infers the rest. The actions a
+    promise of the member's still needs rise to the top of the one list wearing that promise
+    ("for Workshop photos · 3 of 12 · due Jan 31"); picking one attaches the promise, says so, and
+    one tap unlinks it. An action two promises need says so and asks which after the pick. With
+    nothing owed the step is the plain list and never says the word promise. The exact shape (one
+    folded list, two labelled groups, or a yes-or-no question before the list), the heading, the
+    chooser and the Work-for treatment stay in the lab as tweaks until the maintainer picks.
+17. **Known answers skip the step.** From a promise's page Media opens with the promise pinned; a
+    garden with one action and nothing owed also opens Media with the action named in the line.
+18. **Taking up moves into the step.** Submit Work lists the garden's open asks of the Open claim
+    mode beside the member's own promises; picking one takes it up as part of logging the work:
+    one tap, two writes (the claim, then the work and its link), sequenced by the job queue, and
+    the step says how many prompts are coming before the first. Approval-gated asks appear only
+    once the asker has accepted the member's claim; until then the promise page offers "Ask to
+    take up". The fulfilment confirmation stays as it is.
+19. **New asks default to Open.** Compose defaults the claim mode to Open and keeps Approval gated
+    as the opt-in for asks whose asker must choose who takes them. No contract change.
+20. **The bell sits at the far right** of the header cluster (decision 11 amended).
+
+What this corrects: the 19 October "promises first" step offered open asks as things the step
+could keep, but work links only to a promise the member has taken up (the link-choice hook reads
+the account's accepted promises in the garden where the member is an active contributor).
+Decision 18 makes the one-tap take-up real for Open asks instead of implying it.
 
 ## Persistence and state architecture
 

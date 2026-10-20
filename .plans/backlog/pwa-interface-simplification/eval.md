@@ -146,3 +146,13 @@ read-only link and anchor check over this hub, Biome format on `status.json`, th
 and guidance-link checks, `git diff --check`, and a scan of the added lines for em dashes. All
 passed. The lab's script was parsed with `node --check` after its hints and preset changed; its
 defaults already drew every decision, so no new render measurement was needed.
+
+## Design round check (2026-10-20)
+
+The hub checks were run again on the edits that record decisions 16 to 20: `node
+scripts/harness/plan-hub.mjs validate`, the read-only link and anchor check over this hub, Biome
+format on `status.json`, `git diff --check` and the em dash scan of added lines. The lab's start
+step variants were measured in the desktop app's built-in browser pane (Chromium, static mock, no
+app session): seven action rows at 88px with the promoted rows first, the keeps line and the
+promise chooser for one and two matches, the open-ask take-up line, the two-group and question
+shapes, the three headings in English and Portuguese, and a pick keeping the screen in view.

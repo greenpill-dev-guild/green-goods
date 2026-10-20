@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-10-06T05:42:17.126Z",
-    "updated_at": "2026-10-20T04:50:00Z"
+    "updated_at": "2026-10-20T07:40:00Z"
   },
   "links": {
     "brief": "brief.md",
@@ -43,6 +43,7 @@
     "depends_on_features": []
   },
   "notes": [
+    "2026-10-20: the Start step reopened against the design books. Settled as decisions 16 to 20: one question with the actions a promise needs first (decision 13 revised; the 19 October step wrongly offered open asks the step could not link); known answers skip the step; Open asks can be taken up from the step with two queued writes; Compose defaults new asks to Open with gating opt-in; the bell at the far right. Steps 16 and 17 added; acceptance is 18. The step's shape, heading, chooser and Work-for treatment stay in the lab until picked. Implementation still awaits a separate go.",
     "2026-10-19 (later): the five explorations and the badge rule settled. Garden sections open as sheets over Home; a notifications bell takes the header's free slot; the Home header is sticky; Submit Work's first step leads with the garden's open asks; no Highlights strip; the Your Work and Home badges count the active garden only (against the recommendation of a phone-wide badge with a subtitle). Recorded as decisions 10 to 15 in spec.md, steps 13 to 15 in plan.todo.md, and as the lab's defaults. Implementation still awaits a separate go.",
     "2026-10-19: the maintainer's review of the lab and the lock. Settled: garden cards, the chip, the switcher and the pinned Work-for card show the garden's banner; Explore tags sit on the photo and no card grows; the two family test gardens show only to their members; the switcher is the half sheet; Promises and Your Work stay scoped to the active garden with no widening row (decision 4 revised); Submit Work pins the garden with no change control; the offline strip overlays the header; the chip matches the icon buttons' 32px. Under review, drawn in the lab as opt-in tweaks: garden sections as sheets over Home, a notifications bell, a sticky header, a promises-first Start step and a Highlights strip. Implementation still awaits a separate go.",
     "2026-10-18: scope locked by the maintainer after the findings and the lab: implicit selection with a one-time chooser; gardener, steward, owner and evaluator define my gardens; the compact journal; Promises and Your Work scoped to the active garden; one About row for now; visiting never switches; two delivery slices; a device preference per chain and account. Recorded in spec.md, plan.todo.md and brief.md; the lab is in artifacts/. Implementation still awaits a separate go.",
@@ -223,6 +224,14 @@
       "status": "review_round_decided",
       "branch": "research/pwa-garden-home-scope-lock",
       "note": "Recorded the maintainer's answers to the five explorations and the badge question as decisions 10 to 15, added the Start step layout, notification events and bell steps to the second slice, and set the lab's defaults to the decisions. Lanes stay blocked until execution is authorized."
+    },
+    {
+      "timestamp": "2026-10-20T07:40:00Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "design_round_recorded",
+      "branch": "research/pwa-garden-home-scope-lock",
+      "note": "Recorded the 20 October design round: the one-question Start step, the skip rule, taking up Open asks from the step, the Open default in Compose, and the bell placement. Lanes stay blocked until execution is authorized."
     }
   ]
 }

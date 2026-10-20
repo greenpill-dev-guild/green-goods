@@ -1,6 +1,6 @@
 # PWA Interface Simplification
 
-**Stage:** backlog · **Posture:** scope locked on 18 October 2026 and completed by the 19 October review; implementation waits for a separate go
+**Stage:** backlog · **Posture:** scope locked on 18 October 2026, completed by the 19 October review and extended on 20 October; the Start step's shape awaits a pick; implementation waits for a separate go
 
 **Linear:** [RESR-93](https://linear.app/greenpill-dev-guild/issue/RESR-93) in
 [Green Goods 2.1.0](https://linear.app/greenpill-dev-guild/project/green-goods-v210-qa-and-release-9bcaf982d5e5).
@@ -75,6 +75,12 @@ sections open as sheets over Home; a notifications bell takes the header's free 
 header is sticky; Submit Work's first step leads with the garden's open asks; no Highlights strip;
 and the Your Work and Home badges count the active garden only. Each is recorded as decisions 10
 to 15 in [spec.md](spec.md#review-round-on-19-october-2026).
+
+On 20 October the Start step was reopened against the two design books and settled as decisions
+16 to 20 in [spec.md](spec.md#review-round-on-20-october-2026): one question with the actions a
+promise needs first, known answers skipping the step, Open asks taken up from the step with two
+queued writes, new asks defaulting to Open, and the bell at the far right. The step's shape,
+heading, chooser and Work-for treatment stay in the lab until picked.
 
 ## Scope and boundaries
 
