@@ -48,8 +48,10 @@ html {
 }
 body {
   @apply m-0 min-h-dvh bg-bg-white-0 text-text-strong-950;
-  /* Note: Safe area insets are handled at component level for fixed-position elements.
-     See AppBar.tsx, Work.tsx, Garden/index.tsx for examples. */
+  /* Safe areas are handled where the chrome sits: the top bar and page headers
+     pad by env(safe-area-inset-top), pages under the top bar start at
+     var(--app-top-bar-height), and bottom bars and sheets pad by
+     var(--safe-area-bottom) (shared theme.css, Safe Areas). */
 }
 
 #root {

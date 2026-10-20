@@ -389,7 +389,7 @@ export function PwaSheet({
         data-testid={testId}
         className={panelClassName}
         style={{
-          paddingBottom: "env(safe-area-inset-bottom)",
+          paddingBottom: "var(--safe-area-bottom)",
           ...panelStyle,
         }}
         onClick={(event) => event.stopPropagation()}

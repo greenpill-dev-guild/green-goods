@@ -286,7 +286,7 @@ const Home: React.FC = () => {
   return (
     <article ref={articleRef} className="mb-6">
       <div hidden={location.pathname.replace(/\/$/, "") !== APP_ROUTES.home}>
-        <div className="flex items-center justify-between w-full py-6 px-4 sm:px-6 md:px-12">
+        <div className="flex items-center justify-between w-full pt-[calc(1.5rem+env(safe-area-inset-top,0px))] pb-6 px-4 sm:px-6 md:px-12">
           <h4 className="flex-1 text-[1.125rem] font-semibold">
             {intl.formatMessage({ id: "app.home" })}
           </h4>

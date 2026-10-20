@@ -44,10 +44,10 @@ export function ProofShell({ onBack, progress, heading, pinned, bar, children }:
         <FormProgress currentStep={progress} steps={steps} />
       </TopNav>
       <form
-        className="relative py-6 pt-20 flex flex-col gap-4 min-h-[calc(100vh-7.5rem)]"
+        className="relative py-6 pt-[var(--app-top-bar-height)] flex flex-col gap-4 min-h-[calc(100vh-7.5rem)]"
         onSubmit={(event) => event.preventDefault()}
       >
-        <div className="padded relative flex flex-col gap-4 flex-1 pb-[calc(7rem+env(safe-area-inset-bottom))]">
+        <div className="padded relative flex flex-col gap-4 flex-1 pb-[calc(7rem+var(--safe-area-bottom))]">
           <FormInfo title={heading.title} info={heading.info} Icon={heading.Icon} />
           {pinned}
           {children}
@@ -79,7 +79,7 @@ export function ProofState({
   return (
     <>
       <TopNav onBackClick={onBack} overlay />
-      <div className="padded flex flex-col gap-4 pt-20 pb-6">
+      <div className="padded flex flex-col gap-4 pt-[var(--app-top-bar-height)] pb-6">
         {kind === "unavailable" ? (
           <EmptyState
             icon={<RiWifiOffLine />}

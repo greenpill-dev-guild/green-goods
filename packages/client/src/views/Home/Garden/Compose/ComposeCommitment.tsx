@@ -168,7 +168,7 @@ function ComposeCommitmentForm({
         title={actTitle}
         progress={beatIndex + 1}
         bar={
-          <div className="shrink-0 border-t border-stroke-soft-200 bg-bg-white-0 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <div className="shrink-0 border-t border-stroke-soft-200 bg-bg-white-0 p-4 pb-[max(1rem,var(--safe-area-bottom))]">
             {!validity.canAdvance && blockingReasonId ? (
               <p className="mb-2 text-xs text-text-sub-600" id="compose-blocked" role="status">
                 {formatMessage(

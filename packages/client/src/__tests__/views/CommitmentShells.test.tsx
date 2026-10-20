@@ -47,7 +47,7 @@ describe("the commitment screens' chrome", () => {
     const bar = screen.getByRole("button", { name: "Act" }).closest("[data-component='FixedBar']");
     expect(bar).toHaveClass("fixed", "bottom-0", "left-0", "right-0");
     // The body starts below the top nav, and a spacer holds its end above the bar.
-    expect(screen.getByText("Body").parentElement).toHaveClass("pt-20");
+    expect(screen.getByText("Body").parentElement).toHaveClass("pt-[var(--app-top-bar-height)]");
     expect(document.querySelector("[data-component='FixedBarSpacer']")).not.toBeNull();
   });
 
@@ -71,7 +71,7 @@ describe("the commitment screens' chrome", () => {
     expect(screen.getByRole("button", { name: "Go back" }).closest(".fixed")).not.toBeNull();
     const bar = screen.getByRole("button", { name: "Act" }).closest("[data-component='FlowBar']");
     expect(bar).toHaveClass("fixed", "bottom-0", "left-0");
-    expect(screen.getByText("Body").closest("form")).toHaveClass("pt-20");
+    expect(screen.getByText("Body").closest("form")).toHaveClass("pt-[var(--app-top-bar-height)]");
     expect(screen.getByText("Body").parentElement?.className).toContain("pb-[calc(7rem");
   });
 

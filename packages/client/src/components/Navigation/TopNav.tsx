@@ -171,8 +171,10 @@ export const TopNav: React.FC<TopNavProps> = ({
   ...htmlProps
 }: TopNavProps) => {
   const { formatMessage } = useIntl();
+  // On an installed iPhone the clock and battery sit over the bar's top edge,
+  // so the bar pads by the status bar's safe area and is 80px tall below it.
   const containerClasses = cn(
-    "relative flex z-nav flex-row w-full justify-evenly items-start gap-4 p-6 h-20",
+    "relative flex z-nav flex-row w-full justify-evenly items-start gap-4 p-6 pt-[calc(1.5rem+env(safe-area-inset-top,0px))] h-[var(--app-top-bar-height)]",
     overlay && "fixed bg-bg-white-0"
   );
 
@@ -180,7 +182,7 @@ export const TopNav: React.FC<TopNavProps> = ({
     <div className={containerClasses} {...htmlProps}>
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-toast focus:px-4 focus:py-2 focus:bg-primary-action focus:text-primary-action-foreground focus:rounded-lg focus:text-sm focus:font-medium"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-[calc(0.5rem+env(safe-area-inset-top,0px))] focus:left-2 focus:z-toast focus:px-4 focus:py-2 focus:bg-primary-action focus:text-primary-action-foreground focus:rounded-lg focus:text-sm focus:font-medium"
       >
         Skip to content
       </a>
@@ -203,7 +205,7 @@ export const TopNav: React.FC<TopNavProps> = ({
           button's row and their names hang below it. Nothing in it rises into
           that padding, where the shell's offline banner lies. Equal clearance
           on both sides keeps the tracker centred even on narrow phones. */}
-      <div className="absolute inset-y-0 left-16 right-16 flex flex-row items-start pt-6">
+      <div className="absolute inset-y-0 left-16 right-16 flex flex-row items-start pt-[calc(1.5rem+env(safe-area-inset-top,0px))]">
         <div className="flex min-w-0 flex-auto flex-row justify-center gap-4">{children}</div>
       </div>
 

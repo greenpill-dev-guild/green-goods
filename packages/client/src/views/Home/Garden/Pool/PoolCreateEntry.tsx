@@ -74,7 +74,7 @@ export function PoolCreateEntry({ onChoose }: PoolCreateEntryProps) {
     <>
       <div
         className="fixed right-4 z-nav flex flex-col items-end gap-3"
-        style={{ bottom: "calc(env(safe-area-inset-bottom) + 1rem)" }}
+        style={{ bottom: "calc(var(--safe-area-bottom) + 1rem)" }}
         data-component="PoolCreateEntry"
       >
         <button

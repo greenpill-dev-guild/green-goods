@@ -104,7 +104,7 @@ export default function AppShell() {
         <main className="vt-main relative flex h-dvh flex-col overflow-clip">
           <div
             id="app-scroll"
-            className="native-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-[calc(69px+env(safe-area-inset-bottom))]"
+            className="native-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-[calc(69px+var(--safe-area-bottom))]"
           >
             <Outlet />
           </div>
