@@ -140,7 +140,7 @@ export function createProjections(root = REPO_ROOT) {
       render: renderIntegrationProjections,
     },
     { scope: "ontology", output: "docs/docs/builders/architecture/data-model.mdx", sources: [ONTOLOGY, PROJECTIONS, "packages/indexer/schema.graphql", "scripts/quality/ontology-render.mjs"], render: renderDataModel },
-    { scope: "ontology", output: "docs/docs/reference/glossary.generated.mdx", sources: [ONTOLOGY, PROJECTIONS, BANNED_VOCABULARY, "scripts/quality/ontology-render.mjs"], render: renderGlossary },
+    { scope: "ontology", output: "docs/docs/reference/glossary.generated.mdx", sources: [ONTOLOGY, PROJECTIONS, BANNED_VOCABULARY, "scripts/quality/ontology-render.mjs", ...new Set((readJson(root, PROJECTIONS).community_terms ?? []).flatMap(term => term.source_of_truth))], render: renderGlossary },
     {
       scope: "ontology",
       output: "docs/docs/builders/architecture/entity-matrix.mdx",

@@ -1,3 +1,4 @@
+import SEEDLINGS from "../../../../../shared/.storybook/fixture-art/documentation-seedlings-generated.jpg?url";
 import {
   type Address,
   CynefinPhase,
@@ -167,5 +168,35 @@ export const WithAssessmentFilter: Story = {
     hasError: false,
     assessments: [ASSESSMENT],
     selectedAssessmentId: null,
+  },
+};
+
+export const Documentation: Story = {
+  args: {
+    attestations: [
+      {
+        ...attestation(
+          "0xdoc1",
+          "Transplant 36 lettuce seedlings",
+          "agroforestry",
+          daysAgo(2),
+          "Amara"
+        ),
+        mediaUrls: [SEEDLINGS],
+      },
+      {
+        ...attestation("0xdoc2", "Mulch the east beds", "agroforestry", daysAgo(3), "Dele"),
+        gardenerAddress: "0x2222222222222222222222222222222222222222",
+        mediaUrls: [SEEDLINGS],
+      },
+      {
+        ...attestation("0xdoc3", "Check seedling survival", "agroforestry", daysAgo(1), "Tomás"),
+        gardenerAddress: "0x3333333333333333333333333333333333333333",
+        mediaUrls: [SEEDLINGS],
+      },
+    ],
+    selectedIds: ["0xdoc1", "0xdoc2"],
+    isLoading: false,
+    hasError: false,
   },
 };

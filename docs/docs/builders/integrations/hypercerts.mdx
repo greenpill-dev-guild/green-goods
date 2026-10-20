@@ -4,7 +4,7 @@ sidebar_label: Hypercerts
 slug: /builders/integrations/hypercerts
 audience: developer
 owner: docs
-last_verified: 2026-10-11
+last_verified: 2026-10-15
 feature_status: Live
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
@@ -25,10 +25,19 @@ import {IntegrationProjection} from "@site/src/components/docs";
 
 # Hypercerts
 
-[Hypercerts](https://hypercerts.org) turn a body of approved work into a certified impact claim
-with ownable fractions. When a steward mints an impact certificate for a garden's season of work,
-funders can hold a piece of that claim; it's how verified work becomes something the funding side
-can actually own and retro-fund.
+[Hypercerts](https://hypercerts.org) represent an impact claim with ownable fractions. The admin
+wizard starts from approved work and records each contributor's share. Claiming and buying those
+shares inside Green Goods remain unavailable; the [steward guide](/community/steward-guide/creating-impact-certificates)
+explains the current limits. This wizard does not select or certify a commitment-pool cycle.
+
+```mermaid
+flowchart TB
+  accTitle: Impact certificate minting boundary
+  accDescr: The admin wizard selects approved work, prepares metadata and shares, then mints and registers a certificate. Fraction claiming and purchase are outside the current app flow.
+  work["Approved work"] --> wizard["Wizard · metadata and shares"]
+  wizard --> mint["Mint and register certificate"]
+  mint --> record["Public certificate record"]
+```
 
 ## How it flows
 
@@ -39,22 +48,11 @@ checks operator authority, pause state, and that the claim is minted, and
 calling the module directly can register any minted claim. Treat approved work as the
 application's constraint, not the contract's.
 
-```mermaid
-flowchart LR
-  work["A season of approved work"] --> steward([Steward])
-  steward -->|mints| minter["Hypercert minter"]
-  minter --> claim["Impact claim<br/>with fractions"]
-  claim --> funders([Funders hold fractions])
-```
-
 <div className="gg-figure-grid">
-  <figure className="gg-figure">
-    <img src="/img/builders/admin-hub-hypercerts.webp" alt="The admin Hub's Hypercerts tab with one minted certificate, Rainforest canopy baseline, tagged Canopy and Water" loading="lazy" width="2000" height="1250" />
-    <figcaption>A steward's view: the Hub's Hypercerts tab, where a garden's certificates are minted and listed.</figcaption>
-  </figure>
+
   <figure className="gg-figure">
     <img src="/img/builders/site-impact.webp" alt="The public Impact page: a hero reading See how Garden work becomes evidence, above counts of the work, assessments, and gardens in the public record" loading="lazy" width="2000" height="1250" />
-    <figcaption>The public Impact page, where certificates and the records behind them are read by anyone.</figcaption>
+    <figcaption>Anyone can read certificates and their supporting records on the Impact page.</figcaption>
   </figure>
 </div>
 

@@ -1,0 +1,132 @@
+---
+title: Keep a Promise
+sidebar_label: Keep a Promise
+slug: /community/gardener-guide/keep-a-promise
+description: "Take up a promise, join its team, and add the work or proof it requires."
+audience: gardener
+owner: docs
+last_verified: 2026-10-15
+feature_status: Live
+goal: "Take up a promise, join its team, and add the work or proof it requires."
+difficulty: "standard"
+estimated_time: "3 to 5 minutes to read. Signing and review time vary."
+prereqs: "The account that joined your garden, an open pool, and an agreement about the work or help."
+next_steps: "/community/gardener-guide/confirm-a-promise"
+persona_context: "Gardeners offering help, asking for it, or providing evidence toward a promise."
+source_of_truth:
+  - packages/client/src/views/Home/CommitmentsSheet/index.tsx
+  - packages/client/src/views/Home/Garden/Compose/ComposeCommitment.tsx
+  - packages/client/src/views/Home/Garden/Commitment
+  - packages/client/src/views/Home/Garden/Commitment/CommitmentTeam.tsx
+  - packages/client/src/views/Home/Garden/Commitment/ConfirmNotYet.tsx
+  - packages/shared/src/modules/commitment-pooling/acts.ts
+  - packages/shared/src/modules/commitment-pooling/selectors.ts
+  - packages/shared/src/hooks/client-ui/commitment/useGardenCommitmentController.ts
+  - packages/shared/src/config/app.ts
+  - packages/contracts/src/lib/CommitmentPooling/ConfirmLib.sol
+  - packages/contracts/src/lib/CommitmentPooling/TerminalLib.sol
+  - packages/contracts/src/lib/CommitmentPooling/WorkCreditLib.sol
+  - packages/shared/src/i18n/en.json
+  - docs/releases/2.0.0/README.md
+keywords:
+  - promises
+  - commitments
+  - offer
+  - request
+  - proof
+  - confirmation
+---
+
+import {NextBestAction} from "@site/src/components/docs";
+
+# Keep a Promise
+
+Take responsibility for a promise, then record what you contributed. Garden work and other help use different evidence paths.
+
+<figure className="gg-figure gg-overview-photo gg-guide-opening">
+  <img src="/img/community/guide-keep.webp" alt="A newly repaired wooden fence with a tool bag and wood shavings beside the growing bed." width="1672" height="941" loading="eager" />
+</figure>
+
+
+## Before you start
+
+- Sign in with the account that joined this garden. Visitors can read records; taking part requires membership.
+- Check that the garden has an open pool. New money rewards and promise payouts are deferred.
+- Photos and details can become public before you send the work record. Use your own evidence and read the [privacy guidance](/faq#is-what-i-upload-private).
+- Read the promise before joining: required work, deadline, team policy and who confirms it.
+
+## Steps
+
+### Check your part in the promise {#take-it-up-or-join-its-team}
+
+- **You made an offer:** you are already its provider. Wait for someone to take it up, then record your contribution below. You cannot take up your own offer. Before someone takes it up, you can withdraw it if you can no longer provide the help.
+- **You want to fulfill someone else's request:** open it and choose **Take This Up**. Once accepted, you are its provider. If it shows **Ask to take this up**, wait for the steward's decision before making plans; asking does not reserve the promise and someone else may be accepted first.
+- **You made a request:** wait for a provider to take it up. You confirm their delivery; follow [Confirm a Promise](/community/gardener-guide/confirm-a-promise) when it is ready.
+- **You want to receive someone else's offer:** taking it up makes you the recipient and confirmer. The provider records the work or proof. Follow [Confirm a Promise](/community/gardener-guide/confirm-a-promise) when it is ready for your review.
+
+Continue below if you are the provider or a contributing team member.
+
+**To help on an existing team:** open the promise's **Team** section. If it offers **Join the Team**, connect to the internet, choose it, and wait for your name to appear in the team record. If the lead chooses who joins, ask them instead. Joining does not take the promise up again or count as a contribution; add your actual work or proof before the team is fixed.
+
+Watch the saved or sending status after making or taking up a promise. A promise waiting on this phone is not yet a shared agreement. Return to **Promises** and use its send or retry control when the status asks you to.
+
+
+<figure className="gg-figure" style={{maxWidth: '480px'}}>
+  <img src="/img/screenshots/guide-promise-team.webp" alt="The Team section names the lead and helper and explains that the lead chooses members." loading="lazy" width="464" height="266" />
+  <figcaption>Check who leads the team and how members can join.</figcaption>
+</figure>
+
+### Record your contribution
+
+:::warning Finish the team's contributions first
+When a promise becomes ready for confirmation, its team and contribution record are fixed. For garden work, counted approvals and any required assessment can make this happen automatically; there is no manual Send for Confirmation step. For other proof, read the warning before sending. Joining the team alone does not count as a contribution.
+:::
+
+Use the evidence path the promise asks for:
+
+**Garden work**
+
+1. Open the promise and choose **Link Work**. Pick an existing submission that matches the garden and action, or start the work submission offered for the required row.
+2. If the same action appears more than once, choose the exact requirement it fulfills. Check the submission before choosing **Link This Work**.
+3. Follow the work through review. **Linked**, **Approved**, and **Counted toward this promise** are different results. An approved item may still say **Approved · waiting for a steward to count it**; ask your steward to check it rather than submitting the work again.
+
+
+<figure className="gg-figure" style={{maxWidth: '480px'}}>
+  <img src="/img/screenshots/guide-promise-link-work.webp" alt="The work picker shows an approved seedling transplant and a pending care submission, plus their requirement rows." loading="lazy" width="480" height="940" />
+  <figcaption>Match the submission to the exact requirement it fulfills.</figcaption>
+</figure>
+
+Work does not need a promise to be valid. When starting from [Submit Work](/community/gardener-guide/uploading-your-work), the optional **Promise** choice can connect it to the right requirement.
+
+**Other help or services**
+
+1. Choose **Add Proof**, add evidence and a short explanation, then review it.
+2. Choose **Add This Proof**. The lead can use **Add and Send** when offered, or return to the promise and choose **Send for Confirmation** once the team is finished.
+
+
+<figure className="gg-figure" style={{maxWidth: '480px'}}>
+  <img src="/img/screenshots/guide-promise-proof-review.webp" alt="Fence repair proof with before and after photographs, explanation and the send-for-confirmation choice." loading="lazy" width="480" height="1040" />
+  <figcaption>Finish the team’s contributions before sending proof for confirmation.</figcaption>
+</figure>
+
+## How you know it worked
+
+For garden work, the required approved work is counted and any required assessment is attached. This can make the promise ready automatically. For other help, the lead sends the completed proof for confirmation.
+
+## What happens next
+
+The independent confirmer acts next. When enough valid confirmations arrive, the promise reads **Kept**. Kept does not mean paid.
+
+## If something goes wrong
+
+**Linked**, **Approved**, and **Counted toward this promise** are different results. If approved work is waiting to be counted, ask your steward to check it. Do not upload a duplicate.
+
+**Team set** means new members and contributions can no longer be added. Tell your steward about a missing contribution.
+
+For a waiting take-up, team action or proof, return to the same promise on the same device. Read its saved or sending status before retrying. [Recover Unsent Work](/community/gardener-guide/recovery-and-sync) explains which items can wait on this phone.
+
+Ask your steward about the agreement or record. For an app problem, open **Profile → Help**.
+
+## Next step
+
+<NextBestAction title="Confirm a Promise" why="Share this with the independent person who checks whether the agreement was kept." actionLabel="Confirm a Promise" actionHref="/community/gardener-guide/confirm-a-promise" />

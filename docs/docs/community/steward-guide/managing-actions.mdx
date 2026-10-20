@@ -41,6 +41,11 @@ import {NextBestAction} from "@site/src/components/docs";
 
 An action is a kind of work your garden records, such as planting a tree, sorting a load of waste, or checking a solar panel. Each action says what to photograph and which details to give. When a gardener submits work, they choose an action first.
 
+<figure className="gg-figure" style={{maxWidth: '672px'}}>
+  <img src="/img/screenshots/guide-garden-actions.webp" alt="Edit Garden domain controls show Solar and Agroforestry enabled and Education and Waste disabled." loading="eager" width="656" height="249" />
+  <figcaption>Choose the garden’s areas of work in Edit Garden.</figcaption>
+</figure>
+
 Actions are shared across all gardens, and the Green Goods team maintains the list. As a steward, your job is to make sure your garden shows the right ones, and to speak up when one is missing or wrong.
 
 ## How an action reaches your gardeners
@@ -116,10 +121,6 @@ This part is for accounts with deployer access. You have an **Actions** workspac
 
 A finished action reads **Action registered**. To change one later, open it from the **Actions** list and tap **Edit**.
 
-<figure className="gg-figure">
-  <img src="/img/screenshots/admin-create-action.webp" alt="The Create Action form on its first step, Basics: fields for Title, Slug, Domain set to Solar, Start date, and End date, with the steps Basics, Capitals and Media, Instructions, and Review listed on the left and a Next button" loading="lazy" width="2000" height="1250" />
-  <figcaption>Create Action, on Basics. The start and end dates decide when gardeners can submit and when stewards can review. Source: earlier Storybook fixture, October 2026. Exact capture day and build revision unrecorded; inspected 13 October 2026. Fictional example data.</figcaption>
-</figure>
 
 Write instructions the way a gardener would read them on a phone, in the field: one short title, exactly what the photo should show, and only the questions a reviewer needs answered.
 
@@ -128,6 +129,6 @@ Write instructions the way a gardener would read them on a phone, in the field: 
 <NextBestAction
   title="Make an assessment"
   why="Before work starts coming in, write down where the garden is starting from and what it is aiming for."
-  actionLabel="Make an Assessment"
+  actionLabel="Make an Initial Assessment"
   actionHref="/community/evaluator-guide/making-an-assessment"
 />

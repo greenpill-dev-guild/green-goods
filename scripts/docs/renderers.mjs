@@ -99,6 +99,7 @@ export function renderMcpGuide({ root, sources, digest, connectorCatalog, routin
     "Agent and MCP Guide",
     "An agent reaches tools in two ways here. MCP servers checked into this repository start with the project for anyone who clones it. Connected services are hosted tools, such as the backlog, telemetry, and deployments, that an agent reaches through a connector in the coding app, signed in by the person using it. Repository guidance says how each may be used."
   );
+  body += "```mermaid\nflowchart LR\n  A[Repository task] --> B[Configured MCP server]\n  A --> C[Connected service]\n  B --> D[Authorized tool]\n  C --> D\n  D --> E[Evidence and review]\n```\n\n";
   body += "## MCP servers in this repository\n\nProjected from the checked-in MCP configuration, `.mcp.json`.\n\n";
   body += "| Server | Command | Arguments | Scope | Surfaces |\n|---|---|---|---|---|\n";
   for (const [name, server] of servers) {
@@ -786,12 +787,15 @@ export function renderSkills({ root, sources, digest }) {
 }
 
 // The terms a community reader meets in the guides, in the order the work happens: the place,
-// the work and what members promise, the review, the plan, the claim, the two funds, then the
-// people. Each leads the glossary with its plain-language record from the projection data and
-// links to its guide. This is a list of terms, not a rule. The ontology's `surfaces` field says
-// where a term may appear in product copy; it does not say who reads it.
-// Pooling has one everyday term, the promise; its other terms stay in the builder reference.
+// the work, the review, the plan, the claim, the two funds, then the people. Each leads the
+// glossary with its plain-language record from the projection data and links to its guide.
+// This is a list of terms, not a rule. The ontology's `surfaces` field says where a term may
+// appear in product copy; it does not say who reads it.
+// Released promise terms use product-facing names; formal implementation terms stay in Builders.
 const GLOSSARY_EVERYDAY = [
+  { ref: "entity:commitment-pool", guide: ["Open a Pool", "/community/steward-guide/open-a-pool"] },
+  { ref: "entity:season", guide: ["Open a Pool", "/community/steward-guide/open-a-pool"] },
+  { ref: "entity:commitment-contributor", heading: "Contributor", availabilityNote: "Team membership and contributions are available; contributor payouts remain deferred.", guide: ["Keep a Promise", "/community/gardener-guide/keep-a-promise"] },
   { ref: "entity:garden", guide: ["How It Works", "/community/how-it-works"] },
   { ref: "entity:action", guide: ["Manage Actions", "/community/steward-guide/managing-actions"] },
   // Every surface calls a commitment a promise; the word stays only in the feature's name. Offer
@@ -800,11 +804,11 @@ const GLOSSARY_EVERYDAY = [
     ref: "entity:commitment",
     heading: "Promise",
     alsoCalled: ["commitment, as in the feature name Commitment Pooling"],
-    guide: ["Where Commitment Pooling fits", "/community/how-it-works#commitment-pooling"],
+    guide: ["Make a Promise", "/community/gardener-guide/make-a-promise"],
   },
   { ref: "entity:work", guide: ["Submit Work", "/community/gardener-guide/uploading-your-work"] },
   { ref: "entity:work-approval", guide: ["Review Work", "/community/steward-guide/reviewing-work"] },
-  { ref: "entity:assessment", guide: ["Make an Assessment", "/community/evaluator-guide/making-an-assessment"] },
+  { ref: "entity:assessment", guide: ["Make an Initial Assessment", "/community/evaluator-guide/making-an-assessment"] },
   // The public site and the guides call it an impact certificate; the cockpit says Hypercert.
   { ref: "entity:hypercert", heading: "Impact Certificate", guide: ["Mint Impact Certificate", "/community/steward-guide/creating-impact-certificates"] },
   { ref: "entity:vault", guide: ["Endow a Garden", "/community/funder-guide/funding-a-garden"] },
@@ -843,7 +847,7 @@ export function glossaryEverydayEntries(ontology, projections, selection = GLOSS
   ]);
   const conceptByRef = new Map(projections.human_concepts.map((concept) => [concept.ref, concept]));
   const availabilityByRef = new Map((projections.capabilities ?? []).map((item) => [item.ref, item.availability]));
-  return selection.map(({ ref, heading, alsoCalled, guide }) => {
+  return selection.map(({ ref, heading, alsoCalled, guide, availabilityNote }) => {
     const term = terms.get(ref);
     if (!term) throw new Error(`Glossary everyday term ${ref} is not a canonical entity or persona`);
     const concept = conceptByRef.get(ref);
@@ -873,7 +877,7 @@ export function glossaryEverydayEntries(ontology, projections, selection = GLOSS
         ...(title === term.display ? [] : [term.display]),
         ...aliases.filter((alias) => alias.toLowerCase() !== title.toLowerCase()),
       ],
-      availabilityNote: UNAVAILABLE_NOTES.find(([status]) => status === availabilityByRef.get(ref))?.[1] ?? null,
+      availabilityNote: availabilityNote ?? UNAVAILABLE_NOTES.find(([status]) => status === availabilityByRef.get(ref))?.[1] ?? null,
       guide,
     };
   });
@@ -932,7 +936,6 @@ export function renderGlossary({ root, sources, digest }) {
   const everyday = glossaryEverydayEntries(ontology, projections);
   const everydayRefs = new Set(everyday.map((entry) => entry.ref));
   const sentence = (text) => (/[.!?]$/.test(text) ? text : `${text}.`);
-  const legacyAnchors = (ref) => (GLOSSARY_LEGACY_ANCHORS[ref] ?? []).map((id) => `<a id="${id}"></a>\n\n`).join("");
   let body = pageHeader(
     { title: "Glossary", slug: "/glossary", audience: "all", sources, digest },
     "Glossary",
@@ -950,17 +953,27 @@ export function renderGlossary({ root, sources, digest }) {
     if (entry.availabilityNote) body += `- **Availability:** ${entry.availabilityNote}\n`;
     body += `- **Read more:** [${entry.guide[0]}](${entry.guide[1]}).\n\n`;
   }
-  body += "## Builder reference {#formal-definitions}\n\n";
-  body += "Definitions, allowed surfaces, and technical terms are generated together in the [ontology](/reference/ontology). Older links still work below.\n\n";
-  for (const [anchor, target, label] of [
-    ["domain-entities", "entities", "Domain entities"],
-    ["personas", "personas", "Personas"],
-    ["term-reference", "entities", "Formal term reference"],
-    ["language-policy", "language-policy", "Language policy"],
-    ["lint-enforced-terms", "language-policy", "Vocabulary policy"],
-    ["admin-prompt-vocabulary", "language-policy", "Admin vocabulary"],
-    ["client-prompt-vocabulary", "language-policy", "Client vocabulary"],
-   ]) body += `#### [${label}](/reference/ontology#${target}) {#${anchor}}\n\n`;
+  const communityTerms = projections.community_terms ?? [];
+  const usedAnchors = new Set(everyday.flatMap(entry => [entry.anchor, ...entry.aliasAnchors]));
+  body += "## Words in the app\n\n";
+  for (const term of communityTerms) {
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(term.id) || usedAnchors.has(term.id)) throw new Error(`Duplicate or invalid community glossary anchor: ${term.id}`);
+    if (!term.meaning?.trim() || !term.example?.trim() || !term.guide?.startsWith("/")) throw new Error(`Incomplete community glossary term: ${term.id}`);
+    if (!term.source_of_truth?.length) throw new Error(`Missing glossary authority: ${term.id}`);
+    for (const source of term.source_of_truth) if (!existsSync(path.join(root, source))) throw new Error(`Missing glossary authority: ${source}`);
+    usedAnchors.add(term.id);
+    const publishedRef = PUBLISHED_GLOSSARY_TERMS.find(([, anchor]) => anchor === term.id)?.[0];
+    for (const id of GLOSSARY_LEGACY_ANCHORS[publishedRef] ?? []) {
+      if (usedAnchors.has(id)) throw new Error(`Duplicate community glossary alias: ${id}`);
+      usedAnchors.add(id);
+      body += `<a id="${id}"></a>\n\n`;
+    }
+    body += `### ${esc(term.label)} {#${term.id}}\n\n${esc(term.meaning)}\n\n${esc(term.example)} [Guide](${term.guide}).\n\n`;
+  }
+  // Preserve historical fragments without displaying a second technical glossary.
+  for (const [id, target] of [["formal-definitions", "entities"], ["domain-entities", "entities"], ["personas", "personas"], ["term-reference", "entities"], ["language-policy", "language-policy"], ["lint-enforced-terms", "language-policy"], ["admin-prompt-vocabulary", "language-policy"], ["client-prompt-vocabulary", "language-policy"]]) {
+    body += `<TermAnchor id="${id}" to="/reference/ontology#${target}" />\n`;
+  }
   const terms = new Map([
     ...ontology.entities.map(term => [`entity:${term.id}`, term]),
     ...ontology.personas.map(term => [`persona:${term.id}`, term]),
@@ -969,8 +982,10 @@ export function renderGlossary({ root, sources, digest }) {
   for (const [ref, anchor] of PUBLISHED_GLOSSARY_TERMS) {
     const term = terms.get(ref);
     if (!term) throw new Error(`Published glossary link ${anchor} needs a declared replacement for ${ref}`);
-    if (everydayRefs.has(ref)) continue;
-    body += `${legacyAnchors(ref)}#### [${esc(term.display)}](/reference/ontology#${term.id}) {#${anchor}}\n\n`;
+    if (everydayRefs.has(ref) || usedAnchors.has(anchor)) continue;
+    for (const id of [...(GLOSSARY_LEGACY_ANCHORS[ref] ?? []), anchor]) {
+      body += `<TermAnchor id="${id}" to="/reference/ontology#${term.id}" />\n`;
+    }
   }
   return body;
 }

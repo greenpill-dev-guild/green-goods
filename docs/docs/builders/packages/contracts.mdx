@@ -4,7 +4,7 @@ sidebar_label: Contracts
 slug: /builders/packages/contracts
 audience: developer
 owner: docs
-last_verified: 2026-10-11
+last_verified: 2026-10-15
 feature_status: Live
 source_of_truth:
   - packages/contracts/AGENTS.md
@@ -24,6 +24,15 @@ owns everything the chain enforces: garden accounts, authorization, attestation 
 resolvers, and the deployment artifacts that record what exists where. The
 [Deployments & Addresses](/builders/reference/deployments) page is the generated view of those
 artifacts.
+
+```mermaid
+flowchart TB
+  accTitle: What the protocol enforces
+  accDescr: Garden accounts and authorization gate protocol calls; modules and resolvers enforce rules and expose records to readers.
+  caller["Garden account and role checks"] --> rules["Modules and resolvers"]
+  rules --> events["Protocol events → Indexer"]
+  rules --> records["Attestations → EAS readers"]
+```
 
 ## Inside the package
 

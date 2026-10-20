@@ -129,3 +129,27 @@ export const WithBanner: Story = {
     ),
   ],
 };
+
+export const Documentation: Story = {
+  decorators: [
+    (Story) => (
+      <WithStoreState
+        seed={{
+          name: "Riverside Commons Garden",
+          slug: "riverside-commons",
+          description: "Neighbour-led vegetable beds, rainwater care and practical repair work.",
+          location: "Riverside District",
+          domains: [Domain.AGRO, Domain.EDU],
+          openJoining: false,
+          gardeners: [
+            "0x1111111111111111111111111111111111111111",
+            "0x2222222222222222222222222222222222222222",
+          ],
+          stewards: ["0x3333333333333333333333333333333333333333"],
+        }}
+      >
+        <Story />
+      </WithStoreState>
+    ),
+  ],
+};

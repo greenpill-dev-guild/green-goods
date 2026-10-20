@@ -126,18 +126,6 @@ async function waitForActiveServiceWorker(page: import("@playwright/test").Page)
     .toBe("activated");
 }
 
-async function ensureServiceWorkerControlsPage(page: import("@playwright/test").Page) {
-  if (await page.evaluate(() => Boolean(navigator.serviceWorker.controller))) return;
-
-  await page.reload({ waitUntil: "domcontentloaded" });
-  await expect
-    .poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller)), {
-      message: "Expected the active PWA service worker to control the reloaded app page.",
-      timeout: 10000,
-    })
-    .toBe(true);
-}
-
 test.describe("Offline Sync CI Tests", () => {
   test.use({ baseURL: CLIENT_URL });
 
@@ -196,55 +184,9 @@ test.describe("Offline Sync CI Tests", () => {
       expect(new URL(registrationScope).pathname.replace(/\/$/, "")).toBe("/home");
     });
 
-    test("reloads the authenticated app shell while offline", async ({ page, context }) => {
-      // SKIP: #338 owner:afo expiry:2027-01-16 — Vite dev SW has no precached navigation shell.
-      test.skip(
-        process.env.PLAYWRIGHT_PWA_PREVIEW !== "true",
-        "Offline reload requires a production PWA preview with a precached /home app shell; " +
-          "the default CI Vite dev worker registers but does not precache index.html. " +
-          "Set PLAYWRIGHT_PWA_PREVIEW=true only when serving a production preview."
-      );
-
-      await page.addInitScript(() => {
-        const key = "__gg_e2e_navigation_count";
-        const nextCount = Number(window.sessionStorage.getItem(key) ?? "0") + 1;
-        window.sessionStorage.setItem(key, String(nextCount));
-      });
-
-      const helper = await setupMockedEnvironment(page);
-      await page.goto("/home?presentation=pwa", { waitUntil: "domcontentloaded" });
-      await helper.waitForPageLoad();
-
-      const appMarker = page.getByTestId("work-dashboard-button");
-      await expect(appMarker).toBeVisible({ timeout: 10000 });
-      await waitForActiveServiceWorker(page);
-      await ensureServiceWorkerControlsPage(page);
-      await expect(appMarker).toBeVisible({ timeout: 10000 });
-
-      const navigationCountBeforeOfflineReload = await page.evaluate(() =>
-        Number(window.sessionStorage.getItem("__gg_e2e_navigation_count"))
-      );
-
-      await context.setOffline(true);
-      await expect(page.getByRole("status", { name: "App is in offline mode" })).toBeVisible({
-        timeout: 10000,
-      });
-
-      await page.reload({ waitUntil: "domcontentloaded" });
-      await expect(page).toHaveURL(/\/home(?:[/?#]|$)/);
-      await expect(appMarker).toBeVisible({ timeout: 10000 });
-      await expect(page.getByText("Unexpected Application Error", { exact: true })).toHaveCount(0);
-      await expect
-        .poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller)))
-        .toBe(true);
-
-      const navigationCountAfterOfflineReload = await page.evaluate(() =>
-        Number(window.sessionStorage.getItem("__gg_e2e_navigation_count"))
-      );
-      expect(navigationCountAfterOfflineReload).toBeGreaterThan(navigationCountBeforeOfflineReload);
-
-      await context.setOffline(false);
-    });
+    // Production navigation-cache reload and its missing-cache control live in
+    // client.pwa-preview.spec.ts. The dev worker has no precached app shell;
+    // dev mock auth is intentionally unavailable in that production profile.
   });
 
   test.describe("Work Dashboard Offline Behavior", () => {

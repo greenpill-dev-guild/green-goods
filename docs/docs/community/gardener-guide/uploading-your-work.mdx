@@ -49,6 +49,10 @@ import {NextBestAction} from "@site/src/components/docs";
 
 Submit a clear record of something you did in your garden so a steward can review it. You pick what you did and where, add photos, fill in a few details, and send it.
 
+<figure className="gg-figure gg-overview-photo gg-guide-opening">
+  <img src="/img/community/guide-submit.webp" alt="A finished compost-turning task ready to document with a camera and notebook." width="1672" height="941" loading="eager" />
+</figure>
+
 ## Before you start
 
 - **Sign in with the account that joined the garden.**
@@ -57,10 +61,6 @@ Submit a clear record of something you did in your garden so a steward can revie
 - **Have your evidence ready:** photos, and a short video or voice note if it helps.
 - **Weak signal is fine.** Your work is saved on your phone as you go, and you can send it later.
 
-<figure className="gg-figure gg-overview-photo" style={{maxWidth: '560px'}}>
-  <img src="/img/community/editorial-actions.webp" alt="An open field journal beside a camera and tools on a wooden table." width="1536" height="1024" decoding="async" />
-  <figcaption>Give the evidence enough context for someone else to understand the work. Editorial illustration reused from Green Goods' website Actions imagery; not a real submission.</figcaption>
-</figure>
 
 ## Steps
 
@@ -75,7 +75,7 @@ Every submission starts with what you did and where you did it.
 3. Under **Select Your Garden**, tap the garden you are submitting for.
 4. Tap **Start Gardening**. It stays gray until you have picked both.
 
-A **Promise** section may appear once you have picked both. Your work does not need one. If it says **No eligible promises match this garden and action**, there is nothing to choose.
+A **Promise** section may appear once you have picked both. Your work does not need one. If this work fulfills a promise, choose that promise and its matching requirement before continuing. If it says **No eligible promises match this garden and action**, there is nothing to choose. The [promise guide](/community/gardener-guide/keep-a-promise#record-your-contribution) explains linking existing work and the difference between linked, approved, and counted.
 
 If you left work unfinished earlier, the app asks **Continue Previous Work?** first. Tap **Continue Draft** to pick it up, or **Start Fresh** to begin a new one. The draft stays in **Your Work** either way.
 
@@ -99,13 +99,7 @@ Limits: up to 10 files and 50 MB in one submission. Each photo can be up to 10 M
 
 <figure className="gg-figure gg-guide-product">
   <img src="/img/screenshots/client-work-media-current.png" alt="The Media step: the heading Upload Media, a line saying what to photograph, the counter 1 photo added, one photo preview, and buttons to choose a photo, take a photo, or record a voice note beside the Details button" loading="lazy" width="390" height="844" />
-  <figcaption>
-    <strong>Step 2: check the photo rule.</strong> Read what this action asks you to photograph. The counter tells you when you have enough; <strong className="gg-inline-label">Details</strong> takes you to the questions.
-    <span className="gg-overview-source">Source: local static Storybook, Client/Work/SubmitWork, Media With Example Photo.
-    Captured 13 October 2026, 390 × 844; fixture build recorded in the Plan Hub image ledger.
-    Photo: <a href="https://commons.wikimedia.org/wiki/File:Seedlings.jpg">Leon Brooks, Seedlings</a>, public domain.
-    The photo illustrates this fictional example. Use your own work photos when submitting.</span>
-  </figcaption>
+  <figcaption>Add the photos this action requires before choosing <strong className="gg-inline-label">Details</strong>.</figcaption>
 </figure>
 
 > A clear photo usually beats a long explanation.
@@ -136,14 +130,7 @@ One last look prevents most rework.
 
 <figure className="gg-figure gg-guide-product">
   <img src="/img/screenshots/client-work-review-example.png" alt="The scrolled Review step shows part of a seedling photo, Seedling Transplant, Time Spent of 1h 30m, Plants moved of 36, a field note and Upload Work." loading="lazy" width="390" height="844" />
-  <figcaption>
-    <strong>Step 4: check the recorded details.</strong> This view is scrolled to the action, time, count and note. Check your garden and full photo above, then use <strong className="gg-inline-label">Upload Work</strong> when everything matches.
-    <span className="gg-overview-source">Source: local static Storybook, Client/Work/SubmitWork,
-    Review With Example Photo. Captured 13 October 2026, 390 × 844, scrolled to Details;
-    fixture build recorded in the Plan Hub image ledger. Photo: <a href="https://commons.wikimedia.org/wiki/File:Seedlings.jpg">Leon Brooks, Seedlings</a>, public domain.
-    The garden, 36-plant count, 90-minute duration and note are fictional sample data,
-    not facts verified by this photograph.</span>
-  </figcaption>
+  <figcaption>Check the action, time, count and note before choosing <strong className="gg-inline-label">Upload Work</strong>.</figcaption>
 </figure>
 
 ### If you are offline
@@ -156,10 +143,7 @@ Green Goods is built for the field.
 
 <figure className="gg-figure gg-guide-product">
   <img src="/img/screenshots/client-work-offline-example.png" alt="Your Work while offline, showing one Seedling Transplant record marked To upload and the saved time." loading="lazy" width="390" height="844" />
-  <figcaption>
-    <strong>The work waits when there is no signal.</strong> <strong className="gg-inline-label">To upload</strong> is waiting for you to send it. Media may already have been prepared in public storage while you were online; the status describes the work record.
-    <span className="gg-overview-source">Source: local static Storybook, WorkDashboard / Offline With Example Photo, 13 October 2026; 390 × 844. Build recorded in the Plan Hub image ledger. Photo: <a href="https://commons.wikimedia.org/wiki/File:Seedlings.jpg">Leon Brooks, Seedlings</a>, public domain. The record is fictional; the photo does not verify its count, time or note.</span>
-  </figcaption>
+  <figcaption><strong className="gg-inline-label">To upload</strong> means the work record is waiting to be sent.</figcaption>
 </figure>
 
 ## How you know it worked
