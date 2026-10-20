@@ -273,7 +273,7 @@ domain.
 
 **US spelling (2026-10-17).** All English copy uses US spelling (canceled, neighbor, color, gray, fulfill); quoted third-party names keep theirs, and the vocabulary check, the docs audit and the agent's copy test reject the common UK forms.
 
-**No em dashes (2026-10-18).** Human-facing copy never uses an em dash (U+2014). Restructure the sentence with a period, colon, comma, or parentheses, never a hyphen or a spaced en dash. Ontology definitions keep their punctuation, and a lone em dash standing in for a missing or unreadable figure is a data placeholder, not prose (2026-10-19). `bun run check --only em-dashes` rejects em dashes in the i18n catalogs, the authored docs pages, and the design guides (each `DESIGN*.md` and `.claude/skills/design`).
+**No em dashes (2026-10-18).** Human-facing copy never uses an em dash (U+2014). Restructure the sentence with a period, colon, comma, or parentheses, never a hyphen or a spaced en dash. Ontology definitions keep their punctuation, and a lone em dash standing in for a missing or unreadable figure is a data placeholder, not prose (2026-10-19). `bun run check --only em-dashes` rejects em dashes in the i18n catalogs, the agent's chat copy, the authored docs pages, and the design guides (each `DESIGN*.md` and `.claude/skills/design`).
 
 ### Writing Checklist
 

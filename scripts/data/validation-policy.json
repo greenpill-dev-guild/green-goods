@@ -172,7 +172,7 @@
     {
       "check": "agent-test",
       "runInQa": true,
-      "note": "The agent's i18n test reads us_spelling from this sidecar to check the English chat copy.",
+      "note": "The agent's copy tests read us_spelling, linter_enforced and renamed_terms (locale_terms included) from this sidecar to check the chat copy.",
       "exact": ["scripts/data/banned-vocabulary.json"]
     },
     {
@@ -218,11 +218,18 @@
     },
     {
       "check": "em-dashes",
-      "note": "The check reads the three i18n catalogs, every docs/docs page, and the design guides: each DESIGN*.md at the root, in docs, and in each package, and the design skill's pages. An em dash that reaches a generated page through its source also changes the regenerated page, so the docs prefix selects it. The DESIGN*.md guides route through the next rule.",
+      "note": "The check reads the three i18n catalogs, the agent's chat copy (the modules packages/agent/scripts/chat-copy.mjs lists), every docs/docs page, and the design guides: each DESIGN*.md at the root, in docs, and in each package, and the design skill's pages. An em dash that reaches a generated page through its source also changes the regenerated page, so the docs prefix selects it. The DESIGN*.md guides route through the next rule. Agent CI runs the check for the chat copy; select-validation.test.mjs fails when a module that list names is missing here.",
       "exact": [
         "packages/shared/src/i18n/en.json",
         "packages/shared/src/i18n/es.json",
         "packages/shared/src/i18n/pt.json",
+        "packages/agent/scripts/chat-copy.mjs",
+        "packages/agent/src/i18n.ts",
+        "packages/agent/src/platforms/telegram-commands.ts",
+        "packages/agent/src/services/reporting/copy/en.ts",
+        "packages/agent/src/services/reporting/copy/es.ts",
+        "packages/agent/src/services/reporting/copy/pt.ts",
+        "packages/agent/src/services/reporting/views.ts",
         "scripts/design/check-em-dashes.mjs",
         "scripts/design/check-em-dashes.test.mjs"
       ],
@@ -1495,8 +1502,8 @@
     {
       "id": "em-dashes",
       "command": "node scripts/dev/node-cli.js node --test scripts/design/check-em-dashes.test.mjs && node scripts/design/check-em-dashes.mjs",
-      "risk": "an em dash returns to an i18n catalog value, an authored docs page, or a design guide",
-      "expectedSignal": "the i18n catalogs, authored docs pages, and design guides carry no em dash, and the check's fixtures pass",
+      "risk": "an em dash returns to an i18n catalog value, the agent's chat copy, an authored docs page, or a design guide",
+      "expectedSignal": "the i18n catalogs, the agent's chat copy, authored docs pages, and design guides carry no em dash, and the check's fixtures pass",
       "freshness": "exact-inputs-and-toolchain",
       "budgetSeconds": 5,
       "stopRule": "stop-dependent-checks",

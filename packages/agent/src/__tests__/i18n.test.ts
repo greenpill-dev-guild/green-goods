@@ -1,11 +1,34 @@
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { copyLiterals, readChatCopy } from "../../scripts/chat-copy.mjs";
 import {
   agentMessage,
   agentRateLimitMessage,
   formatAgentWaitTime,
   normalizeAgentLocale,
 } from "../i18n";
+
+// The word lists come from the vocabulary sidecar that also guards the app catalogs and the docs,
+// and the chat copy is read in the same blocks the em dash check reads.
+const vocabulary = JSON.parse(
+  readFileSync(new URL("../../../../scripts/data/banned-vocabulary.json", import.meta.url), "utf8")
+) as {
+  linter_enforced: { terms: string[] };
+  renamed_terms: { terms: string[] };
+  us_spelling: { terms: Record<string, string>; exempt_phrases?: string[] };
+};
+const chatCopy = readChatCopy(fileURLToPath(new URL("../../../../", import.meta.url)));
+
+/** Placeholders, inline code and URLs are names, not copy. */
+function withoutNames(value: string): string {
+  return value.replace(/\{\w+\}|`[^`]*`|https?:\/\/\S+/g, " ");
+}
+
+function wordPattern(words: string[]): RegExp {
+  const escaped = words.map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  return new RegExp(`\\b(${escaped.join("|")})\\b`, "gi");
+}
 
 describe("agent i18n", () => {
   it("normalizes regional Spanish and Portuguese locales", () => {
@@ -32,95 +55,7 @@ describe("agent i18n", () => {
     expect(formatAgentWaitTime("pt", 120000)).toBe("2 minutos");
   });
 
-  it("writes the English chat copy in US spelling", () => {
-    // The UK forms come from the vocabulary sidecar that also guards the app catalog and the docs.
-    const { us_spelling: usSpelling } = JSON.parse(
-      readFileSync(
-        new URL("../../../../scripts/data/banned-vocabulary.json", import.meta.url),
-        "utf8"
-      )
-    ) as { us_spelling: { terms: Record<string, string>; exempt_phrases?: string[] } };
-    const ukForm = new RegExp(`\\b(${Object.keys(usSpelling.terms).join("|")})\\b`, "gi");
-    // A small lexer for the catalogs, in source order. Comments are skipped and each string literal
-    // keeps its position. A template yields its text and, recursively, the literals inside its
-    // interpolations, nested templates included. A literal that starts an object member and is
-    // followed by a colon is a key such as "submit.cancelled", and one that is compared against is a
-    // wire value; every other one is copy, a ternary's first branch included.
-    type Literal = { index: number; end: number; values: string[] };
-    type Lexed = { literals: Literal[]; comments: Array<[number, number]>; end: number };
-    const compared = (code: string, { index, end }: Literal) =>
-      /[=!]==?\s*$/.test(code.slice(Math.max(0, index - 40), index)) ||
-      /^\s*[=!]==?/.test(code.slice(end, end + 40));
-    const lex = (source: string, at = 0, closesOnBrace = false): Lexed => {
-      const literals: Literal[] = [];
-      const comments: Array<[number, number]> = [];
-      for (let depth = 0; at < source.length; ) {
-        const character = source[at];
-        if (source.startsWith("//", at) || source.startsWith("/*", at)) {
-          const line = source[at + 1] === "/";
-          const close = line ? source.indexOf("\n", at) : source.indexOf("*/", at + 2);
-          const end = close === -1 ? source.length : line ? close : close + 2;
-          comments.push([at, end]);
-          at = end;
-        } else if (character === '"' || character === "'") {
-          let end = at + 1;
-          while (end < source.length && source[end] !== character && source[end] !== "\n") {
-            end += source[end] === "\\" ? 2 : 1;
-          }
-          literals.push({ index: at, end: end + 1, values: [source.slice(at + 1, end)] });
-          at = end + 1;
-        } else if (character === "`") {
-          let text = "";
-          const inner: string[] = [];
-          let end = at + 1;
-          while (end < source.length && source[end] !== "`") {
-            if (source[end] === "\\") {
-              text += source.slice(end, end + 2);
-              end += 2;
-            } else if (source.startsWith("${", end)) {
-              const interpolation = lex(source, end + 2, true);
-              for (const literal of interpolation.literals) {
-                if (!compared(source, literal)) inner.push(...literal.values);
-              }
-              text += " ";
-              end = interpolation.end;
-            } else {
-              text += source[end];
-              end += 1;
-            }
-          }
-          literals.push({ index: at, end: end + 1, values: [text, ...inner] });
-          at = end + 1;
-        } else {
-          if (closesOnBrace && character === "}" && depth === 0)
-            return { literals, comments, end: at + 1 };
-          if (character === "{") depth += 1;
-          if (character === "}") depth -= 1;
-          at += 1;
-        }
-      }
-      return { literals, comments, end: at };
-    };
-    const valuesOf = (source: string, opening: string, closing = "} as const") => {
-      const start = source.indexOf(opening);
-      expect(start, `the catalog no longer declares ${opening}`).toBeGreaterThanOrEqual(0);
-      const end = source.indexOf(closing, start);
-      expect(end, `${opening} no longer ends with ${closing}`).toBeGreaterThan(start);
-      const block = source.slice(start, end);
-      const { literals, comments } = lex(block);
-      // With comments blanked, a key that follows one still starts its member.
-      let code = block;
-      for (const [from, to] of comments)
-        code = code.slice(0, from) + " ".repeat(to - from) + code.slice(to);
-      return literals
-        .filter((literal) => {
-          const key =
-            /^\s*:/.test(code.slice(literal.end)) &&
-            /(?:^|[{,])$/.test(code.slice(0, literal.index).trimEnd());
-          return !key && !compared(code, literal);
-        })
-        .flatMap((literal) => literal.values);
-    };
+  it("reads the copy in a block of source, not its keys, comments or compared values", () => {
     const sample = [
       "const sample = {",
       `  // don't read "this comment"`,
@@ -129,9 +64,11 @@ describe("agent i18n", () => {
       '  plural: (n: number) => (n === 1 ? "item" : "items"),',
       '  status: `Review ${state === "done" ? "finished" : "open"}`,',
       '  nested: `Review ${done ? `Finished for ${name}` : "Open"}`,',
+      // An escape renders as its character, so a line break still ends the word before it.
+      `  escaped: "Line one\\nColour \\"two\\"\\x21 ${"\\"}u{2014}",`,
       "} as const;",
     ].join("\n");
-    expect(valuesOf(sample, "const sample = {").map((value) => value.trim())).toEqual([
+    expect(copyLiterals(sample).map(({ text }) => text.trim())).toEqual([
       "Review cancelled for",
       "one",
       "two",
@@ -143,42 +80,51 @@ describe("agent i18n", () => {
       "Review",
       "Finished for",
       "Open",
+      'Line one\nColour "two"! —',
     ]);
-    // Placeholders, inline code and URLs are names, not copy.
+  });
+
+  it("writes the English chat copy in US spelling", () => {
+    const { terms, exempt_phrases: exemptPhrases = [] } = vocabulary.us_spelling;
+    const ukForm = wordPattern(Object.keys(terms));
     const proseOf = (value: string) => {
-      let prose = value.replace(/\{\w+\}|`[^`]*`|https?:\/\/\S+/g, " ");
-      for (const phrase of usSpelling.exempt_phrases ?? []) prose = prose.split(phrase).join(" ");
+      let prose = withoutNames(value);
+      for (const phrase of exemptPhrases) prose = prose.split(phrase).join(" ");
       return prose;
     };
     expect(proseOf("Open https://grey.example/help, `grey` or {grey}").match(ukForm)).toBeNull();
-    const catalogs = [
-      { file: "../i18n.ts", opening: "const enMessages = {", least: 50 },
-      {
-        file: "../services/reporting/copy/en.ts",
-        opening: "export const EN_REPORTING_COPY = {",
-        least: 50,
-      },
-      // The Telegram command menu, which reporting mode publishes to every chat.
-      { file: "../platforms/telegram-commands.ts", opening: "  en: [", closing: "  ],", least: 6 },
-      // The labels the browser signing and review pages show, which views.ts builds.
-      { file: "../services/reporting/views.ts", opening: "const VIEW_COPY = {", least: 15 },
-    ];
 
-    const hits = catalogs.flatMap(({ file, opening, closing, least }) => {
-      const values = valuesOf(
-        readFileSync(new URL(file, import.meta.url), "utf8"),
-        opening,
-        closing
-      );
-      expect(values.length, file).toBeGreaterThanOrEqual(least);
-      return values.flatMap((value) =>
-        [...proseOf(value).matchAll(ukForm)].map(
-          ([word]) =>
-            `${file}: "${word}" should be "${usSpelling.terms[word.toLowerCase()]}" in ${value}`
+    const hits = chatCopy
+      .filter(({ locale }) => locale === "en")
+      .flatMap(({ file, strings }) =>
+        strings.flatMap(({ text, line }) =>
+          [...proseOf(text).matchAll(ukForm)].map(
+            ([word]) => `${file}:${line}: "${word}" should be "${terms[word.toLowerCase()]}"`
+          )
         )
       );
-    });
+    expect(hits).toEqual([]);
+  });
 
+  it("keeps banned and retired words out of the chat copy in every language", () => {
+    // The app catalogs' lists: growth-hacking words, and Operator, the steward's old name.
+    const banned = wordPattern([
+      ...vocabulary.linter_enforced.terms,
+      ...vocabulary.renamed_terms.terms,
+    ]);
+    expect(
+      withoutNames("Keep your streak for a limited time, says the Operador. {operator}").match(
+        banned
+      )
+    ).toEqual(["streak", "limited time", "Operador"]);
+
+    const hits = chatCopy.flatMap(({ file, locale, strings }) =>
+      strings.flatMap(({ text, line }) =>
+        [...withoutNames(text).matchAll(banned)].map(
+          ([word]) => `${file}:${line} (${locale}): "${word}" in ${text}`
+        )
+      )
+    );
     expect(hits).toEqual([]);
   });
 });

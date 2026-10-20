@@ -37,7 +37,7 @@ const enMessages = {
   "permission.reason.notGardener": "This address is not a gardener in this garden.",
   "permission.reason.notSteward": "This address is not a steward for this garden.",
   "help.basic":
-    '🌿 *Green Goods Bot Help*\n\n*Basic Commands:*\n/start - Create wallet & get started\n/join <address> - Join a garden\n/status - Check your current status\n\n*Submitting Work:*\nSimply send a text or voice message describing your work!\nExample: "I planted 5 trees today"\n\n*Reporting Bugs and Ideas:*\nPost freely in the Bug Reports or Ideas/Feedback topics in the Green Goods chat — the team picks them up automatically.\n\n',
+    '🌿 *Green Goods Bot Help*\n\n*Basic Commands:*\n/start - Create wallet & get started\n/join <address> - Join a garden\n/status - Check your current status\n\n*Submitting Work:*\nSimply send a text or voice message describing your work!\nExample: "I planted 5 trees today"\n\n*Reporting Bugs and Ideas:*\nPost freely in the Bug Reports or Ideas/Feedback topics in the Green Goods chat. The team picks them up automatically.\n\n',
   "help.footer": "_Need help? Contact @GreenGoodsSupport_",
   "help.steward":
     "*Steward Commands:*\n/approve <id> - Approve a work submission\n/reject <id> - Reject a work submission\n/pending - List pending work for your garden\n\n",
