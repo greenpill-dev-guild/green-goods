@@ -145,7 +145,7 @@ export function formatHypercertMetadata({
       outcomes: Object.keys(draft.outcomes.predefined).length
         ? draft.outcomes
         : aggregateOutcomeMetrics(attestations),
-      domain: domainFromAttestations ?? "mutual_credit",
+      ...(domainFromAttestations ? { domain: domainFromAttestations } : {}),
       protocolVersion: DEFAULT_PROTOCOL_VERSION,
     },
   };
