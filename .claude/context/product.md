@@ -96,7 +96,7 @@ When connectivity is lost or degraded, features degrade predictably:
 | Work submission | Queued offline (IndexedDB job queue) | Toast: "Saved -- will upload when online" + the item in Your Work › Pending, sent with Upload all |
 | Garden list | Cached data served (TanStack Query cache) | Stale data with staleness indicator |
 | Action list | Cached data served | Stale data with staleness indicator |
-| Work approvals (installed app, passkey) | Queued offline (user-scoped job queue, `submitApprovalToQueue` with `queueWalletDecisions`) | Toast: the decision stays on this device until it is uploaded; the item waits in Your Work |
+| Work approvals (installed app, passkey or wallet) | Queued offline (user-scoped job queue, `submitApprovalToQueue`; the client passes `queueWalletDecisions` so wallet decisions queue too) | Toast: the decision stays on this device until it is uploaded; the item waits in Your Work |
 | Work approvals (admin cockpit, wallet) | Blocked (the review form submits directly and refuses an unsteady wallet connection) | Disabled action with a connection notice; nothing is queued |
 | Assessments | Blocked (requires on-chain transaction) | Disabled button + tooltip: "Requires internet connection" |
 | Photo capture | Available offline (stored as blob in IndexedDB) | Normal UI, uploaded on sync |
