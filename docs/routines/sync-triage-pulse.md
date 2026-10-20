@@ -1,5 +1,6 @@
 ---
-routine-name: qa-triage-pulse
+# Named qa-triage-pulse until 2026-10-19, when it began reading the Engineering Sync as well as the Build Sync.
+routine-name: sync-triage-pulse
 trigger:
   schedule: "0 23 * * 1,3"  # Mon and Wed 23:00 UTC = 15:00 PST / 16:00 PDT, the afternoon of each weekly call: the Engineering Sync (Mon 12:00 to 13:00 Pacific) and the Build Sync (Wed 10:00 to 11:00 Pacific). See § Cron timing rationale for why not earlier.
 max-duration: 45m
@@ -26,7 +27,7 @@ last_verified: "2026-05-13"
 
 # Prompt
 
-You are the **qa-triage-pulse** routine for Green Goods. Two weekly team calls feed you, and Gemini writes notes for each in the team Drive:
+You are the **sync-triage-pulse** routine for Green Goods. Two weekly team calls feed you, and Gemini writes notes for each in the team Drive:
 
 - the **Engineering Sync**, Mondays 12:00 to 13:00 Pacific;
 - the **Build Sync** (named Product Sync until June 2026), Wednesdays 10:00 to 11:00 Pacific.
@@ -35,7 +36,7 @@ You run on the afternoon of each call. Your job is to fetch the notes of the cal
 
 You do NOT create Todo Issues, append rows to the QA Sheet, push code, open PRs, or create GitHub Issues. The only Issues this routine may create are Backlog tracking Issues required by Linear's Customer Need API. Promotion to Todo, assignee selection, severity, and Sheet writes require human judgment in `/qa-triage`. Your sole role is pre-stage Customer Need + Backlog tracking-Issue pairs → post Discord summary → exit.
 
-This routine is the **async sibling** of `/qa-triage`. The skill's Phase 1 step 0 detects pre-staged tracking Issues (labels `source:qa-triage-pulse` + `session:<YYYY-MM-DD>`) and their linked Customer Needs, then offers to resume from them instead of re-running the discover/extract phases. That cuts the user's interactive triage to ~5 minutes after the sync.
+This routine is the **async sibling** of `/qa-triage`. The skill's Phase 1 step 0 detects pre-staged tracking Issues (labels `source:sync-triage-pulse` + `session:<YYYY-MM-DD>`) and their linked Customer Needs, then offers to resume from them instead of re-running the discover/extract phases. That cuts the user's interactive triage to ~5 minutes after the sync.
 
 ## Setup
 
@@ -63,7 +64,7 @@ Write Customer Needs on the **Linear Product team**. Mirror [`bug-intake`](./bug
 - `package:*` (one only) — inferred primary surface; omit if surface is unknown
 - `activity:build` for confirmed bugs with a clear surface; `activity:maintenance` for ideas / UX polish / unactionable feedback that still warrant tracking
 - `source:drive` — provenance
-- `source:qa-triage-pulse` — distinguishes routine-pre-staged Issues from `bug-intake`'s Drive-source Issues
+- `source:sync-triage-pulse` — distinguishes routine-pre-staged Issues from `bug-intake`'s Drive-source Issues
 - `ai:routine` — cron'd provenance (single `ai:*` value)
 - `session:<YYYY-MM-DD>` — meeting-date slug so `/qa-triage` can resume the right batch (resolve or create on first use)
 
@@ -158,7 +159,7 @@ For each extracted item:
 Linear requires every Customer Need to link to an Issue. Grep every drafted body with the Phase 5 string list **before** each write — Phase 5 is the backstop, not the gate. For each non-duplicate item:
 
 1. **First, create the Backlog tracking Issue** on the Product team. Title: a plain action-verb-led sentence with **no prefix** — "Investigate the PWA install hang on Android", not "[tracking] Install hangs". The `[tracking]` prefix is retired (2026-08-27): the `maintenance` label plus `Backlog` state already say the work is uncommitted, and a `PreToolUse` hook now rejects the prefix. Body: the problem in one or two plain paragraphs, then one source line — **no headings unless the item genuinely needs them; clear, simple, concise (backstops: 6 headings / 600 words)**, and no Reproduction/Expected/Actual at this routine stage. Drop any section you cannot fill rather than writing "—" or a paragraph reporting that PostHog matched nothing; note tooling gaps in the Discord summary instead. Full contract: [`.claude/context/linear-routing-rules.md`](../../.claude/context/linear-routing-rules.md) § Issue structure.
-   - Labels: `protocol:green-goods` + ONE `package:*` (primary surface; omit if unknown) + `activity:build` (clear bug) or `activity:maintenance` (idea / polish / unclear actionability) + `source:drive` + `source:qa-triage-pulse` + `ai:routine` + `session:<YYYY-MM-DD>`. Pass labels to `save_issue` as **bare child names** (`["green-goods", "qa", "routine"]`), not the `group:child` display form: the API does not accept the prefixed form, and one unresolvable entry rejects the whole array and files nothing.
+   - Labels: `protocol:green-goods` + ONE `package:*` (primary surface; omit if unknown) + `activity:build` (clear bug) or `activity:maintenance` (idea / polish / unclear actionability) + `source:drive` + `source:sync-triage-pulse` + `ai:routine` + `session:<YYYY-MM-DD>`. Pass labels to `save_issue` as **bare child names** (`["green-goods", "qa", "routine"]`), not the `group:child` display form: the API does not accept the prefixed form, and one unresolvable entry rejects the whole array and files nothing.
    - Status: `Backlog` for all. The routine never claims work as `Todo`; the interactive `/qa-triage` skill promotes selected tracking Issues to `Todo` during the human triage gate.
    - Project: per [Project routing](README.md#project-routing), a bounded active project that clearly owns the item, otherwise the active release project (resolve both by name this run), or none when no release project is started.
    - Priority: P3 (Low) by default. P2 (Medium) when PostHog confirms ≥50 sessions in 30d. The routine never sets P0/P1 — humans decide release-blocker status.
@@ -168,7 +169,7 @@ Linear requires every Customer Need to link to an Issue. Grep every drafted body
 ```markdown
 ## Source
 QA Sync — <meeting-title> on <YYYY-MM-DD>. Speaker: <name | "anonymous">. [Notes](<drive-url>)
-Routine pre-stage by qa-triage-pulse · auto-extracted.
+Routine pre-stage by sync-triage-pulse · auto-extracted.
 
 > <verbatim excerpt — scrubbed of any name not on the attendee list>
 
@@ -231,7 +232,7 @@ Cron times are UTC, so the Pacific time moves by an hour with daylight saving; t
 
 The interactive skill's Phase 1 step 0 *Resume from pre-staged Customer Needs* picks up the work from this routine:
 
-1. Phase 1 step 0 lists the recent batches: Product-team tracking Issues this routine created (`source:qa-triage-pulse`) that are still in `Backlog`, grouped by their `session:<YYYY-MM-DD>` label, one batch per call, with their linked Customer Needs. A week usually has two: Monday's Engineering Sync and Wednesday's Build Sync.
+1. Phase 1 step 0 lists the recent batches: Product-team tracking Issues this routine created (`source:sync-triage-pulse`) that are still in `Backlog`, grouped by their `session:<YYYY-MM-DD>` label, one batch per call, with their linked Customer Needs. A week usually has two: Monday's Engineering Sync and Wednesday's Build Sync.
 2. If ≥1 exists, offers to resume one batch by its date, or to run a fresh extract.
 3. On resume, Phases 1-3 of the skill are skipped (already done by this routine). The triage gate fires immediately with the pre-staged set as the numbered list.
 4. The user's scope-lock decisions:
@@ -258,7 +259,7 @@ This collaboration pattern mirrors how `bug-intake` works today: routine creates
 | Process a doc whose title date is not today | An edit can bring an earlier call's doc inside the 8-hour window; that call was triaged on its own day |
 | Pre-stage or post a security-sensitive item | Vulnerabilities stay out of public records ([`SECURITY.md`](../../SECURITY.md)); count it as held for Afo instead |
 | Create >15 Customer Need + Issue pairs in one run | Overflow protection; the user can pick up the rest interactively |
-| Post to `#bug-report` instead of `#product` | `qa-triage-pulse` is a product-pulse routine, not a per-capture bug surface |
+| Post to `#bug-report` instead of `#product` | `sync-triage-pulse` is a product-pulse routine, not a per-capture bug surface |
 
 ## Rebuilding the cloud routine from this file
 
@@ -267,13 +268,13 @@ This collaboration pattern mirrors how `bug-intake` works today: routine creates
 3. Paste a bootstrap prompt, not a copy of this spec. The routine fetches `origin/develop` and executes this file on every run, so a change takes effect as soon as it merges to `develop`. Keep the bootstrap free of phase summaries: a summary drifts from the spec and competes with it. The bootstrap carries one failure post of its own, because a run that cannot load the spec never reads the spec's failure rules; that post uses the spec's channel variable, so a channel change touches both.
 
    ```text
-   You are the qa-triage-pulse routine for Green Goods. Your spec is docs/routines/qa-triage-pulse.md on the develop branch of the green-goods repo. It is the single source of truth; there is intentionally no copy here.
+   You are the sync-triage-pulse routine for Green Goods. Your spec is docs/routines/sync-triage-pulse.md on the develop branch of the green-goods repo. It is the single source of truth; there is intentionally no copy here.
 
    1. Run `git fetch origin +refs/heads/develop:refs/remotes/origin/develop`, which updates `origin/develop` whatever this checkout's fetch settings are.
-   2. Read the whole spec: `git show origin/develop:docs/routines/qa-triage-pulse.md`.
+   2. Read the whole spec: `git show origin/develop:docs/routines/sync-triage-pulse.md`.
    3. Execute everything after its `# Prompt` heading exactly as written, except the `## Rebuilding the cloud routine from this file` section, which tells people how to set the routine up and is never part of a run. Where this prompt and the spec differ, follow the spec.
 
-   If step 1 or 2 fails, never run an older copy or improvise from memory: an older `origin/develop` may still be readable, and running it would run a stale spec. Report the failure in the run log, post one failure line, and exit non-zero. The line is `<@${DISCORD_USER_ID_AFO}> ⚠ qa-triage-pulse could not load its spec ({the failed step}); nothing was triaged this run.`, sent as the `content` field of a JSON body built with an encoder such as `jq -n --arg`, never by hand, with `POST https://discord.com/api/v10/channels/${DISCORD_PRODUCT_CHANNEL_ID}/messages` and the headers `Authorization: Bot ${DISCORD_BOT_TOKEN}` and `Content-Type: application/json`, using plain `curl` without `-L` so the token is never forwarded. When `DISCORD_PRODUCT_CHANNEL_ID` is unset, skip the post and say so in the run log; never post to another channel.
+   If step 1 or 2 fails, never run an older copy or improvise from memory: an older `origin/develop` may still be readable, and running it would run a stale spec. Report the failure in the run log, post one failure line, and exit non-zero. The line is `<@${DISCORD_USER_ID_AFO}> ⚠ sync-triage-pulse could not load its spec ({the failed step}); nothing was triaged this run.`, sent as the `content` field of a JSON body built with an encoder such as `jq -n --arg`, never by hand, with `POST https://discord.com/api/v10/channels/${DISCORD_PRODUCT_CHANNEL_ID}/messages` and the headers `Authorization: Bot ${DISCORD_BOT_TOKEN}` and `Content-Type: application/json`, using plain `curl` without `-L` so the token is never forwarded. When `DISCORD_PRODUCT_CHANNEL_ID` is unset, skip the post and say so in the run log; never post to another channel.
 
    Limits that hold whatever the spec says: never push code, open PRs, create GitHub Issues, or write to the QA Sheet.
    ```

@@ -21,10 +21,10 @@ confirmed Linear and Sheet writes only.
 
 | Trigger | Action |
 |---------|--------|
-| `/qa-triage` | Discover the latest Build Sync or Engineering Sync notes (Drive → Downloads). If the [`qa-triage-pulse`](../../../docs/routines/qa-triage-pulse.md) routine has pre-staged a recent call, offer to resume from it instead. |
+| `/qa-triage` | Discover the latest Build Sync or Engineering Sync notes (Drive → Downloads). If the [`sync-triage-pulse`](../../../docs/routines/sync-triage-pulse.md) routine has pre-staged a recent call, offer to resume from it instead. |
 | `/qa-triage <path>` | Use the supplied notes path (absolute, relative, or `~/Downloads/...`). A `tmp/qa-session/<slug>/deferred-<slug>.md` extract from the qa-session skill is a supported source — it contains only deferred observations (never fixed/answered/dropped ones), the slugged filename keeps each handoff's workspace distinct, its numbered, typed, verbatim-quoted items parse directly, and its exact `case:` Test IDs bypass fuzzy matching. For session-log inputs, use `source:qa-session` (resolve-or-create) instead of `source:drive` in Phase 6 |
 | `/qa-triage <slug>` | Resume an incomplete run from `tmp/qa-triage/<slug>/notes.md` |
-| `/qa-triage session:<YYYY-MM-DD>` | Resume from the routine-pre-staged batch whose tracking Issues carry that `session:*` label. Phases 1-3 are skipped (already done by `qa-triage-pulse`); triage gate fires immediately. |
+| `/qa-triage session:<YYYY-MM-DD>` | Resume from the routine-pre-staged batch whose tracking Issues carry that `session:*` label. Phases 1-3 are skipped (already done by `sync-triage-pulse`); triage gate fires immediately. |
 | `/qa-triage --call [<date>]` | Post-QA-call mode (§ Call mode below): join the QA app's pulled state with the call's Gemini notes, cluster into slices, and — after the Phase 4 gate — write the `QA session <date>` parent report + slice sub-issues. Interactive sibling of the [`qa-call-report`](../../../docs/routines/qa-call-report.md) routine. |
 | `/qa-triage … --dry-run` | Print payloads instead of writing to Linear; still emit Sheet CSVs |
 | `/qa-triage … --no-codex` | Skip the Codex parallel pass (default is automatic dispatch) |
@@ -184,7 +184,7 @@ All deviations from a real run, in one place:
 2. **Resolve Linear handles by name** at the start of every run:
    - Team: `Product` (fallback `Research` only when the user asks).
    - Workflow states: expect `Backlog`, `Todo`.
-   - Label families: `protocol:green-goods`, `package:*`, `activity:build`, `activity:design`, `activity:qa`, `activity:maintenance`, `source:drive`, `source:qa-triage-pulse`, `source:qa-session` (resolve-or-create; for qa-session handoff inputs), `ai:codex`, `ai:routine`. The dated label `session:YYYY-MM-DD` (the call's or session's date) is resolve-or-created on each run that needs it.
+   - Label families: `protocol:green-goods`, `package:*`, `activity:build`, `activity:design`, `activity:qa`, `activity:maintenance`, `source:drive`, `source:sync-triage-pulse`, `source:qa-session` (resolve-or-create; for qa-session handoff inputs), `ai:codex`, `ai:routine`. The dated label `session:YYYY-MM-DD` (the call's or session's date) is resolve-or-created on each run that needs it.
    - If any required label family is missing, fail loud and stop — do not invent records under a different label.
 3. **Probe PostHog reachability** with a single-event query against both `POSTHOG_PROJECT_ID_APP` (`163591`) and `POSTHOG_PROJECT_ID_ADMIN` (`262122`). If either is unreachable, mark the affected surface as `enrichment: unavailable` and continue. (Skipped in fixture mode.)
 
@@ -214,13 +214,13 @@ See [`sheet-schema.md`](./sheet-schema.md) for the canonical Defects and Test-ta
 
 Lookup order, first match wins:
 
-0. **Resume from a `qa-triage-pulse` pre-stage** — if invoked as `/qa-triage session:<YYYY-MM-DD>`, resume that batch. Otherwise, when no explicit path or slug was given, list the recent batches: Product-team tracking Issues carrying `source:qa-triage-pulse` that are still in `Backlog`, from the last 14 days, grouped by their `session:<YYYY-MM-DD>` label. Labels live on the tracking Issues, never on the Customer Needs. The routine pre-stages both weekly calls, the Monday Engineering Sync and the Wednesday Build Sync, so a week can hold two batches; name each by the call in its records' source lines. When at least one batch exists, surface:
+0. **Resume from a `sync-triage-pulse` pre-stage** — if invoked as `/qa-triage session:<YYYY-MM-DD>`, resume that batch. Otherwise, when no explicit path or slug was given, list the recent batches: Product-team tracking Issues carrying `source:sync-triage-pulse` that are still in `Backlog`, from the last 14 days, grouped by their `session:<YYYY-MM-DD>` label. Labels live on the tracking Issues, never on the Customer Needs. The routine pre-stages both weekly calls, the Monday Engineering Sync and the Wednesday Build Sync, so a week can hold two batches; name each by the call in its records' source lines. When at least one batch exists, surface:
 
-   > Found pre-staged items from qa-triage-pulse: {date} {call} ({N}){, {date} {call} ({N})}. Resume one batch (reply with its date), run a fresh extract from notes, or quit? `[<date> / fresh / quit]`
+   > Found pre-staged items from sync-triage-pulse: {date} {call} ({N}){, {date} {call} ({N})}. Resume one batch (reply with its date), run a fresh extract from notes, or quit? `[<date> / fresh / quit]`
 
    On a date: populate `extraction.md` from that batch's Backlog tracking-Issue + Customer Need pairs (one item per pair, using the Need's verbatim source and the Issue's summary / safe evidence blocks), skip Phases 2 and 3 (Codex dispatch + PostHog cross-ref already done by the routine), and jump straight to Phase 4 with the batch as the numbered triage list. Resume one batch per invocation, then run `/qa-triage session:<date>` for another. On `fresh`: ignore the pre-stage and continue to step 1 below; the Phase 6 confirm step will detect duplicates against the existing Customer Needs.
 
-   The resume path cuts the user's interactive triage to ~5 minutes after a call. See [`qa-triage-pulse.md`](../../../docs/routines/qa-triage-pulse.md) for the routine's contract.
+   The resume path cuts the user's interactive triage to ~5 minutes after a call. See [`sync-triage-pulse.md`](../../../docs/routines/sync-triage-pulse.md) for the routine's contract.
 
 1. **Explicit argument** — `/qa-triage <path>` resolves the path directly. `/qa-triage <slug>` resolves to `tmp/qa-triage/<slug>/notes.md` if an incomplete run exists.
 2. **Drive query** —
@@ -455,7 +455,7 @@ Surface vocabulary on the Defects row: `Public Website | PWA iOS | PWA Android |
    - Issues first (Customer Needs require an `issue` parameter — Linear API rejects standalone Needs).
    - **`save_issue` `labels` is REPLACE, not append.** When adding a single new label to an existing Issue, always read the current label list first and pass `[...existing, newLabel]`. Passing `["build"]` alone will strip every other label off the Issue.
    - **Snapshot before in-place edits.** When updating Customer Need bodies or Issue descriptions in bulk on already-filed records, write a JSON dump of every record's pre-edit `{id, title, description, body, labels, priority, status}` to `tmp/qa-triage/<slug>/pre-edit-snapshot.json` first. Cheap safety net if the bulk write goes sideways.
-   - Issue labels: `protocol:green-goods` + ONE `package:*` (primary surface) + ONE activity — `activity:build` (bug), `activity:design` (visual polish), `activity:maintenance` (hygiene), or `activity:architecture` (strategic); never `activity:qa`, which marks the validation pass itself and not the defects it found — + the source label matching the resolved input (`source:drive` for Drive/Downloads notes; `source:qa-session` for qa-session handoff extracts; keep `source:qa-triage-pulse` on records resumed from a `session:<date>` pre-stage — never stamp Drive provenance on a live-session input or strip the pulse's provenance on resume) + ONE `ai:*` (delegate-to wins). Translate every one to its **bare child name** before calling `save_issue` (`["green-goods", "pwa", "build", "drive"]`): the API rejects the `group:child` display form, and one unresolvable entry rejects the whole array and files nothing.
+   - Issue labels: `protocol:green-goods` + ONE `package:*` (primary surface) + ONE activity — `activity:build` (bug), `activity:design` (visual polish), `activity:maintenance` (hygiene), or `activity:architecture` (strategic); never `activity:qa`, which marks the validation pass itself and not the defects it found — + the source label matching the resolved input (`source:drive` for Drive/Downloads notes; `source:qa-session` for qa-session handoff extracts; keep `source:sync-triage-pulse` on records resumed from a `session:<date>` pre-stage — never stamp Drive provenance on a live-session input or strip the pulse's provenance on resume) + ONE `ai:*` (delegate-to wins). Translate every one to its **bare child name** before calling `save_issue` (`["green-goods", "pwa", "build", "drive"]`): the API rejects the `group:child` display form, and one unresolvable entry rejects the whole array and files nothing.
    - Then Customer Needs, each linked to its Issue via the `issue` parameter. Customer Needs accept `body` and `issue`/`project` only — no labels per the API surface.
    - Track-only Issues are created in the same pass as the main Issues, before the Customer Needs that reference them.
 
@@ -547,7 +547,7 @@ surface the resume path.
 ## Related Skills
 
 - [`qa-session`](../qa-session/SKILL.md) — the live founder-led walkthrough copilot. Its close phase hands deferred observations to this skill as a pre-structured `session.md`; this skill owns everything downstream (PostHog cross-ref, scope lock, Linear + Sheet writes).
-- [qa-triage-pulse routine](../../../docs/routines/qa-triage-pulse.md) — cron'd async sibling routine that pre-stages Customer Needs on the afternoon of each weekly call: Mondays after the Engineering Sync, Wednesdays after the Build Sync. The skill's Phase 1 step 0 resumes from those pre-stages when present, cutting interactive triage time to ~5 minutes.
+- [sync-triage-pulse routine](../../../docs/routines/sync-triage-pulse.md) — cron'd async sibling routine that pre-stages Customer Needs on the afternoon of each weekly call: Mondays after the Engineering Sync, Wednesdays after the Build Sync. The skill's Phase 1 step 0 resumes from those pre-stages when present, cutting interactive triage time to ~5 minutes.
 - [bug-intake routine](../../../docs/routines/bug-intake.md) — cron'd async sibling routine for Discord + Telegram + Drive bug-source intake (M/W/F). Shares the Linear protocol and privacy boundary. This skill is the interactive single-source counterpart for QA-sync notes specifically.
 - [`posthog-questions`](../../../docs/routines/posthog-questions.md) — named PostHog questions this skill calls.
 - [`debug`](../debug/SKILL.md) — User-Facing Bug Triage Protocol; the assistant borrows the "reproduce before forensics" framing for any item the user wants to investigate before filing.

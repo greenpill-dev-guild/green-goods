@@ -152,7 +152,7 @@ Investigate the dialog dismiss path.
 PostHog (Admin 262122): no matching exception signature. A cancel button that
 fails to dismiss does not necessarily throw.
 ## Source
-qa-triage-pulse · auto-extracted · session:2026-07-29
+sync-triage-pulse · auto-extracted · session:2026-07-29
 ## Authoritative QA finding
 Cancel is broken in the garden edit dialog. [...repeats the whole defect...]
 ```

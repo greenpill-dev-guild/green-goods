@@ -49,7 +49,7 @@ You are the research-synthesis routine for Green Goods. Once a week (Friday end 
 | Lead-council operating decisions, partner contracts, agreements | `guild-weekly-synthesis` |
 | Cross-project status, community pulse, weekly recap | `guild-weekly-synthesis` |
 | Green Goods product and growth metrics, funnel, retention | `growth-pulse` (Mon) |
-| Bugs, defects, QA items from the Build Sync or Engineering Sync | `qa-triage-pulse` (Mon and Wed) and `bug-intake` |
+| Bugs, defects, QA items from the Build Sync or Engineering Sync | `sync-triage-pulse` (Mon and Wed) and `bug-intake` |
 | Slippage and scoping nags on existing issues | `delivery-hygiene-pulse` (Mon/Thu) |
 | Off-agenda Research issues (PGSP trio, GreenWill mapping, account recovery) | memo line only, when a human touched them |
 
@@ -118,7 +118,7 @@ Then run the same query once more with `and fullText contains 'WEFA'` added, and
 - drop any doc whose title contains `WEFA`, and any doc the `fullText contains 'WEFA'` query returned unless its title names a guild project (Green Goods, Greenpill, Build Sync, Engineering Sync, Growth Sync, or a pilot garden);
 - drop any doc whose summary section says no summary was produced (these are usually meetings that ended within minutes), and list it in the memo's signal classification as `skipped: no summary` so a human can pull one in by hand;
 - drop personal one-to-ones and coffee meets unless a watch keyword appears in the summary or next steps;
-- drop everything in the out-of-scope table (a bug list is `qa-triage-pulse`'s; a grant list is `guild-grant-scout`'s).
+- drop everything in the out-of-scope table (a bug list is `sync-triage-pulse`'s; a grant list is `guild-grant-scout`'s).
 
 From each surviving doc read the summary, the decisions, the next steps, and only the transcript passages within a few sentences of a watch-keyword hit. Read them through `get_file_metadata` with the largest snippet and a local keyword extraction, never a full transcript export: seven full exports of 70 to 120 KB each in the 2026-10-17 run exceeded the tool limit and the budget alike. Extract **decisions, facts, and next steps** that bear on a track (for example, "present the pooling protocol to the garden team" or "the impact report for the quarter has been sent"). Record each with the doc title and date. A title that names people rather than a meeting (a one-to-one, a coffee meet, anything carrying a participant's name) stays in the memo only; past the memo, cite that note as `{meeting kind} · {date}` (for example `one-to-one · 2026-08-27`), so no participant name reaches Linear or `#research`. Never carry an attendee list, an email address, or a verbatim transcript line past the memo.
 

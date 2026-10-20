@@ -14,12 +14,12 @@ generated_from:
   - docs/routines/health-watch.md
   - docs/routines/pr-review.md
   - docs/routines/qa-call-report.md
-  - docs/routines/qa-triage-pulse.md
   - docs/routines/release-prep.md
   - docs/routines/research-synthesis.md
+  - docs/routines/sync-triage-pulse.md
   - scripts/data/agent-connectors.json
   - scripts/mcp/brave-devtools.mjs
-source_digest: "sha256:07c4bffe103a96677c46cb6c409f91d77910c2af9ed7bc70cb29c91b18b57990"
+source_digest: "sha256:2e45c9a7abd8fddf7fe455819179bde60ab90e8741da796c531119d8d2af8a2d"
 source_of_truth:
   - .mcp.json
   - AGENTS.md
@@ -28,9 +28,9 @@ source_of_truth:
   - docs/routines/health-watch.md
   - docs/routines/pr-review.md
   - docs/routines/qa-call-report.md
-  - docs/routines/qa-triage-pulse.md
   - docs/routines/release-prep.md
   - docs/routines/research-synthesis.md
+  - docs/routines/sync-triage-pulse.md
   - scripts/data/agent-connectors.json
   - scripts/mcp/brave-devtools.mjs
 ---
@@ -62,12 +62,12 @@ These are not in `.mcp.json`, and the routines' rules say to keep it that way. E
 
 | Service | What agents use it for | Routines that declare it | Rules |
 |---|---|---|---|
-| Linear | The durable backlog. Agents read issues and projects, file and update issues under the routing contract, and post review comments and status updates. | `bug-intake`, `growth-pulse`, `health-watch`, `pr-review`, `qa-call-report`, `qa-triage-pulse`, `release-prep`, `research-synthesis` | [.claude/context/linear-routing-rules.md](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.claude/context/linear-routing-rules.md) |
-| PostHog | Product telemetry, read-only, across three projects: App, Admin, and Agent. Agents use it to check a bug report against real usage and to answer health and growth questions, choosing the project before every query. | `bug-intake`, `growth-pulse`, `health-watch`, `qa-call-report`, `qa-triage-pulse` | [docs/routines/posthog-questions.md](https://github.com/greenpill-dev-guild/green-goods/blob/develop/docs/routines/posthog-questions.md) |
-| Vercel | Deployments of the client and admin apps: which commit is live, when a deploy landed, and the preview for a pull request. | `bug-intake`, `health-watch`, `pr-review`, `qa-call-report`, `qa-triage-pulse` | [docs/routines/health-watch.md](https://github.com/greenpill-dev-guild/green-goods/blob/develop/docs/routines/health-watch.md) |
+| Linear | The durable backlog. Agents read issues and projects, file and update issues under the routing contract, and post review comments and status updates. | `bug-intake`, `growth-pulse`, `health-watch`, `pr-review`, `qa-call-report`, `release-prep`, `research-synthesis`, `sync-triage-pulse` | [.claude/context/linear-routing-rules.md](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.claude/context/linear-routing-rules.md) |
+| PostHog | Product telemetry, read-only, across three projects: App, Admin, and Agent. Agents use it to check a bug report against real usage and to answer health and growth questions, choosing the project before every query. | `bug-intake`, `growth-pulse`, `health-watch`, `qa-call-report`, `sync-triage-pulse` | [docs/routines/posthog-questions.md](https://github.com/greenpill-dev-guild/green-goods/blob/develop/docs/routines/posthog-questions.md) |
+| Vercel | Deployments of the client and admin apps: which commit is live, when a deploy landed, and the preview for a pull request. | `bug-intake`, `health-watch`, `pr-review`, `qa-call-report`, `sync-triage-pulse` | [docs/routines/health-watch.md](https://github.com/greenpill-dev-guild/green-goods/blob/develop/docs/routines/health-watch.md) |
 | Sentry | Error detail beside the PostHog evidence, when a Sentry connection is available. Every routine is written to work without it. | `qa-call-report` | [docs/routines/README.md](https://github.com/greenpill-dev-guild/green-goods/blob/develop/docs/routines/README.md) |
 | GitHub | Pull requests, review threads, commit ranges, and releases. The gh CLI covers the same ground when no connector is present. | `release-prep` | [.claude/skills/resolve-pr-comments/SKILL.md](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.claude/skills/resolve-pr-comments/SKILL.md) |
-| Google Drive | The meeting notes that feed bug intake and QA triage. | `bug-intake`, `qa-call-report`, `qa-triage-pulse`, `research-synthesis` | [docs/routines/qa-triage-pulse.md](https://github.com/greenpill-dev-guild/green-goods/blob/develop/docs/routines/qa-triage-pulse.md) |
+| Google Drive | The meeting notes that feed bug intake and QA triage. | `bug-intake`, `qa-call-report`, `research-synthesis`, `sync-triage-pulse` | [docs/routines/sync-triage-pulse.md](https://github.com/greenpill-dev-guild/green-goods/blob/develop/docs/routines/sync-triage-pulse.md) |
 | Google Calendar | Upcoming events that explain a change in the numbers, such as a demo or a planting season. Optional context only. | `growth-pulse`, `health-watch` | [docs/routines/health-watch.md](https://github.com/greenpill-dev-guild/green-goods/blob/develop/docs/routines/health-watch.md) |
 
 The routine definitions live in [docs/routines](https://github.com/greenpill-dev-guild/green-goods/tree/develop/docs/routines), each with the connectors it may use in its frontmatter.
