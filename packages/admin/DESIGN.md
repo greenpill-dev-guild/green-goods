@@ -31,7 +31,7 @@ typography:
 
 | Mode | Audiences | Metaphor | Paradigm | Navigation |
 |------|-----------|----------|----------|------------|
-| **Desktop cockpit** | Stewards, Evaluators | Tending the garden — clipboard in hand | Command Surface | AppBar (top) + NavigationBar (bottom) + FabButton |
+| **Desktop cockpit** | Stewards, evaluators | Tending the garden — clipboard in hand | Command Surface | AppBar (top) + NavigationBar (bottom) + FabButton |
 
 **Cockpit litmus test:** If inappropriate for Linear, GitHub, or Stripe's dashboard, it's inappropriate here.
 
