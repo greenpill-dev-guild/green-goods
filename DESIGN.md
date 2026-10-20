@@ -271,7 +271,9 @@ in titles, action labels, and named acts ("Submit Work", the Work tab).
 
 **Protocol names (DL-094).** Protocol and chain names appear in copy only on funding surfaces (a vault
 page may name the protocol that holds the deposit), on builder pages, and inside the labeled "using
-your own wallet" box; gardener, steward, and community copy names none of them.
+your own wallet" box; gardener, steward, and community copy names none of them, with two narrow
+exceptions: a privacy or permanence notice may name the network that makes a photo public and
+undeletable, and a link names the explorer it opens, because a link must say where it goes.
 
 **Plain titles, methods in helper text (DL-047).** Step, section, and field titles use plain
 questions and nouns ("How Predictable Is This Work?", "What You'll Measure"); a framework or
