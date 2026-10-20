@@ -161,7 +161,7 @@ actions as WebMCP tools.
 |---|---|
 | Product or domain behavior | [Product context](.claude/context/product.md), [ontology workflow](.claude/context/ontology.md), and the owning code |
 | Tests | [Testing contract](.claude/context/testing.md), including its test budget |
-| Copy: product strings, website or docs prose, release notes, announcements | [Brand voice guidelines](docs/docs/reference/brand-voice.mdx), then the owning surface `DESIGN.md` |
+| Copy: product strings, website or docs prose, release notes, announcements, funder or partner documents | [Brand voice guidelines](docs/docs/reference/brand-voice.mdx), then the owning surface `DESIGN.md` |
 | UI, CSS, accessibility, or browser proof | `modern-web-guidance`, the owning `DESIGN.md`, and [design implementation guidance](.claude/skills/design/implementation.md) |
 | Full design-system alignment review | [Shared review protocol](.claude/skills/design/system-alignment-review.md) |
 | User-observed bug | `debug`; begin visible/clickable regressions at the rendered component before tracing providers or data |

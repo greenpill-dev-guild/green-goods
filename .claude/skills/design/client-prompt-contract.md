@@ -65,7 +65,7 @@ The client speaks **to the community, about the work**. The admin speaks **about
 ### Browser mode (funders / community members)
 
 - **Headlines**: editorial, evocative, magazine-weight. "The gardens growing a new kind of evidence."
-- **Subheads**: bridge emotion and information. "Community-documented impact, verified on-chain."
+- **Subheads**: bridge emotion and information. "Work the community documented, reviewed by the people who know the place."
 - **Garden descriptions**: place-first. Lead with where the garden is and what it grows, not the technology.
 - **Impact numbers**: let them breathe. "47 documented actions" > "47 actions have been documented by community members."
 - **CTAs**: warm imperative. "Fund this garden" not "Contribute now."

@@ -29,12 +29,12 @@ keywords:
 
 Version 1.2, 2026-10-19. Owner: Afo.
 
-**Scope.** Rules for anyone, person or agent, who writes Green Goods copy: product strings, the public website, docs, release notes, announcements, pull request descriptions, and funder or partner documents. Audiences by name, numbers, partner work, and anything else that should not sit in a public repository live in the internal strategy addendum (a shared Google Doc), not here.
+**Scope.** Rules for anyone, person or agent, who writes Green Goods copy: product strings, the public website, docs, release notes, announcements, and funder or partner documents. Pull request and issue bodies are developer-facing; they follow the spelling and punctuation rules in section 6.7 but not this page's voice. Audiences by name, numbers, partner work, and anything else that should not sit in a public repository live in the internal strategy addendum (a shared Google Doc), not here.
 
 **How people use this file.** Read sections 1 to 3 before writing. Run the checklist in section 9 before shipping. When this file and a source of truth disagree, the source wins and this file gets corrected; section 16 lists the sources and section 15 says what each one owns.
 
 **How agents use this file.**
-- Routing: the repository agent guide (`AGENTS.md`, "Read when relevant") sends any task that writes user-facing or human-facing prose here first, then to the owning surface `DESIGN.md`. The task-routing manifest names this page as a required authority for document review; the design skill routes to it only when a design task carries copy, so visual-only work does not load it. Codex reaches the same files through the repository's agent guide, and the docs site publishes this page in its LLM index (`llms.txt`).
+- Routing: the repository agent guide (`AGENTS.md`, "Read when relevant") sends any task that writes copy a gardener, steward, funder, partner, or visitor reads here first, then to the owning surface `DESIGN.md`. The task-routing manifest names this page as a required authority for document review; the design skill routes to it only when a design task carries copy, so visual-only work does not load it. Codex reaches the same files through the repository's agent guide, and the docs site publishes this page in its LLM index (`llms.txt`).
 - The same file, two paths: this page is the only copy. `.claude/brand-voice-guidelines.md` is a symbolic link to it, which is where the brand-voice plugin's enforce-voice command and other tools expect guidelines to live.
 - Enforcement: the mechanical rules are checked, not trusted. `bun run check --only vocabulary` rejects banned and retired terms, UK spellings, and the old Spanish and Portuguese role words in the three shared catalogs (`packages/shared/src/i18n`); the docs audit rejects UK spellings in docs pages and design guides; `bun run check --only em-dashes` rejects em dashes in those catalogs, docs pages, and design guides. The chat bot's copy in `packages/agent` has its own spelling test and is not yet covered by the vocabulary and em dash checks, so it is reviewed by eye until they extend to it. Section 9 marks which checklist items a machine covers.
 - Review: a change to copy is reviewed against this page the way a change to layout is reviewed against the design skill. Dated copy decisions still get a row in the design decision log.
@@ -201,7 +201,7 @@ The [Glossary](/glossary) is generated from the ontology and is the authority; t
 | garden | A community and its shared place. It gives people, roles, records, and funds one accountable home. It does not have to involve plants: a solar team, a waste crew, a classroom all qualify. |
 | action | A reusable work instruction. It makes expected work and evidence clear before anyone submits. |
 | work | A field record of completed activity, with notes and photos. |
-| work approval | A reviewer's recorded decision on submitted work, kept separate from the record of what happened. |
+| work approval | A steward's recorded decision on submitted work, kept separate from the record of what happened. Stewards approve work; evaluators assess, they do not approve. |
 | assessment | A starting point and a plan: what a place needs and what good evidence should show. Assessment comes before work, not after it. |
 | impact certificate | One claim that bundles a body of approved work so it can be funded. |
 | vault | A garden's long-term fund. A deposit can stay in place while what it earns supports ongoing work. |
@@ -209,7 +209,7 @@ The [Glossary](/glossary) is generated from the ontology and is the authority; t
 | promise | What a member offers or asks for in a pool: a workshop, a planting, a repair. "Promise" is the word in every user-facing surface, in all three languages. "Commitment Pooling" remains the feature name; "commitment" otherwise stays in code and contracts. |
 | pool | The container that holds a garden's promises. "Pool" names only the container. |
 | season, campaign | A garden's cycle of promises and work. A garden's season is its pool's Season-type cycle. Their details sheets show only what the record holds. |
-| gardener, steward, evaluator, funder, community member | The five roles. Definitions in section 2. |
+| gardener, steward, evaluator, funder, community member | The five personas. Definitions in section 2. The ontology's garden roles also include owner, which has no persona of its own; name it when enumerating roles or permissions. |
 
 ### 6.2 Use this, not that
 
@@ -218,7 +218,7 @@ The [Glossary](/glossary) is generated from the ontology and is the authority; t
 | garden | project, organization, DAO | Gardens are the metaphor |
 | gardener | user, contributor, member (for the role) | People who do the work have a name |
 | steward | admin, manager, operator | They steward the garden; "operator" is retired |
-| evaluator | reviewer, auditor, assessor | They evaluate impact, not compliance |
+| evaluator | reviewer, auditor, assessor | They evaluate impact, not compliance; a steward, not an evaluator, reviews and approves work |
 | funder, supporter | investor, backer | Funding a garden, not buying a return |
 | community member | visitor, viewer, spectator | Part of the community, not an audience |
 | work | task, activity, submission | Regenerative work is the core concept |
@@ -278,7 +278,7 @@ Copy names four domains: agroforestry, waste management, solar (hub development)
 8. In the app and on the website, every empty state suggests the next action in one sentence. Admin empty states stay a terse acknowledgment ("No items in queue"), as section 5 says.
 9. Authored community and builder task pages end with next steps, and links say where they go. Reference and generated pages stay terse.
 10. Permission-giving where people hesitate; strict where the integrity of the record is at stake.
-11. Translation is part of the copy, not an afterthought: a new English string ships with Spanish and Portuguese, accents intact, locked terms used.
+11. Product strings are localized: a new string in the shared catalogs or the bot copy ships with Spanish and Portuguese, accents intact, locked terms used. The docs site is English only today. Community announcements get Spanish and Portuguese versions when those communities are the audience, reviewed by a speaker.
 12. Shorter than your first draft.
 
 ---
@@ -319,7 +319,7 @@ Items marked (machine) are covered by a check in the validation pipeline; the re
 - [ ] No retired or banned words: operator, commitment in user copy, hands at work, streak, urgent, guaranteed returns? (machine for the catalog lists)
 - [ ] No hand-typed counts or traction numbers?
 - [ ] Does it claim only what the Capability and Claims page claims?
-- [ ] Spanish and Portuguese strings present, accents intact, locked terms used? (machine for coverage and locked terms)
+- [ ] For product strings: Spanish and Portuguese present, accents intact, locked terms used? (machine for coverage and locked terms)
 - [ ] Does it speak as Green Goods, with no other organization's byline?
 
 ---
@@ -365,7 +365,7 @@ Drawn from shipped copy and approved release material. Lines marked "adapted" we
 
 ## 11. Localization
 
-- Full support ships in English, Spanish, and Portuguese. A new English string is not done until its Spanish and Portuguese strings exist, with accents intact (an accents guard is planned; until it lands, review by eye).
+- The product ships in English, Spanish, and Portuguese: a new string in the shared catalogs or the bot copy is not done until its Spanish and Portuguese strings exist, with accents intact (an accents guard is planned; until it lands, review by eye). The docs site is English only today.
 - Locked terms, applied on every surface including hero copy, count notes, and the chat bot, and enforced by the vocabulary check: steward is "responsable" (es) and "responsável" (pt); garden is "jardín" (es) and "jardim" (pt); endowment is "provisión" / "proveer" (es) and "provisão" / "provisionar" (pt); promises are "promesas" (es) and "promessas" (pt). The check also rejects the old words: coordinador, custodio, administrador, and huerto in Spanish; coordenador, zelador, and horta in Portuguese; the English word "garden" left untranslated.
 - Spanish and Portuguese keep native sentence-style casing everywhere, including titles and action labels.
 - Gender follows the noun: "promesa" and "promessa" are feminine, so articles, adjectives, and pronouns that point back at a promise agree with it, including count strings beside the noun. The verb for taking a promise up is "aceptar" / "aceitar".
