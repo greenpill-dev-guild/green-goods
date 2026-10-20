@@ -148,12 +148,12 @@ For each extracted item:
 
 3. **Linear dedupe** — list open Customer Needs and Issues on the Product team carrying `protocol:green-goods`. For each item, match on:
    - An existing issue the notes name by its ID (`PRD-123`), an exact key; engineering calls often refer to tracked work this way
-   - Title fuzzy-overlap with existing Customer Need titles (>70% token overlap)
+   - Title fuzzy-overlap with existing Customer Need and Issue titles (>70% token overlap); for the team's own work, which has no Need and no error hash, also compare the item against each open Issue's described behavior
    - PostHog error hash (if matched)
 
    If duplicate:
    - **Existing Customer Need**: append a comment with today's sync date + the verbatim quote; do NOT create a duplicate. Grep the drafted comment with the Phase 5 string list **before** posting — a comment is public the moment it lands, and a post-hoc edit does not unpublish it.
-   - **Existing Issue**: when it already covers the same behavior, pre-stage nothing new for the item; otherwise link the new tracking Issue to it as `relates to`. When that Issue has no project, or its project is Completed or Canceled, set it per [Project routing](README.md#project-routing) in the same pass.
+   - **Existing Issue** that already covers the same behavior: create no new tracking Issue. When the item relays customer or telemetry signal, link a new Customer Need to that Issue so the new quote and occurrence still count toward its priority. When it is the team's own work, add one comment only if the call adds new detail, grepped like any comment. An Issue that is related but distinct gets a `relates to` link from the new tracking Issue instead. When an Issue matched here has no project, or its project is Completed or Canceled, set it per [Project routing](README.md#project-routing) in the same pass.
 
 ## Phase 4: Pre-stage Backlog tracking Issues, with Customer Needs for customer signal
 
