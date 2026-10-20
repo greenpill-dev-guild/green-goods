@@ -1,7 +1,7 @@
 ---
 routine-name: research-synthesis
 trigger:
-  schedule: "0 0 * * 6"  # Sat 00:00 UTC = Fri 17:00 PT. Closes the week after Monday's syncs, Tuesday's biweekly Engineering Sync, and Wednesday's Build Sync have landed in Drive.
+  schedule: "0 0 * * 6"  # Sat 00:00 UTC = Fri 17:00 PT. Closes the week after Monday's syncs (the Engineering Sync among them) and Wednesday's Build Sync have landed in Drive.
 max-duration: 1h
 repos:
   - green-goods   # read-only: docs/routines/research-agenda.md is the compass and .plans/ is execution truth. Never edits, commits, or pushes. If the trigger carries no checkout, the pointer prompt shallow-clones the public repo instead.
@@ -49,7 +49,7 @@ You are the research-synthesis routine for Green Goods. Once a week (Friday end 
 | Lead-council operating decisions, partner contracts, agreements | `guild-weekly-synthesis` |
 | Cross-project status, community pulse, weekly recap | `guild-weekly-synthesis` |
 | Green Goods product and growth metrics, funnel, retention | `growth-pulse` (Mon) |
-| Bugs, defects, QA items from the Build Sync or Engineering Sync | `qa-triage-pulse` (Wed) and `bug-intake` |
+| Bugs, defects, QA items from the Build Sync or Engineering Sync | `qa-triage-pulse` (Mon and Wed) and `bug-intake` |
 | Slippage and scoping nags on existing issues | `delivery-hygiene-pulse` (Mon/Thu) |
 | Off-agenda Research issues (PGSP trio, GreenWill mapping, account recovery) | memo line only, when a human touched them |
 

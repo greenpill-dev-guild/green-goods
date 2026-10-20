@@ -52,6 +52,11 @@
       "expect": "qa-triage"
     },
     {
+      "id": "qa-11",
+      "query": "engineering sync just wrapped. Grab the Gemini notes and file the bugs and fixes we talked about in Linear",
+      "expect": "qa-triage"
+    },
+    {
       "id": "neg-01",
       "query": "We have a production incident — users on iOS can't submit work right now. Need to triage immediately, posthog is showing a spike on $exception with Failed to fetch",
       "expect": "debug"

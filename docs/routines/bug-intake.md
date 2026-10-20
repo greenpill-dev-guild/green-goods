@@ -457,9 +457,10 @@ The `google-drive` connector exposes only `title`, `fullText`, `mimeType`, `modi
 
    This pattern matches Gemini-generated meeting notes (the canonical naming is `<topic> - YYYY/MM/DD HH:MM PDT - Notes by Gemini`) that are project-relevant. Operator-onboarding sessions, Green Goods syncs, and pilot-garden calls all match.
 
-2. **Rejection step — drop the doc if any of these hold.** This routine owns user-reported pain from Green Goods. It does NOT own grants, strategy, or partnership content even when those docs mention Green Goods. It also does NOT own Build Sync notes (formerly Product Sync; renamed June 2026) — `qa-triage-pulse` (Wed 21:00 UTC cron) owns those and runs ~37h before this routine's next M/W/F fire. Drop docs whose **title contains** any of:
+2. **Rejection step — drop the doc if any of these hold.** This routine owns user-reported pain from Green Goods. It does NOT own grants, strategy, or partnership content even when those docs mention Green Goods. It also does NOT own the notes of the two weekly calls `qa-triage-pulse` triages on the afternoon they happen (Mon and Wed 23:00 UTC cron): the Engineering Sync and the Build Sync (formerly Product Sync; renamed June 2026). That routine runs 36h before this routine's next M/W/F fire. Drop docs whose **title contains** any of:
 
-   - `'Build Sync'` → owned by `qa-triage-pulse` (skip silently; the Wed routine already pre-staged any bugs from these notes into Linear)
+   - `'Engineering Sync'` → owned by `qa-triage-pulse` (skip silently; its Monday run already pre-staged any bugs from these notes into Linear)
+   - `'Build Sync'` → owned by `qa-triage-pulse` (skip silently; its Wednesday run already pre-staged any bugs from these notes into Linear)
    - `'Product Sync'` → legacy title of the Build Sync (renamed June 2026); old notes keep it — same ownership, skip silently
 
    ...and drop docs whose **primary topic** is:

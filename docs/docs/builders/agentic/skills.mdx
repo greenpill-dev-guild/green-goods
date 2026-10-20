@@ -35,7 +35,7 @@ generated_from:
   - .claude/skills/review/SKILL.md
   - .claude/skills/ship/README.md
   - .claude/skills/ship/SKILL.md
-source_digest: "sha256:031facc3fdf5b72186721ed015bee9546e43eaae66321e271a2eb8e8a261dc1e"
+source_digest: "sha256:c623a9916ee8a1a5f715ed8aeca1aa15da27541f2a75c86308c0579354ba1649"
 source_of_truth:
   - .claude/skills/audit/README.md
   - .claude/skills/audit/SKILL.md
@@ -84,7 +84,7 @@ Skills are packaged workflows. A coding agent, or you driving one, runs a skill 
 | [module-seams-review](#module-seams-review) | For import-boundary or barrel migrations, testability reviews, or checking how modules depend on each other. It isn't meant for ordinary small diffs. | Describe a modules-and-seams review intent to activate it. |
 | [plan](#plan) | When work needs a plan before code: a new feature, an architecture improvement, or a change that spans several packages. | No slash command; planning intent ("plan this", "break down X") activates it. |
 | [qa-session](#qa-session) | While you walk the product live, with a partner, or from a recorded transcript, and want issues fixed as you find them. | Type `/qa-session` or announce a QA walk. |
-| [qa-triage](#qa-triage) | After a QA call or Build Sync, or when a qa-session hands over findings it deferred. | Type `/qa-triage` after a QA call or handoff. |
+| [qa-triage](#qa-triage) | After a QA call, a Build Sync, or an Engineering Sync, or when a qa-session hands over findings it deferred. | Type `/qa-triage` after a QA call or handoff. |
 | [research](#research) | When a product, architecture, or implementation question needs evidence before anyone decides. | Describe the bounded question; research intent activates it. |
 | [research-agenda](#research-agenda) | At a Research cycle boundary, or whenever the Saturday research digest says accepted edits are waiting. | Type `/research-agenda`, or `/research-agenda review` at a cycle boundary, or `/research-agenda candidates <name>` after the panel confirms a candidate track. |
 | [resolve-pr-comments](#resolve-pr-comments) | When a pull request has review threads or requested changes to work through. | Ask to address or resolve a PR's review comments. |
@@ -173,9 +173,9 @@ Live product QA with fixes in the loop. Run it during a walk of the product (pai
 
 ## qa-triage {#qa-triage}
 
-Turns QA notes into tracked records. After a Build Sync or a qa-session handoff, it enriches findings against PostHog and existing Linear records, then files scope-locked issues and private QA-sheet rows, and it writes only after confirmation.
+Turns QA notes into tracked records. After a Build Sync, an Engineering Sync, or a qa-session handoff, it enriches findings against PostHog and existing Linear records, then files scope-locked issues and private QA-sheet rows, and it writes only after confirmation.
 
-- **When to use it:** After a QA call or Build Sync, or when a qa-session hands over findings it deferred.
+- **When to use it:** After a QA call, a Build Sync, or an Engineering Sync, or when a qa-session hands over findings it deferred.
 - **What you get:** Scope-locked Linear issues and QA sheet rows, filed only after you confirm them.
 - **How to invoke:** Type `/qa-triage` after a QA call or handoff.
 
