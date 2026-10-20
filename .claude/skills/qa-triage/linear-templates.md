@@ -420,7 +420,7 @@ Linear's API constraint that Customer Needs must link to an Issue eliminates the
 | Strategic gap tied to architecture rework | Attach (`activity:architecture`) | `Backlog` | Yes, linked |
 | Sync item the team raised itself, with no PostHog match: a chore, a tooling or process change, a bug or an idea | The bug's Issue above, otherwise Attach (`activity:maintenance`) | As above, otherwise `Backlog` | No (`issue-only`) |
 | Question / "me too" / no actionable content | Skip both | — | No |
-| Duplicate of existing record | No new Issue | — | Comment on existing if user wants the verbatim preserved |
+| Duplicate of existing record | No new Issue | — | Comment on existing if user wants the verbatim preserved; a sync item with no outside signal comments on the Issue, never the Need |
 | `[derived:posthog]` accepted in Phase 4 | Main (`activity:build`) | `Todo` | Yes, linked (telemetry-only body) |
 | `[derived:test-fail]` accepted in Phase 4 | Main (`activity:build`) | `Todo` | Yes, linked (Test ID reference) |
 | `[derived:recurring]` accepted in Phase 4 | linked to parent Issue | yes (recurring-pattern parent) |
