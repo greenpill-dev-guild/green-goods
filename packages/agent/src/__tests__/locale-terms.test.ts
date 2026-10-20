@@ -1,11 +1,10 @@
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { type AgentLocale, type AgentMessageKey, agentMessage } from "../i18n";
-import { ES_REPORTING_COPY } from "../services/reporting/copy/es";
-import { PT_REPORTING_COPY } from "../services/reporting/copy/pt";
+import { readChatCopy } from "../../scripts/chat-copy.mjs";
 import { parseCommand } from "../services/reporting/coordinator/commands";
 
-type Locale = Exclude<AgentLocale, "en">;
+type Locale = "es" | "pt";
 
 // The chat copy bans the same words as the app catalogs: scripts/design/check-vocab.sh reads this
 // file for packages/shared, and this test reads it for the bot (es responsable and jardín, pt
@@ -14,20 +13,9 @@ const vocabulary = JSON.parse(
   readFileSync(new URL("../../../../scripts/data/banned-vocabulary.json", import.meta.url), "utf8")
 ) as { renamed_terms: { locale_terms: Record<string, string[]> } };
 
-// The older bot keeps its message tables private, so its keys come from the English table.
-const i18nSource = readFileSync(new URL("../i18n.ts", import.meta.url), "utf8");
-const englishTable = i18nSource.slice(
-  i18nSource.indexOf("const enMessages = {"),
-  i18nSource.indexOf("} as const;")
-);
-const botKeys = [...englishTable.matchAll(/^ {2}"([\w.]+)":/gm)].map(
-  (match) => match[1] as AgentMessageKey
-);
-
-const reportingCopy: Record<Locale, Record<string, string>> = {
-  es: ES_REPORTING_COPY,
-  pt: PT_REPORTING_COPY,
-};
+// Every block the copy checks read: the older bot's messages, the reporting copy and the Telegram
+// command menu.
+const chatCopy = readChatCopy(fileURLToPath(new URL("../../../../", import.meta.url)));
 
 const drifted: Record<Locale, string[]> = {
   es: ["Únete al Huerto Comunitario o pide a un steward que te agregue.", "(STEWARDS) Aprobar"],
@@ -56,17 +44,14 @@ describe.each(["es", "pt"] as const)("%s chat copy uses the locked terms", (loca
     expect(strays(locale, [...drifted[locale], "Envía GARDEN"])).toEqual(drifted[locale]);
   });
 
-  it("keeps the reporting copy on the locked terms", () => {
-    expect(strays(locale, Object.values(reportingCopy[locale]))).toEqual([]);
-  });
-
-  it("keeps the older bot's messages on the locked terms", () => {
-    expect(botKeys.length).toBeGreaterThan(50);
-    expect(
-      strays(
-        locale,
-        botKeys.map((key) => agentMessage(locale, key))
-      )
-    ).toEqual([]);
+  it("keeps every chat copy block on the locked terms", () => {
+    const hits = chatCopy
+      .filter((block) => block.locale === locale)
+      .flatMap(({ file, strings }) =>
+        strings
+          .filter(({ text }) => strays(locale, [text]).length > 0)
+          .map(({ text, line }) => `${file}:${line}: ${text}`)
+      );
+    expect(hits).toEqual([]);
   });
 });

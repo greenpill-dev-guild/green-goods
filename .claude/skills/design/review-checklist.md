@@ -168,7 +168,7 @@ Each lens has a manual review pass. Some lenses also have automation that runs t
 
 | Lens | Manual Review | Automation | Status |
 |------|--------------|-----------|--------|
-| **1: Regenerative** | Value-flow, succession, recovery, motivation, capability, and aesthetic checks | `bun run check --only vocabulary` scans `packages/*/src/i18n/*.json` for `linter_enforced.terms` from `scripts/data/banned-vocabulary.json`; prompt-only admin/client vocabulary is guidance, not a runtime check | **Wired** |
+| **1: Regenerative** | Value-flow, succession, recovery, motivation, capability, and aesthetic checks | `bun run check --only vocabulary` scans `packages/*/src/i18n/*.json` for `linter_enforced.terms` from `scripts/data/banned-vocabulary.json`, and the agent's copy tests hold its chat copy to the same list; prompt-only admin/client vocabulary is guidance, not a runtime check | **Wired** |
 | **2: Spatial** | Paradigm declared, material thickness matches content density | Chromatic visual regression on paradigm-tagged stories; `@container` coverage lint | **Proposed** |
 | **3: Ecosystem** | Archetype mapping, cascade visibility, surrogate flows | Playwright role-based flows (gardener / steward / evaluator / funder); vitest surrogate-path tests; indexer archetype-span checks | **Proposed** |
 | **4: Compliance** | WCAG 2.1 AA, i18n readiness, responsive breakpoints | `@storybook/addon-a11y` (installed, not CI-gating); viewport tests at 320/768/1280; i18n-key coverage lint; `prefers-reduced-motion` vitest matcher | **Partial** (addon installed, no CI gate) |
@@ -200,7 +200,7 @@ To move rows out of **Proposed** / **Partial**:
 A checklist agents run once per PR catches what we remember. Automated checks catch what we forget. The combination is the whole system: manual review for judgment, CI for vigilance. Keep this table honest: every row marked **Wired** must execute without error from a clean checkout.
 
 **Implementation notes**:
-- `lint:vocab` runs `scripts/design/check-vocab.sh` against `packages/*/src/i18n/*.json` and reads `linter_enforced`, `renamed_terms`, and `us_spelling` (English values only) from `scripts/data/banned-vocabulary.json`; `docs/scripts/docs-audit.mjs` and the agent's `i18n.test.ts` read `us_spelling` for docs prose and the agent's English chat copy. Biome's linter is disabled repo-wide so a shell grep is the practical substitute; select it for i18n/vocabulary changes and run it in Design CI.
+- `lint:vocab` runs `scripts/design/check-vocab.sh` against `packages/*/src/i18n/*.json` and reads `linter_enforced`, `renamed_terms`, and `us_spelling` (English values only) from `scripts/data/banned-vocabulary.json`; `docs/scripts/docs-audit.mjs` reads `us_spelling` for docs prose. The agent's copy tests (`i18n.test.ts` and `locale-terms.test.ts`) read its chat copy through `packages/agent/scripts/chat-copy.mjs`, the same blocks the em dash check reads, and apply `us_spelling` to the English copy, `linter_enforced` and `renamed_terms` to every language, and `locale_terms` to Spanish and Portuguese. Biome's linter is disabled repo-wide so a shell grep is the practical substitute; select it for i18n/vocabulary changes and run it in Design CI.
 - `check:design-tokens` runs `scripts/design/check-tokens.sh`, which verifies every spec'd Warm Earth token (springs, materials, border) exists in its source (`theme.css` for shared/client tokens; `packages/admin/src/styles/admin-m3-tokens.css` + `admin-m3-components.css` for admin M3/tone tokens) AND that `token_version` is declared in `design/SKILL.md`.
 
 ---
