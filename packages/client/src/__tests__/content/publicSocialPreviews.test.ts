@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { describe, expect, it } from "vitest";
 import {
   PUBLIC_SOCIAL_PREVIEW_ROUTE_KEYS,
@@ -8,7 +10,22 @@ import {
 import {
   renderSocialCardTextPaths,
   renderPublicSocialPreviewHtml,
+  type SocialCardFont,
 } from "../../../vite/social-preview";
+
+// The card's linen panel ends at x 576 (HERO_CARD_X + HERO_CARD_WIDTH in vite/social-preview.ts).
+// Read here rather than exported: any edit under packages/client/vite/ adds the slow PWA preview check.
+const SOCIAL_CARD_PANEL_RIGHT = 576;
+
+function readSocialCardFont(fileName: string): SocialCardFont {
+  const opentype = createRequire(import.meta.url)("opentype.js") as {
+    parse(buffer: ArrayBuffer): SocialCardFont;
+  };
+  const file = readFileSync(
+    new URL(`../../../vite/assets/fonts/social/${fileName}`, import.meta.url)
+  );
+  return opentype.parse(file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength));
+}
 
 describe("public social previews", () => {
   it("covers exactly the approved editorial route previews", () => {
@@ -41,6 +58,45 @@ describe("public social previews", () => {
       }
       if (preview.cardLedeLines) {
         expect(preview.cardLedeLines.join(" "), preview.key).toBe(preview.cardLede);
+      }
+    }
+  });
+
+  it("keeps every line drawn on a generated card inside its linen panel", () => {
+    const fonts = {
+      frauncesNormal: readSocialCardFont("fraunces-normal-400.ttf"),
+      frauncesItalic: readSocialCardFont("fraunces-italic-400.ttf"),
+      interNormal: readSocialCardFont("inter-normal-400.ttf"),
+    };
+    // The rightmost x among the glyph outlines the renderer drew: path data is x,y pairs.
+    const inkRight = (svg: string) =>
+      Math.max(
+        ...[...svg.matchAll(/\sd="([^"]*)"/g)].flatMap(([, pathData]) =>
+          (pathData.match(/-?\d+(?:\.\d+)?/g) ?? [])
+            .map(Number)
+            .filter((_, index) => index % 2 === 0)
+        )
+      );
+
+    for (const preview of Object.values(publicSocialPreviews)) {
+      if (!preview.socialImagePath.startsWith("/social/")) continue;
+      for (const line of preview.cardTitleLines ?? [preview.cardTitle]) {
+        const svg = renderSocialCardTextPaths(
+          { ...preview, cardTitleLines: [line], cardLedeLines: [] },
+          fonts
+        );
+        expect(inkRight(svg), `${preview.key} title: ${line}`).toBeLessThanOrEqual(
+          SOCIAL_CARD_PANEL_RIGHT
+        );
+      }
+      for (const line of preview.cardLedeLines ?? [preview.cardLede]) {
+        const svg = renderSocialCardTextPaths(
+          { ...preview, cardTitleLines: [], cardLedeLines: [line] },
+          fonts
+        );
+        expect(inkRight(svg), `${preview.key} lede: ${line}`).toBeLessThanOrEqual(
+          SOCIAL_CARD_PANEL_RIGHT
+        );
       }
     }
   });
