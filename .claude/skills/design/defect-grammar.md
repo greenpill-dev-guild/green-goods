@@ -1,14 +1,14 @@
-# UI Defect Grammar — Admin Surface
+# UI Defect Grammar: Admin Surface
 
-How Claude (and subagents) resolve casual admin-UI defect reports to an exact DOM node, token, and fix — without making the user memorize a formal template. The companion to `prompt-contract.md`: prompt-contract is how we talk **to** AI design tools; this is how Claude reasons **about** existing rendered admin UI.
+How Claude (and subagents) resolve casual admin-UI defect reports to an exact DOM node, token, and fix, without making the user memorize a formal template. The companion to `prompt-contract.md`: prompt-contract is how we talk **to** AI design tools; this is how Claude reasons **about** existing rendered admin UI.
 
-> **For the user**: speak casually. "The card on Hub feels tight" is a valid input. The agent is responsible for resolving it to a canonical component and grounding the fix — see "Automatic component resolution" below.
+> **For the user**: speak casually. "The card on Hub feels tight" is a valid input. The agent is responsible for resolving it to a canonical component and grounding the fix (see "Automatic component resolution" below).
 
 ## Automatic component resolution (agent behavior)
 
 When the user reports anything off on an admin surface, the agent MUST resolve to a canonical `Admin*` wrapper or canvas region before proposing an edit. Never guess. Escalate in this order:
 
-### Tier 1 — Live DOM via Authenticated Brave QA (preferred)
+### Tier 1: Live DOM via Authenticated Brave QA (preferred)
 
 If an admin tab is open in the authenticated Brave QA profile and the Codex or Claude browser-extension path can control it, read the rendered DOM to locate the target:
 
@@ -44,7 +44,7 @@ Narrow candidates by:
 | "the progress bar" | `data-component="AdminLinearProgress"` |
 | "the modal" / "the dialog" | `data-component="AdminDialog"` |
 | "the tooltip" | `data-component="AdminTooltip"` |
-| "the badge" / "status chip" | shared `StatusBadge` (no `data-component` tag — narrow by visible text/rect) |
+| "the badge" / "status chip" | shared `StatusBadge` (no `data-component` tag, so narrow by visible text/rect) |
 | "the toggle row" / "the setting row" | `data-component="AdminSettingRow"` |
 | "the choice chips" / "the option group" | `data-component="AdminChoiceGroup"` |
 | "the selectable card" / "the picker card" | `data-component="AdminSelectableCard"` |
@@ -52,7 +52,7 @@ Narrow candidates by:
 | "the garden switcher" / "the garden pill" | `data-component="GardenChip"` (shared 36px pill in the AppBar) |
 | "the work card" | `data-component="HubWorkCard"` |
 
-### Tier 2 — Static grep (authenticated Brave access unavailable, or page not open)
+### Tier 2: Static grep (authenticated Brave access unavailable, or page not open)
 
 ```bash
 grep -rn 'data-component="Admin<X>"' packages/admin/src/views/<workspace>/
@@ -60,13 +60,13 @@ grep -rn 'data-component="Admin<X>"' packages/admin/src/views/<workspace>/
 
 Use the casual-term mapping above, narrow to the workspace directory, and cross-reference with the user's description (position, adjacent labels, route).
 
-### Tier 3 — Ask (last resort)
+### Tier 3: Ask (last resort)
 
 If Tier 1 + 2 do not narrow to a single candidate, ask in terms the user recognizes:
 
 > "On `/hub`, is this the `AdminCard` in WorkSubmissions, or the `GardenCommunityCard` on the same view?"
 
-Never ask the user to formalize their report in the grammar — that is the agent's job.
+Never ask the user to formalize their report in the grammar. That is the agent's job.
 
 ### Ground before editing
 
@@ -85,8 +85,8 @@ If the user's description can't be mapped to a canonical `Admin*` wrapper or reg
 | `spacing` | Padding, gap, margin. Includes concentricity (`child_radius = parent_radius − padding`). | M3 anatomy token + parent radius. |
 | `alignment` | Horizontal/vertical alignment inside a container. | Flex/grid direction, `items-*`, `justify-*`. |
 | `contrast` | Token pair mismatch (fg/bg), WCAG failure, disabled state too subtle. | Role token pair (`--m3-on-surface` over `--m3-surface-*`). |
-| `state-layer` | Hover, pressed, focused, selected, disabled — missing, wrong opacity, or wrong color. | M3 state layer percentages (8/12/12/16). |
-| `motion` | Duration, easing, orchestration — stutter, jump, missing entrance/exit, ignored `prefers-reduced-motion`. | `--spring-*` tokens. |
+| `state-layer` | Hover, pressed, focused, selected, disabled: missing, wrong opacity, or wrong color. | M3 state layer percentages (8/12/12/16). |
+| `motion` | Duration, easing, orchestration: stutter, jump, missing entrance/exit, ignored `prefers-reduced-motion`. | `--spring-*` tokens. |
 | `hierarchy` | Elevation, Z-layer, visual weight, order of attention. | Z-scale, 4-role volume ratio (canvas/ink/stone/green). |
 | `typography` | Wrong role (`label-sm` vs `label-lg`), weight, line-height, font (Plus Jakarta vs Inter). | Role token in `theme.css`. |
 | `responsive` | Breaks at a specific width/container size, overflow, missing truncation. | Container queries (`@[Npx]:`), Rule 11 breakpoints. |
@@ -102,11 +102,11 @@ The left column is what the user says. The right column is the internal statemen
 | User says | Agent's internal statement |
 |-----------|----------------------------|
 | "The card on Hub feels tight." | `AdminCard in /hub WorkSubmissions → spacing: expected p-4 (16dp) per M3 card anatomy, currently p-3 (12dp)` |
-| "The top bar on Garden feels detached from the page." | `canvas-area-top in /garden → hierarchy: AppBar reads detached from the canvas — expected transparent root over the --tone-surface-tint-color wash; check the wash gradient and sticky-header transparency` |
-| "The tabs on Community snap weirdly." | `AdminTabRail in /community → motion: hover/active text transition hardcodes ease-out 200ms instead of --spring-effects-fast (underline rail — there is no sliding indicator to animate)` |
+| "The top bar on Garden feels detached from the page." | `canvas-area-top in /garden → hierarchy: AppBar reads detached from the canvas (expected: transparent root over the --tone-surface-tint-color wash); check the wash gradient and sticky-header transparency` |
+| "The tabs on Community snap weirdly." | `AdminTabRail in /community → motion: hover/active text transition hardcodes ease-out 200ms instead of --spring-effects-fast (underline rail: there is no sliding indicator to animate)` |
 | "The input label looks wrong at phone width." | `AdminTextField (outlined) in AdminDialog create-garden form → responsive: floating-label notch overlaps outline below 400px container width` |
 | "The notifications panel feels like one big list." | `NotificationPanel in AdminSideSheet (AppBar bell) → hierarchy: expected "Needs attention" / "Recent activity" section grouping, currently flat` |
-| "Something's off but I can't tell what." | Tier 3 — agent asks which workspace/region to focus on, then Tier 1s again. |
+| "Something's off but I can't tell what." | Tier 3: the agent asks which workspace/region to focus on, then Tier 1s again. |
 
 ## Why this exists
 
@@ -116,9 +116,9 @@ The data attributes make the DOM self-identifying. This file tells the agent to 
 
 ## Related
 
-- [prompt-contract.md](./prompt-contract.md) — canonical admin vocabulary (components, workspaces, banned terms)
-- [review-checklist.md](./review-checklist.md) — 4-lens PR review (Regenerative / Spatial / Ecosystem / Compliance)
-- [language.md](./language.md) — full Warm Earth token + motion spec
+- [prompt-contract.md](./prompt-contract.md): canonical admin vocabulary (components, workspaces, banned terms)
+- [review-checklist.md](./review-checklist.md): 4-lens PR review (Regenerative / Spatial / Ecosystem / Compliance)
+- [language.md](./language.md): full Warm Earth token + motion spec
 - Project rules: `.claude/rules/frontend-design.md`
 - Tooling: `bun run check --only design-tokens`, `bun run check --only vocabulary`
 - Browser evidence: follow `AGENTS.md § Browser Evidence`. Admin views render under mock auth, so a labeled mock-auth localhost DOM read is valid evidence for defect resolution; use the authenticated Brave profile (Codex browser-extension path or Claude Code Chrome/Chromium extension path against the already-open tab) for write flows that reach wallet, auth, or job-queue paths, and record that proof as pending rather than presenting an isolated profile as authenticated.

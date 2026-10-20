@@ -1,4 +1,4 @@
-# System Alignment Review — Design System Across The Repo
+# System Alignment Review: Design System Across The Repo
 
 Read-only, evidence-first review protocol for checking whether the Green Goods design system is coherent across every surface that consumes it. Starts read-only; does not apply fixes unless the user explicitly asks.
 
@@ -6,8 +6,8 @@ Read-only, evidence-first review protocol for checking whether the Green Goods d
 
 Two modes:
 
-- **Full alignment review** (default) — the DesignMD sources, their runtime projections, and every surface (admin, client PWA, client browser, docs, Storybook, agentic guidance, repo instructions) that must stay in sync.
-- **Stack-only mode** (replaced `stack-review.md`) — audits only the `design/` skill stack as infrastructure. See § Stack-only mode below.
+- **Full alignment review** (default): the DesignMD sources, their runtime projections, and every surface (admin, client PWA, client browser, docs, Storybook, agentic guidance, repo instructions) that must stay in sync.
+- **Stack-only mode** (replaced `stack-review.md`): audits only the `design/` skill stack as infrastructure. See § Stack-only mode below.
 
 ## When to invoke
 
@@ -16,65 +16,65 @@ Two modes:
 - After a DesignMD token revision, to confirm every projection landed.
 - After a prompt-contract revision, to confirm Storybook fixtures and surface DESIGN.md dialects still agree.
 - Before a design-system change goes to a grant, pilot, or external audience, to make sure the story the repo tells matches the story the docs tell.
-- **Stack-only mode**: quarterly design-system health check, after a major skill consolidation ("did we drift?"), when onboarding, or before volunteering to "clean up the design system" — the protocol is the guardrail against over-polish.
+- **Stack-only mode**: quarterly design-system health check, after a major skill consolidation ("did we drift?"), when onboarding, or before volunteering to "clean up the design system" (the protocol is the guardrail against over-polish).
 
-Do **not** invoke this for routine component PRs — use [review-checklist.md](./review-checklist.md).
+Do **not** invoke this for routine component PRs. Use [review-checklist.md](./review-checklist.md).
 
 ## Stack-only mode
 
 When the target is only the design skill stack (not the whole repo), restrict the review:
 
-- **In scope**: `.claude/skills/design/**` (every sub-file), Warm Earth token implementation in `packages/shared/src/styles/theme.css` + generated DesignMD artifacts, root `DESIGN.md` + the four surface dialect briefs, and validators `scripts/design/check-tokens.sh` / `check-vocab.sh`. Anything outside — other skills' health, `packages/*/src/**` beyond tokens/contracts/palettes — must not appear in findings even when genuinely broken; route it to `/audit`, `/review`, or the owning skill.
+- **In scope**: `.claude/skills/design/**` (every sub-file), Warm Earth token implementation in `packages/shared/src/styles/theme.css` + generated DesignMD artifacts, root `DESIGN.md` + the four surface dialect briefs, and validators `scripts/design/check-tokens.sh` / `check-vocab.sh`. Anything outside (other skills' health, `packages/*/src/**` beyond tokens/contracts/palettes) must not appear in findings even when genuinely broken; route it to `/audit`, `/review`, or the owning skill.
 - **Caps**: Section 1 ≤ 5 items; skip Sections 2–3 (Inferred risks / Missing proof).
 - Everything else (constraints, YAGNI guardrails, refusal condition) applies unchanged.
 
 ## Source of truth
 
-The repo is the source of truth. This protocol is **not** a design-system spec; it is a read-only check that asks "do the existing sources agree with each other and with the surfaces that consume them?" If a finding looks like a spec decision, stop and surface it as a human judgment point — do not invent spec.
+The repo is the source of truth. This protocol is **not** a design-system spec; it is a read-only check that asks "do the existing sources agree with each other and with the surfaces that consume them?" If a finding looks like a spec decision, stop and surface it as a human judgment point. Do not invent spec.
 
 Canonical authorities, ordered by precedence:
 
-1. Root `DESIGN.md` front matter — canonical DesignMD token source.
-2. Surface `DESIGN.md` / `DESIGN.pwa.md` / `DESIGN.browser.md` / `docs/DESIGN.md` dialect briefs — extend root.
-3. `packages/shared/src/styles/theme.css` — runtime projection consumed by all three frontends.
-4. `packages/shared/src/styles/design-md.generated.{css,json}` — generated artifacts from root DesignMD.
-5. `.claude/skills/design/language.md` — implementation guide projected from root DesignMD.
-6. `.claude/skills/design/ai-ui-brief.md` — reusable AI UI/CSS build brief and reference role map.
-7. `.claude/skills/design/prompt-contract.md` / `client-prompt-contract.md` — AI-tool vocabulary.
+1. Root `DESIGN.md` front matter: canonical DesignMD token source.
+2. Surface `DESIGN.md` / `DESIGN.pwa.md` / `DESIGN.browser.md` / `docs/DESIGN.md` dialect briefs: extend root.
+3. `packages/shared/src/styles/theme.css`: runtime projection consumed by all three frontends.
+4. `packages/shared/src/styles/design-md.generated.{css,json}`: generated artifacts from root DesignMD.
+5. `.claude/skills/design/language.md`: implementation guide projected from root DesignMD.
+6. `.claude/skills/design/ai-ui-brief.md`: reusable AI UI/CSS build brief and reference role map.
+7. `.claude/skills/design/prompt-contract.md` / `client-prompt-contract.md`: AI-tool vocabulary.
 
 If prose disagrees with a higher-precedence source, the prose is the drift, not the source.
 
-## Scope — what this review checks
+## Scope: what this review checks
 
 **In scope:**
 
-1. **DesignMD sources** — root `DESIGN.md` front matter vs surface dialects (`packages/admin/DESIGN.md`, `packages/client/DESIGN.md`, `packages/client/DESIGN.pwa.md`, `packages/client/DESIGN.browser.md`, `docs/DESIGN.md`).
-2. **Warm Earth design language** — `.claude/skills/design/language.md`, `ai-ui-brief.md`, `surfaces.md`, prompt contracts.
-3. **Runtime tokens** — `packages/shared/src/styles/theme.css`, `design-md.generated.css`, `design-md.generated.json`, `packages/client/src/styles/*.css`.
-4. **Storybook** — `packages/shared/.storybook/**`, `packages/shared/src/components/Tokens/**`, cross-package story coverage.
-5. **Admin surface** — `packages/admin/DESIGN.md`, `packages/admin/AGENTS.md`, `Admin*` wrappers, `docs/docs/builders/packages/admin.mdx`.
-6. **Client PWA surface** — `packages/client/DESIGN.pwa.md`, `packages/client/AGENTS.md`, presentation-mode loaders, installed-PWA shell, `PwaRuntime` / `AppShell`, bottom `AppBar`.
-7. **Client public browser surface** — `packages/client/DESIGN.browser.md`, landing/browser views, `SiteHeader`.
-8. **Docs UI** — `docs/DESIGN.md`, `docs/src/**`, Docusaurus identity, role accents.
-9. **Agentic design-development guidance** — `.claude/skills/design/**`, prompt contracts, defect grammar.
-10. **Claude and Codex repo instructions** — `AGENTS.md`, local guides under `packages/` and `docs/`, and the optional `CLAUDE.md` compatibility import — verify routing to the canonical design sources.
+1. **DesignMD sources**: root `DESIGN.md` front matter vs surface dialects (`packages/admin/DESIGN.md`, `packages/client/DESIGN.md`, `packages/client/DESIGN.pwa.md`, `packages/client/DESIGN.browser.md`, `docs/DESIGN.md`).
+2. **Warm Earth design language**: `.claude/skills/design/language.md`, `ai-ui-brief.md`, `surfaces.md`, prompt contracts.
+3. **Runtime tokens**: `packages/shared/src/styles/theme.css`, `design-md.generated.css`, `design-md.generated.json`, `packages/client/src/styles/*.css`.
+4. **Storybook**: `packages/shared/.storybook/**`, `packages/shared/src/components/Tokens/**`, cross-package story coverage.
+5. **Admin surface**: `packages/admin/DESIGN.md`, `packages/admin/AGENTS.md`, `Admin*` wrappers, `docs/docs/builders/packages/admin.mdx`.
+6. **Client PWA surface**: `packages/client/DESIGN.pwa.md`, `packages/client/AGENTS.md`, presentation-mode loaders, installed-PWA shell, `PwaRuntime` / `AppShell`, bottom `AppBar`.
+7. **Client public browser surface**: `packages/client/DESIGN.browser.md`, landing/browser views, `SiteHeader`.
+8. **Docs UI**: `docs/DESIGN.md`, `docs/src/**`, Docusaurus identity, role accents.
+9. **Agentic design-development guidance**: `.claude/skills/design/**`, prompt contracts, defect grammar.
+10. **Claude and Codex repo instructions**: `AGENTS.md`, local guides under `packages/` and `docs/`, and the optional `CLAUDE.md` compatibility import. Verify routing to the canonical design sources.
 
-**Out of scope — do not produce findings here:**
+**Out of scope (do not produce findings here):**
 
-- Skill-stack health of non-design skills (`ship`, `plan`, `debug`, `review`, `audit`, `clean`, etc.) — not this review.
-- Per-component correctness / a11y / i18n bugs — route to [review-checklist.md](./review-checklist.md).
-- General repo-health (dead code, dependency drift, circular imports) — route to `/audit`.
-- Narrow meta-review of `design/` files only — use § Stack-only mode above.
+- Skill-stack health of non-design skills (`ship`, `plan`, `debug`, `review`, `audit`, `clean`, etc.): not this review.
+- Per-component correctness / a11y / i18n bugs: route to [review-checklist.md](./review-checklist.md).
+- General repo-health (dead code, dependency drift, circular imports): route to `/audit`.
+- Narrow meta-review of `design/` files only: use § Stack-only mode above.
 
-If the most broken thing you find is out of scope, say so explicitly and stop — the refusal condition below is the right exit.
+If the most broken thing you find is out of scope, say so explicitly and stop. The refusal condition below is the right exit.
 
 ## Review protocol
 
-HARD CONSTRAINTS — read before producing any finding.
+HARD CONSTRAINTS: read before producing any finding.
 
 1. **Read-only by default.** Do not edit, rename, move, or regenerate anything. If the user later says "fix it," confirm scope before touching shared DesignMD sources, theme tokens, stories, or deployment/config permissions. Never modify actual UI components, tokens, stories, design language content beyond routing/registry references, package code, or deployment/config permissions as part of this review.
 
-2. **Evidence or it didn't happen.** Every claim needs `file:line` or a concrete command output. Never paraphrase what a file says — quote it. "Feels inconsistent" is not a finding.
+2. **Evidence or it didn't happen.** Every claim needs `file:line` or a concrete command output. Never paraphrase what a file says. Quote it. "Feels inconsistent" is not a finding.
 
 2b. **Check recent history before proposing any restructure.** Run `git log --oneline -15 -- .claude/skills/design/` and read the touched files' diffs. Do not propose undoing a deliberate choice made in the last 30 days; if a recent change already addressed your concern, drop the item.
 
@@ -90,11 +90,11 @@ HARD CONSTRAINTS — read before producing any finding.
 
 4. **Separate three finding classes. Do not blur them.**
 
-   - **Confirmed drift** — a file contradicts a higher-precedence source, with exact `file:line` evidence on both sides. Must-fix candidate.
-   - **Inferred risk** — pattern suggests drift (e.g., a hardcoded color in a view near a comment citing an old token name) but no direct contradiction proven. Call it out as a risk, not a defect.
-   - **Missing proof** — a claim in the spec (a token, a rule, a hero-moment behavior) has no visible consumer, test, or story. Call it out as a gap, not a bug.
+   - **Confirmed drift**: a file contradicts a higher-precedence source, with exact `file:line` evidence on both sides. Must-fix candidate.
+   - **Inferred risk**: pattern suggests drift (e.g., a hardcoded color in a view near a comment citing an old token name) but no direct contradiction proven. Call it out as a risk, not a defect.
+   - **Missing proof**: a claim in the spec (a token, a rule, a hero-moment behavior) has no visible consumer, test, or story. Call it out as a gap, not a bug.
 
-5. **YAGNI guardrails — reject findings that match these patterns:**
+5. **YAGNI guardrails (reject findings that match these patterns):**
    - "Add a token for X" when the value has one consumer and the spec does not already name it.
    - "Align the dialects" when each dialect is self-declared as intentionally distinct (admin restrained vs client expressive vs docs quiet).
    - "This appears in N files" when it is summary → pointer → full-detail layering, not duplication.
@@ -109,39 +109,39 @@ HARD CONSTRAINTS — read before producing any finding.
 
 ## Output format
 
-**Section 1 — Confirmed drift** (≤7 items)
+**Section 1: Confirmed drift** (≤7 items)
 
 For each:
-- Symptom — what breaks, for whom (human reader, AI tool, agent, CI, end user).
-- Surfaces involved — which of the 10 in-scope areas the finding touches.
-- Evidence — `file:line` for the drifting source **and** the authoritative source it contradicts. Quote both.
-- Fix — one-line, smallest change that resolves the contradiction; name the file and whether it is a projection update or a spec decision.
-- Blast radius — files touched if the fix were applied.
+- Symptom: what breaks, for whom (human reader, AI tool, agent, CI, end user).
+- Surfaces involved: which of the 10 in-scope areas the finding touches.
+- Evidence: `file:line` for the drifting source **and** the authoritative source it contradicts. Quote both.
+- Fix: one-line, smallest change that resolves the contradiction; name the file and whether it is a projection update or a spec decision.
+- Blast radius: files touched if the fix were applied.
 
-**Section 2 — Inferred risks** (≤5 items, optional)
+**Section 2: Inferred risks** (≤5 items, optional)
 
 One line per risk. Name the pattern, cite one example, and say what evidence would promote it to confirmed drift or refute it.
 
-**Section 3 — Missing proof** (≤5 items, optional)
+**Section 3: Missing proof** (≤5 items, optional)
 
 One line per gap. Name the spec claim, the surface where it should land, and whether a test/story/consumer would close the gap.
 
-**Section 4 — Considered and rejected** (≥3 items)
+**Section 4: Considered and rejected** (≥3 items)
 
-Show what you almost flagged and didn't. One-line reason each. If this section is empty, you did not push back hard enough — redo before delivering.
+Show what you almost flagged and didn't. One-line reason each. If this section is empty, you did not push back hard enough. Redo before delivering.
 
-**Section 5 — State of health** (one paragraph, <120 words)
+**Section 5: State of health** (one paragraph, <120 words)
 
 DesignMD sources in sync? Validators green? Surfaces aligned? Claude + Codex guidance coherent? Overall: healthy / drifting / needs attention. Call out the single biggest load-bearing risk if there is one.
 
 ## Human judgment points
 
-Before proposing any fix, surface these as explicit questions — do not resolve unilaterally:
+Before proposing any fix, surface these as explicit questions. Do not resolve unilaterally:
 
 - Spec changes to root `DESIGN.md` front matter (tokens, role vocabulary, palette volumes).
 - Renaming or removing a surface DESIGN.md dialect.
-- Promotion of an aspirational token (e.g., something in `language.md` that has no `theme.css` counterpart) to a runtime token — this can cascade to every consumer.
-- Lint-enforced banned-vocabulary additions or removals — those change `lint:vocab` behavior and block PRs. Prompt-vocabulary lists are guidance-only.
+- Promotion of an aspirational token (e.g., something in `language.md` that has no `theme.css` counterpart) to a runtime token, which can cascade to every consumer.
+- Lint-enforced banned-vocabulary additions or removals: those change `lint:vocab` behavior and block PRs. Prompt-vocabulary lists are guidance-only.
 
 ## Refusal condition
 
@@ -149,15 +149,15 @@ If nothing in Section 1 meets all constraints, say so. "Design system is aligned
 
 ## Companion artifacts
 
-- [SKILL.md](./SKILL.md) — design philosophy, paradigms, routing
-- [ARCHITECTURE.md](./ARCHITECTURE.md) — skill-stack map and DesignMD source/projection table
-- [language.md](./language.md) — implementation guide projected from root DesignMD
-- [ai-ui-brief.md](./ai-ui-brief.md) — reusable AI UI/CSS build brief and reference role map
-- [review-checklist.md](./review-checklist.md) — PR-level 4-lens review (different scope)
-- [prompt-contract.md](./prompt-contract.md), [client-prompt-contract.md](./client-prompt-contract.md) — AI-tool vocabulary
-- Root `DESIGN.md`, `packages/admin/DESIGN.md`, `packages/client/DESIGN.md`, `packages/client/DESIGN.pwa.md`, `packages/client/DESIGN.browser.md`, `docs/DESIGN.md` — DesignMD sources
-- `packages/shared/src/styles/theme.css`, `design-md.generated.css`, `design-md.generated.json` — runtime projections
-- `scripts/design/check-tokens.sh`, `scripts/design/check-vocab.sh`, `scripts/design/md-generate.mjs` — validators and generator
-- `packages/shared/.storybook/**`, `packages/shared/src/components/Tokens/**` — Storybook surface for the design system
-- `docs/docs/builders/packages/admin.mdx`, `docs/docs/builders/testing/index.mdx` — live UI and Storybook contracts
-- `AGENTS.md`, local guides, and the optional `CLAUDE.md` compatibility import — canonical design-source routing
+- [SKILL.md](./SKILL.md): design philosophy, paradigms, routing
+- [ARCHITECTURE.md](./ARCHITECTURE.md): skill-stack map and DesignMD source/projection table
+- [language.md](./language.md): implementation guide projected from root DesignMD
+- [ai-ui-brief.md](./ai-ui-brief.md): reusable AI UI/CSS build brief and reference role map
+- [review-checklist.md](./review-checklist.md): PR-level 4-lens review (different scope)
+- [prompt-contract.md](./prompt-contract.md), [client-prompt-contract.md](./client-prompt-contract.md): AI-tool vocabulary
+- Root `DESIGN.md`, `packages/admin/DESIGN.md`, `packages/client/DESIGN.md`, `packages/client/DESIGN.pwa.md`, `packages/client/DESIGN.browser.md`, `docs/DESIGN.md`: DesignMD sources
+- `packages/shared/src/styles/theme.css`, `design-md.generated.css`, `design-md.generated.json`: runtime projections
+- `scripts/design/check-tokens.sh`, `scripts/design/check-vocab.sh`, `scripts/design/md-generate.mjs`: validators and generator
+- `packages/shared/.storybook/**`, `packages/shared/src/components/Tokens/**`: Storybook surface for the design system
+- `docs/docs/builders/packages/admin.mdx`, `docs/docs/builders/testing/index.mdx`: live UI and Storybook contracts
+- `AGENTS.md`, local guides, and the optional `CLAUDE.md` compatibility import: canonical design-source routing
