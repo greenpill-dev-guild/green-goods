@@ -18,6 +18,8 @@ source_of_truth:
   - packages/shared/src/i18n/es.json
   - packages/shared/src/i18n/pt.json
   - packages/agent/src/services/reporting/copy/en.ts
+  - packages/agent/src/services/reporting/copy/es.ts
+  - packages/agent/src/services/reporting/copy/pt.ts
   - docs/docs/reference/glossary.generated.mdx
   - docs/claims.generated.md
   - docs/docs/reference/brand.mdx
@@ -192,7 +194,7 @@ Tone shifts by context while the voice stays constant.
 
 | Surface | Borrows | Adjustments |
 |---|---|---|
-| Docs, community track | Editorial website, made plain | Second person, active, about an 8th-grade reading level; why before what; condition before instruction; one idea per sentence; sentence-case headings; contractions fine; no superlatives. The product's own labels are the vocabulary; no protocol or chain names except inside the one "using your own wallet" box. Permission-giving where people hesitate; strict where the integrity of the record is at stake. Money and privacy statements describe what the code and contracts do and never repeat a guarantee from interface copy. Task pages end with next steps, and links say where they go |
+| Docs, community track | Editorial website, made plain | Second person, active, about an 8th-grade reading level; why before what; condition before instruction; one idea per sentence; sentence-case headings; contractions fine; no superlatives. The product's own labels are the vocabulary; protocol and chain names appear only where DL-094 allows them (the wallet box, a funding or transaction step, a privacy or permanence notice, a link that names its explorer). Permission-giving where people hesitate; strict where the integrity of the record is at stake. Money and privacy statements describe what the code and contracts do and never repeat a guarantee from interface copy. Task pages end with next steps, and links say where they go |
 | Docs, builders track | Docs community register, for developers | Same rules; generated reference pages stay terse; protocol names allowed |
 | Release notes | Editorial website, trimmed | One plain opening sentence on what the release does for people; sections by audience ("For gardeners", "For stewards"); a short "Protocol and platform" section; links. Deferred or disabled capabilities are stated in the same note |
 | Announcements and community posts | PWA app warmth, website clarity | One-line opener, what changed in two or three short paragraphs, an invitation to try it and reply, thanks, a link. Spanish and Portuguese versions are reviewed by a speaker before posting |
@@ -327,8 +329,8 @@ Items marked (machine) are covered by a check in the validation pipeline; the re
 - [ ] US spelling? (machine: catalogs, docs pages, design guides)
 - [ ] No em dashes? (machine: catalogs, docs pages, design guides)
 - [ ] Lower-case garden, role words, and domain nouns in running text, Title Case only on titles and actions?
-- [ ] No retired or banned words: operator, commitment in user copy, hands at work, streak, urgent, guaranteed returns? (machine for the catalog lists)
-- [ ] No hand-typed counts or traction numbers?
+- [ ] No retired or banned words? (machine: the growth-hacking list and operator in the shared catalogs; commitment in user copy, hands at work, and guaranteed returns by eye)
+- [ ] No hand-typed counts or traction figures beyond the one owner-cleared headline figure, and is that figure still current?
 - [ ] Does it claim only what the claims ledger claims?
 - [ ] For product strings: Spanish and Portuguese present, accents intact, locked terms used? (machine for coverage and locked terms)
 - [ ] Does it speak as Green Goods, with no other organization's byline?
@@ -404,7 +406,7 @@ Voice copy only needs to know the following. Everything visual belongs to the de
 | 1 Positioning | High | Owner-approved wording; shipped Welcome, FAQ, the claims ledger |
 | 2 Audiences | High | Ontology and product context; the framing rule and protocol-name placement are owner decisions |
 | 3 Voice and dialects | High for voice and the three dialects; the fourth is a placeholder by design | DESIGN.md; admin and client contracts; owner direction |
-| 4 Tone by context | High for the seven product rows; Medium for docs, announcements, funder documents, and chat rows | Product rows are canonical; the others rest on one approved release pack and two contracts |
+| 4 Tone by context | High for the eight product rows; Medium for docs, announcements, funder documents, and chat rows | Product rows are canonical; the others rest on one approved release pack and two contracts |
 | 5 Dialect patterns | High for the admin, website, and app; Medium for the bot | Admin and client prompt contracts, the docs guide, the decision log, and the bot's shipped reporting copy (`packages/agent/src/services/reporting/copy/`) |
 | 6 Terminology | High | Ontology, glossary, banned-vocabulary file, decision log, owner decisions |
 | 7 Style rules | High | Contracts and owner feedback |
