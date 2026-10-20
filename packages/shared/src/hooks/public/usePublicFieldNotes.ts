@@ -18,7 +18,7 @@
  *   flag at the action level may land later. When it does, the queryFn should
  *   add a `where` clause filtering on that flag.
  * - **No volume binding** at the indexer/EAS level. The `volume` option is
- *   accepted for forward-compat with the Seasons primitive but currently
+ *   accepted for forward-compat with a network program-period record but currently
  *   filters by the hardcoded Season One window from `usePublicVolume`.
  * - **EAS pagination** is `LIMIT/OFFSET` style after a single full fetch —
  *   the EAS GraphQL surface used here does not offer native cursors; treat

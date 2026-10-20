@@ -417,16 +417,22 @@
     {
       "id": "season",
       "display": "Season",
-      "definition": "A bounded period (typically a quarter) during which a garden runs a coordinated set of Actions and Assessments. Pacing primitive — never a countdown.",
+      "definition": "A garden's main rhythm: a Season-type commitment cycle of the garden's pool, with a name, start and end dates, and the promises scoped to it. It stays a season at every stage, from planned to archived. A pool has at most one open Season at a time, and Campaigns may run beside it. It paces work and is never a countdown.",
       "layers": {
+        "solidity": ["packages/contracts/src/interfaces/ICommitmentPoolingModule.sol"],
+        "indexer": {
+          "file": "packages/indexer/schema.graphql",
+          "type": "CommitmentCycle"
+        },
+        "shared": ["packages/shared/src/modules/commitment-pooling/types-vocabulary.ts"],
         "docs": "docs/docs/reference/glossary.generated.mdx"
       },
-      "note": "The commitment-pooling Cycle of type Season is its formal representation. A Campaign is another Cycle type, not the garden's main Season.",
+      "note": "Represented by a Season-type commitment cycle of the garden's pool (CycleType.Season, cycleType SEASON in the indexer and Shared), in any state; at most one is open per pool. Not the same as Season One or Season Two, the network-wide program periods that span gardens. Season One appears in the product only as an editorial window, the public archive's Vol. I (SEASON_ONE_WINDOW in usePublicVolume), not as a commitment cycle; Season Two has no product representation yet.",
       "relationships": [
         {
           "to": "commitment-cycle",
-          "kind": "formalized-by",
-          "note": "implemented by the released Garden pooling surface"
+          "kind": "represented-by",
+          "note": "a Season-type cycle of the garden's pool, in any state; a Campaign-type cycle is not a season"
         }
       ],
       "semantic_status": "canonical",

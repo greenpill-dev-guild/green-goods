@@ -692,3 +692,15 @@ then verifies login and the absence of authenticated navigation. It proves the m
 boundary, not production wallet restoration. The earlier broader negative wallet-storage claim
 is superseded by this bounded proof; real connector restoration remains separate PRD-727 QA.
 No retries, timeouts, skips or production auth behavior changed.
+
+
+### Final target refresh
+
+The next pre-push lease check observed develop advance again, to ba2c775e (#1146, after
+the #1147 routines change). This update directly affects the glossary: a garden's season is
+its pool's Season-type commitment cycle, in any state, rather than a separate planned concept.
+The newer source definitions, representation and availability evidence were preserved. The
+old glossary availability override was removed; campaigns and network program periods stay
+distinct. Eleven overlapping source/generated files were reconciled and projections regenerated.
+The user authorization to integrate current develop covers this refresh. Final SHA, fresh gate
+and current-head CI results follow on #1109; older passing heads are historical evidence.

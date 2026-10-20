@@ -185,18 +185,22 @@
     },
     {
       "ref": "entity:season",
-      "implementation": "partial",
-      "deployment": "not-applicable",
-      "activation": "not-applicable",
-      "integration": "partial",
-      "availability": "planned",
+      "implementation": "implemented",
+      "deployment": "deployed",
+      "activation": "active",
+      "integration": "integrated",
+      "availability": "available",
       "evidence": [
         {
-          "file": ".plans/active/commitment-pooling/contract-spec.md",
-          "note": "Commitment Cycle type Season is implemented onchain, but the product season surface is not available."
+          "file": "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol",
+          "note": "A season is a pool's Season-type cycle (CycleType.Season); the deployed module keeps at most one open per pool through openSeasonCycleId. In the release 2.0 steward console, pool setup starts a season, and End Season and Archive Season close it."
+        },
+        {
+          "file": "packages/client/src/views/Public/GardenDetail.tsx",
+          "note": "The public garden page shows the open season with its name, its end date (\"Runs through\"), and per-unit progress, and lists finished seasons with their start and end dates; the client's Promises tab lists seasons and campaigns. On 2026-10-19 the production indexer returned three open season cycles on Arbitrum, each recorded as its pool's open season."
         }
       ],
-      "verified_at": "2026-08-15"
+      "verified_at": "2026-10-19"
     },
     {
       "ref": "entity:need",
@@ -510,12 +514,15 @@
     },
     {
       "ref": "entity:season",
-      "plain_name": "The garden's main period of coordinated work",
+      "plain_name": "A garden's main stretch of time for its promises",
       "why_it_matters": "It gives planning and reflection a calm common rhythm.",
       "who_touches_it": ["Gardener", "Steward", "Evaluator"],
-      "example": "A planting season holds promises, work and the assessments that frame it.",
+      "example": "A garden's autumn season holds its planting and repair promises, while a seed swap runs beside it as a campaign.",
       "aliases": ["garden season"],
-      "not_confused_with": ["a deadline that completes promises automatically"]
+      "not_confused_with": [
+        "a campaign",
+        "a network program period such as Season One or Season Two"
+      ]
     },
     {
       "ref": "entity:need",
@@ -542,7 +549,10 @@
       "who_touches_it": ["Steward", "Gardener"],
       "example": "A Season cycle opens with a six-role allocation.",
       "aliases": ["cycle"],
-      "not_confused_with": ["an individual promise"]
+      "not_confused_with": [
+        "an assessment's reporting period",
+        "a network program period such as Season One or Season Two"
+      ]
     },
     {
       "ref": "entity:commitment-series",

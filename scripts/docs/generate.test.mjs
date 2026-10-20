@@ -1193,7 +1193,9 @@ test("community glossary follows human concepts, rejects stale output, and canno
     assert.deepEqual(syncProjections({root, projections: [projection], check: false}), []);
     const glossary = renderProjection(root, projection);
     assert.match(glossary, /Team membership and contributions are available; contributor payouts remain deferred/);
-    assert.match(glossary, /The app records seasons as Commitment Cycles/);
+    const seasonEntry = glossary.split("### Season {#season}")[1]?.split("\n### ")[0];
+    assert.ok(seasonEntry, "the released season needs a community glossary entry");
+    assert.doesNotMatch(seasonEntry, /Still being built|no separate record|Availability:/);
     const file = path.join(root, "packages/shared/src/ontology/green-goods-projections.json");
     const data = JSON.parse(readFileSync(file, "utf8"));
     data.human_concepts.find(concept => concept.ref === "entity:garden").example = "A new plain-language example.";

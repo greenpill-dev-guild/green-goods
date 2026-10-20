@@ -11,7 +11,7 @@ generated_from:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
   - scripts/quality/ontology-render.mjs
-source_digest: "sha256:23200323dbf1fa8b65d7e24eea9e07e059b0e3118656195a16a1a248e5cbc8d4"
+source_digest: "sha256:91e98a20553f9b6cf168557dc1cbdb9cba8c8a64e58d2d33f50b79ceb95e92b1"
 source_of_truth:
   - packages/indexer/schema.graphql
   - packages/shared/src/ontology/green-goods-ontology.json
@@ -54,7 +54,7 @@ flowchart LR
   attestation -->|records| work
   attestation -->|records| assessment
   hat -->|authority-in| garden
-  season -->|formalized-by| commitment_cycle
+  season -->|represented-by| commitment_cycle
   need -->|raised-in| garden
   need -->|addressed-by| commitment
   need -->|recorded-as| attestation
@@ -71,7 +71,7 @@ flowchart LR
 | Assessment | An up-front baseline and strategy for a garden — domain, diagnosis, SMART outcome targets, selected Actions, reporting period — authored by an evaluator or steward before work begins, mirrored to a Karma GAP milestone when that module is active; explicitly not a review of submitted Work (that is Work Approval). | admin, client, public, docs |
 | Attestation | An EAS (Ethereum Attestation Service) record. Used for Work submissions, Assessment outcomes, and other off-chain-verifiable claims. | admin, client, public, docs |
 | Hat | A Hats Protocol role token. Determines on-chain authority — steward hats can approve Work; gardener hats can submit Work; evaluator hats can attest. | admin, client, public, docs |
-| Season | A bounded period (typically a quarter) during which a garden runs a coordinated set of Actions and Assessments. Pacing primitive — never a countdown. | admin, client, agent, public, docs |
+| Season | A garden's main rhythm: a Season-type commitment cycle of the garden's pool, with a name, start and end dates, and the promises scoped to it. It stays a season at every stage, from planned to archived. A pool has at most one open Season at a time, and Campaigns may run beside it. It paces work and is never a countdown. | admin, client, agent, public, docs |
 | Need | A community-authored statement of a place-based problem paired with a desired outcome. A Need can gather signals, moderation, linked commitments, and verified funding attribution without becoming a commitment or payment itself. | community, admin, client, public, docs |
 
 ## Funding and recognition
