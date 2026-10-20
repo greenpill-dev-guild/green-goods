@@ -1015,7 +1015,7 @@
           "from": "action-domain",
           "to": "slug-prefix",
           "kind": "identity",
-          "total_from": true,
+          "total_from": false,
           "note": "The two lowercase spellings of the same domain must converge on one word per member; agroforestry/education vs agro/edu currently diverge — baselined."
         }
       ],

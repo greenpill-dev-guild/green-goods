@@ -10,7 +10,7 @@ generator: scripts/quality/check-ontology.mjs
 generated_from:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:2ce76b58ffbf3a3173b9ad027e27558e030694c28b7a7e84b2c54236e9ee9937"
+source_digest: "sha256:aefb33121dc8ca0b53f299d9e5e38b97ce0029e1d515b9fed29d709e67738dbd"
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
@@ -137,7 +137,7 @@ Category of regenerative work — where the work happens. Four production domain
 - **Mapping `domain-to-action-domain`** (solidity → action-domain; explicit; total; bijective): SOLAR → solar, AGRO → agroforestry, EDU → education, WASTE → waste.
   - Code anchor: `packages/shared/src/modules/data/hypercerts-filters.ts`
 
-- **Mapping `action-domain-vs-slug-prefix`** (action-domain → slug-prefix; identity; total): identity (same spelling on both sides).
+- **Mapping `action-domain-vs-slug-prefix`** (action-domain → slug-prefix; identity; partial): identity (same spelling on both sides).
   - Code anchor: none — no runtime mapping function exists yet.
   - The two lowercase spellings of the same domain must converge on one word per member; agroforestry/education vs agro/edu currently diverge — baselined.
 
