@@ -84,7 +84,7 @@ const STAGE_MESSAGES: Record<SubmissionStage, string> = {
   compressing: "Compressing images...",
   uploading: "Uploading to IPFS...",
   confirming: "Confirm in your wallet...",
-  syncing: "Syncing with blockchain...",
+  syncing: "Recording your work…",
   complete: "Submission complete!",
   error: "Submission failed",
 };

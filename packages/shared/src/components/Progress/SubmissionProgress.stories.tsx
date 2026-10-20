@@ -39,7 +39,7 @@ const syncingProgress: SubmissionProgressState = {
   stage: "syncing",
   stageProgress: 50,
   overallProgress: 93,
-  message: "Syncing with blockchain...",
+  message: "Recording your work…",
 };
 
 const completeProgress: SubmissionProgressState = {

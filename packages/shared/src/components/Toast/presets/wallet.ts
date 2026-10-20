@@ -6,7 +6,7 @@ const walletDefaults = {
   validating: { title: "Checking membership", message: "Verifying garden access..." },
   uploading: { title: "Uploading media", message: "Saving images to IPFS..." },
   confirming: { title: "Confirm in wallet", message: "Waiting for your signature..." },
-  syncing: { title: "Almost there", message: "Syncing with blockchain..." },
+  syncing: { title: "Almost there", message: "Recording your work…" },
   success: { title: "Work submitted!", message: "Your contribution is now on-chain" },
   error: { title: "Submission failed", recoverable: "You can try again with the same data." },
   timeout: {

@@ -291,7 +291,7 @@ export async function submitWorkDirectly(
     });
   }
 
-  onProgress?.("syncing", "Syncing with blockchain...");
+  onProgress?.("syncing", "Recording your work…");
 
   await pollQueriesAfterTransaction({
     queryKeys: [readKey, savedKey],
