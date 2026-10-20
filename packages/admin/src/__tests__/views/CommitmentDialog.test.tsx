@@ -867,7 +867,7 @@ describe("CommitmentDialogPanel (W10)", () => {
       },
     });
     renderPanel();
-    expect(screen.getByText(/green goods team — fallback/i)).toBeInTheDocument();
+    expect(screen.getByText(/green goods team \(fallback\)/i)).toBeInTheDocument();
     expect(screen.getByText(/no eligible local confirmer/i)).toBeInTheDocument();
   });
 

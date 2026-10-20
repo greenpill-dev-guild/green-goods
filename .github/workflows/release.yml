@@ -71,6 +71,6 @@ jobs:
         run: |
           set -euo pipefail
           gh release create "${{ steps.meta.outputs.tag }}" \
-            --title "${{ steps.meta.outputs.month }} — ${{ steps.meta.outputs.tag }}" \
+            --title "${{ steps.meta.outputs.month }}: ${{ steps.meta.outputs.tag }}" \
             --generate-notes \
             --verify-tag

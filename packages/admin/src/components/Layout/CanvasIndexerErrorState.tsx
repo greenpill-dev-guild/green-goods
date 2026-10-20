@@ -33,7 +33,7 @@ export function CanvasIndexerErrorState({ onRetry }: CanvasIndexerErrorStateProp
         {formatMessage({
           id: "cockpit.access.indexerErrorDescription",
           defaultMessage:
-            "We couldn't load gardens from the indexer. This is usually temporary — try again in a moment.",
+            "We couldn't load gardens from the indexer. This is usually temporary. Try again in a moment.",
         })}
       </p>
       <AdminButton className="mt-6" onClick={onRetry}>
