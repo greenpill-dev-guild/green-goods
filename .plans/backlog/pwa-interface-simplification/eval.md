@@ -108,3 +108,32 @@ develop `1a960dba3`, before the commit that records the lock:
 These are working-tree document checks. The lab in `artifacts/` is a mock drawn from the locked
 tokens, not application proof, and the code findings come from the labeled mock-auth localhost walk
 recorded in spec.md. No application code changed and no implementation lane is passed.
+
+## Review round check (2026-10-19)
+
+Checked on 2026-10-19 in the `research/pwa-garden-home-scope-lock` worktree, before the commit that
+records the maintainer's review of the lab and the lock:
+
+- The rebuilt lab was rendered in the desktop app's built-in browser pane (Chromium, no app
+  session: a static mock served locally, not the application) at 1440 × 1000 and measured by script: the chip
+  and the compact icon buttons both 32px tall on one centre line; every row 88px in Home, the
+  Explore cards one height (182px at 390px), the Work, Insights, Gardeners and Notifications
+  sheets' rows 88px; the switcher sheet at 52% of the phone; the offline strip moving the chip,
+  the icons and the first section by 0px; the dark primary button `rgb(194, 245, 218)` with text
+  `rgb(12, 10, 9)` and the light one `rgb(26, 117, 68)` with white text; the Submit Work step with
+  no change-garden control and a promise row selecting its action card; the no-garden Home without
+  the bell; the Portuguese header the same 80px as the English one. Two defects found and fixed
+  before publishing: sheet rows shrank under a long list (no `flex-shrink: 0`), and an Approve
+  button nested inside a row button was dropped by the HTML parser (rows that carry a button are
+  now `div` rows with the button role).
+- The production indexer's garden list was read on 19 October with `urllib`; eight of sixteen
+  banners were fetched (two Pinata CIDs returned 403 and the `w3s.link` gateway did not resolve from
+  this environment), re-encoded to 640 × 320 JPEG with `sips`, and committed under
+  `artifacts/gardens/`.
+- `node scripts/harness/plan-hub.mjs validate`, the read-only link check over this hub, Biome
+  format on `status.json`, the immutable-report and guidance-link checks and `git diff --check`
+  were run again after the edits: 32 hubs valid, every local link and anchor resolved, one format
+  fix applied to `status.json`, reports unchanged, guidance links OK, no whitespace errors, no em dashes.
+
+These are document and mock checks. No application code changed and no implementation lane is
+passed.

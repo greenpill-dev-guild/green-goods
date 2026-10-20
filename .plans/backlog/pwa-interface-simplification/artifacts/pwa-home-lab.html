@@ -1,4 +1,8 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><style>:root{color-scheme:light}body{margin:0;font:14px system-ui}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>PWA Garden Home Lab</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -42,6 +46,7 @@ button { font: inherit }
 .grp { display: flex; flex-direction: column; gap: 6px }
 .grp h3 { margin: 0; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--lab-muted) }
 .grp .ttl { font-size: 13px; font-weight: 600 }
+.grp .ttl small { font-weight: 500; color: var(--lab-muted); margin-left: 6px }
 .seg { display: flex; flex-wrap: wrap; gap: 6px }
 .seg button { height: 30px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--lab-line); background: transparent; color: var(--lab-fg); cursor: pointer; font-size: 13px }
 .seg button[aria-pressed="true"] { background: var(--lab-soft); border-color: var(--lab-accent); color: var(--lab-accent); font-weight: 600 }
@@ -49,21 +54,30 @@ button { font: inherit }
 .hint code { font-family: var(--lab-mono); font-size: 12px; color: var(--lab-fg); user-select: all; word-break: break-all }
 @media (max-width: 1040px) { .work { flex-direction: column } .rail { position: static; width: 100%; flex-basis: auto; max-height: none } }
 
-/* The phone. Tokens live on the frame so the lab's own theme and the app's theme stay independent. */
+/* The phone. Tokens live on the frame so the lab's own theme and the app's theme stay independent.
+   Light: the unification hub's linen canvas and white cards. Dark: one warm ladder, the card one step above the canvas (F2, F13). */
 .frame { position: relative; overflow: hidden; font-family: var(--lab-font); font-size: 16px; line-height: 1.3; background: var(--bg); color: var(--fg); border-radius: 36px; box-shadow: 0 0 0 1px rgba(12, 10, 9, 0.12), 0 24px 48px rgba(12, 10, 9, 0.18); transform-origin: top left }
-.frame[data-theme="light"] { --bg: #FAF8F5; --card: #FFFFFF; --fg: #292524; --strong: #0C0A09; --muted: #6B655F; --line: #E7E5E4; --line2: #D6D3D1; --accent: #1A7544; --accent-ink: #FFFFFF; --accent-soft: rgba(31, 193, 107, .12); --accent-on: #1A7544; --chip-av: #DCFCE7; --chip-av-ink: #14532D; --ok-bg: #DCFCE7; --ok: #166534; --warn-bg: #FEF3C7; --warn: #92400E; --err-bg: #FEE2E2; --err: #991B1B; --info-bg: #DBEAFE; --info: #1E40AF; --neu-bg: #F5F5F4; --neu: #44403C; --scrim: rgba(12, 10, 9, .4); --tile: #EFE9DF; --shadow: 0 1px 2px rgba(12, 10, 9, .05); --edge-ok: #22C55E; --edge-warn: #F59E0B; --edge-err: #EF4444; --edge-info: #3B82F6 }
-.frame[data-theme="dark"] { --bg: #110C08; --card: #2A231C; --fg: #E7E5E4; --strong: #FAFAF9; --muted: #A8A29E; --line: rgba(250, 250, 249, .10); --line2: rgba(250, 250, 249, .22); --accent: #C2F5DA; --accent-ink: #0C0A09; --accent-soft: rgba(194, 245, 218, .14); --accent-on: #C2F5DA; --chip-av: rgba(194, 245, 218, .18); --chip-av-ink: #C2F5DA; --ok-bg: rgba(34, 197, 94, .18); --ok: #86EFAC; --warn-bg: rgba(245, 158, 11, .18); --warn: #FCD34D; --err-bg: rgba(239, 68, 68, .18); --err: #FCA5A5; --info-bg: rgba(59, 130, 246, .18); --info: #93C5FD; --neu-bg: rgba(250, 250, 249, .08); --neu: #D6D3D1; --scrim: rgba(0, 0, 0, .55); --tile: #3A3028; --shadow: none; --edge-ok: #4ADE80; --edge-warn: #FBBF24; --edge-err: #F87171; --edge-info: #60A5FA }
-.frame button { color: inherit }
+.frame[data-theme="light"] { --bg: #FAF8F5; --card: #FFFFFF; --fg: #292524; --strong: #0C0A09; --muted: #6B655F; --line: #E7E5E4; --line2: #D6D3D1; --accent: #1A7544; --accent-ink: #FFFFFF; --accent-soft: rgba(31, 193, 107, .12); --accent-on: #1A7544; --chip-av: #D0FBE9; --chip-av-ink: #14532D; --ok-bg: #DCFCE7; --ok: #166534; --warn-bg: #FEF3C7; --warn: #92400E; --err-bg: #FEE2E2; --err: #991B1B; --info-bg: #DBEAFE; --info: #1E40AF; --neu-bg: #F5F5F4; --neu: #44403C; --scrim: rgba(12, 10, 9, .4); --tile: #EFE9DF; --shadow: 0 1px 2px rgba(12, 10, 9, .05); --edge-ok: #22C55E; --edge-warn: #F59E0B; --edge-err: #EF4444; --edge-info: #3B82F6; --offl-bg: rgba(12, 10, 9, .95); --offl-fg: #FAFAF9; --tag-bg: rgba(255, 255, 255, .94); --tag-fg: #0C0A09 }
+.frame[data-theme="dark"] { --bg: #110C08; --card: #2A231C; --fg: #D6D3D1; --strong: #FAFAF9; --muted: #A8A29E; --line: rgba(250, 250, 249, .10); --line2: rgba(250, 250, 249, .18); --accent: #C2F5DA; --accent-ink: #0C0A09; --accent-soft: rgba(194, 245, 218, .14); --accent-on: #C2F5DA; --chip-av: rgba(194, 245, 218, .18); --chip-av-ink: #C2F5DA; --ok-bg: rgba(34, 197, 94, .18); --ok: #86EFAC; --warn-bg: rgba(245, 158, 11, .18); --warn: #FCD34D; --err-bg: rgba(239, 68, 68, .18); --err: #FCA5A5; --info-bg: rgba(59, 130, 246, .18); --info: #93C5FD; --neu-bg: #342C24; --neu: #D6D3D1; --scrim: rgba(0, 0, 0, .62); --tile: #3A3028; --shadow: none; --edge-ok: #4ADE80; --edge-warn: #FBBF24; --edge-err: #F87171; --edge-info: #60A5FA; --offl-bg: rgba(250, 250, 249, .95); --offl-fg: #0C0A09; --tag-bg: rgba(42, 35, 28, .94); --tag-fg: #FAFAF9 }
+/* Zero specificity, so every component below keeps its own colour (the first lab let this rule beat .btn, .hit and .link, which is the light-on-light button in dark mode). */
+:where(.frame) button { color: inherit }
 .i { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; display: block; flex: 0 0 auto }
-.art { width: 100%; height: 100%; display: block }
+.art { width: 100%; height: 100%; display: block; object-fit: cover }
+.fb { position: absolute; inset: 0; background: linear-gradient(135deg, var(--tile), var(--accent-soft)); display: grid; place-items: center; color: var(--accent-on); opacity: .9 }
+.fb .i { opacity: .45 }
+.avimg { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block }
 .screen { position: absolute; left: 0; right: 0; top: 0; bottom: 0; overflow-y: auto; overflow-x: hidden; padding-bottom: 96px; scrollbar-width: none }
-.offl { height: 24px; background: var(--warn-bg); color: var(--warn); font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px }
-.hdr { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 16px 8px 8px 16px }
-.hdr .lead { min-width: 0; flex: 1; display: flex; align-items: center }
+/* The shell's offline strip: fixed over the top padding of whatever header is there, so nothing moves when it comes or goes. */
+.offl { position: absolute; left: 0; right: 0; top: 0; height: 24px; z-index: 8; background: var(--offl-bg); color: var(--offl-fg); font-size: 12px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 6px; pointer-events: none }
+.hdr { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 24px 8px 8px 16px; background: var(--bg) }
+.hdr.sticky { position: sticky; top: 0; z-index: 4 }
+.hdr.sticky.scrolled { box-shadow: 0 1px 0 var(--line) }
+.hdr .lead { min-width: 0; flex: 1; display: flex; align-items: center; height: 48px }
 .h1 { margin: 0; font-size: 18px; font-weight: 600; color: var(--strong) }
-.chip { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px 0 8px; border-radius: 999px; background: var(--card); border: 1px solid var(--line2); font-size: 14px; font-weight: 500; color: var(--strong); max-width: 100%; cursor: pointer; text-align: left }
+/* The garden chip at the app's size: 32px like the compact icon buttons beside it, so the row keeps one height. */
+.chip { display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px 0 5px; border-radius: 999px; background: var(--card); border: 1px solid var(--line2); font-size: 14px; font-weight: 500; color: var(--strong); max-width: 100%; cursor: pointer; text-align: left }
 .chip .lbl { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
-.chip .av { width: 22px; height: 22px; border-radius: 50%; background: var(--chip-av); color: var(--chip-av-ink); display: grid; place-items: center; flex: 0 0 22px }
+.chip .av { width: 22px; height: 22px; border-radius: 50%; background: var(--chip-av); color: var(--chip-av-ink); display: grid; place-items: center; flex: 0 0 22px; overflow: hidden }
 .chip .caret { color: var(--muted); display: grid; place-items: center }
 .launchers { display: flex; align-items: center; flex: 0 0 auto }
 .hit { width: 48px; height: 48px; display: grid; place-items: center; background: none; border: 0; padding: 0; cursor: pointer; color: var(--accent-on) }
@@ -75,10 +89,11 @@ button { font: inherit }
 .link { font-size: 14px; font-weight: 600; color: var(--accent-on); background: none; border: 0; padding: 4px 0; cursor: pointer; white-space: nowrap }
 .sub { padding: 0 16px 8px; font-size: 12px; color: var(--muted) }
 .list { display: flex; flex-direction: column; gap: 12px; padding: 0 16px }
-.row { display: flex; align-items: stretch; height: 88px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; text-align: left; padding: 0; width: 100%; cursor: pointer; position: relative; box-shadow: var(--shadow) }
+.row { display: flex; align-items: stretch; height: 88px; flex-shrink: 0; background: var(--card); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; text-align: left; padding: 0; width: 100%; cursor: pointer; position: relative; box-shadow: var(--shadow) }
+.row.selected { box-shadow: inset 0 0 0 3px var(--accent) }
 .row .edge { position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: transparent }
 .edge.ok { background: var(--edge-ok) } .edge.warn { background: var(--edge-warn) } .edge.err { background: var(--edge-err) } .edge.info { background: var(--edge-info) }
-.tile { width: 88px; height: 88px; flex: 0 0 88px; background: var(--tile); overflow: hidden }
+.tile { width: 88px; height: 88px; flex: 0 0 88px; background: var(--tile); overflow: hidden; position: relative }
 .icontile { display: grid; place-items: center; color: var(--accent-on) }
 .row .body { flex: 1; min-width: 0; padding: 10px 12px; display: flex; flex-direction: column; justify-content: center; gap: 4px }
 .title { font-size: 15px; font-weight: 600; color: var(--strong); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 20px }
@@ -86,6 +101,7 @@ button { font: inherit }
 .pill.ok { background: var(--ok-bg); color: var(--ok) } .pill.warn { background: var(--warn-bg); color: var(--warn) } .pill.err { background: var(--err-bg); color: var(--err) } .pill.info { background: var(--info-bg); color: var(--info) } .pill.neu { background: var(--neu-bg); color: var(--neu) }
 .detail { font-size: 11px; font-weight: 500; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 14px }
 .slot { display: grid; place-items: center; padding: 0 10px 0 4px; color: var(--muted) }
+.slot .btn.compact { height: 32px }
 .card { background: var(--card); border: 1px solid var(--line); border-radius: 24px; box-shadow: var(--shadow) }
 .fact { display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 48px; padding: 0 16px; border: 0; border-top: 1px solid var(--line); font-size: 14px; color: var(--strong); background: none; width: 100%; cursor: pointer; text-align: left }
 .fact.first { border-top: 0 }
@@ -97,9 +113,10 @@ button { font: inherit }
 .btn { height: 48px; border-radius: 16px; background: var(--accent); color: var(--accent-ink); font-weight: 600; font-size: 16px; border: 0; width: 100%; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px }
 .btn.secondary { background: transparent; border: 1px solid var(--line2); color: var(--strong) }
 .btn.compact { height: 32px; font-size: 14px; padding: 0 12px; width: auto; border-radius: 12px }
-.scrim { position: absolute; left: 0; right: 0; top: 0; bottom: 0; background: var(--scrim); border: 0; padding: 0; cursor: pointer }
+.scrim { position: absolute; left: 0; right: 0; top: 0; bottom: 0; background: var(--scrim); border: 0; padding: 0; cursor: pointer; z-index: 9 }
 .scrim.clear { background: transparent }
-.sheet { position: absolute; left: 0; right: 0; bottom: 0; height: 70%; background: var(--card); border-radius: 24px 24px 0 0; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 -8px 24px rgba(12, 10, 9, .12) }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; height: 70%; background: var(--card); border-radius: 24px 24px 0 0; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 -8px 24px rgba(12, 10, 9, .12); z-index: 10 }
+.sheet.half { height: 52% }
 .sheet.full { height: 85% }
 .grip { width: 40px; height: 6px; border-radius: 3px; background: var(--line2); margin: 8px auto 0 }
 .shead { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; padding: 8px 8px 8px 20px }
@@ -112,28 +129,33 @@ button { font: inherit }
 .tabs button.active { color: var(--accent-on); background: var(--accent-soft); border-bottom-color: var(--accent-on); font-weight: 600 }
 .cnt { min-width: 16px; height: 16px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-size: 11px; font-weight: 600; display: grid; place-items: center; padding: 0 4px; line-height: 1 }
 .sbody { flex: 1; overflow-y: auto; padding: 12px 16px 24px; display: flex; flex-direction: column; gap: 12px; scrollbar-width: none }
+.sbody > * { flex-shrink: 0 }
+.sbody .sec { padding: 8px 0 0 }
 .countline { display: flex; align-items: center; justify-content: space-between; font-size: 14px; color: var(--muted); padding: 0 0 4px }
+.para { margin: 0; font-size: 14px; line-height: 20px; color: var(--fg) }
 .grow { display: flex; align-items: center; gap: 12px; height: 64px; padding: 0 12px; border-radius: 16px; border: 0; background: none; width: 100%; text-align: left; cursor: pointer; color: var(--strong) }
 .grow.active { background: var(--accent-soft) }
-.grow .av2 { width: 40px; height: 40px; border-radius: 50%; background: var(--chip-av); color: var(--chip-av-ink); display: grid; place-items: center; flex: 0 0 40px }
+.grow .av2 { width: 40px; height: 40px; border-radius: 50%; background: var(--chip-av); color: var(--chip-av-ink); display: grid; place-items: center; flex: 0 0 40px; overflow: hidden }
 .grow .gtxt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px }
 .grow .nm { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
 .grow .gs { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
 .rolechip { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 999px; background: var(--neu-bg); color: var(--neu); flex: 0 0 auto }
 .divider { height: 1px; background: var(--line); margin: 4px 0 }
-.menu { position: absolute; left: 16px; top: 60px; width: 300px; max-width: calc(100% - 32px); background: var(--card); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 12px 32px rgba(12, 10, 9, .18); padding: 6px; display: flex; flex-direction: column; gap: 2px; z-index: 3 }
+.menu { position: absolute; left: 16px; top: 68px; width: 300px; max-width: calc(100% - 32px); background: var(--card); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 12px 32px rgba(12, 10, 9, .18); padding: 6px; display: flex; flex-direction: column; gap: 2px; z-index: 10 }
 .menu .grow { height: 52px; border-radius: 12px }
 .menu .grow .av2 { width: 32px; height: 32px; flex-basis: 32px }
-.media { height: 160px; background: var(--tile); overflow: hidden }
+.media { height: 160px; background: var(--tile); overflow: hidden; position: relative }
+/* A mark on the photo, never a row of its own: every garden card keeps one height (the 18 October rule). */
+.tag { position: absolute; top: 8px; right: 8px; height: 22px; padding: 0 8px; border-radius: 999px; background: var(--tag-bg); color: var(--tag-fg); font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; max-width: calc(100% - 16px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
 .gcard { display: flex; flex-direction: column; overflow: hidden; padding: 0; border: 1px solid var(--line); border-radius: 24px; background: var(--card); width: 100%; cursor: pointer; text-align: left; color: inherit; box-shadow: var(--shadow) }
-.gcard .gb { display: flex; flex-direction: column; gap: 6px; padding: 12px 16px 14px }
+.gcard .gb { display: flex; flex-direction: column; gap: 4px; padding: 12px 16px 14px; height: 60px }
 .gname { font-size: 15px; font-weight: 600; color: var(--strong); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
 .gmeta { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
 .banner { height: 144px; position: relative; background: var(--tile); overflow: hidden; border-radius: 0 0 24px 24px }
 .banner .art { position: absolute; inset: 0 }
 .banner .over { position: absolute; left: 8px; right: 8px; top: 12px; display: flex; align-items: flex-start; justify-content: space-between; gap: 8px }
 .banner .stack { display: flex; flex-direction: column; gap: 4px; align-items: flex-end }
-.topnav { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 8px 8px }
+.topnav { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 24px 8px 8px }
 .topnav .mid { flex: 1; min-width: 0; text-align: center; font-size: 16px; font-weight: 600; color: var(--strong); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
 .gtitle { padding: 12px 16px 0; display: flex; flex-direction: column; gap: 6px }
 .gtitle h1 { margin: 0; font-size: 24px; font-weight: 700; color: var(--strong); line-height: 30px }
@@ -151,24 +173,38 @@ button { font: inherit }
 .info h3 { margin: 0; font-size: 16px; font-weight: 600; color: var(--strong) }
 .info p { margin: 2px 0 0; font-size: 13px; color: var(--muted) }
 .hscroll { display: flex; gap: 12px; overflow-x: auto; padding: 0 16px 4px; scroll-snap-type: x mandatory; scrollbar-width: none }
-.acard { flex: 0 0 256px; border-radius: 24px; overflow: hidden; background: var(--card); border: 1px solid var(--line); scroll-snap-align: start; box-shadow: var(--shadow) }
+.acard { flex: 0 0 256px; border-radius: 24px; overflow: hidden; background: var(--card); border: 1px solid var(--line); scroll-snap-align: start; box-shadow: var(--shadow); cursor: pointer; text-align: left; padding: 0; color: inherit }
+.acard.selected { box-shadow: inset 0 0 0 3px var(--accent) }
 .acard .media { height: 96px }
-.acard .ab { padding: 12px 14px 14px }
-.acard h4 { margin: 0; font-size: 15px; font-weight: 600; color: var(--strong) }
-.acard p { margin: 4px 0 0; font-size: 12px; color: var(--muted); line-height: 16px }
-.pin { display: flex; align-items: center; gap: 12px; padding: 10px 12px 10px 16px; border-radius: 16px; background: var(--accent-soft); border: 1px solid var(--line); margin: 0 16px }
-.pin .av2 { width: 40px; height: 40px; border-radius: 50%; background: var(--card); color: var(--accent-on); display: grid; place-items: center; flex: 0 0 40px }
+.acard .ab { padding: 12px 14px 14px; display: block }
+.acard h4 { margin: 0; font-size: 15px; font-weight: 600; color: var(--strong); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.acard p { margin: 4px 0 0; font-size: 12px; color: var(--muted); line-height: 16px; height: 32px; overflow: hidden }
+/* Highlights strip: one row of equal cards, 280×112, with the next card peeking so the swipe is visible. */
+.hcard { flex: 0 0 280px; height: 112px; border-radius: 24px; overflow: hidden; background: var(--card); border: 1px solid var(--line); scroll-snap-align: start; box-shadow: var(--shadow); cursor: pointer; text-align: left; padding: 0; color: inherit; display: flex; align-items: stretch }
+.hcard .hm { width: 96px; flex: 0 0 96px; background: var(--tile); position: relative; overflow: hidden }
+.hcard .hb { flex: 1; min-width: 0; padding: 12px 14px; display: flex; flex-direction: column; justify-content: center; gap: 4px }
+.hcard .eyebrow { font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.hcard .big { font-size: 20px; font-weight: 700; color: var(--strong); line-height: 24px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.pin { display: flex; align-items: center; gap: 12px; height: 64px; padding: 0 16px; border-radius: 16px; background: var(--accent-soft); border: 1px solid var(--line); margin: 0 16px }
+.pin .av2 { width: 40px; height: 40px; border-radius: 50%; background: var(--card); color: var(--accent-on); display: grid; place-items: center; flex: 0 0 40px; overflow: hidden }
 .pin .ptxt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px }
 .pin .eyebrow { font-size: 12px; color: var(--muted) }
 .pin .pn { font-size: 15px; font-weight: 600; color: var(--strong); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
-.flow { position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 16px 20px; background: var(--bg); border-top: 1px solid var(--line) }
+.flow { position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 16px 20px; background: var(--bg); border-top: 1px solid var(--line); z-index: 3 }
 .promo { margin: 0 16px; padding: 20px; display: flex; flex-direction: column; gap: 12px }
 .promo h2 { margin: 0; font-size: 20px; font-weight: 700; color: var(--strong) }
 .promo p { margin: 0; font-size: 14px; color: var(--muted); line-height: 20px }
 .featcap { display: flex; flex-direction: column; gap: 6px; padding: 12px 16px 14px }
+.season { margin: 0 16px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px }
+.season .sl { display: flex; flex-direction: column; gap: 2px; min-width: 0 }
+.season .sl b { font-size: 15px; font-weight: 600; color: var(--strong) }
+.season .sl span { font-size: 12px; color: var(--muted) }
+.ring { width: 44px; height: 44px; border-radius: 50%; background: conic-gradient(var(--accent) 0 0%, var(--neu-bg) 0 100%); display: grid; place-items: center; flex: 0 0 44px }
+.ring span { width: 34px; height: 34px; border-radius: 50%; background: var(--card); display: grid; place-items: center; font-size: 11px; font-weight: 600; color: var(--strong) }
 @media (prefers-reduced-motion: no-preference) { .frame button { transition: background-color 120ms ease } }
 </style>
-
+</head>
+<body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
     <symbol id="sc-people" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice"><rect width="400" height="400" fill="#E8EFD9"/><rect y="260" width="400" height="140" fill="#B9C9A0"/><rect x="40" y="120" width="320" height="150" rx="6" fill="#DCE5C6"/><rect x="60" y="140" width="80" height="60" rx="4" fill="#F4F7EA"/><rect x="260" y="140" width="80" height="60" rx="4" fill="#F4F7EA"/><circle cx="120" cy="250" r="26" fill="#6B4F3A"/><rect x="86" y="280" width="68" height="70" rx="20" fill="#2F6B46"/><circle cx="200" cy="238" r="28" fill="#8A5A3C"/><rect x="164" y="270" width="72" height="80" rx="22" fill="#E0A23A"/><circle cx="282" cy="252" r="26" fill="#5C3D2E"/><rect x="248" y="282" width="68" height="68" rx="20" fill="#3F6FA8"/></symbol>
@@ -204,6 +240,9 @@ button { font: inherit }
     <symbol id="ic-offline" viewBox="0 0 24 24"><path d="M3 3l18 18"/><path d="M8 18h9a4 4 0 0 0 1-7.9A6 6 0 0 0 7.5 8"/></symbol>
     <symbol id="ic-ask" viewBox="0 0 24 24"><path d="M4 14l4-2 4 2 4-2 4 2"/><path d="M6 20V9a6 6 0 0 1 12 0v11"/></symbol>
     <symbol id="ic-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></symbol>
+    <symbol id="ic-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.5a5 5 0 0 1 6 5"/></symbol>
+    <symbol id="ic-chart" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></symbol>
+    <symbol id="ic-msg" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></symbol>
   </defs>
 </svg>
 
@@ -225,44 +264,64 @@ button { font: inherit }
 <script>
 (function () {
   "use strict";
-  const STORE_KEY = "gg-pwa-home-lab-v1";
+  const STORE_KEY = "gg-pwa-home-lab-v2";
   const T = {
-    en: { home: "Home", garden: "Garden", profile: "Profile", wallet: "Your Wallet", promises: "Promises", yourWork: "Your Work", chooseGarden: "Choose a garden", yourGardens: "Your gardens", belongTo: "You belong to {n} gardens.", explore: "Explore gardens", exploreSub: "Every garden, open or by request.", recent: "Recent activity", continueT: "Continue", takePart: "Take part", about: "About this garden", seeAll: "See all", openYourWork: "Open Your Work", moreActivity: "More activity", findTitle: "Find your garden", findBody: "Join a garden to submit work and follow what happens there.", yourRequests: "Your requests", awaiting: "Request awaiting review", openJoin: "Open to join", member: "Member", requestJoin: "Request to Join", joinGarden: "Join Garden", steward: "Steward", gardener: "Gardener", evaluator: "Evaluator", needsReview: "{n} submissions need your review", joinReqs: "{n} join requests", assessmentDue: "Season assessment to write", toReview: "To review", draft: "Draft", toUpload: "To upload", inReview: "In review", approved: "Approved", rejected: "Rejected", pending: "Pending", stepOf: "Step 2 of 4 · 3 photos", savedToday: "Saved today · 9:40", savedPhone: "Saved on this phone", waitingReview: "Waiting for a review", offered: "Offered", asked: "Asked for", season: "Season · Open · Oct 10 – Jan 31", kept: "0 of 12 kept", insights: "Insights", gardeners: "Gardeners", share: "Share Garden", endowment: "Endowment", governance: "Governance", yourDeposit: "Your deposit", alsoOther: "Also in other gardens", inGarden: "In {g}", allGardens: "All gardens", onlyGarden: "Only {g}", pendingTab: "Pending", completedTab: "Completed", live: "Live", history: "History", toConfirm: "To confirm", uploadAll: "Upload all", items: "{n} items", selectAction: "Select Your Action", whatType: "What type of work are you submitting?", workFor: "Work for", changeGarden: "Change garden", start: "Start Gardening", stStart: "Start", stMedia: "Media", stDetails: "Details", stReview: "Review", dSolar: "Solar", dAgro: "Agroforestry", dEdu: "Education", dWaste: "Waste", offlineLine: "You’re offline · showing what’s saved on this phone", members: "{n} members", founded: "Founded 2/27/2026", work: "Work", back: "Back", close: "Close", filters: "Filters", notifications: "Notifications", chooseBody: "Pick the garden Home should open in. Change it any time from the chip at the top.", noneChip: "No garden yet", joinCommunity: "Join the Community Garden", joinCommunityBody: "The Community Garden is open to everyone and gives you a place to submit your first work.", action1d: "Take a dashboard screenshot or provide on-chain proof of node operation.", action2: "Energy Audit", action2d: "Record the site’s power use and savings.", a5h: "5h", a2d: "2d", a3d: "3d", a1w: "1w", onePhoto: "1 photo", fourPhotos: "4 photos", twoTaken: "2 taken up", dueJan: "Due Jan 31", byYou: "By you", insightsLine: "Season insights appear here after the first assessment.", gardenersLine: "{n} members · 3 stewards" },
-    es: { home: "Inicio", garden: "Jardín", profile: "Perfil", wallet: "Tu billetera", promises: "Promesas", yourWork: "Tu trabajo", chooseGarden: "Elige un jardín", yourGardens: "Tus jardines", belongTo: "Perteneces a {n} jardines.", explore: "Explorar jardines", exploreSub: "Todos los jardines, abiertos o por solicitud.", recent: "Actividad reciente", continueT: "Continuar", takePart: "Participa", about: "Sobre este jardín", seeAll: "Ver todo", openYourWork: "Abrir Tu trabajo", moreActivity: "Más actividad", findTitle: "Encuentra tu jardín", findBody: "Únete a un jardín para enviar trabajo y seguir lo que pasa allí.", yourRequests: "Tus solicitudes", awaiting: "Solicitud pendiente de revisión", openJoin: "Abierto para unirse", member: "Miembro", requestJoin: "Solicitar ingreso", joinGarden: "Unirse al jardín", steward: "Responsable", gardener: "Jardinero", evaluator: "Evaluador", needsReview: "{n} envíos esperan tu revisión", joinReqs: "{n} solicitudes de ingreso", assessmentDue: "Evaluación de temporada por escribir", toReview: "Por revisar", draft: "Borrador", toUpload: "Por subir", inReview: "En revisión", approved: "Aprobado", rejected: "Rechazado", pending: "Pendiente", stepOf: "Paso 2 de 4 · 3 fotos", savedToday: "Guardado hoy · 9:40", savedPhone: "Guardado en este teléfono", waitingReview: "Esperando una revisión", offered: "Ofrecido", asked: "Pedido", season: "Temporada · Abierta · 10 oct – 31 ene", kept: "0 de 12 cumplidas", insights: "Análisis", gardeners: "Jardineros", share: "Compartir jardín", endowment: "Provisión", governance: "Gobernanza", yourDeposit: "Tu depósito", alsoOther: "También en otros jardines", inGarden: "En {g}", allGardens: "Todos los jardines", onlyGarden: "Solo {g}", pendingTab: "Pendiente", completedTab: "Completado", live: "En curso", history: "Historial", toConfirm: "Por confirmar", uploadAll: "Subir todo", items: "{n} elementos", selectAction: "Selecciona tu acción", whatType: "¿Qué tipo de trabajo estás enviando?", workFor: "Trabajo para", changeGarden: "Cambiar de jardín", start: "Comenzar Jardinería", stStart: "Inicio", stMedia: "Medios", stDetails: "Detalles", stReview: "Revisar", dSolar: "Solar", dAgro: "Agroforestería", dEdu: "Educación", dWaste: "Residuos", offlineLine: "Sin conexión · mostrando lo guardado en este teléfono", members: "{n} miembros", founded: "Fundado 27/2/2026", work: "Trabajo", back: "Atrás", close: "Cerrar", filters: "Filtros", notifications: "Notificaciones", chooseBody: "Elige el jardín en el que se abrirá Inicio. Cámbialo cuando quieras desde el chip de arriba.", noneChip: "Sin jardín aún", joinCommunity: "Únete al Jardín Comunitario", joinCommunityBody: "El Jardín Comunitario está abierto a todos y te da un lugar para enviar tu primer trabajo.", action1d: "Toma una captura del panel o aporta prueba en cadena de la operación del nodo.", action2: "Auditoría energética", action2d: "Registra el consumo y el ahorro de energía del sitio.", a5h: "5 h", a2d: "2 d", a3d: "3 d", a1w: "1 sem", onePhoto: "1 foto", fourPhotos: "4 fotos", twoTaken: "2 aceptadas", dueJan: "Vence 31 ene", byYou: "Tuya", insightsLine: "El análisis de la temporada aparece aquí tras la primera evaluación.", gardenersLine: "{n} miembros · 3 responsables" },
-    pt: { home: "Início", garden: "Jardim", profile: "Perfil", wallet: "Sua carteira", promises: "Promessas", yourWork: "Seu trabalho", chooseGarden: "Escolha um jardim", yourGardens: "Seus jardins", belongTo: "Você faz parte de {n} jardins.", explore: "Explorar jardins", exploreSub: "Todos os jardins, abertos ou por pedido.", recent: "Atividade recente", continueT: "Continuar", takePart: "Participe", about: "Sobre este jardim", seeAll: "Ver tudo", openYourWork: "Abrir Seu trabalho", moreActivity: "Mais atividade", findTitle: "Encontre seu jardim", findBody: "Entre em um jardim para enviar trabalho e acompanhar o que acontece lá.", yourRequests: "Seus pedidos", awaiting: "Solicitação aguardando análise", openJoin: "Aberto para entrar", member: "Membro", requestJoin: "Pedir para entrar", joinGarden: "Entrar no jardim", steward: "Responsável", gardener: "Jardineiro", evaluator: "Avaliador", needsReview: "{n} envios aguardam sua revisão", joinReqs: "{n} pedidos de entrada", assessmentDue: "Avaliação da temporada para escrever", toReview: "Para revisar", draft: "Rascunho", toUpload: "Para enviar", inReview: "Em revisão", approved: "Aprovado", rejected: "Rejeitado", pending: "Pendente", stepOf: "Etapa 2 de 4 · 3 fotos", savedToday: "Salvo hoje · 9:40", savedPhone: "Salvo neste telefone", waitingReview: "Aguardando uma revisão", offered: "Oferecido", asked: "Pedido", season: "Temporada · Aberta · 10 out – 31 jan", kept: "0 de 12 cumpridas", insights: "Visão", gardeners: "Jardineiros", share: "Compartilhar jardim", endowment: "Provisão", governance: "Governança", yourDeposit: "Seu depósito", alsoOther: "Também em outros jardins", inGarden: "Em {g}", allGardens: "Todos os jardins", onlyGarden: "Só {g}", pendingTab: "Pendente", completedTab: "Concluído", live: "Em andamento", history: "Histórico", toConfirm: "A confirmar", uploadAll: "Enviar tudo", items: "{n} itens", selectAction: "Selecione sua ação", whatType: "Que tipo de trabalho você está enviando?", workFor: "Trabalho para", changeGarden: "Trocar de jardim", start: "Começar Jardinagem", stStart: "Início", stMedia: "Mídia", stDetails: "Detalhes", stReview: "Revisar", dSolar: "Solar", dAgro: "Agrofloresta", dEdu: "Educação", dWaste: "Resíduos", offlineLine: "Você está offline · mostrando o que está salvo neste telefone", members: "{n} membros", founded: "Fundado 27/02/2026", work: "Trabalho", back: "Voltar", close: "Fechar", filters: "Filtros", notifications: "Notificações", chooseBody: "Escolha o jardim em que o Início vai abrir. Troque quando quiser pelo chip no topo.", noneChip: "Sem jardim ainda", joinCommunity: "Entre no Jardim Comunitário", joinCommunityBody: "O Jardim Comunitário é aberto a todos e dá a você um lugar para enviar seu primeiro trabalho.", action1d: "Tire uma captura do painel ou forneça prova on-chain da operação do nó.", action2: "Auditoria energética", action2d: "Registre o consumo e a economia de energia do local.", a5h: "5 h", a2d: "2 d", a3d: "3 d", a1w: "1 sem", onePhoto: "1 foto", fourPhotos: "4 fotos", twoTaken: "2 assumidas", dueJan: "Até 31 jan", byYou: "Sua", insightsLine: "A visão da temporada aparece aqui após a primeira avaliação.", gardenersLine: "{n} membros · 3 responsáveis" }
+    en: { home: "Home", garden: "Garden", profile: "Profile", wallet: "Your Wallet", promises: "Promises", yourWork: "Your Work", chooseGarden: "Choose a garden", yourGardens: "Your gardens", belongTo: "You belong to {n} gardens.", explore: "Explore gardens", exploreRow: "Find a garden to join", recent: "Recent activity", continueT: "Continue", takePart: "Take part", about: "About this garden", seeAll: "See all", openYourWork: "Open Your Work", moreActivity: "More activity", findTitle: "Find your garden", findBody: "Join a garden to submit work and follow what happens there.", yourRequests: "Your requests", awaiting: "Awaiting review", open: "Open", member: "Member", requestJoin: "Request to Join", joinGarden: "Join Garden", steward: "Steward", gardener: "Gardener", evaluator: "Evaluator", needsReview: "{n} submissions need your review", joinReqs: "{n} join requests", assessmentDue: "Season assessment to write", toReview: "To review", draft: "Draft", toUpload: "To upload", inReview: "In review", approved: "Approved", rejected: "Rejected", pending: "Pending", stepOf: "Step 2 of 4 · 3 photos", savedToday: "Saved today · 9:40", savedPhone: "Saved on this phone", waitingReview: "Waiting for a review", offered: "Offered", asked: "Asked for", season: "Season · Open · Oct 10 – Jan 31", kept: "0 of 12 kept", insights: "Insights", gardeners: "Gardeners", share: "Share Garden", endowment: "Endowment", governance: "Governance", yourDeposit: "Your deposit", inGarden: "In {g}", pendingTab: "Pending", completedTab: "Completed", allTab: "All", live: "Live", history: "History", toConfirm: "To confirm", uploadAll: "Upload all", items: "{n} items", selectAction: "Select Your Action", whatType: "What type of work are you submitting?", workFor: "Work for", start: "Start Gardening", stStart: "Start", stMedia: "Media", stDetails: "Details", stReview: "Review", dSolar: "Solar", dAgro: "Agroforestry", dEdu: "Education", dWaste: "Waste", offlineLine: "Offline Mode", members: "{n} members", membersStewards: "{n} members · {s} stewards", founded: "Founded {d}", work: "Work", back: "Back", close: "Close", filters: "Filters", notifications: "Notifications", chooseBody: "Pick the garden Home should open in. Change it any time from the chip at the top.", noneChip: "No garden yet", joinCommunity: "Join the Community Garden", joinCommunityBody: "The Community Garden is open to everyone and gives you a place to submit your first work.", action1d: "Take a dashboard screenshot or provide on-chain proof of node operation.", action2: "Energy Audit", action2d: "Record the site’s power use and savings.", a5h: "5h", a2d: "2d", a3d: "3d", a1w: "1w", onePhoto: "1 photo", fourPhotos: "4 photos", twoTaken: "2 taken up", dueJan: "Due Jan 31", dueDec: "Due Dec 15", byYou: "By you", insightsLine: "Season insights appear here after the first assessment.", newTag: "New", seenTag: "Seen", nNew: "{n} new", nApproved: "Your work was approved", nFeedback: "Feedback on your work", nTaken: "Your promise was taken up", nReview: "{n} submissions to review", nSeason: "Season assessment published", nWelcome: "Welcome to the garden", assessments: "Assessments", published: "Published", outcomes: "{n} outcomes", noAssess: "No assessment yet this season.", aboutLabel: "About", joinRequests: "Join requests", requested: "Requested", approve: "Approve", since: "Gardener since {d}", keepPromise: "Promises you can keep", otherWork: "Or log other work", actionsT: "Actions", ofN: "{a} of {b}", forPromise: "For a promise", optional: "Optional", highlights: "Highlights", daysLeft: "{n} days left", seasonShort: "Season", photosAsked: "photos" },
+    es: { home: "Inicio", garden: "Jardín", profile: "Perfil", wallet: "Tu billetera", promises: "Promesas", yourWork: "Tu trabajo", chooseGarden: "Elige un jardín", yourGardens: "Tus jardines", belongTo: "Perteneces a {n} jardines.", explore: "Explorar jardines", exploreRow: "Encuentra un jardín para unirte", recent: "Actividad reciente", continueT: "Continuar", takePart: "Participa", about: "Sobre este jardín", seeAll: "Ver todo", openYourWork: "Abrir Tu trabajo", moreActivity: "Más actividad", findTitle: "Encuentra tu jardín", findBody: "Únete a un jardín para enviar trabajo y seguir lo que pasa allí.", yourRequests: "Tus solicitudes", awaiting: "Pendiente de revisión", open: "Abierto", member: "Miembro", requestJoin: "Solicitar ingreso", joinGarden: "Unirse al jardín", steward: "Responsable", gardener: "Jardinero", evaluator: "Evaluador", needsReview: "{n} envíos esperan tu revisión", joinReqs: "{n} solicitudes de ingreso", assessmentDue: "Evaluación de temporada por escribir", toReview: "Por revisar", draft: "Borrador", toUpload: "Por subir", inReview: "En revisión", approved: "Aprobado", rejected: "Rechazado", pending: "Pendiente", stepOf: "Paso 2 de 4 · 3 fotos", savedToday: "Guardado hoy · 9:40", savedPhone: "Guardado en este teléfono", waitingReview: "Esperando una revisión", offered: "Ofrecida", asked: "Pedida", season: "Temporada · Abierta · 10 oct – 31 ene", kept: "0 de 12 cumplidas", insights: "Análisis", gardeners: "Jardineros", share: "Compartir jardín", endowment: "Provisión", governance: "Gobernanza", yourDeposit: "Tu depósito", inGarden: "En {g}", pendingTab: "Pendiente", completedTab: "Completado", allTab: "Todo", live: "En curso", history: "Historial", toConfirm: "Por confirmar", uploadAll: "Subir todo", items: "{n} elementos", selectAction: "Selecciona tu acción", whatType: "¿Qué tipo de trabajo estás enviando?", workFor: "Trabajo para", start: "Comenzar Jardinería", stStart: "Inicio", stMedia: "Medios", stDetails: "Detalles", stReview: "Revisar", dSolar: "Solar", dAgro: "Agroforestería", dEdu: "Educación", dWaste: "Residuos", offlineLine: "Modo sin conexión", members: "{n} miembros", membersStewards: "{n} miembros · {s} responsables", founded: "Fundado el {d}", work: "Trabajo", back: "Atrás", close: "Cerrar", filters: "Filtros", notifications: "Notificaciones", chooseBody: "Elige el jardín en el que se abrirá Inicio. Cámbialo cuando quieras desde el chip de arriba.", noneChip: "Sin jardín aún", joinCommunity: "Únete al Jardín Comunitario", joinCommunityBody: "El Jardín Comunitario está abierto a todos y te da un lugar para enviar tu primer trabajo.", action1d: "Toma una captura del panel o aporta prueba en cadena de la operación del nodo.", action2: "Auditoría energética", action2d: "Registra el consumo y el ahorro de energía del sitio.", a5h: "5 h", a2d: "2 d", a3d: "3 d", a1w: "1 sem", onePhoto: "1 foto", fourPhotos: "4 fotos", twoTaken: "2 aceptadas", dueJan: "Vence 31 ene", dueDec: "Vence 15 dic", byYou: "Tuya", insightsLine: "El análisis de la temporada aparece aquí tras la primera evaluación.", newTag: "Nuevo", seenTag: "Visto", nNew: "{n} nuevas", nApproved: "Tu trabajo fue aprobado", nFeedback: "Comentarios sobre tu trabajo", nTaken: "Aceptaron tu promesa", nReview: "{n} envíos por revisar", nSeason: "Evaluación de temporada publicada", nWelcome: "Bienvenido al jardín", assessments: "Evaluaciones", published: "Publicada", outcomes: "{n} resultados", noAssess: "Aún no hay evaluación esta temporada.", aboutLabel: "Acerca de", joinRequests: "Solicitudes de ingreso", requested: "Solicitado", approve: "Aprobar", since: "Jardinero desde {d}", keepPromise: "Promesas que puedes cumplir", otherWork: "O registra otro trabajo", actionsT: "Acciones", ofN: "{a} de {b}", forPromise: "Para una promesa", optional: "Opcional", highlights: "Destacados", daysLeft: "Quedan {n} días", seasonShort: "Temporada", photosAsked: "fotos" },
+    pt: { home: "Início", garden: "Jardim", profile: "Perfil", wallet: "Sua carteira", promises: "Promessas", yourWork: "Seu trabalho", chooseGarden: "Escolha um jardim", yourGardens: "Seus jardins", belongTo: "Você faz parte de {n} jardins.", explore: "Explorar jardins", exploreRow: "Encontre um jardim para entrar", recent: "Atividade recente", continueT: "Continuar", takePart: "Participe", about: "Sobre este jardim", seeAll: "Ver tudo", openYourWork: "Abrir Seu trabalho", moreActivity: "Mais atividade", findTitle: "Encontre seu jardim", findBody: "Entre em um jardim para enviar trabalho e acompanhar o que acontece lá.", yourRequests: "Seus pedidos", awaiting: "Aguardando análise", open: "Aberto", member: "Membro", requestJoin: "Pedir para entrar", joinGarden: "Entrar no jardim", steward: "Responsável", gardener: "Jardineiro", evaluator: "Avaliador", needsReview: "{n} envios aguardam sua revisão", joinReqs: "{n} pedidos de entrada", assessmentDue: "Avaliação da temporada para escrever", toReview: "Para revisar", draft: "Rascunho", toUpload: "Para enviar", inReview: "Em revisão", approved: "Aprovado", rejected: "Rejeitado", pending: "Pendente", stepOf: "Etapa 2 de 4 · 3 fotos", savedToday: "Salvo hoje · 9:40", savedPhone: "Salvo neste telefone", waitingReview: "Aguardando uma revisão", offered: "Oferecida", asked: "Pedida", season: "Temporada · Aberta · 10 out – 31 jan", kept: "0 de 12 cumpridas", insights: "Visão", gardeners: "Jardineiros", share: "Compartilhar jardim", endowment: "Provisão", governance: "Governança", yourDeposit: "Seu depósito", inGarden: "Em {g}", pendingTab: "Pendente", completedTab: "Concluído", allTab: "Tudo", live: "Em andamento", history: "Histórico", toConfirm: "A confirmar", uploadAll: "Enviar tudo", items: "{n} itens", selectAction: "Selecione sua ação", whatType: "Que tipo de trabalho você está enviando?", workFor: "Trabalho para", start: "Começar Jardinagem", stStart: "Início", stMedia: "Mídia", stDetails: "Detalhes", stReview: "Revisar", dSolar: "Solar", dAgro: "Agrofloresta", dEdu: "Educação", dWaste: "Resíduos", offlineLine: "Modo offline", members: "{n} membros", membersStewards: "{n} membros · {s} responsáveis", founded: "Fundado em {d}", work: "Trabalho", back: "Voltar", close: "Fechar", filters: "Filtros", notifications: "Notificações", chooseBody: "Escolha o jardim em que o Início vai abrir. Troque quando quiser pelo chip no topo.", noneChip: "Sem jardim ainda", joinCommunity: "Entre no Jardim Comunitário", joinCommunityBody: "O Jardim Comunitário é aberto a todos e dá a você um lugar para enviar seu primeiro trabalho.", action1d: "Tire uma captura do painel ou forneça prova on-chain da operação do nó.", action2: "Auditoria energética", action2d: "Registre o consumo e a economia de energia do local.", a5h: "5 h", a2d: "2 d", a3d: "3 d", a1w: "1 sem", onePhoto: "1 foto", fourPhotos: "4 fotos", twoTaken: "2 assumidas", dueJan: "Até 31 jan", dueDec: "Até 15 dez", byYou: "Sua", insightsLine: "A visão da temporada aparece aqui após a primeira avaliação.", newTag: "Novo", seenTag: "Visto", nNew: "{n} novas", nApproved: "Seu trabalho foi aprovado", nFeedback: "Comentários sobre seu trabalho", nTaken: "Sua promessa foi aceita", nReview: "{n} envios para revisar", nSeason: "Avaliação da temporada publicada", nWelcome: "Bem-vindo ao jardim", assessments: "Avaliações", published: "Publicada", outcomes: "{n} resultados", noAssess: "Ainda não há avaliação nesta temporada.", aboutLabel: "Sobre", joinRequests: "Pedidos de entrada", requested: "Solicitado", approve: "Aprovar", since: "Jardineiro desde {d}", keepPromise: "Promessas que você pode cumprir", otherWork: "Ou registre outro trabalho", actionsT: "Ações", ofN: "{a} de {b}", forPromise: "Para uma promessa", optional: "Opcional", highlights: "Destaques", daysLeft: "Faltam {n} dias", seasonShort: "Temporada", photosAsked: "fotos" }
   };
+  // The gardens on Arbitrum One as the production indexer listed them on 19 October 2026 (names, places,
+  // gardener and steward counts, open joining, creation date). Places are lightly tidied for display. The
+  // two gardens the app hides everywhere are left out. `test` marks the two family gardens the app keeps
+  // off the public lists; the lab shows them only to their members. Banners are the gardens' own, where
+  // the sandbox could fetch them; the rest draw the app's fallback.
   const GARDENS = [
-    { id: "tas", name: "TAS HUB", place: "Awka, Nigeria", members: 14, open: false, scene: "sc-people" },
-    { id: "bota", name: "Jardim Botafogo", place: "Rio de Janeiro, Brasil", members: 9, open: false, scene: "sc-seedlings" },
-    { id: "ilhas", name: "Ilhas de Abundância", place: "São Paulo, Brasil", members: 4, open: false, scene: "sc-forest" },
-    { id: "kenya", name: "Greenpill Kenya", place: "Nairobi, Kenya", members: 21, open: true, scene: "sc-compost" },
-    { id: "ligne", name: "La Ligne Verte", place: "Grand-Bassam, Côte d’Ivoire", members: 3, open: false, scene: "sc-solar" },
-    { id: "ggcg", name: "Green Goods Community Garden", place: "Everywhere", members: 40, open: true, scene: "sc-seedlings" }
+    { id: "tas", name: "TAS HUB", place: "Awka, Nigeria", members: 13, stewards: 4, open: false, created: 1772207894, img: true, desc: "Powering Nigeria’s next innovators and builders with constant light and internet." },
+    { id: "ilhas", name: "Ilhas de Abundância", place: "São Paulo, Brasil", members: 4, stewards: 3, open: false, created: 1776986457, img: true, desc: "São Paulo não precisa apenas de mais árvores plantadas de forma isolada, mas de uma política viva de regeneração urbana." },
+    { id: "aiye", name: "Aiyeloja Family Garden", place: "Loma Linda", members: 9, stewards: 3, open: false, created: 1771972739, img: true, test: true, desc: "The family garden operated by the Aiyeloja family, growing flowers, vegetables and herbs on a yearly basis." },
+    { id: "ggcg", name: "Green Goods Community Garden", place: "Mama Earth", members: 50, stewards: 8, open: true, created: 1771497799, img: true, desc: "The global community garden for all Green Goods participants and the entry point for new users." },
+    { id: "vida", name: "Vida Verde", place: "El Hatillo, Venezuela", members: 4, stewards: 2, open: false, created: 1775093017, img: true, desc: "Vida Verde is a regenerative project born in Venezuela that integrates environmental education, art, community and Web3 technology." },
+    { id: "mama", name: "Mama Gardens", place: "Abuja, Nigeria", members: 2, stewards: 1, open: false, created: 1775735182, img: true, test: true, desc: "A nature and wellness first family garden." },
+    { id: "ligne", name: "La Ligne Verte", place: "Grand-Bassam, Côte d’Ivoire", members: 3, stewards: 3, open: false, created: 1775856451, img: false, desc: "L’infrastructure citoyenne de GreenPill Côte d’Ivoire pour la régénération environnementale." },
+    { id: "kenya", name: "Greenpill Kenya", place: "Kenya", members: 4, stewards: 1, open: true, created: 1773262723, img: false, desc: "Positive initiatives that enhance both individual and community sustainability." },
+    { id: "sofa", name: "GreenSofa", place: "Taiwan", members: 4, stewards: 2, open: false, created: 1772214485, img: true, desc: "One team under FAB DAO exploring collaboration with GreenPill international." },
+    { id: "rifai", name: "Rifai Sicilia", place: "Sicily", members: 4, stewards: 2, open: false, created: 1772609926, img: true, desc: "Regenerating the Mediterranean bioregion with an ecologically restorative onchain economy." },
+    { id: "grow", name: "Growecosystems", place: "Rio Claro, Brasil", members: 4, stewards: 2, open: false, created: 1772651570, img: false, desc: "Urban hub with twelve years of urban agroforestry: fruits, vegetables, bees, mushrooms and love." },
+    { id: "agro", name: "AgroforestDAO", place: "Lima Duarte, Minas Gerais", members: 3, stewards: 1, open: false, created: 1772747325, img: false, desc: "Spreading agroforestry culture through seasonal educational activities." },
+    { id: "decl", name: "DeCleanup Network Action garden", place: "Koh Phangan, Thailand", members: 7, stewards: 1, open: true, created: 1772832849, img: false, desc: "Verified waste cleanup actions from a local community." },
+    { id: "bcn", name: "ReFi Barcelona", place: "Barcelona", members: 2, stewards: 1, open: false, created: 1772831083, img: false, desc: "A hub where ideas meet collective action." },
+    { id: "london", name: "Greenpill London", place: "London, Ontario, Canada", members: 1, stewards: 1, open: false, created: 1772214022, img: false, desc: "Making neighbour-to-neighbour care and solidarity visible." },
+    { id: "muiz", name: "Muizenberg Community Garden", place: "Muizenberg, Cape Town", members: 1, stewards: 1, open: false, created: 1772552596, img: false, desc: "Converting organic waste into compost to plant and harvest food for community use." }
   ];
+  const PENDING_ID = "vida";
 
   // Picks are the lab's levers; nav is where the taps have taken the phones. Both are shared by every frame.
-  const DEFAULT_PICKS = { show: "both", fit: "fit", lang: "en", theme: "light", membership: "several", role: "gardener", hasDeposit: "no", pendingRequest: "yes", offline: "no", screen: "home", composition: "journal", activityRows: "3", continueCap: "3", switcherStyle: "sheet", aboutPlacement: "row", firstRun: "chooser", sheetScope: "garden" };
+  const DEFAULT_PICKS = { show: "both", fit: "fit", lang: "en", theme: "dark", membership: "several", role: "gardener", hasDeposit: "no", pendingRequest: "yes", offline: "no", screen: "home", composition: "journal", activityRows: "3", continueCap: "3", header: "sticky", strip: "none", switcherStyle: "sheet", aboutPlacement: "row", firstRun: "chooser", sections: "sheets", notif: "bell", startStep: "promises" };
   const CONTROLS = [
     { group: "Stage", key: "show", label: "Phones", opts: [["both", "390 + 360"], ["390", "390 only"], ["360", "360 only"]], hint: "Which phone widths the stage draws. 390×844 is an iPhone; 360×800 is the common Android size." },
     { group: "Stage", key: "fit", label: "Size", opts: [["fit", "Fit height"], ["full", "100%"]], hint: "Fit scales both phones to the window height; 100% draws them at real pixel size." },
     { group: "Content", key: "lang", label: "Language", opts: [["en", "English"], ["es", "Español"], ["pt", "Português"]], hint: "Every string in the phones, including the new Home copy, in the three app languages." },
-    { group: "Content", key: "theme", label: "Theme", opts: [["light", "Light"], ["dark", "Dark"]], hint: "The app's light and dark palettes, with the locked dark card step." },
-    { group: "Scenario", key: "membership", label: "Gardens", opts: [["none", "None"], ["one", "One"], ["several-first", "Several, first run"], ["several", "Several, remembered"]], hint: "No garden shows discovery; one opens itself; several on first run opens the chooser once; several remembered opens the last garden used." },
+    { group: "Content", key: "theme", label: "Theme", opts: [["light", "Light"], ["dark", "Dark"]], hint: "The app's light palette on the linen canvas, and the dark ladder with the card one step above the canvas." },
+    { group: "Scenario", key: "membership", label: "Gardens", opts: [["none", "None"], ["one", "One"], ["several-first", "Several, first run"], ["several", "Several, remembered"]], hint: "No garden shows discovery; one opens itself; several on first run opens the chooser once; several remembered opens the last garden used. Several means TAS HUB, Ilhas de Abundância and the Aiyeloja Family Garden." },
     { group: "Scenario", key: "role", label: "Role in TAS HUB", opts: [["gardener", "Gardener"], ["steward", "Steward"], ["evaluator", "Evaluator"]], hint: "A steward gets review duties in Continue, join requests under Gardeners, Endowment and Governance in About, and To confirm in Promises. An evaluator gets the season assessment duty." },
     { group: "Scenario", key: "hasDeposit", label: "Endowment deposit", opts: [["no", "No"], ["yes", "Yes"]], hint: "A depositor who is not a steward still reaches Endowment from About with their deposit named." },
-    { group: "Scenario", key: "pendingRequest", label: "Pending request", opts: [["yes", "Yes"], ["no", "No"]], hint: "A request to join La Ligne Verte that a steward has not answered yet. It shows on the no-garden Home, in Explore and on that garden's page." },
-    { group: "Scenario", key: "offline", label: "Connection", opts: [["no", "Online"], ["yes", "Offline"]], hint: "Offline shows the ambient banner and the rows say what is saved on this phone." },
-    { group: "Scenario", key: "screen", label: "Start screen", opts: [["home", "Home"], ["switcher", "Switcher"], ["explore", "Explore"], ["garden", "A garden"], ["submit", "Submit Work"], ["yourWork", "Your Work"], ["promises", "Promises"]], hint: "Jump the phones to a screen. Taps inside the phones move on from there; pick again to come back." },
+    { group: "Scenario", key: "pendingRequest", label: "Pending request", opts: [["yes", "Yes"], ["no", "No"]], hint: "A request to join Vida Verde that a steward has not answered yet. It shows on the no-garden Home, in Explore and on that garden's page." },
+    { group: "Scenario", key: "offline", label: "Connection", opts: [["no", "Online"], ["yes", "Offline"]], hint: "Offline lays the shell's strip over the header's top padding, as the app does; nothing below it moves. Rows say what is saved on this phone." },
+    { group: "Scenario", key: "screen", label: "Start screen", opts: [["home", "Home"], ["switcher", "Switcher"], ["explore", "Explore"], ["garden", "A garden"], ["submit", "Submit Work"], ["yourWork", "Your Work"], ["promises", "Promises"], ["notifications", "Notifications"], ["work", "Work"], ["insights", "Insights"], ["gardeners", "Gardeners"]], hint: "Jump the phones to a screen or sheet. Taps inside the phones move on from there; pick again to come back. A garden is Vida Verde visited from Explore." },
     { group: "Home", key: "composition", label: "Composition", opts: [["journal", "Compact journal"], ["featured", "Featured activity"], ["gardenPage", "Garden page"]], hint: "Journal: rows in the confirmed order. Featured: one big update first. Garden page: today's garden page promoted to Home with the chip in place of Back." },
     { group: "Home", key: "activityRows", label: "Activity rows", opts: [["1", "1"], ["2", "2"], ["3", "3"]], hint: "How many recent updates Home shows before Continue." },
     { group: "Home", key: "continueCap", label: "Continue rows", opts: [["2", "2"], ["3", "3"]], hint: "How many unfinished items Home shows before Open Your Work." },
-    { group: "Variations", key: "switcherStyle", label: "Switcher", opts: [["sheet", "Bottom sheet"], ["popover", "Menu under chip"]], hint: "The app's sheet with the one shared header, or the cockpit's popover anchored to the chip." },
+    { group: "Home", key: "header", label: "Header", opts: [["sticky", "Sticky"], ["scroll", "Scrolls away"]], hint: "Sticky keeps the chip and the launchers at the top while the journal scrolls, with a hairline once scrolled. Scrolls away is today's behaviour on Home." },
+    { group: "Home", key: "strip", label: "Top strip", opts: [["none", "None"], ["carousel", "Highlights carousel"]], hint: "An exploration, not part of the lock: one swipeable row of equal 280×112 cards above Recent activity (season progress, a featured update, the open ask or a steward duty), with the next card peeking." },
+    { group: "Variations", key: "switcherStyle", label: "Switcher", opts: [["sheet", "Half sheet"], ["popover", "Menu under chip"]], hint: "The app's sheet at the half tier with the one shared header, or the cockpit's popover anchored to the chip." },
     { group: "Variations", key: "aboutPlacement", label: "About and manage", opts: [["row", "Row at the end"], ["menu", "Inside the switcher"], ["banner", "Icons in the header"]], hint: "Where Insights, Gardeners, Share, Endowment and Governance live: one About row after Take part, inside the switcher below the gardens, or today's icon stack beside the launchers." },
     { group: "Variations", key: "firstRun", label: "First run, several", opts: [["chooser", "Chooser opens"], ["prompt", "Prompt only"]], hint: "With several gardens and nothing remembered: the switcher opens by itself once, or Home shows a prompt card and waits." },
-    { group: "Variations", key: "sheetScope", label: "Sheets scope", opts: [["garden", "This garden"], ["all", "All gardens"]], hint: "Your Work and Promises filtered to the active garden with an Also in other gardens row, or account-wide with the garden named on each row." }
+    { group: "Variations", key: "sections", label: "Garden sections", opts: [["sheets", "Sheets over Home"], ["page", "Garden page"]], hint: "Where See all, Insights and Gardeners open for the active garden: a tall sheet over Home with that section's content (the Promises launcher already works this way), or today's garden page with its tabs. Gardens you visit keep their page either way." },
+    { group: "Variations", key: "notif", label: "Notifications", opts: [["bell", "Bell in the header"], ["none", "None"]], hint: "An exploration: the bell takes the slot the filter button leaves, first in the cluster so the other icons keep their places. It counts what is new for you in this garden and opens a sheet of those events." },
+    { group: "Variations", key: "startStep", label: "Start step", opts: [["promises", "Promises first"], ["actions", "Actions first"]], hint: "An exploration for Submit Work's first step now that the garden is given: the garden's open asks lead, each row picking the promise and its action in one tap, with the action cards below for other work; or today's order with the pinned garden in place of the picker." }
   ];
   const PRESETS = [
-    { name: "Locked picks", picks: { membership: "several", role: "gardener", hasDeposit: "no", pendingRequest: "yes", offline: "no", screen: "home", composition: "journal", activityRows: "3", continueCap: "3", switcherStyle: "sheet", aboutPlacement: "row", firstRun: "chooser", sheetScope: "garden" } },
+    { name: "Afo’s picks, 19 Oct", picks: { lang: "en", theme: "dark", membership: "several", role: "gardener", hasDeposit: "no", pendingRequest: "yes", offline: "no", screen: "home", composition: "journal", activityRows: "3", continueCap: "3", header: "sticky", strip: "none", switcherStyle: "sheet", aboutPlacement: "row", firstRun: "chooser", sections: "sheets", notif: "bell", startStep: "promises" } },
     { name: "Steward, first run", picks: { membership: "several-first", role: "steward", screen: "home", composition: "journal" } },
     { name: "No garden yet", picks: { membership: "none", role: "gardener", pendingRequest: "yes", screen: "home" } },
     { name: "Evaluator, offline", picks: { membership: "one", role: "evaluator", offline: "yes", screen: "home" } }
@@ -272,12 +331,18 @@ button { font: inherit }
   let nav = freshNav();
   try { const saved = JSON.parse(localStorage.getItem(STORE_KEY) || "null"); if (saved && saved.picks) picks = Object.assign({}, DEFAULT_PICKS, saved.picks); } catch (e) { /* storage may be unavailable */ }
 
-  function freshNav() { return { screen: null, sheet: null, activeId: undefined, dismissed: false, visitingId: "ligne", vgTab: "work", gpTab: "work", ywTab: "pending", prTab: "live", ywAll: false, prAll: false, domain: "solar" }; }
+  function freshNav() { return { screen: null, sheet: null, activeId: undefined, dismissed: false, visitingId: PENDING_ID, vgTab: "work", gpTab: "work", ywTab: "pending", prTab: "live", wkTab: "all", domain: "solar", promiseSel: null, actionSel: null }; }
   function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify({ picks })); } catch (e) { /* ignore */ } }
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
   const fmt = (str, vals) => String(str).replace(/\{(\w+)\}/g, (m, k) => (vals && vals[k] !== undefined ? vals[k] : m));
   const icon = (id, size) => '<svg class="i" width="' + (size || 16) + '" height="' + (size || 16) + '" aria-hidden="true"><use href="#' + id + '"/></svg>';
   const art = (scene) => '<svg class="art" aria-hidden="true"><use href="#' + scene + '"/></svg>';
+  // A garden's own banner, or the app's fallback tile when it has none.
+  const photo = (g) => g && g.img ? '<img class="art" src="gardens/' + g.id + '.jpg" alt="" loading="lazy">' : '<span class="fb">' + icon("ic-seedling", 40) + "</span>";
+  const avatar = (g, size) => g && g.img ? '<img class="avimg" src="gardens/' + g.id + '.jpg" alt="">' : icon("ic-seedling", size || 18);
+  const LOCALE = { en: "en-US", es: "es-ES", pt: "pt-BR" };
+  const dateOf = (unix, lang) => new Intl.DateTimeFormat(LOCALE[lang] || "en-US", { year: "numeric", month: "numeric", day: "numeric" }).format(new Date(unix * 1000));
+  const monthOf = (unix, lang) => new Intl.DateTimeFormat(LOCALE[lang] || "en-US", { year: "numeric", month: "short" }).format(new Date(unix * 1000));
 
   function model() {
     const lang = T[picks.lang] ? picks.lang : "en";
@@ -290,13 +355,14 @@ button { font: inherit }
     const pendingRequest = picks.pendingRequest === "yes";
     const hasDeposit = picks.hasDeposit === "yes";
     const byId = (id) => GARDENS.find((g) => g.id === id) || null;
+    const SHEETS = ["switcher", "yourWork", "promises", "notifications", "work", "insights", "gardeners"];
 
     let derivedScreen = "home"; let derivedSheet = null;
-    if (picks.screen === "switcher" || picks.screen === "yourWork" || picks.screen === "promises") derivedSheet = picks.screen; else derivedScreen = picks.screen;
+    if (SHEETS.includes(picks.screen)) derivedSheet = picks.screen; else derivedScreen = picks.screen;
     const screen = nav.screen !== null ? nav.screen : derivedScreen;
     const sheetChosen = nav.sheet !== null ? nav.sheet : derivedSheet;
 
-    const myIds = membership === "none" ? [] : membership === "one" ? ["tas"] : ["tas", "bota", "ilhas"];
+    const myIds = membership === "none" ? [] : membership === "one" ? ["tas"] : ["tas", "ilhas", "aiye"];
     const roleOf = (id) => (id === "tas" ? role : "gardener");
     let activeId;
     if (nav.activeId !== undefined) activeId = nav.activeId;
@@ -306,10 +372,9 @@ button { font: inherit }
     const active = activeId ? byId(activeId) : null;
     const isNone = membership === "none";
     const isFirstRun = membership === "several-first" && !active;
-    const chooserAuto = isFirstRun && picks.firstRun === "chooser" && !nav.dismissed && screen === "home" && sheetChosen === "" ;
     const sheet = sheetChosen || ((isFirstRun && picks.firstRun === "chooser" && !nav.dismissed && screen === "home") ? "switcher" : null);
     const several = myIds.length > 1;
-    const scopeAll = picks.sheetScope === "all";
+    const pendingGarden = byId(PENDING_ID);
 
     const pillOf = (status) => ({
       pending: { pill: t.pending, pillClass: "warn", edgeClass: "warn" },
@@ -320,14 +385,21 @@ button { font: inherit }
       draft: { pill: t.draft, pillClass: "warn", edgeClass: "" },
       toReview: { pill: t.toReview, pillClass: "info", edgeClass: "info" },
       offered: { pill: t.offered, pillClass: "ok", edgeClass: "ok" },
-      asked: { pill: t.asked, pillClass: "info", edgeClass: "info" }
+      asked: { pill: t.asked, pillClass: "info", edgeClass: "info" },
+      newN: { pill: t.newTag, pillClass: "info", edgeClass: "info" },
+      seen: { pill: t.seenTag, pillClass: "neu", edgeClass: "" },
+      published: { pill: t.published, pillClass: "ok", edgeClass: "" },
+      requested: { pill: t.requested, pillClass: "warn", edgeClass: "warn" }
     })[status];
 
     const activityAll = [
       { title: "Workshop Delivered", detail: "abhitant.eth · " + t.a5h + " · " + t.onePhoto, status: "pending", scene: "sc-people" },
       { title: "Hub Service Session", detail: "0x6855…Ac02 · " + t.a2d + " · " + t.fourPhotos, status: "approved", scene: "sc-solar" },
-      { title: "Node Operation Log", detail: "afo.eth · " + t.a1w + " · " + t.onePhoto, status: "rejected", scene: "sc-seedlings" }
-    ].map((r) => Object.assign({ act: "seeWork" }, r, pillOf(r.status)));
+      { title: "Node Operation Log", detail: "afo.eth · " + t.a1w + " · " + t.onePhoto, status: "rejected", scene: "sc-seedlings" },
+      { title: "Energy Audit", detail: "0xaC35…65B6 · " + t.a1w + " · " + t.fourPhotos, status: "approved", scene: "sc-compost" },
+      { title: "Hub Service Session", detail: "abhitant.eth · " + t.a1w + " · " + t.onePhoto, status: "approved", scene: "sc-forest" },
+      { title: "Node Operation Log", detail: "0x6855…Ac02 · " + t.a1w + " · " + t.onePhoto, status: "approved", scene: "sc-solar" }
+    ].map((r) => Object.assign({ act: "openWork" }, r, pillOf(r.status)));
     const activity = activityAll.slice(0, parseInt(picks.activityRows, 10) || 3);
 
     const duties = [];
@@ -339,9 +411,20 @@ button { font: inherit }
     ]).slice(0, parseInt(picks.continueCap, 10) || 3).map((r) => Object.assign({}, r, pillOf(r.status)));
 
     const takePart = [
-      { title: "Workshop photos", detail: t.dueJan + " · 0 / 12", status: "asked", ic: "ic-ask" },
+      { title: "Workshop photos", detail: t.dueJan + " · " + fmt(t.ofN, { a: 0, b: 12 }), status: "asked", ic: "ic-ask" },
       { title: "Solar install help", detail: "afo.eth · " + t.twoTaken, status: "offered", ic: "ic-promise" }
-    ].map((r) => Object.assign({ act: "seePromises" }, r, pillOf(r.status)));
+    ].map((r) => Object.assign({ act: "promises" }, r, pillOf(r.status)));
+
+    // The garden's open asks, each with the action that keeps it: the rows the promises-first Start step leads with.
+    const asks = [
+      { id: "ask1", title: "Workshop photos", detail: "Workshop Delivered · " + fmt(t.ofN, { a: 0, b: 12 }) + " · " + t.dueJan, status: "asked", ic: "ic-ask", action: "a1" },
+      { id: "ask2", title: "Node uptime log", detail: "Node Operation Log · " + fmt(t.ofN, { a: 3, b: 8 }) + " · " + t.dueDec, status: "asked", ic: "ic-ask", action: "a2" }
+    ].map((r) => Object.assign({}, r, pillOf(r.status)));
+    const actions = [
+      { id: "a1", title: "Workshop Delivered", desc: t.action1d, scene: "sc-people" },
+      { id: "a2", title: "Node Operation Log", desc: t.action1d, scene: "sc-solar" },
+      { id: "a3", title: t.action2, desc: t.action2d, scene: "sc-compost" }
+    ];
 
     const aboutRows = [
       { label: t.insights, value: "", act: "insights" },
@@ -354,17 +437,17 @@ button { font: inherit }
     const roleLabel = (r) => (r === "steward" ? t.steward : r === "evaluator" ? t.evaluator : t.gardener);
     const myGardens = myIds.map((id) => Object.assign({}, byId(id), { roleLabel: roleLabel(roleOf(id)), isActive: activeId === id }));
 
-    const exploreList = GARDENS.map((g) => {
+    // Explore: every garden the app lists, the member's own first; the two family test gardens only for their members.
+    const exploreList = GARDENS.filter((g) => !g.test || myIds.includes(g.id)).map((g) => {
       const mine = myIds.includes(g.id);
-      const pend = g.id === "ligne" && pendingRequest;
-      const pill = mine ? t.member : pend ? t.awaiting : g.open ? t.openJoin : "";
-      const pillClass = mine ? "ok" : pend ? "warn" : g.open ? "info" : "neu";
-      return Object.assign({}, g, { meta: g.place + " · " + fmt(t.members, { n: g.members }), pill, pillClass });
-    });
+      const pend = g.id === PENDING_ID && pendingRequest && !mine;
+      const tag = mine ? t.member : pend ? t.awaiting : g.open ? t.open : "";
+      return Object.assign({}, g, { meta: fmt(t.members, { n: g.members }) + " · " + g.place, tag, mine });
+    }).sort((a, b) => (b.mine ? 1 : 0) - (a.mine ? 1 : 0));
 
-    const vg = byId(nav.visitingId) || byId("ligne");
+    const vg = byId(nav.visitingId) || pendingGarden;
     const vgMine = myIds.includes(vg.id);
-    const vgPending = vg.id === "ligne" && pendingRequest && !vgMine;
+    const vgPending = vg.id === PENDING_ID && pendingRequest && !vgMine;
     const tabDefs = [["work", t.work], ["pool", t.promises], ["insights", t.insights], ["gardeners", t.gardeners]];
 
     const ywBase = [];
@@ -372,35 +455,50 @@ button { font: inherit }
     ywBase.push({ title: "Compost Turn", detail: offline ? t.savedPhone : t.savedToday, status: "toUpload", scene: "sc-compost" });
     ywBase.push({ title: "Mulching", detail: t.stepOf, status: "draft", ic: "ic-draft" });
     ywBase.push({ title: "Path Edging", detail: t.waitingReview, status: "inReview", scene: "sc-seedlings" });
-    const ywOther = [
-      { title: "Seed Library Count", detail: "Jardim Botafogo · " + t.savedToday, status: "toUpload", scene: "sc-forest" },
-      { title: "Mulch Delivery Log", detail: "Ilhas de Abundância · " + t.waitingReview, status: "inReview", scene: "sc-people" }
-    ];
-    const ywShowAll = several && (scopeAll || nav.ywAll);
-    const ywRows = (ywShowAll ? ywBase.concat(ywOther) : ywBase).map((r) => Object.assign({}, r, pillOf(r.status)));
+    const ywRows = ywBase.map((r) => Object.assign({}, r, pillOf(r.status)));
     const ywDone = [
       { title: "Hub Service Session", detail: "0x6855…Ac02 · " + t.a2d, status: "approved", scene: "sc-solar" },
       { title: "Node Operation Log", detail: "afo.eth · " + t.a1w, status: "rejected", scene: "sc-seedlings" }
     ].map((r) => Object.assign({}, r, pillOf(r.status)));
 
-    const prBase = [
+    const prRows = [
       { title: "Workshop photos", detail: t.dueJan + " · " + t.byYou, status: "asked", ic: "ic-ask" },
       { title: "Solar install help", detail: "afo.eth · " + t.twoTaken, status: "offered", ic: "ic-promise" }
-    ];
-    const prOther = [{ title: "Seedling trays", detail: "Jardim Botafogo · " + t.dueJan, status: "offered", ic: "ic-promise" }];
-    const prShowAll = several && (scopeAll || nav.prAll);
-    const prRows = (prShowAll ? prBase.concat(prOther) : prBase).map((r) => Object.assign({}, r, pillOf(r.status)));
+    ].map((r) => Object.assign({}, r, pillOf(r.status)));
     const prTabs = [["live", t.live, 2], ["history", t.history, 0]].concat(isSteward ? [["toConfirm", t.toConfirm, 1]] : []);
+
+    // What is new for you in this garden: the bell's sheet. Unread first; the badge counts them.
+    const notifs = [];
+    if (isSteward) notifs.push({ title: fmt(t.nReview, { n: 3 }), detail: t.a2d, status: "newN", ic: "ic-shield", act: "yourWork" });
+    if (isSteward) notifs.push({ title: fmt(t.joinReqs, { n: 2 }), detail: t.a3d, status: "newN", ic: "ic-users", act: "gardeners" });
+    notifs.push({ title: t.nApproved, detail: "Hub Service Session · " + t.a2d, status: "newN", ic: "ic-check", act: "openWork" });
+    notifs.push({ title: t.nTaken, detail: "Solar install help · " + t.a3d, status: isSteward ? "seen" : "newN", ic: "ic-promise", act: "promises" });
+    notifs.push({ title: t.nFeedback, detail: "Node Operation Log · " + t.a1w, status: "seen", ic: "ic-msg", act: "openWork" });
+    notifs.push({ title: t.nSeason, detail: (active ? active.name : "") + " · " + t.a1w, status: "seen", ic: "ic-clip", act: "insights" });
+    const notifRows = notifs.map((r) => Object.assign({}, r, pillOf(r.status)));
+    const unread = notifRows.filter((r) => r.status === "newN").length;
+
+    const people = [
+      { name: "afo.eth", role: "steward", since: 1772207894 },
+      { name: "abhitant.eth", role: "steward", since: 1772207894 },
+      { name: "0x6855…Ac02", role: "gardener", since: 1773000000 },
+      { name: "0xaC35…65B6", role: "gardener", since: 1774000000 },
+      { name: "0x9f1D…77e0", role: "gardener", since: 1775000000 }
+    ];
+    const joinRequests = isSteward ? [
+      { name: "0x4B2a…91cC", detail: t.a2d, status: "requested" },
+      { name: "0xE0d1…3fA8", detail: t.a1w, status: "requested" }
+    ].map((r) => Object.assign({}, r, pillOf(r.status))) : [];
 
     const scopeName = active ? active.name : t.home;
     return {
       t, lang, theme: picks.theme === "dark" ? "dark" : "light", offline, pendingRequest, hasDeposit, isSteward, isEvaluator,
-      screen, sheet, isNone, isFirstRun, several, active, activeId, myGardens, exploreList, scopeAll,
+      screen, sheet, isNone, isFirstRun, several, active, activeId, myGardens, exploreList, pendingGarden,
       composition: picks.composition, aboutPlacement: picks.aboutPlacement, switcherStyle: picks.switcherStyle,
-      activity, activityAll, continueRows, takePart, aboutRows,
+      sections: picks.sections, notif: picks.notif, stickyHeader: picks.header === "sticky", strip: picks.strip, startStep: picks.startStep,
+      activity, activityAll, continueRows, takePart, aboutRows, asks, actions,
       vg, vgMine, vgPending, tabDefs,
-      ywRows, ywDone, ywShowAll, ywOtherCount: ywOther.length,
-      prRows, prTabs, prShowAll, prOtherCount: prOther.length,
+      ywRows, ywDone, prRows, prTabs, notifRows, unread, people, joinRequests,
       chipLabel: isNone ? t.noneChip : active ? active.name : t.chooseGarden,
       chipCaret: !isNone && (several || isFirstRun),
       ywBadge: 2 + (isSteward ? 1 : 0), prBadge: 2,
@@ -411,39 +509,59 @@ button { font: inherit }
   }
 
   // ---------- phone markup ----------
-  function rowHTML(r, actAttr) {
-    const tile = r.scene ? '<span class="tile">' + art(r.scene) + "</span>" : '<span class="tile icontile">' + icon(r.ic || "ic-draft", 28) + "</span>";
-    return '<button type="button" class="row" ' + (actAttr || "") + '><span class="edge ' + r.edgeClass + '"></span>' + tile +
-      '<span class="body"><span class="title">' + esc(r.title) + '</span><span class="pill ' + r.pillClass + '">' + esc(r.pill) + '</span><span class="detail">' + esc(r.detail) + "</span></span>" +
-      '<span class="slot">' + icon("ic-chev", 18) + "</span></button>";
+  function rowHTML(r, actAttr, extra) {
+    const tile = r.scene ? '<span class="tile">' + art(r.scene) + "</span>" : r.avatarOf ? '<span class="tile icontile" style="background: var(--chip-av); color: var(--chip-av-ink)">' + icon("ic-user", 28) + "</span>" : '<span class="tile icontile">' + icon(r.ic || "ic-draft", 28) + "</span>";
+    const slot = r.slotHTML !== undefined ? r.slotHTML : '<span class="slot">' + icon("ic-chev", 18) + "</span>";
+    const tag = r.slotButton ? "div" : "button";
+    const open = r.slotButton ? '<div role="button" tabindex="0" class="row' + (extra || "") + '" ' + (actAttr || "") + ">" : '<button type="button" class="row' + (extra || "") + '" ' + (actAttr || "") + ">";
+    return open + '<span class="edge ' + (r.edgeClass || "") + '"></span>' + tile +
+      '<span class="body"><span class="title">' + esc(r.title) + '</span><span class="pill ' + r.pillClass + '">' + esc(r.pill) + '</span><span class="detail">' + esc(r.detail) + "</span></span>" + slot + "</" + tag + ">";
   }
   function hitHTML(ic, act, label, badge) {
     return '<button type="button" class="hit" ' + (act ? 'data-act="' + act + '"' : "") + ' aria-label="' + esc(label) + '"><span class="ic">' + icon(ic, 16) + (badge ? '<span class="badge">' + badge + "</span>" : "") + "</span></button>";
   }
   function chipHTML(m) {
-    return '<button type="button" class="chip" data-act="switcher" aria-label="' + esc(m.t.chooseGarden) + '"><span class="av">' + icon("ic-seedling", 14) + '</span><span class="lbl">' + esc(m.chipLabel) + "</span>" + (m.chipCaret ? '<span class="caret">' + icon("ic-caret", 12) + "</span>" : "") + "</button>";
+    return '<button type="button" class="chip" data-act="switcher" aria-label="' + esc(m.t.chooseGarden) + '"><span class="av">' + avatar(m.active, 14) + '</span><span class="lbl">' + esc(m.chipLabel) + "</span>" + (m.chipCaret ? '<span class="caret">' + icon("ic-caret", 12) + "</span>" : "") + "</button>";
   }
   function launchersHTML(m) {
-    return '<div class="launchers">' + hitHTML("ic-wallet", "", m.t.wallet) + hitHTML("ic-promise", "promises", m.t.promises, m.isNone ? 0 : m.prBadge) + hitHTML("ic-work", "yourWork", m.t.yourWork, m.isNone ? 0 : m.ywBadge) + "</div>";
+    const bell = m.notif === "bell" && !m.isNone ? hitHTML("ic-bell", "notifications", m.t.notifications, m.unread) : "";
+    return '<div class="launchers">' + bell + hitHTML("ic-wallet", "", m.t.wallet) + hitHTML("ic-promise", "promises", m.t.promises, m.isNone ? 0 : m.prBadge) + hitHTML("ic-work", "yourWork", m.t.yourWork, m.isNone ? 0 : m.ywBadge) + "</div>";
+  }
+  function headerHTML(m, lead) {
+    return '<div class="hdr' + (m.stickyHeader ? " sticky" : "") + '"><div class="lead">' + lead + "</div>" + launchersHTML(m) + "</div>";
   }
   function gardenActionsHTML(m) {
     if (m.aboutPlacement !== "banner" || !m.active) return "";
-    return '<div class="gactions">' + (m.isSteward ? hitHTML("ic-bell", "noop", m.t.notifications, 1) : "") + (m.isSteward ? hitHTML("ic-gov", "noop", m.t.governance) : "") + ((m.isSteward || m.hasDeposit) ? hitHTML("ic-bank", "noop", m.t.endowment) : "") + hitHTML("ic-share", "noop", m.t.share) + "</div>";
+    return '<div class="gactions">' + (m.isSteward ? hitHTML("ic-gov", "noop", m.t.governance) : "") + ((m.isSteward || m.hasDeposit) ? hitHTML("ic-bank", "noop", m.t.endowment) : "") + hitHTML("ic-share", "noop", m.t.share) + "</div>";
   }
   function tabsHTML(defs, current, actPrefix, extraClass) {
     return '<div class="tabs ' + (extraClass || "") + '">' + defs.map((d) => '<button type="button" class="' + (d[0] === current ? "active" : "") + '" data-act="' + actPrefix + ":" + d[0] + '"><span class="tl">' + esc(d[1]) + "</span>" + (d[2] ? '<span class="cnt">' + d[2] + "</span>" : "") + "</button>").join("") + "</div>";
   }
   function metaHTML(m, g) {
-    return '<div class="metacol"><div class="meta"><span style="color: var(--accent-on); display: grid">' + icon("ic-pin", 16) + "</span><span>" + esc(g.place) + '</span></div><div class="meta"><span style="color: var(--accent-on); display: grid">' + icon("ic-cal", 16) + "</span><span>" + esc(m.t.founded) + "</span></div></div>";
+    return '<div class="metacol"><div class="meta"><span style="color: var(--accent-on); display: grid">' + icon("ic-pin", 16) + "</span><span>" + esc(g.place) + '</span></div><div class="meta"><span style="color: var(--accent-on); display: grid">' + icon("ic-cal", 16) + "</span><span>" + esc(fmt(m.t.founded, { d: dateOf(g.created, m.lang) })) + "</span></div></div>";
+  }
+  function seasonHTML(m) {
+    const t = m.t;
+    return '<div class="card season"><div class="sl"><b>' + esc(t.season) + "</b><span>" + esc(t.kept) + '</span></div><div class="ring"><span>0/12</span></div></div>';
+  }
+  function stripHTML(m) {
+    if (m.strip !== "carousel" || !m.active) return "";
+    const t = m.t;
+    const cards = [];
+    cards.push('<button type="button" class="hcard" data-act="insights"><span class="hb"><span class="eyebrow">' + esc(t.seasonShort) + '</span><span class="big">' + esc(t.kept) + '</span><span class="detail">' + esc(fmt(t.daysLeft, { n: 104 })) + "</span></span></button>");
+    cards.push('<button type="button" class="hcard" data-act="openWork"><span class="hm">' + art("sc-people") + '</span><span class="hb"><span class="eyebrow">' + esc(t.recent) + '</span><span class="title">Workshop Delivered</span><span class="pill warn">' + esc(t.pending) + "</span></span></button>");
+    if (m.isSteward) cards.push('<button type="button" class="hcard" data-act="yourWork"><span class="hb"><span class="eyebrow">' + esc(t.toReview) + '</span><span class="big">3</span><span class="detail">' + esc(fmt(t.needsReview, { n: 3 })) + "</span></span></button>");
+    else cards.push('<button type="button" class="hcard" data-act="promises"><span class="hb"><span class="eyebrow">' + esc(t.asked) + '</span><span class="title">Workshop photos</span><span class="detail">' + esc(t.dueJan + " · " + fmt(t.ofN, { a: 0, b: 12 })) + "</span></span></button>");
+    return '<div class="sec" style="padding-top: 8px"><h2>' + esc(t.highlights) + '</h2></div><div class="hscroll">' + cards.join("") + "</div>";
   }
   function sectionsHTML(m) {
     const t = m.t;
     let h = "";
     h += '<div class="sec"><h2>' + esc(t.continueT) + '</h2><button type="button" class="link" data-act="yourWork">' + esc(t.openYourWork) + "</button></div>";
     h += '<div class="list">' + m.continueRows.map((r) => rowHTML(r, 'data-act="' + r.act + '"')).join("") + "</div>";
-    h += '<div class="sec"><h2>' + esc(t.takePart) + '</h2><button type="button" class="link" data-act="seePromises">' + esc(t.seeAll) + "</button></div>";
+    h += '<div class="sec"><h2>' + esc(t.takePart) + '</h2><button type="button" class="link" data-act="promises">' + esc(t.seeAll) + "</button></div>";
     h += '<div class="sub">' + esc(t.season + " · " + t.kept) + "</div>";
-    h += '<div class="list">' + m.takePart.map((r) => rowHTML(r, 'data-act="seePromises"')).join("") + "</div>";
+    h += '<div class="list">' + m.takePart.map((r) => rowHTML(r, 'data-act="promises"')).join("") + "</div>";
     if (m.aboutPlacement === "row") {
       h += '<div class="sec"><h2>' + esc(t.about) + "</h2></div>";
       h += '<div style="padding: 0 16px 8px"><div class="card" style="overflow: hidden">' + m.aboutRows.map((a, i) => '<button type="button" class="fact' + (i === 0 ? " first" : "") + '" data-act="' + a.act + '"><span>' + esc(a.label) + '</span><span class="val"><span>' + esc(a.value) + "</span>" + (a.count ? '<span class="cnt">' + a.count + "</span>" : "") + icon("ic-chev", 18) + "</span></button>").join("") + "</div></div>";
@@ -454,19 +572,17 @@ button { font: inherit }
     const t = m.t;
     let h = "";
     if (m.active && m.composition === "gardenPage") {
-      h += '<div class="banner">' + art(m.active.scene) + '<div class="over">' + chipHTML(m) + '<div class="stack">' + hitHTML("ic-wallet", "", t.wallet) + hitHTML("ic-promise", "promises", t.promises, m.prBadge) + hitHTML("ic-work", "yourWork", t.yourWork, m.ywBadge) + "</div></div></div>";
+      h += '<div class="banner">' + photo(m.active) + '<div class="over">' + chipHTML(m) + '<div class="stack">' + hitHTML("ic-wallet", "", t.wallet) + hitHTML("ic-promise", "promises", t.promises, m.prBadge) + hitHTML("ic-work", "yourWork", t.yourWork, m.ywBadge) + "</div></div></div>";
       h += '<div class="gtitle"><h1>' + esc(m.active.name) + '</h1><div class="metarow">' + metaHTML(m, m.active) + "</div></div>";
       h += tabsHTML(m.tabDefs, nav.gpTab, "gpTab", "gtabs") + '<div style="height: 12px"></div>';
-      if (nav.gpTab === "work") h += '<div class="list">' + m.activityAll.map((r) => rowHTML(r, 'data-act="seeWork"')).join("") + "</div>";
-      else if (nav.gpTab === "pool") h += '<div class="sub">' + esc(t.season + " · " + t.kept) + '</div><div class="list">' + m.takePart.map((r) => rowHTML(r)).join("") + "</div>";
-      else h += '<div class="sub" style="padding-top: 24px; text-align: center">' + esc(nav.gpTab === "insights" ? t.insightsLine : fmt(t.gardenersLine, { n: m.active.members })) + "</div>";
+      h += tabBodyHTML(m, nav.gpTab, m.active);
       return h;
     }
-    h += '<div class="hdr"><div class="lead">' + (m.isNone ? '<h1 class="h1">' + esc(t.home) + "</h1>" : chipHTML(m)) + "</div>" + launchersHTML(m) + "</div>" + gardenActionsHTML(m);
+    h += headerHTML(m, m.isNone ? '<h1 class="h1">' + esc(t.home) + "</h1>" : chipHTML(m)) + gardenActionsHTML(m);
     if (m.isNone) {
       h += '<div style="height: 8px"></div><div class="card promo"><h2>' + esc(t.findTitle) + "</h2><p>" + esc(t.findBody) + '</p><button type="button" class="btn" data-act="explore">' + icon("ic-search", 18) + "<span>" + esc(t.explore) + "</span></button></div>";
       if (m.pendingRequest) {
-        h += '<div class="sec"><h2>' + esc(t.yourRequests) + '</h2></div><div class="list">' + rowHTML({ title: "La Ligne Verte", pill: t.awaiting, pillClass: "warn", edgeClass: "warn", detail: "Grand-Bassam, Côte d’Ivoire", scene: "sc-solar" }, 'data-act="visit:ligne"') + "</div>";
+        h += '<div class="sec"><h2>' + esc(t.yourRequests) + '</h2></div><div class="list">' + rowHTML({ title: m.pendingGarden.name, pill: t.awaiting, pillClass: "warn", edgeClass: "warn", detail: m.pendingGarden.place, ic: "ic-seedling" }, 'data-act="visit:' + m.pendingGarden.id + '"') + "</div>";
       }
       return h;
     }
@@ -475,21 +591,53 @@ button { font: inherit }
       return h;
     }
     if (!m.active) return h;
+    h += stripHTML(m);
     if (m.composition === "journal") {
       h += '<div class="sec"><h2>' + esc(t.recent) + '</h2><button type="button" class="link" data-act="seeWork">' + esc(t.seeAll) + "</button></div>";
-      h += '<div class="list">' + m.activity.map((r) => rowHTML(r, 'data-act="seeWork"')).join("") + "</div>";
+      h += '<div class="list">' + m.activity.map((r) => rowHTML(r, 'data-act="openWork"')).join("") + "</div>";
     } else {
       h += '<div class="sec"><h2>' + esc(t.recent) + '</h2><button type="button" class="link" data-act="seeWork">' + esc(t.moreActivity) + "</button></div>";
-      h += '<div style="padding: 0 16px"><button type="button" class="gcard" data-act="seeWork"><span class="media" style="height: 180px">' + art("sc-people") + '</span><span class="featcap"><span class="title">Workshop Delivered</span><span class="pill warn">' + esc(t.pending) + '</span><span class="detail">abhitant.eth · ' + esc(t.a5h + " · " + t.onePhoto) + "</span></span></button></div>";
+      h += '<div style="padding: 0 16px"><button type="button" class="gcard" data-act="openWork"><span class="media" style="height: 180px">' + art("sc-people") + '</span><span class="featcap"><span class="title">Workshop Delivered</span><span class="pill warn">' + esc(t.pending) + '</span><span class="detail">abhitant.eth · ' + esc(t.a5h + " · " + t.onePhoto) + "</span></span></button></div>";
     }
     h += sectionsHTML(m);
     return h;
   }
+  // The content of one garden section, drawn the same whether it sits in a tab on the garden page or in a sheet over Home.
+  function tabBodyHTML(m, tab, g) {
+    const t = m.t;
+    if (tab === "work") return '<div class="list">' + m.activityAll.map((r) => rowHTML(r, 'data-act="openWork"')).join("") + "</div>";
+    if (tab === "pool") return '<div class="sub">' + esc(t.season + " · " + t.kept) + '</div><div class="list">' + m.takePart.map((r) => rowHTML(r)).join("") + "</div>";
+    if (tab === "insights") return insightsBodyHTML(m, g, true);
+    return gardenersBodyHTML(m, g, true);
+  }
+  function insightsBodyHTML(m, g, padded) {
+    const t = m.t;
+    const pad = padded ? ' style="padding: 0 16px"' : "";
+    let h = '<div class="sec"' + (padded ? "" : ' style="padding-top: 0"') + '><h2>' + esc(t.aboutLabel) + "</h2></div>";
+    h += '<div' + pad + '><p class="para">' + esc(g.desc) + "</p></div>";
+    h += padded ? '<div style="height: 12px"></div>' + seasonHTML(m) : seasonHTML(m).replace('class="card season"', 'class="card season" style="margin: 0"');
+    h += '<div class="sec"><h2>' + esc(t.assessments) + "</h2></div>";
+    const rows = g.id === "tas" ? [{ title: "Season One assessment", detail: "Oct 2 · " + fmt(t.outcomes, { n: 3 }), status: "published", ic: "ic-chart" }] : [];
+    if (rows.length) h += '<div class="list"' + (padded ? "" : ' style="padding: 0"') + ">" + rows.map((r) => rowHTML(Object.assign({}, r, { pill: t.published, pillClass: "ok", edgeClass: "" }), 'data-act="noop"')).join("") + "</div>";
+    else h += '<div class="sub"' + (padded ? "" : ' style="padding: 0"') + ">" + esc(t.noAssess) + "</div>";
+    return h;
+  }
+  function gardenersBodyHTML(m, g, padded) {
+    const t = m.t;
+    const listStyle = padded ? "" : ' style="padding: 0"';
+    let h = "";
+    if (m.joinRequests.length && g.id === m.activeId) {
+      h += '<div class="sec"' + (padded ? "" : ' style="padding-top: 0"') + '><h2>' + esc(t.joinRequests) + '</h2><span class="cnt">' + m.joinRequests.length + "</span></div>";
+      h += '<div class="list"' + listStyle + ">" + m.joinRequests.map((r) => rowHTML({ title: r.name, detail: r.detail, pill: r.pill, pillClass: r.pillClass, edgeClass: r.edgeClass, avatarOf: true, slotButton: true, slotHTML: '<span class="slot"><button type="button" class="btn compact" data-act="noop">' + esc(t.approve) + "</button></span>" }, 'data-act="noop"')).join("") + "</div>";
+    }
+    h += '<div class="sec"' + (!h && !padded ? ' style="padding-top: 0"' : "") + '><h2>' + esc(t.gardeners) + "</h2><span class=\"sub\" style=\"padding: 0\">" + esc(fmt(t.membersStewards, { n: g.members, s: g.stewards })) + "</span></div>";
+    h += '<div class="list"' + listStyle + ">" + m.people.map((p) => rowHTML({ title: p.name, detail: fmt(t.since, { d: monthOf(p.since, m.lang) }), pill: p.role === "steward" ? t.steward : t.gardener, pillClass: p.role === "steward" ? "ok" : "neu", edgeClass: "", avatarOf: true }, 'data-act="noop"')).join("") + "</div>";
+    return h;
+  }
   function exploreHTML(m) {
     const t = m.t;
-    return '<div class="topnav">' + hitHTML("ic-back", "home", t.back) + '<div class="mid">' + esc(t.explore) + "</div>" + hitHTML("ic-filter", "noop", t.filters) + "</div>" +
-      '<div class="sub" style="padding-bottom: 12px">' + esc(t.exploreSub) + '</div><div class="list">' +
-      m.exploreList.map((g) => '<button type="button" class="gcard" data-act="visit:' + g.id + '"><span class="media" style="height: 120px">' + art(g.scene) + '</span><span class="gb"><span class="gname">' + esc(g.name) + '</span><span class="gmeta">' + esc(g.meta) + "</span>" + (g.pill ? '<span class="pill ' + g.pillClass + '">' + esc(g.pill) + "</span>" : "") + "</span></button>").join("") + "</div>";
+    return '<div class="topnav">' + hitHTML("ic-back", "home", t.back) + '<div class="mid">' + esc(t.explore) + "</div>" + hitHTML("ic-filter", "noop", t.filters) + '</div><div style="height: 8px"></div><div class="list">' +
+      m.exploreList.map((g) => '<button type="button" class="gcard" data-act="visit:' + g.id + '"><span class="media" style="height: 120px">' + photo(g) + (g.tag ? '<span class="tag">' + esc(g.tag) + "</span>" : "") + '</span><span class="gb"><span class="gname">' + esc(g.name) + '</span><span class="gmeta">' + esc(g.meta) + "</span></span></button>").join("") + "</div>";
   }
   function gardenHTML(m) {
     const t = m.t; const g = m.vg;
@@ -498,69 +646,87 @@ button { font: inherit }
     else if (m.vgPending) action = '<span class="pill warn">' + esc(t.awaiting) + "</span>";
     else if (g.open) action = '<button type="button" class="btn compact" data-act="noop">' + esc(t.joinGarden) + "</button>";
     else action = '<button type="button" class="btn compact secondary" data-act="noop">' + esc(t.requestJoin) + "</button>";
-    let h = '<div class="banner">' + art(g.scene) + '<div class="over">' + hitHTML("ic-back", "back", t.back) + '<div class="stack">' + (m.vgMine && m.isSteward && g.id === "tas" ? hitHTML("ic-bell", "noop", t.notifications, 1) : "") + hitHTML("ic-share", "noop", t.share) + "</div></div></div>";
+    let h = '<div class="banner">' + photo(g) + '<div class="over">' + hitHTML("ic-back", "back", t.back) + '<div class="stack">' + hitHTML("ic-share", "noop", t.share) + "</div></div></div>";
     h += '<div class="gtitle"><h1>' + esc(g.name) + '</h1><div class="metarow">' + metaHTML(m, g) + action + "</div></div>";
     h += tabsHTML(m.tabDefs, nav.vgTab, "vgTab", "gtabs") + '<div style="height: 12px"></div>';
-    if (nav.vgTab === "work") h += '<div class="list">' + m.activityAll.map((r) => rowHTML(r)).join("") + "</div>";
-    else if (nav.vgTab === "pool") h += '<div class="sub">' + esc(t.season + " · " + t.kept) + '</div><div class="list">' + m.takePart.map((r) => rowHTML(r)).join("") + "</div>";
-    else h += '<div class="sub" style="padding-top: 24px; text-align: center">' + esc(nav.vgTab === "insights" ? t.insightsLine : fmt(t.gardenersLine, { n: g.members })) + "</div>";
+    h += tabBodyHTML(m, nav.vgTab, g);
     return h;
   }
   function submitHTML(m) {
     const t = m.t;
     const steps = [t.stStart, t.stMedia, t.stDetails, t.stReview].map((s, i) => '<div class="step' + (i === 0 ? " active" : "") + '"><span class="dot">' + (i + 1) + "</span><span>" + esc(s) + "</span></div>").join("");
     const domains = [["solar", t.dSolar], ["agro", t.dAgro], ["edu", t.dEdu], ["waste", t.dWaste]];
+    const selAction = nav.actionSel || (nav.promiseSel ? (m.asks.find((a) => a.id === nav.promiseSel) || {}).action : null);
+    const cards = '<div class="hscroll">' + m.actions.map((a) => '<button type="button" class="acard' + (selAction === a.id ? " selected" : "") + '" data-act="pickAction:' + a.id + '"><span class="media">' + art(a.scene) + '</span><span class="ab"><h4>' + esc(a.title) + "</h4><p>" + esc(a.desc) + "</p></span></button>").join("") + "</div>";
+    const pin = m.active ? '<div class="pin"><span class="av2">' + avatar(m.active, 18) + '</span><span class="ptxt"><span class="eyebrow">' + esc(t.workFor) + '</span><span class="pn">' + esc(m.active.name) + "</span></span></div>" : '<div class="card promo"><h2>' + esc(t.joinCommunity) + "</h2><p>" + esc(t.joinCommunityBody) + '</p><button type="button" class="btn" data-act="noop">' + esc(t.joinGarden) + "</button></div>";
     let h = '<div class="topnav">' + hitHTML("ic-back", "home", t.back) + '<div class="steps">' + steps + '</div><div style="width: 48px"></div></div>';
-    h += tabsHTML(domains, nav.domain, "domain") + '<div style="height: 16px"></div>';
-    h += '<div class="info"><span class="ic">' + icon("ic-hammer", 22) + "</span><div><h3>" + esc(t.selectAction) + "</h3><p>" + esc(t.whatType) + "</p></div></div>" + '<div style="height: 12px"></div>';
-    h += '<div class="hscroll"><div class="acard"><div class="media">' + art("sc-solar") + '</div><div class="ab"><h4>Node Operation Log</h4><p>' + esc(t.action1d) + '</p></div></div><div class="acard"><div class="media">' + art("sc-compost") + '</div><div class="ab"><h4>' + esc(t.action2) + "</h4><p>" + esc(t.action2d) + "</p></div></div></div>" + '<div style="height: 16px"></div>';
-    if (m.active) h += '<div class="pin"><span class="av2">' + icon("ic-seedling", 18) + '</span><span class="ptxt"><span class="eyebrow">' + esc(t.workFor) + '</span><span class="pn">' + esc(m.active.name) + '</span></span><button type="button" class="link" data-act="switcher">' + esc(t.changeGarden) + "</button></div>";
-    else h += '<div class="card promo"><h2>' + esc(t.joinCommunity) + "</h2><p>" + esc(t.joinCommunityBody) + '</p><button type="button" class="btn" data-act="noop">' + esc(t.joinGarden) + "</button></div>";
+    if (m.startStep === "promises" && m.active) {
+      h += pin;
+      h += '<div class="sec"><h2>' + esc(t.keepPromise) + '</h2><button type="button" class="link" data-act="promises">' + esc(t.seeAll) + "</button></div>";
+      h += '<div class="list">' + m.asks.map((a) => rowHTML(Object.assign({}, a, { slotHTML: '<span class="slot">' + (nav.promiseSel === a.id ? '<span style="color: var(--accent-on); display: grid">' + icon("ic-check", 20) + "</span>" : "") + "</span>" }), 'data-act="pickPromise:' + a.id + '"', nav.promiseSel === a.id ? " selected" : "")).join("") + "</div>";
+      h += '<div class="sec"><h2>' + esc(t.otherWork) + "</h2></div>";
+      h += tabsHTML(domains, nav.domain, "domain") + '<div style="height: 12px"></div>' + cards;
+    } else {
+      h += pin + '<div style="height: 16px"></div>';
+      h += tabsHTML(domains, nav.domain, "domain") + '<div style="height: 16px"></div>';
+      h += '<div class="info"><span class="ic">' + icon("ic-hammer", 22) + "</span><div><h3>" + esc(t.selectAction) + "</h3><p>" + esc(t.whatType) + "</p></div></div>" + '<div style="height: 12px"></div>' + cards;
+      if (m.active) h += '<div style="height: 16px"></div><div style="padding: 0 16px"><div class="card" style="overflow: hidden"><button type="button" class="fact first" data-act="promises"><span>' + esc(t.forPromise) + '</span><span class="val"><span>' + esc(t.optional) + "</span>" + icon("ic-chev", 18) + "</span></button></div></div>";
+    }
     h += '<div style="height: 24px"></div>';
     return h;
   }
   function switcherHTML(m) {
     const t = m.t;
-    const rows = m.myGardens.map((g) => '<button type="button" class="grow' + (g.isActive ? " active" : "") + '" data-act="pick:' + g.id + '"><span class="av2">' + icon("ic-seedling", 18) + '</span><span class="gtxt"><span class="nm">' + esc(g.name) + '</span><span class="gs">' + esc(g.place) + '</span></span><span class="rolechip">' + esc(g.roleLabel) + "</span>" + (g.isActive ? '<span style="color: var(--accent-on); display: grid">' + icon("ic-check", 20) + "</span>" : "") + "</button>").join("");
-    const explore = '<button type="button" class="grow" data-act="explore"><span class="av2" style="background: var(--neu-bg); color: var(--strong)">' + icon("ic-search", 18) + '</span><span class="gtxt"><span class="nm">' + esc(t.explore) + '</span><span class="gs">' + esc(t.exploreSub) + '</span></span><span class="slot">' + icon("ic-chev", 18) + "</span></button>";
+    const rows = m.myGardens.map((g) => '<button type="button" class="grow' + (g.isActive ? " active" : "") + '" data-act="pick:' + g.id + '"><span class="av2">' + avatar(g, 18) + '</span><span class="gtxt"><span class="nm">' + esc(g.name) + '</span><span class="gs">' + esc(g.place) + '</span></span><span class="rolechip">' + esc(g.roleLabel) + "</span>" + (g.isActive ? '<span style="color: var(--accent-on); display: grid">' + icon("ic-check", 20) + "</span>" : "") + "</button>").join("");
+    const explore = '<button type="button" class="grow" data-act="explore"><span class="av2" style="background: var(--neu-bg); color: var(--strong)">' + icon("ic-search", 18) + '</span><span class="gtxt"><span class="nm">' + esc(t.explore) + '</span><span class="gs">' + esc(t.exploreRow) + '</span></span><span class="slot">' + icon("ic-chev", 18) + "</span></button>";
     const aboutInMenu = (m.aboutPlacement === "menu" && m.active) ? '<div class="divider"></div><div class="sub" style="padding: 4px 12px">' + esc(t.about) + "</div>" + m.aboutRows.map((a) => '<button type="button" class="grow" style="height: 44px" data-act="' + a.act + '"><span class="gtxt"><span class="nm" style="font-weight: 500">' + esc(a.label) + '</span></span><span class="slot">' + (a.count ? '<span class="cnt">' + a.count + "</span>" : "") + icon("ic-chev", 18) + "</span></button>").join("") : "";
     if (m.switcherStyle === "popover" && !m.isFirstRun) {
       return '<button type="button" class="scrim clear" data-act="close" aria-label="' + esc(t.close) + '"></button><div class="menu" role="dialog">' + rows + '<div class="divider"></div>' + explore + aboutInMenu + "</div>";
     }
-    return '<button type="button" class="scrim" data-act="close" aria-label="' + esc(t.close) + '"></button><div class="sheet" role="dialog" aria-modal="true"><div class="grip"></div><div class="shead"><div><h2 class="stitle">' + esc(m.isFirstRun ? t.chooseGarden : t.yourGardens) + '</h2><p class="sdesc">' + esc(m.isFirstRun ? t.chooseBody : fmt(t.belongTo, { n: m.myGardens.length })) + '</p></div><button type="button" class="close" data-act="close" aria-label="' + esc(t.close) + '">' + icon("ic-close", 22) + '</button></div><div class="sbody" style="gap: 4px">' + rows + '<div class="divider"></div>' + explore + aboutInMenu + "</div></div>";
+    const tier = aboutInMenu ? "" : " half";
+    return '<button type="button" class="scrim" data-act="close" aria-label="' + esc(t.close) + '"></button><div class="sheet' + tier + '" role="dialog" aria-modal="true"><div class="grip"></div><div class="shead"><div><h2 class="stitle">' + esc(m.isFirstRun ? t.chooseGarden : t.yourGardens) + '</h2><p class="sdesc">' + esc(m.isFirstRun ? t.chooseBody : fmt(t.belongTo, { n: m.myGardens.length })) + '</p></div><button type="button" class="close" data-act="close" aria-label="' + esc(t.close) + '">' + icon("ic-close", 22) + '</button></div><div class="sbody" style="gap: 4px">' + rows + '<div class="divider"></div>' + explore + aboutInMenu + "</div></div>";
   }
   function sheetHTML(m, kind) {
     const t = m.t;
-    const title = kind === "yourWork" ? t.yourWork : t.promises;
-    const showAll = kind === "yourWork" ? m.ywShowAll : m.prShowAll;
-    const desc = showAll ? t.allGardens : fmt(t.inGarden, { g: m.scopeName });
-    let tabs, body;
+    const inG = fmt(t.inGarden, { g: m.scopeName });
+    let title, desc = inG, tabs = "", body = "";
     if (kind === "yourWork") {
+      title = t.yourWork;
       tabs = tabsHTML([["pending", t.pendingTab, m.ywBadge], ["completed", t.completedTab, 0]], nav.ywTab, "ywTab");
-      if (nav.ywTab === "pending") {
-        body = '<div class="countline"><span>' + esc(fmt(t.items, { n: m.ywRows.length })) + '</span><button type="button" class="link" data-act="noop">' + esc(t.uploadAll) + "</button></div>" + m.ywRows.map((r) => rowHTML(r)).join("");
-        if (m.several && !m.scopeAll) body += '<button type="button" class="fact first" data-act="ywAll" style="border: 1px solid var(--line); border-radius: 16px; margin-top: 4px"><span>' + esc(nav.ywAll ? fmt(t.onlyGarden, { g: m.scopeName }) : t.alsoOther + " (" + m.ywOtherCount + ")") + '</span><span class="val">' + icon("ic-chev", 18) + "</span></button>";
-      } else body = m.ywDone.map((r) => rowHTML(r)).join("");
-    } else {
+      body = nav.ywTab === "pending" ? '<div class="countline"><span>' + esc(fmt(t.items, { n: m.ywRows.length })) + '</span><button type="button" class="link" data-act="noop">' + esc(t.uploadAll) + "</button></div>" + m.ywRows.map((r) => rowHTML(r, 'data-act="openWork"')).join("") : m.ywDone.map((r) => rowHTML(r, 'data-act="openWork"')).join("");
+    } else if (kind === "promises") {
+      title = t.promises;
       tabs = tabsHTML(m.prTabs, nav.prTab, "prTab");
-      body = m.prRows.map((r) => rowHTML(r)).join("");
-      if (m.several && !m.scopeAll) body += '<button type="button" class="fact first" data-act="prAll" style="border: 1px solid var(--line); border-radius: 16px; margin-top: 4px"><span>' + esc(nav.prAll ? fmt(t.onlyGarden, { g: m.scopeName }) : t.alsoOther + " (" + m.prOtherCount + ")") + '</span><span class="val">' + icon("ic-chev", 18) + "</span></button>";
+      body = m.prRows.map((r) => rowHTML(r, 'data-act="noop"')).join("");
+    } else if (kind === "notifications") {
+      title = t.notifications; desc = m.unread ? fmt(t.nNew, { n: m.unread }) + " · " + inG : inG;
+      body = m.notifRows.map((r) => rowHTML(r, 'data-act="' + r.act + '"')).join("");
+    } else if (kind === "work") {
+      title = t.work;
+      const pendingRows = m.activityAll.filter((r) => r.status === "pending");
+      tabs = tabsHTML([["all", t.allTab, 0], ["pending", t.pendingTab, pendingRows.length]], nav.wkTab, "wkTab");
+      body = (nav.wkTab === "pending" ? pendingRows : m.activityAll).map((r) => rowHTML(r, 'data-act="openWork"')).join("");
+    } else if (kind === "insights") {
+      title = t.insights;
+      body = insightsBodyHTML(m, m.active || m.vg, false);
+    } else {
+      title = t.gardeners; desc = fmt(t.membersStewards, { n: (m.active || m.vg).members, s: (m.active || m.vg).stewards });
+      body = gardenersBodyHTML(m, m.active || m.vg, false);
     }
     return '<button type="button" class="scrim" data-act="close" aria-label="' + esc(t.close) + '"></button><div class="sheet full" role="dialog" aria-modal="true"><div class="grip"></div><div class="shead"><div><h2 class="stitle">' + esc(title) + '</h2><p class="sdesc">' + esc(desc) + '</p></div><button type="button" class="close" data-act="close" aria-label="' + esc(t.close) + '">' + icon("ic-close", 22) + "</button></div>" + tabs + '<div class="sbody">' + body + "</div></div>";
   }
   function phoneHTML(m, w, h) {
     const t = m.t;
-    let inner = m.offline ? '<div class="offl">' + icon("ic-offline", 14) + "<span>" + esc(t.offlineLine) + "</span></div>" : "";
+    let inner = "";
     if (m.screen === "home") inner += homeHTML(m);
     else if (m.screen === "explore") inner += exploreHTML(m);
     else if (m.screen === "garden") inner += gardenHTML(m);
     else if (m.screen === "submit") inner += submitHTML(m);
-    let overlay = "";
+    let overlay = m.offline ? '<div class="offl" role="status">' + icon("ic-offline", 12) + "<span>" + esc(t.offlineLine) + "</span></div>" : "";
     if (m.showBar) overlay += '<nav class="bar" aria-label="App"><button type="button" class="tab active" data-act="home"><span class="pillbg">' + icon("ic-home", 24) + "</span><span>" + esc(t.home) + '</span></button><button type="button" class="tab" data-act="submit"><span class="pillbg">' + icon("ic-plant", 24) + "</span><span>" + esc(t.garden) + '</span></button><button type="button" class="tab" data-act="noop"><span class="pillbg">' + icon("ic-user", 24) + "</span><span>" + esc(t.profile) + "</span></button></nav>";
     if (m.screen === "submit") overlay += '<div class="flow"><button type="button" class="btn" data-act="noop">' + esc(t.start) + " " + icon("ic-chev", 18) + "</button></div>";
     if (m.sheet === "switcher") overlay += switcherHTML(m);
-    if (m.sheet === "yourWork") overlay += sheetHTML(m, "yourWork");
-    if (m.sheet === "promises") overlay += sheetHTML(m, "promises");
+    else if (m.sheet) overlay += sheetHTML(m, m.sheet);
     return '<div class="frame" data-theme="' + m.theme + '" style="width: ' + w + 'px; height: ' + h + 'px"><div class="screen">' + inner + "</div>" + overlay + "</div>";
   }
 
@@ -590,7 +756,7 @@ button { font: inherit }
     return "Lab picks: " + CONTROLS.filter((c) => c.group !== "Stage").map((c) => { const o = c.opts.find((x) => x[0] === picks[c.key]); return c.label + ": " + (o ? o[1] : picks[c.key]); }).join("; ");
   }
   function setPick(key, val) {
-    const scenario = ["membership", "role", "screen", "firstRun"];
+    const scenario = ["membership", "role", "screen", "firstRun", "sections", "startStep"];
     picks[key] = val;
     if (scenario.includes(key)) nav = freshNav();
     save(); renderRail(); renderStage();
@@ -610,31 +776,37 @@ button { font: inherit }
       if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback); else fallback();
     }
   });
+  // A sticky header earns its hairline once the journal has scrolled under it.
+  stage.addEventListener("scroll", (e) => { const s = e.target; if (s && s.classList && s.classList.contains("screen")) { const h = s.querySelector(".hdr.sticky"); if (h) h.classList.toggle("scrolled", s.scrollTop > 4); } }, true);
   stage.addEventListener("click", (e) => {
     const b = e.target.closest("[data-act]");
     if (!b) return;
     const act = b.dataset.act;
     const m = model();
-    if (act === "noop") return;
+    const openSection = (tab) => {
+      if (!m.active) { nav.screen = "explore"; nav.sheet = null; return; }
+      if (m.sections === "sheets" && m.composition !== "gardenPage") { nav.sheet = tab === "pool" ? "promises" : tab; return; }
+      nav.screen = "garden"; nav.visitingId = m.active.id; nav.vgTab = tab; nav.sheet = null;
+    };
+    if (act === "noop" || act === "openWork") return;
     else if (act === "home") nav.screen = "home", nav.sheet = null;
     else if (act === "explore") nav.screen = "explore", nav.sheet = null;
     else if (act === "submit") nav.screen = "submit", nav.sheet = null;
     else if (act === "switcher") nav.sheet = "switcher";
-    else if (act === "yourWork") nav.sheet = "yourWork";
-    else if (act === "promises") nav.sheet = "promises";
+    else if (act === "yourWork" || act === "promises" || act === "notifications") nav.sheet = act;
     else if (act === "close") nav.sheet = null, nav.dismissed = true;
     else if (act === "back") nav.screen = m.isNone ? "explore" : "home";
-    else if (act === "ywAll") nav.ywAll = !nav.ywAll;
-    else if (act === "prAll") nav.prAll = !nav.prAll;
-    else if (act === "seeWork") { if (m.active) { nav.screen = "garden"; nav.visitingId = m.active.id; nav.vgTab = "work"; nav.sheet = null; } else nav.screen = "explore"; }
-    else if (act === "seePromises") { if (m.active) { nav.screen = "garden"; nav.visitingId = m.active.id; nav.vgTab = "pool"; nav.sheet = null; } else nav.screen = "explore"; }
-    else if (act === "insights" || act === "gardeners") { if (m.active) { nav.screen = "garden"; nav.visitingId = m.active.id; nav.vgTab = act; nav.sheet = null; } }
+    else if (act === "seeWork") openSection("work");
+    else if (act === "insights" || act === "gardeners") openSection(act);
     else if (act.startsWith("pick:")) { nav.activeId = act.slice(5); nav.sheet = null; }
     else if (act.startsWith("visit:")) { nav.screen = "garden"; nav.visitingId = act.slice(6); nav.vgTab = "work"; nav.sheet = null; }
+    else if (act.startsWith("pickPromise:")) { const id = act.slice(12); nav.promiseSel = nav.promiseSel === id ? null : id; nav.actionSel = null; }
+    else if (act.startsWith("pickAction:")) { const id = act.slice(11); nav.actionSel = nav.actionSel === id ? null : id; nav.promiseSel = null; }
     else if (act.startsWith("gpTab:")) nav.gpTab = act.slice(6);
     else if (act.startsWith("vgTab:")) nav.vgTab = act.slice(6);
     else if (act.startsWith("ywTab:")) nav.ywTab = act.slice(6);
     else if (act.startsWith("prTab:")) nav.prTab = act.slice(6);
+    else if (act.startsWith("wkTab:")) nav.wkTab = act.slice(6);
     else if (act.startsWith("domain:")) nav.domain = act.slice(7);
     renderStage();
   });
@@ -642,4 +814,5 @@ button { font: inherit }
   renderPresets(); renderRail(); renderStage();
 })();
 </script>
-</body></html>
+</body>
+</html>

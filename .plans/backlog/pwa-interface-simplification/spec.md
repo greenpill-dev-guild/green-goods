@@ -2,7 +2,7 @@
 
 **Status:** scope locked on 18 October 2026. The decisions at the end are the maintainer's; the
 proposals above them record how they were reached.
-**Evidence date:** 2026-10-06, rechecked on 2026-10-18 against develop `eeda2d4e5`. Code
+**Evidence date:** 2026-10-06, rechecked on 2026-10-18 against develop `eeda2d4e5`; gardens read from the production indexer on 2026-10-19. Code
 references describe the inspected working tree, not a deployment certification. Recheck them when
 implementation starts, particularly where concurrent work lands.
 
@@ -175,7 +175,7 @@ replace the real action schema.
 submission action. Submission, review, confirmation, and reward statuses remain distinct.
 
 Example copy for exploration: “Recent activity”, “Continue your work”, “Resume draft”, “Waiting
-for review”, “Take part”, and “Change garden”. Final labels must be reconciled with existing i18n
+for review”, “Take part”. Final labels must be reconciled with existing i18n
 and the PWA design decisions before implementation.
 
 ## Context and recovery rules to specify before code
@@ -242,9 +242,10 @@ The maintainer answered the open questions on 18 October after the findings abov
    gardens. A depositor keeps Endowment on the garden page and has no place in the switcher.
 3. **Composition.** The compact journal: recent activity, Continue, Take part, then one About row.
    Featured activity and the promoted garden page stay as lab variants to compare against.
-4. **Sheet scope.** Promises and Your Work open scoped to the active garden, with an "Also in other
-   gardens" row that widens the list and names the garden on each extra row. The header badge keeps
-   counting everything on this phone (DL-061). This differs from the recommendation.
+4. **Sheet scope.** Promises and Your Work open scoped to the active garden and show nothing from
+   other gardens. Revised on 19 October: the maintainer removed the "Also in other gardens" row so
+   a sheet never mixes gardens. The header badge keeps counting everything on this phone (DL-061)
+   until the badge question in the review round below is answered.
 5. **About and management.** One About row at the end of Home for now: Insights, Gardeners,
    Share, Endowment for stewards and depositors, Governance when configured. Steward and evaluator
    duties surface in Continue. The garden page keeps its banner actions for visitors. Review the
@@ -262,6 +263,41 @@ Role descriptions and current capability predicates differ in one place: the ont
 evaluators do not approve work, while the garden page lets an on-chain evaluator review. The lock
 does not resolve that policy; the Home duties row for an evaluator points at Insights, and any
 change to review authority returns to its owner.
+
+## Review round on 19 October 2026
+
+The maintainer reviewed the lab against the lock and against the unification picks that reached
+develop on 18 October, and the lab was rebuilt on the gardens the production indexer lists on
+Arbitrum One, with their own banners ([artifacts](artifacts/README.md)). What the review settled:
+
+1. **Pictures.** A garden card, the chip, a switcher row and the pinned Work-for card show the
+   garden's banner; a garden without one draws the app's fallback tile.
+2. **Explore.** No line above the list. The gardens the app lists, the member's own first, every
+   card at one height with one tag on the photo: Member, Awaiting review or Open.
+3. **Test gardens.** The two family gardens the app keeps off the public lists (Aiyeloja Family
+   Garden and Mama Gardens) show in Explore and the switcher only to their members.
+4. **Switcher.** The half sheet, not the tall one.
+5. **Sheets.** Decision 4 revised: Promises and Your Work show the active garden only, with no
+   widening row. Open consequence: the badge counts everything on this phone, so a queued upload
+   for another garden counts on the badge but is not in the list until the chip switches.
+6. **Submit Work.** The garden is pinned and named, with no control to change it. A member who
+   wants to submit elsewhere switches the chip on Home first. A promise link and a resumed draft
+   keep their own garden, and the pin shows it.
+7. **Offline.** The shell's strip lies over the header's top padding and moves nothing, as it does
+   in the app today. The chip is 32px tall so the row keeps the compact icon buttons' height.
+8. **Dark mode.** The primary button keeps dark text on the mint fill; the first lab let a
+   lower-specificity rule override it, which is fixed.
+9. **Garden sections.** The garden page with its tabs is not where Insights, Gardeners or See all
+   should open from Home. The lab draws each as a tall sheet over Home (Work, Insights, Gardeners)
+   with the section's content under the one shared sheet header; a garden the member visits keeps
+   its page. The maintainer asked for this to be discussed and explored before it is locked.
+
+Under review, each drawn in the lab as an opt-in tweak with the lock as the default: a
+notifications bell in the slot the filter button leaves, with a sheet of what is new in this
+garden; a sticky header on Home; a Highlights carousel above Recent activity; and a promises-first
+Start step in Submit Work, where the garden's open asks lead and one row picks the promise and its
+action together. The questions put to the maintainer are in the Linear thread. None of these joins
+the lock until answered.
 
 ## Persistence and state architecture
 
