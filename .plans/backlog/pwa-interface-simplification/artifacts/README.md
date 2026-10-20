@@ -19,8 +19,8 @@ Explore gardens, the sheets and the bottom bar. Both phones follow the same taps
 | Endowment deposit, Pending request, Connection | A depositor's Endowment row; a request to join Vida Verde awaiting review; the shell's offline strip laid over the header's top padding, with nothing below it moving. |
 | Start screen | Home, the switcher, Explore, a garden you visit, Submit Work, and the Your Work, Promises, Notifications, Work, Insights and Gardeners sheets. |
 | Composition, Activity rows, Continue rows | Compact journal, featured activity or the promoted garden page; how many rows each section shows. |
-| Header, Top strip | The chip row sticky at the top while the journal scrolls, or scrolling away; an optional Highlights carousel above Recent activity. |
-| Variations | The switcher as a half sheet or a menu under the chip; About as a row, inside the switcher or as header icons; the first-run chooser opening by itself or a prompt only; garden sections as sheets over Home or today's garden page; a notifications bell in the header or none; Submit Work's first step with the garden's open asks first or today's action-first order. |
+| Header, Top strip, Rows | The chip row sticky at the top while the journal scrolls, or scrolling away; an optional Highlights carousel above Recent activity; Home's rows as the locked cards, one grouped surface per section, or open rows with no boxes (an exploration for the 20 October discussion). |
+| Variations | The switcher as a half sheet or a menu under the chip; About as a row, inside the switcher or as header icons; the first-run chooser opening by itself or a prompt only; garden sections as sheets over Home or today's garden page; a notifications bell in the header or none; Submit Work's first step with the garden's open asks first or today's action-first order; Submit Work naming its garden in a pinned card, one line, or not at all (an exploration for the 20 October discussion). |
 | Copy picks | Copies the current picks as one line of text for a note, a review or the specification. |
 
 The picks persist in the browser's local storage under `gg-pwa-home-lab-v2`.
