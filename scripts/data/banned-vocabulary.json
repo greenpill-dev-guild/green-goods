@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "description": "Machine-readable source for Green Goods vocabulary enforcement. The linter reads linter_enforced, renamed_terms, and us_spelling; the docs audit and the agent copy test read us_spelling. Prompt-only lists guide design agents and are projected into the public glossary.",
+  "description": "Machine-readable source for Green Goods vocabulary enforcement. The linter reads linter_enforced, renamed_terms, and us_spelling; the docs audit reads us_spelling; the agent's copy tests read us_spelling, linter_enforced, and renamed_terms for the chat copy. Prompt-only lists guide design agents and are projected into the public glossary.",
   "linter_enforced": {
-    "scope": "user-facing strings in i18n JSON message values",
+    "scope": "user-facing strings in i18n JSON message values, and the agent's chat copy in every language (its i18n test)",
     "globs": [
       "packages/shared/src/i18n/*.json",
       "packages/client/src/i18n/*.json",
@@ -21,7 +21,7 @@
     "rationale": "These terms signal growth-hacking or FOMO patterns that conflict with the regenerative design review lens. See DESIGN.md and .claude/skills/design/review-checklist.md."
   },
   "renamed_terms": {
-    "scope": "user-facing strings and keys in i18n JSON message catalogs",
+    "scope": "user-facing strings and keys in i18n JSON message catalogs, and the agent's chat copy (its i18n and locale-terms tests)",
     "globs": [
       "packages/shared/src/i18n/*.json",
       "packages/client/src/i18n/*.json",
@@ -241,7 +241,7 @@
     },
     {
       "path": "packages/agent/src/__tests__/i18n.test.ts",
-      "reads": "us_spelling for the agent's English chat copy"
+      "reads": "us_spelling for the agent's English chat copy, and linter_enforced and renamed_terms for its copy in every language"
     },
     {
       "path": "packages/agent/src/__tests__/locale-terms.test.ts",

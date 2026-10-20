@@ -4,16 +4,20 @@
 // (DESIGN.md § Voice & Copy): a sentence that wants one is restructured with a period, colon,
 // comma, or parentheses.
 //
-// Reads every message value in the i18n catalogs, every docs/docs page, and every design guide:
-// each DESIGN*.md at the repo root, in docs, and in each package, and the design skill's pages. A
-// page named *.generated.mdx, or generated from the ontology (its generated_from frontmatter lists
-// an ontology source), keeps the ontology's punctuation and is skipped. Fenced code and inline code
-// spans are code, not copy. In docs pages and guides an HTML entity for the em dash counts as one.
+// Reads every message value in the i18n catalogs, the agent's chat copy, every docs/docs page, and
+// every design guide: each DESIGN*.md at the repo root, in docs, and in each package, and the design
+// skill's pages. The chat copy is the string values of the blocks packages/agent/scripts/chat-copy.mjs
+// lists, read the way the agent's copy tests read them: comments, object keys, and values compared
+// against are code, and an escaped em dash counts as one. A page named *.generated.mdx, or generated
+// from the ontology (its generated_from frontmatter lists an ontology source), keeps the ontology's
+// punctuation and is skipped. Fenced code and inline code spans are code, not copy. In docs pages
+// and guides an HTML entity for the em dash counts as one.
 //
 // Runs as `bun run check --only em-dashes` from the repo root.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { readChatCopy } from "../../packages/agent/scripts/chat-copy.mjs";
 
 const scriptPath = fileURLToPath(import.meta.url);
 const repoRoot = path.resolve(path.dirname(scriptPath), "../..");
@@ -42,6 +46,15 @@ export function catalogHits(relativePath, text) {
   return Object.entries(JSON.parse(text))
     .filter(([, value]) => typeof value === "string" && value.includes(EM_DASH))
     .map(([key, value]) => `${relativePath}: ${key}: ${excerpt(value, value.indexOf(EM_DASH))}`);
+}
+
+/** One failure per chat copy string that carries an em dash, named by its file and line. */
+export function chatCopyHits(blocks) {
+  return blocks.flatMap(({ file, strings }) =>
+    strings
+      .filter(({ text }) => text.includes(EM_DASH))
+      .map(({ text, line }) => `${file}:${line}: ${excerpt(text, text.indexOf(EM_DASH))}`),
+  );
 }
 
 /** One failure per docs line whose prose (outside code) carries an em dash or its entity. */
@@ -111,6 +124,8 @@ export function scanRepository(root) {
   for (const relativePath of CATALOGS) {
     failures.push(...catalogHits(relativePath, fs.readFileSync(path.join(root, relativePath), "utf8")));
   }
+  const chatCopy = readChatCopy(root);
+  failures.push(...chatCopyHits(chatCopy));
   let pages = 0;
   let skipped = 0;
   for (const file of docsPages(path.join(root, DOCS_ROOT))) {
@@ -127,15 +142,18 @@ export function scanRepository(root) {
   for (const relativePath of guides) {
     failures.push(...docsHits(relativePath, fs.readFileSync(path.join(root, relativePath), "utf8")));
   }
-  return { failures, pages, skipped, guides: guides.length };
+  const chatFiles = new Set(chatCopy.map(({ file }) => file)).size;
+  return { failures, chatFiles, pages, skipped, guides: guides.length };
 }
 
 function main() {
   try {
     if (process.argv.length > 2) throw new Error(`unknown argument: ${process.argv[2]}`);
-    const { failures, pages, skipped, guides } = scanRepository(repoRoot);
+    const { failures, chatFiles, pages, skipped, guides } = scanRepository(repoRoot);
     if (failures.length > 0) {
-      console.error(`check-em-dashes: ${failures.length} em dash(es) in product copy, docs pages, or design guides:`);
+      console.error(
+        `check-em-dashes: ${failures.length} em dash(es) in the i18n catalogs, the agent's chat copy, docs pages, or design guides:`,
+      );
       for (const failure of failures) console.error(`- ${failure}`);
       console.error(
         "Restructure each sentence with a period, colon, comma, or parentheses, never a hyphen or a spaced en dash.",
@@ -147,7 +165,7 @@ function main() {
       process.exit(1);
     }
     console.log(
-      `check-em-dashes: no em dashes in ${CATALOGS.length} i18n catalogs, ${pages} docs pages (${skipped} generated from the ontology skipped), or ${guides} design guides.`,
+      `check-em-dashes: no em dashes in ${CATALOGS.length} i18n catalogs, ${chatFiles} agent chat copy modules, ${pages} docs pages (${skipped} generated from the ontology skipped), or ${guides} design guides.`,
     );
   } catch (error) {
     console.error(`check-em-dashes: ${error.message}`);
