@@ -63,8 +63,7 @@ Write Customer Needs on the **Linear Product team**. Mirror [`bug-intake`](./bug
 - `protocol:green-goods` — always
 - `package:*` (one only) — inferred primary surface; omit if surface is unknown
 - `activity:build` for confirmed bugs with a clear surface; `activity:maintenance` for ideas / UX polish / unactionable feedback that still warrant tracking
-- `source:drive` — provenance
-- `source:sync-triage-pulse` — distinguishes routine-pre-staged Issues from `bug-intake`'s Drive-source Issues
+- `source:sync-triage-pulse` — provenance: Drive notes pre-staged by this routine. The `source` group is single-select in Linear, so this label takes the place of `source:drive`, and it is what tells these records apart from `bug-intake`'s Drive-source Issues
 - `ai:routine` — cron'd provenance (single `ai:*` value)
 - `session:<YYYY-MM-DD>` — meeting-date slug so `/qa-triage` can resume the right batch (resolve or create on first use)
 
@@ -159,7 +158,7 @@ For each extracted item:
 Linear requires every Customer Need to link to an Issue. Grep every drafted body with the Phase 5 string list **before** each write — Phase 5 is the backstop, not the gate. For each non-duplicate item:
 
 1. **First, create the Backlog tracking Issue** on the Product team. Title: a plain action-verb-led sentence with **no prefix** — "Investigate the PWA install hang on Android", not "[tracking] Install hangs". The `[tracking]` prefix is retired (2026-08-27): the `maintenance` label plus `Backlog` state already say the work is uncommitted, and a `PreToolUse` hook now rejects the prefix. Body: the problem in one or two plain paragraphs, then one source line — **no headings unless the item genuinely needs them; clear, simple, concise (backstops: 6 headings / 600 words)**, and no Reproduction/Expected/Actual at this routine stage. Drop any section you cannot fill rather than writing "—" or a paragraph reporting that PostHog matched nothing; note tooling gaps in the Discord summary instead. Full contract: [`.claude/context/linear-routing-rules.md`](../../.claude/context/linear-routing-rules.md) § Issue structure.
-   - Labels: `protocol:green-goods` + ONE `package:*` (primary surface; omit if unknown) + `activity:build` (clear bug) or `activity:maintenance` (idea / polish / unclear actionability) + `source:drive` + `source:sync-triage-pulse` + `ai:routine` + `session:<YYYY-MM-DD>`. Pass labels to `save_issue` as **bare child names** (`["green-goods", "qa", "routine"]`), not the `group:child` display form: the API does not accept the prefixed form, and one unresolvable entry rejects the whole array and files nothing.
+   - Labels: `protocol:green-goods` + ONE `package:*` (primary surface; omit if unknown) + `activity:build` (clear bug) or `activity:maintenance` (idea / polish / unclear actionability) + `source:sync-triage-pulse` (one `source:*` label; the group is single-select) + `ai:routine` + `session:<YYYY-MM-DD>`. Pass labels to `save_issue` as **bare child names** (`["green-goods", "qa", "routine"]`), not the `group:child` display form: the API does not accept the prefixed form, and one unresolvable entry rejects the whole array and files nothing.
    - Status: `Backlog` for all. The routine never claims work as `Todo`; the interactive `/qa-triage` skill promotes selected tracking Issues to `Todo` during the human triage gate.
    - Project: per [Project routing](README.md#project-routing), a bounded active project that clearly owns the item, otherwise the active release project (resolve both by name this run), or none when no release project is started.
    - Priority: P3 (Low) by default. P2 (Medium) when PostHog confirms ≥50 sessions in 30d. The routine never sets P0/P1 — humans decide release-blocker status.
