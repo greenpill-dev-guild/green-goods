@@ -54,7 +54,7 @@ Write tracking Issues and Customer Needs on the **Linear Product team**. Mirror 
 
 ### Linear API constraints (must respect on every write)
 
-1. **Customer Needs cannot be standalone.** Linear rejects `save_customer_need` calls without an `issue` (or `project`) parameter — `Exactly one of projectId or issueId must be defined`. Every Customer Need this routine creates must link to a Backlog tracking Issue. The routine never creates standalone "raw signal only" Needs.
+1. **Customer Needs cannot be standalone.** Linear rejects `save_customer_need` calls without an `issue` (or `project`) parameter — `Exactly one of projectId or issueId must be defined`. Every Customer Need this routine creates must link to an Issue: the Backlog tracking Issue it creates in Phase 4, or the existing Issue that a Phase 3 duplicate match found. The routine never creates standalone "raw signal only" Needs.
 2. **`ai:*` is single-value-per-Issue.** Use `ai:routine` on every Issue this routine creates (cron'd provenance). When a pre-staged item is later promoted to a delegate (`ai:codex` or `ai:claude`), the interactive `/qa-triage` skill swaps the label — this routine doesn't.
 3. **`package:*` is single-value-per-Issue.** When the bug spans more than one package, pick the primary surface as the label; name the secondary package(s) in the problem sentence (the `## Surface` block is retired).
 
@@ -71,7 +71,7 @@ Write tracking Issues and Customer Needs on the **Linear Product team**. Mirror 
 
 A Customer Need records customer or telemetry signal: something a gardener, steward, funder, operator or other user reported, or that telemetry shows. Pre-stage one only for such an item: the notes attribute it to someone outside the team, or a Phase 3 PostHog query matches it. Everything else gets its Backlog tracking Issue alone, including the team's own work, such as an engineering chore, a tooling or process change, or a bug or idea the team raised itself. Most Engineering Sync items are the team's own work; most Build Sync items relay what users hit. When unsure, file the Issue alone.
 
-Linear's `save_customer_need` API surface accepts `body`, `customer`, `issue`, `project`, `priority` — **no `labels` field**. Labels live exclusively on the linked Issue. Each Customer Need this routine creates carries the terse verbatim quote + speaker context in its body and links to its tracking Issue via the `issue` parameter.
+Linear's `save_customer_need` API surface accepts `body`, `customer`, `issue`, `project`, `priority`, `source` — **no `labels` field**. Labels live exclusively on the linked Issue. Each Customer Need this routine creates carries the terse verbatim quote + speaker context in its body and links to its tracking Issue via the `issue` parameter.
 
 ## PostHog enrichment
 
@@ -178,7 +178,7 @@ Routine pre-stage by sync-triage-pulse · auto-extracted.
 [PRD-XXX](<linear-url>) (Backlog, <priority>) — tracking Issue carries summary, surface, safe evidence, and suggested fix. Run `/qa-triage session:<YYYY-MM-DD>` to promote it, assign it, set human-reviewed severity, and append a Defects-tab row to the QA Sheet.
 ```
 
-The Customer Need API surface accepts `body`, `customer`, `issue`, `project`, `priority` — **no `labels` field**. Labels live exclusively on the tracking Issue created in step 1.
+The Customer Need API surface accepts `body`, `customer`, `issue`, `project`, `priority`, `source` — **no `labels` field**. Labels live exclusively on the tracking Issue created in step 1.
 
 Apply a per-run cap: at most **15 pre-staged items**. If the notes contain more, surface the overflow count in the Discord summary and let the user run `/qa-triage` against the full notes interactively for the rest.
 

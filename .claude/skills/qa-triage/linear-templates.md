@@ -376,7 +376,7 @@ The verbatim block is **public** in the Linear body. Private context (the report
 
 Linear's API requires every Customer Need to link to an Issue (or Project). Items the skill would have classified as track-only — feedback, ideas, strategic gaps, clarifications — still get an Issue, just a lightweight one with no fix urgency.
 
-- **Label**: `activity:maintenance` (default for UX polish, copy fixes, low-urgency feature gaps) **or** `activity:architecture` (for strategic items tied to a larger rework — e.g., cross-device account recovery).
+- **Label**: `activity:maintenance` (default for UX polish, copy fixes, low-urgency feature gaps), `activity:design` for visual polish, **or** `activity:architecture` (for strategic items tied to a larger rework — e.g., cross-device account recovery).
 - **Priority**: Low (P3) or Medium (P2). Never P0/P1 — those are real bugs and use the main pattern instead.
 - **Status**: `Backlog`. The tracking Issue isn't claimed as committed work; it's a tracking surface for the Customer Need to attach to.
 - **Title**: a plain sentence, same as any other issue. **The `[tracking]`
@@ -415,7 +415,7 @@ Linear's API constraint that Customer Needs must link to an Issue eliminates the
 |---|---|---|---|
 | Clear bug + named surface + suggestable fix | Main (`activity:build`) | `Todo` | Yes, linked |
 | Bug with no repro or no clear surface | Main (`activity:build`) | `Backlog` | Yes, linked |
-| Idea / feature request / UX polish | Attach (`activity:maintenance`) | `Backlog` | Yes, linked |
+| Idea / feature request / UX polish | Attach (`activity:maintenance`, or `activity:design` for visual polish) | `Backlog` | Yes, linked |
 | Steward pain — "this is awkward" | Attach (`activity:maintenance`) | `Backlog` | Yes, linked |
 | Strategic gap tied to architecture rework | Attach (`activity:architecture`) | `Backlog` | Yes, linked |
 | Sync item the team raised itself, with no PostHog match: a chore, a tooling or process change, a bug or an idea | The bug's Issue above, otherwise Attach (`activity:maintenance`) | As above, otherwise `Backlog` | No (`issue-only`) |
