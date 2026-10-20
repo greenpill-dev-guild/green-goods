@@ -604,6 +604,39 @@ test("every projection source is routed to the Docs workflow", () => {
   }
 });
 
+test("offline storage edits make the generated glossary stale", (t) => {
+  const projection = createProjections(REPO_ROOT).find(
+    (item) => item.output === "docs/docs/reference/glossary.generated.mdx",
+  );
+  const storageSources = [
+    "packages/shared/src/modules/job-queue/db.ts",
+    "packages/shared/src/modules/job-queue/db-schema.ts",
+    "packages/shared/src/modules/job-queue/draft-connection.ts",
+    "packages/shared/src/modules/job-queue/draft-db.ts",
+    "packages/shared/src/modules/job-queue/draft-snapshot.ts",
+  ];
+  for (const source of storageSources) {
+    assert.ok(projection.sources.includes(source), `${source} must invalidate the installed-app definition`);
+  }
+  const root = fixture();
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  for (const source of projection.sources) {
+    const target = path.join(root, source);
+    mkdirSync(path.dirname(target), { recursive: true });
+    writeFileSync(target, readFileSync(path.join(REPO_ROOT, source)));
+  }
+  syncProjections({ root, projections: [projection] });
+  assert.deepEqual(syncProjections({ root, projections: [projection], check: true }), []);
+  for (const source of storageSources) {
+    const original = readFileSync(path.join(root, source), "utf8");
+    writeFileSync(path.join(root, source), `${original}\n// Storage behavior changed.\n`);
+    assert.deepEqual(syncProjections({ root, projections: [projection], check: true }), [
+      `stale: ${projection.output}`,
+    ], source);
+    writeFileSync(path.join(root, source), original);
+  }
+});
+
 test("personas page gives each persona a section, its journey, and the surfaces it works in", () => {
   const projection = createProjections(REPO_ROOT).find(
     (item) => item.output === "docs/docs/builders/architecture/personas.mdx",
