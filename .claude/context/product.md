@@ -35,7 +35,7 @@ The five rows are the ontology's personas, and Green Goods has no others. Name a
 | Community Member | "My neighborhood's way to have a say" | Inclusive, plain-language, encouraging. | Protocol jargon, assumed web3 literacy |
 
 **Tone rules:**
-- Gardener/Community Member copy: zero blockchain vocabulary, reading level ~6th grade
+- Gardener/Community Member copy: zero blockchain vocabulary in ordinary copy, reading level ~6th grade; the DL-094 safety cases still apply (a privacy or permanence notice may name the network, a link names its explorer)
 - Steward copy: may reference on-chain verification as a trust mechanism, but not Solidity internals
 - Evaluator copy: may use research/assessment terminology freely
 - Funder copy: may reference attestation integrity; never use "guaranteed returns"
