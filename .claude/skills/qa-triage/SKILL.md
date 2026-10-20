@@ -218,7 +218,7 @@ Lookup order, first match wins:
 
    > Found pre-staged items from sync-triage-pulse: {date} {call} ({N}){, {date} {call} ({N})}. Resume one batch (reply with its date), run a fresh extract from notes, or quit? `[<date> / fresh / quit]`
 
-   On a date: populate `extraction.md` from that batch's Backlog tracking Issues (one item per Issue: its linked Customer Need's verbatim source when it has one, otherwise the Issue's own source line, plus the Issue's summary / safe evidence blocks; the routine files an item without a Need unless an outside report or a PostHog match backs it), skip Phases 2 and 3 (Codex dispatch + PostHog cross-ref already done by the routine), and jump straight to Phase 4 with the batch as the numbered triage list. Each resumed item keeps its record shape through Phases 5 and 6: a tracking Issue with a linked Need is promoted or kept as a pair, and an issue-only item is promoted or updated in place without a Customer Need, whatever row of § Disposition rules its type would otherwise match. Only a Phase 4 tag changes a shape: `track-only` adds a Need to an issue-only item (§ Disposition rules), and `issue-only` on a pair leaves its Need in place for the user to remove in Linear, since this skill never deletes a Customer Need. Resume one batch per invocation, then run `/qa-triage session:<date>` for another. On `fresh`: ignore the pre-stage and continue to step 1 below; the Phase 6 confirm step will detect duplicates against the existing Customer Needs.
+   On a date: populate `extraction.md` from that batch's Backlog tracking Issues (one item per Issue: its linked Customer Need's verbatim source when it has one, otherwise the Issue's own source line, plus the Issue's summary / safe evidence blocks; the routine files an item without a Need unless an outside report or a PostHog match backs it), skip Phases 2 and 3 (Codex dispatch + PostHog cross-ref already done by the routine), and jump straight to Phase 4 with the batch as the numbered triage list. Each resumed item keeps its record shape through Phases 5 and 6: a tracking Issue with a linked Need is promoted or kept as a pair, and an issue-only item is promoted or updated in place without a Customer Need, whatever row of § Disposition rules its type would otherwise match. Only a Phase 4 tag changes a shape. `track-only` adds a Need to an issue-only item only with the reporter evidence § Disposition rules asks the user for, since a resumed Issue carries no outside quote. `issue-only` on a pair cannot finish here, because this skill never deletes a Customer Need: the Need stays until the user removes it in Linear, and the Phase 7 report lists the item under `Need removal pending` with the Need's link, never as issue-only. Resume one batch per invocation, then run `/qa-triage session:<date>` for another. On `fresh`: ignore the pre-stage and continue to step 1 below; the Phase 6 confirm step will detect duplicates against the existing Customer Needs.
 
    The resume path cuts the user's interactive triage to ~5 minutes after a call. See [`sync-triage-pulse.md`](../../../docs/routines/sync-triage-pulse.md) for the routine's contract.
 
@@ -353,7 +353,7 @@ Output: `cross-ref.md`, one block per item:
 
 This is a hard scope-lock gate: numbered findings → explicit user lock → act only on locked items. Present the numbered list (extracted items + derived items) with proposed dispositions and ask, verbatim:
 
-> Which items should I file? Reply with numbers (e.g., `1, 3, 5`), `all`, or `none`. For each, append a tag if you want to override: `1:track-only` (Customer Need + lightweight Backlog tracking Issue; on a sync item with no outside report, it says you know of one), `2:issue-only` (the Issue alone, no Customer Need), `3:defer` (skip this run), `5:duplicate-of-PRD-1234`. Anything outside the listed numbers is out of scope for this run.
+> Which items should I file? Reply with numbers (e.g., `1, 3, 5`), `all`, or `none`. For each, append a tag if you want to override: `1:track-only` (Customer Need + lightweight Backlog tracking Issue; on a sync item with no outside report, it says you know of one, and I'll ask who), `2:issue-only` (the Issue alone, no Customer Need; an existing Need stays until you remove it), `3:defer` (skip this run), `5:duplicate-of-PRD-1234`. Anything outside the listed numbers is out of scope for this run.
 
 Record the reply in `triage.md`:
 
@@ -392,7 +392,7 @@ Three hard constraints shape every payload — full detail, including the Codex-
 
 ### Disposition rules (no standalone Need path)
 
-On sync notes, the Phase 2 rule decides the last column: an item with no outside report and no PostHog match gets no Customer Need, whatever its row. The one correction is the Phase 4 gate: a `track-only` tag on such an item records that the user knows of an outside report the notes missed, and the Need's body says the gate confirmed it.
+On sync notes, the Phase 2 rule decides the last column: an item with no outside report and no PostHog match gets no Customer Need, whatever its row. The one correction is the Phase 4 gate: a `track-only` tag on such an item records that the user knows of an outside report the notes missed. Before writing that Need, ask the user who reported it and, if they have them, the reporter's words. The Need's body carries that answer as its source and says the gate confirmed it; a teammate's quote never stands in for the reporter's. If the user cannot name a reporter, the item stays issue-only.
 
 | Item shape | Issue created | Customer Need created |
 |---|---|---|
@@ -496,6 +496,7 @@ Write `report.md` and print:
 - Filed as Issue + Need: [1, 3]
 - Filed as track-only: [2, 7]
 - Filed as issue-only: [9]
+- Need removal pending: [11 → <Need link>]
 - Linked to existing: [5 → PRD-1234]
 - Deferred: [4, 6, 8, derived 100, 101]
 
