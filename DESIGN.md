@@ -238,9 +238,9 @@ Tone shifts by context while voice stays constant:
 | **Submitting work** | Supportive, clear | "Add a photo and a few words about what you did today." |
 | **Hero moments** | Celebratory, genuine | "Your first contribution. This garden is growing because of you." |
 | **Errors** | Calm, constructive | "That didn't go through. Your work is saved. Try again when you're ready." |
-| **Offline** | Reassuring, matter-of-fact | "You're offline. Everything is saved locally and will sync when you reconnect." |
+| **Offline** | Reassuring, matter-of-fact | "You're offline. Your work is saved on this phone. When you're back online, open Your Work and tap Upload all." |
 | **Admin / steward** | Efficient, status-oriented | "3 submissions pending review. 1 flagged for follow-up." |
-| **Funding / impact** | Respectful, concrete | "This garden has documented 47 actions across 3 seasons." |
+| **Funding / impact** | Respectful, concrete | "This garden has documented [count] actions across [seasons] seasons." (both values from live data) |
 
 ### Terminology
 
@@ -252,18 +252,29 @@ The names that carry the work. Domain entities, personas, relationships, and lif
 | Gardener | User, contributor, member | People who do the work have a name. |
 | Steward | Admin, manager | They operate the garden. |
 | Evaluator | Reviewer, auditor, assessor | They evaluate impact, not audit compliance. |
-| Funder | Donor, investor, backer | Funding a garden, not donating to a cause. |
+| Funder | Investor, backer | Funding a garden, not buying a return. A person who gives through the Donate path is still a funder. |
 | Community member | Visitor, viewer, spectator | Part of the community, not an audience. |
-| Work | Task, activity, submission | Regenerative work is the core concept. |
-| Action | Action type, template | The thing a gardener can do. |
-| Fund | Donate, contribute, invest | Funding a garden. |
-| Impact | Output, result, metric | Bridges community and chain. |
-| Document | Log, record, capture | Gardeners document their work. |
+| Work | Task, activity | Regenerative work is the core concept. "Submission" names the act of sending work and the Work Submissions list, never the work itself. |
+| Action | Action type | The thing a gardener can do. "Action template" names the browsable template records on the public site. |
+| Fund | Invest | Funding a garden. "Contribute" is the umbrella word before a supporter picks Donate or Endow; "Donate" names only the direct-giving path. |
+| Impact | Result (as a vague synonym) | Bridges community and chain. "Output" and "Outcome" are stages of the impact model, not synonyms; "Metric" names an assessment field (DL-079). |
+| Document | Log, capture | Gardeners document their work. "Record" is fine in plain explanation of what the product keeps. |
 
 **Lower case in running text (DL-090).** In a sentence, garden, gardener, steward, evaluator,
 funder, and community member stay lower case in English, Spanish, and Portuguese ("this garden",
 "este jardín", "o responsável"); Title Case stays only where DL-012 and DL-013 put it, in titles,
 action labels, and named acts, and in a garden's own name ("Community Garden").
+
+**Domain nouns follow (DL-093).** Work, action, assessment, promise, pool, season, campaign, vault,
+cookie jar, and impact certificate take the same rule: lower case in running text, Title Case only
+in titles, action labels, and named acts ("Submit Work", the Work tab).
+
+**Protocol names (DL-094).** A protocol or chain name appears only where the reader needs it to act
+or to verify: a funding surface, a builder page, the labeled "using your own wallet" box, a transaction
+step (a confirmation that spends gas or cannot be undone, or a wallet action on a named network), a
+privacy or permanence notice, and a link that names the explorer it opens. Never as positioning,
+and never in onboarding, work capture, review, or community copy; progress and status copy stays
+plain.
 
 **Plain titles, methods in helper text (DL-047).** Step, section, and field titles use plain
 questions and nouns ("How Predictable Is This Work?", "What You'll Measure"); a framework or
@@ -282,11 +293,11 @@ Before shipping copy:
 - [ ] Is it concrete? (Can the reader picture it?)
 - [ ] Is it active? (Subject → verb → object?)
 - [ ] Is the audience right? (Gardener ≠ steward ≠ funder)
-- [ ] Is blockchain invisible? (On-chain = implementation, not copy)
+- [ ] Is blockchain invisible except where the reader needs a protocol name to act or verify (DL-094)? On-chain is implementation, not copy.
 - [ ] Would it make sense to someone who's never heard of web3?
 - [ ] Is it shorter than your first draft?
 
-Surface-specific copy patterns (browser editorial, PWA gardener-facing, admin utility) live in the matching prompt contracts: [`.claude/skills/design/prompt-contract.md`](.claude/skills/design/prompt-contract.md) (admin) and [`.claude/skills/design/client-prompt-contract.md`](.claude/skills/design/client-prompt-contract.md) (client).
+The full guideline (audiences, the three dialects, claims discipline, the pre-ship checklist, localization) is the docs page [Brand voice guidelines](docs/docs/reference/brand-voice.mdx), also reachable as `.claude/brand-voice-guidelines.md`; this section stays the voice core it restates. Surface-specific copy patterns (browser editorial, PWA gardener-facing, admin utility) live in the matching prompt contracts: [`.claude/skills/design/prompt-contract.md`](.claude/skills/design/prompt-contract.md) (admin) and [`.claude/skills/design/client-prompt-contract.md`](.claude/skills/design/client-prompt-contract.md) (client).
 
 ## Quick Token Reference
 

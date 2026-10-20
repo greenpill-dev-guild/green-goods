@@ -28,14 +28,14 @@ The five rows are the ontology's personas, and Green Goods has no others. Name a
 
 | Persona | Perceives Green Goods As | Tone | Avoid |
 |---------|--------------------------|------|-------|
-| Gardener | "A helpful WhatsApp contact that pays me for work" | Warm, direct, action-oriented. Short sentences. No jargon. | Technical terms, passive voice, options overload |
+| Gardener | "A simple way to show the work I did and have my garden see it" | Warm, direct, action-oriented. Short sentences. No jargon. | Technical terms, passive voice, options overload |
 | Steward | "My garden's command center" | Professional, efficient, task-focused. Data-aware. | Condescending simplicity, unstructured prose |
-| Evaluator | "A data-rich platform for certifying truth" | Precise, evidence-based, structured. Respect domain expertise. | Oversimplification, vague impact language |
-| Funder | "A high-yield savings account that heals the planet" | Confident, transparent, audit-friendly. Lead with verified data. | Hype, unsubstantiated claims, blockchain jargon |
+| Evaluator | "A structured place to set baselines; assessing what changed against them is planned" | Precise, evidence-based, structured. Respect domain expertise. | Oversimplification, vague impact language |
+| Funder | "A clear record of work I can support, with the review behind it" | Confident, transparent, evidence-first. Lead with reviewed records. | Hype, unsubstantiated claims, blockchain jargon |
 | Community Member | "My neighborhood's way to have a say" | Inclusive, plain-language, encouraging. | Protocol jargon, assumed web3 literacy |
 
 **Tone rules:**
-- Gardener/Community Member copy: zero blockchain vocabulary, reading level ~6th grade
+- Gardener/Community Member copy: zero blockchain vocabulary in ordinary copy, reading level ~6th grade; the DL-094 safety cases still apply (a privacy or permanence notice may name the network, a link names its explorer)
 - Steward copy: may reference on-chain verification as a trust mechanism, but not Solidity internals
 - Evaluator copy: may use research/assessment terminology freely
 - Funder copy: may reference attestation integrity; never use "guaranteed returns"
@@ -96,7 +96,8 @@ When connectivity is lost or degraded, features degrade predictably:
 | Work submission | Queued offline (IndexedDB job queue) | Toast: "Saved -- will upload when online" + the item in Your Work › Pending, sent with Upload all |
 | Garden list | Cached data served (TanStack Query cache) | Stale data with staleness indicator |
 | Action list | Cached data served | Stale data with staleness indicator |
-| Work approvals | Blocked (requires on-chain transaction) | Disabled button + tooltip: "Requires internet connection" |
+| Work approvals (installed app, passkey or wallet) | Queued offline (user-scoped job queue, `submitApprovalToQueue`; the client passes `queueWalletDecisions` so wallet decisions queue too) | Toast: the decision stays on this device until it is uploaded; the item waits in Your Work |
+| Work approvals (admin cockpit, wallet) | Not queued: the action stays enabled; `submitApproval` probes the connection after the click and, without `queueWalletDecisions`, throws `ApprovalConnectionUnconfirmedError` before the wallet is asked | Info toast (`app.offline.degraded` title, `app.approval.connectionUnconfirmed` message); nothing is sent or saved |
 | Assessments | Blocked (requires on-chain transaction) | Disabled button + tooltip: "Requires internet connection" |
 | Photo capture | Available offline (stored as blob in IndexedDB) | Normal UI, uploaded on sync |
 | Auth (passkey) | Works offline once authenticated | No change if session active |
@@ -118,8 +119,10 @@ When connectivity is lost or degraded, features degrade predictably:
 | Local (job queue) | `queued`, `syncing`, `synced`, `failed` | IndexedDB (`green-goods-job-queue` v5) | Transient -- until on-chain confirmation |
 
 State transitions:
-```
-Local:    queued → syncing → synced (then becomes on-chain "pending")
+```text
+Local work submission:  queued → syncing → synced (then on-chain "pending" until a steward decides)
+Local work approval:    queued → syncing → synced (then on-chain "approved" or "rejected" directly; the
+                        queued decision is projected with a pending-until-confirmed flag, never as "pending" work)
                           → failed → retry → syncing
 On-chain: pending → approved | rejected
 ```

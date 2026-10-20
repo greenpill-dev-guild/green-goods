@@ -161,6 +161,7 @@ actions as WebMCP tools.
 |---|---|
 | Product or domain behavior | [Product context](.claude/context/product.md), [ontology workflow](.claude/context/ontology.md), and the owning code |
 | Tests | [Testing contract](.claude/context/testing.md), including its test budget |
+| Copy: product strings, website or docs prose, release notes, announcements, funder or partner documents | [Brand voice guidelines](docs/docs/reference/brand-voice.mdx), then the owning surface `DESIGN.md` |
 | UI, CSS, accessibility, or browser proof | `modern-web-guidance`, the owning `DESIGN.md`, and [design implementation guidance](.claude/skills/design/implementation.md) |
 | Full design-system alignment review | [Shared review protocol](.claude/skills/design/system-alignment-review.md) |
 | User-observed bug | `debug`; begin visible/clickable regressions at the rendered component before tracing providers or data |
@@ -186,7 +187,8 @@ limits live in [docs/routines](docs/routines/README.md).
 
 ## Writing and completion
 
-Use `humanize-writing` for human-facing prose when available. Lead with the useful outcome,
+Use `humanize-writing` for human-facing prose when available, and the [brand voice
+guidelines](docs/docs/reference/brand-voice.mdx) for anything a gardener, steward, funder, or visitor reads. Lead with the useful outcome,
 write clear sentences, and preserve evidence and uncertainty. Report what changed, how it was
 verified, and anything still blocked. Keep code, commands, and identifiers exact.
 

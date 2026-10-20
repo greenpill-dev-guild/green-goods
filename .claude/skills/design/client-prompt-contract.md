@@ -58,16 +58,16 @@ The categories below are contract-specific framing: *why* client output should r
 
 The client speaks **to the community, about the work**. The admin speaks **about the work, to the steward**. Same garden, different dialects. Cross-surface voice pillars and terminology live in the root [`DESIGN.md § Voice & Copy`](../../../DESIGN.md#voice--copy).
 
-**Say:** "Let's see what's grown in your garden." / "Your work is in good hands." / "The reviewer will take it from here." / "Go do more of what matters."
+**Say:** "Let's see what's grown in your garden." / "Your work is in good hands." / "Your steward will take it from here." / "Go do more of what matters."
 
 **Don't say:** "Processing submission..." / "Review queued." / "1 of 12 pending." / "Submit another?"
 
 ### Browser mode (funders / community members)
 
 - **Headlines**: editorial, evocative, magazine-weight. "The gardens growing a new kind of evidence."
-- **Subheads**: bridge emotion and information. "Community-documented impact, verified on-chain."
+- **Subheads**: bridge emotion and information. "Work the community documented, reviewed by the people who know the place."
 - **Garden descriptions**: place-first. Lead with where the garden is and what it grows, not the technology.
-- **Impact numbers**: let them breathe. "47 documented actions" > "47 actions have been documented by community members."
+- **Impact numbers**: let them breathe. "[count] documented actions" (a live figure) > "[count] actions have been documented by community members."
 - **CTAs**: warm imperative. "Fund this garden" not "Contribute now."
 
 ### Installed PWA (gardeners)
