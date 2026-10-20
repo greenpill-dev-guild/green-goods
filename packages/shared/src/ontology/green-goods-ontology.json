@@ -417,16 +417,16 @@
     {
       "id": "season",
       "display": "Season",
-      "definition": "A bounded period (typically a quarter) during which a garden runs a coordinated set of Actions and Assessments. Pacing primitive — never a countdown.",
+      "definition": "A garden's main rhythm: the one open Season-type commitment cycle of the garden's pool, with a name, start and end dates, and the promises scoped to it. A pool runs at most one Season at a time, and Campaigns may run beside it. It paces work and is never a countdown.",
       "layers": {
         "docs": "docs/docs/reference/glossary.generated.mdx"
       },
-      "note": "No dedicated on-chain or typed representation today; the commitment-pooling Cycle (type Season) becomes its first formal representation.",
+      "note": "Represented by the garden pool's Season-type commitment cycle (CycleType.Season, at most one open per pool). Not the same as Season One or Season Two, the network-wide program periods that span gardens; those have no product representation yet.",
       "relationships": [
         {
           "to": "commitment-cycle",
-          "kind": "formalized-by",
-          "note": "implemented in Commitment Pooling; not yet integrated into the product surface"
+          "kind": "represented-by",
+          "note": "the garden pool's one open Season-type cycle; a Campaign-type cycle is not a season"
         }
       ],
       "semantic_status": "canonical",
