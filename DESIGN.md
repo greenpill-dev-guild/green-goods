@@ -265,6 +265,10 @@ funder, and community member stay lower case in English, Spanish, and Portuguese
 "este jardín", "o responsável"); Title Case stays only where DL-012 and DL-013 put it, in titles,
 action labels, and named acts, and in a garden's own name ("Community Garden").
 
+**Domain nouns follow (DL-093).** Work, action, assessment, promise, pool, season, campaign, vault,
+cookie jar, and impact certificate take the same rule: lower case in running text, Title Case only
+in titles, action labels, and named acts ("Submit Work", the Work tab).
+
 **Plain titles, methods in helper text (DL-047).** Step, section, and field titles use plain
 questions and nouns ("How Predictable Is This Work?", "What You'll Measure"); a framework or
 method name (strategy kernel, Cynefin, SMART) appears only as helper text, in parentheses after the

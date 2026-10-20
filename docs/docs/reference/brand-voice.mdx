@@ -39,7 +39,7 @@ Version 1.2, 2026-10-19. Owner: Afo.
 - Enforcement: the mechanical rules are checked, not trusted. `bun run check --only vocabulary` rejects banned and retired terms, UK spellings, and the old Spanish and Portuguese role words in the three shared catalogs (`packages/shared/src/i18n`); the docs audit rejects UK spellings in docs pages and design guides; `bun run check --only em-dashes` rejects em dashes in those catalogs, docs pages, and design guides. The chat bot's copy in `packages/agent` has its own spelling test and is not yet covered by the vocabulary and em dash checks, so it is reviewed by eye until they extend to it. Section 9 marks which checklist items a machine covers.
 - Review: a change to copy is reviewed against this page the way a change to layout is reviewed against the design skill. Dated copy decisions still get a row in the design decision log.
 
-**Writing conventions in this file.** US spelling. No em dashes anywhere in Green Goods prose. In running text, "garden" and the role words are lower case; Title Case belongs to titles, labels, and named acts.
+**Writing conventions in this file.** US spelling. No em dashes anywhere in Green Goods prose. In running text, "garden", the role words, and the domain nouns are lower case; Title Case belongs to titles, labels, and named acts.
 
 ---
 
@@ -245,12 +245,11 @@ The [Glossary](/glossary) is generated from the ontology and is the authority; t
 Copy names four domains: agroforestry, waste management, solar (hub development), and education. The ontology still declares mutual credit as a deferred fifth domain for records that carry it, and the runtime keeps its label for those records; it is not offered as a choice, and copy does not present it as a domain. The owner has decided to retire it, which lands when the ontology and the runtime vocabulary migrate together (section 14). A partner integration's service-credit instrument gets its own name when that integration ships; it is not a domain.
 
 ### 6.6 Capitalization
-- Running text: garden, gardener, steward, evaluator, funder, and community member are lower case, in English, Spanish, and Portuguese ("this garden", "este jardín", "o responsável"). This is DL-090.
+- Running text: garden, gardener, steward, evaluator, funder, and community member (DL-090), and the domain nouns work, action, assessment, promise, pool, season, campaign, vault, cookie jar, and impact certificate (DL-093) are lower case, in English, Spanish, and Portuguese ("this garden", "este jardín", "o responsável", "your work", "a new promise").
 - Title Case: card, section, dialog, flow, and step titles; action labels (buttons, menu items, aria-only action labels); named acts ("Create Garden", "Submit Work", "Request Changes"); and a garden's own name ("Community Garden"). Spanish and Portuguese keep native sentence-style casing even in these.
 - Sentence case: status and outcome copy ("Connection lost", "Update needs a restart"), field labels, helper text, placeholders, kickers, body copy, docs headings.
 - Hero titles on the public site carry no closing period.
 - Plain titles, methods in helper text: a step or field title is a plain question or noun ("What You'll Measure"); a framework or method name appears only in parentheses in the helper text. A flow never preselects a choice the person has to make.
-- Not yet decided: whether work, action, assessment, vault, promise, pool, and season follow the same lower-case rule in running text (section 14).
 
 ### 6.7 Spelling and punctuation
 - US spelling in all English copy: neighbor, color, center, organize, canceled, gray, license, behavior. The vocabulary check rejects UK forms in catalogs; the docs audit rejects them in docs pages and design guides. Quoted third-party names keep their own spelling.
@@ -314,7 +313,7 @@ Items marked (machine) are covered by a check in the validation pipeline; the re
 - [ ] Is it shorter than the first draft?
 - [ ] US spelling? (machine: catalogs, docs pages, design guides)
 - [ ] No em dashes? (machine: catalogs, docs pages, design guides)
-- [ ] Lower-case garden and role words in running text, Title Case only on titles and actions?
+- [ ] Lower-case garden, role words, and domain nouns in running text, Title Case only on titles and actions?
 - [ ] No retired or banned words: operator, commitment in user copy, hands at work, streak, urgent, guaranteed returns? (machine for the catalog lists)
 - [ ] No hand-typed counts or traction numbers?
 - [ ] Does it claim only what the Capability and Claims page claims?
@@ -405,12 +404,11 @@ Voice copy only needs to know the following. Everything visual belongs to the de
 
 ## 14. Open items
 
-1. **Domain nouns in running text.** DL-090 lower-cases garden and the five role words. Whether work, action, assessment, vault, promise, pool, and season follow is undecided; the website capitalizes some of them today. Recommendation: the same lower-case rule, for the same reasons, with Title Case kept for titles and labels.
-2. **Protocol names on funding surfaces and in-app help.** This page applies the recommendation (funding surfaces, builder pages, and the wallet box only) pending the owner's confirmation.
-3. **Legal attribution.** Brand-facing mentions of other organizations are gone from docs chrome and contributor copy. The copyright holder line in the docs footer and on the License page stays until the operating entity is settled; then the holder is decided once.
-4. **Community app dialect.** Written when the surface is designed, before its first strings ship.
-5. **Spanish and Portuguese tone addendum.** Owned by a native-speaking steward on the product team; one page; due with the next localization pass.
-6. **Mutual credit retirement.** Decided by the owner; lands when the ontology's deferred fifth domain and the runtime vocabulary (the domain enum, catalog labels, selectors) migrate in one change. Until then copy names four domains and the ontology keeps five.
+1. **Protocol names on funding surfaces and in-app help.** This page applies the recommendation (funding surfaces, builder pages, and the wallet box only) pending the owner's confirmation.
+2. **Legal attribution.** Brand-facing mentions of other organizations are gone from docs chrome and contributor copy. The copyright holder line in the docs footer and on the License page stays until the operating entity is settled; then the holder is decided once.
+3. **Community app dialect.** Written when the surface is designed, before its first strings ship.
+4. **Spanish and Portuguese tone addendum.** Owned by a native-speaking steward on the product team; one page; due with the next localization pass.
+5. **Mutual credit retirement.** Decided by the owner; lands when the ontology's deferred fifth domain and the runtime vocabulary (the domain enum, catalog labels, selectors) migrate in one change. Until then copy names four domains and the ontology keeps five.
 
 ---
 
@@ -444,7 +442,7 @@ This page is the entry point for voice. It restates only what a writer needs to 
 | `docs/docs/reference/glossary.generated.mdx` | Plain-language definitions (generated) |
 | `scripts/data/banned-vocabulary.json` | Banned terms, retired terms, US spelling list, locked locale terms, prompt vocabulary |
 | `packages/shared/src/i18n/en.json`, `es.json`, `pt.json` | Shipped strings and locked translations |
-| `.claude/skills/design/decision-log.md` | Dated copy decisions (DL-012, DL-013, DL-047, DL-071, DL-077, DL-079, DL-083 to DL-085, DL-087, DL-090, DL-091) |
+| `.claude/skills/design/decision-log.md` | Dated copy decisions (DL-012, DL-013, DL-047, DL-071, DL-077, DL-079, DL-083 to DL-085, DL-087, DL-090 to DL-093) |
 | `.claude/context/product.md` | Persona tone rows and the audience priority rule, outranked by the Capability and Claims page on what the product promises |
 | `docs/docs/community/welcome.mdx`, `why-we-build.mdx`, `how-it-works.mdx`, `docs/docs/reference/faq.mdx` | Public explanatory voice and the "is not" claims |
 | `docs/docs/community/green-goods-claims.generated.mdx` | What the product can honestly claim (generated) |
