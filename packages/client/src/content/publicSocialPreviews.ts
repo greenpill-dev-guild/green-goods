@@ -83,11 +83,12 @@ export const publicSocialPreviews = {
     cardTitleAccent: "growing",
     cardTitleLines: ["A small gesture,", "growing over", "many seasons"],
     cardLede:
-      "Choose a garden whose work you want to support. Donate to its shared fund, or explore a longer-term endowment. Read its approved work before contributing.",
+      "Choose a garden whose work you want to support. Donate to its shared fund, or explore a longer-term endowment. You can read its approved submissions before contributing.",
     cardLedeLines: [
       "Choose a garden whose work you want to support.",
       "Donate to its shared fund, or explore a longer-term",
-      "endowment. Read its approved work before contributing.",
+      "endowment. You can read its approved submissions",
+      "before contributing.",
     ],
     heroImagePath: "/images/hero-fund.webp",
     socialImageAlt: "Green Goods Fund route social preview",
@@ -155,7 +156,7 @@ export const publicSocialPreviews = {
       "Shared cookie jars hold funds for seasonal work, event rewards, and garden cohort budgets.",
     cardTitle: "Shared cookie jars for seasonal campaign work",
     cardTitleAccent: "cookie jars",
-    cardTitleLines: ["Shared cookie jars", "for seasonal", "campaign work"],
+    cardTitleLines: ["Shared cookie", "jars for seasonal", "campaign work"],
     cardLede:
       "Campaign jars hold funds for seasonal work, event rewards, and garden cohort budgets. Connect a wallet to claim from jars on your allowlist, or add funds to keep the jar full.",
     cardLedeLines: [
