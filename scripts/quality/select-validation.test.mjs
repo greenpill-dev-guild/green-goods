@@ -2746,6 +2746,15 @@ test("every docs generator input selects docs-generated, and the policy lists no
   assert.deepEqual(rule.exact.filter((path) => !sources.includes(path)), [], "Remove exact entries the generator no longer reads");
 });
 
+test("every design guide the em dash check reads selects it, and so does a new package guide", async () => {
+  const { designGuides } = await import("../design/check-em-dashes.mjs");
+  const guides = [...designGuides(repositoryRoot), "packages/agent/DESIGN.md"];
+  const unrouted = guides.filter(
+    (guide) => !ids(selectValidation({ intent: "push", changedPaths: [guide] })).includes("em-dashes"),
+  );
+  assert.deepEqual(unrouted, [], "Route each design guide to the em-dashes rule in scripts/data/validation-policy.json");
+});
+
 test("every file a certified seam fingerprints selects test-quality", () => {
   const registry = JSON.parse(readFileSync(new URL("../data/module-seam-registry.json", import.meta.url), "utf8"));
   const fingerprinted = new Set();
