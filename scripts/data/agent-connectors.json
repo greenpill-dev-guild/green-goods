@@ -29,7 +29,7 @@
     "google-drive": {
       "display": "Google Drive",
       "purpose": "The meeting notes that feed bug intake and QA triage.",
-      "rules": "docs/routines/qa-triage-pulse.md"
+      "rules": "docs/routines/sync-triage-pulse.md"
     },
     "google-calendar": {
       "display": "Google Calendar",

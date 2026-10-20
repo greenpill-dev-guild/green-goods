@@ -204,7 +204,7 @@ the Discord summary, never a stopped run.
    SHA — this line is what ties the session's verdicts to a deployable.
 2. **PostHog, window-scoped** — `switch-project` per surface (App `163591` for PWA/website,
    Admin `262122` for admin; skip docs). Run the degraded-telemetry probe first
-   ([`qa-triage-pulse.md`](./qa-triage-pulse.md) § Phase 3): structurally empty exception
+   ([`sync-triage-pulse.md`](./sync-triage-pulse.md) § Phase 3): structurally empty exception
    payloads → flag `posthog: degraded` and skip per-slice matching. When healthy:
    - per fail/blocked slice, match exceptions inside the session window against the slice's
      surface and route; stash safe-summary fields only (error hash, sessions, users, first/last

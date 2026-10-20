@@ -33,11 +33,14 @@ describe("public social previews", () => {
     expect(publicSocialPreviews.fund.socialImagePath).toBe("/social/fund.png");
   });
 
-  it("splits each card title into lines that spell it, with no closing period", () => {
+  it("splits each card title and lede into lines that spell them, titles with no closing period", () => {
     for (const preview of Object.values(publicSocialPreviews)) {
       expect(preview.cardTitle, preview.key).not.toMatch(/\.$/);
       if (preview.cardTitleLines) {
         expect(preview.cardTitleLines.join(" "), preview.key).toBe(preview.cardTitle);
+      }
+      if (preview.cardLedeLines) {
+        expect(preview.cardLedeLines.join(" "), preview.key).toBe(preview.cardLede);
       }
     }
   });
