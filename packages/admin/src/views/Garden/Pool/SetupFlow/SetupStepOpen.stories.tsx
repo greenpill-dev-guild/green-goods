@@ -129,3 +129,14 @@ export const Offline: Story = {
     ...oneAtATime(previewRows("season", false)),
   },
 };
+
+export const Documentation: Story = {
+  args: {
+    name: "Autumn Planting",
+    startDate: "2026-10-01",
+    endDate: "2026-11-30",
+    gardenName: "Riverside Commons Garden",
+    purpose:
+      "Coordinate practical garden work and neighbourly help, with independent confirmation and clear evidence.",
+  },
+};

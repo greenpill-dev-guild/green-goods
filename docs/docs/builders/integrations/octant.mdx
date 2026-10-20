@@ -34,6 +34,11 @@ Funders deposit and redeem directly on the ERC-4626 vaults; the Octant module ow
 creation, configuration, strategies, and the yield-donation routing, and has no deposit or
 withdrawal entrypoint of its own.
 
+<figure className="gg-figure">
+  <img src="/img/builders/site-vaults.webp" alt="The public Vaults page: a hero reading Public goods campaigns, powered by Octant vaults, above the list of active campaigns ready for support" loading="lazy" width="2000" height="1250" />
+  <figcaption>Funders back campaigns from the public Vaults page.</figcaption>
+</figure>
+
 ## How it flows
 
 Money moves one way for yield and the other way for deposits. Funders can redeem their shares for
@@ -59,10 +64,6 @@ like the other module hooks, so a garden can exist with no vault. `getVaultForAs
 zero address for one that is missing, and a steward of the garden or the protocol owner can create
 it with `createVaultForAsset`.
 
-<figure className="gg-figure">
-  <img src="/img/builders/site-vaults.webp" alt="The public Vaults page: a hero reading Public goods campaigns, powered by Octant vaults, above the list of active campaigns ready for support" loading="lazy" width="2000" height="1250" />
-  <figcaption>The public Vaults page, where a funder backs a campaign. The Octant module is the machinery under it.</figcaption>
-</figure>
 
 ## Where it lives in the code
 

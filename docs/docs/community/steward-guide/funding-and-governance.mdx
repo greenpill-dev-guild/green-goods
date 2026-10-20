@@ -1,6 +1,6 @@
 ---
-title: Funding and Governance
-sidebar_label: Funding and Governance
+title: Manage Garden Funding
+sidebar_label: Manage Garden Funding
 slug: /community/steward-guide/funding-and-governance
 description: "How support reaches a garden, what a steward can do with the shared fund and the endowment, and what the dashboard does not offer yet."
 audience: steward
@@ -14,6 +14,7 @@ prereqs: "Steward or owner access to a garden that has a shared fund or an endow
 next_steps: "/community/steward-guide/"
 persona_context: "Stewards looking after a garden's money and explaining it to their community."
 source_of_truth:
+  - packages/shared/src/config/app.ts
   - packages/admin/src/views/Community/index.tsx
   - packages/admin/src/views/Community/components/CommunityEndowmentTab.tsx
   - packages/admin/src/views/Community/components/CommunityPayoutsTab.tsx
@@ -41,9 +42,14 @@ keywords:
 
 import {NextBestAction} from "@site/src/components/docs";
 
-# Funding and Governance
+# Manage Garden Funding
 
 A garden can hold money in two ways. This page explains both, shows what you can do with each from the dashboard, and is plain about what is not there yet. Everything here is in the **Community** workspace.
+
+<figure className="gg-figure">
+  <img src="/img/screenshots/admin-cookie-jars.webp" alt="The Cookie Jars card with two jars, WETH and DAI. Each shows its Jar Balance, a Per-claim limit and a Withdrawal cooldown with an Edit link beside each, the line 4 yield payouts so far, and the buttons Deposit and Claim. Both jars are marked Active, and the DAI jar also carries a Limit too low label" loading="eager" width="2000" height="736" />
+  <figcaption>Each jar shows its balance, claim limit and cooldown.</figcaption>
+</figure>
 
 ## The two funds
 
@@ -57,20 +63,20 @@ A garden can hold money in two ways. This page explains both, shows what you can
 
 Both are normally set up when the garden is created. If **Payouts** says **No cookie jars found for this garden**, or **Endowment** says **No vault available yet**, ask the Green Goods team.
 
+## Where promises fit
+
+[Commitment Pooling](/community/steward-guide/open-a-pool) coordinates specific promises and their evidence. It is separate from the shared fund and endowment described here. The 2.0 release includes promises without new money rewards; it defers new promise payouts and settlement-account changes. Approving work or confirming a promise does not send money.
+
 ## Before you start
 
 - Be a steward or owner of the garden, and check that its name shows at the top left of the dashboard.
-- Agree with your community what the shared fund is for. The app records every claim and does not judge it.
+- Agree with your community what the shared fund is for. The app records every claim and does not judge it or check it against a work submission.
 - Be online. Every change here is confirmed and saved straight away.
 
 ## Look after the shared fund
 
 Open **Community** and choose the **Payouts** tab. The **Cookie Jars** card shows each jar's balance, its per-claim limit, and its cooldown.
 
-<figure className="gg-figure">
-  <img src="/img/screenshots/admin-cookie-jars.webp" alt="The Cookie Jars card with two jars, WETH and DAI. Each shows its Jar Balance, a Per-claim limit and a Withdrawal cooldown with an Edit link beside each, the line 4 yield payouts so far, and the buttons Deposit and Claim. Both jars are marked Active, and the DAI jar also carries a Limit too low label" loading="lazy" width="2000" height="736" />
-  <figcaption>The Cookie Jars card. Its subtitle speaks of rewards for completed work, but a jar does not check a claim against any submission. Source: deployed Storybook fixture, captured 12 October 2026. Build revision unavailable; fictional example data.</figcaption>
-</figure>
 
 ### How claims work
 
@@ -103,6 +109,12 @@ Stewards are gardeners too. Tap **Claim**, choose the jar, enter how much and th
 
 Open **Community** and choose the **Endowment** tab. There is one card for each kind of token the endowment holds. Each shows **Net deposited**, **Unharvested impact yield**, the number of **Depositors**, and the **Harvest count**.
 
+
+<figure className="gg-figure" style={{maxWidth: '480px'}}>
+  <img src="/img/screenshots/guide-garden-endowment.webp" alt="A DAI endowment card shows 250 DAI net deposited, 4 DAI accruing, three depositors and two harvests." loading="lazy" width="464" height="353" />
+  <figcaption>Each token has its own balance and yield.</figcaption>
+</figure>
+
 ### Move the earnings to the garden
 
 Only a steward or owner can collect earnings from the endowment. Once collected, anyone can
@@ -113,10 +125,17 @@ either step.
 1. On the card, tap **Harvest & Distribute**. If a harvest was already done, the button reads **Distribute Yield**.
 2. Read **Harvest and Distribute Yield**. It shows the estimated total and how it will be split between the garden's cookie jar, certificate funding, and the protocol treasury.
 3. Confirm. It says whether it needs one confirmation or two.
+4. Wait for **Yield distributed** and read the reported amounts and destinations. A submitted transaction alone does not establish distribution.
 
 Small amounts wait. If the card says an amount "is waiting until the minimum is reached", there is nothing to do yet.
 
 The dashboard shows the split and has no control for changing it.
+
+
+<figure className="gg-figure" style={{maxWidth: '480px'}}>
+  <img src="/img/screenshots/guide-garden-distribution.webp" alt="An example distribution result reports DAI allocated to the Cookie Jar, hypercert funding and protocol treasury." loading="lazy" width="464" height="210" />
+  <figcaption>Check the recorded distribution result, not only the submitted transaction.</figcaption>
+</figure>
 
 ### Deposit or withdraw your own money
 

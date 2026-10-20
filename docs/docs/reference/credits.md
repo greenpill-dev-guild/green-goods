@@ -94,7 +94,7 @@ Thank you to early users and testers who point out confusing instructions, missi
 
 ### Logo & Identity
 
-Use the [Brand kit](/brand) for current logos, icons, palette, fonts, and editable templates. Keep proportions and space around the artwork. Do not imply official endorsement without permission. Brand usage guidance and open questions are on that page.
+Use the [Brand kit](/brand-kit) for current logos, icons, palette, fonts, and editable templates. Keep proportions and space around the artwork. Do not imply official endorsement without permission. Brand usage guidance and open questions are on that page.
 
 ## Contact
 

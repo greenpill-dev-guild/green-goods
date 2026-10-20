@@ -20,6 +20,9 @@ sb.mock(import("../src/hooks/admin-ui/pool/useProtocolFundingOperationsControlle
 sb.mock(import("../src/hooks/admin-ui/pool/useSettlementOperationsController.ts"), { spy: true });
 sb.mock(import("../src/hooks/auth/usePrimaryAddress.ts"), { spy: true });
 sb.mock(import("../src/hooks/auth/useUser.ts"), { spy: true });
+sb.mock(import("../src/hooks/blockchain/useEthUsdPrice.ts"), { spy: true });
+sb.mock(import("../src/hooks/cookie-jar/useCookieJarDeposit.ts"), { spy: true });
+sb.mock(import("../src/hooks/public/usePublicEndowmentPositions.ts"), { spy: true });
 sb.mock(import("../src/hooks/auth/useWalletModalOpen.ts"), { spy: true });
 sb.mock(import("../src/hooks/blockchain/useBaseLists.ts"), { spy: true });
 sb.mock(import("../src/hooks/blockchain/useChainConfig.ts"), { spy: true });
@@ -78,6 +81,7 @@ sb.mock(import("../src/hooks/work/useMyWorks.ts"), { spy: true });
 sb.mock(import("../src/hooks/work/useYourWorkCount.ts"), { spy: true });
 sb.mock(import("../src/hooks/yield/useYieldAllocations.ts"), { spy: true });
 // The public vault panel mounts the wallet runtime itself; its stories render the panel without it.
+sb.mock(import("../src/providers/AppKitProvider.tsx"), { spy: true });
 sb.mock(import("../../client/src/routes/WalletRuntimeProviders.tsx"), { spy: true });
 
 const preview: Preview = {

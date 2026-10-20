@@ -338,6 +338,15 @@ export interface GreenGoodsOntologyProjections {
   version: number;
   capabilities: OntologyCapability[];
   human_concepts: OntologyHumanConceptSource[];
+  /** Source-backed explanations of UI terms; these do not declare domain entities. */
+  community_terms?: Array<{
+    id: string;
+    label: string;
+    meaning: string;
+    example: string;
+    guide: string;
+    source_of_truth: string[];
+  }>;
   marketing_claims: OntologyMarketingClaim[];
   persona_journeys: OntologyPersonaJourney[];
 }

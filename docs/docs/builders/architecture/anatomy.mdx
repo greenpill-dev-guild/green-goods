@@ -4,7 +4,7 @@ sidebar_label: Anatomy of a Work Submission
 slug: /builders/architecture/anatomy
 audience: developer
 owner: docs
-last_verified: 2026-10-11
+last_verified: 2026-10-15
 feature_status: Live
 source_of_truth:
   - packages/shared/src/hooks/client-ui/work/useWorkSubmissionFlowController.ts
@@ -32,6 +32,15 @@ The fastest way to understand Green Goods is to follow one piece of work all the
 from a phone in a garden with no signal to a verifiable record a funder can check. Every package
 appears here in its real role, so by the end you'll know where any change you're planning would
 live.
+
+```mermaid
+flowchart TB
+  accTitle: One work submission from capture to review
+  accDescr: Capture saves a local draft. The gardener sends the queued work, the Work resolver validates it, and an independent steward records a separate approval.
+  capture["Capture → local queue"] -->|gardener sends| work["Work attestation · resolver checks role"]
+  work --> review["Steward reviews evidence"]
+  review --> approval["Separate approval attestation"]
+```
 
 The trace below follows the real thing on Arbitrum One. The schema links open the live registry,
 and every stage names the code that owns it.
@@ -89,10 +98,6 @@ Two read paths pick the work up, deliberately separate:
 A steward opens the [admin cockpit](../packages/admin)'s Hub and sees the submission with its
 evidence. Review is a human judgment; the protocol's job was getting the evidence here intact.
 
-<figure className="gg-figure">
-  <img src="/img/builders/admin-hub-work.webp" alt="The admin cockpit's Hub on the Work tab: submissions shown as cards with their status and when they were submitted, above the Hub, Garden, Community navigation dock" loading="lazy" width="2000" height="1250" />
-  <figcaption>The Hub's Work tab, where submissions wait for a steward and approved ones stay on record.</figcaption>
-</figure>
 
 ## 6. Approve
 
@@ -114,7 +119,7 @@ shown as protocol truth.
 
 <figure className="gg-figure" style={{maxWidth: '360px'}}>
   <img src="/img/builders/client-work-dashboard.webp" alt="The PWA's Your Work sheet on the Pending tab: an Upload all button and queued items, one marked Can't upload because its action ended and one marked To upload" loading="lazy" width="780" height="1688" />
-  <figcaption>Your Work in the PWA: every item carries its queue state until the chain has confirmed it.</figcaption>
+  <figcaption>Your Work shows each item’s queue state until its record is confirmed.</figcaption>
 </figure>
 
 ## 8. Onward
@@ -129,7 +134,7 @@ tells this same story in product language.
 
 <figure className="gg-figure">
   <img src="/img/builders/gpdg-graphic-green-goods-impact-value-cycle.webp" alt="The Green Goods impact value cycle: work is captured, verified, certified, and funded, and funding flows back into more work" loading="lazy" width="1120" height="1584" />
-  <figcaption>The full cycle this page traced one lap of.</figcaption>
+  <figcaption>How regenerative work connects to recognition and support.</figcaption>
 </figure>
 
 ## Next steps

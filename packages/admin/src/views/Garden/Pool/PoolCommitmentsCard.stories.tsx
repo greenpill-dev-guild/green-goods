@@ -250,3 +250,44 @@ export const RewardDeferred: Story = {
     await expect(canvas.getByRole("button", { name: "Discard" })).toBeEnabled();
   },
 };
+
+export const DocumentationPartial: Story = {
+  args: {
+    console: storyPoolConsole({
+      commitments: STORY_GROUP_COPIES.slice(0, 9).map((copy) => ({
+        ...copy,
+        unitLabel: "check",
+        dueDate: 1791209600n,
+        considerationRail: "NONE",
+        considerationAmount: 0n,
+        considerationPaid: false,
+      })),
+      titles: new Map([
+        [
+          "bafy-group-survey",
+          {
+            version: 1,
+            title: "Check the household rainwater barrels",
+            displayGroup: { version: 1, id: STORY_GROUP_ID },
+          },
+        ],
+      ]),
+      queuedGroupCopies: new Map([[STORY_GROUP_ID, ["documentation-copy"]]]),
+      pendingCreates: [
+        {
+          jobId: "documentation-copy",
+          chainId: 42161,
+          poolId: "7",
+          direction: "REQUEST",
+          title: "Check the household rainwater barrels",
+          unitLabel: "check",
+          targetUnits: "1",
+          waitingForMembership: false,
+          discardable: true,
+          failed: true,
+          createdAt: daysAgo(0) * 1000,
+        },
+      ],
+    }),
+  },
+};

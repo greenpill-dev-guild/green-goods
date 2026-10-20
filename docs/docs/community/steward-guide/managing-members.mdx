@@ -39,9 +39,15 @@ import {NextBestAction, StewardPathNav} from "@site/src/components/docs";
 
 # Manage Members
 
-<StewardPathNav />
 
 Bring people into your garden, give them the right role, and decide how new people get in. Everything here happens in the steward dashboard, in the **Community** workspace.
+
+<figure className="gg-figure">
+  <img src="/img/screenshots/admin-community-members.webp" alt="The Community workspace on the Members tab: the buttons Deposit / Withdraw, Fund Cookie Jar, and Add Member at the top right, a member directory with a search box and filters for Owners, Stewards, Evaluators, Gardeners, Funders, and Community members, and one member row with a Manage Roles button" loading="eager" width="2000" height="1250" />
+  <figcaption>Use <strong className="gg-inline-label">Manage Roles</strong> on the row of the member whose access you want to change.</figcaption>
+</figure>
+
+<StewardPathNav />
 
 ## Before you start
 
@@ -58,11 +64,6 @@ Bring people into your garden, give them the right role, and decide how new peop
 5. Repeat for each person. You can mix roles in one list.
 6. Tap the button at the bottom, which reads something like **Add 3 Members**, and confirm. You confirm once for each person on the list.
 
-<figure className="gg-figure">
-  <img src="/img/screenshots/admin-community-members.webp" alt="The Community workspace on the Members tab: the buttons Deposit / Withdraw, Fund Cookie Jar, and Add Member at the top right, a member directory with a search box and filters for Owners, Stewards, Evaluators, Gardeners, Funders, and Community members, and one member row with a Manage Roles button" loading="lazy" width="2000" height="1250" />
-  <figcaption><strong>Work on one member at a time.</strong> Add Member is at the top right. Use Manage Roles on the person's row when their access needs to change.
-  <span className="gg-overview-source">Source: deployed Storybook, Community / Members fixture, 12 October 2026; 2000 × 1250, fictional member directory. Build revision unavailable.</span></figcaption>
-</figure>
 
 **Which role?** Gardeners submit work. Stewards run the garden with you. Evaluators write assessments. The [steward guide](#roles-in-a-garden) lists all six. Giving someone the steward role also gives them the evaluator and gardener roles.
 
@@ -115,7 +116,7 @@ By default a garden is invite only: people join when you add them or approve the
 
 <figure className="gg-figure" style={{maxWidth: '520px'}}>
   <img src="/img/screenshots/admin-edit-garden.webp" alt="Part of the Edit Garden dialog: fields for the garden's name, description, and location, a banner image upload, the Open joining switch turned on with the line Allow anyone to join this garden without an invitation, and the Limit gardeners switch turned off" loading="lazy" width="1120" height="1408" />
-  <figcaption>Open joining and Limit gardeners are in Edit Garden. In this fixture the garden's limit has not loaded, so that switch cannot be changed yet. Source: deployed Storybook fixture, captured 12 October 2026. Build revision unavailable; fictional example data.</figcaption>
+  <figcaption>Wait for the garden’s limit to load before changing <strong className="gg-inline-label">Limit gardeners</strong>.</figcaption>
 </figure>
 
 Two things to know about the limit. It counts people who join by themselves, not members you add. And the count does not go down when someone leaves, so raise the limit if you need more room.
@@ -150,6 +151,6 @@ To reach the Green Goods team, ask in the [Green Goods Telegram group](https://t
 <NextBestAction
   title="Write down the starting point"
   why="With people in place, agree what your garden is trying to change and how you will measure it."
-  actionLabel="Make an Assessment"
+  actionLabel="Make an Initial Assessment"
   actionHref="/community/evaluator-guide/making-an-assessment"
 />

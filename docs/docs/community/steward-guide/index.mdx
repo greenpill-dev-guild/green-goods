@@ -41,6 +41,10 @@ import {NextBestAction} from "@site/src/components/docs";
 
 A steward looks after a garden. You bring people in, make sure the right kinds of work can be recorded, review what gardeners submit, and look after the garden's shared funds. Your review is what turns a gardener's photos into a record other people can trust.
 
+<figure className="gg-figure gg-overview-photo gg-guide-opening">
+  <img src="/img/community/guide-steward.webp" alt="An open community workshop with shared tools, a task board and an empty planning table." width="1672" height="941" loading="eager" />
+</figure>
+
 What you get:
 
 - **One place to run the garden.** Members, submissions, assessments, and funds sit together in the steward dashboard.
@@ -49,10 +53,6 @@ What you get:
 
 ## Where you work
 
-<figure className="gg-figure gg-overview-photo" style={{maxWidth: '560px'}}>
-  <img src="/img/community/editorial-actions.webp" alt="A field notebook, camera and tools ready to record community work." width="1536" height="1024" decoding="async" />
-  <figcaption>Agree what evidence your garden needs before people start recording work. Editorial illustration reused from Green Goods' website Actions imagery; not a real garden or submission.</figcaption>
-</figure>
 
 - **The steward dashboard**, at [admin.greengoods.app](https://admin.greengoods.app). It is best on a computer. The bar at the bottom holds its workspaces: **Hub** for reviews and records, **Garden** for the garden's profile and health, and **Community** for members and funds.
 - **The Green Goods app**, on your phone. You can review work there too, which helps when you are at the garden.
@@ -61,7 +61,7 @@ Before you change anything, look at the garden name at the top left of the dashb
 
 <figure className="gg-figure">
   <img src="/img/screenshots/admin-hub.webp" alt="The steward dashboard on the Hub workspace: the garden's name at the top left, the buttons Create Assessment, Create Hypercert, and Submit Work, the tabs Work, Confirm, Assessments, and Hypercerts, an empty review queue reading All caught up, and a bar at the bottom with Hub, Garden, and Community" loading="lazy" width="2000" height="1250" />
-  <figcaption>The dashboard's Hub with nothing waiting. The garden's name is at the top left, and the bar at the bottom moves between workspaces. Source: deployed Storybook fixture, captured 12 October 2026. Build revision unavailable; fictional example data.</figcaption>
+  <figcaption>Use the bottom bar to move between Hub, Garden and Community.</figcaption>
 </figure>
 
 ## Get steward access
@@ -84,8 +84,7 @@ You need access to at least one garden before the dashboard opens. There are two
 
 <figure className="gg-figure gg-guide-product">
   <img src="/img/screenshots/admin-request-steward-access.webp" alt="The Request Steward Access dialog for a garden named Comunidad Verde: under Review Your Request, the account that will receive access, an optional note box, a line saying access is granted only after a garden owner or steward assigns the role, a Check Status link, and the buttons Change Garden and Send Request" loading="lazy" width="960" height="1400" />
-  <figcaption><strong>Ask to help run this garden.</strong> Check which account receives access and add a note for the person deciding. Sending the request does not give you the role.
-  <span className="gg-overview-source">Source: deployed Storybook, StewardAccessRequest fixture, 12 October 2026; 960 × 1400 capture with fictional request data. Build revision unavailable.</span></figcaption>
+  <figcaption>Your request waits until an owner or steward grants access.</figcaption>
 </figure>
 
 **Prefer to be added directly?** Open your profile in the dashboard, copy your account address, and send it to a garden owner or steward. They can add you from [Manage Members](/community/steward-guide/managing-members).
@@ -116,19 +115,26 @@ For what each role can do, see [Roles in a garden](/community/steward-guide/mana
 ## Choose your next task
 
 - [Manage Members](/community/steward-guide/managing-members): bring people in, change roles, and answer requests.
-- [Make an Assessment](/community/evaluator-guide/making-an-assessment): record the starting point and goals.
+- [Make an Initial Assessment](/community/evaluator-guide/making-an-assessment): record the starting point and goals.
 - [Review Work](/community/steward-guide/reviewing-work): check evidence and record your decision.
-- [Run a Commitment Pool](/community/steward-guide/commitment-pooling): look after the garden's promises using the available tools.
+- [Run a Commitment Pool](/community/steward-guide/open-a-pool): open the pool, seed promises without money rewards, and review participation and confirmation.
 - [Mint an Impact Certificate](/community/steward-guide/creating-impact-certificates): bundle approved work into one claim.
-- [Funding and Governance](/community/steward-guide/funding-and-governance): look after the shared fund and endowment.
+- [Manage Garden Funding](/community/steward-guide/funding-and-governance): look after the shared fund and endowment.
 
 ## Setting up a new garden
 
-[Create a Garden](/community/steward-guide/creating-a-garden) and maintaining the shared [action list](/community/steward-guide/managing-actions#if-you-maintain-the-action-list) require deployer access. These setup guides are under **Builders → Reference → Garden setup (deployer)**. Ordinary stewards can [choose their garden's areas of work](/community/steward-guide/managing-actions#2-change-your-gardens-areas-of-work) without maintaining that list.
+[Create a Garden](/community/steward-guide/creating-a-garden) and maintaining the shared [action list](/community/steward-guide/managing-actions#if-you-maintain-the-action-list) require deployer access. These setup guides are under **Builders → Reference**. Ordinary stewards can [choose their garden's areas of work](/community/steward-guide/managing-actions#2-change-your-gardens-areas-of-work) without maintaining that list.
 
 :::note Using your own wallet
 If you signed in with a passkey, Green Goods covers the network fees. If you connected your own wallet, each change is a transaction you pay for on the Arbitrum network, so keep a little ETH there.
 :::
+
+## Promises {#promises}
+
+- [Open a Pool](/community/steward-guide/open-a-pool) and agree its rules.
+- [Seed Promises](/community/steward-guide/seed-promises) people can take up.
+- [Review Promises](/community/steward-guide/review-promises), participation, work counting and confirmation.
+- [End a Season](/community/steward-guide/end-a-season) before considering archive.
 
 <NextBestAction
   title="Bring people in"
