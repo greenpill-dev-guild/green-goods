@@ -483,7 +483,8 @@
   /* ── Safe Areas ── The installed iPhone app draws under the status bar and
    * the home indicator (viewport-fit=cover with a black-translucent status bar).
    * Chrome at the top pads by env(safe-area-inset-top); chrome at the bottom
-   * pads by --safe-area-bottom, never by env(safe-area-inset-bottom) directly.
+   * pads by --safe-area-bottom, never by env(safe-area-inset-bottom) directly
+   * (scripts/design/check-tokens.sh fails on a raw one outside admin chrome).
    * It is that inset except in an installed app whose page stops short of the
    * screen (the standalone rule below this block). Both are 0 where nothing
    * overlaps the page. */
