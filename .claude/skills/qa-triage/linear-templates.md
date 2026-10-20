@@ -403,7 +403,7 @@ QA Sync — <meeting-title> on <YYYY-MM-DD>. Speaker: <name>. [Notes](<drive-url
 When this tracking Issue comes from `source:qa-session`, use the QA session source line and exact
 Test ID defined above. Track-only status does not weaken the linkage rule.
 
-For a track-only item, the Customer Need then links to this Issue via the `issue` parameter and carries the full verbatim quote + Reporter context in its body. An issue-only item gets no Customer Need; [SKILL.md § Phase 2](./SKILL.md) says which sync items are issue-only.
+For a track-only item, the Customer Need then links to this Issue via the `issue` parameter and carries the full verbatim quote + Reporter context in its body. When the triage gate confirmed an outside report the notes missed, both come from the user's answer at the gate: the reporter's role and words, never their name, and never a teammate's quote. An issue-only item gets no Customer Need; [SKILL.md § Phase 2](./SKILL.md) says which sync items are issue-only.
 
 ---
 
@@ -420,7 +420,7 @@ Linear's API constraint that Customer Needs must link to an Issue eliminates the
 | Strategic gap tied to architecture rework | Attach (`activity:architecture`) | `Backlog` | Yes, linked |
 | Sync item the team raised itself, with no PostHog match: a chore, a tooling or process change, a bug or an idea | The bug's Issue above, otherwise Attach (`activity:maintenance`) | As above, otherwise `Backlog` | No (`issue-only`) |
 | Question / "me too" / no actionable content | Skip both | — | No |
-| Duplicate of existing record | No new Issue | — | Comment on existing if user wants the verbatim preserved |
+| Duplicate of existing record | No new Issue | — | Comment on existing if user wants the verbatim preserved; a sync item with no outside signal comments on the Issue, never the Need |
 | `[derived:posthog]` accepted in Phase 4 | Main (`activity:build`) | `Todo` | Yes, linked (telemetry-only body) |
 | `[derived:test-fail]` accepted in Phase 4 | Main (`activity:build`) | `Todo` | Yes, linked (Test ID reference) |
 | `[derived:recurring]` accepted in Phase 4 | linked to parent Issue | yes (recurring-pattern parent) |

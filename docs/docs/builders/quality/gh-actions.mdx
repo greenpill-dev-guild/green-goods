@@ -26,7 +26,7 @@ generated_from:
   - package.json
   - scripts/data/validation-policy.json
   - scripts/data/workflow-catalog.json
-source_digest: "sha256:70d25a3762f85c727479e15f315868f65cd4f048a340e08a8e2fa37316af3aec"
+source_digest: "sha256:847fc03fbb620673a62d3582ee2229a53c9da350ac84881eb85ff5537dfbaf88"
 source_of_truth:
   - .github/workflows/admin.yml
   - .github/workflows/agent.yml
@@ -69,7 +69,7 @@ import {CopyCommand} from "@site/src/components/docs";
 | [Contracts Nightly](#contracts-nightly) | The deep fuzz and invariant lane: pull-request CI runs the capped test profile for speed, and this run restores full depth through the ci profile. | a schedule (`17 3 * * *` UTC); manual dispatch | No |
 | [Contracts](#contracts) | Compiles, lints, and tests the Solidity packages and the contract script suite. | pull requests that touch its paths (9 path filters); pushes to `main` and `develop` that touch its paths; a call from another workflow | No |
 | [Coverage Nightly](#coverage-nightly) | Enforces the measured coverage floors across the packages. Pull requests run plain package tests for fast feedback; this lane measures. | pushes to `main`; a schedule (`43 8 * * *` UTC); manual dispatch | No |
-| [Design](#design) | Checks the design system: Storybook, story coverage, and DesignMD token parity, with optional Chromatic publishing. | pull requests that touch its paths (44 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
+| [Design](#design) | Checks the design system: Storybook, story coverage, and DesignMD token parity, with optional Chromatic publishing. | pull requests that touch its paths (43 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
 | [Docs](#docs) | Tests the docs generators, audits documentation authority, checks that generated projections and ontology pages are current, and builds the docs site. | pull requests that touch its paths (95 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch | No |
 | [Indexer](#indexer) | Builds and tests the Envio indexer handlers against the contract ABIs and deployment artifacts. | pull requests that touch its paths (10 path filters); pushes to `main` and `develop` that touch its paths | No |
 | [Ontology](#ontology) | Validates the ontology sidecar against the code it anchors and keeps its generated reference pages current. | pull requests that touch its paths (96 path filters); pushes to `main` and `develop` that touch its paths | No |
@@ -172,7 +172,7 @@ Enforces the measured coverage floors across the packages. Pull requests run pla
 Checks the design system: Storybook, story coverage, and DesignMD token parity, with optional Chromatic publishing.
 
 - **Use it when:** Shared components, styles, tokens, any DESIGN.md, or the docs stylesheet. Dispatch it with publish_chromatic to publish Storybook.
-- **Runs on:** pull requests that touch its paths (44 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch.
+- **Runs on:** pull requests that touch its paths (43 path filters); pushes to `main` and `develop` that touch its paths; manual dispatch.
 - **Jobs:** `design-guardrails`, `storybook`.
 - **Required status:** no, but the CI Gate waits for it on a pull request that touches its paths.
 - **File:** [.github/workflows/design.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/design.yml)

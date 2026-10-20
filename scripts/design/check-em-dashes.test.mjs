@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { CATALOGS, DOCS_ROOT, catalogHits, docsHits, scanRepository } from "./check-em-dashes.mjs";
+import { CATALOGS, DESIGN_SKILL, DOCS_ROOT, catalogHits, docsHits, scanRepository } from "./check-em-dashes.mjs";
 
 test("a catalog value with an em dash fails under its key; keys and clean values pass", () => {
   const catalog = JSON.stringify({
@@ -56,7 +56,7 @@ test("docs code is not copy: fenced blocks and inline code spans pass", () => {
   assert.deepEqual(lines, [10, 15]);
 });
 
-test("the scan skips *.generated.mdx and ontology projections and reads every other page", () => {
+test("the scan reads every authored page and design guide, and skips generated pages and other markdown", () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "check-em-dashes-"));
   try {
     const write = (relativePath, text) => {
@@ -71,14 +71,27 @@ test("the scan skips *.generated.mdx and ontology projections and reads every ot
     write(`${DOCS_ROOT}/builders/test-cases.mdx`, generated("scripts/data/qa-test-catalog.json"));
     write(`${DOCS_ROOT}/guide/authored.md`, "Authored prose — fails.\n");
     write(`${DOCS_ROOT}/guide/clean.mdx`, "Authored prose, clean.\n");
+    write("DESIGN.md", "# Root guide, clean\n");
+    write("docs/DESIGN.md", "# Docs — Design Brief\n");
+    write("packages/client/DESIGN.browser.md", "Guide prose — fails.\n");
+    write(`${DESIGN_SKILL}/surfaces.md`, "```\ncode — kept\n```\nSkill prose — fails.\n");
+    write("packages/client/README.md", "Not a design guide — ignored.\n");
+    write(".claude/rules/frontend-design.md", "Rules, not a design guide — ignored.\n");
 
-    const { failures, pages, skipped } = scanRepository(root);
+    const { failures, pages, skipped, guides } = scanRepository(root);
     assert.deepEqual(
       failures.map((failure) => failure.split(": ")[0]),
-      [`${DOCS_ROOT}/builders/test-cases.mdx:7`, `${DOCS_ROOT}/guide/authored.md:1`],
+      [
+        `${DOCS_ROOT}/builders/test-cases.mdx:7`,
+        `${DOCS_ROOT}/guide/authored.md:1`,
+        `${DESIGN_SKILL}/surfaces.md:4`,
+        "docs/DESIGN.md:1",
+        "packages/client/DESIGN.browser.md:1",
+      ],
     );
     assert.equal(pages, 3);
     assert.equal(skipped, 2);
+    assert.equal(guides, 4);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }

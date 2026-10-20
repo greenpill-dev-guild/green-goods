@@ -152,8 +152,8 @@ For each extracted item:
    - PostHog error hash (if matched)
 
    If duplicate:
-   - **Existing Customer Need**: append a comment with today's sync date + the verbatim quote; do NOT create a duplicate. Grep the drafted comment with the Phase 5 string list **before** posting — a comment is public the moment it lands, and a post-hoc edit does not unpublish it.
-   - **Existing Issue** that already covers the same behavior: create no new tracking Issue. When the item relays customer or telemetry signal, link a new Customer Need to that Issue so the new quote and occurrence still count toward its priority. When it is the team's own work, add one comment only if the call adds new detail, grepped like any comment. An Issue that is related but distinct gets a `relates to` link from the new tracking Issue instead. When an Issue matched here has no project, or its project is Completed or Canceled, set it per [Project routing](README.md#project-routing) in the same pass.
+   - **Existing Customer Need**: when the item relays customer or telemetry signal (§ Customer Needs), append a comment with today's sync date + the verbatim quote; do NOT create a duplicate. Grep the drafted comment with the Phase 5 string list **before** posting — a comment is public the moment it lands, and a post-hoc edit does not unpublish it. Otherwise leave the Need alone, so the team's own words never read as another customer occurrence: match the item against the Issue that Need links to, under the Existing Issue rule below.
+   - **Existing Issue** that already covers the same behavior: create no new tracking Issue. When the item relays customer or telemetry signal, link a new Customer Need to that Issue so the new quote and occurrence still count toward its priority. Otherwise, add one comment only if the call adds new detail, grepped like any comment. An Issue that is related but distinct gets a `relates to` link from the new tracking Issue instead. When an Issue matched here has no project, or its project is Completed or Canceled, set it per [Project routing](README.md#project-routing) in the same pass.
 
 ## Phase 4: Pre-stage Backlog tracking Issues, with Customer Needs for customer signal
 
@@ -255,7 +255,7 @@ This collaboration pattern mirrors how `bug-intake` works today: routine creates
 | Paste Vercel runtime logs into Customer Need bodies | Deploy metadata is public, log content is not — that's `health-watch` territory |
 | Skip the Phase 5 privacy grep | The verbatim-quote field can leak reporter handles if the notes captured them |
 | Try to create a Customer Need without an `issue` parameter | Linear's API rejects with `Exactly one of projectId or issueId must be defined`. This routine ALWAYS creates the Backlog tracking Issue first, then the Customer Need linked to it. There is no standalone Need path. |
-| Pre-stage a Customer Need for the team's own work | A Customer Need records customer or telemetry signal; an engineering chore, a tooling change or an internal idea is tracked by its Backlog Issue alone (§ Customer Needs) |
+| Pre-stage a Customer Need for the team's own work, or add its quote to an existing Need | A Customer Need records customer or telemetry signal; an engineering chore, a tooling change or an internal idea is tracked by its Backlog Issue alone (§ Customer Needs) |
 | Apply multiple `ai:*` or `package:*` labels to one Issue | Linear enforces single-value-per-group on these families. The routine uses `ai:routine` (single value) and one `package:*` (primary surface; secondary noted in body). |
 | Push commits | Linear-only — this routine never touches code |
 | Process a doc whose title date is not today | An edit can bring an earlier call's doc inside the 8-hour window; that call was triaged on its own day |

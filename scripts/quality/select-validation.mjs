@@ -237,6 +237,26 @@ function consumersOfSharedTestSupport(policy, path) {
   return support.surfaces;
 }
 
+// A rule's `globs` read like a workflow's path filters: `**` crosses directories, `*` and `?` do not.
+const globExpressions = new Map();
+function globMatches(glob, path) {
+  if (!globExpressions.has(glob)) {
+    let source = "";
+    for (let index = 0; index < glob.length; index += 1) {
+      const character = glob[index];
+      if (character === "*" && glob[index + 1] === "*") {
+        const crossesDirectory = glob[index + 2] === "/";
+        source += crossesDirectory ? "(?:.*/)?" : ".*";
+        index += crossesDirectory ? 2 : 1;
+      } else if (character === "*") source += "[^/]*";
+      else if (character === "?") source += "[^/]";
+      else source += character.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+    }
+    globExpressions.set(glob, new RegExp(`^${source}$`));
+  }
+  return globExpressions.get(glob).test(path);
+}
+
 function groupMatches(path, rule) {
   const exactMatch = rule.exact?.includes(path) ?? false;
   const excluded =
@@ -253,6 +273,7 @@ function groupMatches(path, rule) {
   if (rule.prefixes?.length) groups.push(rule.prefixes.some((prefix) => path.startsWith(prefix)));
   if (rule.contains?.length) groups.push(rule.contains.some((part) => path.includes(part)));
   if (rule.extensions?.length) groups.push(rule.extensions.some((extension) => path.endsWith(extension)));
+  if (rule.globs?.length) groups.push(rule.globs.some((glob) => globMatches(glob, path)));
   if (groups.length === 0) return false;
   return rule.match === "all" ? groups.every(Boolean) : groups.some(Boolean);
 }
