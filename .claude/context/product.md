@@ -36,7 +36,7 @@ The five rows are the ontology's personas, and Green Goods has no others. Name a
 
 **Tone rules:**
 - Gardener/Community Member copy: zero blockchain vocabulary in ordinary copy, reading level ~6th grade; the DL-094 safety cases still apply (a privacy or permanence notice may name the network, a link names its explorer)
-- Steward copy: may reference on-chain verification as a trust mechanism, but not Solidity internals
+- Steward copy: steward documentation may reference on-chain verification as a trust mechanism, but not Solidity internals; product review screens follow DL-094
 - Evaluator copy: may use research/assessment terminology freely
 - Funder copy: may reference attestation integrity; never use "guaranteed returns"
 - For who each persona is, what they do, when, and on which surface: `docs/docs/builders/architecture/personas.mdx`, generated from the ontology
@@ -123,7 +123,7 @@ State transitions:
 Local work submission:  queued → syncing → synced (then on-chain "pending" until a steward decides)
 Local work approval:    queued → syncing → synced (then on-chain "approved" or "rejected" directly; the
                         queued decision is projected with a pending-until-confirmed flag, never as "pending" work)
-                          → failed → retry → syncing
+Both local flows:       syncing → failed → retry → syncing
 On-chain: pending → approved | rejected
 ```
 
@@ -253,7 +253,7 @@ These are already part of the core product baseline and should be treated as liv
 - "Web3" or "blockchain" in Gardener-facing copy
 - "Decentralized" as a feature (it is an implementation detail)
 
-**Rule:** Gardener-facing copy must be comprehensible to someone who has never heard of Ethereum. Steward/Funder copy may reference on-chain verification as a trust mechanism.
+**Rule:** Gardener-facing copy must be comprehensible to someone who has never heard of Ethereum. Steward documentation and funder copy may reference on-chain verification as a trust mechanism; product review screens follow DL-094.
 
 ## Competitive Differentiation
 
