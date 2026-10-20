@@ -9,16 +9,16 @@
  *     activity within the volume's time window, from approved work and the
  *     assessments of listed gardens only.
  *
- * No auth path. v1 implements **Season One: Onboarding & Cultivation** with
- * a hardcoded start/open-end window keyed off the pilot launch date. When
- * the Seasons-as-primitive contract lands (`docs/concepts/strategy-and-goals`
- * and `project_campaigns_as_seasons`), this hook should switch to deriving
- * the window from the Season entity in the indexer rather than the constants
- * below.
+ * No auth path. v1 implements **Season One: Onboarding & Cultivation**, a
+ * network-wide program period, with a hardcoded start/open-end window keyed
+ * off the pilot launch date. A program period spans gardens, so it is not the
+ * ontology's Season (`entity:season`), which is one garden pool's Season-type
+ * commitment cycle. When a network program-period record exists, this hook
+ * should derive the window from it rather than the constants below.
  *
  * ### Indexer-scope gaps surfaced here
  *
- * - **No on-chain Season primitive yet** — the start/end window below is a
+ * - **No program-period record yet.** The start/end window below is a
  *   hardcode. Pages can still render `Vol. I — Onboarding & Cultivation`
  *   as the volume label.
  * - Gardens active in the window are derived by the presence of any
@@ -41,9 +41,9 @@ import type { Address } from "../../types/domain";
 export const SEASON_ONE_VOLUME_ID = 1 as const;
 
 /**
- * Season One window — start = 2025-04-01 UTC (pilot launch); end = `null`
- * meaning "still open". Update once the Seasons primitive ships and the
- * canonical timestamps move on-chain.
+ * Season One window: start = 2025-04-01 UTC (pilot launch); end = `null`
+ * meaning "still open". Update once a network program-period record holds the
+ * canonical timestamps.
  */
 export const SEASON_ONE_WINDOW = {
   label: "Season One: Onboarding & Cultivation",

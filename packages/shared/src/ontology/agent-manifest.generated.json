@@ -452,7 +452,7 @@
       "id": "season",
       "kind": "entity",
       "canonical": "Season",
-      "definition": "A garden's main rhythm: the one open Season-type commitment cycle of the garden's pool, with a name, start and end dates, and the promises scoped to it. A pool runs at most one Season at a time, and Campaigns may run beside it. It paces work and is never a countdown.",
+      "definition": "A garden's main rhythm: a Season-type commitment cycle of the garden's pool, with a name, start and end dates, and the promises scoped to it. It stays a season at every stage, from planned to archived. A pool has at most one open Season at a time, and Campaigns may run beside it. It paces work and is never a countdown.",
       "semantic_status": "canonical",
       "surfaces": ["admin", "client", "agent", "public", "docs"],
       "aliases": ["garden season"],
@@ -460,7 +460,7 @@
         {
           "to": "commitment-cycle",
           "kind": "represented-by",
-          "note": "the garden pool's one open Season-type cycle; a Campaign-type cycle is not a season"
+          "note": "a Season-type cycle of the garden's pool, in any state; a Campaign-type cycle is not a season"
         }
       ],
       "maturity": {
@@ -477,7 +477,7 @@
           },
           {
             "file": "packages/client/src/views/Public/GardenDetail.tsx",
-            "note": "The public garden page shows the open season with its name, dates, and per-unit progress, and the client's Promises tab lists seasons and campaigns. On 2026-10-19 the production indexer returned three open season cycles on Arbitrum, each recorded as its pool's open season."
+            "note": "The public garden page shows the open season with its name, its end date (\"Runs through\"), and per-unit progress, and lists finished seasons with their start and end dates; the client's Promises tab lists seasons and campaigns. On 2026-10-19 the production indexer returned three open season cycles on Arbitrum, each recorded as its pool's open season."
           }
         ],
         "verified_at": "2026-10-19"

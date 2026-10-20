@@ -197,7 +197,7 @@
         },
         {
           "file": "packages/client/src/views/Public/GardenDetail.tsx",
-          "note": "The public garden page shows the open season with its name, dates, and per-unit progress, and the client's Promises tab lists seasons and campaigns. On 2026-10-19 the production indexer returned three open season cycles on Arbitrum, each recorded as its pool's open season."
+          "note": "The public garden page shows the open season with its name, its end date (\"Runs through\"), and per-unit progress, and lists finished seasons with their start and end dates; the client's Promises tab lists seasons and campaigns. On 2026-10-19 the production indexer returned three open season cycles on Arbitrum, each recorded as its pool's open season."
         }
       ],
       "verified_at": "2026-10-19"
