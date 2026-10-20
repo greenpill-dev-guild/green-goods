@@ -2347,3 +2347,12 @@ settlement authority. Borrow-and-repay `CreditRegistry` is an active August-wave
 under the 2026-08-01 scope lock; its contracts lane remains manually blocked until the in-code
 pooling/settlement interface freeze, spec revalidation, and human legal/operations review gates
 all clear.
+
+## October 15 release-essential documentation
+
+The user authorized refreshing and implementing the gardener/steward release guides under
+PRD-1156 on merged #896. [The bounded handoff](handoffs/release-essential-docs.md) owns the page
+inventory, production reading/source evidence, current progress and validation receipt. The app
+release includes Garden promises and defers new money rewards and settlement writes. PRD-727
+retains the full community/builder, pilot and settlement documentation scope; no historical lane
+is certified or external issue closed by this slice. Release guides are implemented in the working tree, with selected automated checks passed. Human QA and full PRD-727 lane certification remain separate.

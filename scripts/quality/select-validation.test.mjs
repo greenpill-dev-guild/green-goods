@@ -2722,7 +2722,7 @@ test("the push gate routes test quality and generated or audited docs to the pat
   }
   assert.ok(!push("packages/shared/src/hooks/app/useLoadingWithMinDuration.ts").includes("test-quality"));
 
-  for (const changedPath of ["docs/docs/community/green-goods-claims.generated.mdx", "scripts/docs/renderers.mjs", ".github/workflows/shared.yml"]) {
+  for (const changedPath of ["docs/claims.generated.md", "scripts/docs/renderers.mjs", ".github/workflows/shared.yml"]) {
     const selected = push(changedPath);
     assert.ok(selected.includes("docs-generated"), changedPath);
     assert.ok(selected.includes("docs-authority"), changedPath);

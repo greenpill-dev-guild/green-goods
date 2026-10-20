@@ -34,5 +34,6 @@ G$ settlement actions, contributor payouts, settlement-account configuration and
 - [Open Green Goods](https://greengoods.app)
 - [Open the steward workspace](https://admin.greengoods.app)
 - [Install or update the app](https://docs.greengoods.app/community/gardener-guide/installing-and-updating)
+- [Make and keep a promise](https://docs.greengoods.app/community/gardener-guide/commitments)
 - [Run a commitment pool](https://docs.greengoods.app/community/steward-guide/commitment-pooling)
 - [Passkey sign-in and recovery](https://docs.greengoods.app/builders/integrations/passkey)

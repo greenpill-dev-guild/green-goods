@@ -41,6 +41,10 @@ import {NextBestAction} from "@site/src/components/docs";
 
 A garden is the home for one community's work: its people, its records, and its funds. This page is for the person who sets a new one up.
 
+<figure className="gg-figure">
+  <img src="/img/screenshots/admin-create-garden-details.png" alt="The Create Garden form in the steward dashboard, with the Garden details section showing fields for the name, location, ENS subdomain, description, and optional banner image" loading="eager" width="1104" height="440" />
+</figure>
+
 **Not everyone can create a garden.** It needs deployer access, which the Green Goods team gives out. If you want a garden for your community and do not have that access, ask in the [Green Goods Telegram group](https://t.me/+N3o3_43iRec1Y2Jh). If your garden already exists, skip to [Manage Members](/community/steward-guide/managing-members).
 
 ## Before you start
@@ -75,10 +79,6 @@ The form is one page with three numbered sections.
 5. Add a **Banner image** if you have one.
 6. Under **Action domains**, choose the areas of work.
 
-<figure className="gg-figure">
-  <img src="/img/screenshots/admin-create-garden-details.png" alt="The Create Garden form in the steward dashboard, with the Garden details section showing fields for the name, location, ENS subdomain, description, and optional banner image" loading="lazy" width="1104" height="440" />
-  <figcaption>Garden details, cropped to the fields in the desktop form. Source: deployed Storybook, Admin/Workspaces/Garden, Create Garden Route fixture; captured 12 October 2026. The deployed build identifier is not exposed.</figcaption>
-</figure>
 
 ### 3. Add your first team
 
@@ -87,12 +87,24 @@ The form is one page with three numbered sections.
 
 Stewards can already do everything a gardener can, so you do not need to add them to both lists. You can leave both lists empty.
 
+
+<figure className="gg-figure" style={{maxWidth: '672px'}}>
+  <img src="/img/screenshots/guide-garden-team.webp" alt="Planned team members contains one steward and two gardeners and explains that grants must be verified after creation." loading="lazy" width="688" height="478" />
+  <figcaption>Verify these planned members’ roles in Garden Members after creation.</figcaption>
+</figure>
+
 ### 4. Review and create
 
 1. Read **Review & deploy**. It shows everything you entered.
 2. Fix anything that looks wrong. A new garden starts as **Invite only**. You can open it up afterwards.
 3. Tap **Deploy Garden** and confirm.
 4. Keep the page open until it finishes.
+
+
+<figure className="gg-figure" style={{maxWidth: '672px'}}>
+  <img src="/img/screenshots/guide-garden-review.webp" alt="Riverside Commons Garden review shows Invite only and its planned gardeners and steward." loading="lazy" width="784" height="459" />
+  <figcaption>Check Invite only and the planned team before deploying.</figcaption>
+</figure>
 
 ## How you know it worked
 

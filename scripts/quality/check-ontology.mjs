@@ -32,7 +32,7 @@ const SCHEMAS_JSON_PATH = "packages/contracts/config/schemas.json";
 const QA_CATALOG_PATH = "scripts/data/qa-test-catalog.json";
 const GLOSSARY_PATH = "docs/docs/reference/glossary.generated.mdx";
 const GENERATED_REFERENCE_PATH = "docs/docs/reference/ontology.generated.mdx";
-const GENERATED_CLAIMS_PATH = "docs/docs/community/green-goods-claims.generated.mdx";
+const GENERATED_CLAIMS_PATH = "docs/claims.generated.md";
 const CLIENT_GLOSSARY_PATH = "packages/client/src/views/Public/Glossary.tsx";
 
 // Product surfaces a term may appear on. `community` is carried verbatim from the
@@ -318,7 +318,7 @@ export function parseGlossaryAnchors(source) {
   for (const match of source.matchAll(/<a\s+id=["']([A-Za-z0-9_-]+)["']\s*><\/a>/g)) {
     anchors.add(match[1]);
   }
-  for (const match of source.matchAll(/<TermAnchor id="([A-Za-z0-9_-]+)" \/>/g)) anchors.add(match[1]);
+  for (const match of source.matchAll(/<TermAnchor id="([A-Za-z0-9_-]+)"(?: to="[^"]+")? \/>/g)) anchors.add(match[1]);
   return anchors;
 }
 
@@ -1251,7 +1251,7 @@ export function checkDomainDocumentation(ontology, projections, glossary, refere
   for (const term of [...ontology.entities, ...ontology.personas, ...ontology.supporting_terms]) {
     if (!formalAnchors.has(term.id)) findings.push({guard: "docs-formal-anchor", subject: `docs:anchor:${term.id}`, file: GENERATED_REFERENCE_PATH, detail: "declared term has no formal destination", message: "formal term anchor is missing"});
   }
-  for (const match of (glossary ?? "").matchAll(/\]\(\/reference\/ontology#([a-z0-9-]+)\)/g)) {
+  for (const match of (glossary ?? "").matchAll(/(?:\]\(|to=")\/reference\/ontology#([a-z0-9-]+)/g)) {
     if (!formalAnchors.has(match[1])) findings.push({guard: "docs-glossary-link", subject: `docs:link:${match[1]}`, file: GLOSSARY_PATH, detail: "formal destination anchor is missing", message: "glossary points at a missing formal definition"});
   }
   return {fatal, findings, counts};

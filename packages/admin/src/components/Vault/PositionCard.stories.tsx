@@ -1,8 +1,12 @@
+import { PositionCard as RealPositionCard } from "./PositionCard";
+import { withAdminIdentity } from "../../../../shared/.storybook/decorators";
+import { useVaultPreview } from "@green-goods/shared/hooks/vault/useVaultPreview";
+import { fn, mocked } from "storybook/test";
+import { resetHookMocks } from "../../../../shared/.storybook/moduleMocks";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useIntl } from "react-intl";
-import { fn } from "storybook/test";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
 
@@ -281,4 +285,39 @@ export const DistributionComplete: Story = {
 
 export const ReadOnly: Story = {
   args: { canManage: false },
+};
+
+/** Documentation uses the production component rather than the older visual harness. */
+export const Documentation: Story = {
+  decorators: [withAdminIdentity],
+  beforeEach: () => {
+    mocked(useVaultPreview).mockReturnValue({
+      preview: { totalAssets: 254n * 10n ** 18n, maxDeposit: 1000n * 10n ** 18n },
+    } as unknown as ReturnType<typeof useVaultPreview>);
+    return resetHookMocks(useVaultPreview);
+  },
+  render: () => (
+    <RealPositionCard
+      gardenAddress="0x5eed000000000000000000000000000000000001"
+      vault={{
+        id: "documentation-vault",
+        chainId: 42161,
+        vaultAddress: "0x5eed0000000000000000000000000000000000d4",
+        asset: "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1",
+        totalDeposited: 250n * 10n ** 18n,
+        totalWithdrawn: 0n,
+        depositorCount: 3,
+        totalHarvestCount: 2,
+        garden: "0x5eed000000000000000000000000000000000001",
+        donationAddress: null,
+        paused: false,
+        createdAt: 1767225600,
+      }}
+      canManage={false}
+      canEmergencyPause={false}
+      isModuleOwner={false}
+      onDeposit={fn()}
+      onWithdraw={fn()}
+    />
+  ),
 };

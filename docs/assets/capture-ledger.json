@@ -1,0 +1,1204 @@
+{
+  "recorded_at": "2026-10-17",
+  "notes": "Current captures use real components with fictional records. Storybook captures demonstrate interface states, not signed transactions, installation or product certification. Generated task photos contain no people or faces.",
+  "captures": [
+    {
+      "page": "docs/docs/builders/architecture.mdx",
+      "images": ["/img/builders/admin-garden-promises.webp"],
+      "capture_note": "A garden's commitment pool in the admin cockpit: seasons, promises to review, and the pool's status, all read from the module's register."
+    },
+    {
+      "page": "docs/docs/builders/getting-started.mdx",
+      "images": ["/img/builders/site-home.webp"],
+      "capture_note": "The client opens on the public home page. If you see this at localhost:3001, you're up and running."
+    },
+    {
+      "page": "docs/docs/builders/getting-started.mdx",
+      "images": ["/img/builders/admin-hub-work.webp"],
+      "capture_note": "The admin cockpit's Hub, the first screen a steward lands on. Mock auth shows it for a test steward's garden.",
+      "status": "historical"
+    },
+    {
+      "page": "docs/docs/builders/how-to-contribute.mdx",
+      "images": ["/img/builders/admin-hub-work.webp"],
+      "capture_note": "A capture like this one, from Storybook or from mock auth on localhost, is enough proof for most interface changes.",
+      "status": "historical"
+    },
+    {
+      "page": "docs/docs/builders/quality/product-experience-qa.mdx",
+      "images": ["/img/screenshots/qa-app-priority-view.webp"],
+      "capture_note": "The Priority view groups the run sheet into P0, P1, and P2 bands. This example uses synthetic data."
+    },
+    {
+      "page": "docs/docs/builders/quality/product-experience-qa.mdx",
+      "images": ["/img/screenshots/qa-app-journey-view.jpg"],
+      "capture_note": "Journey mode keeps the handoff in view: each row names the surface, who acts, and who verifies. This example uses the neutral synthetic identity Tester A."
+    },
+    {
+      "page": "docs/docs/builders/quality/product-experience-qa.mdx",
+      "images": ["/img/screenshots/qa-app-recorded-issues.webp"],
+      "capture_note": "Notes earn their keep on a Fail or a Blocked: say what you saw, where, and on which device. The Issues filter collects them for the end-of-call walk. This example uses synthetic data."
+    },
+    {
+      "page": "docs/docs/builders/integrations/hypercerts.mdx",
+      "images": ["/img/builders/admin-hub-hypercerts.webp"],
+      "capture_note": "A steward's view: the Hub's Hypercerts tab, where a garden's certificates are minted and listed.",
+      "status": "historical"
+    },
+    {
+      "page": "docs/docs/builders/integrations/hypercerts.mdx",
+      "images": ["/img/builders/site-impact.webp"],
+      "capture_note": "The public Impact page, where certificates and the records behind them are read by anyone."
+    },
+    {
+      "page": "docs/docs/builders/integrations/cookie-jar.mdx",
+      "images": ["/img/builders/site-cookies.webp"],
+      "capture_note": "The public Cookies page is the campaign-jar surface: seasonal jars with an allowlist. Garden jars are claimed in the installed app instead."
+    },
+    {
+      "page": "docs/docs/builders/integrations/passkey.mdx",
+      "images": ["/img/builders/admin-sign-in.webp"],
+      "capture_note": "Sign-in in the cockpit: a passkey account first, a wallet second. The installed app opens the same way."
+    },
+    {
+      "page": "docs/docs/builders/integrations/octant.mdx",
+      "images": ["/img/builders/site-vaults.webp"],
+      "capture_note": "The public Vaults page, where a funder backs a campaign. The Octant module is the machinery under it."
+    },
+    {
+      "page": "docs/docs/builders/integrations/eas.mdx",
+      "images": ["/img/builders/eas-work-schema.webp"],
+      "capture_note": "The Work Submission schema on easscan, with its resolver named and every attestation written against it on Arbitrum One."
+    },
+    {
+      "page": "docs/docs/builders/architecture/design.mdx",
+      "images": ["/img/design/design-system-overview-three-systems.webp"],
+      "capture_note": "Three dialects, one token set. The overview story measures the real components in the browser and marks each one on spec. Open in Storybook."
+    },
+    {
+      "page": "docs/docs/builders/architecture/design.mdx",
+      "images": ["/img/design/shared-tokens-colors-gallery.webp"],
+      "capture_note": "The primitive palettes every role resolves to, in both themes. Open in Storybook."
+    },
+    {
+      "page": "docs/docs/builders/architecture/design.mdx",
+      "images": ["/img/design/shared-tokens-materialroles-role-map.webp"],
+      "capture_note": "The material role map: canvas, sheet, glass, and chrome, light and dark side by side. Open in Storybook."
+    },
+    {
+      "page": "docs/docs/builders/architecture/design.mdx",
+      "images": ["/img/design/shared-primitives-button-emphasis-catalog.webp"],
+      "capture_note": "One Button primitive, four emphases, four sizes. Open in Storybook."
+    },
+    {
+      "page": "docs/docs/builders/architecture/design.mdx",
+      "images": ["/img/design/design-system-app-foundations-tokens.webp"],
+      "capture_note": "The installed app's foundations: roles, type, radii, and spacing on one sheet. Open in Storybook."
+    },
+    {
+      "page": "docs/docs/builders/architecture/design.mdx",
+      "images": ["/img/design/design-system-app-components-in-phone-frame.webp"],
+      "capture_note": "The field journal at phone width: emphasis and tone variants of the shared buttons, with the hit areas measured. Open in Storybook."
+    },
+    {
+      "page": "docs/docs/builders/architecture/design.mdx",
+      "images": ["/img/builders/client-work-dashboard.webp"],
+      "capture_note": "A real sheet in the app: the shared header, tabs, one primary action, and warm queue states.",
+      "status": "historical"
+    },
+    {
+      "page": "docs/docs/builders/architecture/design.mdx",
+      "images": ["/img/builders/site-home.webp"],
+      "capture_note": "The home page: serif headline, linen card, photograph, one green action.",
+      "status": "historical"
+    },
+    {
+      "page": "docs/docs/builders/architecture/design.mdx",
+      "images": ["/img/builders/site-gardens.webp"],
+      "capture_note": "The Gardens page: the same hero anatomy, then the living archive."
+    },
+    {
+      "page": "docs/docs/builders/architecture/design.mdx",
+      "images": ["/img/design/design-system-website-foundations-tokens.webp"],
+      "capture_note": "The website's foundations: capsule buttons, semibold labels, and the editorial serif, read live from the site surface. Open in Storybook."
+    },
+    {
+      "page": "docs/docs/builders/architecture/design.mdx",
+      "images": ["/img/design/design-system-website-components-buttons.webp"],
+      "capture_note": "The same Button primitive as the app, wearing the website's corner and weight. Open in Storybook."
+    },
+    {
+      "page": "docs/docs/builders/architecture/design.mdx",
+      "images": ["/img/design/design-system-admin-foundations-tokens.webp"],
+      "capture_note": "The cockpit's foundations: Material 3 roles, elevation, and type scale. Open in Storybook."
+    },
+    {
+      "page": "docs/docs/builders/architecture/design.mdx",
+      "images": ["/img/design/design-system-admin-components-buttons.webp"],
+      "capture_note": "Every admin control with its live geometry, graded against the compact metric. Open in Storybook."
+    },
+    {
+      "page": "docs/docs/builders/architecture/design.mdx",
+      "images": ["/img/builders/admin-hub-work.webp"],
+      "capture_note": "The cockpit in use: the Hub's Work tab, with the translucent navigation dock and everything else solid on the canvas.",
+      "status": "historical"
+    },
+    {
+      "page": "docs/docs/builders/architecture/anatomy.mdx",
+      "images": ["/img/builders/admin-hub-work.webp"],
+      "capture_note": "The Hub's Work tab, where submissions wait for a steward and approved ones stay on record.",
+      "status": "historical"
+    },
+    {
+      "page": "docs/docs/builders/architecture/anatomy.mdx",
+      "images": ["/img/builders/client-work-dashboard.webp"],
+      "capture_note": "Your Work in the PWA: every item carries its queue state until the chain has confirmed it."
+    },
+    {
+      "page": "docs/docs/builders/architecture/anatomy.mdx",
+      "images": ["/img/builders/gpdg-graphic-green-goods-impact-value-cycle.webp"],
+      "capture_note": "The full cycle this page traced one lap of."
+    },
+    {
+      "page": "docs/docs/builders/packages/shared.mdx",
+      "images": ["/img/builders/shared-tokens-foundation-controls.webp"],
+      "capture_note": "The shared control scale and card shells in Storybook; every app field and card starts here. Open in Storybook."
+    },
+    {
+      "page": "docs/docs/builders/packages/client.mdx",
+      "images": ["/img/builders/site-home.webp"],
+      "capture_note": "The public shell: site header, editorial pages, public data only.",
+      "status": "historical"
+    },
+    {
+      "page": "docs/docs/builders/packages/client.mdx",
+      "images": ["/img/builders/client-work-dashboard.webp"],
+      "capture_note": "The app shell: bottom navigation, offline capture, the gardener's own work.",
+      "status": "historical"
+    },
+    {
+      "page": "docs/docs/builders/packages/admin.mdx",
+      "images": ["/img/builders/admin-hub-work.webp"],
+      "capture_note": "The Hub on its Work tab: AppBar, workspace canvas, and the navigation dock."
+    },
+    {
+      "page": "docs/docs/builders/packages/admin.mdx",
+      "images": ["/img/builders/admin-actions-registry.webp"],
+      "capture_note": "The Actions workspace: the registry a steward maintains for the garden."
+    },
+    {
+      "page": "docs/docs/builders/packages/qa.mdx",
+      "images": ["/img/screenshots/qa-app-recorded-issues.webp"],
+      "capture_note": "Two testers' verdicts side by side on the Issues filter. This example uses synthetic data.",
+      "status": "historical"
+    },
+    {
+      "page": "docs/docs/community/why-we-build.mdx",
+      "images": ["/img/community/editorial-fund.webp"],
+      "capture_note": "There are people behind every piece of work. Editorial illustration reused from Green Goods' website Fund imagery; no real people or project are identified."
+    },
+    {
+      "page": "docs/docs/community/why-we-build.mdx",
+      "images": ["/img/community/community-waste-sorting.jpg"],
+      "capture_note": "A real community example: Wings of the Ocean volunteers sorting waste in Mallorca in 2021.\n    This illustrates the kind of work a waste crew does; it is not a Green Goods project.\n    Photo: Victor Janji\u0107, CC BY-SA 4.0; Wikimedia's resized version, cropped for display."
+    },
+    {
+      "page": "docs/docs/community/why-we-build.mdx",
+      "images": ["/img/community/editorial-solar-workshop.webp"],
+      "capture_note": "Tools, shared knowledge, and practical skills are part of a garden's value, too. AI-generated editorial illustration, created for these docs on 12 October 2026; not a real person, workshop, or location."
+    },
+    {
+      "page": "docs/docs/community/welcome.mdx",
+      "images": ["/img/community/editorial-home.webp"],
+      "capture_note": "Work in the field becomes a record others can read. Editorial illustration reused from\n    Green Goods' website Home imagery; it does not identify a real location."
+    },
+    {
+      "page": "docs/docs/community/welcome.mdx",
+      "images": ["/img/screenshots/client-work-media-current.png"],
+      "capture_note": "Start with the work in front of you. The app asks what to photograph,\n    then gives you space for the details. Someone from your garden reviews the record you send.\n    Submit Work walks through it.\n    Source: local static Storybook, Client/Work/SubmitWork,\n    Media With Example Photo; 13 October 2026, 390 \u00d7 844. Fixture build is recorded in the Plan Hub image ledger.\n    Photo: Leon Brooks, Seedlings, public domain.\n    This is a fictional example, not a real Green Goods submission."
+    },
+    {
+      "page": "docs/docs/community/how-it-works.mdx",
+      "images": ["/img/community/editorial-actions.webp"],
+      "capture_note": "Evidence needs context: what happened, where, and why. Editorial illustration reused from Green Goods' website Actions imagery; not a real work submission."
+    },
+    {
+      "page": "docs/docs/community/how-it-works.mdx",
+      "images": ["/img/screenshots/admin-review-form.webp"],
+      "capture_note": "The steward adds a decision to the evidence. In this fixture, Approve waits for a confidence choice. Source: Storybook fixture, 12 October 2026, 1152 \u00d7 1080 image; build revision unavailable. This is example data, not Ama's record."
+    },
+    {
+      "page": "docs/docs/community/funder-guide/donating-to-a-garden.mdx",
+      "images": ["/img/community/editorial-fund.webp"],
+      "capture_note": "Choose a garden whose work and plans you understand. Editorial illustration reused from Green Goods' website Fund imagery; not a real donation or payment receipt.",
+      "status": "historical"
+    },
+    {
+      "page": "docs/docs/community/funder-guide/funding-a-garden.mdx",
+      "images": ["/img/community/editorial-fund.webp"],
+      "capture_note": "Longer-term support still needs a clear purpose and an account of how money moves. Editorial illustration reused from Green Goods' website Fund imagery; not a real payment or promise of earnings.",
+      "status": "historical"
+    },
+    {
+      "page": "docs/docs/community/funder-guide/funding-a-garden.mdx",
+      "images": ["/img/screenshots/public-endowment-amount.png"],
+      "capture_note": "The amount control in isolation, with an example dollar amount. Source: deployed Storybook, PublicFundingCard / AmountInputWithValue, 12 October 2026; cropped from 1440\u00d71000. Build revision unavailable.",
+      "status": "historical"
+    },
+    {
+      "page": "docs/docs/community/funder-guide/funding-a-garden.mdx",
+      "images": ["/img/screenshots/public-endowment-result.png"],
+      "capture_note": "An example result, not a receipt for a real payment. Source: deployed Storybook, PublicFundingCard / SuccessEndow, 12 October 2026; cropped from 1440\u00d71000. Build revision unavailable. No wallet transaction was made.",
+      "status": "historical"
+    },
+    {
+      "page": "docs/docs/community/gardener-guide/recovery-and-sync.mdx",
+      "images": ["/img/community/editorial-field-preparation.webp"],
+      "capture_note": "Keep the phone you recorded with while you recover the saved work. AI-generated editorial illustration, created for these docs on 12 October 2026; not a real device, location or app screen.",
+      "status": "historical"
+    },
+    {
+      "page": "docs/docs/community/gardener-guide/recovery-and-sync.mdx",
+      "images": ["/img/screenshots/client-work-pending-example.png"],
+      "capture_note": "Check the saved item before you send it. This example is To upload. Use Upload all when you are online and it is ready. \u201cNothing sent yet\u201d describes the work record, not whether media is already public.\n    Source: local static Storybook, WorkDashboard / Pending With Example Photo, 13 October 2026; 390 \u00d7 844. Build recorded in the Plan Hub image ledger. Photo: Leon Brooks, Seedlings, public domain. The record is fictional; the photo does not verify its count, time or note.",
+      "status": "historical"
+    },
+    {
+      "page": "docs/docs/community/gardener-guide/recovery-and-sync.mdx",
+      "images": ["/img/screenshots/client-work-discard.png"],
+      "capture_note": "Keep the item if you still need it. Choosing Discard removes the saved copy from the device. It does not retract a public file or a sent work record.\n    Source: local static Storybook, WorkDashboard / Pending With Example Photo, Discard confirmation opened. Captured 13 October 2026, 390 \u00d7 844; build recorded in the Plan Hub image ledger. No item was discarded. Photo: Leon Brooks, Seedlings, public domain. The record is fictional; the photo does not verify its count, time or note."
+    },
+    {
+      "page": "docs/docs/community/gardener-guide/installing-and-updating.mdx",
+      "images": ["/img/community/editorial-field-preparation.webp"],
+      "capture_note": "Get your phone ready while you have a connection. AI-generated editorial illustration, created for these docs on 12 October 2026; not a real location or an app screen."
+    },
+    {
+      "page": "docs/docs/community/gardener-guide/installing-and-updating.mdx",
+      "images": ["/img/screenshots/client-sign-in.webp"],
+      "capture_note": "Choose how you will sign in. Use Create Account for a passkey or Sign in with a Wallet for your existing wallet. Keep using that same route.\n    Source: deployed Storybook, Client/Layout/Splash,\n    Entry First Install fixture. Captured 12 October 2026; 780 \u00d7 900 image from a 390 \u00d7 844\n    phone viewport at 2\u00d7, cropped to the sign-in controls. Build revision unavailable.\n    This shows the entry screen, not a completed account creation."
+    },
+    {
+      "page": "docs/docs/community/gardener-guide/joining-a-garden.mdx",
+      "images": ["/img/community/editorial-garden.webp"],
+      "capture_note": "Join the community that will review your work. Editorial illustration reused from Green Goods' website Gardens imagery; no real garden or person is identified."
+    },
+    {
+      "page": "docs/docs/community/gardener-guide/joining-a-garden.mdx",
+      "images": ["/img/screenshots/client-garden-filters.webp"],
+      "capture_note": "Find an open garden. Under Show, choose Open gardens to narrow the list to gardens anyone can join. If your steward gave you a name, check the garden's name and location too.\n    Source: deployed Storybook, Client/Sheets/GardensFilterSheet,\n    Defaults fixture, with sample counts. Captured 12 October 2026; 780 \u00d7 1448 image from a\n    390 \u00d7 844 phone viewport at 2\u00d7, cropped to the sheet. Build revision unavailable.\n    All gardens is selected in this example."
+    },
+    {
+      "page": "docs/docs/community/gardener-guide/joining-a-garden.mdx",
+      "images": ["/img/screenshots/client-join-garden.webp"],
+      "capture_note": "Check the name before joining. The sheet names the garden you will join. Tap Join to continue, or Cancel if it is the wrong one.\n    Source: deployed Storybook, Client/Sheets/JoinGardenConfirmDialog,\n    Default fixture, with an example garden. Captured 12 October 2026; 780 \u00d7 588 image from a\n    390 \u00d7 844 phone viewport at 2\u00d7, cropped to the sheet. Build revision unavailable.\n    This is a confirmation screen, not proof of membership."
+    },
+    {
+      "page": "docs/docs/community/gardener-guide/uploading-your-work.mdx",
+      "images": ["/img/community/editorial-actions.webp"],
+      "capture_note": "Give the evidence enough context for someone else to understand the work. Editorial illustration reused from Green Goods' website Actions imagery; not a real submission.",
+      "status": "historical"
+    },
+    {
+      "page": "docs/docs/community/gardener-guide/uploading-your-work.mdx",
+      "images": ["/img/screenshots/client-work-media-current.png"],
+      "capture_note": "Step 2: check the photo rule. Read what this action asks you to photograph. The counter tells you when you have enough; Details takes you to the questions.\n    Source: local static Storybook, Client/Work/SubmitWork, Media With Example Photo.\n    Captured 13 October 2026, 390 \u00d7 844; fixture build recorded in the Plan Hub image ledger.\n    Photo: Leon Brooks, Seedlings, public domain.\n    The photo illustrates this fictional example. Use your own work photos when submitting."
+    },
+    {
+      "page": "docs/docs/community/gardener-guide/uploading-your-work.mdx",
+      "images": ["/img/screenshots/client-work-review-example.png"],
+      "capture_note": "Step 4: check the recorded details. This view is scrolled to the action, time, count and note. Check your garden and full photo above, then use Upload Work when everything matches.\n    Source: local static Storybook, Client/Work/SubmitWork,\n    Review With Example Photo. Captured 13 October 2026, 390 \u00d7 844, scrolled to Details;\n    fixture build recorded in the Plan Hub image ledger. Photo: Leon Brooks, Seedlings, public domain.\n    The garden, 36-plant count, 90-minute duration and note are fictional sample data,\n    not facts verified by this photograph."
+    },
+    {
+      "page": "docs/docs/community/gardener-guide/uploading-your-work.mdx",
+      "images": ["/img/screenshots/client-work-offline-example.png"],
+      "capture_note": "The work waits when there is no signal. To upload is waiting for you to send it. Media may already have been prepared in public storage while you were online; the status describes the work record.\n    Source: local static Storybook, WorkDashboard / Offline With Example Photo, 13 October 2026; 390 \u00d7 844. Build recorded in the Plan Hub image ledger. Photo: Leon Brooks, Seedlings, public domain. The record is fictional; the photo does not verify its count, time or note."
+    },
+    {
+      "page": "docs/docs/community/gardener-guide/track-status-and-attestations.mdx",
+      "images": ["/img/community/editorial-solar-workshop.webp"],
+      "capture_note": "Follow the record of the work you did, from a panel check to a tree-planting task. AI-generated editorial illustration, created for these docs on 12 October 2026; not real people, a location, or reviewed work.",
+      "status": "historical"
+    },
+    {
+      "page": "docs/docs/community/gardener-guide/track-status-and-attestations.mdx",
+      "images": ["/img/screenshots/client-work-pending-example.png"],
+      "capture_note": "Check the saved item before you send it. This example is To upload. Use Upload all when you are online and it is ready. \u201cNothing sent yet\u201d describes the work record, not whether media is already public.\n    Source: local static Storybook, WorkDashboard / Pending With Example Photo, 13 October 2026; 390 \u00d7 844. Build recorded in the Plan Hub image ledger. Photo: Leon Brooks, Seedlings, public domain. The record is fictional; the photo does not verify its count, time or note.",
+      "status": "historical"
+    },
+    {
+      "page": "docs/docs/community/gardener-guide/track-status-and-attestations.mdx",
+      "images": ["/img/screenshots/client-work-completed-example.png"],
+      "capture_note": "Find your own reviewed work. On Completed, choose My work. Open the item to read the decision; an approval is not a payment.\n  Source: local static Storybook, WorkDashboard / Completed With Example Photo, 13 October 2026; 390 \u00d7 844. Build recorded in the Plan Hub image ledger. Photo: Leon Brooks, Seedlings, public domain. Fictional reviewed record; no real approval was made.",
+      "status": "historical"
+    },
+    {
+      "page": "docs/docs/community/gardener-guide/track-status-and-attestations.mdx",
+      "images": ["/img/screenshots/client-cookie-jar-claim.webp"],
+      "capture_note": "A separate claim, if your garden offers one. Read the jar's limits and enter a purpose before Claim. These example amounts are not promised rewards for approved work.\n    Source: deployed Storybook, Client/Wallet/CookieJarTab,\n    Claimable Jar fixture, with example amounts and purpose. Captured 12 October 2026;\n    780 \u00d7 900 image cropped from a 390 \u00d7 844 phone viewport at 2\u00d7. Build revision unavailable.\n    This is a form, not a payment receipt."
+    },
+    {
+      "page": "docs/docs/community/steward-guide/creating-a-garden.mdx",
+      "images": ["/img/screenshots/admin-create-garden-details.png"],
+      "capture_note": "Garden details, cropped to the fields in the desktop form. Source: deployed Storybook, Admin/Workspaces/Garden, Create Garden Route fixture; captured 12 October 2026. The deployed build identifier is not exposed."
+    },
+    {
+      "page": "docs/docs/community/steward-guide/funding-and-governance.mdx",
+      "images": ["/img/screenshots/admin-cookie-jars.webp"],
+      "capture_note": "The Cookie Jars card. Its subtitle speaks of rewards for completed work, but a jar does not check a claim against any submission. Source: deployed Storybook fixture, captured 12 October 2026. Build revision unavailable; fictional example data."
+    },
+    {
+      "page": "docs/docs/community/steward-guide/index.mdx",
+      "images": ["/img/community/editorial-actions.webp"],
+      "capture_note": "Agree what evidence your garden needs before people start recording work. Editorial illustration reused from Green Goods' website Actions imagery; not a real garden or submission.",
+      "status": "historical"
+    },
+    {
+      "page": "docs/docs/community/steward-guide/index.mdx",
+      "images": ["/img/screenshots/admin-hub.webp"],
+      "capture_note": "The dashboard's Hub with nothing waiting. The garden's name is at the top left, and the bar at the bottom moves between workspaces. Source: deployed Storybook fixture, captured 12 October 2026. Build revision unavailable; fictional example data."
+    },
+    {
+      "page": "docs/docs/community/steward-guide/index.mdx",
+      "images": ["/img/screenshots/admin-request-steward-access.webp"],
+      "capture_note": "Ask to help run this garden. Check which account receives access and add a note for the person deciding. Sending the request does not give you the role.\n  Source: deployed Storybook, StewardAccessRequest fixture, 12 October 2026; 960 \u00d7 1400 capture with fictional request data. Build revision unavailable."
+    },
+    {
+      "page": "docs/docs/community/steward-guide/managing-actions.mdx",
+      "images": ["/img/screenshots/admin-create-action.webp"],
+      "capture_note": "Create Action, on Basics. The start and end dates decide when gardeners can submit and when stewards can review. Source: earlier Storybook fixture, October 2026. Exact capture day and build revision unrecorded; inspected 13 October 2026. Fictional example data.",
+      "status": "historical"
+    },
+    {
+      "page": "docs/docs/community/steward-guide/creating-impact-certificates.mdx",
+      "images": ["/img/builders/admin-hub-hypercerts.webp"],
+      "capture_note": "The Hub's Hypercerts tab, where a garden's certificates are listed. Source: earlier Storybook fixture, October 2026. Exact capture day and build revision unrecorded; inspected 13 October 2026. Fictional example data."
+    },
+    {
+      "page": "docs/docs/community/steward-guide/reviewing-work.mdx",
+      "images": ["/img/screenshots/admin-review-queue-example.png"],
+      "capture_note": "Open the record behind the card. The card gives you the action, sender and status. Read the full photos, numbers and note before deciding.\n  Source: local static Storybook, HubWorkQueue / With Example Photo, 13 October 2026; cropped to one card from 1440 \u00d7 900. Build recorded in the Plan Hub image ledger. Photo: Leon Brooks, Seedlings, public domain. The garden, sender and work record are fictional."
+    },
+    {
+      "page": "docs/docs/community/steward-guide/reviewing-work.mdx",
+      "images": ["/img/screenshots/admin-review-form.webp"],
+      "capture_note": "Steward Review before a confidence level is chosen. Approve stays grey until you pick one. Source: deployed Storybook fixture, captured 12 October 2026. Build revision unavailable; fictional example data."
+    },
+    {
+      "page": "docs/docs/community/steward-guide/reviewing-work.mdx",
+      "images": ["/img/screenshots/admin-reject-work.webp"],
+      "capture_note": "Reject Work, with one of the three suggestions chosen. Source: deployed Storybook fixture, captured 12 October 2026. Build revision unavailable; fictional example data."
+    },
+    {
+      "page": "docs/docs/community/steward-guide/reviewing-work.mdx",
+      "images": ["/img/screenshots/client-review-work.png"],
+      "capture_note": "Check the garden and the evidence. Scroll down for the recorded numbers and note before choosing Approve or Reject.\n  Source: local static Storybook, ReviewWork / Evaluate Example, 13 October 2026; 390 \u00d7 844. Build recorded in the Plan Hub image ledger. Photo: Leon Brooks, Seedlings, public domain. Fictional work; not evidence of the sample count or time."
+    },
+    {
+      "page": "docs/docs/community/steward-guide/reviewing-work.mdx",
+      "images": ["/img/screenshots/client-review-feedback.png"],
+      "capture_note": "Make the decision your own. Medium is the starting confidence in the app. Change it when needed and write feedback that will help the gardener.\n  Source: local static Storybook, ReviewWork / Feedback Example, 13 October 2026; 390 \u00d7 844. Build recorded in the Plan Hub image ledger. All record and review data is fictional. Photo: Leon Brooks, Seedlings, public domain. No decision was submitted."
+    },
+    {
+      "page": "docs/docs/community/steward-guide/managing-members.mdx",
+      "images": ["/img/screenshots/admin-community-members.webp"],
+      "capture_note": "Work on one member at a time. Add Member is at the top right. Use Manage Roles on the person's row when their access needs to change.\n  Source: deployed Storybook, Community / Members fixture, 12 October 2026; 2000 \u00d7 1250, fictional member directory. Build revision unavailable."
+    },
+    {
+      "page": "docs/docs/community/steward-guide/managing-members.mdx",
+      "images": ["/img/screenshots/admin-edit-garden.webp"],
+      "capture_note": "Open joining and Limit gardeners are in Edit Garden. In this fixture the garden's limit has not loaded, so that switch cannot be changed yet. Source: deployed Storybook fixture, captured 12 October 2026. Build revision unavailable; fictional example data."
+    },
+    {
+      "page": "docs/docs/community/evaluator-guide/making-an-assessment.mdx",
+      "images": ["/img/screenshots/admin-create-assessment.webp"],
+      "capture_note": "Create Assessment, on Domain &amp; Context. The four steps are listed on the left. Source: deployed Storybook fixture, captured 12 October 2026. Build revision unavailable; fictional example data.",
+      "status": "historical"
+    },
+    {
+      "page": "docs/docs/community/evaluator-guide/making-an-assessment.mdx",
+      "images": ["/img/screenshots/admin-assessment-goals.png"],
+      "capture_note": "Challenge &amp; Goals, with example answers. Source: deployed Storybook, StrategyKernelStep / Prefilled, 12 October 2026; cropped from 1440\u00d71000. Build revision unavailable.",
+      "status": "historical"
+    },
+    {
+      "page": "docs/docs/community/evaluator-guide/making-an-assessment.mdx",
+      "images": ["/img/screenshots/admin-assessment-period.png"],
+      "capture_note": "Actions &amp; Reporting Period. Source: deployed Storybook, ActionsHarvestStep / WithSelection, 12 October 2026; cropped from 1440\u00d71000. Build revision unavailable.",
+      "status": "historical"
+    },
+    {
+      "page": "docs/docs/community/evaluator-guide/making-an-assessment.mdx",
+      "images": ["/img/screenshots/admin-assessment-review.png"],
+      "capture_note": "Review before submitting. Scroll through the form to check every section. Source: deployed Storybook, ReviewStep / InFlowReady, 12 October 2026; cropped from 1440\u00d71000. Build revision unavailable. No assessment was submitted for this capture.",
+      "status": "historical"
+    },
+    {
+      "page": "docs/docs/community/evaluator-guide/making-an-assessment.mdx",
+      "images": ["/img/screenshots/admin-assessments-tab.webp"],
+      "capture_note": "The Assessments tab, with one assessment on record. This fixture has no reporting period, so only the recorded date shows. Source: deployed Storybook fixture, captured 12 October 2026. Build revision unavailable; fictional example data.",
+      "status": "historical"
+    },
+    {
+      "page": "docs/docs/community/gardener-guide/track-status-and-attestations.mdx",
+      "images": [
+        "/img/screenshots/client-work-pending-rich.png",
+        "/img/screenshots/client-work-completed-rich.png"
+      ],
+      "capture_note": "Storybook in Brave at 390 \u00d7 844, 2026-10-15. Client/Work/WorkDashboard PendingWithExamplePhoto and CompletedWithExamplePhoto, fictional mixed work, linked drafts and proofs; two approvals and a rejection. No account or transaction proof."
+    },
+    {
+      "page": "docs/docs/community/gardener-guide/recovery-and-sync.mdx",
+      "images": ["/img/screenshots/client-work-recovery-rich.png"],
+      "capture_note": "Storybook in Brave at 390 \u00d7 844, 2026-10-15. RecoveryWithExamplePhoto, To upload filter: two prepared work items, a converting photo, and proof. The controlled frame does not run real uploads."
+    },
+    {
+      "page": "docs/docs/community/gardener-guide/commitments.mdx",
+      "images": ["/img/screenshots/guide-promise-choose.webp"],
+      "recorded_at": "2026-10-17",
+      "proof_class": "Storybook",
+      "engine": "Chromium in-app browser",
+      "data": "Fictional garden/account/work records; write callbacks are local stubs.",
+      "capture_name": "promise-choose",
+      "width": 480,
+      "height": 900,
+      "sha256": "ab47eabf1f9a647c9d6567bb08a6fe4c7a47f2d521258f52627233738949f9d0",
+      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "status": "current",
+      "story_id": "client-commitments-gardenpool--chooser",
+      "viewport": {
+        "width": 480,
+        "height": 900
+      },
+      "framing": "Actual component bounds or complete phone viewport; no UI compositing"
+    },
+    {
+      "page": "docs/docs/community/gardener-guide/commitments.mdx",
+      "images": ["/img/screenshots/guide-promise-review.webp"],
+      "recorded_at": "2026-10-17",
+      "proof_class": "Storybook",
+      "engine": "Chromium in-app browser",
+      "data": "Fictional garden/account/work records; write callbacks are local stubs.",
+      "capture_name": "promise-review",
+      "width": 480,
+      "height": 1100,
+      "sha256": "0d9052e00fcddd5b60c79bfd483ce564136c59de679eaf1bc769eaebb31849d9",
+      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "status": "current",
+      "story_id": "client-commitments-composecommitment--documentation-review",
+      "viewport": {
+        "width": 480,
+        "height": 1100
+      },
+      "framing": "Actual component bounds or complete phone viewport; no UI compositing"
+    },
+    {
+      "page": "docs/docs/community/gardener-guide/keep-a-promise.mdx",
+      "images": ["/img/screenshots/guide-promise-team.webp"],
+      "recorded_at": "2026-10-17",
+      "proof_class": "Storybook",
+      "engine": "Chromium in-app browser",
+      "data": "Fictional garden/account/work records; write callbacks are local stubs.",
+      "capture_name": "promise-team",
+      "width": 464,
+      "height": 266,
+      "sha256": "3b33f4860851e3e367a4b5f413d4258d8b95c86b81360a7c8425246a5bd482d3",
+      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "status": "current",
+      "story_id": "client-commitments-gardencommitment--proof-added",
+      "viewport": {
+        "width": 480,
+        "height": 1400
+      },
+      "framing": "Actual component bounds or complete phone viewport; no UI compositing",
+      "interaction": "Captured the Team section at scroll position zero, with its complete policy, members and contribution reminder."
+    },
+    {
+      "page": "docs/docs/community/gardener-guide/keep-a-promise.mdx",
+      "images": ["/img/screenshots/guide-promise-link-work.webp"],
+      "recorded_at": "2026-10-17",
+      "proof_class": "Storybook",
+      "engine": "Chromium in-app browser",
+      "data": "Fictional garden/account/work records; write callbacks are local stubs.",
+      "capture_name": "promise-link-work",
+      "width": 480,
+      "height": 940,
+      "sha256": "bdb8019f8775c09ebf2cfe0743941699e28a9884c3bdbc8ca6217052631ecfc9",
+      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "status": "current",
+      "story_id": "client-commitments-linkworksheet--documentation",
+      "viewport": {
+        "width": 480,
+        "height": 940
+      },
+      "framing": "Actual component bounds or complete phone viewport; no UI compositing"
+    },
+    {
+      "page": "docs/docs/community/gardener-guide/keep-a-promise.mdx",
+      "images": ["/img/screenshots/guide-promise-proof-review.webp"],
+      "recorded_at": "2026-10-17",
+      "proof_class": "Storybook",
+      "engine": "Chromium in-app browser",
+      "data": "Fictional garden/account/work records; write callbacks are local stubs.",
+      "capture_name": "promise-proof-review",
+      "width": 480,
+      "height": 1040,
+      "sha256": "8461e720fe7134583cdd46e36b87209c13cc3d383aff2dc8d652a0dce7e5fec3",
+      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "status": "current",
+      "story_id": "client-commitments-proofcomposer--documentation-review",
+      "viewport": {
+        "width": 480,
+        "height": 1040
+      },
+      "framing": "Actual component bounds or complete phone viewport; no UI compositing"
+    },
+    {
+      "page": "docs/docs/community/gardener-guide/confirm-a-promise.mdx",
+      "images": ["/img/screenshots/guide-promise-confirm.webp"],
+      "recorded_at": "2026-10-17",
+      "proof_class": "Storybook",
+      "engine": "Chromium in-app browser",
+      "data": "Fictional garden/account/work records; write callbacks are local stubs.",
+      "capture_name": "promise-confirm",
+      "width": 480,
+      "height": 1000,
+      "sha256": "a22881afdaac5823cf09fd414c998fef10164f0d6971aaf4938bc9cc76a19286",
+      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "status": "current",
+      "story_id": "client-commitments-confirmsheet--documentation",
+      "viewport": {
+        "width": 480,
+        "height": 1000
+      },
+      "framing": "Actual component bounds or complete phone viewport; no UI compositing"
+    },
+    {
+      "page": "docs/docs/community/gardener-guide/confirm-a-promise.mdx",
+      "images": ["/img/screenshots/guide-promise-not-yet.webp"],
+      "recorded_at": "2026-10-17",
+      "proof_class": "Storybook",
+      "engine": "Chromium in-app browser",
+      "data": "Fictional garden/account/work records; write callbacks are local stubs.",
+      "capture_name": "promise-not-yet",
+      "width": 480,
+      "height": 740,
+      "sha256": "4717ed1679e753689f908f0ea4eb085a25317ef73a8ff8bb7b323363a4e7b1fa",
+      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "status": "current",
+      "story_id": "client-commitments-confirmsheet--documentation",
+      "viewport": {
+        "width": 480,
+        "height": 740
+      },
+      "framing": "Actual component bounds or complete phone viewport; no UI compositing",
+      "interaction": "Opened Not Yet and entered the unfinished-work explanation. Did not send."
+    },
+    {
+      "page": "docs/docs/community/steward-guide/commitment-pooling.mdx",
+      "images": ["/img/screenshots/guide-pool-open-review.webp"],
+      "recorded_at": "2026-10-17",
+      "proof_class": "Storybook",
+      "engine": "Chromium in-app browser",
+      "data": "Fictional garden/account/work records; write callbacks are local stubs.",
+      "capture_name": "pool-open-review",
+      "width": 688,
+      "height": 771,
+      "sha256": "4ef6b402c3e704a61b853c3d1d707728c82988dc17ac1491e9cfdae95079f6b3",
+      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "status": "current",
+      "story_id": "admin-pool-setupstepopen--documentation",
+      "viewport": {
+        "width": 840,
+        "height": 1100
+      },
+      "framing": "Actual component bounds or complete phone viewport; no UI compositing"
+    },
+    {
+      "page": "docs/docs/community/steward-guide/commitment-pooling.mdx",
+      "images": ["/img/screenshots/guide-pool-open-season.webp"],
+      "recorded_at": "2026-10-17",
+      "proof_class": "Storybook",
+      "engine": "Chromium in-app browser",
+      "data": "Fictional garden/account/work records; write callbacks are local stubs.",
+      "capture_name": "pool-open-season",
+      "width": 688,
+      "height": 233,
+      "sha256": "660314282c3bde872101c93a79b51f73c04f90fe1daeaa60486f52188fddd706",
+      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "status": "current",
+      "story_id": "admin-pool-poolcyclescard--documentation",
+      "viewport": {
+        "width": 840,
+        "height": 1100
+      },
+      "framing": "Actual component bounds or complete phone viewport; no UI compositing"
+    },
+    {
+      "page": "docs/docs/community/steward-guide/seed-promises.mdx",
+      "images": ["/img/screenshots/guide-pool-seed-review.webp"],
+      "recorded_at": "2026-10-17",
+      "proof_class": "Storybook",
+      "engine": "Chromium in-app browser",
+      "data": "Fictional garden/account/work records; write callbacks are local stubs.",
+      "capture_name": "pool-seed-review",
+      "width": 784,
+      "height": 594,
+      "sha256": "70ab645bfb2b3e469ba7125ef43ea2a20366a6856112cad5f797b72c66750fe1",
+      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "status": "current",
+      "story_id": "admin-pool-seedstepreview--documentation",
+      "viewport": {
+        "width": 840,
+        "height": 1100
+      },
+      "framing": "Actual component bounds or complete phone viewport; no UI compositing"
+    },
+    {
+      "page": "docs/docs/community/steward-guide/seed-promises.mdx",
+      "images": ["/img/screenshots/guide-pool-seed-partial.webp"],
+      "recorded_at": "2026-10-17",
+      "proof_class": "Storybook",
+      "engine": "Chromium in-app browser",
+      "data": "Fictional garden/account/work records; write callbacks are local stubs.",
+      "capture_name": "pool-seed-partial",
+      "width": 688,
+      "height": 256,
+      "sha256": "842eab92f10116e307aa5a57dd3b9e4def73ef715afb53b817cdb20aca03de93",
+      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "status": "current",
+      "story_id": "admin-pool-poolcommitmentscard--documentation-partial",
+      "viewport": {
+        "width": 840,
+        "height": 1100
+      },
+      "framing": "Actual component bounds or complete phone viewport; no UI compositing"
+    },
+    {
+      "page": "docs/docs/community/steward-guide/review-promises.mdx",
+      "images": ["/img/screenshots/guide-pool-participation.webp"],
+      "recorded_at": "2026-10-17",
+      "proof_class": "Storybook",
+      "engine": "Chromium in-app browser",
+      "data": "Fictional garden/account/work records; write callbacks are local stubs.",
+      "capture_name": "pool-participation",
+      "width": 464,
+      "height": 330,
+      "sha256": "053b87f9c2e51ef9d8dced9a94803610e349526a8e6cda7cd7d9729b1d76dead",
+      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "status": "current",
+      "story_id": "admin-pool-poolclaimscard--waiting",
+      "viewport": {
+        "width": 840,
+        "height": 1100
+      },
+      "framing": "Actual component bounds or complete phone viewport; no UI compositing"
+    },
+    {
+      "page": "docs/docs/community/steward-guide/review-promises.mdx",
+      "images": ["/img/screenshots/guide-pool-count-work.webp"],
+      "recorded_at": "2026-10-17",
+      "proof_class": "Storybook",
+      "engine": "Chromium in-app browser",
+      "data": "Fictional garden/account/work records; write callbacks are local stubs.",
+      "capture_name": "pool-count-work",
+      "width": 560,
+      "height": 100,
+      "sha256": "9543c63f6005e3d9255d75aed4b2e15d6db83fd409714f0036b664cc137914df",
+      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "status": "current",
+      "story_id": "admin-pool-commitmentrecovery--documentation",
+      "viewport": {
+        "width": 840,
+        "height": 1100
+      },
+      "framing": "Actual component bounds or complete phone viewport; no UI compositing"
+    },
+    {
+      "page": "docs/docs/community/steward-guide/review-promises.mdx",
+      "images": ["/img/screenshots/guide-pool-confirm.webp"],
+      "recorded_at": "2026-10-17",
+      "proof_class": "Storybook",
+      "engine": "Chromium in-app browser",
+      "data": "Fictional garden/account/work records; write callbacks are local stubs.",
+      "capture_name": "pool-confirm",
+      "width": 464,
+      "height": 283,
+      "sha256": "09773f70fc1f1160ce5f075955a8c9ab5135f68c7ce5fd22e0d0eb59ac19c2bc",
+      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "status": "current",
+      "story_id": "admin-pool-confirmkeptdialog--closes-it",
+      "viewport": {
+        "width": 840,
+        "height": 1100
+      },
+      "framing": "Actual component bounds or complete phone viewport; no UI compositing"
+    },
+    {
+      "page": "docs/docs/community/steward-guide/end-a-season.mdx",
+      "images": ["/img/screenshots/guide-pool-end.webp"],
+      "recorded_at": "2026-10-17",
+      "proof_class": "Storybook",
+      "engine": "Chromium in-app browser",
+      "data": "Fictional garden/account/work records; write callbacks are local stubs.",
+      "capture_name": "pool-end",
+      "width": 464,
+      "height": 277,
+      "sha256": "a4edfaf53a81460d30d2dc5d06edded49ae665cd26d36ecaa03d68c1173da132",
+      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "status": "current",
+      "story_id": "admin-pool-poolcycledialogs--documentation-end",
+      "viewport": {
+        "width": 840,
+        "height": 1100
+      },
+      "framing": "Actual component bounds or complete phone viewport; no UI compositing"
+    },
+    {
+      "page": "docs/docs/community/steward-guide/end-a-season.mdx",
+      "images": ["/img/screenshots/guide-pool-archive.webp"],
+      "recorded_at": "2026-10-17",
+      "proof_class": "Storybook",
+      "engine": "Chromium in-app browser",
+      "data": "Fictional garden/account/work records; write callbacks are local stubs.",
+      "capture_name": "pool-archive",
+      "width": 464,
+      "height": 277,
+      "sha256": "a32e1f7d7f05f40c0155c922e022d4f7124462f89351f5b2798436cd8ed6f9b4",
+      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "status": "current",
+      "story_id": "admin-pool-poolcycledialogs--documentation-archive",
+      "viewport": {
+        "width": 840,
+        "height": 1100
+      },
+      "framing": "Actual component bounds or complete phone viewport; no UI compositing"
+    },
+    {
+      "page": "docs/docs/community/funder-guide/donating-to-a-garden.mdx",
+      "images": ["/img/screenshots/guide-donate-form.webp"],
+      "recorded_at": "2026-10-17",
+      "proof_class": "Storybook",
+      "engine": "Chromium in-app browser",
+      "data": "Fictional garden/account/work records; write callbacks are local stubs.",
+      "capture_name": "donate-form",
+      "width": 480,
+      "height": 549,
+      "sha256": "111132ea26d710b7265c868a54c6d78efa53b9db6151a13d9eb6f7ee87936e33",
+      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "status": "current",
+      "story_id": "public-documentation-funding--donate",
+      "viewport": {
+        "width": 480,
+        "height": 740
+      },
+      "framing": "Actual component bounds or complete phone viewport; no UI compositing"
+    },
+    {
+      "page": "docs/docs/community/funder-guide/donating-to-a-garden.mdx",
+      "images": ["/img/screenshots/guide-donate-result.webp"],
+      "recorded_at": "2026-10-17",
+      "proof_class": "Storybook",
+      "engine": "Chromium in-app browser",
+      "data": "Fictional garden/account/work records; write callbacks are local stubs.",
+      "capture_name": "donate-result",
+      "width": 480,
+      "height": 414,
+      "sha256": "9883d8429c40d9183eacd09d899c23baccf4ded0f58e16b66fda743a4d28df63",
+      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "status": "current",
+      "story_id": "public-documentation-funding--donate",
+      "viewport": {
+        "width": 480,
+        "height": 740
+      },
+      "framing": "Actual component bounds or complete phone viewport; no UI compositing",
+      "interaction": "Pressed the amount-specific funding button; its local stub immediately returns success. No transaction was sent."
+    },
+    {
+      "page": "docs/docs/community/funder-guide/funding-a-garden.mdx",
+      "images": ["/img/screenshots/guide-endow-form.webp"],
+      "recorded_at": "2026-10-17",
+      "proof_class": "Storybook",
+      "engine": "Chromium in-app browser",
+      "data": "Fictional garden/account/work records; write callbacks are local stubs.",
+      "capture_name": "endow-form",
+      "width": 480,
+      "height": 549,
+      "sha256": "b93b28bacb77114913a54e14f297b34a31733e58147cc11277fcc202afa93f64",
+      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "status": "current",
+      "story_id": "public-documentation-funding--endow",
+      "viewport": {
+        "width": 480,
+        "height": 740
+      },
+      "framing": "Actual component bounds or complete phone viewport; no UI compositing"
+    },
+    {
+      "page": "docs/docs/community/funder-guide/funding-a-garden.mdx",
+      "images": ["/img/screenshots/guide-endow-result.webp"],
+      "recorded_at": "2026-10-17",
+      "proof_class": "Storybook",
+      "engine": "Chromium in-app browser",
+      "data": "Fictional garden/account/work records; write callbacks are local stubs.",
+      "capture_name": "endow-result",
+      "width": 480,
+      "height": 414,
+      "sha256": "903889f8c301795f5d7d2c74f3af73e4ce3dbe7d02bee39852e00a60a679fbaa",
+      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "status": "current",
+      "story_id": "public-documentation-funding--endow",
+      "viewport": {
+        "width": 480,
+        "height": 740
+      },
+      "framing": "Actual component bounds or complete phone viewport; no UI compositing",
+      "interaction": "Pressed the amount-specific funding button; its local stub immediately returns success. No transaction was sent."
+    },
+    {
+      "page": "docs/docs/community/funder-guide/withdraw-from-a-vault.mdx",
+      "images": ["/img/screenshots/guide-withdraw-positions.webp"],
+      "recorded_at": "2026-10-17",
+      "proof_class": "Storybook",
+      "engine": "Chromium in-app browser",
+      "data": "Fictional garden/account/work records; write callbacks are local stubs.",
+      "capture_name": "withdraw-positions",
+      "width": 480,
+      "height": 565,
+      "sha256": "0f09b7cc157275cf8f650e1c25ba7bfd63091d996278ae30f0107d95f636a54c",
+      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "status": "current",
+      "story_id": "public-documentation-funding--positions",
+      "viewport": {
+        "width": 480,
+        "height": 740
+      },
+      "framing": "Actual component bounds or complete phone viewport; no UI compositing"
+    },
+    {
+      "page": "docs/docs/community/funder-guide/withdraw-from-a-vault.mdx",
+      "images": ["/img/screenshots/guide-withdraw-review.webp"],
+      "recorded_at": "2026-10-17",
+      "proof_class": "Storybook",
+      "engine": "Chromium in-app browser",
+      "data": "Fictional garden/account/work records; write callbacks are local stubs.",
+      "capture_name": "withdraw-review",
+      "width": 480,
+      "height": 775,
+      "sha256": "568e9f0bf8989670f6fda907ed8744dbb95e954ae107ac3030745ab0630b889f",
+      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "status": "current",
+      "story_id": "public-documentation-funding--positions",
+      "viewport": {
+        "width": 480,
+        "height": 960
+      },
+      "framing": "Actual component bounds or complete phone viewport; no UI compositing",
+      "interaction": "Expanded Withdraw and entered 50 DAI. Did not submit."
+    },
+    {
+      "page": "docs/docs/community/gardener-guide/installing-and-updating.mdx",
+      "images": ["/img/screenshots/guide-install-android.webp"],
+      "recorded_at": "2026-10-17",
+      "proof_class": "Storybook",
+      "engine": "Chromium in-app browser",
+      "data": "Fictional garden/account/work records; write callbacks are local stubs.",
+      "capture_name": "install-android",
+      "width": 480,
+      "height": 370,
+      "sha256": "f5e4dafbd196d237b516ab687c62f42227be412377d7101c3a19b5f34eb7a616",
+      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "status": "current",
+      "story_id": "public-documentation-install--android",
+      "viewport": {
+        "width": 480,
+        "height": 960
+      },
+      "framing": "Actual component bounds or complete phone viewport; no UI compositing"
+    },
+    {
+      "page": "docs/docs/community/gardener-guide/installing-and-updating.mdx",
+      "images": ["/img/screenshots/guide-install-iphone.webp"],
+      "recorded_at": "2026-10-17",
+      "proof_class": "Storybook",
+      "engine": "Chromium in-app browser",
+      "data": "Fictional garden/account/work records; write callbacks are local stubs.",
+      "capture_name": "install-iphone",
+      "width": 480,
+      "height": 370,
+      "sha256": "8c345e61da95ef098584cfa41d9938fa90e4734dc15e37f5e26b9e2f8a589305",
+      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "status": "current",
+      "story_id": "public-documentation-install--i-phone",
+      "viewport": {
+        "width": 480,
+        "height": 960
+      },
+      "framing": "Actual component bounds or complete phone viewport; no UI compositing"
+    },
+    {
+      "page": "docs/docs/community/gardener-guide/installing-and-updating.mdx",
+      "images": ["/img/screenshots/guide-app-settings.webp"],
+      "recorded_at": "2026-10-17",
+      "proof_class": "Storybook",
+      "engine": "Chromium in-app browser",
+      "data": "Fictional garden/account/work records; write callbacks are local stubs.",
+      "capture_name": "app-settings",
+      "width": 432,
+      "height": 512,
+      "sha256": "d7d5a31feddb5a790c42dba6d47f80f760bf05e59e9cfb57af361a8cf0b317f5",
+      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "status": "current",
+      "story_id": "client-documentation-appsettings--current",
+      "viewport": {
+        "width": 480,
+        "height": 900
+      },
+      "framing": "Actual component bounds or complete phone viewport; no UI compositing"
+    },
+    {
+      "page": "docs/docs/community/steward-guide/creating-a-garden.mdx",
+      "images": ["/img/screenshots/guide-garden-team.webp"],
+      "recorded_at": "2026-10-17",
+      "proof_class": "Storybook",
+      "engine": "Chromium in-app browser",
+      "data": "Fictional garden/account/work records; write callbacks are local stubs.",
+      "capture_name": "garden-team",
+      "width": 688,
+      "height": 478,
+      "sha256": "da7ebea17ee1dd93b92309202f735b16a72e90af1e6b1413394c7e971ec43374",
+      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "status": "current",
+      "story_id": "admin-workflows-garden-teamstep--documentation",
+      "viewport": {
+        "width": 840,
+        "height": 1100
+      },
+      "framing": "Actual component bounds or complete phone viewport; no UI compositing"
+    },
+    {
+      "page": "docs/docs/community/steward-guide/creating-a-garden.mdx",
+      "images": ["/img/screenshots/guide-garden-review.webp"],
+      "recorded_at": "2026-10-17",
+      "proof_class": "Storybook",
+      "engine": "Chromium in-app browser",
+      "data": "Fictional garden/account/work records; write callbacks are local stubs.",
+      "capture_name": "garden-review",
+      "width": 784,
+      "height": 459,
+      "sha256": "3da10b74ef1d9b721b98ce64468730dd8756d977f79d0f717580f143f3a25a20",
+      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "status": "current",
+      "story_id": "admin-workflows-garden-reviewstep--documentation",
+      "viewport": {
+        "width": 840,
+        "height": 1100
+      },
+      "framing": "Actual component bounds or complete phone viewport; no UI compositing"
+    },
+    {
+      "page": "docs/docs/community/steward-guide/managing-actions.mdx",
+      "images": ["/img/screenshots/guide-garden-actions.webp"],
+      "recorded_at": "2026-10-17",
+      "proof_class": "Storybook",
+      "engine": "Chromium in-app browser",
+      "data": "Fictional garden/account/work records; write callbacks are local stubs.",
+      "capture_name": "garden-actions",
+      "width": 656,
+      "height": 249,
+      "sha256": "ecbae6e6bb6ec492c1b11496d5926604b85dabbc60f3944dfe23efe7d213b779",
+      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "status": "current",
+      "story_id": "admin-workflows-garden-gardensettingseditor--manager-view",
+      "viewport": {
+        "width": 840,
+        "height": 1100
+      },
+      "framing": "Actual component bounds or complete phone viewport; no UI compositing"
+    },
+    {
+      "page": "docs/docs/community/steward-guide/funding-and-governance.mdx",
+      "images": ["/img/screenshots/guide-garden-endowment.webp"],
+      "recorded_at": "2026-10-17",
+      "proof_class": "Storybook",
+      "engine": "Chromium in-app browser",
+      "data": "Fictional garden/account/work records; write callbacks are local stubs.",
+      "capture_name": "garden-endowment",
+      "width": 464,
+      "height": 353,
+      "sha256": "5fe95ef6aef1d1ca3e8d625451e29300ee1e5059edd0de9db9727b63ad437048",
+      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "status": "current",
+      "story_id": "admin-workflows-vault-positioncard--documentation",
+      "viewport": {
+        "width": 840,
+        "height": 1100
+      },
+      "framing": "Actual component bounds or complete phone viewport; no UI compositing"
+    },
+    {
+      "page": "docs/docs/community/steward-guide/funding-and-governance.mdx",
+      "images": ["/img/screenshots/guide-garden-distribution.webp"],
+      "recorded_at": "2026-10-17",
+      "proof_class": "Storybook",
+      "engine": "Chromium in-app browser",
+      "data": "Fictional garden/account/work records; write callbacks are local stubs.",
+      "capture_name": "garden-distribution",
+      "width": 464,
+      "height": 210,
+      "sha256": "74aa230033d340e9da857840a72b33d17f1d618ceb5d7ebd70e58c0cf2cf852f",
+      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "status": "current",
+      "story_id": "admin-workflows-vault-harvestoutcomealerts--documentation",
+      "viewport": {
+        "width": 840,
+        "height": 1100
+      },
+      "framing": "Actual component bounds or complete phone viewport; no UI compositing"
+    },
+    {
+      "page": "docs/docs/community/steward-guide/creating-impact-certificates.mdx",
+      "images": ["/img/screenshots/guide-certificate-work.webp"],
+      "recorded_at": "2026-10-17",
+      "proof_class": "Storybook",
+      "engine": "Chromium in-app browser",
+      "data": "Fictional garden/account/work records; write callbacks are local stubs.",
+      "capture_name": "certificate-work",
+      "width": 808,
+      "height": 550,
+      "sha256": "c6c775c4f3881ef8b02afc4741d481c0bf821b7c17a7f7a5514d910649382406",
+      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "status": "current",
+      "story_id": "admin-workflows-hypercerts-steps-attestationselector--documentation",
+      "viewport": {
+        "width": 840,
+        "height": 1100
+      },
+      "framing": "Actual component bounds or complete phone viewport; no UI compositing"
+    },
+    {
+      "page": "docs/docs/community/steward-guide/creating-impact-certificates.mdx",
+      "images": ["/img/screenshots/guide-certificate-distribution.webp"],
+      "recorded_at": "2026-10-17",
+      "proof_class": "Storybook",
+      "engine": "Chromium in-app browser",
+      "data": "Fictional garden/account/work records; write callbacks are local stubs.",
+      "capture_name": "certificate-distribution",
+      "width": 792,
+      "height": 896,
+      "sha256": "efa9d2b8f6b13acbf58e962cbda16d22502f1a949d9bc07f3c514ad18100b6ef",
+      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "status": "current",
+      "story_id": "admin-workflows-hypercerts-steps-distributionconfig--equal-mode",
+      "viewport": {
+        "width": 840,
+        "height": 1100
+      },
+      "framing": "Actual component bounds or complete phone viewport; no UI compositing"
+    },
+    {
+      "page": "docs/docs/community/evaluator-guide/making-an-assessment.mdx",
+      "images": ["/img/screenshots/guide-assessment-context.webp"],
+      "recorded_at": "2026-10-17",
+      "proof_class": "Storybook",
+      "engine": "Chromium in-app browser",
+      "data": "Fictional garden/account/work records; write callbacks are local stubs.",
+      "capture_name": "assessment-context",
+      "width": 784,
+      "height": 404,
+      "sha256": "6ac8aeeb1957f6120c6ddd7a0a5951e0b6664f9ffff84ec26803d03cad044149",
+      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "status": "current",
+      "story_id": "admin-workflows-assessment-domaincontextstep--documentation",
+      "viewport": {
+        "width": 840,
+        "height": 1100
+      },
+      "framing": "Actual component bounds or complete phone viewport; no UI compositing"
+    },
+    {
+      "page": "docs/docs/community/evaluator-guide/making-an-assessment.mdx",
+      "images": ["/img/screenshots/guide-assessment-goals.webp"],
+      "recorded_at": "2026-10-17",
+      "proof_class": "Storybook",
+      "engine": "Chromium in-app browser",
+      "data": "Fictional garden/account/work records; write callbacks are local stubs.",
+      "capture_name": "assessment-goals",
+      "width": 784,
+      "height": 758,
+      "sha256": "72fe413e5df6aaff411dd6dfb01f0f261fbf64522f3937de7df3f4f36ec0372b",
+      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "status": "current",
+      "story_id": "admin-workflows-assessment-strategykernelstep--documentation",
+      "viewport": {
+        "width": 840,
+        "height": 1100
+      },
+      "framing": "Actual component bounds or complete phone viewport; no UI compositing"
+    },
+    {
+      "page": "docs/docs/community/evaluator-guide/making-an-assessment.mdx",
+      "images": ["/img/screenshots/guide-assessment-period.webp"],
+      "recorded_at": "2026-10-17",
+      "proof_class": "Storybook",
+      "engine": "Chromium in-app browser",
+      "data": "Fictional garden/account/work records; write callbacks are local stubs.",
+      "capture_name": "assessment-period",
+      "width": 784,
+      "height": 416,
+      "sha256": "1c28f8b0f6cd334bfe098f67df66bb8c85602db996a7a1b99849ce9f0f0d68f1",
+      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "status": "current",
+      "story_id": "admin-workflows-assessment-actionsharveststep--documentation",
+      "viewport": {
+        "width": 840,
+        "height": 1100
+      },
+      "framing": "Actual component bounds or complete phone viewport; no UI compositing"
+    },
+    {
+      "page": "docs/docs/community/evaluator-guide/making-an-assessment.mdx",
+      "images": ["/img/screenshots/guide-assessment-review.webp"],
+      "recorded_at": "2026-10-17",
+      "proof_class": "Storybook",
+      "engine": "Chromium in-app browser",
+      "data": "Fictional garden/account/work records; write callbacks are local stubs.",
+      "capture_name": "assessment-review",
+      "width": 784,
+      "height": 1206,
+      "sha256": "1b75b73a8d0a68bf479bea73981efdcc2db5da6b8a102cead73dc2536af2e654",
+      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "status": "current",
+      "story_id": "admin-workflows-assessment-reviewstep--documentation",
+      "viewport": {
+        "width": 1000,
+        "height": 1400
+      },
+      "framing": "Actual component bounds or complete phone viewport; no UI compositing"
+    },
+    {
+      "page": "docs/docs/community/evaluator-guide/making-an-assessment.mdx",
+      "images": ["/img/screenshots/guide-assessment-result.webp"],
+      "recorded_at": "2026-10-17",
+      "proof_class": "Storybook",
+      "engine": "Chromium in-app browser",
+      "data": "Fictional garden/account/work records; write callbacks are local stubs.",
+      "capture_name": "assessment-result",
+      "width": 784,
+      "height": 1206,
+      "sha256": "8f7ca96fcb14246e48a7665e182a5e5c7a6f20c955dd3c96fdc1e51566c6ac2d",
+      "source_revision": "609a34b5 plus PRD-1156 documentation capture fixtures",
+      "status": "current",
+      "story_id": "admin-workflows-assessment-reviewstep--documentation",
+      "viewport": {
+        "width": 1000,
+        "height": 1400
+      },
+      "framing": "Actual component bounds or complete phone viewport; no UI compositing",
+      "args": {
+        "phase": "sent"
+      }
+    }
+  ]
+}

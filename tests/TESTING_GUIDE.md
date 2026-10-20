@@ -26,9 +26,9 @@ bun run browser e2e --preset ui
 
 | File | Coverage |
 |------|----------|
-| `client.smoke.spec.ts` | Deterministic mock-auth content and narrow wallet-storage diagnostic |
+| `client.smoke.spec.ts` | Deterministic mock-auth content and disconnected-session behavior with legacy wallet storage |
 | `admin.smoke.spec.ts` | Cockpit mock-auth smoke |
-| `client.auth.spec.ts` | Manual wallet-storage UI and sign-out; no real connector claim |
+| `client.session-navigation.ci.spec.ts` | Mock-auth reload/logout, mobile navigation, garden return and browser history |
 | `client.offline-work-submission.ci.spec.ts` | Offline submission and recovery |
 | `client.work-approval.ci.spec.ts` | Work approval CI journey |
 | `client.work-submission.ci.spec.ts` | Required work details validation |

@@ -390,3 +390,21 @@ export const DraftSaveFailedPortuguese: Story = {
   decorators: [inLocale("pt")],
   play: recoveryInLocale("pt", "saveFailed"),
 };
+
+/** Documentation keeps the evidence to the photos and explanatory note being taught. */
+export const DocumentationReview: Story = {
+  beforeEach: () => {
+    const cleanup = atStage("reviewSend")();
+    mocked(useProofComposerController).mockReturnValue({
+      ...proofFlowFixture("reviewSend"),
+      audioNotes: [],
+      links: [],
+    });
+    return cleanup;
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await toReview(canvas);
+    await expect(canvas.getByRole("button", { name: "Add and Send" })).toBeVisible();
+  },
+};

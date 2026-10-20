@@ -1,0 +1,115 @@
+---
+title: Make a Promise
+sidebar_label: Make a Promise
+slug: /community/gardener-guide/make-a-promise
+description: "Make an offer or request with clear work, evidence and independent confirmation."
+audience: gardener
+owner: docs
+last_verified: 2026-10-15
+feature_status: Live
+goal: "Make an offer or request with clear work, evidence and independent confirmation."
+difficulty: "standard"
+estimated_time: "3 to 5 minutes to read. Signing and review time vary."
+prereqs: "The account that joined your garden, an open pool, and an agreement about the work or help."
+next_steps: "/community/gardener-guide/keep-a-promise"
+persona_context: "Gardeners offering help, asking for it, or providing evidence toward a promise."
+source_of_truth:
+  - packages/client/src/views/Home/CommitmentsSheet/index.tsx
+  - packages/client/src/views/Home/Garden/Compose/ComposeCommitment.tsx
+  - packages/client/src/views/Home/Garden/Commitment
+  - packages/client/src/views/Home/Garden/Commitment/CommitmentTeam.tsx
+  - packages/client/src/views/Home/Garden/Commitment/ConfirmNotYet.tsx
+  - packages/shared/src/modules/commitment-pooling/acts.ts
+  - packages/shared/src/modules/commitment-pooling/selectors.ts
+  - packages/shared/src/hooks/client-ui/commitment/useGardenCommitmentController.ts
+  - packages/shared/src/config/app.ts
+  - packages/contracts/src/lib/CommitmentPooling/ConfirmLib.sol
+  - packages/contracts/src/lib/CommitmentPooling/TerminalLib.sol
+  - packages/contracts/src/lib/CommitmentPooling/WorkCreditLib.sol
+  - packages/shared/src/i18n/en.json
+  - docs/releases/2.0.0/README.md
+keywords:
+  - promises
+  - commitments
+  - offer
+  - request
+  - proof
+  - confirmation
+---
+
+import {NextBestAction} from "@site/src/components/docs";
+
+# Make a Promise
+
+Make an offer when you can provide help, or a request when you need it. A promise records the agreement and who will confirm it was kept.
+
+<figure className="gg-figure gg-overview-photo gg-guide-opening">
+  <img src="/img/community/guide-make.webp" alt="A seedling-care station with a watering can, empty gloves and a closed notebook." width="1672" height="941" loading="eager" />
+</figure>
+
+
+## Before you start
+
+- Sign in with the account that joined this garden. Visitors can read records; taking part requires membership.
+- Check that the garden has an open pool. New money rewards and promise payouts are deferred.
+- Photos and details can become public before you send the work record. Use your own evidence and read the [privacy guidance](/faq#is-what-i-upload-private).
+- Agree the amount, deadline, team and evidence with the people involved.
+
+## Steps
+
+### Read the agreement
+
+1. Open your garden in the app and tap **Promises**.
+2. Open a promise and read its terms, work requirements, team, and confirmation details. A season is the garden's main period of work; a campaign is a focused effort beside it. A promise can also stand on its own.
+3. Check which part is yours:
+
+| Kind | Who provides the help? | Who normally confirms it? |
+|---|---|---|
+| **Offer** | The person making the offer | The person it is made to or who takes it up |
+| **Request** | The person who takes up the request | The person who asked |
+
+A promise can name a group of confirmers instead. The person doing the work and everyone on its contributing team are excluded from confirming it, including through a steward fallback.
+
+**Example:** you offer a seedling-care session, and a neighbor takes it up. You do the session and supply evidence; your neighbor confirms it. If your neighbor requests the session first and you take it up, you still provide the help and your neighbor still confirms it.
+
+
+<figure className="gg-figure" style={{maxWidth: '480px'}}>
+  <img src="/img/screenshots/guide-promise-choose.webp" alt="Offer or Request choices above several promises in Riverside Commons Garden." loading="lazy" width="480" height="900" />
+  <figcaption>Choose whether you are offering help or asking for it.</figcaption>
+</figure>
+
+### Make your offer or request
+
+1. Use **+** in the garden's Promises and choose an offer or request.
+2. Follow the questions about the kind of help, how much, and its details. Garden work names the garden's actions; other help uses proof such as photos, notes, or links.
+3. Read the final review, including who acts next, then choose **Make This Offer**, **Make This Request**, or **Request This Work**, as shown.
+
+
+<figure className="gg-figure" style={{maxWidth: '480px'}}>
+  <img src="/img/screenshots/guide-promise-review.webp" alt="A fence-repair offer review showing the garden, quantity, deadline, confirmer and team." loading="lazy" width="480" height="1100" />
+  <figcaption>Check your role, the deadline and who confirms before placing the offer.</figcaption>
+</figure>
+
+### Withdraw before it is taken up
+
+Before anyone takes it up, the creator may see **Withdraw This**. It needs a connection and a reason; review **Withdraw This Offer** or **Withdraw This Request** before confirming. Once someone has taken it up, ask your steward about the existing record. Withdrawal is not a universal undo, and taking it up is different from joining a team, which also needs a connection.
+
+## How you know it worked
+
+The promise appears in **Promises** with the intended terms and a status showing it reached the shared record. A waiting or sending item has not finished.
+
+## What happens next
+
+Someone takes the promise up. If steward approval is required, that decision comes first. Share [Keep a Promise](/community/gardener-guide/keep-a-promise) with the person providing the help.
+
+## If something goes wrong
+
+A saved item on this phone is not yet a shared record. Keep the same account and device, check the status and history before retrying, and avoid duplicates. [Recover Unsent Work](/community/gardener-guide/recovery-and-sync) explains the send states.
+
+If **Promises are not ready here yet** appears, ask your steward whether the pool is open. Withdrawal needs a connection and a reason; after take-up, ask your steward about the existing record.
+
+Ask your steward about the agreement or record. For an app problem, open **Profile → Help**.
+
+## Next step
+
+<NextBestAction title="Keep a Promise" why="Take up an available promise and record the contribution it needs." actionLabel="Keep a Promise" actionHref="/community/gardener-guide/keep-a-promise" />
