@@ -20,6 +20,14 @@ source_of_truth:
   - docs/docs/reference/glossary.generated.mdx
   - docs/docs/community/green-goods-claims.generated.mdx
   - docs/docs/reference/brand.mdx
+  - docs/src/data/brand-kit-v3.json
+  - docs/docs/community/welcome.mdx
+  - docs/docs/community/why-we-build.mdx
+  - docs/docs/community/how-it-works.mdx
+  - docs/docs/reference/faq.mdx
+  - docs/releases/2.0.0/announcement.md
+  - docs/releases/2.0.0/release-notes.md
+  - packages/client/DESIGN.browser.md
 description: "How Green Goods sounds: the voice, tone by context, the three dialects, terminology, writing rules, claims discipline, and the checks that keep copy consistent."
 keywords:
   - brand voice
@@ -82,7 +90,7 @@ Five product personas carry fixed meanings in the ontology. One more audience ap
 | Gardener | Does and documents the work, often on a shared phone with weak signal, in the app or by chat | Warm, direct, action-oriented; short sentences | Technical terms, passive voice, option overload | None. No blockchain words. About a 6th-grade reading level |
 | Steward | Runs the garden: the season's plan, members, and review of work | Professional, efficient, task-focused, data-aware | Condescending simplicity, unstructured prose | May describe on-chain review as a trust mechanism; never contract internals |
 | Evaluator | Sets baselines and evidence standards, then assesses what changed | Precise, evidence-based, structured; respects domain expertise | Oversimplification, vague impact language | Research and assessment terminology is fine |
-| Funder (also called supporter) | Anyone who supports the work: an individual giving to a garden, a diaspora supporter, a grantmaker, an institution, a crypto ecosystem fund | Confident, transparent, evidence-first; lead with reviewed records | Hype, unsubstantiated claims, anything resembling an investment pitch | Traditional funders and institutions: describe Green Goods as a field data and MRV tool, no web3 words. Crypto ecosystem funders: attestation and chain words allowed in an appendix, never the headline. Never "guaranteed returns" |
+| Funder (also called supporter) | Anyone who supports the work: an individual giving to a garden, a diaspora supporter, a grantmaker, an institution, a crypto ecosystem fund | Confident, transparent, evidence-first; lead with reviewed records | Hype, unsubstantiated claims, anything resembling an investment pitch | Traditional funders and institutions: describe Green Goods as a field data and MRV tool, no web3 words. In funder documents and decks for crypto ecosystem funders: attestation and chain words in an appendix, never the headline. On product funding surfaces DL-094 applies: a vault page may name the protocol that holds the deposit. Never "guaranteed returns" |
 | Community member | A local person affected by the work, who confirms work done for them and, once Community Needs ships, names needs directly | Inclusive, plain, encouraging | Protocol jargon, assumed web3 literacy | None. About a 6th-grade reading level |
 | Partners and builders (external copy) | Ecosystem tools, integrators, researchers | Direct, specific, documented | Marketing superlatives | Protocol and chain names allowed on builder pages and in appendices |
 
@@ -138,7 +146,7 @@ Tone shifts by context while the voice stays constant.
 | Admin and steward | Efficient, status-oriented | "3 submissions pending review. 1 flagged for follow-up." |
 | Funding and impact | Respectful, concrete; numbers breathe | "This garden has documented 47 actions across 3 seasons." |
 | Failure states (a page or screen cannot load) | An ordinary page: a title, one sentence, one action; nothing lost, no codes | "This public record is temporarily unavailable. Please try again." |
-| Docs (community and builder) | Second person, active, plain; why before what; one idea per sentence | "Review is done by the stewards of your garden, and there is no fixed time." |
+| Docs (community and builder) | Second person, active, plain; why before what; one idea per sentence | "Your garden's stewards review your work. There is no fixed time." |
 | Announcements and Green Goods channels | Warm, plain, pilot-focused; states limits up front; invites replies; thanks testers; at most one or two emoji; never "Gm" or "LFG" | "We're still pilot focused, learning alongside the communities using Green Goods." |
 | Funder and partner documents | Evidence-first; claims carry a source tag ([D] documented, [I] inferred, [S] planned); chain detail in an appendix | "Approval is a steward's decision. It is not a payment and not an outside audit." |
 | Chat reporting (Telegram bot) | Short, first person, one question at a time; says how many quick questions remain; shows a summary to check before publishing | "Two quick questions left, then I'll show you the summary." |
@@ -205,7 +213,7 @@ The [Glossary](/glossary) is generated from the ontology and is the authority; t
 | work | A field record of completed activity, with notes and photos. |
 | work approval | A steward's recorded decision on submitted work, kept separate from the record of what happened. Stewards approve work; evaluators assess, they do not approve. |
 | assessment | A starting point and a plan: what a place needs and what good evidence should show. Assessment comes before work, not after it. |
-| impact certificate | One claim that bundles a body of approved work so it can be funded. |
+| impact certificate | One claim that bundles a body of approved work. Turning approved work into a certificate is in build (Capability and Claims), so copy describes what a certificate represents, not a funding path that is live. |
 | vault | A garden's long-term fund. A deposit can stay in place while what it earns supports ongoing work. |
 | cookie jar | A shared fund for near-term needs, with a limit on each claim. |
 | promise | What a member offers or asks for in a pool: a workshop, a planting, a repair. "Promise" is the word in every user-facing surface, in all three languages. "Commitment Pooling" remains the feature name; "commitment" otherwise stays in code and contracts. |
@@ -221,15 +229,15 @@ The [Glossary](/glossary) is generated from the ontology and is the authority; t
 | gardener | user, contributor, member (for the role) | People who do the work have a name |
 | steward | admin, manager, operator | They steward the garden; "operator" is retired |
 | evaluator | reviewer, auditor, assessor | They evaluate impact, not compliance; a steward, not an evaluator, reviews and approves work |
-| funder, supporter | investor, backer | Funding a garden, not buying a return |
+| funder, supporter | investor, backer | Funding a garden, not buying a return. A person who gives through the Donate path is still a funder |
 | community member | visitor, viewer, spectator | Part of the community, not an audience |
-| work | task, activity, submission | Regenerative work is the core concept |
-| action | action type, template | The thing a gardener can do |
+| work | task, activity | Regenerative work is the core concept. "Submission" names the act of sending work and the Work Submissions list, never the work itself |
+| action | action type | The thing a gardener can do. "Action template" names the browsable template records on the public site |
 | promise | commitment (in user-facing copy) | The plain word for what a member offers |
 | fund (verb) | contribute, invest | Funding a garden |
 | donate | (allowed only as the name of the direct-giving path) | The path a supporter takes to give directly; "fund" everywhere else |
 | impact | output, result | Bridges community and chain. "Metric" stays the name of the assessment field (Outcome, Metric, Target), never a synonym for impact |
-| document (verb) | log, capture | Gardeners document their work. "Record" is acceptable in plain explanation |
+| document (verb) | log, capture | Gardeners document their work. "Record" is fine in plain explanation of what the product keeps |
 | approved submissions | approved work (as a public count label) | Public count label |
 | garden members | hands at work, participants | Public count of gardeners and stewards, each address counted once |
 | waste management | cleanup | Domain name |
@@ -425,7 +433,7 @@ This page is the entry point for voice. It restates only what a writer needs to 
 | Design skill (`.claude/skills/design/`: `language.md`, `prompt-contract.md`, `client-prompt-contract.md`, `decision-log.md`, `review-checklist.md`) | Surface dialects for AI design tools, materials, motion, prompt vocabulary, dated decisions | Section 5 summarizes the copy half of each dialect; visual and prompt rules stay there; copy decisions still get a decision-log row |
 | App and cockpit unification plan (`.plans/backlog/app-cockpit-unification/`) | Future material, layout, and naming changes across the admin and the app | This page names dialects by what they say, not how they look, so it survives the unification; if surfaces are renamed, section 3's table follows |
 | Ontology, generated glossary, `banned-vocabulary.json` | Terms, personas, domains, enforced vocabulary | Section 6 is a reading of them; the files are machine-checked and win on any divergence |
-| Docs guide (`docs/AGENTS.md`) and the builder docs tone contract (`.plans/active/builder-docs-rebuild/spec.md`) | Docs page conventions and the developer register | The community docs register is written out in section 5, which owns it now that its plan hub has closed; the builder contract wins for builder pages |
+| Docs guide (`docs/AGENTS.md`) | Docs page conventions | Both docs registers, community and builder, are written out in section 5, which owns them; the plan hubs that supplied those rules are not authorities once they close |
 | `.claude/context/product.md` | Persona tone rows and the audience priority rule | A row describes how a persona arrives and the tone that fits, never what the product promises; the Capability and Claims page and section 8 outrank it |
 | Brand kit page and kit data | Visual identity | Section 12 is a pointer |
 | Release packs (`docs/releases/`) | Approved copy per release | Section 10 draws model lines from them; each release pack applies this page |
@@ -440,7 +448,6 @@ This page is the entry point for voice. It restates only what a writer needs to 
 |---|---|
 | `DESIGN.md` § Voice & Copy | Core voice, pillars, tone spectrum, terminology table, writing checklist, casing, spelling, and punctuation rules |
 | `.claude/skills/design/prompt-contract.md` and `client-prompt-contract.md` | Admin and app dialects, say and don't-say pairs, prompt vocabulary |
-| `.plans/active/builder-docs-rebuild/spec.md` § Tone contract | Builder docs register |
 | `packages/shared/src/ontology/green-goods-ontology.json` | Entities, personas, domains, allowed surfaces |
 | `docs/docs/reference/glossary.generated.mdx` | Plain-language definitions (generated) |
 | `scripts/data/banned-vocabulary.json` | Banned terms, retired terms, US spelling list, locked locale terms, prompt vocabulary |
@@ -449,5 +456,5 @@ This page is the entry point for voice. It restates only what a writer needs to 
 | `.claude/context/product.md` | Persona tone rows and the audience priority rule, outranked by the Capability and Claims page on what the product promises |
 | `docs/docs/community/welcome.mdx`, `why-we-build.mdx`, `how-it-works.mdx`, `docs/docs/reference/faq.mdx` | Public explanatory voice and the "is not" claims |
 | `docs/docs/community/green-goods-claims.generated.mdx` | What the product can honestly claim (generated) |
-| `docs/releases/` | Curated release notes and approved announcement copy per release |
+| `docs/releases/` (the 2.0.0 announcement and release notes today) | Curated release notes and approved announcement copy per release |
 | `docs/docs/reference/brand.mdx`, `docs/src/data/brand-kit-v3.json` | Visual identity |

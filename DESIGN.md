@@ -252,13 +252,13 @@ The names that carry the work. Domain entities, personas, relationships, and lif
 | Gardener | User, contributor, member | People who do the work have a name. |
 | Steward | Admin, manager | They operate the garden. |
 | Evaluator | Reviewer, auditor, assessor | They evaluate impact, not audit compliance. |
-| Funder | Donor, investor, backer | Funding a garden, not donating to a cause. |
+| Funder | Investor, backer | Funding a garden, not buying a return. A person who gives through the Donate path is still a funder. |
 | Community member | Visitor, viewer, spectator | Part of the community, not an audience. |
-| Work | Task, activity, submission | Regenerative work is the core concept. |
-| Action | Action type, template | The thing a gardener can do. |
+| Work | Task, activity | Regenerative work is the core concept. "Submission" names the act of sending work and the Work Submissions list, never the work itself. |
+| Action | Action type | The thing a gardener can do. "Action template" names the browsable template records on the public site. |
 | Fund | Contribute, invest | Funding a garden. "Donate" names only the direct-giving path. |
 | Impact | Output, result | Bridges community and chain. "Metric" names an assessment field (DL-079), not a synonym for impact. |
-| Document | Log, record, capture | Gardeners document their work. |
+| Document | Log, capture | Gardeners document their work. "Record" is fine in plain explanation of what the product keeps. |
 
 **Lower case in running text (DL-090).** In a sentence, garden, gardener, steward, evaluator,
 funder, and community member stay lower case in English, Spanish, and Portuguese ("this garden",
@@ -268,6 +268,10 @@ action labels, and named acts, and in a garden's own name ("Community Garden").
 **Domain nouns follow (DL-093).** Work, action, assessment, promise, pool, season, campaign, vault,
 cookie jar, and impact certificate take the same rule: lower case in running text, Title Case only
 in titles, action labels, and named acts ("Submit Work", the Work tab).
+
+**Protocol names (DL-094).** Protocol and chain names appear in copy only on funding surfaces (a vault
+page may name the protocol that holds the deposit), on builder pages, and inside the labeled "using
+your own wallet" box; gardener, steward, and community copy names none of them.
 
 **Plain titles, methods in helper text (DL-047).** Step, section, and field titles use plain
 questions and nouns ("How Predictable Is This Work?", "What You'll Measure"); a framework or
@@ -286,7 +290,7 @@ Before shipping copy:
 - [ ] Is it concrete? (Can the reader picture it?)
 - [ ] Is it active? (Subject → verb → object?)
 - [ ] Is the audience right? (Gardener ≠ steward ≠ funder)
-- [ ] Is blockchain invisible? (On-chain = implementation, not copy)
+- [ ] Is blockchain invisible outside funding surfaces, builder pages, and the wallet box (DL-094)? On-chain is implementation, not copy.
 - [ ] Would it make sense to someone who's never heard of web3?
 - [ ] Is it shorter than your first draft?
 
