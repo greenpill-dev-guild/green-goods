@@ -29,6 +29,9 @@ routes them through handlers, and coordinates service dependencies.
   typecheck when editing handlers, adapters, or service contracts.
 - Coverage is currently permissive, so correctness depends more on targeted tests than on the
   threshold number alone.
+- Words a person reads (bot replies, reporting copy, the Telegram menu, the browser review labels)
+  sit in the blocks `scripts/chat-copy.mjs` lists. Add a new copy table to that list so the copy
+  tests and the em dash check read it.
 
 ## Key Material Flow
 
