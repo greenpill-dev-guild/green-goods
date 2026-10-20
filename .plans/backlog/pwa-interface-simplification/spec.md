@@ -131,15 +131,17 @@ Cosmo-Local Credit remains the product-family name.
 - Home activity and participation previews open an appropriate scoped list or existing detail.
   Do not create a second version of the Work or Promises workflow solely for Home.
 - Proposed **About garden** access retains garden information, Gardeners, Insights, share, and
-  relevant existing controls. Decide where notifications and governance belong before removing
-  their current entry points.
+  relevant existing controls. Notifications take a bell in Home's header (decided 19 October); Governance stays in the About
+  row for stewards.
 - Proposed **Manage** access groups permitted reviews, join requests, and garden operations.
   Reuse existing Endowment and Cookie Jar sheets; do not rewrite their transactions. Preserve an
   understandable Endowment route for qualifying non-steward depositors.
 - Keep full work and promise details on their existing detail surfaces where appropriate. Avoid
   chains of nested sheets; close/back must restore the launching context and scroll position.
-- Keep existing device-local badge semantics from DL-061. A preview or management count must not
-  silently redefine the header badge or imply that submitted work still needs uploading.
+- The Your Work badge and the bottom bar's Home badge count the active garden's drafts and queued
+  uploads on this phone (decided 19 October, narrowing DL-061's phone-wide count). A preview or
+  management count must not imply that submitted work still needs uploading, and the queue's own
+  toast stays the phone-wide signal for a failed upload.
 
 A management entry after unfinished work is a recommendation. Its cost is an additional step to
 some occasional controls. Test that cost with stewards and depositors rather than hiding it.
@@ -244,8 +246,10 @@ The maintainer answered the open questions on 18 October after the findings abov
    Featured activity and the promoted garden page stay as lab variants to compare against.
 4. **Sheet scope.** Promises and Your Work open scoped to the active garden and show nothing from
    other gardens. Revised on 19 October: the maintainer removed the "Also in other gardens" row so
-   a sheet never mixes gardens. The header badge keeps counting everything on this phone (DL-061)
-   until the badge question in the review round below is answered.
+   a sheet never mixes gardens, and ruled that the Your Work badge and the bottom bar's Home badge
+   count the active garden's drafts and queued uploads on this phone, narrowing DL-061's phone-wide
+   count. An upload queued for another garden shows nothing until the chip switches to it; the
+   queue's own toast stays the phone-wide signal for a failed upload.
 5. **About and management.** One About row at the end of Home for now: Insights, Gardeners,
    Share, Endowment for stewards and depositors, Governance when configured. Steward and evaluator
    duties surface in Continue. The garden page keeps its banner actions for visitors. Review the
@@ -292,12 +296,30 @@ Arbitrum One, with their own banners ([artifacts](artifacts/README.md)). What th
    with the section's content under the one shared sheet header; a garden the member visits keeps
    its page. The maintainer asked for this to be discussed and explored before it is locked.
 
-Under review, each drawn in the lab as an opt-in tweak with the lock as the default: a
-notifications bell in the slot the filter button leaves, with a sheet of what is new in this
-garden; a sticky header on Home; a Highlights carousel above Recent activity; and a promises-first
-Start step in Submit Work, where the garden's open asks lead and one row picks the promise and its
-action together. The questions put to the maintainer are in the Linear thread. None of these joins
-the lock until answered.
+Later on 19 October the maintainer answered the five explorations and the badge question, each
+drawn in the lab as a tweak with the decision as its default:
+
+10. **Garden sections open as sheets over Home.** See all, Insights and Gardeners open a tall
+    sheet with the section's content under the one shared sheet header, the garden named beneath
+    the title, the way the Promises launcher already works. A garden the member visits keeps its
+    page with tabs.
+11. **A notifications bell in the header.** It takes the slot the filter button leaves, first in
+    the cluster so the other icons keep their places. Its badge counts what is new for the account
+    in this garden; its sheet lists those events as item rows (own work approved or rejected with
+    feedback, a promise taken up, a join request answered; for stewards and evaluators, work to
+    review and join requests), each opening the work, the promise, Your Work or Gardeners.
+12. **The Home header is sticky,** with a hairline once content scrolls under it. The chip keeps
+    declaring the garden at any scroll position.
+13. **Submit Work's first step leads with promises.** The pinned garden, then the garden's open
+    asks as rows where one tap picks the promise and its action together, then the domain tabs and
+    action cards for other work. The promise intent flows into the later steps as today (D16).
+14. **No Highlights strip.** Home stays rows in the confirmed order; the carousel stays in the lab
+    for comparison only.
+15. **Badges count the active garden.** See decision 4 as revised.
+
+Decisions 10 to 15 took the recommendation except 15, where the recommendation was a phone-wide
+badge with the sheet's subtitle naming what waits in other gardens; the maintainer chose the
+garden-only count so the badge and the sheet always agree.
 
 ## Persistence and state architecture
 

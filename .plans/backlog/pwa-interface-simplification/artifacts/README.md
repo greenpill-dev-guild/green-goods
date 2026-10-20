@@ -11,7 +11,7 @@ Explore gardens, the sheets and the bottom bar. Both phones follow the same taps
 
 | Control | What it switches |
 |---|---|
-| Presets | The maintainer's 19 October picks, Steward on first run, No garden yet, Evaluator offline: set several picks at once. |
+| Presets | The decided picks of 19 October, Steward on first run, No garden yet, Evaluator offline: set several picks at once. |
 | Phones, Size | Both widths or one; fit the window height or draw at 100%. |
 | Language, Theme | English, Spanish or Portuguese; the app's light palette on the linen canvas, or the dark ladder with the card one step above the canvas. |
 | Gardens | No garden, one, several on first run, several remembered. Several means TAS HUB, Ilhas de Abundância and the Aiyeloja Family Garden. |
@@ -34,9 +34,11 @@ active garden with no widening row. Submit Work pins the garden and offers no wa
 offline strip overlays the header. The chip is 32px tall like the icon buttons beside it. The
 primary button in dark mode has dark text on the mint fill.
 
-**Explorations, not part of the lock.** Garden sections as sheets, the notifications bell, the
-sticky header, the Highlights strip and the promises-first Start step are drawn so they can be
-judged; the lock does not include them until the maintainer says so.
+**Decided later on 19 October.** Garden sections open as sheets over Home, the notifications bell
+takes the header's free slot, the Home header is sticky, Submit Work's first step leads with the
+garden's open asks, and there is no Highlights strip; the Your Work badge counts the active garden
+only. The lab draws each decision as its default and keeps the alternative (today's garden page,
+no bell, a scrolling header, actions first, the carousel) for comparison.
 
 **It is a mock, not the product.** Every screen is hand-built HTML drawn with the token values and
 sizes locked by the app and cockpit unification hub on 18 October 2026 (Plus Jakarta Sans, the

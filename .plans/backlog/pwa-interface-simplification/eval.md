@@ -137,3 +137,12 @@ records the maintainer's review of the lab and the lock:
 
 These are document and mock checks. No application code changed and no implementation lane is
 passed.
+
+## Decisions check (2026-10-19, later)
+
+After the maintainer answered the five explorations and the badge question, the same document
+checks were run on the recording edits: `node scripts/harness/plan-hub.mjs validate` (32 hubs), the
+read-only link and anchor check over this hub, Biome format on `status.json`, the immutable-report
+and guidance-link checks, `git diff --check`, and a scan of the added lines for em dashes. All
+passed. The lab's script was parsed with `node --check` after its hints and preset changed; its
+defaults already drew every decision, so no new render measurement was needed.

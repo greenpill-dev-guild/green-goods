@@ -1,6 +1,6 @@
 # PWA Interface Simplification
 
-**Stage:** backlog · **Posture:** scope locked on 18 October 2026 and reviewed on 19 October, with five explorations open; implementation waits for a separate go
+**Stage:** backlog · **Posture:** scope locked on 18 October 2026 and completed by the 19 October review; implementation waits for a separate go
 
 **Linear:** [RESR-93](https://linear.app/greenpill-dev-guild/issue/RESR-93) in
 [Green Goods 2.1.0](https://linear.app/greenpill-dev-guild/project/green-goods-v210-qa-and-release-9bcaf982d5e5).
@@ -50,7 +50,8 @@ The maintainer locked these after the findings and the lab recorded in
 3. **Home is the compact journal:** recent activity, then Continue, then Take part, then one About
    row. Featured activity and the promoted garden page stay as lab variants.
 4. **Promises and Your Work open scoped to the active garden** and show nothing from other
-   gardens (revised on 19 October, when the widening row was removed).
+   gardens; their badges count the active garden too (revised on 19 October, when the widening row
+   was removed).
 5. **About and management** sit in one About row at the end of Home for now, reviewed after the
    first slice. Steward and evaluator duties surface in Continue.
 6. **Visiting never switches.** A garden opened by link, from Explore or from a row is a visit.
@@ -69,9 +70,11 @@ cards, chip, switcher rows and the pinned Work-for card; one tag on a card's pho
 height; the family test gardens shown only to members; the half switcher sheet; sheets that never
 mix gardens; no change-garden control in Submit Work; the offline strip over the header; the chip
 at the icon buttons' height; and garden sections opening over Home rather than on the old garden
-page. Five explorations are drawn in the lab as opt-in tweaks and wait for an answer: garden
-sections as sheets, a notifications bell, a sticky header, a Highlights strip and a promises-first
-Start step.
+page. Later that day the maintainer settled the five explorations and the badge rule: garden
+sections open as sheets over Home; a notifications bell takes the header's free slot; the Home
+header is sticky; Submit Work's first step leads with the garden's open asks; no Highlights strip;
+and the Your Work and Home badges count the active garden only. Each is recorded as decisions 10
+to 15 in [spec.md](spec.md#review-round-on-19-october-2026).
 
 ## Scope and boundaries
 
