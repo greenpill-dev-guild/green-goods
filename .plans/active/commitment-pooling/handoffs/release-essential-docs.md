@@ -672,3 +672,23 @@ Agent/model: Codex / unknown | Coverage: authorized develop integration
 | Verify / review | unknown → ongoing | Focused tests and rendered Docs proof passed; final post-commit gate and CI follow on #1109. |
 
 Human corrections: 0 observed in this segment; attention: unknown.
+
+
+### Current-head CI follow-up
+
+The ac0556d7 integration was pushed with all 14 post-commit checks passing fresh, including a
+98.842-second Storybook build, inside the unchanged 180-second limit. GitHub reported the PR
+mergeable and started all nine expected workflows. Docs, Ontology and Agent passed; the Agent
+SQLite CI lane succeeded despite the earlier local timeout limit. Client and Admin package lint
+then caught duplicate story imports that the focused push lint does not scan. The two imports
+were consolidated without changing story behavior, screenshots or application code. Both full
+owner-package lint commands pass locally. Final follow-up head and CI results are recorded on
+#1109; the earlier head is not final readiness proof.
+
+Client CI also found two Account-role assertions using a tab role instead of the rendered
+Profile sections group and Account button. They now check that button's current state. The
+legacy-wallet smoke case explicitly selects the disconnected dev-auth session before navigation,
+then verifies login and the absence of authenticated navigation. It proves the mock-session
+boundary, not production wallet restoration. The earlier broader negative wallet-storage claim
+is superseded by this bounded proof; real connector restoration remains separate PRD-727 QA.
+No retries, timeouts, skips or production auth behavior changed.

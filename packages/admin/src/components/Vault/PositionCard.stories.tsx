@@ -1,13 +1,12 @@
 import { PositionCard as RealPositionCard } from "./PositionCard";
 import { withAdminIdentity } from "../../../../shared/.storybook/decorators";
 import { useVaultPreview } from "@green-goods/shared/hooks/vault/useVaultPreview";
-import { mocked } from "storybook/test";
+import { fn, mocked } from "storybook/test";
 import { resetHookMocks } from "../../../../shared/.storybook/moduleMocks";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useIntl } from "react-intl";
-import { fn } from "storybook/test";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
 

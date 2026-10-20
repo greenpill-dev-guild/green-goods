@@ -31,7 +31,11 @@ test.describe("Client Navigation", () => {
       "aria-current",
       "page"
     );
-    await expect(page.getByRole("tab", { name: "Account", exact: true })).toBeVisible();
+    await expect(
+      page
+        .getByRole("group", { name: "Profile sections" })
+        .getByRole("button", { name: "Account", exact: true })
+    ).toHaveAttribute("aria-current", "true");
   });
 
   test("returns home from a garden detail page", async ({ page }) => {
@@ -53,14 +57,22 @@ test.describe("Client Navigation", () => {
       .getByTestId("authenticated-nav")
       .getByRole("link", { name: "Profile", exact: true })
       .click();
-    await expect(page.getByRole("tab", { name: "Account", exact: true })).toBeVisible();
+    await expect(
+      page
+        .getByRole("group", { name: "Profile sections" })
+        .getByRole("button", { name: "Account", exact: true })
+    ).toHaveAttribute("aria-current", "true");
 
     await page.goBack();
     await expect(page).toHaveURL(/\/home(?:\?.*)?$/);
     await expect(page.getByTestId("garden-card").first()).toBeVisible();
     await page.goForward();
     await expect(page).toHaveURL(/\/home\/profile/);
-    await expect(page.getByRole("tab", { name: "Account", exact: true })).toBeVisible();
+    await expect(
+      page
+        .getByRole("group", { name: "Profile sections" })
+        .getByRole("button", { name: "Account", exact: true })
+    ).toHaveAttribute("aria-current", "true");
   });
 });
 

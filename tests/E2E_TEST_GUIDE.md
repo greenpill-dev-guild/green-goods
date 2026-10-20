@@ -12,8 +12,8 @@ rejection/account recovery, seeded read-only work exploration and production PWA
 offline reload. See [the runner contract](README.md#projects-and-focused-runs) for
 exact qualification and evidence limits.
 
-Manual wallet-storage diagnostics do not establish real connector or session
-restoration behavior. Removed always-skipped work/offline suites supplied no active
+The legacy-wallet smoke case explicitly selects a disconnected dev mock session;
+it does not establish real connector or session restoration behavior. Removed always-skipped work/offline suites supplied no active
 proof; the current CI specs exercise those journeys.
 
 ## Test Structure
@@ -82,8 +82,8 @@ await expect(element).toBeVisible({ timeout: TIMEOUTS.elementVisible });
 
 Virtual authenticators require Chromium. Run `bun run browser e2e --preset passkey`
 for the spec-local CDP ceremonies; use the supported dev mock-auth fixture for CI
-content journeys. iOS wallet-storage smoke is a separate diagnostic, not a
-WebAuthn substitute or successful-login claim.
+content journeys. The disconnected-session smoke runs on every browser, including
+iOS; it is not a WebAuthn substitute or real-wallet restoration claim.
 
 ### 3. Offline Tests Failing
 - **Issue**: Offline indicator not found

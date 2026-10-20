@@ -127,8 +127,9 @@ cases do not prove browser-to-fork-to-indexer integration or authenticated-sessi
 ## Authentication
 
 - Client CI, navigation and deterministic mobile smoke use `setupAuthenticatedClient` with dev
-  mock auth and the mocked backend. The wallet-storage smoke case verifies that fabricated storage
-  without a connector does not authorize access. The `passkey-mock` project owns real
+  mock auth and the mocked backend. The legacy-wallet smoke case verifies that an explicitly
+  disconnected mock session stays signed out despite stored wallet data. It does not prove real
+  connector restoration. The `passkey-mock` project owns real
   virtual-WebAuthn ceremonies against strict local substitutes. Mock logout proves the profile
   control and test-session transition, not a real wallet disconnect.
 - Admin cockpit specs use deterministic `sessionStorage` mock auth plus GraphQL route interception.

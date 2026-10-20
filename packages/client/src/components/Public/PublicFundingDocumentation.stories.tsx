@@ -10,8 +10,10 @@ import { useGardenVaults } from "@green-goods/shared/hooks/vault/useGardenVaults
 import { useVaultDeposit } from "@green-goods/shared/hooks/vault/useVaultDeposit";
 import { useVaultPreview } from "@green-goods/shared/hooks/vault/useVaultPreview";
 import { useVaultWithdraw } from "@green-goods/shared/hooks/vault/useVaultWithdraw";
-import { usePublicEndowmentPositions } from "@green-goods/shared/hooks/public/usePublicEndowmentPositions";
-import type { PublicEndowmentPosition } from "@green-goods/shared/hooks/public/usePublicEndowmentPositions";
+import {
+  usePublicEndowmentPositions,
+  type PublicEndowmentPosition,
+} from "@green-goods/shared/hooks/public/usePublicEndowmentPositions";
 import type { PublicGardenSummary } from "@green-goods/shared/hooks/public/usePublicGardens";
 import type { Address } from "@green-goods/shared/types/domain";
 import {

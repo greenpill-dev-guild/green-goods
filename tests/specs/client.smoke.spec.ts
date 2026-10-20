@@ -3,12 +3,12 @@
  *
  * Minimal tests for the client PWA:
  * - Unauthenticated redirect to login
- * - Rejection of fabricated wallet storage without a connector
+ * - Disconnected mock session with legacy wallet storage
  * - View gardens data
  *
  * Authentication strategy:
  * - Authenticated UI: supported dev mock-auth seam and mocked backend
- * - Wallet storage: negative access check without a connector on every browser
+ * - Legacy wallet storage: disconnected mock-session check on every browser
  */
 import { expect, test } from "@playwright/test";
 import { MOCK_CLIENT_GARDEN } from "../helpers/mock-backend";
@@ -53,14 +53,18 @@ test.describe("Client PWA", () => {
       await expect(page.getByTestId("login-button")).toBeVisible();
     });
 
-    test("wallet storage alone does not authorize a protected route", async ({ page }) => {
+    test("keeps a disconnected mock session signed out despite legacy wallet storage", async ({
+      page,
+    }) => {
       const helper = new ClientTestHelper(page);
       await helper.injectWalletAuth();
+      await helper.enableMockAuth("disconnected");
       await page.goto("/home?presentation=pwa");
       await helper.waitForPageLoad();
 
-      // No connector or dev-auth override exists. Fabricated storage must not
-      // grant access on any browser, including iOS Safari.
+      // The supported dev-auth seam explicitly selects a disconnected session.
+      // Legacy wallet storage must not override that test-session state.
+      // Real connector restoration is covered by separate auth/device QA.
       await expect(page).toHaveURL(/\/home\/login/);
       await expect(page.getByTestId("login-button")).toBeVisible();
       await expect(page.getByTestId("authenticated-nav")).toHaveCount(0);
