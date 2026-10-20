@@ -51,6 +51,8 @@ Version 1.2, 2026-10-19. Owner: Afo.
 
 > Green Goods helps communities name their needs, make promises, document regenerative work, review it together, and turn the record into support.
 
+Today a garden names its needs through an assessment, set by stewards and evaluators. Community members naming needs directly is a planned layer (see the Capability and Claims page), so copy about it says so.
+
 **Canonical problem statement:**
 
 > The record of a community's regenerative work stays trapped, and three things keep it that way. Proving the work costs more than doing it. The tools for proving it were built for the office and the grant report, not for the field. And the record ends up on platforms the community does not own, so it cannot follow them to the next funder, partner, or tool. Inside the community, contribution is thanked but not valued. Outside, the people who would support it cannot read it.
@@ -79,7 +81,7 @@ Five product personas carry fixed meanings in the ontology. One more audience ap
 | Steward | Runs the garden: the season's plan, members, and review of work | Professional, efficient, task-focused, data-aware | Condescending simplicity, unstructured prose | May describe on-chain review as a trust mechanism; never contract internals |
 | Evaluator | Sets baselines and evidence standards, then assesses what changed | Precise, evidence-based, structured; respects domain expertise | Oversimplification, vague impact language | Research and assessment terminology is fine |
 | Funder (also called supporter) | Anyone who supports the work: an individual giving to a garden, a diaspora supporter, a grantmaker, an institution, a crypto ecosystem fund | Confident, transparent, evidence-first; lead with reviewed records | Hype, unsubstantiated claims, anything resembling an investment pitch | Traditional funders and institutions: describe Green Goods as a field data and MRV tool, no web3 words. Crypto ecosystem funders: attestation and chain words allowed in an appendix, never the headline. Never "guaranteed returns" |
-| Community member | A local person affected by the work, who names needs and confirms work done for them | Inclusive, plain, encouraging | Protocol jargon, assumed web3 literacy | None. About a 6th-grade reading level |
+| Community member | A local person affected by the work, who confirms work done for them and, once Community Needs ships, names needs directly | Inclusive, plain, encouraging | Protocol jargon, assumed web3 literacy | None. About a 6th-grade reading level |
 | Partners and builders (external copy) | Ecosystem tools, integrators, researchers | Direct, specific, documented | Marketing superlatives | Protocol and chain names allowed on builder pages and in appendices |
 
 **Framing rule.** For traditional funders and non-technical audiences, Green Goods is a field data and MRV (measurement, reporting, and verification) tool for community-led regenerative work. Web3-native language appears only in crypto ecosystem contexts, and even there it stays in the appendix, never the lead.
@@ -111,7 +113,7 @@ Five product personas carry fixed meanings in the ontology. One more audience ap
 |---|---|---|---|
 | Admin dashboard | The steward workspace (`packages/admin`; the design skill calls the same surface the cockpit) | About the work, to the steward | Utility: status language, task framing, counts and states |
 | Editorial website | The public browser site | To visitors and funders, about the gardens | Editorial: place-first, evocative headlines, numbers that breathe |
-| PWA app | The installed garden journal (`packages/client`) | To the community, about the work | Warm and narrative; never loses a draft; never blames |
+| PWA app | The installed garden journal (`packages/client`) | To the community, about the work | Warm and narrative; keeps drafts on the phone they were written on; never blames |
 | Community app (future) | A surface for community members to name needs, witness work, and confirm promises | To the neighborhood, about the place | Not yet defined. It inherits the voice and the community-member tone row; its dialect gets written when the surface is designed |
 
 Section 5 has the patterns for each dialect and says which dialect other surfaces borrow.
@@ -147,7 +149,7 @@ Tone shifts by context while the voice stays constant.
 - Utility copy only: status language and task framing, never marketing or narrative.
 - Headers are functional nouns: "Review Queue", "Garden Settings", "Member Activity".
 - Status text is counts plus state: "3 pending · 1 flagged · 12 approved".
-- Actions are verb-first: "Approve", "Request changes", "Flag for review".
+- Actions are verb-first and Title Case: "Approve", "Request Changes", "Flag for Review".
 - Empty states are terse: "No items in queue", not "Get started by adding…".
 - Outcome is the change the garden wants to see, one sentence about people or land. Metric is what is counted. Target is how much by the period's end. Define each once, above the form.
 - Don't say: "Welcome back!" / "Let's review some great work" / "You're crushing it".
@@ -167,7 +169,7 @@ Tone shifts by context while the voice stays constant.
 - Empty states encourage and suggest the next action: "No work yet. Start by documenting what you see."
 - Sync status is calm: "Saved locally", "Synced", "Syncing…".
 - Errors never blame the person: "We couldn't submit that", not "Your submission failed."
-- A draft never gets lost, and copy says so when it matters.
+- A draft stays on the phone it was written on while the app and its data remain, and copy says so when it matters (keep the app installed, do not clear its data). Never promise more than that.
 - Say: "Let's see what's grown in your garden." / "Your work is in good hands." / "Go do more of what matters."
 - Don't say: "Processing submission..." / "Review queued." / "1 of 12 pending." / "Submit another?"
 - Cockpit, dashboard, and KPI language stays out of the app. The live list is `prompt_vocabulary_client_banned` in `scripts/data/banned-vocabulary.json`.
@@ -179,11 +181,11 @@ Tone shifts by context while the voice stays constant.
 
 | Surface | Borrows | Adjustments |
 |---|---|---|
-| Docs, community track | Editorial website, made plain | Second person, active, about an 8th-grade reading level; why before what; condition before instruction; one idea per sentence; sentence-case headings; contractions fine; no superlatives. The product's own labels are the vocabulary; no protocol or chain names except inside the one "using your own wallet" box. Permission-giving where people hesitate; strict where the integrity of the record is at stake. Money and privacy statements describe what the code and contracts do and never repeat a guarantee from interface copy. Every page ends with next steps, and links say where they go |
+| Docs, community track | Editorial website, made plain | Second person, active, about an 8th-grade reading level; why before what; condition before instruction; one idea per sentence; sentence-case headings; contractions fine; no superlatives. The product's own labels are the vocabulary; no protocol or chain names except inside the one "using your own wallet" box. Permission-giving where people hesitate; strict where the integrity of the record is at stake. Money and privacy statements describe what the code and contracts do and never repeat a guarantee from interface copy. Task pages end with next steps, and links say where they go |
 | Docs, builders track | Docs community register, for developers | Same rules; generated reference pages stay terse; protocol names allowed |
 | Release notes | Editorial website, trimmed | One plain opening sentence on what the release does for people; sections by audience ("For gardeners", "For stewards"); a short "Protocol and platform" section; links. Deferred or disabled capabilities are stated in the same note |
 | Announcements and community posts | PWA app warmth, website clarity | One-line opener, what changed in two or three short paragraphs, an invitation to try it and reply, thanks, a link. Spanish and Portuguese versions are reviewed by a speaker before posting |
-| Chat reporting bot | PWA app, in conversation | Short first-person turns, one question at a time, a count of what remains, a summary to check before publishing. Anyone with a garden role can message the bot directly |
+| Chat reporting bot | PWA app, in conversation | Short first-person turns, one question at a time, a count of what remains, a summary to check before publishing. Gardeners and stewards (and garden owners) message the bot directly to report; other roles are not supported yet |
 | Funder and partner documents | Editorial website, evidence-first | Claims carry source tags; chain detail in an appendix; short sections under headers, two or three sentences each |
 
 ---
@@ -224,7 +226,7 @@ The [Glossary](/glossary) is generated from the ontology and is the authority; t
 | promise | commitment (in user-facing copy) | The plain word for what a member offers |
 | fund (verb) | contribute, invest | Funding a garden |
 | donate | (allowed only as the name of the direct-giving path) | The path a supporter takes to give directly; "fund" everywhere else |
-| impact | output, result, metric | Bridges community and chain |
+| impact | output, result | Bridges community and chain. "Metric" stays the name of the assessment field (Outcome, Metric, Target), never a synonym for impact |
 | document (verb) | log, capture | Gardeners document their work. "Record" is acceptable in plain explanation |
 | approved submissions | approved work (as a public count label) | Public count label |
 | garden members | hands at work, participants | Public count of gardeners and stewards, each address counted once |
@@ -253,7 +255,7 @@ Copy names four domains: agroforestry, waste management, solar (hub development)
 
 ### 6.7 Spelling and punctuation
 - US spelling in all English copy: neighbor, color, center, organize, canceled, gray, license, behavior. The vocabulary check rejects UK forms in catalogs; the docs audit rejects them in docs pages and design guides. Quoted third-party names keep their own spelling.
-- No em dashes anywhere: prose, product strings, docs, release titles, announcements, in any language. Restructure with periods, colons, commas, or parentheses, never a hyphen or a spaced en dash. `bun run check --only em-dashes` enforces it. Canonical ontology definitions keep their existing punctuation.
+- No em dashes anywhere: prose, product strings, docs, release titles, announcements, in any language. Restructure with periods, colons, commas, or parentheses, never a hyphen or a spaced en dash. `bun run check --only em-dashes` enforces it. Canonical ontology definitions keep their existing punctuation, and a lone em dash standing in for a missing or unreadable figure in a table or metric is a data placeholder, not prose, and stays.
 - Contractions are welcome in app and docs copy. Exclamation marks are rare: one per screen at most, never in errors or status.
 - Ellipsis only for in-progress states ("Syncing…").
 
@@ -274,7 +276,7 @@ Copy names four domains: agroforestry, waste management, solar (hub development)
 6. External copy is short and scannable: a one-line intro, headers, two or three sentences per section, hyphen bullets in plain-text fields. People do not read dense things.
 7. Errors state what is safe ("Your work is saved") before what to do next. No codes, no stack traces, no blame.
 8. In the app and on the website, every empty state suggests the next action in one sentence. Admin empty states stay a terse acknowledgment ("No items in queue"), as section 5 says.
-9. Every docs page ends with next steps, and links say where they go.
+9. Authored community and builder task pages end with next steps, and links say where they go. Reference and generated pages stay terse.
 10. Permission-giving where people hesitate; strict where the integrity of the record is at stake.
 11. Translation is part of the copy, not an afterthought: a new English string ships with Spanish and Portuguese, accents intact, locked terms used.
 12. Shorter than your first draft.

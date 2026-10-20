@@ -153,10 +153,10 @@ Admin copy is **utility-only**. Status language and task framing, never marketin
 **Patterns:**
 - **Headers** take functional nouns: "Review Queue", "Garden Settings", "Member Activity".
 - **Status text** gives counts + state: "3 pending · 1 flagged · 12 approved".
-- **Actions** are verb-first: "Approve", "Request changes", "Flag for review".
+- **Actions** are verb-first and Title Case (DL-012): "Approve", "Request Changes", "Flag for Review".
 - **Empty states** give a terse acknowledgment: "No items in queue", not "Get started by adding…".
 
-**Say:** "3 submissions pending review. 1 flagged for follow-up." / "Approve" / "Request changes"
+**Say:** "3 submissions pending review. 1 flagged for follow-up." / "Approve" / "Request Changes"
 
 **Don't say:** "Welcome back!" / "Let's review some great work" / "You're crushing it"
 

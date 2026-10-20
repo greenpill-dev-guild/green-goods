@@ -257,7 +257,7 @@ The names that carry the work. Domain entities, personas, relationships, and lif
 | Work | Task, activity, submission | Regenerative work is the core concept. |
 | Action | Action type, template | The thing a gardener can do. |
 | Fund | Contribute, invest | Funding a garden. "Donate" names only the direct-giving path. |
-| Impact | Output, result, metric | Bridges community and chain. |
+| Impact | Output, result | Bridges community and chain. "Metric" names an assessment field (DL-079), not a synonym for impact. |
 | Document | Log, record, capture | Gardeners document their work. |
 
 **Lower case in running text (DL-090).** In a sentence, garden, gardener, steward, evaluator,
