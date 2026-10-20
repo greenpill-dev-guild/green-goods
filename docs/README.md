@@ -73,7 +73,11 @@ Check every label against the owning view or `packages/shared/src/i18n/en.json`,
 
 Every community guide opens with its title, a short purpose and a contextual visual before prerequisites. Editorial illustrations fill the article width. Center standalone screenshots at a readable width; keep a side-by-side layout only when the adjacent text explains the image. Preserve detailed captures beside their steps. Use distinct opening artwork for each guide, with page-specific scenes or meaningful variants. Generated artwork must not show human faces, including background figures, portraits or reflections. Use tools, places, completed work or carefully framed hands to ground the task; inspect the full image and its opening crop.
 
-Screenshots support the text and never carry a step alone. Capture the real interface from a Storybook fixture, demo or public page, never a live garden's private member records or photos. Use useful alt text and short instructional captions where they add meaning. Capture date, fixture, viewport and revision belong in the [asset ledger](assets/capture-ledger.json), not repeated in page captions. New generated artwork and its prompts are recorded in the [illustration ledger](assets/illustrations.json). Preserve third-party attribution and licenses. Verify every new image path, intrinsic dimensions and opening crop on phone and desktop.
+Screenshots support the text and never carry a step alone. Capture the real interface from a Storybook fixture, demo or public page, never a live garden's private member records or photos. Keep useful alt text.
+
+Contextual opening photos do not need captions unless identifying a real example adds meaning. Screenshot captions are optional: use a short sentence to explain one choice, state or result that is worth noticing. Keep instructions and consequential warnings in the guide text before the relevant action; a caption may reinforce them.
+
+Capture date, fixture, viewport and revision belong in the [asset ledger](assets/capture-ledger.json), not repeated in page captions. New generated artwork and its prompts are recorded in the [illustration ledger](assets/illustrations.json). Preserve third-party attribution and licenses. Verify every new image path, intrinsic dimensions and opening crop on phone and desktop.
 
 ### Glossary and ontology ownership
 

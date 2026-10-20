@@ -219,6 +219,6 @@ Green Goods routine posts follow the guild house style: bold headers with blank 
 
 1. Log in to claude.ai/code/routines.
 2. Click **New routine**.
-3. Paste the prompt from the relevant `.md` file (everything after the `# Prompt` heading), unless that file's own rebuild section gives a bootstrap prompt, as `release-prep.md`, `sync-triage-pulse.md`, `qa-call-report.md`, and `growth-pulse.md` do. Paste the bootstrap instead, so the routine reads the current spec from git on every run.
+3. Paste the prompt from the relevant `.md` file (everything after the `# Prompt` heading), unless that file's own rebuild section gives a bootstrap prompt, as `bug-intake.md`, `health-watch.md`, `growth-pulse.md`, `sync-triage-pulse.md`, `release-prep.md`, and `qa-call-report.md` do. Paste the bootstrap instead, so the routine reads the current spec from git on every run.
 4. Configure repos, environment, connectors, triggers, **and the model** as specified in the file's frontmatter. A rebuilt routine left on the platform default silently runs the wrong tier.
 5. Save.

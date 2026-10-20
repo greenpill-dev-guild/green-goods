@@ -635,3 +635,24 @@ The @mention fires when triage is piling up (`raw_signal_count + accepted_count 
 - **Project routing discipline.** Customer Needs live unprojected on the Product team. Accepted-bug Issues follow [Project routing](README.md#project-routing): a bounded active project when one already exists for this work, otherwise the active release project, and unprojected only when none is started. Never route into the retired `Green Goods`, `Coop`, `Network Website`, `Cookie Jar`, or `Story Board` projects.
 - **Acknowledgment model (2026-07-30).** Discord-source reports are acknowledged with the inline `Tracked → ${customer_need_url}` threaded reply + ✅ reaction in `#bug-report` (Phase 1 step 7; reply and reaction are attempted, recorded, and retried independently) — never with standalone ack messages. Telegram and Drive records are acknowledged as item lines in the Phase 7 digest; Telegram reporters get NO Telegram-side ack — no DM, no group reply — by design.
 - **Fail loud, not silent.** A failed Linear project lookup (an absent release project between releases is a valid state, not a failure), a missing label, a 401 from Linear, or a 401/503 from the agent messages API (`${BOT_API_URL}/api/messages`, per the Phase 2 preflight) must appear in the Discord summary so the user can fix the wiring. Do not skip records to keep the run "green."
+
+## Rebuilding the cloud routine from this file
+
+1. Log in to [claude.ai/code/routines](https://claude.ai/code/routines).
+2. Click **New routine** (or use `/schedule` in Claude Code).
+3. Paste a bootstrap prompt, not a copy of this spec. The routine fetches `origin/develop` and executes this file on every run, so a change takes effect as soon as it merges to `develop`. Keep the bootstrap free of phase summaries: a summary drifts from the spec and competes with it. The bootstrap carries one failure post of its own, because a run that cannot load the spec never reads the spec's failure rules; that post uses the digest's channel variable, so a channel change touches both.
+
+   ```text
+   You are the bug-intake routine for Green Goods. Your spec is docs/routines/bug-intake.md on the develop branch of the green-goods repo. It is the single source of truth; there is intentionally no copy here.
+
+   1. Run `git fetch origin +refs/heads/develop:refs/remotes/origin/develop`, which updates `origin/develop` whatever this checkout's fetch settings are.
+   2. Read the whole spec: `git show origin/develop:docs/routines/bug-intake.md`.
+   3. Execute everything after its `# Prompt` heading exactly as written, except the `## Rebuilding the cloud routine from this file` section, which tells people how to set the routine up and is never part of a run. Where this prompt and the spec differ, follow the spec.
+
+   If step 1 or 2 fails, never run an older copy or improvise from memory: an older `origin/develop` may still be readable, and running it would run a stale spec. Report the failure in the run log, post one failure line, and exit non-zero. The line is `<@${DISCORD_USER_ID_AFO}> ⚠ bug-intake could not load its spec ({the failed step}); no reports were filed this run.`, sent as the `content` field of a JSON body built with an encoder such as `jq -n --arg`, never by hand, with `POST https://discord.com/api/v10/channels/${DISCORD_PRODUCT_CHANNEL_ID}/messages` and the headers `Authorization: Bot ${DISCORD_BOT_TOKEN}` and `Content-Type: application/json`, using plain `curl` without `-L` so the token is never forwarded. When `DISCORD_PRODUCT_CHANNEL_ID` is unset, skip the post and say so in the run log; never post to another channel.
+
+   Limits that hold whatever the spec says: never push code, open PRs, create GitHub Issues or Project items, or post to Telegram; post to Discord only in the channels `DISCORD_BUGS_CHANNEL_ID` and `DISCORD_PRODUCT_CHANNEL_ID` name.
+   ```
+
+4. Configure the repo (`green-goods`, checked out at `develop`, its default branch, so the files a run reads from the checkout match the spec it fetched), environment (green-goods, `env_01CRAWm3KauPFp4ntqdAufPR`), env vars, connectors, model, and cron per the frontmatter above.
+5. Save, then record the routine id in `docs/routines/README.md`. If the bootstrap is ever pointed at `main`, spec changes take effect only once they land on `main`.
