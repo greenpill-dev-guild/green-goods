@@ -313,7 +313,8 @@
       "requiredAuthorities": [
         "owning surface DESIGN.md dialect",
         "design skill prompt contracts",
-        "shared design tokens"
+        "shared design tokens",
+        "brand voice guidelines (docs/docs/reference/brand-voice.mdx)"
       ],
       "output": "A grounded paradigm, material, or layout decision, design review findings, or an AI design-tool prompt contract.",
       "handoff": "Send cross-surface token or dialect changes to planning; send implementation defects to debugging.",
@@ -324,7 +325,11 @@
       "label": "Doc review feedback",
       "skill": "doc-feedback",
       "mutationBoundary": "triage-then-scope-locked-edits",
-      "requiredAuthorities": ["the reviewed .docx export", "the target document's owning surface"],
+      "requiredAuthorities": [
+        "the reviewed .docx export",
+        "the target document's owning surface",
+        "brand voice guidelines (docs/docs/reference/brand-voice.mdx)"
+      ],
       "output": "A triaged feedback record and each accepted item addressed in the agreed in-repo or out-of-repo mode.",
       "handoff": "Route discovered product defects to debugging and net-new scope to planning.",
       "mustNotSwallow": ["qa-notes-and-backlog", "planning", "debugging"]

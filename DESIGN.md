@@ -256,7 +256,7 @@ The names that carry the work. Domain entities, personas, relationships, and lif
 | Community member | Visitor, viewer, spectator | Part of the community, not an audience. |
 | Work | Task, activity, submission | Regenerative work is the core concept. |
 | Action | Action type, template | The thing a gardener can do. |
-| Fund | Donate, contribute, invest | Funding a garden. |
+| Fund | Contribute, invest | Funding a garden. "Donate" names only the direct-giving path. |
 | Impact | Output, result, metric | Bridges community and chain. |
 | Document | Log, record, capture | Gardeners document their work. |
 
@@ -286,7 +286,7 @@ Before shipping copy:
 - [ ] Would it make sense to someone who's never heard of web3?
 - [ ] Is it shorter than your first draft?
 
-Surface-specific copy patterns (browser editorial, PWA gardener-facing, admin utility) live in the matching prompt contracts: [`.claude/skills/design/prompt-contract.md`](.claude/skills/design/prompt-contract.md) (admin) and [`.claude/skills/design/client-prompt-contract.md`](.claude/skills/design/client-prompt-contract.md) (client).
+The full guideline (audiences, the three dialects, claims discipline, the pre-ship checklist, localization) is the docs page [Brand voice guidelines](docs/docs/reference/brand-voice.mdx), also reachable as `.claude/brand-voice-guidelines.md`; this section stays the voice core it restates. Surface-specific copy patterns (browser editorial, PWA gardener-facing, admin utility) live in the matching prompt contracts: [`.claude/skills/design/prompt-contract.md`](.claude/skills/design/prompt-contract.md) (admin) and [`.claude/skills/design/client-prompt-contract.md`](.claude/skills/design/client-prompt-contract.md) (client).
 
 ## Quick Token Reference
 

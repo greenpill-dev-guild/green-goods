@@ -62,6 +62,7 @@ const sidebars: SidebarsConfig = {
       items: [
         {type: 'doc', id: 'reference/product-history', label: 'Product History'},
         {type: 'doc', id: 'reference/brand', label: 'Brand kit'},
+        {type: 'doc', id: 'reference/brand-voice', label: 'Brand voice'},
         {type: 'doc', id: 'reference/credits', label: 'Credits'},
       ],
     },

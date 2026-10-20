@@ -12,6 +12,9 @@ authored/generated boundary, local workflow, and deployment setup.
 - Do not edit generated MDX directly. Change its authoritative source and run the declared generator.
 - Keep private QA results and identities out of the public site. The QA catalog defines public
   cases; observations and run evidence follow the [QA privacy contract](../.claude/context/qa.md).
+- Prose follows the [brand voice guidelines](docs/reference/brand-voice.mdx): US spelling, no em
+  dashes, lower-case garden and role words in running text, locked Spanish and Portuguese terms,
+  and the claims discipline; the docs audit and the em dash check enforce the mechanical parts.
 - Use the root writing guidance for prose. For theme/component work, also read [DESIGN.md](DESIGN.md)
   and the root frontend guidance; prose-only edits do not require browser proof.
 - Routine definitions under `routines/` have their own [operating contract](routines/README.md).
