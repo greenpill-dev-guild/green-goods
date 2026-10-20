@@ -303,8 +303,8 @@ drawn in the lab as a tweak with the decision as its default:
     sheet with the section's content under the one shared sheet header, the garden named beneath
     the title, the way the Promises launcher already works. A garden the member visits keeps its
     page with tabs.
-11. **A notifications bell in the header.** It takes the slot the filter button leaves, first in
-    the cluster so the other icons keep their places. Its badge counts what is new for the account
+11. **A notifications bell in the header.** It sits at the far right of the cluster (placed there
+    on 20 October; the slot the filter leaves is filled by the cluster shifting left). Its badge counts what is new for the account
     in this garden; its sheet lists those events as item rows (own work approved or rejected with
     feedback, a promise taken up, a join request answered; for stewards and evaluators, work to
     review and join requests), each opening the work, the promise, Your Work or Gardeners.
