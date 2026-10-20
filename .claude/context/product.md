@@ -30,7 +30,7 @@ The five rows are the ontology's personas, and Green Goods has no others. Name a
 |---------|--------------------------|------|-------|
 | Gardener | "A simple way to show the work I did and have my garden see it" | Warm, direct, action-oriented. Short sentences. No jargon. | Technical terms, passive voice, options overload |
 | Steward | "My garden's command center" | Professional, efficient, task-focused. Data-aware. | Condescending simplicity, unstructured prose |
-| Evaluator | "A structured place to set baselines and assess what changed" | Precise, evidence-based, structured. Respect domain expertise. | Oversimplification, vague impact language |
+| Evaluator | "A structured place to set baselines; assessing what changed against them is planned" | Precise, evidence-based, structured. Respect domain expertise. | Oversimplification, vague impact language |
 | Funder | "A clear record of work I can support, with the review behind it" | Confident, transparent, evidence-first. Lead with reviewed records. | Hype, unsubstantiated claims, blockchain jargon |
 | Community Member | "My neighborhood's way to have a say" | Inclusive, plain-language, encouraging. | Protocol jargon, assumed web3 literacy |
 

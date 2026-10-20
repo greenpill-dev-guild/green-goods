@@ -145,9 +145,9 @@ Tone shifts by context while the voice stays constant.
 | Submitting work | Supportive, clear | "Add a photo and a few words about what you did today." |
 | Hero moments in the app (first work submitted, a promise kept, a season closing) | Celebratory, genuine; one sentence, no confetti language. Admin completions (a garden created, a certificate minted) end in the admin register: a status line and Done, no celebration | "Your first contribution. This garden is growing because of you." |
 | Errors | Calm, constructive; never blames the person; says what is safe | "That didn't go through. Your work is saved. Try again when you're ready." |
-| Offline | Reassuring, matter-of-fact; promises only what the queue holds | "You're offline. Your work is saved on this phone and will send when you reconnect." Operations that need a connection (creating an assessment or a garden) say so instead: "Creating an assessment needs a connection. Nothing is lost." A steward's decision on work queues like work does: "Your decision stays on this device until you upload it." |
+| Offline | Reassuring, matter-of-fact; promises only what the queue holds, and the queue waits for Upload all | "You're offline. Your work is saved on this phone. When you're back online, open Your Work and tap Upload all." Operations that need a connection (creating an assessment or a garden) say so instead: "Creating an assessment needs a connection. Nothing is lost." A steward's decision on work queues like work does: "Your decision stays on this device until you upload it." |
 | Admin and steward | Efficient, status-oriented | "3 submissions pending review. 1 flagged for follow-up." |
-| Funding and impact | Respectful, concrete; numbers breathe | "This garden has documented 47 actions across 3 seasons." |
+| Funding and impact | Respectful, concrete; numbers breathe | "This garden has documented [count] actions across [seasons] seasons." (both values from live data) |
 | Failure states (a page or screen cannot load) | An ordinary page: a title, one sentence, one action; nothing lost, no codes | "This public record is temporarily unavailable. Please try again." |
 | Docs (community and builder) | Second person, active, plain; why before what; one idea per sentence | "Your garden's stewards review your work. There is no fixed time." |
 | Announcements and Green Goods channels | Warm, plain, pilot-focused; states limits up front; invites replies; thanks testers; at most one or two emoji; never "Gm" or "LFG" | "We're still pilot focused, learning alongside the communities using Green Goods." |
@@ -268,7 +268,7 @@ Copy names four domains: agroforestry, waste management, solar (hub development)
 
 ### 6.7 Spelling and punctuation
 - US spelling in all English copy: neighbor, color, center, organize, canceled, gray, license, behavior. The vocabulary check rejects UK forms in catalogs; the docs audit rejects them in docs pages and design guides. Quoted third-party names keep their own spelling.
-- No em dashes anywhere: prose, product strings, docs, release titles, announcements, in any language. Restructure with periods, colons, commas, or parentheses, never a hyphen or a spaced en dash. `bun run check --only em-dashes` enforces it. Canonical ontology definitions keep their existing punctuation, and a lone em dash standing in for a missing or unreadable figure in a table or metric is a data placeholder, not prose, and stays.
+- No em dashes anywhere: prose, product strings, docs, release titles, announcements, in any language. Restructure with periods, colons, commas, or parentheses, never a hyphen or a spaced en dash. `bun run check --only em-dashes` enforces it in the catalogs, the bot copy, docs pages, and design guides; release packs under `docs/releases/` are reviewed by eye. Canonical ontology definitions keep their existing punctuation, and a lone em dash standing in for a missing or unreadable figure in a table or metric is a data placeholder, not prose, and stays.
 - Contractions are welcome in app and docs copy. Exclamation marks are rare: one per screen at most, never in errors or status.
 - Ellipsis for in-progress states ("Syncing…") and, on an action label, to say the action opens another step before anything happens ("End Season…", "Archive…"); never in prose.
 
@@ -348,7 +348,7 @@ Drawn from shipped copy and approved release material. Lines marked "adapted" we
 | "We're still pilot focused, learning alongside the communities using Green Goods." | 2.0 announcement | Limits up front |
 | "Start by describing what you see. We'll help with the rest." | DESIGN.md tone spectrum | Patient onboarding |
 | "Add a photo and a few words about what you did today." | DESIGN.md tone spectrum | Supportive instruction |
-| "You're offline. Your work is saved on this phone and will send when you reconnect." | DESIGN.md tone spectrum | Reassuring, bounded to the queue |
+| "You're offline. Your work is saved on this phone. When you're back online, open Your Work and tap Upload all." | DESIGN.md tone spectrum | Reassuring, bounded to the queue and its Upload all step |
 | "3 submissions pending review. 1 flagged for follow-up." | Admin copy voice | Status, no narrative |
 | "We couldn't submit that." | Client prompt contract | Error without blame |
 | "Connect the wallet you endowed with, and we'll show you the gardens your support is growing." | Public fund page, endowments view | Warm, concrete, no custody claim |
