@@ -73,7 +73,7 @@ describe("useSubmissionProgress", () => {
       expect(result.current.progress.stage).toBe("uploading");
       // Uploading starts at cumulative weight 15
       expect(result.current.progress.overallProgress).toBe(15);
-      expect(result.current.progress.message).toBe("Uploading to IPFS...");
+      expect(result.current.progress.message).toBe("Uploading photos…");
     });
 
     it("transitions to confirming with correct overall progress", () => {

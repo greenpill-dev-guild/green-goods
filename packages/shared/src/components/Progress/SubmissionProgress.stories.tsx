@@ -23,7 +23,7 @@ const uploadingProgress: SubmissionProgressState = {
   stage: "uploading",
   stageProgress: 40,
   overallProgress: 29,
-  message: "Uploading to IPFS...",
+  message: "Uploading photos…",
   totalFiles: 5,
   completedFiles: 2,
 };
@@ -242,7 +242,7 @@ export const Interactive: Story = {
     expect(progressBars.length).toBeGreaterThan(0);
 
     // Verify the stage message is displayed
-    expect(canvas.getByText("Uploading to IPFS...")).toBeInTheDocument();
+    expect(canvas.getByText("Uploading photos…")).toBeInTheDocument();
 
     // Verify file count is displayed
     expect(canvas.getByText("2/5 files")).toBeInTheDocument();

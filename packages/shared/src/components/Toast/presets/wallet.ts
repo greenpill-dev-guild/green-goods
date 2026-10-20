@@ -4,10 +4,10 @@ import { type FormatMessageFn, toastMessageIds } from "./types";
 /** Default (English) fallback messages for wallet progress toasts */
 const walletDefaults = {
   validating: { title: "Checking membership", message: "Verifying garden access..." },
-  uploading: { title: "Uploading media", message: "Saving images to IPFS..." },
+  uploading: { title: "Uploading media", message: "Saving your photos…" },
   confirming: { title: "Confirm in wallet", message: "Waiting for your signature..." },
   syncing: { title: "Almost there", message: "Recording your work…" },
-  success: { title: "Work submitted!", message: "Your contribution is now on-chain" },
+  success: { title: "Work submitted!", message: "It now waits for review." },
   error: { title: "Submission failed", recoverable: "You can try again with the same data." },
   timeout: {
     title: "Taking longer than usual",

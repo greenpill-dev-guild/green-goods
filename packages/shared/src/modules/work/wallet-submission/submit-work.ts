@@ -134,7 +134,7 @@ export async function submitWorkDirectly(
   }
 
   // ── Phase 1: Upload media to IPFS ──────────────────────────────────
-  onProgress?.("uploading", "Uploading media to IPFS...");
+  onProgress?.("uploading", "Uploading media...");
   debugLog("[WalletSubmission] Encoding work data and uploading to IPFS");
 
   const workTitle = resolveWorkSubmissionTitle({

@@ -105,7 +105,7 @@ function sendingWords(
         }),
         description: formatMessage({
           id: "app.hypercerts.review.status.uploading.description",
-          defaultMessage: "Uploading its details to IPFS. Your wallet asks next.",
+          defaultMessage: "Saving its details. Your wallet asks next.",
         }),
       };
   }
