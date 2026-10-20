@@ -9,7 +9,7 @@ generated: true
 generator: scripts/quality/check-ontology.mjs
 generated_from:
   - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:edf2db7dcab3acc92d49f1c2853ca25f9c7fdec96099a24ec4ea3e8564c41588"
+source_digest: "sha256:13a6d94c5efe73e83fd3449049d61b7d8d4d156b7f62c0f1b8f64e1effa40a1b"
 source_of_truth:
   - packages/shared/src/ontology/green-goods-projections.json
 ---
@@ -62,15 +62,13 @@ This ledger separates what people can use now from deployed protocol capability,
 
 **Evidence:** `packages/contracts/deployments/42161-latest.json` — Vault and Cookie Jar modules are deployed. (verified 2026-08-15)
 
-## deployed-not-available
+### Gardens can run a commitment pool in Green Goods 2.0: members make, take up, and confirm promises. G$ rewards and contributor payouts are not switched on yet.
 
-### The coordination protocol is deployed, but it is not yet an available Green Goods product flow.
-
-**Internal claim:** Green Goods has deployed onchain coordination for bounded offers, requests, cycles, contributors, and confirmation.
+**Internal claim:** Green Goods 2.0 lets garden members make, take up, and confirm promises in a commitment pool, and lets stewards set up and run the pool and its seasons.
 
 **Audience:** steward · community · partner
 
-**Evidence:** `.plans/active/commitment-pooling/status.json` — Pooling is unpaused with 18 registered pools; the Arbitrum indexer and shared reads are available for the staging QA walkthrough, while the product flow stays pre-release until that QA lands. (verified 2026-09-03)
+**Evidence:** `packages/client/src/views/Public/GardenDetail.tsx` — Release 2.0 (production v2.0.1) offers promise acts in the client app and the steward console, and the public garden page lists a pool's promises. On 2026-10-18 the production indexer returned 18 registered Arbitrum pools and 42 promises, and the pooling and settlement contracts were unpaused; settlement stays off in the app. (verified 2026-10-18)
 
 ## in-build
 
