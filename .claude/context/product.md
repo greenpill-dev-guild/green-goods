@@ -119,7 +119,9 @@ When connectivity is lost or degraded, features degrade predictably:
 
 State transitions:
 ```
-Local:    queued → syncing → synced (then becomes on-chain "pending")
+Local work submission:  queued → syncing → synced (then on-chain "pending" until a steward decides)
+Local work approval:    queued → syncing → synced (then on-chain "approved" or "rejected" directly; the
+                        queued decision is projected with a pending-until-confirmed flag, never as "pending" work)
                           → failed → retry → syncing
 On-chain: pending → approved | rejected
 ```

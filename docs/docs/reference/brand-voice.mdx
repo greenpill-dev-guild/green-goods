@@ -219,7 +219,7 @@ The [Glossary](/glossary) is generated from the ontology and is the authority; t
 | impact certificate | One claim that bundles a body of approved work. Turning approved work into a certificate is in build (the claims ledger says so), so copy describes what a certificate represents, not a funding path that is live. |
 | vault | A garden's long-term fund. A deposit can stay in place while what it earns supports ongoing work; a strategy or contract loss can reduce what comes back or delay a withdrawal, and copy says so wherever it invites a deposit. |
 | cookie jar | A shared fund for near-term needs, with a limit on each claim. |
-| promise | What a member offers or asks for in a pool: a workshop, a planting, a repair. "Promise" is the word in every user-facing surface, in all three languages. "Commitment Pooling" remains the feature name; "commitment" otherwise stays in code and contracts. |
+| promise | What a member offers or asks for in a pool: a workshop, a planting, a repair. "Promise" is the word in every user-facing surface, in all three languages. "Commitment Pooling" remains the feature name, and the ontology's formal entity names (Commitment Pool, Commitment Cycle, Commitment Contributor) keep the word on builder pages and in the glossary's builder reference; everywhere else copy says promise, and "commitment" otherwise stays in code and contracts. |
 | pool | The container that holds a garden's promises. "Pool" names only the container. |
 | season, campaign | A garden's cycle of promises and work. A garden's season is its pool's Season-type cycle. Their details sheets show only what the record holds. |
 | gardener, steward, evaluator, funder, community member | The five personas. Definitions in section 2. The ontology's garden roles also include owner, which has no persona of its own; name it when enumerating roles or permissions. |
@@ -249,11 +249,11 @@ The [Glossary](/glossary) is generated from the ontology and is the authority; t
 | domain | vertical | Taxonomy term |
 
 ### 6.3 Retired words
-"Operator" and "operators" in user-facing role copy, in all languages. The deployed role identifier keeps the old name as code, and the glossary keeps "Garden Operator" as an explanatory alias so builders can map older records; neither is a license to write it in copy. "Commitment" in user-facing copy, except inside the feature name. "Approved work" as a count label. "Hands at work". "Mutual credit" as a domain name in copy (see 6.5). "Dotación", "dotação", and the invented verbs "endonar", "endotar", "endowar", "endossar" for endowment. The vocabulary check rejects the retired role words in every catalog.
+"Operator" and "operators" in user-facing role copy, in all languages. The deployed role identifier keeps the old name as code, and the glossary keeps "Garden Operator" as an explanatory alias so builders can map older records; neither is a license to write it in copy. "Commitment" in user-facing copy, except inside the feature name and the ontology's formal entity names on builder surfaces. "Approved work" as a count label. "Hands at work". "Mutual credit" as a domain name in copy (see 6.5). "Dotación", "dotação", and the invented verbs "endonar", "endotar", "endowar", "endossar" for endowment. The vocabulary check rejects the retired role words in every catalog.
 
 ### 6.4 Banned vocabulary
 - Rejected by the vocabulary check in every i18n string: streak, countdown, leaderboard, FOMO, urgent, limited time, re-engagement, retention hook. These signal growth-hacking patterns that conflict with the regenerative lens.
-- Nowhere: "guaranteed returns", "passive income", any phrase that frames a garden's funds as an investment.
+- Nowhere: "guaranteed returns", "passive income", or any phrase that promises the supporter a return or frames a gift as an investment. Describing how an endowment earns (a vault's investment earnings fund the work) is allowed where the deposit's risks and the loss limitation sit beside it, as the shipped endowment copy does.
 - Surface-specific design and prompt vocabulary (what stays out of the admin, what stays out of the app) lives in `scripts/data/banned-vocabulary.json` and is summarized in section 5. The app and cockpit unification plan may revise those lists; the file is the authority, not this summary.
 
 ### 6.5 Domains
@@ -288,7 +288,7 @@ Copy names four domains: agroforestry, waste management, solar (hub development)
 5. Blockchain is implementation, not copy. On-chain words appear only where section 2 allows them.
 6. External copy is short and scannable: a one-line intro, headers, two or three sentences per section, hyphen bullets in plain-text fields. People do not read dense things.
 7. Errors state what is safe ("Your work is saved") before what to do next. No codes, no stack traces, no blame.
-8. In the app and on the website, every empty state suggests the next action in one sentence. Admin empty states stay a terse acknowledgment ("No items in queue"), as section 5 says.
+8. In the app, every empty state suggests the next action in one sentence. On the website, an empty state suggests an action only where the visitor has one; a public record with nothing yet stays a quiet "nothing here yet" line, never an invented statistic or an unrelated call to action. Admin empty states stay a terse acknowledgment ("No items in queue"), as section 5 says.
 9. Authored community and builder task pages end with next steps, and links say where they go. Reference and generated pages stay terse.
 10. Permission-giving where people hesitate; strict where the integrity of the record is at stake.
 11. Product strings are localized: a new string in the shared catalogs or the bot copy ships with Spanish and Portuguese, accents intact, locked terms used. The docs site is English only today. Community announcements get Spanish and Portuguese versions when those communities are the audience, reviewed by a speaker.
@@ -306,7 +306,7 @@ Never state or imply:
 - a charitable receipt, nonprofit backing, or tax deductibility;
 - instant, self-service, or universal availability; Green Goods is pilot-focused until it is not;
 - automatic impact verification or AI verification of work;
-- "guaranteed returns", yield promises, or any investment framing of a garden's funds.
+- "guaranteed returns", yield promises, or any framing of a gift as an investment for the supporter; saying that a vault's earnings fund the work is fine when the risks and the loss limitation sit beside it.
 
 Always:
 
@@ -332,7 +332,7 @@ Items marked (machine) are covered by a check in the validation pipeline; the re
 - [ ] No retired or banned words? (machine: the growth-hacking list and operator in the shared catalogs and the bot chat copy; commitment in user copy, hands at work, and guaranteed returns by eye)
 - [ ] No hand-typed counts or traction figures beyond the one owner-cleared headline figure, and is that figure still current?
 - [ ] Does it claim only what the claims ledger claims?
-- [ ] For product strings: Spanish and Portuguese present, accents intact, locked terms used? (machine for coverage and locked terms)
+- [ ] For product strings: Spanish and Portuguese present, accents intact, locked terms used? (machine: coverage and every locked term in the shared catalogs; the bot's steward and garden words; the bot's promise and endowment terms by eye)
 - [ ] Does it speak as Green Goods, with no other organization's byline?
 
 ---
