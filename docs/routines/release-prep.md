@@ -89,7 +89,7 @@ Also run `git log origin/develop..origin/main`: commits on `main` that `develop`
 
 ## Phase 2 — Draft release notes
 
-Draft highlights for `vX.Y.Z`, grouped by product area (gardener app, steward cockpit, public site, protocol, platform) and led by the reason the release exists. Start from the **What ships** section of the release project's description, check each line against the Phase 1 range, add anything significant it misses, and flag any line the range does not support. Include the would-be title `"<Month Year> — vX.Y.Z"`.
+Draft highlights for `vX.Y.Z`, grouped by product area (gardener app, steward cockpit, public site, protocol, platform) and led by the reason the release exists. Start from the **What ships** section of the release project's description, check each line against the Phase 1 range, add anything significant it misses, and flag any line the range does not support. Include the would-be title `"<Month Year>: vX.Y.Z"`.
 
 Do not group by commit type. On tag push, `.github/workflows/release.yml` runs `gh release create --generate-notes`, which lists merged PRs only, so commits that reached `develop` without a PR are missing from the generated notes. These highlights are what the human pastes into the GitHub Release after it is created.
 

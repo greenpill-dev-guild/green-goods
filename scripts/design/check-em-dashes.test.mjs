@@ -46,10 +46,14 @@ test("docs code is not copy: fenced blocks and inline code spans pass", () => {
     "Layer 3 — Glass Controls",
     "~~~",
     "Prose after the blocks — fails.",
+    "```js",
+    "```still-code — a fence line with an info string does not close the block",
+    "const dash = '—';",
+    "```",
+    "Prose after the fake fence — fails.",
   ].join("\n");
-  const hits = docsHits("page.mdx", page);
-  assert.equal(hits.length, 1);
-  assert.match(hits[0], /^page\.mdx:10: /);
+  const lines = docsHits("page.mdx", page).map((hit) => Number(hit.split(":")[1]));
+  assert.deepEqual(lines, [10, 15]);
 });
 
 test("the scan skips *.generated.mdx and ontology projections and reads every other page", () => {
@@ -62,7 +66,8 @@ test("the scan skips *.generated.mdx and ontology projections and reads every ot
     for (const catalog of CATALOGS) write(catalog, JSON.stringify({ "app.clean": "No dashes here." }));
     const generated = (source) => `---\ngenerated: true\ngenerated_from:\n  - ${source}\n---\n\nA row — from the source.\n`;
     write(`${DOCS_ROOT}/reference/glossary.generated.mdx`, "Ontology text — kept.\n");
-    write(`${DOCS_ROOT}/builders/data-model.mdx`, generated("packages/shared/src/ontology/green-goods-ontology.json"));
+    // A Windows checkout writes CRLF; the ontology projection must still be recognized.
+    write(`${DOCS_ROOT}/builders/data-model.mdx`, generated("packages/shared/src/ontology/green-goods-ontology.json").replace(/\n/g, "\r\n"));
     write(`${DOCS_ROOT}/builders/test-cases.mdx`, generated("scripts/data/qa-test-catalog.json"));
     write(`${DOCS_ROOT}/guide/authored.md`, "Authored prose — fails.\n");
     write(`${DOCS_ROOT}/guide/clean.mdx`, "Authored prose, clean.\n");

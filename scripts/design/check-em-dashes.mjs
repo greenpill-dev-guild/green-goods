@@ -22,6 +22,8 @@ const ONTOLOGY_SOURCE = "packages/shared/src/ontology/";
 const EM_DASH = "—";
 const DOCS_EM_DASH = /—|&mdash;|&#8212;|&#x2014;/i;
 const FENCE = /^\s*(`{3,}|~{3,})/;
+// A closing fence is a bare run of the opener's character, at least as long, and nothing else.
+const CLOSING_FENCE = /^\s*(`{3,}|~{3,})\s*$/;
 // A run of backticks, then anything up to the same run: one inline code span.
 const INLINE_CODE = /(`+)(?:(?!\1)[\s\S])*?\1/g;
 
@@ -42,14 +44,15 @@ export function catalogHits(relativePath, text) {
 export function docsHits(relativePath, text) {
   const hits = [];
   let fence;
-  text.split("\n").forEach((line, index) => {
-    const marker = line.match(FENCE)?.[1];
-    if (marker && !fence) {
-      fence = marker;
+  text.replace(/\r\n?/g, "\n").split("\n").forEach((line, index) => {
+    if (fence) {
+      const closer = line.match(CLOSING_FENCE)?.[1];
+      if (closer && closer[0] === fence[0] && closer.length >= fence.length) fence = undefined;
       return;
     }
-    if (fence) {
-      if (marker && marker[0] === fence[0] && marker.length >= fence.length) fence = undefined;
+    const opener = line.match(FENCE)?.[1];
+    if (opener) {
+      fence = opener;
       return;
     }
     const prose = line.replace(INLINE_CODE, "");
@@ -61,7 +64,7 @@ export function docsHits(relativePath, text) {
 
 /** True when the page's generated_from frontmatter names an ontology source. */
 export function projectsOntology(text) {
-  const frontmatter = text.match(/^---\n([\s\S]*?)\n---\n/)?.[1] ?? "";
+  const frontmatter = text.replace(/\r\n?/g, "\n").match(/^---\n([\s\S]*?)\n---\n/)?.[1] ?? "";
   const sources = frontmatter.match(/^generated_from:\n((?:[ \t]+- .*\n?)+)/m)?.[1] ?? "";
   return sources.split("\n").some((line) => line.trim().startsWith(`- ${ONTOLOGY_SOURCE}`));
 }
