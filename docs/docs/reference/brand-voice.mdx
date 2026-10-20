@@ -57,7 +57,7 @@ Version 1.2, 2026-10-20. Owner: Afo.
 
 **Brand line (website hero, keep as is):** From good intentions to green outcomes.
 
-**Descriptor (one sentence for every meta description, README, docs tagline, deck one-liner):**
+**Descriptor (the one sentence for product-overview metadata: the client site's meta description, the repository README's lead line, the docs site tagline, the deck one-liner; individual pages and package READMEs describe their own content):**
 
 > Green Goods helps communities name their needs, make promises, document regenerative work, review it together, and turn the record into support.
 
@@ -69,7 +69,7 @@ Today a garden names its needs through an assessment, set by stewards and evalua
 
 **Mission, in one sentence:** Green Goods makes a community's regenerative work visible to the people who were not there, so support can follow delivery instead of paperwork.
 
-**The loop, in plain words:** a garden names its needs, members make promises, gardeners document the work, stewards review it and record their decision separately, evaluators assess what changed, and funders support more of it.
+**The loop, in plain words:** stewards and evaluators name what the garden needs and what counts as success in an assessment, members make promises, gardeners document the work, stewards review it and record their decision separately, and funders support more of it. Assessing what changed against that baseline is a planned step, so copy does not describe it as live.
 
 **What Green Goods is not** (say so when a reader might assume otherwise):
 
@@ -89,14 +89,14 @@ Five product personas carry fixed meanings in the ontology. One more audience ap
 |---|---|---|---|---|
 | Gardener | Does and documents the work, often on a shared phone with weak signal, in the app or by chat | Warm, direct, action-oriented; short sentences | Technical terms, passive voice, option overload | None. No blockchain words. About a 6th-grade reading level |
 | Steward | Runs the garden: the season's plan, members, and review of work | Professional, efficient, task-focused, data-aware | Condescending simplicity, unstructured prose | May describe on-chain review as a trust mechanism; never contract internals |
-| Evaluator | Sets baselines and evidence standards, then assesses what changed | Precise, evidence-based, structured; respects domain expertise | Oversimplification, vague impact language | Research and assessment terminology is fine |
+| Evaluator | Sets baselines and evidence standards before work begins; assessing what changed against them is planned | Precise, evidence-based, structured; respects domain expertise | Oversimplification, vague impact language | Research and assessment terminology is fine |
 | Funder (also called supporter) | Anyone who supports the work: an individual giving to a garden, a diaspora supporter, a grantmaker, an institution, a crypto ecosystem fund | Confident, transparent, evidence-first; lead with reviewed records | Hype, unsubstantiated claims, anything resembling an investment pitch | Traditional funders and institutions: describe Green Goods as a field data and MRV tool, no web3 words. In funder documents and decks for crypto ecosystem funders: attestation and chain words in an appendix, never the headline. On product funding surfaces DL-094 applies: a vault page may name the protocol that holds the deposit. Never "guaranteed returns" |
 | Community member | A local person affected by the work, who confirms work done for them and, once Community Needs ships, names needs directly | Inclusive, plain, encouraging | Protocol jargon, assumed web3 literacy | None. About a 6th-grade reading level |
 | Partners and builders (external copy) | Ecosystem tools, integrators, researchers | Direct, specific, documented | Marketing superlatives | Protocol and chain names allowed on builder pages and in appendices |
 
 **Framing rule.** For traditional funders and non-technical audiences, Green Goods is a field data and MRV (measurement, reporting, and verification) tool for community-led regenerative work. Web3-native language appears only in crypto ecosystem contexts, and even there it stays in the appendix, never the lead.
 
-**Where protocol names may appear (DL-094).** Funding surfaces (a vault page may name the protocol that holds the deposit), builder pages, and the single labeled "using your own wallet" box a community page may carry. Nowhere else in gardener, steward, or community copy. Two narrow exceptions follow from the claims discipline: a privacy or permanence notice may name the network that makes a photo public and undeletable, and a link names the explorer it opens ("View on EAS Explorer"), because a link must say where it goes.
+**Where protocol names may appear (DL-094).** A protocol or chain name appears only where the reader needs it to act or to verify: a funding surface (a vault page names the protocol that holds the deposit), a builder page, the labeled "using your own wallet" box a community page may carry, a wallet or transaction step that moves an asset on a named network ("Send G$ on Celo" and its fee note), a privacy or permanence notice that names the network making a photo public and undeletable, and a link that names the explorer it opens. Never as positioning, and never in onboarding, work capture, review, or community copy, where the product's own labels carry the meaning.
 
 **Priority rule when two audiences conflict.** Gardener experience wins, unless that blocks steward onboarding; stewards are how a garden arrives.
 
@@ -195,7 +195,7 @@ Tone shifts by context while the voice stays constant.
 | Docs, builders track | Docs community register, for developers | Same rules; generated reference pages stay terse; protocol names allowed |
 | Release notes | Editorial website, trimmed | One plain opening sentence on what the release does for people; sections by audience ("For gardeners", "For stewards"); a short "Protocol and platform" section; links. Deferred or disabled capabilities are stated in the same note |
 | Announcements and community posts | PWA app warmth, website clarity | One-line opener, what changed in two or three short paragraphs, an invitation to try it and reply, thanks, a link. Spanish and Portuguese versions are reviewed by a speaker before posting |
-| Chat reporting bot | PWA app, in conversation | Short first-person turns, one question at a time, a count of what remains, a summary to check before publishing. Gardeners and stewards (and garden owners) message the bot directly to report; other roles are not supported yet |
+| Chat reporting bot | PWA app, in conversation | Short first-person turns, one question at a time, a count of what remains, a summary to check before publishing. Gardeners and stewards message the bot directly to report; other roles, including owner-only accounts, are not supported yet |
 | Funder and partner documents | Editorial website, evidence-first | Claims carry source tags; chain detail in an appendix; short sections under headers, two or three sentences each |
 
 ---
@@ -234,15 +234,15 @@ The [Glossary](/glossary) is generated from the ontology and is the authority; t
 | work | task, activity | Regenerative work is the core concept. "Submission" names the act of sending work and the Work Submissions list, never the work itself |
 | action | action type | The thing a gardener can do. "Action template" names the browsable template records on the public site |
 | promise | commitment (in user-facing copy) | The plain word for what a member offers |
-| fund (verb) | contribute, invest | Funding a garden |
+| fund (verb) | invest | Funding a garden. "Fund" is the call to action; "contribute" is the umbrella word for giving before a supporter picks the Donate or Endow path |
 | donate | (allowed only as the name of the direct-giving path) | The path a supporter takes to give directly; "fund" everywhere else |
-| impact | output, result | Bridges community and chain. "Metric" stays the name of the assessment field (Outcome, Metric, Target), never a synonym for impact |
+| impact | result (as a vague synonym) | Bridges community and chain. "Output" and "Outcome" are stages of the impact model (activity, output, outcome, impact) and keep their meaning; "Metric" stays the name of the assessment field (Outcome, Metric, Target) |
 | document (verb) | log, capture | Gardeners document their work. "Record" is fine in plain explanation of what the product keeps |
 | approved submissions | approved work (as a public count label) | Public count label |
 | garden members | hands at work, participants | Public count of gardeners and stewards, each address counted once |
 | waste management | cleanup | Domain name |
 | solar (hub development) | hub | Domain name |
-| agroforestry | agro | "Agro" is a code identifier only |
+| agroforestry | agro (in prose) | "Agro", "Edu", "Solar", and "Waste" are the compact domain labels on chips and short lists; prose and headings use the full names |
 | domain | vertical | Taxonomy term |
 
 ### 6.3 Retired words
