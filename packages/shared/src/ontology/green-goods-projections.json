@@ -1232,7 +1232,14 @@
       "meaning": "The Green Goods website installed on your phone. Also called a progressive web app or PWA. It keeps work on that device while a connection is unavailable.",
       "example": "Record in the field, then send from the same account and phone.",
       "guide": "/community/gardener-guide/installing-and-updating",
-      "source_of_truth": ["packages/client/src/routes/presentationMode.ts"]
+      "source_of_truth": [
+        "packages/client/src/routes/presentationMode.ts",
+        "packages/shared/src/modules/job-queue/db.ts",
+        "packages/shared/src/modules/job-queue/db-schema.ts",
+        "packages/shared/src/modules/job-queue/draft-connection.ts",
+        "packages/shared/src/modules/job-queue/draft-db.ts",
+        "packages/shared/src/modules/job-queue/draft-snapshot.ts"
+      ]
     },
     {
       "id": "owner",
