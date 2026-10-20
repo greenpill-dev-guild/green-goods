@@ -353,7 +353,7 @@ Output: `cross-ref.md`, one block per item:
 
 This is a hard scope-lock gate: numbered findings → explicit user lock → act only on locked items. Present the numbered list (extracted items + derived items) with proposed dispositions and ask, verbatim:
 
-> Which items should I file? Reply with numbers (e.g., `1, 3, 5`), `all`, or `none`. For each, append a tag if you want to override: `1:track-only` (Customer Need + lightweight Backlog tracking Issue; on a sync item with no outside report, it says you know of one, and I'll ask who), `2:issue-only` (the Issue alone, no Customer Need; an existing Need stays until you remove it), `3:defer` (skip this run), `5:duplicate-of-PRD-1234`. Anything outside the listed numbers is out of scope for this run.
+> Which items should I file? Reply with numbers (e.g., `1, 3, 5`), `all`, or `none`. For each, append a tag if you want to override: `1:track-only` (Customer Need + lightweight Backlog tracking Issue; on a sync item with no outside report, it says you know of one, and I'll ask for the reporter's role), `2:issue-only` (the Issue alone, no Customer Need; an existing Need stays until you remove it), `3:defer` (skip this run), `5:duplicate-of-PRD-1234`. Anything outside the listed numbers is out of scope for this run.
 
 Record the reply in `triage.md`:
 
@@ -392,7 +392,7 @@ Three hard constraints shape every payload — full detail, including the Codex-
 
 ### Disposition rules (no standalone Need path)
 
-On sync notes, the Phase 2 rule decides the last column: an item with no outside report and no PostHog match gets no Customer Need, whatever its row. The one correction is the Phase 4 gate: a `track-only` tag on such an item records that the user knows of an outside report the notes missed. Before writing that Need, ask the user who reported it and, if they have them, the reporter's words. The Need's body carries that answer as its source and says the gate confirmed it; a teammate's quote never stands in for the reporter's. If the user cannot name a reporter, the item stays issue-only.
+On sync notes, the Phase 2 rule decides the last column: an item with no outside report and no PostHog match gets no Customer Need, whatever its row. The one correction is the Phase 4 gate: a `track-only` tag on such an item records that the user knows of an outside report the notes missed. Before writing that Need, ask the user for the reporter's role (such as "a steward" or "a funder", never a name) and, if they have them, the reporter's words. The Need's body carries that role and those words, scrubbed of anything identifying, and says the gate confirmed it; a teammate's quote never stands in for the reporter's, and the reporter's identity stays out of Linear under the [privacy boundary](../../context/linear-routing-rules.md) (§ Invariant rules). If the user cannot describe an outside reporter, the item stays issue-only.
 
 | Item shape | Issue created | Customer Need created |
 |---|---|---|

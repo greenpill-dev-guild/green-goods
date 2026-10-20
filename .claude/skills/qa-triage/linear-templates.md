@@ -403,7 +403,7 @@ QA Sync — <meeting-title> on <YYYY-MM-DD>. Speaker: <name>. [Notes](<drive-url
 When this tracking Issue comes from `source:qa-session`, use the QA session source line and exact
 Test ID defined above. Track-only status does not weaken the linkage rule.
 
-For a track-only item, the Customer Need then links to this Issue via the `issue` parameter and carries the full verbatim quote + Reporter context in its body. When the triage gate confirmed an outside report the notes missed, both come from the user's answer at the gate, never from a teammate's quote. An issue-only item gets no Customer Need; [SKILL.md § Phase 2](./SKILL.md) says which sync items are issue-only.
+For a track-only item, the Customer Need then links to this Issue via the `issue` parameter and carries the full verbatim quote + Reporter context in its body. When the triage gate confirmed an outside report the notes missed, both come from the user's answer at the gate: the reporter's role and words, never their name, and never a teammate's quote. An issue-only item gets no Customer Need; [SKILL.md § Phase 2](./SKILL.md) says which sync items are issue-only.
 
 ---
 
