@@ -2758,6 +2758,22 @@ test("every design guide, and a new one at the root, in docs, or in a package, r
   assert.deepEqual(unrouted, [], "Route each design guide to the em-dashes rule and the Design workflow");
 });
 
+test("every agent chat copy module the em dash check reads runs it locally and in Agent CI", async () => {
+  const { CHAT_COPY } = await import("../../packages/agent/scripts/chat-copy.mjs");
+  const modules = [...new Set(CHAT_COPY.map(({ file }) => file)), "packages/agent/scripts/chat-copy.mjs"];
+  const unrouted = modules.filter(
+    (module) =>
+      !ids(selectValidation({ intent: "push", changedPaths: [module] })).includes("em-dashes") ||
+      !selectExpectedWorkflows({ changedPaths: [module], intent: "merge", ci: true }).includes("Agent"),
+  );
+  assert.deepEqual(unrouted, [], "Route each chat copy module to the em-dashes rule and the Agent workflow");
+  assert.match(
+    readFileSync(join(repositoryRoot, ".github/workflows/agent.yml"), "utf8"),
+    /run: bun run check --only em-dashes/,
+    "Agent CI runs the em dash check over the chat copy",
+  );
+});
+
 test("every file a certified seam fingerprints selects test-quality", () => {
   const registry = JSON.parse(readFileSync(new URL("../data/module-seam-registry.json", import.meta.url), "utf8"));
   const fingerprinted = new Set();

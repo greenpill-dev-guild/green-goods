@@ -103,6 +103,11 @@ const config: KnipConfig = {
     },
     "packages/agent": {
       entry: ["src/index.ts"],
+      ignore: [
+        // Types for chat-copy.mjs, which the copy tests import. Consumed by tsc, never by a
+        // runtime import.
+        "scripts/chat-copy.d.mts",
+      ],
       ignoreDependencies: [
         // Referenced as a pino transport `target` string in services/logger.ts,
         // which is resolved at runtime rather than imported.
