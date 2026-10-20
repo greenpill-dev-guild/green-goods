@@ -113,9 +113,9 @@ If a question's output would name a single user (one row per `distinct_id`), it 
 
 Private-default. The eight bug-intake / debug / release-health questions.
 
-**Error events.** The `errors.*` questions and `quality.top-failures` read two events: `$exception`, which PostHog's exception autocapture sends for unhandled errors, and `error_tracked`, which `trackError` in `packages/shared/src/modules/app/error-categories.ts` sends for every error the apps report, handled or not. An unhandled error or a crash report sends both. Each question takes the message, type and stack from the `$exception_*` fields and falls back to `error_message`, `error_type` and `error_stack`, so an error sent both ways lands in one group and its session and user counts stay distinct. Before v1.1.0 (2026-10-19) these questions read only `$exception` and missed every handled error: on App that was 94 of 104 error groups over the previous 30 days, and on Admin all of them. Questions that count events rather than distinct sessions or users, such as `release.error-rate-delta` and the `errors_observed` count in `replay.user-sessions`, still read only `$exception`, because counting both events there would count one error twice.
+**Error events.** The `errors.*` questions and `quality.top-failures` read two events: `$exception`, which PostHog's exception autocapture sends for unhandled errors, and `error_tracked`, which `trackError` in `packages/shared/src/modules/app/error-categories.ts` sends for every error the apps report, handled or not. An unhandled error or a crash report sends both. Each question takes the message and type from the `$exception_*` fields and falls back to `error_message` and `error_type`. It then normalizes the message the same way for both events: it drops the `TypeError: `-style prefix and the `Non-Error promise rejection captured with value: ` wording that PostHog adds to unhandled rejections, and masks 0x addresses as `[REDACTED_WALLET]`, as `trackError` does. So an error sent both ways lands in one group, and its session and user counts stay distinct; on App that held for 94 of 95 unhandled errors sent both ways over the 90 days to 2026-10-19. `current_url` is private in every question, because it can carry query strings, including text people typed: share the app surface (`client` or `admin`, read from its host) instead. Share a message only in redacted form, per the privacy boundary, since an `$exception` message can still carry an email, token or URL query that `trackError` would have removed. Before v1.1.0 (2026-10-19) these questions read only `$exception` and missed every handled error: on App that was 94 of 104 error groups over the previous 30 days, and on Admin all of them. Questions that count events rather than distinct sessions or users, such as `release.error-rate-delta` and the `errors_observed` count in `replay.user-sessions`, still read only `$exception`, because counting both events there would count one error twice.
 
-**Error hash.** Each of these questions hashes an error as `cityHash64(concat(toString(message), '\n', toString(url)))`, where the message is `$exception_message` or, when that is absent, `error_message`, so an error sent both ways gets one hash. The newline keeps the two fields apart, since a URL never contains one: without it, message `ab` on URL `c` and message `a` on URL `bc` would share a hash. HogQL's `concat` reads a missing message or URL as an empty string, so every error gets a hash. This form dates from v1.1.0 (2026-10-19) and replaced the two-argument `cityHash64(a, b)`, which HogQL now rejects. Every hash value changed with it, so a hash recorded before it, such as a QA Sheet `PostHog Hash` cell or an older Linear body, will not match the new hash for the same error. Match such a record by its Linear URL or title instead, as `/qa-triage` and sync-triage-pulse already do when no hash matches.
+**Error hash.** Each of these questions hashes an error as `cityHash64(concat(toString(message), '\n', toString(url)))`, where `message` is the normalized message above, so an error sent both ways gets one hash. `message` comes first in each `SELECT` because the hash reads it, and HogQL resolves an alias only after it is defined. The newline keeps the two fields apart, since a URL never contains one: without it, message `ab` on URL `c` and message `a` on URL `bc` would share a hash. HogQL's `concat` reads a missing message or URL as an empty string, so every error gets a hash. This form dates from v1.1.0 (2026-10-19) and replaced the two-argument `cityHash64(a, b)`, which HogQL now rejects. Every hash value changed with it, so a hash recorded before it, such as a QA Sheet `PostHog Hash` cell or an older Linear body, will not match the new hash for the same error. Match such a record by its Linear URL or title instead, as `/qa-triage` and sync-triage-pulse already do when no hash matches.
 
 ### `errors.recent`
 
@@ -126,9 +126,9 @@ Private-default. The eight bug-intake / debug / release-health questions.
 - **HogQL**:
   ```sql
   SELECT
-    cityHash64(concat(toString(coalesce(properties.$exception_message, properties.error_message)), '\n', toString(properties.$current_url))) AS error_hash,
+    replaceRegexpAll(replaceRegexpOne(coalesce(properties.$exception_message, properties.error_message), '^([A-Za-z]*Error: |Non-Error promise rejection captured with value: )', ''), '0x[a-fA-F0-9]{40}', '[REDACTED_WALLET]') AS message,
+    cityHash64(concat(toString(message), '\n', toString(properties.$current_url))) AS error_hash,
     coalesce(properties.$exception_type, properties.error_type) AS exception_type,
-    coalesce(properties.$exception_message, properties.error_message) AS message,
     properties.$current_url AS current_url,
     count(DISTINCT $session_id) AS affected_sessions,
     count(DISTINCT distinct_id) AS affected_users,
@@ -142,7 +142,8 @@ Private-default. The eight bug-intake / debug / release-health questions.
   ```
 - **Bind variables**: `{ window: "24h" | "7d" | "30d" }` (default `24h`)
 - **Output schema**:
-  - `error_hash`, `exception_type`, `message`, `current_url` — public
+  - `error_hash`, `exception_type`, `message` — public
+  - `current_url` — private; share the app surface instead (see Error events above)
   - `affected_sessions`, `affected_users` — public
   - `first_seen`, `last_seen` — public
 - **Required emit-side events**: `$exception` (PostHog exception autocapture) or `error_tracked` (`trackError`)
@@ -153,33 +154,31 @@ Private-default. The eight bug-intake / debug / release-health questions.
 - **Lens**: product-quality
 - **Default privacy**: private-only (returns replay URLs and per-session rows)
 - **What it answers**: full detail for one error hash including a sample of the top stack frame plus per-session replay links.
-- **v1.1.0 (2026-10-19): handled errors count.** Reads `error_tracked` as well as `$exception`, and the hash keeps message and URL apart; see Error events and Error hash above. `sample_stack` now reads `error_stack`, because `$exception_stack_trace_raw` was never recorded.
+- **v1.1.0 (2026-10-19): handled errors count.** Reads `error_tracked` as well as `$exception`, and the hash keeps message and URL apart; see Error events and Error hash above. `sample_stack` now reads the top frame of `error_stack`, because `$exception_stack_trace_raw` was never recorded, and the hash filter moved to `HAVING`, since HogQL cannot read a `SELECT` alias in `WHERE`.
 - **HogQL**:
   ```sql
-  WITH matches AS (
-    SELECT *
-    FROM events
-    WHERE event IN ('$exception', 'error_tracked')
-      AND timestamp > now() - interval {window:String}
-      AND cityHash64(concat(toString(coalesce(properties.$exception_message, properties.error_message)), '\n', toString(properties.$current_url))) = {error_hash:UInt64}
-  )
   SELECT
+    replaceRegexpAll(replaceRegexpOne(coalesce(properties.$exception_message, properties.error_message), '^([A-Za-z]*Error: |Non-Error promise rejection captured with value: )', ''), '0x[a-fA-F0-9]{40}', '[REDACTED_WALLET]') AS message,
+    cityHash64(concat(toString(message), '\n', toString(properties.$current_url))) AS error_hash,
     coalesce(properties.$exception_type, properties.error_type) AS exception_type,
-    coalesce(properties.$exception_message, properties.error_message) AS message,
     properties.$current_url AS current_url,
     count(DISTINCT $session_id) AS affected_sessions,
     count(DISTINCT distinct_id) AS affected_users,
     min(timestamp) AS first_seen,
     max(timestamp) AS last_seen,
-    any(properties.error_stack) AS sample_stack,
+    any(nullIf(trim(arrayFirst(frame -> match(frame, '^ *at |@'), splitByChar('\n', coalesce(properties.error_stack, '')))), '')) AS sample_stack,
     arrayDistinct(groupArray(($session_id, distinct_id))) AS sessions
-  FROM matches
-  GROUP BY exception_type, message, current_url
+  FROM events
+  WHERE event IN ('$exception', 'error_tracked')
+    AND timestamp > now() - interval {window:String}
+  GROUP BY message, error_hash, exception_type, current_url
+  HAVING error_hash = {error_hash:UInt64}
   ```
 - **Bind variables**: `{ window: "7d", error_hash: 12345 }`
 - **Output schema**:
-  - `exception_type`, `message`, `current_url`, `affected_sessions`, `affected_users`, `first_seen`, `last_seen` — public
-  - `sample_stack` (top frame only, normalized) — public. Null when only `$exception` saw the error, since PostHog keeps those frames in `$exception_list`.
+  - `error_hash`, `exception_type`, `message`, `affected_sessions`, `affected_users`, `first_seen`, `last_seen` — public
+  - `current_url` — private; share the app surface instead (see Error events above)
+  - `sample_stack` (top frame only) — public. It is the first frame of `error_stack`, which `trackError` has already redacted, and null when only `$exception` saw the error, since PostHog keeps those frames in `$exception_list`.
   - `sessions[].session_id`, `sessions[].distinct_id`, `sessions[].replay_url` — private
 - **Required emit-side events**: `$exception` or `error_tracked`, `$session_id` autoassigned
 - **Used by**: `bug-intake` (Phase 1 enrichment), `/debug`
@@ -193,8 +192,8 @@ Private-default. The eight bug-intake / debug / release-health questions.
 - **HogQL**:
   ```sql
   SELECT
-    cityHash64(concat(toString(coalesce(properties.$exception_message, properties.error_message)), '\n', toString(properties.$current_url))) AS error_hash,
-    coalesce(properties.$exception_message, properties.error_message) AS message,
+    replaceRegexpAll(replaceRegexpOne(coalesce(properties.$exception_message, properties.error_message), '^([A-Za-z]*Error: |Non-Error promise rejection captured with value: )', ''), '0x[a-fA-F0-9]{40}', '[REDACTED_WALLET]') AS message,
+    cityHash64(concat(toString(message), '\n', toString(properties.$current_url))) AS error_hash,
     count(DISTINCT $session_id) AS sessions_30d,
     count(DISTINCT distinct_id) AS users_30d,
     min(timestamp) AS first_seen,
@@ -219,23 +218,24 @@ Private-default. The eight bug-intake / debug / release-health questions.
 - **HogQL**:
   ```sql
   SELECT
-    cityHash64(concat(toString(coalesce(properties.$exception_message, properties.error_message)), '\n', toString(properties.$current_url))) AS error_hash,
-    coalesce(properties.$exception_message, properties.error_message) AS message,
+    replaceRegexpAll(replaceRegexpOne(coalesce(properties.$exception_message, properties.error_message), '^([A-Za-z]*Error: |Non-Error promise rejection captured with value: )', ''), '0x[a-fA-F0-9]{40}', '[REDACTED_WALLET]') AS message,
+    cityHash64(concat(toString(message), '\n', toString(properties.$current_url))) AS error_hash,
     properties.$current_url AS current_url,
     count(DISTINCT $session_id) AS affected_sessions,
     max(timestamp) AS last_seen,
-    positionUTF8(lower(coalesce(properties.$exception_message, properties.error_message)), lower({snippet:String})) AS confidence_signal
+    positionUTF8(lower(message), lower({snippet:String})) AS confidence_signal
   FROM events
   WHERE event IN ('$exception', 'error_tracked')
     AND timestamp > now() - interval 14 day
-    AND positionUTF8(lower(coalesce(properties.$exception_message, properties.error_message)), lower({snippet:String})) > 0
   GROUP BY error_hash, message, current_url
+  HAVING confidence_signal > 0
   ORDER BY affected_sessions DESC
   LIMIT 20
   ```
 - **Bind variables**: `{ snippet: "stack frame text" }`
 - **Output schema**:
-  - `error_hash`, `message`, `current_url`, `affected_sessions`, `last_seen`, `confidence_signal` — public
+  - `error_hash`, `message`, `affected_sessions`, `last_seen`, `confidence_signal` — public
+  - `current_url` — private; share the app surface instead (see Error events above)
 - **Required emit-side events**: `$exception` or `error_tracked`
 - **Used by**: `bug-intake` (Drive Phase 3 fuzzy match), `/debug`
 
@@ -330,9 +330,9 @@ Private-default. The eight bug-intake / debug / release-health questions.
 - **HogQL**:
   ```sql
   SELECT
-    cityHash64(concat(toString(coalesce(properties.$exception_message, properties.error_message)), '\n', toString(properties.$current_url))) AS error_hash,
+    replaceRegexpAll(replaceRegexpOne(coalesce(properties.$exception_message, properties.error_message), '^([A-Za-z]*Error: |Non-Error promise rejection captured with value: )', ''), '0x[a-fA-F0-9]{40}', '[REDACTED_WALLET]') AS message,
+    cityHash64(concat(toString(message), '\n', toString(properties.$current_url))) AS error_hash,
     coalesce(properties.$exception_type, properties.error_type) AS exception_type,
-    coalesce(properties.$exception_message, properties.error_message) AS message,
     properties.$current_url AS current_url,
     count(DISTINCT distinct_id) AS affected_users,
     count(DISTINCT $session_id) AS affected_sessions,
@@ -345,7 +345,7 @@ Private-default. The eight bug-intake / debug / release-health questions.
   LIMIT 10
   ```
 - **Bind variables**: `{ window: "7d" }`
-- **Output schema**: every field public.
+- **Output schema**: every field public except `current_url`, which is private; share the app surface instead (see Error events above).
 - **Required emit-side events**: `$exception` or `error_tracked`
 - **Used by**: deferred (`health-watch` or a future release-health digest).
 
