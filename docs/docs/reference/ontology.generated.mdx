@@ -10,7 +10,7 @@ generator: scripts/quality/check-ontology.mjs
 generated_from:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:a290ed08c548962d7fb6dfa1f5d78db0df1281b4eb42406e09a95162e0f50012"
+source_digest: "sha256:7dbe753258d773409169d7844a66ebbe95644295dab72075470f40ef167d7002"
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
   - packages/shared/src/ontology/green-goods-projections.json
@@ -131,13 +131,13 @@ Category of regenerative work — where the work happens. Four production domain
 | solidity | solidity | <code>packages/contracts/src/registries/Action.sol · Domain</code> | <code>SOLAR, AGRO, EDU, WASTE</code> |  |
 | indexer | indexer | <code>packages/indexer/schema.graphql · Domain</code> | <code>SOLAR, AGRO, EDU, WASTE, UNKNOWN</code> | UNKNOWN is the indexer's permanent fallback sentinel — declared, not drift. |
 | shared-enum | shared | <code>packages/shared/src/types/domain.ts · Domain</code> | <code>SOLAR=0, AGRO=1, EDU=2, WASTE=3</code> |  |
-| action-domain | shared | <code>packages/shared/src/types/hypercerts.ts · ActionDomain</code> | <code>solar, waste, agroforestry, education, mutual_credit</code> | Long-form lowercase spellings used in hypercert metadata. mutual_credit is a product concept ahead of the on-chain enum (deferred Domain 5) — declared, not drift. |
+| action-domain | shared | <code>packages/shared/src/types/hypercerts.ts · ActionDomain</code> | <code>solar, waste, agroforestry, education</code> | Long-form lowercase spellings used in hypercert metadata. Mutual credit was retired as a domain on 2026-10-18; commitment pooling and promises serve that need. Hypercert metadata minted before then may carry mutual_credit, which only meant that none of the bundled work named a domain. |
 | slug-prefix | shared | <code>packages/shared/src/hooks/action/useActionForm.ts · DOMAIN_SLUG_PREFIX</code> | <code>solar, agro, edu, waste</code> | Short lowercase prefixes baked into immutable on-chain action slugs (agro.*, edu.*). |
 
-- **Mapping `domain-to-action-domain`** (solidity → action-domain; explicit; total; unmapped on the right: mutual_credit): SOLAR → solar, AGRO → agroforestry, EDU → education, WASTE → waste.
+- **Mapping `domain-to-action-domain`** (solidity → action-domain; explicit; total; bijective): SOLAR → solar, AGRO → agroforestry, EDU → education, WASTE → waste.
   - Code anchor: `packages/shared/src/modules/data/hypercerts-filters.ts`
 
-- **Mapping `action-domain-vs-slug-prefix`** (action-domain → slug-prefix; identity; partial; unmapped on the left: mutual_credit): identity (same spelling on both sides).
+- **Mapping `action-domain-vs-slug-prefix`** (action-domain → slug-prefix; identity; partial): identity (same spelling on both sides).
   - Code anchor: none — no runtime mapping function exists yet.
   - The two lowercase spellings of the same domain must converge on one word per member; agroforestry/education vs agro/edu currently diverge — baselined.
 
