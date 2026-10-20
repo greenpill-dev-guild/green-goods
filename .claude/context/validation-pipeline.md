@@ -132,8 +132,9 @@ Conditional additions when the change touches the relevant surface:
   `bun run check --only design-tokens`
 - i18n / user-visible copy: `bun run check --only vocabulary` (locale parity runs inside
   `bun run test` via `packages/shared/src/__tests__/i18n/locale-coverage.test.ts`)
-- i18n catalogs or `docs/docs` pages: `bun run check --only em-dashes` (the `DESIGN.md` § Voice &
-  Copy rule; pages generated from the ontology keep its punctuation and are skipped)
+- i18n catalogs, `docs/docs` pages, or design guides (each `DESIGN*.md` and `.claude/skills/design`):
+  `bun run check --only em-dashes` (the `DESIGN.md` § Voice & Copy rule; pages generated from the
+  ontology keep its punctuation and are skipped)
 - Stories / Storybook-covered surfaces:
   `bun run --filter @green-goods/shared check:stories` and
   `bun run --filter @green-goods/shared check:story-quality`

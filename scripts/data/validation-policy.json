@@ -218,15 +218,21 @@
     },
     {
       "check": "em-dashes",
-      "note": "The check reads the three i18n catalogs and every docs/docs page. An em dash that reaches a generated page through its source also changes the regenerated page, so the docs prefix selects it.",
+      "note": "The check reads the three i18n catalogs, every docs/docs page, and the design guides: each DESIGN*.md at the root, in docs, and in each package, and the design skill's pages. An em dash that reaches a generated page through its source also changes the regenerated page, so the docs prefix selects it. A new package design guide joins the exact list.",
       "exact": [
+        "DESIGN.md",
+        "docs/DESIGN.md",
+        "packages/admin/DESIGN.md",
+        "packages/client/DESIGN.md",
+        "packages/client/DESIGN.browser.md",
+        "packages/client/DESIGN.pwa.md",
         "packages/shared/src/i18n/en.json",
         "packages/shared/src/i18n/es.json",
         "packages/shared/src/i18n/pt.json",
         "scripts/design/check-em-dashes.mjs",
         "scripts/design/check-em-dashes.test.mjs"
       ],
-      "prefixes": ["docs/docs/"]
+      "prefixes": ["docs/docs/", ".claude/skills/design/"]
     },
     {
       "check": "ontology",
@@ -1471,8 +1477,8 @@
     {
       "id": "em-dashes",
       "command": "node scripts/dev/node-cli.js node --test scripts/design/check-em-dashes.test.mjs && node scripts/design/check-em-dashes.mjs",
-      "risk": "an em dash returns to an i18n catalog value or an authored docs page",
-      "expectedSignal": "the i18n catalogs and authored docs pages carry no em dash, and the check's fixtures pass",
+      "risk": "an em dash returns to an i18n catalog value, an authored docs page, or a design guide",
+      "expectedSignal": "the i18n catalogs, authored docs pages, and design guides carry no em dash, and the check's fixtures pass",
       "freshness": "exact-inputs-and-toolchain",
       "budgetSeconds": 5,
       "stopRule": "stop-dependent-checks",

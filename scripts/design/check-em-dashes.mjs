@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 // check-em-dashes.mjs
-// Rejects the em dash (U+2014) in product copy and authored docs pages (DESIGN.md § Voice & Copy):
-// a sentence that wants one is restructured with a period, colon, comma, or parentheses.
+// Rejects the em dash (U+2014) in product copy, authored docs pages, and the design guides
+// (DESIGN.md § Voice & Copy): a sentence that wants one is restructured with a period, colon,
+// comma, or parentheses.
 //
-// Reads every message value in the i18n catalogs and every docs/docs page. A page named
-// *.generated.mdx, or generated from the ontology (its generated_from frontmatter lists an
-// ontology source), keeps the ontology's punctuation and is skipped. Fenced code and inline code
-// spans are code, not copy. In docs pages an HTML entity for the em dash counts as one.
+// Reads every message value in the i18n catalogs, every docs/docs page, and every design guide:
+// each DESIGN*.md at the repo root, in docs, and in each package, and the design skill's pages. A
+// page named *.generated.mdx, or generated from the ontology (its generated_from frontmatter lists
+// an ontology source), keeps the ontology's punctuation and is skipped. Fenced code and inline code
+// spans are code, not copy. In docs pages and guides an HTML entity for the em dash counts as one.
 //
 // Runs as `bun run check --only em-dashes` from the repo root.
 import fs from "node:fs";
@@ -18,6 +20,8 @@ const repoRoot = path.resolve(path.dirname(scriptPath), "../..");
 
 export const CATALOGS = ["en", "es", "pt"].map((locale) => `packages/shared/src/i18n/${locale}.json`);
 export const DOCS_ROOT = "docs/docs";
+export const DESIGN_SKILL = ".claude/skills/design";
+const DESIGN_GUIDE = /^DESIGN[^/]*\.md$/;
 const ONTOLOGY_SOURCE = "packages/shared/src/ontology/";
 const EM_DASH = "—";
 const DOCS_EM_DASH = /—|&mdash;|&#8212;|&#x2014;/i;
@@ -80,6 +84,28 @@ function docsPages(directory) {
     .sort();
 }
 
+/** Repo-relative paths of every design guide: each DESIGN*.md at the root, in docs, and in each package, plus the design skill's pages. */
+export function designGuides(root) {
+  const filesIn = (directory, pattern) => {
+    const absolute = path.join(root, directory);
+    if (!fs.existsSync(absolute)) return [];
+    return fs
+      .readdirSync(absolute, { withFileTypes: true })
+      .filter((entry) => entry.isFile() && pattern.test(entry.name))
+      .map((entry) => path.posix.join(directory, entry.name));
+  };
+  const packages = fs.existsSync(path.join(root, "packages"))
+    ? fs
+        .readdirSync(path.join(root, "packages"), { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => `packages/${entry.name}`)
+    : [];
+  return [".", "docs", ...packages]
+    .flatMap((directory) => filesIn(directory, DESIGN_GUIDE))
+    .concat(filesIn(DESIGN_SKILL, /\.md$/))
+    .sort();
+}
+
 export function scanRepository(root) {
   const failures = [];
   for (const relativePath of CATALOGS) {
@@ -97,15 +123,19 @@ export function scanRepository(root) {
     pages += 1;
     failures.push(...docsHits(relativePath, text));
   }
-  return { failures, pages, skipped };
+  const guides = designGuides(root);
+  for (const relativePath of guides) {
+    failures.push(...docsHits(relativePath, fs.readFileSync(path.join(root, relativePath), "utf8")));
+  }
+  return { failures, pages, skipped, guides: guides.length };
 }
 
 function main() {
   try {
     if (process.argv.length > 2) throw new Error(`unknown argument: ${process.argv[2]}`);
-    const { failures, pages, skipped } = scanRepository(repoRoot);
+    const { failures, pages, skipped, guides } = scanRepository(repoRoot);
     if (failures.length > 0) {
-      console.error(`check-em-dashes: ${failures.length} em dash(es) in product copy or docs pages:`);
+      console.error(`check-em-dashes: ${failures.length} em dash(es) in product copy, docs pages, or design guides:`);
       for (const failure of failures) console.error(`- ${failure}`);
       console.error(
         "Restructure each sentence with a period, colon, comma, or parentheses, never a hyphen or a spaced en dash.",
@@ -117,7 +147,7 @@ function main() {
       process.exit(1);
     }
     console.log(
-      `check-em-dashes: no em dashes in ${CATALOGS.length} i18n catalogs or ${pages} docs pages (${skipped} generated from the ontology skipped).`,
+      `check-em-dashes: no em dashes in ${CATALOGS.length} i18n catalogs, ${pages} docs pages (${skipped} generated from the ontology skipped), or ${guides} design guides.`,
     );
   } catch (error) {
     console.error(`check-em-dashes: ${error.message}`);
