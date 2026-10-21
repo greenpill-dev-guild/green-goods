@@ -5,7 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="%PWA_APP_SHORT_NAME%" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!-- A solid status bar: iOS places the app below it, so the page reaches the bottom of
+         the screen. With black-translucent, iOS 26 can lay a Home Screen app out one status
+         bar short and leave a blank band under the bottom bar that the page cannot paint.
+         iOS keeps the style an app was added with, so older installs stay translucent until
+         re-added; the safe-area tokens in shared theme.css cover them. -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta
       key="description"
       name="description"

@@ -171,8 +171,9 @@ export const TopNav: React.FC<TopNavProps> = ({
   ...htmlProps
 }: TopNavProps) => {
   const { formatMessage } = useIntl();
-  // On an installed iPhone the clock and battery sit over the bar's top edge,
-  // so the bar pads by the status bar's safe area and is 80px tall below it.
+  // Where the status bar is see-through (older iPhone installs, Android's
+  // edge-to-edge mode) the clock sits over the bar's top edge, so the bar pads
+  // by the status bar's safe area and is 80px tall below it.
   const containerClasses = cn(
     "relative flex z-nav flex-row w-full justify-evenly items-start gap-4 p-6 pt-[calc(1.5rem+env(safe-area-inset-top,0px))] h-[var(--app-top-bar-height)]",
     overlay && "fixed bg-bg-white-0"

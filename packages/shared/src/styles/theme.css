@@ -480,9 +480,11 @@
 	  --z-modal: 50;
 	  --z-toast: 60;
 
-  /* ── Safe Areas ── The installed iPhone app draws under the status bar and
-   * the home indicator (viewport-fit=cover with a black-translucent status bar).
-   * Chrome at the top pads by env(safe-area-inset-top); chrome at the bottom
+  /* ── Safe Areas ── The installed app draws under the home indicator
+   * (viewport-fit=cover), and under the status bar wherever that bar is see-through:
+   * iPhone installs added before the app's solid status bar (iOS keeps the style an
+   * app was added with) and Android's edge-to-edge mode. Elsewhere the top inset
+   * is 0. Chrome at the top pads by env(safe-area-inset-top); chrome at the bottom
    * pads by --safe-area-bottom, never by env(safe-area-inset-bottom) directly
    * (scripts/design/check-tokens.sh fails on a raw one outside admin chrome).
    * It is that inset except in an installed app whose page stops short of the
@@ -650,7 +652,8 @@
   --type-label-sm-ls: 0.5px;
 }
 
-/* iOS 26 Home Screen apps can lay out and paint on a viewport that ends the
+/* With a see-through status bar (the iPhone installs that kept black-translucent),
+ * iOS 26 Home Screen apps can lay out and paint on a viewport that ends the
  * status bar's height above the bottom of the screen: innerHeight, 100dvh and
  * every position: fixed box stop there, and iOS fills the band below with the
  * page background, while 100lvh still measures the whole screen. Nothing the

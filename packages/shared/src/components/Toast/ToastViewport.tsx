@@ -11,8 +11,8 @@ import { setToastTranslator, type ToastStatus, type ToastTranslator } from "./to
 
 export type ToastViewportVariant = "default" | "editorial";
 
-// Toasts drop from the top, below the status bar's safe area where the
-// installed iPhone app draws the clock and battery.
+// Toasts drop from the top, below the status bar's safe area wherever a
+// see-through status bar draws the clock over the app.
 const BASE_CONTAINER_STYLE: CSSProperties = {
   zIndex: 20000,
   top: "calc(1.5rem + env(safe-area-inset-top, 0px))",
