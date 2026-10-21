@@ -114,6 +114,19 @@
   ],
   "conditionalRules": [
     {
+      "check": "dependabot-sync-test",
+      "runInQa": true,
+      "runInEvidence": true,
+      "exact": [
+        ".github/dependabot.yml",
+        ".github/actions/setup-js/action.yml",
+        ".github/workflows/dependabot-sync.yml",
+        ".github/workflows/dependabot-sync-publish.yml",
+        "scripts/ops/dependabot-sync.mjs",
+        "scripts/ops/dependabot-sync.test.mjs"
+      ]
+    },
+    {
       "check": "review-guardrails-test",
       "runInQa": true,
       "runInEvidence": true,
@@ -824,6 +837,16 @@
       "budgetSeconds": 5,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
+    },
+    {
+      "id": "dependabot-sync-test",
+      "command": "node scripts/dev/node-cli.js node --test scripts/ops/dependabot-sync.test.mjs",
+      "risk": "dependency repairs can drift or publish unsafe or stale data",
+      "expectedSignal": "pin alignment, generated-file repair and publication boundary fixtures pass",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 30,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": []
     },
     {
       "id": "validation-system-test",

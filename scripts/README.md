@@ -218,10 +218,29 @@ Client startup prints one `[vite-watch]` line with the checkout, client root, wa
 | `upload-action-images.ts` | `APP_ENV=development bun scripts/ops/upload-action-images.ts` | Upload action images to IPFS |
 | `upload-sourcemaps.js` | `APP_ENV=production node scripts/ops/upload-sourcemaps.js --env production`, `client.yml`, `admin.yml` | Build sourcemap-enabled bundles in GitHub Actions, upload maps to PostHog, then remove local map files |
 | `bump-version.mjs` | `node scripts/ops/bump-version.mjs <x.y.z> [--dry-run]`, `node scripts/ops/bump-version.mjs --check <x.y.z>` | Keep root + 6 package versions and the supported release in `SECURITY.md` aligned; release CI uses check mode to block stale release metadata |
+| `dependabot-sync.mjs` | `dependabot-sync.yml`, through `node trusted/scripts/ops/dependabot-sync.mjs candidate trusted sync.json`; `dependabot-sync-publish.yml` through its exported publisher | Validate a dependency-only Dependabot PR; align root and matching workspace pins, regenerate root `bun.lock` with the pinned Bun toolchain and release-age policy, and run the existing docs generator. The separate publisher validates the successful origin run, associated PR and live head before writing a fast-forward repair |
+| `dependabot-sync.test.mjs` | CI Gate; `bun run check --only dependabot-sync-test` | Cover Hono/Vite alignment, rejected manifest changes, generated-file repair, idempotence, artifact validation and concurrent PR updates |
 | `month-metrics.mjs` | `node scripts/ops/month-metrics.mjs -- --month YYYY-MM [--json]` | Manual, read-only month-in-review aggregates for reviewed PRs, E2E static skips, active plans, and alias-folded contributor counts; no schedule or CI caller |
 | `prune-codeql-caches.mjs` | `codeql-cache-prune.yml` (every push to `develop`, hourly and on demand); `node scripts/ops/prune-codeql-caches.mjs --dry-run` locally | Delete the CodeQL overlay-base databases no analysis can restore: every one but the newest per branch, restore key and cache version, since a restore key returns the newest match of its own version. Keys in any other shape than codeql-action writes are left alone, and a cache GitHub evicted meanwhile is skipped |
 | `prune-codeql-caches.test.mjs` | CI Gate, `codeql-cache-prune.yml` before each prune | Fixture coverage for the newest per branch, restore key and cache version; language sets and CLI versions; unrecognized and nightly keys; a cache evicted before its delete; a refused delete; and the dry run |
 | `vercel-ignore.mjs` | `ignoreCommand` in `docs/vercel.json` and `packages/{admin,client,qa,shared}/vercel.json` | Vercel Ignored Build Step: skip a site's deployment when nothing it is built from changed since its last deployment on the branch. Holds each site's input list; add a path there when a build starts reading a new file outside its own directory. Builds on any doubt, and always on `main` |
+
+The read-only Dependabot sync workflow runs on same-repository Bun and npm package security PRs. It accepts
+stable semver upgrades, preserves range prefixes, and refuses dependency additions, removals,
+conflicting targets, downgrades and changes to executable files. Other updates need a maintainer.
+Its artifact is consumed by a separate `workflow_run` publisher that checks the origin workflow,
+repository, PR association and exact head. The publisher executes only default-branch code and
+skips stale heads, closed PRs and runs without repair data. Generated docs use their existing
+generator. The root frozen-lockfile checks and three-day release-age rule remain enforced.
+Agent and Contracts pin `bun-types` to the already resolved
+`1.4.2` so regeneration does not float that unrelated tool dependency.
+
+The default publisher uses `GITHUB_TOKEN`. [GitHub requires approval before running follow-up PR
+CI on commits made with that token](https://docs.github.com/en/actions/concepts/security/github_token).
+Fully unattended CI requires a dedicated GitHub App
+installation token supplied to the publishing step; configure the App's repository access and
+credentials before changing that step. Do not reuse an unrelated service token. The repair
+workflow does not merge PRs or change required checks.
 
 ### `agents/` — agent query surfaces
 | Script | Caller | Purpose |
