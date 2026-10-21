@@ -3910,7 +3910,7 @@
   "cockpit.garden.activity": "Activity",
   "cockpit.garden.activity.empty.description": "Submitted Work, plot updates, plantings, and milestones will surface here as the gardener-floor of this garden.",
   "cockpit.garden.activity.empty.title": "Activity feed coming soon",
-  "cockpit.garden.createDescription": "Set the garden profile, team plan, and deployment details before going on chain.",
+  "cockpit.garden.createDescription": "Set the garden profile, team plan, and deployment details before you create it.",
   "cockpit.garden.health": "Health",
   "cockpit.garden.impact": "Impact",
   "cockpit.garden.impactPlaceholder": "Impact metrics will be displayed here",

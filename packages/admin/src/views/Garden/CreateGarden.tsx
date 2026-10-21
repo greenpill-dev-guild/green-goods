@@ -29,7 +29,7 @@ export default function CreateGarden() {
         description={intl.formatMessage({
           id: "cockpit.garden.createDescription",
           defaultMessage:
-            "Set the garden profile, team plan, and deployment details before going on chain.",
+            "Set the garden profile, team plan, and deployment details before you create it.",
         })}
         variant="canvas"
         backLink={{

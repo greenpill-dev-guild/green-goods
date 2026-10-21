@@ -3910,7 +3910,7 @@
   "cockpit.garden.activity": "Atividade",
   "cockpit.garden.activity.empty.description": "Trabalhos enviados, atualizações de parcelas, plantios e marcos aparecerão aqui como a base de jardineiros deste jardim.",
   "cockpit.garden.activity.empty.title": "Feed de atividades em breve",
-  "cockpit.garden.createDescription": "Defina o perfil do jardim, o plano da equipe e os detalhes da implantação antes de ir onchain.",
+  "cockpit.garden.createDescription": "Defina o perfil do jardim, o plano da equipe e os detalhes da implantação antes de criá-lo.",
   "cockpit.garden.health": "Saúde",
   "cockpit.garden.impact": "Impacto",
   "cockpit.garden.impactPlaceholder": "As métricas de impacto serão exibidas aqui",
