@@ -56,7 +56,9 @@ reaches develop through PR #1170, which supersedes the planning checkout's uncom
   status does not certify current chain configuration or a new implementation.
 - [x] Reconcile the current brief, architecture, tasks and evaluation; retire the August model.
 - [ ] **RESR-73:** resolve the source-kind, purchase-receipt, confirmer and service-discharge decisions
-  with PRD-857 and COM-46. Record exact interfaces and failure/retry meaning before dispatch.
+  with PRD-857 and COM-46. Record exact interfaces and failure/retry meaning before the live
+  implementation boundary freezes. The separately approved fork rehearsal uses the defaults below
+  and resolves none of these live decisions.
 - [ ] **RESR-73 decisions after the review:** eligibility rule (any Fulfilled, or ordinary only through
   attestation), issuer budget mechanism (allowance or writer), allocation basis, acknowledgment lane
   in v1, Gnosis member accounts (passkey validator) and Gnosis proxy admin ownership, plus three

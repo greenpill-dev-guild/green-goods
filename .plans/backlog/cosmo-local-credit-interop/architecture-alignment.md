@@ -144,7 +144,7 @@ sequenceDiagram
 | CeloSettlementExecutor, settlement Safes and existing routes | Celo 42220 | **Reuse:** preserve existing funds, IDs, permissions and retry history. |
 | Voucher issuance adapter (working name) | Gnosis 100 | **New GG:** verifies source and command, consumes each entitlement once (only on success), delivers from the issuer's reserve within an ERC20 allowance (proposed default; writer-based minting is the alternative) and stores the result before acknowledging. No pool-withdrawal authority and no limiter writes. |
 | GiftableToken; SwapPool; registry, Limiter, quoter and fees | Gnosis | **Reuse CLC implementations**, configuring community-controlled instances where needed. Pin actual version and controller topology. No new custom voucher token or swap engine is proposed. |
-| Messaging infrastructure | Arbitrum ↔ Gnosis | **Reuse CCIP** with new application peers and messages: lanes are live both ways at OnRamp 2.0.0, both routers quote the existing codec's message shape, and a season of fifty commands with acknowledgments needs about 0.0025 ETH and 8 xDAI before margin. Live delivery proof belongs to the rehearsal. |
+| Messaging infrastructure | Arbitrum ↔ Gnosis | **Reuse CCIP** with new application peers and messages: lanes are live both ways at OnRamp 2.0.0, both routers quote the existing codec's message shape, and a season of fifty commands with acknowledgments needs about 0.0025 ETH and 8 xDAI before margin. PRD-1096 uses labeled simulated transport; live delivery proof belongs to the separately authorized PRD-1100 release. |
 | Service redemption/discharge | Primarily issuer workflow plus indexed evidence | **Decided 2026-10-21:** presentment opens a Green Goods promise, so existing work and confirmation evidence carry delivery; a Gnosis escrow keyed to the promise holds presented vouchers until discharge or remedy. The PRD-1096 service desk is a fork-only stand-in, not a new redemption registry. Mint permission does not grant owner-only burn permission. |
 
 ## Choices to discuss
@@ -268,9 +268,11 @@ state machine, storage diff, legacy replay, accounting/replay invariants, select
 conformance, adversarial integration/fork proof, deployment rehearsal and rollback. Upstream internal
 review is not an external audit of this integration. Preserve existing live-release gates.
 
-Next: the [review](handoffs/claude-architecture-review-results.md) is complete and the no-core-upgrade boundary is accepted. Afo still
-decides the eligibility rule (any Fulfilled, or ordinary only through attestation), the issuer
-budget mechanism, the allocation basis, the acknowledgment lane in v1, Gnosis member accounts and
-Gnosis proxy admin ownership. Purchased issuance and its PRD-796 framing were settled on 21 October
-by the [voucher direction](spec.md#voucher-direction-decided-2026-10-21). PRD-1315 freezes when the
-rest are recorded in the [corrected plan](commitment-upgrade-plan.md).
+Next: the [review](handoffs/claude-architecture-review-results.md) is complete and the
+no-core-upgrade boundary is accepted. PRD-1315 freezes only after every decision in the
+[complete freeze inventory](plan.todo.md#sequence-and-completion-evidence) is recorded. That
+inventory includes issuer-cap enforcement, the authenticated presentment handshake and
+exact-revision counterparty consent alongside the original six decisions. Fork rehearsal defaults
+settle none of those live decisions. Purchased issuance and its PRD-796 framing were settled on
+21 October by the [voucher direction](spec.md#voucher-direction-decided-2026-10-21); the
+[corrected phase plan](commitment-upgrade-plan.md) consumes the complete inventory.
