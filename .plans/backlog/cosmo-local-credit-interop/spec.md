@@ -225,8 +225,10 @@ unit; any service acceptance or conversion basis needs explicit terms.
 Define presentment or booking, availability, partial delivery, completion, confirmation, discharge,
 failed delivery and remedy as separate facts. A swap, token return or token burn does not prove a
 service was delivered. The current published burn authority must be checked independently of mint
-writer authority. Choose whether returned vouchers are burned, locked or reusable and prevent a
-second discharge of the same service obligation.
+writer authority. Choose whether issuer-received discharged units are burned, locked or reusable,
+and prevent a second discharge of the same service obligation. Remedy refunds and refundable
+partial-delivery units return to the holder; that disposal decision does not give the issuer custody
+or burn rights over the holder's refunded balance.
 
 When COM-46 permits partial delivery, authenticated commands must bind the presentment's confirmed
 `deliveredUnits` and `refundableUnits` to the same escrow and promise, with

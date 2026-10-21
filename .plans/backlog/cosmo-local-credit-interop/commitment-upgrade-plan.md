@@ -41,10 +41,10 @@ The existing issue IDs are reused to correct their scope, not to create a second
 | Phase | Issue | Corrected outcome | Priority | Prerequisites |
 |---|---|---|---|---|
 | Decide | RESR-73 | Research conclusions, Claude review, unresolved human choices | P0 | COM-46 for issuer terms |
-| Decide | PRD-1315 | Accept voucher-plus-G$ behavior and contract boundaries, including issuer-cap enforcement, the presentment handshake, terms-consent binding, post-claim Offer funding and distinct gardener issuer identity | P0 | RESR-73 |
+| Decide | PRD-1315 | Accept voucher-plus-G$ behavior and contract boundaries, including issuer-cap enforcement, the presentment handshake and escrow placement/custody, terms-consent binding, post-claim Offer funding, distinct gardener issuer identity and independent steward-controlled per-issuer suspension | P0 | RESR-73 |
 | Contracts | PRD-1316 | Confirm the existing core views provide the pre-acceptance timing window and fulfillment eligibility, not voucher-revision consent; specify a stored fulfillment path only if the eligibility decision needs it | P0 | PRD-1315 |
-| Contracts | PRD-1317 | Register pre-acceptance voucher terms and bind exact-revision counterparty consent; implement the recorded post-claim payer authorization, funding reservation and failure/refund rule for voucher-accepting Offers separately from earned rewards; bind the approved gardener issuer identity; authorize authenticated presentment, discharge and return commands | P0 | PRD-1315, PRD-1316 |
-| Contracts | PRD-1318 | Deliver earned vouchers within the issuer's allowance or cap, once per entitlement; enforce the separately authorized Offer-payment funding route; authenticate presentment escrows and discharge/return once; bind each gardener's distinct issuer identifier to its garden, Safe, token and admission authority with isolated authorization and caps | P0 | PRD-1317 |
+| Contracts | PRD-1317 | Register pre-acceptance voucher terms and bind exact-revision counterparty consent; implement the recorded post-claim payer authorization and selected funding route (reservation, escrow or debit), including its failure/refund rule for voucher-accepting Offers separately from earned rewards; bind the approved gardener issuer identity; authorize authenticated presentment, discharge and return commands | P0 | PRD-1315, PRD-1316 |
+| Contracts | PRD-1318 | Deliver earned vouchers within the issuer's allowance or cap, once per entitlement; enforce the separately authorized Offer-payment funding route; authenticate presentment escrows and discharge/return once; bind each gardener's distinct issuer identifier to its garden, Safe, token and admission authority with isolated authorization and caps; enforce/test the recorded steward-controlled per-issuer suspension and recovery scope, preserving approved servicing of outstanding obligations and recording unenforceable required stops as release blockers | P0 | PRD-1317 |
 | Contracts | PRD-1319 | Prove integration compatibility and preservation of existing G$ behavior; re-run the 20 October conformance and extra-args reads at the deployment block | P0 | PRD-1316, PRD-1317, PRD-1318 |
 | Data | PRD-1320 | Index linked fulfillment, G$ and voucher receipts, voucher payment terms, presentment escrows, discharges and issuer caps | P0 | PRD-1316, PRD-1317, PRD-1318 |
 | Shared | PRD-1321 | Provide consistent per-obligation status to both apps, including voucher payment terms and escrow state | P0 | PRD-1320 |
@@ -90,7 +90,8 @@ Reforecast after PRD-1315 and the first real selected-version conformance proof.
 
 - Freeze accepted terms, fulfillment eligibility, issuer delegation, recipient allocation, service
   lifecycle, chain roles, source/receipt authentication and legacy semantics.
-- Prove per-asset conservation, cap/reservation rules, duplicate command rejection, successful delivery
+- Prove per-asset conservation, cap enforcement and the selected payer-funding rules, duplicate
+  command rejection, successful delivery
   with lost acknowledgment, retry, wrong peer/issuer, expiry, depleted capacity and partial success.
 - Preserve the existing G$ singleton plan, funding/refund behavior, retained amounts, executor
   protocol, Safe balances and history. A voucher delay must not re-open completed G$ payments.
