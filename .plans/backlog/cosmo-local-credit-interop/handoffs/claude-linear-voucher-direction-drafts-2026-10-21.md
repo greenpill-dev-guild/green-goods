@@ -59,6 +59,16 @@ Replace the first Done-when bullet with:
 >   presentment opens a Green Goods promise in the live design; PRD-1317 and PRD-1318 carry its
 >   contract work.
 
+Follow-up found in PR #1170 review on 21 October: the applied Done-when text above omits three
+additional blockers already recorded in the [hub plan](../plan.todo.md#sequence-and-completion-evidence)
+and [implementation boundary](../commitment-upgrade-plan.md). The original applied text is retained
+as the historical record. The following additional Done-when bullet is prepared for Afo's approval;
+it has not been written to Linear:
+
+> * Before the implementation boundary freezes, record issuer-cap enforcement (a mint controller
+>   or monitored issuer policy), the authenticated presentment handshake binding escrow to the
+>   promise and counterparty, and exact approved-revision and counterparty-consent binding.
+
 ### PRD-1317 (Backlog): replace the first bullet and add one
 
 Replace the first Done-when bullet with:

@@ -141,19 +141,20 @@ row. Write those before treating the table below as a complete index.
 
 ## How to read decision citations
 
-⚠️ **This hub has two independent decision lists, both numbered from 1.** A bare `#N` is therefore ambiguous in the range 1–68, and this has caused real mis-resolutions. Until a full renumber lands:
+⚠️ **This hub has two independent decision lists, both numbered from 1.** A bare `#N` is therefore ambiguous in the range 1–69, and this has caused real mis-resolutions. Until a full renumber lands:
 
 | List | Range | What it is |
 |---|---|---|
-| **Decision Log** (the table below) | 1–68 | Curated current-state decisions spanning the whole feature, newest last |
-| **Full decision register** (further below) | 1–160 | The 2026-07-03 alignment session verbatim, plus dated addenda 28–160 |
+| **Decision Log** (the table below) | 1–69 | Curated current-state decisions spanning the whole feature, newest last |
+| **Full decision register** (further below) | 1–163 | The 2026-07-03 alignment session verbatim, plus dated addenda 28–163 |
 
-- **Every `#1`–`#68` citation is potentially ambiguous** because both lists now occupy that range. Always write “Decision Log #N” or “register #N”.
-- **`#69`–`#160` are unambiguous register numbers**, but naming the list is still preferred.
+- **Every `#1`–`#69` citation is potentially ambiguous** because both lists now occupy that range. Always write “Decision Log #N” or “register #N”.
+- **`#70`–`#163` are unambiguous register numbers**, but naming the list is still preferred.
+- **`#69` became ambiguous on 2026-10-21**: Decision Log #69 records the voucher direction, while register #69 records the protocol-pool funding amendment. Name the list explicitly.
 - **`#39`–`#40` became ambiguous on 2026-08-01**, when the Decision Log gained its CPP-alignment scope lock and staged-product narrative while the full register already carried different entries at those numbers. Name the list explicitly for both.
 - **`#30`–`#38` became ambiguous on 2026-07-28 and 2026-07-30**, when the Decision Log grew its own entries 30–36 (the group-commitment/recognition/payout amendments), 37 (protocol-pool settlement parity), and 38 (pre-build review closure). The guidance here previously said `#30`–`#60` were always the register, which stopped being true the moment Decision Log `#30` was written; **`#34` is the worst case — it is cited ~71× and now resolves to two different decisions.** Every bare `#30`–`#38` citation predating 2026-07-28 means the register; name the list explicitly from now on.
 - **`#29` became ambiguous on 2026-07-18** when the Decision Log gained its own `#29` (fourth garden not selected). Register `#29` is a different decision entirely. Always name the list for this number.
-- **`#1`–`#68` must be resolved by reading both.** They diverge from `#8` onward: Decision Log `#17` = "app becomes multi-chain"; register `#17` = "clean room, GE paper only". Decision Log `#28` = the visual-asset audit; register `#28` = the needs-layer EAS schemas.
+- **`#1`–`#69` must be resolved by reading both.** They diverge from `#8` onward: Decision Log `#17` = "app becomes multi-chain"; register `#17` = "clean room, GE paper only". Decision Log `#28` = the visual-asset audit; register `#28` = the needs-layer EAS schemas.
 - **Sub-letters do not disambiguate** — both `#28` (Decision Log, a–f) and `#34` (register, a–h) carry them.
 - **When writing a new citation, name the list**: "Decision Log #17" or "register #17", never a bare `#17`.
 
@@ -238,7 +239,7 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
 | 68 | **The commitment view knows who is looking at it, and four seats are enough because creator is not one.** Direction already names the creator: on an Offer they are the provider, on a Request the confirmer. So seat decides the person of every sentence while phase decides the affordances, and the five parallel derivations of "where does this stand" collapse into one declared lifecycle. Where a stage genuinely needs two seats drawn, it gets a second state, following `W4@provider-view`. | Afo's call in an interactive plan session, 2026-08-18, after `flow-audit.md` found the provider's own flow ending on the confirmer's screen with a button they cannot press, a member's request wearing another commitment's identity, and two membership tests naming states that have never existed. Applying the axis rigorously surfaced three further seat gaps that reassignment could not close, and Afo chose to close all three rather than ship the model with documented exceptions. `uiux-spec.md` C.54 and C.55 carry the full text; register #157 and #158. |
 | 69 | **Promises run on vouchers, and curated, capped issuance replaces kept-promises-first.** For the Cosmo-Local integration, an Offer can accept vouchers and a Request can pay in them; presenting vouchers opens a promise whose counterparty, the presenter, confirms it, and keeping it ends in discharge. Pooling (curation, valuation, limits and exchange) stays in Cosmo-Local pools. Stewards may admit gardeners as voucher issuers alongside hubs and Green Goods. Admitted issuers may issue against future capacity under published terms, with caps that grow with kept promises in the register, within each pool's acceptance limits, and with a remedy and pause path; vouchers earned by kept promises remain a second source. User-facing copy calls the instrument "voucher". This supersedes the ordering in Decision Log #52 and #53 and PRD-796's fulfilled-first clause; Decision Log #51's three identities, G$ separation and the PRD-651 release gates stand. | Afo decision 2026-10-21 after a research brief compared the current plan with voucher-native pooling; recorded in the Cosmo-Local hub spec under "Voucher direction". Register #163. |
 
-### Full decision register (2026-07-03 alignment session, entries 1–27; dated addenda 28–160)
+### Full decision register (2026-07-03 alignment session, entries 1–27; dated addenda 28–163)
 
 **Cite entries in this list as "register #N"** — see the disambiguation note above. (The heading previously read "27 decisions", which stopped being true once the addenda were appended.)
 
@@ -1923,7 +1924,7 @@ The **Lane** column below names execution sub-lanes for planning clarity. The ha
 
 | Requirement | Lane | Linear issue | Status |
 |---|---|---|---|
-| Final pre-code full-pool compatibility freeze: three identities, versioned adapter/router, fulfilled-first backing, one-pool proof gate, and G$/redemption separation. Fulfilled-first backing and the one-pool proof gate were superseded in part on 2026-10-21 by Decision Log #69 (curated, capped issuance) | `contracts` + `docs` | [PRD-796](https://linear.app/greenpill-dev-guild/issue/PRD-796) | ✅ Done; ordering superseded in part by Decision Log #69 |
+| Final pre-code full-pool compatibility freeze: three identities, versioned adapter/router, fulfilled-first backing, one-pool proof gate, and G$/redemption separation. Fulfilled-first backing was superseded on 2026-10-21 by Decision Log #69 (curated, capped issuance); the one-pool proof gate and existing release gates remain active | `contracts` + `docs` | [PRD-796](https://linear.app/greenpill-dev-guild/issue/PRD-796) | ✅ Done; ordering superseded in part by Decision Log #69 |
 | Assessment v3 schema via existing AssessmentResolver upgrade + NET-NEW community testimony resolver (first PR chain) | `contracts` | [PRD-721](https://linear.app/greenpill-dev-guild/issue/PRD-721) (historical PRD-671) | ⏳ |
 | CommitmentPoolingModule + CommitmentRegistry + GardenToken wiring + deploy | `contracts` | [PRD-721](https://linear.app/greenpill-dev-guild/issue/PRD-721) (historical PRD-672) | ⏳ |
 | Module-native `CommitmentSeries`, validated instance reference, direct-holder lifecycle, and honest Offer-capacity reservation | `contracts` | [PRD-788](https://linear.app/greenpill-dev-guild/issue/PRD-788) + [PRD-721](https://linear.app/greenpill-dev-guild/issue/PRD-721) | 🚧 architecture convergence |
