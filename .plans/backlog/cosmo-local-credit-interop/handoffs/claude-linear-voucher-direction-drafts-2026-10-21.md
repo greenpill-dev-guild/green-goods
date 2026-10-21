@@ -101,9 +101,9 @@ Replace "The person served confirms delivery separately from issuance and exchan
 > separately from issuance and exchange. On 21 October Afo set this direction: promises run on
 > vouchers, and curated, capped issuance replaces the fulfilled-first order.
 
-Follow-up found in review on 21 October, not yet in Linear: the first replacement keeps the earlier
-word "redeemable", which decision 4 retires for vouchers. The proposed fix is "usable for their own
-services"; it needs Afo's approval before any Linear write.
+Follow-up found in review on 21 October: the first replacement kept the earlier word "redeemable",
+which decision 4 retires for vouchers. After Afo's approval it was changed in Linear to "vouchers
+usable for their own services" at 07:18 UTC and read back with every field unchanged.
 
 ### PRD-796 (Done): one comment, description unchanged
 

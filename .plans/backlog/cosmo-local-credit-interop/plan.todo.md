@@ -72,8 +72,8 @@ reaches develop through PR #1170, which supersedes the planning checkout's uncom
   [drafts](handoffs/claude-linear-voucher-direction-drafts-2026-10-21.md) were applied on 21 October
   after Afo's approval and read back; states, assignees, cycles and dates unchanged.
 - [ ] **COM-46:** add terms for gardener issuers and a legal check of issuer duties for individuals.
-- [ ] **PRD-857 wording:** its first sentence still calls vouchers "redeemable"; replace it with
-  "usable for their own services" once Afo approves the Linear write.
+- [x] **PRD-857 wording:** "redeemable" became "usable for their own services" in its first
+  sentence on 21 October after Afo's approval, and the record was read back unchanged otherwise.
 - [ ] **PRD-1299:** settle the proposed voucher wording (verbs, "voucher exchange", es/pt "vale").
 - [ ] **PRD-1096, optional:** a curated gardener-voucher case is not in the approved rehearsal;
   adding one before dispatch is Afo's call.
