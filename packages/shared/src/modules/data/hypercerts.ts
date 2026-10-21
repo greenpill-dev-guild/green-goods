@@ -12,6 +12,7 @@ export {
 export {
   getApprovedAttestations,
   getAttestationsByUIDs,
+  getWorkActionDomains,
   type BundledAttestationInfo,
   checkAttestationsBundled,
 } from "./hypercerts-attestations";

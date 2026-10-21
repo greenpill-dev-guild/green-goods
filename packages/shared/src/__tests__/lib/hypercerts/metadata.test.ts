@@ -432,16 +432,16 @@ describe("formatHypercertMetadata", () => {
       expect(result.hidden_properties?.outcomes.predefined.trees.value).toBe(30);
     });
 
-    it("derives domain from first attestation", () => {
-      const draft = createMockDraft();
-      const attestations = [
-        createMockAttestation({ domain: "education" }),
-        createMockAttestation({ domain: "agroforestry" }),
-      ];
+    it.each([
+      ["the domain its work shares", ["education", "education"], "education"],
+      ["the one domain named, beside work that names none", [undefined, "waste"], "waste"],
+      ["no domain when its work names two", ["education", "agroforestry"], undefined],
+    ] as const)("names %s", (_case, domains, expected) => {
+      const attestations = domains.map((domain) => createMockAttestation({ domain }));
 
-      const result = format({ draft, attestations });
+      const result = format({ draft: createMockDraft(), attestations });
 
-      expect(result.hidden_properties?.domain).toBe("education");
+      expect(result.hidden_properties?.domain).toBe(expected);
     });
 
     it("omits domain when no attestation names one, and still passes upload validation", () => {
