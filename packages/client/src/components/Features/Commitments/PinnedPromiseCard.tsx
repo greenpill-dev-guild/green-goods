@@ -29,7 +29,7 @@ export function PinnedPromiseCard({ kind, title, onOpen, className }: PinnedProm
 
   return (
     <div
-      className={cn("sticky top-20 z-10 -mx-4 bg-bg-white-0 px-4 pb-2", className)}
+      className={cn("sticky top-20 z-10 -mx-4 bg-bg-canvas px-4 pb-2", className)}
       data-testid="pinned-promise"
     >
       <button

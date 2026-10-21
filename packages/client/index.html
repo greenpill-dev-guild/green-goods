@@ -303,17 +303,18 @@
       }
 
       /* The loader stays up until auth is ready, then hands off to html, body,
-         and SplashScaffold, which all paint bg-white-0; taking the same token
-         leaves the handoff seamless. The dark action fallback mirrors the PWA's
-         mint/ink pair even when the stylesheet never arrives (DL-088). */
+         and SplashScaffold, which all paint the app's canvas (bg-canvas: linen,
+         and the warm dark floor); taking the same token leaves the handoff
+         seamless. The dark action fallback mirrors the PWA's mint/ink pair even
+         when the stylesheet never arrives (DL-088). */
       html[data-boot-presentation="pwa"] #boot-fallback {
-        --boot-canvas: var(--color-bg-white-0, #ffffff);
+        --boot-canvas: var(--color-bg-canvas, #faf8f5);
         /* The installed app's face, as index.css sets it on :root. */
         font-family: "Plus Jakarta Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
 
       html[data-boot-presentation="pwa"][data-theme="dark"] #boot-fallback {
-        --boot-canvas: var(--color-bg-white-0, #0c0a09);
+        --boot-canvas: var(--color-bg-canvas, #110c08);
         --boot-action: var(--color-primary-action, #c2f5da);
         --boot-action-fg: var(--color-primary-action-foreground, #0c0a09);
       }

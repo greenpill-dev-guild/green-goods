@@ -319,7 +319,7 @@ export const Garden: React.FC = () => {
             <div
               ref={measureHeader}
               data-testid="garden-header"
-              className="fixed top-0 left-0 right-0 bg-bg-white-0 z-20"
+              className="fixed top-0 left-0 right-0 bg-bg-canvas z-20"
             >
               <div className="relative w-full h-36 md:h-44 overflow-hidden rounded-b-2xl">
                 <ImageWithFallback
@@ -378,7 +378,7 @@ export const Garden: React.FC = () => {
               </div>
 
               {/* Tabs sticky under header */}
-              <div className="sticky top-0 left-0 right-0 w-full bg-bg-white-0 z-10 shadow-sm">
+              <div className="sticky top-0 left-0 right-0 w-full bg-bg-canvas z-10 shadow-sm">
                 <StandardTabs
                   tabs={tabs}
                   activeTab={activeTab}

@@ -173,7 +173,7 @@ export const TopNav: React.FC<TopNavProps> = ({
   const { formatMessage } = useIntl();
   const containerClasses = cn(
     "relative flex z-nav flex-row w-full justify-evenly items-start gap-4 p-6 h-20",
-    overlay && "fixed bg-bg-white-0"
+    overlay && "fixed bg-bg-canvas"
   );
 
   return (
