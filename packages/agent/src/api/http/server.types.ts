@@ -17,10 +17,8 @@ import type { PinataUploadSignerConfig } from "../../services/pinata-upload-sign
 import type { SubscriptionClient } from "../../services/subscriptions";
 import type { InMemoryPublicRateLimiter, TrustedProxyConfig } from "../public-protection";
 import type { ThirdwebCheckoutClient } from "../funding/thirdweb";
-import type {
-  ProfileAvatarSignatureVerifier,
-  ProfileAvatarStore,
-} from "../../services/profile-avatars";
+import type { ProfileAvatarStore } from "../../services/profile-avatars";
+import type { AccountSignatureVerifier } from "../../services/account-signatures";
 import type {
   SavedOfferStore,
   SavedOffersSessionStore,
@@ -95,7 +93,7 @@ export interface ServerDeps {
   }) => Promise<bigint>;
   profileAvatarStore?: ProfileAvatarStore;
   profileAvatarChainId?: number;
-  profileAvatarSignatureVerifier?: ProfileAvatarSignatureVerifier;
+  profileAvatarSignatureVerifier?: AccountSignatureVerifier;
   savedOfferStore?: SavedOfferStore;
   savedOffersSessionStore?: SavedOffersSessionStore;
   savedOffersSignatureVerifier?: SavedOffersSignatureVerifier;
@@ -106,7 +104,7 @@ export interface ServerDeps {
   gardenJoinRequestsEnabled?: boolean;
   gardenJoinRequestChainId?: number;
   gardenJoinRequestChainReader?: GardenJoinRequestChainReader;
-  gardenJoinRequestSignatureVerifier?: ProfileAvatarSignatureVerifier;
+  gardenJoinRequestSignatureVerifier?: AccountSignatureVerifier;
   /** Defaults to 24 hours; zero disables the retention sweep. */
   gardenJoinRequestSweepIntervalMs?: number;
   /** Issues passkeys under one domain for every site; absent unless the directory is enabled. */

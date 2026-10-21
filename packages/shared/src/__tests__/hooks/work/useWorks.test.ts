@@ -121,7 +121,9 @@ vi.mock("../../../config/query-keys/misc", () => ({
   },
 }));
 
-const { useWorks, jobToWork } = await import("../../../hooks/work/useWorks");
+import { jobToWork } from "../../../modules/work/queued-work";
+
+const { useWorks } = await import("../../../hooks/work/useWorks");
 
 describe("hooks/work/useWorks", () => {
   let queryClient: QueryClient;

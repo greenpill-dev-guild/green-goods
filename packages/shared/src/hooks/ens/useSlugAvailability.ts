@@ -20,7 +20,7 @@ import { logger } from "../../modules/app/logger";
 import { createClients, getNetworkContracts } from "../../utils/blockchain/contracts";
 import { useDebouncedValue } from "../utils/useDebouncedValue";
 import { isSlugAvailableAcrossChains } from "./availability";
-import { slugSchema } from "./useSlugForm";
+import { slugSchema } from "../../modules/ens/slug";
 
 export function useSlugAvailability(slug: string | undefined) {
   const debouncedSlug = useDebouncedValue(slug, 300);

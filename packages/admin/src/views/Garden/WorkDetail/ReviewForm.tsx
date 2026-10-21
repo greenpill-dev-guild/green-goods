@@ -25,7 +25,7 @@ import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminReasonDialog } from "@/components/AdminReasonDialog";
 import { formatEnsAddressName } from "@/components/EnsAddressText";
-import { localizeCanonicalActionTitle } from "@/views/Hub/actionDisplay";
+import { localizeCanonicalActionTitle } from "@/components/Action/actionDisplay";
 import { ReviewSummary, type WorkApprovalFormData, workApprovalSchema } from "./helpers";
 
 const REJECT_REASON_SUGGESTION_IDS = [

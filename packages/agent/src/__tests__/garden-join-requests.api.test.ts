@@ -18,7 +18,7 @@ import {
 } from "../services/garden-join-requests";
 import { initAgentAnalytics, resetAgentAnalyticsForTests } from "../services/analytics";
 import { logger } from "../services/logger";
-import type { ProfileAvatarSignatureVerifier } from "../services/profile-avatars";
+import type { AccountSignatureVerifier } from "../services/account-signatures";
 import { mockPostHog } from "./setup";
 
 const ORIGIN = "https://greengoods.app";
@@ -64,7 +64,7 @@ function headers(
 }
 
 function createApp(
-  options: { signatureVerifier?: ProfileAvatarSignatureVerifier; now?: () => number } = {}
+  options: { signatureVerifier?: AccountSignatureVerifier; now?: () => number } = {}
 ) {
   let requestId = 0;
   const store = new MemoryGardenJoinRequestStore(createGardenJoinRequestCipher("11".repeat(32)), {
