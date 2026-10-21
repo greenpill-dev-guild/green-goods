@@ -277,3 +277,13 @@ Read-back receipts (21 October 2026 UTC):
 
 * PRD-1317: applied 2026-10-21T19:57:59.818Z, read back 2026-10-21T19:58:00Z.
 * PRD-1318: applied 2026-10-21T19:58:05.008Z, read back 2026-10-21T19:58:07Z.
+
+## PR #1170: shared escrow settlement decision applied after approval
+
+The later review found that the full-return/discharge acceptance cases covered only one command
+ordering. Afo approved this PRD-1318 Done-when addition. It was applied at
+2026-10-21T21:13:58.977Z and read back at 2026-10-21T21:13:59Z. The issue remains Backlog;
+state history, assignee, cycle, due date, estimate and milestone are unchanged. Existing description
+content is preserved apart from Linear whitespace/native-issue-link normalization.
+
+> * Use one immutable settlement decision per escrow (full discharge, full return, or the approved partial split) with shared settlement progress. Reject conflicting decisions; mark the escrow terminal only after all authorized legs settle. Test discharge after full return, repeated full return, return after full discharge, and repeated discharge: no extra transfer or consumption of another escrow's balance. Partial-split legs may arrive in either order, but must match the frozen decision and settle each allocated amount once.

@@ -225,6 +225,14 @@ units to the holder. Each leg settles once across retries, replay and reordered 
 can consume or strand the other's balance. PRD-1317 binds the split and PRD-1318 enforces it, as
 recorded in their approved Done-when additions.
 
+All escrow settlement commands must bind one immutable settlement decision: full discharge, full
+return or the confirmed partial split. Use shared progress for that decision, with per-escrow and
+per-leg accounting; a conflicting decision cannot replace it. Mark the escrow terminal only after
+all authorized legs settle (a zero allocation needs no transfer). A full return excludes a later
+discharge, and a full discharge excludes a later return. Test both orders and duplicates with two
+escrows holding the same token: no replay or conflicting command may spend the other's balance.
+Partial legs may arrive in either order, but must bind the same frozen split and settle once.
+
 Decided 21 October: presentment opens a Green Goods promise (decision 3 above), and the rehearsal's
 service desk is a fork-only stand-in.
 

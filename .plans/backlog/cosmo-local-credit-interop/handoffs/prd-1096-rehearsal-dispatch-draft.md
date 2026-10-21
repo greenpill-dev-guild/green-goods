@@ -289,8 +289,12 @@ reserve floor like SettlementModule's `feeReserveMinimum`.
 Follow the order in `CeloSettlementExecution._ccipReceive` and `_authenticate`
 (`src/modules/CeloSettlement/Execution.sol`).
 
-- Router and local selector pinned in the constructor. `initialize(owner, sourceSelector,
+- Router and local selector pinned in the constructor; reject zero for either.
+  `initialize(owner, sourceSelector,
   sourceModule, voucherToken, reserveHolder)` leaves it paused. The owner is the issuer Safe.
+  Reject zero owner, source selector, source module, voucher token or reserve holder before
+  writing initialization state. A rejected call leaves the proxy uninitialized, so a valid call
+  can still initialize it once; a second successful initialization always reverts.
 - Revert when paused, when tokens are attached, on a wrong source selector, on a sender other than
   the current peer or an unexpired previous peer, on an unsupported version, or on a malformed
   command (decode through an external try/catch boundary like `decodeSettlementCommand`).
@@ -462,6 +466,7 @@ No new code: configuration through the published factory and implementations.
 | G12 | Delivery to a member's counterfactual account address, with no code on Gnosis, succeeds. A command whose recipient is the reserve holder instead stores `InvalidRecipient` without moving tokens, consuming the entitlement or counting season spend. |
 | G13 | A token that moves funds but returns false, or whose transfer produces a recipient balance delta other than `amount`, stores `TransferFailed` or `BalanceDeltaMismatch` respectively. The helper rolls back balances and allowance spending; the entitlement and season spend stay unchanged. Cover lane delivery and issuer fallback: repeated requeues under the mismatch move no tokens, and a requeue after repair delivers exactly once. |
 | G14 | After same-version A-to-B peer rotation with grace, a new B-to-C rotation before or exactly at A's expiry reverts `PreviousPeerGraceActive` with peer/expiry state unchanged. At expiry plus one second, rotation is allowed, B becomes the previous peer under its new grace and A is rejected. A same-active-peer update retains the previous peer: zero grace leaves its expiry unchanged, a valid extension is allowed and an attempted shortening reverts. Use the referenced Celo admin's paused-owner transition. |
+| G15 | Zero router or local selector rejects construction. Zero owner, source selector, source module, voucher token and reserve holder each reject initialization with initialization/storage unchanged. Valid initialization then succeeds once and leaves the adapter paused; every later initialize call rejects. |
 
 **Pools and exchange (Gnosis fork)**
 
@@ -504,9 +509,10 @@ Risk first. Phases 1 to 4 are the minimum for the 23 October update; later phase
 
 1. Interfaces and conformance: write the interfaces, pin the code hash of every implementation and
    instance used, and prove each interface call on the Gnosis fork.
-2. Codec and adapter with G1 to G11 and G13.
+2. Codec and adapter with all G cases (G1 to G15), including G14's overlapping peer-rotation boundary.
 3. Module with M cases.
-4. Fork rehearsal of earned issuance end to end: G1 to G5, G11 and G12 across both forks.
+4. Fork rehearsal of earned issuance end to end: G1 to G5, G11, G12 and G14 across both forks.
+   Record G14's before/at/after-expiry peer-rotation receipts on the configured fork adapter.
 5. Pools and exchange, P cases.
 6. Accounts and sponsorship, K cases.
 7. Service desk, S cases.
