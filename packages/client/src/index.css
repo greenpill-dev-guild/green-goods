@@ -26,6 +26,8 @@
   scrollbar-width: none;
   -ms-overflow-style: none; /* IE and Edge */
 
+  /* The public website reads in Inter; the installed app takes the cockpit's
+     face, so both steward surfaces share one family (below). */
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   font-style: normal;
   font-weight: 400;
@@ -34,6 +36,13 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* The installed app's face. The boot marker covers sign-in and portalled
+   sheets as well as the shell; a public page keeps the website's Inter even
+   inside the installed app. */
+:root[data-boot-presentation="pwa"]:not(:has([data-site="website"])) {
+  font-family: "Plus Jakarta Sans", system-ui, Avenir, Helvetica, Arial, sans-serif;
 }
 
 html {

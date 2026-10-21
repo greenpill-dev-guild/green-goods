@@ -15,7 +15,8 @@
  * here as a failing parity check instead of silent drift. Sources:
  *   - admin:   packages/admin/src/index.css (`@theme` type + radius aliases,
  *              the Plus Jakarta Sans body font, the Tier 1a colour aliases)
- *   - client:  packages/client/index.html (Inter / Fraunces) and
+ *   - client:  packages/client/index.html (Plus Jakarta Sans / Inter /
+ *              Fraunces), packages/client/src/index.css and
  *              packages/client/src/styles/typography.css
  * Never import packages/admin/src/index.css wholesale: its document-level
  * shell resets would leak into every story. Its layout and surface classes live
@@ -162,10 +163,17 @@
 }
 
 /* ── Installed app and public website ──────────────────────────────────── */
-/* Both client presentations load Inter (index.html) and set it on :root. The
+/* The client sets Inter on :root and, in the installed app's presentation,
+   Plus Jakarta Sans, the cockpit's face (index.css). The app frame and <body>
+   (for portaled dialogs and sheets) carry the app's face here. The
    button corner and label weight tokens live on :root in shared theme.css
    (`:root:has([data-site="website"])` flips them); a scope wrapper re-declares
    them so an app column and a website column can share one document. */
+:root[data-surface="app"] body,
+:root[data-surface="app"] .storybook-browser-preview {
+  font-family: "Plus Jakarta Sans", system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+
 [data-surface-scope="app"],
 [data-surface-scope="website"] {
   /* Back to the app scale inside an admin document: the label sizes take
@@ -186,10 +194,10 @@
   --gg-icon-size-sm: initial;
   --gg-icon-size-compact: initial;
   --gg-hit-block: initial;
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
 }
 
 [data-surface-scope="app"] {
+  font-family: "Plus Jakarta Sans", system-ui, Avenir, Helvetica, Arial, sans-serif;
   --gg-button-radius: var(--radius-lg);
   --gg-button-radius-pressed: var(--radius-squircle);
   --gg-button-radius-compact: var(--radius-squircle);
@@ -198,6 +206,7 @@
 }
 
 [data-surface-scope="website"] {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   --gg-button-radius: var(--radius-full);
   --gg-button-radius-pressed: var(--radius-full);
   --gg-button-radius-compact: var(--radius-full);
