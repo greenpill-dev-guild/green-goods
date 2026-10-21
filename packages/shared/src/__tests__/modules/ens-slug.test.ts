@@ -1,13 +1,14 @@
 /**
- * useSlugForm Hook Tests
+ * ENS Slug Validation Tests
  *
- * Tests Zod schema validation and React Hook Form integration for ENS slug input.
+ * Tests the shared ENS validation rules and feedback used by both forms.
  * The slugSchema mirrors on-chain _validateSlug() for instant client-side feedback.
  */
 
 import { describe, expect, it } from "vitest";
 
-import { slugSchema } from "../../../hooks/ens/useSlugForm";
+import { slugSchema, validateSlug } from "../../modules/ens/slug";
+import { createGardenSchema } from "../../modules/garden/create-form";
 
 // ============================================================================
 // SLUG SCHEMA VALIDATION (Pure Zod — no React needed)
@@ -104,4 +105,30 @@ describe("slugSchema", () => {
       }
     });
   });
+});
+
+// Preserve each presentation's existing priority when several rules fail together.
+it.each([
+  "-ABC--",
+  "ab--C",
+  "--",
+  "A".repeat(51),
+])("keeps form and garden feedback aligned for %s without changing utility priority", (slug) => {
+  const form = slugSchema.safeParse({ slug });
+  const garden = createGardenSchema.shape.slug.safeParse(slug);
+  expect(form.success).toBe(false);
+  expect(garden.success).toBe(false);
+  if (form.success || garden.success) return;
+  expect(form.error.issues.map((issue) => issue.message)).toEqual(
+    garden.error.issues.map((issue) => issue.message)
+  );
+  const expected =
+    slug.length < 3
+      ? "Too short (min 3 characters)"
+      : slug.length > 50
+        ? "Too long (max 50 characters)"
+        : slug.startsWith("-")
+          ? "Cannot start or end with hyphen"
+          : "No consecutive hyphens";
+  expect(validateSlug(slug)).toEqual({ valid: false, error: expected });
 });

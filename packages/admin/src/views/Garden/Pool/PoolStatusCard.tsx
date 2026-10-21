@@ -22,7 +22,7 @@ export interface PoolStatusCardProps {
 function Checkline({ done, label }: { done: boolean; label: string }) {
   const Icon = done ? RiCheckLine : RiCloseLine;
   return (
-    <li className="flex items-center gap-2 text-body-md text-text-strong">
+    <li className="flex items-center gap-2 type-body text-text-strong">
       <Icon
         className={
           done
@@ -142,10 +142,10 @@ export function PoolStatusCard({
           />
         </ul>
       ) : (
-        <dl className="space-y-2 text-body-md">
+        <dl className="space-y-2 type-body">
           {pool.charter.charter ? (
             <div>
-              <dt className="label-xs text-text-soft">
+              <dt className="type-label-sm text-text-soft">
                 {formatMessage({
                   id: "cockpit.garden.pool.status.charter",
                   defaultMessage: "What this pool is for",
@@ -157,7 +157,7 @@ export function PoolStatusCard({
             </div>
           ) : pool.charter.isUnavailable ? (
             <div>
-              <dt className="label-xs text-text-soft">
+              <dt className="type-label-sm text-text-soft">
                 {formatMessage({
                   id: "cockpit.garden.pool.status.charter",
                   defaultMessage: "What this pool is for",
@@ -172,7 +172,7 @@ export function PoolStatusCard({
             </div>
           ) : null}
           <div>
-            <dt className="label-xs text-text-soft">
+            <dt className="type-label-sm text-text-soft">
               {formatMessage({
                 id: "cockpit.garden.pool.status.cap",
                 defaultMessage: "Promise limit",
@@ -192,7 +192,7 @@ export function PoolStatusCard({
       )}
 
       {model.status === "not-ready" ? (
-        <p className="body-xs text-text-soft">
+        <p className="type-meta text-text-soft">
           {formatMessage({
             id: "cockpit.garden.pool.setup.note",
             defaultMessage:
@@ -221,7 +221,7 @@ export function PoolStatusCard({
       ) : null}
 
       {running && !model.closure.allowed ? (
-        <p className="body-xs text-text-soft" data-slot="close-blocked">
+        <p className="type-meta text-text-soft" data-slot="close-blocked">
           {formatMessage(
             {
               id: "cockpit.garden.pool.close.blocked",
@@ -245,7 +245,7 @@ export function PoolStatusCard({
       ) : null}
 
       {offline && !inSetup ? (
-        <p className="body-xs text-warning-dark" role="status">
+        <p className="type-meta text-warning-dark" role="status">
           {offlineNote}
         </p>
       ) : null}
@@ -319,7 +319,7 @@ export function PoolStatusCard({
 
       {model.status === "closed" ? (
         <div className="space-y-3">
-          <p className="text-body-md text-text-sub">
+          <p className="type-body text-text-sub">
             {formatMessage({
               id: "cockpit.garden.pool.closed.note",
               defaultMessage:
@@ -345,7 +345,7 @@ export function PoolStatusCard({
 
       {model.status === "composted" ? (
         <div className="space-y-3">
-          <p className="text-body-md text-text-sub">
+          <p className="type-body text-text-sub">
             {formatMessage({
               id: "cockpit.garden.pool.composted.note",
               defaultMessage:

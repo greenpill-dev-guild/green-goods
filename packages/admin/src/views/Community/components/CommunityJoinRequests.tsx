@@ -4,7 +4,10 @@ import {
   useGardenJoinRequests,
 } from "@green-goods/shared/hooks/garden/useGardenJoinRequests";
 import { useGardenOperations } from "@green-goods/shared/hooks/garden/useGardenOperations";
-import { gardenJoinRequestErrorMessage } from "@green-goods/shared/modules/garden-join-requests";
+import {
+  gardenJoinRequestErrorMessage,
+  welcomeGardenJoinRequest,
+} from "@green-goods/shared/modules/garden-join-requests";
 import {
   GARDEN_JOIN_REQUEST_REASON_MAX_LENGTH,
   type GardenJoinRequestQueueItem,
@@ -63,24 +66,15 @@ function CommunityJoinRequestQueue({
     setNotice(undefined);
     setLocalError(undefined);
     try {
-      const assignRole = stewardRequest ? operations.addSteward : operations.addGardener;
-      const transaction = await assignRole(request.accountAddress, {
-        trackMemberAnalytics: false,
-      });
-      if (!transaction.success) {
-        if (isCancelledTxError(transaction.error)) return;
-        throw new Error(
-          transaction.error?.message ??
-            formatMessage({
-              id: stewardRequest
-                ? "cockpit.community.stewardRequests.assignFailed"
-                : "app.garden.joinQueue.membershipAddFailed",
-            })
-        );
-      }
-      const resolution = await join.resolveRequest(request.id, {
-        action: "welcome",
-        expectedRevision: request.revision,
+      const resolution = await welcomeGardenJoinRequest({
+        request,
+        assignRole: stewardRequest ? operations.addSteward : operations.addGardener,
+        resolveRequest: join.resolveRequest,
+        failureMessage: formatMessage({
+          id: stewardRequest
+            ? "cockpit.community.stewardRequests.assignFailed"
+            : "app.garden.joinQueue.membershipAddFailed",
+        }),
       });
       const pendingRole = stewardRequest
         ? resolution.pendingOnchainRole === true
@@ -146,7 +140,7 @@ function CommunityJoinRequestQueue({
                   : "cockpit.community.joinRequests.title",
               })}
             </AdminCardTitle>
-            <p className="mt-1 text-body-sm text-text-sub">
+            <p className="mt-1 type-meta text-text-sub">
               {formatMessage({
                 id: stewardRequest
                   ? "cockpit.community.stewardRequests.description"
@@ -187,7 +181,7 @@ function CommunityJoinRequestQueue({
         </div>
 
         {loaded && queue.length === 0 && !join.queueState.isLoading ? (
-          <div className="flex items-center gap-2 rounded-[var(--m3-shape-md)] bg-bg-soft p-4 text-body-sm text-text-sub">
+          <div className="flex items-center gap-2 rounded-[var(--m3-shape-md)] bg-bg-soft p-4 type-meta text-text-sub">
             <RiInbox2Line className="h-5 w-5" />
             {formatMessage({
               id: stewardRequest
@@ -212,7 +206,7 @@ function CommunityJoinRequestQueue({
                   <EnsAddressText address={request.accountAddress} />
                   <time
                     dateTime={request.requestedAt}
-                    className="mt-1 block text-body-sm text-text-sub"
+                    className="mt-1 block type-meta text-text-sub"
                   >
                     {formatMessage(
                       { id: "cockpit.community.joinRequests.requestedAt" },
@@ -226,7 +220,7 @@ function CommunityJoinRequestQueue({
                   </time>
                 </div>
                 {request.note ? (
-                  <p className="max-w-2xl whitespace-pre-wrap text-body-sm text-text-sub">
+                  <p className="max-w-2xl whitespace-pre-wrap type-meta text-text-sub">
                     {request.note}
                   </p>
                 ) : null}

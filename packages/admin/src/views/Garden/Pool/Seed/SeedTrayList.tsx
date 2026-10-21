@@ -25,7 +25,7 @@ export function SeedTrayList({ rows, busy, isLocked, onEdit, onRemove }: SeedTra
 
   return (
     <div className="space-y-1.5" data-testid="seed-tray">
-      <p className="label-xs text-text-soft">
+      <p className="type-label-sm text-text-soft">
         {formatMessage({
           id: "cockpit.garden.pool.seed.tray.added",
           defaultMessage: "Added so far",
@@ -72,10 +72,10 @@ export function SeedTrayList({ rows, busy, isLocked, onEdit, onRemove }: SeedTra
             >
               {/* The basis lets the actions drop below the words where a phone has no room for both. */}
               <div className="min-w-0 flex-1 basis-56">
-                <p className="truncate body-sm text-text-strong" title={values.title}>
+                <p className="truncate type-body text-text-strong" title={values.title}>
                   {values.title}
                 </p>
-                <p className="truncate body-xs text-text-soft" title={facts}>
+                <p className="truncate type-meta text-text-soft" title={facts}>
                   {facts}
                 </p>
               </div>

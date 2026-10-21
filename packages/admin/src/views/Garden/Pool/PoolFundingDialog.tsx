@@ -53,10 +53,10 @@ export function PoolFundingDialog({
       finalFocusRef={returnFocusRef}
     >
       <dl>
-        <dt className="body-xs text-text-soft">
+        <dt className="type-meta text-text-soft">
           {formatMessage({ id: "cockpit.garden.pool.funding.safe", defaultMessage: "Celo Safe" })}
         </dt>
-        <dd className="mt-0.5 body-sm font-medium text-text-strong">
+        <dd className="mt-0.5 type-body font-medium text-text-strong">
           {safe ? (
             <a
               className="inline-flex min-h-11 items-center gap-1 underline decoration-stroke-soft underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--primary-base)))]"
@@ -85,7 +85,7 @@ export function PoolFundingDialog({
         </dd>
       </dl>
       {protocolContext ? (
-        <p className="rounded-[var(--m3-shape-sm)] bg-bg-soft p-3 body-sm text-text-sub">
+        <p className="rounded-[var(--m3-shape-sm)] bg-bg-soft p-3 type-body text-text-sub">
           {formatMessage({
             id: "cockpit.garden.pool.funding.protocolNote",
             defaultMessage:

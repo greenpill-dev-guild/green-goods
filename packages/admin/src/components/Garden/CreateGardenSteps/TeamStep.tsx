@@ -21,8 +21,8 @@ export function TeamStep() {
 
   return (
     <div className="space-y-5">
-      <div className="rounded-lg border border-primary-light bg-primary-lighter/40 p-3.5 body-sm text-text-sub">
-        <p className="label-md text-text-strong">
+      <div className="rounded-lg border border-primary-light bg-primary-lighter/40 p-3.5 type-body text-text-sub">
+        <p className="type-label-sm text-text-strong">
           {formatMessage({
             id: "app.admin.garden.create.teamAdvisory.title",
             defaultMessage: "Planned team members",
@@ -75,7 +75,7 @@ export function TeamStep() {
           </AdminButton>
         </div>
         {stewardInput.shouldResolveEns && (
-          <p className="mt-1 body-sm text-text-soft">
+          <p className="mt-1 type-body text-text-soft">
             {stewardInput.resolvingEns ? (
               formatMessage({
                 id: "app.admin.garden.create.resolvingEns",
@@ -101,7 +101,7 @@ export function TeamStep() {
           {form.stewards.map((steward) => (
             <li
               key={steward}
-              className="flex items-center justify-between rounded-lg border border-stroke-soft bg-bg-white px-3 py-1.5 label-sm font-mono text-text-sub"
+              className="flex items-center justify-between rounded-lg border border-stroke-soft bg-bg-white px-3 py-1.5 type-meta-sm font-mono text-text-sub"
             >
               <EnsAddressText address={steward as Address} />
               <AdminIconButton
@@ -145,7 +145,7 @@ export function TeamStep() {
           </AdminButton>
         </div>
         {gardenerInput.shouldResolveEns && (
-          <p className="mt-1 body-sm text-text-soft">
+          <p className="mt-1 type-body text-text-soft">
             {gardenerInput.resolvingEns ? (
               formatMessage({
                 id: "app.admin.garden.create.resolvingEns",
@@ -171,7 +171,7 @@ export function TeamStep() {
           {form.gardeners.map((gardener) => (
             <li
               key={gardener}
-              className="flex items-center justify-between rounded-lg border border-stroke-soft bg-bg-white px-3 py-1.5 label-sm font-mono text-text-sub"
+              className="flex items-center justify-between rounded-lg border border-stroke-soft bg-bg-white px-3 py-1.5 type-meta-sm font-mono text-text-sub"
             >
               <EnsAddressText address={gardener as Address} />
               <AdminIconButton

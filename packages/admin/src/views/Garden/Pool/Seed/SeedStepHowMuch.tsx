@@ -147,7 +147,7 @@ export function SeedStepHowMuch({
           })}
         </AdminCardTitle>
         {isGardenWork ? (
-          <p className="body-sm text-text-sub">
+          <p className="type-body text-text-sub">
             {formatMessage({
               id: "cockpit.garden.pool.seed.countedInHours",
               defaultMessage: "Counted in hours",
@@ -314,7 +314,7 @@ export function SeedStepHowMuch({
                 defaultMessage: "Actions this needs",
               })}
             </AdminCardTitle>
-            <p className="body-xs text-text-soft">
+            <p className="type-meta text-text-soft">
               {formatMessage({
                 id: "cockpit.garden.pool.seed.requirementsHint",
                 defaultMessage:
@@ -421,7 +421,7 @@ export function SeedStepHowMuch({
               })}
             </AdminButton>
             {closedSeedActions(values, actions, chainId, now).map((action) => (
-              <p key={action.id} className="body-xs text-error-dark" role="alert">
+              <p key={action.id} className="type-meta text-error-dark" role="alert">
                 {formatMessage(
                   {
                     id: "app.compose.blocked.closedAction",
@@ -434,7 +434,7 @@ export function SeedStepHowMuch({
             ))}
             {(form.formState.errors.requirements?.root?.message ??
             form.formState.errors.requirements?.message) ? (
-              <p className="body-xs text-error-dark" role="alert">
+              <p className="type-meta text-error-dark" role="alert">
                 {seedErrorText(
                   String(
                     form.formState.errors.requirements?.root?.message ??
@@ -446,7 +446,7 @@ export function SeedStepHowMuch({
             ) : null}
           </div>
         ) : (
-          <p className="body-xs text-text-soft">
+          <p className="type-meta text-text-soft">
             {formatMessage({
               id: "cockpit.garden.pool.seed.proofOnlyPromise",
               defaultMessage:
@@ -464,7 +464,7 @@ export function SeedStepHowMuch({
         onMakeItOne={() => set("targetUnits", 1)}
       />
       {cap !== null ? (
-        <p className="-mt-2 body-xs text-text-soft">
+        <p className="-mt-2 type-meta text-text-soft">
           {formatMessage(
             {
               id: "cockpit.garden.pool.seed.capHint",

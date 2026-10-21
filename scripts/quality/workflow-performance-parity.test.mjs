@@ -539,7 +539,7 @@ test("Shared critical, Cookie Jar, and image-compression coverage globs preserve
     "src/modules/job-queue/**": [76, 82, 85, 82],
     "src/hooks/auth/**": [73, 76, 77, 75],
     "src/hooks/vault/**": [57, 66, 71, 69],
-    "src/hooks/cookie-jar/useCookieJarDeposit.ts": [58, 74, 86, 86],
+    "src/hooks/cookie-jar/useCookieJarDepositMutation.ts": [58, 74, 86, 86],
     "src/hooks/cookie-jar/useCampaignCookieJar.ts": [43, 33, 39, 38],
     "src/utils/work/image-compression.ts": [35, 67, 69, 68],
   });

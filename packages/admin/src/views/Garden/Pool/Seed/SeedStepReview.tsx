@@ -104,7 +104,7 @@ export function SeedStepReview({
       </div>
       <dl className="space-y-1">
         {rows.map(([label, value]) => (
-          <div key={label} className="flex justify-between gap-4 body-sm">
+          <div key={label} className="flex justify-between gap-4 type-body">
             <dt className="max-w-[55%] shrink-0 text-text-soft">{label}</dt>
             <dd className="min-w-0 break-words text-right text-text-strong">{value}</dd>
           </div>

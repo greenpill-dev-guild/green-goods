@@ -130,7 +130,7 @@ export function ReviewStep({ form, steps, status, onEditStep }: ReviewStepProps)
                   return (
                     <li key={index}>
                       <span className="block">{outcome.description}</span>
-                      <span className="block body-xs text-text-sub">
+                      <span className="block type-meta text-text-sub">
                         {metric ? `${metric.label} · ${target} ${metric.unit}` : target}
                       </span>
                     </li>

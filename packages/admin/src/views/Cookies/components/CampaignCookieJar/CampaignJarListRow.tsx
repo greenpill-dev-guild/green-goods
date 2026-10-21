@@ -62,7 +62,7 @@ export function CampaignJarListRow({
         <div className="flex flex-wrap items-center gap-2">
           <AdminCardTitle className="truncate">{title}</AdminCardTitle>
           {hasDetailReadFailure ? (
-            <span className="rounded-full bg-error-lighter px-2 py-0.5 text-label-sm text-error-dark">
+            <span className="rounded-full bg-error-lighter px-2 py-0.5 type-meta-sm text-error-dark">
               {formatMessage({
                 id: "cockpit.community.cookies.needsReview",
                 defaultMessage: "Needs review",
@@ -70,10 +70,8 @@ export function CampaignJarListRow({
             </span>
           ) : null}
         </div>
-        {description ? (
-          <p className="line-clamp-2 text-body-sm text-text-sub">{description}</p>
-        ) : null}
-        <p className="flex flex-wrap gap-x-2 gap-y-1 text-label-sm text-text-sub">
+        {description ? <p className="line-clamp-2 type-meta text-text-sub">{description}</p> : null}
+        <p className="flex flex-wrap gap-x-2 gap-y-1 type-meta-sm text-text-sub">
           <span>
             <EnsAddressText address={campaign.address} />
           </span>
@@ -82,8 +80,8 @@ export function CampaignJarListRow({
         </p>
       </div>
       <div className="flex flex-col justify-center gap-1 text-left sm:text-right">
-        <p className="text-title-sm font-semibold text-text-strong">{balanceLabel}</p>
-        <p className="text-label-sm text-text-sub">
+        <p className="type-title-sm font-semibold text-text-strong">{balanceLabel}</p>
+        <p className="type-meta-sm text-text-sub">
           {formatMessage({
             id: "cockpit.community.cookies.rowBalance",
             defaultMessage: "Jar balance",

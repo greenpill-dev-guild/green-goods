@@ -34,14 +34,14 @@ export function VaultContractDetails({ gardenAddress }: VaultContractDetailsProp
 
   const rowClass = "py-2";
   const linkClass =
-    "mt-0.5 inline-flex items-center gap-1 body-xs text-primary-dark hover:underline";
+    "mt-0.5 inline-flex items-center gap-1 type-meta text-primary-dark hover:underline";
 
   return (
     <AdminCard density="none">
       <AdminCardHeader>
         <div>
           <AdminCardTitle>{formatMessage({ id: "app.explorer.contractDetails" })}</AdminCardTitle>
-          <p className="mt-1 body-sm text-text-sub">
+          <p className="mt-1 type-body text-text-sub">
             {formatMessage({ id: "app.explorer.contractDetailsDescription" })}
           </p>
         </div>
@@ -50,7 +50,7 @@ export function VaultContractDetails({ gardenAddress }: VaultContractDetailsProp
         <dl className="divide-y divide-stroke-soft">
           {vaults.map((vault) => (
             <div key={`contract-${vault.id}`} className={rowClass}>
-              <dt className="body-xs text-text-soft">
+              <dt className="type-meta text-text-soft">
                 {getVaultAssetSymbol(vault.asset, vault.chainId)}{" "}
                 {formatMessage({ id: "app.explorer.vault" })}
               </dt>
@@ -69,7 +69,7 @@ export function VaultContractDetails({ gardenAddress }: VaultContractDetailsProp
           ))}
           {octantModuleAddress && !isZeroAddress(octantModuleAddress) && (
             <div className={rowClass}>
-              <dt className="body-xs text-text-soft">
+              <dt className="type-meta text-text-soft">
                 {formatMessage({ id: "app.explorer.vaultRegistry" })}
               </dt>
               <dd>
@@ -87,7 +87,7 @@ export function VaultContractDetails({ gardenAddress }: VaultContractDetailsProp
           )}
           {AAVE_V3_POOL[chainId] && (
             <div className={rowClass}>
-              <dt className="body-xs text-text-soft">
+              <dt className="type-meta text-text-soft">
                 {formatMessage({ id: "app.explorer.aavePool" })}
               </dt>
               <dd>

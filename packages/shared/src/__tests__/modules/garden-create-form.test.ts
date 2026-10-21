@@ -13,8 +13,8 @@ import {
   createDefaultGardenForm,
   createGardenSchema,
   gardenStepFields,
-} from "../../../hooks/garden/useCreateGardenForm";
-import { Domain } from "../../../types/domain";
+} from "../../modules/garden/create-form";
+import { Domain } from "../../types/domain";
 
 // ============================================
 // Test Helpers

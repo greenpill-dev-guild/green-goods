@@ -247,7 +247,7 @@ export function PoolCommitmentsCard({
                   key={row.jobId}
                   className={`flex flex-wrap items-center gap-2 py-2 ps-3 ${directionEdgeClass(row.direction)}`}
                 >
-                  <span className="truncate text-body-md text-text-strong" title={row.title ?? ""}>
+                  <span className="truncate type-body text-text-strong" title={row.title ?? ""}>
                     {row.title ??
                       formatMessage({
                         id: "cockpit.garden.pool.queued.untitled",
@@ -257,7 +257,7 @@ export function PoolCommitmentsCard({
                   <StatusBadge variant={chip.variant} size="sm">
                     {chip.label}
                   </StatusBadge>
-                  <span className="body-xs text-text-soft">
+                  <span className="type-meta text-text-soft">
                     {`${row.targetUnits} ${row.unitLabel}`}
                   </span>
                   <span className="ml-auto flex items-center gap-1.5">
@@ -303,13 +303,13 @@ export function PoolCommitmentsCard({
                   </span>
                   <div className="basis-full">
                     {row.settlementDeferred ? (
-                      <p className="body-xs text-text-soft">
+                      <p className="type-meta text-text-soft">
                         {formatMessage({ id: "app.pool.queued.settlementDeferredNote" })}
                       </p>
                     ) : null}
                     {!row.hasRecordedSend &&
                     isPastDeadline(row.groupDueDate ? BigInt(row.groupDueDate) : null, now) ? (
-                      <p className="body-xs text-text-soft">
+                      <p className="type-meta text-text-soft">
                         {formatMessage({
                           id: "cockpit.garden.pool.add.expired",
                           defaultMessage:
@@ -341,7 +341,7 @@ export function PoolCommitmentsCard({
                 defaultMessage: "No promises yet",
               })}
             </AdminCardTitle>
-            <p className="max-w-sm body-sm text-text-soft">
+            <p className="max-w-sm type-body text-text-soft">
               {formatMessage({
                 id: "cockpit.garden.pool.commitments.emptyBody",
                 defaultMessage:
@@ -350,7 +350,7 @@ export function PoolCommitmentsCard({
             </p>
           </div>
         ) : rows.length === 0 ? (
-          <p className="flex min-h-24 items-center justify-center text-center body-sm text-text-soft">
+          <p className="flex min-h-24 items-center justify-center text-center type-body text-text-soft">
             {search.trim()
               ? formatMessage({
                   id: "cockpit.garden.pool.commitments.noMatch",
@@ -409,10 +409,10 @@ export function PoolCommitmentsCard({
                   >
                     <span className="min-w-0 flex-1">
                       <span className="flex flex-wrap items-center gap-2">
-                        <span className="whitespace-nowrap body-xs text-text-soft">
+                        <span className="whitespace-nowrap type-meta text-text-soft">
                           {directionLabel(commitment.direction, formatMessage)}
                         </span>
-                        <span className="truncate text-body-md text-text-strong" title={title}>
+                        <span className="truncate type-body text-text-strong" title={title}>
                           {title}
                         </span>
                         <StatusBadge variant={chip.variant} size="sm">
@@ -427,7 +427,7 @@ export function PoolCommitmentsCard({
                           </StatusBadge>
                         ) : null}
                       </span>
-                      <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 body-xs text-text-soft">
+                      <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 type-meta text-text-soft">
                         {/* The "who" leg reads as people, not infrastructure. */}
                         <CommitmentPeople commitment={commitment} />
                         <span>· {amount}</span>
@@ -460,7 +460,7 @@ export function PoolCommitmentsCard({
         )}
 
         {focus === "pastDue" && rows.length > 0 ? (
-          <p className="body-xs text-text-soft">
+          <p className="type-meta text-text-soft">
             {formatMessage({
               id: "cockpit.garden.pool.commitments.dueNote",
               defaultMessage:

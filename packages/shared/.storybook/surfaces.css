@@ -132,6 +132,39 @@
   --gg-icon-size-sm: 2rem;
   --gg-icon-size-compact: 1.75rem;
   --gg-hit-block: 2.75rem;
+
+  /* The type roles at the cockpit's density, as index.css `:root` sets them,
+     with its 640px media rule for field text below. */
+  --gg-type-title-lg-size: 1.375rem;
+  --gg-type-title-lg-line: 1.75rem;
+  --gg-type-title-md-size: 1rem;
+  --gg-type-title-md-line: 1.5rem;
+  --gg-type-title-sm-size: 0.875rem;
+  --gg-type-title-sm-line: 1.25rem;
+  --gg-type-body-size: 0.875rem;
+  --gg-type-body-line: 1.25rem;
+  --gg-type-body-tracking: -0.006em;
+  --gg-type-label-size: 0.875rem;
+  --gg-type-label-line: 1.25rem;
+  --gg-type-label-tracking: -0.006em;
+  --gg-type-label-sm-size: 0.75rem;
+  --gg-type-label-sm-line: 1rem;
+  --gg-type-label-sm-weight: 500;
+  --gg-type-label-sm-tracking: 0px;
+  --gg-type-meta-size: 0.75rem;
+  --gg-type-meta-line: 1rem;
+  --gg-type-meta-sm-size: 0.6875rem;
+  --gg-type-meta-sm-line: 1rem;
+  --gg-type-field-size: 1rem;
+  --gg-type-field-line: 1.25rem;
+  --gg-type-field-tracking: 0px;
+}
+
+@media (min-width: 40rem) {
+  :root[data-surface="admin"],
+  [data-surface-scope="admin"] {
+    --gg-type-field-size: 0.875rem;
+  }
 }
 
 :root[data-surface="admin"][data-theme="dark"],

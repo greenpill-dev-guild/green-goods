@@ -175,7 +175,7 @@ jobs:
 
       - name: Upload client PWA token audit
         if: ${{ always() && !cancelled() && steps.pwa_audit_file.outputs.present == 'true' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: client-pwa-token-audit
           path: output/design/client-pwa-token-audit.md
@@ -195,7 +195,7 @@ jobs:
         run: bun run --filter @green-goods/shared build-storybook
 
       - name: Upload Storybook artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: storybook-static
           path: packages/shared/storybook-static

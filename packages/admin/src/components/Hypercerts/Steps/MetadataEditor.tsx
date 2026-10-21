@@ -111,10 +111,10 @@ export function MetadataEditor({
         <div className="flex items-start gap-3 rounded-lg border border-primary-light bg-primary-lighter/30 p-3">
           <RiFileTextLine className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary-base" />
           <div className="min-w-0 flex-1">
-            <p className="body-sm font-medium text-primary-dark">
+            <p className="type-body font-medium text-primary-dark">
               {formatMessage({ id: "app.hypercerts.metadata.prefilled.title" })}
             </p>
-            <p className="mt-0.5 body-xs text-primary-dark/70">
+            <p className="mt-0.5 type-meta text-primary-dark/70">
               {formatMessage(
                 { id: "app.hypercerts.metadata.prefilled.description" },
                 { assessmentTitle: selectedAssessment.title }
@@ -161,7 +161,7 @@ export function MetadataEditor({
           />
           {availableSuggestedScopes.length > 0 && (
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="body-sm text-text-sub">
+              <span className="type-body text-text-sub">
                 {formatMessage({ id: "app.hypercerts.metadata.workScope.suggestedLabel" })}
               </span>
               {availableSuggestedScopes.map((scope) => (
@@ -194,14 +194,14 @@ export function MetadataEditor({
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <p className="body-sm font-semibold text-text-strong flex items-center gap-1.5">
+            <p className="type-body font-semibold text-text-strong flex items-center gap-1.5">
               <RiCalendarLine className="h-4 w-4" />
               {formatMessage({ id: "app.hypercerts.metadata.workTimeframe" })}
               <span className="text-error-base" aria-hidden="true">
                 *
               </span>
             </p>
-            <p className="body-xs text-text-sub">
+            <p className="type-meta text-text-sub">
               {formatMessage({ id: "app.hypercerts.metadata.workTimeframe.helper" })}
             </p>
           </div>
@@ -226,10 +226,10 @@ export function MetadataEditor({
         {/* Suggested dates preview */}
         {suggestedStart && suggestedEnd && (
           <div className="rounded-lg border border-stroke-soft bg-bg-weak/50 p-3">
-            <p className="body-xs text-text-sub mb-1">
+            <p className="type-meta text-text-sub mb-1">
               {formatMessage({ id: "app.hypercerts.metadata.suggestedFromAttestations" })}
             </p>
-            <p className="body-sm font-medium text-text-strong">
+            <p className="type-body font-medium text-text-strong">
               {formatTimeframeDay(intl, suggestedStart)} → {formatTimeframeDay(intl, suggestedEnd)}
             </p>
           </div>
@@ -265,7 +265,7 @@ export function MetadataEditor({
         {workInOrder && (draft.workTimeframeStart > 0 || draft.workTimeframeEnd > 0) && (
           <div className="flex items-center gap-2 rounded-lg border border-primary-light bg-primary-lighter/30 px-3 py-2">
             <RiCheckLine className="h-4 w-4 text-primary-base" />
-            <span className="body-sm text-primary-dark">
+            <span className="type-body text-primary-dark">
               {formatTimeframeDay(intl, draft.workTimeframeStart)} →{" "}
               {formatTimeframeDay(intl, draft.workTimeframeEnd)}
             </span>
@@ -276,14 +276,14 @@ export function MetadataEditor({
       {/* Impact Timeframe Section (Optional) */}
       <div className="space-y-3">
         <div>
-          <p className="body-sm font-semibold text-text-strong flex items-center gap-1.5">
+          <p className="type-body font-semibold text-text-strong flex items-center gap-1.5">
             <RiCalendarLine className="h-4 w-4" />
             {formatMessage({ id: "app.hypercerts.metadata.impactTimeframe" })}
-            <span className="body-xs font-normal text-text-sub ml-1">
+            <span className="type-meta font-normal text-text-sub ml-1">
               ({formatMessage({ id: "app.form.optional" })})
             </span>
           </p>
-          <p className="body-xs text-text-sub">
+          <p className="type-meta text-text-sub">
             {formatMessage({ id: "app.hypercerts.metadata.impactTimeframe.helper" })}
           </p>
         </div>
@@ -340,7 +340,7 @@ export function MetadataEditor({
               }
               title={sdgName}
               leadingVisual={
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-bg-sub text-label-sm font-bold text-text-sub">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-bg-sub type-meta-sm font-bold text-text-sub">
                   {value}
                 </span>
               }

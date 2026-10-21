@@ -94,9 +94,9 @@ function RightSheetRegistryHarness({ initialContentId }: RightSheetRegistryHarne
       <main className="main-scroll-area flex h-full flex-col gap-4 p-6">
         <section className="surface-section space-y-4">
           <div>
-            <p className="text-label-sm uppercase text-text-soft">Registered right sheets</p>
-            <h2 className="text-title-md text-text-strong">Account and notifications inspector</h2>
-            <p className="mt-2 max-w-xl text-body-md text-text-sub">
+            <p className="type-meta-sm uppercase text-text-soft">Registered right sheets</p>
+            <h2 className="type-title-md text-text-strong">Account and notifications inspector</h2>
+            <p className="mt-2 max-w-xl type-body text-text-sub">
               Opens the same descriptor hook used by CanvasLayout, then renders the resolved content
               in the AdminSideSheet — the three global AppBar surfaces are the only sanctioned side
               sheets.
@@ -116,13 +116,13 @@ function RightSheetRegistryHarness({ initialContentId }: RightSheetRegistryHarne
             <button
               type="button"
               onClick={() => setContentId(null)}
-              className="rounded-lg border border-stroke-soft px-4 py-2 body-sm font-medium text-text-sub transition-colors hover:bg-bg-soft"
+              className="rounded-lg border border-stroke-soft px-4 py-2 type-body font-medium text-text-sub transition-colors hover:bg-bg-soft"
             >
               Close sheet
             </button>
           </div>
 
-          <dl className="grid gap-3 body-sm text-text-sub sm:grid-cols-3">
+          <dl className="grid gap-3 type-body text-text-sub sm:grid-cols-3">
             <div className="surface-inset p-3">
               <dt className="font-medium text-text-strong">Current content</dt>
               <dd data-testid="right-sheet-current">{contentId ?? "none"}</dd>

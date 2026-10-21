@@ -51,7 +51,7 @@ export function MarketplaceApprovalGate({ chainId, children }: MarketplaceApprov
           )}
         </p>
         {readiness.missingFields.length > 0 && (
-          <p className="mt-2 body-xs">
+          <p className="mt-2 type-meta">
             {formatMessage(
               {
                 id: "app.marketplace.unavailable.missingFields",
@@ -92,7 +92,7 @@ function ApprovalGateInner({ children }: { children: React.ReactNode }) {
     return (
       <div className="flex items-center justify-center gap-2 rounded-lg border border-stroke-soft bg-bg-white p-8">
         <RiLoader4Line className="h-5 w-5 animate-spin text-text-soft" />
-        <span className="body-sm text-text-soft">
+        <span className="type-body text-text-soft">
           {formatMessage({
             id: "app.marketplace.checkingApprovals",
             defaultMessage: "Checking marketplace approvals...",
@@ -111,13 +111,13 @@ function ApprovalGateInner({ children }: { children: React.ReactNode }) {
       <div className="flex items-start gap-3">
         <RiAlertLine className="mt-0.5 h-5 w-5 shrink-0 text-warning-dark" />
         <div className="min-w-0 flex-1">
-          <h3 className="body-sm font-semibold text-text-strong">
+          <h3 className="type-body font-semibold text-text-strong">
             {formatMessage({
               id: "app.marketplace.setupRequired",
               defaultMessage: "Marketplace Setup Required",
             })}
           </h3>
-          <p className="mt-1 body-sm text-text-sub">
+          <p className="mt-1 type-body text-text-sub">
             {formatMessage({
               id: "app.marketplace.setupDescription",
               defaultMessage:
@@ -151,7 +151,7 @@ function ApprovalGateInner({ children }: { children: React.ReactNode }) {
           </div>
 
           {isPending && (
-            <p role="status" className="mt-3 body-xs text-text-soft">
+            <p role="status" className="mt-3 type-meta text-text-soft">
               {formatMessage({ id: "app.account.transactionPending" })}
             </p>
           )}
@@ -198,13 +198,13 @@ function ApprovalGateInner({ children }: { children: React.ReactNode }) {
                       : "app.marketplace.approveTransfer",
                 })}
                 {pendingReference && (
-                  <code className="ml-2 break-all body-xs">{pendingReference}</code>
+                  <code className="ml-2 break-all type-meta">{pendingReference}</code>
                 )}
               </span>
             }
             variant="warning"
           />
-          {error && <p className="mt-3 body-xs text-error-base">{error.message}</p>}
+          {error && <p className="mt-3 type-meta text-error-base">{error.message}</p>}
 
           <AdminButton
             type="button"
@@ -242,11 +242,11 @@ function ApprovalStep({
       </div>
       <div className="min-w-0">
         <span
-          className={`body-sm font-medium ${approved ? "text-text-soft line-through" : "text-text-strong"}`}
+          className={`type-body font-medium ${approved ? "text-text-soft line-through" : "text-text-strong"}`}
         >
           {label}
         </span>
-        <p className="body-xs text-text-soft">{description}</p>
+        <p className="type-meta text-text-soft">{description}</p>
       </div>
     </div>
   );

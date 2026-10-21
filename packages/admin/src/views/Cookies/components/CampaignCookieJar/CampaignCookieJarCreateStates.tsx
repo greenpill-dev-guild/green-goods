@@ -24,20 +24,20 @@ export function CampaignCookieJarCreatedState({ jarAddress }: { jarAddress: Addr
     <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
       <div className="space-y-3 rounded-[var(--m3-shape-md)] border border-stroke-soft bg-bg-white-0 p-4">
         <div>
-          <p className="text-label-md text-text-strong">
+          <p className="type-label-sm text-text-strong">
             {formatMessage({
               id: "cockpit.community.cookies.jarAddress",
               defaultMessage: "Jar address",
             })}
           </p>
-          <p className="mt-1 break-all text-body-sm text-text-sub">
+          <p className="mt-1 break-all type-meta text-text-sub">
             <EnsAddressText address={jarAddress} />
           </p>
           <a
             href={publicUrl}
             target="_blank"
             rel="noreferrer"
-            className="mt-2 inline-flex items-center gap-1 break-all text-label-md text-primary-dark underline-offset-4 hover:underline"
+            className="mt-2 inline-flex items-center gap-1 break-all type-label-sm text-primary-dark underline-offset-4 hover:underline"
           >
             {publicUrl}
             <RiExternalLinkLine className="h-4 w-4 shrink-0" aria-hidden />
@@ -60,7 +60,7 @@ export function CampaignCookieJarCreatedState({ jarAddress }: { jarAddress: Addr
           })}
         </AdminCardTitle>
         {isLoading ? (
-          <p className="text-body-sm text-text-sub">
+          <p className="type-meta text-text-sub">
             {formatMessage({
               id: "cockpit.community.cookies.onchainReadLoading",
               defaultMessage: "Reading jar details...",
@@ -91,7 +91,7 @@ export function CampaignCookieJarCreatedState({ jarAddress }: { jarAddress: Addr
             />
           </div>
         ) : (
-          <p className="text-body-sm text-error-dark">
+          <p className="type-meta text-error-dark">
             {formatMessage({
               id: "cockpit.community.cookies.onchainReadUnavailable",
               defaultMessage:
@@ -100,7 +100,7 @@ export function CampaignCookieJarCreatedState({ jarAddress }: { jarAddress: Addr
           </p>
         )}
         {hasDetailReadFailure ? (
-          <p className="text-body-sm text-text-sub">
+          <p className="type-meta text-text-sub">
             {formatMessage({
               id: "cockpit.community.cookies.onchainReadPartial",
               defaultMessage:
@@ -136,13 +136,13 @@ export function CampaignCookieJarSubmittedState({
   return (
     <div className="space-y-4">
       <div className="rounded-[var(--m3-shape-md)] border border-stroke-soft bg-bg-white-0 p-4">
-        <p className="text-label-md text-text-strong">
+        <p className="type-label-sm text-text-strong">
           {formatMessage({
             id: "cockpit.community.cookies.submittedTransaction",
             defaultMessage: "Submitted transaction",
           })}
         </p>
-        <p className="mt-1 break-all text-body-sm text-text-sub">{hash}</p>
+        <p className="mt-1 break-all type-meta text-text-sub">{hash}</p>
       </div>
       <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
         <AdminTextField

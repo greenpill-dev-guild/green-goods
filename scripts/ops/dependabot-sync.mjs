@@ -67,6 +67,9 @@ export function alignPins(before, after) {
         const pin = version(current);
         const rootPin = file === "package.json";
         const sameLine = pin.number[0] === target.after.number[0];
+        if (rootPin && ["overrides", "resolutions"].includes(section) && !sameLine) {
+          throw new Error(`Root ${section}.${name} conflicts with ${target.after.text}; maintainer alignment required`);
+        }
         if (!target.previous.has(pin.text) && !(rootPin && sameLine)) continue;
         if (order(pin, target.after) > 0) throw new Error(`Refusing to downgrade ${file}:${name}`);
         manifest[section][name] = `${pin.prefix}${target.after.text}`;
@@ -79,9 +82,9 @@ export function alignPins(before, after) {
 export function assertDependabotPr(pr, repository) {
   if (pr.state !== "open" || pr.user?.login !== "dependabot[bot]" ||
       pr.head?.repo?.full_name !== repository || pr.base?.repo?.full_name !== repository ||
-      !/^dependabot\/(?:npm_and_yarn|bun)\//.test(pr.head?.ref ?? "") ||
+      !/^dependabot\/(?:npm_and_yarn|bun|github_actions)\//.test(pr.head?.ref ?? "") ||
       !/^[a-f0-9]{40}$/.test(pr.head?.sha ?? "")) {
-    throw new Error("Expected an open, same-repository Dependabot package PR");
+    throw new Error("Expected an open, same-repository Dependabot dependency PR");
   }
 }
 
@@ -92,7 +95,15 @@ export function syncPaths(root) {
   // supplied by a PR or artifact. The existing docs generator owns this inventory.
   const generated = tracked.filter((file) => file.startsWith("docs/") && /\.(?:mdx|json)$/.test(file))
     .filter((file) => /^(?:generator: scripts\/docs\/generate\.mjs|  "generator": "scripts\/docs\/generate\.mjs",?)$/m.test(readFileSync(resolve(root, file), "utf8")));
-  return { manifests, allowed: new Set([...manifests, "bun.lock", ...generated]) };
+  const actions = tracked.filter((file) => /^\.github\/(?:workflows\/[^/]+\.ya?ml|actions\/.+\/action\.ya?ml)$/.test(file));
+  return { manifests, generated, actions, allowed: new Set([...manifests, "bun.lock", ...generated]) };
+}
+
+export function assertActionUpdates(before, after) {
+  // Accept only the pinned commit in an existing uses entry. Permissions, shell
+  // steps, action identities, comments and floating refs need maintainer review.
+  const normalize = (source) => source.replace(/^([ \t]*(?:-[ \t]+)?uses:[ \t]+[\w./-]+@)[a-f0-9]{40}([ \t]*(?:#.*)?)$/gm, "$1<commit>$2");
+  if (normalize(before) !== normalize(after)) throw new Error("Only pinned action commit updates are eligible");
 }
 
 function assertRegular(root, file) {
@@ -111,13 +122,16 @@ export function prepareSync({ root, trustedRoot, event, output, run = execFileSy
       git(trustedRoot, "rev-parse", "HEAD").trim() !== pr.base.sha) throw new Error("Checkout does not match the event");
   if (git(root, "status", "--porcelain").trim()) throw new Error("Candidate checkout must be clean");
   const baseline = git(root, "merge-base", "HEAD", pr.base.sha).trim();
-  const { manifests, allowed } = syncPaths(trustedRoot);
+  const { manifests, generated, actions, allowed } = syncPaths(trustedRoot);
+  const actionPr = pr.head.ref.startsWith("dependabot/github_actions/");
+  const eligible = actionPr ? new Set([...actions, ...generated]) : allowed;
   const changes = git(root, "diff", "--name-status", "--no-renames", baseline, "HEAD").trim().split("\n").filter(Boolean);
   for (const change of changes) {
     const [status, file] = change.split("\t");
-    if (status !== "M" || !allowed.has(file)) throw new Error(`Unexpected PR change: ${change}`);
+    if (status !== "M" || !eligible.has(file)) throw new Error(`Unexpected PR change: ${change}`);
     assertRegular(root, file);
     if (git(root, "ls-tree", "HEAD", "--", file).split(" ")[0] !== "100644") throw new Error(`Unexpected file mode: ${file}`);
+    if (actions.includes(file)) assertActionUpdates(git(root, "show", `${baseline}:${file}`), readFileSync(resolve(root, file), "utf8"));
   }
   const before = Object.fromEntries(manifests.map((file) => [file, JSON.parse(git(root, "show", `${baseline}:${file}`))]));
   const after = Object.fromEntries(manifests.map((file) => [file, readJson(root, file)]));

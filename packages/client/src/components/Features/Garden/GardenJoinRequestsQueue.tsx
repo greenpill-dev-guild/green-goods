@@ -5,7 +5,10 @@ import {
   useGardenJoinRequests,
 } from "@green-goods/shared/hooks/garden/useGardenJoinRequests";
 import { useGardenOperations } from "@green-goods/shared/hooks/garden/useGardenOperations";
-import { gardenJoinRequestErrorMessage } from "@green-goods/shared/modules/garden-join-requests";
+import {
+  gardenJoinRequestErrorMessage,
+  welcomeGardenJoinRequest,
+} from "@green-goods/shared/modules/garden-join-requests";
 import {
   GARDEN_JOIN_REQUEST_REASON_MAX_LENGTH,
   type GardenJoinRequestQueueItem,
@@ -42,22 +45,15 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
     setNotice(undefined);
     setLocalError(undefined);
     try {
-      const transaction = await operations.addGardener(request.accountAddress, {
-        trackMemberAnalytics: false,
+      const resolution = await welcomeGardenJoinRequest({
+        request,
+        assignRole: operations.addGardener,
+        resolveRequest: join.resolveRequest,
+        failureMessage: formatMessage({
+          id: "app.garden.joinQueue.membershipAddFailed",
+          defaultMessage: "Membership could not be added.",
+        }),
       });
-      const resolution = await join.resolveRequest(request.id, {
-        action: "welcome",
-        expectedRevision: request.revision,
-      });
-      if (!transaction.success && resolution.pendingOnchainMembership) {
-        throw new Error(
-          transaction.error?.message ??
-            formatMessage({
-              id: "app.garden.joinQueue.membershipAddFailed",
-              defaultMessage: "Membership could not be added.",
-            })
-        );
-      }
       setNotice(
         resolution.pendingOnchainMembership
           ? formatMessage({

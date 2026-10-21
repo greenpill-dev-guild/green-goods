@@ -367,9 +367,12 @@ A `ServiceDesk` per issuer, Safe-owned, on Gnosis:
   Safe, undelivered units return to the holder, `Discharged(id, deliveredUnits)` is emitted.
 - `remedy(id, reasonRef)` by the operator returns all units and records the failure. Partial
   delivery is units, not a flag.
-- Returned and discharged credits sit with the Safe, which owns the token and can `burn()` its
-  own balance or re-issue within the cap. `issued - burned` is the outstanding obligation figure;
-  the desk's `Discharged` events are the service-delivery figure. A swap or a transfer is neither.
+- Delivered/discharged units sit with the issuer Safe; remedy refunds and undelivered units return
+  to the holder. Only issuer-received units fall under COM-46's undecided burn/lock/reuse policy.
+  The Safe's owner-only burn authority does not cover the holder's refunded balance. Token supply
+  (`issued - burned`) is separate from outstanding service obligations, which must reconcile
+  presentment, confirmed delivery, remedy and the chosen disposal terms. A swap or transfer alone
+  proves no service delivery. This correction follows the current spec's full/partial settlement rule.
 
 This keeps the published burn authority intact: only the owner burns, only its own balance, and
 the issuer never needs burn rights.

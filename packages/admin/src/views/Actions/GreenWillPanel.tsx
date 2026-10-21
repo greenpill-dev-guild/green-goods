@@ -140,8 +140,8 @@ export function GreenWillPanel() {
 
   const badgeLookupFeedbackClassName =
     badgeLookupFeedback.tone === "error"
-      ? "text-body-md text-error-dark"
-      : "text-body-md text-text-sub-600";
+      ? "type-body text-error-dark"
+      : "type-body text-text-sub-600";
 
   return (
     <AdminCard variant="filled" density="compact" className="flex flex-col gap-4">
@@ -156,7 +156,7 @@ export function GreenWillPanel() {
               defaultMessage: "GreenWill",
             })}
           </AdminCardTitle>
-          <p className="text-body-md text-text-sub-600">
+          <p className="type-body text-text-sub-600">
             {intl.formatMessage({
               id: "admin.greenWill.description",
               defaultMessage:
@@ -169,13 +169,13 @@ export function GreenWillPanel() {
       <div className="grid gap-4 xl:grid-cols-2">
         <AdminCard variant="filled" density="compact" className="flex flex-col gap-3">
           <div className="flex items-center justify-between gap-3">
-            <h3 className="text-body-md font-medium text-text-strong-950">
+            <h3 className="type-body font-medium text-text-strong-950">
               {intl.formatMessage({
                 id: "admin.greenWill.registry",
                 defaultMessage: "Registry",
               })}
             </h3>
-            <span className="text-body-sm text-text-sub-600">
+            <span className="type-meta text-text-sub-600">
               {intl.formatMessage(
                 {
                   id: "admin.greenWill.definitionCount",
@@ -187,14 +187,14 @@ export function GreenWillPanel() {
           </div>
 
           {isDefinitionsLoading ? (
-            <p className="text-body-md text-text-sub-600">
+            <p className="type-body text-text-sub-600">
               {intl.formatMessage({
                 id: "admin.greenWill.loadingDefinitions",
                 defaultMessage: "Loading badge definitions...",
               })}
             </p>
           ) : isDefinitionsError ? (
-            <p className="text-body-md text-error-dark">
+            <p className="type-body text-error-dark">
               {intl.formatMessage({
                 id: "admin.greenWill.definitionsError",
                 defaultMessage: "Could not load GreenWill badge definitions.",
@@ -208,12 +208,12 @@ export function GreenWillPanel() {
                   className="flex items-center justify-between gap-3 rounded-lg border border-stroke-soft-200 bg-bg-white-0 px-3 py-2"
                 >
                   <div>
-                    <p className="text-body-md font-medium text-text-strong-950">
+                    <p className="type-body font-medium text-text-strong-950">
                       {badgeTitle(intl, definition.slug)}
                     </p>
-                    <p className="text-body-sm text-text-sub-600">{definition.slug}</p>
+                    <p className="type-meta text-text-sub-600">{definition.slug}</p>
                   </div>
-                  <div className="text-right text-body-sm text-text-sub-600">
+                  <div className="text-right type-meta text-text-sub-600">
                     <p>
                       {intl.formatMessage(
                         {
@@ -240,7 +240,7 @@ export function GreenWillPanel() {
         </AdminCard>
 
         <AdminCard variant="filled" density="compact" className="flex flex-col gap-3">
-          <h3 className="text-body-md font-medium text-text-strong-950">
+          <h3 className="type-body font-medium text-text-strong-950">
             {intl.formatMessage({
               id: "admin.greenWill.recentGrants",
               defaultMessage: "Recent grants",
@@ -248,14 +248,14 @@ export function GreenWillPanel() {
           </h3>
 
           {isGrantsLoading ? (
-            <p className="text-body-md text-text-sub-600">
+            <p className="type-body text-text-sub-600">
               {intl.formatMessage({
                 id: "admin.greenWill.loadingGrants",
                 defaultMessage: "Loading recent grants...",
               })}
             </p>
           ) : isGrantsError ? (
-            <p className="text-body-md text-error-dark">
+            <p className="type-body text-error-dark">
               {intl.formatMessage({
                 id: "admin.greenWill.grantsError",
                 defaultMessage: "Could not load GreenWill grant history.",
@@ -268,10 +268,10 @@ export function GreenWillPanel() {
                   key={grant.id}
                   className="rounded-lg border border-stroke-soft-200 bg-bg-white-0 px-3 py-2"
                 >
-                  <p className="text-body-md font-medium text-text-strong-950">
+                  <p className="type-body font-medium text-text-strong-950">
                     <EnsAddressText address={grant.owner as Address} />
                   </p>
-                  <p className="text-body-sm text-text-sub-600">
+                  <p className="type-meta text-text-sub-600">
                     {badgeTitle(
                       intl,
                       badgeDefinitions.find((definition) => definition.badgeId === grant.badgeId)
@@ -288,7 +288,7 @@ export function GreenWillPanel() {
       </div>
 
       <AdminCard variant="filled" density="compact" className="flex flex-col gap-3">
-        <h3 className="text-body-md font-medium text-text-strong-950">
+        <h3 className="type-body font-medium text-text-strong-950">
           {intl.formatMessage({
             id: "admin.greenWill.lookup",
             defaultMessage: "Address lookup",
@@ -328,10 +328,10 @@ export function GreenWillPanel() {
                 key={badge.badgeId}
                 className="rounded-lg border border-stroke-soft-200 bg-bg-white-0 px-3 py-2"
               >
-                <p className="text-body-md font-medium text-text-strong-950">
+                <p className="type-body font-medium text-text-strong-950">
                   {badgeTitle(intl, badge.slug)}
                 </p>
-                <p className="text-body-sm text-text-sub-600">
+                <p className="type-meta text-text-sub-600">
                   {intl.formatMessage(
                     {
                       id: "admin.greenWill.lookupIssuedAt",

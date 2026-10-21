@@ -67,7 +67,7 @@ function TopBarIconButton({
       <span
         className={cn(
           "pointer-events-none absolute -bottom-9 left-1/2 -translate-x-1/2 whitespace-nowrap",
-          "rounded-[var(--m3-shape-xs)] bg-[rgb(var(--m3-inverse-surface)/0.9)] px-2.5 py-1 text-label-md font-medium text-[rgb(var(--m3-inverse-on-surface))]",
+          "rounded-[var(--m3-shape-xs)] bg-[rgb(var(--m3-inverse-surface)/0.9)] px-2.5 py-1 type-label-sm font-medium text-[rgb(var(--m3-inverse-on-surface))]",
           "opacity-0 transition-opacity group-hover/icon:opacity-100",
           "motion-reduce:transition-none"
         )}
@@ -163,7 +163,7 @@ export function AppBar({
               >
                 <RiArrowLeftLine className="h-5 w-5" />
               </button>
-              <span className="truncate text-title-md text-text-strong" data-slot="sheet-label">
+              <span className="truncate type-title-md text-text-strong" data-slot="sheet-label">
                 {sheetContext.label}
               </span>
             </>

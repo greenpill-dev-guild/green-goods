@@ -362,8 +362,8 @@ export function ActionTranslationEditor({
         className={cn("space-y-3 border-l border-stroke-soft pl-3", depth > 0 && "ml-3")}
       >
         <div>
-          <p className="text-label-md font-semibold text-text-strong">{input.title}</p>
-          <p className="text-body-sm text-text-sub">
+          <p className="type-label-sm font-semibold text-text-strong">{input.title}</p>
+          <p className="type-meta text-text-sub">
             {input.key} / {input.type}
           </p>
         </div>
@@ -457,7 +457,7 @@ export function ActionTranslationEditor({
               })}
             </AdminCardTitle>
           </div>
-          <p className="mt-1 text-body-sm text-text-sub">
+          <p className="mt-1 type-meta text-text-sub">
             {formatMessage({
               id: "app.admin.actions.translations.description",
               defaultMessage:
@@ -481,7 +481,7 @@ export function ActionTranslationEditor({
       </div>
 
       {hasUnreviewedTranslations ? (
-        <p className="rounded-[var(--m3-shape-xs)] bg-warning-lighter px-3 py-2 text-body-sm text-warning-dark">
+        <p className="rounded-[var(--m3-shape-xs)] bg-warning-lighter px-3 py-2 type-meta text-warning-dark">
           {formatMessage({
             id: "app.admin.actions.translations.publishWarning",
             defaultMessage:
@@ -491,7 +491,7 @@ export function ActionTranslationEditor({
       ) : null}
 
       {activeRecord?.status === "stale" ? (
-        <p className="rounded-[var(--m3-shape-xs)] bg-error-lighter px-3 py-2 text-body-sm text-error-dark">
+        <p className="rounded-[var(--m3-shape-xs)] bg-error-lighter px-3 py-2 type-meta text-error-dark">
           {formatMessage({
             id: "app.admin.actions.translations.sourceChanged",
             defaultMessage:
@@ -536,7 +536,7 @@ export function ActionTranslationEditor({
         </AdminButton>
       </div>
 
-      {message ? <p className="text-body-sm text-text-sub">{message}</p> : null}
+      {message ? <p className="type-meta text-text-sub">{message}</p> : null}
 
       <div className="space-y-5">
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

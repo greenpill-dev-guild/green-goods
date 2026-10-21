@@ -136,16 +136,13 @@ export function ActionFlowShell({
           {context ? (
             <p
               data-region="action-flow-context"
-              className="truncate label-xs text-text-soft"
+              className="truncate type-label-sm text-text-soft"
               title={typeof context === "string" ? context : undefined}
             >
               {context}
             </p>
           ) : null}
-          <h1
-            className="truncate text-title-lg font-semibold leading-[var(--type-title-lg-lh)] text-text-strong"
-            title={title}
-          >
+          <h1 className="truncate type-title-lg font-semibold text-text-strong" title={title}>
             {title}
           </h1>
           {/* Mobile stepper — the desktop rail (below) takes over at lg. */}

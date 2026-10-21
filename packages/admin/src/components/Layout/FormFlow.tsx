@@ -57,7 +57,7 @@ export function FormFlow({
   const sectionsBlock = (
     <>
       {intro ? (
-        <div data-region="form-flow-intro" className="body-sm text-text-sub">
+        <div data-region="form-flow-intro" className="type-body text-text-sub">
           {intro}
         </div>
       ) : null}
@@ -77,18 +77,18 @@ export function FormFlow({
             className="overflow-hidden border border-stroke-soft-200"
           >
             <div className="flex items-start gap-3 border-b border-stroke-soft-200 px-4 py-3 sm:px-5 sm:py-4">
-              <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-full bg-bg-weak px-2 body-xs font-semibold text-text-sub">
+              <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-full bg-bg-weak px-2 type-meta font-semibold text-text-sub">
                 {String(index + 1).padStart(2, "0")}
               </span>
               <div className="min-w-0 flex-1">
                 <h2
                   id={`form-section-${section.id}-title`}
-                  className="text-label-lg font-semibold text-text-strong"
+                  className="type-label font-semibold text-text-strong"
                 >
                   {section.title}
                 </h2>
                 {section.description ? (
-                  <p className="mt-0.5 body-sm text-text-sub">{section.description}</p>
+                  <p className="mt-0.5 type-body text-text-sub">{section.description}</p>
                 ) : null}
               </div>
             </div>

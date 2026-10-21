@@ -1686,6 +1686,7 @@
         "packages/shared/src/hooks/cookie-jar/useCampaignCookieJar.ts",
         "packages/shared/src/hooks/cookie-jar/useCookieJarAdmin.ts",
         "packages/shared/src/hooks/cookie-jar/useCookieJarDeposit.ts",
+        "packages/shared/src/hooks/cookie-jar/useCookieJarDepositMutation.ts",
         "packages/shared/src/hooks/cookie-jar/useCookieJarWithdraw.ts",
         "packages/shared/src/hooks/ens/useENSClaim.ts",
         "packages/shared/src/hooks/ens/useENSReleaseName.ts",
@@ -1869,6 +1870,9 @@
     "prefixes": ["packages/shared/src/__tests__/test-utils/"]
   },
   "workflowRules": {
+    "Dependabot Sync": {
+      "pullRequestAuthor": "dependabot[bot]"
+    },
     "Admin": {
       "exact": [
         "package.json",

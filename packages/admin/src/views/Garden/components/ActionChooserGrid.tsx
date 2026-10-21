@@ -3,7 +3,7 @@ import { RiImageLine } from "@remixicon/react";
 import { type KeyboardEvent, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminSelectableCard } from "@/components/AdminSelectableCard";
-import { localizeActionForDisplay } from "@/views/Hub/actionDisplay";
+import { localizeActionForDisplay } from "@/components/Action/actionDisplay";
 
 /**
  * Capital → i18n label key. Reuses the action-authoring capital labels so the
@@ -32,7 +32,7 @@ export interface ActionChooserGridProps {
 
 // Warm Earth tag chip — matches the neutral chip used across admin views.
 const chipClass =
-  "inline-flex items-center gap-1 rounded-full bg-bg-soft px-2 py-0.5 text-label-sm font-medium text-text-sub";
+  "inline-flex items-center gap-1 rounded-full bg-bg-soft px-2 py-0.5 type-meta-sm font-medium text-text-sub";
 
 /**
  * ActionChooserGrid — the Choose step of Submit Work.

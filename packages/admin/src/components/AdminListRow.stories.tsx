@@ -52,10 +52,13 @@ export const RecentAssessments: Story = {
         <AdminListRow key={assessment.id} current={assessment.id === "soil"}>
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
-              <p className="truncate body-sm font-medium text-text-strong" title={assessment.title}>
+              <p
+                className="truncate type-body font-medium text-text-strong"
+                title={assessment.title}
+              >
                 {assessment.title}
               </p>
-              <p className="mt-0.5 body-xs text-text-soft">{assessment.date}</p>
+              <p className="mt-0.5 type-meta text-text-soft">{assessment.date}</p>
             </div>
             <RiArrowRightSLine className="mt-0.5 h-4 w-4 flex-shrink-0 text-text-disabled transition-colors group-hover:text-text-sub" />
           </div>

@@ -165,12 +165,12 @@ export function AdminSideSheet({
             className="shrink-0 border-b border-stroke-soft px-4 py-3 pr-14 sm:px-6 sm:pr-14"
           >
             <div className="min-w-0">
-              <Dialog.Title className="text-title-lg font-semibold leading-[var(--type-title-lg-lh)] text-[rgb(var(--m3-on-surface))]">
+              <Dialog.Title className="type-title-lg font-semibold text-[rgb(var(--m3-on-surface))]">
                 {title}
               </Dialog.Title>
               <Dialog.Description
                 className={cn(
-                  description ? "mt-0.5 body-sm" : "sr-only",
+                  description ? "mt-0.5 type-body" : "sr-only",
                   "text-[rgb(var(--m3-on-surface-variant))]"
                 )}
               >
@@ -184,7 +184,7 @@ export function AdminSideSheet({
           <div
             data-slot="content"
             data-testid="admin-side-sheet-content"
-            className="flex min-h-0 flex-1 flex-col text-body-md text-[rgb(var(--m3-on-surface-variant))]"
+            className="flex min-h-0 flex-1 flex-col type-body text-[rgb(var(--m3-on-surface-variant))]"
           >
             {children}
           </div>

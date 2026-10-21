@@ -74,14 +74,14 @@ export function PoolClaimsCard({ console: pool, onDecline, onOpen }: PoolClaimsC
           })}
         </AdminCardTitle>
         {approvals.rows.length === 0 ? (
-          <p className="mt-1 body-sm text-text-soft">
+          <p className="mt-1 type-body text-text-soft">
             {formatMessage({
               id: "cockpit.garden.pool.approvals.empty",
               defaultMessage: "Nothing to review.",
             })}
           </p>
         ) : (
-          <p className="mt-1 body-xs text-text-soft">{description}</p>
+          <p className="mt-1 type-meta text-text-soft">{description}</p>
         )}
       </div>
       {approvals.rows.length > 0 ? (

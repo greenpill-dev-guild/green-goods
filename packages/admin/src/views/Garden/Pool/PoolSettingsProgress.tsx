@@ -76,7 +76,7 @@ export function PoolSettingsProgress({
 
   return (
     <div className="space-y-2" data-testid="pool-settings-progress" data-status={status}>
-      <p className="text-body-md font-medium text-text-strong" aria-live="polite">
+      <p className="type-body font-medium text-text-strong" aria-live="polite">
         {line}
       </p>
       <SetupProgressList
@@ -105,7 +105,7 @@ export function PoolSettingsProgress({
         </Alert>
       ) : null}
       {stopped && isRetriablePoolSetupFailure(failure) ? (
-        <p className="flex items-center gap-1.5 body-xs text-text-soft">
+        <p className="flex items-center gap-1.5 type-meta text-text-soft">
           <RiShieldCheckLine className="h-3.5 w-3.5" aria-hidden />
           {retryPromptCount(total, formatMessage)}
         </p>

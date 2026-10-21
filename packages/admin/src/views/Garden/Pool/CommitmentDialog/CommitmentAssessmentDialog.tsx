@@ -94,7 +94,7 @@ export function CommitmentAssessmentDialog({
           })}
         />
       ) : assessments.length === 0 ? (
-        <p className="body-sm text-text-soft" data-testid="attach-assessment-empty">
+        <p className="type-body text-text-soft" data-testid="attach-assessment-empty">
           {formatMessage({
             id: "cockpit.garden.pool.commitment.attach.empty",
             defaultMessage:

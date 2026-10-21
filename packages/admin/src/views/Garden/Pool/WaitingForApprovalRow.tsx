@@ -64,7 +64,7 @@ export function WaitingForApprovalRow({
     <time
       dateTime={isoTime(ms)}
       title={exactTime(intl, ms)}
-      className="min-w-0 shrink-[10] truncate body-xs text-text-soft"
+      className="min-w-0 shrink-[10] truncate type-meta text-text-soft"
     >
       {text}
     </time>
@@ -73,13 +73,13 @@ export function WaitingForApprovalRow({
   let when: ReactNode = moment(asked, age(asked));
   if (state.status === "waiting" && state.isNew) {
     marker = (
-      <span className="shrink-0 label-xs text-information-dark">
+      <span className="shrink-0 type-label-sm text-information-dark">
         {formatMessage({ id: "cockpit.garden.pool.approvals.new", defaultMessage: "New" })}
       </span>
     );
   } else if (state.status === "failed") {
     marker = (
-      <span role="status" className="shrink-0 label-xs text-error-dark">
+      <span role="status" className="shrink-0 type-label-sm text-error-dark">
         {formatMessage({
           id: "cockpit.garden.pool.approvals.failed",
           defaultMessage: "Didn’t go through",
@@ -208,11 +208,11 @@ export function WaitingForApprovalRow({
         <span className="flex min-w-0 items-baseline gap-2 whitespace-nowrap">
           {/* The name keeps its length and the age gives way first (D6); only a
               name wider than the whole line is cut. */}
-          <span className="max-w-full shrink-0 truncate body-sm text-text-sub">{who}</span>
+          <span className="max-w-full shrink-0 truncate type-body text-text-sub">{who}</span>
           {marker}
           {when}
         </span>
-        <span className="mt-0.5 block truncate body-xs text-text-sub" title={line}>
+        <span className="mt-0.5 block truncate type-meta text-text-sub" title={line}>
           {line}
         </span>
       </AdminListRow>

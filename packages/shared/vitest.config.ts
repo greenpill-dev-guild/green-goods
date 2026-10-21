@@ -131,7 +131,7 @@ export default defineConfig({
           statements: 69,
         },
         // Exact files measured after direct Cookie Jar proof at 08f96dc.
-        "src/hooks/cookie-jar/useCookieJarDeposit.ts": {
+        "src/hooks/cookie-jar/useCookieJarDepositMutation.ts": {
           branches: 58,
           functions: 74,
           lines: 86,

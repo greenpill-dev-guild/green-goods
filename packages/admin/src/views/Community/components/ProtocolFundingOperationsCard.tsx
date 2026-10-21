@@ -126,7 +126,7 @@ export function ProtocolFundingOperationsCard({
               defaultMessage: "Fund a Garden",
             })}
           </AdminCardTitle>
-          <p className="mt-1 max-w-2xl body-xs text-text-soft">
+          <p className="mt-1 max-w-2xl type-meta text-text-soft">
             {formatMessage({
               id: "cockpit.community.protocolFunding.description",
               defaultMessage:
@@ -182,9 +182,9 @@ export function ProtocolFundingOperationsCard({
               error={amountError}
             />
           </div>
-          <dl className="divide-y divide-stroke-soft body-sm">
+          <dl className="divide-y divide-stroke-soft type-body">
             <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 py-2">
-              <dt className="body-xs text-text-soft">
+              <dt className="type-meta text-text-soft">
                 {formatMessage({
                   id: "cockpit.community.protocolFunding.source",
                   defaultMessage: "Protocol Safe",
@@ -196,7 +196,7 @@ export function ProtocolFundingOperationsCard({
               </dd>
             </div>
             <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 py-2">
-              <dt className="body-xs text-text-soft">
+              <dt className="type-meta text-text-soft">
                 {formatMessage({
                   id: "cockpit.community.protocolFunding.recipient",
                   defaultMessage: "Receiving Safe",
@@ -207,7 +207,7 @@ export function ProtocolFundingOperationsCard({
               </dd>
             </div>
             <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 py-2">
-              <dt className="body-xs text-text-soft">
+              <dt className="type-meta text-text-soft">
                 {formatMessage({
                   id: "cockpit.community.protocolFunding.allowance",
                   defaultMessage: "Safe allowance remaining",
@@ -218,7 +218,7 @@ export function ProtocolFundingOperationsCard({
               </dd>
             </div>
             <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 py-2">
-              <dt className="body-xs text-text-soft">
+              <dt className="type-meta text-text-soft">
                 {formatMessage({
                   id: "cockpit.community.protocolFunding.periodAllowance",
                   defaultMessage: "Period allowance remaining",
@@ -229,7 +229,7 @@ export function ProtocolFundingOperationsCard({
               </dd>
             </div>
             <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 py-2">
-              <dt className="body-xs text-text-soft">
+              <dt className="type-meta text-text-soft">
                 {formatMessage({
                   id: "cockpit.community.protocolFunding.cap",
                   defaultMessage: "Per-transfer cap",
@@ -255,7 +255,7 @@ export function ProtocolFundingOperationsCard({
           </div>
         </div>
       ) : (
-        <p className="body-xs text-text-soft" data-testid="protocol-funding-unavailable">
+        <p className="type-meta text-text-soft" data-testid="protocol-funding-unavailable">
           {formatMessage({
             id: "cockpit.community.protocolFunding.unavailable",
             defaultMessage:
@@ -268,8 +268,8 @@ export function ProtocolFundingOperationsCard({
         <p
           className={
             operations.lastAct.phase === "failed"
-              ? "body-xs text-error-dark"
-              : "body-xs text-text-soft"
+              ? "type-meta text-error-dark"
+              : "type-meta text-text-soft"
           }
           role="status"
           data-testid="protocol-funding-status"

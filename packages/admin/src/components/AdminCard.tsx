@@ -149,7 +149,7 @@ export function AdminCardTitle({
   ...props
 }: React.HTMLAttributes<HTMLElement> & { as?: "h2" | "h3" | "h4" | "p" }) {
   return (
-    <Tag className={cn("text-title-md font-semibold text-text-strong", className)} {...props} />
+    <Tag className={cn("type-title-md font-semibold text-text-strong", className)} {...props} />
   );
 }
 

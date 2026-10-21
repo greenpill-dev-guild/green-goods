@@ -51,7 +51,7 @@ export function AdminFilterChip({
         "inline-flex items-center gap-1.5 px-3",
         "h-8 rounded-[var(--m3-shape-sm)]",
         // Typography
-        "text-label-lg font-medium whitespace-nowrap",
+        "type-label font-medium whitespace-nowrap",
         // State layer + expanded 44px hit area (visual stays 32px)
         "m3-state-layer admin-hit-target",
         // Focus ring

@@ -88,7 +88,7 @@ If the user's description can't be mapped to a canonical `Admin*` wrapper or reg
 | `state-layer` | Hover, pressed, focused, selected, disabled: missing, wrong opacity, or wrong color. | M3 state layer percentages (8/12/12/16). |
 | `motion` | Duration, easing, orchestration: stutter, jump, missing entrance/exit, ignored `prefers-reduced-motion`. | `--spring-*` tokens. |
 | `hierarchy` | Elevation, Z-layer, visual weight, order of attention. | Z-scale, 4-role volume ratio (canvas/ink/stone/green). |
-| `typography` | Wrong role (`label-sm` vs `label-lg`), weight, line-height, font (Plus Jakarta vs Inter). | Role token in `theme.css`. |
+| `typography` | Wrong role (`type-label-sm` vs `type-label`), weight, line-height, font (Plus Jakarta vs Inter). | Role token in `theme.css`. |
 | `responsive` | Breaks at a specific width/container size, overflow, missing truncation. | Container queries (`@[Npx]:`), Rule 11 breakpoints. |
 | `a11y` | Missing `aria-label`, role, focus trap, keyboard trap, missing `prefers-reduced-motion`. | StatusBadge + FormField + Alert components. |
 | `token-drift` | Raw color/radius/duration used where a token should be. Surfaced by `bun run check --only design-tokens`; copy/vocabulary drift is a separate `lint:vocab` i18n check. | Root `DESIGN.md` and its generated runtime tokens. |

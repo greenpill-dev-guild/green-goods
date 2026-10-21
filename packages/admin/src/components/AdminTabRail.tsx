@@ -208,7 +208,7 @@ export function AdminTabRail({
             onKeyDown={(event) => handleKeyDown(event, tab.id)}
             className={cn(
               "relative -mb-px inline-flex shrink-0 cursor-pointer items-center gap-2 border-b-2 bg-transparent px-4 py-1.75",
-              "text-label-lg leading-5",
+              "type-label leading-5",
               "transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] motion-reduce:transition-none",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]",
               active
@@ -231,7 +231,7 @@ export function AdminTabRail({
                   aria-hidden="true"
                   className={cn(
                     "pointer-events-none inline-flex shrink-0 select-none items-center justify-center rounded-full px-2 py-px",
-                    "text-label-md font-semibold leading-4 tabular-nums",
+                    "type-label-sm font-semibold leading-4 tabular-nums",
                     active
                       ? "bg-[rgb(var(--tone-primary-container,var(--m3-secondary-container)))] text-[rgb(var(--tone-on-primary-container,var(--m3-on-secondary-container)))]"
                       : "bg-[rgb(var(--m3-surface-container-high))] text-[rgb(var(--m3-on-surface-variant))]"

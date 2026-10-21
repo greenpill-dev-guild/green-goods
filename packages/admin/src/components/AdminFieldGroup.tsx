@@ -46,7 +46,7 @@ export function AdminFieldGroup({
   const errorId = `${groupId}-error`;
   const Root = as;
   const labelClasses = cn(
-    "label-md font-medium",
+    "type-label-sm font-medium",
     error ? "[color:rgb(var(--m3-error))]" : "text-text-strong"
   );
 
@@ -72,10 +72,10 @@ export function AdminFieldGroup({
           {labelNode}
         </p>
       )}
-      {hint ? <p className="body-sm text-text-sub">{hint}</p> : null}
+      {hint ? <p className="type-body text-text-sub">{hint}</p> : null}
       <div className={contentClassName}>{children}</div>
       {error ? (
-        <p id={errorId} role="alert" className="body-sm [color:rgb(var(--m3-error))]">
+        <p id={errorId} role="alert" className="type-body [color:rgb(var(--m3-error))]">
           {error}
         </p>
       ) : null}

@@ -8,7 +8,7 @@ import { getRelativeTimeParts } from "@green-goods/shared/utils/relativeTime";
 import { useState, type CSSProperties } from "react";
 import { useIntl } from "react-intl";
 import { adminCardVariants } from "@/components/AdminCard";
-import { localizeCanonicalActionTitle } from "../actionDisplay";
+import { localizeCanonicalActionTitle } from "@/components/Action/actionDisplay";
 
 // ---------------------------------------------------------------------------
 // Props
@@ -247,13 +247,13 @@ export function HubWorkCard({
         {/* Domain chip — 1a spec: white/90 pill bottom-left, 11px/600 neutral ink
             (never domain- or tone-colored on the card surface). */}
         {domainConfig && (
-          <span className="absolute bottom-2 left-2 inline-flex items-center rounded-full bg-[rgb(var(--admin-surface-0)/0.9)] px-2.5 py-[3px] text-label-sm font-semibold text-text-sub">
+          <span className="absolute bottom-2 left-2 inline-flex items-center rounded-full bg-[rgb(var(--admin-surface-0)/0.9)] px-2.5 py-[3px] type-meta-sm font-semibold text-text-sub">
             {formatMessage({ id: domainConfig.labelId })}
           </span>
         )}
 
         {totalMedia > 1 && (
-          <span className="absolute bottom-2 right-2 inline-flex items-center rounded-full bg-static-black/60 px-2 py-1 text-label-sm font-medium text-static-white">
+          <span className="absolute bottom-2 right-2 inline-flex items-center rounded-full bg-static-black/60 px-2 py-1 type-meta-sm font-medium text-static-white">
             1 / {totalMedia}
           </span>
         )}
@@ -266,7 +266,7 @@ export function HubWorkCard({
       >
         <div className="flex items-start justify-between gap-2.5">
           <h3
-            className="min-w-0 flex-1 text-title-sm font-semibold leading-5 text-text-strong line-clamp-2"
+            className="min-w-0 flex-1 type-title-sm font-semibold leading-5 text-text-strong line-clamp-2"
             // The hover reveals a clamped title, so it reads the same clean title.
             title={title}
           >
@@ -274,7 +274,7 @@ export function HubWorkCard({
           </h3>
           <span
             className={cn(
-              "inline-flex shrink-0 rounded-full px-2.5 py-[3px] text-label-sm font-semibold",
+              "inline-flex shrink-0 rounded-full px-2.5 py-[3px] type-meta-sm font-semibold",
               STATUS_CHIP_TONE_CLASSES[resolvedStatusTone]
             )}
           >
@@ -287,7 +287,7 @@ export function HubWorkCard({
             card with no matching text. Suppressed when the work title already
             carries it, which is the common generated-title case. */}
         {visibleActionTitle && (
-          <p className="truncate text-label-md text-text-sub" title={visibleActionTitle}>
+          <p className="truncate type-label-sm text-text-sub" title={visibleActionTitle}>
             {visibleActionTitle}
           </p>
         )}
@@ -295,7 +295,7 @@ export function HubWorkCard({
         {/* Meta row — gardener (500, sub ink) · relative timestamp (soft ink).
             Garden name lives in the hover title only; chrome declares garden
             context (Frontend Rule 17). */}
-        <div className="flex items-center justify-between gap-3 text-label-md">
+        <div className="flex items-center justify-between gap-3 type-label-sm">
           <p className="min-w-0 truncate font-medium text-text-sub" title={gardenerDisplayName}>
             {gardenerDisplayName}
           </p>

@@ -138,7 +138,7 @@ export function KarmaIntegrationPanel({ integration }: KarmaIntegrationPanelProp
               defaultMessage: "Karma Integration",
             })}
           </AdminCardTitle>
-          <p className="mt-1 body-xs text-text-soft">
+          <p className="mt-1 type-meta text-text-soft">
             {formatMessage({
               id: "cockpit.garden.karma.description",
               defaultMessage:
@@ -158,7 +158,7 @@ export function KarmaIntegrationPanel({ integration }: KarmaIntegrationPanelProp
         </StatusBadge>
       </div>
 
-      <p className="body-sm text-text-sub">
+      <p className="type-body text-text-sub">
         {formatMessage({
           id: presentation.bodyId,
           defaultMessage: presentation.bodyDefault,
@@ -196,7 +196,7 @@ export function KarmaIntegrationPanel({ integration }: KarmaIntegrationPanelProp
             href={integration.profileUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="admin-hit-target inline-flex h-8 items-center gap-1 rounded-[var(--m3-shape-full)] px-2 text-label-sm font-medium text-[rgb(var(--tone-on-surface-accent,var(--primary-base)))] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--primary-base)))] focus-visible:ring-offset-2"
+            className="admin-hit-target inline-flex h-8 items-center gap-1 rounded-[var(--m3-shape-full)] px-2 type-meta-sm font-medium text-[rgb(var(--tone-on-surface-accent,var(--primary-base)))] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--primary-base)))] focus-visible:ring-offset-2"
             aria-label={formatMessage({
               id: "cockpit.garden.karma.profileLinkLabel",
               defaultMessage: "Open This Garden's Karma Profile",

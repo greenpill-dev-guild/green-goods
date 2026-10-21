@@ -34,7 +34,7 @@ export function CommitmentTimeline({ events }: { events: CommitmentDialogControl
           })}
         </AdminCardTitle>
         {events.length > 0 ? (
-          <span className="body-xs text-text-soft">
+          <span className="type-meta text-text-soft">
             {formatMessage(
               { id: "cockpit.garden.pool.time.zone", defaultMessage: "Times in {zone}" },
               { zone: zoneName(intl, now) }
@@ -43,26 +43,26 @@ export function CommitmentTimeline({ events }: { events: CommitmentDialogControl
         ) : null}
       </div>
       {events.length === 0 ? (
-        <p className="body-xs text-text-soft">
+        <p className="type-meta text-text-soft">
           {formatMessage({
             id: "cockpit.garden.pool.commitment.timelineEmpty",
             defaultMessage: "Nothing recorded yet.",
           })}
         </p>
       ) : (
-        <ol className="divide-y divide-stroke-soft body-sm">
+        <ol className="divide-y divide-stroke-soft type-body">
           {events.map((event) => {
             const ms = event.timestamp * 1000;
             return (
               <li key={event.id} className="flex justify-between gap-2 py-1.5">
                 <span className="min-w-0 text-text-strong">{eventLabel(event, formatMessage)}</span>
                 {/* Who acted, by name, then when. A long name gives way, whole in its title. */}
-                <span className="flex min-w-0 max-w-[60%] items-center gap-1.5 body-xs text-text-soft">
+                <span className="flex min-w-0 max-w-[60%] items-center gap-1.5 type-meta text-text-soft">
                   {event.actor ? (
                     <AddressDisplay
                       address={event.actor}
                       interactive={false}
-                      className="min-w-0 truncate body-xs"
+                      className="min-w-0 truncate type-meta"
                     />
                   ) : null}
                   {event.actor ? <span aria-hidden="true">·</span> : null}

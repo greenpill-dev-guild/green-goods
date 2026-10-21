@@ -44,10 +44,10 @@ describe("AdminDensityScale.guard (DL-011)", () => {
     expect(md).toHaveClass("h-8");
     expect(md).toHaveClass("admin-hit-target");
     expect(lg).toHaveClass("h-10", "admin-hit-target-lg");
-    // One 14px label at every size (DL-030): sm no longer drops to label-sm.
-    expect(sm).toHaveClass("text-label-lg");
-    expect(sm).not.toHaveClass("text-label-sm");
-    expect(lg).not.toHaveClass("text-body-lg");
+    // One 14px label at every size (DL-030): sm no longer drops to the 11px chip size.
+    expect(sm).toHaveClass("type-label");
+    expect(sm).not.toHaveClass("type-meta-sm");
+    expect(lg).not.toHaveClass("type-field");
   });
 
   it("icon buttons ride the same 28/32/40 tiers with a mandatory accessible name", () => {
@@ -83,7 +83,8 @@ describe("AdminDensityScale.guard (DL-011)", () => {
     expect(container).not.toBeNull();
     expect(container).toHaveClass("min-h-11", "sm:min-h-10");
     const input = screen.getByRole("textbox", { name: "Garden name" });
-    expect(input).toHaveClass("text-body-lg", "sm:text-body-md", "pt-5", "sm:pt-4");
+    // The field role: 16px text on touch widths and 14px from 640px (index.css).
+    expect(input).toHaveClass("type-field", "pt-5", "sm:pt-4");
   });
 
   it("list rows grow with their content above the 44px floor, never on a button tier", () => {
@@ -151,6 +152,32 @@ describe("AdminDensityScale.guard (DL-011)", () => {
       "--gg-icon-size-sm": "2rem",
       "--gg-icon-size-compact": "1.75rem",
       "--gg-hit-block": "2.75rem",
+      // The type roles at the cockpit's density: titles 22 / 16 / 14, body and
+      // labels 14 at -0.006em, small labels and meta 12 (labels at 500), chips 11,
+      // and field text 16px on touch widths (14px from 640px, a media rule).
+      "--gg-type-title-lg-size": "1.375rem",
+      "--gg-type-title-lg-line": "1.75rem",
+      "--gg-type-title-md-size": "1rem",
+      "--gg-type-title-md-line": "1.5rem",
+      "--gg-type-title-sm-size": "0.875rem",
+      "--gg-type-title-sm-line": "1.25rem",
+      "--gg-type-body-size": "0.875rem",
+      "--gg-type-body-line": "1.25rem",
+      "--gg-type-body-tracking": "-0.006em",
+      "--gg-type-label-size": "0.875rem",
+      "--gg-type-label-line": "1.25rem",
+      "--gg-type-label-tracking": "-0.006em",
+      "--gg-type-label-sm-size": "0.75rem",
+      "--gg-type-label-sm-line": "1rem",
+      "--gg-type-label-sm-weight": "500",
+      "--gg-type-label-sm-tracking": "0px",
+      "--gg-type-meta-size": "0.75rem",
+      "--gg-type-meta-line": "1rem",
+      "--gg-type-meta-sm-size": "0.6875rem",
+      "--gg-type-meta-sm-line": "1rem",
+      "--gg-type-field-size": "1rem",
+      "--gg-type-field-line": "1.25rem",
+      "--gg-type-field-tracking": "0px",
     });
     // The Storybook admin scope must render what production renders.
     expect(ggTokens(surfacesCss, '[data-surface-scope="admin"] {')).toEqual(admin);

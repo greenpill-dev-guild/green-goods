@@ -52,7 +52,7 @@ export function AdminTooltip({
           "pointer-events-none absolute z-overlay",
           tooltipPlacementClass[placement],
           "max-w-[200px] rounded-[var(--m3-shape-xs)] px-2 py-1",
-          "bg-[rgb(var(--m3-inverse-surface))] text-body-sm text-[rgb(var(--m3-inverse-on-surface))]",
+          "bg-[rgb(var(--m3-inverse-surface))] type-meta text-[rgb(var(--m3-inverse-on-surface))]",
           "transition-[opacity,transform] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
           visible ? "scale-100 opacity-100" : "scale-95 opacity-0",
           className

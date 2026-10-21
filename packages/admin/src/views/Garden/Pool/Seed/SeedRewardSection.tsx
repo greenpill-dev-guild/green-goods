@@ -149,7 +149,7 @@ export function SeedRewardSection({
             disabled={busy || price.status !== "ready"}
             className="max-w-sm"
           />
-          <p className="body-xs text-text-soft">
+          <p className="type-meta text-text-soft">
             {cents !== null && cents > 0n && count > 1
               ? formatMessage(
                   {

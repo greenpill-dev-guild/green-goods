@@ -220,7 +220,7 @@ export const OutlinedAtSectionTop: Story = {
         variant="outlined"
         defaultValue="0.25"
       />
-      <div className="px-3 pb-3 text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
+      <div className="px-3 pb-3 type-meta text-[rgb(var(--m3-on-surface-variant))]">
         Focused and prefilled outlined labels reserve their own top label space.
       </div>
     </section>
@@ -239,7 +239,7 @@ const TextFieldToneMatrix = ({ theme }: { theme: "light" | "dark" }) => (
     data-theme={theme}
     className="admin-m3 rounded-[var(--m3-shape-lg)] bg-[rgb(var(--m3-surface))] p-4"
   >
-    <div className="mb-3 text-label-md font-semibold uppercase text-[rgb(var(--m3-on-surface-variant))]">
+    <div className="mb-3 type-label-sm font-semibold uppercase text-[rgb(var(--m3-on-surface-variant))]">
       {theme}
     </div>
     <div className="grid gap-3 md:grid-cols-2">
@@ -249,7 +249,7 @@ const TextFieldToneMatrix = ({ theme }: { theme: "light" | "dark" }) => (
           data-tone={tone}
           className="space-y-3 rounded-[var(--m3-shape-md)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface-container-low))] p-3"
         >
-          <div className="text-label-md font-medium text-[rgb(var(--m3-on-surface-variant))]">
+          <div className="type-label-sm font-medium text-[rgb(var(--m3-on-surface-variant))]">
             {label}
           </div>
           <AdminTextField

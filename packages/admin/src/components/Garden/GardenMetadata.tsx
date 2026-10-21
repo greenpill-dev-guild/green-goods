@@ -97,7 +97,7 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
     >
       {/* Garden Smart Account */}
       <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-2 label-xs text-text-soft">
+        <div className="flex items-center gap-2 type-label-sm text-text-soft">
           <RiWallet3Line className="h-3.5 w-3.5 flex-shrink-0" />
           <span className="truncate">
             {formatMessage({
@@ -107,7 +107,7 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
           </span>
         </div>
         <div className="flex items-center gap-1.5 min-w-0">
-          <code className="flex-1 truncate body-xs text-text-strong sm:body-sm">
+          <code className="flex-1 truncate type-meta text-text-strong sm:type-body">
             <EnsAddressText address={gardenId} />
           </code>
           <AdminIconButton
@@ -148,14 +148,14 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
 
       {/* Garden NFT */}
       <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-2 label-xs text-text-soft">
+        <div className="flex items-center gap-2 type-label-sm text-text-soft">
           <RiNftLine className="h-3.5 w-3.5 flex-shrink-0" />
           <span className="truncate">
             {formatMessage({ id: "admin.gardenMetadata.gardenNFT", defaultMessage: "Garden NFT" })}
           </span>
         </div>
         <div className="flex items-center gap-1.5 min-w-0">
-          <code className="flex-1 truncate body-xs text-text-strong sm:body-sm">
+          <code className="flex-1 truncate type-meta text-text-strong sm:type-body">
             <EnsAddressText address={tokenAddress} /> #{tokenId.toString()}
           </code>
           <AdminIconButton
@@ -197,7 +197,7 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
       {/* Quick Actions */}
       {(blockExplorer || openSeaUrl) && (
         <div className="flex flex-col gap-2">
-          <div className="label-xs text-text-soft">
+          <div className="type-label-sm text-text-soft">
             {formatMessage({
               id: "admin.gardenMetadata.externalLinks",
               defaultMessage: "External Links",

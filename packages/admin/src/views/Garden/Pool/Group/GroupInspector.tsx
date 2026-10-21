@@ -121,7 +121,7 @@ export function GroupInspector({
 
   const footer = (
     <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
-      <p className="min-w-0 body-xs text-text-soft sm:flex-1">
+      <p className="min-w-0 type-meta text-text-soft sm:flex-1">
         {canEditReward
           ? formatMessage({
               id: "cockpit.garden.pool.group.editRewardNote",
@@ -192,7 +192,7 @@ export function GroupInspector({
           {/* Label left, value right, as the promise inspector's facts read. */}
           <dl className="space-y-1">
             {terms.map(([label, value]) => (
-              <div key={label} className="flex justify-between gap-3 body-sm">
+              <div key={label} className="flex justify-between gap-3 type-body">
                 <dt className="shrink-0 text-text-soft">{label}</dt>
                 <dd className="min-w-0 text-right text-text-strong">{value}</dd>
               </div>
@@ -200,7 +200,7 @@ export function GroupInspector({
           </dl>
         </section>
         <p
-          className="flex flex-wrap gap-x-2.5 gap-y-1 body-sm text-text-sub"
+          className="flex flex-wrap gap-x-2.5 gap-y-1 type-body text-text-sub"
           data-slot="group-counts"
         >
           <span>
@@ -273,7 +273,7 @@ export function GroupInspector({
           waitingOnYou={waitingOnYou}
           onOpenCommitment={onOpenCommitment}
         />
-        <p className="mt-3 body-xs text-text-soft">
+        <p className="mt-3 type-meta text-text-soft">
           {formatMessage({
             id: "cockpit.garden.pool.group.independent",
             defaultMessage:

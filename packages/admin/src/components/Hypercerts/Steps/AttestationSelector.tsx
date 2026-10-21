@@ -124,10 +124,10 @@ export function AttestationSelector({
   return (
     <div className="space-y-4">
       <header className="space-y-1">
-        <h2 className="text-title-md font-semibold text-text-strong">
+        <h2 className="type-title-md font-semibold text-text-strong">
           {formatMessage({ id: "app.hypercerts.attestations.title" })}
         </h2>
-        <p className="body-sm text-text-sub">
+        <p className="type-body text-text-sub">
           {formatMessage({ id: "app.hypercerts.attestations.count" }, { count: selectable.length })}
           {selectedIds.length > 0
             ? ` · ${formatMessage(
@@ -243,7 +243,7 @@ export function AttestationSelector({
       )}
 
       {!isLoading && !hasError && filtered.length === 0 && (
-        <div className="rounded-lg border border-stroke-soft bg-bg-white p-6 body-sm text-text-sub">
+        <div className="rounded-lg border border-stroke-soft bg-bg-white p-6 type-body text-text-sub">
           {formatMessage({
             id:
               attestations.length === 0
@@ -297,7 +297,7 @@ export function AttestationSelector({
                   {isBundled || isSelected ? (
                     <span
                       className={cn(
-                        "inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 body-sm",
+                        "inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 type-body",
                         isBundled
                           ? "border-warning-light bg-warning-lighter text-warning-dark"
                           : "border-transparent bg-bg-sub text-text-strong"
@@ -310,17 +310,17 @@ export function AttestationSelector({
                     </span>
                   ) : null}
                   {attestation.domain && (
-                    <span className="rounded-full bg-bg-weak px-2 py-0.5 body-sm text-text-sub">
+                    <span className="rounded-full bg-bg-weak px-2 py-0.5 type-body text-text-sub">
                       {formatMessage({ id: `app.hypercerts.domain.${attestation.domain}` })}
                     </span>
                   )}
                   {attestation.actionType && (
-                    <span className="rounded-full bg-bg-weak px-2 py-0.5 body-sm text-text-sub">
+                    <span className="rounded-full bg-bg-weak px-2 py-0.5 type-body text-text-sub">
                       {formatMessage({ id: `app.hypercerts.action.${attestation.actionType}` })}
                     </span>
                   )}
                   {formattedDate && (
-                    <span className="body-sm text-text-sub">
+                    <span className="type-body text-text-sub">
                       {formatMessage(
                         { id: "app.hypercerts.attestations.approvedOn" },
                         { date: formattedDate }
@@ -328,7 +328,7 @@ export function AttestationSelector({
                     </span>
                   )}
                   {isBundled && bundledLabel && (
-                    <span className="body-sm text-text-sub">
+                    <span className="type-body text-text-sub">
                       {formatMessage(
                         { id: "app.hypercerts.attestations.bundledIn" },
                         { title: bundledLabel }
