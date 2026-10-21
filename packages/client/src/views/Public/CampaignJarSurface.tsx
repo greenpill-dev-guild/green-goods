@@ -378,7 +378,7 @@ function CookiesCampaignSurface() {
                 {
                   id: "public.cookies.unresolvedNote",
                   defaultMessage:
-                    "Still loading {count, plural, one {# jar} other {# jars}}. Balances may change when loading finishes.",
+                    "Details for {count, plural, one {# jar} other {# jars}} are still loading or unavailable, so balances may change.",
                 },
                 { count: unresolvedCount }
               )}

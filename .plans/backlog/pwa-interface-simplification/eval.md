@@ -90,3 +90,129 @@ open. Fresh document checks on 2026-10-08 at 01:31 UTC:
   whitespace/link check covers the Markdown documents.
 
 No push or application-readiness claim is part of this commit request.
+
+## Scope lock check (2026-10-18)
+
+Checked on 2026-10-18 at about 23:45 UTC in the `research/pwa-garden-home-scope-lock` worktree on
+develop `1a960dba3`, before the commit that records the lock:
+
+- `node scripts/harness/plan-hub.mjs validate`: 32 feature hubs validated, no errors.
+- A read-only link check resolved all 41 local Markdown links and anchors in this hub, the
+  artifacts README included.
+- `biome format --write` on `status.json` applied no fixes (the main checkout's binary with this
+  worktree's configuration).
+- `node scripts/quality/check-immutable-plan-reports.mjs`: existing dated reports unchanged.
+  `node scripts/quality/check-guidance-links.mjs`: 93 guidance files OK.
+- `git diff --check`: clean. The added text contains no em dashes.
+
+These are working-tree document checks. The lab in `artifacts/` is a mock drawn from the locked
+tokens, not application proof, and the code findings come from the labeled mock-auth localhost walk
+recorded in spec.md. No application code changed and no implementation lane is passed.
+
+## Review round check (2026-10-19)
+
+Checked on 2026-10-19 in the `research/pwa-garden-home-scope-lock` worktree, before the commit that
+records the maintainer's review of the lab and the lock:
+
+- The rebuilt lab was rendered in the desktop app's built-in browser pane (Chromium, no app
+  session: a static mock served locally, not the application) at 1440 × 1000 and measured by script: the chip
+  and the compact icon buttons both 32px tall on one centre line; every row 88px in Home, the
+  Explore cards one height (182px at 390px), the Work, Insights, Gardeners and Notifications
+  sheets' rows 88px; the switcher sheet at 52% of the phone; the offline strip moving the chip,
+  the icons and the first section by 0px; the dark primary button `rgb(194, 245, 218)` with text
+  `rgb(12, 10, 9)` and the light one `rgb(26, 117, 68)` with white text; the Submit Work step with
+  no change-garden control and a promise row selecting its action card; the no-garden Home without
+  the bell; the Portuguese header the same 80px as the English one. Two defects found and fixed
+  before publishing: sheet rows shrank under a long list (no `flex-shrink: 0`), and an Approve
+  button nested inside a row button was dropped by the HTML parser (rows that carry a button are
+  now `div` rows with the button role).
+- The production indexer's garden list was read on 19 October with `urllib`; eight of sixteen
+  banners were fetched (two Pinata CIDs returned 403 and the `w3s.link` gateway did not resolve from
+  this environment), re-encoded to 640 × 320 JPEG with `sips`, and committed under
+  `artifacts/gardens/`.
+- `node scripts/harness/plan-hub.mjs validate`, the read-only link check over this hub, Biome
+  format on `status.json`, the immutable-report and guidance-link checks and `git diff --check`
+  were run again after the edits: 32 hubs valid, every local link and anchor resolved, one format
+  fix applied to `status.json`, reports unchanged, guidance links OK, no whitespace errors, no em dashes.
+
+These are document and mock checks. No application code changed and no implementation lane is
+passed.
+
+## Decisions check (2026-10-19, later)
+
+After the maintainer answered the five explorations and the badge question, the same document
+checks were run on the recording edits: `node scripts/harness/plan-hub.mjs validate` (32 hubs), the
+read-only link and anchor check over this hub, Biome format on `status.json`, the immutable-report
+and guidance-link checks, `git diff --check`, and a scan of the added lines for em dashes. All
+passed. The lab's script was parsed with `node --check` after its hints and preset changed; its
+defaults already drew every decision, so no new render measurement was needed.
+
+## Design round check (2026-10-20)
+
+The hub checks were run again on the edits that record decisions 16 to 20: `node
+scripts/harness/plan-hub.mjs validate`, the read-only link and anchor check over this hub, Biome
+format on `status.json`, `git diff --check` and the em dash scan of added lines. The lab's start
+step variants were measured in the desktop app's built-in browser pane (Chromium, static mock, no
+app session): seven action rows at 88px with the promoted rows first, the keeps line and the
+promise chooser for one and two matches, the open-ask take-up line, the two-group and question
+shapes, the three headings in English and Portuguese, and a pick keeping the screen in view.
+
+## Start step check (2026-10-20, later)
+
+The decided flow was measured in the desktop app's built-in browser pane (Chromium, static mock,
+no app session): the promises screen with three promise rows and Other work at 88px; the promise
+screen for a promise taking evidence and two actions (Add evidence first, then two rows) and for
+one needing one action; the evidence-only open ask opening Media with the promise pinned and
+"Takes it up"; the actions screen with All plus three domain tabs and seven tiles at one 156px
+height with a 36px two-line title block; no tabs for a one-domain garden; no Start button on any
+screen except today's order; Media offering Details; Back returning along the path taken; the
+Portuguese strings fitting. The hub checks were run again on the recording edits.
+
+## Steward Home check (2026-10-21)
+
+Measured in the desktop app's built-in browser pane (Chromium, static mock, no app session): a
+gardener's Home has no Garden duties section; a steward's shows it above Recent activity with
+three 88px rows (to review, join requests, to confirm), each opening its sheet, and Continue back
+to the member's own items; an evaluator's shows the assessment row; the Portuguese strings fit.
+The promise cards measured 204px each at 390px in English and Portuguese with the description
+clipped at two lines and the needs row at one; the switcher's rows all end their role chip at the
+same edge with no check mark. The hub checks were run again on the recording edits.
+
+## Steward Home review check (2026-10-21, later)
+
+Measured in the desktop app's built-in browser pane (Chromium, static mock, no app session): Home's
+English headings in Title Case; the steward's duties section with four 88px rows whose taps open
+the Work sheet on Pending, Gardeners, and Promises on To confirm or Live; the steward's bell with
+three event rows and no counts; the About row without Governance; the role control without the
+evaluator; the compact promise card at 132px in English and Portuguese beside the 204px full
+card; the Insights sheet with and without a 144px banner; the chip's label at 97px (390px, four
+launchers), 67px (360px), 145px and 115px with the wallet launcher moved to Profile, so the
+Community Garden's name truncates in every case. The hub checks were run again on the edits.
+
+## Picks and seasons check (2026-10-21, later)
+
+Measured in the desktop app's built-in browser pane (Chromium, the static mock served from a local
+port with a UTF-8 content type, no app session), with the saved picks cleared so the defaults, now
+the maintainer's pasted line, applied: a steward's Home at 390 and 360px with the Highlights
+carousel first and its first two 112px cards the open season and campaign; four 88px duty rows under
+Needs Your Attention with their titles, 22px pills and details (the first publish of this round had
+inflated the "To review" pills to 76px through a class collision between the Start step's info
+panel and the info status pill, found and fixed before this record); the season card opening a 439px
+half sheet with the identity row, the sentence, the two facts and Show Its Promises, which opened the
+Promises sheet named "Season One · In TAS HUB" with the rail (two 208px cycle cards, the chosen one
+tinted with a check) and the one promise of that season; the campaign's ⓘ opening its own sheet; the
+chips variant filtering the same way with a details line; Home without the carousel showing one line
+per open cycle under Take Part. Submit Work: the Start step with no Work-for pin, three 132px compact
+cards, the second showing two needs and +2, Log Work on Its Own last; the info panel 76px in every
+one-line context (Keep a Promise, Select Your Action, Add Photos, Add Evidence) in English, Spanish
+and Portuguese at both widths, and 76px on a promise's page once the panel dropped the needs it
+repeated below; the promise page with Add Evidence and three action rows; the actions screen with All
+and three chips over seven tiles; the four steps 66px wide at 390 and 59px at 360, starting 16px
+after the 48px back button and ending 16px before the edge. The hub checks were run again on the
+recording edits.
+
+After CodeRabbit reviewed PR #1140 on 21 October, seven wording fixes landed in the hub: the lab's
+garden source sets, the brief's duty placement, step 20's authenticated-proof requirement, the
+engine of the 18 October walk, the superseded phone-wide badge consequence, the skip rule when an
+Open ask is listed, and decision 28's line for any submission garden that differs from the active
+one. The hub checks were run again on them.

@@ -1,9 +1,4 @@
-import {
-  RiArrowDropRightLine,
-  RiBookOpenLine,
-  RiTelegramLine,
-  RiTwitterLine,
-} from "@remixicon/react";
+import { RiArrowDropRightLine, RiBookOpenLine, RiTwitterLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { FlexCard } from "@/components/Cards";
 import { Avatar, Faq, FaqContent, FaqItem, FaqTrigger } from "@/components/Display";
@@ -82,18 +77,6 @@ export const ProfileHelp: React.FC<ProfileHelpProps> = () => {
   const intl = useIntl();
 
   const socials: Social[] = [
-    {
-      title: intl.formatMessage({
-        id: "app.profile.help.socials.telegram.title",
-        description: "Telegram",
-      }),
-      description: intl.formatMessage({
-        id: "app.profile.help.socials.telegram.description",
-        description: "Telegram Description",
-      }),
-      url: "https://t.me/+N3o3_43iRec1Y2Jh",
-      Icon: <RiTelegramLine />,
-    },
     {
       title: intl.formatMessage({
         id: "app.profile.help.socials.twitter.title",

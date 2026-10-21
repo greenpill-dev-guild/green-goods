@@ -51,6 +51,9 @@ describe("ProfileHelp", () => {
       "href",
       "https://docs.greengoods.app/community/gardener-guide"
     );
+    expect(
+      document.querySelector('a[href^="https://t.me/"], a[href^="https://telegram.me/"]')
+    ).toBeNull();
 
     // Onboarding form card was removed
     expect(screen.queryByText("Onboarding form")).not.toBeInTheDocument();
