@@ -265,7 +265,7 @@ export function renderPersonas({ root, sources, digest }) {
   let body = pageHeader(
     { title: "Personas and Surfaces", slug: "/builders/architecture/personas", sources, digest },
     "Personas and Surfaces",
-    `Green Goods is built for ${COUNT_WORDS[personas.length] ?? personas.length} kinds of people. Each one is tied to an on-chain hat, which is how the contracts know who may do what. This page says who each of them is, what they do, when they do it, and on which surface. It is generated from the ontology, so it stays in step with the product's own vocabulary. Read it before the work-submission trace, which names these actors at every step.`
+    `Green Goods is built for ${COUNT_WORDS[personas.length] ?? personas.length} kinds of people and organizations. Each kind has an on-chain hat, which the contracts check before a role-gated act such as submitting or approving work; giving to a garden needs no hat. This page says who each of them is, what they do, when they do it, and on which surface. It is generated from the ontology, so it stays in step with the product's own vocabulary. Read it before the work-submission trace, which names these actors at every step.`
   );
   body += "## At a glance\n\n| Persona | In one line | Works in |\n|---|---|---|\n";
   for (const { persona, concept, journey } of personas) {

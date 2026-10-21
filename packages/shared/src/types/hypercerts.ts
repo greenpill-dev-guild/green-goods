@@ -4,7 +4,7 @@ import type { Address, Hex } from "viem";
 // Domain enums
 // =============================================================================
 
-export type ActionDomain = "solar" | "waste" | "agroforestry" | "education" | "mutual_credit";
+export type ActionDomain = "solar" | "waste" | "agroforestry" | "education";
 
 /** Canonical list of all action domains */
 export const ACTION_DOMAINS: readonly ActionDomain[] = [
@@ -12,7 +12,6 @@ export const ACTION_DOMAINS: readonly ActionDomain[] = [
   "waste",
   "agroforestry",
   "education",
-  "mutual_credit",
 ] as const;
 
 export type ActionType =
@@ -154,7 +153,8 @@ export interface GreenGoodsExtension {
   sdgs: number[];
   capitals: CapitalType[];
   outcomes: OutcomeMetrics;
-  domain: ActionDomain;
+  /** The one domain the bundled work names; absent when it names none, or more than one. */
+  domain?: ActionDomain;
   karmaGapProjectId?: string;
   protocolVersion: string;
 }

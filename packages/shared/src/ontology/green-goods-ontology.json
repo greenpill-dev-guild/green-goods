@@ -720,7 +720,7 @@
       "id": "funder",
       "display": "Funder",
       "hat": "funder",
-      "definition": "A person or org who deposits into a garden's Vault, holds Hypercert fractions, receives yield distributions per configured splits.",
+      "definition": "A person or organization who funds a garden's work, from an individual or diaspora supporter to a grantmaker, institution, or crypto ecosystem fund. A funder donates to the garden's cookie jar, endows its vault, or backs the garden through a grant or partnership. A donation is a gift with nothing to withdraw. An endowment is a vault deposit the funder can redeem, less any strategy or contract loss; its yield is donated onward through the garden's configured splits, never paid to the funder. Giving needs no role; a steward or owner may grant the funder Hat, which makes its holder a garden member.",
       "surfaces": ["admin", "client", "public", "docs"]
     },
     {
@@ -980,8 +980,8 @@
           "symbol": "ActionDomain",
           "extract": "ts-union",
           "ordered": false,
-          "members": ["solar", "waste", "agroforestry", "education", "mutual_credit"],
-          "note": "Long-form lowercase spellings used in hypercert metadata. mutual_credit is a product concept ahead of the on-chain enum (deferred Domain 5) — declared, not drift."
+          "members": ["solar", "waste", "agroforestry", "education"],
+          "note": "Long-form lowercase spellings used in hypercert metadata. Mutual credit was retired as a domain on 2026-10-18; commitment pooling and promises serve that need. Hypercert metadata minted before then may carry mutual_credit, which only meant that none of the bundled work named a domain."
         },
         {
           "id": "slug-prefix",
@@ -1001,8 +1001,7 @@
           "to": "action-domain",
           "kind": "explicit",
           "total_from": true,
-          "bijective": false,
-          "unmapped_to": ["mutual_credit"],
+          "bijective": true,
           "pairs": {
             "SOLAR": "solar",
             "AGRO": "agroforestry",
@@ -1017,7 +1016,6 @@
           "to": "slug-prefix",
           "kind": "identity",
           "total_from": false,
-          "unmapped_from": ["mutual_credit"],
           "note": "The two lowercase spellings of the same domain must converge on one word per member; agroforestry/education vs agro/edu currently diverge — baselined."
         }
       ],
