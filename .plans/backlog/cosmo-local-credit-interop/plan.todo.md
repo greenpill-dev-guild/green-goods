@@ -46,7 +46,7 @@ mirrors the 20 October correction and still needs the review outcome applied. Th
 instructions in [Claude's second-pass handoff](handoffs/claude-architecture-review.md) are
 complete; Afo approved the section 8 corrections on 20 October and the Linear texts were applied
 the same day ([record](handoffs/claude-linear-correction-drafts-2026-10-20.md)); the edited hub
-copy awaits Afo's copy into the planning checkout.
+reaches develop through PR #1170, which supersedes the planning checkout's uncommitted copy.
 
 ## Sequence and completion evidence
 
@@ -59,8 +59,9 @@ copy awaits Afo's copy into the planning checkout.
   with PRD-857 and COM-46. Record exact interfaces and failure/retry meaning before dispatch.
 - [ ] **RESR-73 decisions after the review:** eligibility rule (any Fulfilled, or ordinary only through
   attestation), issuer budget mechanism (allowance or writer), allocation basis, acknowledgment lane
-  in v1, Gnosis member accounts (passkey validator) and Gnosis proxy admin ownership. PRD-1315
-  freezes when these are recorded. The PRD-1096 rehearsal defaults below apply to the fork only and
+  in v1, Gnosis member accounts (passkey validator) and Gnosis proxy admin ownership, plus three
+  raised in review on 21 October: issuer-cap enforcement, the presentment handshake and terms-consent
+  binding. PRD-1315 freezes when these are recorded. The PRD-1096 rehearsal defaults below apply to the fork only and
   settle none of them. Purchased issuance and its PRD-796 framing were settled on 21 October.
 - [x] **Voucher direction, 21 October (Afo):** promises run on vouchers; curated gardener issuance;
   presentment opens a promise, with the PRD-1096 desk as a fork-only stand-in; the instrument is
@@ -71,6 +72,8 @@ copy awaits Afo's copy into the planning checkout.
   [drafts](handoffs/claude-linear-voucher-direction-drafts-2026-10-21.md) were applied on 21 October
   after Afo's approval and read back; states, assignees, cycles and dates unchanged.
 - [ ] **COM-46:** add terms for gardener issuers and a legal check of issuer duties for individuals.
+- [ ] **PRD-857 wording:** its first sentence still calls vouchers "redeemable"; replace it with
+  "usable for their own services" once Afo approves the Linear write.
 - [ ] **PRD-1299:** settle the proposed voucher wording (verbs, "voucher exchange", es/pt "vale").
 - [ ] **PRD-1096, optional:** a curated gardener-voucher case is not in the approved rehearsal;
   adding one before dispatch is Afo's call.

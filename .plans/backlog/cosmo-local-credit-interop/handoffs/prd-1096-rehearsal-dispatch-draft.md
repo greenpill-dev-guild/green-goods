@@ -12,21 +12,20 @@ delivery.
 ## For Afo before dispatch
 
 1. Done: Afo approved the eight assumptions below as written on 20 October.
-2. Commit the hub on a local branch for Codex to start from, such as `codex/cosmo-local-planning`
-   once the hub is copied there. The dispatch script runs `git worktree add` from `--base`, which
-   must be a local branch, so uncommitted hub files, including this file's sources, are invisible
-   to Codex.
-3. Save this file as `handoffs/codex-contracts.md`, the lane's reserved path, without this section.
+2. Save this file as `handoffs/codex-contracts.md`, the lane's reserved path, without this section.
    In `status.json`, clear `lanes.contracts.manual_blocked` and add a human history row naming
    PRD-1096 and the adopted defaults; run `bunx biome format --write` on `status.json` afterwards.
    Update the "implementation handoffs are intentionally absent" sentence in `handoffs/README.md`.
-   The script reads `--prompt-file` from the checkout where it runs, so Codex receives exactly
-   that copy.
-4. Dispatch from the repository root, with `--base` set to the local branch that carries the
-   committed hub:
+3. Commit step 2's changes with the hub on a local branch for Codex to start from, such as
+   `chore/dispatch-cosmo-local-rehearsal` cut from develop once PR #1170 has merged. The dispatch
+   script runs `git worktree add` from `--base`, which must be a local branch, so anything
+   uncommitted, including the unblocked lane and the reserved handoff, is invisible to Codex. The
+   script reads `--prompt-file` from the checkout where it runs, so Codex receives exactly that copy.
+4. Dispatch from the repository root, with `--base` set to the local branch that carries that
+   commit:
 
 ```bash
-bash .claude/scripts/dispatch-codex-lane.sh --lane cosmo-rehearsal --base codex/cosmo-local-planning --branch feature/cosmo-local-voucher-rehearsal --prompt-file .plans/backlog/cosmo-local-credit-interop/handoffs/codex-contracts.md
+bash .claude/scripts/dispatch-codex-lane.sh --lane cosmo-rehearsal --base chore/dispatch-cosmo-local-rehearsal --branch feature/cosmo-local-voucher-rehearsal --prompt-file .plans/backlog/cosmo-local-credit-interop/handoffs/codex-contracts.md
 ```
 
 5. The fork runs need network access to public Arbitrum and Gnosis RPC endpoints, and the pinned

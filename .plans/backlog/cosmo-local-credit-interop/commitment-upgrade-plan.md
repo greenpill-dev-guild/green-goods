@@ -40,7 +40,7 @@ The existing issue IDs are reused to correct their scope, not to create a second
 | Phase | Issue | Corrected outcome | Priority | Prerequisites |
 |---|---|---|---|---|
 | Decide | RESR-73 | Research conclusions, Claude review, unresolved human choices | P0 | COM-46 for issuer terms |
-| Decide | PRD-1315 | Accept voucher-plus-G$ behavior and contract boundaries | P0 | RESR-73 |
+| Decide | PRD-1315 | Accept voucher-plus-G$ behavior and contract boundaries, including issuer-cap enforcement, the presentment handshake and terms-consent binding | P0 | RESR-73 |
 | Contracts | PRD-1316 | Confirm the existing core views carry terms binding and eligibility; specify a stored fulfillment path only if the eligibility decision needs it | P0 | PRD-1315 |
 | Contracts | PRD-1317 | Register pre-acceptance voucher terms (earned, accepted by an Offer, paid by a Request) and authorize entitlements, presentment discharge and return commands from Arbitrum | P0 | PRD-1315, PRD-1316 |
 | Contracts | PRD-1318 | Deliver vouchers on Gnosis within the issuer's allowance or cap, once per entitlement, with stored receipts; hold presentment escrows keyed to a promise and discharge or return them once; admit curated gardener issuers under caps | P0 | PRD-1317 |

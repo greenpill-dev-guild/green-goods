@@ -2,8 +2,9 @@
 
 **Current planning baseline:** 2026-10-21 UTC, adding the voucher-direction decisions below. This preserves the September issuer-service model and
 [whitepaper v0.8 review](whitepaper-v8-review.md), with the user's voucher-plus-G$ clarification and
-[first-pass architecture research](architecture-alignment.md). Contract choices remain proposals
-pending discussion and Claude review. It does not authorize implementation or live funds.
+[first-pass architecture research](architecture-alignment.md). Contract choices remain proposals;
+Claude's second-pass review is complete, and Afo accepted the no-core-upgrade boundary on 20 October.
+It does not authorize implementation or live funds.
 The original August model remains in Git at `06a31dbf5`; current unresolved choices are explicit below.
 
 ## Voucher direction (decided 2026-10-21)
@@ -27,7 +28,11 @@ Afo's approval and read back; the applied texts are in
    promise's counterparty and confirms by default, which resolves
    [tension 4](tensions.md#4-transferability-breaks-counterparty-confirmation). Presented vouchers
    wait in a Gnosis escrow keyed to the promise; keeping the promise sends a discharge command, and
-   a remedy returns them. The PRD-1096 service desk is a fork-only stand-in.
+   a remedy returns them. The PRD-1096 service desk is a fork-only stand-in. Not yet designed: the
+   handshake that turns an escrow into a promise. It must bind presenter, promise, token, amount and
+   escrow receipt, be replay-safe, and show the escrow exists before the presenter becomes the
+   counterparty, either through a Gnosis-to-Arbitrum message or by gating delivery on the indexed
+   escrow. That choice belongs with the open acknowledgment-lane decision.
 4. **The instrument is called "voucher".** User-facing copy names it with its issuer and unit, for
    example "Tech and Sun voucher, one solar class seat"; terms and docs may say "service voucher"
    at first mention. "Credit", "token" and "points" stay off the instrument, and "Redeem" keeps its
@@ -43,6 +48,11 @@ Afo's approval and read back; the applied texts are in
    - each pool still decides how much of an issuer's voucher it accepts;
    - a failed delivery ends in a remedy that returns the units, a steward can pause an issuer,
      and outstanding obligations stay visible.
+
+   The accepted contracts do not enforce the cap on-chain: the issuer's Safe owns the token's mint
+   authority, and the adapter's allowance bounds only its own delivery path. Until PRD-1315 chooses
+   a cap-enforcing mint controller or records the cap as monitored governance policy, the cap is a
+   published issuer rule, not a contract invariant.
 
    Vouchers earned by kept promises remain a second issuance source. The PRD-651 release gates
    are unchanged.
@@ -118,8 +128,16 @@ with no CommitmentPooling upgrade: the module reads the existing commitment view
 voucher terms only while the commitment is Offered or Requested, and issues only on Fulfilled, the
 same gate the G$ rail uses. The existing G$ SettlementModule/Celo executor remain unchanged.
 Acceptance-time terms are accepted. The eligibility rule (any Fulfilled versus ordinary only),
-the issuer budget mechanism, recipient allocation, purchased issuance and service discharge remain
-decisions, not accepted ABI. RESR-73 owns research; PRD-1315 freezes the implementation boundary
+the issuer budget mechanism, recipient allocation, issuer-cap enforcement, the presentment handshake
+and terms consent remain decisions, not accepted ABI; the 21 October voucher direction settled
+purchased issuance and service discharge.
+
+Terms consent is not yet bound. The core takes no terms version at claim or acceptance, so a pool
+steward can register and approve a new voucher revision while a claim is pending, or just before
+an open claim. PRD-1317 must bind the counterparty to the exact approved revision, for example by
+refusing new revisions while a claim request is pending and recording the counterparty's consent
+to the revision hash before dispatch, with a mismatch routed to dispute. The core's own G$ terms
+share this window. RESR-73 owns research; PRD-1315 freezes the implementation boundary
 once those are recorded. No general multiasset engine is assumed.
 
 ## Issuance and identity
