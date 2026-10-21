@@ -55,10 +55,29 @@ html {
      exactly as long as it holds the scroll lock. */
   overscroll-behavior-x: none;
 }
+/* iOS 26 lays out an installed app with the see-through status bar (installs
+   added before the solid bar) a status bar short of the screen while the page
+   is shorter than the screen (WebKit 301108), and its bars float above a blank
+   band. Content scrolls inside #app-scroll, so the page never grows by itself:
+   this floor makes it as tall as the screen, iOS then gives it the whole
+   screen, and the bars reach the bottom edge after an update, with no
+   reinstall. min() caps the floor at the page's own height where the top inset
+   is 0 (the solid status bar, where iOS 26 still reports 100lvh as the whole
+   screen, and Android), so the document never scrolls. Installed app only: in
+   a browser tab 100lvh is taller than what is on screen. */
+@media (display-mode: standalone) {
+  html {
+    min-height: min(100lvh, calc(100% + env(safe-area-inset-top, 0px)));
+  }
+}
 body {
   @apply m-0 min-h-dvh bg-bg-white-0 text-text-strong-950;
-  /* Note: Safe area insets are handled at component level for fixed-position elements.
-     See AppBar.tsx, Work.tsx, Garden/index.tsx for examples. */
+  /* Safe areas are handled where the chrome sits: the top bar and page headers
+     start their controls at var(--app-top-offset), 16px below the status bar's
+     safe area in the installed app, pages under the top bar start at
+     var(--app-top-bar-height), and
+     bottom bars and sheets pad by var(--safe-area-bottom) (shared theme.css,
+     Safe Areas). */
 }
 
 #root {

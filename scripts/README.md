@@ -181,7 +181,7 @@ Client startup prints one `[vite-watch]` line with the checkout, client root, wa
 ### `design/` — design system enforcement
 | Script | Caller | Purpose |
 |---|---|---|
-| `check-tokens.sh` | `bun run check --only design-tokens` | DesignMD ↔ `theme.css` drift + `data/design-token-usage-baseline.tsv` audit |
+| `check-tokens.sh` | `bun run check --only design-tokens` | DesignMD ↔ `theme.css` drift + `data/design-token-usage-baseline.tsv` audit + installed-app guard against raw `env(safe-area-inset-bottom)` |
 | `check-guidance-examples.mjs` | `bun run check --only design-tokens`, Design CI | Code-fence-aware guard against hardcoded motion, color, radius, and shadow values in design implementation examples |
 | `check-guidance-examples.test.mjs` | `bun run check --only review-guardrails-test`, Design CI | Fixture tests for design-example token allowances and hardcoded-value failures |
 | `check-vocab.sh` | `bun run check --only vocabulary` | Banned-vocabulary and US-spelling scan over i18n strings |

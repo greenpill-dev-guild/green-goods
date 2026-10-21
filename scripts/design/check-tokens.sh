@@ -527,6 +527,45 @@ if [[ -n "$ADMIN_FOCUS_RING_VIOLATIONS" ]]; then
 fi
 
 # ----------------------------------------------------------------------------
+# Installed-app bottom safe-area guard
+#
+# The installed app draws under the iPhone home indicator, and on iOS 26 a Home
+# Screen app can lay out on a viewport one status bar short of the screen, with
+# a blank band below that nothing the page draws reaches. --safe-area-bottom
+# (shared theme.css, Safe Areas) is the inset minus whatever that band already
+# covers, so every bottom bar, sheet and spacer in the client and the PWA sheet
+# surfaces pads by it. A raw env(safe-area-inset-bottom) brings back the double
+# padding that made bars float. The token's definition is exempt, and so is
+# admin-only shared chrome: admin has no viewport-fit=cover, so its insets are 0.
+# ----------------------------------------------------------------------------
+RAW_SAFE_AREA_BOTTOM_PATTERN='env\([[:space:]]*safe-area-inset-bottom'
+SAFE_AREA_BOTTOM_EXEMPT_REGEX='^(packages/shared/src/styles/theme\.css|packages/shared/src/components/Canvas/|packages/shared/src/components/Form/FormWizard\.tsx)'
+
+collect_raw_safe_area_bottom_hits() {
+  grep -RInE --include='*.ts' --include='*.tsx' --include='*.css' \
+    --exclude='*.test.tsx' --exclude='*.test.ts' \
+    --exclude-dir=__tests__ --exclude-dir=node_modules --exclude-dir=dist \
+    --exclude-dir=build --exclude-dir=storybook-static --exclude-dir=coverage \
+    "$RAW_SAFE_AREA_BOTTOM_PATTERN" packages/client/src packages/shared/src 2>/dev/null \
+    | grep -Ev "$SAFE_AREA_BOTTOM_EXEMPT_REGEX" \
+    | node scripts/design/filter-comment-hits.mjs "$RAW_SAFE_AREA_BOTTOM_PATTERN" \
+    | sed -E 's#^([^:]+):[0-9]+:[[:space:]]*#\1	#' \
+    | sed -E 's#[[:space:]]+# #g; s#[[:space:]]+$##' \
+    | sort -u
+  check_collection_statuses 2 "${PIPESTATUS[@]}"
+}
+
+if ! RAW_SAFE_AREA_BOTTOM_HITS="$(collect_optional_hits collect_raw_safe_area_bottom_hits)"; then exit 2; fi
+if [[ -n "$RAW_SAFE_AREA_BOTTOM_HITS" ]]; then
+  echo "❌ Raw bottom safe-area inset in installed-app chrome:"
+  echo "$RAW_SAFE_AREA_BOTTOM_HITS" | sed 's/^/  /'
+  echo
+  echo "Pad bottom bars, sheets and the space kept clear of them by var(--safe-area-bottom), as in calc(0.75rem + var(--safe-area-bottom)) or max(1rem, var(--safe-area-bottom))."
+  echo "The token drops the part of the home-indicator inset that iOS 26's blank bottom band already covers in an installed app (shared theme.css, Safe Areas)."
+  exit 1
+fi
+
+# ----------------------------------------------------------------------------
 # Action-flow modality guard
 #
 # Full-surface admin create/commit flows (Submit Work, Create Assessment, Create
@@ -679,4 +718,5 @@ echo "✅ admin wrapper-adoption sweep passed: shared field primitives, raw <but
 echo "✅ admin type-scale and view-colour sweep passed: no raw text sizes, and raw --m3-* colours stay in the Admin* primitives, the shell, and ActionFlowShell (D32)."
 echo "✅ admin focus-ring guard passed: focus indicators use --tone-focus-ring."
 echo "✅ action-flow modality guard passed: no retired AdminDialog size=\"fullscreen\" usage."
+echo "✅ installed-app safe-area guard passed: client and PWA bottom chrome pads by var(--safe-area-bottom)."
 echo "✅ token_version declared in design skill (${DESIGN_VER})."
