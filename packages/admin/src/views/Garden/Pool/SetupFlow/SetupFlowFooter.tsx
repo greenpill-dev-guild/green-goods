@@ -57,7 +57,7 @@ export function SetupFlowFooter({
         {submitting ? (
           <AdminLinearProgress ariaLabel={title} value={progress} />
         ) : !complete && !canContinue && blockedReason ? (
-          <p role="status" className="body-xs text-text-soft">
+          <p role="status" className="type-meta text-text-soft">
             {blockedReason}
           </p>
         ) : null}

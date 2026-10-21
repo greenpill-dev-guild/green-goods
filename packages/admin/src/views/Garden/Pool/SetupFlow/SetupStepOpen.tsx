@@ -192,8 +192,8 @@ export function SetupStepOpen({
         <dl className="space-y-2">
           {summaryRows.map(([label, value]) => (
             <div key={label}>
-              <dt className="label-xs text-text-soft">{label}</dt>
-              <dd className="text-body-md text-text-strong" title={value}>
+              <dt className="type-label-sm text-text-soft">{label}</dt>
+              <dd className="type-body text-text-strong" title={value}>
                 {value}
               </dd>
             </div>
@@ -202,11 +202,11 @@ export function SetupStepOpen({
       ) : null}
 
       <div className="space-y-2">
-        <p className="text-body-md font-medium text-text-strong" aria-live="polite">
+        <p className="type-body font-medium text-text-strong" aria-live="polite">
           {statusLine()}
         </p>
         {batched && phase === "ready" ? (
-          <p className="body-xs text-text-soft">
+          <p className="type-meta text-text-soft">
             {formatMessage({
               id: "cockpit.garden.pool.setup.promptBatched",
               defaultMessage:
@@ -251,7 +251,7 @@ export function SetupStepOpen({
         </Alert>
       ) : null}
       {phase === "running" ? (
-        <p className="body-xs text-text-soft">
+        <p className="type-meta text-text-soft">
           {formatMessage({
             id: "cockpit.garden.pool.setup.keepOpen",
             defaultMessage:

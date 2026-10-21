@@ -177,7 +177,7 @@ const ButtonToneMatrix = ({ theme }: { theme: "light" | "dark" }) => (
     data-theme={theme}
     className="admin-m3 rounded-[var(--m3-shape-lg)] bg-[rgb(var(--m3-surface))] p-4"
   >
-    <div className="mb-3 text-label-md font-semibold uppercase text-[rgb(var(--m3-on-surface-variant))]">
+    <div className="mb-3 type-label-sm font-semibold uppercase text-[rgb(var(--m3-on-surface-variant))]">
       {theme}
     </div>
     <div className="grid gap-3 md:grid-cols-2">
@@ -187,7 +187,7 @@ const ButtonToneMatrix = ({ theme }: { theme: "light" | "dark" }) => (
           data-tone={tone}
           className="rounded-[var(--m3-shape-md)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface-container-low))] p-3"
         >
-          <div className="mb-2 text-label-md font-medium text-[rgb(var(--m3-on-surface-variant))]">
+          <div className="mb-2 type-label-sm font-medium text-[rgb(var(--m3-on-surface-variant))]">
             {label}
           </div>
           <div className="flex flex-wrap gap-2">

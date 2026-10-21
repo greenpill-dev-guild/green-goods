@@ -158,7 +158,7 @@ export function SeedFlowFooter({
 
   return (
     <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
-      <p className="min-w-0 body-xs text-text-soft sm:flex-1" data-testid="seed-prompt-count">
+      <p className="min-w-0 type-meta text-text-soft sm:flex-1" data-testid="seed-prompt-count">
         <SeedFlowNote
           phase={status.phase}
           busy={busy}

@@ -79,7 +79,7 @@ export function CommunityMembersTab({
               <AdminCardTitle>
                 {formatMessage({ id: "cockpit.community.members.directory" })}
               </AdminCardTitle>
-              <p className="mt-1 text-body-sm text-text-sub">
+              <p className="mt-1 type-meta text-text-sub">
                 {formatMessage({ id: "cockpit.community.members.directoryDescription" })}
               </p>
             </div>
@@ -159,7 +159,7 @@ export function CommunityMembersTab({
                         {entry.roles.map((role) => (
                           <span
                             key={`${entry.address}-${role}`}
-                            className="rounded-full bg-bg-sub px-2 py-0.5 text-label-sm font-medium text-text-sub"
+                            className="rounded-full bg-bg-sub px-2 py-0.5 type-meta-sm font-medium text-text-sub"
                           >
                             {getRoleLabel(role, formatMessage).singular}
                           </span>

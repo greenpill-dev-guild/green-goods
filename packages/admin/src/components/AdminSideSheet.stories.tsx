@@ -55,7 +55,7 @@ const SAMPLE_ROWS = (
     {Array.from({ length: 12 }, (_, i) => (
       <li
         key={i}
-        className="rounded-md border border-stroke-soft bg-bg-white-0 p-3 body-sm text-text-sub"
+        className="rounded-md border border-stroke-soft bg-bg-white-0 p-3 type-body text-text-sub"
       >
         {`Row ${i + 1} — the panel content owns scrolling via SheetBody.`}
       </li>
@@ -84,7 +84,7 @@ function getOpenSurface(): HTMLElement {
 /** Renders an already-open sheet so geometry assertions are deterministic. */
 function OpenSideSheet({ children }: { children?: ReactNode }) {
   return (
-    <div className="flex min-h-56 items-center justify-center rounded-[var(--m3-shape-lg)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface-container-lowest))] p-6 text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
+    <div className="flex min-h-56 items-center justify-center rounded-[var(--m3-shape-lg)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface-container-lowest))] p-6 type-meta text-[rgb(var(--m3-on-surface-variant))]">
       Side sheet renders open (portaled to the document body).
       <AdminSideSheet open onOpenChange={() => undefined} title="Notifications" tone="hub">
         {children ?? <SheetBody padded>{SAMPLE_ROWS}</SheetBody>}
@@ -199,7 +199,7 @@ function SideSheetPreview() {
       </AdminButton>
       <AdminSideSheet open={open} onOpenChange={setOpen} title="Settings" tone="hub">
         <SheetBody padded>
-          <p className="body-sm text-text-sub">
+          <p className="type-body text-text-sub">
             Escape, the scrim, and the close button all close the sheet.
           </p>
         </SheetBody>

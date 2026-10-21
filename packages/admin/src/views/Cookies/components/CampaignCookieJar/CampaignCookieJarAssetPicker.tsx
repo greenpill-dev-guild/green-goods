@@ -42,7 +42,7 @@ export function CampaignCookieJarAssetPicker({
                 { symbol: asset.symbol, decimals: asset.decimals }
               )}
             </span>
-            <span className="mt-2 block break-all text-label-sm">
+            <span className="mt-2 block break-all type-meta-sm">
               {asset.supported && asset.address ? (
                 <EnsAddressText address={asset.address} />
               ) : (

@@ -9,7 +9,7 @@ import { railLabel } from "./commitmentDialogPresentation";
 /** One label/value line of the record's facts. */
 function fact(label: string, value: ReactNode) {
   return (
-    <div key={label} className="flex justify-between gap-3 text-body-md">
+    <div key={label} className="flex justify-between gap-3 type-body">
       <dt className="shrink-0 text-text-soft">{label}</dt>
       <dd
         className="truncate text-right text-text-strong"

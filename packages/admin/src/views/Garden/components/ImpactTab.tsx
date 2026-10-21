@@ -95,7 +95,7 @@ export function ImpactTab({
                   <AdminCardTitle>
                     {formatMessage({ id: "app.garden.detail.impact.hypercertHighlights" })}
                   </AdminCardTitle>
-                  <p className="mt-1 body-sm text-text-sub">
+                  <p className="mt-1 type-body text-text-sub">
                     {formatMessage({
                       id: "app.garden.detail.impact.hypercertHighlightsDescription",
                     })}
@@ -133,7 +133,7 @@ export function ImpactTab({
                     ))}
                   </div>
                 ) : hypercertsUnread ? (
-                  <p className="body-sm text-error-dark" role="alert">
+                  <p className="type-body text-error-dark" role="alert">
                     {formatMessage({ id: "app.garden.admin.hypercertsFailed" })}
                   </p>
                 ) : recentHypercerts.length === 0 ? (
@@ -168,13 +168,13 @@ export function ImpactTab({
                       >
                         <div className="min-w-0">
                           <p
-                            className="truncate body-sm font-medium text-text-strong"
+                            className="truncate type-body font-medium text-text-strong"
                             title={record.title?.trim() || undefined}
                           >
                             {record.title?.trim() ||
                               formatMessage({ id: "app.hypercerts.list.fallbackTitle" })}
                           </p>
-                          <p className="mt-0.5 body-xs text-text-soft">
+                          <p className="mt-0.5 type-meta text-text-soft">
                             {record.mintedAt
                               ? formatDate(record.mintedAt * 1000, { dateStyle: "medium" })
                               : formatMessage({ id: "app.hypercerts.list.dateUnknown" })}
@@ -182,7 +182,7 @@ export function ImpactTab({
                         </div>
                         <Link
                           to={adminRoutes.gardenHypercertDetail(record.id, gardenRouteContext)}
-                          className="inline-flex items-center gap-1 label-xs text-primary-base hover:text-primary-darker"
+                          className="inline-flex items-center gap-1 type-label-sm text-primary-base hover:text-primary-darker"
                         >
                           {formatMessage({ id: "app.actions.view" })}
                           <RiArrowRightSLine className="h-4 w-4" />
@@ -226,12 +226,12 @@ export function ImpactTab({
                     ))}
                   </div>
                 ) : assessmentsUnread ? (
-                  <p className="body-sm text-error-dark" role="alert">
+                  <p className="type-body text-error-dark" role="alert">
                     {formatMessage({ id: "app.garden.admin.assessmentsFailed" })}
                   </p>
                 ) : recentAssessments.length === 0 ? (
                   <div className="space-y-2">
-                    <p className="body-sm text-text-soft">
+                    <p className="type-body text-text-soft">
                       {formatMessage({ id: "app.garden.admin.noAssessments" })}
                     </p>
                     {canReview ? (
@@ -253,7 +253,7 @@ export function ImpactTab({
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 flex-1">
                             <p
-                              className="line-clamp-2 break-words body-sm font-medium text-text-strong"
+                              className="line-clamp-2 break-words type-body font-medium text-text-strong"
                               title={assessment.title || assessment.assessmentType || undefined}
                             >
                               {assessment.title ||
@@ -264,7 +264,7 @@ export function ImpactTab({
                               {assessment.domain !== undefined ? (
                                 <DomainBadge domain={assessment.domain} variant="inline" />
                               ) : null}
-                              <span className="body-xs text-text-soft">
+                              <span className="type-meta text-text-soft">
                                 {formatDate(normalizeTimestamp(assessment.createdAt), {
                                   dateStyle: "medium",
                                 })}
@@ -338,14 +338,14 @@ export function ImpactTab({
                 </div>
                 {domainLabels.length > 0 ? (
                   <div className="border-t border-stroke-soft pt-3">
-                    <p className="mb-2 label-xs text-text-soft">
+                    <p className="mb-2 type-label-sm text-text-soft">
                       {formatMessage({ id: "app.garden.detail.domains" })}
                     </p>
                     <div className="flex flex-wrap gap-1.5">
                       {domainLabels.map((domainLabel) => (
                         <span
                           key={domainLabel}
-                          className="inline-flex items-center rounded-full bg-primary-lighter px-2 py-0.5 label-xs text-primary-dark"
+                          className="inline-flex items-center rounded-full bg-primary-lighter px-2 py-0.5 type-label-sm text-primary-dark"
                         >
                           {domainLabel}
                         </span>

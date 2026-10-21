@@ -117,18 +117,18 @@ export function PoolFundingSection({
       ) : (
         <>
           <div className="space-y-0.5">
-            <p className="body-xs text-text-soft">
+            <p className="type-meta text-text-soft">
               {formatMessage({
                 id: "cockpit.garden.pool.funding.availablePromises",
                 defaultMessage: "Available for new promises",
               })}
             </p>
             <p className="flex flex-wrap items-baseline gap-x-2 tabular-nums">
-              <span className="text-title-md font-semibold text-text-strong">
+              <span className="type-title-md font-semibold text-text-strong">
                 {availableDollars ?? formatGdollar(available, locale)}
               </span>
               {available !== null && availableDollars !== null ? (
-                <span className="body-sm text-text-sub">
+                <span className="type-body text-text-sub">
                   {formatMessage(
                     {
                       id: "cockpit.garden.pool.funding.aboutGoodDollars",
@@ -141,7 +141,7 @@ export function PoolFundingSection({
             </p>
           </div>
 
-          <p className="body-xs text-text-sub tabular-nums" data-slot="funding-safe-line">
+          <p className="type-meta text-text-sub tabular-nums" data-slot="funding-safe-line">
             {snapshot?.safe
               ? formatMessage(
                   {
@@ -200,13 +200,13 @@ export function PoolFundingSection({
           </div>
 
           {readIssue || blockedBy ? (
-            <p className="body-xs text-text-sub" data-slot="funding-blocked-by">
+            <p className="type-meta text-text-sub" data-slot="funding-blocked-by">
               {readIssue ?? (blockedBy ? readinessReasonMessage(blockedBy, intl) : null)}
             </p>
           ) : null}
 
           {protocolContext ? (
-            <p className="body-xs text-text-soft">
+            <p className="type-meta text-text-soft">
               {formatMessage({
                 id: "cockpit.garden.pool.funding.protocolNote",
                 defaultMessage:
@@ -215,7 +215,7 @@ export function PoolFundingSection({
             </p>
           ) : null}
 
-          <p className="flex flex-wrap items-center gap-x-1 body-xs text-text-sub">
+          <p className="flex flex-wrap items-center gap-x-1 type-meta text-text-sub">
             <span>
               {funding.isRefetching
                 ? formatMessage({

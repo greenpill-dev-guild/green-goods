@@ -52,8 +52,8 @@ const SampleContent = () => (
       <RiLeafLine className="h-5 w-5" aria-hidden />
     </span>
     <div className="min-w-0 flex-1 space-y-1">
-      <div className="text-title-sm text-[rgb(var(--m3-on-surface))]">Pending review</div>
-      <div className="text-body-md text-[rgb(var(--m3-on-surface-variant))]">
+      <div className="type-title-sm text-[rgb(var(--m3-on-surface))]">Pending review</div>
+      <div className="type-body text-[rgb(var(--m3-on-surface-variant))]">
         14 submissions waiting, oldest 3 days.
       </div>
     </div>
@@ -73,7 +73,7 @@ export const CardTitle: Story = {
   render: () => (
     <AdminCard className="max-w-sm">
       <AdminCardTitle>Pool Status</AdminCardTitle>
-      <p className="mt-2 text-body-md text-text-sub">A card title shares one scale across admin.</p>
+      <p className="mt-2 type-body text-text-sub">A card title shares one scale across admin.</p>
     </AdminCard>
   ),
 };
@@ -124,10 +124,8 @@ export const StateCatalog: Story = {
       {(["filled", "elevated", "outlined"] as const).map((variant) => (
         <AdminCard key={variant} variant={variant}>
           <div className="space-y-2">
-            <div className="text-label-lg capitalize text-[rgb(var(--m3-on-surface))]">
-              {variant}
-            </div>
-            <div className="text-body-md text-[rgb(var(--m3-on-surface-variant))]">
+            <div className="type-label capitalize text-[rgb(var(--m3-on-surface))]">{variant}</div>
+            <div className="type-body text-[rgb(var(--m3-on-surface-variant))]">
               Surface, shape, and elevation remain visible inside the admin canvas.
             </div>
           </div>
@@ -147,7 +145,7 @@ export const WithToneWash: Story = {
     <div className="grid gap-4 md:grid-cols-2">
       {(["hub", "garden", "community", "actions"] as const).map((tone) => (
         <div key={tone} data-tone={tone} className="rounded-2xl bg-bg-white-0 p-4">
-          <div className="mb-2 label-xs font-semibold uppercase tracking-[0.06em] text-text-soft">
+          <div className="mb-2 type-label-sm font-semibold uppercase tracking-[0.06em] text-text-soft">
             [data-tone=&quot;{tone}&quot;]
           </div>
           <AdminCard variant="elevated">

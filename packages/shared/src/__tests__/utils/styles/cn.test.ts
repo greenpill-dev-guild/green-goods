@@ -22,18 +22,23 @@ describe("cn", () => {
     expect(cn("text-label-sm", "text-sm")).toBe("text-sm");
   });
 
-  it("resolves a raw size and a named admin type class to the last one", () => {
+  it("resolves a raw size, a named admin type class, and a type role to the last one", () => {
     // A shared default size overridden from admin (`className="body-xs"`): both
     // classes used to survive and the default won in the cascade.
     expect(cn("font-mono text-sm", "body-xs")).toBe("font-mono body-xs");
     expect(cn("body-sm", "text-xs")).toBe("text-xs");
     expect(cn("label-xs", "body-sm")).toBe("body-sm");
     expect(cn("text-body-md", "subheading-xs")).toBe("subheading-xs");
+    expect(cn("font-mono text-sm", "type-meta")).toBe("font-mono type-meta");
+    expect(cn("type-body", "type-meta-sm")).toBe("type-meta-sm");
   });
 
-  it("keeps a named admin type class beside a weight, leading, or colour", () => {
+  it("keeps a named admin type class or a type role beside a weight, leading, or colour", () => {
     expect(cn("body-sm", "font-medium", "leading-6", "text-text-sub")).toBe(
       "body-sm font-medium leading-6 text-text-sub"
+    );
+    expect(cn("type-label", "font-semibold", "leading-6", "text-[rgb(var(--m3-error))]")).toBe(
+      "type-label font-semibold leading-6 text-[rgb(var(--m3-error))]"
     );
   });
 

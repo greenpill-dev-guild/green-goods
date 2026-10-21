@@ -138,7 +138,7 @@ export function DetailsConfigSection({ config, onChange }: DetailsConfigSectionP
 
           {config.inputs.length === 0 && (
             <div className="text-center py-8 border border-dashed border-stroke-soft rounded-lg">
-              <p className="body-md text-text-sub mb-2">
+              <p className="type-body text-text-sub mb-2">
                 {formatMessage({
                   id: "app.admin.actions.detailsConfig.noInputs",
                   defaultMessage: "No form inputs yet",
@@ -192,7 +192,7 @@ function InputFieldEditor({
     <div className="border border-stroke-soft rounded-lg p-4 bg-bg-soft">
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2">
-          <span className="label-md font-medium text-text-strong">
+          <span className="type-label-sm font-medium text-text-strong">
             {formatMessage(
               {
                 id: "app.admin.actions.detailsConfig.inputNumber",

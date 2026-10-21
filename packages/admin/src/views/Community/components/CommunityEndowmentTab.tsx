@@ -46,21 +46,21 @@ export function CommunityEndowmentTab({
               {/* A plain label and value, one line per asset held: amounts of
                   different assets never add up (D14). */}
               <div>
-                <p className="text-label-sm text-text-sub">
+                <p className="type-meta-sm text-text-sub">
                   {formatMessage({ id: "app.treasury.totalValueLocked" })}
                 </p>
                 {!hasVaults ? (
-                  <p className="mt-1 text-title-sm font-semibold text-text-strong">
+                  <p className="mt-1 type-title-sm font-semibold text-text-strong">
                     {formatMessage({ id: "app.garden.detail.community.noVault" })}
                   </p>
                 ) : shownAssets.length === 0 ? (
-                  <p className="mt-1 text-title-sm font-semibold text-text-strong">0</p>
+                  <p className="mt-1 type-title-sm font-semibold text-text-strong">0</p>
                 ) : (
                   <ul className="mt-1 space-y-0.5">
                     {shownAssets.map((entry) => (
                       <li
                         key={entry.asset}
-                        className="text-title-sm font-semibold tabular-nums text-text-strong"
+                        className="type-title-sm font-semibold tabular-nums text-text-strong"
                       >
                         {formatTokenAmount(entry.amount, entry.decimals, 4, locale)} {entry.symbol}
                       </li>

@@ -63,10 +63,27 @@ const NAMED_TYPE_CLASSES = [
   "subheading-xs",
 ];
 
+/**
+ * The type roles (the `type-*` utilities at the end of `theme.css`). Each sets a
+ * font size with its line height, weight and tracking, so it merges with the
+ * other font-size classes: the last one on an element wins.
+ */
+const TYPE_ROLE_CLASSES = [
+  "type-title-lg",
+  "type-title-md",
+  "type-title-sm",
+  "type-body",
+  "type-label",
+  "type-label-sm",
+  "type-meta",
+  "type-meta-sm",
+  "type-field",
+];
+
 const twMerge = extendTailwindMerge({
   extend: {
     classGroups: {
-      "font-size": [{ text: FONT_SIZE_UTILITIES }, ...NAMED_TYPE_CLASSES],
+      "font-size": [{ text: FONT_SIZE_UTILITIES }, ...NAMED_TYPE_CLASSES, ...TYPE_ROLE_CLASSES],
     },
   },
 });

@@ -90,12 +90,12 @@ export function StewardAccessRequest({
       {showStatus && request && c.selectedGarden ? (
         <div className="space-y-2 text-left" aria-live="polite">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="body-sm font-semibold text-text-strong">{c.selectedGarden.name}</p>
+            <p className="type-body font-semibold text-text-strong">{c.selectedGarden.name}</p>
             <StatusBadge variant={request.state === "welcomed" ? "success" : "neutral"}>
               {statusLabel}
             </StatusBadge>
           </div>
-          <p className="body-sm text-text-sub">
+          <p className="type-body text-text-sub">
             {formatMessage({ id: `cockpit.stewardAccess.outcome.${request.state}` })}
           </p>
         </div>
@@ -139,7 +139,7 @@ export function StewardAccessRequest({
           {!c.available ? (
             <>
               {c.serviceLoading ? (
-                <p role="status" className="body-sm text-text-sub">
+                <p role="status" className="type-body text-text-sub">
                   {formatMessage({ id: "cockpit.stewardAccess.checkingAvailability" })}
                 </p>
               ) : (
@@ -175,11 +175,11 @@ export function StewardAccessRequest({
               <StatusBadge variant={request?.state === "welcomed" ? "success" : "neutral"}>
                 {statusLabel}
               </StatusBadge>
-              <p className="body-sm text-text-sub">
+              <p className="type-body text-text-sub">
                 {formatMessage({ id: `cockpit.stewardAccess.outcome.${request?.state}` })}
               </p>
               {request?.reason ? (
-                <p className="whitespace-pre-wrap body-sm text-text-strong">{request.reason}</p>
+                <p className="whitespace-pre-wrap type-body text-text-strong">{request.reason}</p>
               ) : null}
               <AdminButton
                 variant="text"
@@ -201,7 +201,7 @@ export function StewardAccessRequest({
                 />
               </div>
               {c.catalogLoading ? (
-                <p role="status" className="body-sm text-text-sub">
+                <p role="status" className="type-body text-text-sub">
                   {formatMessage({ id: "cockpit.stewardAccess.loadingGardens" })}
                 </p>
               ) : c.catalogError ? (
@@ -220,7 +220,7 @@ export function StewardAccessRequest({
                   {formatMessage({ id: "cockpit.stewardAccess.gardensError" })}
                 </Alert>
               ) : c.candidates.length === 0 ? (
-                <p role="status" className="body-sm text-text-sub">
+                <p role="status" className="type-body text-text-sub">
                   {formatMessage({
                     id: c.invalidLink
                       ? "cockpit.stewardAccess.invalidLink"
@@ -241,10 +241,10 @@ export function StewardAccessRequest({
                           aria-hidden="true"
                         />
                         <span className="min-w-0">
-                          <span className="block body-sm font-semibold text-text-strong">
+                          <span className="block type-body font-semibold text-text-strong">
                             {garden.name}
                           </span>
-                          <span className="block body-sm text-text-sub">{garden.location}</span>
+                          <span className="block type-body text-text-sub">{garden.location}</span>
                         </span>
                       </AdminButton>
                     </li>
@@ -255,10 +255,10 @@ export function StewardAccessRequest({
           ) : c.selectedGarden ? (
             <>
               <section className="space-y-2">
-                <h3 className="body-sm font-semibold text-text-strong">
+                <h3 className="type-body font-semibold text-text-strong">
                   {formatMessage({ id: "cockpit.stewardAccess.reviewTitle" })}
                 </h3>
-                <p className="body-sm text-text-sub">
+                <p className="type-body text-text-sub">
                   {formatMessage({ id: "cockpit.stewardAccess.account" })}
                 </p>
                 {c.accountAddress ? (
@@ -273,7 +273,7 @@ export function StewardAccessRequest({
                 showCount
                 helperText={formatMessage({ id: "cockpit.stewardAccess.noteHelp" })}
               />
-              <p className="body-sm text-text-sub">
+              <p className="type-body text-text-sub">
                 {formatMessage({ id: "cockpit.stewardAccess.signingHelp" })}
               </p>
               <AdminButton
@@ -286,7 +286,7 @@ export function StewardAccessRequest({
                 {formatMessage({ id: "cockpit.stewardAccess.checkStatus" })}
               </AdminButton>
               {c.hasCheckedStatus && !request ? (
-                <p role="status" className="body-sm text-text-sub">
+                <p role="status" className="type-body text-text-sub">
                   {formatMessage({ id: "cockpit.stewardAccess.noRequest" })}
                 </p>
               ) : null}

@@ -130,10 +130,8 @@ export function BootRecovery({ error, onReload, onReset }: BootRecoveryProps) {
       <div className="flex h-14 w-14 items-center justify-center rounded-full bg-warning-lighter">
         <RiAlertLine className="h-7 w-7 text-warning-dark" aria-hidden />
       </div>
-      <h1 className="mt-5 text-title-lg font-semibold leading-[var(--type-title-lg-lh)] text-text-strong">
-        {copy.failedTitle}
-      </h1>
-      <p className="mb-6 mt-2 max-w-sm body-sm text-text-sub">{copy.failedBody}</p>
+      <h1 className="mt-5 type-title-lg font-semibold text-text-strong">{copy.failedTitle}</h1>
+      <p className="mb-6 mt-2 max-w-sm type-body text-text-sub">{copy.failedBody}</p>
       <div className="flex flex-wrap items-center justify-center gap-2">
         <AdminButton
           type="button"
@@ -152,7 +150,7 @@ export function BootRecovery({ error, onReload, onReset }: BootRecoveryProps) {
           {copy.reset}
         </AdminButton>
       </div>
-      <details className="mt-6 max-w-lg text-left body-xs text-text-sub">
+      <details className="mt-6 max-w-lg text-left type-meta text-text-sub">
         <summary className="cursor-pointer">{copy.details}</summary>
         <pre
           className="mt-2 whitespace-pre-wrap break-words rounded-[var(--m3-shape-sm)] bg-bg-white p-3"

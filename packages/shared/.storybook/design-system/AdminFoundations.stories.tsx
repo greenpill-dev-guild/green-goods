@@ -77,18 +77,18 @@ export const Tokens: Story = {
         />
       </Section>
 
-      <Section id="type" title="Type scale" lede="Plus Jakarta Sans. 14px body and labels (every button size), 12px meta and floating field labels, 11px inside chips only; 16px only for field text on touch widths; title-large 22px for dialog and app-bar titles, title-medium 16px for route headers.">
+      <Section id="type" title="Type roles" lede="Plus Jakarta Sans on the type roles, at the cockpit's density: type-title-lg 22px for dialog, flow and step titles and the app bar; type-title-md 16px for route headers and card titles; type-body and type-label 14px (every button size); type-label-sm and type-meta 12px; type-meta-sm 11px for chips and small supporting lines. Field text is type-field: 16px on touch widths, 14px from 640px.">
         <TokenTable
           tokens={[
-            { name: "--text-title-lg", expected: "22px", note: "dialog and flow titles, the app bar" },
-            { name: "--text-title-md", expected: "16px", note: "route header title" },
-            { name: "--text-title-sm", expected: "14px" },
-            { name: "--text-body-lg", expected: "16px" },
-            { name: "--text-body-md", expected: "14px", note: "field text, body" },
-            { name: "--text-body-sm", expected: "12px", note: "floating labels, supporting text" },
-            { name: "--text-label-lg", expected: "14px", note: "buttons, chips, tabs" },
-            { name: "--text-label-md", expected: "12px", note: "meta, count chips" },
-            { name: "--text-label-sm", expected: "11px", note: "chips only" },
+            { name: "--gg-type-title-lg-size", expected: "1.375rem", note: "22px: dialog, flow and step titles, the app bar" },
+            { name: "--gg-type-title-md-size", expected: "1rem", note: "16px: route headers, card and section titles" },
+            { name: "--gg-type-title-sm-size", expected: "0.875rem", note: "14px" },
+            { name: "--gg-type-body-size", expected: "0.875rem", note: "14px body" },
+            { name: "--gg-type-label-size", expected: "0.875rem", note: "14px: buttons, tabs" },
+            { name: "--gg-type-label-sm-size", expected: "0.75rem", note: "12px / 500: eyebrows, metadata labels" },
+            { name: "--gg-type-meta-size", expected: "0.75rem", note: "12px: floating labels, supporting text" },
+            { name: "--gg-type-meta-sm-size", expected: "0.6875rem", note: "11px: chips (with their own weight) and small supporting lines" },
+            { name: "--gg-type-field-size", note: "field text: 16px below 640px, 14px from 640px" },
             { name: "--font-heading", note: "Plus Jakarta Sans" },
           ]}
         />
@@ -101,8 +101,23 @@ export const Tokens: Story = {
               <AdminTextField label="Garden name" defaultValue="Rio Claro" />
             </div>
           </Specimen>
-          <Specimen title="dialog title · 22px" target="h2" expect={{ labelSize: 22, weight: 600 }}>
-            <h2 className="text-title-lg font-semibold text-[rgb(var(--m3-on-surface))]">Start a Season</h2>
+          <Specimen title="type-title-lg · 22px / 600" target="h2" expect={{ labelSize: 22, weight: 600 }}>
+            <h2 className="type-title-lg text-text-strong">Start a Season</h2>
+          </Specimen>
+          <Specimen title="type-title-md · 16px / 600" target="h3" expect={{ labelSize: 16, weight: 600 }}>
+            <h3 className="type-title-md text-text-strong">Approved Work</h3>
+          </Specimen>
+          <Specimen title="type-body · 14px" target="p" expect={{ labelSize: 14, weight: 400 }}>
+            <p className="type-body text-text-sub">Approved work appears here once a steward confirms it.</p>
+          </Specimen>
+          <Specimen title="type-label-sm · 12px / 500" target="p" expect={{ labelSize: 12, weight: 500 }}>
+            <p className="type-label-sm text-text-soft">Open joining</p>
+          </Specimen>
+          <Specimen title="type-meta · 12px" target="p" expect={{ labelSize: 12, weight: 400 }}>
+            <p className="type-meta text-text-sub">Submitted 3 days ago</p>
+          </Specimen>
+          <Specimen title="type-meta-sm · 11px" target="span" expect={{ labelSize: 11, weight: 400 }}>
+            <span className="type-meta-sm text-text-sub">Pending</span>
           </Specimen>
         </div>
       </Section>
@@ -229,7 +244,11 @@ export const Tokens: Story = {
   play: async ({ canvasElement }) => {
     const root = getComputedStyle(document.documentElement);
     const token = (name: string) => root.getPropertyValue(name).trim();
-    // Production today: the cockpit type scale and Plus Jakarta Sans.
+    // Production today: the type roles at the cockpit's density, and the Material
+    // aliases its shared components still read until they move onto the roles.
+    await expect(token("--gg-type-body-size")).toBe("0.875rem");
+    await expect(token("--gg-type-label-sm-size")).toBe("0.75rem");
+    await expect(token("--gg-type-meta-sm-size")).toBe("0.6875rem");
     await expect(token("--text-label-lg")).toBe("14px");
     await expect(token("--text-label-sm")).toBe("11px");
     await expect(token("--text-body-md")).toBe("14px");

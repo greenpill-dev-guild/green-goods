@@ -82,7 +82,7 @@ export function SettlementOperationsCard({
             defaultMessage: "Settlement Operations",
           })}
         </AdminCardTitle>
-        <p className="mt-1 body-xs text-text-soft">
+        <p className="mt-1 type-meta text-text-soft">
           {formatMessage({
             id: "cockpit.community.settlementOps.description",
             defaultMessage:
@@ -138,14 +138,14 @@ export function SettlementOperationsCard({
       </AdminSettingRow>
 
       <details className="border-t border-stroke-soft pt-3">
-        <summary className="admin-hit-target relative rounded-[var(--m3-shape-sm)] py-1 body-sm font-medium text-text-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]">
+        <summary className="admin-hit-target relative rounded-[var(--m3-shape-sm)] py-1 type-body font-medium text-text-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]">
           {formatMessage({
             id: "cockpit.community.settlementOps.delivery.settings",
             defaultMessage: "Delivery Settings",
           })}
         </summary>
         <div className="mt-3 space-y-3">
-          <p className="body-xs text-text-soft">
+          <p className="type-meta text-text-soft">
             {formatMessage({
               id: "cockpit.community.settlementOps.delivery.description",
               defaultMessage:
@@ -175,7 +175,7 @@ export function SettlementOperationsCard({
             ) : null}
           </div>
           {!operations.canConfigureDelivery ? (
-            <p className="body-xs text-text-soft" data-testid="gardener-delivery-owner-only">
+            <p className="type-meta text-text-soft" data-testid="gardener-delivery-owner-only">
               {formatMessage(
                 {
                   id: "cockpit.community.settlementOps.delivery.ownerOnly",
@@ -192,8 +192,8 @@ export function SettlementOperationsCard({
         <p
           className={
             operations.lastAct.phase === "failed"
-              ? "body-xs text-error-dark"
-              : "body-xs text-text-soft"
+              ? "type-meta text-error-dark"
+              : "type-meta text-text-soft"
           }
           role="status"
           data-testid="gardener-delivery-status"

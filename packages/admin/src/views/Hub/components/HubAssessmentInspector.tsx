@@ -59,7 +59,7 @@ export function HubAssessmentInspector({
     <>
       <SheetBody padded={true} className="flex flex-col gap-4">
         {assessment.description ? (
-          <p className="break-words body-sm text-text-sub">{assessment.description}</p>
+          <p className="break-words type-body text-text-sub">{assessment.description}</p>
         ) : null}
 
         <section className="surface-inset space-y-2 sm:p-6">
@@ -129,7 +129,7 @@ export function HubAssessmentInspector({
           href={getEASExplorerUrl(chainId, assessment.id)}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 self-start rounded body-sm text-primary-dark transition hover:text-primary-darker focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--primary-base)))]"
+          className="inline-flex items-center gap-1 self-start rounded type-body text-primary-dark transition hover:text-primary-darker focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--primary-base)))]"
         >
           {formatMessage({
             id: "app.admin.assessments.viewOnEas",
@@ -139,7 +139,7 @@ export function HubAssessmentInspector({
         </a>
 
         {canMint ? (
-          <p className="body-sm text-text-sub">
+          <p className="type-body text-text-sub">
             {formatMessage({
               id: "cockpit.hub.certify.stewardDescription",
               defaultMessage:

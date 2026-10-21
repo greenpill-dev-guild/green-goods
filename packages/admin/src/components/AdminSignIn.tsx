@@ -127,11 +127,11 @@ export function AdminSignIn({ controller }: { controller: AdminLoginController }
           </div>
         ) : null}
         <div>
-          <p id={feedbackId} role="alert" className="body-sm text-error-dark">
+          <p id={feedbackId} role="alert" className="type-body text-error-dark">
             {showError ? controller.error : null}
           </p>
           {controller.isSigningIn ? (
-            <p role="status" className="body-sm text-text-sub">
+            <p role="status" className="type-body text-text-sub">
               {formatMessage(
                 isCreating
                   ? {
@@ -142,7 +142,7 @@ export function AdminSignIn({ controller }: { controller: AdminLoginController }
               )}
             </p>
           ) : showHint ? (
-            <p id={hintId} className="body-sm text-text-sub">
+            <p id={hintId} className="type-body text-text-sub">
               {formatMessage(
                 isCreating && !controller.canSignInByName
                   ? {

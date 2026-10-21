@@ -265,9 +265,9 @@ export function PositionCard({
     <AdminCard>
       <div className="mb-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-title-md font-semibold text-text-strong">{assetSymbol}</h3>
+          <h3 className="type-title-md font-semibold text-text-strong">{assetSymbol}</h3>
           {!vaultAcceptingDeposits && (
-            <span className="rounded-full bg-warning-lighter px-2 py-1 text-label-sm font-medium text-warning-dark">
+            <span className="rounded-full bg-warning-lighter px-2 py-1 type-meta-sm font-medium text-warning-dark">
               {formatMessage({ id: "app.treasury.depositsDisabled" })}
             </span>
           )}
@@ -276,7 +276,7 @@ export function PositionCard({
           href={getBlockExplorerAddressUrl(chainId, vault.vaultAddress)}
           target="_blank"
           rel="noreferrer"
-          className="mt-1 inline-flex items-center gap-1 text-body-sm text-primary-dark hover:underline"
+          className="mt-1 inline-flex items-center gap-1 type-meta text-primary-dark hover:underline"
         >
           {formatMessage({ id: "app.explorer.viewVault" })}:{" "}
           <EnsAddressText address={vault.vaultAddress} />
@@ -285,9 +285,9 @@ export function PositionCard({
       </div>
 
       {/* Plain label and value rows: the card is the one container (D33). */}
-      <dl className="divide-y divide-stroke-soft text-body-md">
+      <dl className="divide-y divide-stroke-soft type-body">
         <div className="flex items-baseline justify-between gap-3 py-2">
-          <dt className="text-label-sm text-text-soft">
+          <dt className="type-meta-sm text-text-soft">
             {formatMessage({ id: "app.treasury.netDeposited" })}
           </dt>
           <dd className="font-semibold tabular-nums text-text-strong">
@@ -295,7 +295,7 @@ export function PositionCard({
           </dd>
         </div>
         <div className="flex items-baseline justify-between gap-3 py-2">
-          <dt className="text-label-sm text-text-soft">
+          <dt className="type-meta-sm text-text-soft">
             {formatMessage({ id: "app.treasury.currentYield" })}
           </dt>
           <dd
@@ -303,20 +303,20 @@ export function PositionCard({
           >
             {formatTokenAmount(unharvestedImpactYield, assetDecimals)} {assetSymbol}
             {unharvestedImpactYield > 0n && (
-              <span className="ml-1 text-body-sm font-normal">
+              <span className="ml-1 type-meta font-normal">
                 {formatMessage({ id: "app.yield.accruing" })}
               </span>
             )}
           </dd>
         </div>
         <div className="flex items-baseline justify-between gap-3 py-2">
-          <dt className="text-label-sm text-text-soft">
+          <dt className="type-meta-sm text-text-soft">
             {formatMessage({ id: "app.treasury.depositorCount" })}
           </dt>
           <dd className="font-semibold tabular-nums text-text-strong">{vault.depositorCount}</dd>
         </div>
         <div className="flex items-baseline justify-between gap-3 py-2">
-          <dt className="text-label-sm text-text-soft">
+          <dt className="type-meta-sm text-text-soft">
             {formatMessage({ id: "app.treasury.harvestCount" })}
           </dt>
           <dd className="font-semibold tabular-nums text-text-strong">{vault.totalHarvestCount}</dd>

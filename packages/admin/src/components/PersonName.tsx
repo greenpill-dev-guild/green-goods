@@ -26,7 +26,7 @@ export function PersonName({ address, className, children }: PersonNameProps) {
   return (
     <span
       data-component="PersonName"
-      className={cn("truncate body-sm font-semibold text-text-strong", className)}
+      className={cn("truncate type-body font-semibold text-text-strong", className)}
       title={name === address ? address : `${name} · ${address}`}
     >
       {name}

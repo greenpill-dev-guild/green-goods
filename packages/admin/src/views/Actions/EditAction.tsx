@@ -100,10 +100,10 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
       <form onSubmit={form.handleSubmit(submit)} className="space-y-4">
         <AdminCard className="space-y-4">
           <div>
-            <h3 className="text-title-md font-semibold text-text-strong">
+            <h3 className="type-title-md font-semibold text-text-strong">
               {formatMessage({ id: "app.actions.edit.basicInfo" })}
             </h3>
-            <p className="mt-1 body-sm text-text-sub">
+            <p className="mt-1 type-body text-text-sub">
               {formatMessage({
                 id: "cockpit.actions.detailDescription",
                 defaultMessage:
@@ -144,7 +144,7 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
 
         <AdminCard className="space-y-4">
           <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-title-md font-semibold text-text-strong">
+            <h3 className="type-title-md font-semibold text-text-strong">
               {formatMessage({ id: "app.actions.edit.instructionsConfig" })}
             </h3>
             {!isLoadingInstructions && (
@@ -162,13 +162,13 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
           </div>
 
           {isLoadingInstructions ? (
-            <p className="body-sm text-text-sub">
+            <p className="type-body text-text-sub">
               {formatMessage({ id: "app.actions.edit.loadingInstructions" })}
             </p>
           ) : isEditingInstructions ? (
             <InstructionsBuilder value={instructionConfig} onChange={setInstructionConfig} />
           ) : (
-            <p className="body-sm text-text-sub">
+            <p className="type-body text-text-sub">
               {formatMessage({ id: "app.actions.edit.instructionsHint" })}
             </p>
           )}

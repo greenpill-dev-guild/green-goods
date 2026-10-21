@@ -455,7 +455,7 @@ export const GardenSettingsEditor = forwardRef<
           })}
         >
           {draft.bannerFile ? (
-            <p className="truncate text-body-sm text-text-sub-600" title={draft.bannerFile.name}>
+            <p className="truncate type-meta text-text-sub-600" title={draft.bannerFile.name}>
               {draft.bannerFile.name} ·{" "}
               {formatMessage({
                 id: "app.garden.settings.bannerDraft",

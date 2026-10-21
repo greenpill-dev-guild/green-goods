@@ -158,7 +158,7 @@ const closeButtonClasses = cn(
  * - Shape: page-container radius (16dp) via --m3-shape-lg; surface-container-high;
  *   elevation 2 over the scrim (the ladder tops out at level 2)
  * - Header: hairline-bottom bar (px-4 py-3 sm:px-6, border-stroke-soft) with
- *   an optional inline icon, title-large title, body-sm description
+ *   an optional inline icon, title-large title, type-body description
  * - Body: the scrollable region between header and footer (px-4 py-4 sm:px-6)
  * - Actions: pinned footer bar — hairline top border on --surface-raised
  *   (the SheetFooter anatomy the flows use), buttons right-aligned
@@ -332,7 +332,7 @@ export function AdminDialog({
                   </span>
                 ) : null}
                 <div className="min-w-0">
-                  <Dialog.Title className="text-title-lg font-semibold leading-[var(--type-title-lg-lh)] text-[rgb(var(--m3-on-surface))]">
+                  <Dialog.Title className="type-title-lg font-semibold text-[rgb(var(--m3-on-surface))]">
                     {title}
                   </Dialog.Title>
                   {target ? (
@@ -342,7 +342,7 @@ export function AdminDialog({
                   ) : null}
                   <Dialog.Description
                     className={cn(
-                      description ? "mt-0.5 body-sm" : "sr-only",
+                      description ? "mt-0.5 type-body" : "sr-only",
                       "text-[rgb(var(--m3-on-surface-variant))]"
                     )}
                   >
@@ -362,7 +362,7 @@ export function AdminDialog({
             data-slot="body"
             data-testid="admin-dialog-body"
             className={cn(
-              "min-h-0 flex-1 overflow-y-auto text-body-md",
+              "min-h-0 flex-1 overflow-y-auto type-body",
               "text-[rgb(var(--m3-on-surface-variant))]",
               variant === "palette" || variant === "flow" ? "" : "px-4 py-4 sm:px-6",
               bodyClassName
@@ -489,7 +489,7 @@ export function AdminConfirmDialog({
       }
     >
       {description ? null : (
-        <p className="text-body-md text-[rgb(var(--m3-on-surface-variant))]">{title}</p>
+        <p className="type-body text-[rgb(var(--m3-on-surface-variant))]">{title}</p>
       )}
       {children}
     </AdminDialog>

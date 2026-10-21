@@ -178,10 +178,13 @@ export function SubmitWorkPhotos({ images, minRequired, onRemove }: SubmitWorkPh
                   </AdminIconButton>
                 </div>
                 <div className="min-w-0">
-                  <p className="break-words body-xs font-medium text-text-strong" title={file.name}>
+                  <p
+                    className="break-words type-meta font-medium text-text-strong"
+                    title={file.name}
+                  >
                     {file.name}
                   </p>
-                  <p className="body-xs text-text-soft">{formatSize(file.size)}</p>
+                  <p className="type-meta text-text-soft">{formatSize(file.size)}</p>
                 </div>
               </li>
             );

@@ -35,8 +35,8 @@ function CookieJarPayoutPanelHarness({ jars }: MockPayoutPanelProps) {
     <AdminCard density="none" className="overflow-hidden">
       <AdminCardHeader>
         <div>
-          <h3 className="label-md text-text-strong sm:text-title-md">Cookie Jars</h3>
-          <p className="mt-1 body-sm text-text-sub">
+          <h3 className="type-label-sm text-text-strong sm:type-title-md">Cookie Jars</h3>
+          <p className="mt-1 type-body text-text-sub">
             Gardeners claim rewards from cookie jars for completed work
           </p>
         </div>

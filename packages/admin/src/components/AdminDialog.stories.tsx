@@ -86,7 +86,7 @@ function OpenGeometryDialog({
   body: ReactNode;
 }) {
   return (
-    <div className="flex min-h-56 items-center justify-center rounded-[var(--m3-shape-lg)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface-container-lowest))] p-6 text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
+    <div className="flex min-h-56 items-center justify-center rounded-[var(--m3-shape-lg)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface-container-lowest))] p-6 type-meta text-[rgb(var(--m3-on-surface-variant))]">
       Dialog renders open (portaled to the document body).
       <AdminDialog
         open
@@ -286,14 +286,14 @@ export const PaletteVariant: Story = {
           <input
             aria-label="Search commands"
             placeholder="Search pages, gardens, actions..."
-            className="h-10 flex-1 bg-transparent text-body-lg outline-none"
+            className="h-10 flex-1 bg-transparent type-field outline-none"
           />
         </div>
         <div className="p-2">
-          <button className="flex w-full rounded-sm px-3 py-2 text-left text-body-md text-text-sub">
+          <button className="flex w-full rounded-sm px-3 py-2 text-left type-body text-text-sub">
             Hub
           </button>
-          <button className="flex w-full rounded-sm px-3 py-2 text-left text-body-md text-text-sub">
+          <button className="flex w-full rounded-sm px-3 py-2 text-left type-body text-text-sub">
             Garden
           </button>
         </div>
@@ -353,10 +353,10 @@ export const FlowVariant: Story = {
               className="space-y-3 rounded-[var(--m3-shape-lg)] border border-stroke-soft p-4"
             >
               <div className="flex items-center gap-3">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-bg-weak body-xs font-semibold text-text-sub">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-bg-weak type-meta font-semibold text-text-sub">
                   {`0${index + 1}`}
                 </span>
-                <h2 className="body-md font-semibold text-text-strong">{sectionTitle}</h2>
+                <h2 className="type-title-md text-text-strong">{sectionTitle}</h2>
               </div>
               <div className="h-10 w-full rounded-lg border border-stroke-soft bg-bg-white" />
               <div className="h-20 w-full rounded-lg border border-stroke-soft bg-bg-white" />
@@ -422,8 +422,8 @@ export const ConfirmWithDetails: Story = {
             ["Signs as", "Garden account"],
           ].map(([term, value]) => (
             <div key={term} className="flex items-baseline justify-between gap-3 py-2">
-              <dt className="shrink-0 text-label-sm text-text-soft">{term}</dt>
-              <dd className="text-right text-body-sm font-medium text-text-strong">{value}</dd>
+              <dt className="shrink-0 type-meta-sm text-text-soft">{term}</dt>
+              <dd className="text-right type-meta font-medium text-text-strong">{value}</dd>
             </div>
           ))}
         </dl>
@@ -809,7 +809,7 @@ export const ToneMatrix: Story = {
     <div className="grid gap-4 md:grid-cols-2">
       {(["hub", "garden", "community", "actions"] as const).map((tone) => (
         <div key={tone} data-tone={tone}>
-          <div className="mb-2 label-xs font-semibold uppercase tracking-[0.06em] text-text-soft">
+          <div className="mb-2 type-label-sm font-semibold uppercase tracking-[0.06em] text-text-soft">
             {`[data-tone="${tone}"]`}
           </div>
           <DialogPreview

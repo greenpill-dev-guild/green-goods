@@ -135,15 +135,15 @@ export function GovernancePanel({ pools, gardenId }: GovernancePanelProps) {
       <div className="overflow-hidden rounded-lg border border-stroke-soft bg-bg-white">
         <div className="flex flex-col gap-3 border-b border-stroke-soft px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <p className="label-sm text-text-strong">
+            <p className="type-meta-sm text-text-strong">
               {formatMessage({ id: "cockpit.community.coordination.hypercertPool" })}
             </p>
-            <p className="mt-1 font-mono body-xs text-text-soft">
+            <p className="mt-1 font-mono type-meta text-text-soft">
               {formatShortAddress(hypercertPool.poolAddress)}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-bg-soft px-2 py-0.5 label-xs text-text-sub">
+            <span className="rounded-full bg-bg-soft px-2 py-0.5 type-label-sm text-text-sub">
               {formatMessage(
                 { id: "cockpit.community.coordination.proposalCount" },
                 { count: proposals.length }
@@ -158,7 +158,7 @@ export function GovernancePanel({ pools, gardenId }: GovernancePanelProps) {
           </div>
         </div>
 
-        <div className="hidden grid-cols-[minmax(0,1fr)_8rem_12rem_auto] gap-3 border-b border-stroke-soft bg-bg-weak px-4 py-2 label-xs uppercase tracking-[0.04em] text-text-soft lg:grid">
+        <div className="hidden grid-cols-[minmax(0,1fr)_8rem_12rem_auto] gap-3 border-b border-stroke-soft bg-bg-weak px-4 py-2 type-label-sm uppercase tracking-[0.04em] text-text-soft lg:grid">
           <span>{formatMessage({ id: "cockpit.community.coordination.proposal" })}</span>
           <span>{formatMessage({ id: "cockpit.community.coordination.support" })}</span>
           <span>{formatMessage({ id: "cockpit.community.coordination.conviction" })}</span>
@@ -174,18 +174,18 @@ export function GovernancePanel({ pools, gardenId }: GovernancePanelProps) {
             >
               <div className="min-w-0 space-y-1.5">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="body-sm font-semibold text-text-strong">{proposal.title}</h3>
+                  <h3 className="type-body font-semibold text-text-strong">{proposal.title}</h3>
                   <StatusBadge convictionStatus={proposal.status} size="sm" />
                 </div>
                 {proposal.summary ? (
-                  <p className="line-clamp-2 body-sm text-text-sub">{proposal.summary}</p>
+                  <p className="line-clamp-2 type-body text-text-sub">{proposal.summary}</p>
                 ) : null}
               </div>
               <div className="space-y-1 lg:space-y-0">
-                <p className="body-xs text-text-soft lg:hidden">
+                <p className="type-meta text-text-soft lg:hidden">
                   {formatMessage({ id: "cockpit.community.coordination.support" })}
                 </p>
-                <p className="body-sm font-medium tabular-nums text-text-strong">
+                <p className="type-body font-medium tabular-nums text-text-strong">
                   {formatMessage(
                     { id: "cockpit.community.coordination.supporters" },
                     { count: proposal.supporters }
@@ -193,7 +193,7 @@ export function GovernancePanel({ pools, gardenId }: GovernancePanelProps) {
                 </p>
               </div>
               <div className="space-y-1">
-                <div className="flex items-center justify-between gap-2 body-xs tabular-nums">
+                <div className="flex items-center justify-between gap-2 type-meta tabular-nums">
                   <span className="text-text-sub">
                     {Math.round(proposal.conviction)}% / {Math.round(proposal.threshold)}%
                   </span>
@@ -229,13 +229,13 @@ export function GovernancePanel({ pools, gardenId }: GovernancePanelProps) {
         />
       ) : (
         <div className="rounded-lg border border-stroke-soft bg-bg-weak px-4 py-3">
-          <p className="body-sm font-medium text-text-strong">
+          <p className="type-body font-medium text-text-strong">
             {formatMessage({
               id: "cockpit.community.governance.signIn.title",
               defaultMessage: "Sign In to Allocate Conviction",
             })}
           </p>
-          <p className="mt-1 body-sm text-text-sub">
+          <p className="mt-1 type-body text-text-sub">
             {formatMessage({
               id: "cockpit.community.governance.signIn.description",
               defaultMessage:

@@ -6,7 +6,7 @@ import { payoutKindLabel, planStatusLabel } from "./commitmentSettlementPresenta
 
 function fact(label: string, value: ReactNode, key: string) {
   return (
-    <div key={key} className="flex justify-between gap-3 text-body-md" data-fact={key}>
+    <div key={key} className="flex justify-between gap-3 type-body" data-fact={key}>
       <dt className="shrink-0 text-text-soft">{label}</dt>
       <dd className="text-right text-text-strong">{value}</dd>
     </div>

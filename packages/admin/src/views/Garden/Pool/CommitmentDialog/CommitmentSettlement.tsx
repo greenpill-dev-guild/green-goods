@@ -154,7 +154,7 @@ export function CommitmentSettlement({ settlement, tone, target }: CommitmentSet
               defaultMessage: "G$ Payout",
             })}
           </AdminCardTitle>
-          <p className="mt-1 body-xs text-text-soft">
+          <p className="mt-1 type-meta text-text-soft">
             {formatMessage({
               id: "cockpit.garden.pool.settlement.description",
               defaultMessage:
@@ -218,7 +218,7 @@ export function CommitmentSettlement({ settlement, tone, target }: CommitmentSet
               return (
                 <li
                   key={step.id}
-                  className="flex items-center justify-between gap-3 text-body-md"
+                  className="flex items-center justify-between gap-3 type-body"
                   data-step={step.id}
                   data-status={step.status}
                 >
@@ -255,8 +255,8 @@ export function CommitmentSettlement({ settlement, tone, target }: CommitmentSet
             <p
               className={
                 settlement.lastAct.phase === "failed"
-                  ? "body-xs text-error-dark"
-                  : "body-xs text-text-soft"
+                  ? "type-meta text-error-dark"
+                  : "type-meta text-text-soft"
               }
               role="status"
               data-testid="settlement-act-status"

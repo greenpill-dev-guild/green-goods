@@ -43,7 +43,7 @@ export function SeedTotal({ count, each, unit, busy, onMakeItOne }: SeedTotalPro
         )}
       </span>
       <div className="min-w-0">
-        <p className="body-sm font-semibold tabular-nums text-text-strong">
+        <p className="type-body font-semibold tabular-nums text-text-strong">
           {formatMessage(
             {
               id: "cockpit.garden.pool.seed.total",
@@ -53,7 +53,7 @@ export function SeedTotal({ count, each, unit, busy, onMakeItOne }: SeedTotalPro
             { count, each, unit, total: count * each }
           )}
         </p>
-        <p className={cn("body-xs", warn ? "text-warning-dark" : "text-text-sub")}>
+        <p className={cn("type-meta", warn ? "text-warning-dark" : "text-text-sub")}>
           {warn
             ? formatMessage(
                 {

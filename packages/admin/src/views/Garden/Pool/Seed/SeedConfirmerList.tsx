@@ -100,7 +100,7 @@ export function SeedConfirmerList({
           defaultMessage: "Confirmers",
         })}
       </AdminCardTitle>
-      <p className="body-xs text-text-soft">
+      <p className="type-meta text-text-soft">
         {chosen.length === 0
           ? values.direction === "REQUEST"
             ? formatMessage({
@@ -200,7 +200,7 @@ export function SeedConfirmerList({
       </div>
       {offered.length > 0 ? (
         <div className="flex flex-wrap items-center gap-2" data-testid="seed-confirmer-suggestions">
-          <span className="label-xs text-text-soft">
+          <span className="type-label-sm text-text-soft">
             {formatMessage({
               id: "cockpit.garden.pool.seed.fromThisGarden",
               defaultMessage: "From this garden",

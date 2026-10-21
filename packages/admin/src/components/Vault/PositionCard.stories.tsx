@@ -60,25 +60,25 @@ function PositionCardHarness({
     <AdminCard>
       <div className="mb-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-title-md font-semibold text-text-strong">{symbol}</h3>
+          <h3 className="type-title-md font-semibold text-text-strong">{symbol}</h3>
           {!vaultAcceptingDeposits && (
-            <span className="rounded-full bg-warning-lighter px-2 py-1 text-label-sm font-medium text-warning-dark">
+            <span className="rounded-full bg-warning-lighter px-2 py-1 type-meta-sm font-medium text-warning-dark">
               Deposits disabled
             </span>
           )}
         </div>
         <button
           type="button"
-          className="mt-1 inline-flex items-center gap-1 text-body-sm text-primary-dark hover:underline"
+          className="mt-1 inline-flex items-center gap-1 type-meta text-primary-dark hover:underline"
           onClick={() => {}}
         >
           View vault: 0xAaaa…aaa1
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 text-body-md">
+      <div className="grid grid-cols-2 gap-3 type-body">
         <div className="rounded-md border border-stroke-soft bg-bg-weak p-3">
-          <p className="text-label-sm text-text-soft">Net deposited</p>
+          <p className="type-meta-sm text-text-soft">Net deposited</p>
           <p className="mt-1 font-semibold text-text-strong">
             {formatTokenAmount(netDeposited, 18)} {symbol}
           </p>
@@ -86,27 +86,25 @@ function PositionCardHarness({
         <div
           className={`rounded-md border p-3 ${unharvestedYield > 0n ? "border-success-light bg-success-lighter" : "border-stroke-soft bg-bg-weak"}`}
         >
-          <p className="text-label-sm text-text-soft">Current yield</p>
+          <p className="type-meta-sm text-text-soft">Current yield</p>
           <p
             className={`mt-1 font-semibold ${unharvestedYield > 0n ? "text-success-dark" : "text-text-strong"}`}
           >
             {formatTokenAmount(unharvestedYield, 18)} {symbol}
-            {unharvestedYield > 0n && (
-              <span className="ml-1 text-body-sm font-normal">accruing</span>
-            )}
+            {unharvestedYield > 0n && <span className="ml-1 type-meta font-normal">accruing</span>}
           </p>
         </div>
         <div className="rounded-md border border-stroke-soft bg-bg-weak p-3">
-          <p className="text-label-sm text-text-soft">Depositors</p>
+          <p className="type-meta-sm text-text-soft">Depositors</p>
           <p className="mt-1 font-semibold text-text-strong">{depositorCount}</p>
         </div>
         <div className="rounded-md border border-stroke-soft bg-bg-weak p-3">
-          <p className="text-label-sm text-text-soft">Harvests</p>
+          <p className="type-meta-sm text-text-soft">Harvests</p>
           <p className="mt-1 font-semibold text-text-strong">{harvestCount}</p>
         </div>
       </div>
 
-      <p className="mt-3 text-body-sm text-text-sub">
+      <p className="mt-3 type-meta text-text-sub">
         Depositor share value is expected to stay near flat by design. Harvested yield is routed to
         garden impact, not compounded into depositor returns.
       </p>

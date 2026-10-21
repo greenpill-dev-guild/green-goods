@@ -201,7 +201,7 @@ export function Section({
   action?: ReactNode;
   children: ReactNode;
 }) {
-  const heading = <h3 className="min-w-0 text-title-md font-semibold text-text-strong">{title}</h3>;
+  const heading = <h3 className="min-w-0 type-title-md font-semibold text-text-strong">{title}</h3>;
   return (
     <section className="space-y-3">
       <div>
@@ -217,7 +217,7 @@ export function Section({
         ) : (
           heading
         )}
-        {description ? <p className="mt-0.5 body-sm text-text-soft">{description}</p> : null}
+        {description ? <p className="mt-0.5 type-body text-text-soft">{description}</p> : null}
       </div>
       {children}
     </section>
@@ -245,10 +245,10 @@ export function ReviewRow({
   const provided = Boolean(children) || Boolean(value && value.trim().length > 0);
   return (
     <div className={cn("min-w-0", wide && "sm:col-span-2")}>
-      <dt className="label-xs text-text-soft">{label}</dt>
+      <dt className="type-label-sm text-text-soft">{label}</dt>
       <dd
         className={cn(
-          "mt-0.5 whitespace-pre-wrap break-words body-sm",
+          "mt-0.5 whitespace-pre-wrap break-words type-body",
           provided ? "text-text-strong" : "text-text-soft"
         )}
       >

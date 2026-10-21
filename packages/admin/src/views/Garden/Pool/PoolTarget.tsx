@@ -56,7 +56,7 @@ export function PoolTarget({ target, record, party, placement = "block" }: PoolT
           data-component="PoolTarget"
           data-kind={kind}
           data-placement="line"
-          className="truncate body-xs text-text-soft"
+          className="truncate type-meta text-text-soft"
           title={name}
         >
           {formatMessage(
@@ -68,17 +68,17 @@ export function PoolTarget({ target, record, party, placement = "block" }: PoolT
     }
     return (
       <dl data-component="PoolTarget" data-kind={kind} data-placement="rail" className="min-w-0">
-        <dt className="label-xs text-text-soft">
+        <dt className="type-label-sm text-text-soft">
           {formatMessage({ id: "cockpit.garden.pool.target.label", defaultMessage: "Writing to" })}
         </dt>
-        <dd className="break-words body-sm font-semibold text-text-strong">{name}</dd>
+        <dd className="break-words type-body font-semibold text-text-strong">{name}</dd>
       </dl>
     );
   }
   const partyRow = party ? (
     <div className="mt-1 flex flex-wrap items-baseline gap-x-2">
-      <dt className="label-xs text-text-soft">{party.label}</dt>
-      <dd className="min-w-0 text-body-md text-text-strong">{party.value}</dd>
+      <dt className="type-label-sm text-text-soft">{party.label}</dt>
+      <dd className="min-w-0 type-body text-text-strong">{party.value}</dd>
     </div>
   ) : null;
 
@@ -126,10 +126,10 @@ export function PoolTarget({ target, record, party, placement = "block" }: PoolT
       );
   return (
     <dl data-component="PoolTarget" data-kind="garden" className="min-w-0">
-      <dt className="label-xs text-text-soft">
+      <dt className="type-label-sm text-text-soft">
         {formatMessage({ id: "cockpit.garden.pool.target.label", defaultMessage: "Writing to" })}
       </dt>
-      <dd className="truncate text-body-md font-semibold text-text-strong" title={name}>
+      <dd className="truncate type-body font-semibold text-text-strong" title={name}>
         {name}
       </dd>
       {partyRow}

@@ -131,7 +131,7 @@ export function CommunityPayoutsTab({
               </div>
               {allocationSplits ? (
                 <div className="space-y-1.5 border-t border-stroke-soft pt-3">
-                  <p className="mb-1.5 text-label-sm font-medium text-text-sub">
+                  <p className="mb-1.5 type-meta-sm font-medium text-text-sub">
                     {formatMessage({
                       id: "app.garden.detail.community.yieldAllocationHint",
                       defaultMessage: "How yield is distributed",
@@ -142,7 +142,7 @@ export function CommunityPayoutsTab({
                     ["app.garden.detail.community.hypercertFrac", allocationSplits.fractions],
                     ["app.garden.detail.community.endowment", allocationSplits.endowment],
                   ].map(([id, value]) => (
-                    <div key={id} className="flex items-center justify-between text-body-sm">
+                    <div key={id} className="flex items-center justify-between type-meta">
                       <span className="text-text-sub">{formatMessage({ id: id as string })}</span>
                       <span className="font-medium text-text-strong">{value}%</span>
                     </div>

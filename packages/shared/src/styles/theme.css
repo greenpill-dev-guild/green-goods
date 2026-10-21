@@ -513,6 +513,47 @@
      there (toast actions, empty-state actions) to 11 and 12px (DL-029). */
   --gg-label-md: 1rem;
   --gg-label-sm: 0.875rem;
+  /* Type roles: the one set of type names for every surface (title, body,
+     label and meta), applied through the `type-*` utilities at the end of this
+     file. These are the installed app's values, equal to its shared scale; the
+     cockpit sets its own density in packages/admin/src/index.css. Field text is
+     a control size (DL-030), kept beside the roles so fields take it by name. */
+  --gg-type-title-lg-size: 1.5rem;
+  --gg-type-title-lg-line: 2rem;
+  --gg-type-title-lg-weight: 600;
+  --gg-type-title-lg-tracking: 0px;
+  --gg-type-title-md-size: 1.125rem;
+  --gg-type-title-md-line: 1.5rem;
+  --gg-type-title-md-weight: 600;
+  --gg-type-title-md-tracking: 0px;
+  --gg-type-title-sm-size: 1rem;
+  --gg-type-title-sm-line: 1.5rem;
+  --gg-type-title-sm-weight: 600;
+  --gg-type-title-sm-tracking: 0px;
+  --gg-type-body-size: 1rem;
+  --gg-type-body-line: 1.5rem;
+  --gg-type-body-weight: 400;
+  --gg-type-body-tracking: -0.011em;
+  --gg-type-label-size: 1rem;
+  --gg-type-label-line: 1.5rem;
+  --gg-type-label-weight: 500;
+  --gg-type-label-tracking: -0.011em;
+  --gg-type-label-sm-size: 0.875rem;
+  --gg-type-label-sm-line: 1.25rem;
+  --gg-type-label-sm-weight: 400;
+  --gg-type-label-sm-tracking: -0.006em;
+  --gg-type-meta-size: 0.75rem;
+  --gg-type-meta-line: 1rem;
+  --gg-type-meta-weight: 400;
+  --gg-type-meta-tracking: 0px;
+  --gg-type-meta-sm-size: 0.6875rem;
+  --gg-type-meta-sm-line: 1rem;
+  --gg-type-meta-sm-weight: 400;
+  --gg-type-meta-sm-tracking: 0px;
+  --gg-type-field-size: 1rem;
+  --gg-type-field-line: 1.5rem;
+  --gg-type-field-weight: 400;
+  --gg-type-field-tracking: -0.011em;
   /* 12px: app buttons of every emphasis, and actions inside a field (DL-026). */
   --radius-squircle: var(--gg-radius-squircle);
   --radius-lg: var(--gg-radius-lg);
@@ -2511,4 +2552,74 @@
 
 .image-reveal {
   animation: imageReveal 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ============================================================================
+ * TYPE ROLES
+ * The type-* utilities: one name per role on every surface, each reading its
+ * role's --gg-type-* tokens (above, and the cockpit's in admin index.css). A
+ * leading, weight or tracking utility on the same element adjusts the role,
+ * because each property reads the --tw-* value those utilities set first.
+ * ============================================================================ */
+@utility type-title-lg {
+  font-size: var(--gg-type-title-lg-size);
+  line-height: var(--tw-leading, var(--gg-type-title-lg-line));
+  font-weight: var(--tw-font-weight, var(--gg-type-title-lg-weight));
+  letter-spacing: var(--tw-tracking, var(--gg-type-title-lg-tracking));
+}
+
+@utility type-title-md {
+  font-size: var(--gg-type-title-md-size);
+  line-height: var(--tw-leading, var(--gg-type-title-md-line));
+  font-weight: var(--tw-font-weight, var(--gg-type-title-md-weight));
+  letter-spacing: var(--tw-tracking, var(--gg-type-title-md-tracking));
+}
+
+@utility type-title-sm {
+  font-size: var(--gg-type-title-sm-size);
+  line-height: var(--tw-leading, var(--gg-type-title-sm-line));
+  font-weight: var(--tw-font-weight, var(--gg-type-title-sm-weight));
+  letter-spacing: var(--tw-tracking, var(--gg-type-title-sm-tracking));
+}
+
+@utility type-body {
+  font-size: var(--gg-type-body-size);
+  line-height: var(--tw-leading, var(--gg-type-body-line));
+  font-weight: var(--tw-font-weight, var(--gg-type-body-weight));
+  letter-spacing: var(--tw-tracking, var(--gg-type-body-tracking));
+}
+
+@utility type-label {
+  font-size: var(--gg-type-label-size);
+  line-height: var(--tw-leading, var(--gg-type-label-line));
+  font-weight: var(--tw-font-weight, var(--gg-type-label-weight));
+  letter-spacing: var(--tw-tracking, var(--gg-type-label-tracking));
+}
+
+@utility type-label-sm {
+  font-size: var(--gg-type-label-sm-size);
+  line-height: var(--tw-leading, var(--gg-type-label-sm-line));
+  font-weight: var(--tw-font-weight, var(--gg-type-label-sm-weight));
+  letter-spacing: var(--tw-tracking, var(--gg-type-label-sm-tracking));
+}
+
+@utility type-meta {
+  font-size: var(--gg-type-meta-size);
+  line-height: var(--tw-leading, var(--gg-type-meta-line));
+  font-weight: var(--tw-font-weight, var(--gg-type-meta-weight));
+  letter-spacing: var(--tw-tracking, var(--gg-type-meta-tracking));
+}
+
+@utility type-meta-sm {
+  font-size: var(--gg-type-meta-sm-size);
+  line-height: var(--tw-leading, var(--gg-type-meta-sm-line));
+  font-weight: var(--tw-font-weight, var(--gg-type-meta-sm-weight));
+  letter-spacing: var(--tw-tracking, var(--gg-type-meta-sm-tracking));
+}
+
+@utility type-field {
+  font-size: var(--gg-type-field-size);
+  line-height: var(--tw-leading, var(--gg-type-field-line));
+  font-weight: var(--tw-font-weight, var(--gg-type-field-weight));
+  letter-spacing: var(--tw-tracking, var(--gg-type-field-tracking));
 }

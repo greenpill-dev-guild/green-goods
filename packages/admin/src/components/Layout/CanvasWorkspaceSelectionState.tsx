@@ -34,13 +34,13 @@ export function CanvasWorkspaceSelectionState({
         <AdminCard density="none" className="mx-auto max-w-xl">
           <AdminCardBody className="flex flex-col items-center py-12 text-center">
             <SeedlingIllustration className="h-24 w-24" />
-            <h2 className="mt-4 text-title-md text-text-strong">
+            <h2 className="mt-4 type-title-md text-text-strong">
               {formatMessage({
                 id: "cockpit.workspace.noGardens",
                 defaultMessage: "No gardens yet",
               })}
             </h2>
-            <p className="mt-2 max-w-md body-sm text-text-sub">
+            <p className="mt-2 max-w-md type-body text-text-sub">
               {formatMessage({
                 id: "cockpit.workspace.noGardensDescription",
                 defaultMessage: "Create your first garden to start using the canvas workspaces.",
@@ -71,7 +71,7 @@ export function CanvasWorkspaceSelectionState({
                 defaultMessage: "Choose a Garden",
               })}
             </AdminCardTitle>
-            <p className="mt-1 body-sm text-text-sub">
+            <p className="mt-1 type-body text-text-sub">
               {formatMessage(
                 {
                   id: "cockpit.workspace.chooseGardenDescription",
@@ -99,9 +99,11 @@ export function CanvasWorkspaceSelectionState({
                 )}
               >
                 <div className="min-w-0">
-                  <p className="truncate label-md font-medium text-text-strong">{garden.name}</p>
+                  <p className="truncate type-label-sm font-medium text-text-strong">
+                    {garden.name}
+                  </p>
                   {garden.location ? (
-                    <p className="mt-0.5 truncate body-xs text-text-soft">{garden.location}</p>
+                    <p className="mt-0.5 truncate type-meta text-text-soft">{garden.location}</p>
                   ) : null}
                 </div>
                 <RiArrowRightSLine className="h-4 w-4 flex-shrink-0 text-text-soft" />

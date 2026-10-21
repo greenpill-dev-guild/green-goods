@@ -20,7 +20,7 @@ describe("AdminFieldGroup", () => {
     const group = screen.getByRole("group", { name: /Forms of capital/ });
     expect(group.tagName).toBe("FIELDSET");
     expect(group).toHaveAttribute("data-component", "AdminFieldGroup");
-    expect(screen.getByText("Pick at least one")).toHaveClass("body-sm");
+    expect(screen.getByText("Pick at least one")).toHaveClass("type-body");
     expect(screen.getByText("*")).toHaveAttribute("aria-hidden", "true");
   });
 

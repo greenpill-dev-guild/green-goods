@@ -170,7 +170,7 @@ export function OverviewTab({
                   <AdminCardTitle>
                     {formatMessage({ id: "app.garden.detail.health.title" })}
                   </AdminCardTitle>
-                  <p className="mt-1 body-sm text-text-sub">{gardenHealthLabel}</p>
+                  <p className="mt-1 type-body text-text-sub">{gardenHealthLabel}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   {RANGE_OPTIONS.map((range) => (
@@ -191,13 +191,13 @@ export function OverviewTab({
                 {/* Grouped by proximity inside the one card, not boxed again (D33). */}
                 <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3" aria-live="polite">
                   <div>
-                    <dt className="label-xs text-text-soft">
+                    <dt className="type-label-sm text-text-soft">
                       {formatMessage({
                         id: "app.garden.detail.metric.lastActivity",
                         defaultMessage: "Last Activity",
                       })}
                     </dt>
-                    <dd className="mt-1 font-heading text-title-md font-semibold text-text-strong">
+                    <dd className="mt-1 font-heading type-title-md font-semibold text-text-strong">
                       {filteredActivityEvents.length > 0
                         ? formatActivityTime(filteredActivityEvents[0].timestamp)
                         : formatMessage({
@@ -207,13 +207,13 @@ export function OverviewTab({
                     </dd>
                   </div>
                   <div>
-                    <dt className="label-xs text-text-soft">
+                    <dt className="type-label-sm text-text-soft">
                       {formatMessage({ id: "app.garden.detail.metric.impactVelocity" })}
                     </dt>
-                    <dd className="mt-1 font-heading text-title-md font-semibold text-text-strong">
+                    <dd className="mt-1 font-heading type-title-md font-semibold text-text-strong">
                       {approvedInRangeCount}
                     </dd>
-                    <dd className="mt-0.5 body-xs text-text-soft">
+                    <dd className="mt-0.5 type-meta text-text-soft">
                       {impactVelocityDelta === 0
                         ? formatMessage({ id: "app.garden.detail.metric.noDelta" })
                         : formatMessage(
@@ -228,10 +228,10 @@ export function OverviewTab({
                     </dd>
                   </div>
                   <div>
-                    <dt className="label-xs text-text-soft">
+                    <dt className="type-label-sm text-text-soft">
                       {formatMessage({ id: "app.garden.detail.metric.executionThroughput" })}
                     </dt>
-                    <dd className="mt-1 font-heading text-title-md font-semibold text-text-strong">
+                    <dd className="mt-1 font-heading type-title-md font-semibold text-text-strong">
                       {formatReviewTime(medianReviewLatencyMs, formatMessage)}
                     </dd>
                   </div>
@@ -273,7 +273,7 @@ export function OverviewTab({
                   <AdminCardTitle>
                     {formatMessage({ id: "app.garden.detail.activity.title" })}
                   </AdminCardTitle>
-                  <p className="mt-1 body-sm text-text-sub">
+                  <p className="mt-1 type-body text-text-sub">
                     {formatMessage({ id: "app.garden.detail.activity.description" })}
                   </p>
                 </div>
@@ -341,22 +341,22 @@ export function OverviewTab({
                             />
                             <div className="flex flex-wrap items-start justify-between gap-2">
                               <div className="min-w-0 flex-1">
-                                <p className="mb-1 inline-flex rounded-full bg-bg-soft px-2 py-0.5 text-label-sm font-medium text-text-sub">
+                                <p className="mb-1 inline-flex rounded-full bg-bg-soft px-2 py-0.5 type-meta-sm font-medium text-text-sub">
                                   {formatMessage({
                                     id: `app.garden.detail.activity.filter.${event.category}`,
                                   })}
                                 </p>
                                 <p
-                                  className="truncate body-sm font-medium text-text-strong"
+                                  className="truncate type-body font-medium text-text-strong"
                                   title={activityTitle}
                                 >
                                   {activityTitle}
                                 </p>
-                                <p className="mt-1 max-w-prose body-xs text-text-soft">
+                                <p className="mt-1 max-w-prose type-meta text-text-soft">
                                   {event.description}
                                 </p>
                               </div>
-                              <span className="body-xs text-text-soft">
+                              <span className="type-meta text-text-soft">
                                 {formatEventTime(event.timestamp)}
                               </span>
                             </div>
@@ -372,7 +372,7 @@ export function OverviewTab({
                                       openSection("work", "work", event.itemId);
                                     }
                                   }}
-                                  className="inline-flex items-center gap-1 label-xs text-primary-base hover:text-primary-darker"
+                                  className="inline-flex items-center gap-1 type-label-sm text-primary-base hover:text-primary-darker"
                                 >
                                   {formatMessage({ id: "app.garden.detail.activity.view" })}
                                   <RiArrowRightSLine className="h-4 w-4" />
@@ -470,7 +470,7 @@ export function OverviewTab({
                       );
                     })}
                     {filteredActivityEvents.length === 0 ? (
-                      <p className="body-sm text-text-soft">
+                      <p className="type-body text-text-soft">
                         {formatMessage({ id: "app.garden.detail.activity.empty" })}
                       </p>
                     ) : null}
