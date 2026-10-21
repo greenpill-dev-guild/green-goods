@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import test from "node:test";
 import { filterCommentHits } from "./filter-comment-hits.mjs";
 
@@ -14,7 +14,9 @@ const collectors = checker.slice(checker.indexOf("TW_PALETTE_FAMILIES="),
   + checker.slice(checker.indexOf("ADMIN_CHROME_ALLOWLIST_REGEX="),
     checker.indexOf("\nif ! ADMIN_CHROME_VIOLATIONS="))
   + checker.slice(checker.indexOf("LEGACY_ADMIN_FOCUS_RING_PATTERN="),
-    checker.indexOf("\nif ! ADMIN_FOCUS_RING_VIOLATIONS="));
+    checker.indexOf("\nif ! ADMIN_FOCUS_RING_VIOLATIONS="))
+  + checker.slice(checker.indexOf("RAW_SAFE_AREA_BOTTOM_PATTERN="),
+    checker.indexOf("\nif ! RAW_SAFE_AREA_BOTTOM_HITS="));
 const filterPath = join(repo, "scripts/design/filter-comment-hits.mjs");
 
 function fixture(source, run, extension = "tsx") {
@@ -23,6 +25,15 @@ function fixture(source, run, extension = "tsx") {
   mkdirSync(join(root, "packages/admin/src"), { recursive: true });
   writeFileSync(join(root, path), source);
   try { return run(root, path); } finally { rmSync(root, { recursive: true, force: true }); }
+}
+
+function filesFixture(files, run) {
+  const root = mkdtempSync(join(tmpdir(), "design-token-usage-"));
+  for (const [path, source] of Object.entries(files)) {
+    mkdirSync(dirname(join(root, path)), { recursive: true });
+    writeFileSync(join(root, path), source);
+  }
+  try { return run(root); } finally { rmSync(root, { recursive: true, force: true }); }
 }
 
 function collect(root, name = "collect_admin_invariant_hits", { scanner = filterPath, shellSetup = "" } = {}) {
@@ -125,11 +136,13 @@ const sourceCollectors = [
   "collect_usage_hits", "collect_admin_invariant_hits", "collect_admin_wrapper_bypass_hits",
   "collect_admin_raw_type_size_hits", "collect_admin_view_m3_colour_hits",
   "collect_admin_chrome_violations", "collect_admin_focus_ring_violations",
+  "collect_raw_safe_area_bottom_hits",
 ];
 
 test("every source collector accepts a complete scan with no matches", () => {
   fixture("const ok = 1;\n", root => {
     mkdirSync(join(root, "packages/shared/src/components/Canvas"), { recursive: true });
+    mkdirSync(join(root, "packages/client/src"), { recursive: true });
     for (const name of sourceCollectors) {
       const result = collect(root, `collect_optional_hits ${name}`);
       assert.equal(result.status, 0, `${name}: ${result.stderr}`);
@@ -141,16 +154,23 @@ test("every source collector accepts a complete scan with no matches", () => {
 test("source read errors survive later no-match filters in every collector", () => {
   fixture("const ok = 1;\n", root => {
     mkdirSync(join(root, "packages/shared/src/components/Canvas"), { recursive: true });
+    mkdirSync(join(root, "packages/client/src"), { recursive: true });
     const unreadable = join(root, "packages/admin/src/Unreadable.tsx");
+    const unreadableClient = join(root, "packages/client/src/Unreadable.tsx");
     writeFileSync(unreadable, "const ok = 1;\n");
+    writeFileSync(unreadableClient, "const ok = 1;\n");
     chmodSync(unreadable, 0);
+    chmodSync(unreadableClient, 0);
     try {
       for (const name of sourceCollectors) {
         const result = collect(root, `collect_optional_hits ${name}`);
         assert.equal(result.status, 2, `${name}: ${result.stderr}`);
         assert.equal(result.stdout, "", name);
       }
-    } finally { chmodSync(unreadable, 0o600); }
+    } finally {
+      chmodSync(unreadable, 0o600);
+      chmodSync(unreadableClient, 0o600);
+    }
   });
 });
 
@@ -158,6 +178,7 @@ test("source read errors survive later no-match filters in every collector", () 
 test("Node import failures cannot become no-match results in any collector", () => {
   fixture("const ok = 1;\n", root => {
     mkdirSync(join(root, "packages/shared/src/components/Canvas"), { recursive: true });
+    mkdirSync(join(root, "packages/client/src"), { recursive: true });
     const scanner = join(root, "broken-filter.mjs");
     writeFileSync(scanner, 'import "./missing-filter-dependency.mjs";\n');
     for (const name of sourceCollectors) {
@@ -176,5 +197,40 @@ test("status 1 from normalization or sorting remains a collection failure", () =
       });
       assert.equal(result.status, 2, `${stage}: ${result.stderr}`);
     }
+  });
+});
+
+test("installed-app bottom chrome must pad by the safe-area token, not the raw inset", () => {
+  filesFixture({
+    "packages/client/src/Bar.tsx": 'const bar = <div className="pb-[calc(0.75rem+env(safe-area-inset-bottom))]" />;\n',
+    "packages/client/src/Token.tsx": 'const bar = <div className="pb-[calc(0.75rem+var(--safe-area-bottom))]" />;\n',
+    "packages/client/src/Note.tsx": "// Bars used to pad by env(safe-area-inset-bottom).\nconst ok = 1;\n",
+    "packages/client/src/bar.css": ".bar { padding-bottom: env(safe-area-inset-bottom, 0px); }\n",
+    "packages/shared/src/components/Dialog/Sheet.tsx": 'const style = { paddingBottom: "env(safe-area-inset-bottom)" };\n',
+  }, (root) => {
+    const result = collect(root, "collect_optional_hits collect_raw_safe_area_bottom_hits");
+    assert.equal(result.status, 0, result.stderr);
+    // Each row is the file, then the matched line with its whitespace collapsed.
+    const files = result.stdout.trim().split("\n").map((row) => row.split(" ")[0]);
+    assert.deepEqual(files, [
+      "packages/client/src/Bar.tsx",
+      "packages/client/src/bar.css",
+      "packages/shared/src/components/Dialog/Sheet.tsx",
+    ]);
+  });
+});
+
+test("the token's definition, admin-only shared chrome and tests keep the raw inset", () => {
+  const raw = 'const style = { paddingBottom: "env(safe-area-inset-bottom)" };\n';
+  filesFixture({
+    "packages/shared/src/styles/theme.css": ":root { --safe-area-bottom: env(safe-area-inset-bottom, 0px); }\n",
+    "packages/shared/src/components/Canvas/NavigationBar.tsx": raw,
+    "packages/shared/src/components/Form/FormWizard.tsx": raw,
+    "packages/client/src/__tests__/Bar.test.tsx": raw,
+    "packages/admin/src/Shell.tsx": raw,
+  }, (root) => {
+    const result = collect(root, "collect_optional_hits collect_raw_safe_area_bottom_hits");
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout, "");
   });
 });

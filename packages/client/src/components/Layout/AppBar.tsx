@@ -61,7 +61,7 @@ export const AppBar = () => {
         // Keep AppBar above page content (z-nav), but below modal/drawer overlays (z-overlay/z-modal).
         // Hide AppBar on routes that own their chrome (Submit Work, a garden's pages) or when any sheet is open.
         // vt-app-bar keeps it above the page cross-fade when switching tabs.
-        "vt-app-bar fixed bottom-0 bg-bg-white-0 border-t border-t-stroke-soft-200 rounded-t-[var(--radius-lg)] overflow-hidden flex flex-row justify-evenly items-center w-full py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] z-nav transition-transform duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)]",
+        "vt-app-bar fixed bottom-0 bg-bg-white-0 border-t border-t-stroke-soft-200 rounded-t-[var(--radius-lg)] overflow-hidden flex flex-row justify-evenly items-center w-full py-3 pb-[calc(0.75rem+var(--safe-area-bottom))] z-nav transition-transform duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)]",
         shouldHideBar ? "translate-y-full" : "translate-y-0"
       )}
       // Off screen is out of reach too: no tab stops or screen-reader links.

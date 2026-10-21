@@ -27,7 +27,7 @@ export const WorkDecisionUploadFooter: FC<WorkDecisionUploadFooterProps> = ({
   const intl = useIntl();
 
   return (
-    <div className="fixed left-0 right-0 bottom-0 z-sticky rounded-t-[var(--radius-lg)] border-t border-stroke-soft-200 bg-bg-white-0 p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+    <div className="fixed left-0 right-0 bottom-0 z-sticky rounded-t-[var(--radius-lg)] border-t border-stroke-soft-200 bg-bg-white-0 p-4 pb-[calc(1.5rem+var(--safe-area-bottom))]">
       <div className="mx-auto flex max-w-screen-sm flex-col gap-2">
         <p className="text-sm text-text-sub-600" role="status">
           {decision.status.state === "sent"

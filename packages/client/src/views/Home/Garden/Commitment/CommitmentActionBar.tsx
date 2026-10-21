@@ -54,7 +54,7 @@ export function CommitmentActionBar({
   const unavailable = reasonId !== null;
 
   return (
-    <div className="shrink-0 border-t border-stroke-soft-200 bg-bg-white-0 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+    <div className="shrink-0 border-t border-stroke-soft-200 bg-bg-white-0 p-4 pb-[max(1rem,var(--safe-area-bottom))]">
       {reasonId ? (
         <p className="mb-2 text-xs text-text-sub-600" role="status">
           {formatMessage({ id: reasonId })}

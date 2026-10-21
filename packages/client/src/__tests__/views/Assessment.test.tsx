@@ -191,22 +191,23 @@ describe("GardenAssessment", () => {
     expect(screen.getByTestId("skeleton")).toBeInTheDocument();
   });
 
-  // The top bar is 80px tall. Left in the flow with 64px of padding under it,
-  // the page began 144px down, where the work page and the promise page begin
-  // at 80px. Like theirs, the bar is pinned over the page, which clears it once.
+  // The top bar is 72px tall below the status bar's safe area. Left in the flow
+  // with 64px of padding under it, the page began 64px below the bar, where the
+  // work page and the promise page begin right under it. Like theirs, the bar is
+  // pinned over the page, which clears it once.
   it.each([
     ["an assessment to show", () => undefined],
     [
       "no assessment to show",
       () => mockUseGardenAssessmentRecords.mockReturnValue({ records: [], status: "success" }),
     ],
-  ])("pins the top bar and starts the page 80px down, with %s", (_label, arrange) => {
+  ])("pins the top bar and starts the page right under it, with %s", (_label, arrange) => {
     arrange();
     renderRoute();
 
     const bar = screen.getByTestId("topnav");
     expect(bar).toHaveAttribute("data-overlay", "true");
-    expect(bar.nextElementSibling).toHaveClass("pt-20");
+    expect(bar.nextElementSibling).toHaveClass("pt-[var(--app-top-bar-height)]");
   });
 
   it("claims nothing while the assessments are still being read", () => {

@@ -38,7 +38,7 @@ export function FlowBar({
     <div
       ref={ref}
       data-component="FlowBar"
-      className="flex fixed left-0 bottom-0 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] w-full z-modal bg-bg-white-0 border-t border-stroke-soft-200 rounded-t-[var(--radius-lg)] overflow-hidden"
+      className="flex fixed left-0 bottom-0 py-3 pb-[calc(0.75rem+var(--safe-area-bottom))] w-full z-modal bg-bg-white-0 border-t border-stroke-soft-200 rounded-t-[var(--radius-lg)] overflow-hidden"
     >
       <div
         className={cn(

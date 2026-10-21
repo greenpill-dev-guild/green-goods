@@ -59,8 +59,10 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
   }, [connection.state, isOnline, showBackOnline, testState, forceShow]);
 
   const renderIndicator = useCallback(() => {
+    // 16px tall: the strip shows in the space --app-top-offset keeps between the
+    // status bar and the top controls, so it never covers one.
     const baseBarClasses =
-      "w-full flex items-center justify-center gap-2 px-3 py-1 text-xs font-medium transition-all duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)] backdrop-blur-md shadow-sm";
+      "w-full flex h-4 items-center justify-center gap-2 px-3 text-xs font-medium transition-all duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)] backdrop-blur-md shadow-sm";
 
     switch (displayPriority) {
       case "degraded":

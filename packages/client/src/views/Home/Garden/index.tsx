@@ -321,7 +321,9 @@ export const Garden: React.FC = () => {
               data-testid="garden-header"
               className="fixed top-0 left-0 right-0 bg-bg-white-0 z-20"
             >
-              <div className="relative w-full h-36 md:h-44 overflow-hidden rounded-b-2xl">
+              {/* The banner runs up under the status bar, so it grows by the top inset
+                  and keeps its height below it. */}
+              <div className="relative w-full h-[calc(9rem+env(safe-area-inset-top,0px))] md:h-[calc(11rem+env(safe-area-inset-top,0px))] overflow-hidden rounded-b-2xl">
                 <ImageWithFallback
                   src={bannerImage || ""}
                   alt={`${name} banner`}
@@ -333,7 +335,7 @@ export const Garden: React.FC = () => {
                 />
                 <div className="absolute top-0 left-0 right-0 z-20">
                   <TopNav
-                    className="flex w-full justify-between items-start p-4 pt-6"
+                    className="flex w-full justify-between items-start p-4 pt-[var(--app-top-offset)]"
                     onBackClick={() => navigate("/home")}
                     works={mergedWorks}
                     garden={garden}
@@ -405,7 +407,10 @@ export const Garden: React.FC = () => {
               aria-hidden="true"
             >
               {headerHeight === null && (
-                <div className="h-[288px] md:h-[320px] w-full" aria-hidden="true" />
+                <div
+                  className="h-[calc(288px+env(safe-area-inset-top,0px))] md:h-[calc(320px+env(safe-area-inset-top,0px))] w-full"
+                  aria-hidden="true"
+                />
               )}
             </div>
 
