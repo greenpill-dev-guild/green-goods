@@ -2,8 +2,8 @@
 
 **Feature Slug:** `app-cockpit-unification`
 **Stage:** backlog
-**Status:** DESIGN REVIEW — picks accepted in principle; no implementation authorized
-**Created / Last Updated:** 2026-10-10 / 2026-10-17
+**Status:** DESIGN GATE: the token slices are drafted, rendered and measured, and await approval
+**Created / Last Updated:** 2026-10-10 / 2026-10-20
 **Linear Issue:** PRD-1266
 **Linear Source:** source:plans
 
@@ -30,7 +30,8 @@ implementation task has been dispatched.
 - [x] Decide what happens to the cockpit's Material-named token layer: the names stay, and one
       changes only if a step has to touch it.
 - [x] Set the user round: after slices land, as follow-up input. It gates nothing.
-- [ ] Rewrite the cockpit's guide and prompt contract around the app's language (step 13).
+- [ ] Rewrite the cockpit's guide and prompt contract around the app's language (step 13). Drafted
+      for review on 2026-10-20; each part lands with the slice that makes it true.
 - [x] Record the four changes without a fork as accepted in principle: the focus ring, the empty,
       loading and error anatomy, the type role names, and the glass spec.
 - [x] Set what a pair must show: the lab's ten screens at 390, 768 and 1280px, in light and dark,
@@ -41,8 +42,10 @@ implementation task has been dispatched.
 - [x] Set the card model, the future of the cockpit's controls, the folder rule and where the
       consolidation is tracked (17 October).
 - [ ] Lock each pick: render that pair from the real components and get it approved before rollout.
-- [ ] Measure the typeface change in English, Spanish and Portuguese at 320 to 390px.
-- [ ] Re-run the contrast audits on the accepted ground and dark ladder.
+      Steps 1 to 3 rendered on 2026-10-20 ([eval.md](eval.md#design-gate-for-the-token-slices));
+      approval pending.
+- [x] Measure the typeface change in English, Spanish and Portuguese at 320 to 390px (2026-10-20).
+- [x] Re-run the contrast audits on the accepted ground and dark ladder (2026-10-20).
 - [ ] Approve the first slice and promote the hub only when execution is authorized.
 
 The picks were made in the lab in [artifacts](artifacts/README.md) and handed over with its Copy

@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-10-10T09:56:00.510Z",
-    "updated_at": "2026-10-21T05:25:35.974Z"
+    "updated_at": "2026-10-21T06:58:47Z"
   },
   "links": {
     "brief": "brief.md",
@@ -30,24 +30,10 @@
   },
   "taxonomy": {
     "initiative": "design-system",
-    "tracks": [
-      "client-pwa",
-      "admin",
-      "shared"
-    ],
-    "work_types": [
-      "research",
-      "implementation",
-      "qa"
-    ],
-    "surfaces": [
-      "packages/client",
-      "packages/admin",
-      "packages/shared"
-    ],
-    "depends_on_features": [
-      "pwa-interface-simplification"
-    ]
+    "tracks": ["client-pwa", "admin", "shared"],
+    "work_types": ["research", "implementation", "qa"],
+    "surfaces": ["packages/client", "packages/admin", "packages/shared"],
+    "depends_on_features": ["pwa-interface-simplification"]
   },
   "notes": [
     "The maintainer asked for design research, a switchable mock, and this hub on a branch, then chose an option for every fork. Implementation scope remains open; no application, deployment, or transaction work is authorized.",
@@ -62,6 +48,7 @@
     "Census review, 2026-10-18: every card keeps one height (rule 5 revised: an action takes the row's right slot, not a line below the text); a media card needs a picture of its own, so commitments, assessments and jars take the item row only; the maintainer picked 15px app and 13px cockpit titles. Census version 15.",
     "Locked on 2026-10-18 at the maintainer's request: every fork and the workspace tone, and the card picks (status pill under the title, the detail-line rules, 88px rows and photo, 15px app and 13px cockpit titles, 11px details, one title line, one detail on a jar row, one pill per card). The before and after pairs stay as each step's acceptance evidence; a failing pair reopens only its own pick. Census version 16.",
     "The last three locked the same day: field message slots per surface (two lines in the app, DL-018; one in the cockpit, two if several Spanish or Portuguese messages wrap at 640px); the work row stays on the cockpit's phone queue, checked with a steward on the pair; desktop tabs at most 180px each, the row aligned left.",
+    "Design gate for the token slices, 2026-10-20: steps 1 to 3 drafted on a local branch that was not pushed, rendered as before and after pairs of the ten lab screens in four code states (cockpit from Storybook, app from mock-auth localhost), with the typeface fit, the logo-screen lines, the token contrast audit, a rendered contrast sweep and the step 13 guide draft recorded in eval.md. The drafts fold three consequences of the ground into step 2 (dark text lifts, the error action fill for the cockpit's error-screen Retry, and the app tab row and garden title block on their ground) and the 500 button weight into step 3. Awaiting the maintainer's approval of the three token slices; the hub moves to active with it.",
     "artifacts/design-lab.html is a hand-built mock drawn from token values; artifacts/captures are Storybook evidence from the deployed build, not authenticated-session proof.",
     "The garden-scoped Home and its switcher stay with the pwa-interface-simplification hub; only the shared look of the garden chip is in scope here.",
     "No implementation lane is certified by document validation."
@@ -86,11 +73,7 @@
         },
         "note": "Token and style steps prove themselves with rendered pairs and the design guards; steps that change a component's structure (tabs, the work card, the cockpit's phone sheet, empty states) need focused RED/GREEN proof. No implementation or test evidence is recorded by this planning task."
       },
-      "skill_tags": [
-        "ui",
-        "design",
-        "react"
-      ],
+      "skill_tags": ["ui", "design", "react"],
       "ready_when_dependencies_met": false,
       "manual_blocked": true,
       "blocked_reason": "Design review: the picks are accepted in principle and lock on approved pairs of the real components. A bounded first slice and explicit execution authorization are still needed."
@@ -114,11 +97,7 @@
         },
         "note": "This hub proposes look and feel and shared presentation elements only; no data, hook, store, or API change is in scope."
       },
-      "skill_tags": [
-        "react",
-        "tanstack-query",
-        "data-layer"
-      ]
+      "skill_tags": ["react", "tanstack-query", "data-layer"]
     },
     "contracts": {
       "owner": "codex",
@@ -139,9 +118,7 @@
         },
         "note": "No contract, settlement, or deployment work is in scope."
       },
-      "skill_tags": [
-        "contracts"
-      ]
+      "skill_tags": ["contracts"]
     },
     "qa_pass_1": {
       "owner": "claude",
@@ -149,16 +126,9 @@
       "ready_when_dependencies_met": false,
       "manual_blocked": true,
       "branch": null,
-      "depends_on": [
-        "ui",
-        "state_api",
-        "contracts"
-      ],
+      "depends_on": ["ui", "state_api", "contracts"],
       "handoff": "handoffs/claude-qa-pass-1.md",
-      "skill_tags": [
-        "testing",
-        "review"
-      ],
+      "skill_tags": ["testing", "review"],
       "blocked_reason": "Implementation is not authorized or available for acceptance review."
     },
     "qa_pass_2": {
@@ -167,14 +137,9 @@
       "ready_when_dependencies_met": false,
       "manual_blocked": true,
       "branch": null,
-      "depends_on": [
-        "qa_pass_1"
-      ],
+      "depends_on": ["qa_pass_1"],
       "handoff": "handoffs/codex-qa-pass-2.md",
-      "skill_tags": [
-        "testing",
-        "review"
-      ],
+      "skill_tags": ["testing", "review"],
       "blocked_reason": "Implementation is not authorized or available for acceptance review."
     }
   },
@@ -250,6 +215,14 @@
       "status": "linear_recorded",
       "branch": null,
       "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-10-21T06:58:47Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "design_gate_recorded",
+      "branch": null,
+      "note": "Rendered the before and after pairs for steps 1 to 3 and recorded the typeface, contrast and step 13 draft results in eval.md; awaiting approval of the token slices. Nothing merged."
     }
   ]
 }
