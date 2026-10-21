@@ -1869,6 +1869,9 @@
     "prefixes": ["packages/shared/src/__tests__/test-utils/"]
   },
   "workflowRules": {
+    "Dependabot Sync": {
+      "pullRequestAuthor": "dependabot[bot]"
+    },
     "Admin": {
       "exact": [
         "package.json",
