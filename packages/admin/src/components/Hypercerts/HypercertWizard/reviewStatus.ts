@@ -83,7 +83,7 @@ function sendingWords(
         }),
         description: formatMessage({
           id: "app.hypercerts.review.status.confirming.description",
-          defaultMessage: "Your wallet approved. Waiting for the chain to confirm.",
+          defaultMessage: "Your wallet approved. Waiting for confirmation…",
         }),
       };
     case "registering_proposal":

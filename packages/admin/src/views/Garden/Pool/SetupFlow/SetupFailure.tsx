@@ -46,7 +46,7 @@ function failureMessage(
       return formatMessage({
         id: "cockpit.garden.pool.setup.failure.readFailed",
         defaultMessage:
-          "The chain could not be read, so setup stopped where it was. What landed stays landed; try again when the connection is steady.",
+          "The pool could not be checked, so setup stopped where it was. What landed stays landed; try again when the connection is steady.",
       });
     case "cycle-terms-mismatch":
       return isCampaign

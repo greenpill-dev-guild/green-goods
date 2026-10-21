@@ -5999,7 +5999,7 @@
         "Turn the network off and read the card with Set Up Promises",
         "Turn the network back on and read it again"
       ],
-      "expected": "Offline, Set Up Promises is closed and the card says Needs a connection. Pool changes are sent straight to the chain.; back online, Set Up Promises is offered again and the line is gone",
+      "expected": "Offline, Set Up Promises is closed and the card says Needs a connection. Pool changes are sent right away, not queued.; back online, Set Up Promises is offered again and the line is gone",
       "evidence": "Screenshots of the card offline and online",
       "role": "steward",
       "tags": ["garden-pool", "offline"],
