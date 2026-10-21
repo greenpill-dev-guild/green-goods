@@ -91,15 +91,15 @@ Entity references in lists (gardens, actions) include small thumbnails — 40px 
 
 ## Rule 9: Typography Utilities
 
-Text takes its size from the type scale, never from a raw Tailwind size (`text-xs` … `text-2xl`). In admin the cockpit scale (`packages/admin/DESIGN.md` § Typography) is:
+Text takes its size from the type scale, never from a raw Tailwind size (`text-xs` … `text-2xl`). In admin that scale is the type roles (`packages/admin/DESIGN.md` § Typography), each at the cockpit's density:
 
-- `body-sm` 14px body · `body-xs` 12px meta · `label-xs` 12px label (500) · `label-sm` 11px, chips only · `body-md` 16px.
-- `text-title-md font-semibold` (16/24) for card and section titles and metric values · `text-title-lg font-semibold leading-[var(--type-title-lg-lh)]` (22/28) for dialog, sheet, flow, and step titles and full-page state headings. A step title takes its flow title's size through `FlowStepHeader`, above the step's 16px section titles and 14px rows (DL-063).
-- The `text-body-*`, `text-label-*`, and `text-title-*` aliases are on the scale too.
+- `type-title-lg` 22/28 for dialog, sheet, flow, and step titles and full-page state headings; a step title takes its flow title's size through `FlowStepHeader`, above the step's 16px section titles and 14px rows (DL-063) · `type-title-md` 16/24 for route headers, card and section titles, and metric values · `type-title-sm` 14/20. Titles are weight 600.
+- `type-body` 14px body · `type-label` 14px labels (500), every button size · `type-label-sm` 12px label (500) · `type-meta` 12px meta and supporting text · `type-meta-sm` 11px for chips and the smallest supporting lines.
+- `type-field` for field text and checkbox and choice labels: 16px on touch widths, 14px from 640px (DL-030).
 
-The named classes are Tailwind utilities, so a weight, leading, or tracking utility adjusts them (`body-sm font-medium`) and responsive variants work (`body-xs sm:body-sm`). `check:design-tokens` fails on a raw size anywhere in `packages/admin/src`, stories included.
+The roles are Tailwind utilities, so a weight, leading, or tracking utility adjusts them (`type-body font-medium`) and responsive variants work (`type-meta sm:type-body`). The Material `text-title-*`, `text-body-*`, and `text-label-*` aliases and the `label-*`, `body-*`, and `subheading-*` classes are retired in admin views; `check:design-tokens` fails on them, on the shared theme's other sizes (`text-paragraph-*`, `text-title-h*`, and the like), and on a raw size, anywhere in `packages/admin/src`, stories included.
 
-Mind the role split: `label-xs text-text-soft` is the **eyebrow / metadata** token (card overlines, definition-list keys, section meta) — it is **not** a form-field label. The title that labels a control goes through `FormField` / `AdminSettingRow` (see Rule 15).
+Mind the role split: `type-label-sm text-text-soft` is the **eyebrow / metadata** token (card overlines, definition-list keys, section meta); it is **not** a form-field label. The title that labels a control goes through `FormField` / `AdminSettingRow` (see Rule 15).
 
 ## Rule 10: Icon Sizing Convention
 
@@ -155,14 +155,14 @@ default surface and an underline on the public editorial surface (DL-022, DL-024
 its own aria-hidden asterisk from `required` — never hardcode `" *"` into label strings).
 
 **A field-input label is never a hand-rolled eyebrow.** Labeling an input, toggle, or
-selectable-card group with `label-xs text-text-soft` (the eyebrow/metadata token) makes that
+selectable-card group with `type-label-sm text-text-soft` (the eyebrow/metadata token) makes that
 field read visibly smaller and grayer than the family labels next to it — the Garden Profile
 dialog regressed exactly this way. Route every admin field label through the field family
 (`AdminTextField`/`AdminFieldGroup`/`AdminSettingRow`); client labels go through `FormField`.
 
 ```tsx
 // Bad — hand-rolled eyebrow token as a field label
-<p className="label-xs text-text-soft">Open joining</p>
+<p className="type-label-sm text-text-soft">Open joining</p>
 <Switch ... />
 
 <label>Name</label>
