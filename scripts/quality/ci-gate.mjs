@@ -7,6 +7,7 @@ const requiredJobs = new Map([
   ["Shared", ["Test (1/2)", "Test (2/2)"]],
   ["Client", ["Playwright Client CI"]],
   ["Admin", ["Playwright Admin CI"]],
+  ["Dependabot Sync", ["Synchronized dependency files"]],
 ]);
 
 export function expectedWorkflowNames(files, context = {}) {
@@ -72,11 +73,6 @@ async function workflowJobs(token, repository, runId) {
   }
 }
 
-async function workflowArtifacts(token, repository, runId) {
-  const data = await githubJson(token, `/repos/${repository}/actions/runs/${runId}/artifacts?per_page=100`);
-  return data.artifacts;
-}
-
 export async function runGate(
   {
     token,
@@ -101,7 +97,6 @@ export async function runGate(
     selectWorkflows = expectedWorkflowNames,
     loadWorkflowRuns = workflowRuns,
     loadWorkflowJobs = workflowJobs,
-    loadWorkflowArtifacts = workflowArtifacts,
     wait = (delayMs) => new Promise((resolve) => setTimeout(resolve, delayMs)),
     logger = console,
   } = dependencies;
@@ -139,12 +134,6 @@ export async function runGate(
     }
 
     for (const name of expected) {
-      if (name === "Dependabot Sync") {
-        const artifacts = await loadWorkflowArtifacts(token, repository, runs.get(name).id);
-        if (artifacts.some((artifact) => artifact.name === "dependabot-sync")) {
-          throw new Error("Dependabot repair required; wait for the publisher and passing CI on the synchronized head");
-        }
-      }
       const names = requiredJobs.get(name);
       if (!names) continue;
       const jobs = await loadWorkflowJobs(token, repository, runs.get(name).id);

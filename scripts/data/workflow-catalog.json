@@ -53,7 +53,7 @@
     },
     ".github/workflows/dependabot-sync.yml": {
       "purpose": "Prepares aligned root and matching workspace dependency pins, the root Bun lockfile, and generated docs on Dependabot package PRs; refreshes generated docs for pinned GitHub Actions updates. Preparation has read-only permissions and lifecycle scripts disabled.",
-      "useCase": "An opened, reopened, or updated same-repository Dependabot Bun, npm or GitHub Actions PR. CI Gate requires successful synchronization with no outstanding repair artifact; Dependabot Sync Publish writes any repair on a new head.",
+      "useCase": "An opened, reopened, or updated same-repository Dependabot Bun, npm or GitHub Actions PR. CI Gate requires the no-repair verification job to succeed; a skipped job blocks the head even after its repair artifact is deleted. Dependabot Sync Publish writes any repair on a new head.",
       "required": false
     },
     ".github/workflows/design.yml": {

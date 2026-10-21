@@ -299,16 +299,17 @@ test("Dependabot cannot pass with missing, failed, cancelled, skipped or pending
   }
 });
 
-test("a repair artifact blocks the original SHA until synchronized-head CI passes", async () => {
+test("the no-repair job must succeed even when repair artifacts have been deleted", async () => {
   const dependencies = {
     loadChangedFiles: async () => ["unrecognized.txt"],
     loadWorkflowRuns: async () => new Map([["Dependabot Sync", workflowRun("Dependabot Sync", { id: 42 })]]),
     logger: silentLogger,
   };
-  for (const expired of [false, true]) {
-    await assert.rejects(runGate({ ...gateOptions, ...dependabotContext }, { ...dependencies, loadWorkflowArtifacts: async () => [{ name: "dependabot-sync", expired }] }), /Dependabot repair required/);
+  const job = { name: "Synchronized dependency files", status: "completed", conclusion: "success" };
+  for (const jobs of [[], ...["skipped", "cancelled", "failure"].map(conclusion => [{ ...job, conclusion }]), [{ ...job, status: "in_progress", conclusion: null }]]) {
+    await assert.rejects(runGate({ ...gateOptions, ...dependabotContext }, { ...dependencies, loadWorkflowJobs: async () => jobs }), /Dependabot Sync required job Synchronized dependency files/);
   }
-  await runGate({ ...gateOptions, ...dependabotContext }, { ...dependencies, loadWorkflowArtifacts: async () => [] });
+  await runGate({ ...gateOptions, ...dependabotContext }, { ...dependencies, loadWorkflowJobs: async () => [job] });
 });
 
 test("direct CLI execution preserves required-input failure behavior", () => {

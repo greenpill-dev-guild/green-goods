@@ -240,9 +240,10 @@ Agent and Contracts pin `bun-types` to the already resolved
 `1.4.2` so regeneration does not float that unrelated tool dependency.
 
 CI Gate requires Dependabot Sync for every same-repository Dependabot PR. A missing, pending,
-failed, cancelled or skipped sync cannot pass the gate. A successful preparation with a repair
-artifact also blocks the original head: the publisher must write the repair, and CI must pass on
-the synchronized head with no further repair artifact. Ordinary PRs do not wait for this workflow.
+failed, cancelled or skipped sync cannot pass the gate. Its `Synchronized dependency files` job
+runs only when preparation reports no changes, and the gate requires that job to succeed. An
+unrepaired head stays blocked even after GitHub deletes its repair artifact. The publisher must
+write the repair and CI must pass on the synchronized head. Ordinary PRs do not wait for this workflow.
 
 The default publisher uses `GITHUB_TOKEN`. [GitHub requires approval before running follow-up PR
 CI on commits made with that token](https://docs.github.com/en/actions/concepts/security/github_token).

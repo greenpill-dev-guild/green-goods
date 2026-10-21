@@ -301,6 +301,8 @@ test("workflow isolates generation from publication and keeps frozen installatio
   }
   assert.match(prepare, /  pull_request:/);
   assert.match(prepare, /permissions:\n      contents: read\n/);
+  assert.match(prepare, /changed: \$\{\{ steps.sync.outputs.changed \}\}/);
+  assert.match(prepare, /name: Synchronized dependency files\n    needs: prepare\n    if: needs.prepare.outputs.changed == 'false'/);
   assert.doesNotMatch(prepare, /contents: write|secrets\./);
   assert.match(publish, /  workflow_run:\n    workflows: \[Dependabot Sync\]/);
   assert.match(publish, /contents: write\n      pull-requests: read/);

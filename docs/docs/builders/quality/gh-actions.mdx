@@ -28,7 +28,7 @@ generated_from:
   - package.json
   - scripts/data/validation-policy.json
   - scripts/data/workflow-catalog.json
-source_digest: "sha256:412dd8b5aa63b26e713b1676d0a77629753377c5d3b57c0ddbf6824d6c288a18"
+source_digest: "sha256:ac2035450b92c6d1e941feb93acf32eea20e2703134bbd7e147f4e0f73a8a623"
 source_of_truth:
   - .github/workflows/admin.yml
   - .github/workflows/agent.yml
@@ -187,9 +187,9 @@ Publishes repair data from a successful Dependabot Sync run. It validates the or
 
 Prepares aligned root and matching workspace dependency pins, the root Bun lockfile, and generated docs on Dependabot package PRs; refreshes generated docs for pinned GitHub Actions updates. Preparation has read-only permissions and lifecycle scripts disabled.
 
-- **Use it when:** An opened, reopened, or updated same-repository Dependabot Bun, npm or GitHub Actions PR. CI Gate requires successful synchronization with no outstanding repair artifact; Dependabot Sync Publish writes any repair on a new head.
+- **Use it when:** An opened, reopened, or updated same-repository Dependabot Bun, npm or GitHub Actions PR. CI Gate requires the no-repair verification job to succeed; a skipped job blocks the head even after its repair artifact is deleted. Dependabot Sync Publish writes any repair on a new head.
 - **Runs on:** every pull request.
-- **Jobs:** `prepare`.
+- **Jobs:** `prepare`, `synchronized`.
 - **Required status:** no, but the CI Gate waits for same-repository pull requests authored by `dependabot[bot]`.
 - **File:** [.github/workflows/dependabot-sync.yml](https://github.com/greenpill-dev-guild/green-goods/blob/develop/.github/workflows/dependabot-sync.yml)
 
