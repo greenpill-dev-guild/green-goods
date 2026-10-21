@@ -1,0 +1,1116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PWA Garden Home Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: a stage of real-size phones on the left, a sticky control rail on the right, a hint line at the foot. */
+:root {
+  --lab-bg: #F3F1EC;
+  --lab-panel: #FFFFFF;
+  --lab-fg: #1C1917;
+  --lab-muted: #6B655F;
+  --lab-line: #E3DFD8;
+  --lab-accent: #1A7544;
+  --lab-accent-ink: #FFFFFF;
+  --lab-soft: rgba(26, 117, 68, 0.10);
+  --lab-font: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --lab-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --lab-bg: #14110E; --lab-panel: #1F1B17; --lab-fg: #ECE9E4; --lab-muted: #A39E97; --lab-line: #2E2924; --lab-accent: #9FE3BF; --lab-accent-ink: #0C0A09; --lab-soft: rgba(159, 227, 191, 0.14); color-scheme: dark }
+}
+:root[data-theme="dark"] { --lab-bg: #14110E; --lab-panel: #1F1B17; --lab-fg: #ECE9E4; --lab-muted: #A39E97; --lab-line: #2E2924; --lab-accent: #9FE3BF; --lab-accent-ink: #0C0A09; --lab-soft: rgba(159, 227, 191, 0.14); color-scheme: dark }
+html, body { height: 100% }
+body { margin: 0; background: var(--lab-bg); color: var(--lab-fg); font-family: var(--lab-font); font-size: 14px; line-height: 1.4; -webkit-font-smoothing: antialiased }
+*, *::before, *::after { box-sizing: border-box }
+button { font: inherit }
+.lab { display: flex; flex-direction: column; min-height: 100%; padding-inline: 16px; padding-block: 0 }
+.top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; padding-block: 14px 10px; border-bottom: 1px solid var(--lab-line) }
+.top h1 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -0.01em }
+.top p { margin: 2px 0 0; color: var(--lab-muted); font-size: 13px }
+.presets { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
+.pbtn { height: 32px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--lab-line); background: var(--lab-panel); color: var(--lab-fg); cursor: pointer }
+.pbtn:hover { border-color: var(--lab-muted) }
+.pbtn.primary { background: var(--lab-accent); color: var(--lab-accent-ink); border-color: var(--lab-accent) }
+.pbtn:focus-visible, .seg button:focus-visible { outline: 2px solid var(--lab-accent); outline-offset: 2px }
+.work { display: flex; gap: 24px; align-items: flex-start; flex: 1; padding-block: 16px; min-width: 0 }
+.stage { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; justify-content: center }
+.phonewrap { position: relative }
+.phonewrap .cap { position: absolute; left: 0; top: -22px; font-size: 12px; color: var(--lab-muted); font-variant-numeric: tabular-nums }
+.rail { flex: 0 0 300px; width: 300px; position: sticky; top: env(safe-area-inset-top, 0px); max-height: calc(100vh - 24px); overflow-y: auto; background: var(--lab-panel); border: 1px solid var(--lab-line); border-radius: 16px; padding: 12px 14px 16px; display: flex; flex-direction: column; gap: 14px }
+.grp { display: flex; flex-direction: column; gap: 6px }
+.grp h3 { margin: 0; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--lab-muted) }
+.grp .ttl { font-size: 13px; font-weight: 600 }
+.grp .ttl small { font-weight: 500; color: var(--lab-muted); margin-left: 6px }
+.seg { display: flex; flex-wrap: wrap; gap: 6px }
+.seg button { height: 30px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--lab-line); background: transparent; color: var(--lab-fg); cursor: pointer; font-size: 13px }
+.seg button[aria-pressed="true"] { background: var(--lab-soft); border-color: var(--lab-accent); color: var(--lab-accent); font-weight: 600 }
+.hint { position: sticky; bottom: env(safe-area-inset-bottom, 0px); background: var(--lab-panel); border-top: 1px solid var(--lab-line); padding-block: 8px; margin-inline: -16px; padding-inline: 16px; font-size: 13px; color: var(--lab-muted); min-height: 36px; display: flex; align-items: center; justify-content: space-between; gap: 12px }
+.hint code { font-family: var(--lab-mono); font-size: 12px; color: var(--lab-fg); user-select: all; word-break: break-all }
+@media (max-width: 1040px) { .work { flex-direction: column } .rail { position: static; width: 100%; flex-basis: auto; max-height: none } }
+
+/* The phone. Tokens live on the frame so the lab's own theme and the app's theme stay independent.
+   Light: the unification hub's linen canvas and white cards. Dark: one warm ladder, the card one step above the canvas (F2, F13). */
+.frame { position: relative; overflow: hidden; font-family: var(--lab-font); font-size: 16px; line-height: 1.3; background: var(--bg); color: var(--fg); border-radius: 36px; box-shadow: 0 0 0 1px rgba(12, 10, 9, 0.12), 0 24px 48px rgba(12, 10, 9, 0.18); transform-origin: top left }
+.frame[data-theme="light"] { --bg: #FAF8F5; --card: #FFFFFF; --fg: #292524; --strong: #0C0A09; --muted: #6B655F; --line: #E7E5E4; --line2: #D6D3D1; --accent: #1A7544; --accent-ink: #FFFFFF; --accent-soft: rgba(31, 193, 107, .12); --accent-on: #1A7544; --chip-av: #D0FBE9; --chip-av-ink: #14532D; --ok-bg: #DCFCE7; --ok: #166534; --warn-bg: #FEF3C7; --warn: #92400E; --err-bg: #FEE2E2; --err: #991B1B; --info-bg: #DBEAFE; --info: #1E40AF; --neu-bg: #F5F5F4; --neu: #44403C; --scrim: rgba(12, 10, 9, .4); --tile: #EFE9DF; --shadow: 0 1px 2px rgba(12, 10, 9, .05); --edge-ok: #22C55E; --edge-warn: #F59E0B; --edge-err: #EF4444; --edge-info: #3B82F6; --offl-bg: rgba(12, 10, 9, .95); --offl-fg: #FAFAF9; --tag-bg: rgba(255, 255, 255, .94); --tag-fg: #0C0A09 }
+.frame[data-theme="dark"] { --bg: #110C08; --card: #2A231C; --fg: #D6D3D1; --strong: #FAFAF9; --muted: #A8A29E; --line: rgba(250, 250, 249, .10); --line2: rgba(250, 250, 249, .18); --accent: #C2F5DA; --accent-ink: #0C0A09; --accent-soft: rgba(194, 245, 218, .14); --accent-on: #C2F5DA; --chip-av: rgba(194, 245, 218, .18); --chip-av-ink: #C2F5DA; --ok-bg: rgba(34, 197, 94, .18); --ok: #86EFAC; --warn-bg: rgba(245, 158, 11, .18); --warn: #FCD34D; --err-bg: rgba(239, 68, 68, .18); --err: #FCA5A5; --info-bg: rgba(59, 130, 246, .18); --info: #93C5FD; --neu-bg: #342C24; --neu: #D6D3D1; --scrim: rgba(0, 0, 0, .62); --tile: #3A3028; --shadow: none; --edge-ok: #4ADE80; --edge-warn: #FBBF24; --edge-err: #F87171; --edge-info: #60A5FA; --offl-bg: rgba(250, 250, 249, .95); --offl-fg: #0C0A09; --tag-bg: rgba(42, 35, 28, .94); --tag-fg: #FAFAF9 }
+/* Zero specificity, so every component below keeps its own colour (the first lab let this rule beat .btn, .hit and .link, which is the light-on-light button in dark mode). */
+:where(.frame) button { color: inherit }
+.i { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; display: block; flex: 0 0 auto }
+.art { width: 100%; height: 100%; display: block; object-fit: cover }
+.fb { position: absolute; inset: 0; background: linear-gradient(135deg, var(--tile), var(--accent-soft)); display: grid; place-items: center; color: var(--accent-on); opacity: .9 }
+.fb .i { opacity: .45 }
+.avimg { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block }
+.screen { position: absolute; left: 0; right: 0; top: 0; bottom: 0; overflow-y: auto; overflow-x: hidden; padding-bottom: 96px; scrollbar-width: none }
+/* The shell's offline strip: fixed over the top padding of whatever header is there, so nothing moves when it comes or goes. */
+.offl { position: absolute; left: 0; right: 0; top: 0; height: 24px; z-index: 8; background: var(--offl-bg); color: var(--offl-fg); font-size: 12px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 6px; pointer-events: none }
+.hdr { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 24px 8px 8px 16px; background: var(--bg) }
+.hdr.sticky { position: sticky; top: 0; z-index: 4 }
+.hdr.sticky.scrolled { box-shadow: 0 1px 0 var(--line) }
+.hdr .lead { min-width: 0; flex: 1; display: flex; align-items: center; height: 48px }
+.h1 { margin: 0; font-size: 18px; font-weight: 600; color: var(--strong) }
+/* The garden chip at the app's size: 32px like the compact icon buttons beside it, so the row keeps one height. */
+.chip { display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px 0 5px; border-radius: 999px; background: var(--card); border: 1px solid var(--line2); font-size: 14px; font-weight: 500; color: var(--strong); max-width: 100%; cursor: pointer; text-align: left }
+.chip .lbl { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.chip .av { width: 22px; height: 22px; border-radius: 50%; background: var(--chip-av); color: var(--chip-av-ink); display: grid; place-items: center; flex: 0 0 22px; overflow: hidden }
+.chip .caret { color: var(--muted); display: grid; place-items: center }
+.launchers { display: flex; align-items: center; flex: 0 0 auto }
+.hit { width: 48px; height: 48px; display: grid; place-items: center; background: none; border: 0; padding: 0; cursor: pointer; color: var(--accent-on) }
+.hit .ic { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line2); background: var(--card); display: grid; place-items: center; position: relative }
+.badge { position: absolute; top: -4px; right: -6px; min-width: 16px; height: 16px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-size: 11px; font-weight: 600; display: grid; place-items: center; padding: 0 4px; box-shadow: 0 0 0 2px var(--bg); line-height: 1 }
+.gactions { display: flex; justify-content: flex-end; padding: 0 8px 4px }
+.sec { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 20px 16px 8px }
+.sec h2 { margin: 0; font-size: 16px; font-weight: 600; color: var(--strong) }
+.link { font-size: 14px; font-weight: 600; color: var(--accent-on); background: none; border: 0; padding: 4px 0; cursor: pointer; white-space: nowrap }
+.sub { padding: 0 16px 8px; font-size: 12px; color: var(--muted) }
+.list { display: flex; flex-direction: column; gap: 12px; padding: 0 16px }
+.row { display: flex; align-items: stretch; height: 88px; flex-shrink: 0; background: var(--card); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; text-align: left; padding: 0; width: 100%; cursor: pointer; position: relative; box-shadow: var(--shadow) }
+.row.selected { box-shadow: inset 0 0 0 3px var(--accent) }
+/* Home rows, an exploration for the 20 October discussion: the locked item cards (F7), one surface per section with hairlines, or open rows with no boxes. */
+.frame[data-rows="grouped"] .list { gap: 0; margin: 0 16px; padding: 0; background: var(--card); border: 1px solid var(--line); border-radius: 24px; overflow: hidden; box-shadow: var(--shadow) }
+.frame[data-rows="grouped"] .sbody .list { margin: 0 }
+.frame[data-rows="grouped"] .row { border: 0; border-top: 1px solid var(--line); border-radius: 0; box-shadow: none; background: transparent }
+.frame[data-rows="grouped"] .row:first-child { border-top: 0 }
+.frame[data-rows="open"] .row { background: transparent; border: 0; box-shadow: none }
+.frame[data-rows="open"] .row .edge { display: none }
+.frame[data-rows="open"] .row .tile { border-radius: 16px }
+.frame[data-rows="open"] .list { gap: 16px }
+.frame[data-rows="divided"] .list { gap: 0 }
+.frame[data-rows="divided"] .row { border: 0; border-top: 1px solid var(--line); border-radius: 0; box-shadow: none; background: transparent }
+.frame[data-rows="divided"] .row:first-child { border-top: 0 }
+.frame[data-rows="divided"] .row .edge { display: none }
+.frame[data-rows="divided"] .row .tile { width: 72px; height: 72px; flex-basis: 72px; border-radius: 12px; margin: 8px 0 8px 16px }
+.row .edge { position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: transparent }
+.edge.ok { background: var(--edge-ok) } .edge.warn { background: var(--edge-warn) } .edge.err { background: var(--edge-err) } .edge.info { background: var(--edge-info) }
+.tile { width: 88px; height: 88px; flex: 0 0 88px; background: var(--tile); overflow: hidden; position: relative }
+.icontile { display: grid; place-items: center; color: var(--accent-on) }
+.row .body { flex: 1; min-width: 0; padding: 10px 12px; display: flex; flex-direction: column; justify-content: center; gap: 4px }
+.title { font-size: 15px; font-weight: 600; color: var(--strong); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 20px }
+.pill { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 999px; font-size: 12px; font-weight: 500; width: fit-content; max-width: 100%; white-space: nowrap }
+.pill.ok { background: var(--ok-bg); color: var(--ok) } .pill.warn { background: var(--warn-bg); color: var(--warn) } .pill.err { background: var(--err-bg); color: var(--err) } .pill.info { background: var(--info-bg); color: var(--info) } .pill.neu { background: var(--neu-bg); color: var(--neu) }
+.detail { font-size: 11px; font-weight: 500; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 14px }
+.slot { display: grid; place-items: center; padding: 0 10px 0 4px; color: var(--muted) }
+.slot .btn.compact { height: 32px }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 24px; box-shadow: var(--shadow) }
+.fact { display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 48px; padding: 0 16px; border: 0; border-top: 1px solid var(--line); font-size: 14px; color: var(--strong); background: none; width: 100%; cursor: pointer; text-align: left }
+.fact.first { border-top: 0 }
+.fact .val { color: var(--muted); display: flex; align-items: center; gap: 6px; font-size: 14px }
+.bar { position: absolute; left: 0; right: 0; bottom: 0; height: 76px; background: var(--card); border-top: 1px solid var(--line); border-radius: 16px 16px 0 0; display: flex; justify-content: space-evenly; align-items: center; padding-bottom: 10px }
+.tab { display: flex; flex-direction: column; align-items: center; gap: 2px; background: none; border: 0; color: var(--muted); font-size: 14px; min-width: 72px; padding: 4px 0; cursor: pointer }
+.tab .pillbg { width: 56px; height: 32px; border-radius: 999px; display: grid; place-items: center }
+.tab.active { color: var(--accent-on) } .tab.active .pillbg { background: var(--accent-soft) }
+.btn { height: 48px; border-radius: 16px; background: var(--accent); color: var(--accent-ink); font-weight: 600; font-size: 16px; border: 0; width: 100%; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px }
+.btn.secondary { background: transparent; border: 1px solid var(--line2); color: var(--strong) }
+.btn.compact { height: 32px; font-size: 14px; padding: 0 12px; width: auto; border-radius: 12px }
+.scrim { position: absolute; left: 0; right: 0; top: 0; bottom: 0; background: var(--scrim); border: 0; padding: 0; cursor: pointer; z-index: 9 }
+.scrim.clear { background: transparent }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; height: 70%; background: var(--card); border-radius: 24px 24px 0 0; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 -8px 24px rgba(12, 10, 9, .12); z-index: 10 }
+.sheet.half { height: 52% }
+.sheet.full { height: 85% }
+.grip { width: 40px; height: 6px; border-radius: 3px; background: var(--line2); margin: 8px auto 0 }
+.shead { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; padding: 8px 8px 8px 20px }
+.stitle { font-size: 18px; font-weight: 600; color: var(--strong); line-height: 24px; margin: 0 }
+.sdesc { font-size: 14px; color: var(--muted); line-height: 20px; margin: 2px 0 0 }
+.close { width: 44px; height: 44px; border: 0; background: none; color: var(--strong); display: grid; place-items: center; border-radius: 50%; cursor: pointer; flex: 0 0 44px }
+.tabs { display: flex; border-bottom: 1px solid var(--line) }
+.tabs button { flex: 1; height: 44px; border: 0; background: none; font-size: 14px; font-weight: 500; color: var(--muted); display: flex; align-items: center; justify-content: center; gap: 6px; border-bottom: 2px solid transparent; cursor: pointer; padding: 0 4px; min-width: 0 }
+.tabs button .tl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.tabs button.active { color: var(--accent-on); background: var(--accent-soft); border-bottom-color: var(--accent-on); font-weight: 600 }
+.cnt { min-width: 16px; height: 16px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-size: 11px; font-weight: 600; display: grid; place-items: center; padding: 0 4px; line-height: 1 }
+.sbody { flex: 1; overflow-y: auto; padding: 12px 16px 24px; display: flex; flex-direction: column; gap: 12px; scrollbar-width: none }
+.sbody > * { flex-shrink: 0 }
+.sbody .sec { padding: 8px 0 0 }
+.countline { display: flex; align-items: center; justify-content: space-between; font-size: 14px; color: var(--muted); padding: 0 0 4px }
+.para { margin: 0; font-size: 14px; line-height: 20px; color: var(--fg) }
+.grow { display: flex; align-items: center; gap: 12px; height: 64px; padding: 0 12px; border-radius: 16px; border: 0; background: none; width: 100%; text-align: left; cursor: pointer; color: var(--strong) }
+.grow.active { background: var(--accent-soft) }
+.grow .av2 { width: 40px; height: 40px; border-radius: 50%; background: var(--chip-av); color: var(--chip-av-ink); display: grid; place-items: center; flex: 0 0 40px; overflow: hidden }
+.grow .gtxt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px }
+.grow .nm { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.grow .gs { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.rolechip { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 999px; background: var(--neu-bg); color: var(--neu); flex: 0 0 auto }
+.divider { height: 1px; background: var(--line); margin: 4px 0 }
+.menu { position: absolute; left: 16px; top: 68px; width: 300px; max-width: calc(100% - 32px); background: var(--card); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 12px 32px rgba(12, 10, 9, .18); padding: 6px; display: flex; flex-direction: column; gap: 2px; z-index: 10 }
+.menu .grow { height: 52px; border-radius: 12px }
+.menu .grow .av2 { width: 32px; height: 32px; flex-basis: 32px }
+.media { height: 160px; background: var(--tile); overflow: hidden; position: relative }
+/* A mark on the photo, never a row of its own: every garden card keeps one height (the 18 October rule). */
+.tag { position: absolute; top: 8px; right: 8px; height: 22px; padding: 0 8px; border-radius: 999px; background: var(--tag-bg); color: var(--tag-fg); font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; max-width: calc(100% - 16px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.gcard { display: flex; flex-direction: column; overflow: hidden; padding: 0; border: 1px solid var(--line); border-radius: 24px; background: var(--card); width: 100%; cursor: pointer; text-align: left; color: inherit; box-shadow: var(--shadow) }
+.gcard .gb { display: flex; flex-direction: column; gap: 4px; padding: 12px 16px 14px; height: 60px }
+.gname { font-size: 15px; font-weight: 600; color: var(--strong); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.gmeta { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.banner { height: 144px; position: relative; background: var(--tile); overflow: hidden; border-radius: 0 0 24px 24px }
+.banner .art { position: absolute; inset: 0 }
+.banner .over { position: absolute; left: 8px; right: 8px; top: 12px; display: flex; align-items: flex-start; justify-content: space-between; gap: 8px }
+.banner .stack { display: flex; flex-direction: column; gap: 4px; align-items: flex-end }
+.topnav { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 24px 8px 8px }
+.topnav .mid { flex: 1; min-width: 0; text-align: center; font-size: 16px; font-weight: 600; color: var(--strong); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.gtitle { padding: 12px 16px 0; display: flex; flex-direction: column; gap: 6px }
+.gtitle h1 { margin: 0; font-size: 24px; font-weight: 700; color: var(--strong); line-height: 30px }
+.meta { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); min-width: 0 }
+.meta span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.metarow { display: flex; align-items: center; justify-content: space-between; gap: 8px }
+.metacol { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1 }
+.gtabs { margin-top: 12px; position: sticky; top: 0; background: var(--bg); z-index: 2 }
+.steps { display: flex; align-items: flex-start; gap: 4px; flex: 1; justify-content: space-between; padding: 0 8px; min-width: 0 }
+.step { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 12px; color: var(--muted); flex: 1 1 0; min-width: 0; max-width: 96px }
+.step .dot { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line2); display: grid; place-items: center; font-size: 13px; font-weight: 600; background: var(--card); color: var(--strong) }
+.step.active { color: var(--strong); font-weight: 600 } .step.active .dot { background: var(--accent); color: var(--accent-ink); border-color: var(--accent) }
+.ipanel { display: flex; gap: 12px; align-items: center; padding: 16px; border-radius: 24px; background: var(--neu-bg); margin: 0 16px; min-height: 76px }
+.ipanel > div { flex: 1; min-width: 0 }
+.ipanel .ic { width: 44px; height: 44px; border-radius: 50%; background: var(--card); display: grid; place-items: center; color: var(--accent-on); flex: 0 0 44px }
+.ipanel h3 { margin: 0; font-size: 16px; font-weight: 600; color: var(--strong); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.ipanel p { margin: 2px 0 0; font-size: 13px; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden }
+.hscroll { display: flex; gap: 12px; overflow-x: auto; padding: 0 16px 4px; scroll-snap-type: x mandatory; scrollbar-width: none }
+.acard { flex: 0 0 256px; border-radius: 24px; overflow: hidden; background: var(--card); border: 1px solid var(--line); scroll-snap-align: start; box-shadow: var(--shadow); cursor: pointer; text-align: left; padding: 0; color: inherit }
+.acard.selected { box-shadow: inset 0 0 0 3px var(--accent) }
+.acard .media { height: 96px }
+.acard .ab { padding: 12px 14px 14px; display: block }
+.acard h4 { margin: 0; font-size: 15px; font-weight: 600; color: var(--strong); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.acard p { margin: 4px 0 0; font-size: 12px; color: var(--muted); line-height: 16px; height: 32px; overflow: hidden }
+/* Highlights strip: one row of equal cards, 280×112, with the next card peeking so the swipe is visible. */
+.hcard { flex: 0 0 280px; height: 112px; border-radius: 24px; overflow: hidden; background: var(--card); border: 1px solid var(--line); scroll-snap-align: start; box-shadow: var(--shadow); cursor: pointer; text-align: left; padding: 0; color: inherit; display: flex; align-items: stretch }
+.hcard .hm { width: 96px; flex: 0 0 96px; background: var(--tile); position: relative; overflow: hidden }
+.hcard .hb { flex: 1; min-width: 0; padding: 12px 14px; display: flex; flex-direction: column; justify-content: center; gap: 4px }
+.hcard .eyebrow { font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.hcard .big { font-size: 20px; font-weight: 700; color: var(--strong); line-height: 24px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+/* Start-step variants for the 20 October discussion: chips, tabs drawn as tabs, a tile grid, the keeps line. */
+.chips { display: flex; gap: 8px; padding: 0 16px 12px; overflow-x: auto; scrollbar-width: none }
+.chip2 { height: 32px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line2); background: var(--card); font-size: 13px; font-weight: 500; color: var(--strong); white-space: nowrap; cursor: pointer; flex: 0 0 auto }
+.chip2.on { background: var(--accent-soft); border-color: var(--accent-on); color: var(--accent-on); font-weight: 600 }
+.rtabs { display: flex; gap: 4px; padding: 0 16px; align-items: flex-end }
+.rtab { height: 40px; padding: 0 14px; border: 1px solid var(--line); border-bottom: 0; border-radius: 12px 12px 0 0; background: var(--neu-bg); color: var(--muted); font-size: 14px; font-weight: 500; cursor: pointer; position: relative; top: 1px }
+.rtab.on { background: var(--card); color: var(--strong); font-weight: 600; z-index: 1 }
+.rpanel { margin: 0 16px; background: var(--card); border: 1px solid var(--line); border-radius: 0 16px 16px 16px; padding: 12px 0 }
+.rpanel .hscroll { padding: 0 12px 4px }
+.agrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 16px }
+.atile { display: flex; flex-direction: column; overflow: hidden; border-radius: 16px; background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow); padding: 0; text-align: left; cursor: pointer; color: inherit; height: 156px }
+.atile .title2 { font-size: 14px; font-weight: 600; color: var(--strong); line-height: 18px; height: 36px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical }
+.pill:empty { display: none }
+/* Promise cards on the promises screen: one fixed height, the description and the needs row clipped rather than growing. */
+.pcard { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; height: 204px; border-radius: 24px; background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow); text-align: left; cursor: pointer; color: inherit; width: 100%; overflow: hidden }
+.pcard .ph { display: flex; align-items: center; gap: 12px }
+.pcard .pi { width: 40px; height: 40px; border-radius: 12px; background: var(--accent-soft); color: var(--accent-on); display: grid; place-items: center; flex: 0 0 40px }
+.pcard .pt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px }
+.pcard .pdesc { font-size: 13px; color: var(--muted); line-height: 18px; height: 36px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical }
+.pprog { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--muted); height: 16px }
+.pprog span { white-space: nowrap }
+.pbar { flex: 1; height: 6px; border-radius: 3px; background: var(--neu-bg); overflow: hidden }
+.pbar i { display: block; height: 100%; background: var(--accent); border-radius: 3px }
+.pneeds { display: flex; gap: 6px; align-items: center; height: 24px; overflow: hidden; flex-wrap: nowrap }
+.ntag { height: 24px; padding: 0 10px; border-radius: 999px; background: var(--neu-bg); color: var(--neu); font-size: 12px; font-weight: 500; display: inline-flex; align-items: center; white-space: nowrap; flex: 0 0 auto }
+.pcard .pfoot { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); height: 20px }
+.pfoot .av3 { width: 20px; height: 20px; border-radius: 50%; background: var(--chip-av); color: var(--chip-av-ink); display: grid; place-items: center; flex: 0 0 20px }
+.pfoot span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.pcard.compact { height: 132px }
+.row.prog { height: 104px }
+.row.prog .body { gap: 3px }
+.row.prog .pprog { font-size: 11px; height: 14px }
+/* The active garden in the switcher: a tinted row and a ring on its picture, so every row keeps its role chip in the same slot. */
+.grow.active .av2 { box-shadow: 0 0 0 2px var(--accent) }
+.well { margin: 0 16px; height: 160px; border: 1px dashed var(--line2); border-radius: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: var(--accent-on); background: var(--card) }
+.well b { font-size: 15px; color: var(--strong) }
+.well span { font-size: 12px; color: var(--muted) }
+.atile.selected { box-shadow: inset 0 0 0 3px var(--accent) }
+.atile .media { height: 80px; flex: 0 0 80px }
+.atile .ab { padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; min-width: 0 }
+.qcards { display: flex; flex-direction: column; gap: 12px; padding: 0 16px }
+.qcard { display: flex; align-items: center; gap: 12px; height: 72px; padding: 0 16px; border-radius: 16px; background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow); cursor: pointer; text-align: left; color: inherit }
+.qcard .qi { width: 40px; height: 40px; border-radius: 50%; background: var(--accent-soft); color: var(--accent-on); display: grid; place-items: center; flex: 0 0 40px }
+.qcard .qt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px }
+.qcard .qt b { font-size: 15px; font-weight: 600; color: var(--strong) }
+.qcard .qt span { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.keeps { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 12px 16px 0; min-height: 44px; padding: 8px 12px 8px 16px; border-radius: 16px; background: var(--accent-soft); font-size: 13px; color: var(--strong) }
+.keeps span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.ctx { display: flex; align-items: center; gap: 8px; padding: 0 16px 12px; font-size: 13px; color: var(--muted) }
+.ctx .av { width: 22px; height: 22px; border-radius: 50%; overflow: hidden; background: var(--chip-av); color: var(--chip-av-ink); display: grid; place-items: center; flex: 0 0 22px }
+.ctx b { color: var(--strong); font-weight: 600 }
+.pin { display: flex; align-items: center; gap: 12px; height: 64px; padding: 0 16px; border-radius: 16px; background: var(--accent-soft); border: 1px solid var(--line); margin: 0 16px }
+.pin .av2 { width: 40px; height: 40px; border-radius: 50%; background: var(--card); color: var(--accent-on); display: grid; place-items: center; flex: 0 0 40px; overflow: hidden }
+.pin .ptxt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px }
+.pin .eyebrow { font-size: 12px; color: var(--muted) }
+.pin .pn { font-size: 15px; font-weight: 600; color: var(--strong); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.flow { position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 16px 20px; background: var(--bg); border-top: 1px solid var(--line); z-index: 3 }
+/* Seasons and campaigns: the pool tab's rail of cycle cards, mirrored, the open cycles on Home, and the details sheet. */
+.cyrail { display: flex; gap: 12px; overflow-x: auto; margin: 0 -16px; padding: 0 16px 4px; scroll-snap-type: x mandatory; scrollbar-width: none }
+.cywrap { position: relative; flex: 0 0 208px; min-width: 0; scroll-snap-align: start }
+.cyrail.single .cywrap { flex: 1 1 auto }
+.cycard { display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 12px 44px 12px 14px; border-radius: 20px; border: 1px solid var(--line); background: var(--card); text-align: left; cursor: pointer }
+.cycard.on { border-color: var(--accent-on); background: var(--accent-soft) }
+.cyid { display: flex; align-items: center; gap: 8px; min-width: 0 }
+.cyt { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; flex: 0 0 24px }
+.cyt.kind-season, .cyk.kind-season, .hcard .eyebrow.kind-season { color: var(--warn) } .cyt.kind-season { background: var(--warn-bg) }
+.cyt.kind-campaign, .cyk.kind-campaign, .hcard .eyebrow.kind-campaign { color: var(--info) } .cyt.kind-campaign { background: var(--info-bg) }
+.cyk { font-size: 12px; font-weight: 600; white-space: nowrap }
+.cystate { font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 999px; background: var(--ok-bg); color: var(--ok); white-space: nowrap }
+.cyname { font-size: 14px; font-weight: 500; color: var(--strong); display: flex; align-items: center; gap: 6px; min-width: 0 }
+.cyname span:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.cysub { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.cyinfo { position: absolute; top: 4px; right: 4px; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: none; border: 0; color: var(--muted); cursor: pointer }
+.sublink { display: flex; align-items: center; gap: 8px; width: 100%; padding: 0 16px 8px; font-size: 12px; color: var(--muted); background: none; border: 0; cursor: pointer; text-align: left }
+.sublink .cyt { width: 20px; height: 20px; flex-basis: 20px }
+.sublink b { color: var(--strong); font-weight: 600 }
+.sublink .more { margin-left: auto; color: var(--accent-on); font-weight: 600; white-space: nowrap }
+.facts { margin: 0; border: 1px solid var(--line); border-radius: 16px; padding: 0 16px; font-size: 14px }
+.facts div { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line) }
+.facts div:first-child { border-top: 0 }
+.facts dt { color: var(--muted) } .facts dd { margin: 0; color: var(--strong); text-align: right }
+.sfoot { padding: 12px 16px 24px; border-top: 1px solid var(--line) }
+.para2 { margin: 0; font-size: 14px; line-height: 20px; color: var(--strong) }
+.note { margin: 0; font-size: 12px; color: var(--muted) }
+button.card.season { text-align: left; cursor: pointer }
+.promo { margin: 0 16px; padding: 20px; display: flex; flex-direction: column; gap: 12px }
+.promo h2 { margin: 0; font-size: 20px; font-weight: 700; color: var(--strong) }
+.promo p { margin: 0; font-size: 14px; color: var(--muted); line-height: 20px }
+.featcap { display: flex; flex-direction: column; gap: 6px; padding: 12px 16px 14px }
+.season { margin: 0 16px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px }
+.season .sl { display: flex; flex-direction: column; gap: 2px; min-width: 0 }
+.season .sl b { font-size: 15px; font-weight: 600; color: var(--strong) }
+.season .sl span { font-size: 12px; color: var(--muted) }
+.ring { width: 44px; height: 44px; border-radius: 50%; background: conic-gradient(var(--accent) 0 0%, var(--neu-bg) 0 100%); display: grid; place-items: center; flex: 0 0 44px }
+.ring span { width: 34px; height: 34px; border-radius: 50%; background: var(--card); display: grid; place-items: center; font-size: 11px; font-weight: 600; color: var(--strong) }
+@media (prefers-reduced-motion: no-preference) { .frame button { transition: background-color 120ms ease } }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="sc-people" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice"><rect width="400" height="400" fill="#E8EFD9"/><rect y="260" width="400" height="140" fill="#B9C9A0"/><rect x="40" y="120" width="320" height="150" rx="6" fill="#DCE5C6"/><rect x="60" y="140" width="80" height="60" rx="4" fill="#F4F7EA"/><rect x="260" y="140" width="80" height="60" rx="4" fill="#F4F7EA"/><circle cx="120" cy="250" r="26" fill="#6B4F3A"/><rect x="86" y="280" width="68" height="70" rx="20" fill="#2F6B46"/><circle cx="200" cy="238" r="28" fill="#8A5A3C"/><rect x="164" y="270" width="72" height="80" rx="22" fill="#E0A23A"/><circle cx="282" cy="252" r="26" fill="#5C3D2E"/><rect x="248" y="282" width="68" height="68" rx="20" fill="#3F6FA8"/></symbol>
+    <symbol id="sc-solar" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice"><rect width="400" height="400" fill="#F3E3C3"/><circle cx="320" cy="84" r="40" fill="#E9B23C"/><rect y="290" width="400" height="110" fill="#8F6B3C"/><g transform="skewX(-12)"><rect x="90" y="120" width="260" height="160" rx="8" fill="#2B4A72"/><g stroke="#9DB9DD" stroke-width="4"><line x1="90" y1="160" x2="350" y2="160"/><line x1="90" y1="200" x2="350" y2="200"/><line x1="90" y1="240" x2="350" y2="240"/><line x1="155" y1="120" x2="155" y2="280"/><line x1="220" y1="120" x2="220" y2="280"/><line x1="285" y1="120" x2="285" y2="280"/></g></g><rect x="196" y="280" width="16" height="60" fill="#5B4A3A"/></symbol>
+    <symbol id="sc-seedlings" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice"><rect width="400" height="400" fill="#EDEFD7"/><rect y="270" width="400" height="130" fill="#7A5230"/><rect y="270" width="400" height="14" fill="#5E3E22"/><g fill="none" stroke="#3E8E4F" stroke-width="18" stroke-linecap="round"><line x1="80" y1="272" x2="80" y2="200"/><line x1="200" y1="272" x2="200" y2="180"/><line x1="320" y1="272" x2="320" y2="206"/></g><g fill="#4CA35C"><path d="M80 210 C60 190 40 196 32 214 C56 222 72 220 80 210 Z"/><path d="M80 210 C100 190 120 196 128 214 C104 222 88 220 80 210 Z"/><path d="M200 192 C178 170 156 176 148 196 C174 206 192 204 200 192 Z"/><path d="M200 192 C222 170 244 176 252 196 C226 206 208 204 200 192 Z"/><path d="M320 214 C300 194 280 200 272 218 C296 226 312 224 320 214 Z"/><path d="M320 214 C340 194 360 200 368 218 C344 226 328 224 320 214 Z"/></g></symbol>
+    <symbol id="sc-compost" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice"><rect width="400" height="400" fill="#E3EEF0"/><rect y="300" width="400" height="100" fill="#8FA78B"/><rect x="110" y="140" width="180" height="170" rx="14" fill="#4F7A5A"/><rect x="96" y="120" width="208" height="30" rx="8" fill="#2F5A3C"/><rect x="150" y="100" width="100" height="26" rx="8" fill="#2F5A3C"/><g fill="#9ACB7A"><path d="M60 270 C70 230 110 220 128 226 C118 256 90 272 60 270 Z"/><path d="M330 250 C318 214 282 206 262 212 C272 240 300 254 330 250 Z"/></g><circle cx="330" cy="300" r="22" fill="#C98A4B"/><circle cx="70" cy="306" r="16" fill="#D9A066"/></symbol>
+    <symbol id="sc-forest" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice"><rect width="400" height="400" fill="#D8E6C2"/><rect y="280" width="400" height="120" fill="#6E8F4E"/><path d="M60 282 L120 140 L180 282 Z" fill="#2F6B46"/><path d="M150 282 L220 100 L290 282 Z" fill="#3E8E4F"/><path d="M250 282 L310 160 L370 282 Z" fill="#2F6B46"/><rect x="112" y="282" width="16" height="36" fill="#6B4F3A"/><rect x="212" y="282" width="16" height="40" fill="#6B4F3A"/><rect x="302" y="282" width="16" height="34" fill="#6B4F3A"/><path d="M0 330 C120 310 280 350 400 326 L400 400 L0 400 Z" fill="#5E7F43"/></symbol>
+    <symbol id="ic-seedling" viewBox="0 0 24 24"><path d="M12 22V12"/><path d="M12 12C12 8 9 6 4 6c0 5 3 7 8 6"/><path d="M12 10c0-4 3-6 8-6 0 5-3 7-8 7"/></symbol>
+    <symbol id="ic-caret" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+    <symbol id="ic-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+    <symbol id="ic-wallet" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><circle cx="16" cy="14.5" r="1"/></symbol>
+    <symbol id="ic-promise" viewBox="0 0 24 24"><path d="M12 20s-6-3.5-6-8a3 3 0 0 1 6-1 3 3 0 0 1 6 1c0 4.5-6 8-6 8z"/></symbol>
+    <symbol id="ic-work" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 12l3 3 5-6"/></symbol>
+    <symbol id="ic-home" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1z"/></symbol>
+    <symbol id="ic-plant" viewBox="0 0 24 24"><path d="M12 21v-8"/><path d="M7 21h10"/><path d="M12 13c-4 0-6-3-6-7 4 0 6 2 6 7z"/><path d="M12 13c4 0 6-3 6-7-4 0-6 2-6 7z"/></symbol>
+    <symbol id="ic-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+    <symbol id="ic-filter" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></symbol>
+    <symbol id="ic-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></symbol>
+    <symbol id="ic-back" viewBox="0 0 24 24"><path d="M19 12H5M11 18l-6-6 6-6"/></symbol>
+    <symbol id="ic-share" viewBox="0 0 24 24"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.8l7.6-4.4M8.2 13.2l7.6 4.4"/></symbol>
+    <symbol id="ic-bank" viewBox="0 0 24 24"><path d="M3 10l9-6 9 6"/><path d="M5 10v8M9 10v8M15 10v8M19 10v8"/><path d="M3 20h18"/></symbol>
+    <symbol id="ic-gov" viewBox="0 0 24 24"><path d="M4 20h16M6 20V9M10 20V9M14 20V9M18 20V9M3 9l9-5 9 5z"/></symbol>
+    <symbol id="ic-bell" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/></symbol>
+    <symbol id="ic-pin" viewBox="0 0 24 24"><path d="M12 21s-6-5.5-6-11a6 6 0 0 1 12 0c0 5.5-6 11-6 11z"/><circle cx="12" cy="10" r="2"/></symbol>
+    <symbol id="ic-cal" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
+    <symbol id="ic-hammer" viewBox="0 0 24 24"><path d="M14 4l6 6-3 3-6-6z"/><path d="M11 7L4 14l3 3 7-7"/></symbol>
+    <symbol id="ic-draft" viewBox="0 0 24 24"><path d="M4 20h4l10-10-4-4L4 16z"/><path d="M13 7l4 4"/></symbol>
+    <symbol id="ic-upload" viewBox="0 0 24 24"><path d="M7 18a4 4 0 0 1-.5-8 6 6 0 0 1 11.5 2 3.5 3.5 0 0 1-.5 7z"/><path d="M12 12v8M9 15l3-3 3 3"/></symbol>
+    <symbol id="ic-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></symbol>
+    <symbol id="ic-clip" viewBox="0 0 24 24"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4h6v2H9z"/><path d="M9 11h6M9 15h4"/></symbol>
+    <symbol id="ic-check" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></symbol>
+    <symbol id="ic-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="ic-offline" viewBox="0 0 24 24"><path d="M3 3l18 18"/><path d="M8 18h9a4 4 0 0 0 1-7.9A6 6 0 0 0 7.5 8"/></symbol>
+    <symbol id="ic-ask" viewBox="0 0 24 24"><path d="M4 14l4-2 4 2 4-2 4 2"/><path d="M6 20V9a6 6 0 0 1 12 0v11"/></symbol>
+    <symbol id="ic-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></symbol>
+    <symbol id="ic-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+    <symbol id="ic-flag" viewBox="0 0 24 24"><path d="M5 21V4M5 4h12l-2 4 2 4H5"/></symbol>
+    <symbol id="ic-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.5a5 5 0 0 1 6 5"/></symbol>
+    <symbol id="ic-chart" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></symbol>
+    <symbol id="ic-msg" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></symbol>
+  </defs>
+</svg>
+
+<div class="lab">
+  <header class="top">
+    <div>
+      <h1>PWA Garden Home Lab</h1>
+      <p>Home opens in the member's garden. Tap inside the phones; change the picks on the right.</p>
+    </div>
+    <div class="presets" id="presets"></div>
+  </header>
+  <div class="work">
+    <section class="stage" id="stage" aria-label="Phones"></section>
+    <aside class="rail" id="rail" aria-label="Picks"></aside>
+  </div>
+  <footer class="hint"><span id="hint">Hover a control to read what it changes.</span><code id="picksline" hidden></code></footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  const STORE_KEY = "gg-pwa-home-lab-v2";
+  const T = {
+    en: { home: "Home", garden: "Garden", profile: "Profile", wallet: "Your Wallet", promises: "Promises", yourWork: "Your Work", chooseGarden: "Choose a Garden", yourGardens: "Your Gardens", belongTo: "You belong to {n} gardens.", explore: "Explore Gardens", exploreRow: "Find a garden to join", recent: "Recent Activity", continueT: "Continue", takePart: "Take Part", about: "About This Garden", seeAll: "See all", openYourWork: "Open Your Work", moreActivity: "More activity", findTitle: "Find Your Garden", findBody: "Join a garden to submit work and follow what happens there.", yourRequests: "Your Requests", awaiting: "Awaiting review", open: "Open", member: "Member", requestJoin: "Request to Join", joinGarden: "Join Garden", steward: "Steward", gardener: "Gardener", evaluator: "Evaluator", needsReview: "{n} submissions need your review", joinReqs: "{n} join requests", assessmentDue: "Garden assessment to write", toReview: "To review", draft: "Draft", toUpload: "To upload", inReview: "In review", approved: "Approved", rejected: "Rejected", pending: "Pending", stepOf: "Step 2 of 4 · 3 photos", savedToday: "Saved today · 9:40", savedPhone: "Saved on this phone", waitingReview: "Waiting for a review", offered: "Offered", asked: "Asked for", season: "Season · Open · Oct 10 – Jan 31", kept: "0 of 12 kept", insights: "Insights", gardeners: "Gardeners", share: "Share Garden", endowment: "Endowment", governance: "Governance", yourDeposit: "Your deposit", inGarden: "In {g}", pendingTab: "Pending", completedTab: "Completed", allTab: "All", live: "Live", history: "History", toConfirm: "To confirm", uploadAll: "Upload all", items: "{n} items", selectAction: "Select Your Action", whatType: "What type of work did you do?", workFor: "Work for", start: "Start Gardening", stStart: "Start", stMedia: "Media", stDetails: "Details", stReview: "Review", dSolar: "Solar", dAgro: "Agroforestry", dEdu: "Education", dWaste: "Waste", offlineLine: "Offline Mode", members: "{n} members", membersStewards: "{n} members · {s} stewards", founded: "Founded {d}", work: "Work", back: "Back", close: "Close", filters: "Filters", notifications: "Notifications", chooseBody: "Pick the garden Home should open in. Change it any time from the chip at the top.", noneChip: "No garden yet", joinCommunity: "Join the Community Garden", joinCommunityBody: "The Community Garden is open to everyone and gives you a place to submit your first work.", action1d: "Take a dashboard screenshot or provide on-chain proof of node operation.", action2: "Energy Audit", action2d: "Record the site’s power use and savings.", a5h: "5h", a2d: "2d", a3d: "3d", a1w: "1w", onePhoto: "1 photo", fourPhotos: "4 photos", twoTaken: "2 taken up", dueJan: "Due Jan 31", dueDec: "Due Dec 15", byYou: "By you", insightsLine: "Insights appear here after the first assessment.", newTag: "New", seenTag: "Seen", nNew: "{n} new", nApproved: "Your work was approved", nFeedback: "Feedback on your work", nTaken: "Your promise was taken up", nReview: "{n} submissions to review", nSeason: "Garden assessment published", nWelcome: "Welcome to the garden", assessments: "Assessments", published: "Published", outcomes: "{n} outcomes", noAssess: "No assessment published yet.", aboutLabel: "About", joinRequests: "Join Requests", requested: "Requested", approve: "Approve", since: "Gardener since {d}", keepPromise: "Promises you can keep", otherWork: "Or log other work", actionsT: "Actions", ofN: "{a} of {b}", forPromise: "For a promise", optional: "Optional", highlights: "Highlights", daysLeft: "{n} days left", seasonShort: "Season", photosAsked: "photos", loggingIn: "Logging work in {g}", keeps: "Keeps {p}", unlink: "Unlink", chooseOne: "Choose", keepsPromise: "Keeps a promise?", noneOpt: "None", action: "Action", chooseAction: "Choose an Action", all: "All", twoPhotos: "2 photos", oneShot: "1 screenshot", whatDid: "What did you do?", dueNov: "Due Nov 30", actionWs: "Run a session and show the room.", actionHub: "Keep the hub open and log the shift.", actionMentor: "Coach a builder and note the outcome.", actionPanel: "Clean the array and log the output.", actionCompost: "Turn the heap and photograph it.", whatLogging: "What work are you logging?", forP: "For {p}", forN: "For {n} promises", openAsk: "Open ask · {p}", yourPromises: "For your promises", everythingElse: "Everything else", workingOn: "Working on a promise?", yesPromise: "Yes, for a promise", noPromise: "No, other work", change: "Change", inProgress: "In progress", takeUp: "Takes it up", promisesTitle: "Keep a Promise", promisesInfo: "Which promise is this work for?", otherWorkRow: "Other Work", otherWorkSub: "Not for a promise", addEvidence: "Add Evidence", addEvidenceSub: "Photos or files that show it", actionsFor: "Actions for This Promise", openAskPill: "Open ask", evidenceOnly: "Evidence only", orEvidence: "{a} or evidence", addPhotos: "Add Photos", upTo: "Up to 10 · JPG, PNG, HEIC", evidenceInfo: "Show the work for this promise.", mediaInfoWork: "Photos of {a}", approvedOf: "{a} of {b} approved", askedBy: "Asked by {n}", youAndN: "You and {n} others", youAlone: "Only you so far", nTaking: "{n} taking part", nobodyYet: "Nobody yet", openToTake: "Open to take up", evidenceChip: "Evidence", logOnOwn: "Log Work on Its Own", noPromiseAttached: "No promise attached", somethingElse: "Something Else I Did", p1desc: "Photos from the Saturday workshops for the hub’s report.", p2desc: "A month of uptime proof for the solar node.", p3desc: "Hand the spare keys to the night steward and show the receipt.", gardenDuties: "Garden Duties", dutyResp: "Garden Responsibilities", dutyAttention: "Needs Your Attention", dutyStewardship: "Stewardship", toConfirmN: "{n} promise to confirm", joinReqN: "{n} join requests", takeUpReqN: "{n} take-up request", nNewSubmission: "New submission: {w}", nJoinFrom: "Join request from {n}", nClaimFrom: "{n} asks to take up {p}", cySeason: "Season", cyCampaign: "Campaign", cyOpen: "Open", cyLiveNow: "Live now", cyKeptSoFar: "Kept so far", cyNPromises: "{n} promises", cyIntroSeason: "Promises made in this season count toward it.", cyIntroCampaign: "Promises made for this campaign count toward it.", cySeparate: "Seasons and campaigns keep separate counts. They’re never added together.", cyShowPromises: "Show Its Promises", cyAbout: "About {name}", cyLabel: "Seasons and Campaigns", cyDetails: "Details", keptOf: "{a} of {b} kept", cyS1: "Oct 10 – Jan 31", cyS1Y: "Oct 10, 2026 – Jan 31, 2027", cyC1: "Nov 1 – Nov 30", cyC1Y: "Nov 1 – Nov 30, 2026" },
+    es: { home: "Inicio", garden: "Jardín", profile: "Perfil", wallet: "Tu billetera", promises: "Promesas", yourWork: "Tu trabajo", chooseGarden: "Elige un jardín", yourGardens: "Tus jardines", belongTo: "Perteneces a {n} jardines.", explore: "Explorar jardines", exploreRow: "Encuentra un jardín para unirte", recent: "Actividad reciente", continueT: "Continuar", takePart: "Participa", about: "Sobre este jardín", seeAll: "Ver todo", openYourWork: "Abrir Tu trabajo", moreActivity: "Más actividad", findTitle: "Encuentra tu jardín", findBody: "Únete a un jardín para enviar trabajo y seguir lo que pasa allí.", yourRequests: "Tus solicitudes", awaiting: "Pendiente de revisión", open: "Abierto", member: "Miembro", requestJoin: "Solicitar ingreso", joinGarden: "Unirse al jardín", steward: "Responsable", gardener: "Jardinero", evaluator: "Evaluador", needsReview: "{n} envíos esperan tu revisión", joinReqs: "{n} solicitudes de ingreso", assessmentDue: "Evaluación del jardín por escribir", toReview: "Por revisar", draft: "Borrador", toUpload: "Por subir", inReview: "En revisión", approved: "Aprobado", rejected: "Rechazado", pending: "Pendiente", stepOf: "Paso 2 de 4 · 3 fotos", savedToday: "Guardado hoy · 9:40", savedPhone: "Guardado en este teléfono", waitingReview: "Esperando una revisión", offered: "Ofrecida", asked: "Pedida", season: "Temporada · Abierta · 10 oct – 31 ene", kept: "0 de 12 cumplidas", insights: "Análisis", gardeners: "Jardineros", share: "Compartir jardín", endowment: "Provisión", governance: "Gobernanza", yourDeposit: "Tu depósito", inGarden: "En {g}", pendingTab: "Pendiente", completedTab: "Completado", allTab: "Todo", live: "En curso", history: "Historial", toConfirm: "Por confirmar", uploadAll: "Subir todo", items: "{n} elementos", selectAction: "Selecciona tu acción", whatType: "¿Qué tipo de trabajo hiciste?", workFor: "Trabajo para", start: "Comenzar Jardinería", stStart: "Inicio", stMedia: "Medios", stDetails: "Detalles", stReview: "Revisar", dSolar: "Solar", dAgro: "Agroforestería", dEdu: "Educación", dWaste: "Residuos", offlineLine: "Modo sin conexión", members: "{n} miembros", membersStewards: "{n} miembros · {s} responsables", founded: "Fundado el {d}", work: "Trabajo", back: "Atrás", close: "Cerrar", filters: "Filtros", notifications: "Notificaciones", chooseBody: "Elige el jardín en el que se abrirá Inicio. Cámbialo cuando quieras desde el chip de arriba.", noneChip: "Sin jardín aún", joinCommunity: "Únete al Jardín Comunitario", joinCommunityBody: "El Jardín Comunitario está abierto a todos y te da un lugar para enviar tu primer trabajo.", action1d: "Toma una captura del panel o aporta prueba en cadena de la operación del nodo.", action2: "Auditoría energética", action2d: "Registra el consumo y el ahorro de energía del sitio.", a5h: "5 h", a2d: "2 d", a3d: "3 d", a1w: "1 sem", onePhoto: "1 foto", fourPhotos: "4 fotos", twoTaken: "2 aceptadas", dueJan: "Vence 31 ene", dueDec: "Vence 15 dic", byYou: "Tuya", insightsLine: "El análisis aparece aquí tras la primera evaluación.", newTag: "Nuevo", seenTag: "Visto", nNew: "{n} nuevas", nApproved: "Tu trabajo fue aprobado", nFeedback: "Comentarios sobre tu trabajo", nTaken: "Aceptaron tu promesa", nReview: "{n} envíos por revisar", nSeason: "Evaluación del jardín publicada", nWelcome: "Bienvenido al jardín", assessments: "Evaluaciones", published: "Publicada", outcomes: "{n} resultados", noAssess: "Aún no hay evaluación publicada.", aboutLabel: "Acerca de", joinRequests: "Solicitudes de ingreso", requested: "Solicitado", approve: "Aprobar", since: "Jardinero desde {d}", keepPromise: "Promesas que puedes cumplir", otherWork: "O registra otro trabajo", actionsT: "Acciones", ofN: "{a} de {b}", forPromise: "Para una promesa", optional: "Opcional", highlights: "Destacados", daysLeft: "Quedan {n} días", seasonShort: "Temporada", photosAsked: "fotos", loggingIn: "Registrando trabajo en {g}", keeps: "Cumple {p}", unlink: "Desvincular", chooseOne: "Elegir", keepsPromise: "¿Cumple una promesa?", noneOpt: "Ninguna", action: "Acción", chooseAction: "Elige una acción", all: "Todas", twoPhotos: "2 fotos", oneShot: "1 captura", whatDid: "¿Qué hiciste?", dueNov: "Vence 30 nov", actionWs: "Da una sesión y muestra la sala.", actionHub: "Mantén el hub abierto y registra el turno.", actionMentor: "Acompaña a un builder y anota el resultado.", actionPanel: "Limpia los paneles y registra la producción.", actionCompost: "Voltea la pila y fotografíala.", whatLogging: "¿Qué trabajo registras?", forP: "Para {p}", forN: "Para {n} promesas", openAsk: "Pedido abierto · {p}", yourPromises: "Para tus promesas", everythingElse: "Todo lo demás", workingOn: "¿Trabajas en una promesa?", yesPromise: "Sí, para una promesa", noPromise: "No, otro trabajo", change: "Cambiar", inProgress: "En curso", takeUp: "La acepta", promisesTitle: "Cumple una promesa", promisesInfo: "¿Para qué promesa es este trabajo?", otherWorkRow: "Otro trabajo", otherWorkSub: "No es para una promesa", addEvidence: "Añadir evidencia", addEvidenceSub: "Fotos o archivos que lo muestren", actionsFor: "Acciones para esta promesa", openAskPill: "Pedido abierto", evidenceOnly: "Solo evidencia", orEvidence: "{a} o evidencia", addPhotos: "Añade fotos", upTo: "Hasta 10 · JPG, PNG, HEIC", evidenceInfo: "Muestra el trabajo de esta promesa.", mediaInfoWork: "Fotos de {a}", approvedOf: "{a} de {b} aprobadas", askedBy: "Pedido por {n}", youAndN: "Tú y {n} más", youAlone: "Solo tú por ahora", nTaking: "{n} participan", nobodyYet: "Nadie aún", openToTake: "Abierto para aceptar", evidenceChip: "Evidencia", logOnOwn: "Registra trabajo por tu cuenta", noPromiseAttached: "Sin promesa", somethingElse: "Otra cosa que hice", p1desc: "Fotos de los talleres del sábado para el informe del hub.", p2desc: "Un mes de pruebas de actividad del nodo solar.", p3desc: "Entrega las llaves de repuesto al responsable nocturno y muestra el recibo.", gardenDuties: "Tareas del jardín", dutyResp: "Responsabilidades del jardín", dutyAttention: "Requiere tu atención", dutyStewardship: "Gestión del jardín", toConfirmN: "{n} promesa por confirmar", joinReqN: "{n} solicitudes de ingreso", takeUpReqN: "{n} solicitud para asumir", nNewSubmission: "Nuevo envío: {w}", nJoinFrom: "Solicitud de ingreso de {n}", nClaimFrom: "{n} pide asumir {p}", cySeason: "Temporada", cyCampaign: "Campaña", cyOpen: "Abierta", cyLiveNow: "En curso ahora", cyKeptSoFar: "Cumplidas hasta ahora", cyNPromises: "{n} promesas", cyIntroSeason: "Las promesas hechas en esta temporada cuentan para ella.", cyIntroCampaign: "Las promesas hechas para esta campaña cuentan para ella.", cySeparate: "Las temporadas y las campañas llevan cuentas separadas. Nunca se suman.", cyShowPromises: "Ver sus promesas", cyAbout: "Sobre {name}", cyLabel: "Temporadas y campañas", cyDetails: "Detalles", keptOf: "{a} de {b} cumplidas", cyS1: "10 oct – 31 ene", cyS1Y: "10 oct 2026 – 31 ene 2027", cyC1: "1 – 30 nov", cyC1Y: "1 – 30 nov 2026" },
+    pt: { home: "Início", garden: "Jardim", profile: "Perfil", wallet: "Sua carteira", promises: "Promessas", yourWork: "Seu trabalho", chooseGarden: "Escolha um jardim", yourGardens: "Seus jardins", belongTo: "Você faz parte de {n} jardins.", explore: "Explorar jardins", exploreRow: "Encontre um jardim para entrar", recent: "Atividade recente", continueT: "Continuar", takePart: "Participe", about: "Sobre este jardim", seeAll: "Ver tudo", openYourWork: "Abrir Seu trabalho", moreActivity: "Mais atividade", findTitle: "Encontre seu jardim", findBody: "Entre em um jardim para enviar trabalho e acompanhar o que acontece lá.", yourRequests: "Seus pedidos", awaiting: "Aguardando análise", open: "Aberto", member: "Membro", requestJoin: "Pedir para entrar", joinGarden: "Entrar no jardim", steward: "Responsável", gardener: "Jardineiro", evaluator: "Avaliador", needsReview: "{n} envios aguardam sua revisão", joinReqs: "{n} pedidos de entrada", assessmentDue: "Avaliação do jardim para escrever", toReview: "Para revisar", draft: "Rascunho", toUpload: "Para enviar", inReview: "Em revisão", approved: "Aprovado", rejected: "Rejeitado", pending: "Pendente", stepOf: "Etapa 2 de 4 · 3 fotos", savedToday: "Salvo hoje · 9:40", savedPhone: "Salvo neste telefone", waitingReview: "Aguardando uma revisão", offered: "Oferecida", asked: "Pedida", season: "Temporada · Aberta · 10 out – 31 jan", kept: "0 de 12 cumpridas", insights: "Visão", gardeners: "Jardineiros", share: "Compartilhar jardim", endowment: "Provisão", governance: "Governança", yourDeposit: "Seu depósito", inGarden: "Em {g}", pendingTab: "Pendente", completedTab: "Concluído", allTab: "Tudo", live: "Em andamento", history: "Histórico", toConfirm: "A confirmar", uploadAll: "Enviar tudo", items: "{n} itens", selectAction: "Selecione sua ação", whatType: "Que tipo de trabalho você fez?", workFor: "Trabalho para", start: "Começar Jardinagem", stStart: "Início", stMedia: "Mídia", stDetails: "Detalhes", stReview: "Revisar", dSolar: "Solar", dAgro: "Agrofloresta", dEdu: "Educação", dWaste: "Resíduos", offlineLine: "Modo offline", members: "{n} membros", membersStewards: "{n} membros · {s} responsáveis", founded: "Fundado em {d}", work: "Trabalho", back: "Voltar", close: "Fechar", filters: "Filtros", notifications: "Notificações", chooseBody: "Escolha o jardim em que o Início vai abrir. Troque quando quiser pelo chip no topo.", noneChip: "Sem jardim ainda", joinCommunity: "Entre no Jardim Comunitário", joinCommunityBody: "O Jardim Comunitário é aberto a todos e dá a você um lugar para enviar seu primeiro trabalho.", action1d: "Tire uma captura do painel ou forneça prova on-chain da operação do nó.", action2: "Auditoria energética", action2d: "Registre o consumo e a economia de energia do local.", a5h: "5 h", a2d: "2 d", a3d: "3 d", a1w: "1 sem", onePhoto: "1 foto", fourPhotos: "4 fotos", twoTaken: "2 assumidas", dueJan: "Até 31 jan", dueDec: "Até 15 dez", byYou: "Sua", insightsLine: "A visão aparece aqui após a primeira avaliação.", newTag: "Novo", seenTag: "Visto", nNew: "{n} novas", nApproved: "Seu trabalho foi aprovado", nFeedback: "Comentários sobre seu trabalho", nTaken: "Sua promessa foi aceita", nReview: "{n} envios para revisar", nSeason: "Avaliação do jardim publicada", nWelcome: "Bem-vindo ao jardim", assessments: "Avaliações", published: "Publicada", outcomes: "{n} resultados", noAssess: "Ainda não há avaliação publicada.", aboutLabel: "Sobre", joinRequests: "Pedidos de entrada", requested: "Solicitado", approve: "Aprovar", since: "Jardineiro desde {d}", keepPromise: "Promessas que você pode cumprir", otherWork: "Ou registre outro trabalho", actionsT: "Ações", ofN: "{a} de {b}", forPromise: "Para uma promessa", optional: "Opcional", highlights: "Destaques", daysLeft: "Faltam {n} dias", seasonShort: "Temporada", photosAsked: "fotos", loggingIn: "Registrando trabalho em {g}", keeps: "Cumpre {p}", unlink: "Desvincular", chooseOne: "Escolher", keepsPromise: "Cumpre uma promessa?", noneOpt: "Nenhuma", action: "Ação", chooseAction: "Escolha uma ação", all: "Todas", twoPhotos: "2 fotos", oneShot: "1 captura", whatDid: "O que você fez?", dueNov: "Até 30 nov", actionWs: "Dê uma sessão e mostre a sala.", actionHub: "Mantenha o hub aberto e registre o turno.", actionMentor: "Acompanhe um builder e anote o resultado.", actionPanel: "Limpe os painéis e registre a produção.", actionCompost: "Revire a pilha e fotografe.", whatLogging: "Que trabalho você está registrando?", forP: "Para {p}", forN: "Para {n} promessas", openAsk: "Pedido aberto · {p}", yourPromises: "Para suas promessas", everythingElse: "Todo o resto", workingOn: "Trabalhando em uma promessa?", yesPromise: "Sim, para uma promessa", noPromise: "Não, outro trabalho", change: "Mudar", inProgress: "Em andamento", takeUp: "Assume o pedido", promisesTitle: "Cumpra uma promessa", promisesInfo: "Para qual promessa é este trabalho?", otherWorkRow: "Outro trabalho", otherWorkSub: "Não é para uma promessa", addEvidence: "Adicionar evidência", addEvidenceSub: "Fotos ou arquivos que mostrem", actionsFor: "Ações para esta promessa", openAskPill: "Pedido aberto", evidenceOnly: "Só evidência", orEvidence: "{a} ou evidência", addPhotos: "Adicione fotos", upTo: "Até 10 · JPG, PNG, HEIC", evidenceInfo: "Mostre o trabalho desta promessa.", mediaInfoWork: "Fotos de {a}", approvedOf: "{a} de {b} aprovadas", askedBy: "Pedido por {n}", youAndN: "Você e mais {n}", youAlone: "Só você por enquanto", nTaking: "{n} participando", nobodyYet: "Ninguém ainda", openToTake: "Aberto para assumir", evidenceChip: "Evidência", logOnOwn: "Registre trabalho por conta própria", noPromiseAttached: "Sem promessa", somethingElse: "Outra coisa que fiz", p1desc: "Fotos das oficinas de sábado para o relatório do hub.", p2desc: "Um mês de provas de atividade do nó solar.", p3desc: "Entregue as chaves reserva ao responsável da noite e mostre o recibo.", gardenDuties: "Tarefas do jardim", dutyResp: "Responsabilidades do jardim", dutyAttention: "Precisa da sua atenção", dutyStewardship: "Gestão do jardim", toConfirmN: "{n} promessa a confirmar", joinReqN: "{n} pedidos de entrada", takeUpReqN: "{n} pedido para assumir", nNewSubmission: "Novo envio: {w}", nJoinFrom: "Pedido de entrada de {n}", nClaimFrom: "{n} pede para assumir {p}", cySeason: "Temporada", cyCampaign: "Campanha", cyOpen: "Aberta", cyLiveNow: "Em andamento agora", cyKeptSoFar: "Cumpridas até agora", cyNPromises: "{n} promessas", cyIntroSeason: "As promessas feitas nesta temporada contam para ela.", cyIntroCampaign: "As promessas feitas para esta campanha contam para ela.", cySeparate: "Temporadas e campanhas têm contagens separadas. Nunca são somadas.", cyShowPromises: "Ver suas promessas", cyAbout: "Sobre {name}", cyLabel: "Temporadas e campanhas", cyDetails: "Detalhes", keptOf: "{a} de {b} cumpridas", cyS1: "10 out – 31 jan", cyS1Y: "10 out 2026 – 31 jan 2027", cyC1: "1 – 30 nov", cyC1Y: "1 – 30 nov 2026" }
+  };
+  // The gardens on Arbitrum One as the production indexer listed them on 19 October 2026 (names, places,
+  // gardener and steward counts, open joining, creation date). Places are lightly tidied for display. The
+  // two gardens the app hides everywhere are left out. `test` marks the two family gardens the app keeps
+  // off the public lists; the lab shows them only to their members. Banners are the gardens' own, where
+  // the sandbox could fetch them; the rest draw the app's fallback.
+  const GARDENS = [
+    { id: "tas", name: "TAS HUB", place: "Awka, Nigeria", members: 13, stewards: 4, open: false, created: 1772207894, img: true, desc: "Powering Nigeria’s next innovators and builders with constant light and internet." },
+    { id: "ilhas", name: "Ilhas de Abundância", place: "São Paulo, Brasil", members: 4, stewards: 3, open: false, created: 1776986457, img: true, desc: "São Paulo não precisa apenas de mais árvores plantadas de forma isolada, mas de uma política viva de regeneração urbana." },
+    { id: "aiye", name: "Aiyeloja Family Garden", place: "Loma Linda", members: 9, stewards: 3, open: false, created: 1771972739, img: true, test: true, desc: "The family garden operated by the Aiyeloja family, growing flowers, vegetables and herbs on a yearly basis." },
+    { id: "ggcg", name: "Green Goods Community Garden", place: "Mama Earth", members: 50, stewards: 8, open: true, created: 1771497799, img: true, desc: "The global community garden for all Green Goods participants and the entry point for new users." },
+    { id: "vida", name: "Vida Verde", place: "El Hatillo, Venezuela", members: 4, stewards: 2, open: false, created: 1775093017, img: true, desc: "Vida Verde is a regenerative project born in Venezuela that integrates environmental education, art, community and Web3 technology." },
+    { id: "mama", name: "Mama Gardens", place: "Abuja, Nigeria", members: 2, stewards: 1, open: false, created: 1775735182, img: true, test: true, desc: "A nature and wellness first family garden." },
+    { id: "ligne", name: "La Ligne Verte", place: "Grand-Bassam, Côte d’Ivoire", members: 3, stewards: 3, open: false, created: 1775856451, img: false, desc: "L’infrastructure citoyenne de GreenPill Côte d’Ivoire pour la régénération environnementale." },
+    { id: "kenya", name: "Greenpill Kenya", place: "Kenya", members: 4, stewards: 1, open: true, created: 1773262723, img: false, desc: "Positive initiatives that enhance both individual and community sustainability." },
+    { id: "sofa", name: "GreenSofa", place: "Taiwan", members: 4, stewards: 2, open: false, created: 1772214485, img: true, desc: "One team under FAB DAO exploring collaboration with GreenPill international." },
+    { id: "rifai", name: "Rifai Sicilia", place: "Sicily", members: 4, stewards: 2, open: false, created: 1772609926, img: true, desc: "Regenerating the Mediterranean bioregion with an ecologically restorative onchain economy." },
+    { id: "grow", name: "Growecosystems", place: "Rio Claro, Brasil", members: 4, stewards: 2, open: false, created: 1772651570, img: false, desc: "Urban hub with twelve years of urban agroforestry: fruits, vegetables, bees, mushrooms and love." },
+    { id: "agro", name: "AgroforestDAO", place: "Lima Duarte, Minas Gerais", members: 3, stewards: 1, open: false, created: 1772747325, img: false, desc: "Spreading agroforestry culture through seasonal educational activities." },
+    { id: "decl", name: "DeCleanup Network Action garden", place: "Koh Phangan, Thailand", members: 7, stewards: 1, open: true, created: 1772832849, img: false, desc: "Verified waste cleanup actions from a local community." },
+    { id: "bcn", name: "ReFi Barcelona", place: "Barcelona", members: 2, stewards: 1, open: false, created: 1772831083, img: false, desc: "A hub where ideas meet collective action." },
+    { id: "london", name: "Greenpill London", place: "London, Ontario, Canada", members: 1, stewards: 1, open: false, created: 1772214022, img: false, desc: "Making neighbour-to-neighbour care and solidarity visible." },
+    { id: "muiz", name: "Muizenberg Community Garden", place: "Muizenberg, Cape Town", members: 1, stewards: 1, open: false, created: 1772552596, img: false, desc: "Converting organic waste into compost to plant and harvest food for community use." }
+  ];
+  const PENDING_ID = "vida";
+
+  // Picks are the lab's levers; nav is where the taps have taken the phones. Both are shared by every frame.
+  const DEFAULT_PICKS = { show: "both", fit: "fit", lang: "en", theme: "dark", membership: "several", role: "steward", hasDeposit: "no", pendingRequest: "yes", offline: "no", screen: "home", composition: "journal", activityRows: "3", continueCap: "3", header: "sticky", strip: "carousel", switcherStyle: "sheet", aboutPlacement: "row", firstRun: "chooser", sections: "sheets", notif: "bell", startStep: "promises", rows: "cards", workFor: "hidden", asks: "yes", shape: "decided", gdomains: "many", promiseRows: "compact", otherLabel: "own", domainFilter: "chips", duties: "section", dutyName: "attention", longName: "no", wallet: "header", aboutBanner: "yes", cycles: "rail" };
+  const CONTROLS = [
+    { group: "Stage", key: "show", label: "Phones", opts: [["both", "390 + 360"], ["390", "390 only"], ["360", "360 only"]], hint: "Which phone widths the stage draws. 390×844 is an iPhone; 360×800 is the common Android size." },
+    { group: "Stage", key: "fit", label: "Size", opts: [["fit", "Fit height"], ["full", "100%"]], hint: "Fit scales both phones to the window height; 100% draws them at real pixel size." },
+    { group: "Content", key: "lang", label: "Language", opts: [["en", "English"], ["es", "Español"], ["pt", "Português"]], hint: "Every string in the phones, including the new Home copy, in the three app languages." },
+    { group: "Content", key: "theme", label: "Theme", opts: [["light", "Light"], ["dark", "Dark"]], hint: "The app's light palette on the linen canvas, and the dark ladder with the card one step above the canvas." },
+    { group: "Scenario", key: "membership", label: "Gardens", opts: [["none", "None"], ["one", "One"], ["several-first", "Several, first run"], ["several", "Several, remembered"]], hint: "No garden shows discovery; one opens itself; several on first run opens the chooser once; several remembered opens the last garden used. Several means TAS HUB, Ilhas de Abundância and the Aiyeloja Family Garden." },
+    { group: "Scenario", key: "role", label: "Role in the active garden", opts: [["gardener", "Gardener"], ["steward", "Steward"]], hint: "A steward gets the duties section on Home, join requests first under Gardeners, Endowment in About, To confirm in Promises and per-event rows in the bell. The evaluator left the lab on 20 October: the app has no assessment flow for the phone." },
+    { group: "Scenario", key: "longName", label: "Active garden", opts: [["no", "TAS HUB"], ["yes", "Green Goods Community Garden"]], hint: "Which of your gardens is active, to see how a long name truncates in the chip beside the launchers." },
+    { group: "Scenario", key: "hasDeposit", label: "Endowment deposit", opts: [["no", "No"], ["yes", "Yes"]], hint: "A depositor who is not a steward still reaches Endowment from About with their deposit named." },
+    { group: "Scenario", key: "pendingRequest", label: "Pending request", opts: [["yes", "Yes"], ["no", "No"]], hint: "A request to join Vida Verde that a steward has not answered yet. It shows on the no-garden Home, in Explore and on that garden's page." },
+    { group: "Scenario", key: "offline", label: "Connection", opts: [["no", "Online"], ["yes", "Offline"]], hint: "Offline lays the shell's strip over the header's top padding, as the app does; nothing below it moves. Rows say what is saved on this phone." },
+    { group: "Scenario", key: "screen", label: "Start screen", opts: [["home", "Home"], ["switcher", "Switcher"], ["explore", "Explore"], ["garden", "A garden"], ["submit", "Submit Work"], ["yourWork", "Your Work"], ["promises", "Promises"], ["notifications", "Notifications"], ["work", "Work"], ["insights", "Insights"], ["gardeners", "Gardeners"]], hint: "Jump the phones to a screen or sheet. Taps inside the phones move on from there; pick again to come back. A garden is Vida Verde visited from Explore. Your Work and its badge count the active garden only (decided 19 October)." },
+    { group: "Home", key: "composition", label: "Composition", opts: [["journal", "Compact journal"], ["featured", "Featured activity"], ["gardenPage", "Garden page"]], hint: "Journal: rows in the confirmed order. Featured: one big update first. Garden page: today's garden page promoted to Home with the chip in place of Back." },
+    { group: "Home", key: "activityRows", label: "Activity rows", opts: [["1", "1"], ["2", "2"], ["3", "3"]], hint: "How many recent updates Home shows before Continue." },
+    { group: "Home", key: "continueCap", label: "Continue rows", opts: [["2", "2"], ["3", "3"]], hint: "How many unfinished items Home shows before Open Your Work." },
+    { group: "Home", key: "duties", label: "Steward duties", opts: [["section", "Section first"], ["continue", "In Continue"]], hint: "Decided on 20 October: a duties section above Recent Activity for stewards, only when something waits. Four kinds: work to review (opens the Work sheet on Pending), join requests (Gardeners, requests first), take-up requests on approval-gated asks (the promise's claim panel in the app), promises to confirm (Promises on To confirm). In Continue is the earlier draft, kept for comparison. Set the role to Steward to see it." },
+    { group: "Home", key: "dutyName", label: "Duties title", opts: [["duties", "Garden Duties"], ["resp", "Garden Responsibilities"], ["attention", "Needs Your Attention"], ["stewardship", "Stewardship"]], hint: "Picked on 20 October: Needs Your Attention. The other three names stay for comparison, in the three app languages. Set the role to Steward to see the section." },
+    { group: "Home", key: "header", label: "Header", opts: [["sticky", "Sticky"], ["scroll", "Scrolls away"]], hint: "Decided on 19 October: sticky. The chip and the launchers stay at the top while the journal scrolls, with a hairline once scrolled; scrolls away is today's behaviour on Home, kept for comparison." },
+    { group: "Home", key: "strip", label: "Top strip", opts: [["none", "None"], ["carousel", "Highlights carousel"]], hint: "Picked on 20 October, reversing the 19 October decision of no strip: one swipeable row of equal 280×112 cards above Recent Activity, with the next card peeking. Its first cards are the garden's open season and campaigns, then a featured update and the open ask or a steward duty. None keeps Home as rows, with the open cycles as one line each under Take Part instead." },
+    { group: "Home", key: "cycles", label: "Seasons and campaigns", opts: [["rail", "Rail in Promises"], ["chips", "Chips in Promises"], ["none", "Not shown"]], hint: "Decided on 21 October: the rail. Where the garden's open season and campaigns (the commitment pool's cycles) show. Rail: the pool tab's cycle cards at the top of the Promises sheet, each filtering the list and opening its details from the ⓘ; it reuses the shipped rail and details sheet (decided). Chips: capsule chips with a details line for the chosen cycle. Not shown: the lab as drawn until now. On Home the open cycles lead the Highlights carousel, or stand as one line each under Take Part without the carousel; each opens the details sheet, whose Show Its Promises opens Promises filtered to it." },
+    { group: "Home", key: "rows", label: "Rows", opts: [["cards", "Cards"], ["grouped", "Grouped"], ["open", "Open"], ["divided", "Hairlines"]], hint: "Picked on 20 October: the locked item cards (F7, 16px rows with a hairline and a faint shadow). The grouped surface, open rows and hairlines alone stay for comparison." },
+    { group: "Variations", key: "switcherStyle", label: "Switcher", opts: [["sheet", "Half sheet"], ["popover", "Menu under chip"]], hint: "The app's sheet at the half tier with the one shared header, or the cockpit's popover anchored to the chip." },
+    { group: "Variations", key: "aboutPlacement", label: "About and manage", opts: [["row", "Row at the end"], ["menu", "Inside the switcher"], ["banner", "Icons in the header"]], hint: "Where Insights, Gardeners, Share, Endowment and Governance live: one About row after Take part, inside the switcher below the gardens, or today's icon stack beside the launchers." },
+    { group: "Variations", key: "firstRun", label: "First run, several", opts: [["chooser", "Chooser opens"], ["prompt", "Prompt only"]], hint: "With several gardens and nothing remembered: the switcher opens by itself once, or Home shows a prompt card and waits." },
+    { group: "Variations", key: "sections", label: "Garden sections", opts: [["sheets", "Sheets over Home"], ["page", "Garden page"]], hint: "Decided on 19 October: sheets. See all, Insights and Gardeners open a tall sheet over Home with that section's content, the way the Promises launcher already works; today's garden page with its tabs stays for comparison. Gardens you visit keep their page either way." },
+    { group: "Variations", key: "wallet", label: "Wallet launcher", opts: [["header", "In the header"], ["profile", "In Profile"]], hint: "Picked on 20 October: in the header. The wallet is account-wide, not garden-scoped; moving its launcher to Profile would leave three icons and about 48px more for the garden's name in the chip." },
+    { group: "Variations", key: "aboutBanner", label: "Banner in Insights", opts: [["no", "No"], ["yes", "Yes"]], hint: "Picked on 20 October: yes. The Insights sheet opens with the garden's banner above its description, the one place from Home to see the cover image in full." },
+    { group: "Variations", key: "notif", label: "Notifications", opts: [["bell", "Bell in the header"], ["none", "None"]], hint: "Decided on 19 October, placed on 20 October: the bell sits at the far right of the cluster; it counts what is new for you in this garden and opens a sheet of those events." },
+    { group: "Submit Work", key: "shape", label: "Shape", opts: [["decided", "Decided, 20 Oct"], ["today", "Today\'s order"]], hint: "Decided on 20 October: no Start button, each tap advances. With promises to keep, the step lists them with Other work at the end; a promise with actions opens its own screen (Add evidence first when it takes evidence, then its actions, one per row up to three and tiles past that); an evidence-only promise opens the evidence flow at once; with nothing to keep, the actions as two-up tiles under dynamic domain tabs with All. Today\'s order stays for comparison." },
+    { group: "Submit Work", key: "asks", label: "Your promises", opts: [["yes", "Some"], ["no", "None"]], hint: "Whether this garden has promises you could work on: one of yours needing an action, one of yours taking an action or evidence, and one open evidence-only ask you could take up. None is the plain log-work state." },
+    { group: "Submit Work", key: "gdomains", label: "Garden domains", opts: [["many", "Three"], ["one", "One"]], hint: "The domains this garden supports decide the filter: three gives All, Solar, Education and Waste; one gives no filter at all." },
+    { group: "Submit Work", key: "domainFilter", label: "Domain filter", opts: [["chips", "Chips"], ["tabs", "Tabs"]], hint: "Picked on 20 October: the capsule chips the cockpit uses for inline filters. The sheets' equal-width tabs stay for comparison." },
+    { group: "Submit Work", key: "promiseRows", label: "Promise rows", opts: [["compact", "Compact card"], ["card", "Full card"], ["prog", "Row with progress"], ["row", "Item row"]], hint: "Picked on 20 October: the compact card, with status, progress, due date and what it needs; more than two needs fold into a +N mark, and the promise's own page lists them all. The others stay for comparison: the plain item row, the row with a progress line, and the full card that adds the description and who asked." },
+    { group: "Submit Work", key: "otherLabel", label: "Free-work row", opts: [["own", "Log work on its own"], ["other", "Other work"], ["else", "Something else I did"]], hint: "Picked on 20 October: Log Work on Its Own. The other two wordings stay for comparison." },
+    { group: "Submit Work", key: "workFor", label: "Work for", opts: [["card", "Card"], ["line", "Line"], ["hidden", "Hidden"]], hint: "Picked on 20 October: hidden. Submit Work does not name the garden; the chip on Home carries the context. The card and the line stay for comparison, and the line is what the flow should show whenever the submission garden differs from the active one, whether a resumed draft, a promise link or navigation state selected it." }
+  ];
+  const PRESETS = [
+    { name: "Decided picks, 20 Oct", picks: { lang: "en", theme: "dark", membership: "several", role: "steward", longName: "no", hasDeposit: "no", pendingRequest: "yes", offline: "no", screen: "home", composition: "journal", activityRows: "3", continueCap: "3", duties: "section", dutyName: "attention", header: "sticky", strip: "carousel", rows: "cards", switcherStyle: "sheet", aboutPlacement: "row", firstRun: "chooser", sections: "sheets", wallet: "header", aboutBanner: "yes", notif: "bell", shape: "decided", asks: "yes", gdomains: "many", domainFilter: "chips", promiseRows: "compact", otherLabel: "own", workFor: "hidden", cycles: "rail" } },
+    { name: "Steward, first run", picks: { membership: "several-first", role: "steward", screen: "home", composition: "journal" } },
+    { name: "No garden yet", picks: { membership: "none", role: "gardener", pendingRequest: "yes", screen: "home" } },
+    { name: "Gardener, offline", picks: { membership: "one", role: "gardener", offline: "yes", screen: "home" } }
+  ];
+
+  let picks = Object.assign({}, DEFAULT_PICKS);
+  let nav = freshNav();
+  try { const saved = JSON.parse(localStorage.getItem(STORE_KEY) || "null"); if (saved && saved.picks) picks = Object.assign({}, DEFAULT_PICKS, saved.picks); } catch (e) { /* storage may be unavailable */ }
+
+  function freshNav() { return { screen: null, sheet: null, activeId: undefined, dismissed: false, visitingId: PENDING_ID, vgTab: "work", gpTab: "work", ywTab: "pending", prTab: "live", wkTab: "all", domain: "all", promiseSel: null, actionSel: null, sub: null, kind: "work", cycle: null, cycleSel: null }; }
+  function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify({ picks })); } catch (e) { /* ignore */ } }
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  const fmt = (str, vals) => String(str).replace(/\{(\w+)\}/g, (m, k) => (vals && vals[k] !== undefined ? vals[k] : m));
+  const icon = (id, size) => '<svg class="i" width="' + (size || 16) + '" height="' + (size || 16) + '" aria-hidden="true"><use href="#' + id + '"/></svg>';
+  const art = (scene) => '<svg class="art" aria-hidden="true"><use href="#' + scene + '"/></svg>';
+  // A garden's own banner, or the app's fallback tile when it has none.
+  const photo = (g) => g && g.img ? '<img class="art" src="gardens/' + g.id + '.jpg" alt="" loading="lazy">' : '<span class="fb">' + icon("ic-seedling", 40) + "</span>";
+  const avatar = (g, size) => g && g.img ? '<img class="avimg" src="gardens/' + g.id + '.jpg" alt="">' : icon("ic-seedling", size || 18);
+  const LOCALE = { en: "en-US", es: "es-ES", pt: "pt-BR" };
+  const dateOf = (unix, lang) => new Intl.DateTimeFormat(LOCALE[lang] || "en-US", { year: "numeric", month: "numeric", day: "numeric" }).format(new Date(unix * 1000));
+  const monthOf = (unix, lang) => new Intl.DateTimeFormat(LOCALE[lang] || "en-US", { year: "numeric", month: "short" }).format(new Date(unix * 1000));
+
+  function model() {
+    const lang = T[picks.lang] ? picks.lang : "en";
+    const t = T[lang];
+    const membership = picks.membership;
+    const role = picks.role;
+    const isSteward = role === "steward";
+    const isEvaluator = role === "evaluator";
+    const offline = picks.offline === "yes";
+    const pendingRequest = picks.pendingRequest === "yes";
+    const hasDeposit = picks.hasDeposit === "yes";
+    const byId = (id) => GARDENS.find((g) => g.id === id) || null;
+    const SHEETS = ["switcher", "yourWork", "promises", "notifications", "work", "insights", "gardeners"];
+
+    let derivedScreen = "home"; let derivedSheet = null;
+    if (SHEETS.includes(picks.screen)) derivedSheet = picks.screen; else derivedScreen = picks.screen;
+    const screen = nav.screen !== null ? nav.screen : derivedScreen;
+    const sheetChosen = nav.sheet !== null ? nav.sheet : derivedSheet;
+
+    const homeId = picks.longName === "yes" ? "ggcg" : "tas";
+    const myIds = membership === "none" ? [] : membership === "one" ? [homeId] : [homeId, "ilhas", "aiye"];
+    const roleOf = (id) => (id === homeId ? role : "gardener");
+    let activeId;
+    if (nav.activeId !== undefined) activeId = nav.activeId;
+    else if (membership === "one" || membership === "several") activeId = homeId;
+    else activeId = null;
+    if (activeId && !myIds.includes(activeId)) activeId = null;
+    const active = activeId ? byId(activeId) : null;
+    const isNone = membership === "none";
+    const isFirstRun = membership === "several-first" && !active;
+    const sheet = sheetChosen || ((isFirstRun && picks.firstRun === "chooser" && !nav.dismissed && screen === "home") ? "switcher" : null);
+    const several = myIds.length > 1;
+    const pendingGarden = byId(PENDING_ID);
+
+    const pillOf = (status) => ({
+      pending: { pill: t.pending, pillClass: "warn", edgeClass: "warn" },
+      approved: { pill: t.approved, pillClass: "ok", edgeClass: "ok" },
+      rejected: { pill: t.rejected, pillClass: "err", edgeClass: "err" },
+      inReview: { pill: t.inReview, pillClass: "neu", edgeClass: "" },
+      toUpload: { pill: t.toUpload, pillClass: "info", edgeClass: "info" },
+      draft: { pill: t.draft, pillClass: "warn", edgeClass: "" },
+      toReview: { pill: t.toReview, pillClass: "info", edgeClass: "info" },
+      offered: { pill: t.offered, pillClass: "ok", edgeClass: "ok" },
+      asked: { pill: t.asked, pillClass: "info", edgeClass: "info" },
+      newN: { pill: t.newTag, pillClass: "info", edgeClass: "info" },
+      seen: { pill: t.seenTag, pillClass: "neu", edgeClass: "" },
+      published: { pill: t.published, pillClass: "ok", edgeClass: "" },
+      requested: { pill: t.requested, pillClass: "warn", edgeClass: "warn" }
+    })[status];
+
+    const activityAll = [
+      { title: "Workshop Delivered", detail: "abhitant.eth · " + t.a5h + " · " + t.onePhoto, status: "pending", scene: "sc-people" },
+      { title: "Hub Service Session", detail: "0x6855…Ac02 · " + t.a2d + " · " + t.fourPhotos, status: "approved", scene: "sc-solar" },
+      { title: "Node Operation Log", detail: "afo.eth · " + t.a1w + " · " + t.onePhoto, status: "rejected", scene: "sc-seedlings" },
+      { title: "Energy Audit", detail: "0xaC35…65B6 · " + t.a1w + " · " + t.fourPhotos, status: "approved", scene: "sc-compost" },
+      { title: "Hub Service Session", detail: "abhitant.eth · " + t.a1w + " · " + t.onePhoto, status: "approved", scene: "sc-forest" },
+      { title: "Node Operation Log", detail: "0x6855…Ac02 · " + t.a1w + " · " + t.onePhoto, status: "approved", scene: "sc-solar" }
+    ].map((r) => Object.assign({ act: "openWork" }, r, pillOf(r.status)));
+    const activity = activityAll.slice(0, parseInt(picks.activityRows, 10) || 3);
+
+    const duties = [];
+    // The four queues a steward can act on from the phone, each row opening its exact queue.
+    if (isSteward) duties.push({ title: fmt(t.needsReview, { n: 3 }), detail: "Workshop Delivered, Hub Service Session · " + t.a2d, status: "toReview", ic: "ic-shield", act: "dutyReview" });
+    if (isSteward) duties.push({ title: fmt(t.joinReqN, { n: 2 }), detail: "0x4B2a…91cC, 0xE0d1…3fA8 · " + t.a3d, status: "toReview", ic: "ic-users", act: "gardeners" });
+    if (isSteward) duties.push({ title: fmt(t.takeUpReqN, { n: 1 }), detail: "Outage log · 0x9f1D…77e0 · " + t.a2d, status: "toReview", ic: "ic-ask", act: "dutyClaims" });
+    if (isSteward) duties.push({ title: fmt(t.toConfirmN, { n: 1 }), detail: "Solar install help · " + t.a1w, status: "toReview", ic: "ic-promise", act: "dutyConfirm" });
+    const dutyRows = duties.map((r) => Object.assign({}, r, pillOf(r.status)));
+    const continueRows = (picks.duties === "continue" ? duties.slice(0, isSteward ? 1 : duties.length) : []).concat([
+      { title: "Compost Turn", detail: offline ? t.savedPhone : t.savedToday, status: "toUpload", ic: "ic-upload", act: "yourWork" },
+      { title: "Mulching", detail: t.stepOf, status: "draft", ic: "ic-draft", act: "submit" }
+    ]).slice(0, parseInt(picks.continueCap, 10) || 3).map((r) => Object.assign({}, r, pillOf(r.status)));
+
+    const takePart = [
+      { title: "Workshop photos", detail: t.dueJan + " · " + fmt(t.ofN, { a: 0, b: 12 }), status: "asked", ic: "ic-ask" },
+      { title: "Solar install help", detail: "afo.eth · " + t.twoTaken, status: "offered", ic: "ic-promise" }
+    ].map((r) => Object.assign({ act: "promises" }, r, pillOf(r.status)));
+
+    // The garden's actions, filtered to the domains it supports, and the promises the step can serve: one of
+    // yours needing an action, one of yours taking an action or evidence, one open evidence-only ask.
+    const oneDomain = picks.gdomains === "one";
+    const gardenDomains = oneDomain ? [["edu", t.dEdu]] : [["solar", t.dSolar], ["edu", t.dEdu], ["waste", t.dWaste]];
+    const domainLabel = { solar: t.dSolar, edu: t.dEdu, waste: t.dWaste, agro: t.dAgro };
+    const actions = [
+      { id: "a1", title: "Workshop Delivered", desc: t.actionWs, scene: "sc-people", domain: "edu", asksFor: t.twoPhotos },
+      { id: "a2", title: "Node Operation Log", desc: t.action1d, scene: "sc-solar", domain: "solar", asksFor: t.oneShot },
+      { id: "a3", title: t.action2, desc: t.action2d, scene: "sc-solar", domain: "solar", asksFor: t.fourPhotos },
+      { id: "a4", title: "Panel Cleaning", desc: t.actionPanel, scene: "sc-solar", domain: "solar", asksFor: t.twoPhotos },
+      { id: "a5", title: "Hub Service Session", desc: t.actionHub, scene: "sc-people", domain: "edu", asksFor: t.onePhoto },
+      { id: "a6", title: "Mentoring Session", desc: t.actionMentor, scene: "sc-seedlings", domain: "edu", asksFor: t.onePhoto },
+      { id: "a7", title: "Compost Turn", desc: t.actionCompost, scene: "sc-compost", domain: "waste", asksFor: t.twoPhotos }
+    ].filter((a) => gardenDomains.some((d) => d[0] === a.domain)).map((a) => Object.assign({}, a, { domainLabel: domainLabel[a.domain] }));
+    const actionTitle = (id) => (actions.find((a) => a.id === id) || {}).title || "";
+    const prog = (a, b) => fmt(t.ofN, { a, b });
+    const asks = picks.asks === "no" ? [] : [
+      { id: "p1", title: "Workshop photos", mine: true, kind: "actions", actions: ["a1"], done: 3, total: 12, due: t.dueJan, desc: t.p1desc, askedBy: "TAS HUB", takers: 2 },
+      { id: "p2", title: "Node uptime log", mine: true, kind: "both", actions: oneDomain ? ["a5", "a6"] : ["a2", "a3", "a4"], done: 3, total: 8, due: t.dueDec, desc: t.p2desc, askedBy: "abhitant.eth", takers: 0 },
+      { id: "p3", title: "Hub keys handover", mine: false, kind: "evidence", actions: [], done: 0, total: 0, due: t.dueNov, desc: t.p3desc, askedBy: "afo.eth", takers: 0 }
+    ].map((p) => {
+      const names = p.actions.map(actionTitle).join(", ");
+      const what = p.kind === "evidence" ? t.evidenceOnly : p.kind === "both" ? fmt(t.orEvidence, { a: names }) : names;
+      const progress = p.total ? prog(p.done, p.total) : "";
+      const needs = p.actions.map(actionTitle).concat(p.kind !== "actions" ? [t.evidenceChip] : []);
+      const people = p.mine ? (p.takers ? fmt(t.youAndN, { n: p.takers }) : t.youAlone) : (p.takers ? fmt(t.nTaking, { n: p.takers }) : t.nobodyYet);
+      return Object.assign({}, p, { progress, needs, people, ic: p.mine ? "ic-promise" : "ic-ask", pill: p.mine ? t.inProgress : t.openAskPill, pillClass: p.mine ? "ok" : "warn", edgeClass: p.mine ? "ok" : "warn", detail: [what, progress, p.due].filter(Boolean).join(" · ") });
+    });
+
+    const aboutRows = [
+      { label: t.insights, value: "", act: "insights" },
+      { label: t.gardeners, value: active ? String(active.members) : "", count: isSteward ? 2 : 0, act: "gardeners" },
+      { label: t.share, value: "", act: "noop" }
+    ];
+    if (isSteward || hasDeposit) aboutRows.push({ label: t.endowment, value: hasDeposit ? t.yourDeposit : "", act: "noop" });
+
+    const roleLabel = (r) => (r === "steward" ? t.steward : r === "evaluator" ? t.evaluator : t.gardener);
+    const myGardens = myIds.map((id) => Object.assign({}, byId(id), { roleLabel: roleLabel(roleOf(id)), isActive: activeId === id }));
+
+    // Explore: every garden the app lists, the member's own first; the two family test gardens only for their members.
+    const exploreList = GARDENS.filter((g) => !g.test || myIds.includes(g.id)).map((g) => {
+      const mine = myIds.includes(g.id);
+      const pend = g.id === PENDING_ID && pendingRequest && !mine;
+      const tag = mine ? t.member : pend ? t.awaiting : g.open ? t.open : "";
+      return Object.assign({}, g, { meta: fmt(t.members, { n: g.members }) + " · " + g.place, tag, mine });
+    }).sort((a, b) => (b.mine ? 1 : 0) - (a.mine ? 1 : 0));
+
+    const vg = byId(nav.visitingId) || pendingGarden;
+    const vgMine = myIds.includes(vg.id);
+    const vgPending = vg.id === PENDING_ID && pendingRequest && !vgMine;
+    const tabDefs = [["work", t.work], ["pool", t.promises], ["insights", t.insights], ["gardeners", t.gardeners]];
+
+    const ywBase = [];
+    if (isSteward) ywBase.push({ title: "Hub Service Session", detail: "0xaC35…65B6 · " + t.a3d, status: "toReview", scene: "sc-solar" });
+    ywBase.push({ title: "Compost Turn", detail: offline ? t.savedPhone : t.savedToday, status: "toUpload", scene: "sc-compost" });
+    ywBase.push({ title: "Mulching", detail: t.stepOf, status: "draft", ic: "ic-draft" });
+    ywBase.push({ title: "Path Edging", detail: t.waitingReview, status: "inReview", scene: "sc-seedlings" });
+    const ywRows = ywBase.map((r) => Object.assign({}, r, pillOf(r.status)));
+    const ywDone = [
+      { title: "Hub Service Session", detail: "0x6855…Ac02 · " + t.a2d, status: "approved", scene: "sc-solar" },
+      { title: "Node Operation Log", detail: "afo.eth · " + t.a1w, status: "rejected", scene: "sc-seedlings" }
+    ].map((r) => Object.assign({}, r, pillOf(r.status)));
+
+    const prRows = [
+      { title: "Workshop photos", detail: t.dueJan + " · " + t.byYou, status: "asked", ic: "ic-ask", cycle: "s1" },
+      { title: "Solar install help", detail: "afo.eth · " + t.twoTaken, status: "offered", ic: "ic-promise", cycle: "c1" }
+    ].map((r) => Object.assign({}, r, pillOf(r.status)));
+    // The pool's open cycles: one Season at most, Campaigns may overlap (CyclesLib). Names are the stewards' own and are not translated.
+    const cycles = picks.cycles === "none" ? [] : [
+      { id: "s1", kind: "season", name: "Season One", state: t.cyOpen, dates: t.cyS1, datesY: t.cyS1Y, kept: 0, made: 12, live: 5, days: 104 },
+      { id: "c1", kind: "campaign", name: "Solar Node Sprint", state: t.cyOpen, dates: t.cyC1, datesY: t.cyC1Y, kept: 1, made: 4, live: 3, days: 41 }
+    ];
+    const prTabs = [["live", t.live, 2], ["history", t.history, 0]].concat(isSteward ? [["toConfirm", t.toConfirm, 1]] : []);
+
+    // What is new for you in this garden: the bell's sheet. Unread first; the badge counts them.
+    const notifs = [];
+    // The bell carries events, one row each; the duties section carries the standing counts.
+    if (isSteward) notifs.push({ title: fmt(t.nNewSubmission, { w: "Workshop Delivered" }), detail: "abhitant.eth · " + t.a5h, status: "newN", ic: "ic-shield", act: "openWork" });
+    if (isSteward) notifs.push({ title: fmt(t.nJoinFrom, { n: "0x4B2a…91cC" }), detail: t.a2d, status: "newN", ic: "ic-users", act: "gardeners" });
+    if (isSteward) notifs.push({ title: fmt(t.nClaimFrom, { n: "0x9f1D…77e0", p: "Outage log" }), detail: t.a2d, status: "newN", ic: "ic-ask", act: "dutyClaims" });
+    notifs.push({ title: t.nApproved, detail: "Hub Service Session · " + t.a2d, status: "newN", ic: "ic-check", act: "openWork" });
+    notifs.push({ title: t.nTaken, detail: "Solar install help · " + t.a3d, status: isSteward ? "seen" : "newN", ic: "ic-promise", act: "promises" });
+    notifs.push({ title: t.nFeedback, detail: "Node Operation Log · " + t.a1w, status: "seen", ic: "ic-msg", act: "openWork" });
+    notifs.push({ title: t.nSeason, detail: (active ? active.name : "") + " · " + t.a1w, status: "seen", ic: "ic-clip", act: "insights" });
+    const notifRows = notifs.map((r) => Object.assign({}, r, pillOf(r.status)));
+    const unread = notifRows.filter((r) => r.status === "newN").length;
+
+    const people = [
+      { name: "afo.eth", role: "steward", since: 1772207894 },
+      { name: "abhitant.eth", role: "steward", since: 1772207894 },
+      { name: "0x6855…Ac02", role: "gardener", since: 1773000000 },
+      { name: "0xaC35…65B6", role: "gardener", since: 1774000000 },
+      { name: "0x9f1D…77e0", role: "gardener", since: 1775000000 }
+    ];
+    const joinRequests = isSteward ? [
+      { name: "0x4B2a…91cC", detail: t.a2d, status: "requested" },
+      { name: "0xE0d1…3fA8", detail: t.a1w, status: "requested" }
+    ].map((r) => Object.assign({}, r, pillOf(r.status))) : [];
+
+    const scopeName = active ? active.name : t.home;
+    return {
+      t, lang, theme: picks.theme === "dark" ? "dark" : "light", offline, pendingRequest, hasDeposit, isSteward, isEvaluator,
+      screen, sheet, isNone, isFirstRun, several, active, activeId, myGardens, exploreList, pendingGarden,
+      composition: picks.composition, aboutPlacement: picks.aboutPlacement, switcherStyle: picks.switcherStyle,
+      sections: picks.sections, notif: picks.notif, stickyHeader: picks.header === "sticky", strip: picks.strip, startStep: picks.startStep, rows: picks.rows, workFor: picks.workFor, shape: picks.shape, gardenDomains, promiseRows: picks.promiseRows, otherLabel: picks.otherLabel, domainFilter: picks.domainFilter,
+      activity, activityAll, continueRows, dutyRows: picks.duties === "section" ? dutyRows : [], takePart, aboutRows, asks, actions,
+      vg, vgMine, vgPending, tabDefs,
+      ywRows, ywDone, prRows, prTabs, notifRows, unread, people, joinRequests, cycles, cyclesMode: picks.cycles,
+      chipLabel: isNone ? t.noneChip : active ? active.name : t.chooseGarden,
+      chipCaret: !isNone && (several || isFirstRun),
+      ywBadge: 2 + (isSteward ? 1 : 0), prBadge: 2,
+      scopeName, homeId, dutyName: picks.dutyName, aboutBanner: picks.aboutBanner === "yes", walletInHeader: picks.wallet === "header",
+      showBar: (screen === "home" || screen === "explore") && !sheet,
+      showChoosePrompt: screen === "home" && isFirstRun && !sheet
+    };
+  }
+
+  // ---------- phone markup ----------
+  function rowHTML(r, actAttr, extra) {
+    const tile = r.scene ? '<span class="tile">' + art(r.scene) + "</span>" : r.avatarOf ? '<span class="tile icontile" style="background: var(--chip-av); color: var(--chip-av-ink)">' + icon("ic-user", 28) + "</span>" : '<span class="tile icontile">' + icon(r.ic || "ic-draft", 28) + "</span>";
+    const slot = r.slotHTML !== undefined ? r.slotHTML : '<span class="slot">' + icon("ic-chev", 18) + "</span>";
+    const tag = r.slotButton ? "div" : "button";
+    const open = r.slotButton ? '<div role="button" tabindex="0" class="row' + (extra || "") + '" ' + (actAttr || "") + ">" : '<button type="button" class="row' + (extra || "") + '" ' + (actAttr || "") + ">";
+    return open + '<span class="edge ' + (r.edgeClass || "") + '"></span>' + tile +
+      '<span class="body"><span class="title">' + esc(r.title) + '</span><span class="pill ' + r.pillClass + '">' + esc(r.pill) + '</span><span class="detail">' + esc(r.detail) + "</span></span>" + slot + "</" + tag + ">";
+  }
+  function hitHTML(ic, act, label, badge) {
+    return '<button type="button" class="hit" ' + (act ? 'data-act="' + act + '"' : "") + ' aria-label="' + esc(label) + '"><span class="ic">' + icon(ic, 16) + (badge ? '<span class="badge">' + badge + "</span>" : "") + "</span></button>";
+  }
+  function chipHTML(m) {
+    return '<button type="button" class="chip" data-act="switcher" aria-label="' + esc(m.t.chooseGarden) + '"><span class="av">' + avatar(m.active, 14) + '</span><span class="lbl">' + esc(m.chipLabel) + "</span>" + (m.chipCaret ? '<span class="caret">' + icon("ic-caret", 12) + "</span>" : "") + "</button>";
+  }
+  function launchersHTML(m) {
+    // The bell sits at the far right of the cluster (decided 20 October).
+    const bell = m.notif === "bell" && !m.isNone ? hitHTML("ic-bell", "notifications", m.t.notifications, m.unread) : "";
+    return '<div class="launchers">' + (m.walletInHeader ? hitHTML("ic-wallet", "", m.t.wallet) : "") + hitHTML("ic-promise", "promises", m.t.promises, m.isNone ? 0 : m.prBadge) + hitHTML("ic-work", "yourWork", m.t.yourWork, m.isNone ? 0 : m.ywBadge) + bell + "</div>";
+  }
+  function headerHTML(m, lead) {
+    return '<div class="hdr' + (m.stickyHeader ? " sticky" : "") + '"><div class="lead">' + lead + "</div>" + launchersHTML(m) + "</div>";
+  }
+  function gardenActionsHTML(m) {
+    if (m.aboutPlacement !== "banner" || !m.active) return "";
+    return '<div class="gactions">' + ((m.isSteward || m.hasDeposit) ? hitHTML("ic-bank", "noop", m.t.endowment) : "") + hitHTML("ic-share", "noop", m.t.share) + "</div>";
+  }
+  function tabsHTML(defs, current, actPrefix, extraClass) {
+    return '<div class="tabs ' + (extraClass || "") + '">' + defs.map((d) => '<button type="button" class="' + (d[0] === current ? "active" : "") + '" data-act="' + actPrefix + ":" + d[0] + '"><span class="tl">' + esc(d[1]) + "</span>" + (d[2] ? '<span class="cnt">' + d[2] + "</span>" : "") + "</button>").join("") + "</div>";
+  }
+  function metaHTML(m, g) {
+    return '<div class="metacol"><div class="meta"><span style="color: var(--accent-on); display: grid">' + icon("ic-pin", 16) + "</span><span>" + esc(g.place) + '</span></div><div class="meta"><span style="color: var(--accent-on); display: grid">' + icon("ic-cal", 16) + "</span><span>" + esc(fmt(m.t.founded, { d: dateOf(g.created, m.lang) })) + "</span></div></div>";
+  }
+  function seasonHTML(m, padded) {
+    const t = m.t;
+    const c = m.cycles[0];
+    const style = padded ? "" : ' style="margin: 0; width: 100%"';
+    if (!c) return '<div class="card season"' + style + '><div class="sl"><b>' + esc(t.season) + "</b><span>" + esc(t.kept) + '</span></div><div class="ring"><span>0/12</span></div></div>';
+    // The open season in Insights, as the cycle card it is: it opens the details sheet.
+    return '<button type="button" class="card season"' + (padded ? ' style="width: calc(100% - 32px)"' : ' style="margin: 0; width: 100%"') + ' data-act="cycle:' + c.id + '"><div class="sl"><b>' + esc(cycleKind(m, c) + " · " + c.state + " · " + c.dates) + "</b><span>" + esc(c.name + " · " + fmt(t.keptOf, { a: c.kept, b: c.made })) + '</span></div><div class="ring"><span>' + c.kept + "/" + c.made + "</span></div></button>";
+  }
+  function cycleKind(m, c) { return c.kind === "campaign" ? m.t.cyCampaign : m.t.cySeason; }
+  function cycleGlyph(c, size) { return icon(c.kind === "campaign" ? "ic-flag" : "ic-sun", size); }
+  function cycleCardHTML(m, c) {
+    const t = m.t;
+    return '<button type="button" class="hcard" data-act="cycle:' + c.id + '"><span class="hb"><span class="eyebrow kind-\' + c.kind + \'">' + esc(cycleKind(m, c) + " · " + c.state) + '</span><span class="big">' + esc(c.name) + '</span><span class="detail">' + esc(fmt(t.keptOf, { a: c.kept, b: c.made }) + " · " + fmt(t.daysLeft, { n: c.days })) + "</span></span></button>";
+  }
+  // Under Take Part: the open cycles as one line each when no carousel carries them; the old static line without cycles.
+  function takePartSubHTML(m) {
+    const t = m.t;
+    if (!m.cycles.length) return '<div class="sub">' + esc(t.season + " · " + t.kept) + "</div>";
+    if (m.strip === "carousel") return "";
+    return m.cycles.map((c) => '<button type="button" class="sublink" data-act="cycle:' + c.id + '"><span class="cyt kind-\' + c.kind + \'">' + cycleGlyph(c, 12) + "</span><span><b>" + esc(c.name) + "</b> · " + esc(c.state + " · " + c.dates + " · " + fmt(t.keptOf, { a: c.kept, b: c.made })) + "</span></button>").join("");
+  }
+  // In the Promises sheet: the pool tab's rail of cycle cards (filter by tap, details from the ⓘ), or capsule chips with a details line.
+  function cyclesFilterHTML(m) {
+    const t = m.t;
+    if (!m.cycles.length) return "";
+    const cur = m.cycles.find((c) => c.id === nav.cycle) || null;
+    if (m.cyclesMode === "chips") {
+      const chips = '<div class="chips" style="padding: 0; overflow: visible; flex-wrap: wrap">' + [["all", t.all]].concat(m.cycles.map((c) => [c.id, c.name])).map(([id, label]) => '<button type="button" class="chip2' + ((id === "all" ? !cur : nav.cycle === id) ? " on" : "") + '" data-act="cyFilter:' + id + '">' + esc(label) + "</button>").join("") + "</div>";
+      const line = cur ? '<button type="button" class="sublink" style="padding: 0" data-act="cycle:' + cur.id + '"><span class="cyt kind-\' + cur.kind + \'">' + cycleGlyph(cur, 12) + "</span><span><b>" + esc(cycleKind(m, cur)) + "</b> · " + esc(cur.state + " · " + cur.dates + " · " + fmt(t.keptOf, { a: cur.kept, b: cur.made })) + '</span><span class="more">' + esc(t.cyDetails) + "</span></button>" : "";
+      return chips + line;
+    }
+    const single = m.cycles.length === 1;
+    return '<div class="cyrail' + (single ? " single" : "") + '" role="group" aria-label="' + esc(t.cyLabel) + '">' + m.cycles.map((c) => {
+      const on = nav.cycle === c.id;
+      return '<div class="cywrap"><button type="button" class="cycard' + (on ? " on" : "") + '" aria-pressed="' + on + '" data-act="cyFilter:' + c.id + '"><span class="cyid"><span class="cyt kind-\' + c.kind + \'">' + cycleGlyph(c, 14) + '</span><span class="cyk kind-\' + c.kind + \'">' + esc(cycleKind(m, c)) + '</span><span class="cystate">' + esc(c.state) + '</span></span><span class="cyname">' + (on ? '<span style="color: var(--accent-on); display: grid">' + icon("ic-check", 14) + "</span>" : "") + "<span>" + esc(c.name) + '</span></span><span class="cysub">' + esc(c.dates + " · " + fmt(t.keptOf, { a: c.kept, b: c.made })) + '</span></button><button type="button" class="cyinfo" data-act="cycle:' + c.id + '" aria-label="' + esc(fmt(t.cyAbout, { name: c.name })) + '">' + icon("ic-info", 18) + "</button></div>";
+    }).join("") + "</div>";
+  }
+  // The cycle's details, a half sheet as shipped: identity, what counts toward it, live and kept, and Show Its Promises.
+  function cycleSheetHTML(m) {
+    const t = m.t;
+    const c = m.cycles.find((x) => x.id === nav.cycleSel) || m.cycles[0];
+    if (!c) return "";
+    const isC = c.kind === "campaign";
+    return '<button type="button" class="scrim" data-act="close" aria-label="' + esc(t.close) + '"></button><div class="sheet half" role="dialog" aria-modal="true"><div class="grip"></div><div class="shead"><div><h2 class="stitle">' + esc(c.name) + '</h2><p class="sdesc">' + esc(c.datesY) + '</p></div><button type="button" class="close" data-act="close" aria-label="' + esc(t.close) + '">' + icon("ic-close", 22) + '</button></div><div class="sbody">' +
+      '<div class="cyid"><span class="cyt kind-\' + c.kind + \'">' + cycleGlyph(c, 14) + '</span><span class="cyk kind-\' + c.kind + \'">' + esc(cycleKind(m, c)) + '</span><span class="cystate">' + esc(c.state) + "</span></div>" +
+      '<p class="para2">' + esc(isC ? t.cyIntroCampaign : t.cyIntroSeason) + "</p>" +
+      '<dl class="facts"><div><dt>' + esc(t.cyLiveNow) + "</dt><dd>" + esc(fmt(t.cyNPromises, { n: c.live })) + "</dd></div><div><dt>" + esc(t.cyKeptSoFar) + "</dt><dd>" + esc(fmt(t.keptOf, { a: c.kept, b: c.made })) + "</dd></div></dl>" +
+      '<p class="note">' + esc(t.cySeparate) + "</p></div>" +
+      '<div class="sfoot"><button type="button" class="btn" data-act="cyShow:' + c.id + '">' + esc(t.cyShowPromises) + "</button></div></div>";
+  }
+  function stripHTML(m) {
+    if (m.strip !== "carousel" || !m.active) return "";
+    const t = m.t;
+    const cards = [];
+    if (m.cycles.length) m.cycles.forEach((c) => cards.push(cycleCardHTML(m, c)));
+    else cards.push('<button type="button" class="hcard" data-act="insights"><span class="hb"><span class="eyebrow">' + esc(t.seasonShort) + '</span><span class="big">' + esc(t.kept) + '</span><span class="detail">' + esc(fmt(t.daysLeft, { n: 104 })) + "</span></span></button>");
+    cards.push('<button type="button" class="hcard" data-act="openWork"><span class="hm">' + art("sc-people") + '</span><span class="hb"><span class="eyebrow">' + esc(t.recent) + '</span><span class="title">Workshop Delivered</span><span class="pill warn">' + esc(t.pending) + "</span></span></button>");
+    if (m.isSteward) cards.push('<button type="button" class="hcard" data-act="yourWork"><span class="hb"><span class="eyebrow">' + esc(t.toReview) + '</span><span class="big">3</span><span class="detail">' + esc(fmt(t.needsReview, { n: 3 })) + "</span></span></button>");
+    else cards.push('<button type="button" class="hcard" data-act="promises"><span class="hb"><span class="eyebrow">' + esc(t.asked) + '</span><span class="title">Workshop photos</span><span class="detail">' + esc(t.dueJan + " · " + fmt(t.ofN, { a: 0, b: 12 })) + "</span></span></button>");
+    return '<div class="sec" style="padding-top: 8px"><h2>' + esc(t.highlights) + '</h2></div><div class="hscroll">' + cards.join("") + "</div>";
+  }
+  function sectionsHTML(m) {
+    const t = m.t;
+    let h = "";
+    h += '<div class="sec"><h2>' + esc(t.continueT) + '</h2><button type="button" class="link" data-act="yourWork">' + esc(t.openYourWork) + "</button></div>";
+    h += '<div class="list">' + m.continueRows.map((r) => rowHTML(r, 'data-act="' + r.act + '"')).join("") + "</div>";
+    h += '<div class="sec"><h2>' + esc(t.takePart) + '</h2><button type="button" class="link" data-act="promises">' + esc(t.seeAll) + "</button></div>";
+    h += takePartSubHTML(m);
+    h += '<div class="list">' + m.takePart.map((r) => rowHTML(r, 'data-act="promises"')).join("") + "</div>";
+    if (m.aboutPlacement === "row") {
+      h += '<div class="sec"><h2>' + esc(t.about) + "</h2></div>";
+      h += '<div style="padding: 0 16px 8px"><div class="card" style="overflow: hidden">' + m.aboutRows.map((a, i) => '<button type="button" class="fact' + (i === 0 ? " first" : "") + '" data-act="' + a.act + '"><span>' + esc(a.label) + '</span><span class="val"><span>' + esc(a.value) + "</span>" + (a.count ? '<span class="cnt">' + a.count + "</span>" : "") + icon("ic-chev", 18) + "</span></button>").join("") + "</div></div>";
+    }
+    return h;
+  }
+  function homeHTML(m) {
+    const t = m.t;
+    let h = "";
+    if (m.active && m.composition === "gardenPage") {
+      h += '<div class="banner">' + photo(m.active) + '<div class="over">' + chipHTML(m) + '<div class="stack">' + hitHTML("ic-wallet", "", t.wallet) + hitHTML("ic-promise", "promises", t.promises, m.prBadge) + hitHTML("ic-work", "yourWork", t.yourWork, m.ywBadge) + "</div></div></div>";
+      h += '<div class="gtitle"><h1>' + esc(m.active.name) + '</h1><div class="metarow">' + metaHTML(m, m.active) + "</div></div>";
+      h += tabsHTML(m.tabDefs, nav.gpTab, "gpTab", "gtabs") + '<div style="height: 12px"></div>';
+      h += tabBodyHTML(m, nav.gpTab, m.active);
+      return h;
+    }
+    h += headerHTML(m, m.isNone ? '<h1 class="h1">' + esc(t.home) + "</h1>" : chipHTML(m)) + gardenActionsHTML(m);
+    if (m.isNone) {
+      h += '<div style="height: 8px"></div><div class="card promo"><h2>' + esc(t.findTitle) + "</h2><p>" + esc(t.findBody) + '</p><button type="button" class="btn" data-act="explore">' + icon("ic-search", 18) + "<span>" + esc(t.explore) + "</span></button></div>";
+      if (m.pendingRequest) {
+        h += '<div class="sec"><h2>' + esc(t.yourRequests) + '</h2></div><div class="list">' + rowHTML({ title: m.pendingGarden.name, pill: t.awaiting, pillClass: "warn", edgeClass: "warn", detail: m.pendingGarden.place, ic: "ic-seedling" }, 'data-act="visit:' + m.pendingGarden.id + '"') + "</div>";
+      }
+      return h;
+    }
+    if (m.showChoosePrompt) {
+      h += '<div style="height: 8px"></div><div class="card promo"><h2>' + esc(t.chooseGarden) + "</h2><p>" + esc(t.chooseBody) + '</p><button type="button" class="btn secondary" data-act="switcher">' + esc(t.chooseGarden) + "</button></div>";
+      return h;
+    }
+    if (!m.active) return h;
+    h += stripHTML(m);
+    if (m.dutyRows.length) {
+      const dutyTitle = m.dutyName === "resp" ? t.dutyResp : m.dutyName === "attention" ? t.dutyAttention : m.dutyName === "stewardship" ? t.dutyStewardship : t.gardenDuties;
+      h += '<div class="sec"><h2>' + esc(dutyTitle) + "</h2></div>";
+      h += '<div class="list">' + m.dutyRows.map((r) => rowHTML(r, 'data-act="' + r.act + '"')).join("") + "</div>";
+    }
+    if (m.composition === "journal") {
+      h += '<div class="sec"><h2>' + esc(t.recent) + '</h2><button type="button" class="link" data-act="seeWork">' + esc(t.seeAll) + "</button></div>";
+      h += '<div class="list">' + m.activity.map((r) => rowHTML(r, 'data-act="openWork"')).join("") + "</div>";
+    } else {
+      h += '<div class="sec"><h2>' + esc(t.recent) + '</h2><button type="button" class="link" data-act="seeWork">' + esc(t.moreActivity) + "</button></div>";
+      h += '<div style="padding: 0 16px"><button type="button" class="gcard" data-act="openWork"><span class="media" style="height: 180px">' + art("sc-people") + '</span><span class="featcap"><span class="title">Workshop Delivered</span><span class="pill warn">' + esc(t.pending) + '</span><span class="detail">abhitant.eth · ' + esc(t.a5h + " · " + t.onePhoto) + "</span></span></button></div>";
+    }
+    h += sectionsHTML(m);
+    return h;
+  }
+  // The content of one garden section, drawn the same whether it sits in a tab on the garden page or in a sheet over Home.
+  function tabBodyHTML(m, tab, g) {
+    const t = m.t;
+    if (tab === "work") return '<div class="list">' + m.activityAll.map((r) => rowHTML(r, 'data-act="openWork"')).join("") + "</div>";
+    if (tab === "pool") return '<div class="sub">' + esc(t.season + " · " + t.kept) + '</div><div class="list">' + m.takePart.map((r) => rowHTML(r)).join("") + "</div>";
+    if (tab === "insights") return insightsBodyHTML(m, g, true);
+    return gardenersBodyHTML(m, g, true);
+  }
+  function insightsBodyHTML(m, g, padded) {
+    const t = m.t;
+    const pad = padded ? ' style="padding: 0 16px"' : "";
+    let h = (!padded && m.aboutBanner) ? '<div style="height: 144px; border-radius: 24px; overflow: hidden; position: relative; background: var(--tile)">' + photo(g) + "</div>" : "";
+    h += '<div class="sec"' + (padded ? "" : ' style="padding-top: 0"') + '><h2>' + esc(t.aboutLabel) + "</h2></div>";
+    h += '<div' + pad + '><p class="para">' + esc(g.desc) + "</p></div>";
+    h += padded ? '<div style="height: 12px"></div>' + seasonHTML(m, true) : seasonHTML(m, false);
+    h += '<div class="sec"><h2>' + esc(t.assessments) + "</h2></div>";
+    const rows = g.id === m.homeId ? [{ title: "Garden assessment", detail: "Oct 2 · " + fmt(t.outcomes, { n: 3 }), status: "published", ic: "ic-chart" }] : [];
+    if (rows.length) h += '<div class="list"' + (padded ? "" : ' style="padding: 0"') + ">" + rows.map((r) => rowHTML(Object.assign({}, r, { pill: t.published, pillClass: "ok", edgeClass: "" }), 'data-act="noop"')).join("") + "</div>";
+    else h += '<div class="sub"' + (padded ? "" : ' style="padding: 0"') + ">" + esc(t.noAssess) + "</div>";
+    return h;
+  }
+  function gardenersBodyHTML(m, g, padded) {
+    const t = m.t;
+    const listStyle = padded ? "" : ' style="padding: 0"';
+    let h = "";
+    if (m.joinRequests.length && g.id === m.activeId) {
+      h += '<div class="sec"' + (padded ? "" : ' style="padding-top: 0"') + '><h2>' + esc(t.joinRequests) + '</h2><span class="cnt">' + m.joinRequests.length + "</span></div>";
+      h += '<div class="list"' + listStyle + ">" + m.joinRequests.map((r) => rowHTML({ title: r.name, detail: r.detail, pill: r.pill, pillClass: r.pillClass, edgeClass: r.edgeClass, avatarOf: true, slotButton: true, slotHTML: '<span class="slot"><button type="button" class="btn compact" data-act="noop">' + esc(t.approve) + "</button></span>" }, 'data-act="noop"')).join("") + "</div>";
+    }
+    h += '<div class="sec"' + (!h && !padded ? ' style="padding-top: 0"' : "") + '><h2>' + esc(t.gardeners) + "</h2><span class=\"sub\" style=\"padding: 0\">" + esc(fmt(t.membersStewards, { n: g.members, s: g.stewards })) + "</span></div>";
+    h += '<div class="list"' + listStyle + ">" + m.people.map((p) => rowHTML({ title: p.name, detail: fmt(t.since, { d: monthOf(p.since, m.lang) }), pill: p.role === "steward" ? t.steward : t.gardener, pillClass: p.role === "steward" ? "ok" : "neu", edgeClass: "", avatarOf: true }, 'data-act="noop"')).join("") + "</div>";
+    return h;
+  }
+  function exploreHTML(m) {
+    const t = m.t;
+    return '<div class="topnav">' + hitHTML("ic-back", "home", t.back) + '<div class="mid">' + esc(t.explore) + "</div>" + hitHTML("ic-filter", "noop", t.filters) + '</div><div style="height: 8px"></div><div class="list">' +
+      m.exploreList.map((g) => '<button type="button" class="gcard" data-act="visit:' + g.id + '"><span class="media" style="height: 120px">' + photo(g) + (g.tag ? '<span class="tag">' + esc(g.tag) + "</span>" : "") + '</span><span class="gb"><span class="gname">' + esc(g.name) + '</span><span class="gmeta">' + esc(g.meta) + "</span></span></button>").join("") + "</div>";
+  }
+  function gardenHTML(m) {
+    const t = m.t; const g = m.vg;
+    let action = "";
+    if (m.vgMine) action = '<span class="pill ok">' + esc(t.member) + "</span>";
+    else if (m.vgPending) action = '<span class="pill warn">' + esc(t.awaiting) + "</span>";
+    else if (g.open) action = '<button type="button" class="btn compact" data-act="noop">' + esc(t.joinGarden) + "</button>";
+    else action = '<button type="button" class="btn compact secondary" data-act="noop">' + esc(t.requestJoin) + "</button>";
+    let h = '<div class="banner">' + photo(g) + '<div class="over">' + hitHTML("ic-back", "back", t.back) + '<div class="stack">' + hitHTML("ic-share", "noop", t.share) + "</div></div></div>";
+    h += '<div class="gtitle"><h1>' + esc(g.name) + '</h1><div class="metarow">' + metaHTML(m, g) + action + "</div></div>";
+    h += tabsHTML(m.tabDefs, nav.vgTab, "vgTab", "gtabs") + '<div style="height: 12px"></div>';
+    h += tabBodyHTML(m, nav.vgTab, g);
+    return h;
+  }
+  // ---------- Submit Work as decided on 20 October: no Start button, each tap advances ----------
+  function infoHTML(ic, title, info) {
+    return '<div class="ipanel"><span class="ic">' + icon(ic, 22) + "</span><div><h3>" + esc(title) + "</h3><p>" + esc(info) + "</p></div></div>";
+  }
+  function actionRowHTML(m, a) {
+    return rowHTML({ title: a.title, pill: a.domainLabel, pillClass: "neu", edgeClass: "", detail: a.asksFor, scene: a.scene }, 'data-act="pickAction:' + a.id + '"');
+  }
+  function tilesHTML(m, list) {
+    return '<div class="agrid">' + list.map((a) => '<button type="button" class="atile" data-act="pickAction:' + a.id + '"><span class="media">' + art(a.scene) + '</span><span class="ab"><span class="title2">' + esc(a.title) + '</span><span class="detail">' + esc(a.asksFor) + "</span></span></button>").join("") + "</div>";
+  }
+  function chipsHTML(m, list, current) {
+    return '<div class="chips">' + list.map((d) => '<button type="button" class="chip2' + (d[0] === current ? " on" : "") + '" data-act="domain:' + d[0] + '">' + esc(d[1]) + "</button>").join("") + "</div>";
+  }
+  function actionsScreenHTML(m) {
+    const t = m.t;
+    const all = [["all", t.all]].concat(m.gardenDomains);
+    const tabs = m.gardenDomains.length > 1 ? (m.domainFilter === "tabs" ? tabsHTML(all, nav.domain, "domain") + '<div style="height: 12px"></div>' : chipsHTML(m, all, nav.domain)) : "";
+    const list = m.actions.filter((a) => nav.domain === "all" || a.domain === nav.domain);
+    return infoHTML("ic-hammer", t.selectAction, t.whatType) + '<div style="height: 12px"></div>' + tabs + tilesHTML(m, list);
+  }
+  function progressHTML(m, p, cls) {
+    const t = m.t;
+    const pct = p.total ? Math.round((p.done / p.total) * 100) : 0;
+    const left = p.total ? '<span class="pbar"><i style="width: ' + pct + '%"></i></span><span>' + esc(fmt(t.approvedOf, { a: p.done, b: p.total })) + "</span>" : "<span>" + esc(p.mine ? t.inProgress : t.openToTake) + "</span>";
+    return '<span class="pprog' + (cls ? " " + cls : "") + '">' + left + '<span style="margin-left: auto">' + esc(p.due) + "</span></span>";
+  }
+  // The needs row never grows a card: two needs, then +N; the promise's own page lists them all.
+  function needsHTML(needs) {
+    const shown = needs.slice(0, 2);
+    const more = needs.length - shown.length;
+    return '<span class="pneeds">' + shown.map((n) => '<span class="ntag">' + esc(n) + "</span>").join("") + (more > 0 ? '<span class="ntag">+' + more + "</span>" : "") + "</span>";
+  }
+  function promiseCardHTML(m, p) {
+    const t = m.t;
+    return '<button type="button" class="pcard" data-act="pickPromise:' + p.id + '"><span class="ph"><span class="pi">' + icon(p.ic, 20) + '</span><span class="pt"><span class="title">' + esc(p.title) + '</span><span class="pill ' + p.pillClass + '">' + esc(p.pill) + '</span></span><span class="slot">' + icon("ic-chev", 18) + "</span></span>" +
+      '<span class="pdesc">' + esc(p.desc) + "</span>" + progressHTML(m, p) +
+      needsHTML(p.needs) +
+      '<span class="pfoot"><span class="av3">' + icon("ic-user", 12) + "</span><span>" + esc(fmt(t.askedBy, { n: p.askedBy }) + " · " + p.people) + "</span></span></button>";
+  }
+  function promiseCompactHTML(m, p) {
+    return '<button type="button" class="pcard compact" data-act="pickPromise:' + p.id + '"><span class="ph"><span class="pi">' + icon(p.ic, 20) + '</span><span class="pt"><span class="title">' + esc(p.title) + '</span><span class="pill ' + p.pillClass + '">' + esc(p.pill) + '</span></span><span class="slot">' + icon("ic-chev", 18) + "</span></span>" +
+      progressHTML(m, p) + needsHTML(p.needs) + "</button>";
+  }
+  function promiseRowHTML(m, p) {
+    if (m.promiseRows === "card") return promiseCardHTML(m, p);
+    if (m.promiseRows === "compact") return promiseCompactHTML(m, p);
+    if (m.promiseRows === "prog") return rowHTML(Object.assign({}, p, { detail: p.detail }), 'data-act="pickPromise:' + p.id + '"', " prog").replace('<span class="detail">', progressHTML(m, p) + '<span class="detail">');
+    return rowHTML(p, 'data-act="pickPromise:' + p.id + '"');
+  }
+  function otherRowHTML(m) {
+    const t = m.t;
+    const label = m.otherLabel === "own" ? [t.logOnOwn, t.noPromiseAttached] : m.otherLabel === "else" ? [t.somethingElse, t.otherWorkSub] : [t.otherWorkRow, t.otherWorkSub];
+    return rowHTML({ title: label[0], pill: "", pillClass: "neu", edgeClass: "", detail: label[1], ic: "ic-hammer" }, 'data-act="otherWork"');
+  }
+  function promisesScreenHTML(m) {
+    const t = m.t;
+    const rows = m.asks.map((p) => promiseRowHTML(m, p)).join("");
+    return infoHTML("ic-promise", t.promisesTitle, t.promisesInfo) + '<div style="height: 12px"></div><div class="list">' + rows + otherRowHTML(m) + "</div>";
+  }
+  function promiseScreenHTML(m, p) {
+    const t = m.t;
+    // The panel names the promise with its progress and due date; the needs are the rows below it, so they are not repeated here.
+    let h = infoHTML("ic-promise", p.title, [p.progress, p.due].filter(Boolean).join(" · ") || p.detail) + '<div style="height: 12px"></div>';
+    const list = p.actions.map((id) => m.actions.find((a) => a.id === id)).filter(Boolean);
+    if (p.kind === "both") h += '<div class="list">' + rowHTML({ title: t.addEvidence, pill: "", pillClass: "neu", edgeClass: "", detail: t.addEvidenceSub, ic: "ic-upload" }, 'data-act="addEvidence"') + "</div>";
+    h += '<div class="sec"><h2>' + esc(t.actionsFor) + "</h2></div>";
+    h += list.length <= 3 ? '<div class="list">' + list.map((a) => actionRowHTML(m, a)).join("") + "</div>" : tilesHTML(m, list);
+    return h;
+  }
+  function mediaScreenHTML(m, p, a) {
+    const t = m.t;
+    const evidence = nav.kind === "evidence";
+    let h = infoHTML("ic-upload", evidence ? t.addEvidence : t.addPhotos, evidence ? fmt(t.evidenceInfo, { p: p ? p.title : "" }) : fmt(t.mediaInfoWork, { a: a ? a.title : "" })) + '<div style="height: 12px"></div>';
+    if (p) h += '<div class="pin"><span class="av2">' + icon("ic-promise", 18) + '</span><span class="ptxt"><span class="eyebrow">' + esc(t.forPromise) + '</span><span class="pn">' + esc([p.title, p.progress].filter(Boolean).join(" · ")) + "</span></span>" + (!p.mine ? '<span class="rolechip">' + esc(t.takeUp) + "</span>" : "") + "</div>" + '<div style="height: 12px"></div>';
+    h += '<div class="well">' + icon("ic-upload", 28) + "<b>" + esc(t.addPhotos) + "</b><span>" + esc(t.upTo) + "</span></div>";
+    return h;
+  }
+  // Today's order, kept for comparison: the info card, full-width domain tabs over a carousel, Start Gardening.
+  function todayOrderHTML(m) {
+    const t = m.t;
+    const tabCur = nav.domain === "all" ? (m.gardenDomains[0] || ["solar"])[0] : nav.domain;
+    const list = m.actions.filter((a) => a.domain === tabCur);
+    return '<div style="height: 16px"></div>' + infoHTML("ic-hammer", t.selectAction, t.whatType) + '<div style="height: 12px"></div>' + tabsHTML(m.gardenDomains, tabCur, "domain") + '<div style="height: 12px"></div>' +
+      '<div class="hscroll">' + list.map((a) => '<button type="button" class="acard' + (nav.actionSel === a.id ? " selected" : "") + '" data-act="pickAction:' + a.id + '"><span class="media">' + art(a.scene) + '</span><span class="ab"><h4>' + esc(a.title) + "</h4><p>" + esc(a.desc) + "</p></span></button>").join("") + "</div>";
+  }
+  function currentSub(m) {
+    if (nav.sub) return nav.sub;
+    if (m.shape === "today") return "today";
+    return m.asks.length ? "start" : "actions";
+  }
+  function submitHTML(m) {
+    const t = m.t;
+    const sub = currentSub(m);
+    const stepIdx = sub === "media" ? 1 : 0;
+    const steps = [t.stStart, t.stMedia, t.stDetails, t.stReview].map((s, i) => '<div class="step' + (i === stepIdx ? " active" : "") + '"><span class="dot">' + (i + 1) + "</span><span>" + esc(s) + "</span></div>").join("");
+    const p = nav.promiseSel ? m.asks.find((x) => x.id === nav.promiseSel) : null;
+    const a = nav.actionSel ? m.actions.find((x) => x.id === nav.actionSel) : null;
+    const pinCard = '<div class="pin"><span class="av2">' + avatar(m.active, 18) + '</span><span class="ptxt"><span class="eyebrow">' + esc(t.workFor) + '</span><span class="pn">' + esc(m.active ? m.active.name : "") + "</span></span></div>";
+    const pinLine = '<div class="ctx"><span class="av">' + avatar(m.active, 12) + "</span><span>" + fmt(esc(t.loggingIn), { g: "<b>" + esc(m.active ? m.active.name : "") + "</b>" }) + "</span></div>";
+    const pin = m.active ? (m.workFor === "card" ? pinCard + '<div style="height: 12px"></div>' : m.workFor === "line" ? pinLine : "") : '<div class="card promo"><h2>' + esc(t.joinCommunity) + "</h2><p>" + esc(t.joinCommunityBody) + '</p><button type="button" class="btn" data-act="noop">' + esc(t.joinGarden) + "</button></div>";
+    let h = '<div class="topnav">' + hitHTML("ic-back", "subBack", t.back) + '<div class="steps">' + steps + '</div><div style="width: 16px"></div></div>' + pin;
+    if (sub === "today") h += todayOrderHTML(m);
+    else if (sub === "start") h += promisesScreenHTML(m);
+    else if (sub === "actions") h += actionsScreenHTML(m);
+    else if (sub === "promise" && p) h += promiseScreenHTML(m, p);
+    else if (sub === "media") h += mediaScreenHTML(m, p, a);
+    h += '<div style="height: 24px"></div>';
+    return h;
+  }
+  function switcherHTML(m) {
+    const t = m.t;
+    const rows = m.myGardens.map((g) => '<button type="button" class="grow' + (g.isActive ? " active" : "") + '" data-act="pick:' + g.id + '"><span class="av2">' + avatar(g, 18) + '</span><span class="gtxt"><span class="nm">' + esc(g.name) + '</span><span class="gs">' + esc(g.place) + '</span></span><span class="rolechip">' + esc(g.roleLabel) + "</span></button>").join("");
+    const explore = '<button type="button" class="grow" data-act="explore"><span class="av2" style="background: var(--neu-bg); color: var(--strong)">' + icon("ic-search", 18) + '</span><span class="gtxt"><span class="nm">' + esc(t.explore) + '</span><span class="gs">' + esc(t.exploreRow) + '</span></span><span class="slot">' + icon("ic-chev", 18) + "</span></button>";
+    const aboutInMenu = (m.aboutPlacement === "menu" && m.active) ? '<div class="divider"></div><div class="sub" style="padding: 4px 12px">' + esc(t.about) + "</div>" + m.aboutRows.map((a) => '<button type="button" class="grow" style="height: 44px" data-act="' + a.act + '"><span class="gtxt"><span class="nm" style="font-weight: 500">' + esc(a.label) + '</span></span><span class="slot">' + (a.count ? '<span class="cnt">' + a.count + "</span>" : "") + icon("ic-chev", 18) + "</span></button>").join("") : "";
+    if (m.switcherStyle === "popover" && !m.isFirstRun) {
+      return '<button type="button" class="scrim clear" data-act="close" aria-label="' + esc(t.close) + '"></button><div class="menu" role="dialog">' + rows + '<div class="divider"></div>' + explore + aboutInMenu + "</div>";
+    }
+    const tier = aboutInMenu ? "" : " half";
+    return '<button type="button" class="scrim" data-act="close" aria-label="' + esc(t.close) + '"></button><div class="sheet' + tier + '" role="dialog" aria-modal="true"><div class="grip"></div><div class="shead"><div><h2 class="stitle">' + esc(m.isFirstRun ? t.chooseGarden : t.yourGardens) + '</h2><p class="sdesc">' + esc(m.isFirstRun ? t.chooseBody : fmt(t.belongTo, { n: m.myGardens.length })) + '</p></div><button type="button" class="close" data-act="close" aria-label="' + esc(t.close) + '">' + icon("ic-close", 22) + '</button></div><div class="sbody" style="gap: 4px">' + rows + '<div class="divider"></div>' + explore + aboutInMenu + "</div></div>";
+  }
+  function sheetHTML(m, kind) {
+    if (kind === "cycle") return cycleSheetHTML(m);
+    const t = m.t;
+    const inG = fmt(t.inGarden, { g: m.scopeName });
+    let title, desc = inG, tabs = "", body = "";
+    if (kind === "yourWork") {
+      title = t.yourWork;
+      tabs = tabsHTML([["pending", t.pendingTab, m.ywBadge], ["completed", t.completedTab, 0]], nav.ywTab, "ywTab");
+      body = nav.ywTab === "pending" ? '<div class="countline"><span>' + esc(fmt(t.items, { n: m.ywRows.length })) + '</span><button type="button" class="link" data-act="noop">' + esc(t.uploadAll) + "</button></div>" + m.ywRows.map((r) => rowHTML(r, 'data-act="openWork"')).join("") : m.ywDone.map((r) => rowHTML(r, 'data-act="openWork"')).join("");
+    } else if (kind === "promises") {
+      title = t.promises;
+      tabs = tabsHTML(m.prTabs, nav.prTab, "prTab");
+      const cur = m.cycles.find((c) => c.id === nav.cycle) || null;
+      if (cur) desc = cur.name + " · " + inG;
+      body = cyclesFilterHTML(m) + m.prRows.filter((r) => !cur || r.cycle === cur.id).map((r) => rowHTML(r, 'data-act="noop"')).join("");
+    } else if (kind === "notifications") {
+      title = t.notifications; desc = m.unread ? fmt(t.nNew, { n: m.unread }) + " · " + inG : inG;
+      body = m.notifRows.map((r) => rowHTML(r, 'data-act="' + r.act + '"')).join("");
+    } else if (kind === "work") {
+      title = t.work;
+      const pendingRows = m.activityAll.filter((r) => r.status === "pending");
+      tabs = tabsHTML([["all", t.allTab, 0], ["pending", t.pendingTab, pendingRows.length]], nav.wkTab, "wkTab");
+      body = (nav.wkTab === "pending" ? pendingRows : m.activityAll).map((r) => rowHTML(r, 'data-act="openWork"')).join("");
+    } else if (kind === "insights") {
+      title = t.insights;
+      body = insightsBodyHTML(m, m.active || m.vg, false);
+    } else {
+      title = t.gardeners; desc = fmt(t.membersStewards, { n: (m.active || m.vg).members, s: (m.active || m.vg).stewards });
+      body = gardenersBodyHTML(m, m.active || m.vg, false);
+    }
+    return '<button type="button" class="scrim" data-act="close" aria-label="' + esc(t.close) + '"></button><div class="sheet full" role="dialog" aria-modal="true"><div class="grip"></div><div class="shead"><div><h2 class="stitle">' + esc(title) + '</h2><p class="sdesc">' + esc(desc) + '</p></div><button type="button" class="close" data-act="close" aria-label="' + esc(t.close) + '">' + icon("ic-close", 22) + "</button></div>" + tabs + '<div class="sbody">' + body + "</div></div>";
+  }
+  function phoneHTML(m, w, h) {
+    const t = m.t;
+    let inner = "";
+    if (m.screen === "home") inner += homeHTML(m);
+    else if (m.screen === "explore") inner += exploreHTML(m);
+    else if (m.screen === "garden") inner += gardenHTML(m);
+    else if (m.screen === "submit") inner += submitHTML(m);
+    let overlay = m.offline ? '<div class="offl" role="status">' + icon("ic-offline", 12) + "<span>" + esc(t.offlineLine) + "</span></div>" : "";
+    if (m.showBar) overlay += '<nav class="bar" aria-label="App"><button type="button" class="tab active" data-act="home"><span class="pillbg">' + icon("ic-home", 24) + "</span><span>" + esc(t.home) + '</span></button><button type="button" class="tab" data-act="submit"><span class="pillbg">' + icon("ic-plant", 24) + "</span><span>" + esc(t.garden) + '</span></button><button type="button" class="tab" data-act="noop"><span class="pillbg">' + icon("ic-user", 24) + "</span><span>" + esc(t.profile) + "</span></button></nav>";
+    if (m.screen === "submit") { const sub = currentSub(m); if (sub === "today") overlay += '<div class="flow"><button type="button" class="btn" data-act="noop">' + esc(t.start) + " " + icon("ic-chev", 18) + "</button></div>"; else if (sub === "media") overlay += '<div class="flow"><button type="button" class="btn" data-act="noop">' + esc(t.stDetails) + " " + icon("ic-chev", 18) + "</button></div>"; }
+    if (m.sheet === "switcher") overlay += switcherHTML(m);
+    else if (m.sheet) overlay += sheetHTML(m, m.sheet);
+    return '<div class="frame" data-theme="' + m.theme + '" data-rows="' + m.rows + '" style="width: ' + w + 'px; height: ' + h + 'px"><div class="screen">' + inner + "</div>" + overlay + "</div>";
+  }
+
+  // ---------- lab chrome ----------
+  const stage = document.getElementById("stage");
+  const rail = document.getElementById("rail");
+  const hint = document.getElementById("hint");
+  const picksLine = document.getElementById("picksline");
+  const presetsEl = document.getElementById("presets");
+
+  function renderStage() {
+    const m = model();
+    const frames = picks.show === "both" ? [[390, 844], [360, 800]] : picks.show === "390" ? [[390, 844]] : [[360, 800]];
+    const avail = Math.max(420, window.innerHeight - 150);
+    const scale = picks.fit === "fit" ? Math.min(1, avail / 844) : 1;
+    stage.innerHTML = frames.map(([w, h]) => '<div class="phonewrap" style="width: ' + Math.round(w * scale) + 'px; height: ' + Math.round(h * scale) + 'px"><span class="cap">' + w + " × " + h + '</span><div style="transform: scale(' + scale + '); transform-origin: top left">' + phoneHTML(m, w, h) + "</div></div>").join("");
+  }
+  function renderRail() {
+    const groups = [];
+    CONTROLS.forEach((c) => { let g = groups.find((x) => x.name === c.group); if (!g) { g = { name: c.group, items: [] }; groups.push(g); } g.items.push(c); });
+    rail.innerHTML = groups.map((g) => '<div class="grp"><h3>' + esc(g.name) + "</h3>" + g.items.map((c) => '<div class="ttl">' + esc(c.label) + '</div><div class="seg" role="group" aria-label="' + esc(c.label) + '" data-hint="' + esc(c.hint) + '">' + c.opts.map((o) => '<button type="button" id="pick-' + c.key + "-" + o[0] + '" data-key="' + c.key + '" data-val="' + o[0] + '" aria-pressed="' + (picks[c.key] === o[0]) + '">' + esc(o[1]) + "</button>").join("") + "</div>").join("") + "</div>").join("");
+  }
+  function renderPresets() {
+    presetsEl.innerHTML = PRESETS.map((p, i) => '<button type="button" class="pbtn" data-preset="' + i + '">' + esc(p.name) + "</button>").join("") + '<button type="button" class="pbtn primary" id="copy">Copy picks</button>';
+  }
+  function picksText() {
+    return "Lab picks: " + CONTROLS.filter((c) => c.group !== "Stage").map((c) => { const o = c.opts.find((x) => x[0] === picks[c.key]); return c.label + ": " + (o ? o[1] : picks[c.key]); }).join("; ");
+  }
+  function setPick(key, val) {
+    const scenario = ["membership", "role", "firstRun", "sections", "asks", "shape", "gdomains", "promiseRows", "domainFilter", "longName"];
+    picks[key] = val;
+    // A pick resets the taps but keeps the screen in view, so a variant can be tweaked where it is seen.
+    if (key === "screen") nav = freshNav();
+    else if (scenario.includes(key)) { const keep = { screen: nav.screen, visitingId: nav.visitingId, sheet: ["switcher", "yourWork", "promises", "notifications", "work", "insights", "gardeners", "cycle"].includes(nav.sheet) ? nav.sheet : null }; nav = Object.assign(freshNav(), keep); }
+    save(); renderRail(); renderStage();
+  }
+
+  rail.addEventListener("click", (e) => { const b = e.target.closest("button[data-key]"); if (b) setPick(b.dataset.key, b.dataset.val); });
+  rail.addEventListener("mouseover", (e) => { const s = e.target.closest("[data-hint]"); if (s) hint.textContent = s.dataset.hint; });
+  rail.addEventListener("focusin", (e) => { const s = e.target.closest("[data-hint]"); if (s) hint.textContent = s.dataset.hint; });
+  presetsEl.addEventListener("click", (e) => {
+    const p = e.target.closest("button[data-preset]");
+    if (p) { Object.assign(picks, PRESETS[p.dataset.preset].picks); nav = freshNav(); save(); renderRail(); renderStage(); hint.textContent = "Preset applied: " + PRESETS[p.dataset.preset].name + "."; return; }
+    if (e.target.closest("#copy")) {
+      const text = picksText();
+      picksLine.textContent = text; picksLine.hidden = false;
+      const done = () => { hint.textContent = "Picks copied."; };
+      const fallback = () => { hint.textContent = "Select the line and copy it:"; const r = document.createRange(); r.selectNodeContents(picksLine); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback); else fallback();
+    }
+  });
+  // A sticky header earns its hairline once the journal has scrolled under it.
+  stage.addEventListener("scroll", (e) => { const s = e.target; if (s && s.classList && s.classList.contains("screen")) { const h = s.querySelector(".hdr.sticky"); if (h) h.classList.toggle("scrolled", s.scrollTop > 4); } }, true);
+  stage.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-act]");
+    if (!b) return;
+    const act = b.dataset.act;
+    const m = model();
+    const openSection = (tab) => {
+      if (!m.active) { nav.screen = "explore"; nav.sheet = null; return; }
+      if (m.sections === "sheets" && m.composition !== "gardenPage") { nav.sheet = tab === "pool" ? "promises" : tab; return; }
+      nav.screen = "garden"; nav.visitingId = m.active.id; nav.vgTab = tab; nav.sheet = null;
+    };
+    if (act === "noop" || act === "openWork") return;
+    else if (act === "home") nav.screen = "home", nav.sheet = null;
+    else if (act === "explore") nav.screen = "explore", nav.sheet = null;
+    else if (act === "submit") nav.screen = "submit", nav.sheet = null;
+    else if (act === "switcher") nav.sheet = "switcher";
+    else if (act === "yourWork" || act === "promises" || act === "notifications") nav.sheet = act;
+    else if (act === "dutyReview") { nav.sheet = "work"; nav.wkTab = "pending"; }
+    else if (act === "dutyConfirm") { nav.sheet = "promises"; nav.prTab = "toConfirm"; }
+    else if (act === "dutyClaims") { nav.sheet = "promises"; nav.prTab = "live"; }
+    else if (act === "close") nav.sheet = null, nav.dismissed = true;
+    else if (act === "back") nav.screen = m.isNone ? "explore" : "home";
+    else if (act === "seeWork") openSection("work");
+    else if (act === "insights" || act === "gardeners") openSection(act);
+    else if (act.startsWith("pick:")) { nav.activeId = act.slice(5); nav.sheet = null; }
+    else if (act.startsWith("visit:")) { nav.screen = "garden"; nav.visitingId = act.slice(6); nav.vgTab = "work"; nav.sheet = null; }
+    else if (act.startsWith("pickPromise:")) { const id = act.slice(12); const p = m.asks.find((x) => x.id === id); nav.promiseSel = id; nav.actionSel = null; if (p && p.kind === "evidence") { nav.kind = "evidence"; nav.sub = "media"; } else { nav.kind = "work"; nav.sub = "promise"; } }
+    else if (act.startsWith("pickAction:")) { const id = act.slice(11); if (m.shape === "today") nav.actionSel = nav.actionSel === id ? null : id; else { nav.actionSel = id; nav.kind = "work"; nav.sub = "media"; } }
+    else if (act === "otherWork") { nav.promiseSel = null; nav.actionSel = null; nav.sub = "actions"; }
+    else if (act === "addEvidence") { nav.kind = "evidence"; nav.actionSel = null; nav.sub = "media"; }
+    else if (act === "subBack") {
+      const sub = currentSub(m); const p = nav.promiseSel ? m.asks.find((x) => x.id === nav.promiseSel) : null;
+      if (sub === "today" || sub === "start" || (sub === "actions" && !m.asks.length)) { nav.screen = "home"; nav.sub = null; nav.promiseSel = null; nav.actionSel = null; }
+      else if (sub === "media") { nav.sub = p ? (p.kind === "evidence" ? "start" : "promise") : "actions"; nav.actionSel = null; if (p && p.kind === "evidence") nav.promiseSel = null; }
+      else { nav.sub = "start"; nav.promiseSel = null; nav.actionSel = null; }
+    }
+    else if (act.startsWith("cycle:")) { nav.cycleSel = act.slice(6); nav.sheet = "cycle"; }
+    else if (act.startsWith("cyShow:")) { nav.cycle = act.slice(7); nav.prTab = "live"; nav.sheet = "promises"; }
+    else if (act.startsWith("cyFilter:")) { const id = act.slice(9); nav.cycle = id === "all" || nav.cycle === id ? null : id; }
+    else if (act.startsWith("gpTab:")) nav.gpTab = act.slice(6);
+    else if (act.startsWith("vgTab:")) nav.vgTab = act.slice(6);
+    else if (act.startsWith("ywTab:")) nav.ywTab = act.slice(6);
+    else if (act.startsWith("prTab:")) nav.prTab = act.slice(6);
+    else if (act.startsWith("wkTab:")) nav.wkTab = act.slice(6);
+    else if (act.startsWith("domain:")) nav.domain = act.slice(7);
+    renderStage();
+  });
+  window.addEventListener("resize", renderStage);
+  renderPresets(); renderRail(); renderStage();
+})();
+</script>
+</body>
+</html>
