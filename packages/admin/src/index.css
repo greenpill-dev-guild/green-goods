@@ -161,6 +161,10 @@
   --gg-icon-size-sm: 2rem;
   --gg-icon-size-compact: 1.75rem;
   --gg-hit-block: 2.75rem;
+  /* Shared fields, secondary buttons and chips take the cockpit's
+     control-grade outline (4.8:1 light, 7.7:1 dark), the boundary its own
+     Admin* controls already draw (F3). */
+  --gg-control-outline: var(--m3-outline);
 }
 
 /* Base layer: Admin-specific element resets */

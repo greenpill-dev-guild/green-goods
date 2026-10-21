@@ -132,6 +132,7 @@
   --gg-icon-size-sm: 2rem;
   --gg-icon-size-compact: 1.75rem;
   --gg-hit-block: 2.75rem;
+  --gg-control-outline: var(--m3-outline);
 }
 
 :root[data-surface="admin"][data-theme="dark"],
@@ -202,11 +203,14 @@
   --gg-button-radius-pressed: var(--radius-squircle);
   --gg-button-radius-compact: var(--radius-squircle);
   --gg-button-radius-compact-pressed: var(--radius-md);
-  --gg-button-weight: var(--text-label-sm--font-weight);
+  --gg-button-weight: 500;
+  --gg-control-outline: var(--neutral-500);
+  --focus-ring: var(--primary-on-surface);
 }
 
 [data-surface-scope="website"] {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --gg-control-outline: var(--stroke-sub-300);
   --gg-button-radius: var(--radius-full);
   --gg-button-radius-pressed: var(--radius-full);
   --gg-button-radius-compact: var(--radius-full);
