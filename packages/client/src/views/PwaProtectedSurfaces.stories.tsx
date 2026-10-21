@@ -126,7 +126,7 @@ export const GardenWorkCapture: Story = {
               stage: "uploading",
               stageProgress: 48,
               overallProgress: 31,
-              message: "Uploading to IPFS...",
+              message: "Uploading photos…",
               totalFiles: 4,
               completedFiles: 2,
             }}

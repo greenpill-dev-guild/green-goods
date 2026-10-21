@@ -137,7 +137,7 @@ export function runningStatus(
   }
   return formatMessage({
     id: "cockpit.garden.pool.setup.live.checking",
-    defaultMessage: "Reading the chain before the next change…",
+    defaultMessage: "Checking the pool before the next change…",
   });
 }
 
@@ -257,7 +257,7 @@ export function writeWhy(action: PoolSetupAction, formatMessage: FormatMessage):
     case "markPoolReady":
       return formatMessage({
         id: "cockpit.garden.pool.setup.why.ready",
-        defaultMessage: "The chain checks that the agreement and the limit are in place.",
+        defaultMessage: "Checks that the agreement and the limit are in place.",
       });
     case "seedCycle":
       return formatMessage({

@@ -56,7 +56,7 @@ export const Danger: Story = {
 
 export const BlockedOffline: Story = {
   args: {
-    blockedReason: "Needs a connection. Pool changes are sent straight to the chain.",
+    blockedReason: "Needs a connection. Pool changes are sent right away, not queued.",
   },
 };
 

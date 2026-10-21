@@ -3,7 +3,7 @@ import { storyCommitmentDialog } from "../poolStoryFixtures";
 import { CommitmentActions } from "./CommitmentActions";
 
 const dialog = storyCommitmentDialog();
-const OFFLINE_NOTE = "Needs a connection. Pool changes are sent straight to the chain.";
+const OFFLINE_NOTE = "Needs a connection. Pool changes are sent right away, not queued.";
 
 const meta: Meta<typeof CommitmentActions> = {
   title: "Admin/Pool/CommitmentActions",

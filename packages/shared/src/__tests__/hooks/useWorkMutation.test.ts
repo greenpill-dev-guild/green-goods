@@ -588,7 +588,7 @@ describe("hooks/work/useWorkMutation", () => {
       const onProgress = vi.fn();
       mock(submitWorkDirectly).mockImplementation(
         async (_draft, _garden, _actionUID, _actionTitle, _chainId, _images, options) => {
-          options?.onProgress?.("uploading", "Uploading media to IPFS...");
+          options?.onProgress?.("uploading", "Uploading media...");
           return MOCK_TX_HASH;
         }
       );
@@ -604,7 +604,7 @@ describe("hooks/work/useWorkMutation", () => {
         });
       });
 
-      expect(onProgress).toHaveBeenCalledWith("uploading", "Uploading media to IPFS...");
+      expect(onProgress).toHaveBeenCalledWith("uploading", "Uploading media...");
     });
 
     it("lets admin-style consumers opt out of client completion side effects", async () => {

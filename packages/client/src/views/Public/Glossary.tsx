@@ -91,7 +91,7 @@ const TERMS: readonly GlossaryTerm[] = [
     defaultLabel: "Impact Certificate",
     bodyId: "public.glossary.term.impactCertificate.body",
     defaultBody:
-      "A bundle of approved Work grounded in an Assessment and anchored to a public blockchain so the record stays readable beyond any one platform.",
+      "A bundle of approved work, grounded in an assessment and kept as a public record that stays readable beyond any one platform.",
     docsPath: "/glossary#impact-certificate",
   },
   {

@@ -265,7 +265,8 @@ export function CommitmentSettlement({ settlement, tone, target }: CommitmentSet
               {settlement.lastAct.phase === "signing"
                 ? formatMessage({
                     id: "cockpit.garden.pool.settlement.status.signing",
-                    defaultMessage: "Waiting for the wallet to sign and the chain to confirm…",
+                    defaultMessage:
+                      "Waiting for the wallet to sign and the transaction to confirm…",
                   })
                 : settlement.lastAct.phase === "confirmed"
                   ? formatMessage({

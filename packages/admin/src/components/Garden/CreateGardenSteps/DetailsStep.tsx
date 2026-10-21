@@ -159,7 +159,7 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
         }),
         message: formatMessage({
           id: "app.garden.create.bannerUploadedMessage",
-          defaultMessage: "Image uploaded successfully to IPFS",
+          defaultMessage: "Image uploaded.",
         }),
         context: "banner upload",
         suppressLogging: true,
