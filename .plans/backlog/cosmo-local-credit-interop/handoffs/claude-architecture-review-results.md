@@ -399,10 +399,10 @@ flowchart LR
 | Voucher entitlement module | Arbitrum | New GG | Pool-garden steward registers terms (an Offer has no payer garden before acceptance); issuer-garden steward approves budget; no value custody | Reads core views; dispatches data-only CCIP commands; stores receipts; funds its own fee reserve |
 | CeloSettlementExecutor, garden Safes, Zodiac Roles, routes | Celo | GG reuse, unchanged | Safes 2-of-3 with recovery owners | G$ leg only |
 | Voucher issuance adapter | Gnosis | New GG | Owned by the issuer Safe (pause, peer, cap); holds an allowance, never pool funds | Copies the Celo executor's authenticate, dedupe, store, acknowledge order |
-| GiftableToken instance per issuer | Gnosis | CLC reuse (implementation `0x3444...f2d8`, unverified bytecode) | Owner: issuer Safe; proxy admin: timelock or second principal (DEPLOY.md requires admin to differ from owner) | Allowance model keeps writer set empty |
+| GiftableToken instance per issuer | Gnosis | CLC reuse (implementation `0x3444...f2d8`, bytecode conformance established on 20 October, F2 update; re-read at deployment) | Owner: issuer Safe; proxy admin: timelock or second principal (DEPLOY.md requires admin to differ from owner) | Allowance model keeps writer set empty |
 | SwapPool, Limiter, FeePolicy, TokenUniqueSymbolIndex, RelativeQuoter or DecimalQuoter | Gnosis | CLC reuse, new instances | Owner: issuer Safe; admin: timelock | Owner `withdrawLiquidity` survives sealing; disclose it |
 | Solady ERC1967Factory `0xB286...162b` | Gnosis | CLC-deployed MIT factory | Permissionless `deployAndCall` | Use through a repository-owned wrapper, not upstream scripts |
-| CCIP routers Arbitrum `0x141f...dDE8`, Gnosis `0x4aAD...adce` | Both | External reuse | Chainlink | Lanes 2.0.0 both ways; extra-args check pending |
+| CCIP routers Arbitrum `0x141f...dDE8`, Gnosis `0x4aAD...adce` | Both | External reuse | Chainlink | Lanes 2.0.0 and extra-args fee quotes established both ways on 20 October (F5 update); deployment-block re-read and live delivery remain |
 
 ## 5. One success and failure sequence
 
@@ -504,8 +504,8 @@ any CommitmentPooling upgrade (F1 and F13), a general multiasset settlement engi
 | Narrow CommitmentPooling upgrade for accepted voucher reference and fulfillment getter | No core upgrade in v1; terms held by the module under the core's own pre-acceptance rule; eligibility by `Fulfilled` state as the G$ rail does; stored fulfillment path only if path-restricted eligibility is chosen |
 | Adapter is a GiftableToken writer, bounded by its own season cap | Adapter holds an ERC20 allowance from the issuer reserve (default); writer model kept as the alternative |
 | Adapter may write the Limiter | Removed from v1 |
-| "Compatibility and both directions remain a proof obligation" for CCIP | Both directions established (2.0.0); remaining check is extra-args acceptance and fee reserve sizing |
-| v1.1.0 versus v1.0.0 mismatch unresolved | Narrowed to OracleRelay; the open item is unverified deployed bytecode |
+| "Compatibility and both directions remain a proof obligation" for CCIP | Both directions (2.0.0) and the codec's extra-args fee quotes established on 20 October ([evidence](claude-conformance-evidence-2026-10-20.md)); fee reserve sizing, deployment-block re-read and live delivery remain |
+| v1.1.0 versus v1.0.0 mismatch unresolved | GiftableToken, SwapPool, Limiter and ERC1967Factory deployed bytecode matches the published v1.0.0 artifacts, identical at v1.1.0 ([evidence](claude-conformance-evidence-2026-10-20.md)); other implementations and deployment-block re-read remain |
 | Candidate 2 (sidecar) "viable for explicitly separate awards, not the default promise" | The sidecar can carry the default promise because the core exposes the pre-acceptance window and the terminal state on chain |
 | Estimates assume the upgrade and acknowledgment lane | Re-forecast for the narrowed boundary; external gates dominate |
 

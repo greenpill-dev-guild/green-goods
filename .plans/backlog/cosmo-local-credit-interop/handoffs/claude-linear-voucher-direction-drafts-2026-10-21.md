@@ -243,14 +243,15 @@ cycle, due date, estimate, milestone and state history are unchanged.
 ### PRD-1317: applied additional Done-when criteria
 
 > * Bind counterparty consent to the exact approved voucher revision, amount/allocation policy and eligibility; a pending claim cannot silently adopt later terms. For voucher-accepting Offers, bind the selected claimant as payer and enforce the PRD-1315 funding authorization, reservation and failure/refund decision; issuer-reserve delivery cannot substitute for that payment. Bind each gardener's approved issuer identity to its garden, Safe, token and admission authority, with authorization and caps isolated per gardener.
-
+>
 > * Before assigning the presenter as promise counterparty, authenticate a replay-safe receipt binding presenter, promise, token, amount and escrow receipt, and prove that escrow exists on Gnosis. Reject missing or mismatched consent, replay, unknown escrow and mismatched receipt bindings.
 
 ### PRD-1318: applied additional Done-when criteria
 
 > * Bind a distinct approved issuer identifier per gardener to its garden, controlling Safe, token and admission authority; two gardeners sharing a garden/Safe cannot share authorization or a cap by implication. Apply the PRD-1315 cap-enforcement decision to each identity.
-
+>
 > * Produce the authenticated, replay-safe escrow receipt for PRD-1317, binding presenter, promise, token and amount to the escrow before counterparty assignment. Reject replay, unknown escrow and mismatched bindings. For claimant-funded Offer payments, enforce the approved payer authorization, reservation/debit and failure/refund rules separately from issuer-reserve reward delivery.
+
 Read-back receipts (21 October 2026 UTC):
 
 * PRD-1315: applied 2026-10-21T19:22:06.270Z, read back 2026-10-21T19:22:29Z.

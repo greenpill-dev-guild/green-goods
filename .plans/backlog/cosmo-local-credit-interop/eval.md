@@ -3,9 +3,9 @@
 **Reconciled:** 2026-10-21 UTC. These criteria apply to separately accepted implementation slices.
 No check below is certified by planning, a Linear state or the completed foundation project.
 PRD-1096 covers its approved fork scope only: its report must keep exact-revision claimant consent,
-issuer-cap enforcement and the live escrow-to-promise handshake unproved where the defaults do not
-exercise them. Steward approval is not claimant consent, and the service-desk stand-in is not the
-live handshake.
+issuer-cap enforcement, the live escrow-to-promise handshake, claimant-funded Offer payments and
+distinct gardener issuer identity/cap isolation unproved where the defaults do not exercise them.
+Steward approval is not claimant consent, and the service-desk stand-in is not the live handshake.
 
 | Boundary | Required observable evidence | Owner |
 |---|---|---|

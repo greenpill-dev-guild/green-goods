@@ -20,8 +20,10 @@ live receipt.
   simulated and labeled, and member actions on Gnosis use a labeled stand-in for the passkey
   validator that Gnosis lacks.
 - Unproved by that rehearsal: the claimant's agreement to the exact voucher revision, issuer-cap
-  enforcement and the live escrow-to-promise handshake. Steward approval does not establish the
-  claimant's agreement; keep those limits in the evidence pack.
+  enforcement, the live escrow-to-promise handshake, claimant-funded Offer payments and distinct
+  gardener issuer identity/cap isolation. Steward approval does not establish the claimant's
+  agreement. Earned reserve delivery and organizational issuers do not prove the two newer paths;
+  keep all five limits in the evidence pack and the no-go recording.
 - Planned: the passport's Gnosis panel; the live pools; the fiat route; a real cross-chain voucher
   message (the lane quotes our message format both ways, but none has been sent); and the
   21 October voucher direction: presentment opening a promise, Offers that accept vouchers and

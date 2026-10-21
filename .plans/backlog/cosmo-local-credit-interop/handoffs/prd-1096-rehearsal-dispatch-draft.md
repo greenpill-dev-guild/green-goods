@@ -97,16 +97,18 @@ and 6 and findings F1, F3, F4 and F7 of [the review](claude-architecture-review-
 | Purchased issuance checks a settled purchase entitlement | P1 | Default 4 makes a purchase one atomic swap: payment settles in the same call and no separate entitlement exists. |
 | Replays and a new message reusing an entitlement cannot deliver twice | G2, G3, G11 | As written. |
 | No limit changes cross chains; caps and allowances are the issuer's | G4, G9, G10 | As written. |
-| Season caps and pool holding limits fail safely | G9, P2 | G9 proves the adapter's season budget and allowance; P2 proves the pool holding limit. Neither proves the issuer's total outstanding-voucher cap, which remains unproved. |
+| Season caps and pool holding limits fail safely | G4, G9, P2 | G4 covers short allowance/reserve and repair requeue; G9 covers the adapter season cap and token mismatch; P2 covers the pool holding limit. The issuer's total outstanding-voucher cap remains unproved. |
 | A gardener account's same-address derivation and ownership | K1 to K3 | With the validator stand-in. |
 | Bounded swaps; exhausted inventory, de-listing, changed quotes and sponsorship failure recover | P1, P3 to P5, P10, K4 | Sponsorship uses a fork-local paymaster (A8). |
 | Passkey validator gap rehearsed with a labeled stand-in and the live gap recorded | K2 | The live fix stays a gate. |
 | Presentment, full or partial delivery, beneficiary confirmation, discharge once; remedy and outstanding balance | S1 to S6 | Through the service desk (A1). |
 | Interfaces from published specifications; fork receipts distinct from live CCIP; swap-back simulated; G$ never a Gnosis rail | Interface headers, L1, P6 | As written. |
 
-Report against this table. The earned-issuance, purchase-entitlement and season-cap rows read
-stronger in Linear than the adopted defaults deliver; say so in the report and leave any Linear
-change to Afo. Completion of this bounded rehearsal does not close the claimant-consent,
+Report against this table. The earned-issuance and purchase-entitlement rows read stronger in
+Linear than the adopted defaults deliver. If the season-cap row is used to claim the issuer's
+total outstanding-voucher cap, that issuer-cap portion also exceeds the proof; G9 does cover the
+adapter's season cap. Say so in the report and leave any Linear change to Afo.
+Completion of this bounded rehearsal does not close the claimant-consent,
 issuer-cap or live-handshake decisions.
 
 ## Verified facts to build on
@@ -386,16 +388,17 @@ No new code: configuration through the published factory and implementations.
 | G1 | An authenticated command moves `amount` from the reserve to the recipient; result Success; entitlement consumed. |
 | G2 | The same message delivered twice: the second is a duplicate and transfers nothing. |
 | G3 | A requeued attempt for a consumed entitlement stores `EntitlementConsumed` and transfers nothing. |
-| G4 | Short allowance or reserve stores `TransferFailed` and leaves the entitlement unconsumed; after the Safe raises the allowance, a requeue delivers once. |
+| G4 | Short allowance or reserve stores `TransferFailed` and leaves the entitlement unconsumed; after the Safe raises the allowance or replenishes the reserve as appropriate, a requeue delivers once. |
 | G5 | An expired deadline stores `Expired`; a requeue with a fresh deadline delivers. |
 | G6 | Wrong selector, wrong sender, attached tokens, unsupported version or malformed payload reverts. |
 | G7 | A paused adapter reverts, for the lane and for the issuer fallback. |
-| G8 | The previous peer is accepted inside its grace window and refused after it. |
+| G8 | The previous peer is accepted through and including its grace expiry timestamp, and refused strictly after it. |
 | G9 | A set season cap stores `SeasonCapExceeded` when exceeded; a token mismatch stores `TokenMismatch`. |
 | G10 | The adapter is not a writer of the token or limiter, does not own the pool and holds no balance of its own. |
 | G11 | The issuer fallback delivers a stored command once; the same attempt arriving later over the lane is a duplicate; a requeued attempt stores `EntitlementConsumed`; a non-owner call reverts; the result names the fallback path. |
 | G12 | Delivery to a member's counterfactual account address, with no code on Gnosis, succeeds. |
 | G13 | A token that moves funds but returns false, or whose transfer produces a recipient balance delta other than `amount`, stores `TransferFailed` or `BalanceDeltaMismatch` respectively. The helper rolls back balances and allowance spending; the entitlement and season spend stay unchanged. Cover lane delivery and issuer fallback: repeated requeues under the mismatch move no tokens, and a requeue after repair delivers exactly once. |
+| G14 | After same-version A-to-B peer rotation with grace, a new B-to-C rotation before or exactly at A's expiry reverts `PreviousPeerGraceActive` with peer/expiry state unchanged. At expiry plus one second, rotation is allowed, B becomes the previous peer under its new grace and A is rejected. A same-active-peer update retains the previous peer: zero grace leaves its expiry unchanged, a valid extension is allowed and an attempted shortening reverts. Use the referenced Celo admin's paused-owner transition. |
 
 **Pools and exchange (Gnosis fork)**
 
@@ -498,8 +501,9 @@ fork blocks, RPC endpoints and the Arbitrum on-ramp version; implementation and 
 with their pinned code hashes; fork-local instance addresses; owner, admin, writer, limit, fee and
 seal state; each command with its pass count; the case table with results; the PRD-1096 table above
 with each row's evidence; outstanding supply before and after the service cases; the label legend;
-what stays live-only or unproved, including issuer-cap enforcement and exact-revision claimant
-consent (not proved by registration or issuer approval); and a short update Afo can post to
+what stays live-only or unproved: issuer-cap enforcement, exact-revision claimant consent
+(not proved by registration or issuer approval), the live escrow-to-promise handshake,
+claimant-funded Offer payments and distinct gardener issuer identity/cap isolation; and a short update Afo can post to
 PRD-1096. End with the task record:
 
 ```markdown
