@@ -99,12 +99,12 @@ and 6 and findings F1, F3, F4 and F7 of [the review](claude-architecture-review-
 | Earned issuance checks the agreed fulfillment evidence and confirmer provenance | M1, M6, M8 | Default 1 checks `Fulfilled` and records provenance without gating on it. Gating is PRD-1315 decision 1. |
 | Purchased issuance checks a settled purchase entitlement | P1 | Default 4 makes a purchase one atomic swap: payment settles in the same call and no separate entitlement exists. |
 | Replays and a new message reusing an entitlement cannot deliver twice | G2, G3, G11 | As written. |
-| No limit changes cross chains; caps and allowances are the issuer's | G4, G9, G10 | As written. |
+| No limit changes cross chains; caps and allowances are the issuer's | G4, G9, G10 | G4, G9 and G10 cover allowance/reserve failures, the adapter season cap and adapter authority boundaries. Issuer-wide outstanding-voucher-cap enforcement remains unproved. |
 | Season caps and pool holding limits fail safely | G4, G9, P2 | G4 covers short allowance/reserve and repair requeue; G9 covers the adapter season cap and token mismatch; P2 covers the pool holding limit. The issuer's total outstanding-voucher cap remains unproved. |
 | A gardener account's same-address derivation and ownership | K1 to K3 | With the validator stand-in. |
 | Bounded swaps; exhausted inventory, de-listing, changed quotes and sponsorship failure recover | P1, P3 to P5, P10, K4 | Sponsorship uses a fork-local paymaster (A8). |
 | Passkey validator gap rehearsed with a labeled stand-in and the live gap recorded | K2 | The live fix stays a gate. |
-| Presentment, full or partial delivery, beneficiary confirmation, discharge once; remedy and outstanding balance | S1 to S6 | Through the service desk (A1). |
+| Presentment, full or partial delivery, beneficiary confirmation, discharge once; remedy and outstanding balance | S1 to S10 | Through the service desk (A1). |
 | Interfaces from published specifications; fork receipts distinct from live CCIP; swap-back simulated; G$ never a Gnosis rail | Interface headers, L1, P6 | As written. |
 
 Report against this table. The earned-issuance and purchase-entitlement rows read stronger in

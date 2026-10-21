@@ -148,9 +148,14 @@ as distinct outcomes. Never sum different assets into one settlement amount.
 The accepted candidate (20 October, after Claude's [review](handoffs/claude-architecture-review-results.md)) uses a dedicated Arbitrum
 voucher entitlement module and a restricted Gnosis issuer adapter calling reused CLC contracts,
 with no CommitmentPooling upgrade: the module reads the existing commitment views, registers
-voucher terms only while the commitment is Offered or Requested, and issues only on Fulfilled, the
-same gate the G$ rail uses. The existing G$ SettlementModule/Celo executor remain unchanged.
-Acceptance-time terms are accepted. The eligibility rule (any Fulfilled versus ordinary only),
+voucher terms only while the commitment is Offered or Requested, and delivers **earned rewards**
+only on Fulfilled, the same gate the G$ rail uses. This earned-issuance gate does not govern
+purchased or curated issuance against approved future capacity: those use the admitted issuer's
+published terms and cap policy, with cap enforcement still an open decision. The rehearsal's
+purchase route is the issuer pool's atomic swap, outside the entitlement module. The existing
+G$ SettlementModule/Celo executor remain unchanged.
+Acceptance-time agreement is a product requirement; its consent binding is still open.
+The eligibility rule (any Fulfilled versus ordinary only),
 the issuer budget mechanism, recipient allocation, issuer-cap enforcement, the presentment handshake
 and terms consent remain decisions, not accepted ABI; the 21 October voucher direction settled
 purchased issuance and service discharge.
