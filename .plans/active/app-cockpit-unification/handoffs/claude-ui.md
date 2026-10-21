@@ -82,12 +82,28 @@
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: pending (recorded per step; no gate has run on `9ef990bc1`)
-- Run at (UTC): pending
-- Exact command(s): pending
-- Result: pending
-- Validated paths: pending
-- Worktree identity command and result: pending
+- Tested implementation commit SHA: step 1's face and guides, `9ef990bc1` and `829aaf9e9`; the gate
+  ran at head `b0fb7f4dc` on a clean tree.
+- Run at (UTC): 2026-10-21, 08:03 to 08:15.
+- Exact command(s): `node scripts/dev/ci-local.js --intent push --reuse-passing-receipts
+  --test-path shared:src/__tests__/styles/buttonShape.guard.test.ts --test-path
+  docs:src/components/docs/designTokens.test.ts --test-path agent:src/__tests__/i18n.test.ts
+  --test-path agent:src/__tests__/locale-terms.test.ts`, then each check it left unrun by its own
+  command from `scripts/data/validation-policy.json`.
+- Result: format, lint, test-quality, shared-test, client-build and agent-test passed in the gate.
+  docs-authority failed on this worktree's linked installs: `docs/scripts/docs-audit.mjs` imports
+  `@babel/parser` 8.0.4, which `develop` added to the docs package on 2026-10-18 and the main
+  checkout's store lacks. Run separately, everything else passed: docs-authority's other tests and
+  generate check, docs-test, staged-modules, source-structure, ontology, agent-guidance,
+  story-quality, docs-generated, em-dashes and storybook-build. The Design workflow's checks
+  (DesignMD and docs projections, `design.md lint` on the five guides, design tokens, vocabulary,
+  guidance examples and links) passed on the same content before the commit. Not run locally: the
+  docs audit; CI runs it. browser-proof is pending (manual and advisory; see the pull request).
+- Validated paths: the branch against `develop`: step 1's code, guides, guards, stories, generated
+  files and these hub records.
+- Worktree identity command and result: `git rev-parse --show-toplevel && git branch
+  --show-current` gave `.claude/worktrees/app-cockpit-unification` and
+  `feature/app-cockpit-typeface`.
 
 ## Risks / Blockers
 
