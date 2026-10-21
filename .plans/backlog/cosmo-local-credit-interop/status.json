@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-08-25T06:09:38.829Z",
-    "updated_at": "2026-10-21T21:57:00.693Z"
+    "updated_at": "2026-10-21T23:00:35.393Z"
   },
   "links": {
     "brief": "brief.md",
@@ -38,7 +38,7 @@
     "project": "Cosmo-Local Integration",
     "initiative": null,
     "syncDirection": "plans_to_linear_visibility",
-    "lastSyncedAt": "2026-10-21T21:57:00.693Z",
+    "lastSyncedAt": "2026-10-21T23:00:35.393Z",
     "lanes": {},
     "laneSyncMode": "parent_only",
     "stateSyncMode": "preserve_existing",
@@ -410,6 +410,14 @@
       "status": "planning_reconciled",
       "branch": "research/cosmo-local-voucher-direction",
       "note": "PR #1170 steward-pause review: after Afo explicitly approved both exact additions, appended PRD-1315 and PRD-1318 Done-when requirements for independent steward-controlled per-issuer suspension, cross-chain authority/order, issuance and purchase route coverage, issuer-Safe bypasses, outstanding-obligation servicing and authorized recovery. Applied and read back 21:56:55-21:57:00 UTC. PRD-1315 remains In Progress and PRD-1318 remains Backlog; state history, assignee, cycle, due date, estimate and milestone unchanged. This bounded description sync leaves the mechanism open until PRD-1315 records it and preserves required but unenforceable stops as release blockers. Lane objects, manual blocks and dispatch authority unchanged; no runtime change."
+    },
+    {
+      "timestamp": "2026-10-21T23:00:35.393Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "planning_reconciled",
+      "branch": "research/cosmo-local-voucher-direction",
+      "note": "PR #1170 setup/consent review: after Afo separately approved all three exact description patches, updated PRD-1315/1317/1318 and read them back at 23:00:22-23:00:35 UTC. Criteria require presentment setup retry/abort/refund convergence, exact-revision consent before every core acceptance path with direct-entrypoint bypass proof or an explicit returned boundary decision, and route-neutral Offer funding wording. PRD-1315 remains In Progress and both children remain Backlog; state history, assignee, cycle, due date, estimate and milestone unchanged. Historical quotations retained with superseding patch receipts. No lane, manual block, runtime or dispatch authority changed."
     }
   ]
 }

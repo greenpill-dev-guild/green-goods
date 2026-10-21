@@ -137,7 +137,7 @@ sequenceDiagram
 
 | Component | Chain | Proposed treatment and responsibility |
 |---|---|---|
-| CommitmentPooling and its acceptance/terminal libraries | Arbitrum 42161 | **Reuse, unchanged:** the voucher module reads `getCommitment`, `isEligibleContributor` and `validateRecognitionSnapshot`. **Proposed terms binding:** pre-acceptance state checks alone do not bind a pending claimant to a voucher revision. PRD-1317 must bind the exact approved revision and counterparty consent before dispatch so later revisions cannot alter pending claims; the [spec](spec.md#commitment-rewards--clarified-intent-proposed-architecture) records this open decision. A stored fulfillment path is an optional later upgrade, needed only if a path-restricted eligibility rule is chosen. |
+| CommitmentPooling and its acceptance/terminal libraries | Arbitrum 42161 | **Reuse, unchanged:** the voucher module reads `getCommitment`, `isEligibleContributor` and `validateRecognitionSnapshot`. **Proposed terms binding:** pre-acceptance state checks alone do not bind a pending claimant to a voucher revision. PRD-1317 must freeze the exact approved revision and counterparty consent while the core is Offered/Requested, before acceptance, and prove direct claimCommitment/acceptClaim cannot bypass it. If the unchanged core cannot enforce that invariant, return the candidate boundary for explicit decision; the [spec](spec.md#commitment-rewards--clarified-intent-proposed-architecture) records this open decision. A stored fulfillment path is an optional later upgrade, needed only if a path-restricted eligibility rule is chosen. |
 | CommitmentRegistry, credit/evidence foundations, Hats | Arbitrum | **Reuse:** work units, identities, authorization and recognition. A voucher is not a transferable version of the registry commitment. |
 | Voucher entitlement module (working name) | Arbitrum | **New GG:** registers voucher terms only while the commitment is Offered or Requested, binds issuer authorization and a shared delivery limit (no reservation), derives entitlement ids, delivers earned rewards on `Fulfilled`, dispatches data-only commands and stores authenticated results. Custodies nothing and bridges no value. |
 | SettlementModule | Arbitrum | **Reuse by default:** existing Celo consideration and one payout plan remain valid. No installment rewrite. Any required change must be demonstrated rather than presumed. |
@@ -277,7 +277,10 @@ no-core-upgrade boundary is accepted. PRD-1315 freezes only after every decision
 inventory includes issuer-cap enforcement, the authenticated presentment handshake,
 exact-revision counterparty consent, post-claim Offer funding, distinct gardener issuer identity and
 independent steward-controlled issuer suspension, alongside the original six decisions. The
-handshake decision includes live escrow placement and custody authority. Fork rehearsal defaults
+handshake decision includes live escrow placement/custody and idempotent setup recovery after
+deposit success but failed receipt/promise creation, including activation-versus-abort races. Consent
+must precede core acceptance, with direct-entrypoint bypass proof or a returned boundary decision.
+Fork rehearsal defaults
 settle none of those live decisions. Purchased issuance and its PRD-796 framing were settled on
 21 October by the [voucher direction](spec.md#voucher-direction-decided-2026-10-21); the
 [corrected phase plan](commitment-upgrade-plan.md) consumes the complete inventory.

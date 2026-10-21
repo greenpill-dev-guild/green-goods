@@ -313,8 +313,12 @@ Follow the order in `CeloSettlementExecution._ccipReceive` and `_authenticate`
 - `executionKey = keccak256(abi.encode(message.sourceChainSelector, sender, entitlementId,
   attempt))`. If a result already exists, emit a duplicate event and transfer nothing.
 - Otherwise store a result, then check in order: token matches, deadline not passed, entitlement
-  not consumed, recipient non-zero and distinct from `reserveHolder`, amount non-zero, cumulative
-  season spend plus this amount within that season's cap if set. Reject a reserve-holder recipient with `InvalidRecipient`; do not attempt a self-transfer.
+  not consumed, recipient non-zero and distinct from `reserveHolder`, amount non-zero, then an
+  overflow-safe cumulative season limit. Let `limit` be the configured cap or `type(uint256).max`
+  when unset: reject with stored `SeasonCapExceeded` if `spent > limit`, otherwise if
+  `amount > limit - spent`. Only add amount after this check; even an unset cap must not overflow
+  the spend counter. A cap lowered below prior spend fails safely rather than subtracting underflow.
+  Reject a reserve-holder recipient with `InvalidRecipient`; do not attempt a self-transfer.
   Execute the transfer and balance check together in an external, self-only helper, called through
   try/catch as in
   `CeloSettlementExecution.executeGdollarSettlementBatch`. The helper calls
@@ -514,7 +518,7 @@ No new code: configuration through the published factory and implementations.
 | G6 | Wrong selector, wrong sender, attached tokens, unsupported version or malformed payload reverts. |
 | G7 | A paused adapter reverts, for the lane and for the issuer fallback. |
 | G8 | The previous peer is accepted through and including its grace expiry timestamp, and refused strictly after it. |
-| G9 | Season spend is cumulative per issuer adapter and season. With cap 100, distinct deliveries of 60 then 40 succeed (spent 100); another 1 stores `SeasonCapExceeded` without consuming entitlement/spend. Failed transfers, token mismatches and replays leave spend unchanged. A second season has independent spend/cap; changing a cap never resets prior spend. Keep a within-cap control and the TokenMismatch case. |
+| G9 | Season spend is cumulative per issuer adapter and season. With cap 100, distinct deliveries of 60 then 40 succeed (spent 100); another 1 stores `SeasonCapExceeded` without consuming entitlement/spend. Failed transfers, token mismatches and replays leave spend unchanged. A second season has independent spend/cap; changing a cap never resets prior spend. Keep a within-cap control and the TokenMismatch case. With cap uint256 max, spend 1 then amount uint256 max stores SeasonCapExceeded without panic, transfer, consumption or spend change, on lane, issuer fallback and retired-peer recovery. Also cover unset-cap counter overflow and a cap lowered below spent; the overflowing entitlement stays failed/unconsumed and a distinct within-remaining-limit control succeeds. A lowered-cap failure may retry after restoring its cap, without resetting spend. |
 | G10 | The adapter is not a writer of the token or limiter, does not own the pool and holds no balance of its own. |
 | G11 | The issuer fallback delivers a stored command once; the same attempt arriving later over the lane is a duplicate; a requeued attempt stores `EntitlementConsumed`; a non-owner call reverts; the result names the fallback path. After A-to-B rotation, fallback with originating peer A and delayed lane delivery from A during grace share one key/result. Unknown or expired fallback peers revert, including A strictly after expiry. |
 | G12 | Delivery to a member's counterfactual account address, with no code on Gnosis, succeeds. A command whose recipient is the reserve holder instead stores `InvalidRecipient` without moving tokens, consuming the entitlement or counting season spend. |

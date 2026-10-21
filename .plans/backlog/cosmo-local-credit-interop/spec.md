@@ -33,7 +33,15 @@ Afo's approval and read back; the applied texts are in
    escrow receipt, be replay-safe, and show the escrow exists before the presenter becomes the
    counterparty, either through a Gnosis-to-Arbitrum message or by gating delivery on the indexed
    escrow. The live escrow contract placement and custody authority are undecided; the delivery-only
-   adapter is not assigned escrow custody. These choices belong with the open acknowledgment-lane decision.
+   adapter is not assigned escrow custody. Before custody is assigned, PRD-1315 must specify setup
+   recovery for deposit success followed by receipt rejection/delay or failed promise creation.
+   Idempotent retries and authenticated setup cancellation/expiry/refund must converge to one
+   escrow/promise outcome, including delayed/reordered activation-versus-abort races. Timeout alone
+   is not proof that promise creation failed. A setup-refunded escrow cannot activate a promise;
+   an activated escrow cannot receive a setup-abort refund, while normal authorized service remedies
+   remain available. PRD-1317/1318 must prove no duplicate promise, double settlement or stranded
+   holder balance. Record finality, deadline/clock, activation and abort authority in the handshake
+   decision alongside escrow placement and the open acknowledgment-lane choice.
 4. **The instrument is called "voucher".** User-facing copy names it with its issuer and unit, for
    example "Tech and Sun voucher, one solar class seat"; terms and docs may say "service voucher"
    at first mention. "Credit", "token" and "points" stay off the instrument, and "Redeem" keeps its
@@ -170,13 +178,18 @@ the issuer budget mechanism, recipient allocation, issuer-cap enforcement, the p
 and terms consent remain decisions, not accepted ABI; the 21 October voucher direction settled
 purchased issuance and service discharge.
 
-Terms consent is not yet bound. The core takes no terms version at claim or acceptance, so a pool
-steward can register and approve a new voucher revision while a claim is pending, or just before
-an open claim. PRD-1317 must bind the counterparty to the exact approved revision, for example by
-refusing new revisions while a claim request is pending and recording the counterparty's consent
-to the revision hash before dispatch, with a mismatch routed to dispute. The core's own G$ terms
-share this window. RESR-73 owns research; PRD-1315 freezes the implementation boundary
-once those are recorded. The consent mechanism must reject an earned-reward recipient equal to
+Terms consent is not yet bound. The core takes no voucher revision or sidecar callback at claim
+or acceptance. An open claim calls acceptance immediately inside `claimCommitment`; the
+approval-gated `acceptClaim` likewise has no voucher-consent check. PRD-1317 must record and freeze
+the exact approved revision and counterparty consent while the core is still Offered/Requested,
+before either path accepts. Changing terms while a claim is pending cannot silently replace that
+consent. Post-acceptance consent, a later dispute or exclusion at dispatch does not satisfy the
+acceptance-time agreement. Prove direct calls to both core entrypoints cannot create a
+voucher-bearing acceptance without the required consent. A frontend wrapper or sidecar dispatch
+check alone is not that proof. If the no-core-upgrade candidate cannot enforce this invariant,
+PRD-1315 must return the boundary for an explicit decision before implementation dispatch; no core
+upgrade is selected or authorized here. RESR-73 owns research and the boundary remains unfrozen.
+The consent mechanism must reject an earned-reward recipient equal to
 the Gnosis reserve holder before accepting a voucher obligation; a self-transfer cannot satisfy
 the exact recipient balance increase. The bounded rehearsal rejects known Offer overlaps at
 approval and Request overlaps before dispatch, but leaves Request pre-acceptance eligibility

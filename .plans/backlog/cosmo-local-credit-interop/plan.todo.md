@@ -66,8 +66,12 @@ reaches develop through PR #1170, which supersedes the planning checkout's uncom
   binding, post-claim funding of voucher-accepting Offers and distinct gardener issuer identity
   (including garden/Safe/token/admission authority and cap isolation), plus steward-controlled
   per-issuer suspension (authority, cross-chain propagation, scope, bypasses, outstanding obligations
-  and recovery). The handshake decision includes live escrow placement/custody. PRD-1315 freezes
-  only when these are recorded and required enforcement gaps are treated as release blockers. The PRD-1096 rehearsal defaults below apply to the fork only and
+  and recovery). The handshake decision includes live escrow placement/custody and setup-failure
+  retry/cancellation/expiry/refund convergence. Consent must be frozen while Offered/Requested,
+  before open or approval-gated acceptance, with direct-core bypass proof; if the no-core-upgrade
+  candidate cannot enforce this, return the boundary for explicit decision before dispatch.
+  PRD-1315 freezes only when these are recorded and required enforcement gaps remain release
+  blockers. The PRD-1096 rehearsal defaults below apply to the fork only and
   settle none of them. Purchased issuance and its PRD-796 framing were settled on 21 October.
 - [x] **Voucher direction, 21 October (Afo):** promises run on vouchers; curated gardener issuance;
   presentment opens a promise, with the PRD-1096 desk as a fork-only stand-in; the instrument is

@@ -30,7 +30,9 @@ This remains a dated review, not the current dispatch contract. The [spec](../sp
 [complete freeze inventory](../plan.todo.md#sequence-and-completion-evidence) and
 [rehearsal handoff](prd-1096-rehearsal-dispatch-draft.md) own the reconciled requirements.
 Pre-acceptance edits alone do not bind a pending claimant to an approved revision: PRD-1317 must
-supply exact-revision consent. Allowance/cap limits reserve nothing. Presentment and discharge now
+supply exact-revision consent before every core acceptance path, with direct-entrypoint bypass proof.
+If the unchanged core cannot enforce that invariant, return the candidate boundary for an explicit
+PRD-1315 decision before dispatch. Post-acceptance consent is insufficient. Allowance/cap limits reserve nothing. Presentment and discharge now
 include contract work in PRD-1315/1317/1318, while service operations/UI and terms remain with
 PRD-1297/COM-46. Acknowledgments remain an open live decision and are absent from the bounded
 rehearsal. Its retired-peer recovery requirements supersede the scenario below; a source-side
@@ -117,7 +119,8 @@ Both are real. Neither forces a core change:
 
 **Inference, qualified on 21 October.** Registering only while `Offered` or `Requested` and
 refusing changes afterward enforces an editing window; it does not bind a pending claimant to the
-exact approved voucher revision. PRD-1317 must provide that separate consent binding. G$ and voucher
+exact approved voucher revision. PRD-1317 must provide that binding while Offered/Requested, before core acceptance, and prove direct
+entrypoints cannot bypass it or return the boundary for decision. G$ and voucher
 terms remain distinct obligations with one owner each. The earned-reward path may use `Fulfilled`
 under the rehearsal default; curated/purchased issuance against future capacity is a separate
 21 October decision. No discretionary post-acceptance award is added by this review correction.
@@ -505,7 +508,8 @@ In scope for PRD-1315:
    PRD-1324 slices showing promised versus received per reward.
 
 6. **Presentment and discharge contract boundary (21 October correction).** PRD-1315 records
-   authenticated escrow-to-promise binding and live escrow placement/custody; PRD-1317 authorizes
+   authenticated escrow-to-promise binding, live escrow placement/custody and setup-failure recovery
+   converging activation-versus-abort races without stranded holder funds; PRD-1317 authorizes
    exact-revision-consented discharge/return commands and binds delivered/refundable quantities;
    PRD-1318 authenticates those commands and settles one immutable full/partial escrow decision
    exactly once across replay and reordering. This does not assign escrow custody to the delivery

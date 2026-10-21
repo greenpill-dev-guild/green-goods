@@ -308,3 +308,35 @@ Read-back receipts (21 October 2026 UTC):
 ### PRD-1318
 
 > * Implement the recorded PRD-1315 per-issuer suspension decision with authenticated steward authority and explicit cross-chain ordering. Test unauthorized or replayed pause/unpause, affected issuance and purchase routes while paused (including issuer-Safe bypass attempts), in-flight or delayed commands, isolation between issuers, and authorized recovery. Preserve the approved servicing and discharge/refund path for outstanding obligations. Record any required but unenforceable route as a release blocker.
+
+## PR #1170: presentment recovery, acceptance timing and funding wording applied after approval
+
+The latest review identified incomplete setup-failure recovery and acceptance-time consent, plus
+mechanism-specific wording in two applied criteria. Afo approved each exact description patch below;
+they were applied and read back. These replacements supersede the affected clauses in the earlier
+applied criteria; those dated quotations remain above as historical receipts. PRD-1315 remains In
+Progress and PRD-1317/1318 remain Backlog. State history, assignee, cycle, due date, estimate and
+milestone are unchanged. Existing text is preserved apart from Linear issue-link/whitespace
+normalization and the two approved clause replacements.
+
+Read-back receipts (21 October 2026 UTC):
+
+* PRD-1315: applied 2026-10-21T23:00:22.061Z, read back 2026-10-21T23:00:23.297Z.
+* PRD-1317: applied 2026-10-21T23:00:27.274Z, read back 2026-10-21T23:00:28.368Z.
+* PRD-1318: applied 2026-10-21T23:00:34.315Z, read back 2026-10-21T23:00:35.393Z.
+
+### PRD-1315
+
+> * Before freezing, specify recovery when a Gnosis presentment deposit succeeds but receipt delivery/authentication or Arbitrum promise creation fails. Bind idempotent retries and authenticated cancellation/expiry/refund to one escrow/promise outcome; resolve delayed/reordered receipt and abort races without duplicate promises, double settlement or stranded units. Record an enforceable exact-revision counterparty-consent mechanism that freezes consent while the core is Offered/Requested, before every acceptance path. Prove direct claimCommitment and acceptClaim cannot create a voucher-bearing acceptance without it; if the no-core-upgrade candidate cannot enforce that invariant, return the boundary for explicit decision before dispatch.
+
+### PRD-1317
+
+Replaced only `funding authorization, reservation and failure/refund decision` with `payer authorization, selected funding route (reservation, escrow or debit), and failure/refund decision`.
+
+> * Record and freeze exact approved-revision counterparty consent while the core is Offered/Requested, before acceptance, including immediate open claims and approval-gated acceptClaim. Prevent direct-core bypasses; post-acceptance consent or dispatch-time exclusion does not satisfy acceptance-time agreement. Follow PRD-1315's approved boundary decision before dispatch. Implement its presentment recovery protocol: idempotent promise creation and authenticated setup cancellation/expiry/refund converging delayed, duplicate and reordered receipts with abort commands. A setup-refunded escrow cannot activate a promise, and an activated escrow cannot receive a setup-abort refund; authorized service remedies remain available.
+
+### PRD-1318
+
+Replaced only `approved payer authorization, reservation/debit and failure/refund rules` with `approved payer authorization, selected funding route (reservation, escrow or debit), and failure/refund rules`.
+
+> * Implement the PRD-1315 presentment recovery decision so deposit success followed by receipt or promise-creation failure cannot strand holder funds. Authenticate activation and setup cancellation/expiry/refund for the same escrow, conserve its amount and settle one outcome exactly once. Test retry, timeout, rejected/delayed receipts, failed promise creation, refund retry and both receipt-versus-abort orderings. Reject activation after setup refund and setup-abort refund after activation; preserve authorized service remedies. Required but unenforceable recovery remains a release blocker.
