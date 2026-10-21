@@ -52,6 +52,64 @@ function defaultFilters(overrides: Partial<GardenFiltersState> = {}): GardenFilt
 // ============================================
 
 describe("useFilteredGardens", () => {
+  describe("member-only test gardens", () => {
+    const gardens = [
+      createGarden({
+        id: "0xf7b892886998dae960d64a9db488336684f137a0",
+        name: "Renamed Family Garden",
+        openJoining: true,
+        gardeners: [USER_ADDRESS],
+      }),
+      createGarden({
+        id: "0x35077CaF6fBef1d5677d318a198C9c47C61bb976",
+        name: "Mama Gardens",
+        openJoining: true,
+        stewards: [USER_ADDRESS],
+      }),
+      createGarden({
+        id: "0xf401f34378384713222d1d21f63359cc4E8a858a",
+        name: "Green Goods Community Garden",
+        openJoining: true,
+      }),
+      createGarden({ id: "ordinary", name: "Ordinary Garden", openJoining: true }),
+    ];
+
+    it.each([
+      null,
+      OTHER_ADDRESS,
+    ])("hides test gardens and their open counts for non-member %s", (viewer) => {
+      for (const scope of ["all", "open", "mine"] as const) {
+        const result = useFilteredGardens(gardens, defaultFilters({ scope }), viewer);
+        expect(result.filteredGardens.map((garden) => garden.id)).toEqual(
+          scope === "mine" ? [] : [gardens[2].id, "ordinary"]
+        );
+        expect(result.openGardensCount).toBe(2);
+        expect(result.myGardensCount).toBe(0);
+      }
+    });
+
+    it.each([
+      "all",
+      "open",
+      "mine",
+    ] as const)("keeps gardener and steward memberships in scope %s", (scope) => {
+      const result = useFilteredGardens(gardens, defaultFilters({ scope }), USER_ADDRESS);
+      expect(result.filteredGardens).toEqual(scope === "mine" ? gardens.slice(0, 2) : gardens);
+      expect(result.openGardensCount).toBe(4);
+      expect(result.myGardensCount).toBe(2);
+    });
+
+    it("recomputes visibility when the signed-in account changes with the same cached gardens", () => {
+      expect(
+        useFilteredGardens(gardens, defaultFilters(), USER_ADDRESS).filteredGardens
+      ).toHaveLength(4);
+      expect(
+        useFilteredGardens(gardens, defaultFilters(), OTHER_ADDRESS).filteredGardens
+      ).toHaveLength(2);
+      expect(useFilteredGardens(gardens, defaultFilters(), null).filteredGardens).toHaveLength(2);
+    });
+  });
+
   // ------------------------------------------
   // Scope: all
   // ------------------------------------------
