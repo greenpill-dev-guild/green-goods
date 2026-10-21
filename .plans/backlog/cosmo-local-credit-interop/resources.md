@@ -1,5 +1,9 @@
 # Resources
 
+> Historical research from August 2026. The [current architecture](spec.md) supersedes retired
+> assumptions about weighted issuance, venue ownership and dispatch order. Reverify external
+> configuration before use; this record grants no implementation or transaction authority.
+
 Verified 2026-08-24/25. Addresses and facts below were read from primary sources; anything inferred
 is marked. Re-verify before any transaction.
 

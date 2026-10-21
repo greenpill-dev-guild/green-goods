@@ -1,96 +1,48 @@
-# Cosmo-Local Credit Voucher Interoperability — Evaluation Plan
+# Cosmo-Local Integration — acceptance evidence
 
-**Posture**: no implementation authorized. These gates describe what each slice must prove *if and
-when* it is dispatched.
+**Reconciled:** 2026-10-09. These criteria apply to separately accepted implementation slices.
+No check below is certified by planning, a Linear state or the completed foundation project.
 
-## Slice Gates
+| Boundary | Required observable evidence | Owner |
+|---|---|---|
+| Authority | Unauthorized source chain/sender/hat/issuer rejected; issuer cannot withdraw pool money | PRD-1096 |
+| Earned issuance | Source entitlement, eligibility and actual confirmer path retained; no assumed beneficiary confirmation | PRD-1096 / COM-46 |
+| Purchased issuance | Settled receipt, correct recipient allocation, cancellation/refund policy and unique entitlement | PRD-1096 / COM-46 |
+| Replay and recovery | Same message and distinct-message reuse both rejected; retry cannot double mint; failed and pending states reconcile | PRD-1096 |
+| Capacity and caps | Agreed deliverable service capacity, issuance cap and token holding limits remain distinct and bounded | COM-46 / PRD-1096 |
+| Member account | Gnosis derivation, ownership, sponsored signing and recovery proved independently of garden accounts | PRD-1096 |
+| Exchange | Executable direct swap with minimum output/deadline; stale quote, de-list, depleted inventory, limit and sponsorship failures | PRD-1096 |
+| Service discharge | Presentment, partial/full delivery, confirmation and once-only discharge; failed delivery has a visible remedy | COM-46 / PRD-1096 |
+| Foundation invariants | Non-transferable promise identity, existing settlement meaning and no bridged value preserved | PRD-1096 |
+| Passport | Definitions, units, windows, source/freshness and receipt links; earned/purchased/payment/delivery/obligations separate | PRD-1097 |
+| Privacy | Separate publication consent, privacy-safe aggregates, no addresses or individual ranking | COM-46 / PRD-1097 |
+| Usability | Member and steward complete meaningful tasks, recover from interruption and explain balances and obligations | RESR-93 / COM-28 |
+| Live gate | Exact scope and human decision; each audit/Safe/timelock/testnet/rollback gate addressed | PRD-1197 |
+| Live outcome | Authorized deployment readback plus a real service delivered and confirmed; otherwise explicit no-go | PRD-1100 |
+| Pitch integrity | Claim ledger, primary sources, live/rehearsal labels and audience-specific offer; no invented traction or financial rights | RESR-94 / MAR-32 |
+| Fiat stretch | Qualified corridor/account/recipient, all-in costs, payment recovery and separate live-pilot approval | RESR-82 / PRD-1031 / PRD-1038 |
 
-Each slice has an exit condition that must be met before the next may be scoped. They are not
-schedule milestones.
+## Validation strategy
 
-| Slice | Gate |
-|---|---|
-| 0 — Due diligence | Live CLC configuration read and recorded; `burn`-after-expiry settled on a fork; §10 questions answered; pool ownership established; documented go / no-go on network membership |
-| 1 — Interfaces + read bridgehead | Green Goods renders live CLC pool state. Zero writes, zero custody. No AGPL source in the tree |
-| 2 — `ValuationPolicy` + voice | A garden declares, publishes and freezes a weighted valuation; gardeners see it before committing and register alignment or dissent; layer-1 hour records provably unchanged by any layer-2 revision |
-| 3 — Pool passport | An external party inspects a Green Goods pool with their own tools; every fulfilment figure traces to counterparty confirmations on Arbitrum; no address enumeration on public surfaces |
-| 4 — Mint authorization | A confirmed Arbitrum contribution produces a weighted Gnosis-native voucher in the contributor's own Gnosis Kernel account; the same facts cannot authorize a second mint |
-| 5a — Exchange mechanics | A voucher moves through a third party and is redeemed, with the full path traceable, against our own Chiado deployment of the published CPP implementations or interface-conformant mocks |
-| 5b — CLC venue behaviour | Against the live mainnet venue: de-listing with a held balance, rate change mid-flight, limit exhaustion and pool insolvency each produce a defined, surfaced outcome. **Mainnet-only and gate-bound — not provable on a venue we control** |
+Select focused checks for each implementation change using the repository validation policy;
+critical financial surfaces retain their complete overrides. Unit tests should protect authorization,
+accounting, replay and meaningful failure behavior. Integration and fork evidence should identify
+chain/block, exact implementation and configuration, simulated components and remaining live unknowns.
+A local fork demonstrates the tested deployment at the pinned state, not a later live configuration.
 
-## Release Gates
+Rendered evidence follows AGENTS.md: identify the browser/session, distinguish authenticated signing
+or installed-PWA proof from mocks, and record unavailable proof honestly. This planning pass changed
+no UI and has rendered proof **none**.
 
-1. **Correctness** — weight arithmetic is deterministic and bounded; no double consumption of
-   fulfilment facts; a layer-2 revision never mutates a layer-1 record.
-2. **Usability** — a gardener understands what their contribution is worth and why before they
-   commit; a steward understands what they are freezing.
-3. **Regression safety** — `CommitmentRegistry` remains non-transferable with no transfer or
-   approval surface; no custody enters `CommitmentPoolingModule`; existing pooling behavior unchanged.
-4. **Evidence quality** — research evidence and open assumptions recorded before implementation;
-   every external fact re-verified against its primary source at implementation time.
-5. **Human judgment** — protected surfaces and maintainer-call decisions named before merge; the
-   open decisions in `plan.todo.md` resolved by Afo, not inferred.
-6. **Licensing** — no AGPL source read, imported, or vendored; interfaces traceable to
-   `docs/SPEC.md`.
+The whitepaper review records the earlier 275 passing focused foundation tests. Runtime code has
+not changed during project reconciliation, so those tests were not rerun or recharacterized as CLC
+integration evidence. Validate these planning edits with the plan-hub validator, source links,
+status consistency, preserved lane objects, Linear readback and `git diff --check`.
 
-## Acceptance Checks
+## Useful pilot outcomes
 
-| ID | Behavior Boundary | Check | Owner | Evidence |
-|---|---|---|---|---|
-| AC-1 | Valuation authoring | Steward sets weights; cycle opens; weights are immutable for the cycle's life | `ui` | |
-| AC-2 | See-before-commit | The frozen table is visible on the commit path before a gardener commits | `ui` | |
-| AC-3 | Two-sided signal | Align and dissent both record against the cycle policy; aggregate readable; non-binding | `ui` | |
-| AC-4 | Layer separation | A revised equivalence table produces a new version; prior hour records byte-identical | `state_api` | |
-| AC-5 | CLC read client | Listing, limit, rate, fee and inventory read correctly from live Gnosis state | `state_api` | |
-| AC-6 | MCC profile | Profile validates against the MCC field set; freshness bounds present; no address enumeration | `state_api` | |
-| AC-7 | Mint authorization | Confirmed contribution → bounded weighted mint; a repeated `messageId` **and** a distinct message reusing a consumed `authorizationId` are both rejected | `contracts` | |
-| AC-8 | Cross-chain **garden** identity | On a pinned fork, the Gnosis garden account matches the Arbitrum address **and** its bound `(chainId, tokenContract, tokenId)` tuple, deployed runtime code hash, and owner/Safe topology all match the expected values. Covers garden accounts only — gardener accounts are AC-15 | `contracts` | |
-| AC-9 | Non-transferability preserved | `CommitmentRegistry` exposes no transfer or approval function after all changes | `contracts` | |
-| AC-10 | Bounded swap only | Every exchange path uses the `minAmountOut` + `deadline` form | `contracts` | |
-| AC-11 | Failure modes | De-listing with a held balance, rate change mid-flight, limit exhaustion and pool insolvency each produce a defined, surfaced outcome. Adapter-side handling is provable on a controlled venue; the venue's own behaviour is Slice 5b, mainnet-only | `qa_pass_1` | |
-| AC-12 | Regression review | Existing pooling, settlement and credit behavior unchanged | `qa_pass_2` | |
-| AC-13 | Credit line traces to evidence | The limit request cites named delivery figures from the pool passport over a stated window, and the citation is recorded. A cap with no evidence input fails this check even if the limit reads back correctly | `state_api` | |
-| AC-14 | Per-contributor quantity | Every mint amount traces to a recorded per-contributor quantity. No allocation is inferred by splitting `targetUnits` across contributors | `contracts` | |
-| AC-15 | Gardener recipient path | Vouchers for individuals land in the contributor's own Kernel account, never a garden account. Proven on a fork with a multi-contributor commitment | `contracts` | |
-
-## Test Strategy
-
-- **Unit**: weight arithmetic and rounding bounds; double-spend prevention; `ValuationPolicy` freeze
-  semantics; interface encode/decode against documented shapes.
-- **Integration**: cycle open → weighted authorization → CCIP command → Gnosis mint on forked
-  Arbitrum + Chiado; MCC profile assembly from indexer output.
-- **Fork**: exact-address GardenAccount derivation on Gnosis; gardener Kernel-account derivation,
-  proven separately; `GiftableToken` expiry and burn;
-  bounded-swap slippage and deadline; de-listing with a held balance.
-- **E2E**: steward authors and freezes → gardener sees → commits → confirmed → voucher appears →
-  transfers to a third party → third party redeems.
-- **Manual**: locale tone en/es/pt; the contribution ledger reading as a ledger, not a wallet.
-- **TDD proof**: RED/GREEN commands and evidence recorded in lane handoffs and summarized in
-  `status.json` when lanes are dispatched.
-
-## QA Sequence
-
-### Claude QA Pass 1
-
-Focus on failure modes, UX comprehension of the valuation table, missing requirements, and test
-gaps. The motivation-crowding and measurement-capture risks in `spec.md` §10 are QA concerns, not
-only design concerns — check whether the surfaces read as recognition or as transaction.
-
-### Codex QA Pass 2
-
-Starts only after `qa_pass_1` passes. Re-run targeted validation; close remaining defects; verify
-no AGPL source entered the tree and that every interface is traceable to `docs/SPEC.md`.
-
-## Pilot Evidence Alignment
-
-This work feeds, and does not bypass, `commitment-pooling/pilot-evidence-spec.md`:
-
-- §3 reciprocity — what reciprocal relation remains after fulfilment
-- §5 exchange demand — repeated bilateral or multilateral demand, not one-off feature interest
-- §6 safeguards — who is disadvantaged by transferability and how repair works without scoring people
-- §8 circulation — in-pool use, redemption, reseed, leak and hoarding; **low volume or mixed findings
-  are valid evidence**
-- §9 privacy — publication rules for event-derived pair and holding data
-- §11 the September evidence packet
-
-A pilot that shows all exchange settling bilaterally is a successful evaluation, not a failed one.
+Measure useful service use, repeated participation, outstanding obligations, assistance and recovery.
+Capture whether a third-party credit exchange solves a real need; a bilateral-only result is valid.
+Money, volunteer time, knowledge, equipment and relationships do not become one invented total.
+Impact certificates require their own claim and verification basis. The pitch must show both the
+supported benefit and the evidence still missing.

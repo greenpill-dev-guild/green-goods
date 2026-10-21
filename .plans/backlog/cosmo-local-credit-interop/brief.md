@@ -1,89 +1,67 @@
-# Cosmo-Local Credit Voucher Interoperability
+# Cosmo-Local Integration
 
-**Slug**: `cosmo-local-credit-interop`
-**Stage**: `backlog`
-**Priority**: `p2`
-**Created**: `2026-08-25`
-**Posture**: scoping and architecture only. **No implementation is authorized by this hub.**
-**Linear**: [RESR-73](https://linear.app/greenpill-dev-guild/issue/RESR-73) design record ·
-[RESR-74](https://linear.app/greenpill-dev-guild/issue/RESR-74) Slice 0 due diligence ·
-[GROW-43](https://linear.app/greenpill-dev-guild/issue/GROW-43) hackathon entry
-**Related hubs**: [`commitment-pooling`](../../active/commitment-pooling/),
-[`commitment-credit-follow-on`](../../backlog/commitment-credit-follow-on/),
-[`community-interface`](../../backlog/community-interface/),
-[`celo-garden-account-safe-ownership`](../../ARCHIVE.md) (closed 2026-09-10)
+**Reconciled:** 2026-10-09 · **Stage:** backlog · **Posture:** planning and research;
+implementation and live operations require their own accepted dispatch.
 
-## Problem
+**Linear project:** [Cosmo-Local Integration](https://linear.app/greenpill-dev-guild/project/cosmo-local-integration-6273120022c7)
+· [Architecture RESR-73](https://linear.app/greenpill-dev-guild/issue/RESR-73)
+· [Delivery PRD-857](https://linear.app/greenpill-dev-guild/issue/PRD-857)
 
-Green Goods records contribution and never lets it move. A gardener's confirmed work — teaching a
-session, cooking for the hub, running a workshop — becomes an attested record that is visible only
-inside Green Goods and usable by no one, including the person who did it.
+## Outcome
 
-Two consequences follow.
+A member can contribute to a hub, earn access to useful services, use those services and understand
+what remains available or owed. A supporter can fund access and follow the resulting delivery.
+Tech and Sun and Green Goods are the first two proposed service-credit issuers.
 
-**Inside a hub**, contribution that already happens informally stays incoherent. It may be
-*recognized* — someone says thanks — but it is not *valued*, and it is not valued **against other
-things**, so it cannot be reciprocated fairly, aggregated, or compared. Unpaid care and teaching
-labor is the part that disappears most reliably.
+Green Goods records commitments, evidence, confirmation and support. Cosmo-Local supplies the
+planned service-credit exchange mechanism. The passport makes their relationship understandable
+to communities, the Nigerian diaspora and institutions without requiring them to understand chains.
 
-**Outside a hub**, funders cannot see any of it without a Green Goods login. There is no
-machine-readable surface a bank, council, or foundation can inspect with its own tools, so a
-place-based organisation with a strong delivery record still reads as unbanked and uncollateralised.
+## Current scope
 
-Grassroots Economics' Cosmo-Local Credit network solves the second half — a deployed clearing
-network for redeemable commitments on Gnosis — and has no source of truth for whether a commitment
-was actually kept. Green Goods is that source of truth and has no exchange layer. The two halves
-fit.
+- Two community-owned Gnosis credit pools, bounded earned and purchased issuance, direct swaps,
+  service presentment and discharge, and explicit failure/recovery behavior.
+- A passport joining actual funding, issuance and delivery receipts with capacity and obligations.
+- Pilot terms and consent, a local fork rehearsal, and a separate human decision on any live use.
+- Research and pitch material explaining hub, community, diaspora and institutional participation.
+- Coordinated [PWA simplification](../pwa-interface-simplification/brief.md), with its own design gate.
 
-## Desired Outcome
+[Garden Fiat Contributions](https://linear.app/greenpill-dev-guild/project/garden-fiat-contributions-3675da59ceb3)
+retains the fiat-onramp stretch. Its provider qualification, email wallet, gas sponsorship, payment
+recovery and live-pilot approval remain separate. A blocked stretch does not block the core pitch.
 
-**Should become possible**
+## What is already true
 
-- A gardener's confirmed contribution mints a Gnosis-native voucher they can transfer to someone
-  else, who can use it.
-- A garden gets an effective credit line — how much of its voucher a pool will absorb — set by its
-  delivery record rather than by collateral it does not have. **The evidence link is the promise, so
-  it needs a gate**: the limit request must cite named delivery figures (kept rate, distinct
-  providers, confirmed volume over a stated window) drawn from the pool passport, and that citation
-  must be recorded. Without it an arbitrary manually chosen cap satisfies every check while the
-  core outcome goes undemonstrated. See `eval.md` AC-13.
-- Value moves between gardens without converting to cash.
-- A funder inspects a garden's pool from outside Green Goods, with their own tools, against a
-  machine-readable profile.
+The 9 October [whitepaper review](whitepaper-v8-review.md) found implemented commitment, settlement,
+yield and certificate foundations in checkout `06a31dbf5`, but no CLC runtime integration. Its 275
+passing focused contract tests establish only the tested foundation behavior. They are not an
+integration proof, security audit or current deployment certificate.
 
-**Should become easier or safer**
+Commitment Pooling's Linear project is closed as the foundation. Its source hub remains available
+for unresolved operational evidence, now tracked in this project. No unfinished lane was certified
+by the project move; see [the reconciliation record](project-reconciliation.md).
 
-- Green Goods inherits a reviewed, deployed exchange layer (pool, router, quoters, limiter) instead
-  of building and auditing an AMM.
-- Contribution weighting becomes an explicit, frozen, published governance act instead of an
-  implicit hierarchy.
+## Decisions still needed
 
-**Should not change**
+Both issuers must agree service prices and available capacity, earning and purchase entitlements,
+recipient allocation, partial delivery, discharge and repair. Terms and reporting consent are
+separate. A token holding limit is not a loan facility or proof of service capacity.
 
-- `CommitmentRegistry` stays non-transferable and authoritative for promises. Vouchers are
-  settlement instruments, never ownership of a promise.
-- No custody in `CommitmentPoolingModule` or `CommitmentRegistry`.
-- No per-person score, ordered participant comparison, or protocol-consumed individual standing.
-- No bridged value. Vouchers are Gnosis-native; only authorization crosses.
-- Clean-room boundary: no AGPL source is read, imported, or vendored.
+The October go/no-go must address each existing mainnet gate explicitly. Current plans grant no
+waiver. The PWA composition and the pitch's first buyer, offer and funding ask also remain open.
 
-## Scope Notes
+## Evidence of success
 
-**In scope for this hub**: architecture, the CPP crosswalk, the tension analysis, the slice
-sequence, evidence gates, and the resource record.
+Demonstrate a useful, understandable service journey and a supporter who can follow funding to
+delivery. Record whether third-party exchange is actually useful; low demand or bilateral-only
+use is a valid finding. Keep native service units, money, credit balances and impact claims distinct.
 
-**Out of scope for this hub**: every line of implementation, any deployment, any mainnet
-transaction, any partnership commitment, any custody or authority change, and any Linear execution
-issue. Those require their own scope lock and explicit human dispatch.
+## Read next
 
-## Success Signal
+- [Architecture](spec.md), [work and decisions](plan.todo.md), [acceptance evidence](eval.md).
+- [Claude Fable research and pitch handover](handoffs/claude-fable-research-pitch.md).
+- [Prior discussion](hackathon-discussion.md) and [v0.8 review](whitepaper-v8-review.md), dated evidence.
 
-One Green Goods garden's confirmed contributions mint a Gnosis-native voucher that is listed,
-priced, and exchangeable in a Cosmo-Local Credit pool, and the pool is discoverable from outside
-Green Goods through a machine-readable profile whose fulfilment figures trace back to counterparty
-confirmations on Arbitrum.
-
-The falsifiable version, which the pilot must actually answer: **do vouchers move through a third
-party, or does everything settle bilaterally?** If it is all bilateral, the finding is that the
-token was not needed — and per `commitment-pooling/pilot-evidence-spec.md` §8 that is a valid
-result, not a failure.
+The August weighted-contribution design is superseded. Its version remains in Git history at
+`06a31dbf5`; it is not the October build. The older [tensions](tensions.md) and [resources](resources.md)
+remain useful historical research with the authority and freshness limits stated there.
