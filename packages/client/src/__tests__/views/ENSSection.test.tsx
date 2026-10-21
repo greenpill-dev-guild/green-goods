@@ -111,6 +111,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  vi.restoreAllMocks();
 });
 
 describe("Profile ENSSection", () => {
@@ -154,6 +155,7 @@ describe("Profile ENSSection", () => {
   });
 
   it("prepares a support request for a passkey account's change", async () => {
+    const openSupport = vi.spyOn(window, "open").mockReturnValue(null);
     mocks.changeBySupport = true;
     renderSection();
     fireEvent.click(screen.getByRole("button", { name: "Change Username" }));
@@ -174,9 +176,12 @@ describe("Profile ENSSection", () => {
     expect((receipt as HTMLTextAreaElement).value).toContain(
       "Desired name: ines-duarte.greengoods.eth\nReason: I still use this sign-in\nContact: @ines_d\nNotes: New phone"
     );
-    expect(
-      within(sheet()).getByRole("button", { name: "Open Telegram Support" })
-    ).toBeInTheDocument();
+    fireEvent.click(within(sheet()).getByRole("button", { name: "Open Community Support" }));
+    expect(openSupport).toHaveBeenCalledWith(
+      "https://discord.gg/greenpill",
+      "_blank",
+      "noopener,noreferrer"
+    );
   });
 
   it.each([
