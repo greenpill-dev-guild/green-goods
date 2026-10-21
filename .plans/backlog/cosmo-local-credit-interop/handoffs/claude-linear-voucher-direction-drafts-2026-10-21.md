@@ -126,6 +126,20 @@ usable for their own services" at 07:18 UTC and read back with every field uncha
 > capped rule; expiry, legal, audit, custody and authority still need their own decisions before
 > live use. Points 1, 2, 5 and 7 stand. Source: the Cosmo-Local hub spec, "Voucher direction".
 
+Follow-up found in PR #1170 review on 21 October: the applied comment above also superseded
+point 6, but the one-pool proof gate remains active. The original applied comment is retained as
+history. Afo approved this corrective comment separately; it was added to Linear at
+18:12:59 UTC and read back at 18:13:18 UTC on 21 October. Comment ID:
+`13c5454a-85e9-42ac-a613-d5afaf38a3b9`. PRD-796 remains Done; its description and state history are
+unchanged:
+
+> Correction to the 21 October voucher-direction comment: Decision Log #69 supersedes the
+> fulfilled-first issuance order only. PRD-796 point 6 remains active: one bounded pool must prove
+> issuance, seed, exchange in/out, service use, liquidity, and repair before capacity-backed
+> issuance or federation. Curated issuance does not itself close consent, exposure, default,
+> expiry, repair, liquidity, legal, audit, custody, or authority decisions. The release gates remain
+> unchanged. Source: PR #1170 and commitment-pooling Decision Log #69/register #163.
+
 ### PRD-651 (Backlog): one comment
 
 > On 21 October Afo made the explicit scope decision this issue requires for capacity-backed

@@ -39,8 +39,9 @@ Everything below is addressed to the implementing agent.
 Write two Green Goods contracts, a service desk, a message codec and hand-written Cosmo-Local
 interfaces, then prove on pinned Arbitrum and Gnosis forks that:
 
-- a fulfilled Arbitrum commitment whose voucher terms were agreed before acceptance delivers its
-  vouchers on Gnosis exactly once, through replay, retry, requeue, repair and the issuer's fallback;
+- a fulfilled Arbitrum commitment with voucher terms registered and issuer-approved before
+  acceptance delivers its vouchers on Gnosis exactly once, through replay, retry, requeue, repair
+  and the issuer's fallback;
 - supporters buy vouchers through the issuer pool's bounded swap, and members exchange vouchers
   within each pool's limit on the other issuer's voucher;
 - exhausted inventory, de-listing, a changed quote and a refused sponsorship fail safely and
@@ -48,6 +49,12 @@ interfaces, then prove on pinned Arbitrum and Gnosis forks that:
 - a voucher is presented, delivered fully or partly, confirmed by the holder and discharged once,
   or remedied with its outstanding balance shown when the hub cannot deliver;
 - every simulated element is labeled in the receipts.
+
+This rehearsal proves the registration window and issuer approval, not the claimant's agreement
+to an exact voucher revision. The claimant neither accepts a revision nor signs its hash under
+these defaults. The report must label exact-revision claimant consent **unproved**, separately from
+M1's steward approvals, until PRD-1315 selects a binding mechanism and that mechanism is exercised.
+This limitation does not expand the approved fork scope.
 
 ## Decided inputs: do not reopen
 
@@ -85,15 +92,17 @@ and 6 and findings F1, F3, F4 and F7 of [the review](claude-architecture-review-
 | Purchased issuance checks a settled purchase entitlement | P1 | Default 4 makes a purchase one atomic swap: payment settles in the same call and no separate entitlement exists. |
 | Replays and a new message reusing an entitlement cannot deliver twice | G2, G3, G11 | As written. |
 | No limit changes cross chains; caps and allowances are the issuer's | G4, G9, G10 | As written. |
-| Season caps and pool holding limits fail safely | G9, P2 | As written. |
+| Season caps and pool holding limits fail safely | G9, P2 | G9 proves the adapter's season budget and allowance; P2 proves the pool holding limit. Neither proves the issuer's total outstanding-voucher cap, which remains unproved. |
 | A gardener account's same-address derivation and ownership | K1 to K3 | With the validator stand-in. |
 | Bounded swaps; exhausted inventory, de-listing, changed quotes and sponsorship failure recover | P1, P3 to P5, P10, K4 | Sponsorship uses a fork-local paymaster (A8). |
 | Passkey validator gap rehearsed with a labeled stand-in and the live gap recorded | K2 | The live fix stays a gate. |
 | Presentment, full or partial delivery, beneficiary confirmation, discharge once; remedy and outstanding balance | S1 to S6 | Through the service desk (A1). |
 | Interfaces from published specifications; fork receipts distinct from live CCIP; swap-back simulated; G$ never a Gnosis rail | Interface headers, L1, P6 | As written. |
 
-Report against this table. The first two rows read stronger in Linear than the adopted defaults
-deliver; say so in the report and leave any Linear change to Afo.
+Report against this table. The earned-issuance, purchase-entitlement and season-cap rows read
+stronger in Linear than the adopted defaults deliver; say so in the report and leave any Linear
+change to Afo. Completion of this bounded rehearsal does not close the claimant-consent,
+issuer-cap or live-handshake decisions.
 
 ## Verified facts to build on
 
@@ -205,8 +214,8 @@ reserve floor like SettlementModule's `feeReserveMinimum`.
   Arbitrum issuer garden to its Gnosis token and adapter, so terms can never name an arbitrary
   token; plus route (destination selector, gas limit, command validity window), fee reserve minimum
   and pause.
-- Terms are accepted only while the commitment is `Offered` or `Requested`; otherwise revert with
-  the actual state.
+- Terms can be registered or issuer-approved only while the commitment is `Offered` or
+  `Requested`; otherwise revert with the actual state.
   - `registerVoucherTerms(commitmentId, issuerGarden, units, seasonId, termsCID)` by a steward or
     owner hat wearer of `getPool(commitment.poolId).garden`, the test in
     `CommitmentPoolingGuardLib.isGardenSteward`. Refuse a Request whose `claimType` is `Garden`
@@ -354,7 +363,7 @@ No new code: configuration through the published factory and implementations.
 
 | Case | Expected |
 |---|---|
-| M1 | Terms registered and approved before acceptance; after `Fulfilled`, one dispatch sends one command to the configured adapter with `recipient = leadProvider`: the creator for an Offer, the claimant for an individually claimed Request. |
+| M1 | Terms registered and issuer-approved before acceptance; after `Fulfilled`, one dispatch sends one command to the configured adapter with `recipient = leadProvider`: the creator for an Offer, the claimant for an individually claimed Request. Steward approval does not prove the claimant's exact-revision consent. |
 | M2 | Register or approve after acceptance reverts. |
 | M3 | Register by a non-steward of the pool garden, approve by a non-steward of the issuer garden, or an unconfigured issuer garden reverts. |
 | M4 | Editing terms before acceptance bumps the revision and clears approval; approving an old revision reverts. |
@@ -484,7 +493,9 @@ fork blocks, RPC endpoints and the Arbitrum on-ramp version; implementation and 
 with their pinned code hashes; fork-local instance addresses; owner, admin, writer, limit, fee and
 seal state; each command with its pass count; the case table with results; the PRD-1096 table above
 with each row's evidence; outstanding supply before and after the service cases; the label legend;
-what stays live-only or unproved, including issuer-cap enforcement; and a short update Afo can post to PRD-1096. End with the task record:
+what stays live-only or unproved, including issuer-cap enforcement and exact-revision claimant
+consent (not proved by registration or issuer approval); and a short update Afo can post to
+PRD-1096. End with the task record:
 
 ```markdown
 Task record: PRD-1096 voucher rehearsal | Type: feature | Outcome: <complete/partial/blocked>

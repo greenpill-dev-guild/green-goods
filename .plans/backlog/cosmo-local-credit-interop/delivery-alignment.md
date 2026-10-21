@@ -27,8 +27,9 @@ Commitment Credit lending companion are not hackathon prerequisites. No Urgent p
 Research, strategy and pitch drafts can advance while implementation is pending. The first
 audience recorded in RESR-94 is Omo Yoruba of Southern California. The $30 seat, $800 TAS season
 pack and $1,200 Green Goods coordination package remain labeled scenarios pending COM-46 terms;
-the exact gift method and named first supporter remain unconfirmed. Use the current draft package
-in [PR #1068](https://github.com/greenpill-dev-guild/green-goods/pull/1068), not a second deck.
+the exact gift method and named first supporter remain unconfirmed. Edit the included
+[deck](artifacts/deck/index.html) and [speaker notes](artifacts/deck/speaker-notes.md), with the
+[claim ledger](research/claim-ledger.md) as the evidence source.
 
 Product works forward from a useful member action to evidence, voucher access, service fulfillment
 and remaining obligations. Pitch works backward from the supporter's decision to the service offer
@@ -92,8 +93,9 @@ voucher as a token or record representing an issuer's commitment under published
   automatically loans. G$ remains a separate payment asset, not a voucher unit or a US dollar.
 - Apply the wording to current project overviews, open delivery issues, acceptance copy and new
   public materials. Preserve historical reports, Done descriptions, quoted source titles, code
-  identifiers and the existing hub slug. PR #1068's editable deck/ledger terminology follow-up is
-  owned by MAR-32 and RESR-94; its artifacts are not present in this checkout and were not rewritten.
+  identifiers and the existing hub slug. MAR-32 and RESR-94 own the deck/ledger terminology
+  follow-up. The deck and speaker notes are now included in this hub; the 16 October planning pass
+  below predates their inclusion.
 
 The [integration specification](spec.md) owns the planned meaning and boundaries. This decision
 does not rename a deployed contract, token, ABI, schema or the separate lending product.

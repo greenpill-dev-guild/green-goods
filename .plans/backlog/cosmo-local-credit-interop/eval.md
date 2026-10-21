@@ -1,7 +1,11 @@
 # Cosmo-Local Integration — acceptance evidence
 
-**Reconciled:** 2026-10-20 UTC. These criteria apply to separately accepted implementation slices.
+**Reconciled:** 2026-10-21 UTC. These criteria apply to separately accepted implementation slices.
 No check below is certified by planning, a Linear state or the completed foundation project.
+PRD-1096 covers its approved fork scope only: its report must keep exact-revision claimant consent,
+issuer-cap enforcement and the live escrow-to-promise handshake unproved where the defaults do not
+exercise them. Steward approval is not claimant consent, and the service-desk stand-in is not the
+live handshake.
 
 | Boundary | Required observable evidence | Owner |
 |---|---|---|
@@ -11,7 +15,7 @@ No check below is certified by planning, a Linear state or the completed foundat
 | Partial cross-chain outcome | G$ success with voucher delay, voucher delivery with lost acknowledgment and safe reconciliation do not duplicate either asset | PRD-1318 / PRD-1326 |
 | Protocol version | Selected Gnosis implementations match the published build artifacts (four established on 20 October, the rest pending) and controllers and proxy admins are recorded; re-read at the deployment block | PRD-1319 / PRD-1325 |
 | Earned issuance | Source entitlement, eligibility and actual confirmer path retained; no assumed beneficiary confirmation | PRD-1096 / COM-46 |
-| Purchased issuance | Settled receipt, correct recipient allocation, cancellation/refund policy and unique entitlement | PRD-1096 / COM-46 |
+| Purchased issuance | The issuer pool's bounded swap settles payment and voucher delivery atomically; record finality, recipient, actual output, minimum output, deadline and inventory delta. No separate purchase message or entitlement exists under this route. A later route with separate settlement must define its entitlement and payment cancellation/refund rules; COM-46 owns service cancellation/refund terms in either case | PRD-1096 / COM-46 |
 | Replay and recovery | Same message and distinct-message reuse both rejected; retry cannot deliver twice; failed and pending states reconcile | PRD-1096 |
 | Capacity and caps | Agreed deliverable service capacity, issuance cap and token holding limits remain distinct and bounded | COM-46 / PRD-1096 |
 | Issuer budget | The amount the adapter can deliver is bounded by the token (allowance) or by a revocable writer cap; the adapter holds no pool or limiter authority | PRD-1318 / COM-46 |

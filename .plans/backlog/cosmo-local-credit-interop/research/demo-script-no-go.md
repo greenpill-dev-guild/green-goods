@@ -11,7 +11,7 @@ live receipt.
 
 - Live today: the promise record, confirmation by the person served, evidence, and G$ support on
   Celo.
-- Rehearsal: a promise that carries voucher terms agreed before acceptance; voucher delivery to the
+- Rehearsal: voucher terms registered and issuer-approved before acceptance; voucher delivery to the
   person who did the work once the promise is fulfilled; a supporter's purchase and a member's
   exchange, each through a bounded swap in a Cosmo-Local pool; presentment and discharge at a
   service desk that stands in for the planned promise. These run on pinned local copies of Arbitrum
@@ -19,6 +19,9 @@ live receipt.
   deployed Gnosis code matched that build byte for byte on 20 October. The cross-chain message is
   simulated and labeled, and member actions on Gnosis use a labeled stand-in for the passkey
   validator that Gnosis lacks.
+- Unproved by that rehearsal: the claimant's agreement to the exact voucher revision, issuer-cap
+  enforcement and the live escrow-to-promise handshake. Steward approval does not establish the
+  claimant's agreement; keep those limits in the evidence pack.
 - Planned: the passport's Gnosis panel; the live pools; the fiat route; a real cross-chain voucher
   message (the lane quotes our message format both ways, but none has been sent); and the
   21 October voucher direction: presentment opening a promise, Offers that accept vouchers and
@@ -41,7 +44,7 @@ live receipt.
 | 1 | The hub | PWA hub home: next session, power and internet, a person to ask | member | the product starts with a service | staging screen recording | the approved hub photo with a static screenshot |
 | 2 | A real kept promise | A real commitment from the Tech and Sun pool: provider, confirmer, evidence, confirmation path | member | confirmation by the person served, live | Arbitrum record link | if no consented real record exists, use a team member's own commitment and say so |
 | 3 | Real support | The acknowledged G$ support for that promise | member | money followed a kept promise, live | Celo acknowledgment | show the queued state with its retry owner |
-| 4 | Rehearsal: vouchers arrive | On the local copies: a promise whose voucher terms were fixed before acceptance is fulfilled, and its vouchers reach the address of the member who did the work; a supporter buys vouchers through the hub's Cosmo-Local pool with a bounded swap; a replayed message delivers nothing twice | member, supporter | once-only issuance within the hub's budget | fork receipts with block numbers and the "local rehearsal" label | narrate from the test log |
+| 4 | Rehearsal: vouchers arrive | On the local copies: a promise with voucher terms registered and issuer-approved before acceptance is fulfilled, and its vouchers reach the address of the member who did the work; a supporter buys vouchers through the hub's Cosmo-Local pool with a bounded swap; a replayed message delivers nothing twice | member, supporter | once-only delivery within the issuer's delegated allowance; claimant consent remains unproved | fork receipts with block numbers and the "local rehearsal" label | narrate from the test log |
 | 5 | Rehearsal: use a voucher | At the stand-in service desk: presentment, delivery, confirmation, discharge; a second discharge attempt fails. Say that in the live design, presenting opens a promise instead | member | exactly-once discharge | fork receipts, with the desk labeled as a stand-in | narrate |
 | 6 | Rehearsal: one bounded swap | Quote, minimum output, deadline; then a stale quote rejected | member | bounded exchange and a safe failure | fork receipts | narrate |
 | 7 | Rehearsal: a failure | A session the hub cannot deliver: the remedy returns the voucher units, and the outstanding balance stays visible | steward | repair is visible | fork receipts | narrate |
