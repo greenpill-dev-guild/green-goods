@@ -84,7 +84,7 @@
 
 - Tested implementation commit SHA: step 1's face and guides, `9ef990bc1` and `829aaf9e9`; the gate
   ran at head `b0fb7f4dc` on a clean tree.
-- Run at (UTC): 2026-10-21, 08:03 to 08:15.
+- Run at (UTC): 2026-10-21, 08:03 to 08:08.
 - Exact command(s): `node scripts/dev/ci-local.js --intent push --reuse-passing-receipts
   --test-path shared:src/__tests__/styles/buttonShape.guard.test.ts --test-path
   docs:src/components/docs/designTokens.test.ts --test-path agent:src/__tests__/i18n.test.ts
