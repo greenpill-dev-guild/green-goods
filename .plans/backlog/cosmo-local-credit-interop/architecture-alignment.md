@@ -125,10 +125,10 @@ sequenceDiagram
   and Voucher issuance
     A->>C: Read accepted terms and fulfillment
     A->>V: Authorized entitlement, stable identity
-    V->>U: Mint agreed voucher units once
+    V->>U: Transfer agreed voucher units from issuer reserve once
     V--xA: Acknowledgment delayed or lost
     A->>V: Reconcile same entitlement
-    V-->>A: Stored execution receipt; no second mint
+    V-->>A: Stored execution receipt; no second delivery
   end
   U->>E: Later present voucher and receive service
   E->>E: Confirm delivered units and discharge under issuer terms

@@ -89,7 +89,7 @@ and 6 and findings F1, F3, F4 and F7 of [the review](claude-architecture-review-
 | A gardener account's same-address derivation and ownership | K1 to K3 | With the validator stand-in. |
 | Bounded swaps; exhausted inventory, de-listing, changed quotes and sponsorship failure recover | P1, P3 to P5, P10, K4 | Sponsorship uses a fork-local paymaster (A8). |
 | Passkey validator gap rehearsed with a labeled stand-in and the live gap recorded | K2 | The live fix stays a gate. |
-| Presentment, full or partial delivery, beneficiary confirmation, discharge once; remedy and outstanding balance | S1 to S5 | Through the service desk (A1). |
+| Presentment, full or partial delivery, beneficiary confirmation, discharge once; remedy and outstanding balance | S1 to S6 | Through the service desk (A1). |
 | Interfaces from published specifications; fork receipts distinct from live CCIP; swap-back simulated; G$ never a Gnosis rail | Interface headers, L1, P6 | As written. |
 
 Report against this table. The first two rows read stronger in Linear than the adopted defaults
@@ -226,6 +226,8 @@ reserve floor like SettlementModule's `feeReserveMinimum`.
   `requeue(commitmentId)` starts a new attempt with a fresh deadline after an operator has read a
   Failed result on Gnosis. Both are steward-only. Requeue is safe by construction because the
   adapter consumes entitlements, not attempts.
+- Pause blocks registration, approval, dispatch, retry and requeue before any state change, fee
+  spend or message send, following `Settlement/Lifecycle.sol`'s `_requireNotPaused()` guards.
 - No receive path in this slice (default 5). Do not add `ccipReceive`.
 
 ### VoucherIssuanceAdapter (Gnosis, one per issuer)
@@ -241,11 +243,16 @@ Follow the order in `CeloSettlementExecution._ccipReceive` and `_authenticate`
 - `executionKey = keccak256(abi.encode(message.sourceChainSelector, sender, entitlementId,
   attempt))`. If a result already exists, emit a duplicate event and transfer nothing.
 - Otherwise store a result, then check in order: token matches, deadline not passed, entitlement
-  not consumed, recipient and amount non-zero, season cap if set. Then call
-  `transferFrom(reserveHolder, recipient, amount)` inside try/catch and verify the recipient's
-  balance rose by exactly `amount`. On success, mark the entitlement consumed and store Success. On
-  any failure, store Failed with a code and leave the entitlement unconsumed. Business failures
-  never revert, so a requeue can repair them.
+  not consumed, recipient and amount non-zero, season cap if set. Execute the transfer and its
+  balance check together in an external, self-only helper, called through try/catch as in
+  `CeloSettlementExecution.executeGdollarSettlementBatch`. The helper calls
+  `transferFrom(reserveHolder, recipient, amount)`, requires a successful token return and reverts
+  if the recipient's balance did not rise by exactly `amount`. A failed transfer or balance check
+  rolls back the entire helper call, including token balances and allowance spending. Only after
+  the helper succeeds, mark the entitlement consumed, count the season spend and store Success.
+  Preflight failures and caught helper failures store Failed with the matching code and leave the
+  entitlement and season spend unchanged. The outer handler does not revert for these business
+  failures; a requeue is safe because a failed helper moved no tokens.
 - `deliverByIssuer(bytes payload)`, owner only (A7): decode as the lane does, compute the key from
   the configured source selector and source module, then follow the same result-first order and
   checks. A later lane message for the same attempt is a duplicate, and a requeued attempt stores
@@ -261,9 +268,11 @@ Follow the order in `CeloSettlementExecution._ccipReceive` and `_authenticate`
 - The issuer Safe owns it and sets an operator, the hub.
 - `present(units, serviceRef)` by a holder pulls the units with `transferFrom` and opens a
   presentment. `markDelivered(id, deliveredUnits)` by the operator, at most the presented units.
-  `confirmReceipt(id)` by the holder records the beneficiary confirmation and discharges once:
-  delivered units go to the issuer Safe and the rest return to the holder. `remedy(id, reasonRef)`
-  by the operator before confirmation returns every unit.
+  `confirmReceipt(id)` by the holder requires a positive recorded delivery, records the beneficiary
+  confirmation and discharges once: delivered units go to the issuer Safe and the rest return to
+  the holder. With no recorded delivery or zero delivered units, confirmation reverts without
+  changing balances or closing the presentment. `remedy(id, reasonRef)` by the operator before
+  confirmation returns every unit, including when no service was delivered.
 - Views report each open presentment's undelivered units and the desk's total outstanding units.
   Every transition emits an event.
 - Any second transition on a closed presentment reverts. The desk never mints or burns. SPEC lets
@@ -353,7 +362,7 @@ No new code: configuration through the published factory and implementations.
 | M6 | Dispatch before `Fulfilled`, without approved terms (including a fulfilled commitment that never had terms), or after cancellation or expiry reverts. |
 | M7 | A second dispatch reverts; retry resends the identical payload under the same key; requeue is steward-only and increments the attempt. |
 | M8 | Fulfillment through `PoolFallback`, `ProtocolFallback` and dispute resolution all qualify (unit test with the mock pooling module). |
-| M9 | The exact quoted fee is paid and the reserve floor holds; pause blocks register, approve and dispatch; the module holds no tokens. |
+| M9 | The exact quoted fee is paid and the reserve floor holds; pause blocks register, approve, dispatch, retry and requeue before any state change, fee spend or message send; the module holds no tokens. |
 | M10 | Changing the issuer mapping after approval leaves the approved revision's token and destination unchanged for dispatch, retry and requeue; no entitlement reaches a second adapter. |
 
 **Gnosis adapter**
@@ -372,6 +381,7 @@ No new code: configuration through the published factory and implementations.
 | G10 | The adapter is not a writer of the token or limiter, does not own the pool and holds no balance of its own. |
 | G11 | The issuer fallback delivers a stored command once; the same attempt arriving later over the lane is a duplicate; a requeued attempt stores `EntitlementConsumed`; a non-owner call reverts; the result names the fallback path. |
 | G12 | Delivery to a member's counterfactual account address, with no code on Gnosis, succeeds. |
+| G13 | A token that moves funds but returns false, or whose transfer produces a recipient balance delta other than `amount`, stores `TransferFailed` or `BalanceDeltaMismatch` respectively. The helper rolls back balances and allowance spending; the entitlement and season spend stay unchanged. Cover lane delivery and issuer fallback: repeated requeues under the mismatch move no tokens, and a requeue after repair delivers exactly once. |
 
 **Pools and exchange (Gnosis fork)**
 
@@ -397,6 +407,7 @@ No new code: configuration through the published factory and implementations.
 | S3 | Remedy before confirmation returns every unit. |
 | S4 | A second confirmation or remedy on a closed presentment reverts; only the operator delivers or remedies and only the holder confirms. |
 | S5 | The desk reports undelivered units while a presentment is open, and the report shows the issuer's outstanding supply (total supply minus the Safe's balance) before and after S1 to S3. |
+| S6 | Confirmation before any `markDelivered`, or after recording zero delivered units, reverts with balances unchanged and the presentment still open; no confirmation or discharge event is emitted. The operator can still remedy it and return every unit. |
 | K1 | The passkey account address is the same on both forks. |
 | K2 | `createAccount` reverts on Gnosis without the stand-in, reproducing the live gap, and succeeds with it. |
 | K3 | Member actions run from that account; the ECDSA control completes a signed user operation through EntryPoint. |
@@ -409,7 +420,7 @@ Risk first. Phases 1 to 4 are the minimum for the 23 October update; later phase
 
 1. Interfaces and conformance: write the interfaces, pin the code hash of every implementation and
    instance used, and prove each interface call on the Gnosis fork.
-2. Codec and adapter with G1 to G11.
+2. Codec and adapter with G1 to G11 and G13.
 3. Module with M cases.
 4. Fork rehearsal of earned issuance end to end: G1 to G5, G11 and G12 across both forks.
 5. Pools and exchange, P cases.
