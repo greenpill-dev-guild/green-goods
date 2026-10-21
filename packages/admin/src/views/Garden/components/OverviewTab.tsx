@@ -20,7 +20,7 @@ import { Link } from "react-router-dom";
 
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCard, AdminCardBody, AdminCardHeader, AdminCardTitle } from "@/components/AdminCard";
-import { localizeWorkActivityTitle } from "@/views/Hub/actionDisplay";
+import { localizeWorkActivityTitle } from "@/components/Action/actionDisplay";
 import { type GardenAlert, GardenAlertsCard } from "./GardenAlertsCard";
 import { formatReviewTime, SectionStateCard } from "./GardenDetailHelpers";
 import {

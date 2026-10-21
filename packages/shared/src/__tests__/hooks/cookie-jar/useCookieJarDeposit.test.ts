@@ -3,7 +3,7 @@
  */
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
 import type { Address } from "viem";
@@ -21,6 +21,7 @@ const mocks = vi.hoisted(() => ({
   toastSuccess: vi.fn(),
   toastDismiss: vi.fn(),
   warn: vi.fn(),
+  followUp: undefined as (() => void) | undefined,
 }));
 
 vi.mock("@wagmi/core", () => ({
@@ -37,11 +38,14 @@ vi.mock("../../../hooks/blockchain/useChainConfig", () => ({
 vi.mock("../../../hooks/blockchain/useContractTxSender", () => ({
   useContractTxSender: () => mocks.sendContractTx,
 }));
-vi.mock("../../../hooks/utils/useSafeMutation", () => ({
-  useSafeMutation: (mutation: unknown) => mutation,
+vi.mock("../../../providers/Auth", () => ({
+  useOptionalAuthContext: () => ({ authMode: "passkey" }),
 }));
 vi.mock("../../../hooks/utils/useTimeout", () => ({
-  useProgressiveInvalidation: () => ({ start: vi.fn(), cancel: vi.fn() }),
+  useProgressiveInvalidation: (invalidate: () => void) => {
+    mocks.followUp = invalidate;
+    return { start: vi.fn(), cancel: vi.fn() };
+  },
 }));
 vi.mock("../../../utils/errors/mutation-error-handler", () => ({
   createMutationErrorHandler: () => mocks.handleError,
@@ -100,6 +104,41 @@ describe("useCookieJarDeposit", () => {
     );
   });
 
+  it.each([
+    ["garden", () => useCookieJarDeposit(GARDEN)],
+    ["campaign", () => useCampaignCookieJarDeposit()],
+  ] as const)("guards one pending %s deposit against repeat sends and page unload", async (_scope, useDeposit) => {
+    mocks.readContract.mockImplementation(async () => 20n);
+    let finishDeposit!: (hash: `0x${string}`) => void;
+    mocks.sendContractTx.mockImplementationOnce(
+      () =>
+        new Promise<`0x${string}`>((resolve) => {
+          finishDeposit = resolve;
+        })
+    );
+    const { result } = renderMutation(useDeposit);
+    let first!: Promise<unknown>;
+    let second!: Promise<unknown>;
+    act(() => {
+      first = result.current.mutateAsync(params);
+      second = result.current.mutateAsync(params);
+    });
+    await waitFor(() => expect(mocks.sendContractTx).toHaveBeenCalledOnce());
+    const pendingUnload = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(pendingUnload);
+    expect(pendingUnload.defaultPrevented).toBe(true);
+
+    await act(async () => {
+      finishDeposit(TX_HASH);
+      await Promise.all([first, second]);
+    });
+    expect(mocks.sendContractTx).toHaveBeenCalledOnce();
+    expect(mocks.toastSuccess).toHaveBeenCalledOnce();
+    const completedUnload = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(completedUnload);
+    expect(completedUnload.defaultPrevented).toBe(false);
+  });
+
   it("approves the token before depositing and refreshes the jar after success", async () => {
     const { result, invalidateQueries } = renderDeposit();
 
@@ -153,6 +192,25 @@ describe("useCookieJarDeposit", () => {
     expect(mocks.sendContractTx).toHaveBeenCalledWith(
       expect.objectContaining({ address: JAR, functionName: "deposit", args: [10n] })
     );
+  });
+
+  it("keeps delayed refreshes scoped to the deposited garden after navigation", async () => {
+    let currentGarden = GARDEN;
+    const { result, rerender, invalidateQueries } = renderMutation(() =>
+      useCookieJarDeposit(currentGarden)
+    );
+    await act(async () => {
+      await result.current.mutateAsync(params);
+    });
+    const initialRefreshes = [...invalidateQueries.mock.calls];
+    invalidateQueries.mockClear();
+
+    currentGarden = "0x5555555555555555555555555555555555555555";
+    rerender();
+    act(() => mocks.followUp?.());
+
+    expect(invalidateQueries.mock.calls).toEqual(initialRefreshes);
+    expect(invalidateQueries).toHaveBeenCalled();
   });
 
   it("rejects an insufficient balance before any transaction", async () => {

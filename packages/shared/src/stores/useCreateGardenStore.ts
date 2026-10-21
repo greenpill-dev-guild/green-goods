@@ -7,7 +7,7 @@ import {
   createGardenSchema,
   type GardenStepId,
   gardenStepFields,
-} from "../hooks/garden/useCreateGardenForm";
+} from "../modules/garden/create-form";
 import type { CreateGardenParams } from "../types/contracts";
 import { type Address, Domain } from "../types/domain";
 import { WeightScheme } from "../types/gardens-community";

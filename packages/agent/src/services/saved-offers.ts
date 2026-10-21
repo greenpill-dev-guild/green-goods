@@ -1,4 +1,8 @@
-import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
+import {
+  createEncryptedRecordCipher,
+  type EncryptedRecordCipher,
+  parseRecordEncryptionKey,
+} from "./record-encryption";
 import {
   SAVED_OFFER_MAX_RECORDS_PER_OWNER,
   SAVED_OFFER_MAX_TOMBSTONES_PER_OWNER,
@@ -6,39 +10,16 @@ import {
   type SavedOfferRecord,
 } from "@green-goods/shared/public-contracts";
 import type { Address } from "@green-goods/shared/types";
-import type { ProfileAvatarSignatureVerifier } from "./profile-avatars";
+import type { AccountSignatureVerifier } from "./account-signatures";
 import * as db from "./db";
 
-export type SavedOffersSignatureVerifier = ProfileAvatarSignatureVerifier;
+export type SavedOffersSignatureVerifier = AccountSignatureVerifier;
 
-export type SavedOfferCipher = {
-  encrypt(plaintext: string): { ciphertext: string; nonce: string };
-  decrypt(encrypted: { ciphertext: string; nonce: string }): string;
-};
+export type SavedOfferCipher = EncryptedRecordCipher;
 
 export function createSavedOfferCipher(secret: string): SavedOfferCipher {
-  const key = parseEncryptionKey(secret);
-  return {
-    encrypt(plaintext) {
-      const nonce = randomBytes(12);
-      const cipher = createCipheriv("aes-256-gcm", key, nonce);
-      const encrypted = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
-      const authTag = cipher.getAuthTag();
-      return {
-        ciphertext: Buffer.concat([encrypted, authTag]).toString("base64"),
-        nonce: nonce.toString("base64"),
-      };
-    },
-    decrypt({ ciphertext, nonce }) {
-      const combined = Buffer.from(ciphertext, "base64");
-      if (combined.length < 17) throw new Error("Invalid Saved Offer ciphertext");
-      const authTag = combined.subarray(combined.length - 16);
-      const encrypted = combined.subarray(0, combined.length - 16);
-      const decipher = createDecipheriv("aes-256-gcm", key, Buffer.from(nonce, "base64"));
-      decipher.setAuthTag(authTag);
-      return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString("utf8");
-    },
-  };
+  const key = parseRecordEncryptionKey(secret, "SAVED_OFFERS_ENCRYPTION_KEY");
+  return createEncryptedRecordCipher(key, "Invalid Saved Offer ciphertext");
 }
 
 export type SavedOfferStore = {
@@ -200,17 +181,6 @@ export {
   type SavedOffersOwnerSession,
   type SavedOffersSessionStore,
 } from "./saved-offers-sessions";
-
-function parseEncryptionKey(secret: string): Buffer {
-  if (/^[0-9a-fA-F]{64}$/.test(secret)) return Buffer.from(secret, "hex");
-  const decoded = Buffer.from(secret, "base64");
-  if (
-    decoded.length === 32 &&
-    decoded.toString("base64").replace(/=+$/, "") === secret.replace(/=+$/, "")
-  )
-    return decoded;
-  throw new Error("SAVED_OFFERS_ENCRYPTION_KEY must be 32 bytes encoded as hex or base64");
-}
 
 function savedOfferKey(chainId: number, owner: Address, savedOfferId: string): string {
   return `${chainId}:${owner.toLowerCase()}:${savedOfferId}`;

@@ -7,7 +7,7 @@
  * @vitest-environment happy-dom
  */
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { FormEvent } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AudioRecorder } from "../../components/Audio/AudioRecorder";
@@ -41,6 +41,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   Reflect.deleteProperty(navigator, "mediaDevices");
 });
@@ -63,6 +64,7 @@ describe("AudioRecorder inside a form", () => {
     expect(stop).toHaveAttribute("type", "button");
     fireEvent.click(stop);
 
+    expect(onRecordingComplete).not.toHaveBeenCalled();
     const use = await screen.findByRole("button", { name: "Confirm recording" });
     expect(use).toHaveAttribute("type", "button");
     expect(screen.getByRole("button", { name: "Discard recording" })).toHaveAttribute(
@@ -94,4 +96,33 @@ describe("AudioRecorder inside a form", () => {
     expect(onRecordingComplete).not.toHaveBeenCalled();
     expect(onSubmit).not.toHaveBeenCalled();
   });
+});
+
+it("releases the preview URL on unmount without saving it", async () => {
+  const complete = vi.fn();
+  const revoke = vi.spyOn(URL, "revokeObjectURL");
+  const { unmount } = render(<AudioRecorder onRecordingComplete={complete} />);
+  fireEvent.click(screen.getByRole("button", { name: "Start recording audio note" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Stop recording" }));
+  await screen.findByRole("button", { name: "Confirm recording" });
+  unmount();
+  expect(revoke).toHaveBeenCalledOnce();
+  expect(complete).not.toHaveBeenCalled();
+  revoke.mockRestore();
+});
+
+it("auto-stops into preview and resets after confirmation", async () => {
+  vi.useFakeTimers();
+  const complete = vi.fn();
+  render(<AudioRecorder onRecordingComplete={complete} maxDuration={2} />);
+  await act(async () =>
+    fireEvent.click(screen.getByRole("button", { name: "Start recording audio note" }))
+  );
+  await act(async () => vi.advanceTimersByTimeAsync(2000));
+  expect(complete).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Confirm recording" }));
+  expect(complete).toHaveBeenCalledOnce();
+  await act(async () => vi.advanceTimersByTimeAsync(500));
+  expect(screen.getByRole("button", { name: "Start recording audio note" })).toBeInTheDocument();
+  vi.useRealTimers();
 });

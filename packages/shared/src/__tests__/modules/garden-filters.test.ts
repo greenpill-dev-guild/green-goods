@@ -1,16 +1,13 @@
 /**
- * useFilteredGardens Tests
+ * filterGardens Tests
  *
  * Tests garden filtering by scope (all/mine/open), sorting (name/recent),
  * member and open-garden counting, and filter state computation.
  */
 
 import { describe, expect, it } from "vitest";
-import {
-  type GardenFiltersState,
-  useFilteredGardens,
-} from "../../../hooks/garden/useFilteredGardens";
-import { Domain, type Garden } from "../../../types";
+import { type GardenFiltersState, filterGardens } from "../../modules/garden/filters";
+import { Domain, type Garden } from "../../types";
 
 // ============================================
 // Test Helpers
@@ -51,7 +48,7 @@ function defaultFilters(overrides: Partial<GardenFiltersState> = {}): GardenFilt
 // Tests
 // ============================================
 
-describe("useFilteredGardens", () => {
+describe("filterGardens", () => {
   // ------------------------------------------
   // Scope: all
   // ------------------------------------------
@@ -63,13 +60,13 @@ describe("useFilteredGardens", () => {
         createGarden({ id: "g2", name: "Garden B" }),
       ];
 
-      const result = useFilteredGardens(gardens, defaultFilters(), null);
+      const result = filterGardens(gardens, defaultFilters(), null);
 
       expect(result.filteredGardens).toHaveLength(2);
     });
 
     it("returns empty array when no gardens", () => {
-      const result = useFilteredGardens([], defaultFilters(), null);
+      const result = filterGardens([], defaultFilters(), null);
 
       expect(result.filteredGardens).toHaveLength(0);
     });
@@ -94,7 +91,7 @@ describe("useFilteredGardens", () => {
         }),
       ];
 
-      const result = useFilteredGardens(gardens, defaultFilters({ scope: "mine" }), USER_ADDRESS);
+      const result = filterGardens(gardens, defaultFilters({ scope: "mine" }), USER_ADDRESS);
 
       expect(result.filteredGardens).toHaveLength(1);
       expect(result.filteredGardens[0].id).toBe("g1");
@@ -109,7 +106,7 @@ describe("useFilteredGardens", () => {
         }),
       ];
 
-      const result = useFilteredGardens(gardens, defaultFilters({ scope: "mine" }), USER_ADDRESS);
+      const result = filterGardens(gardens, defaultFilters({ scope: "mine" }), USER_ADDRESS);
 
       expect(result.filteredGardens).toHaveLength(1);
     });
@@ -117,7 +114,7 @@ describe("useFilteredGardens", () => {
     it("returns empty when user is null and scope is mine", () => {
       const gardens = [createGarden({ id: "g1" })];
 
-      const result = useFilteredGardens(gardens, defaultFilters({ scope: "mine" }), null);
+      const result = filterGardens(gardens, defaultFilters({ scope: "mine" }), null);
 
       expect(result.filteredGardens).toHaveLength(0);
     });
@@ -130,7 +127,7 @@ describe("useFilteredGardens", () => {
         }),
       ];
 
-      const result = useFilteredGardens(gardens, defaultFilters({ scope: "mine" }), USER_ADDRESS);
+      const result = filterGardens(gardens, defaultFilters({ scope: "mine" }), USER_ADDRESS);
 
       expect(result.filteredGardens).toHaveLength(0);
     });
@@ -152,7 +149,7 @@ describe("useFilteredGardens", () => {
     const gardens = [openJoined, openOther, inviteOnly, unset];
 
     it("keeps gardens anyone can join, including ones the user already belongs to", () => {
-      const result = useFilteredGardens(gardens, defaultFilters({ scope: "open" }), USER_ADDRESS);
+      const result = filterGardens(gardens, defaultFilters({ scope: "open" }), USER_ADDRESS);
 
       expect(result.filteredGardens.map((garden) => garden.id)).toEqual([
         "open-joined",
@@ -162,8 +159,8 @@ describe("useFilteredGardens", () => {
     });
 
     it("does not need a signed-in user, and counts open gardens under any scope", () => {
-      const signedOut = useFilteredGardens(gardens, defaultFilters({ scope: "open" }), null);
-      const allScope = useFilteredGardens(gardens, defaultFilters(), USER_ADDRESS);
+      const signedOut = filterGardens(gardens, defaultFilters({ scope: "open" }), null);
+      const allScope = filterGardens(gardens, defaultFilters(), USER_ADDRESS);
 
       expect(signedOut.filteredGardens).toHaveLength(2);
       expect(allScope.openGardensCount).toBe(2);
@@ -182,7 +179,7 @@ describe("useFilteredGardens", () => {
         createGarden({ id: "g3", name: "Mango" }),
       ];
 
-      const result = useFilteredGardens(gardens, defaultFilters({ sort: "name" }), null);
+      const result = filterGardens(gardens, defaultFilters({ sort: "name" }), null);
 
       expect(result.filteredGardens.map((g) => g.name)).toEqual(["Apple", "Mango", "Zebra"]);
     });
@@ -194,7 +191,7 @@ describe("useFilteredGardens", () => {
         createGarden({ id: "g3", name: "Middle", createdAt: 200 }),
       ];
 
-      const result = useFilteredGardens(gardens, defaultFilters({ sort: "recent" }), null);
+      const result = filterGardens(gardens, defaultFilters({ sort: "recent" }), null);
 
       expect(result.filteredGardens.map((g) => g.name)).toEqual(["Newest", "Middle", "Old"]);
     });
@@ -205,7 +202,7 @@ describe("useFilteredGardens", () => {
         createGarden({ id: "g2", name: "No Date", createdAt: undefined }),
       ];
 
-      const result = useFilteredGardens(gardens, defaultFilters({ sort: "recent" }), null);
+      const result = filterGardens(gardens, defaultFilters({ sort: "recent" }), null);
 
       expect(result.filteredGardens[0].name).toBe("With Date");
     });
@@ -216,7 +213,7 @@ describe("useFilteredGardens", () => {
         createGarden({ id: "g2", name: "Alpha" }),
       ];
 
-      const result = useFilteredGardens(gardens, defaultFilters({ sort: "name" }), null);
+      const result = filterGardens(gardens, defaultFilters({ sort: "name" }), null);
 
       // Empty string sorts before "Alpha"
       expect(result.filteredGardens[0].name).toBe("");
@@ -242,7 +239,7 @@ describe("useFilteredGardens", () => {
         createGarden({ id: "g3" }),
       ];
 
-      const result = useFilteredGardens(gardens, defaultFilters(), USER_ADDRESS);
+      const result = filterGardens(gardens, defaultFilters(), USER_ADDRESS);
 
       expect(result.myGardensCount).toBe(2);
     });
@@ -250,7 +247,7 @@ describe("useFilteredGardens", () => {
     it("returns 0 when user is null", () => {
       const gardens = [createGarden({ id: "g1" })];
 
-      const result = useFilteredGardens(gardens, defaultFilters(), null);
+      const result = filterGardens(gardens, defaultFilters(), null);
 
       expect(result.myGardensCount).toBe(0);
     });
@@ -263,7 +260,7 @@ describe("useFilteredGardens", () => {
         }),
       ];
 
-      const result = useFilteredGardens(gardens, defaultFilters(), USER_ADDRESS);
+      const result = filterGardens(gardens, defaultFilters(), USER_ADDRESS);
 
       expect(result.myGardensCount).toBe(0);
     });
@@ -275,28 +272,28 @@ describe("useFilteredGardens", () => {
 
   describe("filter state", () => {
     it("isFilterActive false with default filters", () => {
-      const result = useFilteredGardens([], defaultFilters(), null);
+      const result = filterGardens([], defaultFilters(), null);
 
       expect(result.isFilterActive).toBe(false);
       expect(result.activeFilterCount).toBe(0);
     });
 
     it("isFilterActive true with scope filter", () => {
-      const result = useFilteredGardens([], defaultFilters({ scope: "mine" }), null);
+      const result = filterGardens([], defaultFilters({ scope: "mine" }), null);
 
       expect(result.isFilterActive).toBe(true);
       expect(result.activeFilterCount).toBe(1);
     });
 
     it("isFilterActive true with sort filter", () => {
-      const result = useFilteredGardens([], defaultFilters({ sort: "name" }), null);
+      const result = filterGardens([], defaultFilters({ sort: "name" }), null);
 
       expect(result.isFilterActive).toBe(true);
       expect(result.activeFilterCount).toBe(1);
     });
 
     it("activeFilterCount 2 with both scope and sort filters", () => {
-      const result = useFilteredGardens([], defaultFilters({ scope: "mine", sort: "name" }), null);
+      const result = filterGardens([], defaultFilters({ scope: "mine", sort: "name" }), null);
 
       expect(result.isFilterActive).toBe(true);
       expect(result.activeFilterCount).toBe(2);
@@ -327,7 +324,7 @@ describe("useFilteredGardens", () => {
         }),
       ];
 
-      const result = useFilteredGardens(gardens, { scope: "mine", sort: "name" }, USER_ADDRESS);
+      const result = filterGardens(gardens, { scope: "mine", sort: "name" }, USER_ADDRESS);
 
       expect(result.filteredGardens).toHaveLength(2);
       expect(result.filteredGardens[0].name).toBe("Apple Garden");
@@ -350,13 +347,13 @@ describe("useFilteredGardens", () => {
     const gardens = [solar, agroEdu, untagged];
 
     it("keeps every garden when no domain is chosen", () => {
-      const result = useFilteredGardens(gardens, defaultFilters({ domains: [] }), null);
+      const result = filterGardens(gardens, defaultFilters({ domains: [] }), null);
       expect(result.filteredGardens).toHaveLength(3);
       expect(result.isFilterActive).toBe(false);
     });
 
     it("keeps gardens carrying any of the chosen domains", () => {
-      const result = useFilteredGardens(
+      const result = filterGardens(
         gardens,
         defaultFilters({ domains: [Domain.EDU, Domain.SOLAR] }),
         null
@@ -367,7 +364,7 @@ describe("useFilteredGardens", () => {
     });
 
     it("drops untagged gardens once a domain is chosen and counts it with the other filters", () => {
-      const result = useFilteredGardens(
+      const result = filterGardens(
         gardens,
         defaultFilters({ domains: [Domain.WASTE], sort: "name", scope: "mine" }),
         null

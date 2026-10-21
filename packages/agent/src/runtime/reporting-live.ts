@@ -3,7 +3,7 @@ import { getJsonByHash } from "@green-goods/shared/modules/data/ipfs/resolve";
 import { getNetworkContracts } from "@green-goods/shared/utils/blockchain/contracts";
 import type { Chain } from "viem";
 import type { TrustedProxyConfig } from "../api/public-protection";
-import { createViemProfileAvatarSignatureVerifier } from "../services/profile-avatars";
+import { createViemAccountSignatureVerifier } from "../services/account-signatures";
 import type { ReportingConfig } from "../services/reporting/config";
 import { createModelInterpreter } from "../services/reporting/interpretation";
 import type { JobKind } from "../services/reporting/jobs";
@@ -81,7 +81,7 @@ export function createLiveReportingRuntime(input: {
       jwt: config.pinata?.jwt,
       ...(config.pinata?.uploadsApiBaseUrl ? { baseUrl: config.pinata.uploadsApiBaseUrl } : {}),
     }),
-    verifier: createViemProfileAvatarSignatureVerifier({
+    verifier: createViemAccountSignatureVerifier({
       chain: input.chain,
       rpcUrl: input.rpcUrl,
     }),

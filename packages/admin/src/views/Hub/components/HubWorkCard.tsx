@@ -8,7 +8,7 @@ import { getRelativeTimeParts } from "@green-goods/shared/utils/relativeTime";
 import { useState, type CSSProperties } from "react";
 import { useIntl } from "react-intl";
 import { adminCardVariants } from "@/components/AdminCard";
-import { localizeCanonicalActionTitle } from "../actionDisplay";
+import { localizeCanonicalActionTitle } from "@/components/Action/actionDisplay";
 
 // ---------------------------------------------------------------------------
 // Props

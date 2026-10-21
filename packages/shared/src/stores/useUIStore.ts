@@ -4,7 +4,7 @@ import {
   DEFAULT_GARDEN_FILTERS,
   type GardenFiltersState,
   parseGardenFilters,
-} from "../hooks/garden/useFilteredGardens";
+} from "../modules/garden/filters";
 import type { TimeFilter } from "../utils/time";
 
 // The storage key predates the garden filters: it held only the debug flag, and

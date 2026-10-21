@@ -4,7 +4,10 @@ import {
   useGardenJoinRequests,
 } from "@green-goods/shared/hooks/garden/useGardenJoinRequests";
 import { useGardenOperations } from "@green-goods/shared/hooks/garden/useGardenOperations";
-import { gardenJoinRequestErrorMessage } from "@green-goods/shared/modules/garden-join-requests";
+import {
+  gardenJoinRequestErrorMessage,
+  welcomeGardenJoinRequest,
+} from "@green-goods/shared/modules/garden-join-requests";
 import {
   GARDEN_JOIN_REQUEST_REASON_MAX_LENGTH,
   type GardenJoinRequestQueueItem,
@@ -63,24 +66,15 @@ function CommunityJoinRequestQueue({
     setNotice(undefined);
     setLocalError(undefined);
     try {
-      const assignRole = stewardRequest ? operations.addSteward : operations.addGardener;
-      const transaction = await assignRole(request.accountAddress, {
-        trackMemberAnalytics: false,
-      });
-      if (!transaction.success) {
-        if (isCancelledTxError(transaction.error)) return;
-        throw new Error(
-          transaction.error?.message ??
-            formatMessage({
-              id: stewardRequest
-                ? "cockpit.community.stewardRequests.assignFailed"
-                : "app.garden.joinQueue.membershipAddFailed",
-            })
-        );
-      }
-      const resolution = await join.resolveRequest(request.id, {
-        action: "welcome",
-        expectedRevision: request.revision,
+      const resolution = await welcomeGardenJoinRequest({
+        request,
+        assignRole: stewardRequest ? operations.addSteward : operations.addGardener,
+        resolveRequest: join.resolveRequest,
+        failureMessage: formatMessage({
+          id: stewardRequest
+            ? "cockpit.community.stewardRequests.assignFailed"
+            : "app.garden.joinQueue.membershipAddFailed",
+        }),
       });
       const pendingRole = stewardRequest
         ? resolution.pendingOnchainRole === true
