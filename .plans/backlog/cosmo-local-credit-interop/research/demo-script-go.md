@@ -33,7 +33,7 @@ version](demo-script-no-go.md) for the pitch.
 |---|---|---|
 | Go recorded | PRD-1197 decision naming build, pools, budgets, signers, upgrade authority and rollback, with every gate met or individually substituted: external audit, 3-of-5 Safe ownership, 48-hour timelock, two weeks of testnet operation, tested rollback | Afo |
 | Voucher contracts | the new Arbitrum voucher module and Gnosis adapter written, tested and audited; neither existed on 20 October | PRD-1317, PRD-1318, PRD-1327 |
-| Open decisions | the complete [PRD-1315 freeze inventory](../plan.todo.md#sequence-and-completion-evidence) recorded, including issuer-cap enforcement, the authenticated presentment handshake and exact-revision counterparty consent alongside the original six decisions | Afo, COM-46 |
+| Open decisions | the complete [PRD-1315 freeze inventory](../plan.todo.md#sequence-and-completion-evidence) recorded, including issuer-cap enforcement, the authenticated presentment handshake, exact-revision counterparty consent, Offer payer funding and distinct gardener issuer identity alongside the original six decisions | Afo, COM-46 |
 | Member accounts on Gnosis | the passkey validator deployed on Gnosis, or a Safe-signed fallback chosen, before any member-signed shot (the validator was missing when read on 10 October) | PRD-1096 |
 | Terms published | COM-46 terms version consumed by the deployment, and a steward's admission of each issuer with its published terms and cap | steward, Afo |
 | Consent | participation, public passport and recording consent recorded separately for each person on screen; hub photos already approved (Afo, 9 October) | COM-28 |

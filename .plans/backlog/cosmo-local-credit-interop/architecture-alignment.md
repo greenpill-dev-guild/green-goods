@@ -271,8 +271,9 @@ review is not an external audit of this integration. Preserve existing live-rele
 Next: the [review](handoffs/claude-architecture-review-results.md) is complete and the
 no-core-upgrade boundary is accepted. PRD-1315 freezes only after every decision in the
 [complete freeze inventory](plan.todo.md#sequence-and-completion-evidence) is recorded. That
-inventory includes issuer-cap enforcement, the authenticated presentment handshake and
-exact-revision counterparty consent alongside the original six decisions. Fork rehearsal defaults
+inventory includes issuer-cap enforcement, the authenticated presentment handshake,
+exact-revision counterparty consent, post-claim Offer funding and distinct gardener issuer identity
+alongside the original six decisions. Fork rehearsal defaults
 settle none of those live decisions. Purchased issuance and its PRD-796 framing were settled on
 21 October by the [voucher direction](spec.md#voucher-direction-decided-2026-10-21); the
 [corrected phase plan](commitment-upgrade-plan.md) consumes the complete inventory.

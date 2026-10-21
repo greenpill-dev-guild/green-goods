@@ -61,9 +61,11 @@ reaches develop through PR #1170, which supersedes the planning checkout's uncom
   and resolves none of these live decisions.
 - [ ] **RESR-73 decisions after the review:** eligibility rule (any Fulfilled, or ordinary only through
   attestation), issuer budget mechanism (allowance or writer), allocation basis, acknowledgment lane
-  in v1, Gnosis member accounts (passkey validator) and Gnosis proxy admin ownership, plus three
-  raised in review on 21 October: issuer-cap enforcement, the presentment handshake and terms-consent
-  binding. PRD-1315 freezes when these are recorded. The PRD-1096 rehearsal defaults below apply to the fork only and
+  in v1, Gnosis member accounts (passkey validator) and Gnosis proxy admin ownership, plus the blockers
+  raised in review on 21 October: issuer-cap enforcement, the presentment handshake, terms-consent
+  binding, post-claim funding of voucher-accepting Offers and distinct gardener issuer identity
+  (including garden/Safe/token/admission authority and cap isolation). PRD-1315 freezes when these
+  are recorded. The PRD-1096 rehearsal defaults below apply to the fork only and
   settle none of them. Purchased issuance and its PRD-796 framing were settled on 21 October.
 - [x] **Voucher direction, 21 October (Afo):** promises run on vouchers; curated gardener issuance;
   presentment opens a promise, with the PRD-1096 desk as a fork-only stand-in; the instrument is

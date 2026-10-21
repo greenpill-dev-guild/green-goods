@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-08-25T06:09:38.829Z",
-    "updated_at": "2026-10-21T18:13:18Z"
+    "updated_at": "2026-10-21T19:22:57Z"
   },
   "links": {
     "brief": "brief.md",
@@ -38,7 +38,7 @@
     "project": "Cosmo-Local Integration",
     "initiative": null,
     "syncDirection": "plans_to_linear_visibility",
-    "lastSyncedAt": "2026-10-21T18:13:18Z",
+    "lastSyncedAt": "2026-10-21T19:22:57Z",
     "lanes": {},
     "laneSyncMode": "parent_only",
     "stateSyncMode": "preserve_existing",
@@ -80,7 +80,7 @@
   },
   "notes": [
     "2026-10-20: Afo approved the review's section 8 corrections and authorized the Linear texts. Applied as anchored patches between 06:35 and 06:37 UTC: PRD-1316 retitled; descriptions of PRD-1315 to PRD-1322, PRD-1325 to PRD-1327, PRD-857 and PRD-1096 edited; comments on RESR-73, PRD-651 and PRD-796. Every state, assignee, cycle, due date and milestone was preserved and read back. The optional passkey-validator issue was not filed. lastSyncedAt covers this bounded planning sync only.",
-    "2026-10-20: Claude's second-pass review recommended no CommitmentPooling upgrade for the voucher-plus-G$ slice (the existing views bind terms before acceptance and gate issuance on Fulfilled, as the G$ rail does), an allowance-bounded issuer budget and no limiter writes; Afo accepted the no-core-upgrade boundary the same day as the PRD-1315 candidate. Read-only follow-ups established that the four first-slice Gnosis implementations match the published v1.0.0 artifacts and that both CCIP routers quote the codec's extra-args form. Plan corrections were drafted for approval; no Linear writes, no runtime changes, no implementation dispatched. Remaining decisions are listed in the review.",
+    "2026-10-20: Claude's second-pass review recommended no CommitmentPooling upgrade for the voucher-plus-G$ slice (the existing views expose the pre-acceptance timing window and Fulfilled eligibility; exact-revision counterparty consent remains PRD-1317 work), an allowance-bounded issuer budget and no limiter writes; Afo accepted the no-core-upgrade boundary the same day as the PRD-1315 candidate. Read-only follow-ups established that the four first-slice Gnosis implementations match the published v1.0.0 artifacts and that both CCIP routers quote the codec's extra-args form. Plan corrections were drafted for approval; no Linear writes, no runtime changes, no implementation dispatched. Current remaining decisions are listed in plan.todo.md, including the later review blockers.",
     "2026-10-20: bounded Linear readback verified the roadmap and 13 child tasks, four existing issue corrections, five renamed milestones and project overview. Thirty-one roadmap dependency edges and their inspected prerequisites have no cycles. Existing issue states, assignees, cycles/dates and the four original milestones were preserved; PWA/admin tasks remain in 2.1.0. This certifies planning sync only, not implementation or deployment.",
     "2026-10-20: user-authorized protocol research and planning/Linear correction. One commitment can receive vouchers and G$, with both terms agreed at acceptance. Same-asset installments are superseded. architecture-alignment.md records the recommended narrow core change and Arbitrum/Gnosis integration as candidates for Claude review and human selection; no implementation, deployment, lane activation or release waiver. Existing tracker keys retain compatibility but point to the corrected integration roadmap.",
     "2026-10-15: bounded Linear readback verified both project overviews, four milestone descriptions and 21 issue records after the four-goal alignment. Eleven dependency requirements and no cycles were checked. lastSyncedAt covers this planning sync only; no execution lane, unrelated record or live deployment was certified.",
@@ -378,6 +378,14 @@
       "status": "planning_reconciled",
       "branch": "research/cosmo-local-voucher-direction",
       "note": "PR #1170 follow-up: after Afo's explicit approval, added one corrective comment to completed PRD-796 at 18:12:59 UTC and read it back at 18:13:18 UTC (comment 13c5454a-85e9-42ac-a613-d5afaf38a3b9). Only the fulfilled-first issuance order is superseded; point 6's one-pool issuance/seed/exchange/service/liquidity/repair proof and the release gates remain active. PRD-796 stays Done with description and state history unchanged. This is a bounded comment sync, not a workspace-wide readback. Current policy notes reconciled; historical entries, lane states and manual blocks preserved."
+    },
+    {
+      "timestamp": "2026-10-21T19:22:57Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "planning_reconciled",
+      "branch": "research/cosmo-local-voucher-direction",
+      "note": "PR #1170 later review: Afo separately approved description additions on PRD-1315, PRD-1317 and PRD-1318. Applied and read back 19:22:06-19:22:57 UTC: exact-revision consent, authenticated escrow-to-promise handshake, post-claim Offer payer funding and distinct gardener issuer identity/cap isolation are explicit acceptance requirements. Parent remains In Progress; both children remain Backlog; assignee, cycle, dates, estimate, milestone and state history unchanged. This bounded sync settles no open design choice, changes no dependencies and authorizes no implementation. Current core-view summary corrected; lane objects and manual blocks unchanged."
     }
   ]
 }

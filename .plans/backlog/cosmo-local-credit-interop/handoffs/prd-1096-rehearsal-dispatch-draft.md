@@ -56,6 +56,11 @@ these defaults. The report must label exact-revision claimant consent **unproved
 M1's steward approvals, until PRD-1315 selects a binding mechanism and that mechanism is exercised.
 This limitation does not expand the approved fork scope.
 
+This bounded rehearsal also leaves voucher-accepting Offer payment funding and distinct gardener
+issuer identity unproved. Its reserve transfers are earned rewards, and its two organizational
+issuers use `issuerGarden`; neither exercises the later claimant-funded or per-gardener design.
+Keep those limits in the report alongside consent, issuer-cap enforcement and the live handshake.
+
 ## Decided inputs: do not reopen
 
 **Architecture**, accepted by Afo on 20 October as the PRD-1315 candidate: a new Arbitrum voucher

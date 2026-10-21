@@ -228,3 +228,31 @@ PRD-1321:
    stop and redraft rather than overwrite.
 3. Read each record back and confirm the mentions survived.
 4. Record the read-back in this hub's `status.json` history.
+
+## PR #1170: further boundary corrections applied after approval
+
+The later review found child acceptance gaps and two additional open decisions. Afo approved each
+record separately. The additions below were applied and read back; existing
+content is preserved apart from Linear whitespace/native-issue-link normalization. State, assignee,
+cycle, due date, estimate, milestone and state history are unchanged.
+
+### PRD-1315: applied additional Done-when criteria
+
+> * Before freezing the boundary, record voucher-accepting Offer funding (post-claim payer identity, payer authorization, reservation/escrow/debit, and failure/refund behavior) and gardener issuer identity (identifier, garden/Safe/token relationship, admission authority, and per-gardener cap isolation). Keep earned issuance separate from claimant-funded payment.
+
+### PRD-1317: applied additional Done-when criteria
+
+> * Bind counterparty consent to the exact approved voucher revision, amount/allocation policy and eligibility; a pending claim cannot silently adopt later terms. For voucher-accepting Offers, bind the selected claimant as payer and enforce the PRD-1315 funding authorization, reservation and failure/refund decision; issuer-reserve delivery cannot substitute for that payment. Bind each gardener's approved issuer identity to its garden, Safe, token and admission authority, with authorization and caps isolated per gardener.
+
+> * Before assigning the presenter as promise counterparty, authenticate a replay-safe receipt binding presenter, promise, token, amount and escrow receipt, and prove that escrow exists on Gnosis. Reject missing or mismatched consent, replay, unknown escrow and mismatched receipt bindings.
+
+### PRD-1318: applied additional Done-when criteria
+
+> * Bind a distinct approved issuer identifier per gardener to its garden, controlling Safe, token and admission authority; two gardeners sharing a garden/Safe cannot share authorization or a cap by implication. Apply the PRD-1315 cap-enforcement decision to each identity.
+
+> * Produce the authenticated, replay-safe escrow receipt for PRD-1317, binding presenter, promise, token and amount to the escrow before counterparty assignment. Reject replay, unknown escrow and mismatched bindings. For claimant-funded Offer payments, enforce the approved payer authorization, reservation/debit and failure/refund rules separately from issuer-reserve reward delivery.
+Read-back receipts (21 October 2026 UTC):
+
+* PRD-1315: applied 2026-10-21T19:22:06.270Z, read back 2026-10-21T19:22:29Z.
+* PRD-1317: applied 2026-10-21T19:22:33.929Z, read back 2026-10-21T19:22:53Z.
+* PRD-1318: applied 2026-10-21T19:22:56.570Z, read back 2026-10-21T19:22:57Z.

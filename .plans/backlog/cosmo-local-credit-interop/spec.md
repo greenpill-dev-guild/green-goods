@@ -57,6 +57,26 @@ Afo's approval and read back; the applied texts are in
    Vouchers earned by kept promises remain a second issuance source. The PRD-651 release gates
    are unchanged.
 
+### Further decisions before the implementation boundary freezes
+
+**Voucher-accepting Offer funding remains open.** The accepting claimant is the payer, whose
+identity becomes known only after claim selection. PRD-1315 must record how that payer authorizes
+the exact payment, how its vouchers are reserved, escrowed or debited, and how failure,
+cancellation and refund converge. The PRD-1317/1318 interfaces must carry that recorded rule before
+implementation dispatch, and completion must prove the chosen funding route.
+Delivery from an issuer's reserve is an earned reward; it cannot stand in for collecting the
+claimant's payment. An unfunded or unauthorized claim must not appear paid.
+
+**Gardener issuer identity remains open.** Before PRD-1317/1318 dispatch, PRD-1315 must specify
+the gardener's distinct issuer identifier, its relationship to the garden, controlling Safe and
+voucher token, and who admits that identity. Authorization and outstanding-voucher caps must stay
+isolated per gardener: two gardeners sharing one garden or Safe must not become one issuer or
+share a cap by implication. The rehearsal's `issuerGarden` key covers its two organizational
+issuers only; it does not establish this identity model.
+
+Both decisions join the [complete freeze inventory](plan.todo.md#sequence-and-completion-evidence).
+The approved bounded rehearsal does not settle them or expand to cover them.
+
 Grounding: the Cosmo-Local whitepaper v0.8 defines a commitment as a promise and a voucher as its
 token (p. 9), defines Offering, presentment, fulfillment and discharge but no request or need
 (pp. 34–35), says its contracts record no real-world fulfillment (pp. 8 and 10), and names
@@ -80,8 +100,10 @@ voucher and fulfilling its service are different obligations.
 Tech and Sun and Green Goods each issue their own service voucher, and curated gardeners may issue
 theirs (decision 2 above). Members may earn vouchers under
 published rules; supporters may buy vouchers for themselves or a cohort. A purchase need not pretend
-to be a previously fulfilled member contribution. Both issuance paths consume an explicit entitlement
-once and remain bounded by issuer capacity and supply policy.
+to be a previously fulfilled member contribution. Earned reserve delivery consumes a derived
+entitlement once. The approved rehearsal purchase is one atomic pool swap of existing inventory,
+without a separate purchase entitlement or cross-chain message. Both remain subject to the
+issuer's capacity and supply policy; the rehearsal does not prove total issuer-cap enforcement.
 
 | Context | Proposed owner and location | Boundary |
 |---|---|---|
@@ -96,7 +118,7 @@ once and remain bounded by issuer capacity and supply policy.
 ```mermaid
 flowchart LR
   A[Arbitrum commitments and evidence] --> B[Hat-authorized bounded command]
-  P[Verified purchase entitlement] --> B
+  P[Atomic issuer-pool purchase] --> D
   B -->|Message only| C[Safe-owned Gnosis issuer]
   C --> D[Issuer service voucher]
   D --> E[Member direct bounded swap]
@@ -111,8 +133,9 @@ flowchart LR
 The diagram above preserves the broad issuer-service journey. The
 [contract comparison](architecture-alignment.md#current-and-proposed-contract-relationships)
 adds the clarified relationship: one commitment may carry both G$ support and voucher entitlement.
-The purchase source and its trusted receipt verifier remain a design decision, not an implemented
-service. The diagram shows required meaning, not a settled ABI or a new contract for every box.
+The purchase route uses the pool's bounded swap under the approved rehearsal default; a later
+separately settled purchase would need its own trusted receipt and entitlement rules. The diagram
+shows required meaning, not a settled ABI or a new contract for every box.
 
 ## Commitment rewards — clarified intent, proposed architecture
 
@@ -150,8 +173,10 @@ is not proof that delivery completed.
 
 For earned issuance, decide what confirmation paths qualify and retain their provenance. Current
 Fulfilled status can include pool or protocol fallback; it cannot be described automatically as
-confirmation by the person served. For purchases, choose asset, destination, finality, allocation,
-refund/cancellation and duplicate-prevention rules. Informational declared value is not a receipt.
+confirmation by the person served. For the atomic purchase route, record payment/output finality,
+recipient, minimum output, deadline and inventory delta. A later separately settled purchase must
+define its asset, destination, allocation, refund/cancellation and duplicate-prevention rules.
+Informational declared value is not a receipt.
 
 Prove gardener Kernel account derivation, ownership and signing on Gnosis, including sponsored
 spend and recovery. Garden-account identity and gardener identity require separate proof. The

@@ -23,6 +23,8 @@ live handshake.
 | Exchange | Executable direct swap with minimum output/deadline; stale quote, de-list, depleted inventory, limit and sponsorship failures | PRD-1096 |
 | Service discharge | Presentment, partial/full delivery, confirmation and once-only discharge; failed delivery has a visible remedy | COM-46 / PRD-1096 |
 | Presentment handshake | An authenticated, replay-safe receipt binds presenter, promise, token, amount and escrow receipt; the Gnosis escrow is proved to exist before the presenter becomes the Arbitrum counterparty; replay and unknown escrow are rejected | PRD-1315 / PRD-1317 / PRD-1318 |
+| Voucher-accepting Offer payment | The selected claimant is bound as payer after claim selection, authorizes the exact payment and funds the approved reservation/escrow/debit route. Missing authorization or funds cannot appear paid; issuer-funded rewards cannot substitute. Failure/cancellation releases or refunds once under the recorded rule | PRD-1315 / PRD-1317 / PRD-1318 |
+| Gardener issuer identity | Two gardeners sharing a garden or Safe retain distinct issuer identifiers, each with recorded token/admission-authority bindings and isolated authorization/caps; one cannot consume the other's cap or spend under the other's authority | PRD-1315 / PRD-1317 / PRD-1318 |
 | Foundation invariants | Non-transferable promise identity, existing settlement meaning and no bridged value preserved | PRD-1096 |
 | Passport | Definitions, units, windows, source/freshness and receipt links; earned/purchased/payment/delivery/obligations separate | PRD-1097 |
 | Privacy | Separate publication consent, privacy-safe aggregates, no addresses or individual ranking | COM-46 / PRD-1097 |

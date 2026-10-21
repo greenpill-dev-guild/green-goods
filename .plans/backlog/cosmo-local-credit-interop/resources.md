@@ -104,7 +104,13 @@ certification."** It does not satisfy the Green Goods external-audit gate.
 
 ### Deployed — Gnosis mainnet, chain 100, v1.0.0
 
-solc 0.8.36, EVM fork osaka, optimizer 200 runs (Calibur 1000). Deployer
+**Compiler correction, 20 October:** embedded metadata establishes solc **0.8.34** for the
+GiftableToken, SwapPool, Limiter and ERC1967Factory deployments, matching the published artifacts
+([conformance evidence](handoffs/claude-conformance-evidence-2026-10-20.md)). The README's 0.8.36
+line does not describe those four builds; use 0.8.34 to reproduce them. Compiler metadata for the
+other listed implementations remains unchecked. The README reports EVM fork osaka and optimizer
+200 runs (Calibur 1000); those settings are not independently established by the compiler-version
+read. Deployer
 `0x33a573149db22e759fb9a38bcc461c12855c2645`.
 
 | Contract | Address |
