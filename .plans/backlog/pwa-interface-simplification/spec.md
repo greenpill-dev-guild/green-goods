@@ -32,9 +32,11 @@ not application or installed-PWA proof. This hub introduces no new rendered impl
 
 ## What the code does today (rechecked 18 October 2026)
 
-Evidence: a mock-auth localhost walk on Arbitrum with the production indexer (the main checkout at
-`06a31dbf5`, whose journey files match develop `eeda2d4e5`) and the unification hub's Storybook
-captures. The `steward` mock belongs to no garden on Arbitrum; the `deployer` mock is a steward of
+Evidence: a mock-auth localhost walk in the desktop app's built-in browser pane (Chromium; a
+mock-auth session on a local dev server at port 3022, not an authenticated profile) on Arbitrum with
+the production indexer (the main checkout at `06a31dbf5`, whose journey files match develop
+`eeda2d4e5`), and the unification hub's Storybook captures. The lab measurements in `eval.md` are a
+separate class: a static mock in the same Chromium pane, not the application. The `steward` mock belongs to no garden on Arbitrum; the `deployer` mock is a steward of
 TAS HUB and the Community Garden and a gardener in Aiyeloja Family Garden.
 
 1. Nothing in the PWA remembers a garden; the selection exists only while `/home/:id` is open. The
@@ -283,8 +285,9 @@ Arbitrum One, with their own banners ([artifacts](artifacts/README.md)). What th
    Garden and Mama Gardens) show in Explore and the switcher only to their members.
 4. **Switcher.** The half sheet, not the tall one.
 5. **Sheets.** Decision 4 revised: Promises and Your Work show the active garden only, with no
-   widening row. Open consequence: the badge counts everything on this phone, so a queued upload
-   for another garden counts on the badge but is not in the list until the chip switches.
+   widening row. The consequence noted at the time, a phone-wide badge that could count an upload
+   the list did not show, was closed the same day by decision 15: the badge counts the active
+   garden only, so the badge and the list always agree.
 6. **Submit Work.** The garden is pinned and named, with no control to change it. A member who
    wants to submit elsewhere switches the chip on Home first. A promise link and a resumed draft
    keep their own garden, and the pin shows it. Amended on 20 October by decision 28: the flow
@@ -345,7 +348,9 @@ teases. What the review settled:
     screen is for. The flow is click-led with little scrolling. This replaces the one-list shape
     drafted earlier the same day; the lab draws it as the default with today's order beside it.
 17. **Known answers skip the step.** From a promise's page Media opens with the promise pinned; a
-    garden with one action and nothing owed also opens Media with the action named in the line.
+    garden with one action, nothing owed and no Open ask to take up also opens Media with the
+    action named in the line. With an Open ask listed the step stays, since the member has a
+    choice to make; the step skips only when the action is the sole eligible path.
 18. **Taking up moves into the step.** Submit Work lists the garden's open asks of the Open claim
     mode beside the member's own promises; picking one takes it up as part of logging the work:
     one tap, two writes (the claim, then the work and its link), sequenced by the job queue, and
@@ -418,9 +423,10 @@ Insights banner; the picks below closed them.
     preset are this line.
 28. **No garden pin in Submit Work** (decision 6 amended). The flow does not name the garden; the
     chip on Home carries the context and the flow opens from Home. One line under the steps names
-    the garden only when a resumed draft belongs to a garden other than the active one, so a
-    member who switched the chip with a draft open is told which garden the draft keeps. The
-    draft never moves (the brief's constraint).
+    the submission garden whenever it differs from the active one, whether a resumed draft, a
+    promise link or navigation state selected it, so the member sees where the work goes before
+    submitting; when the two agree nothing is shown. A draft, a link and a queued job keep their
+    own garden (the brief's constraint).
 29. **The compact card folds its needs.** The card shows two needs and a +N mark for the rest;
     the promise's own page lists every action (rows up to three, tiles beyond) and the evidence
     row. The card keeps its 132px.

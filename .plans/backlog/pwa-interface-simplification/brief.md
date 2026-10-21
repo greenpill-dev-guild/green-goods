@@ -53,7 +53,9 @@ The maintainer locked these after the findings and the lab recorded in
    gardens; their badges count the active garden too (revised on 19 October, when the widening row
    was removed).
 5. **About and management** sit in one About row at the end of Home for now, reviewed after the
-   first slice. Steward and evaluator duties surface in Continue.
+   first slice. Steward duties surface in a Needs Your Attention section above Recent Activity,
+   only when something waits (decisions 22 to 24 and 27 replaced the earlier placement in
+   Continue); evaluators have no Home duties, since the phone has no assessment flow.
 6. **Visiting never switches.** A garden opened by link, from Explore or from a row is a visit.
    Only the chip changes the active garden, among the member's gardens or through Explore gardens,
    where any garden can be viewed and requested.

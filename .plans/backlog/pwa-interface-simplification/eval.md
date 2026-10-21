@@ -210,3 +210,9 @@ repeated below; the promise page with Add Evidence and three action rows; the ac
 and three chips over seven tiles; the four steps 66px wide at 390 and 59px at 360, starting 16px
 after the 48px back button and ending 16px before the edge. The hub checks were run again on the
 recording edits.
+
+After CodeRabbit reviewed PR #1140 on 21 October, seven wording fixes landed in the hub: the lab's
+garden source sets, the brief's duty placement, step 20's authenticated-proof requirement, the
+engine of the 18 October walk, the superseded phone-wide badge consequence, the skip rule when an
+Open ask is listed, and decision 28's line for any submission garden that differs from the active
+one. The hub checks were run again on them.
