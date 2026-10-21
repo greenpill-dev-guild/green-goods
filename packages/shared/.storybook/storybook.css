@@ -218,6 +218,8 @@
 :root {
   color-scheme: light dark;
 
+  /* The website's face, as the client sets it on :root. The app and cockpit
+     surfaces take Plus Jakarta Sans on body and the preview (surfaces.css). */
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   font-style: normal;
   font-weight: 400;
@@ -550,8 +552,9 @@
     color: var(--color-header-text);
   }
 
-  /* Inherit each surface's face (Inter or the cockpit's Plus Jakarta Sans),
-     preserving the client cascade and the editorial underline field's serif. */
+  /* Inherit each surface's face (Plus Jakarta Sans in the app and the cockpit,
+     Inter on the website), preserving the client cascade and the editorial
+     underline field's serif. */
   *:where(:not(.gg-control[data-surface="editorial"])) {
     font-family: inherit;
   }

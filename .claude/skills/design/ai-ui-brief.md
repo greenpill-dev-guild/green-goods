@@ -63,7 +63,7 @@ Constraints:
 
 Surface rules:
 - Admin: restrained steward cockpit. Command Surface, solid dense content, strict M3 anatomy, Plus Jakarta Sans, one dominant workspace, inspectors over card mosaics, utility copy only.
-- Client PWA: gardener field tool. Bottom AppBar, Inter, expressive Warm Earth allowed, offline/sync states visible, warm community copy.
+- Client PWA: gardener field tool. Bottom AppBar, Plus Jakarta Sans (the cockpit's face), expressive Warm Earth allowed, offline/sync states visible, warm community copy.
 - Public browser: editorial public record. SiteHeader only, real Garden imagery, Fraunces for editorial heroes, no wallet header CTA, no admin dashboard/KPI feel.
 - Docs: readable reference surface. Preserve Docusaurus structure, long-form readability, compact callouts, concrete commands and paths.
 

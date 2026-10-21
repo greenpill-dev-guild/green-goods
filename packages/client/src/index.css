@@ -27,7 +27,7 @@
   -ms-overflow-style: none; /* IE and Edge */
 
   /* The public website reads in Inter; the installed app takes the cockpit's
-     face, so both steward surfaces share one family (below). */
+     face (below), so the app and the cockpit share one family (DL-096). */
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   font-style: normal;
   font-weight: 400;

@@ -339,13 +339,12 @@
       "dashboard",
       "KPI tile",
       "metric grid",
-      "Plus Jakarta Sans",
       "trading floor",
       "financial terminal",
       "gamification",
       "dark pattern"
     ],
-    "rationale": "The client PWA is a garden journal, not a steward cockpit. It uses warm narrative copy and Inter; cockpit and KPI language belongs to admin."
+    "rationale": "The client PWA is a garden journal, not a steward cockpit. It shares the cockpit's typeface but keeps warm narrative copy; cockpit and KPI language belongs to admin."
   },
   "consumers": [
     {

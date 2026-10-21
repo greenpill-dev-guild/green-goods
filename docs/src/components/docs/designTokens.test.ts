@@ -30,7 +30,7 @@ describe("design token page data", () => {
   test("the projection carries the type, radius, and spacing scales with brand fonts mapped", () => {
     assert.equal(Object.keys(tokens.rounded).length, 7);
     assert.equal(Object.keys(tokens.spacing).length, 3);
-    assert.equal(Object.keys(tokens.typography).length, 4);
+    assert.equal(Object.keys(tokens.typography).length, 5);
     for (const token of Object.values(tokens.typography)) assert.ok(token.fontFamily in FONT_STACKS, token.fontFamily);
   });
 
@@ -38,9 +38,12 @@ describe("design token page data", () => {
     const clientHtml = readFileSync(new URL("../../../../packages/client/index.html", import.meta.url), "utf8");
     for (const stylesheet of PRODUCT_FONT_STYLESHEETS) assert.ok(clientHtml.includes(`href="${stylesheet}"`), stylesheet);
     for (const [name, token] of Object.entries(tokens.typography)) {
-      const request = PRODUCT_FONT_STYLESHEETS.find((url) => url.includes(`family=${token.fontFamily}:`));
-      // A css2 request lists each tuple in axis order, so the upright tuple ends in the weight range.
-      const [lightest, heaviest] = request?.match(/@0,[^;]*,(\d+)\.\.(\d+);/)?.slice(1).map(Number) ?? [];
+      // A css2 request spells a family's spaces as plus signs.
+      const family = token.fontFamily.replace(/ /g, "+");
+      const request = PRODUCT_FONT_STYLESHEETS.find((url) => url.includes(`family=${family}:`));
+      // A css2 request lists each tuple in axis order, so the upright tuple ends in the weight range;
+      // an optical-size range comes before it only when the family has that axis.
+      const [lightest, heaviest] = request?.match(/@0,(?:[^;,]*,)?(\d+)\.\.(\d+);/)?.slice(1).map(Number) ?? [];
       assert.ok(
         lightest <= token.fontWeight && token.fontWeight <= heaviest,
         `${name} is ${token.fontFamily} ${token.fontWeight}, outside the loaded ${lightest}..${heaviest}`,
