@@ -172,11 +172,15 @@ sequenceDiagram
    eligibility rule.
 2. **Sidecar with no core upgrade (ACCEPTED by Afo on 20 October as the PRD-1315 candidate).**
    The review showed the sidecar can carry the default promise: the core exposes the pre-acceptance
-   window and the terminal Fulfilled state through existing views, so the module binds terms before
+   window and the terminal Fulfilled state through existing views. Those views supply timing and
+   eligibility only; PRD-1317 must bind the exact approved revision and counterparty consent so
+   later revisions cannot alter pending claims. The binding mechanism remains an open PRD-1315
+   decision. The module registers terms before
    acceptance with the core's own rule and issues on the same gate the G$ rail uses. Attester trust
    enters only if eligibility must be restricted to ordinary confirmations. Keep the source of truth explicit; do not label indexer data an
    on-chain proof. Test attestation authorization/replay and user consent. Deletion moves those
-   checks back to operators. Lower code risk, and with the pre-acceptance rule a full fit for the accepted reward bundle.
+   checks back to operators. Lower code risk; fitting the accepted reward bundle still requires
+   the unresolved consent binding as well as the pre-acceptance state rule.
 3. **Rewrite settlement as a general multiasset engine — defer.**
    It could unify arbitrary obligations and payment executors but changes core G$ plan, funding,
    allocation and recovery consumers without a demonstrated pilot need. Deletion removes much of

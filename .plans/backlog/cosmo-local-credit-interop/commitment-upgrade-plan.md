@@ -14,7 +14,8 @@ and unresolved choices; [spec.md](spec.md) owns the broader integration baseline
 Accepted candidate (20 October, after Claude's [review](handoffs/claude-architecture-review-results.md)): a new Arbitrum voucher
 entitlement module and a new Gnosis issuer adapter, reusing the CLC token/pool implementations
 and the existing G$ settlement route, with no CommitmentPooling upgrade. PRD-1315 freezes the
-boundary once the remaining decisions listed in the review are recorded. It is not already done.
+boundary once the complete [open-decision inventory](plan.todo.md#sequence-and-completion-evidence)
+is recorded, including the blockers raised after the review. It is not already done.
 
 ## Preserved deployment evidence
 
@@ -41,8 +42,8 @@ The existing issue IDs are reused to correct their scope, not to create a second
 |---|---|---|---|---|
 | Decide | RESR-73 | Research conclusions, Claude review, unresolved human choices | P0 | COM-46 for issuer terms |
 | Decide | PRD-1315 | Accept voucher-plus-G$ behavior and contract boundaries, including issuer-cap enforcement, the presentment handshake and terms-consent binding | P0 | RESR-73 |
-| Contracts | PRD-1316 | Confirm the existing core views carry terms binding and eligibility; specify a stored fulfillment path only if the eligibility decision needs it | P0 | PRD-1315 |
-| Contracts | PRD-1317 | Register pre-acceptance voucher terms (earned, accepted by an Offer, paid by a Request) and authorize entitlements, presentment discharge and return commands from Arbitrum | P0 | PRD-1315, PRD-1316 |
+| Contracts | PRD-1316 | Confirm the existing core views provide the pre-acceptance timing window and fulfillment eligibility, not voucher-revision consent; specify a stored fulfillment path only if the eligibility decision needs it | P0 | PRD-1315 |
+| Contracts | PRD-1317 | Register pre-acceptance voucher terms (earned, accepted by an Offer, paid by a Request), bind the exact approved revision and counterparty consent so later revisions cannot alter pending claims, and authorize entitlements, presentment discharge and return commands from Arbitrum | P0 | PRD-1315, PRD-1316 |
 | Contracts | PRD-1318 | Deliver vouchers on Gnosis within the issuer's allowance or cap, once per entitlement, with stored receipts; hold presentment escrows keyed to a promise and discharge or return them once; admit curated gardener issuers under caps | P0 | PRD-1317 |
 | Contracts | PRD-1319 | Prove integration compatibility and preservation of existing G$ behavior; re-run the 20 October conformance and extra-args reads at the deployment block | P0 | PRD-1316, PRD-1317, PRD-1318 |
 | Data | PRD-1320 | Index linked fulfillment, G$ and voucher receipts, voucher payment terms, presentment escrows, discharges and issuer caps | P0 | PRD-1316, PRD-1317, PRD-1318 |
@@ -89,7 +90,7 @@ Reforecast after PRD-1315 and the first real selected-version conformance proof.
 
 - Freeze accepted terms, fulfillment eligibility, issuer delegation, recipient allocation, service
   lifecycle, chain roles, source/receipt authentication and legacy semantics.
-- Prove per-asset conservation, cap/reservation rules, duplicate command rejection, successful mint
+- Prove per-asset conservation, cap/reservation rules, duplicate command rejection, successful delivery
   with lost acknowledgment, retry, wrong peer/issuer, expiry, depleted capacity and partial success.
 - Preserve the existing G$ singleton plan, funding/refund behavior, retained amounts, executor
   protocol, Safe balances and history. A voucher delay must not re-open completed G$ payments.

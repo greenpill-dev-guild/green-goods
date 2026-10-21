@@ -62,8 +62,9 @@ Replace the first Done-when bullet with:
 Follow-up found in PR #1170 review on 21 October: the applied Done-when text above omits three
 additional blockers already recorded in the [hub plan](../plan.todo.md#sequence-and-completion-evidence)
 and [implementation boundary](../commitment-upgrade-plan.md). The original applied text is retained
-as the historical record. The following additional Done-when bullet is prepared for Afo's approval;
-it has not been written to Linear:
+as the historical record. After Afo's approval, the following additional Done-when bullet was
+applied to PRD-1315 at 17:43:58 UTC and read back at 17:43:59 UTC. State, assignee, cycle, due date,
+estimate and milestone were unchanged; the correction is also recorded in `status.json` history:
 
 > * Before the implementation boundary freezes, record issuer-cap enforcement (a mint controller
 >   or monitored issuer policy), the authenticated presentment handshake binding escrow to the

@@ -17,7 +17,8 @@ The user clarified that the same commitment can receive vouchers and G$, with bo
 at acceptance. The [architecture alignment](architecture-alignment.md) and Claude's
 [second-pass review](handoffs/claude-architecture-review-results.md) settle on independent reward receipts linked to one fulfillment
 through dedicated integration contracts and no CommitmentPooling upgrade, accepted on 20 October
-as the PRD-1315 candidate; the remaining decisions are listed in the review. The earlier G$
+as the PRD-1315 candidate; the [current plan](plan.todo.md#sequence-and-completion-evidence)
+lists the remaining decisions, including blockers raised after the review. The earlier G$
 installment plan is superseded.
 
 Green Goods records commitments, evidence, confirmation and support. Cosmo-Local supplies the
