@@ -3,9 +3,9 @@
 [![Version](https://img.shields.io/github/v/tag/greenpill-dev-guild/green-goods)](https://github.com/greenpill-dev-guild/green-goods/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-**Community infrastructure for documenting, reviewing, and funding regenerative work.**
+**Green Goods helps communities name their needs, make promises, document regenerative work, review it together, and turn the record into support.**
 
-Green Goods helps communities organize environmental and social work, from tree planting
+It helps them organize environmental and social work, from tree planting
 and waste collection to solar maintenance and education. A community workspace is called
 a **garden**: it can represent a neighborhood, cooperative, campus, or local project.
 
