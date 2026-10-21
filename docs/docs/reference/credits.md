@@ -68,7 +68,7 @@ The project also depends on work from OpenZeppelin, Viem, TanStack Query, Zustan
 
 ### Grants & Sponsors
 
-To discuss supporting Green Goods, contact the team through [Telegram](https://t.me/+N3o3_43iRec1Y2Jh). To support a garden directly, follow the [Funder Guide](/community/funder-guide/).
+To discuss supporting Green Goods, contact the team through [Discord](https://discord.gg/greenpill). To support a garden directly, follow the [Funder Guide](/community/funder-guide/).
 
 ## Community Partners
 
@@ -100,13 +100,13 @@ Use the [Brand kit](/brand-kit) for current logos, icons, palette, fonts, and ed
 
 ### Development Team
 
-- [Telegram community chat](https://t.me/+N3o3_43iRec1Y2Jh)
+- [Discord community chat](https://discord.gg/greenpill)
 - [GitHub repository](https://github.com/greenpill-dev-guild/green-goods)
 - [Green Goods on X](https://x.com/greengoodsapp)
 
 ### For Press & Media
 
-Contact the team through Telegram for media inquiries and attribution questions.
+Contact the team through [Discord](https://discord.gg/greenpill) for media inquiries and attribution questions.
 
 ## Contributing
 

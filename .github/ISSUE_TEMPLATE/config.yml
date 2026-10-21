@@ -3,7 +3,7 @@ contact_links:
   - name: Linear (Green Goods backlog)
     url: https://linear.app/greenpill-dev-guild
     about: All product work — bugs, ideas, polish, tasks, user stories — lives in Linear. GitHub is for PRs and code review only.
-  - name: Greenpill Dev Guild Discord
+  - name: Green Goods community Discord
     url: https://discord.gg/greenpill
     about: Questions about implementation or architecture? Ask in Discord first.
   - name: Workspace (PRD & Specs)
