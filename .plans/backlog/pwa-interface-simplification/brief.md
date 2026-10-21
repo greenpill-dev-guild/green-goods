@@ -1,6 +1,6 @@
 # PWA Interface Simplification
 
-**Stage:** backlog · **Posture:** scope locked on 18 October 2026, completed by the 19 October review and extended on 20 October; the Work-for treatment and Home's row style await a pick; implementation waits for a separate go
+**Stage:** backlog · **Posture:** scope locked on 18 October 2026, completed by the 19 October review and extended on 20 October, with the lab's picks taken late that day; the seasons and campaigns placement awaits a pick; implementation waits for a separate go
 
 **Linear:** [RESR-93](https://linear.app/greenpill-dev-guild/issue/RESR-93) in
 [Green Goods 2.1.0](https://linear.app/greenpill-dev-guild/project/green-goods-v210-qa-and-release-9bcaf982d5e5).
@@ -85,8 +85,12 @@ there are any, a promise's own screen with Add evidence first, two-up action til
 domain tabs otherwise) and asked for one submission flow for evidence and work (decision 21). A
 steward's Home gained a Garden duties section above Recent activity, shown only when something
 waits, with pending rows opening the work as today and deeper management staying in the cockpit
-(decisions 22 to 24). The Work-for treatment, Home's row style, the promise card and the free-work
-wording stay in the lab until picked.
+(decisions 22 to 24). Late on 20 October the maintainer picked from the lab (decision 27: among
+them the Highlights carousel back, the compact promise card, Log Work on Its Own, Needs Your
+Attention and no Work-for pin), asked for three tweaks (decisions 29 to 31) and called the design
+good enough to implement, with polish to follow. The placement of seasons and campaigns, which
+the garden-scoped Home would otherwise lose with the old Pool tab, is proposed as decision 32 and
+awaits a pick; the lab draws it.
 
 ## Scope and boundaries
 

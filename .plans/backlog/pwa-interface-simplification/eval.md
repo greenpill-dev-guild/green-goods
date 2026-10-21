@@ -188,3 +188,25 @@ evaluator; the compact promise card at 132px in English and Portuguese beside th
 card; the Insights sheet with and without a 144px banner; the chip's label at 97px (390px, four
 launchers), 67px (360px), 145px and 115px with the wallet launcher moved to Profile, so the
 Community Garden's name truncates in every case. The hub checks were run again on the edits.
+
+## Picks and seasons check (2026-10-21, later)
+
+Measured in the desktop app's built-in browser pane (Chromium, the static mock served from a local
+port with a UTF-8 content type, no app session), with the saved picks cleared so the defaults, now
+the maintainer's pasted line, applied: a steward's Home at 390 and 360px with the Highlights
+carousel first and its first two 112px cards the open season and campaign; four 88px duty rows under
+Needs Your Attention with their titles, 22px pills and details (the first publish of this round had
+inflated the "To review" pills to 76px through a class collision between the Start step's info
+panel and the info status pill, found and fixed before this record); the season card opening a 439px
+half sheet with the identity row, the sentence, the two facts and Show Its Promises, which opened the
+Promises sheet named "Season One · In TAS HUB" with the rail (two 208px cycle cards, the chosen one
+tinted with a check) and the one promise of that season; the campaign's ⓘ opening its own sheet; the
+chips variant filtering the same way with a details line; Home without the carousel showing one line
+per open cycle under Take Part. Submit Work: the Start step with no Work-for pin, three 132px compact
+cards, the second showing two needs and +2, Log Work on Its Own last; the info panel 76px in every
+one-line context (Keep a Promise, Select Your Action, Add Photos, Add Evidence) in English, Spanish
+and Portuguese at both widths, and 76px on a promise's page once the panel dropped the needs it
+repeated below; the promise page with Add Evidence and three action rows; the actions screen with All
+and three chips over seven tiles; the four steps 66px wide at 390 and 59px at 360, starting 16px
+after the 48px back button and ending 16px before the edge. The hub checks were run again on the
+recording edits.

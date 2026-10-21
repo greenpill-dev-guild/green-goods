@@ -287,7 +287,8 @@ Arbitrum One, with their own banners ([artifacts](artifacts/README.md)). What th
    for another garden counts on the badge but is not in the list until the chip switches.
 6. **Submit Work.** The garden is pinned and named, with no control to change it. A member who
    wants to submit elsewhere switches the chip on Home first. A promise link and a resumed draft
-   keep their own garden, and the pin shows it.
+   keep their own garden, and the pin shows it. Amended on 20 October by decision 28: the flow
+   names no garden unless a resumed draft's garden differs from the active one.
 7. **Offline.** The shell's strip lies over the header's top padding and moves nothing, as it does
    in the app today. The chip is 32px tall so the row keeps the compact icon buttons' height.
 8. **Dark mode.** The primary button keeps dark text on the mint fill; the first lab let a
@@ -317,7 +318,8 @@ drawn in the lab as a tweak with the decision as its default:
     actions a promise of the member's still needs first. The promise intent flows into the later
     steps as today (D16).
 14. **No Highlights strip.** Home stays rows in the confirmed order; the carousel stays in the lab
-    for comparison only.
+    for comparison only. Reversed on 20 October by decision 27: the carousel is picked, leading
+    with the garden's open season and campaigns.
 15. **Badges count the active garden.** See decision 4 as revised.
 
 Decisions 10 to 15 took the recommendation except 15, where the recommendation was a phone-wide
@@ -397,9 +399,61 @@ Measured on 21 October for the long-name question: with four launchers the chip'
 97px at 390px and 67px at 360px, so "Green Goods Community Garden" shows as "Green G…"; with the
 wallet launcher moved to Profile it has about 145px and 115px. The lab draws both, undecided.
 
-Still open after this round: the Work-for treatment (card, line or none), Home's row style, the
-promise card's density (compact recommended), the free-work wording, the duties section's title,
-the wallet launcher's place, and whether the Insights sheet opens with the banner.
+Still open after that round were the Work-for treatment, Home's row style, the promise card's
+density, the free-work wording, the duties section's title, the wallet launcher's place and the
+Insights banner; the picks below closed them.
+
+### Picks and tweaks of 20 October, late
+
+27. **The picks line.** After comparing the variants the maintainer copied the lab's picks: the
+    compact journal with three activity rows and three Continue rows; for stewards the duties
+    section first, titled Needs Your Attention; the sticky header; the Highlights carousel
+    (decision 14 reversed); the locked item cards for Home's rows; the half-sheet switcher; the
+    About row at the end; the chooser on first run with several gardens; sections as sheets over
+    Home; the wallet launcher in the header, which leaves the long-name chip truncating as
+    measured; the Insights sheet opening with the banner; the bell in the header; the decided
+    Start step with capsule chips for the domain filter; the compact promise card; Log Work on Its
+    Own for the free-work row; and no Work-for pin. The maintainer's words: good enough to
+    implement, with polish and iteration to follow. The lab's defaults and its Decided picks
+    preset are this line.
+28. **No garden pin in Submit Work** (decision 6 amended). The flow does not name the garden; the
+    chip on Home carries the context and the flow opens from Home. One line under the steps names
+    the garden only when a resumed draft belongs to a garden other than the active one, so a
+    member who switched the chip with a draft open is told which garden the draft keeps. The
+    draft never moves (the brief's constraint).
+29. **The compact card folds its needs.** The card shows two needs and a +N mark for the rest;
+    the promise's own page lists every action (rows up to three, tiles beyond) and the evidence
+    row. The card keeps its 132px.
+30. **The info panel keeps one height across the step.** Its title stays one line and its
+    description is written to fit one line at 360px in the three languages (Which promise is this
+    work for? / What type of work did you do? / Show the work for this promise.), clipped at two
+    lines should a translation run long, with a 76px minimum so the contexts do not shift.
+31. **The step progressor uses its width.** The four steps spread between the back button and a
+    16px end gutter with no phantom right spacer; the back button is a flex sibling, so the steps
+    can never overlap it.
+32. **Seasons and campaigns** (proposed; the lab draws it under Seasons and campaigns, pick
+    pending). What the code says: a season or a campaign is a commitment-pool cycle (the
+    `CommitmentCycle` entity with `cycleType` SEASON or CAMPAIGN); a pool holds one open Season
+    and any number of open Campaigns (the one-open-Season guard in `CyclesLib.sol`); stewards
+    seed, open and close them in the cockpit; a member placing a promise picks which cycle holds
+    it in Compose; the ontology's Season entity names the cycle as its first formal
+    representation. The PWA shows them today only on the old garden page's Pool tab: the cycle
+    rail (`CycleRail`: glyph, kind in its colour, state, name, dates, kept of made, an ⓘ) that
+    filters the list, and the half-sheet `CycleDetailsSheet` (what counts toward it, live now,
+    kept so far, Show Its Promises). The garden-scoped Home drops that page for members, so the
+    cycles need a place. Proposal: the rail moves to the top of the Promises sheet unchanged in
+    anatomy, with the details sheet behind its ⓘ and Show Its Promises filtering the sheet; on
+    Home the open cycles lead the Highlights carousel as cards (kind and state as the eyebrow in
+    the kind's colour, the name, kept of made and days left), or stand as one line each under
+    Take Part when there is no carousel, and each opens the details sheet; the Insights sheet's
+    season card is the same cycle and opens the same sheet. The promise rows and the compact card
+    do not carry the cycle; the Promises sheet's filter does. Alternative drawn: capsule chips
+    (All, then each cycle) with a details line for the chosen cycle. Nothing new is written;
+    seeding stays in the cockpit. Wording: the lab's "season assessment" lines are retired, since
+    assessments are garden-level and cockpit-authored; the rows and events say garden assessment.
+
+Still open after this round: the seasons and campaigns placement (decision 32), and the About
+placement review after the first slice.
 
 What this corrects: the 19 October "promises first" step offered open asks as things the step
 could keep, but work links only to a promise the member has taken up (the link-choice hook reads
