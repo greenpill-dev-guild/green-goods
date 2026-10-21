@@ -1086,6 +1086,7 @@ function describeTriggers(triggers) {
   if (triggers.pull_request) {
     parts.push(triggers.pull_request.paths.length ? `pull requests that touch its paths (${triggers.pull_request.paths.length} path filters)` : "every pull request");
   }
+  if (triggers.pull_request_target) parts.push("pull request target events (base branch context)");
   if (triggers.push) {
     const { branches, tags, paths } = triggers.push;
     if (tags.length) parts.push(`pushed tags matching ${tags.map(code).join(", ")}`);
