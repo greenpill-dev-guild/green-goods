@@ -42,16 +42,16 @@ The existing issue IDs are reused to correct their scope, not to create a second
 | Decide | RESR-73 | Research conclusions, Claude review, unresolved human choices | P0 | COM-46 for issuer terms |
 | Decide | PRD-1315 | Accept voucher-plus-G$ behavior and contract boundaries | P0 | RESR-73 |
 | Contracts | PRD-1316 | Confirm the existing core views carry terms binding and eligibility; specify a stored fulfillment path only if the eligibility decision needs it | P0 | PRD-1315 |
-| Contracts | PRD-1317 | Register pre-acceptance voucher terms and authorize entitlements from Arbitrum | P0 | PRD-1315, PRD-1316 |
-| Contracts | PRD-1318 | Deliver vouchers on Gnosis within the issuer's allowance, once per entitlement, with stored receipts | P0 | PRD-1317 |
+| Contracts | PRD-1317 | Register pre-acceptance voucher terms (earned, accepted by an Offer, paid by a Request) and authorize entitlements, presentment discharge and return commands from Arbitrum | P0 | PRD-1315, PRD-1316 |
+| Contracts | PRD-1318 | Deliver vouchers on Gnosis within the issuer's allowance or cap, once per entitlement, with stored receipts; hold presentment escrows keyed to a promise and discharge or return them once; admit curated gardener issuers under caps | P0 | PRD-1317 |
 | Contracts | PRD-1319 | Prove integration compatibility and preservation of existing G$ behavior; re-run the 20 October conformance and extra-args reads at the deployment block | P0 | PRD-1316, PRD-1317, PRD-1318 |
-| Data | PRD-1320 | Index linked fulfillment, G$ and voucher receipts | P0 | PRD-1316, PRD-1317, PRD-1318 |
-| Shared | PRD-1321 | Provide consistent per-obligation status to both apps | P0 | PRD-1320 |
-| Shared | PRD-1322 | Add authorized voucher actions and safe recovery | P0 | PRD-1317, PRD-1318, PRD-1321 |
-| Admin | PRD-1323 | Review voucher-plus-G$ terms and outcomes in commitment detail | P1 | PRD-1321, PRD-1322, PRD-1299 |
-| PWA | PRD-1324 | Explain work completion and each agreed reward | P1 | PRD-1321, PRD-1322, PRD-1299 |
+| Data | PRD-1320 | Index linked fulfillment, G$ and voucher receipts, voucher payment terms, presentment escrows, discharges and issuer caps | P0 | PRD-1316, PRD-1317, PRD-1318 |
+| Shared | PRD-1321 | Provide consistent per-obligation status to both apps, including voucher payment terms and escrow state | P0 | PRD-1320 |
+| Shared | PRD-1322 | Add authorized voucher actions and safe recovery, with Safe-mediated gardener issuance until the passkey validator exists on Gnosis | P0 | PRD-1317, PRD-1318, PRD-1321 |
+| Admin | PRD-1323 | Review voucher-plus-G$ terms and outcomes in commitment detail, including voucher payment terms and gardener issuer caps | P1 | PRD-1321, PRD-1322, PRD-1299 |
+| PWA | PRD-1324 | Explain work completion, each agreed reward and any voucher payment terms | P1 | PRD-1321, PRD-1322, PRD-1299 |
 | Operations | PRD-1325 | Prepare verified Gnosis configuration (no Arbitrum upgrade in the accepted candidate) | P0 | PRD-1315, PRD-1319 |
-| Rehearsal | PRD-1326 | Prove both rewards, failure recovery and legacy preservation | P1 | PRD-1319, PRD-1320, PRD-1322–1325, PRD-1096 |
+| Rehearsal | PRD-1326 | Prove both rewards, voucher payment and presentment discharge, failure recovery and legacy preservation | P1 | PRD-1319, PRD-1320, PRD-1322–1325, PRD-1096 |
 | Audit | PRD-1327 | Freeze the reviewed integration audit-intake package | P1 | PRD-1326 |
 
 PRD-1314 is the roadmap parent. PRD-1323/1324 stay in **Green Goods 2.1.0** and relate to

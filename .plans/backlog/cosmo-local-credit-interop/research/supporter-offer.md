@@ -64,8 +64,9 @@ the hub, its land or its people.
 
 ## If something fails
 
-- The hub cannot deliver a session: it is honored on the next open day, or a remedy returns the
-  voucher units. The remedy terms are published with the voucher.
+- The hub cannot deliver a session: it is honored on the next open day. For a seat funded today
+  through Omo Yoruba, any other remedy follows the fiscal sponsorship terms. On the planned
+  prepaid-voucher route, a remedy returns the voucher units under terms published with the voucher.
 - A learner does not confirm: the service shows as unconfirmed, with the fallback path visible.
 - A payment does not arrive or arrives twice: the record shows the stopped state and who owns the
   repair.

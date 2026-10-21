@@ -213,7 +213,10 @@ reserve floor like SettlementModule's `feeReserveMinimum`.
     `CommitmentPoolingGuardLib.isGardenSteward`. Refuse a Request whose `claimType` is `Garden`
     (A3). Registering again before acceptance increments the terms revision and clears any approval.
   - `approveVoucherTerms(commitmentId, termsRevision)` by a steward or owner hat wearer of the
-    issuer garden. Naming the revision stops an approval from attaching to edited terms.
+    issuer garden. Naming the revision stops an approval from attaching to edited terms. Approval
+    snapshots the issuer's current voucher token and destination adapter into that revision.
+    Dispatch, retry and requeue use only the snapshot, so a later `setIssuer` change applies to
+    later revisions only and can never send one entitlement to a second adapter.
 - `dispatch(commitmentId)` by a steward of the pool garden or the issuer garden. It requires state
   `Fulfilled`, approved terms and no earlier dispatch. It derives `recipient = leadProvider`,
   `entitlementId = keccak256(abi.encode(block.chainid, address(this), commitmentId, termsRevision))`,
@@ -291,6 +294,10 @@ No new code: configuration through the published factory and implementations.
   state.
 - Each issuer Safe mints its reserve, approves the adapter's allowance, and approves and deposits
   pool inventory. It approves nothing else.
+- This rehearsal does not prove the curated, capped issuance rule decided on 21 October. An
+  issuer's outstanding-voucher cap is distinct from a pool's holding limit and from the adapter's
+  allowance, and nothing here checks reserve minting or pool deposits against it. The report marks
+  issuer-cap enforcement as unproved and leaves its proof to PRD-1318.
 
 ### Arbitrum side, transport and accounts
 
@@ -348,6 +355,7 @@ No new code: configuration through the published factory and implementations.
 | M7 | A second dispatch reverts; retry resends the identical payload under the same key; requeue is steward-only and increments the attempt. |
 | M8 | Fulfillment through `PoolFallback`, `ProtocolFallback` and dispute resolution all qualify (unit test with the mock pooling module). |
 | M9 | The exact quoted fee is paid and the reserve floor holds; pause blocks register, approve and dispatch; the module holds no tokens. |
+| M10 | Changing the issuer mapping after approval leaves the approved revision's token and destination unchanged for dispatch, retry and requeue; no entitlement reaches a second adapter. |
 
 **Gnosis adapter**
 
@@ -466,7 +474,7 @@ fork blocks, RPC endpoints and the Arbitrum on-ramp version; implementation and 
 with their pinned code hashes; fork-local instance addresses; owner, admin, writer, limit, fee and
 seal state; each command with its pass count; the case table with results; the PRD-1096 table above
 with each row's evidence; outstanding supply before and after the service cases; the label legend;
-what stays live-only; and a short update Afo can post to PRD-1096. End with the task record:
+what stays live-only or unproved, including issuer-cap enforcement; and a short update Afo can post to PRD-1096. End with the task record:
 
 ```markdown
 Task record: PRD-1096 voucher rehearsal | Type: feature | Outcome: <complete/partial/blocked>

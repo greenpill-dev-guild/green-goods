@@ -10,7 +10,7 @@
 **Stage**: `active`
 **Status**: `IMPLEMENTED — roadmap Done; deployed QA, release, documentation and evidence remain open`
 **Created**: `2026-07-03`
-**Last Updated**: `2026-10-16`
+**Last Updated**: `2026-10-21`
 
 Linear mirror: the [Commitment Pooling](https://linear.app/greenpill-dev-guild/project/commitment-pooling-4bc53572f354) project, now Completed; its closed issues stay there, and an issue a sync creates follows routing rule 4. Native phases: **Scope and Design** (2026-07-22), **Build** (2026-07-31), **Release** (2026-08-12), and **Follow On / Hardening** (2026-09-30). Operational checkpoints are separate: July dry run (2026-07-31) and Community plus settlement-evidence delivery (2026-09-30). **The full document map is the next section.** Community-specific diagrams, wireframes, journeys, and research operations live in `.plans/active/community-interface/`. The 2026-07-10/11 reconciliation, PRD-686/RESR-57 predicate, and null PRD-651/697 dates were live-verified historical state; current Linear convergence must be reread before any write. **Fourth-garden policy (Decision Log #29, 2026-07-18 — supersedes Decision Log #25 and Decision Log #27): no fourth garden is selected.** The slot is open, candidates are under consideration, and **no artifact names one**. The three named gardens cover all four action domains on their own. The earlier Decision Log #25→Decision Log #26→Decision Log #27 naming sequence is closed history; do not re-apply it.
 
@@ -1923,7 +1923,7 @@ The **Lane** column below names execution sub-lanes for planning clarity. The ha
 
 | Requirement | Lane | Linear issue | Status |
 |---|---|---|---|
-| Final pre-code full-pool compatibility freeze: three identities, versioned adapter/router, fulfilled-first backing, one-pool proof gate, and G$/redemption separation | `contracts` + `docs` | [PRD-796](https://linear.app/greenpill-dev-guild/issue/PRD-796) | 🚧 In Review · blocks PRD-721 without changing initial ABI/storage |
+| Final pre-code full-pool compatibility freeze: three identities, versioned adapter/router, fulfilled-first backing, one-pool proof gate, and G$/redemption separation. Fulfilled-first backing and the one-pool proof gate were superseded in part on 2026-10-21 by Decision Log #69 (curated, capped issuance) | `contracts` + `docs` | [PRD-796](https://linear.app/greenpill-dev-guild/issue/PRD-796) | ✅ Done; ordering superseded in part by Decision Log #69 |
 | Assessment v3 schema via existing AssessmentResolver upgrade + NET-NEW community testimony resolver (first PR chain) | `contracts` | [PRD-721](https://linear.app/greenpill-dev-guild/issue/PRD-721) (historical PRD-671) | ⏳ |
 | CommitmentPoolingModule + CommitmentRegistry + GardenToken wiring + deploy | `contracts` | [PRD-721](https://linear.app/greenpill-dev-guild/issue/PRD-721) (historical PRD-672) | ⏳ |
 | Module-native `CommitmentSeries`, validated instance reference, direct-holder lifecycle, and honest Offer-capacity reservation | `contracts` | [PRD-788](https://linear.app/greenpill-dev-guild/issue/PRD-788) + [PRD-721](https://linear.app/greenpill-dev-guild/issue/PRD-721) | 🚧 architecture convergence |

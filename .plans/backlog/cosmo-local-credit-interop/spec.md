@@ -10,7 +10,8 @@ The original August model remains in Git at `06a31dbf5`; current unresolved choi
 
 Afo made these five decisions on 21 October after a research brief compared this plan with a
 voucher-native implementation. They refine the accepted no-core-upgrade boundary and authorize no
-implementation, deployment or tracker change. The Linear updates are drafted for review in
+implementation, deployment or tracker change. The Linear updates were applied on 21 October after
+Afo's approval and read back; the applied texts are in
 [`handoffs/claude-linear-voucher-direction-drafts-2026-10-21.md`](handoffs/claude-linear-voucher-direction-drafts-2026-10-21.md).
 
 1. **Promises run on vouchers.** An Offer can accept vouchers and a Request can pay in them.
