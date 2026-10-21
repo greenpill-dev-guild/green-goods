@@ -9,19 +9,19 @@ Steward approval is not claimant consent, and the service-desk stand-in is not t
 
 | Boundary | Required observable evidence | Owner |
 |---|---|---|
-| Authority | Unauthorized source chain/sender/hat/issuer rejected; issuer cannot withdraw pool money | PRD-1096 |
+| Authority | Unauthorized source chain/sender/hat/issuer rejected; adapter and Arbitrum stewards lack pool authority. The issuer Safe owns the selected pool and can call `withdrawLiquidity` after sealing; P7 proves and discloses that retained custody power | PRD-1096 |
 | Linked rewards | One commitment receives agreed vouchers and G$ independently; neither receipt implies the other or later service delivery | PRD-1315 / PRD-1326 |
-| Accepted voucher terms | Issuer and counterparty consent bind the exact approved revision, amount/allocation policy and eligibility; registration is limited to Offered or Requested commitments, but state checks alone are insufficient; later revisions cannot silently replace a pending claimant's or accepted counterparty's terms; existing commitments gain no implicit entitlement | RESR-73 / PRD-1315 / PRD-1317 |
+| Accepted voucher terms | Issuer and counterparty consent bind the exact approved revision, amount/allocation policy and eligibility; registration is limited to Offered or Requested commitments, but state checks alone are insufficient; later revisions cannot silently replace a pending claimant's or accepted counterparty's terms; existing commitments gain no implicit entitlement; earned-reward recipients equal to the reserve holder are rejected before accepting the voucher obligation (the rehearsal proves only Offer approval and Request dispatch rejection) | RESR-73 / PRD-1315 / PRD-1317 |
 | Partial cross-chain outcome | G$ success with voucher delay, voucher delivery with lost acknowledgment and safe reconciliation do not duplicate either asset | PRD-1318 / PRD-1326 |
 | Protocol version | Selected Gnosis implementations match the published build artifacts (four established on 20 October, the rest pending) and controllers and proxy admins are recorded; re-read at the deployment block | PRD-1319 / PRD-1325 |
 | Earned issuance | Source entitlement, eligibility and actual confirmer path retained; no assumed beneficiary confirmation | PRD-1096 / COM-46 |
 | Purchased issuance | The issuer pool's bounded swap settles payment and voucher delivery atomically; record finality, recipient, actual output, minimum output, deadline and inventory delta. No separate purchase message or entitlement exists under this route. A later route with separate settlement must define its entitlement and payment cancellation/refund rules; COM-46 owns service cancellation/refund terms in either case | PRD-1096 / COM-46 |
 | Replay and recovery | Same message and distinct-message reuse both rejected; retry cannot deliver twice; failed and pending states reconcile | PRD-1096 |
 | Capacity and caps | Agreed deliverable service capacity, issuance cap and token holding limits remain distinct and bounded | COM-46 / PRD-1096 |
-| Issuer budget | The amount the adapter can deliver is bounded by the token (allowance) or by a revocable writer cap; the adapter holds no pool or limiter authority | PRD-1318 / COM-46 |
+| Issuer budget | The amount the adapter can deliver is bounded by the token allowance or its own writer-path cap. Acceptance is unreserved: allowance is shared and revocable, not earmarked per entitlement; oversubscription and depleted reserve/allowance must fail safely and recover. The adapter holds no pool or limiter authority | PRD-1318 / COM-46 |
 | Member account | Gnosis derivation, ownership, sponsored signing and recovery proved independently of garden accounts | PRD-1096 |
 | Exchange | Executable direct swap with minimum output/deadline; stale quote, de-list, depleted inventory, limit and sponsorship failures | PRD-1096 |
-| Service discharge | Presentment, partial/full delivery, confirmation and once-only discharge; failed delivery has a visible remedy | COM-46 / PRD-1096 |
+| Service discharge | Presentment, partial/full delivery, confirmation and once-only discharge; failed delivery has a visible remedy. If COM-46 permits partial delivery, authenticated live commands bind delivered/refundable quantities to one escrow and conserve presented units. Each leg settles once across retries, replay and reordered commands, without consuming or stranding the other leg. The fork desk tests its atomic stand-in separately | COM-46 / PRD-1096 / PRD-1317 / PRD-1318 |
 | Presentment handshake | An authenticated, replay-safe receipt binds presenter, promise, token, amount and escrow receipt; the Gnosis escrow is proved to exist before the presenter becomes the Arbitrum counterparty; replay and unknown escrow are rejected | PRD-1315 / PRD-1317 / PRD-1318 |
 | Voucher-accepting Offer payment | The selected claimant is bound as payer after claim selection, authorizes the exact payment and funds the approved reservation/escrow/debit route. Missing authorization or funds cannot appear paid; issuer-funded rewards cannot substitute. Failure/cancellation releases or refunds once under the recorded rule | PRD-1315 / PRD-1317 / PRD-1318 |
 | Gardener issuer identity | Two gardeners sharing a garden or Safe retain distinct issuer identifiers, each with recorded token/admission-authority bindings and isolated authorization/caps; one cannot consume the other's cap or spend under the other's authority | PRD-1315 / PRD-1317 / PRD-1318 |
@@ -48,7 +48,9 @@ A local fork demonstrates the tested deployment at the pinned state, not a later
 
 Rendered evidence follows AGENTS.md: identify the browser/session, distinguish authenticated signing
 or installed-PWA proof from mocks, and record unavailable proof honestly. This planning pass changed
-no UI and has rendered proof **none**.
+no product UI or layout. Deck narration text was corrected; rendered proof is **pending** because
+the browser security policy blocked the local file. Embedded JSON and paired speaker notes are
+checked directly.
 
 The whitepaper review records the earlier 275 passing focused foundation tests. Runtime code has
 not changed during project reconciliation, so those tests were not rerun or recharacterized as CLC

@@ -54,6 +54,9 @@ This rehearsal proves the registration window and issuer approval, not the claim
 to an exact voucher revision. The claimant neither accepts a revision nor signs its hash under
 these defaults. The report must label exact-revision claimant consent **unproved**, separately from
 M1's steward approvals, until PRD-1315 selects a binding mechanism and that mechanism is exercised.
+That live consent gate must also reject an earned-reward recipient equal to the Gnosis reserve
+holder before a voucher obligation is accepted. The bounded rehearsal proves source rejection
+before entitlement creation, not pre-acceptance eligibility for a Request's later-selected claimant.
 This limitation does not expand the approved fork scope.
 
 This bounded rehearsal also leaves voucher-accepting Offer payment funding and distinct gardener
@@ -141,7 +144,8 @@ These go beyond the five defaults. The draft assumes each one; change any before
 - **A2. Terms authority:** a steward of the pool's garden registers voucher terms and a steward of
   the issuer's garden approves each revision, both before acceptance. This mirrors the core rule
   that only a pool steward edits G$ terms before acceptance. There is no per-season budget or
-  reservation on Arbitrum in this slice; the Gnosis allowance is the hard budget.
+  reservation on Arbitrum in this slice. Acceptance is unreserved; the Gnosis allowance is a shared,
+  revocable delivery limit and does not earmark units for accepted promises.
 - **A3. Requests that a garden claims are refused at registration.** Their `leadProvider` is only
   the steward who claimed for the garden, which is why `recordConsiderationPaid` names the garden
   there, and the garden's account does not exist on Gnosis. A Request's `claimType` is fixed at
@@ -217,10 +221,11 @@ custom errors; an event for every transition. It custodies nothing except native
 reserve floor like SettlementModule's `feeReserveMinimum`.
 
 - Dependencies: the CommitmentPooling module and HatsModule. It reads `getCommitment` and `getPool`.
-- Configuration (owner): `setIssuer(issuerGarden, voucherToken, destinationAdapter)` binds an
-  Arbitrum issuer garden to its Gnosis token and adapter, so terms can never name an arbitrary
-  token; plus route (destination selector, gas limit, command validity window), fee reserve minimum
-  and pause.
+- Configuration (owner): `setIssuer(issuerGarden, voucherToken, destinationAdapter, reserveHolder)`
+  binds an Arbitrum issuer garden to its Gnosis token, adapter and non-zero reserve holder, so
+  terms can never name an arbitrary token. The configuration receipt must match the destination
+  adapter's initialized token/reserve holder. Other configuration: route (destination selector,
+  gas limit, command validity window), fee reserve minimum and pause.
 - Terms can be registered or issuer-approved only while the commitment is `Offered` or
   `Requested`; otherwise revert with the actual state.
   - `registerVoucherTerms(commitmentId, issuerGarden, units, seasonId, termsCID)` by a steward or
@@ -229,11 +234,15 @@ reserve floor like SettlementModule's `feeReserveMinimum`.
     (A3). Registering again before acceptance increments the terms revision and clears any approval.
   - `approveVoucherTerms(commitmentId, termsRevision)` by a steward or owner hat wearer of the
     issuer garden. Naming the revision stops an approval from attaching to edited terms. Approval
-    snapshots the issuer's current voucher token and destination adapter into that revision.
+    snapshots the issuer's current voucher token, destination adapter and reserve holder into that
+    revision. For an Offer, reject approval if its known `leadProvider` equals the reserve holder.
     Dispatch, retry and requeue use only the snapshot, so a later `setIssuer` change applies to
     later revisions only and can never send one entitlement to a second adapter.
 - `dispatch(commitmentId)` by a steward of the pool garden or the issuer garden. It requires state
-  `Fulfilled`, approved terms and no earlier dispatch. It derives `recipient = leadProvider`,
+  `Fulfilled`, approved terms and no earlier dispatch. Derive `recipient = leadProvider` and reject
+  `recipient == snapshotted reserveHolder` with `InvalidRecipient` **before** creating or authorizing
+  an entitlement, storing a payload, spending fees or sending a message. This catches a Request's
+  later-selected claimant; it does not certify pre-acceptance consent or eligibility. Then derive
   `entitlementId = keccak256(abi.encode(block.chainid, address(this), commitmentId, termsRevision))`,
   `executionKey = keccak256(abi.encode(sourceSelector, address(this), entitlementId, attempt))` and
   `deadline = block.timestamp + validity`. It stores the payload and its hash, pays the exact quoted
@@ -259,8 +268,10 @@ Follow the order in `CeloSettlementExecution._ccipReceive` and `_authenticate`
 - `executionKey = keccak256(abi.encode(message.sourceChainSelector, sender, entitlementId,
   attempt))`. If a result already exists, emit a duplicate event and transfer nothing.
 - Otherwise store a result, then check in order: token matches, deadline not passed, entitlement
-  not consumed, recipient and amount non-zero, season cap if set. Execute the transfer and its
-  balance check together in an external, self-only helper, called through try/catch as in
+  not consumed, recipient non-zero and distinct from `reserveHolder`, amount non-zero, season cap
+  if set. Reject a reserve-holder recipient with `InvalidRecipient`; do not attempt a self-transfer.
+  Execute the transfer and balance check together in an external, self-only helper, called through
+  try/catch as in
   `CeloSettlementExecution.executeGdollarSettlementBatch`. The helper calls
   `transferFrom(reserveHolder, recipient, amount)`, requires a successful token return and reverts
   if the recipient's balance did not rise by exactly `amount`. A failed transfer or balance check
@@ -269,11 +280,14 @@ Follow the order in `CeloSettlementExecution._ccipReceive` and `_authenticate`
   Preflight failures and caught helper failures store Failed with the matching code and leave the
   entitlement and season spend unchanged. The outer handler does not revert for these business
   failures; a requeue is safe because a failed helper moved no tokens.
-- `deliverByIssuer(bytes payload)`, owner only (A7): decode as the lane does, compute the key from
-  the configured source selector and source module, then follow the same result-first order and
-  checks. A later lane message for the same attempt is a duplicate, and a requeued attempt stores
-  `EntitlementConsumed`. Each stored result records its path, lane or issuer fallback, so the report
-  never presents a fallback as a lane delivery.
+- `deliverByIssuer(address originatingPeer, bytes payload)`, owner only (A7): decode as the lane
+  does and authenticate `originatingPeer` as the current peer or the previous peer through and
+  including its grace expiry. Reject unknown or expired peers. Compute the key from the configured
+  source selector, **originatingPeer**, entitlement and attempt, exactly as the lane does with its
+  sender. Then follow the same result-first order and checks. During grace, a delayed lane message
+  from that peer for the same attempt is a duplicate even after rotation; after grace it fails
+  authentication. A requeued attempt stores `EntitlementConsumed`. Each stored result records its
+  path, lane or issuer fallback, so the report never presents a fallback as a lane delivery.
 - Owner configuration while paused: peer rotation with a grace window capped at 30 days, copied
   from `CeloSettlementAdmin.setSourcePeer`; an optional season cap; pause.
 - Failure codes: `None, TokenMismatch, Expired, EntitlementConsumed, InvalidRecipient, ZeroAmount,
@@ -379,7 +393,8 @@ No new code: configuration through the published factory and implementations.
 | M7 | A second dispatch reverts; retry resends the identical payload under the same key; requeue is steward-only and increments the attempt. |
 | M8 | Fulfillment through `PoolFallback`, `ProtocolFallback` and dispute resolution all qualify (unit test with the mock pooling module). |
 | M9 | The exact quoted fee is paid and the reserve floor holds; pause blocks register, approve, dispatch, retry and requeue before any state change, fee spend or message send; the module holds no tokens. |
-| M10 | Changing the issuer mapping after approval leaves the approved revision's token and destination unchanged for dispatch, retry and requeue; no entitlement reaches a second adapter. |
+| M10 | Changing the issuer mapping after approval leaves the approved revision's token, destination and reserve holder unchanged for dispatch, retry and requeue; no entitlement reaches a second adapter. |
+| M11 | A reserve-holder Offer creator is rejected at terms approval. A reserve-holder Request claimant is rejected at dispatch before entitlement creation, payload storage, fee spend or message send. Both use `InvalidRecipient`; ordinary disjoint recipients still pass M1. This proves no pre-acceptance eligibility binding for a Request. |
 
 **Gnosis adapter**
 
@@ -388,15 +403,15 @@ No new code: configuration through the published factory and implementations.
 | G1 | An authenticated command moves `amount` from the reserve to the recipient; result Success; entitlement consumed. |
 | G2 | The same message delivered twice: the second is a duplicate and transfers nothing. |
 | G3 | A requeued attempt for a consumed entitlement stores `EntitlementConsumed` and transfers nothing. |
-| G4 | Short allowance or reserve stores `TransferFailed` and leaves the entitlement unconsumed; after the Safe raises the allowance or replenishes the reserve as appropriate, a requeue delivers once. |
+| G4 | Short allowance or reserve stores `TransferFailed` and leaves the entitlement unconsumed; after the Safe raises the allowance or replenishes the reserve as appropriate, a requeue delivers once. Include two approved commitments whose combined units exceed the allowance: approval reserves nothing, the later delivery fails safely, and a requeue succeeds only after repair. |
 | G5 | An expired deadline stores `Expired`; a requeue with a fresh deadline delivers. |
 | G6 | Wrong selector, wrong sender, attached tokens, unsupported version or malformed payload reverts. |
 | G7 | A paused adapter reverts, for the lane and for the issuer fallback. |
 | G8 | The previous peer is accepted through and including its grace expiry timestamp, and refused strictly after it. |
 | G9 | A set season cap stores `SeasonCapExceeded` when exceeded; a token mismatch stores `TokenMismatch`. |
 | G10 | The adapter is not a writer of the token or limiter, does not own the pool and holds no balance of its own. |
-| G11 | The issuer fallback delivers a stored command once; the same attempt arriving later over the lane is a duplicate; a requeued attempt stores `EntitlementConsumed`; a non-owner call reverts; the result names the fallback path. |
-| G12 | Delivery to a member's counterfactual account address, with no code on Gnosis, succeeds. |
+| G11 | The issuer fallback delivers a stored command once; the same attempt arriving later over the lane is a duplicate; a requeued attempt stores `EntitlementConsumed`; a non-owner call reverts; the result names the fallback path. After A-to-B rotation, fallback with originating peer A and delayed lane delivery from A during grace share one key/result. Unknown or expired fallback peers revert, including A strictly after expiry. |
+| G12 | Delivery to a member's counterfactual account address, with no code on Gnosis, succeeds. A command whose recipient is the reserve holder instead stores `InvalidRecipient` without moving tokens, consuming the entitlement or counting season spend. |
 | G13 | A token that moves funds but returns false, or whose transfer produces a recipient balance delta other than `amount`, stores `TransferFailed` or `BalanceDeltaMismatch` respectively. The helper rolls back balances and allowance spending; the entitlement and season spend stay unchanged. Cover lane delivery and issuer fallback: repeated requeues under the mismatch move no tokens, and a requeue after repair delivers exactly once. |
 | G14 | After same-version A-to-B peer rotation with grace, a new B-to-C rotation before or exactly at A's expiry reverts `PreviousPeerGraceActive` with peer/expiry state unchanged. At expiry plus one second, rotation is allowed, B becomes the previous peer under its new grace and A is rejected. A same-active-peer update retains the previous peer: zero grace leaves its expiry unchanged, a valid extension is allowed and an attempted shortening reverts. Use the referenced Celo admin's paused-owner transition. |
 
@@ -501,10 +516,10 @@ fork blocks, RPC endpoints and the Arbitrum on-ramp version; implementation and 
 with their pinned code hashes; fork-local instance addresses; owner, admin, writer, limit, fee and
 seal state; each command with its pass count; the case table with results; the PRD-1096 table above
 with each row's evidence; outstanding supply before and after the service cases; the label legend;
-what stays live-only or unproved: issuer-cap enforcement, exact-revision claimant consent
-(not proved by registration or issuer approval), the live escrow-to-promise handshake,
-claimant-funded Offer payments and distinct gardener issuer identity/cap isolation; and a short update Afo can post to
-PRD-1096. End with the task record:
+what stays live-only or unproved: issuer-cap enforcement, exact-revision claimant consent and
+recipient eligibility before acceptance (not proved by registration or issuer approval), the live
+escrow-to-promise handshake, claimant-funded Offer payments and distinct gardener issuer
+identity/cap isolation; and a short update Afo can post to PRD-1096. End with the task record:
 
 ```markdown
 Task record: PRD-1096 voucher rehearsal | Type: feature | Outcome: <complete/partial/blocked>

@@ -139,7 +139,7 @@ sequenceDiagram
 |---|---|---|
 | CommitmentPooling and its acceptance/terminal libraries | Arbitrum 42161 | **Reuse, unchanged:** the voucher module reads `getCommitment`, `isEligibleContributor` and `validateRecognitionSnapshot`. **Proposed terms binding:** pre-acceptance state checks alone do not bind a pending claimant to a voucher revision. PRD-1317 must bind the exact approved revision and counterparty consent before dispatch so later revisions cannot alter pending claims; the [spec](spec.md#commitment-rewards--clarified-intent-proposed-architecture) records this open decision. A stored fulfillment path is an optional later upgrade, needed only if a path-restricted eligibility rule is chosen. |
 | CommitmentRegistry, credit/evidence foundations, Hats | Arbitrum | **Reuse:** work units, identities, authorization and recognition. A voucher is not a transferable version of the registry commitment. |
-| Voucher entitlement module (working name) | Arbitrum | **New GG:** registers voucher terms only while the commitment is Offered or Requested, binds issuer authorization and budget, derives entitlement ids, issues on `Fulfilled`, dispatches data-only commands and stores authenticated results. Custodies nothing and bridges no value. |
+| Voucher entitlement module (working name) | Arbitrum | **New GG:** registers voucher terms only while the commitment is Offered or Requested, binds issuer authorization and a shared delivery limit (no reservation), derives entitlement ids, issues on `Fulfilled`, dispatches data-only commands and stores authenticated results. Custodies nothing and bridges no value. |
 | SettlementModule | Arbitrum | **Reuse by default:** existing Celo consideration and one payout plan remain valid. No installment rewrite. Any required change must be demonstrated rather than presumed. |
 | CeloSettlementExecutor, settlement Safes and existing routes | Celo 42220 | **Reuse:** preserve existing funds, IDs, permissions and retry history. |
 | Voucher issuance adapter (working name) | Gnosis 100 | **New GG:** verifies source and command, consumes each entitlement once (only on success), delivers from the issuer's reserve within an ERC20 allowance (proposed default; writer-based minting is the alternative) and stores the result before acknowledging. No pool-withdrawal authority and no limiter writes. |
@@ -208,10 +208,13 @@ These are recommended invariants for review, not an implemented ABI:
   the acknowledgment is delayed or fails, reconciliation resends/retrieves the receipt without
   minting again. A timeout means unknown/pending, not failed; never authorize replacement value
   until the original outcome is known. Return peer and payload authentication are required too.
-- Reserve issuer capacity for accepted promises under explicit policy. Under the allowance model
-  the issuer's approval is the reservation and the token enforces it. The adapter's season cap
-  bounds its own authorized issuance; owner/other-writer mint powers require governance and
-  reconciliation. CLC's Limiter bounds pool holdings, not service delivery capacity or global supply.
+- Acceptance is **unreserved** under this candidate. An ERC20 allowance is a shared, revocable
+  delivery limit; approving terms neither earmarks units nor debits that limit. Two accepted
+  promises can exceed the remaining allowance or reserve, and later delivery can fail until the
+  issuer repairs it. Do not promise reserved capacity without a separate per-entitlement
+  reservation design. The adapter's season cap bounds its own authorized issuance;
+  owner/other-writer mint powers require governance and reconciliation. CLC's Limiter bounds pool
+  holdings, not service delivery capacity or global supply.
 - Keep the existing G$ allocation and retention rules. Define voucher allocation separately;
   contributor weights may be derived from existing recognition if issuer terms choose that basis.
   Freeze the allocation policy at acceptance, exact atomic recipient amounts before dispatch, and

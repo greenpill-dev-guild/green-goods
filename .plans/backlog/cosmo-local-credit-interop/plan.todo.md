@@ -83,6 +83,9 @@ reaches develop through PR #1170, which supersedes the planning checkout's uncom
   adding one before dispatch is Afo's call.
 - [ ] **COM-46, by 21 October:** agree both issuers' service units, prices, available capacity,
   caps/limits, purchase and earning terms, partial delivery, repair and separate reporting consent.
+  When partial delivery is allowed, PRD-1317/1318 must bind authenticated delivered/refundable
+  quantities, conserve escrowed units and settle both legs once across retries and reordering;
+  their approved Done-when additions carry this requirement.
 - [ ] **PRD-1096, by 21 October:** prove the local fork loop, negative cases and account behavior.
   Mock message transport is labeled; it is not live cross-chain certification.
   Rehearsal defaults adopted 20 October: any `Fulfilled` commitment qualifies (path recorded, not

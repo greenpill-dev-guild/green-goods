@@ -257,3 +257,23 @@ Read-back receipts (21 October 2026 UTC):
 * PRD-1315: applied 2026-10-21T19:22:06.270Z, read back 2026-10-21T19:22:29Z.
 * PRD-1317: applied 2026-10-21T19:22:33.929Z, read back 2026-10-21T19:22:53Z.
 * PRD-1318: applied 2026-10-21T19:22:56.570Z, read back 2026-10-21T19:22:57Z.
+
+## PR #1170: partial-delivery criteria applied after approval
+
+The later review found that the live commands did not carry partial-delivery quantities. Afo
+approved each addition below, and both were applied and read back. Both issues remain Backlog;
+state history, assignee, cycle, dates, estimate and milestone are unchanged. Existing description
+content is preserved apart from Linear whitespace/native-issue-link normalization.
+
+### PRD-1317
+
+> * When COM-46 permits partial delivery, bind the presentment's confirmed delivered and refundable units into the authenticated discharge/return commands. The split must conserve the escrowed amount, and each leg must settle once across retries and reordered messages.
+
+### PRD-1318
+
+> * When COM-46 permits partial delivery, accept authenticated delivered and refundable quantities for one escrow and enforce delivered + refundable = presented units. Transfer delivered units to the issuer and refundable units to the holder exactly once across retries, replay and reordered commands; neither leg may consume or strand the other's balance.
+
+Read-back receipts (21 October 2026 UTC):
+
+* PRD-1317: applied 2026-10-21T19:57:59.818Z, read back 2026-10-21T19:58:00Z.
+* PRD-1318: applied 2026-10-21T19:58:05.008Z, read back 2026-10-21T19:58:07Z.

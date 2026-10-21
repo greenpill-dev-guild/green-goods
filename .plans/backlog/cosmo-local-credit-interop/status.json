@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-08-25T06:09:38.829Z",
-    "updated_at": "2026-10-21T19:22:57Z"
+    "updated_at": "2026-10-21T19:58:07Z"
   },
   "links": {
     "brief": "brief.md",
@@ -38,7 +38,7 @@
     "project": "Cosmo-Local Integration",
     "initiative": null,
     "syncDirection": "plans_to_linear_visibility",
-    "lastSyncedAt": "2026-10-21T19:22:57Z",
+    "lastSyncedAt": "2026-10-21T19:58:07Z",
     "lanes": {},
     "laneSyncMode": "parent_only",
     "stateSyncMode": "preserve_existing",
@@ -386,6 +386,14 @@
       "status": "planning_reconciled",
       "branch": "research/cosmo-local-voucher-direction",
       "note": "PR #1170 later review: Afo separately approved description additions on PRD-1315, PRD-1317 and PRD-1318. Applied and read back 19:22:06-19:22:57 UTC: exact-revision consent, authenticated escrow-to-promise handshake, post-claim Offer payer funding and distinct gardener issuer identity/cap isolation are explicit acceptance requirements. Parent remains In Progress; both children remain Backlog; assignee, cycle, dates, estimate, milestone and state history unchanged. This bounded sync settles no open design choice, changes no dependencies and authorizes no implementation. Current core-view summary corrected; lane objects and manual blocks unchanged."
+    },
+    {
+      "timestamp": "2026-10-21T19:58:07Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "planning_reconciled",
+      "branch": "research/cosmo-local-voucher-direction",
+      "note": "PR #1170 partial-delivery review: after Afo separately approved each description addition, PRD-1317 and PRD-1318 received the delivered/refundable split, conservation and once-only settlement requirements. Applied and read back 19:57:59-19:58:07 UTC. Both remain Backlog; state history, assignee, cycle, dates, estimate and milestone unchanged. This is a bounded description sync, not implementation proof or dispatch authority. Lane objects and manual blocks unchanged."
     }
   ]
 }

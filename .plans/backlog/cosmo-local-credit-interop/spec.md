@@ -110,7 +110,7 @@ issuer's capacity and supply policy; the rehearsal does not prove total issuer-c
 | Commitments and confirmation | Green Goods on Arbitrum | Evidence and confirmer provenance; not token custody |
 | Issuance authorization | Hat-authorized Arbitrum module | Registers terms while the commitment is Offered or Requested; names issuer, source kind, entitlement, recipient, amount and season |
 | Issuer and voucher | Issuer's community Safe on Gnosis | Authenticated commands, replay protection, delivery within the issuer's allowance (or bounded minting if the writer model is chosen); no limiter writes in the first slice |
-| Registry, quoter, limits, fees and pool | Community-owned instances on Gnosis | Explicit local terms and inventory; no issuer access to pool money |
+| Registry, quoter, limits, fees and pool | Community-owned instances on Gnosis | Explicit local terms and inventory. The adapter and Arbitrum stewards have no pool authority; the issuer Safe owns the selected pool and retains `withdrawLiquidity`, even after registry/limiter sealing. Disclose this custody and governance risk |
 | Member exchange | Gardener's own Gnosis account | Direct executable swap with minimum output and deadline |
 | G$ support | Existing Celo settlement path | Can coexist with voucher entitlement on one commitment; separate amounts and receipts, no G$ bridge |
 | Passport | Indexer projections and Shared domain adapter | Join evidence without merging intent, issuance, payment and delivery |
@@ -161,7 +161,11 @@ an open claim. PRD-1317 must bind the counterparty to the exact approved revisio
 refusing new revisions while a claim request is pending and recording the counterparty's consent
 to the revision hash before dispatch, with a mismatch routed to dispute. The core's own G$ terms
 share this window. RESR-73 owns research; PRD-1315 freezes the implementation boundary
-once those are recorded. No general multiasset engine is assumed.
+once those are recorded. The consent mechanism must reject an earned-reward recipient equal to
+the Gnosis reserve holder before accepting a voucher obligation; a self-transfer cannot satisfy
+the exact recipient balance increase. The bounded rehearsal rejects known Offer overlaps at
+approval and Request overlaps before dispatch, but leaves Request pre-acceptance eligibility
+unproved. No general multiasset engine is assumed.
 
 ## Issuance and identity
 
@@ -208,6 +212,13 @@ failed delivery and remedy as separate facts. A swap, token return or token burn
 service was delivered. The current published burn authority must be checked independently of mint
 writer authority. Choose whether returned vouchers are burned, locked or reusable and prevent a
 second discharge of the same service obligation.
+
+When COM-46 permits partial delivery, authenticated commands must bind the presentment's confirmed
+`deliveredUnits` and `refundableUnits` to the same escrow and promise, with
+`deliveredUnits + refundableUnits = presentedUnits`. Delivered units go to the issuer and refundable
+units to the holder. Each leg settles once across retries, replay and reordered commands; neither
+can consume or strand the other's balance. PRD-1317 binds the split and PRD-1318 enforces it, as
+recorded in their approved Done-when additions.
 
 Decided 21 October: presentment opens a Green Goods promise (decision 3 above), and the rehearsal's
 service desk is a fork-only stand-in.

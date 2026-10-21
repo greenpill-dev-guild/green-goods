@@ -31,8 +31,8 @@ named learners at the Awka hub.
   commitments and reports their delivery. *Accepted route (Afo, 9 October), subject to the sponsorship terms.*
 - **Later, and only after a recorded go:** prepaid vouchers, such as a Tech and Sun voucher for
   one solar class seat, bought from the hub's Cosmo-Local pool. A steward admits the hub as an
-  issuer with published terms, and its outstanding vouchers stay under a cap that grows with the
-  promises it keeps.
+  issuer with published terms and a cap policy that grows with the promises it keeps. Cap
+  enforcement is undecided: a mint controller or monitored issuer policy still needs to be chosen.
 - **Not this route:** the in-app Donate button sends support to a garden jar that members draw
   from in small claims. It is real and live, but it is not how a season of seats is paid for.
 
