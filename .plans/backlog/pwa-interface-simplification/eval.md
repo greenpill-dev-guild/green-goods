@@ -177,3 +177,14 @@ to the member's own items; an evaluator's shows the assessment row; the Portugue
 The promise cards measured 204px each at 390px in English and Portuguese with the description
 clipped at two lines and the needs row at one; the switcher's rows all end their role chip at the
 same edge with no check mark. The hub checks were run again on the recording edits.
+
+## Steward Home review check (2026-10-21, later)
+
+Measured in the desktop app's built-in browser pane (Chromium, static mock, no app session): Home's
+English headings in Title Case; the steward's duties section with four 88px rows whose taps open
+the Work sheet on Pending, Gardeners, and Promises on To confirm or Live; the steward's bell with
+three event rows and no counts; the About row without Governance; the role control without the
+evaluator; the compact promise card at 132px in English and Portuguese beside the 204px full
+card; the Insights sheet with and without a 144px banner; the chip's label at 97px (390px, four
+launchers), 67px (360px), 145px and 115px with the wallet launcher moved to Profile, so the
+Community Garden's name truncates in every case. The hub checks were run again on the edits.

@@ -306,9 +306,11 @@ drawn in the lab as a tweak with the decision as its default:
     page with tabs.
 11. **A notifications bell in the header.** It sits at the far right of the cluster (placed there
     on 20 October; the slot the filter leaves is filled by the cluster shifting left). Its badge counts what is new for the account
-    in this garden; its sheet lists those events as item rows (own work approved or rejected with
-    feedback, a promise taken up, a join request answered; for stewards and evaluators, work to
-    review and join requests), each opening the work, the promise, Your Work or Gardeners.
+    in this garden; its sheet lists events, one row each (own work approved or rejected with
+    feedback, a promise taken up, a join request answered; for stewards, a new submission, a join
+    request, a take-up request), each opening the work, the promise, Your Work or Gardeners. The
+    bell never carries a standing count; counts belong to the duties section (decision 22), so the
+    two overlap only in that an event's arrival is also what raised a count (amended 21 October).
 12. **The Home header is sticky,** with a hairline once content scrolls under it. The chip keeps
     declaring the garden at any scroll position.
 13. **Submit Work's first step** (revised on 20 October, see decision 16): one question, with the
@@ -368,12 +370,15 @@ for the free-work row, chips with tabs kept for comparison, and the switcher's a
 tinted row with a ring on its picture. None of the first three is decided; the switcher marking is
 a correction.
 
-22. **A steward's Home carries a Garden duties section first.** For stewards and evaluators, and
-    only when something waits, a section above Recent activity lists the garden's needs: work to
-    review, join requests, promises to confirm, the season assessment, each row opening its sheet
-    (Your Work's To review, Gardeners, Promises' To confirm, Insights). It disappears when empty,
-    and gardeners never see it. Continue goes back to the member's own drafts and uploads. The
-    rest of Home is the same journal for everyone; the role shows in the content, not in a mode.
+22. **A steward's Home carries a duties section first.** For stewards, and only when something
+    waits, a section above Recent Activity lists the four queues the phone can act on: work to
+    review (opens the garden's Work sheet on Pending), join requests (Gardeners, requests first),
+    take-up requests on approval-gated asks (the promise's claim panel), and promises to confirm
+    (Promises on To confirm). Each row opens its exact queue, not a sheet's front. It disappears
+    when empty, and gardeners never see it. Continue goes back to the member's own drafts and
+    uploads. The rest of Home is the same journal for everyone; the role shows in the content, not
+    in a mode. The evaluator has no Home duties: the app has no assessment flow on the phone
+    (amended 21 October; the section's title is still being chosen in the lab).
 23. **A pending work row opens the work.** Recent activity rows stay the same for every role; a
     steward approves inside the work's page as today. The duties section carries the count. No
     Review control in the row.
@@ -381,8 +386,20 @@ a correction.
     requests and confirmations; pools, assessments, payouts and settings stay in the cockpit,
     reached from the About row.
 
+25. **Section headings in Title Case in English.** Home's sections, sheet titles and the info
+    panels' titles (Recent Activity, Take Part, About This Garden, Keep a Promise, Add Evidence);
+    Spanish and Portuguese keep sentence case, as the app's catalogs do. Status pills and body
+    copy stay sentence case (21 October).
+26. **Governance stays out of the About row** while the app's governance flag is off; the row lists
+    Insights, Gardeners, Share and, for stewards and depositors, Endowment (21 October).
+
+Measured on 21 October for the long-name question: with four launchers the chip's label has about
+97px at 390px and 67px at 360px, so "Green Goods Community Garden" shows as "Green G…"; with the
+wallet launcher moved to Profile it has about 145px and 115px. The lab draws both, undecided.
+
 Still open after this round: the Work-for treatment (card, line or none), Home's row style, the
-promise card and the free-work wording.
+promise card's density (compact recommended), the free-work wording, the duties section's title,
+the wallet launcher's place, and whether the Insights sheet opens with the banner.
 
 What this corrects: the 19 October "promises first" step offered open asks as things the step
 could keep, but work links only to a promise the member has taken up (the link-choice hook reads
