@@ -357,7 +357,18 @@ teases. What the review settled:
     stages. The code is organised around the shared stages and the pieces that vary by kind at
     each stage, with one job-queue path per kind.
 
-Still open after this round: the Work-for treatment (card, line or none) and Home's row style.
+Later still on 20 October the maintainer asked for the promises screen to carry more of each
+promise's context than an item row shows, for better wording than "Other work" on the free-work
+row, for the domain filter to be the capsule chip row rather than the sheets' tabs, and for the
+switcher to stop marking the active garden with a check mark that pushed its role chip out of line
+with the other rows. The lab draws a fixed-height promise card (description, progress, what it
+needs, who asked, who is taking part) beside a row-with-progress and the plain row, three wordings
+for the free-work row, chips with tabs kept for comparison, and the switcher's active row as a
+tinted row with a ring on its picture. None of the first three is decided; the switcher marking is
+a correction.
+
+Still open after this round: the Work-for treatment (card, line or none), Home's row style, the
+promise card, the free-work wording, and whether Home should differ for a steward.
 
 What this corrects: the 19 October "promises first" step offered open asks as things the step
 could keep, but work links only to a promise the member has taken up (the link-choice hook reads
