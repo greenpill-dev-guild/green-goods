@@ -223,7 +223,8 @@ reserve floor like SettlementModule's `feeReserveMinimum`.
 - Dependencies: the CommitmentPooling module and HatsModule. It reads `getCommitment` and `getPool`.
 - Configuration (owner): `setIssuer(issuerGarden, voucherToken, destinationAdapter, reserveHolder)`
   binds an Arbitrum issuer garden to its Gnosis token, adapter and non-zero reserve holder, so
-  terms can never name an arbitrary token. The configuration receipt must match the destination
+  terms can never name an arbitrary token. Reject zero token, adapter, reserve holder or destination
+  selector at configuration/registration. The configuration receipt must match the destination
   adapter's initialized token/reserve holder. Other configuration: route (destination selector,
   gas limit, command validity window), fee reserve minimum and pause.
 - Terms can be registered or issuer-approved only while the commitment is `Offered` or
@@ -231,13 +232,37 @@ reserve floor like SettlementModule's `feeReserveMinimum`.
   - `registerVoucherTerms(commitmentId, issuerGarden, units, seasonId, termsCID)` by a steward or
     owner hat wearer of `getPool(commitment.poolId).garden`, the test in
     `CommitmentPoolingGuardLib.isGardenSteward`. Refuse a Request whose `claimType` is `Garden`
-    (A3). Registering again before acceptance increments the terms revision and clears any approval.
+    (A3). Require `units > 0` and a non-empty `termsCID` before storing a revision; otherwise revert
+    `ZeroAmount` or `InvalidTermsCID` without incrementing the revision or clearing prior approval.
+    Registration snapshots the issuer's voucher token, destination adapter and reserve holder,
+    plus the route's destination chain selector. Registering again before acceptance increments
+    the revision, computes a new canonical hash and clears approval. Configuration changes never
+    mutate an existing revision; adopting them requires registration of a new revision.
   - `approveVoucherTerms(commitmentId, termsRevision)` by a steward or owner hat wearer of the
-    issuer garden. Naming the revision stops an approval from attaching to edited terms. Approval
-    snapshots the issuer's current voucher token, destination adapter and reserve holder into that
-    revision. For an Offer, reject approval if its known `leadProvider` equals the reserve holder.
-    Dispatch, retry and requeue use only the snapshot, so a later `setIssuer` change applies to
-    later revisions only and can never send one entitlement to a second adapter.
+    issuer garden binds that revision's stored hash and snapshot, never current configuration.
+    Defensively reject zero units. For an Offer, reject approval if its known `leadProvider` equals
+    the snapshotted reserve holder. Expose the full terms CID and hash for inspection.
+  - `revokeVoucherTerms(commitmentId, termsRevision)` by the same issuer authority clears that
+    revision's approval while the commitment is `Offered` or `Requested`, without a pool-steward
+    edit. Reject an old revision, unauthorized caller or any later commitment state. Emit the
+    revoked revision and hash. A revoked revision cannot dispatch; restoring approval requires an
+    explicit issuer approval of that same immutable hash, still before acceptance. Revocation
+    remains available while paused: withdrawing authority sends no message and spends no fees. This
+    is issuer
+    authorization only; the live counterparty-consent gate remains unproved in this rehearsal.
+  - Canonical `termsHash` is `keccak256(abi.encode(...))` with these fields in this exact order:
+    `keccak256("GreenGoods.VoucherTerms.v1")`, `block.chainid`, `address(this)`, `commitmentId`,
+    `termsRevision`, `issuerGarden`, `sourceKind`, `units`, `seasonId`, `keccak256(bytes(termsCID))`,
+    `keccak256("leadProvider")`, `voucherToken`, `destinationSelector`, `destinationAdapter`,
+    `reserveHolder`. Encode IDs, revision, units, season and source chain ID as `uint256`,
+    `sourceKind` as `uint8` (0 means earned reserve delivery in this slice), destination selector as
+    `uint64`, addresses as `address` and hashes as `bytes32`; use `abi.encode`, never packed encoding.
+    The source kind is fixed by this earned-reward path, never supplied by a caller; atomic pool
+    purchases have no module entitlement or terms hash. The allocation-policy tag binds the fixed
+    lead-provider rule; the later-derived recipient is bound separately in the dispatch payload.
+    Store the hash at
+    registration and copy it unchanged into every command. The report must resolve the recorded
+    CID to the exact terms bytes; the hash alone does not prove availability.
 - `dispatch(commitmentId)` by a steward of the pool garden or the issuer garden. It requires state
   `Fulfilled`, approved terms and no earlier dispatch. Derive `recipient = leadProvider` and reject
   `recipient == snapshotted reserveHolder` with `InvalidRecipient` **before** creating or authorizing
@@ -246,11 +271,15 @@ reserve floor like SettlementModule's `feeReserveMinimum`.
   `entitlementId = keccak256(abi.encode(block.chainid, address(this), commitmentId, termsRevision))`,
   `executionKey = keccak256(abi.encode(sourceSelector, address(this), entitlementId, attempt))` and
   `deadline = block.timestamp + validity`. It stores the payload and its hash, pays the exact quoted
-  fee and records Dispatched.
-- `retry(commitmentId)` resends the stored payload byte for byte, same execution key.
+  fee and records Dispatched. Use the approved revision's snapshotted destination selector and
+  adapter, and store that target pair with the command record.
+- `retry(commitmentId)` resends the stored payload byte for byte, same execution key and stored
+  destination selector/adapter; never consult the current route for a delivery target.
   `requeue(commitmentId)` starts a new attempt with a fresh deadline after an operator has read a
-  Failed result on Gnosis. Both are steward-only. Requeue is safe by construction because the
-  adapter consumes entitlements, not attempts.
+  Failed result on Gnosis. Requeue retains the approved hash, token, reserve holder and stored
+  destination selector/adapter; only attempt/deadline and transport fees change. Both are
+  steward-only. Requeue is safe by construction because the adapter consumes entitlements, not
+  attempts. Mutable gas settings can affect fee quotes, never the target chain or adapter.
 - Pause blocks registration, approval, dispatch, retry and requeue before any state change, fee
   spend or message send, following `Settlement/Lifecycle.sol`'s `_requireNotPaused()` guards.
 - No receive path in this slice (default 5). Do not add `ccipReceive`.
@@ -295,16 +324,32 @@ Follow the order in `CeloSettlementExecution._ccipReceive` and `_authenticate`
 
 ### VoucherServiceDesk (Gnosis, one per issuer; A1)
 
-- The issuer Safe owns it and sets an operator, the hub.
-- `present(units, serviceRef)` by a holder pulls the units with `transferFrom` and opens a
-  presentment. `markDelivered(id, deliveredUnits)` by the operator, at most the presented units.
-  `confirmReceipt(id)` by the holder requires a positive recorded delivery, records the beneficiary
-  confirmation and discharges once: delivered units go to the issuer Safe and the rest return to
-  the holder. With no recorded delivery or zero delivered units, confirmation reverts without
-  changing balances or closing the presentment. `remedy(id, reasonRef)` by the operator before
-  confirmation returns every unit, including when no service was delivered.
+- The issuer Safe owns it and sets an operator, the hub. Pin the voucher token and service issuer
+  Safe at initialization; transferring contract ownership does not change that service issuer or
+  the recipient of discharged units. Initial token and role addresses must be non-zero.
+- `present(units, serviceRef)` requires positive units and a holder distinct from the operator and
+  the pinned issuer Safe. Pull exactly those units with `transferFrom` and open the presentment
+  only if transfer succeeds and the desk balance rises by exactly that amount. Failed or short
+  transfers revert the whole call. Track open-presentment counts per holder; owner-only
+  `setOperator` rejects zero and an address with an open presentment, so a later role change cannot
+  make a holder its own verifier.
+- `markDelivered(id, deliveredUnits)` by the operator sets a **cumulative total**, not an increment:
+  `previousDeliveredUnits <= deliveredUnits <= presentedUnits`. An equal value is a no-op; a lower
+  value or a total above the presentation reverts. This is an unconfirmed operator delivery claim.
+- `confirmReceipt(id)` by the holder requires a positive recorded delivery, freezes the split,
+  records beneficiary confirmation and discharges once: delivered units go to the pinned issuer
+  Safe and the rest return to the holder. With no recorded delivery or zero delivered units,
+  confirmation reverts without changing balances or closing the presentment. Settlement is one
+  transaction: a failed transfer in either leg rolls back both legs and all closure/accounting.
+- `remedy(id, reasonRef)` by the operator before confirmation returns every unit. If a positive
+  delivery claim was recorded, explicitly void it: emit its previous total and reason, set the
+  effective delivered quantity to zero and close as Remedied. Preserve the old claim and void event
+  in history; never count it as confirmed service or successful discharge. Emit no beneficiary
+  confirmation or discharge event. The full refund and void/closure happen atomically; failure
+  leaves the presentment and delivery claim unchanged.
 - Views report each open presentment's undelivered units and the desk's total outstanding units.
-  Every transition emits an event.
+  Every transition emits an event; reports distinguish unconfirmed claims, voided claims,
+  beneficiary-confirmed deliveries and remedies.
 - Any second transition on a closed presentment reverts. The desk never mints or burns. SPEC lets
   only the token owner burn, and only from its own balance, so the Safe may later burn what it
   received at discharge.
@@ -387,14 +432,17 @@ No new code: configuration through the published factory and implementations.
 | M1 | Terms registered and issuer-approved before acceptance; after `Fulfilled`, one dispatch sends one command to the configured adapter with `recipient = leadProvider`: the creator for an Offer, the claimant for an individually claimed Request. Steward approval does not prove the claimant's exact-revision consent. |
 | M2 | Register or approve after acceptance reverts. |
 | M3 | Register by a non-steward of the pool garden, approve by a non-steward of the issuer garden, or an unconfigured issuer garden reverts. |
-| M4 | Editing terms before acceptance bumps the revision and clears approval; approving an old revision reverts. |
+| M4 | Editing any terms field before acceptance bumps the revision, changes the canonical hash and clears approval; approving an old revision reverts. Configuration changes alone do not mutate the old revision/hash. |
 | M5 | Registering terms on a Request whose `claimType` is `Garden` reverts (A3). |
 | M6 | Dispatch before `Fulfilled`, without approved terms (including a fulfilled commitment that never had terms), or after cancellation or expiry reverts. |
 | M7 | A second dispatch reverts; retry resends the identical payload under the same key; requeue is steward-only and increments the attempt. |
 | M8 | Fulfillment through `PoolFallback`, `ProtocolFallback` and dispute resolution all qualify (unit test with the mock pooling module). |
 | M9 | The exact quoted fee is paid and the reserve floor holds; pause blocks register, approve, dispatch, retry and requeue before any state change, fee spend or message send; the module holds no tokens. |
-| M10 | Changing the issuer mapping after approval leaves the approved revision's token, destination and reserve holder unchanged for dispatch, retry and requeue; no entitlement reaches a second adapter. |
+| M10 | Change issuer mapping and destination route after registration/approval: dispatch, retry and requeue retain the revision's token, reserve holder, destination selector and adapter. Include a second chain selector with the same adapter address; no command or entitlement moves to that second chain. A new revision can adopt the new configuration only with new issuer approval. |
 | M11 | A reserve-holder Offer creator is rejected at terms approval. A reserve-holder Request claimant is rejected at dispatch before entitlement creation, payload storage, fee spend or message send. Both use `InvalidRecipient`; ordinary disjoint recipients still pass M1. This proves no pre-acceptance eligibility binding for a Request. |
+| M12 | Registering zero units or an empty terms CID reverts with revision/approval/storage unchanged; no invalid revision can be approved or dispatched. Positive-unit terms with a retrievable CID pass M1. |
+| M13 | Issuer revocation before acceptance clears approval and blocks later dispatch, without a pool-steward edit, including while paused (no fee spend or message). Unauthorized/old-revision/post-acceptance revocation reverts. Only explicit pre-acceptance reapproval restores that same hash; editing instead creates a new revision needing new approval. |
+| M14 | Independently ABI-encode the canonical preimage and match the stored/command hash. Vary issuer, kind, units, season, CID, revision and each frozen route/asset binding; each changes the hash. Retry/requeue preserve it, while a new revision invalidates old approval. |
 
 **Gnosis adapter**
 
@@ -436,10 +484,14 @@ No new code: configuration through the published factory and implementations.
 |---|---|
 | S1 | Present, deliver fully, confirm: the units reach the issuer Safe and the presentment closes. |
 | S2 | Partial delivery then confirmation: delivered units reach the Safe and the rest return to the holder. |
-| S3 | Remedy before confirmation returns every unit. |
+| S3 | Remedy before confirmation returns every unit and closes as Remedied; S9 covers a previously positive delivery claim. |
 | S4 | A second confirmation or remedy on a closed presentment reverts; only the operator delivers or remedies and only the holder confirms. |
 | S5 | The desk reports undelivered units while a presentment is open, and the report shows the issuer's outstanding supply (total supply minus the Safe's balance) before and after S1 to S3. |
 | S6 | Confirmation before any `markDelivered`, or after recording zero delivered units, reverts with balances unchanged and the presentment still open; no confirmation or discharge event is emitted. The operator can still remedy it and return every unit. |
+| S7 | On a 100-unit presentation, cumulative updates 70, 70 and 90 leave totals 70, 70 and 90; 69 and 101 then revert without changing the 90 total. Confirmation pays 90 and refunds 10 once. Updates after closure reject. |
+| S8 | Operator and issuer Safe cannot present; zero units reject. A holder with an open presentment cannot become operator; a disjoint replacement can, but cannot confirm as the holder. Ordinary disjoint-holder S1 succeeds. |
+| S9 | Record a positive partial claim, then remedy: full refund, effective delivered units zero, old claim explicitly voided with reason, state Remedied, no beneficiary-confirmation/discharge event or successful-service count. A second remedy/confirmation rejects; history retains the voided claim. |
+| S10 | Failed/short escrow pull opens nothing. Failure in either confirmation transfer or the remedy refund rolls back all balances, claims, closure and outstanding counters; repair permits the same action once. |
 | K1 | The passkey account address is the same on both forks. |
 | K2 | `createAccount` reverts on Gnosis without the stand-in, reproducing the live gap, and succeeds with it. |
 | K3 | Member actions run from that account; the ECDSA control completes a signed user operation through EntryPoint. |
