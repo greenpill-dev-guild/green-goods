@@ -107,7 +107,9 @@ test("only open same-repository Dependabot package and Actions PRs qualify", () 
 
 function fixture(t) {
   const directory = mkdtempSync(join(tmpdir(), "dependabot-sync-"));
-  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  // Git can leave transient filesystem work behind as a repository is removed.
+  // Retry ENOTEMPTY briefly; a persistent cleanup failure still fails the test.
+  t.after(() => rmSync(directory, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }));
   const trustedRoot = join(directory, "trusted");
   const root = join(directory, "candidate");
   mkdirSync(trustedRoot);
@@ -127,11 +129,11 @@ else fs.writeFileSync('docs/generated.mdx', output);
   git(trustedRoot, "init", "-q");
   const commit = (base) => {
     git(base, "add", "--", "package.json", "packages", "bun.lock", "docs", "scripts", ".github");
-    git(base, "-c", "commit.gpgsign=false", "-c", "user.name=Fixture", "-c", "user.email=fixture@example.com", "commit", "-qm", "fixture");
+    git(base, "-c", "maintenance.auto=false", "-c", "gc.auto=0", "-c", "commit.gpgsign=false", "-c", "user.name=Fixture", "-c", "user.email=fixture@example.com", "commit", "-qm", "fixture");
     return git(base, "rev-parse", "HEAD").trim();
   };
   const baseSha = commit(trustedRoot);
-  execFileSync("git", ["clone", "-q", trustedRoot, root]);
+  execFileSync("git", ["-c", "maintenance.auto=false", "-c", "gc.auto=0", "clone", "-q", trustedRoot, root]);
   write(root, "packages/agent/package.json", JSON.stringify({ dependencies: { hono: "4.13.11" } }));
   let headSha = commit(root);
   const output = join(directory, "sync.json");
