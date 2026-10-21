@@ -327,13 +327,18 @@ The maintainer reviewed the Start step variants with the two design books in han
 the gardening flow to be designed around its real states rather than Home's pattern of lists and
 teases. What the review settled:
 
-16. **One question.** The first step asks what the member did and infers the rest. The actions a
-    promise of the member's still needs rise to the top of the one list wearing that promise
-    ("for Workshop photos · 3 of 12 · due Jan 31"); picking one attaches the promise, says so, and
-    one tap unlinks it. An action two promises need says so and asks which after the pick. With
-    nothing owed the step is the plain list and never says the word promise. The exact shape (one
-    folded list, two labelled groups, or a yes-or-no question before the list), the heading, the
-    chooser and the Work-for treatment stay in the lab as tweaks until the maintainer picks.
+16. **The first step, as settled later on 20 October.** There is no Start button: picking a
+    promise, an action, or both moves straight into the work. With no promise to work on, the
+    step is the garden's actions as two-up tiles under the info panel, titles wrapping to two
+    lines inside one tile height, with domain tabs above them and an All tab, drawn only from the
+    domains the garden supports (one domain, no tabs). With promises the member could work on
+    (their own, and the garden's Open asks), the step lists them as rows with an Other work row
+    at the end. An evidence-only promise opens the evidence flow at once. A promise with actions
+    opens its own screen: the info panel names the promise, Add evidence sits first when the
+    promise takes evidence, then the promise's actions, one per row up to three and two-up tiles
+    past that. The info panel at the top of each screen keeps today's styling and says what the
+    screen is for. The flow is click-led with little scrolling. This replaces the one-list shape
+    drafted earlier the same day; the lab draws it as the default with today's order beside it.
 17. **Known answers skip the step.** From a promise's page Media opens with the promise pinned; a
     garden with one action and nothing owed also opens Media with the action named in the line.
 18. **Taking up moves into the step.** Submit Work lists the garden's open asks of the Open claim
@@ -345,6 +350,14 @@ teases. What the review settled:
 19. **New asks default to Open.** Compose defaults the claim mode to Open and keeps Approval gated
     as the opt-in for asks whose asker must choose who takes them. No contract change.
 20. **The bell sits at the far right** of the header cluster (decision 11 amended).
+21. **One submission flow.** Adding evidence to a promise and logging work for an action are one
+    flow with two kinds, not two flows. Today Submit Work (the work submission flow controller
+    with its Intro, Media, Details and Review steps) and the proof composer (its own controller
+    with ProofShell, ProofMedia, ProofDetails and ProofReview) are separate code over the same
+    stages. The code is organised around the shared stages and the pieces that vary by kind at
+    each stage, with one job-queue path per kind.
+
+Still open after this round: the Work-for treatment (card, line or none) and Home's row style.
 
 What this corrects: the 19 October "promises first" step offered open asks as things the step
 could keep, but work links only to a promise the member has taken up (the link-choice hook reads

@@ -1,6 +1,6 @@
 # PWA Interface Simplification
 
-**Stage:** backlog · **Posture:** scope locked on 18 October 2026, completed by the 19 October review and extended on 20 October; the Start step's shape awaits a pick; implementation waits for a separate go
+**Stage:** backlog · **Posture:** scope locked on 18 October 2026, completed by the 19 October review and extended on 20 October; the Work-for treatment and Home's row style await a pick; implementation waits for a separate go
 
 **Linear:** [RESR-93](https://linear.app/greenpill-dev-guild/issue/RESR-93) in
 [Green Goods 2.1.0](https://linear.app/greenpill-dev-guild/project/green-goods-v210-qa-and-release-9bcaf982d5e5).
@@ -79,8 +79,11 @@ to 15 in [spec.md](spec.md#review-round-on-19-october-2026).
 On 20 October the Start step was reopened against the two design books and settled as decisions
 16 to 20 in [spec.md](spec.md#review-round-on-20-october-2026): one question with the actions a
 promise needs first, known answers skipping the step, Open asks taken up from the step with two
-queued writes, new asks defaulting to Open, and the bell at the far right. The step's shape,
-heading, chooser and Work-for treatment stay in the lab until picked.
+queued writes, new asks defaulting to Open, and the bell at the far right. Later that day the
+maintainer settled the step itself (decision 16: no Start button, promises first as rows when
+there are any, a promise's own screen with Add evidence first, two-up action tiles under dynamic
+domain tabs otherwise) and asked for one submission flow for evidence and work (decision 21). The
+Work-for treatment and Home's row style stay in the lab until picked.
 
 ## Scope and boundaries
 

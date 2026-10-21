@@ -2,8 +2,9 @@
 
 **2026-10-20 design round:** the Start step was reopened against the design books and settled
 as decisions 16 to 20 in [spec.md](spec.md#review-round-on-20-october-2026); step 13 carries the
-one-question step, and steps 16 and 17 the Open default and the take-up from the step. The step's
-shape, heading, chooser and Work-for treatment await a pick from the lab.
+one-question step, and steps 16 and 17 the Open default and the take-up from the step. Later
+that day the step itself was settled (decision 16) and the one submission flow for evidence and
+work added as step 18 (decision 21); the Work-for treatment and Home's row style await a pick.
 
 **2026-10-19 review round:** the maintainer reviewed the lab and the lock; nine corrections and,
 later that day, the five explorations and the badge rule are settled, all recorded in
@@ -29,7 +30,7 @@ record.
 
 **Feature Slug:** `pwa-interface-simplification`
 **Stage:** backlog
-**Status:** SCOPE LOCKED (18 October 2026, extended 20 October); the Start step's shape awaits a pick; implementation awaits a separate go
+**Status:** SCOPE LOCKED (18 October 2026, extended 20 October); the Work-for treatment and Home's row style await a pick; implementation awaits a separate go
 **Created / Last Updated:** 2026-10-06 / 2026-10-20
 **Linear Issue:** RESR-93
 **Linear Project:** Green Goods v2.1.0 QA & Release
@@ -51,7 +52,8 @@ state. Existing Linear records provide planning and delivery visibility.
 - [x] Resolve the four product decisions in the specification; record acceptance explicitly.
 - [x] Specify selection persistence, deep links, sheet scope, role capabilities, and draft recovery.
 - [x] Answer the five 19 October explorations and the badge question; fold accepted ones into steps.
-- [ ] Pick the Start step's shape, heading, chooser and Work-for treatment from the lab.
+- [x] Pick the Start step's shape (decision 16, 20 October).
+- [ ] Pick the Work-for treatment and Home's row style from the lab.
 - [ ] Review the About placement after the first slice renders in the app.
 - [ ] Approve the first implementation slice and promote the hub only when execution is authorized.
 
@@ -63,7 +65,7 @@ design. It holds no private transcript material or host-specific previews.
 These steps describe future work. They are not authorization to start it. Select exact files and
 focused tests from the then-current owning code before each bounded change. Split a step further
 if it would exceed one coherent session or mix independent behaviors. Steps 1 to 6 are the first
-slice; steps 7 to 17 the second; step 18 accepts both.
+slice; steps 7 to 18 the second; step 19 accepts both.
 
 | Step | Lane | Work and likely owners | Completion evidence |
 |---|---|---|---|
@@ -79,18 +81,19 @@ slice; steps 7 to 17 the second; step 18 accepts both.
 | 10. About row and section sheets | `ui` | Insights, Gardeners with the join-request count for stewards, Share, Endowment for stewards and depositors, Governance when configured. Insights, Gardeners and Work open as tall sheets over Home with the section's content under the shared sheet header and the garden named beneath the title; a garden the member visits keeps its page with tabs. | Access matrix for gardener, steward, evaluator, owner and depositor; no new privilege from presentation; the sheets reuse the tabs' components and close back to Home's scroll position. |
 | 11. Scoped sheets | `ui`, `state_api` | Your Work and Promises filtered to the active garden with no widening row; the Your Work badge and the bottom bar's Home badge count the active garden's drafts and queued uploads on this phone. | The sheet names its garden; drafts and queued work from other gardens stay reachable by switching the chip, nothing in the queue is lost, and the queue's toast still reports a failed upload for any garden. |
 | 12. Arrival toast | `ui` | Retire the toast's garden and draft branches now that Home shows them; keep the queue branch. | No lost orientation for failed uploads. |
-| 13. Start step layout | `ui` | Submit Work's first step as one question: the actions a promise of the member's still needs rise to the top of the list wearing the promise; picking one attaches it with a visible line and an undo; nothing owed shows the plain list; shape, heading and chooser as picked from the lab; the step skips when the answer is known (a promise link, or one action and nothing owed). | Rendered Start for nothing owed, one promise, two promises on one action, a promise link and a resumed draft; the precedence from step 4 unchanged; no second promise workflow. |
+| 13. Start step layout | `ui` | Submit Work's first step as decided: no Start button, each tap advances; promises the member could work on as rows with Other work last; an evidence-only promise straight into the evidence flow; a promise with actions on its own screen with Add evidence first and its actions as rows up to three or two-up tiles past that; otherwise two-up action tiles under the info panel and dynamic domain tabs with All; the step skips when the answer is known (a promise link, or one action and nothing owed). | Rendered Start for nothing owed, one domain and three, a promise with one action, one with two actions and evidence, an open evidence-only ask, a promise link and a resumed draft; every tile one height with two-line titles; no Start button anywhere; the precedence from step 4 unchanged. |
 | 14. Notification events | `state_api` | One Shared read model of what is new for an account in a garden: own work approved or rejected with feedback, a promise taken up, a join request answered; for stewards and evaluators, work to review and join requests; seen state kept on the device. | Focused proof per event kind and role; counts match the sources they derive from; nothing new is written on-chain or to the agent. |
 | 15. Bell and Notifications sheet | `ui` | The bell at the far right of Home's header cluster with the unread count, and a tall sheet of the garden's events as item rows that open the work, the promise, Your Work or the Gardeners sheet. | The other header icons keep their positions; the badge is the one 16px badge; rows keep one height; an empty state when nothing is new. |
 | 16. Open asks by default | `ui` | Compose defaults a new ask's claim mode to Open and keeps Approval gated as the opt-in, with copy that says who can take it up. | Compose's review shows the mode; a gated ask still records a pending claim; no contract change. |
 | 17. Take up from the step | `state_api`, `ui` | The Start step lists the garden's Open asks beside the member's promises; picking one queues the claim before the work and its link as one dependent chain in the job queue, and the step says how many prompts are coming. Approval-gated asks are not listed until accepted. | Queue test for claim, then work, then link, with the failure at each step recoverable and nothing reassigned; critical-surface review of the queue change; rendered Start with an Open ask listed and a gated ask absent. |
-| 18. Acceptance | `qa_pass_1`, then `qa_pass_2` | User-flow review, then independent regression review, including the gardener walk in PRD-1157 on the new Home. | Criteria in [eval.md](eval.md), accurate session labels, authenticated proof for queue and offline behaviour recorded or pending, and fresh receipts for the changed surfaces. |
+| 18. One submission flow | `state_api`, `ui` | Consolidate Submit Work (the work submission flow controller with Intro, Media, Details and Review) and the proof composer (its controller with ProofShell, ProofMedia, ProofDetails and ProofReview) into one flow with two kinds, work and evidence: one shell, one stage sequence, shared media handling and pinned promise, kind-specific pieces at each stage, one job-queue path per kind. Critical surface: work submission and the queue. | Both kinds reach the queue through the shared stages with their existing payloads unchanged; focused proof per kind per stage; drafts and queued uploads of either kind survive the change; before and after pairs of every stage. |
+| 19. Acceptance | `qa_pass_1`, then `qa_pass_2` | User-flow review, then independent regression review, including the gardener walk in PRD-1157 on the new Home. | Criteria in [eval.md](eval.md), accurate session labels, authenticated proof for queue and offline behaviour recorded or pending, and fresh receipts for the changed surfaces. |
 
 Step 3 consumes steps 1 and 2. Step 4 can be designed alongside step 3 but is verified on its own
 before the Start step consumes it. Steps 7 to 13 build on the first slice's owners and reuse the
 existing read models; step 14 is one new derivation, kept as its own bounded Shared step, and
-step 15 consumes it; step 17 adds a dependent-act chain to the job queue and is reviewed as a
-critical surface. No contract lane is
+step 15 consumes it; step 17 adds a dependent-act chain to the job queue and step 18 reshapes the submission flow;
+both are reviewed as critical surfaces. No contract lane is
 needed. No admin, indexer, or protocol migration is expected; a discovered need returns to scope
 review.
 
@@ -102,9 +105,9 @@ review.
 | R2 ordered, selective previews | 7, 8, 9 |
 | R3 familiar navigation and sheets | 3, 10, 11, 15 |
 | R4 deeper garden actions | 10, 13, 16 |
-| R5 submission and draft continuity | 2, 4, 13, 17 |
-| R6 role/capability preservation | 1, 8, 10, 14, 17, 18 |
-| R7 existing records, recovery, and domain boundaries | 2, 4, 5, 11, 12, 17, 18 |
+| R5 submission and draft continuity | 2, 4, 13, 17, 18 |
+| R6 role/capability preservation | 1, 8, 10, 14, 17, 19 |
+| R7 existing records, recovery, and domain boundaries | 2, 4, 5, 11, 12, 17, 18, 19 |
 | R8 discovery and personal context | 3, 6, 11, 15 |
 
 ## Execution rules

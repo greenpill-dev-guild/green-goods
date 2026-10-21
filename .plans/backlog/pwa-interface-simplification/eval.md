@@ -156,3 +156,14 @@ step variants were measured in the desktop app's built-in browser pane (Chromium
 app session): seven action rows at 88px with the promoted rows first, the keeps line and the
 promise chooser for one and two matches, the open-ask take-up line, the two-group and question
 shapes, the three headings in English and Portuguese, and a pick keeping the screen in view.
+
+## Start step check (2026-10-20, later)
+
+The decided flow was measured in the desktop app's built-in browser pane (Chromium, static mock,
+no app session): the promises screen with three promise rows and Other work at 88px; the promise
+screen for a promise taking evidence and two actions (Add evidence first, then two rows) and for
+one needing one action; the evidence-only open ask opening Media with the promise pinned and
+"Takes it up"; the actions screen with All plus three domain tabs and seven tiles at one 156px
+height with a 36px two-line title block; no tabs for a one-domain garden; no Start button on any
+screen except today's order; Media offering Details; Back returning along the path taken; the
+Portuguese strings fitting. The hub checks were run again on the recording edits.
