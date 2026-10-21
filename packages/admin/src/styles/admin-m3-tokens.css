@@ -193,10 +193,15 @@
    * remapped stroke-sub-300 (neutral-700) measured 1.89:1. */
   --m3-outline: var(--neutral-400);
   --m3-outline-variant: var(--stroke-soft-200);
-  /* Dark error flips strategy (M3-dark convention): lighter red fill
-   * (admin remap 248 113 113) with ink text = 6.2; the old red-600 fill with
-   * ink text measured 4.09, and as icon/text on the canvas 4.03. */
-  --m3-error: var(--red-500);
+  /* Dark error flips strategy (M3-dark convention): a lighter red fill with
+   * ink text. red-400 holds 5.5:1 as text on the lifted card and 7.1:1 under
+   * ink; red-500 fell to 4.2:1 on the card once it moved up a step (F13). */
+  --m3-error: var(--red-400);
+  /* The shared text roles that would fall below AA on the lifted card take
+   * one lighter step here too (the installed app sets the same in theme.css). */
+  --error-base: var(--red-400);
+  --feature-dark: var(--purple-300);
+  --information-base: var(--blue-400);
   /* Must live HERE, not only in theme.css's dark block: this file's :root
    * declaration is unlayered and beats theme's @layer dark override, so
    * without this line dark on-error resolves to the light-mode white. */

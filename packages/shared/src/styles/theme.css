@@ -833,6 +833,12 @@
   --bg-soft-200: var(--earth-800);
   --bg-sub-300: var(--earth-750);
   --stroke-soft-200: var(--earth-700);
+  /* A lifted card costs coloured text about a fifth of its contrast. The three
+   * roles that would fall below AA on it take one lighter step (5.5, 6.3 and
+   * 5.4:1 on the card). */
+  --error-base: var(--red-400);
+  --feature-dark: var(--purple-300);
+  --information-base: var(--blue-400);
 }
 
 /* Resolve Tailwind aliases within each theme scope so nested dark surfaces
