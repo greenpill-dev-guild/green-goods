@@ -98,6 +98,9 @@ const allowedIdenticalLocalizedKeys = new Set([
   // Token symbol and network proper name have no words to translate.
   "app.celoWallet.asset",
   "app.community.weightScheme.linear",
+  // Brazilian Portuguese says "links" for web links (the catalog's own "cole um link");
+  // Spanish translates it ("Enlaces").
+  "app.compose.details.links",
   // The compact Agro tab label is intentionally the same abbreviation in all locales;
   // its accessible name uses the translated full domain name.
   "app.gardenIntro.domain.agroShort",

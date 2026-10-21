@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # check-vocab.sh
 # Enforces the Lens 1 (Regenerative) banned-vocabulary rule on user-facing strings,
-# and US spelling in English copy (DESIGN.md § Voice & Copy).
+# US spelling in English copy (DESIGN.md § Voice & Copy), and Brazilian Portuguese in the pt catalog.
 #
-# Source of truth: scripts/data/banned-vocabulary.json (.linter_enforced, .renamed_terms, .us_spelling)
+# Source of truth: scripts/data/banned-vocabulary.json (.linter_enforced, .renamed_terms, .us_spelling, .pt_brazilian)
 # Human-readable projection: docs/docs/reference/glossary.generated.mdx § Language policy
 # Framework: .claude/skills/design/review-checklist.md § Lens 1
 #
@@ -305,4 +305,49 @@ if [[ -n "$SPELLING_HITS" ]]; then
   exit 1
 fi
 
-echo "✅ check-vocab: no banned, renamed, untranslated, or UK-spelled vocabulary in ${#FOUND_FILES[@]} i18n file(s)."
+# ---------------------------------------------------------------------------
+# Brazilian Portuguese: the pt catalog is Brazilian, with você. Walks parsed
+# values, skips ICU argument references, and matches the listed words as whole
+# words plus the few forms a word list cannot hold (the -te clitic, "está a" +
+# infinitive, «» quotes). Words that are also Brazilian in another sense are not
+# listed; see the section's rationale.
+# ---------------------------------------------------------------------------
+if command -v python3 >/dev/null 2>&1; then
+  PT_HITS="$(python3 - "$VOCAB_JSON" <<'PYEOF'
+import glob, json, re, sys
+
+section = json.load(open(sys.argv[1])).get("pt_brazilian", {})
+terms = section.get("terms", [])
+patterns = [re.compile(p, re.I) for p in section.get("patterns", [])]
+if terms:
+    patterns.append(re.compile(r"(?<!\w)(" + "|".join(re.escape(t) for t in terms) + r")(?!\w)", re.I))
+exempt = set(section.get("exempt_keys", []))
+hits = []
+for spec in section.get("globs", []):
+    for path in sorted(glob.glob(spec)):
+        for key, value in json.load(open(path)).items():
+            if key in exempt or not isinstance(value, str):
+                continue
+            # ICU argument references are code the component passes, not copy.
+            prose = re.sub(r"\{\s*\w+\s*[,}]", " ", value)
+            found = [match.group(0) for pattern in patterns for match in pattern.finditer(prose)]
+            if found:
+                hits.append(f"{path}: {key}: {', '.join(found)}")
+print("\n".join(hits))
+PYEOF
+)"
+else
+  echo "⚠️  check-vocab: skipping Brazilian Portuguese (python3 not available)"
+  PT_HITS=""
+fi
+
+if [[ -n "$PT_HITS" ]]; then
+  echo "❌ European Portuguese form found in the Brazilian catalog:"
+  echo "$PT_HITS"
+  echo
+  echo "The Portuguese catalog is Brazilian Portuguese with você. See:"
+  echo "  scripts/data/banned-vocabulary.json (.pt_brazilian)"
+  exit 1
+fi
+
+echo "✅ check-vocab: no banned, renamed, untranslated, UK-spelled, or European Portuguese vocabulary in ${#FOUND_FILES[@]} i18n file(s)."
