@@ -116,6 +116,7 @@ test("the scan reads the chat copy and every authored page and design guide, and
     write("docs/DESIGN.md", "# Docs — Design Brief\n");
     write("packages/client/DESIGN.browser.md", "Guide prose — fails.\n");
     write(`${DESIGN_SKILL}/surfaces.md`, "```\ncode — kept\n```\nSkill prose — fails.\n");
+    write(`${DESIGN_SKILL}/patterns/example.md`, "Nested guide prose — fails.\n");
     write("packages/client/README.md", "Not a design guide — ignored.\n");
     write(".claude/rules/frontend-design.md", "Rules, not a design guide — ignored.\n");
 
@@ -126,6 +127,7 @@ test("the scan reads the chat copy and every authored page and design guide, and
         "packages/agent/src/services/reporting/views.ts:2",
         `${DOCS_ROOT}/builders/test-cases.mdx:7`,
         `${DOCS_ROOT}/guide/authored.md:1`,
+        `${DESIGN_SKILL}/patterns/example.md:1`,
         `${DESIGN_SKILL}/surfaces.md:4`,
         "docs/DESIGN.md:1",
         "packages/client/DESIGN.browser.md:1",
@@ -134,7 +136,7 @@ test("the scan reads the chat copy and every authored page and design guide, and
     assert.equal(chatFiles, new Set(CHAT_COPY.map(({ file }) => file)).size);
     assert.equal(pages, 3);
     assert.equal(skipped, 2);
-    assert.equal(guides, 4);
+    assert.equal(guides, 5);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
