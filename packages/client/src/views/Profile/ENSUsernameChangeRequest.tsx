@@ -17,7 +17,7 @@ import { UsernameField } from "./UsernameField";
 type ENSUsernameChangeReason = "same-passkey" | "lost-passkey" | "other";
 
 /** Where username help happens today, for the request and for Get Help. */
-export const ENS_SUPPORT_URL = "https://t.me/+N3o3_43iRec1Y2Jh";
+export const ENS_SUPPORT_URL = "https://discord.gg/greenpill";
 const ENS_USERNAME_CHANGE_REQUESTS_KEY = "green-goods:ens-username-change-requests";
 
 function createUsernameChangeRequestId(owner: Address) {
@@ -196,7 +196,7 @@ export const ENSUsernameChangeRequest: React.FC<ENSUsernameChangeRequestProps> =
           ? {
               label: formatMessage({
                 id: "app.profile.ensChangeOpenSupport",
-                defaultMessage: "Open Telegram Support",
+                defaultMessage: "Open Community Support",
               }),
               onClick: () => window.open(ENS_SUPPORT_URL, "_blank", "noopener,noreferrer"),
             }
