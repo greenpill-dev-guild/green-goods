@@ -19,7 +19,7 @@ export interface AppScreenErrorProps {
 const SHELL_FRAME = {
   // The scroller reserves the bottom bar's 69px; centring in what is left keeps the state clear
   // of the bar on every screen height.
-  app: "grid min-h-[calc(100dvh-69px-env(safe-area-inset-bottom))] place-items-center",
+  app: "grid min-h-[calc(100dvh-69px-var(--safe-area-bottom))] place-items-center",
   // Under the top bar, where a reporting page shows its own "this link can't be used" state.
   focused: "pt-8 pb-6",
 };

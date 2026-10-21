@@ -66,7 +66,7 @@ export function CeremonyBar({ children }: { children: ReactNode }) {
         className={cn(
           "[@media(max-height:20rem)]:hidden",
           follows && "hidden",
-          barHeight === null && "h-[calc(7rem+env(safe-area-inset-bottom))]"
+          barHeight === null && "h-[calc(7rem+var(--safe-area-bottom))]"
         )}
         style={barHeight === null ? undefined : { height: barHeight }}
       />

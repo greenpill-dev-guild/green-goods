@@ -16,11 +16,14 @@ jobs:
       github.event.pull_request.user.login == 'dependabot[bot]' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
       (startsWith(github.event.pull_request.head.ref, 'dependabot/npm_and_yarn/') ||
-       startsWith(github.event.pull_request.head.ref, 'dependabot/bun/'))
+       startsWith(github.event.pull_request.head.ref, 'dependabot/bun/') ||
+       startsWith(github.event.pull_request.head.ref, 'dependabot/github_actions/'))
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
       contents: read
+    outputs:
+      changed: ${{ steps.sync.outputs.changed }}
     steps:
       - name: Checkout trusted automation
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -55,3 +58,14 @@ jobs:
           if-no-files-found: error
           overwrite: true
           retention-days: 1
+
+  synchronized:
+    name: Synchronized dependency files
+    needs: prepare
+    if: needs.prepare.outputs.changed == 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions: {}
+    steps:
+      - name: Confirm the current head needs no repair
+        run: echo "Dependency pins, Bun lockfile and generated docs are synchronized."

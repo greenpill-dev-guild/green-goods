@@ -17,9 +17,9 @@ interface PinnedPromiseCardProps {
 
 /**
  * The promise a flow is for, named on every step (D16). It follows the step's
- * FormInfo card and pins under the 80px top bar as the page scrolls, so the
- * heading scrolls away and the promise stays in view (O9). Tapping it opens the
- * promise in a sheet; closing the sheet returns to the same step.
+ * FormInfo card and pins under the top bar as the page scrolls, so the heading
+ * scrolls away and the promise stays in view (O9). Tapping it opens the promise
+ * in a sheet; closing the sheet returns to the same step.
  */
 export function PinnedPromiseCard({ kind, title, onOpen, className }: PinnedPromiseCardProps) {
   const { formatMessage } = useIntl();
@@ -29,7 +29,10 @@ export function PinnedPromiseCard({ kind, title, onOpen, className }: PinnedProm
 
   return (
     <div
-      className={cn("sticky top-20 z-10 -mx-4 bg-bg-white-0 px-4 pb-2", className)}
+      className={cn(
+        "sticky top-[var(--app-top-bar-height)] z-10 -mx-4 bg-bg-white-0 px-4 pb-2",
+        className
+      )}
       data-testid="pinned-promise"
     >
       <button

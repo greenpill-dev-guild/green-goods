@@ -390,13 +390,13 @@ const Work: React.FC = () => {
       </TopNav>
       <form
         id="work-form"
-        className="relative py-6 pt-20 flex flex-col gap-4 min-h-[calc(100vh-7.5rem)]"
+        className="relative py-6 pt-[var(--app-top-bar-height)] flex flex-col gap-4 min-h-[calc(100vh-7.5rem)]"
       >
         <div
           className={
             isSchedulingDependentLink || hasPendingLinkRecovery
-              ? "padded relative flex flex-col gap-4 flex-1 pb-[calc(14rem+env(safe-area-inset-bottom))]"
-              : "padded relative flex flex-col gap-4 flex-1 pb-[calc(7rem+env(safe-area-inset-bottom))]"
+              ? "padded relative flex flex-col gap-4 flex-1 pb-[calc(14rem+var(--safe-area-bottom))]"
+              : "padded relative flex flex-col gap-4 flex-1 pb-[calc(7rem+var(--safe-area-bottom))]"
           }
         >
           {controller.submissionOutcome?.kind === "awaiting-confirmation" && (

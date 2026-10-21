@@ -128,7 +128,7 @@ export const WorkUploadFooter: FC<WorkUploadFooterProps> = ({
     <>
       <div
         data-component="FixedBar"
-        className="fixed bottom-0 left-0 right-0 z-sticky border-t border-stroke-soft-200 bg-bg-white-0 px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]"
+        className="fixed bottom-0 left-0 right-0 z-sticky border-t border-stroke-soft-200 bg-bg-white-0 px-4 pt-3 pb-[max(1rem,var(--safe-area-bottom))]"
       >
         <div
           className={cn(
