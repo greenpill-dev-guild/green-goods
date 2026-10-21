@@ -15,6 +15,7 @@ import {
   type WorkInput,
 } from "../../types/domain";
 import { assertRecordedInputDefinitions } from "../../utils/action/input-validation";
+import { buildActionId, parseActionUID } from "../../utils/action/parsers";
 import { defaultTemplate, instructionTemplates } from "../../utils/action/templates";
 import {
   markStaleActionTranslations,
@@ -335,6 +336,43 @@ export async function getActions(
     logger.error("[getActions] Failed to fetch actions", { error });
     throw error;
   }
+}
+
+/**
+ * Reads the domain of each named action, keyed by action UID, without fetching instructions.
+ * An action the indexer does not list, or lists under a domain it does not recognize, has no entry.
+ */
+export async function getActionDomains(
+  actionUIDs: readonly number[],
+  chainId: number = DEFAULT_CHAIN_ID,
+  reader: GraphQLReader = greenGoodsIndexer
+): Promise<Map<number, Domain>> {
+  const domains = new Map<number, Domain>();
+  const ids = [...new Set(actionUIDs)]
+    .filter((uid) => Number.isSafeInteger(uid) && uid >= 0)
+    .map((uid) => buildActionId(chainId, uid));
+  if (ids.length === 0) return domains;
+  const QUERY = greenGoodsGraphQL(/* GraphQL */ `
+    query ActionDomains($where: Action_bool_exp!) {
+      Action(where: $where) { id domain }
+    }
+  `);
+  const { data, error } = await reader.query(
+    QUERY,
+    { where: { chainId: { _eq: chainId }, id: { _in: ids } } },
+    "getActionDomains"
+  );
+  if (error) throw error;
+  if (!data || !Array.isArray(data.Action)) {
+    throw new Error("Action indexer response is missing the list");
+  }
+
+  for (const { id, domain } of data.Action) {
+    const uid = parseActionUID(id);
+    const parsedDomain = parseIndexerDomain(typeof domain === "string" ? domain : null);
+    if (uid !== null && parsedDomain !== null) domains.set(uid, parsedDomain);
+  }
+  return domains;
 }
 
 const GARDENS_QUERY = greenGoodsGraphQL(/* GraphQL */ `

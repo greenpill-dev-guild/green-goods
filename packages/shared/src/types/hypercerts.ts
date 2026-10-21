@@ -153,7 +153,7 @@ export interface GreenGoodsExtension {
   sdgs: number[];
   capitals: CapitalType[];
   outcomes: OutcomeMetrics;
-  /** Absent when none of the bundled work names a domain. */
+  /** The one domain the bundled work names; absent when it names none, or more than one. */
   domain?: ActionDomain;
   karmaGapProjectId?: string;
   protocolVersion: string;
