@@ -144,6 +144,76 @@ export function prepareSync({ root, trustedRoot, event, output, run = execFileSy
   return bundle;
 }
 
+function syncRunPr(run, repository) {
+  if (run.event !== "pull_request" || run.status !== "completed" || run.conclusion !== "success" ||
+      run.name !== "Dependabot Sync" || run.path !== ".github/workflows/dependabot-sync.yml" ||
+      run.repository?.full_name !== repository || run.head_repository?.full_name !== repository ||
+      !/^[a-f0-9]{40}$/.test(run.head_sha ?? "") || !Number.isSafeInteger(run.id) || run.id <= 0 ||
+      run.pull_requests?.length !== 1 || !Number.isSafeInteger(run.pull_requests[0].number)) {
+    throw new Error("Expected a successful same-repository Dependabot Sync PR run");
+  }
+  return run.pull_requests[0].number;
+}
+
+export async function syncPublication({ github, repository, run }) {
+  const number = syncRunPr(run, repository);
+  const [owner, repo] = repository.split("/");
+  const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number: number });
+  if (pr.state !== "open") return { skipped: "PR is no longer open" };
+  assertDependabotPr(pr, repository);
+  if (pr.head.sha !== run.head_sha || pr.head.ref !== run.head_branch) return { skipped: "PR head changed" };
+  const { data } = await github.rest.actions.listWorkflowRunArtifacts({ owner, repo, run_id: run.id, per_page: 100 });
+  const artifacts = data.artifacts.filter((artifact) => artifact.name === "dependabot-sync" && !artifact.expired);
+  if (!artifacts.length) return { skipped: "Already synchronized; no repair artifact" };
+  if (artifacts.length !== 1) throw new Error("Expected exactly one repair artifact");
+  return { number, artifactId: artifacts[0].id };
+}
+
+// The workflow_run publisher consumes data only. It never executes PR code,
+// installs PR dependencies, applies patches, or force-pushes a branch.
+export async function publishSync({ github, repository, run, bundle, trustedRoot }) {
+  const number = syncRunPr(run, repository);
+  const [owner, repo] = repository.split("/");
+  const coordinates = { owner, repo };
+  if (bundle.repository !== repository || bundle.number !== number || bundle.headSha !== run.head_sha || !Array.isArray(bundle.files)) throw new Error("Artifact belongs to a different PR or run head");
+  const { data: pr } = await github.rest.pulls.get({ ...coordinates, pull_number: number });
+  if (pr.state !== "open") return { skipped: "PR is no longer open" };
+  assertDependabotPr(pr, repository);
+  if (pr.head.sha !== bundle.headSha || pr.head.ref !== run.head_branch) return { skipped: "PR head changed; a newer run will synchronize it" };
+  const { manifests, allowed } = syncPaths(trustedRoot);
+  const seen = new Set();
+  const entries = [];
+  for (const file of bundle.files) {
+    if (!allowed.has(file.path) || seen.has(file.path) || typeof file.content !== "string") throw new Error("Unexpected artifact file");
+    seen.add(file.path);
+    const content = Buffer.from(file.content, "base64");
+    if (content.toString("base64") !== file.content) throw new Error("Invalid artifact encoding");
+    if (manifests.includes(file.path)) {
+      const { data: original } = await github.rest.repos.getContent({ ...coordinates, path: file.path, ref: bundle.headSha });
+      if (original.type !== "file" || original.encoding !== "base64") throw new Error("Expected a manifest file");
+      manifestUpdates(JSON.parse(Buffer.from(original.content, "base64").toString()), JSON.parse(content.toString()));
+    }
+    entries.push({ path: file.path, content: file.content });
+  }
+  if (!entries.length) return { skipped: "Already synchronized" };
+  const { data: parent } = await github.rest.git.getCommit({ ...coordinates, commit_sha: bundle.headSha });
+  const tree = [];
+  for (const entry of entries) {
+    const { data: blob } = await github.rest.git.createBlob({ ...coordinates, content: entry.content, encoding: "base64" });
+    tree.push({ path: entry.path, mode: "100644", type: "blob", sha: blob.sha });
+  }
+  const { data: nextTree } = await github.rest.git.createTree({ ...coordinates, base_tree: parent.tree.sha, tree });
+  const { data: commit } = await github.rest.git.createCommit({
+    ...coordinates,
+    message: "chore(shared): synchronize Dependabot dependency files",
+    tree: nextTree.sha,
+    parents: [bundle.headSha],
+  });
+  // A concurrent update makes this fail as non-fast-forward. No newer work is lost.
+  await github.rest.git.updateRef({ ...coordinates, ref: `heads/${pr.head.ref}`, sha: commit.sha, force: false });
+  return { sha: commit.sha, files: entries.map((file) => file.path) };
+}
+
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const [, , root, trustedRoot, output] = process.argv;
   const bundle = prepareSync({ root: resolve(root), trustedRoot: resolve(trustedRoot), output: resolve(output), event: JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, "utf8")) });

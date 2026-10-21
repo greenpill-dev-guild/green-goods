@@ -4,8 +4,7 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSyn
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
-import { alignPins, assertDependabotPr, git, manifestUpdates, prepareSync } from "./dependabot-sync.mjs";
-import { publishSync } from "./dependabot-sync-publish.mjs";
+import { alignPins, assertDependabotPr, git, manifestUpdates, prepareSync, publishSync, syncPublication } from "./dependabot-sync.mjs";
 
 const repository = "green-goods/example";
 const rootManifest = { name: "fixture", overrides: { hono: "4.13.7", vite: "8.2.1" }, devDependencies: { vite: "8.2.1" }, scripts: { prepare: "must-not-execute" } };
@@ -21,6 +20,7 @@ const upgrade = (before, file, section, name, value) => {
   return after;
 };
 const prFor = (sha, baseSha = "b".repeat(40)) => ({ number: 42, state: "open", user: { login: "dependabot[bot]" }, head: { sha, ref: "dependabot/bun/hono-4.13.11", repo: { full_name: repository } }, base: { sha: baseSha, repo: { full_name: repository } } });
+const runFor = (f) => ({ id: 55, event: "pull_request", status: "completed", conclusion: "success", name: "Dependabot Sync", path: ".github/workflows/dependabot-sync.yml", repository: { full_name: repository }, head_repository: { full_name: repository }, head_sha: f.headSha, head_branch: f.event.pull_request.head.ref, pull_requests: [{ number: 42 }] });
 
 test("an Agent Hono upgrade updates the root override", () => {
   const before = manifests();
@@ -144,6 +144,7 @@ function api(f, overrides = {}) {
   const edge = (name, result) => async (input) => { calls.push([name, input]); return { data: result }; };
   const github = { rest: {
     pulls: { get: edge("get", f.event.pull_request) },
+    actions: { listWorkflowRunArtifacts: edge("artifacts", { artifacts: [{ id: 77, name: "dependabot-sync", expired: false }] }) },
     repos: { getContent: async ({ path }) => ({ data: { type: "file", encoding: "base64", content: Buffer.from(git(f.root, "show", `${f.headSha}:${path}`)).toString("base64") } }) },
     git: {
       getCommit: edge("parent", { tree: { sha: "original-tree" } }), createBlob: edge("blob", { sha: "blob" }),
@@ -151,8 +152,34 @@ function api(f, overrides = {}) {
       updateRef: edge("ref", {}), ...overrides,
     },
   } };
-  return { github, calls, publish: (bundle) => publishSync({ github, repository, number: 42, bundle, trustedRoot: f.trustedRoot }) };
+  return { github, calls, publish: (bundle, run = runFor(f)) => publishSync({ github, repository, run, bundle, trustedRoot: f.trustedRoot }) };
 }
+
+test("publication preflight binds the artifact to a successful same-repository PR run", async (t) => {
+  const f = fixture(t);
+  const edge = api(f);
+  const run = runFor(f);
+  for (const patch of [{ event: "push" }, { conclusion: "failure" }, { path: ".github/workflows/other.yml" }, { head_repository: { full_name: "fork/example" } }, { pull_requests: [] }]) {
+    await assert.rejects(syncPublication({ github: edge.github, repository, run: { ...run, ...patch } }));
+  }
+  assert.deepEqual(edge.calls, []);
+  assert.deepEqual(await syncPublication({ github: edge.github, repository, run }), { number: 42, artifactId: 77 });
+  assert.equal(edge.calls.at(-1)[1].run_id, 55);
+});
+
+test("publication skips missing or expired repair artifacts and closed PRs", async (t) => {
+  const f = fixture(t);
+  const edge = api(f);
+  const run = runFor(f);
+  for (const artifacts of [[], [{ id: 77, name: "dependabot-sync", expired: true }]]) {
+    edge.github.rest.actions.listWorkflowRunArtifacts = async () => ({ data: { artifacts } });
+    assert.match((await syncPublication({ github: edge.github, repository, run })).skipped, /no repair artifact/);
+  }
+  f.event.pull_request.state = "closed";
+  assert.match((await syncPublication({ github: edge.github, repository, run })).skipped, /no longer open/);
+  assert.match((await edge.publish({ repository, number: 42, headSha: f.headSha, files: [] })).skipped, /no longer open/);
+  assert.ok(edge.calls.every(([name]) => name === "get"));
+});
 
 test("publisher builds a commit on the prepared SHA and uses a non-forced ref update", async (t) => {
   const f = fixture(t);
@@ -169,7 +196,9 @@ test("stale heads and empty repairs make no write calls", async (t) => {
   const f = fixture(t);
   const bundle = f.prepare();
   const edge = api(f);
-  assert.match((await edge.publish({ ...bundle, headSha: "c".repeat(40) })).skipped, /head changed/);
+  f.event.pull_request.head.sha = "c".repeat(40);
+  assert.match((await edge.publish(bundle)).skipped, /head changed/);
+  f.event.pull_request.head.sha = f.headSha;
   assert.equal((await edge.publish({ ...bundle, files: [] })).skipped, "Already synchronized");
   assert.ok(edge.calls.every(([name]) => name === "get"));
 });
@@ -182,6 +211,8 @@ test("publisher rejects foreign artifacts, path escapes, scripts in manifests an
   unsafeManifest.scripts.prepare = "unsafe";
   for (const tampered of [
     { ...bundle, repository: "other/repository" },
+    { ...bundle, number: 99 },
+    { ...bundle, headSha: "c".repeat(40) },
     { ...bundle, files: [{ path: "docs/../package.json", content: "" }] },
     { ...bundle, files: [{ path: "package.json", content: Buffer.from(JSON.stringify(unsafeManifest)).toString("base64") }] },
     { ...bundle, files: [bundle.files[0], bundle.files[0]] },
@@ -199,15 +230,22 @@ test("a concurrent ref update failure propagates without a force-push retry", as
 
 test("workflow isolates generation from publication and keeps frozen installation as the default", () => {
   const root = resolve(import.meta.dirname, "../..");
-  const workflow = readFileSync(join(root, ".github/workflows/dependabot-sync.yml"), "utf8");
-  const [prepare, publish] = workflow.split("  publish:\n");
-  assert.match(workflow, /^permissions: \{\}$/m);
+  const prepare = readFileSync(join(root, ".github/workflows/dependabot-sync.yml"), "utf8");
+  const publish = readFileSync(join(root, ".github/workflows/dependabot-sync-publish.yml"), "utf8");
+  for (const source of [prepare, publish]) {
+    assert.match(source, /^permissions: \{\}$/m);
+    assert.doesNotMatch(source, /pull_request_target/);
+  }
+  assert.match(prepare, /  pull_request:/);
   assert.match(prepare, /permissions:\n      contents: read\n/);
   assert.doesNotMatch(prepare, /contents: write|secrets\./);
+  assert.match(publish, /  workflow_run:\n    workflows: \[Dependabot Sync\]/);
   assert.match(publish, /contents: write\n      pull-requests: read/);
-  assert.match(publish, /ref: \$\{\{ github.event.pull_request.base.sha \}\}/);
-  assert.doesNotMatch(publish, /head.sha|\brun:|setup-js/);
-  assert.equal((workflow.match(/persist-credentials: false/g) ?? []).length, 3);
+  assert.match(publish, /ref: \$\{\{ github.sha \}\}/);
+  assert.match(publish, /run-id: \$\{\{ github.event.workflow_run.id \}\}/);
+  assert.match(publish, /artifact-ids: \$\{\{ steps.origin.outputs.artifact-id \}\}/);
+  assert.doesNotMatch(publish, /ref:.*(?:head\.sha|head_sha)|^\s+(?:-\s+)?run:|uses:.*setup-js/m);
+  assert.equal((`${prepare}${publish}`.match(/persist-credentials: false/g) ?? []).length, 3);
   const action = readFileSync(join(root, ".github/actions/setup-js/action.yml"), "utf8");
   assert.match(action, /install-dependencies:[\s\S]*default: "true"/);
   assert.match(action, /if: inputs.install-dependencies == 'true'[\s\S]*run: bun install --frozen-lockfile/);

@@ -121,8 +121,8 @@
         ".github/dependabot.yml",
         ".github/actions/setup-js/action.yml",
         ".github/workflows/dependabot-sync.yml",
+        ".github/workflows/dependabot-sync-publish.yml",
         "scripts/ops/dependabot-sync.mjs",
-        "scripts/ops/dependabot-sync-publish.mjs",
         "scripts/ops/dependabot-sync.test.mjs"
       ]
     },
