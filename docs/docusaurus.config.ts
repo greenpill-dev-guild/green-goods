@@ -18,7 +18,8 @@ const prismDark = {
 
 const config: Config = {
   title: 'Green Goods Documentation',
-  tagline: 'Bringing community and environmental actions on-chain',
+  tagline:
+    'Green Goods helps communities name their needs, make promises, document regenerative work, review it together, and turn the record into support.',
   favicon: 'img/favicon.ico', // Canonical Brand kit favicon at the established public URL
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
