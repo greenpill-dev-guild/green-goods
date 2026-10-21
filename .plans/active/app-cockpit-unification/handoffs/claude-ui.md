@@ -4,9 +4,10 @@
 
 - Owner: Claude
 - Branch: one `feature/` branch per step; step 1 is `feature/app-cockpit-typeface`
-- Status: in progress, handed to the next session on 2026-10-21. Steps 1 to 3 are approved; step
-  1's code is committed and pushed, its guides and guards are not; steps 2 and 3 are drafts on
-  `feature/app-cockpit-token-slice-drafts`. Every later step starts on its own approved pair.
+- Status: in progress. Steps 1 to 3 are approved. Step 1's face, with its guides, guards and
+  stories, is on `feature/app-cockpit-typeface` for its first pull request; the type role names
+  follow as a second one. Steps 2 and 3 are drafts on `feature/app-cockpit-token-slice-drafts`.
+  Both branches are pushed. Every later step starts on its own approved pair.
 
 ## Scope
 
@@ -20,41 +21,29 @@
 
 ## Step 1: typeface (PRD-1267)
 
-- Pull request: not opened. The body says `Refs PRD-1267`; the role-name pull request after it
-  says `Fixes PRD-1267`.
-- Done: `9ef990bc1` sets the installed app in Plus Jakarta Sans. `index.html` loads the variable
-  face (italic, 200 to 800) before Inter and the PWA loading screen names it; `index.css` sets it
-  on `:root[data-boot-presentation="pwa"]:not(:has([data-site="website"]))`; Storybook's app scope
-  and app body take it in `surfaces.css`. The website keeps Inter.
-- Left before the pull request, every place that still pins Inter for the installed app:
-  - Guides: `packages/client/DESIGN.pwa.md` § Typography ("Inter only"); the line in
-    `packages/client/DESIGN.browser.md` § Typography that gives Inter to both presentations; root
-    `DESIGN.md` § Typography rows; `.claude/skills/design/client-prompt-contract.md` (three
-    lines), `ai-ui-brief.md` and the `ARCHITECTURE.md` file map row; the two installed-app lines
-    in `docs/docs/builders/architecture/design.mdx`.
-  - Root `DESIGN.md` front matter: `body-md`, `label-md` and `app-title` name Inter and feed
-    `design-md.generated.json` and the docs token page, whose samples load only Inter
-    (`docs/src/components/docs/designTokens.data.ts`). Decide whether these roles describe the
-    installed app (then Plus Jakarta Sans, and the docs samples load it) or the website.
-  - Vocabulary: `scripts/data/banned-vocabulary.json` bans "Plus Jakarta Sans" in client prompts
-    (`prompt_vocabulary_client_banned`); drop it, fix the rationale, regenerate the glossary.
-  - Decision log: the step 13 draft numbers the typeface row DL-096 after a DL-095 for the retired
-    cockpit rule; `develop` ends at DL-094.
-  - Storybook rules and stories: `design-system/rules.ts` (`APP.family`, its rule line and the
-    button and field expectations; `WEBSITE` stays Inter), `AppFoundations.stories.tsx` (label type
-    lede and specimens), `Overview.stories.tsx` (the installed app's expected family);
-    `storybook.css` (the `:root` and `.storybook-browser-preview` Inter rules, the comment on
-    inherited faces) and `preview-head.html`, which loads Plus Jakarta Sans at 400 to 700 only.
-  - Comments: `packages/client/src/styles/typography.css` ("the shell's Inter face"),
-    `packages/shared/src/styles/theme.css` (`--font-serif` note), and
-    `packages/client/src/views/Profile/AppSettings.tsx`, whose "Português" width note was measured
-    in Inter; measure it again in the new face.
-  - `bootFallbackGeometry.test.ts` and `typographyLayer.guard.test.ts` do not pin the face.
-- Then: bring the branch up to `develop` (`aa217ef9c` changed the status bar meta in `index.html`
-  and added an installed-app `html` rule in `index.css`, beside step 1's hunks), run
-  `bun run design:generate` and `check:design-generated`, re-render the pair from the branch, and
-  run the push gate by hand: worktrees without `.husky/_` run no git hooks, so this branch was
-  pushed without one.
+- Pull request: the face, opened from `feature/app-cockpit-typeface` against `develop` with
+  `Refs PRD-1267`. The role-name pull request after it says `Fixes PRD-1267`.
+- Done:
+  - `9ef990bc1` sets the installed app in Plus Jakarta Sans. `index.html` loads the variable face
+    (italic, 200 to 800) before Inter and the PWA loading screen names it; `index.css` sets it on
+    `:root[data-boot-presentation="pwa"]:not(:has([data-site="website"]))`; Storybook's app scope
+    and app body take it in `surfaces.css`. The website keeps Inter.
+  - `2cd0ba268` merges `develop`: its status bar meta and standalone `html` floor sit beside step
+    1's hunks without a conflict.
+  - `829aaf9e9` brings every guide, guard and story that named Inter for the installed app into
+    line. Root `DESIGN.md`: the Typography table, and front matter where `body-md`, `label-md` and
+    `app-title` name Plus Jakarta Sans and the website's button takes its own Inter role,
+    `website-label` (16px, 600, 24px line), as the maintainer chose on 2026-10-21; `token_version`
+    2.22.0 and the regenerated projections. DL-095 (the retired Material 3 rule) and DL-096 (the
+    typeface) from the step 13 draft, with two corrections: DL-095 cites `prompt-contract.md` §
+    Workspace Tone for the tone budget (the draft cited DL-043, the Hub's outlined trio), and DL-096
+    carries the measured fit from eval.md. The guides and prompt contracts, "Plus Jakarta Sans" out
+    of the client prompt ban list, the Storybook rules, specimens, Overview play, base stylesheet and
+    font request (the website's field now carries its own Inter expectation), the docs token page
+    and its test, and the comments. The "Português" width note was measured again: 69.1px at 14px
+    against the trigger's 66px (68.0px in Inter), still one line, about 10px clear of the chevron.
+- Next: the type role rename (title, body, label, meta at each surface's sizes) as the second pull
+  request, `Fixes PRD-1267`.
 - Proof limit: `not_applicable`. The installed app's font family and its loading screen's face
   change; no behaviour does. Proof is the rendered pair, the typeface fit audit and the design and
   typography guards (eval.md, Design gate for the token slices).
@@ -64,9 +53,13 @@
 - `feature/app-cockpit-token-slice-drafts` holds the drafts the design gate rendered, on top of the
   step 1 draft and two hub records already folded into `238706a78`. Carry only these five commits:
   step 2 `437790fea`, `b8c200156`, `9b9bb5dc1`, `c1ddb4a38`; step 3 `10f0aa565`. Their base,
-  `678a672dd`, predates `develop`'s safe-area work, which touched `index.html`, `index.css`,
-  `theme.css`, `views/Home/Garden/index.tsx`, `views/Profile/index.tsx`, `PinnedPromiseCard.tsx`
-  and `TopNav.tsx`; expect conflicts there.
+  `678a672dd`, predates `develop`'s safe-area work. Replayed in a dry run (`git merge-tree`) onto
+  step 1 with `develop` merged, only `437790fea` conflicts, in four files: `PinnedPromiseCard.tsx`,
+  `TopNav.tsx`, the client's `index.css` and `views/Profile/index.tsx`. Each is the same clash:
+  `develop` rewrote the line for the safe area (`--app-top-bar-height`, `--app-top-offset`, the new
+  comments) and the draft changed `bg-bg-white-0` to `bg-bg-canvas` on it. Keep `develop`'s line
+  and swap the class. The other four commits replay cleanly, and `index.html`, `theme.css` and
+  `views/Home/Garden/index.tsx` merge on their own.
 - Step 2 still needs: the status bar and manifest colours per presentation
   (`config/pwaManifest.ts` theme and background colours, the `theme-color` metas in `index.html`,
   shared `utils/styles/theme.ts`), reconciled with the solid iOS status bar `develop` now sets;
@@ -76,6 +69,9 @@
 - Step 3 still needs the solid 2px focus ring in place of the 12 to 16% halos on `.gg-control`,
   `.gg-button`, `.gg-chip` and `.gg-switch` (the icon button already draws one), and the
   `AdminDensityScale.guard` updates for `--gg-control-outline`.
+- The step 13 guide draft and the two pending decision-log rows are in
+  `artifacts/step-13-draft/`: DL-097 lands with step 2 and DL-098 with step 3, each with the
+  guide lines its slice makes true.
 
 ## TDD Proof
 
@@ -99,4 +95,9 @@
   them; coordinate through merges to `develop`, tokens first.
 - The pairs rig and its frames stay outside Git: the app frames show public gardens' photos.
 - The worktree links the main checkout's installs, which predate `develop`'s lockfile (Vite 8.2.1
-  where `develop` pins 8.2.4); CI runs the pinned versions.
+  where `develop` pins 8.2.4); CI runs the pinned versions. Because those installs resolve outside
+  the worktree, Storybook's story tests here need a temporary `server: { fs: { allow: [<main
+  checkout>] } }` on the storybook project in `packages/shared/vitest.storybook.config.ts`; revert
+  it before committing.
+- The rig's capture story, `packages/admin/src/views/__capture__/CockpitLocales.stories.tsx`, stays
+  untracked. Move it out of the worktree before a push gate and back afterwards.

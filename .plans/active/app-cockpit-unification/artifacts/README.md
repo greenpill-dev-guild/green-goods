@@ -154,3 +154,12 @@ populated.
 The button systems as measured by the Storybook design-system page: one `Button` module serves the
 app and the website, and the cockpit re-skins it through the `--gg-*` tokens in its `index.css`
 (DL-031) while keeping `AdminButton` for its own views.
+
+## The step 13 draft
+
+[step-13-draft/](step-13-draft/) keeps the guide rewrite the design gate drafted for step 13, so it
+outlives the session that wrote it. `admin-DESIGN.diff` and `prompt-contract.diff` rewrite
+`packages/admin/DESIGN.md` and `.claude/skills/design/prompt-contract.md` for the end state, as diffs
+against `develop` before the token slices. [decision-log-rows.md](step-13-draft/decision-log-rows.md)
+holds the two decision-log rows that have not landed yet. Each part lands with the slice that makes
+it true; re-read the current guide before applying a hunk, because `develop` moves under the diffs.

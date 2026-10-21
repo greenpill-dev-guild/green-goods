@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-10T09:56:00.510Z",
-    "updated_at": "2026-10-21T07:19:35Z"
+    "updated_at": "2026-10-21T08:02:50.961Z"
   },
   "links": {
     "brief": "brief.md",
@@ -30,24 +30,10 @@
   },
   "taxonomy": {
     "initiative": "design-system",
-    "tracks": [
-      "client-pwa",
-      "admin",
-      "shared"
-    ],
-    "work_types": [
-      "research",
-      "implementation",
-      "qa"
-    ],
-    "surfaces": [
-      "packages/client",
-      "packages/admin",
-      "packages/shared"
-    ],
-    "depends_on_features": [
-      "pwa-interface-simplification"
-    ]
+    "tracks": ["client-pwa", "admin", "shared"],
+    "work_types": ["research", "implementation", "qa"],
+    "surfaces": ["packages/client", "packages/admin", "packages/shared"],
+    "depends_on_features": ["pwa-interface-simplification"]
   },
   "notes": [
     "The maintainer asked for design research, a switchable mock, and this hub on a branch, then chose an option for every fork. Implementation runs one slice at a time on its approved pair; the three token slices were approved on 2026-10-21. No deployment or transaction work is in scope.",
@@ -64,6 +50,7 @@
     "The last three locked the same day: field message slots per surface (two lines in the app, DL-018; one in the cockpit, two if several Spanish or Portuguese messages wrap at 640px); the work row stays on the cockpit's phone queue, checked with a steward on the pair; desktop tabs at most 180px each, the row aligned left.",
     "Design gate for the token slices, 2026-10-20: steps 1 to 3 drafted on a local branch that was not pushed, rendered as before and after pairs of the ten lab screens in four code states (cockpit from Storybook, app from mock-auth localhost), with the typeface fit, the logo-screen lines, the token contrast audit, a rendered contrast sweep and the step 13 guide draft recorded in eval.md. The drafts fold three consequences of the ground into step 2 (dark text lifts, the error action fill for the cockpit's error-screen Retry, and the app tab row and garden title block on their ground) and the 500 button weight into step 3. Awaiting the maintainer's approval of the three token slices; the hub moves to active with it.",
     "Token slices approved, 2026-10-21: steps 1 to 3 as drafted, with the four planned items (button weight 500 in step 3; the dark text lifts, the error action fill on the cockpit's error screen, and the status bar and manifest per presentation in step 2), plus a solid 2px focus ring in step 3 and the type role rename as a second pull request under PRD-1267. The hub moves to active with this approval.",
+    "Root DESIGN.md type roles, 2026-10-21: the maintainer chose to have body-md, label-md and app-title name Plus Jakarta Sans, the face the installed app and the cockpit share, and to give the website's button its own Inter role (website-label), since it is the only website piece among the entries that use these roles.",
     "artifacts/design-lab.html is a hand-built mock drawn from token values; artifacts/captures are Storybook evidence from the deployed build, not authenticated-session proof.",
     "The garden-scoped Home and its switcher stay with the pwa-interface-simplification hub; only the shared look of the garden chip is in scope here.",
     "No implementation lane is certified by document validation."
@@ -88,11 +75,7 @@
         },
         "note": "Step 1 (typeface) changes the installed app's font family and its loading screen's face and no behaviour, so it proves itself with the rendered pairs, the typeface fit audit and the design and typography guards. Each later slice records its own mode in the lane handoff: steps 1 and 2 are pure styling (not_applicable); step 3's solid focus ring is rendered-only behaviour (proof_limit with its rendered evidence)."
       },
-      "skill_tags": [
-        "ui",
-        "design",
-        "react"
-      ],
+      "skill_tags": ["ui", "design", "react"],
       "ready_when_dependencies_met": true,
       "manual_blocked": false
     },
@@ -115,11 +98,7 @@
         },
         "note": "This hub proposes look and feel and shared presentation elements only; no data, hook, store, or API change is in scope."
       },
-      "skill_tags": [
-        "react",
-        "tanstack-query",
-        "data-layer"
-      ]
+      "skill_tags": ["react", "tanstack-query", "data-layer"]
     },
     "contracts": {
       "owner": "codex",
@@ -140,9 +119,7 @@
         },
         "note": "No contract, settlement, or deployment work is in scope."
       },
-      "skill_tags": [
-        "contracts"
-      ]
+      "skill_tags": ["contracts"]
     },
     "qa_pass_1": {
       "owner": "claude",
@@ -150,16 +127,9 @@
       "ready_when_dependencies_met": false,
       "manual_blocked": true,
       "branch": null,
-      "depends_on": [
-        "ui",
-        "state_api",
-        "contracts"
-      ],
+      "depends_on": ["ui", "state_api", "contracts"],
       "handoff": "handoffs/claude-qa-pass-1.md",
-      "skill_tags": [
-        "testing",
-        "review"
-      ],
+      "skill_tags": ["testing", "review"],
       "blocked_reason": "Implementation is not authorized or available for acceptance review."
     },
     "qa_pass_2": {
@@ -168,14 +138,9 @@
       "ready_when_dependencies_met": false,
       "manual_blocked": true,
       "branch": null,
-      "depends_on": [
-        "qa_pass_1"
-      ],
+      "depends_on": ["qa_pass_1"],
       "handoff": "handoffs/codex-qa-pass-2.md",
-      "skill_tags": [
-        "testing",
-        "review"
-      ],
+      "skill_tags": ["testing", "review"],
       "blocked_reason": "Implementation is not authorized or available for acceptance review."
     }
   },
@@ -291,6 +256,14 @@
       "status": "in_progress",
       "branch": "feature/app-cockpit-typeface",
       "note": "Handed to the next session at the maintainer's request: step 1's code is committed and pushed without its guides and guards, and the step 2 and 3 drafts are pushed on feature/app-cockpit-token-slice-drafts; handoffs/claude-ui.md lists what remains."
+    },
+    {
+      "timestamp": "2026-10-21T08:02:50.971Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/app-cockpit-typeface",
+      "note": "Step 1's guides, guards and stories committed with DL-095 and DL-096 after merging develop; the face's pull request is ready to open with Refs PRD-1267, and the type role names follow as a second one. The step 13 draft now lives in artifacts/step-13-draft."
     }
   ]
 }
