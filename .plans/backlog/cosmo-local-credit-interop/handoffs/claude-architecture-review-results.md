@@ -24,6 +24,18 @@ decision that stays with Afo.
 section 4 table named the payer garden's steward as the terms author instead of the pool garden's.
 Both are fixed in place below.
 
+## Corrections carried forward on 21 October
+
+This remains a dated review, not the current dispatch contract. The [spec](../spec.md),
+[complete freeze inventory](../plan.todo.md#sequence-and-completion-evidence) and
+[rehearsal handoff](prd-1096-rehearsal-dispatch-draft.md) own the reconciled requirements.
+Pre-acceptance edits alone do not bind a pending claimant to an approved revision: PRD-1317 must
+supply exact-revision consent. Allowance/cap limits reserve nothing. Presentment and discharge now
+include contract work in PRD-1315/1317/1318, while service operations/UI and terms remain with
+PRD-1297/COM-46. Acknowledgments remain an open live decision and are absent from the bounded
+rehearsal. Its retired-peer recovery requirements supersede the scenario below; a source-side
+failure record alone cannot make an old command deliverable after retirement.
+
 ## 1. Decision summary
 
 The product intent stands and is enforceable: one commitment can promise G$ and vouchers, both
@@ -31,12 +43,12 @@ promises are fixed before anyone accepts, and each reward completes on its own.
 
 The first pass got the shape right (an Arbitrum module that owns entitlements, a restricted Gnosis
 adapter, reused CLC token and pool implementations, the G$ rail untouched) and got one premise
-wrong: **the CommitmentPooling core does not need an upgrade for this slice.** Everything the
-voucher module must know is already readable on chain through existing views, and the G$ rail
-itself pays on nothing more than `state == Fulfilled`. A voucher module can bind terms before
-acceptance with exactly the rule the core uses for G$ terms, by reading the commitment state when
-terms are written and refusing changes once it is `Accepted`. That removes the storage, library
-re-link and live-proxy risk from the critical path and keeps the audit scope to new code.
+wrong: **the CommitmentPooling core does not need an upgrade for this slice.** Existing views expose the
+pre-acceptance editing window and Fulfilled state used by the G$ rail. A voucher module can forbid
+post-acceptance edits, but this alone does not bind a pending claimant to an approved revision.
+Exact-revision consent remains PRD-1317 work before the boundary freezes. The accepted candidate
+keeps core storage, library re-link and live-proxy changes outside this slice; that is a boundary
+decision, not proof that the outstanding consent mechanism is complete.
 
 Two further changes to the proposal. First, prefer **allowance-bounded delivery from the issuer's
 own reserve** over granting Green Goods code a `GiftableToken` writer role: a writer can mint
@@ -64,11 +76,11 @@ address; the member cannot act from it until that is resolved.
 
 | # | Question | Answer | Label |
 |---|---|---|---|
-| 1 | Terms bound at acceptance without two sources of truth? Exact core change? | Yes, with no core change. The module writes voucher terms only while `getCommitment(id).state` is `Offered` or `Requested`, the same window `TermsLib._requireEditableTerms` enforces for G$ terms ([TermsLib.sol:153-166](../../../../packages/contracts/src/lib/CommitmentPooling/TermsLib.sol#L153)). G$ terms live in the core, voucher terms in the module: two owners, two obligations, one acceptance act. The optional core change is a stored fulfillment path (see 2). | ESTABLISHED / recommendation |
+| 1 | Terms bound at acceptance without two sources of truth? Exact core change? | The no-core-change candidate can enforce the editing window, not exact claimant consent by that check alone. PRD-1317 must bind the approved revision and counterparty consent. The module writes voucher terms only while `getCommitment(id).state` is `Offered` or `Requested`, the same window `TermsLib._requireEditableTerms` enforces for G$ terms ([TermsLib.sol:153-166](../../../../packages/contracts/src/lib/CommitmentPooling/TermsLib.sol#L153)). G$ terms live in the core, voucher terms in the module: two owners and two obligations. One acceptance act remains the intended behavior, requiring the additional consent binding. The optional core change is a stored fulfillment path (see 2). | ESTABLISHED / recommendation |
 | 2 | Does the fulfillment record cover ordinary, fallback, dispute and legacy paths? | The on-chain record is the terminal state `Fulfilled`, reached by ordinary and fallback confirmation ([CreditLib.sol:232-249](../../../../packages/contracts/src/lib/CommitmentPooling/CreditLib.sol#L232)) and by dispute resolution ([TerminalLib.sol:222-258](../../../../packages/contracts/src/lib/CommitmentPooling/TerminalLib.sol#L222)); it is terminal because `raiseDispute` accepts only Accepted, ReadyForConfirmation or Expired ([TerminalLib.sol:94-98](../../../../packages/contracts/src/lib/CommitmentPooling/TerminalLib.sol#L94)). The confirmation path exists only in events and the indexer already projects it (`confirmationPath`, `fulfilledBy`, dispute-resolved fulfillment with path null). The G$ rail gates on the state alone ([PlanLib.sol:159-163](../../../../packages/contracts/src/lib/Settlement/PlanLib.sol#L159)). Legacy commitments carry no entitlement unless one is registered. | ESTABLISHED |
 | 3 | Initial issuance versus transferring pre-issued inventory? Can a steward authorize only the delegated budget? | Prefer the issuer minting to its own Safe and approving the adapter for a bounded allowance. `GiftableToken` writers can mint without a per-writer budget (SPEC: `mintTo` is "Owner or writer only"; no cap is specified), so under the writer model the only budget is the adapter's own code. Under the allowance model the token enforces the budget and the issuer revokes it with `approve(adapter, 0)`. On Arbitrum, bind each voucher asset to an issuer garden and require that garden's steward hat for the budget, so a payer garden cannot spend another issuer's vouchers. | ESTABLISHED facts / recommendation |
 | 4 | Asynchronous outcomes safe? | Yes if the adapter copies the Celo executor's order of operations: authenticate, dedupe by execution key, store the result before any side effect, then acknowledge with deferral codes ([Execution.sol:35-68](../../../../packages/contracts/src/modules/CeloSettlement/Execution.sol#L35), [Base.sol:64-92](../../../../packages/contracts/src/modules/CeloSettlement/Base.sol#L64)). Two additions are required: an entitlement id that does not include the attempt number, consumed only on success, and a refusal of a consumed entitlement even on a fresh message. See section 5 for each scenario. | ESTABLISHED pattern / recommendation |
-| 5 | Reservations, other mint authorities, allocation, rounding, discharge specified without a payment engine? | Reservation is the allowance (or a season cap). The issuer owner can always mint more; the passport must show issuer supply separately from Green Goods deliveries. Allocation reuses `validateRecognitionSnapshot` and PlanLib's deterministic remainder rule ([PlanLib.sol:760-788](../../../../packages/contracts/src/lib/Settlement/PlanLib.sol#L760)); whole-unit vouchers need an explicit rounding policy or a single recipient. Service presentment and discharge stay outside this slice: CLC defines them as off-contract issuer conduct, and the hub already assigns them to PRD-1297 and COM-46. | recommendation / decision |
+| 5 | Reservations, other mint authorities, allocation, rounding, discharge specified without a payment engine? | There is no reservation: allowance and optional season caps are shared delivery limits, and the allowance is revocable. Approved/accepted obligations may oversubscribe them; exhausted allowance/reserve must fail without consuming the entitlement, then deliver once after repair (rehearsal G4). The issuer owner can always mint more; the passport must show issuer supply separately from Green Goods deliveries. Allocation reuses `validateRecognitionSnapshot` and PlanLib's deterministic remainder rule ([PlanLib.sol:760-788](../../../../packages/contracts/src/lib/Settlement/PlanLib.sol#L760)); whole-unit vouchers need an explicit rounding policy or a single recipient. After the 21 October direction, PRD-1315 owns the authenticated presentment handshake and live escrow placement/custody decision, PRD-1317 the authorized discharge/return commands, and PRD-1318 once-only Gnosis settlement. Service operations/UI and issuer terms remain PRD-1297/COM-46 work. | recommendation / decision |
 | 6 | Reused instance, reused implementation, upgrade, or new code? Chains and authorities? | Section 4 table. In short: Arbitrum CommitmentPooling, SettlementModule, HatsModule, Celo executor and Safes are reused unchanged; CLC `GiftableToken`, `SwapPool`, `Limiter`, `FeePolicy`, `TokenUniqueSymbolIndex`, a quoter and the Solady `ERC1967Factory` are reused implementations with new Gnosis instances; the Arbitrum voucher module and the Gnosis adapter are new Green Goods code; no upgrade is required in v1. | ESTABLISHED |
 | 7 | Source and receipt authentication, live transport version and selected CLC deployment proven or pending? | Authentication is proven in code for the Celo lane and transfers by construction. Transport: Gnosis router `0x4aAD6071085df840abD9Baf1697d5D5992bDadce`, selector `465200170687744372`, outbound Arbitrum One lane OnRamp `0x7FcD...448B` v2.0.0 and inbound Arbitrum One lane OffRamp `0xF941...9AD9` v2.0.0 (directory read 2026-10-20). `EVMExtraArgsV1`, which the codec uses, is accepted by `getFee` on both routers (checked 2026-10-20, F5 update). CLC deployment: bytecode conformance established on 2026-10-20 (F2 update). Timeout is treated as pending in the existing design; `failStrandedSubject` only records a source-side failure after the peer is retired ([LifecycleLib.sol:369-398](../../../../packages/contracts/src/lib/Settlement/LifecycleLib.sol#L369)). | ESTABLISHED; live delivery stays a rehearsal item |
 | 8 | Legacy contracts, funded routes, indexer identities, app consumers preserved? | Yes by construction when no core upgrade ships: the Arbitrum proxies, the 18 Celo Safes and routes, the payout-plan singleton and `getCommitment` ABI are untouched. The indexer already keys entities by `chainId-id` and needs chain 100 plus new entities, not changes to existing ones. Shared needs chain 100 in its registry; today it lists only Ethereum, Sepolia, Arbitrum and Celo ([chains.ts:1-7](../../../../packages/shared/src/config/chains.ts#L1)). | ESTABLISHED |
@@ -103,13 +115,12 @@ Both are real. Neither forces a core change:
   ([PlanLib.sol:159-163](../../../../packages/contracts/src/lib/Settlement/PlanLib.sol#L159));
   it never reads the confirmation path.
 
-**Inference.** A module that registers voucher terms only while the commitment is `Offered` or
-`Requested`, refuses changes afterward, and issues only on `Fulfilled` binds terms at acceptance
-exactly as strongly as the core binds G$ terms, and treats every confirmation path the way the G$
-rail already does. The "two sources of truth" objection does not apply: G$ terms and voucher terms
-are different obligations with one owner each, agreed in one acceptance act, and the module can
-also mark the honest difference between a term agreed before acceptance and a discretionary award
-registered after it, because it observes the state at write time.
+**Inference, qualified on 21 October.** Registering only while `Offered` or `Requested` and
+refusing changes afterward enforces an editing window; it does not bind a pending claimant to the
+exact approved voucher revision. PRD-1317 must provide that separate consent binding. G$ and voucher
+terms remain distinct obligations with one owner each. The earned-reward path may use `Fulfilled`
+under the rehearsal default; curated/purchased issuance against future capacity is a separate
+21 October decision. No discretionary post-acceptance award is added by this review correction.
 
 **Consequence.** No storage change in a frozen 38-entry layout with a 12-slot gap
 ([Storage.sol:91-93](../../../../packages/contracts/src/modules/CommitmentPooling/Storage.sol#L91)),
@@ -451,7 +462,7 @@ sequenceDiagram
       VM->>VM: entitlement Failed, requeue after the issuer raises the allowance
     end
   end
-  Note over M,T: Voucher held by the member. Presentment, delivery and discharge are later facts owned by PRD-1297 and COM-46
+  Note over M,T: Voucher held by the member. Later service facts are separate; contract presentment/discharge work belongs to PRD-1315/1317/1318, operations and terms to PRD-1297/COM-46
 ```
 
 Scenario coverage, each against the mechanism that handles it:
@@ -462,10 +473,10 @@ Scenario coverage, each against the mechanism that handles it:
 | Mint or transfer succeeds, acknowledgment lost | Result stored before the acknowledgment; retry of the same payload hits the stored execution key and resends the acknowledgment |
 | Duplicate transport message | Execution key dedup, as the Celo executor does today |
 | Duplicate entitlement in a new message or new attempt | `consumed[entitlementId]` refusal, consumed only on success |
-| Stale terms | Terms frozen at acceptance; the command carries `termsHash`; the adapter checks asset and deadline |
+| Stale terms | Intended terms freeze plus an approved revision hash; exact claimant consent remains PRD-1317 work. The command carries termsHash and immutable economic bindings; the adapter checks asset/deadline. |
 | Cap or allowance exhausted | Stored `Failed`, entitlement unconsumed, acknowledgment carries the failure code, requeue after repair |
 | Cancellation | Only while Queued or Failed, never Dispatched, mirroring the G$ rule |
-| Peer retirement | Grace window on both sides; `failStrandedSubject` analogue records a source-side failure only after the window closes, and the operator confirms on Gnosis before requeue |
+| Peer retirement | Historical recommendation: grace and source-side failure recording. Current rehearsal requires explicit issuer-Safe recovery of an approved retired-peer entitlement, preserving economic terms and global consumption; see G17/G18 in the dispatch handoff. Ordinary retired-peer messages remain rejected. |
 | Timeout | Pending, never failed |
 
 ## 6. Recommended final boundary
@@ -493,9 +504,18 @@ In scope for PRD-1315:
    chain registry without silent fallback, per-obligation status readers, and the PRD-1323 and
    PRD-1324 slices showing promised versus received per reward.
 
-Out of scope for PRD-1315, owned elsewhere: service presentment and discharge (PRD-1297,
-COM-46), member exchange (PRD-1297, blocked on F4), purchased issuance mechanics (F6 decision),
-any CommitmentPooling upgrade (F1 and F13), a general multiasset settlement engine.
+6. **Presentment and discharge contract boundary (21 October correction).** PRD-1315 records
+   authenticated escrow-to-promise binding and live escrow placement/custody; PRD-1317 authorizes
+   exact-revision-consented discharge/return commands and binds delivered/refundable quantities;
+   PRD-1318 authenticates those commands and settles one immutable full/partial escrow decision
+   exactly once across replay and reordering. This does not assign escrow custody to the delivery
+   adapter or claim the mechanism is implemented.
+
+Out of scope for PRD-1315, owned elsewhere: service operations and UI (PRD-1297), issuer terms and
+remedy/disposal policy (COM-46), and member exchange UI (PRD-1297, blocked on F4). Purchased
+issuance follows the 21 October future-capacity decision in the spec; F6 is the historical choice
+record. Any CommitmentPooling upgrade (F1/F13) and a general multiasset settlement engine remain
+outside this accepted candidate.
 
 ### Exact changes to the first-pass proposal
 

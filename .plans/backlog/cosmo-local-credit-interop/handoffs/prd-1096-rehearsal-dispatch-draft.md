@@ -165,6 +165,8 @@ These go beyond the five defaults. The draft assumes each one; change any before
 - **A7. The issuer's fallback delivery**, which PRD-1318 and PRD-1326 require, is an owner-only
   adapter call that applies every check the lane applies except transport authentication. It
   stores its result under the key the lane would use, and the deadline and pause still apply.
+  Retirement does not cancel an accepted obligation: the explicit retired-peer recovery below uses
+  the same issuer-Safe authority, with an immutable economic binding and separately labeled proof.
 - **A8. Sponsorship failure is rehearsed with a fork-local paymaster** that refuses. Recovery is the
   same action as an unsponsored user operation from an xDAI-funded account. No Pimlico policy or
   production paymaster is chosen here.
@@ -336,6 +338,45 @@ Follow the order in `CeloSettlementExecution._ccipReceive` and `_authenticate`
 - Failure codes: `None, TokenMismatch, Expired, EntitlementConsumed, InvalidRecipient, ZeroAmount,
   SeasonCapExceeded, TransferFailed, BalanceDeltaMismatch`.
 
+### Upgrade and retired-peer safety
+
+Both production-intent UUPS proxies require owner authorization **while paused** for every upgrade.
+Before changing the implementation slot, read the replacement's router and local-selector getters
+and require exact equality with the current implementation's pinned values, following
+`CeloSettlementExecutor._authorizeUpgrade` and the Settlement configuration validator. A missing,
+reverting or mismatched getter rejects the upgrade; a standard UUPS compatibility check is also
+required. Compare every additional immutable if implementation adds one; stored routes are not a
+substitute. A compatible upgrade preserves initialization, terms/commands, peers, stored results,
+consumed entitlements and season spend. Normal configuration cannot change these pinned values.
+
+Peer retirement closes ordinary lane and ordinary fallback authentication; it must not erase the
+historical peer identity or cancel a pending voucher obligation. Keep a registry of peers that were
+actually active. For an unresolved retired-peer entitlement, the issuer Safe may explicitly pin a
+recovery record while paused, after verifying the approved command against archived source-chain
+receipts. This owner attestation is labeled **issuer recovery**, not lane authentication. It does
+not require the retired source module to remain callable, or import the obligation into peer B.
+
+The record is keyed by source selector, originating peer and entitlement id. Its immutable economic
+binding is the original approved terms hash, voucher token, reserve holder, recipient, amount and
+season. Pin the original command hash and source receipt reference as evidence; emit the full
+binding and authorizing Safe. A new recovery transport attempt/deadline may be authorized, with an
+exact payload hash, but cannot change that economic binding. Reject a second binding, an unknown or
+still-active peer, zero/invalid values and recovery of an already consumed entitlement. Renewal after
+expiry or a stored Failed result for the exact prior recovery attempt retains the economic binding
+and uses a fresh, unused execution key. An unexpired permit with no stored failure cannot be replaced;
+timeout alone is not failure. This is not a general migration or permission to trust a retired sender.
+
+An owner-only `recoverRetiredEntitlement(originatingPeer, payload)` call is allowed only after
+unpause and only for the exact unexpired recovery payload authorized in that record. It bypasses
+only ordinary peer liveness; all token, amount, recipient, cap, pause, deadline and atomic-transfer
+checks still apply. Use the same source-selector/peer/entitlement/attempt execution key and shared
+`consumed[entitlementId]`, stored results and season accounting as lane/fallback delivery. Failed
+attempts move no funds and consume nothing; a new authorized attempt after repair can succeed.
+Retries and permits never reset existing results or consumption. Record path `IssuerRecovery`.
+A delayed retired-peer lane message still rejects; successful normal, fallback or recovery delivery
+prevents any other path or attempt paying the same entitlement. The report shows outstanding
+obligations and the Safe attestation rather than claiming automatic cross-chain recovery.
+
 ### VoucherServiceDesk (Gnosis, one per issuer; A1)
 
 - The issuer Safe owns it and sets an operator, the hub. Pin the voucher token and service issuer
@@ -459,6 +500,7 @@ No new code: configuration through the published factory and implementations.
 | M14 | Independently ABI-encode the canonical preimage and match the stored/command hash. Vary issuer, kind, units, season, CID, revision and each frozen route/asset binding; each changes the hash. Retry/requeue preserve it, while a new revision invalidates old approval. |
 | M15 | Zero router/local source selector rejects construction. Zero owner, pooling module or Hats module rejects initialization with storage/initialization unchanged; a valid call then initializes once in paused state, and later initialization rejects. |
 | M16 | Inject getFee and ccipSend failures separately during dispatch, retry and requeue. Assert transaction rollback of lifecycle state, stored payload/hash/target, entitlement/attempt/deadline, module/router native balances and message events. Fresh dispatch remains possible; prior retry/requeue command identity remains intact. After router repair the same operation succeeds once, paying only its successful quote. |
+| M17 | Upgrade by a non-owner or while unpaused rejects. A replacement with a different router or local selector, missing/reverting getters, or incompatible UUPS UUID rejects with implementation and all proxy state unchanged. A compatible paused-owner upgrade succeeds with initialization, approved revisions, stored commands/routes and fee state preserved. |
 
 **Gnosis adapter**
 
@@ -479,6 +521,9 @@ No new code: configuration through the published factory and implementations.
 | G13 | A token that moves funds but returns false, or whose transfer produces a recipient balance delta other than `amount`, stores `TransferFailed` or `BalanceDeltaMismatch` respectively. The helper rolls back balances and allowance spending; the entitlement and season spend stay unchanged. Cover lane delivery and issuer fallback: repeated requeues under the mismatch move no tokens, and a requeue after repair delivers exactly once. |
 | G14 | After same-version A-to-B peer rotation with grace, a new B-to-C rotation before or exactly at A's expiry reverts `PreviousPeerGraceActive` with peer/expiry state unchanged. At expiry plus one second, rotation is allowed, B becomes the previous peer under its new grace and A is rejected. A same-active-peer update retains the previous peer: zero grace leaves its expiry unchanged, a valid extension is allowed and an attempted shortening reverts. Use the referenced Celo admin's paused-owner transition. |
 | G15 | Zero router or local selector rejects construction. Zero owner, source selector, source module, voucher token and reserve holder each reject initialization with initialization/storage unchanged. Valid initialization then succeeds once and leaves the adapter paused; every later initialize call rejects. |
+| G16 | Repeat M17's upgrade authorization, immutable/getter and UUPS compatibility negatives for the adapter. A compatible paused-owner upgrade preserves initialization, current/previous/historical peers, recovery records, results, consumed entitlements and cumulative season spend. |
+| G17 | Rotate A to B with a pending/failed approved A entitlement; after grace expiry, normal lane/fallback from A reject. Make A unavailable. The issuer Safe pins the original economic binding and an exact recovery payload with fresh attempt/deadline, then unpauses and recovers once. Repeat with zero-grace emergency rotation and an expired original command. B need not import terms; consumed/result/spend records and the report identify issuer recovery. |
+| G18 | Unknown/active peer, non-owner, unbound or altered token/reserve/recipient/amount/season/terms hash, expired permit, replacement of an unexpired permit without a stored matching failure, changed second binding and recovery while paused all reject unchanged. Inject transfer/cap failures; no funds/consumption/spend survive, and renewal after the stored failure and repair succeeds once with a fresh unused execution key. After normal or fallback success, recovery rejects; after recovery success, retries, alternate attempts and delayed retired-peer lane/fallback cannot pay again. Expired-permit renewal preserves economic terms and all prior results. |
 
 **Pools and exchange (Gnosis fork)**
 
@@ -522,10 +567,12 @@ Risk first. Phases 1 to 4 are the minimum for the 23 October update; later phase
 
 1. Interfaces and conformance: write the interfaces, pin the code hash of every implementation and
    instance used, and prove each interface call on the Gnosis fork.
-2. Codec and adapter with all G cases (G1 to G15), including G14's overlapping peer-rotation boundary.
+2. Codec and adapter with every G case, including overlapping rotation, upgrade immutables and
+   retired-peer recovery.
 3. Module with M cases.
-4. Fork rehearsal of earned issuance end to end: G1 to G5, G11, G12 and G14 across both forks.
-   Record G14's before/at/after-expiry peer-rotation receipts on the configured fork adapter.
+4. Fork rehearsal of earned issuance end to end: G1 to G5, G11, G12, G14, G17 and G18 across both forks.
+   Record before/at/after-expiry rotation and post-retirement recovery receipts on the configured
+   fork adapter, including source unavailability and zero-grace rotation.
 5. Pools and exchange, P cases.
 6. Accounts and sponsorship, K cases.
 7. Service desk, S cases.
