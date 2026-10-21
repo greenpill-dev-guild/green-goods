@@ -50,6 +50,21 @@ test("conflicting upgrades and root-pin downgrades fail instead of choosing a ve
   assert.throws(() => alignPins(before, upgrade(before, "packages/client/package.json", "devDependencies", "vite", "8.2.4")), /downgrade/);
 });
 
+test("workspace upgrades preserve independent root release lines in either direction", () => {
+  for (const [rootVersion, file, previous, next] of [
+    ["8.2.4", "docs/package.json", "7.3.0", "7.3.1"],
+    ["7.3.0", "packages/client/package.json", "8.2.1", "8.2.4"],
+  ]) {
+    const before = manifests();
+    before["package.json"].overrides.vite = rootVersion;
+    before["package.json"].devDependencies.vite = rootVersion;
+    before[file] = { devDependencies: { vite: `^${previous}` } };
+    const result = alignPins(before, upgrade(before, file, "devDependencies", "vite", `^${next}`));
+    assert.deepEqual(result.manifests["package.json"], before["package.json"]);
+    assert.equal(result.manifests[file].devDependencies.vite, `^${next}`);
+  }
+});
+
 test("manifest edits reject scripts, additions, removals, URLs, prereleases and range changes", () => {
   const before = { scripts: { build: "safe" }, dependencies: { hono: "4.13.7" } };
   for (const after of [

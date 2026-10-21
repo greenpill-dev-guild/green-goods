@@ -66,7 +66,8 @@ export function alignPins(before, after) {
         if (!target || typeof current !== "string" || !/^[~^]?\d+\.\d+\.\d+$/.test(current)) continue;
         const pin = version(current);
         const rootPin = file === "package.json";
-        if (!rootPin && !target.previous.has(pin.text)) continue;
+        const sameLine = pin.number[0] === target.after.number[0];
+        if (!target.previous.has(pin.text) && !(rootPin && sameLine)) continue;
         if (order(pin, target.after) > 0) throw new Error(`Refusing to downgrade ${file}:${name}`);
         manifest[section][name] = `${pin.prefix}${target.after.text}`;
       }
