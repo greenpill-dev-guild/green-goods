@@ -18,7 +18,8 @@ const prismDark = {
 
 const config: Config = {
   title: 'Green Goods Documentation',
-  tagline: 'Bringing community and environmental actions on-chain',
+  tagline:
+    'Green Goods helps communities name their needs, make promises, document regenerative work, review it together, and turn the record into support.',
   favicon: 'img/favicon.ico', // Canonical Brand kit favicon at the established public URL
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
@@ -617,7 +618,7 @@ const config: Config = {
         {
           title: 'Connect',
           items: [
-            { label: 'Telegram', href: 'https://t.me/+N3o3_43iRec1Y2Jh' },
+            { label: 'Discord', href: 'https://discord.gg/greenpill' },
             { label: 'X (Twitter)', href: 'https://x.com/greengoodsapp' },
             { label: 'LinkedIn', href: 'https://www.linkedin.com/company/greengoodsapp/' },
             { label: 'GitHub', href: 'https://github.com/greenpill-dev-guild/green-goods' },
@@ -633,7 +634,7 @@ const config: Config = {
           ],
         },
       ],
-      copyright: `Making grassroots conservation visible, verifiable, and funded.<br/>Copyright © ${new Date().getFullYear()} Greenpill Dev Guild.`,
+      copyright: `Making grassroots conservation visible, verifiable, and funded.<br/>Copyright © ${new Date().getFullYear()} Green Goods.`,
     },
     prism: {
       theme: prismLight,

@@ -140,7 +140,7 @@
     "esbuild",
     "sharp"
   ],
-  "description": "A progressive web application for the Green Goods protocol.",
+  "description": "Green Goods helps communities name their needs, make promises, document regenerative work, review it together, and turn the record into support.",
   "main": "index.js",
   "directories": {
     "doc": "docs",

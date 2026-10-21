@@ -1,12 +1,10 @@
 import type { GardenAssessment } from "../../types/domain";
 import type { EASGardenAssessment } from "../../types/eas-responses";
-import {
-  ACTION_DOMAINS,
-  type ActionDomain,
-  type ActionType,
-  type HypercertRecord,
-  type HypercertStatus,
-  type MetricValue,
+import type {
+  ActionType,
+  HypercertRecord,
+  HypercertStatus,
+  MetricValue,
 } from "../../types/hypercerts";
 import { logger } from "../app/logger";
 import { resolveIPFSUrl } from "./ipfs/resolve";
@@ -47,8 +45,8 @@ export function normalizeHypercertStatus(status?: string | null): HypercertStatu
 // Work Metadata Extraction
 // =============================================================================
 
+/** A work's domain is not read here: it is its action's (see `getWorkActionDomains`). */
 export function extractWorkMetadata(metadata: string | undefined): {
-  domain?: ActionDomain;
   actionType?: ActionType;
   workScope?: string[];
   metrics?: Record<string, MetricValue>;
@@ -57,11 +55,6 @@ export function extractWorkMetadata(metadata: string | undefined): {
   try {
     const parsed = JSON.parse(metadata) as unknown;
     if (!isRecord(parsed)) return {};
-
-    const domainRaw = parsed.domain ?? parsed.actionDomain;
-    const domain = ACTION_DOMAINS.includes(domainRaw as ActionDomain)
-      ? (domainRaw as ActionDomain)
-      : undefined;
 
     const actionType =
       typeof parsed.actionType === "string" ? (parsed.actionType as ActionType) : undefined;
@@ -78,7 +71,7 @@ export function extractWorkMetadata(metadata: string | undefined): {
       ? (parsed.metrics as Record<string, MetricValue>)
       : undefined;
 
-    return { domain, actionType, workScope, metrics };
+    return { actionType, workScope, metrics };
   } catch {
     return {};
   }
