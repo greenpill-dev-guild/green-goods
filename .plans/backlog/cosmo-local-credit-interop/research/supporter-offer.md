@@ -1,10 +1,11 @@
 # Sponsor a season at Tech and Sun
 
-**One-page supporter offer and FAQ. First draft, 2026-10-09.** First diaspora community: Omo
-Yoruba of Southern California (confirmed by Afo, 9 October). Every amount is a labeled scenario
-until the steward confirms terms (COM-46, by 21 October). Nothing here is a live product
-until the 22 October decision (PRD-1197). Two asks are kept apart on purpose: service capacity at
-Tech and Sun, and Green Goods infrastructure.
+**One-page supporter offer and FAQ. First draft 2026-10-09; status updated 2026-10-20.** First
+diaspora community: Omo Yoruba of Southern California (confirmed by Afo, 9 October). Every amount
+is a labeled scenario until the steward confirms terms (COM-46, by 21 October). The prepaid
+vouchers are a planned pilot: they go live only after a recorded go (PRD-1197) that addresses every
+release gate, and none of those gates was met on 20 October. Two asks are kept apart on purpose:
+service capacity at Tech and Sun, and Green Goods infrastructure.
 
 ## The offer in one line
 
@@ -28,8 +29,9 @@ named learners at the Awka hub.
   Yoruba's treasurer confirms the method (check, bank transfer or the processor they name); the
   website's donate page carries no payment form yet. Green Goods records the funded seats as
   commitments and reports their delivery. *Accepted route (Afo, 9 October), subject to the sponsorship terms.*
-- **After the 22 October decision, if it is a go:** prepaid service credits in the hub's own
-  credit pool, issued only within the capacity the hub can deliver.
+- **Later, and only after a recorded go:** prepaid service vouchers in the hub's own voucher
+  pool, issued only within the capacity the hub can deliver. Whether supporters can buy vouchers
+  in the first release is still being decided.
 - **Not this route:** the in-app Donate button sends support to a garden jar that members draw
   from in small claims. It is real and live, but it is not how a season of seats is paid for.
 
@@ -45,7 +47,7 @@ credit score, an audited impact claim or a financial return.
 
 ## What stays with the community
 
-The hub owns its credit, its terms, its prices and its pool. Members choose what is public about
+The hub owns its voucher, its terms, its prices and its pool. Members choose what is public about
 them. Your support buys services and the evidence of their delivery; it does not buy a say over
 the hub, its land or its people.
 
@@ -61,12 +63,12 @@ the hub, its land or its people.
 
 ## If something fails
 
-- The hub cannot deliver a session: it is honoured on the next open day, or the seat is returned
-  to you as an unused credit. The remedy terms are published with the credit.
+- The hub cannot deliver a session: it is honored on the next open day, or the seat is returned
+  to you as an unused voucher. The remedy terms are published with the voucher.
 - A learner does not confirm: the service shows as unconfirmed, with the fallback path visible.
 - A payment does not arrive or arrives twice: the record shows the stopped state and who owns the
   repair.
-- No cash-out of Green Goods credits exists. Tech and Sun's cash swap-back is a rehearsal idea
+- Green Goods vouchers have no cash-out. Tech and Sun's cash swap-back is a rehearsal idea
   only, pending its own terms and legal review.
 
 ## Two separate asks
@@ -85,7 +87,7 @@ A sponsor should know which budget they are paying. The same delivery is never c
 deductible for you depends on those terms and your own position. Support sent in-app is not a
 charitable donation.
 
-**Is a credit money?** No. A credit is a claim on one issuer's future service under published
+**Is a voucher money?** No. A voucher is a claim on one issuer's future service under published
 terms. It is not a wage, a score or cash.
 
 **Can I pick the learner?** Not in the first season. The hub allocates seats under its membership
@@ -95,15 +97,16 @@ rules; you see the aggregate and, where a learner consents, their confirmation.
 services members asked for most. A diaspora professional can offer them as promises in the same
 record, confirmed by the person helped.
 
-**Can I get my money back?** Direct support is final. A prepaid credit that the hub cannot honour
-is returned as an unused credit, not as cash, unless the published terms say otherwise.
+**Can I get my money back?** Direct support is final. A prepaid voucher that the hub cannot honor
+is returned as an unused voucher, not as cash, unless the published terms say otherwise.
 
 **Who checks the hub?** The people served confirm each service. Green Goods publishes the record
 and its definitions. Nobody has audited the outcomes; the record shows what happened, not what it
 caused.
 
-**Is this live?** The commitment record and G$ support are live. The credit pools and the public
-passport are the planned pilot. We will label rehearsal data as rehearsal.
+**Is this live?** The record of promises and G$ support are live. The voucher pools and the public
+passport are a planned pilot: no voucher contract exists yet, and nothing goes live before a
+recorded go that addresses every release gate. We label rehearsal data as rehearsal.
 
 **What does Green Goods get?** Nothing from the service budget. Infrastructure is funded
 separately and we say so.
