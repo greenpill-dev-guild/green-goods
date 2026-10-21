@@ -491,10 +491,16 @@
    * screen (the standalone rule below this block). Both are 0 where nothing
    * overlaps the page. */
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
-  /* The installed app's fixed top bar (the client's TopNav): 80px tall below
-   * the status bar's safe area. A page under it starts at this height, and a
-   * card that sticks under it sticks at this height. */
-  --app-top-bar-height: calc(5rem + env(safe-area-inset-top, 0px));
+  /* Where the installed app's top controls start (the top bar, page headers, the
+   * garden banner's buttons): 16px below the status bar's safe area. The offline
+   * banner and the install prompt, 16px tall, show in that space, so neither
+   * covers a control. */
+  --app-top-offset: calc(env(safe-area-inset-top, 0px) + 1rem);
+  /* The installed app's fixed top bar (the client's TopNav): its 32px controls
+   * start at --app-top-offset with 24px below them, 72px below the status bar's
+   * safe area in all. A page under it starts at this height, and a card that
+   * sticks under it sticks at this height. */
+  --app-top-bar-height: calc(var(--app-top-offset) + 3.5rem);
 
   /* ── Radius Aliases ── Public runtime aliases for DesignMD-generated radii. */
   --radius-none: var(--gg-radius-none);

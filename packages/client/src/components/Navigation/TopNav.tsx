@@ -172,10 +172,11 @@ export const TopNav: React.FC<TopNavProps> = ({
 }: TopNavProps) => {
   const { formatMessage } = useIntl();
   // Where the status bar is see-through (older iPhone installs, Android's
-  // edge-to-edge mode) the clock sits over the bar's top edge, so the bar pads
-  // by the status bar's safe area and is 80px tall below it.
+  // edge-to-edge mode) the clock sits over the bar's top edge, so the controls
+  // start 16px below the status bar's safe area (--app-top-offset), where the
+  // offline banner shows, and the bar is 72px tall below the safe area.
   const containerClasses = cn(
-    "relative flex z-nav flex-row w-full justify-evenly items-start gap-4 p-6 pt-[calc(1.5rem+env(safe-area-inset-top,0px))] h-[var(--app-top-bar-height)]",
+    "relative flex z-nav flex-row w-full justify-evenly items-start gap-4 p-6 pt-[var(--app-top-offset)] h-[var(--app-top-bar-height)]",
     overlay && "fixed bg-bg-white-0"
   );
 
@@ -206,7 +207,7 @@ export const TopNav: React.FC<TopNavProps> = ({
           button's row and their names hang below it. Nothing in it rises into
           that padding, where the shell's offline banner lies. Equal clearance
           on both sides keeps the tracker centred even on narrow phones. */}
-      <div className="absolute inset-y-0 left-16 right-16 flex flex-row items-start pt-[calc(1.5rem+env(safe-area-inset-top,0px))]">
+      <div className="absolute inset-y-0 left-16 right-16 flex flex-row items-start pt-[var(--app-top-offset)]">
         <div className="flex min-w-0 flex-auto flex-row justify-center gap-4">{children}</div>
       </div>
 

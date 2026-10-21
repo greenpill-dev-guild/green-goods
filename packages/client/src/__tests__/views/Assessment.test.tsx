@@ -191,7 +191,7 @@ describe("GardenAssessment", () => {
     expect(screen.getByTestId("skeleton")).toBeInTheDocument();
   });
 
-  // The top bar is 80px tall below the status bar's safe area. Left in the flow
+  // The top bar is 72px tall below the status bar's safe area. Left in the flow
   // with 64px of padding under it, the page began 64px below the bar, where the
   // work page and the promise page begin right under it. Like theirs, the bar is
   // pinned over the page, which clears it once.

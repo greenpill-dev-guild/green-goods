@@ -97,8 +97,9 @@ const Profile: React.FC = () => {
     <section className="flex h-full flex-col">
       {/* Fixed Header */}
       <div ref={measureHeader} className="fixed left-0 top-0 z-10 w-full bg-bg-white-0">
-        {/* The top padding clears the offline banner: 24px tall, starting below the status-bar inset. */}
-        <div className="px-4 pt-[calc(env(safe-area-inset-top,0px)+2.5rem)] pb-4">
+        {/* The top padding clears the offline banner (16px, in the space --app-top-offset
+            keeps below the status bar) with 16px to spare. */}
+        <div className="px-4 pt-[calc(var(--app-top-offset)+1rem)] pb-4">
           <UserProfile
             displayName={displayName}
             avatar={DEFAULT_AVATAR}

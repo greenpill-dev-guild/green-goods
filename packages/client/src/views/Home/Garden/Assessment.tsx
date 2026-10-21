@@ -61,7 +61,7 @@ export const GardenAssessment: FC<GardenAssessmentProps> = () => {
 
   return (
     <article>
-      {/* Pinned over the page like the work and promise pages: the bar is 80px
+      {/* Pinned over the page like the work and promise pages: the bar is 72px
           below the status bar's safe area, and the page clears it once. */}
       <TopNav onBackClick={() => window.history.back()} overlay />
       <div className="padded flex flex-col gap-8 pt-[var(--app-top-bar-height)]">
