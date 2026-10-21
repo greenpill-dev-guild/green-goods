@@ -85,6 +85,34 @@ describe("readWorkList", () => {
 
     expect(row).not.toHaveProperty("approval");
   });
+
+  it("reads at most two gardens at once, and a failed read frees its turn", async () => {
+    const pending: Array<{ resolve: (works: EASWork[]) => void; reject: (error: Error) => void }> =
+      [];
+    seams.list.mockImplementation(
+      () => new Promise<EASWork[]>((resolve, reject) => pending.push({ resolve, reject }))
+    );
+    const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+    const reads = ["a", "b", "c", "d"].map((garden) =>
+      readWorkList({ garden, chainId: 42161 }).catch((error: Error) => error)
+    );
+    await settle();
+    expect(seams.list).toHaveBeenCalledTimes(2);
+
+    pending[0].reject(new Error("getWorkListPage timed out after 12000ms"));
+    await settle();
+    expect(seams.list).toHaveBeenCalledTimes(3);
+
+    for (const read of pending.slice(1)) read.resolve([]);
+    await settle();
+    pending[3].resolve([]);
+
+    const results = await Promise.all(reads);
+    expect(results[0]).toBeInstanceOf(Error);
+    expect(results.slice(1)).toEqual([[], [], []]);
+    expect(seams.list.mock.calls.map(([garden]) => garden)).toEqual(["a", "b", "c", "d"]);
+  });
 });
 
 describe("readWorkByUID", () => {
