@@ -306,8 +306,9 @@ if [[ -n "$SPELLING_HITS" ]]; then
 fi
 
 # ---------------------------------------------------------------------------
-# Brazilian Portuguese: the pt catalog is Brazilian, with você. Walks parsed
-# values, skips ICU argument references, and matches the listed words as whole
+# Brazilian Portuguese: the pt catalog and the QA app's pt locale are Brazilian,
+# with você. Walks parsed values, nested ones included (the QA locale groups its
+# strings), skips ICU argument references, and matches the listed words as whole
 # words plus the few forms a word list cannot hold (the -te clitic, "está a" +
 # infinitive, «» quotes). Words that are also Brazilian in another sense are not
 # listed; see the section's rationale.
@@ -315,6 +316,19 @@ fi
 if command -v python3 >/dev/null 2>&1; then
   PT_HITS="$(python3 - "$VOCAB_JSON" <<'PYEOF'
 import glob, json, re, sys
+
+
+def strings(node, key=""):
+    """Every string in a parsed locale file, keyed by its dotted path."""
+    if isinstance(node, str):
+        yield key, node
+    elif isinstance(node, dict):
+        for name, child in node.items():
+            yield from strings(child, f"{key}.{name}" if key else name)
+    elif isinstance(node, list):
+        for index, child in enumerate(node):
+            yield from strings(child, f"{key}.{index}")
+
 
 section = json.load(open(sys.argv[1])).get("pt_brazilian", {})
 terms = section.get("terms", [])
@@ -325,8 +339,8 @@ exempt = set(section.get("exempt_keys", []))
 hits = []
 for spec in section.get("globs", []):
     for path in sorted(glob.glob(spec)):
-        for key, value in json.load(open(path)).items():
-            if key in exempt or not isinstance(value, str):
+        for key, value in strings(json.load(open(path))):
+            if key in exempt:
                 continue
             # ICU argument references are code the component passes, not copy.
             prose = re.sub(r"\{\s*\w+\s*[,}]", " ", value)

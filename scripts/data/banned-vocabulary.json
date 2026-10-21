@@ -189,11 +189,12 @@
     "rationale": "English copy uses US spelling (decided 2026-10-17; DESIGN.md § Voice & Copy). Each UK form maps to the US word to use. A third-party name or title quoted in its own spelling goes in exempt_keys (a catalog message) or exempt_phrases (docs and agent copy)."
   },
   "pt_brazilian": {
-    "scope": "Portuguese catalog values (globs, check-vocab.sh); keys and ICU argument names are skipped",
+    "scope": "Portuguese catalog values and the QA app's Portuguese locale (globs, check-vocab.sh), nested values included; keys and ICU argument names are skipped",
     "globs": [
       "packages/shared/src/i18n/pt.json",
       "packages/client/src/i18n/pt.json",
-      "packages/admin/src/i18n/pt.json"
+      "packages/admin/src/i18n/pt.json",
+      "packages/qa/locales/pt.json"
     ],
     "terms": [
       "tua",
@@ -207,7 +208,6 @@
       "estás",
       "vais",
       "deves",
-      "precisas",
       "consegues",
       "sabes",
       "fazes",
@@ -268,7 +268,6 @@
       "perspetiva",
       "aspeto",
       "aspetos",
-      "consola",
       "em lado nenhum",
       "por defeito",
       "planear",
@@ -304,7 +303,7 @@
       "(?<!\\w)(?:precisa|precisam) de ligação(?!\\w)|(?<!\\w)ligação (?:à internet|estável|instável)"
     ],
     "exempt_keys": [],
-    "rationale": "The Portuguese catalog is Brazilian Portuguese with você (confirmed 2026-10-21). European forms had drifted in, mostly in the cockpit pool copy, and were rewritten then. Each term and pattern here is European in this register: tu forms and the -te clitic, the está a + infinitive progressive, registado, equipa, secção, boleia, ecrã, utilizador, ficheiro, partilhar, contactar, consola, planear, European accents such as económico, «» quotes, and precisa de ligação for a connection. Forms that are also Brazilian are left to review: ligação for a call or a link, de facto, partilha, à espera, a confirmar (to be confirmed), passa a + infinitive, está a par, and Aceite as an imperative."
+    "rationale": "The Portuguese catalog is Brazilian Portuguese with você (confirmed 2026-10-21). European forms had drifted in, mostly in the cockpit pool copy, and were rewritten then. Each term and pattern here is European in this register: tu forms and the -te clitic, the está a + infinitive progressive, registado, equipa, secção, boleia, ecrã, utilizador, ficheiro, partilhar, contactar, planear, European accents such as económico, «» quotes, and precisa de ligação for a connection. Forms that are also Brazilian are left to review: ligação for a call or a link, de facto, partilha, à espera, a confirmar (to be confirmed), passa a + infinitive, está a par, Aceite as an imperative, precisas (also the adjective precise) and consola (also the verb consolar)."
   },
   "prompt_vocabulary_admin_banned": {
     "scope": "AI-prompt vocabulary for admin-cockpit screens; guidance only",

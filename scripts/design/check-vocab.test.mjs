@@ -14,13 +14,14 @@ const { pt_brazilian } = JSON.parse(
 );
 
 // Runs the check in a scratch repository whose English (and, if given, Portuguese) catalog holds
-// only the given messages.
-function check(messages, ptMessages = {}) {
+// only the given messages, with an optional nested QA app locale.
+function check(messages, ptMessages = {}, qaPtLocale = {}) {
   const root = mkdtempSync(join(tmpdir(), "check-vocab-"));
   try {
-    for (const directory of ["scripts/design", "scripts/data", "packages/shared/src/i18n"]) {
+    for (const directory of ["scripts/design", "scripts/data", "packages/shared/src/i18n", "packages/qa/locales"]) {
       mkdirSync(join(root, directory), { recursive: true });
     }
+    writeFileSync(join(root, "packages/qa/locales/pt.json"), JSON.stringify(qaPtLocale));
     copyFileSync(script, join(root, "scripts/design/check-vocab.sh"));
     writeFileSync(
       join(root, "scripts/data/banned-vocabulary.json"),
@@ -47,7 +48,7 @@ test("US spelling reads ICU branch text, one-word branches included, and skips t
   assert.match(branch.stdout, /en\.json: app\.state: cancelled -> canceled/);
 });
 
-test("the Portuguese catalog fails on European forms and passes the Brazilian lookalikes", () => {
+test("Portuguese copy fails on European forms, nested QA strings included, and passes the Brazilian lookalikes", () => {
   const european = check({}, { "pool.ask": "A tua carteira vai pedir-te mais uma vez.", "pool.pause": "O grupo está a reorganizar-se." });
   assert.equal(european.status, 1, european.stdout + european.stderr);
   assert.match(european.stdout, /pt\.json: pool\.ask: .*-te.*tua|pt\.json: pool\.ask: .*tua.*-te/);
@@ -57,6 +58,11 @@ test("the Portuguese catalog fails on European forms and passes the Brazilian lo
     "pool.take": "Aceite uma destas promessas.",
     "pool.aware": "Ela já está a par do pedido.",
     "pool.count": "{tua, plural, one {# promessa} other {# promessas}}",
+    "pool.steps": "Siga as instruções precisas.",
   });
   assert.equal(brazilian.status, 0, brazilian.stdout + brazilian.stderr);
+
+  const qa = check({}, {}, { ui: { carry: "Veredictos registados nesta rodada" } });
+  assert.equal(qa.status, 1, qa.stdout + qa.stderr);
+  assert.match(qa.stdout, /qa\/locales\/pt\.json: ui\.carry: registados/);
 });
