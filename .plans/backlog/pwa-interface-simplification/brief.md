@@ -1,6 +1,6 @@
 # PWA Interface Simplification
 
-**Stage:** backlog · **Posture:** scope locked on 18 October 2026, completed by the 19 October review and extended on 20 October, with the lab's picks taken late that day; the seasons and campaigns placement awaits a pick; implementation waits for a separate go
+**Stage:** backlog · **Posture:** scope locked on 18 October 2026, completed by the 19 October review and extended on 20 October, with the lab's picks taken late that day and the design rounds closed on 21 October; implementation waits for a separate go
 
 **Linear:** [RESR-93](https://linear.app/greenpill-dev-guild/issue/RESR-93) in
 [Green Goods 2.1.0](https://linear.app/greenpill-dev-guild/project/green-goods-v210-qa-and-release-9bcaf982d5e5).
@@ -89,8 +89,9 @@ waits, with pending rows opening the work as today and deeper management staying
 them the Highlights carousel back, the compact promise card, Log Work on Its Own, Needs Your
 Attention and no Work-for pin), asked for three tweaks (decisions 29 to 31) and called the design
 good enough to implement, with polish to follow. The placement of seasons and campaigns, which
-the garden-scoped Home would otherwise lose with the old Pool tab, is proposed as decision 32 and
-awaits a pick; the lab draws it.
+the garden-scoped Home would otherwise lose with the old Pool tab, was decided on 21 October as the
+Pool tab's rail moved into the Promises sheet (decision 32), and the maintainer locked the plan and
+scope.
 
 ## Scope and boundaries
 

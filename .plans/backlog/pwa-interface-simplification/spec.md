@@ -431,8 +431,8 @@ Insights banner; the picks below closed them.
 31. **The step progressor uses its width.** The four steps spread between the back button and a
     16px end gutter with no phantom right spacer; the back button is a flex sibling, so the steps
     can never overlap it.
-32. **Seasons and campaigns** (proposed; the lab draws it under Seasons and campaigns, pick
-    pending). What the code says: a season or a campaign is a commitment-pool cycle (the
+32. **Seasons and campaigns: the rail** (decided 21 October; the lab draws it under Seasons and
+    campaigns). What the code says: a season or a campaign is a commitment-pool cycle (the
     `CommitmentCycle` entity with `cycleType` SEASON or CAMPAIGN); a pool holds one open Season
     and any number of open Campaigns (the one-open-Season guard in `CyclesLib.sol`); stewards
     seed, open and close them in the cockpit; a member placing a promise picks which cycle holds
@@ -441,19 +441,21 @@ Insights banner; the picks below closed them.
     rail (`CycleRail`: glyph, kind in its colour, state, name, dates, kept of made, an ⓘ) that
     filters the list, and the half-sheet `CycleDetailsSheet` (what counts toward it, live now,
     kept so far, Show Its Promises). The garden-scoped Home drops that page for members, so the
-    cycles need a place. Proposal: the rail moves to the top of the Promises sheet unchanged in
+    cycles need a place. Decision: the rail moves to the top of the Promises sheet unchanged in
     anatomy, with the details sheet behind its ⓘ and Show Its Promises filtering the sheet; on
     Home the open cycles lead the Highlights carousel as cards (kind and state as the eyebrow in
     the kind's colour, the name, kept of made and days left), or stand as one line each under
     Take Part when there is no carousel, and each opens the details sheet; the Insights sheet's
     season card is the same cycle and opens the same sheet. The promise rows and the compact card
-    do not carry the cycle; the Promises sheet's filter does. Alternative drawn: capsule chips
-    (All, then each cycle) with a details line for the chosen cycle. Nothing new is written;
+    do not carry the cycle; the Promises sheet's filter does. The alternative drawn, capsule chips
+    (All, then each cycle) with a details line for the chosen cycle, stays in the lab. Nothing new
+    is written;
     seeding stays in the cockpit. Wording: the lab's "season assessment" lines are retired, since
     assessments are garden-level and cockpit-authored; the rows and events say garden assessment.
 
-Still open after this round: the seasons and campaigns placement (decision 32), and the About
-placement review after the first slice.
+Nothing from the review rounds stays open. On 21 October the maintainer took the rail and locked
+the plan and scope; the About placement is reviewed after the first slice renders in the app, and
+implementation waits for its own go.
 
 What this corrects: the 19 October "promises first" step offered open asks as things the step
 could keep, but work links only to a promise the member has taken up (the link-choice hook reads
