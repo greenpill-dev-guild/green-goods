@@ -665,12 +665,15 @@
  * status bar's height above the bottom of the screen: innerHeight, 100dvh and
  * every position: fixed box stop there, and iOS fills the band below with the
  * page background, while 100lvh still measures the whole screen. Nothing the
- * page draws reaches that band, so bottom chrome cannot move into it. The band
- * already covers the home indicator, so the chrome drops the part of the inset
- * the band covers, and its controls keep close to their usual distance from
- * the bottom edge. An installed app has no browser toolbar, so 100lvh and
- * 100dvh agree wherever the bug is absent and nothing changes. The band is
- * capped at the top inset, the most the bug takes. */
+ * page draws reaches that band, so bottom chrome cannot move into it. The
+ * client's standalone html floor (index.css) makes iOS give the page the whole
+ * screen, which removes the band; this rule is the fallback for whenever iOS
+ * keeps it anyway. The band already covers the home indicator, so the chrome
+ * drops the part of the inset the band covers, and its controls keep close to
+ * their usual distance from the bottom edge. Without the band, 100lvh and
+ * 100dvh agree and nothing changes. The band is capped at the top inset, the
+ * most the bug takes, so a solid status bar (top inset 0, where iOS 26 still
+ * reports 100lvh as the whole screen) changes nothing either. */
 @media (display-mode: standalone) {
   :root {
     --safe-area-bottom: max(
