@@ -24,14 +24,17 @@ bun run browser e2e --preset ui
 
 ### Test Structure
 
-| File | Tests | Coverage |
-|------|-------|----------|
-| `client.smoke.spec.ts` | 8 | Auth, gardens, health |
-| `admin.smoke.spec.ts` | 9 | Auth, dashboard, pages |
-| `client.auth.spec.ts` | 11 | Complete auth flows |
-| `client.offline-sync.spec.ts` | 13 | Offline functionality |
-| `client.work-approval.spec.ts` | 9 | Steward flows |
-| `client.work-submission.spec.ts` | 11 | Work submission |
+| File | Coverage |
+|------|----------|
+| `client.smoke.spec.ts` | Deterministic mock-auth content and disconnected-session behavior with legacy wallet storage |
+| `admin.smoke.spec.ts` | Cockpit mock-auth smoke |
+| `client.session-navigation.ci.spec.ts` | Mock-auth reload/logout, mobile navigation, garden return and browser history |
+| `client.offline-work-submission.ci.spec.ts` | Offline submission and recovery |
+| `client.work-approval.ci.spec.ts` | Work approval CI journey |
+| `client.work-submission.ci.spec.ts` | Required work details validation |
+
+Runner counts depend on the selected project. The retired always-skipped manual
+work/offline specs supplied no active proof; use the maintained CI journeys.
 
 ## Passkey Testing (Android/Chromium)
 
@@ -50,19 +53,14 @@ Uses Chrome DevTools Protocol (CDP) with key settings:
 }
 ```
 
-### Registration Flow
+### Qualified ceremonies
 
-1. Click "Sign Up" → username input appears
-2. Enter username → click "Create Account"
-3. WebAuthn registration → virtual authenticator auto-approves
-4. Garden join transaction → requires second passkey approval
-5. Navigate to `/home` (total: ~45 seconds)
-
-### Login Flow
-
-1. Click "Login" button (or auto if stored username)
-2. WebAuthn authentication → virtual authenticator auto-approves
-3. Navigate to `/home` (total: ~30 seconds)
+The passkey preset owns virtual authenticators in `client.passkey.spec.ts` and
+`client.reporting-account.passkey.spec.ts`. It exercises strict rejection/reload
+and reporting account recovery against local substitutes. It does not prove a
+successful chain transaction, real-device biometrics or the hosted provider.
+See [the runner contract](README.md#projects-and-focused-runs) for current cases
+and evidence limits.
 
 ## Troubleshooting
 
@@ -83,7 +81,7 @@ npx pm2 delete all
 
 - Ensure `automaticPresenceSimulation: true` is set
 - Check console logs for authenticator creation
-- Increase timeout if garden join is slow
+- Keep the qualified preset’s fixed time budget; inspect its failed step and fixture requests
 
 ### "No tests found" Error
 

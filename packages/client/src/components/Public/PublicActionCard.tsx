@@ -44,7 +44,12 @@ export function PublicActionCard({ action, onOpen }: PublicActionCardProps) {
     <button
       type="button"
       data-pressable="card"
-      onClick={() => onOpen(action)}
+      onClick={(event) => {
+        // Safari leaves a pressed button unfocused, and the dialog returns focus to the opener
+        // that holds it.
+        event.currentTarget.focus({ preventScroll: true });
+        onOpen(action);
+      }}
       className="group flex h-full cursor-pointer flex-col gap-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
     >
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-editorial-warm">

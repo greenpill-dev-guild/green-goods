@@ -378,7 +378,7 @@ function CookiesCampaignSurface() {
                 {
                   id: "public.cookies.unresolvedNote",
                   defaultMessage:
-                    "Reading {count, plural, one {# jar} other {# jars}} on chain. Balances may update as data resolves.",
+                    "Details for {count, plural, one {# jar} other {# jars}} are still loading or unavailable, so balances may change.",
                 },
                 { count: unresolvedCount }
               )}
@@ -413,7 +413,7 @@ export default function CampaignJarSurface() {
         lede={formatMessage({
           id: "public.cookies.description",
           defaultMessage:
-            "Campaign jars hold funds for seasonal work, event rewards, and Garden cohort budgets. Connect a wallet to claim from jars on your allowlist, or add funds to keep the jar full.",
+            "Campaign jars hold funds for seasonal work, event rewards, and garden cohort budgets. Connect a wallet to claim from jars on your allowlist, or add funds to keep the jar full.",
         })}
       />
 

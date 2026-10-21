@@ -338,7 +338,7 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
   const pathText = isDonate
     ? formatMessage({
         id: "public.fund.card.donatePath",
-        defaultMessage: "Contribution to this Garden’s shared fund",
+        defaultMessage: "Contribution to this garden’s shared fund",
       })
     : formatMessage({
         id: "public.fund.card.endowPath",
@@ -447,7 +447,7 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
                       id: txErrorView.titleKey,
                       defaultMessage:
                         txErrorView.severity === "warning"
-                          ? "Transaction cancelled"
+                          ? "Transaction canceled"
                           : "Transaction failed",
                     }),
                   }
@@ -479,11 +479,11 @@ export function UnavailableBody({ isDonate }: { isDonate: boolean }) {
       {isDonate
         ? formatMessage({
             id: "public.fund.card.unavailable.donate",
-            defaultMessage: "This Garden has no donation fund configured yet.",
+            defaultMessage: "This garden has no donation fund configured yet.",
           })
         : formatMessage({
             id: "public.fund.card.unavailable.endow",
-            defaultMessage: "This Garden has no endowment fund configured yet.",
+            defaultMessage: "This garden has no endowment fund configured yet.",
           })}
     </p>
   );

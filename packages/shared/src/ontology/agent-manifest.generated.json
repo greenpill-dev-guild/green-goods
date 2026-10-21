@@ -37,7 +37,7 @@
           },
           {
             "file": "packages/client/src/views/Public/GardenDetail.tsx",
-            "note": "The client exposes a public Garden surface."
+            "note": "The client exposes a public garden surface."
           }
         ],
         "verified_at": "2026-08-15"
@@ -46,7 +46,7 @@
         {
           "id": "place-rooted-coordination",
           "maturity": "available",
-          "safe_wording": "Communities can organize people and records around a shared Garden.",
+          "safe_wording": "Communities can organize people and records around a shared garden.",
           "verified_at": "2026-08-15"
         }
       ]
@@ -287,7 +287,7 @@
       "id": "vault",
       "kind": "entity",
       "canonical": "Vault",
-      "definition": "The garden's treasury. Funders deposit; the garden's Tokenbound Account holds; yield splits flow to stewards / gardeners / community per configured ratios.",
+      "definition": "A garden's endowment: one ERC-4626 vault per supported asset. Funders deposit and hold the vault's shares, which they can redeem, though a strategy or contract loss can reduce what comes back; the yield is donated onward, by default to the yield resolver, which splits it between the garden's Cookie Jar, Hypercert fraction purchases, and the GOODS treasury per configured ratios.",
       "semantic_status": "canonical",
       "surfaces": ["admin", "client", "public", "docs"],
       "aliases": ["endowment"],
@@ -330,7 +330,7 @@
       "id": "cookie-jar",
       "kind": "entity",
       "canonical": "Cookie Jar",
-      "definition": "A garden-scoped emergency or discretionary fund with rate-limited withdrawals. Allowlisted members can claim within the configured cap.",
+      "definition": "A garden-scoped emergency or discretionary fund with rate-limited withdrawals. A garden's gardeners can claim from its jar within the configured cap, gated by the gardener Hat; a shared campaign jar admits the addresses on its allowlist instead.",
       "semantic_status": "canonical",
       "surfaces": ["admin", "client", "public", "docs"],
       "aliases": ["jar"],
@@ -433,7 +433,7 @@
           },
           {
             "file": "packages/client/src/components/Public/PublicWhoTendsAGarden.tsx",
-            "note": "The public client explains active Garden roles."
+            "note": "The public client explains active garden roles."
           }
         ],
         "verified_at": "2026-08-15"
@@ -442,7 +442,7 @@
         {
           "id": "place-rooted-coordination",
           "maturity": "available",
-          "safe_wording": "Communities can organize people and records around a shared Garden.",
+          "safe_wording": "Communities can organize people and records around a shared garden.",
           "verified_at": "2026-08-15"
         }
       ]
@@ -452,31 +452,35 @@
       "id": "season",
       "kind": "entity",
       "canonical": "Season",
-      "definition": "A bounded period (typically a quarter) during which a garden runs a coordinated set of Actions and Assessments. Pacing primitive — never a countdown.",
+      "definition": "A garden's main rhythm: a Season-type commitment cycle of the garden's pool, with a name, start and end dates, and the promises scoped to it. It stays a season at every stage, from planned to archived. A pool has at most one open Season at a time, and Campaigns may run beside it. It paces work and is never a countdown.",
       "semantic_status": "canonical",
       "surfaces": ["admin", "client", "agent", "public", "docs"],
       "aliases": ["garden season"],
       "relationships": [
         {
           "to": "commitment-cycle",
-          "kind": "formalized-by",
-          "note": "implemented in Commitment Pooling; not yet integrated into the product surface"
+          "kind": "represented-by",
+          "note": "a Season-type cycle of the garden's pool, in any state; a Campaign-type cycle is not a season"
         }
       ],
       "maturity": {
         "ref": "entity:season",
-        "implementation": "partial",
-        "deployment": "not-applicable",
-        "activation": "not-applicable",
-        "integration": "partial",
-        "availability": "planned",
+        "implementation": "implemented",
+        "deployment": "deployed",
+        "activation": "active",
+        "integration": "integrated",
+        "availability": "available",
         "evidence": [
           {
-            "file": ".plans/active/commitment-pooling/contract-spec.md",
-            "note": "Commitment Cycle type Season is implemented onchain, but the product season surface is not available."
+            "file": "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol",
+            "note": "A season is a pool's Season-type cycle (CycleType.Season); the deployed module keeps at most one open per pool through openSeasonCycleId. In the release 2.0 steward console, pool setup starts a season, and End Season and Archive Season close it."
+          },
+          {
+            "file": "packages/client/src/views/Public/GardenDetail.tsx",
+            "note": "The public garden page shows the open season with its name, its end date (\"Runs through\"), and per-unit progress, and lists finished seasons with their start and end dates; the client's Promises tab lists seasons and campaigns. On 2026-10-19 the production indexer returned three open season cycles on Arbitrum, each recorded as its pool's open season."
           }
         ],
-        "verified_at": "2026-08-15"
+        "verified_at": "2026-10-19"
       },
       "safe_claims": []
     },
@@ -559,10 +563,10 @@
           },
           {
             "file": "packages/indexer/schema.graphql",
-            "note": "The hosted Envio deployment that serves the pooling QA environment (hyperindex 95c2129) exposes CommitmentPool, Commitment, CommitmentPayoutPlan, Disbursement, SettlementAccount, and SettlementConfiguration; it returned the 18 registered Arbitrum pools on 2026-09-03. The environment selects the deployment through its indexer URL setting."
+            "note": "The production client and admin apps (release v2.0.1) read the hosted indexer at hyperindex 0bf0e0f, which returned the same data as the release deployment de3e5df on 2026-10-18: 18 registered Arbitrum pools, three of them with an open season. The environment selects the deployment through its indexer URL setting."
           }
         ],
-        "verified_at": "2026-09-03",
+        "verified_at": "2026-10-18",
         "chains": {
           "42161": {
             "deployment": "deployed",
@@ -572,14 +576,14 @@
             "evidence": [
               {
                 "file": "packages/contracts/deployments/42161-latest.json",
-                "note": "Arbitrum pooling and settlement modules are deployed; commitmentPoolingModulePaused is false and the settlement module read paused() = false on 2026-09-03."
+                "note": "Arbitrum pooling and settlement modules are deployed; commitmentPoolingModule.paused() and settlementModule.paused() both read false at block 516188475 on 2026-10-18."
               },
               {
                 "file": "packages/indexer/schema.graphql",
-                "note": "The hosted pooling indexer deployment (hyperindex 95c2129) returns Arbitrum commitment pools, settlement accounts, and settlement configuration, so shared reads and mutations are integrated on this chain; the indexer URL comes from the environment, never from runtime code."
+                "note": "The production indexer (hyperindex 0bf0e0f, serving the same data as release deployment de3e5df) returns Arbitrum pools, promises, cycles, and settlement records, so shared reads and mutations are integrated on this chain; the indexer URL comes from the environment, never from runtime code."
               }
             ],
-            "verified_at": "2026-09-03"
+            "verified_at": "2026-10-18"
           },
           "11155111": {
             "deployment": "not-deployed",
@@ -592,16 +596,16 @@
                 "note": "Sepolia has no commitment-pooling contract deployment, so shared reads and mutations remain unavailable on this chain."
               }
             ],
-            "verified_at": "2026-08-16"
+            "verified_at": "2026-10-18"
           }
         }
       },
       "safe_claims": [
         {
           "id": "commitment-pooling",
-          "maturity": "deployed-not-available",
-          "safe_wording": "The coordination protocol is deployed, but it is not yet an available Green Goods product flow.",
-          "verified_at": "2026-09-03"
+          "maturity": "available",
+          "safe_wording": "Gardens can run a commitment pool in Green Goods 2.0: members make, take up, and confirm promises. G$ rewards and contributor payouts are not switched on yet.",
+          "verified_at": "2026-10-18"
         }
       ]
     },
@@ -625,15 +629,19 @@
         "implementation": "implemented",
         "deployment": "deployed",
         "activation": "active",
-        "integration": "not-integrated",
-        "availability": "deployed-not-available",
+        "integration": "integrated",
+        "availability": "available",
         "evidence": [
           {
             "file": "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol",
-            "note": "Cycle struct and lifecycle interface are implemented in the deployed pooling boundary."
+            "note": "Cycle struct and lifecycle interface are implemented in the deployed pooling boundary. In the release 2.0 steward console, pool setup opens a season, and End Season and Archive Season close it."
+          },
+          {
+            "file": "packages/client/src/views/Public/GardenDetail.tsx",
+            "note": "The public garden page shows a pool's open season with per-unit progress. On 2026-10-18 the production indexer returned three open season cycles on Arbitrum, and the production page for one of their gardens showed its season."
           }
         ],
-        "verified_at": "2026-08-15"
+        "verified_at": "2026-10-18"
       },
       "safe_claims": []
     },
@@ -662,15 +670,19 @@
         "implementation": "implemented",
         "deployment": "deployed",
         "activation": "active",
-        "integration": "not-integrated",
+        "integration": "partial",
         "availability": "deployed-not-available",
         "evidence": [
           {
             "file": "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol",
             "note": "Series struct and lifecycle interface are implemented in the deployed pooling boundary."
+          },
+          {
+            "file": "packages/shared/src/modules/job-queue/commitment-call-builder.ts",
+            "note": "The job queue can send createCommitmentSeries, but no client or admin screen offers it in release 2.0. The client only reads a viewer's existing series, and the production indexer held none on 2026-10-18."
           }
         ],
-        "verified_at": "2026-08-15"
+        "verified_at": "2026-10-18"
       },
       "safe_claims": []
     },
@@ -730,15 +742,19 @@
         "implementation": "implemented",
         "deployment": "deployed",
         "activation": "active",
-        "integration": "not-integrated",
-        "availability": "deployed-not-available",
+        "integration": "integrated",
+        "availability": "available",
         "evidence": [
           {
             "file": "packages/indexer/src/handlers/commitment-pool-unit-summary.ts",
             "note": "The live indexer handler maintains exact-label commitment unit summaries for pools and cycles."
+          },
+          {
+            "file": "packages/client/src/views/Public/GardenDetail.tsx",
+            "note": "The public garden page lists these per-unit totals for a pool and its open season; the production page showed them on 2026-10-18."
           }
         ],
-        "verified_at": "2026-08-16"
+        "verified_at": "2026-10-18"
       },
       "safe_claims": []
     },
@@ -786,7 +802,7 @@
       "definition": "A module-native promise record (offer or request) with one accountable lead, an optional contributor roster, repeatable action requirements, direction-aware confirmation, unit accounting in a non-transferable register, and evidence/work linkage — deliberately not an EAS attestation.",
       "semantic_status": "canonical",
       "surfaces": ["admin", "client", "community", "docs"],
-      "aliases": ["offer", "request"],
+      "aliases": ["promise", "offer", "request"],
       "relationships": [
         {
           "to": "commitment-pool",
@@ -820,22 +836,30 @@
         "implementation": "implemented",
         "deployment": "deployed",
         "activation": "active",
-        "integration": "not-integrated",
-        "availability": "deployed-not-available",
+        "integration": "integrated",
+        "availability": "available",
         "evidence": [
           {
-            "file": ".plans/active/commitment-pooling/status.json",
-            "note": "Onchain coordination is active; product integration and user surfaces remain blocked."
+            "file": "packages/shared/src/modules/job-queue/commitment-call-builder.ts",
+            "note": "Release 2.0 (production v2.0.1) sends promise acts through the job queue: create, take up, attach evidence, and link work. The client app offers them on a garden's Promises tab, and the steward console seeds and confirms promises. Only settlement stays off in the app."
+          },
+          {
+            "file": "packages/client/src/views/Public/GardenDetail.tsx",
+            "note": "On 2026-10-18 the production public page for a garden with an open pool listed its promises and said neighbors can offer and take them up now."
+          },
+          {
+            "file": "packages/indexer/schema.graphql",
+            "note": "The production indexer returned 42 Arbitrum promises on 2026-10-18; the latest pooling event was a claim request on 2026-10-17, after the release."
           }
         ],
-        "verified_at": "2026-08-15"
+        "verified_at": "2026-10-18"
       },
       "safe_claims": [
         {
           "id": "commitment-pooling",
-          "maturity": "deployed-not-available",
-          "safe_wording": "The coordination protocol is deployed, but it is not yet an available Green Goods product flow.",
-          "verified_at": "2026-09-03"
+          "maturity": "available",
+          "safe_wording": "Gardens can run a commitment pool in Green Goods 2.0: members make, take up, and confirm promises. G$ rewards and contributor payouts are not switched on yet.",
+          "verified_at": "2026-10-18"
         },
         {
           "id": "community-needs",
@@ -873,15 +897,19 @@
         "implementation": "implemented",
         "deployment": "deployed",
         "activation": "active",
-        "integration": "not-integrated",
+        "integration": "partial",
         "availability": "deployed-not-available",
         "evidence": [
           {
             "file": "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol",
             "note": "Contributor roster and credit fields are implemented in the deployed pooling boundary."
+          },
+          {
+            "file": "packages/indexer/schema.graphql",
+            "note": "The production indexer held nine contributor records on 2026-10-18, and the app reads rosters for membership and fallback confirmation. No client or admin screen adds or removes a contributor, and contributor payouts are deferred past release 2.0."
           }
         ],
-        "verified_at": "2026-08-15"
+        "verified_at": "2026-10-18"
       },
       "safe_claims": []
     },
@@ -912,16 +940,20 @@
         "ref": "entity:commitment-payout-plan",
         "implementation": "implemented",
         "deployment": "deployed",
-        "activation": "inactive",
+        "activation": "active",
         "integration": "partial",
         "availability": "deployed-not-available",
         "evidence": [
           {
-            "file": ".plans/active/commitment-pooling/status.json",
-            "note": "Settlement contracts are deployed but paused; value authority and product activation remain disabled."
+            "file": "packages/contracts/deployments/42161-latest.json",
+            "note": "The Arbitrum artifact records the deployed settlement module; its paused() read false at block 516188475 on 2026-10-18, so the contracts are active."
+          },
+          {
+            "file": "packages/indexer/schema.graphql",
+            "note": "Release 2.0 keeps settlement writes, contributor payouts, and new G$ reward promises off in the app (SETTLEMENT_ENABLED is false in packages/shared/src/config/app.ts); existing settlement records stay readable. The production indexer held no payout plans on 2026-10-18."
           }
         ],
-        "verified_at": "2026-08-15"
+        "verified_at": "2026-10-18"
       },
       "safe_claims": []
     },
@@ -970,7 +1002,7 @@
       "id": "evaluator",
       "kind": "persona",
       "canonical": "Evaluator",
-      "definition": "A person who authors or strengthens Assessments and attests impact methodology or outcomes. Evaluators do not approve or reject submitted Work; that authority belongs to Stewards.",
+      "definition": "A person who authors or strengthens Assessments and attests impact methodology or outcomes. Evaluators do not approve or reject submitted Work; that authority belongs to stewards.",
       "semantic_status": "canonical",
       "surfaces": ["admin", "client", "public", "docs"],
       "aliases": ["impact assessor"],
@@ -990,7 +1022,7 @@
       "id": "funder",
       "kind": "persona",
       "canonical": "Funder",
-      "definition": "A person or org who deposits into a garden's Vault, holds Hypercert fractions, receives yield distributions per configured splits.",
+      "definition": "A person or organization who funds a garden's work, from an individual or diaspora supporter to a grantmaker, institution, or crypto ecosystem fund. A funder donates to the garden's cookie jar, endows its vault, or backs the garden through a grant or partnership. A donation is a gift with nothing to withdraw. An endowment is a vault deposit the funder can redeem, less any strategy or contract loss; its yield is donated onward through the garden's configured splits, never paid to the funder. Giving needs no role; a steward or owner may grant the funder Hat, which makes its holder a garden member.",
       "semantic_status": "canonical",
       "surfaces": ["admin", "client", "public", "docs"],
       "aliases": ["supporter"],
@@ -1003,7 +1035,7 @@
       "id": "community-member",
       "kind": "persona",
       "canonical": "Community Member",
-      "definition": "A local resident affected by a Garden's Work. Signals or attests that Work exists and is healthy, and helps prioritize future Actions through public signal and conviction flows.",
+      "definition": "A local resident affected by a garden's Work. Signals or attests that Work exists and is healthy, and helps prioritize future Actions through public signal and conviction flows.",
       "semantic_status": "canonical",
       "surfaces": ["client", "public", "docs"],
       "aliases": ["resident"],

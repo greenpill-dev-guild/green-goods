@@ -20,6 +20,18 @@ const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
 const CREATOR = "0x1111111111111111111111111111111111111111" as const;
 const TAKER = "0x2222222222222222222222222222222222222222" as const;
 
+// Existing settlement cases explicitly exercise the future enabled lane.
+const releaseScope = vi.hoisted(() => ({ settlementEnabled: true }));
+vi.mock("@green-goods/shared/config/app", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/config/app")>()),
+  get SETTLEMENT_ENABLED() {
+    return releaseScope.settlementEnabled;
+  },
+}));
+beforeEach(() => {
+  releaseScope.settlementEnabled = true;
+});
+
 const mocks = vi.hoisted(() => ({
   controller: null as CommitmentDialogController | null,
   navigate: vi.fn(),
@@ -343,10 +355,10 @@ describe("CommitmentDialogPanel (W10)", () => {
     );
     await waitFor(() => expect(acts.markReady).toHaveBeenCalledWith("because"));
 
-    fireEvent.click(screen.getByRole("button", { name: /cancel commitment/i }));
+    fireEvent.click(screen.getByRole("button", { name: /cancel promise/i }));
     fireEvent.click(
-      within(screen.getByRole("dialog", { name: /cancel this commitment/i })).getByRole("button", {
-        name: /^cancel commitment$/i,
+      within(screen.getByRole("dialog", { name: /cancel this promise/i })).getByRole("button", {
+        name: /^cancel promise$/i,
       })
     );
     await waitFor(() => expect(acts.cancel).toHaveBeenCalledWith("because"));
@@ -457,7 +469,7 @@ describe("CommitmentDialogPanel (W10)", () => {
     fireEvent.click(screen.getByRole("button", { name: /^resolve/i }));
     const dialog = screen.getByRole("dialog", { name: /resolve the dispute/i });
     expect(within(dialog).queryByRole("radio", { name: /^kept/i })).not.toBeInTheDocument();
-    fireEvent.click(within(dialog).getByRole("radio", { name: /cancelled/i }));
+    fireEvent.click(within(dialog).getByRole("radio", { name: /canceled/i }));
     fireEvent.click(within(dialog).getByRole("button", { name: /^resolve$/i }));
     const acts = mocks.controller!.acts;
     await waitFor(() => expect(acts.resolveDispute).toHaveBeenCalledWith("CANCELLED", "because"));
@@ -497,7 +509,7 @@ describe("CommitmentDialogPanel (W10)", () => {
     fireEvent.click(screen.getByRole("button", { name: /^confirm kept…$/i }));
     const acts = mocks.controller!.acts;
     expect(acts.confirmOrdinary).not.toHaveBeenCalled();
-    const review = screen.getByRole("dialog", { name: /confirm this commitment kept/i });
+    const review = screen.getByRole("dialog", { name: /confirm this promise kept/i });
     expect(review).toHaveTextContent(/“Repair tool handles” in .+’s pool/);
     expect(review).toHaveTextContent(/kept by/i);
     expect(review).toHaveTextContent(
@@ -855,7 +867,7 @@ describe("CommitmentDialogPanel (W10)", () => {
       },
     });
     renderPanel();
-    expect(screen.getByText(/green goods team — fallback/i)).toBeInTheDocument();
+    expect(screen.getByText(/green goods team \(fallback\)/i)).toBeInTheDocument();
     expect(screen.getByText(/no eligible local confirmer/i)).toBeInTheDocument();
   });
 

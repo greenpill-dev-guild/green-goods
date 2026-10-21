@@ -204,11 +204,11 @@ describe("HubConfirmQueue (W13)", () => {
     fireEvent.click(within(item).getByRole("button", { name: /^confirm kept…$/i }));
     const acts = mocks.queue!.acts;
     expect(acts.confirm).not.toHaveBeenCalled();
-    const review = screen.getByRole("dialog", { name: /confirm this commitment kept/i });
+    const review = screen.getByRole("dialog", { name: /confirm this promise kept/i });
     expect(review).toHaveTextContent(/“Prune the north beds” in Rocinha’s pool/);
     expect(review).toHaveTextContent(/kept by/i);
     // One of two already landed, so this one closes it for everyone.
-    expect(review).toHaveTextContent(/closes the commitment as kept, for everyone/i);
+    expect(review).toHaveTextContent(/closes the promise as kept, for everyone/i);
 
     fireEvent.click(within(review).getByRole("button", { name: /^confirm kept$/i }));
     await waitFor(() =>
@@ -216,7 +216,7 @@ describe("HubConfirmQueue (W13)", () => {
     );
     await waitFor(() =>
       expect(
-        screen.queryByRole("dialog", { name: /confirm this commitment kept/i })
+        screen.queryByRole("dialog", { name: /confirm this promise kept/i })
       ).not.toBeInTheDocument()
     );
   });
@@ -229,14 +229,14 @@ describe("HubConfirmQueue (W13)", () => {
     fireEvent.click(
       within(screen.getByTestId("hub-confirm-9")).getByRole("button", { name: /^confirm kept…$/i })
     );
-    const review = screen.getByRole("dialog", { name: /confirm this commitment kept/i });
+    const review = screen.getByRole("dialog", { name: /confirm this promise kept/i });
     expect(review).toHaveTextContent(
       /confirmation 1 of the 3 needed, and it cannot be taken back/i
     );
     fireEvent.click(within(review).getByRole("button", { name: /^not now$/i }));
     await waitFor(() =>
       expect(
-        screen.queryByRole("dialog", { name: /confirm this commitment kept/i })
+        screen.queryByRole("dialog", { name: /confirm this promise kept/i })
       ).not.toBeInTheDocument()
     );
     expect(mocks.queue!.acts.confirm).not.toHaveBeenCalled();
@@ -345,7 +345,7 @@ describe("HubConfirmQueue (W13)", () => {
     );
     expect(onOpen).toHaveBeenCalledWith("9");
     expect(
-      screen.queryByRole("dialog", { name: /confirm this commitment kept/i })
+      screen.queryByRole("dialog", { name: /confirm this promise kept/i })
     ).not.toBeInTheDocument();
     expect(mocks.queue!.acts.confirm).not.toHaveBeenCalled();
   });

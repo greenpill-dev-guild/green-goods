@@ -48,6 +48,18 @@ type TrayModule = typeof import("@green-goods/shared/hooks/admin-ui/pool/useSeed
 /** What the dialog's builder made of one copy. */
 type BuiltCopy = ReturnType<Parameters<TrayModule["useSeedTray"]>[0]["buildCopy"]>;
 
+// Existing settlement cases explicitly exercise the future enabled lane.
+const releaseScope = vi.hoisted(() => ({ settlementEnabled: true }));
+vi.mock("@green-goods/shared/config/app", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/config/app")>()),
+  get SETTLEMENT_ENABLED() {
+    return releaseScope.settlementEnabled;
+  },
+}));
+beforeEach(() => {
+  releaseScope.settlementEnabled = true;
+});
+
 const mocks = vi.hoisted(() => ({
   protocolRegistered: true,
   settlementActive: false,
@@ -467,7 +479,7 @@ describe("SeedCommitmentDialog", () => {
     // Every step names the pool the promises land in.
     expect(within(dialog()).getAllByText("Rocinha’s pool").length).toBeGreaterThan(0);
     const select = within(dialog()).getByLabelText(
-      /what does this commitment tie to/i
+      /what does this promise tie to/i
     ) as HTMLSelectElement;
     const labels = Array.from(select.options).map((option) => option.textContent);
     expect(labels).toEqual([
@@ -480,7 +492,7 @@ describe("SeedCommitmentDialog", () => {
 
   it("asks for context before the two work types, keeping a campaign separate from support", async () => {
     renderSeed();
-    const context = within(dialog()).getByLabelText(/what does this commitment tie to/i);
+    const context = within(dialog()).getByLabelText(/what does this promise tie to/i);
     const work = within(dialog()).getByRole("radiogroup", { name: /what type of work/i });
     expect(within(work).getAllByRole("radio")).toHaveLength(2);
     expect(context.compareDocumentPosition(work) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -511,6 +523,28 @@ describe("SeedCommitmentDialog", () => {
     expect(mocks.built[0]).toMatchObject({ cycleId: 12n, commitmentType: 1, targetUnits: 16n });
   });
 
+  it("opens an old rewarded seed link as an unpriced promise when settlement is deferred", async () => {
+    releaseScope.settlementEnabled = false;
+    mocks.again = {
+      kind: "SERVICE",
+      title: "Market rides",
+      unitLabel: "rides",
+      targetUnits: 16,
+      considerationRail: "CELO_SETTLEMENT",
+      considerationAmount: "1000000000000000000",
+      considerationUsd: "2",
+    };
+    renderSeed({ fromCommitmentId: 9n });
+    await toProof();
+    expect(within(dialog()).queryByTestId("seed-reward")).not.toBeInTheDocument();
+    next();
+    await waitFor(() => expect(screen.getByTestId("seed-review")).toBeInTheDocument());
+    create();
+    await waitFor(() => expect(mocks.built).toHaveLength(1));
+    expect(mocks.built[0]?.consideration).toMatchObject({ rail: 0, amount: 0n });
+    expect(mocks.again.considerationRail).toBe("CELO_SETTLEMENT");
+  });
+
   it("opens on the earlier promise's answers, the steward's extras included, in this pool's season", async () => {
     mocks.again = {
       direction: "REQUEST",
@@ -528,8 +562,7 @@ describe("SeedCommitmentDialog", () => {
     );
     // The season is this pool's own, never the earlier promise's.
     expect(
-      (within(dialog()).getByLabelText(/what does this commitment tie to/i) as HTMLSelectElement)
-        .value
+      (within(dialog()).getByLabelText(/what does this promise tie to/i) as HTMLSelectElement).value
     ).toBe("12");
   });
 
@@ -792,7 +825,7 @@ describe("SeedCommitmentDialog", () => {
     mocks.console = { ...consoleFor(), model: { ...consoleFor().model, season: null } };
     const { settleQueries } = renderMounted();
     const cycleSelect = () =>
-      within(dialog()).getByLabelText(/what does this commitment tie to/i) as HTMLSelectElement;
+      within(dialog()).getByLabelText(/what does this promise tie to/i) as HTMLSelectElement;
     // Cold load: no season yet, and no protocol pool, so the one-time defaults
     // are cycle-less with the fallback off.
     expect(cycleSelect().value).toBe("0");
@@ -812,12 +845,22 @@ describe("SeedCommitmentDialog", () => {
     mocks.console = { ...consoleFor(), model: { ...consoleFor().model, season: null } };
     const { settleQueries } = renderMounted();
     const cycleSelect = () =>
-      within(dialog()).getByLabelText(/what does this commitment tie to/i) as HTMLSelectElement;
+      within(dialog()).getByLabelText(/what does this promise tie to/i) as HTMLSelectElement;
     fireEvent.change(cycleSelect(), { target: { value: "13" } });
 
     mocks.console = consoleFor();
     settleQueries();
 
     expect(cycleSelect().value).toBe("13");
+  });
+});
+
+describe("app-only release promises", () => {
+  it("keeps the seed flow usable without offering a G$ reward", async () => {
+    releaseScope.settlementEnabled = false;
+    renderSeed();
+    await toProof();
+    expect(within(dialog()).queryByTestId("seed-reward")).not.toBeInTheDocument();
+    expect(within(dialog()).queryByRole("radio", { name: /^yes/i })).not.toBeInTheDocument();
   });
 });

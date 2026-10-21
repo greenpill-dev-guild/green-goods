@@ -3,8 +3,8 @@ import type { PublicGardenSummary } from "@green-goods/shared/hooks/public/usePu
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { ImageWithFallback } from "@/components/Display/Image/ImageWithFallback";
-import { EditorialKicker, EditorialMetaRow } from "./atoms";
 import { GardenCoverFallback } from "./GardenCoverFallback";
+import { PublicGardenMeta } from "./PublicGardenMeta";
 import { getPublicGardenDescription } from "@/content/publicGardenNarrative";
 
 export interface PublicGardenCardProps {
@@ -26,46 +26,9 @@ export function PublicGardenCard({
   variant = "default",
   onImageError,
 }: PublicGardenCardProps) {
-  const { formatMessage, formatDate } = useIntl();
+  const { formatMessage } = useIntl();
   const isLead = variant === "lead";
   const description = getPublicGardenDescription(garden, formatMessage);
-
-  const metaItems: { label: string }[] = [];
-  if (garden.location) metaItems.push({ label: garden.location });
-  metaItems.push({
-    label: formatMessage(
-      {
-        id: "public.gardens.gardeners",
-        defaultMessage: "{count, plural, one {# member} other {# members}}",
-      },
-      { count: garden.gardenerCount }
-    ),
-  });
-
-  if (garden.lastActivityAt > 0) {
-    metaItems.push({
-      label: formatMessage(
-        { id: "public.gardens.latestWork" },
-        {
-          date: formatDate(garden.lastActivityAt * 1000, {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-          }),
-        }
-      ),
-    });
-  }
-  metaItems.push({
-    label: formatMessage(
-      {
-        id: "public.gardens.works",
-        defaultMessage:
-          "{count, plural, one {# approved submission} other {# approved submissions}}",
-      },
-      { count: garden.actionCount }
-    ),
-  });
 
   return (
     <Link
@@ -92,10 +55,6 @@ export function PublicGardenCard({
         />
       </div>
 
-      {garden.location ? (
-        <EditorialKicker className="-mb-1">{garden.location}</EditorialKicker>
-      ) : null}
-
       <h3
         className={cn(
           "font-serif font-normal leading-[1.1] tracking-[-0.012em] text-text-strong-950 transition-[color,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] group-hover:text-primary-action motion-safe:group-hover:-translate-y-px",
@@ -108,17 +67,14 @@ export function PublicGardenCard({
 
       {description ? (
         <p
-          className={cn(
-            "text-sm font-medium leading-[1.55] text-text-sub-600",
-            isLead ? "line-clamp-3" : "line-clamp-2"
-          )}
+          className="line-clamp-3 text-sm font-medium leading-[1.55] text-text-sub-600"
           title={description}
         >
           {description}
         </p>
       ) : null}
 
-      <EditorialMetaRow className="mt-auto text-text-sub-600" items={metaItems} />
+      <PublicGardenMeta garden={garden} className="mt-auto" />
     </Link>
   );
 }

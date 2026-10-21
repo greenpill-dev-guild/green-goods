@@ -1,0 +1,359 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "builder-docs-rebuild",
+    "title": "Builder Docs Rebuild",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "blocked",
+    "priority": "p2",
+    "created_at": "2026-09-02T16:54:52.541Z",
+    "updated_at": "2026-10-12T05:26:00.000Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md",
+    "blueprint": "artifacts/builder-docs-blueprint-rev3.html"
+  },
+  "linear": {
+    "parentIssue": "PRD-862",
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": null,
+    "lanes": {},
+    "laneSyncMode": "parent_only",
+    "stateSyncMode": "preserve_existing"
+  },
+  "taxonomy": {
+    "initiative": "engineering-quality",
+    "tracks": ["docs"],
+    "work_types": ["implementation"],
+    "surfaces": ["docs", "scripts/docs", ".claude/skills"],
+    "depends_on_features": []
+  },
+  "notes": [
+    "Docs rebuild executes as five phases (plan.todo.md) on one branch, feature/builder-docs-rebuild, shipped as PR #795; Afo amended the one-PR-per-phase plan on 2026-09-02, and develop was merged in on 2026-09-22.",
+    "Lane mapping: state_api = docs generators and scripts (scripts/docs/*); ui = docs-site surface (pages, components, CSS, sidebars). Phase progress is tracked in plan.todo.md, not as custom lanes.",
+    "Blueprint (decisions D1-D12) lives in spec.md; the full research artifact link is in brief.md.",
+    "QA pages under docs/docs/builders/quality are owned by the qa-report stream; this effort only re-parents and cross-links them.",
+    ".plans/ is the durable repo truth; status.json is authoritative for lane state."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "blocked",
+      "branch": "feature/builder-docs-rebuild",
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "Docs-site surface (MDX pages, components, CSS, sidebar, redirects): no unit-testable behavior seam; proof is docs:audit:ci, check:docs-generated, build:docs, and the eval.md outcome gates."
+      },
+      "skill_tags": ["docs", "ui", "humanize-writing"],
+      "manual_blocked": true
+    },
+    "state_api": {
+      "owner": "claude",
+      "status": "blocked",
+      "branch": "feature/builder-docs-rebuild",
+      "depends_on": [],
+      "handoff": "handoffs/claude-state-api.md",
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "node --test scripts/docs/generate.test.mjs",
+          "evidence": "2026-09-02 pre-implementation: suite fails at load (renderSkills unexported; skills + integration-data projections absent) — 1 file-level failure covering the 4 new behavior tests"
+        },
+        "green": {
+          "command": "node --test scripts/docs/generate.test.mjs",
+          "evidence": "2026-09-02 at ade03f693: 19 tests, 19 pass, 0 fail (Node 22.22.1)"
+        },
+        "note": ""
+      },
+      "skill_tags": ["docs", "generators", "node"],
+      "manual_blocked": true
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No contract work in a docs rebuild."
+      },
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["ui", "state_api"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review", "docs"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-09-02T16:54:52.601Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in active"
+    },
+    {
+      "timestamp": "2026-09-02T17:05:00.000Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "reshaped",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "Blueprint D1-D12 locked with Afo; five-phase execution recorded in plan.todo.md; ui + state_api lanes started for Phase 1 (generators & mechanics)."
+    },
+    {
+      "timestamp": "2026-09-02T17:00:53.586Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-09-02T17:28:29.511Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-09-02T17:28:32.209Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "Phase 1 generator work landed in 26e2f6cf3: layered ERD, skills catalog, hybrid integration data projection; phases 2-5 pending"
+    },
+    {
+      "timestamp": "2026-09-02T17:28:36.371Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "Phase 1 site mechanics landed in ade03f693: mermaid pan-zoom, builders accent fallback (incl. /category/*), converted integration pages; phases 2-5 pending"
+    },
+    {
+      "timestamp": "2026-09-23T06:14:04.449Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "Merged origin/develop (cda3494d4) in 5d4da7761; guides moved onto develop's setup profiles and consolidated commands; pushed 552622bc0. Phase 5 sweep and the review backlog remain."
+    },
+    {
+      "timestamp": "2026-09-23T23:22:37.185Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "Resynced with develop (f91c76fb6) and fixed every actionable review item; Phase 5 sweep done through a2d5a207d: flow diagrams and next steps on every hand-written page, llms.txt plus 67 Markdown twins, checkpoint screenshot, redirects verified. Open: D12, the length gate, and a Reference landing (Afo)."
+    },
+    {
+      "timestamp": "2026-10-09T22:30:00.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "Merged origin/develop (55a67ae2b, the 2.0.0 sync) in e53c79bef with 22 conflicts resolved; fixed the last three Codex threads (owner approvals, three next steps, EAS and Tokenbound projections via ontology integrations); every gate green on the merged tree and the docs build at 69 routes. Open: D12, the length gate, a Reference landing, thread replies, and leaving draft (Afo)."
+    },
+    {
+      "timestamp": "2026-10-10T00:30:00.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "QA round 1 (decisions 15 to 20): thirty items from Afo's walk of the local build landed on the branch; chrome, diagrams, generated pages, hand-written pages, design tokens and Storybook captures. Receipt in handoffs/claude-ui.md."
+    },
+    {
+      "timestamp": "2026-10-10T03:30:00.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "QA round 2 (decisions 21 to 27): eleven items from Afo's second walk landed; current product captures, Unlock through GreenWill in the catalog, per-protocol entity matrix, persona-by-surface matrix, retired commands dropped from the generated pages, six ideas on Architecture, the Design page as one system and three dialects. Receipt in handoffs/claude-ui.md."
+    },
+    {
+      "timestamp": "2026-10-10T11:30:00.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "Review-pass fixes (decisions 28 to 31): named contracts on the deployments page, guild framing off the community track, root DesignMD corner rule aligned with DL-029, current community captures, visuals for EAS, Shared and Passkeys. Commits 461515da2 and 500082846; receipt in handoffs/claude-ui.md."
+    },
+    {
+      "timestamp": "2026-10-10T12:45:00.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "Develop merged (5d68e7eaf), pre-push hook refuses --base (409f3e25a), 19 Codex threads addressed and resolved (fd152d851); decisions 32 to 34; pushed head fd152d851. Receipt in handoffs/claude-ui.md."
+    },
+    {
+      "timestamp": "2026-10-11T04:20:00.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "Develop merged again (75ed33894); CI Gate fixed (422606c9d: the generator graph no longer imports a package at load); six Codex threads addressed and resolved (422606c9d, 99a4d0ff9, 807b8ffc2); decisions 35 to 38; pushed head 807b8ffc2. Receipt in handoffs/claude-ui.md."
+    },
+    {
+      "timestamp": "2026-10-11T04:45:00.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "Two Codex threads on c839256b6 fixed in a380cd0e9: copied contract commands carry always-required values, and the API Index is described as the shared route contract's routes. Receipt in handoffs/claude-ui.md."
+    },
+    {
+      "timestamp": "2026-10-11T10:30:00.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "Seven Codex threads over two rounds fixed (01dce161d, 6f631c8dc) and the API Index extended to every public agent route (ea2b5f410, 19 routes, read from the registrations); decisions 39 to 43. Receipt in handoffs/claude-ui.md."
+    },
+    {
+      "timestamp": "2026-10-12T00:45:00.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "Five Codex threads on fee71dd2e fixed in 517e8cb49 (EAS schema registrations, vault custody, Gardens and ENS best-effort, the Contracts page's library rows); decisions 44 to 46. Receipt in handoffs/claude-ui.md."
+    },
+    {
+      "timestamp": "2026-10-12T01:05:00.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "Five Codex threads on 61234a5a4 fixed in fa3811a01 (ENS completeness across two chains, open joining, token against role ownership, no intact-principal promise, QA case DOCS-033); decisions 47 to 49. Receipt in handoffs/claude-ui.md."
+    },
+    {
+      "timestamp": "2026-10-12T01:23:00.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "Four Codex threads on da0163580 handled in c57faf305: three fixed (roles stay with their wearers on transfer, the type gallery loads the app's fonts, the Docs row runs docs-authority), one declined with evidence (the fork-mode indexer reads live Arbitrum); decisions 50 to 52. Receipt in handoffs/claude-ui.md."
+    },
+    {
+      "timestamp": "2026-10-12T03:26:00.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "Afo's final pass: nine of fifteen notes fixed in 65e16b847 and a195e520e (personas page from persona journeys, entity matrix rebuilt, MCP guide's connected services, plus six smaller fixes); three filed as separate tasks; screenshot recapture and a path-table drift check still open. Develop merged in 4610170d2 and Codex's explorer-twin note fixed in 154a382db; decisions 53 to 59. Receipt in handoffs/claude-ui.md."
+    },
+    {
+      "timestamp": "2026-10-12T03:56:00.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "Final pass, second batch: the audit now fails on a missing repository path in a hand-written page (e2548a283), and product screens follow one capture size, with two outdated captures removed (052c8ad82); decisions 60 and 61. Seven captures still lack a faithful source and are listed in the plan. Receipt in handoffs/claude-ui.md."
+    },
+    {
+      "timestamp": "2026-10-12T04:06:00.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "Three Codex threads on 2b9809c9e fixed in f156d771e: the persona journeys name the messaging agent only for what the bot's handlers do, and the Tokenbound and Hats pages say a revoke removes one hat; decisions 62 and 63. Receipt in handoffs/claude-ui.md."
+    },
+    {
+      "timestamp": "2026-10-12T04:33:00.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "Five Codex threads on 4fdcfa0cd fixed in 66f5255a6 (EAS counts testimony and both later schemas, the steward's money row, two package-page corrections, git hooks routed to their tests); decisions 64 to 66. Afo asked for the merge once CI is green and for CodeRabbit's stale review to be dismissed. Receipt in handoffs/claude-ui.md."
+    },
+    {
+      "timestamp": "2026-10-12T05:02:00.000Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "merged",
+      "branch": null,
+      "note": "PR #795 merged into develop at 2026-10-12T04:41:41Z as merge commit 5c37667fe (not a squash), after CI Gate passed on head 2da291351 with all 128 review threads resolved and CodeRabbit's review of 2026-09-03 dismissed. The merged tree differs from that head only in scripts/dev/stack.js, which develop had from PR #1076. The Linear closeout ran after the merge. Correction: the hub said five captures lack a faithful source and its own list has seven; the count is fixed in the plan, the handoff and the 2026-10-12T03:56 entry. Codex opened five more threads on the merged head at 04:51Z; they are unanswered at this record and listed in the plan for a follow-up PR. The ui and state_api lanes move from in_progress to blocked on Afo's review gates (D12, the page-length gate, a Reference landing, the seven captures) and are not certified; the hub's overall status is blocked and it stays in active/ until he closes those gates or asks for the closeout. Receipt in handoffs/claude-ui.md."
+    },
+    {
+      "timestamp": "2026-10-12T05:06:15.091Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "blocked",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "Delivered in PR #795, merged 2026-10-12. Not certified: blocked on Afo's review gates (D12, the page-length gate, a Reference landing, the seven captures). No work is in progress; the lane's branch was removed at the merge."
+    },
+    {
+      "timestamp": "2026-10-12T05:06:17.346Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "blocked",
+      "branch": "feature/builder-docs-rebuild",
+      "note": "Delivered in PR #795, merged 2026-10-12. Not certified: blocked on Afo's review gates with the ui lane. No work is in progress; the lane's branch was removed at the merge."
+    },
+    {
+      "timestamp": "2026-10-12T05:15:00.000Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "linear_state_preservation_enabled",
+      "branch": null,
+      "note": "The mirrored issue's existing state is preserved during manifest updates. With both implementation lanes blocked, the stage-derived manifest set the parent to Todo, behind the In Review the post-merge closeout left. Local lane certification remains independent; this records no external write or sync confirmation."
+    },
+    {
+      "timestamp": "2026-10-12T05:26:00.000Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "late_review_addressed",
+      "branch": null,
+      "note": "The five threads Codex opened on PR #795's merged head are fixed in 81ac2789c on their own branch, at Afo's request: two Hats page statements and its diagram, the opt-in wording on the Contracts and Gardens pages, the Supply Chain Guardrails catalog entry, and one sentence in the API Index naming the route families it leaves out, guarded by the route reader. Lanes stay blocked and uncertified. Left for Afo: maxGardeners counts joins, not members. Receipt in handoffs/claude-ui.md."
+    }
+  ]
+}

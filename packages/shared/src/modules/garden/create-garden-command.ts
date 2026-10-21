@@ -12,7 +12,13 @@ import {
 import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { simulateTransaction } from "../../utils/blockchain/simulation";
 import { logger } from "../app/logger";
-import { TransactionConfirmationPendingError, type TransactionSender } from "../transactions/types";
+import { reconcileTransaction, sendCheckpointedCall } from "../transactions/confirmation";
+import type {
+  BroadcastReference,
+  BroadcastConfirmation,
+  TransactionSender,
+  TxResult,
+} from "../transactions/types";
 
 export interface CreateGardenCommand {
   params: CreateGardenParams;
@@ -54,7 +60,12 @@ export interface CreateGardenPorts {
       accountAddress: `0x${string}`;
       chainId: number;
       ccipFee: bigint;
-    }): Promise<`0x${string}`>;
+    }): Promise<TxResult>;
+    reconcile(
+      hash: `0x${string}`,
+      chainId: number,
+      reference?: BroadcastReference
+    ): Promise<BroadcastConfirmation>;
   };
   documents: { addPending(hash: `0x${string}`, submittedAt: number): void };
   clock: { now(): number };
@@ -88,7 +99,7 @@ function buildGardenContractConfig(params: CreateGardenParams): GardenContractCo
 export async function createGarden(
   command: CreateGardenCommand,
   ports: CreateGardenPorts
-): Promise<`0x${string}`> {
+): Promise<TxResult> {
   const config = buildGardenContractConfig(command.params);
   const contracts = ports.reader.contracts(command.chainId);
   const ccipFee = await ports.reader.estimateCcipFee({
@@ -107,16 +118,18 @@ export async function createGarden(
   if (!simulation.success) {
     throw new Error(simulation.error?.message ?? "Transaction simulation failed");
   }
-  const txHash = await ports.sender.send({
+  const result = await ports.sender.send({
     gardenToken: contracts.gardenToken as `0x${string}`,
     config,
     accountAddress: command.accountAddress,
     chainId: command.chainId,
     ccipFee,
   });
-  ports.documents.addPending(txHash, ports.clock.now());
-  await ports.reader.waitForReceipt(txHash, command.chainId);
-  return txHash;
+  ports.documents.addPending(result.hash, ports.clock.now());
+  if (result.confirmation !== "pending") {
+    await ports.reader.waitForReceipt(result.hash, command.chainId);
+  }
+  return result;
 }
 
 export async function estimateGardenCreation(
@@ -157,6 +170,8 @@ export async function estimateGardenCreation(
 export function createDefaultCreateGardenPorts(input: {
   transactionSender: TransactionSender;
   addPending(hash: `0x${string}`): void;
+  checkpoint?: (result: TxResult) => void;
+  clearCheckpoint?: (result: TxResult) => void;
 }): CreateGardenPorts {
   const confirmed = new Set<`0x${string}`>();
   return {
@@ -217,11 +232,23 @@ export function createDefaultCreateGardenPorts(input: {
       },
     },
     sender: {
+      reconcile: (hash, chainId, broadcastReference) =>
+        reconcileTransaction(
+          input.transactionSender,
+          {
+            hash,
+            sponsored: false,
+            confirmation: "pending",
+            broadcastReference: broadcastReference ?? { kind: "transaction", hash, chainId },
+          },
+          (hash) => createClients(chainId).publicClient.getTransactionReceipt({ hash })
+        ),
       send: async ({ gardenToken, config, accountAddress, chainId, ccipFee }) => {
         const sender = input.transactionSender;
         const assertOwnership = () => sender.assertOwnership?.(accountAddress, chainId);
         await assertOwnership();
-        const result = await sender.sendContractCall(
+        const result = await sendCheckpointedCall(
+          sender,
           {
             address: gardenToken,
             abi: GardenTokenABI,
@@ -231,11 +258,15 @@ export function createDefaultCreateGardenPorts(input: {
             value: ccipFee,
             chainId,
           },
+          (result) => input.checkpoint?.(result),
+          (result) => input.clearCheckpoint?.(result),
           { assertOwnership }
         );
-        if (result.confirmation === "pending") throw new TransactionConfirmationPendingError();
-        confirmed.add(result.hash);
-        return result.hash;
+        if (result.confirmation !== "pending") {
+          confirmed.add(result.hash);
+          input.clearCheckpoint?.(result);
+        }
+        return result;
       },
     },
     documents: { addPending: (hash) => input.addPending(hash) },

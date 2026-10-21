@@ -336,7 +336,7 @@ export function buildReportModel(cases: CatalogCase[], entries: MergedEntries, o
   // cannot hold entries recorded after it, so say exactly what the report covers.
   if (Number.isFinite(pulledAtMs) && pulledAtMs < Date.parse(window.end)) {
     const clampedTo = new Date(pulledAtMs).toISOString();
-    windowNote = `Window end clamped to the pull time ${clampedTo}: entries recorded after it are not in this snapshot — re-run qa pull once the window has closed, then re-run this report.`;
+    windowNote = `Window end clamped to the pull time ${clampedTo}: entries recorded after it are not in this snapshot. Re-run qa pull once the window has closed, then re-run this report.`;
     window = { ...window, end: clampedTo, clampedTo };
   }
   const staleDays = options.staleDays ?? DEFAULT_STALE_DAYS;
@@ -447,7 +447,7 @@ function resultsLine(label: string, counts: Bucket): string {
     counts.na && `${counts.na} n/a`,
     counts.noted && `${counts.noted} noted only`,
   ].filter(Boolean);
-  return `- ${label}: ${counts.walked}/${counts.total}${segments.length ? ` — ${segments.join(" · ")}` : ""}`;
+  return `- ${label}: ${counts.walked}/${counts.total}${segments.length ? ` (${segments.join(" · ")})` : ""}`;
 }
 
 export function renderReport(model: ReportModel, catalog: Pick<Catalog, "kinds">, options: RenderOptions): string {
@@ -477,11 +477,11 @@ export function renderReport(model: ReportModel, catalog: Pick<Catalog, "kinds">
     ...(build.length ? [`Build under test: ${build.join(" · ")}`] : []),
     ...(model.skipped.ids.length
       ? [
-          `Skipped: ${idList(model.skipped.ids)} — recorded N/A during the walk; ${model.skipped.excluded} in-window entr${model.skipped.excluded === 1 ? "y" : "ies"} set aside and counted as not walked`,
+          `Skipped (recorded N/A during the walk): ${idList(model.skipped.ids)}; ${model.skipped.excluded} in-window entr${model.skipped.excluded === 1 ? "y" : "ies"} set aside and counted as not walked`,
         ]
       : []),
     ...(!isPublic && model.notesFromResults
-      ? [`Notes: results.csv for ${model.notesFromResults} case(s) — redactions and corrections honored`]
+      ? [`Notes: results.csv for ${model.notesFromResults} case(s), with redactions and corrections honored`]
       : []),
   ];
   // P0 gaps are what a release sweep must see, so they are listed in full; the
@@ -494,7 +494,7 @@ export function renderReport(model: ReportModel, catalog: Pick<Catalog, "kinds">
   );
   const neverWalkedCounts = neverWalked.map(([priority, ids]) => `${priority} (${ids.length})`);
   const neverWalkedP0 = model.gaps.neverWalked.P0 ?? [];
-  const stale = model.gaps.stale.map(({ id, lastEntryAt }) => `\`${id}\` — last entry ${lastEntryAt}`);
+  const stale = model.gaps.stale.map(({ id, lastEntryAt }) => `\`${id}\` (last entry ${lastEntryAt})`);
   // Unknown keys and the baseline path are the two delta fields not drawn from the
   // catalog; the public variant carries their counts, never their text.
   const inherited = model.delta?.inherited.map((pair) => `\`${pair.id}\` ← \`${pair.from}\``) ?? [];
@@ -520,7 +520,7 @@ export function renderReport(model: ReportModel, catalog: Pick<Catalog, "kinds">
             ]
           : []),
       ]
-    : ["## Delta", "- No baseline supplied — pass --previous <earlier qa-state.json> to compare."];
+    : ["## Delta", "- No baseline supplied. Pass --previous <earlier qa-state.json> to compare."];
   const testerCount = `- ${model.testers.count} ${model.testers.count === 1 ? "tester" : "testers"}`;
 
   const sections = [
@@ -531,9 +531,9 @@ export function renderReport(model: ReportModel, catalog: Pick<Catalog, "kinds">
       "## Issues",
       ...(model.issues.length
         ? model.issues.map((issue) => {
-            const line = `- \`${issue.id}\` · ${issue.priority} · ${kindLabel(issue.kind)} · ${issue.area} — ${issue.verdict}`;
+            const line = `- \`${issue.id}\` · ${issue.priority} · ${kindLabel(issue.kind)} · ${issue.area} · ${issue.verdict}`;
             const notes = oneLine(issue.notes);
-            return isPublic || !notes ? line : `${line} — ${notes}`;
+            return isPublic || !notes ? line : `${line} · ${notes}`;
           })
         : ["- None"]),
     ],

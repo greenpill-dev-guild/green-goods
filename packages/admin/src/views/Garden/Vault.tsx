@@ -164,28 +164,32 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
   const isEmbedded = layout === "sheet";
   const content = (
     <>
-      <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="surface-inset">
-          <p className="body-xs text-text-soft">
-            {formatMessage({ id: "app.treasury.totalValueLocked" })}
-          </p>
-          <p className="mt-1 text-title-md font-semibold text-text-strong">
-            {formatAssetAmounts(endowmentByAsset, locale)}
-          </p>
-        </div>
-        <div className="surface-inset">
-          <p className="body-xs text-text-soft">
-            {formatMessage({ id: "app.treasury.totalHarvests" })}
-          </p>
-          <p className="mt-1 text-title-md font-semibold text-text-strong">{totalHarvestCount}</p>
-        </div>
-        <div className="surface-inset">
-          <p className="body-xs text-text-soft">
-            {formatMessage({ id: "app.treasury.depositorCount" })}
-          </p>
-          <p className="mt-1 text-title-md font-semibold text-text-strong">{totalDepositorCount}</p>
-        </div>
-      </section>
+      {!isEmbedded ? (
+        <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="surface-inset">
+            <p className="body-xs text-text-soft">
+              {formatMessage({ id: "app.treasury.totalValueLocked" })}
+            </p>
+            <p className="mt-1 text-title-md font-semibold text-text-strong">
+              {formatAssetAmounts(endowmentByAsset, locale)}
+            </p>
+          </div>
+          <div className="surface-inset">
+            <p className="body-xs text-text-soft">
+              {formatMessage({ id: "app.treasury.totalHarvests" })}
+            </p>
+            <p className="mt-1 text-title-md font-semibold text-text-strong">{totalHarvestCount}</p>
+          </div>
+          <div className="surface-inset">
+            <p className="body-xs text-text-soft">
+              {formatMessage({ id: "app.treasury.depositorCount" })}
+            </p>
+            <p className="mt-1 text-title-md font-semibold text-text-strong">
+              {totalDepositorCount}
+            </p>
+          </div>
+        </section>
+      ) : null}
 
       {vaultsLoading && (
         <p className="body-sm text-text-soft">
@@ -230,7 +234,7 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
       )}
 
       {!vaultsLoading && vaults.length > 0 && (
-        <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <section className="grid grid-cols-1 gap-4 @3xl:grid-cols-2">
           {vaults.map((vault) => (
             <PositionCard
               key={vault.id}
@@ -262,7 +266,9 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
 
       <VaultEventHistory gardenAddress={gardenAddress} initialVisibleCount={isEmbedded ? 5 : 20} />
 
-      {!vaultsLoading && vaults.length > 0 && <GardenSupporters gardenAddress={gardenAddress} />}
+      {!isEmbedded && !vaultsLoading && vaults.length > 0 && (
+        <GardenSupporters gardenAddress={gardenAddress} />
+      )}
 
       {!isEmbedded && !vaultsLoading && vaults.length > 0 && (
         <VaultContractDetails gardenAddress={gardenAddress} />
@@ -271,7 +277,7 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
   );
 
   if (layout === "sheet") {
-    return <div className="flex flex-col gap-section overflow-x-hidden">{content}</div>;
+    return <div className="@container flex min-w-0 flex-col gap-section">{content}</div>;
   }
 
   return (
@@ -284,7 +290,10 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
         sticky
       />
 
-      <CanvasRouteContent maxWidthClassName="max-w-6xl" className="mt-6 flex flex-col gap-section">
+      <CanvasRouteContent
+        maxWidthClassName="max-w-6xl"
+        className="@container mt-6 flex flex-col gap-section"
+      >
         {content}
       </CanvasRouteContent>
     </CanvasRouteFrame>

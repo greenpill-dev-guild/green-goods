@@ -503,7 +503,7 @@
       ]
     },
     "rule-5-address-as-string": {
-      "count": 265,
+      "count": 263,
       "entries": [
         {
           "file": "packages/admin/src/components/Garden/GardenProfileModal.tsx",
@@ -544,16 +544,6 @@
           "file": "packages/shared/src/__mocks__/eas-sdk.ts",
           "line": 25,
           "snippet": "constructor(_address: string) {}"
-        },
-        {
-          "file": "packages/shared/src/__mocks__/server/viem.ts",
-          "line": 34,
-          "snippet": "isAddress: vi.fn((address: string) => address.startsWith(\"0x\") && address.length === 42),"
-        },
-        {
-          "file": "packages/shared/src/__mocks__/server/viem.ts",
-          "line": 35,
-          "snippet": "getAddress: vi.fn((address: string) => address),"
         },
         {
           "file": "packages/shared/src/components/Cards/GardenCard/GardenCard.tsx",

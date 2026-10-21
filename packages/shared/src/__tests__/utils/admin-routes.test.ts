@@ -1,7 +1,39 @@
 import { describe, expect, it } from "vitest";
-import { adminRoutes, resolveCampaignCookieJarsRoute } from "../../utils/navigation/admin-routes";
+import {
+  adminRoutes,
+  getAdminWorkspaceForPath,
+  resolveCampaignCookieJarsRoute,
+} from "../../utils/navigation/admin-routes";
 
 describe("adminRoutes", () => {
+  it.each([
+    [adminRoutes.gardenPool({ gardenId: "0xAAA" }), "/garden/pool?gardenId=0xAAA", "garden"],
+    [
+      adminRoutes.gardenPoolSeed({ gardenId: "0xAAA" }),
+      "/garden/pool/seed?gardenId=0xAAA",
+      "garden",
+    ],
+    [
+      adminRoutes.gardenPoolCommitment("9", { gardenId: "0xAAA" }),
+      "/garden/pool/9?gardenId=0xAAA",
+      "garden",
+    ],
+    [adminRoutes.hubConfirm({ gardenId: "0xAAA" }), "/hub/confirm?gardenId=0xAAA", "hub"],
+    [
+      adminRoutes.hubConfirmDetail("9", { gardenId: "0xAAA" }),
+      "/hub/confirm/9?gardenId=0xAAA",
+      "hub",
+    ],
+    [
+      adminRoutes.communityCoordination({ gardenId: "0xAAA" }),
+      "/community/coordination?gardenId=0xAAA",
+      "community",
+    ],
+  ] as const)("builds %s in the owning workspace", (href, expected, workspace) => {
+    expect(href).toBe(expected);
+    expect(getAdminWorkspaceForPath(href.split("?")[0])).toBe(workspace);
+  });
+
   it("builds route-backed Hub work detail links with garden and sort context", () => {
     expect(
       adminRoutes.hubWorkDetail("work-123", {

@@ -21,8 +21,9 @@ The contracts package contains Solidity smart contracts for the Green Goods prot
 - Use package scripts for deploys, upgrades, migrations, and verification. Do not hand operators raw
   `forge` commands or ad hoc shell sequences.
 - The contracts CLI preserves operation-specific Arbitrum defaults, including `FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer`.
-- Applicable contract operations clear `PINATA_JWT_OP_REF`; media upload credentials must not block contract
-  upgrades.
+- Release-boundary operations (the reporting-policy deployment; the commitment-schemas, pooling and
+  assessment-resolver steps in plan and broadcast mode; the release operator session) blank
+  `PINATA_JWT` and `PINATA_GATEWAY`. They must not depend on media upload credentials.
 - Arbitrum upgrade/broadcast scripts that need the proxy owner use sender
   `0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6`.
 - Signal-pool/yield lane commands, in order:
@@ -506,13 +507,12 @@ test/
 │   ├── ActionRegistry.t.sol
 │   ├── GardenToken.t.sol
 │   ├── WorkResolver.t.sol
+│   ├── GAPJsonBuilder.t.sol   # Production GAP JSON schema and escaping
 │   └── ...
 ├── integration/             # Multi-contract flows
 │   ├── GardenAccessControl.t.sol
 │   ├── GreenWillWorkflow.t.sol
 │   └── HatsModule.t.sol
-├── schema/                  # Schema validation
-│   └── KarmaGAPSchemaValidation.t.sol
 ├── helpers/                 # Test utilities
 ├── E2EWorkflow.t.sol        # End-to-end workflow
 ├── FuzzTests.t.sol          # Fuzz testing

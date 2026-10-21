@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Hex } from "viem";
 import { useReadContract } from "wagmi";
+import { SETTLEMENT_ENABLED } from "../../config/app";
 import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
 import { selectCommitmentPoolingAvailability } from "../../modules/commitment-pooling/selectors";
@@ -119,6 +120,8 @@ export function useSettlementMutation(options: { chainId?: number } = {}) {
   }, INDEXER_LAG_SCHEDULE_MS);
   return useMutation({
     mutationFn: async (input: SettlementMutationInput) => {
+      if (!SETTLEMENT_ENABLED)
+        throw new Error("Settlement actions are unavailable in this release");
       if (!sender) throw new Error("Transaction sender is unavailable");
       const availability = selectCommitmentPoolingAvailability(
         getOntologyChainMaturity("entity:commitment-pool", chainId)
@@ -183,6 +186,7 @@ export function useSettlementOperationsCapabilities(input: {
   const executorRoles = useGardenRoles(input.executorGarden, input.account, input.chainId);
   const role = isPoolSteward;
   const authorityResolved =
+    SETTLEMENT_ENABLED &&
     enabled &&
     !owner.isLoading &&
     !dispatcher.isLoading &&

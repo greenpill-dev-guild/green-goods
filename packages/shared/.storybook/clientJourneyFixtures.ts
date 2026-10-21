@@ -25,8 +25,10 @@ import type { ProofComposerController } from "../src/hooks/client-ui/commitment/
 import type { useGardenPoolController } from "../src/hooks/client-ui/pool/useGardenPoolController";
 import type { CommitmentEvidenceDocumentV1 } from "../src/modules/commitment-pooling/evidence";
 import type { Address, Garden } from "../src/types/domain";
-import FENCE_LEANING_SVG from "./fixture-art/fence-leaning.svg?raw";
-import FENCE_UPRIGHT_SVG from "./fixture-art/fence-upright.svg?raw";
+import FENCE_BEFORE from "./fixture-art/documentation-fence-before.jpg?url";
+import FENCE_BEFORE_DATA from "./fixture-art/documentation-fence-before.jpg?inline";
+import FENCE_AFTER from "./fixture-art/documentation-fence-after.jpg?url";
+import FENCE_AFTER_DATA from "./fixture-art/documentation-fence-after.jpg?inline";
 
 export const JOURNEY_GARDEN = "0x5eed000000000000000000000000000000000001" as Address;
 export const JOURNEY_VIEWER = "0x5eed0000000000000000000000000000000000a1" as Address; // Amara
@@ -230,7 +232,7 @@ export const LIVE_PROMISES: JourneyRow[] = [
   // The frame draws a group of ten here (PRD-1029); until groups land it is one ordinary row.
   row("Survey one household about rain barrel use", { direction: "REQUEST", derivedState: "ACTIVE", unitLabel: "survey" }),
   row(
-    "Water the seedling beds every morning while the Okafor family is travelling",
+    "Water the seedling beds every morning while the Okafor family is traveling",
     { direction: "OFFER", derivedState: "OFFERED", onchainState: "OFFERED", state: "OFFERED", targetUnits: 7n, unitLabel: "mornings" }
   ),
   row(
@@ -343,9 +345,9 @@ const FENCE_PROOF_CID = "bafy-fence-proof";
 /** Noon UTC on Oct 20, 2026. */
 const OCT_20 = 1_792_497_600n;
 
-/** A small drawing of the fence, before (a post leaning) or after the repair, for the proof's photos. */
+/** Fictional inspection and repair photos; neither contains people or faces. */
 function fenceSketch(leaning: boolean): string {
-  return `data:image/svg+xml;utf8,${encodeURIComponent(leaning ? FENCE_LEANING_SVG : FENCE_UPRIGHT_SVG)}`;
+  return leaning ? FENCE_BEFORE : FENCE_AFTER;
 }
 
 /** A silent WAV, so a voice note has something to point at. */
@@ -355,8 +357,8 @@ const SILENT_WAV =
 const FENCE_PROOF: CommitmentEvidenceDocumentV1 = {
   version: 1,
   media: [
-    { cid: fenceSketch(true), mime: "image/svg+xml", kind: "photo" },
-    { cid: fenceSketch(false), mime: "image/svg+xml", kind: "photo" },
+    { cid: fenceSketch(true), mime: "image/jpeg", kind: "photo" },
+    { cid: fenceSketch(false), mime: "image/jpeg", kind: "photo" },
   ],
   audio: [{ cid: SILENT_WAV, mime: "audio/wav", durationSeconds: 24 }],
   links: [{ url: "https://example.org/riverside/fence-repair", label: "Repair notes" }],
@@ -488,7 +490,7 @@ export function promisePageFixture(stage: PromiseStage): {
     metadata: {
       version: 1,
       title: FENCE_TITLE,
-      note: "Two posts are leaning after the storm. Materials are in the tool shed.",
+      note: "Two slats are split and loose after the storm. Materials are in the tool shed.",
     },
     pool: JOURNEY_POOL,
     seat: "provider",
@@ -565,9 +567,11 @@ export function promisePageFixture(stage: PromiseStage): {
   };
 }
 
-/** One of the fence sketches as a file on the phone, as the composer holds it. */
+/** A generated task photo as a file on the phone, as the composer holds it. */
 export function fenceFile(name: string, leaning: boolean): File {
-  return new File([leaning ? FENCE_LEANING_SVG : FENCE_UPRIGHT_SVG], name, { type: "image/svg+xml" });
+  const dataUrl = leaning ? FENCE_BEFORE_DATA : FENCE_AFTER_DATA;
+  const bytes = Uint8Array.from(atob(dataUrl.split(",")[1] ?? ""), (char) => char.charCodeAt(0));
+  return new File([bytes], name.replace(/\.svg$/, ".jpg"), { type: "image/jpeg" });
 }
 
 function voiceNoteFile(): File {
@@ -595,7 +599,7 @@ export type ProofStage =
   | "signing"
   | "signingSend";
 
-const PROOF_NOTE = "Replaced two posts and re-hung the panel. Dele helped with the digging.";
+const PROOF_NOTE = "Replaced two split slats and secured the panel. Dele helped with measuring and fastening.";
 const PROOF_LINK = "https://riverside-commons.example/receipts/fence-posts";
 
 /**
@@ -628,7 +632,7 @@ export function proofFlowFixture(stage: ProofStage): ProofComposerController {
     note:
       stage === "details" || reviewing
         ? teammate
-          ? "Dug the two post holes and set the new posts in gravel."
+          ? "Measured and fastened the two replacement slats."
           : PROOF_NOTE
         : "",
     links: stage === "details" || stage === "detailsLink" || reviewing ? [PROOF_LINK] : [],

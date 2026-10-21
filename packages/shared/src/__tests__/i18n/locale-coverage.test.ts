@@ -143,6 +143,7 @@ const allowedIdenticalProductValues = new Set([
   "kg",
   "kWh",
   "Linear (1-2-3)",
+  "LinkedIn",
   "m²",
   "ManeNet DAO",
   "Marketplace",
@@ -205,7 +206,9 @@ const localeAllowedIdenticalValues: Record<string, Set<string>> = {
     "Video",
     "error",
   ]),
-  pt: new Set(["Cultural", "Material", "Social", "Status", "hubs"]),
+  // Brazilian Portuguese says "Links" for web links (the catalog's own "cole um link");
+  // Spanish translates it ("Enlaces"), so only Portuguese may keep the English word.
+  pt: new Set(["Cultural", "Links", "Material", "Social", "Status", "hubs"]),
 };
 
 function isAllowedIdenticalLocalizedValue(locale: string, key: string, value: string): boolean {
@@ -611,5 +614,46 @@ describe("i18n locale coverage", () => {
         `Likely English fallbacks in localized catalogs:\n${suspicious.join("\n")}`
       ).toHaveLength(0);
     });
+
+    // Endowment is provisión and provisão across the product (#1026, 5 Oct 2026). Two days
+    // later a polish commit brought "dotación" back on /fund and Home, and nothing caught it.
+    it("should say provisión and provisão for endowment, never dotación or dotação", () => {
+      const strays = Object.entries({ ...prefixKeys("es", es), ...prefixKeys("pt", pt) })
+        .filter(([, value]) => /dotaci[oó]n|dotaç[aã]o/i.test(value))
+        .map(([key]) => key);
+
+      expect(strays, `Use provisión / provisão instead:\n${strays.join("\n")}`).toEqual([]);
+    });
+
+    // Promise is promesa and promessa on every surface (18 Oct 2026). Compromiso and compromisso
+    // stay right where English still says commitment, so each message is held to its English
+    // source instead of banning a word.
+    it("should say promesa and promessa wherever English says promise", () => {
+      const icuArguments = /\{\s*\w+\s*[,}]/g;
+      const promise = /\bpromis(?:e|es|ed|ing)\b/i;
+      const localized = [
+        { locale: "es", catalog: es as LocaleCatalog, word: /\bprome(?:sa|t)/i },
+        { locale: "pt", catalog: pt as LocaleCatalog, word: /\bprome(?:ssa|t)/i },
+      ];
+      const promised = Object.entries(en as LocaleCatalog).filter(([, value]) =>
+        promise.test(value.replace(icuArguments, " "))
+      );
+      const strays = promised.flatMap(([key]) =>
+        localized
+          .filter(
+            ({ catalog, word }) => !word.test((catalog[key] ?? "").replace(icuArguments, " "))
+          )
+          .map(({ locale }) => `${locale}:${key}`)
+      );
+
+      expect(promised.length).toBeGreaterThan(100);
+      expect(strays, `Use promesa / promessa (or prometer):\n${strays.join("\n")}`).toEqual([]);
+    });
   });
 });
+
+function prefixKeys(locale: string, catalog: Record<string, string>): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(catalog).map(([key, value]) => [`${locale}:${key}`, value])
+  );
+}

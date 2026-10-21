@@ -248,7 +248,7 @@ export function PoolSettingsDialog({
             <AdminTextField
               label={formatMessage({
                 id: "cockpit.garden.pool.settings.cap",
-                defaultMessage: "How many commitments one person can hold at once",
+                defaultMessage: "How many promises one person can hold at once",
               })}
               value={cap}
               onChange={(event) => setCap(event.target.value)}
@@ -265,7 +265,7 @@ export function PoolSettingsDialog({
               {formatMessage({
                 id: "cockpit.garden.pool.settings.note",
                 defaultMessage:
-                  "Both stay editable for the pool's whole life. Changing the limit never affects commitments already made.",
+                  "Both stay editable for the pool's whole life. Changing the limit never affects promises already made.",
               })}
             </p>
             {canSave ? (
@@ -288,7 +288,7 @@ export function PoolSettingsDialog({
           <Alert variant="warning">
             {formatMessage({
               id: "cockpit.garden.pool.offline",
-              defaultMessage: "Needs a connection. Pool changes are sent straight to the chain.",
+              defaultMessage: "Needs a connection. Pool changes are sent right away, not queued.",
             })}
           </Alert>
         ) : null}

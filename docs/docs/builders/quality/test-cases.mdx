@@ -15,7 +15,7 @@ generated_from:
   - playwright.config.ts
   - scripts/data/qa-test-catalog.json
   - scripts/data/validation-policy.json
-source_digest: "sha256:e26e0c3f563f345057cadd7c2bca29fcaa9f26d3716622e8229c6cce90546b1d"
+source_digest: "sha256:0329a3ece257f36bf40d969527c219887db185b59b84748b0c8cd1cfa77f46c1"
 source_of_truth:
   - package.json
   - packages/admin/vitest.config.ts
@@ -27,27 +27,27 @@ source_of_truth:
   - scripts/data/validation-policy.json
 ---
 
-<!-- GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs -- --scope <scope>`. -->
+<!-- GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs --scope <scope>`. -->
 # Test Cases
 
 This page projects scenario definitions only. Live results, identities, owners, defect links, and session evidence are intentionally excluded.
 
-Each surface groups its cases by priority — the same P0/P1/P2 bands as the [QA app's](https://qa.greengoods.app) Priority view — and sorts by ID within a band. IDs are permanent addresses: never renumbered, never reused; retired cases keep their ID in the catalog history.
+Each surface groups its cases by priority (the same P0/P1/P2 bands as the [QA app's](https://qa.greengoods.app) Priority view) and sorts by ID within a band. IDs are permanent addresses: never renumbered, never reused; retired cases keep their ID in the catalog history.
 
-- **P0** — walk first — the highest-priority coverage for an applicable session.
-- **P1** — walk next — important coverage after the P0 band.
-- **P2** — walk after P0 and P1 when the session scope allows.
+- **P0**: walk first (the highest-priority coverage for an applicable session).
+- **P1**: walk next (important coverage after the P0 band).
+- **P2**: walk after P0 and P1 when the session scope allows.
 
 Priority sets run order only. A failure's severity is assigned separately during triage.
 
 Each case carries one **kind**, the category axis:
 
-- **Journey** — A person completes, or is honestly gated out of, a flow in the UI — no wallet transaction involved.
-- **Transaction** — The walk performs real wallet or on-chain writes: approvals, attestations, deposits, claims (always tx-tagged).
-- **Data integrity** — Chain, indexer, and UI agree, and queues, drafts, and identity survive restarts and surface switches.
-- **Content & vocabulary** — Copy, vocabulary, locale quality, and guide truth hold on the rendered surface.
-- **Accessibility** — Keyboard, focus, contrast, touch targets, safe areas, and responsive layout stay usable.
-- **Resilience** — Offline behavior, error recovery, updates, and performance degrade and recover honestly.
+- **Journey**: A person completes, or is honestly gated out of, a flow in the UI (no wallet transaction involved).
+- **Transaction**: The walk performs real wallet or on-chain writes: approvals, attestations, deposits, claims (always tx-tagged).
+- **Data integrity**: Chain, indexer, and UI agree, and queues, drafts, and identity survive restarts and surface switches.
+- **Content & vocabulary**: Copy, vocabulary, locale quality, and guide truth hold on the rendered surface.
+- **Accessibility**: Keyboard, focus, contrast, touch targets, safe areas, and responsive layout stay usable.
+- **Resilience**: Offline behavior, error recovery, updates, and performance degrade and recover honestly.
 
 ## Guided journeys
 
@@ -55,82 +55,82 @@ Guided journeys choreograph active Test IDs across surfaces. A case's kind still
 
 ### Service relay: Green Goods → Garden → members
 
-Two people follow a protocol Request from the Green Goods pool through Garden delivery, then use a separate Garden commitment to recognize the member's work. Both commitments are the garden-work type: each becomes ready through approved linked Work, not through evidence and Send for Confirmation.
+Two people follow a protocol Request from the Green Goods pool through garden delivery, then use a separate garden commitment to recognize the member's work. Both commitments are the garden-work type: each becomes ready through approved linked Work, not through evidence and Send for Confirmation.
 
 **Parts**
 
-- **Protocol & review** — Protocol steward and independent steward or evaluator of the test Garden; never a contributor.
-- **Garden & member** — Steward and member of the test Garden; institutional claimant, accountable lead, and contributor.
+- **Protocol & review**: Protocol steward and independent steward or evaluator of the test garden; never a contributor.
+- **Garden & member**: Steward and member of the test garden; institutional claimant, accountable lead, and contributor.
 
 **Phases and Test IDs**
 
 **Prepare**
 
-1. `ADM-037` — Act: Protocol & review; verify: Garden & member
-   - **Handoff:** Wait until the Garden member can see the starting assessment.
-2. `PWA-046` — Act: Garden & member
-3. `ADM-038` — Act: Protocol & review; verify: Garden & member
-   - **Handoff:** Both people confirm the same Garden and open cycle are visible; the assessment is context, not a prerequisite.
+1. `ADM-037` (act: Protocol & review; verify: Garden & member)
+   - **Handoff:** Wait until the garden member can see the starting assessment.
+2. `PWA-046` (act: Garden & member)
+3. `ADM-038` (act: Protocol & review; verify: Garden & member)
+   - **Handoff:** Both people confirm the same garden and open cycle are visible; the assessment is context, not a prerequisite.
 
 **Protocol asks**
 
-4. `ADM-139` — Act: Protocol & review; verify: Garden & member
-   - **Handoff:** Wait until the Request appears in the protocol pool for the Garden member.
-5. `PWA-047` — Act: Garden & member; verify: Protocol & review
-   - **Handoff:** The protocol reviewer waits for the pending Garden claim before accepting it.
-6. `ADM-040` — Act: Protocol & review; verify: Garden & member
-   - **Handoff:** Both people verify the Request remains in the protocol pool and names the Garden as provider.
+4. `ADM-139` (act: Protocol & review; verify: Garden & member)
+   - **Handoff:** Wait until the Request appears in the protocol pool for the garden member.
+5. `PWA-047` (act: Garden & member; verify: Protocol & review)
+   - **Handoff:** The protocol reviewer waits for the pending garden claim before accepting it.
+6. `ADM-040` (act: Protocol & review; verify: Garden & member)
+   - **Handoff:** Both people verify the Request remains in the protocol pool and names the garden as provider.
 
 **Garden delivers**
 
-7. `PWA-048` — Act: Garden & member; verify: Protocol & review
+7. `PWA-048` (act: Garden & member; verify: Protocol & review)
    - **Handoff:** The reviewer waits until the linked Work and evidence are visible before deciding.
-8. `ADM-041` — Act: Protocol & review
-9. `ADM-042` — Act: Protocol & review; verify: Garden & member
+8. `ADM-041` (act: Protocol & review)
+9. `ADM-042` (act: Protocol & review; verify: Garden & member)
    - **Handoff:** Both people verify the approved Request is Fulfilled before moving to compensation.
 
 **Garden earns**
 
-10. `ADM-043` — Act: Protocol & review; verify: Garden & member
-   - **Handoff:** The Garden member verifies the destination Garden Safe or its readiness state.
+10. `ADM-043` (act: Protocol & review; verify: Garden & member)
+   - **Handoff:** The garden member verifies the destination Garden Safe or its readiness state.
    - **Known gate:** Protocol-to-Garden G$ settlement requires enabled settlement UI and value authority. If either is unavailable, record Blocked and continue with the non-value steps.
 
 **Garden distributes**
 
-11. `ADM-140` — Act: Protocol & review; verify: Garden & member
-   - **Handoff:** Seed it as Garden work with one action row, so the member's Work can link to it. Wait until the separate local commitment appears in the open Garden Campaign.
-12. `PWA-049` — Act: Garden & member
-13. `PWA-050` — Act: Garden & member; verify: Protocol & review
+11. `ADM-140` (act: Protocol & review; verify: Garden & member)
+   - **Handoff:** Seed it as Garden work with one action row, so the member's Work can link to it. Wait until the separate local commitment appears in the open garden Campaign.
+12. `PWA-049` (act: Garden & member)
+13. `PWA-050` (act: Garden & member; verify: Protocol & review)
    - **Handoff:** The reviewer waits for the local Work and evidence before opening review.
-14. `ADM-012` — Act: Protocol & review
-15. `ADM-145` — Act: Protocol & review; verify: Garden & member
+14. `ADM-012` (act: Protocol & review)
+15. `ADM-145` (act: Protocol & review; verify: Garden & member)
    - **Handoff:** Both people verify the local commitment is complete and remains distinct from the protocol Request.
 
 **Member receives**
 
-16. `ADM-044` — Act: Protocol & review; verify: Garden & member
-   - **Handoff:** The Garden member verifies the receiving account or the visible readiness state.
+16. `ADM-044` (act: Protocol & review; verify: Garden & member)
+   - **Handoff:** The garden member verifies the receiving account or the visible readiness state.
    - **Known gate:** Garden-to-member G$ settlement requires enabled contributor payout UI and value authority. If either is unavailable, record Blocked without changing the completed non-value workflow.
 
 ### Protocol treasury top-up
 
-Check discretionary funding readiness, queue a ProtocolToGarden top-up when authorized, and verify the Garden balance without referencing a commitment.
+Check discretionary funding readiness, queue a ProtocolToGarden top-up when authorized, and verify the garden balance without referencing a commitment.
 
 **Parts**
 
-- **Protocol & review** — Protocol steward with authority to inspect and, when approved, queue treasury funding.
-- **Garden & member** — Test-Garden steward who verifies the destination Garden and its balance.
+- **Protocol & review**: Protocol steward with authority to inspect and, when approved, queue treasury funding.
+- **Garden & member**: Test-garden steward who verifies the destination garden and its balance.
 
 **Phases and Test IDs**
 
 **Check readiness**
 
-1. `ADM-014` — Act: Protocol & review
+1. `ADM-014` (act: Protocol & review)
 
 **Queue top-up**
 
-2. `ADM-045` — Act: Protocol & review; verify: Garden & member
-   - **Handoff:** The Garden steward verifies the destination Garden and balance; no commitment ID is involved.
+2. `ADM-045` (act: Protocol & review; verify: Garden & member)
+   - **Handoff:** The garden steward verifies the destination garden and balance; no commitment ID is involved.
    - **Known gate:** Protocol treasury funding requires explicit value authority and a live ProtocolToGarden funding path. If unavailable, record Blocked and do not imply that funds moved.
 
 
@@ -139,19 +139,19 @@ Check discretionary funding readiness, queue a ProtocolToGarden top-up when auth
 
 `scripts/data/qa-test-catalog.json` is the source of truth, and it changes the way code does: by pull request. Every case carries one **status**:
 
-- **active** — Walked in sessions; ships to the QA app run sheet and the Test Cases page.
-- **retired** — No longer walked; keeps its ID, retirement date, and reason in the catalog and never ships to a run sheet.
+- **active**: Walked in sessions; ships to the QA app run sheet and the Test Cases page.
+- **retired**: No longer walked; keeps its ID, retirement date, and reason in the catalog and never ships to a run sheet.
 
 - A new case enters as `active`, takes the next number in its surface prefix, is appended to the ID ledger (`scripts/data/qa-test-id-ledger.json`), and names where it came from in `source`.
-- Wording, step, and evidence edits happen in place — the ID keeps meaning the same check.
-- When what a case proves changes, it is retired with `retiredOn`, `retiredReason`, and `replacedBy` when successors exist, and the new check gets a new ID — so every past verdict keeps its meaning.
+- Wording, step, and evidence edits happen in place, so the ID keeps meaning the same check.
+- When what a case proves changes, it is retired with `retiredOn`, `retiredReason`, and `replacedBy` when successors exist, and the new check gets a new ID, so every past verdict keeps its meaning.
 - After a catalog change merges, redeploy the QA app (a deployment pins the catalog revision it shipped with) and regenerate this page with `node scripts/docs/generate.mjs`; CI rejects a stale copy.
 
 The catalog contract test enforces all of this, and [retired cases](#retired-cases) are listed at the end of this page.
 
 ## Public Website
 
-### P0 — run these first (7) {#public-website-p0}
+### P0: run these first (7) {#public-website-p0}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
@@ -188,9 +188,9 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `PUB-050` | Journey | Install | Install App on mobile: step list, Brave variants, and the Open App flip | Screenshots of each branch |
 | `PUB-051` | Journey | Fund | The funding receipt renders from the intent parameter | Screenshot of the receipt |
 | `PUB-053` | Resilience | Gardens | Garden page unavailable state offers Try Again, distinct from not-found | Screenshots of the unavailable and recovered page |
-| `PUB-056` | Content & vocabulary | Gardens | A garden's Commitments section says what state its pool is in | Screenshot of the section in each state reached |
+| `PUB-056` | Content & vocabulary | Gardens | A garden's Promises section says what state its pool is in | Screenshot of the section in each state reached |
 | `PUB-057` | Content & vocabulary | Gardens | Unit summaries on the public page use the commitments' own unit labels | Screenshot of the unit summaries |
-| `PUB-058` | Data integrity | Gardens | A cancelled cycle never appears on the public page | Screenshots of the open and finished cycles |
+| `PUB-058` | Data integrity | Gardens | A canceled cycle never appears on the public page | Screenshots of the open and finished cycles |
 | `PUB-059` | Resilience | Gardens | A cycle-name outage shows a notice, not broken cards | Screenshot of the notice with the cards |
 | `PUB-060` | Content & vocabulary | Gardens | An unlisted garden opens by its own link and says it is unlisted | Screenshots of the page with the line, of the robots tag in the page head, and of the archive and the Fund list without the garden |
 
@@ -217,16 +217,16 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 
 ## PWA
 
-### P0 — run these first (40) {#pwa-p0}
+### P0: run these first (40) {#pwa-p0}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
 | `PWA-020` | Journey | Auth | Wallet login in the app connects, signs, and recovers from a rejected signature | Recording of reject + retry |
 | `PWA-028` | Transaction | Wallet | Claim from a garden cookie jar in the Wallet drawer (purpose required) | Screenshot of claim result |
-| `PWA-047` | Transaction | Commitments | Claim the protocol Request for the test Garden | Screenshot of the pending Garden claim |
+| `PWA-047` | Transaction | Commitments | Claim the protocol Request for the test garden | Screenshot of the pending garden claim |
 | `PWA-048` | Transaction | Work | Submit Work and evidence against the original protocol Request | Screenshot of the linked Work and evidence on the Request |
-| `PWA-049` | Transaction | Commitments | Take up the separate local Garden commitment | Screenshot with the local commitment ID and Garden Campaign context |
-| `PWA-050` | Transaction | Work | Submit Work and evidence for the local Garden commitment | Screenshot of the local Work and evidence link |
+| `PWA-049` | Transaction | Commitments | Take up the separate local garden commitment | Screenshot with the local commitment ID and garden Campaign context |
+| `PWA-050` | Transaction | Work | Submit Work and evidence for the local garden commitment | Screenshot of the local Work and evidence link |
 | `PWA-051` | Transaction | Garden | Join an open garden from the garden page | Screenshot of the joined state and toast |
 | `PWA-052` | Transaction | Garden | Request to join a closed garden with a note, then withdraw the request | Screenshots of the pending and withdrawn states |
 | `PWA-053` | Transaction | Garden | Steward welcomes one join request and declines another with a reason | Screenshot of the queue before and after |
@@ -272,7 +272,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `PWA-040` | Resilience | Offline | Offline mid-browse: toggle devtools offline while navigating, then reconnect | Screenshot of offline state |
 | `PWA-041` | Resilience | Update | Desktop service-worker update: banner on a new deploy, refresh applies cleanly | Screenshot of the banner |
 | `PWA-042` | Accessibility | App-wide | Keyboard and focus smoke on the desktop shell: wizard, drawers, dialogs | Notes per surface + screenshots |
-| `PWA-046` | Journey | Garden | Garden member can read the starting assessment | Screenshot of the assessment in the test Garden |
+| `PWA-046` | Journey | Garden | Garden member can read the starting assessment | Screenshot of the assessment in the test garden |
 | `PWA-054` | Transaction | Garden | A declined gardener resubmits a join request | Screenshot of the decline reason and the new pending request |
 | `PWA-055` | Journey | Garden | Governance drawer shows the current stake to eligible roles only | Screenshots of the drawer and the gardener view |
 | `PWA-056` | Transaction | Garden | Allocate conviction support points in the governance drawer | Screenshot of the updated stake |
@@ -302,7 +302,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `PWA-100` | Journey | Commitments | Pool tab reads the cycle rail, offer and request filters, and commitment rows | Screenshots of the rail and the filtered list |
 | `PWA-101` | Journey | Commitments | Commitment detail reads status, progress, people, evidence, and work without acting | Screenshots of two commitments in different states |
 | `PWA-102` | Journey | Commitments | Commitments drawer groups live and settled acts by garden, with To confirm for stewards | Screenshots of the three tabs |
-| `PWA-105` | Journey | Work | Work detail reads media, details, status, feedback, and the commitment it fulfils | Screenshots of the detail and the fulfils section |
+| `PWA-105` | Journey | Work | Work detail reads media, details, status, feedback, and the commitment it fulfills | Screenshots of the detail and the fulfills section |
 | `PWA-106` | Resilience | Offline | First-load connectivity loss: accurate offline state and automatic reconnect recovery | Offline and recovered screenshots, failed request, reload count, and authentication/local-data continuity note |
 | `PWA-108` | Transaction | Commitments | Place a garden-work request with action rows | Screenshots of the action rows and the done screen |
 | `PWA-109` | Transaction | Commitments | Place a help-or-service request | Screenshot of the done screen |
@@ -357,7 +357,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 
 ## Admin Dashboard
 
-### P0 — run these first (46) {#admin-dashboard-p0}
+### P0: run these first (46) {#admin-dashboard-p0}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
@@ -371,11 +371,11 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-012` | Transaction | Hub · Work | Full review decision path completes with actions visible | Screen recording; screenshot of the action region at ~1084x637 |
 | `ADM-018` | Transaction | Hub · Work | Decision integrity: no double decisions, honest tx failure | Screenshots of the blocked second decision and the failure state |
 | `ADM-038` | Transaction | Garden · Pool | Open the test Season and Campaign independently of assessment state | Screenshot of the open Season and Campaign |
-| `ADM-040` | Transaction | Garden · Pool | Accept the test Garden's institutional claim | Screenshot showing Accepted, the Garden provider, and protocol-pool context |
+| `ADM-040` | Transaction | Garden · Pool | Accept the test garden's institutional claim | Screenshot showing Accepted, the garden provider, and protocol-pool context |
 | `ADM-041` | Transaction | Hub · Work | Approve Work linked to the protocol Request without joining its contributors | Screenshot of the approved Work and contributor roster |
 | `ADM-042` | Transaction | Hub · Confirm | Confirm the protocol Request after its Work is approved | Screenshot of the Fulfilled protocol Request |
-| `ADM-043` | Transaction | Garden · Settlement | Settle earned G$ compensation from the protocol to the Garden | Screenshot of the Garden beneficiary and completed settlement or visible gate |
-| `ADM-044` | Transaction | Garden · Settlement | Settle the Garden's contributor payout to the member | Screenshot of the member recipient and completed payout or visible gate |
+| `ADM-043` | Transaction | Garden · Settlement | Settle earned G$ compensation from the protocol to the garden | Screenshot of the garden beneficiary and completed settlement or visible gate |
+| `ADM-044` | Transaction | Garden · Settlement | Settle the garden's contributor payout to the member | Screenshot of the member recipient and completed payout or visible gate |
 | `ADM-046` | Transaction | Hub · Assessments | Submit an assessment end to end from the admin | Screen recording of the submission and a screenshot of the recorded assessment |
 | `ADM-048` | Transaction | Garden · Settings | Save garden name, description, and location, one wallet confirmation each, and resume a stopped save | Screenshots of the mid-run error and the saved state |
 | `ADM-052` | Transaction | Community · Members | Batch-add members by address, ENS name, and clipboard paste | Screenshots of the staged list and the updated directory |
@@ -395,14 +395,14 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-111` | Transaction | Garden · Commitment | Confirm for the Green Goods team on a commitment that allows it | Screenshots of the team fallback dialog and the Kept state |
 | `ADM-113` | Transaction | Garden · Commitment | Resolve a dispute as Restore Previous State | Screenshots of the outcome choices and the restored state |
 | `ADM-114` | Transaction | Garden · Commitment | Resolve a dispute as Kept | Screenshot of the Kept state with its reason |
-| `ADM-115` | Transaction | Garden · Commitment | Resolve a dispute as Cancelled | Screenshot of the Cancelled state with its reason |
+| `ADM-115` | Transaction | Garden · Commitment | Resolve a dispute as Canceled | Screenshot of the Canceled state with its reason |
 | `ADM-116` | Transaction | Garden · Commitment | Resolve a dispute as Expired | Screenshot of the Expired state with its reason |
 | `ADM-118` | Transaction | Garden · Settlement | Create a payout plan for a fulfilled commitment | Screenshots of the review step and the draft plan |
 | `ADM-119` | Transaction | Garden · Settlement | Finalize a payout plan | Screenshot of the pending plan and its prepare step |
 | `ADM-120` | Transaction | Garden · Settlement | Dispatch a prepared disbursement | Screenshots of the dispatched row and the plan status |
 | `ADM-121` | Transaction | Garden · Settlement | Resend… sends the same command again for a dispatched row | Screenshot of the review for Resend… and the row afterwards |
 | `ADM-125` | Transaction | Garden · Pool | Seeding asks the wallet to confirm and the commitment appears without a reload | Screen recording from the press to the commitment appearing |
-| `ADM-139` | Transaction | Garden · Pool | Seed an approval-gated protocol Request for garden work the test Garden can deliver | Screenshot of the Request in the protocol pool |
+| `ADM-139` | Transaction | Garden · Pool | Seed an approval-gated protocol Request for garden work the test garden can deliver | Screenshot of the Request in the protocol pool |
 | `ADM-140` | Transaction | Garden · Pool | Seed a commitment: 4-step wizard, named confirmers, review before sending | Screenshots of the rejected confirmer and the review |
 | `ADM-144` | Journey | Hub · Confirm | Hub → Confirm lists only what the garden in the header confirms | Screenshots of Hub → Confirm with each garden selected |
 | `ADM-145` | Transaction | Hub · Confirm | Confirm Kept… reviews the commitment before confirming it | Screenshots of the review and of the commitment afterwards |
@@ -421,8 +421,8 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-030` | Transaction | Hub · Work | Admin submit-work wizard with review-step edit jumps and offline queueing | Screenshot of review step |
 | `ADM-031` | Journey | Hub · Work | Hub queue at volume: full scroll, search/sort, deep item open and return | Recording of scroll return |
 | `ADM-033` | Transaction | Garden · Lifecycle | First-run: zero-garden steward sees an honest no-access state; a deployer gets the create funnel | Screenshot of empty state |
-| `ADM-037` | Transaction | Hub · Assessments | Record a starting assessment for the test Garden | Screenshot of the recorded assessment with the Garden identity visible |
-| `ADM-045` | Transaction | Community · Coordination | Queue a discretionary protocol-to-garden treasury top-up | Screenshot of the queue confirmation naming the Garden, and the resulting balance or visible gate |
+| `ADM-037` | Transaction | Hub · Assessments | Record a starting assessment for the test garden | Screenshot of the recorded assessment with the garden identity visible |
+| `ADM-045` | Transaction | Community · Coordination | Queue a discretionary protocol-to-garden treasury top-up | Screenshot of the queue confirmation naming the garden, and the resulting balance or visible gate |
 | `ADM-049` | Transaction | Garden · Settings | Upload a garden banner, then remove it with undo | Screenshots of the preview, the staged removal, and the cleared banner |
 | `ADM-050` | Transaction | Garden · Settings | Toggle open joining and set the gardener cap | Screenshots of the settings and the app's join control |
 | `ADM-051` | Journey | Garden · Settings | Domain rules and the dirty-close prompt in garden settings | Screenshots of the domain error and the discard prompt |
@@ -442,7 +442,7 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-080` | Transaction | Garden · Commitment | Attach an assessment to a commitment | Screenshot of the attached assessment |
 | `ADM-081` | Transaction | Garden · Commitment | Cancel a commitment with a reason from the inspector | Screenshots of the cancel dialog and the app's History |
 | `ADM-082` | Transaction | Garden · Commitment | Count a commitment's approved linked work | Screenshots of the readback status and the progress rows |
-| `ADM-086` | Transaction | Garden · Settlement | Cancel a disbursement with a reason | Screenshot of the cancelled row |
+| `ADM-086` | Transaction | Garden · Settlement | Cancel a disbursement with a reason | Screenshot of the canceled row |
 | `ADM-087` | Transaction | Community · Coordination | Enable or disable gardener delivery on the settlement card | Screenshots of the confirmation and the read-back state |
 | `ADM-088` | Transaction | Community · Coordination | Cancel a queued protocol transfer | Screenshots of the confirmation and the refreshed card |
 | `ADM-089` | Transaction | Community · Coordination | Dispatch, resend, or requeue a protocol transfer | Screenshots of the dispatched and failed rows |
@@ -473,11 +473,11 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-130` | Journey | Garden · Pool | Edit takes an added commitment back into the seed wizard and keeps the one under review | Screenshots of the review before and after the edit |
 | `ADM-131` | Transaction | Garden · Pool | Declining one wallet prompt in a batch skips that commitment only | Screenshots of the review after the batch and of the list |
 | `ADM-132` | Transaction | Garden · Pool | A commitment left Not sent is sent again as itself and lands once | Screenshot of the list with each title once |
-| `ADM-133` | Journey | Garden · Pool | More offers than your commitment limit holds seeding and says why | Screenshots of the review as an offer and as a request |
+| `ADM-133` | Journey | Garden · Pool | More offers than your promise limit holds seeding and says why | Screenshots of the review as an offer and as a request |
 | `ADM-135` | Journey | Garden · Commitment | Seed Another Like This opens the seed wizard on an earlier commitment's answers | Screenshots of the first step and the review |
 | `ADM-136` | Journey | Garden · Commitment | A steward on the commitment's team is offered no way to confirm it | Screenshot of the inspector with no confirm act |
 | `ADM-137` | Journey | Garden · Pool | Cancel Season… is offered only while the season has no live commitments | Screenshots of the season's acts before and after |
-| `ADM-138` | Transaction | Garden · Pool | Cancelling the open season frees the pool to start another | Screenshots of the card after the cancellation and with the new season |
+| `ADM-138` | Transaction | Garden · Pool | Canceling the open season frees the pool to start another | Screenshots of the card after the cancellation and with the new season |
 | `ADM-141` | Journey | Garden · Commitment | Kept is withheld for a record that had expired before the dispute | Screenshot of the dialog without Kept |
 | `ADM-142` | Journey | Garden · Pool | Remove drops one added commitment from the sitting | Screenshot of the review after the removal |
 | `ADM-143` | Journey | Garden · Pool | Remove This One drops the commitment under review and hands back the newest of the rest | Screenshot of the review after the removal |
@@ -517,14 +517,14 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 | `ADM-047` | Data integrity | Hub · Work | The admin work queue shows a gardener's ENS name and avatar | Screenshot of the queue row and submission |
 | `ADM-099` | Journey | Shell | View Public opens the garden's public page | Screenshot of the public page |
 | `ADM-108` | Journey | Shell | Mobile chrome: the action button and bottom navigation reach the same acts | Screenshots at phone width |
-| `ADM-134` | Journey | Garden · Pool | At your commitment limit, Add Another Like This is held for an offer but not for a request | Screenshots of the footer as an offer and as a request |
+| `ADM-134` | Journey | Garden · Pool | At your promise limit, Add Another Like This is held for an offer but not for a request | Screenshots of the footer as an offer and as a request |
 | `ADM-146` | Data integrity | Hub · Confirm | A commitment that has left the confirmation queue says so when its link is opened | Screenshot of the dialog opened from the copied address |
 | `ADM-149` | Journey | Garden · Pool | Closing Pool Settings with an unsaved change asks Discard Changes? | Screenshot of the Discard Changes? prompt |
 | `ADM-152` | Journey | Garden · Pool | A season with live commitments offers no End and says how many are live | Screenshot of the season with its live count |
 | `ADM-155` | Data integrity | Garden · Pool | When settlement is not ready, Pool Funding names what is in the way | Screenshots of the rail and of the details |
 | `ADM-160` | Journey | Garden · Pool | Each count on the pool tab lands on exactly what it counts | Screenshots of the counts and of each filtered list |
 | `ADM-161` | Content & vocabulary | Garden · Pool | The protocol's pool is marked Protocol pool on its status card | Screenshots of both Pool Status cards |
-| `ADM-162` | Resilience | Garden · Pool | Offline, Set Up Commitments says why it waits | Screenshots of the card offline and online |
+| `ADM-162` | Resilience | Garden · Pool | Offline, Set Up Promises says why it waits | Screenshots of the card offline and online |
 | `ADM-163` | Content & vocabulary | Garden · Pool | Setting up states the wallet-prompt count before a write | Screenshot of the note and wallet-prompt count |
 | `ADM-167` | Content & vocabulary | Garden · Pool | The pool's description stops at 420 characters and a season's name at 120, each counted as you type | Screenshots of both setup fields at their limits and of the count in Edit Pool |
 | `ADM-168` | Content & vocabulary | Garden · Settings | A garden's name is counted the way the contract counts it, so an accented letter counts as two | Screenshots of both name fields past the limit |
@@ -547,18 +547,18 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 
 ## Docs
 
-### P0 — run these first (10) {#docs-p0}
+### P0: run these first (10) {#docs-p0}
 
 | ID | Kind | Area | Scenario | Evidence requested |
 |---|---|---|---|---|
 | `DOCS-014` | Content & vocabulary | Gardener Guide | Join a Garden guide page walks true against the live product | List of drifted steps with the page path |
 | `DOCS-015` | Content & vocabulary | Gardener Guide | Submit Work guide page walks true against the live product | List of drifted steps with the page path |
-| `DOCS-016` | Content & vocabulary | Gardener Guide | Recovery and Sync guide page walks true against the live product | List of drifted steps with the page path |
-| `DOCS-017` | Content & vocabulary | Gardener Guide | Track Status and Attestations guide page walks true against the live product | List of drifted steps with the page path |
+| `DOCS-016` | Content & vocabulary | Gardener Guide | Recover Unsent Work guide page walks true against the live product | List of drifted steps with the page path |
+| `DOCS-017` | Content & vocabulary | Gardener Guide | Track Your Work guide page walks true against the live product | List of drifted steps with the page path |
 | `DOCS-018` | Content & vocabulary | Steward Guide | Create a Garden guide page walks true against the live product | List of drifted steps with the page path |
-| `DOCS-019` | Content & vocabulary | Steward Guide | Managing Actions guide page walks true against the live product | List of drifted steps with the page path |
+| `DOCS-019` | Content & vocabulary | Steward Guide | Manage Actions guide page walks true against the live product | List of drifted steps with the page path |
 | `DOCS-020` | Content & vocabulary | Steward Guide | Make an Assessment guide page walks true against the live product | List of drifted steps with the page path |
-| `DOCS-021` | Content & vocabulary | Steward Guide | Review and Approve Work guide page walks true against the live product | List of drifted steps with the page path |
+| `DOCS-021` | Content & vocabulary | Steward Guide | Review Work guide page walks true against the live product | List of drifted steps with the page path |
 | `DOCS-022` | Content & vocabulary | Steward Guide | Mint Impact Certificate guide page walks true against the live product | List of drifted steps with the page path |
 | `DOCS-023` | Content & vocabulary | Steward Guide | Funding and Governance guide page walks true against the live product | List of drifted steps with the page path |
 
@@ -568,9 +568,9 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 |---|---|---|---|---|
 | `DOCS-001` | Journey | Site | Sidebar, top nav, and direct URLs resolve across sections | Screenshots or notes |
 | `DOCS-002` | Journey | Site | Local search returns relevant results with keyboard flow | Screenshot of results |
-| `DOCS-003` | Content & vocabulary | Site | Glossary anchor links resolve — they are a client API | Screenshots of anchored terms |
+| `DOCS-003` | Content & vocabulary | Site | Glossary anchor links resolve (they are a client API) | Screenshots of anchored terms |
 | `DOCS-004` | Accessibility | Site | Docs shell holds at 375px and 1440px | Screenshots at both widths |
-| `DOCS-011` | Content & vocabulary | Builder Docs | Builder onboarding path: getting-started and env-management commands run on a fresh checkout | Terminal transcript |
+| `DOCS-011` | Content & vocabulary | Builder Docs | Builder onboarding path: Getting Started commands run on a fresh checkout | Terminal transcript |
 | `DOCS-024` | Content & vocabulary | Funder Guide | Donate to a Garden guide page walks true against the live product | List of drifted steps with the page path |
 | `DOCS-025` | Content & vocabulary | Funder Guide | Endow a Garden guide page walks true against the live product | List of drifted steps with the page path |
 | `DOCS-026` | Content & vocabulary | Funder Guide | Remove an Endowment guide page walks true against the live product | List of drifted steps with the page path |
@@ -581,12 +581,12 @@ The catalog contract test enforces all of this, and [retired cases](#retired-cas
 |---|---|---|---|---|
 | `DOCS-005` | Accessibility | Site | Docs are navigable by keyboard with visible focus | Notes or short recording |
 | `DOCS-006` | Accessibility | Site | Dark mode and mermaid diagrams render legibly | Paired light/dark screenshots |
-| `DOCS-027` | Content & vocabulary | Builder Docs | Builder journey pages describe the shipped flows | List of drifted statements with the page path |
 | `DOCS-028` | Content & vocabulary | Builder Docs | Quality pages reflect the QA process and point at the catalog | Screenshot of the Test Cases page beside the QA app |
-| `DOCS-029` | Content & vocabulary | Builder Docs | Testing pages' commands run as written | Terminal output for each command |
+| `DOCS-029` | Content & vocabulary | Builder Docs | Testing Guide commands run as written | Terminal output for each command |
 | `DOCS-030` | Content & vocabulary | Reference | FAQ and product history are current | List of stale answers or missing releases |
 | `DOCS-031` | Content & vocabulary | Reference | Generated ontology, claims, and glossary pages render and agree | Screenshots of any broken block or mismatched term |
 | `DOCS-032` | Content & vocabulary | Builder Docs | Deployment status and GitHub Actions pages match the live pipeline | List of drifted rows with the page path |
+| `DOCS-033` | Content & vocabulary | Builder Docs | Anatomy of a Work Submission traces the shipped flow | List of drifted statements or dead links with the page path |
 
 ## Retired cases {#retired-cases}
 
@@ -605,12 +605,12 @@ Retired cases never ship to a run sheet, but their IDs stay reserved and their h
 | `ADM-025` | Admin Dashboard · Commitment inspector steward acts: confirm ordinary/fallback, raise & resolve dispute, expire, recovery overrides | 2026-09-07 | Split into one row per inspector act | `ADM-075`, `ADM-076`, `ADM-077`, `ADM-078`, `ADM-079`, `ADM-080`, `ADM-081`, `ADM-082` |
 | `ADM-026` | Admin Dashboard · Seed a commitment: 4-step wizard, named confirmers, review, queued creation | 2026-09-21 | Its result changed: a wallet send now goes at once, so the queued row this case expected before the indexer caught up no longer appears. The wizard's validation and review are ADM-140; the send and the landing are ADM-125. | `ADM-140`, `ADM-125` |
 | `ADM-027` | Admin Dashboard · Coordination: create signal pools, manage strategies, register/deregister items, allocate weights | 2026-09-07 | Split by act: create pools, strategies, register, allocate | `ADM-090`, `ADM-091`, `ADM-092`, `ADM-093` |
-| `ADM-028` | Admin Dashboard · Hypercert marketplace: approvals gate, list for yield, cancel listing — including whether it's reachable at all | 2026-09-07 | Split by act: approve and list, cancel listing; reachability is part of the listing row | `ADM-094`, `ADM-095` |
+| `ADM-028` | Admin Dashboard · Hypercert marketplace: approvals gate, list for yield, cancel listing, including whether it's reachable at all | 2026-09-07 | Split by act: approve and list, cancel listing; reachability is part of the listing row | `ADM-094`, `ADM-095` |
 | `ADM-029` | Admin Dashboard · Global chrome: garden switch chip, command palette (⌘K), notifications sheet, view-public | 2026-09-07 | Split by act: garden switch, palette, notifications, view public | `ADM-096`, `ADM-097`, `ADM-098`, `ADM-099` |
 | `ADM-039` | Admin Dashboard · Seed an approval-gated protocol Request for a concrete service | 2026-09-21 | The relay walks the Work rails, which a service Request has no action rows for. Its successor seeds a garden-work Request with an action row, which is a different result from the service Request this case verified. | `ADM-139` |
 | `ADM-063` | Admin Dashboard · Edit pool settings and save | 2026-09-23 | Its result changed: a save no longer sends one transaction. The dialog says how many times the wallet will ask and shows each change landing (ADM-147); a save stopped partway names what was saved, and Try Again sends only the rest (ADM-148). Closing with an unsaved change is ADM-149. | `ADM-147`, `ADM-149` |
-| `ADM-072` | Admin Dashboard · Pause and resume the payouts jar | 2026-09-19 | The manage modal was removed; pause and resume have no control until they return through the garden account | — |
-| `ADM-073` | Admin Dashboard · Emergency-withdraw the payouts jar | 2026-09-19 | The manage modal was removed; emergency withdraw has no control until it returns through the garden account | — |
+| `ADM-072` | Admin Dashboard · Pause and resume the payouts jar | 2026-09-19 | The manage modal was removed; pause and resume have no control until they return through the garden account | None |
+| `ADM-073` | Admin Dashboard · Emergency-withdraw the payouts jar | 2026-09-19 | The manage modal was removed; emergency withdraw has no control until it returns through the garden account | None |
 | `ADM-076` | Admin Dashboard · Confirm a commitment as garden fallback or Green Goods team fallback with a reason | 2026-09-21 | Split by outcome: the garden fallback, the Green Goods team fallback, and the case where neither is offered are three independent results. The fallback reason is recorded as written, not pinned. | `ADM-110`, `ADM-111`, `ADM-112` |
 | `ADM-078` | Admin Dashboard · Resolve a dispute with each outcome | 2026-09-21 | Split by outcome: four disputed commitments in one case produced one verdict for four results. The two guards that withhold Kept, a steward on the roster and a record that had expired, are a case each. | `ADM-113`, `ADM-114`, `ADM-115`, `ADM-116`, `ADM-117`, `ADM-141` |
 | `ADM-083` | Admin Dashboard · Create and finalize a payout plan for a fulfilled commitment | 2026-09-21 | Split by act: creating and finalizing a payout plan are two transactions with two results. | `ADM-118`, `ADM-119` |
@@ -621,10 +621,11 @@ Retired cases never ship to a run sheet, but their IDs stay reserved and their h
 | `ADM-185` | Admin Dashboard · The floating action button shows its primary action's icon | 2026-10-04 | Its result changed: the button no longer borrows its first action's icon. It shows a plus in every workspace, so the gear on Garden and the Add Member icon on Community this case expected no longer appear. | `ADM-197` |
 | `DOCS-007` | Docs · Gardener guide walks true against the live PWA (joining, uploading work, offline sync, track status) | 2026-09-07 | Split into one row per gardener guide page so drift is tracked per page | `DOCS-014`, `DOCS-015`, `DOCS-016`, `DOCS-017` |
 | `DOCS-008` | Docs · Steward guide walks true against the live admin (create garden, review work, assessments, actions/payouts/endowments) | 2026-09-07 | Split into one row per steward guide page so drift is tracked per page | `DOCS-018`, `DOCS-019`, `DOCS-020`, `DOCS-021`, `DOCS-022`, `DOCS-023` |
-| `DOCS-009` | Docs · Funder guide walks true against the editorial funding surfaces (donate, fund, vaults, withdraw) — read-only | 2026-09-07 | Split into one row per funder guide page | `DOCS-024`, `DOCS-025`, `DOCS-026` |
-| `DOCS-010` | Docs · Evaluator guide holds: in-product assessment steps plus runnable query-eas / query-indexer / export instructions | 2026-09-07 | The evaluator guide with runnable query samples does not exist in the docs tree; the in-product assessment steps live in the steward guide | — |
+| `DOCS-009` | Docs · Funder guide walks true, read-only, against the editorial funding surfaces (donate, fund, vaults, withdraw) | 2026-09-07 | Split into one row per funder guide page | `DOCS-024`, `DOCS-025`, `DOCS-026` |
+| `DOCS-010` | Docs · Evaluator guide holds: in-product assessment steps plus runnable query-eas / query-indexer / export instructions | 2026-09-07 | The evaluator guide with runnable query samples does not exist in the docs tree; the in-product assessment steps live in the steward guide | None |
 | `DOCS-012` | Docs · Builder journeys and quality pages describe shipped reality | 2026-09-07 | Split by page group: journeys, quality, testing | `DOCS-027`, `DOCS-028`, `DOCS-029` |
 | `DOCS-013` | Docs · Reference layer truth: FAQ, changelog, generated ontology/claims pages, glossary consistency | 2026-09-07 | Split by check: FAQ and product history, generated pages; the changelog now redirects to product history | `DOCS-030`, `DOCS-031` |
+| `DOCS-027` | Docs · Builder journey pages describe the shipped flows | 2026-09-22 | The builder docs rebuild deleted the journey pages. The Anatomy of a Work Submission page now traces the flow, and the Persona Surfaces matrix moved to Reference. | `DOCS-033` |
 | `PUB-004` | Public Website · Fund page and funding dialog render without provider crash | 2026-08-29 | Superseded by the end-to-end funding walks in catalog v2 | `PUB-014`, `PUB-030` |
 | `PUB-005` | Public Website · Funding dialog is usable on mobile | 2026-08-29 | Mobile funding-dialog coverage folded into the end-to-end donate walk in catalog v2 | `PUB-014` |
 | `PUB-009` | Public Website · Vaults page explains donate/endow boundaries and fails safely | 2026-08-29 | Vaults explanation and safe-failure coverage folded into the vault checkout and read-only browse walks | `PUB-017`, `PUB-030` |
@@ -635,7 +636,7 @@ Retired cases never ship to a run sheet, but their IDs stay reserved and their h
 | `PUB-022` | Public Website · Home engagement: seasonal-letter subscribe, schedule a call, persona accordion | 2026-09-07 | Split by act: subscribe, schedule a call, accordion | `PUB-042`, `PUB-043`, `PUB-044` |
 | `PUB-023` | Public Website · Garden detail deep interactions: field-note drawer, lightbox, show-more, Support handoff | 2026-09-07 | Split by act; the note drawer and lightbox were already PUB-026 | `PUB-026`, `PUB-045`, `PUB-046` |
 | `PUB-024` | Public Website · Impact filters, pagination, evidence drawer, and Cite this record | 2026-09-07 | Split reading from acting: filters and paging, evidence dialog and Cite | `PUB-047`, `PUB-048` |
-| `PUB-027` | Public Website · Read the public commitments story across pool states | 2026-09-21 | Split by outcome: pool states, unit labels, finished cycles, cancelled cycles, and a metadata outage are independent results. Paging finished cycles was already PUB-045. | `PUB-056`, `PUB-057`, `PUB-045`, `PUB-058`, `PUB-059` |
+| `PUB-027` | Public Website · Read the public commitments story across pool states | 2026-09-21 | Split by outcome: pool states, unit labels, finished cycles, canceled cycles, and a metadata outage are independent results. Paging finished cycles was already PUB-045. | `PUB-056`, `PUB-057`, `PUB-045`, `PUB-058`, `PUB-059` |
 | `PWA-021` | PWA · Join flows: open joining, request-to-join with note, withdraw request, steward welcome/decline | 2026-09-07 | Split by actor and act after the 2026-09-04 call: one row per join act | `PWA-051`, `PWA-052`, `PWA-053`, `PWA-054` |
 | `PWA-027` | PWA · Home orientation: pull-to-refresh (online/offline), filters, drawer entry points, arrival toast | 2026-09-07 | Split by act after the 2026-09-04 call: refresh, filters, and the arrival toast each stand alone; the drawer entry points open each drawer's own rows | `PWA-067`, `PWA-068`, `PWA-069` |
 | `PWA-029` | PWA · Send tokens: recipient search/QR/browse, amount+Max, review with note, confirm | 2026-09-07 | Split reading from writing and by recipient path: balances and Receive, a browse-and-send, the recipient entry paths, and the governance send | `PWA-070`, `PWA-071`, `PWA-072`, `PWA-073` |
@@ -655,13 +656,13 @@ Retired cases never ship to a run sheet, but their IDs stay reserved and their h
 | `PWA-082` | PWA · Compose and place a request, including the garden-work kind with action rows | 2026-09-21 | Split by kind: a garden-work request and a help-or-service request are two placements with different rules. | `PWA-108`, `PWA-109` |
 | `PWA-083` | PWA · Abandon a composer draft, then choose Resume Draft or Start Fresh | 2026-09-21 | Split by choice: Resume Draft and Start Fresh are two independent results. | `PWA-110`, `PWA-111` |
 | `PWA-093` | PWA · Retry or discard a failed queued commitment act | 2026-09-21 | Split by act, and its setup no longer holds: a wallet reader's declined prompt now drops the act instead of leaving it to give up. Try Again and Discard are separate results for a passkey reader. | `PWA-112`, `PWA-113` |
-| `PWA-104` | PWA · Offer It Again on an expired offer returns to the garden to compose anew | 2026-09-21 | The behaviour changed: Offer It Again now opens the composer on the earlier offer's answers instead of returning to the garden, and it goes to whoever made the commitment. | `PWA-115` |
+| `PWA-104` | PWA · Offer It Again on an expired offer returns to the garden to compose anew | 2026-09-21 | The behavior changed: Offer It Again now opens the composer on the earlier offer's answers instead of returning to the garden, and it goes to whoever made the commitment. | `PWA-115` |
 | `PWA-AND-003` | PWA · [Android] Camera and gallery image handling works on Android | 2026-09-07 | Split into the Android twins of the iOS capture and gallery rows | `PWA-AND-007`, `PWA-AND-008` |
 | `PWA-IOS-009` | PWA iOS · Commitment compose, accept/decline, and proof loop is coherent | 2026-08-29 | PWA tabs merged in catalog v2; commitments are covered by device-neutral rows | `PWA-032`, `PWA-033`, `PWA-034` |
 | `PWA-IOS-011` | PWA iOS · Profile handles identity, language, and session exit | 2026-08-29 | PWA tabs merged in catalog v2; profile is covered by the device-neutral row | `PWA-038` |
-| `XPLAT-001` | Cross Surface · No code-correct but visually broken controls | 2026-08-29 | Cross Surface dissolved in catalog v2; visual integrity is checked inside each surface's shell and accessibility rows | — |
+| `XPLAT-001` | Cross Surface · No code-correct but visually broken controls | 2026-08-29 | Cross Surface dissolved in catalog v2; visual integrity is checked inside each surface's shell and accessibility rows | None |
 | `XPLAT-002` | Cross Surface · No banned or wrong-surface vocabulary appears | 2026-08-29 | Cross Surface dissolved in catalog v2; replaced by per-surface vocabulary rows | `PUB-033`, `PWA-045`, `ADM-035` |
 | `XPLAT-003` | Cross Surface · Network/media failures degrade gracefully | 2026-08-29 | Cross Surface dissolved in catalog v2; replaced by per-surface error-recovery rows, with the image-failure half covered by the editorial media-fallback row | `PUB-008`, `PWA-040`, `ADM-032`, `PUB-025` |
-| `XPLAT-004` | Cross Surface · Every failing test has enough evidence to triage | 2026-08-29 | Cross Surface dissolved in catalog v2; evidence expectations now live on every row's evidence field | — |
+| `XPLAT-004` | Cross Surface · Every failing test has enough evidence to triage | 2026-08-29 | Cross Surface dissolved in catalog v2; evidence expectations now live on every row's evidence field | None |
 | `XPLAT-006` | Cross Surface · Light and dark themes keep every control legible | 2026-08-29 | Cross Surface dissolved in catalog v2; theme legibility is covered per surface (editorial, docs, and admin) | `PUB-025`, `DOCS-006`, `ADM-036` |
 | `XPLAT-008` | Cross Surface · Long lists stay usable at real data volumes | 2026-08-29 | Cross Surface dissolved in catalog v2; behavior at real data volume is covered per surface | `PUB-003`, `ADM-031` |

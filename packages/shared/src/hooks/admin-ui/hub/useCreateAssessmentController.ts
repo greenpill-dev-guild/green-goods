@@ -161,6 +161,11 @@ export function useCreateAssessmentController() {
     submitCreation,
     reset: resetWorkflow,
     draft,
+    isPending,
+    isCheckingConfirmation,
+    checkConfirmation,
+    confirmWalletCancellation,
+    recoveryKey,
   } = useCreateAssessmentWorkflow({ gardenId: gardenId ?? undefined });
   const { loadDraft, saveDraft, clearDraft, draftKey } = draft;
   const draftPersistenceWarningShownRef = useRef(false);
@@ -387,11 +392,9 @@ export function useCreateAssessmentController() {
     );
 
   const handleSubmit = async () => {
-    // The domain step clears a domain this garden does not document, or one
-    // that no longer exists, but a restored draft can reopen on a later step
-    // and never show it. Such a domain is cleared first, with its actions and
-    // metrics, and the steward returns to the domain step to choose again;
-    // validation alone would only say the form is incomplete.
+    if (isSubmitting || isPending || isSent) return;
+    // A restored draft may select a domain this garden no longer documents.
+    // Return to the domain step so the steward can choose a valid one.
     const allowedDomains =
       normalizedGardenDomainMask === undefined
         ? KNOWN_DOMAINS
@@ -410,7 +413,6 @@ export function useCreateAssessmentController() {
       showIncompleteForm();
       return;
     }
-
     // Which domain an assessment may carry is the garden's to say, so Submit
     // waits while its domains load or after their read failed.
     if (normalizedGardenDomainMask === undefined) {
@@ -423,7 +425,6 @@ export function useCreateAssessmentController() {
       );
       return;
     }
-
     if (!address) {
       refuseSubmit(
         { id: "app.assessment.accountRequired", defaultMessage: "Sign in required" },
@@ -434,11 +435,10 @@ export function useCreateAssessmentController() {
       );
       return;
     }
-
     const payload = buildWorkflowPayload(form);
     if (!payload) {
       refuseSubmit(
-        { id: "app.assessment.selectGarden", defaultMessage: "Select a Garden" },
+        { id: "app.assessment.selectGarden", defaultMessage: "Select a garden" },
         {
           id: "app.assessment.selectGardenMessage",
           defaultMessage: "Choose a garden to link this assessment.",
@@ -446,9 +446,7 @@ export function useCreateAssessmentController() {
       );
       return;
     }
-
-    // A failed send keeps the answers it was given, and the machine's own retry
-    // would send those again. Clearing it first sends the answers as they stand.
+    // Reset a rejected send so retry uses the edited answers. Accepted sends stay pending.
     if (hasError) resetWorkflow();
     const started = startCreation(payload);
     if (!started) {
@@ -464,15 +462,13 @@ export function useCreateAssessmentController() {
       );
       return;
     }
-
     setSubmittedForm(form);
     submitCreation();
   };
-
   return {
     canReview,
     // The Review stays up through the done state, after the store let the draft go.
-    currentStep: isSent ? stepConfigs.length - 1 : currentStep,
+    currentStep: isSent || isPending ? stepConfigs.length - 1 : currentStep,
     goToStep,
     errorMessage: txError.message,
     errorTitle: txError.title,
@@ -484,9 +480,14 @@ export function useCreateAssessmentController() {
     handleNext: stepValidation.handleNext,
     handleSubmit,
     hasError,
-    isDirty,
+    isDirty: isDirty && !isPending,
     isSent,
     isSubmitting,
+    isPending,
+    isCheckingConfirmation,
+    checkConfirmation,
+    confirmWalletCancellation,
+    recoveryKey,
     normalizedGardenDomainMask,
     reviewForm: isSent && submittedForm ? submittedForm : form,
     showValidation: stepValidation.showValidation,

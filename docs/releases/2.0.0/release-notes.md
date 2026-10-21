@@ -1,6 +1,6 @@
-# October 2026 — v2.0.0
+# October 2026: v2.0.0
 
-Prepared copy for publication after the October 11 production checks pass.
+Published October 14, 2026 as the curated section of the [v2.0.0 GitHub Release](https://github.com/greenpill-dev-guild/green-goods/releases/tag/v2.0.0), above the generated PR notes. Scope narrowed October 13 to the app-only cut. The original October 11 date is not a deployment receipt.
 
 Green Goods 2.0 brings a Garden's commitments, documented work, and review into one connected flow. It also rebuilds the steward workspace and improves the installed app for work in the field.
 
@@ -14,7 +14,7 @@ Green Goods 2.0 brings a Garden's commitments, documented work, and review into 
 ## For stewards
 
 - Use the rebuilt Hub, Garden, and Community workspace to find reviews and the next action.
-- Set up a commitment pool, seed promises, manage seasons and funding, and review claims with the target and wallet steps shown before acting.
+- Set up a commitment pool, seed promises, manage seasons, and review claims with the target and wallet steps shown before acting.
 - Review membership and steward requests separately. A signed steward request asks for access; an authorized owner or steward still assigns the role.
 - People with no Garden access can open Profile, copy their account address, sign out, and request steward access for a selected Garden. English and Spanish request screens use stable dialog/sheet sizing and compact actions.
 - Retry a proven unsent Work submission with corrected details. Closing a submitted Review preserves its confirmation record; uncertain sends keep their recovery identity.
@@ -27,14 +27,13 @@ Public Garden pages connect documented work, commitments, completed cycles, and 
 
 This release includes Commitment Pooling contract and indexing support, the public Garden impact API, and request-kind support in the Agent API with a preserving SQLite migration. Visible Garden roles use **Steward**; deployed role identifiers retain compatibility.
 
-Funding and settlement actions remain subject to each Garden's live deployment, permissions, available funding, and activation status. A pending transfer is not a completed payout. Existing GardenAccount upgrades and separately gated settlement activation are not promised by this announcement.
+G$ settlement actions, contributor payouts, settlement-account configuration and new G$ reward promises are deferred to a later release. The 2.0 app must not offer or send those actions, even where the contracts are active. Existing settlement records can remain readable; a pending transfer is not a completed payout. This app cut does not change contract authority or activate additional settlement capabilities.
 
 ## Getting started
 
 - [Open Green Goods](https://greengoods.app)
 - [Open the steward workspace](https://admin.greengoods.app)
 - [Install or update the app](https://docs.greengoods.app/community/gardener-guide/installing-and-updating)
+- [Make and keep a promise](https://docs.greengoods.app/community/gardener-guide/commitments)
 - [Run a commitment pool](https://docs.greengoods.app/community/steward-guide/commitment-pooling)
 - [Passkey sign-in and recovery](https://docs.greengoods.app/builders/integrations/passkey)
-
-Release link, available after the cut: https://github.com/greenpill-dev-guild/green-goods/releases/tag/v2.0.0.

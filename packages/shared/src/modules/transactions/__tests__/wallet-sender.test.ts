@@ -24,7 +24,6 @@ import { WalletSender, type WalletSenderDeps } from "../wallet-sender";
 // Test fixtures
 // ============================================
 
-const VALID_RECIPIENT = "0x1111111111111111111111111111111111111111" as const;
 const TEST_CALL = createMockContractCall();
 
 // ============================================

@@ -30,8 +30,6 @@ import {
 // run against a fixture would read the repository being pushed instead.
 clearRepositoryLocalGitVariables();
 
-const GIBIBYTE = 1024 ** 3;
-
 test("check selects explicit checks without dropping mandatory overrides", () => {
   const options = parseArguments(["--only", "lint", "--plan", "--json"]);
   assert.equal(options.intent, "diagnose");
@@ -858,6 +856,23 @@ test("a receipt covers the environment a check runs with, not only the plan", as
   };
   assert.equal((await run(nvmLoaded)).results[0].reused, true);
   assert.equal(runs, 3);
+  // A host shim that execs the real node leaves a loop guard that starts with the process ID, so
+  // it is new on every run. Where the same shim routes a command is not bookkeeping.
+  const shimmed = (pid) => ({ ...nvmLoaded, DEV_MACHINE_SHIM_TRIED: `${pid}:node:/Users/dev/.local/share/mise/shims` });
+  assert.equal((await run(shimmed(70001))).results[0].reused, true);
+  assert.equal((await run(shimmed(70002))).results[0].reused, true);
+  // A push can hand the hook its focus in GREEN_GOODS_PUSH_TEST_PATHS and GG_PUSH_GATE_ARGS. The
+  // hook turns them into --test-path and --check flags, which the plan records, so a manual run
+  // given the same flags made the same proof.
+  const focused = {
+    ...nvmLoaded,
+    GREEN_GOODS_PUSH_TEST_PATHS: "shared:src/__tests__/workflows/authServices.test.ts",
+    GG_PUSH_GATE_ARGS: "--check ontology",
+  };
+  assert.equal((await run(focused)).results[0].reused, true);
+  assert.equal(runs, 3);
+  await run({ ...shimmed(70003), DEV_MACHINE_ENTRY: "builder /Users/dev/green-goods" });
+  assert.equal(runs, 4);
 
   // The store keeps a digest of the environment, never its values.
   await run({ ...shell, SECRET_TOKEN: "do-not-store-me" });

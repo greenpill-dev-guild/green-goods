@@ -428,8 +428,8 @@ function validateRepoDerivedGuidanceFacts() {
     .map((name) => `docs/docs/builders/agentic/${name}`);
   for (const relPath of agenticDocs) {
     const doc = read(relPath);
-    if (doc.includes(".claude/context/intent.md") || /(?:^|[^/])intent\.md\b/m.test(doc)) {
-      fail(`${relPath}: references nonexistent intent.md; use product.md and values.md`);
+    if (doc.includes(".claude/context/intent.md" /* retired */) || /(?:^|[^/])intent\.md\b/m.test(doc)) {
+      fail(`${relPath}: references retired intent.md; use product.md and values.md`);
     }
   }
 
@@ -482,7 +482,7 @@ function validateRepoDerivedGuidanceFacts() {
     "tests/fixtures/contract-helpers.ts",
     "tests/helpers/test-utils.ts",
     "tests/helpers/test-config.ts",
-    "tests/mocks/pimlico-handlers.ts",
+    "tests/specs/client.passkey.spec.ts",
     "scripts/dev/test-e2e.js",
   ]) {
     if (!exists(relPath) || !testsReadme.includes(relPath)) {
@@ -500,14 +500,12 @@ function validateRepoDerivedGuidanceFacts() {
     }
   }
 
-  const playwrightDoc = read("docs/docs/builders/testing/playwright.mdx");
-  if (playwrightDoc.includes("npx playwright")) {
-    fail("docs/docs/builders/testing/playwright.mdx: use the repo's Bun Playwright entrypoint");
+  const testingGuide = read("docs/docs/builders/testing/index.mdx");
+  if (testingGuide.includes("npx playwright")) {
+    fail("docs/docs/builders/testing/index.mdx: use the repo's Bun Playwright entrypoint");
   }
-
-  const forgeDoc = read("docs/docs/builders/testing/forge.mdx");
-  if (/\bbun build:(?:fast|full|target)\b/.test(forgeDoc)) {
-    fail("docs/docs/builders/testing/forge.mdx: package scripts require `bun run`");
+  if (/\bbun build:(?:fast|full|target)\b/.test(testingGuide)) {
+    fail("docs/docs/builders/testing/index.mdx: package scripts require `bun run`");
   }
 }
 

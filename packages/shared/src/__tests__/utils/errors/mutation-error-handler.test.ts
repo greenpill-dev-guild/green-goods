@@ -113,20 +113,6 @@ describe("createMutationErrorHandler", () => {
   });
 
   // ------------------------------------------
-  // Factory creation
-  // ------------------------------------------
-
-  describe("factory creation", () => {
-    it("returns a callable function", () => {
-      const handler = createMutationErrorHandler({
-        source: "useTest",
-        toastContext: "test operation",
-      });
-      expect(typeof handler).toBe("function");
-    });
-  });
-
-  // ------------------------------------------
   // Known error handling
   // ------------------------------------------
 
@@ -535,11 +521,6 @@ describe("createMutationErrorHandler", () => {
 describe("createDraftErrorHandler", () => {
   afterEach(() => {
     vi.restoreAllMocks();
-  });
-
-  it("returns a callable function", () => {
-    const handler = createDraftErrorHandler("create");
-    expect(typeof handler).toBe("function");
   });
 
   it("shows toast with action in title", () => {

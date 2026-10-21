@@ -137,7 +137,7 @@ export function runningStatus(
   }
   return formatMessage({
     id: "cockpit.garden.pool.setup.live.checking",
-    defaultMessage: "Reading the chain before the next change…",
+    defaultMessage: "Checking the pool before the next change…",
   });
 }
 
@@ -156,7 +156,7 @@ export function writeTitle(
     case "setProviderOpenCommitmentCap":
       return formatMessage({
         id: "cockpit.garden.pool.setup.todo.cap",
-        defaultMessage: "Set the commitment limit",
+        defaultMessage: "Set the promise limit",
       });
     case "markPoolReady":
       return formatMessage({
@@ -206,7 +206,7 @@ export function writeDone(
     case "setProviderOpenCommitmentCap":
       return formatMessage({
         id: "cockpit.garden.pool.setup.write.cap",
-        defaultMessage: "Commitment limit set",
+        defaultMessage: "Promise limit set",
       });
     case "markPoolReady":
       return formatMessage({
@@ -252,12 +252,12 @@ export function writeWhy(action: PoolSetupAction, formatMessage: FormatMessage):
     case "setProviderOpenCommitmentCap":
       return formatMessage({
         id: "cockpit.garden.pool.setup.why.cap",
-        defaultMessage: "Caps how many open commitments one person can hold.",
+        defaultMessage: "Caps how many open promises one person can hold.",
       });
     case "markPoolReady":
       return formatMessage({
         id: "cockpit.garden.pool.setup.why.ready",
-        defaultMessage: "The chain checks that the agreement and the limit are in place.",
+        defaultMessage: "Checks that the agreement and the limit are in place.",
       });
     case "seedCycle":
       return formatMessage({
@@ -272,7 +272,7 @@ export function writeWhy(action: PoolSetupAction, formatMessage: FormatMessage):
     case "openCycle":
       return formatMessage({
         id: "cockpit.garden.pool.setup.why.openCycle",
-        defaultMessage: "Fixes the split for good. Commitments can start.",
+        defaultMessage: "Fixes the split for good. Promises can start.",
       });
   }
 }

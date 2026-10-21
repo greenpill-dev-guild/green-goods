@@ -26,6 +26,7 @@ import {
 import { withHeldToast } from "../../../../../shared/.storybook/decorators";
 import { FIXTURE_WORK_MEDIA, hoursAgo } from "../../../../../shared/.storybook/fixtures";
 import { resetHookMocks } from "../../../../../shared/.storybook/moduleMocks";
+import { DOCUMENTATION_SUBMISSION } from "../../../../../shared/.storybook/submitWorkFixtures";
 import {
   PENDING_ACTIONS,
   type PendingWorkFixture,
@@ -58,7 +59,8 @@ const EMPTY: PendingWorkFixture = {
   onPhone: 0,
 };
 
-const fixtureAt = (moment: Moment) => (moment === "empty" ? EMPTY : pendingWorkFixture(moment));
+const fixtureAt = (moment: Moment, documentationPhoto = false) =>
+  moment === "empty" ? EMPTY : pendingWorkFixture(moment, documentationPhoto);
 
 /** Work in a garden the steward reviews, and a review of theirs still on this phone. */
 function gardenWork(id: string, title: string, overrides: Partial<Work> = {}): Work {
@@ -86,6 +88,8 @@ interface DashboardFrameProps {
   tab: "pending" | "completed";
   /** Where the Pending list stands, as the frames draw it. */
   moment?: Moment;
+  /** Opt-in sourced photograph and fictional work, promise proof and draft records; generic scenarios stay unchanged. */
+  documentationPhoto?: boolean;
   /** A steward's view: work waiting for their review, and their reviews still on this phone. */
   toReview?: Work[];
   decisions?: Work[];
@@ -113,6 +117,7 @@ const NO_UPLOADS: UploadBarState = {
 function DashboardFrame({
   tab,
   moment = "all",
+  documentationPhoto = false,
   toReview = [],
   decisions = [],
   items = [],
@@ -125,7 +130,7 @@ function DashboardFrame({
   uploads,
 }: DashboardFrameProps) {
   const intl = useIntl();
-  const fixture = fixtureAt(moment);
+  const fixture = fixtureAt(moment, documentationPhoto);
   const uploadAction = uploads
     ? buildUploadAction(
         { ...NO_UPLOADS, ...uploads },
@@ -245,7 +250,7 @@ const meta: Meta<typeof DashboardFrame> = {
   args: { tab: "pending" },
   // The list reads drafts, proof and promise links itself; each story hands it the frame's.
   beforeEach: ({ args }) => {
-    const fixture = fixtureAt(args.moment ?? "all");
+    const fixture = fixtureAt(args.moment ?? "all", args.documentationPhoto);
     mocked(useDrafts).mockReturnValue({
       drafts: fixture.drafts,
       draftCount: fixture.drafts.length,
@@ -279,6 +284,50 @@ const meta: Meta<typeof DashboardFrame> = {
 
 export default meta;
 type Story = StoryObj<typeof DashboardFrame>;
+
+/** A mixed garden record: work, promise-linked drafts and proof waiting on this phone. */
+export const PendingWithExamplePhoto: Story = {
+  args: { documentationPhoto: true, uploads: { readyCount: 2 } },
+};
+
+/** Saved items that need a connection before they can reach a steward. */
+export const RecoveryWithExamplePhoto: Story = {
+  args: { documentationPhoto: true, pendingFilter: "upload", uploads: { readyCount: 2 } },
+};
+
+export const OfflineWithExamplePhoto: Story = {
+  args: { documentationPhoto: true, isOffline: true, savedAt: hoursAgo(1) * 1000 },
+};
+
+/** The gardener's own reviewed work; no steward-only "Reviewed by you" rows. */
+export const CompletedWithExamplePhoto: Story = {
+  args: {
+    tab: "completed",
+    completedFilter: "myWorkReviewed",
+    items: [
+      {
+        ...gardenWork("0x5eed04", "Seedling Transplant", {
+          status: "approved",
+          actionUID: 5,
+          gardenerAddress: JOURNEY_VIEWER,
+        }),
+        media: [DOCUMENTATION_SUBMISSION.photo],
+        feedback: DOCUMENTATION_SUBMISSION.note,
+      },
+      gardenWork("0x5eed05", "Compost Turn", {
+        status: "approved",
+        gardenerAddress: JOURNEY_VIEWER,
+        actionUID: 2,
+      }),
+      gardenWork("0x5eed06", "Path Edging", {
+        status: "rejected",
+        gardenerAddress: JOURNEY_VIEWER,
+        actionUID: 6,
+        feedback: "Add a photo showing the full repaired edge.",
+      }),
+    ],
+  },
+};
 
 const READY: Partial<UploadBarState> = { readyCount: 1, preparingCount: 1, isPreparing: true };
 

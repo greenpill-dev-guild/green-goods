@@ -1,7 +1,8 @@
 export const APP_NAME = "Green Goods";
 export const APP_DEFAULT_TITLE = "Green Goods";
 export const APP_TITLE_TEMPLATE = "%s - Green Goods";
-export const APP_DESCRIPTION = "Start Bringing Your Impact Onchain";
+export const APP_DESCRIPTION =
+  "Green Goods helps communities name their needs, make promises, document regenerative work, review it together, and turn the record into support.";
 export const APP_URL = "https://greengoods.app";
 export const APP_ICON = "https://greengoods.app/icon.png";
 
@@ -18,3 +19,6 @@ export const REPORTING_SUPPORT_CONTACT = "greengoods.app";
 
 // PRD-917: re-enable only after an approved, verified governance rollout.
 export const GOVERNANCE_ENABLED = false;
+
+// 2.0.0 is an app-only cut. Re-enable after the separate settlement release gates pass.
+export const SETTLEMENT_ENABLED = false;

@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p1",
     "created_at": "2026-07-19T21:59:29.102Z",
-    "updated_at": "2026-10-09T19:29:59Z"
+    "updated_at": "2026-10-16T18:57:16Z"
   },
   "links": {
     "brief": "brief.md",
@@ -412,6 +412,14 @@
       "status": "planning_reconciled",
       "branch": "codex/cosmo-local-planning",
       "note": "2026-10-09: PRD-697 and PRD-787 removed from the completed Commitment Pooling project and remain unprojected as the separate lending companion. Historical Done delivery records retain their projects. Gates and lane evidence are unchanged; do not regroup issues through a bulk mirror sync."
+    },
+    {
+      "timestamp": "2026-10-16T18:57:16Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Cleared linear.project. It named Commitment Pooling, which is Completed, so any issue a later sync created would have started in a closed project. Existing records are preserved (stateSyncMode preserve_existing), so PRD-697 and PRD-787 keep their current Linear project either way; open work with no bounded project sits in the active release project. No Linear write happened."
     }
   ]
 }

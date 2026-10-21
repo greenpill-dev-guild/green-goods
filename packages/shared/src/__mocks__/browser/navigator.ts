@@ -9,9 +9,6 @@
 const noopAsync = async () => void 0;
 const noop = () => undefined;
 
-// Store original navigator (undefined in node environment)
-const originalNavigator = typeof navigator !== "undefined" ? global.navigator : undefined;
-
 if (typeof navigator !== "undefined") {
   // Setup clipboard API
   if (!("clipboard" in navigator)) {
@@ -106,27 +103,4 @@ if (typeof navigator !== "undefined") {
   }
 }
 
-// Helper functions for tests
-export const mockOnlineStatus = (isOnline: boolean) => {
-  if (typeof navigator === "undefined") return;
-  Object.defineProperty(global.navigator, "onLine", {
-    value: isOnline,
-    writable: true,
-    configurable: true,
-  });
-};
-
-export const mockStorageEstimate = (quota: number, usage: number) => {
-  if (typeof navigator === "undefined") return;
-  if (global.navigator.storage) {
-    global.navigator.storage.estimate = () => Promise.resolve({ quota, usage });
-  }
-};
-
-export const resetNavigatorMocks = () => {
-  if (!originalNavigator) return;
-  Object.defineProperty(global, "navigator", {
-    value: originalNavigator,
-    writable: true,
-  });
-};
+export {};

@@ -1,5 +1,5 @@
 {
-  "$comment": "Upstream source of truth for QA scenario DEFINITIONS only — results, owners, and defect links live in the Google Sheet and per-run artifacts, never here. Active tabs merged in v2: the installed-PWA iOS/Android tabs became one 'PWA' tab (device-specific rows keep their [iOS]/[Android] scenario prefix and MUST carry requiresProduction or requiresDevice), and 'Cross Surface' dissolved into concrete per-surface rows. Catalog v3 adds top-level journeys: ordered, role-aware choreography over active Test IDs. A case's kind may still be 'journey'; that category describes what the individual case verifies, while top-level journeys describe how people walk multiple cases together. Retired cases keep their historical tab and are never deleted; IDs are never reused. requiresProduction = cannot pass on localhost; requiresDevice = needs a real installed device; the 'tx' tag marks rows whose walk involves real wallet transactions. Every case carries exactly one 'kind' from the top-level kinds list — the public docs expose this category axis, while the QA app keeps its priority and area views; kind 'transaction' if and only if the row carries the 'tx' tag. Lifecycle: every case carries a 'status' from the top-level statuses list. A new case enters as active by pull request with the next number in its surface prefix; wording, step, and evidence edits stay in place; when what a case proves changes it is retired (retiredOn, retiredReason, optional replacedBy naming active successors) and the new check gets a new ID, so past verdicts keep their meaning. Every id ever issued is also registered in scripts/data/qa-test-id-ledger.json (append-only); the contract test rejects a catalog whose ids drift from that ledger.",
+  "$comment": "Upstream source of truth for QA scenario DEFINITIONS only: results, owners, and defect links live in the Google Sheet and per-run artifacts, never here. Active tabs merged in v2: the installed-PWA iOS/Android tabs became one 'PWA' tab (device-specific rows keep their [iOS]/[Android] scenario prefix and MUST carry requiresProduction or requiresDevice), and 'Cross Surface' dissolved into concrete per-surface rows. Catalog v3 adds top-level journeys: ordered, role-aware choreography over active Test IDs. A case's kind may still be 'journey'; that category describes what the individual case verifies, while top-level journeys describe how people walk multiple cases together. Retired cases keep their historical tab and are never deleted; IDs are never reused. requiresProduction = cannot pass on localhost; requiresDevice = needs a real installed device; the 'tx' tag marks rows whose walk involves real wallet transactions. Every case carries exactly one 'kind' from the top-level kinds list. The public docs expose this category axis, while the QA app keeps its priority and area views; kind 'transaction' if and only if the row carries the 'tx' tag. Lifecycle: every case carries a 'status' from the top-level statuses list. A new case enters as active by pull request with the next number in its surface prefix; wording, step, and evidence edits stay in place; when what a case proves changes it is retired (retiredOn, retiredReason, optional replacedBy naming active successors) and the new check gets a new ID, so past verdicts keep their meaning. Every id ever issued is also registered in scripts/data/qa-test-id-ledger.json (append-only); the contract test rejects a catalog whose ids drift from that ledger.",
   "version": 3,
   "tabs": ["Public Website", "PWA", "Admin Dashboard", "Docs"],
   "statuses": [
@@ -16,7 +16,7 @@
     {
       "id": "journey",
       "label": "Journey",
-      "verifies": "A person completes, or is honestly gated out of, a flow in the UI — no wallet transaction involved"
+      "verifies": "A person completes, or is honestly gated out of, a flow in the UI (no wallet transaction involved)"
     },
     {
       "id": "transaction",
@@ -48,17 +48,17 @@
     {
       "id": "service-relay",
       "label": "Service relay: Green Goods → Garden → members",
-      "summary": "Two people follow a protocol Request from the Green Goods pool through Garden delivery, then use a separate Garden commitment to recognize the member's work. Both commitments are the garden-work type: each becomes ready through approved linked Work, not through evidence and Send for Confirmation.",
+      "summary": "Two people follow a protocol Request from the Green Goods pool through garden delivery, then use a separate garden commitment to recognize the member's work. Both commitments are the garden-work type: each becomes ready through approved linked Work, not through evidence and Send for Confirmation.",
       "lanes": [
         {
           "id": "protocol-review",
           "label": "Protocol & review",
-          "role": "Protocol steward and independent steward or evaluator of the test Garden; never a contributor"
+          "role": "Protocol steward and independent steward or evaluator of the test garden; never a contributor"
         },
         {
           "id": "garden-member",
           "label": "Garden & member",
-          "role": "Steward and member of the test Garden; institutional claimant, accountable lead, and contributor"
+          "role": "Steward and member of the test garden; institutional claimant, accountable lead, and contributor"
         }
       ],
       "phases": [
@@ -93,7 +93,7 @@
           "phaseId": "prepare",
           "leadLaneId": "protocol-review",
           "verifyLaneIds": ["garden-member"],
-          "handoff": "Wait until the Garden member can see the starting assessment."
+          "handoff": "Wait until the garden member can see the starting assessment."
         },
         {
           "caseId": "PWA-046",
@@ -105,28 +105,28 @@
           "phaseId": "prepare",
           "leadLaneId": "protocol-review",
           "verifyLaneIds": ["garden-member"],
-          "handoff": "Both people confirm the same Garden and open cycle are visible; the assessment is context, not a prerequisite."
+          "handoff": "Both people confirm the same garden and open cycle are visible; the assessment is context, not a prerequisite."
         },
         {
           "caseId": "ADM-139",
           "phaseId": "protocol-asks",
           "leadLaneId": "protocol-review",
           "verifyLaneIds": ["garden-member"],
-          "handoff": "Wait until the Request appears in the protocol pool for the Garden member."
+          "handoff": "Wait until the Request appears in the protocol pool for the garden member."
         },
         {
           "caseId": "PWA-047",
           "phaseId": "protocol-asks",
           "leadLaneId": "garden-member",
           "verifyLaneIds": ["protocol-review"],
-          "handoff": "The protocol reviewer waits for the pending Garden claim before accepting it."
+          "handoff": "The protocol reviewer waits for the pending garden claim before accepting it."
         },
         {
           "caseId": "ADM-040",
           "phaseId": "protocol-asks",
           "leadLaneId": "protocol-review",
           "verifyLaneIds": ["garden-member"],
-          "handoff": "Both people verify the Request remains in the protocol pool and names the Garden as provider."
+          "handoff": "Both people verify the Request remains in the protocol pool and names the garden as provider."
         },
         {
           "caseId": "PWA-048",
@@ -152,7 +152,7 @@
           "phaseId": "garden-earns",
           "leadLaneId": "protocol-review",
           "verifyLaneIds": ["garden-member"],
-          "handoff": "The Garden member verifies the destination Garden Safe or its readiness state.",
+          "handoff": "The garden member verifies the destination Garden Safe or its readiness state.",
           "knownGate": "Protocol-to-Garden G$ settlement requires enabled settlement UI and value authority. If either is unavailable, record Blocked and continue with the non-value steps."
         },
         {
@@ -160,7 +160,7 @@
           "phaseId": "garden-distributes",
           "leadLaneId": "protocol-review",
           "verifyLaneIds": ["garden-member"],
-          "handoff": "Seed it as Garden work with one action row, so the member's Work can link to it. Wait until the separate local commitment appears in the open Garden Campaign."
+          "handoff": "Seed it as Garden work with one action row, so the member's Work can link to it. Wait until the separate local commitment appears in the open garden Campaign."
         },
         {
           "caseId": "PWA-049",
@@ -191,7 +191,7 @@
           "phaseId": "member-receives",
           "leadLaneId": "protocol-review",
           "verifyLaneIds": ["garden-member"],
-          "handoff": "The Garden member verifies the receiving account or the visible readiness state.",
+          "handoff": "The garden member verifies the receiving account or the visible readiness state.",
           "knownGate": "Garden-to-member G$ settlement requires enabled contributor payout UI and value authority. If either is unavailable, record Blocked without changing the completed non-value workflow."
         }
       ]
@@ -199,7 +199,7 @@
     {
       "id": "protocol-treasury-top-up",
       "label": "Protocol treasury top-up",
-      "summary": "Check discretionary funding readiness, queue a ProtocolToGarden top-up when authorized, and verify the Garden balance without referencing a commitment.",
+      "summary": "Check discretionary funding readiness, queue a ProtocolToGarden top-up when authorized, and verify the garden balance without referencing a commitment.",
       "lanes": [
         {
           "id": "protocol-review",
@@ -209,7 +209,7 @@
         {
           "id": "garden-member",
           "label": "Garden & member",
-          "role": "Test-Garden steward who verifies the destination Garden and its balance"
+          "role": "Test-garden steward who verifies the destination garden and its balance"
         }
       ],
       "phases": [
@@ -233,7 +233,7 @@
           "phaseId": "queue-top-up",
           "leadLaneId": "protocol-review",
           "verifyLaneIds": ["garden-member"],
-          "handoff": "The Garden steward verifies the destination Garden and balance; no commitment ID is involved.",
+          "handoff": "The garden steward verifies the destination garden and balance; no commitment ID is involved.",
           "knownGate": "Protocol treasury funding requires explicit value authority and a live ProtocolToGarden funding path. If unavailable, record Blocked and do not imply that funds moved."
         }
       ]
@@ -368,7 +368,7 @@
       "requiresProduction": true,
       "status": "active",
       "source": "qa-session-2026-08-29",
-      "requiresProductionReason": "Needs the public production URL — link-preview debuggers cannot reach localhost"
+      "requiresProductionReason": "Needs the public production URL: link-preview debuggers cannot reach localhost"
     },
     {
       "id": "PUB-033",
@@ -378,7 +378,7 @@
       "kind": "content",
       "area": "Site-wide",
       "scenario": "Editorial vocabulary holds: no admin/cockpit jargon on public pages",
-      "expected": "Public pages use the editorial vocabulary only — no cockpit/internal terms, frozen names intact; lint:vocab excludes prompt-only wording, so this human sweep is the gate",
+      "expected": "Public pages use the editorial vocabulary only (no cockpit/internal terms, frozen names intact); lint:vocab excludes prompt-only wording, so this human sweep is the gate",
       "preconditions": ["Frozen-name list and surface prompt contracts (design skill)"],
       "steps": [
         "Sweep the surface's primary routes reading every heading, label, and empty state",
@@ -568,16 +568,16 @@
         "Visit gardens in different pool states (none/charter/open/dormant)",
         "Read unit summaries and open-cycle cards",
         "Page finished cycles with show-more",
-        "Confirm no cancelled cycle appears anywhere"
+        "Confirm no canceled cycle appears anywhere"
       ],
-      "expected": "Each state reads honestly (no pool / charter seeded / open season+campaigns / dormant between seasons); unit summaries use exact labels; finished cycles page with show-more; cancelled cycles NEVER appear; a metadata outage shows the notice, not broken cards",
+      "expected": "Each state reads honestly (no pool / charter seeded / open season+campaigns / dormant between seasons); unit summaries use exact labels; finished cycles page with show-more; canceled cycles NEVER appear; a metadata outage shows the notice, not broken cards",
       "evidence": "Screenshots per state",
       "role": "none",
       "tags": ["garden-records"],
       "requiresProduction": false,
       "status": "retired",
       "retiredOn": "2026-09-21",
-      "retiredReason": "Split by outcome: pool states, unit labels, finished cycles, cancelled cycles, and a metadata outage are independent results. Paging finished cycles was already PUB-045.",
+      "retiredReason": "Split by outcome: pool states, unit labels, finished cycles, canceled cycles, and a metadata outage are independent results. Paging finished cycles was already PUB-045.",
       "replacedBy": ["PUB-056", "PUB-057", "PUB-045", "PUB-058", "PUB-059"],
       "source": "qa-session-2026-08-29"
     },
@@ -588,15 +588,15 @@
       "priority": "P1",
       "kind": "content",
       "area": "Gardens",
-      "scenario": "A garden's Commitments section says what state its pool is in",
+      "scenario": "A garden's Promises section says what state its pool is in",
       "preconditions": [
         "Gardens in as many pool states as the environment has: not ready, ready, open, between seasons, paused, closed, composted"
       ],
       "steps": [
         "Open the public page of a garden in each state you can reach",
-        "Read the Commitments section's heading and sentence"
+        "Read the Promises section's heading and sentence"
       ],
-      "expected": "The sentence matches the state: not ready says offers and requests open once the pool is ready, under the heading This Garden is preparing its pool; ready says the charter and baseline are in place; open says neighbours can offer and take up commitments right now; between seasons says the next season has not opened yet; paused, closed, and composted each say so and keep the record readable",
+      "expected": "The sentence matches the state: not ready says offers and requests open once the pool is ready, under the heading This garden is preparing its pool; ready says the charter and baseline are in place; open says neighbors can offer and take up commitments right now; between seasons says the next season has not opened yet; paused, closed, and composted each say so and keep the record readable",
       "evidence": "Screenshot of the section in each state reached",
       "role": "none",
       "tags": ["garden-records"],
@@ -614,7 +614,7 @@
       "scenario": "Unit summaries on the public page use the commitments' own unit labels",
       "preconditions": ["A garden whose pool has commitments in at least two different units"],
       "steps": [
-        "Open the garden's public page and read the unit summaries in the Commitments section"
+        "Open the garden's public page and read the unit summaries in the Promises section"
       ],
       "expected": "Each summary carries its unit label exactly as it was written on the commitments, and different units are never added together",
       "evidence": "Screenshot of the unit summaries",
@@ -631,13 +631,13 @@
       "priority": "P1",
       "kind": "data-integrity",
       "area": "Gardens",
-      "scenario": "A cancelled cycle never appears on the public page",
-      "preconditions": ["A garden with a cancelled season or campaign (ADM-059)"],
+      "scenario": "A canceled cycle never appears on the public page",
+      "preconditions": ["A garden with a canceled season or campaign (ADM-059)"],
       "steps": [
         "Open the garden's public page",
         "Read the open cycles and page through the finished ones"
       ],
-      "expected": "The cancelled cycle appears nowhere: not among the open cycles and not among the finished ones",
+      "expected": "The canceled cycle appears nowhere: not among the open cycles and not among the finished ones",
       "evidence": "Screenshots of the open and finished cycles",
       "role": "none",
       "tags": ["garden-records"],
@@ -658,7 +658,7 @@
       ],
       "steps": [
         "Open a garden's public page while the cycle names cannot be loaded",
-        "Read the Commitments section"
+        "Read the Promises section"
       ],
       "expected": "The section says some season names could not be loaded right now; the cards still render with a fallback name; nothing else on the page is affected",
       "evidence": "Screenshot of the notice with the cards",
@@ -685,7 +685,7 @@
         "In the browser's developer tools, find the robots meta tag in the page head",
         "Open the Gardens archive and the Fund page, and look for the garden in each"
       ],
-      "expected": "The page opens with the garden's record and one quiet line, This Garden is not in the public lists, and offers no Support This Garden link; the page head carries a robots meta tag with content noindex; the archive and the Fund page's list still leave the garden out",
+      "expected": "The page opens with the garden's record and one quiet line, This garden is not in the public lists, and offers no Support This Garden link; the page head carries a robots meta tag with content noindex; the archive and the Fund page's list still leave the garden out",
       "evidence": "Screenshots of the page with the line, of the robots tag in the page head, and of the archive and the Fund list without the garden",
       "role": "none",
       "tags": ["garden-records"],
@@ -727,7 +727,7 @@
         "Open the certificates section and follow an external link",
         "Check steward names resolve (ENS where set) and avatars fall back"
       ],
-      "expected": "Certificates render with working external links (new tab); stewards show resolved names — ENS where available, truncated addresses otherwise — with graceful avatar fallbacks",
+      "expected": "Certificates render with working external links (new tab); stewards show resolved names (ENS where available, truncated addresses otherwise) with graceful avatar fallbacks",
       "evidence": "Screenshot of both sections",
       "role": "none",
       "tags": ["garden-records"],
@@ -810,7 +810,7 @@
         "Retry with a wallet on the wrong network",
         "Confirm a switch-network prompt gates the action"
       ],
-      "expected": "No wallet shows clear instructions, wrong network prompts a switch and blocks the transaction path — never a blank or broken state",
+      "expected": "No wallet shows clear instructions, wrong network prompts a switch and blocks the transaction path, never a blank or broken state",
       "evidence": "Screenshots of both states",
       "role": "none",
       "tags": ["wallet", "error-recovery", "funding"],
@@ -1417,7 +1417,7 @@
       "scenario": "Install App branches: desktop QR dialog, mobile steps, copy-URL, Open App flip",
       "preconditions": ["Public URL available"],
       "steps": [
-        "Click Install App on desktop — verify the QR dialog and copy-URL",
+        "Click Install App on desktop, then verify the QR dialog and copy-URL",
         "Repeat at mobile width for the step list",
         "If installed, confirm the label flips to Open App"
       ],
@@ -1561,7 +1561,7 @@
       "preconditions": ["Wallet disconnected first"],
       "steps": [
         "Open /vaults",
-        "Select a Garden or Vault",
+        "Select a garden or Vault",
         "Follow the connect prompt without connecting",
         "Cancel",
         "Reopen and inspect states"
@@ -2171,17 +2171,17 @@
       "scenario": "Garden member can read the starting assessment",
       "preconditions": [
         "Signed in with Tester B's allowlisted wallet",
-        "Tester B is a member of the test Garden",
+        "Tester B is a member of the test garden",
         "ADM-037 is complete"
       ],
       "steps": [
-        "Open the test Garden",
+        "Open the test garden",
         "Open its assessment history",
         "Find the starting assessment recorded by Tester A",
         "Read enough detail to confirm it belongs to this QA cycle"
       ],
-      "expected": "The same starting assessment is readable from the Garden experience and is presented as context, not as a gate on the cycle",
-      "evidence": "Screenshot of the assessment in the test Garden",
+      "expected": "The same starting assessment is readable from the garden experience and is presented as context, not as a gate on the cycle",
+      "evidence": "Screenshot of the assessment in the test garden",
       "role": "gardener",
       "tags": ["assessment", "garden", "journey-relay"],
       "requiresProduction": false,
@@ -2294,7 +2294,7 @@
         "Claim from the in-drawer jar",
         "Compare with a claim from the wallet drawer"
       ],
-      "expected": "The in-drawer jar claim pays out and matches the wallet-drawer claim behaviour",
+      "expected": "The in-drawer jar claim pays out and matches the wallet-drawer claim behavior",
       "evidence": "Screenshot of the claim result",
       "role": "gardener",
       "tags": ["endowment", "cookies", "tx"],
@@ -2517,7 +2517,7 @@
       "scenario": "Submit Work and evidence against the original protocol Request",
       "preconditions": [
         "Signed in with Tester B's allowlisted wallet",
-        "Tester B is the accountable lead and a contributor for the test Garden",
+        "Tester B is the accountable lead and a contributor for the test garden",
         "ADM-040 is complete"
       ],
       "steps": [
@@ -2527,7 +2527,7 @@
         "Submit the Work",
         "Return to the Request and verify the Work is linked"
       ],
-      "expected": "Tester B's Work and evidence link to the original protocol-pool Request while the test Garden remains the accountable provider",
+      "expected": "Tester B's Work and evidence link to the original protocol-pool Request while the test garden remains the accountable provider",
       "evidence": "Screenshot of the linked Work and evidence on the Request",
       "role": "gardener",
       "tags": ["protocol-pool", "work", "evidence", "journey-relay", "tx"],
@@ -2542,16 +2542,16 @@
       "priority": "P0",
       "kind": "transaction",
       "area": "Work",
-      "scenario": "Submit Work and evidence for the local Garden commitment",
+      "scenario": "Submit Work and evidence for the local garden commitment",
       "preconditions": ["Signed in with Tester B's allowlisted wallet", "PWA-049 is complete"],
       "steps": [
-        "Open the local Garden commitment",
+        "Open the local garden commitment",
         "Start or link its Work",
         "Add evidence that identifies the local delivery",
         "Submit the Work",
         "Verify the Work is linked to the local commitment"
       ],
-      "expected": "The member's Work and evidence are submitted against the separate Garden commitment and are ready for independent review",
+      "expected": "The member's Work and evidence are submitted against the separate garden commitment and are ready for independent review",
       "evidence": "Screenshot of the local Work and evidence link",
       "role": "gardener",
       "tags": ["garden-pool", "work", "evidence", "journey-relay", "tx"],
@@ -2566,7 +2566,7 @@
       "priority": "P1",
       "kind": "journey",
       "area": "Work",
-      "scenario": "Work detail reads media, details, status, feedback, and the commitment it fulfils",
+      "scenario": "Work detail reads media, details, status, feedback, and the commitment it fulfills",
       "preconditions": [
         "A reviewed work with media in a garden the gardener belongs to",
         "A work linked to a commitment"
@@ -2578,8 +2578,8 @@
         "Open the linked work and follow its commitment",
         "Use back"
       ],
-      "expected": "Media renders with a download; details and status match the submission; a reviewed work shows the steward's feedback and approved or rejected status; a linked work names the commitment it fulfils and opens it; back returns to the garden",
-      "evidence": "Screenshots of the detail and the fulfils section",
+      "expected": "Media renders with a download; details and status match the submission; a reviewed work shows the steward's feedback and approved or rejected status; a linked work names the commitment it fulfills and opens it; back returns to the garden",
+      "evidence": "Screenshots of the detail and the fulfills section",
       "role": "gardener",
       "tags": ["work"],
       "requiresProduction": false,
@@ -3781,7 +3781,7 @@
       "requiresProduction": false,
       "status": "retired",
       "retiredOn": "2026-09-21",
-      "retiredReason": "The behaviour changed: Offer It Again now opens the composer on the earlier offer's answers instead of returning to the garden, and it goes to whoever made the commitment.",
+      "retiredReason": "The behavior changed: Offer It Again now opens the composer on the earlier offer's answers instead of returning to the garden, and it goes to whoever made the commitment.",
       "replacedBy": ["PWA-115"],
       "source": "qa-runs-review-fixes-2026-09-08"
     },
@@ -3860,20 +3860,20 @@
       "priority": "P0",
       "kind": "transaction",
       "area": "Commitments",
-      "scenario": "Claim the protocol Request for the test Garden",
+      "scenario": "Claim the protocol Request for the test garden",
       "preconditions": [
         "Signed in with Tester B's allowlisted wallet",
-        "Tester B is a steward of the test Garden",
+        "Tester B is a steward of the test garden",
         "ADM-139 is complete"
       ],
       "steps": [
         "Open the protocol Request",
-        "Choose to take it up for the test Garden",
-        "Review the Garden identity and submit the claim",
+        "Choose to take it up for the test garden",
+        "Review the garden identity and submit the claim",
         "Wait for the claim to show as pending approval"
       ],
-      "expected": "The claim is pending for the test Garden; it is not presented as a personal claim and the Request has not moved out of the protocol pool",
-      "evidence": "Screenshot of the pending Garden claim",
+      "expected": "The claim is pending for the test garden; it is not presented as a personal claim and the Request has not moved out of the protocol pool",
+      "evidence": "Screenshot of the pending garden claim",
       "role": "steward",
       "tags": ["protocol-pool", "claim", "garden", "journey-relay", "tx"],
       "requiresProduction": false,
@@ -3887,20 +3887,20 @@
       "priority": "P0",
       "kind": "transaction",
       "area": "Commitments",
-      "scenario": "Take up the separate local Garden commitment",
+      "scenario": "Take up the separate local garden commitment",
       "preconditions": [
         "Signed in with Tester B's allowlisted wallet",
-        "Tester B is a member of the test Garden",
+        "Tester B is a member of the test garden",
         "ADM-140 is complete"
       ],
       "steps": [
-        "Open the test Garden's current Campaign",
+        "Open the test garden's current Campaign",
         "Open the local commitment seeded for the member",
         "Take up the commitment with Tester B's own identity",
         "Verify its identity differs from the protocol Request"
       ],
       "expected": "Tester B takes up a separate Garden-pool commitment; it is neither moved from nor mirrored to the protocol pool",
-      "evidence": "Screenshot with the local commitment ID and Garden Campaign context",
+      "evidence": "Screenshot with the local commitment ID and garden Campaign context",
       "role": "gardener",
       "tags": ["garden-pool", "commitment", "claim", "journey-relay", "tx"],
       "requiresProduction": false,
@@ -4799,7 +4799,7 @@
       "steps": [
         "Open a pending submission as steward on desktop",
         "Approve one with optional feedback",
-        "Reject another — confirm feedback is required",
+        "Reject another and confirm feedback is required",
         "Cancel a third; follow the fulfills chip"
       ],
       "expected": "Approve/reject respect the role gate; reject stays disabled until feedback exists; cancel writes nothing; the fulfills chip opens the commitment",
@@ -4928,10 +4928,10 @@
       ],
       "steps": [
         "Local dev:prod: warm-reload the app and confirm fast interactive with no re-optimization reload loop",
-        "Local dev:prod: note (but do not fail on) cold-transform watchdog trips — reproduce warm before judging",
+        "Local dev:prod: note (but do not fail on) cold-transform watchdog trips, and reproduce warm before judging",
         "Production build or hosted origin: clear caches, cold-start, and time to interactive against the watchdog budget"
       ],
-      "expected": "Local dev:prod: warm reloads are fast and no dependency re-optimization reload loop appears — a cold Vite transform tripping the boot watchdog locally is an environment artifact, never a defect. Hosted/production build: a cleared-cache cold start stays under the boot watchdog threshold and never shows the recovery screen",
+      "expected": "Local dev:prod: warm reloads are fast and no dependency re-optimization reload loop appears. A cold Vite transform tripping the boot watchdog locally is an environment artifact, never a defect. Hosted/production build: a cleared-cache cold start stays under the boot watchdog threshold and never shows the recovery screen",
       "evidence": "Console timings screenshot",
       "role": "none",
       "tags": ["performance"],
@@ -5205,7 +5205,7 @@
         "Load the hub; read the error state",
         "Restore and retry"
       ],
-      "expected": "The canvas shows an honest error/retry state — never a blank shell — and recovers on retry once the network returns",
+      "expected": "The canvas shows an honest error/retry state (never a blank shell) and recovers on retry once the network returns",
       "evidence": "Screenshot of error + recovery",
       "role": "steward",
       "tags": ["error-recovery"],
@@ -5271,7 +5271,7 @@
         "Check action descriptions for diacritics",
         "Repeat spot checks in Spanish"
       ],
-      "expected": "No English-formatted dates, no raw '1 sessions'-style plurals, diacritics intact — locale-key parity alone is not language-quality proof",
+      "expected": "No English-formatted dates, no raw '1 sessions'-style plurals, diacritics intact. Locale-key parity alone is not language-quality proof",
       "evidence": "Screenshots of pt/es views with real records",
       "role": "steward",
       "tags": ["i18n", "locale"],
@@ -5287,7 +5287,7 @@
       "kind": "content",
       "area": "App-wide",
       "scenario": "Admin vocabulary holds: cockpit language, no editorial 'hero/story' terms",
-      "expected": "Cockpit copy stays in the admin vocabulary — no client editorial terms; Title Case action labels per DL-012; frozen names intact",
+      "expected": "Cockpit copy stays in the admin vocabulary (no client editorial terms); Title Case action labels per DL-012; frozen names intact",
       "preconditions": ["Frozen-name list and surface prompt contracts (design skill)"],
       "steps": [
         "Sweep the surface's primary routes reading every heading, label, and empty state",
@@ -5399,7 +5399,7 @@
         "Immediately attempt a second decision on the same submission",
         "Where safely reproducible, interrupt the approval transaction and observe the result"
       ],
-      "expected": "A second decision is blocked or disabled; a failed approval transaction surfaces an error and the submission stays Pending — status never lies",
+      "expected": "A second decision is blocked or disabled; a failed approval transaction surfaces an error and the submission stays Pending, so status never lies",
       "evidence": "Screenshots of the blocked second decision and the failure state",
       "role": "steward",
       "tags": ["review", "tx", "integrity"],
@@ -5464,12 +5464,12 @@
       "scenario": "Approve Work linked to the protocol Request without joining its contributors",
       "preconditions": [
         "Signed in with Tester A's allowlisted wallet",
-        "Tester A can review the test Garden but is not a contributor",
+        "Tester A can review the test garden but is not a contributor",
         "PWA-048 is complete"
       ],
       "steps": [
         "Open the pending Work linked to the protocol Request",
-        "Inspect Tester B's evidence and Garden context",
+        "Inspect Tester B's evidence and garden context",
         "Approve the Work",
         "Verify the review state updates without adding Tester A as a contributor"
       ],
@@ -5555,19 +5555,19 @@
       "priority": "P1",
       "kind": "transaction",
       "area": "Hub · Assessments",
-      "scenario": "Record a starting assessment for the test Garden",
+      "scenario": "Record a starting assessment for the test garden",
       "preconditions": [
         "Signed in with Tester A's allowlisted wallet",
-        "Tester A can evaluate the test Garden"
+        "Tester A can evaluate the test garden"
       ],
       "steps": [
-        "Select the test Garden and start a new assessment",
-        "Record the Garden's starting context with enough detail for Tester B to recognize it",
+        "Select the test garden and start a new assessment",
+        "Record the garden's starting context with enough detail for Tester B to recognize it",
         "Review and submit the assessment",
-        "Wait for the submitted assessment to appear on the Garden"
+        "Wait for the submitted assessment to appear on the garden"
       ],
-      "expected": "The assessment is recorded against the test Garden and is visible as starting context, without being described as a prerequisite for opening a Season or Campaign",
-      "evidence": "Screenshot of the recorded assessment with the Garden identity visible",
+      "expected": "The assessment is recorded against the test garden and is visible as starting context, without being described as a prerequisite for opening a Season or Campaign",
+      "evidence": "Screenshot of the recorded assessment with the garden identity visible",
       "role": "steward",
       "tags": ["assessment", "garden", "journey-relay", "tx"],
       "requiresProduction": false,
@@ -5716,7 +5716,7 @@
         "Confirm it (ADM-145) and wait until it leaves the queue",
         "Open the copied address"
       ],
-      "expected": "The commitment dialog says This commitment is not in your confirmation queue any more. and offers no act on it; the stage no longer lists it",
+      "expected": "The commitment dialog says This promise is not in your confirmation queue any more. and offers no act on it; the stage no longer lists it",
       "evidence": "Screenshot of the dialog opened from the copied address",
       "role": "steward",
       "tags": ["commitment", "confirm", "stale-data", "deep-link"],
@@ -5743,7 +5743,7 @@
         "Confirm fulfillment as the Request creator",
         "Reopen the Request after the state updates"
       ],
-      "expected": "The Request becomes Fulfilled with the test Garden still named as provider and Tester B's Work preserved as evidence",
+      "expected": "The Request becomes Fulfilled with the test garden still named as provider and Tester B's Work preserved as evidence",
       "evidence": "Screenshot of the Fulfilled protocol Request",
       "role": "steward",
       "tags": ["protocol-pool", "confirm", "fulfillment", "journey-relay", "tx"],
@@ -5765,7 +5765,7 @@
         "Sign in as a deployer; follow the funnel into /garden/create",
         "Complete creation and confirm landing in the new workspace"
       ],
-      "expected": "A steward with no gardens gets an honest empty/no-access state — never a blank shell and never a create CTA (creation is deployer-gated); a fresh deployer is funneled into create-garden and lands in the new workspace on completion",
+      "expected": "A steward with no gardens gets an honest empty/no-access state, never a blank shell and never a create CTA (creation is deployer-gated); a fresh deployer is funneled into create-garden and lands in the new workspace on completion",
       "evidence": "Screenshot of empty state",
       "role": "steward",
       "tags": ["garden-lifecycle", "tx"],
@@ -5974,7 +5974,7 @@
       "preconditions": ["Steward with manage rights on a garden with a registered NotReady pool"],
       "steps": [
         "Open /garden/pool and read the setup checklist",
-        "Press Set Up Commitments and complete the flow",
+        "Press Set Up Promises and complete the flow",
         "Read the pool status card and the app's garden tabs"
       ],
       "expected": "The console shows the setup state and checklist instead of an empty list; the flow pins its documents before any chain write and names a failure if pinning fails; on success the status card shows the pool and its readiness and the app's garden gains a Pool tab",
@@ -5992,14 +5992,14 @@
       "priority": "P2",
       "kind": "resilience",
       "area": "Garden · Pool",
-      "scenario": "Offline, Set Up Commitments says why it waits",
+      "scenario": "Offline, Set Up Promises says why it waits",
       "preconditions": ["Steward with manage rights on a garden with a registered NotReady pool"],
       "steps": [
         "Open /garden/pool",
-        "Turn the network off and read the card with Set Up Commitments",
+        "Turn the network off and read the card with Set Up Promises",
         "Turn the network back on and read it again"
       ],
-      "expected": "Offline, Set Up Commitments is closed and the card says Needs a connection. Pool changes are sent straight to the chain.; back online, Set Up Commitments is offered again and the line is gone",
+      "expected": "Offline, Set Up Promises is closed and the card says Needs a connection. Pool changes are sent right away, not queued; back online, Set Up Promises is offered again and the line is gone",
       "evidence": "Screenshots of the card offline and online",
       "role": "steward",
       "tags": ["garden-pool", "offline"],
@@ -6018,7 +6018,7 @@
       "preconditions": ["Steward with manage rights on a garden with a registered NotReady pool"],
       "steps": [
         "Open /garden/pool and read the note on the Pool Status card",
-        "Press Set Up Commitments and read the wallet-prompt count before a write",
+        "Press Set Up Promises and read the wallet-prompt count before a write",
         "Close the flow and discard it"
       ],
       "expected": "The note says setting up takes four short steps and that the wallet will ask up to six times, fewer when it can take several changes at once; nothing is sent when the flow is discarded",
@@ -6042,7 +6042,7 @@
         "A passage longer than 420 characters, copied to paste"
       ],
       "steps": [
-        "On the garden with no pool, open /garden/pool, press Set Up Commitments, and read the count under What this pool is for",
+        "On the garden with no pool, open /garden/pool, press Set Up Promises, and read the count under What this pool is for",
         "Type a few words and read the count, then paste the passage and read the field and its count",
         "Delete one character and read the count, then go on to The Season, paste the passage into Name, and read the field and its count",
         "Close the flow and discard it, then on the garden with a pool press Edit Pool and read the count under What this pool is for"
@@ -6140,7 +6140,7 @@
       "area": "Garden · Pool",
       "scenario": "The setup split explains when it becomes fixed",
       "preconditions": ["Steward with manage rights on a garden with a registered NotReady pool"],
-      "steps": ["Open Set Up Commitments and go to The Split", "Read the note above the presets"],
+      "steps": ["Open Set Up Promises and go to The Split", "Read the note above the presets"],
       "expected": "The Split says the split is fixed for good once the season opens and explains that it determines how the season's impact certificate is shared",
       "evidence": "Screenshot of The Split note",
       "role": "steward",
@@ -6159,7 +6159,7 @@
       "scenario": "Split presets name every role and its share",
       "preconditions": ["Steward with manage rights on a garden with a registered NotReady pool"],
       "steps": [
-        "Open Set Up Commitments and go to The Split",
+        "Open Set Up Promises and go to The Split",
         "Read the Garden-led (standard) preset"
       ],
       "expected": "The preset maps its six shares to Gardeners 60 %, Treasury 15 %, Steward 10 %, Evaluator 5 %, Community 5 %, and Funder 5 %",
@@ -6179,7 +6179,7 @@
       "area": "Garden · Pool",
       "scenario": "Each split share explains its purpose",
       "preconditions": ["Steward with manage rights on a garden with a registered NotReady pool"],
-      "steps": ["Open Set Up Commitments and go to The Split", "Read the hint under each share"],
+      "steps": ["Open Set Up Promises and go to The Split", "Read the hint under each share"],
       "expected": "Each of the six shares has a role-specific hint explaining what the allocation is for",
       "evidence": "Screenshot of the share hints",
       "role": "steward",
@@ -6198,7 +6198,7 @@
       "scenario": "Setup names the final write before it begins",
       "preconditions": ["Steward with manage rights on a garden with a registered NotReady pool"],
       "steps": [
-        "Open Set Up Commitments and reach the final review",
+        "Open Set Up Promises and reach the final review",
         "Read the final action, then discard the flow"
       ],
       "expected": "The final action reads Set Up and Open, and discarding the flow sends nothing",
@@ -6609,11 +6609,11 @@
       "scenario": "Open the test Season and Campaign independently of assessment state",
       "preconditions": [
         "Signed in with Tester A's allowlisted wallet",
-        "Tester A is a steward of the test Garden",
-        "The test Garden commitment pool is ready"
+        "Tester A is a steward of the test garden",
+        "The test garden commitment pool is ready"
       ],
       "steps": [
-        "Open the test Garden's pool setup",
+        "Open the test garden's pool setup",
         "Create or select the QA Season",
         "Open one Campaign for the commitment relay",
         "Confirm the open cycle is visible before seeding commitments"
@@ -6643,7 +6643,7 @@
         "Type a reason and confirm",
         "Read the cycles list and the public garden page"
       ],
-      "expected": "Cancel names its blast radius and requires a reason; the cancellation is one transaction; the cycle shows as cancelled in the console and never appears on the public commitments story (PUB-058)",
+      "expected": "Cancel names its blast radius and requires a reason; the cancellation is one transaction; the cycle shows as canceled in the console and never appears on the public commitments story (PUB-058)",
       "evidence": "Screenshots of the cancel dialog and the public page",
       "role": "steward",
       "tags": ["garden-pool", "cycle", "tx"],
@@ -6777,7 +6777,7 @@
       "preconditions": ["Steward with manage rights on a garden with a pool"],
       "steps": [
         "Press Edit Pool and read the current values",
-        "Change What this pool is for and How many commitments one person can hold at once, and read the dialog",
+        "Change What this pool is for and How many promises one person can hold at once, and read the dialog",
         "Press Save Settings and confirm each wallet prompt",
         "Read the dialog and the console"
       ],
@@ -6802,12 +6802,12 @@
         "A wallet that asks once for each change: with both settings changed, the dialog says the wallet will ask twice"
       ],
       "steps": [
-        "Change What this pool is for and How many commitments one person can hold at once, and press Save Settings",
+        "Change What this pool is for and How many promises one person can hold at once, and press Save Settings",
         "Confirm the first wallet prompt and reject the second",
         "Read the dialog",
         "Press Try Again and confirm the wallet prompt"
       ],
-      "expected": "After the rejection the dialog says The new agreement is saved. The commitment limit is not. and that the wallet will ask once more; Try Again sends only the limit, with one wallet prompt; the dialog ends on Settings saved.",
+      "expected": "After the rejection the dialog says The new agreement is saved. The promise limit is not. and that the wallet will ask once more; Try Again sends only the limit, with one wallet prompt; the dialog ends on Settings saved.",
       "evidence": "Screenshots of the stopped dialog and of Settings saved",
       "role": "steward",
       "tags": ["garden-pool", "tx"],
@@ -6870,7 +6870,7 @@
       "area": "Garden · Pool",
       "scenario": "Seed a commitment: 4-step wizard, named confirmers, review before sending",
       "preconditions": [
-        "Garden pool open; the separate local Garden commitment names an independent Garden steward or evaluator as confirmer, never its contributor"
+        "Garden pool open; the separate local garden commitment names an independent garden steward or evaluator as confirmer, never its contributor"
       ],
       "steps": [
         "Run the 4-step seed wizard",
@@ -6928,7 +6928,7 @@
         "Type 2.5, go on to the review, and read the reward",
         "Cancel out"
       ],
-      "expected": "Before the token is known the amount waits with Enter the token address first.; once the token is read the field is labelled with its symbol, such as Amount (USDC), and takes 2.5 as 2.5 of that token; the review reads External payout record · 2.5 and the symbol; nothing is sent",
+      "expected": "Before the token is known the amount waits with Enter the token address first.; once the token is read the field is labeled with its symbol, such as Amount (USDC), and takes 2.5 as 2.5 of that token; the review reads External payout record · 2.5 and the symbol; nothing is sent",
       "evidence": "Screenshots of the field and of the review",
       "role": "steward",
       "tags": ["garden-pool", "commitment"],
@@ -6974,7 +6974,7 @@
       "priority": "P0",
       "kind": "transaction",
       "area": "Garden · Pool",
-      "scenario": "Seed an approval-gated protocol Request for garden work the test Garden can deliver",
+      "scenario": "Seed an approval-gated protocol Request for garden work the test garden can deliver",
       "preconditions": [
         "Signed in with Tester A's allowlisted wallet",
         "Tester A is a protocol steward",
@@ -6982,7 +6982,7 @@
       ],
       "steps": [
         "Open the Green Goods protocol pool",
-        "Seed a Request of the Garden work (impact) type with one action row the test Garden can submit Work for",
+        "Seed a Request of the Garden work (impact) type with one action row the test garden can submit Work for",
         "Keep claim mode on Steward-reviewed so a claimant must be accepted",
         "Review and seed the Request, confirming in the wallet",
         "Wait for the Request to appear in the protocol pool"
@@ -7024,7 +7024,7 @@
       "priority": "P0",
       "kind": "transaction",
       "area": "Garden · Pool",
-      "scenario": "Accept the test Garden's institutional claim",
+      "scenario": "Accept the test garden's institutional claim",
       "preconditions": [
         "Signed in with Tester A's allowlisted wallet",
         "Tester A is a protocol steward",
@@ -7032,12 +7032,12 @@
       ],
       "steps": [
         "Open pending claims for the protocol Request",
-        "Identify the claim from the test Garden",
-        "Accept the Garden claim",
+        "Identify the claim from the test garden",
+        "Accept the garden claim",
         "Reopen the Request after the state updates"
       ],
-      "expected": "The claim becomes Accepted, the Garden is the institutional provider, and the original Request remains in the protocol pool",
-      "evidence": "Screenshot showing Accepted, the Garden provider, and protocol-pool context",
+      "expected": "The claim becomes Accepted, the garden is the institutional provider, and the original Request remains in the protocol pool",
+      "evidence": "Screenshot showing Accepted, the garden provider, and protocol-pool context",
       "role": "steward",
       "tags": ["protocol-pool", "claim", "garden", "journey-relay", "tx"],
       "requiresProduction": false,
@@ -7234,7 +7234,7 @@
         "Reject the prompt and read the row",
         "Press the row's Send Now or Try Again, confirm in the wallet, and read the row until it leaves"
       ],
-      "expected": "While the wallet asks, the row says Confirm in your wallet. and its buttons are closed; after the rejection it says It didn’t go through, and nothing changed. You can try again. and the row stays; once confirmed it says Confirming on Arbitrum One… (or the network in use), then Sent. This row leaves once the index shows the commitment., and the row leaves when the commitment appears in the list",
+      "expected": "While the wallet asks, the row says Confirm in your wallet. and its buttons are closed; after the rejection it says It didn’t go through, and nothing changed. You can try again. and the row stays; once confirmed it says Confirming on Arbitrum One… (or the network in use), then Sent. This row leaves once the index shows the promise., and the row leaves when the commitment appears in the list",
       "evidence": "Screenshots of the row after the rejection and while it sends",
       "role": "steward",
       "tags": ["garden-pool", "commitment", "queue", "tx"],
@@ -7442,10 +7442,10 @@
       "priority": "P1",
       "kind": "journey",
       "area": "Garden · Pool",
-      "scenario": "More offers than your commitment limit holds seeding and says why",
+      "scenario": "More offers than your promise limit holds seeding and says why",
       "preconditions": [
         "Steward with manage rights",
-        "The pool's commitment limit set in Pool Settings to the number of open commitments you already provide in this pool, so you have room for no more (ADM-147). With none open, seed one offer first and set the limit to 1"
+        "The pool's promise limit set in Pool Settings to the number of open commitments you already provide in this pool, so you have room for no more (ADM-147). With none open, seed one offer first and set the limit to 1"
       ],
       "steps": [
         "Run the seed wizard with The pool offers to the review",
@@ -7467,10 +7467,10 @@
       "priority": "P2",
       "kind": "journey",
       "area": "Garden · Pool",
-      "scenario": "At your commitment limit, Add Another Like This is held for an offer but not for a request",
+      "scenario": "At your promise limit, Add Another Like This is held for an offer but not for a request",
       "preconditions": [
         "Steward with manage rights",
-        "The pool's commitment limit set in Pool Settings so you have room for exactly one more open commitment (ADM-147)"
+        "The pool's promise limit set in Pool Settings so you have room for exactly one more open commitment (ADM-147)"
       ],
       "steps": [
         "Run the seed wizard with The pool offers to the review and read the footer and the note",
@@ -7515,14 +7515,14 @@
       "priority": "P1",
       "kind": "transaction",
       "area": "Garden · Pool",
-      "scenario": "Cancelling the open season frees the pool to start another",
+      "scenario": "Canceling the open season frees the pool to start another",
       "preconditions": ["Steward with manage rights", "An open season with no live commitments"],
       "steps": [
         "Press Cancel Season…, type a reason, and confirm",
         "Read the cycles card",
         "Press Start Season and start a new one"
       ],
-      "expected": "After the cancellation the card reads No season running and offers Start Season; starting a new season is accepted, so a rehearsal season can be cancelled and replaced by the real one",
+      "expected": "After the cancellation the card reads No season running and offers Start Season; starting a new season is accepted, so a rehearsal season can be canceled and replaced by the real one",
       "evidence": "Screenshots of the card after the cancellation and with the new season",
       "role": "steward",
       "tags": ["garden-pool", "cycle", "tx"],
@@ -7540,7 +7540,7 @@
       "scenario": "End Season… ends a season whose commitments have all finished",
       "preconditions": [
         "Steward with manage rights",
-        "An open season with no live commitments: every commitment in it kept, cancelled, or expired"
+        "An open season with no live commitments: every commitment in it kept, canceled, or expired"
       ],
       "steps": [
         "Read the season's acts on the cycles card",
@@ -7569,7 +7569,7 @@
         "An open season with at least one live commitment"
       ],
       "steps": ["Read the season on the cycles card"],
-      "expected": "End Season… is not offered; the season says how many commitments are still live and that it can end once each is kept, cancelled or expired",
+      "expected": "End Season… is not offered; the season says how many commitments are still live and that it can end once each is kept, canceled or expired",
       "evidence": "Screenshot of the season with its live count",
       "role": "steward",
       "tags": ["garden-pool", "cycle"],
@@ -7688,7 +7688,7 @@
       "scenario": "Confirm as garden fallback with a reason when ordinary confirmation is unreachable",
       "preconditions": [
         "Steward of the pool's garden who is not a contributor on the commitment",
-        "A commitment ready for confirmation whose ordinary confirmation is unreachable. With named confirmers: fewer of them remain eligible than the threshold, because the rest are active contributors. With nobody named: the asker of a Request, or the counterparty of an Offer, is an active contributor. A Garden counterparty is always reachable, so the counterparty must be a person"
+        "A commitment ready for confirmation whose ordinary confirmation is unreachable. With named confirmers: fewer of them remain eligible than the threshold, because the rest are active contributors. With nobody named: the asker of a Request, or the counterparty of an Offer, is an active contributor. A garden counterparty is always reachable, so the counterparty must be a person"
       ],
       "steps": [
         "Open the commitment and read the confirm bar and the facts",
@@ -7785,7 +7785,7 @@
       "preconditions": ["Steward who may resolve", "Four disputed commitments, one per outcome"],
       "steps": [
         "Press Resolve… and read the outcome choices",
-        "Resolve one as Restore Previous, one as Kept, one as Cancelled, and one as Expired, each with a reason"
+        "Resolve one as Restore Previous, one as Kept, one as Canceled, and one as Expired, each with a reason"
       ],
       "expected": "Each outcome names what it does before sending and requires a reason; each lands as one transaction and the band moves to the chosen state; the reasons are in the timeline",
       "evidence": "Screenshots of the four resolved bands",
@@ -7852,15 +7852,15 @@
       "priority": "P0",
       "kind": "transaction",
       "area": "Garden · Commitment",
-      "scenario": "Resolve a dispute as Cancelled",
+      "scenario": "Resolve a dispute as Canceled",
       "preconditions": ["Steward of the pool's garden", "A disputed commitment (ADM-077)"],
       "steps": [
-        "Press Resolve… and choose Cancelled",
+        "Press Resolve… and choose Canceled",
         "Type a reason and resolve",
         "Read the commitment's state and timeline"
       ],
-      "expected": "A reason is required; resolving is one transaction; the commitment reads Cancelled with the reason, and the reason is in the timeline",
-      "evidence": "Screenshot of the Cancelled state with its reason",
+      "expected": "A reason is required; resolving is one transaction; the commitment reads Canceled with the reason, and the reason is in the timeline",
+      "evidence": "Screenshot of the Canceled state with its reason",
       "role": "steward",
       "tags": ["commitment", "tx"],
       "requiresProduction": false,
@@ -7902,7 +7902,7 @@
         "That commitment, disputed, which had not expired before the dispute (ADM-077)"
       ],
       "steps": ["Press Resolve… and read the dialog"],
-      "expected": "Kept is not offered to you; the dialog says you can't mark this kept because nobody confirms their own work, and that a steward who isn't on it may; Restore Previous State, Cancelled, and Expired are still offered",
+      "expected": "Kept is not offered to you; the dialog says you can't mark this kept because nobody confirms their own work, and that a steward who isn't on it may; Restore Previous State, Canceled, and Expired are still offered",
       "evidence": "Screenshot of the dialog without Kept",
       "role": "steward",
       "tags": ["commitment"],
@@ -7923,7 +7923,7 @@
         "A commitment that ran out of time and was disputed afterwards (ADM-064, then ADM-077)"
       ],
       "steps": ["Press Resolve… and read the dialog"],
-      "expected": "Kept is not offered, even to a steward who is not on the roster; the dialog says a record that had expired can't be kept; Restore Previous State, Cancelled, and Expired are still offered",
+      "expected": "Kept is not offered, even to a steward who is not on the roster; the dialog says a record that had expired can't be kept; Restore Previous State, Canceled, and Expired are still offered",
       "evidence": "Screenshot of the dialog without Kept",
       "role": "steward",
       "tags": ["commitment"],
@@ -7992,11 +7992,11 @@
       "scenario": "Cancel a commitment with a reason from the inspector",
       "preconditions": ["Steward with manage rights", "A commitment that has not been fulfilled"],
       "steps": [
-        "Press Cancel Commitment… with an empty reason",
-        "Type a reason and press Cancel Commitment",
+        "Press Cancel Promise… with an empty reason",
+        "Type a reason and press Cancel Promise",
         "Read the commitment in the app's drawer as its provider"
       ],
-      "expected": "The reason is required and the dialog states the effect; the cancel is one transaction; the commitment reads cancelled with its reason and sits under History in the app",
+      "expected": "The reason is required and the dialog states the effect; the cancel is one transaction; the commitment reads canceled with its reason and sits under History in the app",
       "evidence": "Screenshots of the cancel dialog and the app's History",
       "role": "steward",
       "tags": ["commitment", "tx"],
@@ -8353,8 +8353,8 @@
       "scenario": "Cancel a disbursement with a reason",
       "preconditions": ["A plan with an undispatched disbursement"],
       "steps": ["Press Cancel… on the row", "Type a reason and confirm"],
-      "expected": "The reason is required; the cancel is one transaction; the row reads cancelled with the reason and the plan status reflects it",
-      "evidence": "Screenshot of the cancelled row",
+      "expected": "The reason is required; the cancel is one transaction; the row reads canceled with the reason and the plan status reflects it",
+      "evidence": "Screenshot of the canceled row",
       "role": "steward",
       "tags": ["settlement", "tx"],
       "requiresProduction": false,
@@ -8368,7 +8368,7 @@
       "priority": "P0",
       "kind": "transaction",
       "area": "Garden · Settlement",
-      "scenario": "Settle earned G$ compensation from the protocol to the Garden",
+      "scenario": "Settle earned G$ compensation from the protocol to the garden",
       "preconditions": [
         "Signed in with Tester A's allowlisted wallet",
         "ADM-042 is complete",
@@ -8382,7 +8382,7 @@
         "Ask Tester B to verify the destination state"
       ],
       "expected": "When enabled, earned compensation targets the Garden Safe and the result is visible; when unavailable, the UI states the gate and no value movement is implied",
-      "evidence": "Screenshot of the Garden beneficiary and completed settlement or visible gate",
+      "evidence": "Screenshot of the garden beneficiary and completed settlement or visible gate",
       "role": "steward",
       "tags": ["protocol-pool", "settlement", "garden-safe", "journey-relay", "tx"],
       "requiresProduction": false,
@@ -8396,20 +8396,20 @@
       "priority": "P0",
       "kind": "transaction",
       "area": "Garden · Settlement",
-      "scenario": "Settle the Garden's contributor payout to the member",
+      "scenario": "Settle the garden's contributor payout to the member",
       "preconditions": [
         "Signed in with Tester A's allowlisted wallet",
-        "The local Garden commitment is complete",
+        "The local garden commitment is complete",
         "Tester B's receiving account is known"
       ],
       "steps": [
-        "Open the completed local Garden commitment's payout action",
+        "Open the completed local garden commitment's payout action",
         "Verify Tester B is the intended contributor recipient",
         "If contributor payout UI and value authority are available, review and submit the payout",
         "Otherwise stop at the visible gate and record Blocked",
         "Ask Tester B to verify the receiving state"
       ],
-      "expected": "When enabled, the Garden pays the contributing member and the result is visible; when unavailable, the UI states the gate while the completed non-value workflow remains intact",
+      "expected": "When enabled, the garden pays the contributing member and the result is visible; when unavailable, the UI states the gate while the completed non-value workflow remains intact",
       "evidence": "Screenshot of the member recipient and completed payout or visible gate",
       "role": "steward",
       "tags": ["garden-pool", "settlement", "member", "journey-relay", "tx"],
@@ -8681,18 +8681,18 @@
       "preconditions": [
         "Signed in with Tester A's allowlisted wallet",
         "ADM-014 has confirmed funding readiness",
-        "The destination Garden and amount are explicitly authorized"
+        "The destination garden and amount are explicitly authorized"
       ],
       "steps": [
         "Open the protocol treasury funding action",
-        "Choose the destination Garden under Receiving garden and enter the amount",
+        "Choose the destination garden under Receiving garden and enter the amount",
         "Verify no commitment is requested or attached",
         "If value authority is available, press Review Seed or Top-Up…, read the confirmation, and press Queue Seed or Top-Up",
         "Otherwise stop at the visible gate and record Blocked",
-        "Ask Tester B to verify the Garden balance or readiness state"
+        "Ask Tester B to verify the garden balance or readiness state"
       ],
-      "expected": "When authorized and enabled, a discretionary top-up is queued for the correct Garden and its balance reflects the result; it never substitutes for earned compensation or references a commitment",
-      "evidence": "Screenshot of the queue confirmation naming the Garden, and the resulting balance or visible gate",
+      "expected": "When authorized and enabled, a discretionary top-up is queued for the correct garden and its balance reflects the result; it never substitutes for earned compensation or references a commitment",
+      "evidence": "Screenshot of the queue confirmation naming the garden, and the resulting balance or visible gate",
       "role": "steward",
       "tags": ["protocol-treasury", "funding", "garden", "tx"],
       "requiresProduction": false,
@@ -8713,7 +8713,7 @@
         "Press Cancel… on the queued row, read the confirmation, and press Cancel Transfer",
         "Press Refresh Funding"
       ],
-      "expected": "The queued row offers Cancel… with a confirmation; cancelling is one transaction and the row leaves the queue; Refresh Funding re-reads the facts from chain",
+      "expected": "The queued row offers Cancel… with a confirmation; canceling is one transaction and the row leaves the queue; Refresh Funding re-reads the facts from chain",
       "evidence": "Screenshots of the confirmation and the refreshed card",
       "role": "steward",
       "tags": ["protocol-funding", "tx"],
@@ -9401,7 +9401,7 @@
       "priority": "P1",
       "kind": "transaction",
       "area": "Impact",
-      "scenario": "Hypercert marketplace: approvals gate, list for yield, cancel listing — including whether it's reachable at all",
+      "scenario": "Hypercert marketplace: approvals gate, list for yield, cancel listing, including whether it's reachable at all",
       "preconditions": ["Minted hypercert"],
       "steps": [
         "Open the hypercert marketplace panel (note if unreachable)",
@@ -9476,7 +9476,7 @@
       "area": "Site",
       "scenario": "Local search returns relevant results with keyboard flow",
       "preconditions": [
-        "Built docs site (bun run --cwd docs build, served) or the deployed docs site — the dev server has no search index"
+        "Built docs site (bun run --cwd docs build, served) or the deployed docs site, since the dev server has no search index"
       ],
       "steps": [
         "Focus the search input",
@@ -9499,7 +9499,7 @@
       "priority": "P1",
       "kind": "content",
       "area": "Site",
-      "scenario": "Glossary anchor links resolve — they are a client API",
+      "scenario": "Glossary anchor links resolve (they are a client API)",
       "preconditions": ["Docs site available"],
       "steps": [
         "Open two or three /glossary#term URLs that the client links to",
@@ -9623,7 +9623,7 @@
       "priority": "P0",
       "kind": "content",
       "area": "Gardener Guide",
-      "scenario": "Recovery and Sync guide page walks true against the live product",
+      "scenario": "Recover Unsent Work guide page walks true against the live product",
       "preconditions": ["The gardener-guide/recovery-and-sync page open beside the live product"],
       "steps": [
         "Follow every step in the app, including the offline queue",
@@ -9644,7 +9644,7 @@
       "priority": "P0",
       "kind": "content",
       "area": "Gardener Guide",
-      "scenario": "Track Status and Attestations guide page walks true against the live product",
+      "scenario": "Track Your Work guide page walks true against the live product",
       "preconditions": [
         "The gardener-guide/track-status-and-attestations page open beside the live product"
       ],
@@ -9685,7 +9685,7 @@
       "priority": "P0",
       "kind": "content",
       "area": "Steward Guide",
-      "scenario": "Managing Actions guide page walks true against the live product",
+      "scenario": "Manage Actions guide page walks true against the live product",
       "preconditions": ["The steward-guide/managing-actions page open beside the live product"],
       "steps": ["Follow every step in the admin", "Compare each label and screenshot"],
       "expected": "Every step, label, and screenshot matches the shipping actions registry (ADM-100, ADM-101); drift is listed with the page path",
@@ -9704,7 +9704,9 @@
       "kind": "content",
       "area": "Steward Guide",
       "scenario": "Make an Assessment guide page walks true against the live product",
-      "preconditions": ["The steward-guide/making-an-assessment page open beside the live product"],
+      "preconditions": [
+        "The evaluator-guide/making-an-assessment page open beside the live product"
+      ],
       "steps": ["Follow every step in the admin", "Compare each label and screenshot"],
       "expected": "Every step, label, and screenshot matches the shipping assessment flow (ADM-046); drift is listed with the page path",
       "evidence": "List of drifted steps with the page path",
@@ -9721,7 +9723,7 @@
       "priority": "P0",
       "kind": "content",
       "area": "Steward Guide",
-      "scenario": "Review and Approve Work guide page walks true against the live product",
+      "scenario": "Review Work guide page walks true against the live product",
       "preconditions": ["The steward-guide/reviewing-work page open beside the live product"],
       "steps": ["Follow every step in the admin", "Compare each label and screenshot"],
       "expected": "Every step, label, and screenshot matches the shipping work review (ADM-012); drift is listed with the page path",
@@ -9837,10 +9839,10 @@
       "priority": "P1",
       "kind": "content",
       "area": "Builder Docs",
-      "scenario": "Builder onboarding path: getting-started and env-management commands run on a fresh checkout",
+      "scenario": "Builder onboarding path: Getting Started commands run on a fresh checkout",
       "preconditions": ["Clean repo checkout"],
       "steps": [
-        "On a fresh checkout, run every getting-started and env-management command",
+        "On a fresh checkout, run every Getting Started command on both paths, including the environment section",
         "Verify ports and URLs",
         "Check how-to-contribute against the real gate model"
       ],
@@ -9872,7 +9874,10 @@
       "role": "any",
       "tags": ["docs", "builder-docs"],
       "requiresProduction": false,
-      "status": "active",
+      "status": "retired",
+      "retiredOn": "2026-09-22",
+      "retiredReason": "The builder docs rebuild deleted the journey pages. The Anatomy of a Work Submission page now traces the flow, and the Persona Surfaces matrix moved to Reference.",
+      "replacedBy": ["DOCS-033"],
       "source": "qa-runs-catalog-third-pass-2026-09-07"
     },
     {
@@ -9903,10 +9908,10 @@
       "priority": "P2",
       "kind": "content",
       "area": "Builder Docs",
-      "scenario": "Testing pages' commands run as written",
+      "scenario": "Testing Guide commands run as written",
       "preconditions": ["A fresh checkout with dependencies installed"],
       "steps": [
-        "Run the commands quoted on the Forge, Playwright, Vitest, and Storybook pages",
+        "Run the commands quoted in the Testing Guide",
         "Note any command that fails or needs a flag the page omits"
       ],
       "expected": "Every quoted command runs as written or the page says what it needs; stale flags and paths are listed",
@@ -9939,6 +9944,28 @@
       "source": "qa-runs-catalog-third-pass-2026-09-07"
     },
     {
+      "id": "DOCS-033",
+      "tab": "Docs",
+      "platform": "Any",
+      "priority": "P2",
+      "kind": "content",
+      "area": "Builder Docs",
+      "scenario": "Anatomy of a Work Submission traces the shipped flow",
+      "preconditions": ["The Anatomy of a Work Submission page and the Personas and Surfaces page"],
+      "steps": [
+        "Follow each stage of the Anatomy page against the shipped client, admin, and contracts",
+        "Open the schema and code links on the page",
+        "On the Personas and Surfaces page, pick one interaction for each persona, do it on a surface the page names for it, and open the code paths listed under that persona"
+      ],
+      "expected": "Each stage matches the current flow and names current screens, every schema and code link resolves, each interaction on the personas page can be done on the surface it names, one marked planned or still being built is not offered as usable, and every code path listed under a persona exists; drift is listed per stage",
+      "evidence": "List of drifted statements or dead links with the page path",
+      "role": "any",
+      "tags": ["docs", "builder-docs"],
+      "requiresProduction": false,
+      "status": "active",
+      "source": "prd-862"
+    },
+    {
       "id": "DOCS-030",
       "tab": "Docs",
       "platform": "Any",
@@ -9951,7 +9978,7 @@
         "Read each FAQ answer against the product",
         "Compare the product history page with the latest releases"
       ],
-      "expected": "FAQ answers describe current behaviour; the product history covers the latest releases and the old changelog URL redirects to it",
+      "expected": "FAQ answers describe current behavior; the product history covers the latest releases and the old changelog URL redirects to it",
       "evidence": "List of stale answers or missing releases",
       "role": "none",
       "tags": ["docs", "reference"],
@@ -10039,7 +10066,7 @@
       "priority": "P1",
       "kind": "content",
       "area": "Guide Truth",
-      "scenario": "Funder guide walks true against the editorial funding surfaces (donate, fund, vaults, withdraw) — read-only",
+      "scenario": "Funder guide walks true, read-only, against the editorial funding surfaces (donate, fund, vaults, withdraw)",
       "preconditions": ["Production site + docs"],
       "steps": [
         "Open the funder guide beside /fund and /vaults",
@@ -10309,7 +10336,7 @@
         "Scroll through the full list",
         "Open an item deep in the list and return"
       ],
-      "expected": "Lists scroll smoothly, load progressively or paginate, and returning preserves position — no jank or unbounded loading",
+      "expected": "Lists scroll smoothly, load progressively or paginate, and returning preserves position, with no jank or unbounded loading",
       "evidence": "Screen recording of the scroll",
       "role": "any",
       "tags": ["performance", "lists"],
@@ -10587,7 +10614,7 @@
         "Open its menu and read the actions, then close it",
         "On Actions read the button, and as a deployer press it"
       ],
-      "expected": "On Garden, Community, and the Hub the button shows a plain plus on that workspace's own colour (green, amber, and blue); while its menu is open it shows a close icon and each action carries its own icon and label, and closing the menu brings the plus back; on Actions a deployer's button shows the same plus beside Create Action and opens that flow directly, and a steward has no button there",
+      "expected": "On Garden, Community, and the Hub the button shows a plain plus on that workspace's own color (green, amber, and blue); while its menu is open it shows a close icon and each action carries its own icon and label, and closing the menu brings the plus back; on Actions a deployer's button shows the same plus beside Create Action and opens that flow directly, and a steward has no button there",
       "evidence": "Screenshots of each button closed and one menu open",
       "role": "steward",
       "tags": ["shell", "responsive"],

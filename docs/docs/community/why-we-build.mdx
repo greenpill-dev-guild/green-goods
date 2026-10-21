@@ -3,184 +3,127 @@ title: Why We Build
 sidebar_label: Why We Build
 slug: /community/why-we-build
 sidebar_position: 3
+description: "Why Green Goods exists: the people doing regenerative work are often the last to be seen for it, and the tools for proving that work were not built for them."
 audience: all
 owner: docs
-last_verified: 2026-04-01
+last_verified: 2026-10-12
 feature_status: Live
 source_of_truth:
+  - packages/shared/src/config/app.ts
   - packages/shared/src/ontology/green-goods-ontology.json
-  - docs/docs/builders/integrations/overview.mdx
+  - packages/shared/src/ontology/green-goods-projections.json
+  - packages/shared/src/i18n/en.json
   - packages/client/src/views/Public/Home.tsx
-  - packages/client/src/views/Public/Impact.tsx
-  - packages/shared/src/modules/work
-  - packages/shared/src/hooks/hypercerts
-  - packages/contracts/src/modules
+  - packages/client/src/content/publicCuration.ts
+  - packages/client/src/views/Public/Actions.tsx
+  - packages/shared/src/providers/JobQueue.tsx
+  - packages/contracts/src/resolvers/WorkApproval.sol
+  - packages/contracts/src/interfaces/ICommitmentPoolingModule.sol
 keywords:
-  - vision
   - mission
-  - regen stack
-  - greenpill
-  - impact
-  - regeneration
-  - SDGs
   - values
+  - regeneration
+  - eight forms of capital
+  - community
 ---
 
 import {NextBestAction} from "@site/src/components/docs";
 
 # Why We Build
 
-Green Goods exists because regenerative communities deserve better tools. Field workers plant trees, collect waste, maintain solar panels, and teach – but their impact often goes **undocumented**, **unverified**, and **unfunded**. We're building the infrastructure to change that.
+Green Goods helps communities make their regenerative work visible. Someone cares for soil and trees, clears waste, maintains panels, or teaches a class. The evidence may be scattered across photos, notebooks, and chat threads. A supporter who was not there needs a way to understand what happened and who checked it.
 
----
+<figure className="gg-figure gg-overview-photo">
+  <img src="/img/community/editorial-fund.webp" alt="Two people work together to place a young tree in a pot, with tools close by." width="1536" height="1024" fetchPriority="high" decoding="async" />
+</figure>
 
-![Regen Stack](/img/community/deck-regen-stack.webp)
+We are building the tools to change that.
 
-## Greenpill & Regen Core
 
-Green Goods is built by the **Greenpill Dev Guild**, a collective of developers and designers whose mission is to foster positive-sum actions where **impact = profit**.
+## The problem
 
-### Greenpill Dev Guild Mission
+Three things get in the way of good work being recognized.
 
-The Greenpill Dev Guild builds open-source tools for regenerative communities. We believe that the people who create positive impact should be the ones who benefit from it – not intermediaries, not platform stewards, but the **gardeners**, **waste collectors**, and **community organizers** doing the work.
+- **Evidence takes time to organize.** Photos and notes need context before someone else can judge them. That work competes with time in the field.
+- **Field work needs field tools.** A weak signal should not stop someone recording what they did. A long reporting form should not be the only way to show it.
+- **Supporters need a basis for trust.** A claim is more useful when they can see the evidence, the review, and who stands behind it.
 
-Our core services:
+## What we believe
 
-- **Platform development** – Building and maintaining the Green Goods protocol
-- **Community onboarding** – Helping garden stewards set up and manage their communities
-- **Impact methodology** – Designing action schemas and assessment frameworks
-- **Integration support** – Connecting to funding mechanisms (Hypercerts, Octant, Gardens)
-- **Localization** – Adapting the platform for communities across languages and regions
+- **The people who do the work should be the ones who are seen for it.** Not an intermediary, and not a platform.
+- **Trust starts with neighbors.** A steward who knows the place and the people is a better first reviewer than a distant form. So review in Green Goods is local.
+- **Tools should fit the field.** You can record without a signal, sign in with a passkey, and use the app in English, Spanish, or Portuguese.
+- **Records should outlive the tool.** What a garden records is public and stays readable outside Green Goods.
+- **Honesty beats polish.** We say what works today and what does not yet. Availability and limits are explained beside the relevant guide.
 
-### Greenpill Ethos
+Green Goods grew out of the Greenpill network of builders and local communities, and it is built in the open.
 
-The Greenpill movement asks a simple question: **What if we used coordination technology to create abundance rather than extract it?** Green Goods answers this by connecting real-world regenerative work to on-chain verification and capital – making impact legible, fundable, and sustainable.
+## Who it is for
 
-Every feature decision is evaluated against this ethos:
+Green Goods is shaped by the kinds of communities it serves:
 
-- Does it **create more value** than it consumes?
-- Does it **empower communities** or create dependencies?
-- Does it **reduce barriers** for field workers?
-- Does it **increase transparency** for funders?
+- **Solar teams** who keep panels and batteries working for a campus or a neighborhood, and need to show the upkeep that nobody sees.
+- **Waste crews** who collect, sort, and compost, and want a record of what was kept out of the landfill.
+- **Tree-planting and land-restoration groups** whose work takes years to show, and who need a way to mark each season.
+- **Agroforestry and farming collectives** who care for soil and grow trees alongside crops, and want to document the work that keeps the land productive.
+- **Educators** who run classes and workshops, and want to show what people actually learned and used.
 
-### The Regen Movement
+Their work is small in any one day and large over a year. Green Goods is built to honor the small work: one tree, one bag, one panel, one class.
 
-Green Goods is part of a broader ecosystem of regenerative builders who believe technology should serve ecological and social renewal. We build on **open protocols** (EAS, Hats, Hypercerts) rather than proprietary infrastructure. We share learnings publicly. We iterate based on feedback from the gardeners in **Cape Town** and the agroforesters in **Brazil** – not abstract personas.
+<figure className="gg-figure gg-overview-photo">
+  <img src="/img/community/community-waste-sorting.jpg" alt="Three Wings of the Ocean volunteers sort waste collected from a beach into separate groups." width="1280" height="853" loading="lazy" />
+  <figcaption>
+    Wings of the Ocean volunteers sorting waste, Mallorca, 2021. This is not a Green Goods project.
+    Photo: <a href="https://commons.wikimedia.org/wiki/File:Wings_of_the_Ocean_-_Tri_d%C3%A9chets_%C3%A0_Majorque_(2021).jpg">Victor Janjić</a>, <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>; resized by Wikimedia and cropped for display.
+  </figcaption>
+</figure>
 
-Our work maps to these United Nations Sustainable Development Goals:
+## From shared goals to promises
 
-| SDG | Connection |
-|-----|------------|
-| **Good Health & Well-Being** (3) | Community gardens improve food security and nutrition |
-| **Clean Water & Sanitation** (6) | Watershed protection and water system maintenance |
-| **Affordable & Clean Energy** (7) | Solar infrastructure monitoring and maintenance |
-| **Sustainable Cities & Communities** (11) | Urban greening, waste management, community spaces |
-| **Responsible Consumption & Production** (12) | Waste reduction, recycling, circular economy actions |
-| **Life on Land** (15) | Reforestation, agroforestry, biodiversity monitoring |
+A garden also needs to agree on what happens next: who will do the work, what support they need, and how the community will know it was done.
 
----
+**Commitment Pooling** gives those promises a shared home and rules for checking them. It connects planning with evidence and confirmation, so a community can follow a promise from agreement to review. Financial support, when agreed, has its own conditions and payment steps. It is not guaranteed by a work approval.
 
-## Create Stronger Local Economies
+Garden promises are part of the 2.0 release; new money rewards and promise payouts are deferred. [How It Works](/community/how-it-works#commitment-pooling) explains the connection, and [Make a Promise](/community/gardener-guide/make-a-promise) shows your next step.
 
-Regenerative work shouldn't depend on perpetual grant funding. Green Goods creates the infrastructure for communities to **build their own sustainable economies** around verified impact.
+## More than money
 
-### Bringing Accessible Tools To Communities
+A tree is not only carbon. It is also food, shade, a lesson for someone's child, and a reason for neighbors to meet. Green Goods uses a framework called the **eight forms of capital** to name the kinds of value that work creates, so a garden is not judged by money alone.
 
-Most impact reporting tools are built for NGOs with dedicated staff and reliable internet. Green Goods is built for the opposite reality:
+<figure className="gg-figure gg-overview-photo">
+  <img src="/img/community/editorial-solar-workshop.webp" alt="Two adults' hands inspect a small solar panel on a wooden workbench, with a notebook and tools beside it." width="1774" height="887" loading="lazy" />
+</figure>
 
-- **Offline-first** – Works without internet. Submissions wait safely on the device, and one tap on **Upload all** sends them when you're back online.
-- **No wallet needed** – Sign in with your fingerprint or face. No seed phrases, no browser extensions.
-- **Multi-language** – Full UI support in English, Spanish, and Portuguese. Additional languages are under consideration.
-- **Low bandwidth** – Designed for mid-range Android devices on 2G/3G networks.
-- **Under a minute** – From first visit to first submission in less than 60 seconds.
+| Form | What it means |
+|---|---|
+| **Living** | Soil, water, biodiversity, and the health of a place |
+| **Social** | Relationships, networks, and trust between people |
+| **Material** | Tools, buildings, and things that were made |
+| **Financial** | Money, and where it flows |
+| **Intellectual** | Knowledge, methods, and practice that was written down |
+| **Experiential** | Skill that hands have learned |
+| **Spiritual** | Meaning, purpose, and connection |
+| **Cultural** | Tradition, story, and the identity of a place |
 
-These aren't nice-to-have features – they're **requirements** driven by the real constraints of 20+ active garden communities across Latin America, Africa, and North America.
+When a garden's actions are set up, each one is marked with the forms of capital it builds. That lets a garden show the whole of what it does.
 
-### Making Funding Accessible
+## A wider frame
 
-The biggest challenge for regenerative communities isn't doing the work – it's **proving the work happened** and **connecting that proof to funding**. Green Goods solves both:
+The United Nations Sustainable Development Goals give communities and supporters a common way to discuss their aims. Agriculture can relate to [sustainable food production (Goal 2)](https://sdgs.un.org/goals/goal2), solar work to [clean energy (Goal 7)](https://sdgs.un.org/goals/goal7), and restoration to [life on land (Goal 15)](https://sdgs.un.org/goals/goal15).
 
-1. **Evidence capture** is as simple as taking a photo with the MDR workflow
-2. **Community verification** creates permanent, on-chain attestations
-3. **Impact certification** aggregates verified work into Hypercerts
-4. **Capital formation** flows through impact vault deposits, harvest routing, and Hypercert purchases
+Those connections help explain the purpose of a project. Recording an action does not by itself prove progress against an SDG target. A garden still needs to decide what to measure and show the results.
 
-Vault deposits are designed so depositor claim value stays flat. When strategies generate yield, Green Goods routes that yield through harvest and split flows into community funding rather than depositor share-price appreciation.
+## Built in the open
 
-The result: a field worker in Nigeria can photograph their solar panel maintenance, get it verified by their campus steward, and have that verified work attract real capital from funders anywhere in the world.
-
-### Connecting Communities To Their Bioregions
-
-Green Goods organizes impact around **action domains** that map to local ecological contexts:
-
-- An **agroforestry** garden in Brazil tracks tree plantings, canopy cover, and harvest yields
-- A **waste management** garden in Cape Town tracks kilograms diverted from landfill
-- A **solar infrastructure** garden in Nigeria tracks kWh generated and panels maintained
-- An **education** garden in Kenya tracks participants engaged, curricula completed, and knowledge assessments
-
-Each domain has its own impact metrics, but all feed into the same verification and funding pipeline. Communities document what matters to their bioregion, and the platform handles the rest.
-
----
-
-## Care for Living Systems
-
-At its core, Green Goods is driven by a simple motivation: **care for the living world and the communities that steward it**.
-
-### Why This Work Matters
-
-Technology is a means, not an end. Every protocol integration, every smart contract, every UI component exists to serve one purpose: making it easier for people to **do regenerative work** and **be recognized for it**. The dignity of small work – planting a single tree, collecting a bag of trash, maintaining a solar panel – is what Green Goods is built to honor.
-
-### Regeneration Takes Many Forms
-
-Green Goods communities show us that regenerative work takes many forms:
-
-- **Community educators in Kenya** run public-goods and sustainability programs while documenting what participants actually learn and apply
-- **Waste collectors in Cape Town** clean their neighborhoods while earning community credits
-- **Agroforesters in Brazil** generate scientific datasets alongside their practical fieldwork
-- **Solar teams in Nigeria** keep critical infrastructure running for their campus community
-
-Each of these connections is valuable, measurable, and fundable – when the right tools exist to capture them.
-
-### A Holistic View of Value
-
-The relationship between humans and nature is richer than any single metric. Green Goods captures this richness through the **Eight Forms of Capital** — a holistic framework that looks beyond financial returns to measure the full spectrum of value that regenerative work creates.
-
-### Eight Forms of Capital
-
-The forms listed below are examples, not an exhaustive taxonomy; communities may identify additional dimensions of value specific to their bioregion and culture.
-
-```mermaid
-graph TD
-    N["Natural Capital<br/>(e.g. ecosystem health, biodiversity)"] --- S["Social Capital<br/>(e.g. community bonds, trust)"]
-    S --- F["Financial Capital<br/>(e.g. economic value, costs saved)"]
-    F --- M["Material Capital<br/>(e.g. infrastructure created)"]
-    M --- L["Living Capital<br/>(e.g. food, species, health)"]
-    L --- I["Intellectual Capital<br/>(e.g. knowledge, research, data)"]
-    I --- E["Experiential Capital<br/>(e.g. skills, practices learned)"]
-    E --- SC["Spiritual/Cultural Capital<br/>(e.g. connection to land, purpose)"]
-    SC --- N
-
-    style N fill:#22c55e,stroke:#16a34a,color:#fff
-    style S fill:#3b82f6,stroke:#2563eb,color:#fff
-    style F fill:#f59e0b,stroke:#d97706,color:#fff
-    style M fill:#ef4444,stroke:#dc2626,color:#fff
-    style L fill:#10b981,stroke:#059669,color:#fff
-    style I fill:#8b5cf6,stroke:#7c3aed,color:#fff
-    style E fill:#ec4899,stroke:#db2777,color:#fff
-    style SC fill:#14b8a6,stroke:#0d9488,color:#fff
-```
-
-By measuring all eight forms, Green Goods ensures that regenerative work is valued **holistically** -- a tree planted isn't just carbon sequestered, it's also food security, biodiversity, community engagement, and educational opportunity.
-
----
+Green Goods is free and open source. Anyone can read how it works, check it, and build on it. If that is you, start with the [builder docs](/builders/getting-started).
 
 <NextBestAction
-  title="Next: What Green Goods Can Claim"
-  why="See which capabilities are available, deployed but not available, in build, planned, or still a longer-term vision."
-  actionLabel="Read Honest Claims"
-  actionHref="/community/green-goods-claims"
+  title="Next: How It Works"
+  why="Follow the people and records involved in a garden's work."
+  actionLabel="How It Works"
+  actionHref="/community/how-it-works"
   alternatives={[
-    { label: "Gardener Guide", href: "/community/gardener-guide/joining-a-garden" },
+    { label: "Gardener Guide", href: "/community/gardener-guide/" },
     { label: "Builder Docs", href: "/builders/getting-started" }
   ]}
 />

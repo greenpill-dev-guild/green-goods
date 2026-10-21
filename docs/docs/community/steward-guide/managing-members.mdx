@@ -1,0 +1,156 @@
+---
+title: Manage Members
+sidebar_label: Manage Members
+slug: /community/steward-guide/managing-members
+description: "Add people to your garden, change their roles, answer requests to join, and decide whether anyone can join without asking."
+audience: steward
+owner: docs
+last_verified: 2026-10-13
+feature_status: Live
+goal: "Let a steward bring the right people into a garden with the right roles, and keep the door set the way the garden wants."
+difficulty: "standard"
+estimated_time: "2 to 10 minutes."
+prereqs: "Steward or owner access to the garden, and each person's account address or name."
+next_steps: "/community/evaluator-guide/making-an-assessment"
+persona_context: "Stewards onboarding gardeners and fellow stewards, and answering requests to join."
+source_of_truth:
+  - packages/admin/src/views/Community/index.tsx
+  - packages/admin/src/views/Community/components/CommunityMembersTab.tsx
+  - packages/admin/src/views/Community/components/CommunityJoinRequests.tsx
+  - packages/admin/src/components/Garden/AddMembersDialog.tsx
+  - packages/admin/src/components/Garden/ManageMembersDialog.tsx
+  - packages/admin/src/components/Garden/GardenSettingsEditor.tsx
+  - packages/admin/src/views/Garden/components/EditGardenDialog.tsx
+  - packages/shared/src/hooks/garden/useGardenJoinRequests.ts
+  - packages/shared/src/hooks/garden/useGardenOperations.ts
+  - packages/contracts/src/modules/Hats.sol
+  - packages/contracts/src/accounts/Garden.sol
+  - packages/shared/src/i18n/en.json
+keywords:
+  - members
+  - roles
+  - add gardener
+  - join requests
+  - open joining
+  - steward access requests
+---
+
+import {NextBestAction, StewardPathNav} from "@site/src/components/docs";
+
+# Manage Members
+
+
+Bring people into your garden, give them the right role, and decide how new people get in. Everything here happens in the steward dashboard, in the **Community** workspace.
+
+<figure className="gg-figure">
+  <img src="/img/screenshots/admin-community-members.webp" alt="The Community workspace on the Members tab: the buttons Deposit / Withdraw, Fund Cookie Jar, and Add Member at the top right, a member directory with a search box and filters for Owners, Stewards, Evaluators, Gardeners, Funders, and Community members, and one member row with a Manage Roles button" loading="eager" width="2000" height="1250" />
+  <figcaption>Use <strong className="gg-inline-label">Manage Roles</strong> on the row of the member whose access you want to change.</figcaption>
+</figure>
+
+<StewardPathNav />
+
+## Before you start
+
+- **Be a steward or owner of the garden**, and check that its name shows at the top left of the dashboard.
+- **Get each person's Account ID.** Gardeners find it in the app, under **Profile**, on the **Account** tab. A name ending in `.eth` works too. Ask them to copy it from the app. People often own more than one address.
+- **Be online.** Each change is confirmed and saved one at a time.
+
+## Add people
+
+1. Open **Community**. You land on the **Members** tab.
+2. Tap **Add Member**.
+3. Choose the **Role**. It starts on Gardener.
+4. Paste the person's address or name under **Ethereum Address or ENS Name**, then tap **Add**. They join the **Members to add** list.
+5. Repeat for each person. You can mix roles in one list.
+6. Tap the button at the bottom, which reads something like **Add 3 Members**, and confirm. You confirm once for each person on the list.
+
+
+**Which role?** Gardeners submit work. Stewards run the garden with you. Evaluators write assessments. The [steward guide](#roles-in-a-garden) lists all six. Giving someone the steward role also gives them the evaluator and gardener roles.
+
+## Roles in a garden
+
+Six roles exist in every garden. A person can hold more than one.
+
+| Role | What it is for |
+|---|---|
+| **Owner** | Everything a steward can do, plus renaming the garden and pausing its endowment in an emergency |
+| **Steward** | Running the garden: members, settings, reviewing work, certificates, and funds |
+| **Evaluator** | Writing assessments. An evaluator cannot approve or reject work |
+| **Gardener** | Submitting work, and claiming from the garden's shared fund |
+| **Funder** | Marks a supporter of the garden. It does not open the dashboard |
+| **Community member** | Marks someone in the garden's wider community. It does not open the dashboard |
+
+Giving someone the steward role also gives them the evaluator and gardener roles. Giving someone the owner role also gives them the steward role.
+
+## Change or remove a role
+
+1. On the **Members** tab, find the person. You can search by address or role.
+2. Tap **Manage Roles** on their row.
+3. Tap the remove button on the role you want to take away.
+4. Read **Confirm Member Removal**, then tap **Remove Member** and confirm.
+
+Removing a role removes only that one. If you take the steward role away from someone, they keep the evaluator and gardener roles until you remove those too.
+
+## Answer requests
+
+People can ask to join a garden, and ask to help steward it. Both kinds wait for you on the **Members** tab.
+
+1. Find **Join Requests** or **Steward Access Requests** on the **Members** tab.
+2. Tap **Check Requests** and sign the message. The list does not load until you ask for it.
+3. Read each request: the person's name, their account, and their note.
+4. Tap **Welcome** to let a gardener in, or **Approve Steward Access** to make someone a steward. You confirm the role first, and then sign to close the request.
+5. To turn a request down, tap **Decline**, write a reason under **Reason for declining**, and tap **Decline Request**. The person sees your reason.
+
+If you do not recognize someone, ask in the chat your garden already uses before you approve. A steward can add members, approve work, and handle the garden's funds.
+
+If you see neither card, requests are switched off for now. Add people with **Add Member**, using the Account ID they send you.
+
+## Decide who can join without asking
+
+By default a garden is invite only: people join when you add them or approve their request. You can open it so anyone can join as a gardener.
+
+1. Open the **Garden** workspace and tap **Edit Garden**.
+2. Turn on **Open joining**.
+3. To cap how many people can join this way, turn on **Limit gardeners** and set **Maximum gardeners**.
+4. Tap **Save Changes** and confirm. You confirm once for each setting you changed.
+
+<figure className="gg-figure" style={{maxWidth: '520px'}}>
+  <img src="/img/screenshots/admin-edit-garden.webp" alt="Part of the Edit Garden dialog: fields for the garden's name, description, and location, a banner image upload, the Open joining switch turned on with the line Allow anyone to join this garden without an invitation, and the Limit gardeners switch turned off" loading="lazy" width="1120" height="1408" />
+  <figcaption>Wait for the garden’s limit to load before changing <strong className="gg-inline-label">Limit gardeners</strong>.</figcaption>
+</figure>
+
+Two things to know about the limit. It counts people who join by themselves, not members you add. And the count does not go down when someone leaves, so raise the limit if you need more room.
+
+## How you know it worked
+
+- **Adding:** a message says the role was added, and the person appears in the member list. The list can take a moment to catch up.
+- **Removing:** the role disappears from the person's row.
+- **Requests:** a message says **The gardener was welcomed**, **Steward access was confirmed**, or **The request was declined**, and the request leaves the list.
+- **Open joining:** gardeners now see **Join Garden** on your garden's page in the app.
+
+## What happens next
+
+The person acts next. A new gardener sees your garden under **My gardens** in the app and can submit work right away. A new steward can open the dashboard with the account you added. Tell them it is done, because Green Goods does not send them an alert.
+
+## If something goes wrong
+
+| What you see | What to do |
+|---|---|
+| A message says the person is already a gardener, or already has another role | They have that role. Choose a different one, or leave them as they are |
+| The address will not go into the list | Check for a missing character. Ask the person to copy their Account ID from the app again |
+| You added someone and they still cannot see the garden | They are probably signed in to a different account. Compare the address you added with the Account ID in their app |
+| **Missing coverage** next to the member list | The garden has nobody in one of the key roles: owner, steward, or evaluator. Add someone to it |
+| A request shows as still catching up | The role was given. The member list will show it shortly |
+| **The current limit hasn't loaded yet, so it can't be changed** | The dashboard is still reading the garden's limit. Close **Edit Garden**, wait a moment, and open it again |
+| No **Community** workspace | Your account is an evaluator in this garden, not a steward or owner. Ask a steward to add the role |
+
+To reach the Green Goods team, ask in the [Green Goods community on Discord](https://discord.gg/greenpill).
+
+## Next step
+
+<NextBestAction
+  title="Write down the starting point"
+  why="With people in place, agree what your garden is trying to change and how you will measure it."
+  actionLabel="Make an Initial Assessment"
+  actionHref="/community/evaluator-guide/making-an-assessment"
+/>

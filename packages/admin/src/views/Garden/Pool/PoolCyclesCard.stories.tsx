@@ -44,7 +44,7 @@ export const OpenSeasonWithCampaigns: Story = {
   args: { console: storyPoolConsole() },
   play: async ({ canvasElement }) => {
     await expect(
-      within(canvasElement).getByText(/3 commitments are still live\./)
+      within(canvasElement).getByText(/3 promises are still live\./)
     ).toBeInTheDocument();
   },
 };
@@ -129,4 +129,16 @@ export const NoSeason: Story = {
 
 export const Paused: Story = {
   args: { console: storyPoolConsole({ pool: storyPool({ state: "PAUSED" }) }) },
+};
+
+export const Documentation: Story = {
+  args: {
+    console: storyPoolConsole({
+      pool: storyPool({ openCampaignIds: [] }),
+      cycles: [
+        storyCycle({ startTime: 1790856000n, endTime: 1796040000n, commitmentsAccepted: 6n }),
+      ],
+      cycleNames: new Map([["12", { status: "resolved", name: "Autumn Planting" }]]),
+    }),
+  },
 };

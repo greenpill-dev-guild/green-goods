@@ -150,7 +150,7 @@ export default function GardenDetail() {
           unlisted
             ? formatMessage({
                 id: "public.gardenDetail.unlisted",
-                defaultMessage: "This Garden is not in the public lists.",
+                defaultMessage: "This garden is not in the public lists.",
               })
             : undefined
         }
@@ -190,7 +190,7 @@ export default function GardenDetail() {
             <StatCell
               label={formatMessage({
                 id: "public.gardenDetail.stats.entries",
-                defaultMessage: "Approved work",
+                defaultMessage: "Approved submissions",
               })}
               value={detail?.totalFieldNotes}
               loading={detailLoading}
@@ -300,12 +300,12 @@ function GardenUnavailable({ onRetry }: { onRetry: () => void }) {
         titleId="public-garden-unavailable-title"
         title={formatMessage({
           id: "public.gardenDetail.unavailable",
-          defaultMessage: "This Garden could not be loaded",
+          defaultMessage: "This garden could not be loaded",
         })}
         lede={formatMessage({
           id: "public.gardenDetail.unavailableHelp",
           defaultMessage:
-            "We could not read this Garden's public record right now. Try again in a moment.",
+            "We could not read this garden's public record right now. Try again in a moment.",
         })}
         actions={
           <EditorialGhostButton onClick={onRetry}>
@@ -367,7 +367,7 @@ function GardenRecoverySection() {
           {formatMessage({
             id: "public.gardenDetail.explore.help",
             defaultMessage:
-              "Explore Gardens, follow their documented work, and see the evidence communities share.",
+              "Explore gardens, follow their documented work, and see the evidence communities share.",
           })}
         </p>
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">

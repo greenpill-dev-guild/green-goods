@@ -105,12 +105,23 @@ contract GoodsTokenTest is Test {
     // Minting — Supply Cap Enforcement
     // ═══════════════════════════════════════════════════════════════════════════
 
-    function test_mint_upToMaxSupply() public {
+    function testGoodsToken_mintAtCapRejectsFurtherMintAndBurnRestoresCapacity() public {
         uint256 remaining = MAX_SUPPLY - INITIAL_SUPPLY;
         vm.prank(owner);
         goodsToken.mint(user1, remaining);
 
         assertEq(goodsToken.totalSupply(), MAX_SUPPLY, "Total supply should equal max supply");
+        vm.prank(owner);
+        vm.expectRevert(abi.encodeWithSelector(GoodsToken.ExceedsMaxSupply.selector, 1, 0));
+        goodsToken.mint(user2, 1);
+        vm.prank(user1);
+        goodsToken.burn(200e18);
+        assertEq(goodsToken.totalSupply(), MAX_SUPPLY - 200e18);
+        assertEq(goodsToken.balanceOf(user1), remaining - 200e18);
+        vm.prank(owner);
+        goodsToken.mint(user2, 200e18);
+        assertEq(goodsToken.totalSupply(), MAX_SUPPLY);
+        assertEq(goodsToken.balanceOf(user2), 200e18);
     }
 
     function test_mint_revertsExceedingMaxSupply() public {

@@ -51,6 +51,8 @@ test("hook and doctor edits select their behavioral proof", () => {
       "scripts/dev/test.js", "scripts/dev/test-e2e.js", "scripts/dev/browser.js",
       "scripts/lib/vitest-shared-graph.mjs", "scripts/quality/check-shared-graph-tests.mjs",
       "scripts/quality/check-small-test-files.mjs", "scripts/quality/check-test-utils-barrel.mjs",
+      // The parity suite reads both git hooks, so a change to either must run it.
+      ".husky/pre-commit", ".husky/pre-push",
     ]],
   ];
   for (const intent of ["qa", "review", "push"]) {
@@ -1994,6 +1996,7 @@ test("CI Gate expects exactly the workflows whose path filters start", () => {
       ...(rule.exact ?? []),
       ...(rule.prefixes ?? []).map(prefixProbe),
       ...(rule.extensions ?? []).map((extension) => `probe/probe${extension}`),
+      ...(rule.globs ?? []).map(probeFor),
       ...supportProbes,
     ]) {
       if (expects(probe) && !filterRuns(pullRequest, probe)) {
@@ -2014,6 +2017,22 @@ test("CI Gate expects exactly the workflows whose path filters start", () => {
     }
   }
   assert.deepEqual(problems, []);
+});
+
+test("every package DESIGN file starts Docs, whose audit reads its spelling", () => {
+  // docs/scripts/docs-audit.mjs reads packages/*/DESIGN*.md, so a new design file needs Docs CI too.
+  const designs = readdirSync(join(repositoryRoot, "packages"), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .flatMap((entry) =>
+      readdirSync(join(repositoryRoot, "packages", entry.name))
+        .filter((name) => /^DESIGN.*\.md$/.test(name))
+        .map((name) => `packages/${entry.name}/${name}`),
+    );
+  assert.ok(designs.length > 0);
+  const unrouted = designs.filter(
+    (path) => !selectExpectedWorkflows({ changedPaths: [path], intent: "merge", ci: true }).includes("Docs"),
+  );
+  assert.deepEqual(unrouted, []);
 });
 
 test("Shared test support that Client and Admin tests import reaches their suites and workflows", () => {
@@ -2134,7 +2153,7 @@ test("workflow mapping preserves exact live and intended trigger parity", () => 
       ["Admin", "Agent", "Client", "Contracts", "Indexer", "Shared", "Supply Chain Guardrails"],
     ],
     ["scripts/lib/git-guardrails.mjs", ["Contracts", "Supply Chain Guardrails"]],
-    ["docs/docs/builders/testing/storybook.mdx", ["Design", "Docs", "Supply Chain Guardrails"]],
+    ["docs/docs/builders/testing/index.mdx", ["Design", "Docs", "Supply Chain Guardrails"]],
     ["packages/client/DESIGN-pwa.md", ["Client", "Design", "Supply Chain Guardrails"]],
     [
       "packages/shared/.storybook/preview.ts",
@@ -2154,7 +2173,7 @@ test("workflow mapping preserves exact live and intended trigger parity", () => 
     ["scripts/quality/ontology-render.mjs", ["Docs", "Ontology", "Supply Chain Guardrails"]],
     ["scripts/data/ontology-drift-baseline.json", ["Ontology", "Supply Chain Guardrails"]],
     [".plans/active/commitment-pooling/contract-spec.md", ["Ontology", "Supply Chain Guardrails"]],
-    ["docs/docs/builders/architecture/erd.mdx", ["Docs", "Ontology", "Supply Chain Guardrails"]],
+    ["docs/docs/builders/architecture/data-model.mdx", ["Docs", "Ontology", "Supply Chain Guardrails"]],
     ["packages/contracts/script/DeployBadgeSchema.s.sol", ["Contracts", "Ontology", "Supply Chain Guardrails"]],
     ["bunfig.toml", ["Supply Chain Guardrails"]],
     [".npmrc", ["Supply Chain Guardrails"]],
@@ -2703,7 +2722,7 @@ test("the push gate routes test quality and generated or audited docs to the pat
   }
   assert.ok(!push("packages/shared/src/hooks/app/useLoadingWithMinDuration.ts").includes("test-quality"));
 
-  for (const changedPath of ["docs/docs/community/green-goods-claims.generated.mdx", "scripts/docs/renderers.mjs", ".github/workflows/shared.yml"]) {
+  for (const changedPath of ["docs/claims.generated.md", "scripts/docs/renderers.mjs", ".github/workflows/shared.yml"]) {
     const selected = push(changedPath);
     assert.ok(selected.includes("docs-generated"), changedPath);
     assert.ok(selected.includes("docs-authority"), changedPath);
@@ -2726,6 +2745,33 @@ test("every docs generator input selects docs-generated, and the policy lists no
     (entry) => entry.check === "docs-generated" && entry.exact?.includes("scripts/data/validation-policy.json"),
   );
   assert.deepEqual(rule.exact.filter((path) => !sources.includes(path)), [], "Remove exact entries the generator no longer reads");
+});
+
+test("every design guide, and a new one at the root, in docs, or in a package, runs the em dash check locally and in Design CI", async () => {
+  const { designGuides } = await import("../design/check-em-dashes.mjs");
+  const guides = [...designGuides(repositoryRoot), "DESIGN.browser.md", "docs/DESIGN.browser.md", "packages/agent/DESIGN.md"];
+  const unrouted = guides.filter(
+    (guide) =>
+      !ids(selectValidation({ intent: "push", changedPaths: [guide] })).includes("em-dashes") ||
+      !selectExpectedWorkflows({ changedPaths: [guide], intent: "merge", ci: true }).includes("Design"),
+  );
+  assert.deepEqual(unrouted, [], "Route each design guide to the em-dashes rule and the Design workflow");
+});
+
+test("every agent chat copy module the em dash check reads runs it locally and in Agent CI", async () => {
+  const { CHAT_COPY } = await import("../../packages/agent/scripts/chat-copy.mjs");
+  const modules = [...new Set(CHAT_COPY.map(({ file }) => file)), "packages/agent/scripts/chat-copy.mjs"];
+  const unrouted = modules.filter(
+    (module) =>
+      !ids(selectValidation({ intent: "push", changedPaths: [module] })).includes("em-dashes") ||
+      !selectExpectedWorkflows({ changedPaths: [module], intent: "merge", ci: true }).includes("Agent"),
+  );
+  assert.deepEqual(unrouted, [], "Route each chat copy module to the em-dashes rule and the Agent workflow");
+  assert.match(
+    readFileSync(join(repositoryRoot, ".github/workflows/agent.yml"), "utf8"),
+    /run: bun run check --only em-dashes/,
+    "Agent CI runs the em dash check over the chat copy",
+  );
 });
 
 test("every file a certified seam fingerprints selects test-quality", () => {

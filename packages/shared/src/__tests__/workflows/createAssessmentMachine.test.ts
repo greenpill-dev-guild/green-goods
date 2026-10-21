@@ -9,13 +9,12 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { createActor, fromPromise } from "xstate";
+import { createActor, fromPromise, waitFor } from "xstate";
 import type { Address } from "../../types/domain";
 import {
   type CreateAssessmentForm,
   createAssessmentMachine,
 } from "../../workflows/createAssessment";
-import { flushPromises } from "../test-utils/render-helpers";
 
 // ============================================
 // Test Helpers
@@ -437,7 +436,7 @@ describe("workflows/createAssessmentMachine", () => {
       actor.send({ type: "SUBMIT" });
 
       // Wait for the fromPromise actor to resolve
-      await flushPromises();
+      await waitFor(actor, (state) => state.matches("success"), { timeout: 5000 });
 
       expect(actor.getSnapshot().value).toBe("success");
       expect(actor.getSnapshot().context.txHash).toBe("0xSuccessTxHash");
@@ -455,7 +454,7 @@ describe("workflows/createAssessmentMachine", () => {
       actor.send({ type: "SUBMIT" });
 
       // Wait for the fromPromise actor to reject
-      await flushPromises();
+      await waitFor(actor, (state) => state.matches("error"), { timeout: 5000 });
 
       expect(actor.getSnapshot().value).toBe("error");
       expect(actor.getSnapshot().context.error).toBe("Gas estimation failed");
@@ -478,7 +477,7 @@ describe("workflows/createAssessmentMachine", () => {
       actor.send({ type: "START", params: createValidParams() });
       actor.send({ type: "SUBMIT" });
 
-      await flushPromises();
+      await waitFor(actor, (state) => state.matches("success"), { timeout: 5000 });
       expect(actor.getSnapshot().value).toBe("success");
 
       actor.send({ type: "RESET" });
@@ -507,7 +506,7 @@ describe("workflows/createAssessmentMachine", () => {
       actor.send({ type: "START", params: createValidParams() });
       actor.send({ type: "SUBMIT" });
 
-      await flushPromises();
+      await waitFor(actor, (state) => state.matches("error"), { timeout: 5000 });
 
       return actor;
     }
@@ -532,15 +531,15 @@ describe("workflows/createAssessmentMachine", () => {
 
       // Fail 3 times (retryCount 1, 2, 3)
       actor.send({ type: "SUBMIT" });
-      await flushPromises();
+      await waitFor(actor, (state) => state.matches("error"), { timeout: 5000 });
       expect(actor.getSnapshot().context.retryCount).toBe(1);
 
       actor.send({ type: "RETRY" });
-      await flushPromises();
+      await waitFor(actor, (state) => state.matches("error"), { timeout: 5000 });
       expect(actor.getSnapshot().context.retryCount).toBe(2);
 
       actor.send({ type: "RETRY" });
-      await flushPromises();
+      await waitFor(actor, (state) => state.matches("error"), { timeout: 5000 });
       expect(actor.getSnapshot().context.retryCount).toBe(3);
 
       // Fourth retry should be blocked
@@ -571,7 +570,7 @@ describe("workflows/createAssessmentMachine", () => {
 
       actor.send({ type: "START", params });
       actor.send({ type: "SUBMIT" });
-      await flushPromises();
+      await waitFor(actor, (state) => state.matches("error"), { timeout: 5000 });
 
       expect(actor.getSnapshot().context.assessmentParams).toEqual(params);
       actor.stop();
@@ -596,7 +595,7 @@ describe("workflows/createAssessmentMachine", () => {
       actor.send({ type: "SUBMIT" });
       expect(actor.getSnapshot().value).toBe("submitting");
 
-      await flushPromises();
+      await waitFor(actor, (state) => state.matches("success"), { timeout: 5000 });
       expect(actor.getSnapshot().value).toBe("success");
       expect(actor.getSnapshot().context.txHash).toBe("0xFinalHash");
 
@@ -627,11 +626,11 @@ describe("workflows/createAssessmentMachine", () => {
       actor.send({ type: "START", params: createValidParams() });
       actor.send({ type: "SUBMIT" });
 
-      await flushPromises();
+      await waitFor(actor, (state) => state.matches("error"), { timeout: 5000 });
       expect(actor.getSnapshot().value).toBe("error");
 
       actor.send({ type: "RETRY" });
-      await flushPromises();
+      await waitFor(actor, (state) => state.matches("success"), { timeout: 5000 });
 
       expect(actor.getSnapshot().value).toBe("success");
       expect(actor.getSnapshot().context.txHash).toBe("0xRetrySuccess");
@@ -664,7 +663,7 @@ describe("workflows/createAssessmentMachine", () => {
       actor.send({ type: "START", params: createValidParams() });
       actor.send({ type: "SUBMIT" });
 
-      await flushPromises();
+      await waitFor(actor, (state) => state.matches("error"), { timeout: 5000 });
       expect(actor.getSnapshot().context.error).toBe("Previous error");
 
       actor.send({ type: "RESET" });

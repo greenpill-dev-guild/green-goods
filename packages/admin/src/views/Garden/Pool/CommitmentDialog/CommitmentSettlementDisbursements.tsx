@@ -196,7 +196,7 @@ export function CommitmentSettlementDisbursements({
         description={formatMessage({
           id: "cockpit.garden.pool.settlement.cancel.body",
           defaultMessage:
-            "The disbursement stays recorded as cancelled with your reason. The payout plan keeps its pointer to this commitment.",
+            "The disbursement stays recorded as canceled with your reason. The payout plan keeps its pointer to this promise.",
         })}
         confirmLabel={formatMessage({
           id: "cockpit.garden.pool.settlement.cancel.confirm",

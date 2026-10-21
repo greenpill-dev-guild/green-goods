@@ -1,7 +1,7 @@
 ---
 routine-name: bug-intake
 trigger:
-  schedule: "0 4 * * 1,3,5"  # 04:00 local, Mon/Wed/Fri. Reduced 2026-05-07 from daily M-F to give triage time between runs.
+  schedule: "0 11 * * 1,3,5"  # Mon/Wed/Fri 11:00 UTC (= 04:00 PDT / 03:00 PST), as the live trigger runs. Reduced 2026-05-07 from daily M-F to give triage time between runs.
 max-duration: 1h  # intake is lightweight — no audit phase
 repos:
   - green-goods
@@ -26,7 +26,7 @@ connectors:
   - linear  # Linear via the OAuth connector only — no LINEAR_API_KEY is stored (guild rule 2026-07-04); fail closed if unauthenticated
   - posthog  # read-only PostHog connector; primary path for telemetry enrichment
   - vercel  # read-only deploy correlation — surface deploy timing + diff in Customer Need bodies when a recent prod deploy temporally aligns with the report
-model: claude-opus-5
+model: claude-opus-5-5
 allow-unrestricted-branch-pushes: false  # Linear records only, no PRs, no GitHub issues
 ---
 
@@ -49,14 +49,16 @@ You do NOT create GitHub issues — GitHub is for PRs and code review only, not 
 
 ## Linear surface
 
-This routine writes Customer Needs and Issues into the **Linear Product team, unprojected by default**. The retired `Green Goods` umbrella project is no longer a routing destination — every new record lives unprojected unless a bounded active project clearly owns the work. Never route new Issues into staging/completed projects (`Green Goods`, `Coop`, `Network Website`, `Cookie Jar`, `Story Board`).
+This routine writes Customer Needs and Issues into the **Linear Product team**. Customer Needs stay unprojected. Issues follow [Project routing](README.md#project-routing): a bounded active project when one clearly owns the work, otherwise the active release project, and unprojected only when no release project is started. The retired `Green Goods` umbrella project is no longer a routing destination. Never route new Issues into staging/completed projects (`Green Goods`, `Coop`, `Network Website`, `Cookie Jar`, `Story Board`).
 
 Resolve the team, status, and label IDs at the start of every run and cache them for the duration:
 
 ```
 team            = Linear team where name == "Product"
-issue_statuses  = team.workflowStates  // expect Backlog, Todo, In Progress, In Review, Done, Cancelled
+issue_statuses  = team.workflowStates  // expect Backlog, Todo, In Progress, In Review, Done, Canceled
 labels          = team.labels          // expect the canonical label families listed below
+release_project = started Product-team project named "Green Goods vX.Y.Z QA & Release"  // none is valid: Issues stay unprojected
+bounded_projects = other Product-team projects that are not Completed or Canceled  // use one only when it clearly owns the work
 ```
 
 If the Product team, expected Issue statuses, or required canonical labels are missing, **fail loud** in the Discord summary. Do not invent records under a different team or skip labels silently.
@@ -259,7 +261,7 @@ Source: the dedicated `#bug-report` channel (`DISCORD_BUGS_CHANNEL_ID`). The ret
    - Same error text, view name, or described behavior (likely duplicate — append context, do not create)
    - Same reporter + same surface within 7 days (likely duplicate; use private-context identifiers for matching only)
 
-   When a duplicate exists, add a Linear comment on the existing record with the safe display name (or `anonymous`), message URL, and a one-sentence quote. Do not include Discord usernames, handles, or IDs in the Linear comment. Acknowledge the reporter on Discord with a link to the existing Linear record. Do not create a new record.
+   When a duplicate exists, add a Linear comment on the existing record with the safe display name (or `anonymous`), message URL, and a one-sentence quote. When that record is an Issue with no project, or one whose project is Completed or Canceled, set its project per [Project routing](README.md#project-routing) in the same pass. Do not include Discord usernames, handles, or IDs in the Linear comment. Acknowledge the reporter on Discord with a link to the existing Linear record. Do not create a new record.
 
 4. **Enrich with PostHog + optional Sentry (private context)** — for every report that survives dedupe and is enrichable per `## PostHog telemetry enrichment`, run the curated questions through the PostHog connector. If a Sentry connector/API surface is available, also run the `## Sentry root-cause enrichment` match for the inferred project. Carry the results forward as private context for step 5 and step 6:
    - The error hash, affected-session count, affected-user count, first/last seen, and app surface go into the Linear Customer Need body's `## PostHog evidence (safe summary)` block.
@@ -274,7 +276,7 @@ Source: the dedicated `#bug-report` channel (`DISCORD_BUGS_CHANNEL_ID`). The ret
    Discord #bug-report — {message-url}
    Reported by **{display name or "anonymous"}** on {YYYY-MM-DD HH:MM TZ}
 
-   > {quoted message text — verbatim, no editorialising}
+   > {quoted message text — verbatim, no editorializing}
 
    ## Reporter context
    - Customer / garden: {garden name and Linear customer record if linked, else "unknown"}
@@ -347,9 +349,9 @@ Source: the dedicated `#bug-report` channel (`DISCORD_BUGS_CHANNEL_ID`). The ret
 
    Drop anything you cannot fill rather than writing a placeholder — if the fix is not suggestable yet, that is the lightweight tracking pattern (`activity:maintenance` + `Backlog`), not a "Needs investigation" heading. Do not restate the verbatim quote or the reporter list; those live on the linked Customer Need.
 
-   Project: leave **unprojected** on the Product team. Apply labels: `protocol:green-goods` + `activity:build` + `package:<inferred>` (omit if unknown) + `source:discord` + `ai:routine`. Status: `Todo`. Link the Issue to the Customer Need via Linear's relationship surface ("relates to" or the Customer Need's linked-issues field, whichever the Linear API exposes). The Issue body inherits the same privacy boundary — never paste replay URLs, session IDs, distinct IDs, wallet addresses, or reporter identifiers into it.
+   Project: per [Project routing](README.md#project-routing), the `bounded_projects` entry that clearly owns the work, otherwise the `release_project`, or none when no release project is started. Apply labels: `protocol:green-goods` + `activity:build` + `package:<inferred>` (omit if unknown) + `source:discord` + `ai:routine`. Status: `Todo`. Link the Issue to the Customer Need via Linear's relationship surface ("relates to" or the Customer Need's linked-issues field, whichever the Linear API exposes). The Issue body inherits the same privacy boundary — never paste replay URLs, session IDs, distinct IDs, wallet addresses, or reporter identifiers into it.
 
-7. **Acknowledge on Discord** — reply with the Linear URL and add ✅ reaction in `#bug-report`. Since the standalone ack post was retired (Phase 6), this threaded reply IS the reporter's acknowledgement. When acknowledging, link the Customer Need (not the Issue), because the Customer Need is the user-facing record:
+7. **Acknowledge on Discord** — reply with the Linear URL and add ✅ reaction in `#bug-report`. Since the standalone ack post was retired (Phase 6), this threaded reply IS the reporter's acknowledgment. When acknowledging, link the Customer Need (not the Issue), because the Customer Need is the user-facing record:
 
    ```
    POST https://discord.com/api/v10/channels/${DISCORD_BUGS_CHANNEL_ID}/messages
@@ -372,9 +374,9 @@ If `BOT_API_URL` is not configured, skip this phase silently.
 - **503** (`API authentication not configured`) → the agent itself has no `BOT_API_TOKEN` set. Skip and record: `Telegram intake blocked: agent has no BOT_API_TOKEN — set the Fly secret on app green-goods.`
 - **network error / host unreachable** (with `BOT_API_URL` set) → skip and record: `Telegram intake blocked: agent unreachable at BOT_API_URL.`
 
-Only an unset `BOT_API_URL` is a silent skip; a configured-but-failing endpoint always surfaces in the Phase 7 summary so the wiring can be fixed. Telegram-side reporters have no other acknowledgement surface, so a dark intake path is high-priority signal, not a quiet no-op.
+Only an unset `BOT_API_URL` is a silent skip; a configured-but-failing endpoint always surfaces in the Phase 7 summary so the wiring can be fixed. Telegram-side reporters have no other acknowledgment surface, so a dark intake path is high-priority signal, not a quiet no-op.
 
-The agent persists every freeform message posted in allowlisted forum topics into its `chat_messages` table, tagging each row with `inferredType` derived from which Fly secret (`TELEGRAM_BUGS_TOPIC` → `bug`, `TELEGRAM_IDEAS_TOPIC` → `idea`) matched the message's chat+thread. The bot stays silent in the Green Goods chat — it never replies, reacts, or DMs reporters. Team-facing acknowledgement happens via the Phase 7 digest; **do NOT call any `/api/notify`-style endpoint**, and do NOT reply in the Telegram topic.
+The agent persists every freeform message posted in allowlisted forum topics into its `chat_messages` table, tagging each row with `inferredType` derived from which Fly secret (`TELEGRAM_BUGS_TOPIC` → `bug`, `TELEGRAM_IDEAS_TOPIC` → `idea`) matched the message's chat+thread. The bot stays silent in the Green Goods chat — it never replies, reacts, or DMs reporters. Team-facing acknowledgment happens via the Phase 7 digest; **do NOT call any `/api/notify`-style endpoint**, and do NOT reply in the Telegram topic.
 
 Run the sub-flow below twice — once with `inferred_type=bug` (ack target `#bug-report`), once with `inferred_type=idea` (ack target `#product`):
 
@@ -431,7 +433,7 @@ Run the sub-flow below twice — once with `inferred_type=bug` (ack target `#bug
 
    The Customer Need carries **no labels** — `save_customer_need` has no `labels` field. Provenance lives in the body; the canonical labels (`protocol:green-goods` + `source:telegram` + `ai:routine` + `activity:*`) go on the linked Issue created in step 8.
 
-8. **Create the linked Issue**. When the report is actionable per the same acceptance bar as Phase 1 step 6, create an accepted-bug Issue. Idea-source captures get a lightweight `activity:maintenance` + `Backlog` tracking Issue. Apply the same canonical labels for Issues (`protocol:green-goods` + `activity:build` or `activity:maintenance` + `package:<inferred>` + `source:telegram` + `ai:routine`) and privacy boundary.
+8. **Create the linked Issue**. When the report is actionable per the same acceptance bar as Phase 1 step 6, create an accepted-bug Issue. Idea-source captures get a lightweight `activity:maintenance` + `Backlog` tracking Issue. Apply the same canonical labels for Issues (`protocol:green-goods` + `activity:build` or `activity:maintenance` + `package:<inferred>` + `source:telegram` + `ai:routine`), the project routing of Phase 1 step 6, and the privacy boundary.
 
 9. **Mark the captured message triaged**:
    ```
@@ -441,7 +443,7 @@ Run the sub-flow below twice — once with `inferred_type=bug` (ack target `#bug
    ```
    On dedupe-detected duplicates, mark `triaged` too — the message has been processed, just not into a new record.
 
-10. **No Telegram-side ack.** The Phase 7 digest is the only team-facing acknowledgement of Telegram captures.
+10. **No Telegram-side ack.** The Phase 7 digest is the only team-facing acknowledgment of Telegram captures.
 
 ## Phase 3: Google Drive notes
 
@@ -455,9 +457,10 @@ The `google-drive` connector exposes only `title`, `fullText`, `mimeType`, `modi
 
    This pattern matches Gemini-generated meeting notes (the canonical naming is `<topic> - YYYY/MM/DD HH:MM PDT - Notes by Gemini`) that are project-relevant. Operator-onboarding sessions, Green Goods syncs, and pilot-garden calls all match.
 
-2. **Rejection step — drop the doc if any of these hold.** This routine owns user-reported pain from Green Goods. It does NOT own grants, strategy, or partnership content even when those docs mention Green Goods. It also does NOT own Build Sync notes (formerly Product Sync; renamed June 2026) — `qa-triage-pulse` (Wed 21:00 UTC cron) owns those and runs ~37h before this routine's next M/W/F fire. Drop docs whose **title contains** any of:
+2. **Rejection step — drop the doc if any of these hold.** This routine owns user-reported pain from Green Goods. It does NOT own grants, strategy, or partnership content even when those docs mention Green Goods. It also does NOT own the notes of the two weekly calls `sync-triage-pulse` triages on the afternoon they happen (Mon and Wed 23:00 UTC cron): the Engineering Sync and the Build Sync (formerly Product Sync; renamed June 2026). That routine runs 36h before this routine's next M/W/F fire. Drop docs whose **title contains** any of:
 
-   - `'Build Sync'` → owned by `qa-triage-pulse` (skip silently; the Wed routine already pre-staged any bugs from these notes into Linear)
+   - `'Engineering Sync'` → owned by `sync-triage-pulse` (skip silently; its Monday run already pre-staged any bugs from these notes into Linear)
+   - `'Build Sync'` → owned by `sync-triage-pulse` (skip silently; its Wednesday run already pre-staged any bugs from these notes into Linear)
    - `'Product Sync'` → legacy title of the Build Sync (renamed June 2026); old notes keep it — same ownership, skip silently
 
    ...and drop docs whose **primary topic** is:
@@ -491,9 +494,9 @@ The `google-drive` connector exposes only `title`, `fullText`, `mimeType`, `modi
 
    Drive notes are mixed-source so judgment is required: include the meeting attendees in `## Reporter context` and prefer the privacy-safe summary over verbatim quotes when in doubt.
 
-7. **Create accepted-bug Issue** only if the doc captures an actionable bug with a clear surface (rare — Drive notes usually need triage first). Apply the same canonical labels (`protocol:green-goods` + `activity:build` + `package:<inferred>` + `source:drive` + `ai:routine`) and privacy boundary as in Phase 1 step 6.
+7. **Create accepted-bug Issue** only if the doc captures an actionable bug with a clear surface (rare — Drive notes usually need triage first). Apply the same canonical labels (`protocol:green-goods` + `activity:build` + `package:<inferred>` + `source:drive` + `ai:routine`), project routing and privacy boundary as in Phase 1 step 6.
 
-8. **Reporter acknowledgement** is not applicable for Drive (no per-message back-channel). Drive-sourced records appear in the daily Discord summary as a batch.
+8. **Reporter acknowledgment** is not applicable for Drive (no per-message back-channel). Drive-sourced records appear in the daily Discord summary as a batch.
 
 ## Phase 4: Recurring-pattern roll-up
 
@@ -501,7 +504,7 @@ After Phases 1–3, before the umbrella check, fold every PostHog match collecte
 
 1. **Re-run the recurring-pattern probe** (curated question 4 in `## PostHog telemetry enrichment`) over the last 30 days, including matches from before this run.
 2. **Threshold gate**: a hash is a recurring pattern when its 30-day distinct-session count is **≥ 50**. Below threshold, the per-report Customer Needs from Phases 1–3 stand on their own. Do not aggregate.
-3. **Find or create the parent Issue** unprojected on the Product team:
+3. **Find or create the parent Issue** on the Product team, routed like the per-report Issues (a `bounded_projects` entry that clearly owns the work, otherwise the `release_project`):
    - Look for an open Issue carrying `protocol:green-goods` + `ai:routine` + `activity:build` + a `pattern:posthog-{error-hash-prefix}` label. If the label set is missing on the team, fail loud in the Phase 7 summary and skip aggregation rather than inventing a parent.
    - If none exists and the threshold is met, create one Issue whose title is a plain verb-led sentence naming the failure — "Fix the credential request that never resolves on garden join", not `Recurring: {error}`. The `Recurring:` prefix was retired 2026-08-27 and a `PreToolUse` hook now rejects it; the `pattern:posthog-*` label marks the record as a recurring parent. Status `Todo`, labels `protocol:green-goods` + `activity:build` + `package:<inferred>` + `ai:routine` + `pattern:posthog-{error-hash-prefix}`. The parent Issue body uses the safe-summary fields only:
 
@@ -529,7 +532,7 @@ After Phases 1–3, before the umbrella check, fold every PostHog match collecte
      unbounded one — the body has a 600-word backstop, so a long-lived pattern
      would eventually make its own refresh unwritable.
 
-   - If a parent Issue already exists, add the new Customer Needs through the relation surface (step 4) and refresh the counts and last-seen date in the body. Do not accumulate URLs in the description — the relations are the list.
+   - If a parent Issue already exists, first route it per [Project routing](README.md#project-routing) when it has no project or a Completed or Canceled one, then add the new Customer Needs through the relation surface (step 4) and refresh the counts and last-seen date in the body. Do not accumulate URLs in the description — the relations are the list.
 4. **Backlink** every contributing Customer Need to the parent Issue via Linear's relation surface (`relates to` or the parent's linked-issues field). The Customer Needs themselves are not edited beyond adding the relation.
 5. **Attach Sentry matches as root-cause context** when they point at the same top-line message/surface/release. Sentry issue IDs enrich the parent Issue body or comment with release and stack context; they do not replace the PostHog distinct-session threshold because Sentry event counts and PostHog session counts are not comparable.
 5. **Cap**: at most **2 new parent Issues per run** to keep human triage from drowning. Carry overflow into the next run.
@@ -541,18 +544,18 @@ The parent Issue body never carries replay URLs, session IDs, distinct IDs, wall
 After Phases 1–4, before posting the summary:
 
 1. List every Customer Need this run created and confirm it is associated with the expected project/customer context and includes source, evidence, dedupe notes, and privacy-safe summary.
-2. List every linked Issue this run created (per-report and recurring-pattern parent) and confirm it has the expected labels, status, source URL, and Customer Need link.
-3. List every duplicate detection — every existing Customer Need or Issue this run commented on — and confirm the comment landed.
+2. List every linked Issue this run created (per-report and recurring-pattern parent) and confirm it has the expected labels, status, project (per [Project routing](README.md#project-routing)), source URL, and Customer Need link.
+3. List every duplicate detection — every existing Customer Need or Issue this run commented on — and confirm the comment landed, that each Issue this run re-routed now sits in the project [Project routing](README.md#project-routing) picks (or in none only when no bounded project owns it and no release project is started), and that each Issue already in a live project stayed there.
 4. List every rejection — every signal you read but did not act on — and the reason.
 5. Run a privacy grep across every body created or edited this run, **every comment this run posted**, **and across every captured `chat_messages.text` and attachment caption that this run consumed** for the strings `replay`, `session_id`, `distinct_id`, `0x`, the reporter identifiers seen this run, and any other token from the "private" column of the privacy-boundary table. Any hit in a Linear body or comment means the routine leaked private context — fail loud in Phase 7's `⚠ Failures this run` block and edit the offending body or comment in place to redact before the run completes. Hits in raw `chat_messages.text` or captions cause the run to drop that record's quote from the Phase 7 digest (Linear still records it, scrubbed) — never leak the raw text downstream.
 
 Carry these into Phase 7 so the digest is verifiable.
 
-## Phase 6: Acknowledgements (in-thread only — 2026-07-30)
+## Phase 6: Acknowledgments (in-thread only — 2026-07-30)
 
-Standalone per-capture ack messages are retired; they were the single largest source of routine noise on Discord (up to 8 extra messages per run on top of the digest). Acknowledgement now works like this:
+Standalone per-capture ack messages are retired; they were the single largest source of routine noise on Discord (up to 8 extra messages per run on top of the digest). Acknowledgment now works like this:
 
-- **Discord-source reports**: the Phase 1 step 7 threaded `Tracked → {customer_need_url}` reply + ✅ reaction on the reporter's own message in `#bug-report` IS the acknowledgement — the reporter sees it attached to their message, and the channel gains no standalone posts. Duplicates get the same threaded reply pointing at the existing record (Phase 1 step 3).
+- **Discord-source reports**: the Phase 1 step 7 threaded `Tracked → {customer_need_url}` reply + ✅ reaction on the reporter's own message in `#bug-report` IS the acknowledgment — the reporter sees it attached to their message, and the channel gains no standalone posts. Duplicates get the same threaded reply pointing at the existing record (Phase 1 step 3).
 - **Telegram- and Drive-source records** (including Telegram duplicates merged into existing records): no standalone Discord message. They are acknowledged as item lines in the Phase 7 digest, which posts whenever anything was captured and carries what the old ack did (type, source, one-line summary, Linear link).
 - The bot stays silent in Telegram either way (no DMs, no group replies — unchanged).
 
@@ -568,7 +571,7 @@ Post to `#product`:
 POST https://discord.com/api/v10/channels/${DISCORD_PRODUCT_CHANNEL_ID}/messages
 ```
 
-Determine if @mention is needed by counting **this routine's own** open Issues awaiting triage. Every accepted item this routine creates is a Customer Need linked to an Issue (Linear API constraint 3), so the addressable triage signal lives on the Issues — never on the label-less Customer Needs, and there is no team-wide "list Customer Needs" query. Scope the count to bug-intake's writes with the compound filter — a `source:{discord|telegram|drive}` origin label **plus** an `activity:{build|maintenance}` label. Query by `ai:routine` first because it is the cheapest single-value `label` filter the API accepts, but do **not** require an `ai:*` value when narrowing the results: delegation swaps `ai:routine` for `ai:codex` or `ai:claude`, and a delegated Issue is still awaiting triage. The source-plus-activity pair is what actually scopes the count. That compound is what excludes sibling routines: grant-scout is `activity:research` (so the activity clause drops it even though it also stamps `source:discord`/`source:drive`); health-watch carries no `source:` origin label; qa-triage-pulse uses `source:qa-triage-pulse`, not the three origins.
+Determine if @mention is needed by counting **this routine's own** open Issues awaiting triage. Every accepted item this routine creates is a Customer Need linked to an Issue (Linear API constraint 3), so the addressable triage signal lives on the Issues — never on the label-less Customer Needs, and there is no team-wide "list Customer Needs" query. Scope the count to bug-intake's writes with the compound filter — a `source:{discord|telegram|drive}` origin label **plus** an `activity:{build|maintenance}` label. Query by `ai:routine` first because it is the cheapest single-value `label` filter the API accepts, but do **not** require an `ai:*` value when narrowing the results: delegation swaps `ai:routine` for `ai:codex` or `ai:claude`, and a delegated Issue is still awaiting triage. The source-plus-activity pair is what actually scopes the count. That compound is what excludes sibling routines: grant-scout is `activity:research` (so the activity clause drops it even though it also stamps `source:discord`/`source:drive`); health-watch carries no `source:` origin label; sync-triage-pulse uses `source:sync-triage-pulse`, not the three origins.
 
 ```
 # list_issues' `label` param is single-value: query by ai:routine, then narrow
@@ -599,7 +602,7 @@ accepted_count   = count Issues on team=Product where:
 {if more than 3: "…plus {n} more captured, all in Linear."}
 {if duplicates merged: "{K} duplicate report(s) merged into existing records."}
 
-{if raw_signal_count + accepted_count > 3: "📋 Triage queue · {raw_signal_count} raw signals + {accepted_count} accepted bugs → the Product team's unprojected `protocol:green-goods` view."}
+{if raw_signal_count + accepted_count > 3: "📋 Triage queue · {raw_signal_count} raw signals + {accepted_count} accepted bugs → the Product team's `protocol:green-goods` records."}
 {if any_failure: "⚠ {short failure list — e.g. Linear project lookup failed, posthog unreachable, in-thread ack failed for <msg url>, privacy grep flagged a body}"}
 ```
 
@@ -613,7 +616,7 @@ Source-by-source count breakdowns, ack tallies, and enrichment telemetry stay OU
 
 This digest is **public**. Replay URLs, session IDs, distinct IDs, wallet/user identifiers, and reporter identifiers must not appear here. If a private replay link needs to reach Afo, send it via DM to `<@${DISCORD_USER_ID_AFO}>` in a separate message — never inline in this `#product` digest.
 
-The @mention fires when triage is piling up (`raw_signal_count + accepted_count > 3`) or when anything in `any_failure` needs human attention — that covers setup and wiring failures, an unreachable PostHog, a privacy-grep hit, and a failed in-thread acknowledgement. This keeps Discord notifications signal-heavy and matches the existing notification policy.
+The @mention fires when triage is piling up (`raw_signal_count + accepted_count > 3`) or when anything in `any_failure` needs human attention — that covers setup and wiring failures, an unreachable PostHog, a privacy-grep hit, and a failed in-thread acknowledgment. This keeps Discord notifications signal-heavy and matches the existing notification policy.
 
 ## Caps and guardrails
 
@@ -629,6 +632,27 @@ The @mention fires when triage is piling up (`raw_signal_count + accepted_count 
 - **No nagging.** If an existing Customer Need covers a new report, comment once with the new reporter info; do not re-comment if the same record gets multiple references in one run.
 - **No duplicate of `/linear issue` records.** When a teammate already filed via the Linear/Discord integration, the Linear record exists; this routine merges context but does not create a parallel record.
 - **1-hour runtime cap.** Intake is lightweight. If the run takes longer than an hour, something is wrong.
-- **Project routing discipline.** Customer Needs and accepted-bug Issues live unprojected on the Product team. Never route into the retired `Green Goods`, `Coop`, `Network Website`, `Cookie Jar`, or `Story Board` projects. Graduate to a bounded active project only when one already exists for this work.
-- **Acknowledgement model (2026-07-30).** Discord-source reports are acknowledged with the inline `Tracked → ${customer_need_url}` threaded reply + ✅ reaction in `#bug-report` (Phase 1 step 7; reply and reaction are attempted, recorded, and retried independently) — never with standalone ack messages. Telegram and Drive records are acknowledged as item lines in the Phase 7 digest; Telegram reporters get NO Telegram-side ack — no DM, no group reply — by design.
-- **Fail loud, not silent.** A missing Linear project, a missing label, a 401 from Linear, or a 401/503 from the agent messages API (`${BOT_API_URL}/api/messages`, per the Phase 2 preflight) must appear in the Discord summary so the user can fix the wiring. Do not skip records to keep the run "green."
+- **Project routing discipline.** Customer Needs live unprojected on the Product team. Accepted-bug Issues follow [Project routing](README.md#project-routing): a bounded active project when one already exists for this work, otherwise the active release project, and unprojected only when none is started. Never route into the retired `Green Goods`, `Coop`, `Network Website`, `Cookie Jar`, or `Story Board` projects.
+- **Acknowledgment model (2026-07-30).** Discord-source reports are acknowledged with the inline `Tracked → ${customer_need_url}` threaded reply + ✅ reaction in `#bug-report` (Phase 1 step 7; reply and reaction are attempted, recorded, and retried independently) — never with standalone ack messages. Telegram and Drive records are acknowledged as item lines in the Phase 7 digest; Telegram reporters get NO Telegram-side ack — no DM, no group reply — by design.
+- **Fail loud, not silent.** A failed Linear project lookup (an absent release project between releases is a valid state, not a failure), a missing label, a 401 from Linear, or a 401/503 from the agent messages API (`${BOT_API_URL}/api/messages`, per the Phase 2 preflight) must appear in the Discord summary so the user can fix the wiring. Do not skip records to keep the run "green."
+
+## Rebuilding the cloud routine from this file
+
+1. Log in to [claude.ai/code/routines](https://claude.ai/code/routines).
+2. Click **New routine** (or use `/schedule` in Claude Code).
+3. Paste a bootstrap prompt, not a copy of this spec. The routine fetches `origin/develop` and executes this file on every run, so a change takes effect as soon as it merges to `develop`. Keep the bootstrap free of phase summaries: a summary drifts from the spec and competes with it. The bootstrap carries one failure post of its own, because a run that cannot load the spec never reads the spec's failure rules; that post uses the digest's channel variable, so a channel change touches both.
+
+   ```text
+   You are the bug-intake routine for Green Goods. Your spec is docs/routines/bug-intake.md on the develop branch of the green-goods repo. It is the single source of truth; there is intentionally no copy here.
+
+   1. Run `git fetch origin +refs/heads/develop:refs/remotes/origin/develop`, which updates `origin/develop` whatever this checkout's fetch settings are.
+   2. Read the whole spec: `git show origin/develop:docs/routines/bug-intake.md`.
+   3. Execute everything after its `# Prompt` heading exactly as written, except the `## Rebuilding the cloud routine from this file` section, which tells people how to set the routine up and is never part of a run. Where this prompt and the spec differ, follow the spec.
+
+   If step 1 or 2 fails, never run an older copy or improvise from memory: an older `origin/develop` may still be readable, and running it would run a stale spec. Report the failure in the run log, post one failure line, and exit non-zero. The line is `<@${DISCORD_USER_ID_AFO}> ⚠ bug-intake could not load its spec ({the failed step}); no reports were filed this run.`, sent as the `content` field of a JSON body built with an encoder such as `jq -n --arg`, never by hand, with `POST https://discord.com/api/v10/channels/${DISCORD_PRODUCT_CHANNEL_ID}/messages` and the headers `Authorization: Bot ${DISCORD_BOT_TOKEN}` and `Content-Type: application/json`, using plain `curl` without `-L` so the token is never forwarded. When `DISCORD_PRODUCT_CHANNEL_ID` is unset, skip the post and say so in the run log; never post to another channel.
+
+   Limits that hold whatever the spec says: never push code, open PRs, create GitHub Issues or Project items, or post to Telegram; post to Discord only in the channels `DISCORD_BUGS_CHANNEL_ID` and `DISCORD_PRODUCT_CHANNEL_ID` name.
+   ```
+
+4. Configure the repo (`green-goods`, checked out at `develop`, its default branch, so the files a run reads from the checkout match the spec it fetched), environment (green-goods, `env_01CRAWm3KauPFp4ntqdAufPR`), env vars, connectors, model, and cron per the frontmatter above.
+5. Save, then record the routine id in `docs/routines/README.md`. If the bootstrap is ever pointed at `main`, spec changes take effect only once they land on `main`.

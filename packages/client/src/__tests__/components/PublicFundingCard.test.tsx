@@ -274,7 +274,7 @@ describe("PublicFundingCard", () => {
   });
 
   it.each([
-    ["donate", "Contribution to this Garden’s shared fund"],
+    ["donate", "Contribution to this garden’s shared fund"],
     ["endow", "Longer-term support through an endowment"],
   ] as const)("labels the %s funding path in the card header", (intent, pathLabel) => {
     renderCard(intent);

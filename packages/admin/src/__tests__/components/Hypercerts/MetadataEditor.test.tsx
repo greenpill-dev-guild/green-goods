@@ -135,10 +135,6 @@ vi.mock("@green-goods/shared/components/Form/FormTextarea", () => ({
     ]),
 }));
 
-vi.mock("@green-goods/shared/utils/styles/cn", () => ({
-  cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
-}));
-
 import { MetadataEditor } from "../../../components/Hypercerts/Steps/MetadataEditor";
 
 // ============================================

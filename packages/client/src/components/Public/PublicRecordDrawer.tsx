@@ -1,5 +1,6 @@
 import { Button } from "@green-goods/shared/components/Button";
 import { useDocumentScrollLock } from "@green-goods/shared/hooks/ui/useDocumentScrollLock";
+import { useOpenerFocus } from "@green-goods/shared/hooks/utils/useFocusTrap";
 import { RiCloseLine } from "@remixicon/react";
 import { type ReactNode, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
@@ -46,6 +47,8 @@ export function PublicRecordDrawer({
 }: PublicRecordDrawerProps) {
   const { formatMessage } = useIntl();
   useDocumentScrollLock(open);
+  // Hands focus back to whatever opened the drawer once it closes.
+  useOpenerFocus(open);
   const closeRef = useRef<HTMLButtonElement | null>(null);
 
   // Focus the close control when the drawer opens, and only then. An inline

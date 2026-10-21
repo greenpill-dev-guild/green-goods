@@ -29,7 +29,6 @@ when you deliberately want interactive checks against services you already start
 tests/
   fixtures/                 # Anvil, contract, and Playwright service helpers
   helpers/                  # Shared browser helpers and test configuration
-  mocks/                    # Pimlico bundler/paymaster handlers
   specs/                    # Client, admin, fork, passkey, and diagnostic specs
   global-setup.ts           # Optional health checks and environment setup
   global-teardown.ts        # Test cleanup
@@ -41,16 +40,18 @@ Useful references:
 - `tests/fixtures/anvil-fork.ts` owns the local fork lifecycle.
 - `tests/fixtures/contract-helpers.ts` loads deployment artifacts for browser tests.
 - `tests/helpers/test-utils.ts` exports `ClientTestHelper` and `AdminTestHelper`.
-- `tests/helpers/test-config.ts` centralizes test URLs and chain defaults.
+- `tests/helpers/test-config.ts` owns shared visibility deadlines; `test-utils.ts` owns app/indexer URLs.
 - `tests/helpers/reporting-ceremony.ts` stands in for the chat, the passkey directory, the hosted
   passkey server and the chain behind the reporting ceremony's Account step.
-- `tests/mocks/pimlico-handlers.ts` keeps the legacy bundler/paymaster response fixture, tested directly without network calls. The qualified passkey rejection spec owns its strict server substitute.
+- `tests/specs/client.passkey.spec.ts` owns its strict rejection server substitute and virtual
+  authenticator; the reporting ceremony owns its own fixture.
 
 ## Projects and focused runs
 
 The config keeps CI lanes and optional manual projects separate:
 
-- `client-ci` and `admin-ci` run deterministic smoke and CI specs.
+- `client-ci` runs deterministic smoke, mock-auth session, navigation and CI specs.
+- `admin-ci` runs deterministic authentication, smoke and production-flow specs.
 - `client-full`, `chromium`, and `performance` are the default desktop wrapper projects.
 - `mobile-chrome`, `mobile-safari`, and `iphone-16-pro` are explicit device/diagnostic projects.
 - `anvil-fork`, `passkey-mock`, and `testnet` are explicit integration projects.
@@ -60,7 +61,7 @@ Use Bun to launch the checked-in Playwright CLI:
 ```bash
 bun x playwright test --project=client-ci
 bun x playwright test --project=admin-ci
-bun x playwright test tests/specs/client.navigation.spec.ts
+bun x playwright test tests/specs/client.session-navigation.ci.spec.ts
 
 bun run browser e2e --preset fork
 bun run browser e2e --preset passkey
@@ -125,8 +126,12 @@ cases do not prove browser-to-fork-to-indexer integration or authenticated-sessi
 
 ## Authentication
 
-- Client specs use the helpers appropriate to the project: wallet/session injection for smoke
-  coverage and virtual WebAuthn for the `passkey-mock` project.
+- Client CI, navigation and deterministic mobile smoke use `setupAuthenticatedClient` with dev
+  mock auth and the mocked backend. The legacy-wallet smoke case verifies that an explicitly
+  disconnected mock session stays signed out despite stored wallet data. It does not prove real
+  connector restoration. The `passkey-mock` project owns real
+  virtual-WebAuthn ceremonies against strict local substitutes. Mock logout proves the profile
+  control and test-session transition, not a real wallet disconnect.
 - Admin cockpit specs use deterministic `sessionStorage` mock auth plus GraphQL route interception.
   Mock both `**/api/graphql` and `**/v1/graphql` when the test can traverse the Vite proxy.
 - Browser automation here is clean-room test evidence. Label it as such; root
@@ -166,4 +171,4 @@ the existing Admin boot warm-up. A failed warm-up does not waive a spec's readin
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md)
 - [`E2E_TEST_GUIDE.md`](./E2E_TEST_GUIDE.md)
 - [`TESTING_GUIDE.md`](./TESTING_GUIDE.md)
-- [Builder guide: Playwright](../docs/docs/builders/testing/playwright.mdx)
+- [Builder guide: Testing](../docs/docs/builders/testing/index.mdx)

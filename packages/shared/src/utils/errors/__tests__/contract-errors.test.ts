@@ -118,7 +118,7 @@ describe("parseContractError", () => {
       expect(result.name).toBe("UserRejected");
       expect(result.isKnown).toBe(true);
       expect(result.recoverable).toBe(true);
-      expect(result.message).toBe("Transaction cancelled. Try again when you're ready.");
+      expect(result.message).toBe("Transaction canceled. Try again when you're ready.");
     });
 
     it("classifies 'user denied the signature'", () => {

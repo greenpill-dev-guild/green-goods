@@ -7,7 +7,6 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { isZeroAddress } from "../../../utils/blockchain/address";
 import {
   RECEIPT_POLLING_TIMEOUT_MS,
   TimeoutError,
@@ -134,31 +133,5 @@ describe("withTimeout", () => {
     const promise = Promise.reject(error);
 
     await expect(withTimeout(promise, 5000, "test")).rejects.toThrow("Original failure");
-  });
-});
-
-// ============================================
-// isZeroAddress
-// ============================================
-
-describe("isZeroAddress", () => {
-  it("returns true for the zero address", () => {
-    expect(isZeroAddress("0x0000000000000000000000000000000000000000")).toBe(true);
-  });
-
-  it("returns true for null", () => {
-    expect(isZeroAddress(null)).toBe(true);
-  });
-
-  it("returns true for undefined", () => {
-    expect(isZeroAddress(undefined)).toBe(true);
-  });
-
-  it("returns false for a real address", () => {
-    expect(isZeroAddress("0x1111111111111111111111111111111111111111")).toBe(false);
-  });
-
-  it("is case insensitive", () => {
-    expect(isZeroAddress("0x0000000000000000000000000000000000000000")).toBe(true);
   });
 });

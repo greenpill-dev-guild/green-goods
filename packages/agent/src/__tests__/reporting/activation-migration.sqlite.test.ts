@@ -8,6 +8,9 @@ import { TAS } from "./support/fixtures";
 import { ADA, Harness } from "./support/harness";
 import { confirmedKernelReport, KERNEL, prepareActivation } from "./support/activation";
 
+/** An upgrade runs every later migration, so it ends on the newest schema. */
+const LATEST = REPORTING_MIGRATIONS.at(-1)?.version;
+
 let harness: Harness;
 let upgraded: Database;
 let rollbackPath: string;
@@ -63,7 +66,7 @@ afterEach(() => {
 
 describe("populated reporting v2 upgrade", () => {
   it("preserves historical attempts, outcome replay records, budgets and foreign keys", () => {
-    expect(upgraded.query("PRAGMA user_version").get()).toEqual({ user_version: 4 });
+    expect(upgraded.query("PRAGMA user_version").get()).toEqual({ user_version: LATEST });
     expect(upgraded.query("PRAGMA foreign_key_check").all()).toEqual([]);
     for (const table of ["execution_attempts", "attempt_outcomes", "execution_grants"])
       expect(upgraded.query(`SELECT * FROM ${table}`).all()).toEqual(
@@ -121,7 +124,7 @@ describe("populated reporting v2 upgrade", () => {
     ).toThrow();
     preserved.close();
     const retried = openReportingDatabase(rollbackPath);
-    expect(retried.query("PRAGMA user_version").get()).toEqual({ user_version: 4 });
+    expect(retried.query("PRAGMA user_version").get()).toEqual({ user_version: LATEST });
     retried.close();
   });
 });

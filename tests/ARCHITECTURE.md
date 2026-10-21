@@ -19,7 +19,7 @@ graph TD
 
     subgraph Apps["Target Applications"]
       AD[Admin Dashboard<br/>Auth: Dev mockAuth]
-      CP1[Client PWA<br/>Auth: Passkey Virtual WebAuthn]
+      CP1[Client PWA<br/>Auth: Dev mockAuth]
       CP2[Client PWA<br/>Auth: Wallet Storage]
     end
 
@@ -31,9 +31,15 @@ graph TD
 
 ## Authentication Implementation
 
-### Android Chrome - Virtual WebAuthn
+### Qualified passkey project - Virtual WebAuthn
 
-Uses Chrome DevTools Protocol to simulate biometric authentication:
+`client.passkey.spec.ts` and `client.reporting-account.passkey.spec.ts` own their
+CDP authenticators and strict local network substitutes. These Chromium-only
+ceremonies cover rejection/reload and reporting account recovery; they stop short
+of a chain-backed successful transaction. Default CI/mobile smoke uses
+`setupAuthenticatedClient` with dev mock auth instead.
+
+The spec-local authenticator uses Chrome DevTools Protocol:
 
 ```typescript
 // 1. Create virtual authenticator
@@ -60,7 +66,7 @@ await client.send("WebAuthn.removeVirtualAuthenticator", { authenticatorId });
 
 **Flow:**
 ```
-Test → setupPasskeyAuth() → CDP session → Virtual authenticator
+Qualified passkey spec → CDP session → Virtual authenticator
   ↓
 User triggers: "Sign Up" button
   ↓
@@ -175,8 +181,8 @@ flowchart TD
   subgraph Execution["3. Test Execution parallel"]
     IDX & CLI & ADM --> CS[client.smoke.spec.ts]
     IDX & CLI & ADM --> AS[admin.smoke.spec.ts]
-    CS --> CH1[Chromium: passkey]
-    CS --> MC[mobile-chrome: passkey]
+    CS --> CH1[Chromium: mockAuth]
+    CS --> MC[mobile-chrome: mockAuth]
     CS --> MS[mobile-safari: wallet]
     AS --> CH2[Chromium: mockAuth]
   end
@@ -193,38 +199,21 @@ flowchart TD
 
 ```typescript
 class ClientTestHelper {
-  // ───────────────────────────────────────────────────────
-  // Passkey methods (Android/Chromium only)
-  // ───────────────────────────────────────────────────────
-  async setupPasskeyAuth(): Promise<string>
-    → Creates virtual WebAuthn authenticator via CDP
-    → Returns authenticatorId for cleanup
+  async enableMockAuth(role?: AdminMockRole): Promise<void>
+    → Seeds the dev mock role before navigation
 
-  async createPasskeyAccount(username: string): Promise<string>
-    → Navigates to /home/login?presentation=pwa
-    → Fills username input
-    → Triggers WebAuthn (auto-approved by virtual authenticator)
-    → Waits for redirect to /home
-
-  async loginWithPasskey(username?: string): Promise<void>
-    → Login flow for returning users
-
-  async cleanup(): Promise<void>
-    → Removes virtual authenticator
-
-  // ───────────────────────────────────────────────────────
-  // Wallet methods (iOS Safari only)
-  // ───────────────────────────────────────────────────────
   async injectWalletAuth(address?: string): Promise<void>
-    → Injects mock wagmi state into localStorage
-    → Must be called before page.goto()
+    → Legacy manual wallet-storage diagnostic, not a real connector
 
-  // ───────────────────────────────────────────────────────
-  // Common methods
-  // ───────────────────────────────────────────────────────
+  async authenticateWithWallet(address?: string): Promise<void>
+    → Injects storage and opens /home
+
   async waitForPageLoad(): Promise<void>
-  async isAuthenticated(): Promise<boolean>
+    → Waits for the boot fallback to clear
 }
+
+setupAuthenticatedClient(page, role?, backend?)
+  → Combines dev mock auth and the schema-correct mocked backend
 ```
 
 ### AdminTestHelper
@@ -237,28 +226,8 @@ class AdminTestHelper {
   async goToCockpit(path?: string, role?: "deployer" | "steward" | "user"): Promise<void>
     → Navigates to current cockpit routes with mock auth enabled
 
-  async goToLogin(): Promise<void>
-  async goToDashboard(): Promise<void>
-  async isOnLoginPage(): Promise<boolean>
   async waitForPageLoad(): Promise<void>
 }
-```
-
-## Service Utilities
-
-```typescript
-// Check all services
-const status = await checkServices(page);
-// → { indexer: boolean, client: boolean, admin: boolean }
-
-// Require services or skip test
-await requireServices(page, ["client", "indexer"]);
-
-// Check if test data exists
-const gardensExist = await hasGardens(page);
-
-// Query indexer directly
-const data = await queryIndexer<T>(page, query, variables);
 ```
 
 ## Cursor + Playwright Integration
@@ -601,40 +570,21 @@ Agent: *Reads test output, checks component code*
 
 ## Writing Robust Tests
 
-### 1. Platform Detection
+### 1. Deterministic CI authentication and data
 
 ```typescript
-test("feature works on all platforms", async ({ page }, testInfo) => {
-  const helper = new ClientTestHelper(page);
-  const ios = testInfo.project.name === "mobile-safari";
-
-  // Authenticate appropriately
-  if (ios) {
-    await helper.injectWalletAuth();
-    await page.goto("/home");
-  } else {
-    await helper.setupPasskeyAuth();
-    await helper.createPasskeyAccount();
-  }
-
-  // Rest of test is platform-agnostic
+test("shows the garden list", async ({ page }) => {
+  const helper = await setupAuthenticatedClient(page);
+  await page.goto("/home?presentation=pwa");
+  await helper.waitForPageLoad();
+  await expect(page.getByTestId("garden-card").first()).toBeVisible();
 });
 ```
 
-### 2. Graceful Data Handling
-
-```typescript
-// Query indexer to check if test data exists
-const gardensExist = await hasGardens(page);
-
-if (gardensExist) {
-  // Test happy path with real data
-  await expect(page.locator('[data-testid="garden-card"]').first()).toBeVisible();
-} else {
-  // Test empty state
-  await expect(page.locator("text=Create your first garden")).toBeVisible();
-}
-```
+Use the backend fixture's explicit scenario options for empty, loaded and failed
+reads. A missing live service must not turn a required journey into a passing test.
+Keep legacy wallet-storage diagnostics separate from successful authentication
+proof. The qualified passkey preset owns WebAuthn setup and cleanup in its specs.
 
 ### 3. Timeout Management
 

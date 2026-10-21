@@ -168,7 +168,7 @@ export const EN_REPORTING_COPY = {
   "edit.feedback": "Description",
   "report.editPrompt":
     "What would you like to change? Just tell me, for example: “time was 3 hours”.",
-  "report.cancelled": "Report cancelled. Unpublished content will be removed.",
+  "report.cancelled": "Report canceled. Unpublished content will be removed.",
   "report.cancelHint": "To cancel this report, reply CANCEL.",
   "report.nothingToCancel": "There's no report in progress.",
   "report.confirmToken": "To publish, reply CONFIRM {token}.",
@@ -292,7 +292,7 @@ export const EN_REPORTING_COPY = {
   "review.frozen": "This review can't be changed now because it is already being recorded.",
   "review.confirmToken":
     "To record your review, reply CONFIRM {token} exactly as shown in the summary.",
-  "review.cancelled": "Review cancelled. Nothing was recorded.",
+  "review.cancelled": "Review canceled. Nothing was recorded.",
   "review.signLink": "Open this page to check and sign your decision with your {kind}.",
   "review.signLabel": "Check and sign",
   "review.grantLink":

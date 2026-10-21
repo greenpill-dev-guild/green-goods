@@ -143,7 +143,7 @@ describe("ActionsGallery", () => {
     expect(screen.getByRole("img", { name: "Tree Planting" })).toBeInTheDocument();
   });
 
-  it.each(["{Enter}", " "])("opens an action with the keyboard (%s)", async (key) => {
+  it.each(["{Enter}", " "])("opens an action by keyboard (%s) and returns focus", async (key) => {
     const user = userEvent.setup();
     renderView();
     const card = screen.getByRole("button", { name: /Tree Planting/ });
@@ -152,9 +152,23 @@ describe("ActionsGallery", () => {
     for (let step = 0; step < 20 && document.activeElement !== card; step++) await user.tab();
     expect(card).toHaveFocus();
     await user.keyboard(key);
-    expect(screen.getByRole("dialog", { name: "Tree Planting" })).toBeInTheDocument();
+    const dialog = screen.getByRole("dialog", { name: "Tree Planting" });
+    // Opening moves focus into the dialog; closing it hands focus back to the card.
+    expect(dialog).toContainElement(document.activeElement as HTMLElement);
     await user.keyboard("{Escape}");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(card).toHaveFocus();
+  });
+
+  it("returns focus to a card the browser left unfocused when it was pressed", () => {
+    renderView();
+    const card = screen.getByRole("button", { name: /Tree Planting/ });
+    // A bare click moves no focus, as a click or tap on a button moves none in Safari.
+    fireEvent.click(card);
+    expect(screen.getByRole("dialog", { name: "Tree Planting" })).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(card).toHaveFocus();
   });
 
   it("reserves square-cornered dialog media before load and after load or failure", () => {

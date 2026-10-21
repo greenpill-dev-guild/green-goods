@@ -24,6 +24,55 @@ const RETIRED_SCAN_EXEMPT = new Set([
   "scripts/quality/check-guidance-links.mjs",
 ]);
 const PERSISTENT_RETIRED_PATHS = [
+  // Retirements integrated from develop in the 2.0 main promotion remain guarded.
+  ".claude/context/docs.md",
+  ".claude/context/intent.md",
+  ".claude/skills/architecture/SKILL.md",
+  ".claude/skills/audit-then-ship/SKILL.md",
+  ".claude/skills/contracts/SKILL.md",
+  ".claude/skills/contracts/security.md",
+  ".claude/skills/data-layer/SKILL.md",
+  ".claude/skills/data-layer/service-worker.md",
+  ".claude/skills/data-layer/storage-lifecycle.md",
+  ".claude/skills/design/generative-ui.md",
+  ".claude/skills/design/stack-review.md",
+  ".claude/skills/drift/SKILL.md",
+  ".claude/skills/index.md",
+  ".claude/skills/indexer/SKILL.md",
+  ".claude/skills/indexer/docker.md",
+  ".claude/skills/ops/SKILL.md",
+  ".claude/skills/ops/biome.md",
+  ".claude/skills/ops/ci-cd.md",
+  ".claude/skills/ops/dependency-management.md",
+  ".claude/skills/ops/deployment.md",
+  ".claude/skills/ops/git-workflow.md",
+  ".claude/skills/ops/migration.md",
+  ".claude/skills/ops/vite.md",
+  ".claude/skills/posthog-questions/SKILL.md",
+  ".claude/skills/principles/SKILL.md",
+  ".claude/skills/react/SKILL.md",
+  ".claude/skills/react/compiler.md",
+  ".claude/skills/react/error-handling.md",
+  ".claude/skills/react/performance.md",
+  ".claude/skills/react/tanstack-query.md",
+  ".claude/skills/react/xstate.md",
+  ".claude/skills/review/apply-fixes.md",
+  ".claude/skills/review/cross-package-verify.md",
+  ".claude/skills/testing/SKILL.md",
+  ".claude/skills/testing/references/playwright.md",
+  ".claude/skills/testing/references/vitest.md",
+  ".claude/skills/testing/vitest-patterns.md",
+  ".claude/skills/ui/SKILL.md",
+  ".claude/skills/ui/compliance.md",
+  ".claude/skills/ui/i18n.md",
+  ".claude/skills/ui/mermaid.md",
+  ".claude/skills/ui/radix-ui.md",
+  ".claude/skills/ui/storybook-addons.md",
+  ".claude/skills/ui/storybook-testing.md",
+  ".claude/skills/ui/storybook.md",
+  ".claude/skills/ui/tailwindcss.md",
+  ".claude/skills/ui/view-transitions.md",
+  ".claude/skills/web3/SKILL.md",
   ".claude/skills/status/SKILL.md",
   ".claude/skills/design/spatial.md",
   ".claude/skills/design/materials.md",
@@ -161,7 +210,7 @@ export function deriveDeletedSurfaceRules(deletedPaths, knownPaths = []) {
     if (skillMatch) {
       const name = skillMatch[1];
       const command = new RegExp(
-        `(^|[^A-Za-z0-9_-])/${escapeRegex(name)}(?![./][A-Za-z0-9])(?=$|[^A-Za-z0-9_-])`,
+        `(^|[^A-Za-z0-9_./\\\\*-])/${escapeRegex(name)}(?![./][A-Za-z0-9])(?=$|[^A-Za-z0-9_-])`,
       );
       rules.push({
         label: `/${name}`,
@@ -183,12 +232,13 @@ export function deriveDeletedSurfaceRules(deletedPaths, knownPaths = []) {
     ) {
       const basename = path.basename(deletedPath);
       const shortPath = deletedPath.replace(/^\.claude\//, "");
-      const basenameCollides = knownPaths.some(
+      const basenameCollides = ["index.md", "README.md", "SKILL.md"].includes(basename) || knownPaths.some(
         (knownPath) => knownPath !== deletedPath && path.basename(knownPath) === basename,
       );
-      // The bare basename counts only as a whole token: `playwright.md` must not match
+      // Generic directory indexes require a path; an unrelated index.md is not this guide.
+      // Other bare basenames count only as whole tokens: `playwright.md` must not match
       // `playwright.mdx`, `playwright.md.bak` or `playwright.md-notes`.
-      const basenameToken = new RegExp(`(^|[^\\w.-])${escapeRegex(basename)}(?!\\w|[.-]\\w)`);
+      const basenameToken = new RegExp(`(^|[^\\w./\\\\-])${escapeRegex(basename)}(?!\\w|[.-]\\w)`);
       rules.push({
         label: basename,
         appliesTo: () => true,
@@ -216,10 +266,13 @@ export function scanDeletedSurfaceReferences(
   const failures = [];
   const rules = deriveDeletedSurfaceRules(deletedPaths, knownPaths);
   for (const file of files) {
+    const matchingRules = rules.filter((rule) =>
+      rule.appliesTo(file.path) && rule.test(file.text, file.path),
+    );
+    if (matchingRules.length === 0) continue;
     for (const [index, line] of file.text.split(/\r?\n/).entries()) {
-      for (const rule of rules) {
+      for (const rule of matchingRules) {
         if (
-          rule.appliesTo(file.path) &&
           rule.test(line, file.path) &&
           !isExplicitRetirementNotice(line, rule.label)
         ) {
@@ -590,13 +643,15 @@ function main() {
     if (base) {
       mergeAddedLines(
         addedLineNumbersFromDiff(
-          runGit(repoRoot, ["diff", "--unified=0", "--no-color", `${base}...HEAD`]).stdout,
+          runGit(repoRoot, ["diff", "--unified=0", "--no-color", `${base}...HEAD`,
+            "--", "*.md", "*.mdx", ":(exclude).plans/**"]).stdout,
         ),
       );
     }
     mergeAddedLines(
       addedLineNumbersFromDiff(
-        runGit(repoRoot, ["diff", "--unified=0", "--no-color", "HEAD"]).stdout,
+        runGit(repoRoot, ["diff", "--unified=0", "--no-color", "HEAD",
+          "--", "*.md", "*.mdx", ":(exclude).plans/**"]).stdout,
       ),
     );
 

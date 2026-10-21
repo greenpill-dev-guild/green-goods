@@ -10,34 +10,36 @@ Verified, low-friction impact capture + standardized reporting + funding primiti
 
 Green Goods is the verified impact operations layer for community-led regeneration -- capture evidence in the field, validate it locally, export funder-ready impact reporting with cryptographic public verification.
 
-## User Archetypes (Priority Order)
+## Personas (Priority Order)
 
-| # | Archetype | What They Want | Primary Constraint | Tech Comfort |
-|---|-----------|----------------|-------------------|--------------|
+| # | Persona | What They Want | Primary Constraint | Tech Comfort |
+|---|---------|----------------|-------------------|--------------|
 | 1 | **Gardener** | Rewards, recognition, impact visibility | Low connectivity, low patience for forms | None assumed |
-| 2 | **Garden Steward** | Find opportunities/resources for community | Admin overhead, reporting burden | Moderate |
+| 2 | **Steward** | Find opportunities/resources for community | Admin overhead, reporting burden | Moderate |
 | 3 | **Evaluator** | Uphold expertise, iterate methodologies, gather research insights | Time, domain complexity | Moderate-high |
 | 4 | **Funder** | Verified impact for funding confidence | Budget/allocation strategy, trust | Varies |
 | 5 | **Community Member** | Community improvements, better resources | Awareness, access | None assumed |
 
-**Decision rule:** When two archetypes conflict, resolve in priority order. Gardener experience wins unless doing so blocks Steward onboarding (Stewards are the distribution channel).
+**Decision rule:** When two personas conflict, resolve in priority order. Gardener experience wins unless doing so blocks Steward onboarding (Stewards are the distribution channel).
 
 ### Persona & Tone Quick-Reference
 
-| Archetype | Persona | Perceives Green Goods As | Tone | Avoid |
-|-----------|---------|--------------------------|------|-------|
-| Gardener | Maria | "A helpful WhatsApp contact that pays me for work" | Warm, direct, action-oriented. Short sentences. No jargon. | Technical terms, passive voice, options overload |
-| Steward | David | "My garden's command center" | Professional, efficient, task-focused. Data-aware. | Condescending simplicity, unstructured prose |
-| Evaluator | Dr. Chen | "A data-rich platform for certifying truth" | Precise, evidence-based, structured. Respect domain expertise. | Oversimplification, vague impact language |
-| Funder | Amara | "A high-yield savings account that heals the planet" | Confident, transparent, audit-friendly. Lead with verified data. | Hype, unsubstantiated claims, blockchain jargon |
-| Community | Kwame | "My neighborhood's way to have a say" | Inclusive, plain-language, encouraging. | Protocol jargon, assumed web3 literacy |
+The five rows are the ontology's personas, and Green Goods has no others. Name a persona by its role, never by an illustrative name (DL-091).
+
+| Persona | Perceives Green Goods As | Tone | Avoid |
+|---------|--------------------------|------|-------|
+| Gardener | "A simple way to show the work I did and have my garden see it" | Warm, direct, action-oriented. Short sentences. No jargon. | Technical terms, passive voice, options overload |
+| Steward | "My garden's command center" | Professional, efficient, task-focused. Data-aware. | Condescending simplicity, unstructured prose |
+| Evaluator | "A structured place to set baselines; assessing what changed against them is planned" | Precise, evidence-based, structured. Respect domain expertise. | Oversimplification, vague impact language |
+| Funder | "A clear record of work I can support, with the review behind it" | Confident, transparent, evidence-first. Lead with reviewed records. | Hype, unsubstantiated claims, blockchain jargon |
+| Community Member | "My neighborhood's way to have a say" | Inclusive, plain-language, encouraging. | Protocol jargon, assumed web3 literacy |
 
 **Tone rules:**
-- Gardener/Community copy: zero blockchain vocabulary, reading level ~6th grade
-- Steward copy: may reference on-chain verification as a trust mechanism, but not Solidity internals
+- Gardener/Community Member copy: zero blockchain vocabulary in ordinary copy, reading level ~6th grade; the DL-094 safety cases still apply (a privacy or permanence notice may name the network, a link names its explorer)
+- Steward copy: steward documentation may reference on-chain verification as a trust mechanism, but not Solidity internals; product review screens follow DL-094
 - Evaluator copy: may use research/assessment terminology freely
 - Funder copy: may reference attestation integrity; never use "guaranteed returns"
-- For full persona profiles with behavioral scenarios: `docs/docs/reference/design-research.md#user-personas`
+- For who each persona is, what they do, when, and on which surface: `docs/docs/builders/architecture/personas.mdx`, generated from the ontology
 - For vocabulary constraints (Use/Avoid lists): see Messaging Constraints below
 
 ## UX Quality Bars
@@ -94,7 +96,8 @@ When connectivity is lost or degraded, features degrade predictably:
 | Work submission | Queued offline (IndexedDB job queue) | Toast: "Saved -- will upload when online" + the item in Your Work › Pending, sent with Upload all |
 | Garden list | Cached data served (TanStack Query cache) | Stale data with staleness indicator |
 | Action list | Cached data served | Stale data with staleness indicator |
-| Work approvals | Blocked (requires on-chain transaction) | Disabled button + tooltip: "Requires internet connection" |
+| Work approvals (installed app, passkey or wallet) | Queued offline (user-scoped job queue, `submitApprovalToQueue`; the client passes `queueWalletDecisions` so wallet decisions queue too) | Toast: the decision stays on this device until it is uploaded; the item waits in Your Work |
+| Work approvals (admin cockpit, wallet) | Not queued: the action stays enabled; `submitApproval` probes the connection after the click and, without `queueWalletDecisions`, throws `ApprovalConnectionUnconfirmedError` before the wallet is asked | Info toast (`app.offline.degraded` title, `app.approval.connectionUnconfirmed` message); nothing is sent or saved |
 | Assessments | Blocked (requires on-chain transaction) | Disabled button + tooltip: "Requires internet connection" |
 | Photo capture | Available offline (stored as blob in IndexedDB) | Normal UI, uploaded on sync |
 | Auth (passkey) | Works offline once authenticated | No change if session active |
@@ -116,9 +119,11 @@ When connectivity is lost or degraded, features degrade predictably:
 | Local (job queue) | `queued`, `syncing`, `synced`, `failed` | IndexedDB (`green-goods-job-queue` v5) | Transient -- until on-chain confirmation |
 
 State transitions:
-```
-Local:    queued → syncing → synced (then becomes on-chain "pending")
-                          → failed → retry → syncing
+```text
+Local work submission:  queued → syncing → synced (then on-chain "pending" until a steward decides)
+Local work approval:    queued → syncing → synced (then on-chain "approved" or "rejected" directly; the
+                        queued decision is projected with a pending-until-confirmed flag, never as "pending" work)
+Both local flows:       syncing → failed → retry → syncing
 On-chain: pending → approved | rejected
 ```
 
@@ -248,7 +253,7 @@ These are already part of the core product baseline and should be treated as liv
 - "Web3" or "blockchain" in Gardener-facing copy
 - "Decentralized" as a feature (it is an implementation detail)
 
-**Rule:** Gardener-facing copy must be comprehensible to someone who has never heard of Ethereum. Steward/Funder copy may reference on-chain verification as a trust mechanism.
+**Rule:** Gardener-facing copy must be comprehensible to someone who has never heard of Ethereum. Steward documentation and funder copy may reference on-chain verification as a trust mechanism; product review screens follow DL-094.
 
 ## Competitive Differentiation
 
@@ -278,5 +283,5 @@ These are already part of the core product baseline and should be treated as liv
 ## Related Context
 - Organizational mission and values → `docs/docs/community/why-we-build.mdx`
 - Impact model (CIDS) and action domains → `docs/docs/community/how-it-works.mdx`
-- Public capability boundaries → `docs/docs/community/green-goods-claims.generated.mdx`
-- Real communities and localization → `docs/docs/reference/design-research.md`
+- Public capability boundaries → `docs/claims.generated.md`
+- Real communities and localization → `docs/docs/builders/architecture/design.mdx`

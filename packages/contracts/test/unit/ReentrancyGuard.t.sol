@@ -7,7 +7,7 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 import { OctantModule } from "../../src/modules/Octant.sol";
 import { AaveV3ERC4626 } from "../../src/strategies/AaveV3ERC4626.sol";
 import { MockGardenAccessControl } from "../../src/mocks/GardenAccessControl.sol";
-import { MockOctantFactory } from "../../src/mocks/Octant.sol";
+import { MockOctantFactory, MockOctantVault } from "../../src/mocks/Octant.sol";
 import { MockAavePool, MockAToken, MockPoolDataProvider } from "../../src/mocks/AavePool.sol";
 import { MockERC20 } from "../../src/mocks/ERC20.sol";
 import { ReentrantStrategy } from "../../src/mocks/ReentrantStrategy.sol";
@@ -30,7 +30,7 @@ contract ReentrancyModuleHarness is OctantModule {
 
 /// @title ReentrancyGuardTest
 /// @notice Verifies that OctantModule's nonReentrant modifier blocks reentrancy attacks
-/// @dev Tests each attack vector: harvest→report, emergencyPause→shutdown, setDonationAddress→callback
+/// @dev Authorized one-shot callbacks distinguish guard rejection from role failure or recursive out-of-gas.
 contract ReentrancyGuardTest is Test {
     ReentrancyModuleHarness internal module;
     MockOctantFactory internal factory;
@@ -43,6 +43,11 @@ contract ReentrancyGuardTest is Test {
     address internal constant DONATION = address(0xA7);
 
     address internal WETH;
+
+    event HarvestTriggered(address indexed garden, address indexed asset, address indexed caller);
+    event EmergencyPaused(address indexed garden, address indexed asset, address indexed caller);
+    event DonationAddressUpdated(address indexed garden, address indexed oldAddress, address indexed newAddress);
+    event VaultResumed(address indexed garden, address indexed asset, address indexed newStrategy);
 
     function setUp() public {
         factory = new MockOctantFactory();
@@ -68,6 +73,8 @@ contract ReentrancyGuardTest is Test {
         garden = new MockGardenForReentrancy("Reentrancy Test Garden");
         garden.setOperator(OPERATOR, true);
         garden.setOwner(GARDEN_OWNER, true);
+        garden.setOperator(address(maliciousStrategy), true);
+        garden.setOwner(address(maliciousStrategy), true);
 
         // Mint vault for garden (deploys a real garden-scoped strategy)
         vm.prank(GARDEN_TOKEN);
@@ -85,90 +92,105 @@ contract ReentrancyGuardTest is Test {
         maliciousStrategy.configure(address(module), address(garden), WETH, ReentrantStrategy.AttackVector.None);
     }
 
-    // =========================================================================
-    // Normal operation still works (nonReentrant doesn't break basic flow)
-    // =========================================================================
-
-    function test_harvest_succeedsNormally() public {
-        // No attack configured — normal operation
+    function testOctant_harvestCompletesNormally() public {
         vm.prank(OPERATOR);
         module.harvest(address(garden), WETH);
+        assertEq(maliciousStrategy.reports(), 1);
     }
 
-    function test_emergencyPause_succeedsNormally() public {
+    function testOctant_emergencyPauseCompletesNormally() public {
         vm.prank(GARDEN_OWNER);
         module.emergencyPause(address(garden), WETH);
+        assertTrue(maliciousStrategy.depositsPaused());
     }
 
-    function test_setDonationAddress_succeedsNormally() public {
+    function testOctant_donationUpdateCompletesNormally() public {
         vm.prank(OPERATOR);
         module.setDonationAddress(address(garden), address(0xBEEF));
+        assertEq(maliciousStrategy.donationAddress(), address(0xBEEF));
+        assertEq(module.gardenDonationAddresses(address(garden)), address(0xBEEF));
     }
 
-    // =========================================================================
-    // Reentrancy attack on harvest() via malicious strategy.report()
-    // =========================================================================
-
-    function test_harvest_blocksReentrancyViaReport() public {
-        maliciousStrategy.configure(address(module), address(garden), WETH, ReentrantStrategy.AttackVector.ReenterHarvest);
-
-        // The malicious strategy tries to re-enter harvest() during report().
-        // nonReentrant blocks the re-entry, causing strategy.report() to revert.
-        // harvest() catches this via try/catch and emits HarvestReportFailed — it does NOT revert.
-        // The key assertion: harvest completes safely without the attacker succeeding.
+    function testOctant_harvestRejectsRecursiveReportAndCompletes() public {
+        _configureAttack(ReentrantStrategy.AttackVector.ReenterHarvest);
+        vm.expectEmit(true, true, true, true, address(module));
+        emit HarvestTriggered(address(garden), WETH, OPERATOR);
         vm.prank(OPERATOR);
         module.harvest(address(garden), WETH);
-        // If we reach here, the reentrancy attack was blocked and caught gracefully.
+        _assertGuardRejected();
+        assertEq(maliciousStrategy.reports(), 1);
+        assertEq(module.gardenDonationAddresses(address(garden)), DONATION);
     }
 
-    // =========================================================================
-    // Reentrancy attack on emergencyPause() via malicious strategy.shutdown()
-    // =========================================================================
-
-    function test_emergencyPause_blocksReentrancyViaShutdown() public {
-        maliciousStrategy.configure(
-            address(module), address(garden), WETH, ReentrantStrategy.AttackVector.ReenterEmergencyPause
-        );
-
-        // The strategy tries to re-enter emergencyPause() during shutdown()
-        // OctantModule catches shutdown failures via try/catch, so this emits StrategyShutdownFailed
-        // instead of reverting — but the re-entrant call itself is blocked
+    function testOctant_pauseRejectsRecursiveShutdownAndCompletes() public {
+        _configureAttack(ReentrantStrategy.AttackVector.ReenterEmergencyPause);
+        vm.expectEmit(true, true, true, true, address(module));
+        emit EmergencyPaused(address(garden), WETH, GARDEN_OWNER);
         vm.prank(GARDEN_OWNER);
         module.emergencyPause(address(garden), WETH);
-        // If we reach here, the reentrant attack was caught by the try/catch in emergencyPause
+        _assertGuardRejected();
+        assertTrue(maliciousStrategy.depositsPaused());
+        assertEq(module.gardenDonationAddresses(address(garden)), DONATION);
     }
 
-    // =========================================================================
-    // Reentrancy attack on setDonationAddress() via strategy callback
-    // =========================================================================
-
-    function test_setDonationAddress_blocksReentrancyViaCallback() public {
-        maliciousStrategy.configure(
-            address(module), address(garden), WETH, ReentrantStrategy.AttackVector.ReenterSetDonationAddress
-        );
-
-        // The strategy tries to re-enter setDonationAddress() during the propagation loop
-        // setDonationAddress uses try/catch on the strategy call, so the reentrant attempt
-        // is caught gracefully
+    function testOctant_donationRejectsRecursiveUpdateAndCompletes() public {
+        _configureAttack(ReentrantStrategy.AttackVector.ReenterSetDonationAddress);
+        vm.expectEmit(true, true, true, true, address(module));
+        emit DonationAddressUpdated(address(garden), DONATION, address(0xCAFE));
         vm.prank(OPERATOR);
         module.setDonationAddress(address(garden), address(0xCAFE));
-        // If we reach here, the reentrant attack was caught
+        _assertGuardRejected();
+        assertEq(module.gardenDonationAddresses(address(garden)), address(0xCAFE));
+        assertEq(maliciousStrategy.donationAddress(), address(0xCAFE));
     }
 
-    // =========================================================================
-    // Cross-function reentrancy: harvest tries to re-enter emergencyPause
-    // =========================================================================
-
-    function test_harvest_blocksCrossFunctionReentrancy() public {
-        maliciousStrategy.configure(
-            address(module), address(garden), WETH, ReentrantStrategy.AttackVector.ReenterEmergencyPause
-        );
-
-        // Strategy.report() tries to call emergencyPause() — both are nonReentrant.
-        // The re-entrant emergencyPause call is blocked. The strategy reverts, which is
-        // caught by harvest's try/catch. harvest() completes safely without reverting.
+    function testOctant_harvestRejectsPauseAndCompletesReport() public {
+        _configureAttack(ReentrantStrategy.AttackVector.ReenterEmergencyPause);
+        vm.expectEmit(true, true, true, true, address(module));
+        emit HarvestTriggered(address(garden), WETH, OPERATOR);
         vm.prank(OPERATOR);
         module.harvest(address(garden), WETH);
-        // If we reach here, the cross-function reentrancy attack was blocked gracefully.
+        _assertGuardRejected();
+        assertEq(maliciousStrategy.reports(), 1);
+        assertFalse(maliciousStrategy.depositsPaused());
+    }
+
+    function testOctant_resumeRejectsDonationCallbackAndActivatesStrategy() public {
+        _configureAttack(ReentrantStrategy.AttackVector.ReenterSetDonationAddress);
+        vm.expectEmit(true, true, true, true, address(module));
+        emit VaultResumed(address(garden), WETH, address(maliciousStrategy));
+        vm.prank(GARDEN_OWNER);
+        module.resumeVault(address(garden), WETH, address(maliciousStrategy));
+        _assertGuardRejected();
+        address vault = module.getVaultForAsset(address(garden), WETH);
+        assertEq(module.vaultStrategies(vault), address(maliciousStrategy));
+        assertEq(maliciousStrategy.vault(), vault);
+        assertTrue(MockOctantVault(vault).activeStrategies(address(maliciousStrategy)));
+        assertEq(module.gardenDonationAddresses(address(garden)), DONATION);
+        assertEq(maliciousStrategy.donationAddress(), DONATION);
+    }
+
+    function testOctant_donationRejectsResumeCallbackAndCompletes() public {
+        _configureAttack(ReentrantStrategy.AttackVector.ReenterResumeVault);
+        vm.expectEmit(true, true, true, true, address(module));
+        emit DonationAddressUpdated(address(garden), DONATION, address(0xCAFE));
+        vm.prank(OPERATOR);
+        module.setDonationAddress(address(garden), address(0xCAFE));
+        _assertGuardRejected();
+        assertEq(maliciousStrategy.vault(), address(0));
+        assertEq(module.gardenDonationAddresses(address(garden)), address(0xCAFE));
+        assertEq(maliciousStrategy.donationAddress(), address(0xCAFE));
+    }
+
+    function _configureAttack(ReentrantStrategy.AttackVector vector) internal {
+        maliciousStrategy.configure(address(module), address(garden), WETH, vector);
+    }
+
+    function _assertGuardRejected() internal {
+        assertTrue(maliciousStrategy.attempted());
+        assertFalse(maliciousStrategy.callbackSucceeded());
+        assertEq(
+            maliciousStrategy.callbackResult(), abi.encodeWithSignature("Error(string)", "ReentrancyGuard: reentrant call")
+        );
     }
 }

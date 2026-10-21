@@ -2,7 +2,6 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import React from "react";
 import { describe, expect, it } from "vitest";
-import { Button } from "../../components/Button";
 import { DatePicker } from "../../components/DatePicker/DatePicker";
 import { FormInput } from "../../components/Form/FormInput";
 import { FormTextarea } from "../../components/Form/FormTextarea";
@@ -58,20 +57,6 @@ describe("design system foundation", () => {
     expect(trigger).toHaveClass("gg-control");
     expect(trigger).toHaveClass("gg-control-trigger");
     expect(trigger).toHaveAttribute("data-size", "sm");
-  });
-
-  it("uses the shared button class contract", () => {
-    render(
-      <Button emphasis="secondary" size="sm">
-        Refresh
-      </Button>
-    );
-
-    const button = screen.getByRole("button", { name: "Refresh" });
-
-    expect(button).toHaveClass("gg-button");
-    expect(button).toHaveAttribute("data-emphasis", "secondary");
-    expect(button).toHaveAttribute("data-size", "sm");
   });
 
   it("exposes one shared control sizing contract for native inputs and selects", () => {

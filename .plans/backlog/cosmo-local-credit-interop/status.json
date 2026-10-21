@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-08-25T06:09:38.829Z",
-    "updated_at": "2026-10-09T19:29:59Z"
+    "updated_at": "2026-10-16T18:57:14.626Z"
   },
   "links": {
     "brief": "brief.md",
@@ -248,6 +248,14 @@
       "status": "planning_reconciled",
       "branch": "codex/cosmo-local-planning",
       "note": "2026-10-09: user-authorized project split and canonical planning reconciliation complete. Cosmo-Local Integration now owns this work; PRD-1197 owns the active go/no-go, COM-46 issuer terms, RESR-94 diaspora research. The current brief/spec/plan/eval supersede the August model. Claude Fable handoff authorizes research and draft materials only. Existing lanes and manual blocks are unchanged."
+    },
+    {
+      "timestamp": "2026-10-16T18:57:14.626Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded linear.project as Cosmo-Local Integration, where RESR-73 already lives; it was Commitment Pooling, which is Completed. No Linear write happened: this aligns the hub with Linear."
     }
   ]
 }

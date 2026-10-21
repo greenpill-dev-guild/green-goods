@@ -3,6 +3,7 @@ import type { CommitmentRequirementRecord } from "@green-goods/shared/commitment
 import type { Action, Address, Work } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, fn, screen, userEvent, within } from "storybook/test";
+import SEEDLINGS from "../../../../../../shared/.storybook/fixture-art/documentation-seedlings-generated.jpg?url";
 import { LinkWorkSheet } from "./LinkWorkSheet";
 
 const CHAIN_ID = DEFAULT_CHAIN_ID;
@@ -112,7 +113,7 @@ export const ChooseRow: Story = {
   args: { requirements: [row(0, 44, 1), row(1, 44, 2)] },
   play: async () => {
     await userEvent.click(await screen.findByRole("radio", { name: /Planting Event/ }));
-    const rowSelect = screen.getByRole("group", { name: "Which row it fulfils" });
+    const rowSelect = screen.getByRole("group", { name: "Which row it fulfills" });
     await expect(screen.getByRole("button", { name: "Link This Work" })).toBeDisabled();
     await userEvent.click(within(rowSelect).getByRole("radio", { name: /Requirement 2/ }));
     await expect(screen.getByRole("button", { name: "Link This Work" })).toBeEnabled();
@@ -142,5 +143,31 @@ export const Linking: Story = {
       "true"
     );
     await expect(screen.getByRole("button", { name: "Not Now" })).toBeDisabled();
+  },
+};
+
+/** Documentation: matching records, with approval distinct from linking. */
+export const Documentation: Story = {
+  args: {
+    works: [
+      {
+        ...work("0xdoc-transplant", 44, "approved", 1_791_633_600_000),
+        title: "Transplant the east beds",
+        media: [SEEDLINGS],
+        feedback: "36 lettuce seedlings transplanted and watered.",
+      },
+      {
+        ...work("0xdoc-watering", 45, "pending", 1_791_720_000_000),
+        title: "Water the new seedlings",
+        media: [SEEDLINGS],
+        feedback: "Checked soil moisture and watered both rows.",
+      },
+    ],
+    actions: [action(44, "Seedling transplant"), action(45, "Seedling care")],
+    requirements: [
+      { ...row(0, 44, 0), requiredCount: 1 },
+      { ...row(1, 45, 0), requiredCount: 1 },
+    ],
+    preselected: { workUID: "0xdoc-transplant", requirementIndex: 0 },
   },
 };

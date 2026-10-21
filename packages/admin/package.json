@@ -1,6 +1,6 @@
 {
   "name": "@green-goods/admin",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "private": true,
   "type": "module",
   "engines": {
@@ -57,7 +57,7 @@
     "storybook": "10.4.6",
     "tailwindcss": "4.3.3",
     "typescript": "~7.0.2",
-    "vite": "8.2.1",
+    "vite": "8.2.4",
     "vite-plugin-mkcert": "2.1.0"
   }
 }

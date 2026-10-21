@@ -1,0 +1,97 @@
+---
+title: Confirm a Promise
+sidebar_label: Confirm a Promise
+slug: /community/gardener-guide/confirm-a-promise
+description: "Check the evidence and independently confirm a promise, or explain what still needs doing."
+audience: gardener
+owner: docs
+last_verified: 2026-10-15
+feature_status: Live
+goal: "Check the evidence and independently confirm a promise, or explain what still needs doing."
+difficulty: "standard"
+estimated_time: "3 to 5 minutes to read. Signing and review time vary."
+prereqs: "The account that joined your garden, an open pool, and an agreement about the work or help."
+next_steps: "/community/gardener-guide/track-status-and-attestations"
+persona_context: "Gardeners offering help, asking for it, or providing evidence toward a promise."
+source_of_truth:
+  - packages/client/src/views/Home/CommitmentsSheet/index.tsx
+  - packages/client/src/views/Home/Garden/Compose/ComposeCommitment.tsx
+  - packages/client/src/views/Home/Garden/Commitment
+  - packages/client/src/views/Home/Garden/Commitment/CommitmentTeam.tsx
+  - packages/client/src/views/Home/Garden/Commitment/ConfirmNotYet.tsx
+  - packages/shared/src/modules/commitment-pooling/acts.ts
+  - packages/shared/src/modules/commitment-pooling/selectors.ts
+  - packages/shared/src/hooks/client-ui/commitment/useGardenCommitmentController.ts
+  - packages/shared/src/config/app.ts
+  - packages/contracts/src/lib/CommitmentPooling/ConfirmLib.sol
+  - packages/contracts/src/lib/CommitmentPooling/TerminalLib.sol
+  - packages/contracts/src/lib/CommitmentPooling/WorkCreditLib.sol
+  - packages/shared/src/i18n/en.json
+  - docs/releases/2.0.0/README.md
+keywords:
+  - promises
+  - commitments
+  - offer
+  - request
+  - proof
+  - confirmation
+---
+
+import {NextBestAction} from "@site/src/components/docs";
+
+# Confirm a Promise
+
+Confirm that the agreed help happened after checking its evidence. This is separate from approving a work submission or making a payment.
+
+<figure className="gg-figure gg-overview-photo gg-guide-opening">
+  <img src="/img/community/guide-confirm.webp" alt="Repaired garden tools beside a measuring rule and an inspection notebook." width="1672" height="941" loading="eager" />
+</figure>
+
+
+## Before you start
+
+- Sign in with the account that joined this garden. Visitors can read records; taking part requires membership.
+- Check that the garden has an open pool. New money rewards and promise payouts are deferred.
+- Photos and details can become public before you send the work record. Use your own evidence and read the [privacy guidance](/faq#is-what-i-upload-private).
+- Be an eligible confirmer named by the agreement. The provider and contributing team cannot confirm their own promise, even through a steward fallback.
+- Check the required confirmation count. Your confirmation cannot be taken back.
+
+## Steps
+
+1. The eligible confirmer opens the promise and checks the evidence. The action is **Confirm It Was Kept**; the review may ask **Did the help arrive?** or **Was the work you asked for done?**
+2. Your confirmation cannot be taken back, and it may be only part of a group's required total. Read the confirmation count and check the evidence before choosing the button shown: **Confirm It Was Kept**, **Confirm the Help Arrived**, or **Confirm the Work Was Done**.
+
+<figure className="gg-figure" style={{maxWidth: '480px'}}>
+  <img src="/img/screenshots/guide-promise-confirm.webp" alt="Independent confirmation review with repair photographs and one of two required confirmations." loading="lazy" width="480" height="1000" />
+  <figcaption>Check the evidence before making an irreversible confirmation.</figcaption>
+</figure>
+
+3. If the help is not ready to be called kept, choose **Not Yet** when offered. Write what still needs doing, then choose **Send to the Stewards** while online. Once it arrives, the promise reads **Under review by stewards** and ordinary confirmation stops until the review is resolved. It does not cancel the promise.
+
+Opening **Not Yet** or saving its explanation does not send it. If sending fails, the explanation stays on this phone and the promise stays ready to confirm. Read its current status before using **Try Again**; ask your steward if the outcome is uncertain.
+
+
+<figure className="gg-figure" style={{maxWidth: '480px'}}>
+  <img src="/img/screenshots/guide-promise-not-yet.webp" alt="Not Yet explanation describing the loose rail still needing a check, with Send to the Stewards available." loading="lazy" width="480" height="740" />
+  <figcaption>Send your explanation to put the promise under steward review.</figcaption>
+</figure>
+
+## How you know it worked
+
+The confirmation count increases once your decision reaches the shared record. The promise reads **Kept** once the required total is met.
+
+## What happens next
+
+If more confirmations are required, the remaining eligible people act next. A successful **Not Yet** send moves the promise to **Under review by stewards**; ordinary confirmation pauses until that review is resolved.
+
+## If something goes wrong
+
+If no confirmation action appears, check whose turn it is, your account, team membership and the current state. Opening or saving a **Not Yet** explanation does not send it. After a failed send, keep the explanation on this phone and check the record before **Try Again**.
+
+After an uncertain confirmation, check the count and history before acting again. A confirmation that already reached the record cannot be taken back. See [Recover Unsent Work](/community/gardener-guide/recovery-and-sync) for saved explanations and other queued actions.
+
+Ask your steward about the agreement or record. For an app problem, open **Profile → Help**.
+
+## Next step
+
+<NextBestAction title="Track Your Work" why="Follow any work submissions separately from the promise’s confirmation." actionLabel="Track Your Work" actionHref="/community/gardener-guide/track-status-and-attestations" />

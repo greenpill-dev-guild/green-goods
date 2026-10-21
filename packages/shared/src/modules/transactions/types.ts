@@ -28,7 +28,7 @@ export interface ContractCall {
 }
 
 export type BroadcastReference =
-  | { kind: "transaction"; hash: Hex }
+  | { kind: "transaction"; hash: Hex; chainId?: number; account?: Address }
   | { kind: "user-operation"; hash: Hex; chainId?: number };
 
 export type BroadcastConfirmation =
@@ -37,6 +37,8 @@ export type BroadcastConfirmation =
 
 /** Result of a transaction submission */
 export interface TxResult {
+  /** A UserOperation/proposal identity is not an execution transaction hash. */
+  broadcastReference?: BroadcastReference;
   /** Opaque wallet identifiers have no execution receipt yet. */
   confirmation?: "pending";
   hash: Hex;
@@ -73,7 +75,7 @@ export interface AccountTypedDataRequest {
   data: TypedDataDefinition;
 }
 
-/** Viem accepts bigint domain IDs; signing must match the execution chain exactly. */
+/** Viem permits bigint chain IDs; signing must still match the execution chain exactly. */
 export function assertTypedDataChain(request: AccountTypedDataRequest): void {
   const domainChainId = request.data.domain?.chainId;
   if (
@@ -146,8 +148,13 @@ export class TransactionRevertedError extends Error {
 
 /** Submitted without a canonical execution receipt; never announce success or resend automatically. */
 export class TransactionConfirmationPendingError extends Error {
-  constructor() {
+  constructor(readonly submission?: TxResult) {
     super("transaction-confirmation-pending");
     this.name = "TransactionConfirmationPendingError";
   }
+}
+
+/** Identity of a submitted transaction, independent of the active screen. */
+export function getTransactionScopeKey(account: Address, chainId: number): string {
+  return `${chainId}:${account.toLowerCase()}`;
 }

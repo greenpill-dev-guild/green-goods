@@ -67,7 +67,7 @@ export function HubConfirmQueue({
   const titleOf = (row: ConfirmQueueRow) =>
     row.title ??
     formatMessage(
-      { id: "cockpit.garden.pool.row.untitled", defaultMessage: "Commitment {id}" },
+      { id: "cockpit.garden.pool.row.untitled", defaultMessage: "Promise {id}" },
       { id: row.commitment.commitmentId.toString() }
     );
 
@@ -113,7 +113,7 @@ export function HubConfirmQueue({
               : formatMessage({
                   id: "cockpit.hub.confirm.empty.description",
                   defaultMessage:
-                    "Commitments kept and sent for this garden's confirmation will wait here.",
+                    "Promises kept and sent for this garden's confirmation will wait here.",
                 })
           }
         />
@@ -320,7 +320,7 @@ export function HubConfirmQueue({
         description={formatMessage({
           id: "cockpit.hub.confirm.notYet.description",
           defaultMessage:
-            "Freezes the commitment for review instead of confirming it. Members see “under review by stewards”, never dispute language.",
+            "Freezes the promise for review instead of confirming it. Members see “under review by stewards”, never dispute language.",
         })}
         confirmLabel={formatMessage({
           id: "cockpit.garden.pool.commitment.dispute.confirm",
@@ -345,7 +345,7 @@ export function HubConfirmQueue({
             ? undefined
             : formatMessage({
                 id: "cockpit.garden.pool.offline",
-                defaultMessage: "Needs a connection. Pool changes are sent straight to the chain.",
+                defaultMessage: "Needs a connection. Pool changes are sent right away, not queued.",
               })
         }
         onConfirm={async (reason) => {
@@ -380,7 +380,7 @@ export function HubConfirmQueue({
         tone="hub"
         title={formatMessage({
           id: "cockpit.garden.pool.commitment.title",
-          defaultMessage: "Commitment",
+          defaultMessage: "Promise",
         })}
         bodyClassName="p-0"
       >
@@ -398,7 +398,7 @@ export function HubConfirmQueue({
             <p className="p-4 body-sm text-text-soft">
               {formatMessage({
                 id: "cockpit.hub.confirm.notInQueue",
-                defaultMessage: "This commitment is not in your confirmation queue any more.",
+                defaultMessage: "This promise is not in your confirmation queue any more.",
               })}
             </p>
           )

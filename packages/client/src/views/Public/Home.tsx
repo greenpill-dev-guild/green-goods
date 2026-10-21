@@ -1,4 +1,7 @@
+import { Button } from "@green-goods/shared/components/Button";
+import { usePublicCommitmentImpact } from "@green-goods/shared/hooks/public/usePublicCommitmentImpact";
 import { usePublicStats } from "@green-goods/shared/hooks/public/usePublicStats";
+import { useApp } from "@green-goods/shared/providers/App";
 import { useIntl } from "react-intl";
 import {
   EditorialGhostLink,
@@ -10,6 +13,7 @@ import { PublicFeaturedGardens } from "@/components/Public/PublicFeaturedGardens
 import { PublicFooter } from "@/components/Public/PublicFooter";
 import { PublicFundingBridge } from "@/components/Public/PublicFundingBridge";
 import { PublicGetInTouch } from "@/components/Public/PublicGetInTouch";
+import { PublicInstallAction } from "@/components/Public/PublicInstallAction";
 import { PublicProofBand } from "@/components/Public/PublicProofBand";
 import { PublicRecordLoop } from "@/components/Public/PublicRecordLoop";
 import { PublicWhoTendsAGarden } from "@/components/Public/PublicWhoTendsAGarden";
@@ -22,12 +26,15 @@ import { publicCuration } from "@/content/publicCuration";
  * through the manifest `start_url` at `/home`.
  *
  * Composition order matches the editorial dialect:
- *   Hero → Featured Gardens → Living Public Record → Regenerative Loop →
- *   Who Tends a Garden → Funding Bridge → Get In Touch → Footer.
+ *   Hero → Featured Gardens → Living Public Record → How it works (the
+ *   Needs → Commitment → Work → Learnings cycle) → Who Tends a Garden →
+ *   Funding Bridge → Get In Touch → Footer.
  */
 export default function Home() {
   const { formatMessage } = useIntl();
+  const { isMobile } = useApp();
   const stats = usePublicStats();
+  const commitments = usePublicCommitmentImpact();
 
   const counts = stats.data ?? {
     gardenCount: 0,
@@ -41,7 +48,32 @@ export default function Home() {
     defaultMessage: "Explore Gardens",
   });
 
-  const heroActions = (
+  // A phone visitor is on the device they would garden with, so the hero leads
+  // with the install path and keeps Explore Gardens as the editorial route.
+  // Desktop carries Install App in the header, so its hero pairs discovery with
+  // funding. `isMobile` is the device, not the width: a narrow desktop window
+  // keeps the desktop pair (DESIGN.browser.md § Homepage).
+  const heroActions = isMobile ? (
+    <>
+      <PublicInstallAction>
+        {({ label, href, onClick, disabled, dataInstallAction }) => (
+          <Button asChild size="lg">
+            <a
+              href={href}
+              onClick={onClick}
+              aria-disabled={disabled || undefined}
+              data-install-action={dataInstallAction}
+            >
+              {label}
+            </a>
+          </Button>
+        )}
+      </PublicInstallAction>
+      <EditorialGhostLink to="/gardens" size="lg">
+        {exploreLabel}
+      </EditorialGhostLink>
+    </>
+  ) : (
     <>
       <EditorialPrimaryLink to="/gardens" size="lg">
         {exploreLabel}
@@ -70,7 +102,7 @@ export default function Home() {
         lede={formatMessage({
           id: "public.home.hero.lede",
           defaultMessage:
-            "Green Goods helps community projects document environmental work, have it reviewed by local stewards, and connect with funding. Explore what’s been done, meet the people doing it, and support what comes next.",
+            "Green Goods helps communities name their needs, make promises, document regenerative work, review it together, and turn the record into support. Explore the work, meet the people, and help fund what comes next.",
         })}
         actions={heroActions}
       />
@@ -80,7 +112,10 @@ export default function Home() {
         contributors={counts.contributorCount}
         works={counts.fieldNoteCount}
         assessments={counts.attestationCount}
+        // A commitment read that settled without data is unknown, never zero.
+        commitmentsKept={commitments.data?.commitmentsFulfilled ?? null}
         isLoading={stats.isLoading}
+        isCommitmentsLoading={commitments.isLoading}
       />
       <PublicRecordLoop />
       <PublicWhoTendsAGarden />

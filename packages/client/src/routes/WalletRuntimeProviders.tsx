@@ -1,6 +1,7 @@
 import { AppKitProvider } from "@green-goods/shared/providers/AppKitProvider";
 import { AuthGate } from "@green-goods/shared/providers/AuthGate";
 import { useAuthState } from "@green-goods/shared/hooks/auth/useAuth";
+import { APP_DESCRIPTION } from "@green-goods/shared/config/app";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useAnalyticsIdentity } from "@green-goods/shared/hooks/analytics/useAnalyticsIdentity";
 import { useApp } from "@green-goods/shared/providers/App";
@@ -44,7 +45,7 @@ export default function WalletRuntimeProviders({
       projectId={import.meta.env.VITE_WALLETCONNECT_PROJECT_ID}
       metadata={{
         name: "Green Goods",
-        description: "Start Bringing Your Impact Onchain",
+        description: APP_DESCRIPTION,
         url:
           typeof window !== "undefined"
             ? import.meta.env.VITE_APP_URL || window.location.origin

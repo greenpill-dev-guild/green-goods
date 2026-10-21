@@ -197,7 +197,10 @@ export function FieldNoteDialog({
   // A stored title can end in timestamps older submissions appended; readers see the title alone.
   const title = toWorkDisplayTitle(
     note.title,
-    formatMessage({ id: "public.gardenDetail.notes.untitled", defaultMessage: "Untitled entry" })
+    formatMessage({
+      id: "public.gardenDetail.notes.untitled",
+      defaultMessage: "Untitled submission",
+    })
   );
 
   const legacy = metadata as WorkMetadataV1 | null;
@@ -259,7 +262,7 @@ export function FieldNoteDialog({
       dismissOnEscape={viewerIndex === null}
       eyebrow={formatMessage({
         id: "public.gardenDetail.notes.recordHeader",
-        defaultMessage: "Field note",
+        defaultMessage: "Approved submission",
       })}
     >
       <h2
@@ -293,7 +296,7 @@ export function FieldNoteDialog({
         {note.feedback ||
           formatMessage({
             id: "public.gardenDetail.notes.noDescription",
-            defaultMessage: "No description was logged with this entry.",
+            defaultMessage: "No description was logged with this submission.",
           })}
       </p>
 

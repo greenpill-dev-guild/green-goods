@@ -16,6 +16,8 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
+import { SETTLEMENT_ENABLED } from "../../../config/app";
+import { isDiscardableJob } from "../../../modules/job-queue/job-recovery";
 
 import { commitmentPoolingKeys } from "../../../config/query-keys/commitment-pooling";
 import { logger } from "../../../modules/app/logger";
@@ -23,7 +25,10 @@ import {
   type CreationCopy,
   sendCreationCopies,
 } from "../../../modules/commitment-pooling/creation-send";
-import type { CommitmentCreationPayload } from "../../../modules/commitment-pooling/job-types";
+import {
+  CONSIDERATION_RAIL_ORDINAL,
+  type CommitmentCreationPayload,
+} from "../../../modules/commitment-pooling/job-types";
 import {
   copiesToRetry,
   type SeedCopyProgress,
@@ -55,6 +60,16 @@ function waitingCopiesByGroup(
 
 const NOTHING_WAITING: ReadonlyMap<string, readonly string[]> = new Map();
 
+/** Leave unsent rewards in the visible queue; a recorded send still needs recovery. */
+function canFinishCreation(job: Job): boolean {
+  const payload = job.payload as Partial<CommitmentCreationPayload> | undefined;
+  return (
+    SETTLEMENT_ENABLED ||
+    payload?.consideration?.rail !== CONSIDERATION_RAIL_ORDINAL.CELO_SETTLEMENT ||
+    !isDiscardableJob(job)
+  );
+}
+
 export interface FinishCreatingController {
   /** Each group's copies still waiting in the steward's queue on this chain, by job id. */
   waiting: ReadonlyMap<string, readonly string[]>;
@@ -81,7 +96,9 @@ export function useFinishCreating(input: {
     enabled: Boolean(owner),
     queryFn: async () =>
       waitingCopiesByGroup(
-        await jobQueue.getJobs(owner as string, { kind: "commitment", synced: false }),
+        (await jobQueue.getJobs(owner as string, { kind: "commitment", synced: false })).filter(
+          canFinishCreation
+        ),
         chainId
       ),
     staleTime: Number.POSITIVE_INFINITY,
@@ -95,7 +112,12 @@ export function useFinishCreating(input: {
       try {
         const jobs = await jobQueue.getJobs(owner, { kind: "commitment", synced: false });
         waiting = jobs
-          .filter((job) => job.chainId === chainId && queuedCreationGroupId(job) === displayGroupId)
+          .filter(
+            (job) =>
+              job.chainId === chainId &&
+              queuedCreationGroupId(job) === displayGroupId &&
+              canFinishCreation(job)
+          )
           .map((job) => {
             const payload = job.payload as CommitmentCreationPayload;
             return {

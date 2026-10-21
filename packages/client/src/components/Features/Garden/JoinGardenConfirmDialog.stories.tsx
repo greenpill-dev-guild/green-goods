@@ -29,7 +29,7 @@ export const Default: Story = {
   play: async ({ args }) => {
     await expect(
       await screen.findByText(
-        "You'll join Green Goods Community Garden as a Gardener and can submit work right away."
+        "You'll join Green Goods Community Garden as a gardener and can submit work right away."
       )
     ).toBeVisible();
     await userEvent.click(screen.getByRole("button", { name: "Join" }));

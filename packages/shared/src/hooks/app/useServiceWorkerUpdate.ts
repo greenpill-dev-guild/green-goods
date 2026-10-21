@@ -12,6 +12,7 @@ import {
   useState,
 } from "react";
 import { logger } from "../../modules/app/logger";
+import { appCodeRecovery } from "../../modules/app/cache-recovery";
 import { track } from "../../modules/app/posthog";
 import {
   buildUpdateTelemetry,
@@ -25,6 +26,7 @@ import {
   now,
   resolveUpdateTarget,
   waitForInstallToSettle,
+  type UpdateCheckResult,
 } from "../../modules/app/service-worker-update";
 import { beginUpdateActivation, holdUpdateHandover } from "../../modules/app/update-handover";
 import { useTimeout } from "../utils/useTimeout";
@@ -38,16 +40,13 @@ export type ServiceWorkerUpdatePhase =
   | "error"
   | "install-failed";
 
-/** Result of a manual update check; rejects when the check itself fails. */
-export type UpdateCheckResult = "up-to-date" | "ready" | "pending" | "failed";
+export type { UpdateCheckResult };
 
 export interface ServiceWorkerUpdateState {
   activationBlocked: boolean;
-  /** Current user-facing update phase */
   phase: ServiceWorkerUpdatePhase;
   /** Whether a new service worker is waiting to activate */
   updateAvailable: boolean;
-  /** Whether the update is currently being applied */
   isUpdating: boolean;
   /** Whether applyUpdate timed out waiting for the new worker to activate */
   updateStalled: boolean;
@@ -55,7 +54,6 @@ export interface ServiceWorkerUpdateState {
   shouldPrompt: boolean;
   /** Check for an update and report what the registration settled on. */
   checkForUpdate: () => Promise<UpdateCheckResult>;
-  /** Apply the update (reloads the page) */
   applyUpdate: () => void;
   /** Activate the waiting worker and reload exactly once. */
   activateNow: () => void;
@@ -77,7 +75,6 @@ const MIN_AUTO_CHECK_INTERVAL_MS = 15 * 60 * 1000;
 type ActivationProtection = { activationBlocked?: boolean; isActivationBlocked?: () => boolean };
 const allowActivation = () => false;
 
-/** The update state one page shares: its phase, the waiting worker, and its actions. */
 function useServiceWorkerUpdateController({
   activationBlocked = false,
   isActivationBlocked = allowActivation,
@@ -439,14 +436,18 @@ function useServiceWorkerUpdateController({
     }
   }, [buildTelemetry, installWatcher, isEnabled, markUpdateAvailable]);
 
-  const applyUpdate = useCallback(() => {
+  const applyUpdate = useCallback<() => void>(() => {
     const worker = resolveUpdateTarget(registrationRef.current, waitingWorkerRef.current);
     if (!worker) {
+      lateRestartWantedRef.current = true;
+      const isRecoveryBlocked = () => !lateRestartWantedRef.current || isActivationBlocked();
       track("sw_update_state_observed", buildTelemetry({ source: "apply_no_target" }));
       setUpdateAvailable(false);
       setWaitingWorker(null);
       waitingWorkerRef.current = null;
-      void checkForUpdate().catch(() => {});
+      void appCodeRecovery
+        .checkAndRestart(checkForUpdate, applyUpdate, isRecoveryBlocked, reloadGuardRef)
+        .catch(() => {});
       return;
     }
     if (isActivationBlocked()) {

@@ -2,7 +2,7 @@
  * Display Mode Tests — AppBar visibility based on display-mode
  *
  * Verifies the browser vs. PWA distinction (D6 rule):
- * - Browser = website (SiteHeader top nav, no bottom nav)
+ * - Browser = website (AppBar hidden)
  * - Installed PWA = app (AppBar bottom nav)
  *
  * The AppBar component checks `isPwaPresentation` from `useApp()` and hides
@@ -27,10 +27,6 @@ vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: any[]) => args.filter(Boolean).join(" "),
 }));
 
-vi.mock("@green-goods/shared/hooks/app/useTunnelUrl", () => ({
-  useTunnelUrl: () => null,
-}));
-
 vi.mock("@green-goods/shared/providers/App", () => ({
   useApp: () => mockUseApp(),
 }));
@@ -43,54 +39,12 @@ vi.mock("@green-goods/shared/stores/useUIStore", () => ({
   useUIStore: (selector: (s: any) => any) => mockUseUIStore(selector),
 }));
 
-vi.mock("@green-goods/shared/config/app", () => ({
-  APP_NAME: "Green Goods",
-}));
-
-vi.mock("@green-goods/shared/hooks/app/useIsBraveBrowser", () => ({
-  useIsBraveBrowser: () => false,
-}));
-
-vi.mock("@green-goods/shared/hooks/app/useInstallGuidance", () => ({
-  useInstallGuidance: () => ({
-    scenario: "desktop",
-    primaryAction: { type: "continue-in-browser", label: "Open on Mobile" },
-    secondaryAction: null,
-    browserInfo: { browser: "unknown" },
-    showBrowserOption: false,
-    manualInstructions: null,
-    browserSwitchReason: null,
-    openInBrowserUrl: null,
-  }),
-}));
-
-vi.mock("@green-goods/shared/hooks/app/usePublicInstallHandler", () => ({
-  usePublicInstallHandler: () => vi.fn(),
-}));
-
-vi.mock("@green-goods/shared/hooks/utils/useEventListener", () => ({
-  useEventListener: vi.fn(),
-}));
-
 import { AppBar } from "../../components/Layout/AppBar";
-import { SiteHeader } from "../../components/Navigation/SiteHeader";
 
 const appBarMessages: Record<string, string> = {
   "app.home": "Home",
   "app.garden": "Garden",
   "app.profile": "Profile",
-};
-
-const siteHeaderMessages: Record<string, string> = {
-  "public.nav.gardens": "Gardens",
-  "public.nav.actions": "Actions",
-  "public.nav.impact": "Impact",
-  "public.nav.vaults": "Vaults",
-  "public.nav.fund": "Fund",
-  "public.nav.installApp": "Install App",
-  "public.nav.openApp": "Open App",
-  "public.nav.openMenu": "Open Menu",
-  "public.nav.closeMenu": "Close Menu",
 };
 
 function renderAppBar(initialRoute = "/home") {
@@ -99,20 +53,6 @@ function renderAppBar(initialRoute = "/home") {
       MemoryRouter,
       { initialEntries: [initialRoute] },
       createElement(IntlProvider, { locale: "en", messages: appBarMessages }, createElement(AppBar))
-    )
-  );
-}
-
-function renderSiteHeader(initialRoute = "/gardens") {
-  return render(
-    createElement(
-      MemoryRouter,
-      { initialEntries: [initialRoute] },
-      createElement(
-        IntlProvider,
-        { locale: "en", messages: siteHeaderMessages },
-        createElement(SiteHeader)
-      )
     )
   );
 }
@@ -210,40 +150,5 @@ describe("Display mode — AppBar visibility", () => {
     expect(screen.getByTestId("authenticated-nav")).not.toHaveAttribute("inert");
     expect(screen.getByRole("link", { name: /home/i }).className).not.toContain("tab-active");
     expect(screen.getByRole("link", { name: /profile/i }).className).toContain("tab-active");
-  });
-
-  it("browser mode + authenticated: SiteHeader renders (top nav, not bottom)", () => {
-    mockUseApp.mockReturnValue({ isInstalled: false, isPwaPresentation: false });
-
-    renderSiteHeader("/vaults");
-
-    // SiteHeader should render a <header> with navigation
-    const header = document.querySelector("header");
-    expect(header).toBeInTheDocument();
-
-    // It should contain nav links
-    expect(screen.getAllByText("Gardens").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("Fund").length).toBeGreaterThanOrEqual(1);
-    // Vaults is intentionally not in the header nav.
-    expect(screen.queryByText("Vaults")).toBeNull();
-
-    // The SiteHeader is a fixed top-0 overlay header, NOT a fixed bottom-0 nav
-    expect(header!.className).toMatch(/fixed/);
-    expect(header!.className).toMatch(/top-0/);
-  });
-
-  it("mobile browser: hamburger nav visible, NO bottom nav", () => {
-    mockUseApp.mockReturnValue({ isInstalled: false, isPwaPresentation: false });
-
-    // Render SiteHeader — hamburger is always in DOM (hidden via CSS on desktop)
-    renderSiteHeader("/gardens");
-
-    // Hamburger button should be in the DOM
-    const hamburger = screen.getByRole("button", { name: /open menu/i });
-    expect(hamburger).toBeInTheDocument();
-
-    // No AppBar bottom nav should be present in PublicShell
-    // (AppBar is only rendered in AppShell, not PublicShell)
-    expect(screen.queryByTestId("authenticated-nav")).not.toBeInTheDocument();
   });
 });

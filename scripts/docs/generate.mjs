@@ -1,27 +1,32 @@
 #!/usr/bin/env node
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { readFileSync } from "node:fs";
 
 import { parseGeneratorArgs, syncProjections } from "./generator-core.mjs";
 import {
   renderApiIndex,
+  integrationNetworkRecords,
   renderCommands,
+  renderDesignTokens,
+  renderOnboardingData,
   renderContractOperations,
   renderDeploymentStatus,
-  renderErd,
+  renderDataModel,
   renderGitHubActions,
   renderGlossary,
-  renderIntegration,
+  renderIntegrationProjections,
   renderMcpGuide,
-  renderPersonaSurfaces,
+  renderPersonas,
+  renderRevenueExplorerData,
   renderQaCatalog,
-  renderSequenceDiagrams,
+  renderSkills,
   renderTaskRouting,
 } from "./renderers.mjs";
 import {
+  publicAgentRouteSources,
   readJson,
-  sourcePathsContaining,
+  routineConnectorSources,
+  skillCatalogSources,
   supportedChainIds,
   workflowSourcePaths,
 } from "./source-readers.mjs";
@@ -30,10 +35,19 @@ import { renderEntityMatrixMdx } from "../quality/ontology-render.mjs";
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const ONTOLOGY = "packages/shared/src/ontology/green-goods-ontology.json";
 const PROJECTIONS = "packages/shared/src/ontology/green-goods-projections.json";
+const AGENT_CONNECTORS = "scripts/data/agent-connectors.json";
 const CHAINS = "packages/shared/src/config/chains.ts";
 const NETWORKS = "packages/contracts/deployments/networks.json";
 const TASK_ROUTING = ".claude/context/task-routing.json";
 const BANNED_VOCABULARY = "scripts/data/banned-vocabulary.json";
+// The Shared files that export the Agent's public route paths. A route constant that lives
+// anywhere else is unknown to the API Index, and the generator says so when the Agent uses it.
+const AGENT_API = "packages/agent/src/api";
+const PUBLIC_ROUTE_CONTRACTS = [
+  "packages/shared/src/public-contracts/profile-avatar.ts",
+  "packages/shared/src/public-contracts/routes.ts",
+  "packages/shared/src/public-contracts/saved-offers/types.ts",
+];
 const PACKAGE_MANIFESTS = [
   "packages/admin/package.json",
   "packages/agent/package.json",
@@ -70,23 +84,24 @@ export function createProjections(root = REPO_ROOT) {
     PROJECTIONS,
   ];
   const workflows = workflowSourcePaths(root);
-  const publicAgentRoutes = sourcePathsContaining(
-    root,
-    "packages/agent/src/api",
-    "PUBLIC_AGENT_ROUTES",
-  );
+  const publicAgentRoutes = publicAgentRouteSources(root, AGENT_API, PUBLIC_ROUTE_CONTRACTS);
+  const connectorRoutines = routineConnectorSources(root, "docs/routines");
   const routedSkillSources = [...new Set((taskRouting.tasks ?? []).map((task) => task.skill).filter(Boolean))]
     .sort()
     .map((skill) => `.claude/skills/${skill}/SKILL.md`);
 
   return [
-    { scope: "package", output: "docs/docs/builders/agentic/mcp-guide.mdx", sources: [".mcp.json", "AGENTS.md", ...mcpWrapperSources(root)], render: renderMcpGuide },
+    {
+      scope: "package",
+      output: "docs/docs/builders/agentic/mcp-guide.mdx",
+      sources: [".mcp.json", "AGENTS.md", ...mcpWrapperSources(root), AGENT_CONNECTORS, ...connectorRoutines],
+      render: (context) => renderMcpGuide({ ...context, connectorCatalog: AGENT_CONNECTORS, routines: connectorRoutines }),
+    },
     { scope: "package", output: "docs/docs/builders/packages/commands.mdx", sources: [
       "package.json",
       "docs/package.json",
       "packages/qa/package.json",
       ...PACKAGE_MANIFESTS,
-      "scripts/data/command-migration.json",
       "scripts/data/command-policy.json",
       "scripts/data/validation-policy.json",
       "scripts/dev/test.js",
@@ -96,23 +111,53 @@ export function createProjections(root = REPO_ROOT) {
       "packages/contracts/script/cli/operations.mjs",
       "packages/contracts/script/utils/package-commands.mjs",
     ], render: renderCommands },
-    { scope: "package", output: "docs/docs/builders/packages/contract-operations.mdx", sources: ["packages/contracts/script/cli/operations.mjs", "packages/contracts/config/command-migration.json"], render: renderContractOperations },
-    { scope: "package", output: "docs/docs/builders/packages/api-index.mdx", sources: [...PACKAGE_MANIFESTS, "packages/shared/src/public-contracts/routes.ts", ...publicAgentRoutes], render: renderApiIndex },
-    { scope: "package", output: "docs/docs/builders/journeys/persona-surfaces.mdx", sources: [ONTOLOGY, "packages/client/src/config/routes.tsx", "packages/client/src/config/pwaRouting.ts", "packages/admin/src/router.tsx", "packages/admin/src/routes/views.tsx"], render: renderPersonaSurfaces },
-    { scope: "integration", output: "docs/docs/builders/deployments/status.mdx", sources: integrationCommon, render: renderDeploymentStatus },
-    ...(ontology.integrations ?? []).map((integration) => ({
+    { scope: "package", output: "docs/docs/builders/packages/contract-operations.mdx", sources: ["packages/contracts/script/cli/operations.mjs"], render: renderContractOperations },
+    {
+      scope: "package",
+      output: "docs/docs/builders/packages/api-index.mdx",
+      sources: [...PACKAGE_MANIFESTS, ...PUBLIC_ROUTE_CONTRACTS, ...publicAgentRoutes],
+      render: (context) =>
+        renderApiIndex({
+          ...context,
+          manifests: PACKAGE_MANIFESTS,
+          agentApi: AGENT_API,
+          routeContracts: PUBLIC_ROUTE_CONTRACTS,
+          routeSources: publicAgentRoutes,
+        }),
+    },
+    { scope: "package", output: "docs/docs/builders/architecture/personas.mdx", sources: [ONTOLOGY, PROJECTIONS], render: renderPersonas },
+    { scope: "integration", output: "docs/docs/builders/reference/deployments.mdx", sources: integrationCommon, render: renderDeploymentStatus },
+    {
       scope: "integration",
-      output: `docs/docs/builders/integrations/${integration.id}.mdx`,
-      sources: [...integrationCommon, integration.contract_source, ...(integration.additional_sources ?? [])],
-      render: (context) => renderIntegration(context, integration.id),
-    })),
-    { scope: "ontology", output: "docs/docs/builders/architecture/erd.mdx", sources: [ONTOLOGY, PROJECTIONS, "packages/indexer/schema.graphql", "scripts/quality/ontology-render.mjs"], render: renderErd },
-    { scope: "ontology", output: "docs/docs/reference/glossary.generated.mdx", sources: [ONTOLOGY, PROJECTIONS, BANNED_VOCABULARY, "scripts/quality/ontology-render.mjs"], render: renderGlossary },
-    { scope: "ontology", output: "docs/docs/builders/integrations/entity-matrix.mdx", sources: [ONTOLOGY, "scripts/quality/ontology-render.mjs", "scripts/quality/check-ontology.mjs"], render: ({ root: renderRoot, sources, digest }) => renderEntityMatrixMdx(JSON.parse(readFileSync(path.join(renderRoot, ONTOLOGY), "utf8")), { sources, digest }) },
-    { scope: "workflow", output: "docs/docs/builders/architecture/sequence-diagrams.mdx", sources: [ONTOLOGY, "scripts/quality/ontology-render.mjs"], render: renderSequenceDiagrams },
-    { scope: "workflow", output: "docs/docs/builders/deployments/gh-actions.mdx", sources: ["package.json", ...workflows], render: renderGitHubActions },
+      output: "docs/src/data/integration-projections.json",
+      sources: [
+        ...integrationCommon,
+        ...(ontology.integrations ?? []).flatMap((integration) => [
+          integration.contract_source,
+          ...(integration.additional_sources ?? []),
+        ]),
+      ],
+      render: renderIntegrationProjections,
+    },
+    { scope: "ontology", output: "docs/docs/builders/architecture/data-model.mdx", sources: [ONTOLOGY, PROJECTIONS, "packages/indexer/schema.graphql", "scripts/quality/ontology-render.mjs"], render: renderDataModel },
+    { scope: "ontology", output: "docs/docs/reference/glossary.generated.mdx", sources: [ONTOLOGY, PROJECTIONS, BANNED_VOCABULARY, "scripts/quality/ontology-render.mjs", ...new Set((readJson(root, PROJECTIONS).community_terms ?? []).flatMap(term => term.source_of_truth))], render: renderGlossary },
+    {
+      scope: "ontology",
+      output: "docs/docs/builders/architecture/entity-matrix.mdx",
+      sources: [...new Set([ONTOLOGY, ...integrationCommon, "scripts/quality/ontology-render.mjs", "scripts/quality/check-ontology.mjs"])],
+      render: ({ root: renderRoot, sources, digest }) => {
+        const sidecar = readJson(renderRoot, ONTOLOGY);
+        const integrations = integrationNetworkRecords({ root: renderRoot, sources, ontology: sidecar });
+        return renderEntityMatrixMdx(sidecar, { sources, digest, integrations });
+      },
+    },
+    { scope: "workflow", output: "docs/docs/builders/quality/gh-actions.mdx", sources: ["package.json", "scripts/data/workflow-catalog.json", "scripts/data/validation-policy.json", ...workflows], render: renderGitHubActions },
     { scope: "qa", output: "docs/docs/builders/quality/test-cases.mdx", sources: ["package.json", "scripts/data/qa-test-catalog.json", "scripts/data/validation-policy.json", "playwright.config.ts", "packages/client/vitest.config.ts", "packages/admin/vitest.config.ts", "packages/shared/vitest.config.ts", "packages/agent/vitest.config.ts"], render: renderQaCatalog },
     { scope: "agentic", output: "docs/docs/builders/agentic/task-routing.mdx", sources: [TASK_ROUTING, ...routedSkillSources, "scripts/quality/task-routing-contract.mjs"], render: renderTaskRouting },
+    { scope: "agentic", output: "docs/docs/builders/agentic/skills.mdx", sources: skillCatalogSources(root), render: renderSkills },
+    { scope: "agentic", output: "docs/src/data/onboarding.json", sources: ["ONBOARDING.md"], render: renderOnboardingData },
+    { scope: "design", output: "docs/src/data/design-tokens.json", sources: ["DESIGN.md", "packages/shared/src/styles/design-md.generated.json"], render: renderDesignTokens },
+    { scope: "design", output: "docs/src/data/revenue-explorer.json", sources: ["docs/src/components/docs/protocolRevenueModel.ts"], render: renderRevenueExplorerData },
   ];
 }
 

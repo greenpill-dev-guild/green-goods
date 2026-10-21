@@ -10,8 +10,7 @@ import {
   selectExceededTransferLimit,
 } from "@green-goods/shared/modules/commitment-pooling/pool-funding";
 import type { Address } from "@green-goods/shared/types/domain";
-import { RiRefreshLine } from "@remixicon/react";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
 import { parseUnits } from "viem";
 import { AdminButton } from "@/components/AdminButton";
@@ -53,18 +52,21 @@ export function ProtocolFundingOperationsCard({
   gardens,
   targetGarden,
   onTargetGardenChange,
+  renderLayout,
 }: {
   operations: ProtocolFundingOperationsController;
   gardens: GardenOption[];
   targetGarden: Address | null;
   onTargetGardenChange: (garden: Address | null) => void;
+  /** CommunityPools places these existing regions while their review state stays here. */
+  renderLayout?: (funding: ReactNode, transfers: ReactNode) => ReactNode;
 }) {
   const { formatMessage, locale } = useIntl();
   const [amount, setAmount] = useState("2");
   const [confirmQueue, setConfirmQueue] = useState(false);
   const [cancelId, setCancelId] = useState<bigint | null>(null);
   const [review, setReview] = useState<{ act: TransferAct; row: ProtocolFundingRow } | null>(null);
-  if (!operations.showOperations) return null;
+  if (!operations.showOperations) return renderLayout?.(null, null) ?? null;
 
   let amountValue: bigint | null = null;
   try {
@@ -110,10 +112,10 @@ export function ProtocolFundingOperationsCard({
     });
   };
 
-  return (
+  const funding = (
     <AdminCard
-      variant="outlined"
-      className="space-y-4"
+      variant="elevated"
+      className="@container space-y-4"
       data-component="ProtocolFundingOperationsCard"
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -121,29 +123,17 @@ export function ProtocolFundingOperationsCard({
           <AdminCardTitle>
             {formatMessage({
               id: "cockpit.community.protocolFunding.title",
-              defaultMessage: "Protocol Funding",
+              defaultMessage: "Fund a Garden",
             })}
           </AdminCardTitle>
           <p className="mt-1 max-w-2xl body-xs text-text-soft">
             {formatMessage({
               id: "cockpit.community.protocolFunding.description",
               defaultMessage:
-                "Queue a discretionary protocol Safe top-up to a registered garden Safe. This does not fulfill or alter a commitment.",
+                "Queue a discretionary protocol Safe top-up to a registered garden Safe. This does not fulfill or alter a promise.",
             })}
           </p>
         </div>
-        <AdminButton
-          type="button"
-          variant="outlined"
-          size="sm"
-          leadingIcon={<RiRefreshLine />}
-          onClick={() => void operations.refetch()}
-        >
-          {formatMessage({
-            id: "cockpit.community.protocolFunding.refresh",
-            defaultMessage: "Refresh Funding",
-          })}
-        </AdminButton>
       </div>
 
       {operations.sourceFunding.isError ? (
@@ -157,7 +147,7 @@ export function ProtocolFundingOperationsCard({
 
       {operations.canQueueFunding ? (
         <div className="space-y-3">
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 @[560px]:grid-cols-2">
             <AdminSelect
               label={formatMessage({
                 id: "cockpit.community.protocolFunding.garden",
@@ -192,65 +182,65 @@ export function ProtocolFundingOperationsCard({
               error={amountError}
             />
           </div>
-          <dl className="grid gap-3 rounded-[var(--m3-shape-sm)] bg-bg-soft p-3 body-sm sm:grid-cols-2">
-            <div>
+          <dl className="divide-y divide-stroke-soft body-sm">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 py-2">
               <dt className="body-xs text-text-soft">
                 {formatMessage({
                   id: "cockpit.community.protocolFunding.source",
                   defaultMessage: "Protocol Safe",
                 })}
               </dt>
-              <dd className="mt-1 font-medium text-text-strong">
+              <dd className="ml-auto text-right font-medium tabular-nums text-text-strong">
                 {source?.safe ? shortAddress(source.safe) : "—"} ·{" "}
                 {formatGdollar(source?.balance?.value ?? null, locale)}
               </dd>
             </div>
-            <div>
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 py-2">
               <dt className="body-xs text-text-soft">
                 {formatMessage({
                   id: "cockpit.community.protocolFunding.recipient",
                   defaultMessage: "Receiving Safe",
                 })}
               </dt>
-              <dd className="mt-1 font-medium text-text-strong">
+              <dd className="ml-auto text-right font-medium tabular-nums text-text-strong">
                 {target?.safe ? shortAddress(target.safe) : "—"}
               </dd>
             </div>
-            <div>
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 py-2">
               <dt className="body-xs text-text-soft">
                 {formatMessage({
                   id: "cockpit.community.protocolFunding.allowance",
                   defaultMessage: "Safe allowance remaining",
                 })}
               </dt>
-              <dd className="mt-1 font-medium text-text-strong">
+              <dd className="ml-auto text-right font-medium tabular-nums text-text-strong">
                 {formatGdollar(source?.limits.rolesAllowanceRemaining ?? null, locale)}
               </dd>
             </div>
-            <div>
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 py-2">
               <dt className="body-xs text-text-soft">
                 {formatMessage({
                   id: "cockpit.community.protocolFunding.periodAllowance",
                   defaultMessage: "Period allowance remaining",
                 })}
               </dt>
-              <dd className="mt-1 font-medium text-text-strong">
+              <dd className="ml-auto text-right font-medium tabular-nums text-text-strong">
                 {formatGdollar(source?.limits.periodAllowanceRemaining ?? null, locale)}
               </dd>
             </div>
-            <div>
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 py-2">
               <dt className="body-xs text-text-soft">
                 {formatMessage({
                   id: "cockpit.community.protocolFunding.cap",
                   defaultMessage: "Per-transfer cap",
                 })}
               </dt>
-              <dd className="mt-1 font-medium text-text-strong">
+              <dd className="ml-auto text-right font-medium tabular-nums text-text-strong">
                 {formatGdollar(source?.limits.maxTransferAmount ?? null, locale)}
               </dd>
             </div>
           </dl>
-          <div className="flex justify-end">
+          <div className="flex justify-end [&>button]:w-full">
             <AdminButton
               type="button"
               variant="filled"
@@ -273,13 +263,6 @@ export function ProtocolFundingOperationsCard({
           })}
         </p>
       )}
-
-      <ProtocolFundingRows
-        operations={operations}
-        gardenName={gardenName}
-        onReview={(act, row) => setReview({ act, row })}
-        onCancel={setCancelId}
-      />
 
       {operations.lastAct ? (
         <p
@@ -395,5 +378,25 @@ export function ProtocolFundingOperationsCard({
         }}
       />
     </AdminCard>
+  );
+
+  const transfers = (
+    <AdminCard className="flex flex-col">
+      <ProtocolFundingRows
+        operations={operations}
+        gardenName={gardenName}
+        onReview={(act, row) => setReview({ act, row })}
+        onCancel={setCancelId}
+        onRefresh={() => void operations.refetch()}
+      />
+    </AdminCard>
+  );
+  return renderLayout ? (
+    renderLayout(funding, transfers)
+  ) : (
+    <div className="garden-tab-layout">
+      <div className="garden-tab-main">{transfers}</div>
+      <aside className="garden-tab-rail">{funding}</aside>
+    </div>
   );
 }

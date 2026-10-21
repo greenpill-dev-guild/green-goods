@@ -1,87 +1,54 @@
 import {
+  RiClipboardLine,
   RiHammerLine,
   RiSeedlingLine,
   RiShieldCheckLine,
   RiWallet3Line,
 } from "@remixicon/react";
-import {RolePathCard} from "./RolePathCard";
+import rolePaths from "@site/src/data/role-paths.json";
+import Link from "@docusaurus/Link";
 import styles from "./styles.module.css";
 
-const ROLE_PATHS = [
-  {
-    title: "Gardener",
-    href: "/community/gardener-guide/",
-    icon: RiSeedlingLine,
-    roleAccent: "gardener",
-    audience: "Field workers",
-    time: "5 min quickstart",
-    description:
-      "Document regenerative work in the field with photos and structured evidence capture.",
-  },
-  {
-    title: "Steward",
-    href: "/community/steward-guide/",
-    icon: RiShieldCheckLine,
-    roleAccent: "steward",
-    audience: "Garden managers",
-    time: "15 min steward setup",
-    description:
-      "Create and manage your garden community, approve work, and configure actions.",
-  },
-  {
-    title: "Funder",
-    href: "/community/funder-guide/",
-    icon: RiWallet3Line,
-    roleAccent: "funder",
-    audience: "Capital allocators",
-    time: "10 min first deposit",
-    description:
-      "Support garden operations through vault deposits and keep withdrawal controls close at hand.",
-  },
-  {
-    title: "Builder",
-    href: "/builders/getting-started",
-    icon: RiHammerLine,
-    roleAccent: "builder",
-    audience: "Developers",
-    time: "30 min setup",
-    description:
-      "Integrate with Green Goods contracts, APIs, and the shared component library.",
-  },
-] as const;
+// The role list lives in data so the welcome page's Markdown twin prints the same links
+// (docs/scripts/llms.mjs).
+const ROLE_ICONS = {
+  seedling: RiSeedlingLine,
+  shield: RiShieldCheckLine,
+  clipboard: RiClipboardLine,
+  wallet: RiWallet3Line,
+  hammer: RiHammerLine,
+} as const;
+
+type RolePath = {
+  title: string;
+  href: string;
+  icon: keyof typeof ROLE_ICONS;
+  description: string;
+};
+
+const ROLE_PATHS = rolePaths as RolePath[];
 
 export function Hero() {
   return (
-    <section className={styles.hero} aria-label="Documentation overview">
-      <h1 className={styles.heroHeading}>Green Goods Documentation</h1>
-      <p className={styles.heroSubtitle}>
-        Document, verify, and fund regenerative work on-chain
-      </p>
-
-      <div className={styles.heroRoleGrid} role="list">
-        {ROLE_PATHS.map((role, i) => {
-          const Icon = role.icon;
+    <nav aria-label="Choose your guide">
+      <ul className={styles.heroRoleGrid}>
+        {ROLE_PATHS.map((role) => {
+          const Icon = ROLE_ICONS[role.icon];
 
           return (
-            <div
-              key={role.title}
-              className={styles.heroRoleItem}
-              style={{"--card-delay": `${i * 80}ms`} as React.CSSProperties}
-              role="listitem"
-            >
-              <RolePathCard
-                title={role.title}
-                href={role.href}
-                icon={<Icon />}
-                roleAccent={role.roleAccent}
-                audience={role.audience}
-                time={role.time}
-                description={role.description}
-              />
-            </div>
+            <li key={role.title}>
+              <Link className={styles.heroRoleLink} to={role.href}>
+                <Icon className={styles.heroRoleIcon} aria-hidden="true" />
+                <span>
+                  <strong>{role.title}</strong>
+                  <span className={styles.heroRoleDescription}>{role.description}</span>
+                </span>
+                <span aria-hidden="true">→</span>
+              </Link>
+            </li>
           );
         })}
-      </div>
-    </section>
+      </ul>
+    </nav>
   );
 }

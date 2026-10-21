@@ -130,7 +130,7 @@ export async function submitBatchApprovalsDirectly(
       ...(old || []),
     ]);
 
-    onProgress?.("syncing", "Syncing with blockchain...");
+    onProgress?.("syncing", "Recording your decisions…");
 
     const uniqueGardenAddresses = [...new Set(approvals.map((a) => a.gardenAddress))];
     const pollKeys = [

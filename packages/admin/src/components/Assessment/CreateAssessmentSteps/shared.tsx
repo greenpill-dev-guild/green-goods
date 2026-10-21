@@ -99,15 +99,15 @@ interface DomainGuidance {
 /** Domain-specific guidance for wizard fields — placeholders and help text adapt to the selected domain */
 export const DOMAIN_GUIDANCE: Record<Domain, DomainGuidance> = {
   [Domain.SOLAR]: {
-    titlePlaceholder: "e.g., Kigali Community Solar — Phase 2 Deployment",
-    locationPlaceholder: "e.g., Kigali, Rwanda — Sector 5 hub network",
+    titlePlaceholder: "e.g., Kigali Community Solar: Phase 2 Deployment",
+    locationPlaceholder: "e.g., Kigali, Rwanda (Sector 5 hub network)",
     descriptionPlaceholder:
       "What solar energy challenge is being addressed? What scale of deployment is involved and who benefits?",
     descriptionHelp:
       "Describe the energy access situation, infrastructure being deployed, and target community.",
     diagnosisPlaceholder:
       "e.g., Rural households in Sector 5 rely on diesel generators averaging 4 hours daily. High fuel cost ($12/week) limits productive electricity use and creates indoor health risks...",
-    smartOutcomeExample: "e.g., Households in the neighbourhood have reliable power after dark",
+    smartOutcomeExample: "e.g., Households in the neighborhood have reliable power after dark",
     cynefinExamples: {
       [CynefinPhase.CLEAR]:
         "Standard rooftop installation with proven equipment and trained installers.",
@@ -119,8 +119,8 @@ export const DOMAIN_GUIDANCE: Record<Domain, DomainGuidance> = {
     },
   },
   [Domain.AGRO]: {
-    titlePlaceholder: "e.g., Cerrado Reforestation — Q1 Planting Assessment",
-    locationPlaceholder: "e.g., Alto Paraíso, Goiás — Farm cooperative lot 3",
+    titlePlaceholder: "e.g., Cerrado Reforestation: Q1 Planting Assessment",
+    locationPlaceholder: "e.g., Alto Paraíso, Goiás (farm cooperative lot 3)",
     descriptionPlaceholder:
       "What land area and species are being assessed? What ecological or agricultural challenge does this address?",
     descriptionHelp:
@@ -139,8 +139,8 @@ export const DOMAIN_GUIDANCE: Record<Domain, DomainGuidance> = {
     },
   },
   [Domain.EDU]: {
-    titlePlaceholder: "e.g., Field Worker Training — Solar Maintenance Certification",
-    locationPlaceholder: "e.g., Medellín, Colombia — Community learning center",
+    titlePlaceholder: "e.g., Field Worker Training: Solar Maintenance Certification",
+    locationPlaceholder: "e.g., Medellín, Colombia (community learning center)",
     descriptionPlaceholder:
       "What training or educational program is being assessed? Who are the learners and what skills are targeted?",
     descriptionHelp: "Describe the training program, target audience, and learning objectives.",
@@ -159,8 +159,8 @@ export const DOMAIN_GUIDANCE: Record<Domain, DomainGuidance> = {
     },
   },
   [Domain.WASTE]: {
-    titlePlaceholder: "e.g., Dharavi Riverbank Cleanup — Monthly Impact Review",
-    locationPlaceholder: "e.g., Dharavi, Mumbai — Mithi River corridor (2km stretch)",
+    titlePlaceholder: "e.g., Dharavi Riverbank Cleanup: Monthly Impact Review",
+    locationPlaceholder: "e.g., Dharavi, Mumbai (Mithi River corridor, 2km stretch)",
     descriptionPlaceholder:
       "What waste management challenge is being tracked? What materials and community are involved?",
     descriptionHelp: "Describe the waste stream, collection infrastructure, and target outcomes.",

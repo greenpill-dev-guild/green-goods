@@ -9,6 +9,7 @@ import { resolvePackageCommand as resolveContractPackage } from "../../packages/
 import { resolveBrowser } from "../../scripts/dev/browser.js";
 import { resolveQa } from "../../scripts/agents/qa.mjs";
 import { resolveTests } from "../../scripts/dev/test.js";
+import { inlineCopyCommands } from "./llms.mjs";
 
 function commandWords(value) {
   return (value.match(/"(?:[^"\\]|\\.)*"|'[^']*'|[^\s]+/g) ?? []).map((word) => word.replace(/^(['"])(.*)\1$/, "$2"));
@@ -58,7 +59,7 @@ async function readOptional(file) {
 
 // Only maintained developer entrypoints belong here; dated execution reports are historical.
 export async function developerGuidePaths(root) {
-  const paths = ["README.md", "ONBOARDING.md", "CONTRIBUTING.md", "docs/README.md", "scripts/README.md", "packages/contracts/deployments/README.md", "docs/docs/builders/getting-started.mdx", "docs/docs/builders/env-management.mdx", "docs/docs/builders/how-to-contribute.mdx"];
+  const paths = ["README.md", "ONBOARDING.md", "CONTRIBUTING.md", "docs/README.md", "scripts/README.md", "packages/contracts/deployments/README.md", "docs/docs/builders/getting-started.mdx", "docs/docs/builders/how-to-contribute.mdx", "docs/docs/builders/testing/index.mdx"];
   const packages = await fs.readdir(path.join(root, "packages"), { withFileTypes: true }).catch(() => []);
   for (const item of packages) if (item.isDirectory()) paths.push(`packages/${item.name}/README.md`);
   return paths;
@@ -78,8 +79,10 @@ export async function auditDeveloperGuides(root, paths, { resolveContracts } = {
   }
   for (const filePath of paths ?? await developerGuidePaths(root)) {
     const file = path.join(root, filePath);
-    const text = await readOptional(file);
-    if (text === null) continue;
+    const raw = await readOptional(file);
+    if (raw === null) continue;
+    // A CopyCommand tag in a guide table is the command it renders; audit that command.
+    const text = inlineCopyCommands(raw);
     const fail = (message) => issues.push({ filePath, message });
     const prose = text.replace(/```[\s\S]*?```/g, "");
     for (const match of (filePath.endsWith(".mdx") ? "" : prose).matchAll(/\[[^\]]*\]\((<[^>]+>|[^\s)]+)(?:\s+"[^"]*")?\)/g)) {
@@ -209,8 +212,6 @@ export async function auditWorkflowCommands(root) {
 
 const callerEvidenceExclusions = new Set([
   "packages/contracts/config/command-migration.json", // Historical invocation evidence.
-  "docs/docs/builders/packages/contract-operations.mdx", // Generated historical migration table.
-  "docs/docs/builders/packages/commands.mdx", // Generated repository-wide migration table.
   "docs/scripts/developer-guides.test.mjs", // Deliberately invalid caller fixtures below.
   "scripts/data/command-migration.json", // Baseline and replacement evidence, never runtime policy.
 ]);

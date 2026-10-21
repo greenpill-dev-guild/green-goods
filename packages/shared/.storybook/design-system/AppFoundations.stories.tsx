@@ -35,7 +35,7 @@ export const Tokens: Story = {
       <Section id="tokens" title="Surface tokens" lede="Read from the page root while this story renders on the app surface.">
         <ClientTokens rules={APP} />
       </Section>
-      <Section id="corners" title="Corner pair" lede="The 16px field corner at rest, 12px pressed, for every emphasis (DL-029), so a button and the field beside it share one shape. Icon buttons are circles and chips capsules on both surfaces.">
+      <Section id="corners" title="Corner pair" lede="The 16px field corner at rest, 12px pressed, for every emphasis (DL-029), so a button and the field beside it share one shape. The 32px compact size keeps the proportion: 12px at rest, 8px pressed (DL-038). Icon buttons are circles and chips capsules on both surfaces.">
         <div className="sb-ds-row">
           <Specimen title="rest · 16px" target=".gg-button" all expect={{ radius: 16 }}>
             <Button>Create Garden</Button>
@@ -100,13 +100,13 @@ export const Tokens: Story = {
       <Section id="radius-scale" title="Radius scale (DesignMD rounded.*)" lede="The steps every client corner comes from. Buttons and fields never take a radius class; their primitive owns the shape.">
         <TokenTable
           tokens={[
-            { name: "--gg-radius-none", expected: "0px", note: "website buttons" },
+            { name: "--gg-radius-none", expected: "0px", note: "the website's square cards, dialogs, panels" },
             { name: "--gg-radius-md", expected: "8px", note: "tags" },
             { name: "--gg-radius-squircle", expected: "12px", note: "the pressed app corner; actions inside a field" },
             { name: "--gg-radius-lg", expected: "16px", note: "fields, cards, app buttons" },
             { name: "--gg-radius-xl", expected: "20px", note: "panels, sheets" },
             { name: "--gg-radius-2xl", expected: "24px", note: "dialogs, bottom sheets" },
-            { name: "--gg-radius-full", expected: "9999px", note: "chips, icon buttons" },
+            { name: "--gg-radius-full", expected: "9999px", note: "chips, icon buttons, website buttons" },
           ]}
         />
         <div className="sb-ds-links" style={{ marginTop: 12 }}>

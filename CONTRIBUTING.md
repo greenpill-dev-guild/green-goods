@@ -1,6 +1,6 @@
 # Contributing to Green Goods
 
-Green Goods is open source infrastructure stewarded by the Greenpill Dev Guild. This file is the repo-level quick reference; the full contributor guide lives at [docs.greengoods.app/builders/how-to-contribute](https://docs.greengoods.app/builders/how-to-contribute).
+Green Goods is open source infrastructure, and we welcome contributions. This file is the repo-level quick reference; the full contributor guide lives at [docs.greengoods.app/builders/how-to-contribute](https://docs.greengoods.app/builders/how-to-contribute).
 
 ## First setup
 
@@ -10,7 +10,7 @@ Both modes use live Arbitrum; transaction confirmations can affect production.
 
 ## Contribution Flow
 
-1. Pick a scoped task from the Linear backlog (or discuss the change with maintainers first via Discord/Telegram). Green Goods tracks all work in Linear — GitHub is for PRs and code review only.
+1. Pick a scoped task from the Linear backlog (or discuss the change with maintainers first via Discord). Green Goods tracks all work in Linear — GitHub is for PRs and code review only.
 2. Create a focused branch from `develop` (see [Branch Model](#branch-model) below).
 3. Keep the change inside the smallest sensible package boundary.
 4. Add or update tests when behavior changes.
@@ -74,6 +74,7 @@ Formatting changes use `bun run format`; `bun run format --check` is read-only.
 - Read the nearest `AGENTS.md` before editing a package.
 - Read the relevant workflow guidance in [`.claude/skills/`](.claude/skills/) before cross-cutting work.
 
-## Community
+## Stay in touch
 
-Follow the [Code of Conduct](./CODE_OF_CONDUCT.md). Report security issues through the [Security Policy](./SECURITY.md), not public issues.
+- [Discord](https://discord.gg/greenpill), where the conversation happens and where a maintainer will point you at a first task.
+- The [Code of Conduct](./CODE_OF_CONDUCT.md) applies everywhere. Report security issues through the [Security Policy](./SECURITY.md), not public issues.

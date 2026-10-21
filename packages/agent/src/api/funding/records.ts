@@ -122,7 +122,7 @@ function createFundingProofFingerprint(request: SubmitFundingIntentProofRequest)
   );
 }
 
-export function createFundingIntentProofRecord(input: {
+function createFundingIntentProofRecord(input: {
   id: string;
   request: SubmitFundingIntentProofRequest;
   idempotencyFingerprint: string;

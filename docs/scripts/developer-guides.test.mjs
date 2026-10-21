@@ -192,3 +192,11 @@ test("retired caller audit includes the repository-wide replacement ledger", asy
   assert.equal(issues.length, 1);
   assert.match(issues[0].message, /test:cache/);
 });
+
+test("audits the command inside a CopyCommand tag as if it were written in backticks", async (t) => {
+  const ok = fixture(t, '| Client | <CopyCommand command="bun run --cwd packages/client test" /> |\n');
+  assert.deepEqual(await auditDeveloperGuides(ok, ["README.md"]), []);
+  const bad = fixture(t, '| Client | <CopyCommand command="bun run --cwd packages/client nope" /> |\n');
+  const issues = await auditDeveloperGuides(bad, ["README.md"]);
+  assert.ok(issues.some((item) => item.message.includes("Unknown documented command nope")), JSON.stringify(issues));
+});

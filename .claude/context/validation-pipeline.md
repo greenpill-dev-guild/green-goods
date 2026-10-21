@@ -78,7 +78,10 @@ validated paths, environment profile, root `.env` files, or a variable the check
 invalidates the fingerprint. The store keeps only a digest of the environment. `PATH`, `NODE`,
 git's exec path, nvm's variables and `MANPATH`, the re-exec markers and shell bookkeeping are left
 out, because the hook and Husky's `~/.config/husky/init.sh` change them without changing a check,
-and the toolchain versions already cover what `PATH` resolves.
+and the toolchain versions already cover what `PATH` resolves. A host tool shim's per-process loop
+guard (`DEV_MACHINE_SHIM_TRIED`) is left out for the same reason; the variables that say where such
+a shim runs a command are not. So are the hook's focus variables, `GREEN_GOODS_PUSH_TEST_PATHS` and
+`GG_PUSH_GATE_ARGS`: the hook turns them into the `--test-path` and `--check` flags the plan records.
 Turbo hashes an explicit `VITEST_MAX_WORKERS` too. A tampered store is rejected
 rather than trusted. A critical push may reuse exact passes too, so a pre-push hook right after a
 passing manual run finishes in seconds. Readiness, ship, merge, and release run every check fresh
@@ -129,10 +132,14 @@ Conditional additions when the change touches the relevant surface:
   `bun run check --only design-tokens`
 - i18n / user-visible copy: `bun run check --only vocabulary` (locale parity runs inside
   `bun run test` via `packages/shared/src/__tests__/i18n/locale-coverage.test.ts`)
+- i18n catalogs, `docs/docs` pages, or design guides (each `DESIGN*.md` and `.claude/skills/design`):
+  `bun run check --only em-dashes` (the `DESIGN.md` § Voice & Copy rule; pages generated from the
+  ontology keep its punctuation and are skipped)
 - Stories / Storybook-covered surfaces:
   `bun run --filter @green-goods/shared check:stories` and
   `bun run --filter @green-goods/shared check:story-quality`
 - Changed non-test source under `packages/*/src/**`: `bun run check --only source-structure`
+
 - Contract-touching changes: `bun run check --only contracts-verify-fast`; when protocol behavior changed,
   also run `bun run --filter @green-goods/contracts test:fork`
 - Frontend, UI, CSS, accessibility, or web-design changes: retrieve current guidance with
@@ -143,6 +150,13 @@ Conditional additions when the change touches the relevant surface:
   --project=admin-ci`
 - Agent runtime changes: `bun run --cwd packages/agent build`
 - Docs runtime, navigation, or build configuration changes: `bun run --cwd docs build`
+
+When explicitly auditing a main release diff, source structure keeps that complete comparison
+scope. A file introduced since main counts as existing source only if `origin/develop` is an
+ancestor of the candidate and the file's working-tree blob exactly matches that accepted commit.
+It retains the existing 500-line cap; changed or newly authored files retain the 350-line cap,
+and frozen ceilings and shrinking debt baselines remain binding. A diverged develop ref or a
+different comparison base cannot supply this classification.
 
 The root `bun run build` covers Contracts, Shared, Indexer, Client, and Admin. It does not build
 Agent or Docs; the conditional commands above close those scopes.
@@ -183,7 +197,8 @@ toolchain, or environment drift invalidates it.
 When direct proof needs explicit paths, pass the same whitespace-separated `surface:path` entries
 to the hook through `GREEN_GOODS_PUSH_TEST_PATHS`, for example:
 `GREEN_GOODS_PUSH_TEST_PATHS="client:src/__tests__/views/PublicGardenDetail.test.tsx shared:src/__tests__/i18n/locale-coverage.test.ts" git push origin <branch>`.
-The hook forwards each entry as `--test-path` and retains every selected gate.
+The hook forwards each entry as `--test-path` and retains every selected gate, so a manual run
+given the same entries as `--test-path` flags leaves receipts the hook can reuse.
 
 Pre-commit runs `lint-staged` only. Pre-push runs this ready-for-CI gate. Per-file formatting and
 critical-surface warnings may run during editing, but package-wide validation is owned by the

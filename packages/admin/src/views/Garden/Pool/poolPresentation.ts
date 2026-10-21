@@ -1,3 +1,4 @@
+import type { PendingCommitmentCreation } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentQueueState";
 import type { ConfirmQueueEligibility } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import type { CycleMetadataNameResolution } from "@green-goods/shared/modules/commitment-pooling/cycle-metadata";
 import type { PoolConsoleStatus } from "@green-goods/shared/modules/commitment-pooling/pool-console";
@@ -28,7 +29,7 @@ export function poolStatusChip(
       return {
         label: formatMessage({
           id: "cockpit.garden.pool.status.notReady",
-          defaultMessage: "Not taking commitments yet",
+          defaultMessage: "Not taking promises yet",
         }),
         variant: "neutral",
       };
@@ -45,7 +46,7 @@ export function poolStatusChip(
         ? {
             label: formatMessage({
               id: "cockpit.garden.pool.status.open",
-              defaultMessage: "Taking commitments",
+              defaultMessage: "Taking promises",
             }),
             variant: "success",
           }
@@ -154,7 +155,7 @@ export function cycleStateChip(
       return {
         label: formatMessage({
           id: "cockpit.garden.pool.cycle.state.cancelled",
-          defaultMessage: "Cancelled",
+          defaultMessage: "Canceled",
         }),
         variant: "neutral",
       };
@@ -225,7 +226,7 @@ export function commitmentStateChip(
       return {
         label: formatMessage({
           id: "cockpit.garden.pool.row.state.cancelled",
-          defaultMessage: "Cancelled",
+          defaultMessage: "Canceled",
         }),
         variant: "neutral",
       };
@@ -388,5 +389,37 @@ export function confirmEligibilityChip(
       id: "cockpit.hub.confirm.eligibility.protocol",
       defaultMessage: "Needs the Green Goods team",
     }),
+  };
+}
+
+/** A retained reward is deferred, rather than failed or ready for another send. */
+export function queuedCreationChip(
+  row: Pick<PendingCommitmentCreation, "settlementDeferred" | "failed" | "waitingForMembership">,
+  formatMessage: FormatMessage
+): { label: string; variant: ChipVariant } {
+  if (row.settlementDeferred)
+    return {
+      label: formatMessage({
+        id: "app.pool.queued.settlementDeferred",
+        defaultMessage: "G$ reward deferred",
+      }),
+      variant: "info",
+    };
+  if (row.failed)
+    return {
+      label: formatMessage({
+        id: "cockpit.garden.pool.queued.failed",
+        defaultMessage: "Failed to send",
+      }),
+      variant: "error",
+    };
+  return {
+    label: formatMessage({
+      id: row.waitingForMembership
+        ? "cockpit.garden.pool.queued.waiting"
+        : "cockpit.garden.pool.queued.queued",
+      defaultMessage: row.waitingForMembership ? "Waiting for membership" : "Queued",
+    }),
+    variant: "info",
   };
 }

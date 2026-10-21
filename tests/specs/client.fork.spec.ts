@@ -8,7 +8,7 @@
  *
  * Run with: bun run browser e2e --preset fork
  */
-import { expect, type Page, test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import {
   type AnvilForkContext,
   revertToSnapshot,
@@ -16,7 +16,7 @@ import {
   startAnvilFork,
 } from "../fixtures/anvil-fork";
 import { createGarden, isGardener, joinGarden } from "../fixtures/contract-helpers";
-import { ClientTestHelper, TEST_URLS } from "../helpers/test-utils";
+import { TEST_URLS } from "../helpers/test-utils";
 
 const CLIENT_URL = TEST_URLS.client;
 
@@ -173,38 +173,6 @@ test.describe("Fork Integration Tests", () => {
       const url = page.url();
       expect(url).toMatch(/\/(login|landing)?$/);
     });
-
-    test("creates a garden on fork with a caller-managed client smoke check", async ({ page }) => {
-      const helper = new ClientTestHelper(page);
-
-      // First, create a garden on the fork
-      const garden = await createGarden(anvilContext, {
-        name: "Viewable Garden",
-        description: "Garden visible in client",
-        bannerImage: "ipfs://test",
-      });
-
-      // Inject wallet auth (using deployer address who is a steward)
-      await helper.injectWalletAuth(anvilContext.accounts.deployer.address);
-
-      // Navigate to home
-      await page.goto("/home");
-      await helper.waitForPageLoad();
-
-      // Check if we're authenticated
-      const url = page.url();
-      if (url.includes("/home/login")) {
-        // Auth injection didn't persist - expected in some environments
-        console.log("   Auth injection not persisted - test skipped");
-        return;
-      }
-
-      // Note: The garden we just created won't appear immediately because
-      // the indexer needs to process the events. This test validates the
-      // infrastructure works; full E2E with indexer sync would be a separate test.
-      console.log(`   Garden ${garden.address} created on fork`);
-      console.log("   Client loaded successfully with forked backend");
-    });
   });
 
   test.describe("Gardener Operations", () => {
@@ -241,27 +209,3 @@ test.describe("Fork Integration Tests", () => {
     });
   });
 });
-
-// ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
-
-/**
- * Wait for indexer to sync (placeholder for future implementation)
- * In a full implementation, this would poll the indexer until the
- * garden/action/work appears in the GraphQL API.
- *
- * @param _page - Playwright page for making GraphQL requests
- * @param _address - Address to wait for in indexer
- * @param _timeout - Maximum time to wait in ms
- */
-async function _waitForIndexerSync(
-  _page: Page,
-  _address: string,
-  _timeout: number = 30000
-): Promise<void> {
-  // TODO: Implement indexer sync wait
-  // This would query the indexer for the address until it appears
-  // console.log(`   Waiting for indexer to sync ${_address}...`);
-  // await _page.waitForTimeout(1000);
-}

@@ -97,14 +97,14 @@ export function PoolTarget({ target, record, party, placement = "block" }: PoolT
                 {
                   id: "cockpit.garden.pool.target.protocolRecord",
                   defaultMessage:
-                    "“{record}”, in the Green Goods Community Garden’s own pool, where the protocol’s commitments live. Changes here can affect commitments across gardens.",
+                    "“{record}”, in the Green Goods Community Garden’s own pool, where the protocol’s promises live. Changes here can affect promises across gardens.",
                 },
                 { record }
               )
             : formatMessage({
                 id: "cockpit.garden.pool.target.protocolNote",
                 defaultMessage:
-                  "The Green Goods Community Garden’s own pool, where the protocol’s commitments live. Changes here can affect commitments across gardens.",
+                  "The Green Goods Community Garden’s own pool, where the protocol’s promises live. Changes here can affect promises across gardens.",
               })}
         </Alert>
         {partyRow ? <dl>{partyRow}</dl> : null}

@@ -4,6 +4,7 @@ import {
   type InterpretedIntent,
   InterpretationUnavailableError,
 } from "./interpretation";
+import { type ModelMeter, tokenCeiling } from "./model-spend";
 
 /**
  * Jev routing: typed Choice judgments over a bounded snapshot. Jev picks the turn's intent and,
@@ -47,6 +48,13 @@ const answerSchema = z.object({
 const responseSchema = z.object({
   model: z.string(),
   answers: z.record(z.string(), answerSchema),
+});
+// The API reference marks both counts as integers; the official SDK allows null for either.
+const usageSchema = z.object({
+  usage: z.object({
+    input_tokens: z.number().int().nonnegative().nullable(),
+    output_tokens: z.number().int().nonnegative().nullable(),
+  }),
 });
 
 type Question = { type: "choice"; instructions: string; criteria: Record<string, string> };
@@ -104,12 +112,32 @@ function stateFor(request: InterpretationRequest) {
   };
 }
 
+/** Room for any framing Jev adds to the questions, which the request does not show. */
+const JEV_FRAMING_RESERVE_TOKENS = 1_000;
+
+/**
+ * Jev bills input tokens only and states them in each reply's `usage`. The meter reserves the
+ * request at its token ceiling plus room for Jev's own framing before it is sent, and settles it
+ * with what the reply states.
+ */
 export async function routeWithJev(
   config: JevConfig,
   request: InterpretationRequest,
-  signal: AbortSignal
+  signal: AbortSignal,
+  meter?: ModelMeter
 ): Promise<Routing> {
   const request_ = config.fetch ?? fetch;
+  const body = JSON.stringify({
+    state: stateFor(request),
+    model: config.model,
+    questions: questionsFor(request),
+  });
+  const settle = meter?.({
+    provider: "jev",
+    model: config.model,
+    purpose: "routing",
+    reserve: { inputTokens: tokenCeiling(body) + JEV_FRAMING_RESERVE_TOKENS },
+  });
   let response: Response;
   try {
     response = await request_(`${config.baseUrl.replace(/\/+$/, "")}/v1/systemone`, {
@@ -118,18 +146,31 @@ export async function routeWithJev(
         authorization: `Bearer ${config.apiKey}`,
         "content-type": "application/json",
       },
-      body: JSON.stringify({
-        state: stateFor(request),
-        model: config.model,
-        questions: questionsFor(request),
-      }),
+      body,
       signal,
     });
   } catch {
+    settle?.({ outcome: "unanswered" });
     throw new InterpretationUnavailableError(signal.aborted ? "timeout" : "provider_error");
   }
-  if (!response.ok) throw new InterpretationUnavailableError("provider_error");
-  const parsed = responseSchema.safeParse(await response.json().catch(() => null));
+  if (!response.ok) {
+    settle?.({ outcome: "failed" });
+    throw new InterpretationUnavailableError("provider_error");
+  }
+  const json: unknown = await response.json().catch(() => null);
+  const usage = usageSchema.safeParse(json);
+  settle?.({
+    outcome: "answered",
+    ...(usage.success && usage.data.usage.input_tokens !== null
+      ? {
+          usage: {
+            inputTokens: usage.data.usage.input_tokens,
+            outputTokens: usage.data.usage.output_tokens ?? 0,
+          },
+        }
+      : {}),
+  });
+  const parsed = responseSchema.safeParse(json);
   if (!parsed.success || !parsed.data.answers.intent) {
     throw new InterpretationUnavailableError("malformed");
   }

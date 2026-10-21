@@ -98,7 +98,7 @@ export function SubmitWorkReview({
 
   const emptyValue = formatMessage({
     id: "app.admin.work.submit.review.empty",
-    defaultMessage: "—",
+    defaultMessage: "Not provided",
   });
   const rawTime = values.timeSpentMinutes;
   const timeValue =

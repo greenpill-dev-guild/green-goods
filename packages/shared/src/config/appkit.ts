@@ -18,6 +18,7 @@ import { ENV } from "../lib/env";
 import { logger } from "../modules/app/logger";
 import { getRpcUrl } from "../utils/blockchain/chain-registry";
 import { getResolvedTheme } from "../utils/styles/theme";
+import { APP_DESCRIPTION } from "./app";
 import { DEFAULT_CHAIN_ID } from "./blockchain";
 import { getChain, SUPPORTED_CHAINS } from "./chains";
 
@@ -73,7 +74,7 @@ function getCanonicalAppUrl(): string {
 
 const defaultMetadata: AppKitMetadata = {
   name: "Green Goods",
-  description: "Start Bringing Your Impact Onchain",
+  description: APP_DESCRIPTION,
   url: getCanonicalAppUrl(),
   icons: ["https://www.greengoods.app/icon.png"],
 };
@@ -115,7 +116,7 @@ export function ensureAppKit(options?: AppKitInitOptions) {
 
   if (!projectId) {
     logger.warn(
-      "[AppKit] VITE_WALLETCONNECT_PROJECT_ID not set. Set it in .env (or in env.template + run `bun run env:sync` for team-shared 1Password resolution)."
+      "[AppKit] VITE_WALLETCONNECT_PROJECT_ID not set. Set it in .env (or run `bun run env:sync` for the team value env.schema references in 1Password)."
     );
   }
 

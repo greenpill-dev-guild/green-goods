@@ -63,7 +63,7 @@ export function GardenJoinRequestsQueue({ gardenAddress }: { gardenAddress: Addr
           ? formatMessage({
               id: "app.garden.joinQueue.membershipPending",
               defaultMessage:
-                "The membership transaction was submitted. Confirm again after it is visible on-chain.",
+                "The membership transaction was sent. Confirm again in a moment, once the new role shows.",
             })
           : formatMessage({
               id: "app.garden.joinQueue.welcomed",

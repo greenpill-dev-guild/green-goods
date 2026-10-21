@@ -15,6 +15,7 @@ import {
   todayAt,
 } from "./clientJourneyFixtures";
 import { FIXTURE_IMAGE_AGROFORESTRY, FIXTURE_IMAGE_SOLAR, FIXTURE_WORK_MEDIA } from "./fixtures";
+import { DOCUMENTATION_SUBMISSION } from "./submitWorkFixtures";
 
 const HOUR = 3_600_000;
 
@@ -184,8 +185,29 @@ export interface PendingWorkFixture {
  * (`work-cancelled`), or after Compost Turn was discarded (`work-discarded`).
  */
 export function pendingWorkFixture(
-  moment: "all" | "afterCancel" | "afterDiscard" = "all"
+  moment: "all" | "afterCancel" | "afterDiscard" = "all",
+  documentationPhoto = false
 ): PendingWorkFixture {
+  if (documentationPhoto) {
+    const submissions = [
+      { ...SEEDLING_QUEUED, feedback: DOCUMENTATION_SUBMISSION.note, media: [DOCUMENTATION_SUBMISSION.photo] },
+      COMPOST,
+      HERBS,
+      EDGING,
+      MULCH_LOG,
+      POND,
+    ];
+    const drafts = [SEEDLING_DRAFT];
+    const proofs = [FENCE_PROOF, WORKSHOP_PROOF_DRAFT];
+    return {
+      submissions,
+      drafts,
+      proofs,
+      linkedWorkIds: new Set([HERBS.id, SEEDLING_QUEUED.id]),
+      linkedWorkUIDs: new Set([POND.id.toLowerCase()]),
+      onPhone: submissions.filter(work => work.status === "offline").length + drafts.length + proofs.length,
+    };
+  }
   const afterCancel = moment !== "all";
   const submissions = [
     SEEDS,

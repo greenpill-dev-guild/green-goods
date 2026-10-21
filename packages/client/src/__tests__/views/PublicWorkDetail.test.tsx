@@ -94,7 +94,9 @@ describe("public shared work", () => {
   });
   it("offers retry for a failed read instead of declaring the record private or absent", () => {
     show(undefined, true);
-    expect(screen.getByText("Field notes could not be loaded right now.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Approved submissions could not be loaded right now.")
+    ).toBeInTheDocument();
     expect(screen.queryByText(/may require sign-in/)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
     expect(refetch).toHaveBeenCalled();

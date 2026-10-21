@@ -27,7 +27,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "The public website's controls: the same shared family inside data-site=\"website\", where every button is square with a semibold label (DL-024, DL-026, DL-029), plus the editorial atoms that wrap it and the underline field. Measured live against the website rules.",
+          "The public website's controls: the same shared family inside data-site=\"website\", where every button is a capsule with a semibold label (DL-024, DL-026, DL-089), plus the editorial atoms that wrap it and the underline field. Measured live against the website rules.",
       },
     },
   },
@@ -103,7 +103,7 @@ export const Buttons: Story = {
   render: () => (
     <Page
       title="Public website · Components"
-      lede="The same primitives as the app, square and semibold on the website. Editorial atoms are thin wrappers that only add the dialect's colours; cards, dialogs, panels, and buttons are all square, while icon buttons stay circles and chips capsules."
+      lede="The same primitives as the app, capsule and semibold on the website. Editorial atoms are thin wrappers that only add the dialect's colors; cards, dialogs, and panels stay square, while buttons and chips are capsules and icon buttons circles."
     >
       <Section id="buttons" title="Button" lede={WEBSITE.rules[0]}>
         {APP_SIZES.map((size) => (
@@ -116,7 +116,7 @@ export const Buttons: Story = {
           <StoryLink id={STORY_LINKS.sharedButtonWebsite}>Shared/Primitives/Button › WebsiteSurface</StoryLink>
         </div>
       </Section>
-      <Section id="editorial" title="Editorial atoms" lede="EditorialPrimaryButton, EditorialGhostButton (ghost, warm, dark tone), and EditorialDomainChip pass size through to the shared primitive and add only colour.">
+      <Section id="editorial" title="Editorial atoms" lede="EditorialPrimaryButton, EditorialGhostButton (ghost, warm, dark tone), and EditorialDomainChip pass size through to the shared primitive and add only color.">
         <EditorialAtoms />
         <div className="sb-ds-links" style={{ marginTop: 12 }}>
           <StoryLink id={STORY_LINKS.editorialAtoms}>Client/Public/Editorial Atoms</StoryLink>
@@ -125,10 +125,10 @@ export const Buttons: Story = {
       <Section id="icon-buttons" title="IconButton" lede="Circles on the website too; the close on an editorial dialog is the md circle.">
         <IconButtons rules={WEBSITE} />
       </Section>
-      <Section id="chips" title="Chip" lede="Capsules; the editorial domain chip colours the active state with the domain's ink instead of green.">
+      <Section id="chips" title="Chip" lede="Capsules; the editorial domain chip colors the active state with the domain's ink instead of green.">
         <Chips rules={WEBSITE} />
       </Section>
-      <Section id="fields" title="Fields" lede="The editorial underline field on editorial sections (no box, hairline in the text colour, serif text) and the 16px shared field inside funding and account panels.">
+      <Section id="fields" title="Fields" lede="The editorial underline field on editorial sections (no box, hairline in the text color, serif text) and the 16px shared field inside funding and account panels.">
         <Fields rules={WEBSITE} website />
       </Section>
       <Section id="hit-areas" title="Hit areas">
@@ -145,7 +145,10 @@ export const Buttons: Story = {
     ).filter((button) => !button.closest("[data-pressed-demo]"));
     await expect(buttons.length).toBeGreaterThan(30);
     for (const button of buttons) {
-      await expect(px(getComputedStyle(button).borderTopLeftRadius)).toBe(0);
+      // A capsule: the corner is at least half the button's height, at every size.
+      await expect(px(getComputedStyle(button).borderTopLeftRadius)).toBeGreaterThanOrEqual(
+        button.getBoundingClientRect().height / 2
+      );
       await expect(getComputedStyle(button).fontWeight).toBe("600");
     }
     const editorial = canvas.getByRole("textbox", { name: "Email" });

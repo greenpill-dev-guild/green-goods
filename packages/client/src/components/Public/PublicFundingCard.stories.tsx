@@ -289,7 +289,7 @@ export const TokenPickerWethSelected: StoryObj<typeof TokenPicker> = {
 export const ErrorUserRejected: StoryObj<typeof InlineErrorBlock> = {
   render: () => (
     <Frame>
-      <InlineErrorBlock title="Transaction cancelled" message="You dismissed the wallet prompt." />
+      <InlineErrorBlock title="Transaction canceled" message="You dismissed the wallet prompt." />
     </Frame>
   ),
 };

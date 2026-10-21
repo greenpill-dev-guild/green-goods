@@ -4,7 +4,8 @@ import type { ReportingCore } from "./runtime";
 
 /**
  * Independent operating switches, changed at runtime through the operator routes. Intake pause
- * stops new domain intake; model pause falls back to deterministic questions; the documents and
+ * stops new domain intake; model pause falls back to deterministic questions, as does a UTC day
+ * whose model spend has reached its cap (`modelProcessingOn` in model-spend.ts); the documents and
  * voice switches decide whether PDFs, Word files and voice notes are read at all; each chat
  * channel takes reports only while its `channel_<name>` switch is on; publication pause fences
  * unsent reservations; message pause holds the outbox. Provider statuses, execution outcomes and

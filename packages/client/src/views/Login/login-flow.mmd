@@ -20,7 +20,7 @@ flowchart TD
 
     EntryBack -->|Continue with passkey| LocalPrompt["Platform passkey prompt"]
     LocalPrompt -->|Verified| App
-    LocalPrompt -->|Cancelled / failed| EntryErr["Message zone error — same screen"]
+    LocalPrompt -->|Canceled / failed| EntryErr["Message zone error — same screen"]
     EntryErr -.retry.-> EntryBack
 
     %% Two-step create: entry → form
@@ -28,7 +28,7 @@ flowchart TD
     CreateForm -->|Back| EntryNew
     CreateForm -->|Create account| CreatePrompt["Platform passkey prompt"]
     CreatePrompt -->|Saved| App
-    CreatePrompt -->|Name already taken / cancelled / failed| CreateErr["Message zone error — same form"]
+    CreatePrompt -->|Name already taken / canceled / failed| CreateErr["Message zone error — same form"]
     CreateErr -.retry.-> CreateForm
 
     %% Flat recovery: recover, or go Back
@@ -38,7 +38,7 @@ flowchart TD
     RecoverForm -->|Recover with passkey| Lookup{"Username on passkey server?"}
     Lookup -->|Credential found| RecoverPrompt["Platform passkey prompt"]
     RecoverPrompt -->|Verified| App
-    RecoverPrompt -->|Cancelled / failed| RecoverErr
+    RecoverPrompt -->|Canceled / failed| RecoverErr
     Lookup -->|No credential / server unavailable| RecoverErr["Message zone error — same form<br/>retry, or Back to entry to create a fresh account"]
     RecoverErr -.retry.-> RecoverForm
     RecoverErr -.Back.-> Stored

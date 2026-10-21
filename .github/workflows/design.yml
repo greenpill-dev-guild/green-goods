@@ -13,18 +13,17 @@ on:
     paths:
       - "AGENTS.md"
       - "CLAUDE.md"
-      - "DESIGN.md"
+      - "DESIGN*.md"
       - "package.json"
       - ".claude/skills/design/**"
-      - "docs/DESIGN.md"
+      - "docs/DESIGN*.md"
       - "docs/docs/builders/packages/admin.mdx"
-      - "docs/docs/builders/testing/storybook.mdx"
+      - "docs/docs/builders/testing/index.mdx"
       - "docs/src/css/custom.css"
       - "scripts/data/banned-vocabulary.json"
       - "packages/admin/AGENTS.md"
-      - "packages/admin/DESIGN.md"
+      - "packages/*/DESIGN*.md"
       - "packages/admin/src/**"
-      - "packages/client/DESIGN*.md"
       - "packages/client/src/**"
       - "packages/shared/AGENTS.md"
       - "packages/shared/package.json"
@@ -59,18 +58,17 @@ on:
     paths:
       - "AGENTS.md"
       - "CLAUDE.md"
-      - "DESIGN.md"
+      - "DESIGN*.md"
       - "package.json"
       - ".claude/skills/design/**"
-      - "docs/DESIGN.md"
+      - "docs/DESIGN*.md"
       - "docs/docs/builders/packages/admin.mdx"
-      - "docs/docs/builders/testing/storybook.mdx"
+      - "docs/docs/builders/testing/index.mdx"
       - "docs/src/css/custom.css"
       - "scripts/data/banned-vocabulary.json"
       - "packages/admin/AGENTS.md"
-      - "packages/admin/DESIGN.md"
+      - "packages/*/DESIGN*.md"
       - "packages/admin/src/**"
-      - "packages/client/DESIGN*.md"
       - "packages/client/src/**"
       - "packages/shared/AGENTS.md"
       - "packages/shared/package.json"
@@ -135,10 +133,13 @@ jobs:
         run: bun run check --only docs-design-parity
 
       - name: Run design guardrail tests
-        run: node --test scripts/design/check-guidance-examples.test.mjs scripts/design/token-usage.test.mjs scripts/design/md-generate.test.mjs scripts/dev/playwright-setup.test.mjs
+        run: node --test scripts/design/check-guidance-examples.test.mjs scripts/design/token-usage.test.mjs scripts/design/md-generate.test.mjs scripts/design/check-vocab.test.mjs scripts/dev/playwright-setup.test.mjs
 
       - name: Check banned vocabulary
         run: bun run check --only vocabulary
+
+      - name: Check em dashes
+        run: bun run check --only em-dashes
 
   storybook:
     name: Storybook

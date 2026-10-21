@@ -1,5 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Hex } from "viem";
+import { SETTLEMENT_ENABLED } from "../../config/app";
+import { CONSIDERATION_RAIL_ORDINAL } from "../../modules/commitment-pooling/job-types";
 
 import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import { getOntologyChainMaturity } from "../../ontology/query";
@@ -218,6 +220,13 @@ export function useCommitmentMutation(options: { chainId?: number } = {}) {
 
   return useMutation({
     mutationFn: async ({ send, ...input }: CommitmentMutationVariables) => {
+      if (
+        !SETTLEMENT_ENABLED &&
+        input.action === "setDeclaredConsideration" &&
+        input.consideration.rail === CONSIDERATION_RAIL_ORDINAL.CELO_SETTLEMENT
+      ) {
+        throw new Error("G$ reward promises are unavailable in this release");
+      }
       if (!sender) throw new Error("Transaction sender is unavailable");
       // The reads are fixtures in demo mode but the sender is real, so an act
       // composed against a fixture id must not reach the deployed module.

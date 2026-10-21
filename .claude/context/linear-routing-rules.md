@@ -28,11 +28,22 @@ routine limits; this file owns interactive routing and issue execution.
 3. **`.plans` stays the execution truth.** If a finding is mirrored from a
    `.plans/**` item, include the `.plans` link in the body and label the
    record `source:plans`. Never use GitHub Issues for backlog work.
-4. **Project routing.** Attach to an active bounded project only when the
-   scope clearly matches. Never route new work into completed/staging umbrella
-   projects (e.g. `Green Goods`, `Coop`, `Network Website`, `Cookie Jar`) or
-   any project whose status is Completed. Otherwise leave the issue
-   unprojected and correctly labeled.
+4. **Project routing.** Attach an issue to an active bounded project, meaning
+   one in any status except Completed or Canceled, when its scope clearly
+   matches. A Green Goods Product or Research issue that no such
+   project owns goes to the active release project: the started Product-team
+   project named `Green Goods vX.Y.Z QA & Release`, the one
+   [release-prep](../../docs/routines/release-prep.md) resolves. Look it up by
+   that name when writing, because each release opens a new one. Leave the
+   issue unprojected and correctly labeled only when no release project is
+   started. A release project includes the Research team as well as Product;
+   if it does not, a Research issue stays unprojected and the writer says so.
+   Whoever closes a release project moves its open issues to the next
+   one, or leaves them unprojected until it starts; whoever creates the next
+   one moves them in. release-prep's cut-day steps count them as a reminder.
+   Customer Needs stay unprojected. Never route new work into completed/staging
+   umbrella projects (e.g. `Green Goods`, `Coop`, `Network Website`,
+   `Cookie Jar`) or any project whose status is Completed.
 5. **Label namespaces.** Use only `protocol:*`, `package:*`, `activity:*`,
    `funding:*`, `source:*`, `ai:*`, `session:*`. Retired families (`area:*`,
    `work:*`, `task:*`, `automation:*`, `health:*`, `grant:*`) and the retired
@@ -141,7 +152,7 @@ Investigate the dialog dismiss path.
 PostHog (Admin 262122): no matching exception signature. A cancel button that
 fails to dismiss does not necessarily throw.
 ## Source
-qa-triage-pulse · auto-extracted · session:2026-07-29
+sync-triage-pulse · auto-extracted · session:2026-07-29
 ## Authoritative QA finding
 Cancel is broken in the garden edit dialog. [...repeats the whole defect...]
 ```
@@ -151,7 +162,7 @@ This:
 ```markdown
 Editing a garden and changing its image makes the edit impossible to cancel —
 the dialog stops responding and the operator has to reload. Leaving the image
-alone and cancelling works fine, so the image change is the trigger.
+alone and canceling works fine, so the image change is the trigger.
 
 **Done when**
 - Cancel dismisses the dialog after an image change, discarding the edit.
@@ -232,35 +243,37 @@ nothing. Treat the table as what to expect, not as proof: the issue's state hist
 evidence of what happened.
 
 **Closeout.** After a merge the user asked for or reported, for the issue the reference line
-names and no other. A line that names several issues is outside this closeout: report it and ask.
+names and no other. A PR that names more than one issue, on one line or several, is outside this
+closeout: report it and ask.
 
-1. Read the issue's `stateHistory`, not only its current status. An entry dated shortly after the
-   merge that matches what the table predicts is the integration's; any other change after the
-   merge is someone's decision. The integration can land after this first read, so treat it as
-   provisional.
-2. Write only the gap, and only for completed work. When the PR completes the issue, it belongs
-   in `In Review`: write nothing when it is already there, and set it when the integration left
-   it in an earlier state. Write nothing for partial work, for an issue the PR only relates to,
-   for one that is already `Done` or `Canceled`, or over a state someone decided after the merge.
-   Judge completion against the issue's `Done when`, not the keyword: the last PR of a multi-PR
-   issue completes it even when it says `Refs`.
+1. Read the issue's `stateHistory`, not only its current status. The history records each state
+   and its time but not who set it, and the integration can land after this first read, so treat
+   the reading as provisional.
+2. Write only the gap, once, and only for completed work. When the PR completes the issue, it
+   belongs in `In Review`: write nothing when it is already there. Set it only when it sits in an
+   earlier open state and its history shows no change since the merge, and read the history once
+   more right before writing. A change dated after the merge may be a person's decision, so
+   report it and ask instead. Write nothing for partial work, for an issue the PR only relates
+   to, or for one that is already closed (`Done`, `Canceled` or `Duplicate`). Judge completion against
+   the issue's `Done when` and, where that is missing or does not settle it, the outcome the
+   issue names, not the keyword: the last
+   PR of a multi-PR issue completes it even when it says `Refs`. When you cannot tell, write
+   nothing and ask.
 3. When step 2 leaves completed work in `In Review`, add one short comment that names the PR:
    what changed for the person using the product, and what the review should check or what
    remains open. Read the issue's comments first and post nothing when one already closes out
    that PR, so a retried or repeated closeout never comments twice.
-4. Read the issue again before reporting. If the state changed since step 2 and the new entry is
-   the integration's, it landed late: repeat step 2 once, then read once more. Leave any other
-   change as it is. Report the issue, its last observed state, and what set it (the integration,
-   your write, or someone else), and say so if it still had not settled. For a PR that names no
-   issue in any of these forms, report `no Linear issue linked`.
+4. Read the issue again before reporting. If the state is no longer what step 2 left, do not write
+   again: the history cannot show whether the integration or a person changed it, so report the
+   change and ask. Report the issue, its last observed state, and whether your write set it. For
+   a PR that names no issue in any of these forms, report `no Linear issue linked`.
 
 **Authority.** This closeout is the only Linear write a merge implies. It covers moving the
-named issue forward to `In Review`, including restoring it after a `Refs` merge reset it, and
+named issue forward to `In Review` when nothing has changed its state since the merge, and
 posting that one comment. `Done`, moving an issue backward, editing a description, and any write
 to another issue, a parent or sibling included, are outside it and need their own authorization.
-If the issue is `Done` after the merge, leave it; when the integration put it there, report that
-the team's merge setting no longer matches this rule. Cloud routines keep the limits in their own
-specs.
+If the issue moved to `Done` after the merge, leave it and report it: the team's merge setting
+may no longer match this rule. Cloud routines keep the limits in their own specs.
 
 **Done.** `Done` follows a person's review of the merged work: a device walk, a QA re-record, or
 their plain confirmation. It is a separate write under the first

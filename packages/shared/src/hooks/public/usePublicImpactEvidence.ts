@@ -33,6 +33,7 @@ import { getGardenHypercerts } from "../../modules/data/hypercerts-fetch";
 import { fetchListedApprovedWorks } from "./listedApprovedWorks";
 import {
   createPublicImpactSlice,
+  PUBLIC_IMPACT_CERTIFICATE_FETCH_CAP,
   PUBLIC_IMPACT_DEFAULT_PAGE_SIZE,
   PUBLIC_IMPACT_GARDEN_FETCH_CAP,
   type PublicImpactEvidenceRecord,
@@ -103,7 +104,15 @@ export function usePublicImpactEvidence(options: UsePublicImpactEvidenceOptions 
           cappedGardenSources.map((garden) => getGardenAssessments(garden.id, chainId))
         ),
         Promise.allSettled(
-          cappedGardenSources.map((garden) => getGardenHypercerts(garden.id, chainId))
+          // One past the cap tells a Garden at the cap from one beyond it.
+          cappedGardenSources.map((garden) =>
+            getGardenHypercerts(
+              garden.id,
+              chainId,
+              undefined,
+              PUBLIC_IMPACT_CERTIFICATE_FETCH_CAP + 1
+            )
+          )
         ),
         getActions().catch((error) => {
           logger.warn("[usePublicImpactEvidence] action catalogue fetch failed", { error });
@@ -120,6 +129,10 @@ export function usePublicImpactEvidence(options: UsePublicImpactEvidenceOptions 
 
       const easFailed = assessmentResults.some((result) => result.status === "rejected");
       const certFailed = hypercertResults.some((result) => result.status === "rejected");
+      const certCapped = hypercertResults.some(
+        (result) =>
+          result.status === "fulfilled" && result.value.length > PUBLIC_IMPACT_CERTIFICATE_FETCH_CAP
+      );
       if (easFailed) {
         logger.warn("[usePublicImpactEvidence] one or more EAS assessment reads failed");
       }
@@ -183,7 +196,7 @@ export function usePublicImpactEvidence(options: UsePublicImpactEvidenceOptions 
         if (result.status !== "fulfilled") return;
         const garden = cappedGardenSources[index];
         if (!garden) return;
-        for (const cert of result.value) {
+        for (const cert of result.value.slice(0, PUBLIC_IMPACT_CERTIFICATE_FETCH_CAP)) {
           records.push({
             id: `certificate:${cert.id}`,
             kind: "certificate",
@@ -207,6 +220,8 @@ export function usePublicImpactEvidence(options: UsePublicImpactEvidenceOptions 
         page,
         pageSize,
         easFailed,
+        certificatesFailed: certFailed,
+        certificatesCapped: certCapped,
         partialData: easFailed || certFailed || worksPartial,
       });
     },

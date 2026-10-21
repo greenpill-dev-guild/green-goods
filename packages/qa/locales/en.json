@@ -73,7 +73,7 @@
     "ADM-140": {
       "scenario": "Seed a commitment: 4-step wizard, named confirmers, review before sending",
       "preconditions": [
-        "Garden pool open; the separate local Garden commitment names an independent Garden steward or evaluator as confirmer, never its contributor"
+        "Garden pool open; the separate local garden commitment names an independent garden steward or evaluator as confirmer, never its contributor"
       ],
       "steps": [
         "Run the 4-step seed wizard",
@@ -84,45 +84,45 @@
       "role": "steward"
     },
     "ADM-037": {
-      "scenario": "Record a starting assessment for the test Garden",
+      "scenario": "Record a starting assessment for the test garden",
       "preconditions": [
         "Signed in with Tester A's allowlisted wallet",
-        "Tester A can evaluate the test Garden"
+        "Tester A can evaluate the test garden"
       ],
       "steps": [
-        "Select the test Garden and start a new assessment",
-        "Record the Garden's starting context with enough detail for Tester B to recognize it",
+        "Select the test garden and start a new assessment",
+        "Record the garden's starting context with enough detail for Tester B to recognize it",
         "Review and submit the assessment",
-        "Wait for the submitted assessment to appear on the Garden"
+        "Wait for the submitted assessment to appear on the garden"
       ],
-      "expected": "The assessment is recorded against the test Garden and is visible as starting context, without being described as a prerequisite for opening a Season or Campaign",
+      "expected": "The assessment is recorded against the test garden and is visible as starting context, without being described as a prerequisite for opening a Season or Campaign",
       "role": "steward"
     },
     "PWA-046": {
       "scenario": "Garden member can read the starting assessment",
       "preconditions": [
         "Signed in with Tester B's allowlisted wallet",
-        "Tester B is a member of the test Garden",
+        "Tester B is a member of the test garden",
         "ADM-037 is complete"
       ],
       "steps": [
-        "Open the test Garden",
+        "Open the test garden",
         "Open its assessment history",
         "Find the starting assessment recorded by Tester A",
         "Read enough detail to confirm it belongs to this QA cycle"
       ],
-      "expected": "The same starting assessment is readable from the Garden experience and is presented as context, not as a gate on the cycle",
+      "expected": "The same starting assessment is readable from the garden experience and is presented as context, not as a gate on the cycle",
       "role": "gardener"
     },
     "ADM-038": {
       "scenario": "Open the test Season and Campaign independently of assessment state",
       "preconditions": [
         "Signed in with Tester A's allowlisted wallet",
-        "Tester A is a steward of the test Garden",
-        "The test Garden commitment pool is ready"
+        "Tester A is a steward of the test garden",
+        "The test garden commitment pool is ready"
       ],
       "steps": [
-        "Open the test Garden's pool setup",
+        "Open the test garden's pool setup",
         "Create or select the QA Season",
         "Open one Campaign for the commitment relay",
         "Confirm the open cycle is visible before seeding commitments"
@@ -131,7 +131,7 @@
       "role": "steward"
     },
     "ADM-139": {
-      "scenario": "Seed an approval-gated protocol Request for garden work the test Garden can deliver",
+      "scenario": "Seed an approval-gated protocol Request for garden work the test garden can deliver",
       "preconditions": [
         "Signed in with Tester A's allowlisted wallet",
         "Tester A is a protocol steward",
@@ -139,7 +139,7 @@
       ],
       "steps": [
         "Open the Green Goods protocol pool",
-        "Seed a Request of the Garden work (impact) type with one action row the test Garden can submit Work for",
+        "Seed a Request of the Garden work (impact) type with one action row the test garden can submit Work for",
         "Keep claim mode on Steward-reviewed so a claimant must be accepted",
         "Review and seed the Request, confirming in the wallet",
         "Wait for the Request to appear in the protocol pool"
@@ -148,23 +148,23 @@
       "role": "steward"
     },
     "PWA-047": {
-      "scenario": "Claim the protocol Request for the test Garden",
+      "scenario": "Claim the protocol Request for the test garden",
       "preconditions": [
         "Signed in with Tester B's allowlisted wallet",
-        "Tester B is a steward of the test Garden",
+        "Tester B is a steward of the test garden",
         "ADM-139 is complete"
       ],
       "steps": [
         "Open the protocol Request",
-        "Choose to take it up for the test Garden",
-        "Review the Garden identity and submit the claim",
+        "Choose to take it up for the test garden",
+        "Review the garden identity and submit the claim",
         "Wait for the claim to show as pending approval"
       ],
-      "expected": "The claim is pending for the test Garden; it is not presented as a personal claim and the Request has not moved out of the protocol pool",
+      "expected": "The claim is pending for the test garden; it is not presented as a personal claim and the Request has not moved out of the protocol pool",
       "role": "steward"
     },
     "ADM-040": {
-      "scenario": "Accept the test Garden's institutional claim",
+      "scenario": "Accept the test garden's institutional claim",
       "preconditions": [
         "Signed in with Tester A's allowlisted wallet",
         "Tester A is a protocol steward",
@@ -172,18 +172,18 @@
       ],
       "steps": [
         "Open pending claims for the protocol Request",
-        "Identify the claim from the test Garden",
-        "Accept the Garden claim",
+        "Identify the claim from the test garden",
+        "Accept the garden claim",
         "Reopen the Request after the state updates"
       ],
-      "expected": "The claim becomes Accepted, the Garden is the institutional provider, and the original Request remains in the protocol pool",
+      "expected": "The claim becomes Accepted, the garden is the institutional provider, and the original Request remains in the protocol pool",
       "role": "steward"
     },
     "PWA-048": {
       "scenario": "Submit Work and evidence against the original protocol Request",
       "preconditions": [
         "Signed in with Tester B's allowlisted wallet",
-        "Tester B is the accountable lead and a contributor for the test Garden",
+        "Tester B is the accountable lead and a contributor for the test garden",
         "ADM-040 is complete"
       ],
       "steps": [
@@ -193,19 +193,19 @@
         "Submit the Work",
         "Return to the Request and verify the Work is linked"
       ],
-      "expected": "Tester B's Work and evidence link to the original protocol-pool Request while the test Garden remains the accountable provider",
+      "expected": "Tester B's Work and evidence link to the original protocol-pool Request while the test garden remains the accountable provider",
       "role": "gardener"
     },
     "ADM-041": {
       "scenario": "Approve Work linked to the protocol Request without joining its contributors",
       "preconditions": [
         "Signed in with Tester A's allowlisted wallet",
-        "Tester A can review the test Garden but is not a contributor",
+        "Tester A can review the test garden but is not a contributor",
         "PWA-048 is complete"
       ],
       "steps": [
         "Open the pending Work linked to the protocol Request",
-        "Inspect Tester B's evidence and Garden context",
+        "Inspect Tester B's evidence and garden context",
         "Approve the Work",
         "Verify the review state updates without adding Tester A as a contributor"
       ],
@@ -225,11 +225,11 @@
         "Confirm fulfillment as the Request creator",
         "Reopen the Request after the state updates"
       ],
-      "expected": "The Request becomes Fulfilled with the test Garden still named as provider and Tester B's Work preserved as evidence",
+      "expected": "The Request becomes Fulfilled with the test garden still named as provider and Tester B's Work preserved as evidence",
       "role": "steward"
     },
     "ADM-043": {
-      "scenario": "Settle earned G$ compensation from the protocol to the Garden",
+      "scenario": "Settle earned G$ compensation from the protocol to the garden",
       "preconditions": [
         "Signed in with Tester A's allowlisted wallet",
         "ADM-042 is complete",
@@ -246,14 +246,14 @@
       "role": "steward"
     },
     "PWA-049": {
-      "scenario": "Take up the separate local Garden commitment",
+      "scenario": "Take up the separate local garden commitment",
       "preconditions": [
         "Signed in with Tester B's allowlisted wallet",
-        "Tester B is a member of the test Garden",
+        "Tester B is a member of the test garden",
         "ADM-140 is complete"
       ],
       "steps": [
-        "Open the test Garden's current Campaign",
+        "Open the test garden's current Campaign",
         "Open the local commitment seeded for the member",
         "Take up the commitment with Tester B's own identity",
         "Verify its identity differs from the protocol Request"
@@ -262,33 +262,33 @@
       "role": "gardener"
     },
     "PWA-050": {
-      "scenario": "Submit Work and evidence for the local Garden commitment",
+      "scenario": "Submit Work and evidence for the local garden commitment",
       "preconditions": ["Signed in with Tester B's allowlisted wallet", "PWA-049 is complete"],
       "steps": [
-        "Open the local Garden commitment",
+        "Open the local garden commitment",
         "Start or link its Work",
         "Add evidence that identifies the local delivery",
         "Submit the Work",
         "Verify the Work is linked to the local commitment"
       ],
-      "expected": "The member's Work and evidence are submitted against the separate Garden commitment and are ready for independent review",
+      "expected": "The member's Work and evidence are submitted against the separate garden commitment and are ready for independent review",
       "role": "gardener"
     },
     "ADM-044": {
-      "scenario": "Settle the Garden's contributor payout to the member",
+      "scenario": "Settle the garden's contributor payout to the member",
       "preconditions": [
         "Signed in with Tester A's allowlisted wallet",
-        "The local Garden commitment is complete",
+        "The local garden commitment is complete",
         "Tester B's receiving account is known"
       ],
       "steps": [
-        "Open the completed local Garden commitment's payout action",
+        "Open the completed local garden commitment's payout action",
         "Verify Tester B is the intended contributor recipient",
         "If contributor payout UI and value authority are available, review and submit the payout",
         "Otherwise stop at the visible gate and record Blocked",
         "Ask Tester B to verify the receiving state"
       ],
-      "expected": "When enabled, the Garden pays the contributing member and the result is visible; when unavailable, the UI states the gate while the completed non-value workflow remains intact",
+      "expected": "When enabled, the garden pays the contributing member and the result is visible; when unavailable, the UI states the gate while the completed non-value workflow remains intact",
       "role": "steward"
     },
     "ADM-045": {
@@ -296,32 +296,32 @@
       "preconditions": [
         "Signed in with Tester A's allowlisted wallet",
         "ADM-014 has confirmed funding readiness",
-        "The destination Garden and amount are explicitly authorized"
+        "The destination garden and amount are explicitly authorized"
       ],
       "steps": [
         "Open the protocol treasury funding action",
-        "Choose the destination Garden under Receiving garden and enter the amount",
+        "Choose the destination garden under Receiving garden and enter the amount",
         "Verify no commitment is requested or attached",
         "If value authority is available, press Review Seed or Top-Up…, read the confirmation, and press Queue Seed or Top-Up",
         "Otherwise stop at the visible gate and record Blocked",
-        "Ask Tester B to verify the Garden balance or readiness state"
+        "Ask Tester B to verify the garden balance or readiness state"
       ],
-      "expected": "When authorized and enabled, a discretionary top-up is queued for the correct Garden and its balance reflects the result; it never substitutes for earned compensation or references a commitment",
+      "expected": "When authorized and enabled, a discretionary top-up is queued for the correct garden and its balance reflects the result; it never substitutes for earned compensation or references a commitment",
       "role": "steward"
     }
   },
   "journeys": {
     "service-relay": {
       "label": "Service relay: Green Goods → Garden → members",
-      "summary": "Two people follow a protocol Request from the Green Goods pool through Garden delivery, then use a separate Garden commitment to recognize the member's work. Both commitments are the garden-work type: each becomes ready through approved linked Work, not through evidence and Send for Confirmation.",
+      "summary": "Two people follow a protocol Request from the Green Goods pool through garden delivery, then use a separate garden commitment to recognize the member's work. Both commitments are the garden-work type: each becomes ready through approved linked Work, not through evidence and Send for Confirmation.",
       "lanes": {
         "protocol-review": {
           "label": "Protocol & review",
-          "role": "Protocol steward and independent steward or evaluator of the test Garden; never a contributor"
+          "role": "Protocol steward and independent steward or evaluator of the test garden; never a contributor"
         },
         "garden-member": {
           "label": "Garden & member",
-          "role": "Steward and member of the test Garden; institutional claimant, accountable lead, and contributor"
+          "role": "Steward and member of the test garden; institutional claimant, accountable lead, and contributor"
         }
       },
       "phases": {
@@ -334,19 +334,19 @@
       },
       "steps": {
         "ADM-037": {
-          "handoff": "Wait until the Garden member can see the starting assessment."
+          "handoff": "Wait until the garden member can see the starting assessment."
         },
         "ADM-038": {
-          "handoff": "Both people confirm the same Garden and open cycle are visible; the assessment is context, not a prerequisite."
+          "handoff": "Both people confirm the same garden and open cycle are visible; the assessment is context, not a prerequisite."
         },
         "ADM-139": {
-          "handoff": "Wait until the Request appears in the protocol pool for the Garden member."
+          "handoff": "Wait until the Request appears in the protocol pool for the garden member."
         },
         "PWA-047": {
-          "handoff": "The protocol reviewer waits for the pending Garden claim before accepting it."
+          "handoff": "The protocol reviewer waits for the pending garden claim before accepting it."
         },
         "ADM-040": {
-          "handoff": "Both people verify the Request remains in the protocol pool and names the Garden as provider."
+          "handoff": "Both people verify the Request remains in the protocol pool and names the garden as provider."
         },
         "PWA-048": {
           "handoff": "The reviewer waits until the linked Work and evidence are visible before deciding."
@@ -355,11 +355,11 @@
           "handoff": "Both people verify the approved Request is Fulfilled before moving to compensation."
         },
         "ADM-043": {
-          "handoff": "The Garden member verifies the destination Garden Safe or its readiness state.",
+          "handoff": "The garden member verifies the destination Garden Safe or its readiness state.",
           "knownGate": "Protocol-to-Garden G$ settlement requires enabled settlement UI and value authority. If either is unavailable, record Blocked and continue with the non-value steps."
         },
         "ADM-140": {
-          "handoff": "Seed it as Garden work with one action row, so the member's Work can link to it. Wait until the separate local commitment appears in the open Garden Campaign."
+          "handoff": "Seed it as Garden work with one action row, so the member's Work can link to it. Wait until the separate local commitment appears in the open garden Campaign."
         },
         "PWA-050": {
           "handoff": "The reviewer waits for the local Work and evidence before opening review."
@@ -368,14 +368,14 @@
           "handoff": "Both people verify the local commitment is complete and remains distinct from the protocol Request."
         },
         "ADM-044": {
-          "handoff": "The Garden member verifies the receiving account or the visible readiness state.",
+          "handoff": "The garden member verifies the receiving account or the visible readiness state.",
           "knownGate": "Garden-to-member G$ settlement requires enabled contributor payout UI and value authority. If either is unavailable, record Blocked without changing the completed non-value workflow."
         }
       }
     },
     "protocol-treasury-top-up": {
       "label": "Protocol treasury top-up",
-      "summary": "Check discretionary funding readiness, queue a ProtocolToGarden top-up when authorized, and verify the Garden balance without referencing a commitment.",
+      "summary": "Check discretionary funding readiness, queue a ProtocolToGarden top-up when authorized, and verify the garden balance without referencing a commitment.",
       "lanes": {
         "protocol-review": {
           "label": "Protocol & review",
@@ -383,7 +383,7 @@
         },
         "garden-member": {
           "label": "Garden & member",
-          "role": "Test-Garden steward who verifies the destination Garden and its balance"
+          "role": "Test-garden steward who verifies the destination garden and its balance"
         }
       },
       "phases": {
@@ -392,7 +392,7 @@
       },
       "steps": {
         "ADM-045": {
-          "handoff": "The Garden steward verifies the destination Garden and balance; no commitment ID is involved.",
+          "handoff": "The garden steward verifies the destination garden and balance; no commitment ID is involved.",
           "knownGate": "Protocol treasury funding requires explicit value authority and a live ProtocolToGarden funding path. If unavailable, record Blocked and do not imply that funds moved."
         }
       }

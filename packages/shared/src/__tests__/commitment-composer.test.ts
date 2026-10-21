@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   buildCommitmentCreationPayload,
@@ -8,6 +8,17 @@ import {
   MAX_COMMITMENT_REQUIREMENTS,
 } from "../hooks/commitment-pooling/useCommitmentComposerForm";
 import type { Address } from "../types/domain";
+
+const releaseScope = vi.hoisted(() => ({ settlementEnabled: true }));
+vi.mock("../config/app", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../config/app")>()),
+  get SETTLEMENT_ENABLED() {
+    return releaseScope.settlementEnabled;
+  },
+}));
+beforeEach(() => {
+  releaseScope.settlementEnabled = true;
+});
 
 const CREATOR = "0x1111111111111111111111111111111111111111" as Address;
 const MEMBER = "0x6666666666666666666666666666666666666666" as Address;
@@ -440,5 +451,16 @@ describe("the steward's extras on the same composer", () => {
     ] as const) {
       expect(commitmentComposerSchema.safeParse({ ...values, count }).success).toBe(valid);
     }
+  });
+});
+
+// Existing field/rail tests above retain the future enabled contract.
+describe("app-only release creation", () => {
+  it("refuses new G$ reward promises and preserves unpriced creation", () => {
+    releaseScope.settlementEnabled = false;
+    expect(() => build({ considerationRail: "CELO_SETTLEMENT", considerationAmount: "5" })).toThrow(
+      "G$ reward promises are unavailable"
+    );
+    expect(build().consideration.rail).toBe(0);
   });
 });

@@ -142,6 +142,23 @@ describe("preparing a queued item for Upload all", () => {
     expect(raw.convertMedia).not.toHaveBeenCalled();
   });
 
+  it("requests app recovery without changing saved work or recording a failure", async () => {
+    const work = queuedWork();
+    const before = structuredClone(work);
+    const { deps, saved } = dependencies({
+      simulateWork: vi
+        .fn()
+        .mockRejectedValue(new Error("Failed to fetch dynamically imported module")),
+    });
+    const { appCodeRecovery } = await import("../../../modules/app/cache-recovery");
+
+    await expect(prepareQueuedJob(work, 42161, CLAIM, deps)).resolves.toBe("retry-later");
+
+    expect(appCodeRecovery.getSnapshot()).toBeGreaterThan(0);
+    expect(saved).toHaveLength(0);
+    expect(work).toEqual(before);
+  });
+
   it("stops when another holder takes the job", async () => {
     const { deps } = dependencies({
       save: vi.fn().mockRejectedValue(new Error("submission-ownership-changed")),

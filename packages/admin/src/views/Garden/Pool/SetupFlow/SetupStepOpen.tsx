@@ -83,7 +83,7 @@ export function SetupStepOpen({
               ? formatMessage(
                   {
                     id: "cockpit.garden.pool.setup.done.firstRun",
-                    defaultMessage: "{garden} is taking commitments",
+                    defaultMessage: "{garden} is taking promises",
                   },
                   { garden: gardenName }
                 )
@@ -102,7 +102,7 @@ export function SetupStepOpen({
             {
               id: "cockpit.garden.pool.setup.done.body",
               defaultMessage:
-                "“{name}” is open. Neighbours can offer help, ask for it, and take each other up.",
+                "“{name}” is open. Neighbors can offer help, ask for it, and take each other up.",
             },
             { name: cycleLabel }
           )}
@@ -130,7 +130,7 @@ export function SetupStepOpen({
     summaryRows.push([
       formatMessage({
         id: "cockpit.garden.pool.status.cap",
-        defaultMessage: "Commitment limit",
+        defaultMessage: "Promise limit",
       }),
       formatMessage(
         {
@@ -229,7 +229,7 @@ export function SetupStepOpen({
             ? formatMessage({
                 id: "cockpit.garden.pool.setup.openNoteFirstRun",
                 defaultMessage:
-                  "Opening records how this pool works, then opens the pool and its first season together. Neighbours can make and take up commitments straight away.",
+                  "Opening records how this pool works, then opens the pool and its first season together. Neighbors can make and take up promises straight away.",
               })
             : isCampaign
               ? formatMessage({
@@ -246,7 +246,7 @@ export function SetupStepOpen({
                 : formatMessage({
                     id: "cockpit.garden.pool.setup.openNoteSeason",
                     defaultMessage:
-                      "Opening tells the whole garden the season has begun. From that moment neighbours can offer help, ask for it, and take each other up.",
+                      "Opening tells the whole garden the season has begun. From that moment neighbors can offer help, ask for it, and take each other up.",
                   })}
         </Alert>
       ) : null}
@@ -281,7 +281,7 @@ export function SetupStepOpen({
         <Alert variant="warning">
           {formatMessage({
             id: "cockpit.garden.pool.offline",
-            defaultMessage: "Needs a connection. Pool changes are sent straight to the chain.",
+            defaultMessage: "Needs a connection. Pool changes are sent right away, not queued.",
           })}
         </Alert>
       ) : null}

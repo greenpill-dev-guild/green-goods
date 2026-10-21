@@ -40,7 +40,7 @@ import {
   needsGoodDollarPrice,
   priceUnavailableReason,
   rewardAmountAtCreate,
-  withoutExternalReward,
+  withoutUnavailableReward,
 } from "./seedReward";
 import { seedStatusView } from "./seedStatus";
 import {
@@ -122,7 +122,7 @@ export function SeedCommitmentDialog({
       cycleId: pool.model.season ? pool.model.season.cycleId.toString() : "0",
       claimMode: (protocolContext ? "APPROVAL_GATED" : "OPEN") as "APPROVAL_GATED" | "OPEN",
       protocolFallbackEnabled: protocolPool.isRegistered,
-      ...withoutExternalReward(again),
+      ...withoutUnavailableReward(again),
       // Earlier campaign promises may be copied as support; their cycle stays separate.
       kind: again?.kind === "GARDEN_WORK" ? ("GARDEN_WORK" as const) : ("SERVICE" as const),
     }),

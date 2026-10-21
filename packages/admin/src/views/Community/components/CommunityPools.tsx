@@ -11,7 +11,7 @@ import {
 import type { Address } from "@green-goods/shared/types/domain";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { RiArrowRightLine, RiRefreshLine } from "@remixicon/react";
-import { useMemo, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { AdminButton } from "@/components/AdminButton";
@@ -25,6 +25,7 @@ export interface CommunityPoolsProps {
   chainId: number;
   garden: { id: Address; name: string };
   canManage: boolean;
+  railContent?: ReactNode;
 }
 
 /**
@@ -37,28 +38,40 @@ export interface CommunityPoolsProps {
  * no setup, edit, or pause of the protocol pool starts from a garden that
  * isn't it.
  */
-export function CommunityPools({ chainId, garden, canManage }: CommunityPoolsProps) {
+export function CommunityPools({ chainId, garden, canManage, railContent }: CommunityPoolsProps) {
   const { isProtocolGarden, protocolPool, ownPool, ownPoolsLoading } = useIsProtocolGarden({
     chainId,
     gardenId: garden.id,
   });
 
+  const gardenPool = (
+    <GardenPoolCard
+      garden={garden}
+      canManage={canManage}
+      isLoading={ownPoolsLoading}
+      pool={ownPool}
+    />
+  );
   return (
     <div
-      className="space-y-4"
+      className="garden-tab-shell"
       data-component="CommunityPools"
       data-region="community-pools"
       data-tone="community"
     >
-      <GardenPoolCard
-        garden={garden}
-        canManage={canManage}
-        isLoading={ownPoolsLoading}
-        pool={ownPool}
-      />
       {isProtocolGarden ? (
-        <ProtocolOperations chainId={chainId} protocolPool={protocolPool} />
-      ) : null}
+        <ProtocolOperations
+          chainId={chainId}
+          protocolPool={protocolPool}
+          gardenPool={gardenPool}
+          railContent={railContent}
+        />
+      ) : (
+        <>
+          {gardenPool}
+          {railContent}
+        </>
+      )}
     </div>
   );
 }
@@ -109,7 +122,7 @@ function GardenPoolCard({
       </div>
       <AdminButton
         type="button"
-        variant="filled"
+        variant="outlined"
         leadingIcon={<RiArrowRightLine className="h-4 w-4" />}
         onClick={() => navigate(adminRoutes.gardenPool({ gardenId: garden.id }))}
         disabled={!canManage}
@@ -140,9 +153,13 @@ function GardenPoolCard({
 function ProtocolOperations({
   chainId,
   protocolPool,
+  gardenPool,
+  railContent,
 }: {
   chainId: number;
   protocolPool: ReturnType<typeof useProtocolPool>;
+  gardenPool: ReactNode;
+  railContent?: ReactNode;
 }) {
   const { formatMessage } = useIntl();
   const { primaryAddress } = useUser();
@@ -164,107 +181,147 @@ function ProtocolOperations({
 
   if (protocolPool.isLoading) {
     return (
-      <div
-        className="space-y-3"
-        role="status"
-        aria-label={formatMessage({
-          id: "cockpit.community.pools.loading",
-          defaultMessage: "Loading the protocol pool",
-        })}
-      >
-        <div className="h-16 rounded-[var(--m3-shape-md)] skeleton-shimmer" aria-hidden />
-        <div className="h-40 rounded-[var(--m3-shape-md)] skeleton-shimmer" aria-hidden />
-      </div>
+      <>
+        {gardenPool}
+        <div
+          className="space-y-3"
+          role="status"
+          aria-label={formatMessage({
+            id: "cockpit.community.pools.loading",
+            defaultMessage: "Loading the protocol pool",
+          })}
+        >
+          <div className="h-16 rounded-[var(--m3-shape-md)] skeleton-shimmer" aria-hidden />
+          <div className="h-40 rounded-[var(--m3-shape-md)] skeleton-shimmer" aria-hidden />
+        </div>
+        {railContent}
+      </>
     );
   }
   if (protocolPool.isError) {
     return (
-      <AdminCard
-        variant="elevated"
-        className="flex min-h-40 flex-col items-center justify-center gap-3 text-center"
-      >
-        <AdminCardTitle>
-          {formatMessage({
-            id: "cockpit.community.pools.readError.title",
-            defaultMessage: "Couldn’t read the protocol pool",
-          })}
-        </AdminCardTitle>
-        <p className="max-w-md body-sm text-text-soft">
-          {formatMessage({
-            id: "cockpit.community.pools.readError.body",
-            defaultMessage:
-              "The module could not be reached. Nothing about the protocol pool has changed.",
-          })}
-        </p>
-        <AdminButton
-          type="button"
-          variant="filled"
-          leadingIcon={<RiRefreshLine className="h-4 w-4" />}
-          onClick={() => void protocolPool.refetch()}
+      <>
+        {gardenPool}
+        <AdminCard
+          variant="elevated"
+          className="flex min-h-40 flex-col items-center justify-center gap-3 text-center"
         >
-          {formatMessage({
-            id: "cockpit.garden.pool.readError.retry",
-            defaultMessage: "Try Again",
-          })}
-        </AdminButton>
-      </AdminCard>
+          <AdminCardTitle>
+            {formatMessage({
+              id: "cockpit.community.pools.readError.title",
+              defaultMessage: "Couldn’t read the protocol pool",
+            })}
+          </AdminCardTitle>
+          <p className="max-w-md body-sm text-text-soft">
+            {formatMessage({
+              id: "cockpit.community.pools.readError.body",
+              defaultMessage:
+                "The module could not be reached. Nothing about the protocol pool has changed.",
+            })}
+          </p>
+          <AdminButton
+            type="button"
+            variant="filled"
+            leadingIcon={<RiRefreshLine className="h-4 w-4" />}
+            onClick={() => void protocolPool.refetch()}
+          >
+            {formatMessage({
+              id: "cockpit.garden.pool.readError.retry",
+              defaultMessage: "Try Again",
+            })}
+          </AdminButton>
+        </AdminCard>
+        {railContent}
+      </>
     );
   }
   if (!protocolPool.isRegistered || !protocolPool.rootGarden) {
     return (
-      <AdminCard variant="elevated" className="space-y-2" data-testid="protocol-pool-unregistered">
-        <AdminCardTitle>
-          {formatMessage({
-            id: "cockpit.community.pools.unregistered.title",
-            defaultMessage: "No protocol pool is registered yet",
-          })}
-        </AdminCardTitle>
-        <p className="body-sm text-text-soft">
-          {formatMessage({
-            id: "cockpit.community.pools.unregistered.body",
-            defaultMessage:
-              "Registering it is a deployment operation by the Green Goods team. Until then, the team cannot step in as a fallback confirmer anywhere.",
-          })}
-        </p>
-      </AdminCard>
-    );
-  }
-  return (
-    <div className="space-y-4" data-testid="protocol-pool">
-      <SettlementOperationsPanel chainId={chainId} />
-      <ProtocolFundingOperationsPanel chainId={chainId} protocolGarden={protocolPool.rootGarden} />
-      {toConfirm.isProtocolSteward ? (
-        <section
+      <>
+        {gardenPool}
+        <AdminCard
+          variant="elevated"
           className="space-y-2"
-          aria-label={formatMessage({
-            id: "cockpit.community.pools.confirmations",
-            defaultMessage: "Protocol Confirmations",
-          })}
+          data-testid="protocol-pool-unregistered"
         >
           <AdminCardTitle>
             {formatMessage({
-              id: "cockpit.community.pools.confirmations",
-              defaultMessage: "Protocol Confirmations",
+              id: "cockpit.community.pools.unregistered.title",
+              defaultMessage: "No protocol pool is registered yet",
             })}
           </AdminCardTitle>
-          <p className="body-xs text-text-soft">
+          <p className="body-sm text-text-soft">
             {formatMessage({
-              id: "cockpit.community.pools.confirmationsHint",
+              id: "cockpit.community.pools.unregistered.body",
               defaultMessage:
-                "Commitments from any garden that opted in and that nobody local can still confirm. Only these rows reach the team; no other garden's pool is browsed here.",
+                "Registering it is a deployment operation by the Green Goods team. Until then, the team cannot step in as a fallback confirmer anywhere.",
             })}
           </p>
-          <HubConfirmQueue
-            toConfirm={protocolToConfirm}
-            chainId={chainId}
-            normalizedSearch=""
-            selectedCommitmentId={selectedCommitment}
-            onOpenCommitment={setSelectedCommitment}
-            onCloseCommitment={() => setSelectedCommitment(undefined)}
-          />
-        </section>
-      ) : null}
-    </div>
+        </AdminCard>
+        {railContent}
+      </>
+    );
+  }
+  const confirmations = toConfirm.isProtocolSteward ? (
+    <AdminCard
+      className="space-y-2"
+      aria-label={formatMessage({
+        id: "cockpit.community.pools.confirmations",
+        defaultMessage: "Protocol Confirmations",
+      })}
+    >
+      <AdminCardTitle>
+        {formatMessage({
+          id: "cockpit.community.pools.confirmations",
+          defaultMessage: "Protocol Confirmations",
+        })}
+      </AdminCardTitle>
+      <p className="body-xs text-text-soft">
+        {formatMessage({
+          id: "cockpit.community.pools.confirmationsHint",
+          defaultMessage:
+            "Promises from any garden that opted in and that nobody local can still confirm. Only these rows reach the team; no other garden's pool is browsed here.",
+        })}
+      </p>
+      <HubConfirmQueue
+        toConfirm={protocolToConfirm}
+        chainId={chainId}
+        normalizedSearch=""
+        selectedCommitmentId={selectedCommitment}
+        onOpenCommitment={setSelectedCommitment}
+        onCloseCommitment={() => setSelectedCommitment(undefined)}
+      />
+    </AdminCard>
+  ) : null;
+  return (
+    <ProtocolFundingOperationsPanel
+      chainId={chainId}
+      protocolGarden={protocolPool.rootGarden}
+      renderLayout={(funding, transfers) => {
+        const hasMain = Boolean(transfers) || toConfirm.isProtocolSteward;
+        return (
+          <div
+            className={hasMain ? "garden-tab-layout" : "garden-tab-shell"}
+            data-testid="protocol-pool"
+          >
+            {hasMain ? (
+              <div className="garden-tab-main">
+                {transfers}
+                {confirmations}
+              </div>
+            ) : null}
+            <aside className="garden-tab-rail">
+              <div className="garden-tab-rail-sticky">
+                {funding}
+                {gardenPool}
+                <SettlementOperationsPanel chainId={chainId} />
+                {railContent}
+              </div>
+            </aside>
+          </div>
+        );
+      }}
+    />
   );
 }
 

@@ -2,32 +2,73 @@
 title: Gardener Guide
 sidebar_label: Gardener Guide
 slug: /community/gardener-guide/
-description: "Join a Garden, submit Work, recover local items, and track review status."
+description: "Install the app, join your garden, document your work, follow it through review, and recover anything that did not send."
 audience: gardener
 owner: docs
-last_verified: 2026-08-30
+last_verified: 2026-10-12
 feature_status: Live
-goal: "Help a gardener complete and recover the current Work flow."
+goal: "Show a gardener the whole path and send them to the page for the step they are on."
 difficulty: "quickstart"
-estimated_time: "10-15 minutes for a first submission."
-prereqs: "A Green Goods sign-in method, a phone or browser, and a Garden."
-next_steps: "./joining-a-garden"
+estimated_time: "About 15 minutes from install to a first submission."
+prereqs: "A phone, and a garden you work with."
+next_steps: "/community/gardener-guide/installing-and-updating"
 persona_context: "Gardeners documenting regenerative work in the field."
 source_of_truth:
   - packages/client/src/config/routes.tsx
+  - packages/client/src/components/Layout/AppBar.tsx
   - packages/client/src/views/Garden/index.tsx
-  - packages/client/src/views/Home/WorkDashboard
-  - packages/shared/src/modules/work
-  - packages/shared/src/modules/job-queue
+  - packages/client/src/views/Home/WorkDashboard/index.tsx
+  - packages/shared/src/providers/JobQueue.tsx
 ---
+
+import {NextBestAction} from "@site/src/components/docs";
 
 # Gardener Guide
 
-Use the same Green Goods account throughout this flow so your Garden roles, drafts, and Work history stay connected.
+A gardener is anyone doing the work a garden exists for: planting trees, clearing waste, keeping solar panels running, teaching a class. Green Goods gives that work a record, so it does not disappear the moment it is done.
 
-1. [Join a Garden](/community/gardener-guide/joining-a-garden) and confirm it appears in your app.
-2. [Submit Work](/community/gardener-guide/uploading-your-work) against the Action that matches what you did.
-3. Use [Recovery and Sync](/community/gardener-guide/recovery-and-sync) when a draft or queued item needs attention.
-4. [Track Status](/community/gardener-guide/track-status-and-attestations) after the submission reaches the steward queue.
+<figure className="gg-figure gg-overview-photo gg-guide-opening">
+  <img src="/img/community/guide-gardener.webp" alt="A compost bay with a wheelbarrow and a fork beside a tidy garden path." width="1672" height="941" loading="eager" />
+</figure>
 
-If a steward asks for changes, read the feedback, correct the evidence, and submit against the same Garden and Action.
+
+What you get from documenting your work:
+
+- **Proof you can point to.** Each piece of work becomes a record with your photos and details, reviewed by a steward from your own garden.
+- **It works where you work.** You can record with no signal and send when you are back in range.
+- **Your garden gets seen.** Approved work is what your garden shows to the people who fund it.
+
+## The path
+
+Do these in order the first time. After that, most days are step 3.
+
+1. [Install and Update](/community/gardener-guide/installing-and-updating). Put the app on your phone and create your account.
+2. [Join a Garden](/community/gardener-guide/joining-a-garden). Tell the app which community your work belongs to.
+3. [Submit Work](/community/gardener-guide/uploading-your-work). Choose what you did, add photos and details, and send it.
+4. [Track Your Work](/community/gardener-guide/track-status-and-attestations). See where each submission stands, what approval brings, and what to do if it comes back.
+5. [Recover Unsent Work](/community/gardener-guide/recovery-and-sync). Send what is still waiting on your phone and fix what will not go.
+
+## Promises {#promises}
+
+Promises are optional. You can submit and recover ordinary work without one.
+
+- [Make a Promise](/community/gardener-guide/make-a-promise): offer help or request it.
+- [Keep a Promise](/community/gardener-guide/keep-a-promise): take it up, join a team, and record evidence.
+- [Confirm a Promise](/community/gardener-guide/confirm-a-promise): independently check whether it was kept.
+
+## Three things to know first
+
+- **Use one account.** Your gardens, drafts, and history belong to the account you created. Signing in a different way makes a different account.
+- **Your work is saved on your phone first.** Nothing is lost if the signal drops. It waits in **Your Work** until you send it.
+- **What you submit is public and permanent.** Photos and details become part of your garden's public record and cannot be deleted. Only add what you are comfortable sharing. The [FAQ](/faq#is-what-i-upload-private) has the details.
+
+## Getting help
+
+In the app, open **Profile** and choose the **Help** tab to find this guide. For community support, ask in [Discord](https://discord.gg/greenpill). Your steward is the best person to ask about your garden's actions and what counts as good evidence.
+
+<NextBestAction
+  title="Start with the app"
+  why="Everything else in this guide happens inside the installed app."
+  actionLabel="Install and Update"
+  actionHref="/community/gardener-guide/installing-and-updating"
+/>

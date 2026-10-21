@@ -8,8 +8,9 @@ import { EditorialHeading, EditorialKicker } from "@/components/Public/atoms";
 import { ListSkeleton, SectionEmpty, SectionNotice } from "./GardenDetailAtoms";
 
 /**
- * Shared section shell: reveal wrapper, kicker, heading, and helper.
- * Each section owns whether it has a public record to show.
+ * Shared section shell: reveal wrapper, kicker, heading, and helper. Every section
+ * renders whether or not it has content, so the ordinals stay stable across
+ * Gardens and an absent thing can say it is absent.
  */
 export function Section({
   id,
@@ -58,7 +59,6 @@ export function CertificatesSection({
   onRetry?: () => void;
 }) {
   const { formatMessage } = useIntl();
-  if (!loading && !unavailable && certificates.length === 0) return null;
 
   return (
     <Section
@@ -74,13 +74,21 @@ export function CertificatesSection({
       helper={formatMessage({
         id: "public.gardenDetail.certificates.helper",
         defaultMessage:
-          "Shareable records bringing together approved work and the assessments supporting its claims.",
+          "Shareable records bringing together approved submissions and the assessments supporting their claims.",
       })}
     >
       {loading ? (
         <ListSkeleton />
       ) : unavailable && certificates.length === 0 ? (
         <SectionNotice message={formatMessage({ id: "public.surface.error" })} onRetry={onRetry} />
+      ) : certificates.length === 0 ? (
+        <SectionEmpty
+          message={formatMessage({
+            id: "public.gardenDetail.certificates.empty",
+            defaultMessage:
+              "No Impact Certificates yet. They appear when approved submissions are bundled.",
+          })}
+        />
       ) : (
         <ul className="mt-8 flex flex-col divide-y divide-stroke-soft-200 border-b border-stroke-soft-200">
           {certificates.map((cert) => (
@@ -139,7 +147,7 @@ export function StewardsSection({ stewards, loading }: { stewards: Address[]; lo
       })}
       helper={formatMessage({
         id: "public.gardenDetail.stewards.helper",
-        defaultMessage: "The local coordinators who review submissions and care for this Garden.",
+        defaultMessage: "The local coordinators who review submissions and care for this garden.",
       })}
     >
       {loading ? (
@@ -148,7 +156,7 @@ export function StewardsSection({ stewards, loading }: { stewards: Address[]; lo
         <SectionEmpty
           message={formatMessage({
             id: "public.gardenDetail.stewards.empty",
-            defaultMessage: "No stewards are listed for this Garden yet.",
+            defaultMessage: "No stewards are listed for this garden yet.",
           })}
         />
       ) : (

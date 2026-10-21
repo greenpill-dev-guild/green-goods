@@ -186,6 +186,7 @@ export type CommitmentJobExecutionResult =
       status: "waiting";
       reason:
         | "group-deadline-passed"
+        | "settlement-unavailable"
         | "series-not-materialized"
         | "membership-unavailable"
         | "pending-first-send"

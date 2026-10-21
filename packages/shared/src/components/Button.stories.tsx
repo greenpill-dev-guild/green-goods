@@ -22,7 +22,7 @@ const meta = {
     docs: {
       description: {
         component:
-          'The one action button. Emphasis sets fill, outline, and colour; the corner comes from the surface and is the same for every emphasis (DL-026, DL-029): the 16px field corner in the installed app and no corner on the public website (inside `data-site="website"`). Heights match the field scale (DL-023): lg 48, md 44, sm 40, compact 32 with a 48px hit area. A loading button stays focusable.',
+          'The one action button. Emphasis sets fill, outline, and color; the corner comes from the surface and is the same for every emphasis (DL-026): the 16px field corner in the installed app (DL-029) and the capsule on the public website (DL-089; inside `data-site="website"`). Heights match the field scale (DL-023): lg 48, md 44, sm 40, compact 32 with a 48px hit area. A loading button stays focusable.',
       },
     },
   },
@@ -144,7 +144,7 @@ export const FieldPairing: Story = {
   },
 };
 
-/** On the public website every emphasis is square with a semibold label (DL-026, DL-029). */
+/** On the public website every emphasis is a capsule with a semibold label (DL-026, DL-089). */
 export const WebsiteSurface: Story = {
   render: () => (
     <div data-site="website" className="flex flex-wrap items-center gap-3">
@@ -160,7 +160,8 @@ export const WebsiteSurface: Story = {
       const button = within(canvasElement).getByRole("button", { name: `Website ${emphasis}` });
       const style = getComputedStyle(button);
       await expect(button.getBoundingClientRect().height).toBe(44);
-      await expect(px(style.borderTopLeftRadius)).toBe(0);
+      // A capsule: the corner is at least half the 44px height.
+      await expect(px(style.borderTopLeftRadius)).toBeGreaterThanOrEqual(22);
       await expect(style.fontWeight).toBe("600");
     }
   },

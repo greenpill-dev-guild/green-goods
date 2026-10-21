@@ -18,7 +18,7 @@ export interface PoolStat {
 export function PoolStatsCard({ stats, label }: { stats: readonly PoolStat[]; label: string }) {
   return (
     <AdminCard
-      variant="outlined"
+      variant="elevated"
       density="none"
       className="overflow-hidden"
       data-component="PoolStatsCard"

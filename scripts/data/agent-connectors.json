@@ -1,0 +1,40 @@
+{
+  "note": "Hosted services agents reach through a connector in the coding app, signed in by the person using it. They are not MCP servers of this repository and do not belong in .mcp.json. The MCP guide joins this catalog with the connectors each routine declares in docs/routines; a routine may only name a connector listed here.",
+  "connectors": {
+    "linear": {
+      "display": "Linear",
+      "purpose": "The durable backlog. Agents read issues and projects, file and update issues under the routing contract, and post review comments and status updates.",
+      "rules": ".claude/context/linear-routing-rules.md"
+    },
+    "posthog": {
+      "display": "PostHog",
+      "purpose": "Product telemetry, read-only, across three projects: App, Admin, and Agent. Agents use it to check a bug report against real usage and to answer health and growth questions, choosing the project before every query.",
+      "rules": "docs/routines/posthog-questions.md"
+    },
+    "vercel": {
+      "display": "Vercel",
+      "purpose": "Deployments of the client and admin apps: which commit is live, when a deploy landed, and the preview for a pull request.",
+      "rules": "docs/routines/health-watch.md"
+    },
+    "sentry": {
+      "display": "Sentry",
+      "purpose": "Error detail beside the PostHog evidence, when a Sentry connection is available. Every routine is written to work without it.",
+      "rules": "docs/routines/README.md"
+    },
+    "github": {
+      "display": "GitHub",
+      "purpose": "Pull requests, review threads, commit ranges, and releases. The gh CLI covers the same ground when no connector is present.",
+      "rules": ".claude/skills/resolve-pr-comments/SKILL.md"
+    },
+    "google-drive": {
+      "display": "Google Drive",
+      "purpose": "The meeting notes that feed bug intake and QA triage.",
+      "rules": "docs/routines/sync-triage-pulse.md"
+    },
+    "google-calendar": {
+      "display": "Google Calendar",
+      "purpose": "Upcoming events that explain a change in the numbers, such as a demo or a planting season. Optional context only.",
+      "rules": "docs/routines/health-watch.md"
+    }
+  }
+}

@@ -1,4 +1,5 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { SETTLEMENT_ENABLED } from "@green-goods/shared/config/app";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import type {
@@ -39,14 +40,39 @@ export function showsSettlement(
   commitment: Pick<CommitmentReadModel, "onchainState" | "considerationRail" | "payoutPlanId">
 ): boolean {
   return (
-    (commitment.onchainState === "FULFILLED" &&
+    SETTLEMENT_ENABLED &&
+    ((commitment.onchainState === "FULFILLED" &&
       commitment.considerationRail === "CELO_SETTLEMENT") ||
-    Boolean(commitment.payoutPlanId)
+      Boolean(commitment.payoutPlanId))
   );
 }
 
 /** The inspector's mount point: reads through the shared controller, renders the section. */
 export function CommitmentSettlementSection({
+  chainId,
+  commitment,
+  detail,
+  tone,
+  target,
+}: {
+  chainId: number;
+  commitment: CommitmentReadModel;
+  detail: CommitmentDialogController["detail"];
+  tone: Tone;
+  target?: ReactNode;
+}) {
+  return SETTLEMENT_ENABLED ? (
+    <EnabledCommitmentSettlementSection
+      chainId={chainId}
+      commitment={commitment}
+      detail={detail}
+      tone={tone}
+      target={target}
+    />
+  ) : null;
+}
+
+function EnabledCommitmentSettlementSection({
   chainId,
   commitment,
   detail,
@@ -132,7 +158,7 @@ export function CommitmentSettlement({ settlement, tone, target }: CommitmentSet
             {formatMessage({
               id: "cockpit.garden.pool.settlement.description",
               defaultMessage:
-                "Paid from the paying garden's Celo Safe in the order the settlement module accepts: plan, finalize, prepare, dispatch, acknowledgement.",
+                "Paid from the paying garden's Celo Safe in the order the settlement module accepts: plan, finalize, prepare, dispatch, acknowledgment.",
             })}
           </p>
         </div>
@@ -239,7 +265,8 @@ export function CommitmentSettlement({ settlement, tone, target }: CommitmentSet
               {settlement.lastAct.phase === "signing"
                 ? formatMessage({
                     id: "cockpit.garden.pool.settlement.status.signing",
-                    defaultMessage: "Waiting for the wallet to sign and the chain to confirm…",
+                    defaultMessage:
+                      "Waiting for the wallet to sign and the transaction to confirm…",
                   })
                 : settlement.lastAct.phase === "confirmed"
                   ? formatMessage({

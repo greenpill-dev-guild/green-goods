@@ -198,3 +198,32 @@ export const MoreOffersThanRoom: Story = {
 };
 
 export const QueueUnavailable: Story = { args: { queueUnavailable: true } };
+
+const documentationValues = {
+  ...COMMITMENT_COMPOSER_DEFAULTS,
+  kind: "SERVICE" as const,
+  direction: "REQUEST" as const,
+  cycleId: "12",
+  title: "Check the household rainwater barrels",
+  unitLabel: "check",
+  targetUnits: 1,
+  dueInDays: 14,
+  count: 10,
+  openTeam: false,
+  claimMode: "APPROVAL_GATED" as const,
+  note: "Check one household barrel for leaks, clear its inlet and record the water level.",
+};
+export const Documentation: Story = {
+  args: {
+    values: documentationValues,
+    cycleOptions: [{ value: "12", label: "Season · Autumn Planting" }],
+  },
+};
+export const DocumentationPartial: Story = {
+  args: {
+    values: documentationValues,
+    cycleOptions: [{ value: "12", label: "Season · Autumn Planting" }],
+    phase: "partial",
+    mode: "one-by-one",
+  },
+};

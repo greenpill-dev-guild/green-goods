@@ -2,7 +2,7 @@
 
 > Canonical curated-question library for PostHog reads across Green Goods routines and
 > skills. Two lenses (product/quality, growth/BD), one privacy boundary, one shared answer
-> per question. Formerly `.claude/skills/posthog-questions/SKILL.md` — moved here in the
+> per question. The retired `.claude/skills/posthog-questions/SKILL.md` moved here in the
 > 2026-07 round-2 consolidation because it is a data dictionary, not a procedure.
 
 Single source of truth for every PostHog read a routine or interactive skill should need. Routines reference questions **by name** (`errors.recent`, `funnel.onboarding`, etc.) — never paste raw HogQL into a routine prompt. When a question's underlying query needs to evolve, edit it here once and every consumer picks up the change.
@@ -29,7 +29,7 @@ All 17 questions at a glance. Names are the stable identifiers consumers referen
 
 | Question | Lens | Privacy default | Answers |
 |---|---|---|---|
-| [`errors.recent`](#errorsrecent) | product-quality | public-safe (aggregates) | Recent JS exceptions grouped by message + URL with affected-session counts |
+| [`errors.recent`](#errorsrecent) | product-quality | public-safe (aggregates) | Recent errors grouped by message + URL with affected-session counts |
 | [`errors.detail`](#errorsdetail) | product-quality | ⚠️ private-only | Full detail for one error hash incl. top stack frame + replay links |
 | [`errors.recurring`](#errorsrecurring) | product-quality | public-safe | Distinct-session count per error hash over 30 days (bug-intake roll-up input) |
 | [`errors.match-bug-report`](#errorsmatch-bug-report) | product-quality | ⚠️ private-only | Fuzzy match between a verbatim bug-report quote and recent errors/events |
@@ -54,7 +54,7 @@ Each question has:
 - **Name** — `lens.subject` identifier consumers reference (e.g. `funnel.onboarding`).
 - **Lens** — `product-quality` (private-default) or `growth-bd` (public-safe-default).
 - **Default privacy** — what crosses into a shared surface (Linear body, Discord summary, PR body, public doc) by default.
-- **HogQL** — the canonical query string. Used directly by `scripts/agents/posthog-query.ts` and as the source of truth when promoting to a PostHog Saved Insight.
+- **HogQL** — the canonical query string, and the source of truth when promoting to a PostHog Saved Insight. `scripts/agents/posthog-query.ts` does not run it: the script builds its own query and hashes errors with SHA-256, so its `error_hash` never matches one from this library.
 - **Saved-Insight ID** — populated when a human has created a tunable Insight in the PostHog UI for this question. When present, the connector path prefers the Insight; the script path still uses HogQL.
 - **Output schema** — exact field names + which fields are public-safe vs private-only.
 - **Required emit-side events** — the events the question depends on. If any are absent in production, the question is `blocked` and consumers must skip it gracefully.
@@ -72,7 +72,7 @@ Each question has:
   query-run, using the HogQL block defined under that name in
   docs/routines/posthog-questions.md. Privacy mode: public.
   ```
-- **Local/Codex/non-Claude fallback only**: product/quality questions that match a script command (`errors.recent` → `errors`, `errors.detail` → `error-detail`, `errors.recurring` → `recurring`, `errors.match-bug-report` → `match-bug-report`, `replay.user-sessions` → `user-sessions`) may use `scripts/agents/posthog-query.ts` when the connector is unavailable and the local environment explicitly provides `POSTHOG_PROJECT_API_KEY`, single-project `POSTHOG_PROJECT_ID`, and `POSTHOG_HOST`.
+- **Local/Codex/non-Claude fallback only**: product/quality questions that match a script command (`errors.recent` → `errors`, `errors.detail` → `error-detail`, `errors.recurring` → `recurring`, `errors.match-bug-report` → `match-bug-report`, `replay.user-sessions` → `user-sessions`) may use `scripts/agents/posthog-query.ts` when the connector is unavailable and the local environment explicitly provides `POSTHOG_PROJECT_API_KEY`, single-project `POSTHOG_PROJECT_ID`, and `POSTHOG_HOST`. The script's `error_hash` is a SHA-256 prefix, not this library's `cityHash64`, so a hash from one path cannot be looked up in the other.
   ```bash
   bun scripts/agents/posthog-query.ts errors --recent 24h --privacy public
   bun scripts/agents/posthog-query.ts error-detail <error-hash> --window 7d
@@ -113,34 +113,41 @@ If a question's output would name a single user (one row per `distinct_id`), it 
 
 Private-default. The eight bug-intake / debug / release-health questions.
 
+**Error events.** The `errors.*` questions and `quality.top-failures` read two events: `$exception`, which PostHog's exception autocapture sends for unhandled errors, and `error_tracked`, which `trackError` in `packages/shared/src/modules/app/error-categories.ts` sends for every error the apps report, handled or not. An unhandled error or a crash report sends both. Each question takes the message and type from the `$exception_*` fields and falls back to `error_message` and `error_type`. It then normalizes the message the same way for both events: it drops the `TypeError: `-style prefix and the `Non-Error promise rejection captured with value: ` wording that PostHog adds to unhandled rejections, and masks 0x addresses as `[REDACTED_WALLET]`, as `trackError` does. So an error sent both ways lands in one group, and its session and user counts stay distinct; on App that held for 94 of 95 unhandled errors sent both ways over the 90 days to 2026-10-19. Each question also leaves out user cancellations, because a declined wallet or passkey prompt is not a defect: an event drops out when its `contract_error_name` is `UserRejected` or its message holds one of the phrases in `CANCELLED_PATTERNS` (`packages/shared/src/utils/errors/tx-error-classifier.ts`; `failures.conversion-kill` mirrors the same list, so keep all three in sync). A passkey `NotAllowedError` stays in, as it does there, because it can mean a timeout as well as a dismissal. `current_url` is private in every question, because it can carry query strings, including text people typed: share the app surface (`client` or `admin`, read from its host) instead. Share a message only in redacted form, per the privacy boundary, since an `$exception` message can still carry an email, token or URL query that `trackError` would have removed. Before v1.1.0 (2026-10-19) these questions read only `$exception` and missed every handled error: on App that was 94 of 104 error groups over the previous 30 days, and on Admin all of them. Questions that count events rather than distinct sessions or users, such as `release.error-rate-delta` and the `errors_observed` count in `replay.user-sessions`, still read only `$exception`, because counting both events there would count one error twice.
+
+**Error hash.** Each of these questions hashes an error as `cityHash64(concat(toString(message), '\n', toString(url)))`, where `message` is the normalized message above, so an error sent both ways gets one hash. `message` comes first in each `SELECT` because the hash reads it, and HogQL resolves an alias only after it is defined. The newline keeps the two fields apart, since a URL never contains one: without it, message `ab` on URL `c` and message `a` on URL `bc` would share a hash. HogQL's `concat` reads a missing message or URL as an empty string, so every error gets a hash. This form dates from v1.1.0 (2026-10-19) and replaced the two-argument `cityHash64(a, b)`, which HogQL now rejects. Every hash value changed with it, so a hash recorded before it, such as a QA Sheet `PostHog Hash` cell or an older Linear body, will not match the new hash for the same error. Match such a record by its Linear URL or title instead, as `/qa-triage` and sync-triage-pulse already do when no hash matches. bug-intake keys a recurring parent on a `pattern:posthog-{error-hash-prefix}` label, and Linear had no such label when the hash changed, so no parent needed relabeling.
+
 ### `errors.recent`
 
 - **Lens**: product-quality
 - **Default privacy**: public-safe (aggregate counts only)
-- **What it answers**: recent JS exceptions grouped by message + URL with affected-session counts.
+- **What it answers**: recent errors grouped by message + URL with affected-session counts.
+- **v1.1.0 (2026-10-19): handled errors count.** Reads `error_tracked` as well as `$exception`, leaves out user cancellations, and the hash keeps message and URL apart; see Error events and Error hash above.
 - **HogQL**:
   ```sql
   SELECT
-    cityHash64(toString(properties.$exception_message), toString(properties.$current_url)) AS error_hash,
-    properties.$exception_type AS exception_type,
-    properties.$exception_message AS message,
+    replaceRegexpAll(replaceRegexpOne(coalesce(properties.$exception_message, properties.error_message), '^([A-Za-z]*Error: |Non-Error promise rejection captured with value: )', ''), '0x[a-fA-F0-9]{40}', '[REDACTED_WALLET]') AS message,
+    cityHash64(concat(toString(message), '\n', toString(properties.$current_url))) AS error_hash,
+    coalesce(properties.$exception_type, properties.error_type) AS exception_type,
     properties.$current_url AS current_url,
     count(DISTINCT $session_id) AS affected_sessions,
     count(DISTINCT distinct_id) AS affected_users,
     min(timestamp) AS first_seen,
     max(timestamp) AS last_seen
   FROM events
-  WHERE event = '$exception' AND timestamp > now() - interval {window:String}
+  WHERE event IN ('$exception', 'error_tracked') AND timestamp > now() - interval {window:String}
+    AND NOT (coalesce(properties.contract_error_name, '') = 'UserRejected' OR match(lower(coalesce(properties.$exception_message, properties.error_message, '')), 'user rejected|user denied|rejected by user|user cancelled|user canceled|rejected the request|user declined|action_rejected|transaction cancelled|transaction canceled'))
   GROUP BY error_hash, exception_type, message, current_url
   ORDER BY affected_sessions DESC
   LIMIT 50
   ```
 - **Bind variables**: `{ window: "24h" | "7d" | "30d" }` (default `24h`)
 - **Output schema**:
-  - `error_hash`, `exception_type`, `message`, `current_url` — public
+  - `error_hash`, `exception_type`, `message` — public
+  - `current_url` — private; share the app surface instead (see Error events above)
   - `affected_sessions`, `affected_users` — public
   - `first_seen`, `last_seen` — public
-- **Required emit-side events**: `$exception` (PostHog auto-captures via `posthog.captureException`)
+- **Required emit-side events**: `$exception` (PostHog exception autocapture) or `error_tracked` (`trackError`)
 - **Used by**: `bug-intake` (Phase 1 enrichment), `/debug`
 
 ### `errors.detail`
@@ -148,34 +155,34 @@ Private-default. The eight bug-intake / debug / release-health questions.
 - **Lens**: product-quality
 - **Default privacy**: private-only (returns replay URLs and per-session rows)
 - **What it answers**: full detail for one error hash including a sample of the top stack frame plus per-session replay links.
+- **v1.1.0 (2026-10-19): handled errors count.** Reads `error_tracked` as well as `$exception`, leaves out user cancellations, and the hash keeps message and URL apart; see Error events and Error hash above. `sample_stack` now reads the top frame of `error_stack`, because `$exception_stack_trace_raw` was never recorded, and the hash filter moved to `HAVING`, since HogQL cannot read a `SELECT` alias in `WHERE`.
 - **HogQL**:
   ```sql
-  WITH matches AS (
-    SELECT *
-    FROM events
-    WHERE event = '$exception'
-      AND timestamp > now() - interval {window:String}
-      AND cityHash64(toString(properties.$exception_message), toString(properties.$current_url)) = {error_hash:UInt64}
-  )
   SELECT
-    properties.$exception_type AS exception_type,
-    properties.$exception_message AS message,
+    replaceRegexpAll(replaceRegexpOne(coalesce(properties.$exception_message, properties.error_message), '^([A-Za-z]*Error: |Non-Error promise rejection captured with value: )', ''), '0x[a-fA-F0-9]{40}', '[REDACTED_WALLET]') AS message,
+    cityHash64(concat(toString(message), '\n', toString(properties.$current_url))) AS error_hash,
+    coalesce(properties.$exception_type, properties.error_type) AS exception_type,
     properties.$current_url AS current_url,
     count(DISTINCT $session_id) AS affected_sessions,
     count(DISTINCT distinct_id) AS affected_users,
     min(timestamp) AS first_seen,
     max(timestamp) AS last_seen,
-    any(properties.$exception_stack_trace_raw) AS sample_stack,
+    any(nullIf(trim(arrayFirst(frame -> match(frame, '^ *at |@'), splitByChar('\n', coalesce(properties.error_stack, '')))), '')) AS sample_stack,
     arrayDistinct(groupArray(($session_id, distinct_id))) AS sessions
-  FROM matches
-  GROUP BY exception_type, message, current_url
+  FROM events
+  WHERE event IN ('$exception', 'error_tracked')
+    AND timestamp > now() - interval {window:String}
+    AND NOT (coalesce(properties.contract_error_name, '') = 'UserRejected' OR match(lower(coalesce(properties.$exception_message, properties.error_message, '')), 'user rejected|user denied|rejected by user|user cancelled|user canceled|rejected the request|user declined|action_rejected|transaction cancelled|transaction canceled'))
+  GROUP BY message, error_hash, exception_type, current_url
+  HAVING error_hash = {error_hash:UInt64}
   ```
 - **Bind variables**: `{ window: "7d", error_hash: 12345 }`
 - **Output schema**:
-  - `exception_type`, `message`, `current_url`, `affected_sessions`, `affected_users`, `first_seen`, `last_seen` — public
-  - `sample_stack` (top frame only, normalized) — public
+  - `error_hash`, `exception_type`, `message`, `affected_sessions`, `affected_users`, `first_seen`, `last_seen` — public
+  - `current_url` — private; share the app surface instead (see Error events above)
+  - `sample_stack` (top frame only) — public. It is the first frame of `error_stack`, which `trackError` has already redacted, and null when only `$exception` saw the error, since PostHog keeps those frames in `$exception_list`.
   - `sessions[].session_id`, `sessions[].distinct_id`, `sessions[].replay_url` — private
-- **Required emit-side events**: `$exception`, `$session_id` autoassigned
+- **Required emit-side events**: `$exception` or `error_tracked`, `$session_id` autoassigned
 - **Used by**: `bug-intake` (Phase 1 enrichment), `/debug`
 
 ### `errors.recurring`
@@ -183,24 +190,26 @@ Private-default. The eight bug-intake / debug / release-health questions.
 - **Lens**: product-quality
 - **Default privacy**: public-safe
 - **What it answers**: distinct-session count per error hash over a 30-day window — the input to bug-intake's recurring-pattern roll-up (≥50 sessions threshold).
+- **v1.1.0 (2026-10-19): handled errors count.** Reads `error_tracked` as well as `$exception`, leaves out user cancellations, and the hash keeps message and URL apart; see Error events and Error hash above. No error reached the 50-session threshold either way on 2026-10-19: the largest App group had 36 sessions.
 - **HogQL**:
   ```sql
   SELECT
-    cityHash64(toString(properties.$exception_message), toString(properties.$current_url)) AS error_hash,
-    properties.$exception_message AS message,
+    replaceRegexpAll(replaceRegexpOne(coalesce(properties.$exception_message, properties.error_message), '^([A-Za-z]*Error: |Non-Error promise rejection captured with value: )', ''), '0x[a-fA-F0-9]{40}', '[REDACTED_WALLET]') AS message,
+    cityHash64(concat(toString(message), '\n', toString(properties.$current_url))) AS error_hash,
     count(DISTINCT $session_id) AS sessions_30d,
     count(DISTINCT distinct_id) AS users_30d,
     min(timestamp) AS first_seen,
     max(timestamp) AS last_seen
   FROM events
-  WHERE event = '$exception' AND timestamp > toDateTime({since:String})
+  WHERE event IN ('$exception', 'error_tracked') AND timestamp > toDateTime({since:String})
+    AND NOT (coalesce(properties.contract_error_name, '') = 'UserRejected' OR match(lower(coalesce(properties.$exception_message, properties.error_message, '')), 'user rejected|user denied|rejected by user|user cancelled|user canceled|rejected the request|user declined|action_rejected|transaction cancelled|transaction canceled'))
   GROUP BY error_hash, message
   HAVING sessions_30d >= {threshold:UInt32}
   ORDER BY sessions_30d DESC
   ```
 - **Bind variables**: `{ since: "2026-04-07", threshold: 50 }`
 - **Output schema**: all fields public.
-- **Required emit-side events**: `$exception`
+- **Required emit-side events**: `$exception` or `error_tracked`
 - **Used by**: `bug-intake` (Phase 4 recurring-pattern roll-up)
 
 ### `errors.match-bug-report`
@@ -208,27 +217,30 @@ Private-default. The eight bug-intake / debug / release-health questions.
 - **Lens**: product-quality
 - **Default privacy**: private-only (matches may include single-user evidence)
 - **What it answers**: free-text fuzzy match between a verbatim bug-report quote and recent error messages or event names.
+- **v1.1.0 (2026-10-19): handled errors count.** Reads `error_tracked` as well as `$exception`, leaves out user cancellations, and the hash keeps message and URL apart; see Error events and Error hash above.
 - **HogQL**:
   ```sql
   SELECT
-    cityHash64(toString(properties.$exception_message), toString(properties.$current_url)) AS error_hash,
-    properties.$exception_message AS message,
+    replaceRegexpAll(replaceRegexpOne(coalesce(properties.$exception_message, properties.error_message), '^([A-Za-z]*Error: |Non-Error promise rejection captured with value: )', ''), '0x[a-fA-F0-9]{40}', '[REDACTED_WALLET]') AS message,
+    cityHash64(concat(toString(message), '\n', toString(properties.$current_url))) AS error_hash,
     properties.$current_url AS current_url,
     count(DISTINCT $session_id) AS affected_sessions,
     max(timestamp) AS last_seen,
-    positionUTF8(lower(properties.$exception_message), lower({snippet:String})) AS confidence_signal
+    positionUTF8(lower(message), lower({snippet:String})) AS confidence_signal
   FROM events
-  WHERE event = '$exception'
+  WHERE event IN ('$exception', 'error_tracked')
     AND timestamp > now() - interval 14 day
-    AND positionUTF8(lower(properties.$exception_message), lower({snippet:String})) > 0
+    AND NOT (coalesce(properties.contract_error_name, '') = 'UserRejected' OR match(lower(coalesce(properties.$exception_message, properties.error_message, '')), 'user rejected|user denied|rejected by user|user cancelled|user canceled|rejected the request|user declined|action_rejected|transaction cancelled|transaction canceled'))
   GROUP BY error_hash, message, current_url
+  HAVING confidence_signal > 0
   ORDER BY affected_sessions DESC
   LIMIT 20
   ```
 - **Bind variables**: `{ snippet: "stack frame text" }`
 - **Output schema**:
-  - `error_hash`, `message`, `current_url`, `affected_sessions`, `last_seen`, `confidence_signal` — public
-- **Required emit-side events**: `$exception`
+  - `error_hash`, `message`, `affected_sessions`, `last_seen`, `confidence_signal` — public
+  - `current_url` — private; share the app surface instead (see Error events above)
+- **Required emit-side events**: `$exception` or `error_tracked`
 - **Used by**: `bug-intake` (Drive Phase 3 fuzzy match), `/debug`
 
 ### `replay.user-sessions`
@@ -318,26 +330,28 @@ Private-default. The eight bug-intake / debug / release-health questions.
 - **Lens**: product-quality
 - **Default privacy**: public-safe
 - **What it answers**: the top 10 errors in a window, ranked by affected-user count rather than session count (better signal for prioritization).
+- **v1.1.0 (2026-10-19): handled errors count.** Reads `error_tracked` as well as `$exception`, leaves out user cancellations, and the hash keeps message and URL apart; see Error events and Error hash above.
 - **HogQL**:
   ```sql
   SELECT
-    cityHash64(toString(properties.$exception_message), toString(properties.$current_url)) AS error_hash,
-    properties.$exception_type AS exception_type,
-    properties.$exception_message AS message,
+    replaceRegexpAll(replaceRegexpOne(coalesce(properties.$exception_message, properties.error_message), '^([A-Za-z]*Error: |Non-Error promise rejection captured with value: )', ''), '0x[a-fA-F0-9]{40}', '[REDACTED_WALLET]') AS message,
+    cityHash64(concat(toString(message), '\n', toString(properties.$current_url))) AS error_hash,
+    coalesce(properties.$exception_type, properties.error_type) AS exception_type,
     properties.$current_url AS current_url,
     count(DISTINCT distinct_id) AS affected_users,
     count(DISTINCT $session_id) AS affected_sessions,
     min(timestamp) AS first_seen,
     max(timestamp) AS last_seen
   FROM events
-  WHERE event = '$exception' AND timestamp > now() - interval {window:String}
+  WHERE event IN ('$exception', 'error_tracked') AND timestamp > now() - interval {window:String}
+    AND NOT (coalesce(properties.contract_error_name, '') = 'UserRejected' OR match(lower(coalesce(properties.$exception_message, properties.error_message, '')), 'user rejected|user denied|rejected by user|user cancelled|user canceled|rejected the request|user declined|action_rejected|transaction cancelled|transaction canceled'))
   GROUP BY error_hash, exception_type, message, current_url
   ORDER BY affected_users DESC
   LIMIT 10
   ```
 - **Bind variables**: `{ window: "7d" }`
-- **Output schema**: every field public.
-- **Required emit-side events**: `$exception`
+- **Output schema**: every field public except `current_url`, which is private; share the app surface instead (see Error events above).
+- **Required emit-side events**: `$exception` or `error_tracked`
 - **Used by**: deferred (`health-watch` or a future release-health digest).
 
 ---
@@ -721,7 +735,7 @@ A routine wiring this library should:
 
 Versions are recorded **inline on the question entry** as a dated `vX.Y.Z` bullet (see
 `failures.conversion-kill` v1.3.0). The `version:` front-matter field this section used to
-reference did not survive the move out of `.claude/skills/posthog-questions/SKILL.md`, and no
+reference was removed when `.claude/skills/posthog-questions/SKILL.md` was retired. No
 routine doc carries one — don't reintroduce it, record the bump on the question instead.
 
 Bump a question's inline version when:

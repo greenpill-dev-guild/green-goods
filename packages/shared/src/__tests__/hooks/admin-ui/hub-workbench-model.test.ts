@@ -46,6 +46,7 @@ describe("buildHubStageModel stageCounts", () => {
       confirmCount: 3,
       works: [],
     });
+    expect(steward.fallbackStage).toBe("work");
     expect(steward.stageCounts.confirm).toBe(3);
     expect(steward.stageVisibility.confirm).toBe(true);
     expect(steward.stages.map((stage) => stage.id)).toEqual([
@@ -222,6 +223,10 @@ describe("Hub create-route stage resolution (two-click investigation)", () => {
       routedAssessmentIdParam: undefined,
       activeContentId: null,
     });
+
+  it.each(["/hub/confirm", "/hub/confirm/9"])("resolves %s to Confirm", (path) => {
+    expect(routeStateFor(path).requestedStage).toBe("confirm");
+  });
 
   it("treats /hub/assess/create as the assess stage with no sheet content", () => {
     const s = routeStateFor("/hub/assess/create");

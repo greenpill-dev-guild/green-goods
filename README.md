@@ -3,9 +3,9 @@
 [![Version](https://img.shields.io/github/v/tag/greenpill-dev-guild/green-goods)](https://github.com/greenpill-dev-guild/green-goods/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-**Community infrastructure for documenting, reviewing, and funding regenerative work.**
+**Green Goods helps communities name their needs, make promises, document regenerative work, review it together, and turn the record into support.**
 
-Green Goods helps communities organize environmental and social work, from tree planting
+It helps them organize environmental and social work, from tree planting
 and waste collection to solar maintenance and education. A community workspace is called
 a **garden**: it can represent a neighborhood, cooperative, campus, or local project.
 
@@ -68,7 +68,7 @@ workflows may require additional credentials or roles; public browsing does not 
 ### Team members
 
 Use the host profile and your team's 1Password access. Environment requirements and
-recovery are explained in [Environment Management](https://docs.greengoods.app/builders/env-management).
+recovery are explained in [Getting Started](https://docs.greengoods.app/builders/getting-started#environment).
 
 Existing `.env` files are kept. Review readiness before explicitly replacing local credentials.
 **Confirmed transactions affect live Arbitrum.**
@@ -85,8 +85,8 @@ bun run dev
 ```
 
 Host setup installs dependencies and reports the environment steps; it does not create
-a secret-filled `.env`. Use `node scripts/dev/env-template-init.js` only if no template exists.
-Keep personal credentials in the root `.env` and shared references in `env.template`.
+a secret-filled `.env`. `bun run env:sync` writes one from `env.schema`, resolving its 1Password
+references. Keep personal credentials in the root `.env` and shared references in `env.schema`.
 
 **Default development uses live Arbitrum**, with local client, admin, agent, and indexer
 services. It does not start Anvil. Wallet and passkey confirmations can send real transactions.

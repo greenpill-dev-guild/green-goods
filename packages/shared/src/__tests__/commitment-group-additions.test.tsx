@@ -33,7 +33,10 @@ const CONFIRMER = "0x3333333333333333333333333333333333333333" as Address;
 const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as Address;
 const ZERO = "0x0000000000000000000000000000000000000000" as Address;
 
-const chain = vi.hoisted(() => ({ creator: "0x1111111111111111111111111111111111111111" }));
+const chain = vi.hoisted(() => ({
+  creator: "0x1111111111111111111111111111111111111111",
+  rail: 0,
+}));
 const send = vi.hoisted(() => ({
   script: (_copy: CreationCopy): Partial<SeedCopyProgress> => ({ status: "created" }),
   inputs: [] as CreationSendInput[],
@@ -115,7 +118,7 @@ vi.mock("../utils/blockchain/contracts", () => ({
               needUID: `0x${"0".repeat(64)}`,
               counterCommitmentId: 0n,
               metadataCID: "bafy-group-document",
-              consideration: { rail: 0, source: GARDEN, token: GARDEN, amount: 0n },
+              consideration: { rail: chain.rail, source: GARDEN, token: GARDEN, amount: 0n },
               declaredUnitValue: 0n,
               declaredValueBasis: "",
             },
@@ -127,6 +130,7 @@ beforeEach(() => {
   send.inputs = [];
   send.script = () => ({ status: "created" });
   chain.creator = STEWARD;
+  chain.rail = 0;
 });
 
 /** How `getCommitment` decodes a copy of a garden-work group, trimmed to what matters. */
@@ -271,6 +275,12 @@ describe("useAddToGroup", () => {
     expect(first![0]!.payload.metadataCID).toBe("bafy-group-document");
   });
 
+  it("blocks a rewarded template before queuing or sending new copies", async () => {
+    chain.rail = 2;
+    expect(await setup().add(3)).toBe("blocked");
+    expect(send.inputs).toEqual([]);
+  });
+
   it("checks the deadline again on Try Again, and sends nothing once it has passed", async () => {
     const soon = BigInt(Math.floor(Date.now() / 1000) + 60);
     const { add } = setup({ dueDate: soon });
@@ -307,6 +317,31 @@ describe("useAddToGroup", () => {
 });
 
 describe("useFinishCreating", () => {
+  it("leaves unsent rewards out of Finish Creating and still reconciles recorded copies", async () => {
+    const reward = job("reward", "group-00000001");
+    const payload = { ...reward.payload, consideration: { rail: 2 } };
+    const jobs = [
+      { ...reward, payload },
+      {
+        ...reward,
+        id: "recorded",
+        payload: { ...payload, clientCommitmentId: "recorded" },
+        meta: { submittedTxHash: `0x${"44".repeat(32)}` },
+      },
+    ] as never;
+    vi.mocked(jobQueue.getJobs).mockResolvedValueOnce(jobs).mockResolvedValueOnce(jobs);
+    const view = renderHookWithProviders(() =>
+      useFinishCreating({ chainId: 42161, owner: STEWARD })
+    );
+    await waitFor(() =>
+      expect(view.result.current.waiting.get("group-00000001")).toEqual(["recorded"])
+    );
+    await act(async () => {
+      await view.result.current.finish("group-00000001");
+    });
+    expect(send.inputs[0]?.copies.map((copy) => copy.clientCommitmentId)).toEqual(["recorded"]);
+  });
+
   it("reads which of the steward's queued copies belong to which group on this chain", async () => {
     const view = renderHookWithProviders(() =>
       useFinishCreating({ chainId: 42161, owner: STEWARD })

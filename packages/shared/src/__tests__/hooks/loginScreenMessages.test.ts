@@ -60,7 +60,7 @@ describe("getFriendlyLoginErrorMessage", () => {
     const cancelled = new Error("The operation was not allowed.");
     cancelled.name = "NotAllowedError";
 
-    expect(getFriendlyLoginErrorMessage(cancelled, intl)).toBe("Sign in was cancelled.");
+    expect(getFriendlyLoginErrorMessage(cancelled, intl)).toBe("Sign in was canceled.");
     // The same dismissal while an account was being made: what matters is that none was.
     expect(getFriendlyLoginErrorMessage(cancelled, intl, { creating: true })).toBe(
       "No account was created. Try again."

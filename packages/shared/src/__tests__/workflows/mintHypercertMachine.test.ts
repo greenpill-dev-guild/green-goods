@@ -8,7 +8,6 @@
 import type { Address, Hex } from "viem";
 import { describe, expect, it, vi } from "vitest";
 import { createActor, fromPromise } from "xstate";
-import { flushPromises } from "../test-utils/render-helpers";
 
 // Custom waitFor that doesn't require DOM (for pure XState tests)
 async function waitFor(
@@ -26,7 +25,7 @@ async function waitFor(
       if (Date.now() - start >= timeout) {
         throw new Error(`waitFor timed out after ${timeout}ms`);
       }
-      await flushPromises();
+      await Promise.resolve();
     }
   }
 }

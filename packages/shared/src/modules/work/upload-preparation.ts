@@ -14,11 +14,17 @@
 import type { Address } from "../../types/domain";
 import type { Job } from "../../types/job-queue";
 import { logger } from "../app/logger";
+import { appCodeRecovery } from "../app/cache-recovery";
 import type { WorkClaim } from "../job-queue/work-claims";
 import type { PreparationResult } from "./prepare-queued-work";
 import { isUploadJob, queuedUploadStatus } from "./upload-state";
 
-export type UploadPreparationPause = "unconfirmed" | "hidden" | "data-saver" | "uploading";
+export type UploadPreparationPause =
+  | "unconfirmed"
+  | "hidden"
+  | "data-saver"
+  | "uploading"
+  | "app-code";
 
 export interface UploadPreparationSnapshot {
   /** The item being prepared right now. */
@@ -120,6 +126,7 @@ export function createUploadPreparation(ports: UploadPreparationPorts): UploadPr
   const recheckedBlocked = new Set<string>();
 
   const pauseReason = async (): Promise<UploadPreparationPause | null> => {
+    if (appCodeRecovery.getSnapshot()) return "app-code";
     if (suspended > 0) return "uploading";
     if (!ports.isVisible()) return "hidden";
     if (ports.isDataSaverOn() && !snapshot.dataSaverOverride) return "data-saver";
@@ -207,7 +214,7 @@ export function createUploadPreparation(ports: UploadPreparationPorts): UploadPr
    */
   const scheduleRetry = () => {
     clearTimeout(retryTimer);
-    if (stopped) return;
+    if (stopped || appCodeRecovery.getSnapshot()) return;
     const ahead = [...retries.values()].map(({ at }) => at).filter((at) => at > ports.now());
     if (ahead.length > 0) retryTimer = setTimeout(start, Math.min(...ahead) - ports.now());
   };

@@ -1,3 +1,4 @@
+import { SETTLEMENT_ENABLED } from "@green-goods/shared/config/app";
 import type { DisputeResolutionKey } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import { useCommitmentDialogController } from "@green-goods/shared/hooks/admin-ui/pool/useCommitmentDialogController";
 import { useSettlementAccount } from "@green-goods/shared/hooks/commitment-pooling/useSettlementQueries";
@@ -96,7 +97,7 @@ function CommitmentRecord({
   }, [focus, loaded, asksShown]);
   const offlineNote = formatMessage({
     id: "cockpit.garden.pool.offline",
-    defaultMessage: "Needs a connection. Pool changes are sent straight to the chain.",
+    defaultMessage: "Needs a connection. Pool changes are sent right away, not queued.",
   });
 
   if (dialog.unavailable) {
@@ -115,7 +116,7 @@ function CommitmentRecord({
   const title =
     dialog.title ??
     formatMessage(
-      { id: "cockpit.garden.pool.row.untitled", defaultMessage: "Commitment {id}" },
+      { id: "cockpit.garden.pool.row.untitled", defaultMessage: "Promise {id}" },
       { id: commitment.commitmentId.toString() }
     );
   const actDisabled = !dialog.isOnline || dialog.isActing;
@@ -130,6 +131,7 @@ function CommitmentRecord({
   // document can say it stands alone: one still loading, or unread, may be a copy.
   const rewardWei = commitment.considerationAmount ?? 0n;
   const canEditReward =
+    SETTLEMENT_ENABLED &&
     dialog.isLocalSteward &&
     dialog.metadataKnown !== false &&
     !dialog.metadata?.displayGroup &&
@@ -341,7 +343,7 @@ function CommitmentRecord({
         )} ${formatMessage({
           id: "cockpit.garden.pool.commitment.reconciliation.warning",
           defaultMessage:
-            "Counting work can make the commitment ready for confirmation and freeze its contributor roster.",
+            "Counting work can make the promise ready for confirmation and freeze its contributor roster.",
         })}`}
         confirmLabel={formatMessage({
           id: "cockpit.garden.pool.commitment.reconciliation.confirm",

@@ -1,54 +1,92 @@
 ---
 title: Hypercerts
+sidebar_label: Hypercerts
 slug: /builders/integrations/hypercerts
 audience: developer
 owner: docs
+last_verified: 2026-10-15
 feature_status: Live
-generated: true
-generator: scripts/docs/generate.mjs
-generated_from:
-  - packages/contracts/config/schemas.json
-  - packages/contracts/deployments/1-latest.json
-  - packages/contracts/deployments/11155111-latest.json
-  - packages/contracts/deployments/42161-latest.json
-  - packages/contracts/deployments/42220-latest.json
-  - packages/contracts/deployments/networks.json
-  - packages/contracts/src/modules/Hypercerts.sol
-  - packages/indexer/config.yaml
-  - packages/shared/src/config/chains.ts
-  - packages/shared/src/ontology/green-goods-ontology.json
-  - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:113ce72dca4acbf865eef876e48e653d4242afb8b02aba1fcd2b4c550ab4416a"
 source_of_truth:
-  - packages/contracts/config/schemas.json
-  - packages/contracts/deployments/1-latest.json
-  - packages/contracts/deployments/11155111-latest.json
-  - packages/contracts/deployments/42161-latest.json
-  - packages/contracts/deployments/42220-latest.json
-  - packages/contracts/deployments/networks.json
-  - packages/contracts/src/modules/Hypercerts.sol
-  - packages/indexer/config.yaml
-  - packages/shared/src/config/chains.ts
   - packages/shared/src/ontology/green-goods-ontology.json
-  - packages/shared/src/ontology/green-goods-projections.json
+  - docs/src/data/integration-projections.json
+  - packages/contracts/src/modules/Hypercerts.sol
+  - packages/shared/src/modules/data/hypercerts-fetch.ts
+  - packages/shared/src/modules/data/hypercerts-metadata.ts
+  - packages/shared/src/modules/data/hypercerts-repository.ts
+  - packages/shared/src/modules/data/hypercerts-attestations.ts
+  - packages/shared/src/hooks/hypercerts
+keywords:
+  - hypercerts
+  - impact certificates
+  - fractions
 ---
 
-<!-- GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs -- --scope <scope>`. -->
+import {IntegrationProjection} from "@site/src/components/docs";
+
 # Hypercerts
 
-Hypercerts represent certified impact claims and their fraction ownership.
+[Hypercerts](https://hypercerts.org) represent an impact claim with ownable fractions. The admin
+wizard starts from approved work and records each contributor's share. Claiming and buying those
+shares inside Green Goods remain unavailable; the [steward guide](/community/steward-guide/creating-impact-certificates)
+explains the current limits. This wizard does not select or certify a commitment-pool cycle.
 
-## Checked-in deployment projection
+```mermaid
+flowchart TB
+  accTitle: Impact certificate minting boundary
+  accDescr: The admin wizard selects approved work, prepares metadata and shares, then mints and registers a certificate. Fraction claiming and purchase are outside the current app flow.
+  work["Approved work"] --> wizard["Wizard · metadata and shares"]
+  wizard --> mint["Mint and register certificate"]
+  mint --> record["Public certificate record"]
+```
 
-| Network | Status | Recorded components |
-|---|---|---|
-| Sepolia Testnet (`11155111`) | Partial | `hypercertsModule` |
-| Arbitrum One (`42161`) | Deployed | `hypercertExchange`, `hypercertMinter`, `hypercertsModule` |
+## How it flows
 
-Networks without recorded components are omitted; per-network state lives in the [deployment status projection](/builders/deployments/status).
+In the admin wizard a certificate starts from work that's already approved, so a claim minted
+there traces back to real records. The contract does not enforce that rule: `registerHypercert`
+checks operator authority, pause state, and that the claim is minted, and
+`createAllowlistAndRegister` takes a metadata URI with no Work or Work Approval UID, so an operator
+calling the module directly can register any minted claim. Treat approved work as the
+application's constraint, not the contract's.
 
-## Indexer boundary
+<div className="gg-figure-grid">
 
-Configured indexer contracts: `HypercertMinter`.
+  <figure className="gg-figure">
+    <img src="/img/builders/site-impact.webp" alt="The public Impact page: a hero reading See how Garden work becomes evidence, above counts of the work, assessments, and gardens in the public record" loading="lazy" width="2000" height="1250" />
+    <figcaption>Anyone can read certificates and their supporting records on the Impact page.</figcaption>
+  </figure>
+</div>
 
-A deployment artifact does not by itself prove product activation, live indexing, or partner-service health. Follow the owning package runbook for operational verification.
+## Where it lives in the code
+
+| Layer | Source |
+|---|---|
+| Module | `packages/contracts/src/modules/Hypercerts.sol` |
+| Data access | `packages/shared/src/modules/data/hypercerts*.ts` (fetch, metadata, repository, attestations) |
+| Hooks | `packages/shared/src/hooks/hypercerts` |
+
+The steward-facing flow lives in the community docs'
+[minting guide](/community/steward-guide/creating-impact-certificates); these sources are the
+machinery under it.
+
+<IntegrationProjection id="hypercerts" />
+
+## Working with it locally
+
+The [fork mode](../getting-started#other-modes) (`bun run dev -- fork`) runs a local fork of
+Arbitrum One with the minter and exchange contracts present, so mint flows run locally without
+real funds.
+
+## Canonical upstream docs
+
+- [hypercerts.org](https://hypercerts.org) for the standard and its ecosystem.
+- [The Hypercerts docs](https://hypercerts.org/docs) for minting, metadata, and fraction
+  mechanics.
+- [app.hypercerts.org](https://app.hypercerts.org) to browse minted hypercerts and their
+  fractions.
+
+
+## Next steps
+
+- [Anatomy of a Work Submission](/builders/architecture/anatomy) shows the approved work a hypercert bundles.
+- [Octant](/builders/integrations/octant) covers the vaults that fund gardens.
+- [Karma GAP](/builders/integrations/karma) reports the same progress to grant programs.

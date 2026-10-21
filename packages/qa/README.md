@@ -85,7 +85,7 @@ SHAs) beside the per-run shards, and exactly one run is open at any time:
   failing, regressed, and newly walked, and the **Re-QA** filter lists what the compared run left
   failing or blocked. A verdict on a case retired since that run is read on each active successor
   named by the catalog's `replacedBy` chain (the build ships that reverse map as `replaces`) and
-  labelled *inherited*.
+  labeled *inherited*.
 
 ### Work stranded by a closed run
 
@@ -94,7 +94,7 @@ happens to it depends on who typed it, because the page cannot tell a verdict re
 from one recorded on another day:
 
 - **Typed in this page session** — it follows the run boundary and is sent, which is the case the
-  behaviour exists for: a tester mid-save when a teammate rolls over, where losing the work is the
+  behavior exists for: a tester mid-save when a teammate rolls over, where losing the work is the
   worse outcome.
 - **Recovered from storage** — it stays under the run it was recorded in and is offered instead, with
   how many cases it holds and when the tester last edited them. They send it to the open run or keep
@@ -194,7 +194,7 @@ commitment records: the protocol Request stays in the protocol pool with the Gar
 then the Garden creates a separate local commitment for its member. The treasury top-up has no
 commitment identity and does not substitute for earned compensation.
 
-Two-person sessions use two allowlisted wallets throughout. The protocol reviewer and Garden member
+Two-person sessions use two allowlisted wallets throughout. The protocol reviewer and garden member
 each select their own Part, wait for the other person to observe every named handoff, and may both
 record a verdict on explicitly shared verification cases. Existing results remain keyed only by Test
 ID and signing wallet, so Journey mode needs no state API, Blob, or migration change.
@@ -241,8 +241,7 @@ or the repository root `.env`; do not add a package-level `.env`.
 3. **Enable "Include source files outside of the Root Directory in the Build Step"** — required, not
    optional. `build.mjs` reads `scripts/data/qa-test-catalog.json` from the repository root, which
    the build sandbox excludes without this, and the deploy fails on a missing catalog. The
-   Storybook project needs the same setting for the same reason
-   (`docs/docs/builders/testing/storybook.mdx`).
+   Storybook project (`packages/shared/vercel.json`) needs the same setting for the same reason.
 4. **Set wallet authentication environment** — add `QA_SESSION_SECRET` and `QA_ALLOWLIST` as described
    above. Confirm the connected Blob store supplied `BLOB_READ_WRITE_TOKEN`.
 5. **Verify** before relying on it: use two allowlisted wallets in two browser profiles, sign in, and

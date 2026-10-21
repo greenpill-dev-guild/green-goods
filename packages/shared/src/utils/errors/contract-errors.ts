@@ -510,7 +510,7 @@ export function parseContractError(error: unknown): ParsedContractError {
     return {
       raw: signature ?? errorStr,
       name: "UserRejected",
-      message: "Transaction cancelled. Try again when you're ready.",
+      message: "Transaction canceled. Try again when you're ready.",
       isKnown: true,
       recoverable: true,
       suggestedAction: "retry",

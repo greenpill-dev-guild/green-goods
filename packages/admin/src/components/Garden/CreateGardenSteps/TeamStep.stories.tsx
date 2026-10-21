@@ -132,3 +132,19 @@ export const StateCatalog: Story = {
     </div>
   ),
 };
+
+export const Documentation: Story = {
+  decorators: [
+    (Story) => (
+      <WithStoreState
+        gardeners={[
+          "0x1111111111111111111111111111111111111111",
+          "0x2222222222222222222222222222222222222222",
+        ]}
+        stewards={["0x3333333333333333333333333333333333333333"]}
+      >
+        <Story />
+      </WithStoreState>
+    ),
+  ],
+};

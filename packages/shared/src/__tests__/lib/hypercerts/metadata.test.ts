@@ -10,6 +10,7 @@ import type {
   HypercertDraft,
 } from "../../../types/hypercerts";
 import { DEFAULT_PROTOCOL_VERSION } from "../../../lib/hypercerts/constants";
+import { validateMetadata } from "../../../lib/hypercerts/validation";
 
 // ============================================
 // Test Helpers
@@ -431,27 +432,28 @@ describe("formatHypercertMetadata", () => {
       expect(result.hidden_properties?.outcomes.predefined.trees.value).toBe(30);
     });
 
-    it("derives domain from first attestation", () => {
-      const draft = createMockDraft();
-      const attestations = [
-        createMockAttestation({ domain: "education" }),
-        createMockAttestation({ domain: "agroforestry" }),
-      ];
+    it.each([
+      ["the domain its work shares", ["education", "education"], "education"],
+      ["the one domain named, beside work that names none", [undefined, "waste"], "waste"],
+      ["no domain when its work names two", ["education", "agroforestry"], undefined],
+    ] as const)("names %s", (_case, domains, expected) => {
+      const attestations = domains.map((domain) => createMockAttestation({ domain }));
 
-      const result = format({ draft, attestations });
+      const result = format({ draft: createMockDraft(), attestations });
 
-      expect(result.hidden_properties?.domain).toBe("education");
+      expect(result.hidden_properties?.domain).toBe(expected);
     });
 
-    it("defaults domain to mutual_credit when not found", () => {
+    it("omits domain when no attestation names one, and still passes upload validation", () => {
       const draft = createMockDraft();
       const attestations = [
-        createMockAttestation({ domain: undefined }),
+        createMockAttestation({ id: `0x${"1".repeat(64)}`, domain: undefined }),
       ];
 
       const result = format({ draft, attestations });
 
-      expect(result.hidden_properties?.domain).toBe("mutual_credit");
+      expect(result.hidden_properties).not.toHaveProperty("domain");
+      expect(validateMetadata(result)).toEqual({ valid: true, errors: {} });
     });
 
     it("includes protocol version", () => {

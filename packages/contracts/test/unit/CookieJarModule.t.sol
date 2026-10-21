@@ -690,17 +690,6 @@ contract CookieJarModuleTest is Test {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // Storage Gap
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    function test_storageGap_totalSlots() public {
-        // CookieJarModule has 12 explicit vars + 38 gap = 50 total slots
-        // This test just verifies the contract compiles with the gap annotation
-        // The actual gap is verified by StorageLayout.t.sol
-        assertTrue(true, "Storage gap compiles correctly");
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
     // Initialize — New Fields
     // ═══════════════════════════════════════════════════════════════════════════
 

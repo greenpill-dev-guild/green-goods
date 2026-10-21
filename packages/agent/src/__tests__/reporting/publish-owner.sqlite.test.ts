@@ -48,7 +48,7 @@ describe("switching account after cancelling", () => {
     await harness.drain();
     // The report has a prepared operation waiting for the owner's signature.
     expect((await harness.say(ADA, "DISCONNECT"))[0]).toContain("can't disconnect it yet");
-    expect((await harness.say(ADA, "CANCEL"))[0]).toContain("Report cancelled");
+    expect((await harness.say(ADA, "CANCEL"))[0]).toContain("Report canceled");
     // The cancelled report's operation stays in the table; it no longer holds the account.
     expect((await harness.say(ADA, "SWITCH"))[0]).toContain("This chat is no longer connected to");
   });

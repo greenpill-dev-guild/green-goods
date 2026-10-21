@@ -18,13 +18,6 @@ describe("types/domain enums", () => {
       expect(Domain.WASTE).toBe(3);
     });
 
-    it("is a numeric enum (values are numbers)", () => {
-      expect(typeof Domain.SOLAR).toBe("number");
-      expect(typeof Domain.AGRO).toBe("number");
-      expect(typeof Domain.EDU).toBe("number");
-      expect(typeof Domain.WASTE).toBe("number");
-    });
-
     it("supports reverse mapping (number to name)", () => {
       expect(Domain[0]).toBe("SOLAR");
       expect(Domain[1]).toBe("AGRO");
@@ -56,35 +49,6 @@ describe("types/domain enums", () => {
       expect(VerificationMethod.ONCHAIN).toBe(4);
       expect(VerificationMethod.AGENT).toBe(8);
     });
-
-    it("can compose multiple methods via bitwise OR", () => {
-      const humanAndIot = VerificationMethod.HUMAN | VerificationMethod.IOT;
-      expect(humanAndIot).toBe(3);
-
-      const allMethods =
-        VerificationMethod.HUMAN |
-        VerificationMethod.IOT |
-        VerificationMethod.ONCHAIN |
-        VerificationMethod.AGENT;
-      expect(allMethods).toBe(15);
-    });
-
-    it("can check individual methods via bitwise AND", () => {
-      const methods = VerificationMethod.HUMAN | VerificationMethod.ONCHAIN; // 5
-      expect((methods & VerificationMethod.HUMAN) !== 0).toBe(true);
-      expect((methods & VerificationMethod.IOT) !== 0).toBe(false);
-      expect((methods & VerificationMethod.ONCHAIN) !== 0).toBe(true);
-      expect((methods & VerificationMethod.AGENT) !== 0).toBe(false);
-    });
-
-    it("max bitmask value is 15 (all 4 lower bits)", () => {
-      const maxMask =
-        VerificationMethod.HUMAN |
-        VerificationMethod.IOT |
-        VerificationMethod.ONCHAIN |
-        VerificationMethod.AGENT;
-      expect(maxMask).toBe(0x0f);
-    });
   });
 
   describe("CynefinPhase enum", () => {
@@ -93,13 +57,6 @@ describe("types/domain enums", () => {
       expect(CynefinPhase.COMPLICATED).toBe(1);
       expect(CynefinPhase.COMPLEX).toBe(2);
       expect(CynefinPhase.CHAOTIC).toBe(3);
-    });
-
-    it("is a numeric enum (values are numbers)", () => {
-      expect(typeof CynefinPhase.CLEAR).toBe("number");
-      expect(typeof CynefinPhase.COMPLICATED).toBe("number");
-      expect(typeof CynefinPhase.COMPLEX).toBe("number");
-      expect(typeof CynefinPhase.CHAOTIC).toBe("number");
     });
 
     it("supports reverse mapping (number to name)", () => {

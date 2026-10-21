@@ -67,7 +67,7 @@ export function PoolStatusCard({
   const cap = pool.pool?.providerOpenCommitmentCap ?? 0n;
   const offlineNote = formatMessage({
     id: "cockpit.garden.pool.offline",
-    defaultMessage: "Needs a connection. Pool changes are sent straight to the chain.",
+    defaultMessage: "Needs a connection. Pool changes are sent right away, not queued.",
   });
   const actDisabled = offline || isActing;
   // Resume stays closed from the wallet until the pool reads open again.
@@ -132,11 +132,11 @@ export function PoolStatusCard({
               model.readiness.cap
                 ? formatMessage({
                     id: "cockpit.garden.pool.setup.capDone",
-                    defaultMessage: "Commitment limit set",
+                    defaultMessage: "Promise limit set",
                   })
                 : formatMessage({
                     id: "cockpit.garden.pool.setup.capMissing",
-                    defaultMessage: "Commitment limit not set",
+                    defaultMessage: "Promise limit not set",
                   })
             }
           />
@@ -175,7 +175,7 @@ export function PoolStatusCard({
             <dt className="label-xs text-text-soft">
               {formatMessage({
                 id: "cockpit.garden.pool.status.cap",
-                defaultMessage: "Commitment limit",
+                defaultMessage: "Promise limit",
               })}
             </dt>
             <dd className="text-text-strong">
@@ -208,14 +208,14 @@ export function PoolStatusCard({
                 {
                   id: "cockpit.garden.pool.paused.withReason",
                   defaultMessage:
-                    "Paused: “{reason}”. Members keep adding proof and recovering commitments; making, claiming, and confirming wait.",
+                    "Paused: “{reason}”. Members keep adding proof and recovering promises; making, claiming, and confirming wait.",
                 },
                 { reason: pool.pauseReason.reason.reason }
               )
             : formatMessage({
                 id: "cockpit.garden.pool.paused.noReason",
                 defaultMessage:
-                  "Paused. Members keep adding proof and recovering commitments; making, claiming, and confirming wait.",
+                  "Paused. Members keep adding proof and recovering promises; making, claiming, and confirming wait.",
               })}
         </Alert>
       ) : null}
@@ -226,7 +226,7 @@ export function PoolStatusCard({
             {
               id: "cockpit.garden.pool.close.blocked",
               defaultMessage:
-                "{live, plural, one {# live commitment} other {# live commitments}} and {cycles, plural, one {# unfinished cycle} other {# unfinished cycles}} must be wound down before this pool can close.",
+                "{live, plural, one {# live promise} other {# live promises}} and {cycles, plural, one {# unfinished cycle} other {# unfinished cycles}} must be wound down before this pool can close.",
             },
             {
               live: (pool.pool?.liveCommitmentCount ?? 0n).toString(),
@@ -237,7 +237,7 @@ export function PoolStatusCard({
             <AdminButton type="button" variant="text" size="sm" onClick={onReviewLive}>
               {formatMessage({
                 id: "cockpit.garden.pool.close.reviewLive",
-                defaultMessage: "Review Live Commitments",
+                defaultMessage: "Review Live Promises",
               })}
             </AdminButton>
           ) : null}

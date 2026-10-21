@@ -3,6 +3,9 @@ import { useEffect, useLayoutEffect, useRef } from "react";
 const DOCUMENT_SCROLL_LOCK_CLASS = "modal-open";
 const documentScrollLockOwners = new Set<symbol>();
 const LOCKED_BODY_PROPERTIES = ["position", "top", "left", "width", "overflow"] as const;
+// react-remove-scroll marks the body with this while a Radix dialog holds its own scroll lock.
+const DIALOG_LIBRARY_LOCK_ATTRIBUTE = "data-scroll-locked";
+let dialogLibraryLockObserver: MutationObserver | null = null;
 let savedDocument: {
   left: number;
   top: number;
@@ -16,10 +19,40 @@ export function getDocumentScrollPosition(): { left: number; top: number } {
     : { left: window.scrollX, top: window.scrollY };
 }
 
+function stopWaitingForDialogLibraryLock(): void {
+  dialogLibraryLockObserver?.disconnect();
+  dialogLibraryLockObserver = null;
+}
+
+function waitForDialogLibraryLock(body: HTMLElement): void {
+  if (dialogLibraryLockObserver) return;
+  dialogLibraryLockObserver = new MutationObserver(() => {
+    if (!body.hasAttribute(DIALOG_LIBRARY_LOCK_ATTRIBUTE)) reconcileDocumentScrollLock();
+  });
+  dialogLibraryLockObserver.observe(body, {
+    attributes: true,
+    attributeFilter: [DIALOG_LIBRARY_LOCK_ATTRIBUTE],
+  });
+}
+
 function reconcileDocumentScrollLock(): void {
   if (typeof document === "undefined") return;
   const locked = documentScrollLockOwners.size > 0;
   const body = document.body;
+  // A Radix dialog releases its own lock one effect phase after its content, and so after the
+  // owner inside that content. Until then its rule clips the body to the viewport height, the
+  // document is too short to scroll, and restoring the position would leave the page at the
+  // top. Keep the body fixed where it is and finish the release once that lock is gone.
+  if (
+    !locked &&
+    savedDocument &&
+    body.hasAttribute(DIALOG_LIBRARY_LOCK_ATTRIBUTE) &&
+    typeof MutationObserver !== "undefined"
+  ) {
+    waitForDialogLibraryLock(body);
+    return;
+  }
+  stopWaitingForDialogLibraryLock();
   if (locked && !savedDocument) {
     savedDocument = {
       left: window.scrollX,
