@@ -48,7 +48,7 @@ jobs:
 
       - name: Download repair data from the validated origin run
         if: steps.origin.outputs.ready == 'true'
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
           artifact-ids: ${{ steps.origin.outputs.artifact-id }}
           merge-multiple: true

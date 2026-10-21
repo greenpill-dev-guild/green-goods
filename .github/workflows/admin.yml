@@ -227,7 +227,7 @@ jobs:
           node -e 'const fs = require("node:fs"); const path = "tests/test-results/results.json"; if (!fs.existsSync(path)) { console.log("::notice::Playwright results.json was not produced"); process.exit(0); } const results = JSON.parse(fs.readFileSync(path, "utf8")); console.log(`::notice::${results.stats?.skipped ?? 0} Playwright tests skipped`);'
 
       - name: Upload Playwright report
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
           name: admin-playwright-report
@@ -235,7 +235,7 @@ jobs:
           retention-days: 14
 
       - name: Upload test results
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
           name: admin-playwright-results
@@ -268,7 +268,7 @@ jobs:
 
       - name: Upload Lighthouse results
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: lighthouse-admin-results
           path: packages/admin/.lighthouseci/
