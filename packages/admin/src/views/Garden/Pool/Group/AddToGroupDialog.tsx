@@ -189,7 +189,7 @@ export function AddToGroupDialog({
 
   const footer = (
     <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
-      <p className="min-w-0 body-xs text-text-soft sm:flex-1" data-testid="add-prompt-count">
+      <p className="min-w-0 type-meta text-text-soft sm:flex-1" data-testid="add-prompt-count">
         <SeedFlowNote
           phase={status.phase}
           busy={status.busy}
@@ -332,8 +332,8 @@ export function AddToGroupDialog({
           <dl className="grid gap-x-4 gap-y-1 sm:grid-cols-[minmax(0,12rem)_minmax(0,1fr)]">
             {terms.map(([label, value]) => (
               <div key={label} className="contents">
-                <dt className="body-sm text-text-soft">{label}</dt>
-                <dd className="body-sm text-text-strong">{value}</dd>
+                <dt className="type-body text-text-soft">{label}</dt>
+                <dd className="type-body text-text-strong">{value}</dd>
               </div>
             ))}
           </dl>

@@ -75,7 +75,7 @@ export function SeedMoreDialog({
       }
     >
       <div className="space-y-3" data-testid="seed-more">
-        <p className="body-sm text-text-strong">{question}</p>
+        <p className="type-body text-text-strong">{question}</p>
         <AdminChoiceGroup
           ariaLabel={formatMessage({
             id: "cockpit.garden.pool.seedMore.choice",
@@ -133,7 +133,7 @@ export function SeedMoreDialog({
             },
           ]}
         />
-        <p className="body-xs text-text-soft">
+        <p className="type-meta text-text-soft">
           {formatMessage({
             id: "cockpit.garden.pool.seedMore.help",
             defaultMessage:

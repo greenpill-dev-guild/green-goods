@@ -49,7 +49,7 @@ export function CommitmentActions({
   return (
     <>
       {!isOnline ? (
-        <p className="body-xs text-warning-dark" role="status">
+        <p className="type-meta text-warning-dark" role="status">
           {offlineNote}
         </p>
       ) : null}

@@ -59,7 +59,7 @@ const ThemeBlock = ({ theme }: { theme: "light" | "dark" }) => (
     data-theme={theme}
     className="admin-m3 rounded-[var(--m3-shape-lg)] bg-[rgb(var(--m3-surface))] p-4"
   >
-    <div className="mb-3 text-label-md font-semibold uppercase text-[rgb(var(--m3-on-surface-variant))]">
+    <div className="mb-3 type-label-sm font-semibold uppercase text-[rgb(var(--m3-on-surface-variant))]">
       {theme}
     </div>
     <div className="max-w-md space-y-4">

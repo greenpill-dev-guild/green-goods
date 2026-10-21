@@ -123,7 +123,7 @@ export function AssessmentOutcomeFields({
 export function AssessmentOutcomeHelp({ helpIds }: { helpIds: Record<OutcomeField, string> }) {
   const { formatMessage } = useIntl();
   return (
-    <dl className="grid gap-2 body-xs sm:grid-cols-3">
+    <dl className="grid gap-2 type-meta sm:grid-cols-3">
       <div>
         <dt className="font-medium text-text-strong">
           {formatMessage({

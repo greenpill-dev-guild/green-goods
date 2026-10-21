@@ -36,7 +36,7 @@ export function CommitmentSummary({
     <>
       <header className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="whitespace-nowrap body-xs text-text-soft">
+          <span className="whitespace-nowrap type-meta text-text-soft">
             {directionLabel(commitment.direction, formatMessage)}
           </span>
           <StatusBadge variant={chip.variant} size="sm">
@@ -56,12 +56,12 @@ export function CommitmentSummary({
             </StatusBadge>
           ) : null}
         </div>
-        <h3 className="text-title-md font-semibold text-text-strong" title={title}>
+        <h3 className="type-title-md font-semibold text-text-strong" title={title}>
           {title}
         </h3>
         {/* Who it is between, in the pool row's words, then what it asks and when. */}
-        <p className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 body-sm text-text-soft">
-          <CommitmentPeople commitment={commitment} className="body-sm" />
+        <p className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 type-body text-text-soft">
+          <CommitmentPeople commitment={commitment} className="type-body" />
           <span>
             · {`${commitment.targetUnits.toString()} ${commitment.unitLabel ?? ""}`.trim()}
           </span>
@@ -75,12 +75,12 @@ export function CommitmentSummary({
             </span>
           ) : null}
         </p>
-        {note ? <p className="body-sm text-text-sub">{note}</p> : null}
+        {note ? <p className="type-body text-text-sub">{note}</p> : null}
       </header>
 
       {stage >= 0 ? (
         <ol
-          className="flex flex-wrap gap-1 body-xs"
+          className="flex flex-wrap gap-1 type-meta"
           aria-label={formatMessage({
             id: "cockpit.garden.pool.commitment.stages",
             defaultMessage: "Lifecycle",

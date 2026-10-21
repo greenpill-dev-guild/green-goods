@@ -54,7 +54,7 @@ export function CommunityCoordinationTab({
               <AdminCardTitle>
                 {formatMessage({ id: "cockpit.community.coordination.proposals" })}
               </AdminCardTitle>
-              <p className="mt-1 text-body-sm text-text-sub">
+              <p className="mt-1 type-meta text-text-sub">
                 {formatMessage({ id: "cockpit.community.coordination.proposalsDescription" })}
               </p>
             </div>
@@ -72,7 +72,7 @@ export function CommunityCoordinationTab({
                 <span className="garden-stat-row-label">
                   {formatMessage({ id: "cockpit.community.coordination.community" })}
                 </span>
-                <span className="inline-flex items-center gap-1 text-body-sm font-medium text-text-strong">
+                <span className="inline-flex items-center gap-1 type-meta font-medium text-text-strong">
                   {communityConfig ? (
                     <RiCheckLine className="h-4 w-4 text-success-dark" />
                   ) : (
@@ -86,13 +86,13 @@ export function CommunityCoordinationTab({
 
               {weightScheme !== undefined && weightSchemeLabel && weightSchemeValues ? (
                 <AdminCard variant="outlined" density="compact">
-                  <p className="text-label-sm text-text-sub">
+                  <p className="type-meta-sm text-text-sub">
                     {formatMessage({ id: "app.community.weightScheme" })}
                   </p>
-                  <p className="mt-1 text-title-sm font-semibold text-text-strong">
+                  <p className="mt-1 type-title-sm font-semibold text-text-strong">
                     {formatMessage({ id: `app.community.weightScheme.${weightSchemeLabel}` })}
                   </p>
-                  <p className="mt-1 text-body-sm text-text-sub">
+                  <p className="mt-1 type-meta text-text-sub">
                     {formatMessage(
                       { id: "cockpit.community.coordination.weightSummary" },
                       {
@@ -119,12 +119,12 @@ export function CommunityCoordinationTab({
                     <AdminCard key={labelId} variant="outlined" density="compact">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <p className="text-label-sm text-text-sub">
+                          <p className="type-meta-sm text-text-sub">
                             {formatMessage({ id: labelId })}
                           </p>
-                          <div className="mt-1 text-body-sm text-text-strong">
+                          <div className="mt-1 type-meta text-text-strong">
                             {pool ? (
-                              <AddressDisplay address={pool.poolAddress} className="body-sm" />
+                              <AddressDisplay address={pool.poolAddress} className="type-body" />
                             ) : (
                               formatMessage({ id: "cockpit.community.coordination.poolMissing" })
                             )}

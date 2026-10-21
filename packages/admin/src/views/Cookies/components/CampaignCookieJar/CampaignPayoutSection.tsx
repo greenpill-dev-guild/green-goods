@@ -34,7 +34,7 @@ export function CampaignPayoutSection(props: CampaignCookieJarCreateFormProps) {
             inputProps={{ inputMode: "decimal" }}
           />
           {/* mb-5 lifts the unit over the field's reserved supporting line, so it centres on the field. */}
-          <span className="mb-5 inline-flex min-h-11 items-center rounded-[var(--m3-shape-full)] border border-stroke-soft px-3 text-label-md text-text-sub">
+          <span className="mb-5 inline-flex min-h-11 items-center rounded-[var(--m3-shape-full)] border border-stroke-soft px-3 type-label-sm text-text-sub">
             {tokenSymbol || "TOKEN"}
           </span>
         </div>

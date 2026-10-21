@@ -72,13 +72,13 @@ export function AdminAccessStateRenderer({ state, ready }: AdminAccessStateRende
           className="flex min-h-full flex-col items-center justify-center px-6 py-16 text-center"
         >
           <SeedlingIllustration className="h-28 w-28" />
-          <h1 className="mt-5 text-title-lg font-semibold leading-[var(--type-title-lg-lh)] text-text-strong">
+          <h1 className="mt-5 type-title-lg font-semibold text-text-strong">
             {intl.formatMessage({
               id: "app.admin.auth.connectRequired",
               defaultMessage: "Connect to continue",
             })}
           </h1>
-          <p className="mt-2 max-w-md body-sm text-text-sub">
+          <p className="mt-2 max-w-md type-body text-text-sub">
             {intl.formatMessage({
               id: "app.admin.auth.connectPrompt",
               defaultMessage:

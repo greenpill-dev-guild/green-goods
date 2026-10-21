@@ -68,7 +68,7 @@ export function AdminInlineField({
       <label
         htmlFor={inputId}
         className={cn(
-          "text-label-lg font-medium",
+          "type-label font-medium",
           hasError ? "[color:rgb(var(--m3-error))]" : "[color:rgb(var(--m3-on-surface))]",
           disabled && "[color:rgb(var(--m3-on-surface)/0.38)]"
         )}
@@ -103,7 +103,7 @@ export function AdminInlineField({
             // 32dp compact box, matching AdminButton md so the row aligns
             // (DL-011 compact metric).
             "h-8 min-w-0 flex-1 rounded-[var(--m3-shape-sm)] bg-transparent px-3",
-            "text-body-md [color:rgb(var(--m3-on-surface))] outline-none",
+            "type-body [color:rgb(var(--m3-on-surface))] outline-none",
             "ring-1 ring-inset transition-[box-shadow] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
             "placeholder-[rgb(var(--m3-on-surface-variant)/0.6)]",
             hasError
@@ -120,7 +120,7 @@ export function AdminInlineField({
         id={`${inputId}-helper-text`}
         role={hasError ? "alert" : undefined}
         className={cn(
-          "min-h-4 px-3 text-body-sm/4",
+          "min-h-4 px-3 type-meta",
           hasError ? "[color:rgb(var(--m3-error))]" : "[color:rgb(var(--m3-on-surface-variant))]",
           disabled && "[color:rgb(var(--m3-on-surface)/0.38)]"
         )}

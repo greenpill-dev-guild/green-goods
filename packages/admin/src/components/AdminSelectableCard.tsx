@@ -61,7 +61,7 @@ export const AdminSelectableCard = React.forwardRef<HTMLButtonElement, AdminSele
         <span className="min-w-0 flex-1">
           <span
             className={cn(
-              "block pr-7 text-title-sm font-semibold leading-snug",
+              "block pr-7 type-title-sm font-semibold leading-snug",
               selected
                 ? "text-[rgb(var(--tone-on-surface-accent,var(--m3-primary)))]"
                 : "text-[rgb(var(--m3-on-surface))]"
@@ -70,7 +70,7 @@ export const AdminSelectableCard = React.forwardRef<HTMLButtonElement, AdminSele
             {title}
           </span>
           {description ? (
-            <span className="mt-1 block text-body-sm leading-snug text-[rgb(var(--m3-on-surface-variant))]">
+            <span className="mt-1 block type-meta leading-snug text-[rgb(var(--m3-on-surface-variant))]">
               {description}
             </span>
           ) : null}

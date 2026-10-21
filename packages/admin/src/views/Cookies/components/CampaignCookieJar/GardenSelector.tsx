@@ -121,7 +121,7 @@ export function GardenSelector({
           </AdminButton>
         </div>
       </div>
-      <p className="text-body-sm text-text-sub">
+      <p className="type-meta text-text-sub">
         {formatMessage(
           {
             id: "cockpit.community.cookies.gardenSelectorSummary",
@@ -133,7 +133,7 @@ export function GardenSelector({
       </p>
       <div className={`rounded-[var(--m3-shape-md)] border border-stroke-soft ${listClassName}`}>
         {visibleGardens.length === 0 ? (
-          <p className="p-4 text-body-sm text-text-sub">
+          <p className="p-4 type-meta text-text-sub">
             {formatMessage({
               id: "cockpit.community.cookies.noGardenMatches",
               defaultMessage: "No gardens match that search.",

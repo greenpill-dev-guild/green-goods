@@ -19,7 +19,7 @@ const meta = {
   decorators: [withCanvasFrame({ heightClassName: "min-h-[320px]", workspace: "hub" })],
   args: {
     children: (
-      <div className="p-6 text-body-md text-text-sub">
+      <div className="p-6 type-body text-text-sub">
         Route content renders directly on the canvas.
       </div>
     ),

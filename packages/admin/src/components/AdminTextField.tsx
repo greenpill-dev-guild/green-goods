@@ -21,7 +21,7 @@ import { CharacterCounter, countedLength, overLimitMessage } from "./CharacterCo
  * {@link AdminTextArea}, and {@link AdminSelect}, on the responsive field tier
  * (DL-011, DL-030): 44dp / 16px text below 640px (the installed app's touch
  * fields), 40dp / 14px text from 640px, balanced with the 32 / 40dp buttons:
- * - Floating label that animates between resting (body-md) and floating (body-sm)
+ * - Floating label that animates between resting (the field text, type-field) and floating (type-meta)
  * - Active indicator line (filled) or outline ring (outlined) reflecting focus/error state
  * - Leading and trailing icon slots (20dp, on-surface-variant)
  * - Supporting text / error message below with aria-describedby linkage, on a
@@ -150,7 +150,7 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
       // Layout — sits above the active indicator
       "peer w-full bg-transparent",
       // 16px on touch widths (no iOS zoom, PWA parity), 14px from 640px (DL-030).
-      "text-body-lg leading-5 sm:text-body-md [color:rgb(var(--m3-on-surface))]",
+      "type-field leading-5 [color:rgb(var(--m3-on-surface))]",
       // Remove browser defaults
       "outline-none border-none focus:outline-none focus:border-none",
       // Caret color
@@ -238,7 +238,7 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
             ? floatedClasses
             : [
                 // Resting: vertically centered, the control's own size
-                "top-1/2 -translate-y-1/2 text-body-lg leading-5 sm:text-body-md",
+                "top-1/2 -translate-y-1/2 type-field leading-5",
                 hasError
                   ? "text-[rgb(var(--m3-error))]"
                   : "text-[rgb(var(--m3-on-surface-variant))]",
@@ -254,10 +254,10 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
     );
 
     // Supporting text at the start of the row, the counter at its end (M3). The
-    // row is always one 16px line (`/4` pins the text to it; `text-body-sm` alone
-    // inherits 18px), so an error never moves anything below the field (PRD-1022 D10).
+    // row is always one 16px line (type-meta's own line height), so an error
+    // never moves anything below the field (PRD-1022 D10).
     const supporting = (
-      <div data-region="supporting-line" className="mt-1 flex min-h-4 gap-4 px-4 text-body-sm/4">
+      <div data-region="supporting-line" className="mt-1 flex min-h-4 gap-4 px-4 type-meta">
         {supportingText ? (
           <p
             id={supportingId}
@@ -325,7 +325,7 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
 
             {floatingLabel([
               // Floating: a 12px label in a 16px slot (2–18px on touch widths, 0–16px from 640px).
-              "top-0.5 text-body-sm leading-4 sm:top-0",
+              "top-0.5 type-meta leading-4 sm:top-0",
               hasError
                 ? "text-[rgb(var(--m3-error))]"
                 : focused
@@ -405,7 +405,7 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
 
           {floatingLabel([
             // Floating: sits on the top outline edge
-            "top-0 -translate-y-1/2 text-body-sm leading-4",
+            "top-0 -translate-y-1/2 type-meta leading-4",
             // Small background notch to visually break the outline
             "bg-[rgb(var(--m3-surface-container-lowest))] px-1",
             hasError

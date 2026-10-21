@@ -37,8 +37,8 @@ interface AccountSettingsPanelProps {
 function SettingsSectionHeader({ title, description }: { title: string; description?: string }) {
   return (
     <div>
-      <h2 className="body-sm font-semibold text-text-strong">{title}</h2>
-      {description ? <p className="mt-1 body-sm text-text-sub">{description}</p> : null}
+      <h2 className="type-body font-semibold text-text-strong">{title}</h2>
+      {description ? <p className="mt-1 type-body text-text-sub">{description}</p> : null}
     </div>
   );
 }
@@ -51,7 +51,7 @@ function ExternalLinkRow({ href, label }: { href: string; label: string }) {
       rel="noopener noreferrer"
       className={cn(
         "flex min-h-11 items-center justify-between gap-3 rounded-[var(--radius-md)] border border-stroke-soft bg-bg-white-0 px-3 py-2",
-        "body-sm font-medium text-text-strong transition-colors hover:bg-bg-soft",
+        "type-body font-medium text-text-strong transition-colors hover:bg-bg-soft",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
       )}
     >
@@ -64,8 +64,8 @@ function ExternalLinkRow({ href, label }: { href: string; label: string }) {
 function InfoRow({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="flex min-h-11 items-center justify-between gap-3 rounded-[var(--radius-md)] border border-stroke-soft bg-bg-white-0 px-3 py-2">
-      <span className="body-sm font-medium text-text-strong">{label}</span>
-      <span className="body-sm tabular-nums text-text-sub">{value}</span>
+      <span className="type-body font-medium text-text-strong">{label}</span>
+      <span className="type-body tabular-nums text-text-sub">{value}</span>
     </div>
   );
 }

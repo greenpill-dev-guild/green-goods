@@ -27,7 +27,7 @@ export interface AdminSearchToolbarProps {
  * - Shape: corner-full (pill) via --m3-shape-full
  * - Background: surface-container with outline
  * - Leading search icon (20dp), ml-3
- * - Flex-1 text input with body-md typography
+ * - Flex-1 text input in the body role (type-body)
  * - Clear button (32dp circular) when search is non-empty
  * - Children (filter chips) rendered in a flex shrink-0 gap-2 row after the bar
  */
@@ -92,7 +92,7 @@ export function AdminSearchToolbar({
           aria-label={placeholder}
           className={cn(
             "h-full min-w-0 flex-1 bg-transparent px-3",
-            "text-body-md text-[rgb(var(--m3-on-surface))]",
+            "type-body text-[rgb(var(--m3-on-surface))]",
             "outline-none border-none focus:outline-none focus:shadow-none"
           )}
         />

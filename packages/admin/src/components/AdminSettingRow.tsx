@@ -26,7 +26,7 @@ export interface AdminSettingRowProps {
  *
  * The inline "setting row" grammar for toggles and compact controls inside admin
  * forms and dialogs (open joining, gardener limit, …). Reach for this — never a
- * hand-rolled `label-xs text-text-soft` eyebrow — so field titles stay uniform
+ * hand-rolled `type-label-sm text-text-soft` eyebrow — so field titles stay uniform
  * with the stacked `AdminTextField` labels beside them. For a full-width
  * label-on-top field with a single input, use the admin field family
  * (`AdminTextField` / `AdminTextArea` / `AdminSelect`, or `AdminFieldGroup`
@@ -45,10 +45,10 @@ export function AdminSettingRow({
       className={cn("flex items-center justify-between gap-4", className)}
     >
       <div className="min-w-0">
-        <span id={labelId} className="font-medium text-text-strong-950 text-label-lg">
+        <span id={labelId} className="font-medium text-text-strong-950 type-label">
           {label}
         </span>
-        {description ? <p className="mt-1 text-body-sm text-text-sub-600">{description}</p> : null}
+        {description ? <p className="mt-1 type-meta text-text-sub-600">{description}</p> : null}
       </div>
       {children}
     </div>

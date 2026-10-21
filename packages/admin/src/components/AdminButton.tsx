@@ -20,7 +20,7 @@ const adminButtonVariants = tv({
     "border border-transparent",
     // Typography — Title Case labels as authored ("Create Assessment",
     // DL-012; en only — es/pt keep native casing); no text-transform.
-    "text-label-lg font-medium",
+    "type-label font-medium",
     // Motion
     "transition-all duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
     // State layer (pseudo-element overlay defined in admin-m3-tokens.css)
@@ -93,11 +93,11 @@ const adminButtonVariants = tv({
       // admin-hit-target-lg for lg) and the one 14px label (DL-030): the size
       // difference carries the emphasis, never a type jump.
       // Densest action — list rows, table actions, inline text buttons.
-      sm: "admin-hit-target h-7 px-2.5 text-label-lg",
+      sm: "admin-hit-target h-7 px-2.5 type-label",
       // Standard action (32dp).
-      md: "admin-hit-target h-8 px-4 text-label-lg",
+      md: "admin-hit-target h-8 px-4 type-label",
       // Prominent first-action button (40dp).
-      lg: "admin-hit-target-lg h-10 px-5 text-label-lg",
+      lg: "admin-hit-target-lg h-10 px-5 type-label",
     },
     hasLeadingIcon: {
       true: "pl-3",

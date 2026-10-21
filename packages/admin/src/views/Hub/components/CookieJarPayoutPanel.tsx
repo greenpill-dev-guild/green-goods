@@ -180,7 +180,7 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
                 defaultMessage: "Cookie Jars",
               })}
             </AdminCardTitle>
-            <p className="mt-1 body-sm text-text-sub">
+            <p className="mt-1 type-body text-text-sub">
               {formatMessage({
                 id: "app.cookieJar.payoutDescription",
                 defaultMessage: "Gardeners claim rewards from cookie jars for completed work",

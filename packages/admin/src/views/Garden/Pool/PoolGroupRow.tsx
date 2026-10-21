@@ -63,10 +63,10 @@ export function PoolGroupRow({
       >
         <span className="min-w-0 flex-1">
           <span className="flex flex-wrap items-center gap-2">
-            <span className="whitespace-nowrap body-xs text-text-soft">
+            <span className="whitespace-nowrap type-meta text-text-soft">
               {directionLabel(first.direction, formatMessage)}
             </span>
-            <span className="truncate text-body-md text-text-strong" title={title}>
+            <span className="truncate type-body text-text-strong" title={title}>
               {title}
             </span>
             <StatusBadge variant="neutral" size="sm" icon={<RiStackLine className="h-3 w-3" />}>
@@ -79,7 +79,7 @@ export function PoolGroupRow({
               )}
             </StatusBadge>
           </span>
-          <span className="mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 body-xs text-text-sub">
+          <span className="mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 type-meta text-text-sub">
             {unsent > 0 ? (
               <>
                 <span>

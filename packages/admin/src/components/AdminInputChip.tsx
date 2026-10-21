@@ -49,7 +49,7 @@ export function AdminInputChip({
         avatar ? "pl-1" : "pl-3",
         "rounded-[var(--m3-shape-sm)] border border-[rgb(var(--m3-outline-variant))]",
         "bg-[rgb(var(--m3-surface-container-low))] text-[rgb(var(--m3-on-surface))]",
-        "text-label-lg font-medium",
+        "type-label font-medium",
         disabled && "opacity-[0.38]",
         className
       )}
@@ -57,7 +57,7 @@ export function AdminInputChip({
       {avatar ? (
         <span
           aria-hidden="true"
-          className="grid h-6 w-6 shrink-0 place-items-center overflow-hidden rounded-full bg-[rgb(var(--m3-secondary-container))] text-label-sm font-semibold text-[rgb(var(--m3-on-secondary-container))]"
+          className="grid h-6 w-6 shrink-0 place-items-center overflow-hidden rounded-full bg-[rgb(var(--m3-secondary-container))] type-meta-sm font-semibold text-[rgb(var(--m3-on-secondary-container))]"
         >
           {avatar}
         </span>

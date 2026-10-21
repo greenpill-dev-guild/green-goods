@@ -123,7 +123,7 @@ export function CommitmentSettlementDisbursements({
 
   return (
     <div className="space-y-2" data-component="CommitmentSettlementDisbursements">
-      <h5 className="label-sm text-text-soft">
+      <h5 className="type-meta-sm text-text-soft">
         {formatMessage({
           id: "cockpit.garden.pool.settlement.disbursements",
           defaultMessage: "Disbursements",
@@ -140,7 +140,7 @@ export function CommitmentSettlementDisbursements({
               data-disbursement={disbursement.disbursementId.toString()}
               data-display={view.display}
             >
-              <div className="flex items-center justify-between gap-2 text-body-md">
+              <div className="flex items-center justify-between gap-2 type-body">
                 <span className="text-text-strong">
                   {formatMessage(
                     {

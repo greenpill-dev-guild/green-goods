@@ -261,7 +261,7 @@ export function PoolSettingsDialog({
               disabled={busy}
               required
             />
-            <p className="body-xs text-text-soft">
+            <p className="type-meta text-text-soft">
               {formatMessage({
                 id: "cockpit.garden.pool.settings.note",
                 defaultMessage:
@@ -269,7 +269,7 @@ export function PoolSettingsDialog({
               })}
             </p>
             {canSave ? (
-              <p className="text-body-md font-medium text-text-strong">
+              <p className="type-body font-medium text-text-strong">
                 {promptCount(prompts.total, formatMessage)}
               </p>
             ) : null}

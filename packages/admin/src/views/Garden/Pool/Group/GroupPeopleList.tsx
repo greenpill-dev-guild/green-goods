@@ -87,7 +87,7 @@ export function GroupPeopleList({
               <PersonName
                 key="who"
                 address={row.confirmedBy}
-                className="body-xs font-normal text-text-sub"
+                className="type-meta font-normal text-text-sub"
               />
             ),
             when: timelineTime(intl, row.confirmedAt, now),
@@ -153,7 +153,7 @@ export function GroupPeopleList({
                     }}
                   />
                 ) : null}
-                <span className="mt-0.5 block body-xs text-text-sub">
+                <span className="mt-0.5 block type-meta text-text-sub">
                   {facts(row).map((fact, index) => (
                     <Fragment key={index}>
                       {index > 0 ? <span aria-hidden="true"> · </span> : null}
@@ -165,7 +165,7 @@ export function GroupPeopleList({
               <span className={END_CLASS}>
                 {/* A 12px marker in sentence case, like "didn't send" (DL-052). */}
                 {waitingOnYou.has(row.commitment.id) ? (
-                  <span className="label-xs text-warning-dark">
+                  <span className="type-label-sm text-warning-dark">
                     {formatMessage({
                       id: "cockpit.garden.pool.group.needsYou",
                       defaultMessage: "Needs you",
@@ -188,7 +188,7 @@ export function GroupPeopleList({
             className={ROW_CLASS}
           >
             <span className={TEXT_CLASS}>
-              <span className="block body-sm font-semibold text-text-strong">
+              <span className="block type-body font-semibold text-text-strong">
                 {formatMessage(
                   {
                     id: "cockpit.garden.pool.group.notTaken",
@@ -197,7 +197,7 @@ export function GroupPeopleList({
                   { count: available.length }
                 )}
               </span>
-              <span className="mt-0.5 block body-xs text-text-sub">
+              <span className="mt-0.5 block type-meta text-text-sub">
                 {formatMessage({
                   id: "cockpit.garden.pool.group.anyone",
                   defaultMessage: "Anyone in the garden can take one up",

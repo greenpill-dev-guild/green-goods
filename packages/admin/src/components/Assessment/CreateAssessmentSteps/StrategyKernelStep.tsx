@@ -370,7 +370,7 @@ export function StrategyKernelStep({
       >
         <AssessmentOutcomeHelp helpIds={outcomeHelpIds} />
         {smartOutcomeExample ? (
-          <p className="body-xs text-text-soft">{smartOutcomeExample}</p>
+          <p className="type-meta text-text-soft">{smartOutcomeExample}</p>
         ) : null}
         {/* The rows answer to this list's width, not the viewport's: one line
             where Outcome, Metric and Target fit. Below that, Outcome and
@@ -408,7 +408,7 @@ export function StrategyKernelStep({
 
         {/* Array-level error */}
         {showValidation && fieldErrors.smartOutcomes && (
-          <p className="body-xs text-error-dark">{fieldErrors.smartOutcomes}</p>
+          <p className="type-meta text-error-dark">{fieldErrors.smartOutcomes}</p>
         )}
       </Section>
 

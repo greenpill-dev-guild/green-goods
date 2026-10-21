@@ -435,7 +435,7 @@ export function AddMembersDialog({
             <p
               id={statusId}
               aria-live="polite"
-              className="mt-1 px-4 body-sm text-text-soft empty:mt-0"
+              className="mt-1 px-4 type-body text-text-soft empty:mt-0"
             >
               {entryStatus}
             </p>

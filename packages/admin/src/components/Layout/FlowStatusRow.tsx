@@ -108,8 +108,8 @@ export function FlowStatusRow({
         aria-live="polite"
         className={cn("min-w-0", summary && "min-h-[58px] sm:min-h-10")}
       >
-        <p className={cn("body-sm font-semibold", styles.title)}>{title}</p>
-        <p className="body-xs text-text-sub">{description}</p>
+        <p className={cn("type-body font-semibold", styles.title)}>{title}</p>
+        <p className="type-meta text-text-sub">{description}</p>
         {progress !== null ? (
           <div
             className="mt-2 h-1 overflow-hidden rounded-full bg-stroke-soft"
@@ -129,7 +129,7 @@ export function FlowStatusRow({
       {summary ? (
         <dl className="col-start-2 mt-2 space-y-1 border-t border-stroke-soft pt-2">
           {summary.map(([label, value], index) => (
-            <div key={index} className="flex justify-between gap-4 body-sm">
+            <div key={index} className="flex justify-between gap-4 type-body">
               <dt className="max-w-[55%] shrink-0 text-text-soft">{label}</dt>
               <dd className="min-w-0 text-right text-text-strong">{value}</dd>
             </div>

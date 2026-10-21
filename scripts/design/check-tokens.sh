@@ -369,12 +369,15 @@ collect_admin_wrapper_bypass_hits() {
 #
 # Two drifts the raw-literal pattern cannot see, burned down to zero by the
 # D32 migration and ratcheted here through the same audited baseline:
-#   1. Raw type sizes — admin text takes its size from the cockpit scale: the
-#      named label-*, body-*, and subheading-* classes and the text-title-*,
-#      text-body-*, and text-label-* aliases (packages/admin/DESIGN.md
-#      § Typography). A raw text-xs … text-9xl utility is a value outside the
-#      scale (root DESIGN.md Interface Principle 13). Stories are scanned too:
-#      they render the product's components.
+#   1. Type sizes — admin text takes its size from the type roles (type-title-lg,
+#      type-title-md, type-title-sm, type-body, type-label, type-label-sm,
+#      type-meta, type-meta-sm, and type-field for field text; packages/admin/DESIGN.md
+#      § Typography). A raw text-xs … text-9xl utility or an arbitrary size is
+#      a value outside the roles (root DESIGN.md Interface Principle 13), and
+#      the retired names (the Material text-display-*, text-headline-*,
+#      text-title-*, text-body-*, and text-label-* aliases and the label-*,
+#      body-*, and subheading-* classes) are the roles' old spellings. Stories
+#      are scanned too: they render the product's components.
 #   2. View-level M3 colours — views colour through the Warm Earth aliases
 #      (text-text-strong, text-text-sub, bg-bg-white, border-stroke-soft, …).
 #      Raw rgb(var(--m3-*)) colour stays inside the Admin* primitives (the
@@ -382,8 +385,9 @@ collect_admin_wrapper_bypass_hits() {
 #      (components/Shell), and ActionFlowShell. Stories are scanned too.
 # Tests are excluded from both.
 # ----------------------------------------------------------------------------
-# Named Tailwind sizes, and arbitrary px/rem/em or `length:` sizes (text-[13px]).
-ADMIN_RAW_TYPE_SIZE_PATTERN="(^|[^[:alnum:]_-])${TW_VARIANT_PREFIX}text-((xs|sm|base|lg|xl|[2-9]xl)|\[([0-9.]+(px|rem|em)|length:[^]]+)\])${TW_CLASS_BOUNDARY}"
+# Named Tailwind sizes, arbitrary px/rem/em or `length:` sizes (text-[13px]), and
+# the retired type names.
+ADMIN_RAW_TYPE_SIZE_PATTERN="(^|[^[:alnum:]_-])${TW_VARIANT_PREFIX}(text-((xs|sm|base|lg|xl|[2-9]xl)|\[([0-9.]+(px|rem|em)|length:[^]]+)\])|text-(display|headline|title|body|label)-(lg|md|sm)|(label|body)-(md|sm|xs)|subheading-(sm|xs))${TW_CLASS_BOUNDARY}"
 ADMIN_VIEW_M3_COLOUR_PATTERN='rgb\(var\(--m3-'
 ADMIN_M3_COLOUR_OWNERS_REGEX='^packages/admin/src/(components/Admin[^/]*|components/CharacterCounter|components/Shell/.*|components/Layout/ActionFlowShell)\.tsx:'
 
@@ -453,7 +457,7 @@ if [[ -n "$NEW_USAGE" ]]; then
   echo "$NEW_USAGE" | sed 's/^/  /'
   echo
   echo "Use Warm Earth tokens instead: --spring-*, --color-*, --radius-*, --color-material-*, --blur-material-*, and semantic utility aliases."
-  echo "For packages/admin hits, the cockpit invariants also apply: depth via --m3-elevation-0/1/2 (never bare shadow-*), hover/press via elevation or the 8% ink layer (never scale/translate), focus rings via --tone-focus-ring only, and state text via text-*-dark (never text-*-base)."
+  echo "For packages/admin hits, the cockpit invariants also apply: text size via the type-* roles (never a raw text-* size or a retired label-*, body-*, text-title-*, text-body-* or text-label-* name), depth via --m3-elevation-0/1/2 (never bare shadow-*), hover/press via elevation or the 8% ink layer (never scale/translate), focus rings via --tone-focus-ring only, and state text via text-*-dark (never text-*-base)."
   echo "If this is intentional legacy debt, migrate it or add an audited baseline entry in $USAGE_BASELINE."
   exit 1
 fi

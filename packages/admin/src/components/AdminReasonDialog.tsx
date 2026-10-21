@@ -207,7 +207,7 @@ export function AdminReasonDialog({
           </div>
         ) : null}
         {blockedReason ? (
-          <p className="body-xs text-warning-dark" role="status">
+          <p className="type-meta text-warning-dark" role="status">
             {blockedReason}
           </p>
         ) : null}

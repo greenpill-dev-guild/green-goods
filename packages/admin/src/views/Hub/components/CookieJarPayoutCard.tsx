@@ -93,16 +93,16 @@ export function CookieJarPayoutCard({
     <AdminCard variant="outlined" className="flex min-h-64 flex-col gap-4 px-4 py-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h4 className="text-title-md font-semibold text-text-strong" title={symbol}>
+          <h4 className="type-title-md font-semibold text-text-strong" title={symbol}>
             {symbol}
           </h4>
-          <p className="mt-1 text-label-sm text-text-soft">
+          <p className="mt-1 type-meta-sm text-text-soft">
             <EnsAddressText address={jar.jarAddress} />
           </p>
         </div>
         <div className="flex flex-wrap justify-end gap-1.5">
           <span
-            className={`inline-flex shrink-0 rounded-full px-2.5 py-1 text-label-sm font-medium ${
+            className={`inline-flex shrink-0 rounded-full px-2.5 py-1 type-meta-sm font-medium ${
               jar.isPaused
                 ? "bg-warning-lighter text-warning-dark"
                 : "bg-success-lighter text-success-dark"
@@ -113,7 +113,7 @@ export function CookieJarPayoutCard({
               : formatMessage({ id: "app.cookieJar.active" })}
           </span>
           {isJarClaimLimitLow(jar) ? (
-            <span className="inline-flex shrink-0 rounded-full bg-warning-lighter px-2.5 py-1 text-label-sm font-medium text-warning-dark">
+            <span className="inline-flex shrink-0 rounded-full bg-warning-lighter px-2.5 py-1 type-meta-sm font-medium text-warning-dark">
               {formatMessage({ id: "app.cookieJar.limitTooLow" })}
             </span>
           ) : null}
@@ -121,12 +121,12 @@ export function CookieJarPayoutCard({
       </div>
 
       <div className="rounded-lg bg-bg-weak px-4 py-3">
-        <p className="text-label-sm font-medium text-text-soft">
+        <p className="type-meta-sm font-medium text-text-soft">
           {formatMessage({ id: "app.cookieJar.balance" })}
         </p>
-        <p className="mt-1 text-headline-sm font-semibold tabular-nums text-text-strong">
+        <p className="mt-1 type-title-lg font-semibold tabular-nums text-text-strong">
           {formatTokenAmount(jar.balance, jar.decimals)}{" "}
-          <span className="text-title-sm font-medium text-text-sub">{symbol}</span>
+          <span className="type-title-sm font-medium text-text-sub">{symbol}</span>
         </p>
       </div>
 
@@ -169,7 +169,7 @@ export function CookieJarPayoutCard({
       {restricted ? (
         <p
           id={restrictionId}
-          className="flex items-start gap-2 rounded-md bg-bg-weak px-3 py-2 text-body-sm text-text-sub"
+          className="flex items-start gap-2 rounded-md bg-bg-weak px-3 py-2 type-meta text-text-sub"
         >
           <RiLockLine className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
           <span>
@@ -186,7 +186,7 @@ export function CookieJarPayoutCard({
         </p>
       ) : null}
 
-      <p className="text-body-sm text-text-sub">
+      <p className="type-meta text-text-sub">
         {formatMessage(
           {
             id: allocationCountAtLeast

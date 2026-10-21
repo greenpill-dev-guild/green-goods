@@ -163,7 +163,7 @@ export function CommitmentClaims({
                                 <PersonName
                                   key="by"
                                   address={claim.requestedBy}
-                                  className="body-xs font-normal text-text-sub"
+                                  className="type-meta font-normal text-text-sub"
                                 />
                               ),
                             }
@@ -180,7 +180,7 @@ export function CommitmentClaims({
               data-state={state.status}
             >
               <div className="min-w-0 space-y-0.5">
-                <span className="flex flex-wrap items-baseline gap-x-1 body-sm">
+                <span className="flex flex-wrap items-baseline gap-x-1 type-body">
                   <ClaimantName
                     claim={claim}
                     chainId={chainId}
@@ -199,7 +199,7 @@ export function CommitmentClaims({
                         })}
                   </span>
                 </span>
-                <p className="body-xs text-text-sub">
+                <p className="type-meta text-text-sub">
                   {facts.map((fact, index) => (
                     <Fragment key={index}>
                       {index > 0 ? <span aria-hidden="true"> · </span> : null}
@@ -314,7 +314,7 @@ export function CommitmentRoster({
       <AdminCardTitle as="h4">
         {formatMessage({ id: "cockpit.garden.pool.commitment.team", defaultMessage: "Team" })}
       </AdminCardTitle>
-      <ul className="body-sm text-text-sub">
+      <ul className="type-body text-text-sub">
         {contributors.map((row) => (
           <li key={row.id} className="flex justify-between gap-2">
             <AddressDisplay address={row.contributor} showCopyButton={false} />

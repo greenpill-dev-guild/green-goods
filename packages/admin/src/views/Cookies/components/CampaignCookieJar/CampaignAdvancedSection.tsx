@@ -29,7 +29,7 @@ export function CampaignAdvancedSection(props: CampaignCookieJarCreateFormProps)
   return (
     <section className="surface-section overflow-visible">
       <details open={advancedOpen} onToggle={(event) => setAdvancedOpen(event.currentTarget.open)}>
-        <summary className="cursor-pointer text-title-sm font-semibold text-text-strong">
+        <summary className="cursor-pointer type-title-sm font-semibold text-text-strong">
           {formatMessage({
             id: "cockpit.community.cookies.advanced",
             defaultMessage: "Advanced",

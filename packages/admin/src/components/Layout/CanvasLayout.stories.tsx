@@ -104,15 +104,15 @@ function CanvasLayoutVisualHarness({ empty = false, activePath }: MockCanvasLayo
           {empty ? (
             <section className="flex min-h-full items-center justify-center text-center">
               <div>
-                <h2 className="text-title-md text-text-strong">No garden access yet</h2>
-                <p className="mt-2 text-body-md text-text-sub">
+                <h2 className="type-title-md text-text-strong">No garden access yet</h2>
+                <p className="mt-2 type-body text-text-sub">
                   Create a garden or ask an owner to add your wallet.
                 </p>
               </div>
             </section>
           ) : (
             <section className="space-y-4">
-              <h2 className="text-title-md text-text-strong">Hub workbench</h2>
+              <h2 className="type-title-md text-text-strong">Hub workbench</h2>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-xl bg-bg-soft p-4 shadow-[var(--edge-rest)]">
                   Pending review
@@ -137,7 +137,7 @@ function CanvasLayoutVisualHarness({ empty = false, activePath }: MockCanvasLayo
         tone="hub"
         size="lg"
       >
-        <div className="p-5 body-sm text-text-sub">Account settings and network details.</div>
+        <div className="p-5 type-body text-text-sub">Account settings and network details.</div>
       </AdminDialog>
     </>
   );
@@ -147,11 +147,11 @@ function StorybookRouteContent({ title }: { title: string }) {
   return (
     <section className="space-y-4 p-6" data-testid="storybook-route-content">
       <div>
-        <p className="text-label-sm text-text-soft">Storybook route</p>
-        <h1 className="text-title-md font-semibold text-text-strong">{title}</h1>
+        <p className="type-meta-sm text-text-soft">Storybook route</p>
+        <h1 className="type-title-md font-semibold text-text-strong">{title}</h1>
       </div>
       <div className="surface-section p-4">
-        <p className="text-body-md text-text-sub">
+        <p className="type-body text-text-sub">
           Real CanvasLayout shell content rendered through React Router outlet.
         </p>
       </div>

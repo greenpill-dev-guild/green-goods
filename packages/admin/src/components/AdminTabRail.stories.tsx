@@ -312,7 +312,7 @@ function ToneFrame({
 }) {
   return (
     <div data-tone={tone} className="rounded-2xl bg-bg-white-0 p-4">
-      <div className="mb-2 text-label-sm font-semibold uppercase tracking-[0.06em] text-text-soft">
+      <div className="mb-2 type-meta-sm font-semibold uppercase tracking-[0.06em] text-text-soft">
         [data-tone=&quot;{tone}&quot;]
       </div>
       {children}

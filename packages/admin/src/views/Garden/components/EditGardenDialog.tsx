@@ -182,7 +182,7 @@ export function EditGardenDialog({
             <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <p
                 className={cn(
-                  "body-xs",
+                  "type-meta",
                   settingsForm.isDirty ? "text-warning-dark" : "text-text-soft"
                 )}
                 aria-live="polite"
@@ -242,7 +242,7 @@ export function EditGardenDialog({
                 {bannerRemovalStaged ? (
                   <div className="flex h-28 w-full flex-col items-center justify-center gap-1 bg-bg-soft px-3 text-center text-text-soft">
                     <RiImageLine className="h-5 w-5" />
-                    <span className="body-xs">
+                    <span className="type-meta">
                       {formatMessage({
                         id: "app.garden.settings.bannerWillBeRemoved",
                         defaultMessage: "Will be removed on save",
@@ -274,7 +274,7 @@ export function EditGardenDialog({
                       </AdminButton>
                     ) : null}
                     {bannerIsDraft ? (
-                      <span className="absolute bottom-2 right-2 rounded-full bg-bg-white/90 px-2 py-0.5 text-label-sm font-medium text-text-sub shadow-[var(--edge-rest)]">
+                      <span className="absolute bottom-2 right-2 rounded-full bg-bg-white/90 px-2 py-0.5 type-meta-sm font-medium text-text-sub shadow-[var(--edge-rest)]">
                         {formatMessage({
                           id: "app.garden.settings.bannerDraft",
                           defaultMessage: "Preview · uploads on save",
@@ -288,8 +288,8 @@ export function EditGardenDialog({
                   </div>
                 )}
               </div>
-              <div className="space-y-1 p-3 body-sm text-text-sub">
-                <h3 className="label-md truncate text-text-strong" title={garden.name}>
+              <div className="space-y-1 p-3 type-body text-text-sub">
+                <h3 className="type-label-sm truncate text-text-strong" title={garden.name}>
                   {garden.name}
                 </h3>
                 {garden.location ? (

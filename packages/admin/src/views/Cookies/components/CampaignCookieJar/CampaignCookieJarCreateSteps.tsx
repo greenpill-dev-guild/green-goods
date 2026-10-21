@@ -62,7 +62,7 @@ function CampaignCreateNotices({ form }: { form: CampaignCookieJarCreateFormProp
   const { formatMessage, moduleConfigured, isDeployer, roleLoading } = form;
   if (moduleConfigured && (isDeployer || roleLoading)) return null;
   return (
-    <AdminCard variant="outlined" className="space-y-2 text-body-sm text-text-sub">
+    <AdminCard variant="outlined" className="space-y-2 type-meta text-text-sub">
       {!moduleConfigured ? (
         <p>
           {formatMessage({

@@ -167,24 +167,24 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
       {!isEmbedded ? (
         <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div className="surface-inset">
-            <p className="body-xs text-text-soft">
+            <p className="type-meta text-text-soft">
               {formatMessage({ id: "app.treasury.totalValueLocked" })}
             </p>
-            <p className="mt-1 text-title-md font-semibold text-text-strong">
+            <p className="mt-1 type-title-md font-semibold text-text-strong">
               {formatAssetAmounts(endowmentByAsset, locale)}
             </p>
           </div>
           <div className="surface-inset">
-            <p className="body-xs text-text-soft">
+            <p className="type-meta text-text-soft">
               {formatMessage({ id: "app.treasury.totalHarvests" })}
             </p>
-            <p className="mt-1 text-title-md font-semibold text-text-strong">{totalHarvestCount}</p>
+            <p className="mt-1 type-title-md font-semibold text-text-strong">{totalHarvestCount}</p>
           </div>
           <div className="surface-inset">
-            <p className="body-xs text-text-soft">
+            <p className="type-meta text-text-soft">
               {formatMessage({ id: "app.treasury.depositorCount" })}
             </p>
-            <p className="mt-1 text-title-md font-semibold text-text-strong">
+            <p className="mt-1 type-title-md font-semibold text-text-strong">
               {totalDepositorCount}
             </p>
           </div>
@@ -192,7 +192,7 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
       ) : null}
 
       {vaultsLoading && (
-        <p className="body-sm text-text-soft">
+        <p className="type-body text-text-soft">
           {formatMessage({ id: "app.treasury.loadingVaults" })}
         </p>
       )}
@@ -221,14 +221,14 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
       )}
 
       {!vaultsLoading && !vaultsHasError && vaults.length === 0 && (
-        <p className="rounded-md border border-stroke-soft bg-bg-white px-4 py-3 body-sm text-text-soft">
+        <p className="rounded-md border border-stroke-soft bg-bg-white px-4 py-3 type-body text-text-soft">
           {formatMessage({ id: "app.treasury.noVault" })}
         </p>
       )}
 
       {!vaultsLoading && vaults.length > 0 && (
         // Said once for every vault, not repeated on each card (D27).
-        <p className="body-sm text-text-sub">
+        <p className="type-body text-text-sub">
           {formatMessage({ id: "app.treasury.impactYieldHelper" })}
         </p>
       )}

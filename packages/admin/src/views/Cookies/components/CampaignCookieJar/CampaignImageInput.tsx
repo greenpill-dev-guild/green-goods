@@ -99,14 +99,14 @@ export function CampaignImageInput({
         }}
       />
       {isUploading ? (
-        <p className="text-body-sm text-text-sub">
+        <p className="type-meta text-text-sub">
           {formatMessage({
             id: "cockpit.community.cookies.imageUploading",
             defaultMessage: "Uploading campaign image...",
           })}
         </p>
       ) : null}
-      {uploadError ? <p className="text-body-sm text-error-dark">{uploadError}</p> : null}
+      {uploadError ? <p className="type-meta text-error-dark">{uploadError}</p> : null}
       {resolvedPreviewUrl && !file ? (
         <div className="overflow-hidden rounded-[var(--m3-shape-md)] border border-stroke-soft">
           <img

@@ -42,7 +42,7 @@ export function CampaignCookieJarPanelList({
                 defaultMessage: "Campaign Cookie Jars",
               })}
             </AdminCardTitle>
-            <p className="mt-1 text-body-sm text-text-sub">
+            <p className="mt-1 type-meta text-text-sub">
               {formatMessage(
                 {
                   id: "cockpit.community.cookies.listDescription",
@@ -87,7 +87,7 @@ export function CampaignCookieJarPanelList({
         </div>
       ) : null}
       {!campaignsLoading && campaignsError ? (
-        <div className="flex-1 p-5 text-body-sm text-error-dark">
+        <div className="flex-1 p-5 type-meta text-error-dark">
           {formatMessage({
             id: "cockpit.community.cookies.loadFailed",
             defaultMessage: "Could not load campaign cookie jars. Direct jar links still work.",
@@ -96,13 +96,13 @@ export function CampaignCookieJarPanelList({
       ) : null}
       {!campaignsLoading && !campaignsError && campaigns.length === 0 ? (
         <div className="flex flex-1 flex-col items-start justify-center gap-3 p-5">
-          <p className="text-title-sm font-semibold text-text-strong">
+          <p className="type-title-sm font-semibold text-text-strong">
             {formatMessage({
               id: "cockpit.community.cookies.emptyTitle",
               defaultMessage: "No campaign cookie jars yet",
             })}
           </p>
-          <p className="max-w-xl text-body-sm text-text-sub">
+          <p className="max-w-xl type-meta text-text-sub">
             {formatMessage({
               id: "cockpit.community.cookies.emptyDescription",
               defaultMessage:
@@ -115,7 +115,7 @@ export function CampaignCookieJarPanelList({
       !campaignsError &&
       campaigns.length > 0 &&
       visibleCampaigns.length === 0 ? (
-        <div className="flex-1 p-5 text-body-sm text-text-sub">
+        <div className="flex-1 p-5 type-meta text-text-sub">
           {formatMessage({
             id: "cockpit.community.cookies.noCampaignMatches",
             defaultMessage: "No cookie jars match that search.",

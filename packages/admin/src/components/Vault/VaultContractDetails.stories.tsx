@@ -21,7 +21,8 @@ interface VaultContractDetailsHarnessProps {
 }
 
 const rowClass = "py-2";
-const linkClass = "mt-0.5 inline-flex items-center gap-1 body-xs text-primary-dark hover:underline";
+const linkClass =
+  "mt-0.5 inline-flex items-center gap-1 type-meta text-primary-dark hover:underline";
 
 function VaultContractDetailsHarness({ rows }: VaultContractDetailsHarnessProps) {
   if (rows.length === 0) return null;
@@ -31,7 +32,7 @@ function VaultContractDetailsHarness({ rows }: VaultContractDetailsHarnessProps)
       <AdminCardHeader>
         <div>
           <AdminCardTitle>Where the Funds Are Held</AdminCardTitle>
-          <p className="mt-1 body-sm text-text-sub">
+          <p className="mt-1 type-body text-text-sub">
             Open any address on the block explorer to check it yourself.
           </p>
         </div>
@@ -40,7 +41,7 @@ function VaultContractDetailsHarness({ rows }: VaultContractDetailsHarnessProps)
         <dl className="divide-y divide-stroke-soft">
           {rows.map((row) => (
             <div key={row.href} className={rowClass}>
-              <dt className="body-xs text-text-soft">{row.label}</dt>
+              <dt className="type-meta text-text-soft">{row.label}</dt>
               <dd>
                 <a href={row.href} target="_blank" rel="noreferrer" className={linkClass}>
                   {row.display}

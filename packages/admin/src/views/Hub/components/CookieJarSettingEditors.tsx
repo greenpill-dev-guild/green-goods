@@ -50,8 +50,8 @@ function ChangeSummary({ rows }: { rows: Array<[term: string, value: ReactNode]>
     <dl className="divide-y divide-stroke-soft rounded-lg bg-bg-weak px-3">
       {rows.map(([term, value]) => (
         <div key={term} className="flex items-baseline justify-between gap-3 py-2">
-          <dt className="shrink-0 text-label-sm text-text-soft">{term}</dt>
-          <dd className="text-right text-body-sm font-medium tabular-nums text-text-strong">
+          <dt className="shrink-0 type-meta-sm text-text-soft">{term}</dt>
+          <dd className="text-right type-meta font-medium tabular-nums text-text-strong">
             {value}
           </dd>
         </div>
@@ -82,7 +82,7 @@ function EditorFooter({
   return (
     <>
       {/* The write goes through the garden account: a steward's own wallet can't change a jar. */}
-      <p className="px-3 text-label-sm text-text-soft">
+      <p className="px-3 type-meta-sm text-text-soft">
         {formatMessage({ id: "app.cookieJar.signsAsGarden" })}
       </p>
       <div className="flex flex-wrap justify-end gap-2">
@@ -159,7 +159,7 @@ export function JarLimitEditor({ jar, gardenAddress, gardenName, onClose }: JarS
             if (event.key === "Escape") onClose();
           },
         }}
-        action={<span className="text-label-lg font-medium text-text-sub">{symbol}</span>}
+        action={<span className="type-label font-medium text-text-sub">{symbol}</span>}
       />
       {/* Advice, not a block: a steward may have a reason for a small limit. */}
       {belowFloor && nextLimit !== null ? (

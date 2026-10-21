@@ -222,7 +222,7 @@ export function EditRewardDialog({
       </AdminButton>
     ) : (
       <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
-        <p className="min-w-0 body-xs text-text-soft sm:flex-1" data-testid="reward-prompt-count">
+        <p className="min-w-0 type-meta text-text-soft sm:flex-1" data-testid="reward-prompt-count">
           {note ? <span role="status">{note}</span> : null}
         </p>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">

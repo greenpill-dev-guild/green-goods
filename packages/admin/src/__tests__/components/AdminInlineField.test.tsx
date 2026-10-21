@@ -54,7 +54,7 @@ describe("AdminInlineField error anatomy", () => {
     const slot = () => document.querySelector("p[id$='-helper-text']");
     expect(slot()).not.toBeNull();
     // The reserve and the text's line are the same 16px; the story lane checks the real height.
-    expect(slot()).toHaveClass("min-h-4", "text-body-sm/4");
+    expect(slot()).toHaveClass("min-h-4", "type-meta");
 
     rerender(
       <AdminInlineField
