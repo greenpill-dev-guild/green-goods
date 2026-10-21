@@ -77,7 +77,7 @@ export const Tokens: Story = {
         />
       </Section>
 
-      <Section id="type" title="Type roles" lede="Plus Jakarta Sans on the type roles, at the cockpit's density: type-title-lg 22px for dialog, flow and step titles and the app bar; type-title-md 16px for route headers and card titles; type-body and type-label 14px (every button size); type-label-sm and type-meta 12px; type-meta-sm 11px inside chips only. Field text is type-field: 16px on touch widths, 14px from 640px.">
+      <Section id="type" title="Type roles" lede="Plus Jakarta Sans on the type roles, at the cockpit's density: type-title-lg 22px for dialog, flow and step titles and the app bar; type-title-md 16px for route headers and card titles; type-body and type-label 14px (every button size); type-label-sm and type-meta 12px; type-meta-sm 11px for chips and small supporting lines. Field text is type-field: 16px on touch widths, 14px from 640px.">
         <TokenTable
           tokens={[
             { name: "--gg-type-title-lg-size", expected: "1.375rem", note: "22px: dialog, flow and step titles, the app bar" },
@@ -87,7 +87,7 @@ export const Tokens: Story = {
             { name: "--gg-type-label-size", expected: "0.875rem", note: "14px: buttons, tabs" },
             { name: "--gg-type-label-sm-size", expected: "0.75rem", note: "12px / 500: eyebrows, metadata labels" },
             { name: "--gg-type-meta-size", expected: "0.75rem", note: "12px: floating labels, supporting text" },
-            { name: "--gg-type-meta-sm-size", expected: "0.6875rem", note: "11px: chips only" },
+            { name: "--gg-type-meta-sm-size", expected: "0.6875rem", note: "11px: chips (with their own weight) and small supporting lines" },
             { name: "--gg-type-field-size", note: "field text: 16px below 640px, 14px from 640px" },
             { name: "--font-heading", note: "Plus Jakarta Sans" },
           ]}
@@ -116,7 +116,7 @@ export const Tokens: Story = {
           <Specimen title="type-meta · 12px" target="p" expect={{ labelSize: 12, weight: 400 }}>
             <p className="type-meta text-text-sub">Submitted 3 days ago</p>
           </Specimen>
-          <Specimen title="type-meta-sm · 11px / 500" target="span" expect={{ labelSize: 11, weight: 500 }}>
+          <Specimen title="type-meta-sm · 11px" target="span" expect={{ labelSize: 11, weight: 400 }}>
             <span className="type-meta-sm text-text-sub">Pending</span>
           </Specimen>
         </div>
