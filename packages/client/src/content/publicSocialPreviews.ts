@@ -66,7 +66,7 @@ export const publicSocialPreviews = {
     path: "/",
     title: "Green Goods",
     description:
-      "Green Goods helps community projects document environmental work, have it reviewed by local stewards, and connect with funding.",
+      "Green Goods helps communities name their needs, make promises, document regenerative work, review it together, and turn the record into support.",
     cardTitle: "From good intentions to green outcomes",
     cardTitleAccent: "good",
     cardLede: "Document community work, review it locally, and help fund what comes next.",
