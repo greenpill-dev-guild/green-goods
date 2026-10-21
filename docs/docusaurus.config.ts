@@ -618,7 +618,7 @@ const config: Config = {
         {
           title: 'Connect',
           items: [
-            { label: 'Telegram', href: 'https://t.me/+N3o3_43iRec1Y2Jh' },
+            { label: 'Discord', href: 'https://discord.gg/greenpill' },
             { label: 'X (Twitter)', href: 'https://x.com/greengoodsapp' },
             { label: 'LinkedIn', href: 'https://www.linkedin.com/company/greengoodsapp/' },
             { label: 'GitHub', href: 'https://github.com/greenpill-dev-guild/green-goods' },
@@ -634,7 +634,7 @@ const config: Config = {
           ],
         },
       ],
-      copyright: `Making grassroots conservation visible, verifiable, and funded.<br/>Copyright © ${new Date().getFullYear()} Greenpill Dev Guild.`,
+      copyright: `Making grassroots conservation visible, verifiable, and funded.<br/>Copyright © ${new Date().getFullYear()} Green Goods.`,
     },
     prism: {
       theme: prismLight,

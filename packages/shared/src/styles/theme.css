@@ -480,6 +480,30 @@
 	  --z-modal: 50;
 	  --z-toast: 60;
 
+  /* ── Safe Areas ── The installed app draws under the home indicator
+   * (viewport-fit=cover), and under the status bar wherever that bar is see-through:
+   * iPhone installs added before the app's solid status bar (iOS keeps the style an
+   * app was added with) and Android's edge-to-edge mode. Elsewhere the top inset
+   * is 0. Chrome at the top pads by env(safe-area-inset-top); chrome at the bottom
+   * pads by --safe-area-bottom, never by env(safe-area-inset-bottom) directly
+   * (scripts/design/check-tokens.sh fails on a raw one outside admin chrome).
+   * It is that inset except in an installed app whose page stops short of the
+   * screen (the standalone rule below this block). Both are 0 where nothing
+   * overlaps the page. */
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  /* Where the installed app's top controls start (the top bar, page headers, the
+   * garden banner's buttons): 16px below the status bar's safe area. The offline
+   * banner, 16px tall, shows in that space, so it never covers a control. Where
+   * the taller install prompt can show, the space is 24px (the rule for
+   * [data-install-prompt] below this block). */
+  --app-top-offset: calc(env(safe-area-inset-top, 0px) + 1rem);
+  /* The installed app's fixed top bar (the client's TopNav): its 32px controls
+   * start at --app-top-offset with 24px below them, 72px below the status bar's
+   * safe area in all (80px where the install prompt can show). A page under it
+   * starts at this height, and a card that sticks under it sticks at this
+   * height. */
+  --app-top-bar-height: calc(var(--app-top-offset) + 3.5rem);
+
   /* ── Radius Aliases ── Public runtime aliases for DesignMD-generated radii. */
   --radius-none: var(--gg-radius-none);
   --radius-md: var(--gg-radius-md);
@@ -634,6 +658,37 @@
   --type-label-sm: 11px;
   --type-label-sm-lh: 16px;
   --type-label-sm-ls: 0.5px;
+}
+
+/* With a see-through status bar (the iPhone installs that kept black-translucent),
+ * iOS 26 Home Screen apps can lay out and paint on a viewport that ends the
+ * status bar's height above the bottom of the screen: innerHeight, 100dvh and
+ * every position: fixed box stop there, and iOS fills the band below with the
+ * page background, while 100lvh still measures the whole screen. Nothing the
+ * page draws reaches that band, so bottom chrome cannot move into it. The
+ * client's standalone html floor (index.css) makes iOS give the page the whole
+ * screen, which removes the band; this rule is the fallback for whenever iOS
+ * keeps it anyway. The band already covers the home indicator, so the chrome
+ * drops the part of the inset the band covers, and its controls keep close to
+ * their usual distance from the bottom edge. Without the band, 100lvh and
+ * 100dvh agree and nothing changes. The band is capped at the top inset, the
+ * most the bug takes, so a solid status bar (top inset 0, where iOS 26 still
+ * reports 100lvh as the whole screen) changes nothing either. */
+@media (display-mode: standalone) {
+  :root {
+    --safe-area-bottom: max(
+      0px,
+      env(safe-area-inset-bottom, 0px) - clamp(0px, 100lvh - 100dvh, env(safe-area-inset-top, 0px))
+    );
+  }
+}
+
+/* A mobile browser tab that isn't installed can show the install prompt (the
+ * client's InstallNudge), 24px tall so its actions stay usable. The prompt marks
+ * the root wherever it can show, and the top controls start 24px below the
+ * status bar there, clear of it. */
+:root[data-install-prompt] {
+  --app-top-offset: calc(env(safe-area-inset-top, 0px) + 1.5rem);
 }
 
 /* Dark theme overrides using data-theme attribute */

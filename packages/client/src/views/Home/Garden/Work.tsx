@@ -233,7 +233,7 @@ export const GardenWork: React.FC = () => {
             className={cn(
               pwaSheetStyles.workActionBar,
               !feedbackMode && pwaSheetStyles.workActionBarStandalone,
-              "p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] relative"
+              "p-4 pb-[calc(1.5rem+var(--safe-area-bottom))] relative"
             )}
           >
             <div className="max-w-screen-sm mx-auto">
@@ -350,7 +350,7 @@ export const GardenWork: React.FC = () => {
   const successFooter =
     viewingMode === "steward" && isResolved ? (
       <div className="fixed left-0 right-0 bottom-0 z-sticky">
-        <div className="bg-bg-white-0 border-t border-stroke-soft-200 rounded-t-[var(--radius-lg)] overflow-hidden p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+        <div className="bg-bg-white-0 border-t border-stroke-soft-200 rounded-t-[var(--radius-lg)] overflow-hidden p-4 pb-[calc(1.5rem+var(--safe-area-bottom))]">
           <div className="max-w-screen-sm mx-auto flex items-center justify-center gap-2">
             {effectiveStatus === "approved" ? (
               <RiCheckLine className="w-5 h-5 text-success-base" />
@@ -392,7 +392,7 @@ export const GardenWork: React.FC = () => {
   return (
     <article>
       <TopNav onBackClick={handleBack} overlay />
-      <div className="padded pt-20">
+      <div className="padded pt-[var(--app-top-bar-height)]">
         <WorkViewSection
           garden={garden}
           work={work}
@@ -411,7 +411,7 @@ export const GardenWork: React.FC = () => {
           reserveFooterSpace={Boolean(
             retryFooter || approvalFooter || decisionFooter || successFooter
           )}
-          footerSpacerClassName="h-[calc(112px+env(safe-area-inset-bottom))]"
+          footerSpacerClassName="h-[calc(112px+var(--safe-area-bottom))]"
         />
 
         {metadataStatus === "unavailable" && (

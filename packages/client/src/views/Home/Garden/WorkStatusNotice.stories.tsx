@@ -78,7 +78,7 @@ function QueuedWorkPage({ work, isOnline = true }: QueuedWorkPageProps) {
             />
           }
           reserveFooterSpace
-          footerSpacerClassName="h-[calc(112px+env(safe-area-inset-bottom))]"
+          footerSpacerClassName="h-[calc(112px+var(--safe-area-bottom))]"
         />
       </div>
     </article>

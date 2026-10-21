@@ -206,7 +206,9 @@ const localeAllowedIdenticalValues: Record<string, Set<string>> = {
     "Video",
     "error",
   ]),
-  pt: new Set(["Cultural", "Material", "Social", "Status", "hubs"]),
+  // Brazilian Portuguese says "Links" for web links (the catalog's own "cole um link");
+  // Spanish translates it ("Enlaces"), so only Portuguese may keep the English word.
+  pt: new Set(["Cultural", "Links", "Material", "Social", "Status", "hubs"]),
 };
 
 function isAllowedIdenticalLocalizedValue(locale: string, key: string, value: string): boolean {

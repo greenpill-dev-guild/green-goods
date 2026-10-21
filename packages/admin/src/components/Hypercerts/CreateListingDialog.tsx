@@ -42,7 +42,7 @@ const STEP_LABEL_KEYS: Record<ListingStep, { id: string; defaultMessage: string 
   idle: null,
   building: { id: "app.listing.stepBuilding", defaultMessage: "Building order..." },
   signing: { id: "app.listing.stepSigning", defaultMessage: "Waiting for signature..." },
-  registering: { id: "app.listing.stepRegistering", defaultMessage: "Registering on-chain..." },
+  registering: { id: "app.listing.stepRegistering", defaultMessage: "Registering the listing…" },
   confirming: { id: "app.listing.stepConfirming", defaultMessage: "Confirming transaction..." },
   pending: { id: "app.account.transactionSubmitted", defaultMessage: "Transaction submitted" },
   done: { id: "app.listing.stepDone", defaultMessage: "Listing created!" },

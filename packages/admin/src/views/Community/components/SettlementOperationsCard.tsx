@@ -63,7 +63,7 @@ export function SettlementOperationsCard({
       }),
       message: formatMessage({
         id: "cockpit.community.settlementOps.status.submittedMessage",
-        defaultMessage: "The switch reads back from the chain once it confirms.",
+        defaultMessage: "The switch shows its new setting once the transaction confirms.",
       }),
     });
   };

@@ -67,7 +67,7 @@ describe("wallet submission progress toasts", () => {
 
     expect(loading.mock.calls.map(([options]) => options.message)).toEqual([
       "2 of 5 photos",
-      "Saving images to IPFS...",
+      "Saving your photos…",
     ]);
   });
 });

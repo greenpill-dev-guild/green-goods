@@ -1239,7 +1239,7 @@ describe("SubmitWorkPanel submit behavior", () => {
       const onProgress = mockState.workMutationOptions?.onProgress as
         | ((stage: string, message: string) => void)
         | undefined;
-      onProgress?.("uploading", "Uploading media to IPFS...");
+      onProgress?.("uploading", "Uploading media...");
     });
 
     expect(screen.getByText("Submitting the work")).toBeInTheDocument();

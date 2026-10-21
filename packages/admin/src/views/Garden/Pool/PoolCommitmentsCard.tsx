@@ -464,7 +464,7 @@ export function PoolCommitmentsCard({
             {formatMessage({
               id: "cockpit.garden.pool.commitments.dueNote",
               defaultMessage:
-                "Past due alone changes nothing. A row stays live until the expiry lands on chain; failure keeps it live.",
+                "Past due alone changes nothing. A row stays live until its expiry goes through; a failed expiry keeps it live.",
             })}
           </p>
         ) : null}

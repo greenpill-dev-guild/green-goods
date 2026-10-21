@@ -28,6 +28,18 @@ function ruleBody(css: string, selector: string): string {
   return match[1];
 }
 
+/** The body of the first `@media <query>` block, braces balanced. */
+function mediaBlock(css: string, query: string): string {
+  const open = css.indexOf("{", css.indexOf(`@media ${query} {`));
+  if (!css.includes(`@media ${query} {`)) throw new Error(`Missing @media ${query} block`);
+  let depth = 0;
+  for (let index = open; index < css.length; index++) {
+    if (css[index] === "{") depth++;
+    if (css[index] === "}" && --depth === 0) return css.slice(open + 1, index);
+  }
+  throw new Error(`Unclosed @media ${query} block`);
+}
+
 const VERTICAL_OVERSCROLL_BLOCK = /overscroll-behavior(?:-y)?\s*:\s*(?:none|contain)/;
 
 describe("document scroll rules", () => {
@@ -36,6 +48,18 @@ describe("document scroll rules", () => {
 
     expect(html).toMatch(/overscroll-behavior-x\s*:\s*none/);
     expect(html).not.toMatch(VERTICAL_OVERSCROLL_BLOCK);
+  });
+
+  it("floors the installed app's page at the screen so iOS 26 gives it the whole viewport", () => {
+    // iOS 26 lays out a see-through status bar install a status bar short while the page is
+    // shorter than the screen. The floor stays in the installed app: in a browser tab 100lvh
+    // is taller than what is on screen, and the page would scroll under the toolbar.
+    const floor = ruleBody(mediaBlock(INDEX_CSS, "(display-mode: standalone)"), "html");
+
+    expect(floor).toMatch(
+      /min-height:\s*min\(100lvh,\s*calc\(100%\s*\+\s*env\(safe-area-inset-top,\s*0px\)\)\)/
+    );
+    expect(ruleBody(INDEX_CSS, "html")).not.toMatch(/min-height/);
   });
 
   it("keeps the body out of the overscroll decision entirely", () => {

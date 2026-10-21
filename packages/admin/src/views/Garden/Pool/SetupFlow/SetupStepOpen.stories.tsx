@@ -120,7 +120,7 @@ export const Campaign: Story = {
   },
 };
 
-/** Pool changes go straight to the chain, so the step says what a lost connection means. */
+/** Pool changes are sent right away, never queued, so the step says what a lost connection means. */
 export const Offline: Story = {
   args: {
     intent: "season",

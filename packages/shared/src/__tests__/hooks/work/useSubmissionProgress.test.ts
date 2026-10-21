@@ -73,7 +73,7 @@ describe("useSubmissionProgress", () => {
       expect(result.current.progress.stage).toBe("uploading");
       // Uploading starts at cumulative weight 15
       expect(result.current.progress.overallProgress).toBe(15);
-      expect(result.current.progress.message).toBe("Uploading to IPFS...");
+      expect(result.current.progress.message).toBe("Uploading photos…");
     });
 
     it("transitions to confirming with correct overall progress", () => {
@@ -99,7 +99,7 @@ describe("useSubmissionProgress", () => {
       expect(result.current.progress.stage).toBe("syncing");
       // Syncing starts at cumulative weight 85
       expect(result.current.progress.overallProgress).toBe(85);
-      expect(result.current.progress.message).toBe("Syncing with blockchain...");
+      expect(result.current.progress.message).toBe("Recording your work…");
     });
 
     it("transitions to complete with 100% overall progress", () => {

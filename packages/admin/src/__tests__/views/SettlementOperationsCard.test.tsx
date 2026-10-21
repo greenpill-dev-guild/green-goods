@@ -86,7 +86,7 @@ describe("SettlementOperationsCard", () => {
       // What happens next, never a hash fragment.
       expect(mocks.toastSuccess).toHaveBeenCalledWith({
         title: "Transaction submitted",
-        message: "The switch reads back from the chain once it confirms.",
+        message: "The switch shows its new setting once the transaction confirms.",
       })
     );
   });

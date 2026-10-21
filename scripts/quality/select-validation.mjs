@@ -159,6 +159,7 @@ function isValidationOnlyPath(path) {
 }
 
 const directRootTestChecks = new Map([
+  ["scripts/ops/dependabot-sync.test.mjs", "dependabot-sync-test"],
   ["scripts/harness/agent-hooks.test.mjs", "review-guardrails-test"],
   ["scripts/lib/env-schema.test.mjs", "env-schema-test"],
   ["scripts/lib/dev-shared.test.mjs", "validation-system-test"],
@@ -984,8 +985,12 @@ export function selectExpectedWorkflows(input = {}, options = {}) {
   effectiveIntent(policy, input.intent ?? "merge", input.ci === true);
   const paths = normalizePaths(input.changedPaths);
   return Object.entries(policy.workflowRules ?? {})
-    .filter(([name, rule]) =>
-      paths.some((path) => {
+    .filter(([name, rule]) => {
+      if (rule.pullRequestAuthor) {
+        return input.pullRequest?.user?.login === rule.pullRequestAuthor &&
+          Boolean(input.repository) && input.pullRequest?.head?.repo?.full_name === input.repository;
+      }
+      return paths.some((path) => {
         if (consumersOfSharedTestSupport(policy, path).includes(name.toLowerCase())) return true;
         if (!groupMatches(path, rule)) return false;
         if (rule.exact?.includes(path)) return true;
@@ -996,8 +1001,8 @@ export function selectExpectedWorkflows(input = {}, options = {}) {
         // Playwright spec under tests/, is run by every workflow whose rule lists it.
         const owner = owningSurface(path);
         return owner === null || name.toLowerCase() === owner;
-      }),
-    )
+      });
+    })
     .map(([name]) => name)
     .sort();
 }

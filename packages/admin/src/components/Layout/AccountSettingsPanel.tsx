@@ -26,7 +26,7 @@ const LOCALE_LABELS: Record<string, string> = {
 };
 
 const DOCS_URL = "https://docs.greengoods.app";
-const SUPPORT_TELEGRAM_URL = "https://t.me/+N3o3_43iRec1Y2Jh";
+const SUPPORT_URL = "https://discord.gg/greenpill";
 
 interface AccountSettingsPanelProps {
   /** `sheet` (default) is the side sheet; `page` is the mobile Profile route. */
@@ -162,7 +162,7 @@ export function AccountSettingsPanel({ layout = "sheet", className }: AccountSet
           label={formatMessage({ id: "cockpit.settings.docs", defaultMessage: "Documentation" })}
         />
         <ExternalLinkRow
-          href={SUPPORT_TELEGRAM_URL}
+          href={SUPPORT_URL}
           label={formatMessage({ id: "cockpit.settings.support", defaultMessage: "Support" })}
         />
       </section>

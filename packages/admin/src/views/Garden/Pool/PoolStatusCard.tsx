@@ -67,7 +67,7 @@ export function PoolStatusCard({
   const cap = pool.pool?.providerOpenCommitmentCap ?? 0n;
   const offlineNote = formatMessage({
     id: "cockpit.garden.pool.offline",
-    defaultMessage: "Needs a connection. Pool changes are sent straight to the chain.",
+    defaultMessage: "Needs a connection. Pool changes are sent right away, not queued.",
   });
   const actDisabled = offline || isActing;
   // Resume stays closed from the wallet until the pool reads open again.

@@ -84,7 +84,9 @@ describe("GardenJoinRequestsQueue", () => {
     resolveRequest.mockResolvedValue({ pendingOnchainMembership: true });
     renderQueue();
     await userEvent.click(screen.getByRole("button", { name: "Welcome" }));
-    expect(await screen.findByText(/Confirm again after it is visible on-chain/)).toBeVisible();
+    expect(
+      await screen.findByText(/Confirm again in a moment, once the new role shows/)
+    ).toBeVisible();
     expect(screen.queryByText("The gardener was welcomed.")).not.toBeInTheDocument();
   });
 });

@@ -285,7 +285,7 @@ export const WorkView: React.FC<WorkViewProps> = ({
       {reserveFooterSpace ? (
         <div
           aria-hidden="true"
-          className={footerSpacerClassName ?? "h-[calc(96px+env(safe-area-inset-bottom))]"}
+          className={footerSpacerClassName ?? "h-[calc(96px+var(--safe-area-bottom))]"}
         />
       ) : null}
 

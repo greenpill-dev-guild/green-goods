@@ -33,7 +33,7 @@ function TabsFixture() {
 function PwaRouteFrame({ route, children }: { route: string; children: React.ReactNode }) {
   return (
     <MemoryRouter initialEntries={[route]}>
-      <div className="min-h-[720px] bg-bg-white-0 pb-[calc(69px+env(safe-area-inset-bottom))] text-text-strong-950">
+      <div className="min-h-[720px] bg-bg-white-0 pb-[calc(69px+var(--safe-area-bottom))] text-text-strong-950">
         {children}
         <AppBar />
       </div>
@@ -126,7 +126,7 @@ export const GardenWorkCapture: Story = {
               stage: "uploading",
               stageProgress: 48,
               overallProgress: 31,
-              message: "Uploading to IPFS...",
+              message: "Uploading photos…",
               totalFiles: 4,
               completedFiles: 2,
             }}

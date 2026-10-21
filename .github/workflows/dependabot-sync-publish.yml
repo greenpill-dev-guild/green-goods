@@ -1,0 +1,71 @@
+name: Dependabot Sync Publish
+
+on:
+  workflow_run:
+    workflows: [Dependabot Sync]
+    types: [completed]
+
+permissions: {}
+
+concurrency:
+  group: dependabot-sync-publish-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    if: >-
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      (startsWith(github.event.workflow_run.head_branch, 'dependabot/npm_and_yarn/') ||
+       startsWith(github.event.workflow_run.head_branch, 'dependabot/bun/') ||
+       startsWith(github.event.workflow_run.head_branch, 'dependabot/github_actions/'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: write
+      pull-requests: read
+    steps:
+      - name: Checkout publisher from the trusted default branch context
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          path: trusted
+          persist-credentials: false
+
+      - name: Validate origin run and live Dependabot PR
+        id: origin
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        with:
+          script: |
+            const path = require('node:path');
+            const { pathToFileURL } = require('node:url');
+            const { syncPublication } = await import(pathToFileURL(path.resolve('trusted/scripts/ops/dependabot-sync.mjs')));
+            const result = await syncPublication({ github, repository: process.env.GITHUB_REPOSITORY, run: context.payload.workflow_run });
+            core.setOutput('ready', Boolean(result.artifactId));
+            core.setOutput('artifact-id', result.artifactId ?? '');
+            core.info(JSON.stringify(result));
+
+      - name: Download repair data from the validated origin run
+        if: steps.origin.outputs.ready == 'true'
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with:
+          artifact-ids: ${{ steps.origin.outputs.artifact-id }}
+          merge-multiple: true
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+          path: repair
+
+      - name: Publish a fast-forward repair if the PR head is still current
+        if: steps.origin.outputs.ready == 'true'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        with:
+          script: |
+            const fs = require('node:fs');
+            const path = require('node:path');
+            const { pathToFileURL } = require('node:url');
+            const trustedRoot = path.resolve('trusted');
+            const { publishSync } = await import(pathToFileURL(path.join(trustedRoot, 'scripts/ops/dependabot-sync.mjs')));
+            const bundle = JSON.parse(fs.readFileSync('repair/sync.json', 'utf8'));
+            core.info(JSON.stringify(await publishSync({ github, repository: process.env.GITHUB_REPOSITORY, run: context.payload.workflow_run, bundle, trustedRoot })));
