@@ -252,7 +252,8 @@ The maintainer answered the open questions on 18 October after the findings abov
    queue's own toast stays the phone-wide signal for a failed upload.
 5. **About and management.** One About row at the end of Home for now: Insights, Gardeners,
    Share, Endowment for stewards and depositors, Governance when configured. Steward and evaluator
-   duties surface in Continue. The garden page keeps its banner actions for visitors. Review the
+   duties surface in a Garden duties section above Recent activity (decision 22, replacing the
+   earlier placement in Continue). The garden page keeps its banner actions for visitors. Review the
    placement after the first slice renders.
 6. **Links.** Visiting a garden by link, from Explore or from a row never changes the active
    garden. Only the chip switches, among the member's gardens or through Explore gardens, where
@@ -367,8 +368,21 @@ for the free-work row, chips with tabs kept for comparison, and the switcher's a
 tinted row with a ring on its picture. None of the first three is decided; the switcher marking is
 a correction.
 
+22. **A steward's Home carries a Garden duties section first.** For stewards and evaluators, and
+    only when something waits, a section above Recent activity lists the garden's needs: work to
+    review, join requests, promises to confirm, the season assessment, each row opening its sheet
+    (Your Work's To review, Gardeners, Promises' To confirm, Insights). It disappears when empty,
+    and gardeners never see it. Continue goes back to the member's own drafts and uploads. The
+    rest of Home is the same journal for everyone; the role shows in the content, not in a mode.
+23. **A pending work row opens the work.** Recent activity rows stay the same for every role; a
+    steward approves inside the work's page as today. The duties section carries the count. No
+    Review control in the row.
+24. **Deeper management stays in the cockpit.** Home and its sheets take approvals, join
+    requests and confirmations; pools, assessments, payouts and settings stay in the cockpit,
+    reached from the About row.
+
 Still open after this round: the Work-for treatment (card, line or none), Home's row style, the
-promise card, the free-work wording, and whether Home should differ for a steward.
+promise card and the free-work wording.
 
 What this corrects: the 19 October "promises first" step offered open asks as things the step
 could keep, but work links only to a promise the member has taken up (the link-choice hook reads

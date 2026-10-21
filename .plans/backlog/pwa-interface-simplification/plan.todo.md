@@ -3,8 +3,10 @@
 **2026-10-20 design round:** the Start step was reopened against the design books and settled
 as decisions 16 to 20 in [spec.md](spec.md#review-round-on-20-october-2026); step 13 carries the
 one-question step, and steps 16 and 17 the Open default and the take-up from the step. Later
-that day the step itself was settled (decision 16) and the one submission flow for evidence and
-work added as step 18 (decision 21); the Work-for treatment and Home's row style await a pick.
+that day the step itself was settled (decision 16), the one submission flow for evidence and
+work added as step 18 (decision 21), and the steward's Garden duties section as step 19
+(decisions 22 to 24); the Work-for treatment, Home's row style, the promise card and the free-work
+wording await a pick.
 
 **2026-10-19 review round:** the maintainer reviewed the lab and the lock; nine corrections and,
 later that day, the five explorations and the badge rule are settled, all recorded in
@@ -65,7 +67,7 @@ design. It holds no private transcript material or host-specific previews.
 These steps describe future work. They are not authorization to start it. Select exact files and
 focused tests from the then-current owning code before each bounded change. Split a step further
 if it would exceed one coherent session or mix independent behaviors. Steps 1 to 6 are the first
-slice; steps 7 to 18 the second; step 19 accepts both.
+slice; steps 7 to 19 the second; step 20 accepts both.
 
 | Step | Lane | Work and likely owners | Completion evidence |
 |---|---|---|---|
@@ -76,7 +78,7 @@ slice; steps 7 to 18 the second; step 19 accepts both.
 | 5. Offline photo garden | `state_api` | The scheduler keeps the active garden's photos first and the viewed garden's second. | Policy test for active and viewed gardens; which lists are kept does not change. |
 | 6. Profile list and guides | `ui` | Profile's gardens list on the shared membership, marking the active garden; decision-log rows, strings in three languages, Storybook states, the PWA design guide's content hierarchy. | Locale coverage; stories for the five Home states; the design checks pass. |
 | 7. Recent activity | `ui` | The garden's newest work as item rows, with See all opening the Work sheet over Home. | Truthful status pills; empty, loading, error and offline states. |
-| 8. Continue | `ui` | Pending rows from the Your Work derivation filtered to the garden, steward and evaluator duties first, capped, with Open Your Work. | Order per DL-061; counts match the sheet; the Home badge counts the active garden's drafts and queued uploads on this phone. |
+| 8. Continue | `ui` | Pending rows from the Your Work derivation filtered to the garden (the member's own drafts and uploads), capped, with Open Your Work. | Order per DL-061; counts match the sheet; the Home badge counts the active garden's drafts and queued uploads on this phone. |
 | 9. Take part | `ui` | Open and asked-for promises in the garden, with See all opening the Promises sheet. | Rows reuse the commitment row anatomy; no second promise workflow. |
 | 10. About row and section sheets | `ui` | Insights, Gardeners with the join-request count for stewards, Share, Endowment for stewards and depositors, Governance when configured. Insights, Gardeners and Work open as tall sheets over Home with the section's content under the shared sheet header and the garden named beneath the title; a garden the member visits keeps its page with tabs. | Access matrix for gardener, steward, evaluator, owner and depositor; no new privilege from presentation; the sheets reuse the tabs' components and close back to Home's scroll position. |
 | 11. Scoped sheets | `ui`, `state_api` | Your Work and Promises filtered to the active garden with no widening row; the Your Work badge and the bottom bar's Home badge count the active garden's drafts and queued uploads on this phone. | The sheet names its garden; drafts and queued work from other gardens stay reachable by switching the chip, nothing in the queue is lost, and the queue's toast still reports a failed upload for any garden. |
@@ -87,7 +89,8 @@ slice; steps 7 to 18 the second; step 19 accepts both.
 | 16. Open asks by default | `ui` | Compose defaults a new ask's claim mode to Open and keeps Approval gated as the opt-in, with copy that says who can take it up. | Compose's review shows the mode; a gated ask still records a pending claim; no contract change. |
 | 17. Take up from the step | `state_api`, `ui` | The Start step lists the garden's Open asks beside the member's promises; picking one queues the claim before the work and its link as one dependent chain in the job queue, and the step says how many prompts are coming. Approval-gated asks are not listed until accepted. | Queue test for claim, then work, then link, with the failure at each step recoverable and nothing reassigned; critical-surface review of the queue change; rendered Start with an Open ask listed and a gated ask absent. |
 | 18. One submission flow | `state_api`, `ui` | Consolidate Submit Work (the work submission flow controller with Intro, Media, Details and Review) and the proof composer (its controller with ProofShell, ProofMedia, ProofDetails and ProofReview) into one flow with two kinds, work and evidence: one shell, one stage sequence, shared media handling and pinned promise, kind-specific pieces at each stage, one job-queue path per kind. Critical surface: work submission and the queue. | Both kinds reach the queue through the shared stages with their existing payloads unchanged; focused proof per kind per stage; drafts and queued uploads of either kind survive the change; before and after pairs of every stage. |
-| 19. Acceptance | `qa_pass_1`, then `qa_pass_2` | User-flow review, then independent regression review, including the gardener walk in PRD-1157 on the new Home. | Criteria in [eval.md](eval.md), accurate session labels, authenticated proof for queue and offline behaviour recorded or pending, and fresh receipts for the changed surfaces. |
+| 19. Garden duties | `ui` | A section above Recent activity for stewards and evaluators, drawn from the existing counts (pending work in the garden, join requests, promises ready to confirm, the season assessment), each row opening its sheet; absent when nothing waits and for every other role. | Rendered for a steward with and without waiting items, an evaluator, and a gardener (no section); counts match the sheets; no new privilege from presentation. |
+| 20. Acceptance | `qa_pass_1`, then `qa_pass_2` | User-flow review, then independent regression review, including the gardener walk in PRD-1157 on the new Home. | Criteria in [eval.md](eval.md), accurate session labels, authenticated proof for queue and offline behaviour recorded or pending, and fresh receipts for the changed surfaces. |
 
 Step 3 consumes steps 1 and 2. Step 4 can be designed alongside step 3 but is verified on its own
 before the Start step consumes it. Steps 7 to 13 build on the first slice's owners and reuse the
@@ -102,12 +105,12 @@ review.
 | Requirements | Planned steps |
 |---|---|
 | R1 garden-scoped entry and switching | 1, 2, 3 |
-| R2 ordered, selective previews | 7, 8, 9 |
+| R2 ordered, selective previews | 7, 8, 9, 19 |
 | R3 familiar navigation and sheets | 3, 10, 11, 15 |
 | R4 deeper garden actions | 10, 13, 16 |
 | R5 submission and draft continuity | 2, 4, 13, 17, 18 |
-| R6 role/capability preservation | 1, 8, 10, 14, 17, 19 |
-| R7 existing records, recovery, and domain boundaries | 2, 4, 5, 11, 12, 17, 18, 19 |
+| R6 role/capability preservation | 1, 8, 10, 14, 17, 19, 20 |
+| R7 existing records, recovery, and domain boundaries | 2, 4, 5, 11, 12, 17, 18, 20 |
 | R8 discovery and personal context | 3, 6, 11, 15 |
 
 ## Execution rules

@@ -82,8 +82,11 @@ promise needs first, known answers skipping the step, Open asks taken up from th
 queued writes, new asks defaulting to Open, and the bell at the far right. Later that day the
 maintainer settled the step itself (decision 16: no Start button, promises first as rows when
 there are any, a promise's own screen with Add evidence first, two-up action tiles under dynamic
-domain tabs otherwise) and asked for one submission flow for evidence and work (decision 21). The
-Work-for treatment and Home's row style stay in the lab until picked.
+domain tabs otherwise) and asked for one submission flow for evidence and work (decision 21). A
+steward's Home gained a Garden duties section above Recent activity, shown only when something
+waits, with pending rows opening the work as today and deeper management staying in the cockpit
+(decisions 22 to 24). The Work-for treatment, Home's row style, the promise card and the free-work
+wording stay in the lab until picked.
 
 ## Scope and boundaries
 

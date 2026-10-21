@@ -167,3 +167,13 @@ one needing one action; the evidence-only open ask opening Media with the promis
 height with a 36px two-line title block; no tabs for a one-domain garden; no Start button on any
 screen except today's order; Media offering Details; Back returning along the path taken; the
 Portuguese strings fitting. The hub checks were run again on the recording edits.
+
+## Steward Home check (2026-10-21)
+
+Measured in the desktop app's built-in browser pane (Chromium, static mock, no app session): a
+gardener's Home has no Garden duties section; a steward's shows it above Recent activity with
+three 88px rows (to review, join requests, to confirm), each opening its sheet, and Continue back
+to the member's own items; an evaluator's shows the assessment row; the Portuguese strings fit.
+The promise cards measured 204px each at 390px in English and Portuguese with the description
+clipped at two lines and the needs row at one; the switcher's rows all end their role chip at the
+same edge with no check mark. The hub checks were run again on the recording edits.
