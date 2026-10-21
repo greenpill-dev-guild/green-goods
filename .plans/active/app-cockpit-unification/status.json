@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-10T09:56:00.510Z",
-    "updated_at": "2026-10-21T07:07:17.645Z"
+    "updated_at": "2026-10-21T07:19:35Z"
   },
   "links": {
     "brief": "brief.md",
@@ -30,10 +30,24 @@
   },
   "taxonomy": {
     "initiative": "design-system",
-    "tracks": ["client-pwa", "admin", "shared"],
-    "work_types": ["research", "implementation", "qa"],
-    "surfaces": ["packages/client", "packages/admin", "packages/shared"],
-    "depends_on_features": ["pwa-interface-simplification"]
+    "tracks": [
+      "client-pwa",
+      "admin",
+      "shared"
+    ],
+    "work_types": [
+      "research",
+      "implementation",
+      "qa"
+    ],
+    "surfaces": [
+      "packages/client",
+      "packages/admin",
+      "packages/shared"
+    ],
+    "depends_on_features": [
+      "pwa-interface-simplification"
+    ]
   },
   "notes": [
     "The maintainer asked for design research, a switchable mock, and this hub on a branch, then chose an option for every fork. Implementation runs one slice at a time on its approved pair; the three token slices were approved on 2026-10-21. No deployment or transaction work is in scope.",
@@ -74,7 +88,11 @@
         },
         "note": "Step 1 (typeface) changes the installed app's font family and its loading screen's face and no behaviour, so it proves itself with the rendered pairs, the typeface fit audit and the design and typography guards. Each later slice records its own mode in the lane handoff: steps 1 and 2 are pure styling (not_applicable); step 3's solid focus ring is rendered-only behaviour (proof_limit with its rendered evidence)."
       },
-      "skill_tags": ["ui", "design", "react"],
+      "skill_tags": [
+        "ui",
+        "design",
+        "react"
+      ],
       "ready_when_dependencies_met": true,
       "manual_blocked": false
     },
@@ -97,7 +115,11 @@
         },
         "note": "This hub proposes look and feel and shared presentation elements only; no data, hook, store, or API change is in scope."
       },
-      "skill_tags": ["react", "tanstack-query", "data-layer"]
+      "skill_tags": [
+        "react",
+        "tanstack-query",
+        "data-layer"
+      ]
     },
     "contracts": {
       "owner": "codex",
@@ -118,7 +140,9 @@
         },
         "note": "No contract, settlement, or deployment work is in scope."
       },
-      "skill_tags": ["contracts"]
+      "skill_tags": [
+        "contracts"
+      ]
     },
     "qa_pass_1": {
       "owner": "claude",
@@ -126,9 +150,16 @@
       "ready_when_dependencies_met": false,
       "manual_blocked": true,
       "branch": null,
-      "depends_on": ["ui", "state_api", "contracts"],
+      "depends_on": [
+        "ui",
+        "state_api",
+        "contracts"
+      ],
       "handoff": "handoffs/claude-qa-pass-1.md",
-      "skill_tags": ["testing", "review"],
+      "skill_tags": [
+        "testing",
+        "review"
+      ],
       "blocked_reason": "Implementation is not authorized or available for acceptance review."
     },
     "qa_pass_2": {
@@ -137,9 +168,14 @@
       "ready_when_dependencies_met": false,
       "manual_blocked": true,
       "branch": null,
-      "depends_on": ["qa_pass_1"],
+      "depends_on": [
+        "qa_pass_1"
+      ],
       "handoff": "handoffs/codex-qa-pass-2.md",
-      "skill_tags": ["testing", "review"],
+      "skill_tags": [
+        "testing",
+        "review"
+      ],
       "blocked_reason": "Implementation is not authorized or available for acceptance review."
     }
   },
@@ -247,6 +283,14 @@
       "status": "in_progress",
       "branch": "feature/app-cockpit-typeface",
       "note": "Step 1 (typeface, PRD-1267) started on the approved pair; steps 2 and 3 follow in order, one pull request each."
+    },
+    {
+      "timestamp": "2026-10-21T07:19:35Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/app-cockpit-typeface",
+      "note": "Handed to the next session at the maintainer's request: step 1's code is committed and pushed without its guides and guards, and the step 2 and 3 drafts are pushed on feature/app-cockpit-token-slice-drafts; handoffs/claude-ui.md lists what remains."
     }
   ]
 }
