@@ -145,7 +145,7 @@ sequenceDiagram
 | Voucher issuance adapter (working name) | Gnosis 100 | **New GG:** verifies source and command, consumes each entitlement once (only on success), delivers from the issuer's reserve within an ERC20 allowance (proposed default; writer-based minting is the alternative) and stores the result before acknowledging. No pool-withdrawal authority and no limiter writes. |
 | GiftableToken; SwapPool; registry, Limiter, quoter and fees | Gnosis | **Reuse CLC implementations**, configuring community-controlled instances where needed. Pin actual version and controller topology. No new custom voucher token or swap engine is proposed. |
 | Messaging infrastructure | Arbitrum ↔ Gnosis | **Reuse CCIP** with new application peers and messages: lanes are live both ways at OnRamp 2.0.0, both routers quote the existing codec's message shape, and the acknowledgment lane remains open. If acknowledgments are selected, fifty commands are estimated at 0.0025 ETH and 8 xDAI before margin. PRD-1096 uses labeled simulated transport; live delivery proof belongs to the separately authorized PRD-1100 release. |
-| Service redemption/discharge | Primarily issuer workflow plus indexed evidence | **Decided 2026-10-21:** presentment opens a new Green Goods promise that may reuse work and confirmation primitives. Record its service delivery and voucher discharge separately; neither follows from the original reward commitment's `Fulfilled` record. A Gnosis escrow keyed to the presentment promise holds vouchers until discharge or remedy. The PRD-1096 service desk is a fork-only stand-in, not a new redemption registry. Mint permission does not grant owner-only burn permission. |
+| Service redemption/discharge | Primarily issuer workflow plus indexed evidence | **Decided 2026-10-21:** presentment opens a new Green Goods promise that may reuse work and confirmation primitives. Record its service delivery and voucher discharge separately; neither follows from the original reward commitment's `Fulfilled` record. A Gnosis escrow keyed to the presentment promise holds vouchers until discharge or remedy; its live contract placement/custody authority remain open, and are not assigned to the delivery adapter. The PRD-1096 service desk is a fork-only stand-in, not a new redemption registry. Mint permission does not grant owner-only burn permission. |
 
 ## Choices to discuss
 
@@ -275,8 +275,9 @@ Next: the [review](handoffs/claude-architecture-review-results.md) is complete a
 no-core-upgrade boundary is accepted. PRD-1315 freezes only after every decision in the
 [complete freeze inventory](plan.todo.md#sequence-and-completion-evidence) is recorded. That
 inventory includes issuer-cap enforcement, the authenticated presentment handshake,
-exact-revision counterparty consent, post-claim Offer funding and distinct gardener issuer identity
-alongside the original six decisions. Fork rehearsal defaults
+exact-revision counterparty consent, post-claim Offer funding, distinct gardener issuer identity and
+independent steward-controlled issuer suspension, alongside the original six decisions. The
+handshake decision includes live escrow placement and custody authority. Fork rehearsal defaults
 settle none of those live decisions. Purchased issuance and its PRD-796 framing were settled on
 21 October by the [voucher direction](spec.md#voucher-direction-decided-2026-10-21); the
 [corrected phase plan](commitment-upgrade-plan.md) consumes the complete inventory.

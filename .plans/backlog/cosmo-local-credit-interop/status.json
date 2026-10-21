@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-08-25T06:09:38.829Z",
-    "updated_at": "2026-10-21T21:13:59Z"
+    "updated_at": "2026-10-21T21:57:00.693Z"
   },
   "links": {
     "brief": "brief.md",
@@ -38,7 +38,7 @@
     "project": "Cosmo-Local Integration",
     "initiative": null,
     "syncDirection": "plans_to_linear_visibility",
-    "lastSyncedAt": "2026-10-21T21:13:59Z",
+    "lastSyncedAt": "2026-10-21T21:57:00.693Z",
     "lanes": {},
     "laneSyncMode": "parent_only",
     "stateSyncMode": "preserve_existing",
@@ -402,6 +402,14 @@
       "status": "planning_reconciled",
       "branch": "research/cosmo-local-voucher-direction",
       "note": "PR #1170 escrow-order review: after Afo explicitly approved the exact addition, appended PRD-1318 acceptance criteria for one immutable full-discharge/full-return/partial-split decision, shared settlement progress, terminal state only after all authorized legs settle, symmetric ordering/duplicate cases and isolation from other escrows. Applied at 21:13:58 UTC and read back at 21:13:59 UTC. Backlog status, state history, assignee, cycle, dates, estimate and milestone unchanged. This bounded description sync changes no lane object, manual block, dispatch authority or runtime code."
+    },
+    {
+      "timestamp": "2026-10-21T21:57:00.693Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "planning_reconciled",
+      "branch": "research/cosmo-local-voucher-direction",
+      "note": "PR #1170 steward-pause review: after Afo explicitly approved both exact additions, appended PRD-1315 and PRD-1318 Done-when requirements for independent steward-controlled per-issuer suspension, cross-chain authority/order, issuance and purchase route coverage, issuer-Safe bypasses, outstanding-obligation servicing and authorized recovery. Applied and read back 21:56:55-21:57:00 UTC. PRD-1315 remains In Progress and PRD-1318 remains Backlog; state history, assignee, cycle, due date, estimate and milestone unchanged. This bounded description sync leaves the mechanism open until PRD-1315 records it and preserves required but unenforceable stops as release blockers. Lane objects, manual blocks and dispatch authority unchanged; no runtime change."
     }
   ]
 }

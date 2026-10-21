@@ -4,7 +4,8 @@
 No check below is certified by planning, a Linear state or the completed foundation project.
 PRD-1096 covers its approved fork scope only: its report must keep exact-revision claimant consent,
 issuer-cap enforcement, the live escrow-to-promise handshake, claimant-funded Offer payments and
-distinct gardener issuer identity/cap isolation unproved where the defaults do not exercise them.
+distinct gardener issuer identity/cap isolation, and independent steward issuer suspension unproved
+where the defaults do not exercise them. The handshake limit includes escrow placement/custody.
 Steward approval is not claimant consent, and the service-desk stand-in is not the live handshake.
 
 | Boundary | Required observable evidence | Owner |
@@ -18,6 +19,7 @@ Steward approval is not claimant consent, and the service-desk stand-in is not t
 | Purchased issuance | The issuer pool's bounded swap settles payment and voucher delivery atomically; record finality, recipient, actual output, minimum output, deadline and inventory delta. No separate purchase message or entitlement exists under this route. A later route with separate settlement must define its entitlement and payment cancellation/refund rules; COM-46 owns service cancellation/refund terms in either case | PRD-1096 / COM-46 |
 | Replay and recovery | Same message and distinct-message reuse both rejected; retry cannot deliver twice; failed and pending states reconcile | PRD-1096 |
 | Capacity and caps | Agreed deliverable service capacity, issuance cap and token holding limits remain distinct and bounded | COM-46 / PRD-1096 |
+| Steward issuer suspension | Record steward/admission authority independent of issuer-Safe cooperation, authenticated cross-chain state/order, per-issuer stop scope and recovery. Test affected mint/earned/purchase routes, bypass attempts, replay/unauthorized controls, in-flight commands and issuer isolation; preserve the approved outstanding service/discharge/refund path. Required unenforceable stops block release. The fork's owner pause does not prove this | PRD-1315 / PRD-1318 |
 | Issuer budget | The amount the adapter can deliver is bounded by the token allowance or its own writer-path cap. Acceptance is unreserved: allowance is shared and revocable, not earmarked per entitlement; oversubscription and depleted reserve/allowance must fail safely and recover. The adapter holds no pool or limiter authority | PRD-1318 / COM-46 |
 | Member account | Gnosis derivation, ownership, sponsored signing and recovery proved independently of garden accounts | PRD-1096 |
 | Exchange | Executable direct swap with minimum output/deadline; stale quote, de-list, depleted inventory, limit and sponsorship failures | PRD-1096 |
@@ -47,10 +49,10 @@ chain/block, exact implementation and configuration, simulated components and re
 A local fork demonstrates the tested deployment at the pinned state, not a later live configuration.
 
 Rendered evidence follows AGENTS.md: identify the browser/session, distinguish authenticated signing
-or installed-PWA proof from mocks, and record unavailable proof honestly. This planning pass changed
-no product UI or layout. Deck narration text was corrected; rendered proof is **pending** because
-the browser security policy blocked the local file. Embedded JSON and paired speaker notes are
-checked directly.
+or installed-PWA proof from mocks, and record unavailable proof honestly. This pass changes deck
+text and accessible narration while preserving CSS and element structure. Rendered proof is
+**pending** because the browser security policy blocked the local file. Static HTML/JSON and paired
+notes are checked directly; text wrapping and overflow remain unverified.
 
 The whitepaper review records the earlier 275 passing focused foundation tests. Runtime code has
 not changed during project reconciliation, so those tests were not rerun or recharacterized as CLC

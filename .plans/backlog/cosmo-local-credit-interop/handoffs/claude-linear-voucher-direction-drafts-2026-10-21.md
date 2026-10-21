@@ -287,3 +287,24 @@ state history, assignee, cycle, due date, estimate and milestone are unchanged. 
 content is preserved apart from Linear whitespace/native-issue-link normalization.
 
 > * Use one immutable settlement decision per escrow (full discharge, full return, or the approved partial split) with shared settlement progress. Reject conflicting decisions; mark the escrow terminal only after all authorized legs settle. Test discharge after full return, repeated full return, return after full discharge, and repeated discharge: no extra transfer or consumption of another escrow's balance. Partial-split legs may arrive in either order, but must match the frozen decision and settle each allocated amount once.
+
+## PR #1170: steward suspension criteria applied after approval
+
+The later review found that the decided steward-pause requirement lacked a recorded authority and
+enforcement boundary. Afo approved both exact Done-when additions below. They were applied and
+read back as description-only patches; PRD-1315 remains In Progress and PRD-1318 remains Backlog.
+State history, assignee, cycle, due date, estimate and milestone are unchanged. Existing description
+content is preserved apart from Linear whitespace/native-issue-link normalization.
+
+Read-back receipts (21 October 2026 UTC):
+
+* PRD-1315: applied 2026-10-21T21:56:55.217Z, read back 2026-10-21T21:56:56.466Z.
+* PRD-1318: applied 2026-10-21T21:56:59.848Z, read back 2026-10-21T21:57:00.693Z.
+
+### PRD-1315
+
+> * Before freezing the boundary, specify steward-controlled per-issuer suspension independent of issuer-Safe cooperation: authorized steward/admission identity, cross-chain authorization and propagation, pause state and affected minting, earned-issuance and purchase routes, issuer-Safe or alternate-route bypasses, treatment of outstanding fulfillment/discharge/refund obligations, and authorized recovery/unpause. State which controls the reused CLC contracts can enforce; any required but unenforceable stop remains a release blocker.
+
+### PRD-1318
+
+> * Implement the recorded PRD-1315 per-issuer suspension decision with authenticated steward authority and explicit cross-chain ordering. Test unauthorized or replayed pause/unpause, affected issuance and purchase routes while paused (including issuer-Safe bypass attempts), in-flight or delayed commands, isolation between issuers, and authorized recovery. Preserve the approved servicing and discharge/refund path for outstanding obligations. Record any required but unenforceable route as a release blocker.

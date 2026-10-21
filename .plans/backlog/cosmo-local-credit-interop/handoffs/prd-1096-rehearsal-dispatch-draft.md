@@ -62,7 +62,10 @@ This limitation does not expand the approved fork scope.
 This bounded rehearsal also leaves voucher-accepting Offer payment funding and distinct gardener
 issuer identity unproved. Its reserve transfers are earned rewards, and its two organizational
 issuers use `issuerGarden`; neither exercises the later claimant-funded or per-gardener design.
-Keep those limits in the report alongside consent, issuer-cap enforcement and the live handshake.
+Keep those limits in the report alongside consent, issuer-cap enforcement and the live handshake
+(including escrow placement). Independent steward-controlled issuer suspension is also unproved:
+this rehearsal has only issuer-Safe adapter pause, not a steward stop for issuance or pool sales.
+That live authority/enforcement decision belongs to PRD-1315/1318 and does not expand this fork scope.
 
 ## Decided inputs: do not reopen
 
@@ -104,7 +107,7 @@ and 6 and findings F1, F3, F4 and F7 of [the review](claude-architecture-review-
 | A gardener account's same-address derivation and ownership | K1 to K3 | With the validator stand-in. |
 | Bounded swaps; exhausted inventory, de-listing, changed quotes and sponsorship failure recover | P1, P3 to P5, P10, K4 | Sponsorship uses a fork-local paymaster (A8). |
 | Passkey validator gap rehearsed with a labeled stand-in and the live gap recorded | K2 | The live fix stays a gate. |
-| Presentment, full or partial delivery, beneficiary confirmation, discharge once; remedy and outstanding balance | S1 to S10 | Through the service desk (A1). |
+| Presentment, full or partial delivery, beneficiary confirmation, discharge once; remedy and outstanding balance | S1 to S11 | Through the service desk (A1). |
 | Interfaces from published specifications; fork receipts distinct from live CCIP; swap-back simulated; G$ never a Gnosis rail | Interface headers, L1, P6 | As written. |
 
 Report against this table. The earned-issuance and purchase-entitlement rows read stronger in
@@ -215,9 +218,12 @@ voucherToken, recipient, amount, seasonId, deadline, attempt`. It is separate fr
 
 ### VoucherEntitlementModule (Arbitrum)
 
-Follow the SettlementModule and Celo executor shells: UUPS; router and chain selectors pinned in the
-constructor; `initialize` leaves it paused; owner-only configuration while paused; a storage gap;
-custom errors; an event for every transition. It custodies nothing except native fees, with a fee
+Follow the SettlementModule and Celo executor shells: UUPS; router and local source selector pinned
+in the constructor (both non-zero); the destination route is configured while paused.
+`initialize(owner, poolingModule, hatsModule)` rejects a zero owner or dependency before storing
+initialization state. Rejection leaves it uninitialized; valid initialization succeeds once and
+leaves it paused. Keep owner-only configuration while paused, a storage gap, custom errors and
+an event for every transition. It custodies nothing except native fees, with a fee
 reserve floor like SettlementModule's `feeReserveMinimum`.
 
 - Dependencies: the CommitmentPooling module and HatsModule. It reads `getCommitment` and `getPool`.
@@ -272,7 +278,8 @@ reserve floor like SettlementModule's `feeReserveMinimum`.
   `executionKey = keccak256(abi.encode(sourceSelector, address(this), entitlementId, attempt))` and
   `deadline = block.timestamp + validity`. It stores the payload and its hash, pays the exact quoted
   fee and records Dispatched. Use the approved revision's snapshotted destination selector and
-  adapter, and store that target pair with the command record.
+  adapter, and store that target pair with the command record. Quote/send failures revert the
+  entire dispatch: no Dispatched state, stored command, message event or native-fee transfer survives.
 - `retry(commitmentId)` resends the stored payload byte for byte, same execution key and stored
   destination selector/adapter; never consult the current route for a delivery target.
   `requeue(commitmentId)` starts a new attempt with a fresh deadline after an operator has read a
@@ -280,6 +287,9 @@ reserve floor like SettlementModule's `feeReserveMinimum`.
   destination selector/adapter; only attempt/deadline and transport fees change. Both are
   steward-only. Requeue is safe by construction because the adapter consumes entitlements, not
   attempts. Mutable gas settings can affect fee quotes, never the target chain or adapter.
+  A quote/send failure during retry or requeue also reverts the entire call, preserving the prior
+  state, command identity, attempt/deadline and native balances. Repairing the router allows the
+  same operation to succeed; never catch a router failure and leave a false Dispatched record.
 - Pause blocks registration, approval, dispatch, retry and requeue before any state change, fee
   spend or message send, following `Settlement/Lifecycle.sol`'s `_requireNotPaused()` guards.
 - No receive path in this slice (default 5). Do not add `ccipReceive`.
@@ -301,8 +311,8 @@ Follow the order in `CeloSettlementExecution._ccipReceive` and `_authenticate`
 - `executionKey = keccak256(abi.encode(message.sourceChainSelector, sender, entitlementId,
   attempt))`. If a result already exists, emit a duplicate event and transfer nothing.
 - Otherwise store a result, then check in order: token matches, deadline not passed, entitlement
-  not consumed, recipient non-zero and distinct from `reserveHolder`, amount non-zero, season cap
-  if set. Reject a reserve-holder recipient with `InvalidRecipient`; do not attempt a self-transfer.
+  not consumed, recipient non-zero and distinct from `reserveHolder`, amount non-zero, cumulative
+  season spend plus this amount within that season's cap if set. Reject a reserve-holder recipient with `InvalidRecipient`; do not attempt a self-transfer.
   Execute the transfer and balance check together in an external, self-only helper, called through
   try/catch as in
   `CeloSettlementExecution.executeGdollarSettlementBatch`. The helper calls
@@ -322,7 +332,7 @@ Follow the order in `CeloSettlementExecution._ccipReceive` and `_authenticate`
   authentication. A requeued attempt stores `EntitlementConsumed`. Each stored result records its
   path, lane or issuer fallback, so the report never presents a fallback as a lane delivery.
 - Owner configuration while paused: peer rotation with a grace window capped at 30 days, copied
-  from `CeloSettlementAdmin.setSourcePeer`; an optional season cap; pause.
+  from `CeloSettlementAdmin.setSourcePeer`; optional per-season caps (updates retain prior spend); pause.
 - Failure codes: `None, TokenMismatch, Expired, EntitlementConsumed, InvalidRecipient, ZeroAmount,
   SeasonCapExceeded, TransferFailed, BalanceDeltaMismatch`.
 
@@ -447,6 +457,8 @@ No new code: configuration through the published factory and implementations.
 | M12 | Registering zero units or an empty terms CID reverts with revision/approval/storage unchanged; no invalid revision can be approved or dispatched. Positive-unit terms with a retrievable CID pass M1. |
 | M13 | Issuer revocation before acceptance clears approval and blocks later dispatch, without a pool-steward edit, including while paused (no fee spend or message). Unauthorized/old-revision/post-acceptance revocation reverts. Only explicit pre-acceptance reapproval restores that same hash; editing instead creates a new revision needing new approval. |
 | M14 | Independently ABI-encode the canonical preimage and match the stored/command hash. Vary issuer, kind, units, season, CID, revision and each frozen route/asset binding; each changes the hash. Retry/requeue preserve it, while a new revision invalidates old approval. |
+| M15 | Zero router/local source selector rejects construction. Zero owner, pooling module or Hats module rejects initialization with storage/initialization unchanged; a valid call then initializes once in paused state, and later initialization rejects. |
+| M16 | Inject getFee and ccipSend failures separately during dispatch, retry and requeue. Assert transaction rollback of lifecycle state, stored payload/hash/target, entitlement/attempt/deadline, module/router native balances and message events. Fresh dispatch remains possible; prior retry/requeue command identity remains intact. After router repair the same operation succeeds once, paying only its successful quote. |
 
 **Gnosis adapter**
 
@@ -460,7 +472,7 @@ No new code: configuration through the published factory and implementations.
 | G6 | Wrong selector, wrong sender, attached tokens, unsupported version or malformed payload reverts. |
 | G7 | A paused adapter reverts, for the lane and for the issuer fallback. |
 | G8 | The previous peer is accepted through and including its grace expiry timestamp, and refused strictly after it. |
-| G9 | A set season cap stores `SeasonCapExceeded` when exceeded; a token mismatch stores `TokenMismatch`. |
+| G9 | Season spend is cumulative per issuer adapter and season. With cap 100, distinct deliveries of 60 then 40 succeed (spent 100); another 1 stores `SeasonCapExceeded` without consuming entitlement/spend. Failed transfers, token mismatches and replays leave spend unchanged. A second season has independent spend/cap; changing a cap never resets prior spend. Keep a within-cap control and the TokenMismatch case. |
 | G10 | The adapter is not a writer of the token or limiter, does not own the pool and holds no balance of its own. |
 | G11 | The issuer fallback delivers a stored command once; the same attempt arriving later over the lane is a duplicate; a requeued attempt stores `EntitlementConsumed`; a non-owner call reverts; the result names the fallback path. After A-to-B rotation, fallback with originating peer A and delayed lane delivery from A during grace share one key/result. Unknown or expired fallback peers revert, including A strictly after expiry. |
 | G12 | Delivery to a member's counterfactual account address, with no code on Gnosis, succeeds. A command whose recipient is the reserve holder instead stores `InvalidRecipient` without moving tokens, consuming the entitlement or counting season spend. |
@@ -473,10 +485,10 @@ No new code: configuration through the published factory and implementations.
 | Case | Expected |
 |---|---|
 | P1 | A supporter buys hub vouchers with WXDAI through the bounded swap, delivered to a learner; minimum output and deadline are enforced; inventory falls by the amount received. |
-| P2 | A member swaps between the two vouchers at parity within the 500-unit limit; a deposit over the limit reverts `LimitExceeded`. |
+| P2 | With sufficient output inventory, member funds/approval and valid minimum/deadline, a member's bounded swap stays within the 500-unit token-in holding limit and succeeds. A bounded swap whose deposit leg would exceed 500 reverts `LimitExceeded`, with member/pool balances, fees and allowance unchanged. Retain the over-limit direct-deposit case too; it cannot substitute for the swap-path failure. |
 | P3 | A minimum above the quote reverts `InsufficientOutput`; a passed deadline reverts `Expired`. |
-| P4 | After the index's `remove(token)`, the voucher cannot be swapped in either direction, while wallet transfers still work. |
-| P5 | Exhausted inventory reverts `InsufficientBalance`. |
+| P4 | After the index's remove(token), bounded swaps in both directions reject with balances unchanged, while wallet transfers still work. The authorized registry owner re-registers the same token via register(token), have(token) becomes true, and fresh within-limit bounded swaps succeed in both directions with registry/limiter seal settings unchanged. |
+| P5 | Exhausted output inventory reverts `InsufficientBalance`, leaving buyer/pool balances, fees and allowance unchanged. The issuer replenishes output inventory through an authorized deposit within limits; a fresh quote and bounded purchase then succeed with the expected inventory delta, without weakening seals or limits. |
 | P6 | The simulated swap-back charges the 240000 parts-per-million pair fee and no protocol fee. The report shows the recipient's actual output and every configured fee, and notes that live pools may add a protocol fee. |
 | P7 | `setTokenRegistry` and `setTokenLimiter` revert `Sealed`; the owner's `withdrawLiquidity` still works and is disclosed in the report. |
 | P8 | `expired()` is false and `applyExpiry()` changes nothing with `expiresAt` 0. |
@@ -497,6 +509,7 @@ No new code: configuration through the published factory and implementations.
 | S8 | Operator and issuer Safe cannot present; zero units reject. A holder with an open presentment cannot become operator; a disjoint replacement can, but cannot confirm as the holder. Ordinary disjoint-holder S1 succeeds. |
 | S9 | Record a positive partial claim, then remedy: full refund, effective delivered units zero, old claim explicitly voided with reason, state Remedied, no beneficiary-confirmation/discharge event or successful-service count. A second remedy/confirmation rejects; history retains the voided claim. |
 | S10 | Failed/short escrow pull opens nothing. Failure in either confirmation transfer or the remedy refund rolls back all balances, claims, closure and outstanding counters; repair permits the same action once. |
+| S11 | Zero initial token, issuer Safe/owner or operator rejects initialization with no state persisted. A valid initialization then succeeds once, and reinitialization rejects. |
 | K1 | The passkey account address is the same on both forks. |
 | K2 | `createAccount` reverts on Gnosis without the stand-in, reproducing the live gap, and succeeds with it. |
 | K3 | Member actions run from that account; the ECDSA control completes a signed user operation through EntryPoint. |
@@ -577,7 +590,8 @@ with each row's evidence; outstanding supply before and after the service cases;
 what stays live-only or unproved: issuer-cap enforcement, exact-revision claimant consent and
 recipient eligibility before acceptance (not proved by registration or issuer approval), the live
 escrow-to-promise handshake, claimant-funded Offer payments and distinct gardener issuer
-identity/cap isolation; and a short update Afo can post to PRD-1096. End with the task record:
+identity/cap isolation and independent steward-controlled issuer suspension; and a short update Afo
+can post to PRD-1096. End with the task record:
 
 ```markdown
 Task record: PRD-1096 voucher rehearsal | Type: feature | Outcome: <complete/partial/blocked>

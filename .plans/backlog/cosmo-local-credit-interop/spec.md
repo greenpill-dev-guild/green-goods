@@ -32,7 +32,8 @@ Afo's approval and read back; the applied texts are in
    handshake that turns an escrow into a promise. It must bind presenter, promise, token, amount and
    escrow receipt, be replay-safe, and show the escrow exists before the presenter becomes the
    counterparty, either through a Gnosis-to-Arbitrum message or by gating delivery on the indexed
-   escrow. That choice belongs with the open acknowledgment-lane decision.
+   escrow. The live escrow contract placement and custody authority are undecided; the delivery-only
+   adapter is not assigned escrow custody. These choices belong with the open acknowledgment-lane decision.
 4. **The instrument is called "voucher".** User-facing copy names it with its issuer and unit, for
    example "Tech and Sun voucher, one solar class seat"; terms and docs may say "service voucher"
    at first mention. "Credit", "token" and "points" stay off the instrument, and "Redeem" keeps its
@@ -74,7 +75,16 @@ isolated per gardener: two gardeners sharing one garden or Safe must not become 
 share a cap by implication. The rehearsal's `issuerGarden` key covers its two organizational
 issuers only; it does not establish this identity model.
 
-Both decisions join the [complete freeze inventory](plan.todo.md#sequence-and-completion-evidence).
+**Steward-controlled issuer suspension remains open.** The steward-pause product rule above is
+not enforced by the accepted candidate: issuer-Safe adapter pause is not an independent steward
+stop. Before freezing, PRD-1315 must record the authorized steward/admission identity, cross-chain
+propagation/order, per-issuer pause state and affected minting, earned-issuance and purchase routes,
+including issuer-Safe/alternate-route bypasses. Specify outstanding service/discharge/refund
+behavior and recovery authority. PRD-1318 must enforce and test the recorded scope, issuer isolation,
+unauthorized/replayed changes and in-flight commands. Any required stop that reused CLC contracts
+cannot enforce remains a release blocker; do not describe a policy or UI flag as enforcement.
+
+These decisions join the [complete freeze inventory](plan.todo.md#sequence-and-completion-evidence).
 The approved bounded rehearsal does not settle them or expand to cover them.
 
 Grounding: the Cosmo-Local whitepaper v0.8 defines a commitment as a promise and a voucher as its
