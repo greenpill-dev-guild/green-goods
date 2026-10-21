@@ -2,7 +2,7 @@ import { Button } from "@green-goods/shared/components/Button";
 import { IconButton } from "@green-goods/shared/components/IconButton";
 import { useApp } from "@green-goods/shared/providers/App";
 import { RiCloseLine, RiDownloadLine, RiUserLine } from "@remixicon/react";
-import { useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { APP_ROUTES } from "@/config/pwaRouting";
@@ -13,14 +13,24 @@ export function InstallNudge() {
   const [dismissed, setDismissed] = useState(false);
   const navigate = useNavigate();
   const { formatMessage } = useIntl();
+  const canShow = isMobile && !isInstalled;
 
-  if (!isMobile || isInstalled || dismissed) return null;
+  // The prompt is 24px tall so its actions stay usable, more than the 16px the
+  // installed app keeps above its top controls. Wherever it can show, the root's
+  // data-install-prompt moves those controls 24px below the status bar (shared
+  // theme.css). It is set before paint and kept after a dismiss, so nothing moves.
+  useLayoutEffect(() => {
+    if (!canShow) return;
+    const root = document.documentElement;
+    root.setAttribute("data-install-prompt", "");
+    return () => root.removeAttribute("data-install-prompt");
+  }, [canShow]);
 
-  // 16px tall, like the offline banner: it shows in the space --app-top-offset keeps
-  // between the status bar and the top controls.
+  if (!canShow || dismissed) return null;
+
   return (
     <div
-      className="fixed left-0 right-0 top-0 z-nav flex h-4 w-full items-center justify-center gap-2 overflow-y-clip border-b border-stroke-soft-200 bg-bg-white-0/95 px-3 text-xs font-medium text-text-strong-950 shadow-sm backdrop-blur-md"
+      className="fixed left-0 right-0 top-0 z-nav flex h-6 w-full items-center justify-center gap-2 overflow-y-clip border-b border-stroke-soft-200 bg-bg-white-0/95 px-3 text-xs font-medium text-text-strong-950 shadow-sm backdrop-blur-md"
       style={{ top: "env(safe-area-inset-top, 0px)" }}
       role="status"
       data-testid="install-nudge"

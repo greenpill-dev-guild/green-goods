@@ -50,7 +50,8 @@ body {
   @apply m-0 min-h-dvh bg-bg-white-0 text-text-strong-950;
   /* Safe areas are handled where the chrome sits: the top bar and page headers
      start their controls at var(--app-top-offset), 16px below the status bar's
-     safe area, pages under the top bar start at var(--app-top-bar-height), and
+     safe area in the installed app, pages under the top bar start at
+     var(--app-top-bar-height), and
      bottom bars and sheets pad by var(--safe-area-bottom) (shared theme.css,
      Safe Areas). */
 }
