@@ -1,28 +1,85 @@
 # Cosmo-Local Integration — architecture
 
-**Current planning baseline:** 2026-10-09. This reconciles the September issuer-service model and
-[whitepaper v0.8 review](whitepaper-v8-review.md). It does not authorize implementation or live funds.
+**Current planning baseline:** 2026-10-21 UTC, adding the voucher-direction decisions below. This preserves the September issuer-service model and
+[whitepaper v0.8 review](whitepaper-v8-review.md), with the user's voucher-plus-G$ clarification and
+[first-pass architecture research](architecture-alignment.md). Contract choices remain proposals
+pending discussion and Claude review. It does not authorize implementation or live funds.
 The original August model remains in Git at `06a31dbf5`; current unresolved choices are explicit below.
+
+## Voucher direction (decided 2026-10-21)
+
+Afo made these five decisions on 21 October after a research brief compared this plan with a
+voucher-native implementation. They refine the accepted no-core-upgrade boundary and authorize no
+implementation, deployment or tracker change. The Linear updates are drafted for review in
+[`handoffs/claude-linear-voucher-direction-drafts-2026-10-21.md`](handoffs/claude-linear-voucher-direction-drafts-2026-10-21.md).
+
+1. **Promises run on vouchers.** An Offer can accept vouchers and a Request can pay in them.
+   Presenting vouchers opens a Green Goods promise that ends in discharge. Pooling (curation,
+   valuation, limits and exchange) stays in Cosmo-Local pools, and a kept promise can still earn
+   vouchers.
+2. **Curated gardener issuance.** Gardeners, as well as hubs and Green Goods, may issue vouchers
+   once a steward admits them. Each gardener's voucher is its own token, and the gardener's ongoing
+   Offer carries its terms. Until the WebAuthn validator exists on Gnosis, the garden's Safe issues
+   within the gardener's cap and the gardener stays the named issuer. Issuer duties for
+   individuals need a legal check through COM-46.
+3. **Presentment is a promise in the live design.** Whoever presents vouchers becomes the
+   promise's counterparty and confirms by default, which resolves
+   [tension 4](tensions.md#4-transferability-breaks-counterparty-confirmation). Presented vouchers
+   wait in a Gnosis escrow keyed to the promise; keeping the promise sends a discharge command, and
+   a remedy returns them. The PRD-1096 service desk is a fork-only stand-in.
+4. **The instrument is called "voucher".** User-facing copy names it with its issuer and unit, for
+   example "Tech and Sun voucher, one solar class seat"; terms and docs may say "service voucher"
+   at first mention. "Credit", "token" and "points" stay off the instrument, and "Redeem" keeps its
+   existing vault meaning. Proposed for PRD-1299, not yet decided: the verbs earn, buy, swap and
+   use; "voucher exchange" for a Cosmo-Local pool in Green Goods copy; "vale" in Spanish and
+   Portuguese, pending the term list; and "kept" for promises against "used" for vouchers.
+5. **Curated, capped issuance replaces the kept-promises-first order.** This formally supersedes
+   commitment-pooling Decision Log #52 and #53 and PRD-796's fulfilled-first clause:
+   - a steward admits each issuer with published terms: what the voucher buys, its unit,
+     capacity, timing, presentment and remedy;
+   - each issuer's outstanding vouchers are capped, and the cap grows with kept promises in the
+     register, so kept promises still come first, as proof of capacity rather than as backing;
+   - each pool still decides how much of an issuer's voucher it accepts;
+   - a failed delivery ends in a remedy that returns the units, a steward can pause an issuer,
+     and outstanding obligations stay visible.
+
+   Vouchers earned by kept promises remain a second issuance source. The PRD-651 release gates
+   are unchanged.
+
+Grounding: the Cosmo-Local whitepaper v0.8 defines a commitment as a promise and a voucher as its
+token (p. 9), defines Offering, presentment, fulfillment and discharge but no request or need
+(pp. 34–35), says its contracts record no real-world fulfillment (pp. 8 and 10), and names
+evidence standards, remedy paths and separate presentment, fulfillment and discharge records as
+controls (p. 26). Ruddick's *Intro to Commitment Pools* (May 2024) describes providers issuing
+their own vouchers and drawing from pools with them.
 
 ## Domain boundaries
 
-A Green Goods commitment records a promise, its parties, terms, evidence and confirmation. Its
-registry identity remains non-transferable. A service credit is a separate transferable claim on
-its issuer's future services. Earning a credit and redeeming it are different obligations.
+Use **service voucher**, shortened to **voucher**, for the issuer instrument, following the supplied
+Cosmo-Local Credit whitepaper v0.8 (30 September 2026), pages 9–11. Cosmo-Local Credit remains the
+product-family name; credit facilities and the separate Commitment Credit companion retain their
+own meanings. CLC’s Commitment Pool is a governed arrangement; `SwapPool` is its current vault and
+direct-swap component. See the accepted [four-goal alignment](delivery-alignment.md).
 
-Tech and Sun and Green Goods each issue their own service credit. Members may earn credits under
-published rules; supporters may buy credits for themselves or a cohort. A purchase need not pretend
+A Green Goods commitment records a promise, its parties, terms, evidence and confirmation. Its
+registry identity remains non-transferable. A service voucher separately represents its issuer's
+future services under published terms and is transferable in this planned integration. Earning a
+voucher and fulfilling its service are different obligations.
+
+Tech and Sun and Green Goods each issue their own service voucher, and curated gardeners may issue
+theirs (decision 2 above). Members may earn vouchers under
+published rules; supporters may buy vouchers for themselves or a cohort. A purchase need not pretend
 to be a previously fulfilled member contribution. Both issuance paths consume an explicit entitlement
 once and remain bounded by issuer capacity and supply policy.
 
 | Context | Proposed owner and location | Boundary |
 |---|---|---|
 | Commitments and confirmation | Green Goods on Arbitrum | Evidence and confirmer provenance; not token custody |
-| Issuance authorization | Hat-authorized Arbitrum sender | Names issuer, source kind, entitlement, recipient, amount and season |
-| Issuer and credit | Issuer's community Safe on Gnosis | Authenticated commands, replay protection, bounded mint and limiter writes |
+| Issuance authorization | Hat-authorized Arbitrum module | Registers terms while the commitment is Offered or Requested; names issuer, source kind, entitlement, recipient, amount and season |
+| Issuer and voucher | Issuer's community Safe on Gnosis | Authenticated commands, replay protection, delivery within the issuer's allowance (or bounded minting if the writer model is chosen); no limiter writes in the first slice |
 | Registry, quoter, limits, fees and pool | Community-owned instances on Gnosis | Explicit local terms and inventory; no issuer access to pool money |
 | Member exchange | Gardener's own Gnosis account | Direct executable swap with minimum output and deadline |
-| G$ support | Existing separate Celo settlement path | Authenticated payment receipts; no G$ bridge or Gnosis consideration rail |
+| G$ support | Existing Celo settlement path | Can coexist with voucher entitlement on one commitment; separate amounts and receipts, no G$ bridge |
 | Passport | Indexer projections and Shared domain adapter | Join evidence without merging intent, issuance, payment and delivery |
 
 ```mermaid
@@ -30,7 +87,7 @@ flowchart LR
   A[Arbitrum commitments and evidence] --> B[Hat-authorized bounded command]
   P[Verified purchase entitlement] --> B
   B -->|Message only| C[Safe-owned Gnosis issuer]
-  C --> D[Issuer service credit]
+  C --> D[Issuer service voucher]
   D --> E[Member direct bounded swap]
   E --> F[Service presentment and delivery]
   F --> G[Confirmation and obligation discharge]
@@ -40,15 +97,37 @@ flowchart LR
   S[Celo support receipts] --> H
 ```
 
+The diagram above preserves the broad issuer-service journey. The
+[contract comparison](architecture-alignment.md#current-and-proposed-contract-relationships)
+adds the clarified relationship: one commitment may carry both G$ support and voucher entitlement.
 The purchase source and its trusted receipt verifier remain a design decision, not an implemented
 service. The diagram shows required meaning, not a settled ABI or a new contract for every box.
+
+## Commitment rewards — clarified intent, proposed architecture
+
+The user confirmed that a commitment can receive vouchers and G$, with both terms agreed at
+acceptance. This replaces the old exclusion
+of a second linked voucher obligation; it does not require several installments of the same G$
+amount. Retain work fulfillment, G$ settlement, voucher delivery and later voucher-service delivery
+as distinct outcomes. Never sum different assets into one settlement amount.
+
+The accepted candidate (20 October, after Claude's [review](handoffs/claude-architecture-review-results.md)) uses a dedicated Arbitrum
+voucher entitlement module and a restricted Gnosis issuer adapter calling reused CLC contracts,
+with no CommitmentPooling upgrade: the module reads the existing commitment views, registers
+voucher terms only while the commitment is Offered or Requested, and issues only on Fulfilled, the
+same gate the G$ rail uses. The existing G$ SettlementModule/Celo executor remain unchanged.
+Acceptance-time terms are accepted. The eligibility rule (any Fulfilled versus ordinary only),
+the issuer budget mechanism, recipient allocation, purchased issuance and service discharge remain
+decisions, not accepted ABI. RESR-73 owns research; PRD-1315 freezes the implementation boundary
+once those are recorded. No general multiasset engine is assumed.
 
 ## Issuance and identity
 
 The command must bind source chain and authorized sender, issuer/pool, entitlement identity,
 source kind, recipient, amount and season. Reject both a duplicate transport message and a different
-message reusing a consumed entitlement. Specify acknowledgments, failure, retry and reconciliation
-before writing the implementation; a send event is not proof that minting completed.
+message reusing a consumed entitlement. Consume an entitlement only on success. Specify
+acknowledgments, failure, retry and reconciliation before writing the implementation; a send event
+is not proof that delivery completed.
 
 For earned issuance, decide what confirmation paths qualify and retain their provenance. Current
 Fulfilled status can include pool or protocol fallback; it cannot be described automatically as
@@ -72,10 +151,10 @@ A holding limit, token issuance cap, usable service capacity and lending credit 
 Each pool sets its own terms; never create a universal cross-pool rate table. Demonstrate only the
 direct routes whose execution is supported; quote-only multihop discovery is not executable routing.
 
-Tech and Sun's proposed 24% credit-to-money fee is rehearsal-only. Real cash-out needs agreed terms,
+Tech and Sun's proposed 24% voucher-to-money fee is rehearsal-only. Real cash-out needs agreed terms,
 legal review, liquidity on Gnosis and a separately authorized route. It cannot withdraw money from
-an Arbitrum Safe by implication; protocol fees must be accounted for separately. Green Goods credits
-have no cash-out in this scope. G$ token units are not US dollars or automatically the service-credit
+an Arbitrum Safe by implication; protocol fees must be accounted for separately. Green Goods vouchers
+have no cash-out in this scope. G$ token units are not US dollars or automatically the service-voucher
 unit; any service acceptance or conversion basis needs explicit terms.
 
 ## Service use and discharge
@@ -83,10 +162,13 @@ unit; any service acceptance or conversion basis needs explicit terms.
 Define presentment or booking, availability, partial delivery, completion, confirmation, discharge,
 failed delivery and remedy as separate facts. A swap, token return or token burn does not prove a
 service was delivered. The current published burn authority must be checked independently of mint
-writer authority. Choose whether returned credits are burned, locked or reusable and prevent a
+writer authority. Choose whether returned vouchers are burned, locked or reusable and prevent a
 second discharge of the same service obligation.
 
-Record remaining service obligations and capacity after each outcome. Transferring a credit changes
+Decided 21 October: presentment opens a Green Goods promise (decision 3 above), and the rehearsal's
+service desk is a fork-only stand-in.
+
+Record remaining service obligations and capacity after each outcome. Transferring a voucher changes
 its holder; it does not transfer the original commitment's confirmation authority automatically.
 COM-46 must resolve these rules before the participant pilot can claim delivery.
 
@@ -124,7 +206,8 @@ pilot approval. No recurring paid platform plan or new spend is authorized here.
 ## Explicitly retired or deferred
 
 - The August weighted contribution unit, per-cycle ValuationPolicy and new inert pool types.
-- A Gnosis consideration rail or second payment leg in a commitment.
+- Same-asset installment payments and a general multiasset/fiat settlement engine. A linked Gnosis
+  voucher obligation is now in intended scope; its precise integration boundary remains proposed.
 - CLC-owned venue control as the intended community pool topology.
 - General federation, multihop execution, netting, insurance or governance-token work.
 - The separate records-only Commitment Credit lending companion.
@@ -133,7 +216,9 @@ pilot approval. No recurring paid platform plan or new spend is authorized here.
 
 RESR-74's completed due diligence is dated evidence and must be refreshed before deployment.
 Use published CLC documentation and hand-written interfaces; never read, import or vendor AGPL
-implementation source for this integration.
+implementation source for this integration. The four first-slice Gnosis implementations match the
+published v1.0.0 build artifacts ([checked 20 October](handoffs/claude-conformance-evidence-2026-10-20.md)); verify the rest the same way
+before PRD-1325.
 
 PRD-1197 owns the 22 October human go/no-go. The PRD-651 gates remain explicit: external audit,
 3-of-5 Safe ownership, 48-hour timelock, two weeks of testnet operation and tested rollback. Any

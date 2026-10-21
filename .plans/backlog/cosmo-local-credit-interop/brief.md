@@ -1,6 +1,6 @@
 # Cosmo-Local Integration
 
-**Reconciled:** 2026-10-09 · **Stage:** backlog · **Posture:** planning and research;
+**Reconciled:** 2026-10-20 UTC · **Stage:** backlog · **Posture:** planning and research;
 implementation and live operations require their own accepted dispatch.
 
 **Linear project:** [Cosmo-Local Integration](https://linear.app/greenpill-dev-guild/project/cosmo-local-integration-6273120022c7)
@@ -11,20 +11,32 @@ implementation and live operations require their own accepted dispatch.
 
 A member can contribute to a hub, earn access to useful services, use those services and understand
 what remains available or owed. A supporter can fund access and follow the resulting delivery.
-Tech and Sun and Green Goods are the first two proposed service-credit issuers.
+Tech and Sun and Green Goods are the first two proposed service-voucher issuers.
+
+The user clarified that the same commitment can receive vouchers and G$, with both terms agreed
+at acceptance. The [architecture alignment](architecture-alignment.md) and Claude's
+[second-pass review](handoffs/claude-architecture-review-results.md) settle on independent reward receipts linked to one fulfillment
+through dedicated integration contracts and no CommitmentPooling upgrade, accepted on 20 October
+as the PRD-1315 candidate; the remaining decisions are listed in the review. The earlier G$
+installment plan is superseded.
 
 Green Goods records commitments, evidence, confirmation and support. Cosmo-Local supplies the
-planned service-credit exchange mechanism. The passport makes their relationship understandable
+planned service-voucher exchange mechanism. The passport makes their relationship understandable
 to communities, the Nigerian diaspora and institutions without requiring them to understand chains.
 
 ## Current scope
 
-- Two community-owned Gnosis credit pools, bounded earned and purchased issuance, direct swaps,
+- Two community-owned Gnosis voucher pools, bounded earned and purchased issuance, direct swaps,
   service presentment and discharge, and explicit failure/recovery behavior.
 - A passport joining actual funding, issuance and delivery receipts with capacity and obligations.
 - Pilot terms and consent, a local fork rehearsal, and a separate human decision on any live use.
-- Research and pitch material explaining hub, community, diaspora and institutional participation.
-- Coordinated [PWA simplification](../pwa-interface-simplification/brief.md), with its own design gate.
+- Research, pitch and Q4 strategy content explaining hub, community, diaspora and institutional participation.
+- Coordinated [PWA simplification](../pwa-interface-simplification/brief.md) and admin/PWA cohesion,
+  delivered in Green Goods 2.1.0 with their own design and acceptance gates.
+
+The [four-goal delivery alignment](delivery-alignment.md) owns current priorities, issue homes and
+dependencies. Cosmo-Local owns integration and narrative; 2.1.0 owns the app and public-site delivery.
+Use voucher for the issuer instrument; retain Cosmo-Local Credit as the product-family name.
 
 [Garden Fiat Contributions](https://linear.app/greenpill-dev-guild/project/garden-fiat-contributions-3675da59ceb3)
 retains the fiat-onramp stretch. Its provider qualification, email wallet, gas sponsorship, payment
@@ -48,13 +60,14 @@ recipient allocation, partial delivery, discharge and repair. Terms and reportin
 separate. A token holding limit is not a loan facility or proof of service capacity.
 
 The October go/no-go must address each existing mainnet gate explicitly. Current plans grant no
-waiver. The PWA composition and the pitch's first buyer, offer and funding ask also remain open.
+waiver. The PWA composition remains open. RESR-94 records the first diaspora audience and scenario
+asks; the exact first supporter, payment method and final COM-46 prices/capacity remain open.
 
 ## Evidence of success
 
 Demonstrate a useful, understandable service journey and a supporter who can follow funding to
 delivery. Record whether third-party exchange is actually useful; low demand or bilateral-only
-use is a valid finding. Keep native service units, money, credit balances and impact claims distinct.
+use is a valid finding. Keep native service units, money, voucher balances and impact claims distinct.
 
 ## Read next
 

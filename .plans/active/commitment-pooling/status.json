@@ -1828,6 +1828,14 @@
       "status": "linear_recorded",
       "branch": null,
       "note": "Cleared linear.project and linear.projectId. It named Commitment Pooling, which is Completed, so a lane issue a later sync created would have started in a closed project. Existing records are preserved (stateSyncMode preserve_existing), so the issues already in that project stay there; a created issue is routed by rule 4. No Linear write happened."
+    },
+    {
+      "timestamp": "2026-10-21T06:44:02Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "planning_reconciled",
+      "branch": null,
+      "note": "Decision Log #69 and register #163 record Afo's 2026-10-21 voucher direction for the Cosmo-Local integration: promises run on vouchers, curated gardener issuance, presentment as a promise, the name voucher, and curated, capped issuance replacing the kept-promises-first order of Decision Log #52 and #53. The exchange brief carries supersession notes. Lanes and gates unchanged; no Linear write."
     }
   ]
 }

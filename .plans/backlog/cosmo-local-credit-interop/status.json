@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-08-25T06:09:38.829Z",
-    "updated_at": "2026-10-16T18:57:14.626Z"
+    "updated_at": "2026-10-21T06:44:20Z"
   },
   "links": {
     "brief": "brief.md",
@@ -22,14 +22,23 @@
     "hackathon": "hackathon-discussion.md",
     "whitepaper_review": "whitepaper-v8-review.md",
     "reconciliation": "project-reconciliation.md",
-    "research_pitch_handoff": "handoffs/claude-fable-research-pitch.md"
+    "research_pitch_handoff": "handoffs/claude-fable-research-pitch.md",
+    "delivery_alignment": "delivery-alignment.md",
+    "commitment_upgrade_plan": "commitment-upgrade-plan.md",
+    "architecture_alignment": "architecture-alignment.md",
+    "architecture_review_handoff": "handoffs/claude-architecture-review.md",
+    "architecture_review_results": "handoffs/claude-architecture-review-results.md",
+    "conformance_evidence": "handoffs/claude-conformance-evidence-2026-10-20.md",
+    "linear_correction_drafts": "handoffs/claude-linear-correction-drafts-2026-10-20.md",
+    "prd_1096_dispatch_draft": "handoffs/prd-1096-rehearsal-dispatch-draft.md",
+    "linear_voucher_direction_drafts": "handoffs/claude-linear-voucher-direction-drafts-2026-10-21.md"
   },
   "linear": {
     "parentIssue": "RESR-73",
     "project": "Cosmo-Local Integration",
     "initiative": null,
     "syncDirection": "plans_to_linear_visibility",
-    "lastSyncedAt": "2026-10-09T19:29:59Z",
+    "lastSyncedAt": "2026-10-20T06:38:47Z",
     "lanes": {},
     "laneSyncMode": "parent_only",
     "stateSyncMode": "preserve_existing",
@@ -40,7 +49,18 @@
       "issuer_terms": "COM-46",
       "pitch_research": "RESR-94",
       "pitch": "MAR-32",
-      "hackathon": "GROW-43"
+      "hackathon": "GROW-43",
+      "strategy": "GROW-68",
+      "case_study": "MAR-35",
+      "public_strategy": "PRD-1194",
+      "pwa_scope": "RESR-93",
+      "pwa_delivery": "PRD-1260",
+      "design_cohesion": "PRD-1261",
+      "release_acceptance": "PRD-1262",
+      "commitment_upgrade": "PRD-1314",
+      "commitment_upgrade_admin": "PRD-1323",
+      "commitment_upgrade_pwa": "PRD-1324",
+      "commitment_upgrade_audit": "PRD-1327"
     }
   },
   "taxonomy": {
@@ -59,6 +79,12 @@
     "depends_on_features": ["commitment-pooling", "community-interface"]
   },
   "notes": [
+    "2026-10-20: Afo approved the review's section 8 corrections and authorized the Linear texts. Applied as anchored patches between 06:35 and 06:37 UTC: PRD-1316 retitled; descriptions of PRD-1315 to PRD-1322, PRD-1325 to PRD-1327, PRD-857 and PRD-1096 edited; comments on RESR-73, PRD-651 and PRD-796. Every state, assignee, cycle, due date and milestone was preserved and read back. The optional passkey-validator issue was not filed. lastSyncedAt covers this bounded planning sync only.",
+    "2026-10-20: Claude's second-pass review recommended no CommitmentPooling upgrade for the voucher-plus-G$ slice (the existing views bind terms before acceptance and gate issuance on Fulfilled, as the G$ rail does), an allowance-bounded issuer budget and no limiter writes; Afo accepted the no-core-upgrade boundary the same day as the PRD-1315 candidate. Read-only follow-ups established that the four first-slice Gnosis implementations match the published v1.0.0 artifacts and that both CCIP routers quote the codec's extra-args form. Plan corrections were drafted for approval; no Linear writes, no runtime changes, no implementation dispatched. Remaining decisions are listed in the review.",
+    "2026-10-20: bounded Linear readback verified the roadmap and 13 child tasks, four existing issue corrections, five renamed milestones and project overview. Thirty-one roadmap dependency edges and their inspected prerequisites have no cycles. Existing issue states, assignees, cycles/dates and the four original milestones were preserved; PWA/admin tasks remain in 2.1.0. This certifies planning sync only, not implementation or deployment.",
+    "2026-10-20: user-authorized protocol research and planning/Linear correction. One commitment can receive vouchers and G$, with both terms agreed at acceptance. Same-asset installments are superseded. architecture-alignment.md records the recommended narrow core change and Arbitrum/Gnosis integration as candidates for Claude review and human selection; no implementation, deployment, lane activation or release waiver. Existing tracker keys retain compatibility but point to the corrected integration roadmap.",
+    "2026-10-15: bounded Linear readback verified both project overviews, four milestone descriptions and 21 issue records after the four-goal alignment. Eleven dependency requirements and no cycles were checked. lastSyncedAt covers this planning sync only; no execution lane, unrelated record or live deployment was certified.",
+    "2026-10-15: user-authorized four-goal alignment and voucher terminology. Cosmo-Local owns integration, pilot, pitch and Q4 strategy content; 2.1.0 owns PWA/admin delivery, public-site delivery and release acceptance. Existing lane/execution objects and workflow status are unchanged; no implementation or live action dispatched.",
     "2026-10-09: user-authorized project split and canonical planning reconciliation complete. Cosmo-Local Integration now owns this work; PRD-1197 owns the active go/no-go, COM-46 issuer terms, RESR-94 diaspora research. The current brief/spec/plan/eval supersede the August model. Claude Fable handoff authorizes research and draft materials only. Existing lanes and manual blocks are unchanged.",
     "2026-10-09: Linear readback verified the project split, new gap issues and affected ownership/dependencies. lastSyncedAt records this bounded planning sync only; historical lane evidence and unrelated external source documents were not recertified.",
     "2026-10-09: whitepaper-v8-review.md records the v0.8 architecture review, missing CLC implementation in checkout 06a31dbf5, 275 passing focused foundation tests, proposed acceptance gaps and the hub/community/Nigerian diaspora/institution narrative. Findings posted to RESR-73, PRD-857 and MAR-32; report remains local. No runtime changes, lane transitions, scope dispatch or gate changes.",
@@ -250,12 +276,84 @@
       "note": "2026-10-09: user-authorized project split and canonical planning reconciliation complete. Cosmo-Local Integration now owns this work; PRD-1197 owns the active go/no-go, COM-46 issuer terms, RESR-94 diaspora research. The current brief/spec/plan/eval supersede the August model. Claude Fable handoff authorizes research and draft materials only. Existing lanes and manual blocks are unchanged."
     },
     {
+      "timestamp": "2026-10-16T04:18:44Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "planning_reconciled",
+      "branch": null,
+      "note": "Aligned the four user-approved goals and voucher terminology across Cosmo-Local and Green Goods 2.1.0; preserved all existing execution objects, workflow state and issue states. PWA scope remains pending acceptance. Local documents are uncommitted."
+    },
+    {
       "timestamp": "2026-10-16T18:57:14.626Z",
       "actor": "claude",
       "lane": "system",
       "status": "linear_recorded",
       "branch": null,
       "note": "Recorded linear.project as Cosmo-Local Integration, where RESR-73 already lives; it was Commitment Pooling, which is Completed. No Linear write happened: this aligns the hub with Linear."
+    },
+    {
+      "timestamp": "2026-10-20T03:39:54Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "planning_reconciled",
+      "branch": null,
+      "note": "Corrected voucher-plus-G$ scope and accepted terms timing; added source-backed architecture and Claude reviewer handoff. Bounded Linear readback verified 14 roadmap/task records, four existing issue corrections, five milestones, project overview and 31 dependency edges without cycles. Existing lane objects and manual blocks preserved; no runtime or deployment changes."
+    },
+    {
+      "timestamp": "2026-10-20T06:01:50Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "planning_reconciled",
+      "branch": "claude/green-goods-architecture-review-139a6d",
+      "note": "Second-pass architecture review recorded; no-core-upgrade boundary accepted as the PRD-1315 candidate; conformance evidence added; hub corrections drafted for approval. Lane objects and manual blocks unchanged; no Linear write."
+    },
+    {
+      "timestamp": "2026-10-20T06:38:47Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "planning_reconciled",
+      "branch": "claude/green-goods-architecture-review-139a6d",
+      "note": "Linear corrections for the accepted no-core-upgrade boundary applied and read back; hub copy edited in the review worktree, pending copy into the planning checkout. Lane objects and manual blocks unchanged."
+    },
+    {
+      "timestamp": "2026-10-21T00:29:10Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "planning_reconciled",
+      "branch": "claude/green-goods-architecture-review-139a6d",
+      "note": "Afo adopted five PRD-1096 rehearsal defaults: any Fulfilled commitment qualifies with its path recorded, delivery from a pre-minted reserve through an allowance, one leadProvider recipient, purchases through the pool's own bounded swap outside the PRD-796 wrap boundary, and no acknowledgment lane. Member accounts and proxy admin stay live-only gates. Dispatch handoff drafted for review at handoffs/prd-1096-rehearsal-dispatch-draft.md; the contracts lane stays manual_blocked. Review F10 and the terms-author wording corrected. No Linear write."
+    },
+    {
+      "timestamp": "2026-10-21T03:20:15Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "planning_reconciled",
+      "branch": "claude/green-goods-architecture-review-139a6d",
+      "note": "Afo approved the PRD-1096 dispatch draft with all eight assumptions as written. Not dispatched: the hub must first be committed on a local base branch, and the contracts lane stays manual_blocked until dispatch. No Linear write."
+    },
+    {
+      "timestamp": "2026-10-21T04:16:36Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "planning_reconciled",
+      "branch": "claude/green-goods-architecture-review-139a6d",
+      "note": "Afo decided the voucher direction: promises run on vouchers; curated gardener issuance; presentment opens a promise, with the PRD-1096 desk as a fork-only stand-in; the instrument is called voucher; curated, capped issuance formally replaces the kept-promises-first order (commitment-pooling Decision Log #69 and register #163, delivered as a patch). Recorded in spec, architecture-alignment, plan and tensions; Linear changes drafted, not written. Lanes unchanged."
+    },
+    {
+      "timestamp": "2026-10-21T04:51:52Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "planning_reconciled",
+      "branch": "claude/green-goods-architecture-review-139a6d",
+      "note": "Voucher-direction Linear drafts applied after Afo's approval: description edits on PRD-1315, PRD-1317, PRD-1318, PRD-857, COM-46, PRD-1299, PRD-1297, PRD-1324, PRD-1323, PRD-1322, PRD-1320 and PRD-1321; comments on PRD-796, PRD-651, RESR-73 and PRD-1096. Read back: every state, assignee, cycle, due date, estimate and milestone unchanged. Lanes unchanged."
+    },
+    {
+      "timestamp": "2026-10-21T06:44:20Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "planning_reconciled",
+      "branch": "research/cosmo-local-voucher-direction",
+      "note": "Hub reconciled with develop after PR #1068 and carried there on research/cosmo-local-voucher-direction: the 20 and 21 October hub work (review, conformance evidence, Linear records, PRD-1096 dispatch draft, voucher direction), the pitch package's voucher-direction edits, and commitment-pooling Decision Log #69 and register #163 applied directly. Develop's 16 October history entry and plan metadata kept; the pitch-diagram files stay out. Lanes unchanged."
     }
   ]
 }
