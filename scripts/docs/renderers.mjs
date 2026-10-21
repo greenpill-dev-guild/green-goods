@@ -1102,12 +1102,14 @@ export function renderGitHubActions({ root, sources, digest }) {
   const workflows = workflowInventory(root, sources.filter((source) => source.startsWith(".github/workflows/")));
   const catalog = readJson(root, declaredSource(sources, "scripts/data/workflow-catalog.json")).workflows ?? {};
   const rootManifest = readJson(root, declaredSource(sources, "package.json"));
-  // The CI Gate waits only for the workflows the validation policy gives a path rule; a workflow
-  // with no rule (scheduled, manual, or tag-only) is never part of that wait set.
-  const gated = new Set(Object.keys(readJson(root, declaredSource(sources, "scripts/data/validation-policy.json")).workflowRules ?? {}));
+  // The policy owns both path rules and author-based PR rules. Scheduled,
+  // manual and tag-only workflows without a rule are outside the wait set.
+  const gated = readJson(root, declaredSource(sources, "scripts/data/validation-policy.json")).workflowRules ?? {};
   const requiredStatus = (workflow, entry) => {
     if (entry.required) return "yes, branch protection waits for it";
-    if (gated.has(workflow.display)) return "no, but the CI Gate waits for it on a pull request that touches its paths";
+    const rule = gated[workflow.display];
+    if (rule?.pullRequestAuthor) return `no, but the CI Gate waits for same-repository pull requests authored by \`${esc(rule.pullRequestAuthor)}\``;
+    if (rule) return "no, but the CI Gate waits for it on a pull request that touches its paths";
     return "no, and the CI Gate never waits for it: it has no pull request path rule";
   };
   const missing = workflows.filter((workflow) => !catalog[workflow.source]).map((workflow) => workflow.source);

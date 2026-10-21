@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { readFileSync } from "node:fs";
 import { selectExpectedWorkflows } from "./select-validation.mjs";
 
 const requiredJobs = new Map([
@@ -8,8 +9,8 @@ const requiredJobs = new Map([
   ["Admin", ["Playwright Admin CI"]],
 ]);
 
-export function expectedWorkflowNames(files) {
-  return selectExpectedWorkflows({ changedPaths: files, intent: "merge", ci: true });
+export function expectedWorkflowNames(files, context = {}) {
+  return selectExpectedWorkflows({ ...context, changedPaths: files, intent: "merge", ci: true });
 }
 
 async function githubJson(token, path) {
@@ -71,12 +72,18 @@ async function workflowJobs(token, repository, runId) {
   }
 }
 
+async function workflowArtifacts(token, repository, runId) {
+  const data = await githubJson(token, `/repos/${repository}/actions/runs/${runId}/artifacts?per_page=100`);
+  return data.artifacts;
+}
+
 export async function runGate(
   {
     token,
     repository,
     pullNumber,
     headSha,
+    pullRequest,
     // 96 * 20s = 32 minutes of polling. ci-gate.yml sets timeout-minutes: 40, so
     // this leaves ~8 minutes for checkout, setup, and the fixture test step and
     // the gate still reports its own timeout error instead of being cancelled.
@@ -94,12 +101,13 @@ export async function runGate(
     selectWorkflows = expectedWorkflowNames,
     loadWorkflowRuns = workflowRuns,
     loadWorkflowJobs = workflowJobs,
+    loadWorkflowArtifacts = workflowArtifacts,
     wait = (delayMs) => new Promise((resolve) => setTimeout(resolve, delayMs)),
     logger = console,
   } = dependencies;
 
   const files = await loadChangedFiles(token, repository, pullNumber);
-  const expected = selectWorkflows(files);
+  const expected = selectWorkflows(files, { pullRequest, repository });
   logger.log(`Changed files: ${files.length}`);
   logger.log(`Expected workflows: ${expected.length > 0 ? expected.join(", ") : "(none)"}`);
 
@@ -131,6 +139,12 @@ export async function runGate(
     }
 
     for (const name of expected) {
+      if (name === "Dependabot Sync") {
+        const artifacts = await loadWorkflowArtifacts(token, repository, runs.get(name).id);
+        if (artifacts.some((artifact) => artifact.name === "dependabot-sync")) {
+          throw new Error("Dependabot repair required; wait for the publisher and passing CI on the synchronized head");
+        }
+      }
       const names = requiredJobs.get(name);
       if (!names) continue;
       const jobs = await loadWorkflowJobs(token, repository, runs.get(name).id);
@@ -161,6 +175,7 @@ if (isDirectRun) {
     repository: process.env.REPO,
     pullNumber: process.env.PR_NUMBER,
     headSha: process.env.HEAD_SHA,
+    pullRequest: process.env.GITHUB_EVENT_PATH ? JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, "utf8")).pull_request : undefined,
   }).catch((error) => {
     console.error(`::error::${error.message}`);
     process.exitCode = 1;

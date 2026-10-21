@@ -48,12 +48,12 @@
     },
     ".github/workflows/dependabot-sync-publish.yml": {
       "purpose": "Publishes repair data from a successful Dependabot Sync run. It validates the origin run, associated PR and current head, executes only trusted default-branch code, and writes a fast-forward repair commit.",
-      "useCase": "Completion of Dependabot Sync with a repair artifact for a same-repository package PR. The built-in token requires approval for follow-up PR CI; see scripts/README.md for credential options.",
+      "useCase": "Completion of Dependabot Sync with a repair artifact for a same-repository package or GitHub Actions PR. The built-in token requires approval for follow-up PR CI; see scripts/README.md for credential options.",
       "required": false
     },
     ".github/workflows/dependabot-sync.yml": {
-      "purpose": "Prepares aligned root and matching workspace dependency pins, the root Bun lockfile, and generated docs on Dependabot package PRs with read-only permissions and lifecycle scripts disabled.",
-      "useCase": "An opened, reopened, or updated same-repository Dependabot Bun or npm package PR. Dependabot Sync Publish consumes any repair artifact after this workflow succeeds.",
+      "purpose": "Prepares aligned root and matching workspace dependency pins, the root Bun lockfile, and generated docs on Dependabot package PRs; refreshes generated docs for pinned GitHub Actions updates. Preparation has read-only permissions and lifecycle scripts disabled.",
+      "useCase": "An opened, reopened, or updated same-repository Dependabot Bun, npm or GitHub Actions PR. CI Gate requires successful synchronization with no outstanding repair artifact; Dependabot Sync Publish writes any repair on a new head.",
       "required": false
     },
     ".github/workflows/design.yml": {

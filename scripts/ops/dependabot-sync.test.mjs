@@ -4,7 +4,7 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSyn
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
-import { alignPins, assertDependabotPr, git, manifestUpdates, prepareSync, publishSync, syncPublication } from "./dependabot-sync.mjs";
+import { alignPins, assertActionUpdates, assertDependabotPr, git, manifestUpdates, prepareSync, publishSync, syncPublication } from "./dependabot-sync.mjs";
 
 const repository = "green-goods/example";
 const rootManifest = { name: "fixture", overrides: { hono: "4.13.7", vite: "8.2.1" }, devDependencies: { vite: "8.2.1" }, scripts: { prepare: "must-not-execute" } };
@@ -50,18 +50,35 @@ test("conflicting upgrades and root-pin downgrades fail instead of choosing a ve
   assert.throws(() => alignPins(before, upgrade(before, "packages/client/package.json", "devDependencies", "vite", "8.2.4")), /downgrade/);
 });
 
-test("workspace upgrades preserve independent root release lines in either direction", () => {
+test("workspace upgrades preserve independent root direct pins without a global override", () => {
   for (const [rootVersion, file, previous, next] of [
     ["8.2.4", "docs/package.json", "7.3.0", "7.3.1"],
     ["7.3.0", "packages/client/package.json", "8.2.1", "8.2.4"],
   ]) {
     const before = manifests();
-    before["package.json"].overrides.vite = rootVersion;
+    delete before["package.json"].overrides.vite;
     before["package.json"].devDependencies.vite = rootVersion;
     before[file] = { devDependencies: { vite: `^${previous}` } };
     const result = alignPins(before, upgrade(before, file, "devDependencies", "vite", `^${next}`));
     assert.deepEqual(result.manifests["package.json"], before["package.json"]);
     assert.equal(result.manifests[file].devDependencies.vite, `^${next}`);
+  }
+});
+
+test("global overrides cannot silently defeat a workspace upgrade on another major", () => {
+  for (const section of ["overrides", "resolutions"]) {
+    for (const rootVersion of ["2.55.0", "2.55.13", "4.0.0"]) {
+      const before = { "package.json": { [section]: { viem: rootVersion } }, "packages/qa/package.json": { dependencies: { viem: "^2.55.0" } } };
+      assert.throws(() => alignPins(before, upgrade(before, "packages/qa/package.json", "dependencies", "viem", "^3.0.0")), /maintainer alignment required/);
+    }
+  }
+});
+
+test("action updates accept pinned SHA replacements and reject executable or unpinned edits", () => {
+  const before = `steps:\n  - uses: actions/checkout@${"a".repeat(40)}\n  - run: echo safe\n`;
+  assert.doesNotThrow(() => assertActionUpdates(before, before.replace("a".repeat(40), "b".repeat(40))));
+  for (const after of [before.replace("echo safe", "echo unsafe"), before.replace("actions/checkout", "other/action"), before.replace("a".repeat(40), "v5"), `${before}permissions: write-all\n`]) {
+    assert.throws(() => assertActionUpdates(before, after), /Only pinned action commit updates/);
   }
 });
 
@@ -76,12 +93,13 @@ test("manifest edits reject scripts, additions, removals, URLs, prereleases and 
   assert.deepEqual(manifestUpdates(before, structuredClone(before)), []);
 });
 
-test("only open same-repository Dependabot package PRs qualify", () => {
+test("only open same-repository Dependabot package and Actions PRs qualify", () => {
   const pr = prFor("a".repeat(40));
   assert.doesNotThrow(() => assertDependabotPr(pr, repository));
+  assert.doesNotThrow(() => assertDependabotPr({ ...pr, head: { ...pr.head, ref: "dependabot/github_actions/actions" } }, repository));
   for (const patch of [
     { state: "closed" }, { user: { login: "someone" } },
-    { head: { ...pr.head, ref: "dependabot/github_actions/actions" } },
+    { head: { ...pr.head, ref: "dependabot/docker/image" } },
     { head: { ...pr.head, repo: { full_name: "fork/example" } } },
     { head: { ...pr.head, sha: "HEAD; unsafe" } },
   ]) assert.throws(() => assertDependabotPr({ ...pr, ...patch }, repository));
@@ -100,14 +118,15 @@ function fixture(t) {
   for (const [file, content] of Object.entries(manifests())) write(trustedRoot, file, `${JSON.stringify(content, null, 2)}\n`);
   write(trustedRoot, "bun.lock", "original lock\n");
   write(trustedRoot, "docs/generated.mdx", "---\ngenerator: scripts/docs/generate.mjs\n---\nold\n");
+  write(trustedRoot, ".github/workflows/example.yml", `steps:\n  - uses: actions/checkout@${"a".repeat(40)}\n`);
   write(trustedRoot, "scripts/docs/generate.mjs", `import fs from 'node:fs';
-const output = '---\\ngenerator: scripts/docs/generate.mjs\\n---\\n' + fs.readFileSync('package.json', 'utf8');
+const output = '---\\ngenerator: scripts/docs/generate.mjs\\n---\\n' + fs.readFileSync('package.json', 'utf8') + fs.readFileSync('.github/workflows/example.yml', 'utf8');
 if (process.argv.includes('--check')) { if (fs.readFileSync('docs/generated.mdx', 'utf8') !== output) process.exit(1); }
 else fs.writeFileSync('docs/generated.mdx', output);
 `);
   git(trustedRoot, "init", "-q");
   const commit = (base) => {
-    git(base, "add", "--", "package.json", "packages", "bun.lock", "docs", "scripts");
+    git(base, "add", "--", "package.json", "packages", "bun.lock", "docs", "scripts", ".github");
     git(base, "-c", "commit.gpgsign=false", "-c", "user.name=Fixture", "-c", "user.email=fixture@example.com", "commit", "-qm", "fixture");
     return git(base, "rev-parse", "HEAD").trim();
   };
@@ -121,7 +140,7 @@ else fs.writeFileSync('docs/generated.mdx', output);
   const run = (command, args, options) => {
     commands.push([command, ...args]);
     if (command === "node") execFileSync(command, args, options);
-    else writeFileSync(join(root, "bun.lock"), "repaired lock\n");
+    else if (args[0] === "update") writeFileSync(join(root, "bun.lock"), "repaired lock\n");
   };
   return { root, trustedRoot, output, event, run, commands, commit, write, get headSha() { return headSha; }, prepare: () => prepareSync({ root, trustedRoot, output, event, run }), advance: () => { headSha = commit(root); event.pull_request.head.sha = headSha; } };
 }
@@ -135,6 +154,34 @@ test("prepare repairs pins, root lock and generated docs, then becomes a no-op o
   assert.deepEqual(f.commands.slice(0, 2), [["bun", "update", "--lockfile-only", "--ignore-scripts", "hono"], ["bun", "install", "--frozen-lockfile", "--ignore-scripts"]]);
   f.advance();
   assert.deepEqual(f.prepare().files, []);
+});
+
+test("an Actions PR repairs only docs and is idempotent after publication", async (t) => {
+  const f = fixture(t);
+  f.event.pull_request.head.ref = "dependabot/github_actions/group";
+  f.write(f.root, "packages/agent/package.json", `${JSON.stringify(manifests()["packages/agent/package.json"], null, 2)}\n`);
+  const workflow = readFileSync(join(f.root, ".github/workflows/example.yml"), "utf8");
+  f.write(f.root, ".github/workflows/example.yml", workflow.replace("a".repeat(40), "b".repeat(40)));
+  f.advance();
+  const bundle = f.prepare();
+  assert.deepEqual(bundle.files.map(file => file.path), ["docs/generated.mdx"]);
+  assert.equal(f.commands[0][1], "install");
+  const edge = api(f);
+  assert.deepEqual(await syncPublication({ github: edge.github, repository, run: runFor(f) }), { number: 42, artifactId: 77 });
+  assert.deepEqual((await edge.publish(bundle)).files, ["docs/generated.mdx"]);
+  await assert.rejects(edge.publish({ ...bundle, files: [{ path: ".github/workflows/example.yml", content: Buffer.from(workflow).toString("base64") }] }), /Unexpected artifact file/);
+  f.advance();
+  assert.deepEqual(f.prepare().files, []);
+});
+
+test("Actions PRs reject shell changes before running the candidate toolchain", (t) => {
+  const f = fixture(t);
+  f.event.pull_request.head.ref = "dependabot/github_actions/group";
+  f.write(f.root, "packages/agent/package.json", `${JSON.stringify(manifests()["packages/agent/package.json"], null, 2)}\n`);
+  f.write(f.root, ".github/workflows/example.yml", `steps:\n  - uses: actions/checkout@${"b".repeat(40)}\n  - run: echo unsafe\n`);
+  f.advance();
+  assert.throws(() => f.prepare(), /Only pinned action commit updates/);
+  assert.deepEqual(f.commands, []);
 });
 
 test("prepare refuses unexpected PR code changes before invoking any toolchain command", (t) => {
@@ -250,6 +297,7 @@ test("workflow isolates generation from publication and keeps frozen installatio
   for (const source of [prepare, publish]) {
     assert.match(source, /^permissions: \{\}$/m);
     assert.doesNotMatch(source, /pull_request_target/);
+    assert.match(source, /dependabot\/github_actions\//);
   }
   assert.match(prepare, /  pull_request:/);
   assert.match(prepare, /permissions:\n      contents: read\n/);
