@@ -12,7 +12,7 @@ import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { useRouteBackedLeftSheetConfig } from "@/components/Layout";
 import { WorkDetailPanel } from "@/views/Garden/WorkDetail";
-import { localizeCanonicalActionTitle } from "../actionDisplay";
+import { localizeCanonicalActionTitle } from "@/components/Action/actionDisplay";
 import { HubAssessmentInspector, type HubAssessmentRecord } from "./HubAssessmentInspector";
 
 interface HubSheetDescriptorProps {

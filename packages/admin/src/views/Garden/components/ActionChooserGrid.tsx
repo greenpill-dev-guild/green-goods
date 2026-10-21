@@ -3,7 +3,7 @@ import { RiImageLine } from "@remixicon/react";
 import { type KeyboardEvent, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminSelectableCard } from "@/components/AdminSelectableCard";
-import { localizeActionForDisplay } from "@/views/Hub/actionDisplay";
+import { localizeActionForDisplay } from "@/components/Action/actionDisplay";
 
 /**
  * Capital → i18n label key. Reuses the action-authoring capital labels so the

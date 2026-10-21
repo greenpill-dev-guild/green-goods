@@ -18,7 +18,10 @@ import { CanvasRouteErrorState } from "@/components/Layout/CanvasRouteState";
 import { MediaEvidence } from "@/views/Hub/components/MediaEvidence";
 import { ReviewForm } from "./ReviewForm";
 import { SubmissionDetails } from "./SubmissionDetails";
-import { localizeActionForDisplay, localizeCanonicalActionTitle } from "@/views/Hub/actionDisplay";
+import {
+  localizeActionForDisplay,
+  localizeCanonicalActionTitle,
+} from "@/components/Action/actionDisplay";
 
 type WorkDetailLayout = "page" | "sheet";
 

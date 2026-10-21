@@ -36,10 +36,8 @@ import {
 import { closeDB, initDB } from "./services/db";
 import { resolveAgentRpc, resolveAgentRpcUrl, rpcHost } from "./services/agent-rpc";
 import { createSqliteFundingIntentStore } from "./services/funding-intents";
-import {
-  createSqliteProfileAvatarStore,
-  createViemProfileAvatarSignatureVerifier,
-} from "./services/profile-avatars";
+import { createSqliteProfileAvatarStore } from "./services/profile-avatars";
+import { createViemAccountSignatureVerifier } from "./services/account-signatures";
 import {
   createSavedOfferCipher,
   createSqliteSavedOfferStore,
@@ -189,7 +187,7 @@ async function main(): Promise<void> {
     fundingIntents: createSqliteFundingIntentStore(),
     profileAvatarStore: createSqliteProfileAvatarStore(),
     profileAvatarChainId: config.chainId,
-    profileAvatarSignatureVerifier: createViemProfileAvatarSignatureVerifier({
+    profileAvatarSignatureVerifier: createViemAccountSignatureVerifier({
       chain: config.chain,
       rpcUrl: resolveAgentRpcUrl(config.chainId),
     }),
@@ -197,7 +195,7 @@ async function main(): Promise<void> {
     savedOffersSessionStore: savedOfferCipher
       ? new MemorySavedOffersSessionStore({ tokenSecret: config.savedOffersEncryptionKey })
       : undefined,
-    savedOffersSignatureVerifier: createViemProfileAvatarSignatureVerifier({
+    savedOffersSignatureVerifier: createViemAccountSignatureVerifier({
       chain: config.chain,
       rpcUrl: resolveAgentRpcUrl(config.chainId),
     }),

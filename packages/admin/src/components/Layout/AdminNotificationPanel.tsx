@@ -18,7 +18,7 @@ import { useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 
-import { localizeWorkActivityTitle } from "@/views/Hub/actionDisplay";
+import { localizeWorkActivityTitle } from "@/components/Action/actionDisplay";
 
 export function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => void }) {
   const intl = useIntl();

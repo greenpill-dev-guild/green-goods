@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   createAssessmentFormSchema,
   createDefaultAssessmentForm,
-} from "../../../hooks/assessment/useCreateAssessmentForm";
-import { CynefinPhase, Domain, type SmartOutcome } from "../../../types/domain";
+} from "../../modules/assessment/create-form";
+import { CynefinPhase, Domain, type SmartOutcome } from "../../types/domain";
 
 function createValidFormData(
   overrides: {

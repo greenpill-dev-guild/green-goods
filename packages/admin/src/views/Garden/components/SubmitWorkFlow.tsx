@@ -12,7 +12,7 @@ import { AdminButton } from "@/components/AdminButton";
 import { ActionFlowShell } from "@/components/Layout/ActionFlowShell";
 import type { ActionFlowStep } from "@/components/Layout/ActionFlowStepper";
 import { FlowSendFooter, flowSendPhase, SingleSendNote } from "@/components/Layout/FlowSendFooter";
-import { localizeActionForDisplay } from "@/views/Hub/actionDisplay";
+import { localizeActionForDisplay } from "@/components/Action/actionDisplay";
 import { SubmitWorkStepContent } from "./SubmitWorkStepContent";
 import { submitWorkSendStatus } from "./submitWorkStatus";
 

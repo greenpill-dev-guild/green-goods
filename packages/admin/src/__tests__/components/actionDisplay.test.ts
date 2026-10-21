@@ -4,7 +4,10 @@ import ptMessages from "@green-goods/shared/i18n/pt.json";
 import type { IntlShape } from "react-intl";
 import { describe, expect, it } from "vitest";
 import actionsConfig from "../../../../contracts/config/actions.json";
-import { localizeActionForDisplay, localizeWorkActivityTitle } from "@/views/Hub/actionDisplay";
+import {
+  localizeActionForDisplay,
+  localizeWorkActivityTitle,
+} from "@/components/Action/actionDisplay";
 
 function createIntl(locale: "es" | "pt", messages: Record<string, string>) {
   const formatMessage = ((descriptor: { id: string; defaultMessage?: string }) =>
