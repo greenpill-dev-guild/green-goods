@@ -6,7 +6,9 @@ update. PRD-1299 owns design approval; PRD-1297 owns the UI implementation that 
 PRD-1323 (cockpit) and PRD-1324 (app) own the linked voucher and G$ reward slice in 2.1.0. Gui's
 member-journey and Portuguese feedback belongs to PRD-1312.
 
-Open [`prototype.html`](prototype.html) in a browser (no build, no server). It is generated from
+Open [`prototype.html`](prototype.html) in a browser (no build, no server), or the published copy,
+[Cosmo-Local Voucher Design](https://claude.ai/artifact/3XWy9GQoAPSsJjikSzomWZ) (artifact version 1,
+private until shared). It is generated from
 [`src/`](src) by [`build.mjs`](build.mjs), which also writes [`matrices.md`](matrices.md) (every
 screen and state, the role and action matrix, decisions, walks) and [`copy-sheet.md`](copy-sheet.md)
 (terminology and every string in EN, ES and PT). The rendered evidence and its limits are in
