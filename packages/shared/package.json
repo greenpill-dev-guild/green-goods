@@ -603,7 +603,7 @@
     "@storybook/addon-a11y": "10.4.6",
     "@storybook/addon-docs": "10.4.6",
     "@storybook/addon-mcp": "0.6.0",
-    "@storybook/addon-vitest": "10.4.6",
+    "@storybook/addon-vitest": "10.6.2",
     "@storybook/react": "10.4.6",
     "@storybook/react-vite": "10.4.6",
     "@tailwindcss/vite": "4.3.3",
