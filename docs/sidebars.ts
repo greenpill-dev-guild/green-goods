@@ -60,7 +60,15 @@ const sidebars: SidebarsConfig = {
     },
     {type: 'doc', id: 'reference/faq', label: 'FAQ'},
     {type: 'doc', id: 'reference/glossary.generated', label: 'Glossary'},
-    {type: 'doc', id: 'reference/brand-voice', label: 'Brand voice'},
+    {
+      type: 'category',
+      label: 'Brand',
+      collapsed: false,
+      items: [
+        {type: 'doc', id: 'reference/brand-voice', label: 'Voice'},
+        {type: 'doc', id: 'reference/brand', label: 'Kit'},
+      ],
+    },
   ],
 
   buildersSidebar: [
