@@ -128,7 +128,7 @@ export function brandKitMarkdown(kit) {
     folders.get(folder).formats.add(entry.format);
   }
   return [
-    "# Brand kit",
+    "# Brand Kit",
     "",
     `Kit v${kit.version}.${canonical ? ` ${canonical.name} \`${canonical.hex}\` is the canonical brand color.` : ""}`,
     "",
