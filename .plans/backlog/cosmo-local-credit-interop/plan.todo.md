@@ -5,13 +5,19 @@
 **Linear Project**: Cosmo-Local Integration
 **Linear Source**: source:plans
 **Stage**: `backlog`
-**Status**: `LOCAL SAFEGUARDS VERIFIED; MEMBER/ISSUER PROOF RECORDED WITH OPEN GATES`
+**Status**: `LOCAL BRANCH GATES REPAIRED; MEMBER/ISSUER LIVE PROOF OPEN`
 **Created**: 2026-08-25
 **Last Updated**: `2026-10-22`
 **Companion documents**: [`brief.md`](./brief.md) · [`spec.md`](./spec.md) ·
 [`tensions.md`](./tensions.md) · [`resources.md`](./resources.md) · [`eval.md`](./eval.md)
 
-**Current authorized slice, 22 October: local voucher pilot.** Implement the connected individual
+**Current authorized continuation, 22 October:** resolve contract source-size and Admin story
+blockers, then refresh member-signing and issuer-readiness proof. Preserve the accepted voucher
+safeguards, concurrent work and required signing. Keep validated commits local. The
+[current blocker/readiness record](handoffs/codex-local-blockers-and-readiness.md) owns this
+continuation; no live gate or unrelated lane is cleared.
+
+**Earlier authorized slice, 22 October: local voucher pilot.** Implement the connected individual
 request → usable voucher reward → optional single-pool exchange → existing service-redemption
 journey. Voucher rewards lead; optional G$ retains independent accounting and recovery. Correct
 voucher holdings redeem directly. One shared Gnosis SwapPool serves the pilot; Arbitrum garden
@@ -27,25 +33,28 @@ preserve concurrent work and required signing, and commit validated owned work l
 - [x] Prove independent failures/acks/retries and preserve consent, escrow and final-allocation guards.
 - [x] Capture labeled rendered proof and all repository-selected checks, then signed local receipts.
 
-All selected critical runtime suites pass. Full branch verification remains open for unchanged
-contract-source lengths relative to origin/develop and three unrelated concurrent Admin stories;
-see the pilot handoff. No baseline or release gate was waived.
+All selected critical runtime suites pass. The pilot checkpoint's two contract-source lengths
+and three missing concurrent Admin stories are repaired in the later bounded continuation.
+Its selector passes 13/13 fresh, plus storage, production size and 57 pinned Gnosis cases.
+This is working-tree evidence with pending concurrent Admin inputs; no clean whole-commit,
+publication or release receipt is claimed. No baseline or release gate was waived.
 
-- [ ] Reconcile those branch gates in the owning lanes before a full readiness claim.
+- [x] Reconcile those two branch gates with exact ABI/layout, full selected and rendered proof.
 
 Helper provenance, actual-member signing/provider/sponsorship/recovery, issuer approvals and live
 release gates remain open. Earlier signed migration receipts are historical; refresh applicable
 proof against the current inputs and preserve the unrelated Shared manifest export. No push,
 merge, production activation, live deployment, external tracker write or worktree is authorized.
 
-**Latest dispatch, 22 October UTC:** continue member signing and issuer readiness, with local signed
+**Earlier member dispatch, 22 October UTC:** continue member signing and issuer readiness, with local signed
 commits now requested. This supersedes the prior uncommitted-only instruction below; signing stays
 required; the dedicated agent now supports scoped approved signing without key-file access.
 The 145-path checkpoint is signed locally as `0f4e62bae`; the default sandbox socket remains blocked.
 [The proof handoff](handoffs/codex-member-issuer-readiness.md) records matching fictional three-chain
 derivation, a fresh absent Gnosis validator/deployment revert at block 48,879,904, and deliberate
 app rejection. Six focused files pass 42 tests and the four-check selector passes fresh. Actual
-member control, signing, sponsorship and recovery remain unproved. COM-46 remains Todo; the user
+member control, signing, sponsorship and recovery remain unproved. COM-46 was Todo at that read; it
+is now In Progress without attached approval evidence, as the current refresh records. The user
 confirmed no approved issuer evidence yet and asked to record the gaps. No broader lane is completed.
 
 - [x] Recheck selected account dependencies, exact SDK configuration and pinned live RPC behavior.

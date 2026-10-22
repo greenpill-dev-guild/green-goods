@@ -1,5 +1,11 @@
 # Cosmo-Local Integration — architecture
 
+**Current blocker/readiness continuation, 22 October:** the user authorized cohesive internal
+contract refactoring and real Admin stories to clear the local branch gates. Existing consent,
+custody, acceptance, activation and final-allocation behavior stays authoritative. The
+[current proof record](handoffs/codex-local-blockers-and-readiness.md) records fresh Alchemy and
+issuer observations. This dispatch grants no new account, issuer or deployment authority.
+
 **Local pilot dispatch, 22 October 2026:** voucher-led requests, direct service redemption and
 bounded voucher-to-voucher exchange in one curated shared Gnosis SwapPool are now authorized
 for local implementation. Continue in the existing checkout on `feature/cosmo-local-contracts`,

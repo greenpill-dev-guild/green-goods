@@ -1,6 +1,14 @@
 # Earned-voucher contracts slice
 
-**22 October local pilot continuation:** the [current pilot handoff](codex-local-voucher-pilot.md)
+**Current 22 October blocker/readiness continuation:** the user authorized source-size fixes
+and Admin stories, followed by member and issuer proof. The
+[current record](codex-local-blockers-and-readiness.md) owns those results and signed local
+attributions. Preserve the public ABI, frozen storage and all existing voucher safeguards.
+Fresh COM-46 is In Progress with no approval documents/comments; actual member, issuer,
+helper-provenance and release gates remain open. Earlier source/story failures below are dated
+pilot evidence, not permission to waive those gates.
+
+**22 October local pilot checkpoint (historical):** the [pilot handoff](codex-local-voucher-pilot.md)
 owns the authorized connected reward/exchange/redemption proof and DEV member journey.
 Individual Request tests are signed locally at `8b1a32a4c`; the scope checkpoint is `92e861f11`.
 Connected pinned proof is `731fe8945` and the DEV member pilot is `66a3844be`. Full critical

@@ -3,6 +3,14 @@
 **Reconciled:** 2026-10-22 UTC. These criteria apply to separately accepted implementation slices.
 No check below is certified by planning, a Linear state or the completed foundation project.
 
+**Current blocker/readiness proof, 22 October:** require the source-structure gate against
+refreshed origin/develop, complete compiled ABI equality, unchanged recursive linear/namespaced
+storage, production sizes and the complete selected contract override after internal extraction.
+Require all three actual Admin components to have truthful stories, story quality/typechecking,
+static build and labeled rendered proof. Pending concurrent implementation inputs must be named
+as working-tree dependencies. Fresh Alchemy observations and COM-46 evidence refresh establish no
+actual member control or issuer approval. See [the current record](handoffs/codex-local-blockers-and-readiness.md).
+
 **Newer acceptance boundary, 23:42 UTC:** existing code/tests are checkpoint evidence only for
 the newly adopted safeguards. Require RED/GREEN at every direct core acceptance path for exact
 earned/payment voucher consent; full authenticated Gnosis escrow before accepted-counterparty

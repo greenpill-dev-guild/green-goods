@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-08-25T06:09:38.829Z",
-    "updated_at": "2026-10-22T22:41:15.225Z"
+    "updated_at": "2026-10-22T23:36:02.249572+00:00"
   },
   "links": {
     "brief": "brief.md",
@@ -38,7 +38,9 @@
     "voucher_reconciliation": "handoffs/codex-voucher-reconciliation.md",
     "member_issuer_readiness": "handoffs/codex-member-issuer-readiness.md",
     "local_voucher_pilot": "handoffs/codex-local-voucher-pilot.md",
-    "local_voucher_pilot_validation": "handoffs/codex-local-voucher-pilot-validation.json"
+    "local_voucher_pilot_validation": "handoffs/codex-local-voucher-pilot-validation.json",
+    "local_blocker_readiness_handoff": "handoffs/codex-local-blockers-and-readiness.md",
+    "local_blocker_validation": "handoffs/codex-blocker-repair-validation.json"
   },
   "linear": {
     "parentIssue": "RESR-73",
@@ -442,6 +444,14 @@
       "status": "tdd_recorded",
       "branch": null,
       "note": "Bounded local rendering/integration proof only; initial collection failure is labeled honestly. Keep broader UI lane/manual block and all global/live gates."
+    },
+    {
+      "timestamp": "2026-10-22T23:36:02.249572+00:00",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "local_branch_gates_recorded",
+      "branch": "feature/cosmo-local-contracts",
+      "note": "User-authorized source-size and Admin story blockers repaired. Internal extraction preserves full ABI/method identifiers,24-entry recursive layouts and existing namespaces; no new deployed library link or authority. Source341/342lines; production24202/24000bytes. Selector13/13fresh, protected storage/size pass;57pinned Gnosis cases and45member-boundary tests pass. Admin312/312stories with labeled Brave Storybook proof; pre-existing untracked implementation dependencies remain excluded. COM-46 now In Progress but no approval evidence; fresh Gnosis validator remains absent. Preserve overall backlog, all lane owners/status/manual blockers and all member/helper/issuer/live/release gates. Signed local source attribution:6168fca1d contracts,38d93d03a stories, both verifiedG; no push/deploy/tracker write."
     }
   ]
 }

@@ -1,5 +1,14 @@
 # Member signing and issuer readiness — 22 October 2026
 
+**Later refresh, 23:03 UTC:** [fresh Alchemy observations](../artifacts/member-readiness-refresh-2026-10-22.json)
+at Gnosis block 48,891,789 still find no recorded validator/account code and both selected factory
+simulations revert. COM-46 is now In Progress, updated 22:08:16.562 UTC, with no approval comments,
+documents or attachments. Six current boundary/recovery files pass **45/45** tests at 23:12 UTC.
+The [current blocker/readiness handoff](codex-local-blockers-and-readiness.md) owns this continuation;
+the observations, counts, signing limits and status paragraphs below remain their dated history.
+Required signing now works through the dedicated agent with scoped approved socket access; no
+private key file access, actual member signature or issuer approval is established.
+
 The bounded local investigation establishes matching address calculation and a concrete Gnosis
 deployment blocker. It does not establish member signing, sponsorship, recovery or issuer readiness.
 Both organizational issuers remain unverified for live use. No contract, auth configuration,
