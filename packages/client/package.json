@@ -61,7 +61,7 @@
     "@vitejs/plugin-react": "6.0.5",
     "babel-plugin-react-compiler": "^1.0.0",
     "opentype.js": "^2.0.0",
-    "storybook": "10.4.6",
+    "storybook": "10.6.2",
     "tailwindcss": "4.3.3",
     "typescript": "~7.0.2",
     "vite": "8.2.4",
