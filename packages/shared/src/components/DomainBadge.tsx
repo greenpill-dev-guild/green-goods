@@ -29,7 +29,7 @@ export function DomainBadge({
     return (
       <span
         className={cn(
-          "inline-flex items-center gap-2 type-label-sm font-medium text-text-sub-600",
+          "inline-flex items-center gap-2 type-meta-sm font-medium text-text-sub-600",
           className
         )}
       >

@@ -24,18 +24,17 @@ import { cn } from "../utils/styles/cn";
 export type ConvictionStatus = "accruing" | "passing" | "funded" | "withdrawn" | "expired";
 
 /**
- * Each size rides a type role, so a pill keeps the density of the surface that
- * draws it. `xs` is the 12px pill (`type-meta`, 22px tall) for dense rows and
- * cards, such as a promise row or a season card, where it sits beside 12px
- * words; `sm` (`type-label-sm`) and `md` (`type-label`) suit status blocks and
- * headers.
+ * Status pills are one size on both surfaces, the cockpit's chip size. `xs` and
+ * `sm` take `type-meta-sm` (11px, 22px tall): `xs` for dense rows and cards,
+ * such as a promise row or a season card, `sm` for status blocks. `md` takes
+ * `type-meta` (12px) for headers.
  */
 type StatusBadgeSize = "xs" | "sm" | "md";
 
 const TEXT_SIZE: Record<StatusBadgeSize, string> = {
-  xs: "type-meta",
-  sm: "type-label-sm",
-  md: "type-label",
+  xs: "type-meta-sm",
+  sm: "type-meta-sm",
+  md: "type-meta",
 };
 
 interface WorkStatusBadgeProps {

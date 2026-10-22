@@ -71,10 +71,11 @@
     its guide wording on its own branch (`feature/app-cockpit-shared-type-role-guides`), merged
     first as #1176 was. The design gate rendered 20 screens on both surfaces at 390 and 1280px in
     English, Spanish and Portuguese, and compared every text element in every story before and
-    after. Two calls had no role that keeps both surfaces as they are; the branch takes option A on
-    both, pending the maintainer's word: status pills and the assessment domain label ride the
-    label roles at each surface's density (the app unchanged, cockpit pills 11 to 12px, its medium
-    pill 12 to 14px), and the shared field label moves from 18 to 14px, the app's field label.
+    after. Two calls had no role that keeps both surfaces as they are, and the maintainer chose on
+    the pairs (22 October): status pills and the assessment domain label take one size on both
+    surfaces, the cockpit's 11px chip size (`type-meta-sm`; the medium pill `type-meta`), so the
+    cockpit's pills stay as they were and the app's shrink from 14 and 12px to 11px; and the shared
+    field label moves from 18 to 14px, the app's field label.
     Cockpit titles with no weight take 600, as #1175 ruled. The roles are rem where the old scale
     was px, so these texts now follow the reader's text size; at 200% the pending row's pill
     covers its overflowing marker line until step 7 puts the pill under the title. Left for a
