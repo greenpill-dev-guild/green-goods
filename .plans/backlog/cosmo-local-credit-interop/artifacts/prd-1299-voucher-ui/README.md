@@ -4,9 +4,9 @@ Design for the Green Goods member and steward experience with Cosmo-Local vouche
 cross-garden personal G$ purchases. PRD-1299 owns design approval; PRD-1297, PRD-1323 and
 PRD-1324 implement it after approval.
 
-| Version | Date | Status | Start with |
-|---|---|---|---|
-| [v1](v1/handoff.md) | 22 Oct 2026 | For Afo's review; not approved | [`v1/prototype.html`](v1/prototype.html) (open in a browser) |
+| Version | Date | Status | Start with | Published artifact |
+|---|---|---|---|---|
+| [v1](v1/handoff.md) | 22 Oct 2026 | For Afo's review; not approved | [`v1/prototype.html`](v1/prototype.html) (open in a browser) | [Cosmo-Local Voucher Design](https://claude.ai/artifact/3XWy9GQoAPSsJjikSzomWZ), artifact version 1 (private until shared) |
 
 Each version is a frozen folder. A revision becomes `v2/` beside it; nothing in an approved
 version is edited in place.
