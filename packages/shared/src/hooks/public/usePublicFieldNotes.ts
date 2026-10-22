@@ -34,7 +34,7 @@ import { publicKeys } from "../../config/query-keys/public";
 import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { getWorks } from "../../modules/data/eas";
 import { getGardens } from "../../modules/data/greengoods";
-import { readApprovedWorks } from "../../modules/work/work-list";
+import { readPublicApprovedWorks } from "./readPublicApprovedWorks";
 import type { Address } from "../../types/domain";
 import type { EASWork } from "../../types/eas-responses";
 import type { PublicFieldNote } from "./usePublicGardenDetail";
@@ -106,7 +106,7 @@ export function usePublicFieldNotes(opts: UsePublicFieldNotesOptions = {}) {
         recipient = ids;
       }
 
-      const { works, partial } = await readApprovedWorks(
+      const { works, partial } = await readPublicApprovedWorks(
         await getWorks(recipient, chainId),
         chainId
       );

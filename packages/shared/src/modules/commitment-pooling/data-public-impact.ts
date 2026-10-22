@@ -2,6 +2,11 @@ import { valueFundingReceiptsUsdCents } from "./funding-valuation";
 import { logger } from "../app/logger";
 import { greenGoodsIndexer } from "../data/graphql-client";
 import { integer, type RawRow } from "./data-core";
+import {
+  countedMilestone,
+  readPublicCommitmentExclusions,
+  subtractPublicCount,
+} from "./public-record-exclusions";
 
 import type {
   PublicCommitmentImpactRecord,
@@ -21,6 +26,7 @@ const FUNDING_PAGE_SIZE = 100;
 const FUNDING_RECEIPT_LIMIT = 1000;
 
 async function getPoolAggregate(chainId: number): Promise<PublicImpactPoolAggregate> {
+  const excluded = await readPublicCommitmentExclusions(chainId);
   const query = `query PublicCommitmentImpactPools($chainId: Int!) {
     CommitmentPool_aggregate(where: { chainId: { _eq: $chainId }, registrationSeen: { _eq: true } }) {
       aggregate { sum { commitmentsOffered commitmentsRequested commitmentsFulfilled } }
@@ -34,8 +40,14 @@ async function getPoolAggregate(chainId: number): Promise<PublicImpactPoolAggreg
   if (!aggregate) throw new Error("Commitment pool aggregate is unavailable");
   const sum = (aggregate.sum ?? {}) as RawRow;
   return {
-    commitmentsMade: integer(sum.commitmentsOffered) + integer(sum.commitmentsRequested),
-    commitmentsFulfilled: integer(sum.commitmentsFulfilled),
+    commitmentsMade: subtractPublicCount(
+      integer(sum.commitmentsOffered) + integer(sum.commitmentsRequested),
+      BigInt(excluded.length)
+    ),
+    commitmentsFulfilled: subtractPublicCount(
+      integer(sum.commitmentsFulfilled),
+      BigInt(excluded.filter((row) => countedMilestone(row, "FULFILLED")).length)
+    ),
   };
 }
 

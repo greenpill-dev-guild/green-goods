@@ -16,7 +16,8 @@ import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { publicKeys } from "../../config/query-keys/public";
 import { logger } from "../../modules/app/logger";
 import { getWorks } from "../../modules/data/eas";
-import { type ApprovedWorks, readApprovedWorks } from "../../modules/work/work-list";
+import type { ApprovedWorks } from "../../modules/work/work-list";
+import { readPublicApprovedWorks } from "./readPublicApprovedWorks";
 
 /**
  * Approved work of `gardenIds`. A works read that fails leaves the result
@@ -33,7 +34,7 @@ export function fetchListedApprovedWorks(
     queryFn: async (): Promise<ApprovedWorks> => {
       if (gardenIds.length === 0) return { works: [], partial: false };
       try {
-        return await readApprovedWorks(await getWorks(gardenIds, chainId), chainId);
+        return await readPublicApprovedWorks(await getWorks(gardenIds, chainId), chainId);
       } catch (error) {
         logger.warn("[fetchListedApprovedWorks] EAS works fetch failed", { error });
         return { works: [], partial: true };
