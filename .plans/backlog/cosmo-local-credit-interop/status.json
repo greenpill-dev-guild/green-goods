@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-08-25T06:09:38.829Z",
-    "updated_at": "2026-10-22T06:34:21.780458Z"
+    "updated_at": "2026-10-22T21:46:46.978338+00:00"
   },
   "links": {
     "brief": "brief.md",
@@ -36,7 +36,8 @@
     "service_access_api": "handoffs/codex-service-access-api.md",
     "service_access_integration": "handoffs/codex-service-access-integration.md",
     "voucher_reconciliation": "handoffs/codex-voucher-reconciliation.md",
-    "member_issuer_readiness": "handoffs/codex-member-issuer-readiness.md"
+    "member_issuer_readiness": "handoffs/codex-member-issuer-readiness.md",
+    "local_voucher_pilot": "handoffs/codex-local-voucher-pilot.md"
   },
   "linear": {
     "parentIssue": "RESR-73",
@@ -84,6 +85,7 @@
     "depends_on_features": ["commitment-pooling", "community-interface"]
   },
   "notes": [
+    "22 October: user explicitly dispatched local voucher pilot implementation in the existing feature/cosmo-local-contracts checkout, with signed local commits and no live authority. Voucher-led individual Request rewards, optional independently tracked G$, direct redemption and one shared Gnosis pool voucher-to-voucher exchange are selected. Existing source/quote interfaces and escrow are reused; local connected proof/member state are missing. Focused gap map is handoffs/codex-local-voucher-pilot.md. Preserve unrelated Auth/public-site/Shared manifest/Portuguese edits, same member address and all manual/live/issuer/release blockers. No general multi-currency/fiat, mixed checkout or G$-to-voucher work is dispatched.",
     "22 October UTC: user dispatched member-signing and issuer-readiness proof and requests local signed commits, superseding the prior uncommitted-only preference. Fresh Gnosis100 block48879904 has no selected WebAuthn validator; both factory simulation paths revert. Exact fictional initializer derives the same address on Arbitrum/Gnosis/Celo; control deployments simulate successfully on Arbitrum/Celo. This proves no actual member control/signing/sponsorship/recovery. Six focused files pass42tests; selected routine QA passes4/4 fresh with no mandatory critical override for test-only additions. COM-46 remains Todo; real terms/capacity/identity/approval references unavailable for each issuer. Signing/keyring policy retained for user terminal; previous safeguards source hashes unchanged. Contracts in_progress, overall backlog and every unrelated/manual/live/release blocker preserved. See handoffs/codex-member-issuer-readiness.md. User confirmed no approved issuer evidence yet; record the gaps.",
     "2026-10-22 04:22 UTC: Bounded voucher safeguards reconciliation is implemented and verified locally after signed checkpoint e7cd49d6. Final selector passes 6/6 fresh, zero reused/unrun/changed inputs, retaining all four mandatory contract overrides. Package and verifier each pass 2191 Solidity, 3 production G$ gas, 31 CLI and 331 script tests. Fresh Gnosis41/Celo12, all sizes, 16 layouts/eight namespaces, full consumers and eight global components pass; failed runs and exact commands remain recorded. Final claim gas134797<135000, unchanged ceiling/profile; combined opt-in and all140 focused cases pass. Brave mock-auth and final Storybook proof are labeled separately from unproved member signing. Every new change stays local and uncommitted; contracts in_progress, overall backlog and all unrelated/manual/COM-46/live/release blockers stay unchanged. Next bounded work is member signing and issuer readiness, with broader issuer governance undecided. See handoffs/codex-voucher-reconciliation.md.",
     "2026-10-21 local evening: Human signed exact71-path checkpoint e7cd49d6 (cached patch SHA-256 caefae72ffe67de5efe186ce18512aa257bc9a4c91bcb2f8fe72aba0f3814154); empty index and clean contracts verified. Human explicitly dispatched the selected voucher safeguards reconciliation; all new changes stay local and uncommitted. Core/earned guard, source v2 setup/codec and destination custody/final legs are disjoint implementation lanes, with serialized meaningful RED/GREEN and API proof before affected Indexer/Shared/member migration. Preparation chat confirms no newer human conflict. Signing barrier resolved; every unrelated lane/manual/live blocker preserved. See handoffs/codex-voucher-reconciliation.md.",
@@ -137,7 +139,7 @@
           "command": "",
           "evidence": ""
         },
-        "note": "No implementation authorized. RED/GREEN is recorded when a slice is dispatched."
+        "note": "The 22 October local voucher pilot is now explicitly authorized and tracked in handoffs/codex-local-voucher-pilot.md; record its bounded RED/GREEN evidence separately. The broader lane/manual blocker remains unchanged."
       },
       "skill_tags": ["ui", "frontend-design", "react"],
       "manual_blocked": true
@@ -159,7 +161,7 @@
           "command": "",
           "evidence": ""
         },
-        "note": "No implementation authorized. RED/GREEN is recorded when a slice is dispatched."
+        "note": "The 22 October local voucher pilot is now explicitly authorized and tracked in handoffs/codex-local-voucher-pilot.md; record its bounded RED/GREEN evidence separately. The broader lane/manual blocker remains unchanged."
       },
       "skill_tags": ["react", "tanstack-query", "data-layer"],
       "manual_blocked": true

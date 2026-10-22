@@ -11,6 +11,27 @@
 **Companion documents**: [`brief.md`](./brief.md) · [`spec.md`](./spec.md) ·
 [`tensions.md`](./tensions.md) · [`resources.md`](./resources.md) · [`eval.md`](./eval.md)
 
+**Current authorized slice, 22 October: local voucher pilot.** Implement the connected individual
+request → usable voucher reward → optional single-pool exchange → existing service-redemption
+journey. Voucher rewards lead; optional G$ retains independent accounting and recovery. Correct
+voucher holdings redeem directly. One shared Gnosis SwapPool serves the pilot; Arbitrum garden
+and protocol commitment pools remain separate. Future tokens/fiat are documented extension points,
+not runtime scope. The [focused gap map](handoffs/codex-local-voucher-pilot.md) records ownership,
+reuse, failure cases and proof limits before implementation. Use the existing branch/checkout,
+preserve concurrent work and required signing, and commit validated owned work locally.
+
+- [x] Inspect current implementation and reconcile this explicit pilot authority.
+- [ ] Prove an individual Request earns a whole redeemable voucher, with optional separate G$.
+- [ ] Prove direct redemption and actual pinned voucher A → B exchange in one pool, then redemption.
+- [ ] Connect the member rehearsal through one observed balance ledger; expose terms and shortages.
+- [ ] Prove independent failures/acks/retries and preserve consent, escrow and final-allocation guards.
+- [ ] Capture labeled rendered proof and all repository-selected checks, then signed local receipts.
+
+Helper provenance, actual-member signing/provider/sponsorship/recovery, issuer approvals and live
+release gates remain open. Earlier signed migration receipts are historical; refresh applicable
+proof against the current inputs and preserve the unrelated Shared manifest export. No push,
+merge, production activation, live deployment, external tracker write or worktree is authorized.
+
 **Latest dispatch, 22 October UTC:** continue member signing and issuer readiness, with local signed
 commits now requested. This supersedes the prior uncommitted-only instruction below; signing stays
 required; the dedicated agent now supports scoped approved signing without key-file access.

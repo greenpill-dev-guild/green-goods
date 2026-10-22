@@ -1,5 +1,38 @@
 # Cosmo-Local Integration — architecture
 
+**Local pilot dispatch, 22 October 2026:** voucher-led requests, direct service redemption and
+bounded voucher-to-voucher exchange in one curated shared Gnosis SwapPool are now authorized
+for local implementation. Continue in the existing checkout on `feature/cosmo-local-contracts`,
+commit validated owned work with required signing, and keep live deployment blocked. The
+[pilot gap map and execution record](handoffs/codex-local-voucher-pilot.md) owns this slice.
+This dispatch supersedes conflicting planning-only and uncommitted-only language below.
+
+An offer describes a service; a request describes needed contributions. Neither creates or
+distributes vouchers automatically. A request names the required work, evidence/review, voucher
+asset and redeemable quantity, and any optional G$ reward. Voucher and monetary outcomes have
+separate receipts and recovery. Existing G$-only behavior and cross-garden personal G$ purchases
+remain intact; each accepted offer revision still selects exactly one payment route.
+
+The pilot has one shared exchange pool for participating issuers and gardens, distinct from
+Arbitrum garden/protocol commitment pools. Issuers retain inventory and obligation authority;
+pool administration grants no right to mint or spend another issuer's reserve. A holder with
+the correct voucher redeems directly. A different voucher may be exchanged through one bounded
+direct pool call after reviewing input, net output, fees, minimum output and validity. SwapRouter
+quotes routes and does not execute them. WXDAI remains a separately labeled rehearsal asset.
+
+The individual-contributor pilot uses canonical recognition and a total sufficient for a whole
+fictional service unit. Group allocation still divides an agreed total: it does not guarantee a
+whole unit to every participant. Accepted rewards reserve no inventory. Show reserve, finite
+allowance, accepted undelivered rewards and recoverable shortages separately. Fictional terms
+identify full access versus a discount, quantity, duration, booking, activation and remedies.
+
+Future monetary rewards may identify another approved asset, amount, recipient, funder, payment
+method and receipt. This slice preserves G$ and documents those boundaries without building
+multi-currency settlement, fiat payments, FX, mixed checkout, G$-to-voucher purchases or cash-out.
+External fiat settlement would require independent verification. Existing voucher consent,
+escrow-before-acceptance, permanent activation and immutable final allocation safeguards remain
+authoritative. No token transfer, timeout, escrow closure or activation proves external delivery.
+
 **Newer accepted safeguards, 21 October 23:42 UTC:** the user adopted escrow before voucher
 promise activation, exact earned/payment voucher consent enforced before every core acceptance
 path, and one immutable final delivered/refundable allocation. These supersede conflicting
@@ -13,8 +46,9 @@ cap enforcement and independent steward suspension mechanisms remain unresolved 
 **Safeguards implementation, 22 October UTC:** the exact core guard, v2 setup/Activate/Abort
 convergence, immutable final allocation and affected consumer flow are implemented locally.
 The reconciliation handoff separates their passing local evidence from the signed checkpoint and
-records remaining live proof. The latest instruction requires all new changes to remain uncommitted,
-superseding the earlier local commit permission. No live authority is granted.
+records remaining live proof. That dated continuation originally kept changes uncommitted;
+the later signed checkpoints and current local pilot dispatch require coherent signed local
+commits. No live authority is granted.
 
 **Current continuation, 21 October:** the user dispatched the prepared service-access slice after
 closing the purchase proof gaps. The approved validator repair separates fresh checks from optional
