@@ -63,12 +63,12 @@ export function WorkbenchCard({
               <LeadingIcon className="h-5 w-5" />
             </div>
           )}
-          <span className="truncate text-label-sm text-text-soft">{eyebrow}</span>
+          <span className="truncate type-meta-sm text-text-soft">{eyebrow}</span>
         </div>
         {statusLabel ? (
           <span
             className={cn(
-              "inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-label-sm font-bold",
+              "inline-flex shrink-0 items-center rounded-full px-2.5 py-1 type-meta-sm font-bold",
               getStatusToneClasses(statusTone)
             )}
           >
@@ -78,11 +78,11 @@ export function WorkbenchCard({
       </div>
 
       <div className="min-w-0 flex-1">
-        <h3 className="truncate text-title-md text-text-strong" title={title}>
+        <h3 className="truncate type-title-md text-text-strong" title={title}>
           {title}
         </h3>
         {description ? (
-          <p className="mt-1 line-clamp-2 text-body-md text-text-sub">{description}</p>
+          <p className="mt-1 line-clamp-2 type-body text-text-sub">{description}</p>
         ) : null}
       </div>
 
@@ -91,7 +91,7 @@ export function WorkbenchCard({
           {meta.map((value) => (
             <span
               key={`${title}-${value}`}
-              className="inline-flex items-center rounded-full bg-bg-soft px-2.5 py-1 text-body-sm font-semibold text-text-sub shadow-[var(--edge-rest)]"
+              className="inline-flex items-center rounded-full bg-bg-soft px-2.5 py-1 type-meta font-semibold text-text-sub shadow-[var(--edge-rest)]"
             >
               {value}
             </span>

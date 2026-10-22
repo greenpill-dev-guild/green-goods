@@ -160,9 +160,9 @@ function NotificationRow({ item }: { item: NotificationPanelItem }) {
 }
 
 // Sentence-case label role per the admin dialog interior grammar (admin.mdx):
-// section labels ride the label utilities, never ad-hoc uppercase tracking.
+// section labels ride the type roles, never ad-hoc uppercase tracking.
 function SectionHeading({ title }: { title: string }) {
-  return <h3 className="text-label-sm font-medium text-text-soft">{title}</h3>;
+  return <h3 className="type-meta-sm font-medium text-text-soft">{title}</h3>;
 }
 
 function SkeletonRow() {

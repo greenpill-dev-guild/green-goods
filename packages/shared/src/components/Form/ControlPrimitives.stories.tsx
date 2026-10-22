@@ -12,10 +12,8 @@ function ControlPrimitiveCatalog() {
     <div className="grid gap-6 md:grid-cols-2">
       <section className="space-y-4">
         <div>
-          <h2 className="text-title-sm font-semibold text-[rgb(var(--m3-on-surface))]">
-            Admin surface
-          </h2>
-          <p className="text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
+          <h2 className="type-title-sm text-[rgb(var(--m3-on-surface))]">Admin surface</h2>
+          <p className="type-label-sm text-[rgb(var(--m3-on-surface-variant))]">
             Shared controls with the admin surface preset.
           </p>
         </div>
@@ -44,8 +42,8 @@ function ControlPrimitiveCatalog() {
         </FormField>
         <div className="flex items-center justify-between gap-4 rounded-[var(--m3-shape-sm)] border border-[rgb(var(--m3-outline-variant))] p-3">
           <div>
-            <p className="text-label-lg text-[rgb(var(--m3-on-surface))]">Open joining</p>
-            <p className="text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
+            <p className="type-label text-[rgb(var(--m3-on-surface))]">Open joining</p>
+            <p className="type-label-sm text-[rgb(var(--m3-on-surface-variant))]">
               Allow members to join without invitation.
             </p>
           </div>
@@ -60,8 +58,8 @@ function ControlPrimitiveCatalog() {
 
       <section className="space-y-4">
         <div>
-          <h2 className="text-title-sm font-semibold text-[rgb(var(--m3-on-surface))]">States</h2>
-          <p className="text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
+          <h2 className="type-title-sm text-[rgb(var(--m3-on-surface))]">States</h2>
+          <p className="type-label-sm text-[rgb(var(--m3-on-surface-variant))]">
             Disabled, compact, and invalid states for route forms.
           </p>
         </div>
@@ -102,7 +100,7 @@ function ControlPrimitiveCatalog() {
         </FormField>
         <div className="flex items-center gap-3">
           <Switch surface="admin" checked={false} disabled aria-label="Disabled switch" />
-          <span className="text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
+          <span className="type-label-sm text-[rgb(var(--m3-on-surface-variant))]">
             Disabled switch
           </span>
         </div>
