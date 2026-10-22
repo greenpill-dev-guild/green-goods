@@ -4,7 +4,8 @@
  * Composes:
  *   - **Envio indexer** (`getGardens`): garden record + role addresses.
  *   - **EAS** (`getWorks`, then `readApprovedWorks`): the garden's approved
- *     field notes. Pending and rejected work is not public. The caller owns
+ *     field notes. Tests and records held for review stay out, as do pending
+ *     and rejected approval decisions. The caller owns
  *     the visible window (see `fieldNotes`).
  *   - **EAS** (`getGardenAssessments`): evaluator-attestation count, used by
  *     the "Verified Site" badge on the public detail page.
