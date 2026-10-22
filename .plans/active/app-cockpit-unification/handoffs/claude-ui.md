@@ -67,9 +67,19 @@
     from 640px), `type-meta-sm` at 400 unless a chip sets its own weight, the cookie jar payout
     amount at 22px, and card sizes left to the card step.
 - Next, to finish step 1 (the last pull request says `Fixes PRD-1267`):
-  - The shared components onto the roles, with app pairs. This changes the installed app too, and
-    the cockpit still draws the garden chip, the header's meta line and the sync badges with their
-    old classes until it lands.
+  - In review: the shared components on the roles (`feature/app-cockpit-shared-type-roles`), with
+    its guide wording on its own branch (`feature/app-cockpit-shared-type-role-guides`), merged
+    first as #1176 was. The design gate rendered 20 screens on both surfaces at 390 and 1280px in
+    English, Spanish and Portuguese, and compared every text element in every story before and
+    after. Two calls had no role that keeps both surfaces as they are; the branch takes option A on
+    both, pending the maintainer's word: status pills and the assessment domain label ride the
+    label roles at each surface's density (the app unchanged, cockpit pills 11 to 12px, its medium
+    pill 12 to 14px), and the shared field label moves from 18 to 14px, the app's field label.
+    Cockpit titles with no weight take 600, as #1175 ruled. The roles are rem where the old scale
+    was px, so these texts now follow the reader's text size; at 200% the pending row's pill
+    covers its overflowing marker line until step 7 puts the pill under the title. Left for a
+    follow-up: the client's own 17 files on the shared scale (so the scale keeps its tokens and its
+    `cn()` registration) and 98 raw Tailwind sizes in 35 shared components.
   - The offline face, from #1172's review: the service worker caches no web font, Inter included,
     so an installed app's first launch with no network draws the fallback face, short of "both
     surfaces render Plus Jakarta Sans". Serve both faces from the app and precache them. This
@@ -85,6 +95,9 @@
   and its loading screen's face change; no behaviour does. Proof is the rendered pair, the
   typeface fit audit and the design and typography guards (eval.md, Design gate for the token
   slices).
+- Proof limit for the shared components' roles: `not_applicable`. Class names, type tokens and
+  two retired stylesheets change; no behaviour does. Proof is the rendered pairs, the all-story
+  comparison, and `check:design-tokens`, whose retired-name sweep now covers `packages/shared`.
 
 ## Steps 2 and 3: drafts
 
