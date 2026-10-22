@@ -507,10 +507,11 @@
   /* ── Radius Aliases ── Public runtime aliases for DesignMD-generated radii. */
   --radius-none: var(--gg-radius-none);
   --radius-md: var(--gg-radius-md);
-  /* The shared control family's own label sizes (16 / 14px). They stay the same
-     on every surface: the admin cockpit remaps --text-label-* for its M3
-     utilities, and reading those keys shrank shared buttons and chips rendered
-     there (toast actions, empty-state actions) to 11 and 12px (DL-029). */
+  /* The shared control family's own label sizes (16 / 14px); a surface sets its
+     own (the cockpit's 14px, in admin index.css). The family reads these, not
+     the --text-label-* scale: while the cockpit remapped that scale for its
+     Material utilities, shared buttons and chips rendered there (toast actions,
+     empty-state actions) shrank to 11 and 12px (DL-029). */
   --gg-label-md: 1rem;
   --gg-label-sm: 0.875rem;
   /* Type roles: the one set of type names for every surface (title, body,
