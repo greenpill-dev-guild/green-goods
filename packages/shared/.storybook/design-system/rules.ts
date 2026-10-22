@@ -27,7 +27,7 @@ const ADMIN_HEIGHT: Record<AdminSize, number> = { sm: 28, md: 32, lg: 40 };
  */
 export const APP = {
   name: "Installed app",
-  family: "Inter",
+  family: "Plus Jakarta Sans",
   cornerRest: APP_CORNER.md,
   cornerPressed: 12,
   cornerCompactRest: APP_CORNER.compact,
@@ -41,14 +41,14 @@ export const APP = {
     "Heights 48 / 44 / 40 / 32; sm and compact keep a 48px hit area (DL-023)",
     "Icon buttons are circles, chips are 32px capsules with a 44px hit area",
     "Fields: 16px corner, a single-line field is exactly its step (DL-022)",
-    "Inter, from the shared primitives only (DL-025, Rule 19)",
+    "Plus Jakarta Sans, the cockpit's face, from the shared primitives only (DL-025, DL-096, Rule 19)",
   ],
   button: (size: AppSize): Expectation => ({
     height: APP_HEIGHT[size],
     radius: APP_CORNER[size],
     weight: 400,
     labelSize: size === "lg" || size === "md" ? 16 : 14,
-    family: "Inter",
+    family: "Plus Jakarta Sans",
     hit: size === "sm" || size === "compact" ? 48 : APP_HEIGHT[size],
   }),
   iconButton: (size: AppSize): Expectation => ({
@@ -66,7 +66,7 @@ export const APP = {
   field: (size: "sm" | "md" | "lg" = "md"): Expectation => ({
     height: { sm: 40, md: 44, lg: 48 }[size],
     radius: 16,
-    family: "Inter",
+    family: "Plus Jakarta Sans",
   }),
 };
 
@@ -101,7 +101,8 @@ export const WEBSITE = {
   }),
   iconButton: APP.iconButton,
   chip: APP.chip,
-  field: APP.field,
+  /** The app's field in the website's face (DL-096). */
+  field: (size: "sm" | "md" | "lg" = "md"): Expectation => ({ ...APP.field(size), family: "Inter" }),
   editorialField: (): Expectation => ({
     height: 44,
     radius: "none",

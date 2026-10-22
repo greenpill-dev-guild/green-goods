@@ -176,11 +176,33 @@ function warnUnavailable(source: string, error: unknown): void {
 export async function getPublicCommitmentImpact(
   chainId: number
 ): Promise<PublicCommitmentImpactRecord> {
-  const exclusions = readPublicCommitmentExclusions(chainId);
-  const [poolsResult, settlementResult] = await Promise.allSettled([
-    exclusions.then((rows) => getPoolAggregate(chainId, rows)),
-    exclusions.then((rows) => getConfirmedSettlementAggregate(chainId, rows)),
-  ]);
+  const snapshot = (rows: RawRow[]) =>
+    JSON.stringify(
+      rows.map((row) => [
+        String(row.id),
+        String(row.commitmentId),
+        countedMilestone(row, "FULFILLED"),
+      ])
+    );
+  let poolsResult: PromiseSettledResult<PublicImpactPoolAggregate>;
+  let settlementResult: PromiseSettledResult<
+    Awaited<ReturnType<typeof getConfirmedSettlementAggregate>>
+  >;
+  try {
+    const excluded = await readPublicCommitmentExclusions(chainId);
+    const before = snapshot(excluded);
+    [poolsResult, settlementResult] = await Promise.allSettled([
+      getPoolAggregate(chainId, excluded),
+      getConfirmedSettlementAggregate(chainId, excluded),
+    ]);
+    // A new rehearsal or lifecycle update must not enter aggregates after their correction was read.
+    const latest = await readPublicCommitmentExclusions(chainId);
+    if (before !== snapshot(latest))
+      throw new Error("Rehearsal history changed during public impact reporting; retry the read");
+  } catch (error) {
+    poolsResult = { status: "rejected", reason: error };
+    settlementResult = { status: "rejected", reason: error };
+  }
   if (poolsResult.status === "rejected") warnUnavailable("commitmentPools", poolsResult.reason);
   if (settlementResult.status === "rejected") {
     warnUnavailable("confirmedSettlement", settlementResult.reason);

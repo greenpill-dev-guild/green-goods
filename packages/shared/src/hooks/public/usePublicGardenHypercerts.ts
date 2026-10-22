@@ -18,20 +18,25 @@ export function usePublicGardenHypercerts({
     enabled: Boolean(gardenId),
     queryFn: async () => {
       if (!gardenId) return [];
-      const records = await getPublicGardenHypercerts(gardenId, chainId);
-      const metadata = await hydrateHypercertRecords(records, chainId);
-      return records.map((record) => ({
-        ...record,
-        title: metadata[record.id]?.title ?? record.title,
-        description: metadata[record.id]?.description ?? record.description,
-        imageUri: metadata[record.id]?.imageUri ?? record.imageUri,
-        workScopes: metadata[record.id]?.workScopes ?? record.workScopes,
-      }));
+      return getPublicGardenHypercerts(gardenId, chainId);
     },
     staleTime: STALE_TIME_MEDIUM,
   });
+  const records = query.data ?? [];
+  const metadata = useQuery({
+    queryKey: publicKeys.gardenCertificateMetadata(gardenId ?? "none", chainId, records),
+    enabled: query.isSuccess && records.length > 0,
+    queryFn: () => hydrateHypercertRecords(records, chainId),
+    staleTime: STALE_TIME_MEDIUM,
+  });
   return {
-    hypercerts: query.data ?? [],
+    hypercerts: records.map((record) => ({
+      ...record,
+      title: metadata.data?.[record.id]?.title ?? record.title,
+      description: metadata.data?.[record.id]?.description ?? record.description,
+      imageUri: metadata.data?.[record.id]?.imageUri ?? record.imageUri,
+      workScopes: metadata.data?.[record.id]?.workScopes ?? record.workScopes,
+    })),
     isLoading: query.isLoading,
     hasError: query.isError,
     error: query.error,

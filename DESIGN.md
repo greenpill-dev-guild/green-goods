@@ -21,20 +21,25 @@ colors:
   neutral-dark: "#1C1917"
 typography:
   body-md:
-    fontFamily: Inter
+    fontFamily: Plus Jakarta Sans
     fontSize: 16px
     fontWeight: 400
     lineHeight: 1.5
   label-md:
-    fontFamily: Inter
+    fontFamily: Plus Jakarta Sans
     fontSize: 12px
     fontWeight: 500
     lineHeight: 16px
   app-title:
-    fontFamily: Inter
+    fontFamily: Plus Jakarta Sans
     fontSize: 22px
     fontWeight: 600
     lineHeight: 28px
+  website-label:
+    fontFamily: Inter
+    fontSize: 16px
+    fontWeight: 600
+    lineHeight: 24px
   editorial:
     fontFamily: Fraunces
     fontSize: 48px
@@ -118,7 +123,7 @@ components:
   button-primary-website:
     backgroundColor: "{colors.tertiary-action}"
     textColor: "{colors.on-tertiary-action}"
-    typography: "{typography.label-md}"
+    typography: "{typography.website-label}"
     padding: "{spacing.md}"
     rounded: "{rounded.full}"
   button-secondary:
@@ -205,11 +210,11 @@ Four roles, defined by **how much of the screen each occupies**, not a palette r
 | Role | Font | Weight | Use |
 |------|------|--------|-----|
 | **Editorial headlines** | Serif display (Fraunces, Lora, or Newsreader) | 600-700 | Browser site only (garden/impact editorial pages) |
-| **App headlines** | Inter (client PWA) / Plus Jakarta Sans (admin) | 600-700 | Functional headings |
-| **Body** | Inter (client) / Plus Jakarta Sans (admin) | 400-500 | Core reading text |
-| **Labels / timestamps** | Inter (client) / Plus Jakarta Sans (admin) | 500 | Utility text, metadata |
+| **App headlines** | Plus Jakarta Sans (installed app and admin) | 600-700 | Functional headings |
+| **Body** | Plus Jakarta Sans (installed app and admin) / Inter (public website) | 400-500 | Core reading text |
+| **Labels / timestamps** | Plus Jakarta Sans (installed app and admin) / Inter (public website) | 500 | Utility text, metadata; the website's button labels are Inter 600 (`website-label`) |
 
-**Rationale:** The serif headline only appears on the public browser site where editorial weight matters. PWA and admin stay utilitarian with their respective sans-serif workhorses.
+**Rationale:** The installed app and the admin cockpit share one sans face, so the two read as one product (DL-096). The public website keeps Inter beside its editorial serif, which only appears there, where editorial weight matters; a public page opened inside the installed app keeps the website's Inter.
 
 ## Voice & Copy
 

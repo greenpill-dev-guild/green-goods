@@ -324,11 +324,12 @@ export async function getPublicGardenPool(
   if (excluded.length > 0) {
     const filter = `chainId: { _eq: $chainId }, poolId: { _eq: $poolId }, creationSeen: { _eq: true }, id: { _nin: $ids }`;
     // Count providers after exclusion so rehearsals cannot unlock a public reliability rate.
-    // Select one record ID per provider, never participant addresses. Bound the
-    // read and fail visibly if the public provider count would be truncated.
-    const eligible = await greenGoodsIndexer.query<Record<string, { id: string }[]>>(
+    // Offers commit their creator's units before acceptance assigns a lead provider.
+    // Read identities only to deduplicate them; publish the count, never the identities.
+    const eligible = await greenGoodsIndexer.query<Record<string, RawRow[]>>(
       `query PublicPoolEligibleRecords($chainId: Int!, $poolId: numeric!, $ids: [String!]!) {
-        providers: Commitment(where: { ${filter}, leadProvider: { _is_null: false }, _or: [{ direction: { _eq: OFFER } }, { acceptanceSeen: { _eq: true } }] }, distinct_on: [leadProvider], limit: 1001) { id }
+        providers: Commitment(where: { ${filter}, leadProvider: { _is_null: false }, acceptanceSeen: { _eq: true } }, distinct_on: [leadProvider], limit: 1001) { id leadProvider }
+        offerProviders: Commitment(where: { ${filter}, direction: { _eq: OFFER }, creator: { _is_null: false } }, distinct_on: [creator], limit: 1001) { id creator }
       }`,
       {
         chainId,
@@ -339,11 +340,25 @@ export async function getPublicGardenPool(
     );
     if (eligible.error) throw eligible.error;
     const counts = eligible.data;
-    if (!counts?.providers || counts.providers.length > 1000) {
+    if (
+      !counts?.providers ||
+      counts.providers.length > 1000 ||
+      !counts.offerProviders ||
+      counts.offerProviders.length > 1000
+    ) {
       throw new Error("Eligible pool history is unavailable");
     }
     pool = excludeRehearsalCounters(pool, excluded);
-    pool.distinctProviderCount = BigInt(counts.providers.length);
+    const providers = new Set<string>();
+    for (const identity of [
+      ...counts.providers.map((row) => row.leadProvider),
+      ...counts.offerProviders.map((row) => row.creator),
+    ]) {
+      if (typeof identity !== "string" || !/^0x[0-9a-f]{40}$/i.test(identity))
+        throw new Error("Eligible provider identity is unavailable");
+      providers.add(identity.toLowerCase());
+    }
+    pool.distinctProviderCount = BigInt(providers.size);
     summaries = summaries
       .map((summary) => {
         const units = excludedUnitTotals(

@@ -98,7 +98,7 @@ describe("shared record destinations", () => {
       const root = { dataset: {} as Record<string, string> };
       runInNewContext(script!, {
         URL,
-        document: { documentElement: root },
+        document: { documentElement: root, getElementById: () => null },
         navigator: {},
         window: {
           location: { href },

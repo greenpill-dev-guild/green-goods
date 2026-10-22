@@ -246,6 +246,32 @@ describe("public commitment impact reader", () => {
     expect(result.partialData).toBe(true);
   });
 
+  it.each([
+    "new commitment",
+    "fulfilled lifecycle",
+  ])("withholds totals when rehearsal history changes during the aggregate reads: %s", async (change) => {
+    const normal = mocks.query.getMockImplementation();
+    let reads = 0;
+    mocks.query.mockImplementation(async (...args) => {
+      if (args[2] !== "getPublicCommitmentExclusions") return normal?.(...args);
+      const rows = communityRehearsals();
+      if (++reads > 1) {
+        if (change === "new commitment")
+          rows.push({ ...rows[0]!, id: "42161-99", commitmentId: "99" });
+        else rows[0]!.countedLifecycleStates = ["FULFILLED"];
+      }
+      return { data: { Commitment: rows } };
+    });
+    const result = await getPublicCommitmentImpact(42161);
+    expect(result).toMatchObject({
+      commitmentsMade: null,
+      commitmentsFulfilled: null,
+      confirmedDisbursementTotal: null,
+      partialData: true,
+    });
+    expect(reads).toBe(2);
+  });
+
   it("retains TAS funding independently of rehearsal exclusions", async () => {
     const normal = mocks.query.getMockImplementation();
     const amount = 7_200_000n * 10n ** 18n;

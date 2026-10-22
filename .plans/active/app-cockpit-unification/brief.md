@@ -1,6 +1,6 @@
 # One Look for the App and the Cockpit
 
-**Stage:** backlog · **Posture:** design direction accepted in principle; no pick is locked and implementation is not authorized
+**Stage:** active · **Posture:** every pick locked on 18 October; the three token slices approved on 21 October; each later slice starts on its own approved pair
 
 Make the gardener app and the steward cockpit read as one product. Share the typeface, the ground
 and the chrome recipes; keep each surface's density, corners and accent as its own dialect. Layouts,
@@ -67,6 +67,9 @@ questions about how the choices stand. The full record is in
   row, a media card, a fact row and a state block. Each object's card code gets one home, moved
   as that object is consolidated. After the card work, the cockpit renders the shared controls,
   tuned by its own tokens, one control family at a time.
+- **Token slices approved, 21 October.** Steps 1 to 3 start, with the items the design gate
+  surfaced ([spec.md](spec.md#token-slices-approved-21-october)). Every later slice starts on its
+  own approved pair.
 - **Tracking.** The Linear parent is PRD-1266, with one sub-issue per delivery step, in the active
   release project rather than the Cosmo-Local project: the 15 October four-goal plan gave PWA and
   admin delivery to the release project. PRD-1261, the member and steward pilot-journey pass, stays
@@ -86,9 +89,9 @@ navigation chrome. The cockpit keeps a tone per workspace and gains the wide des
 
 This hub owns the look and feel shared by the installed app and the steward cockpit: surface
 tokens, shared chrome recipes, and the guides and gates that pin them. It does not authorize
-application edits, deployment, a layout or flow change, a merge of the two apps, or a change to the
+application edits beyond the approved slices, deployment, a layout or flow change, a merge of the two apps, or a change to the
 public website beyond what a shared piece forces. Its Linear records exist for tracking only. The garden-scoped Home and its
-switcher belong to [PWA Interface Simplification](../pwa-interface-simplification/brief.md).
+switcher belong to [PWA Interface Simplification](../../backlog/pwa-interface-simplification/brief.md).
 
 ## Success signal
 

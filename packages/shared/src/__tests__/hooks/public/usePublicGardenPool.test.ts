@@ -177,7 +177,13 @@ describe("public commitment pool reader", () => {
         return { data: { Commitment: communityRehearsals() } };
       if (args[2] === "getPublicPoolEligibleRecords")
         return {
-          data: { providers: [{ id: "42161-20" }], cycle0: { aggregate: { count: 0 } } },
+          data: {
+            providers: [
+              { id: "42161-20", leadProvider: "0x0000000000000000000000000000000000000020" },
+            ],
+            offerProviders: [],
+            cycle0: [],
+          },
         };
       if (args[2] === "getPublicGardenPoolDetails")
         return {
@@ -272,6 +278,38 @@ describe("public commitment pool reader", () => {
     expect(unavailableCertificate?.hasCommitmentCertificates).toBe(false);
   });
 
+  it("counts unaccepted Offer creators once alongside accepted providers without exposing identities", async () => {
+    const normal = mocks.query.getMockImplementation();
+    const first = "0x0000000000000000000000000000000000000020";
+    const second = "0x0000000000000000000000000000000000000021";
+    const third = "0x0000000000000000000000000000000000000022";
+    mocks.query.mockImplementation(async (...args) => {
+      if (args[2] === "getPublicGardenPool")
+        return { data: { CommitmentPool: [{ ...POOL, poolId: "1" }] } };
+      if (args[2] === "getPublicCommitmentExclusions")
+        return { data: { Commitment: communityRehearsals() } };
+      if (args[2] === "getPublicPoolEligibleRecords")
+        return {
+          data: {
+            providers: [
+              { id: "42161-20", leadProvider: first },
+              { id: "42161-21", leadProvider: second },
+            ],
+            offerProviders: [
+              { id: "42161-22", creator: first },
+              { id: "42161-23", creator: third },
+            ],
+            cycle0: [],
+          },
+        };
+      return normal?.(...args);
+    });
+    const result = await getPublicGardenPool(42161, GARDEN);
+    expect(result?.pool.distinctProviderCount).toBe(3n);
+    expect(containsAddressValue(result)).toBe(false);
+    expect(forbiddenPublicFieldKeys(result)).toEqual([]);
+  });
+
   it("keeps production cycles and fails rather than publishing an invalid correction", async () => {
     const normal = mocks.query.getMockImplementation();
     mocks.query.mockImplementation(async (...args) => {
@@ -282,7 +320,11 @@ describe("public commitment pool reader", () => {
       if (args[2] === "getPublicPoolEligibleRecords")
         return {
           data: {
-            providers: [{ id: "42161-20" }, { id: "42161-21" }],
+            providers: [
+              { id: "42161-20", leadProvider: "0x0000000000000000000000000000000000000020" },
+              { id: "42161-21", leadProvider: "0x0000000000000000000000000000000000000021" },
+            ],
+            offerProviders: [],
             cycle0: [{ id: "42161-20" }],
           },
         };
@@ -317,7 +359,10 @@ describe("public commitment pool reader", () => {
           : args[2] === "getPublicPoolEligibleRecords"
             ? {
                 data: {
-                  providers: [{ id: "42161-20" }],
+                  providers: [
+                    { id: "42161-20", leadProvider: "0x0000000000000000000000000000000000000020" },
+                  ],
+                  offerProviders: [],
                   cycle0: [],
                 },
               }

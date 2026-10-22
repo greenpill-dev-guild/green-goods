@@ -74,7 +74,7 @@ export default function GardensGallery() {
           {
             id: "public.gardens.heroTitle",
             defaultMessage:
-              "<line>Explore the</line> <line><accent>Gardens</accent> growing</line> <line>the public record</line>",
+              "<line>Explore the</line> <line><accent>gardens</accent> growing</line> <line>the public record</line>",
           },
           editorialTitleTags
         )}

@@ -48,7 +48,7 @@ describe("public garden certificates", () => {
       () => usePublicGardenHypercerts({ gardenId, chainId: 42161 }),
       { queryClient }
     );
-    await waitFor(() => expect(result.current.hypercerts).toHaveLength(1));
+    await waitFor(() => expect(result.current.hypercerts[0]?.title).toBe("Community work"));
     expect(result.current.hypercerts[0]).toMatchObject({
       id: "real",
       totalUnits: 10n,
@@ -58,6 +58,36 @@ describe("public garden certificates", () => {
     expect(queryClient.getQueryData(hypercertsKeys.list(gardenId, 42161))).toEqual([
       { ...record, id: "qa" },
     ]);
+  });
+
+  it("renders indexed certificates while metadata is stalled and enriches them when it arrives", async () => {
+    let resolveMetadata!: (value: Record<string, Partial<HypercertRecord>>) => void;
+    mocks.hydrate.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveMetadata = resolve;
+        })
+    );
+    const { result } = renderHookWithQueryClient(() =>
+      usePublicGardenHypercerts({ gardenId, chainId: 42161 })
+    );
+    await waitFor(() => expect(mocks.hydrate).toHaveBeenCalledOnce());
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.hypercerts[0]).toMatchObject({ id: "real", totalUnits: 10n });
+    resolveMetadata({ real: { title: "Arrived later", id: "qa", totalUnits: 999n } });
+    await waitFor(() => expect(result.current.hypercerts[0]?.title).toBe("Arrived later"));
+    expect(result.current.hypercerts[0]).toMatchObject({ id: "real", totalUnits: 10n });
+  });
+
+  it("retains indexed certificates when optional metadata fails", async () => {
+    mocks.hydrate.mockRejectedValue(new Error("gateway offline"));
+    const { result } = renderHookWithQueryClient(() =>
+      usePublicGardenHypercerts({ gardenId, chainId: 42161 })
+    );
+    await waitFor(() => expect(mocks.hydrate).toHaveBeenCalledOnce());
+    expect(result.current.hypercerts[0]?.id).toBe("real");
+    expect(result.current.hasError).toBe(false);
+    expect(result.current.isLoading).toBe(false);
   });
 
   it("withholds certificates on eligibility failure without falling back to operational data", async () => {

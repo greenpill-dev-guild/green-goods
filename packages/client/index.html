@@ -76,7 +76,18 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <!-- Inter (sans, body + nav + UI). Loaded across browser + installed PWA. -->
+    <!-- Plus Jakarta Sans (the installed app's face, shared with the cockpit). The
+         media query keeps it off the website's critical path: a browser tab fetches
+         it late and never waits for it, and its font files load only where it
+         applies. The boot detector below turns it on wherever it picks the PWA
+         presentation, a local override included. -->
+    <link
+      id="boot-pwa-face"
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap"
+      rel="stylesheet"
+      media="(display-mode: standalone), (display-mode: fullscreen), (display-mode: window-controls-overlay)"
+    />
+    <!-- Inter (sans, the public website's body, nav and UI). -->
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" />
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
@@ -258,6 +269,10 @@
         }
 
         document.documentElement.dataset.bootPresentation = mode;
+        if (mode === "pwa") {
+          var face = document.getElementById("boot-pwa-face");
+          if (face) face.media = "all";
+        }
         if (mode === "website") {
           document.documentElement.dataset.bootHero = heroVariant;
           if (threeLineTitle) document.documentElement.dataset.bootTitle = "three-lines";
@@ -305,6 +320,8 @@
          mint/ink pair even when the stylesheet never arrives (DL-088). */
       html[data-boot-presentation="pwa"] #boot-fallback {
         --boot-canvas: var(--color-bg-white-0, #ffffff);
+        /* The installed app's face, as index.css sets it on :root. */
+        font-family: "Plus Jakarta Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
 
       html[data-boot-presentation="pwa"][data-theme="dark"] #boot-fallback {

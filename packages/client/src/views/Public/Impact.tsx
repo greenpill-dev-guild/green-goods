@@ -301,14 +301,14 @@ export default function ImpactPage() {
           {
             id: "public.impact.heroTitle",
             defaultMessage:
-              "<line>See how Garden</line> <line>work becomes</line> <line><accent>evidence</accent></line>",
+              "<line>See how garden</line> <line>work becomes</line> <line><accent>evidence</accent></line>",
           },
           editorialTitleTags
         )}
         lede={formatMessage({
           id: "public.impact.heroLede",
           defaultMessage:
-            "See the work communities have done and the evidence behind it. Local stewards review submissions, and assessments help explain what changed.",
+            "See the work communities have documented and the evidence behind it. Local stewards review submissions; assessments record starting conditions and evidence standards.",
         })}
       />
 

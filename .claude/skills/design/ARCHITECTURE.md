@@ -25,7 +25,7 @@ Root `DESIGN.md` front matter is the canonical DesignMD token source. Surface `D
 |----------|------|
 | Root `DESIGN.md` | Canonical Warm Earth DesignMD front matter + creative brief |
 | `packages/admin/DESIGN.md` | Restrained steward cockpit, M3 strict anatomy, Plus Jakarta Sans |
-| `packages/client/DESIGN.pwa.md` | Installed PWA field tool, Inter, bottom AppBar |
+| `packages/client/DESIGN.pwa.md` | Installed PWA field tool, Plus Jakarta Sans, bottom AppBar |
 | `packages/client/DESIGN.browser.md` | Public browser site, editorial browser treatment |
 | `docs/DESIGN.md` | Docusaurus documentation dialect, Manrope/Bricolage/IBM Plex Mono |
 | `design/language.md` | Implementation guide: shape, motion, color, material, hero moments |

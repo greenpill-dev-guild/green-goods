@@ -633,7 +633,7 @@ const config: Config = {
           items: [
             { label: 'FAQ', to: '/faq' },
             { label: 'Glossary', to: '/glossary' },
-            { label: 'Brand kit', to: '/brand-kit' },
+            { label: 'Brand Kit', to: '/brand-kit' },
             { label: 'Credits', to: '/reference/credits' },
           ],
         },
