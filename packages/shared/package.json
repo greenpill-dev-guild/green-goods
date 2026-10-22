@@ -611,6 +611,6 @@
     "@vitest/browser-playwright": "4.1.11",
     "@vitest/runner": "4.1.11",
     "chromatic": "16.5.0",
-    "storybook": "10.4.6"
+    "storybook": "10.6.2"
   }
 }
