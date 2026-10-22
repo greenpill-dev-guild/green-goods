@@ -20,6 +20,10 @@ import { renderHookWithQueryClient } from "../../test-utils/query-client-render"
 // Mocks
 // ============================================
 
+vi.mock("../../../modules/data/graphql-client", () => ({
+  greenGoodsIndexer: { query: async () => ({ data: { Commitment: [] } }) },
+}));
+
 const mockGetGardens = vi.fn();
 vi.mock("../../../modules/data/greengoods", () => ({
   getGardens: (...args: unknown[]) => mockGetGardens(...args),

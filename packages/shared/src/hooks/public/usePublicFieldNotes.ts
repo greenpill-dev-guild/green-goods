@@ -35,7 +35,7 @@ import { publicKeys } from "../../config/query-keys/public";
 import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { getWorks } from "../../modules/data/eas";
 import { getGardens } from "../../modules/data/greengoods";
-import { readPublicApprovedWorks } from "./readPublicApprovedWorks";
+import { readPublicApprovedWorks } from "./publicReportingRecords";
 import type { Address } from "../../types/domain";
 import type { EASWork } from "../../types/eas-responses";
 import type { PublicFieldNote } from "./usePublicGardenDetail";

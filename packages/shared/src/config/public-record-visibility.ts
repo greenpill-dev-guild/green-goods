@@ -2,12 +2,14 @@ import type { EASWork } from "../types/eas-responses";
 
 /** Reviewed production rehearsals. Operational history and settlement stay intact. */
 const COMMUNITY_GARDEN = "0xf401f34378384713222d1d21f63359cc4e8a858a";
-const REHEARSAL_COMMITMENTS = [4, 5, 6, 15, 16] as const;
+// Register a rehearsal before creating its first commitment. Every indexed
+// descendant inherits this classification, including records created later.
+const REHEARSAL_CYCLES = [{ chainId: 42161, poolId: 1n, cycleId: 1n }] as const;
 
-export function publicCommitmentExclusionIds(chainId: number, poolId?: bigint): string[] {
-  return chainId === 42161 && (poolId === undefined || poolId === 1n)
-    ? REHEARSAL_COMMITMENTS.map((id) => `${chainId}-${id}`)
-    : [];
+export function publicRehearsalCycles(chainId: number, poolId?: bigint) {
+  return REHEARSAL_CYCLES.filter(
+    (cycle) => cycle.chainId === chainId && (poolId === undefined || cycle.poolId === poolId)
+  );
 }
 
 // Explicitly reviewed records only: never infer rehearsal status from a name,
@@ -33,6 +35,10 @@ const WORK_REVIEW: Readonly<Record<string, "test" | "pending-review">> = {
   "0x779aa33351e3fea960dd43423176bba4ce32660737614d1b851069a61c6e0171": "pending-review",
   "0xe4d67e81bce5caf6d7d72ea5c445aa516eb5b3342b7431066380928fcd4e2cac": "pending-review",
 };
+
+export function publicReviewedWorkExclusionIds(chainId: number): string[] {
+  return chainId === 42161 ? Object.keys(WORK_REVIEW) : [];
+}
 
 export function publicWorkReviewStatus(
   work: Pick<EASWork, "id" | "gardenAddress">,

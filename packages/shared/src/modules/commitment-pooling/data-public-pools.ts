@@ -1,13 +1,15 @@
 import type { Address } from "../../types/domain";
 import { logger } from "../app/logger";
 import { greenGoodsIndexer } from "../data/graphql-client";
+import { hypercertExclusionClauses } from "../data/hypercerts-exclusions";
 import { resolveCycleMetadataName } from "./cycle-metadata";
 import { integer, mapUnitSummary, number, optionalInteger, type RawRow, string } from "./data-core";
-import { publicCommitmentExclusionIds } from "../../config/public-record-visibility";
+import { publicRehearsalCycles } from "../../config/public-record-visibility";
 import {
   countedMilestone,
   excludedUnitTotals,
   readPublicCommitmentExclusions,
+  publicRehearsalRecordLinks,
   subtractPublicCount,
 } from "./public-record-exclusions";
 import type {
@@ -128,9 +130,10 @@ function mapPublicPool(row: RawRow): PublicCommitmentPoolRecord {
   };
 }
 
-function excludeRehearsalCounters<
-  T extends PublicCommitmentPoolRecord | IndexedPublicCommitmentCycleRecord,
->(record: T, rows: RawRow[]): T {
+function excludeRehearsalCounters(
+  record: PublicCommitmentPoolRecord,
+  rows: RawRow[]
+): PublicCommitmentPoolRecord {
   const count = (predicate: (row: RawRow) => boolean) => BigInt(rows.filter(predicate).length);
   const result = { ...record };
   const milestones = {
@@ -162,18 +165,10 @@ function excludeRehearsalCounters<
         !["FULFILLED", "CANCELLED", "EXPIRED"].includes(String(row.state))
     )
   );
-  if ("commitmentsOffered" in result) {
-    result.commitmentsOffered = subtractPublicCount(
-      result.commitmentsOffered,
-      count((row) => row.direction === "OFFER")
-    );
-  }
-  if ("commitmentsReadyForConfirmation" in result) {
-    result.commitmentsReadyForConfirmation = subtractPublicCount(
-      result.commitmentsReadyForConfirmation,
-      count((row) => countedMilestone(row, "READY_FOR_CONFIRMATION"))
-    );
-  }
+  result.commitmentsOffered = subtractPublicCount(
+    result.commitmentsOffered,
+    count((row) => row.direction === "OFFER")
+  );
   return result;
 }
 
@@ -250,13 +245,24 @@ function newestFirst(
  * and a failure answers "no" — the public page claims an anchor only when the
  * indexer positively reports one.
  */
-async function hasCommitmentCertificates(chainId: number, garden: Address): Promise<boolean> {
-  const query = `query PublicGardenCommitmentCertificates($chainId: Int!, $garden: String!) {
-    Hypercert(where: { chainId: { _eq: $chainId }, garden: { _eq: $garden }, bundleKind: { _eq: COMMITMENT } }, limit: 1) { id }
+async function hasCommitmentCertificates(
+  chainId: number,
+  garden: Address,
+  excluded: RawRow[]
+): Promise<boolean> {
+  const links = publicRehearsalRecordLinks(chainId, excluded);
+  const query = `query PublicGardenCommitmentCertificates($chainId: Int!, $garden: String!, $excludedRecords: [Hypercert_bool_exp!]!) {
+    Hypercert(where: { chainId: { _eq: $chainId }, garden: { _eq: $garden }, bundleKind: { _eq: COMMITMENT }, metadataReconciliationRequired: { _eq: false },
+      _not: { _or: $excludedRecords }
+    }, limit: 1) { id }
   }`;
   const result = await greenGoodsIndexer.query<Record<string, RawRow[]>>(
     query,
-    { chainId, garden: garden.toLowerCase() },
+    {
+      chainId,
+      garden: garden.toLowerCase(),
+      excludedRecords: hypercertExclusionClauses(links),
+    },
     "getPublicGardenCommitmentCertificates"
   );
   if (result.error) {
@@ -287,6 +293,7 @@ export async function getPublicGardenPool(
   const poolRow = poolResult.data?.CommitmentPool?.[0];
   if (!poolRow) return null;
   let pool = mapPublicPool(poolRow);
+  const rehearsalCycles = publicRehearsalCycles(chainId, pool.poolId);
   const excluded = await readPublicCommitmentExclusions(chainId, pool.poolId);
 
   const detailsQuery = `query PublicGardenPoolDetails($chainId: Int!, $poolId: numeric!) {
@@ -300,22 +307,15 @@ export async function getPublicGardenPool(
   );
   if (detailsResult.error) throw detailsResult.error;
 
-  let indexedCycles = (detailsResult.data?.CommitmentCycle ?? [])
+  const indexedCycles = (detailsResult.data?.CommitmentCycle ?? [])
     .map(mapPublicCycle)
     .filter(
       (cycle) =>
-        cycle.state === "OPEN" || cycle.state === "RECONCILED" || cycle.state === "COMPOSTED"
+        (cycle.state === "OPEN" || cycle.state === "RECONCILED" || cycle.state === "COMPOSTED") &&
+        !rehearsalCycles.some((rehearsal) => rehearsal.cycleId === cycle.cycleId)
     );
   let summaries = (detailsResult.data?.CommitmentUnitSummary ?? []).map(mapUnitSummary);
   if (excluded.length > 0) {
-    const cycleIds = [
-      ...new Set(
-        excluded
-          .map((row) => row.cycleId)
-          .filter((id) => id !== null && id !== undefined)
-          .map(String)
-      ),
-    ];
     const filter = `chainId: { _eq: $chainId }, poolId: { _eq: $poolId }, creationSeen: { _eq: true }, id: { _nin: $ids }`;
     // Count providers after exclusion so rehearsals cannot unlock a public reliability rate.
     // Select one record ID per provider, never participant addresses. Bound the
@@ -323,37 +323,21 @@ export async function getPublicGardenPool(
     const eligible = await greenGoodsIndexer.query<Record<string, { id: string }[]>>(
       `query PublicPoolEligibleRecords($chainId: Int!, $poolId: numeric!, $ids: [String!]!) {
         providers: Commitment(where: { ${filter}, leadProvider: { _is_null: false }, _or: [{ direction: { _eq: OFFER } }, { acceptanceSeen: { _eq: true } }] }, distinct_on: [leadProvider], limit: 1001) { id }
-        ${cycleIds.map((id, index) => `cycle${index}: Commitment(where: { ${filter}, cycleId: { _eq: ${BigInt(id)} } }, limit: 1) { id }`).join("\n")}
       }`,
       {
         chainId,
         poolId: pool.poolId.toString(),
-        ids: publicCommitmentExclusionIds(chainId, pool.poolId),
+        ids: excluded.map((row) => String(row.id)),
       },
       "getPublicPoolEligibleRecords"
     );
     if (eligible.error) throw eligible.error;
     const counts = eligible.data;
-    if (
-      !counts?.providers ||
-      counts.providers.length > 1000 ||
-      cycleIds.some((_, index) => !counts[`cycle${index}`])
-    ) {
+    if (!counts?.providers || counts.providers.length > 1000) {
       throw new Error("Eligible pool history is unavailable");
     }
     pool = excludeRehearsalCounters(pool, excluded);
     pool.distinctProviderCount = BigInt(counts.providers.length);
-    indexedCycles = indexedCycles
-      .filter((cycle) => {
-        const index = cycleIds.indexOf(cycle.cycleId.toString());
-        return index < 0 || counts[`cycle${index}`]!.length > 0;
-      })
-      .map((cycle) =>
-        excludeRehearsalCounters(
-          cycle,
-          excluded.filter((row) => String(row.cycleId) === cycle.cycleId.toString())
-        )
-      );
     summaries = summaries
       .map((summary) => {
         const units = excludedUnitTotals(
@@ -394,7 +378,7 @@ export async function getPublicGardenPool(
 
   return {
     pool,
-    hasCommitmentCertificates: await hasCommitmentCertificates(chainId, garden),
+    hasCommitmentCertificates: await hasCommitmentCertificates(chainId, garden, excluded),
     openSeason:
       cycles.find((cycle) => cycle.state === "OPEN" && cycle.cycleType === "SEASON") ?? null,
     openCampaigns: cycles

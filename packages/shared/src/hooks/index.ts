@@ -385,6 +385,7 @@ export type {
 } from "./public/usePublicGardenDetail";
 export { usePublicGardenDetail } from "./public/usePublicGardenDetail";
 export { usePublicCommitmentImpact } from "./public/usePublicCommitmentImpact";
+export { usePublicGardenHypercerts } from "./public/usePublicGardenHypercerts";
 export { usePublicGardenPool } from "./public/usePublicGardenPool";
 export type { PublicGardenSummary } from "./public/usePublicGardens";
 export { publicGardenHelpers, usePublicGardens } from "./public/usePublicGardens";

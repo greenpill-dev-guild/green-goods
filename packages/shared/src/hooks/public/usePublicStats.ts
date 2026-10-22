@@ -48,7 +48,7 @@ import {
 import { publicKeys } from "../../config/query-keys/public";
 import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { logger } from "../../modules/app/logger";
-import { getGardenAssessments } from "../../modules/data/eas";
+import { getPublicGardenAssessments } from "./publicReportingRecords";
 import { getGardens } from "../../modules/data/greengoods";
 import { fetchListedApprovedWorks } from "./listedApprovedWorks";
 import { publicGardenHelpers } from "./usePublicGardens";
@@ -76,7 +76,7 @@ export function usePublicStats(chainId: number = DEFAULT_CHAIN_ID) {
     queryFn: async (): Promise<PublicStats> => {
       const [gardensResult, assessmentsResult] = await Promise.allSettled([
         getGardens(),
-        getGardenAssessments(undefined, chainId),
+        getPublicGardenAssessments(undefined, chainId),
       ]);
 
       if (gardensResult.status === "rejected") {

@@ -230,7 +230,7 @@ describe("public commitment pool reader", () => {
     expect(containsAddressValue(result)).toBe(false);
   });
 
-  it("keeps a cycle with real commitments and fails rather than publishing an invalid correction", async () => {
+  it("keeps production cycles and fails rather than publishing an invalid correction", async () => {
     const normal = mocks.query.getMockImplementation();
     mocks.query.mockImplementation(async (...args) => {
       if (args[2] === "getPublicGardenPool")
@@ -249,7 +249,7 @@ describe("public commitment pool reader", () => {
           data: {
             CommitmentCycle: [
               {
-                ...cycle(1, "SEASON", "OPEN", 50),
+                ...cycle(20, "SEASON", "OPEN", 50),
                 poolId: "1",
                 commitmentsReadyForConfirmation: "2",
                 commitmentsCancelled: "1",
@@ -262,10 +262,10 @@ describe("public commitment pool reader", () => {
     });
     const result = await getPublicGardenPool(42161, GARDEN);
     expect(result?.openSeason).toMatchObject({
-      cycleId: 1n,
-      commitmentsAccepted: 2n,
-      commitmentsFulfilled: 1n,
-      commitmentsCancelled: 0n,
+      cycleId: 20n,
+      commitmentsAccepted: 4n,
+      commitmentsFulfilled: 3n,
+      commitmentsCancelled: 1n,
     });
     mocks.query.mockImplementation(async (...args) =>
       args[2] === "getPublicGardenPool"

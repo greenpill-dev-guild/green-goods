@@ -97,10 +97,10 @@ vi.mock("@green-goods/shared/hooks/public/usePublicGardenDetail", async (importO
   };
 });
 
-vi.mock("@green-goods/shared/hooks/hypercerts/useHypercerts", async (importOriginal) => {
+vi.mock("@green-goods/shared/hooks/public/usePublicGardenHypercerts", async (importOriginal) => {
   return {
     ...(await importOriginal()),
-    useHypercerts: (...args: unknown[]) => mockUseHypercerts(...args),
+    usePublicGardenHypercerts: (...args: unknown[]) => mockUseHypercerts(...args),
   };
 });
 

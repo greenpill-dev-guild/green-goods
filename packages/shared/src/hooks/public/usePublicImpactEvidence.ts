@@ -27,9 +27,8 @@ import {
 import { publicKeys } from "../../config/query-keys/public";
 import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { logger } from "../../modules/app/logger";
-import { getGardenAssessments } from "../../modules/data/eas";
+import { getPublicGardenAssessments, getPublicGardenHypercerts } from "./publicReportingRecords";
 import { getActions, getGardens } from "../../modules/data/greengoods";
-import { getGardenHypercerts } from "../../modules/data/hypercerts-fetch";
 import { fetchListedApprovedWorks } from "./listedApprovedWorks";
 import {
   createPublicImpactSlice,
@@ -101,17 +100,12 @@ export function usePublicImpactEvidence(options: UsePublicImpactEvidenceOptions 
       // `actionUID` but no `domain` field of their own.
       const [assessmentResults, hypercertResults, actions] = await Promise.all([
         Promise.allSettled(
-          cappedGardenSources.map((garden) => getGardenAssessments(garden.id, chainId))
+          cappedGardenSources.map((garden) => getPublicGardenAssessments(garden.id, chainId))
         ),
         Promise.allSettled(
           // One past the cap tells a Garden at the cap from one beyond it.
           cappedGardenSources.map((garden) =>
-            getGardenHypercerts(
-              garden.id,
-              chainId,
-              undefined,
-              PUBLIC_IMPACT_CERTIFICATE_FETCH_CAP + 1
-            )
+            getPublicGardenHypercerts(garden.id, chainId, PUBLIC_IMPACT_CERTIFICATE_FETCH_CAP + 1)
           )
         ),
         getActions().catch((error) => {

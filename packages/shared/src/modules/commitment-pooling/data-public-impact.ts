@@ -25,8 +25,10 @@ interface PublicImpactPoolAggregate {
 const FUNDING_PAGE_SIZE = 100;
 const FUNDING_RECEIPT_LIMIT = 1000;
 
-async function getPoolAggregate(chainId: number): Promise<PublicImpactPoolAggregate> {
-  const excluded = await readPublicCommitmentExclusions(chainId);
+async function getPoolAggregate(
+  chainId: number,
+  excluded: RawRow[]
+): Promise<PublicImpactPoolAggregate> {
   const query = `query PublicCommitmentImpactPools($chainId: Int!) {
     CommitmentPool_aggregate(where: { chainId: { _eq: $chainId }, registrationSeen: { _eq: true } }) {
       aggregate { sum { commitmentsOffered commitmentsRequested commitmentsFulfilled } }
@@ -58,21 +60,26 @@ async function getPoolAggregate(chainId: number): Promise<PublicImpactPoolAggreg
  * principal, and refunds go to people, not Gardens, so they never join the
  * figure however confirmed they are.
  */
-async function getConfirmedSettlementAggregate(chainId: number): Promise<{
+async function getConfirmedSettlementAggregate(
+  chainId: number,
+  excluded: RawRow[]
+): Promise<{
   total: bigint;
   usdCents: bigint | null;
 }> {
   const deadline = AbortSignal.timeout(30000);
+  const excludedCommitments = excluded.map((row) => integer(row.commitmentId).toString());
   const filter = `chainId: { _eq: $chainId }, state: { _eq: CONFIRMED },
-    kind: { _in: [FUNDING, GARDEN_BENEFICIARY] }`;
-  const query = `query PublicCommitmentImpactSettlement($chainId: Int!) {
+    kind: { _in: [FUNDING, GARDEN_BENEFICIARY] },
+    _or: [{ commitmentId: { _is_null: true } }, { commitmentId: { _nin: $excludedCommitments } }]`;
+  const query = `query PublicCommitmentImpactSettlement($chainId: Int!, $excludedCommitments: [numeric!]!) {
     Disbursement_aggregate(where: { ${filter} }) {
       aggregate { sum { amount } }
     }
   }`;
   const result = await greenGoodsIndexer.query<{
     Disbursement_aggregate?: { aggregate?: RawRow | null };
-  }>(query, { chainId }, "getPublicCommitmentImpactSettlement");
+  }>(query, { chainId, excludedCommitments }, "getPublicCommitmentImpactSettlement");
   if (result.error) throw result.error;
   const aggregate = result.data?.Disbursement_aggregate?.aggregate;
   if (!aggregate) throw new Error("Confirmed settlement aggregate is unavailable");
@@ -84,12 +91,12 @@ async function getConfirmedSettlementAggregate(chainId: number): Promise<{
     while (true) {
       deadline.throwIfAborted();
       const page = await greenGoodsIndexer.query<{ Disbursement?: RawRow[] }>(
-        `query PublicCommitmentFundingReceipts($chainId: Int!, $after: String!) {
+        `query PublicCommitmentFundingReceipts($chainId: Int!, $after: String!, $excludedCommitments: [numeric!]!) {
           Disbursement(where: { ${filter}, id: { _gt: $after } }, order_by: { id: asc }, limit: ${FUNDING_PAGE_SIZE}) {
             id amount token executionKey
           }
         }`,
-        { chainId, after },
+        { chainId, after, excludedCommitments },
         "getPublicCommitmentFundingReceipts"
       );
       if (page.error) throw page.error;
@@ -169,9 +176,10 @@ function warnUnavailable(source: string, error: unknown): void {
 export async function getPublicCommitmentImpact(
   chainId: number
 ): Promise<PublicCommitmentImpactRecord> {
+  const exclusions = readPublicCommitmentExclusions(chainId);
   const [poolsResult, settlementResult] = await Promise.allSettled([
-    getPoolAggregate(chainId),
-    getConfirmedSettlementAggregate(chainId),
+    exclusions.then((rows) => getPoolAggregate(chainId, rows)),
+    exclusions.then((rows) => getConfirmedSettlementAggregate(chainId, rows)),
   ]);
   if (poolsResult.status === "rejected") warnUnavailable("commitmentPools", poolsResult.reason);
   if (settlementResult.status === "rejected") {

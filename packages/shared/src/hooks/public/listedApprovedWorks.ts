@@ -17,7 +17,7 @@ import { publicKeys } from "../../config/query-keys/public";
 import { logger } from "../../modules/app/logger";
 import { getWorks } from "../../modules/data/eas";
 import type { ApprovedWorks } from "../../modules/work/work-list";
-import { readPublicApprovedWorks } from "./readPublicApprovedWorks";
+import { readPublicApprovedWorks } from "./publicReportingRecords";
 
 /**
  * Approved work of `gardenIds`. A works read that fails leaves the result

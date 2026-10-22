@@ -1,32 +1,65 @@
-import { publicCommitmentExclusionIds } from "../../config/public-record-visibility";
+import {
+  publicRehearsalCycles,
+  publicReviewedWorkExclusionIds,
+} from "../../config/public-record-visibility";
 import { greenGoodsIndexer } from "../data/graphql-client";
 import { integer, type RawRow } from "./data-core";
 
-/** Read current contributions, rather than freezing today's rehearsal counts. */
+/** Keyset pagination keeps later QA records in scope without a frozen ID list. */
 export async function readPublicCommitmentExclusions(chainId: number, poolId?: bigint) {
-  const ids = publicCommitmentExclusionIds(chainId, poolId);
-  if (ids.length === 0) return [];
-  const result = await greenGoodsIndexer.query<{ Commitment?: RawRow[] }>(
-    `query PublicCommitmentExclusions($chainId: Int!, $ids: [String!]!) {
-      Commitment(where: { chainId: { _eq: $chainId }, poolId: { _eq: 1 },
-        id: { _in: $ids }, creationSeen: { _eq: true } }) {
-        id cycleId direction state acceptanceSeen countedLifecycleStates
-        unitLabel targetUnits approvedUnits
+  const cycles = publicRehearsalCycles(chainId, poolId);
+  if (cycles.length === 0) return [];
+  const filter = cycles
+    .map((cycle) => `{ poolId: { _eq: ${cycle.poolId} }, cycleId: { _eq: ${cycle.cycleId} } }`)
+    .join(",");
+  const rows: RawRow[] = [];
+  const deadline = AbortSignal.timeout(30000);
+  let after = "";
+  while (true) {
+    deadline.throwIfAborted();
+    const result = await greenGoodsIndexer.query<{ Commitment?: RawRow[] }>(
+      `query PublicCommitmentExclusions($chainId: Int!, $after: String!) {
+        Commitment(where: { chainId: { _eq: $chainId }, _or: [${filter}],
+          id: { _gt: $after }, creationSeen: { _eq: true } }, order_by: { id: asc }, limit: 100) {
+          id commitmentId poolId cycleId direction state acceptanceSeen countedLifecycleStates
+          unitLabel targetUnits approvedUnits workUIDs assessmentUID
+        }
+      }`,
+      { chainId, after },
+      "getPublicCommitmentExclusions"
+    );
+    if (result.error) throw result.error;
+    const page = result.data?.Commitment;
+    if (!page) throw new Error("Rehearsal commitment history is unavailable");
+    for (const row of page) {
+      if (typeof row.id !== "string" || row.id <= after) {
+        throw new Error("Rehearsal commitment history did not advance");
       }
-    }`,
-    { chainId, ids },
-    "getPublicCommitmentExclusions"
-  );
-  if (result.error) throw result.error;
-  const rows = result.data?.Commitment;
-  if (
-    !rows ||
-    rows.length !== ids.length ||
-    new Set(rows.map((row) => row.id)).size !== ids.length
-  ) {
-    throw new Error("Rehearsal commitment history is incomplete");
+      after = row.id;
+      rows.push(row);
+    }
+    if (page.length < 100) return rows;
   }
-  return rows;
+}
+
+export function publicRehearsalRecordLinks(chainId: number, rows: readonly RawRow[]) {
+  const workUIDs = new Set(publicReviewedWorkExclusionIds(chainId));
+  const assessmentUIDs = new Set<string>();
+  const addUID = (set: Set<string>, value: unknown) => {
+    if (typeof value === "string" && /^0x[0-9a-f]{64}$/i.test(value) && !/^0x0+$/i.test(value)) {
+      set.add(value.toLowerCase());
+    }
+  };
+  for (const row of rows) {
+    if (Array.isArray(row.workUIDs)) for (const uid of row.workUIDs) addUID(workUIDs, uid);
+    addUID(assessmentUIDs, row.assessmentUID);
+  }
+  return {
+    workUIDs,
+    assessmentUIDs,
+    commitmentEntityIds: rows.map((row) => String(row.id)),
+    attestationUIDs: [...new Set([...workUIDs, ...assessmentUIDs])],
+  };
 }
 
 export function countedMilestone(row: RawRow, milestone: string): boolean {
