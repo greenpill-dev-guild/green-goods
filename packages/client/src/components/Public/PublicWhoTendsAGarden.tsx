@@ -44,9 +44,9 @@ const PERSONAS: readonly PersonaEntry[] = [
     defaultRole: "Document the work: soil turned, seedlings planted, hours given.",
     bodyId: "public.home.personas.gardener.body",
     defaultBody:
-      "A gardener walks a place every season, mapping soil, planting trees, capturing what was done. The Green Goods app turns those moments into a public record without taking the gardener out of the field.",
+      "Gardeners are the participants who carry out and document the work: planting, maintaining equipment, teaching, collecting waste, and more. They can record photos and notes in the app, even offline.",
     ctaId: "public.home.personas.gardener.cta",
-    defaultCta: "Install the field app",
+    defaultCta: "Install the Field App",
     cta: { type: "install" },
   },
   {
@@ -57,9 +57,9 @@ const PERSONAS: readonly PersonaEntry[] = [
     defaultRole: "Run the garden: assemble the season's plan, accept gardeners, confirm the work.",
     bodyId: "public.home.personas.steward.body",
     defaultBody:
-      "Stewards are the steady hand of a garden: the one who calls the season's plan, who decides what counts, who approves a gardener's first work. They are the connective tissue between a place's intentions and its proof.",
+      "Stewards coordinate a garden and review submitted work. Their approval makes a submission visible in the public record.",
     ctaId: "public.home.personas.steward.cta",
-    defaultCta: "Read the steward guide",
+    defaultCta: "Read the Steward Guide",
     cta: { type: "external", href: "https://docs.greengoods.app/community/steward-guide" },
   },
   {
@@ -67,12 +67,12 @@ const PERSONAS: readonly PersonaEntry[] = [
     nameId: "public.home.personas.evaluator.name",
     defaultName: "Evaluators",
     roleId: "public.home.personas.evaluator.role",
-    defaultRole: "Strengthen Assessments, methods, and impact claims.",
+    defaultRole: "Strengthen assessments, methods, and impact claims.",
     bodyId: "public.home.personas.evaluator.body",
     defaultBody:
-      "Evaluators strengthen the public record by shaping Assessments, methods, and impact claims. Stewards, not Evaluators, approve or reject submitted Work.",
+      "Evaluators help define baselines, methods, and evidence standards before work begins. Their assessments are separate from a steward’s approval of a work submission.",
     ctaId: "public.home.personas.evaluator.cta",
-    defaultCta: "Read the assessment guide",
+    defaultCta: "Read the Assessment Guide",
     cta: {
       type: "external",
       href: "https://docs.greengoods.app/community/steward-guide/making-an-assessment",
@@ -87,9 +87,9 @@ const PERSONAS: readonly PersonaEntry[] = [
       "Help communities continue their work through donations, grants, or longer-term support.",
     bodyId: "public.home.personas.funder.body",
     defaultBody:
-      "Funders make seasons possible. Some give directly to a Garden's shared fund for the work at hand. Others endow a vault whose yield supports the Garden season after season. Every path lands with a Garden, not a platform.",
+      "Supporters help gardens continue their work. They can contribute to a shared fund, explore longer-term support, or talk with us about a grant or partnership.",
     ctaId: "public.home.personas.funder.cta",
-    defaultCta: "See how contributions land",
+    defaultCta: "See How Contributions Land",
     cta: { type: "internal", to: "/fund" },
   },
   {
@@ -102,7 +102,7 @@ const PERSONAS: readonly PersonaEntry[] = [
     defaultBody:
       "A garden is held by the people around it: neighbors who visit on a Saturday, elders who mentor a first season, friends who share the season's story. Community shows up in the places where the work happens, and the public record is for them too.",
     ctaId: "public.home.personas.community.cta",
-    defaultCta: "Browse all Gardens",
+    defaultCta: "Browse All Gardens",
     cta: { type: "internal", to: "/gardens" },
   },
 ] as const;

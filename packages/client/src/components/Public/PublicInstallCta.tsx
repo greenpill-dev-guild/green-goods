@@ -93,7 +93,7 @@ export function PublicInstallCta({
           {formatMessage({
             id: "public.home.install.description",
             defaultMessage:
-              "Install the Green Goods app to log Work, capture evidence, and keep up with gardens you support, even offline.",
+              "Install the Green Goods app to log work, capture evidence, and keep up with gardens you support, even offline.",
           })}
         </p>
         <div className="mt-8 flex justify-center">

@@ -98,15 +98,16 @@ export const publicSocialPreviews = {
     title: "Impact | Green Goods",
     description:
       "Explore work approved by garden stewards and the assessments supporting its claims.",
-    cardTitle: "See how Garden work becomes evidence",
+    cardTitle: "See how garden work becomes evidence",
     cardTitleAccent: "evidence",
-    cardTitleLines: ["See how Garden", "work becomes", "evidence"],
+    cardTitleLines: ["See how garden", "work becomes", "evidence"],
     cardLede:
-      "See the work communities have done and the evidence behind it. Local stewards review submissions, and assessments help explain what changed.",
+      "See the work communities have documented and the evidence behind it. Local stewards review submissions; assessments record starting conditions and evidence standards.",
     cardLedeLines: [
-      "See the work communities have done and the evidence",
-      "behind it. Local stewards review submissions, and",
-      "assessments help explain what changed.",
+      "See the work communities have documented and the",
+      "evidence behind it. Local stewards review submissions;",
+      "assessments record starting conditions and evidence",
+      "standards.",
     ],
     heroImagePath: "/images/hero-impact.webp",
     socialImageAlt: "Green Goods Impact route social preview",
@@ -115,15 +116,15 @@ export const publicSocialPreviews = {
     path: "/actions",
     title: "Actions | Green Goods",
     description:
-      "Browse the templates gardens use to document Work across solar, agroforestry, education, and waste.",
+      "Browse the templates gardens use to document work across solar, agroforestry, education, and waste.",
     cardTitle: "A field guide for regenerative work",
     cardTitleAccent: "regenerative work",
     cardTitleLines: ["A field guide for", "regenerative", "work"],
     cardLede:
-      "Actions are the templates gardens use to document Work across solar, agroforestry, education, and waste. Each one names what to do, what to capture, and what proof comes next.",
+      "Actions are the templates gardens use to document work across solar, agroforestry, education, and waste. Each one names what to do, what to capture, and what proof comes next.",
     cardLedeLines: [
       "Actions are the templates gardens use to document",
-      "Work across solar, agroforestry, education, and waste.",
+      "work across solar, agroforestry, education, and waste.",
       "Each one names what to do, what to capture, and",
       "what proof comes next.",
     ],
@@ -135,9 +136,9 @@ export const publicSocialPreviews = {
     title: "Gardens | Green Goods",
     description:
       "Explore community-led projects working on land restoration, waste, education, and clean energy.",
-    cardTitle: "Explore the Gardens growing the public record",
-    cardTitleAccent: "Gardens",
-    cardTitleLines: ["Explore the", "Gardens growing", "the public record"],
+    cardTitle: "Explore the gardens growing the public record",
+    cardTitleAccent: "gardens",
+    cardTitleLines: ["Explore the", "gardens growing", "the public record"],
     cardLede:
       "Explore community-led projects working on land restoration, waste, education, and clean energy. Meet the people behind each garden and discover how to support their work.",
     cardLedeLines: [

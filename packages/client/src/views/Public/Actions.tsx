@@ -239,7 +239,7 @@ export default function ActionsGallery() {
         lede={formatMessage({
           id: "public.actions.heroLede",
           defaultMessage:
-            "Actions are the templates gardens use to document Work across solar, agroforestry, education, and waste. Each one names what to do, what to capture, and what proof comes next.",
+            "Actions are the templates gardens use to document work across solar, agroforestry, education, and waste. Each one names what to do, what to capture, and what proof comes next.",
         })}
       />
 
@@ -364,7 +364,7 @@ export default function ActionsGallery() {
             <EditorialHeading id="public-actions-grid-title">
               {formatMessage({
                 id: "public.actions.gridTitle",
-                defaultMessage: "Templates Gardens use to plan and document Work.",
+                defaultMessage: "Templates gardens use to plan and document work.",
               })}
             </EditorialHeading>
           </header>
