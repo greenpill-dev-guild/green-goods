@@ -13,7 +13,8 @@
 
 **Latest dispatch, 22 October UTC:** continue member signing and issuer readiness, with local signed
 commits now requested. This supersedes the prior uncommitted-only instruction below; signing stays
-required and the user retains terminal signing because this profile cannot access the keyring.
+required; the dedicated agent now supports scoped approved signing without key-file access.
+The 145-path checkpoint is signed locally as `0f4e62bae`; the default sandbox socket remains blocked.
 [The proof handoff](handoffs/codex-member-issuer-readiness.md) records matching fictional three-chain
 derivation, a fresh absent Gnosis validator/deployment revert at block 48,879,904, and deliberate
 app rejection. Six focused files pass 42 tests and the four-check selector passes fresh. Actual
@@ -27,6 +28,20 @@ confirmed no approved issuer evidence yet and asked to record the gaps. No broad
 - [ ] Prove actual member ownership, signing, sponsorship and recovery through the supported path.
 - [ ] Obtain exact versioned issuer terms/capacity/authority/approval evidence and human disposition.
 - [ ] Attribute this local checkpoint to the user's required signed commit and fresh scoped receipts.
+
+**Current member-signing continuation:** the gardener's address must remain the same across
+Gnosis, Arbitrum and Celo. [Migration characterization](handoffs/codex-member-migration-characterization.md)
+reproduces canonical missing-dependency creation inside a pinned read-only call and matching
+three-chain derivation. Substituting the patched root in the initializer changes the address.
+Helper source remains unverified on both queried explorers; its runtime identity and SDK encoder
+do not prove migration safety. Four focused Shared files pass 36 characterization tests, including
+patched-root refusal, wrong-chain rejection and cancellation/exact retry. No production auth,
+dependency, sponsorship or deployment change is authorized by these observations.
+
+- [x] Reproduce complete canonical creation and same-address fixture derivation without deployment.
+- [x] Separate historical creation inputs from active-root migration and characterize existing rejection.
+- [ ] Establish helper source/build/security provenance and failed-operation creation safety.
+- [ ] Prove intended-member signing, active-root support, provider acceptance and recovery.
 
 **Newer accepted continuation, 23:42 UTC:** reconcile the existing checkpoint separately for
 escrow before activation, exact voucher consent before both core acceptance paths, and one
