@@ -70,13 +70,18 @@
   - The shared components onto the roles, with app pairs. This changes the installed app too, and
     the cockpit still draws the garden chip, the header's meta line and the sync badges with their
     old classes until it lands.
-  - The offline-font follow-up: the service worker caches no web font, Inter included, so serve
-    both faces from the app and precache them.
-  - The three texts that newly end in an ellipsis at 320px (eval.md, Typeface) go to the card
-    steps.
-  - Installed-app browser proof on a device.
-- Proof limit: `not_applicable`. The installed app's font family and its loading screen's face
-  change; no behaviour does. Proof is the rendered pair, the typeface fit audit and the design and
+  - Labeled authenticated Brave proof of the installed app in Plus Jakarta Sans, pending since
+    #1172 (AGENTS.md § Browser Evidence).
+- Follow-up from #1172's review, not gating step 1: the service worker caches no web font, Inter
+  included, so serve both faces from the app and precache them. That changes service-worker
+  behaviour, which the proof limit below does not cover: the follow-up records its own RED/GREEN
+  proof under the testing contract and labeled authenticated Brave proof of an installed app's
+  first launch with no network.
+- Handed on to step 7: the three texts that newly end in an ellipsis at 320px (eval.md, Typeface).
+  Step 7's detail-line rules and its 320px check cover them. PRD-1267's "Done when" still names
+  that check, so its closeout says where they went.
+- Proof limit for the face and the role names: `not_applicable`. The installed app's font family
+  and its loading screen's face change; no behaviour does. Proof is the rendered pair, the typeface fit audit and the design and
   typography guards (eval.md, Design gate for the token slices).
 
 ## Steps 2 and 3: drafts
