@@ -33,6 +33,7 @@ vi.mock("../../../config/default-chain", () => ({
 import { usePublicGardenPool } from "../../../hooks/public/usePublicGardenPool";
 import { getPublicGardenPool } from "../../../modules/commitment-pooling/data-public-pools";
 import type { Address } from "../../../types/domain";
+import { communityRehearsals } from "../../test-utils/public-rehearsal-fixtures";
 
 const GARDEN = "0x1111111111111111111111111111111111111111" as Address;
 const OTHER_GARDEN = "0x2222222222222222222222222222222222222222" as Address;
@@ -148,6 +149,186 @@ describe("public commitment pool reader", () => {
         },
       };
     });
+  });
+
+  it("removes rehearsal counters, units and empty rehearsal cycles while keeping real activity", async () => {
+    const normal = mocks.query.getMockImplementation();
+    mocks.query.mockImplementation(async (...args) => {
+      if (args[2] === "getPublicGardenPool")
+        return {
+          data: {
+            CommitmentPool: [
+              {
+                ...POOL,
+                id: "42161-1",
+                poolId: "1",
+                commitmentsAccepted: "3",
+                commitmentsFulfilled: "3",
+                commitmentsCancelled: "1",
+                commitmentsDue: "3",
+                openCommitmentCount: "0",
+              },
+            ],
+          },
+        };
+      if (args[2] === "getPublicCommitmentExclusions")
+        return { data: { Commitment: communityRehearsals() } };
+      if (args[2] === "getPublicPoolEligibleRecords")
+        return {
+          data: {
+            providers: [
+              { id: "42161-20", leadProvider: "0x0000000000000000000000000000000000000020" },
+            ],
+            offerProviders: [],
+            cycle0: [],
+          },
+        };
+      if (args[2] === "getPublicGardenPoolDetails")
+        return {
+          data: {
+            CommitmentCycle: [
+              { ...cycle(1, "SEASON", "OPEN", 50), poolId: "1" },
+              { ...cycle(20, "CAMPAIGN", "OPEN", 55), poolId: "1" },
+            ],
+            CommitmentUnitSummary: [
+              {
+                ...POOL_SUMMARY,
+                poolId: "1",
+                scopeId: "1",
+                unitLabel: "phones",
+                expectedUnits: "3",
+                approvedUnits: "0",
+                fulfilledUnits: "3",
+                openUnits: "0",
+              },
+              {
+                ...POOL_SUMMARY,
+                poolId: "1",
+                scopeId: "1",
+                unitLabel: "surveys",
+                expectedUnits: "2",
+                approvedUnits: "1",
+                fulfilledUnits: "2",
+                openUnits: "0",
+              },
+            ],
+          },
+        };
+      return normal?.(...args);
+    });
+    const result = await getPublicGardenPool(42161, GARDEN);
+    expect(result?.pool).toMatchObject({
+      commitmentsAccepted: 1n,
+      commitmentsFulfilled: 1n,
+      commitmentsCancelled: 0n,
+      commitmentsDue: 1n,
+      distinctProviderCount: 1n,
+    });
+    expect(result?.openSeason).toBeNull();
+    expect(result?.openCampaigns.map((record) => record.cycleId)).toEqual([20n]);
+    expect(result?.poolUnitSummaries).toHaveLength(1);
+    expect(result?.poolUnitSummaries[0]).toMatchObject({
+      unitLabel: "surveys",
+      expectedUnits: 1n,
+      fulfilledUnits: 1n,
+      approvedUnits: 1n,
+    });
+    expect(containsAddressValue(result)).toBe(false);
+  });
+
+  it("counts unaccepted Offer creators once alongside accepted providers without exposing identities", async () => {
+    const normal = mocks.query.getMockImplementation();
+    const first = "0x0000000000000000000000000000000000000020";
+    const second = "0x0000000000000000000000000000000000000021";
+    const third = "0x0000000000000000000000000000000000000022";
+    mocks.query.mockImplementation(async (...args) => {
+      if (args[2] === "getPublicGardenPool")
+        return { data: { CommitmentPool: [{ ...POOL, poolId: "1" }] } };
+      if (args[2] === "getPublicCommitmentExclusions")
+        return { data: { Commitment: communityRehearsals() } };
+      if (args[2] === "getPublicPoolEligibleRecords")
+        return {
+          data: {
+            providers: [
+              { id: "42161-20", leadProvider: first },
+              { id: "42161-21", leadProvider: second },
+            ],
+            offerProviders: [
+              { id: "42161-22", creator: first },
+              { id: "42161-23", creator: third },
+            ],
+            cycle0: [],
+          },
+        };
+      return normal?.(...args);
+    });
+    const result = await getPublicGardenPool(42161, GARDEN);
+    expect(result?.pool.distinctProviderCount).toBe(3n);
+    expect(containsAddressValue(result)).toBe(false);
+    expect(forbiddenPublicFieldKeys(result)).toEqual([]);
+  });
+
+  it("keeps a cycle with real commitments and fails rather than publishing an invalid correction", async () => {
+    const normal = mocks.query.getMockImplementation();
+    mocks.query.mockImplementation(async (...args) => {
+      if (args[2] === "getPublicGardenPool")
+        return { data: { CommitmentPool: [{ ...POOL, poolId: "1" }] } };
+      if (args[2] === "getPublicCommitmentExclusions")
+        return { data: { Commitment: communityRehearsals() } };
+      if (args[2] === "getPublicPoolEligibleRecords")
+        return {
+          data: {
+            providers: [
+              { id: "42161-20", leadProvider: "0x0000000000000000000000000000000000000020" },
+              { id: "42161-21", leadProvider: "0x0000000000000000000000000000000000000021" },
+            ],
+            offerProviders: [],
+            cycle0: [{ id: "42161-20" }],
+          },
+        };
+      if (args[2] === "getPublicGardenPoolDetails")
+        return {
+          data: {
+            CommitmentCycle: [
+              {
+                ...cycle(1, "SEASON", "OPEN", 50),
+                poolId: "1",
+                commitmentsReadyForConfirmation: "2",
+                commitmentsCancelled: "1",
+              },
+            ],
+            CommitmentUnitSummary: [],
+          },
+        };
+      return normal?.(...args);
+    });
+    const result = await getPublicGardenPool(42161, GARDEN);
+    expect(result?.openSeason).toMatchObject({
+      cycleId: 1n,
+      commitmentsAccepted: 2n,
+      commitmentsFulfilled: 1n,
+      commitmentsCancelled: 0n,
+    });
+    mocks.query.mockImplementation(async (...args) =>
+      args[2] === "getPublicGardenPool"
+        ? { data: { CommitmentPool: [{ ...POOL, poolId: "1", commitmentsFulfilled: "0" }] } }
+        : args[2] === "getPublicCommitmentExclusions"
+          ? { data: { Commitment: communityRehearsals() } }
+          : args[2] === "getPublicPoolEligibleRecords"
+            ? {
+                data: {
+                  providers: [
+                    { id: "42161-20", leadProvider: "0x0000000000000000000000000000000000000020" },
+                  ],
+                  offerProviders: [],
+                  cycle0: [],
+                },
+              }
+            : normal?.(...args)
+    );
+    await expect(getPublicGardenPool(42161, GARDEN)).rejects.toThrow(
+      "Rehearsal correction exceeds"
+    );
   });
 
   it("returns only public aggregates and never selects provider exposure", async () => {
