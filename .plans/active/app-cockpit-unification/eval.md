@@ -267,6 +267,27 @@ line and no screen scrolls sideways. Every status line of the logo screen and of
 320px: the longest is 274.5px of 288px (Spanish "Green Goods necesita actualizarse."). At the
 status voice the face sets these lines between 1.4% narrower and 4.6% wider than Inter.
 
+**Type roles, cockpit (step 1, #1175).** Storybook, before (#1172's branch) and after (#1175), at
+1280 and 390px. Of the 1,174 admin stories, 1,165 rendered in both runs and were compared element
+by element: 32,509 text elements. Within those, the only size or weight changes were the decided
+ones: checkbox and choice labels from 16 to 14px from 640px, two titles with no weight of their own
+from 400 to 600, the cookie jar payout amount from 24 to 22px, and one empty-state line from 16 to
+14px. Line height and tracking changed as the roles define. Not compared:
+
+- Nine stories that navigate away while rendering, six in both runs and three in the before run
+  only. Other stories of each one's component were compared, one to eight per component:
+  `admin-boot-bootsurface--loading`, `admin-pool-poolclaimscard--paused`,
+  `admin-pool-setupstepopen--confirming`, `admin-shell-adminloadingscreen--default`,
+  `admin-shell-adminloadingscreen--spanish`, `admin-shell-routeerrorboundary--chunk-load-error`,
+  `admin-workflows-community-payouts-campaigncookiejar-createsteps--eligible-gardens`,
+  `admin-workflows-hub-hubworkcard--long-title` and `admin-workflows-hub-hubworkcard--no-images`.
+- 125 elements in nine renders that loaded a different async state in each run, 123 seen only
+  before and 2 only after. These were the Garden workspace's activity list (desktop) and pool
+  (phone), the Actions workspace's create inspector (phone), the pool tab (desktop), the governance
+  panel (desktop), the route error boundary's generic story (desktop) and three hypercert preview
+  stories' chart labels (phone). Each story was compared at its other width; the create inspector's
+  steps were also compared in their own action workflow stories.
+
 **Contrast.** `contrast-audit.mjs` computed 127 token pairs from the resolved RGB values,
 before and after:
 
