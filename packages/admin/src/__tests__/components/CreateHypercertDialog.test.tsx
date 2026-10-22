@@ -4,6 +4,7 @@
 
 import { normalizeAddress } from "@green-goods/shared/utils/blockchain/address";
 import { QueryClientProvider } from "@tanstack/react-query";
+import { clear as clearDraftStorage } from "idb-keyval";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { IntlProvider } from "react-intl";
@@ -137,7 +138,9 @@ function renderCreateHypercert({ seedGarden = true }: { seedGarden?: boolean } =
 }
 
 describe("CreateHypercert dialog", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    // Real autosave must not restore a previous test case's draft.
+    await clearDraftStorage();
     Object.assign(attestationsState, { isLoading: false, hasError: false, attestations: [] });
     useAdminStore.setState({
       selectedChainId: DEFAULT_CHAIN_ID,

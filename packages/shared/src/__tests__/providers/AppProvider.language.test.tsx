@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useIntl } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useActionTranslation } from "../../hooks/translation/useActionTranslation";
@@ -112,6 +112,8 @@ describe("AppProvider page language", () => {
   it("stays in English when a reader's own catalogue has not landed", async () => {
     localStorage.setItem("gg-language", "pt");
     renderApp();
+    // Wait for both the failed Portuguese import and its English fallback.
+    await act(() => vi.dynamicImportSettled());
 
     expect(await screen.findByText("Close")).toBeInTheDocument();
     expect(screen.getByText("Planting Event")).toBeInTheDocument();

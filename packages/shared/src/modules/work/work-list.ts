@@ -43,12 +43,39 @@ export async function readWorkByUID(uid: string, chainId: number): Promise<EASWo
 }
 
 /**
+ * Garden reads that may wait on EAS at once. A steward's review count and the
+ * Work Dashboard read every garden they review together, and that burst made
+ * each read slow enough to time out. A read waits for its turn before it asks
+ * EAS, so the wait does not count against its own timeout.
+ */
+const WORK_LIST_READS_AT_ONCE = 2;
+let readsInFlight = 0;
+const waitingReads: Array<() => void> = [];
+
+async function inTurn<T>(read: () => Promise<T>): Promise<T> {
+  if (readsInFlight < WORK_LIST_READS_AT_ONCE) readsInFlight += 1;
+  else await new Promise<void>((resolve) => waitingReads.push(resolve));
+  try {
+    return await read();
+  } finally {
+    // The next waiting read takes this turn over; with none waiting, it is free.
+    const next = waitingReads.shift();
+    if (next) next();
+    else readsInFlight -= 1;
+  }
+}
+
+/**
  * The garden screen's read: the newest works of one garden with their latest
  * approval attached. Background preparation reads the same thing, so a garden
  * browsed online is already prepared. When the approvals read fails the works
  * still come back, with their approval unknown rather than missing.
  */
-export async function readWorkList({
+export function readWorkList(options: ReadWorkListOptions): Promise<EASWorkListRow[]> {
+  return inTurn(() => readGardenWorkList(options));
+}
+
+async function readGardenWorkList({
   garden,
   chainId,
   take = WORK_LIST_PAGE_SIZE,
