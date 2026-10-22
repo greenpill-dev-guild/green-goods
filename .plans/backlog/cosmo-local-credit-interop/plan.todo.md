@@ -55,8 +55,10 @@ uninstall is a control experiment, not an adopted migration. Alchemy supplied Ar
 state through a read-only local bridge; cached Gnosis/Celo state and unsupported Gnosis historical
 state-proof access are labeled. Complete helper creation/runtime identity is established, but
 source/build/privilege/security provenance, real-member signing/provider/sponsorship/recovery
-and issuer approval remain open. Local signed proof commits are authorized; final validation and
-attribution are recorded in the handoff. Production policy, dependencies and every live/release
+and issuer approval remain open. The nine-path source checkpoint is signed as `ea28e3b55`; its clean 27-case committed-source
+run and the separate broader working-tree validation are recorded in the handoff. A later
+unrelated Shared manifest export leaves the historical receipt unavailable for current reuse;
+that change is preserved outside this proof checkpoint. Production policy, dependencies and every live/release
 and unrelated lane blocker remain unchanged. No new product redesign is dispatched.
 
 **Newer accepted continuation, 23:42 UTC:** reconcile the existing checkpoint separately for

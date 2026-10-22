@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "observedAt": "2026-10-22T21:21:51.238Z",
-  "evidenceClass": "Working-tree proof at recorded base HEAD with per-input hashes; not a post-commit receipt",
+  "observedAt": "2026-10-22T21:26:01.310189+00:00",
+  "evidenceClass": "Historical commit-attributed27-case run at signed source checkpoint; current reuse blocked by later unrelated manifest drift",
   "networks": [
     {
       "schemaVersion": 1,
-      "head": "c10e2d2f7bd33885df49142682f390b0e495cf8a",
+      "head": "ea28e3b55536f75cd278fcf300629bd5f071d686",
       "validatedPaths": [
         ".plans/backlog/cosmo-local-credit-interop/proofs/member-migration/fixture.mjs",
         ".plans/backlog/cosmo-local-credit-interop/proofs/member-migration/failure-proof.mjs",
@@ -34,14 +34,14 @@
         "packages/shared/package.json": "4b2289a22db023aadfb3d06334ee435b53f19302c1aa5caf70f1d39fcdc468ab",
         "bun.lock": "85cb5b30fabdce6225c2b44337336ca7f90a95fe99aea26d5637606c8d0094d6"
       },
-      "workingTreeStatus": "?? .plans/backlog/cosmo-local-credit-interop/proofs/member-migration/alchemy-gateway.mjs\n?? .plans/backlog/cosmo-local-credit-interop/proofs/member-migration/failure-proof.mjs\n?? .plans/backlog/cosmo-local-credit-interop/proofs/member-migration/fixture.mjs\n?? packages/contracts/test/helpers/MemberMigrationFailureFixture.sol\n",
+      "workingTreeStatus": "",
       "command": [
         "/Users/afo/.local/share/mise/installs/bun/1.4.2/bin/bun",
         "/Users/afo/Code/greenpill/green-goods/.plans/backlog/cosmo-local-credit-interop/proofs/member-migration/failure-proof.mjs",
         "--network",
         "gnosis"
       ],
-      "observedAt": "2026-10-22T21:21:09.754Z",
+      "observedAt": "2026-10-22T21:24:59.633Z",
       "network": "gnosis",
       "transport": "Process-supplied read-only upstream; provider and complete bytecode provenance recorded in the handoff",
       "chainId": 100,
@@ -124,7 +124,7 @@
             }
           },
           "sent": {
-            "transaction": "0x48a5d1dc5b482edc012d3260e5ff98ca25b9ad41a33eae0630bd95b7e954b3e2",
+            "transaction": "0x2b26b35eabf9174ceaaaefb302b33521f767f2314c0f293e69ff62e7f53b54bb",
             "status": "reverted",
             "outerFailure": {
               "abiItem": {
@@ -188,7 +188,7 @@
             }
           },
           "sent": {
-            "transaction": "0x741160b978d0257fe5102246f97bf43f6ee13d09973472206502f3892c1119d4",
+            "transaction": "0x26fa7ad51bfa0070a3a9f27ff2521154fd3b2a1f6c981f4e50464683ebc05217",
             "status": "reverted",
             "outerFailure": {
               "abiItem": {
@@ -252,7 +252,7 @@
             }
           },
           "sent": {
-            "transaction": "0x127c828f348c4b3ea0439899b5e3117f8d8986b2781e2d202f0bc18452d07283",
+            "transaction": "0x831cb903edfcb307860c4fc216286ab2b5dcd3dc84d74ec74206b896b607c7ca",
             "status": "reverted",
             "outerFailure": {
               "abiItem": {
@@ -316,7 +316,7 @@
             }
           },
           "sent": {
-            "transaction": "0xce9467ebd5d3c6408b9369146caa035425ef25dc1c2210fce721fda0c0d6e04f",
+            "transaction": "0x2d67da3445ea5f44d5a7448d1d5cbb63e91fd32ad6c05d976e34cde003a9606a",
             "status": "reverted",
             "outerFailure": {
               "abiItem": {
@@ -380,7 +380,7 @@
             }
           },
           "first": {
-            "transaction": "0x49ca21d34b43f8339d4d4f2a65b195f67e6c3ed334f33a233f4cb6c8b1283e5d",
+            "transaction": "0x82e5bf075e2497aedc8d0d7d1433a83ddccf2d00fa15702505a235c5a36f07ae",
             "status": "success",
             "event": {
               "userOpHash": "0x2d8e137c52fcc42c004caad160f871ea2344b505683ceba7b781eef689d2ede2",
@@ -388,8 +388,8 @@
               "paymaster": "0x0000000000000000000000000000000000000000",
               "nonce": "1285602196284242792929010450007941968666503721659079688561390398533009408",
               "success": false,
-              "actualGasCost": "5875457",
-              "actualGasUsed": "839351"
+              "actualGasCost": "5943777",
+              "actualGasUsed": "849111"
             },
             "reason": "0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001344656c656761746563616c6c206661696c656400000000000000000000000000",
             "operation": {
@@ -438,7 +438,7 @@
             }
           },
           "exactReplay": {
-            "transaction": "0x71ab3f158c374de4da19a120a7238fd1d2a60f735973875f38f243caf12d7ad3",
+            "transaction": "0x7bfac55bb8e23057270dc375e9fabca34b07cab2cea30a8a6e12b98fc79d3151",
             "status": "reverted",
             "outerFailure": {
               "abiItem": {
@@ -504,7 +504,7 @@
             }
           },
           "repairedNonceRetry": {
-            "transaction": "0xefd9d19b689f5ca6b5050e451475a8de0243a37ee18509f64f7171b50ff8f001",
+            "transaction": "0x728bcace98d9dc46935657c96e93e40ef399e427ba247e289d35a08157c4d78e",
             "status": "success",
             "event": {
               "userOpHash": "0x48a4627db7a77f0e89bfcf895fa97c6881b99de9fd682850dfabdf42d211a76b",
@@ -512,8 +512,8 @@
               "paymaster": "0x0000000000000000000000000000000000000000",
               "nonce": "1285602196284242792929010450007941968666503721659079688561390398533009409",
               "success": false,
-              "actualGasCost": "4492306",
-              "actualGasUsed": "641758"
+              "actualGasCost": "4417847",
+              "actualGasUsed": "631121"
             },
             "reason": "0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001344656c656761746563616c6c206661696c656400000000000000000000000000",
             "operation": {
@@ -577,7 +577,7 @@
             }
           },
           "sent": {
-            "transaction": "0xce635ca121e31655268629c8e84ae08f0c24a84767bde3ec5afa4f05ca316249",
+            "transaction": "0xc9873c8cad2d3069bf99951b6213f06cc163f7ff6b3d4ee7b59dbbdbc6243017",
             "status": "success",
             "event": {
               "userOpHash": "0x4551623660c7d3edad11543ab5c47c604ae7790c6ebbff97630fb87c58036f8d",
@@ -585,8 +585,8 @@
               "paymaster": "0x0000000000000000000000000000000000000000",
               "nonce": "1285602196284242792929010450007941968666503721659079688561390398533009408",
               "success": false,
-              "actualGasCost": "6442926",
-              "actualGasUsed": "920418"
+              "actualGasCost": "6460580",
+              "actualGasUsed": "922940"
             },
             "reason": "0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001344656c656761746563616c6c206661696c656400000000000000000000000000",
             "operation": {
@@ -652,7 +652,7 @@
             }
           },
           "sent": {
-            "transaction": "0x1b1e1c9ede1e4997873b770ce7344b7ce38926052b3ddb28fa72bb225f4943e8",
+            "transaction": "0x7f23c549fcf8a5851e66ff254819623b332ef63c99560b5a058eeea9c7e89d1d",
             "status": "success",
             "event": {
               "userOpHash": "0x77c917fc519586f5cdffe1fdfbefbf1b7a2ab7e5d026dcf722e394a254d296e1",
@@ -660,8 +660,8 @@
               "paymaster": "0x0000000000000000000000000000000000000000",
               "nonce": "1285602196284242792929010450007941968666503721659079688561390398533009408",
               "success": false,
-              "actualGasCost": "6566539",
-              "actualGasUsed": "938077"
+              "actualGasCost": "6546918",
+              "actualGasUsed": "935274"
             },
             "reason": "0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001344656c656761746563616c6c206661696c656400000000000000000000000000",
             "operation": {
@@ -727,7 +727,7 @@
             }
           },
           "sent": {
-            "transaction": "0x2ba89cc6a51cab427d5cb32c1e138baff0d747eeea57a305815ef8afc68f239e",
+            "transaction": "0x54c8f9329ae7057eebff41ef3b5b40d02424dee178ca0707e191d5490b9db596",
             "status": "success",
             "event": {
               "userOpHash": "0xc0c4f0ecc19fcf1d7caf3f4231ec8a4ac52348f819da07ba07e23fdeccba39a4",
@@ -735,8 +735,8 @@
               "paymaster": "0x0000000000000000000000000000000000000000",
               "nonce": "1285602196284242792929010450007941968666503721659079688561390398533009408",
               "success": true,
-              "actualGasCost": "6413477",
-              "actualGasUsed": "916211"
+              "actualGasCost": "6376804",
+              "actualGasUsed": "910972"
             },
             "operation": {
               "sender": "0x9546b80b2faf5d5a9905c752d26b60296d6bc305",
@@ -804,7 +804,7 @@
             }
           },
           "changed": {
-            "transaction": "0x0d88e4ca658b4831bc6099067c24ba3c39b505b48defc4101ae777e0fae0a454",
+            "transaction": "0x6a9aae977e81924a8b485e1180a429826dd6158ccb0af54825d6ae0008c4080f",
             "status": "success",
             "event": {
               "userOpHash": "0xc0c4f0ecc19fcf1d7caf3f4231ec8a4ac52348f819da07ba07e23fdeccba39a4",
@@ -812,8 +812,8 @@
               "paymaster": "0x0000000000000000000000000000000000000000",
               "nonce": "1285602196284242792929010450007941968666503721659079688561390398533009408",
               "success": true,
-              "actualGasCost": "6452768",
-              "actualGasUsed": "921824"
+              "actualGasCost": "6443976",
+              "actualGasUsed": "920568"
             },
             "operation": {
               "sender": "0x9546b80b2faf5d5a9905c752d26b60296d6bc305",
@@ -831,7 +831,7 @@
             "userOpHash": "0xc0c4f0ecc19fcf1d7caf3f4231ec8a4ac52348f819da07ba07e23fdeccba39a4"
           },
           "removed": {
-            "transaction": "0x15ef3d7914e9f163a849b458872d7d2dfdd3c29f360705d96a5c7507b20c0056",
+            "transaction": "0xb2c0ee9c96ca0575126e98dc9d3ce946c644ee0592680d900b5360e4daf75689",
             "status": "success",
             "event": {
               "userOpHash": "0xcd967e2e5a3ea2ef1fab2203f8e7d4649d99b9c6305e3fa34822e435b1f40037",
@@ -839,8 +839,8 @@
               "paymaster": "0x0000000000000000000000000000000000000000",
               "nonce": "1285602196284242792929010450007941968666503721659079688561390398533009409",
               "success": true,
-              "actualGasCost": "4630003",
-              "actualGasUsed": "661429"
+              "actualGasCost": "4608065",
+              "actualGasUsed": "658295"
             },
             "operation": {
               "sender": "0x9546b80b2faf5d5a9905c752d26b60296d6bc305",
@@ -886,7 +886,7 @@
             }
           },
           "laterFailure": {
-            "transaction": "0xd8c9af64d5a1982cdf57a2478f23eb498a2d27a44dc9bc1cd1c08dead5b5adf6",
+            "transaction": "0x6fbcd6ba63ab0edf8be54497a5b6f832139508d3fd984b31031a1f05c3f9e042",
             "status": "success",
             "event": {
               "userOpHash": "0xfd0f3e387ec4162a439b48760987741779439d5bdd0e601e1a02af09a845c944",
@@ -894,8 +894,8 @@
               "paymaster": "0x0000000000000000000000000000000000000000",
               "nonce": "1285602196284242792929010450007941968666503721659079688561390398533009410",
               "success": false,
-              "actualGasCost": "4472538",
-              "actualGasUsed": "638934"
+              "actualGasCost": "4482240",
+              "actualGasUsed": "640320"
             },
             "reason": "0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001344656c656761746563616c6c206661696c656400000000000000000000000000",
             "operation": {
@@ -957,7 +957,7 @@
     },
     {
       "schemaVersion": 1,
-      "head": "c10e2d2f7bd33885df49142682f390b0e495cf8a",
+      "head": "ea28e3b55536f75cd278fcf300629bd5f071d686",
       "validatedPaths": [
         ".plans/backlog/cosmo-local-credit-interop/proofs/member-migration/fixture.mjs",
         ".plans/backlog/cosmo-local-credit-interop/proofs/member-migration/failure-proof.mjs",
@@ -986,14 +986,14 @@
         "packages/shared/package.json": "4b2289a22db023aadfb3d06334ee435b53f19302c1aa5caf70f1d39fcdc468ab",
         "bun.lock": "85cb5b30fabdce6225c2b44337336ca7f90a95fe99aea26d5637606c8d0094d6"
       },
-      "workingTreeStatus": "?? .plans/backlog/cosmo-local-credit-interop/proofs/member-migration/alchemy-gateway.mjs\n?? .plans/backlog/cosmo-local-credit-interop/proofs/member-migration/failure-proof.mjs\n?? .plans/backlog/cosmo-local-credit-interop/proofs/member-migration/fixture.mjs\n?? packages/contracts/test/helpers/MemberMigrationFailureFixture.sol\n",
+      "workingTreeStatus": "",
       "command": [
         "/Users/afo/.local/share/mise/installs/bun/1.4.2/bin/bun",
         "/Users/afo/Code/greenpill/green-goods/.plans/backlog/cosmo-local-credit-interop/proofs/member-migration/failure-proof.mjs",
         "--network",
         "arbitrum"
       ],
-      "observedAt": "2026-10-22T21:21:01.747Z",
+      "observedAt": "2026-10-22T21:24:52.536Z",
       "network": "arbitrum",
       "transport": "Process-supplied read-only upstream; provider and complete bytecode provenance recorded in the handoff",
       "chainId": 42161,
@@ -1076,7 +1076,7 @@
             }
           },
           "sent": {
-            "transaction": "0x4a539204059ffae91044a940fbae6cda1cd06aa558395675c04ebbbf01c683b8",
+            "transaction": "0xd8ce6f0c6b25290991b3a6c2f2e01983cd8ce537842dd9c4ec062995d5c33019",
             "status": "reverted",
             "outerFailure": {
               "abiItem": {
@@ -1140,7 +1140,7 @@
             }
           },
           "sent": {
-            "transaction": "0x000135f6726a8498289e7f0cb142a81958f12170b8bafd96517606d9ec78fce4",
+            "transaction": "0x50eb1473d385ccc2de45db7a05d3491e5f1f7be2498fabb3c326e8ace1fc2f98",
             "status": "reverted",
             "outerFailure": {
               "abiItem": {
@@ -1204,7 +1204,7 @@
             }
           },
           "sent": {
-            "transaction": "0x2bed5a391d2aef60cf487c77c34b7571ecc47b7c5bafe5c85ff281cc1b68d6b6",
+            "transaction": "0x92b19b1782881a65193decf948f5e5da77dbf805c158280f306610e08b590070",
             "status": "reverted",
             "outerFailure": {
               "abiItem": {
@@ -1268,7 +1268,7 @@
             }
           },
           "sent": {
-            "transaction": "0x75ede7a8e7680743e2417d29633e206b3b79b9d918d67461afc582816fe00743",
+            "transaction": "0xd0f2cd4c0cd0d74f36c9d59bb3925d7c4f13e062c0feb77a31ff99a61982d1fc",
             "status": "reverted",
             "outerFailure": {
               "abiItem": {
@@ -1332,7 +1332,7 @@
             }
           },
           "first": {
-            "transaction": "0x9846cdfae599f7ebae6db3c82919d8c5f0f795b7bfe2ed35035cb6d5a8b27559",
+            "transaction": "0xe0e550454a1ce8a517625ed7429a03feeb52f477d3c10a0fc19b62c58881b3fe",
             "status": "success",
             "event": {
               "userOpHash": "0x58b7ec88e44541e8b39f99bfdd03a59a0de7a180040de79673744464e6003912",
@@ -1340,8 +1340,8 @@
               "paymaster": "0x0000000000000000000000000000000000000000",
               "nonce": "1285602196284242792929010450007941968666503721659079688561390398533009408",
               "success": false,
-              "actualGasCost": "3861417623066",
-              "actualGasUsed": "838741"
+              "actualGasCost": "3890702560252",
+              "actualGasUsed": "845102"
             },
             "reason": "0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001344656c656761746563616c6c206661696c656400000000000000000000000000",
             "operation": {
@@ -1390,7 +1390,7 @@
             }
           },
           "exactReplay": {
-            "transaction": "0x6ae1d85ea2fd43cdacc238cdc25926bf3e5998ebefb04a1d88349fdbe0e5fadb",
+            "transaction": "0xcec07fec5bcc5f997e5b392ac3c6ca742328c5d7065a3a67cbc87172826a950c",
             "status": "reverted",
             "outerFailure": {
               "abiItem": {
@@ -1456,7 +1456,7 @@
             }
           },
           "repairedNonceRetry": {
-            "transaction": "0xab65f5f828bce06a1bad9c5cda3417faaefce6f25418ed95b402964dbc934b1b",
+            "transaction": "0x6df400708eefca07604357466110f099b3924e35040e95d1b1b3c8984ac46504",
             "status": "success",
             "event": {
               "userOpHash": "0xbc22d0b7bc0f8896024d4141403df89f88031a7d81b48d115145dfefbc33556c",
@@ -1464,8 +1464,8 @@
               "paymaster": "0x0000000000000000000000000000000000000000",
               "nonce": "1285602196284242792929010450007941968666503721659079688561390398533009409",
               "success": false,
-              "actualGasCost": "1676811324600",
-              "actualGasUsed": "621345"
+              "actualGasCost": "1688399456520",
+              "actualGasUsed": "625639"
             },
             "reason": "0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001344656c656761746563616c6c206661696c656400000000000000000000000000",
             "operation": {
@@ -1529,7 +1529,7 @@
             }
           },
           "sent": {
-            "transaction": "0xc17a72103e0e7b9cdd9f2bf1b33ad7f8e91cbf99194e70db9de707c009f86c34",
+            "transaction": "0x8347d0b8efa5fc4d23eedc6fa41a7e5d77728ac72a0b4628b5275c0997cc935a",
             "status": "success",
             "event": {
               "userOpHash": "0x2227446ffe7ba070deef62616f404ffa2bd1cf0b4f29dca475fabb3ad7e0786c",
@@ -1537,8 +1537,8 @@
               "paymaster": "0x0000000000000000000000000000000000000000",
               "nonce": "1285602196284242792929010450007941968666503721659079688561390398533009408",
               "success": false,
-              "actualGasCost": "1888594133256",
-              "actualGasUsed": "914052"
+              "actualGasCost": "1863901239978",
+              "actualGasUsed": "902101"
             },
             "reason": "0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001344656c656761746563616c6c206661696c656400000000000000000000000000",
             "operation": {
@@ -1604,7 +1604,7 @@
             }
           },
           "sent": {
-            "transaction": "0xb1b1b159173c9371beb0a243311efd045396605745995c1db2b1cb6841ed7386",
+            "transaction": "0xaf9c85dde1451fb6995da33a8d4dc340ed5ca2824226ab9e4117ffab9815c41d",
             "status": "success",
             "event": {
               "userOpHash": "0x4c1b38fb5d60ed0be9a5d8b1b29ec6056f8ac41bbb4577cd4e71eb5e4598ac81",
@@ -1612,8 +1612,8 @@
               "paymaster": "0x0000000000000000000000000000000000000000",
               "nonce": "1285602196284242792929010450007941968666503721659079688561390398533009408",
               "success": false,
-              "actualGasCost": "1464245447652",
-              "actualGasUsed": "925614"
+              "actualGasCost": "1464484317270",
+              "actualGasUsed": "925765"
             },
             "reason": "0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001344656c656761746563616c6c206661696c656400000000000000000000000000",
             "operation": {
@@ -1679,7 +1679,7 @@
             }
           },
           "sent": {
-            "transaction": "0xe5dba7b778b9c47820bed8a2cd388749bfda602506fd1f76843bd2ac6e3342fa",
+            "transaction": "0x108875a86d1fee8c87dc69d7904155f533d7e7e1132a5842451667164b67da05",
             "status": "success",
             "event": {
               "userOpHash": "0x4b5abd51e3696fd0d4a37a7ee5196fae28348296de44993fe2b6c8853d24723b",
@@ -1687,8 +1687,8 @@
               "paymaster": "0x0000000000000000000000000000000000000000",
               "nonce": "1285602196284242792929010450007941968666503721659079688561390398533009408",
               "success": true,
-              "actualGasCost": "1104927630687",
-              "actualGasUsed": "912291"
+              "actualGasCost": "1095866965170",
+              "actualGasUsed": "904810"
             },
             "operation": {
               "sender": "0x9546b80b2faf5d5a9905c752d26b60296d6bc305",
@@ -1756,7 +1756,7 @@
             }
           },
           "changed": {
-            "transaction": "0xb597cf19786508fafeba3b7288fb4cceb045c22045e26c6694b83ee9e36bc2fd",
+            "transaction": "0xb8fe63eed9efda79b5e90f613cc3c87089172e7e7acd506a29e9d044b78f7e7b",
             "status": "success",
             "event": {
               "userOpHash": "0x4b5abd51e3696fd0d4a37a7ee5196fae28348296de44993fe2b6c8853d24723b",
@@ -1764,8 +1764,8 @@
               "paymaster": "0x0000000000000000000000000000000000000000",
               "nonce": "1285602196284242792929010450007941968666503721659079688561390398533009408",
               "success": true,
-              "actualGasCost": "840738544087",
-              "actualGasUsed": "906659"
+              "actualGasCost": "848356256082",
+              "actualGasUsed": "914874"
             },
             "operation": {
               "sender": "0x9546b80b2faf5d5a9905c752d26b60296d6bc305",
@@ -1783,7 +1783,7 @@
             "userOpHash": "0x4b5abd51e3696fd0d4a37a7ee5196fae28348296de44993fe2b6c8853d24723b"
           },
           "removed": {
-            "transaction": "0x8246882b0aeaf927d6a0adf356766a64816b580232d40433449510e3ce454a62",
+            "transaction": "0x75782b0921a47fa16dd092310402c18779d487998cb913bb0c0c3db371ae2cb4",
             "status": "success",
             "event": {
               "userOpHash": "0x449033c6409b5f640b792dec11f561b96b852b0d96da6a6914d6f44efe12532d",
@@ -1791,8 +1791,8 @@
               "paymaster": "0x0000000000000000000000000000000000000000",
               "nonce": "1285602196284242792929010450007941968666503721659079688561390398533009409",
               "success": true,
-              "actualGasCost": "454464564920",
-              "actualGasUsed": "640127"
+              "actualGasCost": "451215787960",
+              "actualGasUsed": "635551"
             },
             "operation": {
               "sender": "0x9546b80b2faf5d5a9905c752d26b60296d6bc305",
@@ -1838,7 +1838,7 @@
             }
           },
           "laterFailure": {
-            "transaction": "0x28d9d5f9714a2c3be1c13f51accdaaa077aa2a1d740eab72988dc33756139552",
+            "transaction": "0xb296b946085c3a33d96d8fb2e3385581009474745e14ebef153dc429677c1307",
             "status": "success",
             "event": {
               "userOpHash": "0x83aebdf479b1a181dbb6b2140d9836aa136fc3cbbbb18b40faa2fbc387b17a63",
@@ -1846,8 +1846,8 @@
               "paymaster": "0x0000000000000000000000000000000000000000",
               "nonce": "1285602196284242792929010450007941968666503721659079688561390398533009410",
               "success": false,
-              "actualGasCost": "337958199180",
-              "actualGasUsed": "621745"
+              "actualGasCost": "340856482428",
+              "actualGasUsed": "627077"
             },
             "reason": "0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001344656c656761746563616c6c206661696c656400000000000000000000000000",
             "operation": {
@@ -1909,7 +1909,7 @@
     },
     {
       "schemaVersion": 1,
-      "head": "c10e2d2f7bd33885df49142682f390b0e495cf8a",
+      "head": "ea28e3b55536f75cd278fcf300629bd5f071d686",
       "validatedPaths": [
         ".plans/backlog/cosmo-local-credit-interop/proofs/member-migration/fixture.mjs",
         ".plans/backlog/cosmo-local-credit-interop/proofs/member-migration/failure-proof.mjs",
@@ -1938,14 +1938,14 @@
         "packages/shared/package.json": "4b2289a22db023aadfb3d06334ee435b53f19302c1aa5caf70f1d39fcdc468ab",
         "bun.lock": "85cb5b30fabdce6225c2b44337336ca7f90a95fe99aea26d5637606c8d0094d6"
       },
-      "workingTreeStatus": "?? .plans/backlog/cosmo-local-credit-interop/proofs/member-migration/alchemy-gateway.mjs\n?? .plans/backlog/cosmo-local-credit-interop/proofs/member-migration/failure-proof.mjs\n?? .plans/backlog/cosmo-local-credit-interop/proofs/member-migration/fixture.mjs\n?? packages/contracts/test/helpers/MemberMigrationFailureFixture.sol\n",
+      "workingTreeStatus": "",
       "command": [
         "/Users/afo/.local/share/mise/installs/bun/1.4.2/bin/bun",
         "/Users/afo/Code/greenpill/green-goods/.plans/backlog/cosmo-local-credit-interop/proofs/member-migration/failure-proof.mjs",
         "--network",
         "celo"
       ],
-      "observedAt": "2026-10-22T21:21:16.757Z",
+      "observedAt": "2026-10-22T21:25:06.606Z",
       "network": "celo",
       "transport": "Process-supplied read-only upstream; provider and complete bytecode provenance recorded in the handoff",
       "chainId": 42220,
@@ -2028,7 +2028,7 @@
             }
           },
           "sent": {
-            "transaction": "0x75a3030bee75dea8370864b1d25377c6f6b7c8fd630bdd5a2c3c97b011896467",
+            "transaction": "0x4ca2cb6bda2788cca66f3d3a1f4da273195baf81e2f071ce49803a18ea9077c1",
             "status": "reverted",
             "outerFailure": {
               "abiItem": {
@@ -2092,7 +2092,7 @@
             }
           },
           "sent": {
-            "transaction": "0x063b7092bffbda58d2e744bbebcb11d34084e7a87034fff98cc3d3416b21e41f",
+            "transaction": "0xc3d78680a9ced73540013114e41a0ab9a9b67915b8bdbdc66bf37b298de12249",
             "status": "reverted",
             "outerFailure": {
               "abiItem": {
@@ -2156,7 +2156,7 @@
             }
           },
           "sent": {
-            "transaction": "0xf31687e26b7c98af9982759e3bfb88ad2a23a5b940bf18b8d8bd2a8f8fec393f",
+            "transaction": "0xca54950f47d0f76f7964879f207bee00f9f1ac80d0525395debcb7bf9800cd80",
             "status": "reverted",
             "outerFailure": {
               "abiItem": {
@@ -2220,7 +2220,7 @@
             }
           },
           "sent": {
-            "transaction": "0xf1eec9396771a3e2fe34d2e123729c5392e0700a8aa009a9990cbf46b187b1f7",
+            "transaction": "0x215ec742bd66196dd6777447e602084cbdb186149012f964521c5e0ab731487e",
             "status": "reverted",
             "outerFailure": {
               "abiItem": {
@@ -2284,7 +2284,7 @@
             }
           },
           "first": {
-            "transaction": "0x37d5bd11628f150398da9a8eafbccfa9a34e9839461b62987b7060868ca14ab6",
+            "transaction": "0x3550afa88b38a039ab40028fdfc98f72f7a912ddd1c6be915b3747cb0c6589b2",
             "status": "success",
             "event": {
               "userOpHash": "0x218e7c480f7f7708e1e5373724296ade34bfca18e47b2c3853fb991cecba989f",
@@ -2292,8 +2292,8 @@
               "paymaster": "0x0000000000000000000000000000000000000000",
               "nonce": "1285602196284242792929010450007941968666503721659079688561390398533009408",
               "success": false,
-              "actualGasCost": "39991788968794078",
-              "actualGasUsed": "839557"
+              "actualGasCost": "40132330449737688",
+              "actualGasUsed": "842456"
             },
             "reason": "0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001344656c656761746563616c6c206661696c656400000000000000000000000000",
             "operation": {
@@ -2342,7 +2342,7 @@
             }
           },
           "exactReplay": {
-            "transaction": "0xe072abf7d77ff47e7f0a0a8a8430ac3f14d41bd27c266b3c6f3e7502e19669c9",
+            "transaction": "0x31836d5a8f62abe33331d4589ad0913de341801582665cc379041ceebe81b59f",
             "status": "reverted",
             "outerFailure": {
               "abiItem": {
@@ -2408,16 +2408,16 @@
             }
           },
           "repairedNonceRetry": {
-            "transaction": "0xda44e1da783950ef67f33727893517a4563125e2a53e3aa374a7aef94edb6ed0",
+            "transaction": "0xde97601204147eed02a745529ea53ef0e7b4f99be2c6f032fc817589f13b0ee1",
             "status": "success",
             "event": {
-              "userOpHash": "0x998a041703d2e7f543d4aedb5b39428a1fc575097ccf41ca1629b634f894d0dd",
+              "userOpHash": "0xd926c289e9bd1f1506b88b5c07c2419a3a00f2a7ad2e17cfc4e2b78b89c6db66",
               "sender": "0x9546B80B2FaF5D5A9905C752D26B60296D6BC305",
               "paymaster": "0x0000000000000000000000000000000000000000",
               "nonce": "1285602196284242792929010450007941968666503721659079688561390398533009409",
               "success": false,
-              "actualGasCost": "17911676957190912",
-              "actualGasUsed": "636696"
+              "actualGasCost": "17616264250061720",
+              "actualGasUsed": "626140"
             },
             "reason": "0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001344656c656761746563616c6c206661696c656400000000000000000000000000",
             "operation": {
@@ -2427,11 +2427,11 @@
               "verificationGasLimit": "2500000",
               "callGasLimit": "600000",
               "preVerificationGas": "100000",
-              "maxFeePerGas": "65302235134",
+              "maxFeePerGas": "65307897366",
               "maxPriorityFeePerGas": "0",
               "signature": "omitted: synthetic fixture signature"
             },
-            "userOpHash": "0x998a041703d2e7f543d4aedb5b39428a1fc575097ccf41ca1629b634f894d0dd"
+            "userOpHash": "0xd926c289e9bd1f1506b88b5c07c2419a3a00f2a7ad2e17cfc4e2b78b89c6db66"
           },
           "afterRetry": {
             "exists": true,
@@ -2481,7 +2481,7 @@
             }
           },
           "sent": {
-            "transaction": "0xe8cf4141cd95e8e64609252290e7a8de19aa01d81df0229564f69d3a2b554776",
+            "transaction": "0xa38096f730bf9da18e103a4ab76bbc169c945532e4c172760c197449c745d1c1",
             "status": "success",
             "event": {
               "userOpHash": "0x3bb14e3454951ca3b8d0f47bb6a4b71e58afc2d2e0873a983c80aa99ad445ef4",
@@ -2489,8 +2489,8 @@
               "paymaster": "0x0000000000000000000000000000000000000000",
               "nonce": "1285602196284242792929010450007941968666503721659079688561390398533009408",
               "success": false,
-              "actualGasCost": "19938520055393470",
-              "actualGasUsed": "921082"
+              "actualGasCost": "20069976670347522",
+              "actualGasUsed": "927166"
             },
             "reason": "0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001344656c656761746563616c6c206661696c656400000000000000000000000000",
             "operation": {
@@ -2556,7 +2556,7 @@
             }
           },
           "sent": {
-            "transaction": "0xf79ae215c7fe1defee8feb0b749fa4887e9ff12265c8230a7a5323f9c5baa9e7",
+            "transaction": "0xa1e125c40d39289eaf6f884ff8028d2e63bbcde43c886cbc39923dbe02e43b4f",
             "status": "success",
             "event": {
               "userOpHash": "0x2ade0a738fc0976c19e4b92d6fe74bc34a257006aa04089d68f771679555d54d",
@@ -2564,8 +2564,8 @@
               "paymaster": "0x0000000000000000000000000000000000000000",
               "nonce": "1285602196284242792929010450007941968666503721659079688561390398533009408",
               "success": false,
-              "actualGasCost": "15741325285685856",
-              "actualGasUsed": "942384"
+              "actualGasCost": "15717033211943907",
+              "actualGasUsed": "940887"
             },
             "reason": "0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001344656c656761746563616c6c206661696c656400000000000000000000000000",
             "operation": {
@@ -2631,7 +2631,7 @@
             }
           },
           "sent": {
-            "transaction": "0xa5b60e09197942ebc97d6c2fddb01ef2d94ba313030e923a2a24adbc6b656e20",
+            "transaction": "0x8590c57dbb7ab67db086ffae47ee060b8aaf71dff115c04c3395784c93373a50",
             "status": "success",
             "event": {
               "userOpHash": "0x01999429cd76d62458d213efd8bdeb57e019fe4bca1ba55c00d967defdcf1122",
@@ -2639,8 +2639,8 @@
               "paymaster": "0x0000000000000000000000000000000000000000",
               "nonce": "1285602196284242792929010450007941968666503721659079688561390398533009408",
               "success": true,
-              "actualGasCost": "11915364548650836",
-              "actualGasUsed": "923801"
+              "actualGasCost": "11853643126656660",
+              "actualGasUsed": "918987"
             },
             "operation": {
               "sender": "0x9546b80b2faf5d5a9905c752d26b60296d6bc305",
@@ -2708,7 +2708,7 @@
             }
           },
           "changed": {
-            "transaction": "0xfbde80c17995fc7afca77fc802592a3c4f66ab182b931be5b9d550c696e99e27",
+            "transaction": "0x78fb9dfba6247a30f6c87af3e8f9fe4246004eb48b8c33cc5e14067d54430e43",
             "status": "success",
             "event": {
               "userOpHash": "0x01999429cd76d62458d213efd8bdeb57e019fe4bca1ba55c00d967defdcf1122",
@@ -2716,8 +2716,8 @@
               "paymaster": "0x0000000000000000000000000000000000000000",
               "nonce": "1285602196284242792929010450007941968666503721659079688561390398533009408",
               "success": true,
-              "actualGasCost": "9047571909524685",
-              "actualGasUsed": "909023"
+              "actualGasCost": "9073519800878274",
+              "actualGasUsed": "911643"
             },
             "operation": {
               "sender": "0x9546b80b2faf5d5a9905c752d26b60296d6bc305",
@@ -2735,16 +2735,16 @@
             "userOpHash": "0x01999429cd76d62458d213efd8bdeb57e019fe4bca1ba55c00d967defdcf1122"
           },
           "removed": {
-            "transaction": "0xf9c2d1143a3b76f016a22854728f252c02d45cd120c49963af94d25b5a183d08",
+            "transaction": "0x299c0bf97249632da5b4fde6b852b90823cd50c4ca5c7027973206b02c700c83",
             "status": "success",
             "event": {
-              "userOpHash": "0xdbe9d1fc522a1fdd540ae6c39223c3f76fd3e73d89a318aa3bebcafcdacdd604",
+              "userOpHash": "0x8fbdc6a113242f9bd9c873052c30d16d02e2379e22d2b0607ae0a781fd153fcf",
               "sender": "0x9546B80B2FaF5D5A9905C752D26B60296D6BC305",
               "paymaster": "0x0000000000000000000000000000000000000000",
               "nonce": "1285602196284242792929010450007941968666503721659079688561390398533009409",
               "success": true,
-              "actualGasCost": "5016700417997502",
-              "actualGasUsed": "653271"
+              "actualGasCost": "4952952463331059",
+              "actualGasUsed": "644963"
             },
             "operation": {
               "sender": "0x9546b80b2faf5d5a9905c752d26b60296d6bc305",
@@ -2753,11 +2753,11 @@
               "verificationGasLimit": "2500000",
               "callGasLimit": "600000",
               "preVerificationGas": "100000",
-              "maxFeePerGas": "18552813170",
+              "maxFeePerGas": "18552997926",
               "maxPriorityFeePerGas": "0",
               "signature": "omitted: synthetic fixture signature"
             },
-            "userOpHash": "0xdbe9d1fc522a1fdd540ae6c39223c3f76fd3e73d89a318aa3bebcafcdacdd604"
+            "userOpHash": "0x8fbdc6a113242f9bd9c873052c30d16d02e2379e22d2b0607ae0a781fd153fcf"
           },
           "afterRemoval": {
             "exists": true,
@@ -2790,16 +2790,16 @@
             }
           },
           "laterFailure": {
-            "transaction": "0x07b39ed8d91e62494cb1dbb2fbbe07e1f167b13ecc6360084af0b07f8a1c462a",
+            "transaction": "0xaddb576eb6198bf1bbe41fef7eb64d3824e68e21940c4fa05f66f84cfc8f7495",
             "status": "success",
             "event": {
-              "userOpHash": "0xcc9d049313efe714d93d0c70275c589d79fd3309e4826334f37c67cfaca8af56",
+              "userOpHash": "0x78c353980ca989051f450d9e3d6f037bed5dd11ed07932e7ec195530b80e5721",
               "sender": "0x9546B80B2FaF5D5A9905C752D26B60296D6BC305",
               "paymaster": "0x0000000000000000000000000000000000000000",
               "nonce": "1285602196284242792929010450007941968666503721659079688561390398533009410",
               "success": false,
-              "actualGasCost": "3765169029467108",
-              "actualGasUsed": "637132"
+              "actualGasCost": "3760994487961952",
+              "actualGasUsed": "636469"
             },
             "reason": "0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001344656c656761746563616c6c206661696c656400000000000000000000000000",
             "operation": {
@@ -2809,11 +2809,11 @@
               "verificationGasLimit": "2500000",
               "callGasLimit": "600000",
               "preVerificationGas": "100000",
-              "maxFeePerGas": "14507563014",
+              "maxFeePerGas": "14506641846",
               "maxPriorityFeePerGas": "0",
               "signature": "omitted: synthetic fixture signature"
             },
-            "userOpHash": "0xcc9d049313efe714d93d0c70275c589d79fd3309e4826334f37c67cfaca8af56"
+            "userOpHash": "0x78c353980ca989051f450d9e3d6f037bed5dd11ed07932e7ec195530b80e5721"
           },
           "afterLaterFailure": {
             "exists": true,
@@ -3086,5 +3086,41 @@
     "A changed root alone retains the old validator module and owner key.",
     "Explicit uninstall is an existing-Kernel control experiment, not an adopted production migration.",
     "Every outcome is migrationReady=false; COM46, actual-member signing, supported provider policies, recovery and all release gates stay open."
-  ]
+  ],
+  "attribution": {
+    "testedCommit": "ea28e3b55536f75cd278fcf300629bd5f071d686",
+    "signature": "Good ED25519 signature; required signing retained",
+    "validatedTrackedPaths": [
+      ".plans/backlog/cosmo-local-credit-interop/proofs/member-migration/fixture.mjs",
+      ".plans/backlog/cosmo-local-credit-interop/proofs/member-migration/failure-proof.mjs",
+      ".plans/backlog/cosmo-local-credit-interop/proofs/member-migration/alchemy-gateway.mjs",
+      ".plans/backlog/cosmo-local-credit-interop/artifacts/member-readiness-2026-10-22.json",
+      ".plans/backlog/cosmo-local-credit-interop/artifacts/member-migration-characterization-2026-10-22.json",
+      "packages/contracts/test/helpers/MemberMigrationFailureFixture.sol",
+      "packages/contracts/foundry.toml",
+      "packages/contracts/foundry.lock",
+      "packages/contracts/package.json",
+      "packages/shared/package.json",
+      "bun.lock"
+    ],
+    "validatedStatus": "",
+    "generatedInput": "Ignored compiled fixture JSON is independently fingerprinted; it is not a committed blob",
+    "fullSelectedChecks": {
+      "headAtRun": "c10e2d2f7bd33885df49142682f390b0e495cf8a",
+      "class": "working-tree proof before source commit",
+      "result": "3 fresh checks pass; 2191 Solidity,3 production gas,31 CLI,331 script",
+      "sourceCodeUnchangedAtCommit": true
+    },
+    "liveBroadcast": false,
+    "readinessClaim": false,
+    "currentReuse": {
+      "status": "blocked",
+      "reason": "An independent session later added ./config/query-persistence-clear to packages/shared/package.json exports",
+      "dirtyValidatedStatus": " M packages/shared/package.json\n",
+      "preservedUnstaged": true,
+      "dependencyVersionsChanged": false,
+      "historicalCleanRunStillRecorded": true,
+      "finalHeadReceiptClaim": false
+    }
+  }
 }

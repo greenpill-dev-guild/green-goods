@@ -174,6 +174,32 @@ with input hashes, not a fabricated post-commit receipt. A local signed source c
 its SHA is established only after the commit and signature/tree verification. No push/readiness,
 merge, live-chain or actual-member claim follows from this local proof.
 
+The nine-path source checkpoint is signed locally as `ea28e3b55536f75cd278fcf300629bd5f071d686`.
+Signature verification returns `G`; every committed blob equals its reviewed staged digest and
+owned paths/index are clean. Required SSH signing and the repository hook configuration remain
+unchanged. The commit used scoped approved signing through the dedicated agent, not a claim that
+the default sandbox socket restriction disappeared. Temporary copies of all hooks retained the
+identity check; only lint-staged's automatic stash/hiding were disabled to preserve concurrent work.
+No stash, reset, worktree, force switch, push or live deployment occurred. `origin/develop` was
+refreshed and remains `d7bbbf00d6af63f39a1aea6fe84fb6f2bbcc72be`.
+
+After committing, all 27 cases passed fresh against that exact SHA with empty status on every
+validated tracked source/dependency/configuration path. The ignored compiled fixture artifact is
+fingerprinted separately. The failure artifact now owns that narrow commit-attributed receipt.
+The broader three-check package pass remains working-tree evidence, not a newly invented
+post-commit full-suite run. Evidence/handoff-only hygiene also passed 2/2 fresh after the first
+result files were written. This receipt follow-up changes only evidence and the owning plan;
+retain attribution only with an empty source-path diff and clean source status from the tested
+commit to the final HEAD. The committed source, dependencies, configuration and validation entrypoints are unchanged.
+However, after the clean run was captured, another session added the
+`./config/query-persistence-clear` export to `packages/shared/package.json`. Its dependency
+versions did not change. The manifest is a validated input and is now dirty, so the clean-status
+condition for a current/final-HEAD receipt is not satisfied. The recorded run remains historical
+commit-attributed evidence; its reuse is blocked until the owning change resolves and applicable
+proof is refreshed. The manifest and all other unrelated changes remain outside these commits.
+The prompt-preparation chat was informed; no attempt was made to stage, revert or commit that
+session's manifest change.
+
 TDD mode: not applicable to product behavior. This is an investigation with controlled failure
 inputs, real integration observations and guard regression checks. No product lane is marked
 passed/completed, and no historical failure is relabeled as an intended product RED.
@@ -189,7 +215,7 @@ recovery, private issuer readiness and every release gate remain open. Returning
 service delivery and supply/outstanding-obligation accounting retain their accepted distinctions.
 No offer/request, swap, voucher-to-voucher or service-access runtime change is added by this proof.
 
-Task record: cosmo-local-credit-interop | Type: investigation/proof | Outcome: partial
+Task record: cosmo-local-credit-interop | Type: investigation/proof | Outcome: complete within the bounded investigation; live proof gates unresolved
 Agent/model: Codex / model identifier unknown | Coverage: helper provenance and failure-boundary continuation
 
 | Phase | Start → end (UTC) | Result / evidence or blocker |
@@ -197,5 +223,6 @@ Agent/model: Codex / model identifier unknown | Coverage: helper provenance and 
 | Investigate | Unknown → 2026-10-22 21:11:23 | Full helper creation/runtime, source searches, exact Kernel compiler rebuild, Alchemy capability/cached-state limits |
 | Implement / verify | Unknown → 2026-10-22 21:21:52 UTC | Final source: 27 pinned cases, three fresh selected checks and direct guard/style/lint proof pass; initial failures retained |
 | Review | Unknown → 2026-10-22 21:21:52 UTC | Scope, exact source hashes, bytecode provenance, failure/nonce state, relative links and signing config checked |
+| Publish locally / verify | Unknown → 2026-10-22 21:26:01 UTC | Signed nine-path source checkpoint; fresh committed 27-case matrix passes; evidence-only follow-up retains source attribution |
 
 Human corrections: 1 observed in this segment (use Alchemy for requests); attention: unknown.
