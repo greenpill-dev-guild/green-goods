@@ -1,0 +1,1079 @@
+[
+  {
+    "type": "constructor",
+    "inputs": [
+      {
+        "name": "router_",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "receive",
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "CCIP_ROUTER",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "COMMAND_GAS_LIMIT",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "LOCAL_CHAIN_ID",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "UPGRADE_DELAY",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "acknowledgmentMessages",
+    "inputs": [
+      {
+        "name": "messageId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "dataHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "cancelUpgrade",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "ccipReceive",
+    "inputs": [
+      {
+        "name": "message",
+        "type": "tuple",
+        "internalType": "struct Client.Any2EVMMessage",
+        "components": [
+          {
+            "name": "messageId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "sourceChainSelector",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "sender",
+            "type": "bytes",
+            "internalType": "bytes"
+          },
+          {
+            "name": "data",
+            "type": "bytes",
+            "internalType": "bytes"
+          },
+          {
+            "name": "destTokenAmounts",
+            "type": "tuple[]",
+            "internalType": "struct Client.EVMTokenAmount[]",
+            "components": [
+              {
+                "name": "token",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "amount",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "commitmentPooling",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract ICommitmentServiceOffers"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "dispatch",
+    "inputs": [
+      {
+        "name": "id",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "messageId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "getCommand",
+    "inputs": [
+      {
+        "name": "id",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getRedemption",
+    "inputs": [
+      {
+        "name": "id",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct VoucherRedemptionModule.Redemption",
+        "components": [
+          {
+            "name": "commitmentId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "payloadHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "lastMessageId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "resultHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "state",
+            "type": "uint8",
+            "internalType": "enum VoucherRedemptionModule.RedemptionState"
+          },
+          {
+            "name": "latestResult",
+            "type": "tuple",
+            "internalType": "struct VoucherRedemptionCodec.Result",
+            "components": [
+              {
+                "name": "version",
+                "type": "uint8",
+                "internalType": "uint8"
+              },
+              {
+                "name": "redemptionId",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              },
+              {
+                "name": "payloadHash",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              },
+              {
+                "name": "resultSequence",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "issuerApproved",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "issuerReturnCeiling",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "escrowedUnits",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "holderApprovedServiceUnits",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "holderApprovedVoucherUnits",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "mutualReturnUnits",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "releasedUnits",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "returnedUnits",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "actionNonce",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "actionHash",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              },
+              {
+                "name": "actionKind",
+                "type": "uint8",
+                "internalType": "enum VoucherRedemptionCodec.ActionKind"
+              },
+              {
+                "name": "actionVoucherUnits",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "actionServiceUnits",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "actionSucceeded",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "failureHash",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getRouter",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "guardian",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "initialize",
+    "inputs": [
+      {
+        "name": "owner_",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "guardian_",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "destinationSelector_",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "destinationChainId_",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "destinationEscrow_",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "commitmentPooling_",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "owner",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "pause",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "paused",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "prepareRedemption",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "id",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "proxiableUUID",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "quoteDispatch",
+    "inputs": [
+      {
+        "name": "id",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "redemptionOfCommitment",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "redemptionId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "remoteChainId",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "remoteChainSelector",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "remotePeer",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "renounceOwnership",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "scheduleUpgrade",
+    "inputs": [
+      {
+        "name": "implementation",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "scheduledCodehash",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "scheduledImplementation",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "supportsInterface",
+    "inputs": [
+      {
+        "name": "interfaceId",
+        "type": "bytes4",
+        "internalType": "bytes4"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "transferOwnership",
+    "inputs": [
+      {
+        "name": "newOwner",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "unpause",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "upgradeAvailableAt",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "upgradeTo",
+    "inputs": [
+      {
+        "name": "implementation",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "upgradeToAndCall",
+    "inputs": [
+      {
+        "name": "implementation",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "data",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "event",
+    "name": "AdminChanged",
+    "inputs": [
+      {
+        "name": "previousAdmin",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "newAdmin",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "BeaconUpgraded",
+    "inputs": [
+      {
+        "name": "beacon",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Initialized",
+    "inputs": [
+      {
+        "name": "version",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "OwnershipTransferred",
+    "inputs": [
+      {
+        "name": "previousOwner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "newOwner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "RedemptionDispatched",
+    "inputs": [
+      {
+        "name": "redemptionId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "messageId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "RedemptionPrepared",
+    "inputs": [
+      {
+        "name": "redemptionId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "payloadHash",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "RedemptionResultRecorded",
+    "inputs": [
+      {
+        "name": "redemptionId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "sequence",
+        "type": "uint64",
+        "indexed": true,
+        "internalType": "uint64"
+      },
+      {
+        "name": "state",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "enum VoucherRedemptionModule.RedemptionState"
+      },
+      {
+        "name": "escrowedUnits",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "holderApprovedServiceUnits",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "holderApprovedVoucherUnits",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "mutualReturnUnits",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "releasedUnits",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "returnedUnits",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "actionSucceeded",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      },
+      {
+        "name": "failureHash",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Upgraded",
+    "inputs": [
+      {
+        "name": "implementation",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "VoucherEndpointPinned",
+    "inputs": [
+      {
+        "name": "localChainId",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "router",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "remoteChainSelector",
+        "type": "uint64",
+        "indexed": false,
+        "internalType": "uint64"
+      },
+      {
+        "name": "remoteChainId",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "remotePeer",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "VoucherPauseChanged",
+    "inputs": [
+      {
+        "name": "paused",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "VoucherUpgradeCancelled",
+    "inputs": [],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "VoucherUpgradeScheduled",
+    "inputs": [
+      {
+        "name": "implementation",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "codehash",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "availableAt",
+        "type": "uint64",
+        "indexed": false,
+        "internalType": "uint64"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "error",
+    "name": "AttachedTokensForbidden",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ConflictingRedemptionResult",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ConflictingRedemptionTransport",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "EscrowAlreadyClosed",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ImmutableEndpointMismatch",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "IncorrectRedemptionFee",
+    "inputs": [
+      {
+        "name": "required",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "provided",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "InsufficientTransportFee",
+    "inputs": [
+      {
+        "name": "required",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "available",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "InvalidEndpoint",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidRedemptionResult",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidRouter",
+    "inputs": [
+      {
+        "name": "router",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "InvalidServiceAuthorization",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidVoucherPeer",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotPauseAuthority",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "RedemptionAlreadyPrepared",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SourceBuyerOnly",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "UnknownRedemption",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "UnsupportedRedemptionMessage",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "UpgradeNotReady",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "VoucherPaused",
+    "inputs": []
+  }
+]

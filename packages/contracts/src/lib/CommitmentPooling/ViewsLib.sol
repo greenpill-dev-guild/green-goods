@@ -2,9 +2,11 @@
 pragma solidity ^0.8.25;
 
 import { ICommitmentPoolingModule } from "../../interfaces/ICommitmentPoolingModule.sol";
+import { ICommitmentServiceOffers } from "../../interfaces/ICommitmentServiceOffers.sol";
 import { CommitmentPoolingCyclesLib } from "./CyclesLib.sol";
 import { CommitmentPoolingGuardLib } from "./GuardLib.sol";
 import { CommitmentPoolingSeriesLib } from "./SeriesLib.sol";
+import { CommitmentPoolingServiceOfferStorageLib } from "./ServiceOfferStorageLib.sol";
 
 /// @title CommitmentPoolingViewsLib
 /// @notice Deployed behavior library: the struct- and array-returning read views.
@@ -13,6 +15,62 @@ import { CommitmentPoolingSeriesLib } from "./SeriesLib.sol";
 ///      see `CommitmentPoolingAccess._forwardView`. Scalar views stay module-side where a plain
 ///      mapping read is already minimal. Runs via DELEGATECALL from `CommitmentPoolingModule`.
 library CommitmentPoolingViewsLib {
+    function getServiceOfferTerms(
+        mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment commitment) storage commitments,
+        uint256 commitmentId
+    )
+        external
+        view
+        returns (ICommitmentServiceOffers.ServiceOfferTerms memory)
+    {
+        CommitmentPoolingGuardLib.requireCommitment(commitments, commitmentId);
+        return CommitmentPoolingServiceOfferStorageLib.state().terms[commitmentId];
+    }
+
+    function getServiceClaimConsent(
+        mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment commitment) storage commitments,
+        uint256 commitmentId,
+        address buyer
+    )
+        external
+        view
+        returns (ICommitmentServiceOffers.ServiceClaimConsent memory)
+    {
+        CommitmentPoolingGuardLib.requireCommitment(commitments, commitmentId);
+        return CommitmentPoolingServiceOfferStorageLib.state().claimConsent[commitmentId][buyer];
+    }
+
+    function getAcceptedServiceTerms(
+        mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment commitment) storage commitments,
+        uint256 commitmentId
+    )
+        external
+        view
+        returns (ICommitmentServiceOffers.AcceptedServiceTerms memory accepted)
+    {
+        ICommitmentPoolingModule.Commitment storage commitment =
+            CommitmentPoolingGuardLib.requireCommitment(commitments, commitmentId);
+        CommitmentPoolingServiceOfferStorageLib.State storage state = CommitmentPoolingServiceOfferStorageLib.state();
+        if (state.acceptedConsent[commitmentId].termsRevision == 0) return accepted;
+        accepted.offer = state.terms[commitmentId];
+        accepted.consent = state.acceptedConsent[commitmentId];
+        if (
+            commitment.counterparty == address(0)
+                || commitment.counterpartyKind != ICommitmentPoolingModule.ClaimType.Individual
+                || commitment.payerGarden != accepted.consent.buyerGarden
+                || accepted.offer.revision != accepted.consent.termsRevision
+                || accepted.offer.termsHash != accepted.consent.termsHash
+        ) {
+            revert ICommitmentServiceOffers.ServiceClaimConsentMismatch(commitmentId, commitment.counterparty);
+        }
+        accepted.buyer = commitment.counterparty;
+        accepted.serviceRecipient = commitment.counterparty;
+        accepted.providerGarden = commitment.providerGarden;
+        accepted.serviceUnits = commitment.targetUnits;
+        accepted.unitLabelHash = keccak256(bytes(commitment.unitLabel));
+        accepted.gdPrice = commitment.consideration.amount;
+    }
+
     function getCommitment(
         mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment commitment) storage commitments,
         uint256 commitmentId

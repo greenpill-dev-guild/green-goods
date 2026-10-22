@@ -69,6 +69,119 @@
           ]
         }
       ]
+    },
+    {
+      "contract": "CommitmentPoolingModule",
+      "source": "src/lib/CommitmentPooling/ServiceOfferStorageLib.sol",
+      "namespace": "green.goods.commitment.service-offers.v1",
+      "struct": "State",
+      "constant": "STORAGE_SLOT",
+      "slot": "0x24ca80d21f1705094d1274ffc56402fbe8dcf0f5d16f72308874eba3e38f6e00",
+      "members": [
+        "mapping(uint256 commitmentId => Service.ServiceOfferTerms terms) terms",
+        "mapping(uint256 commitmentId => mapping(address buyer => Service.ServiceClaimConsent consent)) claimConsent",
+        "mapping(uint256 commitmentId => Service.ServiceClaimConsent consent) acceptedConsent"
+      ],
+      "referencedStructs": [
+        {
+          "source": "src/interfaces/ICommitmentServiceOffers.sol",
+          "struct": "ServiceOfferTermsInput",
+          "members": [
+            "ServicePaymentRoute route",
+            "bytes32 serviceTermsRef",
+            "bytes32 remedyTermsRef",
+            "uint256 voucherChainId",
+            "address voucherIssuer",
+            "address voucherToken",
+            "uint256 voucherUnits"
+          ]
+        },
+        {
+          "source": "src/interfaces/ICommitmentServiceOffers.sol",
+          "struct": "ServiceOfferTerms",
+          "members": ["uint64 revision", "bytes32 termsHash", "ServiceOfferTermsInput terms"]
+        },
+        {
+          "source": "src/interfaces/ICommitmentServiceOffers.sol",
+          "struct": "ServiceClaimConsent",
+          "members": [
+            "uint64 termsRevision",
+            "uint64 requestNonce",
+            "address buyerGarden",
+            "address voucherHolder",
+            "bytes32 termsHash",
+            "bytes32 claimHash"
+          ]
+        }
+      ]
+    },
+    {
+      "contract": "SettlementModule",
+      "source": "src/lib/Settlement/PersonalPurchaseStorageLib.sol",
+      "namespace": "green.goods.settlement.personal-service-purchases.v1",
+      "struct": "State",
+      "constant": "_STATE_SLOT",
+      "slot": "0x64a93a3248f51fd3aeb9fbdc8092d4a605842f1fe011ff3dab37abb5618add00",
+      "members": [
+        "mapping(uint256 fundingId => Personal.PersonalServicePurchase purchase) purchases",
+        "mapping(bytes32 purchaseId => uint256 fundingId) fundingOfPurchase",
+        "mapping(bytes32 receiptKey => uint256 fundingId) fundingOfVerifiedReceipt"
+      ],
+      "referencedStructs": [
+        {
+          "source": "src/interfaces/ISettlementPersonalServicePurchases.sol",
+          "struct": "PersonalPurchaseTerms",
+          "members": [
+            "uint8 version",
+            "bytes32 purchaseId",
+            "uint256 sourceChainId",
+            "address sourceModule",
+            "uint256 commitmentId",
+            "uint64 termsRevision",
+            "bytes32 termsHash",
+            "bytes32 claimHash",
+            "uint64 requestNonce",
+            "address buyer",
+            "address recipient",
+            "address buyerGarden",
+            "address providerGarden",
+            "uint64 destinationChainId",
+            "address token",
+            "uint256 price",
+            "address custodySafe",
+            "address authorizedDepositor",
+            "address refundAccount",
+            "uint256 disclosedGrossAmount",
+            "uint256 disclosedNetAmount"
+          ]
+        },
+        {
+          "source": "src/interfaces/ISettlementPersonalServicePurchases.sol",
+          "struct": "VerifiedCeloDeposit",
+          "members": [
+            "uint64 chainId",
+            "address token",
+            "bytes32 transactionHash",
+            "uint32 logIndex",
+            "uint64 blockNumber",
+            "bytes32 blockHash",
+            "address depositingAccount",
+            "address custodySafe",
+            "uint256 grossDebit",
+            "uint256 receivedAmount"
+          ]
+        },
+        {
+          "source": "src/interfaces/ISettlementPersonalServicePurchases.sol",
+          "struct": "PersonalServicePurchase",
+          "members": [
+            "PersonalPurchaseTerms terms",
+            "VerifiedCeloDeposit deposit",
+            "PersonalPurchaseOutcome outcome",
+            "uint256 payoutPlanId"
+          ]
+        }
+      ]
     }
   ]
 }
