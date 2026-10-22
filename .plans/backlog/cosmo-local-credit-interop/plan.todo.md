@@ -21,11 +21,17 @@ reuse, failure cases and proof limits before implementation. Use the existing br
 preserve concurrent work and required signing, and commit validated owned work locally.
 
 - [x] Inspect current implementation and reconcile this explicit pilot authority.
-- [ ] Prove an individual Request earns a whole redeemable voucher, with optional separate G$.
-- [ ] Prove direct redemption and actual pinned voucher A → B exchange in one pool, then redemption.
-- [ ] Connect the member rehearsal through one observed balance ledger; expose terms and shortages.
-- [ ] Prove independent failures/acks/retries and preserve consent, escrow and final-allocation guards.
-- [ ] Capture labeled rendered proof and all repository-selected checks, then signed local receipts.
+- [x] Prove an individual Request earns a whole redeemable voucher, with optional separate G$.
+- [x] Prove direct redemption and actual pinned voucher A → B exchange in one pool, then redemption.
+- [x] Connect the member rehearsal through one observed balance ledger; expose terms and shortages.
+- [x] Prove independent failures/acks/retries and preserve consent, escrow and final-allocation guards.
+- [x] Capture labeled rendered proof and all repository-selected checks, then signed local receipts.
+
+All selected critical runtime suites pass. Full branch verification remains open for unchanged
+contract-source lengths relative to origin/develop and three unrelated concurrent Admin stories;
+see the pilot handoff. No baseline or release gate was waived.
+
+- [ ] Reconcile those branch gates in the owning lanes before a full readiness claim.
 
 Helper provenance, actual-member signing/provider/sponsorship/recovery, issuer approvals and live
 release gates remain open. Earlier signed migration receipts are historical; refresh applicable

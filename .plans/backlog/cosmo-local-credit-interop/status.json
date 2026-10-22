@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-08-25T06:09:38.829Z",
-    "updated_at": "2026-10-22T21:46:46.978338+00:00"
+    "updated_at": "2026-10-22T22:41:15.225Z"
   },
   "links": {
     "brief": "brief.md",
@@ -37,7 +37,8 @@
     "service_access_integration": "handoffs/codex-service-access-integration.md",
     "voucher_reconciliation": "handoffs/codex-voucher-reconciliation.md",
     "member_issuer_readiness": "handoffs/codex-member-issuer-readiness.md",
-    "local_voucher_pilot": "handoffs/codex-local-voucher-pilot.md"
+    "local_voucher_pilot": "handoffs/codex-local-voucher-pilot.md",
+    "local_voucher_pilot_validation": "handoffs/codex-local-voucher-pilot-validation.json"
   },
   "linear": {
     "parentIssue": "RESR-73",
@@ -85,6 +86,7 @@
     "depends_on_features": ["commitment-pooling", "community-interface"]
   },
   "notes": [
+    "22 October pilot local implementation is committed in 92e861f11, 8b1a32a4c, 731fe8945 and 66a3844be, all signatures G. Real pinned CLC composition 16/16, earned 8/8, Shared 55/55 and Client 48/48 focused pass. Full critical runtime suites and contracts verifier pass; the selected origin/develop checkpoint remains failed for unchanged 387/389-line service modules and compound story checks lack three unrelated concurrent Admin stories. Pilot-delta structure and standalone story quality/build/render pass. No guard/baseline waiver. Same-member DEV ledger only; actual member/helper/provider/sponsorship/recovery and COM-46/private issuer/live gates remain open. All lane statuses, owners, manual blockers and overall backlog are preserved. Exact working-tree/commit attribution and proof limits are in the pilot validation record.",
     "22 October: user explicitly dispatched local voucher pilot implementation in the existing feature/cosmo-local-contracts checkout, with signed local commits and no live authority. Voucher-led individual Request rewards, optional independently tracked G$, direct redemption and one shared Gnosis pool voucher-to-voucher exchange are selected. Existing source/quote interfaces and escrow are reused; local connected proof/member state are missing. Focused gap map is handoffs/codex-local-voucher-pilot.md. Preserve unrelated Auth/public-site/Shared manifest/Portuguese edits, same member address and all manual/live/issuer/release blockers. No general multi-currency/fiat, mixed checkout or G$-to-voucher work is dispatched.",
     "22 October UTC: user dispatched member-signing and issuer-readiness proof and requests local signed commits, superseding the prior uncommitted-only preference. Fresh Gnosis100 block48879904 has no selected WebAuthn validator; both factory simulation paths revert. Exact fictional initializer derives the same address on Arbitrum/Gnosis/Celo; control deployments simulate successfully on Arbitrum/Celo. This proves no actual member control/signing/sponsorship/recovery. Six focused files pass42tests; selected routine QA passes4/4 fresh with no mandatory critical override for test-only additions. COM-46 remains Todo; real terms/capacity/identity/approval references unavailable for each issuer. Signing/keyring policy retained for user terminal; previous safeguards source hashes unchanged. Contracts in_progress, overall backlog and every unrelated/manual/live/release blocker preserved. See handoffs/codex-member-issuer-readiness.md. User confirmed no approved issuer evidence yet; record the gaps.",
     "2026-10-22 04:22 UTC: Bounded voucher safeguards reconciliation is implemented and verified locally after signed checkpoint e7cd49d6. Final selector passes 6/6 fresh, zero reused/unrun/changed inputs, retaining all four mandatory contract overrides. Package and verifier each pass 2191 Solidity, 3 production G$ gas, 31 CLI and 331 script tests. Fresh Gnosis41/Celo12, all sizes, 16 layouts/eight namespaces, full consumers and eight global components pass; failed runs and exact commands remain recorded. Final claim gas134797<135000, unchanged ceiling/profile; combined opt-in and all140 focused cases pass. Brave mock-auth and final Storybook proof are labeled separately from unproved member signing. Every new change stays local and uncommitted; contracts in_progress, overall backlog and all unrelated/manual/COM-46/live/release blockers stay unchanged. Next bounded work is member signing and issuer readiness, with broader issuer governance undecided. See handoffs/codex-voucher-reconciliation.md.",
@@ -130,16 +132,16 @@
       "handoff": "handoffs/claude-ui.md",
       "tdd": {
         "mode": "required",
-        "status": "pending",
+        "status": "green_recorded",
         "red": {
-          "command": "",
-          "evidence": ""
+          "command": "PATH=/private/tmp/green-goods-local-integration-20261021/bin:$PATH bun --no-env-file run --cwd packages/client test -- src/__tests__/views/VoucherPilotJourney.test.tsx",
+          "evidence": "Initial new-component collection failed for missing VoucherPilotJourney module (client-red.log); this is not four executed failing behavior cases. Executed five-case behavior RED is recorded in state_api."
         },
         "green": {
-          "command": "",
-          "evidence": ""
+          "command": "PATH=/private/tmp/green-goods-local-integration-20261021/bin:$PATH bun --no-env-file run --cwd packages/client test -- src/__tests__/views/VoucherPilotJourney.test.tsx src/__tests__/views/ServiceAccess.test.tsx",
+          "evidence": "48/48 focused cases, runtime and test typechecks pass. Full Client1783pass. Actual DEV adapter interactive Storybook walk plus repaired docs render, labeled Brave/Storybook; source66a3844be. No actual member signing proof."
         },
-        "note": "The 22 October local voucher pilot is now explicitly authorized and tracked in handoffs/codex-local-voucher-pilot.md; record its bounded RED/GREEN evidence separately. The broader lane/manual blocker remains unchanged."
+        "note": "Bounded local rendering/integration proof only; initial collection failure is labeled honestly. Keep broader UI lane/manual block and all global/live gates."
       },
       "skill_tags": ["ui", "frontend-design", "react"],
       "manual_blocked": true
@@ -152,16 +154,16 @@
       "handoff": "handoffs/codex-state-api.md",
       "tdd": {
         "mode": "required",
-        "status": "pending",
+        "status": "green_recorded",
         "red": {
-          "command": "",
-          "evidence": ""
+          "command": "PATH=/private/tmp/green-goods-local-integration-20261021/bin:$PATH bun --no-env-file run --cwd packages/shared test -- src/__tests__/service-access-pilot.test.ts",
+          "evidence": "Five executed cases failed because requests1025/1026 were not service rehearsal fixtures; /private/tmp/green-goods-local-pilot-20261022/member/shared-red.log. This is behavior RED, not fixture compile failure."
         },
         "green": {
-          "command": "",
-          "evidence": ""
+          "command": "PATH=/private/tmp/green-goods-local-integration-20261021/bin:$PATH bun --no-env-file run --cwd packages/shared test -- src/__tests__/service-access-pilot.test.ts src/__tests__/service-access.test.ts src/__tests__/service-access-voucher.test.ts src/__tests__/service-access-voucher-recovery.test.ts src/__tests__/useServiceAccess.test.tsx src/__tests__/commitment-demo-mode.test.ts",
+          "evidence": "55/55 focused cases pass; full Shared7563pass16skip. Signed owned source66a3844be; working-tree proof and unrelated PT difference explicitly recorded. See codex-local-voucher-pilot.md and validation JSON."
         },
-        "note": "The 22 October local voucher pilot is now explicitly authorized and tracked in handoffs/codex-local-voucher-pilot.md; record its bounded RED/GREEN evidence separately. The broader lane/manual blocker remains unchanged."
+        "note": "Bounded DEV pilot only. Preserve broader lane status, owner, manual blocker and all actual-member/issuer/live/release gates. Global source/story guard failures remain open."
       },
       "skill_tags": ["react", "tanstack-query", "data-layer"],
       "manual_blocked": true
@@ -183,7 +185,7 @@
           "command": "bun run test",
           "evidence": "Final 2026-10-22 critical checkpoint04:03:56-04:22:34 UTC passes6/6 fresh with all4mandatory contract overrides, zero reused/unrun/changed inputs. bun run test with cwd=packages/contracts passes2191 Solidity,3 production G$ gas,31 CLI,331 scripts; nested verify-production --skip-e2e --skip-dry-run repeats those counts. Exact argv/config/hashes: /private/tmp/green-goods-voucher-safeguards-20261021/critical-recheck.{json,log}. PATH no-env shim, FOUNDRY_OFFLINE=true, TURBO_FORCE=true, VITEST_MAX_WORKERS=1, FOUNDRY_EXTRA_OUTPUT storageLayout; no global profile change. Final140focused+lint pass; claim134797<135000. Fresh sizes/16layouts/8namespaces/Gnosis41 at100/48848261/Celo12 at42220/75178393 pass without source mismatch. Full consumer and eight global components plus labeled Brave mock-auth/Storybook proof pass across distinct fresh runs; no aggregate24 pass invented. Details and failed commands: handoffs/codex-voucher-reconciliation.md. Local uncommitted evidence, no live/member-signing/full-lifecycle certification."
         },
-        "note": "Bounded local safeguards reconciliation complete; keep contracts in_progress, overall backlog, every unrelated/manual/COM-46/live/release blocker unchanged. All new changes local and uncommitted; next is member-signing and issuer-readiness proof."
+        "note": "Bounded local safeguards reconciliation complete; keep contracts in_progress, overall backlog, every unrelated/manual/COM-46/live/release blocker unchanged. All new changes local and uncommitted; next is member-signing and issuer-readiness proof. The22October local pilot adds proof of existing runtime, not a manufactured runtime RED; exact signed source and open branch/live gates are in codex-local-voucher-pilot.md."
       },
       "skill_tags": ["contracts"],
       "manual_blocked": false
@@ -424,6 +426,22 @@
       "status": "proof_recorded_with_open_gates",
       "branch": "feature/cosmo-local-contracts",
       "note": "22 October UTC: user dispatched member-signing and issuer-readiness proof and requests local signed commits, superseding the prior uncommitted-only preference. Fresh Gnosis100 block48879904 has no selected WebAuthn validator; both factory simulation paths revert. Exact fictional initializer derives the same address on Arbitrum/Gnosis/Celo; control deployments simulate successfully on Arbitrum/Celo. This proves no actual member control/signing/sponsorship/recovery. Six focused files pass42tests; selected routine QA passes4/4 fresh with no mandatory critical override for test-only additions. COM-46 remains Todo; real terms/capacity/identity/approval references unavailable for each issuer. Signing/keyring policy retained for user terminal; previous safeguards source hashes unchanged. Contracts in_progress, overall backlog and every unrelated/manual/live/release blocker preserved. See handoffs/codex-member-issuer-readiness.md. User confirmed no approved issuer evidence yet; record the gaps."
+    },
+    {
+      "timestamp": "2026-10-22T22:41:14.565Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Bounded DEV pilot only. Preserve broader lane status, owner, manual blocker and all actual-member/issuer/live/release gates. Global source/story guard failures remain open."
+    },
+    {
+      "timestamp": "2026-10-22T22:41:15.225Z",
+      "actor": "codex",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Bounded local rendering/integration proof only; initial collection failure is labeled honestly. Keep broader UI lane/manual block and all global/live gates."
     }
   ]
 }

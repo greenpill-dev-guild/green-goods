@@ -1,5 +1,18 @@
 # Earned-voucher contracts slice
 
+**22 October local pilot continuation:** the [current pilot handoff](codex-local-voucher-pilot.md)
+owns the authorized connected reward/exchange/redemption proof and DEV member journey.
+Individual Request tests are signed locally at `8b1a32a4c`; the scope checkpoint is `92e861f11`.
+Connected pinned proof is `731fe8945` and the DEV member pilot is `66a3844be`. Full critical
+runtime proof passes; branch source-length and unrelated Admin story coverage gates remain open.
+The [validation record](codex-local-voucher-pilot-validation.json) preserves exact configuration
+and the difference between working-tree proof and signed source-blob attribution.
+The dedicated public-key agent permits scoped approved signing without reading private key files;
+signing stays required. Current branch remains `feature/cosmo-local-contracts`, baseline
+`origin/develop` at `d7bbbf00d6af63f39a1aea6fe84fb6f2bbcc72be`. The original status and test
+receipts below are dated history. All member, issuer, helper-provenance and live release gates
+remain open; this is not full voucher lifecycle completion.
+
 **Status:** earned-voucher slice implemented and locally verified, left uncommitted for testing. No commit-attributed
 validation receipt, release readiness or full voucher lifecycle completion is claimed.
 **Branch:** `feature/cosmo-local-contracts`, reconciled and fast-forwarded to `origin/develop`
