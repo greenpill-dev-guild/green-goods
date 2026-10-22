@@ -48,6 +48,7 @@ import {
 import { publicKeys } from "../../config/query-keys/public";
 import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { logger } from "../../modules/app/logger";
+import { createPublicReportingRead } from "../../modules/commitment-pooling/public-record-exclusions";
 import { getPublicGardenAssessments } from "./publicReportingRecords";
 import { getGardens } from "../../modules/data/greengoods";
 import { fetchListedApprovedWorks } from "./listedApprovedWorks";
@@ -74,9 +75,10 @@ export function usePublicStats(chainId: number = DEFAULT_CHAIN_ID) {
   return useQuery({
     queryKey: publicKeys.stats(chainId),
     queryFn: async (): Promise<PublicStats> => {
+      const reporting = createPublicReportingRead(chainId);
       const [gardensResult, assessmentsResult] = await Promise.allSettled([
         getGardens(),
-        getPublicGardenAssessments(undefined, chainId),
+        getPublicGardenAssessments(undefined, chainId, reporting),
       ]);
 
       if (gardensResult.status === "rejected") {
@@ -105,7 +107,8 @@ export function usePublicStats(chainId: number = DEFAULT_CHAIN_ID) {
       const approved = await fetchListedApprovedWorks(
         queryClient,
         visibleGardens.map((garden) => garden.id),
-        chainId
+        chainId,
+        reporting
       );
       // Every count now depends on establishing which gardens have approved work.
       if (approved.partial) {

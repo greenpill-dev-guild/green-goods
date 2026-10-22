@@ -224,13 +224,24 @@ export function eventType(eventName: string): CommitmentEvent["eventType"] {
 
 export async function putAudit(event: RuntimeEvent, context: PoolingContext): Promise<boolean> {
   const id = eventAuditId(event.chainId, getTxHash(event.transaction), event.logIndex);
-  if (await context.CommitmentEvent.get(id)) return false;
+  const existing = await context.CommitmentEvent.get(id);
+  // Link provenance survives unlinking and reassignment of the mutable Work attribution.
+  const workUID =
+    event.eventName === "WorkLinked" ? value<string>(event, "workUID").toLowerCase() : undefined;
+  if (existing) {
+    // Replaying a legacy audit repairs its payload without applying lifecycle effects twice.
+    if (workUID && existing.data !== workUID)
+      context.CommitmentEvent.set({ ...existing, data: workUID });
+    return false;
+  }
   const poolId = optionalBigint(event, "poolId");
   const cycleId = optionalBigint(event, "cycleId");
   const commitmentId = optionalBigint(event, "commitmentId");
-  const data = ["reasonCID", "reason", "cid", "metadataCID", "payoutRef"]
-    .map((key) => event.params[key])
-    .find((candidate): candidate is string => typeof candidate === "string");
+  const data =
+    workUID ??
+    ["reasonCID", "reason", "cid", "metadataCID", "payoutRef"]
+      .map((key) => event.params[key])
+      .find((candidate): candidate is string => typeof candidate === "string");
   context.CommitmentEvent.set({
     id,
     chainId: event.chainId,

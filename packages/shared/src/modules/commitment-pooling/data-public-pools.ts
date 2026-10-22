@@ -8,8 +8,8 @@ import { publicRehearsalCycles } from "../../config/public-record-visibility";
 import {
   countedMilestone,
   excludedUnitTotals,
-  readPublicCommitmentExclusions,
-  publicRehearsalRecordLinks,
+  createPublicReportingRead,
+  type PublicReportingRead,
   subtractPublicCount,
 } from "./public-record-exclusions";
 import type {
@@ -248,31 +248,33 @@ function newestFirst(
 async function hasCommitmentCertificates(
   chainId: number,
   garden: Address,
-  excluded: RawRow[]
+  reporting: PublicReportingRead
 ): Promise<boolean> {
-  const links = publicRehearsalRecordLinks(chainId, excluded);
-  const query = `query PublicGardenCommitmentCertificates($chainId: Int!, $garden: String!, $excludedRecords: [Hypercert_bool_exp!]!) {
+  try {
+    const links = await reporting.links();
+    const query = `query PublicGardenCommitmentCertificates($chainId: Int!, $garden: String!, $excludedRecords: [Hypercert_bool_exp!]!) {
     Hypercert(where: { chainId: { _eq: $chainId }, garden: { _eq: $garden }, bundleKind: { _eq: COMMITMENT }, metadataReconciliationRequired: { _eq: false },
       _not: { _or: $excludedRecords }
     }, limit: 1) { id }
   }`;
-  const result = await greenGoodsIndexer.query<Record<string, RawRow[]>>(
-    query,
-    {
-      chainId,
-      garden: garden.toLowerCase(),
-      excludedRecords: hypercertExclusionClauses(links),
-    },
-    "getPublicGardenCommitmentCertificates"
-  );
-  if (result.error) {
-    logger.warn("[getPublicGardenPool] commitment certificate read failed", {
-      error: result.error,
+    const result = await greenGoodsIndexer.query<Record<string, RawRow[]>>(
+      query,
+      {
+        chainId,
+        garden: garden.toLowerCase(),
+        excludedRecords: hypercertExclusionClauses(links),
+      },
+      "getPublicGardenCommitmentCertificates"
+    );
+    if (result.error) throw result.error;
+    return (result.data?.Hypercert ?? []).length > 0;
+  } catch (error) {
+    logger.warn("[getPublicGardenPool] commitment certificate eligibility is unavailable", {
+      error,
       garden,
     });
     return false;
   }
-  return (result.data?.Hypercert ?? []).length > 0;
 }
 
 export async function getPublicGardenPool(
@@ -294,7 +296,11 @@ export async function getPublicGardenPool(
   if (!poolRow) return null;
   let pool = mapPublicPool(poolRow);
   const rehearsalCycles = publicRehearsalCycles(chainId, pool.poolId);
-  const excluded = await readPublicCommitmentExclusions(chainId, pool.poolId);
+  const reporting = createPublicReportingRead(chainId);
+  const excluded =
+    rehearsalCycles.length === 0
+      ? []
+      : (await reporting.commitments()).filter((row) => integer(row.poolId) === pool.poolId);
 
   const detailsQuery = `query PublicGardenPoolDetails($chainId: Int!, $poolId: numeric!) {
     CommitmentCycle(where: { chainId: { _eq: $chainId }, poolId: { _eq: $poolId }, seedSeen: { _eq: true }, state: { _in: [OPEN, RECONCILED, COMPOSTED] } }) { ${PUBLIC_CYCLE_FIELDS} }
@@ -378,7 +384,7 @@ export async function getPublicGardenPool(
 
   return {
     pool,
-    hasCommitmentCertificates: await hasCommitmentCertificates(chainId, garden, excluded),
+    hasCommitmentCertificates: await hasCommitmentCertificates(chainId, garden, reporting),
     openSeason:
       cycles.find((cycle) => cycle.state === "OPEN" && cycle.cycleType === "SEASON") ?? null,
     openCampaigns: cycles

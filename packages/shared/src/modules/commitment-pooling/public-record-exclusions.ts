@@ -42,7 +42,68 @@ export async function readPublicCommitmentExclusions(chainId: number, poolId?: b
   }
 }
 
-export function publicRehearsalRecordLinks(chainId: number, rows: readonly RawRow[]) {
+async function readRehearsalWorkHistory(chainId: number, rows: readonly RawRow[]) {
+  if (rows.length === 0) return [];
+  const uids = new Set<string>();
+  const deadline = AbortSignal.timeout(30000);
+  let after = "";
+  while (true) {
+    deadline.throwIfAborted();
+    const result = await greenGoodsIndexer.query<{ CommitmentEvent?: RawRow[] }>(
+      `query PublicRehearsalWorkHistory($chainId: Int!, $commitments: [String!]!, $after: String!) {
+        CommitmentEvent(where: { chainId: { _eq: $chainId }, commitmentEntityId: { _in: $commitments },
+          eventType: { _eq: WORK_LINKED }, id: { _gt: $after } }, order_by: { id: asc }, limit: 100) { id data }
+      }`,
+      { chainId, commitments: rows.map((row) => String(row.id)), after },
+      "getPublicRehearsalWorkHistory"
+    );
+    if (result.error) throw result.error;
+    const page = result.data?.CommitmentEvent;
+    if (!page) throw new Error("Rehearsal Work link history is unavailable");
+    for (const event of page) {
+      if (typeof event.id !== "string" || event.id <= after)
+        throw new Error("Rehearsal Work link history did not advance");
+      if (
+        typeof event.data !== "string" ||
+        !/^0x[0-9a-f]{64}$/i.test(event.data) ||
+        /^0x0+$/i.test(event.data)
+      ) {
+        throw new Error(
+          "Rehearsal Work link history is incomplete; replay the indexer audit events"
+        );
+      }
+      after = event.id;
+      uids.add(event.data.toLowerCase());
+    }
+    if (page.length < 100) return [...uids];
+  }
+}
+
+/** One fresh, lazy snapshot per reporting operation; no global cache or failed-read retention. */
+export function createPublicReportingRead(chainId: number) {
+  let rows: ReturnType<typeof readPublicCommitmentExclusions> | undefined;
+  let links: Promise<ReturnType<typeof publicRehearsalRecordLinks>> | undefined;
+  const commitments = () => (rows ??= readPublicCommitmentExclusions(chainId));
+  return {
+    commitments,
+    links: () =>
+      (links ??= commitments().then(async (records) =>
+        publicRehearsalRecordLinks(
+          chainId,
+          records,
+          await readRehearsalWorkHistory(chainId, records)
+        )
+      )),
+  };
+}
+
+export type PublicReportingRead = ReturnType<typeof createPublicReportingRead>;
+
+export function publicRehearsalRecordLinks(
+  chainId: number,
+  rows: readonly RawRow[],
+  historicalWorkUIDs: readonly string[] = []
+) {
   const workUIDs = new Set(publicReviewedWorkExclusionIds(chainId));
   const assessmentUIDs = new Set<string>();
   const addUID = (set: Set<string>, value: unknown) => {
@@ -50,6 +111,7 @@ export function publicRehearsalRecordLinks(chainId: number, rows: readonly RawRo
       set.add(value.toLowerCase());
     }
   };
+  for (const uid of historicalWorkUIDs) addUID(workUIDs, uid);
   for (const row of rows) {
     if (Array.isArray(row.workUIDs)) for (const uid of row.workUIDs) addUID(workUIDs, uid);
     addUID(assessmentUIDs, row.assessmentUID);

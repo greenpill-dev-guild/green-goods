@@ -5,7 +5,11 @@ import * as yaml from "js-yaml";
 import { after } from "mocha";
 
 import { routeEvent } from "../src/handlers/commitmentPool";
-import type { PoolingContext, RuntimeEvent } from "../src/handlers/commitment-pool-runtime";
+import {
+  putAudit,
+  type PoolingContext,
+  type RuntimeEvent,
+} from "../src/handlers/commitment-pool-runtime";
 import {
   Addresses,
   CommitmentPoolingModule,
@@ -96,6 +100,76 @@ async function frozenEventBoundary(): Promise<{
 }
 
 describe("Commitment Pooling direct event coverage", () => {
+  it("retains Work link provenance after unlinking and reassignment", async () => {
+    const workUID = hash(901);
+    const db = await processEvents(createTestIndexer(), [
+      CommitmentPoolingModule.WorkLinked.createMockEvent({
+        commitmentId: 90n,
+        workUID,
+        contributor: address(4),
+        requirementIndex: 0n,
+        linker: address(4),
+        operationKey: hash(902),
+        mockEventData: eventData(90),
+      }),
+      CommitmentPoolingModule.WorkUnlinked.createMockEvent({
+        commitmentId: 90n,
+        workUID,
+        unlinker: address(4),
+        mockEventData: eventData(91),
+      }),
+      CommitmentPoolingModule.WorkLinked.createMockEvent({
+        commitmentId: 91n,
+        workUID,
+        contributor: address(4),
+        requirementIndex: 0n,
+        linker: address(4),
+        operationKey: hash(903),
+        mockEventData: eventData(92),
+      }),
+    ]);
+    assert.deepEqual((await db.Commitment.get(`${CHAIN_ID}-90`))?.workUIDs, []);
+    assert.equal(
+      (await db.CommitmentWorkAttribution.get(`${CHAIN_ID}-${workUID}`))?.commitmentId,
+      91n
+    );
+    const links = (await db.CommitmentEvent.getAll()).filter(
+      (event) => event.eventType === "WORK_LINKED"
+    );
+    assert.equal(links.length, 2);
+    assert.ok(links.every((event) => event.data === workUID));
+    assert.ok(links.some((event) => event.commitmentId === 90n));
+  });
+
+  it("repairs a legacy link audit on replay without applying the event again", async () => {
+    const rows = new Map<string, Record<string, unknown>>();
+    const context = {
+      CommitmentEvent: {
+        get: async (id: string) => rows.get(id),
+        set: (row: Record<string, unknown> & { id: string }) => rows.set(row.id, row),
+      },
+    } as unknown as PoolingContext;
+    const event = runtimeEvent(
+      CommitmentPoolingModule.WorkLinked.createMockEvent({
+        commitmentId: 90n,
+        workUID: hash(904),
+        contributor: address(4),
+        requirementIndex: 0n,
+        linker: address(4),
+        operationKey: hash(905),
+        mockEventData: eventData(93),
+      }),
+      "WorkLinked"
+    );
+    assert.equal(await putAudit(event, context), true);
+    const [id, audit] = [...rows.entries()][0]!;
+    rows.set(id, { ...audit, data: undefined });
+    assert.equal(await putAudit(event, context), false);
+    assert.equal(rows.get(id)?.data, hash(904));
+    assert.equal(await putAudit(event, context), false);
+    assert.equal(rows.size, 1);
+  });
+
   it("keeps the frozen 58-event roster aligned with the indexed boundary", async () => {
     const { moduleEvents, registryEvents, settlementEvents, expected } =
       await frozenEventBoundary();

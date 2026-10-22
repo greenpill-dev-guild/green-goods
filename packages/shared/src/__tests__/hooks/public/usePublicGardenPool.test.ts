@@ -119,6 +119,8 @@ describe("public commitment pool reader", () => {
       name: `Name for ${cid.replace("ipfs://", "")}`,
     }));
     mocks.query.mockImplementation(async (_query, _variables, operation) => {
+      if (operation === "getPublicCommitmentExclusions") return { data: { Commitment: [] } };
+      if (operation === "getPublicRehearsalWorkHistory") return { data: { CommitmentEvent: [] } };
       if (operation === "getPublicGardenPool") return { data: { CommitmentPool: [POOL] } };
       return {
         data: {
@@ -230,6 +232,46 @@ describe("public commitment pool reader", () => {
     expect(containsAddressValue(result)).toBe(false);
   });
 
+  it("excludes another pool's rehearsal certificate without changing production pool counters", async () => {
+    const normal = mocks.query.getMockImplementation();
+    let includeProductionCertificate = false;
+    mocks.query.mockImplementation(async (...args) => {
+      if (args[2] === "getPublicCommitmentExclusions")
+        return { data: { Commitment: communityRehearsals() } };
+      if (args[2] === "getPublicGardenCommitmentCertificates") {
+        const clauses = args[1].excludedRecords;
+        const excludesQa = clauses.some(
+          (clause: { commitmentEntityIds?: { _contains: string[] } }) =>
+            clause.commitmentEntityIds?._contains.includes("42161-4")
+        );
+        return {
+          data: {
+            Hypercert: includeProductionCertificate
+              ? [{ id: "real" }]
+              : excludesQa
+                ? []
+                : [{ id: "qa" }],
+          },
+        };
+      }
+      return normal?.(...args);
+    });
+    const record = await getPublicGardenPool(42161, GARDEN);
+    expect(record?.pool.commitmentsFulfilled).toBe(6n);
+    expect(record?.pool.commitmentsOffered).toBe(8n);
+    expect(record?.hasCommitmentCertificates).toBe(false);
+    includeProductionCertificate = true;
+    expect((await getPublicGardenPool(42161, GARDEN))?.hasCommitmentCertificates).toBe(true);
+    mocks.query.mockImplementation(async (...args) =>
+      args[2] === "getPublicCommitmentExclusions"
+        ? { error: new Error("eligibility source offline") }
+        : normal?.(...args)
+    );
+    const unavailableCertificate = await getPublicGardenPool(42161, GARDEN);
+    expect(unavailableCertificate?.pool.commitmentsFulfilled).toBe(6n);
+    expect(unavailableCertificate?.hasCommitmentCertificates).toBe(false);
+  });
+
   it("keeps production cycles and fails rather than publishing an invalid correction", async () => {
     const normal = mocks.query.getMockImplementation();
     mocks.query.mockImplementation(async (...args) => {
@@ -315,6 +357,8 @@ describe("public commitment pool reader", () => {
       cycle(10 + index, "SEASON", "RECONCILED", 100 + index)
     );
     mocks.query.mockImplementation(async (_query, _variables, operation) => {
+      if (operation === "getPublicCommitmentExclusions") return { data: { Commitment: [] } };
+      if (operation === "getPublicRehearsalWorkHistory") return { data: { CommitmentEvent: [] } };
       if (operation === "getPublicGardenPool") return { data: { CommitmentPool: [POOL] } };
       return { data: { CommitmentCycle: indexedCycles, CommitmentUnitSummary: [] } };
     });
@@ -350,6 +394,8 @@ describe("usePublicGardenPool", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.query.mockImplementation(async (_query, _variables, operation) => {
+      if (operation === "getPublicCommitmentExclusions") return { data: { Commitment: [] } };
+      if (operation === "getPublicRehearsalWorkHistory") return { data: { CommitmentEvent: [] } };
       if (operation === "getPublicGardenPool") return { data: { CommitmentPool: [POOL] } };
       return { data: { CommitmentCycle: [], CommitmentUnitSummary: [] } };
     });
@@ -361,6 +407,8 @@ describe("usePublicGardenPool", () => {
       cycle(10 + index, "SEASON", "RECONCILED", 100 + index)
     );
     mocks.query.mockImplementation(async (_query, _variables, operation) => {
+      if (operation === "getPublicCommitmentExclusions") return { data: { Commitment: [] } };
+      if (operation === "getPublicRehearsalWorkHistory") return { data: { CommitmentEvent: [] } };
       if (operation === "getPublicGardenPool") return { data: { CommitmentPool: [POOL] } };
       return { data: { CommitmentCycle: [open, ...finished], CommitmentUnitSummary: [] } };
     });
@@ -441,6 +489,8 @@ describe("usePublicGardenPool", () => {
     expect(documents).toContain("limit: 1");
 
     mocks.query.mockImplementation(async (_query, _variables, operation) => {
+      if (operation === "getPublicCommitmentExclusions") return { data: { Commitment: [] } };
+      if (operation === "getPublicRehearsalWorkHistory") return { data: { CommitmentEvent: [] } };
       if (operation === "getPublicGardenPool") return { data: { CommitmentPool: [POOL] } };
       if (operation === "getPublicGardenCommitmentCertificates") {
         return { data: { Hypercert: [{ id: "42161-7" }] } };
@@ -454,6 +504,8 @@ describe("usePublicGardenPool", () => {
     // A failed linkage read cannot prove an anchor: it answers "no" and the
     // pool record stays publishable.
     mocks.query.mockImplementation(async (_query, _variables, operation) => {
+      if (operation === "getPublicCommitmentExclusions") return { data: { Commitment: [] } };
+      if (operation === "getPublicRehearsalWorkHistory") return { data: { CommitmentEvent: [] } };
       if (operation === "getPublicGardenPool") return { data: { CommitmentPool: [POOL] } };
       if (operation === "getPublicGardenCommitmentCertificates") {
         return { error: new Error("bundleKind not in hosted schema") };
@@ -467,6 +519,8 @@ describe("usePublicGardenPool", () => {
 
   it("reports an unavailable cycle name without discarding indexed cycle data", async () => {
     mocks.query.mockImplementation(async (_query, _variables, operation) => {
+      if (operation === "getPublicCommitmentExclusions") return { data: { Commitment: [] } };
+      if (operation === "getPublicRehearsalWorkHistory") return { data: { CommitmentEvent: [] } };
       if (operation === "getPublicGardenPool") return { data: { CommitmentPool: [POOL] } };
       return {
         data: {
@@ -495,6 +549,8 @@ describe("usePublicGardenPool", () => {
       cycle(10 + index, "SEASON", "RECONCILED", 100 + index)
     );
     mocks.query.mockImplementation(async (_query, _variables, operation) => {
+      if (operation === "getPublicCommitmentExclusions") return { data: { Commitment: [] } };
+      if (operation === "getPublicRehearsalWorkHistory") return { data: { CommitmentEvent: [] } };
       if (operation === "getPublicGardenPool") return { data: { CommitmentPool: [POOL] } };
       return { data: { CommitmentCycle: finished, CommitmentUnitSummary: [] } };
     });
@@ -523,6 +579,8 @@ describe("usePublicGardenPool", () => {
     });
 
     mocks.query.mockImplementation(async (_query, variables, operation) => {
+      if (operation === "getPublicCommitmentExclusions") return { data: { Commitment: [] } };
+      if (operation === "getPublicRehearsalWorkHistory") return { data: { CommitmentEvent: [] } };
       if (
         operation === "getPublicGardenPool" &&
         (variables as { garden?: string }).garden === OTHER_GARDEN.toLowerCase()
