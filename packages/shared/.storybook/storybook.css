@@ -48,6 +48,12 @@
  * untouched. Its hero photographs are served by prepare-design-assets.mjs. */
 @import "../../client/src/styles/editorial.css";
 
+/* The client's two faces, Plus Jakarta Sans and Inter, from the files the app
+ * serves itself (the same file client/src/index.css imports), so stories draw
+ * the product's own fonts, with no network too. Fraunces still loads in
+ * preview-head.html, as the client's index.html loads it. */
+@import "../../client/src/styles/fonts.css";
+
 /* Per-surface tokens (admin type scale + font + colour aliases, client button
  * corner scopes), keyed to the `data-surface` root attribute the `withSurface`
  * decorator sets. See surfaces.css for the parity contract. */

@@ -14,6 +14,7 @@
 @import "@green-goods/shared/styles/theme.css";
 @import "@green-goods/shared/styles/utilities.css";
 
+@import "./styles/fonts.css";
 @import "./styles/typography.css";
 @import "./styles/utilities.css";
 @import "./styles/animation.css";

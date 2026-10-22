@@ -297,8 +297,10 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
         envOptions: { envDir: rootDir, envPrefix: ["VITE_"] },
         maximumFileSizeToCacheInBytes: 2 * 1024 * 1024,
         // No JavaScript is precached here: the worker installs it from the
-        // shell tiers listed in pwa-shell-assets.json.
-        globPatterns: ["index.html", "assets/*.css", "pwa-shell-assets.json"],
+        // shell tiers listed in pwa-shell-assets.json. The faces travel with the
+        // stylesheet that names them, so a launch with no network draws them;
+        // check:pwa-precache fails a build that leaves one out.
+        globPatterns: ["index.html", "assets/*.css", "assets/*.woff2", "pwa-shell-assets.json"],
         globIgnores: [
           "**/*.map",
           "social/**",

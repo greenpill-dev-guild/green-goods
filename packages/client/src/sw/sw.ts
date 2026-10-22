@@ -23,7 +23,7 @@ self.__WB_DISABLE_DEV_LOGS = true;
 // probe and gateway photos never reach Workbox's router.
 const greenGoods = installGreenGoodsWorker(self);
 
-// The precached entry document and stylesheet, plus the navigation fallback.
+// The precached entry document, stylesheet and faces, plus the navigation fallback.
 // The worker is scoped to /home, so public pages never see this fallback.
 // It never claims open pages or skips waiting: the update prompt asks first.
 cleanupOutdatedCaches();

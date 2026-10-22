@@ -2,7 +2,7 @@
  * @vitest-environment happy-dom
  */
 
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -54,6 +54,27 @@ interface DetectOptions {
 /** The installed app's face link (index.html) and the media it starts with. */
 const FACE_LINK = INDEX_HTML.match(/<link\s+id="boot-pwa-face"[\s\S]*?\/>/)?.[0] ?? "";
 const INSTALLED_FACE_MEDIA = FACE_LINK.match(/media="([^"]+)"/)?.[1] ?? "";
+
+/**
+ * The index.html preload of one of the app's own font files. A font fetch runs in CORS mode, so
+ * the browser reuses a preload only when it says `crossorigin`; without it the face downloads twice.
+ */
+function fontPreload(file: string): string {
+  const href = `/src/styles/fonts/${file}`;
+  const link =
+    INDEX_HTML.match(
+      new RegExp(`<link\\s[^>]*href="${href.replaceAll(".", "\\.")}"[^>]*/>`)
+    )?.[0] ?? "";
+  expect(link).toMatch(/\brel="preload"/);
+  expect(link).toMatch(/\bas="font"/);
+  expect(link).toMatch(/\btype="font\/woff2"/);
+  expect(link).toMatch(/\scrossorigin[\s/>]/);
+  // The preload must name the file that fonts.css draws the face from, or it is wasted.
+  expect(existsSync(resolve(process.cwd(), href.slice(1)))).toBe(true);
+  const fontsCss = readFileSync(resolve(process.cwd(), "src/styles/fonts.css"), "utf8");
+  expect(fontsCss).toContain(`url("./fonts/${file}")`);
+  return link;
+}
 
 function runPresentationDetector({
   href,
@@ -242,17 +263,31 @@ function runController(
   };
 }
 
-describe("the installed app's face", () => {
+describe("the app's faces", () => {
+  it("serves Inter and Plus Jakarta Sans from the app, where the worker can precache them", () => {
+    // Only the website's serif still comes from Google Fonts.
+    const googleFamilies = [
+      ...INDEX_HTML.matchAll(/fonts\.googleapis\.com\/css2\?family=([^:&"]+)/g),
+    ].map((match) => match[1]);
+    expect(new Set(googleFamilies)).toEqual(new Set(["Fraunces"]));
+  });
+
+  it("keeps Inter on the website's critical path", () => {
+    // A browser tab starts the website's face while the HTML parses; an installed display,
+    // whose app draws Plus Jakarta Sans, does not fetch it.
+    expect(fontPreload("inter-latin-normal.woff2")).toMatch(/\bmedia="\(display-mode: browser\)"/);
+  });
+
   it("keeps Plus Jakarta Sans off the website's critical path", () => {
-    expect(FACE_LINK).toContain("family=Plus+Jakarta+Sans");
-    // Only an installed display applies the face before the detector runs, so a
-    // browser tab neither waits for its stylesheet nor fetches its font files.
+    expect(FACE_LINK).toBe(fontPreload("plus-jakarta-sans-latin-normal.woff2"));
+    // Only an installed display fetches the face before the detector runs, so a browser tab
+    // neither waits for it nor fetches its font files.
     expect(INSTALLED_FACE_MEDIA.split(",").map((query) => query.trim())).toEqual([
       "(display-mode: standalone)",
       "(display-mode: fullscreen)",
       "(display-mode: window-controls-overlay)",
     ]);
-    expect(INDEX_HTML).not.toMatch(/rel="preload"[^>]*Plus\+Jakarta\+Sans/);
+    expect(INDEX_HTML.match(/href="[^"]*plus-jakarta-sans[^"]*"/g)).toHaveLength(1);
   });
 
   it("turns the face on wherever the PWA presentation is chosen, and only there", () => {

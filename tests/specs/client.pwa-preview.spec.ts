@@ -81,6 +81,19 @@ test("production navigation cache restores the anonymous shell offline and is re
   await expectStableLogoHandoff(page, 177);
   await expect(page).toHaveURL(/\/home\/login\?presentation=pwa$/);
   expect(await page.evaluate(() => navigator.onLine)).toBe(false);
+  // The installed app's face comes from the worker's precache too, so a launch with no
+  // network draws Plus Jakarta Sans rather than the system fallback.
+  const loadedFaces = await page.evaluate(async () => {
+    await document.fonts.ready;
+    const families: string[] = [];
+    document.fonts.forEach((face) => {
+      if (face.status === "loaded") families.push(face.family.replace(/^["']|["']$/g, ""));
+    });
+    return families;
+  });
+  expect(loadedFaces, "The offline shell must draw the installed app's face").toContain(
+    "Plus Jakarta Sans"
+  );
   await info.attach("production-offline-shell", {
     body: await page.screenshot(),
     contentType: "image/png",

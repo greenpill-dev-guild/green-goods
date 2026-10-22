@@ -74,26 +74,38 @@
          the selected theme rather than the OS scheme. -->
     <meta name="theme-color" content="%PWA_THEME_COLOR_LIGHT%" data-light="%PWA_THEME_COLOR_LIGHT%" data-dark="%PWA_THEME_COLOR_DARK%" />
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- The app serves its two faces itself (src/styles/fonts.css), so the installed
+         app's worker precaches them and a launch with no network still draws them.
+         Each preload starts the file a surface draws first while the HTML parses. A
+         font fetch runs in CORS mode, so a preload without crossorigin would download
+         the file twice. -->
+    <!-- Inter (sans, the public website's body, nav and UI). Browser tabs only: the
+         installed app draws Plus Jakarta Sans. -->
+    <link
+      rel="preload"
+      href="/src/styles/fonts/inter-latin-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+      media="(display-mode: browser)"
+    />
     <!-- Plus Jakarta Sans (the installed app's face, shared with the cockpit). The
-         media query keeps it off the website's critical path: a browser tab fetches
-         it late and never waits for it, and its font files load only where it
-         applies. The boot detector below turns it on wherever it picks the PWA
-         presentation, a local override included. -->
+         media query keeps it off the website's critical path: a browser tab never
+         fetches it, and no website text draws in it. The boot detector below turns
+         it on wherever it picks the PWA presentation, a local override included. -->
     <link
       id="boot-pwa-face"
-      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap"
-      rel="stylesheet"
+      rel="preload"
+      href="/src/styles/fonts/plus-jakarta-sans-latin-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
       media="(display-mode: standalone), (display-mode: fullscreen), (display-mode: window-controls-overlay)"
     />
-    <!-- Inter (sans, the public website's body, nav and UI). -->
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
-      rel="stylesheet"
-    />
-    <!-- Fraunces (editorial serif, public-browser headlines + stat numbers). -->
+    <!-- Fraunces (editorial serif, public-browser headlines + stat numbers) still comes
+         from Google Fonts; these preconnects serve it alone. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <!-- To trial a different serif, swap the family below AND `--font-serif` in shared theme.css. -->
     <!-- See packages/client/DESIGN.browser.md → Typography → Serif options. -->
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&display=swap" />

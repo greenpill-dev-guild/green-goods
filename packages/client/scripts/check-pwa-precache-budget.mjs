@@ -26,6 +26,10 @@ const LIMITS = {
   shellPriorityGzip: Number(process.env.PWA_SHELL_PRIORITY_GZIP_MAX ?? 1.1 * MiB),
 };
 
+// A stylesheet's url() references, and the ones that name a font file.
+const CSS_URL = /url\(\s*(["']?)([^"')]+)\1\s*\)/g;
+const FONT_FILE = /\.(?:woff2?|ttf|otf)$/i;
+
 const FORBIDDEN_PUBLIC_MODULES = [
   "/providers/AppKitProvider",
   "/routes/WalletRuntimeProviders",
@@ -123,7 +127,9 @@ function collectManifestClosure(manifest, roots) {
     if (!entry) return;
     if (entry.file) files.add(entry.file);
     entry.css?.forEach((file) => files.add(file));
-    entry.assets?.forEach((file) => files.add(file));
+    // The manifest lists a stylesheet's faces among its entry's assets, but a face loads when
+    // text first draws in it, not with the code; the precache ceiling counts the faces.
+    entry.assets?.filter((file) => !FONT_FILE.test(file)).forEach((file) => files.add(file));
     entry.imports?.forEach(visit);
   };
   roots.forEach(visit);
@@ -167,6 +173,24 @@ try {
   }
   if (precacheRaw > LIMITS.precacheRaw) {
     failures.push(`precache raw ${formatBytes(precacheRaw)} exceeds ${formatBytes(LIMITS.precacheRaw)}`);
+  }
+  // With no network the installed app draws only what the worker precached, so a face that a
+  // precached stylesheet uses falls back to the system font unless its file is precached too.
+  const precached = new Set(precacheUrls);
+  const unprecachedFonts = new Set();
+  for (const stylesheet of precacheUrls.filter((url) => url.endsWith(".css"))) {
+    const base = new URL(stylesheet, "https://precache.invalid/");
+    for (const [, , reference] of requireFile(resolve(distDir, stylesheet)).matchAll(CSS_URL)) {
+      const font = new URL(reference, base);
+      // A face another origin serves is not this worker's to cache.
+      if (!FONT_FILE.test(font.pathname) || font.origin !== base.origin) continue;
+      if (!precached.has(font.pathname.slice(1))) unprecachedFonts.add(font.pathname.slice(1));
+    }
+  }
+  if (unprecachedFonts.size) {
+    failures.push(
+      `precached stylesheets use fonts the worker does not precache:\n  ${[...unprecachedFonts].sort().join("\n  ")}`
+    );
   }
 
   const manifest = readJson(viteManifestPath);

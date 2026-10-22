@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
@@ -14,7 +15,9 @@ interface FixtureOptions {
   withoutPublicShell?: boolean;
   route?: { source: string; contents: string };
   shellAssets?: string[];
-  files?: Record<string, string>;
+  /** Files the entry lists as assets, as Vite's manifest lists its stylesheet's fonts. */
+  entryAssets?: string[];
+  files?: Record<string, string | Uint8Array>;
   /** Shared chunks nothing imports, added only for the file-name rule. */
   lazyChunks?: { file: string; name?: string }[];
 }
@@ -48,7 +51,12 @@ function createFixture(options: FixtureOptions = {}) {
 
   const precache = options.precache ?? ["index.html"];
   const manifest: Record<string, Record<string, unknown>> = {
-    "src/main.tsx": { file: "assets/main.js", isEntry: true, src: "src/main.tsx" },
+    "src/main.tsx": {
+      file: "assets/main.js",
+      isEntry: true,
+      src: "src/main.tsx",
+      ...(options.entryAssets ? { assets: options.entryAssets } : {}),
+    },
     "src/bootstrapPublic.tsx": {
       file: PUBLIC_CHUNK,
       isDynamicEntry: true,
@@ -230,6 +238,42 @@ describe("PWA build budgets", () => {
   it("fails a build that has no website frame left to check", () => {
     const output = runFailure(createFixture({ withoutPublicShell: true }), {});
     expect(output).toContain("The website frame (src/routes/PublicShell.tsx) is missing");
+  });
+
+  // With no network the installed app draws only what the worker precached, so a precached
+  // stylesheet's face falls back to the system font unless its file is precached too. A face
+  // loads when text first draws in it, not with the code, so it is no startup byte.
+  it("keeps a precached stylesheet's faces in the precache and out of the startup budgets", () => {
+    const stylesheet = "assets/index-Bx3kQ9aT.css";
+    const latin = "assets/face-latin-Dk2Lm8Qa.woff2";
+    const latinExt = "assets/face-latin-ext-Jq4Ws1Xe.woff2";
+    const files = {
+      // Vite writes an absolute url on the default base and a relative one on the IPFS base.
+      [stylesheet]:
+        `@font-face{src:url(/${latin})format("woff2")}` +
+        '@font-face{src:url(./face-latin-ext-Jq4Ws1Xe.woff2)format("woff2")}' +
+        // A face served by another origin is not this worker's to cache.
+        '@font-face{src:url(https://fonts.gstatic.com/s/fraunces/v38/a.woff2)format("woff2")}',
+      // Font files do not compress, so either one alone is over the startup limits below.
+      [latin]: randomBytes(8192),
+      [latinExt]: randomBytes(8192),
+    };
+    // Vite's manifest lists the stylesheet's fonts as the entry's assets.
+    const build = (precache: string[]) =>
+      createFixture({ precache, files, entryAssets: [latin, latinExt] });
+    const startupLimits = {
+      PWA_PUBLIC_STARTUP_GZIP_MAX: "4096",
+      PWA_INSTALLED_ENTRY_GZIP_MAX: "4096",
+      PWA_INSTALLED_STARTUP_GZIP_MAX: "4096",
+    };
+
+    const output = runFailure(build(["index.html", stylesheet, latin]), startupLimits);
+    expect(output).toContain("precached stylesheets use fonts the worker does not precache");
+    expect(output).toContain(latinExt);
+    expect(output).not.toContain("fraunces");
+    expect(output).not.toMatch(/(startup|entry) gzip/);
+
+    expect(runFailure(build(["index.html", stylesheet, latin, latinExt]), startupLimits)).toBe("");
   });
 
   it("passes a build whose lazy chunks carry opaque names", () => {
