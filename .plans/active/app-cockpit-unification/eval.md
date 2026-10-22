@@ -267,6 +267,14 @@ line and no screen scrolls sideways. Every status line of the logo screen and of
 320px: the longest is 274.5px of 288px (Spanish "Green Goods necesita actualizarse."). At the
 status voice the face sets these lines between 1.4% narrower and 4.6% wider than Inter.
 
+**Type roles, cockpit (step 1, #1175).** Every admin story was measured before and after, element by
+element, at 1280 and 390px in Storybook: 1,174 stories and 32,509 text elements. The only size or
+weight changes were the decided ones: checkbox and choice labels from 16 to 14px from 640px, two
+titles with no weight of their own from 400 to 600, the cookie jar payout amount from 24 to 22px,
+and one empty-state line from 16 to 14px. Line height and tracking changed as the roles define.
+Nine stories that navigate away while rendering, and a few async states that loaded in only one
+run, were not compared.
+
 **Contrast.** `contrast-audit.mjs` computed 127 token pairs from the resolved RGB values,
 before and after:
 

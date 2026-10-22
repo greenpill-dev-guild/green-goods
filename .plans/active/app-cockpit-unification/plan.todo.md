@@ -2,8 +2,8 @@
 
 **Feature Slug:** `app-cockpit-unification`
 **Stage:** active
-**Status:** ACTIVE: steps 1 to 3 approved on 21 October; each later slice starts on its approved pair
-**Created / Last Updated:** 2026-10-10 / 2026-10-21
+**Status:** ACTIVE: step 1's face and the cockpit's type roles merged on 21 and 22 October, with the shared components' roles still to come; steps 2 and 3 approved; each later slice starts on its approved pair
+**Created / Last Updated:** 2026-10-10 / 2026-10-22
 **Linear Issue:** PRD-1266
 **Linear Source:** source:plans
 
@@ -61,7 +61,7 @@ bounded change, and split a step that would mix independent behaviours.
 
 | Step | Lane | Work and likely owners | Completion evidence |
 |---|---|---|---|
-| 1. Typeface and type roles (F1) | `ui` | One family on both surfaces: the app's font links, its `index.css`, the static loading screen. One set of role names (title, body, label, meta) at each surface's sizes. Card titles 15px in the app and 13px in the cockpit; card details and labels 11px (locked 18 October). The role names land as a second pull request after the face (21 October). | Width pairs in three languages at phone widths; the typography and loading-screen guards pass with updated expectations; no Material role name left in the cockpit's views. |
+| 1. Typeface and type roles (F1) | `ui` | One family on both surfaces: the app's font links, its `index.css`, the static loading screen. One set of role names (title, body, label, meta) at each surface's sizes. Card titles 15px in the app and 13px in the cockpit; card details and labels 11px (locked 18 October). The face merged as #1172 and the cockpit's roles as #1175, with their guide wording in #1176 (21 and 22 October); the shared components' roles finish the step. | Width pairs in three languages at phone widths; the typography and loading-screen guards pass with updated expectations; no Material role name left in the cockpit's views. |
 | 2. Ground and dark ladder (F2, F13) | `ui` | App-scope surface tokens and one dark ladder in Shared `theme.css`; the cockpit's dark card step. With them (21 October): the dark text lifts, the error action fill on the cockpit's error screen, the app's tab row and garden title block on their ground, and the status bar and manifest per presentation. | Contrast audit on the new ground; rendered pairs in light and dark; the public website unchanged. |
 | 3. Control boundary and focus role (F3, part) | `ui` | A 3:1 outline token for secondary buttons, chips and fields; one focus-ring role, with the app's ring in its own green, drawn as a solid 2px ring in place of the halo; the app's button labels at weight 500 (21 October). | Measured ratios in both themes; focus ring visible on every control family. |
 | 4. Count badge (F10) | `ui` | One badge recipe in Shared; the app's bar, launchers, filter count and tabs and the cockpit's tab rail consume it. | Every consumer renders the same badge; counts above 9 and 99 still fit. |
@@ -142,3 +142,15 @@ direction to those journeys and is tracked separately.
 The hub-only check is `node scripts/harness/plan-hub.mjs validate`. The results of that check, the
 Markdown link check and the render check of the lab are recorded in
 [eval.md](eval.md#hub-creation-check). Application tests are not applicable to creating this hub.
+
+## Implementation Notes
+
+**Step 1 (21 and 22 October).** Step 1 took four pull requests, not two. The face (#1172) and the
+cockpit's type roles (#1175) merged, and so did their guide wording (#1176), which review split out
+because `packages/admin/AGENTS.md` keeps the standards and the code they govern apart; it merged
+first. The shared components' roles are the fourth, still to come. The four role names, title,
+body, label and meta, became eight `type-*` roles plus `type-field` for field text. The prefix is
+there because the Material `text-label-sm` already meant 14px in the app and 11px in the cockpit.
+The card title and card detail sizes locked on 18 October move to the card step (step 7), as the
+maintainer chose on 21 October. [handoffs/claude-ui.md](handoffs/claude-ui.md) lists what landed
+and what remains.
