@@ -42,8 +42,22 @@ run passes 16/16 with clean validated paths. The broader 36-test run remains wor
 
 - [x] Reproduce complete canonical creation and same-address fixture derivation without deployment.
 - [x] Separate historical creation inputs from active-root migration and characterize existing rejection.
-- [ ] Establish helper source/build/security provenance and failed-operation creation safety.
+- [x] Establish simulated failed-operation creation/rollback/retry boundaries at all three recorded pins.
+- [ ] Establish exact helper source/build/security provenance; runtime identity is insufficient.
 - [ ] Prove intended-member signing, active-root support, provider acceptance and recovery.
+
+**22 October helper/failure continuation:** the [bounded proof handoff](handoffs/codex-helper-provenance-and-failure-safety.md)
+records nine real Kernel 0.3.1/EntryPoint 0.7 fixture cases on each pinned Gnosis, Arbitrum and Celo
+fork, with the same historical address and every outcome marked `migrationReady=false`.
+Validation rejection rolls back initial creation; execution failure can preserve a legacy-root
+account and consume its nonce. Root change alone leaves the old module/key installed. A separate
+uninstall is a control experiment, not an adopted migration. Alchemy supplied Arbitrum archive
+state through a read-only local bridge; cached Gnosis/Celo state and unsupported Gnosis historical
+state-proof access are labeled. Complete helper creation/runtime identity is established, but
+source/build/privilege/security provenance, real-member signing/provider/sponsorship/recovery
+and issuer approval remain open. Local signed proof commits are authorized; final validation and
+attribution are recorded in the handoff. Production policy, dependencies and every live/release
+and unrelated lane blocker remain unchanged. No new product redesign is dispatched.
 
 **Newer accepted continuation, 23:42 UTC:** reconcile the existing checkpoint separately for
 escrow before activation, exact voucher consent before both core acceptance paths, and one
