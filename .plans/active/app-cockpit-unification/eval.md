@@ -1,6 +1,6 @@
 # One Look for the App and the Cockpit — Evaluation
 
-**Status:** acceptance criteria follow the picks accepted in principle; implementation and review results pending.
+**Status:** acceptance criteria follow the locked picks; the design gate for the token slices ran on 2026-10-20 ([below](#design-gate-for-the-token-slices)); implementation and review results pending.
 
 ## Product validation
 
@@ -222,5 +222,86 @@ Chromium (Playwright) at 1440×900, 1180×820 and 390×844, in a fresh browser:
 - No console error and no horizontal overflow; the served `census.html` matched the build byte for
   byte.
 
-These are document and mock checks. No application code changed, so no implementation, usability or
-release evidence exists yet.
+The checks above are document and mock checks. No application code changed for them.
+
+## Design gate for the token slices
+
+Run on 2026-10-20 against `develop` `678a672dd`, with steps 1 to 3 drafted on a local branch that
+was not pushed. The pairs and numbers went to the maintainer as one review set for approval of the
+three token slices; nothing merged.
+
+**Start gate.** `node scripts/harness/plan-hub.mjs linear-sync --feature app-cockpit-unification --json`
+returned no create or update actions: the parent PRD-1266 is a `preserve` entry (`parent_only`,
+`preserve_existing`) and no lane is mirrored. PRD-1266 was read from live Linear and matched
+(Backlog, the 2.1.0 release project, 21 sub-issues, PRD-1278 in progress under the PWA Home work);
+nothing was written to Linear. `record-linear --parent PRD-1266 --lane-sync-mode parent_only`
+then recorded it, and `node scripts/harness/plan-hub.mjs validate` passed.
+
+**Pairs.** The ten screens the lab draws, in four code states (develop, then each slice added in
+order), at 390, 768 and 1280px in light and dark, and at 390px in light in Spanish and Portuguese:
+80 frames a state, 320 in all, headless Chromium (Playwright) at device scale 1.
+
+- Cockpit, **Storybook**: the route stories of the Hub (Approved scope, the seeded garden), Garden
+  (Overview), Community (Members), Create Assessment and Profile, through a capture-only story
+  file that renders them without their play functions (several turn the document dark while they
+  assert) and in each language from the product catalogs. The file was never committed.
+- App, **mock-auth localhost**: the client dev server from the worktree with
+  `?mockAuth=deployer&presentation=pwa` on Arbitrum and the production indexer, Alchemy's demo key
+  answered from Arbitrum's public RPC: Home, the TAS HUB garden on its Promises tab, Your Work,
+  Submit Work at its Details step, and Profile. Storybook has no story for the shipped Home, garden
+  page or Profile, and its app preview stood on linen before step 2, so it could not show the app's
+  white ground truthfully. The app frames read live data and stay out of the repository.
+- Changed pixels per pair (a channel sum above 12): step 1 changed every app frame (1.4 to 24%) and
+  no cockpit frame (under 0.5%, capture noise); step 2 changed every app frame in both themes
+  (13 to 83%) and the cockpit's dark frames only (7 to 62%); step 3 changed the app's controls
+  (under 4.5% of a frame) and none of the five cockpit screens, which open none of the shared pieces
+  it reaches.
+
+**Typeface (step 1).** On the five app screens and the Submit Work start and media steps, at 320,
+360 and 390px in English, Spanish and Portuguese (72 screen pairs, develop against step 1), the face
+sets the same strings within 1% of Inter at the median (+0.6% English, +0.3% Spanish, -0.2%
+Portuguese; 90th percentile +3.4 to +4.1%, largest +7.4%). Three texts newly end in an ellipsis,
+all at 320px: a work card's meta line on the garden's Work tab in English and Spanish, and the
+Spanish title of one action card on Submit Work's first step. No control label runs to a second
+line and no screen scrolls sideways. Every status line of the logo screen and of sign-in (36 lines) keeps one line at
+320px: the longest is 274.5px of 288px (Spanish "Green Goods necesita actualizarse."). At the
+status voice the face sets these lines between 1.4% narrower and 4.6% wider than Inter.
+
+**Contrast.** `contrast-audit.mjs` computed 127 token pairs from the resolved RGB values,
+before and after:
+
+- Ground: tertiary text (neutral-500) on linen measures 4.53:1 and green text 5.40:1; both pass. A
+  white card on linen is a 1.06:1 fill step, so the app's card hairline moves to neutral-200
+  (1.18:1 on linen).
+- Dark ladder: the app's dark card had no step (1.00:1, the card was the canvas); the lifted card
+  measures 1.26:1 against the canvas on both surfaces, and the cockpit's ring 1.59:1 (1.32 before).
+  Ink, secondary and tertiary text keep 14.8, 10.4 and 6.1:1 on the lifted card.
+- The lift costs coloured text about a fifth of its contrast. Three roles fell below AA on the
+  lifted card (error red-600 3.73:1, feature purple-400 4.28:1, information blue-500 3.04:1, the
+  last already failing at 3.87:1) and the cockpit's error red-500 fell to 4.24:1. Step 2 lifts each
+  one step in dark: red-400 5.52:1, purple-300 6.30:1, blue-400 5.41:1. The cockpit's error-screen
+  Retry, white on the error red (4.15:1, 2.8:1 after the lift), moves to the error action fill
+  (5.26:1, DL-053).
+- Control boundary: the app's secondary boundary was 1.49:1 (light) and 1.92:1 (dark), the
+  cockpit's shared fields 1.34:1 and 1.69:1; the shared outline measures 4.80:1 on white, 4.53:1 on
+  linen and 6.14:1 on the dark card.
+- Focus: the solid ring passes in every theme (green 5.72:1 on white, mint 12.81:1 on the dark
+  card). The 3px halo that buttons, chips and the switch draw measures about 1.3:1 in light, as it
+  did in blue, and 1.58:1 in dark: below 3:1 before and after.
+
+**Rendered contrast.** A sweep of every visible text on the ten screens at 390px in light and dark
+(462 texts, each against the fills behind it) found one text below its floor in develop and in the
+end state alike: the red required-field asterisk on Submit Work, 3.66:1 on white and 3.45:1 on
+linen. It predates these slices.
+
+**Step 13 draft.** The cockpit guide (`packages/admin/DESIGN.md`) and prompt contract
+(`.claude/skills/design/prompt-contract.md`) were rewritten for the end state as a diff against
+`develop`, with four proposed decision-log rows (the retired Material 3 rule and the F1, F2 with
+F13, and F3 picks). The draft lands in parts with the slices that make each line true.
+
+**Approval.** On 2026-10-21 the maintainer approved the three token slices as drafted, with the
+four planned items, and added the solid 2px focus ring to step 3 and the type role rename as a
+second pull request under PRD-1267.
+
+**Installs.** The worktree linked the main checkout's installs, which predate `develop`'s lockfile
+(Vite 8.2.1 where `develop` pins 8.2.4); nothing was installed.

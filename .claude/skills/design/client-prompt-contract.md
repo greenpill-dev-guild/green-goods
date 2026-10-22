@@ -8,7 +8,7 @@ Stable vocabulary and never-use list for prompting AI design tools or coding age
 
 Paste this sentence (or a trimmed version) into every AI design prompt for client surfaces:
 
-> Green Goods client is a **PWA in an adaptive shell**. Installed PWA uses a **bottom `AppBar`**; browser uses a **hamburger + `SiteHeader`**. Never mix. Use **Inter** for all typography (editorial serif only appears on the public browser site, never in the PWA). Surfaces follow the **Warm Earth** language: concentric geometry, expressive spring motion, garden-journal feel. Materials are **permitted to be expressive** (liquid glass, organic shapes, hero moments). **Real content over lorem ipsum.** Copy tone is **warm, first-person-community** ("our garden", "what's in season", "how the work grew"), not steward-facing task framing.
+> Green Goods client is a **PWA in an adaptive shell**. Installed PWA uses a **bottom `AppBar`**; browser uses a **hamburger + `SiteHeader`**. Never mix. Use **Plus Jakarta Sans** in the installed PWA, the admin cockpit's face, and **Inter** on the browser site (editorial serif only appears on the public browser site, never in the PWA). Surfaces follow the **Warm Earth** language: concentric geometry, expressive spring motion, garden-journal feel. Materials are **permitted to be expressive** (liquid glass, organic shapes, hero moments). **Real content over lorem ipsum.** Copy tone is **warm, first-person-community** ("our garden", "what's in season", "how the work grew"), not steward-facing task framing.
 
 ## Required Vocabulary
 
@@ -40,7 +40,6 @@ The categories below are contract-specific framing: *why* client output should r
 - **Steward-cockpit framing**: `operator cockpit`, workbench / inspector vocabulary; the client is a garden journal, not a cockpit.
 - **Utility-copy register**: terse task framing; client copy is warm and narrative.
 - **Dashboard / KPI / metric-grid framing**: the client surfaces story and place, not key-performance-indicator tiles.
-- **Admin typography**: `Plus Jakarta Sans` is admin-only; client uses Inter throughout the PWA.
 - **Growth-hacking framing**: streak, leaderboard, FOMO, re-engagement, retention hook; violates the regenerative lens (also lint-enforced).
 - **Trading-floor / financial-terminal framing**: degen aesthetic; this is a garden, not an exchange.
 - **Gamification**: we use motivation design, not game mechanics.
@@ -50,7 +49,7 @@ The categories below are contract-specific framing: *why* client output should r
 - **Full Warm Earth expression** is permitted: capsule + squircle + concentric shapes, spring motion, hero moments, expressive color.
 - **Glass material is allowed across client surfaces**, unlike admin where glass is restricted to Navigation/FAB (the admin sheet shells are retired and its `AppBar` root stays transparent). Match thickness to content density (see [surfaces.md](./surfaces.md)).
 - **Spring motion is the default easing**, never hardcoded cubic-bezier or duration values.
-- **Typography**: Inter across the PWA. Editorial serif (Fraunces/Lora/Newsreader) only on the public browser site, never in the installed PWA.
+- **Typography**: Plus Jakarta Sans across the installed PWA, shared with the cockpit (DL-096); Inter on the public browser site. Editorial serif (Fraunces/Lora/Newsreader) only on the public browser site, never in the installed PWA.
 - **Succession-aware**: pioneer gardens get simple hero moments, climax gardens get full expression.
 - **Never rename `--color-primary`**: the codebase token resolves to the **tertiary accent role** (garden green, 1-3% volume), not the primary ink role. The name is historical; keep it, and don't treat it as the dominant brand color when prompting or generating UI.
 

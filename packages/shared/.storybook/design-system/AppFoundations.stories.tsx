@@ -85,12 +85,12 @@ export const Tokens: Story = {
           </Specimen>
         </div>
       </Section>
-      <Section id="type" title="Label type" lede="Inter, weight 400. 16px on lg and md, 14px on sm, compact, and chips (the `--text-label-md` / `--text-label-sm` tokens).">
+      <Section id="type" title="Label type" lede="Plus Jakarta Sans, the cockpit's face, weight 400. 16px on lg and md, 14px on sm, compact, and chips (the `--text-label-md` / `--text-label-sm` tokens).">
         <div className="sb-ds-row">
-          <Specimen title="16px / 400" expect={{ labelSize: 16, weight: 400, family: "Inter" }}>
+          <Specimen title="16px / 400" expect={{ labelSize: 16, weight: 400, family: APP.family }}>
             <Button>Create Garden</Button>
           </Specimen>
-          <Specimen title="14px / 400" expect={{ labelSize: 14, weight: 400, family: "Inter" }}>
+          <Specimen title="14px / 400" expect={{ labelSize: 14, weight: 400, family: APP.family }}>
             <Button size="sm" emphasis="secondary">
               Endow
             </Button>

@@ -47,7 +47,7 @@ const SETTING_CONTROL_WIDTH = "w-[120px] sm:w-[140px]";
 
 /**
  * A select keeps its value on one line. The trigger leaves 66px for the text,
- * and "Português" is a few pixels wider than that in Inter. The shared trigger
+ * and "Português" is about 69px in Plus Jakarta Sans at 14px. The shared trigger
  * wraps a value that does not fit, which broke it across two lines; held on
  * one line it borrows those pixels from the gap before the chevron instead.
  * Radix drops a className given to SelectValue, so the trigger styles the span.

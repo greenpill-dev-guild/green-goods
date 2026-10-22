@@ -51,12 +51,17 @@ interface DetectOptions {
   navigator?: Partial<Navigator> & { standalone?: boolean; userAgentData?: { mobile?: boolean } };
 }
 
-function detectBootDataset({
+/** The installed app's face link (index.html) and the media it starts with. */
+const FACE_LINK = INDEX_HTML.match(/<link\s+id="boot-pwa-face"[\s\S]*?\/>/)?.[0] ?? "";
+const INSTALLED_FACE_MEDIA = FACE_LINK.match(/media="([^"]+)"/)?.[1] ?? "";
+
+function runPresentationDetector({
   href,
   displayMode,
   navigator: navigatorOverrides = {},
-}: DetectOptions): DOMStringMap {
+}: DetectOptions): { dataset: DOMStringMap; faceMedia: string } {
   const dataset: DOMStringMap = {};
+  const face = { media: INSTALLED_FACE_MEDIA };
   const navigator = {
     userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
     platform: "MacIntel",
@@ -71,7 +76,10 @@ function detectBootDataset({
       matches: displayMode ? query === `(display-mode: ${displayMode})` : false,
     }),
   };
-  const documentLike = { documentElement: { dataset } };
+  const documentLike = {
+    documentElement: { dataset },
+    getElementById: (id: string) => (id === "boot-pwa-face" ? face : null),
+  };
 
   new Function(
     "window",
@@ -81,7 +89,11 @@ function detectBootDataset({
     inlineScript("boot-presentation-detector")
   )(windowLike, documentLike, navigator, URL);
 
-  return dataset;
+  return { dataset, faceMedia: face.media };
+}
+
+function detectBootDataset(options: DetectOptions): DOMStringMap {
+  return runPresentationDetector(options).dataset;
 }
 
 function detectPresentation(options: DetectOptions): string | undefined {
@@ -229,6 +241,36 @@ function runController(
     markReactMounted: windowLike.__GG_MARK_REACT_MOUNTED,
   };
 }
+
+describe("the installed app's face", () => {
+  it("keeps Plus Jakarta Sans off the website's critical path", () => {
+    expect(FACE_LINK).toContain("family=Plus+Jakarta+Sans");
+    // Only an installed display applies the face before the detector runs, so a
+    // browser tab neither waits for its stylesheet nor fetches its font files.
+    expect(INSTALLED_FACE_MEDIA.split(",").map((query) => query.trim())).toEqual([
+      "(display-mode: standalone)",
+      "(display-mode: fullscreen)",
+      "(display-mode: window-controls-overlay)",
+    ]);
+    expect(INDEX_HTML).not.toMatch(/rel="preload"[^>]*Plus\+Jakarta\+Sans/);
+  });
+
+  it("turns the face on wherever the PWA presentation is chosen, and only there", () => {
+    const faceMedia = (options: DetectOptions) => runPresentationDetector(options).faceMedia;
+    expect(faceMedia({ href: "https://www.greengoods.app/home", displayMode: "standalone" })).toBe(
+      "all"
+    );
+    expect(
+      faceMedia({ href: "https://www.greengoods.app/home", navigator: { standalone: true } })
+    ).toBe("all");
+    expect(faceMedia({ href: "http://localhost:3001/home?presentation=pwa" })).toBe("all");
+    // A public route stays a website even in an installed window, and so does a browser tab.
+    expect(
+      faceMedia({ href: "https://www.greengoods.app/gardens", displayMode: "standalone" })
+    ).toBe(INSTALLED_FACE_MEDIA);
+    expect(faceMedia({ href: "https://www.greengoods.app/" })).toBe(INSTALLED_FACE_MEDIA);
+  });
+});
 
 describe("presentation-specific boot fallback", () => {
   it("keeps the static document shell structurally valid", () => {

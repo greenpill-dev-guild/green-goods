@@ -295,21 +295,24 @@ export const ThreeSystems: Story = {
     const column = (surface: string) =>
       canvasElement.querySelector<HTMLElement>(`[data-column="${surface}"]`);
 
-    // Installed app: the 16px field corner, weight 400, Inter (DL-029).
+    // Installed app: the 16px field corner, weight 400, the cockpit's
+    // Plus Jakarta Sans (DL-029, DL-096).
     const app = within(column("app") as HTMLElement);
     const appPrimary = app.getAllByRole("button", { name: "Create Garden" })[0];
     await expect(appPrimary.getBoundingClientRect().height).toBe(44);
     await expect(px(getComputedStyle(appPrimary).borderTopLeftRadius)).toBe(16);
     await expect(getComputedStyle(appPrimary).fontWeight).toBe("400");
-    await expect(first(getComputedStyle(appPrimary).fontFamily)).toBe("Inter");
+    await expect(first(getComputedStyle(appPrimary).fontFamily)).toBe("Plus Jakarta Sans");
 
-    // Public website: capsule, weight 600, serif editorial field (DL-089).
+    // Public website: capsule, weight 600, Inter, serif editorial field
+    // (DL-089, DL-096).
     const site = within(column("website") as HTMLElement);
     const sitePrimary = site.getAllByRole("button", { name: "Create Garden" })[0];
     await expect(px(getComputedStyle(sitePrimary).borderTopLeftRadius)).toBeGreaterThanOrEqual(
       sitePrimary.getBoundingClientRect().height / 2
     );
     await expect(getComputedStyle(sitePrimary).fontWeight).toBe("600");
+    await expect(first(getComputedStyle(sitePrimary).fontFamily)).toBe("Inter");
     const editorial = site.getByRole("textbox", { name: "Email" });
     await expect(first(getComputedStyle(editorial).fontFamily)).toBe("Fraunces");
     await expect(px(getComputedStyle(editorial).borderTopLeftRadius)).toBe(0);

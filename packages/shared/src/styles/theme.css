@@ -1853,8 +1853,10 @@
 @theme {
   /* Editorial serif for the public-browser dialect.
    * Loaded via packages/client/index.html. Tailwind's `font-serif` utility
-   * resolves to this stack. Body / nav / UI continues to use --font-sans
-   * (Inter via :root font-family). To trial an alternative serif, see the
+   * resolves to this stack. Body, nav and UI take each app's own face instead:
+   * Inter on the website and Plus Jakarta Sans in the installed app (on :root,
+   * client index.css) and the cockpit (on body, admin index.css). To trial an
+   * alternative serif, see the
    * options table in packages/client/DESIGN.browser.md → Typography. */
   --font-serif: "Fraunces", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
 

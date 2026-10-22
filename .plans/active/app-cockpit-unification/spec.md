@@ -278,6 +278,31 @@ Questions raised against the picks, all settled by 18 October:
   maintainer locked the pill under the title, one title line and the sizes in
   [Card picks, locked on 18 October](#card-picks-locked-on-18-october).
 
+## Token slices approved, 21 October
+
+The design gate for steps 1 to 3 ran on 20 October
+([eval.md](eval.md#design-gate-for-the-token-slices)). On 21 October the maintainer approved the
+three slices as drafted, with the four items the drafts carried, and settled the two calls the
+review set raised:
+
+- **Step 1, typeface.** The installed app sets Plus Jakarta Sans; the public website keeps Inter.
+  The type role names (title, body, label and meta in place of the Material names) land as a
+  second pull request under the same issue, after the typeface.
+- **Step 2, ground and dark ladder.** With the linen canvas, the Earth ramp and the lifted dark
+  card come four consequences: coloured text that would fall below AA on the lifted card takes one
+  lighter step in dark on both surfaces (error red-400, feature purple-300, information blue-400);
+  the cockpit's error-screen Retry moves to the error action fill (DL-053); the app's tab row and
+  the garden page's title block take the ground they sit on; and the browser's status bar and the
+  install manifest take each presentation's ground (linen and the warm floor for the app, white
+  for the website).
+- **Step 3, outline, focus and weight.** With the control-grade outline come one solid 2px focus
+  ring on buttons, chips, fields and the switch, in place of the 3px halo that measured about
+  1.3:1, drawn as the cockpit's controls and the app's icon buttons already draw it; and the app's
+  button labels at weight 500.
+
+The public website keeps its own dialect in all three. Every later slice still starts on its own
+approved pair.
+
 ## Evidence and its limits
 
 - **Code.** The guides, token files and components listed under [Sources](#sources).
