@@ -37,6 +37,8 @@ Helper source remains unverified on both queried explorers; its runtime identity
 do not prove migration safety. Four focused Shared files pass 36 characterization tests, including
 patched-root refusal, wrong-chain rejection and cancellation/exact retry. No production auth,
 dependency, sponsorship or deployment change is authorized by these observations.
+The bounded source/test checkpoint is signed as `011d9b77d`; a fresh committed owner-adapter
+run passes 16/16 with clean validated paths. The broader 36-test run remains working-tree evidence.
 
 - [x] Reproduce complete canonical creation and same-address fixture derivation without deployment.
 - [x] Separate historical creation inputs from active-root migration and characterize existing rejection.

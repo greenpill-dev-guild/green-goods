@@ -95,6 +95,21 @@ plan and argv are `selector-plan.json` and `selector-command.json` in that evide
 The additional one-shot encoding and observation consistency checks pass; they are not member
 authentication tests. No full contract or consumer suite is recertified by this bounded proof.
 
+## Commit-attributed owner-adapter receipt
+
+Source/test checkpoint `011d9b77dc0b68c245cdc4177c2fb682103a2fa4` is signed locally; Git
+reports signature status `G`. A fresh post-commit run of the focused owner-validator command
+above (only its first test path) passes **16/16**. The public artifact records the exact argv,
+UTC timestamps, validation paths and empty pre/post status outputs. Those paths cover the owning
+implementation/test, package manifests/lockfile, Vitest setup and test runner configuration.
+The broader 36-test result remains working-tree evidence. The default sandbox still requires
+scoped approval for the dedicated Git agent; signing remains required, with no key-file access.
+
+This follow-up changes evidence only. Its receipt requires both the artifact's exact
+`git diff --exit-code 011d9b77dc0b68c245cdc4177c2fb682103a2fa4..HEAD -- <validated paths>`
+and `git status --porcelain=v1 --untracked-files=all -- <validated paths>` to be empty after
+commit. No runtime/test/validation dependency changes are part of this follow-up.
+
 ## Next bounded proof
 
 Obtain verifiable helper source/build provenance and upstream security guidance, or an explicitly
@@ -112,6 +127,6 @@ Agent/model: Codex / model identifier unknown | Coverage: this migration-charact
 |---|---|---|
 | Investigate | Unknown → 2026-10-22 18:27:12 | Preparation alignment, pinned creation/source/provider observations; helper provenance remains unresolved |
 | Verify | 2026-10-22 18:27:12 → 2026-10-22 18:27:15 | Four-file 36-test characterization pass; no runtime changes |
-| Review / commit | Ongoing | Validate the bounded diff, preserve unrelated work, and use required signing for a local checkpoint; no push/deploy |
+| Review / commit | Unknown → 2026-10-22T18:38:40.962765+00:00 | Signed source checkpoint `011d9b77d`; exact four-file tree and 186 unchanged working files verified; fresh committed 16-test owner receipt; no push/deploy |
 
 Human corrections: 0 observed in this segment; attention: unknown.

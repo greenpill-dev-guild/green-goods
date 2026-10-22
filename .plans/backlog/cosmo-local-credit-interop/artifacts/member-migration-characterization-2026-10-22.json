@@ -316,5 +316,78 @@
     "Pimlico's Gnosis table lists EntryPoint 0.7 bundler/paymaster support but Kernel 0.3.1 unsupported. Actual selected-profile provider acceptance remains unproved.",
     "Existing owner adapter still rejects patched roots. Test callbacks prove adapter boundaries, not WebAuthn possession, human cancellation or migration recovery.",
     "COM-46 issuer approval and all live/release gates remain open."
-  ]
+  ],
+  "commitAttributedOwnerReceipt": {
+    "testedCommit": "011d9b77dc0b68c245cdc4177c2fb682103a2fa4",
+    "startedAt": "2026-10-22T18:38:35.379738+00:00",
+    "finishedAt": "2026-10-22T18:38:40.962765+00:00",
+    "command": [
+      "bun",
+      "--no-env-file",
+      "run",
+      "--cwd",
+      "packages/shared",
+      "test",
+      "--",
+      "src/__tests__/modules/agent-reporting/owner-validator.test.ts"
+    ],
+    "environment": {
+      "PATHPrefix": "/private/tmp/green-goods-local-integration-20261021/bin",
+      "BunRootEnvAutoLoad": false
+    },
+    "observedResult": "1 file, 16 tests passed",
+    "exitCode": 0,
+    "validatedPaths": [
+      "packages/shared/src/__tests__/modules/agent-reporting/owner-validator.test.ts",
+      "packages/shared/src/modules/agent-reporting/owner-validator.ts",
+      "packages/shared/vitest.config.ts",
+      "packages/shared/src/__tests__/setupTests.node.ts",
+      "packages/shared/src/__tests__/setupTests.core.ts",
+      "packages/shared/src/__mocks__/browser",
+      "scripts/dev",
+      "scripts/lib",
+      "package.json",
+      "packages/shared/package.json",
+      "bun.lock"
+    ],
+    "identityCommand": [
+      "git",
+      "status",
+      "--porcelain=v1",
+      "--untracked-files=all",
+      "--",
+      "packages/shared/src/__tests__/modules/agent-reporting/owner-validator.test.ts",
+      "packages/shared/src/modules/agent-reporting/owner-validator.ts",
+      "packages/shared/vitest.config.ts",
+      "packages/shared/src/__tests__/setupTests.node.ts",
+      "packages/shared/src/__tests__/setupTests.core.ts",
+      "packages/shared/src/__mocks__/browser",
+      "scripts/dev",
+      "scripts/lib",
+      "package.json",
+      "packages/shared/package.json",
+      "bun.lock"
+    ],
+    "identityOutputBefore": "",
+    "identityOutputAfter": "",
+    "broader36TestsAttribution": "previous working-tree evidence; not recertified by this receipt",
+    "evidenceOnlyFollowupRequiredDiff": [
+      "git",
+      "diff",
+      "--exit-code",
+      "011d9b77dc0b68c245cdc4177c2fb682103a2fa4..HEAD",
+      "--",
+      "packages/shared/src/__tests__/modules/agent-reporting/owner-validator.test.ts",
+      "packages/shared/src/modules/agent-reporting/owner-validator.ts",
+      "packages/shared/vitest.config.ts",
+      "packages/shared/src/__tests__/setupTests.node.ts",
+      "packages/shared/src/__tests__/setupTests.core.ts",
+      "packages/shared/src/__mocks__/browser",
+      "scripts/dev",
+      "scripts/lib",
+      "package.json",
+      "packages/shared/package.json",
+      "bun.lock"
+    ]
+  }
 }
