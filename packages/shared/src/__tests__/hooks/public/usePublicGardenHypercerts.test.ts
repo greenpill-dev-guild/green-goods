@@ -77,4 +77,17 @@ describe("public garden certificates", () => {
     renderHookWithQueryClient(() => usePublicGardenHypercerts({ chainId: 42161 }));
     expect(mocks.read).not.toHaveBeenCalled();
   });
+
+  it("does not show the previous chain's certificates while the next chain loads", async () => {
+    const { result, rerender } = renderHookWithQueryClient(
+      ({ chainId }) => usePublicGardenHypercerts({ gardenId, chainId }),
+      { initialProps: { chainId: 42161 } }
+    );
+    await waitFor(() => expect(result.current.hypercerts[0]?.id).toBe("real"));
+    mocks.read.mockImplementation(() => new Promise(() => {}));
+    rerender({ chainId: 11155111 });
+    expect(result.current.hypercerts).toEqual([]);
+    expect(result.current.isLoading).toBe(true);
+    expect(mocks.read).toHaveBeenLastCalledWith(gardenId, 11155111);
+  });
 });
