@@ -103,9 +103,9 @@ AI design tools MUST map generated output to these existing exports. Do not inve
 | Identity | `AddressDisplay`, `DomainBadge` |
 | Audio | `Audio/*` (voice capture primitives) |
 
-**Typography utilities** (`packages/client/src/styles/typography.css`):
-- `.title-screen` · `.title-section` · `.body-md-regular` · `.label-md`
-- Compact type scale: `body-sm` and `label-md` are the workhorses.
+**Type roles** (the `type-*` utilities in shared `theme.css`, at the app's density; root `DESIGN.md` § Typography):
+- `type-title-lg` · `type-title-md` · `type-title-sm` (24, 18, and 16px at 600) · `type-body` 16px · `type-label` 16px at 500 · `type-label-sm` 14px (field labels, secondary lines) · `type-meta` 12px · `type-meta-sm` 11px (chips) · `type-field` for field text.
+- Never a raw Tailwind size or a retired Material name. The app's own views still carry the shared scale (`text-label-md` and its siblings) until they move.
 
 **Hero moment amplification** (garden creation, first work submission, hypercert mint, vault deposit, seasonal transitions, assessment completion, role milestone):
 - Apply full Warm Earth amplification: expressive shape × full chroma × Expressive motion scheme × display typography × dramatic material.
