@@ -113,10 +113,12 @@
 
 ## TDD Proof
 
-- RED: not applicable to the token slices (pure styling).
-- GREEN: not applicable to the token slices.
-- Proof limit: steps 1 and 2 `not_applicable`; step 3's solid focus ring is rendered-only
-  behaviour and records `proof_limit` with its rendered evidence.
+- Lane mode: `required` in `status.json`, because step 1's offline face changes service-worker
+  behaviour. Its RED and GREEN proof follow the testing contract and are recorded with
+  `node scripts/harness/plan-hub.mjs record-tdd` before the lane closes.
+- RED and GREEN: not applicable to the token slices themselves (pure styling).
+- Proof limit: step 1's face and role names and step 2 `not_applicable`; step 3's solid focus ring
+  is rendered-only behaviour and records `proof_limit` with its rendered evidence.
 
 ## Validation Receipt
 

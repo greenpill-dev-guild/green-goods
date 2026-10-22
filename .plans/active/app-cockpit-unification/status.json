@@ -63,7 +63,7 @@
       "depends_on": [],
       "handoff": "handoffs/claude-ui.md",
       "tdd": {
-        "mode": "not_applicable",
+        "mode": "required",
         "status": "pending",
         "red": {
           "command": "",
@@ -73,7 +73,7 @@
           "command": "",
           "evidence": ""
         },
-        "note": "Step 1 (typeface) changes the installed app's font family and its loading screen's face and no behaviour, so it proves itself with the rendered pairs, the typeface fit audit and the design and typography guards. Each later slice records its own mode in the lane handoff: steps 1 and 2 are pure styling (not_applicable); step 3's solid focus ring is rendered-only behaviour (proof_limit with its rendered evidence)."
+        "note": "Required because step 1's offline face changes service-worker behaviour (both faces served from the app and precached): its RED/GREEN proof is recorded with record-tdd before the lane closes. Step 1's face and role names change no behaviour and prove themselves with the rendered pairs, the typeface fit audit and the design and typography guards. Each later slice records its own mode in the lane handoff: step 2 is pure styling (not_applicable); step 3's solid focus ring is rendered-only behaviour (proof_limit with its rendered evidence)."
       },
       "skill_tags": ["ui", "design", "react"],
       "ready_when_dependencies_met": true,
