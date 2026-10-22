@@ -271,7 +271,7 @@
       "lane": "ui",
       "status": "in_progress",
       "branch": null,
-      "note": "Step 1's three pull requests merged: #1176 (guide wording, 870600083, 2026-10-21T23:46:46Z), #1175 (cockpit type roles, cfd1aaf83, 2026-10-21T23:48:54Z) and #1172 (the face, 20d8c8121, 2026-10-22T00:10:24Z). Step 1 stays open for the shared components' roles and authenticated Brave proof of the installed app; the lane has no branch until that work starts. The offline-font follow-up and the 320px truncations, handed on to step 7, are in handoffs/claude-ui.md."
+      "note": "Step 1's three pull requests merged: #1176 (guide wording, 870600083, 2026-10-21T23:46:46Z), #1175 (cockpit type roles, cfd1aaf83, 2026-10-21T23:48:54Z) and #1172 (the face, 20d8c8121, 2026-10-22T00:10:24Z). Step 1 stays open for the shared components' roles, the offline face (both faces served from the app and precached) and authenticated Brave proof of the installed app; the lane has no branch until that work starts. The 320px truncations are handed on to step 7; handoffs/claude-ui.md has the details."
     }
   ]
 }
