@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
+import { ICommitmentVoucherAcceptance as Voucher } from "../../interfaces/ICommitmentVoucherAcceptance.sol";
+import { CommitmentPoolingVoucherAcceptanceStorageLib as VoucherStore } from "./VoucherAcceptanceStorageLib.sol";
 import { ICommitmentPoolingModule } from "../../interfaces/ICommitmentPoolingModule.sol";
 import { ICommitmentServiceOffers } from "../../interfaces/ICommitmentServiceOffers.sol";
 import { CommitmentPoolingCyclesLib } from "./CyclesLib.sol";
@@ -15,6 +17,18 @@ import { CommitmentPoolingServiceOfferStorageLib } from "./ServiceOfferStorageLi
 ///      see `CommitmentPoolingAccess._forwardView`. Scalar views stay module-side where a plain
 ///      mapping read is already minimal. Runs via DELEGATECALL from `CommitmentPoolingModule`.
 library CommitmentPoolingViewsLib {
+    function getEarnedVoucherBinding(uint256 commitmentId) external view returns (Voucher.EarnedVoucherBinding memory) {
+        return VoucherStore.state().earned[commitmentId];
+    }
+
+    function getVoucherServiceAcceptance(uint256 commitmentId)
+        external
+        view
+        returns (Voucher.VoucherServiceAcceptance memory)
+    {
+        return VoucherStore.state().acceptedService[commitmentId];
+    }
+
     function getServiceOfferTerms(
         mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment commitment) storage commitments,
         uint256 commitmentId

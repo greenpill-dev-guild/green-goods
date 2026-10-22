@@ -1,3 +1,4 @@
+import { useServiceAccess, useServiceAccessMutation } from "@green-goods/shared/commitment-pooling";
 import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
 import { useActions, useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
@@ -11,7 +12,7 @@ import ptMessages from "@green-goods/shared/i18n/pt";
 import type { Decorator, Meta, StoryObj } from "@storybook/react";
 import { IntlProvider } from "react-intl";
 import { Route, Routes } from "react-router-dom";
-import { expect, mocked, within } from "storybook/test";
+import { expect, fn, mocked, within } from "storybook/test";
 import {
   AUTUMN_PLANTING,
   JOURNEY_CYCLE_NAMES,
@@ -49,6 +50,19 @@ const withPortuguese: Decorator = (Story) => (
  */
 const atStage = (stage: Parameters<typeof promisePageFixture>[0]) => () => {
   const { controller, history } = promisePageFixture(stage);
+  mocked(useServiceAccess).mockReturnValue({
+    data: undefined,
+    isLoading: false,
+    isError: false,
+    error: null,
+    refetch: fn(),
+  } as unknown as ReturnType<typeof useServiceAccess>);
+  mocked(useServiceAccessMutation).mockReturnValue({
+    isPending: false,
+    mutateAsync: fn().mockRejectedValue(
+      new Error("Service actions are unavailable in this legacy story")
+    ),
+  } as unknown as ReturnType<typeof useServiceAccessMutation>);
   mocked(usePrimaryAddress).mockReturnValue(controller.viewer);
   // This case exercises required Garden Work; the proof-only stages remain legacy promises.
   if (stage === "working" && controller.detail) {
@@ -97,6 +111,8 @@ const atStage = (stage: Parameters<typeof promisePageFixture>[0]) => () => {
   );
   mocked(useEnsName).mockReturnValue({ data: null } as ReturnType<typeof useEnsName>);
   return resetHookMocks(
+    useServiceAccess,
+    useServiceAccessMutation,
     usePrimaryAddress,
     useGardenCommitmentController,
     useCommitmentActivity,

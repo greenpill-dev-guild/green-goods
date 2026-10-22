@@ -3,6 +3,8 @@ pragma solidity ^0.8.25;
 
 import { ICommitmentPoolingModule as Core } from "../../src/interfaces/ICommitmentPoolingModule.sol";
 import { ICommitmentServiceOffers as Service } from "../../src/interfaces/ICommitmentServiceOffers.sol";
+import { ICommitmentVoucherAcceptance as Voucher } from "../../src/interfaces/ICommitmentVoucherAcceptance.sol";
+import { VoucherServiceReadinessMock, EarnedVoucherAcceptanceMock } from "../helpers/VoucherAcceptancePeers.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 import { CommitmentPoolingFixture } from "../helpers/CommitmentPoolingFixture.sol";
 
@@ -16,10 +18,15 @@ contract CommitmentPoolingServiceOffersTest is CommitmentPoolingFixture {
     address private constant VOUCHER = address(0xBA06);
     bytes32 private constant IMPLEMENTATION_SLOT = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
     Service private services;
+    VoucherServiceReadinessMock private readiness;
 
     function setUp() public {
         _setUpProductionFixture();
         services = Service(address(module));
+        readiness = new VoucherServiceReadinessMock(address(module));
+        module.setPaused(true);
+        Voucher(address(module)).pinVoucherServiceSetupModule(address(readiness));
+        module.setPaused(false);
         module.registerPool(BUYER_GARDEN, Core.PoolType.Garden);
         hats.setGardener(BUYER_GARDEN, BUYER, true);
         hats.setOperator(POOL_GARDEN, PROVIDER_STEWARD, true);
@@ -384,6 +391,131 @@ contract CommitmentPoolingServiceOffersTest is CommitmentPoolingFixture {
         assertEq(accepted.offer.terms.voucherUnits, 1200);
         assertEq(accepted.gdPrice, 0);
         assertEq(uint256(module.getCommitment(id).consideration.rail), uint256(Core.ConsiderationRail.None));
+    }
+
+    function testCommitmentPoolingServiceOffers_unfundedVoucherAcceptancePreservesPendingConsent() public {
+        uint256 id = _rawApprovalOffer(keccak256("unfunded-voucher"));
+        services.setServiceOfferTerms(id, 0, _voucherTerms(), 0);
+        Service.ServiceClaimRequest memory request = _request(services.getServiceOfferTerms(id));
+        request.voucherHolder = HOLDER;
+        vm.prank(BUYER);
+        bytes32 hash = services.requestServiceClaim(id, request);
+        readiness.setReady(false);
+        vm.expectRevert(VoucherServiceReadinessMock.EscrowNotReady.selector);
+        vm.prank(PROVIDER_STEWARD);
+        services.acceptServiceClaim(id, BUYER, hash);
+        assertTrue(module.getPendingClaim(id, BUYER).active);
+        assertEq(services.getAcceptedServiceTerms(id).buyer, address(0));
+        assertEq(Voucher(address(module)).getVoucherServiceAcceptance(id).setupId, bytes32(0));
+        assertEq(uint256(module.getCommitment(id).state), uint256(Core.CommitmentState.Offered));
+        readiness.setReady(true);
+        vm.prank(PROVIDER_STEWARD);
+        services.acceptServiceClaim(id, BUYER, hash);
+        Voucher.VoucherServiceAcceptance memory accepted = Voucher(address(module)).getVoucherServiceAcceptance(id);
+        assertEq(accepted.setupModule, address(readiness));
+        assertEq(accepted.claimHash, hash);
+        assertEq(accepted.termsRevision, 1);
+        assertEq(accepted.requestNonce, 1);
+        assertTrue(accepted.setupId != bytes32(0) && accepted.depositReceiptHash != bytes32(0));
+        vm.prank(PROVIDER_STEWARD);
+        module.cancelCommitment(id, "fictional accepted voucher cancellation");
+        assertEq(
+            keccak256(abi.encode(Voucher(address(module)).getVoucherServiceAcceptance(id))), keccak256(abi.encode(accepted))
+        );
+    }
+
+    function testCommitmentPoolingServiceOffers_rejectsZeroReadinessReceiptAtomically() public {
+        uint256 id = _rawApprovalOffer(keccak256("zero-voucher-receipt"));
+        services.setServiceOfferTerms(id, 0, _voucherTerms(), 0);
+        Service.ServiceClaimRequest memory request = _request(services.getServiceOfferTerms(id));
+        request.voucherHolder = HOLDER;
+        vm.prank(BUYER);
+        bytes32 hash = services.requestServiceClaim(id, request);
+        readiness.setZeroReceipt(true);
+        vm.expectRevert(abi.encodeWithSelector(Voucher.InvalidVoucherServiceAcceptance.selector, id));
+        vm.prank(PROVIDER_STEWARD);
+        services.acceptServiceClaim(id, BUYER, hash);
+        assertTrue(module.getPendingClaim(id, BUYER).active);
+        assertEq(services.getAcceptedServiceTerms(id).buyer, address(0));
+    }
+
+    function testCommitmentPoolingServiceOffers_combinedVoucherOptInRequiresBothGuardsAndRecordsBothReceipts() public {
+        EarnedVoucherAcceptanceMock earned = new EarnedVoucherAcceptanceMock(address(module), block.chainid, 1);
+        Voucher voucher = Voucher(address(module));
+        module.setPaused(true);
+        voucher.pinEarnedVoucherModule(address(earned));
+        module.setPaused(false);
+        uint256 id = _rawApprovalOffer(keccak256("combined-voucher-acceptance"));
+        services.setServiceOfferTerms(id, 0, _voucherTerms(), 0);
+        bytes32 earnedTerms = keccak256("fictional earned voucher terms");
+        earned.bind(id, 1, earnedTerms);
+        Service.ServiceClaimRequest memory request = _request(services.getServiceOfferTerms(id));
+        request.voucherHolder = HOLDER;
+        vm.prank(BUYER);
+        bytes32 claimHash = services.requestServiceClaim(id, request);
+
+        earned.setReady(false);
+        vm.expectRevert(EarnedVoucherAcceptanceMock.ConsentNotReady.selector);
+        vm.prank(PROVIDER_STEWARD);
+        services.acceptServiceClaim(id, BUYER, claimHash);
+        earned.setReady(true);
+        readiness.setReady(false);
+        vm.expectRevert(VoucherServiceReadinessMock.EscrowNotReady.selector);
+        vm.prank(PROVIDER_STEWARD);
+        services.acceptServiceClaim(id, BUYER, claimHash);
+        assertTrue(module.getPendingClaim(id, BUYER).active);
+        assertEq(module.getCommitment(id).counterparty, address(0));
+        assertEq(voucher.getEarnedVoucherBinding(id).acceptedRevision, 0);
+        assertEq(voucher.getVoucherServiceAcceptance(id).setupId, bytes32(0));
+
+        readiness.setReady(true);
+        vm.prank(PROVIDER_STEWARD);
+        services.acceptServiceClaim(id, BUYER, claimHash);
+        Voucher.EarnedVoucherBinding memory binding = voucher.getEarnedVoucherBinding(id);
+        Voucher.VoucherServiceAcceptance memory receipt = voucher.getVoucherServiceAcceptance(id);
+        assertEq(binding.acceptedRevision, 1);
+        assertEq(binding.acceptedTermsHash, earnedTerms);
+        assertEq(binding.acceptedCounterparty, BUYER);
+        assertEq(receipt.claimHash, claimHash);
+        assertEq(receipt.setupModule, address(readiness));
+        assertTrue(receipt.setupId != bytes32(0) && receipt.depositReceiptHash != bytes32(0));
+    }
+
+    function testCommitmentPoolingServiceOffers_legacyAndPersonalGdNeverCallVoucherPeer() public {
+        readiness.setReady(false);
+        uint256 legacy = _createOffer(keccak256("legacy-peer-independent"));
+        _acceptOffer(legacy);
+        uint256 personal = _personalOffer(keccak256("personal-peer-independent"));
+        _acceptPersonal(personal);
+        assertEq(module.getCommitment(legacy).counterparty, CLAIMANT);
+        assertEq(module.getCommitment(personal).counterparty, BUYER);
+        assertEq(Voucher(address(module)).getVoucherServiceAcceptance(personal).setupId, bytes32(0));
+    }
+
+    function testUpgrade_CommitmentPoolingServiceOffers_preservesFundedVoucherAcceptanceReceiptAndPin() public {
+        uint256 id = _rawApprovalOffer(keccak256("upgrade-voucher-accepted"));
+        services.setServiceOfferTerms(id, 0, _voucherTerms(), 0);
+        Service.ServiceClaimRequest memory request = _request(services.getServiceOfferTerms(id));
+        request.voucherHolder = HOLDER;
+        vm.prank(BUYER);
+        bytes32 hash = services.requestServiceClaim(id, request);
+        vm.prank(PROVIDER_STEWARD);
+        services.acceptServiceClaim(id, BUYER, hash);
+        bytes32 beforeHash = keccak256(
+            abi.encode(Voucher(address(module)).getVoucherServiceAcceptance(id), services.getAcceptedServiceTerms(id))
+        );
+        module.setPaused(true);
+        address replacement = deployCode("CommitmentPooling.sol:CommitmentPoolingModule");
+        UUPSUpgradeable(address(module)).upgradeTo(replacement);
+        assertEq(Voucher(address(module)).voucherServiceSetupModule(), address(readiness));
+        assertEq(
+            keccak256(
+                abi.encode(Voucher(address(module)).getVoucherServiceAcceptance(id), services.getAcceptedServiceTerms(id))
+            ),
+            beforeHash
+        );
+        vm.expectRevert(Voucher.VoucherAcceptancePeerAlreadyPinned.selector);
+        Voucher(address(module)).pinVoucherServiceSetupModule(address(readiness));
     }
 
     function testCommitmentPoolingServiceOffers_revertsWhenVoucherTermsAlsoChargeGd() public {

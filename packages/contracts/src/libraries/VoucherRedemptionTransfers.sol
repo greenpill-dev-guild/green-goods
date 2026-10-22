@@ -5,7 +5,8 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { ICLCGiftableToken } from "../interfaces/ICLCGiftableToken.sol";
 
-/// @notice Internal-only GiftableToken custody checks; no mint, reserve pull or pool authority.
+/// @notice Linked GiftableToken custody checks; custody and state remain in the calling escrow.
+/// @dev No mint, reserve pull or pool authority.
 library VoucherRedemptionTransfers {
     using SafeERC20 for IERC20;
     error WrongVoucherIssuer();
@@ -13,7 +14,7 @@ library VoucherRedemptionTransfers {
     error UnlimitedVoucherAllowance();
 
     /// @dev Initial authorization/intake only: later owner rotation cannot strand deposited units.
-    function requireIssuer(address token, address issuer) internal view {
+    function requireIssuer(address token, address issuer) public view {
         try ICLCGiftableToken(token).owner() returns (address actualOwner) {
             if (actualOwner != issuer) revert WrongVoucherIssuer();
         } catch {
@@ -21,7 +22,7 @@ library VoucherRedemptionTransfers {
         }
     }
 
-    function present(address tokenAddress, address holder, uint256 units) internal {
+    function present(address tokenAddress, address holder, uint256 units) public {
         IERC20 token = IERC20(tokenAddress);
         uint256 holderBefore = token.balanceOf(holder);
         uint256 escrowBefore = token.balanceOf(address(this));
@@ -34,7 +35,7 @@ library VoucherRedemptionTransfers {
         }
     }
 
-    function release(address tokenAddress, address recipient, uint256 units) internal {
+    function release(address tokenAddress, address recipient, uint256 units) public {
         IERC20 token = IERC20(tokenAddress);
         uint256 escrowBefore = token.balanceOf(address(this));
         uint256 recipientBefore = token.balanceOf(recipient);

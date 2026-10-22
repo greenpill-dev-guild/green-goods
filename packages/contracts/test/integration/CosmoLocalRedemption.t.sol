@@ -5,7 +5,8 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 import { Client } from "@chainlink/contracts-ccip/contracts/libraries/Client.sol";
 import { ICommitmentPoolingModule as Core } from "../../src/interfaces/ICommitmentPoolingModule.sol";
 import { ICommitmentServiceOffers as Service } from "../../src/interfaces/ICommitmentServiceOffers.sol";
-import { VoucherRedemptionCodec as Codec } from "../../src/libraries/VoucherRedemptionCodec.sol";
+import { VoucherServiceCodec as Codec } from "../../src/libraries/VoucherServiceCodec.sol";
+import { ICommitmentVoucherAcceptance as Acceptance } from "../../src/interfaces/ICommitmentVoucherAcceptance.sol";
 import { VoucherRedemptionModule } from "../../src/modules/VoucherRedemptionModule.sol";
 import { VoucherRedemptionReceiver } from "../../src/modules/VoucherRedemptionReceiver.sol";
 import { GnosisVoucherEscrow } from "../../src/modules/GnosisVoucherEscrow.sol";
@@ -31,6 +32,7 @@ contract CosmoLocalRedemptionTest is CommitmentPoolingFixture {
     VoucherRedemptionRouter private destinationRouter;
     VoucherRedemptionToken private token;
     mapping(bytes32 => bytes32) private payloadHashes;
+    mapping(uint256 => bytes32) private setups;
 
     function setUp() public {
         vm.chainId(42_161);
@@ -64,6 +66,9 @@ contract CosmoLocalRedemptionTest is CommitmentPoolingFixture {
         token.approve(address(escrow), 100);
         vm.chainId(42_161);
         source.initialize(COMMUNITY_SAFE, GUARDIAN, DESTINATION_SELECTOR, 100, address(escrow), address(module));
+        module.setPaused(true);
+        Acceptance(address(module)).pinVoucherServiceSetupModule(address(source));
+        module.setPaused(false);
         vm.prank(COMMUNITY_SAFE);
         source.unpause();
     }
@@ -73,12 +78,12 @@ contract CosmoLocalRedemptionTest is CommitmentPoolingFixture {
     {
         uint256 commitmentId = _acceptVoucherOffer(poolId, keccak256("fictional cross-garden voucher access"), false);
         bytes32 id = _present(commitmentId);
-        vm.prank(GNOSIS_HOLDER);
-        escrow.approveDelivered(id, payloadHashes[id], 2, 3, 40);
-        vm.prank(ISSUER_SAFE);
-        escrow.authorizeReturn(id, payloadHashes[id], 60);
-        vm.prank(GNOSIS_HOLDER);
-        escrow.returnUndelivered(id, payloadHashes[id], 3, 60);
+        assertEq(
+            uint8(source.getSetupResult(id).phase),
+            uint8(Codec.SetupPhase.Deposited),
+            "activation ACK intentionally remains delayed"
+        );
+        _settle(id, 3, 40, 60);
         _reconcile(id);
         Core.Commitment memory commitment = module.getCommitment(commitmentId);
         assertEq(commitment.counterparty, BUYER);
@@ -88,8 +93,8 @@ contract CosmoLocalRedemptionTest is CommitmentPoolingFixture {
         assertEq(uint8(commitment.consideration.rail), uint8(Core.ConsiderationRail.None));
         assertEq(commitment.consideration.amount, 0, "voucher-only service must not create G$ debt");
         assertEq(services.getAcceptedServiceTerms(commitmentId).gdPrice, 0);
-        assertEq(uint8(source.getRedemption(id).state), uint8(VoucherRedemptionModule.RedemptionState.Closed));
-        assertEq(source.getRedemption(id).latestResult.holderApprovedServiceUnits, 3);
+        assertTrue(escrow.isFinanciallyClosed(id));
+        assertEq(source.getFinalResult(id).allocation.approvedDeliveredServiceUnits, 3);
         assertEq(token.balanceOf(ISSUER_SAFE), 40);
         assertEq(token.balanceOf(GNOSIS_HOLDER), 60);
     }
@@ -104,11 +109,10 @@ contract CosmoLocalRedemptionTest is CommitmentPoolingFixture {
         vm.chainId(100);
         vm.expectRevert(VoucherRedemptionReceiver.HolderOnly.selector);
         vm.prank(BUYER);
-        escrow.approveDelivered(id, payloadHashes[id], 2, 10, 100);
-        vm.prank(GNOSIS_HOLDER);
-        escrow.approveDelivered(id, payloadHashes[id], 2, 10, 100);
+        escrow.finalizeAllocation(id, payloadHashes[id], Codec.FinalAllocation(10, 100, 0));
+        _settle(id, 10, 100, 0);
         _reconcile(id);
-        assertEq(source.getRedemption(id).latestResult.holderApprovedServiceUnits, 10);
+        assertEq(source.getFinalResult(id).allocation.approvedDeliveredServiceUnits, 10);
     }
 
     function testIntegration_CosmoLocalRedemption_authorizedPoolFallbackStillRequiresExplicitHolderApproval() public {
@@ -148,12 +152,11 @@ contract CosmoLocalRedemptionTest is CommitmentPoolingFixture {
         module.openPool(protocol);
         uint256 commitmentId = _acceptVoucherOffer(protocol, keccak256("fictional protocol voucher service"), false);
         bytes32 id = _present(commitmentId);
-        vm.prank(GNOSIS_HOLDER);
-        escrow.approveDelivered(id, payloadHashes[id], 2, 10, 100);
+        _settle(id, 10, 100, 0);
         _reconcile(id);
         assertEq(module.getCommitment(commitmentId).providerGarden, ROOT_GARDEN);
         assertEq(module.getCommitment(commitmentId).payerGarden, BUYER_GARDEN);
-        assertEq(source.getRedemption(id).latestResult.releasedUnits, 100);
+        assertEq(uint8(source.getFinalResult(id).release.state), uint8(Codec.LegState.Succeeded));
         assertEq(services.getAcceptedServiceTerms(commitmentId).consent.voucherHolder, GNOSIS_HOLDER);
     }
 
@@ -200,20 +203,66 @@ contract CosmoLocalRedemptionTest is CommitmentPoolingFixture {
                 expectedTermsHash: terms.termsHash
             })
         );
+        _fundBeforeAcceptance(commitmentId, terms, claimHash);
         vm.prank(PROVIDER_STEWARD);
         services.acceptServiceClaim(commitmentId, BUYER, claimHash);
+        bytes32 id = setups[commitmentId];
+        Acceptance.VoucherServiceAcceptance memory receipt =
+            Acceptance(address(module)).getVoucherServiceAcceptance(commitmentId);
+        assertEq(receipt.setupId, id);
+        assertEq(receipt.authorizationHash, payloadHashes[id]);
+        assertEq(receipt.depositReceiptHash, Codec.depositReceiptHash(source.getSetupAuthorization(id)));
+        source.finalizeActivation(id, payloadHashes[id]);
+        source.dispatchSetupCommand(id, 1);
+        _relayDestination();
+        assertEq(uint8(escrow.getSetupResult(id).phase), uint8(Codec.SetupPhase.Active));
     }
 
-    function _present(uint256 commitmentId) private returns (bytes32 id) {
+    function _fundBeforeAcceptance(
+        uint256 commitmentId,
+        Service.ServiceOfferTerms memory terms,
+        bytes32 claimHash
+    )
+        private
+    {
+        vm.expectRevert();
+        vm.prank(PROVIDER_STEWARD);
+        services.acceptServiceClaim(commitmentId, BUYER, claimHash);
         vm.prank(BUYER);
-        id = source.prepareRedemption(commitmentId);
-        Codec.Authorization memory authorization = Codec.decodeAuthorization(source.getCommand(id));
-        assertEq(authorization.totalServiceUnits, 10);
-        assertEq(authorization.totalVoucherUnits, 100);
-        assertEq(authorization.serviceUnitLabelHash, keccak256("fictional lesson"));
+        bytes32 id = source.prepareVoucherSetup(
+            commitmentId, terms.revision, terms.termsHash, claimHash, 1, uint64(block.timestamp + 1 days)
+        );
+        setups[commitmentId] = id;
+        Codec.SetupAuthorization memory authorization = source.getSetupAuthorization(id);
         payloadHashes[id] = Codec.hash(authorization);
         vm.prank(BUYER);
-        bytes32 messageId = source.dispatch(id);
+        source.dispatchSetupCommand(id, 0);
+        _relayDestination();
+        vm.prank(ISSUER_SAFE);
+        escrow.approveSetupAuthorization(id, payloadHashes[id]);
+        vm.prank(GNOSIS_HOLDER);
+        escrow.presentSetup(id, payloadHashes[id]);
+        assertEq(token.balanceOf(address(escrow)), 100, "escrow must precede core acceptance");
+        assertEq(escrow.getFinalAllocation(id).decisionId, bytes32(0));
+        _reconcile(id);
+        vm.prank(COMMUNITY_SAFE);
+        source.pause();
+        vm.expectRevert();
+        vm.prank(PROVIDER_STEWARD);
+        services.acceptServiceClaim(commitmentId, BUYER, claimHash);
+        assertEq(uint8(module.getCommitment(commitmentId).state), uint8(Core.CommitmentState.Offered));
+        vm.prank(COMMUNITY_SAFE);
+        source.unpause();
+    }
+
+    function _present(uint256 commitmentId) private returns (bytes32) {
+        vm.chainId(100);
+        return setups[commitmentId];
+    }
+
+    function _relayDestination() private {
+        bytes memory data = sourceRouter.lastData();
+        bytes32 messageId = sourceRouter.lastMessageId();
         vm.chainId(100);
         destinationRouter.deliver(
             address(escrow),
@@ -221,14 +270,22 @@ contract CosmoLocalRedemptionTest is CommitmentPoolingFixture {
                 messageId: messageId,
                 sourceChainSelector: SOURCE_SELECTOR,
                 sender: abi.encode(address(source)),
-                data: Codec.encodeAuthorization(authorization),
+                data: data,
                 destTokenAmounts: new Client.EVMTokenAmount[](0)
             })
         );
+    }
+
+    function _settle(bytes32 id, uint256 serviceUnits, uint256 releaseUnits, uint256 refundUnits) private {
         vm.prank(ISSUER_SAFE);
-        escrow.approveAuthorization(id, payloadHashes[id]);
+        escrow.authorizeReturn(id, payloadHashes[id], refundUnits);
         vm.prank(GNOSIS_HOLDER);
-        escrow.present(id, payloadHashes[id], 1);
+        bytes32 decision = escrow.finalizeAllocation(
+            id, payloadHashes[id], Codec.FinalAllocation(serviceUnits, releaseUnits, refundUnits)
+        );
+        assertEq(token.balanceOf(address(escrow)), 100, "holder final approval freezes before transfers");
+        escrow.executeFinalLeg(id, decision, Codec.FinalLeg.RefundToHolder);
+        escrow.executeFinalLeg(id, decision, Codec.FinalLeg.ReleaseToIssuer);
     }
 
     function _ready(uint256 commitmentId) private {
@@ -244,20 +301,21 @@ contract CosmoLocalRedemptionTest is CommitmentPoolingFixture {
     function _assertUnapproved(uint256 commitmentId, bytes32 id) private {
         assertEq(uint8(module.getCommitment(commitmentId).state), uint8(Core.CommitmentState.Fulfilled));
         vm.chainId(100);
-        assertEq(escrow.getExecutionResult(id).current.holderApprovedServiceUnits, 0);
-        assertEq(escrow.getExecutionResult(id).current.releasedUnits, 0);
+        assertEq(escrow.getFinalAllocation(id).allocation.approvedDeliveredServiceUnits, 0);
+        assertEq(escrow.getFinalAllocation(id).decisionId, bytes32(0));
         assertEq(token.balanceOf(address(escrow)), 100);
         _reconcile(id);
-        assertEq(source.getRedemption(id).latestResult.holderApprovedServiceUnits, 0);
+        assertEq(source.getFinalResult(id).allocation.approvedDeliveredServiceUnits, 0);
     }
 
     function _reconcile(bytes32 id) private {
         vm.chainId(100);
-        escrow.retryAcknowledgment(id);
+        if (escrow.getFinalAllocation(id).decisionId == bytes32(0)) escrow.retrySetupAcknowledgment(id);
+        else escrow.retryFinalAcknowledgment(id);
         bytes memory data = destinationRouter.lastData();
         bytes32 messageId = destinationRouter.lastMessageId();
         vm.chainId(42_161);
-        sourceRouter.deliver(
+        (bool success, uint256 gasUsed) = sourceRouter.deliverBounded(
             address(source),
             Client.Any2EVMMessage({
                 messageId: messageId,
@@ -265,7 +323,10 @@ contract CosmoLocalRedemptionTest is CommitmentPoolingFixture {
                 sender: abi.encode(address(escrow)),
                 data: data,
                 destTokenAmounts: new Client.EVMTokenAmount[](0)
-            })
+            }),
+            escrow.ACKNOWLEDGMENT_GAS_LIMIT()
         );
+        assertTrue(success, "actual core result reconciliation must fit the fixed ACK gas budget");
+        assertLt(gasUsed, escrow.ACKNOWLEDGMENT_GAS_LIMIT());
     }
 }

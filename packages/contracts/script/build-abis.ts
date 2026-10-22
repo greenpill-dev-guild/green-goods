@@ -44,6 +44,10 @@ const ABI_SOURCES = [
     target: "ICommitmentServiceOffers.json",
   },
   {
+    source: "ICommitmentVoucherAcceptance.sol/ICommitmentVoucherAcceptance.json",
+    target: "ICommitmentVoucherAcceptance.json",
+  },
+  {
     source: "ICommitmentRegistry.sol/ICommitmentRegistry.json",
     target: "ICommitmentRegistry.json",
   },
@@ -54,6 +58,10 @@ const ABI_SOURCES = [
   {
     source: "ISettlementPersonalServicePurchases.sol/ISettlementPersonalServicePurchases.json",
     target: "ISettlementPersonalServicePurchases.json",
+  },
+  {
+    source: "VoucherEntitlementModule.sol/VoucherEntitlementModule.json",
+    target: "VoucherEntitlementModule.json",
   },
   {
     source: "VoucherRedemptionModule.sol/VoucherRedemptionModule.json",

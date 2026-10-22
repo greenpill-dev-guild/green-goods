@@ -68,6 +68,30 @@
   },
   {
     "type": "function",
+    "name": "abortSetup",
+    "inputs": [
+      {
+        "name": "id",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "expectedAuthorizationHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "acknowledgmentMessages",
     "inputs": [
       {
@@ -162,9 +186,33 @@
     "name": "dispatch",
     "inputs": [
       {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "dispatchSetupCommand",
+    "inputs": [
+      {
         "name": "id",
         "type": "bytes32",
         "internalType": "bytes32"
+      },
+      {
+        "name": "kind",
+        "type": "uint8",
+        "internalType": "uint8"
       }
     ],
     "outputs": [
@@ -175,6 +223,30 @@
       }
     ],
     "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "finalizeActivation",
+    "inputs": [
+      {
+        "name": "id",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "expectedAuthorizationHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -191,6 +263,128 @@
         "name": "",
         "type": "bytes",
         "internalType": "bytes"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getFinalResult",
+    "inputs": [
+      {
+        "name": "id",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct VoucherServiceCodec.FinalResultV2",
+        "components": [
+          {
+            "name": "protocolVersion",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "setupId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "payloadHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "sequence",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "activationDecisionId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "decisionId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "issuerReturnApprovalAtFreeze",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "allocation",
+            "type": "tuple",
+            "internalType": "struct VoucherServiceCodec.FinalAllocation",
+            "components": [
+              {
+                "name": "approvedDeliveredServiceUnits",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "releaseVoucherUnits",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "refundVoucherUnits",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "release",
+            "type": "tuple",
+            "internalType": "struct VoucherServiceCodec.LegProgress",
+            "components": [
+              {
+                "name": "state",
+                "type": "uint8",
+                "internalType": "enum VoucherServiceCodec.LegState"
+              },
+              {
+                "name": "attempts",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "failureHash",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              }
+            ]
+          },
+          {
+            "name": "refund",
+            "type": "tuple",
+            "internalType": "struct VoucherServiceCodec.LegProgress",
+            "components": [
+              {
+                "name": "state",
+                "type": "uint8",
+                "internalType": "enum VoucherServiceCodec.LegState"
+              },
+              {
+                "name": "attempts",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "failureHash",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              }
+            ]
+          }
+        ]
       }
     ],
     "stateMutability": "view"
@@ -358,6 +552,338 @@
   },
   {
     "type": "function",
+    "name": "getSetup",
+    "inputs": [
+      {
+        "name": "id",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct VoucherServiceSourceStorage.SourceSetup",
+        "components": [
+          {
+            "name": "authorizationHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "depositReceiptHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "decisionId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "lastPrepareMessageId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "lastDecisionMessageId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "latestResultHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "latestResultSequence",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "decisionAt",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "decision",
+            "type": "uint8",
+            "internalType": "enum VoucherServiceCodec.SetupDecision"
+          },
+          {
+            "name": "latestDestinationPhase",
+            "type": "uint8",
+            "internalType": "enum VoucherServiceCodec.SetupPhase"
+          },
+          {
+            "name": "depositedUnits",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "setupRefundedUnits",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getSetupAuthorization",
+    "inputs": [
+      {
+        "name": "id",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct VoucherServiceCodec.SetupAuthorization",
+        "components": [
+          {
+            "name": "version",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "sourceChainId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "sourceModule",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "coreModule",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "commitmentId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "termsRevision",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "termsHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "claimHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "requestNonce",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "buyer",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "holder",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "buyerGarden",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "providerGarden",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "destinationChainId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "destinationEscrow",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "issuer",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "token",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "voucherUnits",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "serviceUnits",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "unitLabelHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "serviceTermsRef",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "remedyTermsRef",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "acceptanceDeadline",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "remedyPolicy",
+            "type": "uint8",
+            "internalType": "uint8"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getSetupCommand",
+    "inputs": [
+      {
+        "name": "id",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "kind",
+        "type": "uint8",
+        "internalType": "uint8"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getSetupResult",
+    "inputs": [
+      {
+        "name": "id",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct VoucherServiceCodec.SetupResult",
+        "components": [
+          {
+            "name": "version",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "setupId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "authorizationHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "resultSequence",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "phase",
+            "type": "uint8",
+            "internalType": "enum VoucherServiceCodec.SetupPhase"
+          },
+          {
+            "name": "decision",
+            "type": "uint8",
+            "internalType": "enum VoucherServiceCodec.SetupDecision"
+          },
+          {
+            "name": "issuerApproved",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "depositReceiptHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "depositedUnits",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "setupRefundedUnits",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "appliedDecisionId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "actionSucceeded",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "failureHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "guardian",
     "inputs": [],
     "outputs": [
@@ -445,9 +971,53 @@
     "name": "prepareRedemption",
     "inputs": [
       {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "prepareVoucherSetup",
+    "inputs": [
+      {
         "name": "commitmentId",
         "type": "uint256",
         "internalType": "uint256"
+      },
+      {
+        "name": "expectedRevision",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "expectedTermsHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "expectedClaimHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "expectedRequestNonce",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "acceptanceDeadline",
+        "type": "uint64",
+        "internalType": "uint64"
       }
     ],
     "outputs": [
@@ -477,9 +1047,33 @@
     "name": "quoteDispatch",
     "inputs": [
       {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "quoteSetupCommand",
+    "inputs": [
+      {
         "name": "id",
         "type": "bytes32",
         "internalType": "bytes32"
+      },
+      {
+        "name": "kind",
+        "type": "uint8",
+        "internalType": "uint8"
       }
     ],
     "outputs": [
@@ -597,6 +1191,30 @@
   },
   {
     "type": "function",
+    "name": "setupOfClaim",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "claimHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "supportsInterface",
     "inputs": [
       {
@@ -677,6 +1295,78 @@
     ],
     "outputs": [],
     "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "validateVoucherServiceAcceptance",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "buyer",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "revision",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "termsHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "claimHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "requestNonce",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "holder",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "id",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "authorizationHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "depositReceiptHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "voucherAcceptanceProtocolVersion",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint16",
+        "internalType": "uint16"
+      }
+    ],
+    "stateMutability": "pure"
   },
   {
     "type": "event",
@@ -911,6 +1601,159 @@
   },
   {
     "type": "event",
+    "name": "VoucherFinalResultRecorded",
+    "inputs": [
+      {
+        "name": "setupId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "sequence",
+        "type": "uint64",
+        "indexed": true,
+        "internalType": "uint64"
+      },
+      {
+        "name": "result",
+        "type": "tuple",
+        "indexed": false,
+        "internalType": "struct VoucherServiceCodec.FinalResultV2",
+        "components": [
+          {
+            "name": "protocolVersion",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "setupId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "payloadHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "sequence",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "activationDecisionId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "decisionId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "issuerReturnApprovalAtFreeze",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "allocation",
+            "type": "tuple",
+            "internalType": "struct VoucherServiceCodec.FinalAllocation",
+            "components": [
+              {
+                "name": "approvedDeliveredServiceUnits",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "releaseVoucherUnits",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "refundVoucherUnits",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "release",
+            "type": "tuple",
+            "internalType": "struct VoucherServiceCodec.LegProgress",
+            "components": [
+              {
+                "name": "state",
+                "type": "uint8",
+                "internalType": "enum VoucherServiceCodec.LegState"
+              },
+              {
+                "name": "attempts",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "failureHash",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              }
+            ]
+          },
+          {
+            "name": "refund",
+            "type": "tuple",
+            "internalType": "struct VoucherServiceCodec.LegProgress",
+            "components": [
+              {
+                "name": "state",
+                "type": "uint8",
+                "internalType": "enum VoucherServiceCodec.LegState"
+              },
+              {
+                "name": "attempts",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "failureHash",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "VoucherHolderAbortRequested",
+    "inputs": [
+      {
+        "name": "setupId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "holder",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "alreadyAccepted",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "VoucherPauseChanged",
     "inputs": [
       {
@@ -918,6 +1761,338 @@
         "type": "bool",
         "indexed": false,
         "internalType": "bool"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "VoucherSetupDecisionSelected",
+    "inputs": [
+      {
+        "name": "setupId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "decisionId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "command",
+        "type": "tuple",
+        "indexed": false,
+        "internalType": "struct VoucherServiceCodec.SetupDecisionCommand",
+        "components": [
+          {
+            "name": "version",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "setupId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "authorizationHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "decision",
+            "type": "uint8",
+            "internalType": "enum VoucherServiceCodec.SetupDecision"
+          },
+          {
+            "name": "expectedDepositReceiptHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "coreAcceptanceHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "abortReason",
+            "type": "uint8",
+            "internalType": "enum VoucherServiceCodec.AbortReason"
+          }
+        ]
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "VoucherSetupDispatched",
+    "inputs": [
+      {
+        "name": "setupId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "messageId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "kind",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "VoucherSetupPrepared",
+    "inputs": [
+      {
+        "name": "setupId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "authorizationHash",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "authorization",
+        "type": "tuple",
+        "indexed": false,
+        "internalType": "struct VoucherServiceCodec.SetupAuthorization",
+        "components": [
+          {
+            "name": "version",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "sourceChainId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "sourceModule",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "coreModule",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "commitmentId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "termsRevision",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "termsHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "claimHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "requestNonce",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "buyer",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "holder",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "buyerGarden",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "providerGarden",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "destinationChainId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "destinationEscrow",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "issuer",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "token",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "voucherUnits",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "serviceUnits",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "unitLabelHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "serviceTermsRef",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "remedyTermsRef",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "acceptanceDeadline",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "remedyPolicy",
+            "type": "uint8",
+            "internalType": "uint8"
+          }
+        ]
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "VoucherSetupResultRecorded",
+    "inputs": [
+      {
+        "name": "setupId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "sequence",
+        "type": "uint64",
+        "indexed": true,
+        "internalType": "uint64"
+      },
+      {
+        "name": "result",
+        "type": "tuple",
+        "indexed": false,
+        "internalType": "struct VoucherServiceCodec.SetupResult",
+        "components": [
+          {
+            "name": "version",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "setupId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "authorizationHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "resultSequence",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "phase",
+            "type": "uint8",
+            "internalType": "enum VoucherServiceCodec.SetupPhase"
+          },
+          {
+            "name": "decision",
+            "type": "uint8",
+            "internalType": "enum VoucherServiceCodec.SetupDecision"
+          },
+          {
+            "name": "issuerApproved",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "depositReceiptHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "depositedUnits",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "setupRefundedUnits",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "appliedDecisionId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "actionSucceeded",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "failureHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          }
+        ]
       }
     ],
     "anonymous": false
@@ -970,6 +2145,11 @@
   },
   {
     "type": "error",
+    "name": "CoreOnly",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "EscrowAlreadyClosed",
     "inputs": []
   },
@@ -1017,11 +2197,6 @@
   },
   {
     "type": "error",
-    "name": "InvalidRedemptionResult",
-    "inputs": []
-  },
-  {
-    "type": "error",
     "name": "InvalidRouter",
     "inputs": [
       {
@@ -1043,12 +2218,27 @@
   },
   {
     "type": "error",
+    "name": "InvalidVoucherServiceAuthorization",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidVoucherServiceResult",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "NotPauseAuthority",
     "inputs": []
   },
   {
     "type": "error",
     "name": "RedemptionAlreadyPrepared",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SetupAbortNotAuthorized",
     "inputs": []
   },
   {
@@ -1063,7 +2253,7 @@
   },
   {
     "type": "error",
-    "name": "UnsupportedRedemptionMessage",
+    "name": "UnsupportedVoucherServiceMessage",
     "inputs": []
   },
   {
@@ -1074,6 +2264,26 @@
   {
     "type": "error",
     "name": "VoucherPaused",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "VoucherSetupAborted",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "VoucherSetupAlreadyAccepted",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "VoucherSetupNotReady",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "VoucherSetupRequired",
     "inputs": []
   }
 ]

@@ -19,6 +19,7 @@ export {
   usePoolParticipationSummary,
 } from "./useCommitmentPooling";
 export { useCommitmentPoolingAvailability } from "./useCommitmentPoolingAvailability";
+export { useServiceAccess, useServiceAccessMutation } from "./useServiceAccess";
 export { useCommitmentWorkDecisions } from "./useCommitmentWorkDecisions";
 export { useWorkLinkChoices } from "./useWorkLinkChoices";
 export type {

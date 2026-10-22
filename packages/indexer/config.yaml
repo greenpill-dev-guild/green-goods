@@ -127,6 +127,16 @@ contracts:
       - event: ModuleDependencyUpdated(uint8 indexed dependency, address indexed previousAddress, address indexed newAddress)
       - event: ModuleSchemaUIDUpdated(uint8 indexed schemaKind, bytes32 previousUID, bytes32 newUID)
       - event: ModulePauseStatusChanged(bool previousPaused, bool paused)
+      # Additive v1 service events; legacy deployment emits none until separately authorized upgrade.
+      - event: ServiceOfferTermsSet(uint256 indexed commitmentId, uint64 indexed revision, bytes32 indexed termsHash, uint8 route, uint256 gdPrice)
+      - event: ServiceClaimConsentRequested(uint256 indexed commitmentId, address indexed buyer, bytes32 indexed claimHash, uint64 revision, uint64 requestNonce, address buyerGarden, address voucherHolder)
+      - event: ServiceClaimConsentAccepted(uint256 indexed commitmentId, address indexed buyer, bytes32 indexed claimHash, uint64 revision, uint64 requestNonce)
+      - event: ServiceClaimConsentWithdrawn(uint256 indexed commitmentId, address indexed buyer, bytes32 indexed claimHash)
+      - event: EarnedVoucherModulePinned(address indexed module)
+      - event: VoucherServiceSetupModulePinned(address indexed module)
+      - event: EarnedVoucherTermsBound(uint256 indexed commitmentId, address indexed module, uint64 indexed revision, bytes32 termsHash)
+      - event: EarnedVoucherAcceptanceRecorded(uint256 indexed commitmentId, address indexed module, uint64 indexed revision, bytes32 termsHash, address creator, address counterparty)
+      - event: VoucherServiceAcceptanceRecorded(uint256 indexed commitmentId, bytes32 indexed claimHash, bytes32 indexed setupId, address setupModule, uint64 revision, uint64 requestNonce, bytes32 authorizationHash, bytes32 depositReceiptHash)
   - name: CommitmentRegistry
     handler: src/EventHandlers.ts
     events:
@@ -175,6 +185,10 @@ contracts:
       - event: BatchCancelled(uint256 indexed batchId, address indexed actor, string reasonCID)
       - event: FeeReserveFunded(address indexed funder, uint256 amount)
       - event: ExcessFeesWithdrawn(address indexed recipient, uint256 amount)
+      - event: PersonalServicePurchasePledged(bytes32 indexed purchaseId, uint256 indexed fundingId, uint256 indexed commitmentId, (uint8 version, bytes32 purchaseId, uint256 sourceChainId, address sourceModule, uint256 commitmentId, uint64 termsRevision, bytes32 termsHash, bytes32 claimHash, uint64 requestNonce, address buyer, address recipient, address buyerGarden, address providerGarden, uint64 destinationChainId, address token, uint256 price, address custodySafe, address authorizedDepositor, address refundAccount, uint256 disclosedGrossAmount, uint256 disclosedNetAmount) terms)
+      - event: PersonalServiceDepositVerified(bytes32 indexed receiptKey, uint256 indexed fundingId, bytes32 indexed purchaseId, (uint64 chainId, address token, bytes32 transactionHash, uint32 logIndex, uint64 blockNumber, bytes32 blockHash, address depositingAccount, address custodySafe, uint256 grossDebit, uint256 receivedAmount) deposit, address verifiedBy)
+      - event: PersonalServicePurchaseOutcomeSelected(bytes32 indexed purchaseId, uint256 indexed fundingId, uint8 outcome, uint256 payoutPlanId, uint256 refundDisbursementId)
+      - event: PersonalServicePurchaseOutcomeCompleted(bytes32 indexed purchaseId, uint256 indexed fundingId, uint8 outcome)
   - name: CreditRegistry
     handler: src/EventHandlers.ts
     events:
@@ -211,6 +225,45 @@ contracts:
       - event: DuplicateSettlementMessage(bytes32 indexed executionKey, bytes32 indexed commandMessageId)
       - event: AcknowledgmentSent(bytes32 indexed executionKey, bytes32 indexed commandMessageId, bytes32 indexed acknowledgmentMessageId, uint256 fee, bool reserveFunded)
       - event: AcknowledgmentDeferred(bytes32 indexed executionKey, bytes32 indexed commandMessageId, uint8 reasonCode)
+  # Dormant definitions only: no chain registrations, addresses or discovery source.
+  - name: VoucherRedemptionModule
+    handler: src/EventHandlers.ts
+    events:
+      - event: VoucherEndpointPinned(uint256 localChainId, address router, uint64 remoteChainSelector, uint256 remoteChainId, address remotePeer)
+      - event: VoucherPauseChanged(bool paused)
+      - event: RedemptionPrepared(bytes32 indexed redemptionId, uint256 indexed commitmentId, bytes32 indexed payloadHash)
+      - event: RedemptionDispatched(bytes32 indexed redemptionId, bytes32 indexed messageId)
+      - event: RedemptionResultRecorded(bytes32 indexed redemptionId, uint64 indexed sequence, uint8 state, uint256 escrowedUnits, uint256 holderApprovedServiceUnits, uint256 holderApprovedVoucherUnits, uint256 mutualReturnUnits, uint256 releasedUnits, uint256 returnedUnits, bool actionSucceeded, bytes32 failureHash)
+      - event: VoucherSetupPrepared(bytes32 indexed setupId, uint256 indexed commitmentId, bytes32 indexed authorizationHash, (uint8 version, uint256 sourceChainId, address sourceModule, address coreModule, uint256 commitmentId, uint64 termsRevision, bytes32 termsHash, bytes32 claimHash, uint64 requestNonce, address buyer, address holder, address buyerGarden, address providerGarden, uint256 destinationChainId, address destinationEscrow, address issuer, address token, uint256 voucherUnits, uint256 serviceUnits, bytes32 unitLabelHash, bytes32 serviceTermsRef, bytes32 remedyTermsRef, uint64 acceptanceDeadline, uint8 remedyPolicy) authorization)
+      - event: VoucherSetupDecisionSelected(bytes32 indexed setupId, bytes32 indexed decisionId, (uint8 version, bytes32 setupId, bytes32 authorizationHash, uint8 decision, bytes32 expectedDepositReceiptHash, bytes32 coreAcceptanceHash, uint8 abortReason) command)
+      - event: VoucherSetupDispatched(bytes32 indexed setupId, bytes32 indexed messageId, uint8 kind)
+      - event: VoucherSetupResultRecorded(bytes32 indexed setupId, uint64 indexed sequence, (uint8 version, bytes32 setupId, bytes32 authorizationHash, uint64 resultSequence, uint8 phase, uint8 decision, bool issuerApproved, bytes32 depositReceiptHash, uint256 depositedUnits, uint256 setupRefundedUnits, bytes32 appliedDecisionId, bool actionSucceeded, bytes32 failureHash) result)
+      - event: VoucherFinalResultRecorded(bytes32 indexed setupId, uint64 indexed sequence, (uint8 protocolVersion, bytes32 setupId, bytes32 payloadHash, uint64 sequence, bytes32 activationDecisionId, bytes32 decisionId, uint256 issuerReturnApprovalAtFreeze, (uint256 approvedDeliveredServiceUnits, uint256 releaseVoucherUnits, uint256 refundVoucherUnits) allocation, (uint8 state, uint64 attempts, bytes32 failureHash) release, (uint8 state, uint64 attempts, bytes32 failureHash) refund) result)
+      - event: VoucherHolderAbortRequested(bytes32 indexed setupId, address indexed holder, bool alreadyAccepted)
+  - name: GnosisVoucherEscrow
+    handler: src/EventHandlers.ts
+    events:
+      - event: VoucherEndpointPinned(uint256 localChainId, address router, uint64 remoteChainSelector, uint256 remoteChainId, address remotePeer)
+      - event: VoucherPauseChanged(bool paused)
+      - event: RedemptionAuthorizationRecorded(bytes32 indexed redemptionId, bytes32 indexed payloadHash, bytes32 indexed messageId)
+      - event: RedemptionIssuerApproved(bytes32 indexed redemptionId, address indexed issuer, bytes32 indexed payloadHash)
+      - event: VoucherPresented(bytes32 indexed redemptionId, address indexed holder, address indexed token, uint256 units)
+      - event: HolderDeliveryApproved(bytes32 indexed redemptionId, address indexed holder, bytes32 indexed actionHash, uint256 newlyApprovedServiceUnits, uint256 cumulativeApprovedServiceUnits, uint256 voucherUnits, uint256 cumulativeApprovedVoucherUnits)
+      - event: RedemptionReturnAuthorized(bytes32 indexed redemptionId, address indexed issuer, uint256 cumulativeReturnCeiling)
+      - event: HolderReturnApproved(bytes32 indexed redemptionId, address indexed holder, bytes32 indexed actionHash, uint256 units, uint256 cumulativeReturnUnits)
+      - event: RedemptionActionResult(bytes32 indexed redemptionId, bytes32 indexed actionHash, uint64 indexed sequence, uint8 kind, uint256 voucherUnits, uint256 serviceUnits, bool success, bytes32 failureHash, bytes reason)
+      - event: RedemptionAcknowledgmentSent(bytes32 indexed redemptionId, uint64 indexed sequence, bytes32 indexed messageId)
+      - event: RedemptionAcknowledgmentFailed(bytes32 indexed redemptionId, uint64 indexed sequence, bytes reason)
+      - event: VoucherSetupAuthorizationRecorded(bytes32 indexed setupId, bytes32 indexed authorizationHash, bytes32 indexed messageId, (uint8 version, uint256 sourceChainId, address sourceModule, address coreModule, uint256 commitmentId, uint64 termsRevision, bytes32 termsHash, bytes32 claimHash, uint64 requestNonce, address buyer, address holder, address buyerGarden, address providerGarden, uint256 destinationChainId, address destinationEscrow, address issuer, address token, uint256 voucherUnits, uint256 serviceUnits, bytes32 unitLabelHash, bytes32 serviceTermsRef, bytes32 remedyTermsRef, uint64 acceptanceDeadline, uint8 remedyPolicy) authorization)
+      - event: VoucherSetupDecisionApplied(bytes32 indexed setupId, bytes32 indexed decisionId, uint8 decision)
+      - event: VoucherSetupResultRecorded(bytes32 indexed setupId, uint64 indexed sequence, (uint8 version, bytes32 setupId, bytes32 authorizationHash, uint64 resultSequence, uint8 phase, uint8 decision, bool issuerApproved, bytes32 depositReceiptHash, uint256 depositedUnits, uint256 setupRefundedUnits, bytes32 appliedDecisionId, bool actionSucceeded, bytes32 failureHash) result)
+      - event: VoucherSetupActionResult(bytes32 indexed setupId, uint8 indexed action, bool success, bytes32 failureHash, bytes reason)
+      - event: VoucherSetupHolderAbortRequested(bytes32 indexed setupId, address indexed holder, bytes32 indexed messageId)
+      - event: FinalAllocationFrozen(bytes32 indexed setupId, bytes32 indexed decisionId, address indexed holder, bytes32 payloadHash, bytes32 activationDecisionId, uint256 approvedDeliveredServiceUnits, uint256 releaseVoucherUnits, uint256 refundVoucherUnits, uint256 issuerReturnApprovalAtFreeze)
+      - event: FinalLegResult(bytes32 indexed setupId, bytes32 indexed decisionId, uint8 indexed leg, bytes32 legId, address recipient, uint256 voucherUnits, uint8 state, uint64 attempts, bytes32 failureHash)
+      - event: VoucherEscrowFinanciallyClosed(bytes32 indexed setupId, bytes32 indexed decisionId)
+      - event: VoucherServiceAcknowledgmentSent(bytes32 indexed setupId, bool indexed finalResult, uint64 indexed sequence, bytes32 messageId)
+      - event: VoucherServiceAcknowledgmentFailed(bytes32 indexed setupId, bool indexed finalResult, uint64 indexed sequence, bytes reason)
 chains:
   - id: 42161
     start_block: 433713812

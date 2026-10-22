@@ -47,6 +47,13 @@ afterEach(() => {
 });
 
 describe("passkey cross-chain account construction", () => {
+  it("rejects Gnosis before deriving an account or constructing a sponsored client", async () => {
+    await expect(
+      defaultPasskeyAdapters.buildSmartAccount(credential, 100, "greengoods.test")
+    ).rejects.toThrow("Unsupported chain ID: 100");
+    expect(factoryCalls).toHaveLength(0);
+  });
+
   it("uses identical Kernel account factory calldata and EntryPoint 0.7 on Arbitrum and Celo", async () => {
     vi.stubEnv("VITE_PIMLICO_API_KEY", "test-api-key");
     vi.stubEnv("VITE_PIMLICO_SPONSORSHIP_POLICY_ID", "arbitrum-policy");

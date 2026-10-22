@@ -273,6 +273,18 @@ export function buildDemoWorld(viewer: Address): DemoWorld {
   );
 
   const documents: Record<string, DemoDocument> = {
+    "bafy-demo-c1022": metadata(
+      "Local rehearsal: fictional personal G$ workshop",
+      "Fictional terms and local account stand-ins; no live payment or service activation."
+    ),
+    "bafy-demo-c1023": metadata(
+      "Local rehearsal: fictional voucher workshop",
+      "Fictional terms and local account stand-ins; no live payment or service activation."
+    ),
+    "bafy-demo-c1024": metadata(
+      "Local rehearsal: fictional partial service",
+      "Fictional holder approval and voucher return; no live signing or service activation."
+    ),
     ...evidenceDocuments,
     "bafy-demo-charter": { version: 1, title: "Green Goods Community Garden pool charter" },
     "bafy-demo-pause-102": {

@@ -104,6 +104,12 @@ contract VoucherRedemptionToken is IERC20 {
         totalSupply += units;
     }
 
+    /// @dev Deliberately hostile fixture-only loss; not an authority granted by the escrow.
+    function removeFixtureBalance(address account, uint256 units) external {
+        balanceOf[account] -= units;
+        totalSupply -= units;
+    }
+
     function approve(address spender, uint256 units) external returns (bool) {
         allowance[msg.sender][spender] = units;
         emit Approval(msg.sender, spender, units);

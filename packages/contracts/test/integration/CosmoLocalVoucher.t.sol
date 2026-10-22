@@ -10,6 +10,7 @@ import { ISettlementModule } from "../../src/interfaces/ISettlementModule.sol";
 import { ICeloSettlementExecutor } from "../../src/interfaces/ICeloSettlementExecutor.sol";
 import { SettlementModule } from "../../src/modules/SettlementModule.sol";
 import { CeloSettlementExecutor } from "../../src/modules/CeloSettlementExecutor.sol";
+import { ICommitmentVoucherAcceptance as VoucherAcceptance } from "../../src/interfaces/ICommitmentVoucherAcceptance.sol";
 import { VoucherEntitlementModule } from "../../src/modules/VoucherEntitlementModule.sol";
 import { GnosisVoucherAdapter } from "../../src/modules/GnosisVoucherAdapter.sol";
 import { MockERC20 } from "../../src/mocks/ERC20.sol";
@@ -154,12 +155,17 @@ contract CosmoLocalVoucherTest is CommitmentPoolingFixture, ERC6551Helper {
         uint256 id = _createRequest(keccak256("fictional-personal-is-not-garden"));
         vm.prank(CLAIMANT);
         vouchers.consentTerms(id, 1);
-        _fulfillRequest(id);
+        vm.expectRevert(VoucherEntitlementModule.VoucherConsentMissing.selector);
+        vm.prank(CLAIMANT);
+        module.claimCommitment(id, ICommitmentPoolingModule.ClaimType.Garden, address(providerGarden));
+        assertEq(uint256(module.getCommitment(id).state), uint256(ICommitmentPoolingModule.CommitmentState.Requested));
         assertEq(vouchers.consentRevision(id, CLAIMANT), 1);
         assertEq(vouchers.consentRevision(id, address(providerGarden)), 0);
-        ICommitmentPoolingModule.RecognitionEntry[] memory entries = _recognition();
-        vm.expectRevert(VoucherEntitlementModule.VoucherConsentMissing.selector);
-        vouchers.prepareDistribution(id, entries, keccak256(abi.encode(block.chainid, id, entries)));
+        _gardenConsent(id);
+        _fulfillRequest(id);
+        assertEq(
+            VoucherAcceptance(address(module)).getEarnedVoucherBinding(id).acceptedCounterparty, address(providerGarden)
+        );
     }
 
     function testIntegration_CosmoLocalVoucher_gardenHatAloneCannotExecuteTheActualGardenAccount() public {
@@ -173,8 +179,9 @@ contract CosmoLocalVoucherTest is CommitmentPoolingFixture, ERC6551Helper {
         assertEq(vouchers.consentRevision(id, address(providerGarden)), 1);
     }
 
-    function testIntegration_CosmoLocalVoucher_lateGardenAccountConsentCannotBackfillAcceptedReward() public {
+    function testIntegration_CosmoLocalVoucher_acceptedGardenConsentCannotBeRewrittenAfterFulfillment() public {
         uint256 id = _createRequest(keccak256("fictional-late-account-consent"));
+        _gardenConsent(id);
         _fulfillRequest(id);
         bytes memory consent = abi.encodeCall(VoucherEntitlementModule.consentTerms, (id, uint64(1)));
         vm.expectRevert(VoucherEntitlementModule.TermsNotPreAcceptance.selector);
@@ -237,6 +244,9 @@ contract CosmoLocalVoucherTest is CommitmentPoolingFixture, ERC6551Helper {
         vouchers.initialize(
             address(this), PAUSE_GUARDIAN, GNOSIS_SELECTOR, GNOSIS_CHAIN, address(adapter), address(module), address(hats)
         );
+        module.setPaused(true);
+        VoucherAcceptance(address(module)).pinEarnedVoucherModule(address(vouchers));
+        module.setPaused(false);
         vouchers.setIssuerAuthority(LOCAL_ISSUER_SAFE, address(voucherToken), ISSUER_AUTHORITY);
         vouchers.unpause();
     }

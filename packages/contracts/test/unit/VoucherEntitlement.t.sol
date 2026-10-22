@@ -4,6 +4,7 @@ pragma solidity ^0.8.25;
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { Client } from "@chainlink/contracts-ccip/contracts/libraries/Client.sol";
 import { ICommitmentPoolingModule } from "../../src/interfaces/ICommitmentPoolingModule.sol";
+import { ICommitmentVoucherAcceptance as VoucherAcceptance } from "../../src/interfaces/ICommitmentVoucherAcceptance.sol";
 import { VoucherEndpoint } from "../../src/modules/VoucherEndpoint.sol";
 import { VoucherEntitlementModule } from "../../src/modules/VoucherEntitlementModule.sol";
 import { VoucherMessageCodec } from "../../src/libraries/VoucherMessageCodec.sol";
@@ -58,6 +59,9 @@ contract VoucherEntitlementTest is CommitmentPoolingFixture {
                     )
                 ))
         );
+        module.setPaused(true);
+        VoucherAcceptance(address(module)).pinEarnedVoucherModule(address(vouchers));
+        module.setPaused(false);
         vouchers.setIssuerAuthority(ISSUER, TOKEN, AUTHORITY);
         vouchers.unpause();
         vm.deal(STEWARD, 10 ether);
@@ -162,22 +166,164 @@ contract VoucherEntitlementTest is CommitmentPoolingFixture {
         assertEq(vouchers.consentRevision(gatedId, CLAIMANT), 1);
     }
 
-    function testVoucherEntitlement_acceptedWithoutCounterpartyConsentAndLegacyGainNothing() public {
+    function testVoucherEntitlement_directCoreAcceptanceRejectsMissingCounterpartyConsent() public {
         uint256 id = _createOffer(keccak256("voucher-missing-consent"));
         _register(id, 100);
         vm.prank(AUTHORITY);
         vouchers.approveTerms(id, 1);
         vm.prank(CREATOR);
         vouchers.consentTerms(id, 1);
-        _acceptOffer(id);
-        _fulfill(id, false);
-        ICommitmentPoolingModule.RecognitionEntry[] memory entries = _soloEntries();
         vm.expectRevert(VoucherEntitlementModule.VoucherConsentMissing.selector);
+        _acceptOffer(id);
+        assertEq(uint256(module.getCommitment(id).state), uint256(ICommitmentPoolingModule.CommitmentState.Offered));
+    }
+
+    function testVoucherEntitlement_gatedAcceptanceWaitsForActualCandidateConsent() public {
+        ICommitmentPoolingModule.CreateCommitmentParams memory params = _baseParams(keccak256("gated-earned-consent"));
+        params.claimMode = ICommitmentPoolingModule.ClaimMode.ApprovalGated;
+        vm.prank(CREATOR);
+        uint256 id = module.createCommitment(params);
+        _register(id, 100);
+        vm.prank(AUTHORITY);
+        vouchers.approveTerms(id, 1);
+        vm.prank(CREATOR);
+        vouchers.consentTerms(id, 1);
+        vm.prank(CLAIMANT);
+        module.claimCommitment(id, ICommitmentPoolingModule.ClaimType.Individual, POOL_GARDEN);
+        vm.expectRevert(VoucherEntitlementModule.VoucherConsentMissing.selector);
+        module.acceptClaim(id, CLAIMANT);
+        assertTrue(module.getPendingClaim(id, CLAIMANT).active);
+        assertEq(VoucherAcceptance(address(module)).getEarnedVoucherBinding(id).acceptedRevision, 0);
+        vm.prank(CLAIMANT);
+        vouchers.consentTerms(id, 1);
+        module.acceptClaim(id, CLAIMANT);
+        VoucherAcceptance.EarnedVoucherBinding memory binding =
+            VoucherAcceptance(address(module)).getEarnedVoucherBinding(id);
+        assertEq(binding.acceptedRevision, 1);
+        assertEq(binding.acceptedTermsHash, vouchers.getTerms(id).termsHash);
+        assertEq(binding.acceptedCounterparty, CLAIMANT);
+    }
+
+    function testVoucherEntitlement_termsUpdateDuringPendingClaimRequiresLatestExactConsent() public {
+        ICommitmentPoolingModule.CreateCommitmentParams memory params = _baseParams(keccak256("pending-earned-race"));
+        params.claimMode = ICommitmentPoolingModule.ClaimMode.ApprovalGated;
+        vm.prank(CREATOR);
+        uint256 id = module.createCommitment(params);
+        _register(id, 100);
+        vm.prank(CLAIMANT);
+        module.claimCommitment(id, ICommitmentPoolingModule.ClaimType.Individual, POOL_GARDEN);
+        _register(id, 200);
+        vm.prank(AUTHORITY);
+        vouchers.approveTerms(id, 2);
+        vm.prank(CREATOR);
+        vouchers.consentTerms(id, 2);
+        vm.expectRevert(VoucherEntitlementModule.WrongTermsRevision.selector);
+        vm.prank(CLAIMANT);
+        vouchers.consentTerms(id, 1);
+        vm.expectRevert(VoucherEntitlementModule.VoucherConsentMissing.selector);
+        module.acceptClaim(id, CLAIMANT);
+        vm.prank(CLAIMANT);
+        vouchers.consentTerms(id, 2);
+        module.acceptClaim(id, CLAIMANT);
+        assertEq(VoucherAcceptance(address(module)).getEarnedVoucherBinding(id).acceptedRevision, 2);
+    }
+
+    function testVoucherEntitlement_guardAuthenticatesCoreAndEveryExpectedFact() public {
+        uint256 id = _createConsentedOffer(keccak256("guard-view-exact-facts"), 100);
+        bytes32 termsHash = vouchers.getTerms(id).termsHash;
+        vm.expectRevert(VoucherEntitlementModule.NotCommitmentPooling.selector);
+        vouchers.validateEarnedVoucherAcceptance(id, 1, termsHash, CREATOR, CLAIMANT);
+        vm.expectRevert(VoucherEntitlementModule.VoucherConsentMissing.selector);
+        vm.prank(address(module));
+        vouchers.validateEarnedVoucherAcceptance(id, 2, termsHash, CREATOR, CLAIMANT);
+        vm.expectRevert(VoucherEntitlementModule.VoucherConsentMissing.selector);
+        vm.prank(address(module));
+        vouchers.validateEarnedVoucherAcceptance(id, 1, keccak256("different terms"), CREATOR, CLAIMANT);
+        vm.expectRevert(VoucherEntitlementModule.VoucherConsentMissing.selector);
+        vm.prank(address(module));
+        vouchers.validateEarnedVoucherAcceptance(id, 1, termsHash, CREATOR, SECOND);
+    }
+
+    function testVoucherEntitlement_pauseOrMissingIssuerApprovalCannotBeBypassedByCoreOwner() public {
+        uint256 id = _createOffer(keccak256("guard-issuer-and-pause"));
+        _register(id, 100);
+        vm.expectRevert(VoucherEntitlementModule.VoucherConsentMissing.selector);
+        _acceptOffer(id);
+        _consent(id, 1);
+        vouchers.pause();
+        vm.expectRevert(VoucherEndpoint.VoucherPaused.selector);
+        _acceptOffer(id);
+        assertEq(VoucherAcceptance(address(module)).getEarnedVoucherBinding(id).acceptedRevision, 0);
+        vouchers.unpause();
+        _acceptOffer(id);
+        assertEq(VoucherAcceptance(address(module)).getEarnedVoucherBinding(id).acceptedRevision, 1);
+    }
+
+    function testVoucherEntitlement_unpinnedRegistrationRollsBackSourceRevisionAndCoreBinding() public {
+        uint256 id = _createOffer(keccak256("atomic-binding-authority"));
+        VoucherEntitlementModule implementation = new VoucherEntitlementModule(address(router));
+        VoucherEntitlementModule unpinned = VoucherEntitlementModule(
+            payable(address(
+                    new ERC1967Proxy(
+                        address(implementation),
+                        abi.encodeCall(
+                            VoucherEntitlementModule.initialize,
+                            (address(this), GUARDIAN, PEER_SELECTOR, uint256(100), PEER, address(module), address(hats))
+                        )
+                    )
+                ))
+        );
+        unpinned.setIssuerAuthority(ISSUER, TOKEN, AUTHORITY);
+        unpinned.unpause();
+        VoucherEntitlementModule.TermsInput memory input = _terms(100);
+        vm.expectRevert(VoucherAcceptance.UnregisteredEarnedVoucherModule.selector);
         vm.prank(STEWARD);
-        vouchers.prepareDistribution(id, entries, _hash(id, entries));
+        unpinned.registerTerms(id, input);
+        assertEq(unpinned.getTerms(id).revision, 0);
+        assertEq(VoucherAcceptance(address(module)).getEarnedVoucherBinding(id).revision, 0);
+        _register(id, 100);
+        assertEq(VoucherAcceptance(address(module)).getEarnedVoucherBinding(id).module, address(vouchers));
+    }
+
+    function testVoucherEntitlement_exchangeRequiresEachCreatorsExplicitCounterpartyConsent() public {
+        uint256 a = _createOffer(keccak256("earned-exchange-a"));
+        ICommitmentPoolingModule.CreateCommitmentParams memory params = _baseParams(keccak256("earned-exchange-b"));
+        params.counterCommitmentId = a;
+        vm.prank(CLAIMANT);
+        uint256 b = module.createCommitment(params);
+        _register(a, 100);
+        _register(b, 200);
+        vm.startPrank(AUTHORITY);
+        vouchers.approveTerms(a, 1);
+        vouchers.approveTerms(b, 1);
+        vm.stopPrank();
+        vm.prank(CREATOR);
+        vouchers.consentTerms(a, 1);
+        vm.prank(CLAIMANT);
+        vouchers.consentTerms(b, 1);
+        vm.expectRevert(VoucherEntitlementModule.VoucherConsentMissing.selector);
+        vm.prank(CREATOR);
+        module.acceptExchange(b);
+        vm.prank(CLAIMANT);
+        vouchers.consentTerms(a, 1);
+        vm.expectRevert(VoucherEntitlementModule.VoucherConsentMissing.selector);
+        vm.prank(CREATOR);
+        module.acceptExchange(b);
+        assertEq(uint256(module.getCommitment(a).state), uint256(ICommitmentPoolingModule.CommitmentState.Offered));
+        assertEq(VoucherAcceptance(address(module)).getEarnedVoucherBinding(a).acceptedRevision, 0);
+        vm.prank(CREATOR);
+        vouchers.consentTerms(b, 1);
+        vm.prank(CREATOR);
+        module.acceptExchange(b);
+        assertEq(VoucherAcceptance(address(module)).getEarnedVoucherBinding(a).acceptedCounterparty, CLAIMANT);
+        assertEq(VoucherAcceptance(address(module)).getEarnedVoucherBinding(b).acceptedCounterparty, CREATOR);
+    }
+
+    function testVoucherEntitlement_legacyAcceptanceStillGainsNoImplicitVoucherEntitlement() public {
         uint256 legacy = _createOffer(keccak256("voucher-legacy"));
         _acceptOffer(legacy);
         _fulfill(legacy, false);
+        ICommitmentPoolingModule.RecognitionEntry[] memory entries = _soloEntries();
         vm.expectRevert(VoucherEntitlementModule.VoucherConsentMissing.selector);
         vm.prank(STEWARD);
         vouchers.prepareDistribution(legacy, entries, _hash(legacy, entries));

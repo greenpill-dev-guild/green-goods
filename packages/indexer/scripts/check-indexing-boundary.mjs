@@ -69,6 +69,15 @@ const ALLOWED_CONTRACT_EVENTS = {
     "ConsiderationDeclared",
     "ValueDeclared",
     "ConfirmerRuleSet",
+    "EarnedVoucherModulePinned",
+    "VoucherServiceSetupModulePinned",
+    "EarnedVoucherTermsBound",
+    "EarnedVoucherAcceptanceRecorded",
+    "VoucherServiceAcceptanceRecorded",
+    "ServiceOfferTermsSet",
+    "ServiceClaimConsentRequested",
+    "ServiceClaimConsentAccepted",
+    "ServiceClaimConsentWithdrawn",
     "ClaimRequested",
     "ClaimDeclined",
     "CommitmentAccepted",
@@ -109,6 +118,10 @@ const ALLOWED_CONTRACT_EVENTS = {
   SettlementModule: new Set([
     "SettlementDeploymentPinned",
     "FundingConfigurationLocked",
+    "PersonalServicePurchasePledged",
+    "PersonalServiceDepositVerified",
+    "PersonalServicePurchaseOutcomeSelected",
+    "PersonalServicePurchaseOutcomeCompleted",
     "FundingPledged",
     "FundingDepositRecorded",
     "FundingConsumed",
@@ -180,6 +193,19 @@ const ALLOWED_CONTRACT_EVENTS = {
     "AcknowledgmentDeferred",
   ]),
 };
+
+// Definitions are codegen-only until a separately authorized release pins actual endpoints.
+// Neither endpoint is permitted in any live chain allowlist below.
+ALLOWED_CONTRACT_EVENTS.VoucherRedemptionModule = new Set([
+  "VoucherSetupPrepared", "VoucherSetupDecisionSelected", "VoucherSetupDispatched", "VoucherSetupResultRecorded", "VoucherFinalResultRecorded", "VoucherHolderAbortRequested",
+  "VoucherEndpointPinned", "VoucherPauseChanged", "RedemptionPrepared", "RedemptionDispatched", "RedemptionResultRecorded",
+]);
+ALLOWED_CONTRACT_EVENTS.GnosisVoucherEscrow = new Set([
+  "VoucherSetupAuthorizationRecorded", "VoucherSetupDecisionApplied", "VoucherSetupResultRecorded", "VoucherSetupActionResult", "VoucherSetupHolderAbortRequested", "FinalAllocationFrozen", "FinalLegResult", "VoucherEscrowFinanciallyClosed", "VoucherServiceAcknowledgmentSent", "VoucherServiceAcknowledgmentFailed",
+  "VoucherEndpointPinned", "VoucherPauseChanged", "RedemptionAuthorizationRecorded", "RedemptionIssuerApproved",
+  "VoucherPresented", "HolderDeliveryApproved", "RedemptionReturnAuthorized", "HolderReturnApproved",
+  "RedemptionActionResult", "RedemptionAcknowledgmentSent", "RedemptionAcknowledgmentFailed",
+]);
 
 const ALLOWED_CONTRACTS = new Set(Object.keys(ALLOWED_CONTRACT_EVENTS));
 const ALLOWED_CONTRACTS_BY_CHAIN = new Map([

@@ -6,7 +6,7 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 import { TimelockController } from "@openzeppelin/contracts/governance/TimelockController.sol";
 import { Client } from "@chainlink/contracts-ccip/contracts/libraries/Client.sol";
 import { ICLCGiftableToken, ICLCERC1967Factory } from "../../src/interfaces/ICLCGiftableToken.sol";
-import { VoucherRedemptionCodec as Codec } from "../../src/libraries/VoucherRedemptionCodec.sol";
+import { VoucherServiceCodec as Codec } from "../../src/libraries/VoucherServiceCodec.sol";
 import { VoucherRedemptionTransfers } from "../../src/libraries/VoucherRedemptionTransfers.sol";
 import { GnosisVoucherEscrow } from "../../src/modules/GnosisVoucherEscrow.sol";
 import { VoucherRedemptionRouter } from "../helpers/VoucherRedemptionFixture.sol";
@@ -85,23 +85,21 @@ contract GnosisVoucherRedemptionForkTest is Test {
         vm.prank(holder);
         voucher.approve(address(escrow), 100);
         assertFalse(voucher.isWriter(address(escrow)));
-        Codec.Authorization memory authorization = _authorization();
-        id = Codec.redemptionId(authorization);
+        Codec.SetupAuthorization memory authorization = _authorization();
+        id = Codec.setupId(authorization);
         payloadHash = Codec.hash(authorization);
     }
 
     function testGnosisVoucherRedemption_realTokenPartialReleaseAndMutualReturnConserveInventory() public {
         _present();
-        vm.prank(holder);
-        escrow.approveDelivered(id, payloadHash, 2, 3, 40);
-        _returnRemaining(60, 3);
+        _settle(3, 40, 60);
         assertEq(voucher.balanceOf(issuer), 40);
         assertEq(voucher.balanceOf(holder), 60);
         assertEq(voucher.balanceOf(address(escrow)), 0);
         assertEq(voucher.totalSupply(), 100);
-        assertEq(escrow.getExecutionResult(id).current.holderApprovedServiceUnits, 3);
-        assertEq(escrow.getExecutionResult(id).current.releasedUnits, 40);
-        assertEq(escrow.getExecutionResult(id).current.returnedUnits, 60);
+        assertEq(escrow.getFinalAllocation(id).allocation.approvedDeliveredServiceUnits, 3);
+        assertEq(uint8(escrow.getFinalAllocation(id).release.state), uint8(Codec.LegState.Succeeded));
+        assertEq(uint8(escrow.getFinalAllocation(id).refund.state), uint8(Codec.LegState.Succeeded));
     }
 
     function testGnosisVoucherRedemption_realFiniteAllowanceExhaustionRepairsSamePresentment() public {
@@ -109,16 +107,16 @@ contract GnosisVoucherRedemptionForkTest is Test {
         vm.prank(holder);
         voucher.approve(address(escrow), 99);
         vm.prank(holder);
-        escrow.present(id, payloadHash, 1);
-        bytes32 actionHash = escrow.getExecutionResult(id).current.actionHash;
-        assertFalse(escrow.getExecutionResult(id).current.actionSucceeded);
+        escrow.presentSetup(id, payloadHash);
+        bytes32 fixedHash = escrow.getSetupResult(id).authorizationHash;
+        assertFalse(escrow.getSetupResult(id).actionSucceeded);
         assertEq(voucher.balanceOf(holder), 100);
         assertEq(voucher.balanceOf(address(escrow)), 0);
         vm.prank(holder);
         voucher.approve(address(escrow), 100);
-        escrow.retry(id);
-        assertEq(escrow.getExecutionResult(id).current.actionHash, actionHash);
-        assertEq(escrow.getExecutionResult(id).current.escrowedUnits, 100);
+        escrow.retrySetupAction(id);
+        assertEq(escrow.getSetupResult(id).authorizationHash, fixedHash);
+        assertEq(escrow.getSetupResult(id).depositedUnits, 100);
         assertEq(voucher.allowance(holder, address(escrow)), 0);
     }
 
@@ -127,23 +125,23 @@ contract GnosisVoucherRedemptionForkTest is Test {
         vm.prank(holder);
         voucher.transfer(issuer, 1);
         vm.prank(holder);
-        escrow.present(id, payloadHash, 1);
-        assertFalse(escrow.getExecutionResult(id).current.actionSucceeded);
+        escrow.presentSetup(id, payloadHash);
+        assertFalse(escrow.getSetupResult(id).actionSucceeded);
         vm.prank(issuer);
         voucher.transfer(holder, 1); // Explicit fictional reserve repair; no automatic mint or subsidy.
-        escrow.retry(id);
-        assertEq(escrow.getExecutionResult(id).current.payloadHash, payloadHash);
-        assertEq(escrow.getExecutionResult(id).current.escrowedUnits, 100);
+        escrow.retrySetupAction(id);
+        assertEq(escrow.getSetupResult(id).authorizationHash, payloadHash);
+        assertEq(escrow.getSetupResult(id).depositedUnits, 100);
         assertEq(voucher.totalSupply(), 100);
     }
 
     function testGnosisVoucherRedemption_wrongIssuerCannotApproveAnotherIssuersActualToken() public {
-        Codec.Authorization memory authorization = _authorization();
+        Codec.SetupAuthorization memory authorization = _authorization();
         authorization.issuer = community;
         _deliver(authorization, keccak256("wrong issuing owner"));
         vm.expectRevert(VoucherRedemptionTransfers.WrongVoucherIssuer.selector);
         vm.prank(community);
-        escrow.approveAuthorization(id, Codec.hash(authorization));
+        escrow.approveSetupAuthorization(id, Codec.hash(authorization));
         assertEq(voucher.owner(), issuer);
         assertEq(voucher.balanceOf(holder), 100);
     }
@@ -153,9 +151,9 @@ contract GnosisVoucherRedemptionForkTest is Test {
         vm.prank(issuer);
         IGiftableOwnership(address(voucher)).transferOwnership(community);
         assertEq(voucher.owner(), community);
-        vm.expectRevert(VoucherRedemptionTransfers.WrongVoucherIssuer.selector);
         vm.prank(holder);
-        escrow.present(id, payloadHash, 1);
+        escrow.presentSetup(id, payloadHash);
+        assertFalse(escrow.getSetupResult(id).actionSucceeded);
         assertEq(voucher.balanceOf(holder), 100);
     }
 
@@ -164,9 +162,7 @@ contract GnosisVoucherRedemptionForkTest is Test {
         vm.prank(issuer);
         IGiftableOwnership(address(voucher)).transferOwnership(community);
         assertEq(voucher.owner(), community);
-        vm.prank(holder);
-        escrow.approveDelivered(id, payloadHash, 2, 3, 40);
-        _returnRemaining(60, 3);
+        _settle(3, 40, 60);
         assertEq(voucher.balanceOf(issuer), 40, "accepted reserve remains immutable");
         assertEq(voucher.balanceOf(holder), 60);
         assertEq(voucher.balanceOf(community), 0);
@@ -175,18 +171,17 @@ contract GnosisVoucherRedemptionForkTest is Test {
     function testGnosisVoucherRedemption_lostAcknowledgmentDoesNotRepeatActualVoucherDelivery() public {
         router.configure(0, true, false);
         _present();
-        vm.prank(holder);
-        escrow.approveDelivered(id, payloadHash, 2, 10, 100);
+        _settle(10, 100, 0);
         assertEq(voucher.balanceOf(issuer), 100);
-        uint64 sequence = escrow.getExecutionResult(id).current.resultSequence;
+        uint64 sequence = escrow.getFinalResult(id).sequence;
         router.configure(5, false, false);
         vm.deal(address(this), 10);
-        escrow.retryAcknowledgment{ value: 5 }(id);
+        escrow.retryFinalAcknowledgment{ value: 5 }(id);
         _deliver(_authorization(), keccak256("duplicate after lost acknowledgment"));
         assertEq(voucher.balanceOf(issuer), 100);
         assertEq(voucher.totalSupply(), 100);
-        assertEq(escrow.getExecutionResult(id).current.resultSequence, sequence);
-        assertEq(escrow.getExecutionResult(id).acknowledgmentSequence, sequence);
+        assertEq(escrow.getFinalResult(id).sequence, sequence);
+        assertEq(escrow.getSetupExecution(id).finalAcknowledgment.sequence, sequence);
     }
 
     function testGnosisVoucherRedemption_rechecksRecordedValidatorGapWithoutClaimingMemberSigning() public {
@@ -195,45 +190,106 @@ contract GnosisVoucherRedemptionForkTest is Test {
         assertEq(voucher.owner(), issuer);
     }
 
+    function testGnosisVoucherRedemption_realDepositLostAckThenAuthenticatedAbortReturnsExactInventory() public {
+        router.configure(0, true, false);
+        _open();
+        vm.prank(holder);
+        escrow.presentSetup(id, payloadHash);
+        assertEq(escrow.getSetupExecution(id).setupAcknowledgment.sequence, 0);
+        Codec.SetupDecisionCommand memory command = Codec.SetupDecisionCommand(
+            2, id, payloadHash, Codec.SetupDecision.Abort, bytes32(0), bytes32(0), Codec.AbortReason.BuyerRequest
+        );
+        _deliverData(Codec.encodeDecision(_authorization(), command), keccak256("fictional source abort after lost ack"));
+        assertEq(voucher.balanceOf(holder), 100);
+        assertEq(voucher.balanceOf(address(escrow)), 0);
+        assertEq(escrow.unspentVoucherLiability(address(voucher)), 0);
+        assertEq(escrow.getFinalAllocation(id).decisionId, bytes32(0));
+    }
+
+    function testGnosisVoucherRedemption_realFinalSplitSurvivesPauseAndReorderedFixedLegs() public {
+        _present();
+        vm.prank(issuer);
+        escrow.authorizeReturn(id, payloadHash, 60);
+        vm.prank(holder);
+        bytes32 decision = escrow.finalizeAllocation(id, payloadHash, Codec.FinalAllocation(3, 40, 60));
+        escrow.executeFinalLeg(id, decision, Codec.FinalLeg.RefundToHolder);
+        vm.prank(guardian);
+        escrow.pause();
+        escrow.executeFinalLeg(id, decision, Codec.FinalLeg.ReleaseToIssuer);
+        assertEq(voucher.balanceOf(holder), 60);
+        assertEq(voucher.balanceOf(issuer), 0);
+        assertEq(escrow.unspentVoucherLiability(address(voucher)), 40);
+        vm.prank(community);
+        escrow.unpause();
+        escrow.executeFinalLeg(id, decision, Codec.FinalLeg.ReleaseToIssuer);
+        escrow.executeFinalLeg(id, decision, Codec.FinalLeg.RefundToHolder);
+        assertEq(voucher.balanceOf(issuer), 40);
+        assertEq(voucher.balanceOf(holder), 60);
+        assertTrue(escrow.isFinanciallyClosed(id));
+    }
+
     function _open() private {
         _deliver(_authorization(), keccak256("fictional real-token service authorization"));
         vm.prank(issuer);
-        escrow.approveAuthorization(id, payloadHash);
+        escrow.approveSetupAuthorization(id, payloadHash);
     }
 
     function _present() private {
         _open();
         vm.prank(holder);
-        escrow.present(id, payloadHash, 1);
+        escrow.presentSetup(id, payloadHash);
+        Codec.SetupDecisionCommand memory command = Codec.SetupDecisionCommand(
+            2,
+            id,
+            payloadHash,
+            Codec.SetupDecision.Activate,
+            Codec.depositReceiptHash(_authorization()),
+            keccak256("fictional core acceptance"),
+            Codec.AbortReason.None
+        );
+        _deliverData(Codec.encodeDecision(_authorization(), command), keccak256("fictional source activation"));
     }
 
-    function _returnRemaining(uint256 units, uint64 nonce) private {
+    function _settle(uint256 serviceUnits, uint256 releaseUnits, uint256 refundUnits) private {
         vm.prank(issuer);
-        escrow.authorizeReturn(id, payloadHash, units);
+        escrow.authorizeReturn(id, payloadHash, refundUnits);
         vm.prank(holder);
-        escrow.returnUndelivered(id, payloadHash, nonce, units);
+        bytes32 decision =
+            escrow.finalizeAllocation(id, payloadHash, Codec.FinalAllocation(serviceUnits, releaseUnits, refundUnits));
+        assertEq(voucher.balanceOf(address(escrow)), 100, "freezing final split must not transfer inventory");
+        escrow.executeFinalLeg(id, decision, Codec.FinalLeg.ReleaseToIssuer);
+        escrow.executeFinalLeg(id, decision, Codec.FinalLeg.RefundToHolder);
+        assertTrue(escrow.isFinanciallyClosed(id));
+        assertEq(escrow.unspentVoucherLiability(address(voucher)), 0);
     }
 
-    function _deliver(Codec.Authorization memory authorization, bytes32 messageId) private {
+    function _deliver(Codec.SetupAuthorization memory authorization, bytes32 messageId) private {
+        _deliverData(Codec.encodeAuthorization(authorization), messageId);
+    }
+
+    function _deliverData(bytes memory data, bytes32 messageId) private {
         router.deliver(
             address(escrow),
             Client.Any2EVMMessage({
                 messageId: messageId,
                 sourceChainSelector: SOURCE_SELECTOR,
                 sender: abi.encode(SOURCE_MODULE),
-                data: Codec.encodeAuthorization(authorization),
+                data: data,
                 destTokenAmounts: new Client.EVMTokenAmount[](0)
             })
         );
     }
 
-    function _authorization() private view returns (Codec.Authorization memory authorization) {
-        authorization.version = 1;
+    function _authorization() private view returns (Codec.SetupAuthorization memory authorization) {
+        authorization.version = 2;
         authorization.sourceChainId = 42_161;
         authorization.sourceModule = SOURCE_MODULE;
+        authorization.coreModule = address(0xCC00);
+        authorization.requestNonce = 1;
+        authorization.acceptanceDeadline = 2_000_000_000;
         authorization.commitmentId = 7;
-        authorization.revision = 1;
-        authorization.acceptedClaimHash = keccak256("fictional source accepted voucher claim");
+        authorization.termsRevision = 1;
+        authorization.claimHash = keccak256("fictional source accepted voucher claim");
         authorization.termsHash = keccak256("fictional accepted service terms revision one");
         authorization.buyer = address(0xB0B);
         authorization.holder = holder;
@@ -243,9 +299,9 @@ contract GnosisVoucherRedemptionForkTest is Test {
         authorization.destinationEscrow = address(escrow);
         authorization.issuer = issuer;
         authorization.token = address(voucher);
-        authorization.totalVoucherUnits = 100;
-        authorization.totalServiceUnits = 10;
-        authorization.serviceUnitLabelHash = keccak256("fictional lesson");
+        authorization.voucherUnits = 100;
+        authorization.serviceUnits = 10;
+        authorization.unitLabelHash = keccak256("fictional lesson");
         authorization.serviceTermsRef = keccak256("fictional exact ten-lesson terms");
         authorization.remedyTermsRef = keccak256("fictional mutual financial-return remedy");
         authorization.remedyPolicy = 1;

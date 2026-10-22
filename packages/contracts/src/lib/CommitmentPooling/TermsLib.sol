@@ -3,6 +3,7 @@ pragma solidity ^0.8.25;
 
 import { ICommitmentPoolingModule } from "../../interfaces/ICommitmentPoolingModule.sol";
 import { ICommitmentServiceOffers } from "../../interfaces/ICommitmentServiceOffers.sol";
+import { CommitmentPoolingVoucherAcceptanceLib } from "./VoucherAcceptanceLib.sol";
 import { CommitmentPoolingCommonLib } from "./CommonLib.sol";
 import { CommitmentPoolingCreationChecksLib } from "./CreationChecksLib.sol";
 import { CommitmentPoolingCreditLib } from "./CreditLib.sol";
@@ -17,6 +18,21 @@ import { CommitmentPoolingServiceOfferStorageLib } from "./ServiceOfferStorageLi
 ///      bound, consideration, valuation, and confirmer terms are the agreement and stop moving.
 ///      Runs via DELEGATECALL from `CommitmentPoolingModule`.
 library CommitmentPoolingTermsLib {
+    function pinVoucherAcceptancePeer(address peer, bool earned) external {
+        CommitmentPoolingVoucherAcceptanceLib.pin(peer, earned);
+    }
+
+    function bindEarnedVoucherTerms(
+        mapping(uint256 => ICommitmentPoolingModule.Commitment) storage commitments,
+        uint256 commitmentId,
+        uint64 revision,
+        bytes32 termsHash
+    )
+        external
+    {
+        CommitmentPoolingVoucherAcceptanceLib.bind(commitments, commitmentId, revision, termsHash);
+    }
+
     function setServiceOfferTerms(
         CommitmentPoolingCommonLib.Env memory env,
         mapping(uint256 poolId => ICommitmentPoolingModule.Pool pool) storage pools,

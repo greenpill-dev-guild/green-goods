@@ -1672,3 +1672,625 @@ type CampaignCookieJar {
 # WorkApproval and GardenAssessment attestations are queried directly from the
 # EAS GraphQL indexer (easscan.org), not from this Envio indexer.
 # See: packages/shared/src/modules/data/eas.ts
+
+# Additive service-access projections. Every identity includes the emitting module.
+# Contract enum fields are their canonical numeric ABI values; all larger integers use BigInt.
+# These rows project emitted facts, never authorize actions. Missing rows do not imply Legacy.
+# Full terms/accepted authorization require supported, authoritative contract view reads.
+
+type ServiceOfferRevision {
+  id: ID!
+  chainId: Int!
+  moduleAddress: String!
+  commitmentId: BigInt!
+  revision: BigInt!
+  termsHash: String!
+  paymentRoute: Int! # 0 Legacy, 1 PersonalGd, 2 Voucher
+  gdPrice: BigInt!
+  # Frozen event omits refs, issuer, token and units; no fabricated full-terms snapshot.
+  blockNumber: BigInt!
+  logIndex: Int!
+  txHash: String!
+  timestamp: Int!
+}
+
+type ServiceClaimConsent {
+  id: ID!
+  chainId: Int!
+  moduleAddress: String!
+  commitmentId: BigInt!
+  buyer: String!
+  claimHash: String!
+  revision: BigInt
+  requestNonce: BigInt
+  revisionEntityId: String
+  buyerGarden: String
+  voucherHolder: String
+  requestSeen: Boolean!
+  acceptedSeen: Boolean!
+  withdrawnSeen: Boolean!
+  # Observation flags do not assert that a claim is still active or eligible.
+  requestedBlockNumber: BigInt
+  requestedLogIndex: Int
+  requestedTxHash: String
+  requestedAt: Int
+  acceptedBlockNumber: BigInt
+  acceptedLogIndex: Int
+  acceptedTxHash: String
+  acceptedAt: Int
+  withdrawnBlockNumber: BigInt
+  withdrawnLogIndex: Int
+  withdrawnTxHash: String
+  withdrawnAt: Int
+  createdAt: Int!
+  updatedAt: Int!
+}
+
+type PersonalServicePurchase {
+  id: ID!
+  chainId: Int!
+  moduleAddress: String!
+  fundingId: BigInt!
+  purchaseId: String
+  pledgeSeen: Boolean!
+  version: Int
+  sourceChainId: BigInt
+  sourceModule: String # Settlement module, not the core commitment module
+  commitmentId: BigInt
+  termsRevision: BigInt
+  termsHash: String
+  claimHash: String
+  requestNonce: BigInt
+  buyer: String
+  recipient: String
+  buyerGarden: String
+  providerGarden: String
+  destinationChainId: BigInt
+  token: String
+  price: BigInt
+  custodySafe: String
+  authorizedDepositor: String
+  refundAccount: String
+  disclosedGrossAmount: BigInt
+  disclosedNetAmount: BigInt
+  receiptEntityId: String
+  selectedOutcome: Int # 0 None, 1 Payout, 2 Refund; selection never proves completion
+  completedOutcome: Int # 3 Settled, 4 Refunded
+  payoutPlanId: BigInt
+  refundDisbursementId: BigInt # zero may precede a queued late-deposit refund child
+  pledgedBlockNumber: BigInt
+  pledgedLogIndex: Int
+  pledgedTxHash: String
+  pledgedAt: Int
+  selectedBlockNumber: BigInt
+  selectedLogIndex: Int
+  selectedTxHash: String
+  selectedAt: Int
+  completedBlockNumber: BigInt
+  completedLogIndex: Int
+  completedTxHash: String
+  completedAt: Int
+  createdAt: Int!
+  updatedAt: Int!
+}
+
+type PersonalServiceDepositReceipt {
+  id: ID!
+  chainId: Int!
+  moduleAddress: String!
+  receiptKey: String!
+  fundingId: BigInt!
+  purchaseId: String!
+  purchaseEntityId: String!
+  verifiedBy: String!
+  attestationKind: String! # PRIVILEGED_STEWARD, not cryptographic receipt verification
+  depositChainId: BigInt!
+  token: String!
+  depositTransactionHash: String!
+  depositLogIndex: BigInt! # claimed canonical RPC global logIndex, not array-local ordinal
+  depositBlockNumber: BigInt!
+  depositBlockHash: String!
+  depositingAccount: String!
+  custodySafe: String!
+  grossDebit: BigInt!
+  receivedAmount: BigInt!
+  feeAmount: BigInt! # arithmetic difference only; no universal fee assumption
+  # Position below is the SOURCE attestation event, separate from claimed Celo receipt facts.
+  blockNumber: BigInt!
+  logIndex: Int!
+  txHash: String!
+  timestamp: Int!
+}
+
+type VoucherEndpointConfiguration {
+  id: ID!
+  chainId: Int!
+  moduleAddress: String!
+  pinSeen: Boolean!
+  localChainId: BigInt
+  router: String
+  remoteChainSelector: BigInt
+  remoteChainId: BigInt
+  remotePeer: String
+  paused: Boolean
+  pinnedBlockNumber: BigInt
+  pinnedLogIndex: Int
+  pinnedTxHash: String
+  pinnedAt: Int
+  pauseBlockNumber: BigInt
+  pauseLogIndex: Int
+  pauseTxHash: String
+  pauseAt: Int
+  createdAt: Int!
+  updatedAt: Int!
+}
+
+type VoucherRedemption {
+  id: ID!
+  chainId: Int!
+  moduleAddress: String!
+  redemptionId: String!
+  endpointEntityId: String!
+  preparedSeen: Boolean!
+  dispatchSeen: Boolean!
+  resultSeen: Boolean!
+  commitmentId: BigInt
+  payloadHash: String
+  lastMessageId: String
+  sourceState: Int # 1 Prepared, 2 Pending, 3 Active, 4 Closed; no timeout transition
+  latestResultSequence: BigInt!
+  escrowedUnits: BigInt
+  holderApprovedServiceUnits: BigInt
+  holderApprovedVoucherUnits: BigInt
+  mutualReturnUnits: BigInt
+  releasedUnits: BigInt
+  returnedUnits: BigInt
+  actionSucceeded: Boolean
+  failureHash: String
+  preparedBlockNumber: BigInt
+  preparedLogIndex: Int
+  preparedTxHash: String
+  preparedAt: Int
+  dispatchedBlockNumber: BigInt
+  dispatchedLogIndex: Int
+  dispatchedTxHash: String
+  dispatchedAt: Int
+  resultBlockNumber: BigInt
+  resultLogIndex: Int
+  resultTxHash: String
+  resultAt: Int
+  createdAt: Int!
+  updatedAt: Int!
+}
+
+type VoucherRedemptionCustody {
+  id: ID!
+  chainId: Int!
+  moduleAddress: String!
+  redemptionId: String!
+  endpointEntityId: String!
+  authorizationSeen: Boolean!
+  payloadHash: String
+  commandMessageId: String
+  issuerApproved: Boolean!
+  issuer: String
+  holder: String
+  token: String
+  issuerReturnCeiling: BigInt!
+  presentedUnitsObserved: BigInt # shared signature; not authorized v1 custody until typed v1 auth
+  escrowedUnits: BigInt!
+  holderApprovedServiceUnits: BigInt!
+  holderApprovedVoucherUnits: BigInt!
+  mutualReturnUnits: BigInt!
+  releasedUnits: BigInt!
+  returnedUnits: BigInt!
+  latestResultSequence: BigInt! # largest observed ActionResult sequence; approval events omit their sequence
+  pendingActionHash: String
+  authorizationBlockNumber: BigInt
+  authorizationLogIndex: Int
+  authorizationTxHash: String
+  authorizationAt: Int
+  createdAt: Int!
+  updatedAt: Int!
+}
+
+type VoucherRedemptionAction {
+  id: ID!
+  chainId: Int!
+  moduleAddress: String!
+  redemptionId: String!
+  custodyEntityId: String!
+  actionHash: String!
+  actionKind: Int # 1 Present, 2 Release, 3 Return
+  voucherUnits: BigInt
+  serviceUnits: BigInt
+  holderApprovalSeen: Boolean!
+  approvedBy: String
+  cumulativeApprovedServiceUnits: BigInt
+  cumulativeApprovedVoucherUnits: BigInt
+  cumulativeReturnUnits: BigInt
+  resultSeen: Boolean!
+  everSucceeded: Boolean!
+  latestResultSequence: BigInt!
+  latestSuccess: Boolean
+  failureHash: String
+  approvalBlockNumber: BigInt
+  approvalLogIndex: Int
+  approvalTxHash: String
+  approvalAt: Int
+  createdAt: Int!
+  updatedAt: Int!
+}
+
+type VoucherRedemptionActionResult {
+  id: ID!
+  chainId: Int!
+  moduleAddress: String!
+  redemptionId: String!
+  custodyEntityId: String!
+  actionEntityId: String!
+  actionHash: String!
+  sequence: BigInt!
+  actionKind: Int!
+  voucherUnits: BigInt!
+  serviceUnits: BigInt!
+  success: Boolean!
+  failureHash: String!
+  reason: String!
+  blockNumber: BigInt!
+  logIndex: Int!
+  txHash: String!
+  timestamp: Int!
+}
+
+type VoucherRedemptionAcknowledgment {
+  id: ID!
+  chainId: Int!
+  moduleAddress: String!
+  redemptionId: String!
+  custodyEntityId: String!
+  sequence: BigInt!
+  sent: Boolean!
+  messageId: String
+  reason: String
+  blockNumber: BigInt!
+  logIndex: Int!
+  txHash: String!
+  timestamp: Int!
+}
+
+# Voucher safeguards v2. Observations never authorize actions or establish core fulfillment.
+
+type VoucherCoreConfiguration {
+  id: ID!
+  chainId: Int!
+  moduleAddress: String!
+  earnedModule: String
+  serviceSetupModule: String
+  earnedPinSeen: Boolean!
+  servicePinSeen: Boolean!
+  earnedPinnedBlockNumber: BigInt
+  earnedPinnedLogIndex: Int
+  earnedPinnedTxHash: String
+  earnedPinnedAt: Int
+  servicePinnedBlockNumber: BigInt
+  servicePinnedLogIndex: Int
+  servicePinnedTxHash: String
+  servicePinnedAt: Int
+  createdAt: Int!
+  updatedAt: Int!
+}
+
+type EarnedVoucherRevision {
+  id: ID!
+  chainId: Int!
+  moduleAddress: String!
+  commitmentId: BigInt!
+  revision: BigInt!
+  module: String!
+  termsHash: String!
+  boundSeen: Boolean!
+  acceptedSeen: Boolean!
+  creator: String
+  counterparty: String
+  boundBlockNumber: BigInt
+  boundLogIndex: Int
+  boundTxHash: String
+  boundAt: Int
+  acceptedBlockNumber: BigInt
+  acceptedLogIndex: Int
+  acceptedTxHash: String
+  acceptedAt: Int
+  createdAt: Int!
+  updatedAt: Int!
+}
+
+type VoucherServiceAcceptance {
+  id: ID!
+  chainId: Int!
+  moduleAddress: String!
+  commitmentId: BigInt!
+  setupModule: String!
+  claimHash: String!
+  termsRevision: BigInt!
+  requestNonce: BigInt!
+  setupId: String!
+  authorizationHash: String!
+  depositReceiptHash: String!
+  claimEntityId: String!
+  sourceSetupEntityId: String!
+  blockNumber: BigInt!
+  logIndex: Int!
+  txHash: String!
+  timestamp: Int!
+}
+
+type VoucherServiceSetup {
+  id: ID!
+  chainId: Int!
+  moduleAddress: String!
+  setupId: String!
+  authorizationSeen: Boolean!
+  authorizationHash: String
+  protocolVersion: Int
+  sourceChainId: BigInt
+  sourceModule: String
+  coreModule: String
+  commitmentId: BigInt
+  termsRevision: BigInt
+  termsHash: String
+  claimHash: String
+  requestNonce: BigInt
+  buyer: String
+  holder: String
+  buyerGarden: String
+  providerGarden: String
+  destinationChainId: BigInt
+  destinationEscrow: String
+  issuer: String
+  token: String
+  voucherUnits: BigInt
+  serviceUnits: BigInt
+  unitLabelHash: String
+  serviceTermsRef: String
+  remedyTermsRef: String
+  acceptanceDeadline: BigInt
+  remedyPolicy: Int
+  coreAcceptanceEntityId: String
+  claimEntityId: String
+  destinationCustodyEntityId: String
+  dispatchSeen: Boolean!
+  lastMessageId: String
+  lastDispatchKind: Int
+  decisionSeen: Boolean!
+  decisionId: String
+  selectedDecision: Int
+  expectedDepositReceiptHash: String
+  coreAcceptanceHash: String
+  abortReason: Int
+  holderAbortRequestSeen: Boolean!
+  holderAbortAlreadyAccepted: Boolean
+  latestSetupSequence: BigInt!
+  latestSetupResultId: String
+  latestFinalSequence: BigInt!
+  latestFinalResultId: String
+  preparedBlockNumber: BigInt
+  preparedLogIndex: Int
+  preparedTxHash: String
+  preparedAt: Int
+  dispatchedBlockNumber: BigInt
+  dispatchedLogIndex: Int
+  dispatchedTxHash: String
+  dispatchedAt: Int
+  decisionBlockNumber: BigInt
+  decisionLogIndex: Int
+  decisionTxHash: String
+  decisionAt: Int
+  holderAbortBlockNumber: BigInt
+  holderAbortLogIndex: Int
+  holderAbortTxHash: String
+  holderAbortAt: Int
+  createdAt: Int!
+  updatedAt: Int!
+}
+
+type VoucherServiceCustody {
+  id: ID!
+  chainId: Int!
+  moduleAddress: String!
+  setupId: String!
+  authorizationSeen: Boolean!
+  authorizationHash: String
+  authorizationMessageId: String
+  protocolVersion: Int
+  sourceChainId: BigInt
+  sourceModule: String
+  coreModule: String
+  commitmentId: BigInt
+  termsRevision: BigInt
+  termsHash: String
+  claimHash: String
+  requestNonce: BigInt
+  buyer: String
+  holder: String
+  buyerGarden: String
+  providerGarden: String
+  destinationChainId: BigInt
+  destinationEscrow: String
+  issuer: String
+  token: String
+  voucherUnits: BigInt
+  serviceUnits: BigInt
+  unitLabelHash: String
+  serviceTermsRef: String
+  remedyTermsRef: String
+  acceptanceDeadline: BigInt
+  remedyPolicy: Int
+  sourceSetupEntityId: String
+  decisionAppliedSeen: Boolean!
+  decisionId: String
+  appliedDecision: Int
+  latestSetupSequence: BigInt!
+  latestSetupResultId: String
+  finalAllocationEntityId: String
+  financialClosedSeen: Boolean!
+  holderAbortRequestSeen: Boolean!
+  holderAbortMessageId: String
+  authorizationBlockNumber: BigInt
+  authorizationLogIndex: Int
+  authorizationTxHash: String
+  authorizationAt: Int
+  decisionBlockNumber: BigInt
+  decisionLogIndex: Int
+  decisionTxHash: String
+  decisionAt: Int
+  holderAbortBlockNumber: BigInt
+  holderAbortLogIndex: Int
+  holderAbortTxHash: String
+  holderAbortAt: Int
+  closedBlockNumber: BigInt
+  closedLogIndex: Int
+  closedTxHash: String
+  closedAt: Int
+  createdAt: Int!
+  updatedAt: Int!
+}
+
+type VoucherServiceSetupResult {
+  id: ID!
+  chainId: Int!
+  moduleAddress: String!
+  setupId: String!
+  setupEntityId: String!
+  endpointRole: String!
+  protocolVersion: Int!
+  authorizationHash: String!
+  sequence: BigInt!
+  phase: Int!
+  decision: Int!
+  issuerApproved: Boolean!
+  depositReceiptHash: String!
+  depositedUnits: BigInt!
+  setupRefundedUnits: BigInt!
+  appliedDecisionId: String!
+  actionSucceeded: Boolean!
+  failureHash: String!
+  blockNumber: BigInt!
+  logIndex: Int!
+  txHash: String!
+  timestamp: Int!
+}
+
+type VoucherServiceSetupAction {
+  id: ID!
+  chainId: Int!
+  moduleAddress: String!
+  setupId: String!
+  custodyEntityId: String!
+  action: Int!
+  success: Boolean!
+  failureHash: String!
+  reason: String!
+  blockNumber: BigInt!
+  logIndex: Int!
+  txHash: String!
+  timestamp: Int!
+}
+
+type VoucherServiceFinalAllocation {
+  id: ID!
+  chainId: Int!
+  moduleAddress: String!
+  setupId: String!
+  decisionId: String!
+  custodyEntityId: String!
+  freezeSeen: Boolean!
+  holder: String
+  payloadHash: String
+  activationDecisionId: String
+  approvedDeliveredServiceUnits: BigInt
+  releaseVoucherUnits: BigInt
+  refundVoucherUnits: BigInt
+  issuerReturnApprovalAtFreeze: BigInt
+  releaseState: Int
+  releaseAttempts: BigInt
+  releaseFailureHash: String
+  refundState: Int
+  refundAttempts: BigInt
+  refundFailureHash: String
+  financialClosedSeen: Boolean!
+  frozenBlockNumber: BigInt
+  frozenLogIndex: Int
+  frozenTxHash: String
+  frozenAt: Int
+  closedBlockNumber: BigInt
+  closedLogIndex: Int
+  closedTxHash: String
+  closedAt: Int
+  createdAt: Int!
+  updatedAt: Int!
+}
+
+type VoucherServiceFinalLegResult {
+  id: ID!
+  chainId: Int!
+  moduleAddress: String!
+  setupId: String!
+  decisionId: String!
+  allocationEntityId: String!
+  leg: Int!
+  legId: String!
+  recipient: String!
+  voucherUnits: BigInt!
+  state: Int!
+  attempts: BigInt!
+  failureHash: String!
+  blockNumber: BigInt!
+  logIndex: Int!
+  txHash: String!
+  timestamp: Int!
+}
+
+type VoucherServiceFinalResult {
+  id: ID!
+  chainId: Int!
+  moduleAddress: String!
+  setupId: String!
+  setupEntityId: String!
+  protocolVersion: Int!
+  sequence: BigInt!
+  decisionId: String!
+  payloadHash: String!
+  activationDecisionId: String!
+  approvedDeliveredServiceUnits: BigInt!
+  releaseVoucherUnits: BigInt!
+  refundVoucherUnits: BigInt!
+  issuerReturnApprovalAtFreeze: BigInt!
+  releaseState: Int!
+  releaseAttempts: BigInt!
+  releaseFailureHash: String!
+  refundState: Int!
+  refundAttempts: BigInt!
+  refundFailureHash: String!
+  blockNumber: BigInt!
+  logIndex: Int!
+  txHash: String!
+  timestamp: Int!
+}
+
+type VoucherServiceAcknowledgment {
+  id: ID!
+  chainId: Int!
+  moduleAddress: String!
+  setupId: String!
+  custodyEntityId: String!
+  finalResult: Boolean!
+  sequence: BigInt!
+  sent: Boolean!
+  messageId: String
+  reason: String
+  blockNumber: BigInt!
+  logIndex: Int!
+  txHash: String!
+  timestamp: Int!
+}

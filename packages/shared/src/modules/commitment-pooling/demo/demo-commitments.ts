@@ -8,6 +8,7 @@
 
 import type { Address } from "../../../types/domain";
 import type { CommitmentReadModel } from "../types-core";
+import { REHEARSAL_ISSUER } from "./demo-service-access-fixtures";
 import {
   commitment,
   DEMO_CAMPAIGN_ID,
@@ -21,6 +22,21 @@ import {
 
 export function demoCommitments(V: Address): CommitmentReadModel[] {
   return [
+    ...[1022n, 1023n, 1024n].map((commitmentId) =>
+      commitment({
+        commitmentId,
+        direction: "OFFER",
+        commitmentType: "SUPPORT_SERVICE",
+        onchainState: commitmentId === 1024n ? "ACCEPTED" : "OFFERED",
+        derivedState: commitmentId === 1024n ? "ACTIVE" : "OFFERED",
+        creator: REHEARSAL_ISSUER,
+        leadProvider: REHEARSAL_ISSUER,
+        counterparty: commitmentId === 1024n ? V : null,
+        claimMode: "APPROVAL_GATED",
+        unitLabel: "lessons",
+        targetUnits: 10n,
+      })
+    ),
     // Browsing: a neighbour's open offer the reader may take up.
     commitment({
       commitmentId: 1001n,

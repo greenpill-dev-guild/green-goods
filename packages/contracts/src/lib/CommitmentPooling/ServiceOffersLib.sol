@@ -140,8 +140,6 @@ library CommitmentPoolingServiceOffersLib {
         ) revert Service.ServiceClaimConsentMismatch(commitmentId, buyer);
         _requireBuyer(env, gardenPool, consent.buyerGarden, buyer);
         if (buyer == commitment.creator) revert Core.SelfCounterparty();
-        ServiceStorage.state().acceptedConsent[commitmentId] = consent;
-        delete pendingClaim[commitmentId][buyer];
         CommitmentPoolingAcceptanceLib.acceptCommitment(
             env,
             pools,
@@ -155,6 +153,8 @@ library CommitmentPoolingServiceOffersLib {
             consent.buyerGarden,
             true
         );
+        ServiceStorage.state().acceptedConsent[commitmentId] = consent;
+        delete pendingClaim[commitmentId][buyer];
         emit Service.ServiceClaimConsentAccepted(
             commitmentId, buyer, consent.claimHash, consent.termsRevision, consent.requestNonce
         );

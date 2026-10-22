@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createPublicClientForChain, getPimlicoSponsorshipPolicyId } from "../../config/pimlico";
+import {
+  createPimlicoClientForChain,
+  createPublicClientForChain,
+  getPimlicoBundlerUrl,
+  getPimlicoPaymasterUrl,
+  getPimlicoSponsorshipPolicyId,
+} from "../../config/pimlico";
 import { CELO_G_DOLLAR_TOKEN } from "../../config/tokens";
 import { ERC20_BALANCE_ABI } from "../../utils/blockchain/abis/erc20";
 import { getRpcUrl } from "../../utils/blockchain/chain-registry";
@@ -10,6 +16,19 @@ afterEach(() => {
 });
 
 describe("chain-specific sponsorship policies", () => {
+  it("does not treat a policy ID as Gnosis account, bundler or sponsorship support", () => {
+    vi.stubEnv("VITE_PIMLICO_SPONSORSHIP_POLICY_ID", "fictional-policy-not-provider-evidence");
+    expect(getPimlicoSponsorshipPolicyId(100)).toBe("fictional-policy-not-provider-evidence");
+    for (const create of [
+      createPublicClientForChain,
+      createPimlicoClientForChain,
+      getPimlicoBundlerUrl,
+      getPimlicoPaymasterUrl,
+    ]) {
+      expect(() => create(100)).toThrow("Unsupported chain ID for Pimlico: 100");
+    }
+  });
+
   it.each([
     undefined,
     "",

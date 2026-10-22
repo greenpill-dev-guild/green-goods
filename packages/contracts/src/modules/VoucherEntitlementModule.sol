@@ -4,15 +4,19 @@ pragma solidity ^0.8.25;
 import { Client } from "@chainlink/contracts-ccip/contracts/libraries/Client.sol";
 
 import { ICommitmentPoolingModule } from "../interfaces/ICommitmentPoolingModule.sol";
+import { ICommitmentVoucherAcceptance as VoucherAcceptance } from "../interfaces/ICommitmentVoucherAcceptance.sol";
+import { IEarnedVoucherAcceptancePeer } from "../interfaces/IVoucherAcceptancePeers.sol";
+import { VoucherDistributionResult } from "../libraries/VoucherDistributionResult.sol";
 import { IHatsModule } from "../interfaces/IHatsModule.sol";
 import { VoucherMessageCodec } from "../libraries/VoucherMessageCodec.sol";
+import { VoucherSourceAuthority as Authority } from "../libraries/VoucherSourceAuthority.sol";
 import { VoucherRecognitionAllocation } from "../libraries/VoucherRecognitionAllocation.sol";
 import { VoucherEndpoint } from "./VoucherEndpoint.sol";
 
 /// @notice Arbitrum earned-voucher authorization and authenticated destination receipts.
-/// @dev No core mutation, custody or G$ call. Fulfilled includes every legitimate core path;
+/// @dev Atomic core terms binding, no custody or G$ call. Fulfilled includes every legitimate core path;
 ///      this module never infers that the beneficiary personally confirmed. Core events retain
-///      the actual confirmation/dispute history. Accepted voucher consent is checked independently.
+///      the actual confirmation/dispute history. Core acceptance enforces exact voucher consent.
 contract VoucherEntitlementModule is VoucherEndpoint {
     bytes32 public constant RECOGNITION_POLICY = keccak256("GREEN_GOODS_CANONICAL_RECOGNITION_V1");
     bytes32 private constant TERMS_DOMAIN = keccak256("GREEN_GOODS_VOUCHER_TERMS_V1");
@@ -66,6 +70,7 @@ contract VoucherEntitlementModule is VoucherEndpoint {
     mapping(bytes32 messageId => bytes32 dataHash) public acknowledgmentMessages;
 
     error NotVoucherSteward();
+    error NotCommitmentPooling();
     error TermsNotPreAcceptance();
     error InvalidVoucherTerms();
     error TermsFrozen();
@@ -122,6 +127,10 @@ contract VoucherEntitlementModule is VoucherEndpoint {
         emit IssuerAuthorityConfigured(issuer, token, authority);
     }
 
+    function voucherAcceptanceProtocolVersion() external pure returns (uint16) {
+        return 1;
+    }
+
     function registerTerms(
         uint256 commitmentId,
         TermsInput calldata input
@@ -131,8 +140,8 @@ contract VoucherEntitlementModule is VoucherEndpoint {
         nonReentrant
         returns (uint64 revision)
     {
-        ICommitmentPoolingModule.Commitment memory commitment = _preAcceptance(commitmentId);
-        _requireSteward(commitment);
+        ICommitmentPoolingModule.Commitment memory commitment = Authority.preAcceptance(commitmentPooling, commitmentId);
+        Authority.requireSteward(commitmentPooling, hatsModule, commitment.poolId);
         Terms storage terms = _terms[commitmentId];
         if (terms.frozen) revert TermsFrozen();
         if (
@@ -150,11 +159,12 @@ contract VoucherEntitlementModule is VoucherEndpoint {
             )
         );
         terms.issuerApproved = false;
+        VoucherAcceptance(address(commitmentPooling)).bindEarnedVoucherTerms(commitmentId, revision, terms.termsHash);
         emit VoucherTermsRegistered(commitmentId, revision, terms.termsHash);
     }
 
     function approveTerms(uint256 commitmentId, uint64 expectedRevision) external whenVoucherActive nonReentrant {
-        _preAcceptance(commitmentId);
+        Authority.preAcceptance(commitmentPooling, commitmentId);
         Terms storage terms = _expectedTerms(commitmentId, expectedRevision);
         if (msg.sender != terms.agreed.issuerAuthority) revert NotIssuerAuthority();
         terms.issuerApproved = true;
@@ -165,10 +175,9 @@ contract VoucherEntitlementModule is VoucherEndpoint {
     ///         eventual counterparty then consents to that exact frozen revision. A Garden claim
     ///         requires its actual GardenAccount to call, e.g. through existing account execution;
     ///         a steward's personal consent is never relabeled as the GardenAccount's consent.
-    /// @dev Core acceptance remains independently callable. Missing preacceptance consent means
-    ///      no voucher entitlement; the integration does not claim to veto core acceptance.
+    /// @dev The pinned core guard requires this exact frozen revision before either acceptance path.
     function consentTerms(uint256 commitmentId, uint64 expectedRevision) external whenVoucherActive nonReentrant {
-        ICommitmentPoolingModule.Commitment memory commitment = _preAcceptance(commitmentId);
+        ICommitmentPoolingModule.Commitment memory commitment = Authority.preAcceptance(commitmentPooling, commitmentId);
         Terms storage terms = _expectedTerms(commitmentId, expectedRevision);
         if (!terms.issuerApproved) revert IssuerApprovalRequired();
         if (!terms.frozen) {
@@ -177,6 +186,29 @@ contract VoucherEntitlementModule is VoucherEndpoint {
         }
         consentRevision[commitmentId][msg.sender] = expectedRevision;
         emit VoucherTermsConsented(commitmentId, expectedRevision, msg.sender);
+    }
+
+    /// @notice Named, read-only core acceptance guard; a steward cannot substitute for a GardenAccount.
+    function validateEarnedVoucherAcceptance(
+        uint256 commitmentId,
+        uint64 revision,
+        bytes32 termsHash,
+        address creator,
+        address counterparty
+    )
+        external
+        view
+        whenVoucherActive
+        returns (bytes4)
+    {
+        if (msg.sender != address(commitmentPooling)) revert NotCommitmentPooling();
+        Terms storage terms = _terms[commitmentId];
+        if (
+            terms.revision != revision || terms.termsHash != termsHash || !terms.issuerApproved || !terms.frozen
+                || creator == address(0) || counterparty == address(0) || consentRevision[commitmentId][creator] != revision
+                || consentRevision[commitmentId][counterparty] != revision
+        ) revert VoucherConsentMissing();
+        return IEarnedVoucherAcceptancePeer.validateEarnedVoucherAcceptance.selector;
     }
 
     function prepareDistribution(
@@ -190,11 +222,15 @@ contract VoucherEntitlementModule is VoucherEndpoint {
         returns (bytes32 entitlement)
     {
         ICommitmentPoolingModule.Commitment memory commitment = commitmentPooling.getCommitment(commitmentId);
-        _requireSteward(commitment);
+        Authority.requireSteward(commitmentPooling, hatsModule, commitment.poolId);
         if (commitment.state != ICommitmentPoolingModule.CommitmentState.Fulfilled) revert CommitmentNotFulfilled();
         Terms storage terms = _terms[commitmentId];
+        VoucherAcceptance.EarnedVoucherBinding memory binding =
+            VoucherAcceptance(address(commitmentPooling)).getEarnedVoucherBinding(commitmentId);
         if (
-            !terms.frozen || !terms.issuerApproved || terms.revision == 0
+            binding.module != address(this) || binding.acceptedRevision != terms.revision
+                || binding.acceptedTermsHash != terms.termsHash || binding.acceptedCounterparty != commitment.counterparty
+                || !terms.frozen || !terms.issuerApproved || terms.revision == 0
                 || consentRevision[commitmentId][commitment.creator] != terms.revision
                 || commitment.counterparty == address(0)
                 || consentRevision[commitmentId][commitment.counterparty] != terms.revision
@@ -208,15 +244,11 @@ contract VoucherEntitlementModule is VoucherEndpoint {
         bytes32 payloadHash = VoucherMessageCodec.hash(command);
         distributionOfCommitment[commitmentId] = entitlement;
         _commands[entitlement] = VoucherMessageCodec.encodeCommand(command);
-        _distributions[entitlement] = Distribution({
-            commitmentId: commitmentId,
-            payloadHash: payloadHash,
-            state: DeliveryState.Prepared,
-            resultSequence: 0,
-            resultHash: bytes32(0),
-            failureHash: bytes32(0),
-            lastMessageId: bytes32(0)
-        });
+        // Entitlement identity is unique per commitment/revision and preparation is one-shot.
+        Distribution storage distribution = _distributions[entitlement];
+        distribution.commitmentId = commitmentId;
+        distribution.payloadHash = payloadHash;
+        distribution.state = DeliveryState.Prepared;
         emit VoucherDistributionPrepared(entitlement, commitmentId, payloadHash);
     }
 
@@ -224,7 +256,9 @@ contract VoucherEntitlementModule is VoucherEndpoint {
     ///         acknowledgment never authorizes cancellation, replacement value or another reward.
     function dispatch(bytes32 entitlement) external payable whenVoucherActive nonReentrant returns (bytes32 messageId) {
         Distribution storage distribution = _knownDistribution(entitlement);
-        _requireSteward(commitmentPooling.getCommitment(distribution.commitmentId));
+        Authority.requireSteward(
+            commitmentPooling, hatsModule, commitmentPooling.getCommitment(distribution.commitmentId).poolId
+        );
         if (distribution.state == DeliveryState.Delivered) revert VoucherAlreadyDelivered();
         distribution.state = DeliveryState.Pending;
         messageId = _send(_commands[entitlement], COMMAND_GAS_LIMIT);
@@ -255,16 +289,13 @@ contract VoucherEntitlementModule is VoucherEndpoint {
         VoucherMessageCodec.Ack memory result = VoucherMessageCodec.decodeAck(message.data);
         Distribution storage distribution = _knownDistribution(result.entitlementId);
         if (distribution.lastMessageId == bytes32(0)) revert UnknownVoucherEntitlement();
-        if (
-            result.payloadHash != distribution.payloadHash || result.resultSequence == 0
-                || (result.success && result.failureHash != bytes32(0))
-                || (!result.success && result.failureHash == bytes32(0))
-        ) revert ConflictingVoucherResult();
-        bytes32 resultHash = keccak256(abi.encode(result));
-        if (result.resultSequence == distribution.resultSequence && resultHash != distribution.resultHash) {
-            revert ConflictingVoucherResult();
-        }
-        if (distribution.state == DeliveryState.Delivered && !result.success) revert ConflictingVoucherResult();
+        bytes32 resultHash = VoucherDistributionResult.validate(
+            result,
+            distribution.payloadHash,
+            distribution.resultSequence,
+            distribution.resultHash,
+            distribution.state == DeliveryState.Delivered
+        );
         acknowledgmentMessages[message.messageId] = messageHash;
         if (result.resultSequence <= distribution.resultSequence || distribution.state == DeliveryState.Delivered) return;
         distribution.resultSequence = result.resultSequence;
@@ -284,8 +315,7 @@ contract VoucherEntitlementModule is VoucherEndpoint {
         view
         returns (VoucherMessageCodec.Command memory command)
     {
-        (address[] memory recipients, uint256[] memory amounts) =
-            VoucherRecognitionAllocation.allocate(entries, terms.agreed.totalUnits);
+        (command.recipients, command.amounts) = VoucherRecognitionAllocation.allocate(entries, terms.agreed.totalUnits);
         command.version = VoucherMessageCodec.VERSION;
         command.sourceChainId = LOCAL_CHAIN_ID;
         command.sourceModule = address(this);
@@ -301,32 +331,11 @@ contract VoucherEntitlementModule is VoucherEndpoint {
         command.recognitionHash = recognitionHash;
         command.policyContext =
             keccak256(abi.encode(terms.agreed.allocationPolicy, terms.agreed.serviceTermsRef, terms.agreed.season));
-        command.recipients = recipients;
-        command.amounts = amounts;
-    }
-
-    function _preAcceptance(uint256 commitmentId)
-        private
-        view
-        returns (ICommitmentPoolingModule.Commitment memory commitment)
-    {
-        commitment = commitmentPooling.getCommitment(commitmentId);
-        if (
-            commitment.state != ICommitmentPoolingModule.CommitmentState.Offered
-                && commitment.state != ICommitmentPoolingModule.CommitmentState.Requested
-        ) revert TermsNotPreAcceptance();
     }
 
     function _expectedTerms(uint256 commitmentId, uint64 expectedRevision) private view returns (Terms storage terms) {
         terms = _terms[commitmentId];
         if (expectedRevision == 0 || terms.revision != expectedRevision) revert WrongTermsRevision();
-    }
-
-    function _requireSteward(ICommitmentPoolingModule.Commitment memory commitment) private view {
-        address garden = commitmentPooling.getPool(commitment.poolId).garden;
-        if (!hatsModule.isOwnerOf(garden, msg.sender) && !hatsModule.isStewardOf(garden, msg.sender)) {
-            revert NotVoucherSteward();
-        }
     }
 
     function _knownDistribution(bytes32 entitlement) private view returns (Distribution storage distribution) {
