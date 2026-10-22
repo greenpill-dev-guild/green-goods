@@ -1,11 +1,12 @@
 import type { Hex } from "viem";
 import type { Address } from "../../types/domain";
+import type { GoodDollarFeeQuote } from "../wallet/good-dollar-fees";
+import type { ServiceAccessPilot, ServiceAccessPilotAction } from "./service-access-pilot-types";
 import type {
   ServiceVoucherSetup,
   VoucherAcceptancePolicy,
   VoucherSetupAction,
 } from "./service-access-voucher-types";
-import type { GoodDollarFeeQuote } from "../wallet/good-dollar-fees";
 
 /** The source member is distinct from a Celo depositor and a Gnosis voucher holder. */
 export interface ServiceAccessKey {
@@ -111,6 +112,8 @@ export interface PersonalServicePurchase {
 }
 
 export interface ServiceAccessSnapshot {
+  /** Present only in explicitly labeled DEV pilot observations. */
+  pilot?: ServiceAccessPilot;
   key: ServiceAccessKey;
   mode: ServicePaymentRoute | "unavailable";
   knownService: boolean;
@@ -171,7 +174,8 @@ export type ServiceAccessAction =
       reviewedFee: GoodDollarFeeQuote;
     }
   | { action: "payPersonal"; purchaseId: Hex; reviewedFee: GoodDollarFeeQuote }
-  | VoucherSetupAction;
+  | VoucherSetupAction
+  | ServiceAccessPilotAction;
 
 export type ServiceAccessActionKind = ServiceAccessAction["action"];
 

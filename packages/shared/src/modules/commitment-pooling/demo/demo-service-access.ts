@@ -1,21 +1,30 @@
-import {
-  rehearsalHash,
-  REHEARSAL_SETTLEMENT,
-  serviceAccessIdentity,
-} from "./demo-service-identities";
+import { selectServiceAccessAction, serviceAccessAvailableActions } from "../service-access";
+import { isPilotAction } from "../service-access-pilot";
 import type {
   ServiceAccessAction,
   ServiceAccessAdapter,
   ServiceAccessKey,
   ServiceAccessSnapshot,
 } from "../service-access-types";
-import { applyRehearsalVoucherAction } from "./demo-voucher-setup";
 import { voucherSetupAvailableActions } from "../service-access-voucher";
-import { selectServiceAccessAction, serviceAccessAvailableActions } from "../service-access";
 import {
   createServiceRehearsalSnapshot,
   SERVICE_REHEARSAL_IDS,
 } from "./demo-service-access-fixtures";
+import {
+  REHEARSAL_SETTLEMENT,
+  rehearsalHash,
+  serviceAccessIdentity,
+} from "./demo-service-identities";
+import {
+  applyPilotAction,
+  attachPilot,
+  createPilotLedger,
+  isPilotCommitment,
+  type PilotLedger,
+  pilotLedgerIdentity,
+} from "./demo-service-pilot";
+import { applyRehearsalVoucherAction } from "./demo-voucher-setup";
 
 function isServiceRehearsalKey(key: ServiceAccessKey): boolean {
   return key.sourceChainId === 42161 && SERVICE_REHEARSAL_IDS.some((id) => id === key.commitmentId);
@@ -27,11 +36,18 @@ export function createServiceRehearsalAdapter(
   createSnapshot: (key: ServiceAccessKey) => ServiceAccessSnapshot = createServiceRehearsalSnapshot
 ): ServiceAccessAdapter {
   const records = new Map<string, ServiceAccessSnapshot>();
+  const ledgers = new Map<string, PilotLedger>();
+  const ledger = (key: ServiceAccessKey) => {
+    const id = pilotLedgerIdentity(key);
+    if (!ledgers.has(id)) ledgers.set(id, createPilotLedger());
+    return ledgers.get(id)!;
+  };
   let observation = 0;
   const current = (key: ServiceAccessKey) => {
     if (!isServiceRehearsalKey(key)) throw new Error("Not a service rehearsal fixture");
     const id = serviceAccessIdentity(key);
     const snapshot = records.get(id) ?? createSnapshot(key);
+    if (isPilotCommitment(key.commitmentId)) attachPilot(snapshot, ledger(key));
     records.set(id, snapshot);
     return snapshot;
   };
@@ -75,7 +91,30 @@ export function createServiceRehearsalAdapter(
       const snapshot = current(key);
       const eligibility = selectServiceAccessAction(snapshot, action);
       if (!eligibility.allowed) throw new Error(eligibility.reason ?? "Service action unavailable");
-      applyAction(snapshot, action, transferSucceeds);
+      const l = isPilotCommitment(key.commitmentId) ? ledger(key) : null;
+      if (l && isPilotAction(action)) applyPilotAction(snapshot, l, action, transferSucceeds);
+      else {
+        const old = snapshot.voucherSetups.find(
+          (r) => "setupId" in action && r.setupId === action.setupId
+        )?.destination;
+        const balance = old?.holderBalance ?? l?.holdings.b ?? 0n;
+        const released = old?.finalAllocation?.release.state;
+        applyAction(snapshot, action, transferSucceeds);
+        if (l && "setupId" in action) {
+          const d = snapshot.voucherSetups.find((r) => r.setupId === action.setupId)?.destination;
+          if (d) {
+            // Authorization observes the existing ledger; it never creates holder inventory.
+            if (!old) {
+              d.holderBalance = l.holdings.b;
+              d.allowance = l.escrowAllowance;
+            } else l.holdings.b += (d.holderBalance ?? balance) - balance;
+            l.escrowAllowance = d.allowance ?? l.escrowAllowance;
+            if (d.finalAllocation?.release.state === "succeeded" && released !== "succeeded")
+              l.reserve.b += d.finalAllocation.allocation.releaseVoucherUnits;
+          }
+        }
+      }
+      if (l) attachPilot(snapshot, l);
       return {
         kind: "local-rehearsal" as const,
         observationId: `local-rehearsal:${serviceAccessIdentity(key)}:${++observation}`,

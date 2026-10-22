@@ -1,4 +1,5 @@
 import {
+  type PilotRewardItem,
   type ServiceAccessSnapshot,
   type ServiceVoucherSetup,
   serviceAccessAvailableActions,
@@ -191,13 +192,100 @@ export function serviceAccessStorySnapshot(presented = false): ServiceAccessSnap
     };
     snapshot.voucherSetups = [row];
     row.availableActions = serviceAccessAvailableActions(snapshot).filter(
-      (kind) =>
-        kind !== "requestClaim" &&
-        kind !== "withdrawClaim" &&
-        kind !== "pledgePersonal" &&
-        kind !== "payPersonal"
+      (kind): kind is ServiceVoucherSetup["availableActions"][number] =>
+        [
+          "abortVoucherSetup",
+          "finalizeVoucherActivation",
+          "dispatchVoucherSetupCommand",
+          "approveVoucherAllowance",
+          "presentVoucherSetup",
+          "retryVoucherSetupAction",
+          "requestVoucherSetupAbort",
+          "retryVoucherSetupAcknowledgment",
+          "retryVoucherFinalAcknowledgment",
+          "finalizeVoucherAllocation",
+          "executeVoucherFinalLeg",
+        ].includes(kind)
     );
   }
   snapshot.availableActions = serviceAccessAvailableActions(snapshot);
   return snapshot;
+}
+
+/** Fictional individual reward fixtures; receipt IDs are local observations, never transactions. */
+export function servicePilotStorySnapshot(withGd = false): ServiceAccessSnapshot {
+  const s = serviceAccessStorySnapshot();
+  s.key = { ...s.key, commitmentId: withGd ? 1026n : 1025n };
+  s.mode = "legacy";
+  s.knownService = false;
+  s.offer = null;
+  s.coreState = "ACCEPTED";
+  const a = {
+    chainId: 100,
+    token: "0x000000000000000000000000000000000000fa01" as const,
+    symbol: "TEST-A",
+    decimals: 6,
+  };
+  const b = {
+    ...a,
+    token: "0x000000000000000000000000000000000000fb01" as const,
+    symbol: "TEST-B",
+  };
+  const pool = "0x000000000000000000000000000000000000fc01" as const;
+  const reward: PilotRewardItem = {
+    id: HASH,
+    asset: withGd ? a : b,
+    amount: withGd ? 2_044_986n : 1_000_000n,
+    recipient: s.key.buyer,
+    funder: MODULE,
+    paymentMethod: "issuer-reserve-allowance" as const,
+    state: "pending" as const,
+    acknowledgment: "none" as const,
+    attempts: 0n,
+    receipt: null,
+  };
+  s.pilot = {
+    evidence: "local-rehearsal",
+    serviceCommitmentId: 1023n,
+    service: {
+      access: "full",
+      units: 1n,
+      durationMinutes: 60,
+      voucherUnits: 1_000_000n,
+      validUntil: 5000n,
+    },
+    assets: { a, b },
+    holdings: { a: 0n, b: 0n },
+    reward: {
+      workFulfilled: true,
+      voucher: reward,
+      gd: withGd
+        ? {
+            ...reward,
+            asset: { chainId: 42220, token: TOKEN, symbol: "TEST-G$", decimals: 18 },
+            amount: 100n * 10n ** 18n,
+            paymentMethod: "celo-gd",
+          }
+        : null,
+    },
+    inventory: {
+      asset: withGd ? a : b,
+      reserve: 0n,
+      allowance: 0n,
+      acceptedUndelivered: reward.amount,
+    },
+    exchange: {
+      pool,
+      inventory: 10_000_000n,
+      inputHolding: 0n,
+      inputLimit: 10_000_000n,
+      listed: true,
+      allowance: 0n,
+      status: "none",
+      failure: null,
+      quote: null,
+      receipt: null,
+    },
+  };
+  return s;
 }

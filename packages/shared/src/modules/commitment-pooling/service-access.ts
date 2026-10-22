@@ -1,12 +1,13 @@
 import { isAddress, maxUint256 } from "viem";
-import { selectVoucherSetupAction, voucherSetupAvailableActions } from "./service-access-voucher";
 import type { GoodDollarFeeQuote } from "../wallet/good-dollar-fees";
+import { isPilotAction, selectPilotAction } from "./service-access-pilot";
 import type {
   ServiceAccessAction,
   ServiceAccessActionAvailability,
   ServiceAccessActionKind,
   ServiceAccessSnapshot,
 } from "./service-access-types";
+import { selectVoucherSetupAction, voucherSetupAvailableActions } from "./service-access-voucher";
 
 const MAX_NONCE = (1n << 64n) - 1n;
 const ZERO_ADDRESS = /^0x0{40}$/i;
@@ -126,6 +127,7 @@ export function selectServiceAccessAction(
   action: ServiceAccessAction
 ): ServiceAccessActionAvailability {
   const reject = (reason: string): ServiceAccessActionAvailability => ({ allowed: false, reason });
+  if (isPilotAction(action)) return selectPilotAction(snapshot, action);
   if (!serviceAccessAvailableActions(snapshot).includes(action.action))
     return reject("action-unavailable");
   if ("setupId" in action || action.action === "prepareVoucherSetup")
@@ -141,6 +143,12 @@ export function selectServiceAccessAction(
     return reject("terms-changed");
   switch (action.action) {
     case "requestClaim": {
+      if (
+        snapshot.pilot &&
+        snapshot.mode === "voucher" &&
+        !equal(action.voucherHolder, snapshot.key.buyer)
+      )
+        return reject("holder-mismatch");
       if (
         action.expectedRevision !== offer.revision ||
         !equal(action.expectedTermsHash, offer.termsHash)

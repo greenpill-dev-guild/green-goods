@@ -1,5 +1,6 @@
 import {
   type ServiceAccessSnapshot,
+  type ServiceVoucherSetup,
   serviceAccessAvailableActions,
 } from "@green-goods/shared/commitment-pooling";
 import { describe, expect, it, vi } from "vitest";
@@ -86,11 +87,20 @@ function presented(overrides: Partial<ServiceAccessSnapshot> = {}): ServiceAcces
   };
   state.availableActions = serviceAccessAvailableActions(state);
   row.availableActions = state.availableActions.filter(
-    (kind) =>
-      kind !== "requestClaim" &&
-      kind !== "withdrawClaim" &&
-      kind !== "pledgePersonal" &&
-      kind !== "payPersonal"
+    (kind): kind is ServiceVoucherSetup["availableActions"][number] =>
+      [
+        "abortVoucherSetup",
+        "finalizeVoucherActivation",
+        "dispatchVoucherSetupCommand",
+        "approveVoucherAllowance",
+        "presentVoucherSetup",
+        "retryVoucherSetupAction",
+        "requestVoucherSetupAbort",
+        "retryVoucherSetupAcknowledgment",
+        "retryVoucherFinalAcknowledgment",
+        "finalizeVoucherAllocation",
+        "executeVoucherFinalLeg",
+      ].includes(kind)
   );
   return state;
 }
@@ -769,7 +779,7 @@ describe("voucher setup and recovery review", () => {
     state.currentVoucherSetupId = null;
     const onAction = renderPanel(state);
     expect(
-      screen.getByRole("article", { name: "Earlier voucher setup — recovery" })
+      screen.getByRole("article", { name: "Earlier voucher setup: recovery" })
     ).toBeInTheDocument();
     expect(
       screen.getByText("Payment observed; waiting for steward verification")

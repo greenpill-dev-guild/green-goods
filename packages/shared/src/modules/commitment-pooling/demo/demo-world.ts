@@ -39,8 +39,8 @@ import {
   metadata,
   NOW,
   pool,
-  requirement,
   ROSA,
+  requirement,
   TUNDE,
 } from "./demo-builders";
 import { demoCommitments } from "./demo-commitments";
@@ -161,6 +161,8 @@ export function buildDemoWorld(viewer: Address): DemoWorld {
   ];
 
   const contributors = [
+    contributor(1025n, V, { isLead: true }),
+    contributor(1026n, V, { isLead: true }),
     contributor(1006n, ROSA, { isLead: true }),
     contributor(1007n, V, {
       isLead: true,
@@ -273,13 +275,21 @@ export function buildDemoWorld(viewer: Address): DemoWorld {
   );
 
   const documents: Record<string, DemoDocument> = {
+    "bafy-demo-c1025": metadata(
+      "Local rehearsal: one task earns a full service voucher",
+      "Fictional individual request: prepare one garden inventory list, attach a photo and checklist, and receive steward review. Reward: one full booked 60-minute session voucher. No real issuer approval or service activation."
+    ),
+    "bafy-demo-c1026": metadata(
+      "Local rehearsal: one task earns vouchers plus separate G$",
+      "Fictional individual request: prepare one garden inventory list with photo and checklist reviewed by the steward. Earn TEST-A vouchers plus an independent TEST-G$ reward. Optional one-pool exchange buys the full TEST-B session voucher. No real issuer or monetary commitment."
+    ),
     "bafy-demo-c1022": metadata(
       "Local rehearsal: fictional personal G$ workshop",
       "Fictional terms and local account stand-ins; no live payment or service activation."
     ),
     "bafy-demo-c1023": metadata(
-      "Local rehearsal: fictional voucher workshop",
-      "Fictional terms and local account stand-ins; no live payment or service activation."
+      "Local rehearsal: one full booked 60-minute session",
+      "One TEST-B voucher gives full access to one fictional 60-minute session, not a discount. Booking and issuer approval required; use within the explicit fixture validity period. No live payment or service activation."
     ),
     "bafy-demo-c1024": metadata(
       "Local rehearsal: fictional partial service",

@@ -1,15 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useRef } from "react";
-import type { Address } from "../../types/domain";
 import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
-import { isDemoPoolingActive } from "../../modules/commitment-pooling/demo/demo-mode";
 import { unavailableServiceAccess } from "../../modules/commitment-pooling/data-service-access";
+import { isDemoPoolingActive } from "../../modules/commitment-pooling/demo/demo-mode";
 import { createCommitmentPoolingReadRepository } from "../../modules/commitment-pooling/read-repository";
-import { greenGoodsIndexer } from "../../modules/data/graphql-client";
 import type {
   ServiceAccessAction,
   ServiceAccessKey,
 } from "../../modules/commitment-pooling/service-access-types";
+import { greenGoodsIndexer } from "../../modules/data/graphql-client";
+import type { Address } from "../../types/domain";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useOnlineStatus } from "../app/useOnlineStatus";
 
@@ -21,7 +21,7 @@ function rehearsalEnabled(key: ServiceAccessKey): boolean {
     import.meta.env.DEV &&
     isDemoPoolingActive() &&
     key.sourceChainId === 42161 &&
-    (key.commitmentId === 1022n || key.commitmentId === 1023n || key.commitmentId === 1024n)
+    [1022n, 1023n, 1024n, 1025n, 1026n].includes(key.commitmentId)
   );
 }
 
@@ -102,8 +102,18 @@ export function useServiceAccessMutation(key: ServiceAccessKey | null) {
       return serviceRehearsalAdapter.execute(key, action);
     },
     onSuccess: (result) => {
-      if (current.current === identity && key && rehearsalEnabled(key))
+      if (current.current === identity && key && rehearsalEnabled(key)) {
         client.setQueryData(queryKey(key), result.snapshot);
+        if (result.snapshot.pilot) {
+          for (const commitmentId of [1023n, 1025n, 1026n]) {
+            if (commitmentId !== key.commitmentId)
+              void client.invalidateQueries({
+                queryKey: queryKey({ ...key, commitmentId }),
+                exact: true,
+              });
+          }
+        }
+      }
     },
     onError: (error) => {
       handleError(error);

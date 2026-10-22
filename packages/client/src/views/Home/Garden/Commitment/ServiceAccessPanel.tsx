@@ -13,6 +13,7 @@ import { useIntl } from "react-intl";
 import { ServiceAccessStatus } from "./ServiceAccessStatus";
 import { ServiceConsentSheet } from "./ServiceConsentSheet";
 import { serviceAssetHasUnits } from "./serviceAccessPresentation";
+import { VoucherPilotJourney } from "./VoucherPilotJourney";
 import { VoucherSetupCard } from "./VoucherSetupCard";
 import { VoucherSetupSheet } from "./VoucherSetupSheet";
 
@@ -42,6 +43,7 @@ export function ServiceAccessPanel({
   const local = snapshot.evidence === "local-rehearsal";
   const unavailable = snapshot.capabilities.mutation === "unavailable";
   if (
+    !snapshot.pilot &&
     !snapshot.knownService &&
     !snapshot.acceptancePolicy.blockGenericMemberAcceptance &&
     snapshot.voucherSetups.length === 0
@@ -129,6 +131,7 @@ export function ServiceAccessPanel({
           </p>
         ))}
       <ServiceAccessStatus snapshot={snapshot} />
+      <VoucherPilotJourney snapshot={snapshot} busy={busy} onAction={run} />
       {failed ? (
         <p role="alert" className="text-sm text-error-base">
           {text("actionError")}

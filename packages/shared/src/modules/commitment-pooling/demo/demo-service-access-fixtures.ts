@@ -1,11 +1,12 @@
-import { rehearsalHash, serviceAccessIdentity } from "./demo-service-identities";
 import type { Address } from "../../../types/domain";
 import type { ServiceAccessKey, ServiceAccessSnapshot } from "../service-access-types";
-import { createActiveRehearsalSetup } from "./demo-voucher-setup";
 import { DEMO_GARDEN } from "./demo-builders";
+import { rehearsalHash, serviceAccessIdentity } from "./demo-service-identities";
+import { PILOT_ASSETS, PILOT_ISSUERS } from "./demo-service-pilot";
+import { createActiveRehearsalSetup } from "./demo-voucher-setup";
 
 /** Fictional identifiers only. None of these addresses assert a reviewed deployment. */
-export const SERVICE_REHEARSAL_IDS = [1022n, 1023n, 1024n] as const;
+export const SERVICE_REHEARSAL_IDS = [1022n, 1023n, 1024n, 1025n, 1026n] as const;
 const REHEARSAL_SAFE = "0x000000000000000000000000000000000000f001" as Address;
 export const REHEARSAL_ISSUER = "0x000000000000000000000000000000000000f003" as Address;
 const REHEARSAL_TOKEN = "0x000000000000000000000000000000000000f004" as Address;
@@ -109,6 +110,18 @@ export function createServiceRehearsalSnapshot(key: ServiceAccessKey): ServiceAc
       canSendDestination: true,
     },
   };
+  if (key.commitmentId === 1023n) {
+    snapshot.offer!.serviceUnits = 1n;
+    snapshot.offer!.unitLabel = "sessions";
+    snapshot.offer!.voucher = { asset: PILOT_ASSETS.b, issuer: PILOT_ISSUERS.b, units: 1_000_000n };
+  }
+  if (key.commitmentId === 1025n || key.commitmentId === 1026n) {
+    snapshot.offer = null;
+    snapshot.mode = "legacy";
+    snapshot.knownService = false;
+    snapshot.coreState = "ACCEPTED";
+    snapshot.acceptancePolicy.kind = "earned";
+  }
   if (presented) {
     const setup = createActiveRehearsalSetup(snapshot);
     snapshot.voucherSetups = [setup];
