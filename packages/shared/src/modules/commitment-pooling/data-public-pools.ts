@@ -1,13 +1,15 @@
 import type { Address } from "../../types/domain";
 import { logger } from "../app/logger";
 import { greenGoodsIndexer } from "../data/graphql-client";
+import { hypercertExclusionClauses } from "../data/hypercerts-exclusions";
 import { resolveCycleMetadataName } from "./cycle-metadata";
 import { integer, mapUnitSummary, number, optionalInteger, type RawRow, string } from "./data-core";
-import { publicCommitmentExclusionIds } from "../../config/public-record-visibility";
+import { publicRehearsalCycles } from "../../config/public-record-visibility";
 import {
   countedMilestone,
   excludedUnitTotals,
-  readPublicCommitmentExclusions,
+  createPublicReportingRead,
+  type PublicReportingRead,
   subtractPublicCount,
 } from "./public-record-exclusions";
 import type {
@@ -128,9 +130,10 @@ function mapPublicPool(row: RawRow): PublicCommitmentPoolRecord {
   };
 }
 
-function excludeRehearsalCounters<
-  T extends PublicCommitmentPoolRecord | IndexedPublicCommitmentCycleRecord,
->(record: T, rows: RawRow[]): T {
+function excludeRehearsalCounters(
+  record: PublicCommitmentPoolRecord,
+  rows: RawRow[]
+): PublicCommitmentPoolRecord {
   const count = (predicate: (row: RawRow) => boolean) => BigInt(rows.filter(predicate).length);
   const result = { ...record };
   const milestones = {
@@ -162,18 +165,10 @@ function excludeRehearsalCounters<
         !["FULFILLED", "CANCELLED", "EXPIRED"].includes(String(row.state))
     )
   );
-  if ("commitmentsOffered" in result) {
-    result.commitmentsOffered = subtractPublicCount(
-      result.commitmentsOffered,
-      count((row) => row.direction === "OFFER")
-    );
-  }
-  if ("commitmentsReadyForConfirmation" in result) {
-    result.commitmentsReadyForConfirmation = subtractPublicCount(
-      result.commitmentsReadyForConfirmation,
-      count((row) => countedMilestone(row, "READY_FOR_CONFIRMATION"))
-    );
-  }
+  result.commitmentsOffered = subtractPublicCount(
+    result.commitmentsOffered,
+    count((row) => row.direction === "OFFER")
+  );
   return result;
 }
 
@@ -250,23 +245,36 @@ function newestFirst(
  * and a failure answers "no" — the public page claims an anchor only when the
  * indexer positively reports one.
  */
-async function hasCommitmentCertificates(chainId: number, garden: Address): Promise<boolean> {
-  const query = `query PublicGardenCommitmentCertificates($chainId: Int!, $garden: String!) {
-    Hypercert(where: { chainId: { _eq: $chainId }, garden: { _eq: $garden }, bundleKind: { _eq: COMMITMENT } }, limit: 1) { id }
+async function hasCommitmentCertificates(
+  chainId: number,
+  garden: Address,
+  reporting: PublicReportingRead
+): Promise<boolean> {
+  try {
+    const links = await reporting.links();
+    const query = `query PublicGardenCommitmentCertificates($chainId: Int!, $garden: String!, $excludedRecords: [Hypercert_bool_exp!]!) {
+    Hypercert(where: { chainId: { _eq: $chainId }, garden: { _eq: $garden }, bundleKind: { _eq: COMMITMENT }, metadataReconciliationRequired: { _eq: false },
+      _not: { _or: $excludedRecords }
+    }, limit: 1) { id }
   }`;
-  const result = await greenGoodsIndexer.query<Record<string, RawRow[]>>(
-    query,
-    { chainId, garden: garden.toLowerCase() },
-    "getPublicGardenCommitmentCertificates"
-  );
-  if (result.error) {
-    logger.warn("[getPublicGardenPool] commitment certificate read failed", {
-      error: result.error,
+    const result = await greenGoodsIndexer.query<Record<string, RawRow[]>>(
+      query,
+      {
+        chainId,
+        garden: garden.toLowerCase(),
+        excludedRecords: hypercertExclusionClauses(links),
+      },
+      "getPublicGardenCommitmentCertificates"
+    );
+    if (result.error) throw result.error;
+    return (result.data?.Hypercert ?? []).length > 0;
+  } catch (error) {
+    logger.warn("[getPublicGardenPool] commitment certificate eligibility is unavailable", {
+      error,
       garden,
     });
     return false;
   }
-  return (result.data?.Hypercert ?? []).length > 0;
 }
 
 export async function getPublicGardenPool(
@@ -287,7 +295,12 @@ export async function getPublicGardenPool(
   const poolRow = poolResult.data?.CommitmentPool?.[0];
   if (!poolRow) return null;
   let pool = mapPublicPool(poolRow);
-  const excluded = await readPublicCommitmentExclusions(chainId, pool.poolId);
+  const rehearsalCycles = publicRehearsalCycles(chainId, pool.poolId);
+  const reporting = createPublicReportingRead(chainId);
+  const excluded =
+    rehearsalCycles.length === 0
+      ? []
+      : (await reporting.commitments()).filter((row) => integer(row.poolId) === pool.poolId);
 
   const detailsQuery = `query PublicGardenPoolDetails($chainId: Int!, $poolId: numeric!) {
     CommitmentCycle(where: { chainId: { _eq: $chainId }, poolId: { _eq: $poolId }, seedSeen: { _eq: true }, state: { _in: [OPEN, RECONCILED, COMPOSTED] } }) { ${PUBLIC_CYCLE_FIELDS} }
@@ -300,22 +313,15 @@ export async function getPublicGardenPool(
   );
   if (detailsResult.error) throw detailsResult.error;
 
-  let indexedCycles = (detailsResult.data?.CommitmentCycle ?? [])
+  const indexedCycles = (detailsResult.data?.CommitmentCycle ?? [])
     .map(mapPublicCycle)
     .filter(
       (cycle) =>
-        cycle.state === "OPEN" || cycle.state === "RECONCILED" || cycle.state === "COMPOSTED"
+        (cycle.state === "OPEN" || cycle.state === "RECONCILED" || cycle.state === "COMPOSTED") &&
+        !rehearsalCycles.some((rehearsal) => rehearsal.cycleId === cycle.cycleId)
     );
   let summaries = (detailsResult.data?.CommitmentUnitSummary ?? []).map(mapUnitSummary);
   if (excluded.length > 0) {
-    const cycleIds = [
-      ...new Set(
-        excluded
-          .map((row) => row.cycleId)
-          .filter((id) => id !== null && id !== undefined)
-          .map(String)
-      ),
-    ];
     const filter = `chainId: { _eq: $chainId }, poolId: { _eq: $poolId }, creationSeen: { _eq: true }, id: { _nin: $ids }`;
     // Count providers after exclusion so rehearsals cannot unlock a public reliability rate.
     // Offers commit their creator's units before acceptance assigns a lead provider.
@@ -324,12 +330,11 @@ export async function getPublicGardenPool(
       `query PublicPoolEligibleRecords($chainId: Int!, $poolId: numeric!, $ids: [String!]!) {
         providers: Commitment(where: { ${filter}, leadProvider: { _is_null: false }, acceptanceSeen: { _eq: true } }, distinct_on: [leadProvider], limit: 1001) { id leadProvider }
         offerProviders: Commitment(where: { ${filter}, direction: { _eq: OFFER }, creator: { _is_null: false } }, distinct_on: [creator], limit: 1001) { id creator }
-        ${cycleIds.map((id, index) => `cycle${index}: Commitment(where: { ${filter}, cycleId: { _eq: ${BigInt(id)} } }, limit: 1) { id }`).join("\n")}
       }`,
       {
         chainId,
         poolId: pool.poolId.toString(),
-        ids: publicCommitmentExclusionIds(chainId, pool.poolId),
+        ids: excluded.map((row) => String(row.id)),
       },
       "getPublicPoolEligibleRecords"
     );
@@ -339,8 +344,7 @@ export async function getPublicGardenPool(
       !counts?.providers ||
       counts.providers.length > 1000 ||
       !counts.offerProviders ||
-      counts.offerProviders.length > 1000 ||
-      cycleIds.some((_, index) => !counts[`cycle${index}`])
+      counts.offerProviders.length > 1000
     ) {
       throw new Error("Eligible pool history is unavailable");
     }
@@ -355,17 +359,6 @@ export async function getPublicGardenPool(
       providers.add(identity.toLowerCase());
     }
     pool.distinctProviderCount = BigInt(providers.size);
-    indexedCycles = indexedCycles
-      .filter((cycle) => {
-        const index = cycleIds.indexOf(cycle.cycleId.toString());
-        return index < 0 || counts[`cycle${index}`]!.length > 0;
-      })
-      .map((cycle) =>
-        excludeRehearsalCounters(
-          cycle,
-          excluded.filter((row) => String(row.cycleId) === cycle.cycleId.toString())
-        )
-      );
     summaries = summaries
       .map((summary) => {
         const units = excludedUnitTotals(
@@ -406,7 +399,7 @@ export async function getPublicGardenPool(
 
   return {
     pool,
-    hasCommitmentCertificates: await hasCommitmentCertificates(chainId, garden),
+    hasCommitmentCertificates: await hasCommitmentCertificates(chainId, garden, reporting),
     openSeason:
       cycles.find((cycle) => cycle.state === "OPEN" && cycle.cycleType === "SEASON") ?? null,
     openCampaigns: cycles

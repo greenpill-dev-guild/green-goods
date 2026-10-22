@@ -43,9 +43,10 @@ import { publicKeys } from "../../config/query-keys/public";
 import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { getAssessmentSchemas } from "../../modules/assessment/schemas";
 import { logger } from "../../modules/app/logger";
-import { getGardenAssessments, getWorks } from "../../modules/data/eas";
+import { createPublicReportingRead } from "../../modules/commitment-pooling/public-record-exclusions";
+import { getPublicGardenAssessments, readPublicApprovedWorks } from "./publicReportingRecords";
+import { getWorks } from "../../modules/data/eas";
 import { getGardens } from "../../modules/data/greengoods";
-import { readPublicApprovedWorks } from "./readPublicApprovedWorks";
 import type { Address, Garden } from "../../types/domain";
 import type { EASWork } from "../../types/eas-responses";
 import { isZeroBytes32 } from "../../utils/blockchain/bytes";
@@ -166,9 +167,12 @@ export function usePublicGardenDetail(
       // failure is reported on `unavailableSources` — an empty list from a
       // failed read means "we don't know", and a public page that renders it
       // as 0 states something it cannot support.
+      const reporting = createPublicReportingRead(chainId);
       const [worksResult, assessmentsResult] = await Promise.allSettled([
-        getWorks(matched.id, chainId).then((works) => readPublicApprovedWorks(works, chainId)),
-        getGardenAssessments(matched.id, chainId),
+        getWorks(matched.id, chainId).then((works) =>
+          readPublicApprovedWorks(works, chainId, reporting)
+        ),
+        getPublicGardenAssessments(matched.id, chainId, reporting),
       ]);
 
       const publicWorks = worksResult.status === "fulfilled" ? worksResult.value.works : [];

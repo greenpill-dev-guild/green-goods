@@ -33,9 +33,10 @@ import { isGardenPubliclyVisible } from "../../config/garden-visibility";
 import { publicKeys } from "../../config/query-keys/public";
 import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { logger } from "../../modules/app/logger";
-import { getGardenAssessments, getWorks } from "../../modules/data/eas";
+import { createPublicReportingRead } from "../../modules/commitment-pooling/public-record-exclusions";
+import { getPublicGardenAssessments, readPublicApprovedWorks } from "./publicReportingRecords";
+import { getWorks } from "../../modules/data/eas";
 import { getGardens } from "../../modules/data/greengoods";
-import { readPublicApprovedWorks } from "./readPublicApprovedWorks";
 import type { Address } from "../../types/domain";
 
 export const SEASON_ONE_VOLUME_ID = 1 as const;
@@ -134,9 +135,10 @@ export function usePublicVolume(volumeId: number, chainId: number = DEFAULT_CHAI
 
       // Both EAS reads are best-effort — surface zero counts if either fails,
       // and say so on `partialData`.
+      const reporting = createPublicReportingRead(chainId);
       const [worksResult, assessmentsResult] = await Promise.allSettled([
-        getWorks(ids, chainId).then((all) => readPublicApprovedWorks(all, chainId)),
-        getGardenAssessments(undefined, chainId),
+        getWorks(ids, chainId).then((all) => readPublicApprovedWorks(all, chainId, reporting)),
+        getPublicGardenAssessments(undefined, chainId, reporting),
       ]);
 
       const works =
