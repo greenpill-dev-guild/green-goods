@@ -70,12 +70,14 @@
   - The shared components onto the roles, with app pairs. This changes the installed app too, and
     the cockpit still draws the garden chip, the header's meta line and the sync badges with their
     old classes until it lands.
-  - The offline face, from #1172's review: the service worker caches no web font, Inter included,
-    so an installed app's first launch with no network draws the fallback face, short of "both
-    surfaces render Plus Jakarta Sans". Serve both faces from the app and precache them. This
-    changes service-worker behaviour, which the proof limit below does not cover: it records its
-    own RED/GREEN proof under the testing contract and labeled authenticated Brave proof of an
-    installed app's first launch with no network.
+  - The offline face, from #1172's review, is on `feature/app-cockpit-offline-face`, with
+    `Refs PRD-1267`. The client serves both faces from `packages/client/src/styles/fonts/`
+    (variable WOFF2 from Google Fonts: latin, latin-ext and vietnamese, roman and italic,
+    570 KiB) and the worker precaches them; the precache budget check now fails a build whose
+    precached stylesheet uses a font the worker leaves out, and keeps the faces out of the
+    startup budgets. Its RED/GREEN proof is recorded (TDD Proof below). The installed app's
+    labeled authenticated Brave proof of a first launch with no network is still to do: the
+    Chrome extension was not connected on 22 October.
   - Labeled authenticated Brave proof of the installed app in Plus Jakarta Sans, pending since
     #1172 (AGENTS.md § Browser Evidence).
 - Handed on to step 7: the three texts that newly end in an ellipsis at 320px (eval.md, Typeface).
@@ -115,7 +117,10 @@
 
 - Lane mode: `required` in `status.json`, because step 1's offline face changes service-worker
   behaviour. Its RED and GREEN proof follow the testing contract and are recorded with
-  `node scripts/harness/plan-hub.mjs record-tdd` before the lane closes.
+  `node scripts/harness/plan-hub.mjs record-tdd` before the lane closes. Recorded for the
+  offline face on `feature/app-cockpit-offline-face`: the CI Playwright offline reload
+  (`tests/specs/client.pwa-preview.spec.ts`) loaded no face on develop and Plus Jakarta Sans from
+  the precache with the change; the boot, budget and docs guards failed first and pass now.
 - RED and GREEN: not applicable to the token slices themselves (pure styling).
 - Proof limit: step 1's face and role names and step 2 `not_applicable`; step 3's solid focus ring
   is rendered-only behaviour and records `proof_limit` with its rendered evidence.

@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-10T09:56:00.510Z",
-    "updated_at": "2026-10-22T00:20:52.555Z"
+    "updated_at": "2026-10-22T18:41:18.081Z"
   },
   "links": {
     "brief": "brief.md",
@@ -64,16 +64,16 @@
       "handoff": "handoffs/claude-ui.md",
       "tdd": {
         "mode": "required",
-        "status": "pending",
+        "status": "green_recorded",
         "red": {
-          "command": "",
-          "evidence": ""
+          "command": "tests/specs/client.pwa-preview.spec.ts through the pwa-preview project's build and preview (bun run browser e2e --preset pwa-preview in CI; locally a copy of that project on port 4317, because a dev server held 3001); cd packages/client && bun run test src/__tests__/bootFallback.test.tsx src/__tests__/scripts/check-pwa-precache-budget.test.ts; cd docs && bun run test src/components/docs/designTokens.test.ts",
+          "evidence": "On develop 322882331 with only the new assertions: the offline reload, with every request aborted, had loaded no face (received [], 'The offline shell must draw the installed app's face'). Three boot guards failed (index.html still requested Plus Jakarta Sans and Inter from Google Fonts and preloaded no file of its own), the budget checker passed a precached stylesheet whose font was not precached and then counted the stylesheet's faces as startup bytes (public startup 0.84 MiB gzip against 0.44), and the docs test could not read packages/client/src/styles/fonts.css."
         },
         "green": {
-          "command": "",
-          "evidence": ""
+          "command": "The same commands, plus cd packages/client && bun run test (full suite).",
+          "evidence": "The offline reload passed (1 passed): Plus Jakarta Sans loaded from the precache with every request aborted. The build reported PWA budgets OK with 36 precache entries (1.14 MiB raw, from 24 and 0.58) and unchanged startup budgets (public 0.29, installed entry 0.25, installed startup 0.99 MiB gzip). Budget tests 18 of 18, docs 5 of 5, client suite 150 files and 1730 tests. Website first paint (clean-room Chromium, production preview): no Plus Jakarta Sans request on / or /gardens with its responses held for 15 s, first contentful paint about 0.5 s, and Inter's latin file fetched by the parser from its preload at High priority."
         },
-        "note": "Required because step 1's offline face changes service-worker behaviour (both faces served from the app and precached): its RED/GREEN proof is recorded with record-tdd before the lane closes. Step 1's face and role names change no behaviour and prove themselves with the rendered pairs, the typeface fit audit and the design and typography guards. Each later slice records its own mode in the lane handoff: step 2 is pure styling (not_applicable); step 3's solid focus ring is rendered-only behaviour (proof_limit with its rendered evidence)."
+        "note": "Required because step 1's offline face changes service-worker behaviour (both faces served from the app and precached): its RED/GREEN proof is recorded above, from feature/app-cockpit-offline-face, and the installed app's labeled authenticated Brave proof is still pending. Step 1's face and role names change no behaviour and prove themselves with the rendered pairs, the typeface fit audit and the design and typography guards. Each later slice records its own mode in the lane handoff: step 2 is pure styling (not_applicable); step 3's solid focus ring is rendered-only behaviour (proof_limit with its rendered evidence)."
       },
       "skill_tags": ["ui", "design", "react"],
       "ready_when_dependencies_met": true,
@@ -272,6 +272,14 @@
       "status": "in_progress",
       "branch": null,
       "note": "Step 1's three pull requests merged: #1176 (guide wording, 870600083, 2026-10-21T23:46:46Z), #1175 (cockpit type roles, cfd1aaf83, 2026-10-21T23:48:54Z) and #1172 (the face, 20d8c8121, 2026-10-22T00:10:24Z). Step 1 stays open for the shared components' roles, the offline face (both faces served from the app and precached) and authenticated Brave proof of the installed app; the lane has no branch until that work starts. The 320px truncations are handed on to step 7; handoffs/claude-ui.md has the details."
+    },
+    {
+      "timestamp": "2026-10-22T18:41:18.082Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Offline face on branch feature/app-cockpit-offline-face (Refs PRD-1267): both faces served from packages/client/src/styles/fonts and precached. The installed app's labeled authenticated Brave proof is pending: the Chrome extension was not connected."
     }
   ]
 }
