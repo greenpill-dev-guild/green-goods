@@ -14,6 +14,8 @@ import { ICommitmentVoucherAcceptance as VoucherAcceptance } from "../../src/int
 import { VoucherEntitlementModule } from "../../src/modules/VoucherEntitlementModule.sol";
 import { GnosisVoucherAdapter } from "../../src/modules/GnosisVoucherAdapter.sol";
 import { MockERC20 } from "../../src/mocks/ERC20.sol";
+import { CosmoLocalPilotVoucher } from "../helpers/CosmoLocalPilotVoucher.sol";
+import { VoucherMessageCodec } from "../../src/libraries/VoucherMessageCodec.sol";
 import { CommitmentPoolingFixture } from "../helpers/CommitmentPoolingFixture.sol";
 import { ERC6551Helper } from "../helpers/ERC6551Helper.sol";
 import { AsynchronousSettlementRouter } from "./CCIPSettlement.t.sol";
@@ -190,6 +192,167 @@ contract CosmoLocalVoucherTest is CommitmentPoolingFixture, ERC6551Helper {
         assertEq(vouchers.distributionOfCommitment(id), bytes32(0));
     }
 
+    // These individual-pilot cases execute the real core and both reward endpoints. The
+    // six-decimal token, G$, Safe, Hats and asynchronous transport are local stand-ins.
+    // One eligible gardener receives the agreed total; no per-gardener group guarantee follows.
+    function testIntegration_CosmoLocalVoucher_individualVoucherOnlyReceivesOneWholeBookedSession() public {
+        uint256 id = _createIndividualPilot(false);
+        _acceptAndFulfillIndividual(id);
+        assertEq(module.getCommitment(id).consideration.amount, 0);
+        assertEq(uint8(module.getCommitment(id).consideration.rail), uint8(ICommitmentPoolingModule.ConsiderationRail.None));
+        bytes32 entitlement = _prepareVoucher(id);
+        VoucherMessageCodec.Command memory command = VoucherMessageCodec.decodeCommand(vouchers.getCommand(entitlement));
+        assertEq(command.recipients.length, 1);
+        assertEq(command.recipients[0], CLAIMANT);
+        assertEq(command.amounts[0], 1_000_000);
+        assertEq(command.totalUnits, 1_000_000);
+        assertEq(voucherToken.decimals(), 6);
+        vm.chainId(GNOSIS_CHAIN);
+        vm.prank(LOCAL_ISSUER_SAFE);
+        voucherToken.approve(address(adapter), 1_000_000);
+        TransportMessage memory message = _dispatchVoucher(entitlement);
+        vm.chainId(GNOSIS_CHAIN);
+        _deliverVoucherCommand(message);
+        assertEq(voucherToken.balanceOf(CLAIMANT), 1_000_000, "one full fictional booked sixty-minute session");
+        _relayVoucherAck();
+        assertEq(
+            uint8(vouchers.getDistribution(entitlement).state), uint8(VoucherEntitlementModule.DeliveryState.Delivered)
+        );
+        assertEq(settlement.payoutPlanOfCommitment(id), 0, "voucher receipt cannot invent a monetary payout");
+        assertEq(gDollar.balanceOf(CLAIMANT), 0);
+        assertEq(gDollar.balanceOf(address(payerSafe)), 1000 ether);
+    }
+
+    function testIntegration_CosmoLocalVoucher_individualConsentAndCompleteRecognitionCannotBeBypassed() public {
+        uint256 id = _createIndividualPilot(false);
+        vm.expectRevert(VoucherEntitlementModule.VoucherConsentMissing.selector);
+        vm.prank(CLAIMANT);
+        module.claimCommitment(id, ICommitmentPoolingModule.ClaimType.Individual, ROOT_GARDEN);
+        assertEq(vouchers.consentRevision(id, CLAIMANT), 0);
+        _acceptAndFulfillIndividual(id);
+        assertEq(vouchers.consentRevision(id, CLAIMANT), 1);
+        VoucherAcceptance.EarnedVoucherBinding memory accepted =
+            VoucherAcceptance(address(module)).getEarnedVoucherBinding(id);
+        assertEq(accepted.acceptedCounterparty, CLAIMANT);
+        assertEq(accepted.acceptedRevision, 1);
+        assertEq(accepted.acceptedTermsHash, vouchers.getTerms(id).termsHash);
+        ICommitmentPoolingModule.RecognitionEntry[] memory incomplete = new ICommitmentPoolingModule.RecognitionEntry[](0);
+        vm.expectRevert();
+        module.validateRecognitionSnapshot(id, incomplete, keccak256(abi.encode(block.chainid, id, incomplete)));
+        ICommitmentPoolingModule.RecognitionEntry[] memory wrong = _recognition();
+        wrong[0].recognitionWeightBps = 9999;
+        vm.expectRevert();
+        vouchers.prepareDistribution(id, wrong, keccak256(abi.encode(block.chainid, id, wrong)));
+        assertEq(vouchers.distributionOfCommitment(id), bytes32(0));
+        assertTrue(_prepareVoucher(id) != bytes32(0));
+    }
+
+    function testIntegration_CosmoLocalVoucher_individualGdollarCompletedBeforeReserveAndAllowanceRepair() public {
+        uint256 id = _createIndividualPilot(true);
+        _acceptAndFulfillIndividual(id);
+        PaymentProof memory payment = _prepareIndividualPayment(id);
+        _dispatchIndividualPayment(payment);
+        _deliverIndividualPayment(payment.command, true);
+        payment.receiptHash = keccak256(abi.encode(settlement.getDisbursement(payment.disbursementId)));
+        _assertIndividualPaymentComplete(payment);
+        bytes32 entitlement = _prepareVoucher(id);
+        bytes memory authorized = vouchers.getCommand(entitlement);
+        bytes32 acceptedTerms = vouchers.getTerms(id).termsHash;
+        vm.chainId(GNOSIS_CHAIN);
+        vm.startPrank(LOCAL_ISSUER_SAFE);
+        voucherToken.transfer(address(this), 1_000_000); // Reserve is not reserved by acceptance.
+        voucherToken.approve(address(adapter), 1_000_000);
+        vm.stopPrank();
+        TransportMessage memory message = _dispatchVoucher(entitlement);
+        vm.chainId(GNOSIS_CHAIN);
+        _deliverVoucherCommand(message);
+        assertFalse(adapter.getExecutionResult(entitlement).success);
+        assertEq(
+            adapter.failureReason(entitlement), abi.encodeWithSelector(GnosisVoucherAdapter.InsufficientReserve.selector)
+        );
+        assertEq(voucherToken.balanceOf(CLAIMANT), 0);
+        _relayVoucherAck();
+        _assertIndividualPaymentComplete(payment);
+        _dispatchVoucher(entitlement); // Same payload returns source to Pending during repair.
+        vm.chainId(GNOSIS_CHAIN);
+        voucherToken.transfer(LOCAL_ISSUER_SAFE, 1_000_000); // Explicit fictional issuer replenishment.
+        vm.prank(LOCAL_ISSUER_SAFE);
+        voucherToken.approve(address(adapter), 999_999);
+        adapter.retry(entitlement);
+        assertFalse(adapter.getExecutionResult(entitlement).success);
+        assertEq(
+            adapter.failureReason(entitlement), abi.encodeWithSelector(GnosisVoucherAdapter.InsufficientAllowance.selector)
+        );
+        vm.prank(LOCAL_ISSUER_SAFE);
+        voucherToken.approve(address(adapter), 1_000_000);
+        adapter.retry(entitlement);
+        assertTrue(adapter.getExecutionResult(entitlement).success);
+        uint64 sequence = adapter.getExecutionResult(entitlement).sequence;
+        assertEq(voucherToken.balanceOf(CLAIMANT), 1_000_000);
+        assertEq(voucherToken.allowance(LOCAL_ISSUER_SAFE, address(adapter)), 0);
+        assertEq(adapter.getCommand(entitlement), authorized);
+        _assertIndividualPaymentComplete(payment);
+        vm.warp(block.timestamp + 7 days); // Late acknowledgment is still unknown at source.
+        assertEq(uint8(vouchers.getDistribution(entitlement).state), uint8(VoucherEntitlementModule.DeliveryState.Pending));
+        assertEq(vouchers.getTerms(id).termsHash, acceptedTerms);
+        TransportMessage memory duplicate = _dispatchVoucher(entitlement);
+        vm.chainId(GNOSIS_CHAIN);
+        _deliverVoucherCommand(duplicate);
+        assertEq(adapter.getExecutionResult(entitlement).sequence, sequence);
+        assertEq(voucherToken.balanceOf(CLAIMANT), 1_000_000);
+        adapter.retryAcknowledgment(entitlement);
+        _relayVoucherAck();
+        assertEq(
+            uint8(vouchers.getDistribution(entitlement).state), uint8(VoucherEntitlementModule.DeliveryState.Delivered)
+        );
+        _assertIndividualPaymentComplete(payment);
+    }
+
+    function testIntegration_CosmoLocalVoucher_individualVoucherCompletedBeforeGdollarFailureAndLostAckRepair() public {
+        uint256 id = _createIndividualPilot(true);
+        _acceptAndFulfillIndividual(id);
+        bytes32 entitlement = _prepareVoucher(id);
+        vm.chainId(GNOSIS_CHAIN);
+        vm.prank(LOCAL_ISSUER_SAFE);
+        voucherToken.approve(address(adapter), 1_000_000);
+        TransportMessage memory voucherMessage = _dispatchVoucher(entitlement);
+        vm.chainId(GNOSIS_CHAIN);
+        _deliverVoucherCommand(voucherMessage);
+        _relayVoucherAck();
+        bytes32 voucherReceipt = keccak256(abi.encode(vouchers.getDistribution(entitlement)));
+        PaymentProof memory payment = _prepareIndividualPayment(id);
+        payerRoles.setExecutionBehavior(true, false);
+        _dispatchIndividualPayment(payment);
+        _deliverIndividualPayment(payment.command, true);
+        assertEq(
+            uint8(settlement.getDisbursement(payment.disbursementId).state),
+            uint8(ISettlementModule.DisbursementState.Failed)
+        );
+        assertEq(gDollar.balanceOf(CLAIMANT), 0);
+        assertEq(gDollar.balanceOf(address(payerSafe)), 1000 ether);
+        payerRoles.setExecutionBehavior(false, false);
+        settlement.requeue(payment.disbursementId); // Explicit existing recovery authorizes a new G$ attempt.
+        _dispatchIndividualPayment(payment);
+        _deliverIndividualPayment(payment.command, false); // Destination paid; source has no acknowledgment yet.
+        assertEq(gDollar.balanceOf(CLAIMANT), G_DOLLAR_REWARD);
+        assertEq(
+            uint8(settlement.getDisbursement(payment.disbursementId).state),
+            uint8(ISettlementModule.DisbursementState.Dispatched)
+        );
+        settlement.retryCommand(payment.disbursementId);
+        TransportMessage memory retry = TransportMessage(arbitrumRouter.lastMessageId(), arbitrumRouter.lastData());
+        assertEq(retry.data, payment.command.data);
+        _deliverIndividualPayment(retry, true);
+        payment.receiptHash = keccak256(abi.encode(settlement.getDisbursement(payment.disbursementId)));
+        _assertIndividualPaymentComplete(payment);
+        assertEq(keccak256(abi.encode(vouchers.getDistribution(entitlement))), voucherReceipt);
+        vm.chainId(GNOSIS_CHAIN);
+        _deliverVoucherCommand(voucherMessage);
+        assertEq(voucherToken.balanceOf(CLAIMANT), 1_000_000);
+        assertEq(adapter.getExecutionResult(entitlement).sequence, 1);
+        _assertIndividualPaymentComplete(payment);
+    }
+
     function _deployGardenAccount() private {
         GardenAccount implementation = new GardenAccount(
             address(0x001), address(0x002), address(0x003), address(0x004), address(0x2001), address(0x2002)
@@ -334,6 +497,108 @@ contract CosmoLocalVoucherTest is CommitmentPoolingFixture, ERC6551Helper {
         settlement.setFeeReserveMinimum(1);
         settlement.fundFees{ value: 1 }();
         settlement.setPaused(false);
+    }
+
+    function _createIndividualPilot(bool withGdollar) private returns (uint256 id) {
+        vm.chainId(GNOSIS_CHAIN);
+        voucherToken = new CosmoLocalPilotVoucher();
+        voucherToken.mint(LOCAL_ISSUER_SAFE, 1_000_000);
+        vm.prank(LOCAL_ISSUER_SAFE);
+        adapter.configureAsset(address(voucherToken), ISSUER_AUTHORITY, true);
+        vm.chainId(ARBITRUM_CHAIN);
+        vouchers.pause();
+        vouchers.setIssuerAuthority(LOCAL_ISSUER_SAFE, address(voucherToken), ISSUER_AUTHORITY);
+        vouchers.unpause();
+        hats.setGardener(ROOT_GARDEN, CLAIMANT, true);
+        ICommitmentPoolingModule.CreateCommitmentParams memory params =
+            _baseParams(keccak256("fictional-individual-session-pilot"));
+        params.poolId = protocolPoolId;
+        params.direction = ICommitmentPoolingModule.CommitmentDirection.Request;
+        params.claimType = ICommitmentPoolingModule.ClaimType.Individual;
+        params.metadataCID = "fictional-request: complete one reviewed contribution; earn one booked 60-minute session";
+        if (withGdollar) {
+            params.consideration = ICommitmentPoolingModule.DeclaredConsideration(
+                ICommitmentPoolingModule.ConsiderationRail.CeloSettlement, address(0), address(0), G_DOLLAR_REWARD
+            );
+        }
+        vm.prank(CREATOR);
+        id = module.createCommitment(params);
+        vouchers.registerTerms(
+            id,
+            VoucherEntitlementModule.TermsInput(
+                LOCAL_ISSUER_SAFE,
+                ISSUER_AUTHORITY,
+                address(voucherToken),
+                1_000_000,
+                vouchers.RECOGNITION_POLICY(),
+                keccak256(
+                    "FICTIONAL full access: one booked 60-minute session; issuer booking approval; agreed mutual remedy; no live capacity"
+                ),
+                0
+            )
+        );
+        vm.prank(ISSUER_AUTHORITY);
+        vouchers.approveTerms(id, 1);
+        vm.prank(CREATOR);
+        vouchers.consentTerms(id, 1);
+    }
+
+    function _acceptAndFulfillIndividual(uint256 id) private {
+        vm.prank(CLAIMANT);
+        vouchers.consentTerms(id, 1);
+        vm.prank(CLAIMANT);
+        module.claimCommitment(id, ICommitmentPoolingModule.ClaimType.Individual, ROOT_GARDEN);
+        address[] memory credited = new address[](1);
+        credited[0] = CLAIMANT;
+        vm.prank(CLAIMANT);
+        module.attachEvidence(id, "fictional reviewed contribution evidence", credited);
+        module.markReadyForConfirmation(id, "fictional work reviewed and ready");
+        vm.prank(CREATOR);
+        module.confirmFulfillment(id);
+        assertEq(module.getCommitment(id).counterparty, CLAIMANT);
+        assertEq(module.getCommitment(id).contributorCount, 1);
+        ICommitmentPoolingModule.RecognitionEntry[] memory entries = _recognition();
+        bytes32 recognition = keccak256(abi.encode(block.chainid, id, entries));
+        assertEq(module.validateRecognitionSnapshot(id, entries, recognition), recognition);
+    }
+
+    function _prepareIndividualPayment(uint256 id) private returns (PaymentProof memory proof) {
+        ISettlementModule.RecognitionEntry[] memory entries = new ISettlementModule.RecognitionEntry[](1);
+        entries[0] = ISettlementModule.RecognitionEntry(CLAIMANT, 10_000);
+        proof.planId = settlement.createCommitmentPayoutPlan(id, entries, keccak256(abi.encode(block.chainid, id, entries)));
+        settlement.finalizeCommitmentPayoutPlan(proof.planId);
+        settlement.setGardenerDeliveryEnabled(true);
+        proof.disbursementId = settlement.prepareContributorPayout(proof.planId, CLAIMANT);
+        assertEq(settlement.getDisbursement(proof.disbursementId).recipient, CLAIMANT);
+        assertEq(settlement.getDisbursement(proof.disbursementId).amount, G_DOLLAR_REWARD);
+    }
+
+    function _dispatchIndividualPayment(PaymentProof memory proof) private {
+        settlement.dispatchDisbursement(proof.disbursementId);
+        proof.command = TransportMessage(arbitrumRouter.lastMessageId(), arbitrumRouter.lastData());
+    }
+
+    function _deliverIndividualPayment(TransportMessage memory command, bool acknowledge) private {
+        vm.chainId(CELO_CHAIN);
+        celoRouter.deliver(address(executor), command.id, ARBITRUM_SELECTOR, address(settlement), command.data);
+        vm.chainId(ARBITRUM_CHAIN);
+        if (acknowledge) {
+            arbitrumRouter.deliver(
+                address(settlement), celoRouter.lastMessageId(), CELO_SELECTOR, address(executor), celoRouter.lastData()
+            );
+        }
+    }
+
+    function _assertIndividualPaymentComplete(PaymentProof memory proof) private {
+        vm.chainId(ARBITRUM_CHAIN);
+        assertEq(
+            uint8(settlement.getDisbursement(proof.disbursementId).state),
+            uint8(ISettlementModule.DisbursementState.Confirmed)
+        );
+        assertEq(uint8(settlement.payoutPlanStatus(proof.planId)), uint8(ISettlementModule.PayoutPlanStatus.Complete));
+        assertEq(keccak256(abi.encode(settlement.getDisbursement(proof.disbursementId))), proof.receiptHash);
+        assertEq(gDollar.balanceOf(CLAIMANT), G_DOLLAR_REWARD);
+        assertEq(gDollar.balanceOf(address(payerSafe)), 1000 ether - G_DOLLAR_REWARD);
     }
 
     function _createRequest(bytes32 key) private returns (uint256 id) {

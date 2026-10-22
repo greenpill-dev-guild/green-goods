@@ -106,3 +106,33 @@ Agent/model: Codex / model identifier unknown | Coverage: explicit 22 October lo
 | Investigate / plan | Unknown → 21:56 UTC | Existing branch/status and concurrent edits inspected; authoritative handoffs and read-only inventories reconciled into this gap map |
 
 Human corrections: 0 observed in this segment; attention: unknown.
+
+## Individual earned-reward checkpoint
+
+`CosmoLocalVoucher.t.sol` now passes eight integration cases: all four existing Garden/G$
+regressions plus a single-contributor Request with exact consent/canonical recognition, a
+voucher-only whole session, completed G$ during voucher reserve/allowance repair, and completed
+voucher delivery during G$ execution failure/requeue/lost-ack recovery. Real core, registry,
+voucher endpoints and settlement execute. Hats, Safe/Roles, asynchronous transport, G$ and the
+six-decimal token are explicit fictional stand-ins. No production contract changed.
+
+Final post-format focused command (8/8):
+
+```sh
+PATH=/private/tmp/green-goods-local-integration-20261021/bin:$PATH FOUNDRY_OFFLINE=true \
+bun --no-env-file run --cwd packages/contracts test --suite solidity --profile match -- \
+test/integration/CosmoLocalVoucher.t.sol
+```
+
+The selector plan and executed `--intent qa --changed
+packages/contracts/test/integration/CosmoLocalVoucher.t.sol,packages/contracts/test/helpers/CosmoLocalPilotVoucher.sol
+--test-path contracts:test/integration/CosmoLocalVoucher.t.sol` pass 2/2 fresh (format and the
+eight-case suite), with no critical override selected for test-only changes. Bun contract
+`format --check` and focused diff whitespace proof pass. Two initial concurrent fixture compile
+failures and a 7/8 run caused by omitting the existing explicit G$ requeue are retained as setup/
+fixture mistakes, not product RED. Correcting the fixture required no runtime change.
+
+Temporary exact logs, commands, final public source/config hashes and phase observations are in
+`/private/tmp/green-goods-local-pilot-20261022/earned/focused-proof.json`. These are working-tree
+receipts from parent `92e861f11`, pending commit attribution. The pinned exchange/redemption and
+Shared/member proof remain separate work in progress.
