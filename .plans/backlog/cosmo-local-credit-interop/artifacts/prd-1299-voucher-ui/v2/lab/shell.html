@@ -1,0 +1,1299 @@
+<title>Cosmo-Local Voucher Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: contents on the left, the screens in a fixed stage that always fits, every control in a side panel on the right. */
+:root {
+  --bg: #ECE7DF; --panel: #FFFFFF; --panel-2: #F5F1EA; --ink: #1F1B17; --muted: #625C55; --line: #DCD5CA;
+  --accent: #1A7544; --accent-ink: #FFFFFF; --accent-soft: #DCF1E3; --steward: #1E40AF; --steward-soft: #DBEAFE;
+  --danger: #B91C1C; --scrim: rgba(31, 27, 23, .38); --shadow: 0 1px 2px rgba(31, 27, 23, .06), 0 10px 28px rgba(31, 27, 23, .10);
+  --font: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #13100C; --panel: #211B15; --panel-2: #2B241D; --ink: #EEE8E0; --muted: #ADA59C; --line: #3B3229;
+    --accent: #8BE0B2; --accent-ink: #0C0A09; --accent-soft: rgba(139, 224, 178, .16); --steward: #93C5FD; --steward-soft: rgba(147, 197, 253, .16);
+    --danger: #FCA5A5; --scrim: rgba(0, 0, 0, .6); --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 28px rgba(0, 0, 0, .4); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #13100C; --panel: #211B15; --panel-2: #2B241D; --ink: #EEE8E0; --muted: #ADA59C; --line: #3B3229;
+  --accent: #8BE0B2; --accent-ink: #0C0A09; --accent-soft: rgba(139, 224, 178, .16); --steward: #93C5FD; --steward-soft: rgba(147, 197, 253, .16);
+  --danger: #FCA5A5; --scrim: rgba(0, 0, 0, .6); --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 28px rgba(0, 0, 0, .4); color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 14px; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+
+.lab { height: 100%; display: grid; grid-template-columns: 256px minmax(0, 1fr) 360px; gap: 20px; box-sizing: border-box;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 16px; }
+.lab *, .lab *::before, .lab *::after { box-sizing: border-box; }
+.lab :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.lab-card, .lab-nav, .lab-panel { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; }
+
+/* Contents */
+.lab-nav { height: 100%; min-height: 0; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 18px; }
+.lab-brand { display: flex; align-items: center; gap: 12px; }
+.lab-mark { width: 40px; height: 40px; border-radius: 12px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; flex: 0 0 40px; }
+.lab-brand b { display: block; font-size: 16px; font-weight: 800; letter-spacing: -0.01em; }
+.lab-brand span { display: block; font-size: 12px; color: var(--muted); }
+.lab-group { display: flex; flex-direction: column; gap: 2px; }
+.lab-group h2, .lab-group summary { margin: 0 0 6px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.lab-group summary { cursor: pointer; list-style: none; display: flex; justify-content: space-between; }
+.lab-group summary::-webkit-details-marker { display: none; }
+.lab-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 8px; align-items: center; width: 100%; text-align: left; border: 0; background: none;
+  color: var(--ink); font: inherit; padding: 8px 10px; border-radius: 12px; cursor: pointer; min-height: 44px; }
+.lab-item:hover { background: var(--panel-2); }
+.lab-item[aria-current="true"] { background: var(--accent-soft); }
+.lab-item .t { font-size: 13.5px; font-weight: 600; line-height: 18px; }
+.lab-item .m { grid-column: 1; font-size: 12px; color: var(--muted); }
+.lab-badge { grid-row: 1 / span 2; grid-column: 2; font-size: 12px; font-weight: 700; min-width: 26px; height: 24px; padding: 0 7px; border-radius: 999px; display: grid; place-items: center;
+  border: 1px dashed var(--line); color: var(--muted); }
+.lab-badge.on { border: 0; background: var(--accent); color: var(--accent-ink); }
+.lab-navfoot { border-top: 1px solid var(--line); padding-top: 14px; display: flex; flex-direction: column; gap: 8px; margin-top: auto; }
+.lab-count, .lab-status { font-size: 12.5px; color: var(--muted); }
+.lab-copybox { width: 100%; min-height: 120px; font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; border-radius: 10px; border: 1px solid var(--line); background: var(--panel-2); color: var(--ink); padding: 8px; }
+.lab-scrim { display: none; position: fixed; inset: 0; background: var(--scrim); z-index: 39; border: 0; padding: 0; }
+
+/* Stage: a fixed box; screens scale to fit it, so nothing is cut off or moves around */
+.lab-stagewrap { min-width: 0; min-height: 0; height: 100%; display: flex; }
+.lab-stage { flex: 1; min-width: 0; min-height: 0; display: grid; place-content: center; justify-items: center; align-items: start; gap: 20px; overflow: hidden; }
+.lab-stage.is-doc { display: block; overflow-y: auto; }
+.lab-frame { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; }
+.lab-cap { height: 26px; max-width: 100%; display: flex; align-items: center; gap: 8px; white-space: nowrap; overflow: hidden; font-size: 13px; font-weight: 700; }
+.lab-cap span { overflow: hidden; text-overflow: ellipsis; }
+.lab-letter { width: 24px; height: 24px; flex: 0 0 24px; border-radius: 7px; background: var(--ink); color: var(--bg); display: grid; place-items: center; font-size: 12px; font-weight: 800; }
+.lab-side { display: inline-flex; align-items: center; flex: 0 0 auto; height: 24px; padding: 0 9px; border-radius: 7px; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.lab-side.now { background: var(--panel-2); color: var(--muted); border: 1px solid var(--line); }
+.lab-side.next { background: var(--accent); color: var(--accent-ink); }
+.lab-capsub { font-weight: 600; color: var(--muted); }
+.lab-tick { color: var(--accent); display: inline-flex; }
+.lab-scale { position: relative; overflow: hidden; background: var(--panel-2); border: 1px solid var(--line); box-shadow: var(--shadow); }
+.lab-host { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.lab-err { padding: 16px; color: var(--danger); font-size: 14px; }
+
+/* Side panel */
+.lab-panel { height: 100%; min-height: 0; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+.lab-ptop { display: flex; gap: 8px; flex-wrap: wrap; }
+.lab-ptop:empty { display: none; }
+@media (min-width: 1200px) { .lab-ptop:not(:has(> :not(.lab-contents))) { display: none; } }
+.lab-ptop .lab-contents { display: none; }
+.lab-head { display: flex; flex-direction: column; gap: 4px; }
+.lab-eyebrow { margin: 0; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.lab-head h1 { margin: 0; font-size: 21px; line-height: 27px; font-weight: 800; letter-spacing: -0.015em; min-height: 54px; text-wrap: balance;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.lab-flownav { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.lab-flownav .count { text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; font-size: 14px; }
+.lab-controls { display: flex; flex-direction: column; gap: 14px; }
+.lab-ctl { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.lab-label { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.lab-seg { display: flex; flex-wrap: wrap; gap: 4px; background: var(--panel-2); border-radius: 13px; padding: 4px; }
+.lab-seg button { flex: 1 1 auto; border: 0; background: none; color: var(--muted); font: inherit; font-size: 13px; font-weight: 600; padding: 0 12px; min-height: 40px; border-radius: 10px; cursor: pointer; }
+.lab-seg button:hover { color: var(--ink); }
+.lab-seg button[aria-pressed="true"] { background: var(--panel); color: var(--ink); box-shadow: var(--shadow); }
+.lab-seg button.lab-cmp[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.lab-stepper { display: grid; grid-template-columns: 40px minmax(0, 1fr) 40px; gap: 6px; align-items: center; }
+.lab-stepper select { height: 40px; min-width: 0; width: 100%; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); font: inherit; font-size: 13.5px; font-weight: 600; padding: 0 10px; }
+.lab-stepn { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.lab-icon { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); display: grid; place-items: center; cursor: pointer; padding: 0; }
+.lab-icon:hover { background: var(--panel-2); }
+.lab-switch { display: flex; align-items: center; gap: 8px; min-height: 40px; font-size: 13.5px; font-weight: 600; cursor: pointer; }
+.lab-switch input { width: 18px; height: 18px; accent-color: var(--accent); }
+.lab-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 0 16px; border-radius: 12px; border: 1px solid var(--accent);
+  background: var(--accent); color: var(--accent-ink); font: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer; }
+.lab-btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+.lab-btn.ghost:hover { background: var(--panel-2); }
+.lab-btn:disabled { opacity: .4; cursor: not-allowed; }
+.lab-about { display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 16px; background: var(--panel-2); }
+.lab-about p { margin: 0; font-size: 14.5px; line-height: 22px; }
+.lab-who { align-self: flex-start; display: inline-block; padding: 4px 11px; border-radius: 12px; font-size: 12.5px; line-height: 18px; font-weight: 700; background: var(--accent-soft); color: var(--accent); }
+.lab-who.steward { background: var(--steward-soft); color: var(--steward); }
+.lab-stats { display: flex; flex-wrap: wrap; gap: 6px; }
+.lab-stat { display: inline-flex; align-items: baseline; gap: 6px; padding: 5px 10px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); font-size: 12.5px; }
+.lab-stat b { font-weight: 600; color: var(--muted); }
+.lab-stat .from { text-decoration: line-through; color: var(--muted); font-variant-numeric: tabular-nums; }
+.lab-stat .to { font-weight: 800; color: var(--accent); font-variant-numeric: tabular-nums; }
+.lab-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.lab-steps button { width: 100%; display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 0 8px; align-items: center; text-align: left; padding: 7px 8px; border-radius: 10px; border: 0; background: none; color: var(--ink); font: inherit; cursor: pointer; }
+.lab-steps button:hover { background: var(--panel-2); }
+.lab-steps button[aria-current="step"] { background: var(--accent-soft); }
+.lab-steps .k { grid-row: 1 / span 2; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 11.5px; font-weight: 700; background: var(--panel-2); color: var(--muted); font-variant-numeric: tabular-nums; }
+.lab-steps button[aria-current="step"] .k { background: var(--accent); color: var(--accent-ink); }
+.lab-steps .t { font-size: 13px; font-weight: 600; line-height: 17px; }
+.lab-steps .s { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lab-sec { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--line); padding-top: 14px; }
+.lab-h2 { margin: 0; font-size: 15px; font-weight: 800; }
+.lab-picks { display: flex; flex-direction: column; gap: 6px; }
+.lab-pick { display: flex; align-items: center; gap: 8px; min-height: 42px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+  font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; text-align: left; }
+.lab-pick[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.lab-p { margin: 0; font-size: 13.5px; line-height: 20px; color: var(--muted); }
+.lab-p b { color: var(--ink); }
+.lab-ta { width: 100%; min-height: 84px; resize: vertical; border-radius: 12px; border: 1px solid var(--line); background: var(--panel-2); color: var(--ink); font: inherit; font-size: 14px; line-height: 20px; padding: 10px 12px; }
+.lab-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.lab-notes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.lab-notes li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 8px; padding: 10px 12px; border-radius: 12px; background: var(--panel-2); }
+.lab-notes li p { margin: 0; font-size: 14px; line-height: 20px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.lab-notes li span { grid-column: 1; font-size: 12px; color: var(--muted); }
+.lab-notes li button { grid-row: 1 / span 2; grid-column: 2; width: 36px; height: 36px; border-radius: 10px; border: 0; background: none; color: var(--muted); cursor: pointer; display: grid; place-items: center; }
+.lab-notes li button:hover { color: var(--danger); background: var(--panel); }
+.lab-notes li.lab-empty { display: block; color: var(--muted); font-size: 13px; }
+
+/* Written pages */
+.lab-doc { max-width: 820px; margin: 0 auto; padding: 22px 24px 40px; display: flex; flex-direction: column; gap: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 20px; }
+.lab-doc h2 { margin: 14px 0 0; font-size: 19px; font-weight: 800; text-wrap: balance; }
+.lab-doc h3 { margin: 6px 0 0; font-size: 16px; font-weight: 800; }
+.lab-doc p, .lab-doc li { margin: 0; font-size: 15px; line-height: 23px; max-width: 70ch; }
+.lab-doc ol, .lab-doc ul { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 10px; }
+.lab-doc b { font-weight: 700; }
+.lab-doc .rm { display: block; color: var(--muted); font-size: 14px; line-height: 21px; margin-top: 2px; }
+.lab-doc blockquote { margin: 0; padding: 14px 16px; border-radius: 14px; background: var(--accent-soft); font-size: 16px; line-height: 24px; max-width: 70ch; }
+.lab-doc .lab-btn { align-self: flex-start; }
+.lab-scen { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; border-radius: 16px; background: var(--panel-2); }
+.lab-scen ol { gap: 6px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .lab-item, .lab-seg button, .lab-pick, .lab-btn, .lab-icon, .lab-steps button { transition: background-color .15s, color .15s, box-shadow .15s; }
+  .lab-nav { transition: transform .2s ease; }
+}
+@media (max-width: 1199px) {
+  .lab { grid-template-columns: minmax(0, 1fr) 340px; }
+  .lab-nav { position: fixed; z-index: 40; top: 0; bottom: 0; left: 0; width: min(320px, 88vw); height: auto; border-radius: 0 20px 20px 0; transform: translateX(-105%);
+    padding-top: calc(16px + env(safe-area-inset-top, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
+  .lab-nav.is-open { transform: none; }
+  .lab-scrim.is-open { display: block; }
+  .lab-ptop .lab-contents { display: inline-flex; }
+}
+@media (max-width: 859px) {
+  .lab { height: auto; min-height: 100%; grid-template-columns: minmax(0, 1fr); }
+  .lab-stagewrap { height: 74vh; }
+  .lab-panel { height: auto; overflow: visible; }
+}
+
+/* Green Goods screen kit, as used in the app */
+/*__GG_CSS__*/
+
+/* Screen kit additions for the simplified screens */
+.gg .st.warn .dot { background: var(--warn-bg); color: var(--warn); border-color: var(--warn); }
+.gg .lessons { display: flex; gap: 4px; margin-top: 6px; }
+.gg .lessons span { flex: 1; height: 8px; border-radius: 999px; background: var(--neu-bg); border: 1px solid var(--line2); }
+.gg .lessons span.d { background: var(--edge-ok); border-color: transparent; }
+.gg details.tech summary { color: var(--strong); }
+</style>
+
+<!--__SPRITE__-->
+<div class="lab">
+  <button type="button" class="lab-scrim" id="scrim" aria-label="Close contents"></button>
+  <aside class="lab-nav" id="nav" aria-label="Lab contents">
+    <div class="lab-brand">
+      <span class="lab-mark"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8a2 2 0 0 0 2-2h12a2 2 0 0 0 2 2v2.5a1.5 1.5 0 0 0 0 3V16a2 2 0 0 0-2 2H6a2 2 0 0 0-2-2v-2.5a1.5 1.5 0 0 0 0-3z"/><path d="M12 15v-4"/><path d="M12 11c0-2 1.2-3.2 3.2-3.2 0 2-1.2 3.2-3.2 3.2zM12 11c0-2-1.2-3.2-3.2-3.2 0 2 1.2 3.2 3.2 3.2z"/></svg></span>
+      <div><b>Voucher Lab</b><span>Cosmo-Local · PRD-1299 draft, not approved</span></div>
+    </div>
+    <div class="lab-group"><h2>Simplified, proposed</h2><div id="nav-simple"></div></div>
+    <div class="lab-group"><h2>Before and after</h2><div id="nav-p"></div></div>
+    <div class="lab-group"><h2>Today: choose a direction</h2><div id="nav-q"></div></div>
+    <div class="lab-group"><h2>Today: walk a flow</h2><div id="nav-f"></div></div>
+    <div class="lab-group"><details id="nav-s-box"><summary>Every screen <span aria-hidden="true">▾</span></summary><div id="nav-s"></div></details></div>
+    <div class="lab-navfoot">
+      <span class="lab-count" id="count"></span>
+      <button type="button" class="lab-btn ghost" id="copy-all">Copy All Feedback</button>
+      <span class="lab-status" id="store-status"></span>
+      <textarea class="lab-copybox" id="copy-fallback" readonly hidden aria-label="Feedback to copy"></textarea>
+    </div>
+  </aside>
+
+  <main class="lab-stagewrap" id="main">
+    <section class="lab-stage" id="stage" aria-label="Screens"></section>
+  </main>
+
+  <aside class="lab-panel" id="panel" aria-label="Controls and notes">
+    <div class="lab-ptop" id="ptop"></div>
+    <header class="lab-head">
+      <p class="lab-eyebrow" id="eyebrow"></p>
+      <h1 id="title"></h1>
+    </header>
+    <div class="lab-flownav" id="flownav" hidden></div>
+    <div class="lab-controls" id="controls"></div>
+    <div class="lab-about" id="about"></div>
+    <ol class="lab-steps" id="steps" aria-label="Steps" hidden></ol>
+    <section class="lab-sec" id="feedback" aria-label="Your feedback"></section>
+  </aside>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var SOURCES = /*__SOURCES__*/;
+  var SVGNS = 'http://www.w3.org/2000/svg';
+  var LETTERS = ['A', 'B', 'C', 'D'];
+  var ICON = {
+    left: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>',
+    right: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>',
+    check: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>',
+    x: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>'
+  };
+
+  /* ---------- The screens' own runtime: holes, sc-if, sc-for, events ---------- */
+  function DCLogic(props) { this.props = props; this.state = null; this.__render = null; }
+  DCLogic.prototype.setState = function (patch) {
+    var p = typeof patch === 'function' ? patch(this.state, this.props) : patch;
+    this.state = Object.assign({}, this.state || {}, p || {});
+    if (this.__render) this.__render();
+  };
+  DCLogic.prototype.forceUpdate = function () { if (this.__render) this.__render(); };
+
+  var errorsLog = [];
+  function report(where, e) { errorsLog.push(where + ': ' + (e && e.message ? e.message : String(e))); }
+
+  var SCREENS = {};
+  Object.keys(SOURCES).forEach(function (id) {
+    var src = SOURCES[id];
+    var tpl = document.createElement('template');
+    tpl.innerHTML = src.tpl;
+    var Comp = null, compileError = null;
+    try { Comp = new Function('DCLogic', src.js + '\nreturn Component;')(DCLogic); } catch (e) { compileError = e; report(id + ' (compile)', e); }
+    var meta = src.props || {};
+    var pv = meta.$preview || { width: 390, height: 844 };
+    SCREENS[id] = { id: id, title: src.title, tpl: tpl, Comp: Comp, meta: meta, w: pv.width, h: pv.height, desk: pv.width > 600 };
+  });
+
+  var HOLE = /\{\{\s*([^{}]+?)\s*\}\}/g;
+  var WHOLE = /^\s*\{\{\s*([^{}]+?)\s*\}\}\s*$/;
+  function look(scope, path) {
+    path = path.trim();
+    if (path === 'true') return true;
+    if (path === 'false') return false;
+    if (path === 'null') return null;
+    if (/^-?\d+(\.\d+)?$/.test(path)) return Number(path);
+    var parts = path.split('.'), v = scope;
+    for (var i = 0; i < parts.length; i++) { if (v == null) return undefined; v = v[parts[i]]; }
+    return v;
+  }
+  function interp(str, scope) {
+    if (str.indexOf('{{') < 0) return str;
+    return str.replace(HOLE, function (m, p) { var v = look(scope, p); return v == null ? '' : String(v); });
+  }
+  function raw(str, scope) { var m = WHOLE.exec(str || ''); return m ? look(scope, m[1]) : interp(str || '', scope); }
+  function build(node, scope, out) {
+    if (node.nodeType === 3) { out.appendChild(document.createTextNode(interp(node.nodeValue, scope))); return; }
+    if (node.nodeType !== 1) return;
+    var tag = node.localName;
+    if (tag === 'sc-if') {
+      if (raw(node.getAttribute('value'), scope)) node.childNodes.forEach(function (c) { build(c, scope, out); });
+      return;
+    }
+    if (tag === 'sc-for') {
+      var list = raw(node.getAttribute('list'), scope), as = node.getAttribute('as') || 'item';
+      if (Array.isArray(list)) list.forEach(function (item, i) {
+        var s = Object.create(scope); s[as] = item; s.$index = i;
+        node.childNodes.forEach(function (c) { build(c, s, out); });
+      });
+      return;
+    }
+    var el = node.namespaceURI === SVGNS ? document.createElementNS(SVGNS, tag) : document.createElement(tag);
+    Array.prototype.forEach.call(node.attributes, function (a) {
+      var name = a.name;
+      if (name.indexOf('hint-') === 0) return;
+      if (/^on[a-z]+$/.test(name)) { var fn = raw(a.value, scope); if (typeof fn === 'function') el.addEventListener(name.slice(2), fn); return; }
+      el.setAttribute(name, interp(a.value, scope));
+    });
+    node.childNodes.forEach(function (c) { build(c, scope, el); });
+    out.appendChild(el);
+  }
+  function errorBox(msg) { var d = document.createElement('div'); d.className = 'lab-err'; d.textContent = msg; return d; }
+  function mountScreen(id, props, host) {
+    var S = SCREENS[id];
+    host.textContent = '';
+    if (!S || !S.Comp) { host.appendChild(errorBox('This screen failed to load.')); return null; }
+    var inst;
+    try { inst = new S.Comp(Object.assign({}, props)); } catch (e) { report(id, e); host.appendChild(errorBox('This screen failed to start: ' + e.message)); return null; }
+    var render = function () {
+      var keep = Array.prototype.map.call(host.querySelectorAll('.scr,.sbody,.c-route,.db'), function (e) { return e.scrollTop; });
+      var vals;
+      try { vals = inst.renderVals() || {}; } catch (e) { report(id, e); host.replaceChildren(errorBox('This screen failed to draw: ' + e.message)); return; }
+      var frag = document.createDocumentFragment();
+      try { S.tpl.content.childNodes.forEach(function (c) { build(c, vals, frag); }); } catch (e) { report(id, e); host.replaceChildren(errorBox('This screen failed to draw: ' + e.message)); return; }
+      host.replaceChildren(frag);
+      Array.prototype.forEach.call(host.querySelectorAll('.scr,.sbody,.c-route,.db'), function (e, i) { if (keep[i]) e.scrollTop = keep[i]; });
+    };
+    inst.__render = render;
+    host.onclick = function (e) {
+      var a = e.target.closest ? e.target.closest('a') : null;
+      if (!a || !host.contains(a)) return;
+      var href = a.getAttribute('href') || '';
+      if (/\.dc\.html$/.test(href)) { e.preventDefault(); followLink(href.replace(/^.*\//, '').replace(/\.dc\.html$/, '')); }
+      else if (href === '' || href.charAt(0) === '#') e.preventDefault();
+    };
+    render();
+    return inst;
+  }
+
+  /* ---------- What the lab covers ---------- */
+  var SHORT = {
+    Main: 'Home', Visit: 'Visiting a garden', Offer: 'Offer', Pay: 'Agree to terms', Send: 'Send G$', Status: 'Purchase status',
+    ProviderReview: 'Approve a request', BuyerDeposits: 'Member deposits', Inspector: 'Purchase record', VOffer: 'Voucher offer',
+    VSetup: 'Voucher setup', Holder: 'Voucher promise', Split: 'Final split', IssuerDesk: 'Issuer requests', EscrowInspector: 'Escrow record',
+    Wallet: 'Wallet vouchers', Exchange: 'Voucher exchange', Rewards: 'Rewards', RewardsDesk: 'Reward receipts', IssuersDesk: 'Voucher issuers',
+    SOffer: 'Offer', SPay: 'Review and pay', SPurchase: 'G$ purchase', SCourse: 'Voucher course', SWallet: 'Wallet',
+    SRequests: 'Requests to accept', SIssuer: 'Course people'
+  };
+  var SIMPLE = { SOffer: 1, SPay: 1, SPurchase: 1, SCourse: 1, SWallet: 1, SRequests: 1, SIssuer: 1 };
+  var PROP_LABEL = { variant: 'Direction', state: 'State', dialog: 'Dialog', step: 'Step', issue: 'Problem', open: 'Sheet open', kind: 'Offer type', tab: 'Tab' };
+
+  var QUESTIONS = [
+    { id: 'offer', title: 'How an offer shows its payment', screen: 'Offer', preset: { state: 'Open' },
+      note: 'Which reads fastest: the price, that Lina pays with her own G$, that her own garden holds it, and that the provider approves first?',
+      suggest: 'Route card', why: 'It shows whose money it is, who holds it and when it moves, in three lines.' },
+    { id: 'pay', title: 'Agreeing to a purchase', screen: 'Pay', preset: { state: 'Ready' },
+      note: 'Consent before anything is signed: which garden holds the payment, who gets the service, where refunds go, the top-up that is off by default, then the exact terms. The steps work.',
+      suggest: 'Stepped sheet', why: 'The garden choice and the top-up each get their own step before the signature.' },
+    { id: 'status', title: 'Purchase status after paying', screen: 'Status', preset: { state: 'Accepted' },
+      note: 'Payment sent, deposit checked, accepted, applied, access, kept and paid out are separate facts. Step through State to see the whole lifecycle and the refund paths.',
+      suggest: 'Timeline', why: 'Every fact in order. Pick Two tracks if “accepted but not paid” is the bigger worry.' },
+    { id: 'home', title: 'Where personal purchases live', screen: 'Main', preset: { open: true, state: 'Waiting for a check' },
+      note: 'Lina’s own purchases can be in any garden, so they can’t live inside one garden’s pages. Wallet tab, a Home section, or Profile? Tap the wallet icon to open the sheet.',
+      suggest: 'Wallet tabs', why: 'They sit beside her own tokens. Watch that four tabs still fit at phone width.' },
+    { id: 'holder', title: 'The holder’s voucher promise', screen: 'Holder', preset: { state: 'Waiting for Sunroot' },
+      note: 'Vouchers wait in escrow before activation, and acceptance and cancellation resolve to one outcome. Step through State: proof in transit, revised terms, the cancellation race, the two transfers.',
+      suggest: 'Escrow card', why: 'It makes the vouchers held in escrow the thing on screen.' },
+    { id: 'split', title: 'Freezing the final split', screen: 'Split', preset: { state: 'Partial' },
+      note: 'Fictional example: 3 of 10 lessons, 40 vouchers to Sunroot’s reserve, 60 back. Two confirmations, then one freeze that can’t be undone. The checkboxes work.',
+      suggest: 'Split bar', why: 'It shows the proportion at a glance, with the exact numbers under it.' },
+    { id: 'wallet', title: 'Vouchers in the wallet', screen: 'Wallet', preset: { state: 'Holdings' },
+      note: 'Holdings named by issuer and unit, with vouchers in escrow shown apart from the balance.',
+      suggest: 'Rows', why: 'It keeps the app’s standard 88px row. Ticket cards are more distinctive.' },
+    { id: 'approve', title: 'Approving a G$ purchase (steward)', screen: 'ProviderReview', preset: { state: 'Ready' },
+      note: 'Kaya, a steward at Green Goods Community Garden, approves Lina’s request. Approve stays off until the terms are current and her deposit is recorded.',
+      suggest: 'Dialog with checks', why: 'It matches the cockpit’s existing confirm dialog and the protocol pool warning.' },
+    { id: 'deposits', title: 'Where a buyer garden checks deposits (steward)', screen: 'BuyerDeposits', preset: { dialog: 'None' },
+      note: 'Tomás, a Riverside Commons steward, records members’ own G$ that arrived in the garden’s Safe. The row buttons open their dialogs.',
+      suggest: 'Funds page card', why: 'Members’ money sits next to the garden’s money but visibly apart. Pick Hub queue if stewards work from the Hub.' }
+  ];
+  var L = 'Lina · member', T = 'Tomás · Riverside Commons steward', K = 'Kaya · Green Goods Community Garden steward', A = 'Ade · Sunroot Skills Hub steward';
+  function s(screen, props, who, say) { return { screen: screen, props: props || {}, who: who, say: say }; }
+  var FLOWS = [
+    { id: 'gflow', title: 'G$ purchase, start to finish', note: 'Lina, a gardener at Riverside Commons, buys a month of an AI assistant from Green Goods Community Garden with her own G$. Both gardens’ stewards appear where they act.', steps: [
+      s('Main', {}, L, 'Lina opens “What other gardens offer” from Home. Visiting another garden doesn’t change her own.'),
+      s('Visit', {}, L, 'She visits Green Goods Community Garden and opens the AI assistant membership.'),
+      s('Offer', { state: 'Open' }, L, 'The offer shows the price, that she pays with her own G$, and that her own garden holds it until the service starts.'),
+      s('Pay', { state: 'Ready' }, L, 'She picks Riverside Commons to hold her payment, checks the details and agrees to version 3 of the terms. Continue walks the sheet.'),
+      s('Send', { state: 'Ready' }, L, 'She sends her own G$ on Celo to Riverside Commons’ Safe. Green Goods covers the network fee.'),
+      s('Send', { state: 'Sent' }, L, 'Sent isn’t done. A steward still has to check that it arrived.'),
+      s('Status', { state: 'Waiting for check' }, L, 'Her purchase page keeps each step separate.'),
+      s('BuyerDeposits', { dialog: 'Check' }, T, 'Tomás records what arrived in the Safe. It’s Lina’s money, not the garden’s, and nothing leaves the Safe.'),
+      s('ProviderReview', { state: 'Ready' }, K, 'Kaya approves only when Lina’s terms are current and her deposit is recorded.'),
+      s('Status', { state: 'Accepted' }, L, 'Accepted isn’t paid. The service starts once Riverside Commons applies her deposit.'),
+      s('Status', { state: 'Access active' }, L, 'Access is set up outside the app and reported here. After her month, Lina confirms it was kept.'),
+      s('Inspector', { state: 'Payout' }, T, 'Riverside Commons’ Safe pays the provider’s team, split by recognition, not as one sum.'),
+      s('Status', { state: 'Done' }, L, 'Kept and paid. If it had been declined, the full recorded amount would have come back to her.')
+    ] },
+    { id: 'gwrong', title: 'G$ purchase, when it goes wrong', note: 'The same purchase through missing gardens, short balances, uncertain sends, short deposits, changed terms, declines and refunds.', steps: [
+      s('Offer', { state: 'No home garden' }, L, 'Without a home garden nothing can hold her payment, so Ask to Take Up stays off.'),
+      s('Offer', { state: 'Route off' }, L, 'This provider hasn’t opened the offer to personal G$. Her stewards can still buy it for the garden.'),
+      s('Send', { state: 'Not enough' }, L, 'Her balance doesn’t cover the payment plus the token fee.'),
+      s('Send', { state: 'Uncertain' }, L, 'Her account returned no result. She checks before sending again, so she can’t pay twice.'),
+      s('Send', { state: 'Sponsor failed' }, L, 'Green Goods couldn’t cover the network fee. Nothing was sent.'),
+      s('Status', { state: 'Underpaid' }, L, 'A steward found 10.00 G$ less than the price.'),
+      s('BuyerDeposits', { dialog: 'Underpaid' }, T, 'The record can’t take less than the price. Tomás asks for the rest or returns what arrived.'),
+      s('ProviderReview', { state: 'No deposit' }, K, 'Approve stays off until a deposit is recorded.'),
+      s('Status', { state: 'Terms changed' }, L, 'The offer moved to version 4. She agrees again, or withdraws and gets all 450.00 G$ back.'),
+      s('Status', { state: 'Declined' }, L, 'Declined. The full recorded amount comes back.'),
+      s('Inspector', { state: 'Refund failed' }, T, 'The refund failed on Celo. Retrying queues the same refund again; it can’t pay twice.'),
+      s('Status', { state: 'Refund failed' }, L, 'She sees the delay, and that she doesn’t need to do anything.'),
+      s('Status', { state: 'Refunded' }, L, 'Refunded to the account she paid from.'),
+      s('BuyerDeposits', { dialog: 'Late' }, T, 'A payment arrived after a member withdrew. Tomás records it and queues the refund in one go.')
+    ] },
+    { id: 'vflow', title: 'Voucher course, start to finish', note: 'Lina takes Sunroot Skills Hub’s 10-lesson solar course for 100 Sunroot vouchers. Three lessons happen, then the course ends early: 40 vouchers to Sunroot’s reserve, 60 back to her.', steps: [
+      s('Visit', {}, L, 'In a garden she visits, Lina finds a solar course paid with Sunroot vouchers.'),
+      s('VOffer', { state: 'Open' }, L, 'The course takes 100 Sunroot vouchers. She holds 120 in her Gnosis wallet.'),
+      s('VSetup', { step: 'Terms', issue: 'None' }, L, 'She agrees to the exact terms: escrow first, a 3-day acceptance window, and what happens if lessons are missed.'),
+      s('VSetup', { step: 'Accounts', issue: 'None' }, L, 'Two accounts take part: her Green Goods account agrees; her Gnosis wallet holds and deposits the vouchers.'),
+      s('VSetup', { step: 'Approval', issue: 'None' }, L, 'Sunroot approves each setup before the escrow takes vouchers.'),
+      s('IssuerDesk', { dialog: 'Approve setup' }, A, 'Approving the setup lets Lina deposit. It isn’t accepting her request.'),
+      s('VSetup', { step: 'Deposit', issue: 'None' }, L, 'She deposits 100 vouchers into the escrow for this promise.'),
+      s('VSetup', { step: 'Wait', issue: 'None' }, L, 'Her vouchers are in escrow. Sunroot can’t accept until Green Goods receives the escrow’s proof.'),
+      s('IssuerDesk', { dialog: 'Accept' }, A, 'With the proof in and the window open, Ade accepts. The promise starts, on Gnosis too.'),
+      s('Holder', { state: 'Under way' }, L, 'Lessons are reported as they happen.'),
+      s('IssuerDesk', { dialog: 'Propose split' }, A, 'After 3 of 10 lessons Sunroot ends early and proposes 40 to its reserve, 60 back to Lina.'),
+      s('Holder', { state: 'Split to review' }, L, 'Nothing moves until she reviews it.'),
+      s('Split', { state: 'Partial' }, L, 'She confirms the lessons she received and freezes the split. Nobody can change it after that.'),
+      s('Holder', { state: 'Moving' }, L, 'Two transfers run on their own: 40 to Sunroot’s reserve, 60 back to her.'),
+      s('EscrowInspector', { state: 'In flight' }, A, 'Sunroot sees each transfer separately.'),
+      s('Holder', { state: 'Settled' }, L, 'Both transfers are done. The vouchers are settled.')
+    ] },
+    { id: 'vwrong', title: 'Voucher course, when it goes wrong', note: 'Short balances, the wrong wallet, missing proof, revised terms, a closed window, the cancellation race, a bad proposal and a failed transfer.', steps: [
+      s('VOffer', { state: 'Not enough' }, L, 'She holds 80; the course takes 100.'),
+      s('VOffer', { state: 'No wallet' }, L, 'No Gnosis wallet is connected yet.'),
+      s('VSetup', { step: 'Accounts', issue: 'Wrong wallet' }, L, 'The connected wallet holds only 80.'),
+      s('VSetup', { step: 'Deposit', issue: 'Uncertain deposit' }, L, 'Her wallet returned no result. She checks the escrow before depositing again.'),
+      s('IssuerDesk', { dialog: '1 of 2 signatures' }, A, 'Sunroot’s Safe needs a second signer.'),
+      s('IssuerDesk', { dialog: 'No proof' }, A, 'The escrow’s proof hasn’t arrived, so Accept stays off.'),
+      s('Holder', { state: 'Terms revised' }, L, 'Sunroot changed the terms. Nothing continues until she agrees again or cancels.'),
+      s('Holder', { state: 'Window passed' }, L, 'Sunroot didn’t accept in time. Running out of time doesn’t return the vouchers; she cancels to get them back.'),
+      s('IssuerDesk', { dialog: 'Race' }, A, 'Lina asked to cancel just as Ade was about to accept. Only one can count.'),
+      s('Holder', { state: 'Canceling' }, L, 'Her cancellation is on its way.'),
+      s('Holder', { state: 'Accepted first' }, L, 'Sunroot’s acceptance landed first, so the promise started instead.'),
+      s('Holder', { state: 'Canceled' }, L, 'Had her cancellation landed first: all 100 back.'),
+      s('IssuerDesk', { dialog: 'Above authorization' }, A, 'A proposal that returns more than Sunroot authorized can’t be sent.'),
+      s('Split', { state: 'Outside remedy' }, L, 'If one reached her anyway, Freeze stays off.'),
+      s('Holder', { state: 'Retry' }, L, 'One transfer failed. A retry sends exactly the same 60.'),
+      s('EscrowInspector', { state: 'Refund failed' }, A, 'Sunroot can retry the same transfer; it can’t change the amount.'),
+      s('EscrowInspector', { state: 'Setup refunded' }, A, 'A setup canceled before acceptance: nothing released.')
+    ] },
+    { id: 'hold', title: 'Holding and buying vouchers', note: 'Lina’s vouchers in her wallet, and buying more at Sunroot’s exchange. The exchange is a WXDAI rehearsal; G$ is never swapped for vouchers.', steps: [
+      s('Wallet', { state: 'Holdings' }, L, 'Vouchers have their own wallet tab, named by issuer, with the ones in escrow shown apart.'),
+      s('Exchange', { state: 'Quote' }, L, 'Sunroot runs a voucher exchange. In this rehearsal it takes WXDAI.'),
+      s('Exchange', { state: 'Pay with' }, L, 'She can only pick what this exchange accepts.'),
+      s('Exchange', { state: 'Review' }, L, 'Exact amounts, the minimum she receives, the deadline and the network, before she signs.'),
+      s('Exchange', { state: 'Allowed' }, L, 'The second prompt is the swap itself.'),
+      s('Exchange', { state: 'Bought' }, L, 'Bought vouchers aren’t an earned reward and don’t book a service.'),
+      s('Exchange', { state: 'Uncertain' }, L, 'No result came back. She checks the receipt before buying again.')
+    ] },
+    { id: 'rewards', title: 'Rewards and issuer policy', note: 'A garden request that pays both G$ and vouchers, and how a garden records which voucher issuers it admits.', steps: [
+      s('Rewards', { state: 'Open' }, L, 'A Riverside Commons request pays 120 G$ and 20 Sunroot vouchers, tracked separately.'),
+      s('Rewards', { state: 'Consent' }, L, 'She agrees to both rewards and where each one goes.'),
+      s('Rewards', { state: 'No Gnosis wallet' }, L, 'Without a Gnosis wallet she can’t agree to a voucher reward.'),
+      s('Rewards', { state: 'Kept, vouchers on the way' }, L, 'After her work is confirmed, the G$ has arrived and the vouchers are on the way.'),
+      s('RewardsDesk', { state: 'One done' }, T, 'Stewards see each reward’s own receipt. One done and one pending is normal.'),
+      s('RewardsDesk', { state: 'Failed' }, T, 'A failed voucher delivery is retried from the same record.'),
+      s('Rewards', { state: 'Both received' }, L, 'Both received.'),
+      s('IssuersDesk', { state: 'Issuers' }, T, 'Riverside Commons lists the voucher issuers its members use. Caps and pauses are garden policy; the contracts don’t enforce them yet.'),
+      s('IssuersDesk', { state: 'Admit identity' }, T, 'Admitting Mara’s seed library as an issuer starts with who issues.'),
+      s('IssuersDesk', { state: 'Admit terms' }, T, 'Then what one voucher buys.'),
+      s('IssuersDesk', { state: 'Admit cap' }, T, 'Then its published cap.'),
+      s('IssuersDesk', { state: 'Record pause' }, T, 'Recording a pause is a garden decision, not enforcement.')
+    ] }
+  ];
+  var REMAP = { Offer: 'SOffer', VOffer: 'SOffer', Pay: 'SPay', Send: 'SPay', VSetup: 'SPay', Status: 'SPurchase', Holder: 'SCourse', Split: 'SCourse', Wallet: 'SWallet', ProviderReview: 'SRequests', IssuerDesk: 'SIssuer' };
+  var GH = 'G$, held until done', VH = 'Vouchers, held until done', VS = 'Voucher, used on the spot';
+  FLOWS.unshift(
+    { id: 's-g', simple: true, remap: REMAP, title: 'Buy with G$', note: 'The same AI assistant purchase with the proposed changes. Lina reviews once and approves once. Her own garden has nothing to do. The selling garden accepts with the payment already checked.', steps: [
+      s('Main', {}, L, 'Lina opens “What other gardens offer” from Home.'),
+      s('Visit', {}, L, 'She opens the AI assistant membership at Green Goods Community Garden.'),
+      s('SOffer', { kind: GH, state: 'Open' }, L, 'The offer says what paying means in three lines: she pays, it’s held for this purchase, the garden is paid when it’s done.'),
+      s('SPay', { kind: GH, state: 'Ready' }, L, 'One review screen with one total, G$ token fees included. Paying agrees to the exact terms, so there’s nothing else to sign.'),
+      s('SPay', { kind: GH, state: 'Approving' }, L, 'Her passkey asks once.'),
+      s('SPurchase', { state: 'Waiting to start' }, L, 'Her 450.00 G$ is held for this purchase. Nobody in her own garden has to do anything.'),
+      s('SRequests', { state: 'Accept dialog' }, K, 'Kaya sees the payment is held and the terms are current, both checked automatically. One tap accepts.'),
+      s('SRequests', { state: 'Accepted automatically' }, K, 'Or, with automatic acceptance on, routine requests start without waiting for her.'),
+      s('SPurchase', { state: 'Started' }, L, 'Kaya sets up access and marks it ready. Lina has nothing else to do.'),
+      s('SPurchase', { state: 'Review window' }, L, 'Her month is over. The garden is paid after 7 days unless she reports a problem.'),
+      s('SPurchase', { state: 'Done' }, L, 'Done. Paid to the garden’s team through their payout plan.')
+    ] },
+    { id: 's-v', simple: true, remap: REMAP, title: 'Take a course with vouchers', note: 'The solar course with the proposed changes. One account, one approval, no setup approval to wait for. The only decision Lina makes after paying is whether to accept an early end.', steps: [
+      s('Visit', {}, L, 'Lina finds Sunroot’s solar course in a garden she visits.'),
+      s('SOffer', { kind: VH, state: 'Open' }, L, 'The course takes 100 Sunroot vouchers, held until the lessons are done.'),
+      s('SPay', { kind: VH, state: 'Ready' }, L, 'She redeems 100 vouchers with one review and one approval, from the account she uses everywhere. No second wallet, no waiting for Sunroot to approve a setup.'),
+      s('SCourse', { state: 'Waiting to start' }, L, 'Her vouchers are held. She can cancel any time before it starts.'),
+      s('SIssuer', { state: 'Accept' }, A, 'Ade accepts her into this round. Everything he needs is already checked.'),
+      s('SCourse', { state: 'Under way' }, L, 'Lessons are reported as they happen.'),
+      s('SIssuer', { state: 'Report lesson' }, A, 'Sunroot reports each lesson.'),
+      s('SIssuer', { state: 'End early' }, A, 'After 3 lessons Sunroot ends early. The return comes from its published terms: 60 back.'),
+      s('SCourse', { state: 'Ending early' }, L, 'Lina makes one decision: agree, or report a problem. The button works.'),
+      s('SCourse', { state: 'Ended early' }, L, '60 vouchers are back with her. There are no separate transfers to watch.'),
+      s('SCourse', { state: 'Review window' }, L, 'If all 10 lessons had happened, Sunroot would be paid after the review window, with nothing for Lina to do.'),
+      s('SCourse', { state: 'Done' }, L, 'Done.')
+    ] },
+    { id: 's-spot', simple: true, remap: REMAP, title: 'Redeem a voucher on the spot', note: 'For something handed over on the spot, there’s nothing to hold. Redeeming hands the voucher back to its issuer, the same as Redeem in CLC.', steps: [
+      s('SWallet', { tab: 'Vouchers' }, L, 'Lina holds 5 seed library vouchers from Mara’s Seed Library.'),
+      s('SOffer', { kind: VS, state: 'Open' }, L, 'A seed packet costs 1 voucher, picked up at the seed table.'),
+      s('SPay', { kind: VS, state: 'Ready' }, L, 'Redeeming it hands the voucher back to Mara’s Seed Library. Nothing is held.'),
+      s('SPay', { kind: VS, state: 'Done' }, L, 'She shows the receipt at the seed table.')
+    ] },
+    { id: 's-wrong', simple: true, remap: REMAP, title: 'When something goes wrong', note: 'Short balances, unclear results, changed terms, declines, problems and cancellations in the simplified flows. Refunds are automatic.', steps: [
+      s('SOffer', { kind: GH, state: 'Not a gardener' }, 'Ama · not in a garden yet', 'Paying for yourself is open to gardeners and stewards of any garden. Without a garden role, Pay stays off.'),
+      s('SOffer', { kind: GH, state: 'Not enough' }, L, 'Her balance doesn’t cover the payment and the G$ token fees.'),
+      s('SPay', { kind: GH, state: 'No result' }, L, 'No result came back, so she checks before paying again and can’t pay twice.'),
+      s('SPay', { kind: GH, state: 'Terms changed' }, L, 'The offer changed while she was paying. She reviews the new terms first.'),
+      s('SPurchase', { state: 'Declined' }, L, 'Declined. The refund is automatic; no steward has to queue it.'),
+      s('SPurchase', { state: 'Refund delayed' }, L, 'A refund transfer failed. It retries by itself and can’t pay twice.'),
+      s('SPurchase', { state: 'Problem reported' }, L, 'Reporting a problem pauses payment.'),
+      s('SRequests', { state: 'Problem reported' }, K, 'Kaya sees it in the same list and responds.'),
+      s('SCourse', { state: 'Canceled' }, L, 'Canceled before the course started: all 100 vouchers come back.'),
+      s('SIssuer', { state: 'Above terms' }, A, 'Sunroot can’t send a return above what its own terms allow.')
+    ] }
+  );
+  var PAIRS = [
+    { id: 'p-pay', title: 'Paying for a purchase', note: 'Today Lina picks a garden to hold her payment, checks details, reviews, agrees, then sends in a second sheet. Simplified: one review screen and one approval, and paying agrees to the exact terms.',
+      stats: [['Screens to pay', '4', '1'], ['Approvals', '2', '1'], ['Choices to make', '3', '0']],
+      now: { screen: 'Pay', props: { state: 'Ready' }, variant: 'Stepped sheet', label: 'Step 1 of 3, then a separate send' },
+      next: { screen: 'SPay', props: { kind: GH, state: 'Ready' }, label: 'One review, one approval' } },
+    { id: 'p-after', title: 'After paying', note: 'Today her purchase page walks through eight steps across two gardens. Simplified: held, started, done. Everything else happens without her.',
+      stats: [['Steps she watches', '8', '3'], ['People involved', '3', '1']],
+      now: { screen: 'Status', props: { state: 'Accepted' }, variant: 'Timeline', label: 'Accepted, not yet applied' },
+      next: { screen: 'SPurchase', props: { state: 'Waiting to start' }, label: 'Held, waiting to start' } },
+    { id: 'p-offer', title: 'How an offer explains paying', note: 'Today the offer explains that her own garden holds the payment, which needs a home garden and its stewards. Simplified: held for this purchase, paid when it’s done, back to her if not.',
+      stats: [['Parties to understand', '3', '1'], ['Home garden needed', 'yes', 'no']],
+      now: { screen: 'Offer', props: { state: 'Open' }, variant: 'Route card', label: 'Her garden holds it' },
+      next: { screen: 'SOffer', props: { kind: GH, state: 'Open' }, label: 'Held for this purchase' } },
+    { id: 'p-vstart', title: 'Starting a voucher course', note: 'Today Lina agrees, connects a second wallet, waits for Sunroot to approve her setup, then approves and deposits. Simplified: one review and one approval from the account she already uses.',
+      stats: [['Accounts', '2', '1'], ['Approvals', '3', '1'], ['Waits before paying', '1', '0']],
+      now: { screen: 'VSetup', props: { step: 'Accounts', issue: 'None' }, label: 'Step 2 of 4: two accounts' },
+      next: { screen: 'SPay', props: { kind: VH, state: 'Ready' }, label: 'One review, one approval' } },
+    { id: 'p-course', title: 'The voucher course page', note: 'Today the page tracks escrow proof, acceptance, activation and two transfers. Simplified: what’s held, how many lessons are done, and what happens next.',
+      stats: [['Steps she watches', '9', '3']],
+      now: { screen: 'Holder', props: { state: 'Under way' }, variant: 'Escrow card', label: 'Under way' },
+      next: { screen: 'SCourse', props: { state: 'Under way' }, label: 'Under way' } },
+    { id: 'p-split', title: 'Ending a course early', note: 'Today Lina ticks two confirmations, freezes a split, then watches two transfers. Simplified: one decision that states what she received and what comes back.',
+      stats: [['Confirmations', '3', '1'], ['Transfers to watch', '2', '0']],
+      now: { screen: 'Split', props: { state: 'Partial' }, variant: 'Split bar', label: 'Two confirmations and a freeze' },
+      next: { screen: 'SCourse', props: { state: 'Ending early' }, label: 'One decision' } },
+    { id: 'p-buyer', title: 'The buyer’s own garden', note: 'Today a steward in Lina’s own garden must record her payment and later apply it, though her garden isn’t part of the deal. Simplified: her garden has nothing to do, and the selling garden accepts with the payment already checked.',
+      stats: [['Gardens whose stewards act', '2', '1'], ['Manual payment records', '2', '0']],
+      now: { screen: 'BuyerDeposits', props: { dialog: 'Check' }, variant: 'Funds page card', label: 'Tomás records Lina’s payment' },
+      next: { screen: 'SRequests', props: { state: 'Accept dialog' }, label: 'Only Kaya acts' } },
+    { id: 'p-issuer', title: 'The issuer’s work', note: 'Today Sunroot approves each person’s setup, then accepts once the escrow proof arrives. Simplified: Sunroot approves the course once, and each person is one Accept with everything already checked.',
+      stats: [['Issuer steps per person', '2', '1']],
+      now: { screen: 'IssuerDesk', props: { dialog: 'Approve setup' }, label: 'Approve each setup first' },
+      next: { screen: 'SIssuer', props: { state: 'Accept' }, label: 'One Accept' } }
+  ];
+  var QMAP = {}, FMAP = {}, PMAP = {}, SCREEN_Q = {};
+  QUESTIONS.forEach(function (q) { QMAP[q.id] = q; SCREEN_Q[q.screen] = q.id; });
+  FLOWS.forEach(function (f) { FMAP[f.id] = f; });
+  PAIRS.forEach(function (p) { PMAP[p.id] = p; });
+  function variantOptions(id) { var v = SCREENS[id] && SCREENS[id].meta.variant; return v && v.options ? v.options : null; }
+  function defaultsFor(id) {
+    var m = SCREENS[id].meta, p = {};
+    Object.keys(m).forEach(function (k) { if (k.charAt(0) !== '$' && m[k] && 'default' in m[k]) p[k] = m[k].default; });
+    delete p.variant; delete p.dark;
+    return p;
+  }
+
+  /* ---------- Picks and notes ---------- */
+  function lsGet(k, d) { try { var v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage unavailable */ } }
+  var store = {
+    db: null, shared: false, error: '',
+    picks: lsGet('vlab.picks', {}) || {}, notes: lsGet('vlab.notes', []) || [],
+    saveLocal: function () { lsSet('vlab.picks', this.picks); lsSet('vlab.notes', this.notes); },
+    connect: function () {
+      var self = this;
+      if (!window.claude || typeof window.claude.use !== 'function') return;
+      window.claude.use('db').then(function (db) {
+        if (!db) return;
+        self.db = db; self.shared = true;
+        var localPicks = self.picks, localNotes = self.notes.slice();
+        Object.keys(localPicks).forEach(function (q) { if (QMAP[q]) db.doc('picks/' + q).set({ pick: localPicks[q], question: QMAP[q].title, at: new Date().toISOString() }).catch(function () {}); });
+        localNotes.forEach(function (n) { var c = Object.assign({}, n); delete c.id; db.collection('notes').add(c).catch(function () {}); });
+        lsSet('vlab.picks', {}); lsSet('vlab.notes', []);
+        db.collection('picks').onSnapshot(function (snap) {
+          var p = {};
+          snap.docs.forEach(function (d) { var x = d.data(); if (x && typeof x.pick === 'string') p[d.id] = x.pick; });
+          self.picks = p; changed();
+        }, function (e) { self.fail(e); });
+        db.collection('notes').orderBy('at', 'desc').limit(500).onSnapshot(function (snap) {
+          self.notes = snap.docs.map(function (d) { return Object.assign({}, d.data(), { id: d.id }); });
+          changed();
+        }, function (e) { self.fail(e); });
+        changed();
+      }).catch(function () { /* stays local */ });
+    },
+    setPick: function (qid, value) {
+      var q = QMAP[qid];
+      this.picks = Object.assign({}, this.picks); this.picks[qid] = value; this.error = '';
+      if (this.db) { var self = this; this.db.doc('picks/' + qid).set({ pick: value, question: q.title, at: new Date().toISOString() }).catch(function (e) { self.fail(e); }); }
+      else this.saveLocal();
+      changed();
+    },
+    addNote: function (n) {
+      var self = this;
+      n.at = new Date().toISOString(); this.error = '';
+      if (this.db) return this.db.collection('notes').add(n).then(function () { return true; }, function (e) { self.fail(e); return false; });
+      n.id = 'local-' + Date.now();
+      this.notes = [n].concat(this.notes); this.saveLocal(); changed();
+      return Promise.resolve(true);
+    },
+    deleteNote: function (id) {
+      var self = this;
+      if (this.db) { this.db.doc('notes/' + id).delete().catch(function (e) { self.fail(e); }); return; }
+      this.notes = this.notes.filter(function (n) { return n.id !== id; }); this.saveLocal(); changed();
+    },
+    fail: function (e) {
+      var code = e && e.code;
+      this.error = code === 'quota_exceeded' ? 'The notes store is full. Delete some notes, then save again.'
+        : (code === 'revoked' || code === 'not_granted') ? 'Saving is off in this view. Use Copy All Feedback instead.'
+        : 'That didn’t save. Try again.';
+      changed();
+    }
+  };
+
+  /* ---------- View state ---------- */
+  var view = { mode: 'question', id: 'offer', step: 0, variant: null, compare: lsGet('vlab.compare', true) !== false, props: {}, back: null };
+  var screenDark = lsGet('vlab.dark', false) === true;
+  var drafts = {};
+  var frames = [];
+  var $ = function (q) { return document.querySelector(q); };
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function button(cls, html, onClick) { var b = document.createElement('button'); b.type = 'button'; if (cls) b.className = cls; b.innerHTML = html; if (onClick) b.addEventListener('click', onClick); return b; }
+  function letterOf(screenId, v) { var o = variantOptions(screenId); var i = o ? o.indexOf(v) : -1; return i >= 0 ? LETTERS[i] : ''; }
+
+  function currentScreen() {
+    if (view.mode === 'question') return QMAP[view.id].screen;
+    if (view.mode === 'flow') return FMAP[view.id].steps[view.step].screen;
+    if (view.mode === 'pair') return PMAP[view.id].next.screen;
+    if (view.mode === 'doc') return null;
+    return view.id;
+  }
+  function openPair(id) {
+    if (!PMAP[id]) return;
+    view.mode = 'pair'; view.id = id; view.step = 0; view.back = null; view.props = {}; view.variant = null;
+    renderAll(true);
+  }
+  function openDoc(id) {
+    view.mode = 'doc'; view.id = DOCS[id] ? id : 'scenarios'; view.step = 0; view.back = null; view.props = {}; view.variant = null;
+    renderAll(true);
+  }
+  function pickedVariant(id) {
+    var o = variantOptions(id); if (!o) return null;
+    var q = SCREEN_Q[id], v = q ? (store.picks[q] || QMAP[q].suggest) : null;
+    return o.indexOf(v) >= 0 ? v : o[0];
+  }
+  function snapshotView() { return { mode: view.mode, id: view.id, step: view.step, variant: view.variant, compare: view.compare, props: Object.assign({}, view.props) }; }
+  function openQuestion(id) {
+    var q = QMAP[id]; if (!q) return;
+    view.mode = 'question'; view.id = id; view.step = 0; view.back = null;
+    view.props = Object.assign(defaultsFor(q.screen), q.preset || {});
+    view.variant = pickedVariant(q.screen);
+    renderAll(true);
+  }
+  function openFlow(id, step, keepScroll) {
+    var f = FMAP[id]; if (!f) return;
+    view.mode = 'flow'; view.id = id; view.back = null;
+    view.step = Math.max(0, Math.min(f.steps.length - 1, step || 0));
+    var st = f.steps[view.step];
+    view.props = Object.assign(defaultsFor(st.screen), st.props || {});
+    view.variant = pickedVariant(st.screen);
+    renderAll(!keepScroll);
+  }
+  function openScreen(id, back) {
+    if (!SCREENS[id]) return;
+    view.mode = 'screen'; view.id = id; view.step = 0; view.back = back || null;
+    view.props = defaultsFor(id); view.variant = pickedVariant(id);
+    renderAll(true);
+  }
+  function restore(snap) {
+    view.mode = snap.mode; view.id = snap.id; view.step = snap.step; view.variant = snap.variant; view.compare = snap.compare; view.props = snap.props; view.back = null;
+    renderAll(true);
+  }
+  function followLink(target) {
+    if (!SCREENS[target]) return;
+    if (view.mode === 'flow' && FMAP[view.id].simple && REMAP[target]) target = REMAP[target];
+    if (view.mode === 'flow') {
+      var f = FMAP[view.id], j = -1, i;
+      for (i = view.step + 1; i < f.steps.length; i++) if (f.steps[i].screen === target) { j = i; break; }
+      if (j < 0) for (i = view.step - 1; i >= 0; i--) if (f.steps[i].screen === target) { j = i; break; }
+      if (j >= 0) { openFlow(f.id, j, true); return; }
+    }
+    openScreen(target, snapshotView());
+  }
+  function viewTitle(snap) {
+    if (snap.mode === 'question') return QMAP[snap.id].title;
+    if (snap.mode === 'flow') return FMAP[snap.id].title + ', step ' + (snap.step + 1);
+    if (snap.mode === 'pair') return PMAP[snap.id].title;
+    if (snap.mode === 'doc') return DOCS[snap.id].title;
+    return SHORT[snap.id];
+  }
+
+  /* ---------- Written pages ---------- */
+  var DOCS = {
+    scenarios: { title: 'How it works, in plain words', meta: 'Seven everyday scenarios',
+      note: 'What promises, G$, vouchers and purchases are, and seven everyday scenarios with the simplified flows. Each one links to its walkthrough.',
+      blocks: [
+        ['h', 'Four things that can look alike'],
+        ['ul', [
+          '**Promise** (a commitment): something someone says they’ll do, kept in a garden’s pool. It’s an offer (“I can teach a compost workshop”) or a request (“We need someone to teach one”).',
+          '**G$**: GoodDollar, money that works in every garden. It lives on Celo.',
+          '**Voucher**: a promise of something specific from a specific issuer, like “one seed packet from Mara’s Seed Library”. You redeem it with that issuer.',
+          '**Purchase**: paying for an offer yourself, with G$ or vouchers. It’s held until it’s done, then paid out or given back.'
+        ]],
+        ['h', 'Seven scenarios'],
+        ['scen', 'Lina buys a month of the AI assistant with her own G$', [
+          'She finds the offer at another garden. Visiting doesn’t change her own garden.',
+          'She reviews it once and pays 450.90 G$ with one approval: the 450.00 G$ price plus G$ token fees.',
+          'Her 450.00 G$ is held for this purchase.',
+          'Kaya, a steward at Green Goods Community Garden, accepts and sets up her access.',
+          'When the month ends, the garden’s team is paid 7 days later, unless Lina reports a problem.'
+        ], 's-g'],
+        ['scen', 'Kaya declines, or something goes wrong', [
+          'If Kaya declines, all 450.00 G$ goes back to Lina automatically.',
+          'If her access breaks, Lina reports a problem and payment pauses until it’s sorted.'
+        ], 's-wrong'],
+        ['scen', 'Lina takes a solar course with Sunroot vouchers', [
+          'The course costs 100 Sunroot vouchers. She redeems them with one approval, and they’re held for the course.',
+          'Sunroot accepts her, then reports each lesson.',
+          'If all 10 lessons happen, Sunroot gets the 100 vouchers 7 days after the last one.',
+          'If Sunroot stops after 3 lessons, Lina agrees to the split: 40 to Sunroot, 60 back to her.'
+        ], 's-v'],
+        ['scen', 'Lina redeems a seed packet voucher', [
+          'At the seed table she redeems 1 voucher from Mara’s Seed Library and gets a packet.',
+          'Nothing is held, because it’s handed over on the spot. This works like Redeem in CLC.'
+        ], 's-spot'],
+        ['scen', 'Lina keeps a garden promise and earns G$ and vouchers', [
+          'Riverside Commons asks for two compost workshops and offers 120 G$ plus 20 Sunroot vouchers.',
+          'Lina takes it up and agrees where each reward goes.',
+          'She teaches, and a steward confirms the work.',
+          'The G$ comes from the garden’s pool through its payout plan. The vouchers come from the garden’s voucher reserve. Each arrives with its own receipt.'
+        ], 'rewards'],
+        ['scen', 'Kofi buys Sunroot vouchers at an exchange', [
+          'Sunroot runs a voucher exchange pool. Kofi swaps for 50 Sunroot vouchers (with WXDAI in the rehearsal).',
+          'Buying vouchers doesn’t book anything. He can redeem them later on any Sunroot offer.',
+          'G$ can’t be swapped for vouchers.'
+        ], 'hold'],
+        ['scen', 'A garden buys for itself', [
+          'Riverside Commons’ stewards take up the AI membership for the whole garden, paid from the garden’s pool.',
+          'That’s an ordinary garden promise, not a personal purchase: the stewards decide together and nobody’s own G$ is involved. It uses today’s garden promise flow.'
+        ], null]
+      ] },
+    answers: { title: 'Recommendations', meta: 'Fees, approvals, the window, names, swaps',
+      note: 'Recommendations on the questions from the last review, and the one gap they uncovered.',
+      blocks: [
+        ['h', 'G$ token fees'],
+        ['p', '**Members see one total and always get the full price back.** At payment, the member pays the price plus two G$ token fees: one for paying in, and one set aside for paying out. A refund then returns the full 450.00 G$, and the garden’s team receives the full 450.00 G$.'],
+        ['p', 'Example at an illustrative 0.1% fee: 450.00 + 0.45 + 0.45 = 450.90 G$. The real fee is read from the G$ token when the member pays, the way the Celo settlement executor already does (`getFees`).'],
+        ['p', 'The escrow checks that it received the price plus the set-aside. If G$ ever takes the fee from the receiver instead of the sender, the escrow refuses the payment rather than holding less than it promised. The settlement executor already refuses receiver-paid fees for the same reason.'],
+        ['h', 'One approval for vouchers'],
+        ['p', '**Yes, without depending on the voucher token.** The member’s Green Goods account bundles “allow” and “deposit” into one passkey approval, and the network fee is sponsored. Our research notes already plan this bundle (approve and present batched in the member’s account).'],
+        ['p', 'Public sources don’t show whether CLC’s voucher token supports signed approvals (EIP-2612 permit), so the design shouldn’t rely on it. Members who connect an outside wallet may see two prompts unless their wallet can bundle calls.'],
+        ['p', 'One prerequisite: the passkey checker the app uses has no code on Gnosis yet (research note C57). Deploying it at the same address unblocks this and “one account everywhere”.'],
+        ['h', 'The review window'],
+        ['p', '**7 days, the same for every offer in the first release.** Long enough to notice a problem after a month of service or a last lesson, short enough that providers aren’t kept waiting, and one number to explain.'],
+        ['ul', [
+          'The clock starts when the service period ends, or when the last lesson is reported.',
+          'Members get a reminder when it starts and the day before it closes.',
+          'Reporting a problem pauses it.',
+          'No window for vouchers redeemed on the spot.',
+          'Later, if providers ask, allow 3 to 14 days per offer.'
+        ]],
+        ['h', 'Redeem'],
+        ['p', '**Use Redeem for vouchers everywhere, as CLC does**: on the spot (“Redeem 1 Voucher”) and for held services (“Redeem 100 Vouchers”, held until the course is done).'],
+        ['p', 'For vaults, use **Withdraw**, always with its object (“Withdraw from Endowment”). That’s 23 English strings (22 on vault screens, 1 in the treasury), plus Spanish and Portuguese. Promises keep “Withdraw This Offer” and “Withdraw This Request”; the objects keep them distinct. If you’d rather avoid any overlap, “Take Out” is the plain alternative.'],
+        ['h', 'Gardener and steward accounts'],
+        ['p', '**Paying for yourself is open to gardener and steward accounts.** Green Goods checks the role once, on Arbitrum, when the member agrees, and records the account. The escrows on Celo and Gnosis accept money only from that recorded account.'],
+        ['p', 'A passkey account has the same address on every chain, so it’s the same verified account everywhere. Each chain still checks the passkey signature itself. Someone without a garden role sees “Join a garden to pay for yourself”.'],
+        ['h', 'Swapping vouchers'],
+        ['p', '**Yes, within limits.** CLC pools swap one admitted asset for another inside a single pool. Multi-pool routes only quote prices in CLC’s current version; they don’t execute.'],
+        ['ul', [
+          'Green Goods shows this as the voucher exchange: pick what to pay with from what that pool accepts.',
+          'Vouchers can swap for other vouchers when one pool admits both, within its limits and inventory.',
+          'G$ isn’t swapped for vouchers. That’s a locked decision.',
+          'A swap isn’t a redemption: it doesn’t book a service.'
+        ]],
+        ['h', 'Still open'],
+        ['ul', [
+          '**Who settles a reported problem.** Suggestion: the provider has 7 days to refund (in full, or in part for a course, within its terms) or fix it to the member’s satisfaction. After 14 days unresolved, the stewards of the pool’s garden decide.',
+          'Deploying the passkey checker on Gnosis (C57).',
+          'The live G$ fee value, read from the token before launch.'
+        ]]
+      ] },
+    changes: { title: 'What changes underneath', meta: 'Five changes, in plain words',
+      note: 'The simplified flows rest on four contract changes and one policy change. Each one, with what it removes and what it costs.',
+      blocks: [
+        ['h', 'What members see'],
+        ['q', '“Your 450 G$ is held for this purchase. Green Goods Community Garden is paid when it’s done. If it doesn’t go ahead, it all comes back to you.”'],
+        ['p', 'One idea, a hold, covers G$ and vouchers. Buying is one review and one approval. Afterward a purchase is held, started, then done, or it comes back. Members act only to report a problem or to answer an early end. Safes, chains, steward checks and per-chain wallets leave member screens; stewards still see them under Technical details.'],
+        ['go', 'Walk the Simplified G$ Purchase', 's-g'],
+        ['h', 'The changes underneath'],
+        ['changes', [
+          ['Each G$ purchase is held in its own escrow on Celo.', 'A small contract holds the payment and tells Green Goods it has arrived, the way the voucher escrow already does on Gnosis. Members pay the token fees up front, so refunds and payouts are always the full price.',
+            'Choosing a home garden, two manual steps for the buyer garden’s stewards, and manual refunds.',
+            'One new Celo contract and its audit. It reports back over the route settlement acknowledgments already use. G$ is still never bridged, and payouts still follow the selling garden’s payout plan.'],
+          ['One account works everywhere, checked as a gardener or steward account.', 'A member’s passkey account has the same address on every chain. Green Goods checks once, when they agree, that it belongs to a gardener or steward, and the escrows accept money only from that account.',
+            'The separate Gnosis wallet, the two-accounts step and wrong-wallet errors.',
+            'Deploying the app’s passkey checker on Gnosis, where it’s missing today, at the same address so accounts keep theirs. People who prefer an outside wallet can still connect one.'],
+          ['Paying is agreeing.', 'The payment carries the exact terms version, so one approval agrees and pays. For vouchers, the account bundles the allowance and the deposit, so nothing depends on the voucher token supporting signed approvals.',
+            'One approval for G$, two for vouchers.',
+            'The pooling and voucher modules accept agreement that arrives with the payment. Exact agreement still comes before acceptance.'],
+          ['Standing approvals.', 'Issuers approve a voucher offer once, with a place limit, instead of each person’s setup. Selling gardens can turn on automatic acceptance while there’s capacity; manual review stays available.',
+            'Waiting for the issuer to approve a setup, and for routine offers, waiting for a steward to accept.',
+            'Offer-level settings, and a change to acceptClaim, which only a pool steward can call today.'],
+          ['Done by default when everything is delivered.', 'Once the service is fully delivered, the hold pays out after a 7-day review window unless the member reports a problem. Early ends and partial splits still need the member’s yes.',
+            '“Confirm it was kept” as a required step.',
+            'Timed release in the settlement and voucher modules, and a problem flag that pauses it.']
+        ]],
+        ['h', 'Decisions this reopens'],
+        ['ul', [
+          'The brief says a member’s G$ waits in the buyer garden’s Safe, held by its stewards. Change 1 replaces that.',
+          'A locked rule says the holder explicitly approves delivered units before any split. Change 5 keeps that only for early ends and partial splits.',
+          'Vaults need a new action name, because vouchers now use Redeem the way CLC does.'
+        ]],
+        ['h', 'What stays the same'],
+        ['ul', [
+          'G$ stays on Celo and is never bridged. Vouchers stay on Gnosis. Agreements and records stay on Arbitrum.',
+          'The selling garden still decides, unless it turns on automatic acceptance.',
+          'Payouts are split across the team by the payout plan, never paid to a garden’s Safe as one sum.',
+          'Issuer caps and pauses stay published policy until they’re enforced (PRD-1315).',
+          'Stewards still see chain, contract and record details under Technical details.'
+        ]]
+      ] }
+  };
+  var DOC_ORDER = ['scenarios', 'answers', 'changes'];
+
+  /* ---------- Rendering ---------- */
+  function renderAll(switched) {
+    var focusId = document.activeElement && document.activeElement.id;
+    renderNav(); renderPanel(); renderStage();
+    lsSet('vlab.view3', { mode: view.mode, id: view.id, step: view.step });
+    if (focusId && document.getElementById(focusId) && focusId !== 'note-text') document.getElementById(focusId).focus({ preventScroll: true });
+    if (switched) {
+      closeNav();
+      $('#panel').scrollTop = 0;
+    }
+  }
+  function openNav() { $('#nav').classList.add('is-open'); $('#scrim').classList.add('is-open'); }
+  function closeNav() { $('#nav').classList.remove('is-open'); $('#scrim').classList.remove('is-open'); }
+
+  function navItem(active, title, meta, badge, onClick) {
+    var b = el('button', 'lab-item'); b.type = 'button';
+    b.setAttribute('aria-current', active ? 'true' : 'false');
+    b.append(el('span', 't', title), el('span', 'm', meta));
+    if (badge) b.append(badge);
+    b.addEventListener('click', onClick);
+    return b;
+  }
+  function renderNav() {
+    var nsim = $('#nav-simple'); nsim.textContent = '';
+    DOC_ORDER.forEach(function (d) { nsim.append(navItem(view.mode === 'doc' && view.id === d, DOCS[d].title, DOCS[d].meta, null, function () { openDoc(d); })); });
+    var nf = $('#nav-f'); nf.textContent = '';
+    FLOWS.forEach(function (f) {
+      var item = navItem(view.mode === 'flow' && view.id === f.id, f.title, f.steps.length + ' steps', null, function () { openFlow(f.id, 0); });
+      (f.simple ? nsim : nf).append(item);
+    });
+    var np = $('#nav-p'); np.textContent = '';
+    PAIRS.forEach(function (p) {
+      np.append(navItem(view.mode === 'pair' && view.id === p.id, p.title, p.stats[0][1] + ' → ' + p.stats[0][2] + ' ' + p.stats[0][0].toLowerCase(), null, function () { openPair(p.id); }));
+    });
+    var nq = $('#nav-q'); nq.textContent = '';
+    QUESTIONS.forEach(function (q) {
+      var p = store.picks[q.id], letter = p ? letterOf(q.screen, p) : '';
+      var badge = el('span', 'lab-badge' + (p ? ' on' : ''), p ? letter : '?');
+      badge.setAttribute('aria-label', p ? 'Your pick: ' + letter : 'Not picked yet');
+      nq.append(navItem(view.mode === 'question' && view.id === q.id, q.title, p ? letter + ' · ' + p : 'Not picked yet', badge, function () { openQuestion(q.id); }));
+    });
+    var ns = $('#nav-s'); ns.textContent = '';
+    Object.keys(SCREENS).forEach(function (id) {
+      var meta = (SIMPLE[id] ? 'Simplified · ' : 'Today · ') + (SCREENS[id].desk ? 'steward cockpit' : 'member app');
+      ns.append(navItem(view.mode === 'screen' && view.id === id, SHORT[id] || id, meta, null, function () { openScreen(id); }));
+    });
+    if (view.mode === 'screen') $('#nav-s-box').open = true;
+    var picked = Object.keys(store.picks).filter(function (k) { return QMAP[k]; }).length;
+    $('#count').textContent = picked + ' of ' + QUESTIONS.length + ' picked · ' + store.notes.length + (store.notes.length === 1 ? ' note' : ' notes');
+    $('#store-status').textContent = store.error || (store.shared ? 'Picks and notes save with this page, where Claude can read them.' : 'Picks and notes save in this browser only. Copy them to send to Claude.');
+  }
+
+  function renderPanel() {
+    var top = $('#ptop'); top.textContent = '';
+    var contents = button('lab-btn ghost lab-contents', 'Contents', openNav); contents.id = 'contents-btn';
+    top.append(contents);
+    if (view.back) {
+      var snap = view.back;
+      var back = button('lab-btn ghost', ICON.left + '<span></span>', function () { restore(snap); });
+      back.querySelector('span').textContent = 'Back to ' + viewTitle(snap);
+      top.append(back);
+    }
+    var eyebrow, title;
+    if (view.mode === 'question') {
+      var qi = QUESTIONS.findIndex(function (q) { return q.id === view.id; });
+      eyebrow = 'Today · direction ' + (qi + 1) + ' of ' + QUESTIONS.length; title = QMAP[view.id].title;
+    } else if (view.mode === 'flow') {
+      eyebrow = FMAP[view.id].simple ? 'Simplified flow, proposed' : 'Today’s flow'; title = FMAP[view.id].title;
+    } else if (view.mode === 'pair') {
+      var pi = PAIRS.findIndex(function (p) { return p.id === view.id; });
+      eyebrow = 'Before and after · ' + (pi + 1) + ' of ' + PAIRS.length; title = PMAP[view.id].title;
+    } else if (view.mode === 'doc') {
+      eyebrow = 'Simplified, proposed'; title = DOCS[view.id].title;
+    } else {
+      eyebrow = (SIMPLE[view.id] ? 'Simplified · ' : 'Today · ') + (SCREENS[view.id].desk ? 'steward cockpit' : 'member app'); title = SHORT[view.id];
+    }
+    $('#eyebrow').textContent = eyebrow; $('#title').textContent = title;
+    renderFlownav(); renderControls(); renderAbout(); renderSteps(); renderFeedback();
+  }
+
+  function renderFlownav() {
+    var bar = $('#flownav'); bar.textContent = '';
+    bar.hidden = view.mode !== 'flow';
+    if (view.mode !== 'flow') return;
+    var f = FMAP[view.id];
+    var back = button('lab-btn ghost', ICON.left + '<span>Back</span>', function () { openFlow(f.id, view.step - 1, true); });
+    back.disabled = view.step === 0; back.id = 'flow-back';
+    var next = button('lab-btn', '<span>Next</span>' + ICON.right, function () { openFlow(f.id, view.step + 1, true); });
+    next.disabled = view.step === f.steps.length - 1; next.id = 'flow-next';
+    bar.append(back, el('span', 'count', 'Step ' + (view.step + 1) + ' of ' + f.steps.length), next);
+  }
+
+  function ctl(label, forId) { var g = el('div', 'lab-ctl'); var l = el(forId ? 'label' : 'span', 'lab-label', label); if (forId) l.htmlFor = forId; g.append(l); return g; }
+  function themeControl() {
+    var tg = ctl('Screens'), ts = el('div', 'lab-seg'); ts.setAttribute('role', 'group'); ts.setAttribute('aria-label', 'Screen theme');
+    [['Light', false], ['Dark', true]].forEach(function (pair) {
+      var b = button('', '', function () { screenDark = pair[1]; lsSet('vlab.dark', screenDark); renderAll(); });
+      b.textContent = pair[0]; b.id = 'theme-' + pair[0].toLowerCase(); b.setAttribute('aria-pressed', screenDark === pair[1] ? 'true' : 'false');
+      ts.append(b);
+    });
+    tg.append(ts); return tg;
+  }
+  function renderControls() {
+    var box = $('#controls'); box.textContent = '';
+    box.hidden = view.mode === 'doc';
+    if (view.mode === 'doc') return;
+    if (view.mode === 'pair') { box.append(themeControl()); return; }
+    var sid = currentScreen(), meta = SCREENS[sid].meta, opts = variantOptions(sid);
+    if (opts) {
+      var g = ctl('Direction'), seg = el('div', 'lab-seg'); seg.setAttribute('role', 'group'); seg.setAttribute('aria-label', 'Direction');
+      if (view.mode === 'question') {
+        var c = button('lab-cmp', 'Side by Side', function () { view.compare = true; lsSet('vlab.compare', true); renderAll(); });
+        c.setAttribute('aria-pressed', view.compare ? 'true' : 'false'); c.id = 'dir-cmp';
+        seg.append(c);
+      }
+      opts.forEach(function (o, i) {
+        var on = !(view.mode === 'question' && view.compare) && view.variant === o;
+        var b = button('', '', function () { view.variant = o; if (view.mode === 'question') { view.compare = false; lsSet('vlab.compare', false); } renderAll(); });
+        b.textContent = LETTERS[i] + ' · ' + o; b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.id = 'dir-' + i;
+        seg.append(b);
+      });
+      g.append(seg); box.append(g);
+    }
+    Object.keys(meta).forEach(function (k) {
+      if (k === 'variant' || k === 'dark' || k.charAt(0) === '$') return;
+      var m = meta[k];
+      if (m && m.editor === 'enum') box.append(enumControl(k, m));
+      if (m && m.editor === 'boolean') box.append(boolControl(k, m));
+    });
+    box.append(themeControl());
+  }
+  function enumControl(k, m) {
+    var label = PROP_LABEL[k] || k, id = 'ctl-' + k, g = ctl(label, id), row = el('div', 'lab-stepper');
+    var cur = view.props[k] != null ? view.props[k] : m.default, idx = Math.max(0, m.options.indexOf(cur));
+    var move = function (d) { view.props[k] = m.options[(idx + d + m.options.length) % m.options.length]; renderAll(); };
+    var prev = button('lab-icon', ICON.left, function () { move(-1); }); prev.setAttribute('aria-label', 'Previous ' + label.toLowerCase()); prev.id = id + '-prev';
+    var next = button('lab-icon', ICON.right, function () { move(1); }); next.setAttribute('aria-label', 'Next ' + label.toLowerCase()); next.id = id + '-next';
+    var sel = document.createElement('select'); sel.id = id;
+    m.options.forEach(function (o) { sel.append(new Option(o, o)); });
+    sel.value = m.options[idx];
+    sel.addEventListener('change', function () { view.props[k] = sel.value; renderAll(); });
+    row.append(prev, sel, next);
+    g.querySelector('.lab-label').append(el('span', 'lab-stepn', ' · ' + (idx + 1) + ' of ' + m.options.length));
+    g.append(row); return g;
+  }
+  function boolControl(k, m) {
+    var g = ctl(PROP_LABEL[k] || k), lab = el('label', 'lab-switch'), cb = document.createElement('input');
+    cb.type = 'checkbox'; cb.id = 'ctl-' + k; cb.checked = view.props[k] != null ? !!view.props[k] : !!m.default;
+    cb.addEventListener('change', function () { view.props[k] = cb.checked; renderAll(); });
+    lab.append(cb, document.createTextNode(cb.checked ? 'On' : 'Off'));
+    g.append(lab); return g;
+  }
+
+  function richText(parent, text) {
+    String(text).split('**').forEach(function (part, i) { parent.append(i % 2 ? el('b', null, part) : document.createTextNode(part)); });
+    return parent;
+  }
+  function renderAbout() {
+    var box = $('#about'); box.textContent = '';
+    if (view.mode === 'flow') {
+      var st = FMAP[view.id].steps[view.step];
+      box.append(el('span', 'lab-who' + (/steward/.test(st.who) ? ' steward' : ''), st.who), el('p', null, st.say));
+      return;
+    }
+    var note = view.mode === 'question' ? QMAP[view.id].note : view.mode === 'pair' ? PMAP[view.id].note : view.mode === 'doc' ? DOCS[view.id].note
+      : 'Every state of this screen. Links inside it move to the next screen.';
+    box.append(el('p', null, note));
+    if (view.mode === 'pair') {
+      var stats = el('div', 'lab-stats');
+      PMAP[view.id].stats.forEach(function (x) {
+        var c = el('span', 'lab-stat');
+        c.append(el('b', null, x[0]), el('span', 'from', x[1]), document.createTextNode('→'), el('span', 'to', x[2]));
+        c.setAttribute('aria-label', x[0] + ': ' + x[1] + ' today, ' + x[2] + ' simplified');
+        stats.append(c);
+      });
+      box.append(stats);
+    }
+  }
+  function renderSteps() {
+    var ol = $('#steps'); ol.textContent = '';
+    ol.hidden = view.mode !== 'flow';
+    if (view.mode !== 'flow') return;
+    var f = FMAP[view.id], current = null;
+    f.steps.forEach(function (x, i) {
+      var li = el('li'), b = el('button'); b.type = 'button';
+      if (i === view.step) { b.setAttribute('aria-current', 'step'); current = b; }
+      var detail = x.props.state || x.props.dialog || x.props.step || x.props.tab || '';
+      b.append(el('span', 'k', String(i + 1)), el('span', 't', x.who.split(' · ')[0] + ': ' + SHORT[x.screen]), el('span', 's', detail));
+      b.addEventListener('click', function () { openFlow(f.id, i, true); });
+      li.append(b); ol.append(li);
+    });
+  }
+
+  function pickButton(qid, screenId, v) {
+    var b = button('lab-pick', '', function () { store.setPick(qid, v); });
+    b.dataset.q = qid; b.dataset.v = v; b.dataset.l = letterOf(screenId, v);
+    paintPick(b); return b;
+  }
+  function paintPick(b) {
+    var on = store.picks[b.dataset.q] === b.dataset.v;
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    b.innerHTML = (on ? ICON.check : '') + '<span></span>';
+    b.querySelector('span').textContent = b.dataset.l + ' · ' + b.dataset.v + (on ? ' (your pick)' : '');
+  }
+
+  function renderDoc(stage) {
+    var D = DOCS[view.id], d = el('article', 'lab-doc');
+    D.blocks.forEach(function (b) {
+      if (b[0] === 'h') d.append(el('h2', null, b[1]));
+      else if (b[0] === 'p') d.append(richText(el('p'), b[1]));
+      else if (b[0] === 'q') d.append(el('blockquote', null, b[1]));
+      else if (b[0] === 'ul' || b[0] === 'ol') { var l = el(b[0]); b[1].forEach(function (t) { l.append(richText(el('li'), t)); }); d.append(l); }
+      else if (b[0] === 'go') { var fid = b[2]; d.append(button('lab-btn', '', function () { openFlow(fid, 0); })); d.lastChild.textContent = b[1]; }
+      else if (b[0] === 'changes') {
+        var ol = el('ol');
+        b[1].forEach(function (c) {
+          var li = el('li'); li.append(el('b', null, c[0] + ' '), document.createTextNode(c[1]));
+          li.append(el('span', 'rm', 'Removes: ' + c[2]), el('span', 'rm', 'Costs: ' + c[3]));
+          ol.append(li);
+        });
+        d.append(ol);
+      } else if (b[0] === 'scen') {
+        var box = el('section', 'lab-scen'); box.append(el('h3', null, b[1]));
+        var steps = el('ol'); b[2].forEach(function (t) { steps.append(el('li', null, t)); }); box.append(steps);
+        if (b[3] && FMAP[b[3]]) { var flowId = b[3]; var go = button('lab-btn ghost', '', function () { openFlow(flowId, 0); }); go.textContent = 'Walk It: ' + FMAP[flowId].title; box.append(go); }
+        d.append(box);
+      }
+    });
+    stage.append(d);
+  }
+  function addFrame(stage, sid, props, caption) {
+    var S = SCREENS[sid], fr = el('figure', 'lab-frame'), cap = el('figcaption', 'lab-cap');
+    caption.forEach(function (c) { cap.append(c); });
+    var box = el('div', 'lab-scale'), host = el('div', 'lab-host');
+    host.style.width = S.w + 'px'; host.style.height = S.h + 'px';
+    box.append(host); fr.append(cap, box); stage.append(fr);
+    mountScreen(sid, props, host);
+    frames.push({ fr: fr, box: box, host: host, w: S.w, h: S.h });
+  }
+  function renderStage() {
+    var stage = $('#stage'); stage.textContent = ''; frames = [];
+    stage.classList.toggle('is-doc', view.mode === 'doc');
+    stage.style.gridTemplateColumns = '';
+    if (view.mode === 'doc') { renderDoc(stage); stage.scrollTop = 0; return; }
+    if (view.mode === 'pair') {
+      var P = PMAP[view.id];
+      [[P.now, 'now', 'Today'], [P.next, 'next', 'Simplified']].forEach(function (side) {
+        var sd = side[0], props = Object.assign(defaultsFor(sd.screen), sd.props, { dark: screenDark });
+        if (variantOptions(sd.screen)) props.variant = sd.variant || pickedVariant(sd.screen);
+        addFrame(stage, sd.screen, props, [el('span', 'lab-side ' + side[1], side[2]), el('span', 'lab-capsub', sd.label)]);
+      });
+      layoutStage();
+      return;
+    }
+    var sid = currentScreen(), opts = variantOptions(sid);
+    var list = (view.mode === 'question' && view.compare && opts) ? opts : [opts ? view.variant : null];
+    var qid = SCREEN_Q[sid];
+    list.forEach(function (v) {
+      var cap = [];
+      if (v) {
+        cap.push(el('span', 'lab-letter', letterOf(sid, v)), el('span', null, v));
+        if (qid && store.picks[qid] === v) { var t = el('span', 'lab-tick'); t.innerHTML = ICON.check; t.setAttribute('aria-label', 'Your pick'); cap.push(t); }
+      } else cap.push(el('span', null, SHORT[sid]));
+      var props = Object.assign({}, view.props, { dark: screenDark });
+      if (v) props.variant = v;
+      addFrame(stage, sid, props, cap);
+    });
+    layoutStage();
+  }
+  function layoutStage() {
+    var stage = $('#stage');
+    if (!frames.length) return;
+    var W = stage.clientWidth, H = stage.clientHeight;
+    if (!W || !H) return;
+    var w = frames[0].w, h = frames[0].h, n = frames.length, gap = 20, cap = 34, best = { s: 0, cols: 1 };
+    for (var cols = 1; cols <= n; cols++) {
+      var rows = Math.ceil(n / cols);
+      var s = Math.min((W - gap * (cols - 1)) / (cols * w), (H - rows * cap - gap * (rows - 1)) / (rows * h));
+      if (s > best.s + 0.0001) best = { s: s, cols: cols };
+    }
+    var sc = Math.max(0.1, Math.min(1, best.s));
+    stage.style.gridTemplateColumns = 'repeat(' + best.cols + ', auto)';
+    var radius = (w < 600 ? 34 : 14) * sc;
+    frames.forEach(function (f) {
+      var fw = Math.floor(f.w * sc), fh = Math.floor(f.h * sc);
+      f.fr.style.width = fw + 'px';
+      f.box.style.width = fw + 'px'; f.box.style.height = fh + 'px';
+      f.box.style.borderRadius = radius + 'px';
+      f.host.style.transform = 'scale(' + sc + ')';
+    });
+  }
+
+  function topicKey() {
+    if (view.mode === 'question') return 'q:' + view.id;
+    if (view.mode === 'flow') return 'f:' + view.id + ':' + view.step;
+    if (view.mode === 'pair') return 'p:' + view.id;
+    if (view.mode === 'doc') return 'd:' + view.id;
+    return 's:' + view.id;
+  }
+  function topicTitle() {
+    if (view.mode === 'flow') return FMAP[view.id].title + ', step ' + (view.step + 1);
+    if (view.mode === 'screen') return SHORT[view.id] + (SIMPLE[view.id] ? ' (simplified)' : ' (today)');
+    return viewTitle(view);
+  }
+  function contextLabel() {
+    if (view.mode === 'pair') return 'before and after' + (screenDark ? ' · dark' : '');
+    if (view.mode === 'doc') return '';
+    var sid = currentScreen(), parts = [], o = variantOptions(sid);
+    if (o) parts.push(view.mode === 'question' && view.compare ? 'side by side' : letterOf(sid, view.variant) + ' · ' + view.variant);
+    ['state', 'dialog', 'step', 'issue', 'kind', 'tab'].forEach(function (k) { if (SCREENS[sid].meta[k] && view.props[k] != null) parts.push(view.props[k]); });
+    if (screenDark) parts.push('dark');
+    return parts.join(' · ');
+  }
+  function renderFeedback() {
+    var box = $('#feedback'); box.textContent = '';
+    var sid = currentScreen();
+    if (view.mode === 'question') {
+      var q = QMAP[view.id], opts = variantOptions(q.screen);
+      box.append(el('h2', 'lab-h2', 'Your pick'));
+      var row = el('div', 'lab-picks');
+      opts.forEach(function (o) { row.append(pickButton(q.id, q.screen, o)); });
+      box.append(row);
+      box.append(richText(el('p', 'lab-p'), '**Claude suggests ' + letterOf(q.screen, q.suggest) + ' · ' + q.suggest + '.** ' + q.why));
+    } else if (view.mode === 'flow' || view.mode === 'screen') {
+      var qid = SCREEN_Q[sid];
+      if (qid) {
+        var v = pickedVariant(sid), mine = store.picks[qid] === v;
+        box.append(el('p', 'lab-p', (mine ? 'Shows your pick for “' : 'Shows Claude’s suggestion for “') + QMAP[qid].title + '”: ' + letterOf(sid, v) + ' · ' + v + '.'));
+      }
+    }
+    var lab = el('label', 'lab-h2', 'Notes'); lab.htmlFor = 'note-text';
+    var key = topicKey();
+    var ta = document.createElement('textarea'); ta.id = 'note-text'; ta.className = 'lab-ta'; ta.rows = 3;
+    ta.placeholder = 'On “' + topicTitle() + '”: what works, what doesn’t, what to change'; ta.value = drafts[key] || '';
+    ta.addEventListener('input', function () { drafts[key] = ta.value; });
+    var row2 = el('div', 'lab-row'), status = el('span', 'lab-status'); status.id = 'fb-status'; status.setAttribute('role', 'status');
+    var save = button('lab-btn', 'Save Note', function () {
+      var text = ta.value.trim();
+      if (!text) { status.textContent = 'Write a note first.'; ta.focus(); return; }
+      save.disabled = true;
+      store.addNote({ topic: key, topicTitle: topicTitle(), screen: sid, context: contextLabel(), text: text }).then(function (ok) {
+        save.disabled = false;
+        if (ok) { ta.value = ''; drafts[key] = ''; status.textContent = store.shared ? 'Saved.' : 'Saved in this browser.'; }
+        else status.textContent = store.error;
+      });
+    });
+    save.id = 'note-save';
+    row2.append(save, status);
+    var ul = el('ul', 'lab-notes'); ul.id = 'note-list';
+    box.append(lab, ta, row2, ul);
+    renderNotes();
+  }
+  function renderNotes() {
+    var ul = $('#note-list'); if (!ul) return;
+    ul.textContent = '';
+    var key = topicKey();
+    var mine = store.notes.filter(function (n) { return n.topic === key; }).sort(function (a, b) { return (a.at || '') < (b.at || '') ? 1 : -1; });
+    if (!mine.length) { ul.append(el('li', 'lab-empty', 'No notes here yet.')); return; }
+    mine.forEach(function (n) {
+      var li = el('li'), when = '';
+      try { when = new Date(n.at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); } catch (e) { when = ''; }
+      li.append(el('p', null, n.text), el('span', null, [n.context, when].filter(Boolean).join(' · ')));
+      var del = button('', ICON.x, function () { store.deleteNote(n.id); });
+      del.setAttribute('aria-label', 'Delete note');
+      li.append(del); ul.append(li);
+    });
+  }
+  function changed() {
+    renderNav();
+    Array.prototype.forEach.call(document.querySelectorAll('.lab-pick'), paintPick);
+    renderNotes();
+  }
+
+  function feedbackText() {
+    var lines = ['Cosmo-Local Voucher Lab feedback', '', 'Picks'];
+    QUESTIONS.forEach(function (q) {
+      var p = store.picks[q.id];
+      lines.push('- ' + q.title + ': ' + (p ? letterOf(q.screen, p) + ' · ' + p : 'not picked'));
+    });
+    lines.push('', 'Notes');
+    var notes = store.notes.slice().sort(function (a, b) { return (a.at || '') < (b.at || '') ? -1 : 1; });
+    if (!notes.length) lines.push('- none');
+    notes.forEach(function (n) { lines.push('- [' + (n.topicTitle || n.topic) + (n.context ? ' · ' + n.context : '') + '] ' + n.text); });
+    return lines.join('\n');
+  }
+  $('#copy-all').addEventListener('click', function () {
+    var btn = this, text = feedbackText(), box = $('#copy-fallback');
+    var showBox = function () { box.hidden = false; box.value = text; box.focus(); box.select(); btn.textContent = 'Select and Copy Below'; };
+    try {
+      navigator.clipboard.writeText(text).then(function () { box.hidden = true; btn.textContent = 'Copied'; setTimeout(function () { btn.textContent = 'Copy All Feedback'; }, 1800); }, showBox);
+    } catch (e) { showBox(); }
+  });
+  $('#scrim').addEventListener('click', closeNav);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && $('#nav').classList.contains('is-open')) closeNav(); });
+
+  var raf = 0;
+  if (window.ResizeObserver) new ResizeObserver(function () { cancelAnimationFrame(raf); raf = requestAnimationFrame(layoutStage); }).observe($('#stage'));
+  window.addEventListener('resize', function () { cancelAnimationFrame(raf); raf = requestAnimationFrame(layoutStage); });
+
+  /* Checks every screen in every state draws; used before publishing. */
+  window.__labSelfTest = function () {
+    var errs = [], box = document.createElement('div');
+    box.style.cssText = 'position:absolute;left:-20000px;top:0;width:1400px';
+    document.body.append(box);
+    var before = errorsLog.length;
+    Object.keys(SCREENS).forEach(function (id) {
+      var S = SCREENS[id]; if (!S.Comp) { errs.push(id + ': did not compile'); return; }
+      var m = S.meta, base = defaultsFor(id), combos = [Object.assign({}, base, { dark: true })];
+      var vo = variantOptions(id) || [null];
+      var sk = m.state ? 'state' : m.dialog ? 'dialog' : m.step ? 'step' : null;
+      vo.forEach(function (v) {
+        (sk ? m[sk].options : [null]).forEach(function (o) { var p = Object.assign({}, base); if (v) p.variant = v; if (sk) p[sk] = o; combos.push(p); });
+      });
+      Object.keys(m).forEach(function (k) {
+        if (k === 'variant' || k === sk || k.charAt(0) === '$') return;
+        if (m[k].editor === 'enum') m[k].options.forEach(function (o) { var p = Object.assign({}, base); p[k] = o; combos.push(p); });
+        if (m[k].editor === 'boolean') { var p = Object.assign({}, base); p[k] = !m[k].default; combos.push(p); }
+      });
+      combos.forEach(function (p) {
+        var host = document.createElement('div'); box.append(host);
+        mountScreen(id, p, host);
+        var html = host.innerHTML, t = host.textContent;
+        if (!host.querySelector('.gg')) errs.push(id + ' ' + JSON.stringify(p) + ': nothing drawn');
+        if (html.indexOf('{{') >= 0) errs.push(id + ' ' + JSON.stringify(p) + ': unfilled hole');
+        if (/\bundefined\b|\bNaN\b|\[object Object\]/.test(t)) errs.push(id + ' ' + JSON.stringify(p) + ': bad text');
+      });
+    });
+    FLOWS.forEach(function (f) {
+      f.steps.forEach(function (st, i) {
+        var S = SCREENS[st.screen]; if (!S) { errs.push(f.id + ' step ' + (i + 1) + ': no screen ' + st.screen); return; }
+        Object.keys(st.props).forEach(function (k) { var m = S.meta[k]; if (!m || (m.options && m.options.indexOf(st.props[k]) < 0)) errs.push(f.id + ' step ' + (i + 1) + ': bad ' + k + '=' + st.props[k]); });
+      });
+    });
+    PAIRS.forEach(function (p) {
+      [p.now, p.next].forEach(function (sd) {
+        var S = SCREENS[sd.screen]; if (!S) { errs.push(p.id + ': no screen ' + sd.screen); return; }
+        Object.keys(sd.props).forEach(function (k) { var m = S.meta[k]; if (!m || (m.options && m.options.indexOf(sd.props[k]) < 0)) errs.push(p.id + ': bad ' + k + '=' + sd.props[k]); });
+        if (sd.variant && (variantOptions(sd.screen) || []).indexOf(sd.variant) < 0) errs.push(p.id + ': bad variant ' + sd.variant);
+      });
+    });
+    Object.keys(DOCS).forEach(function (d) { DOCS[d].blocks.forEach(function (bl) { var fid = bl[0] === 'go' ? bl[2] : bl[0] === 'scen' ? bl[3] : undefined; if (fid && !FMAP[fid]) errs.push(d + ': no flow ' + fid); }); });
+    Object.keys(REMAP).forEach(function (k) { if (!SCREENS[k] || !SCREENS[REMAP[k]]) errs.push('remap ' + k); });
+    Object.keys(SCREENS).forEach(function (id) { if (!SHORT[id]) errs.push(id + ': no short name'); });
+    QUESTIONS.forEach(function (q) {
+      var o = variantOptions(q.screen); if (!o || o.indexOf(q.suggest) < 0) errs.push(q.id + ': suggestion not an option');
+      Object.keys(q.preset || {}).forEach(function (k) { var m = SCREENS[q.screen].meta[k]; if (!m || (m.options && m.options.indexOf(q.preset[k]) < 0)) errs.push(q.id + ': bad preset ' + k); });
+    });
+    errorsLog.slice(before).forEach(function (e) { errs.push(e); });
+    box.remove();
+    return errs;
+  };
+
+  /* ---------- Start ---------- */
+  var start = location.hash.replace('#', '');
+  var last = lsGet('vlab.view3', null);
+  if (QMAP[start]) openQuestion(start);
+  else if (FMAP[start]) openFlow(start, 0);
+  else if (PMAP[start]) openPair(start);
+  else if (DOCS[start]) openDoc(start);
+  else if (last && last.mode === 'question' && QMAP[last.id]) openQuestion(last.id);
+  else if (last && last.mode === 'flow' && FMAP[last.id]) openFlow(last.id, last.step || 0);
+  else if (last && last.mode === 'pair' && PMAP[last.id]) openPair(last.id);
+  else if (last && last.mode === 'doc' && DOCS[last.id]) openDoc(last.id);
+  else if (last && last.mode === 'screen' && SCREENS[last.id]) openScreen(last.id);
+  else openPair('p-pay');
+  window.__lab = { openPair: openPair, openQuestion: openQuestion, openFlow: openFlow, openScreen: openScreen, openDoc: openDoc };
+  store.connect();
+})();
+</script>

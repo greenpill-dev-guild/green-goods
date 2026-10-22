@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Review and pay, simplified</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./gg.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="gg {{themeCls}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <sc-if value="{{offline}}" hint-placeholder-val="{{false}}"><div class="offl"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-cloud-off-line"/></svg>&nbsp;Offline Mode</div></sc-if>
+  <div class="scr">
+    <div class="topnav"><span class="close"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></span><span class="mid">{{garden}}</span></div>
+    <div class="ident"><span class="kind">Offer</span><h1>{{title}}</h1></div>
+  </div>
+  <div class="scrim"></div>
+  <section class="sheet tall" role="dialog" aria-modal="true" aria-label="{{sheetTitle}}">
+    <div class="grip" aria-hidden="true"></div>
+    <div class="shead">
+      <div><h2 class="stitle">{{sheetTitle}}</h2><p class="sdesc">{{title}}</p></div>
+      <a class="close" href="SOffer.dc.html" aria-label="Close"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></a>
+    </div>
+    <div class="sbody">
+      <sc-if value="{{showReview}}" hint-placeholder-val="{{true}}">
+        <div class="card">
+          <div class="facts">
+            <sc-for list="{{facts}}" as="f" hint-placeholder-count="4"><div class="fact {{f.cls}}"><span class="k">{{f.k}}</span><span class="v"><span>{{f.v}}</span><small>{{f.s}}</small></span></div></sc-for>
+          </div>
+        </div>
+        <p class="small">{{termsLine}} <a href="#" style="color: var(--on); font-weight: 600">Read the terms</a></p>
+      </sc-if>
+
+      <sc-if value="{{spotDone}}" hint-placeholder-val="{{false}}">
+        <div class="ticket seed">
+          <span class="tk"><span>Mara’s Seed Library</span><span>Redeemed</span></span>
+          <span class="ta">1</span>
+          <span class="tu">seed library voucher · Today, 10:41 AM</span>
+          <span class="tline"></span>
+          <span style="font-size: 14px; font-weight: 600">Show this at the seed table to get your packet.</span>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{hasNotice}}" hint-placeholder-val="{{false}}">
+        <div class="notice {{noticeCls}}"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="{{noticeIcon}}"/></svg>{{noticeT}}</span><p>{{noticeB}}</p></div>
+      </sc-if>
+    </div>
+    <div class="sacts">
+      <sc-if value="{{ready}}" hint-placeholder-val="{{true}}"><button type="button" class="btn">{{cta}}</button></sc-if>
+      <sc-if value="{{disabledMain}}" hint-placeholder-val="{{false}}"><button type="button" class="btn off" disabled><sc-if value="{{approving}}" hint-placeholder-val="{{false}}"><svg class="i spin" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-loader-4-line"/></svg></sc-if>{{disabledLabel}}</button></sc-if>
+      <sc-if value="{{hasNext}}" hint-placeholder-val="{{false}}"><a class="btn" href="{{nextHref}}">{{nextLabel}}</a></sc-if>
+      <sc-if value="{{retry}}" hint-placeholder-val="{{false}}"><button type="button" class="btn">{{retryLabel}}</button></sc-if>
+      <sc-if value="{{showFine}}" hint-placeholder-val="{{true}}"><p class="small" style="text-align: center">One passkey approval. Green Goods covers the network fee.</p></sc-if>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"kind":{"editor":"enum","options":["G$, held until done","Vouchers, held until done","Voucher, used on the spot"],"default":"G$, held until done","section":"State"},"state":{"editor":"enum","options":["Ready","Approving","Done","Canceled","No result","Terms changed","Offline"],"default":"Ready","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var kind = this.props.kind ?? 'G$, held until done';
+    var st = this.props.state ?? 'Ready';
+    var dark = this.props.dark ?? false;
+    var OK = '#ri-check-line';
+    var WARN = '#ri-alert-line';
+    var INFO = '#ri-information-line';
+    var CLOCK = '#ri-time-line';
+    var K = {
+      'G$, held until done': {
+        garden: 'Green Goods Community Garden', title: 'AI assistant membership, 1 month', sheetTitle: 'Review and Pay',
+        facts: [
+          { k: 'You get', v: '1 month of the assistant', s: 'For you only' },
+          { k: 'You pay', v: '450.90 G$', s: 'Includes 0.90 G$ in G$ token fees', cls: 'total' },
+          { k: 'Held until', v: 'Your month is done', s: 'Then paid to the garden’s team' },
+          { k: 'If it doesn’t go ahead', v: 'All 450.00 G$ comes back', s: 'Automatically' }
+        ],
+        termsLine: 'Paying agrees to the offer’s terms, version 3.',
+        cta: 'Pay 450.90 G$', done: ['Paid', 'Your 450.00 G$ is held for this purchase. Green Goods Community Garden decides within 2 days.'],
+        next: ['See Your Purchase', 'SPurchase.dc.html'],
+        changed: 'It’s now version 4, at 480.00 G$. Review it before you pay.'
+      },
+      'Vouchers, held until done': {
+        garden: 'Sunroot Skills Hub', title: 'Solar basics course, 10 lessons', sheetTitle: 'Review and Redeem',
+        facts: [
+          { k: 'You get', v: '10 lessons', s: 'Weekly, on Thursdays' },
+          { k: 'You redeem', v: '100 Sunroot vouchers', s: 'You hold 120', cls: 'total' },
+          { k: 'Held until', v: 'The course is done', s: 'Lessons that don’t happen come back' },
+          { k: 'Before it starts', v: 'Cancel any time', s: 'All 100 come back' }
+        ],
+        termsLine: 'Redeeming agrees to the course terms, version 2.',
+        cta: 'Redeem 100 Vouchers', done: ['Redeemed', 'Your 100 vouchers are held for this course. Sunroot accepts within 3 days.'],
+        next: ['See Your Course', 'SCourse.dc.html'],
+        changed: 'Sunroot published version 3 of the course terms. Review them before you redeem.'
+      },
+      'Voucher, used on the spot': {
+        garden: 'Riverside Commons Garden', title: 'Seed packet, Mara’s Seed Library', sheetTitle: 'Redeem 1 Voucher',
+        facts: [
+          { k: 'You get', v: '1 seed packet', s: 'At the seed table, Saturdays' },
+          { k: 'You redeem', v: '1 seed library voucher', s: 'It goes back to Mara’s Seed Library', cls: 'total' }
+        ],
+        termsLine: 'Redeeming hands the voucher back to its issuer.',
+        cta: 'Redeem 1 Voucher', done: null, next: ['Done', 'SWallet.dc.html'],
+        changed: 'Mara changed what a voucher gets you. Review it before you redeem one.'
+      }
+    };
+    var k = K[kind];
+    var spot = kind === 'Voucher, used on the spot';
+    var N = {
+      'Approving': ['info', CLOCK, 'Waiting for your passkey…', 'Approve once to agree and pay.'],
+      'Done': k.done ? ['ok', OK, k.done[0], k.done[1]] : null,
+      'Canceled': ['', INFO, 'Nothing was paid', 'You canceled before approving.'],
+      'No result': ['warn', WARN, 'We can’t tell if it went through', 'Your passkey didn’t return a result. Check before trying again, so you don’t pay twice.'],
+      'Terms changed': ['warn', WARN, 'This offer just changed', k.changed],
+      'Offline': ['', INFO, 'Paying needs a connection', 'You’re offline. Nothing is saved to pay later.']
+    };
+    var n = N[st];
+    var retryLabels = { 'Canceled': 'Try Again', 'No result': 'Check Payment', 'Terms changed': 'Review the New Terms' };
+    return {
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524',
+      garden: k.garden, title: k.title, sheetTitle: k.sheetTitle, facts: k.facts, termsLine: k.termsLine, cta: k.cta,
+      showReview: st !== 'Done', spotDone: st === 'Done' && spot,
+      hasNotice: !!n, noticeCls: n ? n[0] : '', noticeIcon: n ? n[1] : '', noticeT: n ? n[2] : '', noticeB: n ? n[3] : '',
+      ready: st === 'Ready', disabledMain: st === 'Approving' || st === 'Offline', disabledLabel: k.cta, approving: st === 'Approving',
+      hasNext: st === 'Done', nextLabel: k.next[0], nextHref: k.next[1],
+      retry: !!retryLabels[st], retryLabel: retryLabels[st] || '',
+      showFine: st === 'Ready' || st === 'Approving', offline: st === 'Offline'
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>G$ purchase, simplified</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./gg.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="gg {{themeCls}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <div class="scr" style="padding-bottom: {{padBottom}}">
+    <div class="topnav">
+      <a class="close" href="SWallet.dc.html" aria-label="Back"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></a>
+      <span class="mid">Your purchase</span>
+    </div>
+    <div class="ident">
+      <span class="kind"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-coins-line"/></svg>Green Goods Community Garden</span>
+      <h1>AI assistant membership, 1 month</h1>
+      <span class="pill {{pillCls}}">{{pill}}</span>
+    </div>
+
+    <div class="escrow" style="margin-top: 16px">
+      <div class="etop">
+        <span class="elock"><svg class="i" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="{{holdIcon}}"/></svg></span>
+        <span><span class="ea">{{holdAmt}}</span><span class="eu" style="display: block">{{holdLabel}}</span></span>
+      </div>
+      <div class="eband">
+        <div class="stepper" style="padding: 4px 0 0">
+          <sc-for list="{{steps}}" as="s" hint-placeholder-count="3">
+            <span class="st {{s.cls}}"><span class="dot"><sc-if value="{{s.isDone}}" hint-placeholder-val="{{false}}"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg></sc-if><sc-if value="{{s.isNum}}" hint-placeholder-val="{{true}}">{{s.n}}</sc-if></span>{{s.label}}</span>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+
+    <div class="stack" style="margin-top: 12px">
+      <div class="notice {{noticeCls}}"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="{{noticeIcon}}"/></svg>{{noticeT}}</span><p>{{noticeB}}</p></div>
+    </div>
+
+    <div class="sec"><h2>Details</h2></div>
+    <div class="mx16 card">
+      <div class="facts">
+        <div class="fact"><span class="k">You paid</span><span class="v"><span>450.90 G$ on Oct 22</span><small>Includes 0.90 G$ in G$ token fees</small></span></div>
+        <div class="fact"><span class="k">Terms</span><span class="v"><span>Version 3</span><small>Read the terms</small></span></div>
+        <div class="fact"><span class="k">Refunds go to</span><span class="v">Your account</span></div>
+      </div>
+      <details class="tech">
+        <summary style="cursor: pointer; font-weight: 600">Technical details</summary>
+        <span>Held by contract 0x5E1d…C0aB</span>
+        <span>Purchase #2207</span>
+      </details>
+    </div>
+  </div>
+  <sc-if value="{{hasActs}}" hint-placeholder-val="{{false}}">
+    <div class="fbar">
+      <sc-if value="{{hasPrimary}}" hint-placeholder-val="{{false}}"><a class="btn" href="{{primaryHref}}">{{primary}}</a></sc-if>
+      <sc-if value="{{hasSecondary}}" hint-placeholder-val="{{false}}"><button type="button" class="btn sec">{{secondary}}</button></sc-if>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["Waiting to start","Started","Review window","Done","Declined","Canceled","Refund delayed","Problem reported","Terms changed"],"default":"Waiting to start","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var st = this.props.state ?? 'Waiting to start';
+    var dark = this.props.dark ?? false;
+    var OK = '#ri-check-line';
+    var WARN = '#ri-alert-line';
+    var INFO = '#ri-information-line';
+    var CLOCK = '#ri-time-line';
+    var LOCK = '#ri-lock-line';
+    var BACK = '#ri-arrow-go-back-line';
+    var S = {
+      'Waiting to start': { pill: ['info', 'Held · waiting to start'], hold: [LOCK, '450.00', 'G$ held for this purchase'], at: 1,
+        notice: ['info', CLOCK, 'Waiting for Green Goods Community Garden', 'They usually reply within 2 days. If they decline, your 450.00 G$ comes back by itself.'], secondary: 'Cancel and Get a Refund' },
+      'Started': { pill: ['info', 'In progress'], hold: [LOCK, '450.00', 'G$ held until your month is done'], at: 2,
+        notice: ['ok', OK, 'Your access is active', 'Since Oct 24. Your month ends Nov 24.'], secondary: 'Report a Problem' },
+      'Review window': { pill: ['info', 'Month ended · paying Dec 1'], hold: [LOCK, '450.00', 'G$ held until Dec 1'], at: 2, last: true,
+        notice: ['info', CLOCK, 'Your month ended Nov 24', 'Green Goods Community Garden is paid on Dec 1 unless you report a problem before then.'], secondary: 'Report a Problem' },
+      'Done': { pill: ['ok', 'Kept'], hold: [OK, '450.00', 'G$ paid to the garden’s team'], at: 3,
+        notice: ['ok', OK, 'Kept and paid', 'Green Goods Community Garden was paid on Dec 1, split across its team by their payout plan.'] },
+      'Declined': { pill: ['neu', 'Declined · refund on its way'], hold: [BACK, '450.00', 'G$ coming back to you'], refund: 2,
+        notice: ['info', INFO, 'Green Goods Community Garden declined', 'Your 450.00 G$ is on its way back, usually within minutes.'] },
+      'Canceled': { pill: ['ok', 'Canceled · refunded'], hold: [BACK, '450.00', 'G$ back in your account'], refund: 3,
+        notice: ['ok', OK, 'Canceled before it started', '450.00 G$ is back in your account.'] },
+      'Refund delayed': { pill: ['warn', 'Refund delayed'], hold: [BACK, '450.00', 'G$ coming back to you'], refund: 2, warn: true,
+        notice: ['warn', WARN, 'Your refund is delayed', 'The transfer didn’t complete. It’s retried automatically and can’t be paid twice. You don’t need to do anything.'] },
+      'Problem reported': { pill: ['warn', 'Problem reported · payment paused'], hold: [LOCK, '450.00', 'G$ held, payment paused'], at: 2, warn: true,
+        notice: ['warn', WARN, 'You reported a problem', 'Nov 26: “Access stopped working.” Payment is paused while Green Goods Community Garden responds.'], secondary: 'Add to Your Report' },
+      'Terms changed': { pill: ['warn', 'Terms changed'], hold: [LOCK, '450.00', 'G$ held for this purchase'], at: 1, warn: true,
+        notice: ['warn', WARN, 'The offer changed before it started', 'Version 4 costs 480.00 G$. Agree and add 30.00 G$, or cancel and get your 450.00 G$ back.'], primary: ['Review Version 4', 'SPay.dc.html'], secondary: 'Cancel and Get a Refund' }
+    };
+    var c = S[st];
+    var labels = c.refund ? ['Held', 'Back with you'] : ['Held', 'Started', 'Kept'];
+    var at = c.refund ? c.refund : c.at;
+    var steps = labels.map(function (l, i) {
+      var n = i + 1;
+      var cls = n < at || (c.refund === 3) || (st === 'Done') ? 'done' : (n === at ? (c.warn ? 'on warn' : 'on') : '');
+      if (st === 'Review window' && n === 2) cls = 'done';
+      if (st === 'Review window' && n === 3) cls = 'on';
+      return { n: n, label: l, cls: cls, isDone: cls === 'done', isNum: cls !== 'done' };
+    });
+    var hasPrimary = !!c.primary, hasSecondary = !!c.secondary;
+    return {
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524',
+      pillCls: c.pill[0], pill: c.pill[1], holdIcon: c.hold[0], holdAmt: c.hold[1], holdLabel: c.hold[2], steps: steps,
+      noticeCls: c.notice[0], noticeIcon: c.notice[1], noticeT: c.notice[2], noticeB: c.notice[3],
+      hasActs: hasPrimary || hasSecondary, hasPrimary: hasPrimary, hasSecondary: hasSecondary,
+      primary: hasPrimary ? c.primary[0] : '', primaryHref: hasPrimary ? c.primary[1] : '#', secondary: c.secondary || '',
+      padBottom: hasPrimary || hasSecondary ? '104px' : '40px'
+    };
+  }
+}
+</script>
+</body>
+</html>

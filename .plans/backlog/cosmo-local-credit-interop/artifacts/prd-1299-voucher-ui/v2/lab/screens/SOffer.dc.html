@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Offer, simplified</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./gg.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="gg {{themeCls}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <sc-if value="{{offline}}" hint-placeholder-val="{{false}}"><div class="offl"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-cloud-off-line"/></svg>&nbsp;Offline Mode</div></sc-if>
+  <div class="scr" style="padding-bottom: 150px">
+    <div class="topnav">
+      <a class="close" href="Visit.dc.html" aria-label="Back"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></a>
+      <span class="mid">{{garden}}</span>
+    </div>
+    <div class="ident">
+      <span class="kind"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-hand-heart-line"/></svg>Offer · {{garden}}</span>
+      <h1>{{title}}</h1>
+      <p class="para">{{desc}}</p>
+    </div>
+    <div class="mx16" style="margin-top: 16px"><div class="price"><span class="amt">{{amt}}</span><span class="unit">{{unit}}</span></div></div>
+    <div class="mx16 card" style="margin-top: 12px">
+      <div class="pad">
+        <p class="h3">{{howTitle}}</p>
+        <div class="ladder" style="margin: 0 -16px">
+          <sc-for list="{{how}}" as="h" hint-placeholder-count="3">
+            <div class="ls"><span class="lm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{h.icon}}"/></svg></span><span class="lt"><b>{{h.t}}</b><span>{{h.s}}</span></span></div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+    <div class="stack" style="margin-top: 12px">
+      <sc-if value="{{hasNotice}}" hint-placeholder-val="{{false}}">
+        <div class="notice {{noticeCls}}"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="{{noticeIcon}}"/></svg>{{noticeT}}</span><p>{{noticeB}}</p></div>
+      </sc-if>
+    </div>
+    <div class="sec"><h2>What You Get</h2></div>
+    <div class="mx16 card">
+      <div class="facts">
+        <sc-for list="{{facts}}" as="f" hint-placeholder-count="3"><div class="fact"><span class="k">{{f.k}}</span><span class="v"><span>{{f.v}}</span><small>{{f.s}}</small></span></div></sc-for>
+      </div>
+    </div>
+  </div>
+  <div class="fbar">
+    <sc-if value="{{canGo}}" hint-placeholder-val="{{true}}"><a class="btn" href="SPay.dc.html">{{cta}}</a></sc-if>
+    <sc-if value="{{blocked}}" hint-placeholder-val="{{false}}"><button type="button" class="btn off" disabled>{{cta}}</button></sc-if>
+    <sc-if value="{{short}}" hint-placeholder-val="{{false}}"><a class="btn sec" href="Exchange.dc.html">{{getMore}}</a></sc-if>
+    <sc-if value="{{noRole}}" hint-placeholder-val="{{false}}"><a class="btn sec" href="#">Find a Garden</a></sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"kind":{"editor":"enum","options":["G$, held until done","Vouchers, held until done","Voucher, used on the spot"],"default":"G$, held until done","section":"State"},"state":{"editor":"enum","options":["Open","Not a gardener","Not enough","Gardens only","Paused","Offline"],"default":"Open","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var kind = this.props.kind ?? 'G$, held until done';
+    var st = this.props.state ?? 'Open';
+    var dark = this.props.dark ?? false;
+    var WALLET = '#ri-wallet-3-line';
+    var LOCK = '#ri-lock-line';
+    var CHECK = '#ri-check-line';
+    var TICKET = '#ri-coupon-3-line';
+    var WARN = '#ri-alert-line';
+    var INFO = '#ri-information-line';
+    var K = {
+      'G$, held until done': {
+        garden: 'Green Goods Community Garden', title: 'AI assistant membership, 1 month',
+        desc: 'A shared assistant seat for stewards: grant drafts, translations, meeting notes. Green Goods sets up your access once the garden accepts you.',
+        amt: '450.00', unit: 'G$ for 1 month', howTitle: 'How Paying Works',
+        how: [
+          { icon: WALLET, t: 'You pay 450.00 G$ from your account', s: 'Your own G$, plus a small G$ token fee' },
+          { icon: LOCK, t: 'It’s held for this purchase', s: 'Nobody is paid yet' },
+          { icon: CHECK, t: 'The garden is paid when your month is done', s: 'If it doesn’t go ahead, it all comes back to you' }
+        ],
+        facts: [
+          { k: 'You get', v: '1 month of the assistant', s: 'For you only' },
+          { k: 'Starts', v: 'When the garden accepts you', s: 'Usually within 2 days' },
+          { k: 'If something’s wrong', v: 'Report a problem', s: 'Payment pauses until it’s sorted' }
+        ],
+        cta: 'Pay 450.00 G$', getMore: 'Get G$', shortB: 'You have 300.12 G$. This needs 450.90 G$, including G$ token fees.'
+      },
+      'Vouchers, held until done': {
+        garden: 'Sunroot Skills Hub', title: 'Solar basics course, 10 lessons',
+        desc: 'Hands-on lessons on small solar setups for garden sheds and pumps. Weekly, in person at Sunroot.',
+        amt: '100', unit: 'Sunroot vouchers', howTitle: 'How Paying Works',
+        how: [
+          { icon: TICKET, t: 'You redeem 100 Sunroot vouchers', s: 'You hold 120' },
+          { icon: LOCK, t: 'They’re held for this course', s: 'Sunroot doesn’t get them yet' },
+          { icon: CHECK, t: 'Sunroot gets them when the course is done', s: 'Lessons that don’t happen come back to you' }
+        ],
+        facts: [
+          { k: 'You get', v: '10 lessons', s: 'Weekly, on Thursdays' },
+          { k: 'Starts', v: 'When Sunroot accepts you', s: 'Within 2 weeks' },
+          { k: 'Changed your mind?', v: 'Cancel before it starts', s: 'All 100 come back' }
+        ],
+        cta: 'Redeem 100 Vouchers', getMore: 'Get Sunroot Vouchers', shortB: 'You have 80 Sunroot vouchers. This course takes 100.'
+      },
+      'Voucher, used on the spot': {
+        garden: 'Riverside Commons Garden', title: 'Seed packet, Mara’s Seed Library',
+        desc: 'One packet of this season’s saved seeds. Pick it up at the seed table on Saturdays.',
+        amt: '1', unit: 'seed library voucher', howTitle: 'How Redeeming Works',
+        how: [
+          { icon: TICKET, t: 'You redeem 1 voucher', s: 'It goes back to Mara’s Seed Library' },
+          { icon: CHECK, t: 'Show the receipt at the seed table', s: 'Saturdays, 9 to 12' }
+        ],
+        facts: [
+          { k: 'You get', v: '1 seed packet', s: 'Your choice on the day' },
+          { k: 'Issued by', v: 'Mara’s Seed Library', s: 'A gardener at Riverside Commons' }
+        ],
+        cta: 'Redeem 1 Voucher', getMore: 'Get Seed Vouchers', shortB: 'You don’t have a seed library voucher yet. Gardeners earn them by keeping promises.'
+      }
+    };
+    var k = K[kind];
+    var N = {
+      'Not a gardener': ['info', INFO, 'Join a garden to pay for yourself', 'Paying for yourself is open to gardeners and stewards of any garden. You don’t have to join this one.'],
+      'Not enough': ['warn', WARN, 'Not enough to pay', k.shortB],
+      'Gardens only': ['info', INFO, 'Gardens only, for now', k.garden + ' hasn’t opened this to members paying for themselves. Your stewards can still ask for it for the garden.'],
+      'Paused': ['warn', WARN, 'Paused', k.garden + ' isn’t taking new requests right now. Anything already under way continues.'],
+      'Offline': ['', INFO, 'Paying needs a connection', 'You’re offline. Payments aren’t saved for later.']
+    };
+    var n = N[st];
+    return {
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524',
+      garden: k.garden, title: k.title, desc: k.desc, amt: k.amt, unit: k.unit, howTitle: k.howTitle, how: k.how, facts: k.facts,
+      cta: k.cta, getMore: k.getMore,
+      hasNotice: !!n, noticeCls: n ? n[0] : '', noticeIcon: n ? n[1] : '', noticeT: n ? n[2] : '', noticeB: n ? n[3] : '',
+      canGo: st === 'Open', blocked: st !== 'Open', short: st === 'Not enough' && kind !== 'Voucher, used on the spot', noRole: st === 'Not a gardener', offline: st === 'Offline'
+    };
+  }
+}
+</script>
+</body>
+</html>

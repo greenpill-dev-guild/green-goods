@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Wallet, simplified</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./gg.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="gg {{themeCls}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <div class="scr"><header class="hdr"><span class="gchip"><span class="av"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-fill"/></svg></span><span class="lbl">Riverside Commons Garden</span></span></header></div>
+  <div class="scrim"></div>
+  <section class="sheet full" role="dialog" aria-modal="true" aria-label="Your Wallet">
+    <div class="grip" aria-hidden="true"></div>
+    <div class="shead"><div><h2 class="stitle">Your Wallet</h2><p class="sdesc">Your funds across the network.</p></div><a class="close" href="Main.dc.html" aria-label="Close"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></a></div>
+    <div class="stabs" role="tablist">
+      <button type="button" role="tab" aria-selected="false"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-coins-line"/></svg>Tokens</button>
+      <button type="button" role="tab" class="{{vTab}}" aria-selected="{{vSel}}" onClick="{{showVouchers}}"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-coupon-3-line"/></svg>Vouchers</button>
+      <button type="button" role="tab" class="{{pTab}}" aria-selected="{{pSel}}" onClick="{{showPurchases}}"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-shopping-bag-3-line"/></svg>Purchases<span class="cnt">2</span></button>
+      <button type="button" role="tab" aria-selected="false"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-stack-line"/></svg>Cookies</button>
+    </div>
+    <div class="sbody">
+      <sc-if value="{{isPurchases}}" hint-placeholder-val="{{true}}">
+        <p class="small">What you’ve paid for yourself, in any garden. Each one is held until it’s done.</p>
+        <p class="h3">In Progress</p>
+        <a class="row" href="SPurchase.dc.html"><span class="tile"><svg class="i" width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-coins-line"/></svg></span><span class="rbody"><span class="rtitle">AI assistant membership, 1 month</span><span class="pill info">Held · waiting to start</span><span class="detail">Green Goods Community Garden · 450.00 G$ held</span></span><span class="slot"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-right-s-line"/></svg></span></a>
+        <a class="row" href="SCourse.dc.html"><span class="tile sun"><svg class="i" width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-coupon-3-line"/></svg></span><span class="rbody"><span class="rtitle">Solar basics course, 10 lessons</span><span class="pill info">In progress · 3 of 10</span><span class="detail">Sunroot Skills Hub · 100 vouchers held</span></span><span class="slot"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-right-s-line"/></svg></span></a>
+        <p class="h3">Closed</p>
+        <a class="row" href="#"><span class="tile"><svg class="i" width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-coins-line"/></svg></span><span class="rbody"><span class="rtitle">Garden journal printing</span><span class="pill ok">Refunded</span><span class="detail">Hilltop Orchard · 120.00 G$ back on Oct 3</span></span><span class="slot"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-right-s-line"/></svg></span></a>
+      </sc-if>
+
+      <sc-if value="{{isVouchers}}" hint-placeholder-val="{{false}}">
+        <p class="small">Vouchers you hold, in the same account you use everywhere.</p>
+        <a class="row" href="#"><span class="tile sun"><svg class="i" width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-sun-line"/></svg></span><span class="rbody"><span class="rtitle">Sunroot Skills Hub voucher</span><span class="pill neu">20 available</span><span class="detail">+100 held for your course</span></span><span class="slot"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-right-s-line"/></svg></span></a>
+        <a class="row" href="SOffer.dc.html"><span class="tile seed"><svg class="i" width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-line"/></svg></span><span class="rbody"><span class="rtitle">Mara’s Seed Library voucher</span><span class="pill neu">5 available</span><span class="detail">One seed packet each</span></span><span class="slot"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-right-s-line"/></svg></span></a>
+        <p class="small">Holding vouchers doesn’t book anything. Each issuer’s offers show what’s available.</p>
+        <p class="h3">Redeem or Get Vouchers</p>
+        <a class="row" href="Visit.dc.html"><span class="tile"><svg class="i" width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-hand-heart-line"/></svg></span><span class="rbody"><span class="rtitle">Offers that take your vouchers</span><span class="detail">2 in gardens you can visit</span></span><span class="slot"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-right-s-line"/></svg></span></a>
+        <a class="row" href="Exchange.dc.html"><span class="tile"><svg class="i" width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-exchange-line"/></svg></span><span class="rbody"><span class="rtitle">Sunroot voucher exchange</span><span class="pill reh">Rehearsal</span><span class="detail">Run by Sunroot Skills Hub</span></span><span class="slot"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-right-s-line"/></svg></span></a>
+      </sc-if>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"tab":{"editor":"enum","options":["Purchases","Vouchers"],"default":"Purchases","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var s = this.state || {};
+    var tab = s.tab || this.props.tab || 'Purchases';
+    var dark = this.props.dark ?? false;
+    var self = this;
+    var p = tab === 'Purchases';
+    return {
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524',
+      isPurchases: p, isVouchers: !p,
+      pTab: p ? 'on' : '', vTab: p ? '' : 'on', pSel: p ? 'true' : 'false', vSel: p ? 'false' : 'true',
+      showPurchases: function () { self.setState({ tab: 'Purchases' }); },
+      showVouchers: function () { self.setState({ tab: 'Vouchers' }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

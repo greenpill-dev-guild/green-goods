@@ -6,12 +6,17 @@ PRD-1324 implement it after approval.
 
 | Version | Date | Status | Start with | Published artifact |
 |---|---|---|---|---|
-| [v1](v1/handoff.md) | 22 Oct 2026 | For Afo's review; not approved | [`v1/prototype.html`](v1/prototype.html) (open in a browser) | [Cosmo-Local Voucher Design](https://claude.ai/artifact/3XWy9GQoAPSsJjikSzomWZ), artifact version 1 (private until shared) |
+| [v1](v1/handoff.md) | 22 Oct 2026 | Superseded by v2's direction; kept for comparison | [`v1/prototype.html`](v1/prototype.html) (open in a browser) | [Cosmo-Local Voucher Design](https://claude.ai/artifact/3XWy9GQoAPSsJjikSzomWZ), artifact version 1 (private until shared) |
+| [v2](v2/handoff.md) | 22 Oct 2026 | Draft for Afo's review; not approved. Needs the local checks in its handoff. | [`v2/voucher-lab.html`](v2/voucher-lab.html) (open in a browser) | [Voucher Lab](https://claude.ai/artifact/3pwUYy43vdb91q6qdH3H9G), artifact version 4 (anyone with the link) |
 
 Each version is a frozen folder. A revision becomes `v2/` beside it; nothing in an approved
 version is edited in place.
 
 ## What a version holds
+
+v2 is a design lab: one page with every screen, the simplified flows, the recommendations and a
+feedback panel. It holds `voucher-lab.html` (generated), `handoff.md`, `design-audit.md`, and its
+sources in `lab/` (`node build.mjs`, then `node check.mjs`). v1 holds:
 
 - `prototype.html`: the navigable prototype, generated. Member app and steward cockpit screens
   with every state, EN/ES/PT copy, light and dark frames, ten walks from real entry screens,

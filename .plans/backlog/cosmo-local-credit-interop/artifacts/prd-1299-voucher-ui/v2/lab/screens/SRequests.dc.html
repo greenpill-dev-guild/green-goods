@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Selling garden requests, simplified</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./gg.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="gg ck {{themeCls}}" style="width: 1280px; height: 800px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <div class="wash"></div>
+  <header class="c-app">
+    <button type="button" class="gchip"><span class="av"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-fill"/></svg></span><span class="lbl">Green Goods Community Garden</span><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-down-s-line"/></svg></button>
+    <span class="c-icons"><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-search-line"/></svg></span><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-notification-3-line"/></svg></span><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-settings-3-line"/></svg></span><span class="avatar" style="width: 32px; height: 32px; font-size: 13px">K</span></span>
+  </header>
+  <main class="c-route">
+    <div class="c-head"><div><h1>Garden</h1><p>Green Goods Community Garden</p></div></div>
+    <div class="c-tabs" role="tablist"><span>Health</span><span>Impact</span><span>Activity</span><span class="on">Promises<span class="cnt">1</span></span></div>
+    <div class="c-grid">
+      <div class="c-col">
+        <section class="acard">
+          <div class="ah"><div><h2>Review Promises</h2><p>Payment is already held when a request reaches you. Accepting starts it.</p></div><span class="sb neu">Protocol pool</span></div>
+          <div class="arow offer">
+            <div class="l1"><span class="nm">Lina · AI assistant membership, 1 month</span><span class="sb {{linaSb}}">{{linaTag}}</span></div>
+            <div class="l2">{{linaMeta}}</div>
+            <div class="acts">
+              <sc-if value="{{showDecide}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn">Decline…</button><button type="button" class="abtn fill" onClick="{{openAccept}}">Accept…</button></sc-if>
+              <sc-if value="{{showReady}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn fill" onClick="{{markReady}}">Mark Access Ready</button></sc-if>
+              <sc-if value="{{showRespond}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn fill">Respond…</button></sc-if>
+            </div>
+          </div>
+          <div class="arow offer">
+            <div class="l1"><span class="nm">Kofi · AI assistant membership, 1 month</span><span class="sb info">In progress</span></div>
+            <div class="l2">Gardener at Hilltop Orchard · access active since Oct 12 · month ends Nov 12</div>
+          </div>
+          <div class="arow offer">
+            <div class="l1"><span class="nm">Ama · AI assistant membership, 1 month</span><span class="sb ok">Kept</span></div>
+            <div class="l2">Paid to your team Oct 3 · 450.00 G$</div>
+          </div>
+        </section>
+        <section class="acard">
+          <div class="ah"><div><h2>Offers and Requests</h2><p>What this garden offers and asks for</p></div></div>
+          <div class="scope"><span class="chipf on">Open</span><span class="chipf">Confirmed</span><span class="chipf">Past</span></div>
+          <div class="arow offer sel">
+            <div class="l1"><span class="nm">AI assistant membership, 1 month</span><span class="sb ok">Offered</span></div>
+            <div class="l2">450.00 G$ · 7 of 12 seats taken</div>
+          </div>
+          <div class="arow req">
+            <div class="l1"><span class="nm">Translate the onboarding guide</span><span class="sb info">Asked for</span></div>
+            <div class="l2">Pays 80 G$ · Portuguese</div>
+          </div>
+        </section>
+      </div>
+      <div class="c-col">
+        <section class="acard">
+          <div class="ah"><div><h2>AI Assistant Membership</h2><p>Individual offer · 1 month</p></div></div>
+          <div class="ab">
+            <div class="afacts">
+              <div class="afact"><span class="k">Price</span><span class="v">450.00 G$ · version 3</span></div>
+              <div class="afact"><span class="k">Who can buy</span><span class="v"><span class="chips"><span class="chip">Gardens</span><span class="chip">Gardeners, with their own G$</span></span></span></div>
+              <div class="afact"><span class="k">Seats</span><span class="v">12 · 7 taken</span></div>
+              <div class="afact"><span class="k">Paid to</span><span class="v">Your team, by your payout plan<small>When each month is done</small></span></div>
+            </div>
+            <button type="button" class="setrow {{autoCls}}" role="switch" aria-checked="{{autoOn}}" onClick="{{toggleAuto}}"><span><b>Accept Automatically</b><small>While seats are available. Requests start without waiting for a steward; you can still decline within 2 days.</small></span><span class="switch" aria-hidden="true"></span></button>
+          </div>
+        </section>
+        <section class="acard">
+          <div class="ah"><div><h2>Technical Details</h2><p>For stewards checking a record</p></div></div>
+          <div class="ab"><div class="afacts">
+            <div class="afact"><span class="k">Payments</span><span class="v">Held in purchase escrow on Celo<small>Released by this purchase’s outcome only</small></span></div>
+            <div class="afact"><span class="k">Records</span><span class="v">Pooling and settlement on Arbitrum</span></div>
+          </div></div>
+        </section>
+      </div>
+    </div>
+  </main>
+  <nav class="dock" aria-label="Cockpit">
+    <span class="ni"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-apps-line"/></svg></span>Hub</span>
+    <span class="ni on"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-line"/></svg></span>Garden</span>
+    <span class="ni"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-team-line"/></svg></span>Community</span>
+    <span class="ni"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-hammer-fill"/></svg></span>Actions</span>
+  </nav>
+
+  <sc-if value="{{showDialog}}" hint-placeholder-val="{{false}}">
+    <div class="dscrim"></div>
+    <section class="dlg" role="dialog" aria-modal="true" aria-label="Accept Lina's request">
+      <div class="dh"><div><h2>Accept Lina’s Request?</h2><p>AI assistant membership, 1 month</p></div><button type="button" class="close" aria-label="Close" onClick="{{closeAccept}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></button></div>
+      <div class="db">
+        <div class="notice warn"><span class="nt"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-alert-line"/></svg>Writing to the Green Goods protocol pool</span><p>“AI assistant membership, 1 month”, in the Green Goods Community Garden’s own pool, where the protocol’s promises live. Changes here can affect promises across gardens.</p></div>
+        <div class="checks">
+          <div class="ckr ok"><span class="cm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg></span><span>450.00 G$ is held for this purchase<small>Checked automatically, Today 10:53 AM</small></span></div>
+          <div class="ckr ok"><span class="cm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg></span><span>Lina agreed to the current terms, version 3<small>Her payment carries them</small></span></div>
+        </div>
+        <div class="fsr info"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-information-line"/></svg><span><b>Accept Lina’s request and start her membership</b><small>Set up her access next. Your team is paid when her month is done, unless she reports a problem.</small></span></div>
+      </div>
+      <div class="df"><span class="note">Your wallet will ask you once.</span><button type="button" class="abtn lg txt" onClick="{{closeAccept}}">Cancel</button><button type="button" class="abtn lg fill" onClick="{{accept}}">Accept Request</button></div>
+    </section>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["Request waiting","Accept dialog","Accepted automatically","Set up access","Problem reported","Month ended"],"default":"Request waiting","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var s = this.state || {};
+    var st = s.stage || this.props.state || 'Request waiting';
+    var dark = this.props.dark ?? false;
+    var self = this;
+    var R = {
+      'Request waiting': ['ok', '450.00 G$ held', 'Gardener at Riverside Commons Garden · asked Today, 10:52 AM · current terms'],
+      'Accept dialog': ['ok', '450.00 G$ held', 'Gardener at Riverside Commons Garden · asked Today, 10:52 AM · current terms'],
+      'Accepted automatically': ['info', 'Accepted automatically', '450.00 G$ held · set up her access, then mark it ready'],
+      'Set up access': ['info', 'Accepted', '450.00 G$ held · set up her access outside the app, then mark it ready'],
+      'Started': ['info', 'In progress', 'Access ready since Today · her month ends Nov 24'],
+      'Problem reported': ['warn', 'Problem reported', 'Nov 26: “Access stopped working.” · payment paused until it’s sorted'],
+      'Month ended': ['info', 'Waiting to be confirmed', 'Paid to your team on Dec 1 unless Lina reports a problem · 450.00 G$']
+    };
+    var r = R[st] || R['Request waiting'];
+    var auto = s.auto !== undefined ? s.auto : st === 'Accepted automatically';
+    return {
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524',
+      linaSb: r[0], linaTag: r[1], linaMeta: r[2],
+      showDecide: st === 'Request waiting' || st === 'Accept dialog',
+      showReady: st === 'Set up access' || st === 'Accepted automatically',
+      showRespond: st === 'Problem reported',
+      showDialog: (st === 'Accept dialog' && s.dlg !== false) || s.dlg === true,
+      autoCls: auto ? 'on' : '', autoOn: auto ? 'true' : 'false',
+      openAccept: function () { self.setState({ dlg: true }); },
+      closeAccept: function () { self.setState({ dlg: false }); },
+      accept: function () { self.setState({ dlg: false, stage: 'Set up access' }); },
+      markReady: function () { self.setState({ stage: 'Started' }); },
+      toggleAuto: function () { self.setState({ auto: !auto }); }
+    };
+  }
+}
+</script>
+</body>
+</html>
