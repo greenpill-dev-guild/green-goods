@@ -9,6 +9,7 @@ import { VoucherServiceCodec as Service } from "../libraries/VoucherServiceCodec
 import { VoucherServiceSourceStorage as Store } from "../lib/VoucherService/VoucherServiceSourceStorage.sol";
 import { VoucherServiceConsentLib as Consent } from "../lib/VoucherService/VoucherServiceConsentLib.sol";
 import { VoucherServiceResultLib as Results } from "../lib/VoucherService/VoucherServiceResultLib.sol";
+import { VoucherServiceOutboxLib as Outbox } from "../lib/VoucherService/VoucherServiceOutboxLib.sol";
 import { VoucherEndpoint } from "./VoucherEndpoint.sol";
 
 /// @notice Pending-consent setup, authenticated escrow proof and permanent activation/abort choice.
@@ -174,7 +175,7 @@ contract VoucherRedemptionModule is VoucherEndpoint {
         if (msg.sender != address(commitmentPooling)) revert CoreOnly();
         if (paused) revert VoucherPaused();
         id = Store.state().setupOfClaim[commitmentId][claimHash];
-        Service.SetupAuthorization memory a = _authorization(id);
+        Service.SetupAuthorization memory a = Outbox.authorization(id, LOCAL_CHAIN_ID);
         Store.SourceSetup storage record = Store.state().setups[id];
         if (
             a.buyer != buyer || a.termsRevision != revision || a.termsHash != termsHash || a.claimHash != claimHash
@@ -190,27 +191,27 @@ contract VoucherRedemptionModule is VoucherEndpoint {
 
     /// @notice Exact accepted-ever receipt wins even after deadline/lifecycle changes.
     function finalizeActivation(bytes32 id, bytes32 expectedAuthorizationHash) external nonReentrant returns (bytes32) {
-        return _activate(_bound(id, expectedAuthorizationHash));
+        return _activate(Outbox.boundAuthorization(id, expectedAuthorizationHash, LOCAL_CHAIN_ID));
     }
 
     /// @notice Source expiry selects an Abort certificate; Gnosis never infers local expiry.
     function abortSetup(bytes32 id, bytes32 expectedAuthorizationHash) external nonReentrant returns (bytes32) {
-        Service.SetupAuthorization memory a = _bound(id, expectedAuthorizationHash);
+        Service.SetupAuthorization memory a = Outbox.boundAuthorization(id, expectedAuthorizationHash, LOCAL_CHAIN_ID);
         Service.AbortReason reason;
         if (msg.sender == a.buyer) reason = Service.AbortReason.BuyerRequest;
         else if (block.timestamp > a.acceptanceDeadline) reason = Service.AbortReason.Deadline;
         else if (!Consent.matchesPending(a)) reason = Service.AbortReason.ClaimInvalid;
         else revert SetupAbortNotAuthorized();
-        return _abort(a, reason);
+        return _recordDecision(Outbox.abort(a, reason));
     }
 
     /// @param kind 0 = immutable Authorization; 1 = selected immutable Activate/Abort Decision.
     function quoteSetupCommand(bytes32 id, uint8 kind) public view returns (uint256) {
-        return _quote(_setupCommand(id, kind), COMMAND_GAS_LIMIT);
+        return _quote(Outbox.setupCommand(id, kind, LOCAL_CHAIN_ID), COMMAND_GAS_LIMIT);
     }
 
     function dispatchSetupCommand(bytes32 id, uint8 kind) external payable nonReentrant returns (bytes32 messageId) {
-        bytes memory command = _setupCommand(id, kind);
+        bytes memory command = Outbox.setupCommand(id, kind, LOCAL_CHAIN_ID);
         Store.SourceSetup storage record = Store.state().setups[id];
         if (paused && (kind == 0 || record.decision != Service.SetupDecision.Abort)) revert VoucherPaused();
         uint256 fee = _quote(command, COMMAND_GAS_LIMIT);
@@ -226,7 +227,7 @@ contract VoucherRedemptionModule is VoucherEndpoint {
     }
 
     function getSetupAuthorization(bytes32 id) external view returns (Service.SetupAuthorization memory) {
-        return _authorization(id);
+        return Outbox.authorization(id, LOCAL_CHAIN_ID);
     }
 
     function setupOfClaim(uint256 commitmentId, bytes32 claimHash) external view returns (bytes32) {
@@ -242,7 +243,7 @@ contract VoucherRedemptionModule is VoucherEndpoint {
     }
 
     function getSetupCommand(bytes32 id, uint8 kind) external view returns (bytes memory) {
-        return _setupCommand(id, kind);
+        return Outbox.setupCommand(id, kind, LOCAL_CHAIN_ID);
     }
 
     // Retain v1 selectors/layouts without retaining accepted-first execution.
@@ -284,7 +285,7 @@ contract VoucherRedemptionModule is VoucherEndpoint {
     }
 
     function _recordSetup(Service.SetupResult memory r) private {
-        Service.SetupAuthorization memory a = _authorization(r.setupId);
+        Service.SetupAuthorization memory a = Outbox.authorization(r.setupId, LOCAL_CHAIN_ID);
         Store.State storage s = Store.state();
         Store.SourceSetup storage record = s.setups[r.setupId];
         bytes32 resultHash = keccak256(abi.encode(r));
@@ -306,7 +307,7 @@ contract VoucherRedemptionModule is VoucherEndpoint {
     }
 
     function _recordFinal(Service.FinalResultV2 memory r) private {
-        Service.SetupAuthorization memory a = _authorization(r.setupId);
+        Service.SetupAuthorization memory a = Outbox.authorization(r.setupId, LOCAL_CHAIN_ID);
         Store.State storage s = Store.state();
         bytes32 resultHash = keccak256(abi.encode(r));
         bytes32 prior = s.finalSequenceHashes[r.setupId][r.sequence];
@@ -320,70 +321,22 @@ contract VoucherRedemptionModule is VoucherEndpoint {
     }
 
     function _holderAbort(Service.HolderAbortRequest memory request) private {
-        Service.SetupAuthorization memory a = _bound(request.setupId, request.authorizationHash);
+        Service.SetupAuthorization memory a =
+            Outbox.boundAuthorization(request.setupId, request.authorizationHash, LOCAL_CHAIN_ID);
         if (request.holder != a.holder) revert InvalidServiceAuthorization();
         (, bool accepted) = Consent.acceptedReceipt(a);
         emit VoucherHolderAbortRequested(request.setupId, request.holder, accepted);
-        if (!accepted) _abort(a, Service.AbortReason.HolderRequest);
+        if (!accepted) _recordDecision(Outbox.abort(a, Service.AbortReason.HolderRequest));
     }
 
     function _activate(Service.SetupAuthorization memory a) private returns (bytes32) {
-        (Acceptance.VoucherServiceAcceptance memory receipt, bool exact) = Consent.acceptedReceipt(a);
-        if (!exact) revert VoucherSetupNotReady();
-        bytes32 id = Service.setupId(a);
-        if (Store.state().setups[id].decision == Service.SetupDecision.Abort) revert VoucherSetupAborted();
-        redemptionOfCommitment[a.commitmentId] = id;
-        return _select(a, Service.SetupDecision.Activate, keccak256(abi.encode(receipt)), Service.AbortReason.None);
+        return _recordDecision(Outbox.activate(a, redemptionOfCommitment));
     }
 
-    function _abort(Service.SetupAuthorization memory a, Service.AbortReason reason) private returns (bytes32) {
-        (, bool exact) = Consent.acceptedReceipt(a);
-        if (exact || Store.state().setups[Service.setupId(a)].decision == Service.SetupDecision.Activate) {
-            revert VoucherSetupAlreadyAccepted();
+    function _recordDecision(Outbox.Selection memory selection) private returns (bytes32) {
+        if (selection.changed) {
+            emit VoucherSetupDecisionSelected(selection.setupId, selection.decisionId, selection.command);
         }
-        return _select(a, Service.SetupDecision.Abort, bytes32(0), reason);
-    }
-
-    function _select(
-        Service.SetupAuthorization memory a,
-        Service.SetupDecision decision,
-        bytes32 acceptanceHash,
-        Service.AbortReason reason
-    )
-        private
-        returns (bytes32)
-    {
-        bytes32 id = Service.setupId(a);
-        Store.State storage s = Store.state();
-        Store.SourceSetup storage record = s.setups[id];
-        if (record.decision != Service.SetupDecision.None) return record.decisionId;
-        Service.SetupDecisionCommand memory command = Service.SetupDecisionCommand(
-            Service.VERSION, id, record.authorizationHash, decision, Service.depositReceiptHash(a), acceptanceHash, reason
-        );
-        record.decision = decision;
-        record.decisionAt = uint64(block.timestamp);
-        record.decisionId = Service.decisionId(command);
-        s.decisionCommands[id] = Service.encodeDecision(a, command);
-        emit VoucherSetupDecisionSelected(id, record.decisionId, command);
-        return record.decisionId;
-    }
-
-    function _authorization(bytes32 id) private view returns (Service.SetupAuthorization memory a) {
-        if (block.chainid != LOCAL_CHAIN_ID) revert InvalidEndpoint();
-        if (Store.state().setups[id].authorizationHash == bytes32(0)) revert UnknownRedemption();
-        return Service.decodeAuthorization(Store.state().authorizations[id]);
-    }
-
-    function _bound(bytes32 id, bytes32 expected) private view returns (Service.SetupAuthorization memory a) {
-        a = _authorization(id);
-        if (Service.hash(a) != expected) revert InvalidServiceAuthorization();
-    }
-
-    function _setupCommand(bytes32 id, uint8 kind) private view returns (bytes memory command) {
-        _authorization(id);
-        if (kind == 0) command = Store.state().authorizations[id];
-        else if (kind == 1) command = Store.state().decisionCommands[id];
-        else revert Service.UnsupportedVoucherServiceMessage();
-        if (command.length == 0) revert VoucherSetupNotReady();
+        return selection.decisionId;
     }
 }

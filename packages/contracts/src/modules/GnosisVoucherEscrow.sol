@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { VoucherRedemptionCodec as Legacy } from "../libraries/VoucherRedemptionCodec.sol";
 import { VoucherServiceCodec as Codec } from "../libraries/VoucherServiceCodec.sol";
 import { VoucherServiceEscrowStorage as Store } from "../libraries/VoucherServiceEscrowStorage.sol";
 import { VoucherRedemptionTransfers as Transfers } from "../libraries/VoucherRedemptionTransfers.sol";
+import { VoucherFinalAllocationLib as FinalAllocation } from "../lib/VoucherService/VoucherFinalAllocationLib.sol";
 import { VoucherRedemptionReceiver } from "./VoucherRedemptionReceiver.sol";
 
 /// @notice Pre-acceptance voucher custody and one holder-approved immutable final financial split.
@@ -192,7 +192,7 @@ contract GnosisVoucherEscrow is VoucherRedemptionReceiver {
             if (e.result.decision != Codec.SetupDecision.Abort || e.result.setupRefundedUnits != 0) {
                 revert SetupAlreadyDecided();
             }
-            _consumeLiability(a.token, e.result.depositedUnits);
+            FinalAllocation.consumeLiability(a.token, e.result.depositedUnits);
             e.result.setupRefundedUnits = e.result.depositedUnits;
             e.result.phase = Codec.SetupPhase.Aborted;
             Transfers.release(a.token, a.holder, e.result.depositedUnits);
@@ -264,44 +264,22 @@ contract GnosisVoucherEscrow is VoucherRedemptionReceiver {
         returns (bytes32 decisionId)
     {
         Store.Execution storage e = _holderSetup(id, expectedPayloadHash);
-        Codec.FinalAllocationRecord storage f = e.finalAllocation;
-        if (f.decisionId != bytes32(0)) {
-            if (keccak256(abi.encode(f.allocation)) != keccak256(abi.encode(allocation))) {
-                revert ConflictingFinalAllocation();
-            }
-            return f.decisionId;
+        bool changed;
+        (decisionId, changed) = FinalAllocation.freeze(e, _setupAuthorization(id), allocation, paused);
+        if (changed) {
+            emit FinalAllocationFrozen(
+                id,
+                decisionId,
+                msg.sender,
+                expectedPayloadHash,
+                e.finalAllocation.activationDecisionId,
+                allocation.approvedDeliveredServiceUnits,
+                allocation.releaseVoucherUnits,
+                allocation.refundVoucherUnits,
+                e.issuerReturnCeiling
+            );
+            _changedFinal(id);
         }
-        if (paused) revert ExecutionPaused();
-        if (e.result.phase != Codec.SetupPhase.Active || e.result.decision != Codec.SetupDecision.Activate) {
-            revert SetupNotActive();
-        }
-        Codec.SetupAuthorization memory a = _setupAuthorization(id);
-        if (
-            e.result.depositedUnits != a.voucherUnits || allocation.releaseVoucherUnits > a.voucherUnits
-                || allocation.refundVoucherUnits != a.voucherUnits - allocation.releaseVoucherUnits
-                || allocation.approvedDeliveredServiceUnits > a.serviceUnits
-                || (allocation.releaseVoucherUnits != 0 && allocation.approvedDeliveredServiceUnits == 0)
-                || allocation.refundVoucherUnits > e.issuerReturnCeiling
-        ) revert InvalidRedemptionQuantity();
-        decisionId = Codec.finalDecisionId(a, e.result.appliedDecisionId, allocation, e.issuerReturnCeiling);
-        f.decisionId = decisionId;
-        f.activationDecisionId = e.result.appliedDecisionId;
-        f.issuerReturnApprovalAtFreeze = e.issuerReturnCeiling;
-        f.allocation = allocation;
-        f.release.state = allocation.releaseVoucherUnits == 0 ? Codec.LegState.NotRequired : Codec.LegState.Pending;
-        f.refund.state = allocation.refundVoucherUnits == 0 ? Codec.LegState.NotRequired : Codec.LegState.Pending;
-        emit FinalAllocationFrozen(
-            id,
-            decisionId,
-            msg.sender,
-            expectedPayloadHash,
-            f.activationDecisionId,
-            allocation.approvedDeliveredServiceUnits,
-            allocation.releaseVoucherUnits,
-            allocation.refundVoucherUnits,
-            e.issuerReturnCeiling
-        );
-        _changedFinal(id);
     }
 
     function executeFinalLeg(bytes32 id, bytes32 expectedDecisionId, Codec.FinalLeg leg) external nonReentrant {
@@ -331,27 +309,15 @@ contract GnosisVoucherEscrow is VoucherRedemptionReceiver {
             progress.attempts,
             progress.failureHash
         );
-        if (_closed(f)) emit VoucherEscrowFinanciallyClosed(id, f.decisionId);
+        if (FinalAllocation.closed(f)) emit VoucherEscrowFinanciallyClosed(id, f.decisionId);
         _changedFinal(id);
     }
 
     function executeStoredFinalLeg(bytes32 id, Codec.FinalLeg leg) external {
         if (msg.sender != address(this)) revert SelfOnly();
         if (paused) revert ExecutionPaused();
-        Store.Execution storage e = _knownSetup(id);
-        Codec.FinalAllocationRecord storage f = e.finalAllocation;
-        if (e.result.phase != Codec.SetupPhase.Active || f.decisionId == bytes32(0)) revert SetupNotActive();
-        Codec.LegProgress storage progress = leg == Codec.FinalLeg.ReleaseToIssuer ? f.release : f.refund;
-        if (progress.state != Codec.LegState.Pending && progress.state != Codec.LegState.Failed) {
-            revert NoRetryableAction();
-        }
-        Codec.SetupAuthorization memory a = _setupAuthorization(id);
-        uint256 units =
-            leg == Codec.FinalLeg.ReleaseToIssuer ? f.allocation.releaseVoucherUnits : f.allocation.refundVoucherUnits;
-        _consumeLiability(a.token, units);
-        progress.state = Codec.LegState.Succeeded;
-        progress.failureHash = bytes32(0);
-        Transfers.release(a.token, leg == Codec.FinalLeg.ReleaseToIssuer ? a.issuer : a.holder, units);
+        _knownSetup(id);
+        FinalAllocation.executeLeg(id, leg);
     }
 
     function getFinalAllocation(bytes32 id) external view returns (Codec.FinalAllocationRecord memory) {
@@ -359,24 +325,12 @@ contract GnosisVoucherEscrow is VoucherRedemptionReceiver {
     }
 
     function isFinanciallyClosed(bytes32 id) external view returns (bool) {
-        return _closed(Store.state().executions[id].finalAllocation);
-    }
-
-    function _closed(Codec.FinalAllocationRecord storage f) private view returns (bool) {
-        return f.decisionId != bytes32(0)
-            && (f.release.state == Codec.LegState.Succeeded || f.release.state == Codec.LegState.NotRequired)
-            && (f.refund.state == Codec.LegState.Succeeded || f.refund.state == Codec.LegState.NotRequired);
+        return FinalAllocation.closed(Store.state().executions[id].finalAllocation);
     }
 
     function _changedFinal(bytes32 id) private {
         ++Store.state().executions[id].finalSequence;
         _tryAcknowledgment(id, true);
-    }
-
-    function _consumeLiability(address token, uint256 units) private {
-        Store.State storage s = Store.state();
-        if (IERC20(token).balanceOf(address(this)) < s.liabilities[token]) revert VoucherCustodyDeficit();
-        s.liabilities[token] -= units;
     }
 
     function _holderSetup(bytes32 id, bytes32 payloadHash) private view returns (Store.Execution storage e) {
