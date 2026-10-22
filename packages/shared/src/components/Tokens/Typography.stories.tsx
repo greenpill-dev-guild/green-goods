@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import React, { useLayoutEffect, useRef, useState } from "react";
+import React, { useCallback, useLayoutEffect, useRef, useState } from "react";
+import { useWindowEvent } from "../../hooks/utils/useEventListener";
 
 /**
  * Visual documentation of the type roles: one set of names for every surface
@@ -75,11 +76,14 @@ const roles: TypeRole[] = [
 /*  Rendering helpers                                                          */
 /* -------------------------------------------------------------------------- */
 
-/** Size / line height · weight · tracking, as the browser rendered them. */
+/**
+ * Size / line height · weight · tracking, as the browser rendered them. It reads
+ * again on resize, since field text changes size at 640px in the cockpit.
+ */
 function useRenderedType() {
   const ref = useRef<HTMLSpanElement>(null);
   const [value, setValue] = useState("");
-  useLayoutEffect(() => {
+  const read = useCallback(() => {
     if (!ref.current) return;
     const style = getComputedStyle(ref.current);
     const tracking = style.letterSpacing === "normal" ? "0" : style.letterSpacing;
@@ -87,6 +91,8 @@ function useRenderedType() {
       `${Number.parseFloat(style.fontSize)}/${Number.parseFloat(style.lineHeight)} · ${style.fontWeight} · ${tracking}`
     );
   }, []);
+  useLayoutEffect(read, [read]);
+  useWindowEvent("resize", read);
   return { ref, value };
 }
 
@@ -162,8 +168,8 @@ export const Default: Story = {
       <p className="max-w-2xl type-label-sm text-text-sub-600">
         Each role keeps one name on both surfaces and takes the density of the surface that draws
         it. The values under each specimen are what this browser rendered: size and line height in
-        pixels, then weight and tracking. Field text is 16px on the cockpit's touch widths and 14px
-        from 640px.
+        pixels, then weight and tracking. In the cockpit, field text is 16px on touch widths and
+        14px from 640px.
       </p>
       <RoleTable />
     </div>

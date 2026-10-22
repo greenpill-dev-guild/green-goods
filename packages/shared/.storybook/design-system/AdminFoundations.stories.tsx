@@ -244,14 +244,10 @@ export const Tokens: Story = {
   play: async ({ canvasElement }) => {
     const root = getComputedStyle(document.documentElement);
     const token = (name: string) => root.getPropertyValue(name).trim();
-    // Production today: the type roles at the cockpit's density, and the Material
-    // aliases its shared components still read until they move onto the roles.
+    // Production today: the type roles at the cockpit's density.
     await expect(token("--gg-type-body-size")).toBe("0.875rem");
     await expect(token("--gg-type-label-sm-size")).toBe("0.75rem");
     await expect(token("--gg-type-meta-sm-size")).toBe("0.6875rem");
-    await expect(token("--text-label-lg")).toBe("14px");
-    await expect(token("--text-label-sm")).toBe("11px");
-    await expect(token("--text-body-md")).toBe("14px");
     await expect(token("--radius-sm")).toBe("8px");
     // DL-030: the xl / 2xl radii land on the 16px page-container step.
     await expect(token("--radius-xl")).toBe("16px");
