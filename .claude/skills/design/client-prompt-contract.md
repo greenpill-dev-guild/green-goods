@@ -104,7 +104,7 @@ AI design tools MUST map generated output to these existing exports. Do not inve
 | Audio | `Audio/*` (voice capture primitives) |
 
 **Type roles** (the `type-*` utilities in shared `theme.css`, at the app's density; root `DESIGN.md` § Typography):
-- `type-title-lg` · `type-title-md` · `type-title-sm` (24, 18, and 16px at 600) · `type-body` 16px · `type-label` 16px at 500 · `type-label-sm` 14px (field labels, secondary lines) · `type-meta` 12px · `type-meta-sm` 11px (chips) · `type-field` for field text.
+- `type-title-lg` · `type-title-md` · `type-title-sm` (24, 18, and 16px at 600) · `type-body` 16px · `type-label` 16px at 500 · `type-label-sm` 14px (field labels, secondary lines) · `type-meta` 12px · `type-meta-sm` 11px (chips, status pills) · `type-field` for field text.
 - Never a raw Tailwind size or a retired Material name. The app's own views still carry the shared scale (`text-label-md` and its siblings) until they move.
 
 **Hero moment amplification** (garden creation, first work submission, hypercert mint, vault deposit, seasonal transitions, assessment completion, role milestone):
