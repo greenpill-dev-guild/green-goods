@@ -50,8 +50,11 @@ const WHY = "docs/docs/community/why-we-build.mdx";
 const HTML = "packages/client/index.html";
 const PREVIEWS = "packages/client/src/content/publicSocialPreviews.ts";
 const EN = "packages/shared/src/i18n/en.json";
+const ES = "packages/shared/src/i18n/es.json";
 const ADMIN = ".claude/skills/design/prompt-contract.md";
 const CLIENT = ".claude/skills/design/client-prompt-contract.md";
+const HOW = "docs/docs/community/how-it-works.mdx";
+const LEDGER = ".claude/skills/design/decision-log.md";
 
 // [the difference, file, text it replaces, replacement, pair, what the message names]
 const DIFFERENCES = [
@@ -69,6 +72,7 @@ const DIFFERENCES = [
   ["the home social description", PREVIEWS, "\"Green Goods helps communities", "\"Green Goods helps towns", "descriptor", /home description/],
   ["the home hero subtitle", EN, "lede\": \"Green Goods helps", "lede\": \"Green Goods guides", "descriptor", /hero\.lede/],
   ["the app's help answer", EN, "answer\": \"Green Goods helps communities name", "answer\": \"Green Goods helps communities list", "descriptor", /whatIsGreenGoods/],
+  ["the Spanish help answer", ES, "answer\": \"Green Goods ayuda a las comunidades a identificar", "answer\": \"Green Goods ayuda a las comunidades a nombrar", "descriptor", /es\.json app\.profile/],
   ["the hero tagline", EN, "tagline\": \"From good intentions to green", "tagline\": \"From good intentions to great", "brand line", /hero\.tagline/],
   ["the hero title", EN, "<accent>green</accent> outcomes", "<accent>great</accent> outcomes", "brand line", /hero\.title/],
   ["the social card title", PREVIEWS, "cardTitle: \"From good intentions", "cardTitle: \"From good intent", "brand line", /cardTitle/],
@@ -76,15 +80,20 @@ const DIFFERENCES = [
   ["DESIGN.md's voice sentence", "DESIGN.md", "Warm but not gushing", "Kind but not gushing", "voice core", /core voice/],
   ["a dropped \"we are not\" word", PAGE, "Jargon-heavy, academic, blockchain-first", "Jargon-heavy, academic", "voice core", /Grounded pillar\) "We are not"/],
   ["a pillar DESIGN.md lacks", PAGE, "| Active |", "| Playful | Light | Silly |\n| Active |", "voice core", /Playful pillar/],
+  ["a stale duplicate pillar row", PAGE, "| Active |", "| Honest | Vague about limits | Hedging, corporate disclaimers, vague promises |\n| Active |", "voice core", /Honest pillar\) "We are"/],
   ["a changed DESIGN.md tone", "DESIGN.md", "| **Errors** | Calm, constructive |", "| **Errors** | Calm, kind |", "voice core", /Errors tone/],
   ["a lengthened word in a tone", PAGE, "| Calm, constructive; never", "| Calm, constructively; never", "voice core", /Errors tone/],
+  ["a hyphenated suffix on a tone word", PAGE, "| Calm, constructive; never", "| Calm, constructive-ish; never", "voice core", /Errors tone/],
   ["a changed tone example", PAGE, "patient | \"Start by describing", "patient | \"Start by telling us", "voice core", /Onboarding model line/],
   ["a dropped term to avoid", PAGE, "| steward | admin, manager, operator |", "| steward | admin, operator |", "voice core", /avoid manager/],
+  ["a stale duplicate term row", PAGE, "| steward | admin, manager, operator |", "| steward | admin, manager, operator |\n| steward | admin | |", "voice core", /avoid manager/],
   ["an example the contract lacks", PAGE, "\"Approve\", \"Request Changes\"", "\"Approve\", \"Ask for Changes\"", "examples", /quotes "Ask for Changes"/],
   ["a contract example renamed", CLIENT, "\"Fund this garden\" not", "\"Back this garden\" not", "examples", /quotes "Fund this garden"/],
   ["a model line's source changed", WHY, "who are seen for it.**", "who get seen for it.**", "model lines", /from Why We Build/],
+  ["a model line's punctuation changed", HOW, "leaves no trace.", "leaves no trace!", "model lines", /from How It Works/],
   ["an unknown model line source", PAGE, "trace.\" | How It Works |", "trace.\" | How It Works page |", "model lines", /"How It Works page"/],
   ["an uncited decision id", PAGE, "DL-087, DL-090 to DL-094", "DL-087, DL-097, DL-090 to DL-094", "decision ids", /DL-097/],
+  ["a decision inside a cited range", LEDGER, "| DL-084 |", "| DL-184 |", "decision ids", /DL-084/],
   ["a term the vocabulary check adds", "scripts/data/banned-vocabulary.json", "\"retention hook\"", "\"retention hook\", \"daily goal\"", "banned list", /leaves out daily goal/],
   ["a term the page adds", PAGE, "re-engagement, retention hook.", "re-engagement, retention hook, daily goal.", "banned list", /names daily goal/],
   ["a heading the check reads", PAGE, "### We are / we are not", "### Pillars", "layout", /"We are \/ we are not" table/],

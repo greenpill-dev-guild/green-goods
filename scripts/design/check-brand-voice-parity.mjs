@@ -86,7 +86,7 @@ export const INPUTS = [
 /** What a writer does about each kind of difference; section 15 of the page names the owners. */
 export const FIXES = {
   descriptor:
-    "The page's section 1 owns the descriptor. Copy it word for word, or change section 1 and every place that carries it in the same change.",
+    "The page's section 1 owns the descriptor; in Spanish and Portuguese, the first sentence of the catalog's home hero subtitle carries it. Copy it word for word, or change it and every place that carries it in the same change.",
   "brand line":
     "The page's section 1 owns the brand line. Copy it word for word, or change section 1, the hero strings, and the home social card together.",
   "problem statement":
@@ -119,7 +119,8 @@ const loose = (text) => plain(text).toLowerCase();
 
 /** True when `text` starts with every word of `prefix`; whatever follows may add, not change, a word. */
 function startsWithWords(text, prefix) {
-  return text.startsWith(prefix) && !/[\p{L}\p{N}]/u.test(text.charAt(prefix.length));
+  // A hyphen or apostrophe right after the prefix extends its last word ("constructive-ish").
+  return text.startsWith(prefix) && !/[\p{L}\p{N}\p{M}'’-]/u.test(text.charAt(prefix.length));
 }
 
 /** The sentences of a passage, without list bullets or the "And" the prose form adds before a last cause. */
@@ -367,6 +368,16 @@ function compareDescriptor({ read, positioning, en, fail, count, need, agree }) 
   ]) {
     agree("descriptor", descriptor, owner, restated, where, options);
   }
+  // Spanish and Portuguese carry the descriptor as the first sentence of the home hero subtitle,
+  // and the help answer opens with that same sentence.
+  for (const file of ["packages/shared/src/i18n/es.json", "packages/shared/src/i18n/pt.json"]) {
+    const catalog = JSON.parse(read(file));
+    const lede = plain(catalog["public.home.hero.lede"] ?? "").split(/(?<=[.?!])\s+/)[0];
+    const translated = need(lede, file, "public.home.hero.lede");
+    if (!translated) continue;
+    const where = `${file} public.home.hero.lede (first sentence)`;
+    agree("descriptor", translated, where, plain(catalog[faq] ?? ""), `${file} ${faq}`, { opens: true });
+  }
   // The docs site's tagline and footer carry the sentence through one constant.
   for (const [usage, part] of [
     [/\btagline:\s*descriptor\b/, "tagline no longer uses"],
@@ -425,16 +436,19 @@ function comparePillars({ page, voiceCopy, fail, count, need, agree }) {
   if (!owned || !restated) return;
   const options = { opens: true, caseless: true };
   for (const [pillar, means, doesNotMean] of owned) {
-    const row = restated.find(([name]) => loose(name) === loose(pillar));
-    if (!row) {
+    // Every row with the pillar's name is held to it, so a stale duplicate cannot hide behind the first.
+    const rows = restated.filter(([name]) => loose(name) === loose(pillar));
+    if (rows.length === 0) {
       count("voice core");
       fail("voice core", `${PAGE} has no ${pillar} pillar, which ${DESIGN} Voice Pillars lists`);
       continue;
     }
     const owner = `${DESIGN} (${pillar} pillar)`;
     const where = `${PAGE} (${pillar} pillar)`;
-    agree("voice core", means, `${owner} "Means"`, row[1], `${where} "We are"`, options);
-    agree("voice core", doesNotMean, `${owner} "Doesn't Mean"`, row[2], `${where} "We are not"`, options);
+    for (const row of rows) {
+      agree("voice core", means, `${owner} "Means"`, row[1], `${where} "We are"`, options);
+      agree("voice core", doesNotMean, `${owner} "Doesn't Mean"`, row[2], `${where} "We are not"`, options);
+    }
   }
   for (const [name] of restated) {
     if (!owned.some(([pillar]) => loose(pillar) === loose(name))) {
@@ -449,15 +463,17 @@ function compareTones({ page, voiceCopy, fail, count, need, agree }) {
   const restated = need(tableRows(section(page, 2, "Tone by context")), PAGE, "Tone by context table");
   if (!owned || !restated) return;
   for (const [context, tone, example] of owned) {
-    const row = restated.find(([name]) => startsWithWords(contextKey(name), contextKey(context)));
-    if (!row) {
+    const rows = restated.filter(([name]) => startsWithWords(contextKey(name), contextKey(context)));
+    if (rows.length === 0) {
       count("voice core");
       fail("voice core", `${PAGE} has no ${context} tone row, which ${DESIGN} Tone Spectrum lists`);
       continue;
     }
     const owner = `${DESIGN} (${context} tone)`;
-    agree("voice core", tone, owner, row[1], `${PAGE} (${context} tone)`, { opens: true, caseless: true });
-    agree("voice core", example, `${owner} example`, row[2], `${PAGE} (${context} model line)`, { opens: true });
+    for (const row of rows) {
+      agree("voice core", tone, owner, row[1], `${PAGE} (${context} tone)`, { opens: true, caseless: true });
+      agree("voice core", example, `${owner} example`, row[2], `${PAGE} (${context} model line)`, { opens: true });
+    }
   }
 }
 
@@ -474,17 +490,19 @@ function compareTerms({ page, voiceCopy, fail, count, need }) {
   for (const [use, avoid] of owned) {
     count("voice core");
     const [term] = terms(use);
-    const row = restated.find(([name]) => terms(name)[0] === term);
-    if (!row) {
+    const rows = restated.filter(([name]) => terms(name)[0] === term);
+    if (rows.length === 0) {
       fail("voice core", `${PAGE} "Use this, not that" has no ${term} row, which ${DESIGN} Terminology lists`);
       continue;
     }
-    const dropped = terms(avoid).filter((word) => !terms(row[1]).includes(word));
-    if (dropped.length > 0) {
-      fail(
-        "voice core",
-        `${PAGE} ${term} row does not say to avoid ${dropped.join(", ")}, which ${DESIGN} Terminology does`,
-      );
+    for (const row of rows) {
+      const dropped = terms(avoid).filter((word) => !terms(row[1]).includes(word));
+      if (dropped.length > 0) {
+        fail(
+          "voice core",
+          `${PAGE} ${term} row does not say to avoid ${dropped.join(", ")}, which ${DESIGN} Terminology does`,
+        );
+      }
     }
   }
 }
@@ -516,16 +534,28 @@ function compareModelLines({ read, page, fail, count, need }) {
       fail("model lines", `${PAGE} (section 10) names the source "${source}", which the check does not know`);
       continue;
     }
-    const quoted = plain(line).replace(/^"|"$/g, "").replace(/\.$/, "");
-    if (!sourceText(file, read(file)).includes(quoted)) {
+    const quoted = plain(line).replace(/^"|"$/g, "");
+    const bare = quoted.replace(/\.$/, "");
+    const text = sourceText(file, read(file));
+    // A source that quotes the line inside a sentence, or ends a catalog value with it, may leave
+    // out the closing period; any other change to the line's punctuation is a difference.
+    if (![quoted, `${bare}"`, `${bare}\n`].some((form) => text.includes(form)) && !text.endsWith(bare)) {
       fail("model lines", `${PAGE} (section 10) quotes "${quoted}" from ${source}, but ${file} does not say it`);
     }
   }
 }
 
 function compareDecisionIds({ read, page, compared, fail }) {
-  compared["decision ids"] = [...page.matchAll(/\bDL-\d+\b/g)].length;
-  for (const failure of checkDecisionLogCitations([{ path: PAGE, text: page }], read(LEDGER))) {
+  // "DL-090 to DL-094" cites every decision from DL-090 through DL-094; the expansion stays on its line.
+  const cited = page.replace(/\bDL-(\d+) to DL-(\d+)\b/g, (range, first, last) => {
+    const ids = [];
+    for (let id = Number(first); id <= Number(last) && ids.length <= 50; id += 1) {
+      ids.push(`DL-${String(id).padStart(first.length, "0")}`);
+    }
+    return ids.length > 0 && ids.length <= 50 ? ids.join(", ") : range;
+  });
+  compared["decision ids"] = [...cited.matchAll(/\bDL-\d+\b/g)].length;
+  for (const failure of checkDecisionLogCitations([{ path: PAGE, text: cited }], read(LEDGER))) {
     fail("decision ids", failure);
   }
 }
