@@ -72,12 +72,18 @@ dialect: installed-pwa
 
 ## Color Adaptation
 
-The PWA inherits the Warm Earth core. Green accents follow one theme-aware rhythm (DL-086, DL-088; PRD-1150):
+The PWA inherits the Warm Earth core and the cockpit's ground (DL-097):
+- White cards on the linen canvas (`bg-canvas`), with a `neutral-200` card hairline so a card still reads on linen. In dark the canvas is the Earth ramp's warm floor and a card sits ten points of lightness above it, so a card never blends into the ground.
+- A bar that covers scrolled content paints the canvas: the top bar, the garden header and its tab row, the pinned promise and the Profile header. The tab row and the garden title block take the ground they sit on, so a tab row inside a sheet takes the sheet's surface.
+- The browser's status bar and the install manifest take the app's ground: linen, and the warm floor in dark. A browser tab keeps the website's own ground: white, and near-black in dark.
+
+Green accents follow one theme-aware rhythm (DL-086, DL-088; PRD-1150):
 - Green labels, icons, active navigation marks, indicator bars, selection borders, switches, radio buttons and checkboxes use `--primary-on-surface`: deep green in light and pale mint `tertiary-dark` (`#C2F5DA`) in dark.
 - Any green fill that carries text, a number, or a glyph (filled CTAs, count badges, step markers, selected chips, pills) uses the contrast-safe action pair: deep green with white content in light, mint with near-black `on-tertiary-dark` ink in dark. Dark hover uses `tertiary-dark-hover` (`#84EBB4`).
 - Active tab and AppBar labels, their icons and indicators, links, selected titles, and media seek controls use the same role. Audio play/pause uses the theme's filled-action pair.
 - Soft green highlights may retain the tertiary tint. Domain and status colors stay independent; success, warning, error and information marks are not brand accents.
 - A red fill that carries white text (the filled danger button, error badges) uses `--error-action`, red-700 in both themes (DL-053).
+- A blue fill that carries white text (the information badge, the current submission stage) uses `--information-action`, blue-500 in every theme, because the dark app lifts the base blue for its icons (DL-097).
 - Shared runtime aliases scope the mint palette to PWA presentation and Storybook app surfaces; public and admin retain their own palettes. The static boot fallback mirrors the dark action pair before styles load.
 
 **Dynamic garden theming** (future): Each garden can tint the experience with accent color derived from its banner image. The foundation palette stays, and only the accent shifts.

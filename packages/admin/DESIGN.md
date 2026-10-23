@@ -101,7 +101,7 @@ CSS Grid with named areas:
 
 ## Workspace Tinting
 
-The canvas is a **constant** warm linen `#FAF8F5` (`--m3-surface-container-low` in light, `--m3-surface` in dark) and never changes color per workspace. Each workspace's tonal palette (defined in `admin-m3-tokens.css`) appears in exactly three places:
+The canvas is the same warm linen as the installed app, `#FAF8F5` (`--m3-surface-container-low` in light, the warm dark floor `--m3-surface` in dark), and never changes color per workspace. Cards are white in light and sit ten points of lightness above the canvas in dark, with an 8% ring, so a card never blends into the ground (the dark ladder is the shared Earth ramp in `theme.css`, DL-097). Each workspace's tonal palette (defined in `admin-m3-tokens.css`) appears in exactly three places:
 
 1. **Active tab**: the `AdminTabRail` underline and active label (the count chip flips to the tone container pair).
 2. **Active nav pill**: the NavigationBar active item, via `--tone-primary-container` / `--tone-on-primary-container`.
