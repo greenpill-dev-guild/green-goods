@@ -1,0 +1,36 @@
+import { getAddress } from "ethers";
+const address = (n: number) => getAddress(`0x${(n + 0x10000).toString(16).padStart(40, "0")}`);
+export function fixtureManifest() {
+  return {
+    schemaVersion: 1 as const,
+    releaseId: "synthetic-voucher-release",
+    build: { solc: "0.8.28", optimizerRuns: 1, viaIR: true, evmVersion: "cancun" },
+    governance: {
+      greenGoods: { address: "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19", threshold: 2, ownerCount: 5 },
+      techAndSun: { address: null, threshold: 2, ownerCount: 3 },
+      sharedPool: { address: null, threshold: 3, ownerCount: 4 },
+    },
+    networks: {
+      arbitrum: {
+        chainId: 42161,
+        selector: "4949039107694359620",
+        router: address(1),
+        deployer: address(2),
+        nonce: 7,
+        owner: address(3),
+        guardian: address(4),
+        commitmentPooling: address(5),
+        hatsModule: address(6),
+      },
+      gnosis: {
+        chainId: 100,
+        selector: "465200170687744372",
+        router: address(11),
+        deployer: address(12),
+        nonce: 17,
+        owner: address(13),
+        guardian: address(14),
+      },
+    },
+  };
+}

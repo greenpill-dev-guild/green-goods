@@ -48,6 +48,17 @@ the correct voucher redeems directly. A different voucher may be exchanged throu
 direct pool call after reviewing input, net output, fees, minimum output and validity. SwapRouter
 quotes routes and does not execute them. WXDAI remains a separately labeled rehearsal asset.
 
+The shared Gnosis pool starts with Tech and Sun and Green Goods vouchers. It can serve more
+admitted issuers later; it is not hardcoded as a bilateral pair or a mandatory universal pool.
+A garden and a voucher issuer are different roles. New gardens may participate using existing
+admitted vouchers without issuing their own. A new issuer needs agreed service obligations,
+capacity, inventory, exposure limits, quotes/fees and explicit admission before its asset joins.
+The current 3-of-4 shared Safe is pilot governance for the first two organizations; broader
+membership needs a separate representation decision. Each issuer keeps its own reserve Safe
+and service obligations. Other communities can operate separate exchange pools; federation and
+multi-hop execution are outside this pilot. This matches the published
+[CLC network model](https://docs.cosmolocal.credit/protocol/network/).
+
 The individual-contributor pilot uses canonical recognition and a total sufficient for a whole
 fictional service unit. Group allocation still divides an agreed total: it does not guarantee a
 whole unit to every participant. Accepted rewards reserve no inventory. Show reserve, finite

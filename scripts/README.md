@@ -84,6 +84,17 @@ no signer, sends no transaction, and is safe to repeat. The separate
 `verify reporting-kernel --network arbitrum --mode simulate` command owns the real-fork
 compatibility gate.
 
+The voucher endpoint preparation path is `bun run contracts -- release vouchers --mode preflight`.
+Its handler is `packages/contracts/script/deploy/voucher-release.ts`, with public draft inputs in
+`packages/contracts/config/voucher-pilot-release.json`. Preflight compiles exact production artifacts
+and reports missing inputs without RPC. After the public inputs and sources are committed, `--mode plan`
+writes eleven nonce-bound paused deployment boundaries to `.generated/voucher-release/`.
+`--mode simulate --plan .generated/voucher-release/<release-id>.plan.json` rehearses them on owned
+Arbitrum/Gnosis forks using configured RPCs; Gnosis requires explicit `GNOSIS_RPC_URL`. These modes
+perform no live broadcasts, Safe creation, issuer approvals or activation, and do not promote
+canonical deployment or dependent app/indexer configuration. The full live pilot also needs the
+separate published CLC pool release and activation operations.
+
 ## Inventory
 
 ### `dev/` — local dev workflow

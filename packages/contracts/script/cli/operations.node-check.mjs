@@ -263,3 +263,17 @@ test('network-scoped chain selections cannot conflict before execution', () => {
   assert.throws(() => resolve('verify --network arbitrum --chain-id nope'), /positive safe integer/);
   assert.ok(resolve('verify --network arbitrum --chain-id 42161').args.includes('42161'));
 });
+
+test('voucher release preparation separates offline planning from isolated simulation and has no broadcast mode', () => {
+  const preflight = resolve('release vouchers --mode preflight');
+  assert.equal(preflight.network, undefined);
+  assert.deepEqual(preflight.args, ['script/deploy/voucher-release.ts', '--preflight']);
+  assert.ok(!preflight.capabilities.includes('configured RPC'));
+  assert.ok(resolve('release vouchers --mode plan').args.includes('--plan-only'));
+  const simulation = resolve('release vouchers --mode simulate --plan .generated/voucher-release/pilot.plan.json');
+  assert.ok(simulation.capabilities.includes('owned isolated Anvil forks'));
+  assert.ok(!simulation.capabilities.includes('authorized signer'));
+  for (const suffix of ['--mode broadcast', '--mode simulate --private-key secret', '--mode preflight --network gnosis', '--mode preflight --rpc-url https://rpc.invalid', '--mode preflight --mode plan']) {
+    assert.throws(() => resolve(`release vouchers ${suffix}`));
+  }
+});

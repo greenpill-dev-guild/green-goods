@@ -173,11 +173,12 @@ records five owners and threshold two. Reuse preserves that configuration; it do
 owner/threshold changes, a new module, an allowance or asset movement. Read back the selected
 Safe's state again when binding the executable deployment manifest.
 
-For discussion, recommend a new Tech and Sun issuer-reserve Safe at **2-of-3**, owned by its
-service lead, operations/finance steward and a trusted backup chosen by Tech and Sun. Recommend
-a separate shared-pool administration Safe at **3-of-4**, owned by two named Green Goods delegates
-and two named Tech and Sun delegates. These are recommendations, not approved owner sets or
-thresholds. Each signer should be a different person with independent signing custody.
+The user accepted a new Tech and Sun issuer-reserve Safe at **2-of-3**, with proposed owner roles of its
+service lead, operations/finance steward and a trusted backup chosen by Tech and Sun. The user also accepted
+a separate shared-pool administration Safe at **3-of-4**, with proposed roles of two Green Goods delegates
+and two Tech and Sun delegates. The thresholds are accepted; individual signer names and
+addresses will be confirmed later. Each signer should be a different person with independent
+signing custody.
 
 With two delegates per organization, any three-signature pool approval includes both
 organizations and remains possible with one signer unavailable. A 2-of-3 pool with one delegate
@@ -186,10 +187,10 @@ without the other; that is a different governance choice. The shared-pool Safe a
 pool and selected integration controls; it gains no authority to mint or spend either issuer's
 reserve. Member swaps do not require a fresh administrator approval for each exchange.
 
-These threshold recommendations follow the general [Safe setup guidance](https://help.safe.global/articles/1038062742-what-safe-setup-should-i-use)
+These threshold choices follow the general [Safe setup guidance](https://help.safe.global/articles/1038062742-what-safe-setup-should-i-use)
 to require multiple signatures while leaving a signer unavailable. Actual delegates, public
 signing addresses, availability and the remaining pause/recovery roles still need selection.
-No new Safe creation or authority mutation is selected by this recommendation.
+No new Safe has been created or authority changed by recording these decisions.
 
 Existing Safe controls, implemented delays, consent, full escrow before promise activation,
 immutable final allocation and independent Celo G$ remain authoritative. The accepted hackathon

@@ -104,7 +104,7 @@ release path, and the existing pooling release-stage schema covers Arbitrum/Celo
 voucher command alone would therefore be insufficient. Those deployment-tooling changes and their
 negative/simulation tests remain unfinished; no runnable release claim is made here.
 
-## Safe selection: GG reuse accepted; new Safe governance proposed
+## Safe selection: reuse and thresholds accepted; signer identities pending
 
 On 22 October Pacific, the user selected reuse of the repository-named Green Goods Safe on
 Gnosis: `0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19`. The [read-only observation](../artifacts/green-goods-safe-gnosis-2026-10-22.json)
@@ -114,9 +114,10 @@ configuration, module set, allowances or custody through this selection. Refresh
 state and release verification before executing its transactions. Historical Arbitrum/Celo
 owner lists and timelock dispositions remain historical inputs, not new pilot waivers.
 
-Propose the following owner roles; actual people and public signing addresses remain open:
+The user accepted Tech and Sun 2-of-3 and shared-pool 3-of-4 on 22 October Pacific. The following
+owner roles remain proposed; actual people and public signing addresses will be confirmed later:
 
-| Safe | Proposed owners | Proposed threshold |
+| Safe | Proposed owners | Accepted threshold |
 |---|---|---|
 | Tech and Sun reserve | Tech and Sun service lead, operations/finance steward, trusted backup chosen by Tech and Sun | 2-of-3 |
 | Shared pool administration | Two independent Green Goods delegates and two independent Tech and Sun delegates | 3-of-4 |
@@ -178,3 +179,92 @@ Agent/model: Codex / model unknown | Coverage: GG Safe reuse and new Safe govern
 
 Human corrections: 0 in this segment; attention: unknown. No Safe creation, configuration change,
 transaction, external tracker write or new rendered proof in this guidance segment.
+
+## Deployment tooling continuation, 22 October Pacific
+
+The public entrypoint now includes `release vouchers --mode preflight|plan|simulate`. The owning
+input is `packages/contracts/config/voucher-pilot-release.json`; accepted governance thresholds
+are recorded, with unresolved addresses and nonce/router/source bindings explicitly null. The
+preflight compiles eight exact production targets and reports missing deployment versus later
+activation inputs. It does not read a secret file, contact an RPC or create an executable plan
+from placeholder authority. `GNOSIS_RPC_URL` is explicit in the network manager, with no public
+fallback or automatically chosen bundler/paymaster.
+
+The planner binds an exact source commit, manifest/artifact hashes, production compiler profile,
+linked libraries, chain-qualified senders, nonces, predicted CREATE addresses and atomic proxy
+initializers. Eleven operations cover three libraries, four implementations and four proxies:
+six operations on Arbitrum and five on Gnosis. CREATE address prediction avoids circular CREATE2
+peer-address dependencies in the initialization data. Every initialized endpoint proxy stays
+paused. Plans and simulation results are confined to `.generated/voucher-release`; canonical deployment artifacts,
+indexer/app configuration and value activation are not changed.
+
+Simulation reads selected upstream chains, then sends transactions only to owned isolated
+loopback Anvil forks. It verifies chain/block pins, nonce freshness, dependencies, router peer
+support, owner Safe threshold floor, creation receipts, production runtime templates, constructor
+immutables, proxy implementation/owner/guardian/peers, paused state and rejected reinitialization.
+Gas top-ups and owner impersonation are confined to that local fork. They prove no live sender
+funding, signer possession, Safe configuration approval or CCIP round-trip delivery. The command
+has no broadcast, private-key, signer, allowance or unpause mode.
+
+Reuse review: `single-attestation-deployment.ts` owns a single non-linked CREATE, while the
+existing pooling `release-manifest.ts` owns fixed Arbitrum/Celo CREATE2 stages. Neither covers
+these mutually initialized Arbitrum/Gnosis peers. The new voucher capability reuses that
+manifest's exact `linkBytecode`, the existing atomic release JSON writer and build wrappers.
+The isolated fork lifecycle moved from `reporting-compatibility-boundary.ts` to the shared
+contracts `isolated-fork.ts`, preserving its Arbitrum wrapper and adding the Gnosis consumer;
+there is no second fork lifecycle implementation. Production artifact identity and input
+validation remain voucher-owned. Dependencies, compiler profile, source contracts and release
+safeguards were not weakened.
+
+Focused RED/GREEN is retained in the local task evidence. The first RED is an absent planner
+module. Runtime fixture failures used addresses in the precompile range; the fixture now uses
+ordinary synthetic addresses and reads Anvil's auto-mined receipts directly. Exact-source
+artifact validation also required updating the synthetic fixture metadata. The later focused
+run passes 19 script cases and 32 CLI cases, including actual production-bytecode deployment.
+The final focused run adds three source/output ownership cases: 22 script cases and 32 CLI
+cases pass, and the contracts TypeScript check passes. Git dependency scope includes vendored
+libraries and root build inputs, with Git repository/index overrides cleared for source identity.
+JSON inputs and outputs reject symlink escapes. `env.schema` now names optional blank
+`GNOSIS_RPC_URL`; no private environment file was read or changed.
+
+The first selected critical gate passed eleven checks, including application suites, all 2,195
+Solidity tests, the production gas boundary and contracts verification. It then failed
+`docs-authority` on the generated entity-matrix source digest after the network metadata change;
+the ontology generator refreshed that digest. The next full-scope run passed eleven checks,
+including the previously unselected Agent checks, but exposed an immediate-receipt assumption
+in the new simulator under the full contracts suite. A regression forces the first receipt read
+to return pending: it fails before the fix and passes with bounded local polling. The revised
+simulator retains status, created-address and runtime readback checks. All 22 focused script
+cases and 32 CLI cases pass after the fix. The six-check selected contract rerun passes fresh,
+retaining every critical override, including all 2,195 Solidity tests, three cold-path production
+gas fixtures, all 349 contracts script tests and `contracts-verify-fast`. The four deferred
+documentation/ontology checks also pass fresh, including documentation authority and the site
+build. Contracts TypeScript passes after the receipt fix. Earlier application passes cover
+unchanged inputs. No failed check is treated as reusable proof, and no broader live readiness
+claim follows from local checks.
+
+The shared exchange pool starts with the two pilot issuers and may admit more issuers later.
+New gardens need not mint a voucher merely to participate. Expansion needs explicit curation,
+capacity/terms, inventory, limits and governance representation; admission is not automatic.
+Arbitrum garden commitment pools remain separate. Multiple independently governed exchange
+pools are compatible with the protocol, but federation is outside the current executable slice.
+See [current scope](../spec.md) and the [published network model](https://docs.cosmolocal.credit/protocol/network/).
+
+Remaining work includes actual authority/transport inputs, published CLC token/pool/factory
+operations, any needed existing-module upgrades/bindings, activation, dependency configuration
+persistence and post-deployment smoke. The full deployment package is still incomplete.
+
+Task: Cosmo-Local Integration controlled live pilot | Type: feature | Outcome: partial.
+Coverage: accepted thresholds, pool scope clarification and paused endpoint deployment tooling
+through pre-commit verification. Local signed checkpoint attribution is reported in the chat;
+no push, broadcast, Safe creation or canonical deployment promotion is included.
+
+| Phase | Start → end (UTC) | Result / evidence or blocker |
+|---|---|---|
+| Investigate | Earlier start unknown → 2026-10-23 04:33:30 | Read release owners, closest deployment/link/fork capabilities and primary CLC docs; parent-only Linear sync preserves RESR-73, observed Done. No external write. |
+| Implement / verify | 2026-10-23 04:33:30 → 2026-10-23 05:18:33 | Exact planner, preflight and isolated-fork simulation implemented; focused tests pass. Full-scope checks expose generated documentation drift, then a receipt timing defect in the new simulator. |
+| Investigate / verify | 2026-10-23 05:18:33 → 2026-10-23 05:27:57 | Deterministic pending-receipt RED/GREEN; bounded polling added. All six selected contract checks pass fresh with every critical override. |
+| Verify / review | 2026-10-23 05:27:57 → 2026-10-23 05:28:46 | Four deferred docs/ontology checks and final contracts TypeScript pass. No owned source input changed during the contract rerun; all 114 unrelated dirty file hashes remain unchanged. |
+
+Human corrections: 0 in this segment; attention unknown. Signer names/addresses deliberately
+remain open under the user's instruction. Rendered product proof: none; no product UI changed.
