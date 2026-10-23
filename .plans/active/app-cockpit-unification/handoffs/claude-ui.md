@@ -6,16 +6,20 @@
 - Branch: one `feature/` branch per step. Step 1's have merged: `feature/app-cockpit-typeface`
   (#1172), `feature/app-cockpit-type-roles` (#1175), `feature/app-cockpit-type-role-guides`
   (#1176), `feature/app-cockpit-shared-type-roles` (#1188) and
-  `feature/app-cockpit-shared-type-role-guides` (#1187). In review: step 1's last,
+  `feature/app-cockpit-shared-type-role-guides` (#1187). Merged on 23 October: step 1's last,
   `fix/app-vietnamese-font-subset` (#1197); step 2, `feature/app-cockpit-ground-ladder` (#1191)
   with its guides `feature/app-cockpit-ground-ladder-guides` (#1193); step 3,
-  `feature/app-cockpit-control-outline` (#1195, stacked on #1191) with its guides
-  `feature/app-cockpit-control-outline-guides` (#1196, stacked on #1193).
-- Status: in progress. Steps 1 to 3 are approved. Step 1's face, both halves of the type roles and
-  their guide wording have merged, and #1190 served and precached the faces; #1197 finishes step 1.
-  Steps 2 and 3 are in review. Every later step starts on its own approved pair.
-- Merge order: #1197 any time; #1191, then #1193; then retarget #1195 and #1196 to `develop`,
-  merge #1195, then #1196. A stacked pull request runs no CI Gate until its base is `develop`.
+  `feature/app-cockpit-control-outline` (#1195) with its guides
+  `feature/app-cockpit-control-outline-guides` (#1196), both first stacked on step 2's.
+- Status: in progress. Steps 1 to 3 merged on 23 October; every later step starts on its own
+  approved pair. Still pending: labeled authenticated Brave proof of an installed app's first
+  launch with no network (step 1) and of the installed app's status bar, with the iOS check of
+  whether its solid status bar follows `theme-color` (step 2).
+- Merged on 2026-10-23 in the maintainer's order, each as a merge commit on a green CI Gate at
+  its head: #1193 (`5aa98111b`, 21:01:12Z), #1191 (`b7d2aeef4`, 21:03:14Z), #1196 (`cbdb4eeee`,
+  21:22:47Z), #1195 (`dcf09f16c`, 21:23:06Z) and #1197 (`aa20babdf`, 21:24:59Z). #1196 and #1195
+  were retargeted to `develop` before their bases merged, since a merge deletes its branch and
+  closes a pull request still stacked on it, and each took `develop` in before its last CI run.
 
 ## Scope
 
@@ -92,7 +96,7 @@
 - Follow-ups the shared roles left, neither filed yet: the client's own 17 files on the shared scale
   (so the scale keeps its tokens and its `cn()` registration), and 98 raw Tailwind sizes in 35
   shared components.
-- Finishing step 1 (`Fixes PRD-1267` in #1197):
+- Finishing step 1 (`Fixes PRD-1267` in #1197, merged 2026-10-23 as `aa20babdf`):
   - #1189 (`feature/app-cockpit-offline-face`, head `27189c373`), which #1190 overtook, conflicted
     with `develop` in seven files and would have added a second copy of the faces under
     `src/styles/fonts/`. The maintainer chose on 2026-10-23 to close it as superseded (closed with
@@ -149,7 +153,7 @@
     seam fingerprint of `shared-commitment-pooling-public` is re-certified (its proof suites, 61
     tests, passed); colons replaced the draft's em dashes; the projections and the docs token
     data are regenerated.
-- In review as #1191 (`Fixes PRD-1268`), with root `DESIGN.md`'s Ground paragraph (`fc65a91d5`)
+- Merged as #1191 (`Fixes PRD-1268`; `b7d2aeef4`, 2026-10-23 21:03:14Z), with root `DESIGN.md`'s Ground paragraph (`fc65a91d5`)
   in it: the docs token data reads `DESIGN.md`, so a second pull request regenerating it would
   conflict. Push gate on `fc65a91d5`: 18 of 19 selected checks passed, browser-proof manual. The
   first gate run failed docs-authority on this worktree's stale docs install (no `@babel/parser`);
@@ -169,8 +173,8 @@
 - Draft `10f0aa565` on `feature/app-cockpit-token-slice-drafts` replays onto step 2:
   `theme.css` applies cleanly, and the cockpit's `index.css` and Storybook's `surfaces.css` keep
   both sides after `--gg-hit-block` (`develop`'s type role block and the draft's outline).
-- In review as #1195 (`Fixes PRD-1269`), stacked on #1191 as the maintainer chose on
-  2026-10-23: one solid 2px ring on `.gg-control`, `.gg-button`, `.gg-chip` and `.gg-switch` in
+- Merged as #1195 (`Fixes PRD-1269`; `dcf09f16c`, 2026-10-23 21:23:06Z), first stacked on #1191
+  as the maintainer chose on 2026-10-23: one solid 2px ring on `.gg-control`, `.gg-button`, `.gg-chip` and `.gg-switch` in
   the workspace tone in the cockpit and the app's green, switched on by two plain tokens
   (`--gg-focus-ring-width`, `--gg-focus-halo-alpha`) that the installed app and the cockpit set,
   so the public website keeps its halo (A13); the app's buttons at weight 500; root `DESIGN.md`'s
@@ -182,7 +186,7 @@
   and 11.83:1. Unselected chip outlines: the app 1.34 to 4.80:1 (light) and 1.51 to 6.14:1 (dark),
   the cockpit 1.92 to 7.83:1 (dark). TDD `proof_limit` with that evidence.
 - Guides: DL-098 and its lines, with token version 2.24.0, are the standards-only #1196, stacked
-  on #1193 so the two decision-log rows land in order.
+  on #1193 so the two decision-log rows land in order; merged 21:22:47Z as `cbdb4eeee`.
 
 ## TDD Proof
 
@@ -256,8 +260,8 @@ Earlier, the face's first gate:
 
 ## Task Record
 
-Task record: PRD-1266 steps 1 to 3 (PRD-1267, PRD-1268, PRD-1269) | Type: feature | Outcome: partial: five pull requests open; the merges, the installed-app Brave proof and step 2's browser-proof remain
-Agent/model: Claude Code / claude-opus-5-5 | Coverage: the 2026-10-23 continuation, from the maintainer's handoff to the open pull requests
+Task record: PRD-1266 steps 1 to 3 (PRD-1267, PRD-1268, PRD-1269) | Type: feature | Outcome: partial: steps 1 to 3 merged; the installed-app Brave proof and step 2's browser-proof remain
+Agent/model: Claude Code / claude-opus-5-5 | Coverage: the 2026-10-23 continuation, from the maintainer's handoff to the five merges
 
 | Phase | Start → end (UTC) | Result / evidence or blocker |
 |---|---|---|
@@ -268,10 +272,12 @@ Agent/model: Claude Code / claude-opus-5-5 | Coverage: the 2026-10-23 continuati
 | Publish (step 2) | 18:27:14Z → 18:51:18Z | `c9b1fd66a` to `fc65a91d5`; #1191 opened 18:41:02Z, its guides #1193 at 18:51:18Z |
 | Wait | 18:33:08Z → 18:34:23Z | Three maintainer decisions: #1189, a frozen install for the gate, stacking step 3; resolved, and #1189 closed at 18:34:57Z |
 | Implement, verify, publish (step 3 and the vietnamese subset) | 18:51:18Z → 19:20:18Z | `be3747bd9` to `1f00b560e`; #1195 opened 19:11:40Z, #1196 19:13:12Z, #1197 19:20:18Z |
-| Publish (hub record) | 19:25:09Z → ongoing | `2d5710501` and this record |
-| Verify (current-head CI) | 19:25Z → ongoing | CI's client suite caught the shared-link boot harness, fixed in `a0ecdc1ed`; runner-setup failures on #1193 and #1196 rerun |
+| Publish (hub record) | 19:25:09Z → 19:36:04Z | `2d5710501` and this record, pushed to #1191 |
+| Verify and fix (current-head CI and review) | 19:25Z → 21:22:34Z | The shared-link boot harness (`a0ecdc1ed`); from review, white on the lifted status fills (`4b1bea68a`), the browser tab's dark ground (`4b641bc0b`), a nested dark outline (`bd90cf7b9`) and the toast tone (`6ca6c24b7`); `develop`'s parity self-test (`2e6bdcfe4`); the SiteHeader story's wait for the desktop breakpoint (`4b261d405`); Playwright runner-setup failures rerun |
+| Wait | 19:42:59Z → 20:57:54Z | The merge decision; resolved by the maintainer's approval, relayed by the coordinating session |
+| Publish (merges) | 21:01:12Z → 21:24:59Z | Five merges in the maintainer's order (see Lane) |
 
-Human corrections: 0 observed; attention: unknown.
+Human corrections: 0 observed (the coordinating session asked at 20:47:29Z for the SiteHeader failure to be fixed or named as a blocker rather than rerun); attention: unknown.
 
 ## Risks / Blockers
 
