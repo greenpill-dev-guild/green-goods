@@ -284,7 +284,7 @@ function SwatchChip({ swatch }: { swatch: Swatch }) {
 function PaletteRow({ label, swatches }: { label: string; swatches: Swatch[] }) {
   return (
     <div className="mb-8">
-      <h3 className="text-label-md text-text-strong-950 mb-3">{label}</h3>
+      <h3 className="type-label text-text-strong-950 mb-3">{label}</h3>
       <div className="flex flex-wrap gap-3">
         {swatches.map((s) => (
           <SwatchChip key={s.name} swatch={s} />
@@ -309,7 +309,7 @@ function SemanticRow({ token, kind }: { token: SemanticToken; kind: "bg" | "text
       )}
       {isText && (
         <div className="w-12 h-12 rounded-lg border border-stroke-soft-200 flex items-center justify-center bg-bg-white-0">
-          <span className="text-label-lg font-bold" style={{ color: `rgb(var(${token.cssVar}))` }}>
+          <span className="type-title-md font-bold" style={{ color: `rgb(var(${token.cssVar}))` }}>
             Aa
           </span>
         </div>
@@ -321,10 +321,10 @@ function SemanticRow({ token, kind }: { token: SemanticToken; kind: "bg" | "text
         />
       )}
       <div className="flex-1 min-w-0">
-        <div className="text-label-sm text-text-strong-950 font-medium">{token.name}</div>
-        <div className="text-paragraph-xs text-text-soft-400 font-mono">var({token.cssVar})</div>
+        <div className="type-label-sm text-text-strong-950 font-medium">{token.name}</div>
+        <div className="type-meta text-text-soft-400 font-mono">var({token.cssVar})</div>
       </div>
-      <div className="text-paragraph-xs text-text-sub-600 text-right">
+      <div className="type-meta text-text-sub-600 text-right">
         <div>Light: {token.lightRef}</div>
         <div>Dark: {token.darkRef}</div>
       </div>
@@ -336,7 +336,7 @@ function StateColorRow({ group }: { group: StateGroup }) {
   const suffixes = ["dark", "base", "light", "lighter"] as const;
   return (
     <div className="mb-6">
-      <h4 className="text-label-sm text-text-strong-950 mb-2">
+      <h4 className="type-label-sm text-text-strong-950 mb-2">
         {group.label} <span className="text-text-soft-400 font-normal">({group.hue})</span>
       </h4>
       <div className="flex gap-2">
@@ -385,7 +385,7 @@ export const Default: Story = {
   name: "Primitive Palettes",
   render: () => (
     <div>
-      <p className="text-paragraph-sm text-text-sub-600 mb-6">
+      <p className="type-label-sm text-text-sub-600 mb-6">
         Primitive colors are raw RGB triplets stored in <code>:root</code>. They never change
         between themes -- semantic tokens reference them indirectly.
       </p>
@@ -400,33 +400,33 @@ export const Default: Story = {
 export const SemanticColors: Story = {
   render: () => (
     <div>
-      <p className="text-paragraph-sm text-text-sub-600 mb-6">
+      <p className="type-label-sm text-text-sub-600 mb-6">
         Semantic tokens are the public API of the color system. Components should always use these
         -- never raw primitive values. They remap automatically in dark mode.
       </p>
 
-      <h3 className="text-label-md text-text-strong-950 mb-3">Backgrounds</h3>
+      <h3 className="type-label text-text-strong-950 mb-3">Backgrounds</h3>
       <div className="mb-8">
         {bgTokens.map((t) => (
           <SemanticRow key={t.name} token={t} kind="bg" />
         ))}
       </div>
 
-      <h3 className="text-label-md text-text-strong-950 mb-3">Text</h3>
+      <h3 className="type-label text-text-strong-950 mb-3">Text</h3>
       <div className="mb-8">
         {textTokens.map((t) => (
           <SemanticRow key={t.name} token={t} kind="text" />
         ))}
       </div>
 
-      <h3 className="text-label-md text-text-strong-950 mb-3">Strokes / Borders</h3>
+      <h3 className="type-label text-text-strong-950 mb-3">Strokes / Borders</h3>
       <div className="mb-8">
         {strokeTokens.map((t) => (
           <SemanticRow key={t.name} token={t} kind="stroke" />
         ))}
       </div>
 
-      <h3 className="text-label-md text-text-strong-950 mb-3">State Colors</h3>
+      <h3 className="type-label text-text-strong-950 mb-3">State Colors</h3>
       <div className="flex flex-wrap gap-x-8">
         {stateGroups.map((g) => (
           <StateColorRow key={g.prefix} group={g} />
@@ -447,7 +447,7 @@ export const DarkModeComparison: Story = {
 
     return (
       <div>
-        <p className="text-paragraph-sm text-text-sub-600 mb-6">
+        <p className="type-label-sm text-text-sub-600 mb-6">
           The same CSS variable resolves to different primitives depending on
           <code> [data-theme]</code>. This side-by-side shows how each semantic token maps in light
           vs dark mode.
@@ -456,7 +456,7 @@ export const DarkModeComparison: Story = {
         <div className="grid grid-cols-2 gap-0 rounded-xl overflow-hidden border border-stroke-soft-200">
           {/* Light column */}
           <div className="p-4" style={{ backgroundColor: "rgb(255,255,255)" }}>
-            <h4 className="text-label-sm font-semibold mb-4" style={{ color: "rgb(23,23,23)" }}>
+            <h4 className="type-label-sm font-semibold mb-4" style={{ color: "rgb(23,23,23)" }}>
               Light Mode
             </h4>
             {semanticPairs.map((t) => (
@@ -490,7 +490,7 @@ export const DarkModeComparison: Story = {
 
           {/* Dark column */}
           <div data-theme="dark" className="p-4" style={{ backgroundColor: "rgb(23,23,23)" }}>
-            <h4 className="text-label-sm font-semibold mb-4" style={{ color: "rgb(247,247,247)" }}>
+            <h4 className="type-label-sm font-semibold mb-4" style={{ color: "rgb(247,247,247)" }}>
               Dark Mode
             </h4>
             {semanticPairs.map((t) => (
@@ -532,10 +532,10 @@ export const DarkModeComparison: Story = {
 export const Gallery: Story = {
   render: () => (
     <div>
-      <h2 className="text-title-h5 text-text-strong-950 mb-6">Complete Color Reference</h2>
+      <h2 className="type-title-lg text-text-strong-950 mb-6">Complete Color Reference</h2>
 
       <section className="mb-12">
-        <h3 className="text-label-lg text-text-strong-950 mb-4 pb-2 border-b border-stroke-soft-200">
+        <h3 className="type-title-md text-text-strong-950 mb-4 pb-2 border-b border-stroke-soft-200">
           Primitive Palettes
         </h3>
         {allPalettes.map((p) => (
@@ -544,7 +544,7 @@ export const Gallery: Story = {
       </section>
 
       <section className="mb-12">
-        <h3 className="text-label-lg text-text-strong-950 mb-4 pb-2 border-b border-stroke-soft-200">
+        <h3 className="type-title-md text-text-strong-950 mb-4 pb-2 border-b border-stroke-soft-200">
           Semantic Backgrounds
         </h3>
         {bgTokens.map((t) => (
@@ -553,7 +553,7 @@ export const Gallery: Story = {
       </section>
 
       <section className="mb-12">
-        <h3 className="text-label-lg text-text-strong-950 mb-4 pb-2 border-b border-stroke-soft-200">
+        <h3 className="type-title-md text-text-strong-950 mb-4 pb-2 border-b border-stroke-soft-200">
           Semantic Text
         </h3>
         {textTokens.map((t) => (
@@ -562,7 +562,7 @@ export const Gallery: Story = {
       </section>
 
       <section className="mb-12">
-        <h3 className="text-label-lg text-text-strong-950 mb-4 pb-2 border-b border-stroke-soft-200">
+        <h3 className="type-title-md text-text-strong-950 mb-4 pb-2 border-b border-stroke-soft-200">
           Semantic Strokes
         </h3>
         {strokeTokens.map((t) => (
@@ -571,7 +571,7 @@ export const Gallery: Story = {
       </section>
 
       <section>
-        <h3 className="text-label-lg text-text-strong-950 mb-4 pb-2 border-b border-stroke-soft-200">
+        <h3 className="type-title-md text-text-strong-950 mb-4 pb-2 border-b border-stroke-soft-200">
           State Colors
         </h3>
         <div className="flex flex-wrap gap-x-8">

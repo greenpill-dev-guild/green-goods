@@ -24,16 +24,17 @@ import { cn } from "../utils/styles/cn";
 export type ConvictionStatus = "accruing" | "passing" | "funded" | "withdrawn" | "expired";
 
 /**
- * `xs` is the 12px pill (22px tall) for dense rows and cards, such as a promise
- * row or a season card, where it sits beside 12px words; `sm` and `md` suit
- * status blocks and headers.
+ * Status pills are one size on both surfaces, the cockpit's chip size. `xs` and
+ * `sm` take `type-meta-sm` (11px, 22px tall): `xs` for dense rows and cards,
+ * such as a promise row or a season card, `sm` for status blocks. `md` takes
+ * `type-meta` (12px) for headers.
  */
 type StatusBadgeSize = "xs" | "sm" | "md";
 
 const TEXT_SIZE: Record<StatusBadgeSize, string> = {
-  xs: "text-label-xs",
-  sm: "text-label-sm",
-  md: "text-label-md",
+  xs: "type-meta-sm",
+  sm: "type-meta-sm",
+  md: "type-meta",
 };
 
 interface WorkStatusBadgeProps {

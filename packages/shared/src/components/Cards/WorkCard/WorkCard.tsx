@@ -251,7 +251,7 @@ export const WorkCard: React.FC<WorkCardProps> = ({
         <div className={cn("flex min-w-0 flex-1 flex-col", isCompact ? "px-3 py-2" : "px-3 py-3")}>
           <div className="flex items-start justify-between gap-2">
             <h4
-              className="min-w-0 flex-1 truncate text-label-md font-medium text-text-strong-950"
+              className="min-w-0 flex-1 truncate type-title-sm font-medium text-text-strong-950"
               title={displayTitle || labels.untitledWork}
             >
               {displayTitle || labels.untitledWork}

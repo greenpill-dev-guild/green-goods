@@ -422,6 +422,37 @@ collect_admin_view_m3_colour_hits() {
   check_collection_statuses 2 "${PIPESTATUS[@]}"
 }
 
+# ----------------------------------------------------------------------------
+# Shared retired type-name sweep (app and cockpit unification, step 1)
+#
+# Shared components and their stories take their size from the type roles too,
+# so the names the roles retired fail here: the Material text-display-*,
+# text-headline-*, text-title-*, text-body-*, and text-label-* aliases (gone from
+# the cockpit's theme), the label-*, body-*, and subheading-* classes (gone with
+# admin-type.css), and the shared scale's sizes (text-paragraph-*,
+# text-subheading-*, text-title-h*, text-label-xl/xs, text-doc-*). The scale keeps
+# its tokens and its cn() registration while the app's own views still use it,
+# so cn.ts, which names its keys, is not scanned. Raw Tailwind sizes are not part
+# of this sweep. Stories and the Storybook design-system pages are scanned;
+# tests are not.
+# ----------------------------------------------------------------------------
+SHARED_RETIRED_TYPE_NAME_PATTERN="(^|[^[:alnum:]_-])${TW_VARIANT_PREFIX}(text-(display|headline|title|body|label|paragraph|subheading)-(2xs|xs|sm|md|lg|xl)|text-title-h[1-6]|text-doc-(label|paragraph)|(label|body)-(md|sm|xs)|subheading-(2xs|xs|sm))${TW_CLASS_BOUNDARY}"
+SHARED_TYPE_REGISTRY_REGEX='^packages/shared/src/utils/styles/cn\.ts:'
+
+collect_shared_retired_type_name_hits() {
+  grep -RInE --include='*.ts' --include='*.tsx' \
+    --exclude='*.test.tsx' --exclude='*.test.ts' \
+    --exclude-dir=__tests__ --exclude-dir=node_modules --exclude-dir=dist \
+    --exclude-dir=build --exclude-dir=storybook-static --exclude-dir=coverage \
+    "$SHARED_RETIRED_TYPE_NAME_PATTERN" packages/shared/src packages/shared/.storybook 2>/dev/null \
+    | grep -Ev "$SHARED_TYPE_REGISTRY_REGEX" \
+    | node scripts/design/filter-comment-hits.mjs "$SHARED_RETIRED_TYPE_NAME_PATTERN" \
+    | sed -E 's#^([^:]+):[0-9]+:[[:space:]]*#\1	#' \
+    | sed -E 's#[[:space:]]+# #g; s#[[:space:]]+$##' \
+    | sort -u
+  check_collection_statuses 2 "${PIPESTATUS[@]}"
+}
+
 collect_optional_hits() {
   local status
   if "$@"; then return 0; else status=$?; fi
@@ -432,7 +463,7 @@ collect_optional_hits() {
 
 validate_usage_baseline
 if ! USAGE_HITS="$(
-  for collector in collect_usage_hits collect_admin_invariant_hits collect_admin_wrapper_bypass_hits collect_admin_raw_type_size_hits collect_admin_view_m3_colour_hits; do
+  for collector in collect_usage_hits collect_admin_invariant_hits collect_admin_wrapper_bypass_hits collect_admin_raw_type_size_hits collect_admin_view_m3_colour_hits collect_shared_retired_type_name_hits; do
     collect_optional_hits "$collector" || exit 2
   done | sort -u
 )"; then
@@ -462,6 +493,7 @@ if [[ -n "$NEW_USAGE" ]]; then
   echo
   echo "Use Warm Earth tokens instead: --spring-*, --color-*, --radius-*, --color-material-*, --blur-material-*, and semantic utility aliases."
   echo "For packages/admin hits, the cockpit invariants also apply: text size via the type-* roles (never a raw text-* size, a retired label-*, body-*, text-title-*, text-body-* or text-label-* name, or another shared-scale size such as text-paragraph-* or text-title-h*), depth via --m3-elevation-0/1/2 (never bare shadow-*), hover/press via elevation or the 8% ink layer (never scale/translate), focus rings via --tone-focus-ring only, and state text via text-*-dark (never text-*-base)."
+  echo "For packages/shared hits, text size comes from the type-* roles too: never a retired label-*, body-*, subheading-*, text-title-*, text-body-* or text-label-* name, or a shared-scale size such as text-paragraph-* or text-title-h*."
   echo "If this is intentional legacy debt, migrate it or add an audited baseline entry in $USAGE_BASELINE."
   exit 1
 fi
@@ -724,6 +756,7 @@ echo "✅ admin Controlled Chrome guard passed: glass/blur/gradients stay in app
 echo "✅ admin cockpit invariant sweep passed: off-ladder shadows, hover/press transforms, alias focus rings, and text-*-base stay within the audited baseline."
 echo "✅ admin wrapper-adoption sweep passed: shared field primitives, raw <button> elements, and legacy Card renders stay within the audited baseline."
 echo "✅ admin type-scale and view-colour sweep passed: no raw text sizes, and raw --m3-* colours stay in the Admin* primitives, the shell, and ActionFlowShell (D32)."
+echo "✅ shared type-name sweep passed: packages/shared uses the type-* roles, with no retired Material, named, or shared-scale type names."
 echo "✅ admin focus-ring guard passed: focus indicators use --tone-focus-ring."
 echo "✅ action-flow modality guard passed: no retired AdminDialog size=\"fullscreen\" usage."
 echo "✅ installed-app safe-area guard passed: client and PWA bottom chrome pads by var(--safe-area-bottom)."

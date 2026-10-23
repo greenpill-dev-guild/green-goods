@@ -183,7 +183,7 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
             <h5
               className={cn(
                 isMinimalSelection
-                  ? "min-w-0 truncate text-label-md font-semibold transition-colors"
+                  ? "min-w-0 truncate type-title-sm transition-colors"
                   : "flex items-center text-lg font-semibold transition-colors line-clamp-1",
                 selected && "text-primary-on-surface"
               )}

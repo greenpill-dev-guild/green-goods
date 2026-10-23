@@ -61,7 +61,7 @@ describe("design system foundation", () => {
 
   it("exposes one shared control sizing contract for native inputs and selects", () => {
     expect(controlInputVariants({ size: "sm" })).toContain("min-h-10");
-    expect(controlInputVariants({ size: "sm" })).toContain("text-paragraph-md");
+    expect(controlInputVariants({ size: "sm" })).toContain("type-field");
     expect(selectTriggerVariants({ size: "sm" })).toContain("min-h-10");
     expect(selectTriggerVariants({ size: "sm" })).toContain("rounded-xl");
   });
