@@ -1,3 +1,4 @@
+import designTokens from "@green-goods/shared/styles/design-md.generated.json";
 import { PWA_MANIFEST_ID } from "./pwaRouting";
 
 type PwaManifestFlavor = "production" | "staging";
@@ -22,8 +23,12 @@ export interface PwaManifestBranding {
   description?: string;
   themeColor: string;
   backgroundColor: string;
+  /** The status bar tint per scheme on the website, which paints white. */
   htmlThemeColorLight: string;
   htmlThemeColorDark: string;
+  /** The status bar tint per scheme in the installed app, which paints its own ground. */
+  appThemeColorLight: string;
+  appThemeColorDark: string;
   msTileColor: string;
   msTileImage: string;
   browserIcon: string;
@@ -36,6 +41,11 @@ export interface PwaManifestBranding {
 const COMMON_PWA_ASSETS = ["favicon.ico"];
 const STAGING_MANIFEST_ID = "/?gg_pwa=staging";
 const STAGING_DARK_SURFACE = "#111b13";
+// The installed app's ground, serialized from the DesignMD canvas tokens: the
+// linen canvas and the warm dark floor that shared theme.css paints as the app's
+// bg-canvas in each theme.
+const APP_GROUND_LIGHT = designTokens.colors.neutral;
+const APP_GROUND_DARK = designTokens.colors["neutral-dark"];
 
 const PRODUCTION_APPLE_TOUCH_ICONS: PwaAppleTouchIcon[] = [
   { sizes: "57x57", src: "images/apple-icon-57x57.png" },
@@ -168,6 +178,8 @@ export function createPwaManifestBranding(flavor: PwaManifestFlavor): PwaManifes
       backgroundColor: STAGING_DARK_SURFACE,
       htmlThemeColorLight: STAGING_DARK_SURFACE,
       htmlThemeColorDark: STAGING_DARK_SURFACE,
+      appThemeColorLight: STAGING_DARK_SURFACE,
+      appThemeColorDark: STAGING_DARK_SURFACE,
       msTileColor: STAGING_DARK_SURFACE,
       msTileImage: "images/staging-ms-icon-144x144.png",
       browserIcon: "staging-icon-192.png",
@@ -183,12 +195,17 @@ export function createPwaManifestBranding(flavor: PwaManifestFlavor): PwaManifes
     manifestId: PWA_MANIFEST_ID,
     name: "Green Goods",
     shortName: "Green Goods",
-    themeColor: "#fff",
-    backgroundColor: "#fff",
-    // The status bar tint per scheme, mirroring the app canvas (bg-white-0 in
-    // shared theme.css) so the bar reads as part of the page in either theme.
+    // The manifest belongs to the installed app, so its title bar and launch
+    // splash take the app's linen ground.
+    themeColor: APP_GROUND_LIGHT,
+    backgroundColor: APP_GROUND_LIGHT,
+    // The status bar tint per presentation and scheme, mirroring the page's
+    // canvas (bg-canvas in shared theme.css) so the bar reads as part of the
+    // page: white on the website, linen and the warm dark floor in the app.
     htmlThemeColorLight: "#ffffff",
     htmlThemeColorDark: "#0c0a09",
+    appThemeColorLight: APP_GROUND_LIGHT,
+    appThemeColorDark: APP_GROUND_DARK,
     msTileColor: "#ffffff",
     msTileImage: "images/ms-icon-144x144.png",
     browserIcon: "icon-192.png",

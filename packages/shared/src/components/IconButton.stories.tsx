@@ -48,7 +48,7 @@ export const Loading: Story = {
   args: { "aria-label": "Refreshing", loading: true },
 };
 
-/** A capture tool while recording (Submit Work, the proof composer): the error fill. */
+/** A capture tool while recording (Submit Work, the proof composer): the action red (DL-053). */
 export const Recording: Story = {
   args: {
     "aria-label": "Stop Recording",
@@ -61,7 +61,7 @@ export const Recording: Story = {
   play: async ({ canvasElement }) => {
     const button = within(canvasElement).getByRole("button", { name: "Stop Recording" });
     const probe = document.createElement("span");
-    probe.style.backgroundColor = "rgb(var(--error-base))";
+    probe.style.backgroundColor = "rgb(var(--error-action))";
     canvasElement.appendChild(probe);
     await expect(getComputedStyle(button).backgroundColor).toBe(
       getComputedStyle(probe).backgroundColor

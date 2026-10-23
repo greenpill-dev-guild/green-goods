@@ -152,6 +152,8 @@ function pwaHtmlMetadataPlugin(branding: PwaManifestBranding): Plugin {
     "%PWA_MS_TILE_IMAGE%": branding.msTileImage,
     "%PWA_THEME_COLOR_LIGHT%": branding.htmlThemeColorLight,
     "%PWA_THEME_COLOR_DARK%": branding.htmlThemeColorDark,
+    "%PWA_APP_THEME_COLOR_LIGHT%": branding.appThemeColorLight,
+    "%PWA_APP_THEME_COLOR_DARK%": branding.appThemeColorDark,
   };
 
   return {
