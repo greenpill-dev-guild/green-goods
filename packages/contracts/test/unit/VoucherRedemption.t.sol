@@ -413,7 +413,7 @@ contract VoucherRedemptionTest is VoucherServiceDestinationFixture {
         assertEq(token.balanceOf(address(escrow)), 100);
     }
 
-    function testGnosisVoucherEscrow_upgradeRequiresPausedOwnerAndFullDelayPreservesV2Ledger() public {
+    function testGnosisVoucherEscrow_upgradeRequiresPausedOwnerWithoutWaitingAndPreservesV2Ledger() public {
         bytes32 decision = _partial();
         address next = address(new GnosisVoucherEscrow(address(router)));
         vm.prank(COMMUNITY);
@@ -423,9 +423,14 @@ contract VoucherRedemptionTest is VoucherServiceDestinationFixture {
         escrow.upgradeTo(next);
         vm.prank(GUARDIAN);
         escrow.pause();
-        vm.warp(block.timestamp + 48 hours);
+        uint256 scheduledAt = block.timestamp;
         vm.prank(COMMUNITY);
         escrow.upgradeTo(next);
+        assertEq(block.timestamp, scheduledAt);
+        assertEq(escrow.UPGRADE_DELAY(), 0);
+        assertEq(escrow.owner(), COMMUNITY);
+        assertEq(escrow.guardian(), GUARDIAN);
+        assertTrue(escrow.paused());
         assertEq(escrow.getFinalAllocation(id).decisionId, decision);
         assertEq(escrow.unspentVoucherLiability(address(token)), 100);
         vm.prank(COMMUNITY);

@@ -8,7 +8,11 @@ import { ICommitmentPoolingModule as Core } from "../../src/interfaces/ICommitme
 import { VoucherServiceCodec as Codec } from "../../src/libraries/VoucherServiceCodec.sol";
 import { VoucherRedemptionModule } from "../../src/modules/VoucherRedemptionModule.sol";
 import { GnosisVoucherEscrow } from "../../src/modules/GnosisVoucherEscrow.sol";
+import { VoucherEntitlementModule } from "../../src/modules/VoucherEntitlementModule.sol";
+import { ICommitmentServiceOffers as Services } from "../../src/interfaces/ICommitmentServiceOffers.sol";
+import { ICommitmentVoucherAcceptance as Acceptance } from "../../src/interfaces/ICommitmentVoucherAcceptance.sol";
 import { CLCVoucherPilotFixture } from "../helpers/CLCVoucherPilotFixture.sol";
+import { CLCVoucherJourneyFixture, IJourneySafe } from "../helpers/CLCVoucherJourneyFixture.sol";
 
 /// @notice Local pilot against pinned CLC code. Both issuers, terms, prices, service delivery,
 ///         Safes and transport are fictional. A successful swap/activation is not service proof.
@@ -322,5 +326,169 @@ contract GnosisVoucherPilotForkTest is CLCVoucherPilotFixture {
         vm.prank(_communitySafeStandIn);
         _primary.index.register(token);
         assertEq(_exchange(SERVICE_VOUCHERS, block.timestamp), SERVICE_VOUCHERS);
+    }
+}
+
+/// @notice Connected final-candidate economics on separate pinned Arbitrum and Gnosis forks.
+/// @dev Published CLC/Hats/Safe runtimes are real; member, Safe signatures, eligibility policy,
+///      gardens, evidence and service terms are synthetic. Cross-chain delivery is manually simulated.
+contract GnosisVoucherJourneyForkTest is CLCVoucherJourneyFixture {
+    function setUp() public {
+        _setUpJourney();
+    }
+
+    function testGnosisVoucherJourney_verifiedRequestEarnsSwapsAndPartiallyClosesWithFixedRetries() public {
+        _exerciseJourneyZeroDelayUpgrade();
+        _prepareJourneyReward();
+        assertEq(uint256(journeyCore.getCommitment(journeyRequestId).state), uint256(Core.CommitmentState.Fulfilled));
+        _dispatchJourneyReward();
+        assertFalse(journeyAdapter.getExecutionResult(journeyEntitlement).success);
+        assertEq(journeyA.balanceOf(journeyMember), 0);
+        assertEq(journeyA.balanceOf(journeyIssuerA), JOURNEY_INVENTORY);
+        bytes32 rewardPayload = journeyAdapter.getExecutionResult(journeyEntitlement).payloadHash;
+        _relayJourneyReward();
+        assertEq(
+            uint256(journeyEarned.getDistribution(journeyEntitlement).state),
+            uint256(VoucherEntitlementModule.DeliveryState.Failed)
+        );
+        vm.selectFork(journeyGnosisFork);
+
+        // A single synthetic signer cannot grant reserve spending through the actual 2-of-2 Safe.
+        bytes memory grant =
+            abi.encodeWithSignature("approve(address,uint256)", address(journeyAdapter), JOURNEY_ADAPTER_ALLOWANCE);
+        uint256 safeNonce = IJourneySafe(journeyIssuerA).nonce();
+        assertFalse(_safeCall(journeyIssuerA, address(journeyA), grant, true));
+        assertEq(IJourneySafe(journeyIssuerA).nonce(), safeNonce);
+        assertEq(journeyA.allowance(journeyIssuerA, address(journeyAdapter)), 0);
+        _safeExec(journeyIssuerA, address(journeyA), grant);
+        _safeExec(
+            journeyIssuerA, address(journeyAdapter), abi.encodeWithSignature("safeRetry(bytes32)", journeyEntitlement)
+        );
+        assertTrue(journeyAdapter.getExecutionResult(journeyEntitlement).success);
+        assertEq(journeyAdapter.getExecutionResult(journeyEntitlement).payloadHash, rewardPayload);
+        assertEq(journeyA.balanceOf(journeyMember), JOURNEY_REWARD);
+        assertEq(journeyA.allowance(journeyIssuerA, address(journeyAdapter)), JOURNEY_ADAPTER_ALLOWANCE - JOURNEY_REWARD);
+        // Repair and transport are separate: a successful reserve retry does not silently spend
+        // another acknowledgment fee. Explicitly resend its current result (mock fee is zero).
+        journeyAdapter.retryAcknowledgment(journeyEntitlement);
+        // New transport ID, identical economic authorization: the reserve must never be debited twice.
+        _dispatchJourneyReward();
+        assertEq(journeyA.balanceOf(journeyMember), JOURNEY_REWARD);
+        assertEq(journeyA.balanceOf(journeyIssuerA), 9e6);
+        assertEq(journeyA.allowance(journeyIssuerA, address(journeyAdapter)), 9e6);
+        _relayJourneyReward();
+        assertEq(
+            uint256(journeyEarned.getDistribution(journeyEntitlement).state),
+            uint256(VoucherEntitlementModule.DeliveryState.Delivered)
+        );
+
+        vm.selectFork(journeyGnosisFork);
+        assertEq(journeyPool.pool.getAmountOut(address(journeyB), address(journeyA), JOURNEY_REWARD), JOURNEY_REWARD);
+        vm.prank(journeyMember);
+        journeyA.approve(address(journeyPool.pool), JOURNEY_REWARD);
+        vm.prank(journeyMember);
+        assertEq(
+            journeyPool.pool
+                .withdraw(
+                    address(journeyB), address(journeyA), JOURNEY_REWARD, journeyMember, JOURNEY_REWARD, block.timestamp
+                ),
+            JOURNEY_REWARD
+        );
+        assertEq(journeyA.allowance(journeyMember, address(journeyPool.pool)), 0);
+        assertEq(journeyA.balanceOf(address(journeyPool.pool)), 11e6);
+        assertEq(journeyB.balanceOf(address(journeyPool.pool)), 9e6);
+        assertEq(journeyB.balanceOf(journeyMember), JOURNEY_REWARD);
+
+        _prepareJourneyService();
+        vm.prank(journeyMember);
+        journeyB.approve(address(journeyEscrow), JOURNEY_REWARD);
+        vm.expectRevert();
+        vm.prank(journeyMember);
+        journeyEscrow.presentSetup(journeySetupId, journeyAuthorizationHash);
+        assertEq(journeyB.balanceOf(journeyMember), JOURNEY_REWARD);
+        _safeExec(
+            journeyIssuerB,
+            address(journeyEscrow),
+            abi.encodeCall(GnosisVoucherEscrow.approveSetupAuthorization, (journeySetupId, journeyAuthorizationHash))
+        );
+        journeyGnosisRouter.configure(0, true, false);
+        vm.prank(journeyMember);
+        journeyEscrow.presentSetup(journeySetupId, journeyAuthorizationHash);
+        assertEq(journeyB.balanceOf(address(journeyEscrow)), JOURNEY_REWARD);
+        assertEq(journeyB.allowance(journeyMember, address(journeyEscrow)), 0);
+        vm.selectFork(journeyArbitrumFork);
+        vm.expectRevert(VoucherRedemptionModule.VoucherSetupNotReady.selector);
+        vm.prank(journeyCreator);
+        journeyServices.acceptServiceClaim(journeyServiceId, journeyMember, journeyClaimHash);
+        assertEq(uint256(journeyCore.getCommitment(journeyServiceId).state), uint256(Core.CommitmentState.Offered));
+        vm.selectFork(journeyGnosisFork);
+        journeyGnosisRouter.configure(0, false, false);
+        journeyEscrow.retrySetupAcknowledgment(journeySetupId);
+        _relayJourneySetup();
+        vm.prank(journeyCreator);
+        journeyServices.acceptServiceClaim(journeyServiceId, journeyMember, journeyClaimHash);
+        Acceptance.VoucherServiceAcceptance memory accepted =
+            Acceptance(address(journeyCore)).getVoucherServiceAcceptance(journeyServiceId);
+        assertEq(accepted.setupId, journeySetupId);
+        assertEq(accepted.authorizationHash, journeyAuthorizationHash);
+        assertEq(accepted.depositReceiptHash, Codec.depositReceiptHash(journeySource.getSetupAuthorization(journeySetupId)));
+        journeySource.finalizeActivation(journeySetupId, journeyAuthorizationHash);
+        _dispatchJourneySetup(1);
+        _relayJourneySetup();
+        assertEq(uint256(journeySource.getSetupResult(journeySetupId).phase), uint256(Codec.SetupPhase.Active));
+
+        vm.selectFork(journeyGnosisFork);
+        _safeExec(
+            journeyIssuerB,
+            address(journeyEscrow),
+            abi.encodeCall(
+                GnosisVoucherEscrow.authorizeReturn, (journeySetupId, journeyAuthorizationHash, uint256(500_000))
+            )
+        );
+        vm.prank(journeyMember);
+        bytes32 decision = journeyEscrow.finalizeAllocation(
+            journeySetupId, journeyAuthorizationHash, Codec.FinalAllocation(30, 500_000, 500_000)
+        );
+        journeyEscrow.executeFinalLeg(journeySetupId, decision, Codec.FinalLeg.RefundToHolder);
+        vm.prank(journeyGuardian);
+        journeyEscrow.pause();
+        journeyEscrow.executeFinalLeg(journeySetupId, decision, Codec.FinalLeg.ReleaseToIssuer);
+        assertEq(uint256(journeyEscrow.getFinalAllocation(journeySetupId).release.state), uint256(Codec.LegState.Failed));
+        assertEq(journeyB.balanceOf(journeyMember), 500_000);
+        assertEq(journeyB.balanceOf(journeyIssuerB), JOURNEY_INVENTORY);
+        assertEq(journeyB.balanceOf(address(journeyEscrow)), 500_000);
+        _safeExec(journeyCommunity, address(journeyEscrow), abi.encodeWithSignature("unpause()"));
+        vm.expectRevert(GnosisVoucherEscrow.ConflictingFinalAllocation.selector);
+        vm.prank(journeyMember);
+        journeyEscrow.finalizeAllocation(
+            journeySetupId, journeyAuthorizationHash, Codec.FinalAllocation(60, JOURNEY_REWARD, 0)
+        );
+        journeyEscrow.executeFinalLeg(journeySetupId, decision, Codec.FinalLeg.ReleaseToIssuer);
+        journeyEscrow.executeFinalLeg(journeySetupId, decision, Codec.FinalLeg.RefundToHolder);
+        journeyEscrow.executeFinalLeg(journeySetupId, decision, Codec.FinalLeg.ReleaseToIssuer);
+        assertEq(journeyEscrow.getFinalAllocation(journeySetupId).decisionId, decision);
+        assertEq(journeyEscrow.getFinalAllocation(journeySetupId).allocation.approvedDeliveredServiceUnits, 30);
+        assertTrue(journeyEscrow.isFinanciallyClosed(journeySetupId));
+        assertEq(journeyA.totalSupply(), JOURNEY_SUPPLY);
+        assertEq(journeyB.totalSupply(), JOURNEY_SUPPLY);
+        assertEq(journeyA.balanceOf(journeyIssuerA), 9e6);
+        assertEq(journeyA.balanceOf(address(journeyPool.pool)), 11e6);
+        assertEq(journeyA.balanceOf(journeyMember), 0);
+        assertEq(journeyB.balanceOf(journeyIssuerB), 10_500_000);
+        assertEq(journeyB.balanceOf(address(journeyPool.pool)), 9e6);
+        assertEq(journeyB.balanceOf(journeyMember), 500_000);
+        assertEq(journeyB.balanceOf(address(journeyEscrow)), 0);
+        assertEq(journeyPool.pool.fees(address(journeyA)), 0);
+        assertEq(journeyPool.pool.fees(address(journeyB)), 0);
+        assertFalse(journeyA.isWriter(address(journeyAdapter)));
+        assertFalse(journeyB.isWriter(address(journeyEscrow)));
+        _relayJourneySetup();
+        assertEq(uint256(journeySource.getFinalResult(journeySetupId).release.state), uint256(Codec.LegState.Succeeded));
+        assertEq(uint256(journeySource.getFinalResult(journeySetupId).refund.state), uint256(Codec.LegState.Succeeded));
+        assertEq(uint256(journeyCore.getCommitment(journeyServiceId).state), uint256(Core.CommitmentState.Accepted));
+        assertEq(journeyServices.getAcceptedServiceTerms(journeyServiceId).gdPrice, 0);
+        assertEq(
+            journeyServices.getAcceptedServiceTerms(journeyServiceId).offer.terms.serviceTermsRef, JOURNEY_SERVICE_TERMS
+        );
     }
 }

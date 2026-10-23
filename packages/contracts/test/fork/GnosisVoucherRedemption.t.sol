@@ -51,7 +51,7 @@ contract GnosisVoucherRedemptionForkTest is Test {
         guardian = makeAddr("fictional-redemption-emergency-guardian");
         address[] memory governors = new address[](1);
         governors[0] = issuer;
-        TimelockController timelock = new TimelockController(48 hours, governors, governors, address(0));
+        TimelockController timelock = new TimelockController(0, governors, governors, address(0));
         voucher = ICLCGiftableToken(
             ICLCERC1967Factory(FACTORY)
                 .deployAndCall(

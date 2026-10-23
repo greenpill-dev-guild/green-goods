@@ -167,37 +167,9 @@ contract HatsModule is
     event StewardObserverSet(address indexed garden, address indexed observer);
     event StewardObserverDeferred(address indexed garden, address indexed account);
 
-    /// @notice Storage gap for future upgrades
-    /// @dev Verified storage layout (forge inspect src/modules/Hats.sol:HatsModule storage-layout):
-    ///
-    ///      Inherited (OZ upgradeable bases):
-    ///        Slot 0       : Initializable (_initialized, _initializing)
-    ///        Slots 1-50   : Initializable __gap[50]
-    ///        Slot 51      : OwnableUpgradeable (_owner)
-    ///        Slots 52-100 : OwnableUpgradeable __gap[49]
-    ///        Slot 101     : ReentrancyGuardUpgradeable (_status)
-    ///        Slots 102-150: ReentrancyGuardUpgradeable __gap[49]
-    ///
-    ///      HatsModule own storage (16 vars, slots 151-166):
-    ///        Slot 151: hats (IHats)
-    ///        Slot 152: gardenToken (address)
-    ///        Slot 153: karmaGAPModule (IKarmaGAPModule)
-    ///        Slot 154: hatsModuleFactory (IHatsModuleFactory)
-    ///        Slot 155: funderEligibilityModule (address)
-    ///        Slot 156: communityEligibilityModule (address)
-    ///        Slot 157: communityMinBalance (uint256)
-    ///        Slot 158: communityHatId (uint256)
-    ///        Slot 159: gardensHatId (uint256)
-    ///        Slot 160: protocolGardenersHatId (uint256)
-    ///        Slot 161: gardenHats (mapping)
-    ///        Slot 162: gardensModule (address)
-    ///        Slot 163: configAuthority (mapping)
-    ///        Slot 164: gardenConvictionStrategies (mapping)
-    ///        Slot 165: _revokeNonce (uint256)
-    ///        Slot 166: stewardObserver (mapping)
-    ///
-    ///      Gap (slots 167-200): 16 vars + 34 gap = 50 slots total for HatsModule.
-    ///      When adding new storage variables, decrease __gap size by the same number of slots.
+    /// @notice Storage gap for future upgrades.
+    /// @dev Slot layout: storage-layouts/HatsModule.json.
+    ///      State and gap occupy 50 slots; consume gap slots when adding storage.
     uint256[34] private __gap;
 
     // ═══════════════════════════════════════════════════════════════════════════

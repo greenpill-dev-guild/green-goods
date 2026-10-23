@@ -543,7 +543,7 @@ contract VoucherEntitlementTest is CommitmentPoolingFixture {
         vouchers.ccipReceive(message);
     }
 
-    function testVoucherEntitlement_guardianPauseCannotResumeOrBypass48HourUpgrade() public {
+    function testVoucherEntitlement_guardianCanOnlyPauseAndOwnerUpgradesWithoutWaiting() public {
         VoucherEntitlementModule replacement = new VoucherEntitlementModule(address(router));
         vm.prank(GUARDIAN);
         vouchers.pause();
@@ -555,13 +555,21 @@ contract VoucherEntitlementTest is CommitmentPoolingFixture {
         vouchers.scheduleUpgrade(address(replacement));
         vm.expectRevert(VoucherEndpoint.UpgradeNotReady.selector);
         vouchers.upgradeTo(address(replacement));
+        uint256 scheduledAt = block.timestamp;
         vouchers.scheduleUpgrade(address(replacement));
-        vm.warp(block.timestamp + 48 hours - 1);
-        vm.expectRevert(VoucherEndpoint.UpgradeNotReady.selector);
+        assertEq(vouchers.upgradeAvailableAt(), scheduledAt);
+        vm.expectRevert("Ownable: caller is not the owner");
+        vm.prank(GUARDIAN);
+        vouchers.cancelUpgrade();
+        vm.expectRevert("Ownable: caller is not the owner");
+        vm.prank(GUARDIAN);
         vouchers.upgradeTo(address(replacement));
-        vm.warp(block.timestamp + 1);
         vouchers.upgradeTo(address(replacement));
+        assertEq(block.timestamp, scheduledAt);
+        assertEq(vouchers.UPGRADE_DELAY(), 0);
         assertTrue(vouchers.paused());
+        assertEq(vouchers.owner(), address(this));
+        assertEq(vouchers.guardian(), GUARDIAN);
         assertEq(vouchers.commitmentPooling().getPool(poolId).garden, POOL_GARDEN);
         assertEq(vouchers.upgradeAvailableAt(), 0);
     }
@@ -569,7 +577,6 @@ contract VoucherEntitlementTest is CommitmentPoolingFixture {
     function testVoucherEntitlement_upgradeBindsCodehashRouterAndPause() public {
         VoucherEntitlementModule wrongRouter = new VoucherEntitlementModule(address(0xBAAD));
         vouchers.scheduleUpgrade(address(wrongRouter));
-        vm.warp(block.timestamp + 48 hours);
         vm.expectRevert(VoucherEndpoint.UpgradeNotReady.selector);
         vouchers.upgradeTo(address(wrongRouter));
         vouchers.pause();
@@ -578,9 +585,37 @@ contract VoucherEntitlementTest is CommitmentPoolingFixture {
         VoucherEntitlementModule changedCode = new VoucherEntitlementModule(address(router));
         vouchers.scheduleUpgrade(address(changedCode));
         vm.etch(address(changedCode), hex"00");
-        vm.warp(block.timestamp + 48 hours);
         vm.expectRevert(VoucherEndpoint.UpgradeNotReady.selector);
         vouchers.upgradeTo(address(changedCode));
+    }
+
+    function testVoucherEntitlement_upgradeRequiresTheExactUncancelledSchedule() public {
+        VoucherEntitlementModule replacement = new VoucherEntitlementModule(address(router));
+        VoucherEntitlementModule different = new VoucherEntitlementModule(address(router));
+        vouchers.pause();
+        vouchers.scheduleUpgrade(address(replacement));
+        vm.expectRevert(VoucherEndpoint.UpgradeNotReady.selector);
+        vouchers.upgradeTo(address(different));
+        assertEq(vouchers.scheduledImplementation(), address(replacement));
+        vouchers.cancelUpgrade();
+        vm.expectRevert(VoucherEndpoint.UpgradeNotReady.selector);
+        vouchers.upgradeTo(address(replacement));
+        assertEq(vouchers.scheduledImplementation(), address(0));
+        assertEq(vouchers.scheduledCodehash(), bytes32(0));
+        assertEq(vouchers.upgradeAvailableAt(), 0);
+    }
+
+    function testVoucherEntitlement_upgradeCannotChangeLocalChainIdentity() public {
+        uint256 localChain = block.chainid;
+        vm.chainId(localChain + 1);
+        VoucherEntitlementModule replacement = new VoucherEntitlementModule(address(router));
+        vm.chainId(localChain);
+        vouchers.pause();
+        vouchers.scheduleUpgrade(address(replacement));
+        vm.expectRevert(VoucherEndpoint.ImmutableEndpointMismatch.selector);
+        vouchers.upgradeTo(address(replacement));
+        assertEq(vouchers.scheduledImplementation(), address(replacement));
+        assertEq(vouchers.LOCAL_CHAIN_ID(), localChain);
     }
 
     function testVoucherEntitlement_pauseAndFeeExhaustionAreRecoverableWithoutPayloadChange() public {

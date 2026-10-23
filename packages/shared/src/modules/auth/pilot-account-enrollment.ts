@@ -1,16 +1,11 @@
 import type { SmartAccountClient } from "permissionless";
-import { encodeFunctionData, type Address, type Hex } from "viem";
-import { getUserOperationHash, type UserOperation } from "viem/account-abstraction";
+import type { Address, Hex } from "viem";
 import { createPublicClientForChain } from "../../config/pimlico";
 import type { PasskeyAdapters } from "../../workflows/auth-passkey-adapters";
 import type { PasskeySessionResult } from "../../workflows/authMachine.types";
-import { PasskeySender } from "../transactions/passkey-sender";
 import { PILOT_PASSKEY_PROFILE, getPilotCredentialId } from "./account-profile";
 import {
   discoverPilotAccountProof,
-  PILOT_PROOF_CALL_ABI,
-  PILOT_ROOT_NONCE_KEY,
-  getPilotProofExecutionCallData,
   PilotProofExecutionFailedError,
   type PilotAccountProof,
 } from "./pilot-account-proof";
@@ -20,28 +15,24 @@ import {
   type PasskeyCredential,
   type SessionStorage,
 } from "./session";
-import { createSmartAccountClientResolver } from "./smartAccountClientResolver";
+import { selectPilotAccountSession, type ActivePasskeySession } from "./pilot-account-selection";
+
+import {
+  preparePilotProofOperation,
+  sendReviewedPilotProof,
+  type PilotAccountQuote,
+  type PreparedPilotProof,
+} from "./pilot-account-operation";
+export { getPilotProofMaxCost } from "./pilot-account-operation";
+export type { PilotAccountQuote } from "./pilot-account-operation";
 
 const PROOF_CHAIN_ID = 100;
-const MAX_PROOF_COST = 10n ** 16n; // 0.01 xDAI, paid by the paymaster; value is always zero.
-const QUOTE_LIFETIME_MS = 60_000;
 
 export type PilotAccountPreview = {
   address: Address;
   previousAddress: Address;
   enrolled: boolean;
   pending: boolean;
-};
-
-export type PilotAccountQuote = {
-  operationHash: Hex;
-  address: Address;
-  chainId: 100;
-  nonce: string;
-  maxCostWei: string;
-  costCeilingWei: string;
-  expiresAt: number;
-  sponsored: true;
 };
 
 export class PilotAccountProofError extends Error {
@@ -54,13 +45,6 @@ export class PilotAccountProofError extends Error {
   }
 }
 
-type ActivePasskeySession = {
-  credential: PasskeyCredential;
-  address: Hex;
-  userName: string;
-  chainId: number;
-};
-
 type Candidate = {
   active: ActivePasskeySession;
   credential: PasskeyCredential;
@@ -69,46 +53,8 @@ type Candidate = {
   clients: Map<number, SmartAccountClient>;
   generation: number;
   proof: PilotAccountProof | null;
-  quote?: { view: PilotAccountQuote };
+  quote?: PreparedPilotProof;
 };
-
-function operationHash(request: UserOperation<"0.7">, client: SmartAccountClient): Hex {
-  return getUserOperationHash({
-    userOperation: request,
-    chainId: PROOF_CHAIN_ID,
-    entryPointAddress: client.account!.entryPoint.address,
-    entryPointVersion: "0.7",
-  });
-}
-
-/** Check the complete prepared operation again at the last boundary before WebAuthn signs. */
-export function getPilotProofMaxCost(request: UserOperation<"0.7">): bigint {
-  const gas =
-    request.callGasLimit +
-    request.verificationGasLimit +
-    request.preVerificationGas +
-    (request.paymasterVerificationGasLimit ?? 0n) +
-    (request.paymasterPostOpGasLimit ?? 0n);
-  if (
-    !request.paymaster ||
-    /^0x0{40}$/i.test(request.paymaster) ||
-    request.maxFeePerGas <= 0n ||
-    request.maxPriorityFeePerGas < 0n ||
-    request.maxPriorityFeePerGas > request.maxFeePerGas ||
-    [
-      request.callGasLimit,
-      request.verificationGasLimit,
-      request.preVerificationGas,
-      request.paymasterVerificationGasLimit ?? 0n,
-      request.paymasterPostOpGasLimit ?? 0n,
-    ].some((value) => value < 0n)
-  ) {
-    throw new Error("Pilot proof requires a fully sponsored operation");
-  }
-  const maxCost = gas * request.maxFeePerGas;
-  if (maxCost > MAX_PROOF_COST) throw new Error("Pilot proof exceeds the 0.01 xDAI fee ceiling");
-  return maxCost;
-}
 
 /** One explicit enrollment at a time; the existing session stays active until proof is mined. */
 export function createPilotAccountEnrollment(input: {
@@ -254,101 +200,27 @@ export function createPilotAccountEnrollment(input: {
     if (storage.getItem(pendingKey(value.address)) !== null)
       throw new Error("Reconcile the pending pilot proof before retrying");
     const client = value.clients.get(PROOF_CHAIN_ID)!;
-    const request = (await client.prepareUserOperation({
-      account: client.account!,
-      calls: [
-        {
-          to: value.address,
-          value: 0n,
-          data: encodeFunctionData({ abi: PILOT_PROOF_CALL_ABI, functionName: "rootValidator" }),
-        },
-      ],
-    })) as UserOperation<"0.7">;
-    assertCurrent(value);
-    if (
-      request.sender.toLowerCase() !== value.address.toLowerCase() ||
-      request.callData.toLowerCase() !==
-        getPilotProofExecutionCallData(value.address).toLowerCase() ||
-      request.nonce >> 64n !== PILOT_ROOT_NONCE_KEY
-    ) {
-      throw new Error("Pilot proof preparation differs from the reviewed account operation");
-    }
-    const factoryArgs = await client.account!.getFactoryArgs();
-    if (
-      request.factory?.toLowerCase() !== factoryArgs.factory?.toLowerCase() ||
-      request.factoryData?.toLowerCase() !== factoryArgs.factoryData?.toLowerCase()
-    ) {
-      throw new Error("Pilot proof factory differs from the selected account profile");
-    }
-    assertCurrent(value);
-    const view: PilotAccountQuote = {
-      operationHash: operationHash(request, client),
+    const prepared = await preparePilotProofOperation({
+      client,
       address: value.address,
-      chainId: 100,
-      nonce: request.nonce.toString(),
-      maxCostWei: getPilotProofMaxCost(request).toString(),
-      costCeilingWei: MAX_PROOF_COST.toString(),
-      expiresAt: now() + QUOTE_LIFETIME_MS,
-      sponsored: true,
-    };
-    value.quote = { view };
-    return view;
+      assertCurrent: () => assertCurrent(value),
+      now,
+    });
+    value.quote = prepared;
+    return prepared.view;
   };
 
   const activate = async (value: Candidate, proof: PilotAccountProof) => {
     assertCurrent(value);
-    const primaryChainId = value.active.chainId;
-    const primaryClient = value.clients.get(primaryChainId);
-    if (!primaryClient) throw new Error("Pilot account is unavailable on the current chain");
-    const { session } = adapters;
-    const previousProfile = session.getStoredAccountProfile();
-    session.setStoredProfileAddress(
-      previousProfile,
-      value.active.credential,
-      value.active.address,
-      session.getStoredRpId() || value.rpId,
-      value.active.userName
-    );
-    session.setStoredProfileAddress(
-      PILOT_PASSKEY_PROFILE,
-      value.credential,
-      value.address,
-      value.rpId,
-      value.active.userName
-    );
-    const selectedSession: PasskeySessionResult = {
-      accountProfile: PILOT_PASSKEY_PROFILE,
+    selectPilotAccountSession({
+      adapters,
+      active: value.active,
+      clients: value.clients,
       credential: value.credential,
-      smartAccountAddress: value.address,
-      smartAccountClient: primaryClient,
-      userName: value.active.userName,
-      resolveSmartAccountClient: createSmartAccountClientResolver({
-        credential: value.credential,
-        primaryClient,
-        primaryChainId,
-        expectedAddress: value.address,
-        buildSmartAccount: (credential, chainId) =>
-          adapters.buildSmartAccount(
-            credential,
-            chainId,
-            value.rpId,
-            undefined,
-            PILOT_PASSKEY_PROFILE
-          ),
-      }),
-    };
-    try {
-      session.setStoredCredential(value.credential);
-      session.setStoredSmartAccountAddress(value.address);
-      session.setStoredAccountProfile(PILOT_PASSKEY_PROFILE);
-      input.selectSession(selectedSession);
-    } catch (error) {
-      // Archived identities remain available even if browser storage refuses a later write.
-      session.setStoredCredential(value.active.credential);
-      session.setStoredSmartAccountAddress(value.active.address);
-      session.setStoredAccountProfile(previousProfile);
-      throw error;
-    }
+      address: value.address,
+      rpId: value.rpId,
+      selectSession: (session) => input.selectSession(session),
+    });
     storage.removeItem(pendingKey(value.address));
     value.proof = proof;
     generation++;
@@ -377,61 +249,20 @@ export function createPilotAccountEnrollment(input: {
       if (storage.getItem(pendingKey(value.address)) !== null)
         throw new Error("Reconcile the pending pilot proof before retrying");
       const client = value.clients.get(PROOF_CHAIN_ID)!;
-      const account = client.account!;
-      const guardedAccount = Object.create(account, {
-        signUserOperation: {
-          enumerable: true,
-          value: async (request: Parameters<typeof account.signUserOperation>[0]) => {
-            assertCurrent(value);
-            const operation = request as UserOperation<"0.7">;
-            if (
-              (request.chainId !== undefined && request.chainId !== 100) ||
-              now() > approved.view.expiresAt ||
-              getPilotProofMaxCost(operation).toString() !== approved.view.maxCostWei ||
-              operationHash(operation, client) !== reviewedHash
-            ) {
-              throw new Error("Pilot proof quote changed; review it again");
-            }
-            const signature = await account.signUserOperation(request);
-            assertCurrent(value);
-            return signature;
-          },
+      const result = await sendReviewedPilotProof({
+        client,
+        address: value.address,
+        approved,
+        reviewedHash,
+        assertCurrent: () => assertCurrent(value),
+        now,
+        onBeforeBroadcast: (hash) => {
+          storage.setItem(
+            pendingKey(value.address),
+            JSON.stringify({ hash, nonce: approved.view.nonce })
+          );
         },
-      }) as typeof account;
-      const guardedClient = Object.create(client, {
-        account: { value: guardedAccount, enumerable: true },
-      }) as SmartAccountClient;
-      const sender = new PasskeySender(guardedClient);
-      const result = await sender.sendContractCall(
-        {
-          address: value.address,
-          abi: PILOT_PROOF_CALL_ABI,
-          functionName: "rootValidator",
-          args: [],
-          value: 0n,
-          account: value.address,
-        },
-        {
-          assertOwnership: async () => assertCurrent(value),
-          onBeforeBroadcast: async (reference) => {
-            assertCurrent(value);
-            if (now() > approved.view.expiresAt)
-              throw new Error("Pilot proof quote expired; review it again");
-            if (
-              reference?.kind !== "user-operation" ||
-              reference.chainId !== PROOF_CHAIN_ID ||
-              reference.hash !== reviewedHash
-            ) {
-              throw new Error("Pilot proof submission differs from the reviewed operation");
-            }
-            // Public operation identity survives navigation, transport failures and restarts.
-            storage.setItem(
-              pendingKey(value.address),
-              JSON.stringify({ hash: reference.hash, nonce: approved.view.nonce })
-            );
-          },
-        }
-      );
+      });
       const proof = await proofFor(value, result.hash);
       if (!proof) throw new Error("Successful pilot account authorization has not been proved");
       await activate(value, proof);

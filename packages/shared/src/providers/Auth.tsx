@@ -5,10 +5,8 @@
  */
 
 import { useSelector } from "@xstate/react";
-import type { SmartAccountClient } from "permissionless";
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Hex } from "viem";
-import type { P256Credential } from "viem/account-abstraction";
 import { useAccount, useConfig } from "wagmi";
 
 import { getAppKit } from "../config/appkit";
@@ -33,78 +31,33 @@ import {
   setEmbeddedAddress,
   setStoredWalletAddress,
 } from "../modules/auth/session";
-import type { SmartAccountClientResolver } from "../types/auth";
 import { defaultPasskeyAdapters, type PasskeyAdapters } from "../workflows/auth-passkey-adapters";
 import type { AuthActor } from "../workflows/authActor";
 import type { WalletConnectionType } from "../workflows/authMachine";
-import type { PasskeyAccountProfileId } from "../modules/auth/account-profile";
+import { createPilotAccountEnrollment } from "../modules/auth/pilot-account-enrollment";
 import {
-  createPilotAccountEnrollment,
-  type PilotAccountPreview,
-  type PilotAccountQuote,
-} from "../modules/auth/pilot-account-enrollment";
+  AuthStateContext,
+  AuthActionsContext,
+  AuthContext,
+  type AuthStateValue,
+  type AuthActionsValue,
+  type AuthContextType,
+} from "./authContext";
 
-// CONTEXT TYPES
-
-/**
- * Read-only auth state — changes on every auth event.
- * Use `useAuthState()` for components that only read state (avoids re-renders from action ref changes).
- */
-export interface AuthStateValue {
-  authMode: AuthMode;
-  isReady: boolean;
-  isAuthenticated: boolean;
-  isAuthenticating: boolean;
-  error: Error | null;
-  credential: P256Credential | null;
-  smartAccountAddress: Hex | null;
-  passkeyAccountProfile?: PasskeyAccountProfileId | null;
-  smartAccountClient: SmartAccountClient | null;
-  resolveSmartAccountClient: SmartAccountClientResolver | null;
-  userName: string | null;
-  hasStoredCredential: boolean;
-  walletAddress: Hex | null;
-  eoaAddress: Hex | undefined;
-  embeddedAddress: Hex | null;
-  externalWalletConnected: boolean;
-  externalWalletAddress: Hex | null;
-}
-
-/**
- * Mutation functions — stable references via useCallback.
- * Use `useAuthActions()` for components that only trigger actions (avoids re-renders from state changes).
- */
-export interface AuthActionsValue {
-  preparePilotAccount?: () => Promise<PilotAccountPreview>;
-  findExistingPilotAccount?: () => Promise<PilotAccountPreview | null>;
-  quotePilotAccount?: () => Promise<PilotAccountQuote>;
-  confirmPilotAccount?: (operationHash?: Hex) => Promise<void>;
-  reconcilePilotAccount?: () => Promise<void>;
-  cancelPilotAccountEnrollment?: () => void;
-  createAccount: (userName: string) => Promise<void>;
-  loginWithPasskey: (userName?: string) => Promise<void>;
-  loginWithOriginalPasskey?: (userName?: string) => Promise<void>;
-  loginWithWallet: () => void;
-  loginWithEmbedded: () => void;
-  signOut: () => Promise<void>;
-  switchToWallet: () => void;
-  switchToPasskey: (userName?: string) => void;
-  retry: () => void;
-  dismissError: () => void;
-
-  // Session management
-  clearPasskey: () => void;
-  disconnectWallet: () => Promise<void>;
-}
-
-/**
- * Combined auth context — full backward compatibility.
- */
-export interface AuthContextType extends AuthStateValue, AuthActionsValue {}
-
-export const AuthStateContext = createContext<AuthStateValue | undefined>(undefined);
-export const AuthActionsContext = createContext<AuthActionsValue | undefined>(undefined);
-export const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export {
+  AuthStateContext,
+  AuthActionsContext,
+  AuthContext,
+  type AuthStateValue,
+  type AuthActionsValue,
+  type AuthContextType,
+} from "./authContext";
+export {
+  useAuthState,
+  useAuthActions,
+  useAuthContext,
+  useOptionalAuthContext,
+} from "../hooks/auth/useAuthContext";
 
 // Pinned to @reown/appkit ^1.8.14 (see packages/{client,admin,shared}/
 // package.json). The auth connector exposes its ID as "ID_AUTH" via
@@ -117,39 +70,6 @@ function isAppKitEmbeddedConnector(connector?: { id?: string } | null): boolean 
   return Boolean(
     connector?.id && (APPKIT_EMBEDDED_CONNECTOR_IDS as readonly string[]).includes(connector.id)
   );
-}
-
-// HOOKS
-
-/** Read-only auth state. Use for components that only display auth info. */
-export function useAuthState(): AuthStateValue {
-  const context = useContext(AuthStateContext);
-  if (!context) {
-    throw new Error("useAuthState must be used within AuthProvider");
-  }
-  return context;
-}
-
-/** Auth mutation actions. Use for components that only trigger auth flows. */
-export function useAuthActions(): AuthActionsValue {
-  const context = useContext(AuthActionsContext);
-  if (!context) {
-    throw new Error("useAuthActions must be used within AuthProvider");
-  }
-  return context;
-}
-
-/** Combined auth context (backward compatible). */
-export function useAuthContext(): AuthContextType {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuthContext must be used within AuthProvider");
-  }
-  return context;
-}
-
-export function useOptionalAuthContext(): AuthContextType | undefined {
-  return useContext(AuthContext);
 }
 
 // PROVIDER

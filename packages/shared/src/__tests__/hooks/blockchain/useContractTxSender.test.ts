@@ -51,6 +51,12 @@ vi.mock("../../../hooks/auth/useUser", () => ({
   }),
 }));
 
+// The account and connector fixtures below both use Arbitrum independently of
+// the chain selected by the test runner's environment.
+vi.mock("../../../hooks/blockchain/useChainConfig", () => ({
+  useCurrentChain: () => 42161,
+}));
+
 // Mock wagmi
 vi.mock("wagmi", () => ({
   useWriteContract: () => ({

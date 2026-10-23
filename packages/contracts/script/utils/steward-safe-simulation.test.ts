@@ -1,3 +1,4 @@
+// TEST-QUALITY: allow-small-test-file - Process-owned Anvil forks and production publisher artifacts need isolated setup for deployment, nonce and canonical steward-Hat checks.
 import { execFileSync } from "node:child_process";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import draft from "../../config/steward-safe-release.json";

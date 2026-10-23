@@ -216,8 +216,8 @@ contract GnosisVoucherPurchaseForkTest is CLCPurchaseFixture {
         assertEq(_primary.quoter.owner(), _communitySafeStandIn);
         assertEq(_primary.feePolicy.owner(), _communitySafeStandIn);
         assertEq(_primary.protocolFee.owner(), _communitySafeStandIn);
-        assertEq(_issuerUpgradeTimelock.getMinDelay(), 48 hours);
-        assertEq(_communityUpgradeTimelock.getMinDelay(), 48 hours);
+        assertEq(_issuerUpgradeTimelock.getMinDelay(), 0);
+        assertEq(_communityUpgradeTimelock.getMinDelay(), 0);
         assertTrue(address(_issuerUpgradeTimelock) != address(_communityUpgradeTimelock));
         assertEq(ICLCERC1967Factory(CLC_FACTORY).adminOf(address(_voucher)), address(_issuerUpgradeTimelock));
         address[6] memory communityInstances = [

@@ -94,7 +94,7 @@ abstract contract CLCVoucherPilotFixture is CLCPurchaseFixture, CommitmentPoolin
     function _timelockForIssuerA() private returns (TimelockController) {
         address[] memory governors = new address[](1);
         governors[0] = issuerA;
-        return new TimelockController(48 hours, governors, governors, address(0));
+        return new TimelockController(0, governors, governors, address(0));
     }
 
     function _setUpActualService() private {

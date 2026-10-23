@@ -15,17 +15,37 @@
  */
 
 import type { Address, Hex } from "viem";
-import type { P256Credential } from "viem/account-abstraction";
 
 import type { AuthMode } from "../../types/auth";
 import { logger } from "../app/logger";
+
+import { CREDENTIAL_STORAGE_KEY } from "./passkey-credential-storage";
+
+export {
+  getPasskeyRequestIds,
+  matchesBrowserId,
+  setStoredCredential,
+  getStoredCredential,
+  hasStoredCredential,
+  clearStoredCredential,
+  type PasskeyCredential,
+} from "./passkey-credential-storage";
+
 import {
-  assertPasskeyAccountProfile,
-  getPilotCredentialId,
-  LEGACY_PASSKEY_PROFILE,
-  PILOT_PASSKEY_PROFILE,
-  type PasskeyAccountProfileId,
-} from "./account-profile";
+  ACCOUNT_PROFILE_STORAGE_KEY,
+  PROFILE_ACCOUNTS_STORAGE_KEY,
+  asHexAddress,
+  clearStoredAccountProfiles,
+} from "./passkey-profile-storage";
+
+export {
+  getStoredAccountProfile,
+  setStoredAccountProfile,
+  getStoredProfileAddress,
+  setStoredProfileAddress,
+  getStoredOriginalAccountAddress,
+  asHexAddress,
+} from "./passkey-profile-storage";
 
 export interface SessionStorage {
   getItem(key: string): string | null;
@@ -41,123 +61,11 @@ export const AUTH_MODE_STORAGE_KEY = "greengoods_auth_mode";
 /** Username for display */
 export const USERNAME_STORAGE_KEY = "greengoods_username";
 
-/** Passkey credential (id + publicKey as JSON) */
-const CREDENTIAL_STORAGE_KEY = "greengoods_credential";
-
 /** RP ID used during passkey registration (for cross-device consistency) */
 export const RP_ID_STORAGE_KEY = "greengoods_rp_id";
 
 /** Expected smart-account address rebuilt from the active passkey credential */
 export const SMART_ACCOUNT_ADDRESS_STORAGE_KEY = "greengoods_smart_account_address";
-
-const ACCOUNT_PROFILE_STORAGE_KEY = "greengoods_passkey_account_profile";
-const PROFILE_ACCOUNTS_STORAGE_KEY = "greengoods_passkey_profile_accounts";
-
-export function getStoredAccountProfile(
-  storage: SessionStorage = localStorage
-): PasskeyAccountProfileId {
-  const value = storage.getItem(ACCOUNT_PROFILE_STORAGE_KEY);
-  if (value === null) return LEGACY_PASSKEY_PROFILE;
-  assertPasskeyAccountProfile(value);
-  return value;
-}
-
-export function setStoredAccountProfile(
-  profile: PasskeyAccountProfileId,
-  storage: SessionStorage = localStorage
-): void {
-  assertPasskeyAccountProfile(profile);
-  storage.setItem(ACCOUNT_PROFILE_STORAGE_KEY, profile);
-}
-
-type ProfileAccount = {
-  profile: PasskeyAccountProfileId;
-  credentialId: string;
-  publicKey: Hex;
-  address: Address;
-  rpId: string;
-  userName: string;
-};
-
-function profileAccountKey(
-  profile: PasskeyAccountProfileId,
-  credential: PasskeyCredential
-): string {
-  assertPasskeyAccountProfile(profile);
-  const id = profile === PILOT_PASSKEY_PROFILE ? getPilotCredentialId(credential) : credential.id;
-  return `${profile}:${credential.publicKey.toLowerCase()}:${id}`;
-}
-
-function readProfileAccounts(storage: SessionStorage): Record<string, ProfileAccount> {
-  const stored = storage.getItem(PROFILE_ACCOUNTS_STORAGE_KEY);
-  if (stored === null) return {};
-  const parsed: unknown = JSON.parse(stored);
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error("Invalid saved passkey account profiles");
-  }
-  return parsed as Record<string, ProfileAccount>;
-}
-
-export function getStoredProfileAddress(
-  profile: PasskeyAccountProfileId,
-  credential: PasskeyCredential,
-  storage: SessionStorage = localStorage
-): Hex | null {
-  const key = profileAccountKey(profile, credential);
-  const record = readProfileAccounts(storage)[key];
-  if (record === undefined) return null;
-  if (
-    record.profile !== profile ||
-    !asHexAddress(record.address) ||
-    typeof record.publicKey !== "string" ||
-    record.publicKey.toLowerCase() !== credential.publicKey.toLowerCase() ||
-    profileAccountKey(profile, {
-      ...credential,
-      id: record.credentialId,
-      signingId: profile === PILOT_PASSKEY_PROFILE ? record.credentialId : credential.signingId,
-    }) !== key
-  ) {
-    throw new Error("Invalid saved passkey account profile");
-  }
-  return asHexAddress(record.address);
-}
-
-/** An explicit sign-in can reopen the archived identity without rewriting the pilot profile. */
-export function getStoredOriginalAccountAddress(
-  storage: SessionStorage = localStorage
-): Hex | null {
-  if (getStoredAccountProfile(storage) !== PILOT_PASSKEY_PROFILE) return null;
-  const credential = getStoredCredential(storage);
-  return credential ? getStoredProfileAddress(LEGACY_PASSKEY_PROFILE, credential, storage) : null;
-}
-
-/** Keep prior identities as public recovery metadata; no balances, roles or history are moved. */
-export function setStoredProfileAddress(
-  profile: PasskeyAccountProfileId,
-  credential: PasskeyCredential,
-  address: Address,
-  rpId: string,
-  userName: string,
-  storage: SessionStorage = localStorage
-): void {
-  if (!asHexAddress(address)) throw new Error("Invalid passkey account address");
-  const records = readProfileAccounts(storage);
-  records[profileAccountKey(profile, credential)] = {
-    profile,
-    credentialId:
-      profile === PILOT_PASSKEY_PROFILE ? getPilotCredentialId(credential) : credential.id,
-    publicKey: credential.publicKey,
-    address,
-    rpId,
-    userName,
-  };
-  storage.setItem(PROFILE_ACCOUNTS_STORAGE_KEY, JSON.stringify(records));
-}
-
-export function clearStoredAccountProfiles(storage: SessionStorage = localStorage): void {
-  storage.removeItem(ACCOUNT_PROFILE_STORAGE_KEY);
-  storage.removeItem(PROFILE_ACCOUNTS_STORAGE_KEY);
-}
 
 // AUTH MODE
 
@@ -283,11 +191,6 @@ export const EMBEDDED_ADDRESS_KEY = "greengoods_embedded_address";
 export const WALLET_ADDRESS_STORAGE_KEY = "greengoods_wallet_address";
 
 const WAGMI_STORE_KEY = "wagmi.store";
-
-/** Narrow a stored value to a hex address; anything else reads as absent. */
-export function asHexAddress(value: unknown): Hex | null {
-  return typeof value === "string" && /^0x[0-9a-fA-F]{40}$/.test(value) ? (value as Hex) : null;
-}
 
 function readWagmiWalletAddress(storage: SessionStorage): Hex | null {
   try {
@@ -457,137 +360,6 @@ if (import.meta.env.DEV && typeof window !== "undefined") {
   (window as { __debugPasskey?: typeof debugPasskeyConfig }).__debugPasskey = debugPasskeyConfig;
 }
 
-// CREDENTIAL STORAGE (Client-Only)
-
-/**
- * Serializable credential data for localStorage storage.
- * Only stores the fields needed to reconstruct the smart account.
- */
-export type PasskeyCredential = P256Credential & {
-  /** Browser credential ID, always base64url. `id` remains the Kernel identity input. */
-  signingId?: string;
-};
-
-interface StoredCredential {
-  version: 3;
-  id: string;
-  publicKey: `0x${string}`;
-  signingId: string | null;
-}
-
-/** Unknown legacy IDs may be hex or base64url; offer both without changing account identity. */
-export function getPasskeyRequestIds(
-  credential: Pick<PasskeyCredential, "id" | "signingId">
-): ArrayBuffer[] {
-  const id = credential.signingId ?? credential.id;
-  const base64 = id.replace(/-/g, "+").replace(/_/g, "/");
-  const decoded = Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
-  const ids: ArrayBuffer[] = [decoded.buffer];
-  const hex = id.replace(/^0x/, "");
-  if (!credential.signingId && hex.length > 0 && hex.length % 2 === 0 && /^[\da-f]+$/i.test(hex)) {
-    ids.unshift(Uint8Array.from(hex.match(/.{2}/g)!, (byte) => parseInt(byte, 16)).buffer);
-  }
-  return ids;
-}
-
-/**
- * Whether a stored credential is the one the browser just used. Stored IDs come in more than one
- * encoding, so the comparison is made on the bytes each of them stands for.
- */
-export function matchesBrowserId(
-  credential: Pick<PasskeyCredential, "id" | "signingId">,
-  browserId: string
-): boolean {
-  try {
-    const browserBytes = new Uint8Array(
-      getPasskeyRequestIds({ id: browserId, signingId: browserId })[0]
-    );
-    return getPasskeyRequestIds(credential).some((id) => {
-      const bytes = new Uint8Array(id);
-      return (
-        bytes.length === browserBytes.length &&
-        bytes.every((byte, index) => byte === browserBytes[index])
-      );
-    });
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Store passkey credential in localStorage.
- * Keeps account identity separate from the browser ID used for signing.
- */
-export function setStoredCredential(
-  credential: PasskeyCredential,
-  storage: SessionStorage = localStorage
-): void {
-  const storedData: StoredCredential = {
-    version: 3,
-    id: credential.id,
-    publicKey: credential.publicKey,
-    signingId: credential.signingId ?? credential.raw?.id ?? null,
-  };
-  storage.setItem(CREDENTIAL_STORAGE_KEY, JSON.stringify(storedData));
-}
-
-/**
- * Get stored credential from localStorage.
- * Returns a P256Credential-compatible object (without raw).
- */
-export function getStoredCredential(
-  storage: SessionStorage = localStorage
-): PasskeyCredential | null {
-  const stored = storage.getItem(CREDENTIAL_STORAGE_KEY);
-  if (!stored) return null;
-
-  try {
-    const data = JSON.parse(stored) as {
-      version?: unknown;
-      idEncoding?: unknown;
-      id?: unknown;
-      publicKey?: unknown;
-      signingId?: unknown;
-    } | null;
-    if (!data || typeof data.id !== "string" || !data.id || typeof data.publicKey !== "string") {
-      throw new Error("Stored passkey credential is incomplete");
-    }
-
-    if (data.version === 2 && data.idEncoding !== "base64url") return null;
-    if (data.version !== undefined && data.version !== 2 && data.version !== 3) return null;
-    if (
-      data.version === 3 &&
-      data.signingId !== null &&
-      (typeof data.signingId !== "string" || !data.signingId)
-    )
-      return null;
-
-    const credential: PasskeyCredential = {
-      id: data.id,
-      publicKey: data.publicKey as `0x${string}`,
-      raw: undefined as unknown as PublicKeyCredential,
-      ...(data.version === 2
-        ? { signingId: data.id }
-        : data.version === 3 && typeof data.signingId === "string"
-          ? { signingId: data.signingId }
-          : {}),
-    };
-    if (data.version !== 3) setStoredCredential(credential, storage);
-    return credential;
-  } catch {
-    logger.warn("[Session] Failed to parse stored credential, clearing...");
-    storage.removeItem(CREDENTIAL_STORAGE_KEY);
-    return null;
-  }
-}
-
-/**
- * Check if there's a stored credential.
- */
-export function hasStoredCredential(storage: SessionStorage = localStorage): boolean {
-  return storage.getItem(CREDENTIAL_STORAGE_KEY) !== null;
-}
-
 /**
  * Only an absence of all session metadata permits a host to defer auth startup.
  * Presence includes malformed/legacy records and explicit sign-out metadata:
@@ -614,13 +386,6 @@ export function hasSessionRestoreEvidence(storage?: Pick<SessionStorage, "getIte
   } catch {
     return true;
   }
-}
-
-/**
- * Clear stored credential.
- */
-export function clearStoredCredential(storage: SessionStorage = localStorage): void {
-  storage.removeItem(CREDENTIAL_STORAGE_KEY);
 }
 
 /**

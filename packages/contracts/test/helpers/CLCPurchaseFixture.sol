@@ -204,7 +204,7 @@ abstract contract CLCPurchaseFixture is Test {
     function _timelock(address safeStandIn) private returns (TimelockController) {
         address[] memory governors = new address[](1);
         governors[0] = safeStandIn;
-        return new TimelockController(48 hours, governors, governors, address(0));
+        return new TimelockController(0, governors, governors, address(0));
     }
 
     function _deployCommunityProxy(address implementation, bytes memory initialization) private returns (address) {

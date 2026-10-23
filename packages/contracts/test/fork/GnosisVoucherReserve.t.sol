@@ -78,7 +78,7 @@ contract GnosisVoucherReserveForkTest is Test {
         issuerSafeStandIn = makeAddr("fictional-issuer-Safe-stand-in");
         address[] memory governors = new address[](1);
         governors[0] = issuerSafeStandIn;
-        upgradeTimelock = new TimelockController(48 hours, governors, governors, address(0));
+        upgradeTimelock = new TimelockController(0, governors, governors, address(0));
         address proxy = ICLCERC1967Factory(FACTORY)
             .deployAndCall(
                 TOKEN_IMPLEMENTATION,
@@ -125,7 +125,7 @@ contract GnosisVoucherReserveForkTest is Test {
         assertEq(voucher.balanceOf(issuerSafeStandIn), 100);
         assertEq(voucher.totalSupply(), 100);
         assertEq(ICLCERC1967Factory(FACTORY).adminOf(address(voucher)), address(upgradeTimelock));
-        assertEq(upgradeTimelock.getMinDelay(), 48 hours);
+        assertEq(upgradeTimelock.getMinDelay(), 0);
         assertTrue(address(upgradeTimelock) != issuerSafeStandIn);
     }
 

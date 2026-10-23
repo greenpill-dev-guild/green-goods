@@ -38,7 +38,7 @@ const manifest: CLCPilotManifest = {
   techAndSunSafe: address(43),
   decimals: 6,
   expiresAt: 0,
-  minimumUpgradeDelay: 172800,
+  minimumUpgradeDelay: 0,
   pool: { ...draft.pool, feesDecoupled: true },
 };
 // A synthetic artifact is sufficient for pre-deployment refusal tests. It is never deployed.
@@ -98,6 +98,15 @@ afterAll(async () => {
 });
 
 describe("CLC owned-fork deployment refusal and cleanup", () => {
+  it.each([1, 172800])("rejects a mandatory %s-second delay before starting a fork", async (delay) => {
+    const plan = buildCLCPilotPlan(manifest, artifact, commit);
+    const changed = structuredClone(manifest);
+    Reflect.set(changed, "minimumUpgradeDelay", delay);
+    const before = observed.forks.length;
+    await expect(simulateCLCPilotPlan(plan, changed, artifact, seed.url)).rejects.toThrow("identity or policy");
+    expect(observed.forks).toHaveLength(before);
+    expect(await seed.client.getTransactionCount(deployer)).toBe(3);
+  });
   it("rejects a changed transaction before starting any fork", async () => {
     const plan = buildCLCPilotPlan(manifest, artifact, commit);
     plan.transactions[2].data += "00";

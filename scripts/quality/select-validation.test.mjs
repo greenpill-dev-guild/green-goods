@@ -2250,6 +2250,21 @@ test("signing, sending, queue and session hooks stay critical", () => {
   assert.equal(routine.status, "needs-focus");
 });
 
+test("live service submission paths retain mandatory critical proof without content inference", () => {
+  for (const changedPath of [
+    "packages/shared/src/modules/commitment-pooling/service-access-live.ts",
+    "packages/shared/src/modules/commitment-pooling/service-access-live-submission.ts",
+  ]) {
+    const plan = selectValidation({ intent: "push", changedPaths: [changedPath], mutationPaths: [] });
+    assert.equal(plan.risk, "critical", changedPath);
+    for (const id of ["shared-typecheck", "shared-test", "client-test", "admin-test", "agent-test"]) {
+      const check = plan.checks.find((entry) => entry.id === id);
+      assert.ok(check?.mandatory, `${changedPath}: ${id}`);
+      assert.ok(check.selectedBy.includes("critical-override"), `${changedPath}: ${id}`);
+    }
+  }
+});
+
 function mutationFixture(t, files) {
   const root = mkdtempSync(join(tmpdir(), "shared-mutation-"));
   t.after(() => rmSync(root, { recursive: true, force: true }));
@@ -2779,7 +2794,7 @@ test("every file a certified seam fingerprints selects test-quality", () => {
   const fingerprinted = new Set();
   for (const entry of registry.entries) {
     const proof = entry.proof ?? {};
-    for (const path of [entry.modulePath, ...(entry.compositionRoots ?? []), ...(entry.directConsumers ?? []), ...(proof.direct ?? []), ...(proof.conformance ?? []), ...(proof.integration ?? [])]) {
+    for (const path of [entry.modulePath, ...(entry.implementationFiles ?? []), ...(entry.compositionRoots ?? []), ...(entry.directConsumers ?? []), ...(proof.direct ?? []), ...(proof.conformance ?? []), ...(proof.integration ?? [])]) {
       if (path) fingerprinted.add(path);
     }
     // The fingerprint also covers the manifest that declares the seam's public export.

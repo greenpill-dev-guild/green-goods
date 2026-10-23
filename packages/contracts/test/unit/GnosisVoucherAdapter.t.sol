@@ -686,7 +686,7 @@ contract VoucherAdapterToken is IERC20 {
             _adapter.retryAcknowledgment(bytes32(uint256(1)));
         }
 
-        function testGnosisVoucherAdapter_upgradeRequiresPausedTimelockedOwnerAndPreservesReplay() public {
+        function testGnosisVoucherAdapter_upgradeRequiresPausedOwnerWithoutWaitingAndPreservesReplay() public {
             VoucherMessageCodec.Command memory command = _command();
             _deliver(command, bytes32(uint256(1)));
             GnosisVoucherAdapter replacement = new GnosisVoucherAdapter(address(_router));
@@ -694,15 +694,17 @@ contract VoucherAdapterToken is IERC20 {
             _adapter.pause();
             vm.prank(_COMMUNITY_SAFE);
             _adapter.scheduleUpgrade(address(replacement));
-            vm.expectRevert(VoucherEndpoint.UpgradeNotReady.selector);
-            vm.prank(_COMMUNITY_SAFE);
-            _adapter.upgradeTo(address(replacement));
-            vm.warp(block.timestamp + 48 hours);
+            uint256 scheduledAt = block.timestamp;
             vm.expectRevert("Ownable: caller is not the owner");
             vm.prank(_GUARDIAN);
             _adapter.upgradeTo(address(replacement));
             vm.prank(_COMMUNITY_SAFE);
             _adapter.upgradeTo(address(replacement));
+            assertEq(block.timestamp, scheduledAt);
+            assertEq(_adapter.UPGRADE_DELAY(), 0);
+            assertEq(_adapter.owner(), _COMMUNITY_SAFE);
+            assertEq(_adapter.guardian(), _GUARDIAN);
+            assertTrue(_adapter.paused());
             vm.prank(_COMMUNITY_SAFE);
             _adapter.unpause();
             _deliver(command, bytes32(uint256(2)));

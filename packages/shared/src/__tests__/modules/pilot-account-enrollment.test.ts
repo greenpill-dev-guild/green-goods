@@ -1,5 +1,5 @@
 import { createSmartAccountClient, type SmartAccountClient } from "permissionless";
-import { custom, encodeFunctionData, type Hex } from "viem";
+import { custom, type Hex } from "viem";
 import { gnosis } from "viem/chains";
 import {
   entryPoint07Address,
@@ -12,7 +12,6 @@ import {
   getPilotProofMaxCost,
 } from "../../modules/auth/pilot-account-enrollment";
 import {
-  PILOT_PROOF_CALL_ABI,
   PILOT_ROOT_NONCE_KEY,
   getPilotProofExecutionCallData,
   type PilotAccountProof,
@@ -20,6 +19,10 @@ import {
 } from "../../modules/auth/pilot-account-proof";
 import { LEGACY_PASSKEY_PROFILE, PILOT_PASSKEY_PROFILE } from "../../modules/auth/account-profile";
 import { defaultPasskeyAdapters } from "../../workflows/auth-passkey-adapters";
+import {
+  preparePilotProofOperation,
+  sendReviewedPilotProof,
+} from "../../modules/auth/pilot-account-operation";
 
 vi.mock("../../config/pimlico", () => ({
   createPublicClientForChain: (chainId: number) => ({ chain: { id: chainId } }),
@@ -99,20 +102,39 @@ function harness() {
           entryPoint: { address: entryPoint07Address, version: "0.7" },
           signUserOperation: sign,
           getFactoryArgs: async () => ({}),
+          getNonce: async () => operation.nonce,
         },
         prepareUserOperation: vi.fn(async () => ({ ...operation })),
-        sendUserOperation: async ({
-          account,
-          calls,
+        request: async ({
+          method,
+          params,
         }: {
-          account: { signUserOperation(input: UserOperation<"0.7">): Promise<Hex> };
-          calls: unknown;
+          method: string;
+          params: [Record<string, unknown>];
         }) => {
-          await account.signUserOperation(operation);
-          // The real sender's before-broadcast hook must persist the identity before the RPC send.
+          expect(method).toBe("eth_sendUserOperation");
           expect(records.has(`greengoods_pilot_proof:100:${NEW}`)).toBe(true);
-          sent(calls);
-          return hash(operation);
+          const rpc = params[0];
+          const override = await sent(rpc);
+          if (override) return override;
+          const quantities = new Set([
+            "nonce",
+            "callGasLimit",
+            "verificationGasLimit",
+            "preVerificationGas",
+            "maxFeePerGas",
+            "maxPriorityFeePerGas",
+            "paymasterVerificationGasLimit",
+            "paymasterPostOpGasLimit",
+          ]);
+          return hash(
+            Object.fromEntries(
+              Object.entries(rpc).map(([key, value]) => [
+                key,
+                quantities.has(key) ? BigInt(value as string) : value,
+              ])
+            ) as UserOperation<"0.7">
+          );
         },
         waitForUserOperationReceipt: wait,
       } as unknown as SmartAccountClient,
@@ -269,18 +291,147 @@ describe("pilot account enrollment", () => {
     expect(h.sent).not.toHaveBeenCalled();
   });
 
+  it("keeps a frozen copy of the reviewed request and view instead of mutable SDK results", async () => {
+    const h = harness();
+    const original = { ...request };
+    vi.mocked(h.clients.get(100)!.prepareUserOperation).mockResolvedValueOnce(original);
+    await h.enrollment.prepare();
+    const quote = await h.enrollment.quote();
+    expect(Object.isFrozen(quote)).toBe(true);
+    expect(Reflect.set(quote, "expiresAt", Infinity)).toBe(false);
+    original.paymasterData = "0x5678";
+    original.maxFeePerGas = 2_000_000_000n;
+    await h.enrollment.confirm(quote.operationHash);
+    expect(h.sent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        paymasterData: "0x1234",
+        maxFeePerGas: "0x3b9aca00",
+      })
+    );
+  });
+
+  it.each([
+    ["sponsor", { paymasterData: "0x5678" }],
+    ["calldata", { callData: "0x1234" }],
+    ["fee", { maxFeePerGas: 2_000_000_000n }],
+  ] as const)("refuses a retained %s mutation before WebAuthn signs", async (_field, change) => {
+    const h = harness();
+    const approved = await preparePilotProofOperation({
+      client: h.clients.get(100)!,
+      address: NEW,
+      assertCurrent: () => {},
+      now: () => 1_000,
+    });
+    expect(Object.isFrozen(approved.request)).toBe(true);
+    await expect(
+      sendReviewedPilotProof({
+        client: h.clients.get(100)!,
+        address: NEW,
+        approved: { ...approved, request: { ...approved.request, ...change } },
+        reviewedHash: approved.view.operationHash,
+        assertCurrent: () => {},
+        now: () => 1_000,
+        onBeforeBroadcast: vi.fn(),
+      })
+    ).rejects.toThrow("quote changed");
+    expect(h.sign).not.toHaveBeenCalled();
+    expect(h.sent).not.toHaveBeenCalled();
+  });
+
+  it("rejects changed factory deployment state before opening WebAuthn", async () => {
+    const h = harness();
+    await h.enrollment.prepare();
+    const quote = await h.enrollment.quote();
+    vi.spyOn(h.clients.get(100)!.account!, "getFactoryArgs").mockResolvedValue({
+      factory: OLD,
+      factoryData: "0x1234",
+    });
+    await expect(h.enrollment.confirm(quote.operationHash)).rejects.toThrow("quote changed");
+    expect(h.sign).not.toHaveBeenCalled();
+    expect(h.records.size).toBe(0);
+  });
+
+  it("rejects a session change while refreshing nonce before opening WebAuthn", async () => {
+    const h = harness();
+    await h.enrollment.prepare();
+    const quote = await h.enrollment.quote();
+    vi.spyOn(h.clients.get(100)!.account!, "getNonce").mockImplementationOnce(async () => {
+      h.logout();
+      return request.nonce;
+    });
+    await expect(h.enrollment.confirm(quote.operationHash)).rejects.toThrow("session changed");
+    expect(h.sign).not.toHaveBeenCalled();
+    expect(h.records.size).toBe(0);
+  });
+
+  it.each([
+    "expired",
+    "signed out",
+    "declined",
+  ])("blocks broadcast when a signature prompt is %s", async (outcome) => {
+    const h = harness();
+    await h.enrollment.prepare();
+    const quote = await h.enrollment.quote();
+    h.sign.mockImplementationOnce(async () => {
+      if (outcome === "expired") h.expire();
+      if (outcome === "signed out") h.logout();
+      if (outcome === "declined") throw new Error("Member declined signature");
+      return "0x1234";
+    });
+    await expect(h.enrollment.confirm(quote.operationHash)).rejects.toThrow();
+    expect(h.sent).not.toHaveBeenCalled();
+    expect(h.records.size).toBe(0);
+    expect(h.profileWrites).not.toHaveBeenCalled();
+  });
+
+  it("blocks RPC broadcast when persisting the operation identity fails", async () => {
+    const h = harness();
+    await h.enrollment.prepare();
+    const quote = await h.enrollment.quote();
+    vi.spyOn(h.records, "set").mockImplementationOnce(() => {
+      throw new Error("Storage quota");
+    });
+    await expect(h.enrollment.confirm(quote.operationHash)).rejects.toThrow("Storage quota");
+    expect(h.sent).not.toHaveBeenCalled();
+    expect(h.records.size).toBe(0);
+    expect(h.profileWrites).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    "uncertain RPC",
+    "unexpected hash",
+  ])("retains the reviewed pending identity after %s instead of signing twice", async (outcome) => {
+    const h = harness();
+    await h.enrollment.prepare();
+    const quote = await h.enrollment.quote();
+    if (outcome === "uncertain RPC")
+      h.sent.mockImplementationOnce(() => {
+        throw new Error("RPC timeout");
+      });
+    else h.sent.mockReturnValueOnce(TRANSACTION);
+    await expect(h.enrollment.confirm(quote.operationHash)).rejects.toThrow();
+    expect(JSON.parse(h.records.get(`greengoods_pilot_proof:100:${NEW}`)!)).toMatchObject({
+      hash: quote.operationHash,
+    });
+    expect(h.wait).not.toHaveBeenCalled();
+    await expect(h.enrollment.confirm(quote.operationHash)).rejects.toThrow("Reconcile");
+    expect(h.sign).toHaveBeenCalledTimes(1);
+    expect(h.profileWrites).not.toHaveBeenCalled();
+  });
+
   it("records the pending operation before send and selects only after receipt proof", async () => {
     const h = harness();
     await h.enrollment.prepare();
     const quote = await h.enrollment.quote();
     await h.enrollment.confirm(quote.operationHash);
-    expect(h.sent).toHaveBeenCalledWith([
-      {
-        to: NEW,
-        value: 0n,
-        data: encodeFunctionData({ abi: PILOT_PROOF_CALL_ABI, functionName: "rootValidator" }),
-      },
-    ]);
+    expect(h.sent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sender: NEW,
+        callData: getPilotProofExecutionCallData(NEW),
+        paymasterData: request.paymasterData,
+        signature: "0x1234",
+      })
+    );
     expect(h.discover).toHaveBeenLastCalledWith(
       expect.objectContaining({
         transactionHash: TRANSACTION,
@@ -302,7 +453,7 @@ describe("pilot account enrollment", () => {
     expect(h.records.size).toBe(0);
   });
 
-  it("preserves account prototypes through the installed SDK prepare/sign/send boundary", async () => {
+  it("submits the reviewed request once when the installed SDK's sponsor and fee quotes rotate", async () => {
     const h = harness();
     const inherited = {
       getFactoryArgs() {
@@ -312,7 +463,7 @@ describe("pilot account enrollment", () => {
         return request.nonce;
       },
       async getStubSignature() {
-        return "0x1234";
+        return "0xdead";
       },
       async encodeCalls() {
         return request.callData;
@@ -326,12 +477,16 @@ describe("pilot account enrollment", () => {
       signUserOperation: h.sign,
     });
     let broadcasts = 0;
+    let sponsorships = 0;
+    let feeQuotes = 0;
+    let gasEstimates = 0;
     const actualClient = createSmartAccountClient({
       account,
       chain: gnosis,
       bundlerTransport: custom({
-        request: async ({ method }) => {
-          if (method === "eth_estimateUserOperationGas")
+        request: async ({ method, params }) => {
+          if (method === "eth_estimateUserOperationGas") {
+            gasEstimates++;
             return {
               callGasLimit: "0xc350",
               verificationGasLimit: "0xea60",
@@ -339,8 +494,14 @@ describe("pilot account enrollment", () => {
               paymasterVerificationGasLimit: "0x4e20",
               paymasterPostOpGasLimit: "0x7530",
             };
+          }
           if (method === "eth_sendUserOperation") {
             expect(h.records.has(`greengoods_pilot_proof:100:${NEW}`)).toBe(true);
+            expect((params as unknown[])[0]).toMatchObject({
+              paymasterData: "0x1234",
+              maxFeePerGas: "0x3b9aca00",
+              signature: "0x1234",
+            });
             broadcasts++;
             return hash();
           }
@@ -348,27 +509,31 @@ describe("pilot account enrollment", () => {
         },
       }),
       paymaster: {
-        getPaymasterData: async () => ({
-          paymaster: request.paymaster!,
-          paymasterData: "0x1234",
-          paymasterVerificationGasLimit: 20_000n,
-          paymasterPostOpGasLimit: 30_000n,
-        }),
+        getPaymasterData: async () => {
+          sponsorships++;
+          return {
+            paymaster: request.paymaster!,
+            paymasterData: sponsorships === 1 ? "0x1234" : "0x5678",
+            paymasterVerificationGasLimit: 20_000n,
+            paymasterPostOpGasLimit: 30_000n,
+          };
+        },
         getPaymasterStubData: async () => ({
           paymaster: request.paymaster!,
           paymasterData: "0x1234",
-          isFinal: true,
+          isFinal: false,
           paymasterVerificationGasLimit: 20_000n,
           paymasterPostOpGasLimit: 30_000n,
         }),
       },
       userOperation: {
         estimateFeesPerGas: async () => ({
-          maxFeePerGas: request.maxFeePerGas,
+          maxFeePerGas: request.maxFeePerGas + BigInt(feeQuotes++),
           maxPriorityFeePerGas: request.maxPriorityFeePerGas,
         }),
       },
     });
+    const preparations = vi.spyOn(actualClient, "prepareUserOperation");
     h.clients.set(
       100,
       Object.assign(Object.create(actualClient), { waitForUserOperationReceipt: h.wait })
@@ -377,6 +542,10 @@ describe("pilot account enrollment", () => {
     const quote = await h.enrollment.quote();
     await h.enrollment.confirm(quote.operationHash);
     expect(broadcasts).toBe(1);
+    expect(preparations).toHaveBeenCalledTimes(1);
+    expect(sponsorships).toBe(1);
+    expect(feeQuotes).toBe(1);
+    expect(gasEstimates).toBe(1);
     expect(h.sign).toHaveBeenCalledTimes(1);
     expect(h.profileWrites).toHaveBeenCalledWith(PILOT_PASSKEY_PROFILE);
   });

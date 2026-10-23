@@ -76,6 +76,7 @@ describe("CLC Gnosis pilot preparation", () => {
   it("creates issuer Safe controlled timelocks followed by atomic initialized deterministic proxies", () => {
     const m = fixture();
     const a = artifact();
+    Reflect.set(m, "minimumUpgradeDelay", 0);
     const plan = buildCLCPilotPlan(m, a, commit);
     expect(plan.transactions.map((tx) => tx.nonce)).toEqual([7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
     expect(plan.addresses.greenGoodsTimelock).toBe(getCreateAddress({ from: m.deployer, nonce: 7 }));
@@ -86,7 +87,7 @@ describe("CLC Gnosis pilot preparation", () => {
       `0x${plan.transactions[0].data.slice(a.bytecode.object.length)}`,
     );
     expect(timelockInterface.deploy.inputs).toHaveLength(4);
-    expect(timelockArgs[0]).toBe(172800n);
+    expect(timelockArgs[0]).toBe(0n);
     expect(timelockArgs[1][0]).toBe(m.greenGoodsSafe);
     expect(timelockArgs[2][0]).toBe(m.greenGoodsSafe);
     expect(BigInt(timelockArgs[3])).toBe(0n);
@@ -209,9 +210,9 @@ describe("CLC Gnosis pilot preparation", () => {
       },
     ],
     [
-      "short delay",
+      "mandatory delay",
       (m: ReturnType<typeof fixture>) => {
-        Reflect.set(m, "minimumUpgradeDelay", 0);
+        Reflect.set(m, "minimumUpgradeDelay", 1);
       },
     ],
     [

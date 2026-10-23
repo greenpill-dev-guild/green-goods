@@ -159,7 +159,7 @@ contract HatsModuleTest is Test {
         assertEq(adapter.owner(), owner, "Owner should be set correctly");
     }
 
-    function testStewardObserverTracksGrantsOwnerSubgrantAndRevocation() public {
+    function testIntegration_Hats_stewardObserverTracksGrantsOwnerSubgrantAndRevocation() public {
         adapter.configureGarden(garden1, 1, 2, 3, 4, 5, 6);
         StewardObserverFixture observer = new StewardObserverFixture(adapter, garden1);
         adapter.setStewardObserver(garden1, address(observer));
@@ -175,7 +175,7 @@ contract HatsModuleTest is Test {
         vm.stopPrank();
     }
 
-    function testStewardObserverFailureCannotBlockRoleRevocation() public {
+    function testIntegration_Hats_stewardObserverFailureCannotBlockRoleRevocation() public {
         adapter.configureGarden(garden1, 1, 2, 3, 4, 5, 6);
         StewardObserverFixture observer = new StewardObserverFixture(adapter, garden1);
         adapter.setStewardObserver(garden1, address(observer));
@@ -187,13 +187,15 @@ contract HatsModuleTest is Test {
         assertFalse(adapter.isStewardOf(garden1, user1));
     }
 
-    function testStewardObserverConfigurationRequiresProtocolOwner() public {
+    function testIntegration_Hats_stewardObserverConfigurationRequiresProtocolOwner() public {
         vm.prank(user1);
         vm.expectRevert("Ownable: caller is not the owner");
         adapter.setStewardObserver(garden1, address(0x123));
     }
 
-    function testFundedStewardHookDispatchesAutomaticallyAndTransportFailureCannotBlockRevocation() public {
+    function testIntegration_Hats_fundedStewardHookDispatchesAutomaticallyAndTransportFailureCannotBlockRevocation()
+        public
+    {
         vm.chainId(42_161);
         adapter.configureGarden(garden1, 1, 2, 3, 4, 5, 6);
         StewardRouterFixture router = new StewardRouterFixture();

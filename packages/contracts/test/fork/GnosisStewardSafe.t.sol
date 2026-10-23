@@ -84,7 +84,7 @@ contract GnosisStewardSafeForkTest is Test {
         vm.deal(address(safe), 10 ether);
     }
 
-    function testFixedTwoWorksWithTwoThreeAndFiveStewards() public {
+    function testGnosisStewardSafe_fixedTwoWorksWithTwoThreeAndFiveStewards() public {
         _update(vm.addr(A), 1, true);
         _update(vm.addr(B), 1, true);
         assertEq(safe.getThreshold(), 2);
@@ -99,7 +99,7 @@ contract GnosisStewardSafeForkTest is Test {
         assertEq(address(0x44444).balance, 2);
     }
 
-    function testOneSignerCannotSpendAndZeroRosterRecoversThroughSourceGrants() public {
+    function testGnosisStewardSafe_oneSignerCannotSpendAndZeroRosterRecoversThroughSourceGrants() public {
         _update(vm.addr(A), 1, true);
         assertEq(safe.getThreshold(), 1);
         _spendReverts(A, 0, address(0x44444), "", bytes4(keccak256("ThresholdTooLow()")));
@@ -112,7 +112,7 @@ contract GnosisStewardSafeForkTest is Test {
         assertTrue(_spend(B, C, address(0x44444), ""));
     }
 
-    function testRevocationSurvivesFailedOwnerCleanupAndImmediatelyInvalidatesOldSignatures() public {
+    function testGnosisStewardSafe_revocationSurvivesFailedOwnerCleanupAndImmediatelyInvalidatesOldSignatures() public {
         _update(vm.addr(A), 1, true);
         _update(vm.addr(B), 1, true);
         _update(vm.addr(C), 1, true);
@@ -132,7 +132,7 @@ contract GnosisStewardSafeForkTest is Test {
         assertTrue(safe.isOwner(vm.addr(A)));
     }
 
-    function testReorderedDuplicatesAndConflictsCannotResurrectRevokedSteward() public {
+    function testGnosisStewardSafe_reorderedDuplicatesAndConflictsCannotResurrectRevokedSteward() public {
         _update(vm.addr(A), 2, false);
         _update(vm.addr(A), 1, true);
         _update(vm.addr(A), 2, false);
@@ -144,7 +144,7 @@ contract GnosisStewardSafeForkTest is Test {
         assertFalse(eligible);
     }
 
-    function testRejectsWrongRouterSenderSelectorDomainGardenAndAttachedTokens() public {
+    function testGnosisStewardSafe_rejectsWrongRouterSenderSelectorDomainGardenAndAttachedTokens() public {
         Client.Any2EVMMessage memory message = _message(vm.addr(A), 1, true);
         vm.expectRevert();
         receiver.ccipReceive(message);
@@ -166,7 +166,7 @@ contract GnosisStewardSafeForkTest is Test {
         assertEq(revision, 0);
     }
 
-    function testLockedGateHasSoleModuleAndSafeCannotReplaceGuardOrThreshold() public {
+    function testGnosisStewardSafe_lockedGateHasSoleModuleAndSafeCannotReplaceGuardOrThreshold() public {
         assertTrue(gate.locked());
         IHatsSignerGateV2.ThresholdConfig memory config = gate.thresholdConfig();
         assertEq(config.thresholdType, 0);
@@ -200,13 +200,13 @@ contract GnosisStewardSafeForkTest is Test {
         assertTrue(standing);
     }
 
-    function testFuzzUnknownWearerAlwaysReturnsExplicitDenial(address account, uint256 hat) public {
+    function testFuzz_GnosisStewardSafe_unknownWearerAlwaysReturnsExplicitDenial(address account, uint256 hat) public {
         (bool eligible, bool standing) = receiver.getWearerStatus(account, hat);
         assertFalse(eligible);
         assertTrue(standing);
     }
 
-    function testUnapprovedCallerCannotUseGateModuleExecution() public {
+    function testGnosisStewardSafe_unapprovedCallerCannotUseGateModuleExecution() public {
         (bool ok,) = address(gate)
             .call(
                 abi.encodeWithSignature(
@@ -217,7 +217,7 @@ contract GnosisStewardSafeForkTest is Test {
         assertEq(address(safe).balance, 10 ether);
     }
 
-    function testFundedSourceRoleLifecycleAutomaticallyUpdatesTheRealDestinationSafe() public {
+    function testGnosisStewardSafe_fundedSourceRoleLifecycleAutomaticallyUpdatesTheRealDestinationSafe() public {
         // Actual source module/publisher with fictional Arbitrum Hats and mocked CCIP delivery.
         vm.chainId(42_161);
         MockHats sourceHats = new MockHats();

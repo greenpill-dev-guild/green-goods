@@ -135,7 +135,7 @@ export async function verifyTechSunAuthority(provider: JsonRpcProvider, address:
 
 async function verifyTimelock(provider: JsonRpcProvider, address: string, safe: string, deployer: string) {
   const timelock = new Contract(address, CLC_TIMELOCK_ABI, provider);
-  equal(await timelock.getMinDelay(), 172800, "upgrade delay");
+  equal(await timelock.getMinDelay(), 0, "upgrade delay");
   const admin = await timelock.TIMELOCK_ADMIN_ROLE();
   equal(admin, id("TIMELOCK_ADMIN_ROLE"), "timelock admin role");
   equal(await timelock.hasRole(admin, address), true, "timelock self administration");

@@ -10,9 +10,10 @@ import { Client } from "@chainlink/contracts-ccip/contracts/libraries/Client.sol
 
 /// @notice Shared voucher transport and governance boundary; no custody or mutable peer rerouting.
 /// @dev Live owners must satisfy the repository's community Safe release gates. Local EOA owners
-///      are rehearsal stand-ins. A guardian can stop execution, never resume it or bypass the delay.
+///      are rehearsal stand-ins. A guardian can stop execution; only the owner can resume or upgrade.
 abstract contract VoucherEndpoint is OwnableUpgradeable, UUPSUpgradeable, ReentrancyGuardUpgradeable, CCIPReceiver {
-    uint256 public constant UPGRADE_DELAY = 48 hours;
+    // The pilot requires no waiting period; owner scheduling, pause and exact-code checks still apply.
+    uint256 public constant UPGRADE_DELAY = 0;
     address public immutable CCIP_ROUTER;
     uint256 public immutable LOCAL_CHAIN_ID;
 

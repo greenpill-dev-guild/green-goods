@@ -258,16 +258,18 @@ contract VoucherServiceSourceTest is VoucherServiceSourceTestBase {
         }
     }
 
-    function testVoucherSetup_timelockedUpgradePreservesNamespaceAndEndpointIdentity() public {
+    function testVoucherSetup_immediateScheduledUpgradePreservesNamespaceAndEndpointIdentity() public {
         bytes32 id = _funded();
         bytes32 authHash = Codec.hash(source.getSetupAuthorization(id));
         source.pause();
         VoucherRedemptionModule next = new VoucherRedemptionModule(address(router));
         source.scheduleUpgrade(address(next));
-        vm.expectRevert(VoucherEndpoint.UpgradeNotReady.selector);
+        uint256 scheduledAt = block.timestamp;
         source.upgradeTo(address(next));
-        vm.warp(block.timestamp + 48 hours);
-        source.upgradeTo(address(next));
+        assertEq(block.timestamp, scheduledAt);
+        assertEq(source.UPGRADE_DELAY(), 0);
+        assertEq(source.owner(), address(this));
+        assertTrue(source.paused());
         assertEq(Codec.hash(source.getSetupAuthorization(id)), authHash);
         assertEq(source.getSetup(id).depositedUnits, 100);
         assertEq(address(source.commitmentPooling()), address(core));
@@ -277,7 +279,6 @@ contract VoucherServiceSourceTest is VoucherServiceSourceTestBase {
         source.pause();
         VoucherRedemptionModule next = new VoucherRedemptionModule(address(0xBADD));
         source.scheduleUpgrade(address(next));
-        vm.warp(block.timestamp + 48 hours);
         vm.expectRevert(VoucherEndpoint.ImmutableEndpointMismatch.selector);
         source.upgradeTo(address(next));
     }

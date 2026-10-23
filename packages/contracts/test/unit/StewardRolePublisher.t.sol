@@ -21,7 +21,7 @@ contract StewardRolePublisherTest is Test {
         vm.deal(address(this), 100);
     }
 
-    function testCanonicalRoleChangesAreOrderedAndRefreshIsIdempotent() public {
+    function testStewardRolePublisher_canonicalRoleChangesAreOrderedAndRefreshIsIdempotent() public {
         publisher.syncSteward(MEMBER);
         (uint64 revision, bool eligible) = publisher.states(MEMBER);
         assertEq(revision, 1);
@@ -39,7 +39,7 @@ contract StewardRolePublisherTest is Test {
         assertFalse(eligible);
     }
 
-    function testDispatchReadsCurrentAuthorityAndUsesExactFee() public {
+    function testStewardRolePublisher_dispatchReadsCurrentAuthorityAndUsesExactFee() public {
         roles.set(MEMBER, true);
         publisher.syncSteward(MEMBER);
         roles.set(MEMBER, false);
@@ -59,7 +59,7 @@ contract StewardRolePublisherTest is Test {
         publisher.dispatchSteward{ value: 11 }(MEMBER);
     }
 
-    function testSendFailureDoesNotUndoQueuedRevocationAndCanRetry() public {
+    function testStewardRolePublisher_sendFailureDoesNotUndoQueuedRevocationAndCanRetry() public {
         roles.set(MEMBER, true);
         publisher.syncSteward(MEMBER);
         roles.set(MEMBER, false);
@@ -75,7 +75,7 @@ contract StewardRolePublisherTest is Test {
         assertEq(router.sends(), 1);
     }
 
-    function testDeconfigurationQueuesRevocation() public {
+    function testStewardRolePublisher_deconfigurationQueuesRevocation() public {
         roles.set(MEMBER, true);
         publisher.syncSteward(MEMBER);
         roles.deconfigure();
@@ -85,7 +85,7 @@ contract StewardRolePublisherTest is Test {
         assertFalse(eligible);
     }
 
-    function testSourceHatRotationCannotSilentlyAdoptAnotherRoster() public {
+    function testStewardRolePublisher_sourceHatRotationCannotSilentlyAdoptAnotherRoster() public {
         roles.set(MEMBER, true);
         publisher.syncSteward(MEMBER);
         roles.changeHat(99);
@@ -95,7 +95,7 @@ contract StewardRolePublisherTest is Test {
         assertFalse(eligible);
     }
 
-    function testUnavailableAuthorityRejectsRefreshWithoutInventingARevocation() public {
+    function testStewardRolePublisher_unavailableAuthorityRejectsRefreshWithoutInventingARevocation() public {
         roles.set(MEMBER, true);
         publisher.syncSteward(MEMBER);
         roles.setUnavailable(true);
@@ -106,7 +106,7 @@ contract StewardRolePublisherTest is Test {
         assertTrue(eligible);
     }
 
-    function testFundedHookAutomaticallyDispatchesGrantsAndRevocationsOnce() public {
+    function testStewardRolePublisher_fundedHookAutomaticallyDispatchesGrantsAndRevocationsOnce() public {
         vm.deal(address(publisher), 100);
         roles.set(MEMBER, true);
         publisher.syncSteward(MEMBER);
@@ -119,7 +119,7 @@ contract StewardRolePublisherTest is Test {
         assertEq(address(publisher).balance, 80);
     }
 
-    function testUnknownNonStewardsCannotDrainTransportFunding() public {
+    function testStewardRolePublisher_unknownNonStewardsCannotDrainTransportFunding() public {
         vm.deal(address(publisher), 100);
         for (uint256 i = 2; i < 20; ++i) {
             publisher.syncSteward(address(uint160(i)));
@@ -128,7 +128,7 @@ contract StewardRolePublisherTest is Test {
         assertEq(address(publisher).balance, 100);
     }
 
-    function testTransportFailurePreservesRevocationAndRefreshRetriesFundedDispatch() public {
+    function testStewardRolePublisher_transportFailurePreservesRevocationAndRefreshRetriesFundedDispatch() public {
         vm.deal(address(publisher), 100);
         roles.set(MEMBER, true);
         publisher.syncSteward(MEMBER);
@@ -145,7 +145,7 @@ contract StewardRolePublisherTest is Test {
         assertEq(address(publisher).balance, 80);
     }
 
-    function testInsufficientFuelQueuesAndCallerPaidDispatchPreservesTheFeeBalance() public {
+    function testStewardRolePublisher_insufficientFuelQueuesAndCallerPaidDispatchPreservesTheFeeBalance() public {
         vm.deal(address(publisher), 9);
         roles.set(MEMBER, true);
         publisher.syncSteward(MEMBER);

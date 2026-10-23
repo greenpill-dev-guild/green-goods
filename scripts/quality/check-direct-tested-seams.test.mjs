@@ -1,7 +1,7 @@
 /** @direct-test-command ./check-direct-tested-seams.mjs */
 
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
@@ -263,4 +263,79 @@ test("fingerprints are deterministic for unchanged evidence", () => {
   assert.equal(first, second);
   assert.match(first, /^sha256:[a-f0-9]{64}$/);
   assert.equal(JSON.parse(readFileSync(input.registryPath, "utf8")).entries.length, 1);
+});
+
+test("invalidates certification when a declared implementation helper changes", () => {
+  const input = fixture({
+    testSource: 'import { subject } from "./subject";\nvoid subject;\n',
+    withExport: true,
+  });
+  const helper = "packages/example/src/helper.ts";
+  writeFileSync(path.join(input.root, helper), "export const helper = 1;\n");
+  const entry = registryEntry({ implementationFiles: [helper] });
+  writeRegistry(input.registryPath, [entry]);
+  const fingerprint = currentFingerprint(input);
+  writeRegistry(input.registryPath, [
+    { ...entry, lifecycle: "certified", evidenceFingerprint: fingerprint },
+  ]);
+  assert.equal(run(input).status, 0);
+
+  writeFileSync(path.join(input.root, helper), "export const helper = 2;\n");
+  const changed = run(input);
+  assert.equal(changed.status, 1);
+  assert.match(`${changed.stdout}\n${changed.stderr}`, /registry-stale-fingerprint/);
+});
+
+test("rejects missing implementation files without weakening selected entries", () => {
+  const input = fixture({
+    testSource: 'import { subject } from "./subject";\nvoid subject;\n',
+    withExport: true,
+  });
+  writeRegistry(input.registryPath, [
+    registryEntry({ implementationFiles: ["packages/example/src/missing.ts"] }),
+  ]);
+  const result = run(input);
+  assert.equal(result.status, 1);
+  assert.match(`${result.stdout}\n${result.stderr}`, /registry-missing-path/);
+});
+
+test("rejects invalid implementation declarations and paths", () => {
+  const input = fixture({
+    testSource: 'import { subject } from "./subject";\nvoid subject;\n',
+    withExport: true,
+  });
+  const invalid = [
+    "not-an-array",
+    [null],
+    [""],
+    [path.join(input.root, "packages/example/src/subject.ts")],
+    ["../outside.ts"],
+    ["packages/example/src/../src/subject.ts"],
+    ["packages\\example\\src\\subject.ts"],
+    ["packages/example/src"],
+  ];
+  for (const implementationFiles of invalid) {
+    writeRegistry(input.registryPath, [registryEntry({ implementationFiles })]);
+    const result = run(input);
+    assert.equal(result.status, 1, JSON.stringify(implementationFiles));
+    assert.match(
+      `${result.stdout}\n${result.stderr}`,
+      /registry-invalid-(?:field|implementation-file)/
+    );
+  }
+});
+
+test("rejects an implementation symlink outside the repository", () => {
+  const input = fixture({
+    testSource: 'import { subject } from "./subject";\nvoid subject;\n',
+    withExport: true,
+  });
+  const external = mkdtempSync(path.join(tmpdir(), "seam-external-"));
+  const helper = "packages/example/src/helper.ts";
+  writeFileSync(path.join(external, "helper.ts"), "export const helper = 1;\n");
+  symlinkSync(path.join(external, "helper.ts"), path.join(input.root, helper));
+  writeRegistry(input.registryPath, [registryEntry({ implementationFiles: [helper] })]);
+  const result = run(input);
+  assert.equal(result.status, 1);
+  assert.match(`${result.stdout}\n${result.stderr}`, /registry-invalid-implementation-file/);
 });

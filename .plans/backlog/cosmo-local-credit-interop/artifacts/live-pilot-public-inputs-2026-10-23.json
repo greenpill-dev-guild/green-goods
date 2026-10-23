@@ -555,7 +555,7 @@
   "pilotUpgradePolicySelection": {
     "mandatoryWaitSeconds": 0,
     "supersedesWaitSeconds": 172800,
-    "state": "selected; affected contract/manifests/tests still pending Hats source boundary",
+    "state": "Zero-delay candidate and connected rehearsal proven in working copy; full critical gate and signed checkpoint pending",
     "safeOwnershipAndThresholdsPreserved": true,
     "pauseGuardianAndRuntimeControlsPreserved": true,
     "nextBatchGate": {
@@ -571,7 +571,7 @@
       ],
       "readOnlyPreparationInProgress": false,
       "pushOrMergeAuthorized": false,
-      "implementationInProgress": true
+      "implementationInProgress": false
     }
   },
   "historicalSnapshotNotice": "Top-level base preflight fields describe observedAt/sourceCommit. Later Hats broadcasts, selected account migration and working-copy validation are recorded in their explicit follow-up sections; the original legacy-address route remains rejected.",
@@ -816,5 +816,397 @@
       "No new endpoint/source deployment adoption or indexer activation",
       "No live reward, exchange, redemption or Celo signing proof"
     ]
+  },
+  "pilotImplementationSignedCheckpoint": {
+    "verifiedAt": "2026-10-23T21:56:45.368Z",
+    "commit": "73f05a9177125d6509105659f5a724472343cc31",
+    "signature": "G",
+    "scopePaths": 57,
+    "subject": "feat(shared,client): add pilot accounts and live service signing",
+    "committedInputMismatches": [],
+    "foreignPortugueseWordingPreserved": true,
+    "indexEmptyAtVerification": true,
+    "inputAttribution": "52 implementation path hashes match prior working-copy proof. The committed Portuguese catalog excludes an unrelated wording hunk; exact committed catalogs have additional focused proof.",
+    "committedLocaleProof": {
+      "observedAt": "2026-10-23T22:00:04Z",
+      "evidenceClass": "commit-tree locale proof in secret-free public source snapshot",
+      "command": "PATH=/private/tmp/green-goods-local-integration-20261021/bin:$PATH bun --no-env-file run --cwd packages/shared test -- src/__tests__/i18n/locale-coverage.test.ts src/__tests__/i18n/sign-in-label-references.test.ts",
+      "passedFiles": 2,
+      "passedTests": 29,
+      "durationSeconds": 4.88,
+      "sha256": {
+        "en": "2439e0570ec41595bfd70752a973a3f18472ad3fa59e4ac1b725054d4efd259b",
+        "es": "f4bb1fd41c1950556170625b463ebfcd58ef6d6e8020ee9ddc410d2a820c5bfb",
+        "pt": "f82aadac7bcd95a85528543566599dc7bf266bc7c0069ab641167abce2965448"
+      },
+      "limits": "The source Portuguese catalog remains intentionally dirty. This is not a clean working-path receipt or a rerun of all application tests against a clean commit checkout."
+    },
+    "published": false
+  },
+  "zeroDelayCandidateProof": {
+    "observedAt": "2026-10-23T22:53:06.961Z",
+    "baseCommit": "73f05a9177125d6509105659f5a724472343cc31",
+    "attribution": "Working-copy candidate. No clean committed-path or deployment-readiness claim.",
+    "mandatoryWaitSeconds": 0,
+    "safeAndGuardianAuthorityUnchanged": true,
+    "connectedRehearsal": {
+      "passed": 67,
+      "failed": 0,
+      "skipped": 0,
+      "suites": 6,
+      "fuzzRunsPerCase": 32,
+      "productionGGArtifacts": true,
+      "actualSeparateArbitrumAndGnosisForks": true,
+      "proofSha256": "94cbd21f91075da527141b70c45be7d646cc89dc8b8ab14914e3c8658304483d",
+      "publishedDependencyControls": "Actual Safe 1.4.1 and Hats runtimes; synthetic two-of-two Safe signers and synthetic members/terms/delivery; exact captured mock-router payloads relayed between forks; mocked zero CCIP fees",
+      "flow": [
+        "verified synthetic request completion",
+        "earned voucher through issuer-reserve transfer",
+        "bounded exchange in one shared CLC pool",
+        "exact member consent and issuer approval",
+        "escrow before acceptance",
+        "acceptance-bound activation",
+        "holder-approved partial delivery",
+        "immutable issuer release and holder refund",
+        "failed release preserves completed refund, then explicit fixed retry"
+      ],
+      "financialClosureFulfillsCorePromise": false,
+      "clcGovernance": "Safe signatures schedule and execute same-implementation factory upgrade at one timestamp; no different CLC implementation deployed"
+    },
+    "finalProductionBytecodeComparison": {
+      "observedAt": "2026-10-23T22:47:20.166Z",
+      "count": 27,
+      "allIdentical": true,
+      "scope": "Exact production creation/runtime object strings for all27 rehearsal artifacts, before linking and immutable materialization"
+    },
+    "abiArtifacts": "passed",
+    "storage": "All16 registered layouts and ERC7201 namespaces passed; additional top-level28/24 Entitlement/Adapter field comparisons unchanged",
+    "sizes": "All deployable contracts pass EIP170 size check",
+    "contractsTest": {
+      "solidityPassed": 2211,
+      "productionGasBoundaryPassed": 3,
+      "nodeCliPassed": 37,
+      "initialVitestPassed": 417,
+      "initialVitestBlockedSuites": 5,
+      "initialFailure": "Sandbox loopback EPERM in isolated Anvil suites; exact full verify-fast rerun now running with loopback available",
+      "cacheRecovery": "The first isolated full-build attempt was interrupted after an incorrect cache copy. Correct generated profile caches were then copied; the same required verify-fast command was restarted without a check override.",
+      "verifyFast": {
+        "command": "./scripts/contracts/verify-production.sh --skip-e2e --skip-dry-run",
+        "exitCode": 0,
+        "environment": "Secret-free public source snapshot with public configuration and bounded loopback access; no signing or broadcast",
+        "attribution": "Exact 22 contract candidate paths; not a clean committed-root receipt",
+        "logSha256": "d1c61a22f7dd8b2b4470260e58398bf79a801dca491e1042af192b253f602c8f",
+        "timingSeconds": {
+          "build": 1121,
+          "lint": 79,
+          "test": 1092,
+          "total": 2293
+        },
+        "passed": {
+          "solidity": 2211,
+          "productionGas": 3,
+          "nodeCli": 37,
+          "vitest": 449,
+          "vitestFiles": 42
+        },
+        "originalBlockedRunSuperseded": true,
+        "cleanRoomBrowserIncluded": false,
+        "resultRecordedAt": "2026-10-23T23:37:39Z",
+        "actualStartAndEndUTC": "Unknown; elapsed time is from the script"
+      }
+    },
+    "application": {
+      "sharedPassed": 7666,
+      "sharedSkipped": 16,
+      "clientPassed": 1797,
+      "adminPassed": 1335,
+      "agentNodePassed": 558,
+      "agentNodeSkipped": 1,
+      "agentBunPassed": 218,
+      "clientBuild": "passed",
+      "environment": "Secret-free public source snapshot, public test configuration; unchanged Portuguese catalog uses exact committed content",
+      "limitations": "Current authenticated Brave ceremony pending. No member UserOperation or live service route proved.",
+      "attribution": "Historical pre-quote-repair candidate; see liveQuoteRepair for the fresh delta and broad rerun"
+    },
+    "sourceQuality": {
+      "validationSystemPassed": 406,
+      "strictSeamChecker": "passed",
+      "policy": "No critical override removed; live service send paths explicitly critical; extracted reviewed auth leaves included in certificate fingerprints",
+      "preCommitLimit": "Default test-quality/supply-chain see23 obsolete committed additions until signed renaming checkpoint; current working-name check passes30. Default branch checks must rerun after commit."
+    },
+    "remainingBroadcastsHeld": true,
+    "liveServiceRoutes": [],
+    "published": false,
+    "inputSha256": {
+      "packages/contracts/config/clc-pilot-release.json": "de3cff5ad1f9304f446b7057bad14d51506bc2bea60e188e54c4f5e62b63f2e1",
+      "packages/contracts/script/utils/clc-release-simulation.test.ts": "eb74913481a2d1dbf3fdea08a1ef77004eccdd842e69f5b6c63f150b55851c44",
+      "packages/contracts/script/utils/clc-release-simulation.ts": "c5ee83364db8f4426b6fdbb64fb9b443d9d814ad9c3faae26f0c0c9dfeaf78ca",
+      "packages/contracts/script/utils/clc-release.test.ts": "79962423ecef4126f399afb5f51f06a8e89a90f0d37557e203808987e7fe5dc8",
+      "packages/contracts/script/utils/clc-release.ts": "c92b0324771c4a252a72b3f6c8f6208193fdea60e31af23829f2e4c020ad16a3",
+      "packages/contracts/script/utils/steward-safe-simulation.test.ts": "520ebb0298de16bbeba7c45661e01824d98a18c615196b1aba2ab2432672a8dd",
+      "packages/contracts/src/modules/Hats.sol": "7fbcac246b70fd6411c9a818e07187e9e3ceb9a9a987fc693315e4974f22ef7d",
+      "packages/contracts/src/modules/VoucherEndpoint.sol": "dd97c2a7226df33e5b35205779025c38a6d8be06a11c51c534f4179fc72343c9",
+      "packages/contracts/test/fork/GnosisStewardSafe.t.sol": "d3bc326c43ca907d78468cfe6cb19a9eb07e82976ce9088ca983a01de6206ecc",
+      "packages/contracts/test/fork/GnosisVoucherPilot.t.sol": "f126e135a26e7c6e0e7b9e457960e1b3ac14d0ef30dbbc61f21e8cdc90a4e23e",
+      "packages/contracts/test/fork/GnosisVoucherPurchase.t.sol": "0e36e695b98ed9ed4a995cf8882e8848f42e1072b280c1601443edbadc119d77",
+      "packages/contracts/test/fork/GnosisVoucherRedemption.t.sol": "3855d4b932e501104b69efdc540ad6b2a8ee7710112217157e830bc36a2dbba9",
+      "packages/contracts/test/fork/GnosisVoucherReserve.t.sol": "fa65c54ddb752bc823d085f1ab0f17c752318d7e868533c4847534dfe861e4e3",
+      "packages/contracts/test/helpers/CLCPurchaseFixture.sol": "bb2afa64ba927671e7c536ca2893057f5177218e2eac18f57f80beb3e1ba95c2",
+      "packages/contracts/test/helpers/CLCVoucherJourneyFixture.sol": "ea1b8048dba8e907bfce2630796f875d1ff696ced730183413c249f6d7680ee7",
+      "packages/contracts/test/helpers/CLCVoucherPilotFixture.sol": "783f5d78ab397c11aed56f54bd2213923b3324596d6a3dfc68b6ed8c19c9d23b",
+      "packages/contracts/test/integration/HatsModule.t.sol": "9ebd3bcb6c21e8f3efed85a268e990a61f56e41c0aed5bc5589aa9fc43de144a",
+      "packages/contracts/test/unit/GnosisVoucherAdapter.t.sol": "cf9437d7d541b14274bc2d4d6a8766a4ffe2a1e7c38d20202c1ef2caab343849",
+      "packages/contracts/test/unit/StewardRolePublisher.t.sol": "7ac854c2f3a6ec3fd4cd60f0a80f7ca78c2f01d01ac17b3ed3a840a05c5e0aee",
+      "packages/contracts/test/unit/VoucherEntitlement.t.sol": "2a535c5406cc8b0d085a77875090084d2ce4175085c77d78ad48009a3ff25513",
+      "packages/contracts/test/unit/VoucherRedemption.t.sol": "ca11255fd41f48d2457cb7fdf1790885fda6590c90e06ac71d95d7e1976eab7b",
+      "packages/contracts/test/unit/VoucherServiceSource.t.sol": "7ce8cfbe81cad861b6c81e2a0c2071183c29a437975e2fea85056b6ccb5074b0",
+      "packages/shared/src/__tests__/hooks/blockchain/useContractTxSender.test.ts": "fa3621cda725a9d3ce533ce9c9db20f522c3bfe1fd6586148c48735408075917",
+      "packages/shared/src/__tests__/modules/pilot-account-enrollment.test.ts": "fe9272b16231e9e9df09195ea5ba5da536b4c46815e76d2a18d83915ee917d7c",
+      "packages/shared/src/hooks/auth/useAuthContext.ts": "3f6ca4866cbe1e267da1a78c3fa672525e7bf44498960b87d0337d2b4887bc62",
+      "packages/shared/src/modules/auth/passkey-credential-storage.ts": "be007b86cae0d71ce9dd1e8cf4bf6df7a3c78896646f2f4b63ba93ff3e1613b3",
+      "packages/shared/src/modules/auth/passkey-profile-storage.ts": "3ce408ca9338fd16883c41583b4a802fad9dbb10aa3132d27f4e7814dbb54136",
+      "packages/shared/src/modules/auth/pilot-account-enrollment.ts": "a850c264134117ae81303c89c949d620ea8a9c4f9d9ad6f1aabc27127f9f8afe",
+      "packages/shared/src/modules/auth/pilot-account-operation.ts": "698f0b9abb927eb025ba5294a177d4ad1edb1a5a1a45c5a7f98904c2ba424137",
+      "packages/shared/src/modules/auth/pilot-account-proof-account.ts": "fd0645c4358dc5a03052b5b1357d2f6d761ee992ca40255fcacad41c7e4c54e1",
+      "packages/shared/src/modules/auth/pilot-account-proof-receipt.ts": "50eab83fe270bcac3897950e2148ac79e48e2467641a75f2218c280f8b878751",
+      "packages/shared/src/modules/auth/pilot-account-proof-rpc.ts": "e9323337c18edf78fa7e334f30c3e0dedc0487535c73f38efc3d9cadd730170c",
+      "packages/shared/src/modules/auth/pilot-account-proof.ts": "e19c97d84fb67582af4d39f2c4ecf4456c16a2df9a8ddbe0980853a47fd32458",
+      "packages/shared/src/modules/auth/pilot-account-selection.ts": "2592ec0ba4fd8ef81a346ad9904012ff6edf647384e1dd840589e90f3ca3a04c",
+      "packages/shared/src/modules/auth/session.ts": "6ccba7f3af61f0af8cfe9a2572734307348062a48373789211b073db2ff30eb0",
+      "packages/shared/src/modules/commitment-pooling/service-access-live-chain.ts": "60728512bc351cc7f98db2208fe37775f4ad91e3b52446fc102bae7be564a330",
+      "packages/shared/src/modules/commitment-pooling/service-access-live-route.ts": "888e068497770e88f94aca229a8145f44de52618beada7ab73dfea95dc63fe80",
+      "packages/shared/src/modules/commitment-pooling/service-access-live-submission.ts": "e31dfb08ca066e0d5cdc82ef6eac78ddec714303643ab40ceefc46823470abbf",
+      "packages/shared/src/modules/commitment-pooling/service-access-live.ts": "b62af240f1d1c5d622a62fb2503497e12a1590320fe95b34d68c5bb9ea53327b",
+      "packages/shared/src/providers/Auth.tsx": "f556c90d64e5dcf2698d871bfaa346118c0e23f224c4729ac9b79b870f571b2a",
+      "packages/shared/src/providers/authContext.ts": "a57f64f340d18aedbbb88c9aa2f9eec118603696630f7dca265fc732fa427e1f",
+      "packages/shared/src/workflows/auth-passkey-session.ts": "67810e0137cb8baab2758a6dbcc3d160dfe75f0ca5bfb33e2d433b49fc0c79af",
+      "packages/shared/src/workflows/authServices.ts": "d31473aec790d9f130d051f3411e7e4b7dd9bf61ba0776b67b0df39aa884c104",
+      "scripts/data/module-seam-registry.json": "c3fe070e41465cdb90a4ad6b45ced6f26c6f5f055ba55cb3ea18e02a4627cb41",
+      "scripts/data/validation-policy.json": "c848885ea8ed28523ee6696ddc6b92a7470ce5ead57396f8cfa7f8246b562beb",
+      "scripts/quality/check-direct-tested-seams.mjs": "b8b97eda458f5a6b4748f8b8dd164edd4aa8cda7ec7cfc2673fd8e75566dca51",
+      "scripts/quality/check-direct-tested-seams.test.mjs": "687b88c6bfc5f5dfa2fdb2dfc50cf4875391221522cd398ca0a11dd24eb730c3",
+      "scripts/quality/check-source-structure.js": "9f9b578ad99fca3c621720239de2b316ed42146b89b0029fe68c98932f410c32",
+      "scripts/quality/check-source-structure.test.mjs": "9bb1dcf3aa0f44cfe8acec65515c31b085739ea9c6ab2f6aa22c0b1173a8997c",
+      "scripts/quality/select-validation.test.mjs": "2f8fbeba53c8c859b58cbcea688ee93ff8b6b0f727018d40465030feb188bf00"
+    },
+    "finalColdProductionBytecodeComparison": {
+      "observedAt": "2026-10-23T23:34:40.070603Z",
+      "productionArtifactCount": 27,
+      "allCreationAndRuntimeObjectStringsIdentical": true,
+      "referenceSha256": "602138633acfc0c10f7c74acf6dd8da050c9d5015572e217902bdf29dd71a090",
+      "limit": "Exact unlinked production bytecode.object strings from the cold gas-gate rebuild; not live materialized runtime verification"
+    }
+  },
+  "fundingAuthorityRefresh": {
+    "observedAt": "2026-10-23T22:51:31.399Z",
+    "evidenceClass": "read-only public JSON-RPC at explicit latest block per chain",
+    "rows": [
+      {
+        "chainId": 42161,
+        "blockNumber": 517668487,
+        "deployer": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+        "balanceWei": "10128114155989177",
+        "balanceNative": "0.010128114155989177",
+        "unit": "ETH",
+        "nonce": 1039,
+        "pendingNonce": 1039,
+        "safe": {
+          "address": "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+          "nonce": "33",
+          "threshold": "2",
+          "owners": [
+            "0x22682c3d3848294fF9bCBf3F0DDF48A605446B56",
+            "0x6166E1964447E0959bC7c8d543DB3ab82dB65044",
+            "0x5c79d252F458b3720f7f230f8490fd1eE81d32FB",
+            "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e",
+            "0xa9d20b435A85fAAa002f32d66F7D21564130E9cf"
+          ]
+        },
+        "publicRpc": "https://arb1.arbitrum.io/rpc"
+      },
+      {
+        "chainId": 100,
+        "blockNumber": 48908658,
+        "deployer": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+        "balanceWei": "1270000000000000000",
+        "balanceNative": "1.27",
+        "unit": "xDAI",
+        "nonce": 0,
+        "pendingNonce": 0,
+        "safe": {
+          "address": "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+          "nonce": "2",
+          "threshold": "2",
+          "owners": [
+            "0x6166E1964447E0959bC7c8d543DB3ab82dB65044",
+            "0x5c79d252F458b3720f7f230f8490fd1eE81d32FB",
+            "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e",
+            "0xa9d20b435A85fAAa002f32d66F7D21564130E9cf",
+            "0x22682c3d3848294fF9bCBf3F0DDF48A605446B56"
+          ]
+        },
+        "publicRpc": "https://rpc.gnosischain.com"
+      }
+    ]
+  },
+  "passkeyLocalhostFollowup": {
+    "observedAt": "2026-10-23T23:09:49.509Z",
+    "evidenceClass": "authenticated Brave profile; live development-page login UI reached pilot review. Fresh assertion and on-chain signature proof are separate and not claimed.",
+    "productionCacheObserved": true,
+    "noListenerOn3001Observed": true,
+    "launcher": "Operator reports root web coordinator hangs before ready output; client-only existing Vite entrypoint requested",
+    "rpIdOverride": "localhost",
+    "nodeEnvironmentOverride": "development",
+    "biometricPromptObserved": false,
+    "guardBypassed": false,
+    "protectedEnvironmentReadByAgent": false,
+    "clientListenerConfirmed": true,
+    "userUnregisteredStaleWorker": true,
+    "liveScriptsObserved": ["/@vite/client", "/src/main.tsx"],
+    "signInUiSucceeded": true,
+    "pilotEnrollmentHeld": "Member selection resolved by operator. The fresh quote/sign loop now blocks proof; no activation or transaction is claimed.",
+    "transactionSignatureOrBroadcast": false,
+    "freshWebAuthnAssertionVerified": false,
+    "automationLimit": "Browser URL policy rejected opening an internal worker-management page; operator performed worker-only cleanup. No circumvention or site-data deletion.",
+    "userReportedSignInComplete": true,
+    "memberSelectionConfirmed": true
+  },
+  "liveQuoteRepair": {
+    "observedAt": "2026-10-23T23:39:33Z",
+    "state": "Repair frozen and reviewed; all automated repair checks passed; signed local checkpoint and authenticated live retry pending",
+    "evidenceClass": "Real Brave localhost UI with operator-controlled authenticator; no agent access to credentials or browser storage",
+    "sponsoredMaximumNative": "0.00161930835",
+    "maximumCeilingNative": "0.01",
+    "nativeValue": "0",
+    "memberGasCharge": "0",
+    "chainId": 100,
+    "failure": "Preparing a fresh quote and immediately signing returns quote changed/expired before a passkey transaction prompt",
+    "mechanism": "Quote preparation retains only view/hash; sending via the normal SDK path prepares sponsorship and fee data again. Changes between preparations are correctly rejected by the exact-hash guard.",
+    "repair": "Retain a frozen flat UserOperation 0.7 request and quote. Invoke the installed viem send action with a pilot-scoped preparation adapter returning the retained request; reread nonce/factory and preserve session, full hash, full sponsored cost, 60-second expiry, durable intent and receipt checks. Unexpected returned hashes retain the original pending identity.",
+    "priorApplicationEvidence": "Earlier full application/build results are historical. Fresh focused, all four full types and suites, scoped format/lint/source checks pass after repair freeze; Client build was not rerun for this bounded SDK repair.",
+    "sourceContractCandidateChanged": false,
+    "broadcast": false,
+    "memberAddressAssociation": "Kept private; not included in this public artifact",
+    "frozenAt": "2026-10-23T23:23:58Z",
+    "verification": {
+      "ownerFocusedPassed": 57,
+      "aggregateFocusedPassed": 128,
+      "aggregateFocusedConfiguredSkips": 6,
+      "types": "All four application source/test typechecks passed after the final repair hashes",
+      "static": "Scoped format, Shared lint and source structure passed",
+      "broadApplicationSuites": "All four passed at exact frozen application inputs",
+      "liveRetry": "Pending; no new signature or broadcast after repair",
+      "freshApplicationResults": {
+        "focused": {
+          "files": 4,
+          "passed": 128,
+          "configuredSkips": 6
+        },
+        "shared": {
+          "passedFiles": 633,
+          "skippedFiles": 2,
+          "passedTests": 7678,
+          "skippedTests": 16
+        },
+        "client": {
+          "files": 153,
+          "tests": 1797
+        },
+        "admin": {
+          "files": 146,
+          "tests": 1335
+        },
+        "agent": {
+          "nodePassedFiles": 49,
+          "nodeSkippedFiles": 1,
+          "nodePassedTests": 558,
+          "nodeSkippedTests": 1,
+          "bunFiles": 23,
+          "bunTests": 218
+        }
+      },
+      "finishedAt": "2026-10-23T23:38:55.470Z",
+      "commands": [
+        {
+          "id": "focused-enrollment-proof-and-sender",
+          "command": "bun run --cwd packages/shared test -- src/__tests__/modules/pilot-account-enrollment.test.ts src/__tests__/modules/pilot-account-proof.test.ts src/modules/transactions/__tests__/passkey-sender.test.ts src/modules/transactions/__tests__/sender-conformance.test.ts",
+          "exitCode": 0,
+          "durationSeconds": 11.306
+        },
+        {
+          "id": "agent-types",
+          "command": "bun run --cwd packages/agent typecheck",
+          "exitCode": 0,
+          "durationSeconds": 13.623
+        },
+        {
+          "id": "shared-source-and-test-types",
+          "command": "bun run --cwd packages/shared typecheck -- --scope full",
+          "exitCode": 0,
+          "durationSeconds": 64.662
+        },
+        {
+          "id": "client-source-and-test-types",
+          "command": "bun run --cwd packages/client typecheck -- --scope full",
+          "exitCode": 0,
+          "durationSeconds": 122.557
+        },
+        {
+          "id": "admin-source-and-test-types",
+          "command": "bun run --cwd packages/admin typecheck -- --scope full",
+          "exitCode": 0,
+          "durationSeconds": 149.875
+        },
+        {
+          "id": "agent-full-test",
+          "command": "bun run --cwd packages/agent test",
+          "exitCode": 0,
+          "durationSeconds": 106.384
+        },
+        {
+          "id": "shared-full-test",
+          "command": "bun run --cwd packages/shared test",
+          "exitCode": 0,
+          "durationSeconds": 351.191
+        },
+        {
+          "id": "client-full-test",
+          "command": "bun run --cwd packages/client test",
+          "exitCode": 0,
+          "durationSeconds": 235.016
+        },
+        {
+          "id": "admin-full-test",
+          "command": "bun run --cwd packages/admin test",
+          "exitCode": 0,
+          "durationSeconds": 237.074
+        },
+        {
+          "id": "repair-scoped-format",
+          "command": "bun run format -- --check packages/shared/src/modules/auth/pilot-account-operation.ts packages/shared/src/modules/auth/pilot-account-enrollment.ts packages/shared/src/__tests__/modules/pilot-account-enrollment.test.ts",
+          "exitCode": 0,
+          "durationSeconds": 0.555
+        },
+        {
+          "id": "shared-lint",
+          "command": "bun run --cwd packages/shared lint",
+          "exitCode": 0,
+          "durationSeconds": 0.651
+        },
+        {
+          "id": "source-structure",
+          "command": "bun ",
+          "exitCode": 0,
+          "durationSeconds": 16.27
+        }
+      ],
+      "attribution": "Secret-free public source snapshot; all65 application source/snapshot hashes stable except deliberately committed Portuguese catalog content. Not a clean committed-root receipt."
+    },
+    "retainedLimits": {
+      "quoteLifetimeSeconds": 60,
+      "maxSponsoredCostWei": "10000000000000000",
+      "valueWei": "0",
+      "hashGuardRelaxed": false
+    }
   }
 }

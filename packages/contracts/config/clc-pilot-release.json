@@ -8,7 +8,7 @@
   "techAndSunSafe": null,
   "decimals": 6,
   "expiresAt": 0,
-  "minimumUpgradeDelay": 172800,
+  "minimumUpgradeDelay": 0,
   "earnedAdapter": null,
   "issuers": {
     "greenGoods": {

@@ -1292,3 +1292,152 @@ published CLC/Hats/Safe dependencies and production-built GG contracts. Transpor
 signers, member identities, terms and delivery remain simulated and must be labeled. Existing
 focused failure suites remain part of the proof; financial closure does not fulfill the core
 service promise or change the independent Celo G$ lane.
+
+**Signed application checkpoint, 2026-10-23 21:56:45 UTC:** local commit
+`73f05a9177125d6509105659f5a724472343cc31` has a verified good signature. Its 57 paths contain
+the pilot account and live-service signing implementation, this evidence record, and the consumed
+Hats plan/checkpoint. All 52 other implementation hashes match the prior automated proof; the
+Portuguese catalog deliberately excludes another session's wording change. That hunk remains
+unstaged. Focused verification of the exact three committed catalogs passed **29 tests in two
+files** in the secret-free source snapshot. This does not turn the earlier working-copy results
+into a clean committed-path receipt. No push or merge occurred.
+
+The contract candidate now has zero voucher upgrade delay and zero CLC timelock minimum delay,
+with authority and compatibility checks retained. The production core build passed; the connected
+two-fork journey and remaining critical checks are still running. The journey uses real published
+Safe 1.4.1 and Hats code, production GG creation artifacts, synthetic 2-of-2 Safe signers, and
+manually relayed mock-router messages. Its CLC factory control proof schedules and executes an
+upgrade to the same published implementation in one timestamp; it does not claim deployment of
+a new CLC implementation. Remaining broadcasts stay held until the final candidate is proven
+and committed.
+
+**Connected candidate proof, 2026-10-23 22:53 UTC:** the complete two-fork voucher rehearsal passed
+**67 cases in six suites**, including two 32-run fuzz cases. Actual published CLC, Hats and
+Safe 1.4.1 dependencies were used with production GG creation bytes. Safe owners, members,
+terms and delivery are synthetic; router transport is manually relayed with zero mocked fees.
+The journey earns a voucher, exchanges it in the shared pool, obtains exact consent and issuer
+approval, escrows before acceptance, activates from acceptance, and fixes a partial issuer-return
+and holder-refund allocation. Lost acknowledgments and a failed release require explicit retries;
+the completed refund cannot repeat. Financial closure leaves the core promise Accepted. The CLC
+control proof upgrades to the same published implementation within one timestamp.
+
+After the Hats comment-only and test-name repairs, all **27 production creation/runtime object
+strings are identical** to the rehearsal snapshot. This comparison precedes linking and immutable
+materialization. All 16 registered storage layouts, all registered ERC-7201 namespaces, deployable
+contract sizes and committed ABI checks passed. Entitlement's 28 and Adapter's 24 top-level storage
+fields also match the captured candidate baseline; this extra comparison is not recursive.
+
+Current application suites pass: Shared **7,666**, Client **1,797**, Admin **1,335**, Agent
+**558 Node cases plus 218 Bun cases**. Existing policy skips remain recorded. The current Client
+production build passes. A test-only network fixture now states its existing Arbitrum dependency
+explicitly. Auth and live-service extractions preserve public APIs, signing boundaries and durable
+pending-submission recovery; exact function-body comparisons and focused consumer proofs accompany
+the full suites. Validation-system fixtures pass **406 cases**. The certificate checker now
+fingerprints four extracted implementation leaves and rejects missing, malformed or external paths.
+Two stale certificate dates/fingerprints were refreshed after the Shared proof. No lifecycle or
+required proof was weakened.
+
+The root Solidity run passed **2,211 cases**, its three cold production gas-boundary cases and
+37 Node CLI cases. Five isolated Anvil Vitest suites were blocked by sandbox loopback EPERM, so
+that original aggregate is not a pass. The exact verify-fast entrypoint is rerunning in a
+secret-free public source copy with loopback enabled. Default test-quality/supply-chain also need
+a post-commit rerun: their combined committed/working diff currently counts 23 obsolete test
+names removed by this candidate; the supplemental current-working-name check passes 30 names.
+No default gate or source-binding check has been changed to hide this state.
+
+Public funding/authority refresh at **22:51:31 UTC**: the deployer has
+**0.010128114155989177 ETH** on Arbitrum and **1.27 xDAI** on Gnosis. Latest/pending EOA nonces are
+**1,039/1,039** and **0/0**; Safe nonces remain **33** and **2**, with threshold **2 of 5** on both.
+No top-up is currently needed for the approved budgets. Member funding remains held. Remaining
+source/voucher/CLC broadcasts still need the committed candidate, fresh plans and a complete
+guarded execution/adoption command path; a temporary executor draft is not a live command.
+
+The real Brave sign-in attempt stopped at the origin-context guard before any biometric request.
+The page was a cached production shell while port 3001 had no listener. The operator reports the
+root web launcher hangs before startup output. The next requested operation uses the existing
+client-only Vite command with development mode, localhost RP and Arbitrum selection. No origin
+guard, browser warning or credential protection was bypassed. No successful authenticated
+ceremony, member signature, new broadcast, publication or further commit is claimed here.
+
+The remaining source execution envelope must reserve **27 deployer EOA nonces**: 23 CREATEs
+plus four direct Safe outer transactions, independently of the four Safe nonces. At the last
+readback these are EOA 1,039–1,065 and Safe 33–36, so downstream Arbitrum deployment planning
+starts no earlier than EOA 1,066. These are observations for preparation, not frozen execution
+instructions. Exact runtime materialization, canonical receipt adoption and cumulative-budget
+recovery still need their repository CLI port and proof before any such command is handed over.
+The first isolated verify-fast attempt was interrupted after incorrect cache preparation; its
+log remains failure/interruption evidence. The same gate restarted with correctly copied
+generated caches, with its forced production rebuild and all checks retained.
+
+**Localhost login recovery, 2026-10-23:** the operator started the existing client-only Vite
+entrypoint with development mode, localhost RP and chain 42161. The client listener was confirmed.
+A normal reload still showed the old production shell, so the operator unregistered only the
+localhost service worker in DevTools after browser automation rejected its internal management URL.
+The next reload showed `/@vite/client` and `/src/main.tsx`, and the login UI reached Pilot Account.
+Stored account data was retained and no origin guard or browser security policy was bypassed.
+This is real-profile localhost UI evidence; a fresh WebAuthn assertion is not independently
+verified, and no UserOperation signature or broadcast is claimed. Enrollment is held while the
+operator resolves the displayed original-account mismatch. Private member associations remain
+outside this public record.
+
+The operator confirmed the remembered testing account for this pilot, resolving the earlier
+identity-choice hold. A real sponsored Gnosis quote succeeded with zero native value, zero member
+gas charge and maximum **0.00161930835 xDAI**, within the approved **0.01 xDAI** ceiling.
+Preparing and immediately signing that fresh quote reproduced a refusal before the transaction
+authenticator: “fee quote changed or expired.” The normal sender invokes SDK preparation again,
+while the quote retained only its hash/view. Variable sponsored data can therefore invalidate
+the reviewed operation. The bounded repair will retain that exact prepared request through
+SDK signing and submission, with fresh nonce/factory reads and all existing caps, expiry,
+session, hash, durable-intent and receipt checks retained. No guard will be weakened. Earlier
+application results describe the pre-repair candidate; fresh critical proof follows the fix.
+Contract candidate inputs remain unchanged and their full build has now passed.
+
+**Prepared proof repair, 2026-10-23 23:34 UTC:** the three-path repair is frozen and reviewed.
+The quote retains the exact flat UserOperation request; a scoped installed-SDK send adapter signs
+and submits those bytes without a second fee, sponsorship or gas-estimation request. Fresh
+nonce/factory reads, the full operation hash, session ownership, full sponsored cost, the
+60-second expiry and durable pending identity remain enforced. An unexpected bundler hash cannot
+replace that pending identity. The rotating-sponsorship regression failed against the old path
+and passed after the repair; no saved raw RED log exists.
+
+The owning focused suites passed **57 cases**. Fresh aggregate focused proof passed **128 cases**
+with six configured skips. All four applications' source/test typechecks and the scoped format,
+Shared lint and source-structure checks passed against the final repair inputs. The Agent's full
+suite passed; the other broad application reruns and the contract gate remain in progress. These
+are working-copy/snapshot results, not a clean committed-path receipt. The cold production
+rebuild independently matches all **27 creation/runtime object strings** used in the connected
+rehearsal. A local signed checkpoint and authenticated Brave retry remain pending. No further
+funding, transaction signature or broadcast is claimed.
+
+**Required contract gate complete, result recorded 2026-10-23 23:37:39 UTC:** the exact
+`./scripts/contracts/verify-production.sh --skip-e2e --skip-dry-run` entrypoint passed with
+**2,211 Solidity cases, three cold production gas cases, 37 Node CLI cases and 449 Vitest cases
+in 42 files**. The full build, contract lint and isolated Anvil tests passed. Its measured total
+was 2,293 seconds. This resolves the earlier loopback failure; the interrupted cache-preparation
+attempt remains historical failed/interrupted evidence. The run used a secret-free public source
+copy with bounded loopback access and the exact 22 contract candidate inputs. It is not a clean
+committed-root receipt, and includes no browser ceremony or broadcast. Fresh Shared proof now
+passes 7,678 cases with 16 configured skips; Client and Admin are still running.
+
+**Fresh application gate complete, 2026-10-23 23:38:55 UTC:** Shared **7,678**, Client **1,797**,
+Admin **1,335**, and Agent **558 Node plus 218 Bun** cases passed against the final repair inputs.
+Existing policy skips remain: 16 Shared cases and one Agent Node case. Fresh focused proof is
+128 passed with six configured skips; all four full typechecks and scoped format/lint/source
+checks also pass. All 65 application inputs stayed fixed throughout the snapshot runs; the
+Portuguese catalog deliberately uses its exact prior committed content. The earlier Client
+build is historical and was not rerun for this bounded SDK repair. Signed local checkpoint,
+post-checkpoint default naming/supply-chain checks and authenticated Brave retry remain pending.
+
+Task record: Cosmo-local live pilot | Type: feature/fix | Outcome: partial
+Agent/model: Codex; model unknown | Coverage: prepared-request repair and current candidate verification
+
+| Phase | Start → end (UTC) | Result / evidence or blocker |
+|---|---|---|
+| investigate | unknown → unknown | Real quote/sign loop reproduced before the transaction authenticator; SDK re-preparation identified |
+| implement | unknown → 2026-10-23 23:23:58 | Three-path prepared-request repair frozen; limits and recovery checks retained |
+| verify | 2026-10-23 23:25:05 → 2026-10-23 23:38:55 | Fresh focused, type and four-app tests passed; independent full contract gate passed |
+| review | unknown → unknown | Changed runtime lines and failure/recovery cases inspected; no remaining bounded finding recorded |
+
+Human corrections: unknown for this covered segment; attention: unknown. Overlapping verification
+intervals are elapsed observations and are not summed as effort. This record does not close the hub
+or certify the remaining execution tooling, live passkey proof or deployments.

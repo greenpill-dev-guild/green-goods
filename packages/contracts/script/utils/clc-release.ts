@@ -152,7 +152,7 @@ export interface CLCPilotManifest {
   techAndSunSafe: string | null;
   decimals: 6;
   expiresAt: 0;
-  minimumUpgradeDelay: 172800;
+  minimumUpgradeDelay: 0;
   earnedAdapter: string | null;
   issuers: Record<CLCIssuer, CLCIssuerInputs>;
   pool: { name: string; symbol: string; priceIndex: string; poolFee: string; protocolFee: string; feesDecoupled: true };
@@ -277,7 +277,7 @@ export function inspectCLCPilotManifest(value: unknown): {
     m.chainId !== 100 ||
     m.decimals !== 6 ||
     m.expiresAt !== 0 ||
-    m.minimumUpgradeDelay !== 172800
+    m.minimumUpgradeDelay !== 0
   )
     throw new Error("Invalid CLC pilot identity or policy");
   if (m.greenGoodsSafe !== GREEN_GOODS_SAFE) throw new Error("Preserve existing Green Goods pool and reserve Safe");
