@@ -1,5 +1,7 @@
 import { RiHeart2Line } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
+import { AuthStateContext, useAuthState } from "@green-goods/shared/providers/Auth";
+import { expect, within } from "storybook/test";
 import { withAdminIdentity, withAdminPrimitiveFrame } from "../../../shared/.storybook/decorators";
 import { ConnectButton } from "./ConnectButton";
 
@@ -43,6 +45,25 @@ export const Secondary: Story = {
 
 export const Large: Story = {
   args: { size: "lg" },
+};
+
+function StalledWalletFixture() {
+  const state = useAuthState();
+  return (
+    <AuthStateContext.Provider value={{ ...state, walletReleaseStalled: true }}>
+      <ConnectButton size="lg" />
+    </AuthStateContext.Provider>
+  );
+}
+
+export const StalledWallet: Story = {
+  tags: ["storybook-ci"],
+  render: () => <StalledWalletFixture />,
+  play: async ({ canvasElement }) => {
+    await expect(
+      within(canvasElement).getByRole("button", { name: "Reload to retry wallet" })
+    ).toBeEnabled();
+  },
 };
 
 export const WithCustomLabel: Story = {

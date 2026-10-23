@@ -35,8 +35,8 @@ function GardenPageFrame({ children }: { children: ReactNode }) {
   // As on the page: the spacer under the fixed header is the header's measured height.
   const [measureHeader, headerHeight] = useElementHeight();
   return (
-    <div className="relative flex h-dvh min-h-0 w-full flex-col overflow-hidden bg-bg-white-0">
-      <div ref={measureHeader} className="fixed left-0 right-0 top-0 z-20 bg-bg-white-0">
+    <div className="relative flex h-dvh min-h-0 w-full flex-col overflow-hidden bg-bg-canvas">
+      <div ref={measureHeader} className="fixed left-0 right-0 top-0 z-20 bg-bg-canvas">
         <div className="relative h-36 w-full overflow-hidden rounded-b-2xl">
           <img
             src={FIXTURE_IMAGE_BANNER}
@@ -44,7 +44,7 @@ function GardenPageFrame({ children }: { children: ReactNode }) {
             className="absolute inset-0 h-full w-full object-cover object-center"
           />
         </div>
-        <div className="mt-3 flex flex-col gap-1.5 bg-bg-white-0 px-4 pb-3">
+        <div className="mt-3 flex flex-col gap-1.5 px-4 pb-3">
           <h1 className="line-clamp-2 text-2xl font-bold">Riverside Commons Garden</h1>
           <div className="flex min-w-0 flex-col gap-2">
             <div className="flex min-w-0 items-center gap-1.5 text-sm text-text-sub-600">
@@ -57,7 +57,7 @@ function GardenPageFrame({ children }: { children: ReactNode }) {
             </div>
           </div>
         </div>
-        <div className="sticky left-0 right-0 top-0 z-10 w-full bg-bg-white-0 shadow-sm">
+        <div className="sticky left-0 right-0 top-0 z-10 w-full bg-bg-canvas shadow-sm">
           <StandardTabs
             tabs={buildGardenTabs(intl, { hasPool: true })}
             activeTab={GardenTab.Pool}

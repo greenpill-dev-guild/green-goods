@@ -92,7 +92,7 @@ CSS Grid with named areas:
 
 - **Plus Jakarta Sans** across everything: titles (600), body (400), labels (500)
 - The type roles, at the cockpit's density: `type-title-lg` 22/28 for dialog, flow, and step titles and the app bar (a step title takes its flow title's size through `FlowStepHeader`, DL-063) · `type-title-md` 16/24 for the route header, every card title, and section titles via `AdminCardTitle` · `type-title-sm` 14/20 for selectable-card and work-card titles and compact values (metrics, balances, review lines) · `type-body` 14px body and `type-label` 14px labels (every AdminButton size, DL-030) · `type-label-sm` 12px labels and `type-meta` 12px meta and floating field labels · `type-meta-sm` 11px for chips and the smallest supporting lines · `type-field` for field text and checkbox and choice labels, 16px on touch widths and 14px from 640px. The installed app uses the same roles at its own sizes. The chrome already declares the workspace, so the route header is a waypoint, not a headline. No display or headline ramp: nothing in the cockpit takes a display size.
-- Every size comes from these roles (the `type-*` utilities in shared `theme.css`, set to the cockpit's values in `src/index.css`). The Material `text-title-*`, `text-body-*`, and `text-label-*` aliases and the `label-*`, `body-*`, and `subheading-*` classes are retired in the cockpit's views; `check:design-tokens` fails on them, on the shared theme's other sizes (`text-paragraph-*`, `text-title-h*`, and the like), and on a raw Tailwind size anywhere in `src/`, stories included (frontend-design Rule 9).
+- Every size comes from these roles (the `type-*` utilities in shared `theme.css`, set to the cockpit's values in `src/index.css`). The Material `text-title-*`, `text-body-*`, and `text-label-*` aliases and the `label-*`, `body-*`, and `subheading-*` classes are retired, and the cockpit's theme no longer defines them; `check:design-tokens` fails on them, on the shared theme's other sizes (`text-paragraph-*`, `text-title-h*`, and the like), and on a raw Tailwind size anywhere in `src/`, stories included (frontend-design Rule 9). The shared components the cockpit draws (the garden chip, the header's meta line, status pills, record cards, empty states) use the same roles.
 - Utility copy, status language, and task framing, not marketing copy. The things in a pool are promises in every label ("Seed Promises", "10 promises", "Add 5 Promises"), Pool names only the container, and code keeps "commitment" (DL-071). The Garden workspace's tab for them is Promises: its card for asks is Review Promises ("Nothing to review." when empty, "To review" in What needs you), its list card is Offers and Requests, and Pool Status and Pool Funding keep the container's name, as do the routes and the code (DL-077).
 - Labels and timestamps are the most important typographic element (stewards scan metadata). Times read in the viewer's zone: a timeline says "Today, 3:42 PM", "Yesterday, 9:05 AM", then the date and time, with the year only when it isn't this one; a queue age stays relative (DL-044), with the full moment in its `<time>` title; a due date in a row adds its time within 48 hours ("due tomorrow, 3:42 PM"); an exact deadline gives date, time and zone. Each section that lists times carries one "Times in PDT" label, and each `<time>` a machine-readable `datetime` (DL-069).
 - Every person or garden named in a row takes one style, 14px semibold, whether it is a profile name, a Green Goods or ENS name, or a short address (`PersonName`, DL-070).
@@ -101,7 +101,7 @@ CSS Grid with named areas:
 
 ## Workspace Tinting
 
-The canvas is a **constant** warm linen `#FAF8F5` (`--m3-surface-container-low` in light, `--m3-surface` in dark) and never changes color per workspace. Each workspace's tonal palette (defined in `admin-m3-tokens.css`) appears in exactly three places:
+The canvas is the same warm linen as the installed app, `#FAF8F5` (`--m3-surface-container-low` in light, the warm dark floor `--m3-surface` in dark), and never changes color per workspace. Cards are white in light and sit ten points of lightness above the canvas in dark, with an 8% ring, so a card never blends into the ground (the dark ladder is the shared Earth ramp in `theme.css`, DL-097). Each workspace's tonal palette (defined in `admin-m3-tokens.css`) appears in exactly three places:
 
 1. **Active tab**: the `AdminTabRail` underline and active label (the count chip flips to the tone container pair).
 2. **Active nav pill**: the NavigationBar active item, via `--tone-primary-container` / `--tone-on-primary-container`.
@@ -115,9 +115,9 @@ Color roles:
 - `--tone-on-action` is the text/icon color on filled action backgrounds.
 - `--tone-primary-container` / `--tone-on-primary-container` are the active-selection container pair (nav pill, active tab count chips).
 - `--tone-on-surface-accent` is for colored text/icons on solid surfaces.
-- `--tone-focus-ring` is the only focus-ring role; it resolves to action tone in light mode and on-surface accent in dark mode.
+- `--tone-focus-ring` is the cockpit's value of the one focus role; it resolves to action tone in light mode and on-surface accent in dark mode, and the shared controls draw it as one solid 2px ring (DL-098). The installed app sets the same role to its green.
 - `--tone-surface-tint-color` feeds only the canvas wash.
-- `--m3-outline` is the control-grade boundary for fields, chips, and outlined buttons.
+- `--m3-outline` is the control-grade boundary for fields, chips, and outlined buttons; the shared fields, chips and secondary buttons draw it through `--gg-control-outline` (DL-098).
 - `--m3-outline-variant` is a decorative hairline, not a control boundary.
 - Deleted tone roles (do not reintroduce): `--tone-canvas`, `--tone-strength`, `--tone-tint`, `--tone-tint-2`, `--tone-accent`, `--tone-secondary`, `--tone-outline`, `--tone-surface-variant`.
 

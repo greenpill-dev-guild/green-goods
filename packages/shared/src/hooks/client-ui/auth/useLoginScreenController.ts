@@ -253,7 +253,13 @@ export function useLoginScreenController(routes: { login: string; home: string }
     isUsernameValid: username.trim().length >= 3,
     loadingMessage,
     loadingState,
-    loginError,
+    loginError: auth.walletReleaseStalled
+      ? intl.formatMessage({
+          id: "app.login.walletStalled",
+          defaultMessage:
+            "The previous wallet request has not ended. Reload to retry, or sign in with a passkey.",
+        })
+      : loginError,
     loginWithPasskey,
     passkeyServerEnabled,
     personalizedLabel: storedName

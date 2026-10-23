@@ -96,7 +96,7 @@ const Profile: React.FC = () => {
   return (
     <section className="flex h-full flex-col">
       {/* Fixed Header */}
-      <div ref={measureHeader} className="fixed left-0 top-0 z-10 w-full bg-bg-white-0">
+      <div ref={measureHeader} className="fixed left-0 top-0 z-10 w-full bg-bg-canvas">
         {/* The top padding clears the offline banner (16px, in the space --app-top-offset
             keeps below the status bar) with 16px to spare. */}
         <div className="px-4 pt-[calc(var(--app-top-offset)+1rem)] pb-4">

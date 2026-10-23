@@ -53,6 +53,7 @@ export default function WalletRuntimeProviders({
         icons: ["https://greengoods.app/icon.png"],
       }}
       defaultChainId={DEFAULT_CHAIN_ID}
+      fontFamily={'"Inter", system-ui, sans-serif'}
     >
       {/* AuthGate uses DevAuthProvider in dev when ?mockAuth= is present */}
       <AuthGate>

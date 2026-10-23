@@ -128,7 +128,7 @@ export function CommitmentRecovery({
             {formatMessage({
               id: "cockpit.garden.pool.commitment.reconciliation.needsFreshReview",
               defaultMessage:
-                "A newer Work decision needs review before this linked work can count.",
+                "A newer work decision needs review before this linked work can count.",
             })}
           </span>
         </div>

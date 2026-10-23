@@ -131,19 +131,19 @@
         {
           "id": "field-evidence",
           "maturity": "available",
-          "safe_wording": "Gardeners can document Work in the field and sync it when connectivity returns.",
+          "safe_wording": "Gardeners can document work in the field and sync it when connectivity returns.",
           "verified_at": "2026-08-15"
         },
         {
           "id": "steward-review",
           "maturity": "available",
-          "safe_wording": "Stewards review Work and record an approval or rejection separately.",
+          "safe_wording": "Stewards review work and record an approval or rejection separately.",
           "verified_at": "2026-08-15"
         },
         {
           "id": "impact-certificates",
           "maturity": "in-build",
-          "safe_wording": "Green Goods is building the activation path that turns approved Work into portable Impact Certificates.",
+          "safe_wording": "Green Goods is building the activation path that turns approved work into portable impact certificates.",
           "verified_at": "2026-08-15"
         }
       ]
@@ -277,7 +277,7 @@
         {
           "id": "impact-certificates",
           "maturity": "in-build",
-          "safe_wording": "Green Goods is building the activation path that turns approved Work into portable Impact Certificates.",
+          "safe_wording": "Green Goods is building the activation path that turns approved work into portable impact certificates.",
           "verified_at": "2026-08-15"
         }
       ]
@@ -962,7 +962,7 @@
       "id": "gardener",
       "kind": "persona",
       "canonical": "Gardener",
-      "definition": "A person doing regenerative Work in a garden. Submits Work, holds gardener Hats, receives credit toward Hypercerts and yield splits.",
+      "definition": "A person doing regenerative work in a garden. Submits work, holds gardener Hats, receives credit toward Hypercerts and yield splits.",
       "semantic_status": "canonical",
       "surfaces": ["admin", "client", "agent", "public", "docs"],
       "aliases": ["field contributor"],
@@ -972,7 +972,7 @@
         {
           "id": "field-evidence",
           "maturity": "available",
-          "safe_wording": "Gardeners can document Work in the field and sync it when connectivity returns.",
+          "safe_wording": "Gardeners can document work in the field and sync it when connectivity returns.",
           "verified_at": "2026-08-15"
         }
       ]
@@ -982,7 +982,7 @@
       "id": "steward",
       "kind": "persona",
       "canonical": "Steward",
-      "definition": "A person who stewards a garden — creates Actions, approves Work, configures Vault and Hat hierarchy. Holds the garden's steward Hats (the deployed Operator role).",
+      "definition": "A person who stewards a garden — creates actions, approves work, configures the vault and the Hat hierarchy. Holds the garden's steward Hats (the deployed Operator role).",
       "semantic_status": "canonical",
       "surfaces": ["admin", "client", "agent", "public", "docs"],
       "aliases": ["Garden Steward", "Garden Operator", "operator"],
@@ -992,7 +992,7 @@
         {
           "id": "steward-review",
           "maturity": "available",
-          "safe_wording": "Stewards review Work and record an approval or rejection separately.",
+          "safe_wording": "Stewards review work and record an approval or rejection separately.",
           "verified_at": "2026-08-15"
         }
       ]
@@ -1002,7 +1002,7 @@
       "id": "evaluator",
       "kind": "persona",
       "canonical": "Evaluator",
-      "definition": "A person who authors or strengthens Assessments and attests impact methodology or outcomes. Evaluators do not approve or reject submitted Work; that authority belongs to stewards.",
+      "definition": "A person who authors or strengthens assessments and attests impact methodology or outcomes. Evaluators do not approve or reject submitted work; that authority belongs to stewards.",
       "semantic_status": "canonical",
       "surfaces": ["admin", "client", "public", "docs"],
       "aliases": ["impact assessor"],
@@ -1035,7 +1035,7 @@
       "id": "community-member",
       "kind": "persona",
       "canonical": "Community Member",
-      "definition": "A local resident affected by a garden's Work. Signals or attests that Work exists and is healthy, and helps prioritize future Actions through public signal and conviction flows.",
+      "definition": "A local resident affected by a garden's work. Signals or attests that work exists and is healthy, and helps prioritize future actions through public signal and conviction flows.",
       "semantic_status": "canonical",
       "surfaces": ["client", "public", "docs"],
       "aliases": ["resident"],

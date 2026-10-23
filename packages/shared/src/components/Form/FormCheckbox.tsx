@@ -118,7 +118,7 @@ export const CheckboxGroup = ({
 
   return (
     <div className="flex flex-col gap-2">
-      {label && <span className="font-semibold text-text-strong-950 text-label-sm">{label}</span>}
+      {label && <span className="type-label-sm font-semibold text-text-strong-950">{label}</span>}
       <div className={cn("grid gap-2", gridCols[columns])}>
         {options.map((option) => {
           const isChecked = value.includes(option.value);

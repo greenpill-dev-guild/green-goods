@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { EASWork, EASWorkApproval } from "../../../types/eas-responses";
+import { GQLClient, GRAPHQL_TIMEOUT_MS, TimeoutError } from "../../../modules/data/graphql-client";
 
 const seams = vi.hoisted(() => ({
   list: vi.fn(),
@@ -84,6 +85,79 @@ describe("readWorkList", () => {
     const [row] = await readWorkList({ garden: "garden", chainId: 42161 });
 
     expect(row).not.toHaveProperty("approval");
+  });
+
+  it("reads at most two gardens at once, and a failed read frees its turn", async () => {
+    const pending: Array<{ resolve: (works: EASWork[]) => void; reject: (error: Error) => void }> =
+      [];
+    seams.list.mockImplementation(
+      () => new Promise<EASWork[]>((resolve, reject) => pending.push({ resolve, reject }))
+    );
+    const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+    const reads = ["a", "b", "c", "d"].map((garden) =>
+      readWorkList({ garden, chainId: 42161 }).catch((error: Error) => error)
+    );
+    await settle();
+    expect(seams.list).toHaveBeenCalledTimes(2);
+
+    pending[0].reject(new Error("getWorkListPage timed out after 12000ms"));
+    await settle();
+    expect(seams.list).toHaveBeenCalledTimes(3);
+
+    for (const read of pending.slice(1)) read.resolve([]);
+    await settle();
+    pending[3].resolve([]);
+
+    const results = await Promise.all(reads);
+    expect(results[0]).toBeInstanceOf(Error);
+    expect(results.slice(1)).toEqual([[], [], []]);
+    expect(seams.list.mock.calls.map(([garden]) => garden)).toEqual(["a", "b", "c", "d"]);
+  });
+
+  it("aborts timed-out HTTP requests before queued garden reads start", async () => {
+    vi.useFakeTimers();
+    let activeRequests = 0;
+    let peakRequests = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        (_input: RequestInfo | URL, init?: RequestInit) =>
+          new Promise<Response>((_resolve, reject) => {
+            activeRequests += 1;
+            peakRequests = Math.max(peakRequests, activeRequests);
+            init?.signal?.addEventListener(
+              "abort",
+              () => {
+                activeRequests -= 1;
+                reject(init.signal?.reason);
+              },
+              { once: true }
+            );
+          })
+      )
+    );
+    const client = new GQLClient("https://example.test/graphql");
+    seams.list.mockImplementation(async () => {
+      const result = await client.query("query WorkList { works }", {}, "getWorkListPage");
+      if (result.error) throw result.error;
+      return [];
+    });
+
+    try {
+      const reads = ["a", "b", "c", "d"].map((garden) =>
+        readWorkList({ garden, chainId: 42161 }).catch((error: Error) => error)
+      );
+      await vi.advanceTimersByTimeAsync(GRAPHQL_TIMEOUT_MS * 2);
+      const results = await Promise.all(reads);
+
+      expect(results.every((result) => result instanceof TimeoutError)).toBe(true);
+      expect(peakRequests).toBe(2);
+      expect(activeRequests).toBe(0);
+    } finally {
+      vi.unstubAllGlobals();
+      vi.useRealTimers();
+    }
   });
 });
 

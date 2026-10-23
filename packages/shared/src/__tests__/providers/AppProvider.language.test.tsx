@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useIntl } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useActionTranslation } from "../../hooks/translation/useActionTranslation";
@@ -112,10 +112,28 @@ describe("AppProvider page language", () => {
   it("stays in English when a reader's own catalogue has not landed", async () => {
     localStorage.setItem("gg-language", "pt");
     renderApp();
+    // Wait for both the failed Portuguese import and its English fallback.
+    await act(() => vi.dynamicImportSettled());
 
     expect(await screen.findByText("Close")).toBeInTheDocument();
     expect(screen.getByText("Planting Event")).toBeInTheDocument();
     expect(new Set(renders.map(([language]) => language))).toEqual(new Set(["en"]));
+    expect(document.documentElement.lang).toBe("en");
+  });
+
+  it("uses a surface catalogue and retains the shared English recovery path", async () => {
+    localStorage.setItem("gg-language", "pt");
+    const importCatalogue = vi.fn(async (locale: "en" | "pt" | "es") => {
+      if (locale !== "en") throw new Error("public catalogue not cached");
+      return { locale, messages: { "app.common.close": "Public close" } };
+    });
+    render(
+      <AppProvider allowPosthogKeyFallback={false} importCatalogue={importCatalogue}>
+        <LanguageProbe />
+      </AppProvider>
+    );
+    expect(await screen.findByText("Public close")).toBeInTheDocument();
+    expect(importCatalogue.mock.calls.map(([locale]) => locale)).toEqual(["pt", "en"]);
     expect(document.documentElement.lang).toBe("en");
   });
 });

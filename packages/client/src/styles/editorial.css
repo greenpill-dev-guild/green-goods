@@ -92,13 +92,14 @@
 /* ============================================================================
  * Hero overlap reveal animation
  * Used by PublicEditorialHero. Composes a quiet cinematic settle: the linen
- * panel rises, then the kicker / headline / lede / CTAs stagger in. Honors
+ * panel rises, then the kicker / headline / lede / CTAs settle in. Primary
+ * reading content stays visible throughout the entrance. Honors
  * prefers-reduced-motion (mandatory per Inclusive Design lens).
  * ============================================================================ */
 
 @keyframes editorial-hero-in {
   from {
-    opacity: 0;
+    opacity: 1;
     transform: translateY(20px);
   }
   to {
@@ -110,6 +111,17 @@
 @keyframes editorial-fade-up {
   from {
     opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes editorial-hero-settle {
+  from {
+    opacity: 1;
     transform: translateY(10px);
   }
   to {
@@ -247,23 +259,23 @@
 
 @layer utilities {
   .editorial-hero-in {
-    opacity: 0;
+    opacity: 1;
     animation: editorial-hero-in var(--spring-spatial-slow-duration, 400ms)
       var(--spring-spatial-slow-easing, ease-out) 280ms forwards;
   }
   .editorial-fade-up-1 {
-    opacity: 0;
-    animation: editorial-fade-up var(--spring-effects-duration, 250ms)
+    opacity: 1;
+    animation: editorial-hero-settle var(--spring-effects-duration, 250ms)
       var(--spring-effects-easing, ease-out) 460ms forwards;
   }
   .editorial-fade-up-2 {
-    opacity: 0;
-    animation: editorial-fade-up var(--spring-effects-duration, 250ms)
+    opacity: 1;
+    animation: editorial-hero-settle var(--spring-effects-duration, 250ms)
       var(--spring-effects-easing, ease-out) 600ms forwards;
   }
   .editorial-fade-up-3 {
-    opacity: 0;
-    animation: editorial-fade-up var(--spring-effects-duration, 250ms)
+    opacity: 1;
+    animation: editorial-hero-settle var(--spring-effects-duration, 250ms)
       var(--spring-effects-easing, ease-out) 740ms forwards;
   }
 

@@ -237,10 +237,10 @@ function AdminTokens() {
       <TokenTable
         scopeSelector='[data-column="admin"]'
         tokens={[
-          { name: "--text-label-lg", expected: "14px", note: "buttons, chips, tabs" },
-          { name: "--text-label-md", expected: "12px", note: "meta, count chips" },
-          { name: "--text-label-sm", expected: "11px", note: "chips only" },
-          { name: "--text-body-md", expected: "14px", note: "field text" },
+          { name: "--gg-type-label-size", expected: "0.875rem", note: "labels, buttons, tabs" },
+          { name: "--gg-type-label-sm-size", expected: "0.75rem", note: "small labels" },
+          { name: "--gg-type-meta-sm-size", expected: "0.6875rem", note: "chips and status pills" },
+          { name: "--gg-type-body-size", expected: "0.875rem", note: "body text" },
           { name: "--radius-xl", expected: "16px", note: "the 16px page-container step (DL-030)" },
           { name: "--radius-2xl", expected: "16px", note: "the 16px page-container step (DL-030)" },
           { name: "--m3-shape-full", expected: "9999px", note: "the pill" },
@@ -295,13 +295,13 @@ export const ThreeSystems: Story = {
     const column = (surface: string) =>
       canvasElement.querySelector<HTMLElement>(`[data-column="${surface}"]`);
 
-    // Installed app: the 16px field corner, weight 400, the cockpit's
+    // Installed app: the 16px field corner, weight 500, the cockpit's
     // Plus Jakarta Sans (DL-029, DL-096).
     const app = within(column("app") as HTMLElement);
     const appPrimary = app.getAllByRole("button", { name: "Create Garden" })[0];
     await expect(appPrimary.getBoundingClientRect().height).toBe(44);
     await expect(px(getComputedStyle(appPrimary).borderTopLeftRadius)).toBe(16);
-    await expect(getComputedStyle(appPrimary).fontWeight).toBe("400");
+    await expect(getComputedStyle(appPrimary).fontWeight).toBe("500");
     await expect(first(getComputedStyle(appPrimary).fontFamily)).toBe("Plus Jakarta Sans");
 
     // Public website: capsule, weight 600, Inter, serif editorial field
@@ -334,7 +334,9 @@ export const ThreeSystems: Story = {
     const scope = column("admin") as HTMLElement;
     await expect(getComputedStyle(scope).getPropertyValue("--radius-xl").trim()).toBe("16px");
     await expect(getComputedStyle(scope).getPropertyValue("--radius-2xl").trim()).toBe("16px");
-    await expect(getComputedStyle(scope).getPropertyValue("--text-label-sm").trim()).toBe("11px");
+    await expect(getComputedStyle(scope).getPropertyValue("--gg-type-meta-sm-size").trim()).toBe(
+      "0.6875rem"
+    );
 
     // The measurement chips settle once fonts are ready.
     await waitFor(async () => {

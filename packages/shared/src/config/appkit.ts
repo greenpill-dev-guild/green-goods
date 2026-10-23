@@ -33,6 +33,7 @@ type AppKitInitOptions = {
   projectId?: string;
   metadata?: AppKitMetadata;
   defaultChainId?: number;
+  fontFamily?: string;
 };
 
 const RABBY_WALLET_ID = "18388be9ac2d02726dbac9777c96efaac06d744b2f6d580fccdd4127a6d01fd1";
@@ -169,6 +170,8 @@ export function ensureAppKit(options?: AppKitInitOptions) {
     themeVariables: {
       "--w3m-accent": "#367D42", // Green Goods primary green
       "--w3m-border-radius-master": "12px",
+      // A host font also suppresses AppKit's otherwise unconditional font preloads.
+      ...(options?.fontFamily ? { "--apkt-font-family": options.fontFamily } : {}),
     },
   });
 

@@ -1,19 +1,15 @@
-@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap");
-@import "tailwindcss";
+@import "tailwindcss" source(none);
 
-/* Tailwind scans from this package's Vite root, which leaves out the shared
- * components this app renders. Scan the shared TypeScript source too, without
- * tests, mocks or stories, so utilities written in shared components ship. */
-@source "../../shared/src/**/*.{ts,tsx}";
-@source not "../../shared/src/**/{__tests__,__mocks__}";
-@source not "../../shared/src/**/*.{test,stories}.{ts,tsx}";
+/* Startup and recovery remain styled without downloading the workspace.
+ * admin-workspace.css scans the remaining admin and shared components. */
+@source "./components/Boot/BootSurface.tsx";
+@source "./components/AdminButton.tsx";
+@source "./components/AdminLoadingScreen.tsx";
+@source "./components/Layout/ConnectPrompt.tsx";
+@source "../../shared/src/components/ErrorBoundary/ErrorBoundary.tsx";
 
 @import "@green-goods/shared/styles/theme.css";
 @import "./styles/admin-m3-tokens.css";
-@import "./styles/admin-m3-components.css";
-@import "./styles/admin-type.css";
-@import "@green-goods/shared/styles/utilities.css";
-@import "./styles/admin-layout.css";
 
 /* Configure dark mode to use data-theme attribute */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
@@ -88,23 +84,6 @@
   --color-green-100: rgb(var(--green-100));
   --color-green-50: rgb(var(--green-50));
 
-  /* M3 Type Scale — Tailwind aliases */
-  --text-display-lg: var(--type-display-lg);
-  --text-display-md: var(--type-display-md);
-  --text-display-sm: var(--type-display-sm);
-  --text-headline-lg: var(--type-headline-lg);
-  --text-headline-md: var(--type-headline-md);
-  --text-headline-sm: var(--type-headline-sm);
-  --text-title-lg: var(--type-title-lg);
-  --text-title-md: var(--type-title-md);
-  --text-title-sm: var(--type-title-sm);
-  --text-body-lg: var(--type-body-lg);
-  --text-body-md: var(--type-body-md);
-  --text-body-sm: var(--type-body-sm);
-  --text-label-lg: var(--type-label-lg);
-  --text-label-md: var(--type-label-md);
-  --text-label-sm: var(--type-label-sm);
-
   /* M3 Shape Scale — admin-prefixed values keep M3 geometry explicit.
      Shared radius aliases stay aligned with DesignMD-generated --gg-radius-* tokens. */
   --admin-radius-xs: 4px;
@@ -161,6 +140,13 @@
   --gg-icon-size-sm: 2rem;
   --gg-icon-size-compact: 1.75rem;
   --gg-hit-block: 2.75rem;
+  /* Shared fields, secondary buttons and chips take the cockpit's
+     control-grade outline (4.8:1 on white, 6.1:1 on the dark card), the boundary its own
+     Admin* controls already draw, and focus draws one solid 2px ring in the
+     workspace tone (F3). */
+  --gg-control-outline: var(--m3-outline);
+  --gg-focus-ring-width: 2px;
+  --gg-focus-halo-alpha: 0;
 
   /* The type roles at the cockpit's density: the app's names (shared theme.css)
      on the cockpit's 14px scale. Titles 22 / 16 / 14, body and labels 14, small

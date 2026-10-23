@@ -6,7 +6,6 @@
     "hook-location:packages/admin/src/components/Layout/leftSheetChannel.tsx:useRouteBackedLeftSheetConfig",
     "hook-location:packages/client/src/routes/PublicShell.tsx:useLatestPublicScrollPositionRef",
     "hook-location:packages/client/src/routes/PublicShell.tsx:usePublicRouteScrollReset",
-    "hook-location:packages/client/src/routes/PublicShell.tsx:useWarmPublicHeroImages",
     "hook-location:packages/client/src/routes/Root.tsx:useReceiptTokenFragmentScrub"
   ]
 }

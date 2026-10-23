@@ -1,22 +1,15 @@
-import { clearPersistedQueryClient } from "@green-goods/shared/config/query-persistence";
+import { clearPersistedQueryClient } from "@green-goods/shared/config/query-persistence-clear";
 import { logger } from "@green-goods/shared/modules/app/logger";
+import { hasSessionRestoreEvidence } from "@green-goods/shared/modules/auth/session";
 import { initTheme } from "@green-goods/shared/utils/styles/theme";
 import { type ComponentType, StrictMode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { ADMIN_LEGACY_QUERY_PERSISTENCE, ADMIN_QUERY_PERSISTENCE_DB } from "./bootConstants";
-import { BootErrorBoundary, BootRecovery, BootShell } from "./BootSurface";
+import { BootConnect, BootErrorBoundary, BootRecovery, BootShell } from "./BootSurface";
 
 /**
- * Admin boot sequence.
- *
- * The old entry did everything at module top level — persister construction,
- * theme, Sentry, global handlers, IPFS — before `root.render`. Any throw in
- * that graph (a blocked `window.localStorage`, a Sentry integration, a shared
- * module's own top-level code) failed the whole module and left `#root`
- * empty with nothing on screen and nobody listening. This module inverts the
- * order: record failures first, put a visible shell in the root second, load
- * the application tree third, and start every optional service last inside
- * its own guard so none of them can take the workspace down.
+ * Paint a recoverable shell before application imports and guard optional services.
+ * Only fresh guests defer startup; saved or uncertain sessions restore normally.
  */
 
 export type BootStage =
@@ -38,8 +31,13 @@ export interface BootDiagnostics {
   failures: BootFailure[];
 }
 
+type AdminRootComponent = ComponentType<{
+  connectWalletOnReady?: boolean;
+  onWorkspaceReady?: () => void;
+}>;
+
 export interface AdminBootServices {
-  loadRoot: () => Promise<{ default: ComponentType }>;
+  loadRoot: (connectWalletOnReady: boolean) => Promise<{ default: AdminRootComponent }>;
   initTheme: () => (() => void) | undefined;
   initSentry: () => void | Promise<void>;
   initErrorHandlers: () => void | Promise<void>;
@@ -72,7 +70,18 @@ declare global {
 const MAX_RECORDED_FAILURES = 20;
 
 const defaultServices: AdminBootServices = {
-  loadRoot: () => import("./AdminRoot"),
+  loadRoot: (connectWalletOnReady) => {
+    const root = import("./AdminRoot");
+    // Returning sessions and passkey entry keep parallel workspace downloads.
+    // Auth mounting never waits for this optional preload; the lazy boundary
+    // still handles a failed workspace import when it is rendered.
+    if (!connectWalletOnReady) {
+      void import("./AdminWorkspace").catch((error: unknown) => {
+        logger.warn("[admin-boot] Workspace preload failed", { error });
+      });
+    }
+    return root;
+  },
   initTheme,
   initSentry: async () => {
     const { initBrowserSentry } = await import("@green-goods/shared/sentry");
@@ -116,11 +125,7 @@ function recordFailure(diagnostics: BootDiagnostics, stage: BootStage, error: un
 
 let diagnosticsInstalled = false;
 
-/**
- * Boot-level error capture, installed before anything else runs. It records
- * what went wrong so the recovery surface can show it and the PostHog/Sentry
- * handlers, which arrive later, do not have to be alive to see a boot failure.
- */
+/** Early error capture stays available while optional telemetry waits for the workspace. */
 function installBootDiagnostics(): BootDiagnostics {
   // One record per boot; the page-level listeners are installed once and
   // always write into whichever boot is current.
@@ -201,10 +206,7 @@ function renderStaticRecovery(container: HTMLElement, error: unknown): void {
   container.append(card);
 }
 
-/**
- * Start the optional services once the workspace is on screen. Sequential and
- * individually guarded: Sentry, the PostHog global handlers, then IPFS.
- */
+/** Start optional services sequentially after the workspace paints. */
 async function startOptionalServices(
   services: AdminBootServices,
   diagnostics: BootDiagnostics
@@ -236,7 +238,12 @@ export async function bootAdmin(options: BootAdminOptions = {}): Promise<BootOut
   if (!options.container) window.__ADMIN_ROOT__ = root;
 
   const cleanupTheme = attempt(diagnostics, "theme", services.initTheme);
+  let disposed = false;
+  let stopWatching = () => {};
   const unmount = () => {
+    if (disposed) return;
+    disposed = true;
+    stopWatching();
     cleanupTheme?.();
     root.unmount();
     if (!options.container) delete window.__ADMIN_ROOT__;
@@ -246,35 +253,98 @@ export async function bootAdmin(options: BootAdminOptions = {}): Promise<BootOut
     <BootRecovery error={error} onReload={reload} onReset={() => void resetAndReload()} />
   );
 
-  let RootComponent: ComponentType;
-  try {
-    RootComponent = (await services.loadRoot()).default;
-  } catch (error) {
-    recordFailure(diagnostics, "load-root", error);
-    root.render(recovery(error));
-    return { status: "failed", stage: "load-root", error, diagnostics, unmount };
-  }
-
-  root.render(
-    <StrictMode>
-      <BootErrorBoundary
-        fallback={recovery}
-        onError={(error) => recordFailure(diagnostics, "render", error)}
-      >
-        <RootComponent />
-      </BootErrorBoundary>
-    </StrictMode>
-  );
-
-  afterFirstPaint(() => {
-    void startOptionalServices(services, diagnostics);
-  });
-
   if (import.meta.hot && !options.container) {
     import.meta.hot.dispose(() => {
       unmount();
     });
   }
 
-  return { status: "mounted", diagnostics, unmount };
+  const mounted = (): BootOutcome => ({ status: "mounted", diagnostics, unmount });
+  let pending: Promise<BootOutcome> | null = null;
+  let connectRequested = false;
+  let optionalServicesScheduled = false;
+  const onWorkspaceReady = () => {
+    if (disposed || optionalServicesScheduled) return;
+    optionalServicesScheduled = true;
+    afterFirstPaint(() => {
+      if (!disposed) void startOptionalServices(services, diagnostics);
+    });
+  };
+
+  const loadApplication = async (): Promise<BootOutcome> => {
+    root.render(<BootShell />);
+    let RootComponent: AdminRootComponent;
+    try {
+      RootComponent = (await services.loadRoot(connectRequested && !hasSessionRestoreEvidence()))
+        .default;
+    } catch (error) {
+      recordFailure(diagnostics, "load-root", error);
+      if (!disposed) root.render(recovery(error));
+      stopWatching();
+      return { status: "failed", stage: "load-root", error, diagnostics, unmount };
+    }
+    if (disposed) return mounted();
+    stopWatching();
+    // Check again before mounting: another tab may have saved a session during download.
+    const connectWalletOnReady = connectRequested && !hasSessionRestoreEvidence();
+    root.render(
+      <StrictMode>
+        <BootErrorBoundary
+          fallback={recovery}
+          onError={(error) => recordFailure(diagnostics, "render", error)}
+        >
+          <RootComponent
+            connectWalletOnReady={connectWalletOnReady}
+            onWorkspaceReady={onWorkspaceReady}
+          />
+        </BootErrorBoundary>
+      </StrictMode>
+    );
+    return mounted();
+  };
+
+  const startApplication = (connect = false): Promise<BootOutcome> => {
+    if (!pending && !disposed) {
+      connectRequested = connect;
+      pending = loadApplication();
+    }
+    return pending ?? Promise.resolve(mounted());
+  };
+
+  if (hasSessionRestoreEvidence()) return startApplication();
+
+  // Reuse AuthGate's loopback-only URL/session override. Production removes
+  // this entire branch, including its otherwise heavy provider import.
+  if (import.meta.env.DEV) {
+    let mockOverride = false;
+    await attemptAsync(diagnostics, "load-root", async () => {
+      const { hasMockAuthOverride } = await import("@green-goods/shared/providers/AuthGate");
+      mockOverride = hasMockAuthOverride();
+    });
+    if (disposed) return mounted();
+    if (mockOverride) return startApplication();
+  }
+
+  const recheckSession = () => {
+    if (hasSessionRestoreEvidence()) {
+      connectRequested = false;
+      void startApplication();
+    }
+  };
+  window.addEventListener("storage", recheckSession);
+  window.addEventListener("pageshow", recheckSession);
+  document.addEventListener("visibilitychange", recheckSession);
+  stopWatching = () => {
+    window.removeEventListener("storage", recheckSession);
+    window.removeEventListener("pageshow", recheckSession);
+    document.removeEventListener("visibilitychange", recheckSession);
+  };
+  root.render(
+    <BootConnect
+      onConnect={() => void startApplication(true)}
+      onPasskey={() => void startApplication()}
+    />
+  );
+  recheckSession();
+  return pending ?? mounted();
 }

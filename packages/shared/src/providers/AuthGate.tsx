@@ -16,6 +16,9 @@ import { usePrimaryAddress } from "../hooks/auth/usePrimaryAddress";
 import { AuthProvider, useOptionalAuthContext } from "./Auth";
 import { DevAuthProvider, hasMockAuthOverride } from "./DevAuthProvider";
 
+// Startup boundaries share this gate's development-only override policy.
+export { hasMockAuthOverride };
+
 export function AuthGate({ children }: { children: ReactNode }) {
   if (import.meta.env.DEV && hasMockAuthOverride()) {
     return (

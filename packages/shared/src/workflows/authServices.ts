@@ -3,6 +3,7 @@ import type { P256Credential } from "viem/account-abstraction";
 import { fromPromise } from "xstate";
 import type { AuthPasskeySource } from "../modules/app/analytics-events";
 import { getPasskeyRequestIds, type PasskeyCredential } from "../modules/auth/session";
+import { guardSessionCommit } from "../modules/auth/sessionSignOut";
 import { logger } from "../modules/app/logger";
 import { createSmartAccountClientResolver } from "../modules/auth/smartAccountClientResolver";
 import { normalizePasskeyName } from "../public-contracts/passkey-directory";
@@ -17,7 +18,7 @@ import {
   type PasskeyServerClientAdapter,
 } from "./auth-passkey-adapters";
 import { signInWithDirectory } from "./auth-passkey-directory";
-import { matchesBrowserId } from "./auth-passkey-ids";
+import { matchesBrowserId, verifiedCredential } from "./auth-passkey-ids";
 import type { PasskeySessionResult, RestoreSessionResult } from "./authMachine";
 
 interface PasskeyInput {
@@ -59,27 +60,6 @@ function decodeChallenge(challenge: Hex | Uint8Array | ArrayBuffer): Uint8Array 
   return challenge instanceof Uint8Array ? challenge : new Uint8Array(challenge);
 }
 
-function verifiedCredential(
-  verification: PasskeyServerVerificationResult,
-  browserCredential: Pick<P256Credential, "id" | "raw">,
-  failureMessage: string
-): PasskeyCredential {
-  if (
-    !verification.success ||
-    !verification.publicKey ||
-    !verification.id ||
-    !matchesBrowserId({ id: verification.id }, browserCredential.id)
-  ) {
-    throw new Error(failureMessage);
-  }
-  return {
-    id: verification.id,
-    signingId: browserCredential.id,
-    publicKey: verification.publicKey,
-    raw: browserCredential.raw,
-  };
-}
-
 export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAdapters) {
   const { session, telemetry } = adapters;
 
@@ -97,6 +77,7 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
   };
 
   const buildSession = async (
+    assertActive: () => void,
     credential: PasskeyCredential,
     userName: string,
     chainId: number,
@@ -104,12 +85,14 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
     enforceExpectedAddress = true,
     alternatives: PasskeyCredential[] = []
   ): Promise<PasskeySessionResult> => {
+    assertActive();
     const expected = enforceExpectedAddress ? session.getStoredSmartAccountAddress() : null;
     // Without a saved address, always use the canonical server identity.
     const candidates = expected ? [credential, ...alternatives] : [credential];
     for (const candidate of candidates) {
       const { client, address } = await adapters.buildSmartAccount(candidate, chainId, rpId);
       if (expected && expected.toLowerCase() !== address.toLowerCase()) continue;
+      assertActive();
       cacheSession(candidate, userName, address, rpId);
       return {
         credential: candidate,
@@ -145,13 +128,18 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
     );
   };
 
-  const registerWithServer = async (userName: string, chainId: number) => {
+  const registerWithServer = async (
+    assertActive: () => void,
+    userName: string,
+    chainId: number
+  ) => {
     const context = adapters.buildRecoveryContext(userName);
     // New accounts go to the directory once this build is switched to it, so their passkey
     // works on every Green Goods site. The directory itself refuses a name the hosted server
     // already holds.
     const client = adapters.createDirectoryClient() ?? adapters.createServerClient(chainId);
     const existing = (await client.getCredentials({ context })) as PasskeyServerCredential[];
+    assertActive();
     if (existing.length > 0) {
       throw new Error(
         "That recovery name is already registered. Try recovery or choose another name."
@@ -161,7 +149,10 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
       context,
     })) as PasskeyServerRegistrationOptions;
     const rpId = options.rp?.id || adapters.getRpId();
+    assertActive();
     const created = await adapters.createWebAuthnCredential(options);
+    // Verification persists the credential on the server, before local session construction.
+    assertActive();
     const verification = (await client.verifyRegistration({
       credential: created,
       context,
@@ -172,6 +163,7 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
       "Passkey server registration failed"
     );
     return buildSession(
+      assertActive,
       credential,
       verification.userName || verification.username || context.userName,
       chainId,
@@ -181,6 +173,7 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
   };
 
   const authenticateWithServer = async (
+    assertActive: () => void,
     userName: string,
     chainId: number
   ): Promise<PasskeySessionResult | null> => {
@@ -232,6 +225,7 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
       alternatives.push({ ...credential, id: cached.id });
     }
     return buildSession(
+      assertActive,
       credential,
       verification.userName || verification.username || context.userName,
       chainId,
@@ -251,6 +245,7 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
    * only matters when the hosted server does not hold the name either.
    */
   const authenticateByName = async (
+    assertActive: () => void,
     userName: string,
     chainId: number
   ): Promise<PasskeySessionResult | null> => {
@@ -261,18 +256,29 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
         // A person switching to another passkey's account is not held to the address this
         // device remembers; the same passkey must still reach its own address.
         const { credential, rpId, switchingAccounts } = signIn;
-        return await buildSession(credential, signIn.userName, chainId, rpId, !switchingAccounts);
+        return await buildSession(
+          assertActive,
+          credential,
+          signIn.userName,
+          chainId,
+          rpId,
+          !switchingAccounts
+        );
       }
     } catch (error) {
       if (!(error instanceof PasskeyServerLookupError)) throw error;
       directoryFailure = error;
     }
-    const fromHostedServer = await authenticateWithServer(userName, chainId);
+    const fromHostedServer = await authenticateWithServer(assertActive, userName, chainId);
     if (!fromHostedServer && directoryFailure) throw directoryFailure;
     return fromHostedServer;
   };
 
-  const authenticateFromCache = async (userName: string | null, chainId: number) => {
+  const authenticateFromCache = async (
+    assertActive: () => void,
+    userName: string | null,
+    chainId: number
+  ) => {
     const credential = session.getStoredCredential();
     if (!credential) throw new PasskeyNotFoundError("device");
     const storedUsername = session.getStoredUsername();
@@ -295,6 +301,7 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
     if (!matchesBrowserId(credential, response.id))
       throw new Error("Passkey authentication verification failed");
     return buildSession(
+      assertActive,
       { ...credential, signingId: response.id },
       storedUsername || userName || "",
       chainId,
@@ -303,7 +310,8 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
   };
 
   const restoreSession = fromPromise<RestoreSessionResult | null, RestoreInput>(
-    async ({ input }) => {
+    async ({ input, signal }) => {
+      const assertActive = guardSessionCommit(signal);
       const authMode = session.getAuthMode();
       if (session.hasSignedOutSentinel() || authMode === "wallet" || authMode === "embedded") {
         return null;
@@ -329,6 +337,7 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
           });
           return null;
         }
+        assertActive();
         session.setStoredSmartAccountAddress(address);
         telemetry.restore({
           source: "restore",
@@ -364,111 +373,122 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
     }
   );
 
-  const registerPasskey = fromPromise<PasskeySessionResult, PasskeyInput>(async ({ input }) => {
-    if (!input.userName) throw new Error("Username is required for registration");
-    const serverEnabled = adapters.isServerEnabled();
-    const source: AuthPasskeySource = serverEnabled ? "server" : "local_cache";
-    telemetry.registerStarted({
-      source,
-      outcome: "started",
-      passkeyServerEnabled: serverEnabled,
-      hasLocalCredential: Boolean(session.getStoredCredential()),
-    });
-    try {
-      const result = serverEnabled
-        ? await registerWithServer(input.userName, input.chainId)
-        : await buildSession(
-            await adapters
-              .createLocalPasskey(input.userName)
-              .then((credential) => ({ ...credential, signingId: credential.id })),
-            input.userName,
-            input.chainId,
-            adapters.getRpId(),
-            false
-          );
-      telemetry.registerSucceeded({
+  const registerPasskey = fromPromise<PasskeySessionResult, PasskeyInput>(
+    async ({ input, signal }) => {
+      const assertActive = guardSessionCommit(signal);
+      if (!input.userName) throw new Error("Username is required for registration");
+      const serverEnabled = adapters.isServerEnabled();
+      const source: AuthPasskeySource = serverEnabled ? "server" : "local_cache";
+      telemetry.registerStarted({
         source,
-        outcome: "success",
-        passkeyServerEnabled: serverEnabled,
-        hasLocalCredential: true,
-      });
-      return result;
-    } catch (error) {
-      telemetry.registerFailed({
-        source,
-        outcome: "failed",
-        reason: classifyAuthErrorReason(error),
+        outcome: "started",
         passkeyServerEnabled: serverEnabled,
         hasLocalCredential: Boolean(session.getStoredCredential()),
       });
-      throw error;
-    }
-  });
-
-  const authenticatePasskey = fromPromise<PasskeySessionResult, PasskeyInput>(async ({ input }) => {
-    const serverEnabled = adapters.isServerEnabled();
-    const hasLocalCredential = Boolean(session.getStoredCredential());
-    let source: AuthPasskeySource = serverEnabled && input.userName ? "server" : "local_cache";
-    let attemptSource = source;
-    telemetry.loginStarted({
-      source,
-      outcome: "started",
-      passkeyServerEnabled: serverEnabled,
-      hasLocalCredential,
-    });
-    try {
-      let result: (PasskeySessionResult & { source: AuthPasskeySource }) | null = null;
-      if (serverEnabled && input.userName) {
-        try {
-          const serverResult = await authenticateByName(input.userName, input.chainId);
-          if (serverResult) result = { ...serverResult, source: "server" };
-          else if (hasLocalCredential) {
-            attemptSource = "local_cache";
-            result = {
-              ...(await authenticateFromCache(input.userName, input.chainId)),
-              source: "local_cache",
-            };
-          } else throw new PasskeyNotFoundError("name");
-        } catch (serverError) {
-          if (
-            attemptSource === "server" &&
-            hasLocalCredential &&
-            matchesCachedUsername(input.userName) &&
-            classifyAuthErrorReason(serverError) === "server_unavailable"
-          ) {
-            attemptSource = "local_cache";
-            result = {
-              ...(await authenticateFromCache(input.userName, input.chainId)),
-              source: "local_cache",
-            };
-          } else throw serverError;
-        }
-      } else {
-        result = {
-          ...(await authenticateFromCache(input.userName, input.chainId)),
-          source: "local_cache",
-        };
+      try {
+        const result = serverEnabled
+          ? await registerWithServer(assertActive, input.userName, input.chainId)
+          : await buildSession(
+              assertActive,
+              await adapters
+                .createLocalPasskey(input.userName)
+                .then((credential) => ({ ...credential, signingId: credential.id })),
+              input.userName,
+              input.chainId,
+              adapters.getRpId(),
+              false
+            );
+        telemetry.registerSucceeded({
+          source,
+          outcome: "success",
+          passkeyServerEnabled: serverEnabled,
+          hasLocalCredential: true,
+        });
+        return result;
+      } catch (error) {
+        telemetry.registerFailed({
+          source,
+          outcome: "failed",
+          reason: classifyAuthErrorReason(error),
+          passkeyServerEnabled: serverEnabled,
+          hasLocalCredential: Boolean(session.getStoredCredential()),
+        });
+        throw error;
       }
-      source = result.source;
-      telemetry.loginSucceeded({
-        source,
-        outcome: "success",
-        reason: source === "local_cache" && serverEnabled ? "legacy_fallback" : undefined,
-        passkeyServerEnabled: serverEnabled,
-        hasLocalCredential: Boolean(session.getStoredCredential()),
-      });
-      return result;
-    } catch (error) {
-      telemetry.loginFailed({
-        source: attemptSource,
-        outcome: "failed",
-        reason: classifyAuthErrorReason(error),
-        passkeyServerEnabled: serverEnabled,
-        hasLocalCredential: Boolean(session.getStoredCredential()),
-      });
-      throw error;
     }
-  });
+  );
+
+  const authenticatePasskey = fromPromise<PasskeySessionResult, PasskeyInput>(
+    async ({ input, signal }) => {
+      const assertActive = guardSessionCommit(signal);
+      const serverEnabled = adapters.isServerEnabled();
+      const hasLocalCredential = Boolean(session.getStoredCredential());
+      let source: AuthPasskeySource = serverEnabled && input.userName ? "server" : "local_cache";
+      let attemptSource = source;
+      telemetry.loginStarted({
+        source,
+        outcome: "started",
+        passkeyServerEnabled: serverEnabled,
+        hasLocalCredential,
+      });
+      try {
+        let result: (PasskeySessionResult & { source: AuthPasskeySource }) | null = null;
+        if (serverEnabled && input.userName) {
+          try {
+            const serverResult = await authenticateByName(
+              assertActive,
+              input.userName,
+              input.chainId
+            );
+            if (serverResult) result = { ...serverResult, source: "server" };
+            else if (hasLocalCredential) {
+              attemptSource = "local_cache";
+              result = {
+                ...(await authenticateFromCache(assertActive, input.userName, input.chainId)),
+                source: "local_cache",
+              };
+            } else throw new PasskeyNotFoundError("name");
+          } catch (serverError) {
+            if (
+              attemptSource === "server" &&
+              hasLocalCredential &&
+              matchesCachedUsername(input.userName) &&
+              classifyAuthErrorReason(serverError) === "server_unavailable"
+            ) {
+              attemptSource = "local_cache";
+              result = {
+                ...(await authenticateFromCache(assertActive, input.userName, input.chainId)),
+                source: "local_cache",
+              };
+            } else throw serverError;
+          }
+        } else {
+          result = {
+            ...(await authenticateFromCache(assertActive, input.userName, input.chainId)),
+            source: "local_cache",
+          };
+        }
+        source = result.source;
+        telemetry.loginSucceeded({
+          source,
+          outcome: "success",
+          reason: source === "local_cache" && serverEnabled ? "legacy_fallback" : undefined,
+          passkeyServerEnabled: serverEnabled,
+          hasLocalCredential: Boolean(session.getStoredCredential()),
+        });
+        return result;
+      } catch (error) {
+        telemetry.loginFailed({
+          source: attemptSource,
+          outcome: "failed",
+          reason: classifyAuthErrorReason(error),
+          passkeyServerEnabled: serverEnabled,
+          hasLocalCredential: Boolean(session.getStoredCredential()),
+        });
+        throw error;
+      }
+    }
+  );
 
   return { restoreSession, registerPasskey, authenticatePasskey };
 }

@@ -124,8 +124,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           onClick={this.handleReset}
           className={cn(
             "inline-flex items-center gap-2 rounded-full px-4 py-2",
-            "bg-error-base text-sm font-medium text-white",
-            "transition hover:bg-error-dark",
+            "bg-error-action text-sm font-medium text-static-white",
+            "transition hover:bg-error-action-hover",
             "focus:outline-none focus-visible:ring-2 focus-visible:ring-error-base focus-visible:ring-offset-2"
           )}
         >

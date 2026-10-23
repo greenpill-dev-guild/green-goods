@@ -51,7 +51,7 @@ dialect: installed-pwa
 **Typography:**
 - Plus Jakarta Sans only, the cockpit's face, so the app and the cockpit read as one product (DL-096); no serif. This is a tool, not a magazine. `index.html` loads the variable face and the loading screen names it; a public page opened inside the installed app keeps the website's Inter.
 - Type comes from the shared theme tokens and the shared components' own rules. The client's legacy type utilities (`.title-screen`, `.label-md`, `.body-md-regular`, and siblings) read tokens no stylesheet defines and are being retired; `.title-section` and `.body-sm-regular` are already gone (DL-028). The client stylesheet sets no element type sizes, so every heading names its own size and weight (`typographyLayer.guard.test.ts` fails a heading that does not)
-- Compact type scale: body-sm and label-md are the workhorses
+- Type roles at the app's density (root `DESIGN.md` § Typography): `type-body` 16px for reading; `type-label` 16px and `type-label-sm` 14px for labels, field labels, and secondary lines; `type-meta` 12px for metadata; `type-meta-sm` 11px for chips and status pills; titles at 24, 18, and 16px. The shared components use them, and the app's own views still use the shared scale (`text-label-md` and its siblings) until they move
 
 **Content hierarchy:**
 1. Active garden context: always visible, always grounding
@@ -72,12 +72,19 @@ dialect: installed-pwa
 
 ## Color Adaptation
 
-The PWA inherits the Warm Earth core. Green accents follow one theme-aware rhythm (DL-086, DL-088; PRD-1150):
+The PWA inherits the Warm Earth core and the cockpit's ground (DL-097):
+- White cards on the linen canvas (`bg-canvas`), with a `neutral-200` card hairline so a card still reads on linen. In dark the canvas is the Earth ramp's warm floor and a card sits ten points of lightness above it, so a card never blends into the ground.
+- A bar that covers scrolled content paints the canvas: the top bar, the garden header and its tab row, the pinned promise and the Profile header. The tab row and the garden title block take the ground they sit on, so a tab row inside a sheet takes the sheet's surface.
+- The browser's status bar and the install manifest take the app's ground: linen, and the warm floor in dark. A browser tab keeps the website's own ground: white, and near-black in dark.
+- Fields, chips and secondary buttons draw the control outline, neutral-500 (neutral-400 in dark). Focus is one solid 2px ring in the app's green, mint in dark, and button labels are weight 500, the cockpit's (DL-098).
+
+Green accents follow one theme-aware rhythm (DL-086, DL-088; PRD-1150):
 - Green labels, icons, active navigation marks, indicator bars, selection borders, switches, radio buttons and checkboxes use `--primary-on-surface`: deep green in light and pale mint `tertiary-dark` (`#C2F5DA`) in dark.
 - Any green fill that carries text, a number, or a glyph (filled CTAs, count badges, step markers, selected chips, pills) uses the contrast-safe action pair: deep green with white content in light, mint with near-black `on-tertiary-dark` ink in dark. Dark hover uses `tertiary-dark-hover` (`#84EBB4`).
 - Active tab and AppBar labels, their icons and indicators, links, selected titles, and media seek controls use the same role. Audio play/pause uses the theme's filled-action pair.
 - Soft green highlights may retain the tertiary tint. Domain and status colors stay independent; success, warning, error and information marks are not brand accents.
 - A red fill that carries white text (the filled danger button, error badges) uses `--error-action`, red-700 in both themes (DL-053).
+- A blue fill that carries white text (the information badge, the current submission stage) uses `--information-action`, blue-500 in every theme, because the dark app lifts the base blue for its icons (DL-097).
 - Shared runtime aliases scope the mint palette to PWA presentation and Storybook app surfaces; public and admin retain their own palettes. The static boot fallback mirrors the dark action pair before styles load.
 
 **Dynamic garden theming** (future): Each garden can tint the experience with accent color derived from its banner image. The foundation palette stays, and only the accent shifts.

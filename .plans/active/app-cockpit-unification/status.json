@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-10T09:56:00.510Z",
-    "updated_at": "2026-10-22T00:20:52.555Z"
+    "updated_at": "2026-10-23T21:27:24.737Z"
   },
   "links": {
     "brief": "brief.md",
@@ -64,16 +64,16 @@
       "handoff": "handoffs/claude-ui.md",
       "tdd": {
         "mode": "required",
-        "status": "pending",
+        "status": "green_recorded",
         "red": {
-          "command": "",
-          "evidence": ""
+          "command": "git checkout --detach 671bc8220 && git checkout 65df3ad13 -- tests/specs/client.pwa-preview.spec.ts && PLAYWRIGHT_JSON_OUTPUT_FILE=<file> bun run browser e2e --preset pwa-preview -- --workers=1 --reporter=line,json",
+          "evidence": "2026-10-23, 671bc8220 (develop just before #1190) with develop's pwa-preview spec 55b0b9b86: 1 failed at spec line 95, page.evaluate TypeError: Failed to fetch, when the offline page fetches /fonts/jakarta-latin-normal.woff2; no face was served or precached. The vietnamese assertion #1197 adds: 1 failed at line 138 without its faces."
         },
         "green": {
-          "command": "",
-          "evidence": ""
+          "command": "PLAYWRIGHT_JSON_OUTPUT_FILE=<file> bun run browser e2e --preset pwa-preview -- --workers=1 --reporter=line,json",
+          "evidence": "2026-10-23, develop 65df3ad13 (#1190 served and precached the faces): 1 passed (55.3s). With #1197's vietnamese faces on fix/app-vietnamese-font-subset 1f00b560e: 1 passed (1.2m)."
         },
-        "note": "Required because step 1's offline face changes service-worker behaviour (both faces served from the app and precached): its RED/GREEN proof is recorded with record-tdd before the lane closes. Step 1's face and role names change no behaviour and prove themselves with the rendered pairs, the typeface fit audit and the design and typography guards. Each later slice records its own mode in the lane handoff: step 2 is pure styling (not_applicable); step 3's solid focus ring is rendered-only behaviour (proof_limit with its rendered evidence)."
+        "note": "Required because step 1's offline face changes service-worker behavior: #1190 served and precached the faces, and #1197 adds their vietnamese subset; RED and GREEN were recorded on 2026-10-23 with the pwa-preview spec. Step 1's face and role names change no behavior and prove themselves with the rendered pairs, the typeface fit audit and the design and typography guards. Step 2 is pure styling (not_applicable); step 3's solid focus ring is rendered-only behavior (proof_limit, with its rendered evidence in #1195)."
       },
       "skill_tags": ["ui", "design", "react"],
       "ready_when_dependencies_met": true,
@@ -272,6 +272,38 @@
       "status": "in_progress",
       "branch": null,
       "note": "Step 1's three pull requests merged: #1176 (guide wording, 870600083, 2026-10-21T23:46:46Z), #1175 (cockpit type roles, cfd1aaf83, 2026-10-21T23:48:54Z) and #1172 (the face, 20d8c8121, 2026-10-22T00:10:24Z). Step 1 stays open for the shared components' roles, the offline face (both faces served from the app and precached) and authenticated Brave proof of the installed app; the lane has no branch until that work starts. The 320px truncations are handed on to step 7; handoffs/claude-ui.md has the details."
+    },
+    {
+      "timestamp": "2026-10-22T18:38:42.905Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/app-cockpit-shared-type-roles",
+      "note": null
+    },
+    {
+      "timestamp": "2026-10-23T18:27:33.124Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/app-cockpit-ground-ladder",
+      "note": "Step 1's shared component roles merged as #1188 (f305bd7f6, 2026-10-23T05:10:05Z) after their guides #1187 (671bc8220, 2026-10-23T05:36:58Z); #1190 (65df3ad13) then served and precached the faces, so step 1 waits only on the maintainer's call on #1189. Step 2 (ground and dark ladder, PRD-1268) runs on feature/app-cockpit-ground-ladder from develop 65df3ad13; its guides go in a standards-only pull request."
+    },
+    {
+      "timestamp": "2026-10-23T19:20:34.065Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "feature/app-cockpit-ground-ladder",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-10-23T21:27:24.746Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/app-cockpit-ground-ladder",
+      "note": "Steps 1 to 3 merged on 2026-10-23 (#1193, #1191, #1196, #1195, #1197); step 4 starts on its own approved pair"
     }
   ]
 }

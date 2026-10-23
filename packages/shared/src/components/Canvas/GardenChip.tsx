@@ -85,7 +85,7 @@ export function GardenChip({
       <span
         className={cn(
           "inline-flex max-w-sm items-center gap-2 rounded-full",
-          "text-label-lg font-medium text-text-strong"
+          "type-label text-text-strong"
         )}
         style={{
           height: "36px",
@@ -118,7 +118,7 @@ export function GardenChip({
           type="button"
           className={cn(
             "inline-flex cursor-pointer items-center gap-2 rounded-full",
-            "text-label-lg font-medium text-text-strong",
+            "type-label text-text-strong",
             "transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
             "motion-reduce:transition-none",
             "hover:bg-bg-weak",
@@ -201,7 +201,7 @@ export function GardenChip({
                   // — this popover only ever renders inside the admin shell):
                   // accent from the workspace, ink hover layer, the canonical
                   // focus-ring role. Previously client-green + raw primary ring.
-                  "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-body-md font-medium",
+                  "flex w-full items-center gap-2 rounded-lg px-3 py-2 type-label",
                   "[color:rgb(var(--tone-on-surface-accent,var(--primary-base)))]",
                   "hover:bg-[rgb(var(--m3-on-surface,var(--text-strong-950))/0.08)]",
                   "transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
@@ -238,7 +238,7 @@ function GardenDropdownItem({ label, isSelected, onClick }: GardenDropdownItemPr
       type="button"
       onClick={onClick}
       className={cn(
-        "flex w-full items-center rounded-lg px-3 py-2 text-body-md",
+        "flex w-full items-center rounded-lg px-3 py-2 type-body",
         "transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
         "motion-reduce:transition-none",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base",

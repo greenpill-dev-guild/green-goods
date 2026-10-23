@@ -249,7 +249,7 @@ interface ScenePair {
 // scale the static scene and React by the same amount.
 const SCENE_PAIRS: ScenePair[] = [
   {
-    classLiteral: "min-h-screen flex flex-col items-center bg-bg-white-0 px-4 py-2",
+    classLiteral: "min-h-screen flex flex-col items-center bg-bg-canvas px-4 py-2",
     source: "scaffold",
     selector: ".boot-pwa-shell",
     boot: [

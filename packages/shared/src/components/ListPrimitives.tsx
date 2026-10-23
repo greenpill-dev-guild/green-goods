@@ -46,11 +46,11 @@ export function EmptyState({ icon, title, description, action }: EmptyStateProps
       >
         {icon}
       </div>
-      <h3 data-slot="title" className="text-title-md text-text-strong">
+      <h3 data-slot="title" className="type-title-md text-text-strong">
         {title}
       </h3>
       {description && (
-        <p data-slot="description" className="mt-1 max-w-sm text-body-md text-text-sub">
+        <p data-slot="description" className="mt-1 max-w-sm type-body text-text-sub">
           {description}
         </p>
       )}
@@ -102,7 +102,7 @@ export function ListToolbar({
           onChange={(event) => onSearchChange(event.target.value)}
           placeholder={placeholder}
           aria-label={placeholder}
-          className="h-9 w-full rounded-sm bg-bg-white pl-9 pr-8 text-body-md text-text-strong shadow-[var(--edge-rest)] placeholder:text-text-disabled transition-shadow duration-[var(--spring-effects-fast-duration)] focus:shadow-[var(--edge-focus)] focus:outline-none"
+          className="h-9 w-full rounded-sm bg-bg-white pl-9 pr-8 type-field text-text-strong shadow-[var(--edge-rest)] placeholder:text-text-disabled transition-shadow duration-[var(--spring-effects-fast-duration)] focus:shadow-[var(--edge-focus)] focus:outline-none"
         />
         {search && (
           <button

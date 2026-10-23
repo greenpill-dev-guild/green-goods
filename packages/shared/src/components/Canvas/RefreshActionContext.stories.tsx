@@ -28,7 +28,7 @@ function RefreshActionPreview({ enabled = true, fetching = false }) {
           <RiRefreshLine className={fetching ? "h-5 w-5 animate-spin" : "h-5 w-5"} />
         </span>
         <div>
-          <p className="text-label-md text-text-strong-950">Registered refresh action</p>
+          <p className="type-label text-text-strong-950">Registered refresh action</p>
           <p className="text-sm text-text-sub-600">
             {config
               ? `${config.labelId ?? "app.common.refresh"} · ${config.isFetching ? "fetching" : "idle"}`

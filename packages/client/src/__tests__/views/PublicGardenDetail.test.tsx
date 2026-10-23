@@ -226,7 +226,7 @@ const messages: Record<string, string> = {
   "public.gardenDetail.certificates.heading": "Impact Certificates",
   "public.gardenDetail.certificates.helper":
     "Shareable records bringing together approved work and the assessments supporting its claims.",
-  "public.gardenDetail.certificates.empty": "No Impact Certificates yet.",
+  "public.gardenDetail.certificates.empty": "No impact certificates yet.",
   "public.gardenDetail.certificates.untitled": "Untitled certificate",
   "public.gardenDetail.certificates.attestations":
     "{count, plural, one {# source record} other {# source records}}",
@@ -402,7 +402,7 @@ describe("GardenDetail", () => {
     expect(screen.queryByText("This garden is preparing its pool")).not.toBeInTheDocument();
     // An absent thing says it is absent, so § 03 never drops out of the ladder.
     expect(screen.getByText("No approved submissions yet.")).toBeInTheDocument();
-    expect(screen.getByText("No Impact Certificates yet.")).toBeInTheDocument();
+    expect(screen.getByText("No impact certificates yet.")).toBeInTheDocument();
   });
 
   it("renders an em dash rather than 0 when the works read failed", () => {

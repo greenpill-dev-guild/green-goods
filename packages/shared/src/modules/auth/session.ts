@@ -26,9 +26,7 @@ export interface SessionStorage {
   removeItem(key: string): void;
 }
 
-// ============================================================================
 // STORAGE KEYS
-// ============================================================================
 
 /** Active auth mode */
 export const AUTH_MODE_STORAGE_KEY = "greengoods_auth_mode";
@@ -45,9 +43,7 @@ export const RP_ID_STORAGE_KEY = "greengoods_rp_id";
 /** Expected smart-account address rebuilt from the active passkey credential */
 export const SMART_ACCOUNT_ADDRESS_STORAGE_KEY = "greengoods_smart_account_address";
 
-// ============================================================================
 // AUTH MODE
-// ============================================================================
 
 export type { AuthMode } from "../../types/auth";
 
@@ -69,9 +65,7 @@ export function clearAuthMode(storage: SessionStorage = localStorage): void {
   storage.removeItem(AUTH_MODE_STORAGE_KEY);
 }
 
-// ============================================================================
 // SIGNED-OUT SENTINEL (explicit sign-out durability)
-// ============================================================================
 
 /**
  * Sentinel written by explicit sign-out.
@@ -103,9 +97,7 @@ export function hasSignedOutSentinel(storage: SessionStorage = localStorage): bo
   return storage.getItem(SIGNED_OUT_STORAGE_KEY) === "true";
 }
 
-// ============================================================================
 // USERNAME (Pimlico Server)
-// ============================================================================
 
 /** Get stored username for Pimlico passkey server */
 export function getStoredUsername(storage: SessionStorage = localStorage): string | null {
@@ -127,9 +119,7 @@ export function hasStoredUsername(storage: SessionStorage = localStorage): boole
   return Boolean(storage.getItem(USERNAME_STORAGE_KEY));
 }
 
-// ============================================================================
 // RP ID (for Android passkey compatibility)
-// ============================================================================
 
 /** Store RP ID used during registration */
 export function setStoredRpId(rpId: string, storage: SessionStorage = localStorage): void {
@@ -146,9 +136,7 @@ export function clearStoredRpId(storage: SessionStorage = localStorage): void {
   storage.removeItem(RP_ID_STORAGE_KEY);
 }
 
-// ============================================================================
 // SMART ACCOUNT ADDRESS (account continuity)
-// ============================================================================
 
 /** Store the expected smart-account address for passkey account continuity. */
 export function setStoredSmartAccountAddress(
@@ -170,9 +158,7 @@ export function clearStoredSmartAccountAddress(storage: SessionStorage = localSt
   storage.removeItem(SMART_ACCOUNT_ADDRESS_STORAGE_KEY);
 }
 
-// ============================================================================
 // EMBEDDED WALLET ADDRESS
-// ============================================================================
 
 /** Storage key for embedded wallet address (for offline identity display) */
 export const EMBEDDED_ADDRESS_KEY = "greengoods_embedded_address";
@@ -277,9 +263,7 @@ export function clearActiveSessionAuth(storage: SessionStorage = localStorage): 
   setSignedOutSentinel(storage);
 }
 
-// ============================================================================
 // SIGN OUT
-// ============================================================================
 
 /**
  * Clear all auth storage including credential, username, and RP ID.
@@ -299,9 +283,7 @@ export function clearAllAuth(storage: SessionStorage = localStorage): void {
   storage.removeItem(SIGNED_OUT_STORAGE_KEY);
 }
 
-// ============================================================================
 // DEBUG UTILITIES
-// ============================================================================
 
 function isPasskeyDebugEnabled(): boolean {
   return Boolean(import.meta.env.DEV) || import.meta.env.VITE_DEBUG_MODE === "true";
@@ -358,9 +340,7 @@ if (import.meta.env.DEV && typeof window !== "undefined") {
   (window as { __debugPasskey?: typeof debugPasskeyConfig }).__debugPasskey = debugPasskeyConfig;
 }
 
-// ============================================================================
 // CREDENTIAL STORAGE (Client-Only)
-// ============================================================================
 
 /**
  * Serializable credential data for localStorage storage.
@@ -465,6 +445,32 @@ export function getStoredCredential(
  */
 export function hasStoredCredential(storage: SessionStorage = localStorage): boolean {
   return storage.getItem(CREDENTIAL_STORAGE_KEY) !== null;
+}
+
+/**
+ * Only an absence of all session metadata permits a host to defer auth startup.
+ * Presence includes malformed/legacy records and explicit sign-out metadata:
+ * the normal auth runtime owns their interpretation, migration and recovery.
+ * This probe never parses or writes storage, and treats blocked storage as unknown.
+ */
+export function hasSessionRestoreEvidence(storage?: Pick<SessionStorage, "getItem">): boolean {
+  try {
+    const readableStorage = storage ?? window.localStorage;
+    return [
+      AUTH_MODE_STORAGE_KEY,
+      CREDENTIAL_STORAGE_KEY,
+      USERNAME_STORAGE_KEY,
+      RP_ID_STORAGE_KEY,
+      SMART_ACCOUNT_ADDRESS_STORAGE_KEY,
+      EMBEDDED_ADDRESS_KEY,
+      WALLET_ADDRESS_STORAGE_KEY,
+      LAST_ACCOUNT_STORAGE_KEY,
+      WAGMI_STORE_KEY,
+      SIGNED_OUT_STORAGE_KEY,
+    ].some((key) => readableStorage.getItem(key) !== null);
+  } catch {
+    return true;
+  }
 }
 
 /**

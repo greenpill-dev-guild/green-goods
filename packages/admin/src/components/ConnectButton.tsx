@@ -1,4 +1,4 @@
-import { useAuthActions } from "@green-goods/shared/providers/Auth";
+import { useAuthActions, useAuthState } from "@green-goods/shared/providers/Auth";
 import { RiWallet3Line } from "@remixicon/react";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
@@ -23,6 +23,7 @@ export function ConnectButton({
   const { formatMessage } = useIntl();
   const { isConnecting } = useAccount();
   const { loginWithWallet } = useAuthActions();
+  const { walletReleaseStalled } = useAuthState();
 
   const adminVariant: AdminButtonProps["variant"] = variant === "secondary" ? "outlined" : "filled";
 
@@ -30,7 +31,7 @@ export function ConnectButton({
     <AdminButton
       type="button"
       onClick={() => loginWithWallet()}
-      loading={isConnecting}
+      loading={isConnecting && !walletReleaseStalled}
       disabled={disabled}
       leadingIcon={children || isConnecting ? undefined : <RiWallet3Line />}
       variant={adminVariant}
@@ -38,11 +39,16 @@ export function ConnectButton({
       data-testid="connect-wallet-button"
       className={className}
     >
-      {children ||
-        formatMessage({
-          id: "admin.connectButton.connect",
-          defaultMessage: "Connect Wallet",
-        })}
+      {walletReleaseStalled
+        ? formatMessage({
+            id: "app.login.walletReload",
+            defaultMessage: "Reload to retry wallet",
+          })
+        : children ||
+          formatMessage({
+            id: "admin.connectButton.connect",
+            defaultMessage: "Connect Wallet",
+          })}
     </AdminButton>
   );
 }

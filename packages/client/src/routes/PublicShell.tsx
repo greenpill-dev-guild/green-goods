@@ -2,11 +2,17 @@ import { getDocumentScrollPosition } from "@green-goods/shared/hooks/ui/useDocum
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { consumeAppLaunchFallback } from "@green-goods/shared/utils/app/browser";
 import { useIntl } from "react-intl";
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { lazy, Suspense, type SyntheticEvent, useEffect, useLayoutEffect, useRef } from "react";
 import { Outlet, useLocation, useNavigationType } from "react-router-dom";
-import { FocusedShell } from "@/components/Navigation/FocusedSiteHeader";
 import { SiteHeader } from "@/components/Navigation/SiteHeader";
 import { publicCuration } from "@/content/publicCuration";
+import { markPublicContentReady } from "@/config/publicStartup";
+
+const FocusedShell = lazy(() =>
+  import("@/components/Navigation/FocusedSiteHeader").then((module) => ({
+    default: module.FocusedShell,
+  }))
+);
 
 const PUBLIC_SCROLL_PRESERVED_SEARCH_PARAMS = new Set(["manage"]);
 const PUBLIC_SCROLL_DISMISSED_ON_MANAGEMENT_OPEN_SEARCH_PARAMS = new Set(["intent"]);
@@ -221,34 +227,28 @@ function usePublicRouteScrollReset() {
   ]);
 }
 
-/**
- * Warm every curated hero image once after the landing view paints. Each
- * public view swaps in its own hero, and the `vt-header` shared-element
- * morph cross-fades the old hero into the new one — if the incoming image
- * hasn't loaded yet, the morph lands on the deep-navy backdrop and reads as
- * a dark flash on the first visit to each view. The set is a handful of
- * local webp files, and the browser cache dedupes the current view's image.
- * Skipped under Save-Data.
- */
-function useWarmPublicHeroImages(enabled: boolean) {
-  useEffect(() => {
-    if (!enabled) return;
-    const connection = (navigator as Navigator & { connection?: { saveData?: boolean } })
-      .connection;
-    if (connection?.saveData) return;
+const prefetchedHeroImages = new Set<string>();
 
-    const sources = new Set<string>([
-      publicCuration.heroImagePath,
-      ...Object.values(publicCuration.viewHeroImages).filter(
-        (src): src is string => typeof src === "string"
-      ),
-    ]);
-    for (const src of sources) {
-      const image = new Image();
-      image.decoding = "async";
-      image.src = src;
-    }
-  }, [enabled]);
+/** Warm only the link a reader is approaching; never compete with arrival for every hero. */
+function prefetchPublicHeroOnIntent(event: SyntheticEvent) {
+  const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
+  if (connection?.saveData) return;
+
+  const link = event.target instanceof Element ? event.target.closest("a[href]") : null;
+  if (!(link instanceof HTMLAnchorElement) || link.origin !== window.location.origin) return;
+  const hashRouting = import.meta.env.VITE_USE_HASH_ROUTER === "true";
+  if (hashRouting && !link.hash.startsWith("#/")) return;
+  const pathname = hashRouting ? new URL(link.hash.slice(1), link.origin).pathname : link.pathname;
+  const view = pathname.slice(1) as keyof typeof publicCuration.viewHeroImages;
+  const src = pathname === "/" ? publicCuration.heroImagePath : publicCuration.viewHeroImages[view];
+  if (typeof src !== "string" || prefetchedHeroImages.has(src)) return;
+
+  prefetchedHeroImages.add(src);
+  const image = new Image();
+  image.decoding = "async";
+  image.fetchPriority = "low";
+  image.onerror = () => prefetchedHeroImages.delete(src);
+  image.src = src;
 }
 
 /** Chat reporting ceremony pages use the focused shell instead of the editorial one. */
@@ -261,9 +261,9 @@ const FOCUSED_SHELL_PREFIX = "/agent/reporting/";
  * Used for the public-facing website experience (browser mode).
  */
 export default function PublicShell() {
+  useEffect(markPublicContentReady, []);
   const focused = useLocation().pathname.startsWith(FOCUSED_SHELL_PREFIX);
   usePublicRouteScrollReset();
-  useWarmPublicHeroImages(!focused);
   const { formatMessage } = useIntl();
   const fallbackPositionRef = useRef<PublicScrollPosition | null>(null);
   useEffect(() => {
@@ -287,16 +287,24 @@ export default function PublicShell() {
   // Reporting ceremony pages are transactional: no editorial chrome, and app buttons.
   if (focused) {
     return (
-      <FocusedShell>
-        <Outlet />
-      </FocusedShell>
+      <Suspense fallback={null}>
+        <FocusedShell>
+          <Outlet />
+        </FocusedShell>
+      </Suspense>
     );
   }
 
   return (
     // data-site gives shared buttons the website corner and weight (DL-026), including in
     // dialogs that portal out of this shell.
-    <div className="flex min-h-screen flex-col bg-bg-white-0" data-site="website">
+    <div
+      className="flex min-h-screen flex-col bg-bg-white-0"
+      data-site="website"
+      onPointerOver={prefetchPublicHeroOnIntent}
+      onPointerDown={prefetchPublicHeroOnIntent}
+      onFocusCapture={prefetchPublicHeroOnIntent}
+    >
       <SiteHeader />
       <main className="vt-main flex flex-1 flex-col">
         <Outlet />

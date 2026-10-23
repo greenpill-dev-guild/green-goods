@@ -151,7 +151,7 @@ export function AppBar({
               >
                 <RiArrowLeftLine className="h-5 w-5" />
               </button>
-              <span className="truncate text-title-md text-text-main" data-slot="sheet-label">
+              <span className="truncate type-title-md text-text-main" data-slot="sheet-label">
                 {sheetContext.label}
               </span>
             </>

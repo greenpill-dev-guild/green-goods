@@ -29,19 +29,25 @@ function runAfterLoadAndIdle(task: () => void) {
 }
 
 function initializeDeferredRuntime() {
-  runAfterLoadAndIdle(() => {
-    void import("@green-goods/shared/sentry").then(({ initBrowserSentry }) => {
-      initBrowserSentry({
-        dsn: import.meta.env.VITE_SENTRY_CLIENT_DSN,
-        environment: import.meta.env.VITE_SENTRY_ENVIRONMENT || import.meta.env.MODE,
-        release: import.meta.env.VITE_APP_VERSION
-          ? `green-goods-client@${import.meta.env.VITE_APP_VERSION}`
-          : undefined,
-        surface: "client",
-        debug: import.meta.env.VITE_SENTRY_DEBUG === "true",
+  const initializeSentry = () =>
+    runAfterLoadAndIdle(() => {
+      void import("@green-goods/shared/sentry").then(({ initBrowserSentry }) => {
+        initBrowserSentry({
+          dsn: import.meta.env.VITE_SENTRY_CLIENT_DSN,
+          environment: import.meta.env.VITE_SENTRY_ENVIRONMENT || import.meta.env.MODE,
+          release: import.meta.env.VITE_APP_VERSION
+            ? `green-goods-client@${import.meta.env.VITE_APP_VERSION}`
+            : undefined,
+          surface: "client",
+          debug: import.meta.env.VITE_SENTRY_DEBUG === "true",
+        });
       });
     });
-  });
+  if (getBootPresentation() === "public") {
+    void import("@/config/publicStartup").then(({ afterPublicContentPaint }) => {
+      afterPublicContentPaint(initializeSentry);
+    });
+  } else initializeSentry();
 
   runAfterLoadAndIdle(() => {
     void import("@green-goods/shared/service-worker").then(({ registerServiceWorkerFromEnv }) => {

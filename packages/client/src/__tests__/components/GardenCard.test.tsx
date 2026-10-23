@@ -85,7 +85,7 @@ describe("components/Cards/GardenCard", () => {
     );
 
     expect(screen.getByTestId("garden-card").className).toContain("h-[13.25rem]");
-    expect(screen.getByText("Community Garden").className).toContain("text-label-md");
+    expect(screen.getByText("Community Garden").className).toContain("type-title-sm");
     expect(screen.getByText("A beautiful community garden in the city center").className).toContain(
       "h-[3.75rem]"
     );
