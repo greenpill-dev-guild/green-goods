@@ -255,6 +255,12 @@
   color: rgb(var(--gg-design-primary-inverse));
 }
 
+/* App stories stand on the installed app's canvas (linen, or the warm dark
+   floor), so a card, sheet or bar reads against the ground it ships on. */
+:root[data-surface="app"] .storybook-browser-preview {
+  background: rgb(var(--bg-canvas));
+}
+
 @keyframes accordion-down {
   from {
     height: 0;

@@ -18,7 +18,7 @@ colors:
   amber: "#D97706"
   sky: "#3B82F6"
   neutral: "#FAF8F5"
-  neutral-dark: "#1C1917"
+  neutral-dark: "#110C08"
 typography:
   body-md:
     fontFamily: Plus Jakarta Sans
@@ -192,12 +192,14 @@ Four roles, defined by **how much of the screen each occupies**, not a palette r
 
 | Role | Volume | Color | Hex (light / dark) | Job |
 |------|--------|-------|--------------------|-----|
-| **Neutral (canvas)** | 80-90% | Warm linen | #FAF8F5 / #1C1917 | Background, breathing room |
+| **Neutral (canvas)** | 80-90% | Warm linen | #FAF8F5 / #110C08 | Background, breathing room |
 | **Primary (ink)** | 8-15% | Warm charcoal | #292524 / #F5F5F4 | Headings, body, core content |
 | **Secondary (stone)** | 3-5% | Earth stone | #78716C / #A8A29E | Metadata, borders, labels |
 | **Tertiary (accent)** | 1-3% | Garden green | #1FC16B | CTAs, active states, value-flow |
 
 **Rule:** Tertiary (green) is third in volume but first in visual pull. The bright flower draws the eye *because* everything else is quiet. Flooding the screen with green is the #1 failure mode.
+
+**Ground.** The installed app and the cockpit lay white cards on the linen canvas; the public website keeps its white ground. In dark both build from one warm ladder, the Earth ramp in shared `theme.css`: the canvas at its floor (`neutral-dark`) and the card ten points of lightness above it, so a card reads against the canvas by a lightness step rather than a shadow. Error, feature and information text take one lighter step in dark, where the lifted card would put them under AA; a fill that carries white keeps its deep action step (`--error-action`, `--information-action`). The browser's status bar and the install manifest take the ground of the presentation they belong to.
 
 **Supporting accents** (situational, not core hierarchy):
 - **Amber** #D97706: Warnings, seasonal indicators, secondary warmth

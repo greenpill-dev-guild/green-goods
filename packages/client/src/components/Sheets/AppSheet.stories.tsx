@@ -265,7 +265,7 @@ export const LongContent: Story = {
 export const DarkMode: Story = {
   globals: { theme: "dark" },
   render: () => (
-    <div className="bg-bg-white-0 min-h-screen">
+    <div className="bg-bg-canvas min-h-screen">
       <AppSheetDemo header={{ title: "Garden Details", description: "Riverside Commons" }}>
         <div className="space-y-3">
           <div className="p-4 rounded-lg bg-bg-weak-50">

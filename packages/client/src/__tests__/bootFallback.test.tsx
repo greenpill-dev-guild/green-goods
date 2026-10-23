@@ -49,6 +49,8 @@ interface DetectOptions {
   href: string;
   displayMode?: "standalone" | "window-controls-overlay" | "fullscreen";
   navigator?: Partial<Navigator> & { standalone?: boolean; userAgentData?: { mobile?: boolean } };
+  /** The theme boot-theme already resolved, which the detector reads for the status bar. */
+  theme?: "light" | "dark";
 }
 
 /** The installed app's face link (index.html) and the media it starts with. */
@@ -59,8 +61,9 @@ function runPresentationDetector({
   href,
   displayMode,
   navigator: navigatorOverrides = {},
+  theme,
 }: DetectOptions): { dataset: DOMStringMap; faceMedia: string; fontPreloads: string[] } {
-  const dataset: DOMStringMap = {};
+  const dataset: DOMStringMap = theme ? { theme } : {};
   const face = { media: INSTALLED_FACE_MEDIA };
   const navigator = {
     userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
@@ -79,6 +82,8 @@ function runPresentationDetector({
   const documentLike = {
     documentElement: { dataset },
     getElementById: (id: string) => (id === "boot-pwa-face" ? face : null),
+    // The theme-color meta, when a test placed one in the real document's head.
+    querySelector: document.querySelector.bind(document),
     createElement: document.createElement.bind(document),
     head: document.createElement("head"),
   };
@@ -464,13 +469,14 @@ describe("presentation-specific boot fallback", () => {
     )?.[1];
 
     // The loader stays up until auth is ready, then hands off to html, body,
-    // and SplashScaffold, which all paint bg-white-0. It takes the same token
-    // so the selected theme holds through boot and the handoff has no seam.
+    // and SplashScaffold, which all paint the app's canvas (bg-canvas: linen,
+    // and the warm dark floor). It takes the same token so the selected theme
+    // holds through boot and the handoff has no seam.
     expect(styles).toMatch(
-      /html\[data-boot-presentation="pwa"\] #boot-fallback\s*{[^}]*--boot-canvas:\s*var\(--color-bg-white-0, #ffffff\)/s
+      /html\[data-boot-presentation="pwa"\] #boot-fallback\s*{[^}]*--boot-canvas:\s*var\(--color-bg-canvas, #faf8f5\)/s
     );
     expect(styles).toMatch(
-      /html\[data-boot-presentation="pwa"\]\[data-theme="dark"\] #boot-fallback\s*{[^}]*--boot-canvas:\s*var\(--color-bg-white-0, #0c0a09\)[^}]*--boot-action:\s*var\(--color-primary-action, #c2f5da\)[^}]*--boot-action-fg:\s*var\(--color-primary-action-foreground, #0c0a09\)/s
+      /html\[data-boot-presentation="pwa"\]\[data-theme="dark"\] #boot-fallback\s*{[^}]*--boot-canvas:\s*var\(--color-bg-canvas, #110c08\)[^}]*--boot-action:\s*var\(--color-primary-action, #c2f5da\)[^}]*--boot-action-fg:\s*var\(--color-primary-action-foreground, #0c0a09\)/s
     );
     expect(styles).toMatch(
       /\.boot-pwa-shell\s*{[^}]*background:\s*var\(--boot-canvas\)[^}]*color:\s*var\(--boot-ink\)/s
@@ -488,9 +494,13 @@ describe("presentation-specific boot fallback", () => {
     if (metas?.length !== 1) throw new Error(`Expected one theme-color meta, got ${metas?.length}`);
     document.head.innerHTML = metas[0]
       .replaceAll("%PWA_THEME_COLOR_LIGHT%", "#ffffff")
-      .replaceAll("%PWA_THEME_COLOR_DARK%", "#0c0a09");
+      .replaceAll("%PWA_THEME_COLOR_DARK%", "#0c0a09")
+      .replaceAll("%PWA_APP_THEME_COLOR_LIGHT%", "#faf8f5")
+      .replaceAll("%PWA_APP_THEME_COLOR_DARK%", "#110c08");
     const storage = createStorage();
     storage.setItem("theme", "dark");
+    const themeColor = () =>
+      document.head.querySelector<HTMLMetaElement>('meta[name="theme-color"]')?.content;
 
     new Function("window", "document", "localStorage", inlineScript("boot-theme"))(
       { matchMedia: () => ({ matches: false }) },
@@ -499,9 +509,19 @@ describe("presentation-specific boot fallback", () => {
     );
 
     expect(document.documentElement.dataset.theme).toBe("dark");
-    expect(document.head.querySelector<HTMLMetaElement>('meta[name="theme-color"]')?.content).toBe(
-      "#0c0a09"
-    );
+    expect(themeColor()).toBe("#0c0a09");
+
+    // The website keeps its white ground; an installed launch gives the bar the
+    // app's own ground for the theme boot-theme chose.
+    runPresentationDetector({ href: "http://localhost:3001/gardens", theme: "dark" });
+    expect(themeColor()).toBe("#0c0a09");
+    runPresentationDetector({ href: "http://localhost:3001/home?presentation=pwa", theme: "dark" });
+    expect(themeColor()).toBe("#110c08");
+    runPresentationDetector({
+      href: "http://localhost:3001/home?presentation=pwa",
+      theme: "light",
+    });
+    expect(themeColor()).toBe("#faf8f5");
   });
 
   it("keeps every slot in place in every state, so the logo and the line never move", () => {

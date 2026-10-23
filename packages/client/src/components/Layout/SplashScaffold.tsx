@@ -73,7 +73,7 @@ export const SplashScaffold: React.FC<SplashScaffoldProps> = ({
   message,
   tertiary,
 }) => (
-  <div className="min-h-screen flex flex-col items-center bg-bg-white-0 px-4 py-2">
+  <div className="min-h-screen flex flex-col items-center bg-bg-canvas px-4 py-2">
     {/* Shared anchor — free space splits 11:9 above/below the constant block. */}
     {/* The upper spacer's 45% remainder lowers the block by 4px. */}
     <div aria-hidden="true" style={{ flexGrow: 11, flexBasis: "calc(4px * 20 / 9)" }} />

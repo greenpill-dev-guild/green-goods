@@ -36,7 +36,8 @@ export const pwaStatusStyles = {
     surface: "bg-information-lighter",
     border: "border-information-light",
     dot: "bg-information-base",
-    badge: "bg-information-base text-static-white",
+    // A blue fill that carries a word or number takes the action blue.
+    badge: "bg-information-action text-static-white",
     progress: "bg-information-base",
     spinnerBorder: "border-t-information-base",
     focus:
