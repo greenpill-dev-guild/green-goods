@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
 <style>body{margin:0}</style>
 </helmet>
-<div class="gg {{themeCls}}" lang="{{lang}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+<div class="gg {{themeCls}}" lang="{{lang}}" data-density="{{density}}" data-chain="{{chain}}" data-font="{{font}}" data-ground="{{ground}}" data-corners="{{corners}}" data-gap="{{gap}}" data-darkcards="{{darkcards}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
   <div class="scr" style="padding-bottom: {{padBottom}}" inert="{{baseHidden}}">
     <div class="topnav">
       <a class="close" href="Visit.dc.html" aria-label="{{backLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></a>
@@ -105,22 +105,26 @@ class Component extends DCLogic {
     var shFacts = [{ k: t('rw.sh.work'), v: both ? t('rw.vg.give') : t('rw.v.give'), s: both ? t('rw.vg.giveS') : t('rw.v.giveS') },
       { k: t('rw.sh.vou'), v: t('rw.sh.vouV', vars), s: t('rw.sh.vouS') }];
     if (both) shFacts.push({ k: t('rw.sh.gd'), v: t('rw.sh.gdV', vars), s: t('rw.sh.gdS') });
-    return {
+    var qa = [{ icon: '#ri-hammer-line', k: t('rw.q.give'), v: both ? t('rw.vg.give') : t('rw.v.give'), s: both ? t('rw.vg.giveS') : t('rw.v.giveS') },
+      { icon: '#ri-user-follow-line', k: t('rw.q.review'), v: t('rw.reviewV'), s: t('rw.reviewS') },
+      { icon: '#ri-git-branch-line', k: t('rw.q.arrive'), v: t('rw.arriveV'), s: both ? t('rw.arriveS') : t('rw.arriveSV') },
+      { icon: '#ri-archive-line', k: t('rw.q.aside'), v: t('rw.asideV'), s: t('rw.asideS') }];
+    var tech = both ? [t('rw.x.vou'), t('rw.x.gd'), t('rw.x.rec')] : [t('rw.x.vou'), t('rw.x.rec')];
+    // The lab's copy density dial: minimal keeps three answers and moves who confirms under Transaction details
+    if ((this.props.density ?? 'full') === 'minimal') { qa = [qa[0], qa[2], qa[3]]; tech = [t('rw.q.review') + ': ' + t('rw.reviewV') + '. ' + t('rw.reviewS')].concat(tech); }
+    return Object.assign(GGTW(this.props), {
       themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code, backLabel: t('c.back'), closeLabel: t('c.close'),
       baseHidden: sheet ? 'true' : 'false',
       kindLine: t('rw.kind', { garden: t('who.rc') }), title: both ? t('rw.vg.title') : t('rw.v.title'), desc: both ? t('rw.vg.desc') : t('rw.v.desc'),
       hasNext: !!NX, nextCls: NX ? NX[0] : '', nextIcon: NX ? NX[1] : '', nextT: NX ? t('rw.n.' + NX[2] + '.t', vars) : '', nextB: NX ? t('rw.n.' + NX[2] + '.b', vars) : '',
       getTitle: t('rw.get'), rewards: rewards, routeTitle: t('rw.route'),
-      qa: [{ icon: '#ri-hammer-line', k: t('rw.q.give'), v: both ? t('rw.vg.give') : t('rw.v.give'), s: both ? t('rw.vg.giveS') : t('rw.v.giveS') },
-        { icon: '#ri-user-follow-line', k: t('rw.q.review'), v: t('rw.reviewV'), s: t('rw.reviewS') },
-        { icon: '#ri-git-branch-line', k: t('rw.q.arrive'), v: t('rw.arriveV'), s: both ? t('rw.arriveS') : t('rw.arriveSV') },
-        { icon: '#ri-archive-line', k: t('rw.q.aside'), v: t('rw.asideV'), s: t('rw.asideS') }],
-      techLabel: t('c.tech'), tech: both ? [t('rw.x.vou'), t('rw.x.gd'), t('rw.x.rec')] : [t('rw.x.vou'), t('rw.x.rec')],
+      qa: qa,
+      techLabel: t('c.tech'), tech: tech,
       hasAct: !!act && !sheet, act: act ? act[0] : '', actHref: act ? act[1] : '#',
       padBottom: act ? '104px' : '40px',
       sheet: sheet, shTitle: t('rw.sh.title'), shFacts: shFacts, termsLabel: t('c.terms'), readTerms: t('c.readTerms'),
       consent: t('rw.sh.consent'), shCta: t('rw.sh.cta'), passkey: t('c.passkey')
-    };
+    });
   }
 }
 </script>

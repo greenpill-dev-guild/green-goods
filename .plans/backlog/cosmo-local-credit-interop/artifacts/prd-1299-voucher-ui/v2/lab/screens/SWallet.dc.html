@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
 <style>body{margin:0}</style>
 </helmet>
-<div class="gg {{themeCls}}" lang="{{lang}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+<div class="gg {{themeCls}}" lang="{{lang}}" data-density="{{density}}" data-chain="{{chain}}" data-font="{{font}}" data-ground="{{ground}}" data-corners="{{corners}}" data-gap="{{gap}}" data-darkcards="{{darkcards}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
   <div class="scr" aria-hidden="true"><header class="hdr"><span class="gchip"><span class="av"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-fill"/></svg></span><span class="lbl">{{garden}}</span></span></header></div>
   <div class="scrim"></div>
   <section class="sheet full" role="dialog" aria-modal="true" aria-labelledby="wl-title">
@@ -78,7 +78,7 @@ class Component extends DCLogic {
       { tile: 'tool', icon: '#ri-tools-line', name: t('who.hill'), sub: t('wl.hillS'), amt: later ? t.g(86.4) : t.n(250), unit: t('wl.avail'), href: 'SExchange.dc.html' }
     ];
     var pending = later ? [{ tile: 'sun', icon: '#ri-arrow-go-back-line', name: t('wl.back', { n: t.n(60) }), sub: t('wl.backS'), cls: 'info', state: t('wl.pending') }] : [];
-    return {
+    return Object.assign(GGTW(this.props), {
       themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code, garden: t('who.rc'),
       title: t('wl.title'), sub: t('wl.sub'), closeLabel: t('c.close'),
       tTokens: t('wl.t.tokens'), tVouchers: t('wl.t.vouchers'), tPurchases: t('wl.t.purchases'), tCookies: t('wl.t.cookies'),
@@ -92,7 +92,7 @@ class Component extends DCLogic {
         { tile: 'sun', icon: '#ri-coupon-3-line', name: t('wl.p.course'), sub: t('wl.p.courseS'), cls: 'info', state: t('wl.p.coursePill'), href: 'SRedeem.dc.html' }],
       closed: [{ tile: 'sun', icon: '#ri-coupon-3-line', name: t('wl.p.session'), sub: t('wl.p.sessionS'), cls: 'ok', state: t('wl.p.sessionPill'), href: 'SRedeem.dc.html' },
         { tile: 'gd', icon: '#ri-coins-line', name: t('wl.p.journal'), sub: t('wl.p.journalS', { amt: t.g(120) }), cls: 'ok', state: t('wl.p.journalPill'), href: '#' }]
-    };
+    });
   }
 }
 </script>

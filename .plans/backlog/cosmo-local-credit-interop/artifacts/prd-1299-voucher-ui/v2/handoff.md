@@ -41,6 +41,8 @@ its own folder, and the lab keeps v1's screens under **v1 reference**.
 - **A stricter check.** `check.mjs` now renders every pilot state in every language, and again in
   dark, and fails on clipped text, unnamed controls, focus behind a dialog, missing icons or low
   contrast.
+- **Dials.** Later on 23 October the lab gained dials, so reviewers can turn patterns, copy and
+  the design-system forks and watch the screen change. See [The lab's dials](#the-labs-dials).
 
 ## The journeys
 
@@ -96,6 +98,30 @@ to the action it blocks, kept issuer names and amounts whole on a phone, kept nu
 line as their units, removed the progress bar from canceled bookings, and stopped cockpit pages
 above the dock.
 
+## The lab's dials
+
+The dials are lab tooling, not pilot behavior: every option draws the same implemented flow with
+a different pattern or wording. The defaults are the pilot's picks, marked with a dot. Picks save
+in the reviewer's browser, go into any note saved from the panel, and "Copy picks" puts them on
+the clipboard as one line. A dial shows only on screens it changes.
+
+| Dial | Options (pilot's pick first) | Screens |
+|---|---|---|
+| V1 Sheet steps | Strip, list, counter | Review sheet, voucher booking sheets |
+| V2 Progress | Phases, flat, summary | Voucher booking, G$ purchase |
+| V3 Final split | Bar, two steps, figures | Voucher booking |
+| V4 Transfers | Rows, bar, in the band | Voucher booking |
+| V5 Confirm | Dialog, in the row | Issuer, Promises and Funds cockpit pages |
+| D1 Copy | Full, compact, minimal | Every member screen; minimal reshapes the offer and request cards |
+| D2 Chain words | Details, one line, none | Voucher booking, G$ purchase |
+| S1 to S5 Design system | Typeface, ground, cards, list gap, dark cards | Every pilot screen; defaults are the forks locked on 18 October |
+
+The panel also changed so the lab fits a viewer window: controls hold without scrolling at
+desktop sizes, the step list is a strip of dots, the narration sits in a fixed band under the
+screen, and notes fold away. Cockpit steps show a readable crop of the dialog or card in play at
+the phone frame's height, with a thumbnail of the whole screen and a "Whole screen" toggle.
+Below 860px wide the screen stays pinned above the controls.
+
 ## The working pilot terms
 
 On 23 October the implementation lane recorded working pilot terms in `pilot-issuer-terms.md`
@@ -126,10 +152,10 @@ bundled build).
 
 | Command or check | Observed result |
 |---|---|
-| `node build.mjs` | Wrote `voucher-lab.html` (645 KB), `copy-sheet.md` (857 keys) and `crosswalk.md` (34 rows). Rebuilding without a source change produced an identical file. |
-| `node check.mjs` | Passed on 23 October. The self-test passed. Fourteen views fit at 1440 × 900, 1280 × 720, 1024 × 768 and 390 × 844 with no sideways scroll. All 608 pilot screen states (every state in English, Spanish and Portuguese, plus every state in dark) showed no clipped or overflowing text, a name on every control, no focus behind an open dialog, every icon present, and AA contrast. |
-| Keyboard walk | Seventy Tab presses through the lab on a journey step. Every stop showed a focus ring, none landed behind a dialog, and focus moved from navigation to the screen, the controls, the steps and the notes. Run from a scratch script that isn't part of the lab. |
-| Visual review | Every pilot state in English at native size, with Spanish, Portuguese and dark checks, and the lab at 1440 and 390 wide in both screen themes. The fixes it found are in this revision. |
+| `node build.mjs` | Wrote `voucher-lab.html`, `copy-sheet.md` (864 keys) and `crosswalk.md` (34 rows). Rebuilding without a source change produced an identical file. |
+| `node check.mjs` | Passed on 23 October. The self-test passed, including every dial option on each screen it applies to. Fifteen views fit at 1440 × 900, 1280 × 720, 1024 × 768 and 390 × 844 with no sideways scroll, and at the three desktop sizes the side panel held its controls without scrolling. All 1,001 pilot renders (every state in English, Spanish and Portuguese, every state in dark, and 393 dial settings) showed no clipped or overflowing text, a name on every control, no focus behind an open dialog, every icon present, and AA contrast. |
+| Keyboard walk | Seventy Tab presses through the lab on a journey step, after the dials were added. Every stop showed a focus ring and none landed behind a dialog; focus moved from navigation to the screen, then Back and Next, the step dots, the state controls, the dials and the notes. Run from a scratch script that isn't part of the lab. |
+| Visual review | Every pilot state in English at native size, with Spanish, Portuguese and dark checks; every dial option on the screens it applies to; and the lab at 1440, 1000 and 390 wide in both screen themes, including a cockpit step in focus and whole-screen modes. The fixes it found are in this revision. |
 
 **Recorded implementation proof, not rerun here.** The crosswalk's proof column cites contract
 tests, pinned forks, component tests and Storybook rehearsal recorded in the implementation
@@ -207,9 +233,9 @@ node check.mjs   # self-test, fit, text, names and focus, icons, contrast
 
 | File | Holds |
 |---|---|
-| `shell.html` | The lab page and runtime, and all lab text: journeys, pairs and written pages. |
-| `gg.css` | The screen kit. Audit corrections follow the "Design-system alignment (v2 audit)" comment, and pilot additions follow "Pilot design additions". |
-| `screens/*.dc.html` | 30 screens: the ten `S*` pilot screens, and v1's twenty kept for reference. |
+| `shell.html` | The lab page and runtime, all lab text (journeys, pairs and written pages), and the dials (`TWEAKS`). |
+| `gg.css` | The screen kit. Audit corrections follow the "Design-system alignment (v2 audit)" comment, pilot additions follow "Pilot design additions", and the dial rules follow "Lab dials". |
+| `screens/*.dc.html` | 30 screens: the ten `S*` pilot screens, and v1's twenty kept for reference. A pilot screen reads the dials from its props and carries them as data attributes on its root. |
 | `copy.json` | Every pilot string as `[EN, ES, PT]`. |
 | `crosswalk.json` | The screen and state crosswalk. |
 | `remix-sprite.svg` | 60 Remix Icon 4.9.0 glyphs from the npm package. Icons by Remix Icon (https://remixicon.com), licensed under the Remix Icon License v1.0. |
@@ -229,5 +255,7 @@ Agent/model: Claude Code / claude-opus-5-5, in two sessions | Coverage: the revi
 | Verify | 2026-10-23 16:36 → 16:45 | Visual-review fixes, keyboard walk, first evidence capture. The session then stopped at a usage limit. |
 | Investigate | 2026-10-23 17:19 → 17:27 | Resumed in a second session; read the newer implementation handoffs and working pilot terms. |
 | Implement and verify | 2026-10-23 17:26 → 17:38 | Copy fixes; current blockers and pilot terms in the crosswalk and lab pages; these docs; a rebuild; `check.mjs`, the selected `format` and `lint` checks (2 fresh passes, 0 reused) and Plan Hub validation passing; renders and evidence. |
+| Investigate | unknown → 2026-10-23 20:10 | Measured the lab at viewer sizes (panel overflow of 600 to 940px, frames changing shape between steps, cockpit steps at 46 to 62%); read the unification lab's dials; four forks answered by Afo. |
+| Implement and verify | 2026-10-23 20:10 → 22:30 | Dials, compact panel, step strip, narration band and cockpit focus crop; the Redeem journey rendered for a yes, then the rollout to every pilot screen; `check.mjs` with the panel-fit rule and dial sweep passing (1,001 renders); keyboard walk; evidence. Intervals overlap with the rendering waits. |
 
 Human corrections: 0 observed in this segment; attention: unknown.

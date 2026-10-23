@@ -613,3 +613,68 @@
 /* Two actions sit side by side when both labels fit on one line; otherwise they stack, primary on top */
 .gg .fbtns { flex-wrap: wrap; }
 .gg .fbtns .btn { flex: 1 1 auto; white-space: nowrap; }
+
+/* ================= Lab dials =================
+   Each pilot screen carries the lab's picks as data attributes on its root. The defaults are the
+   pilot's picks; the design-system dials default to the forks locked on 18 October. */
+/* S1 Typeface */
+.gg[data-font="inter"] { font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif !important; }
+/* S2 Ground: a white canvas sits on faint hairlines */
+.gg[data-ground="white"] { --bg: #FFFFFF; --weak: #FAFAF9; --line: #F5F5F4; --tile: #F5F5F4; --paper: #FFFFFF; }
+.gg.dark[data-ground="white"] { --bg: #0C0A09; --card: #1C1917; --weak: #141211; --line: #292524; --line2: #44403C; --neu-bg: #292524; --paper: #1C1917; }
+/* S3 Cards: 16px everywhere instead of 24px cards over 16px rows */
+.gg[data-corners="16"] .card, .gg[data-corners="16"] .acard, .gg[data-corners="16"] .hero { border-radius: 16px; }
+/* S4 List spacing */
+.gg[data-gap="8"] .list, .gg[data-gap="8"] .stack, .gg[data-gap="8"] .hlist { gap: 8px; }
+/* S5 Dark cards: flat cards share the canvas and keep a hairline */
+.gg.dark[data-darkcards="flat"] { --card: #1A140F; --neu-bg: #2A231C; --paper: #1A140F; }
+.gg.dark[data-darkcards="flat"][data-ground="white"] { --card: #0C0A09; --neu-bg: #1C1917; }
+/* D1 Copy density: compact drops the detail lines; minimal also drops who acts in phases */
+.gg[data-density="compact"] .qs, .gg[data-density="minimal"] .qs,
+.gg[data-density="compact"] .fact small, .gg[data-density="minimal"] .fact small,
+.gg[data-density="compact"] .hrow .hd, .gg[data-density="minimal"] .hrow .hd,
+.gg[data-density="compact"] .leg span.sub, .gg[data-density="minimal"] .leg span.sub,
+.gg[data-density="compact"] .afact .v small, .gg[data-density="minimal"] .afact .v small,
+.gg[data-density="minimal"] .lt .who, .gg[data-density="minimal"] .lt .sub .st2 { display: none; }
+/* D2 Chain details: one quiet line under the summary band, or nothing */
+.gg .chainline { margin: 10px 16px 0; display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 6px; font-size: 12px; line-height: 16px; color: var(--muted); }
+.gg .chainline .i { width: 14px; height: 14px; color: var(--soft); margin-top: 1px; }
+/* V1 Sheet steps: a numbered list with who acts, or one counter line */
+.gg .jlist { list-style: none; margin: 0; padding: 0 16px 12px; display: flex; flex-direction: column; gap: 4px; }
+.gg .jlist li { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 8px; align-items: center; font-size: 12px; line-height: 16px; color: var(--muted); }
+.gg .jlist .n { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 600; background: var(--neu-bg); color: var(--muted); }
+.gg .jlist li.done .n { background: var(--ok-bg); color: var(--ok); }
+.gg .jlist li.now { color: var(--strong); font-weight: 600; } .gg .jlist li.now .n { background: var(--on); color: var(--accent-ink); }
+.gg .jlist li.wait .n { background: transparent; border: 1px dashed var(--line2); }
+.gg .jlist .jw { font-weight: 400; color: var(--muted); }
+.gg .jcount { margin: 0 16px 12px; font-size: 12px; line-height: 16px; color: var(--muted); }
+.gg .jcount b { color: var(--strong); font-weight: 600; }
+/* V2 Progress: one flat list with the phase as a small label, or a count with the list behind a tap */
+.gg .ladder.flat .ls { padding: 6px 16px 6px 14px; }
+.gg .ladder.flat .ls::before { top: 32px; }
+.gg .ladder.flat .lt b { font-size: 13px; font-weight: 500; line-height: 18px; }
+.gg .ladder.flat .ls.now .lt b { font-weight: 600; }
+.gg .ladder.flat .lt .ph { font-size: 11px; }
+.gg .psum { display: flex; align-items: center; gap: 12px; padding: 14px 16px; }
+.gg .psum b { font-size: 13px; font-weight: 600; color: var(--strong); white-space: nowrap; }
+.gg .psum .pbar { flex: 1 1 auto; height: 6px; border-radius: 999px; background: var(--neu-bg); overflow: hidden; }
+.gg .psum .pbar span { display: block; height: 100%; background: var(--on); border-radius: 999px; }
+.gg details.plist summary { list-style: none; padding: 0 16px 12px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--on); }
+.gg details.plist summary::-webkit-details-marker { display: none; }
+/* V3 Final split as two steps: the received step first, then the split */
+.gg .recv { display: flex; flex-direction: column; gap: 12px; }
+/* V4 Transfers: legs under the bar, or lines in the summary band */
+.gg .legbar { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.gg .legbar .legrow { display: flex; gap: 8px; }
+.gg .legbar .legrow > span { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 4px; font-size: 12px; line-height: 16px; color: var(--muted); }
+.gg .legbar .legrow b { color: var(--strong); font-weight: 600; font-size: 13px; }
+.gg .legbar .legrow .pill { align-self: flex-start; }
+.gg .escrow .elegs { display: flex; flex-direction: column; gap: 6px; padding: 10px 16px 12px; border-top: 1px solid var(--line); }
+.gg .escrow .elegs span { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; line-height: 18px; color: var(--strong); }
+/* V5 Cockpit confirm in the row: the row opens in place and nothing covers the page */
+.gg .arow.open { background: var(--weak); }
+.gg .arow .expand { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 12px; padding-top: 4px; }
+.gg .arow .expand .afacts { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 4px 12px; }
+.gg .arow .expand .xacts { display: flex; justify-content: flex-end; align-items: center; gap: 8px; flex-wrap: wrap; }
+.gg .arow .expand .xacts .note { margin-right: auto; font-size: 12px; color: var(--muted); }
+.gg .acard .expand { padding: 12px 16px 16px; display: flex; flex-direction: column; gap: 12px; border-top: 1px solid var(--line); background: var(--weak); }

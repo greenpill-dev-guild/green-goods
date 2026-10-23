@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
 <style>body{margin:0}</style>
 </helmet>
-<div class="gg {{themeCls}}" lang="{{lang}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+<div class="gg {{themeCls}}" lang="{{lang}}" data-density="{{density}}" data-chain="{{chain}}" data-font="{{font}}" data-ground="{{ground}}" data-corners="{{corners}}" data-gap="{{gap}}" data-darkcards="{{darkcards}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
   <sc-if value="{{offline}}" hint-placeholder-val="{{false}}"><div class="offl"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-cloud-off-line"/></svg>&nbsp;{{offlineMode}}</div></sc-if>
   <div class="scr" inert>
     <div class="topnav"><span class="close"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></span></div>
@@ -28,9 +28,19 @@
       <div><h2 class="stitle" id="pay-title">{{sheetTitle}}</h2><p class="sdesc">{{offerTitle}}</p></div>
       <a class="close" href="SOffer.dc.html" aria-label="{{closeLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></a>
     </div>
-    <ol class="jstrip" aria-label="{{journeyLabel}}">
-      <sc-for list="{{journey}}" as="j" hint-placeholder-count="4"><li class="jstep {{j.cls}}" aria-current="{{j.cur}}"><span class="bar"></span><span>{{j.label}}</span></li></sc-for>
-    </ol>
+    <sc-if value="{{stepsStrip}}" hint-placeholder-val="{{true}}">
+      <ol class="jstrip" aria-label="{{journeyLabel}}">
+        <sc-for list="{{journey}}" as="j" hint-placeholder-count="4"><li class="jstep {{j.cls}}" aria-current="{{j.cur}}"><span class="bar"></span><span>{{j.label}}</span></li></sc-for>
+      </ol>
+    </sc-if>
+    <sc-if value="{{stepsList}}" hint-placeholder-val="{{false}}">
+      <ol class="jlist" aria-label="{{journeyLabel}}">
+        <sc-for list="{{journey}}" as="j" hint-placeholder-count="4"><li class="{{j.cls}}" aria-current="{{j.cur}}"><span class="n">{{j.n}}</span><span>{{j.label}} <span class="jw">· {{j.who}}</span></span></li></sc-for>
+      </ol>
+    </sc-if>
+    <sc-if value="{{stepsCount}}" hint-placeholder-val="{{false}}">
+      <p class="jcount"><b>{{countLine}}</b> · {{countNext}}</p>
+    </sc-if>
     <div class="sbody">
       <sc-if value="{{hasNotice}}" hint-placeholder-val="{{false}}">
         <div class="notice {{noticeCls}}" role="status"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="{{noticeIcon}}"/></svg>{{noticeT}}</span><p>{{noticeB}}</p></div>
@@ -76,10 +86,13 @@ class Component extends DCLogic {
     if (gd && st === 'Sent or deposited') at = 2;
     if (!gd && st === 'Sent or deposited') at = 3;
     var labels = gd ? [t('pay.j.agree'), t('pay.j.send'), t('pay.j.checked'), t('pay.j.accepted')] : [t('pay.j.agree'), t('pay.j.approved'), t('pay.j.deposit'), t('pay.j.accepted')];
+    var whos = gd ? [t('rd.who.you'), t('rd.who.you'), t('pay.g.toS'), t('who.gg')] : [t('rd.who.you'), t('rd.who.sun'), t('rd.who.you'), t('rd.who.sun')];
     var journey = labels.map(function (l, i) {
       var cls = i < at ? 'done' : i === at ? ((gd && i >= 2) || (!gd && (i === 1 || i === 3)) ? 'wait' : 'now') : '';
-      return { label: l, cls: cls, cur: i === at ? 'step' : 'false' };
+      return { label: l, cls: cls, cur: i === at ? 'step' : 'false', n: String(i + 1), who: whos[i] };
     });
+    var stepsKind = this.props.steps ?? 'strip';
+    var nextStep = journey[at + 1];
     var F = function (k, v, s, chg) { return { k: k, v: v, s: s || '', cls: chg ? 'chg' : '', chg: !!chg }; };
     var R = { facts: [], terms: false, note: '', notice: null, why: null, btn: '', href: '#', mode: 'link', foot: t('c.passkey') };
     if (gd) {
@@ -125,11 +138,14 @@ class Component extends DCLogic {
     }
     if (st === 'Signing not available') { R.why = gd ? ['warn', WARN, t('pay.r.unavailG.t'), t('pay.r.unavailG.b')] : ['warn', WARN, t('pay.r.unavail.t'), t('pay.r.unavail.b')]; R.mode = 'off'; R.foot = ''; }
     if (st === 'Offline') { R.why = ['info', '#ri-cloud-off-line', t('pay.r.offline.t'), gd ? t('pay.r.offline.b') : t('pay.r.offlineV.b')]; R.mode = 'off'; R.foot = ''; }
-    return {
+    return Object.assign(GGTW(this.props), {
       themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code,
       offline: st === 'Offline', offlineMode: t('c.offline'),
       kindLine: t('of.kind', { garden: gd ? t('who.gg') : t('who.sun') }), offerTitle: gd ? t('of.g.title') : t(course ? 'of.c.title' : 'of.s.title'),
       sheetTitle: gd ? t('pay.titleG') : t('pay.titleV'), closeLabel: t('c.close'), journeyLabel: t('pay.journey'), journey: journey,
+      stepsStrip: stepsKind === 'strip', stepsList: stepsKind === 'list', stepsCount: stepsKind === 'count',
+      countLine: t('pay.j.count', { n: t.n(at + 1), total: t.n(journey.length), label: journey[at].label }),
+      countNext: nextStep ? t('pay.j.next', { label: nextStep.label, who: nextStep.who }) : t('pay.j.last'),
       stepTitle: R.step, facts: R.facts, hasFacts: R.facts.length > 0, changedPill: t('pay.changed'),
       hasTerms: R.terms, termsLabel: t('c.terms'), readTerms: t('c.readTerms'),
       hasNote: !!R.note, note: R.note,
@@ -137,7 +153,7 @@ class Component extends DCLogic {
       hasWhy: !!R.why, whyCls: R.why ? R.why[0] : '', whyIcon: R.why ? R.why[1] : '', whyT: R.why ? R.why[2] : '', whyB: R.why ? R.why[3] : '',
       btn: R.btn, btnHref: R.href, btnLink: R.mode === 'link', btnBusy: R.mode === 'busy', btnOff: R.mode === 'off',
       hasFoot: !!R.foot, foot: R.foot
-    };
+    });
   }
 }
 </script>

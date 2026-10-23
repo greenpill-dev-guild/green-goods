@@ -92,6 +92,13 @@ The lab's copy function keeps numbers on the same line as their units. `check.mj
 pilot state in English, Spanish and Portuguese, and in dark, for clipped text, control names,
 focus behind dialogs, missing icons and AA contrast.
 
+**Dials, later on 23 Oct 2026.** The lab gained dials for pattern variants (V1 to V5), copy density
+and chain words (D1, D2) and the five design-system forks locked on 18 October (S1 to S5), each
+defaulting to the pilot's pick. Every variant reuses the corrected kit; the rules sit in `lab/gg.css`
+after the "Lab dials" comment as data-attribute overrides, so the pilot's defaults render exactly as
+before. The check sweeps every dial option on each screen it applies to, and a new rule fails the
+check when the side panel needs scrolling at desktop sizes.
+
 ## Kept on purpose
 
 - **The v1 reference screens keep chain and wallet names** (Celo, Gnosis, the Gnosis wallet,

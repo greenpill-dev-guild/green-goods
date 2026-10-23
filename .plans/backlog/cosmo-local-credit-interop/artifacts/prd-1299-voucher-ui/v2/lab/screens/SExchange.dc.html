@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
 <style>body{margin:0}</style>
 </helmet>
-<div class="gg {{themeCls}}" lang="{{lang}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+<div class="gg {{themeCls}}" lang="{{lang}}" data-density="{{density}}" data-chain="{{chain}}" data-font="{{font}}" data-ground="{{ground}}" data-corners="{{corners}}" data-gap="{{gap}}" data-darkcards="{{darkcards}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
   <div class="scr" style="padding-bottom: 112px" inert="{{baseHidden}}">
     <div class="topnav">
       <a class="close" href="SOffer.dc.html" aria-label="{{backLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></a>
@@ -104,7 +104,7 @@ class Component extends DCLogic {
     var primary = NT ? NT[3] : 'review';
     var receipt = [{ k: t('ex.rc.spent'), v: t.g(Q.inA) + ' ' + t('u.hillMany') }, { k: t('ex.rc.got'), v: t.g(Q.out) + ' ' + t('u.sunMany') },
       { k: t('ex.rc.fees'), v: t.g(Q.fee) + ' ' + t('u.sunMany') }, { k: t('ex.rc.when'), v: t.d('2026-10-25') + ' · 14:03' }];
-    return {
+    return Object.assign(GGTW(this.props), {
       themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code, backLabel: t('c.back'), closeLabel: t('c.close'),
       baseHidden: sheet ? 'true' : 'false',
       kindLine: t('ex.kind'), title: t('ex.title'), desc: t('ex.desc'),
@@ -119,7 +119,7 @@ class Component extends DCLogic {
       shFacts: [{ k: t('ex.spend'), v: t.g(Q.inA) + ' ' + t('u.hillMany'), s: '', cls: '' }, { k: t('ex.receive'), v: t.g(Q.out) + ' ' + t('u.sunMany'), s: t('ex.sh.atLeast', v), cls: '' },
         { k: t('ex.f.fees'), v: t('ex.f.feesV', v), s: t('ex.f.feesS', v), cls: '' }, { k: t('ex.f.until'), v: Q.time, s: '', cls: '' }, { k: t('ex.f.to'), v: t('ex.f.toV'), s: '', cls: '' }],
       shNote: t('ex.sh.note', v), shCta: t('ex.sh.cta'), busy: st === 'Approving', notBusy: st !== 'Approving', passkey: t('c.passkey')
-    };
+    });
   }
 }
 </script>

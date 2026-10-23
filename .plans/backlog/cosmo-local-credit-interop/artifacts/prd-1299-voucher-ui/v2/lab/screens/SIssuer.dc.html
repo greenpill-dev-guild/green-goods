@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
 <style>body{margin:0}</style>
 </helmet>
-<div class="gg ck {{themeCls}}" lang="{{lang}}" style="width: 1280px; height: 800px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+<div class="gg ck {{themeCls}}" lang="{{lang}}" data-density="{{density}}" data-chain="{{chain}}" data-font="{{font}}" data-ground="{{ground}}" data-corners="{{corners}}" data-gap="{{gap}}" data-darkcards="{{darkcards}}" style="width: 1280px; height: 800px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
   <div class="wash"></div>
   <header class="c-app" inert="{{baseHidden}}">
     <button type="button" class="gchip"><span class="av"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-fill"/></svg></span><span class="lbl">{{garden}}</span><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-down-s-line"/></svg></button>
@@ -23,25 +23,54 @@
     <div class="c-tabs" role="tablist"><span role="tab" aria-selected="false">{{tHealth}}</span><span role="tab" aria-selected="false">{{tImpact}}</span><span role="tab" aria-selected="false">{{tActivity}}</span><span class="on" role="tab" aria-selected="true">{{tPromises}}<span class="cnt">{{count}}</span></span></div>
     <div class="c-grid">
       <div class="c-col">
-        <section class="acard">
+        <section class="acard" data-focus="{{focusBook}}">
           <div class="ah"><div><h2>{{bookTitle}}</h2><p>{{bookDesc}}</p></div></div>
           <sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
-            <div class="arow offer">
+            <div class="arow offer {{r.openCls}}">
               <div class="l1"><span class="nm">{{r.who}}</span><span class="sb {{r.sb}}">{{r.tag}}</span></div>
               <div class="l2">{{r.meta}}</div>
               <div class="acts"><button type="button" class="abtn {{r.cls}}">{{r.act}}</button></div>
+              <sc-if value="{{r.open}}" hint-placeholder-val="{{false}}">
+                <div class="expand">
+                  <sc-if value="{{dHasFacts}}" hint-placeholder-val="{{true}}"><div class="afacts">
+                    <sc-for list="{{dFacts}}" as="f" hint-placeholder-count="4"><div class="afact"><span class="k">{{f.k}}</span><span class="v">{{f.v}}<small>{{f.s}}</small></span></div></sc-for>
+                  </div></sc-if>
+                  <sc-if value="{{dHasChecks}}" hint-placeholder-val="{{false}}"><div class="checks">
+                    <sc-for list="{{dChecks}}" as="c" hint-placeholder-count="4"><div class="ckr ok"><span class="cm"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg></span><span>{{c.t}}<small>{{c.s}}</small></span></div></sc-for>
+                  </div></sc-if>
+                  <sc-if value="{{dField}}" hint-placeholder-val="{{false}}">
+                    <div class="fieldA"><label for="is-amt2">{{fLabel}}</label><div class="inp {{fBad}}" id="is-amt2" role="textbox" aria-invalid="{{fInvalid}}" aria-describedby="is-hint2">{{fValue}}<span class="small">{{fUnit}}</span></div><span class="hl {{fHintCls}}" id="is-hint2">{{fHint}}</span></div>
+                    <sc-if value="{{dBar}}" hint-placeholder-val="{{true}}"><div class="splitbar" role="img" aria-label="{{barLabel}}"><span class="a" style="flex: 40">{{barA}}</span><span class="b" style="flex: 60">{{barB}}</span></div></sc-if>
+                  </sc-if>
+                  <div class="fsr info"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-information-line"/></svg><span><b>{{fsrT}}</b><small>{{fsrB}}</small></span></div>
+                  <div class="xacts"><span class="note">{{dNote}}</span><button type="button" class="abtn txt">{{cancel}}</button>
+                    <sc-if value="{{dCan}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn fill">{{dCta}}</button></sc-if>
+                    <sc-if value="{{dCannot}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn fill off" disabled>{{dCta}}</button></sc-if>
+                  </div>
+                </div>
+              </sc-if>
             </div>
           </sc-for>
         </section>
       </div>
       <div class="c-col">
-        <section class="acard">
+        <section class="acard" data-focus="{{focusRes}}">
           <div class="ah"><div><h2>{{resTitle}}</h2><p>{{resDesc}}</p></div></div>
           <div class="ab"><div class="afacts">
             <sc-for list="{{res}}" as="f" hint-placeholder-count="4"><div class="afact"><span class="k">{{f.k}}</span><span class="v">{{f.v}}<small>{{f.s}}</small></span></div></sc-for>
           </div>
           <sc-if value="{{short}}" hint-placeholder-val="{{false}}"><div class="why warn"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-alert-line"/></svg><span><b>{{shortT}}</b> {{shortB}}</span></div><div><button type="button" class="abtn fill">{{raise}}</button></div></sc-if>
           </div>
+          <sc-if value="{{resOpen}}" hint-placeholder-val="{{false}}">
+            <div class="expand">
+              <div class="afacts">
+                <sc-for list="{{dFacts}}" as="f" hint-placeholder-count="3"><div class="afact"><span class="k">{{f.k}}</span><span class="v">{{f.v}}<small>{{f.s}}</small></span></div></sc-for>
+              </div>
+              <div class="fieldA"><label for="is-amt3">{{fLabel}}</label><div class="inp" id="is-amt3" role="textbox" aria-describedby="is-hint3">{{fValue}}<span class="small">{{fUnit}}</span></div><span class="hl" id="is-hint3">{{fHint}}</span></div>
+              <div class="fsr info"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-information-line"/></svg><span><b>{{fsrT}}</b><small>{{fsrB}}</small></span></div>
+              <div class="xacts"><span class="note">{{dNote}}</span><button type="button" class="abtn txt">{{cancel}}</button><button type="button" class="abtn fill">{{dCta}}</button></div>
+            </div>
+          </sc-if>
         </section>
         <section class="acard">
           <div class="ah"><div><h2>{{setTitle}}</h2><p>{{setSub}}</p></div></div>
@@ -60,7 +89,7 @@
   </nav>
   <sc-if value="{{showDlg}}" hint-placeholder-val="{{false}}">
     <div class="dscrim"></div>
-    <section class="dlg" role="dialog" aria-modal="true" aria-labelledby="is-dlg">
+    <section class="dlg" role="dialog" aria-modal="true" aria-labelledby="is-dlg" data-focus="1">
       <div class="dh"><div><h2 id="is-dlg">{{dTitle}}</h2><p>{{dSub}}</p></div><button type="button" class="close" aria-label="{{closeLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></button></div>
       <div class="db">
         <sc-if value="{{dHasFacts}}" hint-placeholder-val="{{true}}"><div class="afacts">
@@ -117,16 +146,25 @@ class Component extends DCLogic {
         facts: [[t('is.d.f.allow'), t('is.d.f.allowV', { n: n(50) }), ''], [t('is.d.f.waiting'), t('is.d.f.waitingV', { n: n(10) }), t('is.d.f.waitingS')], [t('is.res.reserve'), n(1240), '']],
         field: [t('is.fl.new'), n(70), t('is.fl.newHint'), false], bar: false, fsr: 'is.f.raise' }
     }[st];
-    return {
+    // The lab's confirm dial: the dialog, or the same checks opened in the row itself
+    var inline = (this.props.confirm ?? 'dialog') === 'inline' && !!D;
+    var openIdx = { 'Approve booking': 0, 'Accept': 1, 'Report lesson': 2, 'Propose return': 3, 'Above terms': 3 }[st];
+    rows.forEach(function (r, i) { r.open = inline && openIdx === i; r.openCls = r.open ? 'open' : ''; });
+    var resOpen = inline && st === 'Raise allowance';
+    // Where the lab's focus crop looks: the dialog when one is open, else the card in play
+    var focusRes = st === 'Reserve short' || resOpen;
+    var focusBook = !focusRes && (!D || inline);
+    return Object.assign(GGTW(this.props), {
       themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code, garden: t('who.sun'), closeLabel: t('c.close'),
-      baseHidden: D ? 'true' : 'false', pageTitle: t('rq.title'), count: n(rows.length),
+      baseHidden: D && !inline ? 'true' : 'false', pageTitle: t('rq.title'), count: n(rows.length),
+      focusBook: focusBook ? '1' : '', focusRes: focusRes ? '1' : '', resOpen: resOpen,
       tHealth: t('rq.t.health'), tImpact: t('rq.t.impact'), tActivity: t('rq.t.activity'), tPromises: t('rq.t.promises'),
       bookTitle: t('is.book.t'), bookDesc: t('is.book.d'), rows: rows,
-      resTitle: t('is.res.t'), resDesc: t('is.res.d'), res: res, short: short && !D, shortT: t('is.short.t', { n: n(10) }), shortB: t('is.short.b'), raise: t('is.a.raise'),
+      resTitle: t('is.res.t'), resDesc: t('is.res.d'), res: res, short: short && (!D || inline), shortT: t('is.short.t', { n: n(10) }), shortB: t('is.short.b'), raise: t('is.a.raise'),
       setTitle: t('is.set.t'), setSub: t('is.set.s'),
       settings: [{ k: t('is.s.terms'), v: t('is.s.termsV'), s: t('is.s.termsS') }, { k: t('is.s.approvals'), v: t('is.s.approvalsV'), s: t('is.s.approvalsS') }, { k: t('is.s.cap'), v: t('is.s.capV', { a: n(1240), b: n(2000) }), s: t('is.s.capS') }],
       dockLabel: t('fn.dock'), dHub: t('fn.d.hub'), dGarden: t('fn.d.garden'), dCommunity: t('fn.d.community'), dActions: t('fn.d.actions'),
-      showDlg: !!D, dTitle: D ? D.title : '', dSub: D ? D.sub : '', dNote: D ? D.note : '',
+      showDlg: !!D && !inline, dTitle: D ? D.title : '', dSub: D ? D.sub : '', dNote: D ? D.note : '',
       dHasFacts: !!(D && D.facts.length), dFacts: D ? D.facts.map(function (f) { return { k: f[0], v: f[1], s: f[2] }; }) : [],
       dHasChecks: !!(D && D.checks), dChecks: D && D.checks ? D.checks : [],
       dField: !!(D && D.field), fLabel: D && D.field ? D.field[0] : '', fValue: D && D.field ? D.field[1] : '', fUnit: t('u.sunMany'),
@@ -134,7 +172,7 @@ class Component extends DCLogic {
       dBar: !!(D && D.bar), barLabel: t('rd.sh.bar', { rel: n(40), back: n(60) }), barA: t('is.bar.sun', { n: n(40) }), barB: t('is.bar.back', { n: n(60) }),
       fsrT: D ? t(D.fsr + '.t') : '', fsrB: D ? t(D.fsr + '.b') : '',
       cancel: t('c.cancel'), dCta: D ? D.cta : '', dCan: !!(D && !D.off), dCannot: !!(D && D.off)
-    };
+    });
   }
 }
 </script>

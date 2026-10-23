@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
 <style>body{margin:0}</style>
 </helmet>
-<div class="gg {{themeCls}}" lang="{{lang}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+<div class="gg {{themeCls}}" lang="{{lang}}" data-density="{{density}}" data-chain="{{chain}}" data-font="{{font}}" data-ground="{{ground}}" data-corners="{{corners}}" data-gap="{{gap}}" data-darkcards="{{darkcards}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
   <sc-if value="{{offline}}" hint-placeholder-val="{{false}}"><div class="offl"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-cloud-off-line"/></svg>&nbsp;{{offlineMode}}</div></sc-if>
   <div class="scr" style="padding-bottom: {{padBottom}}">
     <div class="topnav">
@@ -101,19 +101,25 @@ class Component extends DCLogic {
     };
     var w = W[st];
     var a1 = w && w[4], a2 = w && w[5];
-    return {
+    // The lab's copy density dial: minimal keeps three answers and moves the other two under Details
+    var qa = K.qa, facts = K.facts;
+    if ((this.props.density ?? 'full') === 'minimal') {
+      qa = [K.qa[0], K.qa[1], K.qa[4]];
+      facts = [[K.qa[2][1], K.qa[2][2], K.qa[2][3]], [K.qa[3][1], K.qa[3][2], K.qa[3][3]]].concat(K.facts);
+    }
+    return Object.assign(GGTW(this.props), {
       themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code,
       offline: st === 'Offline', offlineMode: t('c.offline'), backLabel: t('c.back'),
       kindLine: t('of.kind', { garden: K.garden }), title: K.title, desc: K.desc, amt: K.amt, unit: K.unit,
-      routeTitle: t('of.route'), qa: K.qa.map(function (q) { return { icon: q[0], k: q[1], v: q[2], s: q[3] }; }),
-      detailsTitle: t('c.details'), facts: K.facts.map(function (f) { return { k: f[0], v: f[1], s: f[2] }; }),
+      routeTitle: t('of.route'), qa: qa.map(function (q) { return { icon: q[0], k: q[1], v: q[2], s: q[3] }; }),
+      detailsTitle: t('c.details'), facts: facts.map(function (f) { return { k: f[0], v: f[1], s: f[2] }; }),
       termsLabel: t('c.terms'), readTerms: t('c.readTerms'),
       hasWhy: !!w, whyCls: w ? w[0] : '', whyIcon: w ? w[1] : '', whyT: w ? w[2] : '', whyB: w ? w[3] : '',
       cta: K.cta, canGo: st === 'Open', blocked: st === 'Offline',
       hasAlt: !!a1, alt: a1 ? a1[0] : '', altHref: a1 ? a1[1] : '#', altCls: a1 ? a1[2] : '',
       hasAlt2: !!a2, alt2: a2 ? a2[0] : '', alt2Href: a2 ? a2[1] : '#',
       padBottom: w ? '176px' : '112px'
-    };
+    });
   }
 }
 </script>

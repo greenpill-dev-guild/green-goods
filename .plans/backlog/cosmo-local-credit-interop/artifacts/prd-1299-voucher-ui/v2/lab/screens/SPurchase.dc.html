@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
 <style>body{margin:0}</style>
 </helmet>
-<div class="gg {{themeCls}}" lang="{{lang}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+<div class="gg {{themeCls}}" lang="{{lang}}" data-density="{{density}}" data-chain="{{chain}}" data-font="{{font}}" data-ground="{{ground}}" data-corners="{{corners}}" data-gap="{{gap}}" data-darkcards="{{darkcards}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
   <div class="scr" style="padding-bottom: {{padBottom}}">
     <div class="topnav">
       <a class="close" href="SWallet.dc.html" aria-label="{{backLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></a>
@@ -27,32 +27,66 @@
         <span><span class="ea">{{bandAmt}}</span><span class="eu" style="display: block">{{bandLabel}}</span></span>
       </div>
     </div>
+    <sc-if value="{{chainLine}}" hint-placeholder-val="{{false}}">
+      <p class="chainline"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-lock-line"/></svg><span>{{chainText}}</span></p>
+    </sc-if>
     <div class="stack" style="margin-top: 12px">
       <div class="notice {{nextCls}}" role="status"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="{{nextIcon}}"/></svg>{{nextT}}</span><p>{{nextB}}</p></div>
     </div>
     <div class="sec"><h2>{{progressTitle}}</h2></div>
-    <div class="mx16 card">
-      <ol class="ladder ph" style="margin: 0; padding-left: 0; list-style: none">
-        <sc-for list="{{phases}}" as="p" hint-placeholder-count="4">
-          <li class="ls {{p.cls}}">
-            <span class="lm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{p.icon}}"/></svg></span>
-            <span class="lt"><b>{{p.title}}</b><span class="who">{{p.who}}</span>
-              <span class="subs"><sc-for list="{{p.subs}}" as="s" hint-placeholder-count="2"><span class="sub {{s.cls}}"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{s.icon}}"/></svg><span>{{s.text}}</span><span class="st2">{{s.state}}</span></span></sc-for></span>
-            </span>
-          </li>
-        </sc-for>
-      </ol>
-    </div>
+    <sc-if value="{{progPhases}}" hint-placeholder-val="{{true}}">
+      <div class="mx16 card">
+        <ol class="ladder ph" style="margin: 0; padding-left: 0; list-style: none">
+          <sc-for list="{{phases}}" as="p" hint-placeholder-count="4">
+            <li class="ls {{p.cls}}">
+              <span class="lm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{p.icon}}"/></svg></span>
+              <span class="lt"><b>{{p.title}}</b><span class="who">{{p.who}}</span>
+                <span class="subs"><sc-for list="{{p.subs}}" as="s" hint-placeholder-count="2"><span class="sub {{s.cls}}"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{s.icon}}"/></svg><span>{{s.text}}</span><span class="st2">{{s.state}}</span></span></sc-for></span>
+              </span>
+            </li>
+          </sc-for>
+        </ol>
+      </div>
+    </sc-if>
+    <sc-if value="{{progFlat}}" hint-placeholder-val="{{false}}">
+      <div class="mx16 card">
+        <ol class="ladder ph flat" style="margin: 0; padding-left: 0; list-style: none">
+          <sc-for list="{{flat}}" as="s" hint-placeholder-count="8">
+            <li class="ls {{s.cls}}"><span class="lm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{s.icon}}"/></svg></span><span class="lt"><b>{{s.text}}</b><span class="ph">{{s.ph}} · {{s.state}}</span></span></li>
+          </sc-for>
+        </ol>
+      </div>
+    </sc-if>
+    <sc-if value="{{progSummary}}" hint-placeholder-val="{{false}}">
+      <div class="mx16 card">
+        <div class="psum"><b>{{sumText}}</b><div class="pbar" role="img" aria-label="{{sumText}}"><span style="width: {{sumPct}}%"></span></div></div>
+        <details class="plist">
+          <summary>{{showSteps}}</summary>
+          <ol class="ladder ph" style="margin: 0; padding-left: 0; list-style: none">
+            <sc-for list="{{phases}}" as="p" hint-placeholder-count="4">
+              <li class="ls {{p.cls}}">
+                <span class="lm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{p.icon}}"/></svg></span>
+                <span class="lt"><b>{{p.title}}</b><span class="who">{{p.who}}</span>
+                  <span class="subs"><sc-for list="{{p.subs}}" as="s" hint-placeholder-count="2"><span class="sub {{s.cls}}"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{s.icon}}"/></svg><span>{{s.text}}</span><span class="st2">{{s.state}}</span></span></sc-for></span>
+                </span>
+              </li>
+            </sc-for>
+          </ol>
+        </details>
+      </div>
+    </sc-if>
     <div class="sec"><h2>{{detailsTitle}}</h2></div>
     <div class="mx16 card">
       <div class="facts">
         <sc-for list="{{facts}}" as="f" hint-placeholder-count="3"><div class="fact"><span class="k">{{f.k}}</span><span class="v"><span>{{f.v}}</span><small>{{f.s}}</small></span></div></sc-for>
         <div class="fact"><span class="k">{{termsLabel}}</span><span class="v"><a class="tlink" href="#">{{readTerms}}</a></span></div>
       </div>
-      <details class="tech">
-        <summary style="cursor: pointer; font-weight: 600">{{techLabel}}</summary>
-        <sc-for list="{{tech}}" as="x" hint-placeholder-count="3"><span>{{x}}</span></sc-for>
-      </details>
+      <sc-if value="{{chainDetails}}" hint-placeholder-val="{{true}}">
+        <details class="tech">
+          <summary style="cursor: pointer; font-weight: 600">{{techLabel}}</summary>
+          <sc-for list="{{tech}}" as="x" hint-placeholder-count="3"><span>{{x}}</span></sc-for>
+        </details>
+      </sc-if>
     </div>
   </div>
   <sc-if value="{{hasActs}}" hint-placeholder-val="{{false}}">
@@ -124,7 +158,15 @@ class Component extends DCLogic {
     var vars = { price: t.g(price), fee: t.g(fee), gross: t.g(gross), newPrice: t.g(480), newGross: t.g(480.48), quote: t('pu.quote'),
       d1: t.d('2026-10-24'), d2: t.d('2026-11-24'), d3: t.d('2026-11-25'), d4: t.d('2026-11-26'), d5: t.d('2026-10-23') };
     var hasPrimary = !!N[3], hasSecondary = !!N[4];
-    return {
+    // The lab's dials: how progress reads and where chain words appear. The defaults are the pilot's picks.
+    var progKind = this.props.progress ?? 'phases', chainKind = this.props.chain ?? 'details';
+    var flat = [];
+    phases.forEach(function (p) { p.subs.forEach(function (x) { flat.push({ text: x.text, cls: x.cls || 'todo', icon: x.icon, state: x.state, ph: p.title }); }); });
+    var doneCount = flat.filter(function (x) { return x.cls === 'done'; }).length;
+    return Object.assign(GGTW(this.props), {
+      progPhases: progKind === 'phases', progFlat: progKind === 'flat', progSummary: progKind === 'summary', flat: flat,
+      sumText: t('pu.sum', { done: t.n(doneCount), total: t.n(flat.length) }), sumPct: String(Math.round(100 * doneCount / Math.max(1, flat.length))), showSteps: t('pu.showSteps'),
+      chainLine: chainKind === 'line', chainText: t('pu.x.held'), chainDetails: chainKind === 'details',
       themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code, backLabel: t('c.back'),
       kindLine: t('who.gg'), title: t('of.g.title'),
       bandIcon: B[0], bandAmt: B[1], bandLabel: B[2],
@@ -140,7 +182,7 @@ class Component extends DCLogic {
       primary: hasPrimary ? t('pu.a.' + N[3]) : '', primaryHref: N[3] === 'newTerms' ? 'SPay.dc.html' : '#',
       secondary: hasSecondary ? t('pu.a.' + N[4]) : '',
       padBottom: hasPrimary || hasSecondary ? '104px' : '40px'
-    };
+    });
   }
 }
 </script>

@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
 <style>body{margin:0}</style>
 </helmet>
-<div class="gg {{themeCls}}" lang="{{lang}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+<div class="gg {{themeCls}}" lang="{{lang}}" data-density="{{density}}" data-chain="{{chain}}" data-font="{{font}}" data-ground="{{ground}}" data-corners="{{corners}}" data-gap="{{gap}}" data-darkcards="{{darkcards}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
   <div class="scr" style="padding-bottom: {{padBottom}}" inert="{{baseHidden}}">
     <div class="topnav">
       <a class="close" href="SWallet.dc.html" aria-label="{{backLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></a>
@@ -29,39 +29,83 @@
       <sc-if value="{{showLessons}}" hint-placeholder-val="{{false}}">
         <div class="eband"><div class="lessons" role="img" aria-label="{{lessonsLabel}}"><sc-for list="{{lessons}}" as="l" hint-placeholder-count="10"><span class="{{l}}"></span></sc-for></div><span class="small" style="margin-top: 4px">{{lessonsLabel}}</span></div>
       </sc-if>
+      <sc-if value="{{legsBand}}" hint-placeholder-val="{{false}}">
+        <div class="elegs"><sc-for list="{{legs}}" as="g" hint-placeholder-count="2"><span><span>{{g.label}}</span><span class="pill {{g.cls}}">{{g.state}}</span></span></sc-for></div>
+      </sc-if>
     </div>
+    <sc-if value="{{chainLine}}" hint-placeholder-val="{{false}}">
+      <p class="chainline"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-lock-line"/></svg><span>{{chainText}}</span></p>
+    </sc-if>
     <div class="stack" style="margin-top: 12px">
       <div class="notice {{nextCls}}" role="status"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="{{nextIcon}}"/></svg>{{nextT}}</span><p>{{nextB}}</p></div>
     </div>
-    <sc-if value="{{hasLegs}}" hint-placeholder-val="{{false}}">
+    <sc-if value="{{legsRows}}" hint-placeholder-val="{{false}}">
       <div class="sec"><h2>{{legsTitle}}</h2></div>
       <div class="mx16 card"><div class="legs">
         <sc-for list="{{legs}}" as="g" hint-placeholder-count="2"><div class="leg"><b>{{g.label}}</b><span class="pill {{g.cls}}">{{g.state}}</span><span class="sub">{{g.sub}}</span></div></sc-for>
       </div></div>
     </sc-if>
+    <sc-if value="{{legsBar}}" hint-placeholder-val="{{false}}">
+      <div class="sec"><h2>{{legsTitle}}</h2></div>
+      <div class="mx16 card"><div class="legbar">
+        <div class="splitbar" role="img" aria-label="{{barLabel}}"><span class="a" style="flex: {{relFlex}}">{{relText}}</span><sc-if value="{{hasBack}}" hint-placeholder-val="{{true}}"><span class="b" style="flex: {{backFlex}}">{{backText}}</span></sc-if></div>
+        <div class="legrow"><sc-for list="{{legsBarList}}" as="g" hint-placeholder-count="2"><span><b>{{g.label}}</b><span class="pill {{g.cls}}">{{g.state}}</span></span></sc-for></div>
+      </div></div>
+    </sc-if>
     <div class="sec"><h2>{{progressTitle}}</h2></div>
-    <div class="mx16 card">
-      <ol class="ladder ph" style="margin: 0; padding-left: 0; list-style: none">
-        <sc-for list="{{phases}}" as="p" hint-placeholder-count="4">
-          <li class="ls {{p.cls}}">
-            <span class="lm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{p.icon}}"/></svg></span>
-            <span class="lt"><b>{{p.title}}</b><span class="who">{{p.who}}</span>
-              <span class="subs"><sc-for list="{{p.subs}}" as="s" hint-placeholder-count="2"><span class="sub {{s.cls}}"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{s.icon}}"/></svg><span>{{s.text}}</span><span class="st2">{{s.state}}</span></span></sc-for></span>
-            </span>
-          </li>
-        </sc-for>
-      </ol>
-    </div>
+    <sc-if value="{{progPhases}}" hint-placeholder-val="{{true}}">
+      <div class="mx16 card">
+        <ol class="ladder ph" style="margin: 0; padding-left: 0; list-style: none">
+          <sc-for list="{{phases}}" as="p" hint-placeholder-count="4">
+            <li class="ls {{p.cls}}">
+              <span class="lm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{p.icon}}"/></svg></span>
+              <span class="lt"><b>{{p.title}}</b><span class="who">{{p.who}}</span>
+                <span class="subs"><sc-for list="{{p.subs}}" as="s" hint-placeholder-count="2"><span class="sub {{s.cls}}"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{s.icon}}"/></svg><span>{{s.text}}</span><span class="st2">{{s.state}}</span></span></sc-for></span>
+              </span>
+            </li>
+          </sc-for>
+        </ol>
+      </div>
+    </sc-if>
+    <sc-if value="{{progFlat}}" hint-placeholder-val="{{false}}">
+      <div class="mx16 card">
+        <ol class="ladder ph flat" style="margin: 0; padding-left: 0; list-style: none">
+          <sc-for list="{{flat}}" as="s" hint-placeholder-count="8">
+            <li class="ls {{s.cls}}"><span class="lm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{s.icon}}"/></svg></span><span class="lt"><b>{{s.text}}</b><span class="ph">{{s.ph}} · {{s.state}}</span></span></li>
+          </sc-for>
+        </ol>
+      </div>
+    </sc-if>
+    <sc-if value="{{progSummary}}" hint-placeholder-val="{{false}}">
+      <div class="mx16 card">
+        <div class="psum"><b>{{sumText}}</b><div class="pbar" role="img" aria-label="{{sumText}}"><span style="width: {{sumPct}}%"></span></div></div>
+        <details class="plist">
+          <summary>{{showSteps}}</summary>
+          <ol class="ladder ph" style="margin: 0; padding-left: 0; list-style: none">
+            <sc-for list="{{phases}}" as="p" hint-placeholder-count="4">
+              <li class="ls {{p.cls}}">
+                <span class="lm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{p.icon}}"/></svg></span>
+                <span class="lt"><b>{{p.title}}</b><span class="who">{{p.who}}</span>
+                  <span class="subs"><sc-for list="{{p.subs}}" as="s" hint-placeholder-count="2"><span class="sub {{s.cls}}"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{s.icon}}"/></svg><span>{{s.text}}</span><span class="st2">{{s.state}}</span></span></sc-for></span>
+                </span>
+              </li>
+            </sc-for>
+          </ol>
+        </details>
+      </div>
+    </sc-if>
     <div class="sec"><h2>{{detailsTitle}}</h2></div>
     <div class="mx16 card">
       <div class="facts">
         <sc-for list="{{facts}}" as="f" hint-placeholder-count="3"><div class="fact"><span class="k">{{f.k}}</span><span class="v"><span>{{f.v}}</span><small>{{f.s}}</small></span></div></sc-for>
         <div class="fact"><span class="k">{{termsLabel}}</span><span class="v"><a class="tlink" href="#">{{readTerms}}</a></span></div>
       </div>
-      <details class="tech">
-        <summary style="cursor: pointer; font-weight: 600">{{techLabel}}</summary>
-        <sc-for list="{{tech}}" as="x" hint-placeholder-count="3"><span>{{x}}</span></sc-for>
-      </details>
+      <sc-if value="{{chainDetails}}" hint-placeholder-val="{{true}}">
+        <details class="tech">
+          <summary style="cursor: pointer; font-weight: 600">{{techLabel}}</summary>
+          <sc-for list="{{tech}}" as="x" hint-placeholder-count="3"><span>{{x}}</span></sc-for>
+        </details>
+      </sc-if>
     </div>
   </div>
   <sc-if value="{{hasActs}}" hint-placeholder-val="{{false}}">
@@ -79,16 +123,36 @@
         <div><h2 class="stitle" id="close-title">{{shTitle}}</h2><p class="sdesc">{{shSub}}</p></div>
         <a class="close" href="#" aria-label="{{closeLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></a>
       </div>
-      <ol class="jstrip" aria-label="{{shStepsLabel}}">
-        <sc-for list="{{shSteps}}" as="j" hint-placeholder-count="2"><li class="jstep {{j.cls}}" aria-current="{{j.cur}}"><span class="bar"></span><span>{{j.label}}</span></li></sc-for>
-      </ol>
+      <sc-if value="{{stepsStrip}}" hint-placeholder-val="{{true}}">
+        <ol class="jstrip" aria-label="{{shStepsLabel}}">
+          <sc-for list="{{shSteps}}" as="j" hint-placeholder-count="2"><li class="jstep {{j.cls}}" aria-current="{{j.cur}}"><span class="bar"></span><span>{{j.label}}</span></li></sc-for>
+        </ol>
+      </sc-if>
+      <sc-if value="{{stepsList}}" hint-placeholder-val="{{false}}">
+        <ol class="jlist" aria-label="{{shStepsLabel}}">
+          <sc-for list="{{shSteps}}" as="j" hint-placeholder-count="2"><li class="{{j.cls}}" aria-current="{{j.cur}}"><span class="n">{{j.n}}</span><span>{{j.label}} <span class="jw">· {{j.who}}</span></span></li></sc-for>
+        </ol>
+      </sc-if>
+      <sc-if value="{{stepsCount}}" hint-placeholder-val="{{false}}">
+        <p class="jcount"><b>{{countLine}}</b> · {{countNext}}</p>
+      </sc-if>
       <div class="sbody">
-        <sc-if value="{{isSplit}}" hint-placeholder-val="{{true}}">
-          <div class="splitbar" role="img" aria-label="{{barLabel}}"><span class="a" style="flex: {{relFlex}}">{{relText}}</span><sc-if value="{{hasBack}}" hint-placeholder-val="{{true}}"><span class="b" style="flex: {{backFlex}}">{{backText}}</span></sc-if></div>
+        <sc-if value="{{splitRecv}}" hint-placeholder-val="{{false}}">
+          <div class="recv">
+            <div class="card"><div class="facts"><div class="fact"><span class="k">{{recvK}}</span><span class="v"><span>{{recvV}}</span><small>{{recvS}}</small></span></div></div></div>
+            <button type="button" class="chk {{chkOn}}" role="checkbox" aria-checked="{{chkAria}}" onClick="{{toggle}}"><span class="box"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg></span><span>{{chkText}}</span></button>
+          </div>
+        </sc-if>
+        <sc-if value="{{splitMain}}" hint-placeholder-val="{{true}}">
+          <sc-if value="{{splitBar}}" hint-placeholder-val="{{true}}">
+            <div class="splitbar" role="img" aria-label="{{barLabel}}"><span class="a" style="flex: {{relFlex}}">{{relText}}</span><sc-if value="{{hasBack}}" hint-placeholder-val="{{true}}"><span class="b" style="flex: {{backFlex}}">{{backText}}</span></sc-if></div>
+          </sc-if>
           <div class="card"><div class="facts">
             <sc-for list="{{shFacts}}" as="f" hint-placeholder-count="3"><div class="fact"><span class="k">{{f.k}}</span><span class="v"><span>{{f.v}}</span><small>{{f.s}}</small></span></div></sc-for>
           </div></div>
-          <button type="button" class="chk {{chkOn}}" role="checkbox" aria-checked="{{chkAria}}" onClick="{{toggle}}"><span class="box"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg></span><span>{{chkText}}</span></button>
+          <sc-if value="{{splitChk}}" hint-placeholder-val="{{true}}">
+            <button type="button" class="chk {{chkOn}}" role="checkbox" aria-checked="{{chkAria}}" onClick="{{toggle}}"><span class="box"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg></span><span>{{chkText}}</span></button>
+          </sc-if>
           <div class="notice warn"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-alert-line"/></svg>{{finalT}}</span><p>{{finalB}}</p></div>
         </sc-if>
         <sc-if value="{{isConfirm}}" hint-placeholder-val="{{false}}">
@@ -197,8 +261,31 @@ class Component extends DCLogic {
     var lessons = [];
     for (var i = 0; i < 10; i++) lessons.push(i < lessonsDone ? 'd' : '');
     var hasPrimary = !!NX[3], hasSecondary = !!NX[4];
+    // The lab's dials: which pattern each part of the page uses. The defaults are the pilot's picks.
+    var stepsKind = this.props.steps ?? 'strip', progKind = this.props.progress ?? 'phases', splitKind = this.props.split ?? 'bar';
+    var legsKind = this.props.transfers ?? 'rows', chainKind = this.props.chain ?? 'details';
+    var recvFirst = splitKind === 'steps' && isSplit && !checked;
     var shSteps = course ? [{ label: t('rd.sh.split'), cls: 'now', cur: 'step' }] : [{ label: t('rd.sh.split'), cls: isSplit ? 'now' : 'done', cur: isSplit ? 'step' : 'false' }, { label: t('rd.sh.kept'), cls: isSplit ? '' : 'now', cur: isSplit ? 'false' : 'step' }];
-    return {
+    if (splitKind === 'steps' && isSplit) {
+      shSteps[0].cls = checked ? 'now' : ''; shSteps[0].cur = checked ? 'step' : 'false';
+      shSteps.unshift({ label: t('rd.sh.received'), cls: checked ? 'done' : 'now', cur: checked ? 'false' : 'step' });
+    }
+    shSteps.forEach(function (j, i) { j.n = String(i + 1); j.who = t('rd.who.you'); });
+    var shAt = shSteps.map(function (j) { return j.cur; }).indexOf('step'), shNext = shSteps[shAt + 1];
+    var flat = [];
+    phases.forEach(function (p) { p.subs.forEach(function (s) { flat.push({ text: s.text, cls: s.cls || 'todo', icon: s.icon, state: s.state, ph: p.title }); }); });
+    var doneCount = flat.filter(function (s) { return s.cls === 'done'; }).length;
+    var legsBarList = back && legs.length === 2 ? [legs[1], legs[0]] : legs;
+    return Object.assign(GGTW(this.props), {
+      stepsStrip: stepsKind === 'strip', stepsList: stepsKind === 'list', stepsCount: stepsKind === 'count',
+      countLine: t('pay.j.count', { n: t.n(shAt + 1), total: t.n(shSteps.length), label: shAt >= 0 ? shSteps[shAt].label : '' }),
+      countNext: shNext ? t('pay.j.next', { label: shNext.label, who: shNext.who }) : t('pay.j.last'),
+      progPhases: progKind === 'phases', progFlat: progKind === 'flat', progSummary: progKind === 'summary', flat: flat,
+      sumText: t('pu.sum', { done: t.n(doneCount), total: t.n(flat.length) }), sumPct: String(Math.round(100 * doneCount / Math.max(1, flat.length))), showSteps: t('pu.showSteps'),
+      legsRows: legs.length > 0 && legsKind === 'rows', legsBar: legs.length > 0 && legsKind === 'bar', legsBand: legs.length > 0 && legsKind === 'band', legsBarList: legsBarList,
+      chainLine: chainKind === 'line', chainText: t('rd.x.escrow'), chainDetails: chainKind === 'details',
+      splitRecv: recvFirst, splitMain: isSplit && !recvFirst, splitBar: splitKind !== 'numbers', splitChk: splitKind !== 'steps',
+      recvK: t('rd.sh.delivered'), recvV: course ? t('rd.sh.deliveredC') : t('rd.sh.deliveredS'), recvS: t('rd.sh.deliveredSub'),
       themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code, backLabel: t('c.back'), closeLabel: t('c.close'),
       baseHidden: sheet ? 'true' : 'false',
       kindLine: t('who.sun'), title: course ? t('of.c.title') : t('of.s.title'),
@@ -227,9 +314,9 @@ class Component extends DCLogic {
       toggle: function () { self.setState({ checked: !checked }); },
       finalT: t('rd.sh.finalT'), finalB: t('rd.sh.finalB'), confirmNote: t('rd.sh.confirmNote'),
       shCanGo: isSplit ? checked : true, shBlocked: isSplit && !checked,
-      shPrimary: isSplit ? t('rd.sh.approve') : t('rd.sh.confirm'), shSecondary: t('rd.a.report'),
+      shPrimary: isSplit ? (recvFirst ? t('rd.sh.nextSplit') : t('rd.sh.approve')) : t('rd.sh.confirm'), shSecondary: t('rd.a.report'),
       shFoot: isSplit ? t('rd.sh.footSplit') : t('c.passkey')
-    };
+    });
   }
 }
 </script>

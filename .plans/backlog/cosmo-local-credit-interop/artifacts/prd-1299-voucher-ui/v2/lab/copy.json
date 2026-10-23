@@ -2675,5 +2675,20 @@
     "At least {min} Sunroot vouchers",
     "Como mínimo {min} vales de Sunroot",
     "No mínimo {min} vales da Sunroot"
-  ]
+  ],
+  "pay.j.count": [
+    "Step {n} of {total}: {label}",
+    "Paso {n} de {total}: {label}",
+    "Passo {n} de {total}: {label}"
+  ],
+  "pay.j.next": ["then {label} ({who})", "luego {label} ({who})", "depois {label} ({who})"],
+  "pay.j.last": ["the last step", "el último paso", "o último passo"],
+  "pu.sum": [
+    "{done} of {total} steps done",
+    "{done} de {total} pasos hechos",
+    "{done} de {total} passos concluídos"
+  ],
+  "pu.showSteps": ["Show all steps", "Ver todos los pasos", "Ver todos os passos"],
+  "rd.sh.received": ["Received", "Recibido", "Recebido"],
+  "rd.sh.nextSplit": ["See the Split", "Ver la división", "Ver a divisão"]
 }
