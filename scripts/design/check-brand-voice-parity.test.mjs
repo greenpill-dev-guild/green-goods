@@ -143,24 +143,44 @@ test("formatting the comparison ignores, and an adapted model line, still pass",
       },
     ],
     [
-      "a checklist item wrapped the same way in both files",
+      "a checklist item and the one-sentence test wrapped the same way in both files",
       ({ edit }) => {
-        for (const file of ["DESIGN.md", PAGE]) edit(file, "verify (DL-094)? On-chain", "verify (DL-094)?\n  On-chain");
+        for (const file of ["DESIGN.md", PAGE]) {
+          edit(file, "verify (DL-094)? On-chain", "verify (DL-094)?\n  On-chain");
+          edit(file, "rewrite it. If it could", "rewrite it.\nIf it could");
+        }
       },
     ],
+    ["a wrapped banned-vocabulary line", ({ edit }) => edit(PAGE, "re-engagement, retention hook.", "re-engagement,\n  retention hook.")],
     ["a reworded line marked adapted", ({ edit }) => edit(PAGE, "no trace.\" | How It Works |", "no trace at all.\" | How It Works (adapted) |")],
   ]) {
     assert.deepEqual(plantedFailures(plant).map(key), [], change);
   }
 });
 
-test("a checklist item wrapped onto indented lines is compared whole, continuation included", () => {
-  const failures = plantedFailures(({ edit }) => {
-    edit("DESIGN.md", "verify (DL-094)? On-chain is implementation", "verify (DL-094)?\n  On-chain is implementation");
-    edit(PAGE, "verify (DL-094)? On-chain is implementation, not copy.", "verify (DL-094)?\n  On-chain is copy, not implementation.");
-  });
-  assert.deepEqual(failures.map(({ pair }) => pair), ["voice core"], failures.map(key).join(" | "));
-  assert.match(failures[0].message, /On-chain is implementation, not copy\./);
+test("text wrapped onto further lines is compared whole, so a change after the wrap fails", () => {
+  for (const [what, wraps, names] of [
+    [
+      "a checklist item",
+      [
+        ["DESIGN.md", "verify (DL-094)? On-chain is implementation", "verify (DL-094)?\n  On-chain is implementation"],
+        [PAGE, "verify (DL-094)? On-chain is implementation, not copy.", "verify (DL-094)?\n  On-chain is copy, not implementation."],
+      ],
+      /On-chain is implementation, not copy\./,
+    ],
+    [
+      "the one-sentence test",
+      [
+        ["DESIGN.md", "rewrite it. If it could", "rewrite it.\nIf it could"],
+        [PAGE, "rewrite it. If it could appear on a hand-painted", "rewrite it.\nIf it could appear on a printed"],
+      ],
+      /one-sentence test/,
+    ],
+  ]) {
+    const failures = plantedFailures(({ edit }) => wraps.forEach(([file, from, to]) => edit(file, from, to)));
+    assert.deepEqual(failures.map(({ pair }) => pair), ["voice core"], `${what}: ${failures.map(key).join(" | ")}`);
+    assert.match(failures[0].message, names, what);
+  }
 });
 
 test("the check imports only Node built-ins and repository files, since CI Gate loads it before installing packages", () => {
