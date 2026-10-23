@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-08-25T06:09:38.829Z",
-    "updated_at": "2026-10-23T06:17:52Z"
+    "updated_at": "2026-10-23T09:29:32Z"
   },
   "links": {
     "brief": "brief.md",
@@ -46,7 +46,8 @@
     "live_pilot_deployment": "handoffs/codex-live-pilot-deployment.md",
     "pilot_issuer_terms": "pilot-issuer-terms.md",
     "native_batch_execution": "artifacts/member-native-batch-execution-2026-10-22.json",
-    "green_goods_safe_gnosis": "artifacts/green-goods-safe-gnosis-2026-10-22.json"
+    "green_goods_safe_gnosis": "artifacts/green-goods-safe-gnosis-2026-10-22.json",
+    "live_pilot_tooling_evidence": "artifacts/live-pilot-tooling-evidence-2026-10-23.json"
   },
   "linear": {
     "parentIssue": "RESR-73",
@@ -94,6 +95,7 @@
     "depends_on_features": ["commitment-pooling", "community-interface"]
   },
   "notes": [
+    "23 October UTC: Live pilot preparation tooling and operator runbook are implemented locally: source-upgrades, CLC and combined pilot inventory/package validation. All eight selected critical/docs checks pass fresh after the user approved ten starting units and twenty-unit pool holding caps per asset, within unchanged twenty-unit issuer supply ceilings; 2,209 Solidity, 433 script, 37 CLI and three production gas-boundary cases pass. Real owned Gnosis and Arbitrum proofs cover ten empty CLC deployments, source 23 deployments/four paused owner upgrades with 17/12 checked rows retained, source-readback/replan then six Arbitrum voucher initializers, and fixed-two HSG authority through zero/one/two/three/back-to-zero stewards. Every assembled stage is review-only with executionReady false. Actual deployment senders/nonces/garden-Hats/guardians, member/native-gas/signing, issuer capacity/acceptance, transport and live execution remain unconfirmed; Tech and Sun signer names/addresses are intentionally deferred for preparation. Existing GG Safe stays 2-of-5 for both reserve and network pool. Accepted Friday/Saturday checkpoints are in the live deployment handoff; preparation chat owns Linear writes. Preserve all lane objects/backlog/manual/live gates and 114 unrelated paths. No broadcast, dependency, branch or publication change.",
     "23 October UTC: Dynamic Tech and Sun steward-to-Safe implementation is complete locally with fixed two valid signatures at every roster size. Funded Arbitrum role hooks dispatch ordered CCIP updates to a dedicated Gnosis Hat and locked deployed HSG v2 Safe. Existing GG Safe stays 2-of-5 for both network pool administration and GG reserve. All nine selected check IDs pass across the source run, docs-only refresh and ontology proof; 2,209 Solidity, 361 script and 33 CLI cases pass, as do nine production Gnosis cases (1,000 eligibility fuzz runs), the Arbitrum upgrade preserving all 18 gardens, storage and size checks. Source roster permissions are unchanged; two signatures govern spending, not roster changes. Actual signer accounts, live inputs, source upgrade/observer registration, transport fuel, real CCIP delivery and activation remain pending. No live broadcast, extra GG Safe, dependency or publication change. All 114 unrelated hashes and existing lane objects/backlog/manual blockers are preserved; the deployment handoff owns detail.",
     "22 October Pacific / 23 October UTC: User selected the same existing Green Goods Gnosis Safe, preserving 2-of-5, for both network exchange-pool administration and GG issuer reserve; separate 3-of-4 pool Safe and garden delegate representation are superseded. Tech and Sun should derive signer eligibility from active garden stewards, initially 2-of-3. The user selected strict-majority active-steward signing with a minimum of two signatures; fewer than two eligible signers blocks spending. Recovery, roster synchronization and authenticated Arbitrum-to-Gnosis role updates remain unresolved and unimplemented. No Safe configuration, module, allowance, custody or live transaction changed. Preserve all lane objects and overall backlog.",
     "22 October Pacific: User accepted Tech and Sun 2-of-3 and shared-pool 3-of-4, with signer names/addresses to be confirmed later; existing GG Safe reuse remains accepted. Continue deployment tooling. One curated Gnosis exchange pool starts with Tech and Sun and GG and can admit more issuers explicitly; gardens need not issue a voucher to participate. This is distinct from Arbitrum garden commitment pools, and is not a universal compulsory pool. Paused voucher preflight/planning/isolated simulation tooling is implemented; actual inputs, published CLC pool release and live execution/activation remain incomplete. Preserve lane objects and backlog; no live broadcast or external tracker write.",
@@ -133,7 +135,7 @@
     "Slices are dependency statements, not a schedule. Each requires its own scope lock and explicit human dispatch.",
     "PRD-651 gates are unchanged: federation is stage four of four, and every pooling-tier mainnet action still needs external audit, 3-of-5 Safe, 48h timelock, two weeks testnet, tested rollback, and human authorization.",
     "Clean room: hand-write interfaces from cosmo-local-credit/protocol docs/SPEC.md. Never read, import, or vendor AGPL src/.",
-    "Never build a global cross-pool rate table (decision 17) — it would break the no-universal-price guardrail and foreclose federation.",
+    "Never build a global cross-pool rate table (decision 17) \u2014 it would break the no-universal-price guardrail and foreclose federation.",
     "External facts in resources.md were verified 2026-08-24/25; re-verify against primary sources before any transaction.",
     "Lane order is encoded, not implied: contracts -> state_api -> ui. laneDependenciesMet treats an empty depends_on as satisfied, so an empty list would let a manual-blocker clear make UI actionable before its contract and shared-state prerequisites exist.",
     "2026-10-06 reconciliation: RESR-73 is In Progress in live Linear. This records architecture and due diligence, not Product implementation readiness. Keep the existing scope lock, separate slice dispatches, partner/venue gates and no-implementation boundary. Research activity does not clear the frozen evidence, authority or integration gates."
@@ -241,7 +243,7 @@
       "lane": "contracts",
       "status": "blocked",
       "branch": null,
-      "note": "Scoping only — no implementation authorized. Slice 0 due diligence plus explicit human dispatch required first."
+      "note": "Scoping only \u2014 no implementation authorized. Slice 0 due diligence plus explicit human dispatch required first."
     },
     {
       "timestamp": "2026-08-25T06:16:30.674Z",
@@ -249,7 +251,7 @@
       "lane": "state_api",
       "status": "blocked",
       "branch": null,
-      "note": "Scoping only — no implementation authorized. Slice 0 due diligence plus explicit human dispatch required first."
+      "note": "Scoping only \u2014 no implementation authorized. Slice 0 due diligence plus explicit human dispatch required first."
     },
     {
       "timestamp": "2026-08-25T06:16:31.242Z",
@@ -257,7 +259,7 @@
       "lane": "ui",
       "status": "blocked",
       "branch": null,
-      "note": "Scoping only — no implementation authorized. Slice 0 due diligence plus explicit human dispatch required first."
+      "note": "Scoping only \u2014 no implementation authorized. Slice 0 due diligence plus explicit human dispatch required first."
     },
     {
       "timestamp": "2026-08-25T06:16:46.701Z",
@@ -481,7 +483,15 @@
       "status": "hackathon_live_release_disposition_recorded",
       "branch": "feature/cosmo-local-contracts",
       "note": "22 October Pacific / 23 October UTC: Human selected a controlled LIVE hackathon pilot and deployed contracts by Saturday 24 October, deck Saturday and participant testing Sunday/Monday. External audit/audit intake is outside hackathon prerequisites; the two-week testnet wait is replaced by focused pre-deployment tests, deployment simulation and post-deployment smoke. No renewed approval for those substitutions is needed. Existing Safe controls, implemented delays, same member address on Arbitrum/Gnosis/Celo, separate optional Celo G$, one shared Gnosis exchange pool, consent/escrow/activation/final-allocation rules remain intact. Prepare the exact candidate and runnable deployment package for execution review; signer/provider/issuer terms-caps and technical proof are not solved by the policy decision. a6461989e and f1ae06046 are signed local reconciliation checkpoints; all 31 selected automated checks plus Storybook pass; 114 unrelated paths preserved. Current spec/plan/eval and handoffs/codex-live-pilot-deployment.md own the live target; older local-only/audit/soak notes are historical. The preparation chat owns Linear writes. Preserve unrelated lane states/owners/manual flags and overall backlog; no broadcast or current-head remote CI claimed."
+    },
+    {
+      "timestamp": "2026-10-23T09:29:32Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "live_package_tooling_prepared",
+      "branch": "feature/cosmo-local-contracts",
+      "note": "Bounded local preparation and approved 10-stock/20-cap proof recorded; detailed working-copy hashes and exact commands are in the linked evidence. Existing execution lane objects, backlog, manual blocks, actual member/issuer/transport and live activation gates stay unchanged. Canonical same-address bootstrap source/build and provider/native-gas investigation continues; no actual member signature or live transaction."
     }
   ],
-  "updatedAt": "2026-10-23T07:53:03Z"
+  "updatedAt": "2026-10-23T09:29:32Z"
 }

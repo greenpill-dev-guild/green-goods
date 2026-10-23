@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "green-goods-tech-and-sun-clc-pilot",
+  "chainId": 100,
+  "deployer": null,
+  "nonce": null,
+  "greenGoodsSafe": "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+  "techAndSunSafe": null,
+  "decimals": 6,
+  "expiresAt": 0,
+  "minimumUpgradeDelay": 172800,
+  "earnedAdapter": null,
+  "issuers": {
+    "greenGoods": {
+      "name": "Green Goods Service Voucher",
+      "symbol": "GGV",
+      "terms": { "reference": null, "digest": null },
+      "capacityConfirmed": false,
+      "sourceIssuerAuthority": null,
+      "initialSupply": "20000000",
+      "poolInventory": "10000000",
+      "poolHoldingCap": "20000000",
+      "adapterAllowance": "10000000"
+    },
+    "techAndSun": {
+      "name": "Tech and Sun Service Voucher",
+      "symbol": "TSV",
+      "terms": { "reference": null, "digest": null },
+      "capacityConfirmed": false,
+      "sourceIssuerAuthority": null,
+      "initialSupply": "20000000",
+      "poolInventory": "10000000",
+      "poolHoldingCap": "20000000",
+      "adapterAllowance": "10000000"
+    }
+  },
+  "pool": {
+    "name": "Green Goods Network Exchange Pool",
+    "symbol": "GGNP",
+    "priceIndex": "1000000",
+    "poolFee": "0",
+    "protocolFee": "0",
+    "feesDecoupled": true
+  }
+}

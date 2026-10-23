@@ -431,3 +431,210 @@ Agent/model: Codex / GPT-6 | Coverage: dynamic Tech and Sun steward Safe impleme
 | Review | 2026-10-23 07:36:57 → 2026-10-23 07:53:03 | Source, callers, failure/recovery and owned diffs inspected; final notes/index/signature checks are reported in chat. |
 
 Human corrections: 0 in this segment; attention: unknown. Rendered proof: none (no product UI change).
+
+## Live package tooling continuation, 23 October UTC
+
+The user authorized continued tooling and preparation, with Tech and Sun signer names and addresses
+deferred. The fixed requirement remains two valid steward signatures, with spending blocked below
+two. The existing Green Goods Safe controls both its reserve and the shared network pool. This
+continuation adds no broadcast, activation, branch change, dependency installation or external write.
+
+The package now has three additional CLI operations:
+
+```sh
+bun run contracts -- release source-upgrades --mode preflight
+bun run contracts -- release clc --mode preflight
+bun run contracts -- release pilot --mode preflight
+```
+
+All three preflights pass on the current working copy. The first two compile production artifacts;
+the combined pilot inventory is offline and does not compile. The owned manifests are
+`packages/contracts/config/{source-upgrade-release,steward-safe-release,voucher-pilot-release,clc-pilot-release,live-pilot-release}.json`.
+Known public Hats, Pooling, router and Green Goods owner addresses are bound. The Gnosis router
+matches the [official Chainlink directory](https://docs.chain.link/ccip/directory/mainnet/chain/xdai-mainnet).
+Issuer names/symbols, six decimals, no expiry and zero fees are explicit candidate settings. Pending
+inputs remain null or false rather than receiving fixture addresses or fabricated approvals.
+
+The published CLC documentation is pinned at `ce090fd3d5a7493c726fb939da39af15ef1c9d7c`.
+The planner uses the existing eight dependency/runtime pins and interface documentation, without
+importing upstream CLC implementation source. It prepares two issuer-controlled timelocks and
+eight factory proxies: two tokens, index, limiter, quoter, fee policy, protocol fee controller and
+shared pool. Atomic initialization leaves zero token supply, no registered tokens, zero holding
+limits and no allowances. Seven configuration and ten issuance/authorization calls remain separate
+review drafts. The native deployer receives no mint, pool or timelock role. Tech and Sun alone
+controls its token and upgrade timelock; Green Goods controls its token and the shared components.
+
+The actual Pooling and optional Settlement upgrade planner topologically links production
+libraries, prepares implementation CREATEs and separate Green Goods Safe pause/upgrade calls, and
+ends with both proxies paused. It does not initialize or migrate existing storage. This is distinct
+from the existing `upgrade commitment-pooling` integration upgrade. Hats still uses its existing
+`upgrade hats-module` workflow; its current owner is the recorded Arbitrum EOA, not the Green Goods Safe.
+
+### Operator sequence and nonce boundary
+
+1. Resolve the public deployment inputs, commit them with the reviewed sources, and complete the
+   existing Hats upgrade simulation and separately authorized upgrade. Read back its exact owner,
+   implementation and observer API before registration or a final nonce freeze.
+2. Prepare and simulate `release source-upgrades`. Review the Green Goods Safe calls separately;
+   local owner impersonation is not Safe approval. Execute only after explicit release authority,
+   then read back implementations, owners, preserved state, pause state and both Pooling protocol
+   versions.
+3. Stop and refreeze downstream pending nonces. `VoucherRedemptionModule.initialize` requires
+   `serviceOfferProtocolVersion()` and `voucherAcceptanceProtocolVersion()` equal to one; the
+   current pre-upgrade Pooling proxy lacks the latter. Owner transactions or the Hats upgrade may
+   consume the same external sender's nonce. No continuous nonce promise spans this boundary.
+4. Plan and rehearse the steward publisher/receiver, all eleven voucher endpoint boundaries and
+   the ten empty CLC deployments. Verify the receiver-created Tech and Sun Safe, its dedicated
+   receiver-controlled Hat, locked HSG and effective threshold two. The initial placeholder has
+   physical threshold one and zero valid signers, with spending disabled. Bind that Safe to the
+   voucher and CLC manifests. Resolve all deployment-bound fields before sending: changed inputs
+   change plan hashes and can change predicted addresses.
+5. Assemble the review package from the four confined component plans. The exact command shape is:
+
+   ```sh
+   bun run contracts -- release pilot --mode plan \
+     --source-upgrades-plan .generated/source-upgrades/voucher-source-upgrades.plan.json \
+     --steward-safe-plan .generated/steward-safe/tech-and-sun-steward-safe.plan.json \
+     --vouchers-plan .generated/voucher-release/voucher-pilot-2026-10.plan.json \
+     --clc-plan .generated/clc-release/green-goods-tech-and-sun-clc-pilot.plan.json
+   ```
+
+   The output is `.generated/live-pilot/green-goods-tech-and-sun-live-pilot.package.json`, relative
+   to the Contracts package. Its thirteen stages retain component, artifact, manifest and source
+   hashes; native nonce ranges are checked within each phase, chain and sender. All calls are
+   review-only; downstream deployment records require nonce refreezing and `executionReady` stays
+   false. There is no compound simulation or broadcast mode. These CLI plan modes require committed
+   complete inputs and are not claimed as executable live plans while inputs are missing.
+6. Review source peer pins, the Hats-owner observer registration, per-issuer source authority,
+   CLC configuration, initial issuance, reserve-origin asset authorization and finite allowances.
+   Initial steward refresh, native CCIP fuel and authenticated delivery must establish at least
+   two valid destination stewards before Tech and Sun's reserve can spend. Final unpause and
+   Pooling resume require fresh post-state and explicit activation authorization; separately review
+   Settlement resume if that optional upgrade was included. Persist live
+   receipts and update canonical deployment, application and indexer configuration before go-live.
+
+On failure, stop the sequence, retain receipts, leave affected contracts paused and regenerate
+nonce-bound plans from observed state. Do not skip a failed boundary, replay already-mined CREATEs,
+reuse fixture funding, or treat a local fork receipt as a live transaction. Source upgrades retain
+the original Safe owner; a corrective implementation is a separately reviewed owner operation,
+not an automatic rollback or a restoration of already-completed external service obligations.
+
+### Remaining public inputs and activation gates
+
+| Input | Present status and next useful handoff |
+|---|---|
+| Deployment sender, native gas and nonces | Select the deployer for each chain; verify code-free EOA and native ETH/xDAI balance. Read current Safe and pending deployment nonces at each phase boundary. A fork's synthetic funding proves no live budget. |
+| Tech and Sun source garden and Hats identity | Confirm its garden, steward Hat and expected destination top Hat; re-read the global Hats counter immediately before receiver deployment. A concurrent top-Hat mint invalidates the predicted bootstrap and requires replanning. |
+| Pause/recovery authority | Confirm distinct guardian addresses for both voucher networks. The recorded legacy guardian is not silently appointed to the new endpoints. |
+| Tech and Sun signers | Deliberately deferred. Later confirm actual steward accounts and member control, initial refresh and authenticated Gnosis delivery. The illustrative three-owner draft count does not replace dynamic HSG readback. |
+| Issuer acceptance | Confirm exact public-safe versioned terms/digests, source acceptance authority, actual hub/assistance capacity, funded permitted Claude seats and accountable issuer approval. The accepted prices remain one TS voucher per four-hour visit, two GG vouchers per half-hour assistance and ten GG vouchers per thirty-day named Claude seat. |
+| Pool inventory/cap headroom | Resolved on 23 October: the user selected ten units of starting inventory and a twenty-unit holding cap per issuer asset, within the unchanged twenty-unit issuance ceiling. The candidate manifest and terms use those values; initial pool inventory remains part of the original supply. The published token itself does not enforce this cumulative business budget. |
+| Same-address member and gas path | Nine native fork cases prove an ordered fictional Kernel 0.3.1 / EntryPoint 0.7 migration, including cleanup failure, rollback and next-nonce retry. They prove no real member ceremony. The selected Gnosis legacy validator remains absent in the latest dated read. Shared `chains.ts` excludes chain 100 and `pimlico.ts` rejects it before account construction. Select and prove exact hosted account/provider/paymaster acceptance, or implement and prove an explicitly funded native-xDAI path; then perform real possession/signing, cancellation, failure and recovery checks at the preserved address. |
+| Transport and final state | Prove both live CCIP directions, fuel/fees, authenticated steward revocation and retry, endpoint peers/owners/pauses and actual post-deployment smoke. No live delivery is established by the preparation package. |
+
+The human-approved checkpoints, relayed by the preparation chat on 23 October, are Pacific time:
+**Friday 10 a.m.** for the source-backed same-address signing/bootstrap/provider path and explicit
+remaining member actions; **noon** for issuer operating capacity/acceptance, actual steward accounts,
+available Green Goods co-signers and bounded funding inputs; **4 p.m.** for the tested deployment
+package and app/indexer handoff; and **6 p.m.** for exact deployment simulation and the Saturday
+readiness assessment. Saturday checkpoints are **10 a.m.** for reviewed deployment/configuration,
+**2 p.m.** for a controlled live pilot after smoke/recovery checks and **5 p.m.** for the pitch.
+Participant testing remains Sunday/Monday. The preparation chat owns Linear date updates. Member,
+provider, issuer, signer and funding facts remain unconfirmed; a scheduled checkpoint establishes
+none of them. A public member account/login-method intake is pending so the real ceremony can be
+prepared without requesting private credentials.
+
+### Initial waits and proof limits
+
+| Operation | Contract-enforced elapsed wait |
+|---|---|
+| Current Hats upgrade and observer registration | No intrinsic timer; current owner and reviewed operation still required. |
+| Current Pooling upgrade | No intrinsic timer; owner authorization, pause and readback required. |
+| Current Settlement upgrade | No intrinsic timer; pause and exact immutable router/selectors required. |
+| Fresh voucher proxies, CLC timelocks/proxies and initial owner configuration | No elapsed construction wait. Empty deployment does not authorize issuance or activation. |
+| Subsequent voucher endpoint implementation upgrade | Forty-eight hours after scheduling the exact implementation/code hash; upgrade while paused. |
+| Subsequent CLC proxy upgrade | Forty-eight-hour issuer-controlled timelock; no deployer or Safe admin bypass. |
+
+The final CLC owned-fork run passes ten deployments and empty-state readback against actual
+Gnosis dependencies with the tightened HSG verifier. The source owned-fork run passes 23 production
+library/implementation deployments and four owner calls against the actual Arbitrum proxies,
+preserving all seventeen Pooling and twelve Settlement checked rows and ending paused. A separate
+composition run upgrades the source, checks both protocol versions, replans from the new nonce and
+successfully initializes all six Arbitrum voucher deployments, including Redemption. Its child
+fork leaves the upgraded parent untouched. Pure assembly using actual production artifacts passes
+all thirteen stages and 46 native boundaries with explicitly fictional deployment/Safe inputs.
+No issuance, Safe signature, member signature, real provider acceptance or live CCIP delivery is
+proved by these runs. Rendered proof: none (no product UI changes).
+
+The final fixed-two authority reader also passes against real Gnosis Hats/HSG/Safe contracts as a
+fictional roster moves through zero, one, two, three, two, one and zero valid stewards. Physical
+thresholds are one, one, two, two, two, one and one; effective threshold stays two, with spending
+disabled below two. Delivery is locally impersonated and proves no live CCIP transport or actual
+steward signature. This covers the reader's active-roster branches as well as empty bootstrap.
+
+Direct tests cover exact plan rebuilding, nonce overlap/gaps, foreign artifacts, malformed input,
+confined paths, changed authority/runtime/nonce, unreviewed ordinary Safe rejection and owned-fork
+cleanup. Detailed RED/GREEN and final required-gate attribution follow below;
+earlier receipts in this handoff retain their historical scope. Every lane object, manual block,
+overall backlog state and live activation gate remains unchanged. Live Linear verification was
+unavailable in this continuation; the preservation manifest authorizes no tracker writes.
+
+### Validation receipt for this preparation segment
+
+All eight selected checks pass fresh at the observed **2026-10-23 09:28:19 UTC** boundary:
+`format`, `lint`, `abi-artifacts`, `contracts-build`, `contracts-test`, `contracts-verify-fast`,
+`docs-authority` and `docs-build`. The package phases pass **2,209 Solidity, 433 script, 37 CLI and
+three production gas-boundary cases**. TypeScript is included in the full package test entrypoint.
+The [evidence record](../artifacts/live-pilot-tooling-evidence-2026-10-23.json) contains the exact
+selected command, its 27-path scope, twenty implementation/configuration hashes and the independent
+fork block identities. Known code and public configuration match that map; tested commit is null
+because proof ran on the working copy above parent `e02396c04a4ed21c20b65ef6b3bfc212de19625b`.
+The resulting signed checkpoint and unchanged-tree verification are reported in chat, without
+claiming the unchanged parent implemented these additions or asserting remote CI/live readiness.
+
+The initial full run stopped because sandbox loopback access was denied to five script suites.
+The socket-enabled rerun passed all eight checks; the complete gate passed again after the later
+human cap approval. No test, compiler, permission-profile or dependency setting was weakened.
+The cap adjustment adds explicit no-headroom regression checks while selecting ten/twenty for
+both issuers. CLC admin-role proof had a behavioral RED of one failure/twenty-one passes; unsafe
+native Safe-sender rejection had two failures/twenty-two passes before those rules were added.
+The final CLC planner has twenty-five cases. Tightened dynamic HSG authority had a RED of two
+failures/five passes against the ordinary-Safe shortcut and final seven-case GREEN. The package
+assembler's initial missing-API RED is distinct from its twenty-one final cases and actual-artifact
+assembly. Source planning and owned-fork helpers pass nineteen direct cases. Existing broader lane
+TDD objects and historical receipts are preserved; this is a bounded new preparation receipt.
+
+Task record: cosmo-local-credit-interop live pilot deployment | Type: feature | Outcome: preparation complete locally; live pilot partial
+Agent/model: Codex / GPT-6 | Coverage: CLC/source/package tooling and approved pool-cap continuation
+
+| Phase | Start → end (UTC) | Result / evidence or blocker |
+|---|---|---|
+| Investigate | Earlier start unknown → 2026-10-23 09:00:13 | Published interfaces, exact dependency pins, source authority/state and upgrade-order boundaries. |
+| Implement | Earlier start unknown → 2026-10-23 09:17:48 | Three CLI operations, component planners/simulators, review assembler and approved ten/twenty input plus regression cases. |
+| Verify | 2026-10-23 08:48:21 → 2026-10-23 09:28:19 | Direct tests, actual dependency forks, source→Redemption composition, seven HSG roster states and final eight-check gate. Intervals overlap; do not sum them. |
+| Review | 2026-10-23 09:00:13 → 2026-10-23 09:28:19 | Owned code, caller wiring, nonce/authority/failure behavior and checked source hashes. Metadata/index/signature checks follow in chat. |
+
+Human corrections: 0 in this segment; the cap selection is a new accepted domain decision.
+Human attention: unknown. Rendered proof: none (no product UI changes).
+
+### Same-address next priority
+
+Fresh read-only Gnosis block 48,899,094 still has no historical validator at
+`0xbA45a2BFb8De3D24cA9D7F1B551E14dFF5d690Fd`, but the canonical bootstrap path is now reproduced:
+zero-salt deployment through `0x4e59`, followed by unchanged SDK account creation, succeeds in
+read-only execution. The exact verified nine-source Solidity 0.8.24 build reproduces the original
+creation and runtime bytes. This resolves the source/build/factory uncertainty for that bootstrap;
+it establishes no live deployment. Upstream marks this original validator unpatched, so it is
+only a compatibility step toward the reviewed atomic native cleanup, never the intended active root.
+The unrelated unverified helper remains unselected.
+
+The narrow gas candidate uses real EntryPoint 0.7 with a member-signed operation, no paymaster and
+a controlled native-xDAI-funded outer relayer. It needs finite member prefund and outer-gas budgets,
+fresh quotes, active-root-aware construction/signing, production preparation and receipt/recovery
+checks. Original identity includes P256 coordinates and the hash of the credential ID; an SDK
+`address` override alone proves no preserved derivation. Reuse the original credential within the
+authenticated session, derive the original address independently and keep canonical creation inputs
+separate from actual root state. The current sequential `PasskeySender.sendBatch` is unsuitable
+for the three-call atomic migration. Hosted exact-profile acceptance, real member signing and
+funding remain unproved. Continue this work after the signed tooling checkpoint without silently
+enabling chain 100 for the primary application or changing its existing sponsorship defaults.

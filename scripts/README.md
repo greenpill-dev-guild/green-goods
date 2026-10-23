@@ -93,7 +93,7 @@ writes eleven nonce-bound paused deployment boundaries to `.generated/voucher-re
 Arbitrum/Gnosis forks using configured RPCs; Gnosis requires explicit `GNOSIS_RPC_URL`. These modes
 perform no live broadcasts, Safe creation, issuer approvals or activation, and do not promote
 canonical deployment or dependent app/indexer configuration. The full live pilot also needs the
-separate published CLC pool release and activation operations.
+published CLC pool preparation and separate activation operations described below.
 
 The Tech and Sun steward Safe preparation path is
 `bun run contracts -- release steward-safe --mode preflight`, handled by
@@ -118,6 +118,44 @@ with `reconcile(account)`.
 Revocation takes effect on Gnosis when delivered; source changes outside HatsModule hooks require
 refreshing the affected account. Below two owners, Safe's displayed threshold can be one while HSG
 still blocks spending. Activate only after two confirmed steward accounts are valid on Gnosis.
+
+Published CLC preparation is `bun run contracts -- release clc --mode preflight`, handled by
+`packages/contracts/script/deploy/clc-release.ts` with `config/clc-pilot-release.json`.
+With committed inputs, `--mode plan` prepares two issuer-controlled upgrade timelocks and eight
+atomically initialized factory proxies. Tokens start with zero supply; the shared pool starts
+empty, with no registered tokens or allowances. Configuration and issuance are separate review
+drafts. `--mode simulate --plan .generated/clc-release/<release-id>.plan.json` checks the pinned
+Gnosis dependencies, Safes, exact deployments and empty post-state on an owned fork. It does not
+mint, deposit, approve, configure assets or activate transport. The Green Goods Safe controls its
+issuer reserve and the shared pool; Tech and Sun retains its separate issuer authority.
+
+Existing source upgrades use `bun run contracts -- release source-upgrades --mode preflight`,
+handled by `packages/contracts/script/deploy/source-upgrade-release.ts` with
+`config/source-upgrade-release.json`. `--mode plan` prepares linked production libraries and
+implementations plus separate owner-Safe pause/upgrade calls for the actual Pooling proxy and
+optional Settlement proxy. `--mode simulate --plan
+.generated/source-upgrades/<release-id>.plan.json` rehearses those calls on an owned Arbitrum
+fork, preserving the checked state and ending paused. Local owner impersonation proves no Safe
+signature. This operation does not replace `upgrade hats-module` or the existing integration-only
+`upgrade commitment-pooling` operation.
+
+`bun run contracts -- release pilot --mode preflight` reports the combined public input inventory
+offline. `--mode plan` requires `--source-upgrades-plan`, `--steward-safe-plan`, `--vouchers-plan`
+and `--clc-plan`, each pointing into its component's generated directory. The handler
+`packages/contracts/script/deploy/live-pilot-package.ts` validates all four plans, current committed
+inputs and production artifacts, then writes `.generated/live-pilot/<release-id>.package.json`.
+Every stage is review-only and the package reports `executionReady: false`. It has no compound
+simulation or broadcast mode. The source Pooling upgrade and protocol readback must precede
+VoucherRedemption initialization. Stop there and refreeze downstream nonces; owner transactions
+can consume a deployment sender's nonce. Confirm all deployment-bound inputs before sending any
+transaction, since changing them changes plan hashes and can change predicted addresses.
+
+Tech and Sun signer identities can remain pending during preparation. Live issuer capacity,
+terms references, source authorities, member signing/funding, transport delivery and explicit
+activation authorization remain separate gates. A twenty-unit issuance ceiling is an operator
+budget, not a hard cap enforced by the published token. Pool holding caps must leave incoming
+swap headroom before activation. The 48-hour timelocks govern later upgrades; they impose no
+waiting period on fresh construction or initial configuration.
 
 ## Inventory
 

@@ -8,7 +8,7 @@ generated: true
 generator: scripts/docs/generate.mjs
 generated_from:
   - packages/contracts/script/cli/operations.mjs
-source_digest: "sha256:a6882635062de3b1f8d6372e743eaa6a68a947c1c9ef8397d2cfe8385aa1ef08"
+source_digest: "sha256:264ca87c1e7677b78a3368b08f9187dedc609166986e34027499144a38cab726"
 source_of_truth:
   - packages/contracts/script/cli/operations.mjs
 ---
@@ -18,7 +18,7 @@ import {CopyCommand} from "@site/src/components/docs";
 
 # Contract operations
 
-Generated from the package-owned CLI definitions: 94 operations in 15 groups. Every command runs as `bun run contracts -- <command>` from the repository root; `bun run contracts -- help` lists them and `--help` after any command explains it. Deployments, upgrades, migrations, and repairs require an explicit network and execution mode.
+Generated from the package-owned CLI definitions: 97 operations in 15 groups. Every command runs as `bun run contracts -- <command>` from the repository root; `bun run contracts -- help` lists them and `--help` after any command explains it. Deployments, upgrades, migrations, and repairs require an explicit network and execution mode.
 
 `--explain --json` describes resolution without credentials, service access, or execution. Broadcasts require release authorization. Planning, compilation, simulation, and upload can write artifacts. Read the owning runbook before executing an operation.
 
@@ -135,7 +135,7 @@ No options beyond the command itself.
 |---|---|---|
 | <CopyCommand command="bun run contracts -- status --network &lt;network&gt;" /> | localhost, sepolia, arbitrum, celo, mainnet | none |
 
-### Release (8)
+### Release (11)
 
 Run a release session step by step with its transaction boundaries.
 
@@ -155,12 +155,20 @@ Options: `--manifest <value>`, `--plan <value>`, `--output <value>`.
 |---|---|---|
 | <CopyCommand command="bun run contracts -- release vouchers --mode &lt;mode&gt;" /> | not network-scoped | preflight, plan, simulate |
 | <CopyCommand command="bun run contracts -- release steward-safe --mode &lt;mode&gt;" /> | not network-scoped | preflight, plan, simulate |
+| <CopyCommand command="bun run contracts -- release clc --mode &lt;mode&gt;" /> | not network-scoped | preflight, plan, simulate |
+| <CopyCommand command="bun run contracts -- release source-upgrades --mode &lt;mode&gt;" /> | not network-scoped | preflight, plan, simulate |
 
 Options: `--stage <value>`, `--commit <value> (required)`.
 
 | Command | Networks | Modes |
 |---|---|---|
 | <CopyCommand command="bun run contracts -- release operator --commit &lt;value&gt;" /> | not network-scoped | none |
+
+Options: `--manifest <value>`, `--source-upgrades-plan <value>`, `--steward-safe-plan <value>`, `--vouchers-plan <value>`, `--clc-plan <value>`, `--output <value>`.
+
+| Command | Networks | Modes |
+|---|---|---|
+| <CopyCommand command="bun run contracts -- release pilot --mode &lt;mode&gt;" /> | not network-scoped | preflight, plan |
 
 ### Settlement (23)
 

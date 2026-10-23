@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "voucher-source-upgrades",
+  "chainId": 42161,
+  "observation": {
+    "blockNumber": 517485020,
+    "blockHash": "0x37f65ab9a007ebdb505ea17385ec8be41be17991774a6e3b370d9333952b7e00"
+  },
+  "deployer": null,
+  "nonce": null,
+  "authority": {
+    "address": "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+    "threshold": 2,
+    "owners": [
+      "0x22682c3d3848294ff9bcbf3f0ddf48a605446b56",
+      "0x6166e1964447e0959bc7c8d543db3ab82db65044",
+      "0x5c79d252f458b3720f7f230f8490fd1ee81d32fb",
+      "0x2aa64e6d80390f5c017f0313cb908051be2fd35e",
+      "0xa9d20b435a85faaa002f32d66f7d21564130e9cf"
+    ],
+    "nonce": null
+  },
+  "pooling": {
+    "proxy": "0x6BB5b0fd70b6771B0E955Fef37f8Bd2ce911470a",
+    "implementation": "0x6268ec974bb217De39E7756d75c8D523b9A79218",
+    "implementationCodeHash": "0x3f4e55e1632bde5ef29aadf5224e5a07498b529c27e82d850829583a75fce27f"
+  },
+  "settlement": {
+    "proxy": "0x15c8F6CF25abA2161cc04719b4C4a93c4146935D",
+    "implementation": "0x1ceFD9d1905E650cc2e31faf73AAbb73991DA281",
+    "implementationCodeHash": "0x8c049244145e43bd1771e3a2708caf65640790981cff29c2ccbd83521085ba88",
+    "router": "0x141fa059441E0ca23ce184B6A78bafD2A517DdE8",
+    "sourceSelector": "4949039107694359620",
+    "destinationChainId": "42220"
+  }
+}

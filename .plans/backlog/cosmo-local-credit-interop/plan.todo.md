@@ -411,3 +411,44 @@ Activation requires two confirmed valid steward accounts. Final signer names rem
 - [x] Implement observer, ordered publisher and Gnosis Hats/HSG receiver with direct behavioral proof.
 - [x] Prove actual deployed HSG, Hats and Safe behavior on a pinned Gnosis fork.
 - [x] Extend offline deployment tooling and record focused and complete critical checks.
+
+## Live deployment package continuation, 23 October UTC
+
+User authorizes continued deployment tooling and a reviewable live package. Tech and Sun signer
+names and addresses remain deliberately deferred. No broadcast, activation, dependency install,
+branch change or external tracker write is added by this preparation step.
+
+Reuse the paused endpoint planner and steward Safe planner, the atomic JSON writer and committed
+source guards, and the owned-fork harness. The missing capabilities are published CLC token/pool
+deployment and the actual Pooling/Settlement source-upgrade preparation. Contract scripts own
+these operations; tests must not import upstream CLC implementation source. Published interface
+documentation and the already-pinned Gnosis runtime hashes own external compatibility.
+
+- [x] Prepare two issuer tokens, their Safe-controlled upgrade timelocks and shared CLC pool
+  dependencies with exact deployment plans and separate configuration/issuance drafts.
+- [x] Prove those deployment boundaries and empty, unactivated readback on owned Gnosis forks;
+  preserve the locked zero-signer Tech and Sun Safe until member confirmation.
+- [x] Prepare true CommitmentPoolingModule and optional SettlementModule upgrades on owned
+  Arbitrum forks; retain owners/state and paused end state, separating later peer pins/unpause.
+- [x] Assemble the ordered operator package, public input inventory and exact remaining gates;
+  distinguish native same-address fork proof from real member/provider/funding ceremonies.
+- [x] Run direct RED/GREEN proof and the complete selected critical checks, then record the
+  source/tree attribution and preserve all unrelated files and existing lane objects.
+
+On 23 October, the user accepted ten starting units of each voucher and a twenty-unit pool holding
+cap per asset. The earlier ten/ten draft left no incoming swap headroom and is superseded. The
+twenty-unit issuance ceiling stays unchanged; the published GiftableToken does not itself implement
+that business cap. Issuer acceptance, actual capacity and the other activation gates remain open.
+
+Fresh source review finds no intrinsic upgrade timer in HatsModule or CommitmentPoolingModule;
+SettlementModule requires pause and immutable-route consistency, without a timer. VoucherEndpoint's
+48-hour timer applies to later replacement of an existing endpoint implementation. Fresh proxy
+initialization and owner unpause do not consume that delay. New CLC proxy upgrade timelocks use
+the same issuer Safes, and their delay governs later upgrades rather than initial construction.
+
+The [tooling evidence](artifacts/live-pilot-tooling-evidence-2026-10-23.json) records all eight
+fresh selected checks, implementation/configuration hashes and owned-fork proof limits after the
+accepted cap update. These completed preparation tasks do not complete the contracts lane or any
+live gate. Same-address production bootstrap/native-gas signing work is the next priority, with the
+actual public member account/login-method intake pending. The live deployment handoff records the
+accepted Friday/Saturday checkpoints; this chat owns no Linear writes.

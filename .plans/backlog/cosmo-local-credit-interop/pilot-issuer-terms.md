@@ -1,6 +1,6 @@
 # Pilot issuer terms — working draft
 
-**Version:** `pilot-2026-10-22-draft-2` · **Status:** business baseline accepted; issuer capacity and live configuration unconfirmed.
+**Version:** `pilot-2026-10-23-draft-3` · **Status:** business baseline accepted; issuer capacity and live configuration unconfirmed.
 
 The selected services are Tech and Sun hub access, Green Goods assisted sessions, and Claude
 access under a Green Goods team. The human release owner accepted the service prices below,
@@ -67,7 +67,7 @@ The other approved services may proceed independently.
 | Initial issuer reserve | 10 | 10 | Separate issuer-controlled custody; actual reserve addresses remain open. |
 | Initial adapter allowance | At most 10 | At most 10 | Finite allowance from that reserve to the exact adapter. Lower it to actual stock and remaining service budget; never unlimited. |
 | Per-participant operational limit | 10 | 10 | Ten units allows a whole Claude redemption. This is an admission/distribution rule until selected limiter enforcement is proved; do not claim a global transfer restriction. |
-| Initial pool holding ceiling per asset | 10 | 10 | Separate pool limiter setting, subject to exact implementation semantics and readback. It can constrain one direction of exchange even when the other direction has stock. |
+| Initial pool holding ceiling per asset | 20 | 20 | Accepted on 23 October: ten units of starting inventory and a twenty-unit holding cap per asset, within the existing twenty-unit issuance ceiling. This leaves ten units of incoming swap headroom; bind and read back the separate pool limiter setting. |
 | Whole-pilot discharged service budget | 20 visits | 20 GG units | Cumulative delivered service cost, not a token balance or automatically reset allowance. |
 
 The accepted cohort ceiling is ten invited participants. Propose adults only for the first
