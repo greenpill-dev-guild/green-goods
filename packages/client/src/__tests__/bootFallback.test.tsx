@@ -79,6 +79,8 @@ function runPresentationDetector({
   const documentLike = {
     documentElement: { dataset },
     getElementById: (id: string) => (id === "boot-pwa-face" ? face : null),
+    createElement: document.createElement.bind(document),
+    head: document.createElement("head"),
   };
 
   new Function(
@@ -244,7 +246,7 @@ function runController(
 
 describe("the installed app's face", () => {
   it("keeps Plus Jakarta Sans off the website's critical path", () => {
-    expect(FACE_LINK).toContain("family=Plus+Jakarta+Sans");
+    expect(FACE_LINK).toContain("fonts/pwa.css");
     // Only an installed display applies the face before the detector runs, so a
     // browser tab neither waits for its stylesheet nor fetches its font files.
     expect(INSTALLED_FACE_MEDIA.split(",").map((query) => query.trim())).toEqual([
@@ -515,6 +517,18 @@ describe("presentation-specific boot fallback", () => {
   it("separates React mount from final PWA readiness", () => {
     expect(MAIN_SOURCE).toContain("__GG_MARK_REACT_MOUNTED");
     expect(MAIN_SOURCE).not.toContain("__GG_CLEAR_BOOT_FALLBACK");
+  });
+
+  it("remembers PWA readiness when content arrives after the ready signal", async () => {
+    const { clearFallback, fallback } = runController("pwa");
+
+    clearFallback?.();
+    expect(fallback).not.toHaveAttribute("hidden");
+
+    document.getElementById("root")?.append(document.createElement("main"));
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(fallback).toHaveAttribute("hidden");
   });
 
   // The app's own choice: the stored language, else the first browser language with copy, else English.

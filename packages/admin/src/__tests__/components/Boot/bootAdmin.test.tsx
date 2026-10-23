@@ -7,7 +7,7 @@
  */
 
 import { createQueryPersistence } from "@green-goods/shared/config/query-persistence";
-import { act, waitFor } from "@testing-library/react";
+import { act, fireEvent, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AdminBootServices, BootOutcome } from "@/components/Boot/bootAdmin";
 import { bootAdmin } from "@/components/Boot/bootAdmin";
@@ -38,6 +38,7 @@ describe("bootAdmin", () => {
   let outcome: BootOutcome | null = null;
 
   beforeEach(() => {
+    window.localStorage.setItem("greengoods_auth_mode", "wallet");
     container = document.createElement("div");
     container.id = "root";
     document.body.append(container);
@@ -52,6 +53,8 @@ describe("bootAdmin", () => {
       Object.defineProperty(window, "localStorage", originalLocalStorage);
     }
     window.localStorage.removeItem("gg-language");
+    window.localStorage.removeItem("greengoods_auth_mode");
+    window.localStorage.removeItem("greengoods_credential");
     vi.restoreAllMocks();
   });
 
@@ -80,6 +83,142 @@ describe("bootAdmin", () => {
       });
     };
   }
+
+  it("keeps fresh visitors on the connect prompt until one explicit click", async () => {
+    window.localStorage.removeItem("greengoods_auth_mode");
+    const loadRoot = vi.fn(async () => ({ default: Ready }));
+    const initIpfs = vi.fn();
+    await boot({ loadRoot, initIpfs });
+
+    expect(container.textContent).toContain("Connect to continue");
+    expect(container.querySelector("main")).not.toBeNull();
+    expect(loadRoot).not.toHaveBeenCalled();
+    expect(initIpfs).not.toHaveBeenCalled();
+    const button = container.querySelector("button")!;
+    await act(async () => {
+      fireEvent.click(button);
+      fireEvent.click(button);
+    });
+    await waitFor(() =>
+      expect(container.querySelector('[data-testid="admin-ready"]')).not.toBeNull()
+    );
+    expect(loadRoot).toHaveBeenCalledTimes(1);
+    expect(loadRoot).toHaveBeenCalledWith(true);
+    expect(window.localStorage.getItem("greengoods_auth_mode")).toBeNull();
+  });
+
+  it("starts a legacy passkey restore immediately even without an auth mode", async () => {
+    window.localStorage.removeItem("greengoods_auth_mode");
+    window.localStorage.setItem("greengoods_credential", "legacy-record");
+    const loadRoot = vi.fn(async () => ({ default: Ready }));
+    await boot({ loadRoot });
+    expect(loadRoot).toHaveBeenCalledTimes(1);
+    expect(loadRoot).toHaveBeenCalledWith(false);
+    expect(window.localStorage.getItem("greengoods_credential")).toBe("legacy-record");
+  });
+
+  it("offers fresh passkey users the existing sign-in UI without requesting a wallet", async () => {
+    window.localStorage.removeItem("greengoods_auth_mode");
+    const received = vi.fn();
+    function Runtime(props: { connectWalletOnReady?: boolean }) {
+      received(props.connectWalletOnReady);
+      return <Ready />;
+    }
+    await boot({ loadRoot: async () => ({ default: Runtime }) });
+    expect(container.textContent).toContain("Sign in with Passkey");
+    await act(async () => {
+      fireEvent.click(container.querySelector('[data-testid="passkey-start-button"]')!);
+    });
+    expect(received).toHaveBeenCalledWith(false);
+    expect(received).not.toHaveBeenCalledWith(true);
+    expect(window.localStorage.getItem("greengoods_auth_mode")).toBeNull();
+  });
+
+  it.each([
+    "storage",
+    "pageshow",
+    "visibilitychange",
+  ])("rechecks a guest session on %s", async (event) => {
+    window.localStorage.removeItem("greengoods_auth_mode");
+    const loadRoot = vi.fn(async () => ({ default: Ready }));
+    await boot({ loadRoot });
+    expect(loadRoot).not.toHaveBeenCalled();
+    window.localStorage.setItem("greengoods_auth_mode", "wallet");
+    await act(async () => {
+      (event === "visibilitychange" ? document : window).dispatchEvent(new Event(event));
+    });
+    await waitFor(() => expect(loadRoot).toHaveBeenCalledTimes(1));
+  });
+
+  it("removes guest listeners on unmount and never loads the runtime afterward", async () => {
+    window.localStorage.removeItem("greengoods_auth_mode");
+    const loadRoot = vi.fn(async () => ({ default: Ready }));
+    await boot({ loadRoot });
+    act(() => outcome?.unmount());
+    outcome = null;
+    window.localStorage.setItem("greengoods_auth_mode", "wallet");
+    window.dispatchEvent(new Event("storage"));
+    expect(loadRoot).not.toHaveBeenCalled();
+  });
+
+  it("shows recovery when loading after a guest click fails", async () => {
+    window.localStorage.removeItem("greengoods_auth_mode");
+    await boot({
+      loadRoot: async () => {
+        throw new Error("Wallet runtime unavailable");
+      },
+    });
+    await act(async () => {
+      fireEvent.click(container.querySelector("button")!);
+    });
+    await waitFor(() => expect(container.textContent).toContain("Wallet runtime unavailable"));
+    expect(container.querySelector('[data-component="AdminBootRecovery"]')).not.toBeNull();
+    expect(container.textContent).toContain("Reload");
+  });
+
+  it("drops a pending click handoff when another tab supplies a session during loading", async () => {
+    window.localStorage.removeItem("greengoods_auth_mode");
+    const received = vi.fn();
+    function Runtime(props: { connectWalletOnReady?: boolean }) {
+      received(props.connectWalletOnReady);
+      return <Ready />;
+    }
+    let release!: () => void;
+    const loaded = new Promise<{ default: typeof Runtime }>((resolve) => {
+      release = () => resolve({ default: Runtime });
+    });
+    await boot({ loadRoot: () => loaded });
+    await act(async () => {
+      fireEvent.click(container.querySelector("button")!);
+    });
+    window.localStorage.setItem("greengoods_credential", "new-session");
+    await act(async () => {
+      window.dispatchEvent(new Event("storage"));
+      release();
+    });
+    expect(received).toHaveBeenCalledWith(false);
+    expect(received).not.toHaveBeenCalledWith(true);
+  });
+
+  it("does not mount a runtime that finishes downloading after unmount", async () => {
+    window.localStorage.removeItem("greengoods_auth_mode");
+    let release!: () => void;
+    const loaded = new Promise<{ default: typeof Ready }>((resolve) => {
+      release = () => resolve({ default: Ready });
+    });
+    const initIpfs = vi.fn();
+    await boot({ loadRoot: () => loaded, initIpfs });
+    await act(async () => {
+      fireEvent.click(container.querySelector("button")!);
+    });
+    act(() => outcome?.unmount());
+    outcome = null;
+    await act(async () => {
+      release();
+    });
+    expect(container.textContent).toBe("");
+    expect(initIpfs).not.toHaveBeenCalled();
+  });
 
   it("mounts the application after every optional service succeeds", async () => {
     const initSentry = vi.fn();

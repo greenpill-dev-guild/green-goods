@@ -158,6 +158,52 @@ describe("PublicShell", () => {
     });
   });
 
+  it("requests no speculative heroes on mount and warms only the intended destination", () => {
+    const requested: string[] = [];
+    vi.stubGlobal(
+      "Image",
+      class {
+        set src(value: string) {
+          requested.push(value);
+        }
+      }
+    );
+    try {
+      renderShellWithRoute("/fund");
+      expect(requested).toEqual([]);
+
+      const gardens = screen.getByRole("link", { name: "Open gardens" });
+      fireEvent.focus(gardens);
+      fireEvent.pointerOver(gardens);
+      expect(requested).toEqual(["/images/hero-garden.webp"]);
+
+      fireEvent.pointerDown(screen.getByRole("link", { name: "Impact" }));
+      expect(requested).toEqual(["/images/hero-garden.webp", "/images/hero-impact.webp"]);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("does not prefetch destination heroes when Save-Data is enabled", () => {
+    const image = vi.fn(function () {});
+    vi.stubGlobal("Image", image);
+    const connection = Object.getOwnPropertyDescriptor(navigator, "connection");
+    Object.defineProperty(navigator, "connection", {
+      configurable: true,
+      value: { saveData: true },
+    });
+    try {
+      renderShellWithRoute("/fund");
+      fireEvent.focus(screen.getByRole("link", { name: "Open gardens" }));
+      fireEvent.pointerDown(screen.getByRole("link", { name: "Actions" }));
+      expect(image).not.toHaveBeenCalled();
+    } finally {
+      if (connection) Object.defineProperty(navigator, "connection", connection);
+      else Reflect.deleteProperty(navigator, "connection");
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("renders SiteHeader above route outlet content", () => {
     renderShellWithRoute("/gardens");
 
@@ -289,10 +335,10 @@ describe("PublicShell", () => {
     expect(window.scrollY).toBe(720);
   });
 
-  it("gives chat ceremony pages the focused shell: no navigation, install CTA or editorial styling", () => {
+  it("gives chat ceremony pages the focused shell: no navigation, install CTA or editorial styling", async () => {
     const { container } = renderShellWithRoute("/agent/reporting/abcdefghijklmnop");
 
-    expect(screen.getByTestId("ceremony-content")).toBeInTheDocument();
+    expect(await screen.findByTestId("ceremony-content")).toBeInTheDocument();
     expect(document.querySelector('header[data-variant="focused"]')).toBeInTheDocument();
     expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
     expect(screen.queryByText("Install App")).not.toBeInTheDocument();

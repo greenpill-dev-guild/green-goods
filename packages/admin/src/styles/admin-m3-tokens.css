@@ -588,3 +588,12 @@
 [data-tone] {
   transition: --tone-surface-tint-color var(--spring-effects-slow-duration) var(--spring-effects-slow-easing);
 }
+
+/* Provider-free startup keeps its surface before workspace styles arrive. */
+.admin-loading-screen {
+  background: rgb(var(--m3-surface-container-low));
+}
+
+[data-theme="dark"] .admin-loading-screen {
+  background: rgb(var(--m3-surface));
+}

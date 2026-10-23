@@ -83,6 +83,9 @@ sb.mock(import("../src/hooks/yield/useYieldAllocations.ts"), { spy: true });
 // The public vault panel mounts the wallet runtime itself; its stories render the panel without it.
 sb.mock(import("../src/providers/AppKitProvider.tsx"), { spy: true });
 sb.mock(import("../../client/src/routes/WalletRuntimeProviders.tsx"), { spy: true });
+// AdminWorkspace stories replace the route entry and analytics only while their own story runs.
+sb.mock(import("../../admin/src/App.tsx"), { spy: true });
+sb.mock(import("../src/modules/app/posthog-browser.ts"), { spy: true });
 
 const preview: Preview = {
   globalTypes: {

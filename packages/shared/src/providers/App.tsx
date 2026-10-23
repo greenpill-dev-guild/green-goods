@@ -106,12 +106,18 @@ interface AppProviderProps {
   children: React.ReactNode;
   posthogKey?: string;
   allowPosthogKeyFallback?: boolean;
+  /** A surface can wait for useful content before scheduling optional analytics. */
+  scheduleTelemetry?: (start: () => void) => () => void;
+  /** Public websites can load a smaller catalogue with the same fallback rules. */
+  importCatalogue?: (locale: Locale) => Promise<LocaleCatalogue>;
 }
 
 export const AppProvider = ({
   children,
   posthogKey,
   allowPosthogKeyFallback = true,
+  scheduleTelemetry,
+  importCatalogue,
 }: AppProviderProps) => {
   // Use provided key or fall back to default client key
   const apiKey = posthogKey || (allowPosthogKeyFallback ? import.meta.env.VITE_POSTHOG_KEY : "");
@@ -174,22 +180,27 @@ export const AppProvider = ({
       else idleHandle = window.setTimeout(initialize, 1_000);
     };
 
-    if (document.readyState === "complete") schedule();
-    else window.addEventListener("load", schedule, { once: true });
+    const afterLoad = () => {
+      if (document.readyState === "complete") schedule();
+      else window.addEventListener("load", schedule, { once: true });
+    };
+    const cancelContentWait = scheduleTelemetry?.(afterLoad);
+    if (!scheduleTelemetry) afterLoad();
 
     return () => {
       cancelled = true;
+      cancelContentWait?.();
       window.removeEventListener("load", schedule);
       if (idleHandle !== null) {
         if (window.cancelIdleCallback) window.cancelIdleCallback(idleHandle);
         else window.clearTimeout(idleHandle);
       }
     };
-  }, [apiKey]);
+  }, [apiKey, scheduleTelemetry]);
 
   useEffect(() => {
     let cancelled = false;
-    void loadLocaleCatalogue(locale).then(
+    void loadLocaleCatalogue(locale, importCatalogue).then(
       (nextCatalogue) => {
         if (!cancelled) setCatalogue(nextCatalogue);
       },
@@ -200,7 +211,7 @@ export const AppProvider = ({
     return () => {
       cancelled = true;
     };
-  }, [locale]);
+  }, [locale, importCatalogue]);
 
   // The page declares the language of the copy on screen, so assistive technology reads it in
   // that language. It is English until a reader's own catalogue lands.

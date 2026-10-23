@@ -1,10 +1,11 @@
-import { clearPersistedQueryClient } from "@green-goods/shared/config/query-persistence";
+import { clearPersistedQueryClient } from "@green-goods/shared/config/query-persistence-clear";
 import { logger } from "@green-goods/shared/modules/app/logger";
+import { hasSessionRestoreEvidence } from "@green-goods/shared/modules/auth/session";
 import { initTheme } from "@green-goods/shared/utils/styles/theme";
 import { type ComponentType, StrictMode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { ADMIN_LEGACY_QUERY_PERSISTENCE, ADMIN_QUERY_PERSISTENCE_DB } from "./bootConstants";
-import { BootErrorBoundary, BootRecovery, BootShell } from "./BootSurface";
+import { BootConnect, BootErrorBoundary, BootRecovery, BootShell } from "./BootSurface";
 
 /**
  * Admin boot sequence.
@@ -38,8 +39,10 @@ export interface BootDiagnostics {
   failures: BootFailure[];
 }
 
+type AdminRootComponent = ComponentType<{ connectWalletOnReady?: boolean }>;
+
 export interface AdminBootServices {
-  loadRoot: () => Promise<{ default: ComponentType }>;
+  loadRoot: (connectWalletOnReady: boolean) => Promise<{ default: AdminRootComponent }>;
   initTheme: () => (() => void) | undefined;
   initSentry: () => void | Promise<void>;
   initErrorHandlers: () => void | Promise<void>;
@@ -72,7 +75,18 @@ declare global {
 const MAX_RECORDED_FAILURES = 20;
 
 const defaultServices: AdminBootServices = {
-  loadRoot: () => import("./AdminRoot"),
+  loadRoot: (connectWalletOnReady) => {
+    const root = import("./AdminRoot");
+    // Returning sessions and passkey entry keep parallel workspace downloads.
+    // Auth mounting never waits for this optional preload; the lazy boundary
+    // still handles a failed workspace import when it is rendered.
+    if (!connectWalletOnReady) {
+      void import("./AdminWorkspace").catch((error: unknown) => {
+        logger.warn("[admin-boot] Workspace preload failed", { error });
+      });
+    }
+    return root;
+  },
   initTheme,
   initSentry: async () => {
     const { initBrowserSentry } = await import("@green-goods/shared/sentry");
@@ -236,7 +250,12 @@ export async function bootAdmin(options: BootAdminOptions = {}): Promise<BootOut
   if (!options.container) window.__ADMIN_ROOT__ = root;
 
   const cleanupTheme = attempt(diagnostics, "theme", services.initTheme);
+  let disposed = false;
+  let stopWatching = () => {};
   const unmount = () => {
+    if (disposed) return;
+    disposed = true;
+    stopWatching();
     cleanupTheme?.();
     root.unmount();
     if (!options.container) delete window.__ADMIN_ROOT__;
@@ -246,35 +265,84 @@ export async function bootAdmin(options: BootAdminOptions = {}): Promise<BootOut
     <BootRecovery error={error} onReload={reload} onReset={() => void resetAndReload()} />
   );
 
-  let RootComponent: ComponentType;
-  try {
-    RootComponent = (await services.loadRoot()).default;
-  } catch (error) {
-    recordFailure(diagnostics, "load-root", error);
-    root.render(recovery(error));
-    return { status: "failed", stage: "load-root", error, diagnostics, unmount };
-  }
-
-  root.render(
-    <StrictMode>
-      <BootErrorBoundary
-        fallback={recovery}
-        onError={(error) => recordFailure(diagnostics, "render", error)}
-      >
-        <RootComponent />
-      </BootErrorBoundary>
-    </StrictMode>
-  );
-
-  afterFirstPaint(() => {
-    void startOptionalServices(services, diagnostics);
-  });
-
   if (import.meta.hot && !options.container) {
     import.meta.hot.dispose(() => {
       unmount();
     });
   }
 
-  return { status: "mounted", diagnostics, unmount };
+  const mounted = (): BootOutcome => ({ status: "mounted", diagnostics, unmount });
+  let pending: Promise<BootOutcome> | null = null;
+  let connectRequested = false;
+
+  const loadApplication = async (): Promise<BootOutcome> => {
+    root.render(<BootShell />);
+    let RootComponent: AdminRootComponent;
+    try {
+      RootComponent = (await services.loadRoot(connectRequested && !hasSessionRestoreEvidence()))
+        .default;
+    } catch (error) {
+      recordFailure(diagnostics, "load-root", error);
+      if (!disposed) root.render(recovery(error));
+      stopWatching();
+      return { status: "failed", stage: "load-root", error, diagnostics, unmount };
+    }
+    if (disposed) return mounted();
+    stopWatching();
+    // Check again before mounting: another tab may have saved a session during download.
+    const connectWalletOnReady = connectRequested && !hasSessionRestoreEvidence();
+    root.render(
+      <StrictMode>
+        <BootErrorBoundary
+          fallback={recovery}
+          onError={(error) => recordFailure(diagnostics, "render", error)}
+        >
+          <RootComponent connectWalletOnReady={connectWalletOnReady} />
+        </BootErrorBoundary>
+      </StrictMode>
+    );
+    afterFirstPaint(() => {
+      if (!disposed) void startOptionalServices(services, diagnostics);
+    });
+    return mounted();
+  };
+
+  const startApplication = (connect = false): Promise<BootOutcome> => {
+    if (!pending && !disposed) {
+      connectRequested = connect;
+      pending = loadApplication();
+    }
+    return pending ?? Promise.resolve(mounted());
+  };
+
+  // Mock auth is a development-only runtime choice; it must bypass the guest prompt.
+  if (
+    hasSessionRestoreEvidence() ||
+    (import.meta.env.DEV && new URLSearchParams(window.location.search).has("mockAuth"))
+  ) {
+    return startApplication();
+  }
+
+  const recheckSession = () => {
+    if (hasSessionRestoreEvidence()) {
+      connectRequested = false;
+      void startApplication();
+    }
+  };
+  window.addEventListener("storage", recheckSession);
+  window.addEventListener("pageshow", recheckSession);
+  document.addEventListener("visibilitychange", recheckSession);
+  stopWatching = () => {
+    window.removeEventListener("storage", recheckSession);
+    window.removeEventListener("pageshow", recheckSession);
+    document.removeEventListener("visibilitychange", recheckSession);
+  };
+  root.render(
+    <BootConnect
+      onConnect={() => void startApplication(true)}
+      onPasskey={() => void startApplication()}
+    />
+  );
+  recheckSession();
+  return pending ?? mounted();
 }

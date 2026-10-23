@@ -36,7 +36,7 @@ export function useInViewReveal<T extends HTMLElement = HTMLElement>(
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
-          if (entry.isIntersecting) {
+          if (entry.isIntersecting && entry.intersectionRatio >= threshold) {
             setRevealed(true);
             if (once) observer.disconnect();
           } else if (!once) {

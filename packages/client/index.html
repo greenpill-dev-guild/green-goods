@@ -74,33 +74,82 @@
          the selected theme rather than the OS scheme. -->
     <meta name="theme-color" content="%PWA_THEME_COLOR_LIGHT%" data-light="%PWA_THEME_COLOR_LIGHT%" data-dark="%PWA_THEME_COLOR_DARK%" />
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <!-- Plus Jakarta Sans (the installed app's face, shared with the cockpit). The
-         media query keeps it off the website's critical path: a browser tab fetches
-         it late and never waits for it, and its font files load only where it
-         applies. The boot detector below turns it on wherever it picks the PWA
-         presentation, a local override included. -->
-    <link
-      id="boot-pwa-face"
-      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap"
-      rel="stylesheet"
-      media="(display-mode: standalone), (display-mode: fullscreen), (display-mode: window-controls-overlay)"
-    />
-    <!-- Inter (sans, the public website's body, nav and UI). -->
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
-      rel="stylesheet"
-    />
-    <!-- Fraunces (editorial serif, public-browser headlines + stat numbers). -->
-    <!-- To trial a different serif, swap the family below AND `--font-serif` in shared theme.css. -->
-    <!-- See packages/client/DESIGN.browser.md → Typography → Serif options. -->
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&display=swap" />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&display=swap"
-      rel="stylesheet"
-    />
+    <!-- Same variable typefaces, served locally; Latin covers English, Spanish and Portuguese. -->
+    <link rel="preload" href="%BASE_URL%fonts/inter-latin-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link id="boot-pwa-face" href="%BASE_URL%fonts/pwa.css" rel="stylesheet" media="(display-mode: standalone), (display-mode: fullscreen), (display-mode: window-controls-overlay)" />
+    <style id="local-fonts">
+      @font-face {
+        font-family: 'Inter';
+        font-style: italic;
+        font-weight: 100 900;
+        font-display: swap;
+        src: url(%BASE_URL%fonts/inter-latin-ext-italic.woff2) format('woff2');
+        unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+      }
+
+      @font-face {
+        font-family: 'Inter';
+        font-style: italic;
+        font-weight: 100 900;
+        font-display: swap;
+        src: url(%BASE_URL%fonts/inter-latin-italic.woff2) format('woff2');
+        unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+      }
+
+      @font-face {
+        font-family: 'Inter';
+        font-style: normal;
+        font-weight: 100 900;
+        font-display: swap;
+        src: url(%BASE_URL%fonts/inter-latin-ext-normal.woff2) format('woff2');
+        unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+      }
+
+      @font-face {
+        font-family: 'Inter';
+        font-style: normal;
+        font-weight: 100 900;
+        font-display: swap;
+        src: url(%BASE_URL%fonts/inter-latin-normal.woff2) format('woff2');
+        unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+      }
+
+      @font-face {
+        font-family: 'Fraunces';
+        font-style: italic;
+        font-weight: 400 700;
+        font-display: swap;
+        src: url(%BASE_URL%fonts/fraunces-latin-ext-italic.woff2) format('woff2');
+        unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+      }
+
+      @font-face {
+        font-family: 'Fraunces';
+        font-style: italic;
+        font-weight: 400 700;
+        font-display: swap;
+        src: url(%BASE_URL%fonts/fraunces-latin-italic.woff2) format('woff2');
+        unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+      }
+
+      @font-face {
+        font-family: 'Fraunces';
+        font-style: normal;
+        font-weight: 400 700;
+        font-display: swap;
+        src: url(%BASE_URL%fonts/fraunces-latin-ext-normal.woff2) format('woff2');
+        unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+      }
+
+      @font-face {
+        font-family: 'Fraunces';
+        font-style: normal;
+        font-weight: 400 700;
+        font-display: swap;
+        src: url(%BASE_URL%fonts/fraunces-latin-normal.woff2) format('woff2');
+        unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+      }
+    </style>
 
     <title>%PWA_APP_NAME%</title>
     <script id="boot-theme">
@@ -276,6 +325,27 @@
         if (mode === "website") {
           document.documentElement.dataset.bootHero = heroVariant;
           if (threeLineTitle) document.documentElement.dataset.bootTitle = "three-lines";
+          // Discover the homepage's actual paint assets before its route modules.
+          // Installed entry and other public pages keep their own resource priorities.
+          if (heroVariant === "fullscreen") {
+            var image = document.createElement("link");
+            image.rel = "preload";
+            image.as = "image";
+            image.href = window.matchMedia("(max-aspect-ratio: 3/4)").matches
+              ? "%BASE_URL%images/hero-home-portrait.avif"
+              : "%BASE_URL%images/hero-home-optimized.avif";
+            image.fetchPriority = "high";
+            document.head.appendChild(image);
+            ["normal", "italic"].forEach(function (style) {
+              var font = document.createElement("link");
+              font.rel = "preload";
+              font.as = "font";
+              font.type = "font/woff2";
+              font.crossOrigin = "anonymous";
+              font.href = "%BASE_URL%fonts/fraunces-latin-" + style + ".woff2";
+              document.head.appendChild(font);
+            });
+          }
         }
       })();
     </script>
@@ -966,7 +1036,7 @@
                 <img
                   class="boot-editorial-logo"
                   alt=""
-                  src="%BASE_URL%icon.png"
+                  src="%BASE_URL%images/brand-mark-small.webp"
                   width="56"
                   height="32"
                 />
@@ -1155,6 +1225,7 @@
         var recoveryRegistration;
         var recoveryInstallingWorker;
         var recoveryInFlight = false;
+        var appReady = false;
 
         var PWA_RECOVERY_TIMEOUT_MS = 15000;
 
@@ -1382,6 +1453,7 @@
         }
 
         function clearFallback() {
+          appReady = true;
           if (!hasAppContent()) return;
           if (timer) window.clearTimeout(timer);
           if (updateTimer) window.clearTimeout(updateTimer);
@@ -1407,6 +1479,10 @@
           // raises it, has to stay armed — or a slow restore flashes blank.
           // The observer re-enters here as soon as React paints.
           if (!hasAppContent()) return;
+          if (appReady) {
+            clearFallback();
+            return;
+          }
           if (timer) window.clearTimeout(timer);
           if (observer) observer.disconnect();
 

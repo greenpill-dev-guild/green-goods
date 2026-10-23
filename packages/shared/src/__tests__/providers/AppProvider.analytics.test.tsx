@@ -49,4 +49,46 @@ describe("AppProvider PostHog key selection", () => {
     await Promise.resolve();
     expect(initializePostHogMock).not.toHaveBeenCalled();
   });
+
+  it("renders content while the public shell holds the analytics transport", async () => {
+    let ready = () => {};
+    const cancel = vi.fn();
+    render(
+      <AppProvider
+        posthogKey="public-key"
+        scheduleTelemetry={(start) => {
+          ready = start;
+          return cancel;
+        }}
+      >
+        <span>public reading content</span>
+      </AppProvider>
+    );
+    expect(screen.getByText("public reading content")).toBeInTheDocument();
+    await Promise.resolve();
+    expect(initializePostHogMock).not.toHaveBeenCalled();
+    ready();
+    await waitFor(() => expect(initializePostHogMock).toHaveBeenCalledWith("public-key"));
+  });
+
+  it("cancels public startup work when its provider unmounts", async () => {
+    let ready = () => {};
+    const cancel = vi.fn();
+    const { unmount } = render(
+      <AppProvider
+        posthogKey="public-key"
+        scheduleTelemetry={(start) => {
+          ready = start;
+          return cancel;
+        }}
+      >
+        <span>content</span>
+      </AppProvider>
+    );
+    unmount();
+    expect(cancel).toHaveBeenCalledOnce();
+    ready();
+    await Promise.resolve();
+    expect(initializePostHogMock).not.toHaveBeenCalled();
+  });
 });

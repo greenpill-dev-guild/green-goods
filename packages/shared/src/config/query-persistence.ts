@@ -12,18 +12,20 @@ import {
 } from "@tanstack/react-query";
 import { debugWarn } from "../utils/debug";
 import {
-  LEGACY_SNAPSHOT_KEY,
   type LegacySnapshotSource,
-  deleteDatabase,
   isLegacySnapshot,
   readLegacySnapshot,
 } from "./query-persistence-legacy";
 export type { LegacySnapshotSource };
 import { answeredAt, createReadingCacheStore } from "./query-persistence-stores";
-import { createWebQueryStore } from "./query-persistence-tiers";
-import { PERSIST_MAX_AGE, QUERY_CACHE_SCHEMA_VERSION } from "./query-cache-policy";
+import {
+  PERSIST_MAX_AGE,
+  QUERY_CACHE_SCHEMA_VERSION,
+  QUERY_CACHE_STORAGE_PREFIX as DEFAULT_PREFIX,
+} from "./query-cache-policy";
 
 export { PERSIST_MAX_AGE, QUERY_CACHE_SCHEMA_VERSION } from "./query-cache-policy";
+export { clearPersistedQueryClient } from "./query-persistence-clear";
 export {
   isDurableWorkRead,
   isOfflineReadModelQuery,
@@ -41,7 +43,6 @@ export const CLIENT_QUERY_CACHE_STORE = "queries";
 export const LEGACY_CLIENT_QUERY_CACHE = { dbName: "gg-react-query", storeName: "rq" } as const;
 
 const DEFAULT_STORE_NAME = "queries";
-const DEFAULT_PREFIX = "gg";
 const DEFAULT_RESTORE_TIMEOUT_MS = 1_500;
 const LEGACY_BUSTER = /^(?:dev|[a-f0-9]{7,40})$/i;
 
@@ -331,25 +332,4 @@ export function createShouldDehydrateQuery({
 
     return !excludedGroups.includes(String(key[1] ?? ""));
   };
-}
-
-/**
- * Forget an app's persisted reads, including any snapshot an older build left
- * behind. Drafts and settings that share the `gg-` prefix in web storage stay:
- * the admin's boot recovery offers this as clearing cached data only. Best
- * effort and never throws.
- */
-export async function clearPersistedQueryClient(
-  options: Pick<CreateQueryPersistenceOptions, "dbName" | "legacy">
-): Promise<void> {
-  await deleteDatabase(options.dbName);
-  if (options.legacy) await deleteDatabase(options.legacy.dbName);
-  try {
-    const storage = resolveDefaultStorage();
-    if (!storage) return;
-    storage.removeItem(LEGACY_SNAPSHOT_KEY);
-    await createWebQueryStore(storage, DEFAULT_PREFIX).clear();
-  } catch (error) {
-    debugWarn("[Persister] Failed to clear the storage cache:", { error });
-  }
 }

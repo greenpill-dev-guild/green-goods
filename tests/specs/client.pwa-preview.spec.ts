@@ -81,6 +81,14 @@ test("production navigation cache restores the anonymous shell offline and is re
   await expectStableLogoHandoff(page, 177);
   await expect(page).toHaveURL(/\/home\/login\?presentation=pwa$/);
   expect(await page.evaluate(() => navigator.onLine)).toBe(false);
+  const offlineFonts = await page.evaluate(async () => {
+    const faces = await document.fonts.load('400 16px "Plus Jakarta Sans"');
+    return faces.map((face) => face.status);
+  });
+  expect(
+    offlineFonts,
+    "The installed face must load with page and worker requests blocked"
+  ).toEqual(["loaded"]);
   await info.attach("production-offline-shell", {
     body: await page.screenshot(),
     contentType: "image/png",

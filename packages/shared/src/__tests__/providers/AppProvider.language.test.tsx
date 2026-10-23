@@ -120,4 +120,20 @@ describe("AppProvider page language", () => {
     expect(new Set(renders.map(([language]) => language))).toEqual(new Set(["en"]));
     expect(document.documentElement.lang).toBe("en");
   });
+
+  it("uses a surface catalogue and retains the shared English recovery path", async () => {
+    localStorage.setItem("gg-language", "pt");
+    const importCatalogue = vi.fn(async (locale: "en" | "pt" | "es") => {
+      if (locale !== "en") throw new Error("public catalogue not cached");
+      return { locale, messages: { "app.common.close": "Public close" } };
+    });
+    render(
+      <AppProvider allowPosthogKeyFallback={false} importCatalogue={importCatalogue}>
+        <LanguageProbe />
+      </AppProvider>
+    );
+    expect(await screen.findByText("Public close")).toBeInTheDocument();
+    expect(importCatalogue.mock.calls.map(([locale]) => locale)).toEqual(["pt", "en"]);
+    expect(document.documentElement.lang).toBe("en");
+  });
 });
