@@ -85,7 +85,7 @@ test("production navigation cache restores the anonymous shell offline and is re
   const fontResponses: { path: string; worker: boolean }[] = [];
   page.on("response", (response) => {
     const path = new URL(response.url()).pathname;
-    if (/\/fonts\/jakarta-latin-(normal|italic)\.woff2$/.test(path)) {
+    if (/\/fonts\/jakarta-(latin|vietnamese)-(normal|italic)\.woff2$/.test(path)) {
       fontResponses.push({ path, worker: response.fromServiceWorker() });
     }
   });
@@ -125,6 +125,21 @@ test("production navigation cache restores the anonymous shell offline and is re
     offlineFonts,
     "The installed face must load with page and worker requests blocked"
   ).toEqual([[{ style: "normal", status: "loaded" }], [{ style: "italic", status: "loaded" }]]);
+  // The vietnamese subset carries the dot-below letters of Yoruba and Igbo names
+  // (ẹ, ọ, ị, ụ), which extended Latin skips; it comes from the precache too.
+  const dotBelowRanges = await page.evaluate(async () =>
+    (await document.fonts.load('400 16px "Plus Jakarta Sans"', "Ọmọ"))
+      .filter((face) => face.status === "loaded")
+      .map((face) => face.unicodeRange)
+  );
+  expect(
+    dotBelowRanges.some((range) => /u\+1ea0-1ef9/i.test(range)),
+    "The dot-below letters must draw in the installed face offline"
+  ).toBe(true);
+  expect(fontResponses).toContainEqual({
+    path: "/fonts/jakarta-vietnamese-normal.woff2",
+    worker: true,
+  });
   await info.attach("production-offline-shell", {
     body: await page.screenshot(),
     contentType: "image/png",
