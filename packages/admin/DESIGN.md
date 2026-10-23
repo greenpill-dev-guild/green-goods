@@ -115,9 +115,9 @@ Color roles:
 - `--tone-on-action` is the text/icon color on filled action backgrounds.
 - `--tone-primary-container` / `--tone-on-primary-container` are the active-selection container pair (nav pill, active tab count chips).
 - `--tone-on-surface-accent` is for colored text/icons on solid surfaces.
-- `--tone-focus-ring` is the only focus-ring role; it resolves to action tone in light mode and on-surface accent in dark mode.
+- `--tone-focus-ring` is the cockpit's value of the one focus role; it resolves to action tone in light mode and on-surface accent in dark mode, and the shared controls draw it as one solid 2px ring (DL-098). The installed app sets the same role to its green.
 - `--tone-surface-tint-color` feeds only the canvas wash.
-- `--m3-outline` is the control-grade boundary for fields, chips, and outlined buttons.
+- `--m3-outline` is the control-grade boundary for fields, chips, and outlined buttons; the shared fields, chips and secondary buttons draw it through `--gg-control-outline` (DL-098).
 - `--m3-outline-variant` is a decorative hairline, not a control boundary.
 - Deleted tone roles (do not reintroduce): `--tone-canvas`, `--tone-strength`, `--tone-tint`, `--tone-tint-2`, `--tone-accent`, `--tone-secondary`, `--tone-outline`, `--tone-surface-variant`.
 

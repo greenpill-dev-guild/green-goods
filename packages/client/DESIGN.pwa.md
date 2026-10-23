@@ -76,6 +76,7 @@ The PWA inherits the Warm Earth core and the cockpit's ground (DL-097):
 - White cards on the linen canvas (`bg-canvas`), with a `neutral-200` card hairline so a card still reads on linen. In dark the canvas is the Earth ramp's warm floor and a card sits ten points of lightness above it, so a card never blends into the ground.
 - A bar that covers scrolled content paints the canvas: the top bar, the garden header and its tab row, the pinned promise and the Profile header. The tab row and the garden title block take the ground they sit on, so a tab row inside a sheet takes the sheet's surface.
 - The browser's status bar and the install manifest take the app's ground: linen, and the warm floor in dark. A browser tab keeps the website's white.
+- Fields, chips and secondary buttons draw the control outline, neutral-500 (neutral-400 in dark). Focus is one solid 2px ring in the app's green, mint in dark, and button labels are weight 500, the cockpit's (DL-098).
 
 Green accents follow one theme-aware rhythm (DL-086, DL-088; PRD-1150):
 - Green labels, icons, active navigation marks, indicator bars, selection borders, switches, radio buttons and checkboxes use `--primary-on-surface`: deep green in light and pale mint `tertiary-dark` (`#C2F5DA`) in dark.
