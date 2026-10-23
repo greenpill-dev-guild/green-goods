@@ -12,6 +12,10 @@ The [current account/provider record](handoffs/codex-gnosis-account-provider-pro
 passing fictional Gnosis cases and all still-open live prerequisites. No production profile or
 migration is approved by these tests.
 
+Distinguish default batch rollback from validator cleanup failure that Kernel records without
+reverting. The native batch candidate remains unexecuted and unapproved; its offline encoding
+proof clears no migration, actual-member or hosted-provider gate.
+
 **Preceding blocker/readiness proof, 22 October:** require the source-structure gate against
 refreshed origin/develop, complete compiled ABI equality, unchanged recursive linear/namespaced
 storage, production sizes and the complete selected contract override after internal extraction.

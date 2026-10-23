@@ -143,6 +143,52 @@ In Progress with no approved evidence supplied; no newer issuer approval is asse
 Contracts remain in progress; broader UI/state API/manual/release blockers and overall backlog
 are preserved. The prompt-preparation chat receives the root-mode clarification and these limits.
 
+## Native batch candidate review, 22 October Pacific
+
+The two-call native Kernel candidate is insufficient to guarantee atomic credential cleanup.
+This is a source review and offline encoding result, not an executed or approved migration.
+The [review artifact](../artifacts/member-native-batch-review-2026-10-22.json) records exact
+source hashes, source locations, the encoded mode and current primary provider references.
+
+All 23 Kernel source hashes and the complete compiler-input hash match the earlier verified
+rebuild. Kernel's existing `execute` can call its own `changeRootValidator` followed by
+`uninstallModule`; the entrypoint/self/root-hook guards still own authority. The installed
+permissionless 0.2.57 encoder produces default batch mode `0x0100`, which propagates subcall
+reverts. Its misleading `revertOnError=true` option instead produces Kernel TRY mode `0x0101`,
+which records failed subcalls and continues. Inspect bytes rather than inferring semantics
+from that option name.
+
+There is a separate failure boundary inside uninstall: `_uninstallValidation` clears the
+module's validation hook, then ignores `ModuleLib.uninstallModule`'s boolean result.
+`ModuleLib` emits `ModuleUninstallResult` when the validator's `onUninstall` fails, without
+propagating that failure. **Inference from source:** even default batch mode can finish with
+the legacy module disabled but its validator-local owner key uncleared. This does not
+establish remaining signing authority; it does disprove an unconditional cleanup guarantee.
+A candidate needs explicit, exact postconditions and their failure proof before adoption.
+No replacement helper, account initializer, validator deployment or production policy was added.
+
+Four checks in the [offline runner](../proofs/member-migration/native-batch-encoding-proof.mjs)
+cover the actual installed encoder's default mode, ordered zero-value account self-calls and
+fixture owner data, TRY-mode distinction, and empty-call rejection. They use no signer, RPC
+or account deployment. They prove encoding, not EVM rollback, authorization, replay, retry,
+recovery, credential possession or provider acceptance. The existing execution proofs retain
+their dated scope: account creation and nonce consumption can survive an execution failure.
+The first offline attempt exposed a mixed-case hex assertion in this fixture; its corrected
+byte-equivalent comparison passes. This is no product RED/GREEN claim.
+
+Primary documentation rechecked on 22 October Pacific still lists Gnosis EntryPoint 0.7
+bundler/paymaster support and marks Kernel 0.3.1 unsupported in
+[Pimlico's account matrix](https://docs.pimlico.io/guides/supported-chains#gnosis).
+[Alchemy's Wallet API matrix](https://www.alchemy.com/docs/wallets/supported-chains) still
+omits Gnosis. No hosted endpoint or sponsorship policy was tested. These references clear
+no account, provider, recovery, actual-member, issuer or live gate.
+
+The replacement continuation preserves the preceding platform error: content was flagged
+for possible cybersecurity risk without identifying a specific unsafe operation. It grants
+no authority to circumvent a safety decision, alter permissions or disable safeguards.
+Action-specific rejections remain binding. Private chat identifiers and transcripts stay
+outside repository artifacts.
+
 Task record: Cosmo-Local account/provider proof | Type: investigation/proof | Outcome: partial
 Agent/model: Codex / exact model unknown | Coverage: this continuation only
 

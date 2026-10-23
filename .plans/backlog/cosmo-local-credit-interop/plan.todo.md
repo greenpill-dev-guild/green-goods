@@ -22,6 +22,9 @@ Keep validated commits local and all live/manual gates open.
 - [x] Distinguish node RPC, exact account/EntryPoint bundler support and sponsorship.
 - [x] Trace patched-root signing at the original fictional address after legacy uninstall.
 - [ ] Resolve the same-address bootstrap/migration and exact hosted provider prerequisites.
+  The 22 October [native batch review](handoffs/codex-gnosis-account-provider-proof.md#native-batch-candidate-review-22-october-pacific)
+  finds that uninstall can ignore validator cleanup failure; offline encoding passes, but this
+  candidate does not establish atomic credential cleanup or migration readiness.
 - [ ] Prove actual member possession, browser signing, sponsorship and recovery.
 
 The preceding source-size/Admin story blockers were repaired in signed local commits
