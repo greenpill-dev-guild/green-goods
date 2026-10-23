@@ -284,7 +284,7 @@ Green Goods uses a **four-role volume hierarchy** anchored in the root `DESIGN.m
 
 | Role | Volume | Color | Internal Token | Job |
 |------|--------|-------|----------------|-----|
-| **Neutral (canvas)** | 80-90% | Warm linen: #FAF8F5 / dark #1C1917 | `--bg-white-0`, `--bg-weak-50` | Background, breathing room |
+| **Neutral (canvas)** | 80-90% | Warm linen: #FAF8F5 / dark #110C08 | `--bg-canvas` (the ground), `--bg-white-0` (cards), `--bg-weak-50` | Background, breathing room |
 | **Primary (ink)** | 8-15% | Warm charcoal: #292524 / dark #F5F5F4 | `--text-strong-950` | Headings, body, core content |
 | **Secondary (stone)** | 3-5% | Earth stone: #78716C / dark #A8A29E | `--text-sub-600` | Metadata, borders, labels |
 | **Tertiary (accent)** | 1-3% | Garden green: #1FC16B | `--color-primary` | CTAs, active states, value-flow moments |
@@ -349,20 +349,22 @@ Colors must read well through translucent glass surfaces. Considerations:
 
 ### Dark Mode Palette (Admin)
 
-Admin dark mode is a **deliberate palette, not a light inversion**. Three rules carry it; all values live in admin-scoped files (`packages/admin/src/index.css`, `admin-m3-tokens.css`) so the client PWA is untouched. Toggle is `[data-theme="dark"]` on `<html>`.
+Dark mode is a **deliberate palette, not a light inversion**. Three rules carry it. The warm surface ladder is the Earth ramp in shared `theme.css`, and both surfaces build on it (DL-097): the cockpit through its `--m3-*` roles in `admin-m3-tokens.css`, the installed app through `--bg-canvas` and the Warm Earth surface tokens. The tones and the elevation ladder stay in admin-scoped files (`packages/admin/src/index.css`, `admin-m3-tokens.css`), and the public website keeps its own dark ground. Toggle is `[data-theme="dark"]` on `<html>`.
 
-**1. Warm surface ladder (Warm Earth at low lightness).** Surfaces keep a constant warm hue (~65 OKLCH) with raised chroma so they read warm even when dark. Following the M3-dark convention, **higher elevation = lighter**: the card sits a clear lightness step above the canvas, so separation comes from *tonal lift, not a drop shadow* (black shadows are invisible on near-black).
+**1. Warm surface ladder (Warm Earth at low lightness).** Surfaces keep a constant warm hue (~65 OKLCH) with raised chroma so they read warm even when dark. Following the M3-dark convention, **higher elevation = lighter**: the card sits ten points of OKLCH lightness above the canvas (1.26:1), so separation comes from *tonal lift, not a drop shadow* (black shadows are invisible on near-black).
 
-| Role (`--m3-*`) | OKLCH intent | RGB triplet | Job |
-|---|---|---|---|
-| `surface` / `surface-dim` | `16% .012 65` | `17 12 8` | Canvas floor |
-| `surface-container-lowest` | `13% .010 65` | `10 7 4` | Sunken wells |
-| `surface-container-low` | `19% .014 65` | `24 19 13` | Quiet grouping |
-| `surface-container` | `22% .015 65` | `32 25 19` | **Default card** |
-| `surface-container-high` | `26% .016 65` | `42 35 28` | Sheet / dialog |
-| `surface-container-highest` | `30% .018 65` | `52 44 36` | Active / hover, chips |
+| Role (`--m3-*`) | Earth step | OKLCH intent | RGB triplet | Job (the installed app's token) |
+|---|---|---|---|---|
+| `surface` / `surface-dim` | `--earth-950` | `16% .012 65` | `17 12 8` | Canvas floor (`--bg-canvas`) |
+| `surface-container-lowest` | `--earth-975` | `13% .010 65` | `10 7 4` | Sunken wells |
+| `surface-container-low` | `--earth-925` | `19% .014 65` | `24 19 13` | Quiet grouping (`--bg-weak-50`, info cards) |
+| `surface-container` | `--earth-850` | `26% .016 65` | `42 35 28` | **Default card** (`--bg-white-0`) |
+| `surface-container-high` | `--earth-800` | `30% .018 65` | `52 44 36` | Sheet / dialog inner; chips and fills on a card (`--bg-soft-200`) |
+| `surface-container-highest` / `surface-bright` | `--earth-750` | `34% .019 65` | `62 52 44` | Active / hover (`--bg-sub-300`) |
 
-**2. Ring-forward elevation.** Depth is a warm-white hairline ring (`--neutral-50` at low opacity, stepping across the single `--m3-elevation-0/1/2` ladder) plus a small black blur only for chrome floating over content, never a black drop shadow as the primary cue. The dark canvas stays constant; the only workspace atmosphere is the same faint `--tone-surface-tint-color` top wash as light (10% in dark, fading to transparent by 320px). The per-workspace canvas hue wash is retired.
+The installed app's dark card hairline is `--earth-700` (`67 61 55`, the ink at 12% over the card); the cockpit's card takes the ring below instead.
+
+**2. Ring-forward elevation.** Depth is a warm-white hairline ring (`--neutral-50` at low opacity, 8% on the resting card, stepping across the single `--m3-elevation-0/1/2` ladder) plus a small black blur only for chrome floating over content, never a black drop shadow as the primary cue. The dark canvas stays constant; the only workspace atmosphere is the same faint `--tone-surface-tint-color` top wash as light (10% in dark, fading to transparent by 320px). The per-workspace canvas hue wash is retired.
 
 **3. Per-view accents (tonal, DL-009).** `--tone-primary` feeds `--m3-primary`, which components consume **both** as a fill **and** as on-surface text/icon/link color, so it stays **light** (the `-200` step). Since DL-009 (2026-08-29), dark **filled actions are tonal too**: `--tone-action` is the same `-200` step carrying `-900` ink (`--tone-on-action`), with hover one step *lighter* (`-100`), following the M3-dark convention (filled surfaces go light, text goes deep; higher = lighter). The pre-DL-009 dark strategy (deep fill + white text) is retired. Never set `--tone-primary` to a deep step: it would make tone-colored links/icons unreadable.
 
@@ -379,11 +381,12 @@ Admin dark mode is a **deliberate palette, not a light inversion**. Three rules 
 **Light mode follows the same discipline** (applied 2026-07-03 after a 190-pair audit):
 
 - **Dual-safe light tones**: light garden is `green-800` (5.7:1 both as white-text fill and as text on white; green-600/700 failed one or both), light actions `purple-700` (7.93; DL-045 moved Actions off the error red), light home `neutral-600`. Hub and community light already passed and are unchanged.
-- **Light surfaces are the linen ladder**: the M3 containers ride a warm linen family (constant hue ~85, chroma .005–.012, in `admin-m3-tokens.css`), not gray Tailwind neutrals; cards and sheets stay white. This mirrors dark's hue-65 ladder so both modes carry Warm Earth.
+- **Light surfaces are the linen ladder**: the M3 containers ride a warm linen family (constant hue ~85, chroma .005–.012, in `admin-m3-tokens.css`), not gray Tailwind neutrals; cards and sheets stay white. This mirrors dark's hue-65 ladder so both modes carry Warm Earth. The installed app takes the same ground (DL-097): white cards on the linen canvas, with a `neutral-200` card hairline (1.18:1 on linen).
 - **`--tone-focus-ring`** is the only token for focus indicators: = `--tone-action` in light, = `--tone-on-surface-accent` in dark (deep fills measure 2.3–2.7 against dark surfaces, below the 3:1 non-text minimum). Never ring with `--tone-action` directly.
 - **State roles:** `-dark` steps for text/icons (they flip per mode: `-950` in light, `-400` in dark), `-lighter`+`-dark` for badges, `-base` for **fills only**. Admin-scope class backstops re-point stray `text-*-base` usages, but new code writes `text-*-dark`. The brand green `#1FC16B` (`--primary-base`) remains for soft highlights and brand decoration. Any green fill that carries text, a number, or a glyph (count badges, step markers, selected chips, pills, audio play/pause) uses the `--primary-action` / `--primary-action-foreground` pair: deep green with white content in light (DL-017), pale mint `tertiary-dark` (`#C2F5DA`) with near-black `on-tertiary-dark` (`#0C0A09`) ink in the dark PWA (16.34:1; DL-088). Dark PWA hover uses `tertiary-dark-hover` (`#84EBB4`). PWA green labels, icons, navigation indicators, selection borders, switches and native selection controls share `--primary-on-surface` (DL-086, DL-088; PRD-1150): `green-800` in light (5.72:1 on white), mint in dark (12.55:1 on the highest dark surface). The mint aliases are scoped to PWA presentation and Storybook app surfaces; public and admin retain their own palettes. `--primary-dark` stays deep and is not a PWA text role (DL-053). Domain and status roles retain their independent colors.
 - **Client error fills:** a red fill that carries white text (the filled danger button, error badges) uses `--error-action` (`red-700`, 5.26:1) with hover and press on `--error-action-hover` (`red-800`, 6.98:1), in both themes; `--error-base` stays for text-free marks and tints (DL-053).
-- **`--m3-error`** is `red-700`+white in light, a light red (`248 113 113`)+ink in dark (the M3-dark error convention). **`--m3-outline`** is control-grade (≥3:1: form fields, chips, outlined buttons); `--m3-outline-variant` stays the decorative hairline.
+- **`--m3-error`** is `red-700`+white in light, `red-400`+ink in dark (the M3-dark error convention; 5.5:1 as text on the card, 7.1:1 under ink).
+- **Colored text on the lifted card** (DL-097): lifting the dark card costs colored text about a fifth of its contrast, so three text roles take one lighter step in dark on both surfaces: `--error-base` red-400 (5.52:1 on the card), `--feature-dark` purple-300 (6.30:1) and `--information-base` blue-400 (5.41:1). **`--m3-outline`** is control-grade (≥3:1: form fields, chips, outlined buttons); `--m3-outline-variant` stays the decorative hairline.
 
 ---
 
