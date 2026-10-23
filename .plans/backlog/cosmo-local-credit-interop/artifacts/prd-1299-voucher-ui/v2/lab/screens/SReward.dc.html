@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Request rewards</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./gg.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="gg {{themeCls}}" lang="{{lang}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <div class="scr" style="padding-bottom: {{padBottom}}" inert="{{baseHidden}}">
+    <div class="topnav">
+      <a class="close" href="Visit.dc.html" aria-label="{{backLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></a>
+    </div>
+    <div class="ident">
+      <span class="kind"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-hand-heart-line"/></svg>{{kindLine}}</span>
+      <h1>{{title}}</h1>
+      <p class="para">{{desc}}</p>
+    </div>
+    <sc-if value="{{hasNext}}" hint-placeholder-val="{{false}}">
+      <div class="stack" style="margin-top: 12px">
+        <div class="notice {{nextCls}}" role="status"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="{{nextIcon}}"/></svg>{{nextT}}</span><p>{{nextB}}</p></div>
+      </div>
+    </sc-if>
+    <div class="sec"><h2>{{getTitle}}</h2></div>
+    <div class="hlist">
+      <sc-for list="{{rewards}}" as="r" hint-placeholder-count="2">
+        <div class="hrow" style="cursor: default"><span class="ht {{r.tile}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="{{r.icon}}"/></svg></span>
+          <span class="hb"><span class="hn">{{r.name}}</span><span class="hd">{{r.sub}}</span></span>
+          <span class="ha"><span class="pill {{r.cls}}">{{r.state}}</span></span></div>
+      </sc-for>
+    </div>
+    <div class="mx16 card" style="margin-top: 12px">
+      <div class="pad" style="padding-bottom: 6px"><h2 class="h3">{{routeTitle}}</h2></div>
+      <div class="qa">
+        <sc-for list="{{qa}}" as="q" hint-placeholder-count="4">
+          <div class="qrow"><span class="qi"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="{{q.icon}}"/></svg></span><span class="qt"><span class="qk">{{q.k}}</span><span class="qv">{{q.v}}</span><span class="qs">{{q.s}}</span></span></div>
+        </sc-for>
+      </div>
+      <details class="tech">
+        <summary style="cursor: pointer; font-weight: 600">{{techLabel}}</summary>
+        <sc-for list="{{tech}}" as="x" hint-placeholder-count="3"><span>{{x}}</span></sc-for>
+      </details>
+    </div>
+  </div>
+  <sc-if value="{{hasAct}}" hint-placeholder-val="{{true}}">
+    <div class="fbar col"><div class="fbtns"><a class="btn" href="{{actHref}}">{{act}}</a></div></div>
+  </sc-if>
+  <sc-if value="{{sheet}}" hint-placeholder-val="{{false}}">
+    <div class="scrim"></div>
+    <section class="sheet full" role="dialog" aria-modal="true" aria-labelledby="rw-title">
+      <div class="grip"></div>
+      <div class="shead">
+        <div><h2 class="stitle" id="rw-title">{{shTitle}}</h2><p class="sdesc">{{title}}</p></div>
+        <a class="close" href="#" aria-label="{{closeLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></a>
+      </div>
+      <div class="sbody">
+        <div class="card"><div class="facts">
+          <sc-for list="{{shFacts}}" as="f" hint-placeholder-count="4"><div class="fact"><span class="k">{{f.k}}</span><span class="v"><span>{{f.v}}</span><small>{{f.s}}</small></span></div></sc-for>
+          <div class="fact"><span class="k">{{termsLabel}}</span><span class="v"><a class="tlink" href="#">{{readTerms}}</a></span></div>
+        </div></div>
+        <p class="small" style="font-size: 13px; line-height: 18px">{{consent}}</p>
+      </div>
+      <div class="sacts">
+        <a class="btn" href="#">{{shCta}}</a>
+        <p class="foot">{{passkey}}</p>
+      </div>
+    </section>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"kind":{"editor":"enum","options":["Vouchers + G$","Vouchers only"],"default":"Vouchers + G$","section":"State"},"state":{"editor":"enum","options":["Open","Agree","In progress","Both on the way","Vouchers in, G$ on the way","Reserve short","G$ delayed","Received"],"default":"Open","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var t = GGT(this.props.lang);
+    var both = (this.props.kind ?? 'Vouchers + G$') === 'Vouchers + G$';
+    var st = this.props.state ?? 'Open';
+    var dark = this.props.dark ?? false;
+    if (!both && (st === 'Vouchers in, G$ on the way' || st === 'G$ delayed')) st = 'Received';
+    var n = both ? 20 : 10, amt = 120;
+    var after = { 'Both on the way': 1, 'Vouchers in, G$ on the way': 1, 'Reserve short': 1, 'G$ delayed': 1, 'Received': 1 }[st];
+    var P = { pend: ['info', t('rw.s.pending')], recv: ['ok', t('rw.s.received')], wait: ['warn', t('rw.s.waiting')], late: ['warn', t('rw.s.delayed')], later: ['neu', t('rw.s.notYet')] };
+    var vs = !after ? 'later' : st === 'Reserve short' ? 'wait' : st === 'Both on the way' ? 'pend' : 'recv';
+    var gs = !after ? 'later' : st === 'G$ delayed' ? 'late' : (st === 'Received' || st === 'Reserve short') ? 'recv' : 'pend';
+    var vsub = { later: t('rw.vouS'), pend: t('rw.r.vouPend'), recv: t('rw.r.recv', { date: t.d('2026-12-12') }), wait: t('rw.r.vouShort') }[vs];
+    var gsub = { later: t('rw.gdS'), pend: t('rw.r.gdPend'), recv: t('rw.r.recv', { date: t.d('2026-12-12') }), late: t('rw.r.gdDelayed') }[gs];
+    var rewards = [{ tile: 'sun', icon: '#ri-coupon-3-line', name: t('rw.vou', { n: t.n(n) }), sub: vsub, cls: P[vs][0], state: P[vs][1] }];
+    if (both) rewards.push({ tile: 'gd', icon: '#ri-coins-line', name: t('rw.gd', { amt: t.g(amt) }), sub: gsub, cls: P[gs][0], state: P[gs][1] });
+    var NX = {
+      'In progress': ['info', '#ri-time-line', 'prog'],
+      'Both on the way': ['ok', '#ri-check-line', 'both'],
+      'Vouchers in, G$ on the way': ['info', '#ri-time-line', 'vin'],
+      'Reserve short': ['warn', '#ri-alert-line', both ? 'short' : 'shortV'],
+      'G$ delayed': ['warn', '#ri-alert-line', 'delayed'],
+      'Received': ['ok', '#ri-check-line', both ? 'done' : 'doneV']
+    }[st];
+    var vars = { n: t.n(n), amt: t.g(amt) };
+    var act = { 'Open': [t('rw.a.take'), '#'], 'In progress': [t('rw.a.work'), '#'], 'Received': [t('rw.a.wallet'), 'SWallet.dc.html'] }[st];
+    var sheet = st === 'Agree';
+    var shFacts = [{ k: t('rw.sh.work'), v: both ? t('rw.vg.give') : t('rw.v.give'), s: both ? t('rw.vg.giveS') : t('rw.v.giveS') },
+      { k: t('rw.sh.vou'), v: t('rw.sh.vouV', vars), s: t('rw.sh.vouS') }];
+    if (both) shFacts.push({ k: t('rw.sh.gd'), v: t('rw.sh.gdV', vars), s: t('rw.sh.gdS') });
+    return {
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code, backLabel: t('c.back'), closeLabel: t('c.close'),
+      baseHidden: sheet ? 'true' : 'false',
+      kindLine: t('rw.kind', { garden: t('who.rc') }), title: both ? t('rw.vg.title') : t('rw.v.title'), desc: both ? t('rw.vg.desc') : t('rw.v.desc'),
+      hasNext: !!NX, nextCls: NX ? NX[0] : '', nextIcon: NX ? NX[1] : '', nextT: NX ? t('rw.n.' + NX[2] + '.t', vars) : '', nextB: NX ? t('rw.n.' + NX[2] + '.b', vars) : '',
+      getTitle: t('rw.get'), rewards: rewards, routeTitle: t('rw.route'),
+      qa: [{ icon: '#ri-hammer-line', k: t('rw.q.give'), v: both ? t('rw.vg.give') : t('rw.v.give'), s: both ? t('rw.vg.giveS') : t('rw.v.giveS') },
+        { icon: '#ri-user-follow-line', k: t('rw.q.review'), v: t('rw.reviewV'), s: t('rw.reviewS') },
+        { icon: '#ri-git-branch-line', k: t('rw.q.arrive'), v: t('rw.arriveV'), s: both ? t('rw.arriveS') : t('rw.arriveSV') },
+        { icon: '#ri-archive-line', k: t('rw.q.aside'), v: t('rw.asideV'), s: t('rw.asideS') }],
+      techLabel: t('c.tech'), tech: both ? [t('rw.x.vou'), t('rw.x.gd'), t('rw.x.rec')] : [t('rw.x.vou'), t('rw.x.rec')],
+      hasAct: !!act && !sheet, act: act ? act[0] : '', actHref: act ? act[1] : '#',
+      padBottom: act ? '104px' : '40px',
+      sheet: sheet, shTitle: t('rw.sh.title'), shFacts: shFacts, termsLabel: t('c.terms'), readTerms: t('c.readTerms'),
+      consent: t('rw.sh.consent'), shCta: t('rw.sh.cta'), passkey: t('c.passkey')
+    };
+  }
+}
+</script>
+</body>
+</html>

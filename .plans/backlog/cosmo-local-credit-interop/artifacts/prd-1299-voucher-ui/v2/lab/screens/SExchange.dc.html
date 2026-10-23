@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Exchange</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./gg.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="gg {{themeCls}}" lang="{{lang}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <div class="scr" style="padding-bottom: 112px" inert="{{baseHidden}}">
+    <div class="topnav">
+      <a class="close" href="SOffer.dc.html" aria-label="{{backLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></a>
+    </div>
+    <div class="ident">
+      <span class="kind"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-exchange-line"/></svg>{{kindLine}}</span>
+      <h1>{{title}}</h1>
+      <p class="para">{{desc}}</p>
+    </div>
+    <div class="mx16 card" style="margin-top: 14px">
+      <div class="facts">
+        <div class="fact"><span class="k">{{spendLabel}}</span><span class="v"><span class="amt2" style="font-size: 20px; font-weight: 600">{{inAmt}}</span><small>{{inUnit}} · {{holdIn}}</small></span></div>
+        <div class="fact"><span class="k">{{getLabel}}</span><span class="v"><span class="amt2" style="font-size: 20px; font-weight: 600">{{outAmt}}</span><small>{{outUnit}} · {{afterFees}}</small></span></div>
+      </div>
+    </div>
+    <sc-if value="{{hasNotice}}" hint-placeholder-val="{{false}}">
+      <div class="stack" style="margin-top: 12px">
+        <div class="notice {{noticeCls}}" role="status"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="{{noticeIcon}}"/></svg>{{noticeT}}</span><p>{{noticeB}}</p></div>
+      </div>
+    </sc-if>
+    <sc-if value="{{isDone}}" hint-placeholder-val="{{false}}">
+      <div class="sec"><h2>{{rcTitle}}</h2></div>
+      <div class="mx16 receipt">
+        <sc-for list="{{receipt}}" as="r" hint-placeholder-count="4"><div class="rl"><span>{{r.k}}</span><span>{{r.v}}</span></div></sc-for>
+      </div>
+    </sc-if>
+    <div class="sec"><h2>{{quoteTitle}}</h2></div>
+    <div class="mx16 card">
+      <div class="facts">
+        <sc-for list="{{facts}}" as="f" hint-placeholder-count="5"><div class="fact"><span class="k">{{f.k}}</span><span class="v"><span>{{f.v}}</span><small>{{f.s}}</small></span></div></sc-for>
+      </div>
+      <details class="tech">
+        <summary style="cursor: pointer; font-weight: 600">{{techLabel}}</summary>
+        <sc-for list="{{tech}}" as="x" hint-placeholder-count="2"><span>{{x}}</span></sc-for>
+      </details>
+    </div>
+  </div>
+  <div class="fbar col" inert="{{baseHidden}}"><div class="fbtns">
+    <sc-if value="{{hasPrimary}}" hint-placeholder-val="{{true}}"><a class="btn" href="{{primaryHref}}">{{primary}}</a></sc-if>
+    <sc-if value="{{hasSecondary}}" hint-placeholder-val="{{false}}"><a class="btn sec" href="SOffer.dc.html">{{secondary}}</a></sc-if>
+  </div></div>
+  <sc-if value="{{sheet}}" hint-placeholder-val="{{false}}">
+    <div class="scrim"></div>
+    <section class="sheet tall" role="dialog" aria-modal="true" aria-labelledby="ex-title">
+      <div class="grip"></div>
+      <div class="shead">
+        <div><h2 class="stitle" id="ex-title">{{shTitle}}</h2><p class="sdesc">{{shSub}}</p></div>
+        <a class="close" href="#" aria-label="{{closeLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></a>
+      </div>
+      <div class="sbody">
+        <div class="card"><div class="facts">
+          <sc-for list="{{shFacts}}" as="f" hint-placeholder-count="4"><div class="fact {{f.cls}}"><span class="k">{{f.k}}</span><span class="v"><span>{{f.v}}</span><small>{{f.s}}</small></span></div></sc-for>
+        </div></div>
+        <p class="small" style="font-size: 13px; line-height: 18px">{{shNote}}</p>
+      </div>
+      <div class="sacts">
+        <sc-if value="{{busy}}" hint-placeholder-val="{{false}}"><button type="button" class="btn" disabled aria-busy="true"><svg class="i spin" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-loader-4-line"/></svg>{{shCta}}</button></sc-if>
+        <sc-if value="{{notBusy}}" hint-placeholder-val="{{true}}"><a class="btn" href="#">{{shCta}}</a></sc-if>
+        <p class="foot">{{passkey}}</p>
+      </div>
+    </section>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["Quote","Review","Approving","Waiting for result","Done","Quote expired","Pool short","Limit reached","Not listed"],"default":"Quote","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var t = GGT(this.props.lang);
+    var st = this.props.state ?? 'Quote';
+    var dark = this.props.dark ?? false;
+    var Q = { inA: 163.6, out: 80, pool: 1.64, proto: 0.16, fee: 1.8, min: 79.6, time: '14:05', avail: 42.1 };
+    var v = { in: t.g(Q.inA), out: t.g(Q.out), pool: t.g(Q.pool), proto: t.g(Q.proto), fee: t.g(Q.fee), min: t.g(Q.min), time: Q.time, avail: t.g(Q.avail), n: t.n(250) };
+    var facts = [
+      { k: t('ex.f.fees'), v: t('ex.f.feesV', v), s: t('ex.f.feesS', v) },
+      { k: t('ex.f.min'), v: t('ex.f.minV', v), s: t('ex.f.minS') },
+      { k: t('ex.f.until'), v: Q.time, s: t('ex.f.untilS') },
+      { k: t('ex.f.to'), v: t('ex.f.toV'), s: '' },
+      { k: t('ex.f.pool'), v: t('ex.f.poolV'), s: t('ex.f.poolS') }
+    ];
+    var NT = {
+      'Waiting for result': ['warn', '#ri-time-line', 'wait', 'check'],
+      'Done': ['ok', '#ri-check-line', 'done', 'back'],
+      'Quote expired': ['warn', '#ri-alert-line', 'expired', 'requote'],
+      'Pool short': ['warn', '#ri-alert-line', 'short', 'smaller'],
+      'Limit reached': ['warn', '#ri-alert-line', 'limit', null, 'back2'],
+      'Not listed': ['warn', '#ri-alert-line', 'listed', null, 'back2']
+    }[st];
+    var sheet = st === 'Review' || st === 'Approving';
+    var primary = NT ? NT[3] : 'review';
+    var receipt = [{ k: t('ex.rc.spent'), v: t.g(Q.inA) + ' ' + t('u.hillMany') }, { k: t('ex.rc.got'), v: t.g(Q.out) + ' ' + t('u.sunMany') },
+      { k: t('ex.rc.fees'), v: t.g(Q.fee) + ' ' + t('u.sunMany') }, { k: t('ex.rc.when'), v: t.d('2026-10-25') + ' · 14:03' }];
+    return {
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code, backLabel: t('c.back'), closeLabel: t('c.close'),
+      baseHidden: sheet ? 'true' : 'false',
+      kindLine: t('ex.kind'), title: t('ex.title'), desc: t('ex.desc'),
+      spendLabel: t('ex.spend'), inAmt: t.g(Q.inA), inUnit: t('u.hillMany'), holdIn: t('ex.hold', v),
+      getLabel: t('ex.receive'), outAmt: t.g(Q.out), outUnit: t('u.sunMany'), afterFees: t('ex.afterFees'),
+      hasNotice: !!NT, noticeCls: NT ? NT[0] : '', noticeIcon: NT ? NT[1] : '', noticeT: NT ? t('ex.n.' + NT[2] + '.t', v) : '', noticeB: NT ? t('ex.n.' + NT[2] + '.b', v) : '',
+      isDone: st === 'Done', rcTitle: t('ex.rc.title'), receipt: receipt,
+      quoteTitle: st === 'Done' ? t('ex.quoteUsed') : t('ex.quote'), facts: facts, techLabel: t('c.tech'), tech: [t('ex.x.pool'), t('ex.x.min', v)],
+      hasPrimary: !!primary, primary: primary ? t('ex.a.' + primary) : '', primaryHref: primary === 'back' ? 'SOffer.dc.html' : '#',
+      hasSecondary: !!(NT && NT[4]), secondary: NT && NT[4] ? t('ex.a.' + NT[4]) : '',
+      sheet: sheet, shTitle: t('ex.sh.title'), shSub: t('ex.title'),
+      shFacts: [{ k: t('ex.spend'), v: t.g(Q.inA) + ' ' + t('u.hillMany'), s: '', cls: '' }, { k: t('ex.receive'), v: t.g(Q.out) + ' ' + t('u.sunMany'), s: t('ex.sh.atLeast', v), cls: '' },
+        { k: t('ex.f.fees'), v: t('ex.f.feesV', v), s: t('ex.f.feesS', v), cls: '' }, { k: t('ex.f.until'), v: Q.time, s: '', cls: '' }, { k: t('ex.f.to'), v: t('ex.f.toV'), s: '', cls: '' }],
+      shNote: t('ex.sh.note', v), shCta: t('ex.sh.cta'), busy: st === 'Approving', notBusy: st !== 'Approving', passkey: t('c.passkey')
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Review and pay, simplified</title>
+<title>Review sheet</title>
 <script src="./support.js"></script>
 <link rel="stylesheet" href="./gg.css">
 </head>
@@ -12,122 +12,131 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
 <style>body{margin:0}</style>
 </helmet>
-<div class="gg {{themeCls}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
-  <sc-if value="{{offline}}" hint-placeholder-val="{{false}}"><div class="offl"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-cloud-off-line"/></svg>&nbsp;Offline Mode</div></sc-if>
-  <div class="scr">
-    <div class="topnav"><span class="close"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></span><span class="mid">{{garden}}</span></div>
-    <div class="ident"><span class="kind">Offer</span><h1>{{title}}</h1></div>
+<div class="gg {{themeCls}}" lang="{{lang}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <sc-if value="{{offline}}" hint-placeholder-val="{{false}}"><div class="offl"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-cloud-off-line"/></svg>&nbsp;{{offlineMode}}</div></sc-if>
+  <div class="scr" inert>
+    <div class="topnav"><span class="close"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></span></div>
+    <div class="ident">
+      <span class="kind"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-hand-heart-line"/></svg>{{kindLine}}</span>
+      <h1>{{offerTitle}}</h1>
+    </div>
   </div>
   <div class="scrim"></div>
-  <section class="sheet tall" role="dialog" aria-modal="true" aria-label="{{sheetTitle}}">
-    <div class="grip" aria-hidden="true"></div>
+  <section class="sheet full" role="dialog" aria-modal="true" aria-labelledby="pay-title">
+    <div class="grip"></div>
     <div class="shead">
-      <div><h2 class="stitle">{{sheetTitle}}</h2><p class="sdesc">{{title}}</p></div>
-      <a class="close" href="SOffer.dc.html" aria-label="Close"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></a>
+      <div><h2 class="stitle" id="pay-title">{{sheetTitle}}</h2><p class="sdesc">{{offerTitle}}</p></div>
+      <a class="close" href="SOffer.dc.html" aria-label="{{closeLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></a>
     </div>
+    <ol class="jstrip" aria-label="{{journeyLabel}}">
+      <sc-for list="{{journey}}" as="j" hint-placeholder-count="4"><li class="jstep {{j.cls}}" aria-current="{{j.cur}}"><span class="bar"></span><span>{{j.label}}</span></li></sc-for>
+    </ol>
     <div class="sbody">
-      <sc-if value="{{showReview}}" hint-placeholder-val="{{true}}">
-        <div class="card">
-          <div class="facts">
-            <sc-for list="{{facts}}" as="f" hint-placeholder-count="4"><div class="fact {{f.cls}}"><span class="k">{{f.k}}</span><span class="v"><span>{{f.v}}</span><small>{{f.s}}</small></span></div></sc-for>
-          </div>
-        </div>
-        <p class="small">{{termsLine}} <a href="#" style="color: var(--on); font-weight: 600">Read the terms</a></p>
-      </sc-if>
-
-      <sc-if value="{{spotDone}}" hint-placeholder-val="{{false}}">
-        <div class="ticket seed">
-          <span class="tk"><span>Mara’s Seed Library</span><span>Redeemed</span></span>
-          <span class="ta">1</span>
-          <span class="tu">seed library voucher · Today, 10:41 AM</span>
-          <span class="tline"></span>
-          <span style="font-size: 14px; font-weight: 600">Show this at the seed table to get your packet.</span>
-        </div>
-      </sc-if>
-
       <sc-if value="{{hasNotice}}" hint-placeholder-val="{{false}}">
-        <div class="notice {{noticeCls}}"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="{{noticeIcon}}"/></svg>{{noticeT}}</span><p>{{noticeB}}</p></div>
+        <div class="notice {{noticeCls}}" role="status"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="{{noticeIcon}}"/></svg>{{noticeT}}</span><p>{{noticeB}}</p></div>
       </sc-if>
+      <sc-if value="{{hasFacts}}" hint-placeholder-val="{{true}}"><h3 class="h3">{{stepTitle}}</h3></sc-if>
+      <sc-if value="{{hasFacts}}" hint-placeholder-val="{{true}}">
+        <div class="card"><div class="facts">
+          <sc-for list="{{facts}}" as="f" hint-placeholder-count="4"><div class="fact {{f.cls}}"><span class="k">{{f.k}}</span><span class="v"><span>{{f.v}}</span><small>{{f.s}}</small><sc-if value="{{f.chg}}" hint-placeholder-val="{{false}}"><span class="pill warn">{{changedPill}}</span></sc-if></span></div></sc-for>
+          <sc-if value="{{hasTerms}}" hint-placeholder-val="{{true}}"><div class="fact"><span class="k">{{termsLabel}}</span><span class="v"><a class="tlink" href="#">{{readTerms}}</a></span></div></sc-if>
+        </div></div>
+      </sc-if>
+      <sc-if value="{{hasNote}}" hint-placeholder-val="{{true}}"><p class="small" style="font-size: 13px; line-height: 18px">{{note}}</p></sc-if>
     </div>
     <div class="sacts">
-      <sc-if value="{{ready}}" hint-placeholder-val="{{true}}"><button type="button" class="btn">{{cta}}</button></sc-if>
-      <sc-if value="{{disabledMain}}" hint-placeholder-val="{{false}}"><button type="button" class="btn off" disabled><sc-if value="{{approving}}" hint-placeholder-val="{{false}}"><svg class="i spin" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-loader-4-line"/></svg></sc-if>{{disabledLabel}}</button></sc-if>
-      <sc-if value="{{hasNext}}" hint-placeholder-val="{{false}}"><a class="btn" href="{{nextHref}}">{{nextLabel}}</a></sc-if>
-      <sc-if value="{{retry}}" hint-placeholder-val="{{false}}"><button type="button" class="btn">{{retryLabel}}</button></sc-if>
-      <sc-if value="{{showFine}}" hint-placeholder-val="{{true}}"><p class="small" style="text-align: center">One passkey approval. Green Goods covers the network fee.</p></sc-if>
+      <sc-if value="{{hasWhy}}" hint-placeholder-val="{{false}}">
+        <div class="why {{whyCls}}" role="status"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="{{whyIcon}}"/></svg><span><b>{{whyT}}</b> {{whyB}}</span></div>
+      </sc-if>
+      <sc-if value="{{btnLink}}" hint-placeholder-val="{{true}}"><a class="btn" href="{{btnHref}}">{{btn}}</a></sc-if>
+      <sc-if value="{{btnBusy}}" hint-placeholder-val="{{false}}"><button type="button" class="btn" disabled aria-busy="true"><svg class="i spin" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-loader-4-line"/></svg>{{btn}}</button></sc-if>
+      <sc-if value="{{btnOff}}" hint-placeholder-val="{{false}}"><button type="button" class="btn off" disabled>{{btn}}</button></sc-if>
+      <sc-if value="{{hasFoot}}" hint-placeholder-val="{{true}}"><p class="foot">{{foot}}</p></sc-if>
     </div>
   </section>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"kind":{"editor":"enum","options":["G$, held until done","Vouchers, held until done","Voucher, used on the spot"],"default":"G$, held until done","section":"State"},"state":{"editor":"enum","options":["Ready","Approving","Done","Canceled","No result","Terms changed","Offline"],"default":"Ready","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
+<script type="text/x-dc" data-dc-script data-props='{"kind":{"editor":"enum","options":["G$ purchase","Voucher session","Voucher course"],"default":"G$ purchase","section":"State"},"state":{"editor":"enum","options":["Agree","Agreeing","Waiting for Sunroot","Pay or deposit","Sending","Sent or deposited","No result","Terms changed","Not enough","Signing not available","Canceled","Offline"],"default":"Agree","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
   renderVals() {
-    var kind = this.props.kind ?? 'G$, held until done';
-    var st = this.props.state ?? 'Ready';
+    var t = GGT(this.props.lang);
+    var kind = this.props.kind ?? 'G$ purchase';
+    var st = this.props.state ?? 'Agree';
     var dark = this.props.dark ?? false;
-    var OK = '#ri-check-line';
-    var WARN = '#ri-alert-line';
-    var INFO = '#ri-information-line';
-    var CLOCK = '#ri-time-line';
-    var K = {
-      'G$, held until done': {
-        garden: 'Green Goods Community Garden', title: 'AI assistant membership, 1 month', sheetTitle: 'Review and Pay',
-        facts: [
-          { k: 'You get', v: '1 month of the assistant', s: 'For you only' },
-          { k: 'You pay', v: '450.90 G$', s: 'Includes 0.90 G$ in G$ token fees', cls: 'total' },
-          { k: 'Held until', v: 'Your month is done', s: 'Then paid to the garden’s team' },
-          { k: 'If it doesn’t go ahead', v: 'All 450.00 G$ comes back', s: 'Automatically' }
-        ],
-        termsLine: 'Paying agrees to the offer’s terms, version 3.',
-        cta: 'Pay 450.90 G$', done: ['Paid', 'Your 450.00 G$ is held for this purchase. Green Goods Community Garden decides within 2 days.'],
-        next: ['See Your Purchase', 'SPurchase.dc.html'],
-        changed: 'It’s now version 4, at 480.00 G$. Review it before you pay.'
-      },
-      'Vouchers, held until done': {
-        garden: 'Sunroot Skills Hub', title: 'Solar basics course, 10 lessons', sheetTitle: 'Review and Redeem',
-        facts: [
-          { k: 'You get', v: '10 lessons', s: 'Weekly, on Thursdays' },
-          { k: 'You redeem', v: '100 Sunroot vouchers', s: 'You hold 120', cls: 'total' },
-          { k: 'Held until', v: 'The course is done', s: 'Lessons that don’t happen come back' },
-          { k: 'Before it starts', v: 'Cancel any time', s: 'All 100 come back' }
-        ],
-        termsLine: 'Redeeming agrees to the course terms, version 2.',
-        cta: 'Redeem 100 Vouchers', done: ['Redeemed', 'Your 100 vouchers are held for this course. Sunroot accepts within 3 days.'],
-        next: ['See Your Course', 'SCourse.dc.html'],
-        changed: 'Sunroot published version 3 of the course terms. Review them before you redeem.'
-      },
-      'Voucher, used on the spot': {
-        garden: 'Riverside Commons Garden', title: 'Seed packet, Mara’s Seed Library', sheetTitle: 'Redeem 1 Voucher',
-        facts: [
-          { k: 'You get', v: '1 seed packet', s: 'At the seed table, Saturdays' },
-          { k: 'You redeem', v: '1 seed library voucher', s: 'It goes back to Mara’s Seed Library', cls: 'total' }
-        ],
-        termsLine: 'Redeeming hands the voucher back to its issuer.',
-        cta: 'Redeem 1 Voucher', done: null, next: ['Done', 'SWallet.dc.html'],
-        changed: 'Mara changed what a voucher gets you. Review it before you redeem one.'
+    var gd = kind === 'G$ purchase', course = kind === 'Voucher course';
+    // G$ purchases have no issuer approval, so that state shows the payment step
+    if (gd && st === 'Waiting for Sunroot') st = 'Pay or deposit';
+    var price = st === 'Terms changed' ? 480 : 450, fee = st === 'Terms changed' ? 0.48 : 0.45, gross = price + fee;
+    var n = course ? 100 : (st === 'Terms changed' ? 12 : 10), held = st === 'Not enough' ? (course ? 20 : 6) : (course ? 100 : 30);
+    var WARN = '#ri-alert-line', INFO = '#ri-information-line', OK = '#ri-checkbox-circle-line';
+    // Which step of the four the sheet is on: 0 agree, 1 send or issuer approval, 2 deposit or steward check, 3 acceptance
+    var agreeStates = { 'Agree': 1, 'Agreeing': 1, 'Terms changed': 1, 'Canceled': 1 };
+    var at = agreeStates[st] ? 0 : gd ? 1 : (st === 'Waiting for Sunroot' ? 1 : 2);
+    if (!gd && st === 'Not enough') at = 0;
+    if (gd && st === 'Sent or deposited') at = 2;
+    if (!gd && st === 'Sent or deposited') at = 3;
+    var labels = gd ? [t('pay.j.agree'), t('pay.j.send'), t('pay.j.checked'), t('pay.j.accepted')] : [t('pay.j.agree'), t('pay.j.approved'), t('pay.j.deposit'), t('pay.j.accepted')];
+    var journey = labels.map(function (l, i) {
+      var cls = i < at ? 'done' : i === at ? ((gd && i >= 2) || (!gd && (i === 1 || i === 3)) ? 'wait' : 'now') : '';
+      return { label: l, cls: cls, cur: i === at ? 'step' : 'false' };
+    });
+    var F = function (k, v, s, chg) { return { k: k, v: v, s: s || '', cls: chg ? 'chg' : '', chg: !!chg }; };
+    var R = { facts: [], terms: false, note: '', notice: null, why: null, btn: '', href: '#', mode: 'link', foot: t('c.passkey') };
+    if (gd) {
+      if (at === 0 || st === 'Not enough' && at === 0) {
+        R.step = t('pay.step.agree');
+        R.facts = [F(t('pay.f.get'), t('pay.g.get'), t('pay.g.getS')), F(t('pay.f.pay'), t('pay.g.pay', { gross: t.g(gross) }), t('pay.g.payS', { price: t.g(price), fee: t.g(fee) }), st === 'Terms changed'),
+          F(t('pay.f.held'), t('pay.g.held'), t('pay.g.heldS')), F(t('pay.f.back'), t('pay.g.back', { price: t.g(price) }), t('pay.g.backS'), st === 'Terms changed')];
+        R.terms = true; R.note = t('pay.g.consent'); R.btn = t('pay.cta.agree'); R.href = '#';
+      } else {
+        R.step = t('pay.step.send');
+        R.facts = [F(t('pay.f.to'), t('pay.g.to'), t('pay.g.toS')), F(t('pay.f.arrives'), t.g(price) + ' G$', ''), F(t('pay.f.fee'), t.g(fee) + ' G$', t('pay.g.feeS')), F(t('pay.f.debit'), t.g(gross) + ' G$', '')];
+        R.facts[3].cls = 'total';
+        R.note = t('pay.g.sendNote'); R.btn = t('pay.cta.send', { gross: t.g(gross) });
       }
-    };
-    var k = K[kind];
-    var spot = kind === 'Voucher, used on the spot';
-    var N = {
-      'Approving': ['info', CLOCK, 'Waiting for your passkey…', 'Approve once to agree and pay.'],
-      'Done': k.done ? ['ok', OK, k.done[0], k.done[1]] : null,
-      'Canceled': ['', INFO, 'Nothing was paid', 'You canceled before approving.'],
-      'No result': ['warn', WARN, 'We can’t tell if it went through', 'Your passkey didn’t return a result. Check before trying again, so you don’t pay twice.'],
-      'Terms changed': ['warn', WARN, 'This offer just changed', k.changed],
-      'Offline': ['', INFO, 'Paying needs a connection', 'You’re offline. Nothing is saved to pay later.']
-    };
-    var n = N[st];
-    var retryLabels = { 'Canceled': 'Try Again', 'No result': 'Check Payment', 'Terms changed': 'Review the New Terms' };
+    } else {
+      if (at === 0) {
+        R.step = t('pay.step.agree');
+        R.facts = [F(t('pay.f.get'), t(course ? 'pay.c.get' : 'pay.s.get'), t('pay.v.getS')), F(t('pay.f.give'), t('pay.v.give', { n: t.n(n) }), st === 'Terms changed' ? t('pay.v.was', { n: t.n(10) }) : t('pay.v.giveS', { held: t.n(held) }), st === 'Terms changed'),
+          F(t('pay.f.held'), t('pay.v.held'), t('pay.v.heldS')), F(t('pay.f.deadline'), t.d('2026-10-29'), t('pay.v.deadlineS', { n: t.n(n) })),
+          F(t('pay.f.after'), t(course ? 'pay.c.after' : 'pay.s.after'), t('pay.v.afterS'))];
+        R.terms = true; R.note = t('pay.v.consent'); R.btn = t('pay.cta.agree');
+      } else if (at === 1) {
+        R.step = t('pay.step.wait'); R.facts = []; R.note = '';
+        R.notice = ['info', '#ri-time-line', t('pay.v.wait.t'), t('pay.v.wait.b')]; R.btn = t('c.done'); R.href = 'SRedeem.dc.html'; R.foot = '';
+      } else {
+        R.step = t('pay.step.deposit');
+        R.facts = [F(t('pay.f.deposit'), t('pay.v.give', { n: t.n(n) }), t('pay.v.depositS')), F(t('pay.f.into'), t('pay.v.into'), t('pay.v.intoS', { date: t.d('2026-10-23') })), F(t('pay.f.deadline'), t.d('2026-10-29'), '')];
+        R.note = t('pay.v.depNote', { n: t.n(n) }); R.btn = t('pay.cta.deposit', { n: t.n(n) });
+      }
+    }
+    if (st === 'Agreeing' || st === 'Sending') R.mode = 'busy';
+    if (st === 'Sent or deposited') {
+      R.facts = []; R.terms = false; R.note = ''; R.step = gd ? t('pay.step.checked') : t('pay.step.accept');
+      R.notice = gd ? ['ok', OK, t('pay.n.sent.t'), t('pay.n.sent.b')] : ['ok', OK, t('pay.n.deposited.t'), t('pay.n.deposited.b')];
+      R.btn = gd ? t('pay.cta.view') : t('pay.cta.viewB'); R.href = gd ? 'SPurchase.dc.html' : 'SRedeem.dc.html'; R.foot = '';
+    }
+    if (st === 'No result') { R.notice = ['warn', WARN, t('pay.n.nores.t'), gd ? t('pay.n.nores.b') : t('pay.n.noresD.b')]; R.btn = gd ? t('pay.cta.check') : t('pay.cta.checkD'); R.href = gd ? 'SPurchase.dc.html' : 'SRedeem.dc.html'; R.foot = ''; }
+    if (st === 'Terms changed') R.notice = ['warn', WARN, t('pay.n.changed.t'), gd ? t('pay.n.changed.b') : t('pay.n.changedV.b')];
+    if (st === 'Canceled') { R.notice = ['info', INFO, t('pay.n.cancel.t'), t('pay.n.cancel.b')]; R.btn = t('pay.cta.retry'); }
+    if (st === 'Not enough') {
+      R.why = gd ? ['warn', WARN, t('pay.r.short.t', { have: t.g(300.12) }), t('pay.r.short.b', { gross: t.g(gross) })] : ['warn', WARN, t('pay.r.shortV.t', { have: t.n(held) }), t('pay.r.shortV.b', { n: t.n(n) })];
+      R.btn = gd ? t('of.a.getGd') : t('of.a.exchange'); R.href = gd ? 'SWallet.dc.html' : 'SExchange.dc.html'; R.foot = '';
+    }
+    if (st === 'Signing not available') { R.why = gd ? ['warn', WARN, t('pay.r.unavailG.t'), t('pay.r.unavailG.b')] : ['warn', WARN, t('pay.r.unavail.t'), t('pay.r.unavail.b')]; R.mode = 'off'; R.foot = ''; }
+    if (st === 'Offline') { R.why = ['info', '#ri-cloud-off-line', t('pay.r.offline.t'), gd ? t('pay.r.offline.b') : t('pay.r.offlineV.b')]; R.mode = 'off'; R.foot = ''; }
     return {
-      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524',
-      garden: k.garden, title: k.title, sheetTitle: k.sheetTitle, facts: k.facts, termsLine: k.termsLine, cta: k.cta,
-      showReview: st !== 'Done', spotDone: st === 'Done' && spot,
-      hasNotice: !!n, noticeCls: n ? n[0] : '', noticeIcon: n ? n[1] : '', noticeT: n ? n[2] : '', noticeB: n ? n[3] : '',
-      ready: st === 'Ready', disabledMain: st === 'Approving' || st === 'Offline', disabledLabel: k.cta, approving: st === 'Approving',
-      hasNext: st === 'Done', nextLabel: k.next[0], nextHref: k.next[1],
-      retry: !!retryLabels[st], retryLabel: retryLabels[st] || '',
-      showFine: st === 'Ready' || st === 'Approving', offline: st === 'Offline'
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code,
+      offline: st === 'Offline', offlineMode: t('c.offline'),
+      kindLine: t('of.kind', { garden: gd ? t('who.gg') : t('who.sun') }), offerTitle: gd ? t('of.g.title') : t(course ? 'of.c.title' : 'of.s.title'),
+      sheetTitle: gd ? t('pay.titleG') : t('pay.titleV'), closeLabel: t('c.close'), journeyLabel: t('pay.journey'), journey: journey,
+      stepTitle: R.step, facts: R.facts, hasFacts: R.facts.length > 0, changedPill: t('pay.changed'),
+      hasTerms: R.terms, termsLabel: t('c.terms'), readTerms: t('c.readTerms'),
+      hasNote: !!R.note, note: R.note,
+      hasNotice: !!R.notice, noticeCls: R.notice ? R.notice[0] : '', noticeIcon: R.notice ? R.notice[1] : '', noticeT: R.notice ? R.notice[2] : '', noticeB: R.notice ? R.notice[3] : '',
+      hasWhy: !!R.why, whyCls: R.why ? R.why[0] : '', whyIcon: R.why ? R.why[1] : '', whyT: R.why ? R.why[2] : '', whyB: R.why ? R.why[3] : '',
+      btn: R.btn, btnHref: R.href, btnLink: R.mode === 'link', btnBusy: R.mode === 'busy', btnOff: R.mode === 'off',
+      hasFoot: !!R.foot, foot: R.foot
     };
   }
 }

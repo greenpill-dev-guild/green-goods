@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Issuer course roster, simplified</title>
+<title>Voucher bookings</title>
 <script src="./support.js"></script>
 <link rel="stylesheet" href="./gg.css">
 </head>
@@ -12,145 +12,128 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
 <style>body{margin:0}</style>
 </helmet>
-<div class="gg ck {{themeCls}}" style="width: 1280px; height: 800px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+<div class="gg ck {{themeCls}}" lang="{{lang}}" style="width: 1280px; height: 800px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
   <div class="wash"></div>
-  <header class="c-app">
-    <button type="button" class="gchip"><span class="av"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-fill"/></svg></span><span class="lbl">Sunroot Skills Hub</span><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-down-s-line"/></svg></button>
+  <header class="c-app" inert="{{baseHidden}}">
+    <button type="button" class="gchip"><span class="av"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-fill"/></svg></span><span class="lbl">{{garden}}</span><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-down-s-line"/></svg></button>
     <span class="c-icons"><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-search-line"/></svg></span><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-notification-3-line"/></svg></span><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-settings-3-line"/></svg></span><span class="avatar" style="width: 32px; height: 32px; font-size: 13px">A</span></span>
   </header>
-  <main class="c-route">
-    <div class="c-head"><div><h1>Garden</h1><p>Sunroot Skills Hub</p></div></div>
-    <div class="c-tabs" role="tablist"><span>Health</span><span>Impact</span><span>Activity</span><span class="on">Promises<sc-if value="{{hasReview}}" hint-placeholder-val="{{true}}"><span class="cnt">1</span></sc-if></span></div>
+  <main class="c-route" inert="{{baseHidden}}">
+    <div class="c-head"><div><h1>{{pageTitle}}</h1><p>{{garden}}</p></div></div>
+    <div class="c-tabs" role="tablist"><span role="tab" aria-selected="false">{{tHealth}}</span><span role="tab" aria-selected="false">{{tImpact}}</span><span role="tab" aria-selected="false">{{tActivity}}</span><span class="on" role="tab" aria-selected="true">{{tPromises}}<span class="cnt">{{count}}</span></span></div>
     <div class="c-grid">
       <div class="c-col">
         <section class="acard">
-          <div class="ah"><div><h2>Review Promises</h2><p>Solar basics course · this round · 8 of 20 places taken</p></div></div>
-          <div class="arow offer">
-            <div class="l1"><span class="nm">Lina</span><span class="sb {{linaSb}}">{{linaTag}}</span></div>
-            <div class="l2">{{linaMeta}}</div>
-            <div class="acts">
-              <sc-if value="{{waiting}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn">Decline…</button><button type="button" class="abtn fill" onClick="{{openAccept}}">Accept…</button></sc-if>
-              <sc-if value="{{underway}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn fill" onClick="{{openReport}}">Report Lesson…</button><button type="button" class="abtn" onClick="{{openEnd}}">End Early…</button></sc-if>
+          <div class="ah"><div><h2>{{bookTitle}}</h2><p>{{bookDesc}}</p></div></div>
+          <sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
+            <div class="arow offer">
+              <div class="l1"><span class="nm">{{r.who}}</span><span class="sb {{r.sb}}">{{r.tag}}</span></div>
+              <div class="l2">{{r.meta}}</div>
+              <div class="acts"><button type="button" class="abtn {{r.cls}}">{{r.act}}</button></div>
             </div>
-          </div>
-          <div class="arow offer">
-            <div class="l1"><span class="nm">Mara</span><span class="sb info">In progress · 6 of 10</span></div>
-            <div class="l2">Last lesson Oct 28 · 100 vouchers held</div>
-          </div>
-          <div class="arow offer">
-            <div class="l1"><span class="nm">Kwesi</span><span class="sb info">Waiting to be confirmed</span></div>
-            <div class="l2">Sunroot is paid Dec 9 unless Kwesi reports a problem · 100 vouchers</div>
-          </div>
-        </section>
-        <section class="acard">
-          <div class="ah"><div><h2>Offers and Requests</h2><p>What Sunroot offers and asks for</p></div></div>
-          <div class="scope"><span class="chipf on">Open</span><span class="chipf">Confirmed</span><span class="chipf">Past</span></div>
-          <div class="arow offer sel">
-            <div class="l1"><span class="nm">Solar basics course, 10 lessons</span><span class="sb ok">Offered</span></div>
-            <div class="l2">100 Sunroot vouchers · up to 20 a round</div>
-          </div>
+          </sc-for>
         </section>
       </div>
       <div class="c-col">
         <section class="acard">
-          <div class="ah"><div><h2>Course Settings</h2><p>Set once for every round</p></div></div>
-          <div class="ab">
-            <div class="afacts">
-              <div class="afact"><span class="k">Price</span><span class="v">100 Sunroot vouchers · version 2</span></div>
-              <div class="afact"><span class="k">Who can join</span><span class="v">Anyone with 100 vouchers, up to 20 a round<small>Approved once by your Safe, Oct 1</small></span></div>
-              <div class="afact"><span class="k">Missed lessons</span><span class="v">Returned as your terms set<small>After 3 lessons: up to 60 back</small></span></div>
-              <div class="afact"><span class="k">Outstanding</span><span class="v">1,240 of a 2,000 cap<small>Published policy, monitored. Not enforced yet.</small></span></div>
-            </div>
+          <div class="ah"><div><h2>{{resTitle}}</h2><p>{{resDesc}}</p></div></div>
+          <div class="ab"><div class="afacts">
+            <sc-for list="{{res}}" as="f" hint-placeholder-count="4"><div class="afact"><span class="k">{{f.k}}</span><span class="v">{{f.v}}<small>{{f.s}}</small></span></div></sc-for>
           </div>
+          <sc-if value="{{short}}" hint-placeholder-val="{{false}}"><div class="why warn"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-alert-line"/></svg><span><b>{{shortT}}</b> {{shortB}}</span></div><div><button type="button" class="abtn fill">{{raise}}</button></div></sc-if>
+          </div>
+        </section>
+        <section class="acard">
+          <div class="ah"><div><h2>{{setTitle}}</h2><p>{{setSub}}</p></div></div>
+          <div class="ab"><div class="afacts">
+            <sc-for list="{{settings}}" as="f" hint-placeholder-count="3"><div class="afact"><span class="k">{{f.k}}</span><span class="v">{{f.v}}<small>{{f.s}}</small></span></div></sc-for>
+          </div></div>
         </section>
       </div>
     </div>
   </main>
-  <nav class="dock" aria-label="Cockpit">
-    <span class="ni"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-apps-line"/></svg></span>Hub</span>
-    <span class="ni on"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-line"/></svg></span>Garden</span>
-    <span class="ni"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-team-line"/></svg></span>Community</span>
-    <span class="ni"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-hammer-fill"/></svg></span>Actions</span>
+  <nav class="dock" aria-label="{{dockLabel}}" inert="{{baseHidden}}">
+    <span class="ni"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-apps-line"/></svg></span>{{dHub}}</span>
+    <span class="ni on"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-line"/></svg></span>{{dGarden}}</span>
+    <span class="ni"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-team-line"/></svg></span>{{dCommunity}}</span>
+    <span class="ni"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-hammer-fill"/></svg></span>{{dActions}}</span>
   </nav>
-
-  <sc-if value="{{dAccept}}" hint-placeholder-val="{{false}}">
+  <sc-if value="{{showDlg}}" hint-placeholder-val="{{false}}">
     <div class="dscrim"></div>
-    <section class="dlg" role="dialog" aria-modal="true" aria-label="Accept Lina">
-      <div class="dh"><div><h2>Accept Lina?</h2><p>Solar basics course, this round</p></div><button type="button" class="close" aria-label="Close" onClick="{{close}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></button></div>
+    <section class="dlg" role="dialog" aria-modal="true" aria-labelledby="is-dlg">
+      <div class="dh"><div><h2 id="is-dlg">{{dTitle}}</h2><p>{{dSub}}</p></div><button type="button" class="close" aria-label="{{closeLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></button></div>
       <div class="db">
-        <div class="ptarget"><span class="dl">Writing to</span><b>“Solar basics course” in Sunroot Skills Hub’s pool</b></div>
-        <div class="checks">
-          <div class="ckr ok"><span class="cm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg></span><span>100 Sunroot vouchers are held for this course<small>Checked automatically, Today 11:24 AM</small></span></div>
-          <div class="ckr ok"><span class="cm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg></span><span>Lina agreed to the current terms, version 2<small>Her vouchers carry them</small></span></div>
-          <div class="ckr ok"><span class="cm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg></span><span>Place 8 of 20 this round</span></div>
-        </div>
-        <div class="fsr info"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-information-line"/></svg><span><b>Accept Lina and start her course</b><small>She can’t cancel after this. Missed lessons come back to her as your terms set.</small></span></div>
+        <sc-if value="{{dHasFacts}}" hint-placeholder-val="{{true}}"><div class="afacts">
+          <sc-for list="{{dFacts}}" as="f" hint-placeholder-count="4"><div class="afact"><span class="k">{{f.k}}</span><span class="v">{{f.v}}<small>{{f.s}}</small></span></div></sc-for>
+        </div></sc-if>
+        <sc-if value="{{dHasChecks}}" hint-placeholder-val="{{false}}"><div class="checks">
+          <sc-for list="{{dChecks}}" as="c" hint-placeholder-count="4"><div class="ckr ok"><span class="cm"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg></span><span>{{c.t}}<small>{{c.s}}</small></span></div></sc-for>
+        </div></sc-if>
+        <sc-if value="{{dField}}" hint-placeholder-val="{{false}}">
+          <div class="fieldA"><label for="is-amt">{{fLabel}}</label><div class="inp {{fBad}}" id="is-amt" role="textbox" aria-invalid="{{fInvalid}}" aria-describedby="is-hint">{{fValue}}<span class="small">{{fUnit}}</span></div><span class="hl {{fHintCls}}" id="is-hint">{{fHint}}</span></div>
+          <sc-if value="{{dBar}}" hint-placeholder-val="{{true}}"><div class="splitbar" role="img" aria-label="{{barLabel}}"><span class="a" style="flex: 40">{{barA}}</span><span class="b" style="flex: 60">{{barB}}</span></div></sc-if>
+        </sc-if>
+        <div class="fsr info"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-information-line"/></svg><span><b>{{fsrT}}</b><small>{{fsrB}}</small></span></div>
       </div>
-      <div class="df"><span class="note">Your wallet will ask you once.</span><button type="button" class="abtn lg txt" onClick="{{close}}">Cancel</button><button type="button" class="abtn lg fill" onClick="{{accept}}">Accept Lina</button></div>
-    </section>
-  </sc-if>
-
-  <sc-if value="{{dReport}}" hint-placeholder-val="{{false}}">
-    <div class="dscrim"></div>
-    <section class="dlg" role="dialog" aria-modal="true" aria-label="Report lesson 4">
-      <div class="dh"><div><h2>Report Lesson 4</h2><p>Lina · Solar basics course</p></div><button type="button" class="close" aria-label="Close" onClick="{{close}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></button></div>
-      <div class="db">
-        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
-          <div class="fieldA"><label>Date</label><span class="inp">Thu, Oct 30</span></div>
-          <div class="fieldA"><label>Photo</label><span class="inp">1 added</span></div>
-        </div>
-        <div class="fieldA"><label>What you covered</label><span class="inp">Wiring a 100 W panel to a water pump</span></div>
-        <div class="fsr info"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-information-line"/></svg><span><b>Record lesson 4 for Lina</b><small>Lina sees each report. Sunroot is paid when the course is done.</small></span></div>
+      <div class="df"><span class="note">{{dNote}}</span><button type="button" class="abtn lg txt">{{cancel}}</button>
+        <sc-if value="{{dCan}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn lg fill">{{dCta}}</button></sc-if>
+        <sc-if value="{{dCannot}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn lg fill off" disabled>{{dCta}}</button></sc-if>
       </div>
-      <div class="df"><span class="note">Your wallet will ask you once.</span><button type="button" class="abtn lg txt" onClick="{{close}}">Cancel</button><button type="button" class="abtn lg fill" onClick="{{close}}">Report Lesson</button></div>
-    </section>
-  </sc-if>
-
-  <sc-if value="{{dEnd}}" hint-placeholder-val="{{false}}">
-    <div class="dscrim"></div>
-    <section class="dlg" role="dialog" aria-modal="true" aria-label="End Lina's course early">
-      <div class="dh"><div><h2>End Lina’s Course Early?</h2><p>3 of 10 lessons reported</p></div><button type="button" class="close" aria-label="Close" onClick="{{close}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></button></div>
-      <div class="db">
-        <div class="fieldA"><label>Back to Lina</label><span class="inp"><span>{{back}}</span><span class="small">vouchers</span></span><span class="hl {{hintCls}}">{{hint}}</span></div>
-        <div class="splitbar"><span class="a" style="width: {{resPct}}">{{res}} to Sunroot</span><span class="b" style="width: {{backPct}}">{{back}} back to Lina</span></div>
-        <div class="fsr {{flowCls}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="{{flowIcon}}"/></svg><span><b>{{flowT}}</b><small>{{flowD}}</small></span></div>
-      </div>
-      <div class="df"><span class="note">Your Safe needs 2 of 3 signatures.</span><button type="button" class="abtn lg txt" onClick="{{close}}">Cancel</button><button type="button" class="abtn lg fill {{sendOff}}">Send to Lina</button></div>
     </section>
   </sc-if>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["Roster","Accept","Report lesson","End early","Above terms"],"default":"Roster","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":1280,"height":800}}'>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["Bookings","Approve booking","Accept","Report lesson","Propose return","Above terms","Transfer failed","Reserve short","Raise allowance"],"default":"Bookings","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":1280,"height":800}}'>
 class Component extends DCLogic {
   renderVals() {
-    var s = this.state || {};
-    var st = this.props.state ?? 'Roster';
+    var t = GGT(this.props.lang);
+    var st = this.props.state ?? 'Bookings';
     var dark = this.props.dark ?? false;
-    var self = this;
-    var dlg = s.dlg !== undefined ? s.dlg : ({ 'Accept': 'accept', 'Report lesson': 'report', 'End early': 'end', 'Above terms': 'end' }[st] || 'none');
-    var started = s.started || (st !== 'Roster' && st !== 'Accept');
-    var above = st === 'Above terms';
-    var back = above ? 70 : 60;
+    var n = t.n;
+    var rows = [
+      { who: t('is.r.linaS'), sb: 'warn', tag: t('is.tag.approve'), meta: t('is.m.linaS', { date: t.d('2026-10-23'), due: t.d('2026-10-29') }), act: t('is.a.approve'), cls: 'fill' },
+      { who: t('is.r.linaC'), sb: 'ok', tag: t('is.tag.deposited'), meta: t('is.m.linaC', { due: t.d('2026-11-02') }), act: t('is.a.accept'), cls: 'fill' },
+      { who: t('is.r.mara'), sb: 'info', tag: t('is.tag.lessons', { done: n(6) }), meta: t('is.m.mara', { date: t.d('2026-10-30') }), act: t('is.a.report'), cls: '' },
+      { who: t('is.r.kwesi'), sb: 'warn', tag: t('is.tag.ended'), meta: t('is.m.kwesi'), act: t('is.a.propose'), cls: '' }
+    ];
+    if (st === 'Transfer failed') rows.push({ who: t('is.r.linaC2'), sb: 'err', tag: t('is.tag.failed'), meta: t('is.m.failed', { n: n(60) }), act: t('is.a.retry'), cls: 'fill' });
+    var short = st === 'Reserve short' || st === 'Raise allowance';
+    var res = [{ k: t('is.res.reserve'), v: n(1240) + ' ' + t('u.sunMany'), s: '' },
+      { k: t('is.res.promised'), v: n(30), s: t('is.res.promisedS') },
+      { k: t('is.res.allow'), v: short ? t('is.res.allowV', { left: n(0), of: n(50) }) : t('is.res.allowV', { left: n(20), of: n(50) }), s: t('is.res.allowS') },
+      { k: t('is.res.open'), v: n(4), s: t('is.res.openS') }];
+    var D = {
+      'Approve booking': { title: t('is.d.approve.t'), sub: t('of.s.title'), cta: t('is.d.approve.cta'), note: t('c.safe23'),
+        facts: [[t('is.d.f.vouchers'), n(10) + ' ' + t('u.sunMany'), ''], [t('is.d.f.from'), t('is.d.f.fromV'), t('is.d.f.fromS')], [t('is.d.f.due'), t.d('2026-10-29'), t('is.d.f.dueS')], [t('c.terms'), t('is.d.f.termsV'), '']], fsr: 'is.f.approve' },
+      'Accept': { title: t('is.d.accept.t'), sub: t('of.c.title'), cta: t('is.d.accept.cta'), note: t('c.wallet'), facts: [],
+        checks: [{ t: t('is.c.terms'), s: t('is.c.termsS') }, { t: t('is.c.approved'), s: t.d('2026-10-24') }, { t: t('is.c.deposit', { n: n(100) }), s: t('is.c.depositS') }, { t: t('is.c.due'), s: t.d('2026-11-02') }], fsr: 'is.f.accept' },
+      'Report lesson': { title: t('is.d.report.t'), sub: t('is.d.report.sub'), cta: t('is.d.report.cta'), note: t('c.wallet'),
+        facts: [[t('is.d.f.date'), t.d('2026-10-30'), ''], [t('is.d.f.attend'), t('is.d.f.attendV'), ''], [t('is.d.f.evidence'), t('is.d.f.evidenceV'), '']], fsr: 'is.f.report' },
+      'Propose return': { title: t('is.d.propose.t'), sub: t('is.d.propose.sub'), cta: t('is.d.propose.cta'), note: t('c.safe23'), facts: [[t('is.d.f.lessons'), t('is.d.f.lessonsV'), t('is.d.f.lessonsS')]],
+        field: [t('is.fl.back'), n(60), t('is.fl.hint'), false], bar: true, fsr: 'is.f.propose' },
+      'Above terms': { title: t('is.d.propose.t'), sub: t('is.d.propose.sub'), cta: t('is.d.propose.cta'), note: t('c.safe23'), facts: [[t('is.d.f.lessons'), t('is.d.f.lessonsV'), t('is.d.f.lessonsS')]],
+        field: [t('is.fl.back'), n(70), t('is.fl.err'), true], bar: false, fsr: 'is.f.propose', off: true },
+      'Raise allowance': { title: t('is.d.raise.t'), sub: t('who.rc'), cta: t('is.d.raise.cta'), note: t('c.safe23'),
+        facts: [[t('is.d.f.allow'), t('is.d.f.allowV', { n: n(50) }), ''], [t('is.d.f.waiting'), t('is.d.f.waitingV', { n: n(10) }), t('is.d.f.waitingS')], [t('is.res.reserve'), n(1240), '']],
+        field: [t('is.fl.new'), n(70), t('is.fl.newHint'), false], bar: false, fsr: 'is.f.raise' }
+    }[st];
     return {
-      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524',
-      hasReview: !started,
-      linaSb: started ? 'info' : 'ok',
-      linaTag: s.started ? 'Accepted' : (started ? 'In progress · 3 of 10' : '100 vouchers held'),
-      linaMeta: s.started ? 'First lesson Thu, Oct 30 · 100 vouchers held' : (started ? 'Last lesson Oct 28 · 100 vouchers held' : 'Asked Today, 11:20 AM · current terms · place 8 of 20'),
-      waiting: !started, underway: started,
-      dAccept: dlg === 'accept', dReport: dlg === 'report', dEnd: dlg === 'end',
-      back: back, res: 100 - back, resPct: (100 - back) + '%', backPct: back + '%',
-      hint: above ? 'Above the 60 your terms allow after 3 lessons' : 'Your terms allow up to 60 after 3 lessons',
-      hintCls: above ? 'err' : '', flowCls: above ? 'err' : 'info',
-      flowIcon: above ? '#ri-error-warning-line' : '#ri-information-line',
-      flowT: above ? 'Lower it to 60 or less to send' : 'Send 60 back to Lina and 40 to Sunroot',
-      flowD: above ? 'Your published terms allow up to 60 back after 3 lessons.' : 'Lina agrees before anything moves. If she reports a problem instead, nothing moves until it’s sorted.',
-      sendOff: above ? 'off' : '',
-      openAccept: function () { self.setState({ dlg: 'accept' }); },
-      openReport: function () { self.setState({ dlg: 'report' }); },
-      openEnd: function () { self.setState({ dlg: 'end' }); },
-      close: function () { self.setState({ dlg: 'none' }); },
-      accept: function () { self.setState({ dlg: 'none', started: true }); }
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code, garden: t('who.sun'), closeLabel: t('c.close'),
+      baseHidden: D ? 'true' : 'false', pageTitle: t('rq.title'), count: n(rows.length),
+      tHealth: t('rq.t.health'), tImpact: t('rq.t.impact'), tActivity: t('rq.t.activity'), tPromises: t('rq.t.promises'),
+      bookTitle: t('is.book.t'), bookDesc: t('is.book.d'), rows: rows,
+      resTitle: t('is.res.t'), resDesc: t('is.res.d'), res: res, short: short && !D, shortT: t('is.short.t', { n: n(10) }), shortB: t('is.short.b'), raise: t('is.a.raise'),
+      setTitle: t('is.set.t'), setSub: t('is.set.s'),
+      settings: [{ k: t('is.s.terms'), v: t('is.s.termsV'), s: t('is.s.termsS') }, { k: t('is.s.approvals'), v: t('is.s.approvalsV'), s: t('is.s.approvalsS') }, { k: t('is.s.cap'), v: t('is.s.capV', { a: n(1240), b: n(2000) }), s: t('is.s.capS') }],
+      dockLabel: t('fn.dock'), dHub: t('fn.d.hub'), dGarden: t('fn.d.garden'), dCommunity: t('fn.d.community'), dActions: t('fn.d.actions'),
+      showDlg: !!D, dTitle: D ? D.title : '', dSub: D ? D.sub : '', dNote: D ? D.note : '',
+      dHasFacts: !!(D && D.facts.length), dFacts: D ? D.facts.map(function (f) { return { k: f[0], v: f[1], s: f[2] }; }) : [],
+      dHasChecks: !!(D && D.checks), dChecks: D && D.checks ? D.checks : [],
+      dField: !!(D && D.field), fLabel: D && D.field ? D.field[0] : '', fValue: D && D.field ? D.field[1] : '', fUnit: t('u.sunMany'),
+      fHint: D && D.field ? D.field[2] : '', fBad: D && D.field && D.field[3] ? 'bad' : '', fInvalid: D && D.field && D.field[3] ? 'true' : 'false', fHintCls: D && D.field && D.field[3] ? 'err' : '',
+      dBar: !!(D && D.bar), barLabel: t('rd.sh.bar', { rel: n(40), back: n(60) }), barA: t('is.bar.sun', { n: n(40) }), barB: t('is.bar.back', { n: n(60) }),
+      fsrT: D ? t(D.fsr + '.t') : '', fsrB: D ? t(D.fsr + '.b') : '',
+      cancel: t('c.cancel'), dCta: D ? D.cta : '', dCan: !!(D && !D.off), dCannot: !!(D && D.off)
     };
   }
 }

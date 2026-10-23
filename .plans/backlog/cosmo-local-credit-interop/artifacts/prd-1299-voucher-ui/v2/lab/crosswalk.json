@@ -1,0 +1,275 @@
+{
+  "intro": [
+    "Sources are files on the local branch `feature/cosmo-local-contracts` at `c40697f6e` in the implementation checkout (read only for this design). Contract paths are under `packages/contracts/src/`; Shared paths under `packages/shared/src/modules/commitment-pooling/`. Later commits through `aacdd1f9b` (23 October) add steward Safe signer sync and release tooling; none of them changes the voucher, escrow, pooling or settlement sources cited below.",
+    "Proof is what the implementation handoffs record; this design session did not rerun it. Evidence classes: **contract tests** (local Foundry), **pinned fork** (Gnosis 100 at block 48,848,261; Celo 42220 at block 75,178,393), **component tests** (happy-dom), **Storybook rehearsal** (Brave, fictional accounts), **static prototype** (this lab, headless Chromium).",
+    "None of it is live delivery, actual member signing or issuer approval. A pinned fork is not cross-chain delivery; Storybook accounts and transactions are fictional.",
+    "Live blockers for every Gnosis member action, as the implementation lane recorded them at 10:13 a.m. Pacific on 23 October: the same member address on Arbitrum, Gnosis and Celo is required, but the legacy validator that would preserve it is unsafe to deploy (its WebAuthn dependency has a path that skips the assertion binding), and no safe address-preserving bootstrap is selected. The intended member has no account code on Gnosis or Celo. Chain 100 is excluded from the app's chain and Pimlico configuration. Hosted bundler or paymaster acceptance, actual member possession, signing and recovery, helper provenance and live cross-chain delivery are unproven.",
+    "The working pilot terms (`pilot-issuer-terms.md`, draft 3) name Tech and Sun hub days, Green Goods assisted sessions and Claude access. On 22 October the release owner accepted their prices, a twenty-voucher ceiling per issuer, ten participants and a 1:1 pool ratio. Issuer capacity, accountable addresses and acceptance are unconfirmed, and COM-46 is still In Progress. Every service, price and quantity in this lab stays fictional.",
+    "The implementation lane is preparing a controlled live pilot targeted for 24 October and records no broadcast. This design neither authorizes nor claims deployment or readiness."
+  ],
+  "journeys": [
+    {
+      "title": "Earn vouchers, with optional G$",
+      "rows": [
+        {
+          "state": "SReward · Open (vouchers only, vouchers + G$)",
+          "behavior": "A Request names the voucher issuer, the entitlement and the quantity, and may add G$. Voucher terms bind before acceptance; accepting reserves no inventory. `VoucherEntitlementModule.sol` `registerTerms`, core binding in `lib/CommitmentPooling/VoucherAcceptanceLib.sol`.",
+          "proof": "Contract tests: `CosmoLocalVoucher.t.sol` 8/8 (single contributor, whole session). Pinned fork: connected pilot 16/16.",
+          "gaps": "Issuer acceptance of the working terms (COM-46). Group allocation still divides a total; the whole-entitlement example is single-contributor only. The working terms require an access reward to promise its whole redeemable quantity, such as ten Green Goods vouchers for Claude access.",
+          "future": ""
+        },
+        {
+          "state": "SReward · Agree",
+          "behavior": "Exact consent from the creator and the actual counterparty before either acceptance path; a garden account's claim needs that account's consent. Guard in `lib/CommitmentPooling/AcceptanceLib.sol`.",
+          "proof": "Contract tests: core 82/82 with direct-entrypoint bypass cases (reconciliation record).",
+          "gaps": "Production PWA signing of the new calls is not built (PRD-1297, PRD-1322).",
+          "future": ""
+        },
+        {
+          "state": "SReward · Both on the way, Vouchers in and G$ on the way",
+          "behavior": "Two independent deliveries and receipts: vouchers from the issuer's reserve within a finite allowance (`modules/GnosisVoucherAdapter.sol`), G$ through the existing payout plan on Celo (Settlement). Neither waits for the other.",
+          "proof": "Contract tests: G$ completes during voucher repair, and vouchers complete during G$ failure and requeue. Storybook rehearsal: independent rewards.",
+          "gaps": "Live message delivery between chains; acknowledgments can lag the delivery.",
+          "future": ""
+        },
+        {
+          "state": "SReward · Reserve short; SIssuer · Reserve short, Raise allowance",
+          "behavior": "A short reserve or allowance fails visibly and repairably; the accepted reward is unchanged. After the issuer repairs it, a retry delivers the same reward only once. `modules/GnosisVoucherAdapter.sol` `retry` (anyone) and `safeRetry` (issuer).",
+          "proof": "Contract tests: shortage and repair. Storybook rehearsal: explicit issuer budget repair.",
+          "gaps": "Who calls the retry after a repair in production. Issuer Safe signers and capacity are unconfirmed (COM-46). Cap enforcement is published policy, not on-chain.",
+          "future": "Cap-enforcing mint controller (PRD-1315 decision)."
+        },
+        {
+          "state": "SReward · G$ delayed; SFunds · Reward payout failed",
+          "behavior": "A failed G$ payout is requeued once by stewards; vouchers already delivered are unaffected.",
+          "proof": "Contract tests: G$ execution failure, requeue and lost acknowledgment.",
+          "gaps": "Celo execution with real Safe roles.",
+          "future": ""
+        },
+        {
+          "state": "SWallet · Vouchers, return pending",
+          "behavior": "One holdings view joins earned rewards, exchange output, escrowed vouchers and pending returns. DEV ledger in `service-access-pilot.ts`.",
+          "proof": "Component tests: Shared 55/55, Client 48/48. Storybook rehearsal: holdings.",
+          "gaps": "Production reads and indexer projections for the pilot are not registered.",
+          "future": ""
+        }
+      ]
+    },
+    {
+      "title": "Redeem a voucher you hold",
+      "rows": [
+        {
+          "state": "SOffer · Voucher session, Voucher course",
+          "behavior": "Approval-gated individual offers carry one payment route; the voucher route names issuer, token and units on Gnosis. `lib/CommitmentPooling/ServiceOffersLib.sol` `setTerms`.",
+          "proof": "Contract tests: `CommitmentPoolingServiceOffers.t.sol`.",
+          "gaps": "Places are open offer instances in a series; confirm the count shown matches open instances.",
+          "future": ""
+        },
+        {
+          "state": "SPay · Agree (vouchers)",
+          "behavior": "The buyer requests with the exact revision, terms hash and nonce, then prepares the escrow setup with an acceptance deadline. `ServiceOffersLib.sol` `requestClaim`; `modules/VoucherRedemptionModule.sol` `prepareVoucherSetup`.",
+          "proof": "Contract tests: source 38/38, real-core integration 5/5.",
+          "gaps": "The acceptance deadline is chosen at setup; the lab's 7-day default is a design proposal, and the working terms propose a two-business-day booking response. Production signing of these calls is not built.",
+          "future": ""
+        },
+        {
+          "state": "SPay · Waiting for Sunroot; SIssuer · Approve booking",
+          "behavior": "The issuer approves each exact authorization before the holder can deposit. `modules/GnosisVoucherEscrow.sol` `approveSetupAuthorization`, issuer only.",
+          "proof": "Contract tests: destination 45/45. Pinned fork: redemption 10/10.",
+          "gaps": "Issuer Safe signers are unconfirmed. The working terms select two valid steward signatures for Tech and Sun's reserve Safe at any roster size.",
+          "future": "Standing issuer approval per offer with a place limit (not selected)."
+        },
+        {
+          "state": "SPay · Deposit, Signing not available",
+          "behavior": "The named holder deposits the exact amount; the escrow records a durable receipt. `GnosisVoucherEscrow.sol` `presentSetup`.",
+          "proof": "Pinned fork: redemption and connected pilot.",
+          "gaps": "Live blocker: no safe same-address account bootstrap or provider route on Gnosis is selected, so actual members cannot sign this yet. Two prompts (allow, then deposit) unless a proven account batches them.",
+          "future": "One prompt through account batching, once proven."
+        },
+        {
+          "state": "SRedeem · Confirming deposit, Waiting for acceptance; SIssuer · Accept",
+          "behavior": "Acceptance requires current consent, issuer approval, the authenticated deposit result and an unexpired deadline. `VoucherRedemptionModule.sol` `validateVoucherServiceAcceptance`; pool-steward `acceptServiceClaim`.",
+          "proof": "Contract tests: setup ordering and readiness cases.",
+          "gaps": "Live message delivery and its timing.",
+          "future": "Automatic acceptance (not selected)."
+        },
+        {
+          "state": "SRedeem · Starting, In progress",
+          "behavior": "Activation binds the accepted agreement; it does not show delivery or provision an outside service. `finalizeActivation`, permissionless.",
+          "proof": "Contract tests: activation from the permanent acceptance receipt.",
+          "gaps": "Who triggers activation in production (member, steward or a relayer).",
+          "future": ""
+        },
+        {
+          "state": "SRedeem · Ready to close, Approve split, Confirm kept, Transfers pending, Closed",
+          "behavior": "The holder freezes one final split within the issuer's return limit; each transfer runs on its own and can be retried by anyone; confirming the promise is a separate step. `GnosisVoucherEscrow.sol` `finalizeAllocation`, `executeFinalLeg`; `lib/CommitmentPooling/ConfirmLib.sol`.",
+          "proof": "Contract tests: destination 45/45 with fuzz. Storybook rehearsal: immutable allocation, issuer release once.",
+          "gaps": "Who executes the transfers after a freeze (keeper or member). Gnosis member signing.",
+          "future": ""
+        },
+        {
+          "state": "SRedeem · Canceling, Canceled, Accepted first",
+          "behavior": "Before acceptance the buyer can abort; abort and acceptance converge to one outcome; a setup refund needs the authenticated abort. `abortSetup`, `requestSetupAbort`.",
+          "proof": "Contract tests: abort-first and accept-first, late and reordered results.",
+          "gaps": "Live delivery timing for the race.",
+          "future": ""
+        },
+        {
+          "state": "SRedeem · Terms changed",
+          "behavior": "A setup is bound to its exact revision; a changed offer cannot start it, so the holder cancels and books again.",
+          "proof": "Contract tests: terms-update races.",
+          "gaps": "",
+          "future": ""
+        },
+        {
+          "state": "SRedeem · Problem reported",
+          "behavior": "Reporting raises a core dispute that the pool's stewards resolve; it does not move escrowed vouchers, which only the holder's approved split can move. `lib/CommitmentPooling/TerminalLib.sol` `raiseDispute`.",
+          "proof": "Contract tests for disputes on develop; no test combines a dispute with an escrow.",
+          "gaps": "Who settles a dispute and how fast is policy, not enforced. The working terms propose a help acknowledgment within two business days and a remedy proposal within five.",
+          "future": ""
+        }
+      ]
+    },
+    {
+      "title": "Exchange, then redeem",
+      "rows": [
+        {
+          "state": "SExchange · Quote, Review",
+          "behavior": "One direct exchange in the one shared pool: exact input, minimum output, deadline and recipient. Quotes show pool and protocol fees. SwapRouter quotes routes; only the pool's bounded call runs. `interfaces/ICLCSwapPool.sol`.",
+          "proof": "Pinned fork: 2,044,986 A in, 1,000,000 B net after 20,449 pool and 2,044 protocol fees.",
+          "gaps": "No live pool yet. The working terms set a 1:1 gross ratio, propose zero fees where supported, and start each issuer asset with 10 vouchers of pool inventory under a 20-voucher holding cap. Gnosis signing.",
+          "future": "Multi-pool execution. G$ to voucher swaps and cash-out stay excluded."
+        },
+        {
+          "state": "SExchange · Waiting for result, Done",
+          "behavior": "An unknown result blocks another paid exchange until the receipt is resolved; a swap books nothing.",
+          "proof": "Storybook rehearsal: pending receipt with no second paid action, then resolution. Component tests.",
+          "gaps": "",
+          "future": ""
+        },
+        {
+          "state": "SExchange · Quote expired, Pool short, Limit reached, Not listed",
+          "behavior": "Each failure is atomic: nothing is spent, received or charged.",
+          "proof": "Pinned fork: deadline, minimum, listing, limit and inventory cases.",
+          "gaps": "",
+          "future": ""
+        },
+        {
+          "state": "SOffer · Voucher course (after exchange)",
+          "behavior": "The actual exchange output is redeemed through the same safeguarded booking.",
+          "proof": "Pinned fork: swap output presented into the service lifecycle.",
+          "gaps": "",
+          "future": ""
+        }
+      ]
+    },
+    {
+      "title": "Partial delivery",
+      "rows": [
+        {
+          "state": "SIssuer · Propose return, Above terms",
+          "behavior": "The issuer sets the most that can come back, within its terms; it cannot move escrowed vouchers. `GnosisVoucherEscrow.sol` `authorizeReturn`.",
+          "proof": "Contract tests: return limit checked at freeze; fixture split 600,000 back and 400,000 released.",
+          "gaps": "The contract stores a return limit, not a proposed split; the lab shows the limit and the lessons reported as the proposal. The working terms propose partial-delivery calculations (usable minutes for hub visits and sessions, available days for Claude access); issuers have not accepted them (COM-46).",
+          "future": ""
+        },
+        {
+          "state": "SRedeem · Return proposed, Approve split",
+          "behavior": "The holder approves delivered service units and one immutable split that conserves the deposit; approving moves nothing by itself.",
+          "proof": "Contract tests: conservation, exact repeats and conflicts.",
+          "gaps": "Gnosis member signing.",
+          "future": ""
+        },
+        {
+          "state": "SRedeem · Transfers pending, Return failed, Closed",
+          "behavior": "Release to the issuer's reserve and return to the holder run independently, once each, with retry; a failed return shows as pending until it arrives.",
+          "proof": "Contract tests: both leg orders, one-leg failure and repair, inexact transfer rollback.",
+          "gaps": "",
+          "future": ""
+        },
+        {
+          "state": "SRedeem · Closed (promise closed early)",
+          "behavior": "Financial closure leaves the promise Accepted until its own lifecycle acts; the lab shows the issuer's stewards closing it early. `TerminalLib.sol` `cancelCommitment` (pool steward, reason required).",
+          "proof": "Core cancel tests on develop.",
+          "gaps": "Which core outcome records a partial delivery is not specified in the pilot handoffs.",
+          "future": ""
+        }
+      ]
+    },
+    {
+      "title": "Personal G$ purchase across gardens",
+      "rows": [
+        {
+          "state": "SOffer · G$ purchase (Open, Not a gardener, Gardens only, No places)",
+          "behavior": "Approval-gated offers can open to members of any garden that has a registered Celo Safe. `ServiceOffersLib.sol` `_requireBuyer`; `lib/Settlement/PersonalPurchaseConsentLib.sol`.",
+          "proof": "Contract tests: `PersonalServicePurchase.t.sol`, `PersonalServiceGuards.t.sol`.",
+          "gaps": "The 23 October working pilot terms leave personal G$ purchases out of the live pilot, so this journey is designed and locally proven but not part of that target.",
+          "future": ""
+        },
+        {
+          "state": "SPay · Agree (G$)",
+          "behavior": "Request plus pledge bind revision, terms hash, claim, nonce, home garden, Safe, depositing account, refund account, price and the disclosed gross and net. `interfaces/ISettlementPersonalServicePurchases.sol`; `PersonalFundingLib.sol` `pledge`.",
+          "proof": "Contract tests: consent and terms races.",
+          "gaps": "Production signing of the request and pledge (PRD-1297).",
+          "future": "Paying is agreeing (not selected)."
+        },
+        {
+          "state": "SPay · Send, No result, Not enough",
+          "behavior": "The member sends G$ on Celo to the home garden's Safe; the fee is read with `getFees` and paid by the sender. `modules/wallet/good-dollar-fees.ts`; `modules/CeloSettlement/Execution.sol`.",
+          "proof": "Pinned fork: Celo 12/12 including `CeloPersonalServiceDeposit.t.sol`.",
+          "gaps": "The live fee value. Member passkey signing and sponsorship on Celo for this call.",
+          "future": ""
+        },
+        {
+          "state": "SPurchase · Waiting for check; SFunds · Check payment",
+          "behavior": "A steward of the home garden records the verified transfer (transaction, log, block, accounts, amounts); a wallet observation alone is not a recorded deposit. `PersonalFundingLib.sol` `recordDeposit`.",
+          "proof": "Contract tests: wrong asset, Safe or funder, duplicate references.",
+          "gaps": "Steward tooling to read the receipt. Custody is an earmark in the Safe, not a lock.",
+          "future": "Celo purchase escrow with automatic verification (not selected)."
+        },
+        {
+          "state": "SRequests · Accept (payment checked, payment not checked)",
+          "behavior": "The provider garden's stewards accept each request. Accept waits for the recorded deposit as a **UI rule**: the contract does not check funding at acceptance, and payout needs assigned funding.",
+          "proof": "Contract tests: acceptance and funding stay distinct; payout rejects missing funding.",
+          "gaps": "Enforcing deposit-before-acceptance would need a contract change.",
+          "future": "Automatic acceptance (not selected)."
+        },
+        {
+          "state": "SFunds · Assign payment",
+          "behavior": "After acceptance, the home garden's stewards assign the recorded deposit to the purchase. `PersonalFundingLib.sol` `consume`.",
+          "proof": "Contract tests.",
+          "gaps": "",
+          "future": ""
+        },
+        {
+          "state": "SPurchase · Accepted, Access active, Ready to confirm, Kept and paying out, Paid out",
+          "behavior": "The provider marks the month ready; the member confirms it was kept; the payout plan pays the provider's team the price from the home garden's Safe. `ConfirmLib.sol`; `PersonalPurchaseOutcomeLib.sol` `validatePlan`.",
+          "proof": "Contract tests; Celo pinned fork for execution.",
+          "gaps": "Payout plan creation and dispatch roles in the UI.",
+          "future": "Automatic completion after a review window (not selected)."
+        },
+        {
+          "state": "SPurchase · Declined, Canceled, Refund sent, Refunded, Refund failed; SFunds · Refund, Refund failed",
+          "behavior": "Stewards queue a refund of the recorded deposit; the Safe pays that transfer's token fee; a failed refund is requeued; payout and refund exclude each other. `lib/Settlement/FundingRefundLib.sol`.",
+          "proof": "Contract tests: `PersonalServiceRecovery.t.sol` exclusivity and lost acknowledgments.",
+          "gaps": "Refunds are the recorded deposit, so the member's sending fee is not returned.",
+          "future": "A fee reserve so refunds return the full price (not selected)."
+        },
+        {
+          "state": "SPurchase · Terms changed",
+          "behavior": "Consent is bound to one revision; a changed price needs a new request, pledge and payment, and the old deposit is refunded.",
+          "proof": "Contract tests: stale terms rejected.",
+          "gaps": "",
+          "future": "Top-up of a changed price (not selected)."
+        },
+        {
+          "state": "SPurchase · Problem reported; SRequests · Dispute",
+          "behavior": "A dispute blocks a new payout (it needs Fulfilled) and a new refund until the pool's stewards resolve it. `TerminalLib.sol`; `PersonalPurchaseOutcomeLib.sol` `requireRefundEligible`.",
+          "proof": "Contract tests on develop and the purchase recovery suite.",
+          "gaps": "Response and escalation timings are policy. In the protocol pool the provider's stewards also resolve.",
+          "future": ""
+        }
+      ]
+    }
+  ]
+}

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>G$ purchase, simplified</title>
+<title>G$ purchase</title>
 <script src="./support.js"></script>
 <link rel="stylesheet" href="./gg.css">
 </head>
@@ -12,106 +12,133 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
 <style>body{margin:0}</style>
 </helmet>
-<div class="gg {{themeCls}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+<div class="gg {{themeCls}}" lang="{{lang}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
   <div class="scr" style="padding-bottom: {{padBottom}}">
     <div class="topnav">
-      <a class="close" href="SWallet.dc.html" aria-label="Back"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></a>
-      <span class="mid">Your purchase</span>
+      <a class="close" href="SWallet.dc.html" aria-label="{{backLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></a>
     </div>
     <div class="ident">
-      <span class="kind"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-coins-line"/></svg>Green Goods Community Garden</span>
-      <h1>AI assistant membership, 1 month</h1>
-      <span class="pill {{pillCls}}">{{pill}}</span>
+      <span class="kind"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-line"/></svg>{{kindLine}}</span>
+      <h1>{{title}}</h1>
     </div>
-
-    <div class="escrow" style="margin-top: 16px">
+    <div class="escrow" style="margin-top: 14px">
       <div class="etop">
-        <span class="elock"><svg class="i" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="{{holdIcon}}"/></svg></span>
-        <span><span class="ea">{{holdAmt}}</span><span class="eu" style="display: block">{{holdLabel}}</span></span>
-      </div>
-      <div class="eband">
-        <div class="stepper" style="padding: 4px 0 0">
-          <sc-for list="{{steps}}" as="s" hint-placeholder-count="3">
-            <span class="st {{s.cls}}"><span class="dot"><sc-if value="{{s.isDone}}" hint-placeholder-val="{{false}}"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg></sc-if><sc-if value="{{s.isNum}}" hint-placeholder-val="{{true}}">{{s.n}}</sc-if></span>{{s.label}}</span>
-          </sc-for>
-        </div>
+        <span class="elock"><svg class="i" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><use href="{{bandIcon}}"/></svg></span>
+        <span><span class="ea">{{bandAmt}}</span><span class="eu" style="display: block">{{bandLabel}}</span></span>
       </div>
     </div>
-
     <div class="stack" style="margin-top: 12px">
-      <div class="notice {{noticeCls}}"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="{{noticeIcon}}"/></svg>{{noticeT}}</span><p>{{noticeB}}</p></div>
+      <div class="notice {{nextCls}}" role="status"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="{{nextIcon}}"/></svg>{{nextT}}</span><p>{{nextB}}</p></div>
     </div>
-
-    <div class="sec"><h2>Details</h2></div>
+    <div class="sec"><h2>{{progressTitle}}</h2></div>
+    <div class="mx16 card">
+      <ol class="ladder ph" style="margin: 0; padding-left: 0; list-style: none">
+        <sc-for list="{{phases}}" as="p" hint-placeholder-count="4">
+          <li class="ls {{p.cls}}">
+            <span class="lm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{p.icon}}"/></svg></span>
+            <span class="lt"><b>{{p.title}}</b><span class="who">{{p.who}}</span>
+              <span class="subs"><sc-for list="{{p.subs}}" as="s" hint-placeholder-count="2"><span class="sub {{s.cls}}"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{s.icon}}"/></svg><span>{{s.text}}</span><span class="st2">{{s.state}}</span></span></sc-for></span>
+            </span>
+          </li>
+        </sc-for>
+      </ol>
+    </div>
+    <div class="sec"><h2>{{detailsTitle}}</h2></div>
     <div class="mx16 card">
       <div class="facts">
-        <div class="fact"><span class="k">You paid</span><span class="v"><span>450.90 G$ on Oct 22</span><small>Includes 0.90 G$ in G$ token fees</small></span></div>
-        <div class="fact"><span class="k">Terms</span><span class="v"><span>Version 3</span><small>Read the terms</small></span></div>
-        <div class="fact"><span class="k">Refunds go to</span><span class="v">Your account</span></div>
+        <sc-for list="{{facts}}" as="f" hint-placeholder-count="3"><div class="fact"><span class="k">{{f.k}}</span><span class="v"><span>{{f.v}}</span><small>{{f.s}}</small></span></div></sc-for>
+        <div class="fact"><span class="k">{{termsLabel}}</span><span class="v"><a class="tlink" href="#">{{readTerms}}</a></span></div>
       </div>
       <details class="tech">
-        <summary style="cursor: pointer; font-weight: 600">Technical details</summary>
-        <span>Held by contract 0x5E1d…C0aB</span>
-        <span>Purchase #2207</span>
+        <summary style="cursor: pointer; font-weight: 600">{{techLabel}}</summary>
+        <sc-for list="{{tech}}" as="x" hint-placeholder-count="3"><span>{{x}}</span></sc-for>
       </details>
     </div>
   </div>
   <sc-if value="{{hasActs}}" hint-placeholder-val="{{false}}">
-    <div class="fbar">
+    <div class="fbar col"><div class="fbtns">
       <sc-if value="{{hasPrimary}}" hint-placeholder-val="{{false}}"><a class="btn" href="{{primaryHref}}">{{primary}}</a></sc-if>
-      <sc-if value="{{hasSecondary}}" hint-placeholder-val="{{false}}"><button type="button" class="btn sec">{{secondary}}</button></sc-if>
-    </div>
+      <sc-if value="{{hasSecondary}}" hint-placeholder-val="{{false}}"><a class="btn sec" href="#">{{secondary}}</a></sc-if>
+    </div></div>
   </sc-if>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["Waiting to start","Started","Review window","Done","Declined","Canceled","Refund delayed","Problem reported","Terms changed"],"default":"Waiting to start","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["Waiting for check","Waiting for acceptance","Accepted","Access active","Ready to confirm","Kept, paying out","Paid out","Declined","Refund sent","Refunded","Refund failed","Canceled","Terms changed","Problem reported"],"default":"Waiting for check","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
   renderVals() {
-    var st = this.props.state ?? 'Waiting to start';
+    var t = GGT(this.props.lang);
+    var st = this.props.state ?? 'Waiting for check';
     var dark = this.props.dark ?? false;
-    var OK = '#ri-check-line';
-    var WARN = '#ri-alert-line';
-    var INFO = '#ri-information-line';
-    var CLOCK = '#ri-time-line';
-    var LOCK = '#ri-lock-line';
-    var BACK = '#ri-arrow-go-back-line';
-    var S = {
-      'Waiting to start': { pill: ['info', 'Held · waiting to start'], hold: [LOCK, '450.00', 'G$ held for this purchase'], at: 1,
-        notice: ['info', CLOCK, 'Waiting for Green Goods Community Garden', 'They usually reply within 2 days. If they decline, your 450.00 G$ comes back by itself.'], secondary: 'Cancel and Get a Refund' },
-      'Started': { pill: ['info', 'In progress'], hold: [LOCK, '450.00', 'G$ held until your month is done'], at: 2,
-        notice: ['ok', OK, 'Your access is active', 'Since Oct 24. Your month ends Nov 24.'], secondary: 'Report a Problem' },
-      'Review window': { pill: ['info', 'Month ended · paying Dec 1'], hold: [LOCK, '450.00', 'G$ held until Dec 1'], at: 2, last: true,
-        notice: ['info', CLOCK, 'Your month ended Nov 24', 'Green Goods Community Garden is paid on Dec 1 unless you report a problem before then.'], secondary: 'Report a Problem' },
-      'Done': { pill: ['ok', 'Kept'], hold: [OK, '450.00', 'G$ paid to the garden’s team'], at: 3,
-        notice: ['ok', OK, 'Kept and paid', 'Green Goods Community Garden was paid on Dec 1, split across its team by their payout plan.'] },
-      'Declined': { pill: ['neu', 'Declined · refund on its way'], hold: [BACK, '450.00', 'G$ coming back to you'], refund: 2,
-        notice: ['info', INFO, 'Green Goods Community Garden declined', 'Your 450.00 G$ is on its way back, usually within minutes.'] },
-      'Canceled': { pill: ['ok', 'Canceled · refunded'], hold: [BACK, '450.00', 'G$ back in your account'], refund: 3,
-        notice: ['ok', OK, 'Canceled before it started', '450.00 G$ is back in your account.'] },
-      'Refund delayed': { pill: ['warn', 'Refund delayed'], hold: [BACK, '450.00', 'G$ coming back to you'], refund: 2, warn: true,
-        notice: ['warn', WARN, 'Your refund is delayed', 'The transfer didn’t complete. It’s retried automatically and can’t be paid twice. You don’t need to do anything.'] },
-      'Problem reported': { pill: ['warn', 'Problem reported · payment paused'], hold: [LOCK, '450.00', 'G$ held, payment paused'], at: 2, warn: true,
-        notice: ['warn', WARN, 'You reported a problem', 'Nov 26: “Access stopped working.” Payment is paused while Green Goods Community Garden responds.'], secondary: 'Add to Your Report' },
-      'Terms changed': { pill: ['warn', 'Terms changed'], hold: [LOCK, '450.00', 'G$ held for this purchase'], at: 1, warn: true,
-        notice: ['warn', WARN, 'The offer changed before it started', 'Version 4 costs 480.00 G$. Agree and add 30.00 G$, or cancel and get your 450.00 G$ back.'], primary: ['Review Version 4', 'SPay.dc.html'], secondary: 'Cancel and Get a Refund' }
-    };
-    var c = S[st];
-    var labels = c.refund ? ['Held', 'Back with you'] : ['Held', 'Started', 'Kept'];
-    var at = c.refund ? c.refund : c.at;
-    var steps = labels.map(function (l, i) {
-      var n = i + 1;
-      var cls = n < at || (c.refund === 3) || (st === 'Done') ? 'done' : (n === at ? (c.warn ? 'on warn' : 'on') : '');
-      if (st === 'Review window' && n === 2) cls = 'done';
-      if (st === 'Review window' && n === 3) cls = 'on';
-      return { n: n, label: l, cls: cls, isDone: cls === 'done', isNum: cls !== 'done' };
-    });
-    var hasPrimary = !!c.primary, hasSecondary = !!c.secondary;
+    var price = 450, fee = 0.45, gross = 450.45;
+    var IC = { done: '#ri-check-line', now: '#ri-time-line', warn: '#ri-alert-line', fail: '#ri-close-line', todo: '#ri-checkbox-blank-circle-line' };
+    var ORDER = ['Waiting for check', 'Waiting for acceptance', 'Accepted', 'Access active', 'Ready to confirm', 'Kept, paying out', 'Paid out'];
+    var refund = { 'Declined': 1, 'Refund sent': 1, 'Refunded': 1, 'Refund failed': 1, 'Canceled': 1 }[st];
+    var pos = ORDER.indexOf(st);
+    if (st === 'Terms changed') pos = 1;
+    if (st === 'Problem reported') pos = 3;
+    function sub(text, state, label) { return { text: text, cls: state === 'todo' ? '' : state, icon: IC[state], state: label || t('pu.s.' + state) }; }
+    function phase(title, who, subs) {
+      var c = subs.some(function (s) { return s.cls === 'fail'; }) ? 'fail' : subs.some(function (s) { return s.cls === 'warn'; }) ? 'warn'
+        : subs.every(function (s) { return s.cls === 'done'; }) ? 'done' : subs.some(function (s) { return s.cls === 'now' || s.cls === 'done'; }) ? 'now' : 'todo';
+      return { title: title, who: who, subs: subs, cls: c, icon: IC[c] };
+    }
+    var s = function (i) { return pos > i ? 'done' : pos === i ? 'now' : 'todo'; };
+    var phases = [phase(t('pu.p.paid'), t('pu.who.you'), [sub(t('pu.sub.agreed', { date: t.d('2026-10-22') }), 'done'), sub(t('pu.sub.sent', { gross: t.g(gross) }), 'done'),
+      sub(t('pu.sub.checked', { price: t.g(price) }), pos >= 1 || refund ? 'done' : 'now')])];
+    if (refund) {
+      var declined = st !== 'Canceled';
+      phases.push(phase(declined ? t('pu.p.declined') : t('pu.p.canceled'), declined ? t('pu.who.gg') : t('pu.who.you'), [sub(declined ? t('pu.sub.declined', { date: t.d('2026-10-23') }) : t('pu.sub.canceled', { date: t.d('2026-10-23') }), 'done')]));
+      var q = st === 'Declined' || st === 'Canceled' ? 'now' : 'done';
+      var sent = st === 'Refund sent' ? 'now' : st === 'Refunded' ? 'done' : st === 'Refund failed' ? 'fail' : 'todo';
+      phases.push(phase(t('pu.p.refund'), t('pu.who.rc'), [sub(t('pu.sub.queued', { price: t.g(price) }), q), sub(t('pu.sub.refundSent'), sent), sub(t('pu.sub.refunded'), st === 'Refunded' ? 'done' : 'todo')]));
+    } else {
+      var acc = st === 'Terms changed' ? 'warn' : pos >= 2 ? 'done' : pos === 1 ? 'now' : 'todo';
+      phases.push(phase(t('pu.p.accepted'), t('pu.who.both'), [sub(t('pu.sub.accepted'), acc), sub(t('pu.sub.assigned'), pos >= 3 ? 'done' : pos === 2 ? 'now' : 'todo')]));
+      phases.push(phase(t('pu.p.month'), t('pu.who.gg'), [sub(t('pu.sub.access', { date: t.d('2026-10-24') }), st === 'Problem reported' ? 'warn' : pos >= 3 ? 'done' : pos === 2 ? 'now' : 'todo', st === 'Problem reported' ? t('pu.s.disputed') : ''), sub(t('pu.sub.ready', { date: t.d('2026-11-24') }), pos >= 4 && st !== 'Problem reported' ? 'done' : 'todo')]));
+      phases.push(phase(t('pu.p.kept'), t('pu.who.youThen'), [sub(t('pu.sub.confirmed'), pos >= 5 ? 'done' : pos === 4 ? 'now' : 'todo'), sub(t('pu.sub.paid', { price: t.g(price) }), pos >= 6 ? 'done' : pos === 5 ? 'now' : 'todo')]));
+    }
+    var B = {
+      'Waiting for check': ['#ri-time-line', t.g(gross) + ' G$', t('pu.b.sent')],
+      'Kept, paying out': ['#ri-send-plane-line', t.g(price) + ' G$', t('pu.b.paying')],
+      'Paid out': ['#ri-check-line', t.g(price) + ' G$', t('pu.b.paid')],
+      'Declined': ['#ri-arrow-go-back-line', t.g(price) + ' G$', t('pu.b.owed')], 'Canceled': ['#ri-arrow-go-back-line', t.g(price) + ' G$', t('pu.b.owed')],
+      'Refund sent': ['#ri-arrow-go-back-line', t.g(price) + ' G$', t('pu.b.coming')], 'Refunded': ['#ri-check-line', t.g(price) + ' G$', t('pu.b.back')],
+      'Refund failed': ['#ri-alert-line', t.g(price) + ' G$', t('pu.b.failed')], 'Terms changed': ['#ri-lock-line', t.g(price) + ' G$', t('pu.b.old')]
+    }[st] || ['#ri-lock-line', t.g(price) + ' G$', t('pu.b.held')];
+    var N = {
+      'Waiting for check': ['info', '#ri-time-line', 'check', null, 'cancel'],
+      'Waiting for acceptance': ['info', '#ri-time-line', 'decide', null, 'cancel'],
+      'Accepted': ['info', '#ri-time-line', 'accepted', null, 'report'],
+      'Access active': ['ok', '#ri-check-line', 'access', null, 'report'],
+      'Ready to confirm': ['info', '#ri-question-line', 'confirm', 'confirm', 'report'],
+      'Kept, paying out': ['info', '#ri-send-plane-line', 'paying'],
+      'Paid out': ['ok', '#ri-check-line', 'paid'],
+      'Declined': ['info', '#ri-information-line', 'declined'],
+      'Refund sent': ['info', '#ri-time-line', 'refundSent'],
+      'Refunded': ['ok', '#ri-check-line', 'refunded'],
+      'Refund failed': ['warn', '#ri-alert-line', 'refundFailed'],
+      'Canceled': ['info', '#ri-information-line', 'canceled'],
+      'Terms changed': ['warn', '#ri-alert-line', 'changed', 'newTerms', 'cancel'],
+      'Problem reported': ['warn', '#ri-alert-line', 'problem', null, 'addDetails']
+    }[st];
+    var vars = { price: t.g(price), fee: t.g(fee), gross: t.g(gross), newPrice: t.g(480), newGross: t.g(480.48), quote: t('pu.quote'),
+      d1: t.d('2026-10-24'), d2: t.d('2026-11-24'), d3: t.d('2026-11-25'), d4: t.d('2026-11-26'), d5: t.d('2026-10-23') };
+    var hasPrimary = !!N[3], hasSecondary = !!N[4];
     return {
-      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524',
-      pillCls: c.pill[0], pill: c.pill[1], holdIcon: c.hold[0], holdAmt: c.hold[1], holdLabel: c.hold[2], steps: steps,
-      noticeCls: c.notice[0], noticeIcon: c.notice[1], noticeT: c.notice[2], noticeB: c.notice[3],
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code, backLabel: t('c.back'),
+      kindLine: t('who.gg'), title: t('of.g.title'),
+      bandIcon: B[0], bandAmt: B[1], bandLabel: B[2],
+      nextCls: N[0], nextIcon: N[1], nextT: t('pu.n.' + N[2] + '.t', vars), nextB: t('pu.n.' + N[2] + '.b', vars),
+      progressTitle: t('pu.progress'), phases: phases,
+      detailsTitle: t('c.details'),
+      facts: [{ k: t('pu.f.paid'), v: t('pu.f.paidV', { gross: t.g(gross), date: t.d('2026-10-22') }), s: t('pu.f.paidS', { fee: t.g(fee) }) },
+        { k: t('pu.f.recorded'), v: pos >= 1 || refund ? t.g(price) + ' G$' : t('pu.f.notYet'), s: t('pu.f.recordedS') },
+        { k: t('pu.f.refund'), v: t.g(price) + ' G$', s: t('pu.f.refundS') }],
+      termsLabel: t('c.terms'), readTerms: t('c.readTerms'),
+      techLabel: t('c.tech'), tech: [t('pu.x.held'), t('pu.x.payment'), t('pu.x.record')],
       hasActs: hasPrimary || hasSecondary, hasPrimary: hasPrimary, hasSecondary: hasSecondary,
-      primary: hasPrimary ? c.primary[0] : '', primaryHref: hasPrimary ? c.primary[1] : '#', secondary: c.secondary || '',
+      primary: hasPrimary ? t('pu.a.' + N[3]) : '', primaryHref: N[3] === 'newTerms' ? 'SPay.dc.html' : '#',
+      secondary: hasSecondary ? t('pu.a.' + N[4]) : '',
       padBottom: hasPrimary || hasSecondary ? '104px' : '40px'
     };
   }

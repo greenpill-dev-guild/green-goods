@@ -1,178 +1,234 @@
 # PRD-1299 voucher design lab, v2: handoff
 
-**Status:** draft for Afo's review. Not approved. PRD-1299 owns design approval, PRD-1297
-implements it, PRD-1323 and PRD-1324 own linked rewards, and Gui reviews the Portuguese copy
-(PRD-1312). Nothing here changes contracts, live configuration or Linear.
+**Status:** draft for Afo's review, not approved. Revised in place on 22 and 23 October 2026 so
+the lab follows the locked pilot architecture. The revision is local only: the published
+[Voucher Lab](https://claude.ai/artifact/3pwUYy43vdb91q6qdH3H9G) (artifact version 4) still shows
+the earlier 22 October draft. Nothing here changes contracts, production code, live
+configuration or Linear.
 
-- **Open it:** [`voucher-lab.html`](voucher-lab.html) in any browser, or the published
-  [Voucher Lab](https://claude.ai/artifact/3pwUYy43vdb91q6qdH3H9G) (artifact version 4).
-- **Start with:** the "Simplified, proposed" group in the left column. Controls sit in the right
-  panel, so screens stay in view and don't shift between steps.
-- **Sources:** [`lab/`](lab/). See [Rebuild and check](#rebuild-and-check).
+PRD-1299 owns design approval and PRD-1297 implements it. PRD-1323 and PRD-1324 own linked
+rewards. Gui reviews the Portuguese copy (PRD-1312).
 
-v2 supersedes the v1 prototype's direction. v1 stays frozen beside it for comparison.
+- **Open it:** [`voucher-lab.html`](voucher-lab.html) in any browser. Start with **Pilot design**
+  in the left column: four written pages, then six journeys.
+- **Look up a state:** [`crosswalk.md`](crosswalk.md) maps every pilot screen and state to its
+  source, recorded proof, gaps and future ideas. [`copy-sheet.md`](copy-sheet.md) has every
+  string in English, Spanish and Portuguese.
+- **See it rendered:** [`evidence/`](evidence/) holds labeled static-prototype screenshots.
+- **Change it:** edit [`lab/`](lab/), then [rebuild and check](#rebuild-and-check).
 
-## For the local session: start here
+## What changed in this revision
 
-This cloud session had no access to three things. Check the direction against them before
-Afo reviews it.
+The first v2 draft proposed four architecture changes: a Celo purchase escrow, paying as
+agreeing, standing approvals, and automatic completion after a seven-day review window. None is
+selected for this pilot. The lab now designs the architecture that is built and locally proven,
+and keeps those four ideas, with what each would need, under **Future ideas**. v1 stays frozen in
+its own folder, and the lab keeps v1's screens under **v1 reference**.
 
-1. **The design book.** Afo attached *Don't Make Me Think*; the file never reached this session.
-   The lab applies Krug's principles from memory: one obvious action per screen, no chain or
-   contract words on member screens, copy cut to what a member needs to act. Read the book and
-   flag anything the screens get wrong.
-2. **Other local work.** Another session owns the contract and integration changes and a staged
-   checkpoint. This session did not see them. Compare the five changes in
-   [What changes underneath](#what-changes-underneath) with that work, especially the G$ purchase
-   escrow, the passkey validator on Gnosis, and acceptance rules in `acceptClaim`.
-3. **Local handoffs.** Read any newer files in `../../handoffs/` and the plan hub
-   (`../../status.json`, `../../tensions.md`) for decisions made after 22 Oct 2026.
+- **Ten pilot screens.** `SOffer`, `SPay`, `SPurchase`, `SRedeem`, `SReward`, `SExchange` and
+  `SWallet` for members; `SFunds`, `SRequests` and `SIssuer` for stewards. `SRedeem` replaces
+  `SCourse`; `SReward`, `SExchange` and `SFunds` are new.
+- **Five questions on every member screen:** what you get, what you give, who holds it, who acts
+  next, and what comes back if it falls short. The offer asks them in a "Before You Start" card.
+  Status pages answer them with a summary band, one next-step message, and a timeline grouped by
+  who acts.
+- **One stepped sheet for each run of approvals.** A strip shows whose step comes next. The sheet
+  never promises one prompt or sponsored fees, and a voucher deposit says it may ask twice.
+- **Chain details in context.** Chain names, Safes and record numbers sit under Transaction
+  details. Custody, costs, consent and refund limits stay in view wherever they affect a decision.
+- **Three languages.** Every pilot string lives in `lab/copy.json` in English, Spanish and
+  Portuguese. The build refuses a missing language, an em dash or a mismatched placeholder.
+- **A stricter check.** `check.mjs` now renders every pilot state in every language, and again in
+  dark, and fails on clipped text, unnamed controls, focus behind a dialog, missing icons or low
+  contrast.
 
-Then, in order:
+## The journeys
 
-- [ ] Confirm each architecture change is feasible with the contract session's current work, or
-      mark which ones change the design.
-- [ ] Check the screens against the design book and the [design audit](design-audit.md).
-- [ ] Work the [remaining audit items](design-audit.md#remaining) that need a local checkout or
-      a running app.
-- [ ] Put the [open questions](#still-open) to Afo.
+| Journey | Steps | Screens | What it shows |
+|---|---:|---|---|
+| Earn vouchers, with optional G$ | 12 | `SReward`, `SFunds`, `SWallet`, `SIssuer` | A Request pays 20 Sunroot vouchers and 120 G$. Each reward arrives on its own, with its own receipt. A used-up allowance makes a vouchers-only reward wait until the issuer raises it. |
+| Redeem a voucher you hold | 14 | `SWallet`, `SOffer`, `SPay`, `SIssuer`, `SRedeem` | Agree, the issuer approves, deposit, the issuer accepts. Then the session, the final split and the confirmation, each a separate approval. |
+| Exchange, then redeem | 8 | `SOffer`, `SExchange`, `SPay`, `SRedeem` | One direct exchange in the shared pool, showing fees, minimum, deadline and recipient. The swap books nothing; the vouchers it returns are then redeemed. |
+| A course that ends early | 8 | `SRedeem`, `SIssuer` | The issuer proposes a return within its terms, the holder approves one final split, and each transfer is tracked, and retried if it fails, on its own. |
+| Buy with your own G$ | 13 | `SOffer`, `SPay`, `SPurchase`, `SFunds`, `SRequests` | Lina's home-garden Safe holds the payment and its stewards check it. The provider accepts, the month runs, and Lina confirms it was kept before anyone is paid. |
+| When something goes wrong | 17 | All but `SReward` and `SWallet` | Not a gardener, no result, changed terms, an unchecked payment, a decline, a failed refund, a dispute, signing not available, a cancel race, a stale quote, a short pool, a return above terms. |
 
-## Afo's decisions so far
+Six before-and-after pairs, under **What changed from v1**, show what each pilot screen removes.
 
-Made in this session, on 22 Oct 2026:
+## What the design follows
 
-| Topic | Decision |
+- **Rewards.** Vouchers are the main reward, with G$ as an optional extra on Celo. A Request names
+  the issuer, the entitlement and the quantity. Voucher and G$ deliveries keep separate statuses
+  and receipts. Accepting a Request reserves no inventory, and another issuer's voucher needs its
+  authorization and a finite allowance.
+- **Exchange.** One shared curated pool on Gnosis. Issuers keep their own tokens, reserves and
+  obligations. Arbitrum commitment pools coordinate promises and hold no liquidity. A swap books
+  nothing. Quotes can list routes, but only direct exchanges run.
+- **Redemption.** Exact consent first, then issuer approval and an authenticated escrow deposit
+  on Gnosis, then acceptance. Activation fixes the agreement; it is not delivery. Service evidence
+  and the member's confirmation stay explicit. The holder approves one final split within the
+  issuer's return limit, and each transfer has its own pending, arrived and failed states, with
+  retry.
+- **Personal G$.** A member's own G$ goes to their home garden's Celo Safe, where a steward checks
+  it arrived. It is an accounting earmark, not a lock. Consent, the payment check and the
+  provider's acceptance stay separate steps. Each agreement uses one payment route, and refunds
+  return the recorded deposit.
+- **Left out:** a G$ bridge, G$-to-voucher swaps, cash-out or fiat payouts, mixed checkouts,
+  timed approvals, automatic burns, and treating a financial close as proof of delivery.
+
+## Corrected states
+
+| Before | Now |
 |---|---|
-| Directions for today's screens | Take every suggested pick: Route card (offer), Stepped sheet (pay), Timeline (status), Wallet tabs (where purchases live), Escrow card (holder), Split bar (split), Rows (wallet vouchers), Dialog with checks (steward approval), Funds page card (buyer deposits). |
-| Simplify | Simplify the flows, abstract the held funds, and state any architecture change plainly. |
-| Architecture | Accept all four changes: G$ purchase escrow, one account everywhere, paying is agreeing, standing approvals. |
-| Finishing | Pay out automatically once everything is delivered, after the review window. |
-| Naming | Keep **Redeem** for vouchers, the same as CLC, because members may use both apps. Vaults get a new verb. |
-| Accounts | Passkey accounts must be verified as gardener or steward accounts. |
+| One passkey approval and sponsored fees | "Your passkey asks you to approve. If there's a network fee, you see it first." A deposit may ask twice: allow, then deposit. |
+| "Back in your account right away" | A return shows as pending until its transfer arrives. A failed one says so and can be retried, for the same amount only. |
+| A provider remedy that moves value | The issuer can **Propose Return**: a limit within its terms. Nothing moves until the holder approves a split. |
+| "Kept" for reports and payouts | **Kept** appears only after the member confirms, or after stewards resolve a dispute as kept. "Sunroot reported the delivery", "Ready to confirm" and "The payout is running" are separate states. |
+| Topping up a changed price | Changed terms need a fresh agreement. A G$ payment made under the old terms is refunded and the new price paid in full. A voucher booking is canceled and booked again. |
+| Cancel "any time before service starts" | Cancel before the issuer or provider accepts. If acceptance lands first, the screen says so and offers a return request or a problem report. |
+| A dispute that pauses every payment | A disputed G$ purchase can't start a new payout or refund until the stewards decide. Escrowed vouchers stay where they are; only the holder's approved split moves them. |
+| Steward authority over a holder's vouchers | Stewards resolve the promise. They can't change the holder's voucher split. |
+| Redeem on the spot | Removed. Immediate services use the same consent, acceptance and delivery steps. A bounded on-the-spot receipt is a future idea. |
+| Automatic completion after seven days | Removed. Suggested response times are labeled as policy, not enforced. |
 
-Two of these reopen earlier text. `../../spec.md` lines 45 to 50 say "Redeem" keeps its vault
-meaning and propose "use" for vouchers; the brief keeps a member's G$ in the buyer garden's
-Safe. Both need their owners to update them. This branch doesn't edit them.
+The pass also cut repeated notices to one status message per page, put each blocking reason next
+to the action it blocks, kept issuer names and amounts whole on a phone, kept numbers on the same
+line as their units, removed the progress bar from canceled bookings, and stopped cockpit pages
+above the dock.
 
-## The simplified direction
+## The working pilot terms
 
-Members see one idea for G$ and vouchers alike: **a hold**.
+On 23 October the implementation lane recorded working pilot terms in `pilot-issuer-terms.md`
+(draft 3) on `feature/cosmo-local-contracts`. On 22 October the release owner accepted their
+business baseline: the prices, a twenty-voucher ceiling per issuer, ten participants and a 1:1
+pool ratio. The issuers haven't accepted the terms, so the lab keeps its fictional services. The
+terms map onto these screens like this:
 
-> "Your 450 G$ is held for this purchase. Green Goods Community Garden is paid when it's done.
-> If it doesn't go ahead, it all comes back to you."
-
-- Buying is one review and one approval.
-- A purchase is held, started, then kept, or it comes back.
-- Members act only to report a problem or to answer an early end.
-- Safes, chains, steward checks and per-chain wallets leave member screens. Stewards still see
-  them under Technical details.
-
-| Flow in the lab | Screens | What it shows |
-|---|---|---|
-| Simplified G$ purchase | `SOffer`, `SPay`, `SPurchase`, `SRequests` | Lina buys a month of the AI assistant with her own G$; Kaya accepts. |
-| Simplified voucher course | `SOffer`, `SPay`, `SCourse`, `SIssuer` | Lina redeems 100 Sunroot vouchers for a course that ends early. |
-| Redeem on the spot | `SOffer`, `SPay`, `SWallet` | One seed packet voucher, handed over at once. |
-| When something goes wrong | `SPurchase`, `SRequests` | Declines, delayed refunds, problem reports, changed terms. |
-
-The lab also keeps the v1 screens ("Today") and before-and-after pairs, so reviewers can see what
-each change removes.
-
-## What changes underneath
-
-| # | Change | Removes | Costs |
-|---|---|---|---|
-| 1 | Each G$ purchase is held in its own escrow on Celo, which reports arrival the way the voucher escrow does on Gnosis. | Choosing a home garden, two manual steps for the buyer garden's stewards, manual refunds. | One new Celo contract and its audit. G$ is still never bridged; payouts still follow the selling garden's payout plan. |
-| 2 | One account everywhere, checked once as a gardener or steward account. | The separate Gnosis wallet, the two-accounts step, wrong-wallet errors. | Deploying the passkey validator on Gnosis at the same address (C57 in `../../research/claim-ledger.md`). Outside wallets stay possible. |
-| 3 | Paying is agreeing: the payment carries the exact terms version. | One extra approval for G$, two for vouchers. | Pooling and voucher modules accept agreement that arrives with the payment. |
-| 4 | Standing approvals: issuers approve an offer once with a place limit; gardens can turn on automatic acceptance. | Waiting for each setup approval and, for routine offers, for a steward. | Offer-level settings and a change to `acceptClaim`, which only a pool steward can call today. |
-| 5 | Done by default when everything is delivered, after a 7-day window, unless the member reports a problem. Early ends and partial splits still need the member's yes. | "Confirm it was kept" as a required step. | Timed release in the settlement and voucher modules, and a problem flag that pauses it. |
-
-What stays: G$ on Celo, vouchers on Gnosis, agreements on Arbitrum; the selling garden decides
-unless it turns on automatic acceptance; payouts split by the payout plan; issuer caps and pauses
-stay published policy until PRD-1315 enforces them.
-
-## Recommendations
-
-Afo asked for these on 22 Oct 2026. The lab's Recommendations page has the same text.
-
-**G$ token fees.** Members see one total and always get the full price back. They pay the price
-plus two G$ token fees, one for paying in and one set aside for paying out: 450.00 + 0.45 + 0.45 =
-450.90 G$ at an illustrative 0.1%. Refunds and payouts are always the full 450.00 G$. Read the real
-fee from the token at payment, as the Celo settlement executor already does with
-`getFees(amount, sender, recipient)`. The escrow refuses receiver-paid fees rather than hold less
-than it promised, matching the executor (`packages/contracts/src/modules/CeloSettlement/`).
-
-**One approval for vouchers.** Yes, without relying on the voucher token. The Kernel account
-batches approve and deposit into one passkey approval with a sponsored network fee. Public sources
-don't show EIP-2612 permit support on CLC vouchers, so the design doesn't depend on it. Outside
-wallets may see two prompts. Prerequisite: the passkey validator on Gnosis (C57).
-
-**Review window.** 7 days for every offer in the first release. It starts at the end of the
-service period or at the last lesson report, sends reminders at the start and the day before it
-closes, and pauses on a problem report. No window for vouchers redeemed on the spot. Later, 3 to
-14 days per offer if providers ask.
-
-**Naming.** Redeem for vouchers everywhere, as in CLC. Vaults use **Withdraw** with its object
-("Withdraw from Endowment"), or "Take Out" if Afo wants no overlap with "Withdraw This Offer".
-That touches 23 English strings in `packages/shared/src/i18n/en.json` (22 on vault screens, 1 in
-the treasury), plus Spanish and Portuguese.
-
-**Gardener and steward check.** Green Goods checks the role once, on Arbitrum through Hats, when
-the member agrees, and records the account address. The escrows on Celo and Gnosis accept money
-only from that address. Someone without a garden role sees "Join a garden to pay for yourself"
-and a Find a Garden button.
-
-**Swapping vouchers.** Supported within one CLC pool: one admitted asset for another, within its
-limits and inventory. Multi-pool routes only quote prices in CLC's current version. G$ is never
-swapped for vouchers (locked). A swap isn't a redemption and books nothing.
-
-## Still open
-
-1. **Who settles a reported problem.** Suggestion: the provider has 7 days to refund (in full, or
-   in part for a course within its terms) or fix it; after 14 days unresolved, the stewards of the
-   pool's garden decide.
-2. **The passkey validator on Gnosis** (C57). Changes 2 and 3 depend on it.
-3. **The live G$ fee**, read from the token before launch.
-4. **Text owners must update** `../../spec.md` lines 45 to 50 and the brief's buyer-garden Safe
-   rule, and someone must pick the vault verb before the 23 strings change.
-
-## Plain scenarios
-
-The lab's "How it works, in plain words" page walks seven scenarios with links to each flow:
-Lina's G$ purchase; a decline or problem; Lina's voucher course that ends early; a seed packet
-redeemed on the spot; a garden promise that pays G$ and vouchers; Kofi buying vouchers at an
-exchange; and a garden buying for itself through the ordinary garden promise flow.
-
-## Rebuild and check
-
-```sh
-cd .plans/backlog/cosmo-local-credit-interop/artifacts/prd-1299-voucher-ui/v2/lab
-node build.mjs     # writes ../voucher-lab.html from shell.html, gg.css, remix-sprite.svg and screens/
-node check.mjs     # self-test plus fit checks; uses the repo's @playwright/test
-```
-
-- `shell.html`: the lab page, its runtime and all lab text (flows, questions, pairs, docs).
-- `gg.css`: the screen kit. The block after "Design-system alignment (v2 audit)" holds the audit
-  corrections.
-- `screens/*.dc.html`: 27 screens. `S*` files are the simplified direction; the rest are v1's.
-- `remix-sprite.svg`: 52 Remix Icon 4.9.0 glyphs from the npm package. Icons by Remix Icon
-  (https://remixicon.com), licensed under the Remix Icon License v1.0.
+- **Tech and Sun hub day** (1 voucher, one visit of up to four hours) and **Green Goods assisted
+  session** (2 vouchers, 30 minutes) follow "Redeem a voucher you hold" as single sessions.
+- **Claude access** (10 Green Goods vouchers, 30 days from working access) uses the same booking.
+  If access falls short, the split counts available days out of 30, the pattern the course
+  example shows with lessons.
+- **The exchange** starts at a 1:1 gross ratio, with zero fees proposed where supported. The
+  screen keeps its fee, minimum, deadline and recipient rows either way.
+- **Personal G$ purchases** are outside the working terms. That journey stays designed and
+  locally proven, but it isn't part of the live target. Optional G$ rewards keep their own Celo
+  consent, receipts and recovery.
+- The terms also propose a two-business-day booking response, a help acknowledgment within two
+  business days and a remedy proposal within five. None of these is enforced by a contract.
 
 ## Evidence
 
-All rendered proof is **CI-style headless Chromium (Playwright 1.x, Chromium 1194) against the
-built file**. None of it is authenticated.
+Three classes, kept apart. None of them is proof of authenticated signing.
 
-| Check | Result |
+**Static prototype: this lab, run during this revision** in headless Chromium (Playwright's
+bundled build).
+
+| Command or check | Observed result |
 |---|---|
-| `node build.mjs` in this folder | Output is byte-identical to the published artifact version 4. |
-| Lab self-test (every screen in every state draws) | 0 errors, no console errors. |
-| Fit check: 8 views at 1440×900, 1280×720, 1024×768, 390×844 (`check.mjs`) | Passed: every frame inside the stage, stage above the fold, no sideways scroll. |
-| Wider fit sweep: 10 views at the same 4 sizes | 40 of 40 passed. |
-| Every icon reference has a sprite glyph | 0 missing. |
-| Visual review of screenshots | `SRequests`, `SIssuer`, `SWallet`, `SPurchase`, `Visit`, `Main`, `SOffer`, `SPay` checked by eye at 1440 wide. |
+| `node build.mjs` | Wrote `voucher-lab.html` (645 KB), `copy-sheet.md` (857 keys) and `crosswalk.md` (34 rows). Rebuilding without a source change produced an identical file. |
+| `node check.mjs` | Passed on 23 October. The self-test passed. Fourteen views fit at 1440 × 900, 1280 × 720, 1024 × 768 and 390 × 844 with no sideways scroll. All 608 pilot screen states (every state in English, Spanish and Portuguese, plus every state in dark) showed no clipped or overflowing text, a name on every control, no focus behind an open dialog, every icon present, and AA contrast. |
+| Keyboard walk | Seventy Tab presses through the lab on a journey step. Every stop showed a focus ring, none landed behind a dialog, and focus moved from navigation to the screen, the controls, the steps and the notes. Run from a scratch script that isn't part of the lab. |
+| Visual review | Every pilot state in English at native size, with Spanish, Portuguese and dark checks, and the lab at 1440 and 390 wide in both screen themes. The fixes it found are in this revision. |
 
-Not done here: authenticated Brave proof (not needed for a design artifact), the design book
-review, and comparison with local contract work.
+**Recorded implementation proof, not rerun here.** The crosswalk's proof column cites contract
+tests, pinned forks, component tests and Storybook rehearsal recorded in the implementation
+handoffs at `c40697f6e`. Storybook accounts and transactions are fictional, and a pinned fork is
+not cross-chain delivery. Later commits through `aacdd1f9b` add steward Safe signer sync and
+release tooling. None of them changes the voucher, escrow, pooling or settlement sources the
+crosswalk cites.
+
+**Product and authenticated proof: none.** This revision ran no comparison with the running app,
+no Storybook build of these designs, and no screen reader. The
+[design audit](design-audit.md#remaining) lists what is still unchecked.
+
+## Decisions for Afo
+
+1. **The direction.** Approve the ten pilot screens and six journeys, or mark what to change.
+2. **Disputes.** Who settles a disputed G$ purchase when the provider's own stewards resolve its
+   pool, as in the protocol pool.
+3. **Partial delivery.** Which core outcome records it: the issuer's stewards closing the promise
+   early, or a dispute resolution.
+4. **Follow-up calls.** Who runs activation after acceptance, the transfers after a split is
+   approved, and a reward retry after a reserve or allowance repair. Anyone can call each of them,
+   and the issuer's Safe also has a retry fallback, but none has an owner yet.
+5. **The refund fee.** Whether the home garden or the member carries the refund transfer's token
+   fee. Today the Safe pays it.
+6. **Defaults.** The acceptance deadline (the lab shows 7 days; the working terms propose a
+   two-business-day booking response) and the vault verb.
+7. **Accept after the payment check.** Whether it becomes a contract rule. Today it is a design
+   rule only.
+8. **Real services.** Whether to restyle the fictional services as the working pilot services once
+   the issuers accept their terms.
+
+## Live blockers
+
+As the implementation lane recorded them at 10:13 a.m. Pacific on 23 October, in
+`handoffs/codex-live-pilot-deployment.md` on `feature/cosmo-local-contracts`. This session read
+them and reran nothing. That lane is preparing a controlled live pilot for 24 October and has sent
+no live transaction.
+
+- **Same address.** A member's address must match on Arbitrum, Gnosis and Celo. The legacy
+  validator that would preserve it is unsafe to deploy, because its WebAuthn dependency has a
+  path that skips the assertion binding, and no safe address-preserving bootstrap is selected. The
+  intended member has no account code on Gnosis or Celo.
+- **Signing and fees.** Chain 100 is excluded from the app's chain and Pimlico configuration.
+  Hosted bundler or paymaster acceptance, a funded native route, actual member possession,
+  signing and recovery, and the helper's provenance are unproven.
+- **Issuers.** Capacity, accountable addresses and acceptance are unconfirmed. COM-46 is In
+  Progress, and that status is not approval.
+- **Delivery and data.** No live cross-chain delivery is proven, and the app and indexer have no
+  reviewed Gnosis voucher endpoints.
+
+This design authorizes no deployment, broadcast, production auth activation or live financial
+action, and claims no readiness.
+
+## Copy and text owners
+
+- English is a draft for Afo. Portuguese awaits Gui's review (PRD-1312), and Spanish awaits a
+  native speaker. The [copy sheet](copy-sheet.md) marks both.
+- **Redeem** is the voucher verb. The vault verb is unresolved, and production vault strings are
+  unchanged. In Spanish and Portuguese the Redeem verbs (canjear, resgatar) collide with today's
+  vault strings until a vault verb is chosen.
+- The hub spec still says "Redeem" keeps its vault meaning (line 47 of
+  [`spec.md`](../../../spec.md)). Its owner should record the voucher decision.
+- The contract branch's brief keeps a member's G$ in the buyer garden's Safe. The design now
+  follows that rule, so v2's earlier request to change it is withdrawn.
+
+## Rebuild and check
+
+Run from the lab folder. `check.mjs` uses the repository's `@playwright/test`; set
+`CHROMIUM_PATH` to use another Chromium build.
+
+```sh
+cd .plans/backlog/cosmo-local-credit-interop/artifacts/prd-1299-voucher-ui/v2/lab
+node build.mjs   # writes ../voucher-lab.html, ../copy-sheet.md and ../crosswalk.md
+node check.mjs   # self-test, fit, text, names and focus, icons, contrast
+```
+
+| File | Holds |
+|---|---|
+| `shell.html` | The lab page and runtime, and all lab text: journeys, pairs and written pages. |
+| `gg.css` | The screen kit. Audit corrections follow the "Design-system alignment (v2 audit)" comment, and pilot additions follow "Pilot design additions". |
+| `screens/*.dc.html` | 30 screens: the ten `S*` pilot screens, and v1's twenty kept for reference. |
+| `copy.json` | Every pilot string as `[EN, ES, PT]`. |
+| `crosswalk.json` | The screen and state crosswalk. |
+| `remix-sprite.svg` | 60 Remix Icon 4.9.0 glyphs from the npm package. Icons by Remix Icon (https://remixicon.com), licensed under the Remix Icon License v1.0. |
 
 These files are design artifacts. Code, tests and CI must not depend on them.
+
+## Task record
+
+Task record: PRD-1299 v2 pilot revision | Type: design | Outcome: complete as a draft; approval pending
+Agent/model: Claude Code / claude-opus-5-5, in two sessions | Coverage: the revision from 22 October 23:54 UTC
+
+| Phase | Start → end (UTC) | Result / evidence or blocker |
+|---|---|---|
+| Investigate and implement | 2026-10-22 23:54 → 2026-10-23 05:36 | Sources read; screens, copy and crosswalk rewritten; lab self-test clean. The two phases overlapped. |
+| Verify | 2026-10-23 05:36 → 05:47 | Text, name, focus and contrast sweep added to `check.mjs` and passing; visual review began. |
+| Wait | 2026-10-23 05:47 → 16:36 | Session usage limit; resolved. |
+| Verify | 2026-10-23 16:36 → 16:45 | Visual-review fixes, keyboard walk, first evidence capture. The session then stopped at a usage limit. |
+| Investigate | 2026-10-23 17:19 → 17:27 | Resumed in a second session; read the newer implementation handoffs and working pilot terms. |
+| Implement and verify | 2026-10-23 17:26 → 17:38 | Copy fixes; current blockers and pilot terms in the crosswalk and lab pages; these docs; a rebuild; `check.mjs`, the selected `format` and `lint` checks (2 fresh passes, 0 reused) and Plan Hub validation passing; renders and evidence. |
+
+Human corrections: 0 observed in this segment; attention: unknown.

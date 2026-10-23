@@ -151,6 +151,15 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .lab-doc .lab-btn { align-self: flex-start; }
 .lab-scen { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; border-radius: 16px; background: var(--panel-2); }
 .lab-scen ol { gap: 6px; }
+.lab-doc.wide { max-width: 1200px; }
+/* A document never grows past the stage; wide tables scroll inside their own frame */
+.lab-doc { min-width: 0; width: 100%; box-sizing: border-box; }
+.lab-tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; min-width: 0; max-width: 100%; }
+.lab-table { border-collapse: collapse; width: 100%; min-width: 880px; font-size: 13px; line-height: 19px; }
+.lab-table th, .lab-table td { text-align: left; vertical-align: top; padding: 10px 12px; border-top: 1px solid var(--line); }
+.lab-table thead th { border-top: 0; background: var(--panel-2); font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.lab-table tbody th { font-weight: 700; width: 17%; }
+.lab-table td:nth-child(2) { width: 31%; }
 
 @media (prefers-reduced-motion: no-preference) {
   .lab-item, .lab-seg button, .lab-pick, .lab-btn, .lab-icon, .lab-steps button { transition: background-color .15s, color .15s, box-shadow .15s; }
@@ -173,7 +182,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 /* Green Goods screen kit, as used in the app */
 /*__GG_CSS__*/
 
-/* Screen kit additions for the simplified screens */
+/* Screen kit additions for the pilot screens */
 .gg .st.warn .dot { background: var(--warn-bg); color: var(--warn); border-color: var(--warn); }
 .gg .lessons { display: flex; gap: 4px; margin-top: 6px; }
 .gg .lessons span { flex: 1; height: 8px; border-radius: 999px; background: var(--neu-bg); border: 1px solid var(--line2); }
@@ -189,10 +198,11 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
       <span class="lab-mark"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8a2 2 0 0 0 2-2h12a2 2 0 0 0 2 2v2.5a1.5 1.5 0 0 0 0 3V16a2 2 0 0 0-2 2H6a2 2 0 0 0-2-2v-2.5a1.5 1.5 0 0 0 0-3z"/><path d="M12 15v-4"/><path d="M12 11c0-2 1.2-3.2 3.2-3.2 0 2-1.2 3.2-3.2 3.2zM12 11c0-2-1.2-3.2-3.2-3.2 0 2 1.2 3.2 3.2 3.2z"/></svg></span>
       <div><b>Voucher Lab</b><span>Cosmo-Local · PRD-1299 draft, not approved</span></div>
     </div>
-    <div class="lab-group"><h2>Simplified, proposed</h2><div id="nav-simple"></div></div>
-    <div class="lab-group"><h2>Before and after</h2><div id="nav-p"></div></div>
-    <div class="lab-group"><h2>Today: choose a direction</h2><div id="nav-q"></div></div>
-    <div class="lab-group"><h2>Today: walk a flow</h2><div id="nav-f"></div></div>
+    <div class="lab-group"><h2>Pilot design</h2><div id="nav-simple"></div></div>
+    <div class="lab-group"><h2>What changed from v1</h2><div id="nav-p"></div></div>
+    <div class="lab-group"><details id="nav-v1-box"><summary>v1 reference <span aria-hidden="true">▾</span></summary>
+      <p class="lab-p" style="margin: 4px 0 8px">v1 as Afo reviewed it, with the directions Afo picked. Superseded wherever it differs from the pilot design.</p>
+      <div id="nav-q"></div><div id="nav-f"></div></details></div>
     <div class="lab-group"><details id="nav-s-box"><summary>Every screen <span aria-hidden="true">▾</span></summary><div id="nav-s"></div></details></div>
     <div class="lab-navfoot">
       <span class="lab-count" id="count"></span>
@@ -224,6 +234,33 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 (function () {
   'use strict';
   var SOURCES = /*__SOURCES__*/;
+  /* Pilot copy: every key is an aligned [EN, ES, PT] triple. Screens read it through window.GGT. */
+  var GG_COPY = /*__COPY__*/;
+  var CROSSWALK = /*__CROSSWALK__*/;
+  var LANGS = ['EN', 'ES', 'PT'];
+  var LOCALES = { en: 'en-US', es: 'es', pt: 'pt-BR' };
+  var copyMissing = [];
+  window.GGT = function (lang) {
+    var code = String(lang || 'EN').toLowerCase(), col = code === 'es' ? 1 : code === 'pt' ? 2 : 0;
+    if (!col) code = 'en';
+    var loc = LOCALES[code];
+    var nf2 = new Intl.NumberFormat(loc, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    var nf0 = new Intl.NumberFormat(loc, { maximumFractionDigits: 0 });
+    var df = new Intl.DateTimeFormat(loc, { month: 'short', day: 'numeric', timeZone: 'UTC' });
+    function t(key, vars) {
+      var row = GG_COPY[key];
+      if (!row) { copyMissing.push(key); return '\u27E6' + key + '\u27E7'; }
+      var out = row[col];
+      if (vars) out = out.replace(/\{(\w+)\}/g, function (m, n) { return vars[n] != null ? String(vars[n]) : m; });
+      /* A number never wraps apart from the word after it: 450.00 G$, 10 vouchers, 3 lessons */
+      return out.replace(/(\d) (?=[^\s\d\u00B7])/g, '$1\u00A0');
+    }
+    t.code = code;
+    t.g = function (x) { return nf2.format(x); };
+    t.n = function (x) { return nf0.format(x); };
+    t.d = function (iso) { return df.format(new Date(iso + 'T12:00:00Z')); };
+    return t;
+  };
   var SVGNS = 'http://www.w3.org/2000/svg';
   var LETTERS = ['A', 'B', 'C', 'D'];
   var ICON = {
@@ -295,6 +332,8 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
       var name = a.name;
       if (name.indexOf('hint-') === 0) return;
       if (/^on[a-z]+$/.test(name)) { var fn = raw(a.value, scope); if (typeof fn === 'function') el.addEventListener(name.slice(2), fn); return; }
+      /* inert is boolean: inert="{{x}}" applies only when x is neither empty nor 'false' */
+      if (name === 'inert') { var iv = interp(a.value, scope); if (iv && iv !== 'false') el.setAttribute('inert', ''); return; }
       el.setAttribute(name, interp(a.value, scope));
     });
     node.childNodes.forEach(function (c) { build(c, scope, el); });
@@ -334,10 +373,10 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     ProviderReview: 'Approve a request', BuyerDeposits: 'Member deposits', Inspector: 'Purchase record', VOffer: 'Voucher offer',
     VSetup: 'Voucher setup', Holder: 'Voucher promise', Split: 'Final split', IssuerDesk: 'Issuer requests', EscrowInspector: 'Escrow record',
     Wallet: 'Wallet vouchers', Exchange: 'Voucher exchange', Rewards: 'Rewards', RewardsDesk: 'Reward receipts', IssuersDesk: 'Voucher issuers',
-    SOffer: 'Offer', SPay: 'Review and pay', SPurchase: 'G$ purchase', SCourse: 'Voucher course', SWallet: 'Wallet',
-    SRequests: 'Requests to accept', SIssuer: 'Course people'
+    SOffer: 'Offer', SPay: 'Review sheet', SPurchase: 'G$ purchase', SRedeem: 'Voucher booking', SReward: 'Request rewards',
+    SExchange: 'Exchange', SWallet: 'Wallet', SFunds: 'Funds (home garden)', SRequests: 'Requests to accept', SIssuer: 'Voucher bookings (issuer)'
   };
-  var SIMPLE = { SOffer: 1, SPay: 1, SPurchase: 1, SCourse: 1, SWallet: 1, SRequests: 1, SIssuer: 1 };
+  var SIMPLE = { SOffer: 1, SPay: 1, SPurchase: 1, SRedeem: 1, SReward: 1, SExchange: 1, SWallet: 1, SFunds: 1, SRequests: 1, SIssuer: 1 };
   var PROP_LABEL = { variant: 'Direction', state: 'State', dialog: 'Dialog', step: 'Step', issue: 'Problem', open: 'Sheet open', kind: 'Offer type', tab: 'Tab' };
 
   var QUESTIONS = [
@@ -464,88 +503,121 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
       s('IssuersDesk', { state: 'Record pause' }, T, 'Recording a pause is a garden decision, not enforcement.')
     ] }
   ];
-  var REMAP = { Offer: 'SOffer', VOffer: 'SOffer', Pay: 'SPay', Send: 'SPay', VSetup: 'SPay', Status: 'SPurchase', Holder: 'SCourse', Split: 'SCourse', Wallet: 'SWallet', ProviderReview: 'SRequests', IssuerDesk: 'SIssuer' };
-  var GH = 'G$, held until done', VH = 'Vouchers, held until done', VS = 'Voucher, used on the spot';
-  FLOWS.unshift(
-    { id: 's-g', simple: true, remap: REMAP, title: 'Buy with G$', note: 'The same AI assistant purchase with the proposed changes. Lina reviews once and approves once. Her own garden has nothing to do. The selling garden accepts with the payment already checked.', steps: [
-      s('Main', {}, L, 'Lina opens “What other gardens offer” from Home.'),
-      s('Visit', {}, L, 'She opens the AI assistant membership at Green Goods Community Garden.'),
-      s('SOffer', { kind: GH, state: 'Open' }, L, 'The offer says what paying means in three lines: she pays, it’s held for this purchase, the garden is paid when it’s done.'),
-      s('SPay', { kind: GH, state: 'Ready' }, L, 'One review screen with one total, G$ token fees included. Paying agrees to the exact terms, so there’s nothing else to sign.'),
-      s('SPay', { kind: GH, state: 'Approving' }, L, 'Her passkey asks once.'),
-      s('SPurchase', { state: 'Waiting to start' }, L, 'Her 450.00 G$ is held for this purchase. Nobody in her own garden has to do anything.'),
-      s('SRequests', { state: 'Accept dialog' }, K, 'Kaya sees the payment is held and the terms are current, both checked automatically. One tap accepts.'),
-      s('SRequests', { state: 'Accepted automatically' }, K, 'Or, with automatic acceptance on, routine requests start without waiting for her.'),
-      s('SPurchase', { state: 'Started' }, L, 'Kaya sets up access and marks it ready. Lina has nothing else to do.'),
-      s('SPurchase', { state: 'Review window' }, L, 'Her month is over. The garden is paid after 7 days unless she reports a problem.'),
-      s('SPurchase', { state: 'Done' }, L, 'Done. Paid to the garden’s team through their payout plan.')
+  var REMAP = { Offer: 'SOffer', VOffer: 'SOffer', Pay: 'SPay', Send: 'SPay', VSetup: 'SPay', Status: 'SPurchase', Holder: 'SRedeem', Split: 'SRedeem',
+    Wallet: 'SWallet', ProviderReview: 'SRequests', IssuerDesk: 'SIssuer', BuyerDeposits: 'SFunds', Exchange: 'SExchange', Rewards: 'SReward', RewardsDesk: 'SFunds' };
+  var GP = 'G$ purchase', VSN = 'Voucher session', VCR = 'Voucher course';
+  var PILOT_FLOWS = [
+    { id: 's-earn', simple: true, remap: REMAP, title: 'Earn vouchers, with optional G$', note: 'A Request names a voucher reward and can add G$. Each reward is delivered on its own, with its own receipt, and a short reserve waits for the issuer instead of failing silently.', steps: [
+      s('SReward', { kind: 'Vouchers + G$', state: 'Open' }, L, 'A Riverside Commons request pays 20 Sunroot vouchers and 120 G$. Each is a separate reward with its own receipt.'),
+      s('SReward', { kind: 'Vouchers + G$', state: 'Agree' }, L, 'Lina agrees to the exact rewards before being accepted. Nothing is set aside yet.'),
+      s('SReward', { kind: 'Vouchers + G$', state: 'In progress' }, L, 'Accepted. Lina runs the workshops and adds the work through the usual flow.'),
+      s('SReward', { kind: 'Vouchers + G$', state: 'Both on the way' }, L, 'The work is confirmed. Both rewards start, and neither waits for the other.'),
+      s('SFunds', { state: 'Overview' }, T, 'Tomás sees the vouchers arrived while the G$ payout is still running.'),
+      s('SReward', { kind: 'Vouchers + G$', state: 'Vouchers in, G$ on the way' }, L, 'Lina’s page shows the same: vouchers received, G$ on the way.'),
+      s('SReward', { kind: 'Vouchers + G$', state: 'Received' }, L, 'Both received, each with its own receipt.'),
+      s('SWallet', { tab: 'Vouchers' }, L, 'The vouchers sit in Lina’s wallet under the issuer’s name, ready to redeem.'),
+      s('SReward', { kind: 'Vouchers only', state: 'Reserve short' }, L, 'Another request pays vouchers only. Sunroot’s allowance for Riverside is used up, so the reward waits. It is not lost and not delivered twice.'),
+      s('SIssuer', { state: 'Reserve short' }, A, 'Ade sees the waiting reward next to Sunroot’s reserve and allowances.'),
+      s('SIssuer', { state: 'Raise allowance' }, A, 'Raising the allowance needs Sunroot’s Safe. It creates no vouchers.'),
+      s('SReward', { kind: 'Vouchers only', state: 'Received' }, L, 'The reward arrives once.')
     ] },
-    { id: 's-v', simple: true, remap: REMAP, title: 'Take a course with vouchers', note: 'The solar course with the proposed changes. One account, one approval, no setup approval to wait for. The only decision Lina makes after paying is whether to accept an early end.', steps: [
-      s('Visit', {}, L, 'Lina finds Sunroot’s solar course in a garden she visits.'),
-      s('SOffer', { kind: VH, state: 'Open' }, L, 'The course takes 100 Sunroot vouchers, held until the lessons are done.'),
-      s('SPay', { kind: VH, state: 'Ready' }, L, 'She redeems 100 vouchers with one review and one approval, from the account she uses everywhere. No second wallet, no waiting for Sunroot to approve a setup.'),
-      s('SCourse', { state: 'Waiting to start' }, L, 'Her vouchers are held. She can cancel any time before it starts.'),
-      s('SIssuer', { state: 'Accept' }, A, 'Ade accepts her into this round. Everything he needs is already checked.'),
-      s('SCourse', { state: 'Under way' }, L, 'Lessons are reported as they happen.'),
-      s('SIssuer', { state: 'Report lesson' }, A, 'Sunroot reports each lesson.'),
-      s('SIssuer', { state: 'End early' }, A, 'After 3 lessons Sunroot ends early. The return comes from its published terms: 60 back.'),
-      s('SCourse', { state: 'Ending early' }, L, 'Lina makes one decision: agree, or report a problem. The button works.'),
-      s('SCourse', { state: 'Ended early' }, L, '60 vouchers are back with her. There are no separate transfers to watch.'),
-      s('SCourse', { state: 'Review window' }, L, 'If all 10 lessons had happened, Sunroot would be paid after the review window, with nothing for Lina to do.'),
-      s('SCourse', { state: 'Done' }, L, 'Done.')
+    { id: 's-redeem', simple: true, remap: REMAP, title: 'Redeem a voucher you hold', note: 'Lina holds the right voucher and redeems it directly: agree, Sunroot approves, deposit, Sunroot accepts, then the session, the final split and the confirmation, each with its own approval.', steps: [
+      s('SWallet', { tab: 'Vouchers' }, L, 'Lina holds 30 Sunroot vouchers. 10 book a 60-minute session.'),
+      s('SOffer', { kind: VSN, state: 'Open' }, L, 'The offer answers five questions: what you get, what you give, who holds it, who acts next and what can come back.'),
+      s('SPay', { kind: VSN, state: 'Agree' }, L, 'Step 1 is Lina’s: agree to the exact terms, including the acceptance deadline. The vouchers don’t move yet.'),
+      s('SPay', { kind: VSN, state: 'Waiting for Sunroot' }, L, 'Step 2 is Sunroot’s: approve the booking. Lina can close the sheet and come back.'),
+      s('SIssuer', { state: 'Approve booking' }, A, 'Ade approves. Sunroot’s Safe needs 2 of 3 signatures. Approving isn’t accepting.'),
+      s('SPay', { kind: VSN, state: 'Pay or deposit' }, L, 'Step 3 is Lina’s again: deposit 10 vouchers into the escrow. There may be two prompts.'),
+      s('SRedeem', { kind: 'Session', state: 'Confirming deposit' }, L, 'The deposit is confirmed on Green Goods before Sunroot can accept.'),
+      s('SIssuer', { state: 'Accept' }, A, 'With consent, approval, deposit and deadline checked, Ade accepts.'),
+      s('SRedeem', { kind: 'Session', state: 'In progress' }, L, 'Booked. Starting fixes the terms; it doesn’t mean the session happened.'),
+      s('SRedeem', { kind: 'Session', state: 'Ready to close' }, L, 'Sunroot reported the session. Lina closes the booking.'),
+      s('SRedeem', { kind: 'Session', state: 'Approve split' }, L, 'First approval: the final split, 10 to Sunroot’s reserve and nothing back. It moves nothing by itself.'),
+      s('SRedeem', { kind: 'Session', state: 'Confirm kept' }, L, 'Second approval: the promise was kept. It is separate from the vouchers.'),
+      s('SRedeem', { kind: 'Session', state: 'Transfers pending' }, L, 'The transfer shows as pending until it arrives.'),
+      s('SRedeem', { kind: 'Session', state: 'Closed' }, L, 'Kept, and the vouchers reached Sunroot’s reserve.')
     ] },
-    { id: 's-spot', simple: true, remap: REMAP, title: 'Redeem a voucher on the spot', note: 'For something handed over on the spot, there’s nothing to hold. Redeeming hands the voucher back to its issuer, the same as Redeem in CLC.', steps: [
-      s('SWallet', { tab: 'Vouchers' }, L, 'Lina holds 5 seed library vouchers from Mara’s Seed Library.'),
-      s('SOffer', { kind: VS, state: 'Open' }, L, 'A seed packet costs 1 voucher, picked up at the seed table.'),
-      s('SPay', { kind: VS, state: 'Ready' }, L, 'Redeeming it hands the voucher back to Mara’s Seed Library. Nothing is held.'),
-      s('SPay', { kind: VS, state: 'Done' }, L, 'She shows the receipt at the seed table.')
+    { id: 's-exchange', simple: true, remap: REMAP, title: 'Exchange, then redeem', note: 'Lina holds the wrong voucher for a course and exchanges in the one shared pool first. The quote shows its fees, minimum, deadline and recipient, and a swap books nothing.', steps: [
+      s('SOffer', { kind: VCR, state: 'Not enough' }, L, 'The course takes 100 Sunroot vouchers and Lina holds 20. The reason sits beside the action, and exchanging is the primary choice.'),
+      s('SExchange', { state: 'Quote' }, L, 'Lina can swap Hilltop vouchers in the shared pool. Fees come out of the amount received.'),
+      s('SExchange', { state: 'Review' }, L, 'Lina reviews the exact amounts and the minimum. There may be two prompts.'),
+      s('SExchange', { state: 'Waiting for result' }, L, 'No result yet, so Lina can’t exchange again until the receipt is resolved.'),
+      s('SExchange', { state: 'Done' }, L, 'Exchanged. The receipt says it booked nothing.'),
+      s('SOffer', { kind: VCR, state: 'Open' }, L, 'Now Lina holds 100 and can redeem them for the course.'),
+      s('SPay', { kind: VCR, state: 'Agree' }, L, 'The same steps as any booking: agree, Sunroot approves, deposit, Sunroot accepts.'),
+      s('SRedeem', { kind: 'Course', state: 'In progress' }, L, 'The course is under way.')
     ] },
-    { id: 's-wrong', simple: true, remap: REMAP, title: 'When something goes wrong', note: 'Short balances, unclear results, changed terms, declines, problems and cancellations in the simplified flows. Refunds are automatic.', steps: [
-      s('SOffer', { kind: GH, state: 'Not a gardener' }, 'Ama · not in a garden yet', 'Paying for yourself is open to gardeners and stewards of any garden. Without a garden role, Pay stays off.'),
-      s('SOffer', { kind: GH, state: 'Not enough' }, L, 'Her balance doesn’t cover the payment and the G$ token fees.'),
-      s('SPay', { kind: GH, state: 'No result' }, L, 'No result came back, so she checks before paying again and can’t pay twice.'),
-      s('SPay', { kind: GH, state: 'Terms changed' }, L, 'The offer changed while she was paying. She reviews the new terms first.'),
-      s('SPurchase', { state: 'Declined' }, L, 'Declined. The refund is automatic; no steward has to queue it.'),
-      s('SPurchase', { state: 'Refund delayed' }, L, 'A refund transfer failed. It retries by itself and can’t pay twice.'),
-      s('SPurchase', { state: 'Problem reported' }, L, 'Reporting a problem pauses payment.'),
-      s('SRequests', { state: 'Problem reported' }, K, 'Kaya sees it in the same list and responds.'),
-      s('SCourse', { state: 'Canceled' }, L, 'Canceled before the course started: all 100 vouchers come back.'),
-      s('SIssuer', { state: 'Above terms' }, A, 'Sunroot can’t send a return above what its own terms allow.')
+    { id: 's-partial', simple: true, remap: REMAP, title: 'A course that ends early', note: 'Sunroot stops after 3 of 10 lessons. Sunroot proposes a return within its terms, Lina approves one final split, and each transfer is tracked until it arrives.', steps: [
+      s('SRedeem', { kind: 'Course', state: 'In progress' }, L, '3 of 10 lessons reported.'),
+      s('SIssuer', { state: 'Propose return' }, A, 'Sunroot stops. Ade proposes 60 back, the most its terms allow after 3 lessons. Proposing moves nothing.'),
+      s('SRedeem', { kind: 'Course', state: 'Return proposed' }, L, 'Lina sees the proposal and decides.'),
+      s('SRedeem', { kind: 'Course', state: 'Approve split' }, L, 'Lina confirms the 3 lessons and approves 40 to Sunroot, 60 back. The split is final; it moves nothing yet.'),
+      s('SRedeem', { kind: 'Course', state: 'Transfers pending' }, L, 'Two transfers, each with its own status. The 60 coming back show as pending, not as returned.'),
+      s('SRedeem', { kind: 'Course', state: 'Return failed' }, L, 'The return didn’t go through. Anyone can retry the same 60.'),
+      s('SIssuer', { state: 'Transfer failed' }, A, 'Ade can retry it too. It can’t send more or go anywhere else.'),
+      s('SRedeem', { kind: 'Course', state: 'Closed' }, L, 'Settled. Sunroot’s stewards close the promise as ended early; it isn’t marked kept.')
+    ] },
+    { id: 's-gd', simple: true, remap: REMAP, title: 'Buy with your own G$', note: 'Lina buys a month of the AI assistant from another garden with personal G$. The home garden’s Safe holds the payment and its stewards check it; the provider accepts; Lina confirms it was kept before anyone is paid.', steps: [
+      s('SOffer', { kind: GP, state: 'Open' }, L, 'The offer says Lina’s own garden’s Safe holds the payment, what comes back if it doesn’t go ahead, and that the token fee isn’t refunded.'),
+      s('SPay', { kind: GP, state: 'Agree' }, L, 'Step 1: agree to the exact terms. The gross, the token fee and the refund are on screen.'),
+      s('SPay', { kind: GP, state: 'Pay or deposit' }, L, 'Step 2: send 450.45 G$ to Riverside Commons’ Safe.'),
+      s('SPay', { kind: GP, state: 'Sent or deposited' }, L, 'Sent isn’t checked. The strip shows who acts next.'),
+      s('SPurchase', { state: 'Waiting for check' }, L, 'The purchase page groups the steps and names who acts next: Lina’s home garden.'),
+      s('SFunds', { state: 'Check payment' }, T, 'Tomás checks the transfer and records it. Recording moves no G$.'),
+      s('SRequests', { state: 'Accept' }, K, 'Kaya accepts once the payment is checked. In this design Accept waits for that check; the contract doesn’t.'),
+      s('SFunds', { state: 'Assign payment' }, T, 'Tomás assigns the payment to the accepted purchase.'),
+      s('SPurchase', { state: 'Access active' }, L, 'The month runs. The provider’s report is not the same as kept.'),
+      s('SRequests', { state: 'Mark ready' }, K, 'When a month ends, Kaya marks it ready to confirm (shown here for Kofi).'),
+      s('SPurchase', { state: 'Ready to confirm' }, L, 'Only Lina can confirm it was kept, or report a problem.'),
+      s('SPurchase', { state: 'Kept, paying out' }, L, 'Kept. The payout runs from Lina’s garden’s Safe to the provider’s team.'),
+      s('SPurchase', { state: 'Paid out' }, L, 'Paid.')
+    ] },
+    { id: 's-wrong', simple: true, remap: REMAP, title: 'When something goes wrong', note: 'Pending approvals, changed terms, stale quotes, short inventory, uncertain transactions, failed transfers and disputes, each with a truthful next step.', steps: [
+      s('SOffer', { kind: GP, state: 'Not a gardener' }, 'Ama · not in a garden yet', 'Paying for yourself needs a home garden with a Safe. The action Ama can take is the primary one.'),
+      s('SPay', { kind: GP, state: 'No result' }, L, 'No result came back, so Lina checks before sending again.'),
+      s('SPurchase', { state: 'Terms changed' }, L, 'The price changed before Lina was accepted: a fresh agreement and a new payment, with the first one refunded. No top-up.'),
+      s('SRequests', { state: 'Review' }, K, 'Ama’s payment isn’t checked yet, and the reason sits beside the disabled Accept.'),
+      s('SPurchase', { state: 'Declined' }, L, 'Declined. Lina’s garden’s stewards queue the refund; nothing is automatic.'),
+      s('SFunds', { state: 'Refund failed' }, T, 'A refund failed. Tomás retries the same refund; it can’t pay twice.'),
+      s('SPurchase', { state: 'Refunded' }, L, 'Refunded. The sending fee isn’t returned.'),
+      s('SPurchase', { state: 'Problem reported' }, L, 'A dispute stops any new payout or refund until the stewards decide.'),
+      s('SRequests', { state: 'Dispute' }, K, 'Kaya decides the outcome. The money follows the payout or the refund that comes after.'),
+      s('SPay', { kind: VSN, state: 'Signing not available' }, L, 'Live blocker: the account can’t sign on Gnosis yet, so depositing stays off.'),
+      s('SRedeem', { kind: 'Session', state: 'Canceling' }, L, 'Before acceptance Lina can cancel. The vouchers come back once the cancellation reaches the escrow.'),
+      s('SRedeem', { kind: 'Session', state: 'Accepted first' }, L, 'If Sunroot’s acceptance lands first, the booking starts instead.'),
+      s('SRedeem', { kind: 'Session', state: 'Terms changed' }, L, 'Sunroot changed the terms before accepting, so Lina cancels and books again.'),
+      s('SExchange', { state: 'Quote expired' }, L, 'A stale quote can’t be used. Nothing moved.'),
+      s('SExchange', { state: 'Pool short' }, L, 'The pool is short. Nothing moved.'),
+      s('SIssuer', { state: 'Above terms' }, A, 'A return above Sunroot’s terms can’t be proposed.'),
+      s('SRedeem', { kind: 'Course', state: 'Problem reported' }, L, 'A dispute doesn’t move Lina’s vouchers. Only the split Lina approves can.')
     ] }
-  );
+  ];
+  PILOT_FLOWS.reverse().forEach(function (f) { FLOWS.unshift(f); });
   var PAIRS = [
-    { id: 'p-pay', title: 'Paying for a purchase', note: 'Today Lina picks a garden to hold her payment, checks details, reviews, agrees, then sends in a second sheet. Simplified: one review screen and one approval, and paying agrees to the exact terms.',
-      stats: [['Screens to pay', '4', '1'], ['Approvals', '2', '1'], ['Choices to make', '3', '0']],
-      now: { screen: 'Pay', props: { state: 'Ready' }, variant: 'Stepped sheet', label: 'Step 1 of 3, then a separate send' },
-      next: { screen: 'SPay', props: { kind: GH, state: 'Ready' }, label: 'One review, one approval' } },
-    { id: 'p-after', title: 'After paying', note: 'Today her purchase page walks through eight steps across two gardens. Simplified: held, started, done. Everything else happens without her.',
-      stats: [['Steps she watches', '8', '3'], ['People involved', '3', '1']],
-      now: { screen: 'Status', props: { state: 'Accepted' }, variant: 'Timeline', label: 'Accepted, not yet applied' },
-      next: { screen: 'SPurchase', props: { state: 'Waiting to start' }, label: 'Held, waiting to start' } },
-    { id: 'p-offer', title: 'How an offer explains paying', note: 'Today the offer explains that her own garden holds the payment, which needs a home garden and its stewards. Simplified: held for this purchase, paid when it’s done, back to her if not.',
-      stats: [['Parties to understand', '3', '1'], ['Home garden needed', 'yes', 'no']],
-      now: { screen: 'Offer', props: { state: 'Open' }, variant: 'Route card', label: 'Her garden holds it' },
-      next: { screen: 'SOffer', props: { kind: GH, state: 'Open' }, label: 'Held for this purchase' } },
-    { id: 'p-vstart', title: 'Starting a voucher course', note: 'Today Lina agrees, connects a second wallet, waits for Sunroot to approve her setup, then approves and deposits. Simplified: one review and one approval from the account she already uses.',
-      stats: [['Accounts', '2', '1'], ['Approvals', '3', '1'], ['Waits before paying', '1', '0']],
-      now: { screen: 'VSetup', props: { step: 'Accounts', issue: 'None' }, label: 'Step 2 of 4: two accounts' },
-      next: { screen: 'SPay', props: { kind: VH, state: 'Ready' }, label: 'One review, one approval' } },
-    { id: 'p-course', title: 'The voucher course page', note: 'Today the page tracks escrow proof, acceptance, activation and two transfers. Simplified: what’s held, how many lessons are done, and what happens next.',
-      stats: [['Steps she watches', '9', '3']],
-      now: { screen: 'Holder', props: { state: 'Under way' }, variant: 'Escrow card', label: 'Under way' },
-      next: { screen: 'SCourse', props: { state: 'Under way' }, label: 'Under way' } },
-    { id: 'p-split', title: 'Ending a course early', note: 'Today Lina ticks two confirmations, freezes a split, then watches two transfers. Simplified: one decision that states what she received and what comes back.',
-      stats: [['Confirmations', '3', '1'], ['Transfers to watch', '2', '0']],
-      now: { screen: 'Split', props: { state: 'Partial' }, variant: 'Split bar', label: 'Two confirmations and a freeze' },
-      next: { screen: 'SCourse', props: { state: 'Ending early' }, label: 'One decision' } },
-    { id: 'p-buyer', title: 'The buyer’s own garden', note: 'Today a steward in Lina’s own garden must record her payment and later apply it, though her garden isn’t part of the deal. Simplified: her garden has nothing to do, and the selling garden accepts with the payment already checked.',
-      stats: [['Gardens whose stewards act', '2', '1'], ['Manual payment records', '2', '0']],
-      now: { screen: 'BuyerDeposits', props: { dialog: 'Check' }, variant: 'Funds page card', label: 'Tomás records Lina’s payment' },
-      next: { screen: 'SRequests', props: { state: 'Accept dialog' }, label: 'Only Kaya acts' } },
-    { id: 'p-issuer', title: 'The issuer’s work', note: 'Today Sunroot approves each person’s setup, then accepts once the escrow proof arrives. Simplified: Sunroot approves the course once, and each person is one Accept with everything already checked.',
-      stats: [['Issuer steps per person', '2', '1']],
-      now: { screen: 'IssuerDesk', props: { dialog: 'Approve setup' }, label: 'Approve each setup first' },
-      next: { screen: 'SIssuer', props: { state: 'Accept' }, label: 'One Accept' } }
+    { id: 'p-pay', title: 'Paying with your own G$', note: 'v1 asked Lina to pick a garden, check details, agree, then send in a second sheet. The pilot keeps the same two approvals and the home-garden Safe, in one stepped sheet that shows who acts next.',
+      stats: [['Sheets', '2', '1'], ['Approvals', '2', '2'], ['Steps shown ahead', 'none', '4']],
+      now: { screen: 'Pay', props: { state: 'Ready' }, variant: 'Stepped sheet', label: 'v1: step 1 of 3, then a separate send' },
+      next: { screen: 'SPay', props: { kind: GP, state: 'Agree' }, label: 'Pilot: agree, then send, in one sheet' } },
+    { id: 'p-after', title: 'After paying', note: 'The same facts in four phases, each naming who acts, with one status message at the top instead of a chip, a stepper and an alert saying the same thing.',
+      stats: [['Status messages', '3', '1'], ['Who acts next', 'implied', 'named']],
+      now: { screen: 'Status', props: { state: 'Accepted' }, variant: 'Timeline', label: 'v1: accepted, not yet applied' },
+      next: { screen: 'SPurchase', props: { state: 'Waiting for acceptance' }, label: 'Pilot: who acts next, then the phases' } },
+    { id: 'p-vstart', title: 'Starting a voucher booking', note: 'v1 used a separate Gnosis wallet. The locked architecture needs the same account address on every network, so the pilot shows one account. Depositing stays off until Gnosis signing is proven.',
+      stats: [['Accounts', '2', '1'], ['Approvals', '3', '2 or 3']],
+      now: { screen: 'VSetup', props: { step: 'Accounts', issue: 'None' }, label: 'v1: two accounts' },
+      next: { screen: 'SPay', props: { kind: VSN, state: 'Agree' }, label: 'Pilot: agree, approve, deposit, accept' } },
+    { id: 'p-split', title: 'Approving the final split', note: 'v1 had two confirmations and a separate freeze. The pilot asks once: what you received and the split. Then each transfer shows as pending until it arrives.',
+      stats: [['Confirmations', '3', '1'], ['Transfers shown', '2', '2']],
+      now: { screen: 'Split', props: { state: 'Partial' }, variant: 'Split bar', label: 'v1: two confirmations and a freeze' },
+      next: { screen: 'SRedeem', props: { kind: 'Course', state: 'Approve split' }, label: 'Pilot: one approval, transfers after' } },
+    { id: 'p-buyer', title: 'The home garden’s stewards', note: 'The steward still checks each member payment and later assigns it. The pilot shows the transfer’s facts, the checks, and what recording does and doesn’t do.',
+      stats: [['Steward steps per purchase', '2', '2']],
+      now: { screen: 'BuyerDeposits', props: { dialog: 'Check' }, variant: 'Funds page card', label: 'v1: record a deposit' },
+      next: { screen: 'SFunds', props: { state: 'Check payment' }, label: 'Pilot: check, then record' } },
+    { id: 'p-issuer', title: 'The issuer’s work', note: 'Still one approval per booking and one acceptance after the deposit, now with the reserve and allowances beside the bookings.',
+      stats: [['Issuer steps per booking', '2', '2']],
+      now: { screen: 'IssuerDesk', props: { dialog: 'Approve setup' }, label: 'v1: approve each setup' },
+      next: { screen: 'SIssuer', props: { state: 'Approve booking' }, label: 'Pilot: approve each booking' } }
   ];
   var QMAP = {}, FMAP = {}, PMAP = {}, SCREEN_Q = {};
   QUESTIONS.forEach(function (q) { QMAP[q.id] = q; SCREEN_Q[q.screen] = q.id; });
@@ -620,6 +692,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
   /* ---------- View state ---------- */
   var view = { mode: 'question', id: 'offer', step: 0, variant: null, compare: lsGet('vlab.compare', true) !== false, props: {}, back: null };
   var screenDark = lsGet('vlab.dark', false) === true;
+  var screenLang = LANGS.indexOf(lsGet('vlab.lang', 'EN')) >= 0 ? lsGet('vlab.lang', 'EN') : 'EN';
   var drafts = {};
   var frames = [];
   var $ = function (q) { return document.querySelector(q); };
@@ -696,137 +769,133 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 
   /* ---------- Written pages ---------- */
   var DOCS = {
-    scenarios: { title: 'How it works, in plain words', meta: 'Seven everyday scenarios',
-      note: 'What promises, G$, vouchers and purchases are, and seven everyday scenarios with the simplified flows. Each one links to its walkthrough.',
+    scenarios: { title: 'How it works, in plain words', meta: 'The pilot journeys',
+      note: 'What promises, G$, vouchers and purchases are, who holds what, and the pilot journeys, each linked to its walkthrough. Every service, price and quantity is fictional. Decisions and gaps maps the working pilot terms onto these screens.',
       blocks: [
         ['h', 'Four things that can look alike'],
         ['ul', [
-          '**Promise** (a commitment): something someone says they’ll do, kept in a garden’s pool. It’s an offer (“I can teach a compost workshop”) or a request (“We need someone to teach one”).',
-          '**G$**: GoodDollar, money that works in every garden. It lives on Celo.',
-          '**Voucher**: a promise of something specific from a specific issuer, like “one seed packet from Mara’s Seed Library”. You redeem it with that issuer.',
-          '**Purchase**: paying for an offer yourself, with G$ or vouchers. It’s held until it’s done, then paid out or given back.'
+          '**Promise**: something someone says they will do, kept in a garden’s pool. It is an offer (“I can teach a compost workshop”) or a request (“We need someone to teach one”).',
+          '**Voucher**: a claim on a specific service from a specific issuer, like “10 Sunroot vouchers book one 60-minute solar session”. You redeem it with that issuer. Vouchers are the main reward in this pilot.',
+          '**G$**: GoodDollar, money that works in every garden. A request can add G$ as a separate reward.',
+          '**Purchase**: paying for an offer yourself, with your own G$ or with vouchers. Each agreement uses one way to pay.'
         ]],
-        ['h', 'Seven scenarios'],
-        ['scen', 'Lina buys a month of the AI assistant with her own G$', [
-          'She finds the offer at another garden. Visiting doesn’t change her own garden.',
-          'She reviews it once and pays 450.90 G$ with one approval: the 450.00 G$ price plus G$ token fees.',
-          'Her 450.00 G$ is held for this purchase.',
-          'Kaya, a steward at Green Goods Community Garden, accepts and sets up her access.',
-          'When the month ends, the garden’s team is paid 7 days later, unless Lina reports a problem.'
-        ], 's-g'],
-        ['scen', 'Kaya declines, or something goes wrong', [
-          'If Kaya declines, all 450.00 G$ goes back to Lina automatically.',
-          'If her access breaks, Lina reports a problem and payment pauses until it’s sorted.'
+        ['h', 'Who holds what'],
+        ['ul', [
+          '**Your own G$ for a purchase** goes to your home garden’s Safe. Its stewards check it arrived, keep it for the purchase, and refund it if the purchase doesn’t go ahead. It is earmarked in the Safe, not locked.',
+          '**Vouchers for a booking** go into an escrow for that booking. Only the split you approve can move them, within the issuer’s terms.',
+          '**Rewards** come from the issuer’s reserve and the garden’s pool after the work is confirmed. Nothing is set aside before that, so a short reserve makes a reward wait.',
+          '**Exchanging** happens in one shared pool. It swaps one issuer’s vouchers for another’s and books nothing.'
+        ]],
+        ['h', 'The journeys'],
+        ['scen', 'Lina earns vouchers, with optional G$', [
+          'A Riverside Commons request pays 20 Sunroot vouchers and 120 G$. Lina agrees to the exact rewards before being accepted.',
+          'Lina does the work and the stewards confirm it.',
+          'The vouchers come from Sunroot’s reserve and the G$ from Riverside’s pool, each on its own with its own receipt.',
+          'If Sunroot’s allowance for Riverside runs out, the reward waits until Sunroot raises it. It is never delivered twice.'
+        ], 's-earn'],
+        ['scen', 'Lina redeems a voucher already held', [
+          'Lina holds 30 Sunroot vouchers and books a 60-minute session for 10.',
+          'Lina agrees to the exact terms, Sunroot approves the booking, Lina deposits the vouchers into escrow, and Sunroot accepts the booking.',
+          'After the session Lina approves the final split and, separately, confirms the promise was kept. The transfer shows as pending until it arrives.'
+        ], 's-redeem'],
+        ['scen', 'Lina exchanges, then takes a course', [
+          'The course takes 100 Sunroot vouchers and Lina holds 20.',
+          'Lina swaps Hilltop vouchers for 80 Sunroot vouchers in the shared pool, after checking the fees, the minimum and the deadline.',
+          'Then Lina books the course with the vouchers actually received.'
+        ], 's-exchange'],
+        ['scen', 'The course ends early', [
+          'Sunroot stops after 3 of 10 lessons and proposes 60 back, the most its terms allow.',
+          'Lina approves one final split: 40 to Sunroot’s reserve and 60 back to Lina. Approving moves nothing by itself.',
+          'Each transfer is tracked until it arrives, and a failed one can be retried without sending more.'
+        ], 's-partial'],
+        ['scen', 'Lina buys a month of the AI assistant with personal G$', [
+          'Lina agrees to the exact terms, then sends 450.45 G$ (450.00 plus a token fee) to the home garden’s Safe.',
+          'A Riverside Commons steward checks it arrived. Green Goods Community Garden accepts Lina. The home garden’s stewards assign the payment to the purchase.',
+          'When the month ends Lina confirms it was kept, and the provider’s team is paid. If it had been declined, the home garden’s stewards would refund the 450.00 G$ they recorded.'
+        ], 's-gd'],
+        ['scen', 'When something goes wrong', [
+          'Uncertain transactions are checked before anything is sent again. Changed terms need a fresh agreement. Stale quotes are replaced.',
+          'Short reserves, failed refunds and failed transfers stay visible and are retried once, by the people allowed to.',
+          'A reported problem stops new payouts and refunds for a G$ purchase until the stewards decide; it never moves escrowed vouchers.'
         ], 's-wrong'],
-        ['scen', 'Lina takes a solar course with Sunroot vouchers', [
-          'The course costs 100 Sunroot vouchers. She redeems them with one approval, and they’re held for the course.',
-          'Sunroot accepts her, then reports each lesson.',
-          'If all 10 lessons happen, Sunroot gets the 100 vouchers 7 days after the last one.',
-          'If Sunroot stops after 3 lessons, Lina agrees to the split: 40 to Sunroot, 60 back to her.'
-        ], 's-v'],
-        ['scen', 'Lina redeems a seed packet voucher', [
-          'At the seed table she redeems 1 voucher from Mara’s Seed Library and gets a packet.',
-          'Nothing is held, because it’s handed over on the spot. This works like Redeem in CLC.'
-        ], 's-spot'],
-        ['scen', 'Lina keeps a garden promise and earns G$ and vouchers', [
-          'Riverside Commons asks for two compost workshops and offers 120 G$ plus 20 Sunroot vouchers.',
-          'Lina takes it up and agrees where each reward goes.',
-          'She teaches, and a steward confirms the work.',
-          'The G$ comes from the garden’s pool through its payout plan. The vouchers come from the garden’s voucher reserve. Each arrives with its own receipt.'
-        ], 'rewards'],
-        ['scen', 'Kofi buys Sunroot vouchers at an exchange', [
-          'Sunroot runs a voucher exchange pool. Kofi swaps for 50 Sunroot vouchers (with WXDAI in the rehearsal).',
-          'Buying vouchers doesn’t book anything. He can redeem them later on any Sunroot offer.',
-          'G$ can’t be swapped for vouchers.'
-        ], 'hold'],
         ['scen', 'A garden buys for itself', [
-          'Riverside Commons’ stewards take up the AI membership for the whole garden, paid from the garden’s pool.',
-          'That’s an ordinary garden promise, not a personal purchase: the stewards decide together and nobody’s own G$ is involved. It uses today’s garden promise flow.'
+          'Riverside Commons’ stewards take up an offer for the whole garden, paid from the garden’s pool.',
+          'That is an ordinary garden promise, not a personal purchase, and it uses today’s garden promise flow.'
         ], null]
       ] },
-    answers: { title: 'Recommendations', meta: 'Fees, approvals, the window, names, swaps',
-      note: 'Recommendations on the questions from the last review, and the one gap they uncovered.',
+    crosswalk: { title: 'Screens and states', meta: 'What is built, proved and blocked',
+      note: 'Each pilot screen and state, the implemented behavior it shows and its source, the recorded local proof and its evidence class, what remains unproven or blocked, and ideas kept outside the pilot. The same table is in crosswalk.md.',
+      blocks: [['crosswalk']] },
+    answers: { title: 'Decisions and gaps', meta: 'Recommendations and what Afo decides',
+      note: 'What the pilot design follows, the recommendations it makes inside that architecture, the decisions left for Afo and the live blockers.',
       blocks: [
-        ['h', 'G$ token fees'],
-        ['p', '**Members see one total and always get the full price back.** At payment, the member pays the price plus two G$ token fees: one for paying in, and one set aside for paying out. A refund then returns the full 450.00 G$, and the garden’s team receives the full 450.00 G$.'],
-        ['p', 'Example at an illustrative 0.1% fee: 450.00 + 0.45 + 0.45 = 450.90 G$. The real fee is read from the G$ token when the member pays, the way the Celo settlement executor already does (`getFees`).'],
-        ['p', 'The escrow checks that it received the price plus the set-aside. If G$ ever takes the fee from the receiver instead of the sender, the escrow refuses the payment rather than holding less than it promised. The settlement executor already refuses receiver-paid fees for the same reason.'],
-        ['h', 'One approval for vouchers'],
-        ['p', '**Yes, without depending on the voucher token.** The member’s Green Goods account bundles “allow” and “deposit” into one passkey approval, and the network fee is sponsored. Our research notes already plan this bundle (approve and present batched in the member’s account).'],
-        ['p', 'Public sources don’t show whether CLC’s voucher token supports signed approvals (EIP-2612 permit), so the design shouldn’t rely on it. Members who connect an outside wallet may see two prompts unless their wallet can bundle calls.'],
-        ['p', 'One prerequisite: the passkey checker the app uses has no code on Gnosis yet (research note C57). Deploying it at the same address unblocks this and “one account everywhere”.'],
-        ['h', 'The review window'],
-        ['p', '**7 days, the same for every offer in the first release.** Long enough to notice a problem after a month of service or a last lesson, short enough that providers aren’t kept waiting, and one number to explain.'],
+        ['h', 'What the design follows'],
         ['ul', [
-          'The clock starts when the service period ends, or when the last lesson is reported.',
-          'Members get a reminder when it starts and the day before it closes.',
-          'Reporting a problem pauses it.',
-          'No window for vouchers redeemed on the spot.',
-          'Later, if providers ask, allow 3 to 14 days per offer.'
+          '**Rewards:** vouchers first, with optional G$ on Celo. Separate statuses and receipts; nothing is reserved at acceptance.',
+          '**Exchange:** one shared curated pool on Gnosis, one direct exchange at a time, with fees, minimum, deadline, recipient and receipt. A swap books nothing.',
+          '**Redemption:** exact consent, then issuer approval and an escrow deposit, then acceptance, activation, service evidence, one holder-approved split and independent transfers.',
+          '**Personal G$:** the buyer’s home-garden Safe holds the payment, a steward checks it, the provider accepts, and refunds are the recorded deposit.',
+          'Not selected for this pilot: a Celo purchase escrow, payment replacing consent, standing approvals and automatic completion. They are listed under Future ideas.'
         ]],
-        ['h', 'Redeem'],
-        ['p', '**Use Redeem for vouchers everywhere, as CLC does**: on the spot (“Redeem 1 Voucher”) and for held services (“Redeem 100 Vouchers”, held until the course is done).'],
-        ['p', 'For vaults, use **Withdraw**, always with its object (“Withdraw from Endowment”). That’s 23 English strings (22 on vault screens, 1 in the treasury), plus Spanish and Portuguese. Promises keep “Withdraw This Offer” and “Withdraw This Request”; the objects keep them distinct. If you’d rather avoid any overlap, “Take Out” is the plain alternative.'],
-        ['h', 'Gardener and steward accounts'],
-        ['p', '**Paying for yourself is open to gardener and steward accounts.** Green Goods checks the role once, on Arbitrum, when the member agrees, and records the account. The escrows on Celo and Gnosis accept money only from that recorded account.'],
-        ['p', 'A passkey account has the same address on every chain, so it’s the same verified account everywhere. Each chain still checks the passkey signature itself. Someone without a garden role sees “Join a garden to pay for yourself”.'],
-        ['h', 'Swapping vouchers'],
-        ['p', '**Yes, within limits.** CLC pools swap one admitted asset for another inside a single pool. Multi-pool routes only quote prices in CLC’s current version; they don’t execute.'],
+        ['h', 'Recommendations'],
         ['ul', [
-          'Green Goods shows this as the voucher exchange: pick what to pay with from what that pool accepts.',
-          'Vouchers can swap for other vouchers when one pool admits both, within its limits and inventory.',
-          'G$ isn’t swapped for vouchers. That’s a locked decision.',
-          'A swap isn’t a redemption: it doesn’t book a service.'
+          '**Show every approval, grouped in one sheet.** Don’t promise one prompt or sponsored network fees until a route is proven. The sheet’s strip shows whose step comes next.',
+          '**Show money exactly.** Gross debit, token fee, recorded deposit and eligible refund, from the offer to the receipt. Refunds return the recorded deposit, so the sending fee isn’t returned, and the home garden’s Safe pays the refund transfer’s fee. 450.00 G$ and the 0.1% fee are fictional.',
+          '**Accept after the check.** The provider’s Accept waits for the home garden’s recorded deposit. This is a design rule; the contract keeps acceptance and funding separate.',
+          '**Acceptance deadline:** propose 7 days from agreeing, shown before the member agrees. The contract takes whatever deadline the setup chooses.',
+          '**Disputes:** for G$ purchases, suggest a 7-day response and escalation after 14 days, labeled as policy. For vouchers, the working terms propose a help acknowledgment within two business days and a remedy proposal within five. The pool’s stewards resolve the promise; they can’t move a holder’s vouchers.',
+          '**Kept** only after the member confirms. Provider reports, payouts and transfers have their own words.',
+          '**Redeem** for vouchers. The vault verb stays unresolved; the review recommends “Withdraw from [vault]”. In Spanish and Portuguese the Redeem verbs (canjear, resgatar) collide with today’s vault strings.'
         ]],
-        ['h', 'Still open'],
+        ['h', 'How the working pilot terms map onto these screens'],
         ['ul', [
-          '**Who settles a reported problem.** Suggestion: the provider has 7 days to refund (in full, or in part for a course, within its terms) or fix it to the member’s satisfaction. After 14 days unresolved, the stewards of the pool’s garden decide.',
-          'Deploying the passkey checker on Gnosis (C57).',
-          'The live G$ fee value, read from the token before launch.'
+          'The terms (`pilot-issuer-terms.md`, draft 3) are a business baseline the release owner accepted on 22 October. Issuers have not accepted them, so the lab keeps fictional services.',
+          '**Tech and Sun hub day** (1 voucher, one visit of up to four hours) and **Green Goods assisted session** (2 vouchers, 30 minutes) follow “Redeem a voucher you hold” as single sessions.',
+          '**Claude access** (10 Green Goods vouchers, 30 days from working access) follows the same booking. If access falls short, the split uses available days out of 30, the pattern the course example shows with lessons.',
+          '**Exchange** starts at a 1:1 gross ratio, with zero fees proposed where supported. The screen keeps its fee, minimum, deadline and recipient rows either way.',
+          '**Personal G$ purchases** are outside the working terms, so that journey is designed and locally proven but not part of the live target. Optional G$ rewards keep their own Celo consent, receipts and recovery.'
+        ]],
+        ['h', 'Decisions for Afo'],
+        ['ul', [
+          'Who settles a disputed G$ purchase when the provider’s own stewards resolve its pool, as in the protocol pool.',
+          'Which core outcome records a partial delivery: the issuer’s stewards closing the promise early, or a dispute resolution.',
+          'Who runs the voucher transfers after a split is approved: the member, the issuer or a relayer.',
+          'Whether the home garden or the member carries the refund transfer’s token fee.',
+          'The acceptance-deadline default (the lab shows 7 days; the working terms propose a two-business-day booking response) and the vault verb.',
+          'Who calls the reward retry after a reserve or allowance repair. Anyone can; the issuer’s Safe has a fallback.',
+          'Whether to restyle the lab’s fictional services as the working pilot services once issuers accept their terms.',
+          'Whether Accept-after-check should become a contract rule rather than a design rule.'
+        ]],
+        ['h', 'Live blockers'],
+        ['ul', [
+          'As the implementation lane recorded them at 10:13 a.m. Pacific on 23 October; not rerun here. That lane is preparing a controlled live pilot for 24 October and has sent no live transaction.',
+          '**Same address.** The member address must match on Arbitrum, Gnosis and Celo. The legacy validator that would preserve it is unsafe to deploy (its WebAuthn dependency has a path that skips the assertion binding), and no safe address-preserving bootstrap is selected. The intended member has no account code on Gnosis or Celo.',
+          '**Signing and fees.** Chain 100 is excluded from the app’s chain and Pimlico configuration. Hosted bundler or paymaster acceptance, a funded native route, actual member possession, signing and recovery, and helper provenance are unproven.',
+          '**Issuers.** The release owner accepted the working terms’ prices and ceilings. Issuer capacity, accountable addresses and acceptance are unconfirmed, and COM-46 is In Progress.',
+          '**Delivery and data.** No live cross-chain delivery is proven, and the app and indexer have no reviewed Gnosis voucher endpoints yet.',
+          'This design authorizes no deployment, broadcast, production auth activation or live financial action, and claims no readiness.'
+        ]],
+        ['h', 'Text owners'],
+        ['ul', [
+          'The hub spec still says “Redeem” keeps its vault meaning (lines 45 to 50 on develop). Its owner should record the Redeem decision for vouchers.',
+          'The contract branch’s brief keeps a member’s G$ in the buyer garden’s Safe. The pilot design now follows that rule, so v2’s earlier request to change it is withdrawn.'
         ]]
       ] },
-    changes: { title: 'What changes underneath', meta: 'Five changes, in plain words',
-      note: 'The simplified flows rest on four contract changes and one policy change. Each one, with what it removes and what it costs.',
+    changes: { title: 'Future ideas', meta: 'Outside this pilot',
+      note: 'Ideas the first v2 draft proposed, and others the pilot leaves out. Each needs its own scope, authority rules and cross-chain proof before it can replace the implemented model.',
       blocks: [
-        ['h', 'What members see'],
-        ['q', '“Your 450 G$ is held for this purchase. Green Goods Community Garden is paid when it’s done. If it doesn’t go ahead, it all comes back to you.”'],
-        ['p', 'One idea, a hold, covers G$ and vouchers. Buying is one review and one approval. Afterward a purchase is held, started, then done, or it comes back. Members act only to report a problem or to answer an early end. Safes, chains, steward checks and per-chain wallets leave member screens; stewards still see them under Technical details.'],
-        ['go', 'Walk the Simplified G$ Purchase', 's-g'],
-        ['h', 'The changes underneath'],
         ['changes', [
-          ['Each G$ purchase is held in its own escrow on Celo.', 'A small contract holds the payment and tells Green Goods it has arrived, the way the voucher escrow already does on Gnosis. Members pay the token fees up front, so refunds and payouts are always the full price.',
-            'Choosing a home garden, two manual steps for the buyer garden’s stewards, and manual refunds.',
-            'One new Celo contract and its audit. It reports back over the route settlement acknowledgments already use. G$ is still never bridged, and payouts still follow the selling garden’s payout plan.'],
-          ['One account works everywhere, checked as a gardener or steward account.', 'A member’s passkey account has the same address on every chain. Green Goods checks once, when they agree, that it belongs to a gardener or steward, and the escrows accept money only from that account.',
-            'The separate Gnosis wallet, the two-accounts step and wrong-wallet errors.',
-            'Deploying the app’s passkey checker on Gnosis, where it’s missing today, at the same address so accounts keep theirs. People who prefer an outside wallet can still connect one.'],
-          ['Paying is agreeing.', 'The payment carries the exact terms version, so one approval agrees and pays. For vouchers, the account bundles the allowance and the deposit, so nothing depends on the voucher token supporting signed approvals.',
-            'One approval for G$, two for vouchers.',
-            'The pooling and voucher modules accept agreement that arrives with the payment. Exact agreement still comes before acceptance.'],
-          ['Standing approvals.', 'Issuers approve a voucher offer once, with a place limit, instead of each person’s setup. Selling gardens can turn on automatic acceptance while there’s capacity; manual review stays available.',
-            'Waiting for the issuer to approve a setup, and for routine offers, waiting for a steward to accept.',
-            'Offer-level settings, and a change to acceptClaim, which only a pool steward can call today.'],
-          ['Done by default when everything is delivered.', 'Once the service is fully delivered, the hold pays out after a 7-day review window unless the member reports a problem. Early ends and partial splits still need the member’s yes.',
-            '“Confirm it was kept” as a required step.',
-            'Timed release in the settlement and voucher modules, and a problem flag that pauses it.']
-        ]],
-        ['h', 'Decisions this reopens'],
-        ['ul', [
-          'The brief says a member’s G$ waits in the buyer garden’s Safe, held by its stewards. Change 1 replaces that.',
-          'A locked rule says the holder explicitly approves delivered units before any split. Change 5 keeps that only for early ends and partial splits.',
-          'Vaults need a new action name, because vouchers now use Redeem the way CLC does.'
-        ]],
-        ['h', 'What stays the same'],
-        ['ul', [
-          'G$ stays on Celo and is never bridged. Vouchers stay on Gnosis. Agreements and records stay on Arbitrum.',
-          'The selling garden still decides, unless it turns on automatic acceptance.',
-          'Payouts are split across the team by the payout plan, never paid to a garden’s Safe as one sum.',
-          'Issuer caps and pauses stay published policy until they’re enforced (PRD-1315).',
-          'Stewards still see chain, contract and record details under Technical details.'
+          ['A Celo purchase escrow.', 'A contract would hold each G$ purchase and report its arrival, instead of the home garden’s Safe and a steward’s check.', 'The steward check, manual refunds and the home-garden requirement.', 'A new Celo contract, its audit, authenticated messages back to Arbitrum and new failure handling.'],
+          ['Paying is agreeing.', 'The payment would carry the exact terms version, so one approval agrees and pays.', 'One approval per purchase.', 'Changes to the pooling and settlement modules, and proof that consent still precedes acceptance on every path.'],
+          ['Standing approvals and automatic acceptance.', 'An issuer would approve an offer once with a place limit; a garden could accept routine requests automatically.', 'Waiting for each booking approval and each acceptance.', 'Offer-level settings, an on-chain place limit, and a change to acceptance, which only a pool steward can call today.'],
+          ['Automatic completion after a review window.', 'A purchase would pay out after a set number of days unless the member reported a problem.', 'The member’s explicit confirmation and split approval.', 'Timed release in settlement and escrow, and a problem flag that reliably pauses every cross-chain payment.'],
+          ['On-the-spot redemption.', 'A voucher handed over in person, with a bounded receipt the issuer can check.', 'The booking steps for small immediate services.', 'A supported consent, acceptance and delivery path, and a receipt that can’t be replayed or faked with a screenshot.'],
+          ['A fee reserve.', 'Members would pre-pay the payout fee so refunds and payouts are always the full price.', 'Refunds that are a little less than what was sent.', 'A funding rule for the reserve and proof it is never spent twice.'],
+          ['Other currencies and multi-pool routes.', 'Paying in other assets, and exchanges that cross pools.', 'Exchanging first.', 'Explicit asset, payer, recipient and settlement evidence; executable routing. G$ to voucher swaps, cash-out guarantees and mixed checkouts stay excluded.']
         ]]
       ] }
   };
-  var DOC_ORDER = ['scenarios', 'answers', 'changes'];
+  var DOC_ORDER = ['scenarios', 'crosswalk', 'answers', 'changes'];
 
   /* ---------- Rendering ---------- */
   function renderAll(switched) {
@@ -871,7 +940,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     });
     var ns = $('#nav-s'); ns.textContent = '';
     Object.keys(SCREENS).forEach(function (id) {
-      var meta = (SIMPLE[id] ? 'Simplified · ' : 'Today · ') + (SCREENS[id].desk ? 'steward cockpit' : 'member app');
+      var meta = (SIMPLE[id] ? 'Pilot · ' : 'v1 · ') + (SCREENS[id].desk ? 'steward cockpit' : 'member app');
       ns.append(navItem(view.mode === 'screen' && view.id === id, SHORT[id] || id, meta, null, function () { openScreen(id); }));
     });
     if (view.mode === 'screen') $('#nav-s-box').open = true;
@@ -893,16 +962,16 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     var eyebrow, title;
     if (view.mode === 'question') {
       var qi = QUESTIONS.findIndex(function (q) { return q.id === view.id; });
-      eyebrow = 'Today · direction ' + (qi + 1) + ' of ' + QUESTIONS.length; title = QMAP[view.id].title;
+      eyebrow = 'v1 reference · direction ' + (qi + 1) + ' of ' + QUESTIONS.length; title = QMAP[view.id].title;
     } else if (view.mode === 'flow') {
-      eyebrow = FMAP[view.id].simple ? 'Simplified flow, proposed' : 'Today’s flow'; title = FMAP[view.id].title;
+      eyebrow = FMAP[view.id].simple ? 'Pilot journey' : 'v1 flow, for reference'; title = FMAP[view.id].title;
     } else if (view.mode === 'pair') {
       var pi = PAIRS.findIndex(function (p) { return p.id === view.id; });
-      eyebrow = 'Before and after · ' + (pi + 1) + ' of ' + PAIRS.length; title = PMAP[view.id].title;
+      eyebrow = 'v1 → pilot · ' + (pi + 1) + ' of ' + PAIRS.length; title = PMAP[view.id].title;
     } else if (view.mode === 'doc') {
-      eyebrow = 'Simplified, proposed'; title = DOCS[view.id].title;
+      eyebrow = 'Pilot design'; title = DOCS[view.id].title;
     } else {
-      eyebrow = (SIMPLE[view.id] ? 'Simplified · ' : 'Today · ') + (SCREENS[view.id].desk ? 'steward cockpit' : 'member app'); title = SHORT[view.id];
+      eyebrow = (SIMPLE[view.id] ? 'Pilot · ' : 'v1 · ') + (SCREENS[view.id].desk ? 'steward cockpit' : 'member app'); title = SHORT[view.id];
     }
     $('#eyebrow').textContent = eyebrow; $('#title').textContent = title;
     renderFlownav(); renderControls(); renderAbout(); renderSteps(); renderFeedback();
@@ -930,11 +999,23 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     });
     tg.append(ts); return tg;
   }
+  function langControl() {
+    var g = ctl('Language'), seg = el('div', 'lab-seg'); seg.setAttribute('role', 'group'); seg.setAttribute('aria-label', 'Screen language');
+    LANGS.forEach(function (l) {
+      var b = button('', '', function () { screenLang = l; lsSet('vlab.lang', l); renderAll(); });
+      b.textContent = l; b.id = 'lang-' + l.toLowerCase(); b.setAttribute('aria-pressed', screenLang === l ? 'true' : 'false');
+      seg.append(b);
+    });
+    g.append(seg);
+    if (screenLang === 'PT') g.append(el('span', 'lab-stepn', 'Portuguese awaits Gui\u2019s review (PRD-1312).'));
+    if (screenLang === 'ES') g.append(el('span', 'lab-stepn', 'Spanish awaits a native speaker\u2019s review.'));
+    return g;
+  }
   function renderControls() {
     var box = $('#controls'); box.textContent = '';
     box.hidden = view.mode === 'doc';
     if (view.mode === 'doc') return;
-    if (view.mode === 'pair') { box.append(themeControl()); return; }
+    if (view.mode === 'pair') { box.append(themeControl(), langControl()); return; }
     var sid = currentScreen(), meta = SCREENS[sid].meta, opts = variantOptions(sid);
     if (opts) {
       var g = ctl('Direction'), seg = el('div', 'lab-seg'); seg.setAttribute('role', 'group'); seg.setAttribute('aria-label', 'Direction');
@@ -958,6 +1039,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
       if (m && m.editor === 'boolean') box.append(boolControl(k, m));
     });
     box.append(themeControl());
+    if (SIMPLE[sid]) box.append(langControl());
   }
   function enumControl(k, m) {
     var label = PROP_LABEL[k] || k, id = 'ctl-' + k, g = ctl(label, id), row = el('div', 'lab-stepper');
@@ -1000,7 +1082,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
       PMAP[view.id].stats.forEach(function (x) {
         var c = el('span', 'lab-stat');
         c.append(el('b', null, x[0]), el('span', 'from', x[1]), document.createTextNode('→'), el('span', 'to', x[2]));
-        c.setAttribute('aria-label', x[0] + ': ' + x[1] + ' today, ' + x[2] + ' simplified');
+        c.setAttribute('aria-label', x[0] + ': ' + x[1] + ' in v1, ' + x[2] + ' in the pilot');
         stats.append(c);
       });
       box.append(stats);
@@ -1034,7 +1116,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
   }
 
   function renderDoc(stage) {
-    var D = DOCS[view.id], d = el('article', 'lab-doc');
+    var D = DOCS[view.id], d = el('article', 'lab-doc' + (view.id === 'crosswalk' ? ' wide' : ''));
     D.blocks.forEach(function (b) {
       if (b[0] === 'h') d.append(el('h2', null, b[1]));
       else if (b[0] === 'p') d.append(richText(el('p'), b[1]));
@@ -1045,10 +1127,25 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
         var ol = el('ol');
         b[1].forEach(function (c) {
           var li = el('li'); li.append(el('b', null, c[0] + ' '), document.createTextNode(c[1]));
-          li.append(el('span', 'rm', 'Removes: ' + c[2]), el('span', 'rm', 'Costs: ' + c[3]));
+          li.append(el('span', 'rm', 'Would remove: ' + c[2]), el('span', 'rm', 'Would need: ' + c[3]));
           ol.append(li);
         });
         d.append(ol);
+      } else if (b[0] === 'crosswalk') {
+        var intro = el('ul'); CROSSWALK.intro.forEach(function (t) { intro.append(richText(el('li'), t.replace(/`/g, ''))); }); d.append(intro);
+        CROSSWALK.journeys.forEach(function (j) {
+          d.append(el('h2', null, j.title));
+          var wrap = el('div', 'lab-tablewrap'), tb = el('table', 'lab-table'), hd = el('tr');
+          ['Screen and state', 'Implemented behavior and source', 'Local proof', 'Gaps and live blockers', 'Future ideas'].forEach(function (h) { var th = el('th', null, h); th.scope = 'col'; hd.append(th); });
+          var thead = el('thead'); thead.append(hd); tb.append(thead);
+          var tbody = el('tbody');
+          j.rows.forEach(function (r) {
+            var tr = el('tr');
+            [r.state, r.behavior, r.proof, r.gaps || '', r.future || ''].forEach(function (c, i) { var td = el(i ? 'td' : 'th'); if (!i) td.scope = 'row'; richText(td, c.replace(/`/g, '')); tr.append(td); });
+            tbody.append(tr);
+          });
+          tb.append(tbody); wrap.append(tb); d.append(wrap);
+        });
       } else if (b[0] === 'scen') {
         var box = el('section', 'lab-scen'); box.append(el('h3', null, b[1]));
         var steps = el('ol'); b[2].forEach(function (t) { steps.append(el('li', null, t)); }); box.append(steps);
@@ -1074,8 +1171,8 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
     if (view.mode === 'doc') { renderDoc(stage); stage.scrollTop = 0; return; }
     if (view.mode === 'pair') {
       var P = PMAP[view.id];
-      [[P.now, 'now', 'Today'], [P.next, 'next', 'Simplified']].forEach(function (side) {
-        var sd = side[0], props = Object.assign(defaultsFor(sd.screen), sd.props, { dark: screenDark });
+      [[P.now, 'now', 'v1'], [P.next, 'next', 'Pilot']].forEach(function (side) {
+        var sd = side[0], props = Object.assign(defaultsFor(sd.screen), sd.props, { dark: screenDark, lang: screenLang });
         if (variantOptions(sd.screen)) props.variant = sd.variant || pickedVariant(sd.screen);
         addFrame(stage, sd.screen, props, [el('span', 'lab-side ' + side[1], side[2]), el('span', 'lab-capsub', sd.label)]);
       });
@@ -1091,7 +1188,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
         cap.push(el('span', 'lab-letter', letterOf(sid, v)), el('span', null, v));
         if (qid && store.picks[qid] === v) { var t = el('span', 'lab-tick'); t.innerHTML = ICON.check; t.setAttribute('aria-label', 'Your pick'); cap.push(t); }
       } else cap.push(el('span', null, SHORT[sid]));
-      var props = Object.assign({}, view.props, { dark: screenDark });
+      var props = Object.assign({}, view.props, { dark: screenDark, lang: screenLang });
       if (v) props.variant = v;
       addFrame(stage, sid, props, cap);
     });
@@ -1129,16 +1226,17 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
   }
   function topicTitle() {
     if (view.mode === 'flow') return FMAP[view.id].title + ', step ' + (view.step + 1);
-    if (view.mode === 'screen') return SHORT[view.id] + (SIMPLE[view.id] ? ' (simplified)' : ' (today)');
+    if (view.mode === 'screen') return SHORT[view.id] + (SIMPLE[view.id] ? ' (pilot)' : ' (v1)');
     return viewTitle(view);
   }
   function contextLabel() {
-    if (view.mode === 'pair') return 'before and after' + (screenDark ? ' · dark' : '');
+    if (view.mode === 'pair') return 'v1 and pilot' + (screenDark ? ' · dark' : '') + (screenLang !== 'EN' ? ' · ' + screenLang : '');
     if (view.mode === 'doc') return '';
     var sid = currentScreen(), parts = [], o = variantOptions(sid);
     if (o) parts.push(view.mode === 'question' && view.compare ? 'side by side' : letterOf(sid, view.variant) + ' · ' + view.variant);
     ['state', 'dialog', 'step', 'issue', 'kind', 'tab'].forEach(function (k) { if (SCREENS[sid].meta[k] && view.props[k] != null) parts.push(view.props[k]); });
     if (screenDark) parts.push('dark');
+    if (SIMPLE[sid] && screenLang !== 'EN') parts.push(screenLang);
     return parts.join(' · ');
   }
   function renderFeedback() {
@@ -1246,6 +1344,14 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
         if (m[k].editor === 'enum') m[k].options.forEach(function (o) { var p = Object.assign({}, base); p[k] = o; combos.push(p); });
         if (m[k].editor === 'boolean') { var p = Object.assign({}, base); p[k] = !m[k].default; combos.push(p); }
       });
+      if (SIMPLE[id]) {
+        // Pilot screens: every combination of their enum props, in every language, plus dark.
+        combos = [Object.assign({}, base, { dark: true })];
+        var dims = Object.keys(m).filter(function (k) { return k.charAt(0) !== '$' && m[k] && m[k].editor === 'enum'; });
+        var grid = [{}];
+        dims.forEach(function (k) { var next = []; grid.forEach(function (g) { m[k].options.forEach(function (o) { var q = Object.assign({}, g); q[k] = o; next.push(q); }); }); grid = next; });
+        LANGS.forEach(function (l) { grid.forEach(function (g) { combos.push(Object.assign({}, base, g, { lang: l })); }); });
+      }
       combos.forEach(function (p) {
         var host = document.createElement('div'); box.append(host);
         mountScreen(id, p, host);
@@ -1253,6 +1359,8 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
         if (!host.querySelector('.gg')) errs.push(id + ' ' + JSON.stringify(p) + ': nothing drawn');
         if (html.indexOf('{{') >= 0) errs.push(id + ' ' + JSON.stringify(p) + ': unfilled hole');
         if (/\bundefined\b|\bNaN\b|\[object Object\]/.test(t)) errs.push(id + ' ' + JSON.stringify(p) + ': bad text');
+        if (t.indexOf('\u27E6') >= 0) errs.push(id + ' ' + JSON.stringify(p) + ': missing copy ' + (t.match(/\u27E6[^\u27E7]*\u27E7/) || [''])[0]);
+        if (SIMPLE[id] && t.indexOf('\u2014') >= 0) errs.push(id + ' ' + JSON.stringify(p) + ': em dash in copy');
       });
     });
     FLOWS.forEach(function (f) {
@@ -1293,7 +1401,13 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
   else if (last && last.mode === 'doc' && DOCS[last.id]) openDoc(last.id);
   else if (last && last.mode === 'screen' && SCREENS[last.id]) openScreen(last.id);
   else openPair('p-pay');
-  window.__lab = { openPair: openPair, openQuestion: openQuestion, openFlow: openFlow, openScreen: openScreen, openDoc: openDoc };
+  window.__lab = { openPair: openPair, openQuestion: openQuestion, openFlow: openFlow, openScreen: openScreen, openDoc: openDoc,
+    setLang: function (l) { if (LANGS.indexOf(l) >= 0) { screenLang = l; renderAll(); } },
+    setDark: function (d) { screenDark = !!d; renderAll(); },
+    mount: function (id, props, host) { return mountScreen(id, props, host); },
+    pilotScreens: function () { return Object.keys(SIMPLE); },
+    screenMeta: function (id) { return SCREENS[id] ? { meta: SCREENS[id].meta, w: SCREENS[id].w, h: SCREENS[id].h } : null; },
+    flows: function () { return FLOWS.map(function (f) { return { id: f.id, pilot: !!f.simple, steps: f.steps.map(function (x) { return { screen: x.screen, props: x.props }; }) }; }); } };
   store.connect();
 })();
 </script>

@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Funds</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./gg.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="gg ck {{themeCls}}" lang="{{lang}}" style="width: 1280px; height: 800px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+  <div class="wash"></div>
+  <header class="c-app" inert="{{baseHidden}}">
+    <button type="button" class="gchip"><span class="av"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-fill"/></svg></span><span class="lbl">{{garden}}</span><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-down-s-line"/></svg></button>
+    <span class="c-icons"><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-search-line"/></svg></span><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-notification-3-line"/></svg></span><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-settings-3-line"/></svg></span><span class="avatar" style="width: 32px; height: 32px; font-size: 13px">T</span></span>
+  </header>
+  <main class="c-route" inert="{{baseHidden}}">
+    <div class="c-head"><div><h1>{{pageTitle}}</h1><p>{{pageSub}}</p></div></div>
+    <div class="c-tabs" role="tablist"><span class="on" role="tab" aria-selected="true">{{tabOverview}}</span><span role="tab" aria-selected="false">{{tabPayouts}}</span><span role="tab" aria-selected="false">{{tabHistory}}</span></div>
+    <div class="c-grid">
+      <div class="c-col">
+        <section class="acard">
+          <div class="ah"><div><h2>{{payTitle}}</h2><p>{{payDesc}}</p></div></div>
+          <sc-for list="{{payRows}}" as="r" hint-placeholder-count="3">
+            <div class="arow req">
+              <div class="l1"><span class="nm">{{r.who}}</span><span class="sb {{r.sb}}">{{r.tag}}</span></div>
+              <div class="l2">{{r.meta}}</div>
+              <sc-if value="{{r.hasAct}}" hint-placeholder-val="{{true}}"><div class="acts"><button type="button" class="abtn {{r.btnCls}}">{{r.act}}</button></div></sc-if>
+            </div>
+          </sc-for>
+        </section>
+        <section class="acard">
+          <div class="ah"><div><h2>{{rwTitle}}</h2><p>{{rwDesc}}</p></div></div>
+          <sc-for list="{{rwRows}}" as="r" hint-placeholder-count="2">
+            <div class="arow offer">
+              <div class="l1"><span class="nm">{{r.who}}</span><span class="sb {{r.sb1}}">{{r.tag1}}</span><sc-if value="{{r.hasTag2}}" hint-placeholder-val="{{true}}"><span class="sb {{r.sb2}}">{{r.tag2}}</span></sc-if></div>
+              <div class="l2">{{r.meta}}</div>
+              <sc-if value="{{r.hasAct}}" hint-placeholder-val="{{false}}"><div class="acts"><button type="button" class="abtn fill">{{r.act}}</button></div></sc-if>
+            </div>
+          </sc-for>
+        </section>
+      </div>
+      <div class="c-col">
+        <section class="acard">
+          <div class="ah"><div><h2>{{safeTitle}}</h2><p>{{safeDesc}}</p></div></div>
+          <div class="ab"><div class="afacts">
+            <sc-for list="{{safe}}" as="f" hint-placeholder-count="3"><div class="afact"><span class="k">{{f.k}}</span><span class="v">{{f.v}}<small>{{f.s}}</small></span></div></sc-for>
+          </div></div>
+        </section>
+      </div>
+    </div>
+  </main>
+  <nav class="dock" aria-label="{{dockLabel}}" inert="{{baseHidden}}">
+    <span class="ni"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-apps-line"/></svg></span>{{dHub}}</span>
+    <span class="ni on"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-line"/></svg></span>{{dGarden}}</span>
+    <span class="ni"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-team-line"/></svg></span>{{dCommunity}}</span>
+    <span class="ni"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-hammer-fill"/></svg></span>{{dActions}}</span>
+  </nav>
+  <sc-if value="{{showDlg}}" hint-placeholder-val="{{false}}">
+    <div class="dscrim"></div>
+    <section class="dlg" role="dialog" aria-modal="true" aria-labelledby="fn-dlg">
+      <div class="dh"><div><h2 id="fn-dlg">{{dTitle}}</h2><p>{{dSub}}</p></div><button type="button" class="close" aria-label="{{closeLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></button></div>
+      <div class="db">
+        <sc-if value="{{dHasErr}}" hint-placeholder-val="{{false}}"><div class="notice err" role="alert"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-error-warning-line"/></svg>{{dErrT}}</span><p>{{dErrB}}</p></div></sc-if>
+        <div class="afacts">
+          <sc-for list="{{dFacts}}" as="f" hint-placeholder-count="4"><div class="afact"><span class="k">{{f.k}}</span><span class="v">{{f.v}}<small>{{f.s}}</small></span></div></sc-for>
+        </div>
+        <sc-if value="{{dHasChecks}}" hint-placeholder-val="{{true}}"><div class="checks">
+          <sc-for list="{{dChecks}}" as="c" hint-placeholder-count="4"><div class="ckr ok"><span class="cm"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg></span><span>{{c}}</span></div></sc-for>
+        </div></sc-if>
+        <div class="fsr info"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-information-line"/></svg><span><b>{{fsrT}}</b><small>{{fsrB}}</small></span></div>
+        <sc-if value="{{dHasKeep}}" hint-placeholder-val="{{false}}"><div class="target"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-lock-line"/></svg>{{keepNote}}</div></sc-if>
+      </div>
+      <div class="df"><span class="note">{{walletNote}}</span><button type="button" class="abtn lg txt">{{cancel}}</button><button type="button" class="abtn lg fill">{{dCta}}</button></div>
+    </section>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["Overview","Check payment","Assign payment","Refund","Refund failed","Reward payout failed"],"default":"Overview","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var t = GGT(this.props.lang);
+    var st = this.props.state ?? 'Overview';
+    var dark = this.props.dark ?? false;
+    var g = t.g;
+    var linaChecked = st === 'Assign payment';
+    var payRows = [
+      { who: t('fn.r.lina'), sb: linaChecked ? 'ok' : 'warn', tag: linaChecked ? t('fn.tag.accepted') : t('fn.tag.unchecked'),
+        meta: linaChecked ? t('fn.m.linaAcc', { amt: g(450) }) : t('fn.m.lina', { gross: g(450.45), date: t.d('2026-10-22') }), hasAct: true,
+        act: linaChecked ? t('fn.a.assign') : t('fn.a.check'), btnCls: 'fill' },
+      { who: t('fn.r.ama'), sb: 'info', tag: t('fn.tag.waiting'), meta: t('fn.m.ama', { amt: g(300) }), hasAct: false, act: '', btnCls: '' },
+      { who: t('fn.r.kofi'), sb: st === 'Refund failed' ? 'err' : 'neu', tag: st === 'Refund failed' ? t('fn.tag.refundFailed') : t('fn.tag.declined'),
+        meta: t('fn.m.kofi', { amt: g(120) }), hasAct: true, act: st === 'Refund failed' ? t('fn.a.retryRefund') : t('fn.a.refund'), btnCls: st === 'Refund failed' ? 'fill' : '' }
+    ];
+    var rwRows = [
+      { who: t('fn.r.compost'), sb1: 'ok', tag1: t('fn.tag.vouRecv'), hasTag2: true, sb2: st === 'Reward payout failed' ? 'err' : 'info', tag2: st === 'Reward payout failed' ? t('fn.tag.gdFailed') : t('fn.tag.gdPaying'),
+        meta: t('fn.m.compost', { amt: g(120) }), hasAct: st === 'Reward payout failed', act: t('fn.a.retryPayout') },
+      { who: t('fn.r.water'), sb1: 'warn', tag1: t('fn.tag.vouWait'), hasTag2: false, sb2: '', tag2: '', meta: t('fn.m.water'), hasAct: false, act: '' }
+    ];
+    var D = null;
+    if (st === 'Check payment') D = { title: t('fn.d.check.t'), sub: t('fn.d.sub'), cta: t('fn.a.record'), keep: true,
+      facts: [[t('fn.d.member'), t('fn.d.memberV'), ''], [t('fn.d.expected'), t('fn.d.expectedV', { amt: g(450) }), t('fn.d.expectedS')],
+        [t('fn.d.found'), t('fn.d.foundV', { amt: g(450) }), t('fn.d.foundS', { gross: g(450.45) })], [t('fn.d.transfer'), t('fn.d.transferV', { date: t.d('2026-10-22') }), t('fn.d.transferS')]],
+      checks: [t('fn.c.from'), t('fn.c.into'), t('fn.c.covers', { amt: g(450) }), t('fn.c.unused')], fsr: ['fn.f.record'] };
+    if (st === 'Assign payment') D = { title: t('fn.d.assign.t'), sub: t('fn.d.sub'), cta: t('fn.a.assignGo'), keep: true,
+      facts: [[t('fn.d.recorded'), g(450) + ' G$', t('fn.d.recordedS', { date: t.d('2026-10-22') })], [t('fn.d.acceptedBy'), t('who.gg'), t.d('2026-10-23')]],
+      checks: [t('fn.c.accepted'), t('fn.c.terms'), t('fn.c.safe')], fsr: ['fn.f.assign'] };
+    if (st === 'Refund' || st === 'Refund failed') D = { title: st === 'Refund' ? t('fn.d.refund.t') : t('fn.d.retry.t'), sub: t('fn.d.subKofi'), cta: st === 'Refund' ? t('fn.a.queue') : t('fn.a.retryRefundGo'),
+      err: st === 'Refund failed' ? [t('fn.e.refund.t'), t('fn.e.refund.b')] : null,
+      facts: [[t('fn.d.to'), t('fn.d.toV'), ''], [t('fn.d.amount'), g(120) + ' G$', t('fn.d.amountS')], [t('fn.d.why'), t('fn.d.whyV', { date: t.d('2026-10-20') }), ''], [t('fn.d.fee'), t('fn.d.feeV', { fee: g(0.12) }), t('fn.d.feeS')]],
+      checks: [], fsr: [st === 'Refund' ? 'fn.f.refund' : 'fn.f.retry'] };
+    if (st === 'Reward payout failed') D = { title: t('fn.d.payout.t'), sub: t('rw.vg.title'), cta: t('fn.a.retryPayoutGo'),
+      err: [t('fn.e.payout.t', { amt: g(120) }), t('fn.e.payout.b')],
+      facts: [[t('fn.d.to'), t('fn.d.toLina'), ''], [t('fn.d.amount'), g(120) + ' G$', t('fn.d.payoutS')], [t('fn.d.vouchers'), t('fn.d.vouchersV'), t('fn.d.vouchersS')]],
+      checks: [], fsr: ['fn.f.payout'] };
+    return {
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code, garden: t('who.rc'), closeLabel: t('c.close'),
+      baseHidden: D ? 'true' : 'false',
+      pageTitle: t('fn.title'), pageSub: t('fn.sub'), tabOverview: t('fn.tab.overview'), tabPayouts: t('fn.tab.payouts'), tabHistory: t('fn.tab.history'),
+      payTitle: t('fn.pay.t'), payDesc: t('fn.pay.d'), payRows: payRows, rwTitle: t('fn.rw.t'), rwDesc: t('fn.rw.d'), rwRows: rwRows,
+      safeTitle: t('fn.safe.t'), safeDesc: t('fn.safe.d'),
+      safe: [{ k: t('fn.safe.pool'), v: g(2140) + ' G$', s: t('fn.safe.poolS') }, { k: t('fn.safe.members'), v: g(870) + ' G$', s: t('fn.safe.membersS') }, { k: t('fn.safe.owed'), v: g(120) + ' G$', s: t('fn.safe.owedS') }],
+      dockLabel: t('fn.dock'), dHub: t('fn.d.hub'), dGarden: t('fn.d.garden'), dCommunity: t('fn.d.community'), dActions: t('fn.d.actions'),
+      showDlg: !!D, dTitle: D ? D.title : '', dSub: D ? D.sub : '', dCta: D ? D.cta : '',
+      dHasErr: !!(D && D.err), dErrT: D && D.err ? D.err[0] : '', dErrB: D && D.err ? D.err[1] : '',
+      dFacts: D ? D.facts.map(function (f) { return { k: f[0], v: f[1], s: f[2] }; }) : [],
+      dHasChecks: !!(D && D.checks.length), dChecks: D ? D.checks : [],
+      fsrT: D ? t(D.fsr[0] + '.t') : '', fsrB: D ? t(D.fsr[0] + '.b') : '', dHasKeep: !!(D && D.keep), keepNote: t('fn.keep'),
+      walletNote: t('c.wallet'), cancel: t('c.cancel')
+    };
+  }
+}
+</script>
+</body>
+</html>

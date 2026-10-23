@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Selling garden requests, simplified</title>
+<title>Requests to accept</title>
 <script src="./support.js"></script>
 <link rel="stylesheet" href="./gg.css">
 </head>
@@ -12,128 +12,124 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
 <style>body{margin:0}</style>
 </helmet>
-<div class="gg ck {{themeCls}}" style="width: 1280px; height: 800px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
+<div class="gg ck {{themeCls}}" lang="{{lang}}" style="width: 1280px; height: 800px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
   <div class="wash"></div>
-  <header class="c-app">
-    <button type="button" class="gchip"><span class="av"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-fill"/></svg></span><span class="lbl">Green Goods Community Garden</span><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-down-s-line"/></svg></button>
+  <header class="c-app" inert="{{baseHidden}}">
+    <button type="button" class="gchip"><span class="av"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-fill"/></svg></span><span class="lbl">{{garden}}</span><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-down-s-line"/></svg></button>
     <span class="c-icons"><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-search-line"/></svg></span><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-notification-3-line"/></svg></span><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-settings-3-line"/></svg></span><span class="avatar" style="width: 32px; height: 32px; font-size: 13px">K</span></span>
   </header>
-  <main class="c-route">
-    <div class="c-head"><div><h1>Garden</h1><p>Green Goods Community Garden</p></div></div>
-    <div class="c-tabs" role="tablist"><span>Health</span><span>Impact</span><span>Activity</span><span class="on">Promises<span class="cnt">1</span></span></div>
+  <main class="c-route" inert="{{baseHidden}}">
+    <div class="c-head"><div><h1>{{pageTitle}}</h1><p>{{garden}}</p></div></div>
+    <div class="c-tabs" role="tablist"><span role="tab" aria-selected="false">{{tHealth}}</span><span role="tab" aria-selected="false">{{tImpact}}</span><span role="tab" aria-selected="false">{{tActivity}}</span><span class="on" role="tab" aria-selected="true">{{tPromises}}<span class="cnt">2</span></span></div>
     <div class="c-grid">
       <div class="c-col">
         <section class="acard">
-          <div class="ah"><div><h2>Review Promises</h2><p>Payment is already held when a request reaches you. Accepting starts it.</p></div><span class="sb neu">Protocol pool</span></div>
-          <div class="arow offer">
-            <div class="l1"><span class="nm">Lina · AI assistant membership, 1 month</span><span class="sb {{linaSb}}">{{linaTag}}</span></div>
-            <div class="l2">{{linaMeta}}</div>
-            <div class="acts">
-              <sc-if value="{{showDecide}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn">Decline…</button><button type="button" class="abtn fill" onClick="{{openAccept}}">Accept…</button></sc-if>
-              <sc-if value="{{showReady}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn fill" onClick="{{markReady}}">Mark Access Ready</button></sc-if>
-              <sc-if value="{{showRespond}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn fill">Respond…</button></sc-if>
+          <div class="ah"><div><h2>{{reviewTitle}}</h2><p>{{reviewDesc}}</p></div><span class="sb neu">{{protocolBadge}}</span></div>
+          <sc-for list="{{rows}}" as="r" hint-placeholder-count="4">
+            <div class="arow offer">
+              <div class="l1"><span class="nm">{{r.who}}</span><span class="sb {{r.sb}}">{{r.tag}}</span></div>
+              <div class="l2">{{r.meta}}</div>
+              <div class="acts">
+                <sc-if value="{{r.hasDecline}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn">{{declineLabel}}</button></sc-if>
+                <sc-if value="{{r.canAct}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn fill">{{r.act}}</button></sc-if>
+                <sc-if value="{{r.blocked}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn fill off" disabled aria-describedby="{{r.whyId}}">{{r.act}}</button></sc-if>
+              </div>
+              <sc-if value="{{r.blocked}}" hint-placeholder-val="{{false}}"><div class="why warn" id="{{r.whyId}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-time-line"/></svg><span>{{r.why}}</span></div></sc-if>
             </div>
-          </div>
-          <div class="arow offer">
-            <div class="l1"><span class="nm">Kofi · AI assistant membership, 1 month</span><span class="sb info">In progress</span></div>
-            <div class="l2">Gardener at Hilltop Orchard · access active since Oct 12 · month ends Nov 12</div>
-          </div>
-          <div class="arow offer">
-            <div class="l1"><span class="nm">Ama · AI assistant membership, 1 month</span><span class="sb ok">Kept</span></div>
-            <div class="l2">Paid to your team Oct 3 · 450.00 G$</div>
-          </div>
-        </section>
-        <section class="acard">
-          <div class="ah"><div><h2>Offers and Requests</h2><p>What this garden offers and asks for</p></div></div>
-          <div class="scope"><span class="chipf on">Open</span><span class="chipf">Confirmed</span><span class="chipf">Past</span></div>
-          <div class="arow offer sel">
-            <div class="l1"><span class="nm">AI assistant membership, 1 month</span><span class="sb ok">Offered</span></div>
-            <div class="l2">450.00 G$ · 7 of 12 seats taken</div>
-          </div>
-          <div class="arow req">
-            <div class="l1"><span class="nm">Translate the onboarding guide</span><span class="sb info">Asked for</span></div>
-            <div class="l2">Pays 80 G$ · Portuguese</div>
-          </div>
+          </sc-for>
         </section>
       </div>
       <div class="c-col">
         <section class="acard">
-          <div class="ah"><div><h2>AI Assistant Membership</h2><p>Individual offer · 1 month</p></div></div>
-          <div class="ab">
-            <div class="afacts">
-              <div class="afact"><span class="k">Price</span><span class="v">450.00 G$ · version 3</span></div>
-              <div class="afact"><span class="k">Who can buy</span><span class="v"><span class="chips"><span class="chip">Gardens</span><span class="chip">Gardeners, with their own G$</span></span></span></div>
-              <div class="afact"><span class="k">Seats</span><span class="v">12 · 7 taken</span></div>
-              <div class="afact"><span class="k">Paid to</span><span class="v">Your team, by your payout plan<small>When each month is done</small></span></div>
-            </div>
-            <button type="button" class="setrow {{autoCls}}" role="switch" aria-checked="{{autoOn}}" onClick="{{toggleAuto}}"><span><b>Accept Automatically</b><small>While seats are available. Requests start without waiting for a steward; you can still decline within 2 days.</small></span><span class="switch" aria-hidden="true"></span></button>
-          </div>
+          <div class="ah"><div><h2>{{offerTitle}}</h2><p>{{offerSub}}</p></div></div>
+          <div class="ab"><div class="afacts">
+            <sc-for list="{{offerFacts}}" as="f" hint-placeholder-count="5"><div class="afact"><span class="k">{{f.k}}</span><span class="v">{{f.v}}<small>{{f.s}}</small></span></div></sc-for>
+          </div></div>
         </section>
         <section class="acard">
-          <div class="ah"><div><h2>Technical Details</h2><p>For stewards checking a record</p></div></div>
+          <div class="ah"><div><h2>{{techTitle}}</h2><p>{{techSub}}</p></div></div>
           <div class="ab"><div class="afacts">
-            <div class="afact"><span class="k">Payments</span><span class="v">Held in purchase escrow on Celo<small>Released by this purchase’s outcome only</small></span></div>
-            <div class="afact"><span class="k">Records</span><span class="v">Pooling and settlement on Arbitrum</span></div>
+            <sc-for list="{{techFacts}}" as="f" hint-placeholder-count="2"><div class="afact"><span class="k">{{f.k}}</span><span class="v">{{f.v}}<small>{{f.s}}</small></span></div></sc-for>
           </div></div>
         </section>
       </div>
     </div>
   </main>
-  <nav class="dock" aria-label="Cockpit">
-    <span class="ni"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-apps-line"/></svg></span>Hub</span>
-    <span class="ni on"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-line"/></svg></span>Garden</span>
-    <span class="ni"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-team-line"/></svg></span>Community</span>
-    <span class="ni"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-hammer-fill"/></svg></span>Actions</span>
+  <nav class="dock" aria-label="{{dockLabel}}" inert="{{baseHidden}}">
+    <span class="ni"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-apps-line"/></svg></span>{{dHub}}</span>
+    <span class="ni on"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-line"/></svg></span>{{dGarden}}</span>
+    <span class="ni"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-team-line"/></svg></span>{{dCommunity}}</span>
+    <span class="ni"><span class="nic"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-hammer-fill"/></svg></span>{{dActions}}</span>
   </nav>
-
-  <sc-if value="{{showDialog}}" hint-placeholder-val="{{false}}">
+  <sc-if value="{{showDlg}}" hint-placeholder-val="{{false}}">
     <div class="dscrim"></div>
-    <section class="dlg" role="dialog" aria-modal="true" aria-label="Accept Lina's request">
-      <div class="dh"><div><h2>Accept Lina’s Request?</h2><p>AI assistant membership, 1 month</p></div><button type="button" class="close" aria-label="Close" onClick="{{closeAccept}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></button></div>
+    <section class="dlg" role="dialog" aria-modal="true" aria-labelledby="rq-dlg">
+      <div class="dh"><div><h2 id="rq-dlg">{{dTitle}}</h2><p>{{dSub}}</p></div><button type="button" class="close" aria-label="{{closeLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></button></div>
       <div class="db">
-        <div class="notice warn"><span class="nt"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-alert-line"/></svg>Writing to the Green Goods protocol pool</span><p>“AI assistant membership, 1 month”, in the Green Goods Community Garden’s own pool, where the protocol’s promises live. Changes here can affect promises across gardens.</p></div>
-        <div class="checks">
-          <div class="ckr ok"><span class="cm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg></span><span>450.00 G$ is held for this purchase<small>Checked automatically, Today 10:53 AM</small></span></div>
-          <div class="ckr ok"><span class="cm"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg></span><span>Lina agreed to the current terms, version 3<small>Her payment carries them</small></span></div>
-        </div>
-        <div class="fsr info"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-information-line"/></svg><span><b>Accept Lina’s request and start her membership</b><small>Set up her access next. Your team is paid when her month is done, unless she reports a problem.</small></span></div>
+        <sc-if value="{{dProtocol}}" hint-placeholder-val="{{false}}"><div class="notice warn"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-alert-line"/></svg>{{ptT}}</span><p>{{ptB}}</p></div></sc-if>
+        <sc-if value="{{dHasFacts}}" hint-placeholder-val="{{true}}"><div class="afacts">
+          <sc-for list="{{dFacts}}" as="f" hint-placeholder-count="3"><div class="afact"><span class="k">{{f.k}}</span><span class="v">{{f.v}}<small>{{f.s}}</small></span></div></sc-for>
+        </div></sc-if>
+        <sc-if value="{{dHasChecks}}" hint-placeholder-val="{{true}}"><div class="checks">
+          <sc-for list="{{dChecks}}" as="c" hint-placeholder-count="2"><div class="ckr ok"><span class="cm"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg></span><span>{{c.t}}<small>{{c.s}}</small></span></div></sc-for>
+        </div></sc-if>
+        <sc-if value="{{dChoices}}" hint-placeholder-val="{{false}}">
+          <div class="ways" role="radiogroup" aria-label="{{choiceLabel}}">
+            <sc-for list="{{choices}}" as="o" hint-placeholder-count="2"><button type="button" class="choice {{o.on}}" role="radio" aria-checked="{{o.aria}}"><span class="radio"></span><span class="ct"><b>{{o.t}}</b><span>{{o.s}}</span></span></button></sc-for>
+          </div>
+          <div class="fieldA"><label>{{reasonLabel}}</label><div class="inp">{{reasonV}}</div><span class="hl">{{reasonHint}}</span></div>
+        </sc-if>
+        <div class="fsr info"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-information-line"/></svg><span><b>{{fsrT}}</b><small>{{fsrB}}</small></span></div>
       </div>
-      <div class="df"><span class="note">Your wallet will ask you once.</span><button type="button" class="abtn lg txt" onClick="{{closeAccept}}">Cancel</button><button type="button" class="abtn lg fill" onClick="{{accept}}">Accept Request</button></div>
+      <div class="df"><span class="note">{{walletNote}}</span><button type="button" class="abtn lg txt">{{cancel}}</button><button type="button" class="abtn lg {{ctaCls}}">{{dCta}}</button></div>
     </section>
   </sc-if>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["Request waiting","Accept dialog","Accepted automatically","Set up access","Problem reported","Month ended"],"default":"Request waiting","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":1280,"height":800}}'>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["Review","Accept","Decline","Mark ready","Dispute"],"default":"Review","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":1280,"height":800}}'>
 class Component extends DCLogic {
   renderVals() {
-    var s = this.state || {};
-    var st = s.stage || this.props.state || 'Request waiting';
+    var t = GGT(this.props.lang);
+    var st = this.props.state ?? 'Review';
     var dark = this.props.dark ?? false;
-    var self = this;
-    var R = {
-      'Request waiting': ['ok', '450.00 G$ held', 'Gardener at Riverside Commons Garden · asked Today, 10:52 AM · current terms'],
-      'Accept dialog': ['ok', '450.00 G$ held', 'Gardener at Riverside Commons Garden · asked Today, 10:52 AM · current terms'],
-      'Accepted automatically': ['info', 'Accepted automatically', '450.00 G$ held · set up her access, then mark it ready'],
-      'Set up access': ['info', 'Accepted', '450.00 G$ held · set up her access outside the app, then mark it ready'],
-      'Started': ['info', 'In progress', 'Access ready since Today · her month ends Nov 24'],
-      'Problem reported': ['warn', 'Problem reported', 'Nov 26: “Access stopped working.” · payment paused until it’s sorted'],
-      'Month ended': ['info', 'Waiting to be confirmed', 'Paid to your team on Dec 1 unless Lina reports a problem · 450.00 G$']
-    };
-    var r = R[st] || R['Request waiting'];
-    var auto = s.auto !== undefined ? s.auto : st === 'Accepted automatically';
+    var g = t.g;
+    var rows = [
+      { who: t('rq.r.lina'), sb: 'ok', tag: t('rq.tag.checked'), meta: t('rq.m.lina', { date: t.d('2026-10-22') }), hasDecline: true, canAct: true, blocked: false, act: t('rq.a.accept'), whyId: 'rq-w1', why: '' },
+      { who: t('rq.r.ama'), sb: 'warn', tag: t('rq.tag.unchecked'), meta: t('rq.m.ama', { date: t.d('2026-10-24') }), hasDecline: true, canAct: false, blocked: true, act: t('rq.a.accept'), whyId: 'rq-w2', why: t('rq.w.ama') },
+      { who: t('rq.r.kofi'), sb: 'info', tag: t('rq.tag.active'), meta: t('rq.m.kofi', { date: t.d('2026-11-12') }), hasDecline: false, canAct: true, blocked: false, act: t('rq.a.ready'), whyId: 'rq-w3', why: '' },
+      { who: t('rq.r.mara'), sb: 'err', tag: t('rq.tag.disputed'), meta: t('rq.m.mara', { date: t.d('2026-11-26') }), hasDecline: false, canAct: true, blocked: false, act: t('rq.a.respond'), whyId: 'rq-w4', why: '' }
+    ];
+    var D = {
+      'Accept': { title: t('rq.d.accept.t'), sub: t('of.g.title'), protocol: true, cta: t('rq.d.accept.cta'), ctaCls: 'fill',
+        facts: [], checks: [{ t: t('rq.c.terms'), s: t('rq.c.termsS', { date: t.d('2026-10-22') }) }, { t: t('rq.c.paid', { amt: g(450) }), s: t('rq.c.paidS', { date: t.d('2026-10-22') }) }], fsr: 'rq.f.accept' },
+      'Decline': { title: t('rq.d.decline.t'), sub: t('of.g.title'), cta: t('rq.d.decline.cta'), ctaCls: 'dng',
+        facts: [[t('rq.d.f.recorded'), g(450) + ' G$', t('rq.d.f.recordedS')]], checks: [], fsr: 'rq.f.decline' },
+      'Mark ready': { title: t('rq.d.ready.t'), sub: t('of.g.title'), cta: t('rq.d.ready.cta'), ctaCls: 'fill',
+        facts: [[t('rq.d.f.since'), t.d('2026-10-12'), ''], [t('rq.d.f.ended'), t.d('2026-11-12'), '']], checks: [], fsr: 'rq.f.ready' },
+      'Dispute': { title: t('rq.d.dispute.t'), sub: t('rq.d.dispute.sub'), cta: t('rq.d.dispute.cta'), ctaCls: 'fill', choices: true,
+        facts: [[t('rq.d.f.reported'), t('rq.d.f.reportedV', { date: t.d('2026-11-26') }), ''], [t('rq.d.f.evidence'), t('rq.d.f.evidenceV'), ''], [t('rq.d.f.who'), t('rq.d.f.whoV'), t('rq.d.f.whoS')]],
+        checks: [], fsr: 'rq.f.dispute' }
+    }[st];
     return {
-      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524',
-      linaSb: r[0], linaTag: r[1], linaMeta: r[2],
-      showDecide: st === 'Request waiting' || st === 'Accept dialog',
-      showReady: st === 'Set up access' || st === 'Accepted automatically',
-      showRespond: st === 'Problem reported',
-      showDialog: (st === 'Accept dialog' && s.dlg !== false) || s.dlg === true,
-      autoCls: auto ? 'on' : '', autoOn: auto ? 'true' : 'false',
-      openAccept: function () { self.setState({ dlg: true }); },
-      closeAccept: function () { self.setState({ dlg: false }); },
-      accept: function () { self.setState({ dlg: false, stage: 'Set up access' }); },
-      markReady: function () { self.setState({ stage: 'Started' }); },
-      toggleAuto: function () { self.setState({ auto: !auto }); }
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code, garden: t('who.gg'), closeLabel: t('c.close'),
+      baseHidden: D ? 'true' : 'false', pageTitle: t('rq.title'),
+      tHealth: t('rq.t.health'), tImpact: t('rq.t.impact'), tActivity: t('rq.t.activity'), tPromises: t('rq.t.promises'),
+      reviewTitle: t('rq.review.t'), reviewDesc: t('rq.review.d'), protocolBadge: t('rq.protocol'), rows: rows, declineLabel: t('rq.a.decline'),
+      offerTitle: t('rq.offer.t'), offerSub: t('rq.offer.s'),
+      offerFacts: [{ k: t('rq.o.price'), v: g(450) + ' G$', s: t('rq.o.priceS') }, { k: t('of.f.who'), v: t('of.f.whoV'), s: t('of.f.whoS') },
+        { k: t('of.f.places'), v: t('rq.o.places'), s: t('of.f.placesS') }, { k: t('rq.o.paidTo'), v: t('rq.o.paidToV'), s: t('rq.o.paidToS') },
+        { k: t('rq.o.accept'), v: t('rq.o.acceptV'), s: t('rq.o.acceptS') }],
+      techTitle: t('rq.tech.t'), techSub: t('rq.tech.s'),
+      techFacts: [{ k: t('rq.x.pay'), v: t('rq.x.payV'), s: t('rq.x.payS') }, { k: t('rq.x.rec'), v: t('rq.x.recV'), s: '' }],
+      dockLabel: t('fn.dock'), dHub: t('fn.d.hub'), dGarden: t('fn.d.garden'), dCommunity: t('fn.d.community'), dActions: t('fn.d.actions'),
+      showDlg: !!D, dTitle: D ? D.title : '', dSub: D ? D.sub : '', dProtocol: !!(D && D.protocol), ptT: t('rq.pt.t'), ptB: t('rq.pt.b'),
+      dHasFacts: !!(D && D.facts.length), dFacts: D ? D.facts.map(function (f) { return { k: f[0], v: f[1], s: f[2] }; }) : [],
+      dHasChecks: !!(D && D.checks.length), dChecks: D ? D.checks : [],
+      dChoices: !!(D && D.choices), choiceLabel: t('rq.ch.label'),
+      choices: [{ t: t('rq.ch.kept'), s: t('rq.ch.keptS'), on: '', aria: 'false' }, { t: t('rq.ch.cancel'), s: t('rq.ch.cancelS', { amt: g(450) }), on: 'on', aria: 'true' }],
+      reasonLabel: t('rq.reason'), reasonV: t('rq.reasonV'), reasonHint: t('rq.reasonHint'),
+      fsrT: D ? t(D.fsr + '.t') : '', fsrB: D ? t(D.fsr + '.b', { amt: g(450) }) : '',
+      walletNote: t('c.wallet'), cancel: t('c.cancel'), dCta: D ? D.cta : '', ctaCls: D ? D.ctaCls : 'fill'
     };
   }
 }

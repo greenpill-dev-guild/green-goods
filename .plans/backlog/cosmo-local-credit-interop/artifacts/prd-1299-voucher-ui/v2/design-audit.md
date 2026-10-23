@@ -5,6 +5,9 @@ A read-only review of the lab's screens against the interface they build on, don
 primitives, the steward cockpit's primitives, the shared tokens and the surface guides. Most
 findings are fixed in this version; the rest are listed under [Remaining](#remaining).
 
+The pilot revision on 23 Oct 2026 kept these corrections, changed the rows marked "pilot
+revision" below, and added the patterns under [Pilot revision](#pilot-revision-23-oct-2026).
+
 Sources compared:
 
 - Guides: `packages/client/DESIGN.md`, `packages/admin/DESIGN.md`,
@@ -51,7 +54,7 @@ the screen templates.
 | Garden header | 140px banner, 40px solid buttons, one meta line | 144px banner with 24px bottom corners, 32px outlined buttons, location and founding lines with icons, tabs Work · Promises · Insights · Gardeners. |
 | Promise rows | No edge | 3px edge: green Seedling for offers, blue Hand-heart for requests. |
 | Garden chip | Initials | Seedling avatar. |
-| Copy | Sentence-case titles, "in escrow", chain names, "Under way", "Done", "Open" | Title Case titles; "held"; no chain names on simplified screens; "In progress", "Kept", "Waiting to be confirmed", "Offered", "Asked for"; "Offline Mode"; "stewards" for "garden admin". |
+| Copy | Sentence-case titles, "in escrow", chain names, "Under way", "Done", "Open" | Title Case titles; "held"; no chain names on simplified screens; "In progress", "Kept", "Waiting to be confirmed", "Offered", "Asked for"; "Offline Mode"; "stewards" for "garden admin". Pilot revision: "Kept" appears only after the member confirms, and chain names only under Transaction details. |
 
 ### Steward cockpit
 
@@ -63,23 +66,43 @@ the screen templates.
 | Protocol pool marker | Amber "Protocol pool" pill in the page header | Neutral status badge in the card header. |
 | Pool target in dialogs | One grey line | Garden pool: a "Writing to" label above the pool. Protocol pool: the warning alert "Writing to the Green Goods protocol pool" with its standard note. |
 | Flow status | One line of text | Flow status row: icon column, a title that says what the write does, a line that says the consequence. |
-| Dialogs | 560px, white | 448px, warm dialog surface, header and footer hairlines, 40px close circle, Cancel as a text button, "Your wallet will ask you once." |
+| Dialogs | 560px, white | 448px, warm dialog surface, header and footer hairlines, 40px close circle, Cancel as a text button. Pilot revision: the footer says "Your wallet will ask you to approve." instead of promising one prompt. |
 | Buttons | Bordered in the line color | Outlined in stone with tone-colored labels; filled adds elevation. |
 | Tabs and cards | 40px tabs; no card header rule | 36px tabs with a count badge; a hairline under each card header. |
-| Settings | Checkbox row | Setting row with a switch: "Accept Automatically". |
+| Settings | Checkbox row | Setting row with a switch. Pilot revision: the "Accept Automatically" switch is gone, because automatic acceptance isn't part of this pilot; the offer card says a steward accepts each request. |
 | Filter chips and fields | Tinted selected chip; outlined fields | Solid action capsule when selected; filled 40px fields. |
 | Copy | "Members, with their own G$" | "Gardeners, with their own G$". |
 
+## Pilot revision, 23 Oct 2026
+
+The ten pilot screens reuse the corrected kit. New patterns live in `lab/gg.css` after the
+"Pilot design additions" comment:
+
+| Pattern | Where | What it does |
+|---|---|---|
+| Question card | `SOffer`, `SReward` | On an offer, rows for what you get, what you give, who holds it, who acts next and what comes back if it falls short. A reward's card asks what you give, who confirms, how rewards arrive and whether anything is set aside. |
+| Journey strip | `SPay` | Shows done, current and waiting steps in one stepped sheet, and whose step comes next. |
+| Reason beside the action | `SOffer`, `SRequests`, `SIssuer` | A blocking reason sits directly above, or is described by, the action it blocks, instead of a separate notice. |
+| Changed fact | `SPay` | Highlights each changed term with a "Changed" pill before the member agrees again. |
+| Holdings rows | `SWallet` | Issuer name and amount on one row; the amount never truncates. |
+| Transfers card | `SRedeem` | One row per transfer, each with its own pending, arrived or failed state and retry. |
+| Dock clearance | Cockpit screens | Page content stops 80px above the bottom so the dock never covers a row. |
+
+The lab's copy function keeps numbers on the same line as their units. `check.mjs` now also sweeps every
+pilot state in English, Spanish and Portuguese, and in dark, for clipped text, control names,
+focus behind dialogs, missing icons and AA contrast.
+
 ## Kept on purpose
 
-- **The "Today" screens keep chain and wallet names** (Celo, Gnosis, the Gnosis wallet, escrow).
-  They show what members face now, which is what the simplified direction removes. They received
-  the foundation, icon, app bar and dock fixes, not the copy rules.
+- **The v1 reference screens keep chain and wallet names** (Celo, Gnosis, the Gnosis wallet,
+  escrow). They show what members face in v1, which the pilot screens remove. They received the
+  foundation, icon, app bar and dock fixes, not the copy rules.
 - **Older cockpit desks keep their one-line flow rows and layouts.** Only their icons, dock and
-  app bar changed. The simplified cockpit screens (`SRequests`, `SIssuer`) carry the full
+  app bar changed. The pilot cockpit screens (`SFunds`, `SRequests`, `SIssuer`) carry the full
   structure.
-- **Redeem.** The audit recommended going back to "Use" for vouchers, as `../../spec.md` lines 45
-  to 50 propose. Afo overrode it: vouchers use Redeem, matching CLC, and vaults get a new verb.
+- **Redeem.** The audit recommended going back to "Use" for vouchers, as line 47 of
+  [`spec.md`](../../../spec.md) proposes. Afo overrode it: vouchers use Redeem, matching CLC, and
+  vaults get a new verb.
 
 ## Remaining
 
@@ -90,8 +113,8 @@ These need a local checkout, a running app, or a decision.
 2. **Approximated values.** Elevation shadows, the dark weak surface, dark soft text, the dark
    neutral border and the cockpit wash were estimated from the guides, not read from computed
    styles. Compare with a running app in light and dark.
-3. **Spanish and Portuguese.** v1 carried EN, ES and PT copy; v2 is English only. Translate after
-   Afo approves the direction, then send Portuguese to Gui (PRD-1312).
+3. **Spanish and Portuguese.** The pilot revision drafts every pilot string in both. Portuguese
+   awaits Gui's review (PRD-1312), and Spanish awaits a native speaker.
 4. **Vault verb.** Pick Withdraw or Take Out, then update the 23 English strings in
    `packages/shared/src/i18n/en.json` and their translations. That's implementation work for
    PRD-1297, not this branch.
@@ -99,3 +122,7 @@ These need a local checkout, a running app, or a decision.
    and the Promises tab cards against the current admin source.
 6. **Fonts.** The lab loads Plus Jakarta Sans from Google Fonts; the installed app bundles its
    own copy. Compare text rendering side by side.
+7. **Running-app comparison.** The pilot revision didn't compare against a running app or
+   Storybook, so items 1, 2, 5 and 6 are still open. A mock-auth localhost walk would cover them.
+8. **Screen reader.** Not tested. `check.mjs` covers control names, focus behind dialogs and
+   contrast, and a keyboard walk covered focus order, but no assistive technology was run.

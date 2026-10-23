@@ -527,3 +527,89 @@
 .gg .dock .ni { min-width: 94px; padding: 0 8px; font-size: 12px; font-weight: 500; color: var(--muted); }
 .gg .dock .ni .i { width: 20px; height: 20px; }
 .gg .dock .ni.on { color: var(--strong); font-weight: 600; } .gg .dock .ni.on .nic { background: var(--t-cont); color: var(--t-on); }
+
+/* ================= Pilot design additions (revision of 23 Oct) =================
+   The pilot screens answer five questions in one card, keep blocking reasons beside the
+   action, group technical steps into phases with who acts, and show each transfer apart. */
+.gg .qa { display: flex; flex-direction: column; }
+.gg .qrow { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 12px; padding: 12px 16px; border-top: 1px solid var(--line); }
+.gg .qrow:first-child { border-top: 0; }
+.gg .qi { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; background: var(--weak); border: 1px solid var(--line); color: var(--on); }
+.gg .qi .i { width: 16px; height: 16px; }
+.gg .qt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.gg .qk { font-size: 12px; font-weight: 500; color: var(--muted); line-height: 16px; }
+.gg .qv { font-size: 14px; font-weight: 500; color: var(--strong); line-height: 20px; }
+.gg .qs { font-size: 12px; color: var(--muted); line-height: 16px; }
+
+/* Action bar with the reason beside the action */
+.gg .fbar.col { flex-direction: column; gap: 10px; }
+.gg .why { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 8px; font-size: 13px; line-height: 18px; color: var(--strong); }
+.gg .why .i { width: 20px; height: 20px; color: var(--info); }
+.gg .why.warn .i { color: var(--warn); } .gg .why.err .i { color: var(--err); } .gg .why.ok .i { color: var(--ok); }
+.gg .why b { font-weight: 600; }
+.gg .fbtns { display: flex; flex-direction: row-reverse; gap: 12px; }
+.gg .fbtns .btn { flex: 1 1 0; width: auto; min-width: 0; }
+.gg .sacts .why { margin-bottom: 2px; }
+.gg .sacts .foot { font-size: 12px; line-height: 16px; color: var(--muted); text-align: center; margin: 0; }
+
+/* Links inside facts and notices */
+.gg .tlink { color: var(--on); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+
+/* Phases: grouped steps with who acts; the marker carries a glyph as well as a colour */
+.gg .ladder.ph { padding: 6px 0; }
+.gg .ladder.ph .ls { padding: 8px 16px 8px 14px; }
+.gg .lt .who { font-size: 12px; font-weight: 500; color: var(--muted); }
+.gg .lt .subs { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+.gg .lt .sub { display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; gap: 6px; align-items: center; font-size: 12px; line-height: 16px; color: var(--fg); }
+.gg .lt .sub .i { width: 14px; height: 14px; color: var(--muted); }
+.gg .lt .sub.done .i { color: var(--ok); } .gg .lt .sub.now .i { color: var(--info); } .gg .lt .sub.warn .i { color: var(--warn); } .gg .lt .sub.fail .i { color: var(--err); }
+.gg .lt .sub .st2 { font-size: 11px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+.gg .ls .lm .i { width: 14px; height: 14px; }
+
+/* Transfers and receipts, each with its own state */
+.gg .legs .leg .pill { justify-self: end; }
+.gg .legs .leg .amt2 { font-size: 14px; font-weight: 600; color: var(--strong); font-variant-numeric: tabular-nums; }
+
+/* Sheet journey strip: where this step sits and who acts */
+.gg .jstrip { display: flex; gap: 4px; padding: 0 16px 12px; }
+.gg .jstep { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.gg .jstep .bar { height: 4px; border-radius: 999px; background: var(--line2); }
+.gg .jstep.done .bar { background: var(--edge-ok); } .gg .jstep.now .bar { background: var(--on); } .gg .jstep.wait .bar { background: repeating-linear-gradient(90deg, var(--line2) 0 6px, transparent 6px 10px); }
+.gg .jstep span { font-size: 11px; line-height: 14px; color: var(--muted); }
+.gg .jstep.now span { color: var(--strong); font-weight: 600; }
+
+/* Amount lines inside review sheets */
+.gg .fact .v .pill { margin-top: 2px; }
+.gg .fact.chg { background: var(--warn-bg); }
+
+/* Holdings rows: issuer name and unit stay readable; amounts never truncate */
+.gg .hrow { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 16px; border: 1px solid var(--line); background: var(--card); width: 100%; text-align: left; cursor: pointer; }
+.gg .hrow .ht { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--tile); color: var(--on); }
+.gg .hrow .ht.sun { background: var(--sun-soft); color: var(--sun); } .gg .hrow .ht.tool { background: var(--info-bg); color: var(--info); } .gg .hrow .ht.gd { background: var(--ok-bg); color: var(--ok); }
+.gg .hrow .hb { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.gg .hrow .hn { font-size: 15px; font-weight: 500; color: var(--strong); line-height: 20px; }
+.gg .hrow .hd { font-size: 12px; color: var(--muted); line-height: 16px; }
+.gg .hrow .ha { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.gg .hrow .ha b { font-size: 15px; font-weight: 600; color: var(--strong); font-variant-numeric: tabular-nums; }
+.gg .hrow .ha small { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.gg .hlist { display: flex; flex-direction: column; gap: 8px; padding: 0 16px; }
+.gg .hsec { padding: 14px 16px 6px; font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: .02em; }
+
+/* Inline field error in cockpit dialogs */
+.gg .fieldA .inp.bad { box-shadow: inset 0 0 0 2px var(--err); background: var(--err-bg); }
+.gg .chk[aria-checked="true"] .box { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+
+/* Cockpit: the scroll area ends above the dock, so the dock never covers a row at rest */
+.gg .c-route { bottom: 80px; padding-bottom: 24px; }
+.gg .arow .why { grid-column: 1 / -1; }
+
+/* Amounts outside the legs card read as figures too */
+.gg .amt2 { font-weight: 600; color: var(--strong); font-variant-numeric: tabular-nums; }
+
+/* Contrast fixes from the rendered sweep in check.mjs */
+.gg .splitbar .b { color: var(--t-on); }
+.gg.dark .abtn.dng, .gg.dark .btn.dng { background: #C42532; border-color: #C42532; }
+
+/* Two actions sit side by side when both labels fit on one line; otherwise they stack, primary on top */
+.gg .fbtns { flex-wrap: wrap; }
+.gg .fbtns .btn { flex: 1 1 auto; white-space: nowrap; }
