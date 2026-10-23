@@ -71,7 +71,11 @@ function detectBootDataset({
       matches: displayMode ? query === `(display-mode: ${displayMode})` : false,
     }),
   };
-  const documentLike = { documentElement: { dataset } };
+  const documentLike = {
+    documentElement: { dataset },
+    createElement: document.createElement.bind(document),
+    head: document.createElement("head"),
+  };
 
   new Function(
     "window",
@@ -473,6 +477,18 @@ describe("presentation-specific boot fallback", () => {
   it("separates React mount from final PWA readiness", () => {
     expect(MAIN_SOURCE).toContain("__GG_MARK_REACT_MOUNTED");
     expect(MAIN_SOURCE).not.toContain("__GG_CLEAR_BOOT_FALLBACK");
+  });
+
+  it("remembers PWA readiness when content arrives after the ready signal", async () => {
+    const { clearFallback, fallback } = runController("pwa");
+
+    clearFallback?.();
+    expect(fallback).not.toHaveAttribute("hidden");
+
+    document.getElementById("root")?.append(document.createElement("main"));
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(fallback).toHaveAttribute("hidden");
   });
 
   // The app's own choice: the stored language, else the first browser language with copy, else English.

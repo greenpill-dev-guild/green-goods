@@ -1,7 +1,8 @@
-import { RiAlertLine, RiDeleteBinLine, RiRefreshLine } from "@remixicon/react";
+import { RiAlertLine, RiDeleteBinLine, RiRefreshLine, RiWallet3Line } from "@remixicon/react";
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminLoadingScreen } from "@/components/AdminLoadingScreen";
+import { ConnectPrompt } from "@/components/Layout/ConnectPrompt";
 
 /**
  * The boot surfaces render before any provider exists — no IntlProvider, no
@@ -20,6 +21,10 @@ const BOOT_COPY: Record<
     reload: string;
     reset: string;
     details: string;
+    connectTitle: string;
+    connectDescription: string;
+    connect: string;
+    passkey: string;
   }
 > = {
   en: {
@@ -30,6 +35,10 @@ const BOOT_COPY: Record<
     reload: "Reload",
     reset: "Clear Cached Data and Reload",
     details: "Technical details",
+    connectTitle: "Connect to continue",
+    connectDescription: "Connect your wallet or sign in with a passkey to access this feature.",
+    connect: "Connect Wallet",
+    passkey: "Sign in with Passkey",
   },
   es: {
     loading: "Abriendo tu espacio de trabajo…",
@@ -39,6 +48,11 @@ const BOOT_COPY: Record<
     reload: "Recargar",
     reset: "Borrar datos en caché y recargar",
     details: "Detalles técnicos",
+    connectTitle: "Conectar para continuar",
+    connectDescription:
+      "Conecta tu billetera o inicia sesión con una clave de acceso para acceder a esta función.",
+    connect: "Conectar billetera",
+    passkey: "Entrar con passkey",
   },
   pt: {
     loading: "Abrindo seu espaço de trabalho…",
@@ -48,6 +62,11 @@ const BOOT_COPY: Record<
     reload: "Recarregar",
     reset: "Limpar dados em cache e recarregar",
     details: "Detalhes técnicos",
+    connectTitle: "Conectar para continuar",
+    connectDescription:
+      "Conecte sua carteira ou entre com uma chave de acesso para acessar este recurso.",
+    connect: "Conectar carteira",
+    passkey: "Entrar com passkey",
   },
 };
 
@@ -96,6 +115,50 @@ export function BootShell() {
   const locale = resolveBootLocale();
   const copy = BOOT_COPY[locale];
   return <AdminLoadingScreen label={copy.loading} locale={locale} />;
+}
+
+/** Provider-free entry to the existing wallet and passkey sign-in paths. */
+export function BootConnect({
+  onConnect,
+  onPasskey,
+}: {
+  onConnect: () => void;
+  onPasskey: () => void;
+}) {
+  const locale = resolveBootLocale();
+  const copy = BOOT_COPY[locale];
+  return (
+    <main id="main-content">
+      <ConnectPrompt
+        title={copy.connectTitle}
+        description={copy.connectDescription}
+        lang={locale}
+        action={
+          <div className="flex flex-col items-stretch gap-2">
+            <AdminButton
+              type="button"
+              variant="filled"
+              size="lg"
+              leadingIcon={<RiWallet3Line />}
+              onClick={onConnect}
+              data-testid="connect-wallet-button"
+            >
+              {copy.connect}
+            </AdminButton>
+            <AdminButton
+              type="button"
+              variant="outlined"
+              size="lg"
+              onClick={onPasskey}
+              data-testid="passkey-start-button"
+            >
+              {copy.passkey}
+            </AdminButton>
+          </div>
+        }
+      />
+    </main>
+  );
 }
 
 export interface BootRecoveryProps {

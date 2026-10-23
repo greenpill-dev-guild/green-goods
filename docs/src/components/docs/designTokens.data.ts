@@ -24,7 +24,8 @@ export const PAIRINGS = [
 ] as const;
 
 /**
- * The client's own font requests (packages/client/index.html). The type samples load them because
+ * Variable product faces for the type samples. Docs loads these stylesheets while the client
+ * serves the same faces locally. The type samples need variable weights because
  * the brand kit's files (static/brand/v3/typography) carry the regular weight only, so a sample at
  * 500, 600, or 700 drawn from those files would be a weight the browser made up.
  */

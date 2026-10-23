@@ -34,9 +34,9 @@ describe("design token page data", () => {
     for (const token of Object.values(tokens.typography)) assert.ok(token.fontFamily in FONT_STACKS, token.fontFamily);
   });
 
-  test("type samples load the client's font requests, which carry every token's weight", () => {
+  test("type samples and locally hosted client faces cover every token's weight", () => {
     const clientHtml = readFileSync(new URL("../../../../packages/client/index.html", import.meta.url), "utf8");
-    for (const stylesheet of PRODUCT_FONT_STYLESHEETS) assert.ok(clientHtml.includes(`href="${stylesheet}"`), stylesheet);
+    const localFaces = [...clientHtml.matchAll(/@font-face\s*\{([^}]+)\}/g)].map(([, face]) => face);
     for (const [name, token] of Object.entries(tokens.typography)) {
       const request = PRODUCT_FONT_STYLESHEETS.find((url) => url.includes(`family=${token.fontFamily}:`));
       // A css2 request lists each tuple in axis order, so the upright tuple ends in the weight range.
@@ -45,6 +45,9 @@ describe("design token page data", () => {
         lightest <= token.fontWeight && token.fontWeight <= heaviest,
         `${name} is ${token.fontFamily} ${token.fontWeight}, outside the loaded ${lightest}..${heaviest}`,
       );
+      const upright = localFaces.find((face) => face.includes(`font-family: '${token.fontFamily}'`) && /font-style:\s*normal;/.test(face));
+      const [localLightest, localHeaviest] = upright?.match(/font-weight:\s*(\d+)\s+(\d+)/)?.slice(1).map(Number) ?? [];
+      assert.ok(localLightest <= token.fontWeight && token.fontWeight <= localHeaviest, `${name} is outside the locally hosted range`);
     }
   });
 });

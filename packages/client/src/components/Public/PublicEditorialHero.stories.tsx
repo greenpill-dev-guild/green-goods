@@ -119,7 +119,8 @@ export const Home: Story = {
   render: () => (
     <>
       <PublicEditorialHero
-        imageSrc={HERO_IMG}
+        imageSrc="/images/hero-home-optimized.avif"
+        portraitImageSrc="/images/hero-home-portrait.avif"
         imageFallbackSrc={HERO_FALLBACK}
         imageAlt=""
         titleId="story-home-title"

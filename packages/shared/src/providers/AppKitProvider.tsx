@@ -12,6 +12,7 @@ interface AppKitProviderProps {
     icons: string[];
   };
   defaultChainId?: number;
+  fontFamily?: string;
 }
 
 export function AppKitProvider({
@@ -19,6 +20,7 @@ export function AppKitProvider({
   projectId,
   metadata,
   defaultChainId = DEFAULT_CHAIN_ID,
+  fontFamily,
 }: AppKitProviderProps) {
   // Ensure the shared singleton is configured before rendering WagmiProvider.
   // wagmiConfig is non-null here — AppKitProvider only renders in the browser.
@@ -26,6 +28,7 @@ export function AppKitProvider({
     projectId,
     metadata,
     defaultChainId,
+    fontFamily,
   });
 
   if (!wagmiConfig) {

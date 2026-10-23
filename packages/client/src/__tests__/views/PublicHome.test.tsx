@@ -21,6 +21,7 @@ const {
   mockInstallHandler,
   mockUsePublicStats,
   mockUsePublicCommitmentImpact,
+  mockUseInViewReveal,
 } = vi.hoisted(() => ({
   mockUseApp: vi.fn(),
   mockUseInstallGuidance: vi.fn(),
@@ -28,6 +29,7 @@ const {
   mockInstallHandler: vi.fn(),
   mockUsePublicStats: vi.fn(),
   mockUsePublicCommitmentImpact: vi.fn(),
+  mockUseInViewReveal: vi.fn(() => ({ ref: vi.fn(), revealed: true })),
 }));
 
 vi.mock("@green-goods/shared/utils/styles/cn", () => ({
@@ -63,7 +65,7 @@ vi.mock("@green-goods/shared/hooks/public/usePublicCommitmentImpact", () => ({
 }));
 
 vi.mock("@green-goods/shared/hooks/ui/useInViewReveal", () => ({
-  useInViewReveal: () => ({ ref: vi.fn(), revealed: true }),
+  useInViewReveal: mockUseInViewReveal,
 }));
 
 // Stub the heavy section components — this test only cares about the hero
@@ -129,6 +131,7 @@ function heroCtas() {
 describe("Public Home — hero CTAs", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseInViewReveal.mockReturnValue({ ref: vi.fn(), revealed: true });
     mockUseInstallGuidance.mockReturnValue({
       scenario: "desktop",
       primaryAction: { type: "continue-in-browser", label: "Open on Mobile" },
@@ -217,7 +220,23 @@ describe("Public Home — hero CTAs", () => {
     }
   });
 
-  it("renders the eight canonical sections in order", () => {
+  it("keeps the hero readable without starting evidence reads before visibility", async () => {
+    mockUseApp.mockReturnValue({ isPwaPresentation: false, isMobile: false });
+    const warm = renderHome();
+    await screen.findByTestId("stub-featured");
+    warm.unmount();
+    mockUsePublicStats.mockClear();
+    mockUsePublicCommitmentImpact.mockClear();
+    mockUseInViewReveal.mockReturnValue({ ref: vi.fn(), revealed: false });
+    renderHome();
+    expect(screen.getByRole("heading", { level: 1 })).toBeVisible();
+    await Promise.resolve();
+    expect(mockUsePublicStats).not.toHaveBeenCalled();
+    expect(mockUsePublicCommitmentImpact).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("stub-featured")).not.toBeInTheDocument();
+  });
+
+  it("renders the eight canonical sections in order", async () => {
     mockUseApp.mockReturnValue({
       isPwaPresentation: false,
       isMobile: false,
@@ -229,6 +248,8 @@ describe("Public Home — hero CTAs", () => {
     });
 
     renderHome();
+
+    await screen.findByTestId("stub-proof");
 
     // Hero (asserted via H1 elsewhere) is section 1; the stubbed sections
     // pin the remaining order. DESIGN.browser.md § Homepage is the canon —
@@ -257,7 +278,7 @@ describe("Public Home — hero CTAs", () => {
   it.each([
     ["the snapshot", { data: { commitmentsMade: 18n, commitmentsFulfilled: 2n } }, "2"],
     ["a read that settled without data", { data: undefined }, "null"],
-  ])("hands the kept commitments from %s to the record band", (_, read, kept) => {
+  ])("hands the kept commitments from %s to the record band", async (_, read, kept) => {
     mockUseApp.mockReturnValue({
       isPwaPresentation: false,
       isMobile: false,
@@ -271,10 +292,10 @@ describe("Public Home — hero CTAs", () => {
 
     renderHome();
 
-    expect(screen.getByTestId("stub-proof")).toHaveAttribute("data-commitments-kept", kept);
+    expect(await screen.findByTestId("stub-proof")).toHaveAttribute("data-commitments-kept", kept);
   });
 
-  it("renders the record loop after proof and before the funding bridge", () => {
+  it("renders the record loop after proof and before the funding bridge", async () => {
     mockUseApp.mockReturnValue({
       isPwaPresentation: false,
       isMobile: false,
@@ -287,7 +308,7 @@ describe("Public Home — hero CTAs", () => {
 
     renderHome();
 
-    const proof = screen.getByTestId("stub-proof");
+    const proof = await screen.findByTestId("stub-proof");
     const funding = screen.getByTestId("stub-funding");
     const loop = screen.getByTestId("stub-loop");
 

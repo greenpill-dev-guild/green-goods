@@ -5,15 +5,18 @@ import {
   createShouldDehydrateQuery,
 } from "@green-goods/shared/config/query-persistence";
 import { queryClient } from "@green-goods/shared/config/react-query";
-import { AppProvider } from "@green-goods/shared/providers/App";
 import { AppKitProvider } from "@green-goods/shared/providers/AppKitProvider";
 import { AuthGate } from "@green-goods/shared/providers/AuthGate";
 import {
   attachQueryPersistence,
   QueryPersistenceProvider,
 } from "@green-goods/shared/providers/QueryPersistence";
-import App from "@/App.tsx";
+import { lazy, Suspense } from "react";
 import { ADMIN_LEGACY_QUERY_PERSISTENCE, ADMIN_QUERY_PERSISTENCE_DB } from "./bootConstants";
+import { AdminStartupConnect } from "./AdminStartupConnect";
+import { BootShell } from "./BootSurface";
+
+const AdminWorkspace = lazy(() => import("./AdminWorkspace"));
 
 // Never throws: the reading cache degrades to an in-memory session when the
 // browser blocks IndexedDB or web storage.
@@ -34,7 +37,13 @@ const adminAppUrl =
  * by the boot sequence after the boot shell is already on screen, so a failure
  * anywhere in this graph surfaces as a recovery card rather than a blank root.
  */
-export default function AdminRoot() {
+export default function AdminRoot({
+  connectWalletOnReady = false,
+  onWorkspaceReady,
+}: {
+  connectWalletOnReady?: boolean;
+  onWorkspaceReady?: () => void;
+}) {
   return (
     <QueryPersistenceProvider client={queryClient} persistence={persistence}>
       <ErrorBoundary context="AdminApp">
@@ -47,15 +56,15 @@ export default function AdminRoot() {
             icons: ["https://greengoods.app/icon.png"],
           }}
           defaultChainId={DEFAULT_CHAIN_ID}
+          fontFamily={'"Plus Jakarta Sans", system-ui, sans-serif'}
         >
           {/* AuthGate: uses DevAuthProvider when ?mockAuth= param is present in dev, else real AuthProvider */}
           <AuthGate>
-            <AppProvider
-              posthogKey={import.meta.env.VITE_POSTHOG_ADMIN_KEY}
-              allowPosthogKeyFallback={false}
-            >
-              <App />
-            </AppProvider>
+            <AdminStartupConnect requested={connectWalletOnReady}>
+              <Suspense fallback={<BootShell />}>
+                <AdminWorkspace onReady={onWorkspaceReady} />
+              </Suspense>
+            </AdminStartupConnect>
           </AuthGate>
         </AppKitProvider>
       </ErrorBoundary>

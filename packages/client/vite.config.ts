@@ -24,6 +24,7 @@ import { APP_ROUTES, createPwaRoutingConfig } from "./src/config/pwaRouting";
 import { createChainImportsPlugin } from "./vite/chain-imports";
 import { createPwaShellAssetsPlugin } from "./vite/pwa-shell";
 import { createPublicSocialPreviewPlugin } from "./vite/social-preview";
+import { createPublicLocalesPlugin } from "./vite/public-locales";
 import { resolveViteWatchOptions } from "./vite/watch";
 
 const DEFAULT_INDEXER_URL = "https://indexer.hyperindex.xyz/de3e5df/v1/graphql";
@@ -278,10 +279,11 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     react(),
     babel({ presets: [reactCompilerPreset()] }),
     createPublicSocialPreviewPlugin(isIPFSBuild),
+    createPublicLocalesPlugin(),
     createPwaShellAssetsPlugin(),
     createChainImportsPlugin(),
     VitePWA({
-      includeAssets: [...pwaBranding.includeAssets, "images/avatar.png"],
+      includeAssets: [...pwaBranding.includeAssets, "images/avatar.png", "fonts/inter-*.woff2"],
       injectRegister: false,
       registerType: "prompt",
       // The worker is TypeScript in src/sw, bundled by Vite with the precache
@@ -457,6 +459,13 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
               { name: "vite-runtime", test: CLIENT_VITE_RUNTIME_MODULES, priority: 50 },
               { name: "vendor-react", test: CLIENT_REACT_MODULES, priority: 40 },
               { name: "vendor-query", test: CLIENT_QUERY_MODULES, priority: 30 },
+              // The website's responsive hook must not fetch the PWA sheet that uses it.
+              {
+                name: "responsive-hook",
+                test: /\/packages\/shared\/src\/hooks\/ui\/useMediaQuery\.ts$/,
+                priority: 45,
+                includeDependenciesRecursively: false,
+              },
               // Public read paths use viem without needing Reown/Wagmi UI.
               {
                 name: "vendor-viem",

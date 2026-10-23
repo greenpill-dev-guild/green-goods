@@ -182,7 +182,7 @@ One name for a garden's approved Work records wherever the website labels or cou
 
 ## Typography
 
-- **Fraunces** (serif) is reserved for editorial route heroes, large stat numbers, and garden story headings. Loaded via `packages/client/index.html`; resolved by Tailwind's `font-serif` utility through `--font-serif` in shared `theme.css`.
+- **Fraunces** (serif) is reserved for editorial route heroes, large stat numbers, and garden story headings. Local font faces are declared in `packages/client/index.html`, with WOFF2 files and licenses in `packages/client/public/fonts/`; resolved by Tailwind's `font-serif` utility through `--font-serif` in shared `theme.css`.
 - **Inter** carries body, nav, cards, buttons, and dialogs across both browser and installed PWA modes.
 - Editorial headlines scale to magazine sizes (text-3xl → text-5xl); body stays restrained.
 - The home page and the four navigation pages (Gardens, Impact, Fund, Actions) open on a hero title of three lines at every width. Their English titles are written as three `<line>` segments in the catalog and rendered with `EditorialTitleLine`, because the card's measure alone lets a small copy edit change the count. Keep each line within the desktop card, 456px at 60px type. Spanish and Portuguese titles are longer and wrap on their own.
@@ -191,7 +191,7 @@ One name for a garden's approved Work records wherever the website labels or cou
 
 Swap two places to test an alternative serif on the public browser:
 
-1. `packages/client/index.html`: replace the Fraunces `<link>` family parameter with the new family's Google Fonts URL.
+1. Vendor the replacement font's WOFF2 files and license in `packages/client/public/fonts/`, then update the Fraunces font-face declarations in `packages/client/index.html`. Keep the Latin coverage needed for English, Spanish, and Portuguese.
 2. `packages/shared/src/styles/theme.css` (`@theme` block): change the first family in `--font-serif` from `"Fraunces"` to the new family name.
 
 That's it. No JSX touches; every `font-serif` headline picks up the new family. Validate with `bun run check --only design-tokens` and a Storybook spot-check.

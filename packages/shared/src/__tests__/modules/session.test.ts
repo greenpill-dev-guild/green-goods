@@ -55,6 +55,7 @@ import {
   getStoredSmartAccountAddress,
   getStoredWalletAddress,
   hasSignedOutSentinel,
+  hasSessionRestoreEvidence,
   RP_ID_STORAGE_KEY,
   SIGNED_OUT_STORAGE_KEY,
   SMART_ACCOUNT_ADDRESS_STORAGE_KEY,
@@ -82,6 +83,41 @@ describe("modules/auth/session", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  describe("startup session evidence", () => {
+    it("allows deferred startup only for empty auth storage", () => {
+      mockLocalStorage.setItem("gg-language", "es");
+      expect(hasSessionRestoreEvidence(mockLocalStorage)).toBe(false);
+    });
+
+    it.each([
+      AUTH_MODE_STORAGE_KEY,
+      "greengoods_credential",
+      USERNAME_STORAGE_KEY,
+      RP_ID_STORAGE_KEY,
+      SMART_ACCOUNT_ADDRESS_STORAGE_KEY,
+      EMBEDDED_ADDRESS_KEY,
+      WALLET_ADDRESS_STORAGE_KEY,
+      "greengoods_last_account",
+      "wagmi.store",
+      SIGNED_OUT_STORAGE_KEY,
+    ])("starts immediately for any existing %s record, without parsing or migrating it", (key) => {
+      mockLocalStorage.setItem(key, "");
+      mockLocalStorage.setItem.mockClear();
+      expect(hasSessionRestoreEvidence(mockLocalStorage)).toBe(true);
+      expect(mockLocalStorage.setItem).not.toHaveBeenCalled();
+      expect(mockLocalStorage.removeItem).not.toHaveBeenCalled();
+    });
+
+    it("starts immediately when a storage read is blocked", () => {
+      const storage = {
+        getItem: () => {
+          throw new Error("Storage blocked");
+        },
+      };
+      expect(hasSessionRestoreEvidence(storage)).toBe(true);
+    });
   });
 
   describe("setAuthMode", () => {

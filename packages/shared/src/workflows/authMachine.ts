@@ -274,7 +274,13 @@ export const authMachine = authSetup.createMachine({
     retryCount: 0,
   }),
 
-  on: authGlobalWalletEvents,
+  on: {
+    ...authGlobalWalletEvents,
+    SIGN_OUT: {
+      target: ".unauthenticated",
+      actions: "clearAllAuthState",
+    },
+  },
 
   states: {
     ...authStartupStates,
