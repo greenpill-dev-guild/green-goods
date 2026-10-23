@@ -49,7 +49,7 @@ Version 1.3, 2026-10-20. Owner: Afo.
 **How agents use this file.**
 - Routing: the repository agent guide (`AGENTS.md`, "Read when relevant") sends any task that writes copy a gardener, steward, funder, partner, or visitor reads here first, then to the owning surface `DESIGN.md`. The task-routing manifest names this page as a required authority for document review and design direction when the task carries brand-facing copy; visual-only design work and internal technical documents do not load it. Codex reaches the same files through the repository's agent guide, and the docs site publishes this page in its LLM index (`llms.txt`).
 - The same file, two paths: this page is the only copy. `.claude/brand-voice-guidelines.md` is a symbolic link to it, which is where the brand-voice plugin's enforce-voice command and other tools expect guidelines to live.
-- Enforcement: the mechanical rules are checked, not trusted. `bun run check --only vocabulary` rejects banned and retired terms, UK spellings, and the old Spanish and Portuguese role words in the three shared catalogs (`packages/shared/src/i18n`); the docs audit rejects UK spellings in docs pages and design guides; `bun run check --only em-dashes` rejects em dashes in those catalogs, docs pages, and design guides. The chat bot's copy in `packages/agent` is held to the same vocabulary file by the agent's copy tests (banned and retired terms, UK spellings, and the locked steward and garden words with their retired synonyms; the bot's promise and endowment terms are reviewed by eye), and the em dash check reads its chat copy modules too. Section 9 marks which checklist items a machine covers.
+- Enforcement: the mechanical rules are checked, not trusted. `bun run check --only vocabulary` rejects banned and retired terms, UK spellings, and the old Spanish and Portuguese role words in the three shared catalogs (`packages/shared/src/i18n`); the docs audit rejects UK spellings in docs pages and design guides; `bun run check --only em-dashes` rejects em dashes in those catalogs, docs pages, and design guides. The chat bot's copy in `packages/agent` is held to the same vocabulary file by the agent's copy tests (banned and retired terms, UK spellings, and the locked steward and garden words with their retired synonyms; the bot's promise and endowment terms are reviewed by eye), and the em dash check reads its chat copy modules too. `bun run check --only brand-voice-parity` fails when this page and a place that restates it say different things, following section 15 on who owns what. Section 9 marks which checklist items a machine covers.
 - Review: a change to copy is reviewed against this page the way a change to layout is reviewed against the design skill. Dated copy decisions still get a row in the design decision log.
 
 **Writing conventions in this file.** US spelling. No em dashes anywhere in Green Goods prose. In running text, "garden", the role words, and the domain nouns are lower case; Title Case belongs to titles, action labels, and named acts.
@@ -113,7 +113,7 @@ Five product personas carry fixed meanings in the ontology. One more audience ap
 
 **Core voice.** Green Goods speaks like a knowledgeable neighbor who runs the community garden. Warm but not gushing. Practical but not clinical. Knows soil science but explains it by pointing at the compost pile.
 
-**The one-sentence test.** If a line could appear on a government form, rewrite it. If it could appear on a hand-painted garden sign, it is close.
+**The one-sentence test.** If it could appear on a government form, rewrite it. If it could appear on a hand-painted garden sign, it's close.
 
 ### We are / we are not
 
@@ -121,8 +121,8 @@ Five product personas carry fixed meanings in the ontology. One more audience ap
 |---|---|---|
 | Grounded | Concrete, specific, rooted in real action: one tree, one bag, one panel, one class | Jargon-heavy, academic, blockchain-first |
 | Inviting | Welcoming, assumes good intent, lowers barriers, gives permission where people hesitate | Sycophantic, over-enthusiastic, exclamation-heavy |
-| Honest | Transparent about what works and what is still experimental; says the limit up front | Hedging, corporate disclaimers, vague promises |
-| Active | Action-oriented, present tense, you-centered | Passive voice, abstract nouns, bureaucratic |
+| Honest | Transparent about what works and what's experimental; says the limit up front | Hedging, corporate disclaimers, vague promises |
+| Active | Action-oriented, present-tense, you-centered | Passive voice, abstract nouns, bureaucratic |
 
 ### Three dialects, one voice, and a fourth to come
 
@@ -327,9 +327,9 @@ Items marked (machine) are covered by a check in the validation pipeline; the re
 - [ ] Is it concrete? Can the reader picture it?
 - [ ] Is it active? Subject, verb, object?
 - [ ] Is the audience right? A gardener is not a steward is not a funder.
-- [ ] Is blockchain invisible where it should be?
-- [ ] Would it make sense to someone who has never heard of web3?
-- [ ] Is it shorter than the first draft?
+- [ ] Is blockchain invisible except where the reader needs a protocol name to act or verify (DL-094)? On-chain is implementation, not copy.
+- [ ] Would it make sense to someone who's never heard of web3?
+- [ ] Is it shorter than your first draft?
 - [ ] US spelling? (machine: catalogs, bot chat copy, docs pages, design guides)
 - [ ] No em dashes? (machine: catalogs, bot chat copy, docs pages, design guides)
 - [ ] Lower-case garden, role words, and domain nouns in running text, Title Case only on titles and actions?

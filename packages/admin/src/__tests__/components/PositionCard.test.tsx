@@ -368,7 +368,7 @@ describe("PositionCard", () => {
 
       render(createElement(PositionCard, { ...defaultProps, canManage: true }));
 
-      expect(screen.getByText(/4 USDC was allocated to the Cookie Jar/i)).toBeInTheDocument();
+      expect(screen.getByText(/4 USDC was allocated to the cookie jar/i)).toBeInTheDocument();
       expect(screen.getByText(/4 USDC to hypercert funding/i)).toBeInTheDocument();
       expect(screen.getByText(/2 USDC to the protocol treasury/i)).toBeInTheDocument();
     });

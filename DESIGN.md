@@ -273,7 +273,7 @@ The names that carry the work. Domain entities, personas, relationships, and lif
 |-----|-----------|-----|
 | Garden | Project, organization, DAO | Gardens are the metaphor. |
 | Gardener | User, contributor, member | People who do the work have a name. |
-| Steward | Admin, manager | They operate the garden. |
+| Steward | Admin, manager | They steward the garden; "operator" is retired. |
 | Evaluator | Reviewer, auditor, assessor | They evaluate impact, not audit compliance. |
 | Funder | Investor, backer | Funding a garden, not buying a return. A person who gives through the Donate path is still a funder. |
 | Community member | Visitor, viewer, spectator | Part of the community, not an audience. |
