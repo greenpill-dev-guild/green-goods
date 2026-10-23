@@ -2,8 +2,8 @@
 
 **Feature Slug:** `app-cockpit-unification`
 **Stage:** active
-**Status:** ACTIVE: step 1's face and the cockpit's type roles merged on 21 and 22 October, with the shared components' roles still to come; steps 2 and 3 approved; each later slice starts on its approved pair
-**Created / Last Updated:** 2026-10-10 / 2026-10-22
+**Status:** ACTIVE: step 1's face and both halves of the type roles merged on 21 to 23 October, and the faces are served and precached; step 1 waits on the call on #1189; step 2 in review; step 3 follows it; each later slice starts on its approved pair
+**Created / Last Updated:** 2026-10-10 / 2026-10-23
 **Linear Issue:** PRD-1266
 **Linear Source:** source:plans
 
@@ -61,7 +61,7 @@ bounded change, and split a step that would mix independent behaviours.
 
 | Step | Lane | Work and likely owners | Completion evidence |
 |---|---|---|---|
-| 1. Typeface and type roles (F1) | `ui` | One family on both surfaces: the app's font links, its `index.css`, the static loading screen. One set of role names (title, body, label, meta) at each surface's sizes. The face merged as #1172 and the cockpit's roles as #1175, with their guide wording in #1176 (21 and 22 October). The shared components' roles and the offline face (both faces served from the app and precached, from #1172's review) finish the step. | Width pairs in three languages at phone widths; the typography and loading-screen guards pass with updated expectations; no Material role name left in the cockpit's views; for the offline face, RED/GREEN proof and labeled authenticated Brave proof that an installed app's first launch with no network draws Plus Jakarta Sans. |
+| 1. Typeface and type roles (F1) | `ui` | One family on both surfaces: the app's font links, its `index.css`, the static loading screen. One set of role names (title, body, label, meta) at each surface's sizes. The face merged as #1172 and the cockpit's roles as #1175, with their guide wording in #1176 (21 and 22 October); the shared components' roles as #1188, with theirs in #1187 (23 October). #1190 served and precached the faces (the offline face from #1172's review); the vietnamese subset it left out, decided with #1189, finishes the step. | Width pairs in three languages at phone widths; the typography and loading-screen guards pass with updated expectations; no Material role name left in the cockpit's views; for the offline face, RED/GREEN proof and labeled authenticated Brave proof that an installed app's first launch with no network draws Plus Jakarta Sans. |
 | 2. Ground and dark ladder (F2, F13) | `ui` | App-scope surface tokens and one dark ladder in Shared `theme.css`; the cockpit's dark card step. With them (21 October): the dark text lifts, the error action fill on the cockpit's error screen, the app's tab row and garden title block on their ground, and the status bar and manifest per presentation. | Contrast audit on the new ground; rendered pairs in light and dark; the public website unchanged. |
 | 3. Control boundary and focus role (F3, part) | `ui` | A 3:1 outline token for secondary buttons, chips and fields; one focus-ring role, with the app's ring in its own green, drawn as a solid 2px ring in place of the halo; the app's button labels at weight 500 (21 October). | Measured ratios in both themes; focus ring visible on every control family. |
 | 4. Count badge (F10) | `ui` | One badge recipe in Shared; the app's bar, launchers, filter count and tabs and the cockpit's tab rail consume it. | Every consumer renders the same badge; counts above 9 and 99 still fit. |
@@ -156,3 +156,16 @@ The card title and card detail sizes locked on 18 October move to the card step 
 maintainer chose on 21 October, and so do the three texts the face newly ends in an ellipsis at
 320px, which step 7's detail-line rules cover. [handoffs/claude-ui.md](handoffs/claude-ui.md) lists what landed
 and what remains.
+
+**Step 1 (23 October).** The shared components' roles merged as #1188, after their guide wording in
+#1187. #1190, a startup and session pull request, then served Inter, Plus Jakarta Sans and Fraunces
+from the app and precached the installed face, which was the offline face #1172's review asked
+for, so the open #1189 conflicts with `develop` and would add a second copy of the faces. What
+#1190 left out is the vietnamese subset (ẹ, ọ, ị, ụ in Yoruba and Igbo names); it lands with the
+maintainer's call on #1189, and its RED and GREEN record is proposed in the handoff.
+
+**Step 2 (23 October).** The four drafts replayed onto `develop` and were finished on
+`feature/app-cockpit-ground-ladder`: the status bar and the install manifest per presentation, read
+from the DesignMD token export (`neutral-dark` is now the floor both surfaces paint), the app
+stories on the app's canvas, and a re-certified seam fingerprint. The guide wording and DL-097 are a
+standards-only pull request. [eval.md](eval.md#step-2-proof-ground-and-dark-ladder) records the proof.

@@ -1,6 +1,6 @@
 # One Look for the App and the Cockpit — Evaluation
 
-**Status:** acceptance criteria follow the locked picks; the design gate for the token slices ran on 2026-10-20 ([below](#design-gate-for-the-token-slices)); implementation and review results pending.
+**Status:** acceptance criteria follow the locked picks; the design gate for the token slices ran on 2026-10-20 ([below](#design-gate-for-the-token-slices)); step 2's proof ran on 2026-10-23 ([below](#step-2-proof-ground-and-dark-ladder)); review results pending.
 
 ## Product validation
 
@@ -326,3 +326,49 @@ second pull request under PRD-1267.
 
 **Installs.** The worktree linked the main checkout's installs, which predate `develop`'s lockfile
 (Vite 8.2.1 where `develop` pins 8.2.4); nothing was installed.
+
+## Step 2 proof: ground and dark ladder
+
+Run on 2026-10-23 against `develop` `65df3ad13`, with step 2 as committed in `c9b1fd66a` on
+`feature/app-cockpit-ground-ladder`. The rig is the design gate's ([above](#design-gate-for-the-token-slices)),
+rebuilt for this run; the frames show live gardens and stay out of the repository.
+
+**Contrast.** The resolved custom properties under each surface and theme, read from this branch's
+Storybook (which loads shared `theme.css` and the cockpit's `admin-m3-tokens.css`), before and after:
+
+| Surface, theme | Pair | develop | step 2 |
+|---|---|---|---|
+| App, light | Card against the canvas | 1.00:1 | 1.06:1 |
+| App, light | Card hairline against the canvas | 1.09:1 | 1.18:1 |
+| App, light | Tertiary text on the canvas | 4.80:1 | 4.53:1 |
+| App, light | Green text on the canvas | 5.72:1 | 5.40:1 |
+| App, dark | Card against the canvas | 1.00:1 | 1.26:1 |
+| App, dark | Ink, secondary and tertiary text on the card | 18.92, 13.26 and 7.83:1 | 14.83, 10.40 and 6.14:1 |
+| App, dark | Error, feature and information text on the card | 4.76, 5.46 and 3.87:1 | 5.52, 6.30 and 5.41:1 |
+| Cockpit, dark | Card against the canvas | 1.12:1 | 1.26:1 |
+| Cockpit, dark | Card ring against the canvas | 1.32:1 | 1.59:1 |
+| Cockpit, dark | Error, feature and information text on the card | 4.18, 4.80 and 3.40:1 | 5.52, 6.30 and 5.41:1 |
+| Cockpit, dark | The error role as text on the card; ink on its fill | 4.75 and 5.40:1 | 5.52 and 7.05:1 |
+| Both, both | White on the error action fill | 5.26:1 | 5.26:1 |
+
+The cockpit's light theme reads the same in every pair. The light error red (3.66:1 on white) is
+unchanged; it is the required-field asterisk the design gate's sweep found.
+
+**Pairs.** The lab's ten screens at 390, 768 and 1280px in light and dark (60 pairs), and four
+website routes (`/`, `/gardens`, `/actions`, `/fund`) at 390 and 1280px in light and dark (16 pairs),
+headless Chromium (Playwright) at device scale 1. Cockpit: **Storybook**, the Hub's approved work,
+Garden overview, Community members, Create Assessment and Profile route stories. App: **mock-auth
+localhost**, `?mockAuth=deployer&presentation=pwa` on Arbitrum and the production indexer: Home, the
+TAS HUB garden on its Promises tab, Your Work, Submit Work at Details, and Profile. Changed pixels
+per pair (a channel sum above 12):
+
+- Cockpit, light: 0% on all five screens at every width. Cockpit, dark: 6.8 to 63.2%.
+- App, light: 9.6 to 65.2%. App, dark: 17.6 to 88.6%.
+- Website: 0% on 15 of 16 pairs. The 16th, `/gardens` at 390px in light (14.9%), differs only in
+  the first garden's photo, which loaded from IPFS in one run and not the other. Its `theme-color`
+  reads `#ffffff` in light and `#0c0a09` in dark on every route before and after.
+
+**Status bar.** In the installed presentation the `theme-color` meta reads `#FAF8F5` in light and
+`#110C08` in dark (mock-auth localhost), with the page's own ground behind it; the unit cases in
+`theme.test.ts`, `bootFallback.test.tsx` and `pwa-manifest.test.ts` pin both presentations, and the
+website keeps white. Not checked on a device: whether iOS's solid status bar follows `theme-color`.
