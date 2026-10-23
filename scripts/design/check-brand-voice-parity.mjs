@@ -8,8 +8,9 @@
 // - the descriptor and the brand line (section 1) appear word for word wherever a surface
 //   describes the whole product, and the problem statement (section 1) reads the same on Why We
 //   Build, where its three causes are a list;
-// - DESIGN.md § Voice & Copy owns the voice core: the page's voice sentence, pillars, tone rows,
-//   and terminology rows start with DESIGN.md's words and may add after them;
+// - DESIGN.md § Voice & Copy owns the voice core: the page's voice sentence, one-sentence test,
+//   pillars, tone rows, terminology rows, and writing checklist items start with DESIGN.md's words
+//   and may add after them (a checklist item's parenthesized hint is the page's to word);
 // - the prompt contracts own the dialect examples that section 5 quotes;
 // - each section 10 model line is found word for word in the source it names, unless the source
 //   says the line was adapted;
@@ -92,7 +93,7 @@ export const FIXES = {
   "problem statement":
     "The page's section 1 owns the problem statement. Why We Build carries the same sentences, with the three causes as a list.",
   "voice core":
-    "DESIGN.md § Voice & Copy owns the voice sentence, pillars, tone rows, and terminology. Start the page's cell with DESIGN.md's words and add anything after them, or change DESIGN.md first.",
+    "DESIGN.md § Voice & Copy owns the voice sentence, one-sentence test, pillars, tone rows, terminology, and writing checklist. Start the page's text with DESIGN.md's words and add anything after them, or change DESIGN.md first.",
   examples:
     "The prompt contracts own the dialect examples. Quote the contract exactly, or change the contract first.",
   "model lines":
@@ -426,6 +427,42 @@ function compareVoiceSentence({ page, voiceCopy, need, agree }) {
   if (voice && coreVoice) agree("voice core", plain(voice), `${DESIGN} § Voice & Copy`, plain(coreVoice), `${PAGE} core voice`);
 }
 
+function compareOneSentenceTest({ page, voiceCopy, need, agree }) {
+  const owned = need(voiceCopy?.match(/^\*\*One-sentence test:\*\*\s*(.+)$/m)?.[1], DESIGN, "**One-sentence test:** line");
+  const restated = need(
+    section(page, 2, "Voice")?.match(/^\*\*The one-sentence test\.\*\*\s*(.+)$/m)?.[1],
+    PAGE,
+    "**The one-sentence test.** line",
+  );
+  if (owned && restated) {
+    agree("voice core", plain(owned), `${DESIGN} one-sentence test`, plain(restated), `${PAGE} one-sentence test`);
+  }
+}
+
+function compareChecklist({ page, voiceCopy, fail, count, need }) {
+  // DESIGN.md puts some hints in parentheses ("(Gardener ≠ steward ≠ funder)"); the page may word
+  // them its own way, so each item is compared without its parenthesized asides.
+  const items = (text) =>
+    (text ?? "")
+      .split("\n")
+      .map((line) => line.match(/^\s*- \[[ xX]\]\s+(.+)$/)?.[1])
+      .filter(Boolean)
+      .map((item) => ({ item: plain(item), bare: plain(item.replace(/\s*\([^)]*\)/g, "")) }));
+  const owned = items(section(voiceCopy, 3, "Writing Checklist"));
+  const restated = items(section(page, 2, "Pre-ship checklist"));
+  if (owned.length === 0) return need(undefined, DESIGN, "Writing Checklist items");
+  if (restated.length === 0) return need(undefined, PAGE, "Pre-ship checklist items");
+  for (const { item, bare } of owned) {
+    count("voice core");
+    if (!restated.some((line) => startsWithWords(line.bare, bare))) {
+      fail(
+        "voice core",
+        `${PAGE} section 9 has no checklist item that opens with "${item}" (a parenthesized hint may be worded its own way), which ${DESIGN} Writing Checklist lists`,
+      );
+    }
+  }
+}
+
 function comparePillars({ page, voiceCopy, fail, count, need, agree }) {
   const owned = need(tableRows(section(voiceCopy, 3, "Voice Pillars")), DESIGN, "Voice Pillars table");
   const restated = need(
@@ -603,9 +640,11 @@ const COMPARISONS = [
   compareBrandLine,
   compareProblemStatement,
   compareVoiceSentence,
+  compareOneSentenceTest,
   comparePillars,
   compareTones,
   compareTerms,
+  compareChecklist,
   compareExamples,
   compareModelLines,
   compareDecisionIds,

@@ -78,6 +78,9 @@ const DIFFERENCES = [
   ["the social card title", PREVIEWS, "cardTitle: \"From good intentions", "cardTitle: \"From good intent", "brand line", /cardTitle/],
   ["a Why We Build cause", WHY, "costs more than doing it.**", "costs more than it should.**", "problem statement", /sentence 2/],
   ["DESIGN.md's voice sentence", "DESIGN.md", "Warm but not gushing", "Kind but not gushing", "voice core", /core voice/],
+  ["DESIGN.md's one-sentence test", "DESIGN.md", "garden sign, it's close.", "garden sign, it is close.", "voice core", /one-sentence test/],
+  ["a reworded checklist item", PAGE, "Is it shorter than your first draft?", "Is it shorter than the first draft?", "voice core", /opens with "Is it shorter than your first draft\?"/],
+  ["a checklist item DESIGN.md adds", "DESIGN.md", "- [ ] Is it shorter than your first draft?", "- [ ] Is it shorter than your first draft?\n- [ ] Does it name the garden?", "voice core", /"Does it name the garden\?"/],
   ["a dropped \"we are not\" word", PAGE, "Jargon-heavy, academic, blockchain-first", "Jargon-heavy, academic", "voice core", /Grounded pillar\) "We are not"/],
   ["a pillar DESIGN.md lacks", PAGE, "| Active |", "| Playful | Light | Silly |\n| Active |", "voice core", /Playful pillar/],
   ["a stale duplicate pillar row", PAGE, "| Active |", "| Honest | Vague about limits | Hedging, corporate disclaimers, vague promises |\n| Active |", "voice core", /Honest pillar\) "We are"/],
@@ -130,6 +133,7 @@ test("formatting the comparison ignores, and an adapted model line, still pass",
       },
     ],
     ["curly quotes in a contract", ({ edit }) => edit(ADMIN, "\"Approve\"", "“Approve”")],
+    ["a checklist hint worded differently", ({ edit }) => edit("DESIGN.md", "(Can the reader picture it?)", "(Can a reader picture it?)")],
     ["a reworded line marked adapted", ({ edit }) => edit(PAGE, "no trace.\" | How It Works |", "no trace at all.\" | How It Works (adapted) |")],
   ]) {
     assert.deepEqual(plantedFailures(plant).map(key), [], change);
