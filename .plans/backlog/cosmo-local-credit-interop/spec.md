@@ -1,15 +1,36 @@
 # Cosmo-Local Integration — architecture
 
-**Current blocker/readiness continuation, 22 October:** the user authorized cohesive internal
+**Current hackathon release decision, 22 October 2026 Pacific:** the intended outcome is a
+controlled **live** pilot with deployed contracts by Saturday, 24 October. The pitch deck is
+targeted for Saturday and participant testing for Sunday/Monday, 25–26 October. External audit
+evidence and audit intake are outside this hackathon's prerequisites. The user explicitly replaced
+the older two-week testnet wait with focused pre-deployment tests, deployment simulation and
+post-deployment smoke checks. These substitutions are accepted decisions, not open approval items.
+
+Continue the same-address Gnosis work and prepare the exact deployment package through the
+repository workflow. The member address must remain identical on Arbitrum, Gnosis and Celo;
+optional G$ stays independently accounted for on Celo, with one shared Gnosis exchange pool.
+Existing Safe controls, implemented upgrade delays, consent, escrow, activation and immutable
+final-allocation rules remain intact. The policy change does not establish a usable signer,
+configured provider, issuer terms/caps or a passing deployment simulation. Make the concrete
+candidate and operations reviewable before execution. The
+[live deployment package](handoffs/codex-live-pilot-deployment.md) owns current readiness and
+technical inputs. The [working issuer terms](pilot-issuer-terms.md) propose the selected hub access,
+assisted sessions and Claude Team seat service, with explicit prices, limits and remedies pending
+issuer acceptance and capacity confirmation. Older local-only and audit/soak restrictions below
+are historical dispatch limits.
+
+**Earlier blocker/readiness continuation, 22 October:** the user authorized cohesive internal
 contract refactoring and real Admin stories to clear the local branch gates. Existing consent,
 custody, acceptance, activation and final-allocation behavior stays authoritative. The
 [current proof record](handoffs/codex-local-blockers-and-readiness.md) records fresh Alchemy and
-issuer observations. This dispatch grants no new account, issuer or deployment authority.
+issuer observations. That bounded dispatch did not itself grant new account, issuer or deployment authority.
 
 **Local pilot dispatch, 22 October 2026:** voucher-led requests, direct service redemption and
 bounded voucher-to-voucher exchange in one curated shared Gnosis SwapPool are now authorized
 for local implementation. Continue in the existing checkout on `feature/cosmo-local-contracts`,
-commit validated owned work with required signing, and keep live deployment blocked. The
+commit validated owned work with required signing. That slice was local-only; the newer hackathon
+decision above now governs live deployment preparation and execution. The
 [pilot gap map and execution record](handoffs/codex-local-voucher-pilot.md) owns this slice.
 This dispatch supersedes conflicting planning-only and uncommitted-only language below.
 
@@ -394,7 +415,15 @@ RESR-74's completed due diligence is dated evidence and must be refreshed before
 Use published CLC documentation and hand-written interfaces; never read, import or vendor AGPL
 implementation source for this integration.
 
-PRD-1197 owns the 22 October human go/no-go. The PRD-651 gates remain explicit: external audit,
-3-of-5 Safe ownership, 48-hour timelock, two weeks of testnet operation and tested rollback. Any
-proposed substitution must be named and accepted separately; a local fork or a completed issue
-is not automatically an equivalent. No-go is a valid hackathon outcome with an honest demo.
+PRD-1197 records the exact candidate and human go/no-go for the controlled live pilot targeted
+for 24 October. The dated 22 October hackathon disposition removes external audit/audit intake
+and replaces the two-week testnet period with focused pre-deployment tests, simulation and
+post-deployment smoke checks. PRD-1327 is outside hackathon scope. No renewed approval for either
+substitution is needed.
+
+Retain the owning contract/release workflow's Safe controls, implemented 48-hour upgrade delays,
+pause authority, persisted deployment receipts and tested recovery/rollback. Verify exact owner,
+admin, writer, peer, allowance and cap state for the selected deployment and activation phase.
+A passing local fork, a policy substitution or an issue state does not establish those facts.
+Unresolved technical prerequisites must be named in the deployment package without restoring
+the superseded audit, testnet-duration or blanket local-only policy.

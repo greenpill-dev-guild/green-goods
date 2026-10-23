@@ -365,3 +365,40 @@ Agent/model: Codex / exact model unknown | Coverage: ownership release through l
 | wait | unknown → ongoing | Actual-member, hosted-provider, migration and live gates remain unresolved |
 
 Human corrections: 0 observed in this segment; attention: unknown.
+
+## Native execution continuation, 22 October Pacific
+
+The [native execution proof](../proofs/member-migration/native-batch-execution-proof.mjs)
+passes nine isolated Gnosis cases at the pinned block 48,888,476, using only the public synthetic
+credential and canonical account/validator bytecode. The
+[recorded result](../artifacts/member-native-batch-execution-2026-10-22.json) binds source hashes,
+dependency runtime hashes, calls, state, operation receipts and the base revision; it is
+working-tree evidence rather than a clean-head or live receipt.
+
+The candidate uses the installed Kernel default atomic batch, ordered as:
+
+1. Self-call `changeRootValidator` with the exact patched validator and owner coordinates.
+2. Account-origin call to legacy `onUninstall` to clear its stored credential, with failure
+   propagated by the batch.
+3. Self-call `uninstallModule` to disable the old validation configuration.
+
+The direct cleanup must precede module removal. The old validator rejects duplicate cleanup;
+Kernel's second callback inside `uninstallModule` can therefore report failure after the explicit
+cleanup already succeeded. The trace and postconditions, rather than that callback event alone,
+prove both zero legacy keys and disabled authority. Reversing those final two operations causes
+execution failure and batch rollback; the earlier two-call candidate can report success while
+retaining legacy keys under a forced callback failure.
+
+A local callback-only fault delegates all other selectors to a code copy of the original
+validator. It is injected only into the owned Anvil instance, never a deployment candidate.
+Under that fault the three-call migration rolls back root/key/module changes. EntryPoint retains
+the operation nonce and, for an initially absent account, its creation and original validator
+control. Recovery uses the next nonce; it must not blindly repeat factory initialization.
+After restoring the callback, retry succeeds and the patched root signs a subsequent operation
+at the original fictional address.
+
+This removes the specific unexecuted-native-candidate evidence gap. It neither selects the
+unverified external helper nor proves actual member possession, a hosted bundler/paymaster,
+sponsorship, live Gnosis validator availability, a browser ceremony or a production migration.
+The [live deployment package](codex-live-pilot-deployment.md) owns those remaining inputs under
+the newer accepted hackathon release policy.

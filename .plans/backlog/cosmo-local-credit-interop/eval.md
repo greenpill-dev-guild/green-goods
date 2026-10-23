@@ -3,6 +3,16 @@
 **Reconciled:** 2026-10-22 UTC. These criteria apply to separately accepted implementation slices.
 No check below is certified by planning, a Linear state or the completed foundation project.
 
+**Current hackathon release criteria, 22 October Pacific:** target a controlled live pilot with
+deployed contracts on Saturday, 24 October. The user exempts external audit/audit intake and
+replaces the two-week testnet wait with focused pre-deployment tests, exact deployment simulation
+and post-deployment smoke checks. Do not treat either superseded prerequisite as pending approval.
+Keep existing Safe controls, implemented delays and contract-enforced safeguards intact. Require
+a concrete candidate, exact networks and operations, owner/admin/writer controls, issuer terms
+and caps, persisted artifacts, and demonstrated failure/recovery behavior. The
+[deployment package](handoffs/codex-live-pilot-deployment.md) records actual evidence and gaps;
+the waiver alone proves none of those technical facts.
+
 **Current account/provider proof, 22 October:** require exact root/module nonce discrimination
 and traces identifying the actual validator, successful same-address patched-root operation,
 explicit removed-legacy rejection, AA24 signature binding, AA25 replay rejection and repaired
@@ -13,8 +23,11 @@ passing fictional Gnosis cases and all still-open live prerequisites. No product
 migration is approved by these tests.
 
 Distinguish default batch rollback from validator cleanup failure that Kernel records without
-reverting. The native batch candidate remains unexecuted and unapproved; its offline encoding
-proof clears no migration, actual-member or hosted-provider gate.
+reverting. The earlier two-call native batch remains insufficient. Nine new isolated pinned-fork cases
+prove an ordered three-call candidate with explicit cleanup before module removal, atomic
+rollback on a cleanup fault, next-nonce retry and patched-root recovery. Fresh account creation
+can persist after execution failure. The [exact native evidence](artifacts/member-native-batch-execution-2026-10-22.json)
+clears no actual-member, hosted-provider or live migration gate.
 
 **Preceding blocker/readiness proof, 22 October:** require the source-structure gate against
 refreshed origin/develop, complete compiled ABI equality, unchanged recursive linear/namespaced
@@ -59,7 +72,7 @@ This is working-tree evidence, with no full-lifecycle or live-readiness claim.
 | Passport | Definitions, units, windows, source/freshness and receipt links; earned/purchased/payment/delivery/obligations separate | PRD-1097 |
 | Privacy | Separate publication consent, privacy-safe aggregates, no addresses or individual ranking | COM-46 / PRD-1097 |
 | Usability | Member and steward complete meaningful tasks, recover from interruption and explain balances and obligations | RESR-93 / COM-28 |
-| Live gate | Exact scope and human decision; each audit/Safe/timelock/testnet/rollback gate addressed | PRD-1197 |
+| Live gate | Exact candidate and human decision; accepted hackathon audit exemption and testnet substitution recorded; focused tests, simulation, existing Safe/delay controls, recovery and post-deployment smoke proved | PRD-1197 |
 | Live outcome | Authorized deployment readback plus a real service delivered and confirmed; otherwise explicit no-go | PRD-1100 |
 | Pitch integrity | Claim ledger, primary sources, live/rehearsal labels and audience-specific offer; no invented traction or financial rights | RESR-94 / MAR-32 |
 | Fiat stretch | Qualified corridor/account/recipient, all-in costs, payment recovery and separate live-pilot approval | RESR-82 / PRD-1031 / PRD-1038 |

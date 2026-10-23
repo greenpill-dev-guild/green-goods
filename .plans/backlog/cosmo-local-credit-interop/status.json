@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-08-25T06:09:38.829Z",
-    "updated_at": "2026-10-23T00:06:44.499274Z"
+    "updated_at": "2026-10-23T04:10:41Z"
   },
   "links": {
     "brief": "brief.md",
@@ -42,7 +42,10 @@
     "local_blocker_readiness_handoff": "handoffs/codex-local-blockers-and-readiness.md",
     "local_blocker_validation": "handoffs/codex-blocker-repair-validation.json",
     "gnosis_account_provider_proof": "handoffs/codex-gnosis-account-provider-proof.md",
-    "gnosis_account_provider_evidence": "artifacts/member-gnosis-account-provider-proof-2026-10-22.json"
+    "gnosis_account_provider_evidence": "artifacts/member-gnosis-account-provider-proof-2026-10-22.json",
+    "live_pilot_deployment": "handoffs/codex-live-pilot-deployment.md",
+    "pilot_issuer_terms": "pilot-issuer-terms.md",
+    "native_batch_execution": "artifacts/member-native-batch-execution-2026-10-22.json"
   },
   "linear": {
     "parentIssue": "RESR-73",
@@ -90,6 +93,8 @@
     "depends_on_features": ["commitment-pooling", "community-interface"]
   },
   "notes": [
+    "22 October Pacific / 23 October UTC: Selected hub access, assisted sessions and Claude access under a Green Goods team are drafted in pilot-issuer-terms.md. Numeric prices/caps remain proposed; actual issuer capacity, funded permitted seats and control addresses are unconfirmed. Nine isolated pinned-Gnosis native batch cases pass for root change, explicit legacy credential cleanup, then module removal; forced failure rolls back migration, next-nonce retry and patched-root signing recover at the same fictional address. This establishes no actual-member control, hosted provider acceptance or live deployment. Preserve every lane object and overall backlog state.",
+    "22 October Pacific / 23 October UTC: Human selected a controlled LIVE hackathon pilot and deployed contracts by Saturday 24 October, deck Saturday and participant testing Sunday/Monday. External audit/audit intake is outside hackathon prerequisites; the two-week testnet wait is replaced by focused pre-deployment tests, deployment simulation and post-deployment smoke. No renewed approval for those substitutions is needed. Existing Safe controls, implemented delays, same member address on Arbitrum/Gnosis/Celo, separate optional Celo G$, one shared Gnosis exchange pool, consent/escrow/activation/final-allocation rules remain intact. Prepare the exact candidate and runnable deployment package for execution review; signer/provider/issuer terms-caps and technical proof are not solved by the policy decision. a6461989e and f1ae06046 are signed local reconciliation checkpoints; all 31 selected automated checks plus Storybook pass; 114 unrelated paths preserved. Current spec/plan/eval and handoffs/codex-live-pilot-deployment.md own the live target; older local-only/audit/soak notes are historical. The preparation chat owns Linear writes. Preserve unrelated lane states/owners/manual flags and overall backlog; no broadcast or current-head remote CI claimed.",
     "22 October local / 23 October UTC: eleven fictional Gnosis root-signing cases and 45 Shared boundary tests pass. Call traces distinguish active-root dispatch from explicit legacy selection and prove signature binding, replay rejection and repair at the original address. Signed local proof checkpoint: b569e613e. Fresh Alchemy block 48,892,415 still has no selected legacy validator/account; both factory simulations revert. Published EntryPoint support does not certify Kernel 0.3.1, hosted acceptance or sponsorship. No provider selected or production config changed. Keep overall backlog and every lane, manual, member, helper, issuer and live gate unchanged; see the account/provider handoff.",
     "22 October pilot local implementation is committed in 92e861f11, 8b1a32a4c, 731fe8945 and 66a3844be, all signatures G. Real pinned CLC composition 16/16, earned 8/8, Shared 55/55 and Client 48/48 focused pass. Full critical runtime suites and contracts verifier pass; the selected origin/develop checkpoint remains failed for unchanged 387/389-line service modules and compound story checks lack three unrelated concurrent Admin stories. Pilot-delta structure and standalone story quality/build/render pass. No guard/baseline waiver. Same-member DEV ledger only; actual member/helper/provider/sponsorship/recovery and COM-46/private issuer/live gates remain open. All lane statuses, owners, manual blockers and overall backlog are preserved. Exact working-tree/commit attribution and proof limits are in the pilot validation record.",
     "22 October: user explicitly dispatched local voucher pilot implementation in the existing feature/cosmo-local-contracts checkout, with signed local commits and no live authority. Voucher-led individual Request rewards, optional independently tracked G$, direct redemption and one shared Gnosis pool voucher-to-voucher exchange are selected. Existing source/quote interfaces and escrow are reused; local connected proof/member state are missing. Focused gap map is handoffs/codex-local-voucher-pilot.md. Preserve unrelated Auth/public-site/Shared manifest/Portuguese edits, same member address and all manual/live/issuer/release blockers. No general multi-currency/fiat, mixed checkout or G$-to-voucher work is dispatched.",
@@ -463,6 +468,14 @@
       "status": "account_provider_proof_recorded_with_open_gates",
       "branch": "feature/cosmo-local-contracts",
       "note": "22 October local / 23 October UTC: eleven fictional Gnosis root-signing cases and 45 Shared boundary tests pass. Call traces distinguish active-root dispatch from explicit legacy selection and prove signature binding, replay rejection and repair at the original address. Signed local proof checkpoint: b569e613e. Fresh Alchemy block 48,892,415 still has no selected legacy validator/account; both factory simulations revert. Published EntryPoint support does not certify Kernel 0.3.1, hosted acceptance or sponsorship. No provider selected or production config changed. Keep overall backlog and every lane, manual, member, helper, issuer and live gate unchanged; see the account/provider handoff."
+    },
+    {
+      "timestamp": "2026-10-23T03:56:53Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "hackathon_live_release_disposition_recorded",
+      "branch": "feature/cosmo-local-contracts",
+      "note": "22 October Pacific / 23 October UTC: Human selected a controlled LIVE hackathon pilot and deployed contracts by Saturday 24 October, deck Saturday and participant testing Sunday/Monday. External audit/audit intake is outside hackathon prerequisites; the two-week testnet wait is replaced by focused pre-deployment tests, deployment simulation and post-deployment smoke. No renewed approval for those substitutions is needed. Existing Safe controls, implemented delays, same member address on Arbitrum/Gnosis/Celo, separate optional Celo G$, one shared Gnosis exchange pool, consent/escrow/activation/final-allocation rules remain intact. Prepare the exact candidate and runnable deployment package for execution review; signer/provider/issuer terms-caps and technical proof are not solved by the policy decision. a6461989e and f1ae06046 are signed local reconciliation checkpoints; all 31 selected automated checks plus Storybook pass; 114 unrelated paths preserved. Current spec/plan/eval and handoffs/codex-live-pilot-deployment.md own the live target; older local-only/audit/soak notes are historical. The preparation chat owns Linear writes. Preserve unrelated lane states/owners/manual flags and overall backlog; no broadcast or current-head remote CI claimed."
     }
   ]
 }

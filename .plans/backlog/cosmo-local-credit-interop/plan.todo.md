@@ -5,11 +5,38 @@
 **Linear Project**: Cosmo-Local Integration
 **Linear Source**: source:plans
 **Stage**: `backlog`
-**Status**: `LOCAL BRANCH GATES REPAIRED; MEMBER/ISSUER LIVE PROOF OPEN`
+**Status**: `CONTROLLED LIVE PILOT PREPARATION; SAME-ADDRESS AND DEPLOYMENT INPUTS OPEN`
 **Created**: 2026-08-25
 **Last Updated**: `2026-10-22`
 **Companion documents**: [`brief.md`](./brief.md) · [`spec.md`](./spec.md) ·
 [`tensions.md`](./tensions.md) · [`resources.md`](./resources.md) · [`eval.md`](./eval.md)
+
+**Current release decision, 22 October Pacific:** prepare the controlled live pilot and deployed
+contracts for Saturday, 24 October; deck Saturday and participant testing Sunday/Monday.
+External audit/audit intake is not a hackathon prerequisite. The user replaced the two-week
+testnet wait with focused pre-deployment tests, deployment simulation and post-deployment smoke
+checks. Preserve existing Safe controls, implemented delays and all accepted voucher safeguards.
+The [deployment package](handoffs/codex-live-pilot-deployment.md) owns the exact candidate,
+network operations, configuration inputs, technical blockers and execution review. Keep the
+current branch, signed commits and no-new-worktree constraint. The preparation chat owns Linear
+release updates; this checkout owns the canonical Plan Hub changes.
+
+- [x] Record the accepted audit exemption, testnet-duration substitution and live target.
+- [x] Reconcile the released performance/Admin group and restore declared Docs dependencies;
+  source `a6461989e` and evidence `f1ae06046` are signed locally with complete scoped proof.
+- [x] Prove the native three-call candidate through nine isolated Gnosis execution/failure/retry
+  cases at the same fictional address; distinguish legacy authority from credential cleanup.
+  Actual-member signing/provider readiness and live migration remain open.
+- [ ] Establish the exact configured account/EntryPoint/provider path and sponsorship or funding.
+- [x] Draft both issuers' selected services and proposed prices/caps/remedies in
+  [working issuer terms](pilot-issuer-terms.md), including Claude Team seat cost/provisioning limits.
+- [ ] Bind accepted terms to confirmed capacities/caps, reserves and accountable controls.
+- [ ] Enumerate repository-owned deploy/initialize/upgrade operations and persisted manifests
+  for Arbitrum modules and the shared Gnosis pool/integration; preserve independent Celo G$.
+- [ ] Run focused pre-deployment tests and exact deployment simulation, including owner/chain
+  rejection, peer/allowance isolation, pause and recovery/rollback.
+- [ ] Review the concrete candidate before execution; verify deployed state and post-deployment
+  smoke checks before declaring the live pilot ready.
 
 **Current authorized continuation, 22 October:** review the Gnosis account/provider path and
 continue member-signing proof, preserving the accepted address, voucher safeguards, concurrent
@@ -17,7 +44,8 @@ work and required signing. The [account/provider record](handoffs/codex-gnosis-a
 owns this bounded continuation. Eleven fictional Gnosis cases trace actual root-validator
 dispatch, legacy-module rejection, signature binding, replay and repair; 45 Shared boundary tests
 pass. This does not establish actual member possession, hosted provider acceptance or sponsorship.
-Keep validated commits local and all live/manual gates open.
+Those proof results do not certify the remaining technical prerequisites. The newer live release
+decision above supersedes the older local-only boundary.
 
 - [x] Distinguish node RPC, exact account/EntryPoint bundler support and sponsorship.
 - [x] Trace patched-root signing at the original fictional address after legacy uninstall.
@@ -56,9 +84,10 @@ publication or release receipt is claimed. No baseline or release gate was waive
 - [x] Reconcile those two branch gates with exact ABI/layout, full selected and rendered proof.
 
 Helper provenance, actual-member signing/provider/sponsorship/recovery, issuer approvals and live
-release gates remain open. Earlier signed migration receipts are historical; refresh applicable
-proof against the current inputs and preserve the unrelated Shared manifest export. No push,
-merge, production activation, live deployment, external tracker write or worktree is authorized.
+readiness facts remain open. Earlier signed migration receipts are historical; refresh applicable
+proof against current inputs and preserve the Shared manifest exports. Live deployment is the
+selected outcome through the concrete reviewed package above. Git publication, merging, unrelated
+external tracker writes and a new worktree remain outside this checkout's dispatch.
 
 **Earlier member dispatch, 22 October UTC:** continue member signing and issuer readiness, with local signed
 commits now requested. This supersedes the prior uncommitted-only instruction below; signing stays
