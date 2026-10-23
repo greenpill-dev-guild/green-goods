@@ -1,33 +1,7 @@
 /**
- * Unified Auth Provider
- *
- * Single authentication provider using XState for state management
- * and localStorage for credential storage (client-only approach).
- *
- * Design Principles:
- * 1. React only REPORTS events to the machine (no filtering)
- * 2. The state machine DECIDES what to do with events
- * 3. All auth logic lives in the machine, not in React effects
- *
- * Features:
- * - XState-based state management for predictable auth flows
- * - Client-only credential storage in localStorage
- * - Automatic session restoration on mount
- * - Wallet fallback for admin/steward users
- * - External wallet tracking (available for switching)
- *
- * Usage:
- * ```tsx
- * // In main.tsx
- * <AuthProvider>
- *   <App />
- * </AuthProvider>
- *
- * // In components
- * const { authMode, smartAccountAddress, createAccount, signOut } = useAuth();
- * ```
- *
- * Reference: https://docs.pimlico.io/docs/how-tos/signers/passkey
+ * Shared auth composition: reports connector and user events to the auth machine,
+ * restores saved sessions, and clears active sessions across same-origin tabs.
+ * Recovery credentials remain on the device after sign-out.
  */
 
 import { useSelector } from "@xstate/react";
@@ -39,6 +13,7 @@ import { useAccount, useConfig } from "wagmi";
 
 import { getAppKit } from "../config/appkit";
 import { queryClient } from "../config/react-query";
+import { useCrossTabSignOut } from "../hooks/auth/useCrossTabSignOut";
 import { useAuthActor } from "../hooks/auth/useAuthActor";
 import { useHasStoredCredential } from "../hooks/auth/useHasStoredCredential";
 import { useWalletDisconnect } from "../hooks/auth/useWalletDisconnect";
@@ -199,6 +174,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
   // Guard to prevent duplicate LOGIN_WALLET events during session restore
   const walletRestoreAttemptedRef = useRef(false);
   const manualWalletLoginPendingRef = useRef(false);
+  const loginGenerationRef = useRef(0);
   // Reflects the Reown AppKit wallet modal open state; the ref tracks the
   // open->closed edge so we can recover from a dismissed or expired modal.
   const prevWalletModalOpenRef = useRef(false);
@@ -391,6 +367,36 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
   const { disconnectWallet, releaseWallet, afterWalletRelease, cancelDeferredLogin } =
     useWalletDisconnect(wagmiConfig);
 
+  const endSession = useCallback(() => {
+    if (!actor) return;
+    const session = actor.getSnapshot().context;
+    loginGenerationRef.current += 1;
+    cancelDeferredLogin();
+
+    actor.send({ type: "SIGN_OUT" });
+    // Sign out locally at once; a wallet session also lets go of its wallet,
+    // without waiting, so the next wallet login asks for a wallet again.
+    releaseWallet(session);
+    clearRestoreAttempt();
+
+    // A late connector event must not revive the ended session.
+    walletRestoreAttemptedRef.current = true;
+    manualWalletLoginPendingRef.current = false;
+
+    // Keep cached reads. Rebuild local work projections for the next account
+    // from its own IndexedDB jobs, without deleting those jobs or drafts.
+    queryClient.removeQueries({
+      predicate: ({ queryKey: [namespace, group, source] }) =>
+        namespace !== "greengoods" ||
+        group === "queue" ||
+        (group === "works" && (source === "offline" || source === "merged")) ||
+        (group === "workApprovals" && source === "offline"),
+    });
+    queryClient.getMutationCache().clear();
+  }, [actor, clearRestoreAttempt, releaseWallet, cancelDeferredLogin]);
+
+  const { syncSignOut, notifySignOut } = useCrossTabSignOut(endSession);
+
   // ============================================================
   // ACTIONS
   // ============================================================
@@ -398,6 +404,8 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
   const createAccount = useCallback(
     async (userName: string) => {
       if (!actor) return;
+      syncSignOut();
+      const generation = loginGenerationRef.current;
       cancelDeferredLogin(); // A passkey choice drops any wallet login still waiting.
       // Display name is required for new passkey accounts (minimum 3 characters)
       const trimmedName = userName?.trim();
@@ -410,16 +418,20 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
         await disconnectWallet();
       }
 
+      syncSignOut();
+      if (generation !== loginGenerationRef.current) return;
       // Send event to machine
       actor.send({ type: "LOGIN_PASSKEY_NEW", userName: trimmedName });
       saveAuthModeToStorage("passkey");
     },
-    [actor, isConnected, disconnectWallet, cancelDeferredLogin]
+    [actor, isConnected, disconnectWallet, cancelDeferredLogin, syncSignOut]
   );
 
   const loginWithPasskey = useCallback(
     async (userName?: string) => {
       if (!actor) return;
+      syncSignOut();
+      const generation = loginGenerationRef.current;
       cancelDeferredLogin();
       // Disconnect wallet if connected (switching to passkey)
       if (isConnected) {
@@ -433,17 +445,21 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
       // coalescing preserves an explicit "" from the caller.
       const finalUserName = userName ?? getStoredUsername() ?? "";
 
+      syncSignOut();
+      if (generation !== loginGenerationRef.current) return;
       // Send event to machine
       actor.send({ type: "LOGIN_PASSKEY_EXISTING", userName: finalUserName });
       saveAuthModeToStorage("passkey");
     },
-    [actor, isConnected, disconnectWallet, cancelDeferredLogin]
+    [actor, isConnected, disconnectWallet, cancelDeferredLogin, syncSignOut]
   );
 
   const loginWithWallet = useCallback(() => {
     if (!actor) return;
-    // A wallet just signed out of is still letting go: ask for a wallet once it has.
+    syncSignOut();
+    walletRestoreAttemptedRef.current = false;
     const askForWallet = () => {
+      if (syncSignOut()) return;
       saveAuthModeToStorage("wallet");
       manualWalletLoginPendingRef.current = true;
       getAppKit()?.open();
@@ -487,16 +503,20 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
       // detect the connection + stored "wallet" intent and send LOGIN_WALLET
       getAppKit()?.open();
     }
-  }, [actor, isConnected, wagmiWalletAddress, connector, afterWalletRelease]);
+  }, [actor, isConnected, wagmiWalletAddress, connector, afterWalletRelease, syncSignOut]);
 
   const loginWithEmbedded = useCallback(() => {
     if (!actor) return;
+    syncSignOut();
+    walletRestoreAttemptedRef.current = false;
 
-    // Open AppKit modal — email/social login is handled by AppKit.
-    // When AppKit creates the embedded wallet, wagmi detects the connection
-    // and WALLET EVENT SYNC handles the LOGIN_EMBEDDED dispatch.
     saveAuthModeToStorage("embedded");
-    if (afterWalletRelease(() => getAppKit()?.open())) return;
+    if (
+      afterWalletRelease(() => {
+        if (!syncSignOut()) getAppKit()?.open();
+      })
+    )
+      return;
     if (isConnected && wagmiWalletAddress && isAppKitEmbeddedConnector(connector)) {
       const address = wagmiWalletAddress as Hex;
       actor.send({ type: "EXTERNAL_WALLET_CONNECTED", address, connectionType: "embedded" });
@@ -505,52 +525,34 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
       return;
     }
     getAppKit()?.open();
-  }, [actor, isConnected, wagmiWalletAddress, connector, afterWalletRelease]);
+  }, [actor, isConnected, wagmiWalletAddress, connector, afterWalletRelease, syncSignOut]);
 
   const switchToWallet = useCallback(() => {
     if (!actor) return;
+    syncSignOut();
     actor.send({ type: "SWITCH_TO_WALLET" });
     saveAuthModeToStorage("wallet");
-  }, [actor]);
+  }, [actor, syncSignOut]);
 
   const switchToPasskey = useCallback(
     (userName?: string) => {
       if (!actor) return;
+      syncSignOut();
       // Empty username routes to the local one-tap path (see loginWithPasskey).
       const finalUserName = userName ?? getStoredUsername() ?? "";
       actor.send({ type: "SWITCH_TO_PASSKEY", userName: finalUserName });
       saveAuthModeToStorage("passkey");
       clearStoredWalletAddress();
     },
-    [actor]
+    [actor, syncSignOut]
   );
 
   const signOut = useCallback(async () => {
     if (!actor) return;
-    const session = actor.getSnapshot().context;
-
-    actor.send({ type: "SIGN_OUT" });
-    // Sign out locally at once; a wallet session also lets go of its wallet,
-    // without waiting, so the next wallet login asks for a wallet again.
-    releaseWallet(session);
+    endSession();
     clearSessionForSignOut();
-    clearRestoreAttempt();
-
-    // Reset wallet restore guard to allow future auto-restore
-    walletRestoreAttemptedRef.current = false;
-    manualWalletLoginPendingRef.current = false;
-
-    // Keep cached reads. Rebuild local work projections for the next account
-    // from its own IndexedDB jobs, without deleting those jobs or drafts.
-    queryClient.removeQueries({
-      predicate: ({ queryKey: [namespace, group, source] }) =>
-        namespace !== "greengoods" ||
-        group === "queue" ||
-        (group === "works" && (source === "offline" || source === "merged")) ||
-        (group === "workApprovals" && source === "offline"),
-    });
-    queryClient.getMutationCache().clear();
-  }, [actor, clearRestoreAttempt, releaseWallet]);
+    notifySignOut();
+  }, [actor, endSession, notifySignOut]);
 
   const retry = useCallback(() => {
     if (!actor) return;

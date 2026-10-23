@@ -1,3 +1,5 @@
+import type { Hex } from "viem";
+import type { P256Credential } from "viem/account-abstraction";
 import { getPasskeyRequestIds, type PasskeyCredential } from "../modules/auth/session";
 
 /**
@@ -22,4 +24,26 @@ export function matchesBrowserId(
   } catch {
     return false;
   }
+}
+
+/** Keep the server identity while checking it names the credential the browser used. */
+export function verifiedCredential(
+  verification: { success?: boolean; id?: string; publicKey?: Hex },
+  browserCredential: Pick<P256Credential, "id" | "raw">,
+  failureMessage: string
+): PasskeyCredential {
+  if (
+    !verification.success ||
+    !verification.publicKey ||
+    !verification.id ||
+    !matchesBrowserId({ id: verification.id }, browserCredential.id)
+  ) {
+    throw new Error(failureMessage);
+  }
+  return {
+    id: verification.id,
+    signingId: browserCredential.id,
+    publicKey: verification.publicKey,
+    raw: browserCredential.raw,
+  };
 }

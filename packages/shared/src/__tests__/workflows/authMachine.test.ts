@@ -131,6 +131,26 @@ describe("workflows/authMachine", () => {
   // ==========================================================================
 
   describe("initializing state", () => {
+    it("cancels initialization on sign-out and ignores a late restored passkey", async () => {
+      let finishRestore = (_: PasskeySessionResult | null) => {};
+      const machine = createTestMachine({
+        restoreSession: () =>
+          new Promise((resolve) => {
+            finishRestore = resolve;
+          }),
+      });
+      const pending = createActor(machine, { input: { chainId: MOCK_CHAIN_ID } });
+      pending.start();
+      expect(pending.getSnapshot().matches("initializing")).toBe(true);
+      pending.send({ type: "SIGN_OUT" });
+      expect(pending.getSnapshot().matches("unauthenticated")).toBe(true);
+      finishRestore(createMockPasskeySessionResult());
+      await flushPromises();
+      expect(pending.getSnapshot().matches("unauthenticated")).toBe(true);
+      expect(pending.getSnapshot().context.smartAccountAddress).toBeNull();
+      pending.stop();
+    });
+
     it("transitions to unauthenticated when no stored session", async () => {
       const machine = createTestMachine({
         restoreSession: () => Promise.resolve(null),
