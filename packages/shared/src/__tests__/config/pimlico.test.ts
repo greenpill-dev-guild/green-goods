@@ -16,17 +16,17 @@ afterEach(() => {
 });
 
 describe("chain-specific sponsorship policies", () => {
-  it("does not treat a policy ID as Gnosis account, bundler or sponsorship support", () => {
+  it("configures Gnosis transports without treating a policy ID as provider acceptance", () => {
     vi.stubEnv("VITE_PIMLICO_SPONSORSHIP_POLICY_ID", "fictional-policy-not-provider-evidence");
+    vi.stubEnv("VITE_PIMLICO_API_KEY", "test-provider-key");
     expect(getPimlicoSponsorshipPolicyId(100)).toBe("fictional-policy-not-provider-evidence");
-    for (const create of [
-      createPublicClientForChain,
-      createPimlicoClientForChain,
-      getPimlicoBundlerUrl,
-      getPimlicoPaymasterUrl,
-    ]) {
-      expect(() => create(100)).toThrow("Unsupported chain ID for Pimlico: 100");
-    }
+    expect(createPublicClientForChain(100).chain?.id).toBe(100);
+    expect(createPimlicoClientForChain(100).chain?.id).toBe(100);
+    expect(getRpcUrl(100, "configured-provider")).toBe("https://rpc.gnosischain.com");
+    expect(getPimlicoBundlerUrl(100)).toBe(
+      "https://api.pimlico.io/v2/100/rpc?apikey=test-provider-key"
+    );
+    expect(getPimlicoPaymasterUrl(100)).toBe(getPimlicoBundlerUrl(100));
   });
 
   it.each([

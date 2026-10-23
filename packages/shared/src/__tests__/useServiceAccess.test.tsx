@@ -14,6 +14,10 @@ vi.mock("../modules/commitment-pooling/demo/demo-mode", () => ({
   isDemoPoolingActive: () => mocks.rehearsal,
 }));
 vi.mock("../hooks/app/useOnlineStatus", () => ({ useOnlineStatus: () => mocks.online }));
+vi.mock("../hooks/auth/useUser", () => ({
+  useUser: () => ({ primaryAddress: key.buyer, authMode: "wallet", passkeyAccountProfile: null }),
+}));
+vi.mock("../hooks/blockchain/useTransactionSender", () => ({ useTransactionSender: () => null }));
 vi.mock("../modules/commitment-pooling/read-repository", () => ({
   createCommitmentPoolingReadRepository: () => ({ getServiceAccess: mocks.read }),
 }));

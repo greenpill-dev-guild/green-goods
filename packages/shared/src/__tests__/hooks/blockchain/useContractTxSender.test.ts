@@ -29,6 +29,7 @@ const mockSmartAccountClient = {
     userOpHash: hash,
     sender: MOCK_ADDRESSES.smartAccount,
     success: true,
+    logs: [],
     receipt: { status: "success", transactionHash: MOCK_TX_HASH },
   })),
 };

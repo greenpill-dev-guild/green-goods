@@ -15,10 +15,10 @@ import { useIntl } from "react-intl";
 import { AdminButton, AdminIconButton } from "@/components/AdminButton";
 import { EnsAddressText } from "@/components/EnsAddressText";
 
-// OpenSea's name for each chain the app supports. Null where it has no item page: OpenSea closed
-// its testnet site in 2025 and does not list Celo.
+// Reviewed OpenSea item routes. Null keeps the external link disabled for that chain.
 const OPENSEA_CHAIN_NAMES: Record<SupportedChainId, string | null> = {
   1: "ethereum",
+  100: null,
   42161: "arbitrum",
   42220: null,
   11155111: null,

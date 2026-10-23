@@ -19,6 +19,13 @@ import type { P256Credential } from "viem/account-abstraction";
 
 import type { AuthMode } from "../../types/auth";
 import { logger } from "../app/logger";
+import {
+  assertPasskeyAccountProfile,
+  getPilotCredentialId,
+  LEGACY_PASSKEY_PROFILE,
+  PILOT_PASSKEY_PROFILE,
+  type PasskeyAccountProfileId,
+} from "./account-profile";
 
 export interface SessionStorage {
   getItem(key: string): string | null;
@@ -42,6 +49,115 @@ export const RP_ID_STORAGE_KEY = "greengoods_rp_id";
 
 /** Expected smart-account address rebuilt from the active passkey credential */
 export const SMART_ACCOUNT_ADDRESS_STORAGE_KEY = "greengoods_smart_account_address";
+
+const ACCOUNT_PROFILE_STORAGE_KEY = "greengoods_passkey_account_profile";
+const PROFILE_ACCOUNTS_STORAGE_KEY = "greengoods_passkey_profile_accounts";
+
+export function getStoredAccountProfile(
+  storage: SessionStorage = localStorage
+): PasskeyAccountProfileId {
+  const value = storage.getItem(ACCOUNT_PROFILE_STORAGE_KEY);
+  if (value === null) return LEGACY_PASSKEY_PROFILE;
+  assertPasskeyAccountProfile(value);
+  return value;
+}
+
+export function setStoredAccountProfile(
+  profile: PasskeyAccountProfileId,
+  storage: SessionStorage = localStorage
+): void {
+  assertPasskeyAccountProfile(profile);
+  storage.setItem(ACCOUNT_PROFILE_STORAGE_KEY, profile);
+}
+
+type ProfileAccount = {
+  profile: PasskeyAccountProfileId;
+  credentialId: string;
+  publicKey: Hex;
+  address: Address;
+  rpId: string;
+  userName: string;
+};
+
+function profileAccountKey(
+  profile: PasskeyAccountProfileId,
+  credential: PasskeyCredential
+): string {
+  assertPasskeyAccountProfile(profile);
+  const id = profile === PILOT_PASSKEY_PROFILE ? getPilotCredentialId(credential) : credential.id;
+  return `${profile}:${credential.publicKey.toLowerCase()}:${id}`;
+}
+
+function readProfileAccounts(storage: SessionStorage): Record<string, ProfileAccount> {
+  const stored = storage.getItem(PROFILE_ACCOUNTS_STORAGE_KEY);
+  if (stored === null) return {};
+  const parsed: unknown = JSON.parse(stored);
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("Invalid saved passkey account profiles");
+  }
+  return parsed as Record<string, ProfileAccount>;
+}
+
+export function getStoredProfileAddress(
+  profile: PasskeyAccountProfileId,
+  credential: PasskeyCredential,
+  storage: SessionStorage = localStorage
+): Hex | null {
+  const key = profileAccountKey(profile, credential);
+  const record = readProfileAccounts(storage)[key];
+  if (record === undefined) return null;
+  if (
+    record.profile !== profile ||
+    !asHexAddress(record.address) ||
+    typeof record.publicKey !== "string" ||
+    record.publicKey.toLowerCase() !== credential.publicKey.toLowerCase() ||
+    profileAccountKey(profile, {
+      ...credential,
+      id: record.credentialId,
+      signingId: profile === PILOT_PASSKEY_PROFILE ? record.credentialId : credential.signingId,
+    }) !== key
+  ) {
+    throw new Error("Invalid saved passkey account profile");
+  }
+  return asHexAddress(record.address);
+}
+
+/** An explicit sign-in can reopen the archived identity without rewriting the pilot profile. */
+export function getStoredOriginalAccountAddress(
+  storage: SessionStorage = localStorage
+): Hex | null {
+  if (getStoredAccountProfile(storage) !== PILOT_PASSKEY_PROFILE) return null;
+  const credential = getStoredCredential(storage);
+  return credential ? getStoredProfileAddress(LEGACY_PASSKEY_PROFILE, credential, storage) : null;
+}
+
+/** Keep prior identities as public recovery metadata; no balances, roles or history are moved. */
+export function setStoredProfileAddress(
+  profile: PasskeyAccountProfileId,
+  credential: PasskeyCredential,
+  address: Address,
+  rpId: string,
+  userName: string,
+  storage: SessionStorage = localStorage
+): void {
+  if (!asHexAddress(address)) throw new Error("Invalid passkey account address");
+  const records = readProfileAccounts(storage);
+  records[profileAccountKey(profile, credential)] = {
+    profile,
+    credentialId:
+      profile === PILOT_PASSKEY_PROFILE ? getPilotCredentialId(credential) : credential.id,
+    publicKey: credential.publicKey,
+    address,
+    rpId,
+    userName,
+  };
+  storage.setItem(PROFILE_ACCOUNTS_STORAGE_KEY, JSON.stringify(records));
+}
+
+export function clearStoredAccountProfiles(storage: SessionStorage = localStorage): void {
+  storage.removeItem(ACCOUNT_PROFILE_STORAGE_KEY);
+  storage.removeItem(PROFILE_ACCOUNTS_STORAGE_KEY);
+}
 
 // AUTH MODE
 
@@ -273,6 +389,7 @@ export function clearActiveSessionAuth(storage: SessionStorage = localStorage): 
  * Only use this for complete account deletion.
  */
 export function clearAllAuth(storage: SessionStorage = localStorage): void {
+  clearStoredAccountProfiles(storage);
   storage.removeItem(AUTH_MODE_STORAGE_KEY);
   storage.removeItem(USERNAME_STORAGE_KEY);
   storage.removeItem(CREDENTIAL_STORAGE_KEY);
@@ -374,6 +491,30 @@ export function getPasskeyRequestIds(
 }
 
 /**
+ * Whether a stored credential is the one the browser just used. Stored IDs come in more than one
+ * encoding, so the comparison is made on the bytes each of them stands for.
+ */
+export function matchesBrowserId(
+  credential: Pick<PasskeyCredential, "id" | "signingId">,
+  browserId: string
+): boolean {
+  try {
+    const browserBytes = new Uint8Array(
+      getPasskeyRequestIds({ id: browserId, signingId: browserId })[0]
+    );
+    return getPasskeyRequestIds(credential).some((id) => {
+      const bytes = new Uint8Array(id);
+      return (
+        bytes.length === browserBytes.length &&
+        bytes.every((byte, index) => byte === browserBytes[index])
+      );
+    });
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Store passkey credential in localStorage.
  * Keeps account identity separate from the browser ID used for signing.
  */
@@ -462,6 +603,8 @@ export function hasSessionRestoreEvidence(storage?: Pick<SessionStorage, "getIte
       USERNAME_STORAGE_KEY,
       RP_ID_STORAGE_KEY,
       SMART_ACCOUNT_ADDRESS_STORAGE_KEY,
+      ACCOUNT_PROFILE_STORAGE_KEY,
+      PROFILE_ACCOUNTS_STORAGE_KEY,
       EMBEDDED_ADDRESS_KEY,
       WALLET_ADDRESS_STORAGE_KEY,
       LAST_ACCOUNT_STORAGE_KEY,

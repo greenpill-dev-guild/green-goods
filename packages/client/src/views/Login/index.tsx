@@ -1,6 +1,8 @@
 import { useLoginScreenController } from "@green-goods/shared/hooks/client-ui/auth/useLoginScreenController";
 import { Helmet } from "react-helmet-async";
 import { Navigate, Outlet } from "react-router-dom";
+import { Button } from "@green-goods/shared/components/Button";
+import { formatUnits } from "viem";
 
 import { Splash } from "@/components/Layout";
 import { APP_ROUTES } from "@/config/pwaRouting";
@@ -8,6 +10,19 @@ import { APP_ROUTES } from "@/config/pwaRouting";
 export function Login() {
   const {
     auth,
+    pilotInvitation,
+    originalAccountAddress,
+    loginWithOriginalAccount,
+    pilotPreview,
+    pilotQuote,
+    pilotBusy,
+    pilotError,
+    showPilotEnrollment,
+    reviewPilotAccount,
+    quotePilotProof,
+    confirmPilotAccount,
+    reconcilePilotProof,
+    keepOriginalAccount,
     browserGuidanceAction,
     createAccount,
     goTo,
@@ -44,6 +59,108 @@ export function Login() {
   // The pre-React PWA surface stays mounted until auth restoration resolves.
   // Rendering another full-screen loader here creates a visible second scene.
   if (!isReady) return null;
+  if (showPilotEnrollment) {
+    const action = !pilotPreview
+      ? reviewPilotAccount
+      : pilotPreview.pending
+        ? reconcilePilotProof
+        : pilotPreview.enrolled || pilotQuote
+          ? confirmPilotAccount
+          : quotePilotProof;
+    const label = !pilotPreview
+      ? "prepare"
+      : pilotPreview.pending
+        ? "reconcile"
+        : pilotPreview.enrolled
+          ? "select"
+          : pilotQuote
+            ? "sign"
+            : "quote";
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-bg-white-0 px-4 py-8">
+        <div className="w-full max-w-sm space-y-5">
+          <h1 className="text-xl font-semibold text-text-strong-950">
+            {intl.formatMessage({ id: "app.login.pilot.title", defaultMessage: "Pilot Account" })}
+          </h1>
+          <p className="text-sm text-text-sub-600">
+            {intl.formatMessage({
+              id: "app.login.pilot.intro",
+              defaultMessage:
+                "Use your existing passkey and login name to review a new participating address.",
+            })}
+          </p>
+          <dl className="space-y-3 text-sm">
+            <div>
+              <dt className="font-semibold">
+                {intl.formatMessage({
+                  id: "app.login.pilot.previousAddress",
+                  defaultMessage: "Original Account",
+                })}
+              </dt>
+              <dd className="break-all font-mono">
+                {pilotPreview?.previousAddress ?? auth.smartAccountAddress}
+              </dd>
+            </div>
+            {pilotPreview && (
+              <div>
+                <dt className="font-semibold">
+                  {intl.formatMessage({
+                    id: "app.login.pilot.newAddress",
+                    defaultMessage: "New Pilot Account",
+                  })}
+                </dt>
+                <dd className="break-all font-mono">{pilotPreview.address}</dd>
+              </div>
+            )}
+          </dl>
+          <p className="text-sm text-text-sub-600">
+            {intl.formatMessage({
+              id: "app.login.pilot.notice",
+              defaultMessage:
+                "Balances, promises, permissions and your ENS name stay with your original address. Your login name can stay the same.",
+            })}
+          </p>
+          {pilotPreview && !pilotPreview.enrolled && (
+            <p className="text-sm">
+              {intl.formatMessage({
+                id: pilotPreview.pending ? "app.login.pilot.pending" : "app.login.pilot.proofInfo",
+              })}
+            </p>
+          )}
+          {pilotQuote && (
+            <div className="space-y-2 text-sm">
+              <p>
+                {intl.formatMessage(
+                  { id: "app.login.pilot.quoteInfo" },
+                  { cost: formatUnits(BigInt(pilotQuote.maxCostWei), 18), nonce: pilotQuote.nonce }
+                )}
+              </p>
+              <p className="break-all font-mono">{pilotQuote.operationHash}</p>
+            </div>
+          )}
+          {pilotError && (
+            <p role="alert" className="text-sm text-error-dark">
+              {pilotError}
+            </p>
+          )}
+          <Button className="w-full" onClick={action} loading={pilotBusy} disabled={pilotBusy}>
+            {intl.formatMessage({ id: `app.login.pilot.${label}` })}
+          </Button>
+          <Button
+            className="w-full"
+            emphasis="secondary"
+            onClick={keepOriginalAccount}
+            disabled={pilotBusy}
+          >
+            {intl.formatMessage({
+              id: "app.login.pilot.keepOriginal",
+              defaultMessage: "Keep Original Account",
+            })}
+          </Button>
+        </div>
+      </main>
+    );
+  }
   if (isAuthenticated) return <Navigate to={redirectTo} replace />;
   // In-flight passkey attempts never swap the tree: each screen's Splash stays
   // mounted and shows the spinner inside the primary button (loadingState and
@@ -201,6 +318,24 @@ export function Login() {
         }
         buttonTitle={personalizedLabel}
         errorMessage={!isAuthenticating ? loginError : null}
+        infoMessage={
+          pilotInvitation
+            ? intl.formatMessage({
+                id: "app.login.pilot.invitation",
+                defaultMessage:
+                  "Pilot participants: sign in with your existing passkey, then review your new pilot account.",
+              })
+            : originalAccountAddress
+              ? intl.formatMessage(
+                  {
+                    id: "app.login.pilot.originalRecovery",
+                    defaultMessage:
+                      "If your pilot account cannot be verified, retry passkey sign-in or use your original account: {address}.",
+                  },
+                  { address: originalAccountAddress }
+                )
+              : undefined
+        }
         secondaryAction={{
           label: intl.formatMessage({
             id: "app.login.button.connectWallet",
@@ -210,26 +345,34 @@ export function Login() {
         }}
         tertiaryAction={
           browserGuidanceAction ||
-          (passkeyServerEnabled
+          (originalAccountAddress
             ? {
-                // Returning users (a local passkey exists) can "recover" — a
-                // broken/rotated credential. First-time-on-this-device users
-                // haven't lost anything to recover, but the bucket includes an
-                // existing user on a new device/browser, whose only way in is
-                // this same username lookup — so the door stays, reframed as
-                // signing into an existing account rather than recovery.
-                label: hasExistingAccount
-                  ? intl.formatMessage({
-                      id: "app.login.button.recoverWithUsername",
-                      defaultMessage: "Recover with Username",
-                    })
-                  : intl.formatMessage({
-                      id: "app.login.button.haveAccount",
-                      defaultMessage: "Already have an account?",
-                    }),
-                onClick: goToRecover,
+                label: intl.formatMessage({
+                  id: "app.login.pilot.loginOriginal",
+                  defaultMessage: "Use Original Account",
+                }),
+                onClick: loginWithOriginalAccount,
               }
-            : undefined)
+            : passkeyServerEnabled
+              ? {
+                  // Returning users (a local passkey exists) can "recover" — a
+                  // broken/rotated credential. First-time-on-this-device users
+                  // haven't lost anything to recover, but the bucket includes an
+                  // existing user on a new device/browser, whose only way in is
+                  // this same username lookup — so the door stays, reframed as
+                  // signing into an existing account rather than recovery.
+                  label: hasExistingAccount
+                    ? intl.formatMessage({
+                        id: "app.login.button.recoverWithUsername",
+                        defaultMessage: "Recover with Username",
+                      })
+                    : intl.formatMessage({
+                        id: "app.login.button.haveAccount",
+                        defaultMessage: "Already have an account?",
+                      }),
+                  onClick: goToRecover,
+                }
+              : undefined)
         }
       />
     </>

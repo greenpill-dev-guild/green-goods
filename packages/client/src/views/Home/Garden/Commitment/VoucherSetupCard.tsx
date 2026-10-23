@@ -27,7 +27,13 @@ export function VoucherSetupCard({ snapshot, setup, onAction }: VoucherSetupCard
   const [review, setReview] = useState<VoucherReviewKind | "final" | null>(null);
   const [pending, setPending] = useState<string[]>([]);
   const [failed, setFailed] = useState(false);
-  const [observation, setObservation] = useState<string | null>(null);
+  const receiptScope =
+    `${snapshot.key.buyer}:${setup.setupId}:${setup.authorizationHash}`.toLowerCase();
+  const [observation, setObservation] = useState<{
+    id: string;
+    confirmed: boolean;
+    scope: string;
+  } | null>(null);
   const inFlight = useRef(new Set<string>());
   const kinds: (VoucherReviewKind | "final")[] = [];
   for (const action of setup.availableActions) {
@@ -47,7 +53,11 @@ export function VoucherSetupCard({ snapshot, setup, onAction }: VoucherSetupCard
     if ("leg" in action) setReview(null);
     try {
       const result = await onAction(action);
-      setObservation(result.observationId);
+      setObservation({
+        id: result.observationId,
+        confirmed: result.kind === "onchain",
+        scope: receiptScope,
+      });
       if (!("leg" in action)) setReview(null);
     } catch {
       setFailed(true);
@@ -75,9 +85,16 @@ export function VoucherSetupCard({ snapshot, setup, onAction }: VoucherSetupCard
           {text("actionError")}
         </p>
       ) : null}
-      {observation ? (
+      {observation?.scope === receiptScope ? (
         <p role="status" className="break-all text-xs">
-          {formatMessage({ id: "app.serviceAccess.observation" }, { id: observation })}
+          {formatMessage(
+            {
+              id: observation.confirmed
+                ? "app.serviceAccess.transactionReceipt"
+                : "app.serviceAccess.observation",
+            },
+            { id: observation.id }
+          )}
         </p>
       ) : null}
       <div className="flex flex-wrap gap-2">

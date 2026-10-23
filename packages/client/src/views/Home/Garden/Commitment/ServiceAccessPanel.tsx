@@ -35,7 +35,13 @@ export function ServiceAccessPanel({
   const text = (key: string) => formatMessage({ id: `app.serviceAccess.${key}` });
   const [sheet, setSheet] = useState<"request" | "funding" | "setup" | null>(null);
   const [failed, setFailed] = useState(false);
-  const [observation, setObservation] = useState<string | null>(null);
+  const receiptScope =
+    `${snapshot.key.sourceChainId}:${snapshot.key.coreModule}:${snapshot.key.commitmentId}:${snapshot.key.buyer}`.toLowerCase();
+  const [observation, setObservation] = useState<{
+    id: string;
+    confirmed: boolean;
+    scope: string;
+  } | null>(null);
   const [sending, setSending] = useState<ServiceAccessActionKind | null>(null);
   const inFlight = useRef(false);
   const busy = isPending || sending !== null;
@@ -63,7 +69,11 @@ export function ServiceAccessPanel({
     setFailed(false);
     try {
       const result = await onAction(action);
-      setObservation(result.observationId);
+      setObservation({
+        id: result.observationId,
+        confirmed: result.kind === "onchain",
+        scope: receiptScope,
+      });
       setSheet(null);
     } catch {
       setFailed(true);
@@ -137,9 +147,16 @@ export function ServiceAccessPanel({
           {text("actionError")}
         </p>
       ) : null}
-      {observation ? (
+      {observation?.scope === receiptScope ? (
         <p role="status" className="break-all text-xs text-text-sub-600">
-          {formatMessage({ id: "app.serviceAccess.observation" }, { id: observation })}
+          {formatMessage(
+            {
+              id: observation.confirmed
+                ? "app.serviceAccess.transactionReceipt"
+                : "app.serviceAccess.observation",
+            },
+            { id: observation.id }
+          )}
         </p>
       ) : null}
       <div className="flex flex-wrap gap-2">

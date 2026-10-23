@@ -9,6 +9,7 @@ import { getChain, isChainSupported } from "./chains";
 // Pimlico API endpoints by chain
 const PIMLICO_API_ENDPOINTS = {
   1: "https://api.pimlico.io/v2/1/rpc", // Mainnet
+  100: "https://api.pimlico.io/v2/100/rpc", // Gnosis pilot (provider acceptance needs live proof)
   11155111: "https://api.pimlico.io/v2/11155111/rpc", // Sepolia
   42161: "https://api.pimlico.io/v2/42161/rpc", // Arbitrum
   42220: "https://api.pimlico.io/v2/42220/rpc", // Celo

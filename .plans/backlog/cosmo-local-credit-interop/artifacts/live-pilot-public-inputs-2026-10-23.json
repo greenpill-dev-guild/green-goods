@@ -377,5 +377,444 @@
       "namespaceCheck": "skipped; no registered Hats namespace baseline",
       "signatureCacheWarning": "write unavailable; comparison passed"
     }
+  },
+  "hatsExecutionFollowup": {
+    "boundSourceCommit": "5780f94114be02f15319262ce162d5a76f11f1e6",
+    "plan": "deployments/tx-plans/42161-hats-module-1792782642075-plan.json",
+    "planHash": "0x71505cc18f9864a63d43002bb053418c875de6ccc4e88b2b7cf11c36a02deafb",
+    "stepOne": {
+      "verifiedAt": "2026-10-23T19:46:30.039Z",
+      "transactionHash": "0x12b9d47a9203fd21e11581d2a150c6912f360331234cc80213ecc001f681dcbd",
+      "blockNumber": 517628647,
+      "contractAddress": "0xfaa09595ef96cc56709e1643ad724bd5fa5ae0dd",
+      "nonce": 1037,
+      "creationBytes": 16647,
+      "creationHash": "0x3707b435ffb8b1727966bdacf3310cd4a9fce5e8377672355113143d262d8e35",
+      "runtimeBytes": 16424,
+      "runtimeHash": "0x1312e36003768528b615628d5c3f1f8805b1ab388b7823ed9c9d220c5544911f",
+      "gasUsed": 3678591,
+      "effectiveGasPriceWei": "20220000",
+      "executionFeeETH": "0.00007438111002",
+      "nextStep": {
+        "nonce": 1038,
+        "gasLimit": 54796,
+        "maxFeePerGasWei": "50000000",
+        "maxCostETH": "0.0000027398"
+      },
+      "checks": "Exact input, production artifact, sender, chain, nonce, value, CREATE address, receipt success, fee caps, full runtime hash and source HEAD match"
+    },
+    "stepTwo": {
+      "state": "completed; independently verified",
+      "verifiedAt": "2026-10-23T21:48:31Z",
+      "transactionHash": "0x546822e9cc1e7e6cc8967a4e10429c4cb7eb0bbc1fba21a47315d99c037884a1",
+      "blockNumber": 517653824,
+      "blockHash": "0x617a8a33d1ea31c16c75babb6a70e3869398398ed1dedc90eb2a5d3958ef627c",
+      "nonce": 1038,
+      "to": "0x5b943088ecdDBF8E4ae387348A88A654aC5F7266",
+      "valueWei": "0",
+      "gasLimit": 54796,
+      "gasUsed": 39805,
+      "maxFeePerGasWei": "50000000",
+      "effectiveGasPriceWei": "20022000",
+      "executionFeeWei": "796975710000",
+      "implementation": "0xfaA09595EF96Cc56709E1643ad724bD5fA5AE0dD",
+      "implementationRuntimeHash": "0x1312e36003768528b615628d5c3f1f8805b1ab388b7823ed9c9d220c5544911f",
+      "owner": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "checks": "Exact signed input/from/to/chain/nonce/value/gas cap; successful canonical receipt and proxy Upgraded event; active implementation, runtime codehash and unchanged owner; both checkpoint boundaries present and execution lock absent"
+    },
+    "headFrozenUntilReconciled": false,
+    "lastReadback": {
+      "observedAt": "2026-10-23T21:15:58Z",
+      "pendingNonce": 1038,
+      "activeImplementation": "0xE5E5cbEDa7DC1139AF2e04Bd4a6784B42B4BeCD2",
+      "stepTwoReceipt": null,
+      "executionLock": false,
+      "deployerBalances": {
+        "arbitrumWei": "10128911131699177",
+        "gnosisWei": "1270000000000000000"
+      },
+      "additionalFundingRequiredNow": false
+    },
+    "pendingOperatorBoundary": {
+      "observedAt": "2026-10-23T21:41:22Z",
+      "lockCreatedAt": "2026-10-23T21:32:57.489Z",
+      "executionLock": true,
+      "activeProcessHoldsLock": true,
+      "checkpointCompletedSteps": [1],
+      "pendingNonce": 1038,
+      "activeImplementation": "0xE5E5cbEDa7DC1139AF2e04Bd4a6784B42B4BeCD2",
+      "disposition": "Resolved by actual step-two receipt and matching public post-state; no replay or manual lock deletion"
+    },
+    "bindingReconciled": true,
+    "pendingNonceAfter": 1039,
+    "cumulativeHatsExecutionFeeWei": "75178085730000"
+  },
+  "pilotAccountMigrationSelection": {
+    "observedScopeBoundaryUTC": "2026-10-23 20:18:45",
+    "state": "implemented in working copy; all selected automated integration checks passed; authenticated member and hosted Gnosis proof pending",
+    "cohortOnly": true,
+    "profileId": "kernel-0.3.3-pilot",
+    "entryPointVersion": "0.7",
+    "chainIds": [42161, 42220, 100],
+    "index": "0",
+    "legacyAddressConstraint": "superseded for explicit pilot migration",
+    "credentialPolicy": "reuse verified existing credential and login username where RP permits; explicit alternatives only",
+    "activationPolicy": "normal authentication, explicit new-account review, separate sponsored Gnosis proof, then explicit active-profile selection",
+    "legacyRecordsPreserved": true,
+    "automaticAssetsOrHistoryMigration": false,
+    "fallback": "existing member-owned connected EOA wallet",
+    "ensPolicy": "old onchain name remains associated with its old address; no automatic transfer or ENS operation",
+    "proofBudget": {
+      "chainId": 100,
+      "valueWei": "0",
+      "totalUserOperationGasCostCeilingWei": "10000000000000000",
+      "memberNativeGasChargeWei": "0",
+      "sponsorshipRequired": true,
+      "automaticFunding": false,
+      "state": "recommendation; each concrete quote requires explicit member signature"
+    },
+    "dependencyProof": {
+      "observedAt": "2026-10-23T20:34:07.733Z",
+      "dependencies": {
+        "validator": "0x7ab16Ff354AcB328452F1D445b3Ddee9a91e9e69",
+        "factory": "0x2577507b78c2008Ff367261CB6285d44ba5eF2E9",
+        "implementation": "0xd6CEDDe84be40893d153Be9d467CD6aD37875b28",
+        "metaFactory": "0xd703aaE79538628d27099B8c4f621bE4CCd142d5",
+        "entryPoint": "0x0000000071727de22e5e9d8baf0edac6f37da032"
+      },
+      "chains": [
+        {
+          "chainId": 42161,
+          "blockNumber": 517639495,
+          "blockHash": "0xea0851ffd3269e87b69577b21a9ce3ff4f2f85307c7aae05e22f703222ceb2cc",
+          "codeHashes": {
+            "validator": "0x726d987ac55574f77f5184326631c5c51142f94c16c9b9281b751f97519c9eea",
+            "factory": "0xcc4b1b98f5716bf61042d87bfedd4709a5c9a597c41f3bb0e6fb6fe1a4ebd37a",
+            "implementation": "0x9c390b4a1d88a48a63dfb485bc4b6117f59e7f48e4138a93b870e1dd35e25fde",
+            "entryPoint": "0x8db5ff695839d655407cc8490bb7a5d82337a86a6b39c3f0258aa6c3b582fc58",
+            "metaFactory": "0x4527f3642a53f1f4ce76beb05f955a8859b7245a1ff20da5be9a518d2fcd64aa"
+          }
+        },
+        {
+          "chainId": 42220,
+          "blockNumber": 80886886,
+          "blockHash": "0xed6d662050ade06be230b78950e51dea8186b7f6c9bd67e4ec5c7787c349c83a",
+          "codeHashes": {
+            "validator": "0x726d987ac55574f77f5184326631c5c51142f94c16c9b9281b751f97519c9eea",
+            "metaFactory": "0x4527f3642a53f1f4ce76beb05f955a8859b7245a1ff20da5be9a518d2fcd64aa",
+            "factory": "0xcc4b1b98f5716bf61042d87bfedd4709a5c9a597c41f3bb0e6fb6fe1a4ebd37a",
+            "entryPoint": "0x8db5ff695839d655407cc8490bb7a5d82337a86a6b39c3f0258aa6c3b582fc58",
+            "implementation": "0x30c274c7bb6b4cb9445bb6d648c533c9c7d4a95fba5873515d5989cb0d8c74eb"
+          }
+        },
+        {
+          "chainId": 100,
+          "blockNumber": 48907029,
+          "blockHash": "0xd9ed9bc2d2c66d87c1559e0dc93109f131a40bed4a74454dca1920445b939d95",
+          "codeHashes": {
+            "validator": "0x726d987ac55574f77f5184326631c5c51142f94c16c9b9281b751f97519c9eea",
+            "metaFactory": "0x4527f3642a53f1f4ce76beb05f955a8859b7245a1ff20da5be9a518d2fcd64aa",
+            "factory": "0xcc4b1b98f5716bf61042d87bfedd4709a5c9a597c41f3bb0e6fb6fe1a4ebd37a",
+            "entryPoint": "0x8db5ff695839d655407cc8490bb7a5d82337a86a6b39c3f0258aa6c3b582fc58",
+            "implementation": "0xd322a16215a673b882523b404f7c71c1b34a9172aa282308090daedb3dd69025"
+          }
+        }
+      ],
+      "comparison": [
+        {
+          "chainId": 42161,
+          "exactKernelAfterDeclaredEIP712Immutables": true,
+          "chainOccurrences": 1,
+          "domainOccurrences": 1,
+          "domainSeparator": "0xc062f069e0ba5c0e773f6c41f6d6e20062dc6f129e3f1446a8b2046282d7b2e0"
+        },
+        {
+          "chainId": 42220,
+          "exactKernelAfterDeclaredEIP712Immutables": true,
+          "chainOccurrences": 1,
+          "domainOccurrences": 1,
+          "domainSeparator": "0x1783ad36769ed1d32c8e1fbbe322b1833814381da15ae53e105117bbb37fa4f7"
+        },
+        {
+          "chainId": 100,
+          "exactKernelAfterDeclaredEIP712Immutables": true,
+          "chainOccurrences": 1,
+          "domainOccurrences": 1,
+          "domainSeparator": "0x0e17900498c28bdb254087f5fb3a927c6c3a378b80fae1bdfffd8920d2d6b6b0"
+        }
+      ]
+    },
+    "actualMemberSignature": false,
+    "hostedProviderAcceptance": false,
+    "liveAccountDeployment": false,
+    "renderedProof": "pending authenticated Brave",
+    "entryPath": "/home/login?pilot=1",
+    "normalLegacyLoginRequiresGnosis": false,
+    "originalAccountRecovery": "Explicit verified login to archived original identity; pending pilot proof and pilot recovery metadata preserved"
+  },
+  "pilotUpgradePolicySelection": {
+    "mandatoryWaitSeconds": 0,
+    "supersedesWaitSeconds": 172800,
+    "state": "selected; affected contract/manifests/tests still pending Hats source boundary",
+    "safeOwnershipAndThresholdsPreserved": true,
+    "pauseGuardianAndRuntimeControlsPreserved": true,
+    "nextBatchGate": {
+      "selectedAt": "2026-10-23",
+      "zeroMandatoryWaitSeconds": 0,
+      "remainingBroadcastsHeld": true,
+      "requirements": [
+        "Reconcile in-flight Hats boundary",
+        "Implement and verify zero-delay candidate without changing Safe or guardian authorities",
+        "Connected final-candidate voucher fork journey and meaningful failure/retry proof",
+        "Repository-selected critical checks against final inputs",
+        "Coherent signed local commits and fresh committed deployment plans"
+      ],
+      "readOnlyPreparationInProgress": false,
+      "pushOrMergeAuthorized": false,
+      "implementationInProgress": true
+    }
+  },
+  "historicalSnapshotNotice": "Top-level base preflight fields describe observedAt/sourceCommit. Later Hats broadcasts, selected account migration and working-copy validation are recorded in their explicit follow-up sections; the original legacy-address route remains rejected.",
+  "pilotImplementationWorkingCopy": {
+    "observedAt": "2026-10-23T21:15:58Z",
+    "head": "5780f94114be02f15319262ce162d5a76f11f1e6",
+    "attribution": "Uncommitted working-copy proof only; these changes are not represented by HEAD. HEAD and contract inputs remain frozen for Hats step 2.",
+    "status": "all 14 selected automated checks passed; authenticated Brave manual proof pending",
+    "selectionCommandArguments": [
+      "node",
+      "scripts/dev/ci-local.js",
+      "--plan",
+      "--json",
+      "--intent",
+      "qa",
+      "--changed",
+      "packages/admin/src/components/Garden/GardenMetadata.tsx,packages/client/src/__tests__/views/HomeGarden.test.tsx,packages/client/src/__tests__/views/Login.test.tsx,packages/client/src/__tests__/views/ServiceAccess.test.tsx,packages/client/src/views/Home/Garden/Commitment/ServiceAccessPanel.tsx,packages/client/src/views/Home/Garden/Commitment/VoucherSetupCard.tsx,packages/client/src/views/Home/Garden/Commitment/VoucherSetupSheet.tsx,packages/client/src/views/Login/index.tsx,packages/shared/src/__tests__/config/pimlico.test.ts,packages/shared/src/__tests__/hooks/blockchain/useContractTxSender.test.ts,packages/shared/src/__tests__/modules/fixtures/pilot-gnosis-runtimes.json,packages/shared/src/__tests__/modules/pilot-account-enrollment.test.ts,packages/shared/src/__tests__/modules/pilot-account-proof.test.ts,packages/shared/src/__tests__/modules/session.test.ts,packages/shared/src/__tests__/service-access-live.test.ts,packages/shared/src/__tests__/test-utils/transaction-fakes.ts,packages/shared/src/__tests__/useServiceAccess.test.tsx,packages/shared/src/__tests__/workflows/auth-passkey-adapters.test.ts,packages/shared/src/__tests__/workflows/authMachine.test.ts,packages/shared/src/__tests__/workflows/authServices.test.ts,packages/shared/src/config/chains.ts,packages/shared/src/config/pimlico.ts,packages/shared/src/hooks/auth/useAuth.ts,packages/shared/src/hooks/auth/useUser.ts,packages/shared/src/hooks/client-ui/auth/useLoginScreenController.ts,packages/shared/src/hooks/commitment-pooling/useServiceAccess.ts,packages/shared/src/i18n/en.json,packages/shared/src/i18n/es.json,packages/shared/src/i18n/pt.json,packages/shared/src/modules/auth/account-profile.ts,packages/shared/src/modules/auth/pilot-account-enrollment.ts,packages/shared/src/modules/auth/pilot-account-proof.ts,packages/shared/src/modules/auth/session.ts,packages/shared/src/modules/commitment-pooling/account-profiles.ts,packages/shared/src/modules/commitment-pooling/service-access-live-chain.ts,packages/shared/src/modules/commitment-pooling/service-access-live-commands.ts,packages/shared/src/modules/commitment-pooling/service-access-live-config.ts,packages/shared/src/modules/commitment-pooling/service-access-live.ts,packages/shared/src/modules/commitment-pooling/service-access-types.ts,packages/shared/src/modules/commitment-pooling/service-access-voucher-types.ts,packages/shared/src/modules/commitment-pooling/service-access-voucher.ts,packages/shared/src/modules/commitment-pooling/service-access.ts,packages/shared/src/modules/transactions/__tests__/passkey-confirmation.test.ts,packages/shared/src/modules/transactions/__tests__/passkey-sender.test.ts,packages/shared/src/modules/transactions/__tests__/sender-conformance.test.ts,packages/shared/src/modules/transactions/passkey-sender.ts,packages/shared/src/providers/Auth.tsx,packages/shared/src/utils/blockchain/chain-registry.ts,packages/shared/src/workflows/auth-passkey-adapters.ts,packages/shared/src/workflows/auth-passkey-ids.ts,packages/shared/src/workflows/authMachine.ts,packages/shared/src/workflows/authMachine.types.ts,packages/shared/src/workflows/authServices.ts"
+    ],
+    "checks": [
+      {
+        "id": "format",
+        "cwd": ".",
+        "command": "bunx @biomejs/biome format --no-errors-on-unmatched 'packages/admin/src/components/Garden/GardenMetadata.tsx' 'packages/client/src/__tests__/views/HomeGarden.test.tsx' 'packages/client/src/__tests__/views/Login.test.tsx' 'packages/client/src/__tests__/views/ServiceAccess.test.tsx' 'packages/client/src/views/Home/Garden/Commitment/ServiceAccessPanel.tsx' 'packages/client/src/views/Home/Garden/Commitment/VoucherSetupCard.tsx' 'packages/client/src/views/Home/Garden/Commitment/VoucherSetupSheet.tsx' 'packages/client/src/views/Login/index.tsx' 'packages/shared/src/__tests__/config/pimlico.test.ts' 'packages/shared/src/__tests__/hooks/blockchain/useContractTxSender.test.ts' 'packages/shared/src/__tests__/modules/fixtures/pilot-gnosis-runtimes.json' 'packages/shared/src/__tests__/modules/pilot-account-enrollment.test.ts' 'packages/shared/src/__tests__/modules/pilot-account-proof.test.ts' 'packages/shared/src/__tests__/modules/session.test.ts' 'packages/shared/src/__tests__/service-access-live.test.ts' 'packages/shared/src/__tests__/test-utils/transaction-fakes.ts' 'packages/shared/src/__tests__/useServiceAccess.test.tsx' 'packages/shared/src/__tests__/workflows/auth-passkey-adapters.test.ts' 'packages/shared/src/__tests__/workflows/authMachine.test.ts' 'packages/shared/src/__tests__/workflows/authServices.test.ts' 'packages/shared/src/config/chains.ts' 'packages/shared/src/config/pimlico.ts' 'packages/shared/src/hooks/auth/useAuth.ts' 'packages/shared/src/hooks/auth/useUser.ts' 'packages/shared/src/hooks/client-ui/auth/useLoginScreenController.ts' 'packages/shared/src/hooks/commitment-pooling/useServiceAccess.ts' 'packages/shared/src/i18n/en.json' 'packages/shared/src/i18n/es.json' 'packages/shared/src/i18n/pt.json' 'packages/shared/src/modules/auth/account-profile.ts' 'packages/shared/src/modules/auth/pilot-account-enrollment.ts' 'packages/shared/src/modules/auth/pilot-account-proof.ts' 'packages/shared/src/modules/auth/session.ts' 'packages/shared/src/modules/commitment-pooling/account-profiles.ts' 'packages/shared/src/modules/commitment-pooling/service-access-live-chain.ts' 'packages/shared/src/modules/commitment-pooling/service-access-live-commands.ts' 'packages/shared/src/modules/commitment-pooling/service-access-live-config.ts' 'packages/shared/src/modules/commitment-pooling/service-access-live.ts' 'packages/shared/src/modules/commitment-pooling/service-access-types.ts' 'packages/shared/src/modules/commitment-pooling/service-access-voucher-types.ts' 'packages/shared/src/modules/commitment-pooling/service-access-voucher.ts' 'packages/shared/src/modules/commitment-pooling/service-access.ts' 'packages/shared/src/modules/transactions/__tests__/passkey-confirmation.test.ts' 'packages/shared/src/modules/transactions/__tests__/passkey-sender.test.ts' 'packages/shared/src/modules/transactions/__tests__/sender-conformance.test.ts' 'packages/shared/src/modules/transactions/passkey-sender.ts' 'packages/shared/src/providers/Auth.tsx' 'packages/shared/src/utils/blockchain/chain-registry.ts' 'packages/shared/src/workflows/auth-passkey-adapters.ts' 'packages/shared/src/workflows/auth-passkey-ids.ts' 'packages/shared/src/workflows/authMachine.ts' 'packages/shared/src/workflows/authMachine.types.ts' 'packages/shared/src/workflows/authServices.ts'",
+        "status": "passed",
+        "selectedBy": ["automatic-hygiene"]
+      },
+      {
+        "id": "lint",
+        "cwd": ".",
+        "command": "bun --bun run oxlint 'packages/admin/src/components/Garden/GardenMetadata.tsx' 'packages/client/src/views/Home/Garden/Commitment/ServiceAccessPanel.tsx' 'packages/client/src/views/Home/Garden/Commitment/VoucherSetupCard.tsx' 'packages/client/src/views/Home/Garden/Commitment/VoucherSetupSheet.tsx' 'packages/client/src/views/Login/index.tsx' 'packages/shared/src/config/chains.ts' 'packages/shared/src/config/pimlico.ts' 'packages/shared/src/hooks/auth/useAuth.ts' 'packages/shared/src/hooks/auth/useUser.ts' 'packages/shared/src/hooks/client-ui/auth/useLoginScreenController.ts' 'packages/shared/src/hooks/commitment-pooling/useServiceAccess.ts' 'packages/shared/src/modules/auth/account-profile.ts' 'packages/shared/src/modules/auth/pilot-account-enrollment.ts' 'packages/shared/src/modules/auth/pilot-account-proof.ts' 'packages/shared/src/modules/auth/session.ts' 'packages/shared/src/modules/commitment-pooling/account-profiles.ts' 'packages/shared/src/modules/commitment-pooling/service-access-live-chain.ts' 'packages/shared/src/modules/commitment-pooling/service-access-live-commands.ts' 'packages/shared/src/modules/commitment-pooling/service-access-live-config.ts' 'packages/shared/src/modules/commitment-pooling/service-access-live.ts' 'packages/shared/src/modules/commitment-pooling/service-access-types.ts' 'packages/shared/src/modules/commitment-pooling/service-access-voucher-types.ts' 'packages/shared/src/modules/commitment-pooling/service-access-voucher.ts' 'packages/shared/src/modules/commitment-pooling/service-access.ts' 'packages/shared/src/modules/transactions/passkey-sender.ts' 'packages/shared/src/providers/Auth.tsx' 'packages/shared/src/utils/blockchain/chain-registry.ts' 'packages/shared/src/workflows/auth-passkey-adapters.ts' 'packages/shared/src/workflows/auth-passkey-ids.ts' 'packages/shared/src/workflows/authMachine.ts' 'packages/shared/src/workflows/authMachine.types.ts' 'packages/shared/src/workflows/authServices.ts' --deny-warnings",
+        "status": "passed",
+        "selectedBy": ["automatic-hygiene"]
+      },
+      {
+        "id": "shared-typecheck",
+        "cwd": "packages/shared",
+        "command": "bun run typecheck",
+        "status": "passed",
+        "selectedBy": ["surface:shared", "critical-override", "critical-content"]
+      },
+      {
+        "id": "shared-test-typecheck",
+        "cwd": "packages/shared",
+        "command": "bun run typecheck --scope tests",
+        "status": "passed",
+        "selectedBy": ["validation-only:shared:types"]
+      },
+      {
+        "id": "shared-test",
+        "cwd": "packages/shared",
+        "command": "bun run test",
+        "status": "passed",
+        "selectedBy": [
+          "surface:shared",
+          "validation-only:shared:tests",
+          "critical-override",
+          "critical-content"
+        ]
+      },
+      {
+        "id": "client-test-typecheck",
+        "cwd": "packages/client",
+        "command": "bun run typecheck --scope tests",
+        "status": "passed",
+        "selectedBy": ["validation-only:client:types"]
+      },
+      {
+        "id": "client-test",
+        "cwd": "packages/client",
+        "command": "bun run test",
+        "status": "passed",
+        "selectedBy": [
+          "surface:client",
+          "validation-only:client:tests",
+          "critical-override",
+          "critical-content"
+        ]
+      },
+      {
+        "id": "client-build",
+        "cwd": "packages/client",
+        "command": "bun run build",
+        "status": "passed",
+        "selectedBy": ["qa-build-impact:client"]
+      },
+      {
+        "id": "admin-test-typecheck",
+        "cwd": "packages/admin",
+        "command": "bun run typecheck --scope tests",
+        "status": "passed",
+        "selectedBy": ["validation-only:admin:types"]
+      },
+      {
+        "id": "admin-test",
+        "cwd": "packages/admin",
+        "command": "bun run test",
+        "status": "passed",
+        "selectedBy": [
+          "surface:admin",
+          "validation-only:admin:tests",
+          "critical-override",
+          "critical-content"
+        ]
+      },
+      {
+        "id": "agent-typecheck",
+        "cwd": "packages/agent",
+        "command": "bun run typecheck",
+        "status": "passed",
+        "selectedBy": ["surface:agent"]
+      },
+      {
+        "id": "agent-test",
+        "cwd": "packages/agent",
+        "command": "bun run test",
+        "status": "passed",
+        "selectedBy": ["surface:agent", "critical-override", "critical-content"]
+      },
+      {
+        "id": "staged-modules",
+        "cwd": ".",
+        "command": "node scripts/quality/check-staged-modules.mjs",
+        "status": "passed",
+        "selectedBy": ["client:staged-boundary"]
+      },
+      {
+        "id": "browser-passkey",
+        "cwd": ".",
+        "command": "PLAYWRIGHT_JSON_OUTPUT_FILE=.cache/validation/browser-passkey/results.json bun run browser e2e --preset passkey -- --workers=1 --reporter=line,json --output=.cache/validation/browser-passkey/artifacts",
+        "status": "passed",
+        "selectedBy": ["conditional:browser-passkey"]
+      }
+    ],
+    "suites": {
+      "shared": {
+        "passed": 7666,
+        "skipped": 16,
+        "filesPassed": 633,
+        "filesSkipped": 2
+      },
+      "client": {
+        "passed": 1797,
+        "skipped": 0,
+        "filesPassed": 153
+      },
+      "admin": {
+        "passed": 1335,
+        "skipped": 0,
+        "filesPassed": 146
+      },
+      "agent": {
+        "corePassed": 558,
+        "coreSkipped": 1,
+        "reportingPassed": 218,
+        "reportingSkipped": 0
+      }
+    },
+    "clientBuild": {
+      "startedAt": "2026-10-23T21:05:40.256Z",
+      "finishedAt": "2026-10-23T21:06:19.100Z",
+      "configuration": "Public source snapshot; test-only configuration, no protected environment files",
+      "pwaBudget": "passed"
+    },
+    "browser": {
+      "evidence": "CI Playwright clean-room",
+      "startedAt": "2026-10-23T21:06:51.457Z",
+      "finishedAt": "2026-10-23T21:07:26.127Z",
+      "passed": 3,
+      "skipped": 0,
+      "retries": 0,
+      "scope": "Existing passkey registration and returning-member login regressions; not live member Gnosis authorization"
+    },
+    "finalChecksFinishedAt": "2026-10-23T21:15:28.413Z",
+    "inputSha256": {
+      "packages/admin/src/components/Garden/GardenMetadata.tsx": "15b75024c681c8128f5a8a40f782d282448d1d979ac52b9311ba39bd808c46ae",
+      "packages/client/src/__tests__/views/HomeGarden.test.tsx": "69742e11ead272275f562f532b07a7c169fe8c1c664457c17f4cf484afe6e73c",
+      "packages/client/src/__tests__/views/Login.test.tsx": "1af4939c7070401ffe9ae4e333e1979a5bef47e234fd37f9750234fd9c976214",
+      "packages/client/src/__tests__/views/ServiceAccess.test.tsx": "2d5883cb9b34f4879247a711c8e2678d63578dd2ed8cd3d59c76308287995a50",
+      "packages/client/src/views/Home/Garden/Commitment/ServiceAccessPanel.tsx": "c6a4505a8c4b192499c901462011c1f05ecf0fd258fbe5ca8f326abc89d71495",
+      "packages/client/src/views/Home/Garden/Commitment/VoucherSetupCard.tsx": "54a8957994644251b0d2d04a5d5ca9e6b2bb0a657106232eb54ab866fcb6e1a6",
+      "packages/client/src/views/Home/Garden/Commitment/VoucherSetupSheet.tsx": "3aebca89e175682d167f7f9c4dddf6c34020692aa5ff68c8ba9f1148eb2cf662",
+      "packages/client/src/views/Login/index.tsx": "738ce160ace44cdc9a4f3f30f908f370cdc452910d8e76af2a8ba16a81331771",
+      "packages/shared/src/__tests__/config/pimlico.test.ts": "719aa21d59033920dc892ff7a94d089d5d3def267a5b681fd0506215e0108ef0",
+      "packages/shared/src/__tests__/hooks/blockchain/useContractTxSender.test.ts": "4b97a1937521ac52b57d263ab56d314c7e858b7f53e801dc97beea58cccaab04",
+      "packages/shared/src/__tests__/modules/fixtures/pilot-gnosis-runtimes.json": "8725056e112f4d4cbe7e254cef41d5c0e013d20b61f3e4e03daa09e9f57a10e8",
+      "packages/shared/src/__tests__/modules/pilot-account-enrollment.test.ts": "7501633b3330abf322e9f4430285214545c885640eeec9b6f12d5c364c75b9f7",
+      "packages/shared/src/__tests__/modules/pilot-account-proof.test.ts": "59771f4ed11640eaf2785bd6524c5ce85056217fe20ec7a28b7af6a1e6ef5a2c",
+      "packages/shared/src/__tests__/modules/session.test.ts": "2949f75c0c9bb2a8779c2a4fb8ef6ad1056562e90160a692b0c1e69a3b58c1ec",
+      "packages/shared/src/__tests__/service-access-live.test.ts": "feb2ec07b6f515ed608092f0a5e1903c74a3ca2c8397e24d5edeb5576de41933",
+      "packages/shared/src/__tests__/test-utils/transaction-fakes.ts": "66209aadd9db790a330d43c0e996d086a869041f47506948fc59e43b238f3886",
+      "packages/shared/src/__tests__/useServiceAccess.test.tsx": "1133487212495583ecc33ccc7120361517bd1855450ea56101e5d020f89ceebf",
+      "packages/shared/src/__tests__/workflows/auth-passkey-adapters.test.ts": "0a086e971a7430fafa1d1f74091b15bfc455651bad970c9dc269b2d9b40505d6",
+      "packages/shared/src/__tests__/workflows/authMachine.test.ts": "a3f64461ed74693a9b0b4d65ec5916596d3f7b0f5ab8e2d7007fbef188d8f05f",
+      "packages/shared/src/__tests__/workflows/authServices.test.ts": "8bf1249b457b49145a2e30299848e6d27d32fe46eb6a51ad6b445d290716ba64",
+      "packages/shared/src/config/chains.ts": "f8c6e6b1ab8a02231f8f3d283689e49579ea780c1c69478f9c142876440e73b2",
+      "packages/shared/src/config/pimlico.ts": "a6d3fa44afea3bd56d1241a1e580c3789e815fbd3643d24d50684c30bcfd97b2",
+      "packages/shared/src/hooks/auth/useAuth.ts": "83564f1c3f3015eefd5fac4ea15b5d64693e243fcc210ea5d06620287aefa97d",
+      "packages/shared/src/hooks/auth/useUser.ts": "0f04fe69707dabf6afd00e7e52face92e8a94177299ec40945717a6cae2bff98",
+      "packages/shared/src/hooks/client-ui/auth/useLoginScreenController.ts": "d416f3220ac57beb127872f68d10f2fa5862be0c9a98bce28a75664956466851",
+      "packages/shared/src/hooks/commitment-pooling/useServiceAccess.ts": "c00989d06f4f1d1d34ca201324f2895f89a42031a0eb106e70da323393fa0c96",
+      "packages/shared/src/i18n/en.json": "2439e0570ec41595bfd70752a973a3f18472ad3fa59e4ac1b725054d4efd259b",
+      "packages/shared/src/i18n/es.json": "f4bb1fd41c1950556170625b463ebfcd58ef6d6e8020ee9ddc410d2a820c5bfb",
+      "packages/shared/src/i18n/pt.json": "3728fe2f7ff98c525a5a323ee4701788b5c46b5ada5e1cc7e0be6c09aca7013b",
+      "packages/shared/src/modules/auth/account-profile.ts": "9b64e7e0ff62925ebaafe738f4e725ad888f7ea76faa1c7a46bcef9aeeeb53f9",
+      "packages/shared/src/modules/auth/pilot-account-enrollment.ts": "7fb1f38a0e99134acffaa86d92d5640ff8d9d378bcb995d34543fb96e9f3f04e",
+      "packages/shared/src/modules/auth/pilot-account-proof.ts": "4da74257a4659d41192fdfec1d5b61662937ac943caa857c67ff50c2b5005b81",
+      "packages/shared/src/modules/auth/session.ts": "70832f07c7be5ca63818e67d45ca5ef014f5594c55ff48217510f03b9e969e14",
+      "packages/shared/src/modules/commitment-pooling/account-profiles.ts": "f9ae9c55642c58ed5bd671972417481e49e754581b684561a06f922e2573f587",
+      "packages/shared/src/modules/commitment-pooling/service-access-live-chain.ts": "e7d1d3c2fddea9128edb7602a983e827205a9c6e0d6f7970bdba74a71905f3f6",
+      "packages/shared/src/modules/commitment-pooling/service-access-live-commands.ts": "44dda4d81647b2abed1504a531ef7d6b011a380f3010b59a46d139317038a933",
+      "packages/shared/src/modules/commitment-pooling/service-access-live-config.ts": "039b4ac693f0ac687ed8b50c372bf9205818bc80bf4f6052357a9f33e0381891",
+      "packages/shared/src/modules/commitment-pooling/service-access-live.ts": "a4108f891494068a14f343411ed0aca0c064cd80b5b3ce393612002180405354",
+      "packages/shared/src/modules/commitment-pooling/service-access-types.ts": "63adab6cad023e308299aac82e2d9bf6df291a39931e42166a9b66773af28267",
+      "packages/shared/src/modules/commitment-pooling/service-access-voucher-types.ts": "0f47008f46ce096231240c5fdc3bab840b0ac1007c3c4cd7cd36bfcb0f6ac03a",
+      "packages/shared/src/modules/commitment-pooling/service-access-voucher.ts": "20f9e4536981a7845aa7565e38dd6a72b60f26ffac556ad80575a7224aa5e643",
+      "packages/shared/src/modules/commitment-pooling/service-access.ts": "87e776e398cfa2eda1737377f7bfb11771d9e8c58b7928f1a92dc7eb1134284f",
+      "packages/shared/src/modules/transactions/__tests__/passkey-confirmation.test.ts": "cb0f52a6c1eaa6910d25720543c53308fec82904dcb9061076693eb940f97460",
+      "packages/shared/src/modules/transactions/__tests__/passkey-sender.test.ts": "34fbade0d21a9affd54bf05c719bbe12db22196197c2fc23a1b1ebc7d57cd3bd",
+      "packages/shared/src/modules/transactions/__tests__/sender-conformance.test.ts": "cb9a116597511bf57ab37e6a598e18f56064e94542461f4ecc4c9858b9ea2322",
+      "packages/shared/src/modules/transactions/passkey-sender.ts": "fe074353e026eaaf1cf375d6457e9be164730f7621a8d0ffabd902de72c498e5",
+      "packages/shared/src/providers/Auth.tsx": "c4420943fe19baa2af88b0c159e8263113a47586ea3b8f6795a218bb95aff2ec",
+      "packages/shared/src/utils/blockchain/chain-registry.ts": "b35f8ddaf349a3096d078c3d39f273ca60d4b6d47260da47437a34f0c4d526f8",
+      "packages/shared/src/workflows/auth-passkey-adapters.ts": "f83a6b1a0f0851c5eda228857b0c82379bc2c8568c83b03cdd67f740eed50ae0",
+      "packages/shared/src/workflows/auth-passkey-ids.ts": "bf2a34f9ac311e0ce0505a82184eee8488c2f879def0125994ee309adcb41861",
+      "packages/shared/src/workflows/authMachine.ts": "fc6829fff3c933d1e2a859096a377b5c7eca4ed5e03684f3da98ba5c0c65b9e1",
+      "packages/shared/src/workflows/authMachine.types.ts": "38a76946b2475135ef869061ea0e7609a8409f24769c39eba10b157a72a61976",
+      "packages/shared/src/workflows/authServices.ts": "a9b981da2c053a9053d04106a4147e37e08832f7a09813f52e333eb7a42ef9f4"
+    },
+    "sourceMismatches": [],
+    "integrationRepairs": [
+      "Required scoped logs on standalone UserOperation receipt fixtures; complete typed conformance receipt",
+      "Client HomeGarden preserves real viem exports in its partial mock",
+      "Admin exhaustive OpenSea route map explicitly keeps the Gnosis link disabled"
+    ],
+    "liveServiceRoutes": [],
+    "memberSignature": false,
+    "hostedGnosisQuote": false,
+    "published": false,
+    "limits": [
+      "No authenticated Brave enrollment proof",
+      "No member account deployment or signing proof",
+      "No new endpoint/source deployment adoption or indexer activation",
+      "No live reward, exchange, redemption or Celo signing proof"
+    ]
   }
 }

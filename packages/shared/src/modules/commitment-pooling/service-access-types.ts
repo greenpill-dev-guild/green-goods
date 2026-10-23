@@ -29,7 +29,8 @@ export type ServiceAccessUnavailableReason =
   | "asset-unconfigured"
   | "offline"
   | "earned-consent-unavailable"
-  | "source-clock-unavailable";
+  | "source-clock-unavailable"
+  | "submission-pending";
 
 export interface ServiceAsset {
   chainId: number;
@@ -139,7 +140,7 @@ export interface ServiceAccessSnapshot {
   voucherSetups: readonly ServiceVoucherSetup[];
   acceptancePolicy: VoucherAcceptancePolicy;
   capabilities: {
-    mutation: "local-rehearsal" | "unavailable";
+    mutation: "local-rehearsal" | "onchain" | "unavailable";
     reasons: readonly ServiceAccessUnavailableReason[];
     /** Rehearsal stand-ins do not establish Safe ownership or member passkey support. */
     sourceBuyer: Address;
@@ -185,9 +186,10 @@ export interface ServiceAccessActionAvailability {
 }
 
 export interface ServiceAccessActionResult {
-  kind: "local-rehearsal";
-  /** A fixture observation identifier, deliberately not an EVM transaction hash. */
+  kind: "local-rehearsal" | "onchain";
+  /** Fixture observation or explicitly chain-qualified confirmed transaction. */
   observationId: string;
+  transactionHash?: Hex;
   snapshot: ServiceAccessSnapshot;
 }
 

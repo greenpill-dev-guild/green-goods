@@ -1008,3 +1008,287 @@ Agent/model: Codex / GPT-6 | Coverage: Gnosis bootstrap disposition, funding and
 Human corrections: 0 in this segment; attention: unknown. Rendered proof: none; no UI changed.
 The earlier signed checkpoint is `3f41fc44e3e52ba463f5cba6f65eef89a379b6c0`. No live transaction
 receipt or member-signing proof is claimed.
+
+**Operator boundary, 2026-10-23 19:11:29 UTC:** signed repair checkpoint
+`5780f94114be02f15319262ce162d5a76f11f1e6` has a verified Git signature and unchanged tested
+source hashes. All 114 foreign-file hashes remain unchanged. The operator regenerated
+`deployments/tx-plans/42161-hats-module-1792782642075-plan.json`; the package's exact Hats plan
+validator accepts its commit, creation code, owner/proxy, nonces and fee cap. The existing
+Sepolia-first gate passes without override. The pending nonce is still 1,037 and the predicted
+CREATE address is unused. This new plan uses gas limits **4,825,177** and **54,796**, with a
+combined 0.05-gwei ceiling of **0.00024399865 ETH**. Step one alone is capped at
+**0.00024125885 ETH**. The normal operator is asked to execute only step one and return its
+public result before the upgrade step is given. At 19:15:19 UTC, no public checkpoint exists.
+Leave HEAD and the committed deployment sources at this revision while the two-step plan is
+in flight; this operational note remains uncommitted until the receipt boundaries settle.
+
+**Independent preparation, 2026-10-23 19:22:41 UTC:** a separate read-only ZeroDev research
+chat now owns supported same-address options. It adds no hold to the independent deployment
+sequence. This chat retains code, manifests, the canonical runbook and signing requests.
+Hats step one's exclusive lock was created at 19:16:01 UTC, but there is no checkpoint, code at
+the predicted implementation, or consumed Arbitrum nonce in the latest observation. Terminal
+status/output is requested from the operator; do not remove the lock, replay the boundary or
+change the committed source while that process may be active.
+
+The next source phase is already bounded by its existing plan: **23 library/implementation
+CREATEs** from the approved deployer, followed by **four GG Safe operations** (pause and upgrade
+for each included proxy), preserving its two-signature threshold and leaving both proxies paused.
+Freeze the deployer and Safe nonces only after the two Hats receipts settle. The steward mirror
+has two independent deployment transactions and a separate Hats-owner observer-registration
+operation. Voucher endpoint and empty CLC plans remain eleven and ten deployment boundaries,
+respectively. Their current CLI modes still lack live execution/receipt adoption; preparing
+those guarded execution paths is the next code batch once the active Hats source binding can
+advance. No member activation, issuer inventory/allowance, peer fuel, or unpause is implied.
+
+For the 4 p.m. candidate, the concrete remaining risks are those execution/adoption paths,
+actual operator/Safe receipts, confirmed issuer/Safe inputs, and post-deploy app/indexer promotion.
+The member route remains its own activation gate. No blanket deployment hold, audit requirement
+or testnet wait is reinstated. Preserve all caps, consent, escrow and upgrade-delay controls.
+
+**Hats deployment verified, 2026-10-23 19:46:30 UTC:** the normal operator completed step one.
+Transaction `0x12b9d47a9203fd21e11581d2a150c6912f360331234cc80213ecc001f681dcbd`
+succeeded at Arbitrum block **517,628,647**, creating
+`0xfaA09595EF96Cc56709E1643ad724bD5fA5AE0dD` at the reviewed nonce 1,037.
+Independent public transaction and receipt reads match the exact 16,647-byte creation input,
+production artifact, approved sender, zero value, chain and CREATE address. The complete
+16,424-byte runtime, with its three self-address immutables filled from the artifact, hashes to
+`0x1312e36003768528b615628d5c3f1f8805b1ab388b7823ed9c9d220c5544911f`;
+the public account proof reports that same code hash at the receipt block. Observed execution
+gas cost is **0.00007438111002 ETH** (3,678,591 gas at 20,220,000 wei).
+
+The atomic checkpoint contains the successful first boundary and the execution lock has cleared.
+Fresh reads still show the original proxy implementation, approved deployer owner and next pending
+nonce **1,038**. Step two is now requested through the same bound Bun command with `--step 2`
+and `--expected-nonce 1038`; it sends the reviewed zero-value `upgradeTo(address)` call, capped
+at **0.0000027398 ETH**. Existing Arbitrum funding is sufficient. Its receipt and post-state remain
+pending, so HEAD stays at `5780f94114be02f15319262ce162d5a76f11f1e6` and this note stays
+uncommitted. No second broadcast or completed upgrade is claimed yet.
+
+The separate read-only wallet research reports no established supported first-deployment route
+for the exact legacy-derived Gnosis address. Official passkey migration examples do exist; the
+published example targets an existing Kernel 0.3.0 account on Sepolia. The installed generic
+migration helper constructs the original account before migration and does not establish a safe
+bootstrap for this absent 0.3.1 account with its unavailable legacy validator. This corrects any
+broader reading that passkey migration is absent altogether. Maintainer support, exact installed
+helper provenance, authorization from creation onward, provider acceptance and a real member
+ceremony remain activation evidence to obtain. Independent release work continues.
+
+Task/phase continuation: investigate and verify step one, start unknown → 2026-10-23 19:46:30 UTC;
+public receipt, creation bytes and full runtime hash verified. Wait for operator step-two signature,
+after 19:46:30 UTC → ongoing. Human attention and signing duration remain unknown. Rendered proof:
+none; no UI changed.
+
+**Wallet research scope update, 2026-10-23 19:53:34 UTC:** the read-only research chat reports
+that the accountable user now accepts account migration and architecture alternatives for the
+hackathon pilot. Preserving the original address is no longer the only option under investigation.
+This does not select an implementation or authorize an additional live broadcast. The existing
+Hats plan remains unchanged: only its first receipt is checkpointed, nonce 1,038 remains unused,
+and the old proxy implementation is still active at this observation.
+
+The concrete recommended alternative is a **new** common Kernel 0.3.3 / EntryPoint 0.7 passkey
+account using the explicit patched validator
+`0x7ab16Ff354AcB328452F1D445b3Ddee9a91e9e69`. Research reports that the same synthetic public
+P256 fixture derives one new address on Arbitrum, Celo and Gnosis and that read-only creation
+succeeds through both the canonical factory and default meta-factory. This establishes fixture
+deployment compatibility only; no actual member signature, provider acceptance or live account
+creation is proved. The installed permissionless version supports 0.3.3 and an explicit validator
+override without a dependency change. A versioned account profile must preserve old account
+interpretation and must never force a stored legacy address into the new derivation. Required
+pilot roles would be granted to the new participating address through the existing role flow;
+old balances, commitments, history and permissions do not migrate automatically.
+
+The existing connected EOA wallet flow remains a deadline alternative, with explicit member
+custody, native gas, chain switching and Gnosis configuration/proof. Whichever option is selected,
+the current service-access mutation's DEV-only rehearsal restriction and missing live
+sender/config/receipt wiring remain separate implementation work. Preserve consent, finite
+approval, escrow/final-allocation and Safe controls. No wallet option is adopted by this note.
+
+**Pilot profile selected, 2026-10-23 20:18:45 UTC:** the user selects new patched Kernel 0.3.3
+passkey accounts for the pilot cohort, with the existing member-owned connected wallet flow as
+fallback. This explicitly supersedes the original-address requirement for this bounded pilot
+migration. Preserve legacy identities, history, assets and open commitments; none is automatically
+transferred. New commitments, consent and reward recipients use the explicitly selected participating
+address. Pilot roles still require the existing authorized role-management flow.
+
+The implementation is divided into non-overlapping auth/onboarding and live service-action lanes,
+with a separate read-only source-execution design check. Their existing checkout and branch remain
+unchanged. They may edit Shared and the necessary login UI, but cannot touch bound contract inputs
+or advance HEAD while Hats step two is pending. Current independent reads show that step two is
+still ready at nonce 1,038, with no pending lock or second checkpoint. Its existing reviewed command
+remains the sole ready signing action; no duplicate submission is requested.
+
+Reuse decisions: existing `auth-passkey-adapters.ts`, auth services and session utilities own the
+credential and active-session boundary. A separate auth-owned deployment profile must extend that
+boundary without globally changing the legacy recipe or coupling generic auth to pooling policy.
+The existing transaction sender already owns wallet chain switching, account checks, passkey
+resolution and broadcast references. Live service actions will compose it with verified endpoint
+configuration and fresh contract reads; the DEV rehearsal remains separate. Empty live endpoint
+configuration blocks real calls until actual deployment receipts are adopted.
+
+Proof cases selected before implementation include explicit pilot opt-in versus legacy restore;
+canonical credential discovery across login/restore; canceled or failed switches preserving the
+prior identity; unknown or mismatched profiles rejected; the new address matching across all three
+chains; stale account/chain/consent/configuration rejected before sending; finite approvals with
+partial-failure recovery; ambiguous receipts persisted and reconciled without duplicate submission;
+and EOA fallback with the same selected address and normal chain switching. Actual member signing,
+provider acceptance, live reward receipt and exchange/redemption/retry remain pending proof.
+
+Task/phase continuation: selected migration scope and implementation coordination, start unknown
+→ 2026-10-23 20:18:45 UTC observed boundary; implementation and focused verification ongoing.
+Human corrections: 0 observed in this segment; the selected pilot scope is a new authorization.
+Attention unknown. No member signature or new broadcast is claimed by this scope update.
+
+**Pilot upgrade policy superseded, 2026-10-23:** the user explicitly removes the mandatory
+48-hour waiting period for this pilot. The earlier waiting-period requirements in this handoff
+are historical and no longer govern the selected voucher and CLC deployment plans. Keep existing
+Safe owners, signature thresholds, pause/guardian roles, exact implementation/runtime verification
+and other controls. A zero-delay instance of the existing CLC timelock may preserve its issuer
+Safe role architecture. This grants no deployer ownership or multisig bypass.
+
+Before those affected deployments, change the voucher endpoint's hardcoded upgrade delay and the
+CLC manifest/planner/simulation's 172,800-second constraint with matching behavioral proof, then
+regenerate their plans. Contract inputs and HEAD remain frozen until the pending Hats step-two
+outcome is reconciled. Auth and service-action work outside that binding continues independently.
+The current signing queue remains: approved deployer Hats upgrade first; source CREATEs after
+guarded live execution is implemented and reviewed; actual GG Arbitrum Safe pause/upgrade calls
+after those implementations are verified. No unreviewed transaction becomes ready from this note.
+
+Safe responsibility remains explicit: the deployer creates instances and performs authorized Hats
+owner operations; GG Arbitrum Safe controls Pooling/Settlement upgrades and voucher module/issuer
+bindings; GG Gnosis Safe controls its shared pool, GG issuance and endpoint activation; Tech and
+Sun Safe controls its own issuance/reserve operations. Actual transaction plans and receipts still
+determine each signing boundary.
+
+**Independent pilot dependency proof, 2026-10-23 20:34:07 UTC:** full public RPC bytecodes were
+read at Arbitrum block **517,639,495**, Celo **80,886,886** and Gnosis **48,907,029**. The patched
+validator, factory, meta-factory and EntryPoint runtimes are byte-identical across those chains.
+Kernel 0.3.3 implementation runtime hashes differ by chain. Verified Arbitrum source identifies
+cached EIP-712 chain ID and domain separator immutables; replacing exactly those two 32-byte words
+with each chain's derived values produces the complete Celo and Gnosis runtime byte for byte.
+The three implementation hashes are therefore pinned separately, rather than incorrectly requiring
+one common implementation hash. This is dependency compatibility evidence, not a member signature
+or hosted provider proof.
+
+The actual installed SDK also produces identical factory calldata on all three chains for one
+synthetic public credential using the new explicit recipe. Independent read-only meta-factory
+creation calls return the same fixture address on all three. The tests and probes do not use a
+member credential or submit a transaction. Their public bytecodes and receipt-independent
+readbacks are kept outside Git while the owning auth verifier is implemented.
+
+The default migration flow now reuses the verified existing passkey and login username, with an
+explicit pilot opt-in after normal authentication. The original profile stays active until a
+separate, reviewed, sponsored Gnosis proof transaction succeeds. Recommend a **0.01 xDAI total
+UserOperation gas-cost ceiling**, zero native value and zero native gas charged to the member;
+there is no automatic account funding. Prepare/simulate the quote before the separate signature.
+The proof calls the new account's own `rootValidator()` view getter through the existing sender.
+Pending broadcast evidence must survive ambiguous receipts and be reconciled before any retry.
+
+Fresh-device recovery derives the candidate from the authenticated canonical credential and
+verifies a matching successful historical EntryPoint operation, current exact account/root/key
+and implementation, then offers explicit selection. Code presence alone is insufficient: anyone
+can deploy a counterfactual account from public inputs. The EntryPoint nonce's high bits encode
+the nonzero validator key; neither raw `nonce > 0` nor Kernel's initialized counters prove signing.
+Even a successful outer UserOperation can contain a failed inner TRY call, so the designated
+proof must reject that failure too. The verifier and staged activation tests cover these cases.
+
+The directory/login username and an onchain `*.greengoods.eth` name remain separate. The deployed
+legacy registrar lacks an address-transfer operation and sponsored release; the old name does not
+automatically follow the new account. Show each verified name with its actual old address and
+never suggest funding the new account through an old-resolving name. No ENS release, deployment,
+cooldown change or administrative reassignment is authorized by this pilot migration.
+
+**Pilot implementation checkpoint, 2026-10-23 21:15:58 UTC:** option 1 is implemented in the
+working copy. The cohort entry is `/home/login?pilot=1`; ordinary legacy login never depends on
+Gnosis. Review reuses the verified existing credential, displays the original and new addresses,
+prepares a sponsored quote, requires a separate proof signature, and selects the new profile only
+after its canonical Gnosis execution is verified. Explicit original-account login remains available
+after sign-out or failed pilot restoration, with the archived identity pinned during verification.
+Fresh sites or devices use the cohort entry to discover and explicitly select an existing pilot
+profile. This checkpoint does not claim a real member signature or hosted sponsorship acceptance.
+
+All **14 selected automated integration checks passed**. Shared passed **7,666** tests (16 existing
+skips), Client **1,797**, Admin **1,335**, and Agent **558** core tests plus **218** reporting tests
+(one existing core skip). Shared, Client-test, Admin-test and Agent typechecks, bounded formatting
+and lint, and staged-module isolation passed. The Client production build and PWA size budgets
+passed from a public source snapshot with test-only configuration and no environment files.
+Rendered regression evidence is **CI Playwright clean-room**: all three qualified passkey scenarios
+passed once with no retries or skips. Authenticated Brave enrollment remains pending.
+
+Integration exposed incomplete standalone UserOperation receipt fixtures, a full `viem` mock in
+the Client HomeGarden test, and an exhaustive Admin chain map missing Gnosis. These are repaired;
+the runtime still rejects receipts without scoped execution logs and detects Kernel inner TRY
+failures. The Admin mapping preserves the existing disabled Gnosis OpenSea link. Previously passing
+Shared and Client evidence was retained only after confirming their source inputs were unchanged
+by later consumer fixes. The public-input artifact records exact check commands, selected reasons,
+source hashes, timestamps and proof limits. These are **working-copy results**, not validation
+attributed to commit `5780f94114be02f15319262ce162d5a76f11f1e6`.
+
+At the final public readback, Arbitrum pending nonce is still **1,038**, the old Hats implementation
+is active, and only boundary one is checkpointed. No execution lock exists. The approved deployer
+holds **0.010128911131699177 ETH** on Arbitrum and **1.27 xDAI** on Gnosis; no extra funding is
+needed now. Keep the member account unfunded while the sponsored route is proved. No contract
+source or HEAD change was made. Hats step two remains the sole ready transaction:
+
+```bash
+HATS_MODULE_UPGRADE_FORK_BLOCK_NUMBER=517618807 \
+HATS_MODULE_UPGRADE_GARDEN_COUNT=18 \
+HATS_MODULE_UPGRADE_EXPECTED_IMPLEMENTATION=0xE5E5cbEDa7DC1139AF2e04Bd4a6784B42B4BeCD2 \
+bun run contracts -- upgrade hats-module --network arbitrum --mode broadcast \
+  --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6 \
+  --plan deployments/tx-plans/42161-hats-module-1792782642075-plan.json \
+  --step 2 --expected-nonce 1038
+```
+
+Run from the repository root through the operator's normal environment and keystore ceremony.
+It upgrades Hats to the verified implementation `0xfaA09595EF96Cc56709E1643ad724bD5fA5AE0dD`,
+sends zero value and caps execution gas at **0.0000027398 ETH**. No Safe signature is needed for
+this owner-authorized Hats step. Reconcile its actual receipt before editing bound contract inputs
+or creating a new commit. Do not replay a completed boundary or discard an execution lock.
+
+The operator also needs to start `bun run dev -- web` after Hats finishes: both browser ports are
+free and the normal web surface is stopped. Its protected root environment stays in the operator's
+workflow. Then inspect the pilot entry in the existing Brave profile, prepare the concrete Gnosis
+quote and hand the separate proof signature to the member. No automatic funding or send is queued.
+
+Remaining deployment work is unchanged: implement guarded source execution and receipt adoption,
+apply the selected zero-delay voucher/CLC policy after Hats reconciliation, regenerate affected
+plans, obtain actual deployment and Safe receipts, and promote the indexer and live route config
+with real addresses/start blocks. `SERVICE_LIVE_ROUTES` stays empty until those facts exist.
+
+Task record: Cosmo-Local live pilot | Type: feature | Outcome: partial
+Agent: root | Coverage: post-freeze integration and operator handoff
+
+| Phase | Start → end (UTC) | Result / evidence or blocker |
+|---|---|---|
+| Implement/review | unknown → 2026-10-23 21:14:20 | Bounded integration repairs; original-account recovery and live-service guards reviewed |
+| Verify | 2026-10-23 21:05:40 → 2026-10-23 21:15:28 | Selected automated checks, production build and clean-room browser proof passed; public-input artifact has exact receipts and hashes |
+| Wait | unknown → ongoing | Hats step-two local signature/result, normal web launch and real-member proof ceremony |
+
+Human corrections: 0 observed in this segment; attention unknown. No new broadcast, publication,
+commit, branch change, dependency update or protected credential access occurred in this segment.
+
+**Hats boundary reconciled, 2026-10-23 21:48:31 UTC:** the operator completed step two. Public
+transaction `0x546822e9cc1e7e6cc8967a4e10429c4cb7eb0bbc1fba21a47315d99c037884a1` succeeded at
+Arbitrum block **517,653,824** with exact reviewed sender, proxy, calldata, nonce 1,038, zero value
+and gas cap. The receipt contains the expected proxy `Upgraded` event. Live storage now points at
+`0xfaA09595EF96Cc56709E1643ad724bD5fA5AE0dD`; its independently reread codehash remains
+`0x1312e36003768528b615628d5c3f1f8805b1ab388b7823ed9c9d220c5544911f`. Owner remains the approved
+deployer. Both normal checkpoints exist, the lock is absent, and pending nonce is 1,039.
+Execution used **39,805 gas** at **20,022,000 wei**, costing **0.00000079697571 ETH**; cumulative
+Hats execution gas fees are **0.00007517808573 ETH**. No replay, lock deletion or signer access was
+performed here. The consumed plan stays bound to its original signed source `5780f941…` as history.
+
+The implementation freeze is released. The next authorized batch implements zero mandatory delay
+for voucher and CLC upgrades while retaining their authority, pause, implementation/codehash and
+endpoint compatibility controls. Remaining deployment broadcasts wait for this candidate, the
+connected final-configuration voucher rehearsal and its failure/retry proof, selected critical
+checks, and signed local commits. No new branch or worktree is part of this batch.
+
+The connected rehearsal must close the current coverage gap: verified request completion, earned
+voucher receipt, a bounded exchange in the single shared pool, exact consent/issuer approval,
+escrow before acceptance, acceptance-bound activation, partial delivery approval, immutable split,
+issuer return and holder refund in one journey. Use actual Arbitrum and Gnosis fork states with
+published CLC/Hats/Safe dependencies and production-built GG contracts. Transport, synthetic Safe
+signers, member identities, terms and delivery remain simulated and must be labeled. Existing
+focused failure suites remain part of the proof; financial closure does not fulfill the core
+service promise or change the independent Celo G$ lane.

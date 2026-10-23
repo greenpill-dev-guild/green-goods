@@ -10,6 +10,7 @@ import { formatServiceAccessAmount } from "../../views/Home/Garden/Commitment/se
 import { serviceAccessStorySnapshot } from "../../views/Home/Garden/Commitment/serviceAccessStoryFixtures";
 import { VoucherDeliverySheet } from "../../views/Home/Garden/Commitment/VoucherDeliverySheet";
 import { VoucherSetupSheet } from "../../views/Home/Garden/Commitment/VoucherSetupSheet";
+import { VoucherSetupCard } from "../../views/Home/Garden/Commitment/VoucherSetupCard";
 import { renderWithProviders, screen, userEvent, within } from "../test-utils";
 
 const BUYER = "0x1111111111111111111111111111111111111111" as const;
@@ -599,6 +600,77 @@ describe("voucher v2 boundary", () => {
 });
 
 describe("voucher setup and recovery review", () => {
+  it("labels a live receipt as confirmed and hides it after the member changes", async () => {
+    const state = presented();
+    state.evidence = "onchain";
+    state.capabilities.mutation = "onchain";
+    const row = state.voucherSetups[0];
+    row.acknowledgments.setup.pending = true;
+    row.availableActions = ["retryVoucherSetupAcknowledgment"];
+    const receipt = `100:${HASH}`;
+    const onAction = vi.fn().mockResolvedValue({
+      kind: "onchain",
+      observationId: receipt,
+      transactionHash: HASH,
+      snapshot: state,
+    });
+    const view = renderWithProviders(
+      <VoucherSetupCard snapshot={state} setup={row} onAction={onAction} />
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Retry Setup Acknowledgment" }));
+    const dialog = within(screen.getByRole("dialog"));
+    await userEvent.click(dialog.getByRole("checkbox"));
+    await userEvent.click(dialog.getByRole("button", { name: "Confirm" }));
+    expect(screen.getByText(`Confirmed transaction: ${receipt}`)).toBeInTheDocument();
+    expect(screen.queryByText(`Local observation: ${receipt}`)).not.toBeInTheDocument();
+    view.rerender(
+      <VoucherSetupCard
+        snapshot={{ ...state, key: { ...state.key, buyer: HOLDER } }}
+        setup={row}
+        onAction={onAction}
+      />
+    );
+    expect(screen.queryByText(`Confirmed transaction: ${receipt}`)).not.toBeInTheDocument();
+  });
+
+  it("reviews an exact zero allowance and leaves cancellation unsigned", async () => {
+    const state = presented();
+    state.evidence = "onchain";
+    state.capabilities.mutation = "onchain";
+    const row = state.voucherSetups[0];
+    row.destination!.allowance = 100n;
+    row.availableActions = ["revokeVoucherAllowance"];
+    const onConfirm = vi.fn();
+    const onOpenChange = vi.fn();
+    renderWithProviders(
+      <VoucherSetupSheet
+        open
+        snapshot={state}
+        setup={row}
+        kind="revokeVoucherAllowance"
+        isPending={false}
+        onOpenChange={onOpenChange}
+        onConfirm={onConfirm}
+      />
+    );
+    const dialog = within(screen.getByRole("dialog"));
+    expect(dialog.getByText("Allowance after this action").nextElementSibling).toHaveTextContent(
+      `0 Base units · ${row.authorization.token} → ${row.authorization.destinationEscrow} · Destination chain: 100`
+    );
+    await userEvent.click(dialog.getByRole("button", { name: "Cancel" }));
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(onConfirm).not.toHaveBeenCalled();
+    await userEvent.click(dialog.getByRole("checkbox"));
+    await userEvent.click(dialog.getByRole("button", { name: "Confirm" }));
+    expect(onConfirm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "revokeVoucherAllowance",
+        setupId: row.setupId,
+        expectedAuthorizationHash: row.authorizationHash,
+      })
+    );
+  });
+
   it.each([
     ["retryVoucherSetupAcknowledgment", 100],
     ["retryVoucherFinalAcknowledgment", 100],

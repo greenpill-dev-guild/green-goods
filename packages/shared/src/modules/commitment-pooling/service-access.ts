@@ -51,10 +51,10 @@ export function serviceAccessAvailableActions(
     voucherSetupAvailableActions(snapshot, setup)
   );
   if (
-    snapshot.evidence !== "local-rehearsal" ||
+    !["local-rehearsal", "onchain"].includes(snapshot.evidence) ||
     !snapshot.complete ||
     snapshot.capabilities.reasons.includes("offline") ||
-    snapshot.capabilities.mutation !== "local-rehearsal" ||
+    snapshot.capabilities.mutation !== snapshot.evidence ||
     !snapshot.offer ||
     snapshot.mode === "unavailable" ||
     snapshot.mode === "legacy" ||
@@ -144,7 +144,7 @@ export function selectServiceAccessAction(
   switch (action.action) {
     case "requestClaim": {
       if (
-        snapshot.pilot &&
+        (snapshot.pilot || snapshot.capabilities.mutation === "onchain") &&
         snapshot.mode === "voucher" &&
         !equal(action.voucherHolder, snapshot.key.buyer)
       )

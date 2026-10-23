@@ -34,9 +34,15 @@ import {
   setStoredWalletAddress,
 } from "../modules/auth/session";
 import type { SmartAccountClientResolver } from "../types/auth";
-import type { PasskeyAdapters } from "../workflows/auth-passkey-adapters";
+import { defaultPasskeyAdapters, type PasskeyAdapters } from "../workflows/auth-passkey-adapters";
 import type { AuthActor } from "../workflows/authActor";
 import type { WalletConnectionType } from "../workflows/authMachine";
+import type { PasskeyAccountProfileId } from "../modules/auth/account-profile";
+import {
+  createPilotAccountEnrollment,
+  type PilotAccountPreview,
+  type PilotAccountQuote,
+} from "../modules/auth/pilot-account-enrollment";
 
 // CONTEXT TYPES
 
@@ -52,6 +58,7 @@ export interface AuthStateValue {
   error: Error | null;
   credential: P256Credential | null;
   smartAccountAddress: Hex | null;
+  passkeyAccountProfile?: PasskeyAccountProfileId | null;
   smartAccountClient: SmartAccountClient | null;
   resolveSmartAccountClient: SmartAccountClientResolver | null;
   userName: string | null;
@@ -68,8 +75,15 @@ export interface AuthStateValue {
  * Use `useAuthActions()` for components that only trigger actions (avoids re-renders from state changes).
  */
 export interface AuthActionsValue {
+  preparePilotAccount?: () => Promise<PilotAccountPreview>;
+  findExistingPilotAccount?: () => Promise<PilotAccountPreview | null>;
+  quotePilotAccount?: () => Promise<PilotAccountQuote>;
+  confirmPilotAccount?: (operationHash?: Hex) => Promise<void>;
+  reconcilePilotAccount?: () => Promise<void>;
+  cancelPilotAccountEnrollment?: () => void;
   createAccount: (userName: string) => Promise<void>;
   loginWithPasskey: (userName?: string) => Promise<void>;
+  loginWithOriginalPasskey?: (userName?: string) => Promise<void>;
   loginWithWallet: () => void;
   loginWithEmbedded: () => void;
   signOut: () => Promise<void>;
@@ -156,6 +170,32 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
   } = useAccount();
 
   const actor = useAuthActor(adapters);
+  const pilotEnrollment = useMemo(
+    () =>
+      createPilotAccountEnrollment({
+        adapters: adapters ?? defaultPasskeyAdapters,
+        getSession: () => {
+          const active = actor?.getSnapshot();
+          if (
+            !active?.matches({ authenticated: "passkey" }) ||
+            !active.context.credential ||
+            !active.context.smartAccountAddress
+          )
+            return null;
+          return {
+            credential: active.context.credential,
+            address: active.context.smartAccountAddress,
+            userName: active.context.userName || "",
+            chainId: active.context.chainId,
+          };
+        },
+        selectSession: (output) => {
+          actor?.send({ type: "SELECT_PILOT_ACCOUNT", output });
+        },
+      }),
+    [actor, adapters]
+  );
+  useEffect(() => () => pilotEnrollment.cancel(), [pilotEnrollment]);
 
   const snapshot = useSelector(actor as AuthActor, (s) => s);
   // A passkey saved or cleared during this session, not only the one found when the page loaded.
@@ -373,6 +413,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
 
   const endSession = useCallback(() => {
     if (!actor) return;
+    pilotEnrollment.cancel();
     const session = actor.getSnapshot().context;
     loginGenerationRef.current += 1;
     cancelDeferredLogin();
@@ -398,7 +439,14 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
         (group === "workApprovals" && source === "offline"),
     });
     queryClient.getMutationCache().clear();
-  }, [actor, clearRestoreAttempt, releaseWallet, cancelDeferredLogin, isConnecting]);
+  }, [
+    actor,
+    clearRestoreAttempt,
+    releaseWallet,
+    cancelDeferredLogin,
+    isConnecting,
+    pilotEnrollment,
+  ]);
 
   const { syncSignOut, notifySignOut } = useCrossTabSignOut(endSession);
 
@@ -431,7 +479,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
   );
 
   const loginWithPasskey = useCallback(
-    async (userName?: string) => {
+    async (userName?: string, originalAccount = false) => {
       if (!actor) return;
       syncSignOut();
       const generation = loginGenerationRef.current;
@@ -451,10 +499,19 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
       syncSignOut();
       if (generation !== loginGenerationRef.current) return;
       // Send event to machine
-      actor.send({ type: "LOGIN_PASSKEY_EXISTING", userName: finalUserName });
+      actor.send({
+        type: "LOGIN_PASSKEY_EXISTING",
+        userName: finalUserName,
+        ...(originalAccount ? { originalAccount: true } : {}),
+      });
       saveAuthModeToStorage("passkey");
     },
     [actor, isConnected, disconnectWallet, cancelDeferredLogin, syncSignOut]
+  );
+
+  const loginWithOriginalPasskey = useCallback(
+    (userName?: string) => loginWithPasskey(userName, true),
+    [loginWithPasskey]
   );
 
   const loginWithWallet = useCallback(() => {
@@ -532,10 +589,11 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
 
   const switchToWallet = useCallback(() => {
     if (!actor) return;
+    pilotEnrollment.cancel();
     syncSignOut();
     actor.send({ type: "SWITCH_TO_WALLET" });
     saveAuthModeToStorage("wallet");
-  }, [actor, syncSignOut]);
+  }, [actor, syncSignOut, pilotEnrollment]);
 
   const switchToPasskey = useCallback(
     (userName?: string) => {
@@ -597,6 +655,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
         error: null,
         credential: null,
         smartAccountAddress: null,
+        passkeyAccountProfile: null,
         smartAccountClient: null,
         resolveSmartAccountClient: null,
         userName: null,
@@ -649,6 +708,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
       error: snapshot.context.error,
       credential: snapshot.context.credential,
       smartAccountAddress: snapshot.context.smartAccountAddress,
+      passkeyAccountProfile: snapshot.context.passkeyAccountProfile ?? null,
       smartAccountClient: snapshot.context.smartAccountClient,
       resolveSmartAccountClient: snapshot.context.resolveSmartAccountClient,
       userName: snapshot.context.userName,
@@ -676,6 +736,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
       error: computedValues.error,
       credential: computedValues.credential,
       smartAccountAddress: computedValues.smartAccountAddress,
+      passkeyAccountProfile: computedValues.passkeyAccountProfile,
       smartAccountClient: computedValues.smartAccountClient,
       resolveSmartAccountClient: computedValues.resolveSmartAccountClient,
       userName: computedValues.userName,
@@ -692,8 +753,15 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
   // Actions value — stable references, only changes when actor/disconnectWallet change
   const actionsValue: AuthActionsValue = useMemo(
     () => ({
+      preparePilotAccount: pilotEnrollment.prepare,
+      findExistingPilotAccount: pilotEnrollment.findExisting,
+      quotePilotAccount: pilotEnrollment.quote,
+      confirmPilotAccount: pilotEnrollment.confirm,
+      reconcilePilotAccount: pilotEnrollment.reconcile,
+      cancelPilotAccountEnrollment: pilotEnrollment.cancel,
       createAccount,
       loginWithPasskey,
+      loginWithOriginalPasskey,
       loginWithWallet,
       loginWithEmbedded,
       signOut,
@@ -707,8 +775,10 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
       disconnectWallet,
     }),
     [
+      pilotEnrollment,
       createAccount,
       loginWithPasskey,
+      loginWithOriginalPasskey,
       loginWithWallet,
       loginWithEmbedded,
       signOut,

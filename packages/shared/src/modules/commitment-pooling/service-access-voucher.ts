@@ -18,8 +18,8 @@ export function voucherSetupAvailableActions(
   row: ServiceVoucherSetup
 ): VoucherSetupActionKind[] {
   if (
-    s.evidence !== "local-rehearsal" ||
-    s.capabilities.mutation !== "local-rehearsal" ||
+    !["local-rehearsal", "onchain"].includes(s.evidence) ||
+    s.capabilities.mutation !== s.evidence ||
     s.capabilities.reasons.includes("offline") ||
     !row.complete
   )
@@ -81,6 +81,8 @@ export function voucherSetupAvailableActions(
       actions.push("executeVoucherFinalLeg");
   }
   if (!holder) return actions;
+  if (s.evidence === "onchain" && d.allowance !== null && d.allowance > 0n)
+    actions.push("revokeVoucherAllowance");
   if (d.result.decision === "none") {
     actions.push("requestVoucherSetupAbort");
     if (
@@ -89,7 +91,11 @@ export function voucherSetupAvailableActions(
       !d.pendingAction &&
       s.pause.destinationVoucher === false
     ) {
-      if (d.allowance !== null && d.allowance < a.voucherUnits)
+      if (
+        d.allowance !== null &&
+        (d.allowance < a.voucherUnits ||
+          (s.evidence === "onchain" && d.allowance !== a.voucherUnits))
+      )
         actions.push("approveVoucherAllowance");
       else if (
         d.allowance !== null &&

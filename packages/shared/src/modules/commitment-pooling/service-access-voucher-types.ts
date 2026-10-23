@@ -193,7 +193,11 @@ export type VoucherSetupAction =
   | (BoundSetup & { action: "abortVoucherSetup" })
   | (BoundSetup & { action: "finalizeVoucherActivation"; expectedAcceptedReceiptHash: Hex })
   | (BoundSetup & {
-      action: "approveVoucherAllowance" | "presentVoucherSetup" | "retryVoucherSetupAction";
+      action:
+        | "approveVoucherAllowance"
+        | "revokeVoucherAllowance"
+        | "presentVoucherSetup"
+        | "retryVoucherSetupAction";
     })
   | (BoundSetup & {
       action:

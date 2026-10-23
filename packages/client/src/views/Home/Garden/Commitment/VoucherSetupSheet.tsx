@@ -224,6 +224,25 @@ export function VoucherSetupSheet({
             {kind === "release" ? setup.authorization.issuer : setup.authorization.holder}
           </p>
         ) : null}
+        {setup && (kind === "approveVoucherAllowance" || kind === "revokeVoucherAllowance") ? (
+          <dl className="space-y-2 break-all text-sm">
+            <div>
+              <dt>{text("currentAllowance")}</dt>
+              <dd>{setup.destination?.allowance?.toString() ?? text("unknown")}</dd>
+            </div>
+            <div>
+              <dt>{text("reviewedAllowance")}</dt>
+              <dd>
+                {kind === "revokeVoucherAllowance"
+                  ? "0"
+                  : setup.authorization.voucherUnits.toString()}{" "}
+                {text("baseUnits")} · {setup.authorization.token} →{" "}
+                {setup.authorization.destinationEscrow} · {text("destinationChain")}:{" "}
+                {setup.authorization.destinationChainId}
+              </dd>
+            </div>
+          </dl>
+        ) : null}
         {fee !== null ? (
           <p className="text-sm">
             {text("nativeFee")}: {fee.toString()} {text("nativeBaseUnits")} · {text("feeChain")}:{" "}
