@@ -9,7 +9,7 @@ This document records the prior Warm Earth edition (`green-goods-os-pitch-warm-e
 - [Repository design skill](../../../../.claude/skills/design/SKILL.md): core system and surface-specific dialects. PWA mint and admin typography are not the reference for this presentation.
 - [Vendored social-card fonts and provenance](../../../../packages/client/vite/assets/fonts/social/README.md): the actual Fraunces regular/italic and Inter regular TTF files were loaded into the temporary rendering process. Nothing was installed or downloaded.
 - [Official logo asset](../../../../packages/admin/public/green-goods-logo.png): embedded unchanged with its original aspect ratio.
-- [Public hero reference](../../../../packages/client/public/social-home-hero.png): inspected for the linen overlay, editorial hierarchy and selective green italic emphasis. The screenshot itself is not inserted into the deck.
+- [Public hero reference](../../../../packages/client/public/social-home.png): inspected for the linen overlay, editorial hierarchy and selective green italic emphasis. The screenshot itself is not inserted into the deck.
 
 ## Applied design
 
