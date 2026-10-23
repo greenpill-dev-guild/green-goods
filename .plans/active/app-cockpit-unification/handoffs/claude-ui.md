@@ -254,6 +254,25 @@ Earlier, the face's first gate:
   --show-current` gave `.claude/worktrees/app-cockpit-unification` and
   `feature/app-cockpit-typeface`.
 
+## Task Record
+
+Task record: PRD-1266 steps 1 to 3 (PRD-1267, PRD-1268, PRD-1269) | Type: feature | Outcome: partial: five pull requests open; the merges, the installed-app Brave proof and step 2's browser-proof remain
+Agent/model: Claude Code / claude-opus-5-5 | Coverage: the 2026-10-23 continuation, from the maintainer's handoff to the open pull requests
+
+| Phase | Start → end (UTC) | Result / evidence or blocker |
+|---|---|---|
+| Investigate | 2026-10-23T17:18:34Z → unknown | The hub, the token-slice drafts and #1189 against `develop` after #1190 |
+| Implement (step 2) | unknown → 17:46:11Z | The four drafts replayed and finished; the first commit attempt |
+| Wait | 17:46:11Z → 18:26:51Z | The signing key had lapsed in its agent; resolved when the maintainer unlocked it |
+| Verify (step 2) | unknown → 18:27:14Z, mostly inside the wait | Contrast audit and rendered pairs ([eval.md](../eval.md#step-2-proof-ground-and-dark-ladder)), the Brave tab proof, the offline face's RED and GREEN ([TDD Proof](#tdd-proof)) |
+| Publish (step 2) | 18:27:14Z → 18:51:18Z | `c9b1fd66a` to `fc65a91d5`; #1191 opened 18:41:02Z, its guides #1193 at 18:51:18Z |
+| Wait | 18:33:08Z → 18:34:23Z | Three maintainer decisions: #1189, a frozen install for the gate, stacking step 3; resolved, and #1189 closed at 18:34:57Z |
+| Implement, verify, publish (step 3 and the vietnamese subset) | 18:51:18Z → 19:20:18Z | `be3747bd9` to `1f00b560e`; #1195 opened 19:11:40Z, #1196 19:13:12Z, #1197 19:20:18Z |
+| Publish (hub record) | 19:25:09Z → ongoing | `2d5710501` and this record |
+| Verify (current-head CI) | 19:25Z → ongoing | CI's client suite caught the shared-link boot harness, fixed in `a0ecdc1ed`; runner-setup failures on #1193 and #1196 rerun |
+
+Human corrections: 0 observed; attention: unknown.
+
 ## Risks / Blockers
 
 - The garden-scoped PWA Home builds in parallel on these tokens and recipes and must not restyle
