@@ -46,7 +46,7 @@ describe("public social previews", () => {
       expect(preview.socialImageUrl).toMatch(new RegExp(`^${PUBLIC_SOCIAL_PREVIEW_ORIGIN}/`));
     }
 
-    expect(publicSocialPreviews.home.socialImagePath).toBe("/social-home-hero.png");
+    expect(publicSocialPreviews.home.socialImagePath).toBe("/social-home.png");
     expect(publicSocialPreviews.fund.socialImagePath).toBe("/social/fund.png");
   });
 

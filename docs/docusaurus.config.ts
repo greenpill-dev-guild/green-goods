@@ -550,7 +550,7 @@ const config: Config = {
 
   themeConfig: {
     // Social card for link previews (Twitter, Telegram, etc.)
-    image: 'img/green-goods-social-card.webp',
+    image: 'img/social/green-goods-docs.webp',
     colorMode: {
       respectPrefersColorScheme: true,
     },

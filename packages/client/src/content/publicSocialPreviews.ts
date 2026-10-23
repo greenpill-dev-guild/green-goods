@@ -71,7 +71,7 @@ export const publicSocialPreviews = {
     cardTitleAccent: "good",
     cardLede: "Document community work, review it locally, and help fund what comes next.",
     heroImagePath: "/images/hero-home.webp",
-    socialImagePath: "/social-home-hero.png",
+    socialImagePath: "/social-home.png",
     socialImageAlt: "Green Goods editorial homepage social preview",
   }),
   fund: definePreview("fund", {
