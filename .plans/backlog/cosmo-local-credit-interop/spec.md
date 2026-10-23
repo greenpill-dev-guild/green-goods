@@ -15,9 +15,10 @@ final-allocation rules remain intact. The policy change does not establish a usa
 configured provider, issuer terms/caps or a passing deployment simulation. Make the concrete
 candidate and operations reviewable before execution. The
 [live deployment package](handoffs/codex-live-pilot-deployment.md) owns current readiness and
-technical inputs. The [working issuer terms](pilot-issuer-terms.md) propose the selected hub access,
-assisted sessions and Claude Team seat service, with explicit prices, limits and remedies pending
-issuer acceptance and capacity confirmation. Older local-only and audit/soak restrictions below
+technical inputs. The [working issuer terms](pilot-issuer-terms.md) record accepted prices,
+issuance/cohort ceilings and the initial exchange ratio for hub access, assisted sessions and
+Claude Team access. Assistance costs two GG vouchers per thirty minutes. Actual capacity,
+issuer operating terms and control addresses still need confirmation. Older local-only and audit/soak restrictions below
 are historical dispatch limits.
 
 **Earlier blocker/readiness continuation, 22 October:** the user authorized cohesive internal

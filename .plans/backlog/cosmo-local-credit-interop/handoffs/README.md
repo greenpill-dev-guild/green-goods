@@ -4,8 +4,8 @@
 hackathon release decision, the 24 October live target, exact deployment preparation and technical
 inputs. External audit intake and a two-week testnet wait are not hackathon prerequisites;
 focused tests, deployment simulation, post-deployment smoke and existing contract/Safe controls
-remain. The [working issuer terms](../pilot-issuer-terms.md) define proposed service prices,
-capacity/cap distinctions and remedies, including the selected Claude Team offer.
+remain. The [working issuer terms](../pilot-issuer-terms.md) record accepted service prices/caps,
+capacity distinctions and draft remedies, including the selected Claude Team offer.
 Older local-only dispatch limits below are historical.
 
 [Current account/provider proof](codex-gnosis-account-provider-proof.md) owns the root-signing

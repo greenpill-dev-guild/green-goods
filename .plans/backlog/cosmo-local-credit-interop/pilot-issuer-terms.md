@@ -1,19 +1,21 @@
 # Pilot issuer terms — working draft
 
-**Version:** `pilot-2026-10-22-draft-1` · **Status:** proposed terms; no live offer or capacity approval.
+**Version:** `pilot-2026-10-22-draft-2` · **Status:** business baseline accepted; issuer capacity and live configuration unconfirmed.
 
 The selected services are Tech and Sun hub access, Green Goods assisted sessions, and Claude
-access under a Green Goods team. Quantities, voucher prices, caps and operating deadlines below
-are proposals for the bounded pilot. Neither issuer has yet supplied confirmed capacity,
-accountable addresses or its acceptance record. The [deployment package](handoffs/codex-live-pilot-deployment.md)
+access under a Green Goods team. The human release owner accepted the service prices below,
+a twenty-voucher ceiling per issuer, ten participants and an initial 1:1 gross exchange ratio
+on 22 October Pacific, adjusting assistance to two GG vouchers per thirty minutes. Other
+operating terms below remain a draft for issuer acceptance. Neither issuer has yet supplied
+confirmed capacity, accountable addresses or its acceptance record. The [deployment package](handoffs/codex-live-pilot-deployment.md)
 tracks those inputs separately from technical readiness.
 
 ## Services and voucher prices
 
-| Issuer / offer | Full service for the stated voucher price | Proposed availability |
+| Issuer / offer | Full service for the stated voucher price | Capacity required by the baseline, still unconfirmed |
 |---|---|---|
 | Tech and Sun — hub day | **1 Tech and Sun voucher:** one named person's reserved visit of up to four hours, including workspace, power and connectivity. Publish the location, opening hours and equipment restrictions before accepting a booking. | Twenty visits, at least eighty seat-hours in a published calendar. These are proposed resources, not observed capacity. |
-| Green Goods — assisted session | **1 Green Goods voucher:** one thirty-minute remote or in-person session to set up a garden or document a contribution. Publish the facilitator, language and appointment times before booking. | Up to twenty sessions, ten facilitator-hours, if every GG voucher is used for assistance. |
+| Green Goods — assisted session | **2 Green Goods vouchers:** one thirty-minute remote or in-person session to set up a garden or document a contribution. Publish the facilitator, language and appointment times before booking. | Up to ten sessions, five facilitator-hours, if every GG voucher is used for assistance. |
 | Green Goods — Claude access | **10 Green Goods vouchers:** thirty consecutive days of a named Claude Team **Standard** seat in Green Goods' organization, starting when the participant can sign in and confirms access. No automatic renewal or additional voucher charge. | Up to two seat-periods if every GG voucher is used for Claude. Budget and eligible seat provisioning are still unconfirmed. |
 
 These are full-access offers at their stated scope, rather than discounts requiring an unstated
@@ -22,7 +24,7 @@ visit. Assistance excludes ongoing delivery or maintenance beyond the booked ses
 a voucher confers the issuer's published service rights, never garden governance or Safe control.
 
 The two Green Goods offers share **one** twenty-voucher service budget. A possible mix is one
-Claude seat-period and ten assisted sessions: `10 + 10 × 1 = 20`. Twenty sessions plus two Claude
+Claude seat-period and five assisted sessions: `10 + 5 × 2 = 20`. Ten sessions plus two Claude
 seat-periods would cost forty vouchers and is outside this draft. Green Goods must be capable
 of honoring every permitted mix before releasing that inventory.
 
@@ -56,7 +58,7 @@ approval. This draft establishes no such approval. If provisioning is unavailabl
 specific offer unavailable; do not substitute shared logins, individual Pro or API credits.
 The other approved services may proceed independently.
 
-## Proposed pilot limits and inventory
+## Accepted ceilings and proposed inventory allocation
 
 | Limit | Tech and Sun | Green Goods | Meaning |
 |---|---:|---:|---|
@@ -68,14 +70,16 @@ The other approved services may proceed independently.
 | Initial pool holding ceiling per asset | 10 | 10 | Separate pool limiter setting, subject to exact implementation semantics and readback. It can constrain one direction of exchange even when the other direction has stock. |
 | Whole-pilot discharged service budget | 20 visits | 20 GG units | Cumulative delivered service cost, not a token balance or automatically reset allowance. |
 
-Propose at most ten invited adult participants for the first operating cohort, with no public
-sale. Any participant purchase in this pilot is the bounded voucher-to-voucher pool exchange;
+The accepted cohort ceiling is ten invited participants. Propose adults only for the first
+operating cohort, with no public sale. Any participant purchase in this pilot is the bounded
+voucher-to-voucher pool exchange;
 fiat, cash-out, a G$ purchase and the Tech and Sun cash swap-back example are outside these terms.
 Optional G$ rewards retain their separate Celo consent, custody, receipts and recovery.
 
-For the initial shared pool, propose a **1:1 gross voucher exchange ratio**, with zero configured
-fees where supported and verified, and no cash peg. This is a proposed exchange setting, not a
-claim that the issuers' services have equal time, cost or market value. Admission, inventory,
+For the initial shared pool, the accepted baseline is a **1:1 gross voucher exchange ratio**.
+Propose zero configured fees where supported and verified, and no cash peg. The selected ratio
+is a pilot exchange setting, not a claim that the issuers' services have equal time, cost or
+market value. Admission, inventory,
 fees, limiter and the actual minimum-output/deadline quote govern each transaction. Do not
 advertise a whole ten-GG-voucher subscription exchange if net available output is below ten.
 
@@ -134,7 +138,7 @@ stops new offers; it does not erase outstanding service rights or force an escro
 | Service | Proposed partial-delivery calculation |
 |---|---|
 | Hub visit | Holder-approved usable minutes / 240, capped at the agreed one-voucher cost. Provider-caused loss of the promised power/connectivity is reflected in usable time; a mutually accepted equivalent may be agreed before the allocation is fixed. |
-| Assisted session | Holder-approved delivered minutes / 30, capped at one GG voucher. A failed connection with no useful session is zero delivered. |
+| Assisted session | Holder-approved delivered minutes / 30 × 2, capped at two GG vouchers. A failed connection with no useful session is zero delivered. |
 | Claude access | Holder-approved available days / 30 × 10 GG vouchers. The thirty-day clock starts with working access, not the invitation or invoice. A seven-day failure is not a full subscription delivery. Normal disclosed provider usage limits do not count as an outage; loss of the promised seat does. |
 
 Calculate delivered base units by rounding down at verified token precision; refundable amount
@@ -151,8 +155,9 @@ cash compensation or successful service delivery. No timeout resolves a disputed
 
 ## Inputs needed to turn this into live terms
 
-Each issuer must accept or revise its services, quantities, prices, calendar, remedies and caps,
-and identify its accountable service operator and help route. Green Goods must additionally
+The accepted business baseline fixes the current prices, issuance ceilings, cohort ceiling and
+initial exchange ratio. Each issuer must confirm its deliverable quantities, calendar, remedies
+and caps, and identify its accountable service operator and help route. Green Goods must additionally
 confirm its actual Claude organization, permitted participant provisioning, funded seat capacity,
 billing interval and participant-visible workspace/data rules. Keep those private records private;
 only a public-safe acceptance reference belongs here.
@@ -161,6 +166,13 @@ The deployment manifest must then bind each issuer's Gnosis token, reserve, owne
 threshold, adapter and finite allowance; shared pool/registry/limiter/fee controls; Arbitrum
 source authorities and both authenticated transport peers; plus pause and recovery authorities.
 No address, signer, approved capacity or supplier permission is fabricated by this draft.
+
+Treat the Gnosis Safes as needing creation until verified otherwise. Reusing the existing
+Green Goods Safe is an option for discussion, not a selected address or an instruction to create
+a replacement. The [pinned Gnosis read](artifacts/green-goods-safe-gnosis-2026-10-22.json) finds
+that repository-named Safe already deployed with five owners and threshold two; this is a reuse
+option, not its selection. Discuss issuer-reserve custody separately from jointly controlled shared-pool
+administration before choosing owners, thresholds, guardians or deployment operations.
 
 Existing Safe controls, implemented delays, consent, full escrow before promise activation,
 immutable final allocation and independent Celo G$ remain authoritative. The accepted hackathon

@@ -65,7 +65,8 @@ Live COM-46 was In Progress when read on 22 October Pacific. Its description spe
 issuer facts but contains no approved values or evidence references. The user confirmed these terms need to be defined, selected hub access and assisted sessions,
 and added Claude access under a Green Goods team. The [working issuer terms](../pilot-issuer-terms.md)
 now define proposed services, prices, capacities, supply/reserve/pool/allowance limits, booking,
-partial delivery and remedies. Numeric values remain proposals pending acceptance; actual
+partial delivery and remedies. The human release owner accepted the numeric baseline with assistance priced at two GG vouchers
+per thirty minutes; actual
 capacity, funded permitted Claude seats and public-safe control addresses remain unconfirmed.
 Private issuer evidence and member identity data stay out of this public repository.
 
@@ -103,6 +104,24 @@ release path, and the existing pooling release-stage schema covers Arbitrum/Celo
 voucher command alone would therefore be insufficient. Those deployment-tooling changes and their
 negative/simulation tests remain unfinished; no runnable release claim is made here.
 
+## Safe selection remains open
+
+The user says to assume the required Safes need creation, with possible reuse of the current
+Green Goods Safe to discuss further. No specific Safe, owner set, threshold, guardian or creation
+transaction is selected. Assess the current Safe on Gnosis before any reuse claim; an address
+on another chain does not establish deployed Gnosis code or the same control state. Keep each
+issuer's reserve authority separate from the shared pool's administration. Prepare the concrete
+creation/reuse options for discussion before binding addresses or executing that boundary.
+
+A subsequent [read-only Gnosis observation](../artifacts/green-goods-safe-gnosis-2026-10-22.json)
+finds the repository-named Green Goods Safe `0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19`
+already deployed at block 48,895,536. It reports five owners, threshold two, version 1.5.0 and
+no enabled modules. Reuse is therefore a concrete option for the GG issuer reserve, pending
+the user's governance discussion and remaining release verification. Tech and Sun reserve
+control and joint shared-pool administration are separate decisions. No Safe creation, reuse,
+owner change, approval or value activation occurred. The older release manifest's owner lists
+and timelock disposition are not imported as this pilot's network control state or a new waiver.
+
 ## Execution review and proof to complete
 
 - Pin the reviewed source revision, compiler/build inputs, runtime hashes, networks and exact
@@ -130,10 +149,14 @@ Agent/model: Codex / model unknown | Coverage: current release-policy, issuer-te
 | Phase | Start → end (UTC) | Result / evidence or blocker |
 |---|---|---|
 | Investigate / implement | Earlier start unknown → 2026-10-23 03:56:53 | Current release disposition reconciled; earlier lane states preserved. |
-| Investigate / implement | 2026-10-23 04:03:50 → 04:15:37 | Services selected; working numeric terms drafted; Claude pricing and named-seat constraints checked against official sources. |
+| Investigate / implement | 2026-10-23 04:03:50 → 04:15:37 | Services selected; numeric baseline accepted with two GG vouchers per thirty-minute assistance session; Claude pricing and named-seat constraints checked against official sources. |
 | Verify | 2026-10-23 04:03:50 → 04:14:05 | Nine native local-fork cases pass; wrong-order candidate fails as expected. Earlier trace assertion included initialization/validation calls; corrected to identify migration selectors. |
 
 | Verify / review | 2026-10-23 04:14:05 → 04:15:37 | Selected QA format/lint 2/2 fresh; 34 Plan Hubs validate; 87 local links resolve. All nine proof source hashes match and all 114 unrelated file hashes remain unchanged. Selector lint processes no files under this Plan Hub; the executed fork proof owns behavior evidence. |
+
+| Implement / verify | 2026-10-23 04:18:01 → 04:19:01 | Accepted baseline recorded with two GG vouchers per thirty-minute session; revised service-budget arithmetic and selected formatting pass. Safe creation/reuse remains for discussion. |
+
+| Investigate | 2026-10-23 04:19:01 → 04:20:38 | Safe discussion requested; existing GG address found in repository and inspected read-only on Gnosis. Exact calls and limits are linked above. Creation/reuse remains unselected. |
 
 Human corrections: 0 in this segment; service additions are scope decisions. Human attention: unknown.
 Rendered proof: none in this segment; no product UI changed. No live broadcast, purchase or external tracker write.

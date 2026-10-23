@@ -28,8 +28,8 @@ release updates; this checkout owns the canonical Plan Hub changes.
   cases at the same fictional address; distinguish legacy authority from credential cleanup.
   Actual-member signing/provider readiness and live migration remain open.
 - [ ] Establish the exact configured account/EntryPoint/provider path and sponsorship or funding.
-- [x] Draft both issuers' selected services and proposed prices/caps/remedies in
-  [working issuer terms](pilot-issuer-terms.md), including Claude Team seat cost/provisioning limits.
+- [x] Record both issuers' selected services and accepted price/cap baseline, with draft operating terms in
+  [working issuer terms](pilot-issuer-terms.md), including two GG vouchers per thirty-minute assistance session and Claude Team seat limits.
 - [ ] Bind accepted terms to confirmed capacities/caps, reserves and accountable controls.
 - [ ] Enumerate repository-owned deploy/initialize/upgrade operations and persisted manifests
   for Arbitrum modules and the shared Gnosis pool/integration; preserve independent Celo G$.
