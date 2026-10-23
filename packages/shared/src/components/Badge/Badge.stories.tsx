@@ -1,6 +1,6 @@
 import { RiCheckLine, RiCloseLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
-import { Badge } from "./Badge";
+import { Badge, CountBadge } from "./Badge";
 
 const meta: Meta<typeof Badge> = {
   title: "Shared/Primitives/Badge",
@@ -126,4 +126,40 @@ export const DarkMode: Story = {
       </div>
     ),
   ],
+};
+
+const COUNT_LADDER = [1, 9, 10, 99, 100];
+
+/** The one count badge (F10) at every width it takes, beside a label and on a control's edge. */
+export const Count: Story = {
+  render: () => (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center gap-3">
+        {COUNT_LADDER.map((count) => (
+          <CountBadge key={count} count={count} />
+        ))}
+      </div>
+      <div className="flex items-center gap-3">
+        {COUNT_LADDER.map((count) => (
+          <CountBadge key={count} count={count} ring />
+        ))}
+      </div>
+    </div>
+  ),
+};
+
+/** In the cockpit the badge takes each workspace tone's action pair. */
+export const CountInCockpitTones: Story = {
+  parameters: { surface: "admin" },
+  render: () => (
+    <div className="flex flex-col gap-3">
+      {["hub", "garden", "community", "actions"].map((tone) => (
+        <div key={tone} data-tone={tone} className="flex items-center gap-3">
+          {COUNT_LADDER.map((count) => (
+            <CountBadge key={count} count={count} />
+          ))}
+        </div>
+      ))}
+    </div>
+  ),
 };

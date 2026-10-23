@@ -1,3 +1,4 @@
+import { CountBadge } from "@green-goods/shared/components/Badge/Badge";
 import { useYourWorkCount } from "@green-goods/shared/hooks/work/useYourWorkCount";
 import { useApp } from "@green-goods/shared/providers/App";
 import { useUIStore } from "@green-goods/shared/stores/useUIStore";
@@ -13,7 +14,6 @@ import {
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link, useLocation } from "react-router-dom";
-import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import { APP_ROUTES, isImmersiveAppRoute } from "@/config/pwaRouting";
 
 export const AppBar = () => {
@@ -61,7 +61,8 @@ export const AppBar = () => {
         // Keep AppBar above page content (z-nav), but below modal/drawer overlays (z-overlay/z-modal).
         // Hide AppBar on routes that own their chrome (Submit Work, a garden's pages) or when any sheet is open.
         // vt-app-bar keeps it above the page cross-fade when switching tabs.
-        "vt-app-bar fixed bottom-0 bg-bg-white-0 border-t border-t-stroke-soft-200 rounded-t-[var(--radius-lg)] overflow-hidden flex flex-row justify-evenly items-center w-full py-3 pb-[calc(0.75rem+var(--safe-area-bottom))] z-nav transition-transform duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)]",
+        // The bar is its own white surface, so the badge's ring takes white too.
+        "vt-app-bar fixed bottom-0 bg-bg-white-0 [--gg-count-badge-ring:rgb(var(--bg-white-0))] border-t border-t-stroke-soft-200 rounded-t-[var(--radius-lg)] overflow-hidden flex flex-row justify-evenly items-center w-full py-3 pb-[calc(0.75rem+var(--safe-area-bottom))] z-nav transition-transform duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)]",
         shouldHideBar ? "translate-y-full" : "translate-y-0"
       )}
       // Off screen is out of reach too: no tab stops or screen-reader links.
@@ -94,14 +95,12 @@ export const AppBar = () => {
             <div className="relative">
               {isActive ? <ActiveIcon className="w-6 h-6" /> : <InactiveIcon className="w-6 h-6" />}
               {showBadge && (
-                <span
-                  className={cn(
-                    "absolute -top-1 -right-1.5 min-w-4 h-4 flex items-center justify-center rounded-full text-[10px] font-bold leading-none px-1",
-                    pwaStatusStyles.primary.badge
-                  )}
-                >
-                  {pendingCount > 9 ? "9+" : pendingCount}
-                </span>
+                <CountBadge
+                  count={pendingCount}
+                  max={9}
+                  ring
+                  className="absolute -top-1 -right-1.5"
+                />
               )}
             </div>
             <p className="text-sm">{title}</p>

@@ -1681,6 +1681,38 @@
     display: inline-flex;
   }
 
+  /* ── Count badge (F10) ── One count on both surfaces: a 16px capsule with
+   * 11px numerals at weight 600 on the action pair (DL-017). The cockpit fills
+   * it with its workspace tone's contrast-safe accent: Community's action fill
+   * (orange-700) carries white numerals at only 4.0:1, its accent (orange-800)
+   * at 4.9:1, and the other tones' accents equal their action fills. A badge
+   * that sits on an icon or a control's edge draws a 2px ring of the surface
+   * behind it: the page canvas, unless that surface sets
+   * `--gg-count-badge-ring`. */
+  .gg-count-badge {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    min-inline-size: 1rem;
+    block-size: 1rem;
+    padding-inline: 0.25rem;
+    border-radius: 9999px;
+    background-color: rgb(var(--tone-on-surface-accent, var(--primary-action)));
+    color: rgb(var(--tone-on-action, var(--primary-action-foreground)));
+    font-size: var(--gg-type-meta-sm-size, 0.6875rem);
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .gg-count-badge[data-ring] {
+    box-shadow: 0 0 0 2px var(--gg-count-badge-ring, rgb(var(--bg-canvas)));
+  }
+
   /* ── Chip (DL-026) ── A capsule toggle for filters and choices: 32px with a
    * 44px hit area. Selected chips carry text on a green fill, so they use the
    * theme's action fill/content pair (DL-017, DL-088). */
