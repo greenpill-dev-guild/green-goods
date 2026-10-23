@@ -255,7 +255,7 @@
     "renderedProof": "none; no UI change. Brave profile reached, app signed out."
   },
   "localCommit": {
-    "status": "retry-after-user-restored-signer; final result reported in chat",
+    "status": "signed-verified",
     "initialAttempt": {
       "status": "failed-signing-key-unavailable",
       "preCommitHook": "passed",
@@ -267,6 +267,115 @@
     "ownedPathsStaged": 10,
     "unsignedFallback": false,
     "signingConfigurationChanged": false,
-    "keyringAccessed": false
+    "keyringAccessed": false,
+    "commit": "3f41fc44e3e52ba463f5cba6f65eef89a379b6c0",
+    "signatureStatus": "G"
+  },
+  "sameAddressRouteFollowup": {
+    "observedAtUTC": "2026-10-23 18:40:50",
+    "network": "gnosis-mainnet",
+    "blockNumber": 48905656,
+    "blockHex": "0x2ea3db8",
+    "blockHash": "0xa93abf48d6dbe8b84d5f2bb016a4f42660f0c2637884c4c316dcfe968d685b10",
+    "factory": "0xaac5D4240AF87249B3f71BC8E4A2cae074A3E419",
+    "factoryImplementation": "0xBAC849bB641841b44E965fB01A4Bf5F074f84b4D",
+    "originalInitializerDerivesOriginalMember": true,
+    "patchedInitializerDerivesOriginalMember": false,
+    "originalReadOnlyCreate": "reverted",
+    "patchedReadOnlyCreate": "returned its independently derived different address",
+    "memberCodeAtPin": "0x",
+    "proofClass": "public eth_call; no broadcast or possession proof",
+    "pinnedFactorySource": "https://github.com/zerodevapp/kernel/blob/03f7f5cf5871cda0070e4223f196f5b577f6cde2/src/factory/KernelFactory.sol",
+    "factorySourceSha256": "a21b7f24a4b847e257b9bffbb724f558ff13e04d2be274eeabcb2b9b6b400aae",
+    "legacyValidatorCreationTransaction": "0x809ff0e8b2cf2ae6e7537f0e48d4898bebdeda33c45389341027da3d66ea5058",
+    "legacyValidatorCreationFactory": "0x4e59b44847b379578588920ca78fbf26c0b4956c",
+    "disposition": "User retains same-address identity, advances independent deployments and leaves member activation blocked",
+    "safeCanonicalSameAddressBootstrapSelected": false,
+    "liveSignatureRequested": false,
+    "accountSubstitutionAuthorized": false
+  },
+  "fundingFollowup": {
+    "observedAtUTC": "2026-10-23 18:41:59",
+    "deployer": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+    "gnosisBalanceWei": "1270000000000000000",
+    "userReportedFundingSent": true,
+    "fundingTransactionHash": null,
+    "arbitrumTopupRequested": false,
+    "gnosisGasCapWei": "100000000000000000",
+    "gnosisInitialCCIPCapWei": "500000000000000000",
+    "memberFundingRequested": false
+  },
+  "hatsBoundaryFollowup": {
+    "sourceParent": "3f41fc44e3e52ba463f5cba6f65eef89a379b6c0",
+    "oldPlan": "deployments/tx-plans/42161-hats-module-1792780799403-plan.json",
+    "oldPlanSha256": "13e830a9b411c37266782b25984feaa8ce8496063212fe1098006bc5cb7d1401",
+    "oldPlanState": "evidence-only; lacks committed source and fee binding",
+    "transactions": [
+      {
+        "type": "CREATE",
+        "nonce": 1037,
+        "to": null,
+        "value": "0x0",
+        "gasLimit": 4798069,
+        "calldataSha256": "8a72c9885262ee78fa2d373ea23d3aaefe1b3bbd8b39ce29ced8b36ac7c3c81a"
+      },
+      {
+        "type": "CALL",
+        "nonce": 1038,
+        "to": "0x5b943088ecddbf8e4ae387348a88a654ac5f7266",
+        "value": "0x0",
+        "gasLimit": 54796,
+        "calldataSha256": "5a95d9e74f00a796b7c648954bc0eb16e6e13e7b8cb7adb58cc32c64999970cd"
+      }
+    ],
+    "maxFeePerGasWei": "50000000",
+    "combinedGasLimitCostCeilingWei": "242643250000000",
+    "repairValidation": {
+      "observedBoundaryUTC": "2026-10-23 19:03:41",
+      "intent": "qa",
+      "risk": "critical",
+      "checks": [
+        "format",
+        "lint",
+        "abi-artifacts",
+        "contracts-build",
+        "contracts-test",
+        "contracts-verify-fast"
+      ],
+      "freshPassed": 6,
+      "reused": 0,
+      "unrun": 0,
+      "solidityCases": 2209,
+      "scriptCases": 447,
+      "cliCases": 37,
+      "productionGasCases": 3,
+      "attribution": "Working-copy proof bound by the two input hashes; signed checkpoint is reported in chat",
+      "inputSha256": {
+        "packages/contracts/script/upgrade.ts": "bdf263af6d2710f63c8d820f6bebe0da897b99de4ecdba67f8287516e0bf86e5",
+        "packages/contracts/script/utils/upgrade.test.ts": "9822bf1929bb2c7831d8d52bfb700e0c38b03c840e8e00350f4be11cc3d65f40"
+      },
+      "priorFailure": "First full gate stopped on a missing contractAddress field in the new send-argument test fixture; fixed and all six checks rerun fresh",
+      "remoteCI": "not checked; no publication requested",
+      "renderedProof": "none; no UI change"
+    },
+    "liveBroadcast": false,
+    "latestOwnerReadbackMatches": true,
+    "latestImplementationReadbackMatches": true,
+    "latestPendingNonce": 1037,
+    "productionCreationHash": "0x3707b435ffb8b1727966bdacf3310cd4a9fce5e8377672355113143d262d8e35",
+    "forkProof": {
+      "observedBoundaryUTC": "2026-10-23 19:06:34",
+      "proofClass": "isolated public Arbitrum fork; not live broadcast",
+      "blockNumber": 517618807,
+      "blockHash": "0x553150fa22340666d1e388eeb42c293b8b0f3610b825d9fd75b5fc1ba1c65e95",
+      "gardenCount": 18,
+      "testsPassed": 1,
+      "failures": 0
+    },
+    "storageProof": {
+      "result": "HatsModule matches committed storage baseline",
+      "namespaceCheck": "skipped; no registered Hats namespace baseline",
+      "signatureCacheWarning": "write unavailable; comparison passed"
+    }
   }
 }

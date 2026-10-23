@@ -3,7 +3,17 @@
 **Current target:** Saturday, 24 October 2026 Pacific. Deck Saturday; participant testing Sunday
 and Monday, 25–26 October. This package is in preparation; no broadcast is claimed.
 
-**Current continuation, 23 October at 10:13 a.m. Pacific:** the legacy-validator bootstrap is
+**Latest continuation, 23 October at 11:42 a.m. Pacific:** the user retains the same-address
+requirement and explicitly advances independent deployment while member activation stays
+blocked. Gnosis factory calls confirm that the original initializer derives the selected member
+address but cannot deploy it with the missing legacy validator; the patched initializer deploys
+in read-only simulation at a different address. No live legacy validator will be deployed.
+The approved Gnosis deployer now has 1.27 xDAI. The operator generated the Hats two-transaction
+plan. Its repaired execution path passes all six selected critical checks; a fresh plan must
+bind the repair's signed source revision and fee cap before either transaction is signed.
+See the continuation at the end of this handoff for current proof and operator actions.
+
+**Earlier continuation, 23 October at 10:13 a.m. Pacific:** the legacy-validator bootstrap is
 blocked for live use by a source-level assertion-binding concern. The historical build and
 fictional migration proofs below remain valid only for their recorded scope; they do not
 establish a safe production bootstrap. TAS HUB's garden and steward Hat are now verified and
@@ -883,3 +893,118 @@ Agent/model: Codex / GPT-6 | Coverage: public deployment bindings and same-addre
 Human corrections: 0 in this segment; attention: unknown. Agent correction: premature guardian
 recommendation rejected after verification, before deployment. Rendered member proof: pending.
 Live receipts: none. The current segment does not close any existing implementation or live gate.
+
+### Same-address route decision and funded Hats boundary, 23 October
+
+The canonical Gnosis factory `0xaac5D4240AF87249B3f71BC8E4A2cae074A3E419` returns the selected
+member address for the unchanged legacy initializer and a different address for the patched
+initializer. At Gnosis block **48,905,656** (`0x2ea3db8`, hash
+`0xa93abf48d6dbe8b84d5f2bb016a4f42660f0c2637884c4c316dcfe968d685b10`), read-only
+`createAccount(bytes,bytes32)` with the legacy initializer reverts. The patched initializer's
+read-only deployment succeeds and returns its independently derived different address. Neither
+call broadcasts or proves possession. Exact member coordinates, association and calls remain
+outside Git in the private local evidence directory.
+
+The [pinned upstream factory source](https://github.com/zerodevapp/kernel/blob/03f7f5cf5871cda0070e4223f196f5b577f6cde2/src/factory/KernelFactory.sol)
+hashes the full initialization calldata with the supplied salt, then creates and initializes
+the account atomically. Kernel initialization installs the selected validator before executing
+additional initialization calls. A patched validator, added initialization hook, different
+factory or changed implementation does not preserve the established CREATE2 derivation.
+Changing a deployed Arbitrum root also does not rewrite the undeployed Gnosis initializer.
+The legacy validator's public creation record identifies the deterministic deployment proxy;
+its address is tied to its creation code, rather than an operator-controlled CREATE nonce that
+could deploy patched code at the same location. See [CREATE2](https://eips.ethereum.org/EIPS/eip-1014)
+for the address formula. [EIP-7702](https://eips.ethereum.org/EIPS/eip-7702) requires a secp256k1 authorization by the target EOA and is
+not an address-preserving conversion of this passkey-derived contract account.
+
+**User decision:** keep the same address required, advance independent deployments, and leave
+member activation blocked. No chain-specific substitute, legacy-validator deployment, account
+override, provider switch or production chain-100 activation is selected. There is no member
+signature or funding request that resolves this bootstrap. An upstream proposal must establish
+the exact preserved derivation and a safe supported initialization before this gate reopens.
+
+The user reports funding sent. A fresh public balance read confirms **1.27 native xDAI** at the
+approved Gnosis deployer. This verifies available balance, not a particular transfer receipt;
+no funding transaction hash was supplied. The previous 0.10 xDAI deployment-gas / 0.50 xDAI initial
+CCIP caps remain, with no automatic spending of the balance beyond those caps. No additional
+Arbitrum top-up is currently requested; the observed balance remains 0.010203292241719177 ETH.
+The member account remains unfunded by this operation.
+
+The operator generated `deployments/tx-plans/42161-hats-module-1792780799403-plan.json`, relative
+to Contracts, using the normal root environment. Its two zero-value transactions are:
+
+| Step | Signer / nonce | Transaction |
+|---|---|---|
+| 1 | Approved deployer / 1,037 | CREATE the production HatsModule at `0xfaA09595EF96Cc56709E1643ad724bD5fA5AE0dD`. |
+| 2 | Approved deployer / 1,038 | Call `upgradeTo(address)` on `0x5b943088ecdDBF8E4ae387348A88A654aC5F7266` with the step-one implementation. |
+
+The existing owner and implementation match the prior public snapshot; the pending nonce was
+still 1,037 at the 18:41:59 UTC observation boundary. The plan has gas limits 4,798,069 and
+54,796. At the proposed 50,000,000-wei max fee, their combined gas-limit ceiling is
+**0.00024264325 ETH**. Future fees/nonces still require fresh readback. No transaction has been
+signed or broadcast in this continuation.
+
+Inspection found that the original generic Hats broadcast path reran both Forge transactions;
+it did not enforce its own plan's one-transaction receipt/post-state rule. The repair routes
+Arbitrum Hats through exact boundary execution, rejects unbound old plans, binds the committed
+source and production creation code, enforces the gas/fee cap, and verifies exact runtime,
+owner and implementation. Each later step rechecks the preceding receipt and deployed code.
+The existing storage-layout and Arbitrum fork safeguards remain. A confined exclusive plan lock
+prevents concurrent operator invocations; receipt recovery handles a mined boundary whose
+checkpoint was not persisted. A crash that leaves a lock requires operator inspection before
+removal. Imports, help and rejected arguments no longer load the root environment; operational
+invocations retain its normal loading behavior. No credential access or signer change is added.
+
+The old plan remains evidence, not an executable upgraded plan: it lacks the new commit and fee
+binding. After the repair's signed checkpoint, rerun the same Bun Hats planning command from the
+repository root in the normal operator environment. Review its new public plan, then execute
+exactly step one with `--mode broadcast --plan <new-plan> --step 1 --expected-nonce <plan-nonce>`
+and the approved sender. Step two remains dependent on step-one receipt/runtime verification.
+Do not broadcast the original unbound batch. No private keys, passwords or environment values
+belong in chat.
+
+At the observed **2026-10-23 19:03:41 UTC** boundary, all six critical checks pass fresh:
+format, lint, ABI artifacts, build, tests and production verification. Both full test phases
+pass 2,209 Solidity cases, 447 script cases, 37 CLI checks and three production gas cases.
+The first full attempt stopped on a missing required field in a new test fixture; the fixture
+was fixed and all six checks rerun. It is not reused as passing evidence. The two source hashes
+in the public evidence bind the tested working copy; the signed checkpoint is reported in chat.
+The rebuilt production creation hash equals the operator plan's exact
+`0x3707b435ffb8b1727966bdacf3310cd4a9fce5e8377672355113143d262d8e35`.
+Fresh public reads still show the approved owner, previous implementation and pending nonce
+1,037; the predicted implementation address has no code. These reads are not transaction receipts.
+
+The additional current-state Hats rehearsal passes at Arbitrum block **517,618,807**, hash
+`0x553150fa22340666d1e388eeb42c293b8b0f3610b825d9fd75b5fc1ba1c65e95`. It checks all 18
+gardens and preserves the live module's configuration through the upgrade. The owning Bun
+storage-layout check also passes against the committed Hats baseline. Its signature-cache write
+warning does not affect the comparison; no namespace baseline exists for Hats and that separate
+namespace check is explicitly skipped. The exact commands use public inputs and the existing
+no-env Bun shim, with no protected environment read:
+
+```sh
+FOUNDRY_PROFILE=fork ARBITRUM_RPC_URL=https://arbitrum-one.public.blastapi.io HATS_MODULE_UPGRADE_FORK_BLOCK_NUMBER=517618807 HATS_MODULE_UPGRADE_GARDEN_COUNT=18 HATS_MODULE_UPGRADE_EXPECTED_IMPLEMENTATION=0xE5E5cbEDa7DC1139AF2e04Bd4a6784B42B4BeCD2 bun --no-env-file run --cwd packages/contracts test --suite solidity --profile match -- test/fork/ArbitrumHatsModuleUpgrade.t.sol
+bun --no-env-file run --cwd packages/contracts check:storage-layout --contract HatsModule
+```
+
+Exact full validation command (with the existing no-env Bun shim first on `PATH`):
+
+```sh
+bun --no-env-file run check -- --intent qa --changed packages/contracts/script/upgrade.ts,packages/contracts/script/utils/upgrade.test.ts,.plans/backlog/cosmo-local-credit-interop/handoffs/codex-live-pilot-deployment.md
+```
+
+Task record: cosmo-local-credit-interop live pilot deployment | Type: investigation/fix | Outcome: partial; member activation blocked by retained identity requirement
+Agent/model: Codex / GPT-6 | Coverage: Gnosis bootstrap disposition, funding and Hats execution boundary
+
+| Phase | Start → end (UTC) | Result / evidence or blocker |
+|---|---|---|
+| Investigate | Start unknown → 2026-10-23 18:41:59 | Factory derivation/deployment calls, CREATE2 source, operator plan and funded Gnosis balance checked. |
+| Wait | Start unknown → 2026-10-23 18:41:59 observed boundary | User reports funding, supplies the public operator plan and retains same-address identity with member activation blocked. |
+| Implement | After 2026-10-23 18:41:59 → before 18:51:22 | Repair the concrete two-transaction Hats execution gap; no account or Solidity-source mutation. |
+| Verify | 2026-10-23 18:46:04 → 19:03:41 | Focused RED: 2 failures for missing behavior; GREEN: 26 cases and 37 CLI checks. Complete selected six-check critical gate passes after correcting one test fixture. |
+| Verify / review | 2026-10-23 19:03:41 → 19:06:34 | Pinned public Arbitrum fork and Hats storage checks pass; full owned source diff and operator creation bytes reviewed. |
+| Publish locally / wait | After 2026-10-23 19:06:34 → ongoing | Signed local repair checkpoint is reported in chat; normal operator must regenerate the bound public plan before signing. |
+
+Human corrections: 0 in this segment; attention: unknown. Rendered proof: none; no UI changed.
+The earlier signed checkpoint is `3f41fc44e3e52ba463f5cba6f65eef89a379b6c0`. No live transaction
+receipt or member-signing proof is claimed.
