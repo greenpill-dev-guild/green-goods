@@ -77,7 +77,8 @@ describe("public locale payloads", () => {
     await writeFile(join(client, "src/PublicApp.tsx"), "");
     await writeFile(
       join(client, "src/components/Button.tsx"),
-      'const label = `app.button.${state}`; const shared = "future.shared.label";'
+      'const label = `app.button.${state}`; const shared = "future.shared.label";' +
+        `\n/* "A.${".".repeat(10_000)} */`
     );
     await writeFile(
       join(client, "src/components/Button.test.tsx"),

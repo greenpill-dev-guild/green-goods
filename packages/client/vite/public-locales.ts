@@ -4,7 +4,7 @@ import type { Plugin } from "vite";
 
 const PUBLIC_LOCALE_ID = /^virtual:green-goods-public-locale\/(en|es|pt)$/;
 const RESOLVED_PREFIX = "\0green-goods-public-locale/";
-const MESSAGE_REFERENCE = /["'`]([A-Za-z][\w-]*(?:\.[\w.-]*)+)(?:["'`]|(?=\$\{))/g;
+const MESSAGE_REFERENCE = /["'`]([A-Za-z][\w-]*\.[\w.-]*)(?:["'`]|(?=\$\{))/g;
 
 /** Public copy and shared UI copy come from the same canonical catalogues.
  * Include all Shared runtime references conservatively: wallet, install and

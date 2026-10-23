@@ -8,16 +8,8 @@ import { ADMIN_LEGACY_QUERY_PERSISTENCE, ADMIN_QUERY_PERSISTENCE_DB } from "./bo
 import { BootConnect, BootErrorBoundary, BootRecovery, BootShell } from "./BootSurface";
 
 /**
- * Admin boot sequence.
- *
- * The old entry did everything at module top level — persister construction,
- * theme, Sentry, global handlers, IPFS — before `root.render`. Any throw in
- * that graph (a blocked `window.localStorage`, a Sentry integration, a shared
- * module's own top-level code) failed the whole module and left `#root`
- * empty with nothing on screen and nobody listening. This module inverts the
- * order: record failures first, put a visible shell in the root second, load
- * the application tree third, and start every optional service last inside
- * its own guard so none of them can take the workspace down.
+ * Paint a recoverable shell before application imports and guard optional services.
+ * Only fresh guests defer startup; saved or uncertain sessions restore normally.
  */
 
 export type BootStage =
@@ -315,12 +307,18 @@ export async function bootAdmin(options: BootAdminOptions = {}): Promise<BootOut
     return pending ?? Promise.resolve(mounted());
   };
 
-  // Mock auth is a development-only runtime choice; it must bypass the guest prompt.
-  if (
-    hasSessionRestoreEvidence() ||
-    (import.meta.env.DEV && new URLSearchParams(window.location.search).has("mockAuth"))
-  ) {
-    return startApplication();
+  if (hasSessionRestoreEvidence()) return startApplication();
+
+  // Reuse AuthGate's loopback-only URL/session override. Production removes
+  // this entire branch, including its otherwise heavy provider import.
+  if (import.meta.env.DEV) {
+    let mockOverride = false;
+    await attemptAsync(diagnostics, "load-root", async () => {
+      const { hasMockAuthOverride } = await import("@green-goods/shared/providers/AuthGate");
+      mockOverride = hasMockAuthOverride();
+    });
+    if (disposed) return mounted();
+    if (mockOverride) return startApplication();
   }
 
   const recheckSession = () => {

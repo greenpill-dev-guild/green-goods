@@ -52,6 +52,7 @@ describe("bootAdmin", () => {
     if (originalLocalStorage) {
       Object.defineProperty(window, "localStorage", originalLocalStorage);
     }
+    window.sessionStorage.removeItem("greengoods_dev_mock_auth");
     window.localStorage.removeItem("gg-language");
     window.localStorage.removeItem("greengoods_auth_mode");
     window.localStorage.removeItem("greengoods_credential");
@@ -105,6 +106,27 @@ describe("bootAdmin", () => {
     expect(loadRoot).toHaveBeenCalledTimes(1);
     expect(loadRoot).toHaveBeenCalledWith(true);
     expect(window.localStorage.getItem("greengoods_auth_mode")).toBeNull();
+  });
+
+  it.each([
+    "deployer",
+    "steward",
+    "disconnected",
+  ])("starts the development runtime for a persisted %s mock override without a URL parameter", async (role) => {
+    window.localStorage.removeItem("greengoods_auth_mode");
+    window.sessionStorage.setItem("greengoods_dev_mock_auth", role);
+    const loadRoot = vi.fn(async () => ({ default: Ready }));
+    await boot({ loadRoot });
+    expect(loadRoot).toHaveBeenCalledWith(false);
+    expect(window.sessionStorage.getItem("greengoods_dev_mock_auth")).toBe(role);
+  });
+
+  it("does not treat an invalid persisted mock role as a session", async () => {
+    window.localStorage.removeItem("greengoods_auth_mode");
+    window.sessionStorage.setItem("greengoods_dev_mock_auth", "invalid-role");
+    const loadRoot = vi.fn(async () => ({ default: Ready }));
+    await boot({ loadRoot });
+    expect(loadRoot).not.toHaveBeenCalled();
   });
 
   it("starts a legacy passkey restore immediately even without an auth mode", async () => {
