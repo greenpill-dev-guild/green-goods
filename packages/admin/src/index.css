@@ -140,6 +140,13 @@
   --gg-icon-size-sm: 2rem;
   --gg-icon-size-compact: 1.75rem;
   --gg-hit-block: 2.75rem;
+  /* Shared fields, secondary buttons and chips take the cockpit's
+     control-grade outline (4.8:1 on white, 6.1:1 on the dark card), the boundary its own
+     Admin* controls already draw, and focus draws one solid 2px ring in the
+     workspace tone (F3). */
+  --gg-control-outline: var(--m3-outline);
+  --gg-focus-ring-width: 2px;
+  --gg-focus-halo-alpha: 0;
 
   /* The type roles at the cockpit's density: the app's names (shared theme.css)
      on the cockpit's 14px scale. Titles 22 / 16 / 14, body and labels 14, small

@@ -152,6 +152,11 @@ describe("AdminDensityScale.guard (DL-011)", () => {
       "--gg-icon-size-sm": "2rem",
       "--gg-icon-size-compact": "1.75rem",
       "--gg-hit-block": "2.75rem",
+      // Shared fields, secondary buttons and chips draw the cockpit's control-grade
+      // outline, and focus draws one solid 2px ring with no halo (F3).
+      "--gg-control-outline": "var(--m3-outline)",
+      "--gg-focus-ring-width": "2px",
+      "--gg-focus-halo-alpha": "0",
       // The type roles at the cockpit's density: titles 22 / 16 / 14, body and
       // labels 14 at -0.006em, small labels and meta 12 (labels at 500), chips 11,
       // and field text 16px on touch widths (14px from 640px, a media rule).

@@ -93,6 +93,9 @@
   --gg-icon-size-sm: 2rem;
   --gg-icon-size-compact: 1.75rem;
   --gg-hit-block: 2.75rem;
+  --gg-control-outline: var(--m3-outline);
+  --gg-focus-ring-width: 2px;
+  --gg-focus-halo-alpha: 0;
 
   /* The type roles at the cockpit's density, as index.css `:root` sets them,
      with its 640px media rule for field text below. */
@@ -196,11 +199,25 @@
   --gg-button-radius-pressed: var(--radius-squircle);
   --gg-button-radius-compact: var(--radius-squircle);
   --gg-button-radius-compact-pressed: var(--radius-md);
-  --gg-button-weight: var(--text-label-sm--font-weight);
+  --gg-button-weight: 500;
+  --gg-control-outline: var(--neutral-500);
+  --focus-ring: var(--primary-on-surface);
+  --gg-focus-ring-width: 2px;
+  --gg-focus-halo-alpha: 0;
+}
+
+/* The app column in dark takes the dark outline, as theme.css's app dark block
+   does for the installed app (neutral-400 on the lifted card). */
+[data-theme="dark"] [data-surface-scope="app"],
+[data-surface-scope="app"][data-theme="dark"] {
+  --gg-control-outline: var(--neutral-400);
 }
 
 [data-surface-scope="website"] {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --gg-control-outline: var(--stroke-sub-300);
+  --gg-focus-ring-width: 0px;
+  --gg-focus-halo-alpha: 0.16;
   --gg-button-radius: var(--radius-full);
   --gg-button-radius-pressed: var(--radius-full);
   --gg-button-radius-compact: var(--radius-full);

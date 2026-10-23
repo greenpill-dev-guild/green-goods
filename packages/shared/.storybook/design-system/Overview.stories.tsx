@@ -295,13 +295,13 @@ export const ThreeSystems: Story = {
     const column = (surface: string) =>
       canvasElement.querySelector<HTMLElement>(`[data-column="${surface}"]`);
 
-    // Installed app: the 16px field corner, weight 400, the cockpit's
+    // Installed app: the 16px field corner, weight 500, the cockpit's
     // Plus Jakarta Sans (DL-029, DL-096).
     const app = within(column("app") as HTMLElement);
     const appPrimary = app.getAllByRole("button", { name: "Create Garden" })[0];
     await expect(appPrimary.getBoundingClientRect().height).toBe(44);
     await expect(px(getComputedStyle(appPrimary).borderTopLeftRadius)).toBe(16);
-    await expect(getComputedStyle(appPrimary).fontWeight).toBe("400");
+    await expect(getComputedStyle(appPrimary).fontWeight).toBe("500");
     await expect(first(getComputedStyle(appPrimary).fontFamily)).toBe("Plus Jakarta Sans");
 
     // Public website: capsule, weight 600, Inter, serif editorial field

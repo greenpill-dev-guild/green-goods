@@ -1,7 +1,7 @@
 {
   "$generated": "GENERATED FILE: do not edit. Run `node scripts/docs/generate.mjs` or `node scripts/docs/generate.mjs --scope design`.",
   "generator": "scripts/docs/generate.mjs",
-  "digest": "sha256:0c44ea5f8289d38f0e12600429c21499b6ea5cfcd09a2f598b525465ae63e357",
+  "digest": "sha256:72a57339611e1f0a26b7b348d4bf49ea47f46c86f7060d81936ea12078ce5e46",
   "source": "DESIGN.md",
   "name": "Green Goods Warm Earth Core",
   "colors": {
