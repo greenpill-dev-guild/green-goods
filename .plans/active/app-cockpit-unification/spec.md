@@ -303,6 +303,30 @@ review set raised:
 The public website keeps its own dialect in all three. Every later slice still starts on its own
 approved pair.
 
+## Count badge approved, 23 October
+
+The design gate for step 4 ran on 23 October
+([eval.md](eval.md#design-gate-for-the-count-badge)). The same day the maintainer approved the
+pairs with all six recommendations the review set carried:
+
+- **The bar keeps 9+.** Every other count reads 99+ above 99. The bar's badge sits on a 24px
+  icon, where 99+ (28px) would be wider than the icon; the Your Work launcher and its Pending tab
+  give the number.
+- **The tone fills the badge on every cockpit tab**, active or not: a fifth use of the workspace
+  tone, named in Rule 18 with the decision-log row for F10. Gray badges on inactive tabs would
+  bring back a second badge.
+- **The cockpit fills it with the tone's on-surface accent**, not its action fill. Community's
+  action fill (orange-700) carries white 11px numerals at 4.0:1; its accent (orange-800) measures
+  4.9:1, and the other four tones' accents equal their action fills, in both themes. Raising
+  Community's action fill itself, which every white label on it shares, is its own change with its
+  own pair.
+- **The ring is the surface the control sits on**: the page canvas, and white on the app's bottom
+  bar.
+- **No ring inside tabs**, in this step or step 5: the badge measures 5.2:1 against the app's
+  tinted active tab in light and 10.9:1 in dark.
+- **A garden's notification bell joins the step.** The sources missed it; it drew the launcher
+  badge.
+
 ## Evidence and its limits
 
 - **Code.** The guides, token files and components listed under [Sources](#sources).
@@ -342,7 +366,7 @@ inventory of tokens or components.
 | How does the cockpit re-skin a shared piece? | It sets the family's `--gg-*` tokens once in its `index.css` (DL-031). [AdminDensityScale.guard.test.tsx](../../../packages/admin/src/__tests__/components/AdminDensityScale.guard.test.tsx) pins that block. |
 | Tabs | [StandardTabs.tsx](../../../packages/client/src/components/Navigation/Tabs/StandardTabs.tsx) and [AdminTabRail.tsx](../../../packages/admin/src/components/AdminTabRail.tsx). |
 | Chips and filters | Shared [Chip.tsx](../../../packages/shared/src/components/Chip.tsx), the app's filter button in [Home](../../../packages/client/src/views/Home/index.tsx) and its [filter sheet](../../../packages/client/src/views/Home/GardenFilters/index.tsx); the cockpit's [AdminFilterChip.tsx](../../../packages/admin/src/components/AdminFilterChip.tsx) and [AdminSortSelect.tsx](../../../packages/admin/src/components/AdminSortSelect.tsx). |
-| Count badges | The app's [AppBar.tsx](../../../packages/client/src/components/Layout/AppBar.tsx), the [Your Work launcher](../../../packages/client/src/views/Home/WorkDashboard/Icon.tsx), the [Promises launcher](../../../packages/client/src/views/Home/CommitmentsSheet/Launcher.tsx), the Home filter count, `StandardTabs` and the [AppSheet](../../../packages/client/src/components/Sheets/AppSheet.tsx) tabs; the cockpit's `AdminTabRail`. |
+| Count badges | The app's [AppBar.tsx](../../../packages/client/src/components/Layout/AppBar.tsx), the [Your Work launcher](../../../packages/client/src/views/Home/WorkDashboard/Icon.tsx), the [Promises launcher](../../../packages/client/src/views/Home/CommitmentsSheet/Launcher.tsx), the Home filter count, `StandardTabs` and the [AppSheet](../../../packages/client/src/components/Sheets/AppSheet.tsx) tabs, and a garden's notification bell in [TopNav](../../../packages/client/src/components/Navigation/TopNav.tsx); the cockpit's `AdminTabRail`. Since step 4 they all render Shared's `CountBadge`. |
 | Cards and work items | [CardBase.tsx](../../../packages/shared/src/components/Cards/CardBase.tsx), the client [Card.tsx](../../../packages/client/src/components/Cards/Card.tsx) and shared [WorkCard.tsx](../../../packages/shared/src/components/Cards/WorkCard/WorkCard.tsx); the cockpit's [AdminCard.tsx](../../../packages/admin/src/components/AdminCard.tsx), [HubWorkCard.tsx](../../../packages/admin/src/views/Hub/components/HubWorkCard.tsx) and the grid in [admin-layout.css](../../../packages/admin/src/styles/admin-layout.css); shared [WorkbenchRow.tsx](../../../packages/shared/src/components/Canvas/WorkbenchRow.tsx). |
 | Sheets | Shared [PwaSheet.tsx](../../../packages/shared/src/components/Dialog/PwaSheet.tsx) and [SheetHeader.tsx](../../../packages/shared/src/components/Dialog/SheetHeader.tsx); the cockpit's [AdminDialog.tsx](../../../packages/admin/src/components/AdminDialog.tsx). |
 | Bottom bars | The app's `AppBar.tsx` and the cockpit's [NavigationBar.tsx](../../../packages/admin/src/components/Shell/NavigationBar.tsx). |
