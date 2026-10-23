@@ -216,6 +216,22 @@ Four roles, defined by **how much of the screen each occupies**, not a palette r
 
 **Rationale:** The installed app and the admin cockpit share one sans face, so the two read as one product (DL-096). The public website keeps Inter beside its editorial serif, which only appears there, where editorial weight matters; a public page opened inside the installed app keeps the website's Inter.
 
+**Type roles.** Text takes its size from one set of role names on both surfaces: the `type-*` utilities in shared `theme.css`. Each surface sets its own sizes, so a shared component keeps one class and takes the density of the surface that draws it. The installed app reads at 16px and the cockpit at 14px.
+
+| Role | Installed app | Cockpit | Use |
+|------|---------------|---------|-----|
+| `type-title-lg` | 24/32, 600 | 22/28, 600 | Page, dialog, flow, and step titles |
+| `type-title-md` | 18/24, 600 | 16/24, 600 | Section, sheet, and card titles |
+| `type-title-sm` | 16/24, 600 | 14/20, 600 | Compact titles: work cards, list items, values |
+| `type-body` | 16/24 | 14/20 | Reading text |
+| `type-label` | 16/24, 500 | 14/20, 500 | Labels and actions |
+| `type-label-sm` | 14/20 | 12/16, 500 | Small labels, field labels, and secondary lines |
+| `type-meta` | 12/16 | 12/16 | Metadata and supporting text |
+| `type-meta-sm` | 11/16 | 11/16 | Chips and the smallest supporting lines |
+| `type-field` | 16/24 | 16/20, 14/20 from 640px | Field text and checkbox and choice labels |
+
+Values are size and line height in pixels at the default text size, then weight (400 where none is named). The tokens are rem, so text follows the reader's text size. Text at 16px tracks at -0.011em, at 14px at -0.006em, and otherwise at 0. A weight, leading, or tracking utility on the same element adjusts a role (`type-label-sm font-medium`). Status pills are the exception to density: they are one size on both surfaces, the cockpit's chip size (`StatusBadge` `xs` and `sm` on `type-meta-sm`, `md` on `type-meta`). The Material aliases (`text-title-*`, `text-body-*`, `text-label-*` in the cockpit's theme) and the `label-*`, `body-*`, and `subheading-*` classes are retired, and `check:design-tokens` fails on them and on the shared scale's sizes (`text-paragraph-*`, `text-title-h*`, and the like) in the cockpit's and Shared's source. The app's own views still use the shared scale until they move.
+
 ## Voice & Copy
 
 > Companion to the visual creative direction. Same brief: verbal expression instead of visual.

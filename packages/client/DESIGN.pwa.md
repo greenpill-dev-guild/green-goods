@@ -51,7 +51,7 @@ dialect: installed-pwa
 **Typography:**
 - Plus Jakarta Sans only, the cockpit's face, so the app and the cockpit read as one product (DL-096); no serif. This is a tool, not a magazine. `index.html` loads the variable face and the loading screen names it; a public page opened inside the installed app keeps the website's Inter.
 - Type comes from the shared theme tokens and the shared components' own rules. The client's legacy type utilities (`.title-screen`, `.label-md`, `.body-md-regular`, and siblings) read tokens no stylesheet defines and are being retired; `.title-section` and `.body-sm-regular` are already gone (DL-028). The client stylesheet sets no element type sizes, so every heading names its own size and weight (`typographyLayer.guard.test.ts` fails a heading that does not)
-- Compact type scale: body-sm and label-md are the workhorses
+- Type roles at the app's density (root `DESIGN.md` § Typography): `type-body` 16px for reading; `type-label` 16px and `type-label-sm` 14px for labels, field labels, and secondary lines; `type-meta` 12px for metadata; `type-meta-sm` 11px for chips and status pills; titles at 24, 18, and 16px. The shared components use them, and the app's own views still use the shared scale (`text-label-md` and its siblings) until they move
 
 **Content hierarchy:**
 1. Active garden context: always visible, always grounding

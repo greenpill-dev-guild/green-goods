@@ -91,13 +91,13 @@ Entity references in lists (gardens, actions) include small thumbnails — 40px 
 
 ## Rule 9: Typography Utilities
 
-Text takes its size from the type scale, never from a raw Tailwind size (`text-xs` … `text-2xl`). In admin that scale is the type roles (`packages/admin/DESIGN.md` § Typography), each at the cockpit's density:
+Text takes its size from the type scale, never from a raw Tailwind size (`text-xs` … `text-2xl`). That scale is the type roles: shared components use them on both surfaces (root `DESIGN.md` § Typography), and in admin each is at the cockpit's density (`packages/admin/DESIGN.md` § Typography):
 
 - `type-title-lg` 22/28 for dialog, sheet, flow, and step titles and full-page state headings; a step title takes its flow title's size through `FlowStepHeader`, above the step's 16px section titles and 14px rows (DL-063) · `type-title-md` 16/24 for route headers, card and section titles, and metric values · `type-title-sm` 14/20. Titles are weight 600.
 - `type-body` 14px body · `type-label` 14px labels (500), every button size · `type-label-sm` 12px label (500) · `type-meta` 12px meta and supporting text · `type-meta-sm` 11px for chips and the smallest supporting lines.
 - `type-field` for field text and checkbox and choice labels: 16px on touch widths, 14px from 640px (DL-030).
 
-The roles are Tailwind utilities, so a weight, leading, or tracking utility adjusts them (`type-body font-medium`) and responsive variants work (`type-meta sm:type-body`). The Material `text-title-*`, `text-body-*`, and `text-label-*` aliases and the `label-*`, `body-*`, and `subheading-*` classes are retired in admin views; `check:design-tokens` fails on them, on the shared theme's other sizes (`text-paragraph-*`, `text-title-h*`, and the like), and on a raw size, anywhere in `packages/admin/src`, stories included.
+The roles are Tailwind utilities, so a weight, leading, or tracking utility adjusts them (`type-body font-medium`) and responsive variants work (`type-meta sm:type-body`). The Material `text-title-*`, `text-body-*`, and `text-label-*` aliases and the `label-*`, `body-*`, and `subheading-*` classes are retired; `check:design-tokens` fails on them and on the shared theme's other sizes (`text-paragraph-*`, `text-title-h*`, and the like) anywhere in `packages/admin/src` and `packages/shared/src`, and on a raw size anywhere in `packages/admin/src`, stories included.
 
 Mind the role split: `type-label-sm text-text-soft` is the **eyebrow / metadata** token (card overlines, definition-list keys, section meta); it is **not** a form-field label. The title that labels a control goes through `FormField` / `AdminSettingRow` (see Rule 15).
 
