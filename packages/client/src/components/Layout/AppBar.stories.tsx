@@ -24,7 +24,7 @@ function WithSheetOpen({ children }: { children: React.ReactNode }) {
 const withRouter = (initialEntries: string[] = ["/home"]) => {
   return (Story: React.ComponentType) => (
     <MemoryRouter initialEntries={initialEntries}>
-      <div className="relative h-[200px] bg-bg-white-0">
+      <div className="relative h-[200px] bg-bg-canvas">
         <Story />
       </div>
     </MemoryRouter>

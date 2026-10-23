@@ -177,7 +177,7 @@ export const TopNav: React.FC<TopNavProps> = ({
   // offline banner shows, and the bar is 72px tall below the safe area.
   const containerClasses = cn(
     "relative flex z-nav flex-row w-full justify-evenly items-start gap-4 p-6 pt-[var(--app-top-offset)] h-[var(--app-top-bar-height)]",
-    overlay && "fixed bg-bg-white-0"
+    overlay && "fixed bg-bg-canvas"
   );
 
   return (

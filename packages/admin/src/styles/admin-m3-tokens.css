@@ -159,22 +159,20 @@
  * Overrides for [data-theme="dark"] adaptive dark palette
  * -------------------------------------------------------------------------- */
 [data-theme="dark"] {
-  /* Deliberate warm-dark surface ladder (Warm Earth — constant warm hue ~65,
-   * raised chroma so surfaces read warm even at low lightness). OKLCH is the
-   * authoritative intent (in comments); the shipped value is the computed RGB
-   * triplet because every consumer reads `rgb(var(--m3-surface…))`.
-   * M3-dark convention: HIGHER elevation = LIGHTER. The default card
-   * (`--m3-surface-container`) sits ~6 L* above the canvas (`--m3-surface`), so
-   * card↔canvas separation comes from a lightness STEP, not a (black, invisible)
-   * drop shadow. This replaces the previous cold blue-slate derivation. */
-  --m3-surface: 17 12 8;                 /* oklch(16% .012 65) — canvas floor */
-  --m3-surface-dim: 17 12 8;             /* oklch(16% .012 65) — = surface in dark */
-  --m3-surface-bright: 57 49 41;         /* oklch(32% .018 65) — ladder top */
-  --m3-surface-container-lowest: 10 7 4; /* oklch(13% .010 65) — sunken wells */
-  --m3-surface-container-low: 24 19 13;  /* oklch(19% .014 65) — quiet grouping */
-  --m3-surface-container: 32 25 19;      /* oklch(22% .015 65) — DEFAULT CARD */
-  --m3-surface-container-high: 42 35 28; /* oklch(26% .016 65) — sheet/dialog inner */
-  --m3-surface-container-highest: 52 44 36; /* oklch(30% .018 65) — active/hover, chips */
+  /* The warm dark ladder is the shared Earth ramp in theme.css (one ladder for
+   * the cockpit and the installed app, F2). M3-dark convention: HIGHER
+   * elevation = LIGHTER. The default card (`--m3-surface-container`) sits ten
+   * points of OKLCH lightness above the canvas (`--m3-surface`, 26% against
+   * 16%), so card↔canvas separation comes from a lightness STEP, not a (black,
+   * invisible) drop shadow; the chips and fills on a card move up with it (F13). */
+  --m3-surface: var(--earth-950);                  /* oklch(16%): canvas floor */
+  --m3-surface-dim: var(--earth-950);              /* = surface in dark */
+  --m3-surface-bright: var(--earth-750);           /* ladder top */
+  --m3-surface-container-lowest: var(--earth-975); /* oklch(13%): sunken wells */
+  --m3-surface-container-low: var(--earth-925);    /* oklch(19%): quiet grouping */
+  --m3-surface-container: var(--earth-850);        /* oklch(26%): DEFAULT CARD */
+  --m3-surface-container-high: var(--earth-800);   /* oklch(30%): sheet/dialog inner */
+  --m3-surface-container-highest: var(--earth-750); /* oklch(34%): active/hover, chips */
 
   /* M3 elevation — DARK override (the `:root` ladder above is light-only: pure
    * black drop shadows that are invisible on near-black). In M3-dark, depth is a
@@ -183,7 +181,7 @@
    * the lightness STEP in the surface ladder, this restores card separation.
    * Level 0 stays a transparent zero shadow, never `none` (see the light ladder). */
   --m3-elevation-0: 0 0 transparent;
-  --m3-elevation-1: 0 0 0 1px rgb(var(--neutral-50) / 0.06);
+  --m3-elevation-1: 0 0 0 1px rgb(var(--neutral-50) / 0.08);
   --m3-elevation-2: 0 1px 2px rgb(0 0 0 / 0.5), 0 0 0 1px rgb(var(--neutral-50) / 0.09);
 
   --m3-on-surface: var(--text-strong-950);
@@ -195,10 +193,15 @@
    * remapped stroke-sub-300 (neutral-700) measured 1.89:1. */
   --m3-outline: var(--neutral-400);
   --m3-outline-variant: var(--stroke-soft-200);
-  /* Dark error flips strategy (M3-dark convention): lighter red fill
-   * (admin remap 248 113 113) with ink text = 6.2; the old red-600 fill with
-   * ink text measured 4.09, and as icon/text on the canvas 4.03. */
-  --m3-error: var(--red-500);
+  /* Dark error flips strategy (M3-dark convention): a lighter red fill with
+   * ink text. red-400 holds 5.5:1 as text on the lifted card and 7.1:1 under
+   * ink; red-500 fell to 4.2:1 on the card once it moved up a step (F13). */
+  --m3-error: var(--red-400);
+  /* The shared text roles that would fall below AA on the lifted card take
+   * one lighter step here too (the installed app sets the same in theme.css). */
+  --error-base: var(--red-400);
+  --feature-dark: var(--purple-300);
+  --information-base: var(--blue-400);
   /* Must live HERE, not only in theme.css's dark block: this file's :root
    * declaration is unlayered and beats theme's @layer dark override, so
    * without this line dark on-error resolves to the light-mode white. */

@@ -174,6 +174,20 @@
   --neutral-alpha-16: var(--gray-alpha-16);
   --neutral-alpha-10: var(--gray-alpha-10);
 
+  /* Earth: the one warm dark ladder (hue ~65, raised chroma so a dark surface
+   * still reads warm). The installed app and the cockpit both build their dark
+   * theme from it; higher steps are lighter, so a card sits above the canvas by
+   * a lightness step rather than a shadow. OKLCH intent in the comments. */
+  --earth-975: 10 7 4;    /* oklch(13% .010 65): sunken wells */
+  --earth-950: 17 12 8;   /* oklch(16% .012 65): the canvas */
+  --earth-925: 24 19 13;  /* oklch(19% .014 65): quiet grouping, info cards */
+  --earth-900: 32 25 19;  /* oklch(22% .015 65) */
+  --earth-850: 42 35 28;  /* oklch(26% .016 65): the card */
+  --earth-800: 52 44 36;  /* oklch(30% .018 65): chips and fills on a card */
+  --earth-775: 57 49 41;  /* oklch(32% .018 65) */
+  --earth-750: 62 52 44;  /* oklch(34% .019 65): active and hover on a card */
+  --earth-700: 67 61 55;  /* a card's hairline: 12% of the ink over the card */
+
   /* Blue scale */
   --blue-950: 18 35 104;
   --blue-900: 24 47 139;
@@ -378,6 +392,9 @@
   --bg-soft-200: var(--neutral-100);     /* 242 245 248 - soft blue-gray */
   --bg-weak-50: var(--neutral-50);       /* 245 247 250 - page background with blue tint */
   --bg-white-0: var(--neutral-0);      /* 255 255 255 - pure white for cards */
+  /* The page ground. It equals the card surface except in the installed app,
+   * which lays white cards on the linen canvas (below). */
+  --bg-canvas: var(--bg-white-0);
 
   --text-strong-950: var(--neutral-950);
   --text-sub-600: var(--neutral-600);
@@ -885,9 +902,20 @@
   --social-amazon: 255 255 255;
   --social-zendesk: 255 255 255;
 }
-/* The PWA restores its pale mint dark palette (DL-088). The boot marker covers
- * sign-in and portalled sheets as well as the app shell; Storybook declares its
- * app surface explicitly. Public and admin retain their own green treatments. */
+/* The installed app's ground (F2): white cards on the cockpit's linen canvas,
+ * with a hairline that still reads on linen. The boot marker covers sign-in and
+ * portalled sheets as well as the app shell; Storybook declares its app surface
+ * explicitly. The public website keeps its white ground. Every property set
+ * here is set again in the dark block below, which outranks this one. */
+:root[data-boot-presentation="pwa"]:not(:has([data-site="website"])),
+[data-surface="app"] {
+  --bg-canvas: var(--gg-design-neutral, 250 248 245);
+  --stroke-soft-200: var(--neutral-200);
+}
+
+/* The PWA restores its pale mint dark palette (DL-088) and takes the one warm
+ * dark ladder (F2, F13): the canvas at the floor, cards and sheets one step
+ * lighter, fills on a card lighter again, and info cards between the two. */
 :root[data-theme="dark"][data-boot-presentation="pwa"]:not(:has([data-site="website"])),
 [data-theme="dark"][data-surface="app"],
 [data-surface="app"] [data-theme="dark"] {
@@ -895,6 +923,19 @@
   --primary-action: var(--gg-design-tertiary-dark, var(--green-200));
   --primary-action-hover: var(--gg-design-tertiary-dark-hover, var(--green-300));
   --primary-action-foreground: var(--gg-design-on-tertiary-dark, var(--neutral-950));
+
+  --bg-canvas: var(--earth-950);
+  --bg-white-0: var(--earth-850);
+  --bg-weak-50: var(--earth-925);
+  --bg-soft-200: var(--earth-800);
+  --bg-sub-300: var(--earth-750);
+  --stroke-soft-200: var(--earth-700);
+  /* A lifted card costs coloured text about a fifth of its contrast. The three
+   * roles that would fall below AA on it take one lighter step (5.5, 6.3 and
+   * 5.4:1 on the card). */
+  --error-base: var(--red-400);
+  --feature-dark: var(--purple-300);
+  --information-base: var(--blue-400);
 }
 
 /* Resolve Tailwind aliases within each theme scope so nested dark surfaces
@@ -1842,7 +1883,7 @@
   }
 
   body {
-    background: rgb(var(--bg-white-0));
+    background: rgb(var(--bg-canvas));
     color: rgb(var(--text-strong-950));
   }
 }
@@ -2145,6 +2186,9 @@
   --color-bg-soft-200: rgb(var(--bg-soft-200));
   --color-bg-weak-50: rgb(var(--bg-weak-50));
   --color-bg-white-0: rgb(var(--bg-white-0));
+  /* The page ground (bg-bg-canvas): the document and any bar that covers
+   * scrolled content in the page's own colour. */
+  --color-bg-canvas: rgb(var(--bg-canvas));
   /* Semantic aliases (unsuffixed). DEPRECATED for new code — prefer the
    * suffixed forms above (e.g. `bg-bg-white-0`). Kept for back-compat with
    * admin consumers; will be removed in the next theme rev. Audit

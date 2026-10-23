@@ -319,7 +319,7 @@ export const Garden: React.FC = () => {
             <div
               ref={measureHeader}
               data-testid="garden-header"
-              className="fixed top-0 left-0 right-0 bg-bg-white-0 z-20"
+              className="fixed top-0 left-0 right-0 bg-bg-canvas z-20"
             >
               {/* The banner runs up under the status bar, so it grows by the top inset
                   and keeps its height below it. */}
@@ -351,7 +351,7 @@ export const Garden: React.FC = () => {
               </div>
 
               {/* Title and meta below banner */}
-              <div className="px-4 sm:px-5 md:px-6 mt-3 flex flex-col gap-1.5 pb-3 bg-bg-white-0">
+              <div className="px-4 sm:px-5 md:px-6 mt-3 flex flex-col gap-1.5 pb-3">
                 <h1 className="line-clamp-2 text-2xl font-bold" title={name}>
                   {name}
                 </h1>
@@ -380,7 +380,7 @@ export const Garden: React.FC = () => {
               </div>
 
               {/* Tabs sticky under header */}
-              <div className="sticky top-0 left-0 right-0 w-full bg-bg-white-0 z-10 shadow-sm">
+              <div className="sticky top-0 left-0 right-0 w-full bg-bg-canvas z-10 shadow-sm">
                 <StandardTabs
                   tabs={tabs}
                   activeTab={activeTab}

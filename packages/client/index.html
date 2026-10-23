@@ -69,10 +69,12 @@
       name="msapplication-TileImage"
       content="%BASE_URL%%PWA_MS_TILE_IMAGE%"
     />
-    <!-- Carries both scheme colors. The boot-theme script below and shared theme.ts
-         set the content from the matching data-* value, so the browser chrome follows
-         the selected theme rather than the OS scheme. -->
-    <meta name="theme-color" content="%PWA_THEME_COLOR_LIGHT%" data-light="%PWA_THEME_COLOR_LIGHT%" data-dark="%PWA_THEME_COLOR_DARK%" />
+    <!-- Carries both scheme colors for each presentation: the website's white ground
+         (data-light, data-dark) and the installed app's linen and warm dark floor
+         (data-app-light, data-app-dark). The boot-theme and presentation scripts below
+         and shared theme.ts set the content from the matching data-* value, so the
+         browser chrome follows the selected theme and the page's ground. -->
+    <meta name="theme-color" content="%PWA_THEME_COLOR_LIGHT%" data-light="%PWA_THEME_COLOR_LIGHT%" data-dark="%PWA_THEME_COLOR_DARK%" data-app-light="%PWA_APP_THEME_COLOR_LIGHT%" data-app-dark="%PWA_APP_THEME_COLOR_DARK%" />
 
     <!-- Same variable typefaces, served locally; Latin covers English, Spanish and Portuguese. -->
     <link id="boot-pwa-face" href="%BASE_URL%fonts/pwa.css" rel="stylesheet" media="(display-mode: standalone), (display-mode: fullscreen), (display-mode: window-controls-overlay)" />
@@ -320,6 +322,14 @@
         if (mode === "pwa") {
           var face = document.getElementById("boot-pwa-face");
           if (face) face.media = "all";
+          // The installed app paints its own ground, so the status bar takes the
+          // app's tint for the theme boot-theme chose. Shared theme.ts keeps it
+          // current after boot.
+          var themeColor = document.querySelector('meta[name="theme-color"]');
+          var appColor =
+            themeColor &&
+            themeColor.getAttribute("data-app-" + document.documentElement.dataset.theme);
+          if (appColor) themeColor.content = appColor;
         }
         if (mode === "website") {
           var bodyFont = document.createElement("link");
@@ -391,17 +401,18 @@
       }
 
       /* The loader stays up until auth is ready, then hands off to html, body,
-         and SplashScaffold, which all paint bg-white-0; taking the same token
-         leaves the handoff seamless. The dark action fallback mirrors the PWA's
-         mint/ink pair even when the stylesheet never arrives (DL-088). */
+         and SplashScaffold, which all paint the app's canvas (bg-canvas: linen,
+         and the warm dark floor); taking the same token leaves the handoff
+         seamless. The dark action fallback mirrors the PWA's mint/ink pair even
+         when the stylesheet never arrives (DL-088). */
       html[data-boot-presentation="pwa"] #boot-fallback {
-        --boot-canvas: var(--color-bg-white-0, #ffffff);
+        --boot-canvas: var(--color-bg-canvas, #faf8f5);
         /* The installed app's face, as index.css sets it on :root. */
         font-family: "Plus Jakarta Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
 
       html[data-boot-presentation="pwa"][data-theme="dark"] #boot-fallback {
-        --boot-canvas: var(--color-bg-white-0, #0c0a09);
+        --boot-canvas: var(--color-bg-canvas, #110c08);
         --boot-action: var(--color-primary-action, #c2f5da);
         --boot-action-fg: var(--color-primary-action-foreground, #0c0a09);
       }

@@ -18,7 +18,7 @@ colors:
   amber: "#D97706"
   sky: "#3B82F6"
   neutral: "#FAF8F5"
-  neutral-dark: "#1C1917"
+  neutral-dark: "#110C08"
 typography:
   body-md:
     fontFamily: Plus Jakarta Sans
@@ -192,7 +192,7 @@ Four roles, defined by **how much of the screen each occupies**, not a palette r
 
 | Role | Volume | Color | Hex (light / dark) | Job |
 |------|--------|-------|--------------------|-----|
-| **Neutral (canvas)** | 80-90% | Warm linen | #FAF8F5 / #1C1917 | Background, breathing room |
+| **Neutral (canvas)** | 80-90% | Warm linen | #FAF8F5 / #110C08 | Background, breathing room |
 | **Primary (ink)** | 8-15% | Warm charcoal | #292524 / #F5F5F4 | Headings, body, core content |
 | **Secondary (stone)** | 3-5% | Earth stone | #78716C / #A8A29E | Metadata, borders, labels |
 | **Tertiary (accent)** | 1-3% | Garden green | #1FC16B | CTAs, active states, value-flow |

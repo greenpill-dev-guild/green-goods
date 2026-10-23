@@ -34,7 +34,7 @@ const meta: Meta<typeof CommitmentStateLadder> = {
   globals: { viewport: { value: "mobile" } },
   decorators: [
     (Story) => (
-      <div className="flex h-[560px] flex-col bg-bg-white-0">
+      <div className="flex h-[560px] flex-col bg-bg-canvas">
         <Story />
       </div>
     ),

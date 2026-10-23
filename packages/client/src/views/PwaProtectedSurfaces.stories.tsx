@@ -33,7 +33,7 @@ function TabsFixture() {
 function PwaRouteFrame({ route, children }: { route: string; children: React.ReactNode }) {
   return (
     <MemoryRouter initialEntries={[route]}>
-      <div className="min-h-[720px] bg-bg-white-0 pb-[calc(69px+var(--safe-area-bottom))] text-text-strong-950">
+      <div className="min-h-[720px] bg-bg-canvas pb-[calc(69px+var(--safe-area-bottom))] text-text-strong-950">
         {children}
         <AppBar />
       </div>
@@ -170,7 +170,7 @@ export const Profile: Story = {
 export const BackOnlineBanner: Story = {
   render: () => (
     <MemoryRouter initialEntries={["/home"]}>
-      <div className="min-h-[720px] bg-bg-white-0 px-4 py-6">
+      <div className="min-h-[720px] bg-bg-canvas px-4 py-6">
         <OfflineIndicator testState="back-online" forceShow />
       </div>
     </MemoryRouter>
