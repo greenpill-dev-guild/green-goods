@@ -46,7 +46,7 @@
     "thirdweb": "5.120.1",
     "viem": "2.55.13",
     "wagmi": "^2.19.5",
-    "zod": "4.4.3",
+    "zod": "4.6.6",
     "zustand": "5.0.15"
   },
   "devDependencies": {
