@@ -117,6 +117,7 @@ const allowedIdenticalProductValues = new Set([
   "APR",
   "Cookie Jar",
   "Cookie Jars",
+  "Cookie jar",
   "Cookies",
   "DAI",
   "Decentral Park",

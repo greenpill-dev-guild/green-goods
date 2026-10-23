@@ -805,7 +805,7 @@ describe("CommitmentDialogPanel (W10)", () => {
     });
     renderPanel();
 
-    expect(screen.getByRole("alert")).toHaveTextContent(/newer Work decision needs review/i);
+    expect(screen.getByRole("alert")).toHaveTextContent(/newer work decision needs review/i);
     expect(screen.queryByText(/approved linked work counted/i)).not.toBeInTheDocument();
   });
 
