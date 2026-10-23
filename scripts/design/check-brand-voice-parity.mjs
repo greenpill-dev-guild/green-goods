@@ -8,8 +8,9 @@
 // - the descriptor and the brand line (section 1) appear word for word wherever a surface
 //   describes the whole product, and the problem statement (section 1) reads the same on Why We
 //   Build, where its three causes are a list;
-// - DESIGN.md § Voice & Copy owns the voice core: the page's voice sentence, pillars, tone rows,
-//   and terminology rows start with DESIGN.md's words and may add after them;
+// - DESIGN.md § Voice & Copy owns the voice core: the page's voice sentence, one-sentence test,
+//   pillars, tone rows, terminology rows, and writing checklist items start with DESIGN.md's words
+//   and may add after them (a checklist item's parenthesized hint is the page's to word);
 // - the prompt contracts own the dialect examples that section 5 quotes;
 // - each section 10 model line is found word for word in the source it names, unless the source
 //   says the line was adapted;
@@ -92,7 +93,7 @@ export const FIXES = {
   "problem statement":
     "The page's section 1 owns the problem statement. Why We Build carries the same sentences, with the three causes as a list.",
   "voice core":
-    "DESIGN.md § Voice & Copy owns the voice sentence, pillars, tone rows, and terminology. Start the page's cell with DESIGN.md's words and add anything after them, or change DESIGN.md first.",
+    "DESIGN.md § Voice & Copy owns the voice sentence, one-sentence test, pillars, tone rows, terminology, and writing checklist. Start the page's text with DESIGN.md's words and add anything after them, or change DESIGN.md first.",
   examples:
     "The prompt contracts own the dialect examples. Quote the contract exactly, or change the contract first.",
   "model lines":
@@ -179,6 +180,48 @@ function quoteUnder(text, label) {
     else if (quote.length > 0 || line.trim() !== "") break;
   }
   return quote.length > 0 ? plain(quote.join(" ")) : undefined;
+}
+
+// A line that starts a new Markdown block instead of continuing a paragraph or a list item.
+const BLOCK_START = /^\s*(#|[-*+]\s|\d+[.)]\s|\||>|`{3,}|~{3,}|(?:-\s*){3,}$|(?:\*\s*){3,}$|(?:_\s*){3,}$)/;
+
+/** Every paragraph that opens with a bold label such as "**Voice:**", without the label, wrapped lines included. */
+function labeledParagraphs(text, label) {
+  const lines = (text ?? "").split("\n");
+  const found = [];
+  for (const [at, line] of lines.entries()) {
+    if (!label.test(line)) continue;
+    const paragraph = [line.replace(label, "")];
+    for (const next of lines.slice(at + 1)) {
+      if (next.trim() === "" || BLOCK_START.test(next)) break;
+      paragraph.push(next);
+    }
+    const words = plain(paragraph.join(" "));
+    if (words) found.push(words);
+  }
+  return found;
+}
+
+/**
+ * The bullet items in `text`, each read whole: an item continues on indented lines and on
+ * unindented lazy lines until a blank line or a new block. Each says whether it carries a
+ * checkbox and whether it is nested under another item.
+ */
+function listItems(text) {
+  const found = [];
+  let open = false;
+  for (const line of (text ?? "").split("\n")) {
+    const start = line.match(/^(\s*)[-*+]\s+(\[[ xX]\]\s+)?(.+)$/);
+    if (start) {
+      found.push({ text: start[3], checkbox: Boolean(start[2]), nested: start[1].length > 0 });
+      open = true;
+    } else if (open && line.trim() !== "" && !BLOCK_START.test(line)) {
+      found[found.length - 1].text += ` ${line.trim()}`;
+    } else {
+      open = false;
+    }
+  }
+  return found.map((item) => ({ ...item, text: plain(item.text) }));
 }
 
 function stringConstant(source, name) {
@@ -390,12 +433,12 @@ function compareDescriptor({ read, positioning, en, fail, count, need, agree }) 
 
 function compareBrandLine({ read, positioning, en, need, agree }) {
   const brandLine = need(
-    positioning?.match(/^\*\*Brand line\b[^\n]*?:\*\*\s*(.+)$/m)?.[1],
+    labeledParagraphs(positioning, /^\*\*Brand line\b[^\n]*?:\*\*/)[0],
     PAGE,
     "**Brand line …:** line in section 1",
   );
   if (!brandLine) return;
-  const line = plain(brandLine).replace(/\.$/, "");
+  const line = brandLine.replace(/\.$/, "");
   const owner = `${PAGE} section 1`;
   const title = plain(textOutsideTags(en["public.home.hero.title"] ?? ""));
   agree("brand line", line, owner, plain(en["public.home.hero.tagline"] ?? ""), `${EN} public.home.hero.tagline`);
@@ -420,10 +463,46 @@ function compareProblemStatement({ read, positioning, fail, count, need }) {
 }
 
 function compareVoiceSentence({ page, voiceCopy, need, agree }) {
-  const voice = need(voiceCopy?.match(/^\*\*Voice:\*\*\s*(.+)$/m)?.[1], DESIGN, "**Voice:** sentence");
-  const pageVoice = section(page, 2, "Voice");
-  const coreVoice = need(pageVoice?.match(/^\*\*Core voice\.\*\*\s*(.+)$/m)?.[1], PAGE, "**Core voice.** sentence");
-  if (voice && coreVoice) agree("voice core", plain(voice), `${DESIGN} § Voice & Copy`, plain(coreVoice), `${PAGE} core voice`);
+  const voice = need(labeledParagraphs(voiceCopy, /^\*\*Voice:\*\*/)[0], DESIGN, "**Voice:** sentence");
+  const restated = labeledParagraphs(section(page, 2, "Voice"), /^\*\*Core voice\.\*\*/);
+  need(restated[0], PAGE, "**Core voice.** sentence");
+  // Every copy on the page is held to DESIGN.md, so a stale second one cannot hide behind the first.
+  for (const coreVoice of voice ? restated : []) {
+    agree("voice core", voice, `${DESIGN} § Voice & Copy`, coreVoice, `${PAGE} core voice`, { opens: true });
+  }
+}
+
+function compareOneSentenceTest({ page, voiceCopy, need, agree }) {
+  const owned = need(labeledParagraphs(voiceCopy, /^\*\*One-sentence test:\*\*/)[0], DESIGN, "**One-sentence test:** line");
+  const restated = labeledParagraphs(section(page, 2, "Voice"), /^\*\*The one-sentence test\.\*\*/);
+  need(restated[0], PAGE, "**The one-sentence test.** line");
+  for (const test of owned ? restated : []) {
+    agree("voice core", owned, `${DESIGN} one-sentence test`, test, `${PAGE} one-sentence test`, { opens: true });
+  }
+}
+
+function compareChecklist({ page, voiceCopy, fail, count, need }) {
+  // DESIGN.md follows some questions with a hint in parentheses ("Is the audience right? (Gardener ≠
+  // steward ≠ funder)"), which the page may word its own way. Only a parenthesis straight after a
+  // question mark is such a hint; one inside the question, such as a "(DL-094)" citation, counts.
+  // Only a top-level checkbox item is a checklist item; a plain or nested bullet is not.
+  const items = (text) =>
+    listItems(text)
+      .filter(({ checkbox, nested }) => checkbox && !nested)
+      .map(({ text: item }) => ({ item, bare: plain(item.replace(/\?\s*\([^)]*\)/g, "?")) }));
+  const owned = items(section(voiceCopy, 3, "Writing Checklist"));
+  const restated = items(section(page, 2, "Pre-ship checklist"));
+  if (owned.length === 0) return need(undefined, DESIGN, "Writing Checklist items");
+  if (restated.length === 0) return need(undefined, PAGE, "Pre-ship checklist items");
+  for (const { item, bare } of owned) {
+    count("voice core");
+    if (!restated.some((line) => startsWithWords(line.bare, bare))) {
+      fail(
+        "voice core",
+        `${PAGE} section 9 has no checklist item that opens with "${item}" (a parenthesized hint may be worded its own way), which ${DESIGN} Writing Checklist lists`,
+      );
+    }
+  }
 }
 
 function comparePillars({ page, voiceCopy, fail, count, need, agree }) {
@@ -562,15 +641,15 @@ function compareDecisionIds({ read, page, compared, fail }) {
 
 function compareBannedList({ read, page, fail, count, need }) {
   const line = need(
-    section(page, 3, "Banned vocabulary")
-      ?.split("\n")
-      .find((entry) => /Rejected by the vocabulary check/i.test(entry)),
+    listItems(section(page, 3, "Banned vocabulary"))
+      .map(({ text }) => text)
+      .find((item) => /Rejected by the vocabulary check/i.test(item)),
     PAGE,
     'section 6.4 line "Rejected by the vocabulary check …"',
   );
   if (!line) return;
   count("banned list");
-  const listed = plain(line)
+  const listed = line
     .split(":")
     .slice(1)
     .join(":")
@@ -603,9 +682,11 @@ const COMPARISONS = [
   compareBrandLine,
   compareProblemStatement,
   compareVoiceSentence,
+  compareOneSentenceTest,
   comparePillars,
   compareTones,
   compareTerms,
+  compareChecklist,
   compareExamples,
   compareModelLines,
   compareDecisionIds,

@@ -86,6 +86,14 @@ const DIFFERENCES = [
   ["the social card title", PREVIEWS, "cardTitle: \"From good intentions", "cardTitle: \"From good intent", "brand line", /cardTitle/],
   ["a Why We Build cause", WHY, "costs more than doing it.**", "costs more than it should.**", "problem statement", /sentence 2/],
   ["DESIGN.md's voice sentence", "DESIGN.md", "Warm but not gushing", "Kind but not gushing", "voice core", /core voice/],
+  ["DESIGN.md's one-sentence test", "DESIGN.md", "garden sign, it's close.", "garden sign, it is close.", "voice core", /one-sentence test/],
+  ["a reworded checklist item", PAGE, "Is it shorter than your first draft?", "Is it shorter than the first draft?", "voice core", /opens with "Is it shorter than your first draft\?"/],
+  ["a checklist item DESIGN.md adds", "DESIGN.md", "- [ ] Is it shorter than your first draft?", "- [ ] Is it shorter than your first draft?\n- [ ] Does it name the garden?", "voice core", /"Does it name the garden\?"/],
+  ["a citation dropped from a checklist item", PAGE, "act or verify (DL-094)? On-chain", "act or verify? On-chain", "voice core", /verify \(DL-094\)\? On-chain/],
+  ["a checklist item turned into a plain bullet", PAGE, "- [ ] Is it shorter than your first draft?", "- Is it shorter than your first draft?", "voice core", /opens with "Is it shorter than your first draft\?"/],
+  ["a checklist item nested under another", PAGE, "- [ ] Is it shorter than your first draft?", "  - [ ] Is it shorter than your first draft?", "voice core", /opens with "Is it shorter than your first draft\?"/],
+  ["a stale second one-sentence test", PAGE, "garden sign, it's close.", "garden sign, it's close.\n\n**The one-sentence test.** If it reads like a sign, rewrite it.", "voice core", /one-sentence test reads "If it reads like a sign/],
+  ["a stale second core voice sentence", PAGE, "pointing at the compost pile.", "pointing at the compost pile.\n\n**Core voice.** Green Goods speaks like a brand.", "voice core", /core voice reads "Green Goods speaks like a brand/],
   ["a dropped \"we are not\" word", PAGE, "Jargon-heavy, academic, blockchain-first", "Jargon-heavy, academic", "voice core", /Grounded pillar\) "We are not"/],
   ["a pillar DESIGN.md lacks", PAGE, "| Active |", "| Playful | Light | Silly |\n| Active |", "voice core", /Playful pillar/],
   ["a stale duplicate pillar row", PAGE, "| Active |", "| Honest | Vague about limits | Hedging, corporate disclaimers, vague promises |\n| Active |", "voice core", /Honest pillar\) "We are"/],
@@ -138,9 +146,60 @@ test("formatting the comparison ignores, and an adapted model line, still pass",
       },
     ],
     ["curly quotes in a contract", ({ edit }) => edit(ADMIN, "\"Approve\"", "“Approve”")],
+    ["a checklist hint worded differently", ({ edit }) => edit("DESIGN.md", "(Can the reader picture it?)", "(Can a reader picture it?)")],
+    [
+      "a sentence added after the voice sentence and after the one-sentence test",
+      ({ edit }) => {
+        edit(PAGE, "pointing at the compost pile.", "pointing at the compost pile. Ask before you explain.");
+        edit(PAGE, "garden sign, it's close.", "garden sign, it's close. Read it aloud.");
+      },
+    ],
+    [
+      "a checklist item and the one-sentence test wrapped the same way in both files",
+      ({ edit }) => {
+        for (const file of ["DESIGN.md", PAGE]) {
+          edit(file, "verify (DL-094)? On-chain", "verify (DL-094)?\n  On-chain");
+          edit(file, "rewrite it. If it could", "rewrite it.\nIf it could");
+        }
+      },
+    ],
+    ["a wrapped banned-vocabulary line", ({ edit }) => edit(PAGE, "re-engagement, retention hook.", "re-engagement,\n  retention hook.")],
     ["a reworded line marked adapted", ({ edit }) => edit(PAGE, "no trace.\" | How It Works |", "no trace at all.\" | How It Works (adapted) |")],
   ]) {
     assert.deepEqual(plantedFailures(plant).map(key), [], change);
+  }
+});
+
+test("text wrapped onto further lines is compared whole, so a change after the wrap fails", () => {
+  for (const [what, wraps, names] of [
+    [
+      "a checklist item",
+      [
+        ["DESIGN.md", "verify (DL-094)? On-chain is implementation", "verify (DL-094)?\n  On-chain is implementation"],
+        [PAGE, "verify (DL-094)? On-chain is implementation, not copy.", "verify (DL-094)?\n  On-chain is copy, not implementation."],
+      ],
+      /On-chain is implementation, not copy\./,
+    ],
+    [
+      "a checklist item continued on an unindented lazy line",
+      [
+        ["DESIGN.md", "verify (DL-094)? On-chain is implementation", "verify (DL-094)?\nOn-chain is implementation"],
+        [PAGE, "verify (DL-094)? On-chain is implementation, not copy.", "verify (DL-094)?\nOn-chain is copy, not implementation."],
+      ],
+      /On-chain is implementation, not copy\./,
+    ],
+    [
+      "the one-sentence test",
+      [
+        ["DESIGN.md", "rewrite it. If it could", "rewrite it.\nIf it could"],
+        [PAGE, "rewrite it. If it could appear on a hand-painted", "rewrite it.\nIf it could appear on a printed"],
+      ],
+      /one-sentence test/,
+    ],
+  ]) {
+    const failures = plantedFailures(({ edit }) => wraps.forEach(([file, from, to]) => edit(file, from, to)));
+    assert.deepEqual(failures.map(({ pair }) => pair), ["voice core"], `${what}: ${failures.map(key).join(" | ")}`);
+    assert.match(failures[0].message, names, what);
   }
 });
 
