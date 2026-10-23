@@ -83,6 +83,15 @@ describe("button shape guard (DL-023, DL-026)", () => {
     expect(declaration(app, "--gg-button-radius")).toBe("var(--radius-lg)");
     expect(declaration(app, "--gg-button-radius-pressed")).toBe("var(--radius-squircle)");
     expect(declaration(app, "--gg-button-weight")).toBe("var(--text-label-sm--font-weight)");
+    // The installed app's buttons take the cockpit's 500 label weight (F3), scoped as
+    // its face is, so a public page inside the installed app keeps the website's 600.
+    const installedApp = Array.from(
+      theme.matchAll(
+        /\n\s*:root\[data-boot-presentation="pwa"\]:not\(:has\(\[data-site="website"\]\)\),\s*\[data-surface="app"\]\s*\{([^}]*)\}/g
+      ),
+      (match) => match[1]
+    ).find((body) => body.includes("--gg-button-weight:"));
+    expect(declaration(installedApp ?? "", "--gg-button-weight")).toBe("500");
 
     // Every size takes the capsule and keeps it while pressed: all four corner
     // tokens read the same step, so no website button can morph or fall back

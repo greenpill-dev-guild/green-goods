@@ -406,6 +406,10 @@
 
   --stroke-strong-950: var(--neutral-950);
   --stroke-sub-300: var(--neutral-300);  /* 202 207 216 - visible borders with blue tint */
+  /* The control-grade boundary of the shared fields, secondary buttons and chips.
+   * The public website keeps its hairline; the installed app and the cockpit set a
+   * 3:1 outline (F3). Declared once here, so a dark ground resolves it too. */
+  --gg-control-outline: var(--stroke-sub-300);
   --stroke-soft-200: var(--neutral-100); /* 225 228 234 - softer borders */
   --stroke-white-0: var(--neutral-0);
 
@@ -417,6 +421,11 @@
   /* Focus rings - Light theme */
   --focus-ring: var(--blue-500);
   --focus-ring-offset: var(--neutral-0);
+  /* How the shared controls draw focus. The installed app and the cockpit draw
+   * one solid 2px ring (F3) and set these to 2px and 0; the public website keeps
+   * its soft halo. Plain values, so they inherit into any scope unchanged. */
+  --gg-focus-ring-width: 0px;
+  --gg-focus-halo-alpha: 0.16;
 
   /* State colors - Light theme */
   --information-dark: var(--blue-950);
@@ -911,6 +920,12 @@
 [data-surface="app"] {
   --bg-canvas: var(--gg-design-neutral, 250 248 245);
   --stroke-soft-200: var(--neutral-200);
+  /* One focus role (F3): the app rings in its own green, the cockpit in its
+   * workspace tone. Fields, secondary buttons and chips take the 3:1 outline. */
+  --focus-ring: var(--primary-on-surface);
+  --gg-control-outline: var(--neutral-500);
+  --gg-focus-ring-width: 2px;
+  --gg-focus-halo-alpha: 0;
 }
 
 /* The PWA restores its pale mint dark palette (DL-088) and takes the one warm
@@ -936,6 +951,9 @@
   --error-base: var(--red-400);
   --feature-dark: var(--purple-300);
   --information-base: var(--blue-400);
+  --focus-ring: var(--gg-design-tertiary-dark, var(--green-200));
+  --focus-ring-offset: var(--earth-850);
+  --gg-control-outline: var(--neutral-400);
 }
 
 /* Resolve Tailwind aliases within each theme scope so nested dark surfaces
@@ -978,7 +996,7 @@
     display: block;
     width: 100%;
     min-height: 2.75rem;
-    border: 1px solid rgb(var(--stroke-sub-300));
+    border: 1px solid rgb(var(--gg-control-outline));
     /* Fields are a 16px rounded rectangle, never a pill (DL-022). */
     border-radius: var(--radius-lg);
     /* background-color (not the shorthand) so .gg-control-select's chevron
@@ -1000,10 +1018,19 @@
     color: rgb(var(--text-soft-400));
   }
 
+  /* One focus role (F3): the workspace tone in the cockpit, the installed app's
+     green in the app. Declared on each control so the cockpit's tone resolves
+     where the control sits. The ring replaces a 3px halo that measured about
+     1.3:1; fields keep three quarters of the halo where it remains. */
+  :where(.gg-control, .gg-button, .gg-chip, .gg-switch) {
+    --gg-focus-ring: var(--tone-focus-ring, var(--focus-ring, var(--primary-base)));
+  }
+
   .gg-control:focus-visible {
-    border-color: rgb(var(--focus-ring, var(--primary-base)));
-    box-shadow: 0 0 0 3px rgb(var(--focus-ring, var(--primary-base)) / 0.12);
-    outline: none;
+    border-color: rgb(var(--gg-focus-ring));
+    box-shadow: 0 0 0 3px rgb(var(--gg-focus-ring) / calc(var(--gg-focus-halo-alpha) * 0.75));
+    outline: var(--gg-focus-ring-width) solid rgb(var(--gg-focus-ring));
+    outline-offset: 2px;
   }
 
   .gg-control:disabled {
@@ -1019,7 +1046,8 @@
 
   .gg-control[data-invalid="true"]:focus-visible {
     border-color: rgb(var(--error-base));
-    box-shadow: 0 0 0 3px rgb(var(--error-base) / 0.12);
+    box-shadow: 0 0 0 3px rgb(var(--error-base) / calc(var(--gg-focus-halo-alpha) * 0.75));
+    outline-color: rgb(var(--error-base));
   }
 
   .gg-control[data-size="sm"] {
@@ -1057,7 +1085,7 @@
   }
 
   .gg-control[data-surface="admin"] {
-    border-color: rgb(var(--stroke-sub-300));
+    border-color: rgb(var(--gg-control-outline));
     /* 8px to match the admin text fields (AdminTextField) — keeps every admin
        input at one corner radius rather than fields at 8px and textareas at 12px. */
     border-radius: var(--m3-shape-sm, var(--radius-md));
@@ -1096,11 +1124,6 @@
       min-block-size: 2.5rem;
       block-size: 2.5rem;
     }
-  }
-
-  .gg-control[data-surface="admin"]:focus-visible {
-    border-color: rgb(var(--m3-primary, var(--focus-ring, var(--primary-base))));
-    box-shadow: 0 0 0 3px rgb(var(--m3-primary, var(--focus-ring, var(--primary-base))) / 0.16);
   }
 
   .gg-control-textarea {
@@ -1159,7 +1182,7 @@
     border-radius: var(--radius-lg) / calc(var(--radius-lg) + 0.5rem);
     background-clip: padding-box;
     background-position: right calc(0.75rem + 1px) center;
-    box-shadow: inset 0 0 0 1px rgb(var(--stroke-sub-300));
+    box-shadow: inset 0 0 0 1px rgb(var(--gg-control-outline));
     font-size: var(--gg-label-sm);
     line-height: var(--text-label-sm--line-height);
   }
@@ -1169,13 +1192,14 @@
     background-position: right calc(0.5rem + 1px) center;
   }
 
-  /* The ring and halo move inside the face: outside it they would sit on the
-     transparent tap area, 8px off the face above and below. */
+  /* The ring moves inside the face: outside it would sit on the transparent
+     tap area, 8px off the face above and below. */
   .gg-control-select[data-size="compact"]:focus-visible {
     border-color: transparent;
+    outline: none;
     box-shadow:
-      inset 0 0 0 1px rgb(var(--focus-ring, var(--primary-base))),
-      inset 0 0 0 4px rgb(var(--focus-ring, var(--primary-base)) / 0.12);
+      inset 0 0 0 calc(1px + var(--gg-focus-ring-width) / 2) rgb(var(--gg-focus-ring)),
+      inset 0 0 0 4px rgb(var(--gg-focus-ring) / calc(var(--gg-focus-halo-alpha) * 0.75));
   }
 
   .gg-control-select[data-size="compact"][data-invalid="true"] {
@@ -1309,8 +1333,9 @@
   }
 
   .gg-button:focus-visible {
-    box-shadow: 0 0 0 3px rgb(var(--focus-ring, var(--primary-base)) / 0.16);
-    outline: none;
+    box-shadow: 0 0 0 3px rgb(var(--gg-focus-ring) / var(--gg-focus-halo-alpha));
+    outline: var(--gg-focus-ring-width) solid rgb(var(--gg-focus-ring));
+    outline-offset: 2px;
   }
 
   .gg-button:active {
@@ -1368,6 +1393,12 @@
     --gg-button-radius-compact: var(--radius-full);
     --gg-button-radius-compact-pressed: var(--radius-full);
     --gg-button-weight: var(--font-weight-semibold, 600);
+  }
+
+  /* The installed app's buttons take the cockpit's 500 label weight (F3). */
+  :root[data-boot-presentation="pwa"]:not(:has([data-site="website"])),
+  [data-surface="app"] {
+    --gg-button-weight: 500;
   }
 
   .gg-button[data-emphasis] {
@@ -1450,7 +1481,7 @@
   }
 
   .gg-button[data-emphasis="secondary"] {
-    border-color: rgb(var(--stroke-sub-300));
+    border-color: rgb(var(--gg-control-outline));
     background: rgb(var(--bg-white-0));
     color: rgb(var(--text-strong-950));
   }
@@ -1655,7 +1686,7 @@
     gap: 0.375rem;
     min-block-size: 2rem;
     padding: 0.3125rem 0.875rem;
-    border: 1px solid rgb(var(--stroke-sub-300));
+    border: 1px solid rgb(var(--gg-control-outline));
     border-radius: var(--radius-full);
     background-color: rgb(var(--bg-white-0));
     color: rgb(var(--text-sub-600));
@@ -1683,8 +1714,9 @@
   }
 
   .gg-chip:focus-visible {
-    box-shadow: 0 0 0 3px rgb(var(--focus-ring, var(--primary-base)) / 0.16);
-    outline: none;
+    box-shadow: 0 0 0 3px rgb(var(--gg-focus-ring) / var(--gg-focus-halo-alpha));
+    outline: var(--gg-focus-ring-width) solid rgb(var(--gg-focus-ring));
+    outline-offset: 2px;
   }
 
   .gg-chip[aria-pressed="true"],
@@ -1776,8 +1808,9 @@
   }
 
   .gg-switch:focus-visible {
-    box-shadow: 0 0 0 3px rgb(var(--focus-ring, var(--primary-base)) / 0.16);
-    outline: none;
+    box-shadow: 0 0 0 3px rgb(var(--gg-focus-ring) / var(--gg-focus-halo-alpha));
+    outline: var(--gg-focus-ring-width) solid rgb(var(--gg-focus-ring));
+    outline-offset: 2px;
   }
 
   .gg-switch:disabled {
@@ -1829,9 +1862,7 @@
   }
 
   .gg-switch[data-surface="admin"]:focus-visible {
-    box-shadow:
-      0 0 0 3px rgb(var(--tone-focus-ring, var(--m3-primary, var(--primary-base))) / 0.22),
-      inset 0 0 0 1px rgb(var(--m3-outline, var(--neutral-500)) / 0.18);
+    box-shadow: inset 0 0 0 1px rgb(var(--m3-outline, var(--neutral-500)) / 0.18);
   }
 
   .gg-switch[data-surface="admin"][data-state="checked"] {

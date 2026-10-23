@@ -23,7 +23,7 @@ const ADMIN_HEIGHT: Record<AdminSize, number> = { sm: 28, md: 32, lg: 40 };
 
 /**
  * Installed app (PWA): the 16px field corner, 12px pressed; 12px and 8px
- * pressed at the compact size; weight 400; 48/44/40/32.
+ * pressed at the compact size; button labels at weight 500 (F3); 48/44/40/32.
  */
 export const APP = {
   name: "Installed app",
@@ -35,9 +35,9 @@ export const APP = {
   /** Shown under the specimen that swaps the resting corner token for the pressed one. */
   pressedNote:
     "The resting corner token is swapped for the pressed one: one step tighter (DL-001, DL-026). No morph under reduced motion.",
-  weight: 400,
+  weight: 500,
   rules: [
-    "Every button: the 16px field corner, 12px while pressed, label weight 400 (DL-026, DL-029); the 32px compact size takes 12px, 8px while pressed (DL-038)",
+    "Every button: the 16px field corner, 12px while pressed, label weight 500 (DL-026, DL-029, F3); the 32px compact size takes 12px, 8px while pressed (DL-038)",
     "Heights 48 / 44 / 40 / 32; sm and compact keep a 48px hit area (DL-023)",
     "Icon buttons are circles, chips are 32px capsules with a 44px hit area",
     "Fields: 16px corner, a single-line field is exactly its step (DL-022)",
@@ -46,7 +46,7 @@ export const APP = {
   button: (size: AppSize): Expectation => ({
     height: APP_HEIGHT[size],
     radius: APP_CORNER[size],
-    weight: 400,
+    weight: 500,
     labelSize: size === "lg" || size === "md" ? 16 : 14,
     family: "Plus Jakarta Sans",
     hit: size === "sm" || size === "compact" ? 48 : APP_HEIGHT[size],
