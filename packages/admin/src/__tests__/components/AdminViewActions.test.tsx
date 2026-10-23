@@ -36,7 +36,7 @@ describe("AdminViewActions", () => {
       </IntlProvider>
     );
 
-    expect(screen.getByRole("button", { name: "Financiar Cookie Jar" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Financiar cookie jar" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Adicionar membro" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Fund Cookie Jar" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Add Member" })).not.toBeInTheDocument();
