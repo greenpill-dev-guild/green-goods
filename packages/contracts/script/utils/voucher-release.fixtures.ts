@@ -8,7 +8,7 @@ export function fixtureManifest() {
     governance: {
       greenGoods: { address: "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19", threshold: 2, ownerCount: 5 },
       techAndSun: { address: null, threshold: 2, ownerCount: 3 },
-      sharedPool: { address: null, threshold: 3, ownerCount: 4 },
+      sharedPool: { address: "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19", threshold: 2, ownerCount: 5 },
     },
     networks: {
       arbitrum: {

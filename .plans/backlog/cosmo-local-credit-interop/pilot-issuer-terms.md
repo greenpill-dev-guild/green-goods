@@ -173,24 +173,38 @@ records five owners and threshold two. Reuse preserves that configuration; it do
 owner/threshold changes, a new module, an allowance or asset movement. Read back the selected
 Safe's state again when binding the executable deployment manifest.
 
-The user accepted a new Tech and Sun issuer-reserve Safe at **2-of-3**, with proposed owner roles of its
-service lead, operations/finance steward and a trusted backup chosen by Tech and Sun. The user also accepted
-a separate shared-pool administration Safe at **3-of-4**, with proposed roles of two Green Goods delegates
-and two Tech and Sun delegates. The thresholds are accepted; individual signer names and
-addresses will be confirmed later. Each signer should be a different person with independent
-signing custody.
+The user selected the **same existing Green Goods Gnosis Safe** for network exchange-pool
+administration and the Green Goods issuer reserve. Keep its current **2-of-5** owners/threshold.
+This supersedes the separate 3-of-4 pool Safe and joint Green Goods/Tech and Sun signer proposal;
+no additional Green Goods Safe is needed. Pool participation grants no administrative seat.
+The same authority controls these two roles, while pool inventory and issuer reserve allocations
+still need separate accounting. No configuration change or asset movement is authorized here.
 
-With two delegates per organization, any three-signature pool approval includes both
-organizations and remains possible with one signer unavailable. A 2-of-3 pool with one delegate
-per organization and a neutral third would let that third approve with either organization
-without the other; that is a different governance choice. The shared-pool Safe administers the
-pool and selected integration controls; it gains no authority to mint or spend either issuer's
-reserve. Member swaps do not require a fresh administrator approval for each exchange.
+Tech and Sun retains a separate issuer-reserve Safe, initially **2-of-3**. The intended signers
+are its active garden stewards, replacing the earlier service-lead/finance/backup job-title
+proposal. Actual accounts remain unconfirmed; use verified, distinct, Gnosis-compatible signing
+accounts. A steward grant should make that account eligible for signing; a revocation should
+remove its signing eligibility through the selected verified synchronization path.
 
-These threshold choices follow the general [Safe setup guidance](https://help.safe.global/articles/1038062742-what-safe-setup-should-i-use)
-to require multiple signatures while leaving a signer unavailable. Actual delegates, public
-signing addresses, availability and the remaining pause/recovery roles still need selection.
-No new Safe has been created or authority changed by recording these decisions.
+Current implementation: `HatsModule` owns garden role grant/revoke and exact steward membership.
+Those hooks synchronize Karma access and conviction power, not Gnosis Safe owners. A normal Safe
+requires approved owner-management transactions; adding a steward today does not automatically
+change its signer list. [Safe owner-management guidance](https://help.safe.global/articles/9629761095)
+confirms that owner and threshold updates follow the Safe transaction approval flow.
+
+[Hats Signer Gate](https://github.com/Hats-Protocol/hats-zodiac) is a candidate for role-based
+signer eligibility, revocation enforcement and adjustable thresholds. It is not integrated or
+selected for deployment here. Canonical garden roles are on Arbitrum and the issuer Safe is on
+Gnosis: an authenticated, ordered destination role view or another verified cross-chain design
+is needed. Do not claim instant revocation on Gnosis from an Arbitrum role change. Joining,
+leaving, stale role updates, unavailable accounts and recovery need explicit behavior and proof.
+
+The user selected a **strict majority of active steward signers, with a minimum of two
+signatures**, as the roster changes; see the formula in [current scope](spec.md). Three signers
+require two signatures, four require three, and five require three. Fewer than two eligible
+signers means spending must stay blocked. The initial 2-of-3 manifest values are a bootstrap
+snapshot, not a permanent three-person list. Recovery and the verified synchronization path
+remain unimplemented; no new module or recovery owner is enabled by this draft.
 
 Existing Safe controls, implemented delays, consent, full escrow before promise activation,
 immutable final allocation and independent Celo G$ remain authoritative. The accepted hackathon

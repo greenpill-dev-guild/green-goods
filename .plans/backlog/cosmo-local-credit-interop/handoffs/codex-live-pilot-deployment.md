@@ -114,22 +114,20 @@ configuration, module set, allowances or custody through this selection. Refresh
 state and release verification before executing its transactions. Historical Arbitrum/Celo
 owner lists and timelock dispositions remain historical inputs, not new pilot waivers.
 
-The user accepted Tech and Sun 2-of-3 and shared-pool 3-of-4 on 22 October Pacific. The following
-owner roles remain proposed; actual people and public signing addresses will be confirmed later:
+The user subsequently selected the **same existing Green Goods Gnosis Safe** for network
+exchange-pool administration and the GG issuer reserve, keeping its observed **2-of-5**.
+This supersedes the separate 3-of-4 pool Safe and the proposed two delegates per organization.
+No new GG Safe is needed; garden admission confers no network-administration seat. The two
+inventory allocations remain separately accounted even though their controlling Safe is shared.
+Tech and Sun retains authority over its own reserve and obligations.
 
-| Safe | Proposed owners | Accepted threshold |
-|---|---|---|
-| Tech and Sun reserve | Tech and Sun service lead, operations/finance steward, trusted backup chosen by Tech and Sun | 2-of-3 |
-| Shared pool administration | Two independent Green Goods delegates and two independent Tech and Sun delegates | 3-of-4 |
-
-Any three of two-plus-two delegates includes both organizations and tolerates one unavailable
-signer. This is a flat Safe threshold, without introducing nested contract-owner signing or a
-new signing module. A neutral-third 2-of-3 arrangement would allow either organization and the
-third to act without the other organization's signature; do not describe that as requiring
-both organizations. The shared administrator cannot mint or spend issuer reserves; reserve
-allowances stay finite and reserve-origin authorization stays authoritative. Existing immediate
-pause and delayed upgrade controls remain intact. See the [terms](../pilot-issuer-terms.md) for
-full recommendation boundaries. No new Safe or transaction was created by this planning update.
+Tech and Sun starts from the accepted **2-of-3** bootstrap. Its active garden stewards are the
+intended signer source, replacing the earlier fixed service-lead/finance/backup proposal.
+Actual signers remain unconfirmed. The selected threshold follows a strict majority of active
+steward signers, with at least two signatures. Recovery and authenticated role synchronization
+still need design and implementation proof.
+A changed Arbitrum steward role does not currently update Gnosis Safe owners. No live Safe
+configuration, module, allowance or transaction changed through this planning update.
 
 ## Execution review and proof to complete
 
@@ -268,3 +266,58 @@ no push, broadcast, Safe creation or canonical deployment promotion is included.
 
 Human corrections: 0 in this segment; attention unknown. Signer names/addresses deliberately
 remain open under the user's instruction. Rendered product proof: none; no product UI changed.
+
+## Unified GG Safe and steward-based Tech and Sun signers, 23 October UTC
+
+Accepted scope: reuse GG Safe `0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19` for the network
+exchange pool and the GG issuer reserve at existing 2-of-5. The public voucher draft and synthetic
+fixture now record that same address/configuration for both governance roles. Tech and Sun
+remains a separate issuer Safe, with intended signers drawn from active garden stewards.
+No new Safe is created by these edits.
+
+Research boundary: inspected `HatsModule` exact steward membership and grant/revoke hooks,
+Garden authority, the existing Celo Garden-account Safe-owner fork spike, current voucher
+release inputs and official Safe/Hats sources. `HatsModule` synchronizes Karma access and
+conviction power; no production source integration was found that mutates a Gnosis Safe owner
+list on steward grant/revoke. The Celo fork spike tests Garden-account plus recovery ownership;
+it is not a dynamic Gnosis steward-signer implementation.
+
+[Hats Signer Gate](https://github.com/Hats-Protocol/hats-zodiac) supports role eligibility,
+revocation enforcement and configurable thresholds, and is a candidate rather than a selected
+integration. [Ordinary Safe owner updates](https://help.safe.global/articles/9629761095) use
+approved transactions. Arbitrum role authority must reach Gnosis through a verified, ordered
+mechanism before automatic signer synchronization is claimed. A revoked source role may remain
+valid at the destination until an authenticated update is applied; no instant cross-chain
+revocation claim is made. All eligible signing accounts also need Gnosis-compatible signing
+proof. No dependency/module installation or new runtime behavior is authorized by this research.
+
+The user selected strict-majority active-steward signatures with a minimum of two; see the
+formula in [current scope](../spec.md). This keeps the initial 2-of-3 snapshot and yields 3-of-4
+or 3-of-5 as the confirmed roster grows. Fewer than two eligible signers blocks spending; no
+silent one-signature fallback or platform recovery signer is added. Signer identities remain
+deliberately deferred. Source membership must be verified, rather than trusting a display-only
+or stale indexed roster. These are selected rules for the future integration, not current
+Gnosis Safe enforcement.
+
+Focused voucher proof passes 18 script cases and all 32 CLI checks. All six selected checks
+pass fresh, including every mandatory contract override, all 2,195 Solidity tests, 349 contracts
+script tests, cold-path production gas proof and `contracts-verify-fast`. No contract source,
+compiler profile, dependency, live Safe state or application runtime was changed. The later
+majority-policy update is confined to planning prose; the tested manifest and fixture remain
+unchanged at the accepted same-GG-Safe values and initial Tech and Sun 2-of-3 snapshot.
+
+Task: Cosmo-Local Integration controlled live pilot | Type: guidance/configuration | Outcome: partial.
+Coverage: unified GG custody decision and bounded steward-signing research; dynamic owner sync
+remains unimplemented.
+
+| Phase | Start → end (UTC) | Result / evidence or blocker |
+|---|---|---|
+| Investigate | Earlier start unknown → 2026-10-23 06:07:56 | Read current roles/Safe capabilities and primary sources; no current dynamic Gnosis owner sync found. |
+| Implement / verify | 2026-10-23 06:07:56 → 2026-10-23 06:17:52 | Same-Safe draft/fixture aligned; 18 focused script cases, 32 CLI cases and all six selected critical checks pass fresh. Human selects strict majority with a minimum of two; no automatic signer sync implemented. |
+
+The majority-policy prose follow-up passes its selected formatting check; all 34 Plan Hubs
+validate and changed links resolve. The tested manifest and fixture content hashes are unchanged.
+Coverage ends at pre-commit verification; signed local checkpoint attribution is reported in chat.
+
+Human corrections: one governance simplification; attention unknown. Existing lane objects and
+overall backlog are preserved. Rendered product proof: none; no product UI changed.

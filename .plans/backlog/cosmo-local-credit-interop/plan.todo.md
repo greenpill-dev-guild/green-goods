@@ -30,8 +30,13 @@ release updates; this checkout owns the canonical Plan Hub changes.
 - [ ] Establish the exact configured account/EntryPoint/provider path and sponsorship or funding.
 - [x] Record both issuers' selected services and accepted price/cap baseline, with draft operating terms in
   [working issuer terms](pilot-issuer-terms.md), including two GG vouchers per thirty-minute assistance session and Claude Team seat limits.
-- [x] Accept GG Safe reuse, Tech and Sun 2-of-3 and shared-pool 3-of-4 thresholds; signer names
-  and public addresses remain for later confirmation.
+- [x] Reuse the existing GG Gnosis Safe at its current 2-of-5 for both network pool administration
+  and GG issuer reserve; no separate pool Safe. Tech and Sun bootstrap remains 2-of-3.
+- [x] Select strict-majority Tech and Sun steward signing with a minimum of two signatures;
+  retain 2-of-3 for the three-signer bootstrap and block spending below two eligible signers.
+- [ ] Bind Tech and Sun signer eligibility to active garden stewards; define recovery behavior
+  and prove authenticated Arbitrum/Gnosis synchronization. Actual signer accounts and live
+  automatic owner updates remain unconfirmed.
 - [ ] Bind accepted terms to confirmed capacities/caps, reserves and accountable controls.
 - [x] Implement offline production preflight, exact paused endpoint planning and isolated-fork
   simulation through `release vouchers`; every initialized endpoint proxy stays paused in rehearsal.

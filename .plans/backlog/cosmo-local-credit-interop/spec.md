@@ -53,9 +53,14 @@ admitted issuers later; it is not hardcoded as a bilateral pair or a mandatory u
 A garden and a voucher issuer are different roles. New gardens may participate using existing
 admitted vouchers without issuing their own. A new issuer needs agreed service obligations,
 capacity, inventory, exposure limits, quotes/fees and explicit admission before its asset joins.
-The current 3-of-4 shared Safe is pilot governance for the first two organizations; broader
-membership needs a separate representation decision. Each issuer keeps its own reserve Safe
-and service obligations. Other communities can operate separate exchange pools; federation and
+The existing Green Goods Gnosis Safe administers both the network exchange pool and the Green
+Goods issuer reserve, preserving its observed 2-of-5 configuration. No separate pool Safe or
+automatic garden representation is required. Tech and Sun controls its own issuer reserve;
+its active garden stewards are the intended signer source. The selected threshold is a strict
+majority with a minimum of two: `max(2, floor(N / 2) + 1)` for `N` confirmed active steward
+signers. Fewer than two eligible signers means spending is blocked. Dynamic signer eligibility,
+recovery and Arbitrum-to-Gnosis role synchronization remain to be designed and verified. Each
+issuer retains its own service obligations. Other communities can operate separate exchange pools; federation and
 multi-hop execution are outside this pilot. This matches the published
 [CLC network model](https://docs.cosmolocal.credit/protocol/network/).
 
