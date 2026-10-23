@@ -18,8 +18,8 @@ type Story = StoryObj;
 
 const GlassSample = ({ className, label }: { className: string; label: string }) => (
   <div className={`${className} rounded-xl p-5`}>
-    <div className="text-label-md text-text-strong-950">{label}</div>
-    <div className="mt-1 text-paragraph-sm text-text-sub-600">
+    <div className="type-label text-text-strong-950">{label}</div>
+    <div className="mt-1 type-label-sm text-text-sub-600">
       Translucent tier — backdrop blur + tint + inset ring
     </div>
   </div>

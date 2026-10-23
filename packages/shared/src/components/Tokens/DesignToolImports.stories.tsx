@@ -93,10 +93,10 @@ function ImportRow({ label, path, use }: (typeof importFiles)[number]) {
   return (
     <div className="grid min-w-0 gap-3 rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-4 sm:grid-cols-[minmax(0,12rem)_minmax(0,1fr)]">
       <div className="min-w-0">
-        <div className="break-words text-label-sm font-medium text-text-strong-950">{label}</div>
+        <div className="break-words type-label-sm font-medium text-text-strong-950">{label}</div>
         <code className="mt-1 block min-w-0 break-all text-[11px] text-text-soft-400">{path}</code>
       </div>
-      <p className="min-w-0 break-words text-paragraph-sm text-text-sub-600">{use}</p>
+      <p className="min-w-0 break-words type-label-sm text-text-sub-600">{use}</p>
     </div>
   );
 }
@@ -104,11 +104,11 @@ function ImportRow({ label, path, use }: (typeof importFiles)[number]) {
 function ComponentRootRow({ root, source, use }: (typeof componentRoots)[number]) {
   return (
     <div className="grid min-w-0 gap-3 border-b border-stroke-soft-200 py-3 last:border-b-0 sm:grid-cols-[minmax(0,11rem)_minmax(0,16rem)_minmax(0,1fr)]">
-      <div className="min-w-0 break-words text-label-sm font-medium text-text-strong-950">
+      <div className="min-w-0 break-words type-label-sm font-medium text-text-strong-950">
         {root}
       </div>
       <code className="min-w-0 break-all text-[11px] text-text-soft-400">{source}</code>
-      <div className="min-w-0 break-words text-paragraph-sm text-text-sub-600">{use}</div>
+      <div className="min-w-0 break-words type-label-sm text-text-sub-600">{use}</div>
     </div>
   );
 }
@@ -117,7 +117,7 @@ export const ImportMap: Story = {
   render: () => (
     <div className="min-w-0 space-y-6">
       <section className="min-w-0 rounded-2xl border border-stroke-soft-200 bg-bg-weak-50 p-5">
-        <p className="max-w-3xl break-words text-paragraph-md text-text-sub-600">
+        <p className="max-w-3xl break-words type-body text-text-sub-600">
           Load the root DesignMD file, then the browser dialect, then the Storybook story index.
           That gives design tools the visual rules and the actual component/state names without
           inventing parallel component contracts.
@@ -125,7 +125,7 @@ export const ImportMap: Story = {
       </section>
 
       <section className="min-w-0 space-y-3">
-        <h2 className="break-words text-title-h5 text-text-strong-950">Import Files</h2>
+        <h2 className="break-words type-title-lg text-text-strong-950">Import Files</h2>
         <div className="grid min-w-0 gap-3">
           {importFiles.map((file) => (
             <ImportRow key={file.path} {...file} />
@@ -134,7 +134,7 @@ export const ImportMap: Story = {
       </section>
 
       <section className="min-w-0 rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-5">
-        <h2 className="break-words text-title-h5 text-text-strong-950">Component Roots</h2>
+        <h2 className="break-words type-title-lg text-text-strong-950">Component Roots</h2>
         <div className="mt-4 min-w-0">
           {componentRoots.map((root) => (
             <ComponentRootRow key={root.root} {...root} />
@@ -149,8 +149,8 @@ export const ToolRecipes: Story = {
   render: () => (
     <div className="grid min-w-0 gap-4 lg:grid-cols-3">
       <article className="min-w-0 rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-5">
-        <h2 className="break-words text-title-h5 text-text-strong-950">AI Design Tools</h2>
-        <p className="mt-3 min-w-0 break-words text-paragraph-sm text-text-sub-600">
+        <h2 className="break-words type-title-lg text-text-strong-950">AI Design Tools</h2>
+        <p className="mt-3 min-w-0 break-words type-label-sm text-text-sub-600">
           Import <code>DESIGN.md</code>, <code>DESIGN.browser.md</code>, and{" "}
           <code>design-md.generated.json</code>. Treat Storybook as the component catalog, not a
           separate design source.
@@ -158,16 +158,16 @@ export const ToolRecipes: Story = {
       </article>
 
       <article className="min-w-0 rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-5">
-        <h2 className="break-words text-title-h5 text-text-strong-950">Coding Agents</h2>
-        <p className="mt-3 min-w-0 break-words text-paragraph-sm text-text-sub-600">
+        <h2 className="break-words type-title-lg text-text-strong-950">Coding Agents</h2>
+        <p className="mt-3 min-w-0 break-words type-label-sm text-text-sub-600">
           Load the design README, the two DesignMD files, and <code>index.json</code>. Use the
           browser dialect unless the work explicitly targets installed PWA or admin.
         </p>
       </article>
 
       <article className="min-w-0 rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-5">
-        <h2 className="break-words text-title-h5 text-text-strong-950">Storybook MCP</h2>
-        <p className="mt-3 min-w-0 break-words text-paragraph-sm text-text-sub-600">
+        <h2 className="break-words type-title-lg text-text-strong-950">Storybook MCP</h2>
+        <p className="mt-3 min-w-0 break-words type-label-sm text-text-sub-600">
           Run <code>bun --cwd packages/shared run storybook</code> for local MCP access. The static
           deploy still exposes the story index and design files for shareable review.
         </p>

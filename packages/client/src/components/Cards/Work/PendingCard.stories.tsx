@@ -98,7 +98,7 @@ export const Blocked: Story = {
     const canvas = within(canvasElement);
     const pill = canvas.getByRole("status");
     expect(pill).toHaveTextContent("Can't upload");
-    // The 12px pill, 22px tall, beside 12px words (D21).
+    // The status pill, 22px tall (D21), at the 11px size both surfaces share.
     expect(pill.getBoundingClientRect().height).toBeCloseTo(22, 0);
     expect(canvas.getByRole("button", { name: "Discard Compost Turn" })).toBeInTheDocument();
   },

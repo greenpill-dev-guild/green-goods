@@ -37,7 +37,7 @@ export function ProposalCardConviction({
     <>
       <header className="flex items-start justify-between gap-3">
         <StatusBadge convictionStatus={proposal.status} size="sm" />
-        <span className="text-label-sm font-medium text-text-soft tabular-nums">
+        <span className="type-meta-sm font-medium text-text-soft tabular-nums">
           {proposal.supporters} {proposal.supporters === 1 ? "supporter" : "supporters"}
         </span>
       </header>
@@ -48,13 +48,13 @@ export function ProposalCardConviction({
           // title-sm: these cards render three-up in the dense governance grid
           // (and inside dialogs), where title-md read oversized next to the
           // panel's own headings.
-          className="text-title-sm font-semibold text-text-strong line-clamp-2"
+          className="type-title-sm text-text-strong line-clamp-2"
           title={proposal.title}
         >
           {proposal.title}
         </h3>
         {proposal.summary ? (
-          <p className="text-body-sm text-text-sub line-clamp-2">{proposal.summary}</p>
+          <p className="type-meta text-text-sub line-clamp-2">{proposal.summary}</p>
         ) : null}
       </div>
 

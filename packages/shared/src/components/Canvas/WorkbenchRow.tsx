@@ -68,23 +68,23 @@ export function WorkbenchRow({
 
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-label-sm text-text-soft">{eyebrow}</span>
+          <span className="type-meta-sm text-text-soft">{eyebrow}</span>
           <span
             className={cn(
-              "inline-flex items-center rounded-full px-2.5 py-1 text-label-sm font-bold",
+              "inline-flex items-center rounded-full px-2.5 py-1 type-meta-sm font-bold",
               getStatusToneClasses(statusTone)
             )}
           >
             {statusLabel}
           </span>
         </div>
-        <h3 className="mt-1 text-title-md text-text-strong">{title}</h3>
-        <p className="mt-1 text-body-md text-text-sub">{description}</p>
+        <h3 className="mt-1 type-title-md text-text-strong">{title}</h3>
+        <p className="mt-1 type-body text-text-sub">{description}</p>
         <div className="mt-2 flex flex-wrap gap-1.5">
           {meta.map((value) => (
             <span
               key={`${title}-${value}`}
-              className="inline-flex items-center rounded-full bg-bg-soft px-2.5 py-1 text-body-sm font-semibold text-text-sub shadow-[var(--edge-rest)]"
+              className="inline-flex items-center rounded-full bg-bg-soft px-2.5 py-1 type-meta font-semibold text-text-sub shadow-[var(--edge-rest)]"
             >
               {value}
             </span>
