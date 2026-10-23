@@ -52,11 +52,11 @@ function StartupFixture(args: StartupStoryArgs) {
   return (
     <>
       <aside className="surface-section space-y-2 p-4" aria-label="Storybook fixture controls">
-        <p className="body-xs text-text-sub">
+        <p className="type-meta text-text-sub">
           Fictional auth readiness and modal observations. These controls never open a wallet or
           sign in.
         </p>
-        <p role="status" className="body-xs text-text-sub">
+        <p role="status" className="type-meta text-text-sub">
           Simulated wallet requests: {attempts}
         </p>
         <div className="flex flex-wrap gap-2">
@@ -111,8 +111,8 @@ const meta: Meta<StartupStoryArgs> = {
     onWalletRequest: fn(),
     children: (
       <section className="surface-section p-6" data-testid="startup-workspace-fixture">
-        <h2 className="text-title-md font-semibold">Workspace fixture admitted</h2>
-        <p className="body-sm text-text-sub">
+        <h2 className="type-title-md font-semibold">Workspace fixture admitted</h2>
+        <p className="type-body text-text-sub">
           The real startup gate admitted its child. No production workspace or account was opened.
         </p>
       </section>

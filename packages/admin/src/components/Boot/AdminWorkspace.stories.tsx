@@ -18,12 +18,12 @@ function SeededWorkspaceRoute() {
   const app = useApp();
   return (
     <section className="surface-section space-y-2 p-6" data-testid="workspace-story-content">
-      <h1 className="text-title-md font-semibold text-text-strong">Storybook workspace fixture</h1>
-      <p className="body-sm text-text-sub">
+      <h1 className="type-title-md font-semibold text-text-strong">Storybook workspace fixture</h1>
+      <p className="type-body text-text-sub">
         Real AdminWorkspace, AppProvider and CanvasLayout. Fictional garden and auth data; the
         production router entry is substituted.
       </p>
-      <p className="body-xs text-text-sub">App provider locale: {app.locale}</p>
+      <p className="type-meta text-text-sub">App provider locale: {app.locale}</p>
     </section>
   );
 }
