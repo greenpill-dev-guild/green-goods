@@ -57,8 +57,8 @@
       "required": false
     },
     ".github/workflows/design.yml": {
-      "purpose": "Checks the design system: Storybook, story coverage, and DesignMD token parity, with optional Chromatic publishing.",
-      "useCase": "Shared components, styles, tokens, any DESIGN.md, or the docs stylesheet. Dispatch it with publish_chromatic to publish Storybook.",
+      "purpose": "Checks the design system and its voice: Storybook, story coverage, DesignMD token parity, banned vocabulary, em dashes, and brand voice parity, with optional Chromatic publishing.",
+      "useCase": "Shared components, styles, tokens, any DESIGN.md, the docs stylesheet, the i18n catalogs, or the brand voice page and the files that restate it. Dispatch it with publish_chromatic to publish Storybook.",
       "required": false
     },
     ".github/workflows/docs.yml": {
