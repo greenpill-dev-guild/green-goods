@@ -198,7 +198,8 @@
    * ink; red-500 fell to 4.2:1 on the card once it moved up a step (F13). */
   --m3-error: var(--red-400);
   /* The shared text roles that would fall below AA on the lifted card take
-   * one lighter step here too (the installed app sets the same in theme.css). */
+   * one lighter step here too (the installed app sets the same in theme.css);
+   * a fill that carries white takes an action role, which keeps its deep step. */
   --error-base: var(--red-400);
   --feature-dark: var(--purple-300);
   --information-base: var(--blue-400);

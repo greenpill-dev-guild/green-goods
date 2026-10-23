@@ -423,6 +423,9 @@
   --information-base: var(--blue-500);
   --information-light: var(--blue-200);
   --information-lighter: var(--blue-50);
+  /* A blue fill that carries white text: 5.10:1 in every theme, where the
+   * installed app's dark lifts the base blue for its icons. */
+  --information-action: var(--blue-500);
 
   --warning-dark: var(--orange-950);
   --warning-base: var(--orange-500);
@@ -932,7 +935,8 @@
   --stroke-soft-200: var(--earth-700);
   /* A lifted card costs coloured text about a fifth of its contrast. The three
    * roles that would fall below AA on it take one lighter step (5.5, 6.3 and
-   * 5.4:1 on the card). */
+   * 5.4:1 on the card). A fill that carries white takes an action role
+   * instead, which keeps its deep step. */
   --error-base: var(--red-400);
   --feature-dark: var(--purple-300);
   --information-base: var(--blue-400);
@@ -1624,12 +1628,12 @@
   }
 
   .gg-icon-button[data-emphasis="primary"][data-tone="danger"] {
-    background-color: rgb(var(--error-base));
+    background-color: rgb(var(--error-action));
     color: rgb(var(--static-white, var(--neutral-0)));
   }
 
   .gg-icon-button[data-emphasis="primary"][data-tone="danger"]:hover {
-    background-color: rgb(var(--error-dark, var(--red-700)));
+    background-color: rgb(var(--error-action-hover));
     color: rgb(var(--static-white, var(--neutral-0)));
   }
 
@@ -2236,6 +2240,7 @@
   --color-information-base: rgb(var(--information-base));
   --color-information-light: rgb(var(--information-light));
   --color-information-lighter: rgb(var(--information-lighter));
+  --color-information-action: rgb(var(--information-action));
 
   /* Warning */
   --color-warning-dark: rgb(var(--warning-dark));

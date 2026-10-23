@@ -199,7 +199,7 @@ Four roles, defined by **how much of the screen each occupies**, not a palette r
 
 **Rule:** Tertiary (green) is third in volume but first in visual pull. The bright flower draws the eye *because* everything else is quiet. Flooding the screen with green is the #1 failure mode.
 
-**Ground.** The installed app and the cockpit lay white cards on the linen canvas; the public website keeps its white ground. In dark both build from one warm ladder, the Earth ramp in shared `theme.css`: the canvas at its floor (`neutral-dark`) and the card ten points of lightness above it, so a card reads against the canvas by a lightness step rather than a shadow. Error, feature and information text take one lighter step in dark, where the lifted card would put them under AA. The browser's status bar and the install manifest take the ground of the presentation they belong to.
+**Ground.** The installed app and the cockpit lay white cards on the linen canvas; the public website keeps its white ground. In dark both build from one warm ladder, the Earth ramp in shared `theme.css`: the canvas at its floor (`neutral-dark`) and the card ten points of lightness above it, so a card reads against the canvas by a lightness step rather than a shadow. Error, feature and information text take one lighter step in dark, where the lifted card would put them under AA; a fill that carries white keeps its deep action step (`--error-action`, `--information-action`). The browser's status bar and the install manifest take the ground of the presentation they belong to.
 
 **Supporting accents** (situational, not core hierarchy):
 - **Amber** #D97706: Warnings, seasonal indicators, secondary warmth
