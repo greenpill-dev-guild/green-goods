@@ -222,6 +222,18 @@ function firstBodyParagraph(markdown) {
   return paragraph.length > 0 ? plain(paragraph.join(" ")) : undefined;
 }
 
+/** A rich-text message's words without its tags: "<accent>good</accent>" reads "good". */
+function textOutsideTags(message) {
+  let text = "";
+  let inTag = false;
+  for (const character of message) {
+    if (character === "<") inTag = true;
+    else if (character === ">") inTag = false;
+    else if (!inTag) text += character;
+  }
+  return text;
+}
+
 function metaContent(html, attribute, value) {
   for (const tag of html.match(/<meta\b[^>]*>/g) ?? []) {
     const attributes = Object.fromEntries(
@@ -374,7 +386,7 @@ function compareBrandLine({ read, positioning, en, need, agree }) {
   if (!brandLine) return;
   const line = plain(brandLine).replace(/\.$/, "");
   const owner = `${PAGE} section 1`;
-  const title = plain((en["public.home.hero.title"] ?? "").replace(/<\/?[a-z][^>]*>/gi, ""));
+  const title = plain(textOutsideTags(en["public.home.hero.title"] ?? ""));
   agree("brand line", line, owner, plain(en["public.home.hero.tagline"] ?? ""), `${EN} public.home.hero.tagline`);
   agree("brand line", line, owner, title, `${EN} public.home.hero.title`);
   agree("brand line", line, owner, previewField(read(SOCIAL_PREVIEWS), "home", "cardTitle"), `${SOCIAL_PREVIEWS} home cardTitle`);
