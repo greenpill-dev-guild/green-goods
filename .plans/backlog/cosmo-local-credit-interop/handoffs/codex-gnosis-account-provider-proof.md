@@ -303,3 +303,65 @@ Earlier root-signing selector argv (the Bun shim is first on PATH as in the comm
 bun --no-env-file run check --plan -- --intent qa --changed .plans/backlog/cosmo-local-credit-interop/proofs/member-migration/root-signing-proof.mjs,.plans/backlog/cosmo-local-credit-interop/artifacts/member-gnosis-account-provider-proof-2026-10-22.json,.plans/backlog/cosmo-local-credit-interop/handoffs/codex-gnosis-account-provider-proof.md,.plans/backlog/cosmo-local-credit-interop/handoffs/codex-helper-provenance-and-failure-safety.md,.plans/backlog/cosmo-local-credit-interop/plan.todo.md,.plans/backlog/cosmo-local-credit-interop/eval.md,.plans/backlog/cosmo-local-credit-interop/status.json --json
 bun --no-env-file run check -- --intent qa --changed .plans/backlog/cosmo-local-credit-interop/proofs/member-migration/root-signing-proof.mjs,.plans/backlog/cosmo-local-credit-interop/artifacts/member-gnosis-account-provider-proof-2026-10-22.json,.plans/backlog/cosmo-local-credit-interop/handoffs/codex-gnosis-account-provider-proof.md,.plans/backlog/cosmo-local-credit-interop/handoffs/codex-helper-provenance-and-failure-safety.md,.plans/backlog/cosmo-local-credit-interop/plan.todo.md,.plans/backlog/cosmo-local-credit-interop/eval.md,.plans/backlog/cosmo-local-credit-interop/status.json
 ```
+
+### Released performance group reconciled, 22 October Pacific
+
+The owner subsequently released the 90-path group and its Admin dependencies. All original
+hashes still matched at handoff: 66 files matched isolated commit
+`000cdfa6143180a7a5347c65d3671fe8c9fbe32a`, while 24 differed. Reviewed patches brought the
+five approved fixes into this checkout. Independent Cosmo exports, Storybook service-access
+isolation, typography and branch-specific baselines were preserved. The installed app retains
+Inter; its four local faces are precached and tested offline instead of importing the isolated
+branch's different PWA typography. Three font licenses lost trailing spaces only, retaining
+every license word. No dependency version, lockfile, permission or safety setting changed.
+
+Signed local commit `a6461989e983e397eeebd268fc77172a38ac2c1c` contains 107 reconciled paths,
+including the previously untracked Admin implementations, public Docs edits and nine regenerated
+projections. Its signature is `G`; all committed blobs match their final reviewed hashes. The
+Shared manifest adds only the cache-clear leaf export. Both debt baselines shrink. The auth seam
+fingerprint was recomputed from this branch's evidence rather than copied from the isolated tree.
+
+**Docs is unblocked.** The approved frozen offline dependency restoration repaired seven missing
+declared Docs links, including `@babel/parser` 8.0.4. Public manifests and the lockfile were copied
+into a dependency-only temporary directory for Bun resolution; package lifecycle scripts did not
+run. Repository dependency declarations, lockfile and Bun settings stayed unchanged. All 81
+authority fixtures, 99 Docs tests, the audit, generated projections, production build and search
+index pass. The audit retains two advisory endpoint warnings.
+
+All 31 selected automated critical checks pass across the recorded runs, plus the additional
+Storybook build. Shared passes 7,577 tests, Client 1,789 and Admin 1,335; Agent passes both projects.
+The initial Client watcher failure was a sandbox listener denial. After scoped permission, the
+unchanged gate passed 29 checks before its browser startup rejected the manual dev servers on
+ports it needed to own. Those task-owned services were stopped; the exact remaining browser
+commands then passed three passkey tests and one production offline-preview test. Failed proof
+was never reused. The retry reused the unchanged Shared Turbo pass from this checkout's first
+run, not another checkout's result. The
+[consolidation record](../artifacts/local-consolidation-validation-2026-10-22.json) preserves
+commands, check names, failures, source attribution and limits.
+
+Rendered proof: **authenticated Brave real profile, signed-out public route** for the homepage;
+**Brave, mock-auth localhost** for disconnected Admin entry and its recoverable missing-indexer
+state; **CI Playwright, clean-room** for passkey and offline-preview checks. The offline test loads
+both upright and italic Inter with page and worker requests blocked. Actual-member sessions and
+the installed Brave PWA matrix remain pending. No real-member credential ceremony, wallet
+signature, transaction or migration was performed for this rendered proof.
+
+All 114 unrelated remaining paths retain their original hashes: 109 research/pitch artifacts,
+three unfinished PWA planning files, the harness plugin setting and the independent Portuguese
+edit. The branch remains `feature/cosmo-local-contracts`. Nothing was pushed, merged, deployed or activated;
+no current-head remote CI claim follows. Gnosis cleanup execution, helper provenance, supported
+hosted account acceptance, member possession/sponsorship/recovery, COM-46 and every live gate
+remain open. All hub lane objects and backlog state remain unchanged.
+
+Task record: cosmo-local-credit-interop | Type: investigation/consolidation | Outcome: partial
+Agent/model: Codex / exact model unknown | Coverage: ownership release through local reconciliation
+
+| Phase | Start → end (UTC) | Result / evidence or blocker |
+|---|---|---|
+| investigate | 2026-10-23 03:29:26 → unknown | Released manifest verified; branch-specific differences reviewed |
+| implement/review | unknown → unknown | Bounded reconciliation; Docs regenerated; Inter and feature authorities preserved |
+| verify | unknown → 2026-10-23 03:49:25 | All selected automated checks and Storybook pass; committed source hashes verified |
+| publish locally | unknown → 2026-10-23 03:49:25 | `a6461989e` signed and verified; evidence follow-up follows |
+| wait | unknown → ongoing | Actual-member, hosted-provider, migration and live gates remain unresolved |
+
+Human corrections: 0 observed in this segment; attention: unknown.

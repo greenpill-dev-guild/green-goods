@@ -268,5 +268,146 @@
         "resultAttribution": "Resulting commit SHA and verified signature reported in chat after creation; no unsigned fallback"
       }
     }
+  },
+  "releasedOwnerReconciliationFollowup": {
+    "observedAt": "2026-10-23T03:49:25Z",
+    "status": "local_source_committed_and_verified",
+    "startingHead": "73d3f0128400b20caf68a05890080656a7f71e39",
+    "sourceCommit": "a6461989e983e397eeebd268fc77172a38ac2c1c",
+    "signature": "G",
+    "isolatedSourceCommit": "000cdfa6143180a7a5347c65d3671fe8c9fbe32a",
+    "ownershipReleased": true,
+    "originalGroup": {
+      "paths": 90,
+      "allOriginalHashesVerifiedBeforeReconciliation": true,
+      "initiallyMatchedIsolated": 66,
+      "initiallyDifferedFromIsolated": 24
+    },
+    "reconciliation": {
+      "committedPaths": 107,
+      "reviewedDifferenceInputs": 15,
+      "featureAuthoritiesPreserved": [
+        "Client website and installed app retain Inter; Admin retains its own typography",
+        "Cosmo exports and account/provider boundaries remain intact",
+        "Storybook service-access RPC/signing isolation remains intact",
+        "Branch-specific debt baselines retained; no new debt entries",
+        "Seam fingerprints recomputed for this branch; no isolated certification copied"
+      ],
+      "offlineFontAdaptation": "Precache the existing four Inter faces and test upright/italic loading offline; do not import the isolated branch's Jakarta PWA assets or typography decision",
+      "fontLicenseNormalization": "Three OFL files had trailing spaces removed; tokenized license text matches the handed-off source exactly",
+      "generatedDocs": "Nine projections regenerated from current branch authorities; three preserved authored page edits included"
+    },
+    "docsDependencyRestore": {
+      "userApproved": true,
+      "method": "Frozen offline Bun install in a dependency-only temporary directory, then restore seven missing declared Docs links to existing cached packages",
+      "babelParser": "8.0.4",
+      "repositoryManifestLockAndBunSettingsChanged": false,
+      "lifecycleScriptsRan": false
+    },
+    "verification": {
+      "evidenceClass": "Local working-tree proof mapped to every committed source blob; not isolated-owner or actual-member proof",
+      "selectedAutomatedChecksPassed": 31,
+      "selectedManualBrowserProof": "advisory, pending for authenticated session and installed Brave PWA matrix",
+      "completedInMainRun": [
+        "format",
+        "lint",
+        "validation-system-test",
+        "test-quality",
+        "shared-typecheck",
+        "shared-test-typecheck",
+        "shared-test",
+        "shared-build",
+        "client-test-typecheck",
+        "client-test",
+        "client-build",
+        "admin-test-typecheck",
+        "admin-test",
+        "admin-build",
+        "agent-typecheck",
+        "agent-test-typecheck",
+        "agent-test",
+        "agent-build",
+        "docs-authority",
+        "docs-test",
+        "docs-build",
+        "staged-modules",
+        "source-structure",
+        "design-guardrails",
+        "ontology",
+        "agent-guidance",
+        "story-quality",
+        "docs-generated",
+        "em-dashes"
+      ],
+      "completedAfterOwnedServersStopped": ["browser-passkey", "browser-pwa-preview"],
+      "additionalCheck": "storybook-build passed",
+      "shared": {
+        "passed": 7577,
+        "skipped": 16
+      },
+      "client": {
+        "passed": 1789
+      },
+      "admin": {
+        "passed": 1335
+      },
+      "agent": {
+        "domPassed": 558,
+        "domSkipped": 1,
+        "nodePassed": 218
+      },
+      "docs": {
+        "passed": 99,
+        "authorityTestsPassed": 81,
+        "audit": "pass with two existing advisory endpoint warnings",
+        "productionBuildAndSearchIndex": "passed"
+      },
+      "browser": {
+        "class": "CI Playwright clean-room",
+        "passkeyTestsPassed": 3,
+        "productionOfflinePreviewTestsPassed": 1,
+        "offlineNormalAndItalicInterLoaded": true
+      },
+      "receiptReuse": false,
+      "turboReuse": "The retry reused the unchanged Shared pass from this checkout's first run; failed Client proof was rerun and passed",
+      "reviewedAndStagedAndCommittedHashesMatch": true,
+      "signedCommitVerified": true
+    },
+    "renderedProof": {
+      "publicWebsite": "authenticated Brave real profile, signed-out public route; homepage rendered with Inter body text",
+      "admin": "Brave, mock-auth localhost; disconnected sign-in paths and recoverable missing-indexer state rendered",
+      "actualMemberOrInstalledPwaProof": false
+    },
+    "retainedFailures": [
+      "Initial Client suite: 1788 passed; Vite watcher listener denied by sandbox EPERM. Complete unchanged selected gate retried with scoped local-listener permission.",
+      "Second run: 29 checks passed; clean-room browser startup rejected manual dev servers on its required ports. Only task-owned servers were stopped, then both remaining exact browser commands passed.",
+      "Manual dev launcher stalled under Bun-hosted PM2. Task-owned launcher stopped; pinned-Node repo coordinator used temporary process state.",
+      "Cached diff check found trailing spaces in three license copies; whitespace-only normalization preserved all license words and resolved the check."
+    ],
+    "remaining": {
+      "unrelatedDirtyPaths": 114,
+      "allMatchOriginalHashes": true,
+      "groups": {
+        "researchAndPitch": 109,
+        "unfinishedPwaPlans": 3,
+        "harnessPluginSetting": 1,
+        "independentPortugueseCopy": 1
+      }
+    },
+    "publication": {
+      "push": false,
+      "pr": false,
+      "merge": false,
+      "deployment": false,
+      "currentHeadRemoteCI": "not requested or established",
+      "comparisonBase": "d7bbbf00d6af63f39a1aea6fe84fb6f2bbcc72be",
+      "baseFetched": true
+    },
+    "limits": [
+      "No production chain-100 activation, validator/account deployment or live operation",
+      "Native cleanup execution, helper provenance, hosted account acceptance, member possession/sponsorship/recovery and COM-46 gates remain open",
+      "All hub lane objects and backlog state remain unchanged",
+      "Manual authenticated browser matrix remains pending; clean-room proof is labeled separately"
+    ]
   }
 }
