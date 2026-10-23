@@ -699,21 +699,21 @@
       "id": "gardener",
       "display": "Gardener",
       "hat": "gardener",
-      "definition": "A person doing regenerative Work in a garden. Submits Work, holds gardener Hats, receives credit toward Hypercerts and yield splits.",
+      "definition": "A person doing regenerative work in a garden. Submits work, holds gardener Hats, receives credit toward Hypercerts and yield splits.",
       "surfaces": ["admin", "client", "agent", "public", "docs"]
     },
     {
       "id": "steward",
       "display": "Steward",
       "hat": "steward",
-      "definition": "A person who stewards a garden — creates Actions, approves Work, configures Vault and Hat hierarchy. Holds the garden's steward Hats (the deployed Operator role).",
+      "definition": "A person who stewards a garden — creates actions, approves work, configures the vault and the Hat hierarchy. Holds the garden's steward Hats (the deployed Operator role).",
       "surfaces": ["admin", "client", "agent", "public", "docs"]
     },
     {
       "id": "evaluator",
       "display": "Evaluator",
       "hat": "evaluator",
-      "definition": "A person who authors or strengthens Assessments and attests impact methodology or outcomes. Evaluators do not approve or reject submitted Work; that authority belongs to stewards.",
+      "definition": "A person who authors or strengthens assessments and attests impact methodology or outcomes. Evaluators do not approve or reject submitted work; that authority belongs to stewards.",
       "surfaces": ["admin", "client", "public", "docs"]
     },
     {
@@ -727,7 +727,7 @@
       "id": "community-member",
       "display": "Community Member",
       "hat": "community",
-      "definition": "A local resident affected by a garden's Work. Signals or attests that Work exists and is healthy, and helps prioritize future Actions through public signal and conviction flows.",
+      "definition": "A local resident affected by a garden's work. Signals or attests that work exists and is healthy, and helps prioritize future actions through public signal and conviction flows.",
       "surfaces": ["client", "public", "docs"]
     }
   ],

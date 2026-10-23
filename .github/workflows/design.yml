@@ -53,6 +53,18 @@ on:
       - ".github/actions/setup-js/action.yml"
       - ".github/actions/setup-playwright/action.yml"
       - "scripts/dev/playwright-setup.test.mjs"
+      - ".claude/brand-voice-guidelines.md"
+      - "README.md"
+      - "docs/docs/community/how-it-works.mdx"
+      - "docs/docs/community/welcome.mdx"
+      - "docs/docs/community/why-we-build.mdx"
+      - "docs/docs/reference/brand-voice.mdx"
+      - "docs/docusaurus.config.ts"
+      - "docs/releases/2.0.0/announcement.md"
+      - "docs/releases/2.0.0/release-notes.md"
+      - "packages/client/index.html"
+      - "packages/shared/src/config/app.ts"
+      - "scripts/quality/check-guidance-links.mjs"
       - ".github/workflows/design.yml"
   pull_request:
     paths:
@@ -98,6 +110,18 @@ on:
       - ".github/actions/setup-js/action.yml"
       - ".github/actions/setup-playwright/action.yml"
       - "scripts/dev/playwright-setup.test.mjs"
+      - ".claude/brand-voice-guidelines.md"
+      - "README.md"
+      - "docs/docs/community/how-it-works.mdx"
+      - "docs/docs/community/welcome.mdx"
+      - "docs/docs/community/why-we-build.mdx"
+      - "docs/docs/reference/brand-voice.mdx"
+      - "docs/docusaurus.config.ts"
+      - "docs/releases/2.0.0/announcement.md"
+      - "docs/releases/2.0.0/release-notes.md"
+      - "packages/client/index.html"
+      - "packages/shared/src/config/app.ts"
+      - "scripts/quality/check-guidance-links.mjs"
       - ".github/workflows/design.yml"
 
 permissions:
@@ -131,6 +155,9 @@ jobs:
 
       - name: Check docs design parity
         run: bun run check --only docs-design-parity
+
+      - name: Check brand voice parity
+        run: bun run check --only brand-voice-parity
 
       - name: Run design guardrail tests
         run: node --test scripts/design/check-guidance-examples.test.mjs scripts/design/token-usage.test.mjs scripts/design/md-generate.test.mjs scripts/design/check-vocab.test.mjs scripts/dev/playwright-setup.test.mjs
