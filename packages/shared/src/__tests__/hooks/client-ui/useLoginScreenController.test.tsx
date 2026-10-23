@@ -61,6 +61,16 @@ beforeEach(() => {
   };
 });
 
+it("explains stalled-wallet reload recovery while keeping passkey entry available", async () => {
+  auth.current.walletReleaseStalled = true;
+  const { result } = renderController();
+  expect(result.current.loginError).toContain("Reload to retry, or sign in with a passkey");
+  act(() => result.current.walletLogin());
+  expect(auth.current.loginWithWallet).toHaveBeenCalledOnce();
+  await act(async () => result.current.loginWithPasskey());
+  expect(auth.current.loginWithPasskey).toHaveBeenCalledOnce();
+});
+
 afterEach(() => {
   vi.restoreAllMocks();
 });

@@ -1,6 +1,7 @@
 /** CI Playwright, anonymous production shell; no production auth bypass or installed-profile claim. */
-// TEST-QUALITY: allow-small-test-file - positive reload and missing-cache control share one worker installation
+// TEST-QUALITY: allow-small-test-file - anonymous production recovery and offline-cache proof share the preview preset
 import { expect, type Page, test } from "@playwright/test";
+import { readFileSync } from "node:fs";
 
 type LogoBox = { top: number; width: number; height: number };
 type LogoHandoffWindow = Window & { __pwaLogoHandoff: { boot?: LogoBox; react?: LogoBox } };
@@ -81,6 +82,38 @@ test("production navigation cache restores the anonymous shell offline and is re
   await expectStableLogoHandoff(page, 177);
   await expect(page).toHaveURL(/\/home\/login\?presentation=pwa$/);
   expect(await page.evaluate(() => navigator.onLine)).toBe(false);
+  const fontResponses: { path: string; worker: boolean }[] = [];
+  page.on("response", (response) => {
+    const path = new URL(response.url()).pathname;
+    if (/\/fonts\/jakarta-latin-(normal|italic)\.woff2$/.test(path)) {
+      fontResponses.push({ path, worker: response.fromServiceWorker() });
+    }
+  });
+  // Decode fresh bytes rather than relying on a FontFace warmed online. The
+  // page HTTP cache is disabled, network fetches are blocked, and each response
+  // below must explicitly come from the worker.
+  const decodedFonts = await page.evaluate(async () => {
+    return Promise.all(
+      ["normal", "italic"].map(async (style) => {
+        const response = await fetch(`/fonts/jakarta-latin-${style}.woff2`, { cache: "reload" });
+        const face = new FontFace(`offline-proof-${style}`, await response.arrayBuffer(), {
+          style,
+        });
+        await face.load();
+        return { style: face.style, status: face.status };
+      })
+    );
+  });
+  expect(decodedFonts).toEqual([
+    { style: "normal", status: "loaded" },
+    { style: "italic", status: "loaded" },
+  ]);
+  expect(fontResponses).toEqual(
+    expect.arrayContaining([
+      { path: "/fonts/jakarta-latin-normal.woff2", worker: true },
+      { path: "/fonts/jakarta-latin-italic.woff2", worker: true },
+    ])
+  );
   const offlineFonts = await page.evaluate(async () => {
     const faces = await Promise.all([
       document.fonts.load('400 16px "Plus Jakarta Sans"'),
@@ -96,6 +129,26 @@ test("production navigation cache restores the anonymous shell offline and is re
     body: await page.screenshot(),
     contentType: "image/png",
   });
+  const removedFont = await page.evaluate(async () => {
+    let count = 0;
+    for (const name of await caches.keys()) {
+      const cache = await caches.open(name);
+      for (const request of await cache.keys()) {
+        if (
+          new URL(request.url).pathname === "/fonts/jakarta-latin-normal.woff2" &&
+          (await cache.delete(request))
+        )
+          count++;
+      }
+    }
+    return count;
+  });
+  expect(removedFont, "The control must remove the cached font").toBeGreaterThan(0);
+  await expect(
+    page.evaluate(async () => {
+      await fetch("/fonts/jakarta-latin-normal.woff2", { cache: "reload" });
+    })
+  ).rejects.toThrow();
   // Delete just the navigation entry, keeping the worker and JS cache intact.
   const removed = await page.evaluate(async () => {
     let count = 0;
@@ -117,5 +170,37 @@ test("production navigation cache restores the anonymous shell offline and is re
     })
   ).rejects.toThrow();
   await context.setOffline(false);
+  await context.unroute("**/*");
   await cdp.detach();
+  await expectEvidenceFailureContained(page);
+  await info.attach("public-home-evidence-failure", {
+    body: await page.screenshot({ fullPage: true }),
+    contentType: "image/png",
+  });
 });
+
+async function expectEvidenceFailureContained(page: Page) {
+  let blocked = 0;
+  const manifest = JSON.parse(
+    readFileSync(new URL("../../packages/client/dist/.vite/manifest.json", import.meta.url), "utf8")
+  ) as Record<string, { file: string }>;
+  const evidenceAsset = manifest["src/views/Public/HomeEvidence.tsx"]?.file;
+  expect(evidenceAsset, "The built lazy evidence entry must exist").toBeTruthy();
+  await page.route(`**/${evidenceAsset}`, (route) => {
+    blocked++;
+    return route.abort("internetdisconnected");
+  });
+  await page.goto("/?presentation=website");
+  const hero = page.getByRole("heading", { level: 1 });
+  await expect(hero).toBeVisible();
+  const evidence = page.getByTestId("home-evidence");
+  await evidence.scrollIntoViewIfNeeded();
+  await expect(evidence.getByRole("alert")).toContainText("Live garden information is unavailable");
+  expect(blocked, "The production lazy import must actually fail").toBeGreaterThan(0);
+  await expect(hero).toBeAttached();
+  await expect(page.locator("footer")).toContainText("Green Goods");
+  await expect(evidence.getByRole("link", { name: "Explore Gardens" })).toHaveAttribute(
+    "href",
+    "/gardens"
+  );
+}

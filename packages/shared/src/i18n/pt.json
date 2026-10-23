@@ -6900,5 +6900,8 @@
   "app.assessment.receiptMismatch": "A transação foi confirmada, mas o registro da avaliação não correspondeu. Verifique o recibo antes de enviar outra avaliação.",
   "app.pool.queued.settlementDeferred": "Recompensa em G$ adiada",
   "app.pool.queued.settlementDeferredNote": "Salvo neste dispositivo. Não é possível enviar promessas com recompensa em G$ nesta versão.",
-  "cockpit.garden.pool.group.rewardDeferredNote": "Não é possível copiar promessas com recompensa em G$ nesta versão."
+  "cockpit.garden.pool.group.rewardDeferredNote": "Não é possível copiar promessas com recompensa em G$ nesta versão.",
+  "app.login.walletReload": "Recarregar para tentar a carteira novamente",
+  "app.login.walletStalled": "A solicitação anterior da carteira não terminou. Recarregue para tentar novamente ou entre com uma passkey.",
+  "public.home.evidence.unavailable": "As informações atuais dos jardins não estão disponíveis. Você pode continuar explorando o site."
 }

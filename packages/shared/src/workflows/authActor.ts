@@ -45,6 +45,7 @@ import {
 } from "../modules/auth/session";
 import { authMachine } from "./authMachine";
 import { authServices } from "./authServices";
+import { getActorSignOutRevision, getSignOutRevision } from "../modules/auth/sessionSignOut";
 
 // ============================================================================
 // CREATE ACTOR WITH SERVICES
@@ -65,6 +66,7 @@ function getChainId(): number {
  * Create the auth actor with proper services injected
  */
 export function createAuthActor(services: typeof authServices = authServices) {
+  const signOutRevision = typeof window !== "undefined" ? getSignOutRevision() : null;
   // Get chain ID at runtime
   const chainId = getChainId();
   const storedAuthMode = typeof window !== "undefined" ? getAuthMode() : null;
@@ -95,6 +97,7 @@ export function createAuthActor(services: typeof authServices = authServices) {
     }
   );
 
+  getActorSignOutRevision(actor, signOutRevision);
   return actor;
 }
 

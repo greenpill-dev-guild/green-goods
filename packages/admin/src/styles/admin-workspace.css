@@ -1,6 +1,6 @@
 /* Shared foundations are loaded by index.css. Only workspace utilities wait
  * for the existing lazy workspace boundary; auth mounts independently. */
-@import "tailwindcss/utilities.css";
+@import "tailwindcss/utilities.css" source(none);
 @import "./admin-m3-components.css";
 @import "@green-goods/shared/styles/utilities.css";
 @import "./admin-layout.css";

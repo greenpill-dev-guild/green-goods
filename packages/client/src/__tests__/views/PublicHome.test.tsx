@@ -273,6 +273,25 @@ describe("Public Home — hero CTAs", () => {
     }
   });
 
+  it("contains an evidence failure without replacing the hero or the rest of the homepage", async () => {
+    mockUseApp.mockReturnValue({ isPwaPresentation: false, isMobile: false });
+    mockUsePublicStats.mockImplementation(() => {
+      throw new Error("Evidence unavailable");
+    });
+    const reported = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      renderHome();
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        "Live garden information is unavailable"
+      );
+      expect(screen.getByRole("heading", { level: 1 })).toBeVisible();
+      expect(screen.getByTestId("stub-footer")).toBeInTheDocument();
+      expect(screen.getByRole("alert").querySelector('a[href="/gardens"]')).not.toBeNull();
+    } finally {
+      reported.mockRestore();
+    }
+  });
+
   // The record band's commitment figure comes from its own read; a read that
   // settled without data must reach the band as unknown, never as zero.
   it.each([

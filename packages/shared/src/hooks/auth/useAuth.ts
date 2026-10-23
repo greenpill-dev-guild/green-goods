@@ -45,6 +45,7 @@ export {
  * Legacy aliases are omitted — use the primary action names instead.
  */
 interface UseAuthReturn {
+  walletReleaseStalled?: boolean;
   // Core state
   authMode: AuthMode;
   isReady: boolean;
@@ -99,6 +100,7 @@ export function useAuth(): UseAuthReturn {
   const auth = useAuthContext();
 
   return {
+    walletReleaseStalled: auth.walletReleaseStalled,
     // Core state
     authMode: auth.authMode,
     isReady: auth.isReady,

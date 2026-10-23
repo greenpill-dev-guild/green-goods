@@ -6900,5 +6900,8 @@
   "app.assessment.receiptMismatch": "The transaction was confirmed, but its assessment record did not match. Check the receipt before submitting another assessment.",
   "app.pool.queued.settlementDeferred": "G$ reward deferred",
   "app.pool.queued.settlementDeferredNote": "Saved on this device. Sending G$ reward promises is unavailable in this release.",
-  "cockpit.garden.pool.group.rewardDeferredNote": "G$ reward promises cannot be copied in this release."
+  "cockpit.garden.pool.group.rewardDeferredNote": "G$ reward promises cannot be copied in this release.",
+  "app.login.walletReload": "Reload to retry wallet",
+  "app.login.walletStalled": "The previous wallet request has not ended. Reload to retry, or sign in with a passkey.",
+  "public.home.evidence.unavailable": "Live garden information is unavailable. You can still explore the site."
 }

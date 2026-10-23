@@ -13,14 +13,24 @@ export function markPublicContentReady(): void {
 export function afterPublicContentPaint(task: () => void): () => void {
   let frame = 0;
   let timer = 0;
+  let started = false;
   const start = () => {
+    if (started) return;
+    started = true;
+    waiting.delete(start);
+    window.clearTimeout(timer);
     frame = window.requestAnimationFrame(() => {
       frame = 0;
       timer = window.setTimeout(task, 0);
     });
   };
   if (contentReady) start();
-  else waiting.add(start);
+  else {
+    waiting.add(start);
+    // A failed root or shell may never announce readiness. Keep telemetry
+    // available for recovery without competing with a normal first paint.
+    timer = window.setTimeout(start, 15_000);
+  }
   return () => {
     waiting.delete(start);
     window.cancelAnimationFrame(frame);

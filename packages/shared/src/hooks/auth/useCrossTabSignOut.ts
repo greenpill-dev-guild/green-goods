@@ -6,8 +6,12 @@ import {
 } from "../../modules/auth/sessionSignOut";
 
 /** Same-origin logout delivery, including a tab returning from suspension. */
-export function useCrossTabSignOut(endSession: () => void) {
-  const revisionRef = useRef(getSignOutRevision());
+export function useCrossTabSignOut(
+  endSession: () => void,
+  actorRevision?: { current: string | null }
+) {
+  const localRevision = useRef(getSignOutRevision());
+  const revisionRef = actorRevision ?? localRevision;
 
   const syncSignOut = useCallback(() => {
     const revision = getSignOutRevision();
@@ -15,7 +19,7 @@ export function useCrossTabSignOut(endSession: () => void) {
     revisionRef.current = revision;
     endSession();
     return true;
-  }, [endSession]);
+  }, [endSession, revisionRef]);
 
   useEffect(() => {
     const onStorage = (event: StorageEvent) => {
@@ -42,7 +46,7 @@ export function useCrossTabSignOut(endSession: () => void) {
 
   const notifySignOut = useCallback(() => {
     revisionRef.current = publishSignOut();
-  }, []);
+  }, [revisionRef]);
 
   // Explicit sign-in first observes any outstanding logout. A queued storage
   // event then cannot tear down that newer, deliberately chosen session.

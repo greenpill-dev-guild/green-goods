@@ -11,7 +11,7 @@ export function AdminStartupConnect({
   requested: boolean;
   children: ReactNode;
 }) {
-  const { isReady, isAuthenticated } = useAuthState();
+  const { isReady, isAuthenticated, walletReleaseStalled } = useAuthState();
   const { loginWithWallet } = useAuthActions();
   const modalOpen = useWalletModalOpen();
   const consumed = useRef(false);
@@ -27,9 +27,10 @@ export function AdminStartupConnect({
 
   useEffect(() => {
     // Once admitted, keep the workspace through sign-out and later modal changes.
-    if (isAuthenticated || (modalWasOpen.current && !modalOpen)) setWorkspaceRequested(true);
+    if (isAuthenticated || walletReleaseStalled || (modalWasOpen.current && !modalOpen))
+      setWorkspaceRequested(true);
     modalWasOpen.current = modalOpen;
-  }, [isAuthenticated, modalOpen]);
+  }, [isAuthenticated, modalOpen, walletReleaseStalled]);
 
   if (!requested || workspaceRequested || isAuthenticated) return children;
 

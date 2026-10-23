@@ -4,6 +4,18 @@ import type { SessionStorage } from "./session";
 // even after a wallet login, which intentionally keeps that passkey sentinel.
 export const SIGN_OUT_REVISION_KEY = "greengoods_sign_out_revision";
 
+const actorRevisions = new WeakMap<object, { current: string | null }>();
+
+/** Keep logout acknowledgement with the actor, across provider mounts. */
+export function getActorSignOutRevision(actor: object, initial = getSignOutRevision()) {
+  let revision = actorRevisions.get(actor);
+  if (!revision) {
+    revision = { current: initial };
+    actorRevisions.set(actor, revision);
+  }
+  return revision;
+}
+
 export function getSignOutRevision(storage: SessionStorage = localStorage): string | null {
   return storage.getItem(SIGN_OUT_REVISION_KEY);
 }

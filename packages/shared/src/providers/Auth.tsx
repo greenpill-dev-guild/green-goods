@@ -14,6 +14,7 @@ import { useAccount, useConfig } from "wagmi";
 import { getAppKit } from "../config/appkit";
 import { queryClient } from "../config/react-query";
 import { useCrossTabSignOut } from "../hooks/auth/useCrossTabSignOut";
+import { getActorSignOutRevision } from "../modules/auth/sessionSignOut";
 import { useAuthActor } from "../hooks/auth/useAuthActor";
 import { useHasStoredCredential } from "../hooks/auth/useHasStoredCredential";
 import { useWalletDisconnect } from "../hooks/auth/useWalletDisconnect";
@@ -38,13 +39,10 @@ import type { PasskeyAdapters } from "../workflows/auth-passkey-adapters";
 import type { AuthActor } from "../workflows/authActor";
 import type { WalletConnectionType } from "../workflows/authMachine";
 
-// CONTEXT TYPES
-
-/**
- * Read-only auth state — changes on every auth event.
- * Use `useAuthState()` for components that only read state (avoids re-renders from action ref changes).
- */
+/** Read state without subscribing to action-reference changes. */
 export interface AuthStateValue {
+  /** An abandoned connector needs an explicit fresh-page retry. */
+  walletReleaseStalled?: boolean;
   authMode: AuthMode;
   isReady: boolean;
   isAuthenticated: boolean;
@@ -63,10 +61,7 @@ export interface AuthStateValue {
   externalWalletAddress: Hex | null;
 }
 
-/**
- * Mutation functions — stable references via useCallback.
- * Use `useAuthActions()` for components that only trigger actions (avoids re-renders from state changes).
- */
+/** Stable mutations for consumers that do not need auth state. */
 export interface AuthActionsValue {
   createAccount: (userName: string) => Promise<void>;
   loginWithPasskey: (userName?: string) => Promise<void>;
@@ -83,9 +78,7 @@ export interface AuthActionsValue {
   disconnectWallet: () => Promise<void>;
 }
 
-/**
- * Combined auth context — full backward compatibility.
- */
+/** Combined auth context retained for existing consumers. */
 export interface AuthContextType extends AuthStateValue, AuthActionsValue {}
 
 export const AuthStateContext = createContext<AuthStateValue | undefined>(undefined);
@@ -138,8 +131,6 @@ export function useOptionalAuthContext(): AuthContextType | undefined {
   return useContext(AuthContext);
 }
 
-// PROVIDER
-
 export interface AuthProviderProps {
   children: React.ReactNode;
   adapters?: PasskeyAdapters;
@@ -186,6 +177,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
     afterWalletRelease,
     cancelDeferredLogin,
     isConnectionQuarantined,
+    walletReleaseStalled,
   } = useWalletDisconnect(wagmiConfig, {
     isConnected,
     isConnecting: isConnecting || isReconnecting,
@@ -400,7 +392,10 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
     queryClient.getMutationCache().clear();
   }, [actor, clearRestoreAttempt, releaseWallet, cancelDeferredLogin, isConnecting]);
 
-  const { syncSignOut, notifySignOut } = useCrossTabSignOut(endSession);
+  const { syncSignOut, notifySignOut } = useCrossTabSignOut(
+    endSession,
+    actor ? getActorSignOutRevision(actor) : undefined
+  );
 
   // ACTIONS
 
@@ -513,13 +508,16 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
     syncSignOut();
     walletRestoreAttemptedRef.current = false;
 
-    saveAuthModeToStorage("embedded");
     if (
       afterWalletRelease(() => {
-        if (!syncSignOut()) getAppKit()?.open();
+        if (!syncSignOut()) {
+          saveAuthModeToStorage("embedded");
+          getAppKit()?.open();
+        }
       })
     )
       return;
+    saveAuthModeToStorage("embedded");
     if (isConnected && wagmiWalletAddress && isAppKitEmbeddedConnector(connector)) {
       const address = wagmiWalletAddress as Hex;
       actor.send({ type: "EXTERNAL_WALLET_CONNECTED", address, connectionType: "embedded" });
@@ -559,13 +557,17 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
 
   const retry = useCallback(() => {
     if (!actor) return;
+    if (walletReleaseStalled) {
+      window.location.reload();
+      return;
+    }
     // Reset the wallet auto-restore guard so a manual retry can attempt
     // wallet hydration again (the ref otherwise stays "spent" until signOut
     // or clearPasskey, deadlocking re-attempts in the same session).
     walletRestoreAttemptedRef.current = false;
     manualWalletLoginPendingRef.current = false;
     actor.send({ type: "RETRY" });
-  }, [actor]);
+  }, [actor, walletReleaseStalled]);
 
   const dismissError = useCallback(() => {
     if (!actor) return;
@@ -584,8 +586,6 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
     walletRestoreAttemptedRef.current = false;
     manualWalletLoginPendingRef.current = false;
   }, [actor]);
-
-  // COMPUTED VALUES
 
   const computedValues = useMemo(() => {
     if (!snapshot) {
@@ -664,11 +664,10 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
     };
   }, [snapshot, isConnecting, walletModalOpen, storedCredential]);
 
-  // CONTEXT VALUES
-
   // State value — changes on auth events
   const stateValue: AuthStateValue = useMemo(
     () => ({
+      walletReleaseStalled,
       authMode: computedValues.authMode,
       isReady: computedValues.isReady,
       isAuthenticated: computedValues.isAuthenticated,
@@ -686,7 +685,7 @@ export function AuthProvider({ children, adapters }: AuthProviderProps) {
       externalWalletConnected: computedValues.externalWalletConnected,
       externalWalletAddress: computedValues.externalWalletAddress,
     }),
-    [computedValues]
+    [computedValues, walletReleaseStalled]
   );
 
   // Actions value — stable references, only changes when actor/disconnectWallet change
