@@ -182,31 +182,46 @@ function quoteUnder(text, label) {
   return quote.length > 0 ? plain(quote.join(" ")) : undefined;
 }
 
-/** The paragraph that opens with a bold label such as "**Voice:**", without the label, wrapped lines included. */
-function labeledParagraph(text, label) {
+// A line that starts a new Markdown block instead of continuing a paragraph or a list item.
+const BLOCK_START = /^\s*(#|[-*+]\s|\d+[.)]\s|\||>|`{3,}|~{3,}|(?:-\s*){3,}$|(?:\*\s*){3,}$|(?:_\s*){3,}$)/;
+
+/** Every paragraph that opens with a bold label such as "**Voice:**", without the label, wrapped lines included. */
+function labeledParagraphs(text, label) {
   const lines = (text ?? "").split("\n");
-  const at = lines.findIndex((line) => label.test(line));
-  if (at < 0) return undefined;
-  const paragraph = [lines[at].replace(label, "")];
-  for (const line of lines.slice(at + 1)) {
-    if (line.trim() === "" || /^\s*(#|[-*+]\s|\d+\.\s|\||>)/.test(line)) break;
-    paragraph.push(line);
+  const found = [];
+  for (const [at, line] of lines.entries()) {
+    if (!label.test(line)) continue;
+    const paragraph = [line.replace(label, "")];
+    for (const next of lines.slice(at + 1)) {
+      if (next.trim() === "" || BLOCK_START.test(next)) break;
+      paragraph.push(next);
+    }
+    const words = plain(paragraph.join(" "));
+    if (words) found.push(words);
   }
-  return plain(paragraph.join(" ")) || undefined;
+  return found;
 }
 
-/** The list items in `text`, checkbox dropped, each read whole: an item continues on indented lines. */
+/**
+ * The bullet items in `text`, each read whole: an item continues on indented lines and on
+ * unindented lazy lines until a blank line or a new block. Each says whether it carries a
+ * checkbox and whether it is nested under another item.
+ */
 function listItems(text) {
   const found = [];
   let open = false;
   for (const line of (text ?? "").split("\n")) {
-    const start = line.match(/^\s*[-*]\s+(?:\[[ xX]\]\s+)?(.+)$/);
-    const continues = !start && open && /^\s+\S/.test(line);
-    if (start) found.push(start[1]);
-    else if (continues) found[found.length - 1] += ` ${line.trim()}`;
-    open = Boolean(start) || continues;
+    const start = line.match(/^(\s*)[-*+]\s+(\[[ xX]\]\s+)?(.+)$/);
+    if (start) {
+      found.push({ text: start[3], checkbox: Boolean(start[2]), nested: start[1].length > 0 });
+      open = true;
+    } else if (open && line.trim() !== "" && !BLOCK_START.test(line)) {
+      found[found.length - 1].text += ` ${line.trim()}`;
+    } else {
+      open = false;
+    }
   }
-  return found.map(plain);
+  return found.map((item) => ({ ...item, text: plain(item.text) }));
 }
 
 function stringConstant(source, name) {
@@ -418,7 +433,7 @@ function compareDescriptor({ read, positioning, en, fail, count, need, agree }) 
 
 function compareBrandLine({ read, positioning, en, need, agree }) {
   const brandLine = need(
-    labeledParagraph(positioning, /^\*\*Brand line\b[^\n]*?:\*\*/),
+    labeledParagraphs(positioning, /^\*\*Brand line\b[^\n]*?:\*\*/)[0],
     PAGE,
     "**Brand line …:** line in section 1",
   );
@@ -448,22 +463,21 @@ function compareProblemStatement({ read, positioning, fail, count, need }) {
 }
 
 function compareVoiceSentence({ page, voiceCopy, need, agree }) {
-  const voice = need(labeledParagraph(voiceCopy, /^\*\*Voice:\*\*/), DESIGN, "**Voice:** sentence");
-  const coreVoice = need(labeledParagraph(section(page, 2, "Voice"), /^\*\*Core voice\.\*\*/), PAGE, "**Core voice.** sentence");
-  if (voice && coreVoice) {
+  const voice = need(labeledParagraphs(voiceCopy, /^\*\*Voice:\*\*/)[0], DESIGN, "**Voice:** sentence");
+  const restated = labeledParagraphs(section(page, 2, "Voice"), /^\*\*Core voice\.\*\*/);
+  need(restated[0], PAGE, "**Core voice.** sentence");
+  // Every copy on the page is held to DESIGN.md, so a stale second one cannot hide behind the first.
+  for (const coreVoice of voice ? restated : []) {
     agree("voice core", voice, `${DESIGN} § Voice & Copy`, coreVoice, `${PAGE} core voice`, { opens: true });
   }
 }
 
 function compareOneSentenceTest({ page, voiceCopy, need, agree }) {
-  const owned = need(labeledParagraph(voiceCopy, /^\*\*One-sentence test:\*\*/), DESIGN, "**One-sentence test:** line");
-  const restated = need(
-    labeledParagraph(section(page, 2, "Voice"), /^\*\*The one-sentence test\.\*\*/),
-    PAGE,
-    "**The one-sentence test.** line",
-  );
-  if (owned && restated) {
-    agree("voice core", owned, `${DESIGN} one-sentence test`, restated, `${PAGE} one-sentence test`, { opens: true });
+  const owned = need(labeledParagraphs(voiceCopy, /^\*\*One-sentence test:\*\*/)[0], DESIGN, "**One-sentence test:** line");
+  const restated = labeledParagraphs(section(page, 2, "Voice"), /^\*\*The one-sentence test\.\*\*/);
+  need(restated[0], PAGE, "**The one-sentence test.** line");
+  for (const test of owned ? restated : []) {
+    agree("voice core", owned, `${DESIGN} one-sentence test`, test, `${PAGE} one-sentence test`, { opens: true });
   }
 }
 
@@ -471,8 +485,11 @@ function compareChecklist({ page, voiceCopy, fail, count, need }) {
   // DESIGN.md follows some questions with a hint in parentheses ("Is the audience right? (Gardener ≠
   // steward ≠ funder)"), which the page may word its own way. Only a parenthesis straight after a
   // question mark is such a hint; one inside the question, such as a "(DL-094)" citation, counts.
+  // Only a top-level checkbox item is a checklist item; a plain or nested bullet is not.
   const items = (text) =>
-    listItems(text).map((item) => ({ item, bare: plain(item.replace(/\?\s*\([^)]*\)/g, "?")) }));
+    listItems(text)
+      .filter(({ checkbox, nested }) => checkbox && !nested)
+      .map(({ text: item }) => ({ item, bare: plain(item.replace(/\?\s*\([^)]*\)/g, "?")) }));
   const owned = items(section(voiceCopy, 3, "Writing Checklist"));
   const restated = items(section(page, 2, "Pre-ship checklist"));
   if (owned.length === 0) return need(undefined, DESIGN, "Writing Checklist items");
@@ -624,7 +641,9 @@ function compareDecisionIds({ read, page, compared, fail }) {
 
 function compareBannedList({ read, page, fail, count, need }) {
   const line = need(
-    listItems(section(page, 3, "Banned vocabulary")).find((item) => /Rejected by the vocabulary check/i.test(item)),
+    listItems(section(page, 3, "Banned vocabulary"))
+      .map(({ text }) => text)
+      .find((item) => /Rejected by the vocabulary check/i.test(item)),
     PAGE,
     'section 6.4 line "Rejected by the vocabulary check …"',
   );

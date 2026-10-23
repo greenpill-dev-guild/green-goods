@@ -82,6 +82,10 @@ const DIFFERENCES = [
   ["a reworded checklist item", PAGE, "Is it shorter than your first draft?", "Is it shorter than the first draft?", "voice core", /opens with "Is it shorter than your first draft\?"/],
   ["a checklist item DESIGN.md adds", "DESIGN.md", "- [ ] Is it shorter than your first draft?", "- [ ] Is it shorter than your first draft?\n- [ ] Does it name the garden?", "voice core", /"Does it name the garden\?"/],
   ["a citation dropped from a checklist item", PAGE, "act or verify (DL-094)? On-chain", "act or verify? On-chain", "voice core", /verify \(DL-094\)\? On-chain/],
+  ["a checklist item turned into a plain bullet", PAGE, "- [ ] Is it shorter than your first draft?", "- Is it shorter than your first draft?", "voice core", /opens with "Is it shorter than your first draft\?"/],
+  ["a checklist item nested under another", PAGE, "- [ ] Is it shorter than your first draft?", "  - [ ] Is it shorter than your first draft?", "voice core", /opens with "Is it shorter than your first draft\?"/],
+  ["a stale second one-sentence test", PAGE, "garden sign, it's close.", "garden sign, it's close.\n\n**The one-sentence test.** If it reads like a sign, rewrite it.", "voice core", /one-sentence test reads "If it reads like a sign/],
+  ["a stale second core voice sentence", PAGE, "pointing at the compost pile.", "pointing at the compost pile.\n\n**Core voice.** Green Goods speaks like a brand.", "voice core", /core voice reads "Green Goods speaks like a brand/],
   ["a dropped \"we are not\" word", PAGE, "Jargon-heavy, academic, blockchain-first", "Jargon-heavy, academic", "voice core", /Grounded pillar\) "We are not"/],
   ["a pillar DESIGN.md lacks", PAGE, "| Active |", "| Playful | Light | Silly |\n| Active |", "voice core", /Playful pillar/],
   ["a stale duplicate pillar row", PAGE, "| Active |", "| Honest | Vague about limits | Hedging, corporate disclaimers, vague promises |\n| Active |", "voice core", /Honest pillar\) "We are"/],
@@ -165,6 +169,14 @@ test("text wrapped onto further lines is compared whole, so a change after the w
       [
         ["DESIGN.md", "verify (DL-094)? On-chain is implementation", "verify (DL-094)?\n  On-chain is implementation"],
         [PAGE, "verify (DL-094)? On-chain is implementation, not copy.", "verify (DL-094)?\n  On-chain is copy, not implementation."],
+      ],
+      /On-chain is implementation, not copy\./,
+    ],
+    [
+      "a checklist item continued on an unindented lazy line",
+      [
+        ["DESIGN.md", "verify (DL-094)? On-chain is implementation", "verify (DL-094)?\nOn-chain is implementation"],
+        [PAGE, "verify (DL-094)? On-chain is implementation, not copy.", "verify (DL-094)?\nOn-chain is copy, not implementation."],
       ],
       /On-chain is implementation, not copy\./,
     ],
