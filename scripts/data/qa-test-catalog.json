@@ -2968,7 +2968,7 @@
         "Try Next with no action row, then add one with a count of one or more",
         "Set the hours, the due date, and who may take it up, then review and press Request This Work"
       ],
-      "expected": "Next is held until at least one action row has a count of one or more; the review says a garden-work request travels the Work rails; the place button reads Request This Work; the done screen names the request, and it appears under Requests in the pool with the chosen claim mode",
+      "expected": "Next is held until at least one action row has a count of one or more; the review says a garden-work request travels the work rails; the place button reads Request This Work; the done screen names the request, and it appears under Requests in the pool with the chosen claim mode",
       "evidence": "Screenshots of the action rows and the done screen",
       "role": "gardener",
       "tags": ["commitments", "tx"],
