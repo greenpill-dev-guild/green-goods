@@ -127,6 +127,20 @@ test("formatting the comparison ignores, and an adapted model line, still pass",
   }
 });
 
+test("the check imports only Node built-ins and repository files, since CI Gate loads it before installing packages", () => {
+  const packages = [];
+  const visit = (file, seen = new Set()) => {
+    if (seen.has(file)) return;
+    seen.add(file);
+    for (const [, specifier] of fs.readFileSync(file, "utf8").matchAll(/^\s*import\b[^"'`]*["']([^"']+)["']/gm)) {
+      if (specifier.startsWith(".")) visit(path.resolve(path.dirname(file), specifier), seen);
+      else if (!specifier.startsWith("node:")) packages.push(`${path.relative(repoRoot, file)} imports ${specifier}`);
+    }
+  };
+  visit(fileURLToPath(new URL("./check-brand-voice-parity.mjs", import.meta.url)));
+  assert.deepEqual(packages, []);
+});
+
 test("the guidelines path must stay a symbolic link to the page", () => {
   const replaced = (relink) => plantedFailures(({ root }) => {
     fs.rmSync(path.join(root, LINK));

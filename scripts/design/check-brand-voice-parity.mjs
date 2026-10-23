@@ -23,7 +23,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import * as yaml from "js-yaml";
+// Node built-ins and repository files only: CI Gate imports this check before installing packages.
 import { checkDecisionLogCitations } from "../quality/check-guidance-links.mjs";
 
 const scriptPath = fileURLToPath(import.meta.url);
@@ -199,9 +199,14 @@ function leadParagraph(markdown) {
   return paragraph.length > 0 ? plain(paragraph.join(" ")) : undefined;
 }
 
-function frontmatter(markdown) {
-  const block = markdown.match(/^---\n([\s\S]*?)\n---\n/)?.[1];
-  return block === undefined ? {} : (yaml.load(block) ?? {});
+/** The frontmatter's one-line description, plain or quoted. */
+function frontmatterDescription(markdown) {
+  const block = markdown.match(/^---\n([\s\S]*?)\n---\n/)?.[1] ?? "";
+  const value = block.match(/^description:[ \t]*(.+)$/m)?.[1].trim();
+  if (!value) return undefined;
+  if (/^".*"$/.test(value)) return value.slice(1, -1).replace(/\\(["\\])/g, "$1");
+  if (/^'.*'$/.test(value)) return value.slice(1, -1).replace(/''/g, "'");
+  return value;
 }
 
 /** The first paragraph of a page's body, after its frontmatter, imports, and headings. */
@@ -340,7 +345,7 @@ function compareDescriptor({ read, positioning, en, fail, count, need, agree }) 
     [leadParagraph(read("README.md")), "README.md lead line"],
     [plain(JSON.parse(read("package.json")).description ?? ""), "package.json description"],
     [firstBodyParagraph(welcome), `${WELCOME} opening line`],
-    [plain(frontmatter(welcome).description ?? ""), `${WELCOME} frontmatter description`, { opens: true }],
+    [plain(frontmatterDescription(welcome) ?? ""), `${WELCOME} frontmatter description`, { opens: true }],
     [metaContent(html, "name", "description"), `${CLIENT_HTML} meta description`],
     [metaContent(html, "property", "og:description"), `${CLIENT_HTML} og:description`],
     [metaContent(html, "name", "twitter:description"), `${CLIENT_HTML} twitter:description`],
