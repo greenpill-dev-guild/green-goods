@@ -6,13 +6,16 @@
 - Branch: one `feature/` branch per step. Step 1's have merged: `feature/app-cockpit-typeface`
   (#1172), `feature/app-cockpit-type-roles` (#1175), `feature/app-cockpit-type-role-guides`
   (#1176), `feature/app-cockpit-shared-type-roles` (#1188) and
-  `feature/app-cockpit-shared-type-role-guides` (#1187). Step 2 runs on
-  `feature/app-cockpit-ground-ladder`, with its guide wording on
-  `feature/app-cockpit-ground-ladder-guides`.
+  `feature/app-cockpit-shared-type-role-guides` (#1187). In review: step 1's last,
+  `fix/app-vietnamese-font-subset` (#1197); step 2, `feature/app-cockpit-ground-ladder` (#1191)
+  with its guides `feature/app-cockpit-ground-ladder-guides` (#1193); step 3,
+  `feature/app-cockpit-control-outline` (#1195, stacked on #1191) with its guides
+  `feature/app-cockpit-control-outline-guides` (#1196, stacked on #1193).
 - Status: in progress. Steps 1 to 3 are approved. Step 1's face, both halves of the type roles and
-  their guide wording have merged, and #1190 served and precached the faces; step 1 waits only on
-  the maintainer's call on #1189 (below). Step 2 is in review. Step 3's draft is on
-  `feature/app-cockpit-token-slice-drafts`. Every later step starts on its own approved pair.
+  their guide wording have merged, and #1190 served and precached the faces; #1197 finishes step 1.
+  Steps 2 and 3 are in review. Every later step starts on its own approved pair.
+- Merge order: #1197 any time; #1191, then #1193; then retarget #1195 and #1196 to `develop`,
+  merge #1195, then #1196. A stacked pull request runs no CI Gate until its base is `develop`.
 
 ## Scope
 
@@ -89,19 +92,21 @@
 - Follow-ups the shared roles left, neither filed yet: the client's own 17 files on the shared scale
   (so the scale keeps its tokens and its `cn()` registration), and 98 raw Tailwind sizes in 35
   shared components.
-- Next, to finish step 1 (the last pull request says `Fixes PRD-1267`):
-  - The maintainer's call on #1189 (`feature/app-cockpit-offline-face`, head `27189c373`), which
-    #1190 overtook: it conflicts with `develop` in seven files and would add a second copy of the
-    faces under `src/styles/fonts/`. Recommended: close it as superseded and port what #1190 lacks
-    as one small pull request. What it lacks is the vietnamese subset: `develop`'s latin-ext ranges
-    skip U+1EA0 to U+1EF1 (ẹ, ọ, ị, ụ), and Google Fonts served that subset for all three faces
-    before #1190, Fraunces included, so Yoruba and Igbo names now draw those letters in a fallback
-    face. Inter stays out of the precache: under `/home` it draws only in the wallet modal, which
-    needs a network. #1189's budget-checker guard is not recommended: on `develop`'s build it
-    reports nothing, and it fires only when `fonts/pwa.css` names a face outside the
-    `fonts/jakarta-*.woff2` glob (a constructed case: `develop`'s checker passes it, #1189's fails
-    it), which a `jakarta-vietnamese-*` file does not do; the offline spec can assert the new face
-    directly.
+- Finishing step 1 (`Fixes PRD-1267` in #1197):
+  - #1189 (`feature/app-cockpit-offline-face`, head `27189c373`), which #1190 overtook, conflicted
+    with `develop` in seven files and would have added a second copy of the faces under
+    `src/styles/fonts/`. The maintainer chose on 2026-10-23 to close it as superseded (closed with
+    a note; its branch and worktree are kept) and to port what #1190 lacks as one small pull
+    request: #1197 (`fix/app-vietnamese-font-subset`). What it lacked is the vietnamese subset:
+    `develop`'s latin-ext ranges skip U+1EA0 to U+1EF1 (ẹ, ọ, ị, ụ), and Google Fonts served that
+    subset for all three faces before #1190, Fraunces included, so Yoruba and Igbo names drew those
+    letters in a fallback face. #1197 serves the subset for all three faces, precaches the
+    installed face's two files through the existing glob (31 entries, 0.70 MiB raw), and extends
+    the offline spec. Inter stays out of the precache: under `/home` it draws only in the wallet
+    modal, which needs a network. #1189's budget-checker guard was not carried over: on
+    `develop`'s build it reports nothing, and it fires only when `fonts/pwa.css` names a face
+    outside the `fonts/jakarta-*.woff2` glob (a constructed case: `develop`'s checker passes it,
+    #1189's fails it), which a `jakarta-vietnamese-*` file does not do.
   - Brave proof, 2026-10-23, **authenticated Brave** (the maintainer's profile through the Claude
     in Chrome extension, `navigator.brave` true), `develop` `65df3ad13` built for production and
     served by `vite preview` on :4318, `/home/login?presentation=pwa` in a browser tab: online, the
@@ -144,41 +149,57 @@
     seam fingerprint of `shared-commitment-pooling-public` is re-certified (its proof suites, 61
     tests, passed); colons replaced the draft's em dashes; the projections and the docs token
     data are regenerated.
-- Guides: DL-097 and its lines in root `DESIGN.md`, `language.md` § Dark Mode Palette,
-  `DESIGN.pwa.md` and the cockpit's `DESIGN.md`, with token version 2.23.0, go in the standards-only
-  `feature/app-cockpit-ground-ladder-guides`, as #1176 and #1187 did.
+- In review as #1191 (`Fixes PRD-1268`), with root `DESIGN.md`'s Ground paragraph (`fc65a91d5`)
+  in it: the docs token data reads `DESIGN.md`, so a second pull request regenerating it would
+  conflict. Push gate on `fc65a91d5`: 18 of 19 selected checks passed, browser-proof manual. The
+  first gate run failed docs-authority on this worktree's stale docs install (no `@babel/parser`);
+  the maintainer approved a frozen `bun install` here, which also moved Vite to 8.2.4, and the
+  lockfile did not change.
+- Guides: DL-097 and its lines in `language.md` § Dark Mode Palette, `DESIGN.pwa.md` and the
+  cockpit's `DESIGN.md`, with token version 2.23.0, are the standards-only #1193, as #1176 and
+  #1187 were. Merge it after #1191.
 - Proof: eval.md, Step 2 proof (contrast audit and 76 rendered pairs). TDD `not_applicable`: pure
   styling and the status bar colour, whose unit cases are in `theme.test.ts`,
-  `bootFallback.test.tsx` and `pwa-manifest.test.ts`.
+  `bootFallback.test.tsx` and `pwa-manifest.test.ts`. Pending: browser-proof of the installed
+  app's status bar (the authenticated class), and on iOS whether the solid bar follows
+  `theme-color` at all.
 
 ## Step 3: control outline and focus role (PRD-1269)
 
 - Draft `10f0aa565` on `feature/app-cockpit-token-slice-drafts` replays onto step 2:
   `theme.css` applies cleanly, and the cockpit's `index.css` and Storybook's `surfaces.css` keep
   both sides after `--gg-hit-block` (`develop`'s type role block and the draft's outline).
-- Built on top of it, not yet committed: one solid 2px ring on `.gg-control`, `.gg-button`,
-  `.gg-chip` and `.gg-switch` in the workspace tone in the cockpit and the app's green, switched on
-  by two plain tokens (`--gg-focus-ring-width`, `--gg-focus-halo-alpha`) that the installed app and
-  the cockpit set, so the public website keeps its halo (A13); `AdminDensityScale.guard` pins
-  `--gg-control-outline` and both focus tokens. Its pull request waits on step 2, or on the
-  maintainer's word on stacking it.
-- The step 13 guide draft and the pending DL-098 row are in `artifacts/step-13-draft/`; DL-098
-  lands with step 3, with the guide lines it makes true.
+- In review as #1195 (`Fixes PRD-1269`), stacked on #1191 as the maintainer chose on
+  2026-10-23: one solid 2px ring on `.gg-control`, `.gg-button`, `.gg-chip` and `.gg-switch` in
+  the workspace tone in the cockpit and the app's green, switched on by two plain tokens
+  (`--gg-focus-ring-width`, `--gg-focus-halo-alpha`) that the installed app and the cockpit set,
+  so the public website keeps its halo (A13); the app's buttons at weight 500; root `DESIGN.md`'s
+  Controls line. `AdminDensityScale.guard` pins `--gg-control-outline` and both focus tokens, the
+  button guard pins the weight, and the Storybook design-system pages expect 500.
+- Proof (in #1195): **Storybook**, `:focus-visible` forced through the DevTools protocol on every
+  shared control family, light and dark. Before, only icon buttons drew a ring; now every family
+  draws 2px. Ring against its ground: the app 5.72:1 (light) and 14.46:1 (dark), the cockpit 7.26
+  and 11.83:1. Unselected chip outlines: the app 1.34 to 4.80:1 (light) and 1.51 to 6.14:1 (dark),
+  the cockpit 1.92 to 7.83:1 (dark). TDD `proof_limit` with that evidence.
+- Guides: DL-098 and its lines, with token version 2.24.0, are the standards-only #1196, stacked
+  on #1193 so the two decision-log rows land in order.
 
 ## TDD Proof
 
 - Lane mode: `required` in `status.json`, because step 1's offline face changes service-worker
   behaviour. Its RED and GREEN proof follow the testing contract and are recorded with
   `node scripts/harness/plan-hub.mjs record-tdd` before the lane closes.
-- Proposed for the offline face, now that #1190 delivered it (recorded once the maintainer decides
-  #1189), with `develop`'s `tests/specs/client.pwa-preview.spec.ts` (`55b0b9b86`) and the policy's
-  command `PLAYWRIGHT_JSON_OUTPUT_FILE=<file> bun run browser e2e --preset pwa-preview --
-  --workers=1 --reporter=line,json`, run 2026-10-23 in this worktree:
+- Recorded with `record-tdd` on 2026-10-23, after the maintainer chose to close #1189 and port its
+  vietnamese subset (#1197), with `develop`'s `tests/specs/client.pwa-preview.spec.ts`
+  (`55b0b9b86`) and the policy's command `PLAYWRIGHT_JSON_OUTPUT_FILE=<file> bun run browser e2e
+  --preset pwa-preview -- --workers=1 --reporter=line,json`, run in this worktree:
   - RED at `671bc8220` (`develop` just before #1190) with that spec file checked out over it:
     1 failed, at spec line 95, `page.evaluate: TypeError: Failed to fetch`, when the offline page
     fetches `/fonts/jakarta-latin-normal.woff2`: no face is served or precached. The offline
     shell's earlier assertions pass.
   - GREEN at `develop` `65df3ad13`: 1 passed (55.3s).
+  - #1197's dot-below assertion: 1 failed at spec line 138 with its faces removed, and 1 passed
+    with them (1.2m).
 - RED and GREEN: not applicable to the token slices themselves (pure styling).
 - Proof limit: step 1's face and role names and step 2 `not_applicable`; step 3's solid focus ring
   is rendered-only behaviour and records `proof_limit` with its rendered evidence.
