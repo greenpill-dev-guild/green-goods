@@ -48,10 +48,11 @@ function artifacts(): StewardArtifacts {
 const commit = "a".repeat(40);
 describe("fixed-two steward Safe release", () => {
   it("keeps missing deployment and real signer inputs explicit", () => {
-    const report = inspectStewardManifest(draft);
+    const incomplete = { ...fixture(), garden: null, confirmedStewards: [] };
+    const report = inspectStewardManifest(incomplete);
     expect(report.missing).toContain("garden");
     expect(report.activationMissing).toContain("confirmedStewards");
-    expect(() => buildStewardPlan(draft, artifacts(), commit)).toThrow("deployment inputs");
+    expect(() => buildStewardPlan(incomplete, artifacts(), commit)).toThrow("deployment inputs");
   });
   it.each([
     [
@@ -100,9 +101,9 @@ describe("fixed-two steward Safe release", () => {
     expect(() => validateStewardPlan(plan, fixture(), artifacts(), commit)).toThrow("mismatch");
   });
   it("rejects stale revision, wrong build, and unreviewed runtime", () => {
-    const m = fixture(),
-      a = artifacts(),
-      plan = buildStewardPlan(m, a, commit);
+    const m = fixture();
+    const a = artifacts();
+    const plan = buildStewardPlan(m, a, commit);
     expect(() => validateStewardPlan(plan, m, a, "b".repeat(40))).toThrow();
     a.StewardSafeReceiver.metadata.settings.viaIR = false;
     expect(() => buildStewardPlan(m, a, commit)).toThrow("production");

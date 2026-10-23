@@ -53,11 +53,12 @@ describe("CLC Gnosis pilot preparation", () => {
     expect(timelock.getFunction("DEFAULT_ADMIN_ROLE")).toBeNull();
   });
   it("separates deployment prerequisites from issuer acceptance and deferred signer identities", () => {
-    const report = inspectCLCPilotManifest(draft);
+    const incomplete = { ...draft, deployer: null, nonce: null, techAndSunSafe: null };
+    const report = inspectCLCPilotManifest(incomplete);
     expect(report.deploymentMissing).toEqual(["deployer", "nonce", "techAndSunSafe"]);
     expect(report.activationMissing).toContain("issuers.greenGoods.capacityConfirmed");
     expect(report.activationMissing).not.toContain("issuers.greenGoods.poolHeadroom");
-    expect(() => buildCLCPilotPlan(draft, artifact(), commit)).toThrow("deployment inputs");
+    expect(() => buildCLCPilotPlan(incomplete, artifact(), commit)).toThrow("deployment inputs");
     expect(buildCLCPilotPlan(fixture(), artifact(), commit).transactions).toHaveLength(10);
   });
   it("keeps ten initial units within the approved twenty-unit holding cap and rejects no-headroom activation", () => {

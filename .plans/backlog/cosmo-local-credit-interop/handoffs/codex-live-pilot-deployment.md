@@ -3,6 +3,18 @@
 **Current target:** Saturday, 24 October 2026 Pacific. Deck Saturday; participant testing Sunday
 and Monday, 25–26 October. This package is in preparation; no broadcast is claimed.
 
+**Current continuation, 23 October at 10:13 a.m. Pacific:** the legacy-validator bootstrap is
+blocked for live use by a source-level assertion-binding concern. The historical build and
+fictional migration proofs below remain valid only for their recorded scope; they do not
+establish a safe production bootstrap. TAS HUB's garden and steward Hat are now verified and
+bound in the public release input. The authenticated Brave window is reachable, but its Green
+Goods tab is signed out. The user has supplied the member address and selected the repository
+deployer for both networks. The selected member needs the blocked bootstrap on Gnosis; ordinary
+member possession/signing remains unproved. Bounded gas/fuel caps are recommended below;
+the approved deployer is also the selected pause-only guardian, distinct from the owner Safe.
+Issuer acceptance remains unconfirmed. See [the current public input evidence](../artifacts/live-pilot-public-inputs-2026-10-23.json)
+and the correction at the end of this handoff. No live transaction has been sent.
+
 ## Accepted release disposition
 
 On 22 October Pacific, the human release owner selected live contract deployment for the
@@ -638,3 +650,236 @@ separate from actual root state. The current sequential `PasskeySender.sendBatch
 for the three-call atomic migration. Hosted exact-profile acceptance, real member signing and
 funding remain unproved. Continue this work after the signed tooling checkpoint without silently
 enabling chain 100 for the primary application or changing its existing sponsorship defaults.
+
+## Public input refresh and member-path correction, 23 October Pacific
+
+Signed checkpoint `aacdd1f9b3731c3f57df37036bea10c6ef3c7903` is intact on the existing branch.
+All twenty tooling input hashes match its recorded evidence before this continuation. The
+current segment preserves the existing 114 unrelated dirty paths. The existing Plan Hub remains
+the execution owner; no Linear write, branch change, dependency or harness change is included.
+
+The public indexer identifies **TAS HUB**, token 2, as garden
+`0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3`. At pinned Arbitrum block 517,591,731,
+`getGardenHatIds` confirms its configuration and steward Hat
+`2480315916136414910793610061883055838099552405006172335048825126256640`.
+All four indexed steward candidates independently pass `isStewardOf` at that block. This is
+role evidence, not member possession, issuer acceptance or four confirmed Gnosis signers.
+Only the garden and steward Hat are bound in `config/steward-safe-release.json`;
+`confirmedStewards` stays empty. No member names or private account associations are recorded.
+
+The GG Safes still have five owners and threshold two. Observed Safe nonces are 33 on
+Arbitrum and 2 on Gnosis. Hats remains owned by the repository deployer EOA; the observed
+Hats, Pooling and Settlement implementations match the earlier release inputs. Gnosis Hats'
+last top Hat counter is 1,823. Its next top Hat is an observation only: keep `expectedTopHat`
+unfrozen until the exact deployment boundary, because another mint can invalidate it.
+
+The repository deployer candidate `0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6` is code-free on
+both networks, with **0.010203292241719177 ETH** on Arbitrum and **zero xDAI** on Gnosis.
+Its observed pending nonces are 1,037 and zero. These observations neither appoint it nor set
+a spending budget. Any Hats upgrade or other transaction can change the Arbitrum nonce before
+the downstream CREATE plans. Native gas, member prefund and CCIP fuel remain separate budgets.
+
+### Same-address incompatibility
+
+The preceding chat ended with a platform cybersecurity-risk notice without an action-specific
+reason. That notice is preserved as a platform interruption, not a failed repository test or
+proof of compromise. This continuation performs bounded source inspection and public reads;
+it performs no exploit reproduction or live account mutation.
+
+The original validator's WebAuthn dependency has a verification path that can return without
+enforcing the requested assertion binding. Its source SHA256 matches the exact historical
+build record. The inspected patched dependency rejects that path. This independently supports
+the earlier concern at source level; no broader audit or runtime exploit proof is claimed.
+The legacy validator remains absent on Gnosis at pinned block 48,904,355. Therefore:
+
+- Do not deploy the original validator or expose a live member account through that bootstrap.
+- The existing ordered native-migration proof starts from an available original validator;
+  its nine fictional cases do not resolve the unsafe production-bootstrap prerequisite.
+- Replacing the canonical initializer's validator changes deterministic account identity.
+  Passing a known address override alone does not preserve or verify derivation.
+- No supported, source-backed safe bootstrap preserving this legacy-derived address is
+  selected. A member whose actual canonical profile differs must be assessed from its own
+  public account and ordinary passkey ceremony; neither a GardenAccount nor a Safe proves
+  possession of a member passkey.
+
+The real Brave extension reaches Green Goods at `https://localhost:3001/home/login`, showing
+a remembered sign-in option and no authenticated member address. Human sign-in to the intended
+existing member account is requested in chat. Browser/session label: **authenticated Brave
+profile, application signed out**. This is observation only, not authenticated-member signing
+proof. No WebAuthn response, credential or private session storage was inspected.
+
+### Exact remaining operation boundaries
+
+The 10 a.m. same-address checkpoint is at risk. Public role discovery is complete; production
+bootstrap compatibility, the actual member ceremony, correctly bound signing/cancellation/retry,
+provider acceptance or native prefund, and continued account control remain unproved.
+
+Deployment intent remains authorized. The next signer-dependent decisions are the deployment
+EOAs, bounded gas/CCIP funding and distinct endpoint guardians, followed by the exact reviewed
+Hats-owner and GG Safe operations. These decisions are requested in chat after the public
+balance/authority readback. Do not request a private key or access a protected keystore.
+
+The new release planners currently provide preflight, plan and owned-fork simulation, while the
+combined package remains review-only. They have no broadcast or external-receipt adoption mode.
+The existing Hats-upgrade command has a signer workflow but loads the protected root `.env`;
+it was not invoked here. This is a concrete execution-integration dependency, separate from
+member bootstrap correctness and signer availability. Before live execution, the approved
+signer workflow must bind each exact transaction, persist its actual receipt and promote
+verified canonical deployment/app/indexer configuration. A fork receipt or copied fixture
+address cannot fill that dependency.
+
+Issuer capacity, acceptance authorities and exact terms/digests remain unconfirmed. Claude
+access may remain unavailable independently of ready hub/assistance offers. No issuance,
+allowance, source role update, unpause, CCIP delivery or activation is claimed by this refresh.
+Read-only live COM-46 remains In Progress, last updated `2026-10-23T09:40:19.983Z`; its
+description still requests the actual capacity and approval evidence. No issue was changed.
+
+### Member/deployer intake and bounded gas policy, 10:02 a.m. Pacific
+
+The user supplied an existing member address and selected the repository deployer above on
+both chains. Its exact association and public profile reads stay outside Git. The member has
+Kernel account code and the historical WebAuthn root/key on Arbitrum, with no account code at
+that address on Gnosis or Celo at the recorded pins. No actual-member signature was requested
+or produced. This makes the legacy-bootstrap incompatibility concrete for the intended member;
+it is not a GardenAccount/Safe substitution. The 10 a.m. working-signing checkpoint is not met.
+
+The member's public creation record identifies the canonical Kernel factory. Reconstructing
+the unchanged initializer from that account's public validator registration, with the SDK's
+zero `bytes32` salt, reproduces the exact supplied member address through read-only
+`getAddress(bytes,bytes32)`. Replacing only its validator with the patched address produces
+a different account address. This is actual-member derivation evidence, not possession or
+signing proof. Exact address, registration data and calls remain in the private local task
+record outside Git. An initial call used the wrong salt ABI and reverted; the corrected
+SDK/factory ABI calls establish the results above.
+
+The four public component manifests now bind the approved deployer. Phase nonces remain null:
+the observed 1,037/zero are not promises spanning the required Hats and source upgrades.
+The user delegated gas/CCIP recommendations. Use these initial ceilings for exact-operation
+review, subject to fresh estimation and funded approved signing:
+
+| Network | Deployment/owner gas | Initial native CCIP fuel | Unspent reserve |
+|---|---|---|---|
+| Arbitrum | At most 0.005 ETH, with an initial 0.05 gwei max-fee ceiling | At most 0.002 ETH | Existing balance beyond the 0.007 ETH combined cap |
+| Gnosis | At most 0.10 xDAI | At most 0.50 xDAI | 0.40 xDAI of a proposed one-xDAI funding amount |
+
+These caps are not exact live quotes, a transfer receipt or new automatic spending behavior.
+The source rehearsal's 50,092,551 gas alone costs about 0.001002 ETH at the observed 0.02001
+gwei before live L1-data/other-operation differences. The selected Arbitrum caps leave headroom
+for the other boundaries; an operation exceeding a cap requires a new decision. Quote each
+actual message before fueling it, retain returned/recoverable balances, and do not spend the
+reserve automatically. Member prefund/outer-relayer budgets remain separate and unselected
+while the same-address route is blocked. Gnosis deployer funding is still absent; transfer
+through the human's normal wallet workflow is required before its live CREATEs.
+
+Recommend reusing the recorded protocol guardian
+`0x05F486E3161F895Ad99f041065224F78bDf580a7` for both new endpoint networks, distinct from the
+owner Safe. Current recovery-controller possession and appointment are requested in chat;
+leave the endpoint guardian inputs null until confirmed. No existing Safe control is changed.
+
+**Guardian correction and accepted appointment, 10:13 a.m. Pacific:** public verification
+rejects that initial recommendation. The address is the deployed Tokenbound `AccountGuardian`
+on Arbitrum, with 1,126 bytes of code, owned by the approved deployer and no pending owner.
+Its [verified source](https://arbiscan.io/address/0x05F486E3161F895Ad99f041065224F78bDf580a7#code)
+only manages trusted implementations/executors; it has no arbitrary-call forwarding capability.
+There is no code at that address on Gnosis. It therefore cannot exercise the new endpoints'
+direct `msg.sender` pause authority and must not be reused for this role.
+
+The user instead selected **the approved deployer EOA** as pause-only guardian on both
+chains. Both endpoint network inputs now bind `0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6`.
+It is code-free on both chains and distinct from the owning GG Safe. `VoucherEndpoint.pause`
+accepts the owner or guardian; unpause and upgrades remain owner-only. No Tokenbound trust
+list, ownership, Safe role or existing account configuration is changed. The earlier suggestion
+was premature; it was corrected before any endpoint was deployed or initialized.
+
+The exact current production Hats implementation creation has a read-only live gas estimate
+of **3,712,551 gas** from the approved deployer on Arbitrum. A 30% gas-limit margin is
+4,826,317; at the proposed 0.05 gwei fee cap its gas-limit upper bound is **0.00024131585 ETH**.
+This is a preliminary creation quote, not the owner-upgrade transaction, an executable
+nonce-frozen plan, CCIP pricing or a transaction receipt. Re-estimate through the normal Hats
+upgrade workflow at the actual signing boundary; no protected signer/environment file was read.
+
+The first selected five-check run passes format, ABI artifacts and build, all 2,209 Solidity
+cases and the three production gas cases, then fails the script phase. Two assertions assumed
+the canonical garden would remain null; four other suites cannot bind/connect loopback under
+the sandbox. The missing-input tests now construct explicit incomplete fixtures; the CLI
+preflight test asserts production/preflight/no-authority/no-broadcast behavior independently
+of which real fields have been supplied. All fifty focused release cases pass with the
+required loopback capability. No assertion about actual missing-input rejection was removed.
+The original failure remains recorded; the complete revised critical run follows in chat.
+
+### App/indexer activation handoff
+
+No consumer configuration is promoted before actual deployment receipts. The current
+`packages/indexer/config.yaml` defines voucher redemption/escrow events but statically registers
+neither endpoint on Arbitrum and has no Gnosis network entry. The core voucher pin handler
+projects the pin; it does not dynamically register those contracts. After deployment, pin the
+actual `VoucherRedemptionModule` and `GnosisVoucherEscrow` addresses at or before their first
+event blocks, add the reviewed chain-100 ingestion configuration, regenerate and prove real
+source/destination projections. Keep this separate from existing Celo ingestion.
+
+Shared's `readServiceAccess` and `readVoucherServiceSetups` read the source core's pinned
+module/protocol versions, but `service-access-chain.ts` explicitly reports that no reviewed
+VoucherRedemptionModule/Gnosis endpoint mapping exists in the application. The primary chain
+and Pimlico configuration still exclude chain 100. Promotion therefore also needs a reviewed
+address/protocol/owner/peer mapping and a supported actual member signer/provider. Do not enable
+chain 100 or treat an indexer row as signing authorization while the legacy member bootstrap
+is blocked. Actual receipt blocks and runtime hashes, endpoint/Safe/HSG readbacks, protocol pins,
+issuer terms and finite inventory/allowances must accompany that consumer handoff.
+
+### Current validation and next signer action
+
+At the observed **2026-10-23 17:21:17 UTC** boundary, all six final critical QA checks pass
+fresh: format, lint, ABI artifacts, contracts build, contracts test and production verification.
+The final guardian-bound run includes **2,209 Solidity cases, 433 script cases, 37 CLI checks
+and three production gas cases**. The earlier pre-guardian six-check pass is a separate receipt.
+The evidence JSON binds all eight changed configuration/test files by SHA256. Solidity source,
+vendored dependencies, Foundry profile, Contracts manifest and root lockfile are unchanged from
+signed `aacdd1f9b`. There is no remote CI, publication or live-readiness claim.
+
+All 34 Plan Hubs validate, every local handoff link resolves, and all 114 unrelated dirty-file
+hashes are unchanged. The selected member's exact identity/registration remains outside Git.
+The initial sandbox failure and later lint failure remain recorded; neither is reused as proof.
+
+The first supported signer-environment action is the existing Hats planning command, from the
+repository root, after the signed local checkpoint:
+
+```sh
+bun run contracts -- upgrade hats-module --network arbitrum --mode plan \
+  --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6
+```
+
+Its exact CLI shape was checked with `--explain`; execution was not attempted because its
+handler unconditionally reads the protected root `.env`. Run it in the human's normal approved
+operator environment, keeping credentials there. Review its public transaction plan (normally
+`packages/contracts/deployments/tx-plans`) and exact nonce/source/rollback binding before a
+broadcast. The existing deployment intent remains authorized; this is a signer-environment
+dependency, not a request to repeat that authorization. No private key or environment contents
+should be sent through chat. The Gnosis deployer still has zero xDAI on the final public read;
+the proposed one-xDAI funding requires the human's normal wallet action. Actual signatures,
+live receipts and the new component execution/adoption integration remain outstanding.
+
+The first local signed-checkpoint attempt passed the normal pre-commit hook, then failed because
+the configured SSH signer could not find its signing key. It wrote no commit object and left
+HEAD at signed `aacdd1f9b`. The user subsequently reported the signer ready. At the observed
+18:27:17 UTC retry boundary, the same ten paths remained staged, all eight tested input hashes
+matched, and all 114 unrelated dirty-file hashes were unchanged. The signed retry and its final
+commit verification are reported in chat. No unsigned fallback, signing-setting change or
+keyring access is authorized or needed.
+
+Task record: cosmo-local-credit-interop live pilot deployment | Type: investigation/configuration | Outcome: partial; member bootstrap and live execution blocked
+Agent/model: Codex / GPT-6 | Coverage: public deployment bindings and same-address incompatibility
+
+| Phase | Start → end (UTC) | Result / evidence or blocker |
+|---|---|---|
+| Investigate | Earlier start unknown → 2026-10-23 16:52:05 | First observed clock 16:45:41; signed checkpoint, twenty hashes, public roles/authority/funding and validator source checked. |
+| Investigate | 2026-10-23 16:59:41 → 17:13:48 | Actual member creation/derivation, guardian type/owner/call capability and exact Hats creation gas quote. |
+| Wait | After 2026-10-23 16:45:41 → before 17:13:48 | User supplies member address, approves both deployers and pause-only guardian, and delegates gas recommendations. |
+| Implement | After 2026-10-23 16:52:05 → before 17:13:48 | Bind four manifests; correct draft-dependent fixtures and exposed lint error; preserve source and foreign paths. |
+| Verify / review | Start unknown → 2026-10-23 17:21:17 | Final six checks pass fresh; preflight, eight source hashes, links, 34 hubs and 114 foreign hashes checked. |
+| Publish locally | After 2026-10-23 17:21:17 → signing attempt failed | Ten reviewed paths staged; pre-commit passed; configured SSH signing key unavailable; no new commit. |
+| Wait / retry | Failed signing attempt → 2026-10-23 18:27:17 observed retry boundary | User reports signer ready; staged inputs and unrelated paths rechecked. Signed retry outcome is recorded in chat. |
+| Wait | After 2026-10-23 17:21:17 → ongoing | Human operator environment/signatures and Gnosis funding; unsupported safe legacy bootstrap; issuer acceptance and live integration. |
+
+Human corrections: 0 in this segment; attention: unknown. Agent correction: premature guardian
+recommendation rejected after verification, before deployment. Rendered member proof: pending.
+Live receipts: none. The current segment does not close any existing implementation or live gate.

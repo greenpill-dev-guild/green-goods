@@ -6,7 +6,7 @@
     "blockNumber": 517485020,
     "blockHash": "0x37f65ab9a007ebdb505ea17385ec8be41be17991774a6e3b370d9333952b7e00"
   },
-  "deployer": null,
+  "deployer": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
   "nonce": null,
   "authority": {
     "address": "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",

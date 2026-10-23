@@ -1,0 +1,272 @@
+{
+  "schemaVersion": 1,
+  "kind": "LIVE_PILOT_PUBLIC_INPUT_REFRESH",
+  "observedAt": "2026-10-23T16:52:05Z",
+  "sourceCommit": "aacdd1f9b3731c3f57df37036bea10c6ef3c7903",
+  "evidenceClass": "read-only public chain and source observations; no live signature, simulation or deployment",
+  "blocks": {
+    "arbitrum": {
+      "number": 517591731,
+      "hex": "0x1ed9d2b3",
+      "hash": "0x3693c0c20c667d15d14421d528333a587326664009c6f77941d96f1383aab622",
+      "timestamp": "0x6adb8fb1"
+    },
+    "gnosis": {
+      "number": 48904355,
+      "hex": "0x2ea38a3",
+      "hash": "0xafd8ba56f1733caa786c56fe4f623fe75f80cde167cccd28794ffe75e93f6db6",
+      "timestamp": "0x6adb8fb1"
+    },
+    "celo": {
+      "number": 80873307,
+      "hex": "0x4d2075b",
+      "hash": "0xb74940ff44497117e25173349f35538080ff9aa8b928a7b161c0dccb802c7411",
+      "timestamp": "0x6adb8fb1"
+    }
+  },
+  "techAndSun": {
+    "publicIndexer": "https://indexer.hyperindex.xyz/de3e5df/v1/graphql",
+    "indexedName": "TAS HUB",
+    "garden": "0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3",
+    "tokenId": "2",
+    "hatsModule": "0x5b943088ecdDBF8E4ae387348A88A654aC5F7266",
+    "stewardHat": "2480315916136414910793610061883055838099552405006172335048825126256640",
+    "stewardHatHex": "0x0000005c00020001000300020000000000000000000000000000000000000000",
+    "configured": true,
+    "indexedStewardCandidates": 4,
+    "onchainStewardChecks": 4,
+    "confirmedMemberPossession": 0,
+    "confirmedStewardsInput": [],
+    "sourceRoleCheck": "Four indexed operators independently pass HatsModule.isStewardOf at the pinned Arbitrum block; no name/account association or possession asserted.",
+    "lastGnosisTopHatId": "1823",
+    "nextGnosisTopHat": "49174942720882766985472635518723806348714151426714004205532985094569984",
+    "nextTopHatFrozen": false
+  },
+  "authorities": {
+    "safe": "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+    "arbitrum": {
+      "threshold": 2,
+      "nonce": 33
+    },
+    "gnosis": {
+      "threshold": 2,
+      "nonce": 2
+    },
+    "hatsOwner": "0xfbaf2a9734eae75497e1695706cc45ddfa346ad6",
+    "hatsImplementation": "0xe5e5cbeda7dc1139af2e04bd4a6784b42b4becd2",
+    "poolingImplementation": "0x6268ec974bb217de39e7756d75c8d523b9a79218",
+    "settlementImplementation": "0x1cefd9d1905e650cc2e31faf73aabb73991da281",
+    "signaturesCollected": 0
+  },
+  "deployerCandidate": {
+    "address": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+    "selected": false,
+    "arb-mainnet": {
+      "nativeBalanceWei": "10203292241719177",
+      "pendingNonce": 1037,
+      "code": "0x",
+      "gasPriceWei": "20010000"
+    },
+    "gnosis-mainnet": {
+      "nativeBalanceWei": "0",
+      "pendingNonce": 0,
+      "code": "0x",
+      "gasPriceWei": "15"
+    },
+    "note": "Nonce and gas price observations are per-call pending/latest reads, not frozen plan inputs or a gas/spending budget."
+  },
+  "memberSigning": {
+    "authenticatedBraveReachable": true,
+    "memberSessionAuthenticated": false,
+    "legacyGnosisCode": "0x",
+    "canonicalBootstrapSelected": false,
+    "disposition": "blocked: original validator source does not enforce assertion binding on every verification path; exact historical bootstrap is not an approved live signing path",
+    "sourceReviewOnly": true,
+    "liveReproduction": false,
+    "patchedInitializerReplacement": "changes deterministic identity; not selected",
+    "productionChain100Enabled": false,
+    "hostedExactProfileAcceptance": false,
+    "memberCeremony": false,
+    "limits": "Existing native fixture proof covers ordered migration only. It does not establish safety of exposing the original validator or production bootstrap, actual member control or native-gas acceptance."
+  },
+  "issuerReadback": {
+    "issue": "COM-46",
+    "status": "In Progress",
+    "updatedAt": "2026-10-23T09:40:19.983Z",
+    "readOnly": true,
+    "actualCapacityAndAcceptanceProvided": false,
+    "privateSignerEvidenceCopied": false
+  },
+  "continuationDecisions": {
+    "recordedAt": "2026-10-23T17:02:06Z",
+    "deployerSelectedForBothNetworks": true,
+    "phaseNoncesFrozen": false,
+    "memberAddressProvided": true,
+    "memberIdentityRecordedPublicly": false,
+    "memberProfile": "Historical WebAuthn root on Arbitrum; account absent on Gnosis and Celo at the recorded pins",
+    "canonicalLegacyDerivationMatchesMember": true,
+    "patchedInitializerProducesDifferentAddress": true,
+    "derivationEvidenceClass": "Read-only canonical factory calls using the selected account's public registration data and zero bytes32 salt; exact account association retained outside Git",
+    "memberPossessionProved": false,
+    "tenAmWorkingSigningCheckpointMet": false,
+    "guardianCandidate": "0x05F486E3161F895Ad99f041065224F78bDf580a7",
+    "guardianCandidateRejected": true,
+    "guardianCandidateRejection": "Tokenbound AccountGuardian cannot forward an endpoint pause call; contract absent on Gnosis",
+    "guardianCandidateOwner": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+    "guardianCandidatePendingOwner": "0x0000000000000000000000000000000000000000",
+    "selectedPauseGuardian": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+    "guardianAppointmentConfirmed": true,
+    "recommendedCapsWei": {
+      "arbitrumDeploymentAndOwnerGas": "5000000000000000",
+      "arbitrumInitialCCIPFuel": "2000000000000000",
+      "arbitrumInitialMaxFeePerGas": "50000000",
+      "gnosisDeploymentGas": "100000000000000000",
+      "gnosisInitialCCIPFuel": "500000000000000000",
+      "gnosisUnspentReserve": "400000000000000000"
+    },
+    "exactOperationQuotesComplete": false,
+    "gnosisFundingReceived": false,
+    "automaticSpendingEnabled": false,
+    "updatedAt": "2026-10-23T17:17:54Z"
+  },
+  "hatsCreationQuote": {
+    "evidenceClass": "read-only live RPC estimate of exact existing production creation bytecode; no deployment",
+    "chainId": 42161,
+    "from": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+    "gas": "3712551",
+    "proposedGasLimitWithThirtyPercentMargin": "4826317",
+    "maxFeePerGasWei": "50000000",
+    "gasLimitTimesFeeCapWei": "241315850000000",
+    "ownerUpgradeIncluded": false,
+    "nonceFrozen": false,
+    "liveReceipt": null
+  },
+  "liveBroadcast": false,
+  "activationIncluded": false,
+  "executionReady": false,
+  "sources": {
+    "legacyVerifiedSource": "https://arbiscan.io/address/0xbA45a2BFb8De3D24cA9D7F1B551E14dFF5d690Fd#code",
+    "versionMap": "https://github.com/zerodevapp/sdk/blob/52b043007429c20b05aa3f08c005d32f5ec4697d/plugins/passkey/index.ts",
+    "historicalStandardInputSha256": "0ff1c870b25cb5f20b887877078adad6f34cdb423917c845c4d661377849aef7",
+    "webAuthnSourceSha256": "525e809a3138bd610560a3a244b4d2bcd8e81ee44bf2dc33ca4b8c0b78f312fd",
+    "sourceHashMatchesHistoricalBuildRecord": true
+  },
+  "finalPreflight": {
+    "state": "preflight",
+    "deploymentMissing": [
+      "sourceUpgrades.nonce",
+      "sourceUpgrades.authority.nonce",
+      "stewardSafe.expectedTopHat",
+      "stewardSafe.arbitrum.nonce",
+      "stewardSafe.gnosis.nonce",
+      "vouchers.networks.arbitrum.nonce",
+      "vouchers.networks.gnosis.nonce",
+      "clc.nonce",
+      "clc.techAndSunSafe"
+    ],
+    "activationMissing": [
+      "stewardSafe.confirmedStewards",
+      "stewardSafe.nativeTransportFuelAndInitialRefresh",
+      "vouchers.governance.techAndSun.address",
+      "clc.earnedAdapter",
+      "clc.issuers.greenGoods.terms.reference",
+      "clc.issuers.greenGoods.terms.digest",
+      "clc.issuers.greenGoods.capacityConfirmed",
+      "clc.issuers.greenGoods.sourceIssuerAuthority",
+      "clc.issuers.techAndSun.terms.reference",
+      "clc.issuers.techAndSun.terms.digest",
+      "clc.issuers.techAndSun.capacityConfirmed",
+      "clc.issuers.techAndSun.sourceIssuerAuthority",
+      "live.hatsUpgradeAndOwnerReadbackBeforeNonceFreeze",
+      "live.techAndSunSafeReceiverReadback",
+      "live.sourceUpgradeReadbackAndDownstreamNonceRefreeze",
+      "live.sameAddressMemberSigningCeremony",
+      "live.providerAndNativeGasPath",
+      "live.nativeTransportFuelAndInitialRefresh",
+      "live.authenticatedCCIPDeliveryAndRevocation",
+      "live.sourceAndEndpointPostState",
+      "live.explicitActivationAuthorization"
+    ],
+    "compilationIncluded": false,
+    "liveBroadcast": false,
+    "activationIncluded": false
+  },
+  "inputSha256": {
+    "packages/contracts/config/source-upgrade-release.json": "1df5f9973ee243c0ac57013244d5ac7fb6ba31747b457e686225b6456a3020d4",
+    "packages/contracts/config/steward-safe-release.json": "6f0a105cc79fa1d4401d8a149ae664913e3c8e5eac564887c8895c777063976a",
+    "packages/contracts/config/voucher-pilot-release.json": "5e3b81fc84cfcad20d2692781616b0cb3cbb9f44276b50698f5fb9ab3c8a69d3",
+    "packages/contracts/config/clc-pilot-release.json": "b4fc753272d81f8d8a0cf539e932469d25ef3d57c1985a00c13673516abe1306",
+    "packages/contracts/script/utils/steward-safe-release.test.ts": "36401d37badabcd5867b0a0388b039a9886faff9a3c913d00dbf8abd299374fb",
+    "packages/contracts/script/utils/steward-safe-simulation.test.ts": "585765c70222ea5a81763a32d9e51e00682849b0f934c4b70ce69114b2727106",
+    "packages/contracts/script/utils/source-upgrade-release.test.ts": "ec5cdcca30308764e5725b84adfddfb3683865e9a0e5d3fa227cac3d09432cd6",
+    "packages/contracts/script/utils/clc-release.test.ts": "30fa6dbedac2ca5bf65e3ef4dea4667b7a0597fdab39974850c583266171aaeb"
+  },
+  "guardianReadback": {
+    "blockSelection": "latest; per-call observations, not a frozen transaction preflight",
+    "arbitrumCodeBytes": 1126,
+    "gnosisCode": "0x",
+    "sourceContract": "AccountGuardian",
+    "ownerMatchesApprovedDeployer": true,
+    "pendingOwnerIsZero": true,
+    "canForwardVoucherPause": false,
+    "sourceUrl": "https://arbiscan.io/address/0x05F486E3161F895Ad99f041065224F78bDf580a7#code"
+  },
+  "validation": {
+    "intent": "qa",
+    "risk": "critical",
+    "sourceParent": "aacdd1f9b3731c3f57df37036bea10c6ef3c7903",
+    "testedCommit": null,
+    "attribution": "Working-copy proof bound by the eight input hashes; signed local checkpoint reported in chat. Solidity, vendored sources, Foundry profile, package manifest and lockfile are unchanged from the source parent.",
+    "checks": [
+      "format",
+      "lint",
+      "abi-artifacts",
+      "contracts-build",
+      "contracts-test",
+      "contracts-verify-fast"
+    ],
+    "freshPassed": 6,
+    "reused": 0,
+    "unrun": 0,
+    "solidityCases": 2209,
+    "scriptCases": 433,
+    "cliCases": 37,
+    "productionGasCases": 3,
+    "ownedScope": [
+      "packages/contracts/config/source-upgrade-release.json",
+      "packages/contracts/config/steward-safe-release.json",
+      "packages/contracts/config/voucher-pilot-release.json",
+      "packages/contracts/config/clc-pilot-release.json",
+      "packages/contracts/script/utils/steward-safe-release.test.ts",
+      "packages/contracts/script/utils/steward-safe-simulation.test.ts",
+      "packages/contracts/script/utils/source-upgrade-release.test.ts",
+      "packages/contracts/script/utils/clc-release.test.ts",
+      ".plans/backlog/cosmo-local-credit-interop/handoffs/codex-live-pilot-deployment.md",
+      ".plans/backlog/cosmo-local-credit-interop/artifacts/live-pilot-public-inputs-2026-10-23.json"
+    ],
+    "priorRuns": [
+      "Initial sandbox run failed on hardcoded pending-garden expectations and loopback EPERM; no success claimed.",
+      "Fifty focused cases passed after explicit incomplete fixtures and loopback access.",
+      "A subsequent run stopped on a pre-existing multi-declarator lint error in a touched test; declarations were split without behavior change.",
+      "All six checks passed before guardian selection; all six were rerun fresh and passed again after the approved final guardian binding."
+    ],
+    "remoteCI": "not checked; no publication requested",
+    "unchangedForeignPaths": 114,
+    "renderedProof": "none; no UI change. Brave profile reached, app signed out."
+  },
+  "localCommit": {
+    "status": "retry-after-user-restored-signer; final result reported in chat",
+    "initialAttempt": {
+      "status": "failed-signing-key-unavailable",
+      "preCommitHook": "passed",
+      "newCommitWritten": false,
+      "headUnchanged": "aacdd1f9b3731c3f57df37036bea10c6ef3c7903"
+    },
+    "signerReadyReportedByUser": true,
+    "retryBoundaryUTC": "2026-10-23 18:27:17",
+    "ownedPathsStaged": 10,
+    "unsignedFallback": false,
+    "signingConfigurationChanged": false,
+    "keyringAccessed": false
+  }
+}

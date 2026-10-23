@@ -48,8 +48,9 @@ function artifacts(): SourceUpgradeArtifacts {
 }
 describe("existing voucher source upgrade preparation", () => {
   it("reports missing freeze inputs without inventing authority or a new proxy", () => {
-    expect(inspectSourceUpgradeManifest(draft).missing).toEqual(["deployer", "nonce", "authority.nonce"]);
-    expect(() => buildSourceUpgradePlan(draft, artifacts(), commit)).toThrow("Missing");
+    const incomplete = { ...manifest(), deployer: null, nonce: null, authority: { ...draft.authority, nonce: null } };
+    expect(inspectSourceUpgradeManifest(incomplete).missing).toEqual(["deployer", "nonce", "authority.nonce"]);
+    expect(() => buildSourceUpgradePlan(incomplete, artifacts(), commit)).toThrow("Missing");
   });
   it("links dependencies before implementations and separates Safe calls from deployer nonces", () => {
     const p = buildSourceUpgradePlan(manifest(), artifacts(), commit);

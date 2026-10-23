@@ -28,7 +28,12 @@ beforeAll(async () => {
     ["--no-env-file", "run", "contracts", "--", "release", "steward-safe", "--mode", "preflight"],
     { cwd: CONTRACTS_ROOT, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 },
   );
-  expect(JSON.parse(result).missing).toContain("garden");
+  expect(JSON.parse(result)).toMatchObject({
+    state: "preflight",
+    buildProfile: "production",
+    authorityEnabled: false,
+    liveBroadcast: false,
+  });
   artifacts = loadStewardArtifacts(getFoundryOutDir("production"));
   seed = await createIsolatedSeed(42161);
   await seed.client.send("anvil_setNonce", [manifest.networks.arbitrum.deployer, "0x1"]);
