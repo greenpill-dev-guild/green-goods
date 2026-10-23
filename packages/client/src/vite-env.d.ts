@@ -1,5 +1,10 @@
 /// <reference types="vite/client" />
 
+declare module "virtual:green-goods-public-locale/*" {
+  const messages: Record<string, string>;
+  export default messages;
+}
+
 interface ImportMetaEnv {
   readonly VITE_CHAIN_ID: string;
   readonly VITE_DEV_CHAIN_MODE?: string;

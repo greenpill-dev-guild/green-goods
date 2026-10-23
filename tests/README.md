@@ -109,8 +109,10 @@ substitutes; it never signs or submits a decision. External font and telemetry r
 local substitutes, so this is not font-fidelity proof.
 
 The PWA preset builds production assets before previewing them. It verifies an anonymous login
-shell, blocks page and worker network requests offline, and then removes the navigation cache to
-prove the reload depends on it. Production auth restrictions remain active. This does not certify
+shell, blocks page and worker network requests offline, decodes fresh font responses supplied by
+the worker, and removes font and navigation entries to prove they are required. It also blocks the
+homepage's built evidence chunk and checks that the local fallback retains the page. Production
+auth restrictions remain active. This does not certify
 an installed or authenticated Brave session, queued uploads, or the worker-update lifecycle.
 
 The named browser checks in `scripts/data/validation-policy.json` select these proofs for relevant

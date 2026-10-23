@@ -1,18 +1,15 @@
-@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap");
-@import "tailwindcss";
+@import "tailwindcss" source(none);
 
-/* Tailwind scans from this package's Vite root, which leaves out the shared
- * components this app renders. Scan the shared TypeScript source too, without
- * tests, mocks or stories, so utilities written in shared components ship. */
-@source "../../shared/src/**/*.{ts,tsx}";
-@source not "../../shared/src/**/{__tests__,__mocks__}";
-@source not "../../shared/src/**/*.{test,stories}.{ts,tsx}";
+/* Startup and recovery remain styled without downloading the workspace.
+ * admin-workspace.css scans the remaining admin and shared components. */
+@source "./components/Boot/BootSurface.tsx";
+@source "./components/AdminButton.tsx";
+@source "./components/AdminLoadingScreen.tsx";
+@source "./components/Layout/ConnectPrompt.tsx";
+@source "../../shared/src/components/ErrorBoundary/ErrorBoundary.tsx";
 
 @import "@green-goods/shared/styles/theme.css";
 @import "./styles/admin-m3-tokens.css";
-@import "./styles/admin-m3-components.css";
-@import "@green-goods/shared/styles/utilities.css";
-@import "./styles/admin-layout.css";
 
 /* Configure dark mode to use data-theme attribute */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));

@@ -136,7 +136,13 @@ export const SiteHeader = () => {
                   className="flex items-center"
                   aria-label={APP_NAME}
                 >
-                  <img src="/icon.png" alt={APP_NAME} className="h-8 w-auto" />
+                  <img
+                    src="/images/brand-mark-small.webp"
+                    alt={APP_NAME}
+                    width={56}
+                    height={32}
+                    className="h-8 w-auto"
+                  />
                 </Link>
 
                 {/* Desktop nav — hidden on mobile. Slightly larger than the body to
@@ -225,7 +231,13 @@ export const SiteHeader = () => {
                     aria-label={APP_NAME}
                     onClick={() => setIsDrawerOpen(false)}
                   >
-                    <img src="/icon.png" alt={APP_NAME} className="h-8 w-auto" />
+                    <img
+                      src="/images/brand-mark-small.webp"
+                      alt={APP_NAME}
+                      width={56}
+                      height={32}
+                      className="h-8 w-auto"
+                    />
                   </Link>
                   <Dialog.Close asChild>
                     <IconButton

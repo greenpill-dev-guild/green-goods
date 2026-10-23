@@ -6900,5 +6900,8 @@
   "app.assessment.receiptMismatch": "La transacción se confirmó, pero su registro de evaluación no coincidió. Revisa el recibo antes de enviar otra evaluación.",
   "app.pool.queued.settlementDeferred": "Recompensa en G$ aplazada",
   "app.pool.queued.settlementDeferredNote": "Guardado en este dispositivo. No se pueden enviar promesas con recompensa en G$ en esta versión.",
-  "cockpit.garden.pool.group.rewardDeferredNote": "No se pueden copiar promesas con recompensa en G$ en esta versión."
+  "cockpit.garden.pool.group.rewardDeferredNote": "No se pueden copiar promesas con recompensa en G$ en esta versión.",
+  "app.login.walletReload": "Recargar para reintentar con la billetera",
+  "app.login.walletStalled": "La solicitud anterior de la billetera no ha terminado. Recarga para reintentar o inicia sesión con una passkey.",
+  "public.home.evidence.unavailable": "La información actual de los jardines no está disponible. Puedes seguir explorando el sitio."
 }

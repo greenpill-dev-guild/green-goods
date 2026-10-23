@@ -9,6 +9,7 @@ import type {
   PasskeyServerClientAdapter,
   PasskeySessionAdapter,
 } from "../../workflows/auth-passkey-adapters";
+import { publishSignOut } from "../../modules/auth/sessionSignOut";
 import { createAuthServices } from "../../workflows/authServices";
 import { passkeyServerRefusal } from "../test-utils/passkey-server-refusal";
 
@@ -197,6 +198,80 @@ describe("createAuthServices", () => {
     harness = createHarness();
   });
 
+  it.each([
+    "registerPasskey",
+    "authenticatePasskey",
+  ] as const)("does not cache a late %s result after another-tab logout", async (service) => {
+    harness.state.credential = CREDENTIAL;
+    harness.state.userName = USER;
+    let finishBuild = () => {};
+    harness.calls.buildSmartAccount.mockReturnValueOnce(
+      new Promise((resolve) => {
+        finishBuild = () =>
+          resolve({
+            client: { account: { address: ADDRESS } } as SmartAccountClient,
+            address: ADDRESS,
+          });
+      })
+    );
+    const result = invoke(harness.services[service], { userName: USER, chainId: CHAIN_ID });
+    const rejected = expect(result).rejects.toMatchObject({ name: "AbortError" });
+    await vi.waitFor(() => expect(harness.calls.buildSmartAccount).toHaveBeenCalled());
+    harness.state.signedOut = true;
+    publishSignOut();
+    finishBuild();
+    await rejected;
+    expect(harness.sessionSpies.clearSignedOut).not.toHaveBeenCalled();
+    expect(harness.sessionSpies.setCredential).not.toHaveBeenCalled();
+    expect(harness.state.credential).toEqual(CREDENTIAL);
+    expect(harness.state.signedOut).toBe(true);
+  });
+
+  it("does not update restoration metadata when another tab logs out during account construction", async () => {
+    harness.state.credential = CREDENTIAL;
+    let finishBuild = () => {};
+    harness.calls.buildSmartAccount.mockReturnValueOnce(
+      new Promise((resolve) => {
+        finishBuild = () =>
+          resolve({
+            client: { account: { address: ADDRESS } } as SmartAccountClient,
+            address: ADDRESS,
+          });
+      })
+    );
+    const result = invoke(harness.services.restoreSession, { chainId: CHAIN_ID });
+    await vi.waitFor(() => expect(harness.calls.buildSmartAccount).toHaveBeenCalled());
+    publishSignOut();
+    finishBuild();
+    await expect(result).resolves.toBeNull();
+    expect(harness.sessionSpies.setAddress).not.toHaveBeenCalled();
+  });
+
+  it("does not clear logout when the invoking auth actor cancels a passkey ceremony", async () => {
+    harness.state.credential = CREDENTIAL;
+    harness.state.userName = USER;
+    let finishBuild = () => {};
+    harness.calls.buildSmartAccount.mockReturnValueOnce(
+      new Promise((resolve) => {
+        finishBuild = () =>
+          resolve({
+            client: { account: { address: ADDRESS } } as SmartAccountClient,
+            address: ADDRESS,
+          });
+      })
+    );
+    const pending = createActor(harness.services.authenticatePasskey, {
+      input: { userName: USER, chainId: CHAIN_ID },
+    });
+    pending.start();
+    await vi.waitFor(() => expect(harness.calls.buildSmartAccount).toHaveBeenCalled());
+    pending.stop();
+    finishBuild();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(harness.sessionSpies.clearSignedOut).not.toHaveBeenCalled();
+    expect(harness.sessionSpies.setCredential).not.toHaveBeenCalled();
+  });
+
   describe("restoreSession", () => {
     it("does not restore after explicit sign-out", async () => {
       harness.state.credential = CREDENTIAL;
@@ -276,6 +351,57 @@ describe("createAuthServices", () => {
   });
 
   describe("registerPasskey", () => {
+    it("does not register a ceremony after its auth invocation is cancelled", async () => {
+      harness.state.serverEnabled = true;
+      let finishCeremony!: (credential: typeof CREDENTIAL) => void;
+      harness.calls.createWebAuthnCredential.mockReturnValueOnce(
+        new Promise((resolve) => {
+          finishCeremony = resolve;
+        })
+      );
+      const operation = createActor(harness.services.registerPasskey, {
+        input: { userName: USER, chainId: CHAIN_ID },
+      });
+      operation.start();
+      await vi.waitFor(() =>
+        expect(harness.calls.createWebAuthnCredential).toHaveBeenCalledTimes(1)
+      );
+      operation.stop();
+      finishCeremony(CREDENTIAL);
+      await vi.waitFor(() => expect(harness.telemetry.registerFailed).toHaveBeenCalled());
+      expect(harness.server.verifyRegistration).not.toHaveBeenCalled();
+      expect(harness.sessionSpies.setCredential).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      false,
+      true,
+    ])("does not register a late ceremony on the server (directory=%s)", async (directoryEnabled) => {
+      harness.state.serverEnabled = true;
+      harness.state.directoryEnabled = directoryEnabled;
+      let finishCeremony!: (credential: typeof CREDENTIAL) => void;
+      harness.calls.createWebAuthnCredential.mockReturnValueOnce(
+        new Promise((resolve) => {
+          finishCeremony = resolve;
+        })
+      );
+      const pending = invoke(harness.services.registerPasskey, {
+        userName: USER,
+        chainId: CHAIN_ID,
+      });
+      const rejected = expect(pending).rejects.toMatchObject({ name: "AbortError" });
+      await vi.waitFor(() =>
+        expect(harness.calls.createWebAuthnCredential).toHaveBeenCalledTimes(1)
+      );
+      publishSignOut();
+      finishCeremony(CREDENTIAL);
+      await rejected;
+      expect(harness.server.verifyRegistration).not.toHaveBeenCalled();
+      expect(harness.directory.verifyRegistration).not.toHaveBeenCalled();
+      expect(harness.calls.buildSmartAccount).not.toHaveBeenCalled();
+      expect(harness.sessionSpies.setCredential).not.toHaveBeenCalled();
+    });
+
     it("requires a username before invoking any passkey adapter", async () => {
       await expect(
         invoke(harness.services.registerPasskey, { userName: null, chainId: CHAIN_ID })

@@ -59,7 +59,7 @@ function runPresentationDetector({
   href,
   displayMode,
   navigator: navigatorOverrides = {},
-}: DetectOptions): { dataset: DOMStringMap; faceMedia: string } {
+}: DetectOptions): { dataset: DOMStringMap; faceMedia: string; fontPreloads: string[] } {
   const dataset: DOMStringMap = {};
   const face = { media: INSTALLED_FACE_MEDIA };
   const navigator = {
@@ -79,6 +79,8 @@ function runPresentationDetector({
   const documentLike = {
     documentElement: { dataset },
     getElementById: (id: string) => (id === "boot-pwa-face" ? face : null),
+    createElement: document.createElement.bind(document),
+    head: document.createElement("head"),
   };
 
   new Function(
@@ -89,7 +91,10 @@ function runPresentationDetector({
     inlineScript("boot-presentation-detector")
   )(windowLike, documentLike, navigator, URL);
 
-  return { dataset, faceMedia: face.media };
+  const fontPreloads = [
+    ...documentLike.head.querySelectorAll<HTMLLinkElement>('link[rel="preload"][as="font"]'),
+  ].map((link) => link.getAttribute("href")!);
+  return { dataset, faceMedia: face.media, fontPreloads };
 }
 
 function detectBootDataset(options: DetectOptions): DOMStringMap {
@@ -243,8 +248,36 @@ function runController(
 }
 
 describe("the installed app's face", () => {
+  it("preloads Inter only for website presentation, including public routes in an installed window", () => {
+    expect(INDEX_HTML).not.toMatch(/<link[^>]+rel="preload"[^>]+inter-latin-normal/);
+    expect(runPresentationDetector({ href: "https://www.greengoods.app/" }).fontPreloads).toContain(
+      "%BASE_URL%fonts/inter-latin-normal.woff2"
+    );
+    expect(
+      runPresentationDetector({
+        href: "https://www.greengoods.app/gardens",
+        displayMode: "standalone",
+      }).fontPreloads
+    ).toContain("%BASE_URL%fonts/inter-latin-normal.woff2");
+    expect(
+      runPresentationDetector({
+        href: "https://www.greengoods.app/home",
+        displayMode: "standalone",
+      }).fontPreloads
+    ).toEqual([]);
+    expect(
+      runPresentationDetector({
+        href: "https://www.greengoods.app/home",
+        navigator: { standalone: true },
+      }).fontPreloads
+    ).toEqual([]);
+    expect(
+      runPresentationDetector({ href: "http://localhost:3001/home?presentation=pwa" }).fontPreloads
+    ).toEqual([]);
+  });
+
   it("keeps Plus Jakarta Sans off the website's critical path", () => {
-    expect(FACE_LINK).toContain("family=Plus+Jakarta+Sans");
+    expect(FACE_LINK).toContain("fonts/pwa.css");
     // Only an installed display applies the face before the detector runs, so a
     // browser tab neither waits for its stylesheet nor fetches its font files.
     expect(INSTALLED_FACE_MEDIA.split(",").map((query) => query.trim())).toEqual([
@@ -515,6 +548,18 @@ describe("presentation-specific boot fallback", () => {
   it("separates React mount from final PWA readiness", () => {
     expect(MAIN_SOURCE).toContain("__GG_MARK_REACT_MOUNTED");
     expect(MAIN_SOURCE).not.toContain("__GG_CLEAR_BOOT_FALLBACK");
+  });
+
+  it("remembers PWA readiness when content arrives after the ready signal", async () => {
+    const { clearFallback, fallback } = runController("pwa");
+
+    clearFallback?.();
+    expect(fallback).not.toHaveAttribute("hidden");
+
+    document.getElementById("root")?.append(document.createElement("main"));
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(fallback).toHaveAttribute("hidden");
   });
 
   // The app's own choice: the stored language, else the first browser language with copy, else English.

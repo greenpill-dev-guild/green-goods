@@ -8,6 +8,16 @@ import type { Hex } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createActor, fromPromise } from "xstate";
 
+import { createSmartAccountClientResolver } from "../../modules/auth/smartAccountClientResolver";
+import {
+  createMockP256Credential,
+  createMockSmartAccountClient,
+} from "../test-utils/mock-factories";
+import {
+  getActorSignOutRevision,
+  publishSignOut,
+  SIGN_OUT_REVISION_KEY,
+} from "../../modules/auth/sessionSignOut";
 import { AUTH_MODE_STORAGE_KEY } from "../../modules/auth/session";
 import { connectivityStore } from "../../stores/connectivity";
 import { queryClient } from "../../config/react-query";
@@ -32,6 +42,7 @@ const mocks = vi.hoisted(() => ({
   mockLoggerDebug: vi.fn(),
   mockLoggerWarn: vi.fn(),
   mockOpenAppKit: vi.fn(),
+  mockCloseAppKit: vi.fn(),
   mockReconnect: vi.fn(async () => []),
   mockTrackWalletRestore: vi.fn(),
   mockUseAccount: vi.fn(),
@@ -92,6 +103,7 @@ type AccountState = {
   address?: Hex;
   isConnected: boolean;
   isConnecting: boolean;
+  isReconnecting: boolean;
   connector?: { id: string; name: string };
 };
 
@@ -99,6 +111,7 @@ const disconnectedAccount: AccountState = {
   address: undefined,
   isConnected: false,
   isConnecting: false,
+  isReconnecting: false,
   connector: undefined,
 };
 
@@ -110,14 +123,13 @@ let actor: ReturnType<typeof createAuthTestActor>;
 
 function createAuthTestActor(
   restoreAuthMode: "wallet" | "embedded" | null = null,
-  restoreAddress: Hex | null = null
+  restoreAddress: Hex | null = null,
+  restore: () => Promise<RestoreSessionResult | null> = async () => null
 ) {
   return createActor(
     authMachine.provide({
       actors: {
-        restoreSession: fromPromise<RestoreSessionResult | null, RestoreSessionInput>(
-          async () => null
-        ),
+        restoreSession: fromPromise<RestoreSessionResult | null, RestoreSessionInput>(restore),
         registerPasskey: fromPromise<PasskeySessionResult, PasskeyOperationInput>(async () => {
           throw new Error("registerPasskey should not run in wallet tests");
         }),
@@ -168,6 +180,7 @@ describe("AuthProvider wallet login bridge", () => {
     mocks.mockUseAccount.mockImplementation(() => accountState);
     mocks.mockGetAppKit.mockReturnValue({
       open: mocks.mockOpenAppKit,
+      close: mocks.mockCloseAppKit,
       // useWalletModalOpen() reads getState().open and subscribes for changes.
       getState: () => ({ open: false }),
       subscribeState: () => () => {},
@@ -278,6 +291,322 @@ describe("AuthProvider wallet login bridge", () => {
     view.rerender();
     await waitFor(() => expect(view.result.current.walletAddress).toBe(OTHER_WALLET));
     expect(view.result.current.authMode).toBe("wallet");
+  });
+
+  it.each([
+    ["local", "isConnecting"],
+    ["other-tab", "isConnecting"],
+    ["local", "isReconnecting"],
+    ["other-tab", "isReconnecting"],
+  ] as const)("quarantines an unfinished connection after %s sign-out (%s) before accepting a fresh wallet", async (source, pendingFlag) => {
+    const view = renderAuth();
+    await waitForReady();
+    act(() => view.result.current.loginWithWallet());
+    setAccount({ [pendingFlag]: true, connector: rabbyConnector });
+    view.rerender();
+    await act(async () => {
+      if (source === "local") await view.result.current.signOut();
+      else {
+        localStorage.removeItem(AUTH_MODE_STORAGE_KEY);
+        localStorage.setItem("greengoods_signed_out", "true");
+        publishSignOut();
+        window.dispatchEvent(
+          new StorageEvent("storage", { key: SIGN_OUT_REVISION_KEY, storageArea: localStorage })
+        );
+      }
+    });
+    expect(mocks.mockCloseAppKit).toHaveBeenCalledTimes(1);
+    // No connection exists yet; disconnecting now cannot cancel the request.
+    expect(mocks.mockDisconnect).not.toHaveBeenCalled();
+    vi.useFakeTimers();
+    try {
+      act(() => view.result.current.loginWithWallet());
+      await act(async () => vi.advanceTimersByTimeAsync(5_000));
+      expect(mocks.mockOpenAppKit).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+    setAccount({ address: TEST_WALLET, isConnected: true, connector: rabbyConnector });
+    view.rerender();
+    await waitFor(() => expect(mocks.mockDisconnect).toHaveBeenCalledTimes(1));
+    expect(view.result.current.isAuthenticated).toBe(false);
+    expect(view.result.current.externalWalletAddress).toBeNull();
+    expect(localStorage.getItem(AUTH_MODE_STORAGE_KEY)).toBeNull();
+    // The old result is discarded even if its account would match the next choice.
+    setAccount(disconnectedAccount);
+    view.rerender();
+    await waitFor(() => expect(mocks.mockOpenAppKit).toHaveBeenCalledTimes(2));
+    expect(view.result.current.isAuthenticated).toBe(false);
+    setAccount({ address: TEST_WALLET, isConnected: true, connector: rabbyConnector });
+    view.rerender();
+    await waitFor(() => expect(view.result.current.walletAddress).toBe(TEST_WALLET));
+    view.unmount();
+  });
+
+  it("allows a fresh wallet choice after the ended request is rejected", async () => {
+    const view = renderAuth();
+    await waitForReady();
+    act(() => view.result.current.loginWithWallet());
+    setAccount({ isConnecting: true, connector: rabbyConnector });
+    view.rerender();
+    await act(async () => view.result.current.signOut());
+    act(() => view.result.current.loginWithWallet());
+    setAccount(disconnectedAccount);
+    view.rerender();
+    await waitFor(() => expect(mocks.mockOpenAppKit).toHaveBeenCalledTimes(2));
+    expect(mocks.mockDisconnect).not.toHaveBeenCalled();
+    setAccount({ address: OTHER_WALLET, isConnected: true, connector: rabbyConnector });
+    view.rerender();
+    await waitFor(() => expect(view.result.current.walletAddress).toBe(OTHER_WALLET));
+    view.unmount();
+  });
+
+  it.each([
+    "wallet",
+    "embedded",
+  ] as const)("offers a bounded fresh-page retry for a stalled %s request without accepting a late result", async (mode) => {
+    const view = renderAuth();
+    await waitForReady();
+    act(() => view.result.current.loginWithWallet());
+    setAccount({ isConnecting: true, connector: rabbyConnector });
+    view.rerender();
+    await act(async () => view.result.current.signOut());
+    vi.useFakeTimers();
+    const reload = vi.spyOn(window.location, "reload").mockImplementation(() => {});
+    try {
+      act(() =>
+        mode === "wallet"
+          ? view.result.current.loginWithWallet()
+          : view.result.current.loginWithEmbedded()
+      );
+      await act(async () => vi.advanceTimersByTimeAsync(10_000));
+      expect(view.result.current.walletReleaseStalled).toBe(true);
+      expect(view.result.current.isAuthenticated).toBe(false);
+      expect(localStorage.getItem(AUTH_MODE_STORAGE_KEY)).toBeNull();
+      expect(reload).not.toHaveBeenCalled();
+      act(() => view.result.current.loginWithWallet());
+      expect(reload).toHaveBeenCalledOnce();
+      setAccount({ address: TEST_WALLET, isConnected: true, connector: rabbyConnector });
+      view.rerender();
+      await act(async () => {});
+      expect(view.result.current.isAuthenticated).toBe(false);
+      setAccount(disconnectedAccount);
+      view.rerender();
+      await act(async () => {});
+      expect(view.result.current.walletReleaseStalled).toBe(false);
+      expect(mocks.mockOpenAppKit).toHaveBeenCalledTimes(1);
+      act(() => view.result.current.loginWithWallet());
+      expect(mocks.mockOpenAppKit).toHaveBeenCalledTimes(2);
+    } finally {
+      reload.mockRestore();
+      vi.useRealTimers();
+      view.unmount();
+    }
+  });
+
+  it("reconciles a logout published after actor startup but before provider mount", async () => {
+    actor.stop();
+    localStorage.setItem(AUTH_MODE_STORAGE_KEY, "wallet");
+    actor = createAuthTestActor("wallet", TEST_WALLET);
+    getActorSignOutRevision(actor);
+    actor.start();
+    mocks.mockGetAuthActor.mockReturnValue(actor);
+    await waitFor(() => expect(actor.getSnapshot().matches({ restoring: "wallet" })).toBe(true));
+    localStorage.removeItem(AUTH_MODE_STORAGE_KEY);
+    publishSignOut();
+    const view = renderAuth();
+    await waitFor(() => expect(actor.getSnapshot().matches("unauthenticated")).toBe(true));
+    act(() => actor.send({ type: "RESTORE_TIMEOUT" }));
+    expect(view.result.current.isAuthenticated).toBe(false);
+    expect(view.result.current.walletAddress).toBeNull();
+    expect(localStorage.getItem(AUTH_MODE_STORAGE_KEY)).toBeNull();
+    view.unmount();
+    actor.stop();
+  });
+
+  it.each([
+    "passkey",
+    "unmount",
+  ] as const)("cancels stalled-wallet recovery on %s without admitting the old request", async (cancel) => {
+    const view = renderAuth();
+    await waitForReady();
+    act(() => view.result.current.loginWithWallet());
+    setAccount({ isConnecting: true, connector: rabbyConnector });
+    view.rerender();
+    await act(async () => view.result.current.signOut());
+    vi.useFakeTimers();
+    try {
+      act(() => view.result.current.loginWithWallet());
+      if (cancel === "passkey") await act(async () => view.result.current.loginWithPasskey());
+      else view.unmount();
+      await act(async () => vi.advanceTimersByTimeAsync(11_000));
+      expect(view.result.current.walletReleaseStalled).toBe(false);
+      expect(mocks.mockOpenAppKit).toHaveBeenCalledTimes(1);
+      if (cancel === "passkey") {
+        setAccount({ address: TEST_WALLET, isConnected: true, connector: rabbyConnector });
+        view.rerender();
+        await act(async () => {});
+        expect(view.result.current.isAuthenticated).toBe(false);
+        expect(view.result.current.externalWalletAddress).toBeNull();
+      }
+    } finally {
+      view.unmount();
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps a late wallet quarantined when release fails and lets an explicit retry release it", async () => {
+    const view = renderAuth();
+    await waitForReady();
+    act(() => view.result.current.loginWithWallet());
+    setAccount({ isConnecting: true, connector: rabbyConnector });
+    view.rerender();
+    await act(async () => view.result.current.signOut());
+    mocks.mockDisconnect.mockRejectedValueOnce(new Error("Transport unavailable"));
+    setAccount({ address: TEST_WALLET, isConnected: true, connector: rabbyConnector });
+    view.rerender();
+    await act(async () => {});
+    expect(mocks.mockDisconnect).toHaveBeenCalledTimes(1);
+    expect(view.result.current.isAuthenticated).toBe(false);
+    act(() => view.result.current.loginWithWallet());
+    await waitFor(() => expect(mocks.mockDisconnect).toHaveBeenCalledTimes(2));
+    expect(mocks.mockOpenAppKit).toHaveBeenCalledTimes(1);
+    setAccount(disconnectedAccount);
+    view.rerender();
+    await waitFor(() => expect(mocks.mockOpenAppKit).toHaveBeenCalledTimes(2));
+    expect(view.result.current.isAuthenticated).toBe(false);
+    view.unmount();
+  });
+
+  it.each([
+    ["wallet", rabbyConnector, TEST_WALLET],
+    ["embedded", embeddedConnector, EMBEDDED_WALLET],
+  ] as const)("clears a %s session when another tab signs out without echoing it", async (mode, connector, address) => {
+    localStorage.setItem(AUTH_MODE_STORAGE_KEY, mode);
+    setAccount({ address, isConnected: true, connector });
+    const view = renderAuth();
+    await waitFor(() => expect(view.result.current.isAuthenticated).toBe(true));
+    localStorage.setItem("greengoods_credential", "recovery-credential");
+    localStorage.removeItem(AUTH_MODE_STORAGE_KEY);
+    localStorage.setItem("greengoods_signed_out", "true");
+    localStorage.setItem("greengoods_sign_out_revision", "other-tab-logout");
+    act(() =>
+      window.dispatchEvent(
+        new StorageEvent("storage", {
+          key: "greengoods_sign_out_revision",
+          newValue: "other-tab-logout",
+          storageArea: localStorage,
+        })
+      )
+    );
+    expect(view.result.current.isAuthenticated).toBe(false);
+    expect(view.result.current.walletAddress).toBeNull();
+    expect(view.result.current.embeddedAddress).toBeNull();
+    expect(localStorage.getItem("greengoods_credential")).toBe("recovery-credential");
+    expect(localStorage.getItem("greengoods_sign_out_revision")).toBe("other-tab-logout");
+    view.rerender();
+    expect(view.result.current.isAuthenticated).toBe(false);
+    view.unmount();
+  });
+
+  it("revokes a restored passkey capability on another-tab logout while keeping its recovery metadata", async () => {
+    const credential = createMockP256Credential() as unknown as PasskeySessionResult["credential"];
+    const client =
+      createMockSmartAccountClient() as unknown as PasskeySessionResult["smartAccountClient"];
+    const resolver = createSmartAccountClientResolver({
+      credential,
+      primaryClient: client,
+      primaryChainId: 11155111,
+      expectedAddress: TEST_WALLET,
+      buildSmartAccount: vi.fn(),
+    });
+    const session: PasskeySessionResult = {
+      credential,
+      smartAccountClient: client,
+      smartAccountAddress: TEST_WALLET,
+      resolveSmartAccountClient: resolver,
+      userName: "gardener",
+    };
+    actor.stop();
+    actor = createAuthTestActor(null, null, async () => session);
+    mocks.mockGetAuthActor.mockReturnValue(actor);
+    actor.start();
+    localStorage.setItem("greengoods_credential", JSON.stringify(credential));
+    const view = renderAuth();
+    await waitFor(() => expect(view.result.current.authMode).toBe("passkey"));
+    localStorage.setItem("greengoods_signed_out", "true");
+    publishSignOut();
+    act(() =>
+      window.dispatchEvent(
+        new StorageEvent("storage", {
+          key: SIGN_OUT_REVISION_KEY,
+          storageArea: localStorage,
+        })
+      )
+    );
+    expect(view.result.current.isAuthenticated).toBe(false);
+    expect(view.result.current.credential).toBeNull();
+    expect(view.result.current.smartAccountAddress).toBeNull();
+    expect(view.result.current.resolveSmartAccountClient).toBeNull();
+    await expect(resolver(11155111)).rejects.toMatchObject({ code: "session_expired" });
+    expect(localStorage.getItem("greengoods_credential")).toBe(JSON.stringify(credential));
+    view.unmount();
+    actor.stop();
+  });
+
+  it("cancels a wallet login waiting on disconnect when another tab signs out", async () => {
+    const view = renderAuth();
+    await waitForReady();
+    act(() => view.result.current.loginWithWallet());
+    setAccount({ address: TEST_WALLET, isConnected: true, connector: rabbyConnector });
+    view.rerender();
+    await waitFor(() => expect(view.result.current.isAuthenticated).toBe(true));
+    let finishDisconnect = () => {};
+    mocks.mockDisconnect.mockReturnValueOnce(
+      new Promise<undefined>((resolve) => {
+        finishDisconnect = () => resolve(undefined);
+      })
+    );
+    await act(async () => view.result.current.signOut());
+    act(() => view.result.current.loginWithWallet());
+    const opens = mocks.mockOpenAppKit.mock.calls.length;
+    publishSignOut();
+    // The release may settle before the background tab receives its storage event.
+    await act(async () => finishDisconnect());
+    expect(mocks.mockOpenAppKit).toHaveBeenCalledTimes(opens);
+    expect(view.result.current.isAuthenticated).toBe(false);
+    view.unmount();
+  });
+
+  it.each([
+    "loginWithPasskey",
+    "createAccount",
+  ] as const)("cancels %s before its disconnect finishes after another-tab logout", async (method) => {
+    setAccount({ address: TEST_WALLET, isConnected: true, connector: rabbyConnector });
+    const view = renderAuth();
+    await waitForReady();
+    let finishDisconnect = () => {};
+    mocks.mockDisconnect.mockReturnValueOnce(
+      new Promise<undefined>((resolve) => {
+        finishDisconnect = () => resolve(undefined);
+      })
+    );
+    let login: Promise<void>;
+    act(() => {
+      login = view.result.current[method]("gardener");
+    });
+    localStorage.removeItem(AUTH_MODE_STORAGE_KEY);
+    localStorage.setItem("greengoods_signed_out", "true");
+    // Delivery can be delayed; the pending action must check storage itself.
+    publishSignOut();
+    await act(async () => {
+      finishDisconnect();
+      await login;
+    });
+    expect(actor.getSnapshot().matches("unauthenticated")).toBe(true);
+    expect(localStorage.getItem(AUTH_MODE_STORAGE_KEY)).toBeNull();
+    expect(view.result.current.isAuthenticated).toBe(false);
+    view.unmount();
   });
 
   it("goes ahead with only the latest login chosen while the wallet lets go", async () => {

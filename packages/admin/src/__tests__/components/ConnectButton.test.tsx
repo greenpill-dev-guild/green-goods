@@ -6,6 +6,7 @@ import { ConnectButton } from "@/components/ConnectButton";
 const mockLoginWithWallet = vi.fn();
 const mockOpen = vi.fn();
 const mockUseAccount = vi.fn();
+const mockUseAuthState = vi.fn();
 
 vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
   useAuth: () => ({ loginWithWallet: mockLoginWithWallet }),
@@ -13,6 +14,7 @@ vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
 
 vi.mock("@green-goods/shared/providers/Auth", () => ({
   useAuthActions: () => ({ loginWithWallet: mockLoginWithWallet }),
+  useAuthState: () => mockUseAuthState(),
 }));
 
 vi.mock("@green-goods/shared/utils/styles/cn", () => ({
@@ -38,9 +40,20 @@ function renderWithIntl(ui: React.ReactElement) {
 describe("ConnectButton", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseAuthState.mockReturnValue({ walletReleaseStalled: false });
     mockUseAccount.mockReturnValue({
       isConnecting: false,
     });
+  });
+
+  it("keeps an explicit reload action available while the old connector remains pending", () => {
+    mockUseAccount.mockReturnValue({ isConnecting: true });
+    mockUseAuthState.mockReturnValue({ walletReleaseStalled: true });
+    renderWithIntl(<ConnectButton />);
+    const reload = screen.getByRole("button", { name: "Reload to retry wallet" });
+    expect(reload).toBeEnabled();
+    fireEvent.click(reload);
+    expect(mockLoginWithWallet).toHaveBeenCalledOnce();
   });
 
   it("routes wallet connection through shared auth", () => {

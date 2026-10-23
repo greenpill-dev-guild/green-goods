@@ -34,13 +34,16 @@ async function importLocaleCatalogue(locale: Locale): Promise<LocaleCatalogue> {
  * catalogue, and the next load tries their locale again. The catalogue says
  * which language it came back in, so the page can declare the one on screen.
  */
-export async function loadLocaleCatalogue(locale: Locale): Promise<LocaleCatalogue> {
+export async function loadLocaleCatalogue(
+  locale: Locale,
+  importCatalogue = importLocaleCatalogue
+): Promise<LocaleCatalogue> {
   try {
-    return await importLocaleCatalogue(locale);
+    return await importCatalogue(locale);
   } catch (error) {
     if (locale === "en") throw error;
     logger.warn("[App] Locale messages unavailable; falling back to English", { locale, error });
-    return importLocaleCatalogue("en");
+    return importCatalogue("en");
   }
 }
 

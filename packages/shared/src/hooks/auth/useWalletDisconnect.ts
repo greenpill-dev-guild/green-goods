@@ -1,5 +1,5 @@
 import { disconnect } from "@wagmi/core";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { logger } from "../../modules/app/logger";
 import type { AuthContext } from "../../workflows/authMachine.types";
@@ -9,6 +9,7 @@ type WagmiConfig = Parameters<typeof disconnect>[0];
 
 /** How long a login waits for a signed-out wallet to let go before it goes ahead. */
 const RELEASE_WAIT_MS = 4_000;
+const QUARANTINE_WAIT_MS = 10_000;
 
 /**
  * Disconnecting the wallet connector, and letting go of it on sign-out.
@@ -20,16 +21,23 @@ const RELEASE_WAIT_MS = 4_000;
  * because wagmi's disconnect finishes against the connections it saw when it
  * started and would drop a connection made in the meantime.
  */
-export function useWalletDisconnect(wagmiConfig: WagmiConfig) {
+export function useWalletDisconnect(
+  wagmiConfig: WagmiConfig,
+  { isConnected, isConnecting }: { isConnected: boolean; isConnecting: boolean }
+) {
   const releaseRef = useRef<Promise<void> | null>(null);
+  const quarantineRef = useRef<{ resolve: () => void; releasing: boolean } | null>(null);
   const latestLoginRef = useRef(0);
   const isMountedRef = useRef(true);
+  const [walletReleaseStalled, setWalletReleaseStalled] = useState(false);
   const { set: setTimer, clear: clearTimer } = useTimeout();
 
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
+      quarantineRef.current?.resolve();
+      quarantineRef.current = null;
     };
   }, []);
 
@@ -40,6 +48,26 @@ export function useWalletDisconnect(wagmiConfig: WagmiConfig) {
       logger.debug("[AuthProvider] disconnect failed", { error });
     }
   }, [wagmiConfig]);
+
+  // Wagmi cannot abort an in-flight connector request. Disconnecting before it
+  // settles does not stop connect() from adding the old connection afterward.
+  const releaseQuarantinedConnection = useCallback(() => {
+    const quarantine = quarantineRef.current;
+    if (!quarantine || isConnecting) return;
+    if (!isConnected) {
+      quarantineRef.current = null;
+      setWalletReleaseStalled(false);
+      quarantine.resolve();
+    } else if (!quarantine.releasing) {
+      quarantine.releasing = true;
+      void disconnectWallet().finally(() => {
+        quarantine.releasing = false;
+      });
+    }
+  }, [isConnected, isConnecting, disconnectWallet]);
+  useEffect(releaseQuarantinedConnection, [releaseQuarantinedConnection]);
+
+  const isConnectionQuarantined = useCallback(() => quarantineRef.current !== null, []);
 
   /**
    * Starts letting go of the wallet a session was signed in with. Only the
@@ -52,6 +80,17 @@ export function useWalletDisconnect(wagmiConfig: WagmiConfig) {
         "walletAddress" | "externalWalletConnected" | "externalWalletConnectionType"
       >
     ) => {
+      if (quarantineRef.current) return;
+      if (isConnecting) {
+        const settled = new Promise<void>((resolve) => {
+          quarantineRef.current = { resolve, releasing: false };
+        });
+        const release = settled.finally(() => {
+          if (releaseRef.current === release) releaseRef.current = null;
+        });
+        releaseRef.current = release;
+        return;
+      }
       const ownsWalletConnection =
         session.walletAddress !== null &&
         session.externalWalletConnected &&
@@ -62,7 +101,7 @@ export function useWalletDisconnect(wagmiConfig: WagmiConfig) {
       });
       releaseRef.current = release;
     },
-    [disconnectWallet]
+    [disconnectWallet, isConnecting]
   );
 
   /**
@@ -71,8 +110,15 @@ export function useWalletDisconnect(wagmiConfig: WagmiConfig) {
    */
   const afterWalletRelease = useCallback(
     (next: () => void): boolean => {
+      // An explicit retry starts a new document, where the abandoned request
+      // cannot deliver a result. Do not clear quarantine in the old document.
+      if (walletReleaseStalled) {
+        window.location.reload();
+        return true;
+      }
       const release = releaseRef.current;
       if (!release) return false;
+      releaseQuarantinedConnection();
       const login = ++latestLoginRef.current;
       let done = false;
       const proceed = () => {
@@ -81,17 +127,34 @@ export function useWalletDisconnect(wagmiConfig: WagmiConfig) {
         clearTimer();
         next();
       };
-      setTimer(proceed, RELEASE_WAIT_MS);
+      // Never let a timeout turn an ended request into a fresh login. It must
+      // settle and its resulting connection must be gone before intent resumes.
+      if (quarantineRef.current) {
+        setTimer(() => {
+          if (done || login !== latestLoginRef.current) return;
+          done = true;
+          setWalletReleaseStalled(true);
+        }, QUARANTINE_WAIT_MS);
+      } else setTimer(proceed, RELEASE_WAIT_MS);
       void release.then(proceed, proceed);
       return true;
     },
-    [setTimer, clearTimer]
+    [setTimer, clearTimer, releaseQuarantinedConnection, walletReleaseStalled]
   );
 
   /** Drops any login still waiting on a release, when another sign-in method wins. */
   const cancelDeferredLogin = useCallback(() => {
     latestLoginRef.current += 1;
-  }, []);
+    clearTimer();
+    setWalletReleaseStalled(false);
+  }, [clearTimer]);
 
-  return { disconnectWallet, releaseWallet, afterWalletRelease, cancelDeferredLogin };
+  return {
+    disconnectWallet,
+    releaseWallet,
+    afterWalletRelease,
+    cancelDeferredLogin,
+    isConnectionQuarantined,
+    walletReleaseStalled,
+  };
 }

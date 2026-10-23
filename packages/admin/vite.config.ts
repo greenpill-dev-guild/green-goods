@@ -99,27 +99,15 @@ function deleteSentrySourceMapsPlugin(outDir: string): Plugin {
   };
 }
 
-/**
- * Split large eager vendor dependencies into coarse, cacheable chunks so the
- * admin entry is not one multi-MB monolith (the un-split build emits a single
- * ~8.4 MB chunk and trips Vite's chunkSizeWarningLimit).
- *
- * Deliberately coarse:
- * - React core (react / react-dom / scheduler / react-is) stays in ONE chunk.
- *   Splitting it — or separating a hook-using lib from React — causes
- *   duplicate-React / "Invalid hook call" at runtime.
- * - The web3 stack (wagmi/viem/ox/...) is the heaviest cluster, so it gets its
- *   own chunk; observability (Sentry/PostHog) likewise.
- * - Everything else stays in a single `vendor` chunk to avoid a request
- *   waterfall from fine-grained per-package splits.
- *
- * Perf/caching only. This does NOT address the Bun-baseline `SIGILL` seen on
- * some Vercel build VMs — that is a Bun bundler/CPU issue tracked separately.
- */
+// Boot helpers and query persistence must not preload the wallet SDK. Keep the
+// existing coarse SDK groups: finer splits increase post-paint blocking in admin.
+const ADMIN_VITE_RUNTIME_MODULES = /\0vite\/(?:preload-helper|modulepreload-polyfill)\.js/;
+const ADMIN_REACT_MODULES = /[\\/]node_modules[\\/](?:react|react-dom|react-is|scheduler)[\\/]/;
+const ADMIN_QUERY_MODULES =
+  /[\\/]node_modules[\\/]@tanstack[\\/](?:query-core|react-query|query-persist-client-core|react-query-persist-client|query-sync-storage-persister)[\\/]/;
 const ADMIN_WEB3_MODULES =
   /[\\/]node_modules[\\/](?:wagmi|viem|permissionless|ox|abitype|@wagmi|@walletconnect|@reown|@web3modal|@coinbase)[\\/]/;
 const ADMIN_OBSERVABILITY_MODULES = /[\\/]node_modules[\\/](?:@sentry|posthog-js)[\\/]/;
-const ADMIN_REACT_MODULES = /[\\/]node_modules[\\/](?:react|react-dom|react-is|scheduler)[\\/]/;
 
 export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
   const rootDir = resolve(__dirname, "../../");
@@ -132,6 +120,8 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
   for (const [key, value] of Object.entries(rootEnv)) {
     if (process.env[key] === undefined) process.env[key] = value;
   }
+  // Root local tooling defaults must not compile development React into a build.
+  if (command === "build") process.env.NODE_ENV = "production";
 
   // Use relative paths for IPFS builds
   const isIPFSBuild = process.env.VITE_USE_HASH_ROUTER === "true";
@@ -267,7 +257,9 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
           chunkFileNames: "assets/[hash].js",
           codeSplitting: {
             groups: [
-              { name: "vendor-react", test: ADMIN_REACT_MODULES, priority: 20 },
+              { name: "vite-runtime", test: ADMIN_VITE_RUNTIME_MODULES, priority: 50 },
+              { name: "vendor-react", test: ADMIN_REACT_MODULES, priority: 40 },
+              { name: "vendor-query", test: ADMIN_QUERY_MODULES, priority: 30 },
               { name: "vendor-web3", test: ADMIN_WEB3_MODULES, priority: 10 },
               {
                 name: "vendor-observability",
@@ -281,14 +273,24 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
       },
     },
     define: {
+      ...(command === "build"
+        ? {
+            "process.env.NODE_ENV": JSON.stringify("production"),
+            "import.meta.env.DEV": "false",
+            "import.meta.env.PROD": "true",
+          }
+        : {}),
       "import.meta.env.VITE_APP_VERSION": JSON.stringify(shortAppVersion),
       "import.meta.env.VITE_SENTRY_ADMIN_DSN": JSON.stringify(sentryDsn ?? ""),
       "import.meta.env.VITE_SENTRY_ENVIRONMENT": JSON.stringify(sentryEnvironment),
     },
+    oxc: {
+      jsx: { development: command !== "build" },
+    },
     plugins,
-    // Deduplicate React, PostHog, and Sentry to prevent multiple instances
+    // Bun's peer variants otherwise bundle two identical copies of Viem.
     resolve: {
-      dedupe: ["react", "react-dom", "posthog-js", "@sentry/react"],
+      dedupe: ["react", "react-dom", "posthog-js", "@sentry/react", "viem"],
       conditions: ["import", "module", "browser", "default"],
       alias: {
         "@": resolve(__dirname, "./src"),
