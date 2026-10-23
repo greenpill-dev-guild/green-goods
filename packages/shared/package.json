@@ -591,7 +591,7 @@
     "viem": "2.55.13",
     "wagmi": "^2.19.5",
     "xstate": "^5.32.4",
-    "zod": "^4.4.3",
+    "zod": "^4.6.7",
     "zustand": "^5.0.15"
   },
   "devDependencies": {
@@ -601,17 +601,17 @@
     "@chromatic-com/storybook": "5.1.2",
     "@graphql-typed-document-node/core": "^3.2.0",
     "@sentry/react": "10.70.0",
-    "@storybook/addon-a11y": "10.4.6",
-    "@storybook/addon-docs": "10.4.6",
+    "@storybook/addon-a11y": "10.6.2",
+    "@storybook/addon-docs": "10.6.2",
     "@storybook/addon-mcp": "0.6.0",
-    "@storybook/addon-vitest": "10.4.6",
-    "@storybook/react": "10.4.6",
-    "@storybook/react-vite": "10.4.6",
+    "@storybook/addon-vitest": "10.6.2",
+    "@storybook/react": "10.6.2",
+    "@storybook/react-vite": "10.6.2",
     "@tailwindcss/vite": "4.3.3",
     "@vitest/browser": "4.1.11",
     "@vitest/browser-playwright": "4.1.11",
     "@vitest/runner": "4.1.11",
     "chromatic": "16.5.0",
-    "storybook": "10.4.6"
+    "storybook": "10.6.2"
   }
 }
