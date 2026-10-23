@@ -271,6 +271,32 @@ Agent/model: Codex / exact model unknown | Coverage: native candidate review and
 
 Human corrections: 0 observed in this segment; attention: unknown.
 
+### Later ownership confirmation, 22 October Pacific
+
+The user subsequently authorized the specific ownership question, and the narrow message was
+delivered. At 02:30:51 UTC on 23 October, the active owner confirmed that it retains all 90
+performance/startup/auth/baseline files and their untracked Admin dependencies. It is fixing
+five authorized review findings, including two auth races, only in its isolated PR worktree.
+The draft snapshot is not a completed, regression-free group. Leave the original group unstaged;
+the owner confirmed it will leave this checkout untouched. Messaging authorization is resolved;
+consolidation of that group remains blocked on its completion and ownership handoff.
+
+Automatic review rejected an earlier, broader coordination message because it included local
+paths and validation details beyond the approved ownership question. Only the narrower question
+was delivered. No rejected payload was shared through another route. All 207 preserved files
+still match the preceding checkpoint; no app/runtime source or release gate changed here.
+
+Task/phase follow-up: coordinate | 2026-10-23 02:26:18 → 02:30:51 UTC | ownership confirmed retained;
+same consolidation task, partial outcome, 0 observed human corrections, human attention unknown.
+
+The first evidence-only signed follow-up could not commit: the identity/format hook passed, but the
+Git SSH signer had no key available. A scoped public `ssh-add -l` check confirmed that the
+dedicated agent had no identities. HEAD stayed at `147ff7403`, with the two reviewed evidence
+paths staged. The user subsequently confirmed the existing signer was unlocked in Terminal and
+authorized a signed retry; the chat records its resulting commit and signature after verification. No unsigned fallback,
+key-file access, install/unlock execution or settings change was attempted here. The active
+90-path group remains unstaged, and all 207 pre-existing remaining file hashes are preserved.
+
 Earlier root-signing selector argv (the Bun shim is first on PATH as in the commands above):
 
 ```sh
