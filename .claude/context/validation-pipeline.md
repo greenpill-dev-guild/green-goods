@@ -135,6 +135,9 @@ Conditional additions when the change touches the relevant surface:
 - i18n catalogs, `docs/docs` pages, or design guides (each `DESIGN*.md` and `.claude/skills/design`):
   `bun run check --only em-dashes` (the `DESIGN.md` § Voice & Copy rule; pages generated from the
   ontology keep its punctuation and are skipped)
+- The brand voice page, `DESIGN.md` § Voice & Copy, the prompt contracts, or a surface that restates
+  them (the files `scripts/design/check-brand-voice-parity.mjs` lists as its inputs):
+  `bun run check --only brand-voice-parity`
 - Stories / Storybook-covered surfaces:
   `bun run --filter @green-goods/shared check:stories` and
   `bun run --filter @green-goods/shared check:story-quality`

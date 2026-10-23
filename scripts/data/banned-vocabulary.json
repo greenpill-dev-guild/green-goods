@@ -356,6 +356,10 @@
       "reads": "us_spelling for hand-written docs, release notes and design guidance"
     },
     {
+      "path": "scripts/design/check-brand-voice-parity.mjs",
+      "reads": "linter_enforced, whose terms the brand voice page's section 6.4 must name exactly"
+    },
+    {
       "path": "packages/agent/src/__tests__/i18n.test.ts",
       "reads": "us_spelling for the agent's English chat copy, and linter_enforced and renamed_terms for its copy in every language"
     },
