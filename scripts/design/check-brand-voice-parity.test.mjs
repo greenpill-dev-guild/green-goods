@@ -81,6 +81,7 @@ const DIFFERENCES = [
   ["DESIGN.md's one-sentence test", "DESIGN.md", "garden sign, it's close.", "garden sign, it is close.", "voice core", /one-sentence test/],
   ["a reworded checklist item", PAGE, "Is it shorter than your first draft?", "Is it shorter than the first draft?", "voice core", /opens with "Is it shorter than your first draft\?"/],
   ["a checklist item DESIGN.md adds", "DESIGN.md", "- [ ] Is it shorter than your first draft?", "- [ ] Is it shorter than your first draft?\n- [ ] Does it name the garden?", "voice core", /"Does it name the garden\?"/],
+  ["a citation dropped from a checklist item", PAGE, "act or verify (DL-094)? On-chain", "act or verify? On-chain", "voice core", /verify \(DL-094\)\? On-chain/],
   ["a dropped \"we are not\" word", PAGE, "Jargon-heavy, academic, blockchain-first", "Jargon-heavy, academic", "voice core", /Grounded pillar\) "We are not"/],
   ["a pillar DESIGN.md lacks", PAGE, "| Active |", "| Playful | Light | Silly |\n| Active |", "voice core", /Playful pillar/],
   ["a stale duplicate pillar row", PAGE, "| Active |", "| Honest | Vague about limits | Hedging, corporate disclaimers, vague promises |\n| Active |", "voice core", /Honest pillar\) "We are"/],
@@ -134,10 +135,32 @@ test("formatting the comparison ignores, and an adapted model line, still pass",
     ],
     ["curly quotes in a contract", ({ edit }) => edit(ADMIN, "\"Approve\"", "“Approve”")],
     ["a checklist hint worded differently", ({ edit }) => edit("DESIGN.md", "(Can the reader picture it?)", "(Can a reader picture it?)")],
+    [
+      "a sentence added after the voice sentence and after the one-sentence test",
+      ({ edit }) => {
+        edit(PAGE, "pointing at the compost pile.", "pointing at the compost pile. Ask before you explain.");
+        edit(PAGE, "garden sign, it's close.", "garden sign, it's close. Read it aloud.");
+      },
+    ],
+    [
+      "a checklist item wrapped the same way in both files",
+      ({ edit }) => {
+        for (const file of ["DESIGN.md", PAGE]) edit(file, "verify (DL-094)? On-chain", "verify (DL-094)?\n  On-chain");
+      },
+    ],
     ["a reworded line marked adapted", ({ edit }) => edit(PAGE, "no trace.\" | How It Works |", "no trace at all.\" | How It Works (adapted) |")],
   ]) {
     assert.deepEqual(plantedFailures(plant).map(key), [], change);
   }
+});
+
+test("a checklist item wrapped onto indented lines is compared whole, continuation included", () => {
+  const failures = plantedFailures(({ edit }) => {
+    edit("DESIGN.md", "verify (DL-094)? On-chain is implementation", "verify (DL-094)?\n  On-chain is implementation");
+    edit(PAGE, "verify (DL-094)? On-chain is implementation, not copy.", "verify (DL-094)?\n  On-chain is copy, not implementation.");
+  });
+  assert.deepEqual(failures.map(({ pair }) => pair), ["voice core"], failures.map(key).join(" | "));
+  assert.match(failures[0].message, /On-chain is implementation, not copy\./);
 });
 
 test("the check imports only Node built-ins and repository files, since CI Gate loads it before installing packages", () => {

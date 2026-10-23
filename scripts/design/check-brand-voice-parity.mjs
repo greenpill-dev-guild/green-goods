@@ -424,7 +424,9 @@ function compareVoiceSentence({ page, voiceCopy, need, agree }) {
   const voice = need(voiceCopy?.match(/^\*\*Voice:\*\*\s*(.+)$/m)?.[1], DESIGN, "**Voice:** sentence");
   const pageVoice = section(page, 2, "Voice");
   const coreVoice = need(pageVoice?.match(/^\*\*Core voice\.\*\*\s*(.+)$/m)?.[1], PAGE, "**Core voice.** sentence");
-  if (voice && coreVoice) agree("voice core", plain(voice), `${DESIGN} § Voice & Copy`, plain(coreVoice), `${PAGE} core voice`);
+  if (voice && coreVoice) {
+    agree("voice core", plain(voice), `${DESIGN} § Voice & Copy`, plain(coreVoice), `${PAGE} core voice`, { opens: true });
+  }
 }
 
 function compareOneSentenceTest({ page, voiceCopy, need, agree }) {
@@ -435,19 +437,27 @@ function compareOneSentenceTest({ page, voiceCopy, need, agree }) {
     "**The one-sentence test.** line",
   );
   if (owned && restated) {
-    agree("voice core", plain(owned), `${DESIGN} one-sentence test`, plain(restated), `${PAGE} one-sentence test`);
+    const where = `${PAGE} one-sentence test`;
+    agree("voice core", plain(owned), `${DESIGN} one-sentence test`, plain(restated), where, { opens: true });
   }
 }
 
 function compareChecklist({ page, voiceCopy, fail, count, need }) {
-  // DESIGN.md puts some hints in parentheses ("(Gardener ≠ steward ≠ funder)"); the page may word
-  // them its own way, so each item is compared without its parenthesized asides.
-  const items = (text) =>
-    (text ?? "")
-      .split("\n")
-      .map((line) => line.match(/^\s*- \[[ xX]\]\s+(.+)$/)?.[1])
-      .filter(Boolean)
-      .map((item) => ({ item: plain(item), bare: plain(item.replace(/\s*\([^)]*\)/g, "")) }));
+  // DESIGN.md follows some questions with a hint in parentheses ("Is the audience right? (Gardener ≠
+  // steward ≠ funder)"), which the page may word its own way. Only a parenthesis straight after a
+  // question mark is such a hint; one inside the question, such as a "(DL-094)" citation, counts.
+  // An item wrapped onto indented lines is read whole.
+  const items = (text) => {
+    const found = [];
+    let open = false;
+    for (const line of (text ?? "").split("\n")) {
+      const start = line.match(/^\s*- \[[ xX]\]\s+(.+)$/);
+      if (start) found.push(start[1]);
+      else if (open && /^\s+\S/.test(line)) found[found.length - 1] += ` ${line.trim()}`;
+      open = Boolean(start) || (open && /^\s+\S/.test(line));
+    }
+    return found.map((item) => ({ item: plain(item), bare: plain(item.replace(/\?\s*\([^)]*\)/g, "?")) }));
+  };
   const owned = items(section(voiceCopy, 3, "Writing Checklist"));
   const restated = items(section(page, 2, "Pre-ship checklist"));
   if (owned.length === 0) return need(undefined, DESIGN, "Writing Checklist items");
