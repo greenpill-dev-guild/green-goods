@@ -104,23 +104,31 @@ release path, and the existing pooling release-stage schema covers Arbitrum/Celo
 voucher command alone would therefore be insufficient. Those deployment-tooling changes and their
 negative/simulation tests remain unfinished; no runnable release claim is made here.
 
-## Safe selection remains open
+## Safe selection: GG reuse accepted; new Safe governance proposed
 
-The user says to assume the required Safes need creation, with possible reuse of the current
-Green Goods Safe to discuss further. No specific Safe, owner set, threshold, guardian or creation
-transaction is selected. Assess the current Safe on Gnosis before any reuse claim; an address
-on another chain does not establish deployed Gnosis code or the same control state. Keep each
-issuer's reserve authority separate from the shared pool's administration. Prepare the concrete
-creation/reuse options for discussion before binding addresses or executing that boundary.
+On 22 October Pacific, the user selected reuse of the repository-named Green Goods Safe on
+Gnosis: `0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19`. The [read-only observation](../artifacts/green-goods-safe-gnosis-2026-10-22.json)
+at block 48,895,536 records five owners, threshold two, reported version 1.5.0 and no enabled
+modules. Keep its current owners/threshold. The user has not authorized a change to that Safe's
+configuration, module set, allowances or custody through this selection. Refresh applicable
+state and release verification before executing its transactions. Historical Arbitrum/Celo
+owner lists and timelock dispositions remain historical inputs, not new pilot waivers.
 
-A subsequent [read-only Gnosis observation](../artifacts/green-goods-safe-gnosis-2026-10-22.json)
-finds the repository-named Green Goods Safe `0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19`
-already deployed at block 48,895,536. It reports five owners, threshold two, version 1.5.0 and
-no enabled modules. Reuse is therefore a concrete option for the GG issuer reserve, pending
-the user's governance discussion and remaining release verification. Tech and Sun reserve
-control and joint shared-pool administration are separate decisions. No Safe creation, reuse,
-owner change, approval or value activation occurred. The older release manifest's owner lists
-and timelock disposition are not imported as this pilot's network control state or a new waiver.
+Propose the following owner roles; actual people and public signing addresses remain open:
+
+| Safe | Proposed owners | Proposed threshold |
+|---|---|---|
+| Tech and Sun reserve | Tech and Sun service lead, operations/finance steward, trusted backup chosen by Tech and Sun | 2-of-3 |
+| Shared pool administration | Two independent Green Goods delegates and two independent Tech and Sun delegates | 3-of-4 |
+
+Any three of two-plus-two delegates includes both organizations and tolerates one unavailable
+signer. This is a flat Safe threshold, without introducing nested contract-owner signing or a
+new signing module. A neutral-third 2-of-3 arrangement would allow either organization and the
+third to act without the other organization's signature; do not describe that as requiring
+both organizations. The shared administrator cannot mint or spend issuer reserves; reserve
+allowances stay finite and reserve-origin authorization stays authoritative. Existing immediate
+pause and delayed upgrade controls remain intact. See the [terms](../pilot-issuer-terms.md) for
+full recommendation boundaries. No new Safe or transaction was created by this planning update.
 
 ## Execution review and proof to complete
 
@@ -149,14 +157,24 @@ Agent/model: Codex / model unknown | Coverage: current release-policy, issuer-te
 | Phase | Start → end (UTC) | Result / evidence or blocker |
 |---|---|---|
 | Investigate / implement | Earlier start unknown → 2026-10-23 03:56:53 | Current release disposition reconciled; earlier lane states preserved. |
-| Investigate / implement | 2026-10-23 04:03:50 → 04:15:37 | Services selected; numeric baseline accepted with two GG vouchers per thirty-minute assistance session; Claude pricing and named-seat constraints checked against official sources. |
+| Investigate / implement | 2026-10-23 04:03:50 → 04:15:37 | Services selected; proposed numeric baseline drafted; Claude pricing and named-seat constraints checked against official sources. |
 | Verify | 2026-10-23 04:03:50 → 04:14:05 | Nine native local-fork cases pass; wrong-order candidate fails as expected. Earlier trace assertion included initialization/validation calls; corrected to identify migration selectors. |
-
 | Verify / review | 2026-10-23 04:14:05 → 04:15:37 | Selected QA format/lint 2/2 fresh; 34 Plan Hubs validate; 87 local links resolve. All nine proof source hashes match and all 114 unrelated file hashes remain unchanged. Selector lint processes no files under this Plan Hub; the executed fork proof owns behavior evidence. |
-
 | Implement / verify | 2026-10-23 04:18:01 → 04:19:01 | Accepted baseline recorded with two GG vouchers per thirty-minute session; revised service-budget arithmetic and selected formatting pass. Safe creation/reuse remains for discussion. |
-
 | Investigate | 2026-10-23 04:19:01 → 04:20:38 | Safe discussion requested; existing GG address found in repository and inspected read-only on Gnosis. Exact calls and limits are linked above. Creation/reuse remains unselected. |
 
 Human corrections: 0 in this segment; service additions are scope decisions. Human attention: unknown.
 Rendered proof: none in this segment; no product UI changed. No live broadcast, purchase or external tracker write.
+
+### Safe governance decision segment
+
+Task: Cosmo-Local Integration controlled live pilot | Type: guidance | Outcome: partial.
+Agent/model: Codex / model unknown | Coverage: GG Safe reuse and new Safe governance discussion.
+
+| Phase | Start → end (UTC) | Result / evidence or blocker |
+|---|---|---|
+| Investigate | Unknown → 2026-10-23 04:25:22 | Read current pilot terms, contracts threshold policy and official Safe guidance. |
+| Implement / review | 2026-10-23 04:25:22 → 04:26:54 | Record accepted GG reuse; propose 2-of-3 Tech and Sun and 3-of-4 joint pool ownership. Named signers remain unselected; selected formatting passes, 34 Plan Hubs validate, links resolve and all 114 unrelated file hashes are preserved. |
+
+Human corrections: 0 in this segment; attention: unknown. No Safe creation, configuration change,
+transaction, external tracker write or new rendered proof in this guidance segment.

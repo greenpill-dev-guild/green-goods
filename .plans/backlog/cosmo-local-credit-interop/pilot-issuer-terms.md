@@ -167,12 +167,29 @@ threshold, adapter and finite allowance; shared pool/registry/limiter/fee contro
 source authorities and both authenticated transport peers; plus pause and recovery authorities.
 No address, signer, approved capacity or supplier permission is fabricated by this draft.
 
-Treat the Gnosis Safes as needing creation until verified otherwise. Reusing the existing
-Green Goods Safe is an option for discussion, not a selected address or an instruction to create
-a replacement. The [pinned Gnosis read](artifacts/green-goods-safe-gnosis-2026-10-22.json) finds
-that repository-named Safe already deployed with five owners and threshold two; this is a reuse
-option, not its selection. Discuss issuer-reserve custody separately from jointly controlled shared-pool
-administration before choosing owners, thresholds, guardians or deployment operations.
+The user selected reuse of the existing Green Goods Safe on Gnosis on 22 October Pacific:
+`0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19`. The [pinned read](artifacts/green-goods-safe-gnosis-2026-10-22.json)
+records five owners and threshold two. Reuse preserves that configuration; it does not authorize
+owner/threshold changes, a new module, an allowance or asset movement. Read back the selected
+Safe's state again when binding the executable deployment manifest.
+
+For discussion, recommend a new Tech and Sun issuer-reserve Safe at **2-of-3**, owned by its
+service lead, operations/finance steward and a trusted backup chosen by Tech and Sun. Recommend
+a separate shared-pool administration Safe at **3-of-4**, owned by two named Green Goods delegates
+and two named Tech and Sun delegates. These are recommendations, not approved owner sets or
+thresholds. Each signer should be a different person with independent signing custody.
+
+With two delegates per organization, any three-signature pool approval includes both
+organizations and remains possible with one signer unavailable. A 2-of-3 pool with one delegate
+per organization and a neutral third would let that third approve with either organization
+without the other; that is a different governance choice. The shared-pool Safe administers the
+pool and selected integration controls; it gains no authority to mint or spend either issuer's
+reserve. Member swaps do not require a fresh administrator approval for each exchange.
+
+These threshold recommendations follow the general [Safe setup guidance](https://help.safe.global/articles/1038062742-what-safe-setup-should-i-use)
+to require multiple signatures while leaving a signer unavailable. Actual delegates, public
+signing addresses, availability and the remaining pause/recovery roles still need selection.
+No new Safe creation or authority mutation is selected by this recommendation.
 
 Existing Safe controls, implemented delays, consent, full escrow before promise activation,
 immutable final allocation and independent Celo G$ remain authoritative. The accepted hackathon
