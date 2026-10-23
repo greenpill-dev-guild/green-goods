@@ -86,7 +86,7 @@ export function CertificatesSection({
           message={formatMessage({
             id: "public.gardenDetail.certificates.empty",
             defaultMessage:
-              "No Impact Certificates yet. They appear when approved submissions are bundled.",
+              "No impact certificates yet. They appear when approved submissions are bundled.",
           })}
         />
       ) : (

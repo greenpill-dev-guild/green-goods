@@ -7,7 +7,7 @@ generated: true
 generator: scripts/quality/check-ontology.mjs
 generated_from:
   - packages/shared/src/ontology/green-goods-projections.json
-source_digest: "sha256:c883686319804fcea63afb71151611eaee7b24cf59db38e1f57a97cda46254fb"
+source_digest: "sha256:ad58c875e651470a7c13aedb1ae3e522dbed0947d48f4f4c45825eac85a5bf3b"
 source_of_truth:
   - packages/shared/src/ontology/green-goods-projections.json
 ---
@@ -28,17 +28,17 @@ This ledger separates what people can use now from deployed protocol capability,
 
 **Evidence:** `packages/contracts/deployments/42161-latest.json` — Garden and Hats modules are deployed on Arbitrum. (verified 2026-08-15)
 
-### Gardeners can document Work in the field and sync it when connectivity returns.
+### Gardeners can document work in the field and sync it when connectivity returns.
 
-**Internal claim:** Gardeners can submit portable Work evidence, including through the offline queue.
+**Internal claim:** Gardeners can submit portable work evidence, including through the offline queue.
 
 **Audience:** gardener · steward · funder
 
 **Evidence:** `packages/shared/src/modules/job-queue` — Offline-first submission queue is the runtime write boundary. (verified 2026-08-15)
 
-### Stewards review Work and record an approval or rejection separately.
+### Stewards review work and record an approval or rejection separately.
 
-**Internal claim:** Stewards approve or reject submitted Work through a separate attestation.
+**Internal claim:** Stewards approve or reject submitted work through a separate attestation.
 
 **Audience:** steward · funder · evaluator
 
@@ -46,7 +46,7 @@ This ledger separates what people can use now from deployed protocol capability,
 
 ### Assessments make the baseline, plan, and evidence standard explicit.
 
-**Internal claim:** Stewards and evaluators can define a baseline and strategy before Work begins.
+**Internal claim:** Stewards and evaluators can define a baseline and strategy before work begins.
 
 **Audience:** steward · evaluator · funder
 
@@ -54,7 +54,7 @@ This ledger separates what people can use now from deployed protocol capability,
 
 ### Support can meet near-term needs or remain deposited so yield supports work over time.
 
-**Internal claim:** Gardens can receive direct operational support and longer-term Vault deposits.
+**Internal claim:** Gardens can receive direct operational support and longer-term vault deposits.
 
 **Audience:** funder · steward
 
@@ -70,9 +70,9 @@ This ledger separates what people can use now from deployed protocol capability,
 
 ## in-build
 
-### Green Goods is building the activation path that turns approved Work into portable Impact Certificates.
+### Green Goods is building the activation path that turns approved work into portable impact certificates.
 
-**Internal claim:** Approved Work can become portable Impact Certificates.
+**Internal claim:** Approved work can become portable impact certificates.
 
 **Audience:** funder · steward · gardener
 

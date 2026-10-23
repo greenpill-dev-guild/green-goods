@@ -463,7 +463,7 @@
       "plain_name": "A starting point and a plan",
       "why_it_matters": "It states what a place needs and what good evidence should demonstrate.",
       "who_touches_it": ["Evaluator", "Steward"],
-      "example": "A soil-health baseline with targets and selected Actions.",
+      "example": "A soil-health baseline with targets and selected actions.",
       "aliases": ["baseline"],
       "not_confused_with": ["Work Approval"]
     },
@@ -472,7 +472,7 @@
       "plain_name": "One claim that bundles a body of approved work",
       "why_it_matters": "It lets approved contribution records become a fundable impact claim.",
       "who_touches_it": ["Funder", "Gardener", "Steward"],
-      "example": "A certificate bundling a season of approved Work.",
+      "example": "A certificate bundling a season of approved work.",
       "aliases": ["Impact Certificate"],
       "not_confused_with": ["Attestation", "Work Approval"]
     },
@@ -508,7 +508,7 @@
       "plain_name": "A portable role and permission",
       "why_it_matters": "It makes garden authority explicit and revocable.",
       "who_touches_it": ["Steward", "Gardener", "Evaluator", "Funder", "Community Member"],
-      "example": "A Steward Hat allows its wearer to approve Work.",
+      "example": "A Steward Hat allows its wearer to approve work.",
       "aliases": ["role Hat"],
       "not_confused_with": ["persona"]
     },
@@ -631,7 +631,7 @@
       "plain_name": "A person stewarding garden operations",
       "why_it_matters": "Stewards turn community policy into accountable review and coordination.",
       "who_touches_it": ["Gardener", "Evaluator", "Funder", "Community Member"],
-      "example": "A steward adds members and approves or rejects submitted Work.",
+      "example": "A steward adds members and approves or rejects submitted work.",
       "aliases": ["Garden Steward", "Garden Operator", "operator"],
       "not_confused_with": ["Evaluator"]
     },
@@ -640,7 +640,7 @@
       "plain_name": "A person shaping assessment and impact rigor",
       "why_it_matters": "Evaluators help communities frame baselines, methods, outcomes, and defensible claims.",
       "who_touches_it": ["Steward", "Funder"],
-      "example": "An evaluator authors a soil-health Assessment.",
+      "example": "An evaluator authors a soil-health assessment.",
       "aliases": ["impact assessor"],
       "not_confused_with": ["Steward", "Work approver"]
     },
@@ -658,7 +658,7 @@
       "plain_name": "A local person affected by the work",
       "why_it_matters": "Community voice should shape needs and accountability, not sit outside the record.",
       "who_touches_it": ["Steward", "Gardener"],
-      "example": "A resident reads the public record of approved Work in a nearby garden.",
+      "example": "A resident reads the public record of approved work in a nearby garden.",
       "aliases": ["resident"],
       "not_confused_with": ["Gardener"]
     }
@@ -681,7 +681,7 @@
     },
     {
       "id": "field-evidence",
-      "claim": "Gardeners can submit portable Work evidence, including through the offline queue.",
+      "claim": "Gardeners can submit portable work evidence, including through the offline queue.",
       "audience": ["gardener", "steward", "funder"],
       "maturity": "available",
       "term_refs": ["entity:work", "persona:gardener"],
@@ -691,12 +691,12 @@
           "note": "Offline-first submission queue is the runtime write boundary."
         }
       ],
-      "safe_wording": "Gardeners can document Work in the field and sync it when connectivity returns.",
+      "safe_wording": "Gardeners can document work in the field and sync it when connectivity returns.",
       "verified_at": "2026-08-15"
     },
     {
       "id": "steward-review",
-      "claim": "Stewards approve or reject submitted Work through a separate attestation.",
+      "claim": "Stewards approve or reject submitted work through a separate attestation.",
       "audience": ["steward", "funder", "evaluator"],
       "maturity": "available",
       "term_refs": ["entity:work", "persona:steward"],
@@ -706,12 +706,12 @@
           "note": "Work Approval is steward-only and separate from Work submission."
         }
       ],
-      "safe_wording": "Stewards review Work and record an approval or rejection separately.",
+      "safe_wording": "Stewards review work and record an approval or rejection separately.",
       "verified_at": "2026-08-15"
     },
     {
       "id": "assessment-rigor",
-      "claim": "Stewards and evaluators can define a baseline and strategy before Work begins.",
+      "claim": "Stewards and evaluators can define a baseline and strategy before work begins.",
       "audience": ["steward", "evaluator", "funder"],
       "maturity": "available",
       "term_refs": ["entity:assessment", "persona:evaluator"],
@@ -726,7 +726,7 @@
     },
     {
       "id": "durable-funding",
-      "claim": "Gardens can receive direct operational support and longer-term Vault deposits.",
+      "claim": "Gardens can receive direct operational support and longer-term vault deposits.",
       "audience": ["funder", "steward"],
       "maturity": "available",
       "term_refs": ["entity:vault", "entity:cookie-jar"],
@@ -741,7 +741,7 @@
     },
     {
       "id": "impact-certificates",
-      "claim": "Approved Work can become portable Impact Certificates.",
+      "claim": "Approved work can become portable impact certificates.",
       "audience": ["funder", "steward", "gardener"],
       "maturity": "in-build",
       "term_refs": ["entity:hypercert", "entity:work"],
@@ -751,7 +751,7 @@
           "note": "Hypercert contracts are deployed, while activation and indexing remain environment-dependent."
         }
       ],
-      "safe_wording": "Green Goods is building the activation path that turns approved Work into portable Impact Certificates.",
+      "safe_wording": "Green Goods is building the activation path that turns approved work into portable impact certificates.",
       "verified_at": "2026-08-15"
     },
     {
@@ -1284,7 +1284,7 @@
       "id": "claim",
       "label": "Claim from a shared fund",
       "meaning": "A gardener asks for a capped amount under the garden's fund rules and supplies a purpose. This is separate from taking up a promise, approving work, or confirming it.",
-      "example": "A gardener claims for supplies from the Cookie Jar.",
+      "example": "A gardener claims for supplies from the cookie jar.",
       "guide": "/community/gardener-guide/track-status-and-attestations",
       "source_of_truth": ["packages/contracts/src/modules/CookieJar.sol"]
     },

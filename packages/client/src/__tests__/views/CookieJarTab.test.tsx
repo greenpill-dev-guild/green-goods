@@ -354,7 +354,7 @@ describe("CookieJarTab", () => {
     render(<CookieJarTab />);
 
     const warning = screen.getByText(
-      "Some Cookie Jar details could not be confirmed. Available balances are shown below."
+      "Some cookie jar details could not be confirmed. Available balances are shown below."
     );
     const jar = screen.getByText("0.1 USDC");
     expect(warning).toBeInTheDocument();
@@ -384,7 +384,7 @@ describe("CookieJarTab", () => {
     render(<CookieJarTab />);
 
     const warning = screen.getByText(
-      "Some Cookie Jar details could not be confirmed. Available balances are shown below."
+      "Some cookie jar details could not be confirmed. Available balances are shown below."
     );
     const emptyTitle = screen.getByText("No cookie jars yet");
     expect(warning).toBeInTheDocument();
