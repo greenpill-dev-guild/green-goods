@@ -101,6 +101,7 @@ describe("shared record destinations", () => {
         document: {
           documentElement: root,
           getElementById: () => null,
+          querySelector: () => null,
           createElement: () => ({}),
           head: { appendChild: () => undefined },
         },
