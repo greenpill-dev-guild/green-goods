@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "tech-and-sun-steward-safe",
+  "threshold": 2,
+  "greenGoodsSafe": "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+  "garden": null,
+  "hatsModule": null,
+  "stewardHat": null,
+  "expectedTopHat": null,
+  "salt": "0",
+  "confirmedStewards": [],
+  "networks": {
+    "arbitrum": { "chainId": 42161, "router": null, "deployer": null, "nonce": null },
+    "gnosis": { "chainId": 100, "router": null, "deployer": null, "nonce": null }
+  }
+}

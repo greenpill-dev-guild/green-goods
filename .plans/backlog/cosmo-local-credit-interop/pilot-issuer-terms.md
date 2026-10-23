@@ -186,25 +186,25 @@ proposal. Actual accounts remain unconfirmed; use verified, distinct, Gnosis-com
 accounts. A steward grant should make that account eligible for signing; a revocation should
 remove its signing eligibility through the selected verified synchronization path.
 
-Current implementation: `HatsModule` owns garden role grant/revoke and exact steward membership.
-Those hooks synchronize Karma access and conviction power, not Gnosis Safe owners. A normal Safe
-requires approved owner-management transactions; adding a steward today does not automatically
-change its signer list. [Safe owner-management guidance](https://help.safe.global/articles/9629761095)
-confirms that owner and threshold updates follow the Safe transaction approval flow.
+The selected threshold is **two valid steward signatures at every roster size**, superseding
+majority signing. The bootstrap can still be 2-of-3, with names and addresses confirmed later.
+Fewer than two valid signers blocks spending. A new Tech and Sun Safe uses the published
+[Hats Signer Gate v2.0.0](https://github.com/Hats-Protocol/hats-zodiac/tree/2c0172e979e64f6f73647adc634a4622cba465ef),
+a dedicated Gnosis signer Hat and the authenticated Arbitrum role mirror. The receiver controls
+the signer Hat; the Safe cannot rewrite its own eligibility. HSG is locked with no extra modules
+or delegatecall targets. Existing Green Goods Safe custody is unchanged.
 
-[Hats Signer Gate](https://github.com/Hats-Protocol/hats-zodiac) is a candidate for role-based
-signer eligibility, revocation enforcement and adjustable thresholds. It is not integrated or
-selected for deployment here. Canonical garden roles are on Arbitrum and the issuer Safe is on
-Gnosis: an authenticated, ordered destination role view or another verified cross-chain design
-is needed. Do not claim instant revocation on Gnosis from an Arbitrum role change. Joining,
-leaving, stale role updates, unavailable accounts and recovery need explicit behavior and proof.
-
-The user selected a **strict majority of active steward signers, with a minimum of two
-signatures**, as the roster changes; see the formula in [current scope](spec.md). Three signers
-require two signatures, four require three, and five require three. Fewer than two eligible
-signers means spending must stay blocked. The initial 2-of-3 manifest values are a bootstrap
-snapshot, not a permanent three-person list. Recovery and the verified synchronization path
-remain unimplemented; no new module or recovery owner is enabled by this draft.
+`HatsModule` role hooks automatically dispatch canonical steward changes when the publisher has
+native transport fuel. Fuel or transport failure leaves the change queued; anyone can refresh
+or pay the quoted CCIP fee directly. Initial existing stewards need a refresh. The Gnosis
+receiver applies ordered updates and reconciles Safe owners. Failed
+cleanup does not restore a delivered revoked signer's eligibility. Destination delivery is
+asynchronous; do not claim instant revocation across chains. Roles changed outside the hooks
+need an explicit refresh. Below two owners, Safe may display threshold one, while HSG still
+blocks execution. Source garden administrators can grant replacement stewards even when the
+issuer Safe cannot spend. Actual accounts, source upgrade/registration, funded dispatch and live
+activation remain pending. Local fork proof uses fictional roles and delivery; it establishes
+neither real signer control nor DON operation.
 
 Existing Safe controls, implemented delays, consent, full escrow before promise activation,
 immutable final allocation and independent Celo G$ remain authoritative. The accepted hackathon

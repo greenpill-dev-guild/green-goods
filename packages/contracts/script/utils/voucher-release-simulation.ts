@@ -1,5 +1,5 @@
 import { Contract, getAddress, JsonRpcProvider, keccak256, toQuantity } from "ethers";
-import { assertIsolatedRpc, startIsolatedFork } from "./isolated-fork";
+import { assertIsolatedRpc, startIsolatedFork, maskImmutableRuntime, minedIsolatedReceipt } from "./isolated-fork";
 import { NetworkManager } from "./network";
 import type { VoucherManifest, VoucherNetwork, VoucherPlan } from "./voucher-release";
 
@@ -19,24 +19,6 @@ const IMPLEMENTATION_SLOT = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a92
 function requireEqual(actual: unknown, expected: unknown, label: string) {
   if (String(actual).toLowerCase() !== String(expected).toLowerCase())
     throw new Error(`Voucher simulation ${label} mismatch`);
-}
-function maskRuntime(code: string, references: Record<string, Array<{ start: number; length: number }>> = {}) {
-  let bytes = code.slice(2);
-  for (const offsets of Object.values(references))
-    for (const { start, length } of offsets) {
-      if (!Number.isInteger(start) || start < 0 || length !== 32 || start + length > bytes.length / 2)
-        throw new Error("Invalid immutable reference in reviewed runtime");
-      bytes = bytes.slice(0, start * 2) + "00".repeat(length) + bytes.slice((start + length) * 2);
-    }
-  return `0x${bytes}`;
-}
-async function minedReceipt(provider: JsonRpcProvider, hash: string) {
-  for (let attempt = 0; attempt < 100; attempt++) {
-    const receipt = await provider.getTransactionReceipt(hash);
-    if (receipt) return receipt;
-    await new Promise((resolve) => setTimeout(resolve, 100));
-  }
-  throw new Error("Isolated voucher transaction receipt remained unavailable after bounded polling");
 }
 /** Only this function's owned loopback fork receives impersonation, synthetic gas or transactions. */
 export async function simulateVoucherNetwork(
@@ -96,13 +78,13 @@ export async function simulateVoucherNetwork(
           gas: toQuantity((gas * 130n + 99n) / 100n),
         },
       ]);
-      const receipt = await minedReceipt(provider, hash);
+      const receipt = await minedIsolatedReceipt(provider, hash);
       if (receipt.status !== 1 || receipt.contractAddress !== tx.address)
         throw new Error(`Failed paused deployment ${tx.contract}`);
       const code = await provider.getCode(tx.address);
       requireEqual(
-        keccak256(maskRuntime(code, tx.immutableReferences)),
-        keccak256(maskRuntime(tx.runtimeTemplate, tx.immutableReferences)),
+        keccak256(maskImmutableRuntime(code, tx.immutableReferences)),
+        keccak256(maskImmutableRuntime(tx.runtimeTemplate, tx.immutableReferences)),
         "production runtime template",
       );
       if (tx.kind !== "library") {

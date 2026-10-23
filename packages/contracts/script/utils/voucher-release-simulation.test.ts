@@ -1,45 +1,12 @@
-import { execFileSync, spawn, type ChildProcess } from "node:child_process";
-import { createServer } from "node:net";
+import { execFileSync } from "node:child_process";
 import { JsonRpcProvider } from "ethers";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { CONTRACTS_ROOT, getFoundryOutDir } from "./paths";
 import { fixtureManifest } from "./voucher-release.fixtures";
 import { buildVoucherPlan, loadVoucherArtifacts } from "./voucher-release";
 import { simulateVoucherNetwork } from "./voucher-release-simulation";
+import { createIsolatedSeed as seed } from "./isolated-fork.fixtures";
 
-const children: ChildProcess[] = [];
-const clients: JsonRpcProvider[] = [];
-async function seed(chainId: number) {
-  const listener = createServer();
-  await new Promise<void>((resolve, reject) => {
-    listener.once("error", reject);
-    listener.listen(0, "127.0.0.1", resolve);
-  });
-  const port = (listener.address() as { port: number }).port;
-  await new Promise<void>((resolve) => listener.close(() => resolve()));
-  const child = spawn(
-    "anvil",
-    ["--host", "127.0.0.1", "--port", String(port), "--chain-id", String(chainId), "--silent"],
-    { stdio: "ignore" },
-  );
-  children.push(child);
-  let spawnError: Error | undefined;
-  child.once("error", (e) => {
-    spawnError = e;
-  });
-  const client = new JsonRpcProvider(`http://127.0.0.1:${port}`, undefined, { cacheTimeout: -1, batchStallTime: 0 });
-  clients.push(client);
-  for (let i = 0; i < 100; i++) {
-    if (spawnError || child.exitCode !== null) throw new Error("Synthetic seed Anvil unavailable");
-    try {
-      await client.send("anvil_nodeInfo", []);
-      return { client, url: `http://127.0.0.1:${port}` };
-    } catch {
-      await new Promise((r) => setTimeout(r, 20));
-    }
-  }
-  throw new Error("Synthetic seed startup timed out");
-}
 const manifest = fixtureManifest();
 let arb: Awaited<ReturnType<typeof seed>>, gnosis: Awaited<ReturnType<typeof seed>>;
 let artifacts: ReturnType<typeof loadVoucherArtifacts>;
@@ -74,21 +41,8 @@ beforeAll(async () => {
   }
 }, 120_000);
 afterAll(async () => {
-  for (const client of clients) client.destroy();
-  for (const child of children)
-    if (child.exitCode === null) {
-      child.kill("SIGTERM");
-      await new Promise<void>((resolve) => {
-        const timer = setTimeout(() => {
-          child.kill("SIGKILL");
-          resolve();
-        }, 2000);
-        child.once("exit", () => {
-          clearTimeout(timer);
-          resolve();
-        });
-      });
-    }
+  await arb?.stop();
+  await gnosis?.stop();
 });
 describe("real production paused voucher deployment on isolated synthetic forks", () => {
   it("executes all eleven CREATE boundaries with a pending receipt, atomic initializers and readback without touching upstream", async () => {

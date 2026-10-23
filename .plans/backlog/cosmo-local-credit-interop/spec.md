@@ -56,10 +56,16 @@ capacity, inventory, exposure limits, quotes/fees and explicit admission before 
 The existing Green Goods Gnosis Safe administers both the network exchange pool and the Green
 Goods issuer reserve, preserving its observed 2-of-5 configuration. No separate pool Safe or
 automatic garden representation is required. Tech and Sun controls its own issuer reserve;
-its active garden stewards are the intended signer source. The selected threshold is a strict
-majority with a minimum of two: `max(2, floor(N / 2) + 1)` for `N` confirmed active steward
-signers. Fewer than two eligible signers means spending is blocked. Dynamic signer eligibility,
-recovery and Arbitrum-to-Gnosis role synchronization remain to be designed and verified. Each
+its active garden stewards are the signer source. The selected threshold is fixed at **two valid
+steward signatures**, regardless of roster size, superseding the earlier majority policy.
+Fewer than two valid stewards blocks spending. An immutable Arbitrum publisher reads canonical
+roles and automatically dispatches changes using native CCIP fee fuel; failures leave a
+permissionless refresh/caller-funded dispatch retry. Delivery feeds an authenticated,
+revision-ordered Gnosis mirror. The receiver owns a dedicated Hats tree and creates a locked
+Hats Signer Gate v2 Safe with fixed ABSOLUTE min=2,target=2. Revocation is committed before
+best-effort owner cleanup. Source grants recover a zero/one-steward Safe; loss of source garden
+admin authority remains a separate recovery problem. This is local implementation pending live
+inputs, source upgrade/observer registration, dispatch operation and activation. Each
 issuer retains its own service obligations. Other communities can operate separate exchange pools; federation and
 multi-hop execution are outside this pilot. This matches the published
 [CLC network model](https://docs.cosmolocal.credit/protocol/network/).

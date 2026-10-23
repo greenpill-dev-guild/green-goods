@@ -32,8 +32,8 @@ release updates; this checkout owns the canonical Plan Hub changes.
   [working issuer terms](pilot-issuer-terms.md), including two GG vouchers per thirty-minute assistance session and Claude Team seat limits.
 - [x] Reuse the existing GG Gnosis Safe at its current 2-of-5 for both network pool administration
   and GG issuer reserve; no separate pool Safe. Tech and Sun bootstrap remains 2-of-3.
-- [x] Select strict-majority Tech and Sun steward signing with a minimum of two signatures;
-  retain 2-of-3 for the three-signer bootstrap and block spending below two eligible signers.
+- [x] Select fixed-two Tech and Sun steward signing, superseding the earlier majority policy;
+  require two valid steward signatures regardless of roster size and block spending below two eligible signers.
 - [ ] Bind Tech and Sun signer eligibility to active garden stewards; define recovery behavior
   and prove authenticated Arbitrum/Gnosis synchronization. Actual signer accounts and live
   automatic owner updates remain unconfirmed.
@@ -373,3 +373,41 @@ reconciliation and the Claude Fable prompt. It does not authorize runtime edits 
 September's issuer-service model supersedes August's weighted-contribution dispatch sequence.
 The user's four-level capital narrative is the pitch direction; evidence and concrete funding
 terms still determine which claims can be made. Lane and execution evidence objects remain unchanged.
+
+## Dynamic Tech and Sun Safe: authorized implementation, 23 October UTC
+
+Use the deployed Hats Signer Gate (HSG) v2.0.0 on Gnosis, a dedicated canonical Hats tree
+controlled only by an immutable receiver, and an immutable Arbitrum publisher reading the
+existing HatsModule steward role. Fixed ABSOLUTE min=2,target=2 supersedes majority signing.
+GG keeps its existing 2-of-5 Safe for issuer reserve and network exchange administration.
+No source account, signer identity, capacity or live deployment is invented.
+
+Reuse: canonical IHats, CCIPReceiver/Client, existing HatsModule roles, CLI operation registry
+and production/isolated-fork deployment conventions. VoucherEndpoint and GardenActionRouter
+own different governance and account-action rules; neither should control this issuer Safe.
+No dependency installation or replacement signature parser. HSG is the sole Safe module/guard,
+with no subordinate modules or enabled delegatecall targets; lock config atomically.
+
+| Transition / boundary | Required evidence |
+|---|---|
+| Steward/Owner grant; actual Steward revoke | Exact current steward role queued; non-steward roles unchanged |
+| Hook or fee/send failure | Source role change persists; permissionless refresh/dispatch recovers |
+| Valid authenticated delivery | Same garden/account, ordered revision; mirror eligibility then reconcile |
+| Wrong router/selector/sender/domain/token payload | Reject without changing eligibility |
+| Duplicate/stale or conflicting revision | Idempotent duplicate; stale ignored; conflict rejected |
+| Revoke with failed Hats/Safe cleanup | Explicit eligibility false persists; old signer cannot spend |
+| 0/1/2/3/4 valid stewards | Effective two throughout; fewer than two blocked; source grants recover |
+| Safe/hat/admin/module escape | Locked HSG; Safe cannot rewrite owners/threshold/guard/modules/hat authority |
+| Deployment review | Production bytecode, exact peers/nonces/dependency hashes/topHat expectation; no broadcast |
+
+Role hooks queue changes and automatically dispatch from a native CCIP fee balance. Unknown
+non-stewards and already-dispatched revisions cannot consume that fuel. Failure leaves a
+permissionless refresh or caller-funded exact-fee dispatch retry; initial stewards need refresh.
+Delivery is asynchronous, and direct external Hats eligibility changes require a refresh.
+A source revocation is not a destination revocation until its authenticated update arrives.
+Physical Safe threshold can be one below two owners; HSG must still reject spending.
+Activation requires two confirmed valid steward accounts. Final signer names remain pending.
+
+- [x] Implement observer, ordered publisher and Gnosis Hats/HSG receiver with direct behavioral proof.
+- [x] Prove actual deployed HSG, Hats and Safe behavior on a pinned Gnosis fork.
+- [x] Extend offline deployment tooling and record focused and complete critical checks.

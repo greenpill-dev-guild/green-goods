@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { assertVoucherSourcesCommitted, voucherJsonPath } from "../deploy/voucher-release";
+import { releaseRevision } from "./release-inputs";
 const temporary: string[] = [];
 function fixture() {
   const root = realpathSync(mkdtempSync(path.join(os.tmpdir(), "voucher-source-scope-")));
@@ -13,12 +14,42 @@ function fixture() {
   const env = { ...process.env };
   for (const key of ["GIT_DIR", "GIT_WORK_TREE", "GIT_COMMON_DIR", "GIT_INDEX_FILE"]) delete env[key];
   execFileSync("git", ["init", "--quiet", root], { env });
-  return { root, contracts, manifest: path.join(contracts, "config/voucher-pilot-release.json") };
+  return { root, contracts, env, manifest: path.join(contracts, "config/voucher-pilot-release.json") };
 }
 afterEach(() => {
   for (const p of temporary.splice(0)) rmSync(p, { recursive: true, force: true });
 });
 describe("voucher release source and output ownership", () => {
+  it("captures a clean tracked revision and rejects ignored or dirty manifest inputs", () => {
+    const f = fixture();
+    mkdirSync(path.dirname(f.manifest), { recursive: true });
+    writeFileSync(f.manifest, "{}");
+    const git = (args: string[]) => execFileSync("git", args, { cwd: f.root, env: f.env, encoding: "utf8" });
+    git(["add", "--", "packages/contracts/config/voucher-pilot-release.json"]);
+    // Synthetic temporary repository, not the user's checkout or signing identity.
+    git([
+      "-c",
+      "commit.gpgsign=false",
+      "-c",
+      "core.hooksPath=/dev/null",
+      "-c",
+      "user.name=Fixture",
+      "-c",
+      "user.email=fixture@example.invalid",
+      "commit",
+      "--quiet",
+      "-m",
+      "fixture",
+    ]);
+    expect(releaseRevision(f.contracts, f.manifest)).toBe(git(["rev-parse", "HEAD"]).trim());
+    writeFileSync(f.manifest, '{"changed":true}');
+    expect(() => releaseRevision(f.contracts, f.manifest)).toThrow("unchanged deployment inputs");
+    writeFileSync(path.join(f.root, ".gitignore"), "ignored.json\n");
+    const ignored = path.join(f.contracts, "config/ignored.json");
+    writeFileSync(ignored, "{}");
+    writeFileSync(f.manifest, "{}");
+    expect(() => releaseRevision(f.contracts, ignored)).toThrow();
+  });
   it("rejects dirty vendored/build inputs without blocking unrelated notes", () => {
     const f = fixture();
     mkdirSync(path.join(f.root, "notes"));

@@ -70,9 +70,10 @@ per thirty minutes; actual
 capacity, funded permitted Claude seats and public-safe control addresses remain unconfirmed.
 Private issuer evidence and member identity data stay out of this public repository.
 
-The current contracts CLI exposes pooling and settlement release operations but no voucher
-deployment target. Confirm the full inventory and add the missing repository-owned deployment,
-initialization, artifact and dependent-configuration path before claiming a runnable package.
+The contracts CLI now includes `release vouchers` for paused endpoint preflight, exact deployment
+plans and owned-fork simulation, plus `release steward-safe` for the dynamic Tech and Sun Safe.
+The dated tooling sections below record their proof and limits. Published CLC token/pool release,
+live configuration, issuer approvals and activation remain separate work.
 
 ## Deployment inventory inspected in source
 
@@ -99,10 +100,11 @@ The four new implementations, three externally linked voucher libraries, proxy c
 initializers, existing source-module upgrades/bindings, reserve-origin authorizations, published
 CLC factory/configuration operations, and final unpause each need explicit transaction boundaries
 and readback. The inspected default artifacts identify link requirements; they are not the final
-production-profile bytecode manifest. The current general network manager and CLI have no Gnosis
-release path, and the existing pooling release-stage schema covers Arbitrum/Celo only. Adding a
-voucher command alone would therefore be insufficient. Those deployment-tooling changes and their
-negative/simulation tests remain unfinished; no runnable release claim is made here.
+production-profile bytecode manifest. The voucher planner now binds production artifacts and
+library links, and the network manager accepts an explicit Gnosis RPC. Its preparation/simulation
+path does not execute source upgrades, reserve approvals, published CLC token/pool configuration
+or final activation. The existing pooling release-stage schema covers Arbitrum/Celo; the complete
+live Gnosis pool release still needs its own reviewed operations and readback.
 
 ## Safe selection: reuse and thresholds accepted; signer identities pending
 
@@ -123,11 +125,11 @@ Tech and Sun retains authority over its own reserve and obligations.
 
 Tech and Sun starts from the accepted **2-of-3** bootstrap. Its active garden stewards are the
 intended signer source, replacing the earlier fixed service-lead/finance/backup proposal.
-Actual signers remain unconfirmed. The selected threshold follows a strict majority of active
-steward signers, with at least two signatures. Recovery and authenticated role synchronization
-still need design and implementation proof.
-A changed Arbitrum steward role does not currently update Gnosis Safe owners. No live Safe
-configuration, module, allowance or transaction changed through this planning update.
+Actual signers remain unconfirmed. The latest user decision supersedes majority signing with
+**two valid steward signatures regardless of roster size**. The dynamic implementation below
+uses an ordered Arbitrum publisher and a dedicated Gnosis Hat with locked HSG v2. Funded role
+hooks dispatch automatically; authenticated destination delivery makes changes effective on Gnosis.
+No live Safe configuration, module, allowance or transaction has changed.
 
 ## Execution review and proof to complete
 
@@ -321,3 +323,111 @@ Coverage ends at pre-commit verification; signed local checkpoint attribution is
 
 Human corrections: one governance simplification; attention unknown. Existing lane objects and
 overall backlog are preserved. Rendered product proof: none; no product UI changed.
+
+## Dynamic steward Safe implementation, 23 October UTC
+
+User explicitly dispatches implementation and replaces majority policy with fixed two. Reuse
+the deployed Gnosis HSG v2.0.0 (upstream commit `2c0172e979e64f6f73647adc634a4622cba465ef`),
+canonical Hats and HSG-created SafeL2 1.4.1. The seven dependency code hashes are checked onchain
+by the receiver constructor. The existing GG Safe version/control policy is untouched.
+
+Source roster changes retain the existing HatsModule permissions: a garden owner or steward
+can grant or revoke roles. Two signatures govern issuer Safe transactions; this implementation
+does not add a second approval for changing the source steward roster.
+
+The source publisher reads exact HatsModule steward membership and the pinned operator Hat.
+Source hooks queue canonical revisions and automatically dispatch with bounded best-effort
+callbacks when native CCIP fuel is available. Unknown non-stewards and already-dispatched
+revisions cannot drain the balance. Failed quoting/send preserves queued state; any caller can
+refresh to retry, or pay the exact quoted fee directly. Direct dispatch refreshes immediately
+before sending. Initial stewards need refresh after observer registration. Same-version conflicts reject; older
+updates cannot resurrect a revoked signer. The destination owns its dedicated top Hat and
+immutable signer Hat. It creates HSG and Safe atomically, disables all three default delegatecall
+targets and irreversibly locks config. HSG is the sole Safe module and guard, with no submodules.
+Mirror authority commits before a bounded, retryable reconciliation call. Explicit false
+eligibility survives failed cleanup; it does not rely on Hats' reverting eligibility fallback.
+
+The new `release steward-safe` preflight/plan/simulate operation binds production artifacts,
+source commit, exact deployer nonces/peers and expected next top Hat. It prepares observer
+registration separately without executing it. Simulation owns each loopback fork, verifies
+runtime/immutable readback and the locked zero-signer Safe state, then closes its processes.
+No signer input, live broadcast, observer registration or activation exists in this operation.
+Existing `upgrade hats-module` owns source upgrade preparation. The public manifest deliberately
+leaves actual garden, source Hat/module, routers, deployers/nonces/top Hat and signer accounts pending.
+
+Initial direct proof: source/hook cases and actual deployed Gnosis Hats/HSG/Safe cases
+pass at block 48,897,095 (observed public block hash
+`0xc7c8062a4b2f5ea5fe60c67f985e966d8eec60b7cd3ab33ad90b78d2eb9182e3`).
+These exercise fixed-two with two/three/five stewards; one/zero signer blocking/recovery;
+reordered/duplicate/conflicting delivery; wrong transport/domain; cleanup failure and locked
+Safe configuration. Transport and source roles are fictional. Final proof is recorded below.
+Rendered proof: none (contracts/tooling only).
+
+Live prerequisites: confirmed compatible signer accounts; source HatsModule upgrade and
+observer registration; exact endpoint/router/nonce/top Hat inputs; funded event dispatch and
+refresh operations; real CCIP delivery/readback; at least two valid signers; integration of the
+resulting Tech and Sun Safe into issuer/pool release inputs. The complete CLC live pool/token
+release, member ceremonies and other recorded issuer/provider gates remain open. No extra GG Safe.
+
+Final local proof, completed 23 October UTC:
+
+- The 35-path critical QA plan selected nine checks. The full run passed formatting, lint,
+  ABI artifacts, contract build, package tests and `contracts-verify-fast`, including all four
+  mandatory critical overrides. Its documentation authority check detected a stale generated
+  integration digest after the final source edit. Regeneration changed only generated data;
+  the docs-only follow-up passes formatting, authority and build, and the exact selected
+  ontology command passes separately. All nine selected check IDs are satisfied across these
+  runs. No failed check or cached receipt is counted as a pass. Runtime contract and tooling
+  content hashes are unchanged since the six passing checks. Staging removed one trailing
+  blank line from a test fixture; its final focused proof is reported in chat.
+- `bun run --cwd packages/contracts test` passes 2,209 Solidity cases, three production cold-path
+  gas cases, 33 CLI cases and 361 script cases. The focused release/simulation group passes
+  19 cases. Contracts typecheck and the 16 existing ABI exports also pass.
+- `FOUNDRY_PROFILE=production GNOSIS_RPC_URL=https://rpc.gnosischain.com bun run --cwd
+  packages/contracts test --suite solidity --profile match -- test/fork/GnosisStewardSafe.t.sol`
+  passes all nine cases, including 1,000 explicit-denial fuzz runs, actual Safe transfers and
+  the funded source-hook lifecycle. Hats, HSG and Safe are deployed Gnosis dependencies;
+  source Hats, router, delivery and signer keys are fixtures. This is not a live CCIP proof.
+- The production-profile Arbitrum upgrade rehearsal passes at block 517,467,166, hash
+  `0x1f501796cafe2a53083f5e64f426e426d8e7f1216fd5d6086a8dc54de2a23adf`, preserving all 18
+  gardens and their current state. The original implementation is
+  `0xe5e5cbeda7dc1139af2e04bd4a6784b42b4becd2`. The command is the same Solidity match wrapper
+  targeting `test/fork/ArbitrumHatsModuleUpgrade.t.sol`, with public Arbitrum RPC and
+  `HATS_MODULE_UPGRADE_FORK_BLOCK_NUMBER`, `HATS_MODULE_UPGRADE_GARDEN_COUNT` and
+  `HATS_MODULE_UPGRADE_EXPECTED_IMPLEMENTATION` set to those values. One invocation failed
+  before execution because the garden-count variable was misnamed; the corrected run passes.
+- `bun run --cwd packages/contracts check:storage-layout --contract HatsModule` passes.
+  Every pre-existing non-gap field is unchanged; the observer uses slot 166, and the reduced
+  gap still ends at slot 200. `bun run --cwd packages/contracts check:sizes` passes for every
+  deployable contract: HatsModule 16,424 bytes, receiver 4,449 and publisher 3,898.
+- The Gnosis deployment-tooling rehearsal also passes against actual destination dependencies
+  at block 48,897,471, hash
+  `0x3b8df66351b812d0138b4f47b072d735bb6ffab024291cc1fe5fddf290e6253a`.
+  Its source/router and gas are fictional; only process-owned forks receive transactions.
+  The resulting Safe is locked with zero valid signers, effective threshold two, physical
+  threshold one and spending disabled. The synthetic upstream remains unchanged.
+
+The source and hook tests first failed before their APIs existed. Automatic funded dispatch
+has a behavioral RED of two failures/seven passes before implementation and a final ten-case
+publisher GREEN. Intermediate formatting and generated-data drift were corrected; interrupted
+or failing runs are retained as such in local evidence. No dependency, compiler profile,
+permission, CI or agent-instruction change is included. The public release
+input, CLI registry, storage baseline and generated docs are the sensitive owned configuration
+changes. All 114 unrelated file hashes and every original lane object remain unchanged.
+
+Proof ran on the working copy above parent `d2c2e1d34f3694e4a6b2d7ddf3127b109a34d31d`;
+source content hashes bind it to the staged/committed tree. Signed checkpoint attribution and
+post-commit tree verification are reported in chat. No remote CI, publication or live readiness
+is claimed. The local implementation is complete; the broader live pilot remains partial.
+
+Task record: cosmo-local-credit-interop live pilot deployment | Type: feature | Outcome: complete locally; live pilot partial
+Agent/model: Codex / GPT-6 | Coverage: dynamic Tech and Sun steward Safe implementation
+
+| Phase | Start → end (UTC) | Result / evidence or blocker |
+|---|---|---|
+| Investigate | Earlier start unknown → 2026-10-23 06:39:11 | Primary HSG source/deployed binary fit; fixed-two and authority boundaries recorded. |
+| Implement | 2026-10-23 06:39:11 → 2026-10-23 07:34:59 | Publisher/receiver/Hats observer and deployment tooling; direct RED/GREEN logs retained privately. |
+| Verify | 2026-10-23 07:05:08 → 2026-10-23 07:53:03 | Required check IDs, final Gnosis/Arbitrum forks, size/storage and source hashes verified above. Intervals overlap; do not sum them. |
+| Review | 2026-10-23 07:36:57 → 2026-10-23 07:53:03 | Source, callers, failure/recovery and owned diffs inspected; final notes/index/signature checks are reported in chat. |
+
+Human corrections: 0 in this segment; attention: unknown. Rendered proof: none (no product UI change).

@@ -95,6 +95,30 @@ perform no live broadcasts, Safe creation, issuer approvals or activation, and d
 canonical deployment or dependent app/indexer configuration. The full live pilot also needs the
 separate published CLC pool release and activation operations.
 
+The Tech and Sun steward Safe preparation path is
+`bun run contracts -- release steward-safe --mode preflight`, handled by
+`packages/contracts/script/deploy/steward-safe-release.ts`. Its public draft is
+`packages/contracts/config/steward-safe-release.json`. Preflight reports missing inputs without RPC.
+With committed sources and complete inputs, `--mode plan` binds two CREATE deployments and separate
+HatsModule-owner observer-registration calldata; `--mode simulate --plan
+.generated/steward-safe/<release-id>.plan.json` rehearses deployments on owned Arbitrum/Gnosis forks.
+The Gnosis receiver creates a new Tech and Sun Safe with locked Hats Signer Gate v2, a dedicated
+receiver-controlled signer Hat and two required valid steward signatures. It leaves the existing
+Green Goods pool/reserve Safe unchanged. No live broadcast, observer registration, Hat delivery or
+activation occurs in these modes. Upgrade the source HatsModule through the existing reviewed
+`upgrade hats-module` operation before separately registering its observer.
+
+Role hooks refresh canonical changes and automatically dispatch when the publisher has enough native
+transport fuel. Fund that Arbitrum address only for CCIP fees; it has no withdrawal or arbitrary
+spending path. No fuel, quoting failure or send failure restores a revoked source role. Anyone can
+retry with `syncSteward(account)`, or pay exactly `quoteSteward(account)` to
+`dispatchSteward(account)`. Initial existing stewards need one refresh after observer registration.
+The receiver reconciles owners after authenticated CCIP delivery; failed cleanup can be retried
+with `reconcile(account)`.
+Revocation takes effect on Gnosis when delivered; source changes outside HatsModule hooks require
+refreshing the affected account. Below two owners, Safe's displayed threshold can be one while HSG
+still blocks spending. Activate only after two confirmed steward accounts are valid on Gnosis.
+
 ## Inventory
 
 ### `dev/` — local dev workflow

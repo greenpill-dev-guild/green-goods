@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { execFileSync } from "node:child_process";
-import { existsSync, lstatSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { parseArgs } from "node:util";
 import { redactRpcUrlsInText } from "../utils/cli-parser";
@@ -16,51 +16,12 @@ import {
 } from "../utils/voucher-release";
 import { simulateVoucherPlan } from "../utils/voucher-release-simulation";
 
-export function voucherJsonPath(directory: string, input: string): string {
-  const resolved = path.resolve(CONTRACTS_ROOT, input),
-    relative = path.relative(directory, resolved);
-  if (!relative || relative.startsWith("..") || path.isAbsolute(relative) || path.extname(resolved) !== ".json")
-    throw new Error("Voucher input/output path must stay inside its owned JSON directory");
-  for (let current = resolved; current !== path.dirname(current); current = path.dirname(current)) {
-    if (existsSync(current) && lstatSync(current).isSymbolicLink())
-      throw new Error("Voucher JSON paths cannot follow symlinks");
-    if (current === CONTRACTS_ROOT) break;
-  }
-  return resolved;
-}
-function voucherGitEnvironment() {
-  const env = { ...process.env };
-  for (const key of ["GIT_DIR", "GIT_WORK_TREE", "GIT_COMMON_DIR", "GIT_INDEX_FILE"]) delete env[key];
-  return env;
-}
-export function assertVoucherSourcesCommitted(root: string, manifestPath: string): void {
-  const sourcePaths = [
-    "src",
-    "lib",
-    "script",
-    "foundry.toml",
-    "foundry.lock",
-    "remappings.txt",
-    "package.json",
-    "deployments/networks.json",
-    path.relative(root, manifestPath),
-    "../../package.json",
-    "../../bun.lock",
-    "../../bunfig.toml",
-    "../../env.schema",
-    "../../scripts/dev/node-cli.js",
-    "../../scripts/contracts/check-foundry-version.mjs",
-  ];
-  const env = voucherGitEnvironment();
-  if (
-    execFileSync("git", ["status", "--porcelain=v1", "--untracked-files=all", "--", ...sourcePaths], {
-      cwd: root,
-      env,
-      encoding: "utf8",
-    }).trim()
-  )
-    throw new Error("Voucher plans require committed, unchanged deployment inputs");
-}
+export {
+  releaseJsonPath as voucherJsonPath,
+  assertReleaseSourcesCommitted as assertVoucherSourcesCommitted,
+} from "../utils/release-inputs";
+import { releaseJsonPath as voucherJsonPath, releaseRevision } from "../utils/release-inputs";
+
 async function main() {
   const { values, positionals } = parseArgs({
     args: process.argv.slice(2),
@@ -87,6 +48,7 @@ async function main() {
     path.join(CONTRACTS_ROOT, "config"),
     values.manifest ?? "config/voucher-pilot-release.json",
   );
+  const commit = values.preflight ? null : releaseRevision(CONTRACTS_ROOT, manifestPath);
   const inspected = inspectVoucherManifest(JSON.parse(readFileSync(manifestPath, "utf8")));
   execFileSync("bun", ["run", "check:foundry-version"], { cwd: CONTRACTS_ROOT, stdio: "pipe" });
   execFileSync("bun", ["run", "build", "--mode", "target", "--", ...VOUCHER_CONTRACTS.map((c) => c.source)], {
@@ -117,12 +79,8 @@ async function main() {
     return;
   }
   // A plan names an exact source revision. Unrelated work outside this scope does not block it.
-  assertVoucherSourcesCommitted(CONTRACTS_ROOT, manifestPath);
-  const commit = execFileSync("git", ["rev-parse", "HEAD"], {
-    cwd: CONTRACTS_ROOT,
-    env: voucherGitEnvironment(),
-    encoding: "utf8",
-  }).trim();
+  if (commit === null || releaseRevision(CONTRACTS_ROOT, manifestPath) !== commit)
+    throw new Error("Release revision changed during compilation");
   const directory = path.join(CONTRACTS_ROOT, ".generated/voucher-release");
   if (values["plan-only"]) {
     const plan = buildVoucherPlan(inspected.manifest, artifacts, commit);
