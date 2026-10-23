@@ -169,9 +169,8 @@ them and reran nothing. That lane is preparing a controlled live pilot for 24 Oc
 no live transaction.
 
 - **Same address.** A member's address must match on Arbitrum, Gnosis and Celo. The legacy
-  validator that would preserve it is unsafe to deploy, because its WebAuthn dependency has a
-  path that skips the assertion binding, and no safe address-preserving bootstrap is selected. The
-  intended member has no account code on Gnosis or Celo.
+  validator that would preserve it can't be deployed safely, and no safe address-preserving
+  bootstrap is selected. The intended member has no account code on Gnosis or Celo.
 - **Signing and fees.** Chain 100 is excluded from the app's chain and Pimlico configuration.
   Hosted bundler or paymaster acceptance, a funded native route, actual member possession,
   signing and recovery, and the helper's provenance are unproven.
