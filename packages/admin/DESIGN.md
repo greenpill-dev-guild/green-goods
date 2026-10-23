@@ -101,20 +101,21 @@ CSS Grid with named areas:
 
 ## Workspace Tinting
 
-The canvas is the same warm linen as the installed app, `#FAF8F5` (`--m3-surface-container-low` in light, the warm dark floor `--m3-surface` in dark), and never changes color per workspace. Cards are white in light and sit ten points of lightness above the canvas in dark, with an 8% ring, so a card never blends into the ground (the dark ladder is the shared Earth ramp in `theme.css`, DL-097). Each workspace's tonal palette (defined in `admin-m3-tokens.css`) appears in exactly three places:
+The canvas is the same warm linen as the installed app, `#FAF8F5` (`--m3-surface-container-low` in light, the warm dark floor `--m3-surface` in dark), and never changes color per workspace. Cards are white in light and sit ten points of lightness above the canvas in dark, with an 8% ring, so a card never blends into the ground (the dark ladder is the shared Earth ramp in `theme.css`, DL-097). Each workspace's tonal palette (defined in `admin-m3-tokens.css`) appears in exactly four places:
 
-1. **Active tab**: the `AdminTabRail` underline and active label (the count chip flips to the tone container pair).
+1. **Active tab**: the `AdminTabRail` underline and active label.
 2. **Active nav pill**: the NavigationBar active item, via `--tone-primary-container` / `--tone-on-primary-container`.
 3. **At most one filled header action**: the single `--tone-action` filled button per route. A review surface such as the Hub fills none: its whole action set renders outlined, and the declared primary still sorts rightmost and fills the FAB (DL-043).
+4. **Count badges**: the shared `CountBadge` on every `AdminTabRail` tab that counts, active or not, filled with `--tone-on-surface-accent` and inked with `--tone-on-action` (DL-099).
 
 One atmospheric allowance on top: a faint top-of-canvas wash from `--tone-surface-tint-color` (5% light / 10% dark) fading to transparent by 320px. Everything else on the canvas stays neutral ink and stone.
 
 Color roles:
 
 - `--tone-action` is for filled action backgrounds.
-- `--tone-on-action` is the text/icon color on filled action backgrounds.
-- `--tone-primary-container` / `--tone-on-primary-container` are the active-selection container pair (nav pill, active tab count chips).
-- `--tone-on-surface-accent` is for colored text/icons on solid surfaces.
+- `--tone-on-action` is the text/icon color on filled action backgrounds and the count badge's ink.
+- `--tone-primary-container` / `--tone-on-primary-container` are the active-selection container pair (the nav pill).
+- `--tone-on-surface-accent` is for colored text/icons on solid surfaces, and fills the count badge (DL-099): it equals the action fill in every tone but Community, where the action fill (orange-700) carries white numerals at only 4.0:1 and the accent (orange-800) at 4.9:1.
 - `--tone-focus-ring` is the cockpit's value of the one focus role; it resolves to action tone in light mode and on-surface accent in dark mode, and the shared controls draw it as one solid 2px ring (DL-098). The installed app sets the same role to its green.
 - `--tone-surface-tint-color` feeds only the canvas wash.
 - `--m3-outline` is the control-grade boundary for fields, chips, and outlined buttons; the shared fields, chips and secondary buttons draw it through `--gg-control-outline` (DL-098).
@@ -138,7 +139,7 @@ Wrappers (25): AdminButton, AdminCard, AdminCheckbox, AdminChoiceGroup, AdminCon
 - `AdminSelectableCard` is for richer exclusive or multi-select choices where the option needs a title, description, icon, or metadata.
 - `AdminListRow` is for a list row that opens its record: the whole row is the button, its height follows its content, and the open record is marked current. Actions stay `AdminButton`; choices stay `AdminSelectableCard`.
 - `AdminChoiceGroup` is for compact single-select preferences and context switches inside dense panels.
-- `AdminTabRail` is the exclusive mode/tab control for route-local views. Anatomy: underline tabs on a hairline stone rule, with a 2px accent underline under the active tab and neutral count chips that flip to the tone container pair when active.
+- `AdminTabRail` is the exclusive mode/tab control for route-local views. Anatomy: underline tabs on a hairline stone rule, with a 2px accent underline under the active tab, and the shared `CountBadge` on every tab that counts (DL-099).
 - `AdminFilterChip` is the compact filter grammar for toggles inside toolbars. A selected chip shows its fill and `aria-pressed`, never a check mark, so selecting it never changes its width (DL-065).
 - `AdminInputChip` holds something the steward chose and can take back out, such as a person named as a confirmer: a 32px outlined chip with an optional avatar and a remove button.
 - Avoid new direct shared `Card` usage in admin route work unless the route is intentionally consuming an existing shared, non-admin surface.
@@ -174,7 +175,7 @@ This is the admin's application of the root [Interface Principles](../../DESIGN.
 
 - **Single elevation ladder**: `--m3-elevation-0/1/2` plus `--admin-chrome-shadow` for floating nav/FAB chrome; nothing else casts shadow.
 - **Radius set**: 4/8/12/16/9999px only; no 20/24/28px shapes anywhere in admin.
-- **Four-use tone budget**: workspace tone appears only in the active tab, the active nav pill, at most one filled header action (none on a review surface, DL-043), and the nav-shell FAB fill (plus the faint canvas wash).
+- **Five-use tone budget**: workspace tone appears only in the active tab, the active nav pill, at most one filled header action (none on a review surface, DL-043), the nav-shell FAB fill and the tab rail's count badges (DL-099), plus the faint canvas wash.
 - **Hover rule**: hovers are an elevation step-up or the neutral ink layer `rgb(var(--m3-on-surface) / 0.08)`; never translate/scale lifts or hue shifts.
 - **AdminButton only**: pill-shaped, Title Case action labels in en (DL-012; es/pt keep native casing); admin views never render the shared `Button` (`gg-button`).
 - **Shared pieces ride the shared family (DL-031)**: the shared components the cockpit renders (FileUploadField, DatePicker, ConfidenceSelector, AudioRecorder, ImagePreviewDialog, toast actions, AssetSelector, AddressDisplay, Alert) keep their shared `Button` / `IconButton` / `Chip` / control anatomy; `index.css` sets the family's `--gg-*` tokens (pills, one 14px / 500 label, lg and md on 40, sm on 32, compact on 28, a 44px finger box) and `surface="admin"` puts a shared field on the responsive field tier and the switch on the M3 52 × 32 track. Never restyle a shared piece from admin; move the token.
