@@ -11,11 +11,22 @@
 **Companion documents**: [`brief.md`](./brief.md) · [`spec.md`](./spec.md) ·
 [`tensions.md`](./tensions.md) · [`resources.md`](./resources.md) · [`eval.md`](./eval.md)
 
-**Current authorized continuation, 22 October:** resolve contract source-size and Admin story
-blockers, then refresh member-signing and issuer-readiness proof. Preserve the accepted voucher
-safeguards, concurrent work and required signing. Keep validated commits local. The
-[current blocker/readiness record](handoffs/codex-local-blockers-and-readiness.md) owns this
-continuation; no live gate or unrelated lane is cleared.
+**Current authorized continuation, 22 October:** review the Gnosis account/provider path and
+continue member-signing proof, preserving the accepted address, voucher safeguards, concurrent
+work and required signing. The [account/provider record](handoffs/codex-gnosis-account-provider-proof.md)
+owns this bounded continuation. Eleven fictional Gnosis cases trace actual root-validator
+dispatch, legacy-module rejection, signature binding, replay and repair; 45 Shared boundary tests
+pass. This does not establish actual member possession, hosted provider acceptance or sponsorship.
+Keep validated commits local and all live/manual gates open.
+
+- [x] Distinguish node RPC, exact account/EntryPoint bundler support and sponsorship.
+- [x] Trace patched-root signing at the original fictional address after legacy uninstall.
+- [ ] Resolve the same-address bootstrap/migration and exact hosted provider prerequisites.
+- [ ] Prove actual member possession, browser signing, sponsorship and recovery.
+
+The preceding source-size/Admin story blockers were repaired in signed local commits
+`6168fca1d`, `38d93d03a` and `c40697f6e`; the
+[blocker/readiness record](handoffs/codex-local-blockers-and-readiness.md) retains their exact scope.
 
 **Earlier authorized slice, 22 October: local voucher pilot.** Implement the connected individual
 request → usable voucher reward → optional single-pool exchange → existing service-redemption

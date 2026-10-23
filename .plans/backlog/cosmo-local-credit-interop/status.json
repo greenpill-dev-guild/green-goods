@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-08-25T06:09:38.829Z",
-    "updated_at": "2026-10-22T23:36:02.249572+00:00"
+    "updated_at": "2026-10-23T00:06:44.499274Z"
   },
   "links": {
     "brief": "brief.md",
@@ -40,7 +40,9 @@
     "local_voucher_pilot": "handoffs/codex-local-voucher-pilot.md",
     "local_voucher_pilot_validation": "handoffs/codex-local-voucher-pilot-validation.json",
     "local_blocker_readiness_handoff": "handoffs/codex-local-blockers-and-readiness.md",
-    "local_blocker_validation": "handoffs/codex-blocker-repair-validation.json"
+    "local_blocker_validation": "handoffs/codex-blocker-repair-validation.json",
+    "gnosis_account_provider_proof": "handoffs/codex-gnosis-account-provider-proof.md",
+    "gnosis_account_provider_evidence": "artifacts/member-gnosis-account-provider-proof-2026-10-22.json"
   },
   "linear": {
     "parentIssue": "RESR-73",
@@ -88,6 +90,7 @@
     "depends_on_features": ["commitment-pooling", "community-interface"]
   },
   "notes": [
+    "22 October local / 23 October UTC: eleven fictional Gnosis root-signing cases and 45 Shared boundary tests pass. Call traces distinguish active-root dispatch from explicit legacy selection and prove signature binding, replay rejection and repair at the original address. Signed local proof checkpoint: b569e613e. Fresh Alchemy block 48,892,415 still has no selected legacy validator/account; both factory simulations revert. Published EntryPoint support does not certify Kernel 0.3.1, hosted acceptance or sponsorship. No provider selected or production config changed. Keep overall backlog and every lane, manual, member, helper, issuer and live gate unchanged; see the account/provider handoff.",
     "22 October pilot local implementation is committed in 92e861f11, 8b1a32a4c, 731fe8945 and 66a3844be, all signatures G. Real pinned CLC composition 16/16, earned 8/8, Shared 55/55 and Client 48/48 focused pass. Full critical runtime suites and contracts verifier pass; the selected origin/develop checkpoint remains failed for unchanged 387/389-line service modules and compound story checks lack three unrelated concurrent Admin stories. Pilot-delta structure and standalone story quality/build/render pass. No guard/baseline waiver. Same-member DEV ledger only; actual member/helper/provider/sponsorship/recovery and COM-46/private issuer/live gates remain open. All lane statuses, owners, manual blockers and overall backlog are preserved. Exact working-tree/commit attribution and proof limits are in the pilot validation record.",
     "22 October: user explicitly dispatched local voucher pilot implementation in the existing feature/cosmo-local-contracts checkout, with signed local commits and no live authority. Voucher-led individual Request rewards, optional independently tracked G$, direct redemption and one shared Gnosis pool voucher-to-voucher exchange are selected. Existing source/quote interfaces and escrow are reused; local connected proof/member state are missing. Focused gap map is handoffs/codex-local-voucher-pilot.md. Preserve unrelated Auth/public-site/Shared manifest/Portuguese edits, same member address and all manual/live/issuer/release blockers. No general multi-currency/fiat, mixed checkout or G$-to-voucher work is dispatched.",
     "22 October UTC: user dispatched member-signing and issuer-readiness proof and requests local signed commits, superseding the prior uncommitted-only preference. Fresh Gnosis100 block48879904 has no selected WebAuthn validator; both factory simulation paths revert. Exact fictional initializer derives the same address on Arbitrum/Gnosis/Celo; control deployments simulate successfully on Arbitrum/Celo. This proves no actual member control/signing/sponsorship/recovery. Six focused files pass42tests; selected routine QA passes4/4 fresh with no mandatory critical override for test-only additions. COM-46 remains Todo; real terms/capacity/identity/approval references unavailable for each issuer. Signing/keyring policy retained for user terminal; previous safeguards source hashes unchanged. Contracts in_progress, overall backlog and every unrelated/manual/live/release blocker preserved. See handoffs/codex-member-issuer-readiness.md. User confirmed no approved issuer evidence yet; record the gaps.",
@@ -452,6 +455,14 @@
       "status": "local_branch_gates_recorded",
       "branch": "feature/cosmo-local-contracts",
       "note": "User-authorized source-size and Admin story blockers repaired. Internal extraction preserves full ABI/method identifiers,24-entry recursive layouts and existing namespaces; no new deployed library link or authority. Source341/342lines; production24202/24000bytes. Selector13/13fresh, protected storage/size pass;57pinned Gnosis cases and45member-boundary tests pass. Admin312/312stories with labeled Brave Storybook proof; pre-existing untracked implementation dependencies remain excluded. COM-46 now In Progress but no approval evidence; fresh Gnosis validator remains absent. Preserve overall backlog, all lane owners/status/manual blockers and all member/helper/issuer/live/release gates. Signed local source attribution:6168fca1d contracts,38d93d03a stories, both verifiedG; no push/deploy/tracker write."
+    },
+    {
+      "timestamp": "2026-10-23T00:06:44.499274Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "account_provider_proof_recorded_with_open_gates",
+      "branch": "feature/cosmo-local-contracts",
+      "note": "22 October local / 23 October UTC: eleven fictional Gnosis root-signing cases and 45 Shared boundary tests pass. Call traces distinguish active-root dispatch from explicit legacy selection and prove signature binding, replay rejection and repair at the original address. Signed local proof checkpoint: b569e613e. Fresh Alchemy block 48,892,415 still has no selected legacy validator/account; both factory simulations revert. Published EntryPoint support does not certify Kernel 0.3.1, hosted acceptance or sponsorship. No provider selected or production config changed. Keep overall backlog and every lane, manual, member, helper, issuer and live gate unchanged; see the account/provider handoff."
     }
   ]
 }

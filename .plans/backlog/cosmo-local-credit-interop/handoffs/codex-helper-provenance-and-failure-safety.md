@@ -5,6 +5,13 @@ historical fixture address stays `0x9546b80b2faf5d5a9905c752d26b60296d6bc305` on
 The helper's exact source, reproducible build and security provenance remain unresolved.
 These observations authorize no production migration or live deployment.
 
+**Later clarification, 22 October local / 23 October UTC:** the
+[root-signing continuation](codex-gnosis-account-provider-proof.md) traces validator dispatch.
+The SDK's old-address nonce is root mode: Kernel uses the active patched root even after legacy
+uninstall. The earlier later-failure case therefore proves state preservation, not continued
+legacy-validator authority. Explicit module-mode legacy selection now rejects in the bounded
+Gnosis proof. The historical matrix and helper-provenance limits remain unchanged.
+
 This bounded continuation follows signed checkpoint `c10e2d2f7`. The user authorized local
 focused proof and signed commits in the existing checkout, with signing required and no worktree,
 push, broadcast, production auth/provider/dependency/security change or external tracker write.

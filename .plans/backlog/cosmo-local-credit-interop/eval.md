@@ -3,7 +3,16 @@
 **Reconciled:** 2026-10-22 UTC. These criteria apply to separately accepted implementation slices.
 No check below is certified by planning, a Linear state or the completed foundation project.
 
-**Current blocker/readiness proof, 22 October:** require the source-structure gate against
+**Current account/provider proof, 22 October:** require exact root/module nonce discrimination
+and traces identifying the actual validator, successful same-address patched-root operation,
+explicit removed-legacy rejection, AA24 signature binding, AA25 replay rejection and repaired
+signature retry without consuming a rejected nonce. Keep node RPC, published provider support,
+configured hosted bundler/paymaster acceptance, sponsorship and actual member ceremony separate.
+The [current account/provider record](handoffs/codex-gnosis-account-provider-proof.md) records eleven
+passing fictional Gnosis cases and all still-open live prerequisites. No production profile or
+migration is approved by these tests.
+
+**Preceding blocker/readiness proof, 22 October:** require the source-structure gate against
 refreshed origin/develop, complete compiled ABI equality, unchanged recursive linear/namespaced
 storage, production sizes and the complete selected contract override after internal extraction.
 Require all three actual Admin components to have truthful stories, story quality/typechecking,
