@@ -202,7 +202,76 @@ Agent/model: Codex / exact model unknown | Coverage: this continuation only
 
 Human corrections: 0 observed in this segment; attention: unknown.
 
-Exact selector argv (the Bun shim is first on PATH as in the commands above):
+## Local consolidation checkpoint, 22 October Pacific
+
+Four independent groups are committed locally with verified `G` signatures:
+
+- `e3a964dde499463508d7e4942aabf8246e97040f`: native batch encoding proof and its limits.
+- `5103d1e82a0e0a6dc1d8171cc3156303c44efdc9`: preserved Cosmo planning/review provenance and current handoff index.
+- `795714f8099857246137cedfa7d8104623ea7a5a`: historical local signing-setup source and disposable fixture proof.
+- `914ba20187bdd558c83abc0943425d81ea4570ae`: contributor attribution and reconciled release context.
+
+The [consolidation record](../artifacts/local-consolidation-validation-2026-10-22.json) owns
+commands, source hashes, selector reasons and retained failures. Four offline encoding checks,
+13 signing-tool fixture checks and six Shared boundary files with 45 tests pass. The offline
+proof also passes at `e3a964dde` with clean tracked source paths; a path-scoped diff confirms
+those inputs are unchanged through `914ba2018`. This is narrow source attribution, not a clean
+whole-checkout receipt. All 34 hubs validate; 103 local file-link checks pass. Selected group
+hygiene passes 2/2, 1/1, 2/2 and 1/1 fresh, without receipt reuse. Plan Hub JavaScript is excluded
+by ordinary hygiene; explicit included-path formatting and strict lint provide its source checks.
+
+Direct strict lint found CLI output, control-regex and redundant-escape warnings in the historical
+signing setup. Standard output/error, equivalent explicit NUL rejection and import ordering
+resolve them; its final 13 fixture checks pass. These source edits do not install, unlock or
+roll back the real setup, access a protected key, alter signing settings or change permissions.
+The existing agent signs through scoped approval. The reviewed temporary hook copy retains the
+identity and formatter checks, disables automatic stash/hiding, and leaves persistent hooks intact.
+
+**Public Docs proof remains blocked.** Its selected authority check reports 66 passing and 15
+failing tests because this checkout cannot resolve the declared `@babel/parser` 8.0.4 dependency.
+The dependent Docs build is unrun. No dependency was installed or upgraded. Three public-page
+edits remain uncommitted. The independent release-context snapshot matches the original backup
+bytes and does not replace the later implementation/publication record. The post-commit push
+plan selects format, lint and Docs authority; execution remains blocked by that same known
+dependency. It was not retried without a capability change. Nothing was pushed or published.
+
+**Active app work remains separate.** Ninety dirty startup, public-site, auth/cache and baseline
+paths belong to the active performance owner, which is preparing its own isolated review.
+The current checkout's full critical plan retains all 22 selected checks, including Shared,
+Client, Admin and Agent critical tests plus authenticated browser obligations. They are unrun
+in this chat; that other checkout's progress is not a receipt for this one. The three Admin
+implementation components remain untracked, so the earlier story commit is still not a standalone
+reproducible app checkpoint. New rendered proof here is **none**; no UI runtime source was committed.
+
+All **207** remaining dirty paths match their initial SHA-256: 90 active app/baseline paths,
+109 research/pitch artifacts, three unfinished PWA planning files, three public Docs files,
+one independent Portuguese edit and one pre-existing harness plugin setting. Exact private
+path inventory and expanded commands remain under `/private/tmp/green-goods-consolidation-20261022/`.
+The baseline edits shrink debt entries; their ownership stays with the runtime change. The Shared
+manifest adds one public leaf without a dependency change; seam fingerprints and the local
+code-simplifier setting were inspected and preserved. No ceiling or safeguard was weakened.
+
+A cross-chat ownership message was rejected because explicit authorization to message that chat
+was absent. It was not retried or routed around. This leaves ownership coordination pending;
+the prior general cybersecurity flag also remains recorded above. No private chat identifier or
+transcript is included in repository evidence. Helper provenance, exact supported hosted account
+profile, actual member possession/ceremony/sponsorship/recovery, COM-46 evidence and every live
+gate remain open. All existing lane objects and overall backlog state remain unchanged.
+
+Task record: cosmo-local-credit-interop | Type: investigation/consolidation | Outcome: partial
+Agent/model: Codex / exact model unknown | Coverage: native candidate review and local consolidation continuation
+
+| Phase | Start → end (UTC) | Result / evidence or blocker |
+|---|---|---|
+| investigate | unknown → 2026-10-23 00:54:02 | First clock 00:49:06; 222-path inventory, source/build and provider review |
+| implement | unknown → unknown | Offline encoder proof; bounded CLI lint repairs; historical records reconciled |
+| verify/review | unknown → 2026-10-23 01:09:56 | Focused proof, final record hygiene and 34-hub validation pass; public Docs dependency and active ownership remain open |
+| publish locally | unknown → 2026-10-23 01:05:03 | Four signed source groups verified; evidence-only follow-up follows |
+| wait | unknown → ongoing | Specific-chat messaging authorization and declared Docs dependency remain unresolved |
+
+Human corrections: 0 observed in this segment; attention: unknown.
+
+Earlier root-signing selector argv (the Bun shim is first on PATH as in the commands above):
 
 ```sh
 bun --no-env-file run check --plan -- --intent qa --changed .plans/backlog/cosmo-local-credit-interop/proofs/member-migration/root-signing-proof.mjs,.plans/backlog/cosmo-local-credit-interop/artifacts/member-gnosis-account-provider-proof-2026-10-22.json,.plans/backlog/cosmo-local-credit-interop/handoffs/codex-gnosis-account-provider-proof.md,.plans/backlog/cosmo-local-credit-interop/handoffs/codex-helper-provenance-and-failure-safety.md,.plans/backlog/cosmo-local-credit-interop/plan.todo.md,.plans/backlog/cosmo-local-credit-interop/eval.md,.plans/backlog/cosmo-local-credit-interop/status.json --json

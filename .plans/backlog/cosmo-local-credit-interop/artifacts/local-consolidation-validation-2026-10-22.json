@@ -1,0 +1,242 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-10-23T01:08:15.776269+00:00",
+  "status": "partial_independent_local_groups_signed_active_and_dependency_groups_preserved",
+  "branch": "feature/cosmo-local-contracts",
+  "startingHead": "f10cea754fcd658c8cf9b89819fe2bb28fa7c74f",
+  "comparisonBase": "d7bbbf00d6af63f39a1aea6fe84fb6f2bbcc72be",
+  "sourceCheckpoint": "914ba20187bdd558c83abc0943425d81ea4570ae",
+  "commits": [
+    {
+      "sha": "e3a964dde499463508d7e4942aabf8246e97040f",
+      "signature": "G",
+      "subject": "test(contracts): characterize native Kernel batch encoding"
+    },
+    {
+      "sha": "5103d1e82a0e0a6dc1d8171cc3156303c44efdc9",
+      "signature": "G",
+      "subject": "docs(contracts): preserve Cosmo planning and review provenance"
+    },
+    {
+      "sha": "795714f8099857246137cedfa7d8104623ea7a5a",
+      "signature": "G",
+      "subject": "chore(contracts): record bounded local signing setup"
+    },
+    {
+      "sha": "914ba20187bdd558c83abc0943425d81ea4570ae",
+      "signature": "G",
+      "subject": "docs(shared): preserve reconciled contributor and release context"
+    }
+  ],
+  "commands": {
+    "nativeProof": "PATH=/private/tmp/green-goods-local-integration-20261021/bin:$PATH bun --no-env-file run --cwd /private/tmp/green-goods-consolidation-20261022/wrapper test",
+    "signingFixtures": "PATH=/private/tmp/green-goods-local-integration-20261021/bin:$PATH bun --no-env-file run --cwd /private/tmp/green-goods-signing-setup-20261022/verification test",
+    "memberBoundary": "PATH=/private/tmp/green-goods-local-integration-20261021/bin:$PATH bun --no-env-file run --cwd packages/shared test -- src/__tests__/settlement-aa-profile.test.ts src/__tests__/config/pimlico.test.ts src/__tests__/workflows/auth-passkey-adapters.test.ts src/__tests__/workflows/authPasskeyOwner.test.ts src/__tests__/modules/agent-reporting/owner-validator.test.ts src/__tests__/service-access-voucher-recovery.test.ts",
+    "hub": "node scripts/harness/plan-hub.mjs validate --feature cosmo-local-credit-interop"
+  },
+  "focusedProof": {
+    "nativeEncodingChecksPassed": 4,
+    "nativeTestedHead": "e3a964dde499463508d7e4942aabf8246e97040f",
+    "nativeTrackedValidatedPaths": [
+      ".plans/backlog/cosmo-local-credit-interop/proofs/member-migration/native-batch-encoding-proof.mjs",
+      ".plans/backlog/cosmo-local-credit-interop/artifacts/member-readiness-2026-10-22.json",
+      "bun.lock"
+    ],
+    "nativeTrackedSourceStatus": "",
+    "nativeSourceUnchangedThroughSourceCheckpoint": true,
+    "signingDisposableFixtureChecksPassed": 13,
+    "memberBoundaryFilesPassed": 6,
+    "memberBoundaryTestsPassed": 45,
+    "memberProofClass": "working-tree tests, not actual-member or hosted-provider evidence",
+    "hubCountPassed": 34,
+    "localFileLinkChecksPassed": 103,
+    "newRenderedEvidence": "none; no UI runtime change committed in this continuation"
+  },
+  "selectedQA": {
+    "native": "2/2 fresh; one JSON formatted, lint processes zero Plan Hub files",
+    "historicalProvenance": "1/1 fresh; zero files processed; source identity and 81 local links checked separately",
+    "signing": "2/2 fresh; zero Plan Hub files processed; 13 fixtures and two explicit included-path Biome checks plus strict Oxlint provide meaningful source proof",
+    "independentContext": "1/1 fresh; zero files processed; 22 local links and exact historical backup suffix checked separately",
+    "receiptReuse": false,
+    "evidenceFollowup": "1/1 fresh; one JSON file formatted; final 34-hub validation and five current handoff local-file links pass"
+  },
+  "publicDocsFailure": {
+    "check": "docs-authority",
+    "status": "failed",
+    "testsPassed": 66,
+    "testsFailed": 15,
+    "cause": "ERR_MODULE_NOT_FOUND: declared @babel/parser 8.0.4 cannot resolve from docs/scripts/docs-audit.mjs",
+    "dependentCheck": "docs-build",
+    "dependentStatus": "not run",
+    "dependencyInstallOrUpgradePerformed": false,
+    "paths": [
+      "docs/docs/community/steward-guide/creating-a-garden.mdx",
+      "docs/docs/community/why-we-build.mdx",
+      "docs/docs/reference/credits.md"
+    ]
+  },
+  "postCommitPushGate": {
+    "status": "blocked_not_executed",
+    "selectedAtHead": "914ba20187bdd558c83abc0943425d81ea4570ae",
+    "checks": [
+      {
+        "id": "format",
+        "selectedBy": ["automatic-hygiene"]
+      },
+      {
+        "id": "lint",
+        "selectedBy": ["automatic-hygiene"]
+      },
+      {
+        "id": "docs-authority",
+        "selectedBy": ["conditional:docs-authority"]
+      }
+    ],
+    "reason": "Known unresolved Docs authority dependency prevents a complete pass; unchanged unavailable check not retried; no publication requested or performed"
+  },
+  "deferredAppCriticalPlan": {
+    "risk": "critical",
+    "checks": [
+      {
+        "id": "format",
+        "selectedBy": ["automatic-hygiene"]
+      },
+      {
+        "id": "lint",
+        "selectedBy": ["automatic-hygiene"]
+      },
+      {
+        "id": "validation-system-test",
+        "selectedBy": ["conditional:validation-system-test"]
+      },
+      {
+        "id": "test-quality",
+        "selectedBy": ["conditional:test-quality"]
+      },
+      {
+        "id": "shared-typecheck",
+        "selectedBy": ["surface:shared", "critical-override"]
+      },
+      {
+        "id": "shared-test-typecheck",
+        "selectedBy": ["validation-only:shared:types"]
+      },
+      {
+        "id": "shared-test",
+        "selectedBy": ["surface:shared", "validation-only:shared:tests", "critical-override"]
+      },
+      {
+        "id": "client-test-typecheck",
+        "selectedBy": ["validation-only:client:types"]
+      },
+      {
+        "id": "client-test",
+        "selectedBy": ["surface:client", "validation-only:client:tests", "critical-override"]
+      },
+      {
+        "id": "admin-test-typecheck",
+        "selectedBy": ["validation-only:admin:types"]
+      },
+      {
+        "id": "admin-test",
+        "selectedBy": ["surface:admin", "validation-only:admin:tests", "critical-override"]
+      },
+      {
+        "id": "agent-typecheck",
+        "selectedBy": ["surface:agent"]
+      },
+      {
+        "id": "agent-test",
+        "selectedBy": ["surface:agent", "critical-override"]
+      },
+      {
+        "id": "staged-modules",
+        "selectedBy": ["client:staged-boundary"]
+      },
+      {
+        "id": "source-structure",
+        "selectedBy": ["conditional:source-structure"]
+      },
+      {
+        "id": "design-guardrails",
+        "selectedBy": ["conditional:design-guardrails"]
+      },
+      {
+        "id": "agent-guidance",
+        "selectedBy": ["conditional:agent-guidance"]
+      },
+      {
+        "id": "browser-proof",
+        "selectedBy": ["conditional:browser-proof"]
+      },
+      {
+        "id": "story-quality",
+        "selectedBy": ["validation-only:client:stories"]
+      },
+      {
+        "id": "em-dashes",
+        "selectedBy": ["conditional:em-dashes"]
+      },
+      {
+        "id": "browser-passkey",
+        "selectedBy": ["conditional:browser-passkey"]
+      },
+      {
+        "id": "browser-pwa-preview",
+        "selectedBy": ["conditional:browser-pwa-preview"]
+      }
+    ],
+    "status": "not executed in this chat; active owner retains these 90 files and full critical/auth/browser obligations",
+    "criticalOverridesRetained": true
+  },
+  "remainingDirty": {
+    "count": 207,
+    "groups": {
+      "research and pitch artifacts": 109,
+      "active performance/startup/auth owner": 90,
+      "harness plugin setting": 1,
+      "PWA planning": 3,
+      "public documentation": 3,
+      "independent Portuguese copy": 1
+    },
+    "allRemainingPathsEqualInitialSha256": true,
+    "exactPathInventory": "/private/tmp/green-goods-consolidation-20261022/remaining-files.json"
+  },
+  "sensitiveReview": {
+    "sharedManifest": "One additive query-persistence-clear public leaf; no dependency version change; preserved with active owner",
+    "debtBaselines": "Source hook and design-token entries shrink; not accepted independently of owning runtime changes; no ceiling increased",
+    "seamRegistry": "Four evidence fingerprints and auth review date change; current certification left with active owner",
+    "harnessSetting": "Pre-existing code-simplifier plugin enablement only; left untouched; no permission or signing change",
+    "signingSetup": "Historical source reviewed/tested; only CLI output, equivalent regex checks and import order adjusted; no install/unlock/rollback or protected-key access"
+  },
+  "publicSourceSha256": {
+    ".plans/backlog/cosmo-local-credit-interop/proofs/member-migration/native-batch-encoding-proof.mjs": "aac2fa0ec813296ef6abc63143fb9558a6f5be0831282ec1d194befb26960ffd",
+    ".plans/backlog/cosmo-local-credit-interop/handoffs/local-signing-setup/setup.mjs": "f513939b69aeb6b9b708de1c9c6bb5a83fa280b9459e7dab34e6ffd6c0644247",
+    ".plans/backlog/cosmo-local-credit-interop/handoffs/local-signing-setup/verify.mjs": "033fd369be38381686167d7e9f341a652a93cfe1be4b61c7f11f618da5cbaa88",
+    "bun.lock": "85cb5b30fabdce6225c2b44337336ca7f90a95fe99aea26d5637606c8d0094d6",
+    "packages/shared/package.json": "949369a983568bcae31abcdcc6c5e644e6eba3c2bc39f10437e86bba126be5c9"
+  },
+  "limits": [
+    "Original platform cybersecurity flag preserved; no unsafe-operation-specific explanation was supplied",
+    "Ownership coordination message rejected for lack of explicit messaging authorization; no retry or workaround",
+    "No native batch EVM execution, account or validator deployment, actual credential possession, ceremony, hosted provider acceptance, sponsorship or recovery proof",
+    "No production profile/initializer/account/provider activation, live funds, push, PR, merge, broadcast or dependency installation/upgrade",
+    "No fresh complete contract-suite or pinned-fork claim; unchanged runtime retains historical dated evidence",
+    "All hub lane objects and live issuer/member/manual/release blockers remain unchanged",
+    "Admin story implementations remain untracked under an active owner; these commits do not make the whole branch a standalone reproducible app checkpoint"
+  ],
+  "selectorCommands": {
+    "native": "PATH=/private/tmp/green-goods-local-integration-20261021/bin:$PATH bun --no-env-file run check -- --intent qa --changed .plans/backlog/cosmo-local-credit-interop/proofs/member-migration/native-batch-encoding-proof.mjs,.plans/backlog/cosmo-local-credit-interop/artifacts/member-native-batch-review-2026-10-22.json,.plans/backlog/cosmo-local-credit-interop/handoffs/codex-gnosis-account-provider-proof.md,.plans/backlog/cosmo-local-credit-interop/plan.todo.md,.plans/backlog/cosmo-local-credit-interop/eval.md",
+    "history": "PATH=/private/tmp/green-goods-local-integration-20261021/bin:$PATH bun --no-env-file run check -- --intent qa --changed .plans/backlog/cosmo-local-credit-interop/architecture-alignment.md,.plans/backlog/cosmo-local-credit-interop/commitment-upgrade-plan.md,.plans/backlog/cosmo-local-credit-interop/delivery-alignment.md,.plans/backlog/cosmo-local-credit-interop/handoffs/claude-architecture-review.md,.plans/backlog/cosmo-local-credit-interop/handoffs/claude-architecture-review-results.md,.plans/backlog/cosmo-local-credit-interop/handoffs/claude-conformance-evidence-2026-10-20.md,.plans/backlog/cosmo-local-credit-interop/handoffs/README.md,.plans/backlog/cosmo-local-credit-interop/resources.md",
+    "signing": "PATH=/private/tmp/green-goods-local-integration-20261021/bin:$PATH bun --no-env-file run check -- --intent qa --changed .plans/backlog/cosmo-local-credit-interop/handoffs/local-signing-setup/setup.mjs,.plans/backlog/cosmo-local-credit-interop/handoffs/local-signing-setup/verify.mjs,.plans/backlog/cosmo-local-credit-interop/handoffs/local-signing-setup/README.md",
+    "context": "PATH=/private/tmp/green-goods-local-integration-20261021/bin:$PATH bun --no-env-file run check -- --intent qa --changed CONTRIBUTING.md,.plans/active/commitment-pooling/handoffs/claude-docs.md,.plans/active/commitment-pooling/handoffs/release-essential-docs.md,.plans/active/commitment-pooling/handoffs/release-essential-docs-local-snapshot.md"
+  },
+  "selectorPlanForm": "Use check --plan with the same --intent/--changed arguments and --json; expanded observed plans/logs remain in the temporary evidence root.",
+  "retainedFixtureAndToolFailures": [
+    "Native encoder fixture first compared mixed-case hex strings; corrected case-insensitive byte comparison; no product RED/GREEN claim",
+    "Initial agentic:guidance script name absent; installed modern-web-guidance fallback search/retrieve succeeded",
+    "Direct strict signing-tool lint initially failed on console/control-regex/redundant-escape warnings; bounded equivalent repairs and import ordering pass final strict checks",
+    "Initial sandbox Git index write denied; scoped approval then staged exactly reviewed paths",
+    "First evidence append patch had mismatched context and made no handoff change; corrected exact-context patch applied"
+  ]
+}
