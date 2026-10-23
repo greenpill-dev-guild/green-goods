@@ -236,9 +236,11 @@ function prefetchPublicHeroOnIntent(event: SyntheticEvent) {
 
   const link = event.target instanceof Element ? event.target.closest("a[href]") : null;
   if (!(link instanceof HTMLAnchorElement) || link.origin !== window.location.origin) return;
-  const view = link.pathname.slice(1) as keyof typeof publicCuration.viewHeroImages;
-  const src =
-    link.pathname === "/" ? publicCuration.heroImagePath : publicCuration.viewHeroImages[view];
+  const hashRouting = import.meta.env.VITE_USE_HASH_ROUTER === "true";
+  if (hashRouting && !link.hash.startsWith("#/")) return;
+  const pathname = hashRouting ? new URL(link.hash.slice(1), link.origin).pathname : link.pathname;
+  const view = pathname.slice(1) as keyof typeof publicCuration.viewHeroImages;
+  const src = pathname === "/" ? publicCuration.heroImagePath : publicCuration.viewHeroImages[view];
   if (typeof src !== "string" || prefetchedHeroImages.has(src)) return;
 
   prefetchedHeroImages.add(src);

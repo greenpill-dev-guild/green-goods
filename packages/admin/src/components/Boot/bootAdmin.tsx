@@ -31,7 +31,10 @@ export interface BootDiagnostics {
   failures: BootFailure[];
 }
 
-type AdminRootComponent = ComponentType<{ connectWalletOnReady?: boolean }>;
+type AdminRootComponent = ComponentType<{
+  connectWalletOnReady?: boolean;
+  onWorkspaceReady?: () => void;
+}>;
 
 export interface AdminBootServices {
   loadRoot: (connectWalletOnReady: boolean) => Promise<{ default: AdminRootComponent }>;
@@ -122,11 +125,7 @@ function recordFailure(diagnostics: BootDiagnostics, stage: BootStage, error: un
 
 let diagnosticsInstalled = false;
 
-/**
- * Boot-level error capture, installed before anything else runs. It records
- * what went wrong so the recovery surface can show it and the PostHog/Sentry
- * handlers, which arrive later, do not have to be alive to see a boot failure.
- */
+/** Early error capture stays available while optional telemetry waits for the workspace. */
 function installBootDiagnostics(): BootDiagnostics {
   // One record per boot; the page-level listeners are installed once and
   // always write into whichever boot is current.
@@ -207,10 +206,7 @@ function renderStaticRecovery(container: HTMLElement, error: unknown): void {
   container.append(card);
 }
 
-/**
- * Start the optional services once the workspace is on screen. Sequential and
- * individually guarded: Sentry, the PostHog global handlers, then IPFS.
- */
+/** Start optional services sequentially after the workspace paints. */
 async function startOptionalServices(
   services: AdminBootServices,
   diagnostics: BootDiagnostics
@@ -266,6 +262,14 @@ export async function bootAdmin(options: BootAdminOptions = {}): Promise<BootOut
   const mounted = (): BootOutcome => ({ status: "mounted", diagnostics, unmount });
   let pending: Promise<BootOutcome> | null = null;
   let connectRequested = false;
+  let optionalServicesScheduled = false;
+  const onWorkspaceReady = () => {
+    if (disposed || optionalServicesScheduled) return;
+    optionalServicesScheduled = true;
+    afterFirstPaint(() => {
+      if (!disposed) void startOptionalServices(services, diagnostics);
+    });
+  };
 
   const loadApplication = async (): Promise<BootOutcome> => {
     root.render(<BootShell />);
@@ -289,13 +293,13 @@ export async function bootAdmin(options: BootAdminOptions = {}): Promise<BootOut
           fallback={recovery}
           onError={(error) => recordFailure(diagnostics, "render", error)}
         >
-          <RootComponent connectWalletOnReady={connectWalletOnReady} />
+          <RootComponent
+            connectWalletOnReady={connectWalletOnReady}
+            onWorkspaceReady={onWorkspaceReady}
+          />
         </BootErrorBoundary>
       </StrictMode>
     );
-    afterFirstPaint(() => {
-      if (!disposed) void startOptionalServices(services, diagnostics);
-    });
     return mounted();
   };
 

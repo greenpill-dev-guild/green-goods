@@ -139,6 +139,7 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
     // already holds.
     const client = adapters.createDirectoryClient() ?? adapters.createServerClient(chainId);
     const existing = (await client.getCredentials({ context })) as PasskeyServerCredential[];
+    assertActive();
     if (existing.length > 0) {
       throw new Error(
         "That recovery name is already registered. Try recovery or choose another name."
@@ -148,7 +149,10 @@ export function createAuthServices(adapters: PasskeyAdapters = defaultPasskeyAda
       context,
     })) as PasskeyServerRegistrationOptions;
     const rpId = options.rp?.id || adapters.getRpId();
+    assertActive();
     const created = await adapters.createWebAuthnCredential(options);
+    // Verification persists the credential on the server, before local session construction.
+    assertActive();
     const verification = (await client.verifyRegistration({
       credential: created,
       context,

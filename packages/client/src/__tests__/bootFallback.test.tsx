@@ -59,7 +59,7 @@ function runPresentationDetector({
   href,
   displayMode,
   navigator: navigatorOverrides = {},
-}: DetectOptions): { dataset: DOMStringMap; faceMedia: string } {
+}: DetectOptions): { dataset: DOMStringMap; faceMedia: string; fontPreloads: string[] } {
   const dataset: DOMStringMap = {};
   const face = { media: INSTALLED_FACE_MEDIA };
   const navigator = {
@@ -91,7 +91,10 @@ function runPresentationDetector({
     inlineScript("boot-presentation-detector")
   )(windowLike, documentLike, navigator, URL);
 
-  return { dataset, faceMedia: face.media };
+  const fontPreloads = [
+    ...documentLike.head.querySelectorAll<HTMLLinkElement>('link[rel="preload"][as="font"]'),
+  ].map((link) => link.getAttribute("href")!);
+  return { dataset, faceMedia: face.media, fontPreloads };
 }
 
 function detectBootDataset(options: DetectOptions): DOMStringMap {
@@ -245,6 +248,34 @@ function runController(
 }
 
 describe("the installed app's face", () => {
+  it("preloads Inter only for website presentation, including public routes in an installed window", () => {
+    expect(INDEX_HTML).not.toMatch(/<link[^>]+rel="preload"[^>]+inter-latin-normal/);
+    expect(runPresentationDetector({ href: "https://www.greengoods.app/" }).fontPreloads).toContain(
+      "%BASE_URL%fonts/inter-latin-normal.woff2"
+    );
+    expect(
+      runPresentationDetector({
+        href: "https://www.greengoods.app/gardens",
+        displayMode: "standalone",
+      }).fontPreloads
+    ).toContain("%BASE_URL%fonts/inter-latin-normal.woff2");
+    expect(
+      runPresentationDetector({
+        href: "https://www.greengoods.app/home",
+        displayMode: "standalone",
+      }).fontPreloads
+    ).toEqual([]);
+    expect(
+      runPresentationDetector({
+        href: "https://www.greengoods.app/home",
+        navigator: { standalone: true },
+      }).fontPreloads
+    ).toEqual([]);
+    expect(
+      runPresentationDetector({ href: "http://localhost:3001/home?presentation=pwa" }).fontPreloads
+    ).toEqual([]);
+  });
+
   it("keeps Plus Jakarta Sans off the website's critical path", () => {
     expect(FACE_LINK).toContain("fonts/pwa.css");
     // Only an installed display applies the face before the detector runs, so a

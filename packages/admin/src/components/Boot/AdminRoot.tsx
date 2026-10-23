@@ -39,8 +39,10 @@ const adminAppUrl =
  */
 export default function AdminRoot({
   connectWalletOnReady = false,
+  onWorkspaceReady,
 }: {
   connectWalletOnReady?: boolean;
+  onWorkspaceReady?: () => void;
 }) {
   return (
     <QueryPersistenceProvider client={queryClient} persistence={persistence}>
@@ -60,7 +62,7 @@ export default function AdminRoot({
           <AuthGate>
             <AdminStartupConnect requested={connectWalletOnReady}>
               <Suspense fallback={<BootShell />}>
-                <AdminWorkspace />
+                <AdminWorkspace onReady={onWorkspaceReady} />
               </Suspense>
             </AdminStartupConnect>
           </AuthGate>

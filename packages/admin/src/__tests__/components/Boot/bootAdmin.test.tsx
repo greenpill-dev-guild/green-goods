@@ -8,11 +8,13 @@
 
 import { createQueryPersistence } from "@green-goods/shared/config/query-persistence";
 import { act, fireEvent, waitFor } from "@testing-library/react";
+import { useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AdminBootServices, BootOutcome } from "@/components/Boot/bootAdmin";
 import { bootAdmin } from "@/components/Boot/bootAdmin";
 
-function Ready() {
+function Ready({ onWorkspaceReady }: { onWorkspaceReady?: () => void }) {
+  useEffect(() => onWorkspaceReady?.(), [onWorkspaceReady]);
   return <div data-testid="admin-ready">Admin is ready</div>;
 }
 
@@ -254,6 +256,54 @@ describe("bootAdmin", () => {
     expect(initSentry).toHaveBeenCalledTimes(1);
     expect(initErrorHandlers).toHaveBeenCalledTimes(1);
     expect(result.diagnostics.failures).toEqual([]);
+  });
+
+  it("waits for workspace commit before starting services and consumes StrictMode readiness once", async () => {
+    let workspaceReady!: () => void;
+    function WaitingRuntime({ onWorkspaceReady }: { onWorkspaceReady?: () => void }) {
+      workspaceReady = onWorkspaceReady!;
+      return <div>Wallet modal pending</div>;
+    }
+    const initSentry = vi.fn();
+    const initErrorHandlers = vi.fn();
+    const initIpfs = vi.fn();
+    await boot({
+      loadRoot: async () => ({ default: WaitingRuntime }),
+      initSentry,
+      initErrorHandlers,
+      initIpfs,
+    });
+    // Let the old root-level after-paint callback run, if it still exists.
+    await act(async () => new Promise((resolve) => window.setTimeout(resolve, 50)));
+    expect(initSentry).not.toHaveBeenCalled();
+    expect(initErrorHandlers).not.toHaveBeenCalled();
+    expect(initIpfs).not.toHaveBeenCalled();
+    act(() => {
+      workspaceReady();
+      workspaceReady();
+    });
+    await waitFor(() => expect(initIpfs).toHaveBeenCalledTimes(1));
+    expect(initSentry).toHaveBeenCalledTimes(1);
+    expect(initErrorHandlers).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores a late workspace notification after unmount while keeping boot diagnostics", async () => {
+    let workspaceReady!: () => void;
+    function WaitingRuntime({ onWorkspaceReady }: { onWorkspaceReady?: () => void }) {
+      workspaceReady = onWorkspaceReady!;
+      return <div>Workspace loading</div>;
+    }
+    const initSentry = vi.fn();
+    await boot({ loadRoot: async () => ({ default: WaitingRuntime }), initSentry });
+    window.dispatchEvent(new ErrorEvent("error", { message: "early boot failure" }));
+    expect(outcome?.diagnostics.failures).toContainEqual(
+      expect.objectContaining({ stage: "runtime", message: "early boot failure" })
+    );
+    act(() => outcome?.unmount());
+    outcome = null;
+    act(() => workspaceReady());
+    await act(async () => new Promise((resolve) => window.setTimeout(resolve, 50)));
+    expect(initSentry).not.toHaveBeenCalled();
   });
 
   it("still mounts when Sentry initialization throws", async () => {

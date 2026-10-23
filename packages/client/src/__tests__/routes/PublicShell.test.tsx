@@ -11,7 +11,7 @@
  * @vitest-environment happy-dom
  */
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { Link, MemoryRouter, Route, Routes, useNavigate } from "react-router-dom";
@@ -204,6 +204,36 @@ describe("PublicShell", () => {
     }
   });
 
+  it("warms the hash destination instead of the IPFS document path", () => {
+    const requested: string[] = [];
+    vi.stubEnv("VITE_USE_HASH_ROUTER", "true");
+    vi.stubGlobal(
+      "Image",
+      class {
+        set src(value: string) {
+          requested.push(value);
+        }
+      }
+    );
+    try {
+      renderShellWithRoute("/fund");
+      const link = screen.getByRole("link", { name: "Actions" });
+      link.setAttribute("href", "/ipfs/test/index.html#/actions?tab=all");
+      fireEvent.focus(link);
+      fireEvent.pointerOver(link);
+      expect(requested).toEqual(["/images/hero-actions.webp"]);
+      link.setAttribute("href", "/ipfs/test/index.html#/fund");
+      fireEvent.pointerDown(link);
+      expect(requested).toEqual(["/images/hero-actions.webp", "/images/hero-fund.webp"]);
+      link.setAttribute("href", "/ipfs/test/index.html#section");
+      fireEvent.focus(link);
+      expect(requested).toHaveLength(2);
+    } finally {
+      vi.unstubAllGlobals();
+      vi.unstubAllEnvs();
+    }
+  });
+
   it("renders SiteHeader above route outlet content", () => {
     renderShellWithRoute("/gardens");
 
@@ -337,8 +367,11 @@ describe("PublicShell", () => {
 
   it("gives chat ceremony pages the focused shell: no navigation, install CTA or editorial styling", async () => {
     const { container } = renderShellWithRoute("/agent/reporting/abcdefghijklmnop");
-
-    expect(await screen.findByTestId("ceremony-content")).toBeInTheDocument();
+    // Wait for the real lazy module, rather than racing the default DOM query timeout.
+    await act(async () => {
+      await vi.dynamicImportSettled();
+    });
+    expect(screen.getByTestId("ceremony-content")).toBeInTheDocument();
     expect(document.querySelector('header[data-variant="focused"]')).toBeInTheDocument();
     expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
     expect(screen.queryByText("Install App")).not.toBeInTheDocument();

@@ -351,6 +351,57 @@ describe("createAuthServices", () => {
   });
 
   describe("registerPasskey", () => {
+    it("does not register a ceremony after its auth invocation is cancelled", async () => {
+      harness.state.serverEnabled = true;
+      let finishCeremony!: (credential: typeof CREDENTIAL) => void;
+      harness.calls.createWebAuthnCredential.mockReturnValueOnce(
+        new Promise((resolve) => {
+          finishCeremony = resolve;
+        })
+      );
+      const operation = createActor(harness.services.registerPasskey, {
+        input: { userName: USER, chainId: CHAIN_ID },
+      });
+      operation.start();
+      await vi.waitFor(() =>
+        expect(harness.calls.createWebAuthnCredential).toHaveBeenCalledTimes(1)
+      );
+      operation.stop();
+      finishCeremony(CREDENTIAL);
+      await vi.waitFor(() => expect(harness.telemetry.registerFailed).toHaveBeenCalled());
+      expect(harness.server.verifyRegistration).not.toHaveBeenCalled();
+      expect(harness.sessionSpies.setCredential).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      false,
+      true,
+    ])("does not register a late ceremony on the server (directory=%s)", async (directoryEnabled) => {
+      harness.state.serverEnabled = true;
+      harness.state.directoryEnabled = directoryEnabled;
+      let finishCeremony!: (credential: typeof CREDENTIAL) => void;
+      harness.calls.createWebAuthnCredential.mockReturnValueOnce(
+        new Promise((resolve) => {
+          finishCeremony = resolve;
+        })
+      );
+      const pending = invoke(harness.services.registerPasskey, {
+        userName: USER,
+        chainId: CHAIN_ID,
+      });
+      const rejected = expect(pending).rejects.toMatchObject({ name: "AbortError" });
+      await vi.waitFor(() =>
+        expect(harness.calls.createWebAuthnCredential).toHaveBeenCalledTimes(1)
+      );
+      publishSignOut();
+      finishCeremony(CREDENTIAL);
+      await rejected;
+      expect(harness.server.verifyRegistration).not.toHaveBeenCalled();
+      expect(harness.directory.verifyRegistration).not.toHaveBeenCalled();
+      expect(harness.calls.buildSmartAccount).not.toHaveBeenCalled();
+      expect(harness.sessionSpies.setCredential).not.toHaveBeenCalled();
+    });
+
     it("requires a username before invoking any passkey adapter", async () => {
       await expect(
         invoke(harness.services.registerPasskey, { userName: null, chainId: CHAIN_ID })

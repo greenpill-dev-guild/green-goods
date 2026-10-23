@@ -75,7 +75,6 @@
     <meta name="theme-color" content="%PWA_THEME_COLOR_LIGHT%" data-light="%PWA_THEME_COLOR_LIGHT%" data-dark="%PWA_THEME_COLOR_DARK%" />
 
     <!-- Same variable typefaces, served locally; Latin covers English, Spanish and Portuguese. -->
-    <link rel="preload" href="%BASE_URL%fonts/inter-latin-normal.woff2" as="font" type="font/woff2" crossorigin />
     <link id="boot-pwa-face" href="%BASE_URL%fonts/pwa.css" rel="stylesheet" media="(display-mode: standalone), (display-mode: fullscreen), (display-mode: window-controls-overlay)" />
     <style id="local-fonts">
       @font-face {
@@ -323,6 +322,13 @@
           if (face) face.media = "all";
         }
         if (mode === "website") {
+          var bodyFont = document.createElement("link");
+          bodyFont.rel = "preload";
+          bodyFont.as = "font";
+          bodyFont.type = "font/woff2";
+          bodyFont.crossOrigin = "anonymous";
+          bodyFont.href = "%BASE_URL%fonts/inter-latin-normal.woff2";
+          document.head.appendChild(bodyFont);
           document.documentElement.dataset.bootHero = heroVariant;
           if (threeLineTitle) document.documentElement.dataset.bootTitle = "three-lines";
           // Discover the homepage's actual paint assets before its route modules.
