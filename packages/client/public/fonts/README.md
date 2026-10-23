@@ -13,7 +13,10 @@ Sources: [Inter](https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0
 [Fraunces](https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&display=swap),
 and [Google Fonts licenses](https://github.com/google/fonts/tree/main/ofl).
 
-The installed app retains Plus Jakarta Sans through the presentation-gated local
-`pwa.css`. Its Latin and extended-Latin files and SIL license come from the same
-v12 normal variable font vendored for admin. The worker precaches the installed
-stylesheet and font files so its face is available on an offline reload.
+The installed app retains Plus Jakarta Sans v12 through the presentation-gated
+local `pwa.css`. Its normal and italic Latin and extended-Latin files preserve
+the original 200–800 variable weight range. The SIL license is in
+`jakarta-OFL.txt`. The worker precaches the installed stylesheet and font files
+so both styles are available on an offline reload.
+
+Source: [Plus Jakarta Sans stylesheet](https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap).
