@@ -785,6 +785,9 @@
   /* Strokes - LIGHTER borders for proper depth perception in dark mode */
   --stroke-strong-950: var(--neutral-300);   /* 202 207 216 - strong borders */
   --stroke-sub-300: var(--neutral-700);      /* 43 48 59 - medium borders (lighter than card) */
+  /* Declared again so a dark scope below the root draws the dark stroke: the
+   * :root outline has already resolved to the light one when it is inherited. */
+  --gg-control-outline: var(--stroke-sub-300);
   --stroke-soft-200: var(--neutral-800);     /* 34 37 48 - soft borders (subtle elevation) */
   --stroke-white-0: var(--neutral-950);
   

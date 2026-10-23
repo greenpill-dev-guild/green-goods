@@ -62,6 +62,14 @@ const hitAreaPx = (inset: string, sizePx: number, border: number) => {
 };
 
 describe("button shape guard (DL-023, DL-026)", () => {
+  it("lets a dark scope below the root draw its own control outline (DL-098)", () => {
+    // The :root outline has already resolved to the light stroke by the time a
+    // nested dark wrapper inherits it, so the dark block declares it again.
+    expect(declaration(block('[data-theme="dark"]'), "--gg-control-outline")).toBe(
+      "var(--stroke-sub-300)"
+    );
+  });
+
   it("projects the 12px squircle step from DesignMD", () => {
     expect(generated).toMatch(/--gg-radius-squircle:\s*12px;/);
     expect(theme).toMatch(/--radius-squircle:\s*var\(--gg-radius-squircle\);/);
