@@ -197,7 +197,7 @@ export const STORY_LINKS = {
   adminChoiceGroup: "admin-primitives-adminchoicegroup--theme-choices",
   adminSelectableCard: "admin-primitives-adminselectablecard--toggle-group",
   adminCheckbox: "admin-primitives-admincheckbox--state-catalog",
-  adminSettingRow: "admin-primitives-adminsettingrow--default",
+  sharedFactRow: "shared-cards-factrow--settings",
   adminSearchToolbar: "admin-primitives-adminsearchtoolbar--state-catalog",
   adminSortSelect: "admin-primitives-adminsortselect--default",
   adminDialog: "admin-primitives-admindialog--close-button-geometry",
