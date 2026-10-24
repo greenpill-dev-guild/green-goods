@@ -198,7 +198,7 @@ All sit on the compact metric and the reduced admin shape scale, 4/8/12/16/9999 
 
 **Shared primitives** (import from `@green-goods/shared`):
 - Admin dashboard dialogs use `AdminDialog` / `AdminConfirmDialog` (centered M3, scrim, pinned `actions`; `palette` variant for the command palette, `flow` variant + `ADMIN_FLOW_DIALOG_CLASS` for full-surface action flows). `DialogShell` is for shared or non-admin (client PWA) surfaces only. Do not use it for admin dashboard dialogs. See the admin.mdx Dialog Contract.
-- Identity / data display: `AddressDisplay`, `StatusBadge`, `Alert`. (`DomainBadge` stays a client primitive: admin renders a neutral white/90 domain chip on `HubWorkCard` instead.)
+- Identity / data display: `AddressDisplay`, `PersonRow` (a person in a list, DL-112, from its own leaf `@green-goods/shared/components/Cards/PersonRow/PersonRow` once DL-112's code change lands), `StatusBadge`, `Alert`. (`DomainBadge` stays a client primitive: admin renders a neutral white/90 domain chip on `HubWorkCard` instead.)
 
 **Reference composition**: `/hub` route. Model new admin surfaces on it. `DashboardLayout` / `Sidebar` / `Header` are legacy. Do not start from them.
 

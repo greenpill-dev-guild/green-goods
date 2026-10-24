@@ -97,14 +97,14 @@ AI design tools MUST map generated output to these existing exports. Do not inve
 | Family | Components |
 |--------|-----------|
 | Dialogs | `DialogShell` (default: mobile bottom-sheet + desktop centered, solid) |
-| Cards / status | `ItemRow`, `MediaCard`, `StatusBadge`, `Alert` |
+| Cards / status | `ItemRow`, `MediaCard`, `PersonRow` (a person in a list, DL-112), `StatusBadge`, `Alert` |
 | Feedback | `EmptyState` (the state block), `Skeleton`, `Spinner`, `HydrationFallback` |
 | Input | `FileUploadField`, `DatePicker`, form components |
 | Surfaces | `Surface` at its four solid levels: ground, raised, floating and overlay |
 | Identity | `AddressDisplay`, `DomainBadge` |
 | Audio | `Audio/*` (voice capture primitives) |
 
-A person in a list is the shared person row (`PersonRow`, DL-112), imported from its own leaf, `@green-goods/shared/components/Cards/PersonRow/PersonRow`, not the package root.
+The card shapes import from their own leaves under `@green-goods/shared/components/Cards/`, not the package root: `ItemRow`, `MediaCard`, and `PersonRow` once DL-112's code change lands.
 
 **Type roles** (the `type-*` utilities in shared `theme.css`, at the app's density; root `DESIGN.md` § Typography):
 - `type-title-lg` · `type-title-md` · `type-title-sm` (24, 18, and 16px at 600) · `type-body` 16px · `type-label` 16px at 500 · `type-label-sm` 14px (field labels, secondary lines) · `type-meta` 12px · `type-meta-sm` 11px (chips, status pills) · `type-field` for field text.

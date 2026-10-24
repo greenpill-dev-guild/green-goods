@@ -89,7 +89,7 @@ AI design tools should map output to these exports. Full palette lives in the pr
 **Client / shared** (`packages/shared/src/components/`, exported from `@green-goods/shared`):
 - Shell: presentation-mode loaders, `PublicShell` (browser), `PwaRuntime` / `AppShell` (installed PWA), `SiteHeader` (browser), `AppBar` (installed PWA)
 - Dialogs: `DialogShell` (client / shared default; admin dashboard dialogs use `AdminDialog`)
-- Cards / status: `ItemRow`, `MediaCard`, `StatusBadge`, `Alert`
+- Cards / status: `ItemRow`, `MediaCard`, `PersonRow`, `StatusBadge`, `Alert`
 - Primitives: `Button`, `Skeleton`, `Spinner`, `FileUploadField`, `ListPrimitives`, `Surface`, `AddressDisplay`, `DomainBadge`
 
 Full palettes with file paths live in `prompt-contract.md` and `client-prompt-contract.md`.
