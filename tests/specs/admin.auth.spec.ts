@@ -35,9 +35,11 @@ test.describe("Admin Authentication", () => {
     // compiles the signed-in module graph, which the global warm-up (a signed-out boot) never
     // reaches. On a busy machine a boot outlasts the helper's 30s wait for `main`, so every
     // signed-in boot here waits for it on a boot-sized budget first, and each test has room for
-    // three such boots. The helper's checks and every assertion still run after it.
+    // three such loads. The helper's checks and every assertion still run after it.
     const SIGNED_IN_BOOT_MS = 60_000;
-    test.describe.configure({ timeout: 3 * SIGNED_IN_BOOT_MS });
+    // A whole signed-in load: the boot's wait for `main`, plus the navigation and the helper's checks.
+    const SIGNED_IN_LOAD_MS = SIGNED_IN_BOOT_MS + 20_000;
+    test.describe.configure({ timeout: 3 * SIGNED_IN_LOAD_MS });
 
     async function waitForSignedInBoot(page: Page, helper: AdminTestHelper) {
       await page.getByRole("main").waitFor({ state: "visible", timeout: SIGNED_IN_BOOT_MS });

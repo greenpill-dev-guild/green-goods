@@ -166,6 +166,8 @@ async function setupMockSteward(page: Page) {
 // dev server and can outlast the helper's 30s wait for `main` on a busy one. A boot-sized wait
 // for `main` runs first; the helper's checks still run after it.
 const SIGNED_IN_BOOT_MS = 60_000;
+// A whole signed-in load: the boot's wait for `main`, plus the navigation and the helper's checks.
+const SIGNED_IN_LOAD_MS = SIGNED_IN_BOOT_MS + 20_000;
 
 async function waitForSignedInBoot(page: Page, helper: AdminTestHelper) {
   await page.getByRole("main").waitFor({ state: "visible", timeout: SIGNED_IN_BOOT_MS });
@@ -209,9 +211,9 @@ test.describe("Admin Cockpit", () => {
   });
 
   test("keeps mock auth active across full reloads on other cockpit routes", async ({ page }) => {
-    // Two full signed-in boots, so room for two boot-sized waits; the default 30s cut the
-    // second one short on a busy machine.
-    test.setTimeout(2 * SIGNED_IN_BOOT_MS);
+    // Two full signed-in loads, so room for both; the default 30s cut the second one short on
+    // a busy machine.
+    test.setTimeout(2 * SIGNED_IN_LOAD_MS);
     const helper = await setupMockSteward(page);
 
     await page.goto(helper.buildMockAuthPath("/hub", "steward"));
