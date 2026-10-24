@@ -10,9 +10,10 @@
   `fix/app-vietnamese-font-subset` (#1197); step 2, `feature/app-cockpit-ground-ladder` (#1191)
   with its guides `feature/app-cockpit-ground-ladder-guides` (#1193); step 3,
   `feature/app-cockpit-control-outline` (#1195) with its guides
-  `feature/app-cockpit-control-outline-guides` (#1196), both first stacked on step 2's.
-- Status: in progress. Steps 1 to 3 merged on 23 October; every later step starts on its own
-  approved pair. Still pending: labeled authenticated Brave proof of an installed app's first
+  `feature/app-cockpit-control-outline-guides` (#1196), both first stacked on step 2's. Step 4:
+  `feature/app-cockpit-count-badge` with its guides `feature/app-cockpit-count-badge-guides`.
+- Status: in progress. Steps 1 to 3 merged on 23 October; step 4 was approved on its pair the same
+  day; every later step starts on its own approved pair. Still pending: labeled authenticated Brave proof of an installed app's first
   launch with no network (step 1) and of the installed app's status bar, with the iOS check of
   whether its solid status bar follows `theme-color` (step 2).
 - Merged on 2026-10-23 in the maintainer's order, each as a merge commit on a green CI Gate at
@@ -188,6 +189,31 @@
 - Guides: DL-098 and its lines, with token version 2.24.0, are the standards-only #1196, stacked
   on #1193 so the two decision-log rows land in order; merged 21:22:47Z as `cbdb4eeee`.
 
+## Step 4: count badge (PRD-1270)
+
+- Design gate on 2026-10-23 ([eval.md](../eval.md#design-gate-for-the-count-badge)), approved
+  the same day with all six recommendations
+  ([spec.md](../spec.md#count-badge-approved-23-october)).
+- `feature/app-cockpit-count-badge`, cut from `develop`: Shared's `CountBadge` on the existing
+  `components/Badge/Badge` export (no new export path) and `.gg-count-badge` in `theme.css`, a
+  16px capsule with 11px numerals at 600 on `--tone-on-surface-accent` with `--tone-on-action`,
+  falling back to the app's green action pair; a `ring` draws 2px of the surface behind it
+  (`--gg-count-badge-ring`, the canvas by default, white on the bottom bar). Its consumers: the
+  bottom bar (keeps 9+), the Your Work and Promises launchers, Home's filter, a garden's bell in
+  `TopNav`, `StandardTabs`, `AppSheet` tabs (`pwaSheetStyles.tabBadge` retired) and
+  `AdminTabRail`. Root `DESIGN.md` gains `typography.count` and a Counts line; the unused
+  `TabBadge` and `BADGE_TONE_CLASSES` go; the design-system specimen and the tab rail's story
+  describe the new badge.
+- Proof: a focused `CountBadge` test (nothing below one, the caps, the ring, kept attributes);
+  breaking the default cap fails it. The consumers' own tests (StandardTabs, AppSheet, TopNav,
+  sheet styles, Home, display mode, AdminTabRail) pass. The look is the approved pairs:
+  **mock-auth localhost** for the app and **Storybook** for the cockpit, no authenticated class.
+- Guides: DL-099, both surface guides, `language.md`, the prompt contract, the review checklist
+  and Rule 18's tone budget (a fifth use: the badge on every tab) are the standards-only
+  `feature/app-cockpit-count-badge-guides`, with token version 2.25.0.
+- Not in the step: Community's action fill (orange-700) carries white text at 4.0:1; raising it to
+  orange-800 takes its own pair.
+
 ## TDD Proof
 
 - Lane mode: `required` in `status.json`, because step 1's offline face changes service-worker
@@ -206,7 +232,9 @@
     with them (1.2m).
 - RED and GREEN: not applicable to the token slices themselves (pure styling).
 - Proof limit: step 1's face and role names and step 2 `not_applicable`; step 3's solid focus ring
-  is rendered-only behaviour and records `proof_limit` with its rendered evidence.
+  is rendered-only behaviour and records `proof_limit` with its rendered evidence. Step 4's badge
+  is a styling recipe with one small component: its rules have a focused test (a mutated cap
+  fails it, the restored one passes), and its look is `proof_limit` on the approved pairs.
 
 ## Validation Receipt
 

@@ -1,3 +1,4 @@
+import { CountBadge } from "@green-goods/shared/components/Badge/Badge";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
   type ComponentType,
@@ -56,8 +57,8 @@ function railOverflow(rail: HTMLElement): RailOverflow {
  * - Tab: 7px 16px padding on a 20px line, 14px text — 36px with the underline (DL-011). Active: weight 600 in the workspace
  *   accent + 2px underline in the same color — tone use 1 of 3. Inactive:
  *   weight 500 sub ink; hover darkens the text only (never a hue or bg shift).
- * - Count badge: 1px 8px pill, 12px/600. Active rides tone-primary-container /
- *   on-primary-container; inactive is the neutral chip pair.
+ * - Count badge: the shared `CountBadge` (F10), 16px with 11px/600 numerals on
+ *   the workspace tone's accent, the same on every tab.
  * - Overflow: a rail wider than its box fades the edge that clips tabs and
  *   snaps tabs as it scrolls, so it reads as scrollable (D18). A selected tab
  *   lands clear of the fades.
@@ -227,18 +228,11 @@ export function AdminTabRail({
                     role-less span is not reliably exposed, and the bare number
                     announces without units. The count reaches the tab's
                     accessible name through the visually hidden span below. */}
-                <span
+                <CountBadge
+                  count={tab.count}
                   aria-hidden="true"
-                  className={cn(
-                    "pointer-events-none inline-flex shrink-0 select-none items-center justify-center rounded-full px-2 py-px",
-                    "type-label-sm font-semibold leading-4 tabular-nums",
-                    active
-                      ? "bg-[rgb(var(--tone-primary-container,var(--m3-secondary-container)))] text-[rgb(var(--tone-on-primary-container,var(--m3-on-secondary-container)))]"
-                      : "bg-[rgb(var(--m3-surface-container-high))] text-[rgb(var(--m3-on-surface-variant))]"
-                  )}
-                >
-                  {tab.count > 99 ? "99+" : tab.count}
-                </span>
+                  className="pointer-events-none select-none"
+                />
                 <span className="sr-only">
                   {formatMessage({ id: "cockpit.tabRail.itemCount" }, { count: tab.count })}
                 </span>
