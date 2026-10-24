@@ -54,7 +54,7 @@ export function AdminFieldGroup({
   const labelNode = (
     <>
       {label}
-      {required ? <span aria-hidden="true">{" *"}</span> : null}
+      {required ? <span aria-hidden="true">{"\u00a0*"}</span> : null}
     </>
   );
 

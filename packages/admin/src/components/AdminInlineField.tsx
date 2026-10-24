@@ -74,7 +74,7 @@ export function AdminInlineField({
       >
         {label}
         {/* Visual-only marker — aria-required announces the state. */}
-        {required ? <span aria-hidden="true">{" *"}</span> : null}
+        {required ? <span aria-hidden="true">{"\u00a0*"}</span> : null}
       </label>
       <div className="flex items-center gap-2" data-component="AdminInlineField">
         <input

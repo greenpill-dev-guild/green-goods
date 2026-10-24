@@ -236,7 +236,7 @@ const AdminTextFieldBase = React.forwardRef<AdminTextFieldControl, AdminTextFiel
           {label}
           {/* Visual-only marker: aria-required already announces the state, and
               hiding it keeps the accessible name equal to the label text. */}
-          {required ? <span aria-hidden="true">{" *"}</span> : null}
+          {required ? <span aria-hidden="true">{"\u00a0*"}</span> : null}
         </label>
 
         {/* Container with the outline ring */}
