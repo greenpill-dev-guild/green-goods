@@ -2215,11 +2215,14 @@
     padding: 0.5rem 0.75rem;
   }
 
+  /* Plus Jakarta Sans's contextual alternates draw the x of a short address ("0x12...abc",
+   * a person row's title) as a times sign, so a title keeps its letters as written. */
   .gg-item-row-title {
     max-inline-size: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-variant-ligatures: no-contextual;
   }
 
   /* One detail line that never wraps: each detail carries its separator in a
