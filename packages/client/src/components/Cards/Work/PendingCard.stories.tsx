@@ -7,6 +7,7 @@ import { expect, fn, within } from "storybook/test";
 import { FIXTURE_WORK_MEDIA } from "../../../../../shared/.storybook/fixtures";
 import { expectItemRowsFit } from "../../../../../shared/.storybook/itemRowFit";
 import { PendingCard, type PendingCardProps } from "./PendingCard";
+import { formatAgo, formatRowDay, formatSavedMeta } from "./pendingCopy";
 
 const discard = { onDiscard: fn(), discardLabel: "Discard Compost Turn" };
 
@@ -55,7 +56,7 @@ const KINDS: Record<string, PendingCardProps> = {
     kind: "draft",
     pill: "Draft",
     title: "Mulching",
-    meta: "2 hours ago",
+    meta: "2 hr. ago",
     status: "Step 2 of 4 · 3 photos",
     ...discard,
   },
@@ -153,7 +154,9 @@ function LocalizedKinds() {
   const intl = useIntl();
   const text = (id: string, values?: Record<string, string | number>) =>
     intl.formatMessage({ id }, values);
-  const saved = text("app.pending.meta.savedToday", { time: "9:40 AM" });
+  // The rows' own formatters, so each language gets its own clock and short age.
+  const now = Date.now();
+  const saved = formatSavedMeta(intl, new Date(now).setHours(9, 40, 0, 0));
   const rows: PendingCardProps[] = [
     { ...KINDS.blocked, pill: text("app.pending.pill.cantUpload"), meta: saved },
     {
@@ -171,6 +174,7 @@ function LocalizedKinds() {
     {
       ...KINDS.draft,
       pill: text("app.draft.status"),
+      meta: formatAgo(intl, now - 2 * 60 * 60 * 1000),
       status: text("app.pending.status.draft", { step: 2, count: 3 }),
     },
     {
@@ -182,7 +186,9 @@ function LocalizedKinds() {
     {
       ...KINDS.inReview,
       pill: text("app.pending.pill.inReview"),
-      meta: text("app.pending.meta.submitted", { date: "Oct 2" }),
+      meta: text("app.pending.meta.submitted", {
+        date: formatRowDay(intl, new Date(new Date(now).getFullYear(), 9, 2).getTime()),
+      }),
     },
   ];
   return (
