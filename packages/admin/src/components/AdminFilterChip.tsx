@@ -19,16 +19,19 @@ export interface AdminFilterChipProps {
 // ============================================================================
 
 /**
- * AdminFilterChip — M3 Filter Chip
+ * AdminFilterChip — the cockpit's filter chip
  *
- * Implements Material Design 3 filter chip anatomy:
- * - Height: 32dp visual (h-8) with a 44px effective touch target (admin-hit-target)
- * - Shape: corner-small (8dp) via --m3-shape-sm
+ * The installed app's chip at the cockpit's density (F4, DL-101):
+ * - Height: 32px visual (h-8) with a 44px effective touch target (admin-hit-target)
+ * - Shape: a capsule (--m3-shape-full), the app's chip shape
  * - Unselected: transparent fill, outline ring, on-surface-variant text
- * - Selected: secondary-container fill, no outline, on-secondary-container text
+ * - Selected: the app's selected look in the workspace tone, a solid
+ *   --tone-action fill with --tone-on-action text and no outline. As on the
+ *   filled AdminButton, the neutral state layer paints beneath the label, and
+ *   the focus ring stands 2px off the chip so it never merges with the fill.
  * - Selection shows by fill and `aria-pressed` alone, with no leading check mark,
  *   so choosing a chip never changes its width or moves the chips after it
- *   (PRD-1022 D6). An optional leadingIcon shows in both states for the same reason.
+ *   (DL-065). An optional leadingIcon shows in both states for the same reason.
  * - Disabled: pointer-events-none opacity-38
  */
 export function AdminFilterChip({
@@ -49,13 +52,13 @@ export function AdminFilterChip({
       className={cn(
         // Shape & layout
         "inline-flex items-center gap-1.5 px-3",
-        "h-8 rounded-[var(--m3-shape-sm)]",
+        "h-8 rounded-[var(--m3-shape-full)]",
         // Typography
         "type-label font-medium whitespace-nowrap",
         // State layer + expanded 44px hit area (visual stays 32px)
         "m3-state-layer admin-hit-target",
-        // Focus ring
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]",
+        // Focus ring, offset so it reads against the selected fill
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))] focus-visible:ring-offset-2",
         // Motion
         "transition-colors duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
         // Disabled
@@ -63,11 +66,12 @@ export function AdminFilterChip({
         // State-based styles
         selected
           ? [
-              // Selected: secondary-container fill, no outline
+              // Selected: the workspace tone's action fill, no outline; the
+              // default neutral ink layer paints beneath the label (Rule 18)
               "border border-transparent",
-              "bg-[rgb(var(--m3-secondary-container))]",
-              "text-[rgb(var(--m3-on-secondary-container))]",
-              "[--state-layer-color:var(--m3-on-secondary-container)]",
+              "bg-[rgb(var(--tone-action,var(--primary-action)))]",
+              "[color:rgb(var(--tone-on-action,var(--primary-action-foreground)))]",
+              "m3-state-layer-beneath",
             ]
           : [
               // Unselected: transparent fill with outline

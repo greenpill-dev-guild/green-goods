@@ -163,7 +163,7 @@ export const Tokens: Story = {
         </div>
       </Section>
 
-      <Section id="tones" title="Workspace tones" lede="The tone appears in exactly four places: the active tab, the active nav pill, one filled header action, and the FAB fill, plus the faint canvas wash. Each card below sets data-tone and shows its filled action and active tab.">
+      <Section id="tones" title="Workspace tones" lede="The tone appears in exactly five places: the active tab, the active nav pill, one filled header action, the FAB fill, and a selected filter chip (DL-101), plus the faint canvas wash. Each card below sets data-tone and shows its filled action, active tab, and selected chip.">
         <div className="sb-ds-row">
           {TONES.map((tone) => (
             <div key={tone} data-tone={tone} className="sb-specimen" style={{ flexBasis: 220 }}>
@@ -182,6 +182,10 @@ export const Tokens: Story = {
                 }}
               >
                 <AdminButton size="sm">Primary Act</AdminButton>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <AdminFilterChip label="Pending" selected onToggle={() => {}} />
+                  <AdminFilterChip label="Approved" selected={false} onToggle={() => {}} />
+                </div>
                 <AdminTabRail
                   ariaLabel={`${tone} tabs`}
                   activeId="a"
