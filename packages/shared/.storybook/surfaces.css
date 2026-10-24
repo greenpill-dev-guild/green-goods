@@ -122,6 +122,9 @@
   --gg-type-field-size: 1rem;
   --gg-type-field-line: 1.25rem;
   --gg-type-field-tracking: 0px;
+  --gg-type-card-title-size: 0.8125rem;
+  --gg-type-card-title-line: 1.125rem;
+  --gg-type-card-title-weight: 600;
 
   /* The phone sheet (F5), as index.css `:root` sets it, with its dark pair in
      the dark block below. */
@@ -131,9 +134,10 @@
   --gg-sheet-title-line: var(--gg-type-title-lg-line);
 
   /* The shared card surface on the cockpit's ladder, as index.css `:root`
-     sets it (its dark block re-declares the two below). */
+     sets it (its dark block re-declares the three below). */
   --gg-card-surface: var(--admin-surface-0);
   --gg-card-edge: var(--neutral-200);
+  --gg-card-fill: var(--m3-surface-container-high);
 }
 
 @media (min-width: 40rem) {
@@ -164,6 +168,7 @@
   --gg-sheet-edge: rgb(var(--earth-700));
   --gg-card-surface: var(--admin-surface-0);
   --gg-card-edge: var(--earth-700);
+  --gg-card-fill: var(--m3-surface-container-high);
 }
 
 /* The cockpit body font. Production sets it on <body> in `@layer base` and has
@@ -279,6 +284,7 @@
   /* The card surface falls back to the scope's own card and hairline. */
   --gg-card-surface: initial;
   --gg-card-edge: initial;
+  --gg-card-fill: initial;
 }
 
 [data-surface-scope="app"] {

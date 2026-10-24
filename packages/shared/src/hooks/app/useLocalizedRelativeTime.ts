@@ -14,19 +14,25 @@ const EVENT_AGE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
  * React tree this is the locale-aware path. `numeric: "always"` keeps "1 day
  * ago" rather than "yesterday", so a column of ages reads uniformly, and the
  * sub-minute floor falls back to `numeric: "auto"` for "now" / "agora" /
- * "ahora" without needing a catalog key.
+ * "ahora" without needing a catalog key. `style: "short"` gives the short form
+ * a card's detail line takes in every language ("2 hr. ago", "hace 2 h",
+ * "há 2 h").
  */
-export function useLocalizedRelativeTime(): (timestamp: number | string | Date) => string {
+export function useLocalizedRelativeTime({
+  style = "long",
+}: {
+  style?: "long" | "short";
+} = {}): (timestamp: number | string | Date) => string {
   const { formatRelativeTime } = useIntl();
 
   return useCallback(
     (timestamp: number | string | Date) => {
       const parts = getRelativeTimeParts(timestamp);
       return parts
-        ? formatRelativeTime(parts.value, parts.unit, { numeric: "always" })
-        : formatRelativeTime(0, "second", { numeric: "auto" });
+        ? formatRelativeTime(parts.value, parts.unit, { numeric: "always", style })
+        : formatRelativeTime(0, "second", { numeric: "auto", style });
     },
-    [formatRelativeTime]
+    [formatRelativeTime, style]
   );
 }
 

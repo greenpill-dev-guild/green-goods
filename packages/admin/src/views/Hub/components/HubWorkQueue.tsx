@@ -1,12 +1,15 @@
+import { ItemRowSkeleton } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import type { MediaCardLayout } from "@green-goods/shared/components/Cards/MediaCard";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { EmptyStateShell } from "@green-goods/shared/components/Canvas/EmptyStateShell";
+import { WorkCard } from "@green-goods/shared/components/Cards/WorkCard/WorkCard";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import type { HubWorkScope } from "@green-goods/shared/hooks/admin-ui/hub/hub.utils";
 import type { HubActionSummary } from "@green-goods/shared/hooks/admin-ui/hub/hub.workbenchModel";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
 import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
+import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
 import type { Work } from "@green-goods/shared/types/domain";
 import { RiCheckboxCircleLine, RiSearchLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
@@ -14,6 +17,15 @@ import { AdminButton } from "@/components/AdminButton";
 import { formatEnsAddressName } from "@/components/EnsAddressText";
 import { HubWorkbenchSkeletonRows } from "./HubWorkbenchSkeletonRows";
 import { HubWorkCard } from "./HubWorkCard";
+import { hubWorkTitle } from "./hubWorkTitle";
+
+/**
+ * A phone lists the queue as work rows (F7): it only chooses which work to open, and
+ * about six 88px rows fit where two photo-grid cards would. From 600px it is the grid.
+ */
+const PHONE_QUERY = "(max-width: 599px)";
+/** The phone's list: one column, 12px between rows. */
+const PHONE_LIST_CLASS = "flex flex-col gap-(--gg-list-gap)";
 
 // What each scope says when it holds nothing. Pending empties as work gets
 // reviewed; Approved fills from it.
@@ -62,6 +74,8 @@ interface HubWorkQueueItemProps {
   layout: MediaCardLayout;
   selected: boolean;
   eagerImages?: boolean;
+  /** The phone's work row in place of the photo-grid card. */
+  asRow: boolean;
   onOpenWorkDetail: (workId: string) => void;
 }
 
@@ -72,12 +86,42 @@ function HubWorkQueueItem({
   layout,
   selected,
   eagerImages,
+  asRow,
   onOpenWorkDetail,
 }: HubWorkQueueItemProps) {
   const { formatMessage } = useIntl();
   const { data: ensName } = useEnsName(work.gardenerAddress);
   const { data: protocolName } = useGreenGoodsEnsName(work.gardenerAddress);
   const gardenerDisplayName = formatEnsAddressName(work.gardenerAddress, protocolName || ensName);
+
+  if (asRow) {
+    const approved = work.status === "approved";
+    const media = work.media ?? [];
+    return (
+      <WorkCard
+        work={{
+          id: work.id,
+          title: hubWorkTitle(work.title, actionSummary?.title, formatMessage),
+          status: work.status,
+          createdAt: work.createdAt,
+          mediaPreview: media.map((url) => resolveIPFSUrl(url)),
+          gardenerDisplayName,
+          imageCount: media.length,
+        }}
+        showGardener
+        // As on the card: a waiting work is a neutral Pending, since its age is
+        // metadata and never an alarm (DL-044); an approved one says Approved.
+        statusLabel={
+          approved
+            ? formatMessage({ id: "app.admin.work.filter.approved", defaultMessage: "Approved" })
+            : formatMessage({ id: "app.admin.work.filter.pending", defaultMessage: "Pending" })
+        }
+        statusTone={approved ? "success" : "neutral"}
+        selected={selected}
+        onClick={() => onOpenWorkDetail(work.id)}
+      />
+    );
+  }
 
   return (
     <HubWorkCard
@@ -113,6 +157,7 @@ export function HubWorkQueue({
   onClearSearch,
 }: HubWorkQueueProps) {
   const { formatMessage } = useIntl();
+  const isPhone = useMediaQuery(PHONE_QUERY);
   // From the cockpit's desktop breakpoint each card lies wide, its mosaic on
   // the left, and the grid holds two to a row at 1280px (F12).
   const isDesktop = useMediaQuery("(min-width: 1024px)");
@@ -132,7 +177,19 @@ export function HubWorkQueue({
   }
 
   if (worksLoading) {
-    return <HubWorkbenchSkeletonRows count={5} variant="media-card" layout={cardLayout} />;
+    // Loading keeps the loaded layout: rows on a phone, cards from 600px (DL-056).
+    return isPhone ? (
+      // eslint-disable-next-line jsx-a11y/no-redundant-roles -- list-style:none drops implicit list semantics in Safari; the explicit role restores them
+      <ul className={PHONE_LIST_CLASS} role="list" aria-busy="true">
+        {Array.from({ length: 5 }, (_, index) => (
+          <li key={index}>
+            <ItemRowSkeleton edge="neutral" />
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <HubWorkbenchSkeletonRows count={5} variant="media-card" layout={cardLayout} />
+    );
   }
 
   if (normalizedSearch && items.length === 0) {
@@ -173,8 +230,12 @@ export function HubWorkQueue({
   }
 
   return (
-    // eslint-disable-next-line jsx-a11y/no-redundant-roles -- hub-workbench-grid sets list-style:none + display:grid, which drop implicit list semantics; the explicit role restores them
-    <ul className="hub-workbench-grid" data-card-layout={cardLayout} role="list">
+    <ul
+      className={isPhone ? PHONE_LIST_CLASS : "hub-workbench-grid"}
+      data-card-layout={cardLayout}
+      // eslint-disable-next-line jsx-a11y/no-redundant-roles -- hub-workbench-grid sets list-style:none + display:grid, which drop implicit list semantics; the explicit role restores them
+      role="list"
+    >
       {items.map((work, index) => {
         const actionSummary = actionsMap.get(work.actionUID);
         return (
@@ -186,6 +247,7 @@ export function HubWorkQueue({
               layout={cardLayout}
               selected={selectedWorkId === work.id}
               eagerImages={index < 6}
+              asRow={isPhone}
               onOpenWorkDetail={onOpenWorkDetail}
             />
           </li>
