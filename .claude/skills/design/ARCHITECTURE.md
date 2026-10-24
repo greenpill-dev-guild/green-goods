@@ -24,7 +24,7 @@ Root `DESIGN.md` front matter is the canonical DesignMD token source. Surface `D
 | Artifact | Role |
 |----------|------|
 | Root `DESIGN.md` | Canonical Warm Earth DesignMD front matter + creative brief |
-| `packages/admin/DESIGN.md` | Restrained steward cockpit, M3 strict anatomy, Plus Jakarta Sans |
+| `packages/admin/DESIGN.md` | Restrained steward cockpit: the shared language at a denser setting, its own dials, Plus Jakarta Sans |
 | `packages/client/DESIGN.pwa.md` | Installed PWA field tool, Plus Jakarta Sans, bottom AppBar |
 | `packages/client/DESIGN.browser.md` | Public browser site, editorial browser treatment |
 | `docs/DESIGN.md` | Docusaurus documentation dialect, Manrope/Bricolage/IBM Plex Mono |
@@ -84,7 +84,7 @@ AI design tools should map output to these exports. Full palette lives in the pr
 
 **Admin** (`packages/admin/src/components/`):
 - Layout shell: `CanvasLayout`, `AppBar` (admin top context bar), `MainSheet`, `NavigationBar`, `FabButton` (the old side-sheet renderers are deleted: every workspace overlay is a centered `AdminDialog`; the three global AppBar surfaces render in `AdminSideSheet`)
-- M3 wrappers (the `packages/admin/src/components/Admin*.tsx` exports are the roster of record: 21 wrappers across 18 files today; `AdminConfirmDialog` lives in `AdminDialog.tsx`, `AdminSelect`/`AdminTextArea` in `AdminTextField.tsx`): `AdminButton`, `AdminCard`, `AdminCheckbox`, `AdminChoiceGroup`, `AdminConfirmDialog`, `AdminDialog`, `AdminFilterChip`, `AdminInlineField`, `AdminLinearProgress`, `AdminReasonDialog`, `AdminSearchToolbar`, `AdminSelect`, `AdminSelectableCard`, `AdminSettingRow`, `AdminSideSheet`, `AdminSortSelect`, `AdminTabRail`, `AdminTextArea`, `AdminTextField`, `AdminTooltip`, `AdminViewActions` (`AdminBadge`/`AdminFab`/`AdminListItem` deleted 2026-08-29)
+- Admin wrappers (the `packages/admin/src/components/Admin*.tsx` exports are the roster of record: 21 wrappers across 18 files today; `AdminConfirmDialog` lives in `AdminDialog.tsx`, `AdminSelect`/`AdminTextArea` in `AdminTextField.tsx`): `AdminButton`, `AdminCard`, `AdminCheckbox`, `AdminChoiceGroup`, `AdminConfirmDialog`, `AdminDialog`, `AdminFilterChip`, `AdminInlineField`, `AdminLinearProgress`, `AdminReasonDialog`, `AdminSearchToolbar`, `AdminSelect`, `AdminSelectableCard`, `AdminSettingRow`, `AdminSideSheet`, `AdminSortSelect`, `AdminTabRail`, `AdminTextArea`, `AdminTextField`, `AdminTooltip`, `AdminViewActions` (`AdminBadge`/`AdminFab`/`AdminListItem` deleted 2026-08-29)
 
 **Client / shared** (`packages/shared/src/components/`, exported from `@green-goods/shared`):
 - Shell: presentation-mode loaders, `PublicShell` (browser), `PwaRuntime` / `AppShell` (installed PWA), `SiteHeader` (browser), `AppBar` (installed PWA)

@@ -82,7 +82,7 @@ Done when:
 - What is the primary user job?
 - Which existing primitive should carry the interaction?
 - Which information is glance, scan, engage, and deep dive?
-- What should be solid versus material/glass?
+- Is every surface solid? (Only the cockpit's nav dock is translucent, DL-108.)
 - What should move, why should it move, and what is the reduced-motion equivalent?
 - What must be true at 320-375px, tablet, desktop, and inside a narrow container?
 - Which story, test, or browser proof will show the result is real?

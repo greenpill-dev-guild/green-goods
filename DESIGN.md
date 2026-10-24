@@ -183,7 +183,7 @@ Green foregrounds and selection marks on a PWA surface use `--primary-on-surface
 A synthesis of Material Design 3 Expressive warmth with Apple Liquid Glass structural precision. Three qualities guide every decision:
 
 1. **Warmth**: Higher chroma, spring motion, shape morphing. Friendly and alive, not sterile.
-2. **Clarity**: Concentricity, functional layers, content-forward hierarchy. Structure is self-evident, never decorated into existence.
+2. **Clarity**: Concentricity, clear layers, content-forward hierarchy. Structure is self-evident, never decorated into existence.
 3. **Purpose**: Every element serves the mission. No engagement hacking. No dark patterns.
 
 ## Color Hierarchy
@@ -329,10 +329,10 @@ Full specs in [`.claude/skills/design/language.md`](.claude/skills/design/langua
 - **Shape**: *Fixed* (badges, avatars), *Capsule* (icon buttons, chips), *Concentric* (nested: `child_radius = parent_radius − padding`). Buttons take one corner per surface whatever their emphasis: the 16px field corner (`rounded.lg`) in the installed app, tightening to 12px while pressed, with the 32px compact size at 12px at rest and 8px while pressed (DL-029, DL-038), and the capsule (`rounded.full`) on the public website, at rest and while pressed (DL-089); fill, outline, and color carry emphasis. Fields are 16px (`rounded.lg`). Buttons and fields share one height scale: 48 / 44 / 40 / 32px.
 - **Controls**: fields, chips and secondary buttons draw a control-grade outline (`--gg-control-outline`, 3:1 or better in both themes), and focus is one solid 2px ring with a 2px offset: the installed app's green (mint in dark) and the cockpit's workspace tone. The installed app's button labels are weight 500, the cockpit's. The public website keeps its hairline and its focus halo.
 - **Motion**: Named spring tokens only (`--spring-spatial`, `--spring-spatial-fast`, `--spring-effects`, etc.). Never hardcoded `cubic-bezier` or `duration`. Things settle like a leaf on water.
-- **Material**: Five thicknesses (ultrathin 20% / thin 40% / regular 65% / thick 85% / solid 100%). Match thickness to content density. Never body text on ultrathin. Admin limits glass to Navigation/FAB chrome only; the admin `AppBar` root stays transparent and dialogs/side sheets stay solid.
+- **Material**: Solid surfaces everywhere: cards, sheets, dialogs, menus, and bars draw an opaque fill, and depth comes from shadow and the scrim. The one translucent surface is the cockpit's nav dock (Navigation/FAB chrome: an 85% fill with a 12px blur); the admin `AppBar` root stays transparent over the canvas (DL-108).
 - **Elevation**: Five Z-layers (Z0 substrate → Z4 overlay). Admin workspace action/detail flows open in centered `AdminDialog`; the canvas stays at rest and depth comes from the dialog scrim/elevation. Global AppBar surfaces use solid `AdminSideSheet`. Viewport dialogs and PWA sheets may use the shared scrim token.
 - **Progressive disclosure**: Four layers. Glance (<1s) → Scan (1-3s) → Engage (3s+) → Deep Dive (intentional).
-- **Hero moments**: Garden creation, first submission, hypercert mint. Amplify shape + color + motion + typography + material together. Succession-aware: pioneer=simple, intermediate=moderate, climax=full.
+- **Hero moments**: Garden creation, first submission, hypercert mint. Amplify shape + color + motion + typography together. Succession-aware: pioneer=simple, intermediate=moderate, climax=full.
 
 ## Interface Principles
 
