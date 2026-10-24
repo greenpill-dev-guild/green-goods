@@ -798,7 +798,7 @@ Human corrections: 0 observed; attention: unknown.
   elevation shadow.
 - Proof: the admin suite, the Shared button and style tests, typechecks, and the pairs, all
   **Storybook** (static builds of `develop` and the branch), with the real screens drawn from the
-  cockpit's view stories ([eval.md](../eval.md#step-20-proof-shared-buttons)). No authenticated
+  cockpit's view stories ([eval.md](../eval.md#step-20-phase-1-proof-shared-buttons)). No authenticated
   class: none of the changed files is on a browser-proof path.
 - Calls for the maintainer: the neutral outlined and text labels (the tone accent leaves 148
   buttons); the dropped elevation; the three tonal choices waiting for phase 2; and the shared

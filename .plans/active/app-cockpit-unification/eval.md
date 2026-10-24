@@ -1157,3 +1157,30 @@ in **Storybook** (headless Chromium at device scale 2, the admin primitive frame
   earth-700 on the lifted card in dark, with the faint shadow in light only; filled takes the same
   corner with no edge; the list row is 16px and 56px tall here, on the weak fill; the selectable
   card is 12px and 66px tall, its selected state the tone's accent edge and a 10% tint.
+
+## Step 20 phase 1 proof: shared buttons
+
+Run on 2026-10-24 against `develop` `796e9e1bb`, with step 20 phase 1 on
+`feature/app-cockpit-shared-buttons` at `76195349e`, both as static Storybook builds. Every frame is
+**Storybook**; the real screens are the cockpit's own view stories, and none shows a real garden.
+The pairs are a private artifact: https://claude.ai/artifact/N3Rr6p2FPETmEUnCWRLqia (16 pairs
+across eleven scenes, light and dark, and the new family matrix).
+
+- **The tiers hold.** Every `AdminButton` in the captures (96 before, 336 after) is 28, 32 or 40px
+  tall for sm, md and lg, with a 44px finger box, a 14px label at 500 and a pill corner; every
+  `AdminIconButton` (20 before, 110 after) is a 28, 32 or 40px circle with a 44px finger box.
+- **The disabled pair is the same.** The state catalog's disabled and loading buttons draw a
+  `rgba(12, 10, 9, 0.12)` fill under a `rgba(12, 10, 9, 0.38)` label at opacity 1, before and
+  after.
+- **The app and the website do not change.** The shared Button and IconButton stories (both
+  emphasis catalogs, loading, destructive, the website surface, as a link, with a badge), the app's
+  and the website's design-system button pages and the editorial buttons, light and dark, captured
+  from both builds at 1024px: 22 comparisons, 0 differing pixels.
+- **What the pairs found.** The first after build drew the tone matrix's 28px buttons at 40px.
+  `AdminButton` fixed its height, while the shared button only sets a minimum, so a row that
+  stretches its items took the tonal pill's hit-target margins as its height; a filter chip's do
+  the same. Each shared size now reads a cap token that is `none` in the app, the cockpit caps every
+  size at its block (`76195349e`), and the three tiles drawn as buttons lift the cap.
+- **What changes, as DL-115 records.** Outlined and text labels take the shared neutral inks and an
+  outlined button the card's white fill; the filled hover is its tone's measured hover step;
+  buttons drop the elevation shadow; and a loading button stays focusable.

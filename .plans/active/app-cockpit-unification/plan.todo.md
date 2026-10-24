@@ -369,4 +369,4 @@ choices keep their pill for phase 2. Seven tokens the shared family now reads ke
 look, each falling back to the app's value. DL-115 and its guide wording are the standards-only
 `feature/app-cockpit-shared-buttons-guides`, #1253
 ([handoff](handoffs/claude-ui.md#step-20-phase-1-shared-buttons-prd-1287),
-[eval.md](eval.md#step-20-proof-shared-buttons)).
+[eval.md](eval.md#step-20-phase-1-proof-shared-buttons)).
