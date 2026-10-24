@@ -260,7 +260,9 @@ Questions raised against the picks, all settled by 18 October:
   The reserve becomes a per-surface setting like the button corner; the rest of the field anatomy is
   shared, and a longer message grows the slot rather than scrolling. On the pair, the longest
   Spanish and Portuguese cockpit messages are measured in two-column forms at 640px, where a message
-  has about 205px; if several wrap, the cockpit reserves two lines too.
+  has about 205px; if several wrap, the cockpit reserves two lines too. Measured on 23 October: a
+  two-column field there is 290px wide and 6 of 32 messages wrap, so the cockpit reserves two lines
+  (DL-105).
 - **F7 on the cockpit's phone: settled.** The cockpit's phone queue takes the work row. Its work
   card is one button that opens the work's page, where approval happens, so the queue only chooses
   what to open; a photo-grid card is about 300px tall on a phone, so two fit a screen, against about
