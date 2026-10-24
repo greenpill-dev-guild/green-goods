@@ -137,6 +137,7 @@ Wrappers (25): AdminButton, AdminCard, AdminCheckbox, AdminChoiceGroup, AdminCon
 ### Card and selection grammar
 
 - `WorkbenchCard` (a shared Canvas primitive from `@green-goods/shared`, not an Admin* wrapper) is for workbench records and action/assessment queue items that stewards scan, compare, and act on in a grid or list.
+- `HubWorkCard`, the Hub's work card, is the shared media card (`MediaCard`, the card for an object with a picture of its own) with the work's photo mosaic as its picture and the domain and photo count as marks on it. Below 1024px it stacks the mosaic on top; from 1024px it lies wide, the mosaic in a 144px column and the title, status, action, gardener and age centered beside it, two to a row at 1280px. Every card in the queue keeps one height (DL-103).
 - `AdminCard` is for compact modules, stats, settings, status panels, and supporting detail regions.
 - `AdminSelectableCard` is for richer exclusive or multi-select choices where the option needs a title, description, icon, or metadata.
 - `AdminListRow` is for a list row that opens its record: the whole row is the button, its height follows its content, and the open record is marked current. Actions stay `AdminButton`; choices stay `AdminSelectableCard`.
