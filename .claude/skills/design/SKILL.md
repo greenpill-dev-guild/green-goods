@@ -46,7 +46,7 @@ This skill's frontmatter `token_version` reflects the current Warm Earth token s
 | **Defect Grammar** | "this looks broken", describe UI bug, component identifier lookup, defect types, browser inspect workflow | [defect-grammar.md](./defect-grammar.md) |
 | **Decision Log** | locked decision, DL-NNN, design ruling, "what did we decide about", decision ledger, codification | [decision-log.md](./decision-log.md) |
 | **Design Philosophy** | design direction, paradigm, adaptive surface, spatial, vision, progressive immersion | This file |
-| **Surfaces** | Z-axis, depth, glass pane, elevation, material, blur, adaptive density, progressive disclosure, multimodal | [surfaces.md](./surfaces.md) |
+| **Surfaces** | Z-axis, depth, solid surfaces, pane, elevation, material, blur, adaptive density, progressive disclosure, multimodal | [surfaces.md](./surfaces.md) |
 | **View Transitions** | view transition API, entity morphing, spatial navigation | [implementation.md § View Transitions](./implementation.md) |
 | **Ecosystem** | ecosystem, relational, cascade, multi-user, surrogate, autonomic, archetype | [ecosystem.md](./ecosystem.md) |
 | **Regenerative** | regenerative, succession, growth-agnostic, capability, value flow | [review-checklist.md § Lens 1](./review-checklist.md#lens-1-regenerative-design) |
@@ -105,19 +105,18 @@ Choose one paradigm per surface. Mix across a view.
 
 | Paradigm | When | Feel | Density |
 |----------|------|------|---------|
-| **Command Surface** | Primary action area | Glass pane, sharp focus, high contrast | High: controls visible and ready |
-| **Ambient Display** | Status, background info | Translucent, soft, peripheral | Low: glanceable, never demands attention |
+| **Command Surface** | Primary action area | Solid pane, sharp focus, high contrast | High: controls visible and ready |
+| **Ambient Display** | Status, background info | Quiet, soft, peripheral | Low: glanceable, never demands attention |
 | **Data Landscape** | Analytics, history, flows | Volumetric, layered, navigable | Variable: zooms overview to detail |
 | **Conversational** | AI interaction, guidance | Minimal chrome, content-forward | Sparse: message and response |
 | **Ritual** | Onboarding, confirmation, ceremony | Full-screen, cinematic, focused | Single-purpose: one thing, done well |
 
 ### Material Metaphors
 
-Pick a material that carries the entire surface:
+Pick a material that carries the entire surface. A metaphor sets the visual language, never translucency: every rendered surface is solid, and the cockpit's nav dock is the one translucent piece (DL-108).
 
 | Material | Visual Language | Best For |
 |----------|----------------|----------|
-| **Liquid Glass** | Refracted light, variable blur, chromatic edges | Command surfaces, active workspaces (**default material for client PWA**) |
 | **Obsidian** | Dark, reflective, warm accent glows on interaction | Data landscapes, steward tools |
 | **Vellum** | Warm, tactile, paper-like grain texture | Conversational surfaces, documentation |
 | **Holographic** | Iridescent edges, gradient shifts, spectral accents | Ritual moments, celebrations, onboarding |
@@ -155,13 +154,13 @@ If a platform-specific quirk really is worth recording (e.g. a one-line tip abou
 ### Design Philosophy
 1. **Dashboard-itis**: Cramming every metric onto one flat surface. Use progressive disclosure.
 2. **Spatial for spatial's sake**: A contact form doesn't need depth layers. Match paradigm to complexity.
-3. **Glass without purpose**: Blurring everything ≠ depth. Materials serve information hierarchy.
+3. **Glass for depth**: Blur and translucency are not depth. Surfaces are solid, and shadow, scrim, and stacking carry the hierarchy (DL-108).
 4. **Edge-anchored in 2026**: Anchoring nav to viewport edges. In spatial computing, there are no edges. Float controls.
 5. **Uniform density**: Same spacing everywhere. Adapt: comfortable / compact / focused.
 
 ### Inclusive Design
 6. **Spatial-only patterns**: Any interaction that requires gaze, gesture, or depth perception without keyboard/voice fallback.
-7. **Cognitive overload via material**: Ultrathin glass over text-dense content. Thick material is mandatory for readability.
+7. **Text over translucency**: Text on a see-through or blurred surface loses contrast as the content behind it moves. Keep text on solid surfaces.
 8. **Motion without escape**: Spatial animations without `prefers-reduced-motion` respect.
 9. **Assuming full vision**: Depth cues that rely solely on blur or parallax without alternative hierarchy signals (size, weight, contrast).
 
@@ -180,14 +179,14 @@ What kind of design work?
 │
 ├─► New view or page?
 │   ├── Choose paradigm (Command / Ambient / Data / Conversational / Ritual)
-│   ├── Choose material metaphor (Glass / Obsidian / Vellum / Holographic / Carbon)
+│   ├── Choose material metaphor (Obsidian / Vellum / Holographic / Carbon)
 │   ├── Apply Inclusive Design lens (who gets excluded? what's the fallback?)
 │   ├── Define disclosure layers (glance → scan → engage → deep dive)
-│   └── Implement per implementation.md (Pane pattern + adaptive density)
+│   └── Implement per implementation.md § New Component Runbook (solid panes + adaptive density from surfaces.md)
 │
 ├─► New component?
 │   ├── What Z-layer? (ground / surface / floating / overlay) → surfaces.md
-│   ├── What material? → surfaces.md
+│   ├── Solid surface? (only the cockpit's nav dock is translucent) → surfaces.md
 │   ├── Interactive? (hit targets ≥ 44px, keyboard reachable) → surfaces.md
 │   └── Run review-checklist.md § Lens 2 (Spatial Readiness)
 │
@@ -198,8 +197,7 @@ What kind of design work?
 │   └── Run review-checklist.md § Lens 3 (Ecosystem Awareness)
 │
 ├─► Visual polish pass?
-│   ├── Replace solid backgrounds with materials → surfaces.md
-│   ├── Add depth via Z-layer model → surfaces.md
+│   ├── Add depth via the Z-layer model, on solid surfaces → surfaces.md
 │   ├── Add progressive disclosure to dense surfaces → surfaces.md
 │   └── Verify inclusive design checks → review-checklist.md § Lens 2
 │
@@ -233,12 +231,12 @@ Tier 2: 2D Screen (mobile + desktop)
 Tier 3: Spatial (headsets, AR, large displays)
 ├── 2D components "explode" into 3D floating panes
 ├── Depth, gaze, gesture become available
-└── Green Goods: future, prepared via glass pane patterns, concentricity, view transitions
+└── Green Goods: future, prepared via panes, concentricity, view transitions
 ```
 
 **The bridge**: Each tier is additive. Tier 2 includes everything from Tier 1. Tier 3 includes everything from Tier 2. **Nothing is spatial-only**: that's a core rule from Inclusive Design (see Quad Foundation above).
 
-This maps to Green Goods' offline-first architecture: the offline state (service worker, IndexedDB) IS Tier 1. The PWA is Tier 2. The codebase is spatially-prepared via glass panes and container queries ([surfaces.md](./surfaces.md)) and view transitions ([implementation.md § View Transitions](./implementation.md)).
+This maps to Green Goods' offline-first architecture: the offline state (service worker, IndexedDB) IS Tier 1. The PWA is Tier 2. The codebase is spatially-prepared via panes and container queries ([surfaces.md](./surfaces.md)) and view transitions ([implementation.md § View Transitions](./implementation.md)).
 
 ---
 

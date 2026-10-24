@@ -188,7 +188,7 @@ Green foregrounds and selection marks on a PWA surface use `--primary-on-surface
 A synthesis of Material Design 3 Expressive warmth with Apple Liquid Glass structural precision. Three qualities guide every decision:
 
 1. **Warmth**: Higher chroma, spring motion, shape morphing. Friendly and alive, not sterile.
-2. **Clarity**: Concentricity, functional layers, content-forward hierarchy. Structure is self-evident, never decorated into existence.
+2. **Clarity**: Concentricity, clear layers, content-forward hierarchy. Structure is self-evident, never decorated into existence.
 3. **Purpose**: Every element serves the mission. No engagement hacking. No dark patterns.
 
 ## Color Hierarchy
@@ -337,10 +337,10 @@ Full specs in [`.claude/skills/design/language.md`](.claude/skills/design/langua
 - **Navigation**: both bottom bars mark the active tab with a pill behind its icon and an ink label at weight 600: the workspace tone's container in the cockpit, and in the installed app the green container (`--primary-container`) behind a deep green icon. Each bar keeps its chrome: the cockpit's translucent dock, the app's solid white bar (DL-107).
 - **States**: one state block (`EmptyState`) on both surfaces for an empty list, a loading screen with words, a failed read, and a page that cannot open: a 56px round tile with a 24px glyph, the title on `type-title-md`, one line on `type-body`, and the surface's own action. A calm tile takes the installed app's green tint and the cockpit's neutral one (`--gg-state-mark-fill`, `--gg-state-mark-ink`); a warning or a failure takes its status tint, and a failure is announced (DL-106).
 - **Motion**: Named spring tokens only (`--spring-spatial`, `--spring-spatial-fast`, `--spring-effects`, etc.). Never hardcoded `cubic-bezier` or `duration`. Things settle like a leaf on water.
-- **Material**: Five thicknesses (ultrathin 20% / thin 40% / regular 65% / thick 85% / solid 100%). Match thickness to content density. Never body text on ultrathin. Admin limits glass to Navigation/FAB chrome only; the admin `AppBar` root stays transparent and dialogs/side sheets stay solid.
+- **Material**: Solid surfaces everywhere: cards, sheets, dialogs, menus, and bars draw an opaque fill, and depth comes from shadow and the scrim. The one translucent surface is the cockpit's nav dock (Navigation/FAB chrome: an 85% fill with a 12px blur). Transparent chrome draws no fill and no blur at all, so it is not glass: the admin `AppBar` root over the canvas and the website's `SiteHeader` over its hero (DL-108).
 - **Elevation**: Five Z-layers (Z0 substrate → Z4 overlay). Admin workspace action/detail flows open in centered `AdminDialog`; the canvas stays at rest and depth comes from the dialog scrim/elevation. Global AppBar surfaces use solid `AdminSideSheet`. Viewport dialogs and PWA sheets may use the shared scrim token.
 - **Progressive disclosure**: Four layers. Glance (<1s) → Scan (1-3s) → Engage (3s+) → Deep Dive (intentional).
-- **Hero moments**: Garden creation, first submission, hypercert mint. Amplify shape + color + motion + typography + material together. Succession-aware: pioneer=simple, intermediate=moderate, climax=full.
+- **Hero moments**: Garden creation, first submission, hypercert mint. Amplify shape + color + motion + typography together. Succession-aware: pioneer=simple, intermediate=moderate, climax=full.
 
 ## Interface Principles
 
