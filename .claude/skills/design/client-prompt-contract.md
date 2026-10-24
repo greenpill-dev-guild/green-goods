@@ -43,6 +43,7 @@ The categories below are contract-specific framing: *why* client output should r
 - **Growth-hacking framing**: streak, leaderboard, FOMO, re-engagement, retention hook; violates the regenerative lens (also lint-enforced).
 - **Trading-floor / financial-terminal framing**: degen aesthetic; this is a garden, not an exchange.
 - **Gamification**: we use motivation design, not game mechanics.
+- **Glass / liquid / frosted framing**: surfaces are solid (DL-108); the only translucent piece in Green Goods is the cockpit's nav dock.
 
 ## Materials & Motion (client)
 
