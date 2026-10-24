@@ -150,7 +150,7 @@ describe("Canvas Primitives", () => {
     cleanup();
   });
 
-  it("renders workbench cards as buttons when actionable", async () => {
+  it("renders workbench cards on the shared card surface, as buttons when actionable", async () => {
     const onClick = vi.fn();
 
     render(
@@ -166,7 +166,12 @@ describe("Canvas Primitives", () => {
       />
     );
 
-    await user.click(screen.getByRole("button", { name: /Native canopy planting/i }));
+    const card = screen.getByRole("button", { name: /Native canopy planting/i });
+    // The shared card surface (DL-102), not the glass residue it replaced (DL-108).
+    expect(card).toHaveClass("gg-card");
+    expect(card).not.toHaveClass("glass-raised");
+
+    await user.click(card);
     expect(onClick).toHaveBeenCalledOnce();
   });
 

@@ -15,7 +15,7 @@ The Protocol Treasury share is fixed and Green Goods governed. The UI must prese
 
 1. Use the existing shared `useSplitConfig`, `usePendingYield`, and `useAllocateYield` hooks where they already fit.
 2. Add shared support for single-vault yield status where existing hooks do not cover the UI need.
-3. `GardenYieldCard` must read live split config in Phase 1, but preset mutation controls remain unavailable until Phase 3.
+3. The garden's vault page (`GardenVaultView` in `packages/admin/src/views/Garden/Vault.tsx`, which lists the garden's positions as item rows, DL-113) must read live split config in Phase 1, but preset mutation controls remain unavailable until Phase 3. Retargeted: `GardenYieldCard` was removed unused in #1252 on 2026-10-24, and nothing in the cockpit shows the split today.
 4. `PositionCard` must expose operator-only `splitYield()` plus pending/escrowed yield and disabled/no-op states in Phase 1.
 5. Harden `setGardenTreasury()` in Phase 2 so garden operators cannot change the Protocol Treasury destination.
 6. Add shared support for guarded preset mutation in Phase 3. The mutation accepts only a preset/direct-funding-vs-hypercert choice, preserves the live Protocol Treasury bps, and internally calls `setSplitRatio()`.
