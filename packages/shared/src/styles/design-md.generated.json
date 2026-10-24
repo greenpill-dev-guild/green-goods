@@ -47,6 +47,12 @@
       "fontWeight": 400,
       "lineHeight": 1.5
     },
+    "card-title": {
+      "fontFamily": "Plus Jakarta Sans",
+      "fontSize": "15px",
+      "fontWeight": 500,
+      "lineHeight": "20px"
+    },
     "editorial": {
       "fontFamily": "Fraunces",
       "fontSize": "48px",

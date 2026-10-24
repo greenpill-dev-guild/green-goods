@@ -30,6 +30,11 @@ typography:
     fontSize: 12px
     fontWeight: 500
     lineHeight: 16px
+  card-title:
+    fontFamily: Plus Jakarta Sans
+    fontSize: 15px
+    fontWeight: 500
+    lineHeight: 20px
   app-title:
     fontFamily: Plus Jakarta Sans
     fontSize: 22px
@@ -143,6 +148,13 @@ components:
     textColor: "{colors.primary}"
     typography: "{typography.app-title}"
     rounded: "{rounded.md}"
+  card:
+    rounded: "{rounded.2xl}"
+  item-row:
+    textColor: "{colors.primary}"
+    typography: "{typography.card-title}"
+    rounded: "{rounded.lg}"
+    height: 88px
 ---
 
 # Green Goods Design System
@@ -224,7 +236,8 @@ Four roles, defined by **how much of the screen each occupies**, not a palette r
 |------|---------------|---------|-----|
 | `type-title-lg` | 24/32, 600 | 22/28, 600 | Page, dialog, flow, and step titles |
 | `type-title-md` | 18/24, 600 | 16/24, 600 | Section, sheet, and card titles |
-| `type-title-sm` | 16/24, 600 | 14/20, 600 | Compact titles: work cards, list items, values |
+| `type-title-sm` | 16/24, 600 | 14/20, 600 | Compact titles: list items, values |
+| `type-card-title` | 15/20, 500 | 13/18, 600 | A card's one-line title: item rows and media cards |
 | `type-body` | 16/24 | 14/20 | Reading text |
 | `type-label` | 16/24, 500 | 14/20, 500 | Labels and actions |
 | `type-label-sm` | 14/20 | 12/16, 500 | Small labels, field labels, and secondary lines |
@@ -328,6 +341,7 @@ Full specs in [`.claude/skills/design/language.md`](.claude/skills/design/langua
 
 - **Shape**: *Fixed* (badges, avatars), *Capsule* (icon buttons, chips), *Concentric* (nested: `child_radius = parent_radius − padding`). Buttons take one corner per surface whatever their emphasis: the 16px field corner (`rounded.lg`) in the installed app, tightening to 12px while pressed, with the 32px compact size at 12px at rest and 8px while pressed (DL-029, DL-038), and the capsule (`rounded.full`) on the public website, at rest and while pressed (DL-089); fill, outline, and color carry emphasis. Fields are 16px (`rounded.lg`). Buttons and fields share one height scale: 48 / 44 / 40 / 32px.
 - **Controls**: fields, chips and secondary buttons draw a control-grade outline (`--gg-control-outline`, 3:1 or better in both themes), and focus is one solid 2px ring with a 2px offset: the installed app's green (mint in dark) and the cockpit's workspace tone. The installed app's button labels are weight 500, the cockpit's. The public website keeps its hairline and its focus halo.
+- **Cards**: one card surface on both surfaces (`.gg-card`): white, or the lifted card in dark, with a 1px edge that reads in both themes, a faint shadow in light, and the 24px corner (`rounded.2xl`). A list of items is a column of item rows (`ItemRow`): 88px tall in every state and language, a 16px corner (`rounded.lg`), the item's own 88px photo or a centered 56px icon tile, a one-line title (`typography.card-title`, 15px in the installed app and 13px in the cockpit), the one status pill under it, one 11px detail line of at most two details that drops a detail whole rather than wrap, and the row's one action in its right slot; a work row adds the 2px status edge. Every card list keeps 12px between its cards (`--gg-list-gap`).
 - **Motion**: Named spring tokens only (`--spring-spatial`, `--spring-spatial-fast`, `--spring-effects`, etc.). Never hardcoded `cubic-bezier` or `duration`. Things settle like a leaf on water.
 - **Material**: Five thicknesses (ultrathin 20% / thin 40% / regular 65% / thick 85% / solid 100%). Match thickness to content density. Never body text on ultrathin. Admin limits glass to Navigation/FAB chrome only; the admin `AppBar` root stays transparent and dialogs/side sheets stay solid.
 - **Elevation**: Five Z-layers (Z0 substrate → Z4 overlay). Admin workspace action/detail flows open in centered `AdminDialog`; the canvas stays at rest and depth comes from the dialog scrim/elevation. Global AppBar surfaces use solid `AdminSideSheet`. Viewport dialogs and PWA sheets may use the shared scrim token.
