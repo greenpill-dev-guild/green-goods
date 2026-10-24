@@ -1029,7 +1029,7 @@
      green in the app. Declared on each control so the cockpit's tone resolves
      where the control sits. The ring replaces a 3px halo that measured about
      1.3:1; fields keep three quarters of the halo where it remains. */
-  :where(.gg-control, .gg-button, .gg-chip, .gg-switch) {
+  :where(.gg-control, .gg-button, .gg-chip, .gg-switch, .gg-card) {
     --gg-focus-ring: var(--tone-focus-ring, var(--focus-ring, var(--primary-base)));
   }
 
@@ -1885,13 +1885,55 @@
     background: rgb(var(--tone-on-action, var(--m3-on-primary, 255 255 255)));
   }
 
+  /* ── The card surface (F7) ──
+   * The installed app's card wherever a card is drawn: a 24px corner, a
+   * hairline edge that still reads on linen, and a faint shadow that steps up
+   * on hover. Each value resolves on the card itself, so an app or dark scope
+   * around it applies; the cockpit sets the ground and edge it draws once, in
+   * its index.css (DL-031). A selected card carries a 3px ring in the focus
+   * role's color. */
+  .gg-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--gg-card-radius, var(--gg-radius-2xl));
+    background-color: rgb(var(--gg-card-bg, var(--bg-white-0)));
+    box-shadow:
+      0 0 0 1px rgb(var(--gg-card-edge, var(--stroke-soft-200))),
+      var(--gg-card-shadow, 0 1px 2px 0 rgb(var(--static-black) / 0.05));
+    transition: box-shadow var(--spring-effects-fast-duration, 150ms)
+      var(--spring-effects-fast-easing, ease-out);
+  }
+
+  button.gg-card {
+    cursor: pointer;
+  }
+
+  button.gg-card:hover {
+    box-shadow:
+      0 0 0 1px rgb(var(--gg-card-edge, var(--stroke-soft-200))),
+      var(--gg-card-shadow-hover, var(--shadow-elevation-2));
+  }
+
+  .gg-card:focus-visible {
+    outline: var(--gg-focus-ring-width) solid rgb(var(--gg-focus-ring));
+    outline-offset: 2px;
+  }
+
+  .gg-card[data-selected="true"],
+  button.gg-card[data-selected="true"]:hover {
+    box-shadow:
+      0 0 0 3px rgb(var(--gg-focus-ring)),
+      var(--gg-card-shadow, 0 1px 2px 0 rgb(var(--static-black) / 0.05));
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .gg-control,
     .gg-button,
     .gg-icon-button,
     .gg-chip,
     .gg-switch,
-    .gg-switch-thumb {
+    .gg-switch-thumb,
+    .gg-card {
       transition: none;
     }
 
