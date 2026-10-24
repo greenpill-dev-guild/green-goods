@@ -128,9 +128,10 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
     the pair is replaced by the outcome it produced, so a row never offers a decision twice.
 
   Where a list's records are the shared item row (DL-102: work, and assessments and hypercerts,
-  DL-111), the row is that anatomy instead: one 88px height, the one pill under the title (a
-  state, never a kind; a record that waits on no one has none), at most two details in the type's
-  order on one line, and the row's one act in its right slot. The chip and meta contract below
+  DL-111), the row is that anatomy instead: one 88px height, the one pill under the title (the
+  row's status, or a state that replaces it; Your Work's Pending rows keep their kind there,
+  DL-061; a record that waits on no one has none), at most two details in the type's order on
+  one line, and the row's one act in its right slot. The chip and meta contract below
   holds for decision rows and for rows not yet on the item row.
 
   Two lines are the default because a single-line row wraps its buttons as soon as the column

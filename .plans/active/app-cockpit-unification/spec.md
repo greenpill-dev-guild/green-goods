@@ -196,7 +196,7 @@ The order each type follows, locked with the card picks on 18 October:
 | Work | who · age | The garden name, except in a list that mixes gardens; the photo count, onto the photo |
 | Commitments | due date · other person | Offer or request (the lead icon); "4 of 10 taken" (the promise's page) |
 | Actions | what it asks for ("2 photos") | The domain (the banner's chip) |
-| Assessments and hypercerts | date · outcomes or units | The kind, when the icon shows it |
+| Assessments and hypercerts | date · outcomes or units; superseded by DL-111 (24 October): date · domain for an assessment, date · works bundled for a hypercert | The kind, when the icon shows it |
 | Gardens | members · place | Stewards and "open to join" (the garden's page) |
 | People | one count ("12 works") | The role (the chip) |
 | Jars, vaults and pools | one detail: the limit ("0.01 WETH a claim"; the pool shows what is waiting) | The cooldown and harvests (the jar's page); the amount stays on the right |
@@ -214,7 +214,9 @@ Two more rulings the same day, from the census review:
   than its neighbours. Layouts that add a line by design (the pill under the title, the label above
   it) and two-line titles stay opt-in choices for a whole card type, never a single card.
 - **A media card needs a picture of its own.** Work, gardens, actions and hypercerts have one;
-  commitments, assessments and jars, vaults and pools do not, so they take the item row only.
+  commitments, assessments and jars, vaults and pools do not, so they take the item row only. A
+  picture is what a media card needs, not what makes one: hypercert records keep the item row
+  (DL-103, DL-111).
 
 ### Card picks, locked on 18 October
 
