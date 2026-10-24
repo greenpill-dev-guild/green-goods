@@ -302,8 +302,9 @@ export function PoolCommitmentsCard({
                       row.groupDueDate ? rowDueDetail(intl, BigInt(row.groupDueDate), now) : null
                     }
                     action={
-                      // Stacked below 480px of row, so two acts take one button's width.
-                      <span className="flex flex-col items-center gap-1 @[480px]:flex-row">
+                      // Stacked below 480px of row, so two acts take one button's width; with
+                      // no gap their 44px finger boxes fill the 88px row exactly.
+                      <span className="flex flex-col items-center @[480px]:flex-row @[480px]:gap-1">
                         {row.discardable ? (
                           <AdminIconButton
                             label={formatMessage({

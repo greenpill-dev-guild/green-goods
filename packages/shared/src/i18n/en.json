@@ -4222,7 +4222,7 @@
   "cockpit.garden.pool.queued.sent": "Sent. This row leaves once the index shows the promise.",
   "cockpit.garden.pool.queued.sentShort": "Sent",
   "cockpit.garden.pool.queued.untitled": "New promise",
-  "cockpit.garden.pool.queued.waiting": "Waiting for membership",
+  "cockpit.garden.pool.queued.waiting": "Needs membership",
   "cockpit.garden.pool.readError.body": "Something went wrong reaching the indexer. Nothing about the pool, its seasons, or its promises has changed.",
   "cockpit.garden.pool.readError.retry": "Try Again",
   "cockpit.garden.pool.readError.title": "Couldn’t load this pool",

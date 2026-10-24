@@ -437,7 +437,7 @@ export function queuedCreationPill(
       status: {
         label: formatMessage({
           id: "cockpit.garden.pool.queued.waiting",
-          defaultMessage: "Waiting for membership",
+          defaultMessage: "Needs membership",
         }),
         tone: "info",
       },

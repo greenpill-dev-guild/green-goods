@@ -26,8 +26,12 @@ function getClient(chainId: number): PublicClient {
   if (cached) return cached;
 
   // A list's rows ask for their names in the same render, so their reverse lookups wait a
-  // frame and go out as one multicall instead of one request per row.
-  const client = createPublicClientForChain(chainId, { batch: { multicall: { wait: 16 } } });
+  // frame and go out as one multicall instead of one request per row. A reverse read is about
+  // 480 bytes of calldata, so viem's default 1KB batch would split a list every two rows;
+  // 64KiB holds about 130 people in one call, well inside providers' request limits.
+  const client = createPublicClientForChain(chainId, {
+    batch: { multicall: { batchSize: 65_536, wait: 16 } },
+  });
   clientCache.set(chainId, client);
   return client;
 }
