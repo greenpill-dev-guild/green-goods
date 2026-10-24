@@ -1848,3 +1848,51 @@ Agent/model: Codex / unknown | Coverage: bootstrap and consolidated downstream c
 | Wait | ongoing | Normal deployer keystore signing, followed by the two GG and one bootstrap owner packets. |
 
 Human corrections: zero observed in this continuation segment; attention: unknown.
+
+## 2026-10-24 — Source implementation checkpoint lookup repair
+
+The user's first downstream run stopped in read-only source validation with `Source
+implementation mismatch`, before the password prompt, execution journal or any broadcast. The
+verifier incorrectly assumed that the Pooling and Settlement implementations occupied the last
+two entries of the 23-deployment plan. Pooling is actually entry/receipt step 15, followed by
+Settlement libraries; Settlement is step 23. The old lookup compared Pooling with LoanLib at
+step 22. This was a verifier bug, not an unsuccessful source upgrade.
+
+The operator now selects each implementation through the authoritative `SOURCE_UPGRADE_TARGETS`
+contract key, derives that entry's receipt step, and requires its implementation-kind and
+runtime checkpoint. Original address and runtime checks remain intact. A regression using the
+real 15/23 ordering failed under the old lookup and passes under the repair; it also covers
+reordered receipt records and missing implementation/checkpoint evidence.
+
+Independent read-only Arbitrum storage and EXTCODEHASH probes confirm Pooling
+`0xC186ee4BaA1094E73d33b8AFB519DF73Fe4F6c4d` / runtime
+`0xe2772f488b36763a6b846938d33743b72a6896538b13ee9645388d3b637e80fb` and Settlement
+`0xaa8bd756588d83262AFbBc47c573bADded2333ac` / runtime
+`0x74ea4e931759ffb3c23ccbc9b6773ac2ed918b0ab515632f6a8967d2182a6825` match their actual
+plan/checkpoint entries. Deployer pending nonces remain Arbitrum 1062 and Gnosis zero; no new
+execution file exists. The Gnosis Hats root counter remains 1823, so the approved next-root
+prediction remains valid. No funding or additional source-owner signature is needed for this
+failed attempt.
+
+The incidental Ethers warnings came from parsing library-only Solidity enum signatures even
+though those libraries take no constructor arguments. Deployment planning now skips irrelevant
+library function ABIs. A warning regression fails before the change and passes after it,
+while all eleven generated deployment byte sequences remain identical.
+
+The focused repair loop passes 28 cases plus the 37 CLI checks, and package typecheck, lint and
+ABI synchronization pass. The required production gate is rerun against matching secret-free
+snapshot inputs. Live exact downstream rehearsal remains inside the ordinary operator command,
+which still prompts only once after rehearsal. The two remaining GG owner packets and the
+single-signer Tech and Sun packet retain their previous scope.
+
+Task record: Cosmo live pilot deployment | Type: fix | Outcome: repair prepared, validation/signing pending
+Agent/model: Codex / unknown | Coverage: user-reported implementation mismatch
+
+| Phase | Start → end (UTC) | Result / evidence or blocker |
+| --- | --- | --- |
+| Investigate | unknown → 2026-10-24 22:01:44 | Actual plan order, live implementation slots and unchanged deployer nonces. |
+| Implement | 2026-10-24 22:01:44 → ongoing | Contract-key selection and library constructor-only deployment handling. |
+| Verify | 2026-10-24 22:00:39 → ongoing | RED/GREEN regressions, real plan selection and independent live runtime hashes. |
+
+Human corrections: one observed (incorrect implementation ordering in the delivered verifier);
+attention: unknown.

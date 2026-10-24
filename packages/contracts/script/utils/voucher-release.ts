@@ -303,7 +303,8 @@ export function buildVoucherPlan(input: unknown, artifacts: VoucherArtifacts, so
       );
       if (!/^0x(?:[a-fA-F0-9]{2})+$/.test(bytecode) || !/^0x(?:[a-fA-F0-9]{2})+$/.test(runtimeTemplate))
         throw new Error(`Unresolved bytecode ${name}`);
-      const iface = new Interface(artifact.abi);
+      // Libraries take no constructor arguments; their Solidity-only enum ABI types are not deployment inputs.
+      const iface = new Interface(kind === "library" ? [] : artifact.abi);
       let initializer: string | undefined;
       let arguments_: unknown[] = [];
       if (kind === "implementation") arguments_ = [chain.router];

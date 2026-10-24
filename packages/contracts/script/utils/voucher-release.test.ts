@@ -1,5 +1,5 @@
 import { getAddress, getCreateAddress, Interface, keccak256 } from "ethers";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { buildVoucherPlan, inspectVoucherManifest, validateVoucherPlan, VOUCHER_CONTRACTS } from "./voucher-release";
 
 import { fixtureManifest } from "./voucher-release.fixtures";
@@ -116,6 +116,22 @@ describe("paused cross-chain voucher deployment planning", () => {
     const args = initializer.decodeFunctionData("initialize", entitlement.initializer!);
     expect(args[4]).toBe(adapter.address);
     expect(args[3]).toBe(100n);
+  });
+  it("keeps library deployment bytes unchanged without parsing library-only enum signatures", () => {
+    const artifacts = fixtureArtifacts();
+    const baseline = buildVoucherPlan(fixtureManifest(), artifacts, commit);
+    artifacts.VoucherServiceConsentLib.abi = ["function libraryState(VoucherServiceCodec.LegState state)"];
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const plan = buildVoucherPlan(fixtureManifest(), artifacts, commit);
+      expect(plan.transactions.map((t) => t.data)).toEqual(baseline.transactions.map((t) => t.data));
+      expect(log).not.toHaveBeenCalled();
+      expect(warn).not.toHaveBeenCalled();
+    } finally {
+      log.mockRestore();
+      warn.mockRestore();
+    }
   });
   it("links only reviewed library addresses and rejects foreign or unresolved links", () => {
     const a = fixtureArtifacts();

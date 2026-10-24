@@ -1,7 +1,9 @@
 // TEST-QUALITY: allow-small-test-file - Transaction envelope and canonicality failures must stop this one-shot operator before a deployment can become a completed checkpoint.
 import { describe, expect, it } from "vitest";
 import type { TransactionReceipt, TransactionResponse } from "ethers";
-import { assertDownstreamReceipt } from "./pilot-downstream";
+import type { SourceUpgradePlan } from "../utils/source-upgrade-release";
+import type { SourceExecutionJournal } from "../utils/source-upgrade-execution-types";
+import { assertDownstreamReceipt, sourceImplementationCheckpoint } from "./pilot-downstream";
 const sender = "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6";
 function fixture() {
   const tx = {
@@ -101,5 +103,59 @@ describe("downstream deployer receipt boundary", () => {
     expect(() => assertDownstreamReceipt(f.tx, f.bound, f.sent, f.receipt, "0x" + "55".repeat(32))).toThrow(
       "Canonical",
     );
+  });
+});
+
+describe("source implementation checkpoint identity", () => {
+  const pooling = "0xC186ee4BaA1094E73d33b8AFB519DF73Fe4F6c4d";
+  const settlement = "0xaa8bd756588d83262AFbBc47c573bADded2333ac";
+  function sourceFixture() {
+    const deployments = Array.from({ length: 23 }, (_, i) => ({
+      key: `fixture-library-${i}`,
+      kind: "library",
+      address: sender,
+    }));
+    deployments[14] = {
+      key: "src/modules/CommitmentPooling.sol:CommitmentPoolingModule",
+      kind: "implementation",
+      address: pooling,
+    };
+    deployments[22] = {
+      key: "src/modules/SettlementModule.sol:SettlementModule",
+      kind: "implementation",
+      address: settlement,
+    };
+    const completed = deployments.map((_, i) => ({
+      step: i + 1,
+      runtimeHash: "0x" + (i + 1).toString(16).padStart(64, "0"),
+    }));
+    return {
+      plan: { deployments } as Pick<SourceUpgradePlan, "deployments">,
+      completed: completed as SourceExecutionJournal["completed"],
+    };
+  }
+  it("selects the deployed Pooling implementation before the Settlement libraries", () => {
+    const f = sourceFixture();
+    const selected = sourceImplementationCheckpoint(f.plan, f.completed, "pooling");
+    expect(selected.planned.address).toBe(pooling);
+    expect(selected.checkpoint.step).toBe(15);
+  });
+  it("keeps the Settlement implementation paired with its own receipt", () => {
+    const f = sourceFixture();
+    const selected = sourceImplementationCheckpoint(f.plan, [...f.completed].reverse(), "settlement");
+    expect(selected.planned.address).toBe(settlement);
+    expect(selected.checkpoint.step).toBe(23);
+  });
+  it("rejects a missing implementation or its missing receipt checkpoint", () => {
+    const f = sourceFixture();
+    expect(() =>
+      sourceImplementationCheckpoint(
+        f.plan,
+        f.completed.filter((c) => c.step !== 15),
+        "pooling",
+      ),
+    ).toThrow("checkpoint");
+    f.plan.deployments[14].key = "wrong-contract";
+    expect(() => sourceImplementationCheckpoint(f.plan, f.completed, "pooling")).toThrow("checkpoint");
   });
 });

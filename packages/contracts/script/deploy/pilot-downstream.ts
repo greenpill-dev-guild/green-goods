@@ -40,6 +40,8 @@ import { NetworkManager } from "../utils/network";
 import { CONTRACTS_ROOT, getFoundryOutDir } from "../utils/paths";
 import { releaseRevision } from "../utils/release-inputs";
 import { writeReleaseJsonAtomic } from "../utils/release-artifacts";
+import { SOURCE_UPGRADE_TARGETS, type SourceUpgradePlan, type SourceTarget } from "../utils/source-upgrade-release";
+import type { SourceExecutionJournal } from "../utils/source-upgrade-execution-types";
 import { sourceUpgradeStateReaders } from "../utils/source-upgrade-readback";
 import { assertSourceBatchOuter, assertSourceBatchSuccess } from "../utils/source-upgrade-batch";
 
@@ -84,12 +86,26 @@ async function requiredCall(p: JsonRpcProvider, to: string, method: string, args
   const name = (abi.fragments[0] as any).name;
   return abi.decodeFunctionResult(name, await p.call({ to, data: abi.encodeFunctionData(name, args) }))[0];
 }
+export function sourceImplementationCheckpoint(
+  plan: Pick<SourceUpgradePlan, "deployments">,
+  completed: SourceExecutionJournal["completed"],
+  target: SourceTarget,
+) {
+  const index = plan.deployments.findIndex((deployment) => deployment.key === SOURCE_UPGRADE_TARGETS[target]);
+  const planned = plan.deployments[index];
+  const checkpoint = completed.find((entry) => entry.step === index + 1);
+  if (!planned || planned.kind !== "implementation" || !checkpoint?.runtimeHash)
+    throw Error(`Missing source ${target} implementation checkpoint`);
+  return { planned, checkpoint };
+}
+
 async function sourceProof(p: JsonRpcProvider) {
   const d = path.join(CONTRACTS_ROOT, ".generated/source-upgrades");
   const record = read(path.join(d, "voucher-source-upgrades.safe-batch.review.json"));
   const envelope = read(path.join(d, "voucher-source-upgrades.execution.json"));
   const manifest = read(path.join(CONTRACTS_ROOT, "config/source-upgrade-release.json"));
   const journal = read(path.join(d, "42161-source-upgrade-execution.json"));
+  const plan = read(path.join(d, "voucher-source-upgrades.plan.json"));
   const tx = await p.getTransaction(SOURCE_TX),
     receipt = await p.getTransactionReceipt(SOURCE_TX);
   if (!tx || !receipt || receipt.status !== 1 || tx.value !== 0n || tx.chainId !== 42161n)
@@ -141,10 +157,7 @@ async function sourceProof(p: JsonRpcProvider) {
         canonical(envelope.baseline.sources[target].preserved),
         "Preserved source state",
       );
-      const expected = journal.completed.find((e: any) => e.step === (target === "pooling" ? 22 : 23));
-      const planned = read(path.join(d, "voucher-source-upgrades.plan.json")).deployments[
-        target === "pooling" ? 21 : 22
-      ];
+      const { planned, checkpoint: expected } = sourceImplementationCheckpoint(plan, journal.completed, target);
       same(state.implementation, planned.address, "Source implementation");
       same(keccak256(await p.getCode(planned.address, at)), expected.runtimeHash, "Source implementation runtime");
     }
