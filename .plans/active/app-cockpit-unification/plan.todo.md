@@ -199,6 +199,15 @@ review threads are resolved, with the pairs reviewed afterwards. The code is on
 `feature/app-cockpit-tabs`: `AdminTabRail` takes the app's equal-width tabs at the cockpit's 36px
 height, with the tinted active cell, the underline and step 4's badge; from 640px each cell stops
 at 180px and the row keeps to the left. At 320px the Hub, Actions and the protocol garden's
-Community row cannot hold equal cells, so they scroll there as before; that call went to the
-orchestrator with two alternatives. DL-100 and its guide lines are the standards-only
+Community row cannot hold equal cells, so they scroll there as before. The orchestrator took that
+rule (option 1 of three) for the maintainer's review after merge, and DL-100 records it as a
+measured deviation from the pick. DL-100 and its guide lines are the standards-only
 `feature/app-cockpit-tabs-guides` ([handoff](handoffs/claude-ui.md#step-5-tabs-prd-1271)).
+
+**Step 21 (23 October).** The installed app's bottom bar takes the cockpit's pill in its green on
+`feature/app-cockpit-bar-pill`: a 56 × 32 pill of the new app-scoped `--primary-container` behind
+the line icon in `--primary-container-foreground`, the active label in ink at weight 600, and every
+tab holding the pill's width. The bar keeps its 69px, its chrome, its count badge and its focus
+behavior, and the cockpit's bar is unchanged
+([eval.md](eval.md#step-21-proof-the-bottom-bars-pill)). DL-107 and the guide wording are the
+standards-only `feature/app-cockpit-bar-pill-guides`.

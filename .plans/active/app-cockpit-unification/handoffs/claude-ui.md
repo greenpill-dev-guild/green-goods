@@ -230,7 +230,8 @@
 - Phones: at 320px the Hub's four cells (icon, label and count), Actions' five and the protocol
   garden's four-tab Community row cannot hold equal cells, so those rows scroll there, as they
   did before. Put to the orchestrator on 23 October with two alternatives (wrapping labels, and
-  hiding the Hub's icons on phones).
+  hiding the Hub's icons on phones); it took this rule, option 1, for the maintainer's review after
+  merge, and DL-100 records it as a measured deviation from the 18 October pick.
 - Proof: two `storybook-ci` stories on the rail. `EqualCellsOnDesktop` checks four 180px cells in
   a 720px row at its left edge, with the tint and underline following the selection;
   `FullWidthOnAPhone` checks Portuguese Garden labels whole at 12px across a 296px row with no
@@ -242,6 +243,24 @@
 - Found, not changed: the app's Promises sheet clips Portuguese "Em andamento" at 390 and 320px
   and Spanish "Por confirmar" at 320px. `TabBadge` itself left with #1204; the three Garden files
   that still name `TabBadgeSeverity` use it to type the Attention Needed alerts.
+
+## Step 21: bottom bar active pill (PRD-1288)
+
+- `feature/app-cockpit-bar-pill`, cut from `develop` `d84d48398`: `AppBar` draws each tab's line
+  icon in a 56 × 32 slot (`data-slot="icon"`) that paints `--primary-container` behind it, with the
+  icon in `--primary-container-foreground`, when the tab is active, and the active label
+  (`data-slot="label"`) in ink at weight 600. The filled icons are gone. The bar's padding goes from
+  12 to 8px, so it stays 69px. Shared `theme.css` sets the pair in the app presentation only:
+  green-100 behind green-900, swapped in dark, the cockpit's Garden pill.
+- Proof: the pairs ([eval.md](../eval.md#step-21-proof-the-bottom-bars-pill)), **mock-auth
+  localhost** for the app and **Storybook** for the cockpit, which did not change. No authenticated
+  class: the bar is outside the browser-proof paths. The display-mode test asserts `aria-current`,
+  and the story's plays guard the pill and the 69px.
+- Guides: DL-107 and the wording in both surface guides, `language.md`, the client prompt contract
+  and root `DESIGN.md`'s Quick Token Reference are the standards-only
+  `feature/app-cockpit-bar-pill-guides`.
+- Not in the step: the active tab hides its keyboard focus ring, and the other tabs draw the
+  browser's default ring rather than the app's focus role.
 
 ## TDD Proof
 
@@ -268,6 +287,8 @@
   two layout stories above, with the cap mutated away the desktop one fails; selection, keyboard
   and the accessible names keep their existing story and unit tests. Its look is `proof_limit` on
   the rendered pairs.
+  Step 21's bar pill is styling, `not_applicable` for RED and GREEN: its story plays fail when the
+  12px padding or the pill's fill comes back, and its look is `proof_limit` on the pairs.
 
 ## Validation Receipt
 
