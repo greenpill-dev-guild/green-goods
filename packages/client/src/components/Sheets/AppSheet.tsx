@@ -1,3 +1,4 @@
+import { CountBadge } from "@green-goods/shared/components/Badge/Badge";
 import { PwaSheet, type SheetSize } from "@green-goods/shared/components/Dialog/PwaSheet";
 import type { SheetActionsProps } from "@green-goods/shared/components/Dialog/SheetActions";
 import { cn } from "@green-goods/shared/utils/styles/cn";
@@ -113,16 +114,7 @@ export const AppSheet: FC<AppSheetProps> = ({
             </span>
           )}
           <span className="min-w-0 truncate whitespace-nowrap">{tab.label}</span>
-          {tab.count !== undefined && tab.count > 0 && (
-            <span
-              className={cn(
-                "inline-flex items-center justify-center text-xs font-medium rounded-full min-w-[16px] h-4 px-1 flex-shrink-0",
-                pwaSheetStyles.tabBadge
-              )}
-            >
-              {tab.count > 99 ? "99+" : tab.count}
-            </span>
-          )}
+          {tab.count !== undefined && <CountBadge count={tab.count} />}
           {tab.badge}
           {activeTab === tab.id && (
             <div

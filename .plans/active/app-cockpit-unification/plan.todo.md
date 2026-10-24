@@ -2,7 +2,7 @@
 
 **Feature Slug:** `app-cockpit-unification`
 **Stage:** active
-**Status:** ACTIVE: step 1's face and both halves of the type roles merged on 21 to 23 October, and the faces are served and precached; steps 1 to 3 merged on 23 October (#1197; #1191 and #1193; #1195 and #1196), with the installed-app Brave proof still pending; each later slice starts on its approved pair
+**Status:** ACTIVE: step 1's face and both halves of the type roles merged on 21 to 23 October, and the faces are served and precached; steps 1 to 3 merged on 23 October (#1197; #1191 and #1193; #1195 and #1196), with the installed-app Brave proof still pending; step 4's count badge was approved on its pair on 23 October and is in progress; each later slice starts on its approved pair
 **Created / Last Updated:** 2026-10-10 / 2026-10-23
 **Linear Issue:** PRD-1266
 **Linear Source:** source:plans
@@ -43,7 +43,8 @@ delivery step, listed under the sequence below. This plan stays the execution tr
       consolidation is tracked (17 October).
 - [ ] Lock each pick: render that pair from the real components and get it approved before rollout.
       Steps 1 to 3 rendered on 2026-10-20 ([eval.md](eval.md#design-gate-for-the-token-slices))
-      and approved on 2026-10-21.
+      and approved on 2026-10-21; step 4 rendered and approved on 2026-10-23
+      ([eval.md](eval.md#design-gate-for-the-count-badge)).
 - [x] Measure the typeface change in English, Spanish and Portuguese at 320 to 390px (2026-10-20).
 - [x] Re-run the contrast audits on the accepted ground and dark ladder (2026-10-20).
 - [x] Approve the first slice and promote the hub only when execution is authorized (the token
@@ -64,7 +65,7 @@ bounded change, and split a step that would mix independent behaviours.
 | 1. Typeface and type roles (F1) | `ui` | One family on both surfaces: the app's font links, its `index.css`, the static loading screen. One set of role names (title, body, label, meta) at each surface's sizes. The face merged as #1172 and the cockpit's roles as #1175, with their guide wording in #1176 (21 and 22 October); the shared components' roles as #1188, with theirs in #1187 (23 October). #1190 served and precached the faces (the offline face from #1172's review); #1197, the vietnamese subset it left out, finished the step's code on 23 October. | Width pairs in three languages at phone widths; the typography and loading-screen guards pass with updated expectations; no Material role name left in the cockpit's views; for the offline face, RED/GREEN proof and labeled authenticated Brave proof that an installed app's first launch with no network draws Plus Jakarta Sans. |
 | 2. Ground and dark ladder (F2, F13) | `ui` | App-scope surface tokens and one dark ladder in Shared `theme.css`; the cockpit's dark card step. With them (21 October): the dark text lifts, the error action fill on the cockpit's error screen, the app's tab row and garden title block on their ground, and the status bar and manifest per presentation. Merged as #1191 with its guides #1193 (23 October). | Contrast audit on the new ground; rendered pairs in light and dark; the public website unchanged. |
 | 3. Control boundary and focus role (F3, part) | `ui` | A 3:1 outline token for secondary buttons, chips and fields; one focus-ring role, with the app's ring in its own green, drawn as a solid 2px ring in place of the halo; the app's button labels at weight 500 (21 October). Merged as #1195 with its guides #1196 (23 October). | Measured ratios in both themes; focus ring visible on every control family. |
-| 4. Count badge (F10) | `ui` | One badge recipe in Shared; the app's bar, launchers, filter count and tabs and the cockpit's tab rail consume it. | Every consumer renders the same badge; counts above 9 and 99 still fit. |
+| 4. Count badge (F10) | `ui` | One badge recipe in Shared; the app's bar, launchers, filter count and tabs, a garden's notification bell, and the cockpit's tab rail consume it. Approved on 23 October with the bar's 9+, the tone's accent on every cockpit tab, and the unused `TabBadge` removed ([spec.md](spec.md#count-badge-approved-23-october)). | Every consumer renders the same badge; counts above 9 and 99 still fit. |
 | 5. Tabs (F8) | `ui` | The cockpit's tab rail takes the equal-width tinted layout and the shared badge. On desktop each tab is at most 180px wide and the row aligns left; phones keep full-width tabs. | Rendered pairs of every tab row at phone, tablet and desktop widths in three languages. |
 | 6. Chips (F4) | `ui` | Capsule chips with one selected treatment in the cockpit's filter row. The filter control keeps its form on each surface (the F9 pick). | One chip shape on both; DL-082 scopes unchanged; keyboard and screen-reader paths unchanged. |
 | 7. Cards, rows and list gap (F7, F11) | `ui` | The app's card as the one card surface (24px, a visible edge, a faint shadow) in place of the five card primitives; the shared item row in the app's work-row style (16px corner, the 2px status edge) as locked on 18 October: card titles 15px in the app and 13px in the cockpit, card details and labels 11px (moved here from step 1 on 21 October), one 88px height, an 88px photo or a lead icon tile, a one-line title, the status pill under the title, one detail line by the spec's detail-line rules, and the row's one action in its right slot; first used by the work item on phones on both surfaces, the cockpit's phone queue included (a steward who sorts by photo checks it on the pair); a 12px list gap token. | Rendered pairs of every list at every width; a visible card edge in both themes; every row in a list one height; no detail line wraps at 320, 360 or 390px in English, Spanish or Portuguese. |
@@ -182,3 +183,13 @@ measured ratios and the ring on each control family.
 commit on a green CI Gate: #1193, #1191, #1196, #1195, then #1197. The
 [UI handoff](handoffs/claude-ui.md#lane) records each merge's commit and time. Still pending:
 the labeled authenticated Brave proof for steps 1 and 2.
+
+**Step 4 (23 October).** The design gate rendered every count before and after
+([eval.md](eval.md#design-gate-for-the-count-badge)), and the maintainer approved the pairs with
+all six recommendations the same day ([spec.md](spec.md#count-badge-approved-23-october)). The
+code is on `feature/app-cockpit-count-badge`: Shared's `CountBadge` on the existing Badge export
+and its `.gg-count-badge` rule, the eight components that drew a count moved onto it, root
+`DESIGN.md`'s `count` type and Counts line, and the unused `TabBadge` removed. Its guide wording
+and DL-099 are the standards-only `feature/app-cockpit-count-badge-guides`, which also adds the
+count badge to the cockpit's tone budget in Rule 18. Raising Community's action fill to
+orange-800 is not in the step; it gets its own pair.

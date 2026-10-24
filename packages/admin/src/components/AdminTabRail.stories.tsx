@@ -19,7 +19,7 @@ const meta: Meta<typeof AdminTabRail> = {
           "Anatomy:",
           "- Rail: flex row, 4px gap, hairline bottom rule on the warm stone border step",
           "- Tab: 10px 16px padding, 14px text; active weight 600 in the workspace accent + 2px underline (tone use 1 of 3); inactive weight 500 sub ink, hover darkens text only",
-          "- Count badge: 1px 8px pill, 12px/600 — active `tone-primary-container` / `on-primary-container`, inactive the neutral chip pair",
+          "- Count badge: the shared `CountBadge`, 16px with 11px/600 numerals on the workspace tone's accent, the same on every tab",
           "- Hovers never shift hue or background — text darken only",
           "",
           "**Accessibility**:",
