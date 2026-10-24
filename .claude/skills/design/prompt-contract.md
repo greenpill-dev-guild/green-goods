@@ -194,7 +194,7 @@ Form selects use `AdminSelect` (full field anatomy, the label above, chevron slo
 
 (`AdminBadge`, `AdminFab`, and `AdminListItem` were deleted 2026-08-29. Do not reintroduce them; the nav-shell FAB is `Shell/FabButton`.)
 
-All sit on the compact metric and the reduced admin shape scale, 4/8/12/16/9999 (`--m3-shape-xs/sm/md/lg/full`), except `AdminCard`, which takes the shared card's 24px corner from `.gg-card` (DL-102). Do not override dimensions, state layers, or shape scale.
+All sit on the compact metric and the reduced admin shape scale, 4/8/12/16/9999 (`--m3-shape-xs/sm/md/lg/full`), except `AdminCard`, which takes the shared card's 24px corner from `.gg-card` (DL-102). Do not override dimensions, state layers, or shape scale. Where a shared piece fits, the wrapper draws it in place: `AdminCard` is the shared card and `AdminListRow` takes the shared row corner, while `AdminSelectableCard`, `AdminTabRail`, `AdminTooltip`, `AdminLinearProgress` and `AdminViewActions` have no shared counterpart and keep their anatomy (DL-118).
 
 **Shared primitives** (import from `@green-goods/shared`):
 - Admin dashboard dialogs use `AdminDialog` / `AdminConfirmDialog` (centered M3, scrim, pinned `actions`; `palette` variant for the command palette, `flow` variant + `ADMIN_FLOW_DIALOG_CLASS` for full-surface action flows). `DialogShell` is for shared or non-admin (client PWA) surfaces only. Do not use it for admin dashboard dialogs. See the admin.mdx Dialog Contract.
