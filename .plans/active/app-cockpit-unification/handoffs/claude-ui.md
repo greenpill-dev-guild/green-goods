@@ -214,6 +214,27 @@
 - Not in the step: Community's action fill (orange-700) carries white text at 4.0:1; raising it to
   orange-800 takes its own pair.
 
+## Step 6: capsule chips (PRD-1272)
+
+- The pick (F4) was locked on 18 October; the pairs are acceptance evidence
+  ([eval.md](../eval.md#step-6-proof-capsule-chips)).
+- `feature/app-cockpit-chips`, cut from `develop` `5c76ca2b6` and merged with `d84d48398`:
+  `AdminFilterChip` is a 32px capsule (`--m3-shape-full`) whose selected state fills with
+  `--tone-action` and labels in `--tone-on-action`, with no outline and no check mark (DL-065);
+  its neutral state layer paints beneath the label (`m3-state-layer-beneath`, #1206) and its
+  focus ring is a 2px outline 2px off the chip. `AdminInputChip` takes the capsule in its own
+  commit. Storybook: a `WorkspaceToneMatrix` story in the CI run, the capsule in
+  `ADMIN.chip()`, and the Admin pages' tone cards and shape notes.
+- Proof: the CI story walks all four workspace tones in light and dark by keyboard (capsule, tone
+  pair, focus outline, widths that hold when the selection moves); the admin tests that render
+  both chips pass. The look is the pairs: **Storybook** for the cockpit and **mock-auth localhost**
+  for the app's unchanged chips, no authenticated class. TDD `not_applicable` (styling only).
+- Guides: DL-101 and the sixth tone use in Rule 18, both surface guides' lines, the prompt
+  contract, the review checklist, `implementation.md` and `language.md` are the standards-only
+  `feature/app-cockpit-chips-guides`, with token version 2.26.0.
+- Not in the step: the shared `Chip` the cockpit renders (`ConfidenceSelector`, `AssetSelector`)
+  still selects in the app's green, not the workspace tone.
+
 ## Step 21: bottom bar active pill (PRD-1288)
 
 - `feature/app-cockpit-bar-pill`, cut from `develop` `d84d48398`: `AppBar` draws each tab's line
