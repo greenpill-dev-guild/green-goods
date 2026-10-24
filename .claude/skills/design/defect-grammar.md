@@ -82,7 +82,7 @@ If the user's description can't be mapped to a canonical `Admin*` wrapper or reg
 
 | Type | What it describes | First-check |
 |------|-------------------|-------------|
-| `spacing` | Padding, gap, margin. Includes concentricity (`child_radius = parent_radius − padding`). | M3 anatomy token + parent radius. |
+| `spacing` | Padding, gap, margin. Includes concentricity (`child_radius = parent_radius − padding`). | The surface's spacing token + parent radius. |
 | `alignment` | Horizontal/vertical alignment inside a container. | Flex/grid direction, `items-*`, `justify-*`. |
 | `contrast` | Token pair mismatch (fg/bg), WCAG failure, disabled state too subtle. | Role token pair (`--m3-on-surface` over `--m3-surface-*`). |
 | `state-layer` | Hover, pressed, focused, selected, disabled: missing, wrong opacity, or wrong color. | M3 state layer percentages (8/12/12/16). |
