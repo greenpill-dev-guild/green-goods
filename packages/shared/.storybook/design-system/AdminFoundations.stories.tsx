@@ -163,7 +163,7 @@ export const Tokens: Story = {
         </div>
       </Section>
 
-      <Section id="tones" title="Workspace tones" lede="The tone appears in exactly five places: the active tab, the active nav pill, one filled header action, the FAB fill, and a selected filter chip (DL-101), plus the faint canvas wash. Each card below sets data-tone and shows its filled action, active tab, and selected chip.">
+      <Section id="tones" title="Workspace tones" lede="The tone appears in exactly six places: the active tab, the active nav pill, one filled header action, the FAB fill, the count badge on every tab of the rail, and a selected filter chip (DL-101), plus the faint canvas wash. Each card below sets data-tone and shows its filled action, a selected chip, and its tab rail with a count.">
         <div className="sb-ds-row">
           {TONES.map((tone) => (
             <div key={tone} data-tone={tone} className="sb-specimen" style={{ flexBasis: 220 }}>

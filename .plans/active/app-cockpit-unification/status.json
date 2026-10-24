@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-10-10T09:56:00.510Z",
-    "updated_at": "2026-10-23T21:27:24.737Z"
+    "updated_at": "2026-10-23T22:51:45.239Z"
   },
   "links": {
     "brief": "brief.md",
@@ -59,7 +59,7 @@
     "ui": {
       "owner": "claude",
       "status": "in_progress",
-      "branch": null,
+      "branch": "feature/app-cockpit-count-badge",
       "depends_on": [],
       "handoff": "handoffs/claude-ui.md",
       "tdd": {
@@ -73,7 +73,7 @@
           "command": "PLAYWRIGHT_JSON_OUTPUT_FILE=<file> bun run browser e2e --preset pwa-preview -- --workers=1 --reporter=line,json",
           "evidence": "2026-10-23, develop 65df3ad13 (#1190 served and precached the faces): 1 passed (55.3s). With #1197's vietnamese faces on fix/app-vietnamese-font-subset 1f00b560e: 1 passed (1.2m)."
         },
-        "note": "Required because step 1's offline face changes service-worker behavior: #1190 served and precached the faces, and #1197 adds their vietnamese subset; RED and GREEN were recorded on 2026-10-23 with the pwa-preview spec. Step 1's face and role names change no behavior and prove themselves with the rendered pairs, the typeface fit audit and the design and typography guards. Step 2 is pure styling (not_applicable); step 3's solid focus ring is rendered-only behavior (proof_limit, with its rendered evidence in #1195)."
+        "note": "Required because step 1's offline face changes service-worker behavior: #1190 served and precached the faces, and #1197 adds their vietnamese subset; RED and GREEN were recorded on 2026-10-23 with the pwa-preview spec. Step 1's face and role names change no behavior and prove themselves with the rendered pairs, the typeface fit audit and the design and typography guards. Step 2 is pure styling (not_applicable); step 3's solid focus ring is rendered-only behavior (proof_limit, with its rendered evidence in #1195). Step 4's count badge is a styling recipe with one small component: its cap and its nothing-below-one rule are covered by a focused test (a mutated cap fails it), and its look by the approved pairs (proof_limit)."
       },
       "skill_tags": ["ui", "design", "react"],
       "ready_when_dependencies_met": true,
@@ -304,6 +304,14 @@
       "status": "in_progress",
       "branch": "feature/app-cockpit-ground-ladder",
       "note": "Steps 1 to 3 merged on 2026-10-23 (#1193, #1191, #1196, #1195, #1197); step 4 starts on its own approved pair"
+    },
+    {
+      "timestamp": "2026-10-23T22:51:45.243Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/app-cockpit-count-badge",
+      "note": "Step 4's count badge pairs approved on 2026-10-23 with all six recommendations; code on feature/app-cockpit-count-badge, guide wording and DL-099 on feature/app-cockpit-count-badge-guides"
     }
   ]
 }
