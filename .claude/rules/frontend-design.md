@@ -87,13 +87,13 @@ Use `flex-1` on cards that should expand vertically within a flex container.
 
 ## Rule 8: Thumbnails
 
-Entity references in lists (gardens, actions) include small thumbnails — 40px for generic lists — using `ImageWithFallback` or letter fallbacks. Shipped variants are sanctioned: `GardenChip`'s 22px avatar and `HubWorkCard`'s media mosaic.
+Entity references in lists (gardens, actions) include small thumbnails — 40px for generic lists — using `ImageWithFallback` or letter fallbacks. Shipped variants are sanctioned: `GardenChip`'s 22px avatar, `HubWorkCard`'s media mosaic, and the shared `ItemRow`'s lead, the item's own square photo as tall as the row or a 56px icon tile (DL-102).
 
 ## Rule 9: Typography Utilities
 
 Text takes its size from the type scale, never from a raw Tailwind size (`text-xs` … `text-2xl`). That scale is the type roles: shared components use them on both surfaces (root `DESIGN.md` § Typography), and in admin each is at the cockpit's density (`packages/admin/DESIGN.md` § Typography):
 
-- `type-title-lg` 22/28 for dialog, sheet, flow, and step titles and full-page state headings; a step title takes its flow title's size through `FlowStepHeader`, above the step's 16px section titles and 14px rows (DL-063) · `type-title-md` 16/24 for route headers, card and section titles, and metric values · `type-title-sm` 14/20. Titles are weight 600.
+- `type-title-lg` 22/28 for dialog, sheet, flow, and step titles; a step title takes its flow title's size through `FlowStepHeader`, above the step's 16px section titles and 14px rows (DL-063) · `type-title-md` 16/24 for route headers, card and section titles, state titles (the state block, DL-106), and metric values · `type-title-sm` 14/20. Titles are weight 600.
 - `type-body` 14px body · `type-label` 14px labels (500), every button size · `type-label-sm` 12px label (500) · `type-meta` 12px meta and supporting text · `type-meta-sm` 11px for chips and the smallest supporting lines.
 - `type-field` for field text and checkbox and choice labels: 16px on touch widths, 14px from 640px (DL-030).
 
@@ -153,6 +153,13 @@ patterns, with the shared `TextInput`, `Textarea`, `NativeSelect`, `Switch`,
 `<input>`, `<textarea>`, or `<select>` with its own classes (Rule 19). Fields are 16px on the
 default surface and an underline on the public editorial surface (DL-022, DL-024). Mark required fields in both surfaces (the admin family renders
 its own aria-hidden asterisk from `required` — never hardcode `" *"` into label strings).
+
+**The installed app and the cockpit** lay a field out one way (DL-105): the label above an
+outlined control, at the field title's 14px / 500, and a message line under it that reserves two
+lines for a hint or an error, so a message that fits never moves the form. The admin family,
+`FormField`, `FormattedAmountInput` and `DatePicker` draw that line with the shared
+`gg-field-message`, and the admin family and the date picker take the shared `gg-field-label`;
+each surface keeps its own corner and heights.
 
 **A field-input label is never a hand-rolled eyebrow.** Labeling an input, toggle, or
 selectable-card group with `type-label-sm text-text-soft` (the eyebrow/metadata token) makes that
@@ -239,9 +246,9 @@ Otherwise: trust the chrome. Anti-pattern guard for review: search the rendered 
 
 The six enforceable invariants of the admin cockpit finish — treat violations as design regressions:
 
-- **Single elevation ladder** — `--m3-elevation-0/1/2` plus `--admin-chrome-shadow` (floating nav/FAB chrome) are the only shadows.
-- **Admin radius set** — 4/8/12/16/9999px only; no 20/24/28px radii (`rounded-xl`/`rounded-2xl` remap to 16px in admin).
-- **Six-use tone budget** — workspace tone appears only in the active tab underline/label, the active nav pill, at most one filled `--tone-action` header action (none on a review surface such as the Hub, DL-043), the nav-shell FAB fill, the shared `CountBadge` on every tab of the rail, filled with `--tone-on-surface-accent` (DL-099), and a selected `AdminFilterChip`, filled with `--tone-action` (DL-101), plus the faint canvas wash.
+- **Single elevation ladder** — `--m3-elevation-0/1/2` plus `--admin-chrome-shadow` (floating nav/FAB chrome) are the only shadows, besides the shared bottom sheet's float shadow on a dialog or the side sheet below 640px (DL-104) and the shared card's faint shadow (`--gg-card-shadow`, DL-102).
+- **Admin radius set** — 4/8/12/16/9999px plus the shared card's 24px corner (`--gg-card-radius`, DL-102); no 20 or 28px radii (`rounded-xl`/`rounded-2xl` remap to 16px in admin, so a card takes its corner from `.gg-card`, never from a `rounded-*` utility).
+- **Six-use tone budget** — workspace tone appears only in the active tab (its 10% accent tint, label and 2px underline, DL-100), the active nav pill, at most one filled `--tone-action` header action (none on a review surface such as the Hub, DL-043), the nav-shell FAB fill, the shared `CountBadge` on every tab of the rail, filled with `--tone-on-surface-accent` (DL-099), and a selected `AdminFilterChip`, filled with `--tone-action` (DL-101), plus the faint canvas wash. The focus role (DL-098), which rings focus and marks the record a list has open with a 3px border (DL-103), is not counted.
 - **Hover rule** — hovers are an elevation step-up or the neutral ink layer `rgb(var(--m3-on-surface) / 0.08)`, painted beneath the label on a filled control (`m3-state-layer-beneath`) so a hovered or pressed label keeps its rest contrast; never translate/scale lifts or hue shifts.
 - **AdminButton only** — pill shape, one 14px label at every size, Title Case action labels (en; DL-012); admin views never render the shared `Button` (`gg-button`; `EmptyState` takes an `AdminButton` element as its action). Control heights ride the DL-011 compact metric (buttons 28/32/40 with a 44px finger box on every tier, fields 44 on touch widths and 40 from 640px, pills and tabs 36; DL-030).
 - **Shared pieces ride the shared family** — the shared components the cockpit renders (FileUploadField, DatePicker, ConfidenceSelector, AudioRecorder, ImagePreviewDialog, toast actions, AssetSelector, AddressDisplay, Alert) keep their shared `Button` / `IconButton` / `Chip` / control anatomy, and `index.css` sets the family's `--gg-*` tokens so they land on the cockpit metric: pills, one 14px label, lg and md on 40, sm on 32, compact on 28, a 44px finger box, and the responsive field tier through `surface="admin"` (DL-031). Never restyle a shared piece from admin; move the token.
