@@ -323,3 +323,15 @@ merged as #1235 ([handoff](handoffs/claude-ui.md#step-19-unused-card-code-prd-12
 steps 16 and 18: `VaultPositionCard`, `WorkbenchRow` and the `glass-raised` left on `WorkbenchCard`
 and `WorkbenchList`, and the app's `GardenCard` and work row module, which share their Shared
 card's name.
+
+**Step 19, second pass (24 October).** With steps 14 to 18 on `develop`, the second pass removes
+the last cards nothing rendered: Shared's `VaultPositionCard`, the cockpit's `GardenYieldCard` and
+its strings, `WorkbenchRow`, and `WorkbenchList` with the Hub skeleton's row variant, its only
+user. `WorkbenchCard`, the Actions workspace's card, leaves `glass-raised` for the shared card
+surface, so that utility goes, and the app's work row module takes its component's name,
+`MinimalWorkCard`. `SkeletonCard`, the cell of the cockpit's route fallback grid, stays exported
+with its reason recorded. Step 16 had already deleted the app's `GardenCard` wrapper. The code is
+`feature/app-cockpit-unused-card-code-pass-2`, and the guide wording is the standards-only
+`feature/app-cockpit-unused-card-code-pass-2-guides`, #1246
+([handoff](handoffs/claude-ui.md#step-19-unused-card-code-prd-1286),
+[eval.md](eval.md#step-19-proof-second-pass)).

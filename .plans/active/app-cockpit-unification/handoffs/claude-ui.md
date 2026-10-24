@@ -664,15 +664,47 @@ Human corrections: 0 observed; attention: unknown.
   cockpit and the strips' stories and **mock-auth localhost** for the app's strips
   ([eval.md](../eval.md#step-19-proof-unused-card-code-and-solid-surfaces)). No authenticated
   class: none of the changed files is on a browser-proof path.
-- **The second pass**, after steps 14 to 18 merge: `VaultPositionCard`, which nothing renders
-  (step 18's object); `WorkbenchRow`, which nothing renders, and the `glass-raised` that
-  `WorkbenchCard` and `WorkbenchList` still carry (step 16's records); and the two app wrappers
-  that share their Shared card's name, `GardenCard` and the work row's `Cards/Work/WorkCard`
-  module (step 16 makes the garden card a media card).
+- **The second pass** is `feature/app-cockpit-unused-card-code-pass-2`, cut from `develop`
+  `796e9e1bb` after #1242 merged. Its guide wording is the standards-only
+  `feature/app-cockpit-unused-card-code-pass-2-guides` (#1246). Step 16 had already deleted the
+  app's `GardenCard` wrapper.
+- **Removed in the second pass, nothing rendered them:** Shared's `VaultPositionCard` and the
+  cockpit's `GardenYieldCard` (step 18 left both), with their stories and tests and the thirteen
+  strings only the yield card read; `WorkbenchRow`, whose status pill classes and `WorkbenchTone`
+  moved into `WorkbenchCard`; and `WorkbenchList`, with the Hub skeleton's `row` variant, the only
+  thing that drew it. No queue asked for that variant: the work queue waits on media card
+  placeholders and the confirm queue on card placeholders. The `./components/Canvas/WorkbenchList`
+  export goes, so the API index and the seam fingerprints are regenerated.
+- **Solid:** `WorkbenchCard`, the Actions workspace's card, draws the shared card surface
+  (`.gg-card`, DL-102) in place of `glass-raised`. The cockpit's override for `glass-raised` had
+  already painted the same fill, so in the cockpit the card gains only the 1px card edge and the
+  24px corner, which it now takes from `.gg-card` instead of `rounded-2xl` (Rule 18). It still
+  lifts on hover and marks a selected card with the older 2px focus edge until it moves onto the
+  media card or item row. The `glass-raised` utility, that override and the workbench row's
+  cockpit rules are gone, so `glass-surface` on `MainSheet` is the last glass utility.
+- **Renamed:** the app's work row module `Cards/Work/WorkCard.tsx` is now
+  `Cards/Work/MinimalWorkCard.tsx`, after the component it holds, so it no longer shares Shared's
+  `WorkCard` name. Its `StatusBadge` re-export, which nothing imported, goes.
+- **Kept, with its reason:** `SkeletonCard` is the cell `SkeletonGrid` draws for the cockpit's
+  route fallback (`packages/admin/src/routes/views.tsx`); it stays exported with the Skeleton leaf,
+  whose stories show it. Every other Shared card export has a consumer, and no two card components
+  or card modules share a name (`views/Public/Fund.tsx` names its lazy import of the app's
+  `PublicFundingCard` after the component it loads).
+- Proof for the second pass: the Shared, app and cockpit suites and typechecks, and the pairs,
+  **Storybook** for the workbench card, the Actions workspace and the Hub skeletons and
+  **mock-auth localhost** for the cockpit's Actions workspace
+  ([eval.md](../eval.md#step-19-proof-second-pass)). No authenticated class: none of the changed
+  files is on a browser-proof path.
 - Not in the step: Shared's `MainSheet` still carries `glass-surface` and renders only in cockpit
   stories; the cockpit's glass guard in `check-tokens.sh` scans `packages/admin/src` only, which is
-  how the glass in Shared and the app went unflagged; and when the app is offline in a mobile
-  browser the 16px offline strip covers only the top of the 24px install strip.
+  how the glass in Shared and the app went unflagged; when the app is offline in a mobile browser
+  the 16px offline strip covers only the top of the 24px install strip; the confirm queue waits on
+  a grid of card placeholders but loads a list of decision rows, so it changes shape when it loads;
+  `SkeletonGrid`'s cell draws its own card (`rounded-xl`, `shadow-sm`) rather than `.gg-card`;
+  Shared's `MIN_YIELD_THRESHOLD_USD` lost its last reader with the yield card; and the app's own
+  `Card` has five parts nothing renders (`CardHeader`, `CardTitle`, `CardDescription`,
+  `CardContent`, `CardFooter`). The step covers Shared's card exports and shared names, so these
+  are left for a later cleanup.
 
 ## TDD Proof
 

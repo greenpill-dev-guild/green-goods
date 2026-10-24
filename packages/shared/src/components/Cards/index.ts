@@ -36,8 +36,6 @@ export {
 } from "./MediaCard";
 // PersonRow: one person in a list on both surfaces, an item row led by their avatar
 export { PersonRow, type PersonRowProps } from "./PersonRow";
-// VaultPositionCard
-export { VaultPositionCard, type VaultPositionCardProps } from "./VaultPositionCard";
 // WorkCard
 export {
   WorkCard,

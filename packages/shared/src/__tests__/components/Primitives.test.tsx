@@ -26,7 +26,7 @@ vi.mock("react-intl", () => ({
 import type { FabConfig, CanvasMobilePrimaryAction } from "../../components";
 import {
   EmptyStateShell,
-  WorkbenchRow,
+  WorkbenchCard,
   FabProvider,
   RefreshActionProvider,
   useCanvasResponsiveFab,
@@ -150,23 +150,23 @@ describe("Canvas Primitives", () => {
     cleanup();
   });
 
-  it("renders workbench rows as buttons when actionable", async () => {
+  it("renders workbench cards as buttons when actionable", async () => {
     const onClick = vi.fn();
 
     render(
-      <WorkbenchRow
-        eyebrow="Work"
-        title="Review greenhouse update"
-        description="Action 12 · 0x1234...5678"
-        meta={["Pending", "2m ago"]}
-        statusLabel="Pending"
+      <WorkbenchCard
+        eyebrow="Agroforestry"
+        title="Native canopy planting"
+        description="Restoring shade trees along the eastern ridge."
+        meta={["Upcoming", "8 fields"]}
+        statusLabel="Upcoming"
         statusTone="pending"
         leadingIcon={StubIcon}
         onClick={onClick}
       />
     );
 
-    await user.click(screen.getByRole("button", { name: /Review greenhouse update/i }));
+    await user.click(screen.getByRole("button", { name: /Native canopy planting/i }));
     expect(onClick).toHaveBeenCalledOnce();
   });
 
