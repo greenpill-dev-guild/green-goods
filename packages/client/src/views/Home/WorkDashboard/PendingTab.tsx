@@ -329,7 +329,7 @@ export const PendingTab: React.FC<PendingTabProps> = ({
           description={intl.formatMessage({ id: "app.workDashboard.pending.description" })}
         />
       ) : (
-        <ul className="flex flex-col gap-3 px-4 pb-6" data-testid="pending-list">
+        <ul className="flex flex-col gap-(--gg-list-gap) px-4 pb-6" data-testid="pending-list">
           {shown.map((row) => (
             <li key={row.id} className="cv-draft-card">
               <PendingRowCard

@@ -1,6 +1,11 @@
+import enMessages from "@green-goods/shared/i18n/en.json";
+import esMessages from "@green-goods/shared/i18n/es.json";
+import ptMessages from "@green-goods/shared/i18n/pt.json";
 import type { Meta, StoryObj } from "@storybook/react";
+import { IntlProvider, useIntl } from "react-intl";
 import { expect, fn, within } from "storybook/test";
 import { FIXTURE_WORK_MEDIA } from "../../../../../shared/.storybook/fixtures";
+import { expectItemRowsFit } from "../../../../../shared/.storybook/itemRowFit";
 import { PendingCard, type PendingCardProps } from "./PendingCard";
 
 const discard = { onDiscard: fn(), discardLabel: "Discard Compost Turn" };
@@ -76,10 +81,11 @@ const KINDS: Record<string, PendingCardProps> = {
 };
 
 /**
- * One row of Your Work › Pending (D12, D13, D20): the draft card's 88px frame
- * for every kind, the 12px pill top right and the guarded Discard bottom right.
- * The status edge marks blocked work in error, work to upload and anything
- * being checked in information, and work in review in stroke.
+ * One row of Your Work › Pending (D12, D13, D20) on the shared item row (F7): the
+ * 88px frame for every kind, the pill under the title, where it stands and when on
+ * one detail line, and the guarded Discard in the right slot. A promise's mark sits
+ * on the photo. The status edge marks blocked work in error, work to upload and
+ * anything being checked in information, and work in review in stroke.
  */
 const meta: Meta<typeof PendingCard> = {
   title: "Client/Cards/PendingCard",
@@ -101,6 +107,7 @@ export const Blocked: Story = {
     // The status pill, 22px tall (D21), at the 11px size both surfaces share.
     expect(pill.getBoundingClientRect().height).toBeCloseTo(22, 0);
     expect(canvas.getByRole("button", { name: "Discard Compost Turn" })).toBeInTheDocument();
+    await expectItemRowsFit(canvasElement);
   },
 };
 
@@ -123,10 +130,10 @@ export const Checking: Story = {
 
 export const InReview: Story = { args: KINDS.inReview };
 
-/** Every kind in the list's order, at the width the titles have to share with the pill. */
+/** Every kind in the list's order: one height, 12px apart. */
 export const EveryKind: Story = {
   render: () => (
-    <ul className="flex flex-col gap-3">
+    <ul className="flex flex-col gap-(--gg-list-gap)">
       {Object.entries(KINDS).map(([name, props]) => (
         <li key={name}>
           <PendingCard {...props} onOpen={fn()} />
@@ -134,4 +141,82 @@ export const EveryKind: Story = {
       ))}
     </ul>
   ),
+  play: async ({ canvasElement }) => {
+    await expectItemRowsFit(canvasElement);
+  },
+};
+
+const CATALOGS = { en: enMessages, es: esMessages, pt: ptMessages } as const;
+
+/** Each kind with the list's longest real words, in the reader's language. */
+function LocalizedKinds() {
+  const intl = useIntl();
+  const text = (id: string, values?: Record<string, string | number>) =>
+    intl.formatMessage({ id }, values);
+  const saved = text("app.pending.meta.savedToday", { time: "9:40 AM" });
+  const rows: PendingCardProps[] = [
+    { ...KINDS.blocked, pill: text("app.pending.pill.cantUpload"), meta: saved },
+    {
+      ...KINDS.toUpload,
+      pill: text("app.uploads.chip.toUpload"),
+      meta: saved,
+      status: text("app.pending.status.uploadsWhenConnected"),
+    },
+    {
+      ...KINDS.proof,
+      pill: text("app.uploads.chip.toUpload"),
+      meta: saved,
+      status: text("app.pending.status.sendItWhenConnected"),
+    },
+    {
+      ...KINDS.draft,
+      pill: text("app.draft.status"),
+      status: text("app.pending.status.draft", { step: 2, count: 3 }),
+    },
+    {
+      ...KINDS.checking,
+      pill: text("app.uploads.chip.checking"),
+      meta: saved,
+      status: text("app.pending.status.checkAgainWhenConnected"),
+    },
+    {
+      ...KINDS.inReview,
+      pill: text("app.pending.pill.inReview"),
+      meta: text("app.pending.meta.submitted", { date: "Oct 2" }),
+    },
+  ];
+  return (
+    <>
+      {rows.map((row) => (
+        <PendingCard key={row.title} {...row} onOpen={fn()} />
+      ))}
+    </>
+  );
+}
+
+/**
+ * Done when (PRD-1273): every row is one height, and no detail line wraps at 320, 360 or
+ * 390px (the sheet's list width there) in English, Spanish or Portuguese. A reason too
+ * long for the row ends in an ellipsis; a detail that does not fit drops whole.
+ */
+export const FitsEveryLanguage: Story = {
+  globals: { viewport: { value: "desktop" } },
+  render: () => (
+    <div className="flex flex-col gap-8">
+      {(Object.keys(CATALOGS) as (keyof typeof CATALOGS)[]).map((locale) => (
+        <IntlProvider key={locale} locale={locale} messages={CATALOGS[locale]}>
+          <section className="flex flex-wrap items-start gap-4" data-locale={locale}>
+            {[288, 328, 358].map((width) => (
+              <div key={width} className="flex flex-col gap-(--gg-list-gap)" style={{ width }}>
+                <LocalizedKinds />
+              </div>
+            ))}
+          </section>
+        </IntlProvider>
+      ))}
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    await expectItemRowsFit(canvasElement);
+  },
 };

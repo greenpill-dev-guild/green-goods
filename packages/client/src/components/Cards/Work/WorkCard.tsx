@@ -1,8 +1,9 @@
+import type { ItemRowTone } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import { WorkCard as SharedWorkCard } from "@green-goods/shared/components/Cards/WorkCard/WorkCard";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
-import type { Work, WorkDisplayStatus } from "@green-goods/shared/types/domain";
-import { formatAddress, formatEnsNameForDisplay } from "@green-goods/shared/utils/app/text";
+import type { Work } from "@green-goods/shared/types/domain";
+import { formatAddress } from "@green-goods/shared/utils/app/text";
 import { toWorkDisplayTitle } from "@green-goods/shared/utils/work/workTitles";
 import React from "react";
 import { useIntl } from "react-intl";
@@ -13,18 +14,17 @@ export interface MinimalWorkCardProps {
   onClick: () => void;
   className?: string;
   actionTitle?: string;
-  showGardenInfo?: boolean;
-  badges?: React.ReactNode[];
   presentation?: WorkCardPresentation;
   style?: React.CSSProperties;
   confirmed?: boolean;
-  /** Variant controls subtitle content: "compact" (default) shows time only, "detailed" shows gardener + time */
+  /** The detail line: "compact" (default) gives the age alone, "detailed" the gardener, then the age */
   variant?: "compact" | "detailed";
 }
 
+/** How a list words a row: its pill, and its two details in place of who and how long ago. */
 export interface WorkCardPresentation {
   statusLabel?: string;
-  statusTone?: WorkDisplayStatus;
+  statusTone?: ItemRowTone;
   contextLabel?: string;
   supportingText?: string;
 }
@@ -36,7 +36,6 @@ function getWorkCardLabels(formatMessage: ReturnType<typeof useIntl>["formatMess
       defaultMessage: "Untitled Work",
     }),
     error: formatMessage({ id: "app.workCard.error", defaultMessage: "Error loading work" }),
-    feedback: formatMessage({ id: "app.workCard.feedback", defaultMessage: "Feedback" }),
     status: {
       approved: formatMessage({ id: "app.status.approved", defaultMessage: "Approved" }),
       rejected: formatMessage({ id: "app.status.rejected", defaultMessage: "Rejected" }),
@@ -52,14 +51,12 @@ function getWorkCardLabels(formatMessage: ReturnType<typeof useIntl>["formatMess
   };
 }
 
-// Compact work card for list views
+// The work row for list views, with the gardener's name resolved
 export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
   work,
   onClick,
   className,
   actionTitle,
-  showGardenInfo = false,
-  badges,
   presentation,
   confirmed = false,
   variant = "compact",
@@ -73,15 +70,11 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
   const { data: gardenerGreenGoodsEnsName } = useGreenGoodsEnsName(
     variant === "detailed" ? work.gardenerAddress : null
   );
-  const { data: gardenEnsName } = useEnsName(showGardenInfo ? work.gardenAddress : null, {
-    enabled: Boolean(showGardenInfo && work.gardenAddress),
-  });
   const effectiveStatus = work.status;
   // Work still on this device names where it stands instead of reading "Offline".
   const queuedStatus = queuedWorkStatusMessage(readQueuedWorkState(work.metadata).submissionState);
   if (queuedStatus) labels.status.offline = formatMessage(queuedStatus);
   const mediaPreview = work.media.length > 0 ? work.media : undefined;
-  const hasFeedback = Boolean(work.feedback && work.feedback.trim().length > 0);
   const mediaCount = Array.isArray(work.media) ? work.media.length : 0;
   // The action names the work when it is known. A generated name gives way to the work's own
   // title, and the shared card drops timestamps and says untitled when nothing real is left.
@@ -89,14 +82,11 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
   const gardenerName = formatAddress(work.gardenerAddress, {
     ensName: gardenerGreenGoodsEnsName || gardenerEnsName,
   });
-  const gardenName = formatEnsNameForDisplay(gardenEnsName) ?? undefined;
-  const extraBadges = [...(badges ?? [])];
 
   return (
     <SharedWorkCard
       className={`${confirmed ? "work-confirmed-shimmer " : ""}${className ?? ""}`.trim()}
       onClick={onClick}
-      variant="compact"
       work={{
         id: work.id,
         title,
@@ -104,14 +94,11 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
         createdAt: work.createdAt,
         mediaPreview,
         gardenerDisplayName: variant === "detailed" ? gardenerName : undefined,
-        gardenName: variant === "compact" && showGardenInfo ? gardenName : undefined,
         feedback: work.feedback,
         imageCount: mediaCount,
       }}
       showGardener={variant === "detailed"}
       showMediaCount={mediaCount > 0}
-      showFeedbackBadge={hasFeedback}
-      badges={extraBadges}
       statusLabel={presentation?.statusLabel}
       statusTone={presentation?.statusTone}
       contextLabel={presentation?.contextLabel}

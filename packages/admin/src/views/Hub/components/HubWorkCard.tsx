@@ -9,6 +9,7 @@ import { useState, type CSSProperties } from "react";
 import { useIntl } from "react-intl";
 import { adminCardVariants } from "@/components/AdminCard";
 import { localizeCanonicalActionTitle } from "@/components/Action/actionDisplay";
+import { hubWorkTitle } from "./hubWorkTitle";
 
 // ---------------------------------------------------------------------------
 // Props
@@ -161,14 +162,7 @@ export function HubWorkCard({
     ? localizeCanonicalActionTitle(actionDisplayTitle, formatMessage)
     : undefined;
   // A work whose own title is generated or missing reads as its action.
-  const title = localizeCanonicalActionTitle(
-    toWorkDisplayTitle(
-      work.title,
-      actionDisplayTitle ||
-        formatMessage({ id: "app.admin.work.untitledWork", defaultMessage: "Untitled Work" })
-    ),
-    formatMessage
-  );
+  const title = hubWorkTitle(work.title, actionTitle, formatMessage);
   const visibleActionTitle =
     localizedActionTitle && localizedActionTitle.trim().toLowerCase() !== title.trim().toLowerCase()
       ? localizedActionTitle
