@@ -159,6 +159,11 @@ export const MobileBottomSheet: Story = {
     await expect(Math.abs(rect.bottom - vh)).toBeLessThanOrEqual(EDGE_TOLERANCE_PX);
     await expect(Math.abs(rect.left)).toBeLessThanOrEqual(EDGE_TOLERANCE_PX);
     await expect(Math.abs(rect.right - vw)).toBeLessThanOrEqual(EDGE_TOLERANCE_PX);
+    // The phone dialog's look (F5): the grip, and the close in the shared header.
+    await expect(surface.querySelector('[data-component="SheetGrip"]')).not.toBeNull();
+    await expect(
+      within(sheet).getByRole("button", { name: "Close" }).closest('[data-component="SheetHeader"]')
+    ).not.toBeNull();
   },
 };
 

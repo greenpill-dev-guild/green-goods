@@ -112,12 +112,30 @@ describe("PwaSheet layout contract", () => {
   it("leaves every cap to the height tiers: the surface sets none of its own", () => {
     expect(declarations("surface")).toMatch(/height:\s*auto/);
     expect(declarations("surface")).not.toMatch(/max-height/);
-    expect(declarations("surface")).toMatch(/border-top-left-radius:\s*var\(--radius-lg\)/);
   });
 
-  it("tints the drag handle and locks its touch action", () => {
-    expect(declarations("grip")).toMatch(/background-color:\s*rgb\(var\(--tone-primary/);
-    expect(declarations("drag-handle")).toMatch(/touch-action:\s*none/);
+  it("paints every bottom sheet from one material rule, the installed app's values as fallbacks", () => {
+    // The cockpit's phone dialogs carry the same rule and set only the two tokens.
+    const material = utilitiesContent.match(/\[data-sheet-surface\]\s*\{([^}]*)\}/)?.[1] ?? "";
+    expect(material).toMatch(/border-top-left-radius:\s*var\(--radius-lg\)/);
+    expect(material).toMatch(/border-bottom:\s*0/);
+    expect(material).toMatch(
+      /background-color:\s*var\(--gg-sheet-fill,\s*var\(--color-material-solid\)\)/
+    );
+    expect(material).toMatch(
+      /border:\s*1px solid var\(--gg-sheet-edge,\s*rgb\(var\(--stroke-soft-200\)\)\)/
+    );
+  });
+
+  it("tints the grip and locks touch only on a handle that drags", () => {
+    const grip = (selector: string) =>
+      utilitiesContent.match(new RegExp(`${selector}\\s*\\{([^}]*)\\}`))?.[1] ?? "";
+    const handle = '\\[data-component="SheetGrip"\\]\\[data-slot="drag-handle"\\]';
+    expect(grip('\\[data-component="SheetGrip"\\]\\[data-slot="grip"\\]')).toMatch(
+      /background-color:\s*rgb\(var\(--tone-primary/
+    );
+    expect(grip(`${handle}\\[data-drag-region\\]`)).toMatch(/touch-action:\s*none/);
+    expect(grip(handle)).not.toMatch(/touch-action|cursor/);
   });
 
   it("ships the scrollable body under the shared header", () => {
@@ -225,8 +243,9 @@ describe("SheetHeader anatomy contract (DL-028)", () => {
   const declarations = (slot: string) => utilitiesContent.match(rule(slot))?.[1] ?? "";
 
   it("types the title at 18/600 on a 24px line and the description at 14/400 on 20px", () => {
-    expect(declarations("title")).toMatch(/font-size:\s*1\.125rem/);
-    expect(declarations("title")).toMatch(/line-height:\s*1\.5rem/);
+    // A surface may set its own title size (the cockpit keeps 22px); 18/24 is the fallback.
+    expect(declarations("title")).toMatch(/font-size:\s*var\(--gg-sheet-title-size,\s*1\.125rem\)/);
+    expect(declarations("title")).toMatch(/line-height:\s*var\(--gg-sheet-title-line,\s*1\.5rem\)/);
     expect(declarations("title")).toMatch(/font-weight:\s*600/);
     expect(declarations("description")).toMatch(/font-size:\s*0\.875rem/);
     expect(declarations("description")).toMatch(/line-height:\s*1\.25rem/);
