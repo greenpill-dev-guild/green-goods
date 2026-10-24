@@ -50,7 +50,7 @@ export const GardenHypercertsPanel: React.FC<GardenHypercertsPanelProps> = ({
         {isLoading ? (
           <div className="flex flex-col gap-(--gg-list-gap)" aria-busy="true">
             {[0, 1, 2].map((index) => (
-              <ItemRowSkeleton key={`hypercert-skeleton-${index}`} />
+              <ItemRowSkeleton key={`hypercert-skeleton-${index}`} lead="icon" />
             ))}
           </div>
         ) : hypercerts.length === 0 ? (

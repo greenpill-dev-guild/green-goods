@@ -53,7 +53,7 @@ const AssessmentList = ({ records, assessmentFetchStatus }: AssessmentListProps)
       return (
         <div className="flex flex-col gap-(--gg-list-gap)" aria-busy="true">
           {[0, 1, 2].map((index) => (
-            <ItemRowSkeleton key={`assessment-skeleton-${index}`} />
+            <ItemRowSkeleton key={`assessment-skeleton-${index}`} lead="icon" />
           ))}
         </div>
       );

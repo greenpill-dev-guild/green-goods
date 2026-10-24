@@ -135,7 +135,7 @@ export function ImpactTab({
                       {formatMessage({ id: "app.hypercerts.list.title" })}
                     </span>
                     {[0, 1, 2, 3].map((index) => (
-                      <ItemRowSkeleton key={`hypercert-skeleton-${index}`} />
+                      <ItemRowSkeleton key={`hypercert-skeleton-${index}`} lead="icon" />
                     ))}
                   </div>
                 ) : hypercertsUnread ? (
@@ -226,7 +226,7 @@ export function ImpactTab({
                       {formatMessage({ id: "app.garden.admin.loadingAssessments" })}
                     </span>
                     {[0, 1, 2].map((index) => (
-                      <ItemRowSkeleton key={`assessment-skeleton-${index}`} />
+                      <ItemRowSkeleton key={`assessment-skeleton-${index}`} lead="icon" />
                     ))}
                   </div>
                 ) : assessmentsUnread ? (

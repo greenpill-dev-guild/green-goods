@@ -80,7 +80,7 @@ function HubRecordGrid({
       <ul className="hub-workbench-grid" role="list" aria-busy="true">
         {[0, 1, 2].map((index) => (
           <li key={`hub-record-skeleton-${index}`} aria-hidden="true">
-            <ItemRowSkeleton />
+            <ItemRowSkeleton lead="icon" />
           </li>
         ))}
       </ul>
