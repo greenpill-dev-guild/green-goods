@@ -418,6 +418,49 @@ nor fixes it. `TabBadge` in the cockpit's Garden helpers had no consumer and goe
 White text on Community's action fill (orange-700) measures 4.0:1, though its token comment says
 5.0:1. The Wallet's Cookies tab, which uses the same sheet tabs as Promises, had no count to show.
 
+## Step 6 proof: capsule chips
+
+Run on 2026-10-23 against `develop` `d84d48398` (after #1204 and #1205), with step 6 on
+`feature/app-cockpit-chips`. The pick was locked on 18 October, so the pairs are acceptance
+evidence, not a gate. The rig is the token slices' gate's
+([above](#design-gate-for-the-token-slices)); the frames show live gardens and stay out of the
+repository.
+
+**Pairs.** Cockpit, **Storybook**, before and after at 390, 768 and 1280px in light and dark: the
+Hub's Pending and Approved, Community's member filter, the Garden pool console, the offers and
+requests card, the seeding flow's confirmers and amounts, Manage Members, the translation editor
+and the hypercert metadata editor, with the Hub, Community, the offers and requests card and Manage
+Members also in Spanish and Portuguese, and every chip in each workspace tone on the canvas and on a
+card. App, **mock-auth localhost**: Home's filter sheet and the Promises sheet, unchanged by the
+step, as the look the cockpit now matches. Headless Chromium (Playwright) at device scale 2.
+
+**Measured** (computed styles):
+
+| | `develop` | Step 6 |
+|---|---|---|
+| Corner | 8px | capsule (9999px) |
+| Selected fill and label | a gray container (neutral-200 in light, neutral-700 in dark) with neutral-900 or neutral-100 text, in every workspace | the tone's `--tone-action` with `--tone-on-action` |
+| Box | 32px tall, 44px hit area | unchanged: across 727 chips measured in both states, at every width, theme and language, none changed its width or label |
+| Focus | a 2px ring in the tone, flush with the chip | a 2px outline in the tone, 2px off the chip |
+
+**Contrast** of a selected label on its fill: white on Hub blue-700 7.26, Garden green-800 5.72 and
+Actions purple-700 7.93:1; Community orange-700 carries white at 5.02:1 on the cockpit's amber ramp
+and drew 4.01:1 on the shared ramp that Storybook and the portals used before #1206, which these
+frames predate. `WorkspaceToneContrast.guard` now holds the selected chip to AA in every tone and
+theme, at rest and under its state layers. In dark the tonal fills carry their ink at 4.58
+(Community) to 7.81:1 (Hub).
+
+**Behavior.** Selection still flips `aria-pressed`, the label stays the accessible name, and no
+chip changes width when chosen. Community's member filter is a select below 640px, as before, so
+its 390px frames have no chips.
+
+**Found on the way.** The shared `Chip` the cockpit renders (`ConfidenceSelector` in the Hub's
+review form, `AssetSelector` in Community's vault dialogs) is already a capsule but selects in the
+app's green. Tailwind's ring offset paints its gap white, so a focused `AdminButton` wears a white
+halo on the dark ground; the chip now draws its ring as the shared chip does. In Storybook only, a
+dark story wrapper takes shared `theme.css`'s `--m3-state-*` color aliases, so a focused or hovered
+filled control paints its whole layer over its label; #1206 removes them.
+
 ## Step 21 proof: the bottom bar's pill
 
 Run on 2026-10-23 against `develop` `d84d48398` (step 4 merged), with step 21 on
@@ -472,6 +515,14 @@ fails them (77 against 69), and so does removing the fill. `check-tokens.sh` pas
 since the first bar), and the inactive tabs draw the browser's blue default ring instead of the
 app's focus role (DL-098). Step 21 keeps focus as it was; giving the bar the app's focus role is a
 follow-up.
+
+**Focus follow-up (23 October).** `fix/app-bar-focus-ring` gives every bar tab the app's focus
+role on keyboard focus, the active tab included: one solid 2px ring with a 2px offset in
+`--focus-ring` (green-800 in light, mint in dark), around the pill and the label with 16px corners,
+and none on a pointer press. Before it, the active tab drew no ring and the others drew the
+browser's blue `auto` ring. The AppBar story's `KeyboardFocus` play tabs onto every tab and checks
+the ring; develop's bar fails it (`none` where `solid` is expected), and so does a ring in the wrong
+color role. Rendered on mock-auth localhost at 390, 768 and 1280px in light and dark.
 
 ## Step 7 build: cards, rows and list gap
 
