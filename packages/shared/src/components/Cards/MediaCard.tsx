@@ -76,8 +76,8 @@ const mediaCardVariants = tv({
 });
 
 /**
- * MediaCard: the card for an object with a picture of its own (work, gardens,
- * actions, impact certificates), one of the four shared card shapes. It draws
+ * MediaCard: the card for an object with a picture of its own (work, gardens
+ * and actions), one of the four shared card shapes. It draws
  * the shared card surface (`gg-card`), its picture with up to two marks on it,
  * a one-line title, the status pill under the title, an optional line under the
  * status, and one detail line.
