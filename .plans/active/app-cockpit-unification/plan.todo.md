@@ -193,3 +193,11 @@ and its `.gg-count-badge` rule, the eight components that drew a count moved ont
 and DL-099 are the standards-only `feature/app-cockpit-count-badge-guides`, which also adds the
 count badge to the cockpit's tone budget in Rule 18. Raising Community's action fill to
 orange-800 is not in the step; it gets its own pair.
+
+**Step 21 (23 October).** The installed app's bottom bar takes the cockpit's pill in its green on
+`feature/app-cockpit-bar-pill`: a 56 × 32 pill of the new app-scoped `--primary-container` behind
+the line icon in `--primary-container-foreground`, the active label in ink at weight 600, and every
+tab holding the pill's width. The bar keeps its 69px, its chrome, its count badge and its focus
+behavior, and the cockpit's bar is unchanged
+([eval.md](eval.md#step-21-proof-the-bottom-bars-pill)). DL-107 and the guide wording are the
+standards-only `feature/app-cockpit-bar-pill-guides`.
