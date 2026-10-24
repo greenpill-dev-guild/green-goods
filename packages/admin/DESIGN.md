@@ -55,6 +55,7 @@ The cockpit speaks the installed app's Warm Earth language at a denser setting. 
 - The ground: the linen canvas with white cards, and one warm dark ladder (DL-097, § Workspace Tinting).
 - The control-grade outline on fields, chips and secondary buttons, and one solid focus ring in each surface's focus role (DL-098).
 - One count badge, the shared `CountBadge`, on the workspace tone's accent here (DL-099, § Workspace Tinting).
+- The phone sheet: below 640px every dialog and the side sheet take the app's bottom sheet material, grip and header, at the cockpit's own 22px title (DL-104, § Admin Component Pattern).
 - The active-tab pill on both bottom bars: the workspace tone's container here, the green container in the app (DL-107, § Navigation).
 - Solid surfaces: every card, sheet, dialog and menu is opaque on both, and the cockpit's nav dock below is the one translucent piece (DL-108).
 
