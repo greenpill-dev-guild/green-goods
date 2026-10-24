@@ -74,7 +74,8 @@ export const FactRow = React.forwardRef<HTMLDivElement, FactRowProps>(function F
   ref
 ) {
   // A setting has no value and a control; a fact whose value is missing stays a fact.
-  const setting = (value === undefined || value === null) && action != null;
+  const setting =
+    (value === undefined || value === null) && action !== undefined && action !== null;
   return (
     <div
       data-component="FactRow"
