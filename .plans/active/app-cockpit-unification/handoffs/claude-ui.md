@@ -229,8 +229,10 @@
 - Guides: DL-107 and the wording in both surface guides, `language.md`, the client prompt contract
   and root `DESIGN.md`'s Quick Token Reference are the standards-only
   `feature/app-cockpit-bar-pill-guides`.
-- Not in the step: the active tab hides its keyboard focus ring, and the other tabs draw the
-  browser's default ring rather than the app's focus role.
+- Not in the step: the active tab hid its keyboard focus ring, and the other tabs drew the
+  browser's default ring rather than the app's focus role. `fix/app-bar-focus-ring` gives every
+  tab the app's ring on keyboard focus, pinned by the story's `KeyboardFocus` play
+  ([eval.md](../eval.md#step-21-proof-the-bottom-bars-pill)).
 
 ## TDD Proof
 
