@@ -1328,11 +1328,14 @@
     flex-shrink: 0;
   }
 
-  /* ── Field label and help (DL-031) ── The label above a shared field and the
-   * supporting line under it. The label reads the surface's small label size
-   * (14px in the app; the cockpit sets --gg-label-sm) at weight 500, the same
-   * as the cockpit's setting-row titles, so a shared field never reads smaller
-   * or greyer than the fields beside it. */
+  /* ── Field label and message (DL-031, F3) ── One anatomy on both surfaces:
+   * the label above the control and the message line under it. The label
+   * reads the surface's small label size (14px in the app; the cockpit sets
+   * --gg-label-sm) at weight 500, the same as the cockpit's setting-row titles,
+   * so a field never reads smaller or grayer than the fields beside it. The
+   * message text is the type-meta role; an error takes the field family's
+   * error role, red-700 in the cockpit, since red-500 measured under 4.5:1 at
+   * this size. */
   .gg-field-label {
     display: block;
     font-size: var(--gg-label-sm);
@@ -1342,13 +1345,24 @@
   }
 
   .gg-field-help {
-    font-size: var(--text-label-xs, 0.75rem);
-    line-height: var(--text-label-xs--line-height, 1rem);
+    font-size: var(--gg-type-meta-size);
+    line-height: var(--gg-type-meta-line);
+    letter-spacing: var(--gg-type-meta-tracking);
     color: rgb(var(--text-sub-600));
   }
 
   .gg-field-help[data-invalid="true"] {
-    color: rgb(var(--error-base));
+    color: rgb(var(--m3-error));
+  }
+
+  /* The message line reserves the surface's message lines whether or not it
+   * shows a message, so a message that fits never moves the form; a longer one
+   * grows the line instead of scrolling inside it (DL-018, DL-064). Two lines in
+   * the installed app, and the cockpit sets its own (admin index.css). */
+  .gg-field-message {
+    flex-shrink: 0;
+    min-block-size: calc(var(--gg-field-message-lines, 2) * 1lh);
+    overflow-wrap: anywhere;
   }
 
   /* Select options sit concentric inside the 8px menu and its 4px padding. The

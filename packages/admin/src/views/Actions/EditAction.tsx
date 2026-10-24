@@ -120,7 +120,6 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
             <AdminTextField
               label={formatMessage({ id: "app.assessment.table.title" })}
               id="action-title"
-              variant="outlined"
               error={form.formState.errors.title?.message}
               {...form.register("title")}
             />
@@ -130,7 +129,6 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
                 label={formatMessage({ id: "app.actions.detail.startTime" })}
                 id="action-start-time"
                 type="datetime-local"
-                variant="outlined"
                 value={toDateTimeLocalValue(form.watch("startTime").getTime())}
                 onChange={(e) => form.setValue("startTime", fromDateTimeLocalValue(e.target.value))}
               />
@@ -139,7 +137,6 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
                 label={formatMessage({ id: "app.actions.detail.endTime" })}
                 id="action-end-time"
                 type="datetime-local"
-                variant="outlined"
                 value={toDateTimeLocalValue(form.watch("endTime").getTime())}
                 onChange={(e) => form.setValue("endTime", fromDateTimeLocalValue(e.target.value))}
               />
