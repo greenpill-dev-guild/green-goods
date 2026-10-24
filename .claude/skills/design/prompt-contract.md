@@ -184,9 +184,9 @@ AI design tools MUST map generated output to these existing exports. Do not inve
 | `NavigationBar` | Bottom workspace tabs: Hub, Garden, Community, Actions (+ mobile-only Profile tab); symbol-first; role-adaptive |
 | `FabButton` (`Shell/FabButton`) | Per-workspace primary action in the nav shell, a capsule at both sizes (`rounded-full`): 48px dock circle, 56px extended floating capsule with label (DL-010); integrated via `FabProvider` |
 
-**Admin wrappers** (exported from `packages/admin/src/components/Admin*.tsx`, where the filesystem is the roster of record; 24 wrappers across 20 files once DL-109's code change retires `AdminSettingRow` for the shared `FactRow`, since `AdminConfirmDialog` lives in `AdminDialog.tsx`, `AdminIconButton` in `AdminButton.tsx`, and `AdminSelect`/`AdminTextArea` in `AdminTextField.tsx`; `AdminLoadingScreen` and `AdminSignIn` are screens, not wrappers):
+**Admin wrappers** (exported from `packages/admin/src/components/Admin*.tsx`, where the filesystem is the roster of record; 22 wrappers across 19 files once DL-109's code change retires `AdminSettingRow` for the shared `FactRow` and DL-119's retires `AdminButton` and `AdminIconButton`, since `AdminConfirmDialog` lives in `AdminDialog.tsx` and `AdminSelect`/`AdminTextArea` in `AdminTextField.tsx`; `AdminLoadingScreen` and `AdminSignIn` are screens, not wrappers):
 
-`AdminButton` · `AdminCard` · `AdminCheckbox` · `AdminChoiceGroup` · `AdminConfirmDialog` · `AdminDialog` · `AdminFieldGroup` · `AdminFilterChip` · `AdminIconButton` · `AdminInlineField` · `AdminInputChip` · `AdminLinearProgress` · `AdminListRow` · `AdminReasonDialog` · `AdminSearchToolbar` · `AdminSelect` · `AdminSelectableCard` · `AdminSideSheet` · `AdminSortSelect` · `AdminTabRail` · `AdminTextArea` · `AdminTextField` · `AdminTooltip` · `AdminViewActions`
+`AdminCard` · `AdminCheckbox` · `AdminChoiceGroup` · `AdminConfirmDialog` · `AdminDialog` · `AdminFieldGroup` · `AdminFilterChip` · `AdminInlineField` · `AdminInputChip` · `AdminLinearProgress` · `AdminListRow` · `AdminReasonDialog` · `AdminSearchToolbar` · `AdminSelect` · `AdminSelectableCard` · `AdminSideSheet` · `AdminSortSelect` · `AdminTabRail` · `AdminTextArea` · `AdminTextField` · `AdminTooltip` · `AdminViewActions`
 
 Form selects use `AdminSelect` (full field anatomy, the label above, the shared select's chevron, empty-value option as the placeholder row); `AdminSortSelect` is the toolbar sort pill only, never a form control.
 
@@ -194,7 +194,7 @@ Form selects use `AdminSelect` (full field anatomy, the label above, the shared 
 
 (`AdminBadge`, `AdminFab`, and `AdminListItem` were deleted 2026-08-29. Do not reintroduce them; the nav-shell FAB is `Shell/FabButton`.)
 
-With DL-115's code change, `AdminButton` and `AdminIconButton` render the shared `Button` and `IconButton`: filled is the primary, outlined the secondary, text the tertiary, danger and outlined danger the danger tone, sm, md and lg the shared compact, sm and lg sizes, and tonal stays the cockpit's pill for the chosen option in a set until phase 2. Prompts still name `AdminButton`.
+Actions are the shared `Button` and `IconButton`, which admin views render directly once DL-119's code change lands (until then, through `AdminButton` and `AdminIconButton`, which render the same pieces, DL-115): `emphasis` primary, secondary or tertiary, `tone="danger"` for a destructive act, and the compact, sm and lg sizes on the 28/32/40 tiers. Prompts name the shared `Button` and `IconButton` with their emphasis and size, and an `AdminFilterChip` for the chosen option in a set.
 
 All sit on the compact metric and the reduced admin shape scale, 4/8/12/16/9999 (`--m3-shape-xs/sm/md/lg/full`), except `AdminCard`, which takes the shared card's 24px corner from `.gg-card` (DL-102). Do not override dimensions, state layers, or shape scale. Where a shared piece fits, the wrapper draws it in place: `AdminCard` is the shared card and `AdminListRow` takes the shared row corner, while `AdminSelectableCard`, `AdminTabRail`, `AdminTooltip`, `AdminLinearProgress` and `AdminViewActions` have no shared counterpart and keep their anatomy (DL-118).
 
