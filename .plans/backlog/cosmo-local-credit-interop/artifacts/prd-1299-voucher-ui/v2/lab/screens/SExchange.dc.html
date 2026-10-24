@@ -13,87 +13,85 @@
 <style>body{margin:0}</style>
 </helmet>
 <div class="gg {{themeCls}}" lang="{{lang}}" data-density="{{density}}" data-chain="{{chain}}" data-font="{{font}}" data-ground="{{ground}}" data-corners="{{corners}}" data-gap="{{gap}}" data-darkcards="{{darkcards}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
-  <div class="scr" style="padding-bottom: 112px" inert="{{baseHidden}}">
-    <div class="topnav">
-      <a class="close" href="SOffer.dc.html" aria-label="{{backLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></a>
-    </div>
-    <div class="ident">
-      <span class="kind"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-exchange-line"/></svg>{{kindLine}}</span>
-      <h1>{{title}}</h1>
-      <p class="para">{{desc}}</p>
-    </div>
-    <div class="mx16 card" style="margin-top: 14px">
-      <div class="facts">
-        <div class="fact"><span class="k">{{spendLabel}}</span><span class="v"><span class="amt2" style="font-size: 20px; font-weight: 600">{{inAmt}}</span><small>{{inUnit}} · {{holdIn}}</small></span></div>
-        <div class="fact"><span class="k">{{getLabel}}</span><span class="v"><span class="amt2" style="font-size: 20px; font-weight: 600">{{outAmt}}</span><small>{{outUnit}} · {{afterFees}}</small></span></div>
-      </div>
-    </div>
-    <sc-if value="{{hasNotice}}" hint-placeholder-val="{{false}}">
-      <div class="stack" style="margin-top: 12px">
-        <div class="notice {{noticeCls}}" role="status"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="{{noticeIcon}}"/></svg>{{noticeT}}</span><p>{{noticeB}}</p></div>
-      </div>
-    </sc-if>
-    <sc-if value="{{isDone}}" hint-placeholder-val="{{false}}">
-      <div class="sec"><h2>{{rcTitle}}</h2></div>
-      <div class="mx16 receipt">
-        <sc-for list="{{receipt}}" as="r" hint-placeholder-count="4"><div class="rl"><span>{{r.k}}</span><span>{{r.v}}</span></div></sc-for>
-      </div>
-    </sc-if>
-    <div class="sec"><h2>{{quoteTitle}}</h2></div>
-    <div class="mx16 card">
-      <div class="facts">
-        <sc-for list="{{facts}}" as="f" hint-placeholder-count="6"><div class="fact"><span class="k">{{f.k}}</span><span class="v"><span>{{f.v}}</span><small>{{f.s}}</small></span></div></sc-for>
-      </div>
-      <details class="tech">
-        <summary style="cursor: pointer; font-weight: 600">{{techLabel}}</summary>
-        <sc-for list="{{tech}}" as="x" hint-placeholder-count="2"><span>{{x}}</span></sc-for>
-      </details>
+  <div class="pp-nav" inert><span class="close"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></span></div>
+  <div class="scr" inert>
+    <div class="pp-body">
+      <h1 class="pp-title">{{baseTitle}}</h1>
+      <p class="pp-place"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-sun-line"/></svg><span>{{cycle}}</span><span aria-hidden="true">·</span><span>{{garden}}</span></p>
+      <section class="pp-band" data-tone="neutral"><div class="pp-badges"><span class="gg-badge" data-tone="info">{{pill}}</span></div><p>{{bandText}}</p></section>
+      <section class="pp-door"><p><b>{{doorT}}</b> {{doorB}}</p></section>
     </div>
   </div>
-  <div class="fbar col" inert="{{baseHidden}}"><div class="fbtns">
-    <sc-if value="{{hasPrimary}}" hint-placeholder-val="{{true}}"><a class="btn" href="{{primaryHref}}">{{primary}}</a></sc-if>
-    <sc-if value="{{hasSecondary}}" hint-placeholder-val="{{false}}"><a class="btn sec" href="SOffer.dc.html">{{secondary}}</a></sc-if>
-  </div></div>
-  <sc-if value="{{sheet}}" hint-placeholder-val="{{false}}">
-    <div class="scrim"></div>
-    <section class="sheet tall" role="dialog" aria-modal="true" aria-labelledby="ex-title">
-      <div class="grip"></div>
-      <div class="shead">
-        <div><h2 class="stitle" id="ex-title">{{shTitle}}</h2><p class="sdesc">{{shSub}}</p></div>
-        <a class="close" href="#" aria-label="{{closeLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></a>
-      </div>
-      <div class="sbody">
-        <div class="card"><div class="facts">
-          <sc-for list="{{shFacts}}" as="f" hint-placeholder-count="4"><div class="fact {{f.cls}}"><span class="k">{{f.k}}</span><span class="v"><span>{{f.v}}</span><small>{{f.s}}</small></span></div></sc-for>
-        </div></div>
+  <div class="scrim"></div>
+  <section class="sheet full" role="dialog" aria-modal="true" aria-labelledby="ex-title">
+    <div class="grip"></div>
+    <div class="shead">
+      <div><h2 class="stitle" id="ex-title">{{shTitle}}</h2><p class="sdesc">{{shSub}}</p></div>
+      <a class="close" href="SOffer.dc.html" aria-label="{{closeLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></a>
+    </div>
+    <div class="sbody">
+      <sc-if value="{{quoteView}}" hint-placeholder-val="{{true}}">
+        <p class="small" style="font-size: 13px; line-height: 18px">{{desc}}</p>
+        <dl class="gg-fact-list gg-card" data-frame="card">
+          <div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label"><span class="gg-fact-icon" aria-hidden="true"><svg class="i" width="16" height="16" viewBox="0 0 24 24"><use href="#ri-coupon-3-line"/></svg></span>{{spendLabel}}</span></dt><dd class="gg-fact-value">{{inAmt}} {{inUnit}}<small>{{holdIn}}</small></dd></div>
+          <div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label"><span class="gg-fact-icon" aria-hidden="true"><svg class="i" width="16" height="16" viewBox="0 0 24 24"><use href="#ri-exchange-line"/></svg></span>{{getLabel}}</span></dt><dd class="gg-fact-value">{{outAmt}} {{outUnit}}<small>{{afterFees}}</small></dd></div>
+        </dl>
+        <sc-if value="{{hasNotice}}" hint-placeholder-val="{{false}}">
+          <div class="notice {{noticeCls}}" role="status"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="{{noticeIcon}}"/></svg>{{noticeT}}</span><p>{{noticeB}}</p></div>
+        </sc-if>
+        <sc-if value="{{isDone}}" hint-placeholder-val="{{false}}">
+          <h3 class="pp-sub" style="margin-top: 4px">{{rcTitle}}</h3>
+          <dl class="gg-fact-list gg-card" data-frame="card">
+            <sc-for list="{{receipt}}" as="r" hint-placeholder-count="4"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{r.k}}</span></dt><dd class="gg-fact-value">{{r.v}}</dd></div></sc-for>
+          </dl>
+        </sc-if>
+        <h3 class="pp-sub" style="margin-top: 4px">{{quoteTitle}}</h3>
+        <dl class="gg-fact-list gg-card" data-frame="card">
+          <sc-for list="{{facts}}" as="f" hint-placeholder-count="6"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}<sc-if value="{{f.s}}" hint-placeholder-val="{{true}}"><small>{{f.s}}</small></sc-if></dd></div></sc-for>
+        </dl>
+        <details class="tech gg-card ex-tech">
+          <summary>{{techLabel}}</summary>
+          <sc-for list="{{tech}}" as="x" hint-placeholder-count="2"><span>{{x}}</span></sc-for>
+        </details>
+      </sc-if>
+      <sc-if value="{{sheet}}" hint-placeholder-val="{{false}}">
+        <dl class="gg-fact-list gg-card" data-frame="card">
+          <sc-for list="{{shFacts}}" as="f" hint-placeholder-count="4"><div class="gg-fact-row {{f.cls}}" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}<sc-if value="{{f.s}}" hint-placeholder-val="{{true}}"><small>{{f.s}}</small></sc-if></dd></div></sc-for>
+        </dl>
         <p class="small" style="font-size: 13px; line-height: 18px">{{shNote}}</p>
-      </div>
-      <div class="sacts">
+      </sc-if>
+    </div>
+    <div class="sacts">
+      <sc-if value="{{sheet}}" hint-placeholder-val="{{false}}">
         <sc-if value="{{busy}}" hint-placeholder-val="{{false}}"><button type="button" class="btn" disabled aria-busy="true"><svg class="i spin" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-loader-4-line"/></svg>{{shCta}}</button></sc-if>
         <sc-if value="{{notBusy}}" hint-placeholder-val="{{true}}"><a class="btn" href="#">{{shCta}}</a></sc-if>
         <p class="foot">{{passkey}}</p>
-      </div>
-    </section>
-  </sc-if>
+      </sc-if>
+      <sc-if value="{{quoteView}}" hint-placeholder-val="{{true}}">
+        <sc-if value="{{hasPrimary}}" hint-placeholder-val="{{true}}"><a class="btn" href="{{primaryHref}}">{{primary}}</a></sc-if>
+        <sc-if value="{{hasSecondary}}" hint-placeholder-val="{{false}}"><a class="btn sec" href="SOffer.dc.html">{{secondary}}</a></sc-if>
+      </sc-if>
+    </div>
+  </section>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"pair":{"editor":"enum","options":["Hilltop to Sunroot","Maya to Teo"],"default":"Hilltop to Sunroot","section":"State"},"state":{"editor":"enum","options":["Quote","Review","Approving","Waiting for result","Done","Quote expired","Pool short","Limit reached","Not listed"],"default":"Quote","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
+<script type="text/x-dc" data-dc-script data-props='{"pair":{"editor":"enum","options":["Tech and Sun to Green Goods","Maya to Teo"],"default":"Tech and Sun to Green Goods","section":"State"},"state":{"editor":"enum","options":["Quote","Review","Approving","Waiting for result","Done","Quote expired","Pool short","Limit reached","Not listed"],"default":"Quote","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
   renderVals() {
     var t0 = GGT(this.props.lang);
     var st = this.props.state ?? 'Quote';
     var dark = this.props.dark ?? false;
-    // Two pairs in the one shared pool: Lina's Hilltop vouchers for Sunroot's, and Maya's own coaching vouchers for Teo's lesson
-    var member = (this.props.pair ?? 'Hilltop to Sunroot') === 'Maya to Teo';
+    // Two pairs in the one shared pool: Lina's Tech and Sun vouchers for Green Goods' at the pilot's 1:1, and Maya's own coaching vouchers for Teo's lesson
+    var member = (this.props.pair ?? 'Tech and Sun to Green Goods') === 'Maya to Teo';
     var ISS = member ? { inUnit: t0('u.mayaMany'), outUnit: t0('u.teoMany'), unit: t0('u.teoMany'), issuer: t0('who.teo'), issuerFull: t0('who.teoFull'), garden: t0('who.sun') }
-      : { inUnit: t0('u.hillMany'), outUnit: t0('u.sunMany'), unit: t0('u.sunMany'), issuer: t0('who.sunShort'), issuerFull: t0('who.sun'), garden: t0('who.rc') };
+      : { inUnit: t0('u.sunMany'), outUnit: t0('u.ggMany'), unit: t0('u.ggMany'), issuer: t0('who.ggShort'), issuerFull: t0('who.gg'), garden: t0('who.rc') };
     var t = function (k, v) { return t0(k, v ? Object.assign({}, ISS, v) : ISS); };
     t.g = t0.g; t.n = t0.n; t.d = t0.d; t.v = t0.v; t.code = t0.code;
-    var f = member ? t.v : t.g;
-    var Q = member ? { inA: 2, out: 1, pool: 0, proto: 0, fee: 0, min: 1, time: '14:05', avail: 0, hold: 6 } : { inA: 163.6, out: 80, pool: 1.64, proto: 0.16, fee: 1.8, min: 79.6, time: '14:05', avail: 42.1, hold: 250 };
+    var f = t.v;
+    var Q = member ? { inA: 2, out: 1, pool: 0, proto: 0, fee: 0, min: 1, time: '14:05', avail: 0, hold: 6 } : { inA: 8.01, out: 8, pool: 0, proto: 0.01, fee: 0.01, min: 8, time: '14:05', avail: 6, hold: 9 };
     var v = { in: f(Q.inA), out: f(Q.out), pool: f(Q.pool), proto: f(Q.proto), fee: f(Q.fee), min: f(Q.min), time: Q.time, avail: f(Q.avail), n: t.n(Q.hold) };
     var facts = [
-      { k: t('ex.f.rate'), v: member ? t('ex.f.rateV') : t('ex.f.rateVH'), s: t('ex.f.rateS') },
+      { k: t('ex.f.rate'), v: member ? t('ex.f.rateV') : t('ex.f.rateVH'), s: member ? t('ex.f.rateS') : t('ex.f.rateSH') },
       { k: t('ex.f.fees'), v: t('ex.f.feesV', v), s: member ? t('ex.f.feesZero') : t('ex.f.feesS', v) },
       { k: t('ex.f.min'), v: t('ex.f.minV', v), s: t('ex.f.minS') },
       { k: t('ex.f.until'), v: Q.time, s: t('ex.f.untilS') },
@@ -111,7 +109,7 @@ class Component extends DCLogic {
     }[st];
     var sheet = st === 'Review' || st === 'Approving';
     var primary = NT ? NT[3] : 'review';
-    var gotV = member ? t('u.teoOne') : f(Q.out) + ' ' + t('u.sunMany');
+    var gotV = member ? t('u.teoOne') : f(Q.out) + ' ' + t('u.ggMany');
     var receipt = [{ k: t('ex.rc.spent'), v: f(Q.inA) + ' ' + ISS.inUnit }, { k: t('ex.rc.got'), v: gotV },
       { k: t('ex.rc.fees'), v: f(Q.fee) + ' ' + ISS.outUnit }, { k: t('ex.rc.when'), v: t.d('2026-10-25') + ' · 14:03' }];
     return Object.assign(GGTW(this.props), {
@@ -125,8 +123,11 @@ class Component extends DCLogic {
       quoteTitle: st === 'Done' ? t('ex.quoteUsed') : t('ex.quote'), facts: facts, techLabel: t('c.tech'), tech: [t('ex.x.pool'), t('ex.x.min', v)],
       hasPrimary: !!primary, primary: primary === 'back' ? t(member ? 'ex.a.backL' : 'ex.a.back') : primary ? t('ex.a.' + primary) : '', primaryHref: primary === 'back' ? 'SOffer.dc.html' : '#',
       hasSecondary: !!(NT && NT[4]), secondary: NT && NT[4] ? t('ex.a.' + NT[4]) : '',
-      sheet: sheet, shTitle: t('ex.sh.title'), shSub: t('ex.title'),
-      shFacts: [{ k: t('ex.spend'), v: f(Q.inA) + ' ' + ISS.inUnit, s: '', cls: '' }, { k: t('ex.receive'), v: gotV, s: t('ex.sh.atLeast', v), cls: '' },
+      // The exchange opens as a sheet over the promise page that sent the reader here; its review is the sheet's second step
+      quoteView: !sheet, baseTitle: member ? t('of.m.title') : t('of.c.title'), cycle: member ? t('pp.cycle.sun') : t('pp.cycle.gg'), garden: member ? t('who.sun') : t('who.gg'), pill: t('sh.st.offered'), bandText: t('pp.band.openV'),
+      doorT: t('of.r.shortV.t', { have: member ? t.v(0) : t.n(2) }), doorB: member ? t('of.r.shortV.bm') : t('of.r.shortV.bc'),
+      sheet: sheet, shTitle: sheet ? t('ex.sh.title') : t('ex.title'), shSub: sheet ? t('ex.title') : t('ex.kind'),
+      shFacts: [{ k: t('ex.spend'), v: f(Q.inA) + ' ' + ISS.inUnit, s: '', cls: '' }, { k: t('ex.receive'), v: gotV, s: t('ex.sh.atLeast', member ? Object.assign({}, v, { unit: t0('u.teo') }) : v), cls: '' },
         { k: t('ex.f.fees'), v: t('ex.f.feesV', v), s: member ? t('ex.f.feesZero') : t('ex.f.feesS', v), cls: '' }, { k: t('ex.f.until'), v: Q.time, s: '', cls: '' }, { k: t('ex.f.to'), v: t('ex.f.toV'), s: '', cls: '' }],
       shNote: t('ex.sh.note', v), shCta: t('ex.sh.cta'), busy: st === 'Approving', notBusy: st !== 'Approving', passkey: t('c.passkey')
     });

@@ -16,66 +16,126 @@
   <div class="wash"></div>
   <header class="c-app" inert="{{baseHidden}}">
     <button type="button" class="gchip"><span class="av"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-fill"/></svg></span><span class="lbl">{{garden}}</span><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-down-s-line"/></svg></button>
-    <span class="c-icons"><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-search-line"/></svg></span><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-notification-3-line"/></svg></span><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-settings-3-line"/></svg></span><span class="avatar" style="width: 32px; height: 32px; font-size: 13px">T</span></span>
+    <span class="c-icons"><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-search-line"/></svg></span><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-notification-3-line"/></svg></span><span><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-settings-3-line"/></svg></span><span class="avatar" style="width: 32px; height: 32px; font-size: 13px">{{me}}</span></span>
   </header>
   <main class="c-route" inert="{{baseHidden}}">
-    <div class="c-head"><div><h1>{{pageTitle}}</h1><p>{{pageSub}}</p></div></div>
-    <div class="c-tabs" role="tablist"><span class="on" role="tab" aria-selected="true">{{tabOverview}}</span><span role="tab" aria-selected="false">{{tabPayouts}}</span><span role="tab" aria-selected="false">{{tabHistory}}</span></div>
-    <div class="c-grid">
-      <div class="c-col">
-        <section class="acard" data-focus="1">
-          <div class="ah"><div><h2>{{payTitle}}</h2><p>{{payDesc}}</p></div></div>
-          <sc-for list="{{payRows}}" as="r" hint-placeholder-count="3">
-            <div class="arow req {{r.openCls}}">
-              <div class="l1"><span class="nm">{{r.who}}</span><span class="sb {{r.sb}}">{{r.tag}}</span></div>
-              <div class="l2">{{r.meta}}</div>
-              <sc-if value="{{r.hasAct}}" hint-placeholder-val="{{true}}"><div class="acts"><button type="button" class="abtn {{r.btnCls}}">{{r.act}}</button></div></sc-if>
+    <div class="c-head"><div><h1>{{pageTitle}}</h1><p>{{garden}}</p></div></div>
+    <div class="c-tabs" role="tablist"><span role="tab" aria-selected="false">{{tHealth}}</span><span role="tab" aria-selected="false">{{tImpact}}</span><span role="tab" aria-selected="false">{{tActivity}}</span><span class="on" role="tab" aria-selected="true">{{tPromises}}</span></div>
+    <div class="c-grid" data-component="GardenPoolTab">
+      <div class="ck-main">
+        <section class="ck-card ck-stats" aria-label="{{needsLabel}}">
+          <sc-for list="{{stats}}" as="x" hint-placeholder-count="3"><button type="button"><b>{{x.n}}</b><span>{{x.k}}</span></button></sc-for>
+        </section>
+        <section class="ck-card" aria-label="{{cyclesLabel}}">
+          <div class="ck-cycle"><div class="ct2">{{seasonTitle}}<span class="gg-badge">{{seasonKind}}</span><span class="gg-badge" data-tone="success">{{cycleOpen}}</span></div><small>{{seasonMeta}}</small></div>
+          <div class="ck-cycle"><div class="ck-cyrow"><small>{{campaignsLine}}</small><button type="button" class="abtn">{{startCampaign}}</button></div>
+            <div class="ct2" style="margin-top: 8px">{{campaignTitle}}<span class="gg-badge">{{campaignKind}}</span><span class="gg-badge" data-tone="success">{{cycleOpen}}</span></div><small>{{campaignMeta}}</small></div>
+        </section>
+        <section class="ck-card" aria-labelledby="ck-prom" data-focus="{{focusRows}}">
+          <div class="ckh"><h2 id="ck-prom">{{promTitle}}</h2><button type="button" class="abtn"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-line"/></svg>{{seed}}</button></div>
+          <div class="ck-filters"><span class="ck-search"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-search-line"/></svg>{{search}}</span><sc-for list="{{chips}}" as="c" hint-placeholder-count="5"><span class="chipf {{c.cls}}">{{c.label}}</span></sc-for></div>
+          <div class="ck-rows">
+            <sc-for list="{{prows}}" as="r" hint-placeholder-count="5">
+              <div class="gg-item-row gg-card" data-edge="{{r.tone}}" data-selected="{{r.sel}}" data-component="CommitmentRow">
+                <span class="gg-item-row-open">
+                  <span class="gg-item-row-lead"><span class="gg-item-row-tile" role="img" aria-label="{{r.dir}}"><svg class="i" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="{{r.icon}}"/></svg></span></span>
+                  <span class="gg-item-row-body"><span class="gg-item-row-title">{{r.title}}</span><span class="gg-badge" data-tone="{{r.tone}}">{{r.pill}}</span><span class="gg-item-row-details"><span class="gg-item-row-detail-list"><sc-for list="{{r.details}}" as="d" hint-placeholder-count="2"><span class="gg-item-row-detail" data-tone="{{d.tone}}"><span>{{d.text}}</span></span></sc-for></span></span></span>
+                </span>
+                <sc-if value="{{r.hasAct}}" hint-placeholder-val="{{false}}"><span class="gg-item-row-action"><button type="button" class="abtn {{r.actCls}}">{{r.act}}</button></span></sc-if>
+                <sc-if value="{{r.chev}}" hint-placeholder-val="{{true}}"><span class="gg-item-row-chev"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-right-s-line"/></svg></span></sc-if>
+              </div>
               <sc-if value="{{r.open}}" hint-placeholder-val="{{false}}">
-                <div class="expand">
-                  <sc-if value="{{dHasErr}}" hint-placeholder-val="{{false}}"><div class="notice err" role="alert"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-error-warning-line"/></svg>{{dErrT}}</span><p>{{dErrB}}</p></div></sc-if>
-                  <div class="afacts">
-                    <sc-for list="{{dFacts}}" as="f" hint-placeholder-count="4"><div class="afact"><span class="k">{{f.k}}</span><span class="v">{{f.v}}<small>{{f.s}}</small></span></div></sc-for>
-                  </div>
-                  <sc-if value="{{dHasChecks}}" hint-placeholder-val="{{true}}"><div class="checks">
-                    <sc-for list="{{dChecks}}" as="c" hint-placeholder-count="4"><div class="ckr ok"><span class="cm"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg></span><span>{{c}}</span></div></sc-for>
-                  </div></sc-if>
-                  <div class="fsr info"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-information-line"/></svg><span><b>{{fsrT}}</b><small>{{fsrB}}</small></span></div>
-                  <sc-if value="{{dHasKeep}}" hint-placeholder-val="{{false}}"><div class="target"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-lock-line"/></svg>{{keepNote}}</div></sc-if>
-                  <div class="xacts"><span class="note">{{walletNote}}</span><button type="button" class="abtn txt">{{cancel}}</button><button type="button" class="abtn fill">{{dCta}}</button></div>
+                <div class="ck-xp">
+                  <sc-if value="{{dProtocol}}" hint-placeholder-val="{{false}}"><div class="notice warn"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-alert-line"/></svg>{{ptT}}</span><p>{{ptB}}</p></div></sc-if>
+                  <sc-if value="{{dHasFacts}}" hint-placeholder-val="{{true}}"><dl class="gg-fact-list gg-card" data-frame="card"><sc-for list="{{dFacts}}" as="f" hint-placeholder-count="3"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}<sc-if value="{{f.s}}" hint-placeholder-val="{{true}}"><small>{{f.s}}</small></sc-if></dd></div></sc-for></dl></sc-if>
+                  <sc-if value="{{dHasChecks}}" hint-placeholder-val="{{false}}"><div class="checks"><sc-for list="{{dChecks}}" as="c" hint-placeholder-count="4"><div class="ckr {{c.cls}}"><span class="cm"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="{{c.icon}}"/></svg></span><span>{{c.t}}<small>{{c.s}}</small></span></div></sc-for></div></sc-if>
+                  <sc-if value="{{dField}}" hint-placeholder-val="{{false}}"><div class="gg-field"><label for="ck-f1">{{fLabel}}</label><div class="ctl {{fBad}}" id="ck-f1" role="textbox" aria-invalid="{{fInvalid}}" aria-describedby="ck-h1">{{fValue}}<small>{{fUnit}}</small></div><span class="msg {{fHintCls}}" id="ck-h1">{{fHint}}</span></div>
+                    <sc-if value="{{dBar}}" hint-placeholder-val="{{true}}"><div class="splitbar" role="img" aria-label="{{barLabel}}"><span class="a" style="flex: 40">{{barA}}</span><span class="b" style="flex: 60">{{barB}}</span></div></sc-if></sc-if>
+                  <sc-if value="{{dChoices}}" hint-placeholder-val="{{false}}"><div class="ways" role="radiogroup" aria-label="{{choiceLabel}}"><sc-for list="{{choices}}" as="o" hint-placeholder-count="2"><button type="button" class="choice {{o.on}}" role="radio" aria-checked="{{o.aria}}"><span class="radio"></span><span class="ct"><b>{{o.t}}</b><span>{{o.s}}</span></span></button></sc-for></div><div class="gg-field"><label for="ck-r1">{{reasonLabel}}</label><div class="ctl" id="ck-r1" role="textbox">{{reasonV}}</div><span class="msg">{{reasonHint}}</span></div></sc-if>
+                  <div class="fsr {{fsrCls}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="{{fsrIcon}}"/></svg><span><b>{{fsrT}}</b><small>{{fsrB}}</small></span></div>
+                  <div class="xacts"><span class="note">{{dNote}}</span><button type="button" class="abtn txt">{{cancel}}</button><sc-if value="{{dCan}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn fill">{{dCta}}</button></sc-if><sc-if value="{{dCannot}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn fill off" disabled>{{dCta}}</button></sc-if></div>
                 </div>
               </sc-if>
-            </div>
-          </sc-for>
-        </section>
-        <section class="acard">
-          <div class="ah"><div><h2>{{rwTitle}}</h2><p>{{rwDesc}}</p></div></div>
-          <sc-for list="{{rwRows}}" as="r" hint-placeholder-count="2">
-            <div class="arow offer {{r.openCls}}">
-              <div class="l1"><span class="nm">{{r.who}}</span><span class="sb {{r.sb1}}">{{r.tag1}}</span><sc-if value="{{r.hasTag2}}" hint-placeholder-val="{{true}}"><span class="sb {{r.sb2}}">{{r.tag2}}</span></sc-if></div>
-              <div class="l2">{{r.meta}}</div>
-              <sc-if value="{{r.hasAct}}" hint-placeholder-val="{{false}}"><div class="acts"><button type="button" class="abtn fill">{{r.act}}</button></div></sc-if>
-              <sc-if value="{{r.open}}" hint-placeholder-val="{{false}}">
-                <div class="expand">
-                  <sc-if value="{{dHasErr}}" hint-placeholder-val="{{false}}"><div class="notice err" role="alert"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-error-warning-line"/></svg>{{dErrT}}</span><p>{{dErrB}}</p></div></sc-if>
-                  <div class="afacts">
-                    <sc-for list="{{dFacts}}" as="f" hint-placeholder-count="3"><div class="afact"><span class="k">{{f.k}}</span><span class="v">{{f.v}}<small>{{f.s}}</small></span></div></sc-for>
-                  </div>
-                  <div class="fsr info"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-information-line"/></svg><span><b>{{fsrT}}</b><small>{{fsrB}}</small></span></div>
-                  <div class="xacts"><span class="note">{{walletNote}}</span><button type="button" class="abtn txt">{{cancel}}</button><button type="button" class="abtn fill">{{dCta}}</button></div>
-                </div>
-              </sc-if>
-            </div>
-          </sc-for>
+            </sc-for>
+          </div>
         </section>
       </div>
-      <div class="c-col">
-        <section class="acard">
-          <div class="ah"><div><h2>{{safeTitle}}</h2><p>{{safeDesc}}</p></div></div>
-          <div class="ab"><div class="afacts">
-            <sc-for list="{{safe}}" as="f" hint-placeholder-count="3"><div class="afact"><span class="k">{{f.k}}</span><span class="v">{{f.v}}<small>{{f.s}}</small></span></div></sc-for>
-          </div></div>
+      <aside class="ck-rail">
+        <section class="ck-card" aria-labelledby="ck-claims" data-focus="{{focusClaims}}" data-component="PoolClaimsCard">
+          <div class="ckh"><h2 id="ck-claims">{{claimsTitle}}</h2><sc-if value="{{hasClaimsBadge}}" hint-placeholder-val="{{false}}"><span class="gg-badge">{{claimsBadge}}</span></sc-if></div>
+          <p class="ckd">{{claimsDesc}}</p>
+          <sc-if value="{{hasClaims}}" hint-placeholder-val="{{true}}">
+            <ul class="ck-decide">
+              <sc-for list="{{claims}}" as="c" hint-placeholder-count="3">
+                <li class="{{c.cls}}">
+                  <span class="who">{{c.who}}<small>{{c.when}}</small></span>
+                  <span class="what">{{c.what}}<sc-if value="{{c.hasTag}}" hint-placeholder-val="{{false}}"><span class="gg-badge" data-tone="{{c.tagTone}}">{{c.tag}}</span></sc-if></span>
+                  <span class="acts"><sc-if value="{{c.canDecline}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn link">{{decline}}</button></sc-if><sc-if value="{{c.hasAct}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn {{c.actCls}}">{{c.act}}</button></sc-if><sc-if value="{{c.blocked}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn fill off" disabled aria-describedby="{{c.whyId}}">{{c.act}}</button></sc-if></span>
+                  <sc-if value="{{c.hasWhy}}" hint-placeholder-val="{{false}}"><span class="why2 {{c.whyCls}}" id="{{c.whyId}}">{{c.why}}</span></sc-if>
+                  <sc-if value="{{c.open}}" hint-placeholder-val="{{false}}">
+                    <div class="ck-xp" style="grid-column: 1 / -1">
+                      <sc-if value="{{dProtocol}}" hint-placeholder-val="{{false}}"><div class="notice warn"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-alert-line"/></svg>{{ptT}}</span><p>{{ptB}}</p></div></sc-if>
+                      <sc-if value="{{dHasFacts}}" hint-placeholder-val="{{true}}"><dl class="gg-fact-list gg-card" data-frame="card"><sc-for list="{{dFacts}}" as="f" hint-placeholder-count="3"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}<sc-if value="{{f.s}}" hint-placeholder-val="{{true}}"><small>{{f.s}}</small></sc-if></dd></div></sc-for></dl></sc-if>
+                      <sc-if value="{{dHasChecks}}" hint-placeholder-val="{{false}}"><div class="checks"><sc-for list="{{dChecks}}" as="k" hint-placeholder-count="4"><div class="ckr {{k.cls}}"><span class="cm"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="{{k.icon}}"/></svg></span><span>{{k.t}}<small>{{k.s}}</small></span></div></sc-for></div></sc-if>
+                      <sc-if value="{{dChoices}}" hint-placeholder-val="{{false}}"><div class="ways" role="radiogroup" aria-label="{{choiceLabel}}"><sc-for list="{{choices}}" as="o" hint-placeholder-count="2"><button type="button" class="choice {{o.on}}" role="radio" aria-checked="{{o.aria}}"><span class="radio"></span><span class="ct"><b>{{o.t}}</b><span>{{o.s}}</span></span></button></sc-for></div><div class="gg-field"><label for="ck-r3">{{reasonLabel}}</label><div class="ctl" id="ck-r3" role="textbox">{{reasonV}}</div><span class="msg">{{reasonHint}}</span></div></sc-if>
+                      <div class="fsr {{fsrCls}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="{{fsrIcon}}"/></svg><span><b>{{fsrT}}</b><small>{{fsrB}}</small></span></div>
+                      <div class="xacts"><span class="note">{{dNote}}</span><button type="button" class="abtn txt">{{cancel}}</button><sc-if value="{{dCan}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn fill">{{dCta}}</button></sc-if><sc-if value="{{dCannot}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn fill off" disabled>{{dCta}}</button></sc-if></div>
+                    </div>
+                  </sc-if>
+                </li>
+              </sc-for>
+            </ul>
+          </sc-if>
         </section>
-      </div>
+        <sc-if value="{{hasEx}}" hint-placeholder-val="{{false}}">
+          <section class="ck-card" aria-labelledby="ck-ex" data-focus="{{focusEx}}">
+            <h2 id="ck-ex">{{exTitle}}</h2>
+            <p class="ckd">{{exDesc}}</p>
+            <dl class="gg-fact-list" data-frame="inset" style="margin-top: 6px"><sc-for list="{{exFacts}}" as="f" hint-placeholder-count="4"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}<sc-if value="{{f.s}}" hint-placeholder-val="{{true}}"><small>{{f.s}}</small></sc-if></dd></div></sc-for></dl>
+            <sc-if value="{{exShort}}" hint-placeholder-val="{{false}}"><div class="notice warn" role="status" style="margin-top: 10px"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-alert-line"/></svg>{{exShortT}}</span><p>{{exShortB}}</p></div></sc-if>
+            <sc-if value="{{exHasRows}}" hint-placeholder-val="{{false}}">
+              <ul class="ck-decide">
+                <sc-for list="{{exRows}}" as="c" hint-placeholder-count="2">
+                  <li class="{{c.cls}}">
+                    <span class="who">{{c.who}}<small>{{c.when}}</small></span>
+                    <span class="what">{{c.what}}<sc-if value="{{c.hasTag}}" hint-placeholder-val="{{false}}"><span class="gg-badge" data-tone="{{c.tagTone}}">{{c.tag}}</span></sc-if></span>
+                    <span class="acts"><sc-if value="{{c.hasAct}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn {{c.actCls}}">{{c.act}}</button></sc-if></span>
+                    <sc-if value="{{c.open}}" hint-placeholder-val="{{false}}">
+                      <div class="ck-xp" style="grid-column: 1 / -1">
+                        <sc-if value="{{dHasErr}}" hint-placeholder-val="{{false}}"><div class="notice err" role="alert"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-error-warning-line"/></svg>{{dErrT}}</span><p>{{dErrB}}</p></div></sc-if>
+                        <sc-if value="{{dHasFacts}}" hint-placeholder-val="{{true}}"><dl class="gg-fact-list gg-card" data-frame="card"><sc-for list="{{dFacts}}" as="f" hint-placeholder-count="3"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}<sc-if value="{{f.s}}" hint-placeholder-val="{{true}}"><small>{{f.s}}</small></sc-if></dd></div></sc-for></dl></sc-if>
+                        <sc-if value="{{dHasChecks}}" hint-placeholder-val="{{false}}"><div class="checks"><sc-for list="{{dChecks}}" as="k" hint-placeholder-count="4"><div class="ckr {{k.cls}}"><span class="cm"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="{{k.icon}}"/></svg></span><span>{{k.t}}<small>{{k.s}}</small></span></div></sc-for></div></sc-if>
+                        <div class="fsr {{fsrCls}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="{{fsrIcon}}"/></svg><span><b>{{fsrT}}</b><small>{{fsrB}}</small></span></div>
+                        <div class="xacts"><span class="note">{{dNote}}</span><button type="button" class="abtn txt">{{cancel}}</button><sc-if value="{{dCan}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn fill">{{dCta}}</button></sc-if><sc-if value="{{dCannot}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn fill off" disabled>{{dCta}}</button></sc-if></div>
+                      </div>
+                    </sc-if>
+                  </li>
+                </sc-for>
+              </ul>
+            </sc-if>
+            <sc-if value="{{exHasAct}}" hint-placeholder-val="{{false}}"><div class="ck-acts"><button type="button" class="abtn fill">{{exAct}}</button></div></sc-if>
+            <sc-if value="{{exOpen}}" hint-placeholder-val="{{false}}">
+              <div class="ck-xp">
+                <sc-if value="{{dHasFacts}}" hint-placeholder-val="{{true}}"><dl class="gg-fact-list gg-card" data-frame="card"><sc-for list="{{dFacts}}" as="f" hint-placeholder-count="3"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}<sc-if value="{{f.s}}" hint-placeholder-val="{{true}}"><small>{{f.s}}</small></sc-if></dd></div></sc-for></dl></sc-if>
+                <sc-if value="{{dField}}" hint-placeholder-val="{{false}}"><div class="gg-field"><label for="ck-f3">{{fLabel}}</label><div class="ctl {{fBad}}" id="ck-f3" role="textbox" aria-invalid="{{fInvalid}}" aria-describedby="ck-h3">{{fValue}}<small>{{fUnit}}</small></div><span class="msg {{fHintCls}}" id="ck-h3">{{fHint}}</span></div></sc-if>
+                <div class="fsr {{fsrCls}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="{{fsrIcon}}"/></svg><span><b>{{fsrT}}</b><small>{{fsrB}}</small></span></div>
+                <div class="xacts"><span class="note">{{dNote}}</span><button type="button" class="abtn txt">{{cancel}}</button><sc-if value="{{dCan}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn fill">{{dCta}}</button></sc-if><sc-if value="{{dCannot}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn fill off" disabled>{{dCta}}</button></sc-if></div>
+              </div>
+            </sc-if>
+          </section>
+        </sc-if>
+        <section class="ck-card" aria-labelledby="ck-status" data-component="PoolStatusCard">
+          <div class="ckh"><h2 id="ck-status">{{statusTitle}}</h2><span class="gg-badge" data-tone="success"><svg class="i" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg>{{statusChip}}</span></div>
+          <dl class="gg-fact-list" data-frame="inset" style="margin-top: 6px"><sc-for list="{{statusFacts}}" as="f" hint-placeholder-count="2"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}</dd></div></sc-for></dl>
+          <div class="ck-acts"><button type="button" class="abtn">{{editPool}}</button><button type="button" class="abtn">{{pausePool}}</button></div>
+        </section>
+        <section class="ck-card" aria-labelledby="ck-funding" data-component="PoolFundingSection">
+          <div class="ckh"><h2 id="ck-funding">{{fundingTitle}}</h2><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-refresh-line"/></svg></div>
+          <p class="ckd" style="margin-top: 8px">{{fundingAvail}}</p>
+          <p class="ck-amt">{{fundingValue}}</p>
+          <p class="ck-meta">{{fundingNote}} <a class="tlink" href="#">{{viewDetails}}</a></p>
+        </section>
+      </aside>
     </div>
   </main>
   <nav class="dock" aria-label="{{dockLabel}}" inert="{{baseHidden}}">
@@ -86,20 +146,28 @@
   </nav>
   <sc-if value="{{showDlg}}" hint-placeholder-val="{{false}}">
     <div class="dscrim"></div>
-    <section class="dlg" role="dialog" aria-modal="true" aria-labelledby="fn-dlg" data-focus="1">
-      <div class="dh"><div><h2 id="fn-dlg">{{dTitle}}</h2><p>{{dSub}}</p></div><button type="button" class="close" aria-label="{{closeLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></button></div>
+    <section class="dlg" role="dialog" aria-modal="true" aria-labelledby="ck-dlg" data-focus="1">
+      <div class="dh"><div><h2 id="ck-dlg">{{dTitle}}</h2><p>{{dSub}}</p></div><button type="button" class="close" aria-label="{{closeLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></button></div>
       <div class="db">
+        <sc-if value="{{dProtocol}}" hint-placeholder-val="{{false}}"><div class="notice warn"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-alert-line"/></svg>{{ptT}}</span><p>{{ptB}}</p></div></sc-if>
         <sc-if value="{{dHasErr}}" hint-placeholder-val="{{false}}"><div class="notice err" role="alert"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-error-warning-line"/></svg>{{dErrT}}</span><p>{{dErrB}}</p></div></sc-if>
-        <div class="afacts">
-          <sc-for list="{{dFacts}}" as="f" hint-placeholder-count="4"><div class="afact"><span class="k">{{f.k}}</span><span class="v">{{f.v}}<small>{{f.s}}</small></span></div></sc-for>
-        </div>
-        <sc-if value="{{dHasChecks}}" hint-placeholder-val="{{true}}"><div class="checks">
-          <sc-for list="{{dChecks}}" as="c" hint-placeholder-count="4"><div class="ckr ok"><span class="cm"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg></span><span>{{c}}</span></div></sc-for>
-        </div></sc-if>
-        <div class="fsr info"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-information-line"/></svg><span><b>{{fsrT}}</b><small>{{fsrB}}</small></span></div>
+        <sc-if value="{{dHasFacts}}" hint-placeholder-val="{{true}}"><dl class="gg-fact-list gg-card" data-frame="card"><sc-for list="{{dFacts}}" as="f" hint-placeholder-count="4"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}<sc-if value="{{f.s}}" hint-placeholder-val="{{true}}"><small>{{f.s}}</small></sc-if></dd></div></sc-for></dl></sc-if>
+        <sc-if value="{{dHasChecks}}" hint-placeholder-val="{{false}}"><div class="checks"><sc-for list="{{dChecks}}" as="c" hint-placeholder-count="4"><div class="ckr {{c.cls}}"><span class="cm"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="{{c.icon}}"/></svg></span><span>{{c.t}}<small>{{c.s}}</small></span></div></sc-for></div></sc-if>
+        <sc-if value="{{dField}}" hint-placeholder-val="{{false}}">
+          <div class="gg-field"><label for="ck-f2">{{fLabel}}</label><div class="ctl {{fBad}}" id="ck-f2" role="textbox" aria-invalid="{{fInvalid}}" aria-describedby="ck-h2">{{fValue}}<small>{{fUnit}}</small></div><span class="msg {{fHintCls}}" id="ck-h2">{{fHint}}</span></div>
+          <sc-if value="{{dBar}}" hint-placeholder-val="{{true}}"><div class="splitbar" role="img" aria-label="{{barLabel}}"><span class="a" style="flex: 40">{{barA}}</span><span class="b" style="flex: 60">{{barB}}</span></div></sc-if>
+        </sc-if>
+        <sc-if value="{{dChoices}}" hint-placeholder-val="{{false}}">
+          <div class="ways" role="radiogroup" aria-label="{{choiceLabel}}"><sc-for list="{{choices}}" as="o" hint-placeholder-count="2"><button type="button" class="choice {{o.on}}" role="radio" aria-checked="{{o.aria}}"><span class="radio"></span><span class="ct"><b>{{o.t}}</b><span>{{o.s}}</span></span></button></sc-for></div>
+          <div class="gg-field"><label for="ck-r2">{{reasonLabel}}</label><div class="ctl" id="ck-r2" role="textbox" aria-describedby="ck-rh2">{{reasonV}}</div><span class="msg" id="ck-rh2">{{reasonHint}}</span></div>
+        </sc-if>
         <sc-if value="{{dHasKeep}}" hint-placeholder-val="{{false}}"><div class="target"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-lock-line"/></svg>{{keepNote}}</div></sc-if>
+        <div class="fsr {{fsrCls}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="{{fsrIcon}}"/></svg><span><b>{{fsrT}}</b><small>{{fsrB}}</small></span></div>
       </div>
-      <div class="df"><span class="note">{{walletNote}}</span><button type="button" class="abtn lg txt">{{cancel}}</button><button type="button" class="abtn lg fill">{{dCta}}</button></div>
+      <div class="df"><span class="note">{{dNote}}</span><button type="button" class="abtn lg txt">{{cancel}}</button>
+        <sc-if value="{{dCan}}" hint-placeholder-val="{{true}}"><button type="button" class="abtn lg fill {{dCtaCls}}">{{dCta}}</button></sc-if>
+        <sc-if value="{{dCannot}}" hint-placeholder-val="{{false}}"><button type="button" class="abtn lg fill off" disabled>{{dCta}}</button></sc-if>
+      </div>
     </section>
   </sc-if>
 </div>
@@ -110,56 +178,75 @@ class Component extends DCLogic {
     var t = GGT(this.props.lang);
     var st = this.props.state ?? 'Overview';
     var dark = this.props.dark ?? false;
-    var g = t.g;
-    var linaChecked = st === 'Assign payment';
-    var payRows = [
-      { who: t('fn.r.lina'), sb: linaChecked ? 'ok' : 'warn', tag: linaChecked ? t('fn.tag.accepted') : t('fn.tag.unchecked'),
-        meta: linaChecked ? t('fn.m.linaAcc', { amt: g(450) }) : t('fn.m.lina', { gross: g(450.45), date: t.d('2026-10-22') }), hasAct: true,
-        act: linaChecked ? t('fn.a.assign') : t('fn.a.check'), btnCls: 'fill' },
-      { who: t('fn.r.ama'), sb: 'info', tag: t('fn.tag.waiting'), meta: t('fn.m.ama', { amt: g(300) }), hasAct: false, act: '', btnCls: '' },
-      { who: t('fn.r.kofi'), sb: st === 'Refund failed' ? 'err' : 'neu', tag: st === 'Refund failed' ? t('fn.tag.refundFailed') : t('fn.tag.declined'),
-        meta: t('fn.m.kofi', { amt: g(120) }), hasAct: true, act: st === 'Refund failed' ? t('fn.a.retryRefund') : t('fn.a.refund'), btnCls: st === 'Refund failed' ? 'fill' : '' }
+    var g = t.g, n = t.n;
+    var D2 = function (text, tone) { return { text: text, tone: tone || '' }; };
+    var payoutFailed = st === 'Reward payout failed', refundFailed = st === 'Refund failed', linaChecked = st === 'Assign payment';
+    // Offers and Requests: Riverside's requests with rewards; each reward keeps its own receipt, and the G$ payout has its own retry
+    var prows = [
+      { dir: t('sh.ck.request'), icon: '#ri-hand-heart-line', title: t('rw.vg.title'), pill: t('sh.st.kept'), tone: payoutFailed ? 'error' : 'success',
+        details: payoutFailed ? [D2(t('fn.tag.gdFailed'), 'error'), D2(t('who.lina'))] : [D2(t('fn.d.rwPaying')), D2(t('who.lina'))], act: payoutFailed ? t('fn.a.retryPayout') : '', key: 'payout' },
+      { dir: t('sh.ck.request'), icon: '#ri-hand-heart-line', title: t('rw.v.title'), pill: t('sh.st.kept'), tone: 'warning', details: [D2(t('fn.tag.vouWait')), D2(t('who.lina'))], act: '', key: '' },
+      { dir: t('sh.ck.request'), icon: '#ri-hand-heart-line', title: t('gp.r.shelves'), pill: t('sh.st.requested'), tone: 'info', details: [D2(t('gp.d.due', { date: t.d('2026-11-12') })), D2(t('who.tomas'))], act: '', key: '' }
     ];
-    var rwRows = [
-      { who: t('fn.r.compost'), sb1: 'ok', tag1: t('fn.tag.vouRecv'), hasTag2: true, sb2: st === 'Reward payout failed' ? 'err' : 'info', tag2: st === 'Reward payout failed' ? t('fn.tag.gdFailed') : t('fn.tag.gdPaying'),
-        meta: t('fn.m.compost', { amt: g(120) }), hasAct: st === 'Reward payout failed', act: t('fn.a.retryPayout') },
-      { who: t('fn.r.water'), sb1: 'warn', tag1: t('fn.tag.vouWait'), hasTag2: false, sb2: '', tag2: '', meta: t('fn.m.water'), hasAct: false, act: '' }
+    // Members' own G$ for purchases in other gardens: a rail card of its own beside Pool Funding, never counted as garden funds
+    var exRows = [
+      { who: t('who.lina'), when: t.d('2026-10-22'), what: t('fn.w.ai', { amt: g(450.45) }), tag: linaChecked ? t('fn.tag.accepted') : t('fn.tag.unchecked'), tagTone: linaChecked ? 'success' : 'warning',
+        act: linaChecked ? t('fn.a.assign') : t('fn.a.check'), actCls: 'fill', key: 'lina' },
+      { who: t('who.ama'), when: t.d('2026-10-24'), what: t('fn.w.web', { amt: g(300) }), tag: t('fn.tag.waiting'), tagTone: 'info', act: '', actCls: '', key: '' },
+      { who: t('who.kofi'), when: t.d('2026-10-20'), what: t('fn.w.journal', { amt: g(120) }), tag: refundFailed ? t('fn.tag.refundFailed') : t('fn.tag.declined'), tagTone: refundFailed ? 'error' : 'neutral',
+        act: refundFailed ? t('fn.a.retryRefund') : t('fn.a.refund'), actCls: refundFailed ? 'fill' : '', key: 'kofi' }
     ];
     var D = null;
-    if (st === 'Check payment') D = { title: t('fn.d.check.t'), sub: t('fn.d.sub'), cta: t('fn.a.record'), keep: true,
+    if (st === 'Check payment') D = { title: t('fn.d.check.t'), sub: t('fn.d.sub'), cta: t('fn.a.record'), keep: true, at: 'lina',
       facts: [[t('fn.d.member'), t('fn.d.memberV'), ''], [t('fn.d.expected'), t('fn.d.expectedV', { amt: g(450) }), t('fn.d.expectedS')],
         [t('fn.d.found'), t('fn.d.foundV', { amt: g(450) }), t('fn.d.foundS', { gross: g(450.45) })], [t('fn.d.transfer'), t('fn.d.transferV', { date: t.d('2026-10-22') }), t('fn.d.transferS')]],
-      checks: [t('fn.c.from'), t('fn.c.into'), t('fn.c.covers', { amt: g(450) }), t('fn.c.unused')], fsr: ['fn.f.record'] };
-    if (st === 'Assign payment') D = { title: t('fn.d.assign.t'), sub: t('fn.d.sub'), cta: t('fn.a.assignGo'), keep: true,
+      checks: [t('fn.c.from'), t('fn.c.into'), t('fn.c.covers', { amt: g(450) }), t('fn.c.unused')], fsr: 'fn.f.record' };
+    if (st === 'Assign payment') D = { title: t('fn.d.assign.t'), sub: t('fn.d.sub'), cta: t('fn.a.assignGo'), keep: true, at: 'lina',
       facts: [[t('fn.d.recorded'), g(450) + ' G$', t('fn.d.recordedS', { date: t.d('2026-10-22') })], [t('fn.d.acceptedBy'), t('who.gg'), t.d('2026-10-23')]],
-      checks: [t('fn.c.accepted'), t('fn.c.terms'), t('fn.c.safe')], fsr: ['fn.f.assign'] };
-    if (st === 'Refund' || st === 'Refund failed') D = { title: st === 'Refund' ? t('fn.d.refund.t') : t('fn.d.retry.t'), sub: t('fn.d.subKofi'), cta: st === 'Refund' ? t('fn.a.queue') : t('fn.a.retryRefundGo'),
-      err: st === 'Refund failed' ? [t('fn.e.refund.t'), t('fn.e.refund.b')] : null,
+      checks: [t('fn.c.accepted'), t('fn.c.terms'), t('fn.c.safe')], fsr: 'fn.f.assign' };
+    if (st === 'Refund' || refundFailed) D = { title: st === 'Refund' ? t('fn.d.refund.t') : t('fn.d.retry.t'), sub: t('fn.d.subKofi'), cta: st === 'Refund' ? t('fn.a.queue') : t('fn.a.retryRefundGo'), at: 'kofi',
+      err: refundFailed ? [t('fn.e.refund.t'), t('fn.e.refund.b')] : null,
       facts: [[t('fn.d.to'), t('fn.d.toV'), ''], [t('fn.d.amount'), g(120) + ' G$', t('fn.d.amountS')], [t('fn.d.why'), t('fn.d.whyV', { date: t.d('2026-10-20') }), ''], [t('fn.d.fee'), t('fn.d.feeV', { fee: g(0.12) }), t('fn.d.feeS')]],
-      checks: [], fsr: [st === 'Refund' ? 'fn.f.refund' : 'fn.f.retry'] };
-    if (st === 'Reward payout failed') D = { title: t('fn.d.payout.t'), sub: t('rw.vg.title'), cta: t('fn.a.retryPayoutGo'),
+      checks: [], fsr: st === 'Refund' ? 'fn.f.refund' : 'fn.f.retry' };
+    if (payoutFailed) D = { title: t('fn.d.payout.t'), sub: t('rw.vg.title'), cta: t('fn.a.retryPayoutGo'), at: 'payout',
       err: [t('fn.e.payout.t', { amt: g(120) }), t('fn.e.payout.b')],
       facts: [[t('fn.d.to'), t('fn.d.toLina'), ''], [t('fn.d.amount'), g(120) + ' G$', t('fn.d.payoutS')], [t('fn.d.vouchers'), t('fn.d.vouchersV'), t('fn.d.vouchersS')]],
-      checks: [], fsr: ['fn.f.payout'] };
-    // The lab's confirm dial: the dialog, or the same checks opened in the row itself
+      checks: [], fsr: 'fn.f.payout' };
+    // The lab's confirm dial: the cockpit's confirm dialog, or the same checks opened in the row itself
     var inline = (this.props.confirm ?? 'dialog') === 'inline' && !!D;
-    var payOpen = { 'Check payment': 0, 'Assign payment': 0, 'Refund': 2, 'Refund failed': 2 }[st];
-    payRows.forEach(function (r, i) { r.open = inline && payOpen === i; r.openCls = r.open ? 'open' : ''; });
-    rwRows.forEach(function (r, i) { r.open = inline && st === 'Reward payout failed' && i === 0; r.openCls = r.open ? 'open' : ''; });
+    var at = D ? D.at : '';
+    prows.forEach(function (r) { r.hasAct = !!r.act; r.actCls = 'fill'; r.chev = !r.act; r.open = inline && r.key === at; r.sel = r.open ? 'true' : 'false'; });
+    exRows.forEach(function (c) { c.hasTag = true; c.hasAct = !!c.act; c.cls = ''; c.open = inline && c.key === at; });
+    var dlgOpen = !!D && !inline;
+    var focusRows = payoutFailed && (!D || inline);
+    var focusEx = !focusRows && (!D || inline);
     return Object.assign(GGTW(this.props), {
-      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code, garden: t('who.rc'), closeLabel: t('c.close'),
-      baseHidden: D && !inline ? 'true' : 'false',
-      pageTitle: t('fn.title'), pageSub: t('fn.sub'), tabOverview: t('fn.tab.overview'), tabPayouts: t('fn.tab.payouts'), tabHistory: t('fn.tab.history'),
-      payTitle: t('fn.pay.t'), payDesc: t('fn.pay.d'), payRows: payRows, rwTitle: t('fn.rw.t'), rwDesc: t('fn.rw.d'), rwRows: rwRows,
-      safeTitle: t('fn.safe.t'), safeDesc: t('fn.safe.d'),
-      safe: [{ k: t('fn.safe.pool'), v: g(2140) + ' G$', s: t('fn.safe.poolS') }, { k: t('fn.safe.members'), v: g(870) + ' G$', s: t('fn.safe.membersS') }, { k: t('fn.safe.owed'), v: g(120) + ' G$', s: t('fn.safe.owedS') }],
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code, garden: t('who.rc'), me: 'T', closeLabel: t('c.close'),
+      baseHidden: dlgOpen ? 'true' : 'false', pageTitle: t('sh.ck.garden'),
+      tHealth: t('sh.ck.health'), tImpact: t('sh.ck.impact'), tActivity: t('sh.ck.activity'), tPromises: t('sh.ck.promisesTab'),
+      needsLabel: t('sh.ck.needs'), stats: [{ n: n(0), k: t('sh.ck.toReview') }, { n: n(payoutFailed || refundFailed ? 1 : 0), k: t('sh.ck.recovery') }, { n: n(0), k: t('sh.ck.pastDue') }],
+      cyclesLabel: t('ck.cycles'), seasonTitle: t('pp.cycle.rc'), seasonKind: t('sh.ck.season'), cycleOpen: t('sh.ck.cycleOpen'),
+      seasonMeta: t('ck.cyc.meta', { count: n(7), kept: n(3), date: t.d('2026-11-30') }),
+      campaignsLine: t('sh.ck.campaigns', { open: n(1), waiting: n(0) }), startCampaign: t('sh.ck.startCampaign'),
+      campaignTitle: t('fn.cyc.camp'), campaignKind: t('sh.ck.campaign'), campaignMeta: t('ck.cyc.meta', { count: n(2), kept: n(0), date: t.d('2026-10-11') }),
+      promTitle: t('sh.ck.promises'), seed: t('sh.ck.seed'), search: t('sh.ck.search'),
+      chips: [{ label: t('sh.ck.open'), cls: 'on' }, { label: t('sh.ck.confirmed'), cls: '' }, { label: t('sh.ck.past'), cls: '' }, { label: t('sh.ck.pastDueN', { count: n(0) }), cls: '' }, { label: t('sh.ck.recoveryN', { count: n(payoutFailed ? 1 : 0) }), cls: '' }],
+      prows: prows, focusRows: focusRows ? '1' : '',
+      claimsTitle: t('sh.ck.review'), claimsDesc: t('sh.ck.nothing'), hasClaimsBadge: false, claimsBadge: '', hasClaims: false, claims: [], decline: t('sh.ck.decline'), focusClaims: '',
+      hasEx: true, exTitle: t('fn.pay.t'), exDesc: t('fn.pay.d'), exFacts: [{ k: t('fn.safe.members'), v: g(870) + ' G$', s: t('fn.safe.membersS') }, { k: t('fn.safe.owed'), v: g(120) + ' G$', s: t('fn.safe.owedS') }],
+      exShort: false, exShortT: '', exShortB: '', exHasRows: true, exRows: exRows, exHasAct: false, exAct: '', exOpen: false, focusEx: focusEx ? '1' : '',
+      statusTitle: t('sh.ck.status'), statusChip: t('sh.ck.taking'),
+      statusFacts: [{ k: t('sh.ck.charter'), v: t('fn.st.charter') }, { k: t('sh.ck.cap'), v: t('ck.st.capV', { n: n(24) }) }], editPool: t('sh.ck.editPool'), pausePool: t('sh.ck.pause'),
+      fundingTitle: t('sh.ck.funding'), fundingAvail: t('sh.ck.available'), fundingValue: g(2140) + ' G$', fundingNote: t('fn.safe.d'), viewDetails: t('sh.ck.viewDetails'),
       dockLabel: t('fn.dock'), dHub: t('fn.d.hub'), dGarden: t('fn.d.garden'), dCommunity: t('fn.d.community'), dActions: t('fn.d.actions'),
-      showDlg: !!D && !inline, dTitle: D ? D.title : '', dSub: D ? D.sub : '', dCta: D ? D.cta : '',
-      dHasErr: !!(D && D.err), dErrT: D && D.err ? D.err[0] : '', dErrB: D && D.err ? D.err[1] : '',
-      dFacts: D ? D.facts.map(function (f) { return { k: f[0], v: f[1], s: f[2] }; }) : [],
-      dHasChecks: !!(D && D.checks.length), dChecks: D ? D.checks : [],
-      fsrT: D ? t(D.fsr[0] + '.t') : '', fsrB: D ? t(D.fsr[0] + '.b') : '', dHasKeep: !!(D && D.keep), keepNote: t('fn.keep'),
-      walletNote: t('c.wallet'), cancel: t('c.cancel')
+      showDlg: dlgOpen, dTitle: D ? D.title : '', dSub: D ? D.sub : '', dNote: t('c.wallet'),
+      dHasErr: !!(D && D.err), dErrT: D && D.err ? D.err[0] : '', dErrB: D && D.err ? D.err[1] : '', dHasKeep: !!(D && D.keep), keepNote: t('fn.keep'),
+      dProtocol: false, ptT: '', ptB: '', dChoices: false, choices: [], choiceLabel: '', reasonLabel: '', reasonV: '', reasonHint: '',
+      dHasFacts: !!(D && D.facts.length), dFacts: D ? D.facts.map(function (f) { return { k: f[0], v: f[1], s: f[2] }; }) : [],
+      dHasChecks: !!(D && D.checks.length), dChecks: D ? D.checks.map(function (c) { return { t: c, s: '', cls: 'ok', icon: '#ri-check-line' }; }) : [],
+      dField: false, fLabel: '', fValue: '', fUnit: '', fHint: '', fBad: '', fInvalid: 'false', fHintCls: '', dBar: false, barLabel: '', barA: '', barB: '',
+      fsrCls: 'info', fsrIcon: '#ri-information-line', fsrT: D ? t(D.fsr + '.t') : '', fsrB: D ? t(D.fsr + '.b') : '',
+      cancel: t('c.cancel'), dCta: D ? D.cta : '', dCtaCls: '', dCan: !!D, dCannot: false
     });
   }
 }

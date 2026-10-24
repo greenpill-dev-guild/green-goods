@@ -28,11 +28,9 @@
     "Green Goods Community Garden",
     "Green Goods Community Garden"
   ],
-  "who.sun": ["Sunroot Skills Hub", "Sunroot Skills Hub", "Sunroot Skills Hub"],
+  "who.sun": ["Tech and Sun", "Tech and Sun", "Tech and Sun"],
   "who.rc": ["Riverside Commons Garden", "Riverside Commons Garden", "Riverside Commons Garden"],
-  "who.hill": ["Hilltop Tool Library", "Hilltop Tool Library", "Hilltop Tool Library"],
-  "u.sunMany": ["Sunroot vouchers", "vales de Sunroot", "vales da Sunroot"],
-  "u.hillMany": ["Hilltop vouchers", "vales de Hilltop", "vales da Hilltop"],
+  "u.sunMany": ["Tech and Sun vouchers", "vales de Tech and Sun", "vales da Tech and Sun"],
   "of.kind": ["Offer · {garden}", "Oferta · {garden}", "Oferta · {garden}"],
   "of.g.title": [
     "AI assistant membership, 1 month",
@@ -133,36 +131,40 @@
     "Cada reserva usa uma vaga"
   ],
   "of.s.title": [
-    "Solar session, 60 minutes",
-    "Sesión solar, 60 minutos",
-    "Sessão solar, 60 minutos"
+    "Hub day, up to 4 hours",
+    "Día en el hub, hasta 4 horas",
+    "Dia no hub, até 4 horas"
   ],
   "of.s.desc": [
-    "One hands-on session on small solar setups for sheds and pumps, booked with Sunroot.",
-    "Una sesión práctica sobre pequeñas instalaciones solares para cobertizos y bombas, reservada con Sunroot.",
-    "Uma sessão prática sobre pequenas instalações solares para galpões e bombas, reservada com a Sunroot."
+    "A reserved visit to the Tech and Sun hub for one named person, with workspace, power and connectivity for up to four hours.",
+    "Una visita reservada al hub de Tech and Sun para una persona con nombre, con espacio de trabajo, electricidad y conexión durante hasta cuatro horas.",
+    "Uma visita reservada ao hub da Tech and Sun para uma pessoa identificada, com espaço de trabalho, energia e conexão por até quatro horas."
   ],
-  "of.c.title": [
-    "Solar basics course, 10 lessons",
-    "Curso básico de energía solar, 10 lecciones",
-    "Curso básico de energia solar, 10 aulas"
-  ],
+  "of.c.title": ["Claude access, 30 days", "Acceso a Claude, 30 días", "Acesso ao Claude, 30 dias"],
   "of.c.desc": [
-    "Ten weekly hands-on lessons on small solar setups, in person at Sunroot.",
-    "Diez lecciones prácticas semanales sobre pequeñas instalaciones solares, en persona en Sunroot.",
-    "Dez aulas práticas semanais sobre pequenas instalações solares, presenciais na Sunroot."
+    "Thirty days of a named Claude Team seat in Green Goods' organization, from the day you can sign in and confirm access. It doesn't renew on its own.",
+    "Treinta días de una plaza nominal de Claude Team en la organización de Green Goods, desde el día en que puedes iniciar sesión y confirmas el acceso. No se renueva sola.",
+    "Trinta dias de uma vaga nominal do Claude Team na organização do Green Goods, a partir do dia em que você consegue entrar e confirma o acesso. Não renova sozinha."
   ],
-  "of.s.get": ["One 60-minute session", "Una sesión de 60 minutos", "Uma sessão de 60 minutos"],
+  "of.s.get": [
+    "One visit of up to 4 hours",
+    "Una visita de hasta 4 horas",
+    "Uma visita de até 4 horas"
+  ],
   "of.s.getS": [
-    "Full access, booked with Sunroot.",
-    "Acceso completo, reservado con Sunroot.",
-    "Acesso completo, reservado com a Sunroot."
+    "Workspace, power and connectivity, in your name.",
+    "Espacio de trabajo, electricidad y conexión, a tu nombre.",
+    "Espaço de trabalho, energia e conexão, no seu nome."
   ],
-  "of.c.get": ["10 weekly lessons", "10 lecciones semanales", "10 aulas semanais"],
+  "of.c.get": [
+    "30 days of a named Claude seat",
+    "30 días de una plaza de Claude a tu nombre",
+    "30 dias de uma vaga do Claude no seu nome"
+  ],
   "of.c.getS": [
-    "Thursdays, in person at Sunroot.",
-    "Los jueves, en persona en Sunroot.",
-    "Às quintas, presenciais na Sunroot."
+    "From the day you can sign in. Usage limits apply.",
+    "Desde el día en que puedes iniciar sesión. Hay límites de uso.",
+    "A partir do dia em que você consegue entrar. Há limites de uso."
   ],
   "of.v.give": ["{n} {unit}", "{n} {unit}", "{n} {unit}"],
   "of.v.giveS": ["You hold {held}.", "Tienes {held}.", "Você tem {held}."],
@@ -192,14 +194,14 @@
     "Todos, se você cancelar antes de {issuer} aceitar"
   ],
   "of.s.backS": [
-    "After that, Sunroot's terms set what can come back, and you approve the split.",
-    "Después, las condiciones de Sunroot fijan lo que puede volver, y tú apruebas el reparto.",
-    "Depois disso, as condições da Sunroot definem o que pode voltar, e você aprova a divisão."
+    "After that, by usable time out of 4 hours. You approve the split.",
+    "Después, según el tiempo útil de 4 horas. Tú apruebas el reparto.",
+    "Depois disso, pelo tempo útil de 4 horas. Você aprova a divisão."
   ],
   "of.c.backS": [
-    "After that, Sunroot's terms allow up to 60 back after 3 lessons. You approve the split.",
-    "Después, las condiciones de Sunroot permiten devolver hasta 60 tras 3 lecciones. Tú apruebas el reparto.",
-    "Depois disso, as condições da Sunroot permitem devolver até 60 após 3 aulas. Você aprova a divisão."
+    "After that, by days of working access out of 30. You approve the split.",
+    "Después, según los días de acceso efectivo de 30. Tú apruebas el reparto.",
+    "Depois disso, pelos dias de acesso efetivo de 30. Você aprova a divisão."
   ],
   "of.v.starts": [
     "When {issuer} accepts you",
@@ -207,14 +209,14 @@
     "Quando {issuer} aceitar você"
   ],
   "of.s.startsS": [
-    "Sessions run on Thursdays",
-    "Las sesiones son los jueves",
-    "As sessões são às quintas"
+    "On the days in the published calendar",
+    "Los días del calendario publicado",
+    "Nos dias do calendário publicado"
   ],
   "of.c.startsS": [
-    "The next round starts Oct 30",
-    "La próxima ronda empieza el 30 de oct.",
-    "A próxima turma começa em 30 de out."
+    "Your 30 days start when you can sign in",
+    "Tus 30 días empiezan cuando puedes iniciar sesión",
+    "Seus 30 dias começam quando você consegue entrar"
   ],
   "of.f.whoVv": [
     "Gardeners and stewards",
@@ -227,7 +229,7 @@
     "De qualquer jardim, com {unit}"
   ],
   "of.s.places": ["3 open this week", "3 libres esta semana", "3 livres esta semana"],
-  "of.c.places": ["12 of 20 open", "12 de 20 libres", "12 de 20 livres"],
+  "of.c.places": ["1 seat open", "1 plaza libre", "1 vaga livre"],
   "of.r.noGarden.t": [
     "Join a garden to pay for yourself.",
     "Únete a un jardín para pagar por tu cuenta.",
@@ -248,14 +250,14 @@
   "of.a.getGd": ["Open Wallet", "Abrir billetera", "Abrir carteira"],
   "of.r.shortV.t": ["You hold {have} {unit}.", "Tienes {have} {unit}.", "Você tem {have} {unit}."],
   "of.r.shortV.bc": [
-    "This course takes 100. You can exchange other vouchers in the shared pool, or earn more.",
-    "Este curso requiere 100. Puedes cambiar otros vales en el fondo compartido o ganar más.",
-    "Este curso exige 100. Você pode trocar outros vales no fundo compartilhado ou ganhar mais."
+    "Claude access takes 10. You can exchange other vouchers in the shared pool, or earn more.",
+    "El acceso a Claude requiere 10. Puedes cambiar otros vales en el fondo compartido o ganar más.",
+    "O acesso ao Claude exige 10. Você pode trocar outros vales no fundo compartilhado ou ganhar mais."
   ],
   "of.r.shortV.bs": [
-    "This session takes 10. You can exchange other vouchers in the shared pool, or earn more.",
-    "Esta sesión requiere 10. Puedes cambiar otros vales en el fondo compartido o ganar más.",
-    "Esta sessão exige 10. Você pode trocar outros vales no fundo compartilhado ou ganhar mais."
+    "A hub day takes 1. You can exchange other vouchers in the shared pool, or earn more.",
+    "Un día en el hub requiere 1. Puedes cambiar otros vales en el fondo compartido o ganar más.",
+    "Um dia no hub exige 1. Você pode trocar outros vales no fundo compartilhado ou ganhar mais."
   ],
   "of.a.exchange": ["Exchange Vouchers", "Cambiar vales", "Trocar vales"],
   "of.a.earn": ["Ways to Earn", "Formas de ganar", "Formas de ganhar"],
@@ -477,8 +479,16 @@
     "Depositar exige conexão. Nada fica salvo para enviar depois."
   ],
   "pay.changed": ["Changed", "Cambió", "Mudou"],
-  "pay.s.get": ["One 60-minute session", "Una sesión de 60 minutos", "Uma sessão de 60 minutos"],
-  "pay.c.get": ["10 weekly lessons", "10 lecciones semanales", "10 aulas semanais"],
+  "pay.s.get": [
+    "One visit of up to 4 hours",
+    "Una visita de hasta 4 horas",
+    "Uma visita de até 4 horas"
+  ],
+  "pay.c.get": [
+    "30 days of a named Claude seat",
+    "30 días de una plaza de Claude a tu nombre",
+    "30 dias de uma vaga do Claude no seu nome"
+  ],
   "pay.v.getS": ["With {issuerFull}", "Con {issuerFull}", "Com {issuerFull}"],
   "pay.v.give": ["{n} {unit}", "{n} {unit}", "{n} {unit}"],
   "pay.v.giveS": [
@@ -503,14 +513,14 @@
     "Antes de {issuer} aceitar, você pode cancelar quando quiser e recuperar os {n}."
   ],
   "pay.s.after": [
-    "Sunroot's terms set any return",
-    "Las condiciones de Sunroot fijan cualquier devolución",
-    "As condições da Sunroot definem qualquer devolução"
+    "By usable time, out of 4 hours",
+    "Según el tiempo útil, de 4 horas",
+    "Pelo tempo útil, de 4 horas"
   ],
   "pay.c.after": [
-    "Up to 60 back after 3 lessons",
-    "Hasta 60 de vuelta tras 3 lecciones",
-    "Até 60 de volta após 3 aulas"
+    "By days of working access, out of 30",
+    "Según los días de acceso efectivo, de 30",
+    "Pelos dias de acesso efetivo, de 30"
   ],
   "pay.v.afterS": [
     "You approve the final split.",
@@ -528,9 +538,9 @@
     "Agora {issuer} aprova a reserva."
   ],
   "pay.v.wait.b": [
-    "Its Safe needs 2 of 3 signatures, so it can take a day. Nothing has left your account. We'll let you know when you can deposit.",
-    "Su Safe necesita 2 de 3 firmas, así que puede tardar un día. No salió nada de tu cuenta. Te avisaremos cuando puedas depositar.",
-    "O Safe dela precisa de 2 de 3 assinaturas, então pode levar um dia. Nada saiu da sua conta. Avisaremos quando você puder depositar."
+    "Its Safe needs {sigs} signatures, so it can take a day. Nothing has left your account. We'll let you know when you can deposit.",
+    "Su Safe necesita {sigs} firmas, así que puede tardar un día. No salió nada de tu cuenta. Te avisaremos cuando puedas depositar.",
+    "O Safe precisa de {sigs} assinaturas, então pode levar um dia. Nada saiu da sua conta. Avisaremos quando você puder depositar."
   ],
   "pay.v.depositS": ["From your account", "De tu cuenta", "Da sua conta"],
   "pay.v.into": [
@@ -844,8 +854,8 @@
   "pu.a.addDetails": ["Add Details", "Agregar detalles", "Adicionar detalhes"],
   "rd.p.booked": ["Booked", "Reservado", "Reservado"],
   "rd.p.accepted": ["Accepted", "Aceptado", "Aceito"],
-  "rd.p.lessons": ["Lessons", "Lecciones", "Aulas"],
-  "rd.p.session": ["Session", "Sesión", "Sessão"],
+  "rd.p.lessons": ["Access", "Acceso", "Acesso"],
+  "rd.p.session": ["Hub day", "Día en el hub", "Dia no hub"],
   "rd.p.close": ["Closing", "Cierre", "Encerramento"],
   "rd.p.canceled": ["Canceled", "Cancelado", "Cancelado"],
   "rd.who.booked": ["You and {issuer}", "Tú y {issuer}", "Você e {issuer}"],
@@ -890,11 +900,15 @@
     "Reserva iniciada: as condições ficam fixas"
   ],
   "rd.sub.lessons": [
-    "{done} of 10 lessons reported",
-    "{done} de 10 lecciones informadas",
-    "{done} de 10 aulas informadas"
+    "{done} of 30 days of access",
+    "{done} de 30 días de acceso",
+    "{done} de 30 dias de acesso"
   ],
-  "rd.sub.session": ["Session {date}, 10:00", "Sesión el {date}, 10:00", "Sessão em {date}, 10:00"],
+  "rd.sub.session": [
+    "Hub day {date}, 10:00 to 14:00",
+    "Día en el hub el {date}, de 10:00 a 14:00",
+    "Dia no hub em {date}, das 10:00 às 14:00"
+  ],
   "rd.sub.split": [
     "You approve the final split",
     "Apruebas el reparto final",
@@ -978,9 +992,9 @@
     "Agora: {issuer} aprova sua reserva"
   ],
   "rd.n.approval.b": [
-    "{issuer}'s Safe needs 2 of 3 signatures. Your vouchers are still in your account. You can cancel any time before {issuer} accepts.",
-    "El Safe de {issuer} necesita 2 de 3 firmas. Tus vales siguen en tu cuenta. Puedes cancelar cuando quieras antes de que {issuer} acepte.",
-    "O Safe de {issuer} precisa de 2 de 3 assinaturas. Seus vales continuam na sua conta. Você pode cancelar quando quiser antes de {issuer} aceitar."
+    "{issuer}'s Safe needs {sigs} signatures. Nothing has left your account. You can cancel any time before {issuer} accepts.",
+    "El Safe de {issuer} necesita {sigs} firmas. No salió nada de tu cuenta. Puedes cancelar cuando quieras antes de que {issuer} acepte.",
+    "O Safe de {issuer} precisa de {sigs} assinaturas. Nada saiu da sua conta. Você pode cancelar quando quiser antes de {issuer} aceitar."
   ],
   "rd.n.deposit.t": [
     "Next: deposit your vouchers",
@@ -1020,19 +1034,15 @@
   ],
   "rd.n.sessionOn.t": ["You're booked", "Tienes la reserva", "Sua reserva está feita"],
   "rd.n.sessionOn.b": [
-    "Thursday {d2}, 10:00, at {issuer}. After the session, {issuer} reports it, then you close it here.",
-    "Jueves {d2}, 10:00, en {issuer}. Después de la sesión, {issuer} la informa y tú la cierras aquí.",
-    "Quinta, {d2}, 10:00, em {issuer}. Depois da sessão, {issuer} informa e você encerra aqui."
+    "{d2}, 10:00 to 14:00, at the Tech and Sun hub. After your visit, {issuer} reports it, then you close it here.",
+    "{d2}, de 10:00 a 14:00, en el hub de Tech and Sun. Después de tu visita, {issuer} la informa y tú la cierras aquí.",
+    "{d2}, das 10:00 às 14:00, no hub da Tech and Sun. Depois da sua visita, {issuer} informa e você encerra aqui."
   ],
-  "rd.n.courseOn.t": [
-    "Your course is under way",
-    "Tu curso está en marcha",
-    "Seu curso está em andamento"
-  ],
+  "rd.n.courseOn.t": ["Your access is active", "Tu acceso está activo", "Seu acesso está ativo"],
   "rd.n.courseOn.b": [
-    "3 of 10 lessons reported. Next lesson Thursday {d2}.",
-    "3 de 10 lecciones informadas. Próxima lección el jueves {d2}.",
-    "3 de 10 aulas informadas. Próxima aula na quinta, {d2}."
+    "Day {done} of 30. Your access runs until {d4}.",
+    "Día {done} de 30. Tu acceso dura hasta el {d4}.",
+    "Dia {done} de 30. Seu acesso vai até {d4}."
   ],
   "rd.n.close.t": [
     "Next: close the booking",
@@ -1050,9 +1060,9 @@
     "{issuer} propõe uma devolução"
   ],
   "rd.n.proposed.b": [
-    "{issuer} ended the course after 3 of 10 lessons and proposes {back} back to you and {rel} to its reserve, within its terms. Nothing moves until you approve the split or report a problem.",
-    "{issuer} terminó el curso tras 3 de 10 lecciones y propone {back} de vuelta para ti y {rel} para su reserva, dentro de sus condiciones. Nada se mueve hasta que apruebes el reparto o informes un problema.",
-    "{issuer} encerrou o curso após 3 de 10 aulas e propõe {back} de volta para você e {rel} para a reserva dela, dentro das condições. Nada se move até você aprovar a divisão ou informar um problema."
+    "Your seat stopped working after 12 of 30 days. {issuer} proposes {back} back to you and {rel} to its reserve, by days of access. Nothing moves until you approve the split or report a problem.",
+    "Tu plaza dejó de funcionar tras 12 de 30 días. {issuer} propone {back} de vuelta para ti y {rel} para su reserva, según los días de acceso. Nada se mueve hasta que apruebes el reparto o informes un problema.",
+    "Sua vaga parou de funcionar após 12 de 30 dias. {issuer} propõe {back} de volta para você e {rel} para a própria reserva, pelos dias de acesso. Nada se move até você aprovar a divisão ou informar um problema."
   ],
   "rd.n.legsBack.t": [
     "Your return is pending",
@@ -1070,9 +1080,9 @@
     "A transferência está pendente"
   ],
   "rd.n.legsSun.b": [
-    "You approved the split. {rel} vouchers go to {issuer}'s reserve. It shows here until it arrives.",
-    "Aprobaste el reparto. {rel} vales van a la reserva de {issuer}. Aparece aquí hasta que llegue.",
-    "Você aprovou a divisão. {rel} vales vão para a reserva de {issuer}. Aparece aqui até chegar."
+    "You approved the split. Your voucher goes to {issuer}'s reserve. It shows here until it arrives.",
+    "Aprobaste el reparto. Tu vale va a la reserva de {issuer}. Aparece aquí hasta que llegue.",
+    "Você aprovou a divisão. Seu vale vai para a reserva de {issuer}. Aparece aqui até chegar."
   ],
   "rd.n.legFailed.t": [
     "Your return didn't go through",
@@ -1092,9 +1102,9 @@
   ],
   "rd.n.kept.t": ["Kept", "Cumplida", "Cumprida"],
   "rd.n.kept.b": [
-    "You confirmed the session was kept, and {rel} vouchers went to {issuer}'s reserve.",
-    "Confirmaste que la sesión se cumplió, y {rel} vales fueron a la reserva de {issuer}.",
-    "Você confirmou que a sessão foi cumprida, e {rel} vales foram para a reserva de {issuer}."
+    "You confirmed the hub day was kept, and your voucher went to {issuer}'s reserve.",
+    "Confirmaste que el día en el hub se cumplió, y tu vale fue a la reserva de {issuer}.",
+    "Você confirmou que o dia no hub foi cumprido, e seu vale foi para a reserva de {issuer}."
   ],
   "rd.n.canceling.t": ["Canceling your booking", "Cancelando tu reserva", "Cancelando sua reserva"],
   "rd.n.canceling.b": [
@@ -1139,14 +1149,9 @@
     "{d3}: {quote} A promessa está em disputa; os responsáveis do jardim a revisam. Seus vales continuam em garantia. Só você pode aprovar como eles são divididos, dentro das condições de {issuer}."
   ],
   "rd.quote": [
-    "“Lesson 4 was canceled without notice.”",
-    "“La lección 4 se canceló sin aviso.”",
-    "“A aula 4 foi cancelada sem aviso.”"
-  ],
-  "rd.lessonsLabel": [
-    "{done} of 10 lessons reported",
-    "{done} de 10 lecciones informadas",
-    "{done} de 10 aulas informadas"
+    "“My seat stopped working on day 12.”",
+    "“Mi plaza dejó de funcionar el día 12.”",
+    "“Minha vaga parou de funcionar no dia 12.”"
   ],
   "rd.f.gave": ["You gave", "Diste", "Você deu"],
   "rd.f.gaveV": ["{n} {unit}", "{n} {unit}", "{n} {unit}"],
@@ -1163,9 +1168,9 @@
   ],
   "rd.f.back": ["If it falls short", "Si no se cumple", "Se não for cumprido"],
   "rd.f.backC": [
-    "Up to 60 back after 3 lessons",
-    "Hasta 60 de vuelta tras 3 lecciones",
-    "Até 60 de volta após 3 aulas"
+    "By days of access, out of 30",
+    "Según los días de acceso, de 30",
+    "Pelos dias de acesso, de 30"
   ],
   "rd.f.backS": [
     "{issuer}'s terms set any return",
@@ -1224,8 +1229,8 @@
   "rd.sh.relShort": ["{rel} to {issuer}", "{rel} a {issuer}", "{rel} para {issuer}"],
   "rd.sh.backShort": ["{back} back to you", "{back} para ti", "{back} para você"],
   "rd.sh.delivered": ["You received", "Recibiste", "Você recebeu"],
-  "rd.sh.deliveredC": ["3 of 10 lessons", "3 de 10 lecciones", "3 de 10 aulas"],
-  "rd.sh.deliveredS": ["The full session", "La sesión completa", "A sessão completa"],
+  "rd.sh.deliveredC": ["12 of 30 days", "12 de 30 días", "12 de 30 dias"],
+  "rd.sh.deliveredS": ["The full hub day", "El día completo en el hub", "O dia completo no hub"],
   "rd.sh.deliveredSub": [
     "As {issuer} reported",
     "Según informó {issuer}",
@@ -1238,11 +1243,11 @@
   ],
   "rd.sh.toSunV": ["{rel} {unit}", "{rel} {unit}", "{rel} {unit}"],
   "rd.sh.toSunC": [
-    "For 3 lessons, within {issuer}'s terms",
-    "Por 3 lecciones, dentro de las condiciones de {issuer}",
-    "Por 3 aulas, dentro das condições de {issuer}"
+    "For 12 days, within {issuer}'s terms",
+    "Por 12 días, dentro de las condiciones de {issuer}",
+    "Por 12 dias, dentro das condições de {issuer}"
   ],
-  "rd.sh.toSunS": ["For the session", "Por la sesión", "Pela sessão"],
+  "rd.sh.toSunS": ["For the hub day", "Por el día en el hub", "Pelo dia no hub"],
   "rd.sh.toYou": ["Back to you", "De vuelta para ti", "De volta para você"],
   "rd.sh.toYouV": ["{back} {unit}", "{back} {unit}", "{back} {unit}"],
   "rd.sh.toYouSub": [
@@ -1251,9 +1256,9 @@
     "Pendente até a transferência chegar"
   ],
   "rd.sh.toYouNone": [
-    "Nothing comes back for a full session",
-    "No vuelve nada por una sesión completa",
-    "Nada volta por uma sessão completa"
+    "Nothing comes back for a full hub day",
+    "No vuelve nada por un día completo en el hub",
+    "Nada volta por um dia completo no hub"
   ],
   "rd.sh.promise": ["Promise", "Promesa", "Promessa"],
   "rd.sh.splitDone": ["Final split", "Reparto final", "Divisão final"],
@@ -1268,11 +1273,11 @@
     "Aprovada; a transferência está pendente"
   ],
   "rd.sh.chkC": [
-    "I received 3 of the 10 lessons",
-    "Recibí 3 de las 10 lecciones",
-    "Recebi 3 das 10 aulas"
+    "I had working access for 12 of the 30 days",
+    "Tuve acceso efectivo 12 de los 30 días",
+    "Tive acesso efetivo em 12 dos 30 dias"
   ],
-  "rd.sh.chkS": ["I received the session", "Recibí la sesión", "Recebi a sessão"],
+  "rd.sh.chkS": ["I had the hub day", "Tuve el día en el hub", "Tive o dia no hub"],
   "rd.sh.finalT": ["Approving is final", "Aprobar es definitivo", "Aprovar é definitivo"],
   "rd.sh.finalB": [
     "The split can't change afterward. It doesn't move anything by itself: each transfer runs after this and shows its own status.",
@@ -1319,9 +1324,9 @@
   "rw.get": ["What You Get", "Lo que recibes", "O que você recebe"],
   "rw.vou": ["{n} {unit}", "{n} {unit}", "{n} {unit}"],
   "rw.vouS": [
-    "From {issuer}'s reserve. 10 book one 60-minute session.",
-    "De la reserva de {issuer}. Con 10 reservas una sesión de 60 minutos.",
-    "Da reserva de {issuer}. Com 10 você reserva uma sessão de 60 minutos."
+    "From {issuer}'s reserve. 1 books one hub day.",
+    "De la reserva de {issuer}. Con 1 reservas un día en el hub.",
+    "Da reserva de {issuer}. Com 1 você reserva um dia no hub."
   ],
   "rw.gd": ["{amt} G$", "{amt} G$", "{amt} G$"],
   "rw.gdS": [
@@ -1614,7 +1619,7 @@
   ],
   "ex.a.review": ["Review Exchange", "Revisar el cambio", "Revisar a troca"],
   "ex.a.check": ["Check Receipt", "Verificar el comprobante", "Verificar o comprovante"],
-  "ex.a.back": ["Back to the Course", "Volver al curso", "Voltar ao curso"],
+  "ex.a.back": ["Back to Claude Access", "Volver al acceso a Claude", "Voltar ao acesso ao Claude"],
   "ex.a.requote": ["Get a New Quote", "Pedir una nueva cotización", "Pedir uma nova cotação"],
   "ex.a.smaller": ["Try a Smaller Amount", "Probar con menos", "Tentar um valor menor"],
   "ex.a.back2": ["Back", "Volver", "Voltar"],
@@ -1655,17 +1660,16 @@
   "wl.use": ["Use them", "Úsalos", "Use-os"],
   "wl.avail": ["available", "disponibles", "disponíveis"],
   "wl.sunS": [
-    "10 book one 60-minute session",
-    "Con 10 reservas una sesión de 60 minutos",
-    "Com 10 você reserva uma sessão de 60 minutos"
-  ],
-  "wl.hillS": [
-    "25 borrow one tool for a day",
-    "Con 25 pides una herramienta por un día",
-    "Com 25 você empresta uma ferramenta por um dia"
+    "1 books one hub day",
+    "Con 1 reservas un día en el hub",
+    "Com 1 você reserva um dia no hub"
   ],
   "wl.back": ["{n} coming back", "{n} de vuelta", "{n} voltando"],
-  "wl.backS": ["Return from your course", "Devolución de tu curso", "Devolução do seu curso"],
+  "wl.backS": [
+    "Return from your Claude access",
+    "Devolución de tu acceso a Claude",
+    "Devolução do seu acesso ao Claude"
+  ],
   "wl.pending": ["Pending", "Pendiente", "Pendente"],
   "wl.offers": [
     "Services you can book",
@@ -1700,23 +1704,11 @@
     "Green Goods Community Garden · {amt} G$"
   ],
   "wl.p.aiPill": ["Waiting for a check", "Esperando verificación", "Aguardando verificação"],
-  "wl.p.course": [
-    "Solar basics course",
-    "Curso básico de energía solar",
-    "Curso básico de energia solar"
-  ],
-  "wl.p.courseS": [
-    "Sunroot Skills Hub · 100 vouchers",
-    "Sunroot Skills Hub · 100 vales",
-    "Sunroot Skills Hub · 100 vales"
-  ],
-  "wl.p.coursePill": ["3 of 10 lessons", "3 de 10 lecciones", "3 de 10 aulas"],
-  "wl.p.session": ["Solar session", "Sesión solar", "Sessão solar"],
-  "wl.p.sessionS": [
-    "Sunroot Skills Hub · 10 vouchers",
-    "Sunroot Skills Hub · 10 vales",
-    "Sunroot Skills Hub · 10 vales"
-  ],
+  "wl.p.course": ["Claude access", "Acceso a Claude", "Acesso ao Claude"],
+  "wl.p.courseS": ["Green Goods · 10 vouchers", "Green Goods · 10 vales", "Green Goods · 10 vales"],
+  "wl.p.coursePill": ["Day 12 of 30", "Día 12 de 30", "Dia 12 de 30"],
+  "wl.p.session": ["Hub day", "Día en el hub", "Dia no hub"],
+  "wl.p.sessionS": ["Tech and Sun · 1 voucher", "Tech and Sun · 1 vale", "Tech and Sun · 1 vale"],
   "wl.p.sessionPill": ["Kept", "Cumplida", "Cumprida"],
   "wl.p.journal": [
     "Garden journal printing",
@@ -1820,9 +1812,9 @@
   "fn.tag.gdPaying": ["G$ paying", "G$ en pago", "G$ em pagamento"],
   "fn.tag.gdFailed": ["G$ payout failed", "Falló el pago en G$", "O pagamento em G$ falhou"],
   "fn.tag.vouWait": [
-    "Vouchers waiting for Sunroot",
-    "Vales esperando a Sunroot",
-    "Vales aguardando a Sunroot"
+    "Vouchers waiting for Tech and Sun",
+    "Vales esperando a Tech and Sun",
+    "Vales aguardando a Tech and Sun"
   ],
   "fn.m.lina": [
     "{gross} G$ sent {date} from Lina's account · Green Goods Community Garden",
@@ -1845,14 +1837,14 @@
     "{amt} G$ registrados · recusado pelo Hilltop Orchard"
   ],
   "fn.m.compost": [
-    "20 Sunroot vouchers and {amt} G$ · work confirmed",
-    "20 vales de Sunroot y {amt} G$ · trabajo confirmado",
-    "20 vales da Sunroot e {amt} G$ · trabalho confirmado"
+    "2 Tech and Sun vouchers and {amt} G$ · work confirmed",
+    "2 vales de Tech and Sun y {amt} G$ · trabajo confirmado",
+    "2 vales da Tech and Sun e {amt} G$ · trabalho confirmado"
   ],
   "fn.m.water": [
-    "10 Sunroot vouchers · Sunroot's allowance for this garden is used up",
-    "10 vales de Sunroot · se agotó el permiso de Sunroot para este jardín",
-    "10 vales da Sunroot · a permissão da Sunroot para este jardim acabou"
+    "2 Tech and Sun vouchers · Tech and Sun's allowance for this garden is used up",
+    "2 vales de Tech and Sun · se agotó el permiso de Tech and Sun para este jardín",
+    "2 vales da Tech and Sun · a permissão da Tech and Sun para este jardim acabou"
   ],
   "fn.a.check": ["Check Payment…", "Verificar pago…", "Verificar pagamento…"],
   "fn.a.assign": ["Assign Payment…", "Asignar pago…", "Vincular pagamento…"],
@@ -1981,9 +1973,9 @@
   ],
   "fn.d.vouchers": ["Vouchers", "Vales", "Vales"],
   "fn.d.vouchersV": [
-    "20 Sunroot vouchers received",
-    "20 vales de Sunroot recibidos",
-    "20 vales da Sunroot recebidos"
+    "2 Tech and Sun vouchers received",
+    "2 vales de Tech and Sun recibidos",
+    "2 vales da Tech and Sun recebidos"
   ],
   "fn.d.vouchersS": [
     "Not affected by this retry",
@@ -2339,61 +2331,28 @@
     "O dinheiro só se move pelo pagamento ou pelo reembolso que vêm depois."
   ],
   "rq.d.dispute.cta": ["Resolve Dispute", "Resolver disputa", "Resolver disputa"],
-  "is.book.t": ["Voucher Bookings", "Reservas con vales", "Reservas com vales"],
-  "is.book.d": [
-    "Each booking needs your Safe's approval, then your acceptance after the deposit is confirmed.",
-    "Cada reserva necesita la aprobación de tu Safe y luego tu aceptación cuando se confirme el depósito.",
-    "Cada reserva precisa da aprovação do seu Safe e depois da sua aceitação quando o depósito for confirmado."
-  ],
-  "is.r.linaS": ["Lina · Solar session", "Lina · Sesión solar", "Lina · Sessão solar"],
-  "is.r.linaC": [
-    "Lina · Solar basics course",
-    "Lina · Curso básico de energía solar",
-    "Lina · Curso básico de energia solar"
-  ],
-  "is.r.linaC2": [
-    "Lina · Solar basics course",
-    "Lina · Curso básico de energía solar",
-    "Lina · Curso básico de energia solar"
-  ],
-  "is.r.mara": [
-    "Mara · Solar basics course",
-    "Mara · Curso básico de energía solar",
-    "Mara · Curso básico de energia solar"
-  ],
-  "is.r.kwesi": [
-    "Kwesi · Solar basics course",
-    "Kwesi · Curso básico de energía solar",
-    "Kwesi · Curso básico de energia solar"
-  ],
   "is.tag.approve": ["Needs your approval", "Necesita tu aprobación", "Precisa da sua aprovação"],
   "is.tag.deposited": ["Deposit confirmed", "Depósito confirmado", "Depósito confirmado"],
-  "is.tag.lessons": ["{done} of 10 lessons", "{done} de 10 lecciones", "{done} de 10 aulas"],
-  "is.tag.ended": ["Ended early · 3 of 10", "Terminó antes · 3 de 10", "Terminou antes · 3 de 10"],
+  "is.tag.lessons": ["Day {done} of 30", "Día {done} de 30", "Dia {done} de 30"],
+  "is.tag.ended": [
+    "Ended early · 12 of 30 days",
+    "Terminó antes · 12 de 30 días",
+    "Terminou antes · 12 de 30 dias"
+  ],
   "is.tag.failed": [
     "Return didn't go through",
     "La devolución no se completó",
     "A devolução não foi concluída"
   ],
   "is.m.linaS": [
-    "Agreed {date} · 10 vouchers · accept by {due}",
-    "Aceptó el {date} · 10 vales · aceptar antes del {due}",
-    "Concordou em {date} · 10 vales · aceitar até {due}"
+    "Agreed {date} · 1 voucher · accept by {due}",
+    "Aceptó el {date} · 1 vale · aceptar antes del {due}",
+    "Concordou em {date} · 1 vale · aceitar até {due}"
   ],
   "is.m.linaC": [
-    "100 vouchers in escrow · accept by {due}",
-    "100 vales en garantía · aceptar antes del {due}",
-    "100 vales em garantia · aceitar até {due}"
-  ],
-  "is.m.mara": [
-    "Next lesson Thursday {date}",
-    "Próxima lección el jueves {date}",
-    "Próxima aula na quinta, {date}"
-  ],
-  "is.m.kwesi": [
-    "No return proposed yet",
-    "Aún no se propuso una devolución",
-    "Nenhuma devolução proposta ainda"
+    "10 vouchers in escrow · accept by {due}",
+    "10 vales en garantía · aceptar antes del {due}",
+    "10 vales em garantia · aceitar até {due}"
   ],
   "is.m.failed": [
     "{n} back to Lina · anyone can retry the same transfer",
@@ -2402,7 +2361,7 @@
   ],
   "is.a.approve": ["Approve…", "Aprobar…", "Aprovar…"],
   "is.a.accept": ["Accept…", "Aceptar…", "Aceitar…"],
-  "is.a.report": ["Report Lesson…", "Informar lección…", "Informar aula…"],
+  "is.a.report": ["Report Visit…", "Informar visita…", "Informar visita…"],
   "is.a.propose": ["Propose Return…", "Proponer devolución…", "Propor devolução…"],
   "is.a.retry": ["Retry Transfer", "Reintentar transferencia", "Tentar transferência de novo"],
   "is.a.raise": ["Raise Allowance…", "Aumentar permiso…", "Aumentar permissão…"],
@@ -2448,19 +2407,19 @@
   ],
   "is.set.t": ["Settings", "Configuración", "Configurações"],
   "is.set.s": ["For every round", "Para cada ronda", "Para cada turma"],
-  "is.s.terms": ["Course terms", "Condiciones del curso", "Condições do curso"],
+  "is.s.terms": ["Service terms", "Condiciones del servicio", "Condições do serviço"],
   "is.s.termsV": ["Version 2", "Versión 2", "Versão 2"],
   "is.s.termsS": [
-    "After 3 lessons, up to 60 back",
-    "Tras 3 lecciones, hasta 60 de vuelta",
-    "Após 3 aulas, até 60 de volta"
+    "Returns by usable time, out of 4 hours",
+    "Devoluciones según el tiempo útil, de 4 horas",
+    "Devoluções pelo tempo útil, de 4 horas"
   ],
   "is.s.approvals": ["Approvals", "Aprobaciones", "Aprovações"],
   "is.s.approvalsV": ["Each booking", "Cada reserva", "Cada reserva"],
   "is.s.approvalsS": [
-    "Your Safe signs each one, 2 of 3",
-    "Tu Safe firma cada una, 2 de 3",
-    "Seu Safe assina cada uma, 2 de 3"
+    "Your Safe signs each one, {sigs}",
+    "Tu Safe firma cada una, {sigs}",
+    "Seu Safe assina cada uma, {sigs}"
   ],
   "is.s.cap": ["Issuer cap", "Límite del emisor", "Limite do emissor"],
   "is.s.capV": ["{a} of {b}", "{a} de {b}", "{a} de {b}"],
@@ -2484,9 +2443,9 @@
   ],
   "is.d.f.due": ["Accept by", "Aceptar antes del", "Aceitar até"],
   "is.d.f.dueS": [
-    "Lina chose this when agreeing",
-    "Lina lo eligió al aceptar",
-    "Lina escolheu ao concordar"
+    "7 days from agreeing, under your terms",
+    "7 días desde el acuerdo, según tus condiciones",
+    "7 dias a partir do acordo, pelas suas condições"
   ],
   "is.d.f.termsV": ["Version 2", "Versión 2", "Versão 2"],
   "is.f.approve.t": [
@@ -2513,9 +2472,9 @@
     "Seu Safe aprovou a reserva"
   ],
   "is.c.deposit": [
-    "{n} vouchers deposited in escrow",
-    "{n} vales depositados en garantía",
-    "{n} vales depositados em garantia"
+    "1 voucher deposited in escrow",
+    "1 vale depositado en garantía",
+    "1 vale depositado em garantia"
   ],
   "is.c.depositS": [
     "Confirmed on Green Goods",
@@ -2529,20 +2488,24 @@
     "Aceitar inicia a reserva"
   ],
   "is.f.accept.b": [
-    "Starting follows on the voucher network. It doesn't mean a lesson happened.",
-    "El inicio sigue en la red de los vales. No significa que haya ocurrido una lección.",
-    "O início acontece na rede dos vales. Não significa que uma aula aconteceu."
+    "Starting follows on the voucher network. It doesn't mean the visit happened.",
+    "El inicio sigue en la red de los vales. No significa que la visita haya ocurrido.",
+    "O início acontece na rede dos vales. Não significa que a visita aconteceu."
   ],
   "is.d.accept.cta": ["Accept Lina", "Aceptar a Lina", "Aceitar Lina"],
-  "is.d.report.t": ["Report Lesson 7", "Informar lección 7", "Informar aula 7"],
+  "is.d.report.t": [
+    "Report Mara's Hub Day",
+    "Informar el día en el hub de Mara",
+    "Informar o dia no hub de Mara"
+  ],
   "is.d.report.sub": [
-    "Mara · Solar basics course",
-    "Mara · Curso básico de energía solar",
-    "Mara · Curso básico de energia solar"
+    "Mara · Hub day, up to 4 hours",
+    "Mara · Día en el hub, hasta 4 horas",
+    "Mara · Dia no hub, até 4 horas"
   ],
   "is.d.f.date": ["Date", "Fecha", "Data"],
   "is.d.f.attend": ["Attendance", "Asistencia", "Presença"],
-  "is.d.f.attendV": ["Mara attended", "Mara asistió", "Mara participou"],
+  "is.d.f.attendV": ["Mara checked in", "Mara se registró", "Mara fez check-in"],
   "is.d.f.evidence": ["Evidence", "Evidencia", "Evidência"],
   "is.d.f.evidenceV": ["2 photos", "2 fotos", "2 fotos"],
   "is.f.report.t": [
@@ -2555,30 +2518,30 @@
     "No mueven vales. Mara aprueba el reparto final más adelante.",
     "Eles não movem vales. Mara aprova a divisão final depois."
   ],
-  "is.d.report.cta": ["Report Lesson", "Informar lección", "Informar aula"],
+  "is.d.report.cta": ["Report Visit", "Informar visita", "Informar visita"],
   "is.d.propose.t": [
-    "Propose a Return to Kwesi",
-    "Proponer una devolución a Kwesi",
-    "Propor uma devolução a Kwesi"
+    "Propose a Return to Lina",
+    "Proponer una devolución a Lina",
+    "Propor uma devolução a Lina"
   ],
   "is.d.propose.sub": [
-    "Solar basics course · ended after 3 lessons",
-    "Curso básico de energía solar · terminó tras 3 lecciones",
-    "Curso básico de energia solar · encerrado após 3 aulas"
+    "Claude access · stopped after 12 days",
+    "Acceso a Claude · se detuvo tras 12 días",
+    "Acesso ao Claude · parou após 12 dias"
   ],
-  "is.d.f.lessons": ["Lessons delivered", "Lecciones dadas", "Aulas dadas"],
-  "is.d.f.lessonsV": ["3 of 10", "3 de 10", "3 de 10"],
+  "is.d.f.lessons": ["Days of access", "Días de acceso", "Dias de acesso"],
+  "is.d.f.lessonsV": ["12 of 30", "12 de 30", "12 de 30"],
   "is.d.f.lessonsS": ["As you reported", "Según tus informes", "Conforme seus relatos"],
-  "is.fl.back": ["Back to Kwesi", "De vuelta para Kwesi", "De volta para Kwesi"],
+  "is.fl.back": ["Back to Lina", "De vuelta para Lina", "De volta para Lina"],
   "is.fl.hint": [
-    "Your terms allow up to 60 after 3 lessons",
-    "Tus condiciones permiten hasta 60 tras 3 lecciones",
-    "Suas condições permitem até 60 após 3 aulas"
+    "Your terms allow up to 6 after 12 days",
+    "Tus condiciones permiten hasta 6 tras 12 días",
+    "Suas condições permitem até 6 após 12 dias"
   ],
   "is.fl.err": [
-    "Above the 60 your terms allow after 3 lessons",
-    "Supera los 60 que permiten tus condiciones tras 3 lecciones",
-    "Acima dos 60 que suas condições permitem após 3 aulas"
+    "Above the 6 your terms allow after 12 days",
+    "Supera los 6 que permiten tus condiciones tras 12 días",
+    "Acima dos 6 que suas condições permitem após 12 dias"
   ],
   "is.fl.new": ["New allowance", "Nuevo permiso", "Nova permissão"],
   "is.fl.newHint": [
@@ -2587,12 +2550,12 @@
     "Os vales continuam saindo da sua reserva"
   ],
   "is.bar.sun": ["{n} to your reserve", "{n} a tu reserva", "{n} para sua reserva"],
-  "is.bar.back": ["{n} back to Kwesi", "{n} para Kwesi", "{n} para Kwesi"],
-  "is.f.propose.t": ["Kwesi decides", "Decide Kwesi", "Kwesi decide"],
+  "is.bar.back": ["{n} back to Lina", "{n} para Lina", "{n} para Lina"],
+  "is.f.propose.t": ["Lina decides", "Decide Lina", "Lina decide"],
   "is.f.propose.b": [
-    "Nothing moves until Kwesi approves a split. You can't move the vouchers yourself.",
-    "Nada se mueve hasta que Kwesi apruebe un reparto. Tú no puedes mover los vales.",
-    "Nada se move até Kwesi aprovar uma divisão. Você não pode mover os vales."
+    "Nothing moves until Lina approves a split. You can't move the vouchers yourself.",
+    "Nada se mueve hasta que Lina apruebe un reparto. Tú no puedes mover los vales.",
+    "Nada se move até Lina aprovar uma divisão. Você não pode mover os vales."
   ],
   "is.d.propose.cta": ["Propose Return", "Proponer devolución", "Propor devolução"],
   "is.d.raise.t": [
@@ -2643,9 +2606,9 @@
     "{issuer} propõe uma devolução"
   ],
   "rd.n.proposedS.b": [
-    "{issuer} says the session didn't happen and proposes all {back} back to you, within its terms. Nothing moves until you approve the split or report a problem.",
-    "{issuer} dice que la sesión no se realizó y propone devolverte los {back}, dentro de sus condiciones. Nada se mueve hasta que apruebes el reparto o reportes un problema.",
-    "{issuer} diz que a sessão não aconteceu e propõe devolver os {back} para você, dentro das condições dela. Nada se move até você aprovar a divisão ou relatar um problema."
+    "{issuer} says the hub day didn't happen and proposes returning your voucher, within its terms. Nothing moves until you approve the split or report a problem.",
+    "{issuer} dice que el día en el hub no se realizó y propone devolverte tu vale, dentro de sus condiciones. Nada se mueve hasta que apruebes el reparto o reportes un problema.",
+    "{issuer} diz que o dia no hub não aconteceu e propõe devolver seu vale, dentro das condições. Nada se move até você aprovar a divisão ou relatar um problema."
   ],
   "rd.n.legFailedS.t": [
     "The transfer to {issuer} didn't go through",
@@ -2653,9 +2616,9 @@
     "A transferência para {issuer} não foi concluída"
   ],
   "rd.n.legFailedS.b": [
-    "The {rel} vouchers are still in escrow. Anyone can retry the same transfer; it can't send more or go anywhere else.",
-    "Los {rel} vales siguen en garantía. Cualquiera puede reintentar la misma transferencia; no puede enviar más ni ir a otro lugar.",
-    "Os {rel} vales continuam em garantia. Qualquer pessoa pode tentar de novo a mesma transferência; ela não pode enviar mais nem ir para outro lugar."
+    "Your voucher is still in escrow. Anyone can retry the same transfer; it can't send more or go anywhere else.",
+    "Tu vale sigue en garantía. Cualquiera puede reintentar la misma transferencia; no puede enviar más ni ir a otro lugar.",
+    "Seu vale continua em garantia. Qualquer pessoa pode tentar de novo a mesma transferência; ela não pode enviar mais nem ir para outro lugar."
   ],
   "rd.b.retryS": [
     "{unit} for {issuer}'s reserve, waiting for a retry",
@@ -2687,7 +2650,7 @@
   "pu.showSteps": ["Show all steps", "Ver todos los pasos", "Ver todos os passos"],
   "rd.sh.received": ["Received", "Recibido", "Recebido"],
   "rd.sh.nextSplit": ["See the Split", "Ver la división", "Ver a divisão"],
-  "who.sunShort": ["Sunroot", "Sunroot", "Sunroot"],
+  "who.sunShort": ["Tech and Sun", "Tech and Sun", "Tech and Sun"],
   "who.teo": ["Teo", "Teo", "Teo"],
   "who.teoFull": ["Teo Alves", "Teo Alves", "Teo Alves"],
   "who.maya": ["Maya", "Maya", "Maya"],
@@ -2704,9 +2667,9 @@
   "u.mayaMany": ["Maya vouchers", "vales de Maya", "vales da Maya"],
   "u.ggMany": ["Green Goods vouchers", "vales de Green Goods", "vales do Green Goods"],
   "c.safe25": [
-    "The Green Goods Safe needs 2 of 5 signatures.",
-    "El Safe de Green Goods necesita 2 de 5 firmas.",
-    "O Safe do Green Goods precisa de 2 de 5 assinaturas."
+    "Your Safe needs 2 of 5 signatures.",
+    "Tu Safe necesita 2 de 5 firmas.",
+    "Seu Safe precisa de 2 de 5 assinaturas."
   ],
   "c.loading": ["Loading…", "Cargando…", "Carregando…"],
   "sv.kind": [
@@ -2730,27 +2693,7 @@
   ],
   "sv.by.garden": ["{garden} · garden", "{garden} · jardín", "{garden} · jardim"],
   "sv.s.lesson": ["Integration lesson", "Lección de integración", "Aula de integração"],
-  "sv.s.lessonS": [
-    "60 min, remote · 1 Teo voucher · next Tue",
-    "60 min, a distancia · 1 vale de Teo · próximo martes",
-    "60 min, remota · 1 vale do Teo · próxima terça"
-  ],
   "sv.s.coach": ["Measurement coaching", "Asesoría de medición", "Mentoria de medição"],
-  "sv.s.coachS": [
-    "60 min, remote · 1 Maya voucher · next week",
-    "60 min, a distancia · 1 vale de Maya · próxima semana",
-    "60 min, remota · 1 vale da Maya · próxima semana"
-  ],
-  "sv.s.sessionS": [
-    "60 min, at Sunroot · 10 Sunroot vouchers · Thursdays",
-    "60 min, en Sunroot · 10 vales de Sunroot · jueves",
-    "60 min, na Sunroot · 10 vales da Sunroot · quintas"
-  ],
-  "sv.s.courseS": [
-    "10 lessons · 100 Sunroot vouchers · starts {date}",
-    "10 lecciones · 100 vales de Sunroot · empieza el {date}",
-    "10 aulas · 100 vales da Sunroot · começa em {date}"
-  ],
   "sv.p.hold": ["You hold {n}", "Tienes {n}", "Você tem {n}"],
   "sv.p.ex": ["Exchange first", "Cambia primero", "Troque primeiro"],
   "sv.p.paused": ["Paused", "En pausa", "Em pausa"],
@@ -2814,9 +2757,9 @@
     "Remota, até 2 semanas após a reserva."
   ],
   "of.m.next": [
-    "Teo approves, then Sunroot's stewards accept you",
-    "Teo aprueba y luego los responsables de Sunroot te aceptan",
-    "Teo aprova, depois os responsáveis de Sunroot aceitam você"
+    "Teo approves, then Tech and Sun's stewards accept you",
+    "Teo aprueba y luego los responsables de Tech and Sun te aceptan",
+    "Teo aprova, depois os responsáveis da Tech and Sun aceitam você"
   ],
   "of.m.nextS": [
     "A steward can't approve for Teo. Teo answers within 2 business days: policy, not enforced.",
@@ -2902,9 +2845,9 @@
     "Agora: os responsáveis do jardim aceitam você"
   ],
   "rd.n.acceptanceM.b": [
-    "Your deposit is confirmed and {issuer} approved. Sunroot's stewards accept by {d1}. Until then, you can cancel and get your voucher back.",
-    "Tu depósito está confirmado y {issuer} aprobó. Los responsables de Sunroot aceptan antes del {d1}. Hasta entonces, puedes cancelar y recuperar tu vale.",
-    "Seu depósito está confirmado e {issuer} aprovou. Os responsáveis de Sunroot aceitam até {d1}. Até lá, você pode cancelar e recuperar seu vale."
+    "Your deposit is confirmed and {issuer} approved. Tech and Sun's stewards accept by {d1}. Until then, you can cancel and get your voucher back.",
+    "Tu depósito está confirmado y {issuer} aprobó. Los responsables de Tech and Sun aceptan antes del {d1}. Hasta entonces, puedes cancelar y recuperar tu vale.",
+    "Seu depósito está confirmado e {issuer} aprovou. Os responsáveis da Tech and Sun aceitam até {d1}. Até lá, você pode cancelar e recuperar seu vale."
   ],
   "rd.n.startingM.b": [
     "You're accepted. The booking is starting on the voucher network. Starting fixes the terms; it doesn't mean the lesson happened.",
@@ -2912,9 +2855,9 @@
     "Você foi aceito. A reserva está sendo iniciada na rede dos vales. Iniciar fixa as condições; não significa que a aula aconteceu."
   ],
   "rd.n.lessonOn.b": [
-    "Tuesday {d2}, 18:00, remote. After the lesson, {issuer} reports it, then you close it here.",
-    "Martes {d2}, 18:00, a distancia. Después de la lección, {issuer} la informa y tú la cierras aquí.",
-    "Terça, {d2}, 18:00, remota. Depois da aula, {issuer} informa e você encerra aqui."
+    "{d2}, 18:00, remote. After the lesson, {issuer} reports it, then you close it here.",
+    "{d2}, 18:00, a distancia. Después de la lección, {issuer} la informa y tú la cierras aquí.",
+    "{d2}, 18:00, remota. Depois da aula, {issuer} informa e você encerra aqui."
   ],
   "rd.n.proposedL.b": [
     "The lesson stopped after 30 of 60 minutes. {issuer} proposes {back} back to you and {rel} to their reserve, by minutes delivered. Nothing moves until you approve the split or report a problem.",
@@ -2954,9 +2897,9 @@
     "Desenhar o site de impacto"
   ],
   "rw.m.desc": [
-    "Design the landing page and impact section for Sunroot's website, with a reviewed handoff for the build.",
-    "Diseña la página principal y la sección de impacto del sitio de Sunroot, con una entrega revisada para el desarrollo.",
-    "Desenhe a página inicial e a seção de impacto do site de Sunroot, com uma entrega revisada para o desenvolvimento."
+    "Design the landing page and impact section for Tech and Sun's website, with a reviewed handoff for the build.",
+    "Diseña la página principal y la sección de impacto del sitio de Tech and Sun, con una entrega revisada para el desarrollo.",
+    "Desenhe a página inicial e a seção de impacto do site da Tech and Sun, com uma entrega revisada para o desenvolvimento."
   ],
   "rw.m.give": ["One reviewed design", "Un diseño revisado", "Um design revisado"],
   "rw.m.giveS": [
@@ -3013,9 +2956,9 @@
     "2 vales da Maya por 1 vale do Teo"
   ],
   "ex.f.rateVH": [
-    "2 Hilltop vouchers for 1 Sunroot voucher, before fees",
-    "2 vales de Hilltop por 1 vale de Sunroot, antes de comisiones",
-    "2 vales da Hilltop por 1 vale da Sunroot, antes das taxas"
+    "1 Tech and Sun voucher for 1 Green Goods voucher, before fees",
+    "1 vale de Tech and Sun por 1 vale de Green Goods, antes de comisiones",
+    "1 vale da Tech and Sun por 1 vale do Green Goods, antes das taxas"
   ],
   "ex.f.rateS": [
     "Agreed per offer; no automatic 1:1",
@@ -3062,9 +3005,9 @@
     "Resumo de impacto · Maya"
   ],
   "br.r.analysisS": [
-    "Reward: 1 Sunroot voucher",
-    "Recompensa: 1 vale de Sunroot",
-    "Recompensa: 1 vale da Sunroot"
+    "Reward: 1 Tech and Sun voucher",
+    "Recompensa: 1 vale de Tech and Sun",
+    "Recompensa: 1 vale da Tech and Sun"
   ],
   "br.r.build": [
     "Website build · Teo",
@@ -3094,9 +3037,9 @@
   ],
   "br.f.coord": ["Coordinator", "Coordinación", "Coordenação"],
   "br.f.coordV": [
-    "Ade, a Sunroot steward",
-    "Ade, responsable de Sunroot",
-    "Ade, responsável de Sunroot"
+    "Ade, a Tech and Sun steward",
+    "Ade, responsable de Tech and Sun",
+    "Ade, responsável da Tech and Sun"
   ],
   "br.f.coordS": [
     "Accepts each request and reviews each result",
@@ -3141,9 +3084,9 @@
   ],
   "ob.title": ["Integration lesson", "Lección de integración", "Aula de integração"],
   "ob.desc": [
-    "One 60-minute remote session, promised by you. Ade prepared this draft with you; only you can approve it.",
-    "Una sesión a distancia de 60 minutos, prometida por ti. Ade preparó este borrador contigo; solo tú puedes aprobarlo.",
-    "Uma sessão remota de 60 minutos, prometida por você. Ade preparou este rascunho com você; só você pode aprová-lo."
+    "One 60-minute remote session, promised by you. Kaya, a Green Goods steward, prepared this draft with you and Ade; only you can approve it.",
+    "Una sesión remota de 60 minutos, prometida por ti. Kaya, responsable de Green Goods, preparó este borrador contigo y con Ade; solo tú puedes aprobarlo.",
+    "Uma sessão remota de 60 minutos, prometida por você. Kaya, responsável da Green Goods, preparou este rascunho com você e com Ade; só você pode aprová-lo."
   ],
   "ob.promise.t": ["What you promise", "Lo que prometes", "O que você promete"],
   "ob.f.unit": ["One voucher buys", "Un vale compra", "Um vale compra"],
@@ -3243,9 +3186,9 @@
     "Sem Safe e sem período de espera. Registre como você recuperaria esta conta."
   ],
   "ob.y.steward": [
-    "Ade can prepare and publish. Ade can't issue, spend your reserve or approve for you.",
-    "Ade puede preparar y publicar. No puede emitir, gastar tu reserva ni aprobar por ti.",
-    "Ade pode preparar e publicar. Não pode emitir, gastar sua reserva nem aprovar por você."
+    "Stewards can prepare and publish. They can't issue, spend your reserve or approve for you.",
+    "Los responsables pueden preparar y publicar. No pueden emitir, gastar tu reserva ni aprobar por ti.",
+    "Os responsáveis podem preparar e publicar. Não podem emitir, gastar sua reserva nem aprovar por você."
   ],
   "ob.a.review": ["Review and Approve", "Revisar y aprobar", "Revisar e aprovar"],
   "ob.a.changes": ["Ask for Changes", "Pedir cambios", "Pedir mudanças"],
@@ -3268,9 +3211,9 @@
   "ob.who.safe": ["Green Goods Safe", "Safe de Green Goods", "Safe do Green Goods"],
   "ob.who.pool": ["Pool administrator", "Administración del fondo", "Administração do fundo"],
   "ob.sh.consent": [
-    "Approving records these exact terms, from this account, as your promise. Nothing is issued until the setup finishes.",
-    "Aprobar registra estas condiciones exactas, desde esta cuenta, como tu promesa. No se emite nada hasta que termine la preparación.",
-    "Aprovar registra estas condições exatas, a partir desta conta, como sua promessa. Nada é emitido até a preparação terminar."
+    "Approving signs these exact terms from this account, as your promise. Nothing is issued until the setup finishes.",
+    "Aprobar firma estas condiciones exactas desde esta cuenta, como tu promesa. No se emite nada hasta que termine la preparación.",
+    "Aprovar assina estas condições exatas a partir desta conta, como sua promessa. Nada é emitido até a preparação terminar."
   ],
   "ob.sh.chk": [
     "I read the terms and the controls above",
@@ -3278,7 +3221,11 @@
     "Li as condições e os controles acima"
   ],
   "ob.sh.cta": ["Approve My Service", "Aprobar mi servicio", "Aprovar meu serviço"],
-  "ob.n.draft.t": ["Next: you", "Ahora: tú", "Agora: você"],
+  "ob.n.draft.t": [
+    "Next: review and approve your draft",
+    "Ahora: revisa y aprueba tu borrador",
+    "Agora: revise e aprove seu rascunho"
+  ],
   "ob.n.draft.b": [
     "Read what you'd promise and what stays yours. Approving records your exact terms; it issues nothing yet.",
     "Lee lo que prometerías y lo que sigue siendo tuyo. Aprobar registra tus condiciones exactas; aún no emite nada.",
@@ -3316,15 +3263,15 @@
     "O rascunho mudou depois da sua aprovação"
   ],
   "ob.n.changed.b": [
-    "Ade changed the exchange rate. Your approval was for the old draft, so nothing continues until you approve the new one or decline.",
-    "Ade cambió la tasa de cambio. Tu aprobación era para el borrador anterior, así que nada sigue hasta que apruebes el nuevo o lo rechaces.",
-    "Ade mudou a taxa de troca. Sua aprovação era para o rascunho anterior, então nada continua até você aprovar o novo ou recusar."
+    "Kaya changed the exchange rate. Your approval was for the old draft, so nothing continues until you approve the new one or decline.",
+    "Kaya cambió la tasa de intercambio. Tu aprobación era para el borrador anterior, así que nada sigue hasta que apruebes el nuevo o lo rechaces.",
+    "Kaya mudou a taxa de troca. Sua aprovação era para o rascunho anterior, então nada continua até você aprovar o novo ou recusar."
   ],
   "ob.n.declined.t": ["Declined", "Rechazado", "Recusado"],
   "ob.n.declined.b": [
-    "Nothing was created and nothing was issued. Ade can prepare a new draft with you.",
-    "No se creó ni se emitió nada. Ade puede preparar un nuevo borrador contigo.",
-    "Nada foi criado nem emitido. Ade pode preparar um novo rascunho com você."
+    "Nothing was created and nothing was issued. Kaya can prepare a new draft with you.",
+    "No se creó ni se emitió nada. Kaya puede preparar un nuevo borrador contigo.",
+    "Nada foi criado nem emitido. Kaya pode preparar um novo rascunho com você."
   ],
   "ob.n.unavail.t": [
     "Approving isn't available yet",
@@ -3486,9 +3433,9 @@
     "Comparado com o hash que você aprovou"
   ],
   "ms.sh.dueS": [
-    "Maya chose this when agreeing",
-    "Maya lo eligió al aceptar",
-    "Maya escolheu isso ao concordar"
+    "7 days from agreeing, under your terms",
+    "7 días desde el acuerdo, según tus condiciones",
+    "7 dias a partir do acordo, pelas suas condições"
   ],
   "ms.sh.consent": [
     "I approve this exact booking from this account. Approving isn't accepting: the garden's stewards accept after the deposit is confirmed.",
@@ -3639,9 +3586,9 @@
   "iss.k.garden": ["Garden issuer", "Emisor jardín", "Emissor jardim"],
   "iss.k.member": ["Member issuer", "Emisor miembro", "Emissor membro"],
   "iss.m.sun": [
-    "Solar session, solar course · 20 vouchers · 2 of 3 Safe",
-    "Sesión y curso solar · 20 vales · Safe 2 de 3",
-    "Sessão e curso solar · 20 vales · Safe 2 de 3"
+    "Hub days · 20 vouchers · 2 of 3 Safe",
+    "Días en el hub · 20 vales · Safe 2 de 3",
+    "Dias no hub · 20 vales · Safe 2 de 3"
   ],
   "iss.m.teo": [
     "Integration lesson · draft sent {date}",
@@ -3664,7 +3611,7 @@
     "Mentoria de medição · 6 emitidos · 4 no fundo"
   ],
   "iss.t.listed": ["Listed", "Publicado", "Listado"],
-  "iss.t.draft": ["Draft · awaiting Teo", "Borrador · espera a Teo", "Rascunho · aguardando Teo"],
+  "iss.t.draft": ["Waiting for Teo", "Espera a Teo", "Aguarda Teo"],
   "iss.t.approved": [
     "Approved · setup pending",
     "Aprobado · preparación pendiente",
@@ -3998,11 +3945,6 @@
     "Tu vale de Teo está en tu cuenta.",
     "Seu vale do Teo está na sua conta."
   ],
-  "sv.s.aiS": [
-    "1 month · {amt} G$ · pay with your own G$",
-    "1 mes · {amt} G$ · paga con tus propios G$",
-    "1 mês · {amt} G$ · pague com seus próprios G$"
-  ],
   "sv.p.gd": ["Pay with G$", "Paga con G$", "Pague com G$"],
   "sv.filter": ["Filter", "Filtrar", "Filtrar"],
   "sv.sec": ["In the shared pool", "En el fondo compartido", "No fundo compartilhado"],
@@ -4029,9 +3971,9 @@
     "Token, reserva, cada aprovação de reserva, atualizações e recuperação"
   ],
   "ob.sh.yoursS": [
-    "Ade prepares and publishes only",
-    "Ade solo prepara y publica",
-    "Ade só prepara e publica"
+    "Stewards prepare and publish only",
+    "Los responsables solo preparan y publican",
+    "Os responsáveis só preparam e publicam"
   ],
   "ms.sh.issueRoom": [
     "Promised {promised} lessons · {issued} issued · {room} more can be issued",
@@ -4052,5 +3994,628 @@
     "Teo sends the voucher from his reserve when your work is confirmed. If his allowance runs short, it waits until he approves more.",
     "Teo envía el vale desde su reserva cuando se confirma tu trabajo. Si su permiso se agota, espera hasta que apruebe más.",
     "Teo envia o vale da reserva dele quando seu trabalho for confirmado. Se a permissão dele acabar, ele espera até Teo aprovar mais."
+  ],
+  "sh.promised": ["What was promised", "Qué se prometió", "O que foi prometido"],
+  "sh.offered": ["Offered", "Ofrecido", "Oferecido"],
+  "sh.askedFor": ["Asked for", "Pedido", "Pedido"],
+  "sh.due": ["Due", "Plazo", "Prazo"],
+  "sh.doing": ["Doing this", "Lo hace", "Faz isto"],
+  "sh.askedBy": ["Asked for this", "Lo pidió", "Pediu isto"],
+  "sh.confirms": ["Confirms it", "Lo confirma", "Confirma"],
+  "sh.team": ["Team", "Equipo", "Equipe"],
+  "sh.you": ["You", "Tú", "Você"],
+  "sh.steward": ["Steward", "Responsable", "Responsável"],
+  "sh.needsYou": ["Needs you", "Te necesita", "Precisa de você"],
+  "sh.where": ["Where this stands", "En qué punto está", "Em que ponto está"],
+  "sh.progress": ["Progress and proof", "Avance y pruebas", "Andamento e provas"],
+  "sh.history": ["History", "Historial", "Histórico"],
+  "sh.lead": ["Lead", "Líder", "Líder"],
+  "sh.st.offered": ["Offered", "Ofrecido", "Oferecido"],
+  "sh.st.requested": ["Asked for", "Pedido", "Pedido"],
+  "sh.st.inProgress": ["In progress", "En curso", "Em andamento"],
+  "sh.st.awaiting": ["Waiting to be confirmed", "Esperando confirmación", "Aguardando confirmação"],
+  "sh.st.kept": ["Kept", "Cumplido", "Cumprido"],
+  "sh.st.withdrawn": ["Withdrawn", "Retirado", "Retirado"],
+  "sh.st.setUp": ["Being set up", "En preparación", "Em preparação"],
+  "sh.st.underReview": [
+    "Under review by stewards",
+    "En revisión por los responsables",
+    "Em revisão pelos responsáveis"
+  ],
+  "sh.act.confirm": [
+    "Confirm It Was Kept",
+    "Confirmar que se cumplió",
+    "Confirmar que foi cumprido"
+  ],
+  "sh.act.linkWork": ["Link Work", "Vincular trabajo", "Vincular trabalho"],
+  "sh.act.addProof": ["Add Proof", "Añadir prueba", "Adicionar prova"],
+  "sh.service": ["Service Access", "Acceso al servicio", "Acesso ao serviço"],
+  "sh.serviceAssets": ["Service Assets", "Activos de servicio", "Ativos de serviço"],
+  "sh.issuerHeld": ["Vouchers You Hold", "Vales que tienes", "Vouchers que você possui"],
+  "sh.issuerReserve": ["Issuer Reserve", "Reserva del emisor", "Reserva do emissor"],
+  "sh.g.work": ["Work", "Trabajo", "Trabalho"],
+  "sh.g.promises": ["Promises", "Promesas", "Promessas"],
+  "sh.g.insights": ["Insights", "Análisis", "Visão"],
+  "sh.g.gardeners": ["Gardeners", "Jardineros", "Jardineiros"],
+  "sh.g.live": ["Live", "En curso", "Em andamento"],
+  "sh.g.allKinds": ["All kinds", "Todos los tipos", "Todos os tipos"],
+  "sh.g.offers": ["Offers", "Ofrecimientos", "Ofertas"],
+  "sh.g.requests": ["Requests", "Peticiones", "Pedidos"],
+  "sh.g.liveCount": ["{count} live", "{count} en curso", "{count} em andamento"],
+  "sh.g.season": ["Season", "Temporada", "Temporada"],
+  "sh.g.campaign": ["Campaign", "Campaña", "Campanha"],
+  "sh.g.open": ["Open", "Abierta", "Aberta"],
+  "sh.g.gathering": ["Gathering…", "Reuniendo…", "Reunindo…"],
+  "sh.g.emptyT": ["No promises yet", "Todavía no hay promesas", "Ainda não há promessas"],
+  "sh.g.emptyB": [
+    "Nobody has offered or asked for anything here yet. The first one starts it off.",
+    "Nadie ha ofrecido ni pedido nada aquí todavía. La primera lo pone en marcha.",
+    "Ninguém ofereceu nem pediu nada aqui ainda. A primeira põe tudo para funcionar."
+  ],
+  "sh.promises": ["Promises", "Promesas", "Promessas"],
+  "sh.tab.live": ["Live", "En curso", "Em andamento"],
+  "sh.tab.history": ["History", "Historial", "Histórico"],
+  "sh.tab.toConfirm": ["To confirm", "Por confirmar", "A confirmar"],
+  "sh.w.title": ["Your Wallet", "Tu billetera", "Sua carteira"],
+  "sh.w.sub": [
+    "Your funds across the network.",
+    "Tus fondos en toda la red.",
+    "Seus fundos em toda a rede."
+  ],
+  "sh.w.cookies": ["Cookies", "Galletas", "Cookies"],
+  "sh.w.tokens": ["Tokens", "Tokens", "Tokens"],
+  "sh.ck.garden": ["Garden", "Jardín", "Jardim"],
+  "sh.ck.health": ["Health", "Salud", "Saúde"],
+  "sh.ck.impact": ["Impact", "Impacto", "Impacto"],
+  "sh.ck.activity": ["Activity", "Actividad", "Atividade"],
+  "sh.ck.promisesTab": ["Promises", "Promesas", "Promessas"],
+  "sh.ck.needs": ["What needs you", "Lo que te necesita", "O que precisa de você"],
+  "sh.ck.toReview": ["To review", "Por revisar", "Para revisar"],
+  "sh.ck.recovery": ["Needs recovery", "Necesita recuperación", "Precisa de recuperação"],
+  "sh.ck.pastDue": ["Past due", "Vencidos", "Vencidos"],
+  "sh.ck.review": ["Review Promises", "Revisar promesas", "Revisar promessas"],
+  "sh.ck.reviewDesc": [
+    "Neighbors asking to take a promise up. Approving one closes the others on that promise.",
+    "Vecinos que piden aceptar una promesa. Aprobar una solicitud cierra las demás de esa promesa.",
+    "Vizinhos pedindo para aceitar uma promessa. Aprovar um pedido fecha os outros dessa promessa."
+  ],
+  "sh.ck.nothing": ["Nothing to review.", "Nada que revisar.", "Nada para revisar."],
+  "sh.ck.approve": ["Approve", "Aprobar", "Aprovar"],
+  "sh.ck.decline": ["Decline…", "Rechazar…", "Recusar…"],
+  "sh.ck.promises": ["Offers and Requests", "Ofertas y peticiones", "Ofertas e pedidos"],
+  "sh.ck.seed": ["Seed Promises", "Sembrar promesas", "Semear promessas"],
+  "sh.ck.search": ["Search promises", "Buscar promesas", "Buscar promessas"],
+  "sh.ck.open": ["Open", "Abiertos", "Abertos"],
+  "sh.ck.confirmed": ["Confirmed", "Confirmados", "Confirmados"],
+  "sh.ck.past": ["Past", "Pasados", "Passados"],
+  "sh.ck.pastDueN": ["Past due ({count})", "Vencidos ({count})", "Vencidos ({count})"],
+  "sh.ck.recoveryN": [
+    "Needs recovery ({count})",
+    "Necesita recuperación ({count})",
+    "Precisa de recuperação ({count})"
+  ],
+  "sh.ck.status": ["Pool Status", "Estado del fondo común", "Status do fundo comum"],
+  "sh.ck.taking": ["Taking promises", "Aceptando promesas", "Aceitando promessas"],
+  "sh.ck.funding": ["Pool Funding", "Financiación del fondo común", "Financiamento do fundo comum"],
+  "sh.ck.available": [
+    "Available for new promises",
+    "Disponible para nuevas promesas",
+    "Disponível para novas promessas"
+  ],
+  "sh.ck.offer": ["Offer", "Oferta", "Oferta"],
+  "sh.ck.request": ["Request", "Petición", "Pedido"],
+  "sh.ck.editPool": ["Edit Pool", "Editar fondo común", "Editar fundo comum"],
+  "sh.ck.pause": ["Pause…", "Pausar…", "Pausar…"],
+  "sh.ck.startCampaign": ["Start Campaign", "Iniciar campaña", "Iniciar campanha"],
+  "sh.ck.season": ["Season", "Temporada", "Temporada"],
+  "sh.ck.campaign": ["Campaign", "Campaña", "Campanha"],
+  "sh.ck.cycleOpen": ["Open", "Abierta", "Aberta"],
+  "sh.ck.community": ["Community", "Comunidad", "Comunidade"],
+  "sh.ck.hub": ["Hub", "Hub", "Hub"],
+  "sh.ck.navGarden": ["Garden", "Jardín", "Jardim"],
+  "sh.ck.coordination": ["Coordination", "Coordinación", "Coordenação"],
+  "sh.ck.members": ["Members", "Miembros", "Membros"],
+  "sh.ck.payouts": ["Payouts", "Pagos", "Pagamentos"],
+  "sh.ck.endowment": ["Endowment", "Provisión", "Provisão"],
+  "sh.ck.openConsole": [
+    "Open the Pool Console",
+    "Abrir la consola del fondo común",
+    "Abrir o console do fundo comum"
+  ],
+  "sh.ck.vi": ["Voucher Issuers", "Emisores de vales", "Emissores de vales"],
+  "sh.ck.viHelp": [
+    "Prepare issuer onboarding for the shared Gnosis pool. Each issuer keeps control of their token and reserve and approves their own service terms.",
+    "Prepara la incorporación al fondo compartido de Gnosis. Cada emisor conserva el control de su token y reserva y aprueba sus propias condiciones de servicio.",
+    "Prepare a entrada no pool compartilhado da Gnosis. Cada emissor mantém o controle do token e da reserva e aprova seus próprios termos de serviço."
+  ],
+  "sh.ck.viMember": ["Member issuer", "Emisor individual", "Emissor individual"],
+  "sh.ck.viCollective": ["Collective issuer", "Emisor colectivo", "Emissor coletivo"],
+  "sh.ck.viReview": [
+    "Review Prepared Terms",
+    "Revisar condiciones preparadas",
+    "Revisar termos preparados"
+  ],
+  "sh.ck.viCopy": [
+    "Copy Owner Safe Drafts",
+    "Copiar borradores para el Safe",
+    "Copiar rascunhos para o Safe"
+  ],
+  "sh.ck.viDraftOnly": [
+    "These are prepared owner Safe calls. Copying them sends no transaction and provides no member signature or approval.",
+    "Son llamadas preparadas para el Safe propietario. Copiarlas no envía ninguna transacción ni aporta la firma o aprobación de un miembro.",
+    "São chamadas preparadas para o Safe proprietário. Copiá-las não envia transações nem fornece assinatura ou aprovação de um membro."
+  ],
+  "sh.ck.viCapacityHelp": [
+    "Returned vouchers do not restore delivered service capacity or authorize new issuance.",
+    "Los vales devueltos no restauran la capacidad de servicio consumida ni autorizan nuevas emisiones.",
+    "Vales devolvidos não restauram a capacidade de serviço consumida nem autorizam novas emissões."
+  ],
+  "pp.cycle.sun": ["Pilot Season 2026", "Temporada piloto 2026", "Temporada piloto 2026"],
+  "pp.cycle.gg": ["Pilot Season 2026", "Temporada piloto 2026", "Temporada piloto 2026"],
+  "pp.band.openV": [
+    "Open for booking. Nothing moves until you agree to the exact terms.",
+    "Abierto para reservar. Nada se mueve hasta que aceptes las condiciones exactas.",
+    "Aberto para reservas. Nada se move até você aceitar os termos exatos."
+  ],
+  "pp.band.openG": [
+    "Open to gardeners paying with their own G$. Nothing moves until you agree to the exact terms.",
+    "Abierto a jardineros que pagan con su propio G$. Nada se mueve hasta que aceptes las condiciones exactas.",
+    "Aberto a jardineiros que pagam com o próprio G$. Nada se move até você aceitar os termos exatos."
+  ],
+  "pp.u.m": ["1 lesson, 60 minutes", "1 clase de 60 minutos", "1 aula de 60 minutos"],
+  "pp.u.s": [
+    "1 hub day, up to 4 hours",
+    "1 día en el hub, hasta 4 horas",
+    "1 dia no hub, até 4 horas"
+  ],
+  "pp.u.c": ["30 days of access", "30 días de acceso", "30 dias de acesso"],
+  "pp.u.g": ["1 month of access", "1 mes de acceso", "1 mês de acesso"],
+  "pp.due.m": [
+    "Within 2 weeks of booking",
+    "En las 2 semanas siguientes a la reserva",
+    "Em até 2 semanas após a reserva"
+  ],
+  "pp.due.s": [
+    "Calendar open until {date}",
+    "Calendario abierto hasta el {date}",
+    "Calendário aberto até {date}"
+  ],
+  "pp.due.c": [
+    "30 days from working access",
+    "30 días desde el acceso efectivo",
+    "30 dias a partir do acesso efetivo"
+  ],
+  "pp.due.g": [
+    "A month from when you're accepted",
+    "Un mes desde que te aceptan",
+    "Um mês a partir de quando você for aceito"
+  ],
+  "pp.version": ["Version {v}", "Versión {v}", "Versão {v}"],
+  "pp.reason.offline": [
+    "You're offline. Booking needs a connection; nothing is saved to send later.",
+    "Estás sin conexión. Reservar necesita conexión; no se guarda nada para enviar después.",
+    "Você está offline. Reservar precisa de conexão; nada fica guardado para enviar depois."
+  ],
+  "sh.cf.title": ["Promise kept?", "¿Promesa cumplida?", "Promessa cumprida?"],
+  "sh.cf.ask": [
+    "Only the person it was made to can confirm it. Everyone who contributed is excluded.",
+    "Solo la persona para quien se hizo puede confirmarlo. Todas las que contribuyeron quedan excluidas.",
+    "Só a pessoa para quem foi feito pode confirmar. Todas as que contribuíram ficam excluídas."
+  ],
+  "sh.cf.notYet": ["Not Yet", "Todavía no", "Ainda não"],
+  "sh.cf.proof": ["Proof", "Pruebas", "Provas"],
+  "sh.cf.submitted": ["What was submitted", "Lo que se envió", "O que foi enviado"],
+  "sh.st.disputed": [
+    "Under review by stewards",
+    "En revisión por los responsables",
+    "Em revisão pelos responsáveis"
+  ],
+  "sh.st.lapsed": ["Lapsed", "Vencido", "Vencido"],
+  "sh.st.partly": ["Partly approved", "Aprobado en parte", "Aprovado em parte"],
+  "sh.prog.count": ["{done} of {of}", "{done} de {of}", "{done} de {of}"],
+  "pp.st.endedEarly": ["Ended early", "Terminó antes", "Terminou antes"],
+  "rd.band.approval": [
+    "{issuer} approves your booking next; their Safe needs {sigs} signatures. Nothing has left your account, and you can cancel any time before {issuer} accepts.",
+    "{issuer} aprueba tu reserva ahora; su Safe necesita {sigs} firmas. No salió nada de tu cuenta, y puedes cancelar en cualquier momento antes de que {issuer} acepte.",
+    "{issuer} aprova sua reserva agora; o Safe precisa de {sigs} assinaturas. Nada saiu da sua conta, e você pode cancelar a qualquer momento antes que {issuer} aceite."
+  ],
+  "rd.f.vouchers": ["Your vouchers", "Tus vales", "Seus vales"],
+  "rd.steps": ["Booking steps", "Pasos de la reserva", "Etapas da reserva"],
+  "rd.prog.lessons": ["Days of access", "Días de acceso", "Dias de acesso"],
+  "rd.prog.minutes": ["Minutes delivered", "Minutos dados", "Minutos dados"],
+  "rd.prog.session": ["Hub day delivered", "Día en el hub cumplido", "Dia no hub cumprido"],
+  "rd.prog.none": [
+    "Nothing delivered yet. {issuer} reports what happens here, and you close the booking.",
+    "Todavía no se ha dado nada. {issuer} informa aquí de lo que pasa y tú cierras la reserva.",
+    "Nada foi dado ainda. {issuer} informa aqui o que acontece, e você encerra a reserva."
+  ],
+  "rd.cf.who": [
+    "{issuer} provides the service. You confirm it.",
+    "{issuer} presta el servicio. Tú lo confirmas.",
+    "{issuer} presta o serviço. Você confirma."
+  ],
+  "rd.cf.proofN": ["1 delivery report", "1 informe de entrega", "1 relatório de entrega"],
+  "rd.cf.submitted": [
+    "{issuer} reported the hub day on {date}.",
+    "{issuer} informó del día en el hub el {date}.",
+    "{issuer} informou o dia no hub em {date}."
+  ],
+  "pu.due.until": ["Through {date}", "Hasta el {date}", "Até {date}"],
+  "pu.f.payment": ["Your payment", "Tu pago", "Seu pagamento"],
+  "pu.steps": ["Purchase steps", "Pasos de la compra", "Etapas da compra"],
+  "pu.prog.none": [
+    "Nothing delivered yet. Green Goods Community Garden reports here when your access starts.",
+    "Todavía no se ha entregado nada. Green Goods Community Garden informa aquí cuando empieza tu acceso.",
+    "Nada foi entregue ainda. Green Goods Community Garden informa aqui quando seu acesso começa."
+  ],
+  "pu.prog.month": ["Month of access", "Mes de acceso", "Mês de acesso"],
+  "pp.cycle.rc": ["Autumn Planting 2026", "Siembra de otoño 2026", "Plantio de outono 2026"],
+  "pp.cycle.web": ["Impact website", "Sitio web de impacto", "Site de impacto"],
+  "rw.band.open": [
+    "{garden} asks for this. Take it up, do the work, and each reward arrives on its own once the stewards confirm your work.",
+    "{garden} pide esto. Acéptalo, haz el trabajo y cada recompensa llega por su lado cuando los responsables confirman tu trabajo.",
+    "{garden} pede isto. Aceite, faça o trabalho, e cada recompensa chega por conta própria quando os responsáveis confirmarem seu trabalho."
+  ],
+  "rw.rewards": ["Rewards", "Recompensas", "Recompensas"],
+  "sv.d.paused": ["Bookings paused", "Reservas en pausa", "Reservas pausadas"],
+  "sv.d.delisted": [
+    "Not in the exchange pool",
+    "Fuera del fondo de intercambio",
+    "Fora do fundo de troca"
+  ],
+  "sv.s.coachT": [
+    "Measurement coaching, 60 minutes",
+    "Asesoría de medición de 60 minutos",
+    "Mentoria de medição de 60 minutos"
+  ],
+  "gp.r.shelves": [
+    "Help build the seed library shelves",
+    "Ayuda a montar los estantes de la biblioteca de semillas",
+    "Ajude a montar as prateleiras da biblioteca de sementes"
+  ],
+  "gp.d.due": ["Due {date}", "Plazo: {date}", "Prazo: {date}"],
+  "gp.cyc.meta": [
+    "{from} – {to} · {kept} of {all} kept",
+    "{from} – {to} · {kept} de {all} cumplidas",
+    "{from} – {to} · {kept} de {all} cumpridas"
+  ],
+  "gp.place": [
+    "Hub address shared before booking",
+    "Dirección del hub compartida antes de reservar",
+    "Endereço do hub compartilhado antes da reserva"
+  ],
+  "gp.tabs": ["Garden sections", "Secciones del jardín", "Seções do jardim"],
+  "wl.teoB": [
+    "1 books one 60-minute lesson",
+    "1 reserva una clase de 60 minutos",
+    "1 reserva uma aula de 60 minutos"
+  ],
+  "wl.f.issuer": ["Issued by", "Emitido por", "Emitido por"],
+  "wl.f.books": ["What it books", "Qué reserva", "O que reserva"],
+  "wl.f.member": [
+    "{name}, member of {garden}",
+    "{name}, miembro de {garden}",
+    "{name}, membro de {garden}"
+  ],
+  "wl.coming": ["coming back", "en camino de vuelta", "voltando"],
+  "wl.book": ["Book a Service", "Reservar un servicio", "Reservar um serviço"],
+  "wl.exchange": ["Exchange", "Intercambiar", "Trocar"],
+  "wl.where": [
+    "Bookings and purchases are promises, so they live with your other promises.",
+    "Las reservas y compras son promesas, así que están con tus otras promesas.",
+    "Reservas e compras são promessas, então ficam junto com suas outras promessas."
+  ],
+  "wl.whereLink": ["Open Promises", "Abrir promesas", "Abrir promessas"],
+  "br.t.analysis": [
+    "Write the impact summary",
+    "Redactar el resumen de impacto",
+    "Escrever o resumo de impacto"
+  ],
+  "br.t.build": [
+    "Build the impact website",
+    "Construir el sitio web de impacto",
+    "Construir o site de impacto"
+  ],
+  "br.peerLink": ["Open it", "Abrirla", "Abrir"],
+  "br.cycleLine": ["Campaign · {garden}", "Campaña · {garden}", "Campanha · {garden}"],
+  "br.show": ["Show Its Promises", "Ver sus promesas", "Ver as promessas"],
+  "sh.g.cycleIntro": [
+    "Promises made for this campaign count toward it.",
+    "Las promesas hechas para esta campaña cuentan para ella.",
+    "As promessas feitas para esta campanha contam para ela."
+  ],
+  "sh.pf.tabsLabel": ["Profile sections", "Secciones del perfil", "Seções do perfil"],
+  "sh.pf.account": ["Account", "Cuenta", "Conta"],
+  "sh.pf.badges": ["Badges", "Insignias", "Insígnias"],
+  "sh.pf.help": ["Help", "Ayuda", "Ajuda"],
+  "sh.pf.issuerBody": [
+    "See vouchers you hold separately from the reserve and services you provide.",
+    "Consulta tus vales por separado de la reserva y los servicios que prestas.",
+    "Veja seus vouchers separados da reserva e dos serviços que você presta."
+  ],
+  "sh.pf.asset": ["Service Asset", "Activo de servicio", "Ativo de serviço"],
+  "sh.row.confirming": ["Confirming…", "Confirmando…", "Confirmando…"],
+  "ms.a.review": ["Review", "Revisar", "Revisar"],
+  "ms.d.asked": ["Asked to book", "Pidió reservar", "Pediu para reservar"],
+  "ms.d.when": ["{date}, 18:00", "{date}, 18:00", "{date}, 18:00"],
+  "ms.d.stopped": ["Stopped at 30 minutes", "Se detuvo a los 30 minutos", "Parou aos 30 minutos"],
+  "ms.t.delivered": ["Delivered", "Entregada", "Entregue"],
+  "ms.d.toReserve": ["1 to your reserve", "1 a tu reserva", "1 para sua reserva"],
+  "who.rafa": ["Rafa", "Rafa", "Rafa"],
+  "who.kai": ["Kai", "Kai", "Kai"],
+  "ms.asset": ["Teo vouchers (TEO)", "Vales de Teo (TEO)", "Vales de Teo (TEO)"],
+  "ob.st.draft": ["Draft to review", "Borrador por revisar", "Rascunho para revisar"],
+  "ob.st.setup": ["Being set up", "En preparación", "Em preparação"],
+  "ob.st.changed": ["Draft changed", "Borrador cambiado", "Rascunho alterado"],
+  "ob.st.declined": ["Declined", "Rechazado", "Recusado"],
+  "ob.steps": ["Setup steps", "Pasos de la preparación", "Etapas da preparação"],
+  "ob.asset": ["Teo vouchers (draft)", "Vales de Teo (borrador)", "Vales de Teo (rascunho)"],
+  "gp.count.all": ["{count} promises", "{count} promesas", "{count} promessas"],
+  "sh.g.all": ["All", "Todas", "Todas"],
+  "sh.ck.campaigns": [
+    "Campaigns · {open} open · {waiting} waiting to open",
+    "Campañas · {open} abiertas · {waiting} por abrir",
+    "Campanhas · {open} abertas · {waiting} aguardando abertura"
+  ],
+  "sh.ck.charter": [
+    "What this pool is for",
+    "Para qué es este fondo común",
+    "Para que serve este fundo comum"
+  ],
+  "sh.ck.cap": ["Promise limit", "Límite de promesas", "Limite de promessas"],
+  "sh.ck.viewDetails": ["View Details", "Ver detalles", "Ver detalhes"],
+  "who.mara": ["Mara", "Mara", "Mara"],
+  "who.kwesi": ["Kwesi", "Kwesi", "Kwesi"],
+  "who.lina": ["Lina", "Lina", "Lina"],
+  "is.d.booked": [
+    "Booking: deposit confirmed",
+    "Reserva: depósito confirmado",
+    "Reserva: depósito confirmado"
+  ],
+  "is.d.asked": ["Booking asked", "Reserva pedida", "Reserva pedida"],
+  "is.cl.ago": ["{n} days ago", "hace {n} días", "há {n} dias"],
+  "is.cl.today": ["Today", "Hoy", "Hoje"],
+  "is.cl.what": ["Booking · {title}", "Reserva · {title}", "Reserva · {title}"],
+  "ck.cycles": ["Seasons and campaigns", "Temporadas y campañas", "Temporadas e campanhas"],
+  "ck.cyc.meta": [
+    "{count} promises · {kept} kept · runs through {date}",
+    "{count} promesas · {kept} cumplidas · hasta el {date}",
+    "{count} promessas · {kept} cumpridas · até {date}"
+  ],
+  "is.st.charter": [
+    "Hub days, and the services Tech and Sun's members offer",
+    "Días en el hub y los servicios que ofrecen los miembros de Tech and Sun",
+    "Dias no hub e os serviços que os membros da Tech and Sun oferecem"
+  ],
+  "ck.st.capV": [
+    "{n} per person at once",
+    "{n} por persona a la vez",
+    "{n} por pessoa de cada vez"
+  ],
+  "ck.fund.safe": [
+    "Settlement Safe: {garden}'s Safe.",
+    "Safe de liquidación: el Safe de {garden}.",
+    "Safe de liquidação: o Safe de {garden}."
+  ],
+  "who.ama": ["Ama", "Ama", "Ama"],
+  "who.kofi": ["Kofi", "Kofi", "Kofi"],
+  "rq.cl.what": [
+    "Purchase · AI assistant membership",
+    "Compra · Membresía del asistente de IA",
+    "Compra · Assinatura do assistente de IA"
+  ],
+  "rq.d.gd": ["Pay with your own G$", "Paga con tu propio G$", "Pague com seu próprio G$"],
+  "rq.d.month": ["Month ends {date}", "El mes termina el {date}", "O mês termina em {date}"],
+  "rq.d.reported": [
+    "Problem reported {date}",
+    "Problema reportado el {date}",
+    "Problema relatado em {date}"
+  ],
+  "rq.cyc.camp": ["Translation sprint", "Sprint de traducción", "Sprint de tradução"],
+  "rq.st.charter": [
+    "Services the Green Goods network offers its gardens",
+    "Servicios que la red Green Goods ofrece a sus jardines",
+    "Serviços que a rede Green Goods oferece aos seus jardins"
+  ],
+  "rq.fund.note": [
+    "Members' own G$ stays in each buyer's home-garden Safe until it's assigned.",
+    "El G$ propio de cada miembro queda en el Safe de su jardín hasta que se asigna.",
+    "O G$ próprio de cada membro fica no Safe do jardim dele até ser atribuído."
+  ],
+  "fn.d.rwPaying": [
+    "Vouchers received · G$ paying",
+    "Vales recibidos · G$ en pago",
+    "Vales recebidos · G$ em pagamento"
+  ],
+  "who.tomas": ["Tomás", "Tomás", "Tomás"],
+  "fn.w.ai": [
+    "AI assistant membership · {amt} G$",
+    "Membresía del asistente de IA · {amt} G$",
+    "Assinatura do assistente de IA · {amt} G$"
+  ],
+  "fn.w.web": [
+    "Website care · {amt} G$",
+    "Cuidado del sitio web · {amt} G$",
+    "Cuidado do site · {amt} G$"
+  ],
+  "fn.w.journal": [
+    "Garden journal printing · {amt} G$",
+    "Impresión del diario del jardín · {amt} G$",
+    "Impressão do diário do jardim · {amt} G$"
+  ],
+  "fn.cyc.camp": [
+    "Seed Swap Weekend",
+    "Fin de semana de intercambio de semillas",
+    "Fim de semana de troca de sementes"
+  ],
+  "fn.st.charter": [
+    "Care for Riverside's beds and neighbors",
+    "Cuidar los bancales y a los vecinos de Riverside",
+    "Cuidar dos canteiros e dos vizinhos de Riverside"
+  ],
+  "iss.conf.t": [
+    "Protocol Confirmations",
+    "Confirmaciones del protocolo",
+    "Confirmações do protocolo"
+  ],
+  "iss.conf.d": [
+    "Promises from any garden that opted in and that nobody local can still confirm. Only these rows reach the team; no other garden's pool is browsed here.",
+    "Promesas de cualquier jardín que optó por participar y que nadie local puede ya confirmar. Solo estas filas llegan al equipo; aquí no se explora el fondo común de ningún otro jardín.",
+    "Promessas de qualquer jardim que aderiu e que ninguém local ainda pode confirmar. Só estas linhas chegam à equipe; aqui não se consulta o fundo comum de nenhum outro jardim."
+  ],
+  "iss.stewardOnly": [
+    "A protocol steward prepares these owner Safe drafts. Member approvals remain separate.",
+    "Un responsable del protocolo prepara estos borradores para el Safe propietario. Las aprobaciones del miembro son independientes.",
+    "Um responsável do protocolo prepara estes rascunhos para o Safe proprietário. As aprovações do membro são separadas."
+  ],
+  "iss.a.remindRow": ["Remind Teo…", "Recordar a Teo…", "Lembrar Teo…"],
+  "iss.d.pauseT": [
+    "Pause the source endpoint first",
+    "Pausa primero el punto de origen",
+    "Pause primeiro o ponto de origem"
+  ],
+  "iss.conf.empty": [
+    "Nothing waiting for the team right now.",
+    "Nada esperando al equipo ahora.",
+    "Nada aguardando a equipe agora."
+  ],
+  "iss.who.steward": [
+    "A Green Goods steward, with the member and their garden's steward",
+    "Un responsable de Green Goods, con el miembro y el responsable de su jardín",
+    "Um responsável da Green Goods, com o membro e o responsável do jardim dele"
+  ],
+  "iss.who.member": [
+    "The member, from their own account",
+    "El miembro, desde su propia cuenta",
+    "O membro, da própria conta"
+  ],
+  "iss.who.safe": [
+    "The Green Goods Safe, 2 of 5",
+    "El Safe de Green Goods, 2 de 5",
+    "O Safe da Green Goods, 2 de 5"
+  ],
+  "iss.who.pool": [
+    "The pool administrator",
+    "El administrador del fondo",
+    "O administrador do fundo"
+  ],
+  "who.kaya": ["Kaya", "Kaya", "Kaya"],
+  "rw.d.fromReserve": [
+    "From {issuer}'s reserve",
+    "De la reserva de {issuer}",
+    "Da reserva de {issuer}"
+  ],
+  "rw.d.sending": ["Being sent", "En envío", "Sendo enviado"],
+  "rw.d.waits": ["Waits for {issuer}", "Espera a {issuer}", "Aguarda {issuer}"],
+  "rw.d.fromPool": ["From {garden}'s pool", "Del fondo de {garden}", "Do fundo de {garden}"],
+  "rw.d.paying": ["Payout running", "Pago en curso", "Pagamento em andamento"],
+  "rw.d.retrying": ["Payout retrying", "Pago en reintento", "Pagamento em nova tentativa"],
+  "who.ggShort": ["Green Goods", "Green Goods", "Green Goods"],
+  "u.sunOne": ["Tech and Sun voucher", "vale de Tech and Sun", "vale da Tech and Sun"],
+  "u.ggOne": ["Green Goods voucher", "vale de Green Goods", "vale do Green Goods"],
+  "c.sigs23": ["2 of 3", "2 de 3", "2 de 3"],
+  "c.sigs25": ["2 of 5", "2 de 5", "2 de 5"],
+  "rd.n.deposit1.b": [
+    "{issuer} approved. Deposit your voucher into the escrow for this booking. {issuer} must accept by {d1}.",
+    "{issuer} aprobó. Deposita tu vale en la garantía de esta reserva. {issuer} debe aceptar antes del {d1}.",
+    "{issuer} aprovou. Deposite seu vale na garantia desta reserva. {issuer} deve aceitar até {d1}."
+  ],
+  "rd.n.acceptance1.b": [
+    "Your deposit is confirmed. {issuer} accepts by {d1}. Until then, you can cancel and get your voucher back.",
+    "Tu depósito está confirmado. {issuer} acepta antes del {d1}. Hasta entonces, puedes cancelar y recuperar tu vale.",
+    "Seu depósito está confirmado. {issuer} aceita até {d1}. Até lá, você pode cancelar e recuperar seu vale."
+  ],
+  "rd.n.changed1.b": [
+    "Your deposit was made under the old terms, so this booking can't start. Cancel to get your voucher back, then book again.",
+    "Tu depósito se hizo con las condiciones anteriores, así que esta reserva no puede empezar. Cancela para recuperar tu vale y luego reserva otra vez.",
+    "Seu depósito foi feito com as condições anteriores, então esta reserva não pode começar. Cancele para recuperar seu vale e depois reserve de novo."
+  ],
+  "pay.v.deadline1S": [
+    "Before {issuer} accepts, you can cancel any time and get your voucher back.",
+    "Antes de que {issuer} acepte, puedes cancelar cuando quieras y recuperar tu vale.",
+    "Antes de {issuer} aceitar, você pode cancelar quando quiser e recuperar seu vale."
+  ],
+  "is.d.f.usable": ["Usable time", "Tiempo útil", "Tempo útil"],
+  "is.d.f.usableV": ["4 of 4 hours", "4 de 4 horas", "4 de 4 horas"],
+  "is.m.visit": [
+    "Visit {date}, 10:00 to 14:00",
+    "Visita el {date}, de 10:00 a 14:00",
+    "Visita em {date}, das 10:00 às 14:00"
+  ],
+  "is.s.termsSG": [
+    "Returns by days of access, out of 30",
+    "Devoluciones según los días de acceso, de 30",
+    "Devoluções pelos dias de acesso, de 30"
+  ],
+  "iss.m.gg": [
+    "Assisted sessions, Claude access · 20 vouchers · 2 of 5 Safe",
+    "Sesiones asistidas, acceso a Claude · 20 vales · Safe 2 de 5",
+    "Sessões assistidas, acesso ao Claude · 20 vales · Safe 2 de 5"
+  ],
+  "is.st.charterG": [
+    "Assisted sessions and Claude access, booked with Green Goods vouchers",
+    "Sesiones asistidas y acceso a Claude, reservados con vales de Green Goods",
+    "Sessões assistidas e acesso ao Claude, reservados com vales do Green Goods"
+  ],
+  "of.a.title": [
+    "Assisted session, 30 minutes",
+    "Sesión asistida, 30 minutos",
+    "Sessão assistida, 30 minutos"
+  ],
+  "ex.f.rateSH": [
+    "The pilot's accepted ratio; it doesn't make the services equal in value",
+    "La proporción aceptada del piloto; no iguala el valor de los servicios",
+    "A proporção aceita do piloto; não iguala o valor dos serviços"
+  ],
+  "wl.ggS": [
+    "2 book an assisted session",
+    "Con 2 reservas una sesión asistida",
+    "Com 2 você reserva uma sessão assistida"
+  ],
+  "wl.ggB": [
+    "2 book a 30-minute assisted session; 10 book 30 days of Claude access",
+    "Con 2 reservas una sesión asistida de 30 minutos; con 10, 30 días de acceso a Claude",
+    "Com 2 você reserva uma sessão assistida de 30 minutos; com 10, 30 dias de acesso ao Claude"
+  ],
+  "rd.b.toSun1": [
+    "{unit} on its way to {issuer}'s reserve",
+    "{unit} en camino a la reserva de {issuer}",
+    "{unit} a caminho da reserva de {issuer}"
+  ],
+  "rd.b.sunDone1": [
+    "{unit} went to {issuer}'s reserve",
+    "{unit} fue a la reserva de {issuer}",
+    "{unit} foi para a reserva de {issuer}"
+  ],
+  "is.m.dep1": [
+    "1 voucher in escrow · accept by {due}",
+    "1 vale en garantía · aceptar antes del {due}",
+    "1 vale em garantia · aceitar até {due}"
+  ],
+  "ob.sh.record": ["Recorded as", "Se registra como", "Fica registrado como"],
+  "ob.sh.recordV": [
+    "Your signed approval of these terms",
+    "Tu aprobación firmada de estas condiciones",
+    "Sua aprovação assinada destas condições"
+  ],
+  "ob.sh.recordS": [
+    "The issuer record points to it. A changed draft needs a new one.",
+    "El registro del emisor apunta a ella. Un borrador cambiado necesita una nueva.",
+    "O registro do emissor aponta para ela. Um rascunho alterado precisa de uma nova."
+  ],
+  "ob.f.deadlineV": [
+    "7 days from agreeing",
+    "7 días desde el acuerdo",
+    "7 dias a partir do acordo"
+  ],
+  "ob.f.deadlineS": [
+    "Each booking shows it as a date before the holder agrees",
+    "Cada reserva la muestra como una fecha antes de que quien la tiene acepte",
+    "Cada reserva mostra como uma data antes de quem a tem concordar"
+  ],
+  "pay.step.deposit1": [
+    "Your step: deposit your voucher",
+    "Tu paso: depositar tu vale",
+    "Sua etapa: depositar seu vale"
   ]
 }

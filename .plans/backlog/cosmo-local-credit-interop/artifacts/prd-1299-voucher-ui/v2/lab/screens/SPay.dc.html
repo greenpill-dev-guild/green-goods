@@ -14,11 +14,12 @@
 </helmet>
 <div class="gg {{themeCls}}" lang="{{lang}}" data-density="{{density}}" data-chain="{{chain}}" data-font="{{font}}" data-ground="{{ground}}" data-corners="{{corners}}" data-gap="{{gap}}" data-darkcards="{{darkcards}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
   <sc-if value="{{offline}}" hint-placeholder-val="{{false}}"><div class="offl"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-cloud-off-line"/></svg>&nbsp;{{offlineMode}}</div></sc-if>
+  <div class="pp-nav" inert><span class="close"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></span></div>
   <div class="scr" inert>
-    <div class="topnav"><span class="close"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></span></div>
-    <div class="ident">
-      <span class="kind"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="{{kindIcon}}"/></svg>{{kindLine}}</span>
-      <h1>{{offerTitle}}</h1>
+    <div class="pp-body">
+      <h1 class="pp-title">{{offerTitle}}</h1>
+      <p class="pp-place"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-sun-line"/></svg><span>{{cycle}}</span><span aria-hidden="true">·</span><span>{{garden}}</span></p>
+      <section class="pp-band" data-tone="neutral"><div class="pp-badges"><span class="gg-badge" data-tone="info">{{pill}}</span></div><p>{{bandText}}</p></section>
     </div>
   </div>
   <div class="scrim"></div>
@@ -47,16 +48,16 @@
       </sc-if>
       <sc-if value="{{hasFacts}}" hint-placeholder-val="{{true}}"><h3 class="h3">{{stepTitle}}</h3></sc-if>
       <sc-if value="{{hasFacts}}" hint-placeholder-val="{{true}}">
-        <div class="card"><div class="facts">
-          <sc-for list="{{facts}}" as="f" hint-placeholder-count="4"><div class="fact {{f.cls}}"><span class="k">{{f.k}}</span><span class="v"><span>{{f.v}}</span><small>{{f.s}}</small><sc-if value="{{f.chg}}" hint-placeholder-val="{{false}}"><span class="pill warn">{{changedPill}}</span></sc-if></span></div></sc-for>
-          <sc-if value="{{hasTerms}}" hint-placeholder-val="{{true}}"><div class="fact"><span class="k">{{termsLabel}}</span><span class="v"><a class="tlink" href="#">{{readTerms}}</a></span></div></sc-if>
-        </div></div>
+        <dl class="gg-fact-list gg-card" data-frame="card">
+          <sc-for list="{{facts}}" as="f" hint-placeholder-count="4"><div class="gg-fact-row {{f.cls}}" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}<small>{{f.s}}</small><sc-if value="{{f.chg}}" hint-placeholder-val="{{false}}"><span class="gg-badge" data-tone="warning">{{changedPill}}</span></sc-if></dd></div></sc-for>
+          <sc-if value="{{hasTerms}}" hint-placeholder-val="{{true}}"><div class="gg-fact-row" data-kind="fact" data-has-action="true"><dt class="gg-fact-term"><span class="gg-fact-label">{{termsLabel}}</span></dt><dd class="gg-fact-value">{{termsVersion}}</dd><dd class="gg-fact-action"><a class="tlink" href="#">{{readTerms}}</a></dd></div></sc-if>
+        </dl>
       </sc-if>
       <sc-if value="{{hasNote}}" hint-placeholder-val="{{true}}"><p class="small" style="font-size: 13px; line-height: 18px">{{note}}</p></sc-if>
     </div>
     <div class="sacts">
       <sc-if value="{{hasWhy}}" hint-placeholder-val="{{false}}">
-        <div class="why {{whyCls}}" role="status"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="{{whyIcon}}"/></svg><span><b>{{whyT}}</b> {{whyB}}</span></div>
+        <p class="pp-reason sheet-reason" role="status"><b>{{whyT}}</b> {{whyB}}</p>
       </sc-if>
       <sc-if value="{{btnLink}}" hint-placeholder-val="{{true}}"><a class="btn" href="{{btnHref}}">{{btn}}</a></sc-if>
       <sc-if value="{{btnBusy}}" hint-placeholder-val="{{false}}"><button type="button" class="btn" disabled aria-busy="true"><svg class="i spin" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-loader-4-line"/></svg>{{btn}}</button></sc-if>
@@ -66,23 +67,26 @@
   </section>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"kind":{"editor":"enum","options":["G$ purchase","Voucher session","Voucher course","Member lesson"],"default":"G$ purchase","section":"State"},"state":{"editor":"enum","options":["Agree","Agreeing","Waiting for issuer","Pay or deposit","Sending","Sent or deposited","No result","Terms changed","Not enough","Signing not available","Canceled","Offline"],"default":"Agree","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
+<script type="text/x-dc" data-dc-script data-props='{"kind":{"editor":"enum","options":["G$ purchase","Hub day","Claude access","Member lesson"],"default":"G$ purchase","section":"State"},"state":{"editor":"enum","options":["Agree","Agreeing","Waiting for issuer","Pay or deposit","Sending","Sent or deposited","No result","Terms changed","Not enough","Signing not available","Canceled","Offline"],"default":"Agree","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
   renderVals() {
     var t0 = GGT(this.props.lang);
     var kind = this.props.kind ?? 'G$ purchase';
     var st = this.props.state ?? 'Agree';
     var dark = this.props.dark ?? false;
-    var gd = kind === 'G$ purchase', course = kind === 'Voucher course', member = kind === 'Member lesson';
-    // The issuer is a garden (Sunroot) or a named member (Teo); the copy names them through {issuer} and {unit}
+    var gd = kind === 'G$ purchase', course = kind === 'Claude access', member = kind === 'Member lesson';
+    // The issuer is a garden (Tech and Sun for a hub day, Green Goods for Claude access) or a named member (Teo);
+    // the copy names them through {issuer} and {unit}, and each garden's Safe through {sigs}
     var ISS = member ? { issuer: t0('who.teo'), issuerFull: t0('who.teoFull'), unit: t0('u.teoMany'), garden: t0('who.sun') }
-      : { issuer: t0('who.sunShort'), issuerFull: t0('who.sun'), unit: t0('u.sunMany'), garden: t0('who.rc') };
+      : course ? { issuer: t0('who.ggShort'), issuerFull: t0('who.gg'), unit: t0('u.ggMany'), garden: t0('who.rc'), sigs: t0('c.sigs25') }
+      : { issuer: t0('who.sunShort'), issuerFull: t0('who.sun'), unit: t0('u.sunMany'), garden: t0('who.rc'), sigs: t0('c.sigs23') };
+    var unitOne = member ? t0('u.teo') : course ? t0('u.ggOne') : t0('u.sunOne');
     var t = function (k, v) { return t0(k, v ? Object.assign({}, ISS, v) : ISS); };
     t.g = t0.g; t.n = t0.n; t.d = t0.d; t.v = t0.v; t.code = t0.code;
     // G$ purchases have no issuer approval, so that state shows the payment step
     if (gd && st === 'Waiting for issuer') st = 'Pay or deposit';
     var price = st === 'Terms changed' ? 480 : 450, fee = st === 'Terms changed' ? 0.48 : 0.45, gross = price + fee;
-    var n = course ? 100 : member ? 1 : (st === 'Terms changed' ? 12 : 10), held = st === 'Not enough' ? (course ? 20 : member ? 0 : 6) : (course ? 100 : member ? 1 : 30);
+    var n = course ? 10 : member ? 1 : (st === 'Terms changed' ? 2 : 1), held = st === 'Not enough' ? (course ? 2 : 0) : (course ? 10 : member ? 1 : 9);
     var fv = member ? t.v : t.n;
     var WARN = '#ri-alert-line', INFO = '#ri-information-line', OK = '#ri-checkbox-circle-line';
     // Which step of the four the sheet is on: 0 agree, 1 send or issuer approval, 2 deposit or steward check, 3 acceptance
@@ -102,7 +106,7 @@ class Component extends DCLogic {
     var nextStep = journey[at + 1];
     var F = function (k, v, s, chg) { return { k: k, v: v, s: s || '', cls: chg ? 'chg' : '', chg: !!chg }; };
     var R = { facts: [], terms: false, note: '', notice: null, why: null, btn: '', href: '#', mode: 'link', foot: t('c.passkey') };
-    var giveV = member ? t('u.teoOne') : t('pay.v.give', { n: t.n(n) });
+    var giveV = member ? t('u.teoOne') : t('pay.v.give', { n: t.n(n), unit: n === 1 ? unitOne : ISS.unit });
     if (gd) {
       if (at === 0 || st === 'Not enough' && at === 0) {
         R.step = t('pay.step.agree');
@@ -118,17 +122,17 @@ class Component extends DCLogic {
     } else {
       if (at === 0) {
         R.step = t('pay.step.agree');
-        R.facts = [F(t('pay.f.get'), t(member ? 'pay.m.get' : course ? 'pay.c.get' : 'pay.s.get'), t('pay.v.getS')), F(t('pay.f.give'), giveV, st === 'Terms changed' ? t('pay.v.was', { n: t.n(10) }) : member ? t('pay.m.giveS') : t('pay.v.giveS', { held: fv(held) }), st === 'Terms changed'),
-          F(t('pay.f.held'), t('pay.v.held'), member ? t('of.m.heldS') : t('pay.v.heldS')), F(t('pay.f.deadline'), t.d('2026-10-29'), member ? t('pay.m.deadlineS') : t('pay.v.deadlineS', { n: t.n(n) })),
+        R.facts = [F(t('pay.f.get'), t(member ? 'pay.m.get' : course ? 'pay.c.get' : 'pay.s.get'), t('pay.v.getS')), F(t('pay.f.give'), giveV, st === 'Terms changed' ? t('pay.v.was', { n: t.n(1) }) : member ? t('pay.m.giveS') : t('pay.v.giveS', { held: fv(held) }), st === 'Terms changed'),
+          F(t('pay.f.held'), t('pay.v.held'), member ? t('of.m.heldS') : t('pay.v.heldS')), F(t('pay.f.deadline'), t.d('2026-11-02'), member ? t('pay.m.deadlineS') : n === 1 ? t('pay.v.deadline1S') : t('pay.v.deadlineS', { n: t.n(n) })),
           F(t('pay.f.after'), t(member ? 'pay.m.after' : course ? 'pay.c.after' : 'pay.s.after'), t('pay.v.afterS'))];
         R.terms = true; R.note = t('pay.v.consent'); R.btn = t('pay.cta.agree');
       } else if (at === 1) {
         R.step = t('pay.step.wait'); R.facts = []; R.note = '';
         R.notice = ['info', '#ri-time-line', t('pay.v.wait.t'), t(member ? 'pay.v.waitM.b' : 'pay.v.wait.b')]; R.btn = t('c.done'); R.href = 'SRedeem.dc.html'; R.foot = '';
       } else {
-        R.step = t('pay.step.deposit');
-        R.facts = [F(t('pay.f.deposit'), giveV, t('pay.v.depositS')), F(t('pay.f.into'), t('pay.v.into'), t('pay.v.intoS', { date: t.d('2026-10-23') })), F(t('pay.f.deadline'), t.d('2026-10-29'), '')];
-        R.note = member ? t('pay.m.depNote') : t('pay.v.depNote', { n: t.n(n) }); R.btn = member ? t('pay.m.deposit') : t('pay.cta.deposit', { n: t.n(n) });
+        R.step = member || n === 1 ? t('pay.step.deposit1') : t('pay.step.deposit');
+        R.facts = [F(t('pay.f.deposit'), giveV, t('pay.v.depositS')), F(t('pay.f.into'), t('pay.v.into'), t('pay.v.intoS', { date: t.d('2026-10-27') })), F(t('pay.f.deadline'), t.d('2026-11-02'), '')];
+        R.note = member || n === 1 ? t('pay.m.depNote') : t('pay.v.depNote', { n: t.n(n) }); R.btn = member || n === 1 ? t('pay.m.deposit') : t('pay.cta.deposit', { n: t.n(n) });
       }
     }
     if (st === 'Agreeing' || st === 'Sending') R.mode = 'busy';
@@ -149,8 +153,9 @@ class Component extends DCLogic {
     return Object.assign(GGTW(this.props), {
       themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code,
       offline: st === 'Offline', offlineMode: t('c.offline'),
-      kindLine: member ? t('of.m.kind', { name: t('who.teoFull'), garden: t('who.sun') }) : t('of.kind', { garden: gd ? t('who.gg') : t('who.sun') }), kindIcon: member ? '#ri-user-line' : '#ri-hand-heart-line',
-      offerTitle: gd ? t('of.g.title') : member ? t('of.m.title') : t(course ? 'of.c.title' : 'of.s.title'),
+      // The promise page stays behind the sheet: its title, where it lives and its status band
+      cycle: gd || course ? t('pp.cycle.gg') : t('pp.cycle.sun'), garden: gd || course ? t('who.gg') : t('who.sun'), pill: t('sh.st.offered'), bandText: gd ? t('pp.band.openG') : t('pp.band.openV'),
+      offerTitle: gd ? t('of.g.title') : member ? t('of.m.title') : t(course ? 'of.c.title' : 'of.s.title'), termsVersion: t('pp.version', { v: t.n(gd ? 3 : 2) }),
       sheetTitle: gd ? t('pay.titleG') : t('pay.titleV'), closeLabel: t('c.close'), journeyLabel: t('pay.journey'), journey: journey,
       stepsStrip: stepsKind === 'strip', stepsList: stepsKind === 'list', stepsCount: stepsKind === 'count',
       countLine: t('pay.j.count', { n: t.n(at + 1), total: t.n(journey.length), label: journey[at].label }),

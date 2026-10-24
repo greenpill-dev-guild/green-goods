@@ -680,23 +680,285 @@
 .gg .acard .expand { padding: 12px 16px 16px; display: flex; flex-direction: column; gap: 12px; border-top: 1px solid var(--line); background: var(--weak); }
 
 /* ================= Member issuers (revision of 24 Oct) =================
-   A person's tile, a capacity strip and figures, a member-app field, filter chips and a loading row. */
-.gg .hrow .ht.person { background: var(--seed-soft); color: var(--seed); }
-.gg .lessons span.b { background: var(--edge-info); border-color: transparent; }
-.gg .capnums { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 14px 16px 0; }
-.gg .capnums > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.gg .capnums b { font-size: 20px; line-height: 26px; font-weight: 600; color: var(--strong); font-variant-numeric: tabular-nums; }
-.gg .capnums span span { font-size: 12px; line-height: 16px; color: var(--muted); }
-.gg .mfield { display: flex; flex-direction: column; gap: 6px; }
-.gg .mfield label { font-size: 12px; font-weight: 500; color: var(--muted); }
-.gg .mfield .inp { height: 48px; border: 1px solid var(--line2); border-radius: 16px; padding: 0 14px; display: flex; align-items: center; justify-content: space-between; gap: 8px; background: var(--card); color: var(--strong); font-size: 16px; font-weight: 500; }
-.gg .mfield .hl { font-size: 12px; line-height: 16px; color: var(--muted); }
+   Filter chips, chip alignment, a waiting check row and a card head's badge. The first pass's
+   person tile, capacity figures, lessons strip, member field and loading rows were removed when
+   the second pass moved those screens onto the shipped components below. */
 .gg .chip.on { background: var(--accent-10); border-color: var(--on); color: var(--on); }
 .gg .ident .chips { align-items: center; }
 .gg .ident .chips .small { line-height: 20px; }
-.gg .skel .bar { display: block; height: 12px; border-radius: 6px; background: var(--neu-bg); }
-.gg .skel .hn.bar { width: 60%; height: 14px; }
-.gg .skel .hd.bar { width: 85%; }
-.gg .skel .ht { background: var(--neu-bg); }
 .gg .ckr.wait .cm { background: var(--neu-bg); color: var(--muted); }
 .gg .c-head .sb { flex: 0 0 auto; margin-top: 2px; }
+
+/* ================= Shipped components (develop, 24 Oct) =================
+   The pilot screens extend surfaces the app and the cockpit already ship, so they draw those
+   surfaces' own pieces under their shipped names and values (packages/shared theme.css and
+   admin index.css on develop): the card, the item row (DL-102) and the promise row on it
+   (DL-110), the status pill, the fact list (DL-109), the promise page's status band and
+   sections, its action bar, the empty state (DL-106), the field (DL-105), the garden's
+   Promises tab and the cockpit's Promises console (DL-077). Where a screen needs something
+   none of these has, the crosswalk says so; the screen does not draw its own version. */
+.gg { --tile-soft: #F5F5F4; --weak50: #FAFAF9; }
+.gg.dark { --tile-soft: #342C24; --weak50: #1F1914; }
+
+/* Card (F7): one surface, 24px corner; a status edge widens the start edge to 2px */
+.gg .gg-card { position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 24px; box-shadow: var(--shadow); }
+.gg .gg-card[data-edge]:not([data-edge=""]) { border-left-width: 2px; }
+.gg .gg-card[data-edge="success"] { border-left-color: var(--edge-ok); }
+.gg .gg-card[data-edge="warning"] { border-left-color: var(--edge-warn); }
+.gg .gg-card[data-edge="error"] { border-left-color: var(--edge-err); }
+.gg .gg-card[data-edge="info"] { border-left-color: var(--edge-info); }
+.gg .gg-card[data-edge="neutral"] { border-left-color: var(--line2); }
+.gg .gg-list { display: flex; flex-direction: column; gap: 12px; }
+
+/* Item row (DL-102): 88px, 16px corner, a 56px icon tile, a one-line title, one pill, one detail line, one right slot */
+.gg .gg-item-row { display: flex; align-items: stretch; width: 100%; height: 88px; flex: 0 0 88px; overflow: hidden; border-radius: 16px; color: var(--strong); text-align: left; padding: 0; font: inherit; }
+.gg a.gg-item-row, .gg button.gg-item-row, .gg .gg-item-row-open { cursor: pointer; }
+.gg .gg-item-row-open { display: flex; flex: 1 1 auto; align-items: stretch; min-width: 0; color: inherit; text-align: inherit; background: none; border: 0; padding: 0; font: inherit; }
+.gg .gg-item-row[data-selected="true"] { box-shadow: inset 0 0 0 2px var(--on); }
+.gg .gg-item-row-lead { display: flex; flex: 0 0 auto; align-items: center; padding-left: 12px; }
+.gg .gg-item-row-tile { position: relative; display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 12px; background: var(--tile-soft); color: var(--muted); }
+.gg .gg-item-row-tile .i { width: 24px; height: 24px; }
+.gg .gg-item-row-avatar { display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 50%; background: var(--tile-soft); color: var(--muted); font-size: 18px; font-weight: 600; }
+.gg .gg-item-row-mark { position: absolute; top: 5px; right: 5px; display: inline-flex; align-items: center; padding: 1px 6px; border-radius: 999px; background: rgba(0, 0, 0, .6); color: #FFFFFF; font-size: 11px; font-weight: 600; line-height: 16px; font-variant-numeric: tabular-nums; }
+.gg .gg-item-row-body { display: flex; flex: 1 1 auto; flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; min-width: 0; padding: 8px 12px; }
+.gg .gg-item-row-title { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; line-height: 20px; font-weight: 500; color: var(--strong); font-variant-ligatures: no-contextual; }
+.gg.ck .gg-item-row-title { font-size: 13px; font-weight: 600; }
+.gg .gg-item-row-details { max-width: 100%; height: 16px; overflow: hidden; color: var(--muted); font-size: 11px; line-height: 16px; font-variant-ligatures: no-contextual; }
+.gg .gg-item-row-detail-list { display: flex; flex-wrap: wrap; align-items: center; row-gap: 16px; margin-left: -12px; }
+.gg .gg-item-row-detail { position: relative; display: inline-flex; align-items: center; gap: 4px; min-width: 0; padding-left: 12px; white-space: nowrap; }
+.gg .gg-item-row-detail::before { content: "\2022"; position: absolute; left: 4px; color: var(--soft); }
+.gg .gg-item-row-detail > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.gg .gg-item-row-detail[data-tone="error"] { color: var(--err); }
+.gg .gg-item-row-action { display: flex; flex: 0 0 auto; align-items: center; gap: 8px; padding-right: 8px; }
+.gg .gg-item-row-chev { display: flex; flex: 0 0 auto; align-items: center; padding-right: 12px; color: var(--soft); }
+.gg .gg-item-row-amount { display: flex; flex: 0 0 auto; flex-direction: column; align-items: flex-end; justify-content: center; gap: 2px; padding-right: 12px; text-align: right; }
+.gg .gg-item-row-amount-value { font-size: 15px; line-height: 20px; font-weight: 500; color: var(--strong); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.gg.ck .gg-item-row-amount-value { font-size: 13px; font-weight: 600; }
+.gg .gg-item-row-amount-caption { font-size: 11px; line-height: 16px; color: var(--muted); white-space: nowrap; }
+/* The page a row opens in place, right under it (DL-113): the card surface at the row's corner */
+.gg .gg-item-row-page { border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+
+/* Status pill: one size on both surfaces, 22px tall, 11px */
+.gg .gg-badge { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px; border-radius: 999px; border: 1px solid var(--line); background: var(--weak50); color: var(--muted); font-size: 11px; font-weight: 500; line-height: 16px; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; flex: 0 0 auto; }
+.gg .gg-badge[data-tone="success"] { background: var(--ok-bg); color: var(--ok); border-color: var(--ok-bd); }
+.gg .gg-badge[data-tone="warning"] { background: var(--warn-bg); color: var(--warn); border-color: var(--warn-bd); }
+.gg .gg-badge[data-tone="error"] { background: var(--err-bg); color: var(--err); border-color: var(--err-bd); }
+.gg .gg-badge[data-tone="info"] { background: var(--info-bg); color: var(--info); border-color: var(--info-bd); }
+.gg .gg-badge .i { width: 12px; height: 12px; }
+.gg.dark .gg-badge[data-tone="info"] { color: #9DB8FF; }
+.gg .gg-needs { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--warn); }
+.gg .gg-role { display: inline-flex; align-items: center; gap: 4px; margin-left: 4px; padding: 2px 8px; border-radius: 999px; background: var(--weak50); color: var(--muted); font-size: 10px; font-weight: 500; line-height: 14px; vertical-align: middle; }
+.gg .gg-role .i { width: 12px; height: 12px; }
+
+/* Fact list (DL-109): labels share one column up to 40%, values read first, rules between rows */
+.gg .gg-fact-list { display: grid; grid-template-columns: fit-content(40%) minmax(0, 1fr) auto; column-gap: 12px; margin: 0; }
+.gg .gg-fact-list.gg-card { padding: 0 14px; }
+.gg .gg-fact-row { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: baseline; padding: 10px 0; }
+.gg .gg-fact-row + .gg-fact-row { border-top: 1px solid var(--line); }
+.gg .gg-fact-term { grid-column: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; margin: 0; }
+.gg .gg-fact-label { display: flex; align-items: baseline; gap: 8px; min-width: 0; overflow-wrap: anywhere; color: var(--muted); font-size: 14px; line-height: 20px; }
+.gg .gg-fact-icon { display: flex; flex: 0 0 auto; align-self: center; color: var(--soft); }
+.gg .gg-fact-icon .i { width: 16px; height: 16px; }
+.gg .gg-fact-description { font-size: 12px; line-height: 16px; color: var(--muted); }
+.gg .gg-fact-value { grid-column: 2 / -1; margin: 0; min-width: 0; font-size: 16px; line-height: 24px; font-weight: 500; color: var(--strong); overflow-wrap: anywhere; }
+.gg .gg-fact-row[data-has-action="true"] > .gg-fact-value { grid-column: 2; }
+.gg .gg-fact-action { grid-column: 3; margin: 0; display: flex; align-items: center; }
+.gg .gg-fact-value .gg-badge { vertical-align: middle; }
+.gg .gg-fact-value .you { display: block; font-weight: 600; color: var(--on); }
+.gg.ck .gg-fact-label { font-size: 12px; line-height: 16px; font-weight: 500; }
+.gg.ck .gg-fact-value { font-size: 14px; line-height: 20px; }
+
+/* Promise page (client): back over the page, the title, where it lives, the status band, then sections */
+.gg .pp-nav { position: absolute; top: 0; left: 0; right: 0; height: 56px; padding: 12px 16px; display: flex; align-items: center; background: var(--bg); z-index: 4; }
+.gg .pp-nav .close { width: 32px; height: 32px; flex: 0 0 32px; border: 1px solid var(--line2); background: var(--card); color: var(--on); border-radius: 50%; display: grid; place-items: center; }
+.gg .pp-nav .close .i { width: 16px; height: 16px; }
+.gg .pp-body { padding: 64px 16px 16px; display: flex; flex-direction: column; gap: 16px; }
+.gg .pp-title { margin: 0; font-size: 18px; line-height: 28px; font-weight: 500; color: var(--strong); }
+.gg .pp-place { margin: -8px 0 0; display: flex; flex-wrap: wrap; align-items: center; gap: 0 6px; font-size: 12px; line-height: 16px; color: var(--muted); }
+.gg .pp-place .i { width: 14px; height: 14px; }
+.gg .pp-band { border-radius: 16px; border: 1px solid var(--line); background: var(--weak50); padding: 16px; }
+.gg .pp-band[data-tone="attention"] { border-color: var(--warn-bd); background: var(--warn-bg); }
+.gg .pp-band[data-tone="kept"] { border-color: var(--ok-bd); background: var(--ok-bg); }
+.gg .pp-band .pp-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.gg .pp-band p { margin: 8px 0 0; font-size: 14px; line-height: 22px; color: var(--strong); }
+.gg .pp-sec { border-radius: 16px; border: 1px solid var(--line); background: var(--card); padding: 16px; }
+.gg .pp-sec > h2, .gg .pp-head h2 { margin: 0; font-size: 14px; line-height: 20px; font-weight: 600; color: var(--strong); }
+.gg .pp-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.gg .pp-sec .gg-fact-list { margin-top: 4px; }
+.gg .pp-sec > p, .gg .pp-note { margin: 8px 0 0; font-size: 14px; line-height: 22px; color: var(--muted); }
+.gg .pp-sec .notice { margin-top: 12px; }
+.gg .pp-links { margin: 8px 0 0; display: flex; flex-wrap: wrap; gap: 16px; font-size: 14px; }
+.gg .pp-prog { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.gg .pp-prog .pr { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 14px; line-height: 20px; }
+.gg .pp-prog .pr span { color: var(--muted); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gg .pp-prog .pr b { color: var(--strong); font-weight: 400; white-space: nowrap; }
+.gg .pp-prog .bar { margin-top: 6px; height: 6px; border-radius: 999px; background: var(--weak50); overflow: hidden; box-shadow: inset 0 0 0 1px var(--line); }
+.gg .pp-prog .bar span { display: block; height: 100%; border-radius: 999px; background: var(--edge-ok); }
+.gg .pp-hist { list-style: none; margin: 12px 0 0; padding: 0; }
+.gg .pp-hist li { position: relative; display: grid; grid-template-columns: 12px minmax(0, 1fr); gap: 12px; padding-bottom: 14px; }
+.gg .pp-hist li:last-child { padding-bottom: 0; }
+.gg .pp-hist li::before { content: ""; position: absolute; left: 5px; top: 14px; bottom: 0; width: 1px; background: var(--line); }
+.gg .pp-hist li:last-child::before { display: none; }
+.gg .pp-hist .dot { width: 12px; height: 12px; margin-top: 4px; border-radius: 50%; border: 2px solid var(--line2); background: var(--card); }
+.gg .pp-hist .dot.on { border-color: var(--on); background: var(--on); }
+.gg .pp-hist .dot.wait { border-style: dashed; }
+.gg .pp-hist .dot.fail { border-color: var(--edge-err); }
+.gg .pp-hist p { margin: 0; font-size: 14px; line-height: 20px; color: var(--strong); }
+.gg .pp-hist small { display: block; font-size: 12px; line-height: 16px; color: var(--muted); }
+.gg .pp-team { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.gg .pp-person { border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; }
+.gg .pp-person b { font-size: 14px; font-weight: 600; color: var(--strong); }
+.gg .pp-person .gg-badge { margin-left: 6px; }
+.gg .pp-person small { display: block; margin-top: 2px; font-size: 12px; line-height: 16px; color: var(--muted); }
+/* The page's one act (FixedBar): a short reason above, the primary on the right, at most one secondary */
+.gg .pp-bar { position: absolute; left: 0; right: 0; bottom: 0; padding: 16px; background: var(--card); border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; z-index: 5; }
+.gg .pp-bar .pp-reason { margin: 0; font-size: 12px; line-height: 16px; color: var(--muted); }
+.gg .pp-bar .pp-acts { display: flex; flex-direction: row-reverse; flex-wrap: wrap; gap: 8px; }
+.gg .pp-bar .pp-acts .btn { flex: 1 1 calc(50% - 4px); width: auto; min-width: max-content; height: 48px; }
+.gg .pp-bar p.pp-wait { margin: 0; font-size: 14px; line-height: 20px; color: var(--muted); }
+.gg .offl ~ .pp-nav { top: 24px; }
+/* One sentence and one door, under the status band, where the bar's absence would be unexplained (JoinToAct) */
+.gg .pp-door { border-radius: 16px; border: 1px solid var(--line); background: var(--weak50); padding: 16px; }
+.gg .pp-door p { margin: 0; font-size: 14px; line-height: 20px; color: var(--muted); }
+.gg .pp-door p b { color: var(--strong); font-weight: 600; }
+.gg .pp-door .pp-door-acts { margin-top: 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
+.gg .btn.sm { height: 36px; width: auto; padding: 0 16px; border-radius: 12px; font-size: 14px; }
+/* Inside Service Access: a small heading per part, the steps, the transfers and the transaction details */
+.gg .pp-sub { margin: 16px 0 4px; font-size: 12px; line-height: 16px; font-weight: 600; color: var(--muted); }
+.gg .pp-ladder { margin: 0 -16px; padding-left: 0; list-style: none; }
+.gg .pp-psum { padding: 8px 0; }
+.gg .pp-plist summary { padding: 0 0 8px; }
+.gg .pp-legbar { padding: 4px 0 0; }
+.gg .pp-tech { margin: 12px -16px -16px; border-radius: 0 0 16px 16px; }
+.gg .pp-tech summary { cursor: pointer; font-weight: 600; }
+.gg .pp-legs { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.gg .pp-legs > span { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; line-height: 18px; color: var(--strong); }
+.gg .pp-chain { margin: -8px 0 0; display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 6px; font-size: 12px; line-height: 16px; color: var(--muted); }
+.gg .pp-chain .i { width: 14px; height: 14px; color: var(--soft); margin-top: 1px; }
+/* The shipped confirm sheet: who provided it, the proof, what was submitted, the note */
+.gg .cf-who { margin: 0; font-size: 14px; line-height: 20px; color: var(--muted); }
+.gg .cf-proof { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 16px; }
+.gg .cf-proof .i { color: var(--muted); }
+.gg .cf-proof b { display: block; font-size: 14px; font-weight: 500; color: var(--strong); }
+.gg .cf-proof small { display: block; font-size: 12px; color: var(--muted); }
+.gg .cf-line { margin: 0; font-size: 12px; line-height: 16px; color: var(--muted); }
+.gg .cf-info { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 10px; padding: 12px 14px; border-radius: 16px; background: var(--weak50); font-size: 12px; line-height: 16px; color: var(--muted); }
+.gg .cf-info .i { color: var(--muted); }
+/* A changed term in a review keeps its row and gains a warning edge and pill; a total row reads in the value's weight */
+.gg .gg-fact-row.chg { box-shadow: inset 2px 0 0 var(--edge-warn); padding-left: 8px; }
+.gg .gg-fact-row.chg .gg-badge { margin-top: 4px; }
+.gg .gg-fact-row.total .gg-fact-label { color: var(--strong); font-weight: 600; }
+.gg .gg-fact-row.total .gg-fact-value { font-weight: 600; }
+.gg .pp-reason { margin: 0; font-size: 12px; line-height: 16px; color: var(--muted); }
+.gg .pp-reason b { color: var(--strong); font-weight: 600; }
+.gg .sheet-reason { margin: 0 0 2px; }
+/* Records inside a section keep the item row; a group note names the promise's group (PromiseGroupNote) */
+.gg .pp-items { margin-top: 12px; }
+.gg .pp-group { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 8px; font-size: 12px; line-height: 16px; }
+.gg .pp-group .i { width: 16px; height: 16px; color: var(--soft); }
+.gg .ex-tech { border-top: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; }
+.gg .ex-tech summary { cursor: pointer; font-weight: 600; }
+/* Wallet: a holding's page opens in place under its row; bookings are promises and live in Promises */
+.gg .wl-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+.gg .wl-where { margin: 16px 0 0; display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 8px; font-size: 13px; line-height: 18px; color: var(--muted); }
+.gg .wl-where .i { width: 16px; height: 16px; margin-top: 1px; color: var(--soft); }
+/* Profile, Account tab: Service Assets is one section among the account's own; its status reads as a band */
+.gg .pf-field { margin-top: 12px; }
+.gg .pp-sec .pp-band { margin-top: 12px; }
+.gg .pp-band p b { font-weight: 600; }
+.gg .pp-band p.ob-from { margin-top: 4px; font-size: 12px; line-height: 16px; color: var(--muted); }
+.gg .pp-band p.pp-lead { font-weight: 600; }
+.gg .pp-band p.pp-lead + p { margin-top: 2px; }
+.gg .ob-acts { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+.gg .gg-fact-value small { display: block; font-size: 12px; line-height: 16px; font-weight: 400; color: var(--muted); }
+.gg .gg-fact-value a.tlink { font-size: 14px; }
+.gg[data-density="compact"] .gg-fact-value small, .gg[data-density="minimal"] .gg-fact-value small,
+.gg[data-density="compact"] .gg-item-row-details.more, .gg[data-density="minimal"] .gg-item-row-details.more { display: none; }
+
+/* Empty state (DL-106): a 56px round tile, a title, one line, an action */
+.gg .gg-empty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; padding: 32px 16px; }
+.gg .gg-empty .et { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; background: var(--tile-soft); color: var(--muted); }
+.gg .gg-empty .et .i { width: 24px; height: 24px; }
+.gg .gg-empty h3 { margin: 4px 0 0; font-size: 16px; line-height: 24px; font-weight: 600; color: var(--strong); }
+.gg .gg-empty p { margin: 0; max-width: 300px; font-size: 14px; line-height: 20px; color: var(--muted); }
+/* A loading row keeps the item row's height and tile */
+.gg .gg-item-row.loading .gg-item-row-tile { background: var(--neu-bg); }
+.gg .gg-item-row.loading .lb { display: block; height: 12px; border-radius: 6px; background: var(--neu-bg); }
+
+/* Field (DL-105): label above an outlined control, a message line that keeps two lines */
+.gg .gg-field { display: flex; flex-direction: column; gap: 6px; }
+.gg .gg-field > label, .gg .gg-field > .fl { font-size: 14px; line-height: 20px; font-weight: 500; color: var(--strong); }
+.gg .gg-field .ctl { height: 48px; border: 1px solid var(--line2); border-radius: 16px; padding: 0 14px; display: flex; align-items: center; justify-content: space-between; gap: 8px; background: var(--card); color: var(--strong); font-size: 16px; }
+.gg .gg-field .ctl small { font-size: 14px; color: var(--muted); }
+.gg .gg-field .ctl.bad { border-color: var(--edge-err); box-shadow: inset 0 0 0 1px var(--edge-err); }
+.gg .gg-field .msg { min-height: 32px; font-size: 12px; line-height: 16px; color: var(--muted); }
+.gg .gg-field .msg.err { color: var(--err); }
+.gg.ck .gg-field .ctl { height: 40px; border-radius: 8px; font-size: 14px; }
+
+/* Garden Promises tab (client): the cycle rail, the list header with its two selects, the rows, the + */
+.gg .gp-cycles { display: flex; gap: 8px; padding: 12px 16px 0; }
+.gg .gp-cycle { flex: 1 1 0; min-width: 0; border: 1px solid var(--line); border-radius: 16px; background: var(--card); padding: 10px 12px; text-align: left; font: inherit; color: inherit; }
+.gg .gp-cycle[aria-pressed="true"] { border-color: var(--on); box-shadow: inset 0 0 0 1px var(--on); }
+.gg .gp-cycle .ch { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; font-size: 13px; line-height: 20px; font-weight: 500; color: var(--on); }
+.gg .gp-cycle .ch .i { width: 16px; height: 16px; }
+.gg .gp-cycle b { display: block; margin-top: 6px; font-size: 15px; line-height: 20px; font-weight: 500; color: var(--strong); }
+.gg .gp-cycle small { display: block; font-size: 12px; line-height: 16px; color: var(--muted); }
+.gg .gp-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 16px 16px 8px; }
+.gg .gp-count { display: flex; align-items: center; gap: 6px; font-size: 14px; line-height: 20px; color: var(--muted); white-space: nowrap; }
+.gg .gp-count .i { width: 16px; height: 16px; }
+.gg .gp-sels { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.gg .gp-sel { display: inline-flex; align-items: center; gap: 4px; height: 32px; padding: 0 8px 0 12px; border-radius: 12px; border: 1px solid var(--line2); background: var(--card); font-size: 14px; color: var(--strong); white-space: nowrap; }
+.gg .gp-sel .i { width: 16px; height: 16px; color: var(--muted); }
+.gg .gp-rows { display: flex; flex-direction: column; gap: 8px; padding: 0 16px; }
+.gg .gp-fab { position: absolute; right: 16px; bottom: 92px; width: 56px; height: 56px; border-radius: 50%; border: 0; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; box-shadow: var(--el2); z-index: 5; }
+.gg .gp-fab .i { width: 24px; height: 24px; }
+
+/* Cockpit Promises console (DL-077): what needs you, the cycles, the promises; asks and the pool in the rail */
+.gg .ck-card { background: var(--card); border: 1px solid var(--line); border-radius: 24px; box-shadow: var(--el1); padding: 16px; min-width: 0; }
+.gg .ck-card > h2, .gg .ck-card .ckh h2 { margin: 0; font-size: 16px; line-height: 24px; font-weight: 600; color: var(--strong); }
+.gg .ck-card .ckh { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.gg .ck-card .ckd { margin: 2px 0 0; font-size: 12px; line-height: 16px; color: var(--soft); }
+.gg .ck-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 0; overflow: hidden; }
+.gg .ck-stats button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 10px 12px; border: 0; border-left: 1px solid var(--line); background: none; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.gg .ck-stats button:first-child { border-left: 0; }
+.gg .ck-stats b { font-size: 16px; line-height: 20px; font-weight: 600; color: var(--strong); font-variant-numeric: tabular-nums; }
+.gg .ck-stats span { font-size: 12px; line-height: 16px; color: var(--muted); }
+.gg .ck-cycle { padding: 12px 0; border-top: 1px solid var(--line); }
+.gg .ck-cycle:first-of-type { border-top: 0; padding-top: 4px; }
+.gg .ck-cycle .ct2 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 16px; line-height: 24px; color: var(--strong); }
+.gg .ck-cycle small { display: block; font-size: 12px; line-height: 16px; color: var(--muted); }
+.gg .ck-search { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px; border-radius: 999px; background: var(--stroke-soft); color: var(--muted); font-size: 14px; min-width: 200px; }
+.gg .ck-search .i { width: 16px; height: 16px; }
+.gg .ck-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 14px 0 12px; }
+.gg .ck-rows { display: flex; flex-direction: column; gap: 8px; }
+.gg .ck-decide { list-style: none; margin: 8px 0 0; padding: 0; }
+.gg .ck-decide li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: center; padding: 10px 0 10px 14px; border-top: 1px solid var(--line); box-shadow: inset 2px 0 0 var(--edge-info); }
+.gg .ck-decide li:first-child { border-top: 0; }
+.gg .ck-decide li.offer { box-shadow: inset 2px 0 0 var(--edge-ok); }
+.gg .ck-decide .who { display: flex; align-items: baseline; gap: 8px; min-width: 0; font-size: 15px; line-height: 20px; font-weight: 600; color: var(--strong); }
+.gg .ck-decide .who small { font-size: 12px; font-weight: 400; color: var(--muted); white-space: nowrap; }
+.gg .ck-decide .what { grid-column: 1; font-size: 12px; line-height: 16px; color: var(--muted); }
+.gg .ck-decide .what .gg-badge { margin-left: 4px; vertical-align: middle; }
+.gg .ck-decide .acts { grid-column: 2; grid-row: 1 / span 2; display: flex; align-items: center; gap: 8px; }
+.gg .ck-decide .why2 { grid-column: 1 / -1; margin-top: 4px; font-size: 12px; line-height: 16px; color: var(--muted); }
+/* Voucher Issuers rows, as VoucherIssuerOnboarding draws them: the name on its own line, its kind under it */
+.gg .ck-decide.iss-rows .who { flex-direction: column; align-items: flex-start; gap: 0; }
+.gg .abtn.link { border-color: transparent; color: var(--t-text); padding: 0 8px; }
+.gg .ck-rail { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.gg .ck-main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.gg .ck-acts { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.gg .ck-meta { margin: 10px 0 0; font-size: 12px; line-height: 16px; color: var(--muted); }
+.gg .ck-insp-sec { display: flex; flex-direction: column; gap: 8px; }
+.gg .ck-insp-sec h3 { margin: 0; font-size: 14px; line-height: 20px; font-weight: 600; color: var(--strong); }
+.gg .ck-cyrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.gg .ck-amt { margin: 4px 0 0; font-size: 16px; line-height: 24px; font-weight: 600; color: var(--strong); font-variant-numeric: tabular-nums; }
+/* The lab's V5 dial: a confirm opened in place under its row, on the weak surface */
+.gg .ck-xp { margin-top: 8px; padding: 12px; border-radius: 16px; background: var(--weak50); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; }
+.gg .ck-xp .xacts { display: flex; justify-content: flex-end; align-items: center; gap: 8px; flex-wrap: wrap; }
+.gg .ck-xp .xacts .note { margin-right: auto; font-size: 12px; color: var(--muted); }
+/* Profile header (client): avatar, name, the Profile tabs */
+.gg .pf-head { display: flex; align-items: center; gap: 14px; padding: 24px 16px 8px; }
+.gg .pf-head .avatar { width: 56px; height: 56px; flex: 0 0 56px; font-size: 20px; }
+.gg .pf-head b { display: block; font-size: 18px; line-height: 24px; font-weight: 600; color: var(--strong); }
+.gg .pf-head small { display: block; font-size: 12px; line-height: 16px; color: var(--muted); }
+.gg .pf-secs { display: flex; flex-direction: column; gap: 16px; padding: 16px; }

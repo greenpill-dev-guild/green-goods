@@ -4,8 +4,9 @@
     "Proof is what the implementation handoffs and the member-issuer proof of 24 October record; this design session did not rerun it. Evidence classes: **contract tests** (local Foundry), **pinned fork** (Gnosis 100 at block 48,848,261; Celo 42220 at block 75,178,393), **owned forks** (Arbitrum 42161 at block 517,696,270 and Gnosis 100 at block 48,848,261, fictional accounts, manually relayed transport), **component tests** (happy-dom), **Storybook rehearsal** (Brave, fictional accounts), **static prototype** (this lab, headless Chromium).",
     "None of it is live delivery, actual member signing or issuer approval. A pinned or owned fork is not cross-chain delivery; Storybook accounts and transactions are fictional.",
     "Live state as the implementation lane recorded it through 24 October UTC: the same-address requirement is superseded (the pilot cohort uses new patched passkey accounts, with a member-owned connected wallet as fallback), and the selected pilot account completed an authenticated, sponsored Gnosis proof. The Hats upgrade is live on Arbitrum. The source, voucher and pool deployments are prepared, not broadcast; the release planner still accepts two garden issuers; the app's issuer and service routes are empty and Gnosis indexing is unbound. Earned-voucher agreement on the source network stays operator-assisted.",
-    "The working pilot terms (`pilot-issuer-terms.md`, draft 3) name Tech and Sun hub days, Green Goods assisted sessions and Claude access; the release owner accepted their prices, a twenty-voucher ceiling per issuer, ten participants and a 1:1 pool ratio on 22 October. The member-issuer amendment of 23 October adds individual issuers to the same pool; its recommended defaults are proposals, and no member has accepted terms. Issuer capacity, accountable addresses and acceptance are unconfirmed (COM-46). Every service, person, price and quantity in this lab is fictional.",
-    "The implementation lane targeted a controlled live pilot for 24 October and records no voucher, pool or member-issuer broadcast. This design neither authorizes nor claims deployment or readiness."
+    "The working pilot terms (`pilot-issuer-terms.md`, draft 3) name Tech and Sun hub days, Green Goods assisted sessions and Claude access; the release owner accepted their prices, a twenty-voucher ceiling per issuer, ten participants and a 1:1 pool ratio on 22 October. The member-issuer amendment of 23 October adds individual issuers to the same pool; its recommended defaults are proposals, and no member has accepted terms. Issuer capacity, accountable addresses and acceptance are unconfirmed (COM-46). Since Afo's decision of 24 October the lab shows those services, issuers and prices as working terms still to be accepted; the people, Riverside Commons, the members' services and the G$ purchase are fictional.",
+    "The implementation lane targeted a controlled live pilot for 24 October and records no voucher, pool or member-issuer broadcast. This design neither authorizes nor claims deployment or readiness.",
+    "Second pass of 24 October: every pilot screen now extends the shipped surface it belongs to, drawn with that surface's own components from `origin/develop` (the item row DL-102, the promise row DL-110, the fact list DL-109, the empty state DL-106, the field DL-105) and placed where the contract branch puts the feature: booking inside the promise page's Service Access section, a member's service under Profile, Account, Service Assets, issuer onboarding in Community, Coordination, and steward acts in the garden's Promises console. Where the lab still adds something the surfaces lack, the row says so."
   ],
   "journeys": [
     {
@@ -48,9 +49,9 @@
         },
         {
           "state": "SWallet · Vouchers, return pending",
-          "behavior": "One holdings view joins earned rewards, exchange output, escrowed vouchers and pending returns. DEV ledger in `service-access-pilot.ts`.",
+          "behavior": "One holdings view joins earned rewards, exchange output, escrowed vouchers and pending returns. DEV ledger in `service-access-pilot.ts`. Holdings are a third tab in the shipped wallet sheet, after Cookies and Tokens, each holding on the item row with its amount in the right slot (DL-113); a row opens in place to book or exchange.",
           "proof": "Component tests: Shared 55/55, Client 48/48. Storybook rehearsal: holdings.",
-          "gaps": "Production reads and indexer projections for the pilot are not registered.",
+          "gaps": "Production reads and indexer projections for the pilot are not registered. The Vouchers tab is new; the shipped sheet has two tabs. The lab removed its Purchases tab: bookings and purchases are promises and live in Promises.",
           "future": ""
         }
       ]
@@ -59,24 +60,24 @@
       "title": "Redeem a voucher you hold",
       "rows": [
         {
-          "state": "SOffer · Voucher session, Voucher course",
-          "behavior": "Approval-gated individual offers carry one payment route; the voucher route names issuer, token and units on Gnosis. `lib/CommitmentPooling/ServiceOffersLib.sol` `setTerms`.",
+          "state": "SOffer · Hub day, Claude access",
+          "behavior": "Approval-gated individual offers carry one payment route; the voucher route names issuer, token and units on Gnosis. `lib/CommitmentPooling/ServiceOffersLib.sol` `setTerms`. The offer is the shipped promise page: title, season and garden, the status band, What was promised, then a Service Access section, where `GardenCommitment` mounts `ServiceAccessPanel` on the contract branch.",
           "proof": "Contract tests: `CommitmentPoolingServiceOffers.t.sol`.",
-          "gaps": "Places are open offer instances in a series; confirm the count shown matches open instances.",
+          "gaps": "Places are open offer instances in a series; confirm the count shown matches open instances. On the contract branch, `ServiceAccessStatus` draws its own label-value pairs and `ServiceAccessPanel` puts its acts in an inline button group under a top rule. The target uses the shipped fact list (DL-109) in a section card like the page's others, and the page's one action bar (`CommitmentActionBar`).",
           "future": ""
         },
         {
           "state": "SPay · Agree (vouchers)",
-          "behavior": "The buyer requests with the exact revision, terms hash and nonce, then prepares the escrow setup with an acceptance deadline. `ServiceOffersLib.sol` `requestClaim`; `modules/VoucherRedemptionModule.sol` `prepareVoucherSetup`.",
+          "behavior": "The buyer requests with the exact revision, terms hash and nonce, then prepares the escrow setup with an acceptance deadline. `ServiceOffersLib.sol` `requestClaim`; `modules/VoucherRedemptionModule.sol` `prepareVoucherSetup`. The review is a sheet over the promise page, as `ServiceConsentSheet` is (\"Review This Service\").",
           "proof": "Contract tests: source 38/38, real-core integration 5/5.",
           "gaps": "The acceptance deadline is chosen at setup; the lab's 7-day default is a design proposal, and the working terms propose a two-business-day booking response. Production signing of these calls is not built.",
           "future": ""
         },
         {
           "state": "SPay · Waiting for issuer; SIssuer · Approve booking",
-          "behavior": "The issuer approves each exact authorization before the holder can deposit. `modules/GnosisVoucherEscrow.sol` `approveSetupAuthorization`, issuer only.",
+          "behavior": "The issuer approves each exact authorization before the holder can deposit. `modules/GnosisVoucherEscrow.sol` `approveSetupAuthorization`, issuer only. In the cockpit the ask waits in the shipped Review Promises card of the issuer's Promises console; Approve Booking opens the confirm dialog.",
           "proof": "Contract tests: destination 45/45. Pinned fork: redemption 10/10.",
-          "gaps": "Issuer Safe signers are unconfirmed. The working terms select two valid steward signatures for Tech and Sun's reserve Safe at any roster size.",
+          "gaps": "Issuer Safe signers are unconfirmed. The working terms select two valid steward signatures for Tech and Sun's reserve Safe at any roster size. The contract branch has no cockpit surface for voucher bookings; Review Promises lists claims, and approving one calls `acceptClaim` with no voucher checks.",
           "future": "Standing issuer approval per offer with a place limit (not selected)."
         },
         {
@@ -88,7 +89,7 @@
         },
         {
           "state": "SRedeem · Confirming deposit, Waiting for acceptance; SIssuer · Accept",
-          "behavior": "Acceptance requires current consent, issuer approval, the authenticated deposit result and an unexpired deadline. `VoucherRedemptionModule.sol` `validateVoucherServiceAcceptance`; pool-steward `acceptServiceClaim`.",
+          "behavior": "Acceptance requires current consent, issuer approval, the authenticated deposit result and an unexpired deadline. `VoucherRedemptionModule.sol` `validateVoucherServiceAcceptance`; pool-steward `acceptServiceClaim`. Accept sits in Review Promises with the deposit, approval and deadline checks in its confirm dialog. The lab says Accept where the shipped card says Approve, so the issuer's approval and the steward's acceptance never share a word.",
           "proof": "Contract tests: setup ordering and readiness cases.",
           "gaps": "Live message delivery and its timing.",
           "future": "Automatic acceptance (not selected)."
@@ -102,7 +103,7 @@
         },
         {
           "state": "SRedeem · Ready to close, Approve split, Confirm kept, Transfers pending, Closed",
-          "behavior": "The holder freezes one final split within the issuer's return limit; each transfer runs on its own and can be retried by anyone; confirming the promise is a separate step. `GnosisVoucherEscrow.sol` `finalizeAllocation`, `executeFinalLeg`; `lib/CommitmentPooling/ConfirmLib.sol`.",
+          "behavior": "The holder freezes one final split within the issuer's return limit; each transfer runs on its own and can be retried by anyone; confirming the promise is a separate step. `GnosisVoucherEscrow.sol` `finalizeAllocation`, `executeFinalLeg`; `lib/CommitmentPooling/ConfirmLib.sol`. Confirming uses the shipped Promise kept? sheet; the split is its own sheet. Delivery counts sit in Progress and proof, and the booking steps, transfers and transaction details in Service Access.",
           "proof": "Contract tests: destination 45/45 with fuzz. Storybook rehearsal: immutable allocation, issuer release once.",
           "gaps": "Who executes the transfers after a freeze (keeper or member). Gnosis member signing.",
           "future": ""
@@ -155,7 +156,7 @@
           "future": ""
         },
         {
-          "state": "SOffer · Voucher course (after exchange)",
+          "state": "SOffer · Claude access (after exchange)",
           "behavior": "The actual exchange output is redeemed through the same safeguarded booking.",
           "proof": "Pinned fork: swap output presented into the service lifecycle.",
           "gaps": "",
@@ -168,9 +169,9 @@
       "rows": [
         {
           "state": "SIssuer · Propose return, Above terms",
-          "behavior": "The issuer sets the most that can come back, within its terms; it cannot move escrowed vouchers. `GnosisVoucherEscrow.sol` `authorizeReturn`.",
+          "behavior": "The issuer sets the most that can come back, within its terms; it cannot move escrowed vouchers. `GnosisVoucherEscrow.sol` `authorizeReturn`. The act sits on the promise row in Offers and Requests, in the right slot.",
           "proof": "Contract tests: return limit checked at freeze; fixture split 600,000 back and 400,000 released.",
-          "gaps": "The contract stores a return limit, not a proposed split; the lab shows the limit and the lessons reported as the proposal. The working terms propose partial-delivery calculations (usable minutes for hub visits and sessions, available days for Claude access); issuers have not accepted them (COM-46).",
+          "gaps": "The contract stores a return limit, not a proposed split; the lab shows the limit and the days of access reported as the proposal. The lab uses the working terms' partial-delivery calculations (usable minutes for hub visits and sessions, available days for Claude access); issuers have not accepted them (COM-46).",
           "future": ""
         },
         {
@@ -191,7 +192,7 @@
           "state": "SRedeem · Closed (promise closed early)",
           "behavior": "Financial closure leaves the promise Accepted until its own lifecycle acts; the lab shows the issuer's stewards closing it early. `TerminalLib.sol` `cancelCommitment` (pool steward, reason required).",
           "proof": "Core cancel tests on develop.",
-          "gaps": "Which core outcome records a partial delivery is not specified in the pilot handoffs.",
+          "gaps": "Which core outcome records a partial delivery is not specified in the pilot handoffs. The lab shows the outcome as \"Ended early\", a presentation of a steward cancel after a holder-approved split; the shipped state words have no such phrase.",
           "future": ""
         }
       ]
@@ -201,14 +202,14 @@
       "rows": [
         {
           "state": "SIssuers · Prepare draft, Awaiting Teo",
-          "behavior": "A steward prepares a member issuer's reviewed metadata: kind, owner and reserve account, source authority, service unit, terms and approval references and digests, a capacity flag, the issuance ceiling, a finite adapter allowance, the pool holding cap, the price index and the upgrade control. `service-issuer-types.ts` `ServiceIssuerAsset`; the Admin `VoucherIssuerOnboarding` lists and reviews it.",
+          "behavior": "A steward prepares a member issuer's reviewed metadata: kind, owner and reserve account, source authority, service unit, terms and approval references and digests, a capacity flag, the issuance ceiling, a finite adapter allowance, the pool holding cap, the price index and the upgrade control. `service-issuer-types.ts` `ServiceIssuerAsset`; the Admin `VoucherIssuerOnboarding` lists and reviews it. The lab places drafting in the shipped Voucher Issuers card in Community, Coordination, which only protocol stewards can prepare from (`canPrepare` is `isProtocolSteward`). The member's garden steward helps define the terms with the member.",
           "proof": "Admin focused tests 13/13 and a Storybook rehearsal (Brave, fictional member issuer), recorded in the member-issuer proof of 24 October.",
-          "gaps": "The Admin component reviews prepared metadata; it has no drafting form and no send-to-member step. The member's approval is a reference and digest in that metadata, not a signature the app collects. Real member terms, capacity and acceptance are unconfirmed (M1).",
+          "gaps": "The Admin component reviews prepared metadata; it has no drafting form and no send-to-member step. The member's approval is a reference and digest in that metadata, not a signature the app collects. Real member terms, capacity and acceptance are unconfirmed (M1). A garden steward drafting from their own garden is not built: the card appears only for the protocol garden.",
           "future": "Self-service issuer setup."
         },
         {
           "state": "SOnboard · Draft to review, Approve, Draft changed, Declined, Signing not available",
-          "behavior": "The member owns the token and reserve and approves the exact service obligation; a steward's assistance confers no authority. `assertServiceIssuerAsset` requires explicit terms, confirmed capacity, finite limits and a member-kind upgrade control whose administrator is the owner.",
+          "behavior": "The member owns the token and reserve and approves the exact service obligation; a steward's assistance confers no authority. `assertServiceIssuerAsset` requires explicit terms, confirmed capacity, finite limits and a member-kind upgrade control whose administrator is the owner. The draft review is the Service Assets section of the member's Profile, Account tab, where the contract branch mounts `ServiceAssets`.",
           "proof": "Shared focused tests 115/115 (metadata assertions). Owned forks, Gnosis suite 21/21: the member signs issuer approval and reserve calls; a wrong member, steward or Safe cannot substitute.",
           "gaps": "No in-app approval flow exists: the lab's review sheet is a design for PRD-1297 and PRD-1323. Whether that approval becomes a signed record or stays the metadata's approval reference is open. Gnosis signing is proven for the selected pilot account only.",
           "future": ""
@@ -222,14 +223,14 @@
         },
         {
           "state": "SOnboard · Your setup, Listed; SMyService · Overview",
-          "behavior": "The member enables the reserve, approves a finite reserve allowance and an exchange allowance, and issues within the reviewed ceiling. `ServiceIssuerAction` `configureReserve`, `approveReserve`, `approveExchange`, `issue`; each needs a fresh review with a 300-second expiry, and one pending transaction at a time.",
+          "behavior": "The member enables the reserve, approves a finite reserve allowance and an exchange allowance, and issues within the reviewed ceiling. `ServiceIssuerAction` `configureReserve`, `approveReserve`, `approveExchange`, `issue`; each needs a fresh review with a 300-second expiry, and one pending transaction at a time. Service Assets keeps the shipped asset select, then the status band, the four capacity numbers and the voucher locations as fact lists, and the section's acts inline.",
           "proof": "Shared `service-issuer-operations` tests; Client `ServiceIssuerPanel` tests 24/24; Storybook rehearsal (fictional balances, exact review).",
-          "gaps": "Placing initial inventory in the pool has no Shared action; the lab shows it as the member's step. The four capacity numbers (promised, booked, delivered, left) come from the issuer's terms and verified bookings; the app says services owed are unknown. Routes stay empty until receipts exist.",
+          "gaps": "Placing initial inventory in the pool has no Shared action; the lab shows it as the member's step. The four capacity numbers (promised, booked, delivered, left) come from the issuer's terms and verified bookings; the app says services owed are unknown. Routes stay empty until receipts exist. On the contract branch, `ServiceIssuerPanel` draws its own label-value pairs and a raw action select; the target uses the shipped fact list and names each act.",
           "future": ""
         },
         {
           "state": "SMyService · Approve booking, Pending transaction; SIssuer · Accept member booking",
-          "behavior": "A booking on a member's service needs the member's exact approval (`approveBooking` with the setup id and authorization hash, eligible only while the terms match, before the deadline and before any decision), then the pool steward's core acceptance. `service-issuer-bookings.ts`; `approveSetupAuthorization` is issuer-only.",
+          "behavior": "A booking on a member's service needs the member's exact approval (`approveBooking` with the setup id and authorization hash, eligible only while the terms match, before the deadline and before any decision), then the pool steward's core acceptance. `service-issuer-bookings.ts`; `approveSetupAuthorization` is issuer-only. Bookings on a member's service are people with a booking, so they use the person row (DL-112) with the act in the right slot.",
           "proof": "Shared bookings tests; owned forks: exact approval, wrong signer rejected. Storybook: exact booking review.",
           "gaps": "Who performs core acceptance for a member's service is a product decision; the lab keeps the garden's stewards. Booking discovery depends on the indexer and stays labeled incomplete.",
           "future": ""
@@ -250,9 +251,9 @@
         },
         {
           "state": "SServices · Browse, Loading, Empty",
-          "behavior": "Today's Client lists issuer assets in a select on the Profile page (`ServiceAssets`); routes come from `SERVICE_ISSUER_ROUTES`, which is empty until receipt-backed configuration exists.",
+          "behavior": "Today's Client lists issuer assets in a select on the Profile page (`ServiceAssets`); routes come from `SERVICE_ISSUER_ROUTES`, which is empty until receipt-backed configuration exists. Services are offers in their garden's shipped Promises tab, on the promise row (DL-110): the seedling tile, the state pill, and a detail line saying what booking takes first, then who promises it. Loading and empty use the tab's own states.",
           "proof": "Client tests 24/24: unconfigured, loading and error states.",
-          "gaps": "A discovery list that names who promises delivery and whether the member can redeem is new UI for PRD-1297.",
+          "gaps": "A discovery list that names who promises delivery and whether the member can redeem is new UI for PRD-1297. Finding every service that takes a voucher you hold, across gardens, is not designed; the wallet links to the issuer's garden.",
           "future": ""
         }
       ]
@@ -262,9 +263,9 @@
       "rows": [
         {
           "state": "SBrief · Open, In progress, One kept",
-          "behavior": "One shared brief groups three separate commitments, each with its own terms, acceptance, evidence and outcome; no aggregate project state, project token or team payout exists (spec: the selected TAS rehearsal).",
+          "behavior": "One shared brief groups three separate commitments, each with its own terms, acceptance, evidence and outcome; no aggregate project state, project token or team payout exists (spec: the selected TAS rehearsal). The brief is a campaign in Tech and Sun's pool: selected in the shipped cycle rail, its three requests listed as promise rows, its note in the campaign's details sheet.",
           "proof": "Owned forks, Gnosis suite 21/21: three participants and three commitments, separately accepted (fictional).",
-          "gaps": "The brief page is new UI; the core has no brief object, so the grouping is presentation over three requests.",
+          "gaps": "The brief page is new UI; the core has no brief object, so the grouping is presentation over three requests. A campaign groups promises by a window of time, not by project; the brief note on it is presentation.",
           "future": "A project token or team payout."
         },
         {
@@ -316,14 +317,14 @@
         },
         {
           "state": "SPurchase · Waiting for check; SFunds · Check payment",
-          "behavior": "A steward of the home garden records the verified transfer (transaction, log, block, accounts, amounts); a wallet observation alone is not a recorded deposit. `PersonalFundingLib.sol` `recordDeposit`.",
+          "behavior": "A steward of the home garden records the verified transfer (transaction, log, block, accounts, amounts); a wallet observation alone is not a recorded deposit. `PersonalFundingLib.sol` `recordDeposit`. Members' own G$ shows in a rail card of the home garden's Promises console, beside Pool Funding and never counted in it.",
           "proof": "Contract tests: wrong asset, Safe or funder, duplicate references.",
-          "gaps": "Steward tooling to read the receipt. Custody is an earmark in the Safe, not a lock.",
+          "gaps": "Steward tooling to read the receipt. Custody is an earmark in the Safe, not a lock. The Members' Payments card is new; the shipped console has no place for members' own G$ held for purchases elsewhere.",
           "future": "Celo purchase escrow with automatic verification (not selected)."
         },
         {
           "state": "SRequests · Accept (payment checked, payment not checked)",
-          "behavior": "The provider garden's stewards accept each request. Accept waits for the recorded deposit as a **UI rule**: the contract does not check funding at acceptance, and payout needs assigned funding.",
+          "behavior": "The provider garden's stewards accept each request. Accept waits for the recorded deposit as a **UI rule**: the contract does not check funding at acceptance, and payout needs assigned funding. The asks sit in the provider garden's Review Promises card; an unchecked payment shows the reason under a disabled Accept.",
           "proof": "Contract tests: acceptance and funding stay distinct; payout rejects missing funding.",
           "gaps": "Enforcing deposit-before-acceptance would need a contract change.",
           "future": "Automatic acceptance (not selected)."

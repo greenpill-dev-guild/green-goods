@@ -100,7 +100,10 @@ const sweep = await page.evaluate(() => {
         else if (modal && !modal.contains(el)) out.names.push([id, tag, 'focusable behind an open dialog: ' + what]);
       }
       if (el.closest('[aria-hidden="true"], [inert]')) continue;
-      if (s.textOverflow === 'ellipsis' && el.scrollWidth > el.clientWidth + 1) out.clipped.push([id, tag, '"' + el.textContent.trim().slice(0, 60) + '" (' + el.className + ')']);
+      // An item row's one-line title and its detail line end in an ellipsis or drop whole details by design (DL-102);
+      // everything else must show its whole text.
+      const designedCut = el.matches('.gg-item-row-title') || !!el.closest('.gg-item-row-details');
+      if (!designedCut && s.textOverflow === 'ellipsis' && el.scrollWidth > el.clientWidth + 1) out.clipped.push([id, tag, '"' + el.textContent.trim().slice(0, 60) + '" (' + el.className + ')']);
       if ((el.matches('.btn, .abtn')) && (el.scrollHeight > el.clientHeight + 2 || el.scrollWidth > el.clientWidth + 2)) out.clipped.push([id, tag, 'button "' + el.textContent.trim().slice(0, 60) + '"']);
       if (el.matches('.btn, .abtn, .pill, .jstep > span:last-child')) {
         // A label that wraps inside a button or pill reads as two items
@@ -145,16 +148,16 @@ const sweep = await page.evaluate(() => {
   }
   // 6. Every dial option, on each screen it applies to, at that screen's default state and a few telling ones
   const EXTRA = {
-    SRedeem: [{ kind: 'Course', state: 'Approve split' }, { kind: 'Session', state: 'Approve split' }, { kind: 'Course', state: 'Transfers pending' }, { kind: 'Course', state: 'Return failed' }, { kind: 'Course', state: 'In progress' }, { kind: 'Session', state: 'Closed' }, { kind: 'Lesson', state: 'Approve split' }, { kind: 'Lesson', state: 'Closed' }, { kind: 'Lesson', state: 'Return proposed' }],
-    SPay: [{ kind: 'Voucher session', state: 'Pay or deposit' }, { kind: 'Voucher session', state: 'Sent or deposited' }, { kind: 'Member lesson', state: 'Agree' }, { kind: 'Member lesson', state: 'Waiting for issuer' }],
-    SIssuer: [{ state: 'Approve booking' }, { state: 'Accept' }, { state: 'Accept member booking' }, { state: 'Propose return' }, { state: 'Above terms' }, { state: 'Reserve short' }, { state: 'Raise allowance' }],
+    SRedeem: [{ kind: 'Claude access', state: 'Approve split' }, { kind: 'Hub day', state: 'Approve split' }, { kind: 'Claude access', state: 'Transfers pending' }, { kind: 'Claude access', state: 'Return failed' }, { kind: 'Claude access', state: 'In progress' }, { kind: 'Hub day', state: 'Closed' }, { kind: 'Lesson', state: 'Approve split' }, { kind: 'Lesson', state: 'Closed' }, { kind: 'Lesson', state: 'Return proposed' }],
+    SPay: [{ kind: 'Hub day', state: 'Pay or deposit' }, { kind: 'Hub day', state: 'Sent or deposited' }, { kind: 'Member lesson', state: 'Agree' }, { kind: 'Member lesson', state: 'Waiting for issuer' }],
+    SIssuer: [{ state: 'Approve booking' }, { state: 'Accept' }, { state: 'Accept member booking' }, { state: 'Report visit' }, { state: 'Propose return' }, { state: 'Above terms' }, { state: 'Transfer failed' }, { state: 'Reserve short' }, { state: 'Raise allowance' }],
     SIssuers: [{ state: 'Prepare draft' }, { state: 'Awaiting Teo' }, { state: 'Owner Safe drafts' }, { state: 'Admitted' }, { state: 'Delist' }],
     SOnboard: [{ state: 'Approve' }, { state: 'Approved, setup pending' }, { state: 'Your setup' }, { state: 'Listed' }, { state: 'Draft changed' }],
     SMyService: [{ state: 'Approve booking' }, { state: 'Propose return' }, { state: 'Capacity full' }, { state: 'Delisted' }, { state: 'Reserve short' }],
     SServices: [{ state: 'Issuer paused' }, { state: 'Empty' }],
     SBrief: [{ state: 'One kept' }],
     SExchange: [{ pair: 'Maya to Teo', state: 'Quote' }, { pair: 'Maya to Teo', state: 'Done' }],
-    SOffer: [{ kind: 'Voucher course', state: 'Open' }, { kind: 'Voucher session', state: 'Not enough' }, { kind: 'Member lesson', state: 'Open' }, { kind: 'Member lesson', state: 'Paused' }],
+    SOffer: [{ kind: 'Claude access', state: 'Open' }, { kind: 'Hub day', state: 'Not enough' }, { kind: 'Member lesson', state: 'Open' }, { kind: 'Member lesson', state: 'Paused' }],
     SPurchase: [{ state: 'Access active' }, { state: 'Refund failed' }, { state: 'Terms changed' }, { state: 'Paid out' }],
     SRequests: [{ state: 'Accept' }, { state: 'Decline' }, { state: 'Mark ready' }, { state: 'Dispute' }],
     SFunds: [{ state: 'Check payment' }, { state: 'Assign payment' }, { state: 'Refund failed' }, { state: 'Reward payout failed' }],

@@ -13,55 +13,57 @@
 <style>body{margin:0}</style>
 </helmet>
 <div class="gg {{themeCls}}" lang="{{lang}}" data-density="{{density}}" data-chain="{{chain}}" data-font="{{font}}" data-ground="{{ground}}" data-corners="{{corners}}" data-gap="{{gap}}" data-darkcards="{{darkcards}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
-  <div class="scr" style="padding-bottom: {{padBottom}}" inert="{{baseHidden}}">
-    <div class="topnav">
-      <a class="close" href="SWallet.dc.html" aria-label="{{backLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></a>
+  <div class="scr" style="padding-bottom: 32px" inert="{{baseHidden}}">
+    <div class="pf-head"><span class="avatar">T</span><span><b>{{name}}</b><small>{{gardenLine}}</small></span></div>
+    <div class="stabs" role="tablist" aria-label="{{tabsLabel}}">
+      <button type="button" role="tab" class="on" aria-selected="true"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-settings-3-line"/></svg>{{tAccount}}</button>
+      <button type="button" role="tab" aria-selected="false"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-user-star-line"/></svg>{{tBadges}}</button>
+      <button type="button" role="tab" aria-selected="false"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-question-line"/></svg>{{tHelp}}</button>
     </div>
-    <div class="ident">
-      <span class="kind"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-user-line"/></svg>{{kindLine}}</span>
-      <h1>{{title}}</h1>
-      <div class="chips"><span class="pill {{stCls}}">{{stPill}}</span><span class="small">{{sub}}</span></div>
-    </div>
-    <div class="stack" style="margin-top: 12px">
-      <div class="notice {{nextCls}}" role="status"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="{{nextIcon}}"/></svg>{{nextT}}</span><p>{{nextB}}</p></div>
-    </div>
-    <div class="sec"><h2>{{capT}}</h2></div>
-    <div class="mx16 card">
-      <div class="capnums">
-        <sc-for list="{{caps}}" as="c" hint-placeholder-count="4"><span><b>{{c.n}}</b><span>{{c.k}}</span></span></sc-for>
-      </div>
-      <div class="pad" style="padding-top: 10px">
-        <div class="lessons" role="img" aria-label="{{capBar}}"><sc-for list="{{capSegs}}" as="l" hint-placeholder-count="6"><span class="{{l}}"></span></sc-for></div>
-        <p class="small">{{capNote}}</p>
-      </div>
-    </div>
-    <div class="sec"><h2>{{vouT}}</h2></div>
-    <div class="mx16 card">
-      <div class="facts">
-        <sc-for list="{{vou}}" as="f" hint-placeholder-count="6"><div class="fact"><span class="k">{{f.k}}</span><span class="v"><span>{{f.v}}</span><small>{{f.s}}</small></span></div></sc-for>
-      </div>
-      <div class="tech"><span>{{vouNote}}</span></div>
-    </div>
-    <div class="sec"><h2>{{bookT}}</h2></div>
-    <p class="small mx16" style="margin-bottom: 8px">{{bookNote}}</p>
-    <div class="hlist">
-      <sc-for list="{{bookings}}" as="b" hint-placeholder-count="3">
-        <a class="hrow" href="SRedeem.dc.html"><span class="ht person"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-user-line"/></svg></span><span class="hb"><span class="hn">{{b.name}}</span><span class="hd">{{b.sub}}</span></span><span class="ha"><span class="pill {{b.cls}}">{{b.pill}}</span></span></a>
-      </sc-for>
-    </div>
-    <div class="mx16 card" style="margin-top: 14px">
-      <details class="tech" style="border-top: 0">
-        <summary style="cursor: pointer; font-weight: 600">{{techLabel}}</summary>
-        <sc-for list="{{tech}}" as="x" hint-placeholder-count="3"><span>{{x}}</span></sc-for>
-      </details>
+    <div class="pf-secs">
+      <section class="pp-sec" aria-labelledby="ms-assets">
+        <div class="pp-head"><h2 id="ms-assets">{{assetsTitle}}</h2></div>
+        <p>{{assetsBody}}</p>
+        <div class="gg-field pf-field"><span class="fl">{{assetLabel}}</span><div class="ctl"><span>{{assetName}}</span><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-down-s-line"/></svg></div></div>
+        <section class="pp-band" data-tone="{{bandTone}}" aria-label="{{bandLabel}}">
+          <div class="pp-badges"><span class="gg-badge" data-tone="{{stTone}}">{{stPill}}</span><sc-if value="{{needsYou}}" hint-placeholder-val="{{false}}"><span class="gg-needs">{{needsYouLabel}}</span></sc-if></div>
+          <p class="pp-lead">{{nextT}}</p><p>{{nextB}}</p>
+        </section>
+        <h3 class="pp-sub">{{capT}}</h3>
+        <dl class="gg-fact-list" data-frame="inset">
+          <sc-for list="{{caps}}" as="c" hint-placeholder-count="4"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{c.k}}</span></dt><dd class="gg-fact-value">{{c.n}}</dd></div></sc-for>
+        </dl>
+        <ul class="pp-prog"><li><div class="pr"><span>{{capDeliveredLabel}}</span><b>{{capCount}}</b></div><div class="bar" role="progressbar" aria-label="{{capBar}}" aria-valuenow="{{capDone}}" aria-valuemin="0" aria-valuemax="{{capOf}}"><span style="width: {{capPct}}%"></span></div></li></ul>
+        <p class="pp-note">{{capNote}}</p>
+        <h3 class="pp-sub">{{vouT}}</h3>
+        <dl class="gg-fact-list" data-frame="inset">
+          <sc-for list="{{vou}}" as="f" hint-placeholder-count="5"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}<sc-if value="{{f.s}}" hint-placeholder-val="{{true}}"><small>{{f.s}}</small></sc-if></dd></div></sc-for>
+        </dl>
+        <p class="pp-note">{{vouNote}}</p>
+        <h3 class="pp-sub">{{bookT}}</h3>
+        <p class="pp-note" style="margin-top: 0">{{bookNote}}</p>
+        <div class="gg-list pp-items">
+          <sc-for list="{{bookings}}" as="b" hint-placeholder-count="3">
+            <div class="gg-item-row gg-card" data-edge="{{b.tone}}" data-component="PersonRow">
+              <span class="gg-item-row-lead"><span class="gg-item-row-avatar" aria-hidden="true">{{b.initial}}</span></span>
+              <span class="gg-item-row-body"><span class="gg-item-row-title">{{b.name}}</span><span class="gg-badge" data-tone="{{b.tone}}">{{b.pill}}</span><span class="gg-item-row-details"><span class="gg-item-row-detail-list"><sc-for list="{{b.details}}" as="d" hint-placeholder-count="2"><span class="gg-item-row-detail"><span>{{d}}</span></span></sc-for></span></span></span>
+              <sc-if value="{{b.hasAct}}" hint-placeholder-val="{{false}}"><span class="gg-item-row-action"><a class="btn sm" href="#">{{b.act}}</a></span></sc-if>
+            </div>
+          </sc-for>
+        </div>
+        <sc-if value="{{hasActs}}" hint-placeholder-val="{{true}}">
+          <div class="wl-acts" style="margin-top: 16px">
+            <sc-if value="{{hasPrimary}}" hint-placeholder-val="{{true}}"><a class="btn sm" href="#">{{primary}}</a></sc-if>
+            <sc-if value="{{hasSecondary}}" hint-placeholder-val="{{true}}"><a class="btn sm sec" href="#">{{secondary}}</a></sc-if>
+          </div>
+        </sc-if>
+        <details class="tech pp-tech">
+          <summary>{{techLabel}}</summary>
+          <sc-for list="{{tech}}" as="x" hint-placeholder-count="3"><span>{{x}}</span></sc-for>
+        </details>
+      </section>
     </div>
   </div>
-  <sc-if value="{{hasActs}}" hint-placeholder-val="{{true}}">
-    <div class="fbar col"><div class="fbtns">
-      <sc-if value="{{hasPrimary}}" hint-placeholder-val="{{true}}"><a class="btn" href="#">{{primary}}</a></sc-if>
-      <sc-if value="{{hasSecondary}}" hint-placeholder-val="{{true}}"><a class="btn sec" href="#">{{secondary}}</a></sc-if>
-    </div></div>
-  </sc-if>
 
   <sc-if value="{{sheet}}" hint-placeholder-val="{{false}}">
     <div class="scrim"></div>
@@ -73,12 +75,12 @@
       </div>
       <div class="sbody">
         <sc-if value="{{shHasFacts}}" hint-placeholder-val="{{true}}">
-          <div class="card"><div class="facts">
-            <sc-for list="{{shFacts}}" as="f" hint-placeholder-count="5"><div class="fact"><span class="k">{{f.k}}</span><span class="v"><span>{{f.v}}</span><small>{{f.s}}</small></span></div></sc-for>
-          </div></div>
+          <dl class="gg-fact-list gg-card" data-frame="card">
+            <sc-for list="{{shFacts}}" as="f" hint-placeholder-count="5"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}<sc-if value="{{f.s}}" hint-placeholder-val="{{true}}"><small>{{f.s}}</small></sc-if></dd></div></sc-for>
+          </dl>
         </sc-if>
         <sc-if value="{{shField}}" hint-placeholder-val="{{false}}">
-          <div class="mfield"><label for="ms-field">{{fLabel}}</label><div class="inp" id="ms-field" role="textbox" aria-describedby="ms-hint">{{fValue}}<span class="small">{{fUnit}}</span></div><span class="hl" id="ms-hint">{{fHint}}</span></div>
+          <div class="gg-field"><label for="ms-field">{{fLabel}}</label><div class="ctl" id="ms-field" role="textbox" aria-describedby="ms-hint">{{fValue}}<small>{{fUnit}}</small></div><span class="msg" id="ms-hint">{{fHint}}</span></div>
         </sc-if>
         <sc-if value="{{shChk}}" hint-placeholder-val="{{false}}">
           <button type="button" class="chk {{chkOn}}" role="checkbox" aria-checked="{{chkAria}}" onClick="{{toggle}}"><span class="box"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-check-line"/></svg></span><span>{{chkText}}</span></button>
@@ -87,7 +89,7 @@
       </div>
       <div class="sacts">
         <sc-if value="{{shWhy}}" hint-placeholder-val="{{false}}">
-          <div class="why warn" role="status"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-alert-line"/></svg><span><b>{{whyT}}</b> {{whyB}}</span></div>
+          <p class="pp-reason sheet-reason" role="status"><b>{{whyT}}</b> {{whyB}}</p>
         </sc-if>
         <sc-if value="{{shCanGo}}" hint-placeholder-val="{{true}}"><a class="btn" href="#">{{shCta}}</a></sc-if>
         <sc-if value="{{shBlocked}}" hint-placeholder-val="{{false}}"><button type="button" class="btn off" disabled>{{shCta}}</button></sc-if>
@@ -111,8 +113,6 @@ class Component extends DCLogic {
     // Issuing more is only possible after a capacity review raised the promise (6 to 8 lessons)
     var cap = { promised: st === 'Issue more' ? 8 : 6, booked: 2, delivered: 1 }; cap.left = cap.promised - cap.booked - cap.delivered;
     var caps = [{ n: t.n(cap.promised), k: t('ms.cap.promised') }, { n: t.n(cap.booked), k: t('ms.cap.booked') }, { n: t.n(cap.delivered), k: t('ms.cap.delivered') }, { n: t.n(cap.left), k: t('ms.cap.left') }];
-    var capSegs = [];
-    for (var i = 0; i < cap.promised; i++) capSegs.push(i < cap.delivered ? 'd' : i < cap.delivered + cap.booked ? 'b' : '');
     var allowLeft = short ? 0 : 1;
     var vou = [
       { k: t('ms.v.issued'), v: t.n(6) + ' ' + t('u.teoMany'), s: '' },
@@ -121,28 +121,32 @@ class Component extends DCLogic {
       { k: t('ms.v.escrow'), v: t.n(1), s: '' },
       { k: t('ms.v.allow'), v: t('is.res.allowV', { left: t.n(allowLeft), of: t.n(1) }), s: t('ob.f.allowS') }
     ];
-    var TB = { booked: ['info', t('ms.t.booked')], active: ['info', t('ms.t.active')], done: ['ok', t('ms.t.done')], approve: ['warn', t('is.tag.approve')], short: ['warn', t('ms.t.short')], proposed: ['info', t('ms.t.proposed')], pending: ['info', t('ms.t.pending')] };
-    var mayaTag = st === 'Approve booking' ? 'approve' : pending ? 'pending' : 'booked';
-    var rafaTag = st === 'Propose return' ? 'short' : 'active';
-    var bookings = [
-      { name: t('ms.r.maya', { date: t.d('2026-11-04') }), sub: t('of.m.title'), cls: TB[mayaTag][0], pill: TB[mayaTag][1] },
-      { name: t('ms.r.rafa', { date: t.d('2026-10-28') }), sub: t('of.m.title'), cls: TB[rafaTag][0], pill: TB[rafaTag][1] },
-      { name: t('ms.r.kai', { date: t.d('2026-10-21') }), sub: t('of.m.title'), cls: TB.done[0], pill: TB.done[1] }
-    ];
+    // Bookings are people with a booking: the person row (DL-112), its state as the pill, the act in the right slot
+    var needs = t('sh.needsYou');
+    var maya = st === 'Approve booking' ? { tone: 'warning', pill: needs, details: [t('ms.d.asked'), t('ms.d.when', { date: t.d('2026-11-04') })], act: t('ms.a.review') }
+      : pending ? { tone: 'info', pill: t('sh.row.confirming'), details: [t('ms.t.pending')] }
+      : { tone: 'info', pill: t('ms.t.booked'), details: [t('ms.d.when', { date: t.d('2026-11-04') })] };
+    var rafa = st === 'Propose return' ? { tone: 'warning', pill: needs, details: [t('ms.d.stopped'), t.d('2026-10-28')], act: t('ms.a.propose') }
+      : { tone: 'info', pill: t('ms.t.active'), details: [t.d('2026-10-28')] };
+    var kai = { tone: 'success', pill: t('ms.t.delivered'), details: [t('ms.d.toReserve'), t.d('2026-10-21')] };
+    var bookings = [Object.assign({ name: t('who.mayaFull'), initial: 'M' }, maya), Object.assign({ name: t('who.rafa'), initial: 'R' }, rafa), Object.assign({ name: t('who.kai'), initial: 'K' }, kai)];
+    bookings.forEach(function (b) { b.hasAct = !!b.act; b.act = b.act || ''; });
     var NX = {
-      'Overview': ['ok', '#ri-check-line', 'ok'], 'Issue more': ['ok', '#ri-check-line', 'ok'], 'Capacity full': ['ok', '#ri-check-line', 'ok'], 'Pause': ['ok', '#ri-check-line', 'ok'],
-      'Approve booking': ['info', '#ri-arrow-right-circle-line', 'approve'], 'Propose return': ['warn', '#ri-question-line', 'propose'],
-      'Paused': ['warn', '#ri-pause-circle-line', 'paused'], 'Delisted': ['info', '#ri-information-line', 'delisted'],
-      'Pending transaction': ['warn', '#ri-time-line', 'pending'], 'Reserve short': ['warn', '#ri-alert-line', 'short']
+      'Overview': ['ok', 'ok'], 'Issue more': ['ok', 'ok'], 'Capacity full': ['ok', 'ok'], 'Pause': ['ok', 'ok'],
+      'Approve booking': ['attention', 'approve'], 'Propose return': ['attention', 'propose'],
+      'Paused': ['neutral', 'paused'], 'Delisted': ['neutral', 'delisted'],
+      'Pending transaction': ['waiting', 'pending'], 'Reserve short': ['attention', 'short']
     }[st];
+    var bandTone = NX[0] === 'ok' ? 'neutral' : NX[0];
     var vars = { date: t.d('2026-10-23'), booked: t.n(cap.booked), left: t.n(cap.left) };
-    var ST = paused ? ['warn', t('ms.p.paused')] : delisted ? ['neu', t('ms.p.delisted')] : ['ok', t('ms.p.listed')];
-    // Page actions by state; the sheets carry the exact review for each
-    var A = { 'Overview': [t('ms.a.issue'), t('ms.a.pause')], 'Paused': [t('ms.a.resume'), null], 'Pending transaction': [t('ms.a.check'), null], 'Reserve short': [t('ms.a.allow'), null], 'Delisted': null }[st];
+    var ST = paused ? ['warning', t('ms.p.paused')] : delisted ? ['neutral', t('ms.p.delisted')] : ['success', t('ms.p.listed')];
+    // The section's own acts, inline under its facts; the sheets carry the exact review for each
+    var A = { 'Overview': [t('ms.a.issue'), t('ms.a.pause')], 'Paused': [t('ms.a.resume'), null], 'Pending transaction': [t('ms.a.check'), null], 'Reserve short': [t('ms.a.allow'), null], 'Delisted': null,
+      'Approve booking': null, 'Propose return': null }[st];
     if (A === undefined) A = [t('ms.a.issue'), t('ms.a.pause')];
     var SH = {
       'Approve booking': { title: t('ms.sh.approve.t'), size: 'full', chk: true, foot: true, cta: t('ms.a.approve'), note: t('ms.sh.consent'),
-        facts: [[t('ms.sh.holder'), t('who.mayaFull'), ''], [t('ms.sh.lesson'), t('ms.sh.lessonV'), ''], [t('ms.sh.vou'), t('u.teoOne'), t('ms.sh.vouS')], [t('is.d.f.due'), t.d('2026-10-29'), t('ms.sh.dueS')], [t('c.terms'), t('ms.sh.termsV'), t('ms.sh.termsS')]] },
+        facts: [[t('ms.sh.holder'), t('who.mayaFull'), ''], [t('ms.sh.lesson'), t('ms.sh.lessonV'), ''], [t('ms.sh.vou'), t('u.teoOne'), t('ms.sh.vouS')], [t('is.d.f.due'), t.d('2026-11-02'), t('ms.sh.dueS')], [t('c.terms'), t('ms.sh.termsV'), t('ms.sh.termsS')]] },
       'Propose return': { title: t('ms.sh.propose.t'), size: 'full', foot: true, cta: t('ms.a.propose'), note: t('ms.sh.proposeNote'),
         facts: [[t('ms.sh.holder'), t('who.mayaFull'), ''], [t('ms.sh.min'), t('ms.sh.minV'), t('is.d.f.lessonsS')]], field: [t('ms.fl.back'), t.v(0.5), t('ms.fl.hint', { half: t.v(0.5) })] },
       'Issue more': { title: t('ms.sh.issue.t'), size: 'tall', foot: true, cta: t('ms.sh.issueCta', { n: t.n(2) }), note: t('ms.sh.issueNote'),
@@ -153,16 +157,19 @@ class Component extends DCLogic {
     }[st];
     var sheet = !!SH;
     return Object.assign(GGTW(this.props), {
-      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code, backLabel: t('c.back'), closeLabel: t('c.close'), cancel: t('c.cancel'),
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code, closeLabel: t('c.close'), cancel: t('c.cancel'),
       baseHidden: sheet ? 'true' : 'false',
-      kindLine: t('ms.kind'), title: t('ob.title'), sub: t('ms.sub'), stCls: ST[0], stPill: ST[1],
-      nextCls: NX[0], nextIcon: NX[1], nextT: t('ms.n.' + NX[2] + '.t', vars), nextB: t('ms.n.' + NX[2] + '.b', vars),
-      capT: t('ms.cap.t'), caps: caps, capSegs: capSegs, capBar: t('ms.cap.bar', { delivered: t.n(cap.delivered), booked: t.n(cap.booked), left: t.n(cap.left), promised: t.n(cap.promised) }), capNote: t('ms.cap.note'),
+      name: t('who.teoFull'), gardenLine: t('who.sun'), tabsLabel: t('sh.pf.tabsLabel'), tAccount: t('sh.pf.account'), tBadges: t('sh.pf.badges'), tHelp: t('sh.pf.help'),
+      assetsTitle: t('sh.serviceAssets'), assetsBody: t('sh.pf.issuerBody'), assetLabel: t('sh.pf.asset'), assetName: t('ms.asset'),
+      title: t('ob.title'), bandLabel: t('sh.where'), bandTone: bandTone, stTone: ST[0], stPill: ST[1], needsYou: NX[0] === 'attention', needsYouLabel: needs,
+      nextT: t('ms.n.' + NX[1] + '.t', vars), nextB: t('ms.n.' + NX[1] + '.b', vars),
+      capT: t('ms.cap.t'), caps: caps, capDeliveredLabel: t('ms.cap.delivered'), capCount: t('sh.prog.count', { done: t.n(cap.delivered), of: t.n(cap.promised) }),
+      capDone: String(cap.delivered), capOf: String(cap.promised), capPct: String(Math.round(100 * cap.delivered / cap.promised)),
+      capBar: t('ms.cap.bar', { delivered: t.n(cap.delivered), booked: t.n(cap.booked), left: t.n(cap.left), promised: t.n(cap.promised) }), capNote: t('ms.cap.note'),
       vouT: t('ms.vou.t'), vou: vou, vouNote: t('ms.v.note'),
       bookT: t('ms.book.t'), bookNote: t('ms.book.note'), bookings: bookings,
       techLabel: t('c.tech'), tech: [t('ms.x.token'), t('ms.x.bookings'), t('ms.x.record')],
       hasActs: !!A && !sheet, hasPrimary: !!(A && A[0]), primary: A ? A[0] : '', hasSecondary: !!(A && A[1]), secondary: A && A[1] ? A[1] : '',
-      padBottom: A && !sheet ? '104px' : '40px',
       sheet: sheet, shTitle: SH ? SH.title : '', shSize: SH ? SH.size : 'full',
       shHasFacts: !!(SH && SH.facts.length), shFacts: SH ? SH.facts.map(function (f) { return { k: f[0], v: f[1], s: f[2] }; }) : [],
       shField: !!(SH && SH.field), fLabel: SH && SH.field ? SH.field[0] : '', fValue: SH && SH.field ? SH.field[1] : '', fUnit: t('u.teoMany'), fHint: SH && SH.field ? SH.field[2] : '',

@@ -13,59 +13,80 @@
 <style>body{margin:0}</style>
 </helmet>
 <div class="gg {{themeCls}}" lang="{{lang}}" data-density="{{density}}" data-chain="{{chain}}" data-font="{{font}}" data-ground="{{ground}}" data-corners="{{corners}}" data-gap="{{gap}}" data-darkcards="{{darkcards}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
-  <div class="scr" style="padding-bottom: 40px">
-    <div class="topnav">
-      <a class="close" href="Visit.dc.html" aria-label="{{backLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></a>
+  <div class="scr" style="padding-bottom: 32px" inert="{{baseHidden}}">
+    <div class="banner"><div class="over"><a class="rb" href="SServices.dc.html" aria-label="{{backLabel}}"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></a></div></div>
+    <div class="gtitle">
+      <h1>{{garden}}</h1>
+      <span class="meta"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-map-pin-2-fill"/></svg>{{place}}</span>
     </div>
-    <div class="ident">
-      <span class="kind"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-git-branch-line"/></svg>{{kindLine}}</span>
-      <h1>{{title}}</h1>
-      <p class="para">{{desc}}</p>
-    </div>
-    <div class="stack" style="margin-top: 12px">
-      <div class="notice info" role="status"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-information-line"/></svg>{{noteT}}</span><p>{{noteB}}</p></div>
-    </div>
-    <p class="hsec">{{promisesT}}</p>
-    <div class="hlist">
-      <sc-for list="{{rows}}" as="r" hint-placeholder-count="3">
-        <a class="hrow" href="SReward.dc.html"><span class="ht {{r.tile}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="{{r.icon}}"/></svg></span><span class="hb"><span class="hn">{{r.name}}</span><span class="hd">{{r.sub}}</span></span><span class="ha"><span class="pill {{r.cls}}">{{r.pill}}</span></span></a>
+    <div class="gtabs" role="tablist" aria-label="{{tabsLabel}}"><span role="tab" aria-selected="false">{{tWork}}</span><span class="on" role="tab" aria-selected="true">{{tPromises}}</span><span role="tab" aria-selected="false">{{tInsights}}</span><span role="tab" aria-selected="false">{{tGardeners}}</span></div>
+    <div class="gp-cycles">
+      <sc-for list="{{cycles}}" as="c" hint-placeholder-count="2">
+        <button type="button" class="gp-cycle" aria-pressed="{{c.on}}"><span class="ch"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="{{c.icon}}"/></svg>{{c.kind}}<span class="gg-badge" data-tone="success">{{c.state}}</span></span><b>{{c.title}}</b><small>{{c.meta}}</small></button>
       </sc-for>
     </div>
-    <div class="sec"><h2>{{detailsTitle}}</h2></div>
-    <div class="mx16 card"><div class="facts">
-      <sc-for list="{{facts}}" as="f" hint-placeholder-count="2"><div class="fact"><span class="k">{{f.k}}</span><span class="v"><span>{{f.v}}</span><small>{{f.s}}</small></span></div></sc-for>
-    </div></div>
-    <p class="hsec">{{peerT}}</p>
-    <p class="small mx16" style="font-size: 13px; line-height: 18px; margin-bottom: 8px">{{peerS}}</p>
-    <div class="hlist">
-      <a class="hrow" href="SRedeem.dc.html"><span class="ht person"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-user-line"/></svg></span><span class="hb"><span class="hn">{{peerRow}}</span><span class="hd">{{peerRowS}}</span></span><span class="ha"><span class="pill {{peerCls}}">{{peerPill}}</span></span></a>
+    <div class="gp-head">
+      <span class="gp-count">{{countLine}}<svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-information-line"/></svg></span>
+      <span class="gp-sels"><span class="gp-sel">{{selLive}}<svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-down-s-line"/></svg></span><span class="gp-sel">{{selKind}}<svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-down-s-line"/></svg></span></span>
     </div>
+    <div class="gp-rows">
+      <sc-for list="{{rows}}" as="r" hint-placeholder-count="3">
+        <a class="gg-item-row gg-card" data-edge="{{r.tone}}" href="{{r.href}}" data-component="CommitmentRow">
+          <span class="gg-item-row-lead"><span class="gg-item-row-tile" role="img" aria-label="{{r.dir}}"><svg class="i" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-hand-heart-line"/></svg></span></span>
+          <span class="gg-item-row-body"><span class="gg-item-row-title">{{r.title}}</span><span class="gg-badge" data-tone="{{r.tone}}">{{r.pill}}</span><span class="gg-item-row-details"><span class="gg-item-row-detail-list"><sc-for list="{{r.details}}" as="d" hint-placeholder-count="2"><span class="gg-item-row-detail"><span>{{d}}</span></span></sc-for></span></span></span>
+        </a>
+      </sc-for>
+    </div>
+    <p class="wl-where mx16"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-line"/></svg><span><b>{{peerT}}</b> {{peerS}} <a class="tlink" href="SRedeem.dc.html">{{peerLink}}</a></span></p>
   </div>
+  <sc-if value="{{details}}" hint-placeholder-val="{{false}}">
+    <div class="scrim"></div>
+    <section class="sheet tall" role="dialog" aria-modal="true" aria-labelledby="br-title">
+      <div class="grip"></div>
+      <div class="shead"><div><h2 class="stitle" id="br-title">{{title}}</h2><p class="sdesc">{{cycleLine}}</p></div><a class="close" href="#" aria-label="{{closeLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-close-line"/></svg></a></div>
+      <div class="sbody">
+        <p class="small" style="font-size: 14px; line-height: 20px; color: inherit">{{desc}}</p>
+        <dl class="gg-fact-list gg-card" data-frame="card">
+          <sc-for list="{{facts}}" as="f" hint-placeholder-count="2"><div class="gg-fact-row" data-kind="fact"><dt class="gg-fact-term"><span class="gg-fact-label">{{f.k}}</span></dt><dd class="gg-fact-value">{{f.v}}<small>{{f.s}}</small></dd></div></sc-for>
+        </dl>
+        <p class="small" style="font-size: 13px; line-height: 18px">{{noteB}}</p>
+      </div>
+      <div class="sacts"><a class="btn" href="#">{{showPromises}}</a></div>
+    </section>
+  </sc-if>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["Open","In progress","One kept"],"default":"Open","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["Open","In progress","One kept","Campaign details"],"default":"Open","section":"State"},"dark":{"editor":"boolean","default":false,"section":"Look"},"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
   renderVals() {
     var t = GGT(this.props.lang);
     var st = this.props.state ?? 'Open';
     var dark = this.props.dark ?? false;
-    // Three separate requests under one brief; each row carries its own reward and its own state
-    var P = { open: ['neu', t('br.p.open')], prog: ['info', t('br.p.prog')], review: ['info', t('br.p.review')], kept: ['ok', t('br.p.kept')], wait: ['neu', t('br.p.wait')] };
-    var S = { 'Open': ['prog', 'open', 'wait'], 'In progress': ['review', 'prog', 'open'], 'One kept': ['kept', 'prog', 'open'] }[st];
+    var details = st === 'Campaign details';
+    // The brief is a Campaign in Tech and Sun's pool: three separate requests, each on the shared promise row with its own state
+    var P = { requested: ['sh.st.requested', 'info'], progress: ['sh.st.inProgress', 'info'], awaiting: ['sh.st.awaiting', 'warning'], kept: ['sh.st.kept', 'success'] };
+    var S = { 'Open': ['progress', 'requested', 'requested'], 'In progress': ['awaiting', 'progress', 'requested'], 'One kept': ['kept', 'progress', 'requested'], 'Campaign details': ['progress', 'requested', 'requested'] }[st];
+    var req = t('sh.ck.request');
     var rows = [
-      { tile: 'person', icon: '#ri-pencil-line', name: t('br.r.design'), sub: t('br.r.designS'), cls: P[S[0]][0], pill: P[S[0]][1] },
-      { tile: 'sun', icon: '#ri-eye-line', name: t('br.r.analysis'), sub: t('br.r.analysisS'), cls: P[S[1]][0], pill: P[S[1]][1] },
-      { tile: 'gd', icon: '#ri-hammer-line', name: t('br.r.build'), sub: t('br.r.buildS'), cls: P[S[2]][0], pill: P[S[2]][1] }
+      { title: t('rw.m.title'), details: [t('gp.d.due', { date: t.d('2026-11-20') }), t('who.noor')], href: 'SReward.dc.html' },
+      { title: t('br.t.analysis'), details: [t('gp.d.due', { date: t.d('2026-11-24') }), t('who.mayaFull')], href: '#' },
+      { title: t('br.t.build'), details: [t('gp.d.due', { date: t.d('2026-11-30') }), t('who.teoFull')], href: '#' }
+    ].map(function (r, i) { r.dir = req; r.pill = t(P[S[i]][0]); r.tone = P[S[i]][1]; return r; });
+    var cycles = [
+      { icon: '#ri-sun-line', kind: t('sh.g.season'), state: t('sh.g.open'), title: t('pp.cycle.sun'), meta: t('gp.cyc.meta', { from: t.d('2026-10-25'), to: t.d('2026-11-30'), kept: t.n(2), all: t.n(6) }), on: 'false' },
+      { icon: '#ri-flag-line', kind: t('sh.g.campaign'), state: t('sh.g.open'), title: t('pp.cycle.web'), meta: t('gp.cyc.meta', { from: t.d('2026-10-25'), to: t.d('2026-11-30'), kept: t.n(st === 'One kept' ? 1 : 0), all: t.n(3) }), on: 'true' }
     ];
-    var kept = st === 'One kept';
     return Object.assign(GGTW(this.props), {
-      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code, backLabel: t('c.back'),
-      kindLine: t('br.kind', { garden: t('who.sun') }), title: t('br.title'), desc: t('br.desc'),
-      noteT: t('br.n.t'), noteB: t('br.n.b'), promisesT: t('br.promises'), rows: rows,
-      detailsTitle: t('c.details'),
+      themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code, backLabel: t('c.back'), closeLabel: t('c.close'),
+      baseHidden: details ? 'true' : 'false',
+      garden: t('who.sun'), place: t('gp.place'),
+      tabsLabel: t('gp.tabs'), tWork: t('sh.g.work'), tPromises: t('sh.g.promises'), tInsights: t('sh.g.insights'), tGardeners: t('sh.g.gardeners'),
+      // Once one promise is kept, the list shows all three so each outcome stays visible
+      cycles: cycles, countLine: st === 'One kept' ? t('gp.count.all', { count: t.n(3) }) : t('sh.g.liveCount', { count: t.n(3) }), selLive: st === 'One kept' ? t('sh.g.all') : t('sh.g.live'), selKind: t('sh.g.allKinds'),
+      rows: rows, peerT: t('br.peer'), peerS: t('br.peerS'), peerLink: t('br.peerLink'),
+      details: details, title: t('br.title'), cycleLine: t('br.cycleLine', { garden: t('who.sun') }), desc: t('br.desc'),
       facts: [{ k: t('br.f.coord'), v: t('br.f.coordV'), s: t('br.f.coordS') }, { k: t('br.f.rewards'), v: t('br.f.rewardsV'), s: t('br.f.rewardsS') }],
-      peerT: t('br.peer'), peerS: t('br.peerS'), peerRow: t('br.peerRow'), peerRowS: t('br.peerRowS'),
-      peerCls: kept ? 'warn' : 'info', peerPill: kept ? t('br.p.partial') : t('ms.t.booked')
+      noteB: t('br.n.b'), showPromises: t('br.show')
     });
   }
 }

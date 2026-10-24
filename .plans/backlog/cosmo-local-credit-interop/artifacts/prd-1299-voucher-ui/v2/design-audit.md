@@ -6,7 +6,10 @@ primitives, the steward cockpit's primitives, the shared tokens and the surface 
 findings are fixed in this version; the rest are listed under [Remaining](#remaining).
 
 The pilot revision on 23 Oct 2026 kept these corrections, changed the rows marked "pilot
-revision" below, and added the patterns under [Pilot revision](#pilot-revision-23-oct-2026).
+revision" below, and added the patterns under [Pilot revision](#pilot-revision-23-oct-2026). On
+24 Oct a second pass rebuilt the pilot screens on the components `develop` now ships; see
+[Built on the shipped surfaces](#built-on-the-shipped-surfaces-24-oct-2026-second-pass). Where the
+two disagree, the second pass holds.
 
 Sources compared:
 
@@ -102,8 +105,10 @@ check when the side panel needs scrolling at desktop sizes.
 ## Member issuers, 24 Oct 2026
 
 Five screens were added (`SServices`, `SOnboard`, `SMyService`, `SBrief` for members; `SIssuers`
-for the cockpit) and six gained member variants. They reuse the corrected kit and the pilot patterns
-above; the few additions sit in `lab/gg.css` after the "Member issuers" comment:
+for the cockpit) and six gained member variants. They reused the corrected kit and the pilot
+patterns above, and added the patterns below. The second pass replaced all of them on the pilot
+screens with shipped components: the status pill now sits in the status band, and the cockpit page
+badge is gone with the page itself.
 
 | Pattern | Where | What it does |
 |---|---|---|
@@ -121,7 +126,56 @@ administrator, the pause note and "copying sends nothing") and the Client's issu
 holdings overlap, services owed unknown, returned vouchers don't confirm capacity, one pending
 action at a time). The lab's wording is warmer, as the member surface asks, but keeps the same facts.
 
-## Kept on purpose
+## Built on the shipped surfaces, 24 Oct 2026, second pass
+
+**What went wrong.** The pilot screens drew their own pages with the kit's own rows and cards: an
+offer page with a question card, a services list, a wallet with holdings rows and a Purchases tab,
+and cockpit pages of cards. Meanwhile `develop` unified its lists and pages (DL-102 to DL-113). Built
+as drawn, the designs would have replaced the promise page's status band, "What was promised",
+Team, Progress and proof and History, the garden's Promises tab, and the cockpit's Promises console.
+Afo caught it: the designs lacked the existing promise and pool components.
+
+**The fix.** Each pilot screen now extends the surface it belongs to, at the place the contract
+branch mounts the feature, and draws that surface's pieces with their shipped values. The rules sit
+in `lab/gg.css` after the "Shipped components (develop, 24 Oct)" comment:
+
+| Shipped piece | Shipped values the lab copies | Where the pilot uses it |
+|---|---|---|
+| Item row (DL-102) | 88px, 16px corner, 56px tile with a 12px corner, one-line title (15/500 in the app, 13/600 in the cockpit), one 22px pill, one 11px detail line that drops whole details, one right slot | Rewards, wallet holdings, campaign promises |
+| Promise row (DL-110) | The item row with the offer or request edge and the due detail | The Promises tab and Offers and Requests |
+| Fact list (DL-109) | Label column, value with an optional quiet second line, leading glyph | What was promised, Service Access, every sheet's terms, capacity and voucher locations |
+| Promise page | Top nav, 18/500 title, season and garden line, status band (neutral, waiting, attention, kept) with the pill and "Needs you", 16px section cards, one action bar | Offers, bookings, purchases, rewards |
+| Empty state (DL-106) | A 56px round tile, a title, one line, an action | The Promises tab with no live promises |
+| Field (DL-105) | Label above the control, a message line that keeps two lines | Amounts and notes in Service Assets sheets and cockpit dialogs |
+| Records on the item row (DL-111, DL-113) | A row that opens its page in place, under it | A holding opens to book or exchange |
+| Person row (DL-112) | The item row led by a 56px avatar circle, the act in the right slot | Bookings in Service Assets |
+| Promises tab (`GardenPool`) | Banner, tabs, cycle rail, live count with filters, promise rows | Services and the campaign brief |
+| Promises console (DL-077) | What needs you, seasons and campaigns, Offers and Requests, Review Promises, Pool Status, Pool Funding | The issuer, provider and home-garden views |
+
+The app's own words come from `develop` in all three languages: 125 `sh.` keys in `copy.json`. The
+check now exempts only the item row's one-line title and detail line from the clipped-text rule,
+because their ellipsis is the shipped design.
+
+**Retired first-pass patterns.** The question card became the Service Access section's fact list;
+the services list became offer rows in the Promises tab; holdings rows became the wallet's
+Vouchers tab on the item row; the 40px person tile became the person row's 56px avatar; the
+capacity figures and lessons strip became fact lists; the member field became the shipped field;
+the loading rows went with the services list; the Purchases tab is gone, since bookings and
+purchases are promises; the cockpit's own voucher pages became Review Promises entries,
+promise-row acts and rail cards. The first pass's rules for the tile, figures, strip, field and
+loading rows were removed from `gg.css`. The older layers stay, because v1's reference screens use
+them and the pilot screens still draw buttons, sheets, cockpit dialogs and their check rows from
+them.
+
+**What the lab adds to shipped surfaces** is listed per screen in the
+[handoff](handoff.md#what-changed-on-24-october-second-pass-built-on-the-shipped-surfaces), with the
+five implementation gaps the comparison exposed.
+
+**Third pass, the same day.** Restyling the lab with the working pilot services added no pattern.
+Two alignments came out of its visual review. The Voucher Issuers rows now put the kind under the
+name, as `VoucherIssuerOnboarding` does, after the real issuer names wrapped onto three lines
+beside it. And English possessives of Green Goods read "Green Goods'", as the app's strings write
+them.
 
 ## Kept on purpose
 
@@ -137,29 +191,31 @@ action at a time). The lab's wording is warmer, as the member surface asks, but 
 
 ## Remaining
 
-These need a local checkout, a running app, or a decision.
+These need a local checkout, a running app, or a decision. Items closed on 24 Oct say so.
 
-1. **Card corners.** Cards use 24px, the locked F7 direction, which hadn't shipped when this was
-   checked. Confirm against the current build.
+1. **Card corners.** Closed on 24 Oct against `develop`'s tokens: general cards use 24px
+   (`--gg-radius-2xl`), and the promise page's sections and the item row use 16px
+   (`--gg-radius-lg`). The lab matches both.
 2. **Approximated values.** Elevation shadows, the dark weak surface, dark soft text, the dark
    neutral border and the cockpit wash were estimated from the guides, not read from computed
    styles. Compare with a running app in light and dark.
 3. **Spanish and Portuguese.** The pilot revision drafts every pilot string in both. Portuguese
    awaits Gui's review (PRD-1312), and Spanish awaits a native speaker.
-4. **Vault verb.** Pick Withdraw or Take Out, then update the 23 English strings in
+4. **Vault verb.** Afo picked Withdraw on 24 October. Update the 23 English strings in
    `packages/shared/src/i18n/en.json` and their translations. That's implementation work for
    PRD-1297, not this branch.
-5. **Garden route drift.** `develop` moved after the audit. Re-check the cockpit Garden route tabs
-   and the Promises tab cards against the current admin source.
+5. **Garden route drift.** Closed on 24 Oct against the admin source on `develop`: the Garden
+   route's tabs are Health · Impact · Activity · Promises, and the Promises tab is the console the
+   pilot screens now extend.
 6. **Fonts.** The lab loads Plus Jakarta Sans from Google Fonts; the installed app bundles its
    own copy. Compare text rendering side by side.
-7. **Running-app comparison.** Neither the pilot revision nor the member-issuer revision compared
-   against a running app or Storybook, so items 1, 2, 5 and 6 are still open. A mock-auth localhost
-   walk would cover them, and the Admin `VoucherIssuerOnboarding` story is the closest shipped
-   reference for `SIssuers`.
+7. **Running-app comparison.** The second pass compared the lab with the deployed Storybook, not a
+   running app, so items 2 and 6 are still open. A mock-auth localhost walk would cover them.
 8. **Screen reader.** Not tested. `check.mjs` covers control names, focus behind dialogs and
-   contrast, and keyboard walks covered focus order on the lab panel and the new sheets, but no
-   assistive technology was run.
-9. **Community route.** `SIssuers` places voucher issuers on the cockpit's Community page with the
-   dock's Community item active, as the Admin component's location suggests. The page's own tabs
-   and header on `develop` weren't checked.
+   contrast, and keyboard walks covered focus order on the lab panel, the new sheets and the
+   rebuilt surfaces, but no assistive technology was run.
+9. **Community route.** Closed on 24 Oct against `develop`: Community's tabs are Members ·
+   Coordination · Endowment · Payouts, and the contract branch mounts `VoucherIssuerOnboarding` in
+   Coordination, for the protocol garden only. `SIssuers` follows that.
+10. **The promise row.** The lab follows the codified DL-110 row, which PR #1239 implements and
+    neither `develop` nor the deployed Storybook renders yet. Compare again once it merges.

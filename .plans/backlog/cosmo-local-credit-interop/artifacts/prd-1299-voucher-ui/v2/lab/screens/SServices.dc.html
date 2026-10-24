@@ -13,43 +13,41 @@
 <style>body{margin:0}</style>
 </helmet>
 <div class="gg {{themeCls}}" lang="{{lang}}" data-density="{{density}}" data-chain="{{chain}}" data-font="{{font}}" data-ground="{{ground}}" data-corners="{{corners}}" data-gap="{{gap}}" data-darkcards="{{darkcards}}" style="width: 390px; height: 844px; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: {{ink}}">
-  <div class="scr" style="padding-bottom: 40px">
-    <div class="topnav">
-      <a class="close" href="Main.dc.html" aria-label="{{backLabel}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></a>
+  <div class="scr" style="padding-bottom: 32px">
+    <div class="banner"><div class="over"><a class="rb" href="SWallet.dc.html" aria-label="{{backLabel}}"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-left-fill"/></svg></a></div></div>
+    <div class="gtitle">
+      <h1>{{garden}}</h1>
+      <span class="meta"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-map-pin-2-fill"/></svg>{{place}}</span>
     </div>
-    <div class="ident">
-      <span class="kind"><svg class="i" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-hand-heart-line"/></svg>{{kindLine}}</span>
-      <h1>{{title}}</h1>
-      <p class="para">{{desc}}</p>
+    <div class="gtabs" role="tablist" aria-label="{{tabsLabel}}"><span role="tab" aria-selected="false">{{tWork}}</span><span class="on" role="tab" aria-selected="true">{{tPromises}}</span><span role="tab" aria-selected="false">{{tInsights}}</span><span role="tab" aria-selected="false">{{tGardeners}}</span></div>
+    <sc-if value="{{hasCycles}}" hint-placeholder-val="{{true}}">
+      <div class="gp-cycles">
+        <sc-for list="{{cycles}}" as="c" hint-placeholder-count="2">
+          <button type="button" class="gp-cycle" aria-pressed="{{c.on}}"><span class="ch"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="{{c.icon}}"/></svg>{{c.kind}}<span class="gg-badge" data-tone="success">{{c.state}}</span></span><b>{{c.title}}</b><small>{{c.meta}}</small></button>
+        </sc-for>
+      </div>
+    </sc-if>
+    <div class="gp-head">
+      <span class="gp-count">{{countLine}}<sc-if value="{{hasInfo}}" hint-placeholder-val="{{true}}"><svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-information-line"/></svg></sc-if></span>
+      <sc-if value="{{hasSelects}}" hint-placeholder-val="{{true}}"><span class="gp-sels"><span class="gp-sel">{{selLive}}<svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-down-s-line"/></svg></span><span class="gp-sel">{{selKind}}<svg class="i" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-down-s-line"/></svg></span></span></sc-if>
     </div>
+    <sc-if value="{{hasRows}}" hint-placeholder-val="{{true}}">
+      <div class="gp-rows">
+        <sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
+          <a class="gg-item-row gg-card" data-edge="{{r.tone}}" href="{{r.href}}" data-component="CommitmentRow">
+            <span class="gg-item-row-lead"><span class="gg-item-row-tile" role="img" aria-label="{{r.dir}}"><svg class="i" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="{{r.icon}}"/></svg></span></span>
+            <span class="gg-item-row-body"><span class="gg-item-row-title">{{r.title}}</span><span class="gg-badge" data-tone="{{r.tone}}">{{r.pill}}</span><span class="gg-item-row-details"><span class="gg-item-row-detail-list"><sc-for list="{{r.details}}" as="d" hint-placeholder-count="2"><span class="gg-item-row-detail" data-tone="{{d.tone}}"><span>{{d.text}}</span></span></sc-for></span></span></span>
+          </a>
+        </sc-for>
+      </div>
+    </sc-if>
     <sc-if value="{{loading}}" hint-placeholder-val="{{false}}">
-      <p class="hsec" role="status">{{loadingText}}</p>
-      <div class="hlist" aria-hidden="true">
-        <div class="hrow skel"><span class="ht"></span><span class="hb"><span class="hn bar"></span><span class="hd bar"></span></span></div>
-        <div class="hrow skel"><span class="ht"></span><span class="hb"><span class="hn bar"></span><span class="hd bar"></span></span></div>
-        <div class="hrow skel"><span class="ht"></span><span class="hb"><span class="hn bar"></span><span class="hd bar"></span></span></div>
+      <div class="gp-rows" role="status" aria-label="{{loadingText}}">
+        <sc-for list="{{skeleton}}" as="k" hint-placeholder-count="3"><div class="gg-item-row gg-card loading" aria-hidden="true"><span class="gg-item-row-lead"><span class="gg-item-row-tile"></span></span><span class="gg-item-row-body" style="gap: 8px; width: 100%"><span class="lb" style="width: 70%"></span><span class="lb" style="width: 40%"></span></span></div></sc-for>
       </div>
     </sc-if>
     <sc-if value="{{empty}}" hint-placeholder-val="{{false}}">
-      <div class="stack" style="margin-top: 12px">
-        <div class="notice info" role="status"><span class="nt"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-information-line"/></svg>{{emptyT}}</span><p>{{emptyB}}</p></div>
-      </div>
-    </sc-if>
-    <sc-if value="{{hasRows}}" hint-placeholder-val="{{true}}">
-      <div class="chips mx16" style="margin-top: 12px" role="group" aria-label="{{filterLabel}}">
-        <span class="chip on">{{fAll}}</span><span class="chip">{{fHold}}</span><span class="chip">{{fEx}}</span>
-      </div>
-      <p class="hsec">{{secTitle}}</p>
-      <div class="hlist">
-        <sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
-          <a class="hrow" href="{{r.href}}"><span class="ht {{r.tile}}"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="{{r.icon}}"/></svg></span><span class="hb"><span class="hn">{{r.name}}</span><span class="hd">{{r.by}}</span><span class="hd">{{r.sub}}</span></span><span class="ha"><span class="pill {{r.cls}}">{{r.pill}}</span></span></a>
-        </sc-for>
-      </div>
-      <div class="mx16 card" style="margin-top: 14px"><div class="pad"><h2 class="h3">{{whoT}}</h2><p class="small" style="font-size: 13px; line-height: 18px">{{whoB}}</p></div></div>
-      <p class="hsec">{{ownSec}}</p>
-      <div class="hlist">
-        <a class="hrow" href="SOnboard.dc.html"><span class="ht person"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-pencil-line"/></svg></span><span class="hb"><span class="hn">{{own}}</span><span class="hd">{{ownS}}</span></span><span class="ha"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-arrow-right-s-line"/></svg></span></a>
-      </div>
+      <div class="gg-empty"><span class="et"><svg class="i" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><use href="#ri-seedling-line"/></svg></span><h3>{{emptyT}}</h3><p>{{emptyB}}</p></div>
     </sc-if>
   </div>
 </div>
@@ -61,23 +59,35 @@ class Component extends DCLogic {
     var st = this.props.state ?? 'Browse';
     var dark = this.props.dark ?? false;
     var paused = st === 'Issuer paused', delisted = st === 'Delisted';
-    // Each row says who promises delivery: a named member, or a garden. The pill says whether Lina can redeem now.
+    var D = function (text, tone) { return { text: text, tone: tone || '' }; };
+    // A service is an offer in its garden's Promises tab, on the shared promise row (DL-110): a seedling for an offer,
+    // the promise's state as the pill, and the detail line naming what booking takes first, then who promises it.
+    var offer = t('sh.ck.offer'), request = t('sh.ck.request'), offered = t('sh.st.offered');
     var rows = [
-      { tile: 'person', icon: '#ri-user-line', name: t('sv.s.lesson'), by: t('sv.by.member', { name: t('who.teoFull'), garden: t('who.sun') }), sub: paused ? t('sv.pausedS') : t('sv.s.lessonS'),
-        cls: paused ? 'warn' : 'ok', pill: paused ? t('sv.p.paused') : t('sv.p.hold', { n: t.v(1) }), href: 'SOffer.dc.html' },
-      { tile: 'person', icon: '#ri-user-line', name: t('sv.s.coach'), by: t('sv.by.member', { name: t('who.mayaFull'), garden: t('who.sun') }), sub: delisted ? t('sv.delistedS') : t('sv.s.coachS'),
-        cls: 'neu', pill: delisted ? t('sv.p.delisted') : t('sv.p.ex'), href: 'SExchange.dc.html' },
-      { tile: 'sun', icon: '#ri-sun-line', name: t('of.s.title'), by: t('sv.by.garden', { garden: t('who.sun') }), sub: t('sv.s.sessionS'), cls: 'ok', pill: t('sv.p.hold', { n: t.n(30) }), href: 'SOffer.dc.html' },
-      { tile: 'sun', icon: '#ri-sun-line', name: t('of.c.title'), by: t('sv.by.garden', { garden: t('who.sun') }), sub: t('sv.s.courseS', { date: t.d('2026-10-30') }), cls: 'neu', pill: t('sv.p.ex'), href: 'SOffer.dc.html' },
-      { tile: 'gd', icon: '#ri-seedling-line', name: t('of.g.title'), by: t('sv.by.garden', { garden: t('who.gg') }), sub: t('sv.s.aiS', { amt: t.g(450) }), cls: 'neu', pill: t('sv.p.gd'), href: 'SOffer.dc.html' }
+      { dir: offer, icon: '#ri-seedling-line', title: t('of.m.title'), pill: offered, tone: 'info', href: 'SOffer.dc.html',
+        details: [paused ? D(t('sv.d.paused'), 'error') : D(t('sv.p.hold', { n: t.v(1) })), D(t('who.teoFull'))] },
+      { dir: offer, icon: '#ri-seedling-line', title: t('sv.s.coachT'), pill: offered, tone: 'info', href: 'SExchange.dc.html',
+        details: [delisted ? D(t('sv.d.delisted'), 'error') : D(t('sv.p.ex')), D(t('who.mayaFull'))] },
+      { dir: offer, icon: '#ri-seedling-line', title: t('of.s.title'), pill: offered, tone: 'info', href: 'SOffer.dc.html',
+        details: [D(t('sv.p.hold', { n: t.n(9) })), D(t('who.sun'))] },
+      { dir: request, icon: '#ri-hand-heart-line', title: t('gp.r.shelves'), pill: t('sh.st.requested'), tone: 'info', href: '#',
+        details: [D(t('gp.d.due', { date: t.d('2026-11-12') })), D(t('who.ade'))] }
     ];
+    var cycles = [
+      { icon: '#ri-sun-line', kind: t('sh.g.season'), state: t('sh.g.open'), title: t('pp.cycle.sun'), meta: t('gp.cyc.meta', { from: t.d('2026-10-25'), to: t.d('2026-11-30'), kept: t.n(2), all: t.n(6) }), on: 'true' },
+      { icon: '#ri-flag-line', kind: t('sh.g.campaign'), state: t('sh.g.open'), title: t('pp.cycle.web'), meta: t('gp.cyc.meta', { from: t.d('2026-10-25'), to: t.d('2026-11-30'), kept: t.n(0), all: t.n(3) }), on: 'false' }
+    ];
+    var loading = st === 'Loading', empty = st === 'Empty';
     return Object.assign(GGTW(this.props), {
       themeCls: dark ? 'dark' : '', ink: dark ? '#D6D3D1' : '#292524', lang: t.code, backLabel: t('c.back'),
-      kindLine: t('sv.kind'), title: t('sv.title'), desc: t('sv.desc'),
-      loading: st === 'Loading', loadingText: t('sv.loading'), empty: st === 'Empty', emptyT: t('sv.empty.t'), emptyB: t('sv.empty.b'),
-      hasRows: st !== 'Loading' && st !== 'Empty', filterLabel: t('sv.filter'), fAll: t('sv.f.all'), fHold: t('sv.f.hold'), fEx: t('sv.f.ex'),
-      secTitle: t('sv.sec'), rows: rows, whoT: t('sv.who.t'), whoB: t('sv.who.b'),
-      ownSec: t('sv.ownSec'), own: t('sv.own'), ownS: t('sv.ownS')
+      garden: t('who.sun'), place: t('gp.place'),
+      tabsLabel: t('gp.tabs'), tWork: t('sh.g.work'), tPromises: t('sh.g.promises'), tInsights: t('sh.g.insights'), tGardeners: t('sh.g.gardeners'),
+      hasCycles: !empty, cycles: cycles,
+      countLine: loading ? t('sh.g.gathering') : t('sh.g.liveCount', { count: t.n(empty ? 0 : rows.length) }), hasInfo: !loading,
+      hasSelects: !empty && !loading, selLive: t('sh.g.live'), selKind: t('sh.g.allKinds'),
+      hasRows: !loading && !empty, rows: rows,
+      loading: loading, loadingText: t('sh.g.gathering'), skeleton: [1, 2, 3],
+      empty: empty, emptyT: t('sh.g.emptyT'), emptyB: t('sh.g.emptyB')
     });
   }
 }
