@@ -1,3 +1,4 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { Alert } from "@green-goods/shared/components/Alert";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
@@ -142,53 +143,49 @@ export function PoolStatusCard({
           />
         </ul>
       ) : (
-        <dl className="space-y-2 type-body">
+        <FactList frame="inset">
           {pool.charter.charter ? (
-            <div>
-              <dt className="type-label-sm text-text-soft">
-                {formatMessage({
-                  id: "cockpit.garden.pool.status.charter",
-                  defaultMessage: "What this pool is for",
-                })}
-              </dt>
-              <dd className="line-clamp-3 text-text-strong" title={pool.charter.charter.purpose}>
-                {pool.charter.charter.purpose}
-              </dd>
-            </div>
-          ) : pool.charter.isUnavailable ? (
-            <div>
-              <dt className="type-label-sm text-text-soft">
-                {formatMessage({
-                  id: "cockpit.garden.pool.status.charter",
-                  defaultMessage: "What this pool is for",
-                })}
-              </dt>
-              <dd className="text-text-soft">
-                {formatMessage({
-                  id: "cockpit.garden.pool.status.charterUnavailable",
-                  defaultMessage: "The agreement could not be read right now.",
-                })}
-              </dd>
-            </div>
-          ) : null}
-          <div>
-            <dt className="type-label-sm text-text-soft">
-              {formatMessage({
-                id: "cockpit.garden.pool.status.cap",
-                defaultMessage: "Promise limit",
+            <FactRow
+              label={formatMessage({
+                id: "cockpit.garden.pool.status.charter",
+                defaultMessage: "What this pool is for",
               })}
-            </dt>
-            <dd className="text-text-strong">
-              {formatMessage(
-                {
-                  id: "cockpit.garden.pool.status.capValue",
-                  defaultMessage: "{count} per person at once",
-                },
-                { count: cap.toString() }
-              )}
-            </dd>
-          </div>
-        </dl>
+              value={
+                <span className="line-clamp-3" title={pool.charter.charter.purpose}>
+                  {pool.charter.charter.purpose}
+                </span>
+              }
+            />
+          ) : pool.charter.isUnavailable ? (
+            <FactRow
+              label={formatMessage({
+                id: "cockpit.garden.pool.status.charter",
+                defaultMessage: "What this pool is for",
+              })}
+              value={
+                <span className="font-normal text-text-soft">
+                  {formatMessage({
+                    id: "cockpit.garden.pool.status.charterUnavailable",
+                    defaultMessage: "The agreement could not be read right now.",
+                  })}
+                </span>
+              }
+            />
+          ) : null}
+          <FactRow
+            label={formatMessage({
+              id: "cockpit.garden.pool.status.cap",
+              defaultMessage: "Promise limit",
+            })}
+            value={formatMessage(
+              {
+                id: "cockpit.garden.pool.status.capValue",
+                defaultMessage: "{count} per person at once",
+              },
+              { count: cap.toString() }
+            )}
+          />
+        </FactList>
       )}
 
       {model.status === "not-ready" ? (

@@ -1,3 +1,4 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { selectAllocationSplits } from "@green-goods/shared/hooks/admin-ui/community/community.utils";
 import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController";
 import { useIsProtocolGarden } from "@green-goods/shared/hooks/commitment-pooling/useProtocolPool";
@@ -120,15 +121,15 @@ export function CommunityPayoutsTab({
                 })}
               </AdminCardTitle>
               {/* A plain row inside the card, not a card of its own (D33). */}
-              <div className="garden-stat-row">
-                <span className="garden-stat-row-label">
-                  {formatMessage({
+              <FactList frame="inset">
+                <FactRow
+                  label={formatMessage({
                     id: "cockpit.community.payouts.historyCount",
                     defaultMessage: "Payouts so far",
                   })}
-                </span>
-                <span className="garden-stat-row-value">{payoutCount}</span>
-              </div>
+                  value={payoutCount}
+                />
+              </FactList>
               {allocationSplits ? (
                 <div className="space-y-1.5 border-t border-stroke-soft pt-3">
                   <p className="mb-1.5 type-meta-sm font-medium text-text-sub">

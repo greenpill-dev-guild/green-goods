@@ -1,3 +1,4 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import {
   type CommitmentCycleRecord,
   useCommitmentCycleNames,
@@ -81,14 +82,11 @@ export function CycleDetailsSheet({
             id: isCampaign ? "app.pool.cycle.intro.campaign" : "app.pool.cycle.intro.season",
           })}
         </p>
-        <dl className="divide-y divide-stroke-soft-200 rounded-[var(--radius-lg)] border border-stroke-soft-200 px-4 text-sm">
+        <FactList>
           {facts.map(([term, value]) => (
-            <div key={term} className="flex justify-between gap-3 py-3">
-              <dt className="text-text-sub-600">{term}</dt>
-              <dd className="text-right text-text-strong-950">{value}</dd>
-            </div>
+            <FactRow key={term} label={term} value={value} />
           ))}
-        </dl>
+        </FactList>
         <p className="text-xs text-text-sub-600">
           {formatMessage({ id: "app.pool.cycle.separate" })}
         </p>

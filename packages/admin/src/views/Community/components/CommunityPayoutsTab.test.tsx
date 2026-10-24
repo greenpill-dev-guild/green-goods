@@ -80,14 +80,18 @@ describe("CommunityPayoutsTab", () => {
   it("counts payouts so far as at least the list when the list filled its limit", () => {
     renderPayouts({ allocationCount: 20, allocationsAtLimit: true });
 
-    expect(screen.getByText("Payouts so far").nextElementSibling).toHaveTextContent("20+");
+    expect(screen.getByText("Payouts so far").closest("dt")?.nextElementSibling).toHaveTextContent(
+      "20+"
+    );
     expect(screen.getByTestId("payout-panel")).toHaveAttribute("data-at-least", "true");
   });
 
   it("counts payouts so far exactly below the limit", () => {
     renderPayouts({ allocationCount: 3 });
 
-    expect(screen.getByText("Payouts so far").nextElementSibling).toHaveTextContent(/^3$/);
+    expect(screen.getByText("Payouts so far").closest("dt")?.nextElementSibling).toHaveTextContent(
+      /^3$/
+    );
     expect(screen.getByTestId("payout-panel")).toHaveAttribute("data-at-least", "false");
   });
 
