@@ -62,11 +62,11 @@ vi.mock("../../config/pimlico", () => ({
 
 import { resolveEnsName } from "../../utils/blockchain/ens";
 
-const PEOPLE = [
-  "0x1111111111111111111111111111111111111111",
-  "0x2222222222222222222222222222222222222222",
-  "0x3333333333333333333333333333333333333333",
-] as Address[];
+// The review's pool: 80 people, about 38KB of reverse reads, far past viem's 1KB default batch.
+const PEOPLE = Array.from(
+  { length: 80 },
+  (_, index) => `0x${(index + 1).toString(16).padStart(40, "0")}` as Address
+);
 
 describe("ENS name lookups", () => {
   it("read a list's names in one mainnet call, each row still getting its own answer", async () => {
@@ -74,7 +74,7 @@ describe("ENS name lookups", () => {
       PEOPLE.map((address) => resolveEnsName(address, { chainId: 1 }))
     );
 
-    expect(names).toEqual([null, null, null]);
+    expect(names).toEqual(PEOPLE.map(() => null));
     expect(calls).toEqual(["eth_call"]);
   });
 });
