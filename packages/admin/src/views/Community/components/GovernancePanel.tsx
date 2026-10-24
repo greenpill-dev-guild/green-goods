@@ -26,7 +26,7 @@ interface GovernancePanelProps {
 /**
  * Net-new conviction-voting surface for the
  * Community → Governance tab. Composes the Tier 3 components
- * (WeightAllocator + ProposalCardConviction + ConvictionMeter) with the
+ * (WeightAllocator + ConvictionMeter) with the
  * Tier-5 adapter hooks (useConvictionProposalsForPool +
  * useConvictionWeightAllocator).
  *

@@ -7,31 +7,10 @@ import {
   RiWifiOffLine,
 } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
-import { type ReactNode, useState } from "react";
+import type { ReactNode } from "react";
 import { expect, within } from "storybook/test";
 import { Button } from "./Button";
-import { EmptyState, type EmptyStateProps, ListToolbar, SortSelect } from "./ListPrimitives";
-
-function ToolbarPreview() {
-  const [search, setSearch] = useState("");
-  const [sort, setSort] = useState("recent");
-
-  return (
-    <ListToolbar search={search} onSearchChange={setSearch}>
-      <SortSelect
-        value={sort}
-        onChange={setSort}
-        options={[
-          { value: "recent", label: "Most recent" },
-          { value: "name", label: "Name" },
-        ]}
-      />
-      <Button size="sm" emphasis="secondary">
-        Export
-      </Button>
-    </ListToolbar>
-  );
-}
+import { EmptyState, type EmptyStateProps } from "./ListPrimitives";
 
 const meta: Meta<typeof EmptyState> = {
   title: "Shared/Primitives/ListPrimitives",
@@ -41,7 +20,7 @@ const meta: Meta<typeof EmptyState> = {
     docs: {
       description: {
         component:
-          "Shared foundations for list pages: the search toolbar, the native sort control, and the state block (`EmptyState`) that stands in for a list, a tab, a panel or a screen that is empty, loading, failed or not ready. The block has one anatomy on both surfaces: a 56px round tile, the title, one description and the surface's own action. Its type comes from the roles, so it draws at the app's 16px density and the cockpit's 14px one; the calm tile is the app's green tint and the cockpit's neutral one.",
+          "The state block (`EmptyState`) that stands in for a list, a tab, a panel or a screen that is empty, loading, failed or not ready. The block has one anatomy on both surfaces: a 56px round tile, the title, one description and the surface's own action. Its type comes from the roles, so it draws at the app's 16px density and the cockpit's 14px one; the calm tile is the app's green tint and the cockpit's neutral one.",
       },
     },
   },
@@ -55,10 +34,6 @@ const meta: Meta<typeof EmptyState> = {
 
 export default meta;
 type Story = StoryObj<typeof EmptyState>;
-
-export const Toolbar: Story = {
-  render: () => <ToolbarPreview />,
-};
 
 /** A list with nothing in it yet, and the act that fills it. */
 export const Empty: Story = {

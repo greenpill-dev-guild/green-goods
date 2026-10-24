@@ -1,6 +1,5 @@
 import { useRefreshAction } from "../../../components/Canvas/RefreshActionContext";
 import { useViewActions } from "../../../components/Canvas/useViewActions";
-import type { SortOption } from "../../../components/ListPrimitives";
 import { useGardenStateStore } from "../../../stores/useGardenStateStore";
 import type { Address } from "../../../types/domain";
 import { type AdminHubRouteContext, adminRoutes } from "../../../utils/navigation/admin-routes";
@@ -38,6 +37,12 @@ import {
 } from "./hub.workbenchModel";
 import { useHubConfirmStage } from "./useHubConfirmStage";
 import { useHubStageQueues } from "./useHubStageQueues";
+
+/** One choice in the Hub's sort control. */
+interface SortOption {
+  value: SortDirection;
+  label: string;
+}
 
 export function useHubWorkbenchController() {
   const { formatMessage } = useIntl();
@@ -355,7 +360,7 @@ export function useHubWorkbenchController() {
     hypercertCount: hypercerts.length,
   });
 
-  const sortOptions = useMemo<SortOption<SortDirection>[]>(
+  const sortOptions = useMemo<SortOption[]>(
     () => [
       {
         value: "newest",
