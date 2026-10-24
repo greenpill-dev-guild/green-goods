@@ -405,7 +405,7 @@ No action is shorter than 32px and no hit area is smaller than 44px. Fields use 
 (`controlSize` sm 40, md 44, lg 48), and a single-line field is exactly its step whatever its text:
 display-size digits and editorial type sit centered inside it instead of growing it.
 
-**Field anatomy** (DL-105): every field in the installed app and the cockpit puts its label above the control at the field title's 14px / 500 (`gg-field-label`) and its hint, error or count on the message line under it (`gg-field-message`, 12/16px type). The line reserves the surface's message lines whether or not it shows a message, two on each, so a message that fits never moves the form and a longer one grows the line. Each surface keeps its corner and heights, and the public website keeps its underline field (DL-024).
+**Field anatomy** (DL-105): every field in the installed app and the cockpit puts its label above the control at the field title's 14px / 500 (`gg-field-label`) and its hint, error or count on the message line under it (`gg-field-message`, 12/16px type), except `FileUploadField`, which still puts its help above the upload well. The line reserves the surface's message lines whether or not it shows a message, two on each, so a message that fits never moves the form and a longer one grows the line. Each surface keeps its corner and heights, and the public website keeps its underline field (DL-024).
 
 **Primitives**: `Button` (`emphasis` primary / secondary / tertiary, `tone` default / danger / warning,
 `size`, `loading` stays focusable), `IconButton` (a circle at the same four sizes, `aria-label`
