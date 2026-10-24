@@ -955,7 +955,9 @@ export const FormDialog: Story = {
     const summary = within(dialog).getByRole("textbox", { name: /summary/i });
     await userEvent.type(summary, "Food forest");
     await expect(summary).toHaveValue("Food forest");
-    await closeAndExpectFocusOn(opener, () => userEvent.keyboard("{Escape}"));
+    await closeAndExpectFocusOn(opener, async () => {
+      await userEvent.keyboard("{Escape}");
+    });
 
     await userEvent.click(opener);
     const again = await body.findByRole("dialog", { name: "Edit Garden" });
@@ -1005,7 +1007,9 @@ export const ConfirmFocusReturn: Story = {
       "data-action",
       "primary"
     );
-    await closeAndExpectFocusOn(opener, () => userEvent.keyboard("{Escape}"));
+    await closeAndExpectFocusOn(opener, async () => {
+      await userEvent.keyboard("{Escape}");
+    });
 
     await userEvent.click(opener);
     const again = await body.findByRole("alertdialog", { name: "Emergency pause" });
@@ -1080,6 +1084,8 @@ export const NestedDialogs: Story = {
       expect(removeMember).toHaveFocus();
     });
 
-    await closeAndExpectFocusOn(opener, () => userEvent.keyboard("{Escape}"));
+    await closeAndExpectFocusOn(opener, async () => {
+      await userEvent.keyboard("{Escape}");
+    });
   },
 };
