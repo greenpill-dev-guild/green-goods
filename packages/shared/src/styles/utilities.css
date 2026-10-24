@@ -843,8 +843,10 @@
   }
 
   /* The same trick at the top edge: the hairline under the header shows only
-   * while content has scrolled under it (DL-028). */
-  [data-scroll-edge="top"] {
+   * while content has scrolled under it (DL-028). A sheet whose panels scroll
+   * in their own SheetBody hands the edge to it with data-body-scroll-edge. */
+  [data-scroll-edge="top"],
+  [data-body-scroll-edge="top"] [data-component="SheetBody"] {
     background-image: var(--sheet-scroll-edge-cover), var(--sheet-scroll-edge-line);
     background-position: top, top;
     background-repeat: no-repeat;

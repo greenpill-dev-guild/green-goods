@@ -275,7 +275,7 @@ describe("SheetHeader anatomy contract (DL-028)", () => {
       /\.gg-icon-button\s*\{[^}]*--gg-icon-button-size:\s*var\(--gg-icon-size-md, 2\.75rem\)/
     );
     expect(utilitiesContent).toMatch(
-      /\[data-scroll-edge="top"\]\s*\{[^}]*background-attachment:\s*local,\s*scroll/
+      /\[data-scroll-edge="top"\],\s*\[data-body-scroll-edge="top"\] \[data-component="SheetBody"\]\s*\{[^}]*background-attachment:\s*local,\s*scroll/
     );
     expect(utilitiesContent).toMatch(/\[data-scroll-edge="both"\]/);
   });

@@ -164,6 +164,11 @@ export const MobileBottomSheet: Story = {
     await expect(
       within(sheet).getByRole("button", { name: "Close" }).closest('[data-component="SheetHeader"]')
     ).not.toBeNull();
+    // The panel's SheetBody carries the header's scroll edge: a hairline that
+    // shows only while the body scrolls under it (DL-028).
+    const panelBody = surface.querySelector<HTMLElement>('[data-component="SheetBody"]');
+    if (!panelBody) throw new Error("SheetBody not found");
+    await expect(getComputedStyle(panelBody).backgroundAttachment).toBe("local, scroll");
   },
 };
 

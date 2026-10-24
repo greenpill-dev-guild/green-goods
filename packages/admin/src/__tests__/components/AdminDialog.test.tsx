@@ -444,6 +444,9 @@ describe("AdminSideSheet mobile geometry", () => {
       "bottom-0",
       "sm:w-[var(--admin-side-sheet-width)]"
     );
+    expect(screen.getByTestId("admin-side-sheet-content")).not.toHaveAttribute(
+      "data-body-scroll-edge"
+    );
   });
 
   it("presents on phones as the dialog does: the shared sheet, grip and header, closing as before", () => {
@@ -460,6 +463,11 @@ describe("AdminSideSheet mobile geometry", () => {
       expect(sheet).toHaveAccessibleDescription("Notifications");
       expect(sheet.querySelector('[data-component="SheetGrip"]')).not.toHaveAttribute(
         "data-drag-region"
+      );
+      // The panel's SheetBody scrolls, so it takes the header's scroll edge.
+      expect(within(sheet).getByTestId("admin-side-sheet-content")).toHaveAttribute(
+        "data-body-scroll-edge",
+        "top"
       );
       fireEvent.click(within(sheet).getByRole("button", { name: "Close" }));
       expect(onOpenChange).toHaveBeenCalledWith(false);

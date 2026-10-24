@@ -214,9 +214,12 @@ export function AdminSideSheet({
           )}
 
           {/* Content column — panels own scrolling (SheetBody) and any pinned
-              footer (SheetFooter), so shell and panel padding never stack. */}
+              footer (SheetFooter), so shell and panel padding never stack.
+              Under the phone's shared header, the panel's SheetBody shows a
+              hairline only while it scrolls (DL-028). */}
           <div
             data-slot="content"
+            data-body-scroll-edge={rendersAsSheet ? "top" : undefined}
             data-testid="admin-side-sheet-content"
             className="flex min-h-0 flex-1 flex-col type-body text-[rgb(var(--m3-on-surface-variant))]"
           >
