@@ -1,11 +1,13 @@
+import { ItemRow, ItemRowSkeleton } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { HypercertRecord } from "@green-goods/shared/types/hypercerts";
 import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { formatDate } from "@green-goods/shared/utils/time";
-import { RiAwardLine, RiExternalLinkLine } from "@remixicon/react";
+import { RiAwardLine, RiExternalLinkLine, RiMedalLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { AdminIconButton } from "@/components/AdminButton";
 import { AdminCardTitle } from "@/components/AdminCard";
 import { ActiveListingsTable } from "@/components/Hypercerts/ActiveListingsTable";
 import { AdminCard, AdminCardBody, AdminCardHeader } from "../AdminCard";
@@ -28,6 +30,7 @@ export const GardenHypercertsPanel: React.FC<GardenHypercertsPanelProps> = ({
   canManage,
 }) => {
   const { formatMessage } = useIntl();
+  const navigate = useNavigate();
   const gardenRouteContext = { gardenId: gardenAddress ?? gardenId };
 
   return (
@@ -45,17 +48,9 @@ export const GardenHypercertsPanel: React.FC<GardenHypercertsPanelProps> = ({
       </AdminCardHeader>
       <AdminCardBody>
         {isLoading ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="animate-pulse rounded-lg bg-bg-weak p-3">
-                <div className="flex justify-between">
-                  <div className="space-y-2">
-                    <div className="h-4 w-40 rounded bg-bg-soft" />
-                    <div className="h-3 w-24 rounded bg-bg-soft" />
-                  </div>
-                  <div className="h-6 w-16 rounded bg-bg-soft" />
-                </div>
-              </div>
+          <div className="flex flex-col gap-(--gg-list-gap)" aria-busy="true">
+            {[0, 1, 2].map((index) => (
+              <ItemRowSkeleton key={`hypercert-skeleton-${index}`} lead="icon" />
             ))}
           </div>
         ) : hypercerts.length === 0 ? (
@@ -71,56 +66,49 @@ export const GardenHypercertsPanel: React.FC<GardenHypercertsPanelProps> = ({
                 <ActiveListingsTable gardenAddress={gardenAddress} />
               </div>
             )}
-            <div className="space-y-3">
+            <ul className="flex flex-col gap-(--gg-list-gap)">
               {hypercerts.map((record) => {
                 const mintedDate = record.mintedAt
                   ? formatDate(record.mintedAt * 1000, { dateStyle: "medium" })
                   : formatMessage({ id: "app.hypercerts.list.dateUnknown" });
+                const title =
+                  record.title?.trim() ||
+                  formatMessage({ id: "app.hypercerts.list.fallbackTitle" });
                 return (
-                  <div
-                    key={record.id}
-                    className="flex items-center justify-between rounded-lg bg-bg-weak p-3"
-                  >
-                    <div className="flex min-w-0 flex-1 items-center space-x-3">
-                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary-lighter">
-                        <RiAwardLine className="h-4 w-4 text-primary-dark" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p
-                          className="truncate type-body font-medium text-text-strong"
-                          title={record.title?.trim() || undefined}
+                  <li key={record.id}>
+                    <ItemRow
+                      lead={{ kind: "icon", icon: <RiMedalLine /> }}
+                      title={title}
+                      details={[
+                        mintedDate,
+                        formatMessage(
+                          { id: "app.hypercerts.list.workCount" },
+                          { count: record.attestationCount ?? 0 }
+                        ),
+                      ]}
+                      onOpen={() =>
+                        navigate(adminRoutes.gardenHypercertDetail(record.id, gardenRouteContext))
+                      }
+                      action={
+                        <AdminIconButton
+                          asChild
+                          size="sm"
+                          label={formatMessage({ id: "app.hypercerts.list.viewExternal" })}
                         >
-                          {record.title?.trim() ||
-                            formatMessage({ id: "app.hypercerts.list.fallbackTitle" })}
-                        </p>
-                        <p className="type-meta text-text-soft">
-                          {formatMessage(
-                            { id: "app.hypercerts.list.mintedOn" },
-                            { date: mintedDate }
-                          )}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Link
-                        to={adminRoutes.gardenHypercertDetail(record.id, gardenRouteContext)}
-                        className="inline-flex items-center rounded type-body text-primary-dark transition hover:text-primary-darker focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--primary-base)))]"
-                      >
-                        {formatMessage({ id: "app.hypercerts.list.viewDetails" })}
-                      </Link>
-                      <a
-                        href={`${HYPERCERTS_APP_BASE_URL}/${record.id}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center rounded type-body text-primary-dark transition hover:text-primary-darker focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--primary-base)))]"
-                      >
-                        <RiExternalLinkLine className="h-4 w-4" />
-                      </a>
-                    </div>
-                  </div>
+                          <a
+                            href={`${HYPERCERTS_APP_BASE_URL}/${record.id}`}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            <RiExternalLinkLine className="h-4 w-4" aria-hidden="true" />
+                          </a>
+                        </AdminIconButton>
+                      }
+                    />
+                  </li>
                 );
               })}
-            </div>
+            </ul>
           </>
         )}
       </AdminCardBody>

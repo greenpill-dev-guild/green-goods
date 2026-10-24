@@ -1,26 +1,8 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
-import { MemoryRouter } from "react-router-dom";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { afterEach, describe, expect, it } from "vitest";
 import type { GardenAssessmentRecord } from "@green-goods/shared/hooks/assessment/useGardenAssessmentRecords";
-
-vi.mock("@green-goods/shared/utils/garden-detail", () => ({
-  DOMAIN_LABEL_IDS: { 2: "app.domain.tab.education" },
-}));
-
-vi.mock("@/components/Cards", () => ({
-  Card: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-}));
-
-vi.mock("@/components/Communication", () => ({
-  Badge: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
-}));
-
-vi.mock("@/components/Display", () => ({
-  Carousel: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  CarouselContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  CarouselItem: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-}));
 
 import { GardenAssessments } from "../../components/Features/Garden/Assessments";
 
@@ -60,27 +42,12 @@ const loaded: GardenAssessmentRecord = {
 };
 
 const messages = {
-  "app.actions.view": "View",
-  "app.admin.assessment.strategyKernel.metric.materialsDistributed": "Materials distributed",
-  "app.admin.assessment.strategyKernel.metric.sessionsDelivered": "Sessions delivered",
-  "app.admin.assessment.strategyKernel.unit.items": "items",
-  "app.admin.assessment.strategyKernel.unit.sessions": "sessions",
-  "app.domain.tab.education": "Education",
-  "app.garden.assessments.cynefin.complex": "Complex",
-  "app.garden.assessments.cynefinPhase": "Complexity",
-  "app.garden.assessments.dateRange": "Reporting period",
-  "app.garden.assessments.detailUnavailableShort": "More detail could not be loaded.",
+  "app.garden.assessments.dateNotSet": "Date not set",
   "app.garden.assessments.listTitle": "Assessments",
   "app.garden.assessments.loadError.description": "Check your connection and try again.",
   "app.garden.assessments.loadError.title": "Assessments could not be loaded",
   "app.garden.assessments.noAssesment": "No assessments yet for this garden.",
-  "app.garden.assessments.noSdgTargets": "No SDG alignment recorded.",
-  "app.garden.assessments.outcomeTarget": "Target: {target} {metric}",
-  "app.garden.assessments.sdgAlignment": "SDG alignment",
-  "app.garden.assessments.sdgItem": "SDG {number}: {label}",
-  "app.garden.assessments.smartOutcomesPreview": "Outcome targets",
-  "app.hypercerts.sdg.2": "Zero Hunger",
-  "app.hypercerts.sdg.13": "Climate Action",
+  "app.domain.tab.education": "Education",
 };
 
 // A reader west of UTC, set on the provider so no case depends on the zone of
@@ -90,13 +57,21 @@ const renderAssessments = (
   assessmentFetchStatus: "pending" | "success" | "error" = "success"
 ) =>
   render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={["/home/garden-1"]}>
       <IntlProvider locale="en" messages={messages} defaultLocale="en" timeZone="America/Sao_Paulo">
-        <GardenAssessments
-          records={records}
-          assessmentFetchStatus={assessmentFetchStatus}
-          description={null}
-        />
+        <Routes>
+          <Route
+            path="/home/garden-1"
+            element={
+              <GardenAssessments
+                records={records}
+                assessmentFetchStatus={assessmentFetchStatus}
+                description={null}
+              />
+            }
+          />
+          <Route path="/home/garden-1/assessments/:id" element={<p>Assessment page</p>} />
+        </Routes>
       </IntlProvider>
     </MemoryRouter>
   );
@@ -111,40 +86,24 @@ describe("GardenAssessments", () => {
     expect(screen.getByText(/^Jul 1\s–\sSep 30, 2026$/u)).toBeInTheDocument();
   });
 
-  it("summarizes what the attestation carries and what the stored detail adds", () => {
+  it("lists each assessment as a row that opens its page, with its period and domain", () => {
     renderAssessments([loaded]);
 
-    expect(screen.getByText("Soil workshops, second stage")).toBeInTheDocument();
-    expect(screen.getByText("Education")).toBeInTheDocument();
-    expect(screen.getByText("Complex")).toBeInTheDocument();
-    expect(screen.getByText("SDG 2: Zero Hunger")).toBeInTheDocument();
-    expect(screen.getByText("SDG 13: Climate Action")).toBeInTheDocument();
-    expect(screen.getByText("Run soil workshops")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "View" })).toHaveAttribute(
-      "href",
-      "/assessments/assessment-1"
-    );
+    const row = screen.getByRole("button", { name: /Soil workshops, second stage/ });
+    expect(row).toHaveAccessibleName(/Jul 1\s–\sSep 30, 2026.*Education/u);
+    fireEvent.click(row);
+    expect(screen.getByText("Assessment page")).toBeInTheDocument();
   });
 
-  // A stored metric is a key such as sessionsDelivered, and the form leaves a
-  // target at zero until it is filled in.
-  it("names an outcome's metric in words and shows a target only when one was set", () => {
-    renderAssessments([loaded]);
+  // A domain the app does not know stays unlabelled rather than guessed.
+  it("leaves an unknown domain unlabelled, whatever its stored detail", () => {
+    renderAssessments([
+      { summary: { ...summary, domain: 9 }, detail: { status: "unavailable" } },
+      { summary: { ...summary, id: "assessment-2" }, detail: { status: "pending" } },
+    ]);
 
-    expect(screen.getByText("Sessions delivered · Target: 6 sessions")).toBeInTheDocument();
-    expect(screen.getByText("Materials distributed")).toBeInTheDocument();
-    expect(screen.queryByText(/sessionsDelivered|Target: 0/)).not.toBeInTheDocument();
-  });
-
-  // A failed read of the stored files is not an assessment with nothing recorded.
-  it("says the detail could not be loaded instead of reporting nothing recorded", () => {
-    renderAssessments([{ summary, detail: { status: "unavailable" } }]);
-
-    expect(screen.getByText("Soil workshops, second stage")).toBeInTheDocument();
-    expect(screen.getByText(/^Jul 1\s–\sSep 30, 2026$/u)).toBeInTheDocument();
-    expect(screen.getByText("More detail could not be loaded.")).toBeInTheDocument();
-    expect(screen.queryByText("No SDG alignment recorded.")).not.toBeInTheDocument();
-    expect(screen.queryByText("Outcome targets")).not.toBeInTheDocument();
+    expect(screen.getAllByText(/^Jul 1\s–\sSep 30, 2026$/u)).toHaveLength(2);
+    expect(screen.getAllByText("Education")).toHaveLength(1);
   });
 
   it.each([

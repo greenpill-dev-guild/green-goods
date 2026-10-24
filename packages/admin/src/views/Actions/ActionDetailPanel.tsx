@@ -1,14 +1,14 @@
 import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import { DOMAIN_CONFIG } from "@green-goods/shared/config/domain";
 import { ACTION_CAPITAL_LABEL_IDS } from "@green-goods/shared/hooks/admin-ui/actions/actions.utils";
 import { deriveActionDetailModel } from "@green-goods/shared/hooks/admin-ui/actions/actions.workspaceModel";
 import type { Action } from "@green-goods/shared/types/domain";
 import { formatDateTime } from "@green-goods/shared/utils/time";
-import { RiEditLine, RiFileListLine, RiImageLine } from "@remixicon/react";
+import { RiEditLine, RiFileListLine, RiImageLine, RiSearchLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
-import { AdminCard } from "@/components/AdminCard";
 import { ActionDetailMediaTile } from "./ActionDetailPrimitives";
 
 interface ActionDetailPanelProps {
@@ -44,12 +44,18 @@ export function ActionDetailPanel({
   if (!action) {
     return (
       <div className="p-4">
-        <AdminCard className="space-y-3 text-center">
-          <p className="type-body text-text-sub">{formatMessage({ id: "app.actions.notFound" })}</p>
-          <AdminButton size="sm" variant="outlined" onClick={onClose}>
-            {formatMessage({ id: "app.actions.backToActions", defaultMessage: "Back to Actions" })}
-          </AdminButton>
-        </AdminCard>
+        <EmptyState
+          icon={<RiSearchLine />}
+          title={formatMessage({ id: "app.actions.notFound" })}
+          action={
+            <AdminButton size="sm" variant="outlined" onClick={onClose}>
+              {formatMessage({
+                id: "app.actions.backToActions",
+                defaultMessage: "Back to Actions",
+              })}
+            </AdminButton>
+          }
+        />
       </div>
     );
   }

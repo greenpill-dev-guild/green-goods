@@ -2037,12 +2037,18 @@
   }
 
   @media (hover: hover) {
-    button.gg-media-card:hover {
+    button.gg-media-card:hover:not(:disabled) {
       background-image: linear-gradient(
         rgb(var(--text-strong-950) / 0.04),
         rgb(var(--text-strong-950) / 0.04)
       );
     }
+  }
+
+  /* A picker's card while choosing cannot happen. */
+  button.gg-media-card:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
   }
 
   .gg-media-card[data-selected="true"] {

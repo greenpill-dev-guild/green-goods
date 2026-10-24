@@ -1,9 +1,16 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
 import { useCancelListing } from "@green-goods/shared/hooks/hypercerts/useCancelListing";
 import { useHypercertListings } from "@green-goods/shared/hooks/hypercerts/useHypercertListings";
 import type { Address } from "@green-goods/shared/types/domain";
 import type { RegisteredOrderView } from "@green-goods/shared/types/hypercerts";
-import { RiCloseLine, RiExchangeDollarLine, RiLoader4Line, RiTimeLine } from "@remixicon/react";
+import {
+  RiCloseLine,
+  RiErrorWarningLine,
+  RiExchangeDollarLine,
+  RiLoader4Line,
+  RiTimeLine,
+} from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { formatEther } from "viem";
@@ -130,15 +137,14 @@ export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveLi
     return (
       <>
         {confirmationControl}
-        <div className="flex items-center justify-center gap-2 py-8">
-          <RiLoader4Line className="h-5 w-5 animate-spin text-text-soft" />
-          <span className="type-body text-text-soft">
-            {intl.formatMessage({
-              id: "app.admin.listings.loading",
-              defaultMessage: "Loading listings...",
-            })}
-          </span>
-        </div>
+        <EmptyState
+          busy
+          icon={<RiLoader4Line className="animate-spin motion-reduce:animate-none" />}
+          title={intl.formatMessage({
+            id: "app.admin.listings.loading",
+            defaultMessage: "Loading listings...",
+          })}
+        />
       </>
     );
   }
@@ -147,12 +153,14 @@ export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveLi
     return (
       <>
         {confirmationControl}
-        <Alert variant="error">
-          {intl.formatMessage({
+        <EmptyState
+          tone="error"
+          icon={<RiErrorWarningLine />}
+          title={intl.formatMessage({
             id: "app.admin.listings.loadError",
             defaultMessage: "Failed to load listings",
           })}
-        </Alert>
+        />
       </>
     );
   }
@@ -161,22 +169,18 @@ export function ActiveListingsTable({ gardenAddress, onCreateListing }: ActiveLi
     return (
       <>
         {confirmationControl}
-        <div className="rounded-lg border border-dashed border-stroke-soft p-8 text-center">
-          <RiExchangeDollarLine className="mx-auto h-8 w-8 text-text-disabled" />
-          <p className="mt-2 type-body text-text-soft">
-            {intl.formatMessage({
-              id: "app.admin.listings.empty",
-              defaultMessage: "No active listings",
-            })}
-          </p>
-          <p className="mt-1 type-meta text-text-disabled">
-            {intl.formatMessage({
-              id: "app.admin.listings.emptyHint",
-              defaultMessage:
-                "List your hypercerts for yield to allow supporters to purchase fractions",
-            })}
-          </p>
-        </div>
+        <EmptyState
+          icon={<RiExchangeDollarLine />}
+          title={intl.formatMessage({
+            id: "app.admin.listings.empty",
+            defaultMessage: "No active listings",
+          })}
+          description={intl.formatMessage({
+            id: "app.admin.listings.emptyHint",
+            defaultMessage:
+              "List your hypercerts for yield to allow supporters to purchase fractions",
+          })}
+        />
       </>
     );
   }
