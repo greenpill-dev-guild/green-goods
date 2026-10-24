@@ -672,7 +672,7 @@ abstract contract CLCVoucherJourneyFixture is CLCPurchaseFixture {
         address peer,
         bytes memory data
     )
-        private
+        internal
         pure
         returns (Client.Any2EVMMessage memory)
     {

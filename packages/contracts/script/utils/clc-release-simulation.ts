@@ -53,7 +53,7 @@ async function readSafeState(provider: JsonRpcProvider, address: string) {
   return { safe, threshold, owners };
 }
 
-async function verifyGreenGoodsAuthority(provider: JsonRpcProvider, address: string) {
+export async function verifyGreenGoodsAuthority(provider: JsonRpcProvider, address: string) {
   const { threshold, owners } = await readSafeState(provider, address);
   equal(threshold, 2, "existing Green Goods threshold");
   equal(owners.length, 5, "existing Green Goods owner count");
@@ -133,7 +133,7 @@ export async function verifyTechSunAuthority(provider: JsonRpcProvider, address:
   };
 }
 
-async function verifyTimelock(provider: JsonRpcProvider, address: string, safe: string, deployer: string) {
+export async function verifyTimelock(provider: JsonRpcProvider, address: string, safe: string, deployer: string) {
   const timelock = new Contract(address, CLC_TIMELOCK_ABI, provider);
   equal(await timelock.getMinDelay(), 0, "upgrade delay");
   const admin = await timelock.TIMELOCK_ADMIN_ROLE();
@@ -148,7 +148,7 @@ async function verifyTimelock(provider: JsonRpcProvider, address: string, safe: 
   }
 }
 
-async function verifyEmptyState(
+export async function verifyEmptyState(
   provider: JsonRpcProvider,
   plan: CLCPilotPlan,
   manifest: CLCPilotManifest & { deployer: string; techAndSunSafe: string },

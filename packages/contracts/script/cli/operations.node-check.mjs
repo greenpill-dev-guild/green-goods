@@ -305,6 +305,12 @@ test('CLC and source upgrade preparation expose only their owned fork modes', ()
       assert.throws(() => resolve(`release ${command} ${suffix}`));
     }
   }
+  const members = resolve('release clc --mode simulate --members config/member-extension.json --plan .generated/clc-release/member.plan.json --receipts .generated/clc-release/member.receipts.json');
+  assert.ok(members.args.includes('--members'));
+  assert.ok(members.args.includes('--receipts'));
+  assert.ok(!members.capabilities.includes('authorized signer'));
+  assert.throws(() => resolve('release clc --mode preflight --receipts .generated/clc-release/receipt.json'), /simulate mode/);
+  assert.ok(resolve('release pilot --mode preflight --clc-members config/member-extension.json').args.includes('--clc-members'));
 });
 
 test('live pilot packaging requires four component plans and has no compound simulator', () => {
@@ -325,6 +331,9 @@ test('CLC and pilot handlers reject unsafe paths and modes before compilation', 
     ['clc-release.ts', ['--preflight', '--manifest', '../outside.json'], /owned JSON directory/],
     ['clc-release.ts', ['--simulate', '--plan', '.generated/voucher-release/foreign.json'], /owned JSON directory/],
     ['clc-release.ts', ['--preflight', '--rpc-url', 'https://rpc.invalid'], /Unknown option/],
+    ['clc-release.ts', ['--preflight', '--receipts', '.generated/clc-release/member.receipts.json'], /exactly one CLC release mode/],
+    ['clc-release.ts', ['--preflight', '--members', '../outside.json'], /owned JSON directory/],
+    ['clc-release.ts', ['--simulate', '--plan', '.generated/clc-release/member.plan.json', '--receipts', '.generated/clc-release/receipt.json', '--output', '.generated/clc-release/RECEIPT.json'], /cannot overwrite/],
     ['live-pilot-package.ts', ['--preflight', '--manifest', '../outside.json'], /owned JSON directory/],
     ['live-pilot-package.ts', ['--preflight', '--clc-plan', 'unexpected.json'], /plan mode requires all four/],
     ['live-pilot-package.ts', ['--plan-only'], /plan mode requires all four/],

@@ -1,4 +1,4 @@
-import { getAddress } from "ethers";
+import { getAddress, Interface } from "ethers";
 import { describe, expect, it } from "vitest";
 import clcDraft from "../../config/clc-pilot-release.json";
 import config from "../../config/live-pilot-release.json";
@@ -6,6 +6,8 @@ import sourceDraft from "../../config/source-upgrade-release.json";
 import stewardDraft from "../../config/steward-safe-release.json";
 import voucherDraft from "../../config/voucher-pilot-release.json";
 import { buildCLCPilotPlan, CLC_TIMELOCK_ABI, CLC_TIMELOCK_SOURCE, type CLCPilotManifest } from "./clc-release";
+import { buildCLCReleasePlan } from "./clc-member-release";
+import { memberReleaseFixture } from "./clc-member.fixtures";
 import {
   buildLivePilotPackage,
   inspectLivePilotPackageInputs,
@@ -200,6 +202,54 @@ describe("live pilot package preparation", () => {
     expect(p.stages.find((s) => s.id === "final-activation")?.transactions).toEqual([]);
     expect(p.stages.find((s) => s.id === "external-hats-upgrade")?.instructions.join(" ")).toContain(
       "before nonce freeze",
+    );
+  });
+  it("adds two explicit member assets to the same base pool, exact issuer bindings and native nonce inventory", () => {
+    const f = fixture();
+    const old = withPlans(f);
+    const member = memberReleaseFixture();
+    member.base = f.manifests.clc;
+    member.members.deployer = f.manifests.clc.deployer;
+    member.members.nonce = f.manifests.clc.nonce! + 10;
+    const clc = buildCLCReleasePlan(member, f.artifacts.clc, commit);
+    const prepared = buildLivePilotPackage({
+      ...old,
+      manifests: { ...f.manifests, clc: member },
+      plans: { ...old.plans, clc },
+    });
+    expect(prepared.nativeNonceRanges.at(-1)?.count).toBe(18);
+    expect(prepared.stages.find((stage) => stage.id === "clc-deployments")?.transactions).toHaveLength(12);
+    const bindings = prepared.stages.find((stage) => stage.id === "source-issuer-authorities")!.transactions;
+    expect(bindings).toHaveLength(4);
+    if (clc.schemaVersion !== 2) throw new Error("Expected member plan");
+    const abi = new Interface(["function setIssuerAuthority(address,address,address)"]);
+    for (const [index, asset] of clc.memberAssets.entries()) {
+      const call = bindings[index + 2];
+      expect(call.from).toBe(f.manifests.clc.greenGoodsSafe);
+      expect(abi.decodeFunctionData("setIssuerAuthority", call.data!)).toEqual([
+        asset.ownerReserve,
+        asset.token,
+        asset.sourceAuthority,
+      ]);
+      expect(call.missing).toContain("live.exactMemberAuthorityApprovalAndPausedReadback");
+    }
+    const issuance = prepared.stages.find((stage) => stage.id === "clc-issuance")!.transactions.slice(10);
+    expect(issuance).toHaveLength(10);
+    expect(issuance.slice(0, 5).every((call) => call.from === member.members.assets[0].ownerReserve)).toBe(true);
+    expect(
+      issuance.filter((call) => call.operation === "deposit").every((call) => call.to === clc.basePlan.addresses.pool),
+    ).toBe(true);
+    expect(prepared.executionReady).toBe(false);
+  });
+  it("refuses an old two-issuer plan for a changed member descriptor", () => {
+    const f = fixture();
+    const input = withPlans(f);
+    const member = memberReleaseFixture();
+    member.base = f.manifests.clc;
+    member.members.deployer = f.manifests.clc.deployer;
+    member.members.nonce = f.manifests.clc.nonce! + 10;
+    expect(() => buildLivePilotPackage({ ...input, manifests: { ...f.manifests, clc: member } })).toThrow(
+      "plan mismatch",
     );
   });
   it("reserves all source CREATEs and direct Safe submissions before the downstream nonce budget", () => {

@@ -1,5 +1,12 @@
 import { getAddress, Interface } from "ethers";
-import { type CLCPilotManifest, type CLCPilotPlan, inspectCLCPilotManifest, validateCLCPilotPlan } from "./clc-release";
+import {
+  type CLCReleaseManifest,
+  type CLCReleasePlan,
+  getCLCBaseManifest,
+  getCLCIssuerBindings,
+  inspectCLCReleaseManifest,
+  validateCLCReleasePlan,
+} from "./clc-member-release";
 import {
   inspectSourceUpgradeManifest,
   type SourceUpgradeArtifacts,
@@ -44,7 +51,7 @@ export interface LivePilotPlans {
   sourceUpgrades: SourceUpgradePlan;
   stewardSafe: StewardPlan;
   vouchers: VoucherPlan;
-  clc: CLCPilotPlan;
+  clc: CLCReleasePlan;
 }
 export interface LivePilotArtifacts {
   sourceUpgrades: SourceUpgradeArtifacts;
@@ -143,7 +150,7 @@ function componentInputs(value: LivePilotManifests) {
     sourceUpgrades: inspectSourceUpgradeManifest(value.sourceUpgrades),
     stewardSafe: inspectStewardManifest(value.stewardSafe),
     vouchers: inspectVoucherManifest(value.vouchers),
-    clc: inspectCLCPilotManifest(value.clc),
+    clc: inspectCLCReleaseManifest(value.clc),
   };
 }
 export function inspectLivePilotPackageInputs(
@@ -155,7 +162,7 @@ export function inspectLivePilotPackageInputs(
   const source = reports.sourceUpgrades.manifest;
   const steward = reports.stewardSafe.manifest;
   const voucher = reports.vouchers.manifest;
-  const clc = reports.clc.manifest;
+  const clc = getCLCBaseManifest(reports.clc.manifest);
   match(source.authority.address, GG_SAFE, "source owner Safe");
   match(steward.greenGoodsSafe, GG_SAFE, "steward Green Goods Safe");
   for (const role of ["greenGoods", "sharedPool"] as const) {
@@ -201,7 +208,7 @@ export function buildLivePilotPackage(input: LivePilotBuildInputs): LivePilotPac
   validateSourceUpgradePlan(provided.sourceUpgrades, m.sourceUpgrades, a.sourceUpgrades, sourceCommit);
   validateStewardPlan(provided.stewardSafe, m.stewardSafe, a.stewardSafe, sourceCommit);
   validateVoucherPlan(provided.vouchers, m.vouchers, a.vouchers, sourceCommit);
-  validateCLCPilotPlan(provided.clc, m.clc, a.clc, sourceCommit);
+  validateCLCReleasePlan(provided.clc, m.clc as CLCReleaseManifest, a.clc, sourceCommit);
   const p: LivePilotPlans = {
     sourceUpgrades: provided.sourceUpgrades,
     stewardSafe: provided.stewardSafe,
@@ -209,7 +216,7 @@ export function buildLivePilotPackage(input: LivePilotBuildInputs): LivePilotPac
     clc: provided.clc,
   };
   const source = m.sourceUpgrades as SourceUpgradeManifest;
-  const clc = m.clc as CLCPilotManifest;
+  const clc = getCLCBaseManifest(m.clc as CLCReleaseManifest);
   const proxy = (name: string) => {
     const tx = p.vouchers.transactions.find((t) => t.contract === name && t.kind === "proxy");
     if (!tx) throw new Error(`Missing validated voucher proxy ${name}`);
@@ -304,24 +311,23 @@ export function buildLivePilotPackage(input: LivePilotBuildInputs): LivePilotPac
       pooling.encodeFunctionData("pinVoucherServiceSetupModule", [proxy("VoucherRedemptionModule")]),
     ),
   ];
-  const issuerCalls = (["greenGoods", "techAndSun"] as const).map((issuer) => {
-    const authority = clc.issuers[issuer].sourceIssuerAuthority;
-    const reserve = issuer === "greenGoods" ? GG_SAFE : clc.techAndSunSafe;
-    const token = p.clc.addresses[issuer === "greenGoods" ? "greenGoodsToken" : "techAndSunToken"];
-    return ownerCall(
-      42161,
-      GG_SAFE,
-      proxy("VoucherEntitlementModule"),
-      "setIssuerAuthority",
-      authority
-        ? new Interface(["function setIssuerAuthority(address,address,address)"]).encodeFunctionData(
-            "setIssuerAuthority",
-            [reserve, token, authority],
-          )
-        : null,
-      authority ? [] : [`clc.issuers.${issuer}.sourceIssuerAuthority`],
-    );
-  });
+  const issuerCalls = getCLCIssuerBindings(m.clc as CLCReleaseManifest, p.clc).map(
+    ({ authority, reserve, token, missing }) => {
+      return ownerCall(
+        42161,
+        GG_SAFE,
+        proxy("VoucherEntitlementModule"),
+        "setIssuerAuthority",
+        authority
+          ? new Interface(["function setIssuerAuthority(address,address,address)"]).encodeFunctionData(
+              "setIssuerAuthority",
+              [reserve, token, authority],
+            )
+          : null,
+        missing,
+      );
+    },
+  );
   const componentHashes = Object.fromEntries(
     (Object.keys(MANIFEST_REFS) as Component[]).map((key) => [
       key,

@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { parseArgs } from "node:util";
 import { CLC_TIMELOCK_SOURCE, loadCLCTimelockArtifact } from "../utils/clc-release";
+import { composeCLCMemberManifest } from "../utils/clc-member-inputs";
 import { redactRpcUrlsInText } from "../utils/cli-parser";
 import {
   buildLivePilotPackage,
@@ -34,6 +35,7 @@ async function main() {
       "steward-safe-plan": { type: "string" },
       "vouchers-plan": { type: "string" },
       "clc-plan": { type: "string" },
+      "clc-members": { type: "string" },
       output: { type: "string" },
     },
   });
@@ -51,6 +53,7 @@ async function main() {
     throw new Error("Pilot preflight accepts its manifest; plan mode requires all four component plans");
   const manifestPath = releaseJsonPath(CONFIG_ROOT, values.manifest ?? "config/live-pilot-release.json");
   const revision = values.preflight ? null : releaseRevision(CONTRACTS_ROOT, manifestPath);
+  const membersPath = values["clc-members"] ? releaseJsonPath(CONFIG_ROOT, values["clc-members"]) : null;
   const config = inspectLivePilotPackageConfig(JSON.parse(readFileSync(manifestPath, "utf8")));
   const componentPaths = {
     sourceUpgrades: releaseJsonPath(CONFIG_ROOT, config.manifests.sourceUpgrades),
@@ -60,7 +63,7 @@ async function main() {
   };
   const checkRevision = () => {
     if (revision === null) throw new Error("Pilot plan requires a committed revision");
-    for (const file of [manifestPath, ...Object.values(componentPaths)])
+    for (const file of [manifestPath, ...Object.values(componentPaths), ...(membersPath ? [membersPath] : [])])
       if (releaseRevision(CONTRACTS_ROOT, file) !== revision) throw new Error("Pilot release revision changed");
   };
   if (!values.preflight) checkRevision();
@@ -70,6 +73,8 @@ async function main() {
     vouchers: JSON.parse(readFileSync(componentPaths.vouchers, "utf8")),
     clc: JSON.parse(readFileSync(componentPaths.clc, "utf8")),
   };
+  if (membersPath)
+    manifests.clc = composeCLCMemberManifest(manifests.clc, JSON.parse(readFileSync(membersPath, "utf8")));
   const inspected = inspectLivePilotPackageInputs(config, manifests);
   if (values.preflight) {
     console.log(
