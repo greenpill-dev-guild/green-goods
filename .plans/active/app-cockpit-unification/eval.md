@@ -50,10 +50,10 @@ Visual preference alone is not acceptance. Record wrong turns and hesitation, no
 
 ## Acceptance pass 1
 
-Run on 2026-10-24 against `develop` `8476dbd80`: steps 1 to 19, 21 and 12, and step 20's phases 3
-and 4. Phase 1 (buttons, #1256), phase 2 (fields and chips, #1255) and the rename pass had not
-landed, so their families are rechecked when they merge. Every frame is headless Chromium
-(Playwright) at device scale 2, measured in the DOM: clipped and truncated text, tab cells, count
+Run on 2026-10-24 against `develop` `8476dbd80`: steps 1 to 19 and 21 with step 12's look, plus
+step 20's phases 3 and 4. Phase 1 (buttons, #1256), phase 2 (fields and chips, #1255) and the
+rename pass had not landed, so their families are rechecked when they merge. Every frame is headless
+Chromium (Playwright) at device scale 2, measured in the DOM: clipped and truncated text, tab cells, count
 badges, card heights, gaps, corners and edges, each card against its ground, pills per card, detail
 lines, ages, state blocks, the bars' pills, translucent surfaces and sideways scroll.
 
@@ -87,7 +87,7 @@ lines, ages, state blocks, the bars' pills, translucent surfaces and sideways sc
 | A11 | passes as rendered | The app's bar is solid under the green pill and the cockpit's dock is translucent under the tone pill; sheets render the shared header. Focus return and Back rest on CI plays; installed-PWA behavior is pending. |
 | A12 | passes, one note | Density, corners, filters, tone and chrome stay each surface's own. The confirm and reason dialogs' 40px buttons differ from the cockpit's 32px default until phase 3's call-site pass. |
 | A13 | passes | Public routes match the tree before step 1 in type, buttons, color and layout. Only copy merged meanwhile differs (garden casing, "vault"). |
-| A14 | failed on `develop`, fixed | Four rules in the cockpit's `index.css`, older than the block, drew every cockpit state at a 72px tile, a 22px title and a 16px line. They are removed in pass 1's pull request: 56px, 16px and 14px, as DL-106 sets. |
+| A14 | failed on `develop`, fixed | Four rules in the cockpit's `index.css`, older than the block, drew every cockpit state at a 72px tile, a 22px title and a 16px line. They are removed in pass 1's pull request: 56px, 16px and 14px, as DL-106 sets. Storybook never loads that stylesheet, so `AdminDensityScale.guard` now fails if any cockpit stylesheet targets the block again. |
 | A15 | partial | No Material class remains in the cockpit's views. Material type tokens still set sizes in CSS, their names remain in comments, the DesignMD keys still read `body-md` and `label-md`, and the app uses raw sizes, as the client prompt contract defers. |
 | A16 | passes, with residue | The guides describe solid surfaces and the one dock, and no route renders glass besides the dock. Unused translucent CSS and Storybook-only `glass-surface` remain. |
 | A17 | partial | Cockpit sections and rows in hypercert detail, the signal pool, campaign settings, vault history, garden metadata and the confirm queue draw raised 16px or 12px cards off `.gg-card`. `WorkbenchCard` is not built from a shape, and a few primitives have no consumer. |

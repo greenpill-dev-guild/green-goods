@@ -13,7 +13,7 @@
  * @vitest-environment happy-dom
  */
 
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { RiAddLine } from "@remixicon/react";
 import { describe, expect, it } from "vitest";
@@ -218,6 +218,27 @@ describe("AdminDensityScale.guard (DL-011)", () => {
     expect(
       ggTokens(surfacesCss, '[data-surface-scope="admin"][data-theme="dark"] {')
     ).toMatchObject(darkSheet);
+  });
+
+  it("tunes the shared state block only through its tokens, never by restyling it (DL-031, DL-106)", () => {
+    // Storybook never loads these stylesheets, so a rule in them that restyles the block reaches
+    // only the running cockpit: four such rules drew every cockpit state at a 72px tile, a 22px
+    // title and a 16px line until acceptance pass 1. The cockpit sets --gg-state-mark-* instead.
+    const stylesDir = resolve(__dirname, "../../styles");
+    const stylesheets = [
+      resolve(__dirname, "../../index.css"),
+      ...readdirSync(stylesDir)
+        .filter((name) => name.endsWith(".css"))
+        .map((name) => resolve(stylesDir, name)),
+    ];
+    const offenders = stylesheets.flatMap((path) => {
+      const css = readFileSync(path, "utf-8").replace(/\/\*[\s\S]*?\*\//g, "");
+      return [...css.matchAll(/([^{}]+)\{/g)]
+        .map((match) => match[1].trim())
+        .filter((selector) => /data-component="EmptyState"|\.gg-state-mark/.test(selector))
+        .map((selector) => `${path.split("/src/")[1]}: ${selector}`);
+    });
+    expect(offenders).toEqual([]);
   });
 
   it("toolbar pills sit at the 36px tier", () => {
