@@ -1,6 +1,6 @@
 # Batching checkpoint publication
 
-Continue from `feature/transaction-batching-foundation`, targeting `develop`. The implementation commit is `382cdc08ec1a4264168ebef0d1741e39ee5933df`, based on `207835e2b8fe6a7abf9d458d7adb9e62dceb0ff4`. It contains batching source/tests and the owning plan; the follow-up also refreshes one reviewed seam evidence fingerprint. The original worktree was based on 35 unpublished contract/pilot commits; those commits were excluded by replaying the batching checkpoint onto develop. The original local snapshot remains at `feature/transaction-batching-parent-checkpoint` for reference.
+Continue from `feature/transaction-batching-foundation`, targeting `develop`. The implementation commit is `382cdc08ec1a4264168ebef0d1741e39ee5933df`, based on `207835e2b8fe6a7abf9d458d7adb9e62dceb0ff4`. It contains batching source/tests and the owning plan; the follow-up also refreshes one reviewed seam evidence fingerprint and registers the two new sending entry points for critical validation. The original worktree was based on 35 unpublished contract/pilot commits; those commits were excluded by replaying the batching checkpoint onto develop. The original local snapshot remains at `feature/transaction-batching-parent-checkpoint` for reference.
 
 ## Completed checkpoint
 
@@ -13,6 +13,8 @@ Shared passkey/wallet batching includes immutable reviewed intent, budgets, orde
 The detailed foundation/compatibility artifacts remain historical records of the original base. Their inherited auth-policy violations and full-suite failures must not be copied forward as current failures or current passes on develop. Runtime evidence after this handoff can retain the tested parent only with the path-scoped unchanged-code and clean-worktree evidence required by repository policy.
 
 The first publication gate stopped at the work-command seam fingerprint after the SDK receipt fixture changed. All other files and declarations in that registry entry are unchanged from the develop base. The subject is directly tested without self-mocking, `useWorkMutation` still imports and composes it, and adapter conformance retains the same observable laws. A focused rerun of the command, provider, and sender-conformance tests passed **85 tests with six existing skips**. The entry's evidence hash was refreshed after this review; its lifecycle, proof paths, baseline, checker, and validation policy were not weakened. The final gate result belongs in the PR body.
+
+The validation-system suite then identified missing critical classifications for `batch-operation.ts` and `batch-service.ts`. Both are now in the exact critical override list; this adds protection for future changes. The generated command/workflow/QA projections were refreshed from that policy; the glossary source digest was refreshed for its changed wallet-sender input. A separate unchanged aggregate-build fixture hit its 10-second subprocess limit during that run; its focused rerun passed without changing the timeout. Both focused validation regressions passed. The complete gate still must pass; the focused rerun does not replace it.
 
 ## Next session
 

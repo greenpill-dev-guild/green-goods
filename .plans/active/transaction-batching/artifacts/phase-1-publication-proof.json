@@ -51,5 +51,14 @@
     },
     "fingerprint": "sha256:e4aa3650e4d70438e57d385ce1ab4cdc81fd4387f4e147ba17324b33f016c56a",
     "review": "Direct non-self-mocking subject proof, unchanged production composition, and unchanged adapter conformance laws inspected; evidence hash only refreshed."
+  },
+  "criticalClassification": {
+    "addedExactPaths": [
+      "packages/shared/src/modules/transactions/batch-operation.ts",
+      "packages/shared/src/modules/transactions/batch-service.ts"
+    ],
+    "command": "node scripts/dev/node-cli.js node --test --test-name-pattern 'every Shared file that signs|root aggregate build retains' scripts/quality/select-validation.test.mjs scripts/quality/workflow-performance-parity.test.mjs",
+    "passed": 2,
+    "note": "Missing classifications fixed; unchanged aggregate build fixture passed its existing 10-second limit in focused context. No timeout or check was weakened."
   }
 }
