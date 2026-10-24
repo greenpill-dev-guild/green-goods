@@ -34,6 +34,8 @@ export {
 } from "./GardenCard";
 // MediaCard: the card shape for an object with a picture of its own
 export { MediaCard, type MediaCardLayout, type MediaCardProps } from "./MediaCard";
+// PersonRow: one person in a list on both surfaces, an item row led by their avatar
+export { PersonRow, type PersonRowProps } from "./PersonRow";
 // VaultPositionCard
 export { VaultPositionCard, type VaultPositionCardProps } from "./VaultPositionCard";
 // WorkCard

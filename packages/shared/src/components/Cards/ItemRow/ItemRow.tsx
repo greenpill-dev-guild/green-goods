@@ -2,8 +2,9 @@
  * ItemRow — one item in a list, the same on the installed app and the cockpit (F7).
  *
  * Every row is one height in every state and language (88px at the default text size), on
- * the card surface with a 16px corner. It leads with the item's own photo or a centered
- * 56px icon tile, then a one-line title (the full title shows on hover), the item's one
+ * the card surface with a 16px corner. It leads with the item's own photo, a centered
+ * 56px icon tile, or a person's 56px round avatar (PersonRow), then a one-line title (the
+ * full title shows on hover), the item's one
  * status pill under it, and one detail line; the row's one action, when it has one, takes
  * the right slot. Each surface sets the density through tokens (the title is 15px in the
  * app and 13px in the cockpit), so the component takes no density prop.
@@ -18,7 +19,7 @@
  *
  * @module components/Cards/ItemRow
  */
-import { RiImageLine } from "@remixicon/react";
+import { RiImageLine, RiUserLine } from "@remixicon/react";
 import * as React from "react";
 import { cn } from "../../../utils/styles/cn";
 import { ImageWithFallback } from "../../Display/ImageWithFallback";
@@ -43,9 +44,9 @@ export type ItemRowDetail =
     };
 
 /**
- * What leads the row: the item's own photo, square and as tall as the row, or an icon
- * tile for an item with no picture of its own. A mark sits on either: a work's photo
- * count, or a marker the rules move off the detail line.
+ * What leads the row: the item's own photo, square and as tall as the row, an icon tile
+ * for an item with no picture of its own, or a person's round avatar. A mark sits on a
+ * photo or a tile: a work's photo count, or a marker the rules move off the detail line.
  */
 export type ItemRowLead =
   | {
@@ -61,6 +62,15 @@ export type ItemRowLead =
       kind: "icon";
       icon: React.ReactNode;
       mark?: React.ReactNode;
+    }
+  | {
+      kind: "avatar";
+      /** The person's photo; without one, or when it fails, the circle shows a person glyph. */
+      src?: string | null;
+      /** An avatar repeats the person's name, so it is decorative unless this names it. */
+      alt?: string;
+      /** The photo is still being looked up: the circle stays empty, so no glyph flashes. */
+      loading?: boolean;
     };
 
 export interface ItemRowProps
@@ -99,6 +109,25 @@ function Mark({ children }: { children: React.ReactNode }) {
 }
 
 function Lead({ lead }: { lead: ItemRowLead }) {
+  if (lead.kind === "avatar") {
+    return (
+      <span className="gg-item-row-lead">
+        <span className="gg-item-row-avatar">
+          {lead.loading ? null : lead.src ? (
+            <ImageWithFallback
+              src={lead.src}
+              alt={lead.alt ?? ""}
+              fallbackIcon={RiUserLine}
+              className="absolute inset-0 h-full w-full object-cover"
+              fallbackClassName="absolute inset-0 h-full w-full"
+            />
+          ) : (
+            <RiUserLine aria-hidden="true" />
+          )}
+        </span>
+      </span>
+    );
+  }
   if (lead.kind === "icon") {
     return (
       <span className="gg-item-row-lead">
@@ -256,12 +285,20 @@ export const ItemRow = React.forwardRef<HTMLElement, ItemRowProps>(function Item
 ItemRow.displayName = "ItemRow";
 
 /**
- * The row's frame with nothing in it, for a list that is still loading: the square photo,
- * the title line, the pill and the detail line, so the rows that arrive land where these
- * stood (DL-056). A list whose rows carry a status edge passes `edge`, so the frame keeps
- * the edge's width.
+ * The row's frame with nothing in it, for a list that is still loading: the square photo
+ * (or a person's avatar circle), the title line, the pill and the detail line, so the rows
+ * that arrive land where these stood (DL-056). A list whose rows carry a status edge passes
+ * `edge`, so the frame keeps the edge's width.
  */
-export function ItemRowSkeleton({ className, edge }: { className?: string; edge?: ItemRowTone }) {
+export function ItemRowSkeleton({
+  className,
+  edge,
+  lead = "photo",
+}: {
+  className?: string;
+  edge?: ItemRowTone;
+  lead?: "photo" | "avatar";
+}) {
   return (
     <div
       aria-hidden="true"
@@ -269,7 +306,13 @@ export function ItemRowSkeleton({ className, edge }: { className?: string; edge?
       data-edge={edge}
       className={cn("gg-card gg-item-row", className)}
     >
-      <span className="gg-item-row-photo" />
+      {lead === "avatar" ? (
+        <span className="gg-item-row-lead">
+          <span className="gg-item-row-avatar" />
+        </span>
+      ) : (
+        <span className="gg-item-row-photo" />
+      )}
       <span className="gg-item-row-body">
         <span className="flex h-5 w-full items-center">
           <span className="h-3.5 w-2/3 rounded bg-bg-soft-200" />

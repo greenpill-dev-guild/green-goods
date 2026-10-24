@@ -1,30 +1,27 @@
+import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import { Button } from "@green-goods/shared/components/Button";
+import { PersonRow } from "@green-goods/shared/components/Cards/PersonRow/PersonRow";
 import { DialogShell } from "@green-goods/shared/components/Dialog/DialogShell";
 import { toastService } from "@green-goods/shared/components/Toast/toast.service";
 import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
 import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
-import { useResolvedProfileAvatar } from "@green-goods/shared/hooks/profile/useProfileAvatar";
 import type { Address, Garden, GardenerCard } from "@green-goods/shared/types/domain";
 import { copyToClipboard } from "@green-goods/shared/utils/app/clipboard";
-import { formatAddress, formatEnsNameForDisplay } from "@green-goods/shared/utils/app/text";
-import { cn } from "@green-goods/shared/utils/styles/cn";
+import { formatAddress } from "@green-goods/shared/utils/app/text";
+import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
 import {
-  RiCalendarEventFill,
   RiFileCopyLine,
   RiMailFill,
   RiPhoneLine,
   RiUserLine,
   RiWallet3Fill,
 } from "@remixicon/react";
-import { forwardRef, memo, useMemo, useState } from "react";
+import { forwardRef, memo, useState } from "react";
 import { useIntl } from "react-intl";
 import { List, type RowComponentProps, useDynamicRowHeight } from "react-window";
 import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
-import { Badge } from "@/components/Communication";
-import { Avatar, AvatarFallback, AvatarImage, AvatarSkeleton } from "@/components/Display";
 import { AddressCopy } from "@/components/Inputs";
-import { pwaStatusStyles } from "@/components/Pwa/statusStyles";
 import { GardenJoinRequestsQueue } from "./GardenJoinRequestsQueue";
 
 export type GardenMember = GardenerCard & {
@@ -39,6 +36,18 @@ interface GardenGardenersProps {
   canManageRequests?: boolean;
 }
 
+/** The app's own picture for someone who has no photo, as the profile shows it. */
+const DEFAULT_AVATAR = "/images/avatar.png";
+
+/** A name to show for a member who has published none, before their short address. */
+function contactName(member: GardenMember) {
+  return member.username || member.email || member.phone || undefined;
+}
+
+/**
+ * One member as a person row (DL-112): their avatar, their name from the shared address
+ * display, their highest role as the chip and, as the one fact, when they joined.
+ */
 const GardenMemberItem = memo(function GardenMemberItem({
   member,
   garden,
@@ -49,107 +58,41 @@ const GardenMemberItem = memo(function GardenMemberItem({
   onClick?: () => void;
 }) {
   const intl = useIntl();
-  const { data: greenGoodsEnsName } = useGreenGoodsEnsName(member.account);
-  const { data: ensName } = useEnsName(member.account);
-  const avatar = useResolvedProfileAvatar(
-    member.account,
-    "/images/avatar.png",
-    garden?.chainId ?? DEFAULT_CHAIN_ID
-  );
-  // A Green Goods name reads as the username alone, without .greengoods.eth.
-  const identityName =
-    formatEnsNameForDisplay(greenGoodsEnsName) ||
-    member.username ||
-    formatEnsNameForDisplay(ensName);
-  const displayName =
-    identityName ||
-    member.email ||
-    member.phone ||
-    (member.account ? formatAddress(member.account) : null) ||
-    intl.formatMessage({
-      id: "app.garden.gardeners.unknownUser",
-      description: "Unknown User",
-    });
-  const subline =
-    member.account && identityName ? formatAddress(member.account, { variant: "card" }) : "";
+  const roles: GardenRole[] = [
+    ...(member.isSteward ? (["steward"] as const) : []),
+    ...(member.isGardener ? (["gardener"] as const) : []),
+  ];
+  const joined = member.isGardener && member.registeredAt ? member.registeredAt : null;
 
   return (
-    <button
-      className={cn(
-        "cv-member relative flex w-full cursor-pointer items-center gap-3 rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 p-2 text-left shadow-sm transition-[background-color,border-color,box-shadow,transform,scale] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] focus:outline-none",
-        pwaStatusStyles.primary.focus
-      )}
-      onClick={onClick}
-      type="button"
-      data-pressable="row"
-    >
-      {member.isSteward ? (
-        <Badge
-          variant="pill"
-          tint="secondary"
-          className="absolute top-2 right-2 text-xs font-semibold"
-          aria-label={intl.formatMessage({
-            id: "app.garden.gardeners.stewardBadge",
-            defaultMessage: "Steward",
-          })}
-        >
-          {intl.formatMessage({
-            id: "app.garden.gardeners.stewardBadge",
-            defaultMessage: "Steward",
-          })}
-        </Badge>
-      ) : null}
-      <Avatar className="w-10 h-10">
-        {avatar.isLoading ? (
-          <AvatarSkeleton />
-        ) : (
-          <>
-            <AvatarImage
-              src={avatar.avatarUri ?? undefined}
-              alt=""
-              loading="lazy"
-              decoding="async"
-            />
-            <AvatarFallback>
-              <RiUserLine aria-hidden="true" />
-            </AvatarFallback>
-          </>
-        )}
-      </Avatar>
-      <div className="flex flex-col pr-14 min-w-0">
-        <span className="truncate font-semibold" title={displayName}>
-          {displayName}
-        </span>
-        {subline ? (
-          <span className="truncate text-xs text-text-sub-600" title={subline}>
-            {subline}
-          </span>
-        ) : null}
-        {member.isGardener ? (
-          <span className="text-xs text-text-sub-600 flex items-center gap-1">
-            <RiCalendarEventFill
-              className="w-3.5 h-3.5 text-primary-on-surface"
-              aria-hidden="true"
-            />
-            {intl.formatMessage({
-              id: "app.garden.gardeners.registered",
-              defaultMessage: "Gardener since",
-            })}
-            :{" "}
-            {member.registeredAt
-              ? intl.formatDate(member.registeredAt, {
-                  year: "numeric",
-                  month: "short",
-                  day: "numeric",
-                })
-              : intl.formatMessage({
-                  id: "app.garden.gardeners.dateUnknown",
-                  defaultMessage: "Unknown",
-                })}
-          </span>
-        ) : null}
-      </div>
-    </button>
+    <PersonRow
+      className="cv-member"
+      address={member.account}
+      roles={roles}
+      fallbackName={contactName(member)}
+      fallbackAvatar={DEFAULT_AVATAR}
+      chainId={garden?.chainId ?? DEFAULT_CHAIN_ID}
+      details={
+        joined
+          ? [
+              {
+                text: intl.formatMessage(
+                  { id: "app.garden.gardeners.joined" },
+                  {
+                    date: intl.formatDate(joined, {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    }),
+                  }
+                ),
+                dateTime: new Date(joined).toISOString(),
+              },
+            ]
+          : undefined
+      }
+      onOpen={onClick}
+    />
   );
 });
 
@@ -171,7 +114,7 @@ function GardenMemberRow({
   if (!member) return null;
 
   return (
-    <div {...ariaAttributes} style={style} className="px-0.5 pb-4">
+    <div {...ariaAttributes} style={style} className="px-0.5 pb-3">
       <GardenMemberItem member={member} garden={garden} onClick={() => onSelect(member)} />
     </div>
   );
@@ -181,23 +124,12 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
   ({ members, garden, canManageRequests = false }, ref) => {
     const intl = useIntl();
     const shouldVirtualize = members.length > 40;
-    // Include the card's natural height and its gap, including wrapped translations.
-    const rowHeight = useDynamicRowHeight({ defaultRowHeight: 90 });
+    // Include the row's height and the list gap; the row grows with the reader's text size.
+    const rowHeight = useDynamicRowHeight({ defaultRowHeight: 100 });
     const [selected, setSelected] = useState<GardenMember | null>(null);
     const { data: selectedGreenGoodsEnsName } = useGreenGoodsEnsName(selected?.account);
     const { data: selectedEnsName } = useEnsName(selected?.account);
     const selectedPreferredEnsName = selectedGreenGoodsEnsName || selectedEnsName;
-    const title = useMemo(() => {
-      if (!selected) return "";
-      return (
-        formatEnsNameForDisplay(selectedGreenGoodsEnsName) ||
-        selected.username ||
-        formatEnsNameForDisplay(selectedEnsName) ||
-        selected.email ||
-        selected.phone ||
-        (selected.account ? formatAddress(selected.account) : selected.id)
-      );
-    }, [selected, selectedGreenGoodsEnsName, selectedEnsName]);
 
     const copy = async (val?: string) => {
       if (!val) return;
@@ -234,7 +166,7 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
               style={{ height: 600, width: "100%" }}
             />
           ) : (
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-(--gg-list-gap)">
               {members.map((member) => (
                 <GardenMemberItem
                   key={member.account ?? member.id}
@@ -261,7 +193,14 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
           onOpenChange={(open) => {
             if (!open) setSelected(null);
           }}
-          title={<span title={title}>{title}</span>}
+          title={
+            selected ? (
+              // The member's name as their row shows it.
+              <AddressDisplay address={selected.account} fallbackLabel={contactName(selected)}>
+                {(name) => <span title={name}>{name}</span>}
+              </AddressDisplay>
+            ) : null
+          }
           size="lg"
         >
           {selected && (

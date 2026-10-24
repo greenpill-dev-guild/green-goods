@@ -170,6 +170,18 @@ vi.mock("@green-goods/shared/hooks/blockchain/useEnsAvatar", async (importOrigin
   };
 });
 
+// Each recipient row is a person row: its name comes from the shared address display and
+// its avatar from the person's profile photo, neither of which this test reads.
+vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", async (importOriginal) => ({
+  ...(await importOriginal()),
+  useGreenGoodsEnsName: () => ({ data: null }),
+}));
+
+vi.mock("@green-goods/shared/hooks/profile/useProfileAvatar", async (importOriginal) => ({
+  ...(await importOriginal()),
+  useResolvedProfileAvatar: () => ({ avatarUri: null, isLoading: false }),
+}));
+
 vi.mock("@green-goods/shared/hooks/blockchain/useEnsAddress", async (importOriginal) => {
   return {
     ...(await importOriginal()),

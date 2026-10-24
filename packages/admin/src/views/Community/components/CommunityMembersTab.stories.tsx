@@ -1,18 +1,31 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Decorator, Meta, StoryObj } from "@storybook/react";
 import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
+import esMessages from "@green-goods/shared/i18n/es.json";
+import ptMessages from "@green-goods/shared/i18n/pt.json";
+import { IntlProvider } from "react-intl";
 import { fn } from "storybook/test";
 import {
   withAdminIdentity,
   withDataRouter,
   withSeededQueryClient,
 } from "../../../../../shared/.storybook/decorators";
+import { FIXTURE_IMAGE_PROFILE } from "../../../../../shared/.storybook/fixtures";
 import { CommunityMembersTab } from "./CommunityMembersTab";
 import {
   storyDirectory,
   storyGarden,
   storyRoleMembers,
   storyRoleSummary,
+  storyRoster,
+  storyRosterIdentity,
+  storyRosterRoleMembers,
+  storyRosterRoleSummary,
 } from "./communityStoryFixtures";
+
+const joinRequestsAvailable = [
+  queryKeys.gardenJoinRequests.availability(),
+  { enabled: true, supportedKinds: ["garden_membership", "steward_access"] },
+] as const;
 
 const meta = {
   title: "Admin/Workflows/Community/Members",
@@ -21,12 +34,7 @@ const meta = {
   decorators: [
     withAdminIdentity,
     withDataRouter("/community/members"),
-    withSeededQueryClient([
-      [
-        queryKeys.gardenJoinRequests.availability(),
-        { enabled: true, supportedKinds: ["garden_membership", "steward_access"] },
-      ],
-    ]),
+    withSeededQueryClient([joinRequestsAvailable]),
   ],
   parameters: { layout: "padded" },
   args: {
@@ -67,4 +75,41 @@ export const PersonWithSeveralRoles: Story = {
       entry.roles.includes("steward") ? { ...entry, roles: ["steward", "evaluator"] } : entry
     ),
   },
+};
+
+const withRosterIdentity = withSeededQueryClient([
+  joinRequestsAvailable,
+  ...storyRosterIdentity(FIXTURE_IMAGE_PROFILE),
+]);
+
+function inLocale(locale: string, messages: Record<string, string>): Decorator {
+  return (Story) => (
+    <IntlProvider locale={locale} messages={messages}>
+      <Story />
+    </IntlProvider>
+  );
+}
+
+/**
+ * A fuller garden: a Green Goods name, ENS names and bare addresses, two profile photos, and
+ * people who hold several roles, each named through the shared address display.
+ */
+export const Roster: Story = {
+  decorators: [withRosterIdentity],
+  args: {
+    memberCount: storyRoster.length,
+    roleMembers: storyRosterRoleMembers,
+    roleSummary: storyRosterRoleSummary,
+    visibleDirectory: storyRoster,
+  },
+};
+
+export const RosterSpanish: Story = {
+  ...Roster,
+  decorators: [inLocale("es", esMessages), withRosterIdentity],
+};
+
+export const RosterPortuguese: Story = {
+  ...Roster,
+  decorators: [inLocale("pt", ptMessages), withRosterIdentity],
 };

@@ -2170,6 +2170,26 @@
     block-size: 1.5rem;
   }
 
+  /* A person's avatar (PersonRow): a 56px circle where the tile sits, their photo filling
+   * it, or a person glyph on the row's quiet fill when they have none. */
+  .gg-item-row-avatar {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: var(--gg-item-row-tile);
+    block-size: var(--gg-item-row-tile);
+    overflow: hidden;
+    border-radius: 9999px;
+    background-color: rgb(var(--gg-card-fill, var(--bg-soft-200)));
+    color: rgb(var(--text-sub-600));
+  }
+
+  .gg-item-row-avatar > svg {
+    inline-size: 1.5rem;
+    block-size: 1.5rem;
+  }
+
   .gg-item-row-body {
     display: flex;
     flex: 1 1 auto;

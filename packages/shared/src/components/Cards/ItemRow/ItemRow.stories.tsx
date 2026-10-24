@@ -132,6 +132,12 @@ export const OneHeight: Story = {
         title="A row with no status and one detail"
         details={["12 works"]}
       />
+      <ItemRow
+        lead={{ kind: "avatar", src: null }}
+        title="A person with no photo"
+        status={{ label: "Gardener", tone: "neutral" }}
+        details={["2 roles"]}
+      />
       <ItemRow {...workRow} title="The record the list has open" selected onOpen={fn()} />
       <ItemRow {...workRow} title="Content, with nothing to open" />
     </Column>

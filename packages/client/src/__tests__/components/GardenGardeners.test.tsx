@@ -16,11 +16,6 @@ vi.mock("@green-goods/shared/utils/app/clipboard", () => ({
   copyToClipboard: vi.fn(),
 }));
 
-vi.mock("@green-goods/shared/utils/app/text", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@green-goods/shared/utils/app/text")>()),
-  formatAddress: (address: string) => address,
-}));
-
 vi.mock("@green-goods/shared/components/Toast/toast.service", () => ({
   toastService: { error: vi.fn(), success: vi.fn() },
 }));
@@ -37,17 +32,6 @@ vi.mock("@green-goods/shared/hooks/ens/useGreenGoodsEnsName", () => ({
   useGreenGoodsEnsName: vi.fn(() => ({ data: null })),
 }));
 
-vi.mock("@/components/Communication", () => ({
-  Badge: ({ children }: { children: ReactNode }) => <span>{children}</span>,
-}));
-
-vi.mock("@/components/Display", () => ({
-  Avatar: ({ children }: { children: ReactNode }) => <span>{children}</span>,
-  AvatarFallback: () => null,
-  AvatarImage: ({ alt, src }: { alt: string; src?: string }) => <img alt={alt} src={src} />,
-  AvatarSkeleton: () => <span data-testid="avatar-loading" />,
-}));
-
 vi.mock("@/components/Inputs", () => ({
   AddressCopy: ({ address }: { address: string }) => <span>{address}</span>,
 }));
@@ -55,10 +39,9 @@ vi.mock("@/components/Inputs", () => ({
 import { GardenGardeners, type GardenMember } from "../../components/Features/Garden/Gardeners";
 
 const messages = {
-  "app.garden.gardeners.stewardBadge": "Steward",
-  "app.garden.gardeners.registered": "Registered",
-  "app.garden.gardeners.dateUnknown": "Unknown",
-  "app.garden.gardeners.unknownUser": "Unknown user",
+  "app.garden.gardeners.joined": "Joined {date}",
+  "app.roles.gardener": "Gardener",
+  "app.roles.steward": "Steward",
 };
 
 function TestIntl({ children }: { children: ReactNode }) {
@@ -152,22 +135,25 @@ describe("GardenGardeners", () => {
     expect(toastService.success).not.toHaveBeenCalled();
   });
 
-  it("shows first gardener role date and leaves a missing date unknown", () => {
+  it("shows each member's highest role and when a gardener joined, and no date it lacks", () => {
     render(
       <TestIntl>
         <GardenGardeners
           members={[
-            members[0],
+            { ...members[0], isSteward: true },
             { ...members[1], registeredAt: null },
-            { ...members[2], isGardener: false, registeredAt: null },
+            { ...members[2], isGardener: false, isSteward: true, registeredAt: null },
           ]}
         />
       </TestIntl>
     );
 
-    expect(screen.getByText(/Registered: Nov 14, 2023/)).toBeInTheDocument();
-    expect(screen.getByText(/Registered: Unknown/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Member 2/i })).not.toHaveTextContent("Registered");
+    const steward = screen.getByRole("button", { name: /Member 0/i });
+    expect(steward).toHaveTextContent("Steward");
+    expect(steward).not.toHaveTextContent("Gardener");
+    expect(steward).toHaveTextContent("Joined Nov 14, 2023");
+    expect(screen.getByRole("button", { name: /Member 1/i })).not.toHaveTextContent("Joined");
+    expect(screen.getByRole("button", { name: /Member 2/i })).not.toHaveTextContent("Joined");
   });
 
   it("uses the viewed member's published avatar and protocol name across changes", () => {
@@ -225,9 +211,9 @@ describe("GardenGardeners", () => {
     expect(container.querySelector("img")?.getAttribute("src")).toBe("/images/avatar.png");
   });
 
-  it("keeps a pending public avatar read in a loading state", () => {
+  it("shows no picture or glyph while a member's photo is still being looked up", () => {
     vi.mocked(useResolvedProfileAvatar).mockReturnValue({
-      avatarUri: null,
+      avatarUri: "/images/avatar.png",
       isLoading: true,
     } as ReturnType<typeof useResolvedProfileAvatar>);
 
@@ -237,7 +223,7 @@ describe("GardenGardeners", () => {
       </TestIntl>
     );
 
-    expect(screen.getByTestId("avatar-loading")).toBeInTheDocument();
     expect(container.querySelector("img")).toBeNull();
+    expect(container.querySelector(".gg-item-row-avatar")).toBeEmptyDOMElement();
   });
 });
