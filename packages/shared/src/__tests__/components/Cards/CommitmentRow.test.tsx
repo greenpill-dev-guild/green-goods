@@ -124,7 +124,7 @@ describe("CommitmentRow", () => {
     const details = () => document.querySelector(".gg-item-row-details");
     expect(details()).toHaveTextContent(/^Saved on this phone\.\s*due 24 Oct$/);
     // The person's place is taken, so no name is looked up for it.
-    expect(useEnsName).not.toHaveBeenCalled();
+    expect(useEnsName.mock.calls.every(([address]) => address === null)).toBe(true);
 
     // A promise still on the device has no page to show its units, so they lead the line.
     rerender(
@@ -133,6 +133,39 @@ describe("CommitmentRow", () => {
       </IntlProvider>
     );
     expect(details()).toHaveTextContent(/^6 hours\s*Saved on this phone\.$/);
+
+    // While something stops the send, what stops it leads, so a phone keeps it in view.
+    rerender(
+      <IntlProvider locale="en" messages={messages}>
+        <CommitmentRow
+          {...base}
+          {...queued}
+          note="Your wallet needs to be on Arbitrum One."
+          units="6 hours"
+          blocked
+        />
+      </IntlProvider>
+    );
+    expect(details()).toHaveTextContent(/^Your wallet needs to be on Arbitrum One\.\s*6 hours$/);
+  });
+
+  it("keeps its row, and the reader's focus, when someone takes the promise up", () => {
+    const untaken = {
+      commitment: { ...commitment, counterparty: null },
+      seat: "provider",
+    } as const;
+    const { rerender } = renderRow({ party: untaken });
+    const row = screen.getByRole("button");
+    row.focus();
+
+    rerender(
+      <IntlProvider locale="en" messages={messages}>
+        <CommitmentRow {...base} party={{ commitment, seat: "provider" }} />
+      </IntlProvider>
+    );
+    expect(screen.getByRole("button")).toBe(row);
+    expect(row).toHaveFocus();
+    expect(row).toHaveAccessibleName(/maria\.eth$/);
   });
 
   it.each([

@@ -25,7 +25,9 @@ function getClient(chainId: number): PublicClient {
   const cached = clientCache.get(chainId);
   if (cached) return cached;
 
-  const client = createPublicClientForChain(chainId);
+  // A list's rows ask for their names in the same render, so their reverse lookups wait a
+  // frame and go out as one multicall instead of one request per row.
+  const client = createPublicClientForChain(chainId, { batch: { multicall: { wait: 16 } } });
   clientCache.set(chainId, client);
   return client;
 }
