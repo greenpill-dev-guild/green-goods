@@ -372,7 +372,7 @@ The installed app's dark card hairline is `--earth-700` (`67 61 55`, the ink at 
 
 **Light mode follows the same discipline** (applied 2026-07-03 after a 190-pair audit):
 
-- **Dual-safe light tones**: light garden is `green-800` (5.7:1 both as white-text fill and as text on white; green-600/700 failed one or both), light actions `purple-700` (7.93; DL-045 moved Actions off the error red), light home `neutral-600`. Hub and community light already passed and are unchanged.
+- **Dual-safe light tones**: light garden is `green-800` (5.7:1 both as white-text fill and as text on white; green-600/700 failed one or both), light actions `purple-700` (7.93; DL-045 moved Actions off the error red), light home `neutral-600`, light community `orange-700`, which the cockpit's amber ramp makes #B45309 (white at 5.02:1, its `orange-800` hover at 7.09:1). That ramp sits on `<body>` in the admin's `index.css`, so the canvas and the dialogs, side sheets and toasts it portals draw one orange; on the shared ramp those portals drew before, `orange-700` carried white at only 4.01:1, and Storybook mirrors the ramp for admin stories. Hub light already passed and is unchanged. The cockpit's filled controls lay the neutral ink layer over their fill and beneath their label (Rule 18), so hover and press deepen a light fill and lift a dark one and never fall below the rest contrast (painted over the label too, the layer took Community's dark pair from 4.58:1 to 3.66:1); `WorkspaceToneContrast.guard` holds every tone at rest and in each state to AA, in both themes, through that ramp, and checks that Storybook's copy matches it.
 - **Light surfaces are the linen ladder**: the M3 containers ride a warm linen family (constant hue ~85, chroma .005–.012, in `admin-m3-tokens.css`), not gray Tailwind neutrals; cards and sheets stay white. This mirrors dark's hue-65 ladder so both modes carry Warm Earth. The installed app takes the same ground (DL-097): white cards on the linen canvas, with a `neutral-200` card hairline (1.18:1 on linen).
 - **`--tone-focus-ring`** is the only token for focus indicators: = `--tone-action` in light, = `--tone-on-surface-accent` in dark (deep fills measure 2.3–2.7 against dark surfaces, below the 3:1 non-text minimum). Never ring with `--tone-action` directly.
 - **Control outline and focus (DL-098)**: the shared fields, chips and secondary buttons draw `--gg-control-outline` (neutral-500 in light, 4.80:1 on white; neutral-400 on the installed app's dark card, 6.14:1; the cockpit's `--m3-outline`), and buttons, chips, fields and the switch draw focus as one solid 2px ring with a 2px offset in the surface's focus role, the cockpit's `--tone-focus-ring` or the installed app's `--focus-ring` (`--primary-on-surface`, mint in dark), in place of the 3px halo (about 1.3:1). The public website keeps its hairline and its halo.
@@ -407,7 +407,11 @@ display-size digits and editorial type sit centered inside it instead of growing
 **Primitives**: `Button` (`emphasis` primary / secondary / tertiary, `tone` default / danger / warning,
 `size`, `loading` stays focusable), `IconButton` (a circle at the same four sizes, `aria-label`
 required; a header launcher's count or status dot rides its `badge` slot), `Chip` (a 32px capsule
-toggle with a 44px hit area), `Switch` (a 44 × 24 track with a 44px hit box). All live in
+toggle with a 44px hit area), `Switch` (a 44 × 24 track with a 44px hit box), `CountBadge` (every
+count on both surfaces, DL-099: a capsule 16px tall and at least 16px wide, with 11px numerals at
+weight 600 on the action pair, the cockpit's on its workspace tone's accent; a 2px ring of the
+surface behind it on an icon or a control's edge and none beside a label; 99+ above 99, 9+ on the
+app's bottom bar). All live in
 `@green-goods/shared`. Composite pieces ride the same anatomy: `DatePicker` and `FileUploadField`
 are field-shaped triggers (`gg-control`), `ConfidenceSelector` and `AssetSelector` are radio
 chips, `AudioRecorder` and toasts use `Button`, `ImagePreviewDialog` uses `IconButton` (DL-031).

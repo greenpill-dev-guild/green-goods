@@ -54,6 +54,7 @@ The cockpit speaks the installed app's Warm Earth language at a denser setting. 
 - The face and the type roles: Plus Jakarta Sans, with one set of role names at each surface's sizes (DL-096, § Typography).
 - The ground: the linen canvas with white cards, and one warm dark ladder (DL-097, § Workspace Tinting).
 - The control-grade outline on fields, chips and secondary buttons, and one solid focus ring in each surface's focus role (DL-098).
+- One count badge, the shared `CountBadge`, on the workspace tone's accent here (DL-099, § Workspace Tinting).
 - Solid surfaces: every card, sheet, dialog and menu is opaque on both, and the cockpit's nav dock below is the one translucent piece (DL-108).
 
 Each shared piece that follows joins this list with its decision-log row.
@@ -67,7 +68,7 @@ Each shared piece that follows joins this list with its decision-log row.
 - **Motion**: the Standard scheme on the spring tokens; a hover is an elevation step or the neutral ink layer, never a lift.
 - **Navigation**: the AppBar, the NavigationBar dock and its FAB (§ Navigation).
 
-**What leaves with the rule.** Each piece that Material 3 used to justify is replaced by the shared piece in its own change: the filled field with an underline, elevation as a card's surface, the 12px card corner, the 8px chip, the underline tab rail, the gray count chip and the warm gray phone sheet. Until its replacement lands, a piece keeps the anatomy this guide gives it.
+**What leaves with the rule.** Each piece that Material 3 used to justify is replaced by the shared piece in its own change: the filled field with an underline, elevation as a card's surface, the 12px card corner, the 8px chip, the underline tab rail and the warm gray phone sheet; the gray count chip has already given way to the shared count badge (DL-099). Until its replacement lands, a piece keeps the anatomy this guide gives it.
 
 **Tokens keep their names.** The `--m3-*` tokens are an internal layer under the shared names the views read, and a name changes only when a change has to touch it. Shape, depth and motion read from that layer and the admin aliases beside it:
 
@@ -120,20 +121,22 @@ CSS Grid with named areas:
 
 ## Workspace Tinting
 
-The canvas is the same warm linen as the installed app, `#FAF8F5` (`--m3-surface-container-low` in light, the warm dark floor `--m3-surface` in dark), and never changes color per workspace. Cards are white in light and sit ten points of lightness above the canvas in dark, with an 8% ring, so a card never blends into the ground (the dark ladder is the shared Earth ramp in `theme.css`, DL-097). Each workspace's tonal palette (defined in `admin-m3-tokens.css`) appears in exactly three places:
+The canvas is the same warm linen as the installed app, `#FAF8F5` (`--m3-surface-container-low` in light, the warm dark floor `--m3-surface` in dark), and never changes color per workspace. Cards are white in light and sit ten points of lightness above the canvas in dark, with an 8% ring, so a card never blends into the ground (the dark ladder is the shared Earth ramp in `theme.css`, DL-097). Each workspace's tonal palette (defined in `admin-m3-tokens.css`) appears in exactly five places:
 
-1. **Active tab**: the `AdminTabRail` underline and active label (the count chip flips to the tone container pair).
+1. **Active tab**: the `AdminTabRail` underline and active label.
 2. **Active nav pill**: the NavigationBar active item, via `--tone-primary-container` / `--tone-on-primary-container`.
 3. **At most one filled header action**: the single `--tone-action` filled button per route. A review surface such as the Hub fills none: its whole action set renders outlined, and the declared primary still sorts rightmost and fills the FAB (DL-043).
+4. **The FAB**: the nav-shell `FabButton`, the workspace's primary action, filled with `--tone-action` and labeled in `--tone-on-action`.
+5. **Count badges**: the shared `CountBadge` on every `AdminTabRail` tab that counts, active or not, filled with `--tone-on-surface-accent` and inked with `--tone-on-action` (DL-099).
 
 One atmospheric allowance on top: a faint top-of-canvas wash from `--tone-surface-tint-color` (5% light / 10% dark) fading to transparent by 320px. Everything else on the canvas stays neutral ink and stone.
 
 Color roles:
 
 - `--tone-action` is for filled action backgrounds.
-- `--tone-on-action` is the text/icon color on filled action backgrounds.
-- `--tone-primary-container` / `--tone-on-primary-container` are the active-selection container pair (nav pill, active tab count chips).
-- `--tone-on-surface-accent` is for colored text/icons on solid surfaces.
+- `--tone-on-action` is the text/icon color on filled action backgrounds and the count badge's ink.
+- `--tone-primary-container` / `--tone-on-primary-container` are the active-selection container pair (the nav pill).
+- `--tone-on-surface-accent` is for colored text/icons on solid surfaces, and fills the count badge (DL-099). It equals the action fill in every tone but Community, where it is orange-800 (white at 7.09:1 on the cockpit's amber ramp) beside the orange-700 fill (5.02:1).
 - `--tone-focus-ring` is the cockpit's value of the one focus role; it resolves to action tone in light mode and on-surface accent in dark mode, and the shared controls draw it as one solid 2px ring (DL-098). The installed app sets the same role to its green.
 - `--tone-surface-tint-color` feeds only the canvas wash.
 - `--m3-outline` is the control-grade boundary for fields, chips, and outlined buttons; the shared fields, chips and secondary buttons draw it through `--gg-control-outline` (DL-098).
@@ -157,7 +160,7 @@ Wrappers (25): AdminButton, AdminCard, AdminCheckbox, AdminChoiceGroup, AdminCon
 - `AdminSelectableCard` is for richer exclusive or multi-select choices where the option needs a title, description, icon, or metadata.
 - `AdminListRow` is for a list row that opens its record: the whole row is the button, its height follows its content, and the open record is marked current. Actions stay `AdminButton`; choices stay `AdminSelectableCard`.
 - `AdminChoiceGroup` is for compact single-select preferences and context switches inside dense panels.
-- `AdminTabRail` is the exclusive mode/tab control for route-local views. Anatomy: underline tabs on a hairline stone rule, with a 2px accent underline under the active tab and neutral count chips that flip to the tone container pair when active.
+- `AdminTabRail` is the exclusive mode/tab control for route-local views. Anatomy: underline tabs on a hairline stone rule, with a 2px accent underline under the active tab, and the shared `CountBadge` on every tab that counts (DL-099).
 - `AdminFilterChip` is the compact filter grammar for toggles inside toolbars. A selected chip shows its fill and `aria-pressed`, never a check mark, so selecting it never changes its width (DL-065).
 - `AdminInputChip` holds something the steward chose and can take back out, such as a person named as a confirmer: a 32px outlined chip with an optional avatar and a remove button.
 - Avoid new direct shared `Card` usage in admin route work unless the route is intentionally consuming an existing shared, non-admin surface.
@@ -193,8 +196,8 @@ This is the admin's application of the root [Interface Principles](../../DESIGN.
 
 - **Single elevation ladder**: `--m3-elevation-0/1/2` plus `--admin-chrome-shadow` for floating nav/FAB chrome; nothing else casts shadow.
 - **Radius set**: 4/8/12/16/9999px only; no 20/24/28px shapes anywhere in admin.
-- **Four-use tone budget**: workspace tone appears only in the active tab, the active nav pill, at most one filled header action (none on a review surface, DL-043), and the nav-shell FAB fill (plus the faint canvas wash).
-- **Hover rule**: hovers are an elevation step-up or the neutral ink layer `rgb(var(--m3-on-surface) / 0.08)`; never translate/scale lifts or hue shifts.
+- **Five-use tone budget**: workspace tone appears only in the active tab, the active nav pill, at most one filled header action (none on a review surface, DL-043), the nav-shell FAB fill and the tab rail's count badges (DL-099), plus the faint canvas wash.
+- **Hover rule**: hovers are an elevation step-up or the neutral ink layer `rgb(var(--m3-on-surface) / 0.08)`, painted beneath the label on a filled control (`m3-state-layer-beneath`) so a hovered or pressed label keeps its rest contrast; never translate/scale lifts or hue shifts.
 - **AdminButton only**: pill-shaped, Title Case action labels in en (DL-012; es/pt keep native casing); admin views never render the shared `Button` (`gg-button`).
 - **Shared pieces ride the shared family (DL-031)**: the shared components the cockpit renders (FileUploadField, DatePicker, ConfidenceSelector, AudioRecorder, ImagePreviewDialog, toast actions, AssetSelector, AddressDisplay, Alert) keep their shared `Button` / `IconButton` / `Chip` / control anatomy; `index.css` sets the family's `--gg-*` tokens (pills, one 14px / 500 label, lg and md on 40, sm on 32, compact on 28, a 44px finger box) and `surface="admin"` puts a shared field on the responsive field tier and the switch on the M3 52 × 32 track. Never restyle a shared piece from admin; move the token.
 - **Compact cockpit metric (DL-011, DL-030)**: control heights ride the 28/32/36/40/44 scale, with buttons 28/32/40 (sm/md/lg, one 14px label, a 44px finger box on every tier: `admin-hit-target` below 40px, `admin-hit-target-lg` on the 40px tier including close buttons and AppBar icons), fields 44 with 16px text on touch widths (matching the installed app) and 40 with 14px text from 640px, with a 12px floating label, inline field 32 on the md-button axis, toolbar pills and tabs 36, chips 32, identity pill 36. Shell chrome (AppBar 56, FAB 48/56 per DL-010, nav dock) sits deliberately outside this scale.

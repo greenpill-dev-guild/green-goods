@@ -14,9 +14,9 @@ Paste this sentence (or a trimmed version) into every AI design prompt for admin
 
 The admin cockpit and the installed app speak one Warm Earth language. The cockpit's strict Material 3 rule is retired (DL-095): the cockpit sets the app's language denser, and keeps a few dials of its own because they serve stewards, not because Material 3 asks for them.
 
-- **Shared with the app**: Plus Jakarta Sans with one set of type role names (DL-096); the linen canvas with white cards and one warm dark ladder (DL-097); the control-grade outline and one solid focus ring (DL-098); solid surfaces (DL-108); and beneath them concentric geometry, spring motion tokens, role hierarchy (canvas/ink/stone/green accent), 4 disclosure layers and 5 Z-layers. Each shared piece that follows arrives with its decision-log row.
+- **Shared with the app**: Plus Jakarta Sans with one set of type role names (DL-096); the linen canvas with white cards and one warm dark ladder (DL-097); the control-grade outline and one solid focus ring (DL-098); one count badge (DL-099); solid surfaces (DL-108); and beneath them concentric geometry, spring motion tokens, role hierarchy (canvas/ink/stone/green accent), 4 disclosure layers and 5 Z-layers. Each shared piece that follows arrives with its decision-log row.
 - **The cockpit's own dials**: Standard motion scheme (never Expressive); translucency restricted to the Navigation/FAB **Controlled Chrome**: flat 85% surface + 12px blur + warm ambient shadow + 1px ink ring (rules in `admin-m3-tokens.css`), never "liquid glass", while every dialog and side-sheet surface is solid and `MainSheet` is transparent; transparent admin `AppBar` root over the workspace canvas; the reduced admin radius scale 4/8/12/16/9999, where every button is a pill and the FAB is a capsule at both sizes (DL-010); the compact control metric 28/32/36/40/44 (DL-011: buttons 28/32/40, fields 44, toolbar pills 36); inline filter chips and sort in the toolbar (DL-082); a tone per workspace on a fixed budget (§ Workspace Tone below); Title Case action labels in en (DL-012); no organic/hero shapes; no decorative color.
-- **What leaves with the rule**: the filled field with an underline, elevation as a card's surface, the 12px card corner, the 8px chip, the underline tab rail, the gray count chip and the warm gray phone sheet, each replaced by the shared piece in its own change. Until then, describe each piece as `packages/admin/DESIGN.md` does. The `--m3-*` token names stay as an internal layer.
+- **What leaves with the rule**: the filled field with an underline, elevation as a card's surface, the 12px card corner, the 8px chip, the underline tab rail and the warm gray phone sheet, each replaced by the shared piece in its own change (the gray count chip already gave way to the shared count badge, DL-099). Until then, describe each piece as `packages/admin/DESIGN.md` does. The `--m3-*` token names stay as an internal layer.
 - **Why**: stewards use both surfaces in one sitting. When the pieces they meet on both are the same, switching keeps one mental model, while density, pills, tones and navigation still say which surface they are on. Stewards scanning a queue need motion that aids, not entertains. The cockpit inherits warmth; it does not perform it.
 
 If you would not ship a move on Linear, GitHub, or Stripe Dashboard, it does not belong in the cockpit, regardless of what the Warm Earth language permits in client flows.
@@ -127,17 +127,19 @@ changes, FAB menus, dialogs, and interaction state ride the admin motion role al
 
 Each workspace carries an accent hue (Hub=blue, Garden=green, Community=orange, Actions=purple),
 but the canvas itself never tints: it stays constant linen (`--m3-surface-container-low`) in
-light and m3 surface in dark. Tone spends a **4-use budget**: (1) the active tab underline/label
-and active nav pill (`--tone-primary-container` / `--tone-on-primary-container`), (2) the single
-filled header action (`--tone-action`), (3) the faint canvas wash (`--tone-surface-tint-color`,
-5% light / 10% dark, fading to transparent by 320px), (4) the nav-shell FAB fill
-(`Shell/FabButton`), the one tone-filled control in the floating chrome. The mechanism is a `[data-tone]` attribute
-on the CanvasLayout root that sets the surviving `--tone-*` roles: `--tone-action`,
+light and m3 surface in dark. Tone spends a **5-use budget**: (1) the active tab underline and
+label, (2) the active nav pill (`--tone-primary-container` / `--tone-on-primary-container`), (3) the
+single filled header action (`--tone-action`), (4) the nav-shell FAB fill (`Shell/FabButton`), the
+one tone-filled control in the floating chrome, and (5) the count badge on every tab of the rail
+(the shared `CountBadge` on `--tone-on-surface-accent`, DL-099). Outside the budget, a faint canvas
+wash (`--tone-surface-tint-color`, 5% light / 10% dark) fades to transparent by 320px. The
+mechanism is a `[data-tone]` attribute on the CanvasLayout root that sets the surviving
+`--tone-*` roles: `--tone-action`,
 `--tone-on-surface-accent`, `--tone-primary-container` / `--tone-on-primary-container`, and
 `--tone-surface-tint-color` (workspace palettes live in `admin-m3-tokens.css`); components read
 `var(--tone-action, var(--m3-primary))` so they fall back to the M3 accent when unscoped.
 **Portals escape the scope**: anything portaled to `<body>` (dialogs, poppers) must re-establish
-tone via the `tone` prop or it silently falls back. Anything beyond the four sanctioned uses is
+tone via the `tone` prop or it silently falls back. Anything beyond the five sanctioned uses is
 drift: never content surfaces, never extra washes.
 
 ### Never rename `--color-primary`
