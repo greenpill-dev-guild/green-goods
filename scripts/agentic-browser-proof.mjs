@@ -23,15 +23,12 @@ const widths = (process.env.GREEN_GOODS_BROWSER_PROOF_WIDTHS || "375,1024,1440")
   .map((width) => Number(width.trim()))
   .filter((width) => Number.isFinite(width) && width > 0);
 
-// Route proof runs against Brave's native WebMCP by default. Brave 155 exposes
-// `document.modelContext` with the WebMCPTesting feature; Brave 156 Beta needs the WebMCP Blink
-// feature, so both switches are passed. GREEN_GOODS_BROWSER_PROOF_WEBMCP=injected leaves them out:
-// the page then has no native registry, and the proof's recording shim takes its place.
+// Route proof runs against Brave's native WebMCP by default: the WebMCPTesting feature exposes
+// `document.modelContext` on Brave 155 stable and Brave 156 Beta alike.
+// GREEN_GOODS_BROWSER_PROOF_WEBMCP=injected leaves the switch out, so the page has no native
+// registry and the proof's recording shim takes its place.
 const webMcpLaunchSwitches = {
-  native: [
-    "--enable-features=WebMCPTesting,DevToolsWebMCPSupport",
-    "--enable-blink-features=WebMCP",
-  ],
+  native: ["--enable-features=WebMCPTesting,DevToolsWebMCPSupport"],
   injected: [],
 };
 
