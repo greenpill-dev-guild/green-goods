@@ -174,6 +174,10 @@ describe("AdminDensityScale.guard (DL-011)", () => {
       "--gg-focus-halo-alpha": "0",
       // The message line under every field reserves two lines, as the app's do (F3).
       "--gg-field-message-lines": "2",
+      // A selected chip lays the neutral ink layer at the cockpit's state
+      // opacities on hover and press; the app sets neither (DL-116).
+      "--gg-chip-state-hover": "var(--m3-state-hover)",
+      "--gg-chip-state-pressed": "var(--m3-state-pressed)",
       // The state block's calm mark stays neutral: the workspace tone keeps to
       // its budget (Rule 18).
       "--gg-state-mark-fill": "rgb(var(--text-strong-950) / 0.06)",

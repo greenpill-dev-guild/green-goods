@@ -152,6 +152,10 @@
      640px, 6 of the 32 messages under side-by-side fields wrap in English,
      Spanish and Portuguese, so one line would let them move the form. */
   --gg-field-message-lines: 2;
+  /* A selected chip answers a hover or a press with the neutral ink layer at the
+     cockpit's state opacities, beneath its label (Rule 18, DL-116). */
+  --gg-chip-state-hover: var(--m3-state-hover);
+  --gg-chip-state-pressed: var(--m3-state-pressed);
 
   /* The state block's calm mark stays neutral: a quiet ink tint and the sub
      ink, where the app draws its green, because the workspace tone is held to

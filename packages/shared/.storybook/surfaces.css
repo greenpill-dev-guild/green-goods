@@ -97,6 +97,8 @@
   --gg-focus-ring-width: 2px;
   --gg-focus-halo-alpha: 0;
   --gg-field-message-lines: 2;
+  --gg-chip-state-hover: var(--m3-state-hover);
+  --gg-chip-state-pressed: var(--m3-state-pressed);
   --gg-state-mark-fill: rgb(var(--text-strong-950) / 0.06);
   --gg-state-mark-ink: rgb(var(--text-sub-600));
 

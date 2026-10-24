@@ -1865,6 +1865,25 @@
     color: rgb(var(--tone-on-action, var(--primary-action-foreground)));
   }
 
+  /* A selected chip answers a hover or a press with the neutral ink layer over
+     its fill, as the cockpit's filled controls do (Rule 18, DL-116). The layer is
+     a background image, so it paints beneath the label and the label keeps its
+     contrast. Its opacities are the cockpit's chip state tokens (index.css): the
+     app sets none, so its selected chips do not change. */
+  .gg-chip[aria-pressed="true"]:hover,
+  .gg-chip[aria-checked="true"]:hover,
+  .gg-chip[aria-selected="true"]:hover {
+    --gg-chip-state-layer: rgb(var(--m3-on-surface, var(--text-strong-950)) / var(--gg-chip-state-hover, 0));
+    background-image: linear-gradient(var(--gg-chip-state-layer), var(--gg-chip-state-layer));
+  }
+
+  .gg-chip[aria-pressed="true"]:active,
+  .gg-chip[aria-checked="true"]:active,
+  .gg-chip[aria-selected="true"]:active {
+    --gg-chip-state-layer: rgb(var(--m3-on-surface, var(--text-strong-950)) / var(--gg-chip-state-pressed, 0));
+    background-image: linear-gradient(var(--gg-chip-state-layer), var(--gg-chip-state-layer));
+  }
+
   .gg-chip:disabled,
   .gg-chip[aria-disabled="true"] {
     pointer-events: none;

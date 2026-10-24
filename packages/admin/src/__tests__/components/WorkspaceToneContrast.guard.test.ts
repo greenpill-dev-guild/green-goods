@@ -6,7 +6,8 @@
  * buttons put `--tone-on-action` (white in light, the tone's -900 ink in dark,
  * DL-009) on `--tone-action`, as a selected filter chip does (DL-101). Shared
  * buttons hover on `--tone-action-hover`. A selected filter chip is Shared's
- * chip (DL-116), which keeps its fill in every state. The cockpit's filled
+ * chip (DL-116): it keeps its fill and, on hover and press, lays the neutral
+ * ink layer as a background image, so beneath its label. The cockpit's filled
  * AdminButton, AdminIconButton and FAB keep their fill
  * and lay the neutral ink layer (`--m3-on-surface`, Rule 18) over it at the
  * state opacities, beneath their content (`.m3-state-layer-beneath`): the
@@ -115,6 +116,26 @@ const FILLED_CONTROLS: Record<string, string> = {
 /** The shared chip's selected rule, which the cockpit's filter chip renders (DL-116). */
 const SELECTED_CHIP = blocks(theme, '.gg-chip[aria-selected="true"]');
 
+/**
+ * The state opacity the shared selected chip lays the neutral ink at on hover and
+ * on press: a chip state token the cockpit sets to one of its M3 state opacities
+ * (index.css). It paints the layer as a background image, so beneath its label.
+ */
+const SELECTED_CHIP_STATES = [":hover", ":active"].map((pseudo) => {
+  const rule = blocks(theme, `.gg-chip[aria-selected="true"]${pseudo}`);
+  const token = rule.match(
+    /--gg-chip-state-layer:\s*rgb\(var\(--m3-on-surface\b[^/]*\/\s*var\((--gg-chip-state-[a-z]+),\s*0\)\)/
+  )?.[1];
+  const state = token
+    ? declared(token, [blocks(app, ":root")]).match(/^var\((--m3-state-[a-z]+)\)$/)?.[1]
+    : undefined;
+  const beneath =
+    /background-image:\s*linear-gradient\(var\(--gg-chip-state-layer\),\s*var\(--gg-chip-state-layer\)\)/.test(
+      rule
+    );
+  return { pseudo, state: beneath ? state : undefined };
+});
+
 /** Whether the stylesheet paints an opted-in control's state layer beneath its content. */
 const BENEATH_RULE =
   /isolation:\s*isolate;/.test(blocks(tokens, ".m3-state-layer-beneath")) &&
@@ -160,6 +181,12 @@ describe("workspace tone fills", () => {
           expect(ratio, `${label} ${control} ${state}`).toBeGreaterThanOrEqual(4.5);
         }
       }
+      // The selected filter chip lays the same layer beneath its label (DL-116).
+      for (const { pseudo, state } of SELECTED_CHIP_STATES) {
+        const opacity = STATES.find((entry) => entry.state === state)?.opacity ?? Number.NaN;
+        const ratio = contrast(over(fill, layer, opacity), ink);
+        expect(ratio, `${label} selected chip ${pseudo}`).toBeGreaterThanOrEqual(4.5);
+      }
     }
   });
 
@@ -181,10 +208,15 @@ describe("workspace tone fills", () => {
     expect(SELECTED_CHIP).toMatch(
       /color:\s*rgb\(var\(--tone-on-action,\s*var\(--primary-action-foreground\)\)\)/
     );
-    // A hover never repaints a selected chip: the selected rule follows the hover rule.
+    // The unselected hover never repaints it: the selected rule follows the hover rule.
     expect(theme.indexOf(".gg-chip:hover")).toBeLessThan(
       theme.indexOf('.gg-chip[aria-pressed="true"]')
     );
+    // Hover and press answer with the neutral ink layer at the cockpit's state opacities.
+    expect(SELECTED_CHIP_STATES).toEqual([
+      { pseudo: ":hover", state: "--m3-state-hover" },
+      { pseudo: ":active", state: "--m3-state-pressed" },
+    ]);
   });
 
   it("finds each filled control and lays the neutral ink layer, not the label's color", () => {
