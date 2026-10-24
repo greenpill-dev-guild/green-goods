@@ -171,6 +171,10 @@
      640px, 6 of the 32 messages under side-by-side fields wrap in English,
      Spanish and Portuguese, so one line would let them move the form. */
   --gg-field-message-lines: 2;
+  /* A selected chip answers a hover or a press with the neutral ink layer at the
+     cockpit's state opacities, beneath its label (Rule 18, DL-116). */
+  --gg-chip-state-hover: var(--m3-state-hover);
+  --gg-chip-state-pressed: var(--m3-state-pressed);
 
   /* The state block's calm mark stays neutral: a quiet ink tint and the sub
      ink, where the app draws its green, because the workspace tone is held to
@@ -872,27 +876,6 @@
   line-height: var(--type-body-sm-lh, 1rem);
   letter-spacing: var(--type-body-sm-ls, 0.025rem);
   font-weight: 400;
-}
-
-.admin-m3 [data-component="EmptyState"] {
-  padding-block: clamp(3rem, 8vh, 5rem);
-}
-
-.admin-m3 [data-component="EmptyState"] [data-slot="icon"] {
-  width: 4.5rem;
-  height: 4.5rem;
-}
-
-.admin-m3 [data-component="EmptyState"] [data-slot="title"] {
-  font-size: var(--type-title-lg, 1.375rem);
-  line-height: var(--type-title-lg-lh, 1.75rem);
-  font-weight: 600;
-}
-
-.admin-m3 [data-component="EmptyState"] [data-slot="description"] {
-  max-width: 34rem;
-  font-size: var(--type-body-lg, 1rem);
-  line-height: var(--type-body-lg-lh, 1.5rem);
 }
 
 .main-scroll-area::-webkit-scrollbar-track {

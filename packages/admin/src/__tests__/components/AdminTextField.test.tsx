@@ -8,7 +8,7 @@ import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, userEvent } from "../test-utils";
 
 describe("AdminTextField", () => {
-  it("sets the label above the outlined control and the message line below it (F3)", () => {
+  it("sets the label above Shared's control and the message line below it (F3, DL-116)", () => {
     render(<AdminTextField label="Garden name" helperText="Shown on the garden's page." />);
 
     const control = screen.getByRole("textbox", { name: "Garden name" });
@@ -18,7 +18,10 @@ describe("AdminTextField", () => {
     expect(label.tagName).toBe("LABEL");
     expect(label).toHaveClass("gg-field-label");
     expect(box?.previousElementSibling).toBe(label);
-    expect(box).toHaveClass("ring-1", "ring-inset");
+    // The control is Shared's own field on the admin surface, which draws the box.
+    expect(control).toHaveAttribute("data-component", "TextInput");
+    expect(control).toHaveAttribute("data-surface", "admin");
+    expect(control).toHaveClass("gg-control");
     // The message line is the shared one, which reserves the surface's lines.
     expect(screen.getByText("Shown on the garden's page.").parentElement).toHaveClass(
       "gg-field-help",
@@ -32,11 +35,12 @@ describe("AdminTextField", () => {
 
     const control = screen.getByRole("textbox", { name: "Search" });
     expect(control).toHaveAttribute("placeholder", "Search by title");
-    expect(control).toHaveClass("placeholder:text-text-soft");
+    // The shared control colours its own placeholder (gg-control::placeholder).
+    expect(control).toHaveClass("gg-control");
     expect(control.className).not.toContain("placeholder-transparent");
   });
 
-  it("thickens the outline inside the box on focus and on error, so the field keeps its height", () => {
+  it("marks an error on the shared control, which draws its own focus ring and error", () => {
     render(
       <>
         <AdminTextField label="Name" />
@@ -45,16 +49,15 @@ describe("AdminTextField", () => {
     );
 
     const name = screen.getByRole("textbox", { name: "Name" });
-    const nameBox = name.closest('[data-region="field-container"]');
     fireEvent.focus(name);
-    expect(nameBox).toHaveClass("ring-2", "ring-inset");
-    expect(nameBox?.className).toContain("--tone-focus-ring");
+    expect(name).not.toHaveAttribute("data-invalid");
+    // No ring classes on a wrapper: the control's own focus ring is the shared one (DL-098).
+    expect(name.closest('[data-region="field-container"]')?.className).not.toContain("ring-");
 
-    const emailBox = screen
-      .getByRole("textbox", { name: /Email/ })
-      .closest('[data-region="field-container"]');
-    expect(emailBox).toHaveClass("ring-2", "ring-inset");
-    expect(emailBox?.className).toContain("--m3-error");
+    const email = screen.getByRole("textbox", { name: /Email/ });
+    expect(email).toHaveAttribute("aria-invalid", "true");
+    expect(email).toHaveAttribute("data-invalid", "true");
+    expect(screen.getByText("Email").className).toContain("--m3-error");
   });
 });
 
@@ -222,7 +225,10 @@ describe("AdminSelect", () => {
     const control = screen.getByRole("combobox", { name: "Cycle" });
     expect(control.tagName).toBe("SELECT");
     expect(screen.getByText("Cycle")).toHaveClass("gg-field-label");
-    expect(control).toHaveClass("py-3", "sm:py-2.5", "leading-5");
+    // Shared's select on the admin surface, with its own chevron and no icon of the field's.
+    expect(control).toHaveAttribute("data-surface", "admin");
+    expect(control).toHaveClass("gg-control", "gg-control-select");
+    expect(control.parentElement?.querySelector("span[aria-hidden]")).toBeNull();
     // Option-row colours are not a utility on this control: a Tailwind class
     // would land in @layer utilities and beat the shared rule, putting the
     // cockpit field on a different surface from every other select. The contract
