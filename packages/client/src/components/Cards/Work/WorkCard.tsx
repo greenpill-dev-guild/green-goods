@@ -82,6 +82,11 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
   const gardenerName = formatAddress(work.gardenerAddress, {
     ensName: gardenerGreenGoodsEnsName || gardenerEnsName,
   });
+  // Feedback is a detail, never a second pill (F7): it takes the age's place unless the list
+  // words its own second detail.
+  const feedbackDetail = work.feedback?.trim()
+    ? formatMessage({ id: "app.workCard.feedback", defaultMessage: "Feedback" })
+    : undefined;
 
   return (
     <SharedWorkCard
@@ -102,7 +107,7 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
       statusLabel={presentation?.statusLabel}
       statusTone={presentation?.statusTone}
       contextLabel={presentation?.contextLabel}
-      supportingText={presentation?.supportingText}
+      supportingText={presentation?.supportingText ?? feedbackDetail}
       labels={labels}
     />
   );

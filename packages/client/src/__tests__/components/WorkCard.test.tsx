@@ -20,7 +20,13 @@ describe("components/Cards/MinimalWorkCard", () => {
   };
 
   it("names the work, its one status pill and its short age, with the photo count on the photo", () => {
-    render(<MinimalWorkCard work={work as any} onClick={vi.fn()} actionTitle="Custom Title" />);
+    render(
+      <MinimalWorkCard
+        work={{ ...work, feedback: "" } as any}
+        onClick={vi.fn()}
+        actionTitle="Custom Title"
+      />
+    );
 
     const row = screen.getByRole("button");
     expect(row).toHaveTextContent("Custom Title");
@@ -28,8 +34,15 @@ describe("components/Cards/MinimalWorkCard", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Approved");
     expect(screen.getByText("1 photo")).toBeInTheDocument();
     expect(screen.getByText("2 hr. ago")).toBeInTheDocument();
-    // Feedback is a detail only where a list words it so; it is never a second pill.
     expect(screen.queryByText("Feedback")).not.toBeInTheDocument();
+  });
+
+  it("gives feedback in the age's place, never as a second pill", () => {
+    render(<MinimalWorkCard work={work as any} onClick={vi.fn()} />);
+
+    expect(screen.getAllByRole("status")).toHaveLength(1);
+    expect(screen.getByText("Feedback")).toBeInTheDocument();
+    expect(screen.queryByText("2 hr. ago")).not.toBeInTheDocument();
   });
 
   it("calls onClick when the compact card is pressed", async () => {
