@@ -57,6 +57,7 @@ The cockpit speaks the installed app's Warm Earth language at a denser setting. 
 - One count badge, the shared `CountBadge`, on the workspace tone's accent here (DL-099, § Workspace Tinting).
 - The app's equal-width tabs: the tinted active cell under its accent label and underline, at the cockpit's 36px height (DL-100, § Admin Component Pattern).
 - Capsule chips with one selected fill: `AdminFilterChip` is a 32px capsule that a selection fills with the workspace tone's action pair, the app's selected look in the tone (DL-101).
+- One card surface and one item row: the shared `.gg-card` with the app's 24px corner, edge and faint shadow, and the shared `ItemRow` in every list (DL-102, § Card and selection grammar).
 - The phone sheet: below 640px every dialog and the side sheet take the app's bottom sheet material, grip and header, at the cockpit's own 22px title (DL-104, § Admin Component Pattern).
 - One field anatomy: the label above an outlined box and a message line that reserves two lines, at the cockpit's 8px corner and heights (DL-105, § Cockpit M3 1a Invariants).
 - The active-tab pill on both bottom bars: the workspace tone's container here, the green container in the app (DL-107, § Navigation).
@@ -73,7 +74,7 @@ Each shared piece that follows joins this list with its decision-log row.
 - **Motion**: the Standard scheme on the spring tokens; a hover is an elevation step or the neutral ink layer, never a lift.
 - **Navigation**: the AppBar, the NavigationBar dock and its FAB (§ Navigation).
 
-**What leaves with the rule.** Each piece that Material 3 used to justify is replaced by the shared piece in its own change: elevation as a card's surface, the 12px card corner and the warm gray phone sheet; the gray count chip has already given way to the shared count badge (DL-099), the underline tab rail to the app's equal-width tabs (DL-100), the 8px chip to the capsule chip (DL-101), and the filled field with an underline to the outlined field with the label above (DL-105). Until its replacement lands, a piece keeps the anatomy this guide gives it.
+**What leaves with the rule.** Each piece that Material 3 used to justify is replaced by the shared piece in its own change: the gray count chip has given way to the shared count badge (DL-099), the underline tab rail to the app's equal-width tabs (DL-100), the 8px chip to the capsule chip (DL-101), elevation as a card's surface and the 12px card corner to the shared card (DL-102), the warm gray phone sheet to the app's bottom sheet (DL-104), and the filled field with an underline to the outlined field with the label above (DL-105). Until its replacement lands, a piece keeps the anatomy this guide gives it.
 
 **Tokens keep their names.** The `--m3-*` tokens are an internal layer under the shared names the views read, and a name changes only when a change has to touch it. Shape, depth and motion read from that layer and the admin aliases beside it:
 
