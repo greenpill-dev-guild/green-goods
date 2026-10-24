@@ -6,6 +6,7 @@
 // step so a value can be corrected without walking the flow again. One status
 // row above the sections says where the send stands and keeps its height while
 // it works, so the sections under it never move (DL-072, DL-080).
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import type { Action } from "@green-goods/shared/types/domain";
 import { type ReactNode, useEffect, useMemo } from "react";
 import { useIntl } from "react-intl";
@@ -23,17 +24,6 @@ export interface SubmitWorkReviewProps {
   status: FlowSendStatus;
   /** Jump back to a step to edit it (1=Action, 2=Media, 3=Details). */
   onEditStep?: (step: number) => void;
-}
-
-function ReviewRow({ label, value }: { label: string; value: ReactNode }) {
-  return (
-    <div className="flex flex-col gap-0.5 py-1.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
-      <span className="type-label-sm text-text-sub">{label}</span>
-      <span className="min-w-0 break-words type-body text-text-strong sm:max-w-[60%] sm:text-right">
-        {value}
-      </span>
-    </div>
-  );
 }
 
 function ReviewCard({
@@ -138,14 +128,14 @@ export function SubmitWorkReview({
           editText={edit}
           editable={editable}
         >
-          <div className="divide-y divide-stroke-soft">
+          <FactList frame="inset">
             {action.inputs.map((input) => {
               const raw = values[input.key];
               const value =
                 raw === undefined || raw === null || raw === "" ? emptyValue : String(raw);
-              return <ReviewRow key={input.key} label={input.title} value={value} />;
+              return <FactRow key={input.key} label={input.title} value={value} />;
             })}
-          </div>
+          </FactList>
         </ReviewCard>
       ) : null}
 
@@ -158,22 +148,22 @@ export function SubmitWorkReview({
         editText={edit}
         editable={editable}
       >
-        <div className="divide-y divide-stroke-soft">
-          <ReviewRow
+        <FactList frame="inset">
+          <FactRow
             label={formatMessage({
               id: "app.admin.work.submit.timeSpent",
               defaultMessage: "Time Spent (hours)",
             })}
             value={timeValue}
           />
-          <ReviewRow
+          <FactRow
             label={formatMessage({
               id: "app.admin.work.submit.feedback",
               defaultMessage: "Feedback",
             })}
             value={feedback || emptyValue}
           />
-        </div>
+        </FactList>
       </ReviewCard>
 
       <ReviewCard

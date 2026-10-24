@@ -1,3 +1,4 @@
+import { FactList, FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
   RiCheckboxCircleLine,
@@ -127,14 +128,11 @@ export function FlowStatusRow({
         ) : null}
       </div>
       {summary ? (
-        <dl className="col-start-2 mt-2 space-y-1 border-t border-stroke-soft pt-2">
+        <FactList frame="inset" className="col-start-2 mt-2 border-t border-stroke-soft">
           {summary.map(([label, value], index) => (
-            <div key={index} className="flex justify-between gap-4 type-body">
-              <dt className="max-w-[55%] shrink-0 text-text-soft">{label}</dt>
-              <dd className="min-w-0 text-right text-text-strong">{value}</dd>
-            </div>
+            <FactRow key={index} label={label} value={value} />
           ))}
-        </dl>
+        </FactList>
       ) : null}
     </div>
   );

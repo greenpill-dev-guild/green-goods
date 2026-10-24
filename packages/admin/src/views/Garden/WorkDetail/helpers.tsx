@@ -1,3 +1,4 @@
+import { FactRow } from "@green-goods/shared/components/Cards/FactRow";
 import { Confidence, type Work, type WorkMetadata } from "@green-goods/shared/types/domain";
 import { useIntl } from "react-intl";
 import { z } from "zod";
@@ -36,35 +37,6 @@ export function parseWorkMetadata(metadataStr: string): Partial<WorkMetadata> | 
 // ─────────────────────────────────────────────────────────────
 // Sub-components
 // ─────────────────────────────────────────────────────────────
-
-/**
- * Definition row — label left, value right on one line (dialog interior
- * grammar §3.3). Halves the vertical footprint of the old stacked icon rows
- * that made the review dialog read as whitespace.
- */
-export function DetailRow({
-  icon,
-  label,
-  value,
-}: {
-  icon?: React.ReactNode;
-  label: string;
-  value: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-baseline justify-between gap-4">
-      <p className="flex shrink-0 items-center gap-1.5 type-label-sm text-text-soft">
-        {icon ? (
-          <span aria-hidden className="self-center [&>svg]:h-3.5 [&>svg]:w-3.5">
-            {icon}
-          </span>
-        ) : null}
-        {label}
-      </p>
-      <div className="min-w-0 text-right type-body text-text-strong">{value}</div>
-    </div>
-  );
-}
 
 export function ReviewSummary({ work }: { work: Work }) {
   const { formatMessage } = useIntl();
@@ -136,7 +108,7 @@ export function renderMetadataDetails(metadata: Partial<WorkMetadata>): React.Re
   return (
     <>
       {entries.map((entry) => (
-        <DetailRow key={entry.label} label={entry.label} value={entry.value} />
+        <FactRow key={entry.label} label={entry.label} value={entry.value} />
       ))}
     </>
   );
