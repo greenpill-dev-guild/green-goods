@@ -1,4 +1,5 @@
 import { Alert } from "@green-goods/shared/components/Alert";
+import { ItemRow } from "@green-goods/shared/components/Cards/ItemRow/ItemRow";
 import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
 import { useEmergencyPause } from "@green-goods/shared/hooks/vault/useEmergencyPause";
@@ -21,14 +22,13 @@ import {
   getVaultAssetSymbol,
 } from "@green-goods/shared/utils/blockchain/vaults";
 import { getBlockExplorerAddressUrl } from "@green-goods/shared/utils/eas/explorers";
-import { RiExternalLinkLine } from "@remixicon/react";
-import { useEffect, useState } from "react";
+import { RiBankLine, RiExternalLinkLine } from "@remixicon/react";
+import { useEffect, useId, useState } from "react";
 import { useIntl } from "react-intl";
 import { useReadContracts } from "wagmi";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminConfirmDialog } from "@/components/AdminDialog";
 import { EnsAddressText } from "@/components/EnsAddressText";
-import { AdminCard } from "../AdminCard";
 import { HarvestOutcomeAlerts } from "./HarvestOutcomeAlerts";
 
 interface PositionCardProps {
@@ -41,6 +41,13 @@ interface PositionCardProps {
   onWithdraw: (assetAddress: Address) => void;
 }
 
+/**
+ * A garden's endowment position on the shared item row: the asset, its depositors and its
+ * net deposits on the right, with a pill only when deposits are off, and no action on the row.
+ * The row opens the position's page beneath it: the vault's contract, its yield and harvests,
+ * Deposit and Withdraw, and a steward's harvest and pause. The page stays mounted while it is
+ * closed, so a harvest or pause in flight keeps its state and its outcome.
+ */
 export function PositionCard({
   gardenAddress,
   vault,
@@ -53,6 +60,8 @@ export function PositionCard({
   const { formatMessage, formatNumber } = useIntl();
   const { primaryAddress } = useUser();
   const chainId = useCurrentChain();
+  const pageId = useId();
+  const [pageOpen, setPageOpen] = useState(false);
   const harvestDistribution = useHarvestDistribution();
   const emergencyPause = useEmergencyPause();
   const enableAutoAllocate = useEnableAutoAllocate();
@@ -262,177 +271,181 @@ export function PositionCard({
     : "app.yield.harvestDistribution.action.distribute";
 
   return (
-    <AdminCard>
-      <div className="mb-4">
-        <div className="flex items-center justify-between">
-          <h3 className="type-title-md font-semibold text-text-strong">{assetSymbol}</h3>
-          {!vaultAcceptingDeposits && (
-            <span className="rounded-full bg-warning-lighter px-2 py-1 type-meta-sm font-medium text-warning-dark">
-              {formatMessage({ id: "app.treasury.depositsDisabled" })}
-            </span>
-          )}
-        </div>
-        <a
-          href={getBlockExplorerAddressUrl(chainId, vault.vaultAddress)}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-1 inline-flex items-center gap-1 type-meta text-primary-dark hover:underline"
-        >
-          {formatMessage({ id: "app.explorer.viewVault" })}:{" "}
-          <EnsAddressText address={vault.vaultAddress} />
-          <RiExternalLinkLine className="h-3 w-3" />
-        </a>
-      </div>
+    <div className="flex flex-col gap-2">
+      <ItemRow
+        lead={{ kind: "icon", icon: <RiBankLine /> }}
+        title={assetSymbol}
+        status={
+          vaultAcceptingDeposits
+            ? undefined
+            : { label: formatMessage({ id: "app.treasury.depositsDisabled" }), tone: "warning" }
+        }
+        details={[
+          formatMessage({ id: "app.treasury.depositorTotal" }, { count: vault.depositorCount }),
+        ]}
+        amount={{
+          value: `${formatTokenAmount(netDeposited, assetDecimals, 4, undefined, true)} ${assetSymbol}`,
+          caption: formatMessage({ id: "app.treasury.netDeposited" }),
+        }}
+        onOpen={() => setPageOpen(!pageOpen)}
+        aria-expanded={pageOpen}
+        aria-controls={pageId}
+      />
 
-      {/* Plain label and value rows: the card is the one container (D33). */}
-      <dl className="divide-y divide-stroke-soft type-body">
-        <div className="flex items-baseline justify-between gap-3 py-2">
-          <dt className="type-meta-sm text-text-soft">
-            {formatMessage({ id: "app.treasury.netDeposited" })}
-          </dt>
-          <dd className="font-semibold tabular-nums text-text-strong">
-            {formatTokenAmount(netDeposited, assetDecimals)} {assetSymbol}
-          </dd>
-        </div>
-        <div className="flex items-baseline justify-between gap-3 py-2">
-          <dt className="type-meta-sm text-text-soft">
-            {formatMessage({ id: "app.treasury.currentYield" })}
-          </dt>
-          <dd
-            className={`font-semibold tabular-nums ${unharvestedImpactYield > 0n ? "text-success-dark" : "text-text-strong"}`}
+      {/* Hidden, not unmounted: the workflow hooks above and the dialogs below keep their state. */}
+      <div id={pageId} hidden={!pageOpen}>
+        <div className="gg-card gg-item-row-page p-4">
+          <a
+            href={getBlockExplorerAddressUrl(chainId, vault.vaultAddress)}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 type-meta text-primary-dark hover:underline"
           >
-            {formatTokenAmount(unharvestedImpactYield, assetDecimals)} {assetSymbol}
-            {unharvestedImpactYield > 0n && (
-              <span className="ml-1 type-meta font-normal">
-                {formatMessage({ id: "app.yield.accruing" })}
-              </span>
-            )}
-          </dd>
-        </div>
-        <div className="flex items-baseline justify-between gap-3 py-2">
-          <dt className="type-meta-sm text-text-soft">
-            {formatMessage({ id: "app.treasury.depositorCount" })}
-          </dt>
-          <dd className="font-semibold tabular-nums text-text-strong">{vault.depositorCount}</dd>
-        </div>
-        <div className="flex items-baseline justify-between gap-3 py-2">
-          <dt className="type-meta-sm text-text-soft">
-            {formatMessage({ id: "app.treasury.harvestCount" })}
-          </dt>
-          <dd className="font-semibold tabular-nums text-text-strong">{vault.totalHarvestCount}</dd>
-        </div>
-      </dl>
+            {formatMessage({ id: "app.explorer.viewVault" })}:{" "}
+            <EnsAddressText address={vault.vaultAddress} />
+            <RiExternalLinkLine className="h-3 w-3" />
+          </a>
 
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        <AdminButton
-          variant="filled"
-          size="sm"
-          onClick={() => onDeposit(vault.asset)}
-          disabled={!vaultAcceptingDeposits}
-          title={
-            !vaultAcceptingDeposits
-              ? formatMessage({ id: "app.treasury.vaultNotAcceptingDeposits" })
-              : undefined
-          }
-        >
-          {formatMessage({ id: "app.treasury.deposit" })}
-        </AdminButton>
-        <AdminButton variant="outlined" size="sm" onClick={() => onWithdraw(vault.asset)}>
-          {formatMessage({ id: "app.treasury.withdraw" })}
-        </AdminButton>
-      </div>
-
-      {/* Auto-allocation repair — only shown for the specific legacy misconfiguration
-           (deposit limit zero + not shutdown), not for paused/full/generic states */}
-      {isLegacyMisconfiguration && isModuleOwner && (
-        <div className="mt-2">
-          <AdminButton
-            variant="outlined"
-            size="sm"
-            className="w-full border-warning-base bg-warning-lighter text-warning-dark hover:bg-warning-light"
-            onClick={onEnableAutoAllocate}
-            disabled={enableAutoAllocate.isPending}
-            loading={enableAutoAllocate.isPending}
-          >
-            {formatMessage({ id: "app.treasury.enableAutoAllocate" })}
-          </AdminButton>
-        </div>
-      )}
-
-      {canManage && (
-        <div className="mt-3 space-y-3">
-          {!hasWorkflowOutcome && yieldStatus.status === "waiting" && (
-            <Alert variant="info" className="p-3">
-              {formatMessage(
-                { id: "app.yield.harvestDistribution.waitingDetails" },
-                {
-                  amount: formatAmount(yieldStatus.totalAvailable),
-                  threshold: formatAmount(yieldStatus.threshold),
-                }
-              )}
-            </Alert>
-          )}
-
-          {!hasWorkflowOutcome && yieldStatus.status === "error" && (
-            <Alert variant="error" className="p-3">
-              {formatMessage({ id: "app.yield.harvestDistribution.statusUnavailable" })}
-            </Alert>
-          )}
-
-          {/* Unavailable = no registered splitter vault on this network; a
-              refresh cannot change that, unlike a transient read error. */}
-          {!hasWorkflowOutcome && yieldStatus.status === "unavailable" && (
-            <Alert variant="info" className="p-3">
-              {formatMessage({ id: "app.yield.harvestDistribution.notAvailableOnNetwork" })}
-            </Alert>
-          )}
-
-          {!hasWorkflowOutcome && yieldStatus.status === "loading" && (
-            <div className="flex justify-end">
-              <AdminButton variant="tonal" size="sm" disabled loading>
-                {formatMessage({ id: "app.yield.harvestDistribution.action.harvest" })}
-              </AdminButton>
-            </div>
-          )}
-
-          <HarvestOutcomeAlerts
-            result={distributionResult}
-            destinationAddress={yieldStatus.destination.address}
-            isRetryPending={harvestDistribution.isPending}
-            formatAmount={formatAmount}
-            onRetry={openDistributionConfirm}
-            onDismiss={dismissWorkflowOutcome}
-            onReconcile={reconcileWorkflowOutcome}
-          />
-
-          {!hasWorkflowOutcome && canOpenDistribution && (
-            <div className="flex justify-end">
-              {/* Tonal: Deposit is the card's one filled action (D9). */}
-              <AdminButton
-                variant="tonal"
-                size="sm"
-                onClick={() => openDistributionConfirm("auto")}
-                disabled={harvestDistribution.isPending}
-                loading={harvestDistribution.isPending}
+          {/* Plain label and value rows: the page is the one container (D33). Net deposits and
+              depositors are on the row above. */}
+          <dl className="mt-2 divide-y divide-stroke-soft type-body">
+            <div className="flex items-baseline justify-between gap-3 py-2">
+              <dt className="type-meta-sm text-text-soft">
+                {formatMessage({ id: "app.treasury.currentYield" })}
+              </dt>
+              <dd
+                className={`font-semibold tabular-nums ${unharvestedImpactYield > 0n ? "text-success-dark" : "text-text-strong"}`}
               >
-                {formatMessage({ id: actionLabelId })}
-              </AdminButton>
+                {formatTokenAmount(unharvestedImpactYield, assetDecimals)} {assetSymbol}
+                {unharvestedImpactYield > 0n && (
+                  <span className="ml-1 type-meta font-normal">
+                    {formatMessage({ id: "app.yield.accruing" })}
+                  </span>
+                )}
+              </dd>
             </div>
-          )}
+            <div className="flex items-baseline justify-between gap-3 py-2">
+              <dt className="type-meta-sm text-text-soft">
+                {formatMessage({ id: "app.treasury.harvestCount" })}
+              </dt>
+              <dd className="font-semibold tabular-nums text-text-strong">
+                {vault.totalHarvestCount}
+              </dd>
+            </div>
+          </dl>
 
-          <div className="flex justify-end border-t border-stroke-soft pt-3">
+          <div className="mt-4 grid grid-cols-2 gap-2">
             <AdminButton
-              variant="danger"
+              variant="filled"
               size="sm"
-              onClick={() => setConfirmPauseOpen(true)}
-              disabled={!canEmergencyPause || emergencyPause.isPending}
-              loading={emergencyPause.isPending}
+              onClick={() => onDeposit(vault.asset)}
+              disabled={!vaultAcceptingDeposits}
+              title={
+                !vaultAcceptingDeposits
+                  ? formatMessage({ id: "app.treasury.vaultNotAcceptingDeposits" })
+                  : undefined
+              }
             >
-              {formatMessage({ id: "app.treasury.emergencyPause" })}
+              {formatMessage({ id: "app.treasury.deposit" })}
+            </AdminButton>
+            <AdminButton variant="outlined" size="sm" onClick={() => onWithdraw(vault.asset)}>
+              {formatMessage({ id: "app.treasury.withdraw" })}
             </AdminButton>
           </div>
+
+          {/* Auto-allocation repair — only shown for the specific legacy misconfiguration
+               (deposit limit zero + not shutdown), not for paused/full/generic states */}
+          {isLegacyMisconfiguration && isModuleOwner && (
+            <div className="mt-2">
+              <AdminButton
+                variant="outlined"
+                size="sm"
+                className="w-full border-warning-base bg-warning-lighter text-warning-dark hover:bg-warning-light"
+                onClick={onEnableAutoAllocate}
+                disabled={enableAutoAllocate.isPending}
+                loading={enableAutoAllocate.isPending}
+              >
+                {formatMessage({ id: "app.treasury.enableAutoAllocate" })}
+              </AdminButton>
+            </div>
+          )}
+
+          {canManage && (
+            <div className="mt-3 space-y-3">
+              {!hasWorkflowOutcome && yieldStatus.status === "waiting" && (
+                <Alert variant="info" className="p-3">
+                  {formatMessage(
+                    { id: "app.yield.harvestDistribution.waitingDetails" },
+                    {
+                      amount: formatAmount(yieldStatus.totalAvailable),
+                      threshold: formatAmount(yieldStatus.threshold),
+                    }
+                  )}
+                </Alert>
+              )}
+
+              {!hasWorkflowOutcome && yieldStatus.status === "error" && (
+                <Alert variant="error" className="p-3">
+                  {formatMessage({ id: "app.yield.harvestDistribution.statusUnavailable" })}
+                </Alert>
+              )}
+
+              {/* Unavailable = no registered splitter vault on this network; a
+                  refresh cannot change that, unlike a transient read error. */}
+              {!hasWorkflowOutcome && yieldStatus.status === "unavailable" && (
+                <Alert variant="info" className="p-3">
+                  {formatMessage({ id: "app.yield.harvestDistribution.notAvailableOnNetwork" })}
+                </Alert>
+              )}
+
+              {!hasWorkflowOutcome && yieldStatus.status === "loading" && (
+                <div className="flex justify-end">
+                  <AdminButton variant="tonal" size="sm" disabled loading>
+                    {formatMessage({ id: "app.yield.harvestDistribution.action.harvest" })}
+                  </AdminButton>
+                </div>
+              )}
+
+              <HarvestOutcomeAlerts
+                result={distributionResult}
+                destinationAddress={yieldStatus.destination.address}
+                isRetryPending={harvestDistribution.isPending}
+                formatAmount={formatAmount}
+                onRetry={openDistributionConfirm}
+                onDismiss={dismissWorkflowOutcome}
+                onReconcile={reconcileWorkflowOutcome}
+              />
+
+              {!hasWorkflowOutcome && canOpenDistribution && (
+                <div className="flex justify-end">
+                  {/* Tonal: Deposit is the page's one filled action (D9). */}
+                  <AdminButton
+                    variant="tonal"
+                    size="sm"
+                    onClick={() => openDistributionConfirm("auto")}
+                    disabled={harvestDistribution.isPending}
+                    loading={harvestDistribution.isPending}
+                  >
+                    {formatMessage({ id: actionLabelId })}
+                  </AdminButton>
+                </div>
+              )}
+
+              <div className="flex justify-end border-t border-stroke-soft pt-3">
+                <AdminButton
+                  variant="danger"
+                  size="sm"
+                  onClick={() => setConfirmPauseOpen(true)}
+                  disabled={!canEmergencyPause || emergencyPause.isPending}
+                  loading={emergencyPause.isPending}
+                >
+                  {formatMessage({ id: "app.treasury.emergencyPause" })}
+                </AdminButton>
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
       <AdminConfirmDialog
         isOpen={confirmDistributionOpen}
@@ -464,6 +477,6 @@ export function PositionCard({
         tone="community"
         isLoading={emergencyPause.isPending}
       />
-    </AdminCard>
+    </div>
   );
 }
