@@ -398,7 +398,7 @@ export function SeedStepHowMuch({
                   type="button"
                   variant="text"
                   size="sm"
-                  className="mb-5"
+                  className="mb-9"
                   aria-label={formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
                   onClick={() => requirements.remove(index)}
                   disabled={busy}

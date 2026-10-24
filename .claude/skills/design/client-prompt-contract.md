@@ -97,10 +97,10 @@ AI design tools MUST map generated output to these existing exports. Do not inve
 | Family | Components |
 |--------|-----------|
 | Dialogs | `DialogShell` (default: mobile bottom-sheet + desktop centered, solid) |
-| Cards / status | `Card`, `StatCard`, `StatusBadge`, `Alert` |
-| Feedback | `Skeleton`, `Spinner`, `HydrationFallback` |
-| Input | `FileUploadField`, `ListPrimitives`, `DatePicker`, form components |
-| Surfaces | `Surface` with a `solid-*` elevation; its glass elevations are residue, and its own story and the Glass story still show them until they go |
+| Cards / status | `ItemRow`, `MediaCard`, `StatusBadge`, `Alert` |
+| Feedback | `EmptyState` (the state block), `Skeleton`, `Spinner`, `HydrationFallback` |
+| Input | `FileUploadField`, `DatePicker`, form components |
+| Surfaces | `Surface` at its four solid levels: ground, raised, floating and overlay |
 | Identity | `AddressDisplay`, `DomainBadge` |
 | Pickers | `ActionPicker` and `GardenPicker`, arriving with step 16's code change: banner cards in one listbox, the row Submit Work scrolls sideways (DL-111) |
 | Audio | `Audio/*` (voice capture primitives) |

@@ -270,7 +270,7 @@ export function DepositModal({
               <AdminButton
                 variant="outlined"
                 size="sm"
-                className="w-full sm:mt-2 sm:w-auto"
+                className="w-full sm:mt-8 sm:w-auto"
                 onClick={() => {
                   if (!balance) return;
                   form.setValue("amount", formatUnits(balance.value, balance.decimals), {
