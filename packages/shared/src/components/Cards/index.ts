@@ -23,6 +23,8 @@ export {
   type GardenCardVariantProps,
   gardenCardVariants,
 } from "./GardenCard";
+// MediaCard: the card shape for an object with a picture of its own
+export { MediaCard, type MediaCardLayout, type MediaCardProps } from "./MediaCard";
 // VaultPositionCard
 export { VaultPositionCard, type VaultPositionCardProps } from "./VaultPositionCard";
 // WorkCard

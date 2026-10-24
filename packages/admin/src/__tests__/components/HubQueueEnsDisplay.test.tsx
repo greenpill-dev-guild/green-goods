@@ -6,7 +6,7 @@ import enMessages from "@green-goods/shared/i18n/en.json";
 import type { Address, Work } from "@green-goods/shared/types/domain";
 import { render, screen, within } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { mockUseEnsName, mockUseGreenGoodsEnsName } = vi.hoisted(() => ({
   mockUseEnsName: vi.fn(),
@@ -135,5 +135,72 @@ describe("Hub work queue scopes", () => {
     const card = screen.getByRole("button", { name: /Compost setup/ });
     expect(within(card).getByText("Approved")).toBeInTheDocument();
     expect(within(card).queryByText("Pending")).not.toBeInTheDocument();
+  });
+});
+
+// F12: from the cockpit's desktop breakpoint the work card lies wide and the
+// grid takes the wide column rule; narrower widths keep the stacked card.
+describe("Hub work queue layout", () => {
+  const originalMatchMedia = window.matchMedia;
+
+  const atWidth = (width: number) => {
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: query === "(min-width: 1024px)" && width >= 1024,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
+  };
+
+  const renderQueue = (worksLoading = false) =>
+    renderWithIntl(
+      <HubWorkQueue
+        items={worksLoading ? [] : [TEST_WORK]}
+        scope="pending"
+        worksLoading={worksLoading}
+        hasDataError={false}
+        normalizedSearch=""
+        debouncedSearch=""
+        actionsMap={new Map()}
+        selectedWorkId={undefined}
+        onOpenWorkDetail={vi.fn()}
+        onClearSearch={vi.fn()}
+      />
+    );
+
+  beforeEach(() => {
+    mockUseEnsName.mockReturnValue({ data: null });
+    mockUseGreenGoodsEnsName.mockReturnValue({ data: null });
+  });
+
+  afterEach(() => {
+    window.matchMedia = originalMatchMedia;
+  });
+
+  it.each([
+    { width: 1280, layout: "wide" },
+    { width: 1024, layout: "wide" },
+    { width: 768, layout: "stacked" },
+    { width: 390, layout: "stacked" },
+  ])("lays each card $layout at $width px, and the grid with it", ({ width, layout }) => {
+    atWidth(width);
+    renderQueue();
+
+    expect(screen.getByRole("list")).toHaveAttribute("data-card-layout", layout);
+    expect(screen.getByRole("button", { name: /Compost setup/ })).toHaveAttribute(
+      "data-layout",
+      layout
+    );
+  });
+
+  it("loads in the shape it will take, so the queue does not jump", () => {
+    atWidth(1280);
+    renderQueue(true);
+
+    expect(screen.getByRole("list")).toHaveAttribute("data-card-layout", "wide");
   });
 });

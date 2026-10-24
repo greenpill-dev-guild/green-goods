@@ -85,58 +85,9 @@ describe("HubWorkCard", () => {
     expect(tooltipHost).not.toBeNull();
   });
 
-  it("renders domain badge for AGRO", () => {
-    renderCard({ actionDomain: Domain.AGRO });
-    // AGRO domain label from i18n
-    expect(screen.getByText(/Agro/i)).toBeInTheDocument();
-  });
-
   it("hides domain badge when actionDomain is undefined", () => {
     renderCard({ actionDomain: undefined });
     expect(screen.queryByText(/Agro|Solar|Education|Waste/i)).not.toBeInTheDocument();
-  });
-
-  it("renders media count badge when 2+ images", () => {
-    renderCard();
-    // 3 media items → "1 / 3"
-    expect(screen.getByText("1 / 3")).toBeInTheDocument();
-  });
-
-  it("does not render media count badge for single image", () => {
-    renderCard({
-      work: {
-        id: "0x456",
-        title: "Single photo",
-        actionUID: 1,
-        gardenerAddress: "0x1234567890abcdef1234567890abcdef12345678" as `0x${string}`,
-        gardenAddress: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd" as `0x${string}`,
-        feedback: "",
-        metadata: "{}",
-        media: ["ipfs://QmPhoto1"],
-        createdAt: Date.now() / 1000,
-        status: "pending",
-      },
-    });
-    expect(screen.queryByText(/1 \/ 1/)).not.toBeInTheDocument();
-  });
-
-  it("renders fallback gradient when no images", () => {
-    const { container } = renderCard({
-      work: {
-        id: "0x789",
-        title: "No photos",
-        actionUID: 1,
-        gardenerAddress: "0x1234567890abcdef1234567890abcdef12345678" as `0x${string}`,
-        gardenAddress: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd" as `0x${string}`,
-        feedback: "",
-        metadata: "{}",
-        media: [],
-        createdAt: Date.now() / 1000,
-        status: "pending",
-      },
-    });
-    // Should render gradient fallback (no <img> elements)
-    expect(container.querySelectorAll("img")).toHaveLength(0);
   });
 
   it("shows long-waiting work as a neutral Pending with its age, never an alarm", () => {
@@ -296,9 +247,68 @@ describe("HubWorkCard", () => {
     expect(image?.className).not.toContain("scale");
   });
 
-  it("uses a flush card density so media reaches the card edge", () => {
-    renderCard();
-    expect(screen.getByRole("button").className).toContain("p-0");
+  // The mosaic (F12): no photo draws the domain's gradient, one to three photos
+  // draw that many tiles, and more than three draw three with the count on top.
+  it.each([
+    { photos: 0, tiles: 0, count: null },
+    { photos: 1, tiles: 1, count: null },
+    { photos: 2, tiles: 2, count: "1 / 2" },
+    { photos: 3, tiles: 3, count: "1 / 3" },
+    { photos: 5, tiles: 3, count: "1 / 5" },
+  ])("draws $tiles photo tiles for $photos photos", ({ photos, tiles, count }) => {
+    const { container } = renderCard({
+      work: {
+        id: `0xmosaic-${photos}`,
+        title: "Mosaic",
+        actionUID: 1,
+        gardenerAddress: "0x1234567890abcdef1234567890abcdef12345678" as `0x${string}`,
+        gardenAddress: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd" as `0x${string}`,
+        feedback: "",
+        metadata: "{}",
+        media: Array.from({ length: photos }, (_, index) => `ipfs://QmPhoto${index + 1}`),
+        createdAt: Date.now() / 1000,
+        status: "pending",
+      },
+    });
+
+    expect(container.querySelectorAll("img")).toHaveLength(tiles);
+    expect(container.querySelector(".domain-gradient-fallback") !== null).toBe(photos === 0);
+    if (count) expect(screen.getByText(count)).toBeInTheDocument();
+    else expect(screen.queryByText(/^1 \/ \d+$/)).not.toBeInTheDocument();
+    // The domain chip stays on the picture whatever the count.
+    expect(screen.getByText("Agroforestry")).toBeInTheDocument();
+  });
+
+  it("draws the shared card surface, wide when the queue asks for it", () => {
+    const onClick = vi.fn();
+    const { rerender } = renderCard({ onClick });
+    const card = screen.getByRole("button");
+    expect(card).toHaveClass("gg-card");
+    expect(card).toHaveAttribute("data-layout", "stacked");
+
+    rerender(
+      <IntlProvider locale="en" messages={MESSAGES.en}>
+        <HubWorkCard
+          work={{
+            id: "0x123",
+            title: "Planted 50 native saplings",
+            actionUID: 1,
+            gardenerAddress: "0x1234567890abcdef1234567890abcdef12345678" as `0x${string}`,
+            gardenAddress: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd" as `0x${string}`,
+            feedback: "",
+            metadata: "{}",
+            media: [],
+            createdAt: Date.now() / 1000,
+            status: "pending",
+          }}
+          gardenName="Milpa Alta"
+          gardenerDisplayName="0x1234...5678"
+          layout="wide"
+          onClick={onClick}
+        />
+      </IntlProvider>
+    );
+    expect(screen.getByRole("button")).toHaveAttribute("data-layout", "wide");
   });
 
   it("calls onClick when clicked", () => {
@@ -308,8 +318,8 @@ describe("HubWorkCard", () => {
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 
-  it("is a native button element (handles Enter/Space natively)", () => {
-    renderCard();
+  it("is a native button element when it opens the work (handles Enter/Space natively)", () => {
+    renderCard({ onClick: vi.fn() });
     const card = screen.getByRole("button");
     expect(card.tagName).toBe("BUTTON");
   });
@@ -318,10 +328,5 @@ describe("HubWorkCard", () => {
     renderCard();
     const titleEl = screen.getByText("Planted 50 native saplings");
     expect(titleEl).toHaveAttribute("title", "Planted 50 native saplings");
-  });
-
-  it("renders with correct card shape classes", () => {
-    renderCard();
-    expect(screen.getByRole("button").className).toContain("rounded-[var(--m3-shape-md)]");
   });
 });

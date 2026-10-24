@@ -597,6 +597,15 @@
   --radius-2xl: var(--gg-radius-2xl);
   --radius-full: var(--gg-radius-full);
 
+  /* ── Cards (F7) ── One card surface on both surfaces: the card's fill, a 1px
+   * edge and a faint shadow, on a 24px corner. The fill and edge read
+   * --gg-card-surface and --gg-card-edge where a surface sets them (the
+   * cockpit, in admin index.css) and the element's own --bg-white-0 and
+   * --stroke-soft-200 otherwise, so a dark scope below the root resolves its
+   * own. Read by .gg-card in the components layer below. */
+  --gg-card-radius: var(--gg-radius-2xl);
+  --gg-card-shadow: 0 1px 2px 0 rgb(var(--static-black) / 0.05);
+
   /* ── Glass Material ── Blur + transparency tokens for navigation-tier surfaces
    * Applied via .glass-surface utility or per-component backdrop-filter.
    * @media (prefers-contrast: more) forces solid fallback — see utilities.
@@ -791,6 +800,9 @@
   /* Declared again so a dark scope below the root draws the dark stroke: the
    * :root outline has already resolved to the light one when it is inherited. */
   --gg-control-outline: var(--stroke-sub-300);
+  /* A card reads against the dark canvas by its lightness step and its edge; a
+   * black shadow would not show, so the card casts none (F13). */
+  --gg-card-shadow: 0 0 transparent;
   --stroke-soft-200: var(--neutral-800);     /* 34 37 48 - soft borders (subtle elevation) */
   --stroke-white-0: var(--neutral-950);
   
@@ -1922,6 +1934,58 @@
 
   .gg-switch[data-surface="admin"][data-state="checked"] .gg-switch-thumb {
     background: rgb(var(--tone-on-action, var(--m3-on-primary, 255 255 255)));
+  }
+
+  /* ── Card surface (F7) ── The one card surface: the card's fill, a 1px edge
+   * that reads on linen and on the dark canvas, a faint shadow in light and the
+   * 24px corner. */
+  .gg-card {
+    --gg-focus-ring: var(--tone-focus-ring, var(--focus-ring, var(--primary-base)));
+    position: relative;
+    border: 1px solid rgb(var(--gg-card-edge, var(--stroke-soft-200)));
+    border-radius: var(--gg-card-radius);
+    background-color: rgb(var(--gg-card-surface, var(--bg-white-0)));
+    box-shadow: var(--gg-card-shadow);
+  }
+
+  /* ── Media card (F12) ── A card with a picture of its own (MediaCard). Its
+   * picture reaches the card's corners, so the card clips it. One that opens its
+   * object answers like an item row: the neutral ink layer on hover, never a
+   * lift (Rule 18), the focus ring, and a 3px border in the focus role when its
+   * object is open, drawn over the picture. */
+  .gg-media-card {
+    overflow: hidden;
+  }
+
+  button.gg-media-card {
+    cursor: pointer;
+  }
+
+  button.gg-media-card:focus-visible {
+    outline: 2px solid rgb(var(--gg-focus-ring));
+    outline-offset: 2px;
+  }
+
+  @media (hover: hover) {
+    button.gg-media-card:hover {
+      background-image: linear-gradient(
+        rgb(var(--text-strong-950) / 0.04),
+        rgb(var(--text-strong-950) / 0.04)
+      );
+    }
+  }
+
+  .gg-media-card[data-selected="true"] {
+    border-color: rgb(var(--gg-focus-ring));
+  }
+
+  .gg-media-card[data-selected="true"]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border: 2px solid rgb(var(--gg-focus-ring));
+    border-radius: calc(var(--gg-card-radius) - 1px);
+    pointer-events: none;
   }
 
   @media (prefers-reduced-motion: reduce) {

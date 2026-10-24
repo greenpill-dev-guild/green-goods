@@ -176,6 +176,13 @@
   --gg-type-field-size: 1rem;
   --gg-type-field-line: 1.25rem;
   --gg-type-field-tracking: 0px;
+
+  /* The shared card surface (F7) on the cockpit's own ladder: its white card,
+     which flips to the warm card step in dark (re-declared in the dark block
+     below, since this value resolves where it is declared), with the installed
+     app's linen-grade edge. */
+  --gg-card-surface: var(--admin-surface-0);
+  --gg-card-edge: var(--neutral-200);
 }
 
 @media (min-width: 40rem) {
@@ -420,6 +427,11 @@
    * .canvas-route-card read cold/flat. Now a warm, elevated plane. */
   --admin-surface-0: var(--m3-surface-container);     /* 32 25 19 — warm card */
   --admin-surface-50: var(--m3-surface-container-low); /* 24 19 13 — recessed */
+  /* The shared card surface in dark (F7, F13): the warm card step and the
+     installed app's hairline (12% of the ink over the card), re-declared so a
+     dark scope resolves its own. */
+  --gg-card-surface: var(--admin-surface-0);
+  --gg-card-edge: var(--earth-700);
   /* Restore a warm-brown shadow tint (was 0 0 0 — pure black, zero warmth) so the
    * large-blur chrome/sheet shadows that DO render on dark carry Warm Earth. */
   --warm-shadow: 30 22 14;
