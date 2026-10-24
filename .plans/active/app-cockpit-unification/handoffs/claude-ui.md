@@ -14,7 +14,8 @@
   `feature/app-cockpit-count-badge` with its guides `feature/app-cockpit-count-badge-guides`.
   Step 7: `feature/app-cockpit-cards-rows` with its guides `feature/app-cockpit-cards-rows-guides`.
   Step 18: `feature/app-cockpit-jar-vault-cards` (#1234) with its guides
-  `feature/app-cockpit-jar-vault-cards-guides` (#1233).
+  `feature/app-cockpit-jar-vault-cards-guides` (#1233). Step 12:
+  `feature/app-cockpit-app-garden-chip`.
 - Status: in progress. Steps 1 to 3 merged on 23 October; step 4 was approved on its pair the same
   day; every later step starts on its own approved pair. Still pending: labeled authenticated Brave proof of an installed app's first
   launch with no network (step 1) and of the installed app's status bar, with the iOS check of
@@ -673,6 +674,81 @@ Human corrections: 0 observed; attention: unknown.
   stories; the cockpit's glass guard in `check-tokens.sh` scans `packages/admin/src` only, which is
   how the glass in Shared and the app went unflagged; and when the app is offline in a mobile
   browser the 16px offline strip covers only the top of the 24px install strip.
+
+## Step 12: garden context chip (PRD-1278)
+
+- `feature/app-cockpit-app-garden-chip`, cut from `develop` `796e9e1bb`:
+  - **Tokens.** Shared's `GardenChip` reads `--gg-garden-chip-height`, `-inline-start`,
+    `-inline-end`, `-avatar`, `-glyph`, `-caret`, `-edge` and `-focus-ring`, with the cockpit's
+    values as the fallbacks: 36px, 8 and 14px insets, a 22px avatar with a 14px glyph, a 12px
+    caret, the `stroke-sub-300` hairline and the workspace tone's ring. The cockpit sets none of
+    them and renders as before.
+  - **The app's density.** The installed app's scope in Shared `theme.css` sets a 44px capsule (the
+    app's touch tier, where F8 lands the cockpit's 36px pills and tabs), 8 and 16px insets, a 28px
+    avatar with a 16px glyph and caret, the control outline (F3, DL-098) and the app's focus role.
+    The two colors are set again in the dark block, so a nested dark scope resolves its own. The
+    label already takes the app's 16px `type-label`.
+  - **Storybook.** `surfaces.css` mirrors the tokens in the app column's scope and returns them to
+    `initial` in a cockpit column, outside the block `AdminDensityScale.guard` pins. The chip's
+    stories now take the cockpit's surface, the only one that renders it. `AppDensity` shows both
+    chips in three languages with a long name, and its play pins both densities, the long name and
+    the app's focus color.
+- Proof: the chip's unit tests (13), `AdminDensityScale` and `WorkspaceToneContrast` guards (14),
+  the chip's seven stories in the Storybook browser runner, design tokens, React patterns and story
+  quality. The look is **Storybook** pairs
+  ([eval.md](../eval.md#step-12-build-the-garden-chip-at-the-apps-density)); no authenticated class.
+- Guides: none. The change is tokens, the component that reads them, and a story, so no decision
+  row (DL-119 stays unused) and no `token_version` bump.
+- Calls for the maintainer's review of the pair:
+  - 44px, not the app's 32px filter chip: the context chip is a tap target like the app's tab rows,
+    the tier F8 maps the cockpit's 36px pills to.
+  - The app's chip draws the control outline, as the app's other chips and fields do. The cockpit's
+    keeps its hairline.
+  - The avatar stays the mint tile with a deep green glyph in dark, as in the cockpit. The app's
+    container pair (the bottom bar's pill) would invert it in dark.
+  - With no garden selected the chip shows a bare 16px glyph, so its label starts 12px left of the
+    avatar rows' (6px in the cockpit), as in the cockpit's anatomy.
+- Not in the step: mounting the chip in the app's Home, and selection behaviour, both with the PWA
+  simplification hub (RESR-93's design accepted with #1140; implementation not authorized).
+
+Task record: PRD-1278 (step 12) | Type: feature | Outcome: built, PR open; current-head CI and the
+merge are the orchestrator's
+Agent/model: Claude Code / claude-opus-5-5 | Coverage: the step 12 assignment, from the brief to
+the PR
+
+| Phase | Start → end (UTC) | Result / evidence or blocker |
+|---|---|---|
+| Investigate | 18:36Z → 18:50Z | The plan row, the spec, `GardenChip` and its stories, the app guide, the surface scopes, both guards |
+| Implement | 18:50Z → 18:59Z | `b47e23936`: the tokens, the app's scope, the Storybook mirror and `AppDensity` |
+| Verify | 18:55Z → 19:00Z | Unit tests, guards, the story runner, design checks; the pairs and the cockpit pixel comparison |
+
+Human corrections: 0 observed; attention: unknown.
+
+## Step 20 phase 4: cards and tabs (PRD-1287)
+
+- `feature/app-cockpit-shared-cards`, cut from `develop` `796e9e1bb`, with its guide wording in the
+  standards-only `feature/app-cockpit-shared-cards-guides`. Adapters first: each cockpit component
+  keeps its name and props, and the box it draws comes from Shared where a shared piece fits.
+- **`AdminCard`** (72 uses in 40 files) already renders `.gg-card`, the shared card surface, with
+  the cockpit's fill and edge as tokens in `index.css`'s unlayered `:root` (step 7). It keeps the
+  shared card's 24px corner (DL-102) rather than the cockpit's old 12px card, and its stories now
+  describe the shared surface; `StateCatalog`'s play checks that every variant is the shared card.
+- **`AdminListRow`** takes the shared row corner, `--gg-row-radius` (16px, as before), and stays its
+  own row: both call sites (Group's people list and the waiting-for-approval row) lay out content of
+  varying height, which the item row's 88px anatomy would change.
+- **`AdminSelectableCard`** keeps its anatomy: every call site picks a choice without a picture
+  (domains, SDGs, capitals, attestations, Cynefin phases), and the shared `MediaCardPicker` is for
+  objects with a picture of their own (and is not a Shared export).
+- **No shared counterpart:** `AdminTabRail` (Shared has no tabs piece), `AdminTooltip`,
+  `AdminLinearProgress` (Shared's progress pieces are the ENS and submission timelines),
+  `AdminLoadingScreen`, `AdminViewActions` (it renders Shared's `useViewActions` model in the
+  cockpit's header slot and FAB) and `AdminSignIn`. No Shared export or cockpit-only prop was added.
+- `check-tokens.sh`'s legacy-card class still rejects a `<Card` render; its comment now says that
+  `AdminCard` renders `.gg-card`.
+- Proof: **Storybook** pairs of the card variants, a card title, a list row and both selectable-card
+  groups at 390, 768 and 1280px in light and dark, with every measured box and every pixel the same
+  before and after ([eval.md](../eval.md#step-20-phase-4-proof-cards-and-tabs)); the admin tests
+  that render these pieces (37) and the three story files pass. No authenticated class.
 
 ## TDD Proof
 

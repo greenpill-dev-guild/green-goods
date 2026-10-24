@@ -30,6 +30,10 @@ export interface GardenChipProps {
  *
  * Decision D47: single-garden users never see a switcher.
  * Decision D50: dropdown contains only gardens + Create Garden.
+ *
+ * Its size, outline and focus ring read the `--gg-garden-chip-*` tokens. The
+ * cockpit renders their fallbacks, a 36px pill; the installed app's scope sets
+ * the app's density in shared `theme.css`.
  */
 export function GardenChip({
   gardens,
@@ -46,9 +50,17 @@ export function GardenChip({
     formatMessage({ id: "cockpit.gardenChip.selectGarden", defaultMessage: "Select Garden" });
 
   const hasMultiple = gardens.length >= 2;
-  // Bounded by the slot the app bar gives it, so a long name truncates before
-  // the bar's actions rather than running under them.
-  const chipTriggerStyle: CSSProperties = {
+  // A capsule on the raised surface with a 1px edge and no shadow: 36px with
+  // 8px and 14px insets and the hairline stroke in the cockpit, the fallbacks
+  // below, and the app's density where its scope sets the tokens. Bounded by the
+  // slot the app bar gives it, so a long name truncates before the bar's actions
+  // rather than running under them. `--surface-raised` is a complete CSS color
+  // so admin can scope it per theme.
+  const chipStyle: CSSProperties = {
+    height: "var(--gg-garden-chip-height, 36px)",
+    padding: "0 var(--gg-garden-chip-inline-end, 14px) 0 var(--gg-garden-chip-inline-start, 8px)",
+    background: "var(--surface-raised, rgb(var(--bg-white-0)))",
+    border: "1px solid rgb(var(--gg-garden-chip-edge, var(--stroke-sub-300)))",
     maxWidth: "100%",
   };
   const menuSizingStyle: CSSProperties = {
@@ -58,28 +70,30 @@ export function GardenChip({
   };
   const showCreateAction = Boolean(onCreateGarden && showCreateGardenAction);
 
-  // Leading avatar — 22px round mint tile with the seedling glyph (Cockpit M3
-  // 1a switcher anatomy). The inline styles predate admin's build scanning
-  // shared source; utilities would work here too.
+  // Leading avatar: a round mint tile with the seedling glyph (Cockpit M3 1a
+  // switcher anatomy), 22px with a 14px glyph in the cockpit.
   const leadingAvatar = (
     <span
       className="flex shrink-0 items-center justify-center rounded-full"
       style={{
-        width: "22px",
-        height: "22px",
+        width: "var(--gg-garden-chip-avatar, 22px)",
+        height: "var(--gg-garden-chip-avatar, 22px)",
         background: "rgb(var(--green-100))",
         color: "rgb(var(--green-900))",
       }}
       aria-hidden="true"
       data-slot="avatar"
     >
-      <RiSeedlingLine style={{ width: "0.875rem", height: "0.875rem" }} />
+      <RiSeedlingLine
+        style={{
+          width: "var(--gg-garden-chip-glyph, 0.875rem)",
+          height: "var(--gg-garden-chip-glyph, 0.875rem)",
+        }}
+      />
     </span>
   );
 
-  // Static chip when only 1 garden — 36px pill, raised surface, hairline
-  // border, no elevation shadow. `--surface-raised` is a complete CSS color so
-  // admin can scope it per theme; the border rides the semantic stroke token.
+  // Static chip when only 1 garden.
   if (!hasMultiple) {
     return (
       <span
@@ -87,13 +101,7 @@ export function GardenChip({
           "inline-flex max-w-sm items-center gap-2 rounded-full",
           "type-label text-text-strong"
         )}
-        style={{
-          height: "36px",
-          padding: "0 14px 0 8px",
-          background: "var(--surface-raised, rgb(var(--bg-white-0)))",
-          border: "1px solid rgb(var(--stroke-sub-300))",
-          ...chipTriggerStyle,
-        }}
+        style={chipStyle}
         data-component="GardenChip"
         data-slot="root"
         data-state={selectedGarden ? "selected" : "empty"}
@@ -122,15 +130,9 @@ export function GardenChip({
             "transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
             "motion-reduce:transition-none",
             "hover:bg-bg-weak",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--tone-action,var(--green-800))))]"
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--gg-garden-chip-focus-ring,var(--tone-focus-ring,var(--tone-action,var(--green-800)))))]"
           )}
-          style={{
-            height: "36px",
-            padding: "0 14px 0 8px",
-            background: "var(--surface-raised, rgb(var(--bg-white-0)))",
-            border: "1px solid rgb(var(--stroke-sub-300))",
-            ...chipTriggerStyle,
-          }}
+          style={chipStyle}
           data-component="GardenChip"
           data-slot="trigger"
           data-selection-state={selectedGarden ? "selected" : "empty"}
@@ -145,13 +147,12 @@ export function GardenChip({
           </span>
           {/* Caret signals the chip is a garden switcher (QA: the pill didn't
               read as interactive without an explicit dropdown affordance).
-              Its inline metrics and color predate admin's build scanning
-              shared source, like the leading avatar's. */}
+              12px in the cockpit. */}
           <RiArrowDownSLine
             aria-hidden="true"
             style={{
-              height: "0.75rem",
-              width: "0.75rem",
+              height: "var(--gg-garden-chip-caret, 0.75rem)",
+              width: "var(--gg-garden-chip-caret, 0.75rem)",
               flexShrink: 0,
               color: "rgb(var(--text-soft-400))",
             }}
