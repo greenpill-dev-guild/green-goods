@@ -36,7 +36,7 @@ Narrow candidates by:
 | "the card" | `data-component="AdminCard"` (also `HubWorkCard` / `WorkbenchCard`) + visible rect |
 | "the tabs" | `data-component="AdminTabRail"` |
 | "the search" / "search bar" | `data-component="AdminSearchToolbar"` |
-| "that button" / "the CTA" | `data-component="AdminButton"`; the nav-shell FAB is `data-component="FabButton"` |
+| "that button" / "the CTA" | the shared button, `.gg-button` (an icon button is `.gg-icon-button`) with its `data-emphasis` and `data-size`; the nav-shell FAB is `data-component="FabButton"` |
 | "the input" / "the field" | `data-component="AdminTextField"` (+ `data-variant`) |
 | "the dropdown" / "the select" | `data-component="AdminSelect"` (form) or `AdminSortSelect` (toolbar sort pill) |
 | "the list item" / "the row" | `data-component="FactRow"` for a fact or a setting (`data-kind="fact"` or `"setting"`, DL-109; `AdminSettingRow` until DL-109's code change lands); workbench queue rows are the card grammar above |

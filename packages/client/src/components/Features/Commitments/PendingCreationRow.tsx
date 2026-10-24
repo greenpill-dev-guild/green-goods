@@ -31,6 +31,12 @@ interface RowCopy {
   chipId?: string;
   noteId: string;
   noteValues?: Record<string, string>;
+  /**
+   * Something stops the send as it stands, so the note says what before the units do: the
+   * line keeps one row on a phone and drops from its end, and the reader needs the reason
+   * before they try again.
+   */
+  blocked?: boolean;
   /** The act the row offers besides Discard; none while a background flush will send it. */
   actId: string | null;
 }
@@ -47,6 +53,7 @@ function rowCopy(creation: PendingCommitmentCreation, sendsFromTap: boolean): Ro
     return {
       chipId: "app.pool.queued.settlementDeferred",
       noteId: "app.pool.queued.settlementDeferredNote",
+      blocked: true,
       actId: null,
     };
   }
@@ -54,6 +61,7 @@ function rowCopy(creation: PendingCommitmentCreation, sendsFromTap: boolean): Ro
     return {
       pending: "sendFailed",
       noteId: "app.pool.queued.failedNote",
+      blocked: true,
       actId: "app.pool.queued.retry",
     };
   }
@@ -61,6 +69,7 @@ function rowCopy(creation: PendingCommitmentCreation, sendsFromTap: boolean): Ro
     return {
       chipId: "app.commitment.queue.notice.checking.title",
       noteId: "app.commitment.queue.notice.checking.body",
+      blocked: true,
       actId: "app.commitment.queue.checkAgain",
     };
   }
@@ -70,6 +79,7 @@ function rowCopy(creation: PendingCommitmentCreation, sendsFromTap: boolean): Ro
       noteId: sendsFromTap
         ? "app.pool.queued.waitingMembershipNoteUnsent"
         : "app.pool.queued.waitingMembershipNote",
+      blocked: true,
       actId: sendsFromTap ? SEND_NOW : null,
     };
   }
@@ -78,6 +88,8 @@ function rowCopy(creation: PendingCommitmentCreation, sendsFromTap: boolean): Ro
       pending: "notSent",
       noteId: creation.sendFailure?.messageId ?? "app.pool.queued.notSentNote",
       noteValues: creation.sendFailure?.values,
+      // Why the last send failed (a wallet on another network) is what to fix first.
+      blocked: Boolean(creation.sendFailure),
       actId: SEND_NOW,
     };
   }
@@ -91,10 +103,13 @@ function rowCopy(creation: PendingCommitmentCreation, sendsFromTap: boolean): Ro
  * It rides the top of the pool's list in the same row as the indexed ones, so landing back
  * on the pool with the thing visible is the confirmation. The pill carries the queue's
  * state. It has no page yet, so its units lead the details when its title is not already
- * them, and what the state means for the reader follows, in full on hover; the two ways
- * out sit in the row's right slot, the send rightmost. Three casts: waiting to send,
- * waiting for the member's garden hat (which spends no retries), and given up, where retry
- * and discard are the member's explicit choice and nothing is ever dropped silently.
+ * them, and what the state means for the reader follows, in full on hover. While something
+ * stops the send (a failed send, the membership it waits for, a deferred reward, a send that
+ * may already have gone) the reason leads instead and the units follow, so a phone keeps it
+ * in view. The two ways out sit in the row's right slot, the send rightmost. Three casts:
+ * waiting to send, waiting for the member's garden hat (which spends no retries), and given
+ * up, where retry and discard are the member's explicit choice and nothing is ever dropped
+ * silently.
  *
  * A reader who sends from their own tap has no background flush, so for them a creation
  * that has not gone reads as not sent, with Send Now and Discard, and one whose send is on
@@ -164,6 +179,7 @@ export function PendingCreationRow({
       pending={copy.pending}
       units={creation.title ? units : null}
       note={note}
+      blocked={copy.blocked}
       due={creation.groupDueDate ? promiseDueDetail(intl, BigInt(creation.groupDueDate)) : null}
       action={
         discard || send ? (

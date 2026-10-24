@@ -42,7 +42,7 @@ Visual preference alone is not acceptance. Record wrong turns and hesitation, no
 | A16 | Glass | The design guide describes solid surfaces and the cockpit's one translucent dock; the five-thickness material spec is gone and nothing rendered changes. |
 | A17 | Card shapes | Shared holds one card surface and the four shapes, each at two densities; every object card in scope is built from them; no card primitive is left without a consumer. |
 | A18 | One home per object | Each object's card code lives in one place; no two card components share a name; every new Shared path is a deliberate export. |
-| A19 | Cockpit controls | For each migrated family, the cockpit renders only the shared controls; density, hit areas, pill corners and the tone budget are unchanged; Rules 15 and 18 and the wrapper-adoption sweep describe the new direction. For dialogs and sheets, `AdminDialog`'s Radix shell is DL-117's recorded exception: it renders the shared header and action bar inside its own surface. |
+| A19 | Cockpit controls | Admin views render the shared `Button` and `IconButton` directly (DL-119), and the cockpit's other controls render shared pieces inside the composites their decision rows keep: the field family, `AdminInputChip`, `AdminCheckbox` and `AdminChoiceGroup` (DL-116); the `AdminDialog` shell, which renders the shared header and action bar inside its own surface (DL-117); and `AdminCard` over `.gg-card` with the pieces DL-118 lists. Density, hit areas, pill corners and the tone budget are unchanged; Rules 15 and 18 and the design token check describe it, and the check fails if `AdminButton` or `AdminIconButton` returns. |
 | A20 | Detail lines | Every item row's detail line stays on one line at 320, 360 and 390px in English, Spanish and Portuguese; each card type shows its details in the accepted order, and a detail that does not fit drops whole; an age is always a number. |
 | A21 | One height | Every card in a list is the same height on both surfaces, in every state, action and language; the pill under the title never makes a row grow. |
 | A22 | One pill per card | A card shows one pill, its status; an error, a retry or a pending state replaces it, feedback is a detail, and the photo count sits on the photo. |
@@ -1282,3 +1282,36 @@ across twelve scenes, light and dark, and the new family matrix).
 - **What changes, as DL-115 records.** Outlined and text labels take the shared neutral inks and an
   outlined button the card's white fill; the filled hover is its tone's measured hover step;
   buttons drop the elevation shadow; and a loading button stays focusable.
+
+## Step 20 phase 2 proof: fields, selects and chips
+
+Run on 2026-10-24 against `develop` `796e9e1bb`, with phase 2 on `feature/app-cockpit-shared-fields`,
+in **Storybook** (headless Chromium at device scale 2).
+
+- Stories: a capture-only state matrix (every field, text area, select, inline field, chip and
+  search state in the garden tone, and the chips in the hub and community tones too) at 390 and
+  1280px in light and dark, its keyboard focus at 1280px, and eight real form steps re-rendered in
+  Spanish and Portuguese at 640px: Create Garden's details, Create Assessment's details and route,
+  garden settings, hypercert metadata, Seed promises, pool allocation and assessment outcomes.
+- Heights hold: single-line fields and selects are 44px below 640px and 40px from 640px, the inline
+  field 32px, chips 32px and the search pill 34px. A three-row text area is 92px below 640px (84
+  before), because the shared control sets 16px text on a 24px line, and 80px from 640px as before.
+- Forms at 640px: of 64 fields, 60 keep their label, box and message line to the pixel. The four
+  that moved are the description text areas of Create Assessment's details and route, 60 to 80px,
+  the shared control's minimum. The six rows in each language where fields sit side by side stay
+  aligned.
+- What changes on screen: the box is the shared control on the admin surface, with a 1px outline in
+  place of the inset ring, the focus ring 2px off the box, a 1px error border, a white fill where
+  the field was transparent and the shared disabled fill; the filter chip is the shared chip, its
+  selected fill in the workspace tone. With a real pointer, a selected chip in every tone deepens
+  (light) or lifts (dark) by the neutral ink layer on hover (8%) and press (12%), its label color
+  unchanged, and the app's selected chip keeps its fill on hover.
+- Found by the first after capture and fixed before review: the admin surface's outline and fill,
+  declared after the shared error and disabled states at the same weight, hid both, so a field in
+  error kept its gray edge; and the shared disabled rule's background shorthand cleared a disabled
+  select's chevron in light and tiled it across the box in dark. `theme.css` sets the three again
+  for the admin surface, and `AdminTextField`'s `StatesShowOnTheBox` checks them in browser mode;
+  it failed before each fix.
+- Tests: the updated field tests and guards failed 9 of 34 against `develop`'s components and pass
+  34 of 34; the admin suite passes (151 files, 1,378 tests), and so do the shared style guards (70).
+  The 390px focus frames are left out, because the rig clipped them once a focus scrolled the page.

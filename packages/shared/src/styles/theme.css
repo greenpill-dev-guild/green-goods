@@ -1191,12 +1191,34 @@
     }
   }
 
+  /* The admin surface's outline, fill and text come after the shared error and
+     disabled states, so it sets each state again, as the editorial surface does
+     (DL-116): an error draws the box in the field family's error role, the red
+     of its label and message line, and a disabled control takes the shared
+     disabled fill. */
+  .gg-control[data-surface="admin"][data-invalid="true"] {
+    border-color: rgb(var(--m3-error));
+  }
+
+  .gg-control[data-surface="admin"][data-invalid="true"]:focus-visible {
+    outline-color: rgb(var(--m3-error));
+  }
+
+  .gg-control[data-surface="admin"]:disabled {
+    background-color: rgb(var(--bg-soft-200));
+    color: rgb(var(--text-sub-600));
+  }
+
   .gg-control-textarea {
     min-height: 5rem;
     resize: vertical;
   }
 
-  .gg-control-select {
+  /* A disabled select on the admin surface keeps one chevron (DL-116): the shared
+     disabled rule's background shorthand would clear it in light and, with the
+     dark chevron restored over it, tile it across the box in dark. */
+  .gg-control-select,
+  select.gg-control-select[data-surface="admin"]:disabled {
     /* Custom chevron with breathing room — the browser-default arrow sits
        flush against the control edge with no inset. Same glyph light + dark
        via a mid-gray stroke; padding reserves its lane so option text never
@@ -1277,7 +1299,8 @@
   }
 
   :root[data-theme="dark"] .gg-control-select,
-  [data-theme="dark"] .gg-control-select {
+  [data-theme="dark"] .gg-control-select,
+  [data-theme="dark"] select.gg-control-select[data-surface="admin"]:disabled {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a3a3a3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   }
 
@@ -1900,12 +1923,34 @@
     outline-offset: 2px;
   }
 
+  /* The cockpit fills a selected chip in its workspace tone (DL-101, DL-116),
+     read where the chip sits so each tone scope resolves; outside a tone it is
+     the theme's action pair. */
   .gg-chip[aria-pressed="true"],
   .gg-chip[aria-checked="true"],
   .gg-chip[aria-selected="true"] {
     border-color: transparent;
-    background-color: rgb(var(--primary-action));
-    color: rgb(var(--primary-action-foreground));
+    background-color: rgb(var(--tone-action, var(--primary-action)));
+    color: rgb(var(--tone-on-action, var(--primary-action-foreground)));
+  }
+
+  /* A selected chip answers a hover or a press with the neutral ink layer over
+     its fill, as the cockpit's filled controls do (Rule 18, DL-116). The layer is
+     a background image, so it paints beneath the label and the label keeps its
+     contrast. Its opacities are the cockpit's chip state tokens (index.css): the
+     app sets none, so its selected chips do not change. */
+  .gg-chip[aria-pressed="true"]:hover,
+  .gg-chip[aria-checked="true"]:hover,
+  .gg-chip[aria-selected="true"]:hover {
+    --gg-chip-state-layer: rgb(var(--m3-on-surface, var(--text-strong-950)) / var(--gg-chip-state-hover, 0));
+    background-image: linear-gradient(var(--gg-chip-state-layer), var(--gg-chip-state-layer));
+  }
+
+  .gg-chip[aria-pressed="true"]:active,
+  .gg-chip[aria-checked="true"]:active,
+  .gg-chip[aria-selected="true"]:active {
+    --gg-chip-state-layer: rgb(var(--m3-on-surface, var(--text-strong-950)) / var(--gg-chip-state-pressed, 0));
+    background-image: linear-gradient(var(--gg-chip-state-layer), var(--gg-chip-state-layer));
   }
 
   .gg-chip:disabled,

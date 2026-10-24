@@ -32,7 +32,7 @@ packages/admin/src/
 │   ├── Garden/     # Garden management
 │   ├── Layout/     # Canvas layout (CanvasRouteFrame, LeftInspectorDialog, ...)
 │   ├── Shell/      # Admin-owned shell forks: AppBar, MainSheet, NavigationBar (+ FAB)
-│   └── Admin*.tsx  # Top-level admin M3 wrappers (AdminButton, AdminDialog, AdminCard, ...)
+│   └── Admin*.tsx  # Top-level admin M3 wrappers (AdminDialog, AdminCard, AdminTextField, ...)
 ├── styles/          # admin-m3-tokens.css (tokens + Controlled Chrome), admin-m3-components.css (admin skins/motion), admin-layout.css (layout + surface classes; Storybook imports it)
 ├── views/           # Main views (lazy-loaded)
 ├── routes/          # CanvasShell.tsx + RequireRole.tsx
@@ -118,10 +118,11 @@ presentation on mobile. Pass the mounting workspace's `tone` prop — the portal
 `variant="flow"` with `ADMIN_FLOW_DIALOG_CLASS`.
 
 ```typescript
+import { Button } from "@green-goods/shared/components/Button";
 import { AdminDialog } from "@/components/AdminDialog";
 
 <AdminDialog open={open} onOpenChange={setOpen} title="Add member" tone="community"
-  actions={<AdminButton onClick={handleSubmit}>Save</AdminButton>}>
+  actions={<Button type="button" size="sm" onClick={handleSubmit}>Save</Button>}>
   {/* form fields */}
 </AdminDialog>
 ```

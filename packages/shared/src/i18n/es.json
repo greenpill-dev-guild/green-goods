@@ -4222,7 +4222,7 @@
   "cockpit.garden.pool.queued.sent": "Enviado. Esta fila sale cuando el índice muestre la promesa.",
   "cockpit.garden.pool.queued.sentShort": "Enviado",
   "cockpit.garden.pool.queued.untitled": "Nueva promesa",
-  "cockpit.garden.pool.queued.waiting": "Esperando la membresía",
+  "cockpit.garden.pool.queued.waiting": "Falta membresía",
   "cockpit.garden.pool.readError.body": "Algo falló al conectar con el indexador. Nada del fondo común, sus temporadas o sus promesas ha cambiado.",
   "cockpit.garden.pool.readError.retry": "Intentar de nuevo",
   "cockpit.garden.pool.readError.title": "No se pudo cargar este fondo común",
