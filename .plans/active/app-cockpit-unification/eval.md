@@ -445,8 +445,10 @@ step, as the look the cockpit now matches. Headless Chromium (Playwright) at dev
 
 **Contrast** of a selected label on its fill: white on Hub blue-700 7.26, Garden green-800 5.72 and
 Actions purple-700 7.93:1; Community orange-700 carries white at 5.02:1 on the cockpit's amber ramp
-and 4.01:1 on the shared ramp that Storybook and the portals draw until #1206. In dark the tonal
-fills carry their ink at 4.58 (Community) to 7.81:1 (Hub).
+and drew 4.01:1 on the shared ramp that Storybook and the portals used before #1206, which these
+frames predate. `WorkspaceToneContrast.guard` now holds the selected chip to AA in every tone and
+theme, at rest and under its state layers. In dark the tonal fills carry their ink at 4.58
+(Community) to 7.81:1 (Hub).
 
 **Behavior.** Selection still flips `aria-pressed`, the label stays the accessible name, and no
 chip changes width when chosen. Community's member filter is a select below 640px, as before, so

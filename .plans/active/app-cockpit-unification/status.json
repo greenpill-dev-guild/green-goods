@@ -319,7 +319,7 @@
       "lane": "ui",
       "status": "in_progress",
       "branch": "feature/app-cockpit-chips",
-      "note": "Step 6's capsule chips built on feature/app-cockpit-chips (merges after #1206); guide wording and DL-101 on feature/app-cockpit-chips-guides"
+      "note": "Step 6's capsule chips built on feature/app-cockpit-chips, on develop with #1206; guide wording and DL-101 on feature/app-cockpit-chips-guides"
     }
   ]
 }

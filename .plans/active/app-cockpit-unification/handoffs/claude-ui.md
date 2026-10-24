@@ -221,7 +221,7 @@
 - `feature/app-cockpit-chips`, cut from `develop` `5c76ca2b6` and merged with `d84d48398`:
   `AdminFilterChip` is a 32px capsule (`--m3-shape-full`) whose selected state fills with
   `--tone-action` and labels in `--tone-on-action`, with no outline and no check mark (DL-065);
-  its neutral state layer paints beneath the label (`m3-state-layer-beneath`, from #1206) and its
+  its neutral state layer paints beneath the label (`m3-state-layer-beneath`, #1206) and its
   focus ring is a 2px outline 2px off the chip. `AdminInputChip` takes the capsule in its own
   commit. Storybook: a `WorkspaceToneMatrix` story in the CI run, the capsule in
   `ADMIN.chip()`, and the Admin pages' tone cards and shape notes.
