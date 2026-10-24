@@ -112,7 +112,8 @@ function Lead({ lead }: { lead: ItemRowLead }) {
   if (lead.kind === "avatar") {
     return (
       <span className="gg-item-row-lead">
-        <span className="gg-item-row-avatar">
+        {/* A decorative avatar stays out of the row's name, a photo that failed included. */}
+        <span className="gg-item-row-avatar" aria-hidden={lead.alt ? undefined : true}>
           {lead.loading ? null : lead.src ? (
             <ImageWithFallback
               src={lead.src}

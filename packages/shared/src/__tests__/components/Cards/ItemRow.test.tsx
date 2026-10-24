@@ -100,6 +100,19 @@ describe("ItemRow", () => {
     expect(screen.getByRole("button")).toHaveAccessibleName("Claim");
   });
 
+  it("keeps a person's avatar out of the row's name, a photo that fails to load included", () => {
+    const { container } = renderRow({
+      lead: { kind: "avatar", src: "https://images.example/missing.webp" },
+      title: "maria.eth",
+      status: { label: "Gardener", tone: "neutral" },
+      details: ["2 roles"],
+      onOpen: vi.fn(),
+    });
+
+    fireEvent.error(container.querySelector("img") as HTMLImageElement);
+    expect(screen.getByRole("button")).toHaveAccessibleName(/^maria\.eth\s*Gardener\s*2 roles$/);
+  });
+
   it("holds at most two details on one line, in the type's order, an age as a moment", () => {
     renderRow({
       details: [

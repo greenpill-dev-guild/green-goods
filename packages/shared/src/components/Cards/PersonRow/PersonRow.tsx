@@ -39,7 +39,8 @@ export const PersonRow = React.forwardRef<HTMLElement, PersonRowProps>(function 
   ref
 ) {
   const { formatMessage } = useIntl();
-  const avatar = useResolvedProfileAvatar(address, fallbackAvatar, chainId);
+  // A list's rows read their photos together, on the batch route (ProfileAvatarReadOptions).
+  const avatar = useResolvedProfileAvatar(address, fallbackAvatar, chainId, { list: true });
   // GARDEN_ROLE_ORDER runs from the most to the least responsibility.
   const role = roles ? GARDEN_ROLE_ORDER.find((candidate) => roles.includes(candidate)) : undefined;
   const pill = role

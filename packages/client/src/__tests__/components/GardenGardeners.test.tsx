@@ -183,7 +183,8 @@ describe("GardenGardeners", () => {
     expect(useResolvedProfileAvatar).toHaveBeenCalledWith(
       member.account,
       "/images/avatar.png",
-      expect.any(Number)
+      expect.any(Number),
+      { list: true }
     );
 
     vi.mocked(useResolvedProfileAvatar).mockReturnValue({

@@ -78,7 +78,8 @@ describe("PersonRow", () => {
       chainId: 42161,
     });
     expect(container.querySelector("img")).toHaveAttribute("src", "/images/avatar.png");
-    expect(hooks.avatar).toHaveBeenCalledWith(person, "/images/avatar.png", 42161);
+    // A list's rows read their photos together, on the batch route.
+    expect(hooks.avatar).toHaveBeenCalledWith(person, "/images/avatar.png", 42161, { list: true });
 
     const avatar = () => container.querySelector(".gg-item-row-avatar");
     hooks.avatar.mockReturnValue({ avatarUri: null, isLoading: false });

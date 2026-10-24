@@ -380,6 +380,12 @@
     one count. Additive changes underneath: an `avatar` lead and `ItemRowSkeleton({ lead: "avatar" })`
     on `ItemRow`, the `.gg-item-row-avatar` rule in Shared `theme.css`, and a `children` render-prop
     on `AddressDisplay` that hands its resolved name to a row title or a chip.
+  - **Photos in batches.** A row's profile photo read goes out with its list's other rows, 50
+    addresses to a request on the agent's batch route and its own 600-per-10-minute budget
+    (`useProfileAvatar(…, { list: true })`, `profileAvatarTransport.getListed`), so a long roster
+    never spends the 120-read budget the photo editor needs. The batch route has served production
+    since 14 September; this is its first client. A decorative avatar, a failed photo included,
+    stays out of the row's accessible name.
   - **On the row now:** the installed app's garden members (`GardenGardeners`: when a gardener joined
     as the one fact, the app's default avatar for someone with no photo, and the member dialog's title
     from the same display) and send recipients (`MemberRow`: the garden that tells two people apart;
