@@ -8,7 +8,7 @@ Stable vocabulary and never-use list for prompting AI design tools or coding age
 
 Paste this sentence (or a trimmed version) into every AI design prompt for client surfaces:
 
-> Green Goods client is a **PWA in an adaptive shell**. Installed PWA uses a **bottom `AppBar`**; browser uses a **hamburger + `SiteHeader`**. Never mix. Use **Plus Jakarta Sans** in the installed PWA, the admin cockpit's face, and **Inter** on the browser site (editorial serif only appears on the public browser site, never in the PWA). Surfaces follow the **Warm Earth** language: concentric geometry, expressive spring motion, garden-journal feel. Materials are **permitted to be expressive** (liquid glass, organic shapes, hero moments). **Real content over lorem ipsum.** Copy tone is **warm, first-person-community** ("our garden", "what's in season", "how the work grew"), not steward-facing task framing.
+> Green Goods client is a **PWA in an adaptive shell**. Installed PWA uses a **bottom `AppBar`**; browser uses a **hamburger + `SiteHeader`**. Never mix. Use **Plus Jakarta Sans** in the installed PWA, the admin cockpit's face, and **Inter** on the browser site (editorial serif only appears on the public browser site, never in the PWA). Surfaces follow the **Warm Earth** language: concentric geometry, expressive spring motion, garden-journal feel. Expression comes from **organic shapes, spring motion, and hero moments** on **solid surfaces**, never glass. **Real content over lorem ipsum.** Copy tone is **warm, first-person-community** ("our garden", "what's in season", "how the work grew"), not steward-facing task framing.
 
 ## Required Vocabulary
 
@@ -22,7 +22,7 @@ Use these terms when describing client UI:
 | `installed PWA` | Bottom navigation, app-feel, standalone mode |
 | `browser mode` | Hamburger + top header, website-feel |
 | `garden-journal feel` | Handmade but precise, seed-catalog aesthetic |
-| `expressive material` | Liquid glass, organic shapes, spring physics permitted |
+| `expressive shape and motion` | Organic shapes and spring physics, on solid surfaces |
 | `hero moment` | Celebrated flow (garden creation, first work, hypercert mint) |
 | `value flow` | End-to-end chain visualization (submit → review → assess → fund) |
 | `MDR flow` | Media + Data + Review: the core gardener capture loop |
@@ -43,11 +43,12 @@ The categories below are contract-specific framing: *why* client output should r
 - **Growth-hacking framing**: streak, leaderboard, FOMO, re-engagement, retention hook; violates the regenerative lens (also lint-enforced).
 - **Trading-floor / financial-terminal framing**: degen aesthetic; this is a garden, not an exchange.
 - **Gamification**: we use motivation design, not game mechanics.
+- **Glass / liquid / frosted framing**: surfaces are solid (DL-108); the only translucent piece in Green Goods is the cockpit's nav dock.
 
 ## Materials & Motion (client)
 
 - **Full Warm Earth expression** is permitted: capsule + squircle + concentric shapes, spring motion, hero moments, expressive color.
-- **Glass material is allowed across client surfaces**, unlike admin where glass is restricted to Navigation/FAB (the admin sheet shells are retired and its `AppBar` root stays transparent). Match thickness to content density (see [surfaces.md](./surfaces.md)).
+- **Surfaces are solid**, as in the cockpit, whose nav dock is the one translucent piece (DL-108): no glass, blur, or frosted panels on cards, sheets, dialogs, or bars. The browser site's `SiteHeader` stays fully transparent over the hero, with no fill and no blur: transparent chrome draws no surface, so it is not glass (see [surfaces.md](./surfaces.md)).
 - **Spring motion is the default easing**, never hardcoded cubic-bezier or duration values.
 - **Typography**: Plus Jakarta Sans across the installed PWA, shared with the cockpit (DL-096); Inter on the public browser site. Editorial serif (Fraunces/Lora/Newsreader) only on the public browser site, never in the installed PWA.
 - **Succession-aware**: pioneer gardens get simple hero moments, climax gardens get full expression.
@@ -95,11 +96,11 @@ AI design tools MUST map generated output to these existing exports. Do not inve
 
 | Family | Components |
 |--------|-----------|
-| Dialogs | `DialogShell` (default: mobile bottom-sheet + desktop centered, `glass-floating`) |
+| Dialogs | `DialogShell` (default: mobile bottom-sheet + desktop centered, solid) |
 | Cards / status | `Card`, `StatCard`, `StatusBadge`, `Alert` |
 | Feedback | `Skeleton`, `Spinner`, `HydrationFallback` |
 | Input | `FileUploadField`, `ListPrimitives`, `DatePicker`, form components |
-| Surfaces | `Surface` |
+| Surfaces | `Surface` with a `solid-*` elevation; its glass elevations are residue, and its own story and the Glass story still show them until they go |
 | Identity | `AddressDisplay`, `DomainBadge` |
 | Audio | `Audio/*` (voice capture primitives) |
 
@@ -108,7 +109,7 @@ AI design tools MUST map generated output to these existing exports. Do not inve
 - Never a raw Tailwind size or a retired Material name. The app's own views still carry the shared scale (`text-label-md` and its siblings) until they move.
 
 **Hero moment amplification** (garden creation, first work submission, hypercert mint, vault deposit, seasonal transitions, assessment completion, role milestone):
-- Apply full Warm Earth amplification: expressive shape × full chroma × Expressive motion scheme × display typography × dramatic material.
+- Apply full Warm Earth amplification: expressive shape × full chroma × Expressive motion scheme × display typography, on solid surfaces (no material step, DL-108).
 - Spec and list: `.claude/skills/design/language.md § Hero Moments`.
 - **Never appear in admin** (see `prompt-contract.md § Hero Moments Live in the Client, Not the Cockpit`).
 
