@@ -99,7 +99,7 @@ AI design tools MUST map generated output to these existing exports. Do not inve
 | Cards / status | `Card`, `StatCard`, `StatusBadge`, `Alert` |
 | Feedback | `Skeleton`, `Spinner`, `HydrationFallback` |
 | Input | `FileUploadField`, `ListPrimitives`, `DatePicker`, form components |
-| Surfaces | `Surface` (its `solid-*` elevations; the glass ones are residue) |
+| Surfaces | `Surface` with a `solid-*` elevation; its glass elevations are residue, and its own story and the Glass story still show them until they go |
 | Identity | `AddressDisplay`, `DomainBadge` |
 | Audio | `Audio/*` (voice capture primitives) |
 

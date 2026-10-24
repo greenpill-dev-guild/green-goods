@@ -99,11 +99,11 @@ Use when starting a new view or refactoring an existing one.
 
 ```
 Q1: Is this a primary action area where the user DOES things?
-    → Yes: Command Surface (thick material, high contrast, controls visible)
+    → Yes: Command Surface (high density, high contrast, controls visible)
     → No: Q2
 
 Q2: Is this monitoring/status that the user GLANCES at?
-    → Yes: Ambient Display (thin material, peripheral, never demands attention)
+    → Yes: Ambient Display (low prominence, peripheral, never demands attention)
     → No: Q3
 
 Q3: Is this data exploration (charts, history, comparisons)?

@@ -35,7 +35,7 @@ Visual depth cues (blur, shadow, scale) need non-visual equivalents:
 
 ## Solid Surfaces
 
-Every surface that carries content or controls is solid, in the installed app, the cockpit, and the public website alike: cards, panels, sheets, dialogs, menus, popovers, and bars (DL-108). A surface takes an opaque fill (`var(--color-material-solid)` in Shared, the surface's own card token in each app, never a hardcoded `bg-white/65`), and its depth comes from its shadow tier and stacking order.
+This section replaces § Material System, which the high-contrast fallback comment in `theme.css` still names until the code that removes the residue below changes it. Every surface that carries content or controls is solid, in the installed app, the cockpit, and the public website alike: cards, panels, sheets, dialogs, menus, popovers, and bars (DL-108). A surface takes an opaque fill (`var(--color-material-solid)` in Shared, the surface's own card token in each app, never a hardcoded `bg-white/65`), and its depth comes from its shadow tier and stacking order.
 
 - **One translucent piece**: the cockpit's nav dock (the `NavigationBar` with its FAB), a flat 85% surface with a 12px blur, a warm ambient shadow, and a 1px ink ring (Controlled Chrome in `packages/admin/DESIGN.md`). Nothing else is translucent.
 - **The scrim is not a surface**: a dialog or sheet that interrupts the main flow dims the page behind it with the shared scrim. The scrim carries no content.
