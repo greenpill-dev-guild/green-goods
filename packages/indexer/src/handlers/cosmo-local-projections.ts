@@ -37,7 +37,10 @@ type ParametersForEntity =
   | "VoucherServiceFinalAllocation"
   | "VoucherServiceFinalLegResult"
   | "VoucherServiceFinalResult"
-  | "VoucherServiceAcknowledgment";
+  | "VoucherServiceAcknowledgment"
+  | "VoucherIssuerAuthority"
+  | "VoucherReserveAsset"
+  | "VoucherPoolExchange";
 export type CosmoContext = { readonly [Name in ParametersForEntity]: Store<Name> };
 
 /** The emitting module is part of every new projection identity. */

@@ -2278,6 +2278,55 @@ type VoucherServiceFinalResult {
   timestamp: Int!
 }
 
+# Current source binding only. This is not issuer approval of any particular terms revision.
+type VoucherIssuerAuthority {
+  id: ID!
+  chainId: Int!
+  moduleAddress: String!
+  issuer: String!
+  token: String!
+  authority: String!
+  blockNumber: BigInt!
+  logIndex: Int!
+  txHash: String!
+  timestamp: Int!
+}
+
+# Reserve authorization does not establish balance, allowance, issuance or service capacity.
+type VoucherReserveAsset {
+  id: ID!
+  chainId: Int!
+  moduleAddress: String!
+  issuer: String!
+  token: String!
+  issuerAuthority: String!
+  enabled: Boolean!
+  blockNumber: BigInt!
+  logIndex: Int!
+  txHash: String!
+  timestamp: Int!
+}
+
+# Immutable emitted settlement facts. SwapSettlement does not identify its output recipient.
+type VoucherPoolExchange {
+  id: ID!
+  chainId: Int!
+  moduleAddress: String!
+  initiator: String!
+  tokenIn: String!
+  tokenOut: String!
+  amountIn: BigInt!
+  quotedAmountOut: BigInt!
+  nominalAmountOut: BigInt!
+  amountOut: BigInt!
+  poolFee: BigInt!
+  protocolFee: BigInt!
+  blockNumber: BigInt!
+  logIndex: Int!
+  txHash: String!
+  timestamp: Int!
+}
+
 type VoucherServiceAcknowledgment {
   id: ID!
   chainId: Int!

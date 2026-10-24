@@ -240,6 +240,19 @@ contracts:
       - event: VoucherSetupResultRecorded(bytes32 indexed setupId, uint64 indexed sequence, (uint8 version, bytes32 setupId, bytes32 authorizationHash, uint64 resultSequence, uint8 phase, uint8 decision, bool issuerApproved, bytes32 depositReceiptHash, uint256 depositedUnits, uint256 setupRefundedUnits, bytes32 appliedDecisionId, bool actionSucceeded, bytes32 failureHash) result)
       - event: VoucherFinalResultRecorded(bytes32 indexed setupId, uint64 indexed sequence, (uint8 protocolVersion, bytes32 setupId, bytes32 payloadHash, uint64 sequence, bytes32 activationDecisionId, bytes32 decisionId, uint256 issuerReturnApprovalAtFreeze, (uint256 approvedDeliveredServiceUnits, uint256 releaseVoucherUnits, uint256 refundVoucherUnits) allocation, (uint8 state, uint64 attempts, bytes32 failureHash) release, (uint8 state, uint64 attempts, bytes32 failureHash) refund) result)
       - event: VoucherHolderAbortRequested(bytes32 indexed setupId, address indexed holder, bool alreadyAccepted)
+  - name: VoucherEntitlementModule
+    handler: src/EventHandlers.ts
+    events:
+      - event: IssuerAuthorityConfigured(address indexed issuer, address indexed token, address indexed authority)
+  # Codegen definitions only: Gnosis addresses await verified deployment adoption.
+  - name: GnosisVoucherAdapter
+    handler: src/EventHandlers.ts
+    events:
+      - event: AssetConfigured(address indexed issuer, address indexed token, address indexed issuerAuthority, bool enabled)
+  - name: CLCSwapPool
+    handler: src/EventHandlers.ts
+    events:
+      - event: SwapSettlement(address indexed initiator, address indexed tokenIn, address indexed tokenOut, uint256 amountIn, uint256 quotedAmountOut, uint256 nominalAmountOut, uint256 amountOut, uint256 poolFee, uint256 protocolFee)
   - name: GnosisVoucherEscrow
     handler: src/EventHandlers.ts
     events:
@@ -294,6 +307,8 @@ chains:
         address: "0x294d222eDE6DF6625B43544F1C634322467528Da"
       - name: CommitmentPoolingModule
         address: "0x6BB5b0fd70b6771B0E955Fef37f8Bd2ce911470a"
+      # Discovered locally from the core's immutable EarnedVoucherModulePinned event.
+      - name: VoucherEntitlementModule
       - name: CommitmentRegistry
         address: "0x66300dA4d3749bFc9F7326DB94e0DEb47A7a3959"
       - name: SettlementModule

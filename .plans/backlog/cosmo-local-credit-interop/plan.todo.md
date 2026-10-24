@@ -5,7 +5,7 @@
 **Linear Project**: Cosmo-Local Integration
 **Linear Source**: source:plans
 **Stage**: `backlog`
-**Status**: `CONTROLLED LIVE PILOT PREPARATION; MEMBER ISSUANCE ADDED; DEPLOYMENT INPUTS OPEN`
+**Status**: `CONTROLLED LIVE PILOT PREPARATION; LOCAL MEMBER PROOF; ONBOARDING INPUTS DEFERRED`
 **Created**: 2026-08-25
 **Last Updated**: `2026-10-23 Pacific`
 **Companion documents**: [`brief.md`](./brief.md) · [`spec.md`](./spec.md) ·
@@ -17,8 +17,8 @@ The user requires member-owned service vouchers alongside garden vouchers in the
 and accepts steward-assisted onboarding. The member retains ownership and exact approval. This
 section supersedes the two-issuer-only completion boundary; historical completed tasks below keep
 their original proof scope. The user has dispatched implementation, with the bounded independent
-execution-tooling checkpoint committed first, then M1–M8 in dependency order. No new member-issuer
-runtime or deployment result is claimed by this plan update.
+execution-tooling checkpoint committed first, then M1–M8 in dependency order. Local implementation
+and rehearsal proof are recorded below; no live member deployment is claimed.
 
 | # | Locked decision | Implementation consequence |
 |---|---|---|
@@ -39,7 +39,7 @@ hub's `parent_only` and `preserve_existing` modes. This planning pass changes no
 | Step | Owning paths / work | Completion evidence |
 |---|---|---|
 | M1 | Define the labeled TAS rehearsal roster, independent deliverables and peer services; record confirmed versus unknown live units, capacities, token owner/reserve, source signer, upgrade/recovery controls and remedies | Fixture authority is explicit and cannot become live approval by default. Actual issuer acceptance remains required before live configuration; no private career notes or identities copied into public Git. |
-| M2 | Contracts release tooling: extend `script/utils/clc-release.ts`, its tests and `config/clc-pilot-release.json` from two fixed Safe issuers to explicit individual/collective records | Reject missing or mismatched authorities; deterministic inventory/nonce plans; member token initialization has no leftover deployer powers; existing collective manifests remain compatible. |
+| M2 | Contracts release tooling: add a strict member extension beside the authoritative unchanged v1 collective manifest and planner | Reject missing or mismatched authorities; deterministic inventory/nonce plans; member token initialization has no leftover deployer powers; existing collective manifests remain compatible. |
 | M3 | Contracts authority proof: extend the existing `GnosisVoucherPilot` / journey fixture and owning source/escrow tests | Three distinct project participants; at least two member-owned service assets. Member signs issuer approval and reserve calls; wrong member/steward/Safe cannot substitute. Existing generic modules suffice or a specific failing case justifies a narrow source change. |
 | M4 | Contracts configuration/execution: extend the existing release package and simulation at their current owners | Configure member authority under the required pause boundary, finite allowance, rate, fees, pool cap and inventory; idempotent recovery/adoption and exact readback include every added asset. |
 | M5 | Shared issuer/route metadata and Indexer projections, in separate package checkpoints | Individual/collective issuer, service unit and approval provenance round-trip; replay and pending/failure states remain truthful. A token transfer is not delivery or fresh capacity. |
@@ -57,19 +57,35 @@ Reuse boundaries: the current `VoucherEntitlementModule` owns source issuer bind
 reward approval; `GnosisVoucherAdapter` owns reserve authorization; service escrow owns issuer
 approval and once-only transfers; `ServiceOffersLib` owns steward-controlled offer terms and
 acceptance. Extend these owners only where a member-path test demonstrates a gap. The release
-planner's fixed issuer list is the confirmed tooling gap. Member UI/indexer wiring remains to be
-proved. No self-service issuer factory, new team token, automatic project split or multi-issuer
+planner's fixed issuer list was the confirmed tooling gap. Member UI and Indexer wiring now have
+focused and full selected local proof. No self-service issuer factory,
+new team token, automatic project split or multi-issuer
 escrow belongs to these checkpoints. The bounded TAS example is selected for implementation;
 broader collaboration/project-platform features remain outside scope.
 
 ### Proof status for the amendment
 
+Local proof at 24 October UTC: the [member rehearsal record](artifacts/member-issuer-local-proof-2026-10-24.json)
+binds the frozen source hashes, 108 planner/readback cases, 37 CLI checks, twelve-deployment
+preparation/adoption probes and the 21-case owning Gnosis suite. The selected critical local
+checks pass, including all Shared projects, full Client/Admin/Agent suites and application builds.
+Shared issuer/buyer behavior has 116 focused cases, Client has 24, Admin has 13, and the
+Indexer suite has 366 passes with one existing pending case. These have different proof scopes;
+they do not establish a live signing ceremony. The fictional
+[M1 parameters](pilot-issuer-terms.md#fictional-rehearsal-parameters) and
+[recommended member defaults](pilot-issuer-terms.md#recommended-defaults-for-hub-members) are explicit.
+The user deferred participant accounts and accepted terms to later onboarding. They do not block
+generalized implementation or independent deployment preparation. Live offer activation will
+collect the relevant member's acceptance at that later boundary.
+
 - [x] Record member issuance, assisted onboarding, ownership/approval and shared-pool decisions.
 - [x] Select the TAS three-participant shared-brief example and two-member-asset exchange.
-- [ ] M1 issuer terms and controls confirmed.
-- [ ] M2–M4 member deployment, authority and configuration proof complete.
+- [x] M1 labeled rehearsal terms and controls, plus recommended generalized defaults, prepared.
+- [x] M2–M4 focused member deployment, authority, configuration and receipt-adoption proof complete.
+- [x] Complete the full selected critical local aggregate in this signed implementation checkpoint.
 - [ ] M5–M6 data/UI integration and signing proof complete.
-- [ ] M7 connected member/collective rehearsal complete.
+- [x] M7 connected member/collective contract rehearsal complete with fictional participants and transport.
+- [ ] Later onboarding: collect actual member terms/control acceptance and authenticated issuer proof.
 - [ ] M8 affected candidate, deployed readback and live smoke complete.
 
 Planning record: member and garden issuer amendment | Type: planning | Outcome: complete

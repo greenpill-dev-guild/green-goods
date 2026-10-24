@@ -15,7 +15,6 @@ import {
   executeLiveServiceCall,
   hasActiveServiceSubmission,
   parsePending,
-  sessionIdentity,
   verifyWalletExecution,
 } from "./service-access-live-submission";
 import type {
@@ -26,6 +25,7 @@ import type {
   ServiceAccessSnapshot,
 } from "./service-access-types";
 import { voucherSetupAvailableActions } from "./service-access-voucher";
+import { assertServiceActor } from "./service-actor-session";
 
 export interface ServiceLiveSession {
   address: Address | null;
@@ -58,31 +58,15 @@ export function createLiveServiceAccessAdapter(
         route.sourceChainId === key.sourceChainId && same(route.core.address, key.coreModule)
     );
   const assertSession = async (key: ServiceAccessKey, expected?: string, chainId?: number) => {
-    const session = deps.session();
-    const sender = deps.sender();
-    if (!session.online) throw new Error("Service actions require an online connection");
-    if (
-      !sender ||
-      !sender.assertOwnership ||
-      !same(session.address, key.buyer) ||
-      sender.authMode !== session.authMode ||
-      (session.authMode !== "wallet" &&
-        !(session.authMode === "passkey" && session.profile === "kernel-0.3.3-pilot")) ||
-      (expected && sessionIdentity(session) !== expected)
-    )
-      throw new Error("Service account or session changed; review again");
-    await sender.assertOwnership(key.buyer, chainId ?? key.sourceChainId);
-    if (session.authMode === "wallet") {
-      const codes = await Promise.all([
-        chain.code(key.sourceChainId, key.buyer),
-        chain.code(100, key.buyer),
-      ]);
-      if (codes.some((code) => code !== "0x"))
-        throw new Error("The pilot wallet fallback requires the selected member-owned EOA");
-    }
-    if (sessionIdentity(deps.session()) !== sessionIdentity(session))
-      throw new Error("Service account or session changed; review again");
-    return sender;
+    return assertServiceActor(
+      key.buyer,
+      chainId ?? key.sourceChainId,
+      key.sourceChainId,
+      deps.session,
+      deps.sender(),
+      chain,
+      expected
+    );
   };
   const read = async (key: ServiceAccessKey, reconcile = true): Promise<ServiceAccessSnapshot> => {
     const route = routeFor(key);

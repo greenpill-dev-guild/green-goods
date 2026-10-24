@@ -30,11 +30,7 @@ const nullableHash = (value: unknown) => {
   return parsed === ZERO ? null : parsed;
 };
 
-export function mapVoucherAuthorization(
-  raw: unknown,
-  key: ServiceAccessKey,
-  source: string
-): ServiceVoucherAuthorization {
+export function parseVoucherAuthorization(raw: unknown): ServiceVoucherAuthorization {
   const a = tuple(raw, AUTH_FIELDS);
   if (a.version !== 2 || a.remedyPolicy !== 1) throw new Error("Unsupported voucher authorization");
   const parsed: ServiceVoucherAuthorization = {
@@ -64,11 +60,6 @@ export function mapVoucherAuthorization(
     remedyPolicy: 1,
   };
   if (
-    parsed.sourceChainId !== key.sourceChainId ||
-    parsed.sourceModule !== source.toLowerCase() ||
-    parsed.coreModule !== key.coreModule.toLowerCase() ||
-    parsed.commitmentId !== key.commitmentId ||
-    parsed.buyer !== key.buyer.toLowerCase() ||
     parsed.termsRevision === 0n ||
     parsed.requestNonce === 0n ||
     parsed.voucherUnits === 0n ||
@@ -89,6 +80,19 @@ export function mapVoucherAuthorization(
       parsed.buyerGarden,
       parsed.providerGarden,
     ].some((v) => /^0x0{40}$/.test(v))
+  )
+    throw new Error("Voucher authorization identity mismatch");
+  return parsed;
+}
+
+export function mapVoucherAuthorization(raw: unknown, key: ServiceAccessKey, source: string) {
+  const parsed = parseVoucherAuthorization(raw);
+  if (
+    parsed.sourceChainId !== key.sourceChainId ||
+    parsed.sourceModule !== source.toLowerCase() ||
+    parsed.coreModule !== key.coreModule.toLowerCase() ||
+    parsed.commitmentId !== key.commitmentId ||
+    parsed.buyer !== key.buyer.toLowerCase()
   )
     throw new Error("Voucher authorization identity mismatch");
   return parsed;

@@ -60,6 +60,14 @@ export const commitmentPoolingKeys = {
       buyer.toLowerCase(),
       rehearsal ? "local-rehearsal" : "indexed",
     ] as const,
+  issuerOperations: (account?: Address | null, routeId?: string, assetId?: string) =>
+    [
+      ...commitmentPoolingKeys.all(100),
+      "issuer-operations",
+      normalizeAddress(account ?? undefined),
+      routeId,
+      assetId,
+    ] as const,
   /**
    * Chain-free on purpose: content at a CID is the same bytes everywhere, so a
    * title resolved on one chain is the same title on another.

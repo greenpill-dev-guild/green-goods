@@ -16,7 +16,8 @@ For each willing member, record a public-safe service description and explicit a
 - Their token-owning account, reserve, source approval authority, mint writers and separate
   upgrade/recovery powers. Keep private member associations and credential evidence outside Git.
 - Total initial issuance, remaining service capacity, initial reserve/pool inventory, finite adapter
-  allowance and accepted-undelivered obligations. No numerical default is selected here.
+  allowance and accepted-undelivered obligations. The recommendations below are starting points
+  for later onboarding, rather than current member approvals.
 - Pool admission, an agreed quote/rate and fees, and a holding cap with usable swap headroom.
   Neither admission nor an inventory cap guarantees demand or delivery.
 - Exact offer and booking approvals; the steward may assist but cannot approve as the issuer.
@@ -44,7 +45,84 @@ be explicit and labeled, with no automatic promotion into live values.
 
 Before live issuer configuration, each real member still needs to confirm their account, service,
 capacity, issuance, source authority, allowance, rate/fees, remedies and upgrade/recovery powers.
-No selected numeric member rate, funded reward or delegated authority is recorded here.
+No live member rate, funded reward or delegated authority is approved here.
+
+### Recommended defaults for hub members
+
+**Recommendation requested on 23 October Pacific:** participant names and accounts are later
+onboarding inputs. They do not block generalized implementation, deployment preparation, or
+independent protocol deployment. Prepare the reusable setup now and collect member-specific
+acceptance when that member is ready to activate an offer. These recommendations do not replace
+the accepted collective issuer baseline below or promote fictional fixture values into live inputs.
+
+Start with one clearly bounded service per willing issuer. Use the same review and accounting
+rules for individuals and collectives, while allowing different service units, prices and capacity.
+An hour of coaching, a reserved hub visit and a defined repair are different promises; a shared
+pool does not make their value or delivery evidence interchangeable.
+
+| Setting | Recommended starting point | Why / boundary |
+|---|---|---|
+| Service definition | One voucher buys one published standard service unit, with scope, exclusions, booking window, evidence and remedy. A sixty-minute session is a useful example, not a mandatory unit. | Holders can understand the obligation before exchanging or booking. Keep service units separate from token base units. |
+| Initial issuance | At most six standard service units per new member, and less when their confirmed available capacity is lower. Review capacity over a published two-to-four-week booking window. | This is a conservative operational starting ceiling, not evidence of capacity or an immutable token supply cap. Existing accepted bookings and other claims reduce available capacity. |
+| Initial inventory | Of those six units, provisionally place two in the existing shared pool and retain four in the issuer reserve. Scale both down with issuance. | Pool stock and reserve stock are parts of the same issuance, with separate custody and spending paths. An issuer may start smaller; no additional pool is needed. |
+| Reward adapter allowance | Approve only the next explicitly reviewed reward tranche, initially at most one standard unit, and never more than usable reserve and remaining uncommitted capacity. | A finite allowance is separate from issuance and pool admission. Revocation stops future pulls; it does not cancel an already accepted obligation. |
+| Pool holding ceiling | Start no higher than the approved total initial issuance; for the six-unit example, six. | Two starting units leave four units of incoming exchange headroom. The holding limiter is not an issuance limit, delivery guarantee or per-person transfer limit. |
+| Exchange rates | Agree a price index for each offer. A 1:1 gross ratio is a simple rehearsal default only when issuers accept it; allow other reviewed ratios. | No cash peg, universal hourly wage or automatic parity across member services. The fixture's 2:1 exchange remains an independent test case. |
+| Fees and quote review | Recommend zero configurable pool fee initially. Read the actual protocol fee and net quote; review exact input, minimum output and deadline for each exchange. | Zero pool fee can still produce a protocol fee. Use spendable output inventory after reserved fees, rather than raw token balance. |
+| Control | For a member who accepts the simple control model, use their selected account as token owner, reserve, source approver and direct factory upgrade administrator. Keep protocol pool/source administration with the existing owner Safe. | Steward assistance does not substitute a signature or grant minting, reserve access or member upgrade power. Do not create a member Safe automatically. Record the member's chosen account recovery procedure separately. |
+| Booking and remedies | Publish availability; propose a response within two business days. Require exact consent, issuer approval and escrow before activation. For a divisible service, agree partial-delivery arithmetic before booking. | Fix one holder-approved delivered/refundable allocation. A timeout, transfer or issuer assertion does not establish delivery. A non-divisible deliverable needs its own accepted outcome rule. |
+| Capacity refresh | Review outstanding obligations and delivered service before another issuance or allowance tranche. Reapprove any added capacity explicitly. | Returned vouchers are inventory, not renewed service capacity. Token balances alone cannot establish how much work an issuer can still deliver. |
+
+For example, a member who can reliably offer only three sessions should start with three units,
+perhaps one in the pool and two in reserve. Six is a suggested upper starting point, not a target
+to fill. Reserve stock also needs coverage for existing approved rewards; moving it into the
+pool cannot leave those obligations uncovered. Increase inventory after observed delivery and
+issuer review, rather than automatically in response to swap demand.
+
+The fee distinction follows the pinned published
+[CLC protocol specification](https://github.com/cosmo-local-credit/protocol/blob/ce090fd3d5a7493c726fb939da39af15ef1c9d7c/docs/SPEC.md):
+the raw quote precedes fees, the output quote is net, and output-side reserved fees reduce usable
+inventory. The numerical operating recommendations above are local judgment for this pilot,
+not requirements or economic guarantees from that specification.
+
+During later onboarding, bind these choices to the actual account, approved terms revision,
+deployed assets and receipt-backed route. Source-chain earned-voucher approval and Gnosis booking
+approval remain distinct signing steps. Current generalized UI or contract rehearsal evidence does
+not claim that either live ceremony has occurred.
+
+### Fictional rehearsal parameters
+
+The local contract rehearsal uses the following explicit examples. They exercise the integration;
+they are not actual issuer acceptance or deployment inputs.
+
+| Fixture | Separate project deliverable and reward | Peer service |
+|---|---|---|
+| Designer | Website design; one engineer voucher, funded with the engineer's exact finite grant | No issued service asset |
+| Analyst | Project impact summary; one TAS voucher | Standalone measurement coaching, separate from the project summary |
+| Engineer | Website implementation; one GG voucher | Standalone integration lesson, separate from the website implementation |
+
+Each project commitment has its own acceptance, evidence and outcome under the shared brief.
+The two member assets use six decimals, with six vouchers minted per member: two in the existing
+shared pool and four in that member's reserve. In this fixture, each member is token owner,
+reserve, source approver and direct factory upgrade administrator. No new member Safe or timelock
+is created. These control choices require a separate real-member decision before live use.
+
+The fictional analyst/engineer price indices are one/two, with zero configured fees. The analyst
+exchanges two newly issued analyst vouchers for one engineer voucher. This spends the analyst's
+own service promise, independently of the TAS reward; it does not pay for the same work twice.
+The pool holds both member assets alongside GG/TAS, with a six-voucher holding cap per member
+asset. Finite member reserve allowances and exact booking approvals remain separate actions.
+
+The analyst then books a sixty-minute integration lesson for the received engineer voucher.
+After consent, escrow, steward acceptance and activation, an immutable thirty-minute delivered /
+thirty-minute undelivered outcome returns half a voucher to the engineer reserve and refunds half
+to the analyst. It does not reverse the exchange. Financial closure does not label the whole
+sixty-minute core promise fulfilled. Returned vouchers do not replenish consumed service capacity.
+
+The resulting engineer balances are reserve 3.5, pool 1, designer 1, analyst 0.5 and escrow 0;
+the analyst asset remains reserve 2 and pool 4. Both sums remain six. The analyst retains the
+separate TAS reward, and the engineer retains the separate GG reward. Optional G$ is zero in
+this example and remains an independent Celo route.
 
 ## Existing collective issuer baseline
 

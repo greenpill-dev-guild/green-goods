@@ -50,17 +50,36 @@ export interface ServiceLiveChain {
   balance(chainId: number, account: Address): Promise<bigint>;
 }
 
-async function verifyDeployment(
+export async function verifyServiceDeploymentState(
   pin: ServiceDeploymentPin,
   chainId: number,
   chain: ServiceLiveChain
 ) {
-  const [receipt, code, slot, implementation, owner] = await Promise.all([
-    chain.receipt(chainId, pin.receipt.transactionHash),
+  const [code, slot, implementation, owner] = await Promise.all([
     chain.code(chainId, pin.address),
     chain.storage(chainId, pin.address, IMPLEMENTATION_SLOT),
     chain.code(chainId, pin.implementation.address),
     chain.read({ chainId, address: pin.address, abi: OWNER, functionName: "owner" }),
+  ]);
+  if (
+    code === "0x" ||
+    !same(keccak256(code), pin.runtimeCodeHash) ||
+    !/^0x0{24}[a-f0-9]{40}$/i.test(slot) ||
+    !same(`0x${slot.slice(-40)}`, pin.implementation.address) ||
+    implementation === "0x" ||
+    !same(keccak256(implementation), pin.implementation.runtimeCodeHash) ||
+    !same(address(owner), pin.owner)
+  )
+    throw new Error("Service deployment receipt, implementation or owner changed");
+}
+export async function verifyServiceDeployment(
+  pin: ServiceDeploymentPin,
+  chainId: number,
+  chain: ServiceLiveChain
+) {
+  const [receipt] = await Promise.all([
+    chain.receipt(chainId, pin.receipt.transactionHash),
+    verifyServiceDeploymentState(pin, chainId, chain),
   ]);
   let targetMatches = [receipt.to, receipt.contractAddress].some(
     (value) => value && same(value, pin.address)
@@ -133,14 +152,7 @@ async function verifyDeployment(
     !same(receipt.transactionHash, pin.receipt.transactionHash) ||
     receipt.blockNumber !== pin.receipt.blockNumber ||
     !same(receipt.blockHash, pin.receipt.blockHash) ||
-    !targetMatches ||
-    code === "0x" ||
-    !same(keccak256(code), pin.runtimeCodeHash) ||
-    !/^0x0{24}[a-f0-9]{40}$/i.test(slot) ||
-    !same(`0x${slot.slice(-40)}`, pin.implementation.address) ||
-    implementation === "0x" ||
-    !same(keccak256(implementation), pin.implementation.runtimeCodeHash) ||
-    !same(address(owner), pin.owner)
+    !targetMatches
   )
     throw new Error("Service deployment receipt, implementation or owner changed");
 }
@@ -157,9 +169,9 @@ export async function verifyServiceLiveRoute(route: ServiceLiveRoute, chain: Ser
   )
     throw new Error("Invalid reviewed service route");
   await Promise.all([
-    verifyDeployment(route.core, 42161, chain),
-    verifyDeployment(route.source, 42161, chain),
-    verifyDeployment(route.destination, 100, chain),
+    verifyServiceDeployment(route.core, 42161, chain),
+    verifyServiceDeployment(route.source, 42161, chain),
+    verifyServiceDeployment(route.destination, 100, chain),
   ]);
   const read = (chainId: number, account: Address, abi: Abi, functionName: string) =>
     chain.read({ chainId, address: account, abi, functionName });

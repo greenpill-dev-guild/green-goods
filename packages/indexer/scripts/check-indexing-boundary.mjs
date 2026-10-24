@@ -207,6 +207,11 @@ ALLOWED_CONTRACT_EVENTS.GnosisVoucherEscrow = new Set([
   "RedemptionActionResult", "RedemptionAcknowledgmentSent", "RedemptionAcknowledgmentFailed",
 ]);
 
+ALLOWED_CONTRACT_EVENTS.VoucherEntitlementModule = new Set(["IssuerAuthorityConfigured"]);
+// Destination definitions remain inert until verified Gnosis deployment adoption.
+ALLOWED_CONTRACT_EVENTS.GnosisVoucherAdapter = new Set(["AssetConfigured"]);
+ALLOWED_CONTRACT_EVENTS.CLCSwapPool = new Set(["SwapSettlement"]);
+
 const ALLOWED_CONTRACTS = new Set(Object.keys(ALLOWED_CONTRACT_EVENTS));
 const ALLOWED_CONTRACTS_BY_CHAIN = new Map([
   [
@@ -225,6 +230,7 @@ const ALLOWED_CONTRACTS_BY_CHAIN = new Map([
       "GreenWill",
       "CookieJarFactory",
       "CommitmentPoolingModule",
+      "VoucherEntitlementModule",
       "CommitmentRegistry",
       "SettlementModule",
       "CreditRegistry",

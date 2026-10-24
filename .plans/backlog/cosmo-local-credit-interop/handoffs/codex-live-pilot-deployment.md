@@ -1,7 +1,45 @@
 # Controlled live pilot deployment package
 
 **Current target:** Saturday, 24 October 2026 Pacific. Deck Saturday; participant testing Sunday
-and Monday, 25–26 October. This package is in preparation; no broadcast is claimed.
+and Monday, 25–26 October. Remaining pilot components are in preparation; the completed Hats
+upgrade has its separate canonical receipts below.
+
+**Current continuation, 24 October UTC:** the selected pilot account completed authenticated
+Brave passkey signing, with its sponsored Gnosis proof independently checked against canonical
+chain state. The active profile derives the same new participating address across the three
+networks. This closes that selected account's proof; it does not migrate the original account
+or establish possession and approval for every future member issuer. Private account evidence
+remains outside this repository.
+
+The independent source-upgrade executor is signed in `af3318854`, with its 44 intended file
+hashes matching the tested inputs and all six signed-head supply-chain checks passing. No source
+upgrade was broadcast. The accepted member-issuer amendment now has bounded local preparation:
+the unchanged ten-deployment collective plan plus two explicit member tokens, canonical
+receipt-prefix adoption, and the three-person TAS project / peer-service exchange rehearsal.
+The owning Gnosis suite passed 21 cases; its four member cases exercise ownership, exact
+approval, finite reserves, exchange and immutable partial service settlement on published
+dependencies. The extended preparation passed fresh twelve-deployment, eleven-receipt resume
+and complete twelve-receipt adoption probes on owned forks. These are fictional rehearsals,
+with synthetic signers and transport; they establish no live member acceptance or capacity.
+
+The complete contract verifier passed: 2,211 Solidity cases, three production gas fixtures,
+37 CLI cases and 693 script cases. A comment-only test-subject declaration was added before its
+Vitest phase; executable TypeScript and Solidity inputs stayed unchanged. Shared issuer operations,
+truthful Indexer projections and existing Admin/Client journey wiring have focused proof; their
+final aggregate is in progress. Gnosis indexing and live issuer routes
+remain unbound until verified deployment adoption. The user clarified that actual participant
+accounts and service terms are later onboarding inputs, not blockers for generalized work or
+independent deployment preparation. The [recommended member defaults](../pilot-issuer-terms.md#recommended-defaults-for-hub-members)
+now propose bounded capacity, small initial issuance, finite approvals and separate control and
+recovery choices. Collect member-specific acceptance when activating that offer; do not request
+the roster as a prerequisite for the current work. The [fictional rehearsal](../pilot-issuer-terms.md#fictional-rehearsal-parameters)
+remains separately labeled. No extra member funding or new transaction signature is requested
+by this preparation checkpoint.
+
+Source-chain earned-voucher `approveTerms(commitmentId, revision)` is a distinct operator-assisted
+member signing step. The new Gnosis `approveSetupAuthorization(setupId, authorizationHash)`
+booking control does not replace it; the existing `earned-consent-unavailable` app gate remains.
+Contract rehearsal proof therefore does not establish a complete live earned-voucher UI ceremony.
 
 **Latest continuation, 23 October at 11:42 a.m. Pacific:** the user retains the same-address
 requirement and explicitly advances independent deployment while member activation stays
@@ -1549,3 +1587,90 @@ Agent/model: Codex; model unknown | Coverage: completed account proof, guarded e
 
 Human corrections: 0 observed in this segment; attention: unknown. Phase intervals overlap and
 are not effort totals. This record does not close the hub or certify remaining live deployments.
+
+## Generalized member setup and implementation checkpoint, 24 October UTC
+
+Participant accounts and accepted service terms are deferred to later onboarding by the user.
+They are not prerequisites for the current generalized implementation or independent protocol
+deployment preparation. The [recommended defaults](../pilot-issuer-terms.md#recommended-defaults-for-hub-members)
+start each willing member with one bounded offer and at most six covered standard units, fewer
+when capacity is lower. The example allocates two units to the existing pool and four to reserve,
+with an initial reward allowance of at most one. Rates are offer-specific; no uniform hourly
+valuation, cash peg, automatic capacity renewal or live member approval is inferred.
+
+The [local proof record](../artifacts/member-issuer-local-proof-2026-10-24.json) owns the exact
+contract preparation and rehearsal scope. The successful contract verifier took 2,448 seconds.
+Its earlier attempt timed out rebuilding source compiler evidence: 687 script cases passed and
+six could not run after the hook failure. The successful rerun used the original completed
+compiler job through the supported test input; no compiler output, runtime code or timeout was
+edited. Its 693 script cases all passed. The eighteen current contract file hashes match the
+verified snapshot. The collective v1 plan remains unchanged; member tokens use an explicit
+extension and receipt-prefix adoption without replaying existing deployments.
+
+The eighteen contract inputs are now signed in checkpoint `bb6ce766b` (good SSH signature);
+committed blobs match the verified snapshot. No broadcast occurred. This application checkpoint
+contains the remaining implementation and recommendations; the source-bound public plan follows.
+Docs build and search indexing pass for all 77 routes. The final exact default-timeout Docs run
+passes all 99 tests. Two earlier default-5,000-ms attempts had varying timing failures; a separate
+99-case pass used the recorded local `--timeout 30000` override. No repository timeout changed.
+The two generated quality-guide digests changed because
+the existing validation policy now includes the new signing entry points.
+
+Shared focused proof covers 116 issuer/buyer cases, including demonstrated failures for mutable
+session state, offline/account/generation changes and the wallet auth-mode branch across an
+await. Final source and test types pass separately. Canonical own-operation events establish
+execution even if later activity spends a balance or allowance; missing/foreign effects retain
+pending state. Positive-fee published-binary proof distinguishes gross, nominal and observed
+output and excludes reserved output fees from usable liquidity. It does not promise a reviewed
+estimate after broadcast; signed minimum output and exact delivery remain binding.
+
+The Indexer suite has 366 passes and one existing pending case. Source issuer authority,
+reserve configuration and immutable pool settlement remain distinct projections; no event
+invents service delivery, capacity, recipient or acceptance provenance. Gnosis ingestion stays
+unbound until actual deployment adoption. Client focused proof has 24 cases, and the Admin
+onboarding/profile integration has 13. Storybook in Brave rendered fictional balances, exact
+booking review and owner-Safe drafts. Later partial-story rendering hit a Storybook manager
+error and remains unverified. New issuer signing is a later activation ceremony. The completed
+selected account proof does not replace source `approveTerms` or Gnosis booking approval.
+
+The two new signing entry points were added to the existing critical validation exact list;
+the pre-existing classifier regression failed before those additions. All 105 selector cases
+and the full 406-case validation-system suite then passed. No permission, test baseline or
+critical override was weakened. Dependency manifests and lockfiles remain unchanged.
+
+Review limitation: one independent review read upstream implementation files despite the
+documentation-only constraint. No implementation was copied, imported or vendored. Further
+reads stopped; the fee correction was independently checked against the pinned published
+specification and actual deployed binaries. Do not describe that review as clean-room.
+
+The complete default Shared scope passed through its three supported project selections:
+7,756 tests passed, with sixteen existing skips across two skipped files. The initial combined
+attempt was stopped after twenty-four minutes without results; its log is retained. No case or
+critical override was removed. Client passed 1,820 tests, Admin 1,340, and Agent 558 unit plus 218
+SQLite cases with one existing unit skip. All three application builds passed. The final 4,049
+public source and candidate hashes still match the aggregate; the foreign Portuguese translation
+is preserved outside this checkpoint. These are exact-input local results, not current-head CI.
+
+The first remaining deployment package is the independent Arbitrum source upgrade: 23 ordered
+zero-value implementation CREATEs, then the four original-owner Safe pause/upgrade calls, ending
+paused. The user can generate its current public plan from the repository root with
+`bun run contracts -- release source-upgrades --mode plan`. This command compiles and writes a
+plan; it does not broadcast or request a transaction signature. The CLI loads the protected root
+environment, so this one command runs in the operator's normal terminal. Review that plan, rehearse
+it, and prepare the bounded execution envelope before issuing the exact first CREATE command.
+After each broadcast, verify its canonical receipt and state before the next boundary. Existing
+2-of-5 Safe approval remains necessary for owner calls. No member roster, service price or live
+issuer acceptance is needed for these independent paused protocol deployments.
+
+Task record: Cosmo-local live pilot | Type: feature/fix | Outcome: partial; local implementation proof complete, public deployment plan next
+Agent/model: Codex; model unknown | Coverage: continuation observed from 01:38:16 UTC onward
+
+| Phase | Start → end (UTC, 24 October 2026) | Result / evidence |
+|---|---|---|
+| implement/review | unknown → 04:28:40 | Generalized defaults, member release extension, issuer controls and existing journeys; bounded guard and test-ownership corrections |
+| verify, contracts | 01:47:27 → 02:28:15 | Successful complete contract verifier; exact current inputs and original compiler evidence retained |
+| verify, integration | 01:38:16 → 04:26:39 | Full selected suites/builds, default-timeout Docs proof and final exact-input matching passed; public proof record owns counts |
+
+Human corrections: 1 observed in this segment, deferring onboarding inputs instead of treating
+them as current blockers; attention: unknown. Intervals overlap and are not effort totals.
+No source upgrade, member activation, publication or merge is claimed by this checkpoint.

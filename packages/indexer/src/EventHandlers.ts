@@ -41,3 +41,4 @@ import "./handlers/voucher-service-source";
 import "./handlers/voucher-service-custody";
 import "./handlers/voucher-service-final";
 import "./handlers/voucher-service-acks";
+import "./handlers/voucher-issuer";

@@ -8,7 +8,7 @@ generated: true
 generator: scripts/docs/generate.mjs
 generated_from:
   - packages/contracts/script/cli/operations.mjs
-source_digest: "sha256:4df7044a2b7002530fc23d25b6aa8518526117154e5356a0e12fdd7dbe6f0e6c"
+source_digest: "sha256:0314d604dbe274cfe76687b39879c0eb034d1e79dd441df29f5d120f7623eb28"
 source_of_truth:
   - packages/contracts/script/cli/operations.mjs
 ---
@@ -155,6 +155,11 @@ Options: `--manifest <value>`, `--plan <value>`, `--output <value>`.
 |---|---|---|
 | <CopyCommand command="bun run contracts -- release vouchers --mode &lt;mode&gt;" /> | not network-scoped | preflight, plan, simulate |
 | <CopyCommand command="bun run contracts -- release steward-safe --mode &lt;mode&gt;" /> | not network-scoped | preflight, plan, simulate |
+
+Options: `--manifest <value>`, `--members <value>`, `--receipts <value>`, `--plan <value>`, `--output <value>`.
+
+| Command | Networks | Modes |
+|---|---|---|
 | <CopyCommand command="bun run contracts -- release clc --mode &lt;mode&gt;" /> | not network-scoped | preflight, plan, simulate |
 
 Options: `--stage <value>`, `--commit <value> (required)`.
@@ -163,7 +168,7 @@ Options: `--stage <value>`, `--commit <value> (required)`.
 |---|---|---|
 | <CopyCommand command="bun run contracts -- release operator --commit &lt;value&gt;" /> | not network-scoped | none |
 
-Options: `--manifest <value>`, `--source-upgrades-plan <value>`, `--steward-safe-plan <value>`, `--vouchers-plan <value>`, `--clc-plan <value>`, `--output <value>`.
+Options: `--manifest <value>`, `--source-upgrades-plan <value>`, `--steward-safe-plan <value>`, `--vouchers-plan <value>`, `--clc-plan <value>`, `--clc-members <value>`, `--output <value>`.
 
 | Command | Networks | Modes |
 |---|---|---|

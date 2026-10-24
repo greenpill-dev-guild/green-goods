@@ -20,6 +20,7 @@ import { poolStatusChip } from "@/views/Garden/Pool/poolPresentation";
 import { HubConfirmQueue } from "@/views/Hub/components/HubConfirmQueue";
 import { ProtocolFundingOperationsPanel } from "./ProtocolFundingOperationsPanel";
 import { SettlementOperationsPanel } from "./SettlementOperationsCard";
+import { VoucherIssuerOnboarding } from "./VoucherIssuerOnboarding";
 
 export interface CommunityPoolsProps {
   chainId: number;
@@ -315,6 +316,7 @@ function ProtocolOperations({
                 {funding}
                 {gardenPool}
                 <SettlementOperationsPanel chainId={chainId} />
+                <VoucherIssuerOnboarding canPrepare={toConfirm.isProtocolSteward} />
                 {railContent}
               </div>
             </aside>

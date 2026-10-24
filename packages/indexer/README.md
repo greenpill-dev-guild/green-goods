@@ -127,6 +127,22 @@ populate them. The client resolves those values from ENS text records.
 
 ### Service-access projections (dormant endpoints)
 
+`VoucherIssuerAuthority` records the latest source issuer/token authority binding, including
+revocation. On Arbitrum, the configured core's `EarnedVoucherModulePinned` event discovers that
+local source module. It does not register an address on another chain or change previously
+snapshotted terms approvals.
+
+`VoucherReserveAsset` records issuer-owned adapter configuration. `VoucherPoolExchange` preserves
+the exact amounts and fees emitted by `SwapSettlement`, identified by chain, pool, transaction
+and log index. The event omits the output recipient, so this projection does not infer one.
+Neither record establishes issuance, service delivery or renewed capacity. Individual/collective
+identity, service units and approval provenance remain explicit reviewed metadata in Shared;
+these facts are not emitted by the configuration events.
+
+The Gnosis adapter, escrow and pool definitions are codegen-only until verified deployment
+receipts supply the chain, addresses and replay boundaries. No Gnosis ingestion or hosted
+deployment is claimed by the local projection tests.
+
 The additive service data contract contains `ServiceOfferRevision`, `ServiceClaimConsent`,
 `PersonalServicePurchase`, `PersonalServiceDepositReceipt`, `VoucherEndpointConfiguration`,
 `VoucherRedemption`, `VoucherRedemptionCustody`, `VoucherRedemptionAction`,

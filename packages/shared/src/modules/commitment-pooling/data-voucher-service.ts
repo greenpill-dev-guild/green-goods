@@ -35,6 +35,51 @@ function scope(value: unknown, chain: number, module: Address, setupId?: Hex) {
   return r;
 }
 
+/** Issuer discovery is a scoped hint, never a balance, obligation total or signing authority. */
+export async function discoverIssuerVoucherSetups(
+  input: { chainId: 100; escrow: Address; issuer: Address; token: Address },
+  reader: GraphQLReader
+): Promise<{
+  records: { setupId: Hex; authorizationHash: Hex; holder: Address }[];
+  partial: boolean;
+}> {
+  const result = await reader.query<{ VoucherServiceCustody: unknown[] }>(
+    `query IssuerVoucherSetups($chain: Int!, $escrow: String!, $issuer: String!, $token: String!) {
+      VoucherServiceCustody(where: {chainId: {_eq: $chain}, moduleAddress: {_eq: $escrow}, issuer: {_eq: $issuer}, token: {_eq: $token}, authorizationSeen: {_eq: true}}, order_by: {id: asc}, limit: 101) {
+        id chainId moduleAddress setupId issuer token holder authorizationSeen authorizationHash
+      }
+    }`,
+    {
+      chain: input.chainId,
+      escrow: input.escrow.toLowerCase(),
+      issuer: input.issuer.toLowerCase(),
+      token: input.token.toLowerCase(),
+    },
+    "discoverIssuerVoucherSetups"
+  );
+  if (result.error) throw result.error;
+  if (!Array.isArray(result.data.VoucherServiceCustody))
+    throw new Error("Issuer booking discovery unavailable");
+  const seen = new Set<string>();
+  const records = result.data.VoucherServiceCustody.slice(0, 100).map((value) => {
+    const r = scope(value, input.chainId, input.escrow);
+    const setupId = serviceHash(r.setupId);
+    const authorizationHash = serviceHash(r.authorizationHash);
+    if (
+      seen.has(setupId) ||
+      r.id !== `${input.chainId}-${input.escrow.toLowerCase()}-${setupId}` ||
+      !serviceFlag(r.authorizationSeen) ||
+      serviceAddress(r.issuer) !== input.issuer.toLowerCase() ||
+      serviceAddress(r.token) !== input.token.toLowerCase() ||
+      authorizationHash === SERVICE_ZERO_HASH
+    )
+      throw new Error("Issuer booking discovery identity mismatch");
+    seen.add(setupId);
+    return { setupId, authorizationHash, holder: serviceAddress(r.holder) };
+  });
+  return { records, partial: result.data.VoucherServiceCustody.length > 100 };
+}
+
 /** Discovery is scoped to the core-pinned source module, never a bare setup hash. */
 export async function discoverVoucherSetups(
   key: ServiceAccessKey,
