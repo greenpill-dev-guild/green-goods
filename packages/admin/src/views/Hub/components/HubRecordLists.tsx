@@ -252,12 +252,10 @@ export function HubHypercertList({
               id: "app.hypercerts.list.dateUnknown",
               defaultMessage: "Date unavailable",
             });
-        const works = hypercert.attestationCount
-          ? formatMessage(
-              { id: "app.hypercerts.list.workCount" },
-              { count: hypercert.attestationCount }
-            )
-          : null;
+        const works = formatMessage(
+          { id: "app.hypercerts.list.workCount" },
+          { count: hypercert.attestationCount ?? 0 }
+        );
         return (
           <li key={hypercert.id} className="min-w-0">
             <ItemRow
@@ -269,7 +267,7 @@ export function HubHypercertList({
                   defaultMessage: "Untitled hypercert",
                 })
               }
-              details={works ? [minted, works] : [minted]}
+              details={[minted, works]}
               onOpen={() => onOpenHypercert(hypercert.id)}
             />
           </li>

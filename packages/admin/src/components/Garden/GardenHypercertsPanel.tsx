@@ -79,17 +79,13 @@ export const GardenHypercertsPanel: React.FC<GardenHypercertsPanelProps> = ({
                     <ItemRow
                       lead={{ kind: "icon", icon: <RiMedalLine /> }}
                       title={title}
-                      details={
-                        record.attestationCount
-                          ? [
-                              mintedDate,
-                              formatMessage(
-                                { id: "app.hypercerts.list.workCount" },
-                                { count: record.attestationCount }
-                              ),
-                            ]
-                          : [mintedDate]
-                      }
+                      details={[
+                        mintedDate,
+                        formatMessage(
+                          { id: "app.hypercerts.list.workCount" },
+                          { count: record.attestationCount ?? 0 }
+                        ),
+                      ]}
                       onOpen={() =>
                         navigate(adminRoutes.gardenHypercertDetail(record.id, gardenRouteContext))
                       }
