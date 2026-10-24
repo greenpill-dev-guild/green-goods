@@ -1063,14 +1063,20 @@
  * STATUS PALETTE REMAP (Tier 1b — admin-scoped global remap)
  * Authority: packages/admin/DESIGN.md and the scoped runtime aliases below.
  *
- * Scope: .admin-m3 only — client PWA's --orange/--red/--sky scales unchanged.
- * Mechanism: redefine the base color RGB triplets inside admin scope; the
- * --warning-* / --error-* aliases in shared theme.css resolve their var()
- * references in this scope and pick up the new values automatically.
+ * Scope: <body>, so the canvas and everything that portals to <body>
+ * (dialogs, side sheets, toasts, popovers) draw one ramp; the client PWA never
+ * loads this file. Storybook mirrors these two blocks for admin stories in
+ * .storybook/surfaces.css, and WorkspaceToneContrast.guard fails when they drift.
+ * Mechanism: redefine the base color RGB triplets below the document root. A
+ * token declared inside the admin tree resolves against them: the workspace
+ * tones on [data-tone] (Community's orange-600 and -700 are #B45309 here, white
+ * at 5.02:1) and the --information-* remap below. The --warning-* / --error-*
+ * aliases and Tailwind's --color-* scale are declared on :root, so they keep
+ * the shared ramp, on the canvas and in portals alike.
  * --information-* historically uses --blue-*, so we additionally remap it
  * to --sky-* so info badges in admin also shift to the handoff azure.
  * ============================================================================ */
-.admin-m3 {
+body {
   /* Link-hover step: the generated DesignMD tertiary-action-hover resolves to
    * a green measuring 4.29:1 on white — one step deeper (green-900, 7.19)
    * keeps the resting→hover darkening while clearing body-text AA. Dark mode
@@ -1124,7 +1130,7 @@
   --information-lighter: var(--sky-50);
 }
 
-[data-theme="dark"] .admin-m3 {
+[data-theme="dark"] body {
   /* Dark-mode handoff palette — slightly lighter shades for AA on dark surfaces */
   --orange-500: 245 158 11;    /* #F59E0B */
   --red-500: 248 113 113;      /* #F87171 */
