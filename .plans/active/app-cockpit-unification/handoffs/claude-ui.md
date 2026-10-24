@@ -381,10 +381,18 @@
   sign, so the item row's detail line turns them off; short addresses set elsewhere in the face
   still do it. `PendingCreationRow` led every request with the offer's seedling. Every
   `StatusBadge` is a polite live region, so a pill that changes is announced.
+- **Found in review** (Codex on #1239): a promise still on the device has no page yet, so the
+  units the row moved to the page showed nowhere; they lead its line now, in the app ahead of its
+  reason and in the cockpit whenever no act phase or reason does (`86682e319`, with the DL-110
+  clause in #1238). In the same commit the other person reads the zero address as nobody, and a
+  row whose line has no room for the person starts no name lookups. Two stories still looked for
+  what the rows replaced (`2e961e4b2`, `8120d6e81`), and the recovery guide still named
+  `QueuedActRow`'s old path (`378131db0`).
 - **Calls for the maintainer's review of the pairs**, each a recommendation made in the build:
   the status edge replaces DL-052's direction edge (the census drew it); the seat sentences ("You
-  took this up") leave the rows for the other person's name; a queued promise's reason ends in an
-  ellipsis on a phone, its full words on hover, and its acts are icon buttons; the pinned
+  took this up") leave the rows for the other person's name; a queued promise leads its details
+  with its units and its reason follows, giving way first on a phone with its full words on
+  hover, and its acts are icon buttons; the pinned
   promise reads its title first with "Proof for" under it and loses its tint, and in Submit Work
   it leads with an unnamed seedling because the work link carries no direction; a group's
   remaining counts drop in Spanish and Portuguese at 384px; the cockpit's "Queued" and "Failed

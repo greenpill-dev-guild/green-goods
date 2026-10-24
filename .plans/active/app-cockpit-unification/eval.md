@@ -733,3 +733,11 @@ the push gate; the row names only an offer or a request (`0f09678aa`). The app's
 queued creation led every request with the offer's seedling. Every `StatusBadge` pill is a polite
 live region, so a pill that changes is announced.
 
+**Found in review.** Codex found that a titled promise still on the device showed its units
+nowhere, since it has no page yet; they now lead its line, so in the app its reason drops whole
+where the fit table above shows an ellipsis, with its full words on hover and for screen readers
+(`86682e319`; the shared row's own stories pass no units, so the table stands for them). The same
+commit reads the zero address as nobody and starts no name lookups for a person the line cannot
+show. Two stories still looked for what the rows replaced (`2e961e4b2`, `8120d6e81`, the second
+caught by Storybook CI).
+
