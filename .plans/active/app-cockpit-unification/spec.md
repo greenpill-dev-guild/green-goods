@@ -270,8 +270,9 @@ Questions raised against the picks, all settled by 18 October:
 - **F8 on desktop: settled.** Each equal-width tab is at most 180px wide on desktop, the row aligned
   left and never wider than the content: 720px for the cockpit's four-tab rows (Hub, Garden,
   Community), 360px for a two-tab row. The longest label, "Coordenação", measures 94px in Plus
-  Jakarta Sans at 14px, about 170px with its icon, count badge and padding. Phones keep full-width
-  tabs.
+  Jakarta Sans at 14px, about 170px with its icon, count badge and padding. Phones fill the width
+  with equal cells, and a row that cannot hold its cells on one line scrolls with its edge fade and
+  snap: the measured deviation DL-100 records (23 October), for the maintainer's review after merge.
 - **Where a card's status sits, and how many lines a title takes: settled.** Raised on 17 October,
   when the pill in the title's corner cut titles off. The
   [card census](artifacts/card-census.html#layouts) measured five placements, and on 18 October the
@@ -632,7 +633,8 @@ on the pair.
 Touches `AdminTabRail`: it gains the equal-width layout and the tinted active cell, and its count
 chip becomes the shared badge. The tab height stays per surface (DL-011).
 
-**Pick, locked on 18 October:** the recommended option.
+**Pick, locked on 18 October:** the recommended option. On phones a row that cannot hold its cells scrolls, the
+measured deviation DL-100 records (23 October).
 
 ### F9 Filter control
 

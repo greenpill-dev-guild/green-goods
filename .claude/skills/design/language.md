@@ -91,8 +91,9 @@ drift from 12px to 20px.
 | Content inside cards, actions inside a field, a pressed app button | 12px | `--radius-squircle` | Concentric | Card or field (16px) - 4px |
 | Fields (DL-022), item rows (DL-102) | 16px | `--radius-lg` · `rounded-lg` · `.gg-control` · `--gg-row-radius` | Concentric | Panel (20px) - 4px |
 | Cards on both surfaces (DL-102) | 24px | `--gg-card-radius` · `.gg-card` | Fixed | None |
-| Panels, sheets | 20px | `--radius-xl` · `rounded-xl` | Concentric | Page (24px) - 4px |
-| Modals, dialogs, bottom sheets | 24px | `--radius-2xl` · `rounded-2xl` | Concentric | Viewport edge |
+| Panels | 20px | `--radius-xl` · `rounded-xl` | Concentric | Page (24px) - 4px |
+| Modals, centered dialogs | 24px | `--radius-2xl` · `rounded-2xl` | Concentric | Viewport edge |
+| Bottom sheets on both surfaces, top corners (DL-104) | 16px | `--radius-lg` · `[data-sheet-surface]` | Fixed | None |
 | Icon buttons | circle | `.gg-icon-button` | Capsule | None |
 | Chips (filters, choices) | capsule | `.gg-chip` · `--radius-full` | Capsule | None |
 | Buttons in the installed app, every emphasis (DL-029) | 16px | `--gg-button-radius` → `--radius-lg` | Fixed | matches the field beside it |
