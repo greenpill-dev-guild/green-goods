@@ -179,6 +179,7 @@ const Work: React.FC = () => {
     <PinnedPromiseCard
       kind="work"
       title={linkIntent.commitmentTitle}
+      direction={linkIntent.direction}
       onOpen={() => setPromiseOpen(true)}
     />
   ) : null;
