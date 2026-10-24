@@ -79,7 +79,7 @@ Use `flex-1` on cards that should expand vertically within a flex container.
 
 ## Rule 7: Filter Alignment (card header rows)
 
-`AdminCardHeader` (and the legacy shared `Card.Header`, now client-only — admin retired shared `Card` on 2026-08-30) defaults to `items-center`; when stacking with `flex-col`, always add `items-start`.
+`AdminCardHeader` defaults to `items-center`; when stacking with `flex-col`, always add `items-start`.
 
 ```tsx
 <AdminCardHeader className="flex-col items-start gap-3">

@@ -83,7 +83,7 @@
     {
       "page": "docs/docs/builders/architecture/design.mdx",
       "images": ["/img/design/shared-tokens-materialroles-role-map.webp"],
-      "capture_note": "The material role map: canvas, sheet, glass, and chrome, light and dark side by side. Open in Storybook."
+      "capture_note": "The material role map: the six surface roles as swatches, and each Material role name beside the Green Goods token it reads. Open in Storybook."
     },
     {
       "page": "docs/docs/builders/architecture/design.mdx",

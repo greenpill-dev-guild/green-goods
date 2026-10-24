@@ -182,10 +182,9 @@ export default function GardenStrategiesView({ layout = "page" }: GardenStrategi
 
           {/* Add strategy form */}
           {canManage && (
-            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-start">
               <AdminTextField
                 label={formatMessage({ id: "app.conviction.strategyAddress" })}
-                variant="outlined"
                 value={newAddress}
                 onChange={(e) => {
                   setNewAddress(e.target.value);
@@ -198,7 +197,7 @@ export default function GardenStrategiesView({ layout = "page" }: GardenStrategi
               <AdminButton
                 type="button"
                 variant="filled"
-                className="w-full sm:w-auto"
+                className="w-full sm:mt-6 sm:w-auto"
                 onClick={handleAddStrategy}
                 disabled={isSaving || !newAddress.trim()}
                 loading={isSaving}
