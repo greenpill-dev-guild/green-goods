@@ -27,6 +27,11 @@ export interface AddressDisplayProps {
    * name, then a short address) and renders it, with no popover or copy button.
    */
   children?: (name: string) => ReactNode;
+  /**
+   * One name in a list of people: its Green Goods name is read with the list's other rows,
+   * in one batch, rather than on its own.
+   */
+  list?: boolean;
 }
 
 export function AddressDisplay({
@@ -36,11 +41,12 @@ export function AddressDisplay({
   interactive = true,
   fallbackLabel,
   children,
+  list = false,
 }: AddressDisplayProps) {
   const intl = useIntl();
   const [copied, setCopied] = useState(false);
   const tooltipId = useId();
-  const { preferredName, display: name } = useAddressDisplayName(address);
+  const { preferredName, display: name } = useAddressDisplayName(address, { list });
   const display = !preferredName && fallbackLabel ? fallbackLabel : name;
 
   // Auto-cleanup timer via useTimeout (Rule 1)
