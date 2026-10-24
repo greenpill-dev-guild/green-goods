@@ -48,7 +48,7 @@ Narrow candidates by:
 | "the toggle row" / "the setting row" | `data-component="AdminSettingRow"` |
 | "the choice chips" / "the option group" | `data-component="AdminChoiceGroup"` |
 | "the selectable card" | `data-component="AdminSelectableCard"` |
-| "the picker card" / "the action card" | a card of the shared action or garden picker: `.gg-media-card[role="radio"]` inside the `role="radiogroup"` (DL-111) |
+| "the picker card" / "the action card" | a card of the shared action or garden picker: `.gg-media-card[role="option"]` inside the `role="listbox"` (DL-111) |
 | "the inline field" | `data-component="AdminInlineField"` |
 | "the garden switcher" / "the garden pill" | `data-component="GardenChip"` (shared 36px pill in the AppBar) |
 | "the work card" | `data-component="HubWorkCard"` |
